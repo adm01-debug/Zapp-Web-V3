@@ -61,7 +61,7 @@
  */
 import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
-import { createZappAdminClient } from "../_shared/db-client.ts";
+import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts";
 import { ApprovePasswordResetSchema, parseBody } from "../_shared/schemas.ts";
 
 Deno.serve(async (req) => {
@@ -83,11 +83,14 @@ Deno.serve(async (req) => {
     if (!parsed.success) return errorResponse(parsed.error, 400, req);
 
     const { requestId, action, rejectionReason } = parsed.data;
+    // Admin client: only for auth.admin.generateLink and store_reset_token RPC (service-role required)
     const supabaseAdmin = createZappAdminClient();
+    // User-scoped client: for all password_reset_requests reads/writes (RLS enforces tenant isolation)
+    const supabaseUser = createZappClient(req);
 
     log.info(`Processing ${action} for request ${requestId}`);
 
-    const { data: resetRequest, error: fetchError } = await supabaseAdmin
+    const { data: resetRequest, error: fetchError } = await supabaseUser
       .from("password_reset_requests")
       .select("*")
       .eq("id", requestId)
@@ -98,7 +101,7 @@ Deno.serve(async (req) => {
 
     if (action === "reject") {
       // Guard with .eq("status","pending") to prevent overwriting an already-approved request.
-      const { count: rejectedCount, error: updateError } = await supabaseAdmin
+      const { count: rejectedCount, error: updateError } = await supabaseUser
         .from("password_reset_requests")
         .update({
           status: "rejected",
@@ -125,7 +128,7 @@ Deno.serve(async (req) => {
     // generateLink — this ensures exactly one token is ever created per request.
     const expiresAt = new Date(Date.now() + 3600000).toISOString();
 
-    const { count: updatedCount, error: updateError } = await supabaseAdmin
+    const { count: updatedCount, error: updateError } = await supabaseUser
       .from("password_reset_requests")
       .update({
         status: "approved",

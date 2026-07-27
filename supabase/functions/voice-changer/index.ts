@@ -50,12 +50,14 @@ Deno.serve(async (req) => {
 
   try {
     // requireServiceRoleOrCron uses constant-time comparison; avoids timing attacks.
+    let authedUserId: string | null = null;
     const internalCheck = requireServiceRoleOrCron(req);
     if (internalCheck !== null) {
       const authed = await requireUser(req);
       if (authed instanceof Response) return authed;
       const rl = checkRateLimit(`voice-changer:${authed.user.id}`, 5, 60_000);
       if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
+      authedUserId = authed.user.id;
     }
 
     const supabaseClient = createZappAdminClient();
@@ -80,11 +82,15 @@ Deno.serve(async (req) => {
 
     // If we have a taskId but no audio, try to fetch from queue/storage
     if (taskId && !audioData) {
-      const { data: task, error: taskError } = await supabaseClient
+      let taskQuery = supabaseClient
         .from('voice_conversion_queue')
         .select('*')
-        .eq('id', taskId)
-        .single();
+        .eq('id', taskId);
+      // Enforce ownership for user callers; service-role/cron (authedUserId===null) skips this
+      if (authedUserId !== null) {
+        taskQuery = taskQuery.eq('user_id', authedUserId);
+      }
+      const { data: task, error: taskError } = await taskQuery.single();
 
       if (taskError || !task) return errorResponse('Task not found', 404, req);
       
