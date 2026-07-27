@@ -214,4 +214,5 @@ design-system-audit.html
 design-system-audit.md
 
 # Relatórios de CI gerados por check-types-schemas.mjs e scripts similares
-reports/
+# /reports/ (root only) to avoid matching src/components/reports/
+/reports/

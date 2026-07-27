@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchContactMessagesForHeatmap } from '@/hooks/useConversationHeatmap';
 import { Badge } from '@/components/ui/badge';
@@ -26,11 +26,7 @@ export function DemandForecast() {
   const [peakHours, setPeakHours] = useState<{ hour: number; avg: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadForecast();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadForecast = async () => {
+  const loadForecast = useCallback(async () => {
     setLoading(true);
     const since = subDays(new Date(), 28);
 
@@ -79,7 +75,11 @@ export function DemandForecast() {
     setPeakHours(peaks);
 
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    void loadForecast();
+  }, [loadForecast]);
 
   const topPeaks = peakHours.slice(0, 5);
   const totalPredicted = historicalData.reduce((s, d) => s + d.predicted, 0);
