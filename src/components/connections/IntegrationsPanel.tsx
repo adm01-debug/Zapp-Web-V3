@@ -47,6 +47,39 @@ export function IntegrationsPanel({
   const [chatwoot, setChatwoot] = useState<Record<string, unknown>>({ enabled: false });
   const [evolutionBot, setEvolutionBot] = useState<Record<string, unknown>>({ enabled: false });
 
+  const loadAll = useCallback(
+    async (isCancelled: () => boolean = () => false) => {
+      const abortController = new AbortController();
+      const load = async (
+        getter: (n: string, signal?: AbortSignal) => Promise<unknown>,
+        setter: (v: Record<string, unknown>) => void
+      ) => {
+        try {
+          const data = await getter(instanceName, abortController.signal);
+          if (isCancelled()) return;
+          if (data && typeof data === 'object')
+            setter({ enabled: true, ...(data as Record<string, unknown>) }); // ignore-audit: narrows Supabase query result to local interface
+        } catch (err) {
+          if (err instanceof Error && err.name === 'AbortError') return;
+          log.error('Unexpected error in IntegrationsPanel:', err);
+        }
+      };
+      try {
+        await Promise.allSettled([
+          load(api.getTypebot, setTypebot),
+          load(api.getOpenAI, setOpenai),
+          load(api.getDify, setDify),
+          load(api.getFlowise, setFlowise),
+          load(api.getChatwoot, setChatwoot),
+          load(api.getEvolutionBot, setEvolutionBot),
+        ]);
+      } finally {
+        if (isCancelled()) abortController.abort();
+      }
+    },
+    [api, instanceName]
+  );
+
   useEffect(() => {
     if (open && instanceName) {
       let cancelled = false;
@@ -56,37 +89,7 @@ export function IntegrationsPanel({
       };
     }
     return undefined;
-  }, [open, instanceName]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadAll = async (isCancelled: () => boolean = () => false) => {
-    const abortController = new AbortController();
-    const load = async (
-      getter: (n: string, signal?: AbortSignal) => Promise<unknown>,
-      setter: (v: Record<string, unknown>) => void
-    ) => {
-      try {
-        const data = await getter(instanceName, abortController.signal);
-        if (isCancelled()) return;
-        if (data && typeof data === 'object')
-          setter({ enabled: true, ...(data as Record<string, unknown>) }); // ignore-audit: narrows Supabase query result to local interface
-      } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return;
-        log.error('Unexpected error in IntegrationsPanel:', err);
-      }
-    };
-    try {
-      await Promise.allSettled([
-        load(api.getTypebot, setTypebot),
-        load(api.getOpenAI, setOpenai),
-        load(api.getDify, setDify),
-        load(api.getFlowise, setFlowise),
-        load(api.getChatwoot, setChatwoot),
-        load(api.getEvolutionBot, setEvolutionBot),
-      ]);
-    } finally {
-      if (isCancelled()) abortController.abort();
-    }
-  };
+  }, [open, instanceName, loadAll]);
 
   const handleSaveTypebot = useCallback(async () => {
     try {

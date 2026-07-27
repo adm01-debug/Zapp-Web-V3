@@ -28,6 +28,7 @@ firebase-adminsdk*.json
 # MCP Configuration (contains credentials - NEVER version)
 .mcp.json
 !.mcp.json.example
+# Credenciais em texto plano (PT-BR e EN)
 *credencia*.txt
 *credential*.txt
 *cred*.txt
@@ -216,7 +217,8 @@ design-system-audit.html
 design-system-audit.md
 
 # Relatórios de CI gerados por check-types-schemas.mjs e scripts similares
-reports/
+# /reports/ (root only) to avoid matching src/components/reports/
+/reports/
 
 # Artefatos históricos de sessões/auditorias (movidos para docs/history/)
 ROUND-15-*.md

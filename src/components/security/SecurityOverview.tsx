@@ -56,7 +56,7 @@ export function SecurityOverview() {
     }
 
     fetchAlerts();
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user, mountedRef]);
 
   // Calculate security score
   const calculateScore = (): SecurityScore => {

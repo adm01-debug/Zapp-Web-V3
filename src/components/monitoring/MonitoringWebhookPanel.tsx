@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,7 +45,7 @@ export function MonitoringWebhookPanel({
   const [loadingSecret, setLoadingSecret] = useState(false);
   const mountedRef = useMountedRef();
 
-  const loadSecretStatus = async () => {
+  const loadSecretStatus = useCallback(async () => {
     setLoadingSecret(true);
     try {
       const { data, error } = await supabase.functions.invoke('webhook-secret-status');
@@ -60,11 +60,11 @@ export function MonitoringWebhookPanel({
     } finally {
       if (mountedRef.current) setLoadingSecret(false);
     }
-  };
+  }, [mountedRef]);
 
   useEffect(() => {
-    loadSecretStatus();
-  }, [mountedRef]);
+    void loadSecretStatus();
+  }, [loadSecretStatus]);
 
   const copyUrl = (url: string) => {
     navigator.clipboard.writeText(url);
@@ -275,7 +275,8 @@ export function MonitoringWebhookPanel({
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
                         URL
                       </p>
-                      <Button aria-label="Copiar"
+                      <Button
+                        aria-label="Copiar"
                         variant="ghost"
                         size="sm"
                         className="h-5 w-5 p-0"

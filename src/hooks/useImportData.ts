@@ -36,6 +36,8 @@ interface UseImportDataOptions<T> {
   skipFirstRow?: boolean;
 }
 
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
 /** Imports and validates data from CSV/Excel files with Zod schema validation. */
 export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
   const { schema, onImport, maxRows = 10000, skipFirstRow = false } = options;
@@ -170,8 +172,6 @@ export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
     [schema, maxRows]
   );
 
-  const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-
   const processFile = useCallback(
     async (file: File) => {
       setStatus('parsing');
@@ -212,7 +212,6 @@ export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
         );
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [parseCSV, parseExcel, validateData]
   );
 

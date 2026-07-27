@@ -55,21 +55,24 @@ export function useTypingPresence({
     };
   }, [conversationId, currentUserId]);
 
-  const handleTypingStart = useCallback(() => {
-    if (!channelRef.current) return;
-    if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
-    channelRef.current.track({ userId: currentUserId, userName: currentUserName, isTyping: true });
-    stopTimerRef.current = setTimeout(() => {
-      handleTypingStop();
-    }, 3000);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserId, currentUserName]);
-
   const handleTypingStop = useCallback(() => {
     if (!channelRef.current) return;
     if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
-    channelRef.current.track({ userId: currentUserId, userName: currentUserName, isTyping: false });
+    void channelRef.current
+      .track({ userId: currentUserId, userName: currentUserName, isTyping: false })
+      .catch(() => {});
   }, [currentUserId, currentUserName]);
+
+  const handleTypingStart = useCallback(() => {
+    if (!channelRef.current) return;
+    if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
+    void channelRef.current
+      .track({ userId: currentUserId, userName: currentUserName, isTyping: true })
+      .catch(() => {});
+    stopTimerRef.current = setTimeout(() => {
+      handleTypingStop();
+    }, 3000);
+  }, [currentUserId, currentUserName, handleTypingStop]);
 
   const isContactTyping = typingUsers.length > 0;
 

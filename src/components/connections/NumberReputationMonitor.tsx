@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import {
   fetchNumberReputations,
@@ -24,22 +24,22 @@ export function NumberReputationMonitor() {
   const [loading, setLoading] = useState(true);
   const mountedRef = useMountedRef();
 
-  useEffect(() => {
-    loadData();
-  }, [mountedRef]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     const data = await fetchNumberReputations();
     if (!mountedRef.current) return;
     setReputations(data);
     setLoading(false);
-  };
+  }, [mountedRef]);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
   const startWarmup = async (id: string) => {
     await startReputationWarmup(id);
     toast.success('Aquecimento iniciado');
-    loadData();
+    void loadData();
   };
 
   const getHealthColor = (score: number) =>

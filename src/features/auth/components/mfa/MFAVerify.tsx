@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Loader2 } from 'lucide-react';
 import { useMFA } from '@/features/auth';
@@ -53,11 +53,16 @@ export function MFAVerify({
     }
   };
 
+  const handleVerifyRef = useRef(handleVerify);
+  handleVerifyRef.current = handleVerify;
+  const verifyingRef = useRef(verifying);
+  verifyingRef.current = verifying;
+
   useEffect(() => {
-    if (code.length === 6 && !verifying) {
-      handleVerify();
+    if (code.length === 6 && !verifyingRef.current) {
+      handleVerifyRef.current();
     }
-  }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [code]);
 
   return (
     <Card className="mx-auto w-full max-w-md">

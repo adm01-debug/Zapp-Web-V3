@@ -7,17 +7,17 @@ vi.mock('./client', () => ({
     from: vi.fn(() => ({
       select: vi.fn(() => ({
         limit: vi.fn(() => ({
-          single: vi.fn(() => Promise.resolve({ data: null, error: null }))
+          single: vi.fn(() => Promise.resolve({ data: null, error: null })),
         })),
         eq: vi.fn().mockReturnThis(),
         order: vi.fn().mockReturnThis(),
-      }))
+      })),
     })),
     rpc: vi.fn(() => Promise.resolve({ data: null, error: null })),
     functions: {
-      invoke: vi.fn(() => Promise.resolve({ data: { success: true }, error: null }))
-    }
-  }
+      invoke: vi.fn(() => Promise.resolve({ data: { success: true }, error: null })),
+    },
+  },
 }));
 
 describe('safeClient Masking', () => {
@@ -27,18 +27,17 @@ describe('safeClient Masking', () => {
       apiKey: 'api-key-456',
       user: {
         email: 'test@example.com',
-        password: 'password123'
+        password: 'password123',
       },
-      normalField: 'visible'
+      normalField: 'visible',
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const masked = safeClient.maskSensitiveData(sensitiveData) as Record<string, any>;
+    const masked = safeClient.maskSensitiveData(sensitiveData) as Record<string, unknown>;
 
     expect(masked.token).toBe('***MASKED***');
     expect(masked.apiKey).toBe('***MASKED***');
-    expect((masked.user as Record<string,string>).password).toBe('***MASKED***');
-    expect((masked.user as Record<string,string>).email).toBe('te***@example.com');
+    expect((masked.user as Record<string, string>).password).toBe('***MASKED***');
+    expect((masked.user as Record<string, string>).email).toBe('te***@example.com');
     expect(masked.normalField).toBe('visible');
   });
 
@@ -57,7 +56,7 @@ describe('safeClient Masking', () => {
   it('should handle arrays of objects', () => {
     const arrayData = [
       { email: 'test@example.com', token: 'secret' },
-      { email: 'user@test.com', token: 'another-secret' }
+      { email: 'user@test.com', token: 'another-secret' },
     ];
     const masked = safeClient.maskSensitiveData(arrayData) as Array<Record<string, string>>;
     expect(masked[0].token).toBe('***MASKED***');

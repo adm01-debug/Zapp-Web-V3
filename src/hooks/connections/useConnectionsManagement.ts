@@ -42,11 +42,14 @@ export function useHubTabNavigationManagement(
   const { isDev } = params;
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const validateTab = (t: string | null): HubTab => {
-    if (t === 'bridge' && !isDev) return 'connections';
-    if (t === 'connections' || t === 'integrations' || t === 'bridge') return t;
-    return 'connections';
-  };
+  const validateTab = useCallback(
+    (t: string | null): HubTab => {
+      if (t === 'bridge' && !isDev) return 'connections';
+      if (t === 'connections' || t === 'integrations' || t === 'bridge') return t;
+      return 'connections';
+    },
+    [isDev]
+  );
 
   const [tab, setTab] = useState<HubTab>(() => validateTab(searchParams.get('tab')));
 
@@ -71,8 +74,7 @@ export function useHubTabNavigationManagement(
     if (validated !== tab) {
       setTab(validated);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, isDev, tab]);
+  }, [searchParams, isDev, tab, validateTab]);
 
   return { tab, setTab };
 }
@@ -96,7 +98,9 @@ export function useBridgeHealthManagement(
   const error: string | null = data?.error ?? null;
   const checkedAt: Date | null = dataUpdatedAt > 0 ? new Date(dataUpdatedAt) : null;
 
-  const runCheck = useCallback(async () => { await refetch(); }, [refetch]);
+  const runCheck = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   return { status, health, checkedAt, error, runCheck };
 }

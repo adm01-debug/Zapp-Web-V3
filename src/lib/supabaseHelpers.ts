@@ -1,14 +1,13 @@
 /**
  * Typed helpers for dynamic Supabase table operations.
- * 
- * Provides a type-safe wrapper that avoids `(supabase as any)` 
+ *
+ * Provides a type-safe wrapper that avoids `(supabase as any)`
  * while preventing deep type instantiation with large schemas.
  */
 
 import { supabase } from '@/integrations/supabase/client';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type DynamicClient = { from: (table: string) => any }; // ignore-audit — return type is PostgrestQueryBuilder; erasing to unknown breaks every caller
+type DynamicClient = { from(table: string): ReturnType<typeof supabase.from> };
 
 /**
  * Get a Supabase query builder for a dynamic table name.

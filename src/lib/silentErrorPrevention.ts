@@ -20,6 +20,10 @@ const log = getLogger('silentErrorPrevention');
 /** Error Suppression type alias. */
 export type ErrorSuppression = 'intentional' | 'expected' | 'recoverable' | 'logged';
 
+/** Generic callable constraint — mirrors TypeScript stdlib utility-type convention. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyFn = (...args: any[]) => any; // ignore-audit
+
 /**
  * Marker for intentional error suppression.
  * Signals that this error was caught and suppressed deliberately,
@@ -59,8 +63,7 @@ export async function safeAsync<T>(
 /**
  * Safe wrapper for callbacks that prevents silent failures.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function safeCallback<T extends (...args: any[]) => any>(
+export function safeCallback<T extends AnyFn>(
   callback: T,
   context: {
     name: string;
@@ -68,8 +71,7 @@ export function safeCallback<T extends (...args: any[]) => any>(
     shouldThrow?: boolean;
   }
 ): T {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return ((...args: any[]) => {
+  return ((...args: Parameters<T>) => {
     try {
       return callback(...args);
     } catch (error) {
@@ -88,11 +90,9 @@ export function safeCallback<T extends (...args: any[]) => any>(
  * Safe wrapper for event listeners that prevents silent failures.
  */
 export function safeEventListener<K extends keyof HTMLElementEventMap>(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any,
+  handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => void,
   context: { eventName: K; shouldThrow?: boolean }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): (this: HTMLElement, ev: HTMLElementEventMap[K]) => any {
+): (this: HTMLElement, ev: HTMLElementEventMap[K]) => void {
   return function (this: HTMLElement, ev: HTMLElementEventMap[K]) {
     try {
       return handler.call(this, ev);
@@ -245,8 +245,7 @@ export function detectSilentErrors(): void {
   // Check for console.error calls that might be swallowed
   const originalError = console.error;
   let errorCount = 0;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  console.error = function (...args: any[]) {
+  console.error = function (...args: unknown[]) {
     errorCount++;
     if (errorCount > 10 && errorCount % 10 === 0) {
       detectedIssues.push(

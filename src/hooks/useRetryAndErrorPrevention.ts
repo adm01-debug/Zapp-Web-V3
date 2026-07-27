@@ -16,6 +16,7 @@ import {
   fireAndForget,
   retryWithBackoff,
   withErrorRecovery,
+  type AnyFn,
   type ErrorSuppression,
   suppressError,
 } from '@/lib/silentErrorPrevention';
@@ -148,12 +149,14 @@ export function useSafeAsync<T>(
 ) {
   const { operation = 'Unknown', fallback, shouldThrow = false, dependencies = [] } = options || {};
 
+  const fnRef = useRef(fn);
+  fnRef.current = fn;
   const executeAsync = useCallback(
     async () =>
-      safeCallback(() => withErrorRecovery(fn, { operation, fallback, shouldThrow }), {
+      safeCallback(() => withErrorRecovery(fnRef.current, { operation, fallback, shouldThrow }), {
         name: operation,
       })(),
-    [operation, fallback, shouldThrow, ...dependencies] // eslint-disable-line react-hooks/exhaustive-deps
+    [operation, fallback, shouldThrow]
   );
 
   return executeAsync;
@@ -181,15 +184,17 @@ export function useSafeRetry<T>(
     dependencies = [],
   } = options || {};
 
+  const fnRef = useRef(fn);
+  fnRef.current = fn;
   const executeRetry = useCallback(
     async () =>
-      retryWithBackoff(fn, {
+      retryWithBackoff(fnRef.current, {
         operation,
         maxAttempts,
         delayMs,
         backoffMultiplier,
       }),
-    [operation, maxAttempts, delayMs, backoffMultiplier, ...dependencies] // eslint-disable-line react-hooks/exhaustive-deps
+    [operation, maxAttempts, delayMs, backoffMultiplier]
   );
 
   return executeRetry;
@@ -209,8 +214,7 @@ export function useFireAndForget() {
  * Hook for wrapping callbacks with automatic error logging.
  */
 /** Wraps callbacks with automatic error logging, fallback returns, and optional throwing. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function useSafeCallback<T extends (...args: any[]) => any>(
+export function useSafeCallback<T extends AnyFn>(
   callback: T,
   options?: {
     name?: string;
@@ -226,15 +230,16 @@ export function useSafeCallback<T extends (...args: any[]) => any>(
     dependencies = [],
   } = options || {};
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const callbackRef = useRef(callback);
+  callbackRef.current = callback;
   return useCallback(
-    safeCallback(callback, {
-      name,
-      fallbackReturn,
-      shouldThrow,
-    }),
-    [...dependencies]
-  );
+    (...args: Parameters<T>): ReturnType<T> => {
+      return (safeCallback(callbackRef.current, { name, fallbackReturn, shouldThrow }) as T)(
+        ...args
+      );
+    },
+    [name, fallbackReturn, shouldThrow]
+  ) as unknown as T;
 }
 
 /**
@@ -252,17 +257,21 @@ export function useSafePromise<T>(
 ) {
   const { operation = 'Unknown', onReject, shouldThrow = false, dependencies = [] } = options || {};
 
+  const onRejectRef = useRef(onReject);
+  onRejectRef.current = onReject;
   useEffect(() => {
     let cancelled = false;
     handlePromiseRejection(promise, {
       operation,
-      onReject: cancelled ? undefined : onReject,
+      onReject: cancelled ? undefined : onRejectRef.current,
       shouldThrow,
     }).catch(() => {
       // Already logged
     });
-    return () => { cancelled = true; };
-  }, [promise, ...dependencies]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+    };
+  }, [operation, promise, shouldThrow]);
 }
 
 /**
@@ -288,6 +297,14 @@ export function useAsyncEffect<T>(
     dependencies?: DependencyList;
   }
 ) {
+  const { operation = 'Async effect', cleanup, fallback, dependencies } = options ?? {};
+
+  const effectRef = useRef(effect);
+  effectRef.current = effect;
+  const cleanupRef = useRef(cleanup);
+  cleanupRef.current = cleanup;
+  const fallbackRef = useRef(fallback);
+  fallbackRef.current = fallback;
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -295,21 +312,21 @@ export function useAsyncEffect<T>(
 
     (async () => {
       try {
-        await withErrorRecovery(effect, {
-          operation: options?.operation || 'Async effect',
+        await withErrorRecovery(effectRef.current, {
+          operation,
           shouldThrow: false,
         });
       } catch (error) {
-        log.error(`Async effect failed: ${options?.operation || 'Unknown'}`, error);
-        options?.fallback?.();
+        log.error(`Async effect failed: ${operation}`, error);
+        fallbackRef.current?.();
       }
     })();
 
     return () => {
       abortRef.current?.abort();
-      options?.cleanup?.();
+      cleanupRef.current?.();
     };
-  }, options?.dependencies); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [operation]);
 }
 
 /**
@@ -374,14 +391,18 @@ export function useRetryableAsync<T>(
     retryMetricsTracker.registerExecutor(operationName, executorRef.current);
   }, [operationName]);
 
+  const fnRef = useRef(fn);
+  fnRef.current = fn;
+  const shouldRetryRef = useRef(shouldRetry);
+  shouldRetryRef.current = shouldRetry;
   const execute = useCallback(async () => {
     try {
-      return await executorRef.current.execute(fn, shouldRetry);
+      return await executorRef.current.execute(fnRef.current, shouldRetryRef.current);
     } catch (error) {
       log.error(`Retry exhausted for ${operationName}:`, error);
       throw error;
     }
-  }, [operationName, ...dependencies]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [operationName]);
 
   const getMetrics = useCallback(() => {
     return executorRef.current.getMetrics();
@@ -418,7 +439,10 @@ export function useRetryMetrics(operationName?: string) {
 /** Monitors all retry operations globally with health status tracking. */
 export function useGlobalRetryMetrics() {
   const [allMetrics, setAllMetrics] = useState<Map<string, RetryMetrics>>(new Map());
-  const [healthStatus, setHealthStatus] = useState<{ healthy: string[]; degraded: string[] }>({ healthy: [], degraded: [] });
+  const [healthStatus, setHealthStatus] = useState<{ healthy: string[]; degraded: string[] }>({
+    healthy: [],
+    degraded: [],
+  });
 
   useEffect(() => {
     const interval = setInterval(() => {

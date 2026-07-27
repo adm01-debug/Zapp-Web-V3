@@ -455,35 +455,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [user, fetchProfile, fetchRolesAndPermissions]);
 
-  const signIn = async (email: string, password: string) => {
-    try {
-      const { data, error } = await authService.signIn(email, password);
-      if (error) return { error };
-      if (data?.user) {
-        await refreshAll(data.user.id);
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      try {
+        const { data, error } = await authService.signIn(email, password);
+        if (error) return { error };
+        if (data?.user) {
+          await refreshAll(data.user.id);
+        }
+        return { error: null };
+      } catch (e) {
+        log.error('[Auth] Sign in error:', e);
+        return { error: e as any };
       }
-      return { error: null };
-    } catch (e) {
-      log.error('[Auth] Sign in error:', e);
-      return { error: e as any };
-    }
-  };
+    },
+    [refreshAll]
+  );
 
-  const signUp = async (email: string, password: string, name: string) => {
-    try {
-      const { data, error } = await authService.signUp(email, password, name);
-      if (error) return { error };
-      if (data?.user) {
-        await refreshAll(data.user.id);
+  const signUp = useCallback(
+    async (email: string, password: string, name: string) => {
+      try {
+        const { data, error } = await authService.signUp(email, password, name);
+        if (error) return { error };
+        if (data?.user) {
+          await refreshAll(data.user.id);
+        }
+        return { error: null };
+      } catch (e) {
+        log.error('[Auth] Sign up error:', e);
+        return { error: e as any };
       }
-      return { error: null };
-    } catch (e) {
-      log.error('[Auth] Sign up error:', e);
-      return { error: e as any };
-    }
-  };
+    },
+    [refreshAll]
+  );
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       await authService.signOut();
       setUser(null);
@@ -496,7 +502,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       log.error('[Auth] Sign out error:', e);
     }
-  };
+  }, [queryClient]);
 
   const refreshProfile = useCallback(async () => {
     if (!user) return;
@@ -532,7 +538,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshRoles,
       refreshPermissions,
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       user,
       session,
@@ -544,6 +549,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       bootstrapElapsedMs,
       isRetrying,
       retryBootstrap,
+      signIn,
+      signUp,
+      signOut,
       refreshProfile,
       refreshRoles,
       refreshPermissions,

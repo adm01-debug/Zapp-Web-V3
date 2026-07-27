@@ -1,4 +1,3 @@
-
 /**
  * Datasource proxy — escolhe automaticamente o SupabaseClient correto
  * (Lovable Cloud vs self-hosted) e a tabela física para uma entidade lógica.
@@ -61,12 +60,13 @@ export function dbTable(entity: LogicalEntity): string {
   return requireMapping(entity).table;
 }
 
+type DynamicTableClient = { from(t: string): ReturnType<typeof supabase.from> };
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function dbFrom(entity: LogicalEntity): any {
   const mapping = requireMapping(entity);
   validateEntityAccess(mapping.table, mapping.client);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return dbClient(entity).from(mapping.table as any);
+  return (dbClient(entity) as unknown as DynamicTableClient).from(mapping.table);
 }
 
 export function dbChannel(entity: LogicalEntity, name: string): RealtimeChannel {
@@ -105,6 +105,10 @@ function rpcClient(client: DatasourceClient): SupabaseClient {
   return target as SupabaseClient;
 }
 
+type DynamicRpcClient = {
+  rpc(name: string, params: Record<string, unknown>): Promise<{ data: unknown; error: unknown }>;
+};
+
 export async function dbRpc<P extends object, R>(
   def: RpcDefinition<P, R>,
   params: P
@@ -117,10 +121,14 @@ export async function dbRpc<P extends object, R>(
   const source = def.client === 'external' ? 'externalSupabase' : 'lovableCloud';
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await client.rpc(def.name as any, merged as Record<string, unknown>);
+    const { data, error } = await (client as unknown as DynamicRpcClient).rpc(
+      def.name,
+      merged as Record<string, unknown>
+    );
     const durationMs = Math.round(performance.now() - startedAt);
-    const errorMessage = error ? (error.message ?? 'rpc error') : undefined;
+    const errorMessage = error
+      ? ((error as { message?: string }).message ?? 'rpc error')
+      : undefined;
 
     recordQueryEvent({
       operation: 'rpc',

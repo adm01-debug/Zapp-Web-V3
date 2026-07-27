@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { getExternalSupabase } from '@/integrations/supabase/externalClient';
@@ -140,7 +141,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         const externalClient = getClient();
         if (externalClient) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await externalClient.rpc('rpc_upsert_contact' as any, {
+          await (externalClient as SupabaseClient<any>).rpc('rpc_upsert_contact', {
             p_remote_jid: sugg.remote_jid,
             p_instance: sugg.instance_name,
             p_tags: [sugg.recommended_tag],

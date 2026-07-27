@@ -137,7 +137,7 @@ export function useContactDuplicateDetector({
         }
       }
     },
-    [workspaceId, excludeId] // eslint-disable-line react-hooks/exhaustive-deps
+    [workspaceId, excludeId]
   );
 
   const reset = useCallback(() => {

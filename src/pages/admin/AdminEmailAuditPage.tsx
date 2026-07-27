@@ -63,7 +63,7 @@ export default function AdminEmailAuditPage() {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [page, statusFilter, dateFrom, dateTo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [page, statusFilter, dateFrom, dateTo, mountedRef]);
 
   useEffect(() => {
     void loadAuditLogs();
@@ -234,7 +234,9 @@ export default function AdminEmailAuditPage() {
                         <td className="px-4 py-3">{getStatusBadge(log.status)}</td>
                         <td className="px-4 py-3">
                           <div className="flex flex-col">
-                            <span>{new Date(log.scheduled_at ?? log.requested_at).toLocaleDateString()}</span>
+                            <span>
+                              {new Date(log.scheduled_at ?? log.requested_at).toLocaleDateString()}
+                            </span>
                             <span className="text-[10px] text-muted-foreground">
                               {new Date(log.scheduled_at ?? log.requested_at).toLocaleTimeString()}
                             </span>

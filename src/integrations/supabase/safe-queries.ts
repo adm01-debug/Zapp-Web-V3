@@ -1,4 +1,3 @@
-
 /**
  * Safe Query Utilities - RLS Enforcement Layer
  *
@@ -12,8 +11,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from './schema';
 
 // Accept clients bound to either schema (zapp is canonical, public via view proxy).
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnySupabaseClient = SupabaseClient<Database, any, any, any, any>;
+type AnySupabaseClient = SupabaseClient<Database, string>;
 
 /**
  * Safe WhatsApp Connections Query

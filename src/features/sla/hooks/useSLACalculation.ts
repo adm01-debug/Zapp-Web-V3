@@ -103,26 +103,30 @@ export function formatTimeRemaining(ms: number): string {
 
 /** Hook: use SLACalculation. */
 export function useSLACalculation(params: UseSLACalculationParams): SLATimerState {
+  const { firstMessageAt, firstResponseAt, resolvedAt, firstResponseMinutes, resolutionMinutes } =
+    params;
   const [state, setState] = useState<SLATimerState>(() => compute(params));
 
   const recompute = useCallback(
-    () => setState(compute(params)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      params.firstMessageAt,
-      params.firstResponseAt,
-      params.resolvedAt,
-      params.firstResponseMinutes,
-      params.resolutionMinutes,
-    ]
+    () =>
+      setState(
+        compute({
+          firstMessageAt,
+          firstResponseAt,
+          resolvedAt,
+          firstResponseMinutes,
+          resolutionMinutes,
+        })
+      ),
+    [firstMessageAt, firstResponseAt, resolvedAt, firstResponseMinutes, resolutionMinutes]
   );
 
   useEffect(() => {
     recompute();
-    if (params.firstResponseAt && params.resolvedAt) return;
+    if (firstResponseAt && resolvedAt) return;
     const interval = setInterval(recompute, 1000);
     return () => clearInterval(interval);
-  }, [recompute, params.firstResponseAt, params.resolvedAt]);
+  }, [recompute, firstResponseAt, resolvedAt]);
 
   return state;
 }

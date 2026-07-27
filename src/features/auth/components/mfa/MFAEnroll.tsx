@@ -61,11 +61,14 @@ export function MFAEnroll({ onSuccess, onCancel }: MFAEnrollProps) {
     }
   };
 
+  const handleVerifyRef = useRef(handleVerify);
+  handleVerifyRef.current = handleVerify;
+
   useEffect(() => {
     if (code.length === 6) {
-      handleVerify();
+      handleVerifyRef.current();
     }
-  }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [code]);
 
   return (
     <Card className="mx-auto w-full max-w-md">

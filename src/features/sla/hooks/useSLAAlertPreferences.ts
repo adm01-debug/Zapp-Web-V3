@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
@@ -37,19 +37,22 @@ export const DEFAULT_SLA_ALERT_PREFERENCES: SLAAlertPreferences = {
 export function useSLAAlertPreferences() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const queryKey = ['sla-alert-preferences', user?.id] as const;
+  const userId = user?.id;
+  const queryKey = useMemo(() => ['sla-alert-preferences', userId] as const, [userId]);
   const [isSaving, setIsSaving] = useState(false);
 
   const { data: preferences = DEFAULT_SLA_ALERT_PREFERENCES, isLoading } = useQuery({
     queryKey,
     queryFn: async (): Promise<SLAAlertPreferences> => {
-      const { data, error } = await safeClient.from<SLAAlertPreferences>('sla_alert_preferences', (q) =>
-        q
-          .select(
-            'enabled, alert_first_response, alert_resolution, severity_warning, severity_breached'
-          )
-          .eq('user_id', user!.id)
-          .limit(1)
+      const { data, error } = await safeClient.from<SLAAlertPreferences>(
+        'sla_alert_preferences',
+        (q) =>
+          q
+            .select(
+              'enabled, alert_first_response, alert_resolution, severity_warning, severity_breached'
+            )
+            .eq('user_id', user!.id)
+            .limit(1)
       );
 
       if (error) {
@@ -73,10 +76,12 @@ export function useSLAAlertPreferences() {
       if (row) {
         return {
           enabled: row.enabled ?? DEFAULT_SLA_ALERT_PREFERENCES.enabled,
-          alert_first_response: row.alert_first_response ?? DEFAULT_SLA_ALERT_PREFERENCES.alert_first_response,
+          alert_first_response:
+            row.alert_first_response ?? DEFAULT_SLA_ALERT_PREFERENCES.alert_first_response,
           alert_resolution: row.alert_resolution ?? DEFAULT_SLA_ALERT_PREFERENCES.alert_resolution,
           severity_warning: row.severity_warning ?? DEFAULT_SLA_ALERT_PREFERENCES.severity_warning,
-          severity_breached: row.severity_breached ?? DEFAULT_SLA_ALERT_PREFERENCES.severity_breached,
+          severity_breached:
+            row.severity_breached ?? DEFAULT_SLA_ALERT_PREFERENCES.severity_breached,
         };
       }
       return DEFAULT_SLA_ALERT_PREFERENCES;
@@ -87,21 +92,21 @@ export function useSLAAlertPreferences() {
 
   const setPreferences = useCallback(
     (next: SLAAlertPreferences) => queryClient.setQueryData(queryKey, next),
-    [queryClient, queryKey] // eslint-disable-line react-hooks/exhaustive-deps
+    [queryClient, queryKey]
   );
 
   const save = useCallback(
     async (next: SLAAlertPreferences) => {
-      if (!user?.id) return { error: new Error('Not authenticated') };
+      if (!userId) return { error: new Error('Not authenticated') };
       setIsSaving(true);
       const { error } = await safeClient.from('sla_alert_preferences', (q) =>
-        q.upsert({ user_id: user.id, ...next }, { onConflict: 'user_id' })
+        q.upsert({ user_id: userId, ...next }, { onConflict: 'user_id' })
       );
       setIsSaving(false);
       if (!error) queryClient.setQueryData(queryKey, next);
       return { error };
     },
-    [user?.id, queryClient, queryKey] // eslint-disable-line react-hooks/exhaustive-deps
+    [userId, queryClient, queryKey]
   );
 
   return { preferences, setPreferences, save, isLoading, isSaving };

@@ -29,8 +29,7 @@ describe('useSpeechToText', () => {
 
   beforeEach(() => {
     originalSR = win.SpeechRecognition;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (win as any).SpeechRecognition = MockSpeechRecognition;
+    (win as WindowWithSR).SpeechRecognition = MockSpeechRecognition;
     // Mock navigator.vibrate
     Object.defineProperty(navigator, 'vibrate', {
       value: vi.fn(),
@@ -40,8 +39,7 @@ describe('useSpeechToText', () => {
   });
 
   afterEach(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (win as any).SpeechRecognition = originalSR;
+    (win as WindowWithSR).SpeechRecognition = originalSR as WindowWithSR['SpeechRecognition'];
     vi.restoreAllMocks();
   });
 

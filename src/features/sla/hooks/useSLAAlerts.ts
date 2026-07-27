@@ -242,13 +242,11 @@ export function useSLAAlerts(params: SLAAlertParams) {
         };
         // Audit trail — await with proper error propagation, not fire-and-forget
         try {
-          const { error: insertError } = await supabase
-            .from('conversation_events')
-            .insert({
-              contact_id: contactId,
-              event_type: 'sla_alert',
-              metadata: auditMetadata,
-            });
+          const { error: insertError } = await supabase.from('conversation_events').insert({
+            contact_id: contactId,
+            event_type: 'sla_alert',
+            metadata: auditMetadata,
+          });
           if (!insertError) {
             void queryClient.invalidateQueries({
               queryKey: queryKeys.conversationHistory.events(contactId),
@@ -308,7 +306,6 @@ export function useSLAAlerts(params: SLAAlertParams) {
     if (dStatus === 'warning' || dStatus === 'breached') {
       void fire('delivery_delay', dStatus, params.deliveryDelayMs ?? null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     params.contactId,
     params.scope,

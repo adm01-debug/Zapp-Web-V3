@@ -76,7 +76,7 @@ export const ContactRecycleBin: React.FC<ContactRecycleBinProps> = ({
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [instanceName]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [instanceName, mountedRef]);
 
   useEffect(() => {
     load();

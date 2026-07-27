@@ -394,9 +394,19 @@ const USE_MOCKS =
   typeof window !== 'undefined' &&
   window.localStorage?.getItem('mockConversations') === '1';
 
+interface ContactEnrichmentData {
+  tags?: string[] | string | null;
+  company?: string | null;
+  ai_sentiment?: string | null;
+  name?: string | null;
+  push_name?: string | null;
+}
+
 // ─── Global Enrichment Cache to avoid redundant RPC calls ──────────
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const contactEnrichmentCache = new Map<string, { data: any; timestamp: number }>();
+const contactEnrichmentCache = new Map<
+  string,
+  { data: ContactEnrichmentData; timestamp: number }
+>();
 const CACHE_TTL = 300_000; // 5 minutes
 
 // ─── Hook: External Conversations (list for sidebar) ──────────
@@ -446,8 +456,7 @@ export function useExternalConversations(enabled = true) {
           // We limit concurrent fetches to avoid overloading the proxy.
           const enrichments = await Promise.all(
             jidsToFetch.map((jid) =>
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              queryExternalProxy<any>({
+              queryExternalProxy<ContactEnrichmentData>({
                 action: 'rpc',
                 rpc: 'rpc_get_contact',
                 params: {
@@ -557,8 +566,7 @@ export function useExternalMessages(remoteJid: string | null) {
       loadOlderAbortRef.current = null;
       if (mountedRef.current) setLoadingOlder(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only init
-  }, []);
+  }, [mountedRef]);
 
   const initialFetch = useCallback(async () => {
     if (!remoteJid || !mountedRef.current) {
@@ -620,7 +628,7 @@ export function useExternalMessages(remoteJid: string | null) {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [remoteJid]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [remoteJid, mountedRef, queryClient]);
 
   // Cursor-forward poll (only new messages since lastSeen)
   const pollNewMessages = useCallback(async () => {
@@ -654,7 +662,7 @@ export function useExternalMessages(remoteJid: string | null) {
     } catch (err) {
       log.error('Error polling external messages:', err);
     }
-  }, [remoteJid]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [remoteJid, mountedRef, queryClient]);
 
   // Load older page (scroll up) — cancellable
   const loadOlder = useCallback(async () => {
@@ -708,7 +716,7 @@ export function useExternalMessages(remoteJid: string | null) {
       }
       if (mountedRef.current) setLoadingOlder(false);
     }
-  }, [remoteJid, messages, loadingOlder, hasMore]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [remoteJid, messages, loadingOlder, hasMore, mountedRef]);
 
   // Initial fetch on jid change
   useEffect(() => {
@@ -774,7 +782,7 @@ export function useExternalMessages(remoteJid: string | null) {
       }
     });
     return unsub;
-  }, [remoteJid]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [remoteJid, mountedRef]);
 
   const addMessage = useCallback((message: RealtimeMessage) => {
     setMessages((prev) => {

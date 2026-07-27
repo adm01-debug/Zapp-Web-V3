@@ -27,10 +27,20 @@ const _log = getLogger('safeClient');
 // requires a string-literal table name from the generated types.
 type DynamicSupabaseClient = { from(t: string): ReturnType<typeof supabase.from> };
 
+// Dynamic RPC accessor — bypasses the generated RPC-name union so dynamic/stub
+// names can be called without compile-time errors.
+type DynamicRpcClient = {
+  rpc(
+    name: string,
+    params?: Record<string, unknown>
+  ): Promise<{ data: unknown; error: PostgrestError | null }>;
+};
+
 // All email_* tables are accessible via auto-updatable views in the zapp schema.
 // Do NOT use supabase.schema('email_app') — PostgREST may not expose that schema,
 // and the zapp views handle routing transparently.
 const _dynamicClient = supabase as unknown as DynamicSupabaseClient;
+const _rpcClient = supabase as unknown as DynamicRpcClient;
 
 const MAX_FAILURES = 20;
 const CACHE_TTL = 5 * 60 * 1000;
@@ -148,8 +158,7 @@ export const safeClient = {
     const requestId = crypto.randomUUID();
     telemetry.stats.totalCalls++;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await supabase.rpc(name as any, params); // ignore-audit — dynamic RPC name not in generated union
+      const { data, error } = await _rpcClient.rpc(name, params); // ignore-audit — dynamic RPC name not in generated union
       if (error) {
         this.log(requestId, 'error', `Erro ao executar RPC ${name}`, error);
         await this.recordFailure(requestId, 'rpc', name, error.message || 'Erro desconhecido');
@@ -198,7 +207,7 @@ export const safeClient = {
           if (!error) {
             exists = true;
           } else {
-            const msg = ((error as { message?: string }).message ?? "").toLowerCase();
+            const msg = ((error as { message?: string }).message ?? '').toLowerCase();
             const isPermissionError =
               msg.includes('permission denied') ||
               msg.includes('42501') ||
@@ -222,7 +231,7 @@ export const safeClient = {
           if (!error) {
             exists = true;
           } else {
-            const msg = ((error as { message?: string }).message ?? "").toLowerCase();
+            const msg = ((error as { message?: string }).message ?? '').toLowerCase();
             const isPermissionError =
               msg.includes('permission denied') ||
               msg.includes('42501') ||
@@ -258,8 +267,7 @@ export const safeClient = {
       if (snap.recentFailures.length > 10) status = 'error';
       else if (snap.recentFailures.length > 0) status = 'degraded';
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: rpcErr } = await supabase.rpc('rpc_update_email_health_state' as any, {
+      const { error: rpcErr } = await _rpcClient.rpc('rpc_update_email_health_state', {
         p_status: status,
         p_failure_count: snap.recentFailures.length,
         p_metadata: {
@@ -269,7 +277,9 @@ export const safeClient = {
         },
       });
       if (rpcErr) {
-        _log.warn('Erro ao sincronizar estado de saúde', { error: (rpcErr as { message?: string }).message });
+        _log.warn('Erro ao sincronizar estado de saúde', {
+          error: (rpcErr as { message?: string }).message,
+        });
       }
     } catch (err) {
       _log.warn('Erro ao sincronizar estado de saúde (exceção)', {
@@ -327,9 +337,8 @@ export const safeClient = {
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('health log timeout')), 5_000)
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error: rpcErr } = await Promise.race([
-        supabase.rpc('rpc_log_email_health' as any, {
+        _rpcClient.rpc('rpc_log_email_health', {
           p_status: 'error',
           p_operation: operation,
           p_resource: resource,
@@ -340,7 +349,9 @@ export const safeClient = {
         timeoutPromise,
       ]);
       if (rpcErr) {
-        _log.warn('Falha ao persistir log de saúde', { error: (rpcErr as { message?: string }).message });
+        _log.warn('Falha ao persistir log de saúde', {
+          error: (rpcErr as { message?: string }).message,
+        });
       }
     } catch (dbErr) {
       _log.warn('Falha ao persistir log de saúde (exceção)', {

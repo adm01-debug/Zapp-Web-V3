@@ -1,8 +1,16 @@
 import { useEffect, useRef, useCallback } from 'react';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { getExternalSupabase } from '@/integrations/supabase/externalClient';
 import { log } from '@/lib/logger';
+
+interface ExternalMsg {
+  from_me: boolean;
+  content: string;
+  message_timestamp: string;
+  message_type: string;
+}
 
 // Lazy: getExternalSupabase() can return null when FATOR X env vars are absent.
 // Resolve at call time so module import never crashes the inbox.
@@ -17,10 +25,8 @@ interface AutomationRule {
   id: string;
   name: string;
   trigger_type: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  trigger_config: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  actions: any;
+  trigger_config: Record<string, unknown>;
+  actions: Record<string, unknown>;
   is_active: boolean;
   priority: number;
 }
@@ -90,9 +96,11 @@ export function useAutomations({
 
       const client = getClient();
       if (!client) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const typedClient = client as SupabaseClient<any>;
 
       // Pega últimas 10 msgs do FATOR X
-      const { data: msgs, error } = await client.rpc('rpc_list_messages' as any, {
+      const { data: msgs, error } = await typedClient.rpc('rpc_list_messages', {
         p_remote_jid: remoteJid,
         p_instance: instanceName,
         p_limit: 10,
@@ -102,12 +110,10 @@ export function useAutomations({
       if (!msgs || !Array.isArray(msgs) || !isMounted.current) return;
 
       const sorted = [...msgs].sort(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (a: any, b: any) =>
+        (a: ExternalMsg, b: ExternalMsg) =>
           new Date(a.message_timestamp).getTime() - new Date(b.message_timestamp).getTime()
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const last: any = sorted[sorted.length - 1];
+      const last: ExternalMsg | undefined = sorted[sorted.length - 1];
       if (!last) return;
 
       const lastTime = new Date(last.message_timestamp).getTime();
@@ -118,14 +124,13 @@ export function useAutomations({
       let addedTags: string[] = [];
       let removedTags: string[] = [];
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: contact } = await client.rpc('rpc_get_contact' as any, {
+        const { data: contact } = await typedClient.rpc('rpc_get_contact', {
           p_remote_jid: remoteJid,
           p_instance: instanceName,
         });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const c: any = Array.isArray(contact) ? contact[0] : contact;
-        currentTags = Array.isArray(c?.tags) ? c.tags.map((t: unknown) => String(t)) : [];
+        const rawContact = Array.isArray(contact) ? contact[0] : contact;
+        const rawTags = (rawContact as { tags?: unknown[] } | null)?.tags;
+        currentTags = Array.isArray(rawTags) ? rawTags.map((t: unknown) => String(t)) : [];
         if (prevTagsRef.current !== null) {
           const prev = prevTagsRef.current;
           addedTags = currentTags.filter((t) => !prev.includes(t));
@@ -144,8 +149,7 @@ export function useAutomations({
         if (rule.trigger_type === 'first_response_pending') {
           const thresh = Number(cfg.threshold_seconds ?? 60);
           // Última msg é do cliente e nenhuma resposta posterior
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const lastInboundIdx = [...sorted].reverse().findIndex((m: any) => !m.from_me);
+          const lastInboundIdx = [...sorted].reverse().findIndex((m: ExternalMsg) => !m.from_me);
           if (lastInboundIdx === 0 && ageSec >= thresh) {
             matched = true;
             payload.age_seconds = Math.round(ageSec);
@@ -226,8 +230,7 @@ export function useAutomations({
         const allTags = [...new Set([...cfgTags, ...slaTags])];
         if (allTags.length) {
           try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await client.rpc('rpc_upsert_contact' as any, {
+            await typedClient.rpc('rpc_upsert_contact', {
               p_remote_jid: remoteJid,
               p_instance: instanceName,
               p_tags: allTags,
@@ -263,8 +266,7 @@ export function useAutomations({
                 executionId: execId,
                 ruleId: rule.id,
                 remoteJid,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                recentMessages: sorted.map((m: any) => ({
+                recentMessages: sorted.map((m: ExternalMsg) => ({
                   from_me: m.from_me,
                   content: m.content,
                 })),
@@ -279,8 +281,7 @@ export function useAutomations({
               );
               const exec = execArr?.[0] ?? null;
               if (exec?.suggestion_text) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                await client.rpc('rpc_insert_message' as any, {
+                await typedClient.rpc('rpc_insert_message', {
                   p_remote_jid: remoteJid,
                   p_content: exec.suggestion_text,
                   p_from_me: true,

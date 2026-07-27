@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { HubTab } from '@/components/connections/types';
 
@@ -9,11 +9,14 @@ export type { HubTab };
 export function useHubTabNavigation(isDev: boolean) {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const validateTab = (t: string | null): HubTab => {
-    if (t === 'bridge' && !isDev) return 'connections';
-    if (t === 'connections' || t === 'integrations' || t === 'bridge') return t;
-    return 'connections';
-  };
+  const validateTab = useCallback(
+    (t: string | null): HubTab => {
+      if (t === 'bridge' && !isDev) return 'connections';
+      if (t === 'connections' || t === 'integrations' || t === 'bridge') return t;
+      return 'connections';
+    },
+    [isDev]
+  );
 
   const [tab, setTab] = useState<HubTab>(() => validateTab(searchParams.get('tab')));
 
@@ -36,8 +39,7 @@ export function useHubTabNavigation(isDev: boolean) {
     if (validated !== tab) {
       setTab(validated);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, isDev, tab]);
+  }, [searchParams, isDev, tab, validateTab]);
 
   const setValidatedTab = (t: string) => setTab(validateTab(t));
 

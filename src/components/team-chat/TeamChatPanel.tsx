@@ -152,6 +152,18 @@ export function TeamChatPanel(props: Props) {
 function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetails }: Props) {
   const [showStats, setShowStats] = useState<'participants' | 'performance' | null>(null);
   const s = useTeamChatPanel(conversation);
+  const {
+    showSearch,
+    setShowSearch,
+    setSearchQuery,
+    filteredMessages,
+    profile,
+    updateStatusMutation,
+    isNearBottomRef,
+    scrollRef,
+    listRef,
+    searchInputRef,
+  } = s;
   const { profile: liveProfile } = useAuth();
   const {
     aggregate,
@@ -167,14 +179,14 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
       // CMD/CTRL + K to focus search inside chat
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        s.setShowSearch((prev) => !prev);
+        setShowSearch((prev) => !prev);
       }
 
       // ESC to close search or go back
       if (e.key === 'Escape') {
-        if (s.showSearch) {
-          s.setShowSearch(false);
-          s.setSearchQuery('');
+        if (showSearch) {
+          setShowSearch(false);
+          setSearchQuery('');
         } else if (onBack) {
           onBack();
         }
@@ -183,7 +195,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [s.showSearch, onBack, s.setShowSearch, s.setSearchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [showSearch, onBack, setShowSearch, setSearchQuery]);
 
   const isDeptMember = useMemo(() => {
     if (conversation.type !== 'department') return true;
@@ -192,17 +204,17 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
   }, [conversation, liveProfile]);
 
   useEffect(() => {
-    if (s.isNearBottomRef.current && s.scrollRef.current)
-      s.scrollRef.current.scrollTop = s.scrollRef.current.scrollHeight;
+    if (isNearBottomRef.current && scrollRef.current)
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
 
     // Mark unread messages as read
-    const unreadIds = s.filteredMessages
-      .filter((m) => m.sender_id !== s.profile?.id && m.status !== 'read')
+    const unreadIds = filteredMessages
+      .filter((m) => m.sender_id !== profile?.id && m.status !== 'read')
       .map((m) => m.id);
 
     if (unreadIds.length > 0) {
       unreadIds.forEach((id) => {
-        s.updateStatusMutation.mutate({
+        updateStatusMutation.mutate({
           messageId: id,
           status: 'read',
           conversationId: conversation.id,
@@ -211,35 +223,35 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
     }
     // reset cache if needed (handled by dynamicRowHeight key mostly)
     itemHeights.current = {};
-  }, [s.filteredMessages.length, conversation.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filteredMessages, conversation.id, profile, updateStatusMutation]);
 
   useEffect(() => {
     // If we are at the bottom, stay at the bottom
-    if (s.isNearBottomRef.current && s.listRef.current) {
-      const lastIndex = s.filteredMessages.length - 1;
+    if (isNearBottomRef.current && listRef.current) {
+      const lastIndex = filteredMessages.length - 1;
       if (lastIndex >= 0) {
-        s.listRef.current.scrollToRow({ index: lastIndex, align: 'end' });
+        listRef.current.scrollToRow({ index: lastIndex, align: 'end' });
       }
     }
-  }, [s.filteredMessages.length, conversation.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filteredMessages, conversation.id]);
 
   // Handle incoming messages while reading old ones
   useEffect(() => {
-    if (!s.filteredMessages.length) return;
+    if (!filteredMessages.length) return;
 
-    const lastMsg = s.filteredMessages[s.filteredMessages.length - 1];
-    const isNewMessageFromOthers = lastMsg.sender_id !== s.profile?.id;
+    const lastMsg = filteredMessages[filteredMessages.length - 1];
+    const isNewMessageFromOthers = lastMsg.sender_id !== profile?.id;
 
-    if (isNewMessageFromOthers && !s.isNearBottomRef.current && s.scrollRef.current) {
+    if (isNewMessageFromOthers && !isNearBottomRef.current && scrollRef.current) {
       // Don't auto-scroll, just keep position.
       // The scroll container naturally stays where it is if content is added at the end,
       // unless we are using a virtualized list that might shift things.
     }
-  }, [s.filteredMessages.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filteredMessages, profile]);
 
   useEffect(() => {
-    if (s.showSearch) s.searchInputRef.current?.focus();
-  }, [s.showSearch]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (showSearch) searchInputRef.current?.focus();
+  }, [showSearch]);
 
   const dateFirstIndexes = useMemo(() => {
     const seen = new Set<string>();

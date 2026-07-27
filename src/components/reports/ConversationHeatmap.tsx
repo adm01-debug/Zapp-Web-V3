@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchContactMessagesForHeatmap } from '@/hooks/useConversationHeatmap';
 import {
@@ -25,11 +25,7 @@ export function ConversationHeatmap() {
   const [period, setPeriod] = useState('30');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
-  }, [period]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     const since = new Date();
     since.setDate(since.getDate() - parseInt(period));
@@ -53,7 +49,11 @@ export function ConversationHeatmap() {
       setData(cells);
     }
     setLoading(false);
-  };
+  }, [period]);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
   const maxCount = useMemo(() => Math.max(1, ...data.map((c) => c.count)), [data]);
 

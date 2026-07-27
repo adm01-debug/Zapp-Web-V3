@@ -82,19 +82,22 @@ export function usePermissions() {
   const [fetchingAll, setFetchingAll] = useState(false);
   const mountedRef = useMountedRef();
 
-  const fetchAllPermissionsData = useCallback(async (force = false) => {
-    if (!mountedRef.current) return;
-    setFetchingAll(true);
-    try {
-      const data = await loadPermissionsData(force);
-      if (mountedRef.current) {
-        setPermissions(data.permissions);
-        setRolePermissions(data.rolePermissions);
+  const fetchAllPermissionsData = useCallback(
+    async (force = false) => {
+      if (!mountedRef.current) return;
+      setFetchingAll(true);
+      try {
+        const data = await loadPermissionsData(force);
+        if (mountedRef.current) {
+          setPermissions(data.permissions);
+          setRolePermissions(data.rolePermissions);
+        }
+      } finally {
+        if (mountedRef.current) setFetchingAll(false);
       }
-    } finally {
-      if (mountedRef.current) setFetchingAll(false);
-    }
-  }, [mountedRef]);
+    },
+    [mountedRef]
+  );
 
   useEffect(() => {
     if (user) fetchAllPermissionsData();

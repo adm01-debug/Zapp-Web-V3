@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useAuth } from '@/features/auth';
 import { log } from '@/lib/logger';
 import type { SoundType } from '@/utils/notificationSounds';
@@ -346,8 +346,7 @@ export function useNotificationSettingsManagement(userId?: string) {
 /** Subscribes to real-time team chat notifications with read status tracking. */
 export function useTeamChatNotificationsManagement() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const channelRef = useRef<any>(null);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     channelRef.current = supabase.channel('notifications:team-chat');

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
 import { useAuth } from '@/features/auth';
@@ -26,6 +26,10 @@ export function useTeamChatDraft({
 }: UseTeamChatDraftOptions) {
   const { profile } = useAuth();
   const [pasteUploading, setPasteUploading] = useState(false);
+  const textRef = useRef(text);
+  textRef.current = text;
+  const setTextRef = useRef(setText);
+  setTextRef.current = setText;
 
   const charCount = text.length;
   const isNearLimit = charCount > CHAR_LIMIT * 0.9;
@@ -52,11 +56,10 @@ export function useTeamChatDraft({
   useEffect(() => {
     try {
       const draft = localStorage.getItem(`${DRAFT_KEY_PREFIX}${conversationId}`);
-      if (draft && !text) setText(draft);
+      if (draft && !textRef.current) setTextRef.current(draft);
     } catch (err) {
       log.error('Unexpected error in useTeamChatDraft:', err);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 
   // Clear draft on send
@@ -88,7 +91,11 @@ export function useTeamChatDraft({
               .upload(path, file, { contentType: file.type });
             if (uploadError) throw uploadError;
 
-            onFileSent(resolvePublicStorageUrl('team-chat-files', path) ?? '', 'image', `📋 Imagem colada`);
+            onFileSent(
+              resolvePublicStorageUrl('team-chat-files', path) ?? '',
+              'image',
+              `📋 Imagem colada`
+            );
           } catch (err) {
             log.error('Paste image upload error:', err);
             toast.error('Erro ao enviar imagem colada');

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Tag, Brain, Loader2, CheckCircle, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,6 +40,31 @@ const PRIORITY_MAP: Record<string, { label: string; color: string }> = {
   low: { label: 'Baixa', color: 'bg-success text-success-foreground' },
 };
 
+function classifyTag(tagName: string): string {
+  const lower = tagName.toLowerCase();
+  if (lower.includes('suporte') || lower.includes('bug') || lower.includes('erro'))
+    return 'Suporte Técnico';
+  if (lower.includes('vend') || lower.includes('preço') || lower.includes('compra'))
+    return 'Vendas';
+  if (lower.includes('pag') || lower.includes('boleto') || lower.includes('fatura'))
+    return 'Financeiro';
+  if (lower.includes('reclam') || lower.includes('insatisf')) return 'Reclamação';
+  if (lower.includes('agend') || lower.includes('horário')) return 'Agendamento';
+  return 'Informação';
+}
+
+function derivePriority(tagName: string, confidence: number): string {
+  const lower = tagName.toLowerCase();
+  if (lower.includes('urgent') || lower.includes('reclam')) return 'urgent';
+  if (confidence > 0.8 && (lower.includes('bug') || lower.includes('erro'))) return 'high';
+  if (confidence > 0.5) return 'medium';
+  return 'low';
+}
+
+function getCategoryInfo(name: string) {
+  return CATEGORIES.find((c) => c.name === name) || CATEGORIES[4];
+}
+
 /** Auto Ticket Classifier component for the ai section. */
 export function AutoTicketClassifier() {
   const [autoClassify, setAutoClassify] = useState(true);
@@ -49,17 +74,9 @@ export function AutoTicketClassifier() {
   const [categoryStats, setCategoryStats] = useState<Record<string, number>>({});
   const isMountedRef = useRef(true);
 
-  useEffect(() => {
-    loadClassifiedTickets();
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, [isMountedRef]);
-
-  const loadClassifiedTickets = async () => {
+  const loadClassifiedTickets = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch AI-tagged contacts
       type AiTagRow = {
         contact_id: string;
         tag_name: string;
@@ -93,7 +110,6 @@ export function AutoTicketClassifier() {
 
         const list = Array.from(grouped.values());
 
-        // Compute category stats
         const stats: Record<string, number> = {};
         list.forEach((t) => {
           stats[t.category] = (stats[t.category] || 0) + 1;
@@ -108,30 +124,16 @@ export function AutoTicketClassifier() {
     } finally {
       if (isMountedRef.current) setLoading(false);
     }
-  };
+  }, []);
 
-  const classifyTag = (tagName: string): string => {
-    const lower = tagName.toLowerCase();
-    if (lower.includes('suporte') || lower.includes('bug') || lower.includes('erro'))
-      return 'Suporte Técnico';
-    if (lower.includes('vend') || lower.includes('preço') || lower.includes('compra'))
-      return 'Vendas';
-    if (lower.includes('pag') || lower.includes('boleto') || lower.includes('fatura'))
-      return 'Financeiro';
-    if (lower.includes('reclam') || lower.includes('insatisf')) return 'Reclamação';
-    if (lower.includes('agend') || lower.includes('horário')) return 'Agendamento';
-    return 'Informação';
-  };
+  useEffect(() => {
+    void loadClassifiedTickets();
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [loadClassifiedTickets]);
 
-  const derivePriority = (tagName: string, confidence: number): string => {
-    const lower = tagName.toLowerCase();
-    if (lower.includes('urgent') || lower.includes('reclam')) return 'urgent';
-    if (confidence > 0.8 && (lower.includes('bug') || lower.includes('erro'))) return 'high';
-    if (confidence > 0.5) return 'medium';
-    return 'low';
-  };
-
-  const runBatchClassification = async () => {
+  const runBatchClassification = useCallback(async () => {
     setClassifying(true);
     try {
       const { data: _data, error } = await supabase.functions.invoke('ai-classify-tickets', {
@@ -146,11 +148,7 @@ export function AutoTicketClassifier() {
     } finally {
       setClassifying(false);
     }
-  };
-
-  const getCategoryInfo = (name: string) => {
-    return CATEGORIES.find((c) => c.name === name) || CATEGORIES[4];
-  };
+  }, [loadClassifiedTickets]);
 
   return (
     <div className="space-y-6">

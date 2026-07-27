@@ -72,7 +72,9 @@ export function ConnectionHealthPanel(): JSX.Element {
     const [connResult, logs] = await Promise.all([
       supabase
         .from('whatsapp_connections')
-        .select('id, name, instance_name, status, phone_number, last_health_check, health_status, health_response_ms')
+        .select(
+          'id, name, instance_name, status, phone_number, last_health_check, health_status, health_response_ms'
+        )
         .order('name'),
       fetchConnectionHealthLogs(),
     ]);

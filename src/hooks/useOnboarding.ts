@@ -7,14 +7,19 @@ import { log } from '@/lib/logger';
 const ONBOARDING_KEY = 'onboarding_completed';
 
 function readLocal(userId: string): boolean {
-  try { return localStorage.getItem(`${ONBOARDING_KEY}_${userId}`) === 'true'; }
-  catch { return false; }
+  try {
+    return localStorage.getItem(`${ONBOARDING_KEY}_${userId}`) === 'true';
+  } catch {
+    return false;
+  }
 }
 function writeLocal(userId: string, value: boolean) {
   try {
     if (value) localStorage.setItem(`${ONBOARDING_KEY}_${userId}`, 'true');
     else localStorage.removeItem(`${ONBOARDING_KEY}_${userId}`);
-  } catch { /* storage unavailable */ }
+  } catch {
+    /* storage unavailable */
+  }
 }
 
 /** Tracks user onboarding completion status with localStorage and database persistence. */
@@ -60,8 +65,8 @@ export function useOnboarding() {
     } catch (err) {
       log.error('[useOnboarding] completeOnboarding unexpected error:', err);
     }
-    queryClient.setQueryData(queryKey, true);
-  }, [user, queryClient, queryKey]); // eslint-disable-line react-hooks/exhaustive-deps
+    queryClient.setQueryData(['onboarding-status', user?.id], true);
+  }, [user, queryClient]);
 
   const resetOnboarding = useCallback(async () => {
     if (!user) return;
@@ -71,9 +76,11 @@ export function useOnboarding() {
         .update({ onboarding_completed: false })
         .eq('user_id', user.id);
       writeLocal(user.id, false);
-    } catch { /* ignore */ }
-    queryClient.setQueryData(queryKey, false);
-  }, [user, queryClient, queryKey]); // eslint-disable-line react-hooks/exhaustive-deps
+    } catch {
+      /* ignore */
+    }
+    queryClient.setQueryData(['onboarding-status', user?.id], false);
+  }, [user, queryClient]);
 
   return {
     hasCompletedOnboarding,

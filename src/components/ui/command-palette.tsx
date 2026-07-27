@@ -116,14 +116,17 @@ export function CommandPalette({
     debouncedSearch(v);
   };
 
-  const executeCommand = (item: CommandItem) => {
-    if (item.disabled) return;
-    if (item.action) item.action();
-    else if (item.href) window.location.href = item.href;
-    else if (item.id.startsWith('nav-')) onNavigate?.(item.id.replace('nav-', ''));
-    onOpenChange(false);
-    setQuery('');
-  };
+  const executeCommand = React.useCallback(
+    (item: CommandItem) => {
+      if (item.disabled) return;
+      if (item.action) item.action();
+      else if (item.href) window.location.href = item.href;
+      else if (item.id.startsWith('nav-')) onNavigate?.(item.id.replace('nav-', ''));
+      onOpenChange(false);
+      setQuery('');
+    },
+    [onNavigate, onOpenChange]
+  );
 
   React.useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -141,7 +144,7 @@ export function CommandPalette({
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  }, [open, allItems, selectedIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, allItems, selectedIndex, executeCommand]);
 
   React.useEffect(() => {
     if (!open) {

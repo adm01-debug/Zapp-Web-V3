@@ -72,6 +72,8 @@ export function useGlobalSearchData(open: boolean) {
   const [showFilters, setShowFilters] = useState(false);
   /** Last logged search event id — kept to correlate clicks if needed. */
   const lastSearchEventIdRef = useRef<string | null>(null);
+  const searchRef = useRef(search);
+  searchRef.current = search;
 
   const { history, addToHistory, removeFromHistory, clearHistory } = useSearchHistory();
 
@@ -352,10 +354,10 @@ export function useGlobalSearchData(open: boolean) {
   );
 
   useEffect(() => {
-    if (search.length >= 2 || selectedTags.length > 0 || mediaTypeFilter !== 'all') {
-      performSearch(search, activeTypes, dateFilter, selectedTags, mediaTypeFilter);
+    if (searchRef.current.length >= 2 || selectedTags.length > 0 || mediaTypeFilter !== 'all') {
+      performSearch(searchRef.current, activeTypes, dateFilter, selectedTags, mediaTypeFilter);
     }
-  }, [activeTypes, dateFilter, selectedTags, mediaTypeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeTypes, dateFilter, selectedTags, mediaTypeFilter, performSearch]);
 
   const handleTagSelect = useCallback((tag: TagSuggestion) => {
     setSelectedTags((prev) => [...prev, tag.id]);

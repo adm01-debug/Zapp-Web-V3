@@ -73,8 +73,7 @@ export function useIndexNavigation(user: User | null, loading: boolean) {
     } else if (resolvedView) {
       deepLinkViewHandledRef.current = true;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, user, currentView, setCurrentView]);
+  }, [loading, user, currentView, setCurrentView, searchParams, deepLinkViewHandledRef]);
 
   return {
     currentView,

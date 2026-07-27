@@ -99,8 +99,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
         description: 'O documento interno foi salvo com sucesso.',
       });
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' });
     },
     onSettled: () => setIsUploading(false),
@@ -217,8 +216,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
             </p>
           </div>
         ) : (
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          filteredFiles.map((file: any) => (
+          filteredFiles.map((file: WhisperFile) => (
             <div
               key={file.id}
               className="group flex items-center gap-3 rounded-xl border border-warning bg-warning/50 p-2 transition-colors hover:bg-warning/50"

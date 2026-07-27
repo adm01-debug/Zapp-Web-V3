@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchConversationClosuresCount } from '@/hooks/usePeriodComparison';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -28,11 +28,7 @@ export function PeriodComparison() {
   const [period, setPeriod] = useState('week');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadComparison();
-  }, [period]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadComparison = async () => {
+  const loadComparison = useCallback(async () => {
     setLoading(true);
     const now = new Date();
     let currentStart: Date, previousStart: Date, previousEnd: Date;
@@ -79,7 +75,11 @@ export function PeriodComparison() {
       },
     });
     setLoading(false);
-  };
+  }, [period]);
+
+  useEffect(() => {
+    loadComparison();
+  }, [period, loadComparison]);
 
   const getVariation = (current: number, previous: number) => {
     if (previous === 0) return current > 0 ? 100 : 0;

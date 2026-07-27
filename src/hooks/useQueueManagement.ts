@@ -4,13 +4,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { safeFrom } from '@/integrations/supabase/safeClient';
+import { safeFrom, safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { queryKeys } from '@/services/api/queryKeys';
 import { log } from '@/lib/logger';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const rpcClient = supabase as SupabaseClient<any>;
 
 interface Queue {
   id: string;
@@ -334,7 +331,7 @@ export function useQueueSlaManagement(params: { filters: QueueSlaFilters }) {
 
     try {
       setLoading(true);
-      const { data, error: err } = await rpcClient.rpc('rpc_queue_sla_panel', {
+      const { data, error: err } = await safeClient.rpc('rpc_queue_sla_panel', {
         p_skill_name: filters.skill_name,
         p_channel_type: filters.channel_type,
         p_sla_status: filters.sla_status,
@@ -378,7 +375,7 @@ export function useQueueSlaManagement(params: { filters: QueueSlaFilters }) {
   const triggerRebalance = useCallback(
     async (limit = 50): Promise<boolean> => {
       try {
-        const { error: err } = await rpcClient.rpc('rpc_queue_rebalance_candidates', {
+        const { error: err } = await safeClient.rpc('rpc_queue_rebalance_candidates', {
           p_limit: limit,
         });
         if (err) throw err;

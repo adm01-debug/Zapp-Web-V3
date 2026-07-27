@@ -26,6 +26,38 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/comp
 import { RetryFailureBadge } from './RetryFailureBadge';
 import { toValidDate } from '@/utils/date/normalize';
 
+interface ConversationContact {
+  id?: string;
+  name?: string;
+  pushName?: string;
+  phone?: string;
+  contact_type?: string | null;
+  avatar?: string;
+  avatar_url?: string;
+  company_name?: string;
+  company?: string;
+  organization?: string;
+  job_title?: string;
+  jobTitle?: string;
+  role?: string;
+  updated_at?: string;
+  ai_sentiment?: SentimentLevel | null;
+  tags?: string[];
+}
+
+interface ConversationLike {
+  id: string;
+  contact?: ConversationContact;
+  status?: string;
+  unreadCount?: number;
+  lastMessage?: { content?: string; created_at?: string };
+  updatedAt?: string;
+  assignedTo?: { id?: string; name: string; avatar?: string };
+  priority?: string;
+  sentimentScore?: number;
+  sentiment?: SentimentLevel | null;
+}
+
 export function ChannelBadge({ type }: { type?: string | null }) {
   const iconClass = 'w-2.5 h-2.5 text-primary-foreground';
   let Icon = MessageCircle;
@@ -108,11 +140,9 @@ function TruncatedTooltip({
 }
 
 interface ConversationItemProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  conversation: any;
+  conversation: ConversationLike;
   isSelected: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onSelect: (conversation: any) => void;
+  onSelect: (conversation: ConversationLike) => void;
   compact?: boolean;
   selectionMode?: boolean;
   isMultiSelected?: boolean;
@@ -120,8 +150,7 @@ interface ConversationItemProps {
   isPinned?: boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildPrimaryLabel(conversation: any): string {
+function buildPrimaryLabel(conversation: ConversationLike): string {
   const name = (
     conversation.contact?.name ||
     conversation.contact?.pushName ||
@@ -137,13 +166,11 @@ function buildPrimaryLabel(conversation: any): string {
   return safeName;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildFullPrimaryLabel(conversation: any): string {
+function buildFullPrimaryLabel(conversation: ConversationLike): string {
   return buildPrimaryLabel(conversation);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildSecondaryLabel(conversation: any): string | null {
+function buildSecondaryLabel(conversation: ConversationLike): string | null {
   const jobTitle =
     conversation.contact?.job_title?.trim() ||
     conversation.contact?.jobTitle?.trim() ||
@@ -421,7 +448,9 @@ export const ConversationItem = memo(function ConversationItem({
 
   const quickPeekPreview = (
     <div className="space-y-1.5">
-      <p className="text-xs font-medium text-foreground">{conversation.contact.name}</p>
+      <p className="text-xs font-medium text-foreground">
+        {conversation.contact?.name ?? 'Contato'}
+      </p>
       {conversation.lastMessage?.content && (
         <p className="line-clamp-4 text-xs leading-relaxed text-muted-foreground">
           {conversation.lastMessage.content}

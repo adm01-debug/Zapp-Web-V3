@@ -157,11 +157,7 @@ export function useMessagesCursor({
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-    // Refs (mountedRef, remoteJidRef, oldestCursorRef) and stable setState dispatchers
-    // (setPages, setError, setLoading, setHasMoreOlder) are intentionally omitted: refs
-    // never change identity and setState is stable per React contract.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, remoteJid, fetchPage, pageSize]);
+  }, [enabled, remoteJid, fetchPage, pageSize, mountedRef]);
 
   // Reset + first load whenever remoteJid changes.
   useEffect(() => {
@@ -208,20 +204,14 @@ export function useMessagesCursor({
       if (mountedRef.current) setLoadingOlder(false);
       inFlightRef.current = false;
     }
-    // Refs (mountedRef, remoteJidRef, oldestCursorRef, inFlightRef) and stable setState
-    // dispatchers are intentionally omitted — refs are never replaced, setState is stable.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [remoteJid, hasMoreOlder, fetchPage, pageSize]);
+  }, [remoteJid, hasMoreOlder, fetchPage, pageSize, mountedRef]);
 
   const cancelLoadOlder = useCallback(() => {
     if (!inFlightRef.current) return;
     abortRef.current?.abort();
     inFlightRef.current = false;
     if (mountedRef.current) setLoadingOlder(false);
-    // All captured variables are refs (inFlightRef, abortRef, mountedRef) or stable
-    // setState dispatchers (setLoadingOlder) — empty dep array is correct by design.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [mountedRef]);
 
   // Realtime — only set up when enabled + jid present.
   useEffect(() => {

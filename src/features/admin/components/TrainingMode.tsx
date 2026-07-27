@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -77,9 +77,20 @@ export function TrainingMode(): JSX.Element {
     loadProfile();
   }, []);
 
+  const loadSessions = useCallback(async () => {
+    if (!profileId) return;
+    const { data } = await supabase
+      .from('training_sessions')
+      .select('*')
+      .eq('profile_id', profileId)
+      .order('created_at', { ascending: false })
+      .limit(10);
+    if (data) setSessions(data);
+  }, [profileId]);
+
   useEffect(() => {
     if (profileId) loadSessions();
-  }, [profileId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [profileId, loadSessions]);
 
   const loadProfile = async () => {
     const {
@@ -92,17 +103,6 @@ export function TrainingMode(): JSX.Element {
       .eq('user_id', user.id)
       .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
     if (data) setProfileId(data.id);
-  };
-
-  const loadSessions = async () => {
-    if (!profileId) return;
-    const { data } = await supabase
-      .from('training_sessions')
-      .select('*')
-      .eq('profile_id', profileId)
-      .order('created_at', { ascending: false })
-      .limit(10);
-    if (data) setSessions(data);
   };
 
   const startScenario = async (s: (typeof SCENARIOS)[0]) => {

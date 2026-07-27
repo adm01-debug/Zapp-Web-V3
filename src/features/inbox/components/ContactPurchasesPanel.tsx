@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchContactPurchases, createContactPurchase } from '../hooks/useContactPurchasesData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,16 +56,16 @@ export function ContactPurchasesPanel({ contactId, profileId }: ContactPurchases
   const [amount, setAmount] = useState('');
   const [type, setType] = useState('purchase');
 
-  useEffect(() => {
-    loadPurchases();
-  }, [contactId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadPurchases = async () => {
+  const loadPurchases = useCallback(async () => {
     setLoading(true);
     const data = await fetchContactPurchases(contactId);
     setPurchases(data);
     setLoading(false);
-  };
+  }, [contactId]);
+
+  useEffect(() => {
+    loadPurchases();
+  }, [contactId, loadPurchases]);
 
   const addPurchase = async () => {
     if (!title.trim()) return;

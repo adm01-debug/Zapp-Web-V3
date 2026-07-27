@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSLAScopeOptions } from '@/hooks/sla/useSLAScopeOptions';
 import { useSLARules, SLARuleForm, SLARule, SLARuleScope } from '@/features/sla';
 import { Button } from '@/components/ui/button';
@@ -51,22 +51,30 @@ export function SLARuleFormDialog({
   const [scopeValue, setScopeValue] = useState('');
   const [contactSearch, setContactSearch] = useState('');
 
+  // Keep a ref to always hold the latest editingRule without making it a dep —
+  // the effect should only re-run when we open/close or switch to a different
+  // rule (id changes), not on every parent re-render that produces a new object.
+  const editingRuleRef = useRef(editingRule);
+  editingRuleRef.current = editingRule;
+  const editingRuleId = editingRule?.id;
+
   useEffect(() => {
-    if (open && editingRule) {
+    const rule = editingRuleRef.current;
+    if (open && rule) {
       setForm({
-        name: editingRule.name,
-        first_response_minutes: editingRule.first_response_minutes,
-        resolution_minutes: editingRule.resolution_minutes,
-        priority: editingRule.priority,
-        metadata: editingRule.metadata || { notify_on_warning: false, escalation_notes: '' },
+        name: rule.name,
+        first_response_minutes: rule.first_response_minutes,
+        resolution_minutes: rule.resolution_minutes,
+        priority: rule.priority,
+        metadata: rule.metadata || { notify_on_warning: false, escalation_notes: '' },
       });
       setScopeValue(
-        editingRule.contact_id ||
-          editingRule.company ||
-          editingRule.job_title ||
-          editingRule.contact_type ||
-          editingRule.queue_id ||
-          editingRule.agent_id ||
+        rule.contact_id ||
+          rule.company ||
+          rule.job_title ||
+          rule.contact_type ||
+          rule.queue_id ||
+          rule.agent_id ||
           ''
       );
     } else if (open) {
@@ -80,11 +88,7 @@ export function SLARuleFormDialog({
       setScopeValue('');
       setContactSearch('');
     }
-    // FIX B8: dep no `editingRule?.id` em vez do objeto inteiro, para não
-    // resetar o form a cada re-render do pai quando a referência muda mas a
-    // regra em edição é a mesma.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, editingRule?.id]);
+  }, [open, editingRuleId]);
 
   const { companies, jobTitles, queues, agents, contacts } = useSLAScopeOptions(
     open,
@@ -141,7 +145,8 @@ export function SLARuleFormDialog({
           {contacts.length > 0 && (
             <div className="max-h-32 overflow-auto rounded-xl border">
               {contacts.map((c) => (
-                <button type="button"
+                <button
+                  type="button"
                   key={c.id}
                   onClick={() => {
                     setScopeValue(c.id);
@@ -209,13 +214,21 @@ export function SLARuleFormDialog({
               className={cn('mt-1', errors.name && 'border-destructive')}
               aria-invalid={!!errors.name}
             />
-            {errors.name && <p role="alert" className="mt-1 text-[11px] text-destructive">{errors.name}</p>}
+            {errors.name && (
+              <p role="alert" className="mt-1 text-[11px] text-destructive">
+                {errors.name}
+              </p>
+            )}
           </div>
 
           <div>
             <Label className="text-xs font-medium">{SCOPE_LABELS[scope]}</Label>
             {renderScopeSelector()}
-            {errors.scope && <p role="alert" className="mt-1 text-[11px] text-destructive">{errors.scope}</p>}
+            {errors.scope && (
+              <p role="alert" className="mt-1 text-[11px] text-destructive">
+                {errors.scope}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -230,7 +243,11 @@ export function SLARuleFormDialog({
                 }
                 className={cn('mt-1', errors.fr && 'border-destructive')}
               />
-              {errors.fr && <p role="alert" className="mt-1 text-[11px] text-destructive">{errors.fr}</p>}
+              {errors.fr && (
+                <p role="alert" className="mt-1 text-[11px] text-destructive">
+                  {errors.fr}
+                </p>
+              )}
             </div>
             <div>
               <Label className="text-xs font-medium">Resolução (min)</Label>
@@ -243,7 +260,11 @@ export function SLARuleFormDialog({
                 }
                 className={cn('mt-1', errors.res && 'border-destructive')}
               />
-              {errors.res && <p role="alert" className="mt-1 text-[11px] text-destructive">{errors.res}</p>}
+              {errors.res && (
+                <p role="alert" className="mt-1 text-[11px] text-destructive">
+                  {errors.res}
+                </p>
+              )}
             </div>
           </div>
 

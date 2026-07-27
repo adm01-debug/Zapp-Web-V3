@@ -135,7 +135,7 @@ export function useTeamChatPanel(conversation: TeamConversation) {
       setHasNewMessagesUnseen(true);
       setShowScrollDown(true); // Ensure indicator shows up
     }
-  }, [messages.length, profile?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [messages, profile?.id]);
 
   useLayoutEffect(() => {
     // Scroll anchor for infinite scroll UP
@@ -171,7 +171,7 @@ export function useTeamChatPanel(conversation: TeamConversation) {
       }
       lastMessageIdRef.current = latestMsg.id;
     }
-  }, [messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [messages]);
 
   const handleSend = useCallback(() => {
     const trimmed = text.trim();
@@ -239,7 +239,11 @@ export function useTeamChatPanel(conversation: TeamConversation) {
           .from('team-chat-files')
           .upload(path, blob, { contentType: 'audio/webm' });
         if (error) throw error;
-        handleSendMedia(resolvePublicStorageUrl('team-chat-files', path) ?? '', 'audio', '🎤 Mensagem de áudio');
+        handleSendMedia(
+          resolvePublicStorageUrl('team-chat-files', path) ?? '',
+          'audio',
+          '🎤 Mensagem de áudio'
+        );
       } catch (err) {
         toast.error('Erro ao enviar áudio');
         log.error('Audio upload error:', err);

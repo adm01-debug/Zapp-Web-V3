@@ -41,8 +41,8 @@ export const SidebarNavGroup = React.memo(function SidebarNavGroup({
   const [isOpen, setIsOpen] = useState(defaultOpen || hasActiveItem);
 
   useEffect(() => {
-    if (hasActiveItem && !isOpen) setIsOpen(true);
-  }, [hasActiveItem]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (hasActiveItem) setIsOpen(true);
+  }, [hasActiveItem]);
 
   const triggerButton = (
     <button

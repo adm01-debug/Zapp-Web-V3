@@ -23,8 +23,7 @@ interface ServiceOptions {
 /**
  * Factory function to create a standardized service for any table
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const createService = <T = any>(tableName: string, options?: ServiceOptions) => {
+export const createService = <T = unknown>(tableName: string, options?: ServiceOptions) => {
   const {
     orderBy = 'created_at',
     orderDirection = 'desc',
@@ -61,8 +60,7 @@ export const createService = <T = any>(tableName: string, options?: ServiceOptio
               query = query.in(key, value);
             } else if (typeof value === 'object' && value !== null) {
               // Handle range filters: { min: 10, max: 100 }
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const rangeVal = value as Record<string, any>;
+              const rangeVal = value as Record<string, unknown>;
               if ('min' in rangeVal) query = query.gte(key, rangeVal.min);
               if ('max' in rangeVal) query = query.lte(key, rangeVal.max);
             } else if (value === 'null') {

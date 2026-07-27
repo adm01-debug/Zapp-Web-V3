@@ -117,6 +117,10 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
     setAudioUrl(url);
   }, []);
 
+  const transcriptionRef = useRef(transcription);
+  transcriptionRef.current = transcription;
+  const stopRecordingRef = useRef<(() => void) | null>(null);
+
   const startRecording = useCallback(
     async (isRecovery = false) => {
       try {
@@ -177,7 +181,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           }
 
           // If local transcription is empty and we had issues, try backend STT
-          if (transcription.trim() === '' && audioBlob.size > 1000) {
+          if (transcriptionRef.current.trim() === '' && audioBlob.size > 1000) {
             try {
               if (mountedRef.current) setIsTranscribing(true);
               const { data, error } = await supabase.functions.invoke('speech-to-text', {
@@ -251,7 +255,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         intervalRef.current = setInterval(() => {
           setDuration((prev) => {
             if (prev >= maxDuration) {
-              stopRecording();
+              stopRecordingRef.current?.();
               toast({
                 title: 'Limite de gravação atingido',
                 description: `O áudio foi encerrado em ${Math.floor(maxDuration / 60)} min (limite máximo).`,
@@ -270,8 +274,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         });
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [maxDuration, onRecordingComplete]
+    [maxDuration, onRecordingComplete, setBlobUrl]
   );
 
   const pauseRecording = useCallback(() => {
@@ -311,6 +314,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
       setIsPaused(false);
     }
   }, [isRecording]);
+  stopRecordingRef.current = stopRecording;
 
   const cancelRecording = useCallback(
     (saveForUndo = false) => {

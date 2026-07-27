@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchAbandonmentRateMessages } from '@/hooks/useAbandonmentRateData';
 import {
@@ -17,11 +17,7 @@ export function AbandonmentRate() {
   const [period, setPeriod] = useState('7');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
-  }, [period]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     const since = new Date();
     since.setDate(since.getDate() - parseInt(period));
@@ -45,7 +41,11 @@ export function AbandonmentRate() {
       setData({ total, abandoned, responded });
     }
     setLoading(false);
-  };
+  }, [period]);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
   const rate = data.total > 0 ? Math.round((data.abandoned / data.total) * 100) : 0;
 

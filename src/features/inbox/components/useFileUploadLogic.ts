@@ -329,18 +329,20 @@ export function useFileUploadLogic(opts: {
     setTimeout(handleClose, 1000);
   }, [fileQueue, sendSingleQueueFile, handleClose]);
 
-  const handleExternalFile = useCallback((file: File) => {
-    const validation = validateFile(file);
-    let preview: string | undefined;
-    if (validation.valid && (validation.category === 'image' || file.type === 'application/pdf'))
-      preview = URL.createObjectURL(file);
-    setFilePreview({ file, validation, preview });
-    setIsMultiMode(false);
-    setFileQueue([]);
-    setCaption('');
-    setIsDialogOpen(showDialog);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only init
-  }, []);
+  const handleExternalFile = useCallback(
+    (file: File) => {
+      const validation = validateFile(file);
+      let preview: string | undefined;
+      if (validation.valid && (validation.category === 'image' || file.type === 'application/pdf'))
+        preview = URL.createObjectURL(file);
+      setFilePreview({ file, validation, preview });
+      setIsMultiMode(false);
+      setFileQueue([]);
+      setCaption('');
+      setIsDialogOpen(showDialog);
+    },
+    [showDialog]
+  );
 
   const handleExternalFiles = useCallback(
     (files: File[]) => {
@@ -356,22 +358,24 @@ export function useFileUploadLogic(opts: {
       setCurrentQueueIndex(0);
       setIsDialogOpen(showDialog);
     },
-    [handleExternalFile, processFilesToQueue] // eslint-disable-line react-hooks/exhaustive-deps
+    [handleExternalFile, processFilesToQueue, showDialog]
   );
 
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const validation = validateFile(file);
-    let preview: string | undefined;
-    if (validation.valid && (validation.category === 'image' || file.type === 'application/pdf'))
-      preview = URL.createObjectURL(file);
-    setFilePreview({ file, validation, preview });
-    setCaption('');
-    setIsDialogOpen(showDialog);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only init
-  }, []);
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const validation = validateFile(file);
+      let preview: string | undefined;
+      if (validation.valid && (validation.category === 'image' || file.type === 'application/pdf'))
+        preview = URL.createObjectURL(file);
+      setFilePreview({ file, validation, preview });
+      setCaption('');
+      setIsDialogOpen(showDialog);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    },
+    [showDialog]
+  );
 
   const removeFromQueue = useCallback((id: string) => {
     setFileQueue((prev) => {

@@ -92,7 +92,7 @@ export function ProductDetailDialog({
     } else {
       setFullProduct(product);
     }
-  }, [open, product.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, product, fetchProduct]);
 
   const dp = fullProduct;
 

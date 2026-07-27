@@ -32,10 +32,8 @@ interface AutomationExecutionRowMinimal {
   status: string | null;
   rule_id: string | null;
   remote_jid: string | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  trigger_payload: Record<string, any> | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rule_snapshot: Record<string, any> | null;
+  trigger_payload: Record<string, unknown> | null;
+  rule_snapshot: Record<string, unknown> | null;
 }
 
 function describeStage(stage: string | null | undefined): string {
@@ -77,11 +75,10 @@ export function useAutomationFailureAlerts(enabled = true): void {
       seenRef.current.add(row.id);
 
       const payload = row.trigger_payload ?? {};
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ctx = (payload.error_context ?? {}) as Record<string, any>;
+      const ctx = (payload.error_context ?? {}) as Record<string, unknown>;
       const ruleName =
         row.rule_snapshot?.name ?? (payload.rule_name as string | undefined) ?? 'Regra sem nome';
-      const stage = describeStage(ctx.stage);
+      const stage = describeStage(ctx.stage as string | null | undefined);
       const errMsg = shortError(payload.error as string | undefined);
       const tail = row.remote_jid ? ` em ${row.remote_jid.split('@')[0]}` : '';
 
@@ -99,7 +96,7 @@ export function useAutomationFailureAlerts(enabled = true): void {
       log.warn('[automation-alert] failed', {
         executionId: row.id,
         ruleId: row.rule_id,
-        stage: ctx.stage ?? null,
+        stage: (ctx.stage as string | null | undefined) ?? null,
       });
     };
 

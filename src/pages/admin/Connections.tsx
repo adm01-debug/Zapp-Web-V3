@@ -35,10 +35,27 @@ import { getLogger } from '@/lib/logger';
 const log = getLogger('Connections');
 import { motion, AnimatePresence } from 'framer-motion';
 
+interface SystemConnection {
+  id: string;
+  name: string;
+  provider: string;
+  config: { url?: string; anon_key?: string };
+  is_active: boolean;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface SystemConnectionPayload {
+  name: string;
+  provider: string;
+  config: { url: string; anon_key: string };
+  is_active: boolean;
+  created_by?: string;
+}
+
 const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as
-  | 'development'
-  | 'staging'
-  | 'production';
+  'development' | 'staging' | 'production';
 
 const getInitialConfig = () => {
   switch (APP_ENV) {
@@ -70,8 +87,7 @@ const DEFAULT_EXTERNAL_KEY = initialConfig.key;
 
 export default function AdminConnectionsPage() {
   const [activeTab, setActiveTab] = useState('external-db');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [connections, setConnections] = useState<any[]>([]);
+  const [connections, setConnections] = useState<SystemConnection[]>([]);
   const [_loading, setLoading] = useState(true);
 
   const [externalUrl, setExternalUrl] = useState(DEFAULT_EXTERNAL_URL);
@@ -103,8 +119,9 @@ export default function AdminConnectionsPage() {
 
         if (rolesError) throw rolesError;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const hasAccess = !!roles?.some((r: any) => r.role === 'admin' || r.role === 'dev');
+        const hasAccess = !!roles?.some(
+          (r: { role: string }) => r.role === 'admin' || r.role === 'dev'
+        );
         setIsAdmin(hasAccess);
 
         if (!hasAccess) {
@@ -148,16 +165,14 @@ export default function AdminConnectionsPage() {
 
   async function fetchConnections() {
     setLoading(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await safeClient.from<any>('system_connections', (q) =>
+    const { data, error } = await safeClient.from<SystemConnection>('system_connections', (q) =>
       q.select('*').order('created_at', { ascending: false })
     );
 
     if (!error && data) {
       setConnections(data);
       const fatorX = data.find(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (c: any) => c.provider === 'supabase_external' || c.name === 'FATOR X'
+        (c: SystemConnection) => c.provider === 'supabase_external' || c.name === 'FATOR X'
       );
       if (fatorX?.config?.url && fatorX?.config?.anon_key) {
         setExternalUrl(fatorX.config.url);
@@ -235,8 +250,7 @@ export default function AdminConnectionsPage() {
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const payload: any = {
+    const payload: SystemConnectionPayload = {
       name: 'FATOR X',
       provider: 'supabase_external',
       config: { url: draftUrl, anon_key: draftKey },
@@ -244,15 +258,12 @@ export default function AdminConnectionsPage() {
     };
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const existing: any = connections.find(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (c: any) => c.provider === 'supabase_external' || c.name === 'FATOR X'
+      const existing: SystemConnection | undefined = connections.find(
+        (c: SystemConnection) => c.provider === 'supabase_external' || c.name === 'FATOR X'
       );
       const insertPayload = currentUserId ? { ...payload, created_by: currentUserId } : payload;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await safeClient.from<any>('system_connections', (q) =>
+      const { data, error } = await safeClient.from<SystemConnection>('system_connections', (q) =>
         existing
           ? q.update(payload).eq('id', existing.id).select()
           : q.insert(insertPayload).select()
@@ -283,8 +294,7 @@ export default function AdminConnectionsPage() {
       // Pequeno delay para garantir que o banco processou a transação (útil em setups com latência)
       await new Promise((resolve) => setTimeout(resolve, 800));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: verifyRows, error: verifyError } = await safeClient.from<any>(
+      const { data: verifyRows, error: verifyError } = await safeClient.from<SystemConnection>(
         'system_connections',
         (q) =>
           q

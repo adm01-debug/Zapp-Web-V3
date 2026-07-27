@@ -29,7 +29,6 @@ export function OpsTransfersTab() {
     pageSize: PAGE_SIZE,
   });
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const rows = data?.rows ?? [];
   const total = data?.total ?? 0;
   const deniedReason = data?.deniedReason ?? null;

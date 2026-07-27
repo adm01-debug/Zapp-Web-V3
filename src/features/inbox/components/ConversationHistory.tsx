@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { log } from '@/lib/logger';
 import {
@@ -79,11 +79,7 @@ export function ConversationHistory({
   const [isExpanded, setIsExpanded] = useState(false);
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('30d');
 
-  useEffect(() => {
-    fetchConversationHistory();
-  }, [contactId, contactPhone, periodFilter]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const fetchConversationHistory = async () => {
+  const fetchConversationHistory = useCallback(async () => {
     if (!isValidUUID(contactId)) {
       setConversations([]);
       setIsLoading(false);
@@ -173,7 +169,11 @@ export function ConversationHistory({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [contactId, contactPhone, periodFilter]);
+
+  useEffect(() => {
+    fetchConversationHistory();
+  }, [contactId, contactPhone, periodFilter, fetchConversationHistory]);
 
   const displayedConversations = isExpanded ? conversations : conversations.slice(0, 3);
 

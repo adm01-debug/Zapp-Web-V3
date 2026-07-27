@@ -1,4 +1,3 @@
-
 /**
  * Connections Repository
  *
@@ -41,10 +40,8 @@ export interface ChannelConnection {
   name: string;
   status: string;
   is_active?: boolean | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  credentials?: Record<string, any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  config?: Record<string, any>;
+  credentials?: Record<string, unknown>;
+  config?: Record<string, unknown>;
   external_account_id?: string | null;
   external_page_id?: string | null;
   webhook_url?: string | null;
@@ -64,7 +61,9 @@ export interface Connection {
 }
 
 // whatsapp_connections is a physical table in zapp schema; realtime subscription must use 'zapp'.
-const whatsappBaseService = createService<WhatsAppConnection>('whatsapp_connections', { realtimeSchema: 'zapp' });
+const whatsappBaseService = createService<WhatsAppConnection>('whatsapp_connections', {
+  realtimeSchema: 'zapp',
+});
 
 /** connections Repository constant. */
 export const connectionsRepository = {

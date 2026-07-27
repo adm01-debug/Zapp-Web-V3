@@ -1,5 +1,10 @@
-import { useState, useEffect } from 'react';
-import { fetchReminders, createReminder, dismissReminderById, deleteReminderById } from '../hooks/useRemindersData';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  fetchReminders,
+  createReminder,
+  dismissReminderById,
+  deleteReminderById,
+} from '../hooks/useRemindersData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Bell, BellOff, Plus, Trash2, Clock } from 'lucide-react';
@@ -35,11 +40,7 @@ export function RemindersPanel({ contactId, profileId }: RemindersPanelProps) {
   const [when, setWhen] = useState('1h');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadReminders();
-  }, [contactId, profileId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadReminders = async () => {
+  const loadReminders = useCallback(async () => {
     if (!profileId) {
       setLoading(false);
       return;
@@ -48,7 +49,11 @@ export function RemindersPanel({ contactId, profileId }: RemindersPanelProps) {
     const data = await fetchReminders(contactId, profileId);
     setReminders(data);
     setLoading(false);
-  };
+  }, [contactId, profileId]);
+
+  useEffect(() => {
+    loadReminders();
+  }, [contactId, profileId, loadReminders]);
 
   const addReminder = async () => {
     if (!newTitle.trim() || !profileId) return;

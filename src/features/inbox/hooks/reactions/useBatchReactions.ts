@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 
@@ -16,9 +16,11 @@ export function useMessagesReactions(messageIds: string[]) {
   const [isLoading, setIsLoading] = useState(false);
 
   const memoizedIds = useMemo(() => messageIds.join(','), [messageIds]);
+  const messageIdsRef = useRef(messageIds);
+  messageIdsRef.current = messageIds;
 
   useEffect(() => {
-    if (messageIds.length === 0) {
+    if (messageIdsRef.current.length === 0) {
       setReactionsMap({});
       return;
     }
@@ -31,7 +33,7 @@ export function useMessagesReactions(messageIds: string[]) {
         const { data, error } = await supabase
           .from('message_reactions')
           .select('*')
-          .in('message_id', messageIds);
+          .in('message_id', messageIdsRef.current);
 
         if (cancelled) return;
         if (error) throw error;
@@ -56,8 +58,10 @@ export function useMessagesReactions(messageIds: string[]) {
     };
 
     void fetchReactions();
-    return () => { cancelled = true; };
-  }, [memoizedIds]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+    };
+  }, [memoizedIds]);
 
   return { reactionsMap, isLoading };
 }

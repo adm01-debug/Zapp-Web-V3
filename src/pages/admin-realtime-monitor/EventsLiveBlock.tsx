@@ -60,7 +60,6 @@ export function EventsLiveBlock({ windowHours, autoRefresh, onNavigateTo }: Prop
     refetchInterval: autoRefresh ? 15_000 : false,
   });
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const rows = data ?? [];
   const totals = useMemo(() => {
     const total = rows.length;
