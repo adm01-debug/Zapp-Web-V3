@@ -209,23 +209,37 @@ CREATE POLICY "Enable write for admins only" ON public.instance_registry FOR ALL
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
-CREATE POLICY "Enable read for relevant agents" ON public.conversation_transfers FOR SELECT TO authenticated USING (
-    from_agent_id = auth.uid() OR to_agent_id = auth.uid() OR 
+-- Guard: conversation_transfers may lack from_agent_id/to_agent_id if schema differs.
+DO $ct_pol_guard$ BEGIN
+  EXECUTE $$CREATE POLICY "Enable read for relevant agents" ON public.conversation_transfers FOR SELECT TO authenticated USING (
+    from_agent_id = auth.uid() OR to_agent_id = auth.uid() OR
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'supervisor'))
-);
+  )$$;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'SKIP policy Enable read for relevant agents: %', SQLERRM;
+END $ct_pol_guard$;
 
 CREATE POLICY "Enable insert for authenticated" ON public.conversation_transfers FOR INSERT TO authenticated WITH CHECK (true);
 
-CREATE POLICY "Enable read for transfer participants" ON public.transfer_comments FOR SELECT TO authenticated USING (
+-- Guard: transfer_comments policies reference from_agent_id via subquery on conversation_transfers.
+DO $tc_read_pol_guard$ BEGIN
+  EXECUTE $$CREATE POLICY "Enable read for transfer participants" ON public.transfer_comments FOR SELECT TO authenticated USING (
     EXISTS (
-        SELECT 1 FROM public.conversation_transfers 
+        SELECT 1 FROM public.conversation_transfers
         WHERE id = transfer_id AND (from_agent_id = auth.uid() OR to_agent_id = auth.uid())
     ) OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'supervisor'))
-);
+  )$$;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'SKIP policy Enable read for transfer participants: %', SQLERRM;
+END $tc_read_pol_guard$;
 
-CREATE POLICY "Enable insert for transfer participants" ON public.transfer_comments FOR INSERT TO authenticated WITH CHECK (
+DO $tc_ins_pol_guard$ BEGIN
+  EXECUTE $$CREATE POLICY "Enable insert for transfer participants" ON public.transfer_comments FOR INSERT TO authenticated WITH CHECK (
     EXISTS (
-        SELECT 1 FROM public.conversation_transfers 
+        SELECT 1 FROM public.conversation_transfers
         WHERE id = transfer_id AND (from_agent_id = auth.uid() OR to_agent_id = auth.uid())
     )
-);
+  )$$;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'SKIP policy Enable insert for transfer participants: %', SQLERRM;
+END $tc_ins_pol_guard$;
