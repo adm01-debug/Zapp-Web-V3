@@ -23,7 +23,7 @@ const envSchema = z.object({
   SUPABASE_PUBLIC_URL: z.string().url().default('https://supabase.atomicabr.com.br'),
 
   /** Chave anônima do Supabase (segura para expor no frontend) */
-  SUPABASE_ANON_KEY: z.string().min(1).default(''),
+  SUPABASE_ANON_KEY: z.string().min(1),
 
   /** Versão da aplicação (injetada no build) */
   APP_VERSION: z.string().default('1.0.0'),

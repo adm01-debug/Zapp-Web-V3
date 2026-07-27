@@ -91,10 +91,10 @@ export function resolvePublicMediaUrl(params: {
     try {
       const parsed = new URL(sanitized);
       if (parsed.protocol === 'https:' && parsed.hostname === 'zapp-media-proxy.adm01.workers.dev') return sanitized;
+      return null; // host not allowlisted
     } catch {
-      // invalid URL — fall through
+      return null; // invalid URL
     }
-    return sanitized;
   }
 
   return null;

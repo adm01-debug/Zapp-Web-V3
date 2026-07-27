@@ -61,6 +61,10 @@ export async function sendMessageToContact(
     log.error('Error saving message to DB:', error);
     throw error;
   }
+  if (!data) {
+    log.error('Insert de mensagem não retornou linha (RLS ou select bloqueado)', { contactId });
+    throw new Error('Falha ao persistir a mensagem: nenhuma linha retornada');
+  }
 
   const effectiveId = opts.optimisticId || data.id;
   emitSendStatus(effectiveId, { status: 'sending' }, { contactId, source: 'messageSender' });
@@ -106,7 +110,7 @@ export async function sendMessageToContact(
 
     const phone = contact?.phone?.replace(/\D/g, '');
     if (!phone) {
-      throw new Error('Contato sem núuero de telefone válido');
+      throw new Error('Contato sem número de telefone válido');
     }
 
     // The Evolution API routes every call by instance NAME, never by the internal

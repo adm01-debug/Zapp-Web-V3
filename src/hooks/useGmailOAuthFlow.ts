@@ -79,8 +79,12 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
     const statuses: Record<string, TokenStatus> = {};
 
     for (const acc of accs) {
-      const expiry = new Date(acc.token_expiry ?? 0).getTime();
-      if (expiry < now) {
+      if (!acc.token_expiry) {
+        statuses[acc.id] = 'disconnected';
+        continue;
+      }
+      const expiry = new Date(acc.token_expiry).getTime();
+      if (Number.isNaN(expiry) || expiry < now) {
         statuses[acc.id] = 'expired';
       } else if (expiry - now < REFRESH_AHEAD_MS) {
         statuses[acc.id] = 'expiring';

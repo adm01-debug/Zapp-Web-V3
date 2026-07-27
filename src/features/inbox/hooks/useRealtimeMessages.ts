@@ -524,6 +524,12 @@ export function useRealtimeMessages() {
 
   const lastSeenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => {
+    return () => {
+      if (lastSeenTimerRef.current) clearTimeout(lastSeenTimerRef.current);
+    };
+  }, []);
+
   const markAsRead = async (contactId: string) => {
     // ── UUID guard ──────────────────────────────────────────────────────────
     // messages.contact_id (and evo.evolution_messages.contact_id) are uuid

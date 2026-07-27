@@ -122,8 +122,8 @@ export const contactsDB = {
 
   /** Get contact by ID */
   async getById(contactId: string): Promise<ExternalContact | null> {
-    const client = getClient();
     if (!isValidUUID(contactId)) return null;
+    const client = getClient();
     const { data, error } = await client
       .from('contacts')
       .select('*')

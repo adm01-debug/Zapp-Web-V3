@@ -194,7 +194,7 @@ export const createService = <T = any>(tableName: string, options?: ServiceOptio
           const chunk = (arrVals as unknown[]).slice(i, i + BATCH);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           let q: any = db.from(tableName).update(updates); // ignore-audit: TS2589 with ReturnType<supabase.from>
-          otherEntries.forEach(([k, v]) => { q = q.eq(k, v); });
+          otherEntries.forEach(([k, v]) => { q = Array.isArray(v) ? q.in(k, v) : q.eq(k, v); });
           q = q.in(arrKey, chunk);
           const { data, error } = await q.select();
           if (error) throw error;
@@ -240,7 +240,7 @@ export const createService = <T = any>(tableName: string, options?: ServiceOptio
           const chunk = (arrVals as unknown[]).slice(i, i + BATCH);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           let q: any = db.from(tableName).delete(); // ignore-audit: TS2589 with ReturnType<supabase.from>
-          otherEntries.forEach(([k, v]) => { q = q.eq(k, v); });
+          otherEntries.forEach(([k, v]) => { q = Array.isArray(v) ? q.in(k, v) : q.eq(k, v); });
           q = q.in(arrKey, chunk);
           const { count, error } = await q;
           if (error) throw error;
