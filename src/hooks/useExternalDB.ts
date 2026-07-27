@@ -1,4 +1,3 @@
-
 /**
  * useExternalDB — Generic hook for querying any table in the external CRM database
  * Uses externalSupabase client directly (secured by RLS policies on the external DB)
@@ -7,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useCallback } from 'react';
 import { getExternalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { validateEntityAccess, validateRpcAccess } from '@/integrations/datasource/sentinel';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
   ExternalDBFilter,
   ExternalDBOrder,
@@ -28,7 +28,9 @@ async function queryExternal<T = unknown>(params: {
   const start = performance.now();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let query: any = (getExternalSupabase() as any)
+  const extClient = getExternalSupabase() as SupabaseClient<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let query: any = extClient
     .from(params.table)
     .select(params.select || '*', { count: params.countMode || undefined });
 
@@ -120,7 +122,10 @@ export function useExternalRPC<T = unknown>(options: UseExternalRPCOptions) {
       validateRpcAccess(options.rpc, 'external');
       const start = performance.now();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (getExternalSupabase() as any).rpc(options.rpc, options.params || {});
+      const { data, error } = await (getExternalSupabase() as SupabaseClient<any>).rpc(
+        options.rpc,
+        options.params || {}
+      );
       const duration = Math.round(performance.now() - start);
       if (error) throw new Error(error.message);
       return {
@@ -222,7 +227,7 @@ export function useExternalMutation() {
     }) => {
       validateEntityAccess(params.table, 'external');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const client = getExternalSupabase() as any;
+      const client = getExternalSupabase() as SupabaseClient<any>;
       if (params.action === 'insert') {
         const { data, error } = await client
           .from(params.table)

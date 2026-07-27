@@ -219,8 +219,9 @@ export function useSignedMediaUrlBatch(
     // Agrupar por bucket para minimizar chamadas à API
     const byBucket = new Map<string, Array<{ id: string; path: string }>>();
     for (const item of privatePaths) {
-      if (!byBucket.has(item.bucket)) byBucket.set(item.bucket, []);
-      byBucket.get(item.bucket)!.push({ id: item.id, path: item.path });
+      const bucket = byBucket.get(item.bucket) ?? [];
+      if (bucket.length === 0) byBucket.set(item.bucket, bucket);
+      bucket.push({ id: item.id, path: item.path });
     }
 
     setLoading(true);

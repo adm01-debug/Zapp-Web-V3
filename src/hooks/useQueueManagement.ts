@@ -2,20 +2,15 @@
 // Consolidates: useQueues, useQueueAnalytics, useQueueGoals, useQueueSlaPanel, useQueuesComparison
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { safeFrom } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { queryKeys } from '@/services/api/queryKeys';
 import { log } from '@/lib/logger';
 
-type DynamicRpcClient = {
-  rpc: (
-    functionName: string,
-    args?: Record<string, unknown>
-  ) => Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
-};
-
-const rpcClient = supabase as unknown as DynamicRpcClient;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const rpcClient = supabase as SupabaseClient<any>;
 
 interface Queue {
   id: string;

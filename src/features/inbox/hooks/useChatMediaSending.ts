@@ -223,6 +223,8 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
         toast.error('Erro ao enviar figurinha');
       }
     },
+    // `supabase`, `toast`, and `log` are module-level singletons that never change
+    // reference — intentionally omitted from deps to avoid spurious re-renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       ensureInstance,
@@ -313,6 +315,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
         toast.error('Erro ao enviar emoji');
       }
     },
+    // `supabase`, `toast`, and `log` are module-level singletons — intentionally excluded.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       ensureInstance,
@@ -407,6 +410,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
         toast.error('Erro ao enviar áudio meme');
       }
     },
+    // `supabase`, `toast`, and `log` are module-level singletons — intentionally excluded.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       ensureInstance,

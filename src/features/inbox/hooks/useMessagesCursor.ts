@@ -157,7 +157,11 @@ export function useMessagesCursor({
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [enabled, remoteJid, fetchPage, pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Refs (mountedRef, remoteJidRef, oldestCursorRef) and stable setState dispatchers
+    // (setPages, setError, setLoading, setHasMoreOlder) are intentionally omitted: refs
+    // never change identity and setState is stable per React contract.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, remoteJid, fetchPage, pageSize]);
 
   // Reset + first load whenever remoteJid changes.
   useEffect(() => {
@@ -204,14 +208,20 @@ export function useMessagesCursor({
       if (mountedRef.current) setLoadingOlder(false);
       inFlightRef.current = false;
     }
-  }, [remoteJid, hasMoreOlder, fetchPage, pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Refs (mountedRef, remoteJidRef, oldestCursorRef, inFlightRef) and stable setState
+    // dispatchers are intentionally omitted — refs are never replaced, setState is stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remoteJid, hasMoreOlder, fetchPage, pageSize]);
 
   const cancelLoadOlder = useCallback(() => {
     if (!inFlightRef.current) return;
     abortRef.current?.abort();
     inFlightRef.current = false;
     if (mountedRef.current) setLoadingOlder(false);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // All captured variables are refs (inFlightRef, abortRef, mountedRef) or stable
+    // setState dispatchers (setLoadingOlder) — empty dep array is correct by design.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Realtime — only set up when enabled + jid present.
   useEffect(() => {
@@ -232,7 +242,9 @@ export function useMessagesCursor({
           const raw = payload.new;
           if (!raw || typeof raw !== 'object' || !('id' in raw)) return;
           // Realtime payloads are full rows; project to lite to keep memory low.
-          const m = toEvolutionMessageLite(raw as unknown as Parameters<typeof toEvolutionMessageLite>[0]);
+          const m = toEvolutionMessageLite(
+            raw as unknown as Parameters<typeof toEvolutionMessageLite>[0]
+          );
           setPages((prev) => {
             for (const p of prev) {
               if (p.some((x) => x.id === m.id)) return prev;
@@ -255,7 +267,9 @@ export function useMessagesCursor({
         (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           const raw = payload.new;
           if (!raw || typeof raw !== 'object' || !('id' in raw)) return;
-          const m = toEvolutionMessageLite(raw as unknown as Parameters<typeof toEvolutionMessageLite>[0]);
+          const m = toEvolutionMessageLite(
+            raw as unknown as Parameters<typeof toEvolutionMessageLite>[0]
+          );
           setPages((prev) =>
             prev.map((page) => page.map((x) => (x.id === m.id ? { ...x, ...m } : x)))
           );
