@@ -13,12 +13,13 @@ export type { Database, ExtendedDatabase };
 // ---------------------------------------------------------------------------
 // Self-hosted production Supabase (AtomicaBR VPS)
 // This is the authoritative backend for the ZAPP Web platform.
-// The anon key is intentionally public — all data access is enforced by RLS.
+// URL is not a secret — all data access is enforced by RLS.
+// The anon key MUST come from VITE_SUPABASE_ANON_KEY or
+// VITE_SUPABASE_PUBLISHABLE_KEY environment variables.
+// DO NOT add a hardcoded key here — use GitHub Secrets / Vercel env vars.
 // DO NOT replace with a Lovable Cloud project: the real data lives here.
 // ---------------------------------------------------------------------------
 const SELF_HOSTED_URL = 'https://supabase.atomicabr.com.br';
-const SELF_HOSTED_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ewogICJyb2xlIjogImFub24iLAogICJpc3MiOiAic3VwYWJhc2UiLAogICJpYXQiOiAxNzE1MDUwODAwLAogICJleHAiOiAxODcyODE3MjAwCn0.rvamc0XHuSCYB1glBwOCCxgfd9yxWVYLnhFzg5-7TRk';
 
 // ---------------------------------------------------------------------------
 // Hardened configuration detection
@@ -57,6 +58,7 @@ function isValidSupabaseKey(value: unknown): boolean {
 }
 
 const envUrl = import.meta.env.VITE_SUPABASE_URL;
+// Suporte a ambos os nomes de variável (GitHub secret: VITE_SUPABASE_PUBLISHABLE_KEY)
 const envKey =
   import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
@@ -64,12 +66,10 @@ const isLovableCloudUrl = typeof envUrl === 'string' && envUrl.includes('.supaba
 
 const SUPABASE_URL = !isLovableCloudUrl && isValidSupabaseUrl(envUrl) ? envUrl : SELF_HOSTED_URL;
 
-const SUPABASE_ANON_KEY =
-  SUPABASE_URL === SELF_HOSTED_URL
-    ? SELF_HOSTED_ANON_KEY
-    : isValidSupabaseKey(envKey)
-      ? envKey
-      : SELF_HOSTED_ANON_KEY;
+// Chave vem EXCLUSIVAMENTE de env vars — sem fallback hardcoded.
+// Defina VITE_SUPABASE_ANON_KEY (ou VITE_SUPABASE_PUBLISHABLE_KEY) no
+// ambiente de deploy (Vercel Dashboard / GitHub Secrets → deploy-vps.yml).
+const SUPABASE_ANON_KEY = isValidSupabaseKey(envKey) ? envKey : '';
 
 /** is Supabase Configured. */
 export const isSupabaseConfigured =
@@ -89,7 +89,8 @@ export function warnSupabaseUnconfigured(context?: string): void {
 
 if (!isSupabaseConfigured) {
   log.error(
-    '[Supabase] URL ou chave invalida -- verifique VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.'
+    '[Supabase] URL ou chave invalida — verifique VITE_SUPABASE_URL e ' +
+    'VITE_SUPABASE_ANON_KEY (ou VITE_SUPABASE_PUBLISHABLE_KEY) no ambiente de deploy.'
   );
 } else {
   if (isLovableCloudUrl) {
@@ -100,9 +101,8 @@ if (!isSupabaseConfigured) {
     );
   } else if (!isValidSupabaseUrl(envUrl) || !isValidSupabaseKey(envKey)) {
     log.info(
-      '[Supabase] Usando credenciais self-hosted (fallback). ' +
-        'Para remover este aviso, defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY ' +
-        'no ambiente de deploy.'
+      '[Supabase] Usando URL self-hosted (SELF_HOSTED_URL como fallback). ' +
+        'Para remover este aviso, defina VITE_SUPABASE_URL no ambiente de deploy.'
     );
   }
   // Log da URL resolvida sempre (nao so DEV) para facilitar diagnostico em prod
