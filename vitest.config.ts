@@ -86,6 +86,13 @@ export default defineConfig({
       'src/hooks/useEmailDraft.test.ts',
       'src/lib/__tests__/contactHealth.test.ts',
       'src/lib/__tests__/diagnostics.test.ts',
+      // Deno-style tests (use https:// imports + Deno.test) — not compatible with Vitest/Node
+      'src/hooks/__tests__/useAudioRecorder.cleanup.test.ts',
+      'src/lib/__tests__/clientRateLimiter.test.ts',
+      'src/lib/__tests__/healthCheck.test.ts',
+      'src/lib/__tests__/queryTimeout.test.ts',
+      'src/lib/__tests__/sanitize-extra.test.ts',
+      'src/shared/__tests__/validation.test.ts',
       'src/lib/realtime/__tests__/crossTabDedupe.test.ts',
       'src/test/realtimeFanoutEvents.test.ts',
     ],
