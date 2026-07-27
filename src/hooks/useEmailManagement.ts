@@ -81,16 +81,8 @@ export interface EmailSLARecord {
   warning_threshold_pct: number;
 }
 
-/** Email Signature interface definition. */
-export interface EmailSignature {
-  id: string;
-  account_id: string;
-  name: string;
-  html_content: string;
-  is_default: boolean;
-  created_at: string;
-  updated_at: string;
-}
+// EmailSignature interface and useEmailSignature hook live in email/useEmailSignature.ts
+export type { EmailSignature } from './email/useEmailSignature';
 
 // ──────────────────────────────────────────────────────────────────────────
 // CONSTANTS AND UTILITIES
@@ -100,8 +92,7 @@ const supabase = _supabase;
 const AUTO_SAVE_DELAY_MS = 30_000;
 
 const EMAIL_TOKEN_STATUS_KEY = ['email-token-status'] as const;
-const EMAIL_SIGNATURES_KEY = (accountId: string | null) =>
-  ['email-signatures', accountId] as const;
+// EMAIL_SIGNATURES_KEY moved to email/useEmailSignature.ts
 const DEBOUNCE_MS = 350;
 const MIN_QUERY_LEN = 2;
 
@@ -1226,112 +1217,11 @@ export function useEmailSLA(accountId: string | null, config: Partial<SLAConfig>
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// EMAIL SIGNATURE HOOK
+// SPLIT HOOKS — re-exported from dedicated files
+// Next: useEmailSLA → email/useEmailSLA.ts, useEmail → email/useEmail.ts, etc.
 // ──────────────────────────────────────────────────────────────────────────
 
-/** Manages email signatures per account with create, update, delete, and default selection capabilities. */
-export function useEmailSignature(accountId: string | null) {
-  const queryClient = useQueryClient();
+export { useEmailSignature } from './email/useEmailSignature';
 
-  const { data: signatures = [], isLoading } = useQuery({
-    queryKey: EMAIL_SIGNATURES_KEY(accountId),
-    queryFn: async () => {
-      if (!accountId) return [] as EmailSignature[];
-      const { data, error } = await safeClient.from<EmailSignature>('email_signatures', (q) =>
-        q.select('*').eq('account_id', accountId).order('is_default', { ascending: false })
-      );
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: !!accountId,
-    staleTime: 30_000,
-  });
-
-  const save = useCallback(
-    async (sig: Partial<EmailSignature> & { html_content: string; name: string }) => {
-      if (!accountId) return;
-
-      if (sig.id) {
-        const { error } = await safeClient.from('email_signatures', (q) =>
-          q
-            .update({
-              name: sig.name,
-              html_content: sig.html_content,
-              is_default: sig.is_default ?? false,
-            })
-            .eq('id', sig.id ?? '')
-        );
-        if (error) {
-          log.error('Email signature save error', error);
-          return;
-        }
-      } else {
-        const { error } = await safeClient.from('email_signatures', (q) =>
-          q.insert({
-            account_id: accountId,
-            name: sig.name,
-            html_content: sig.html_content,
-            is_default: sig.is_default ?? false,
-          })
-        );
-        if (error) {
-          log.error('Email signature create error', error);
-          return;
-        }
-      }
-
-      await queryClient.invalidateQueries({ queryKey: EMAIL_SIGNATURES_KEY(accountId) });
-    },
-    [accountId, queryClient]
-  );
-
-  const remove = useCallback(
-    async (id: string) => {
-      const { error } = await safeClient.from('email_signatures', (q) => q.delete().eq('id', id));
-      if (error) {
-        log.error('Email signature delete error', error);
-        return;
-      }
-      await queryClient.invalidateQueries({ queryKey: EMAIL_SIGNATURES_KEY(accountId) });
-    },
-    [accountId, queryClient]
-  );
-
-  const setDefault = useCallback(
-    async (id: string) => {
-      if (!accountId) return;
-      // Set the new default first so there is always at least one default signature.
-      // Clear others second: if this fails, two rows have is_default=true (harmless)
-      // rather than zero rows (which would break the UI).
-      const { error: setErr } = await safeClient.from('email_signatures', (q) =>
-        q.update({ is_default: true }).eq('id', id)
-      );
-      if (setErr) return;
-      await safeClient.from('email_signatures', (q) =>
-        q
-          .update({ is_default: false })
-          .eq('account_id', accountId ?? '')
-          .neq('id', id)
-      );
-      await queryClient.invalidateQueries({ queryKey: EMAIL_SIGNATURES_KEY(accountId) });
-    },
-    [accountId, queryClient]
-  );
-
-  const defaultSignature = signatures.find((s) => s.is_default) ?? null;
-
-  return { signatures, defaultSignature, isLoading, save, remove, setDefault };
-}
-
-// ──────────────────────────────────────────────────────────────────────────
-// BACKWARD COMPATIBILITY
-// ──────────────────────────────────────────────────────────────────────────
-
-/** Default export. */
-export default {
-  useEmail,
-  useEmailDraft,
-  useEmailSearch,
-  useEmailSLA,
-  useEmailSignature,
-};
+/** Default export (deprecated — use named imports). */
+export default { useEmail, useEmailDraft, useEmailSearch, useEmailSLA };

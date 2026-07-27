@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseDebounceOptions {
   /** Delay in milliseconds (default: 300) */
@@ -75,6 +75,3 @@ export function useDebouncedValue<T>(value: T, delay = 300): T {
 
   return debouncedValue;
 }
-
-// Need useState for useDebouncedValue
-import { useState } from 'react';

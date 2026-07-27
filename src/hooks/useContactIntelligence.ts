@@ -262,15 +262,11 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
         const { data: intel, error } = await supabase
           .from('contact_intelligence' as never)
           .select('*')
-          .or(
-            ident.kind === 'uuid'
-              ? `contact_id.eq.${ident.value}`
-              : `phone.eq.${ident.value}`
-          )
+          .or(ident.kind === 'uuid' ? `contact_id.eq.${ident.value}` : `phone.eq.${ident.value}`)
           .limit(1)
           .maybeSingle();
         if (error) log.warn('contact_intelligence lookup failed:', error.message);
-        raw = (intel ?? null) as unknown as RawIntel | null;
+        raw = (intel ?? null) as unknown as RawIntel | null; // ignore-audit — contact_intelligence maybeSingle() returns Row|null with no overlap to RawIntel; bridge is intentional
       } catch (err) {
         log.warn('contact_intelligence lookup threw:', err);
       }
@@ -284,7 +280,11 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
           // correto e `remote_jid`. O prefixo com LIKE cobre os dois sufixos que
           // coexistem no banco -- `@s.whatsapp.net` e `@lid` -- e continua
           // sargable (prefixo fixo, curinga so no fim).
-          const { data: msgs, count, error } = await supabase
+          const {
+            data: msgs,
+            count,
+            error,
+          } = await supabase
             .from('evolution_messages' as never)
             .select('created_at', { count: 'exact', head: false })
             .or(

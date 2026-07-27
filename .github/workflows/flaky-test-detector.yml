@@ -1,0 +1,106 @@
+name: Flaky Test Detector
+
+# Roda nightly SEM retry para expor testes instáveis.
+# O gate de CI usa retry: 2 (oculta flakiness). Este workflow a mede.
+
+on:
+  schedule:
+    - cron: '0 3 * * 1-5'  # seg-sex, 03h UTC
+  workflow_dispatch:
+
+env:
+  CI: true
+  VITE_SUPABASE_URL: https://example.supabase.co
+  VITE_SUPABASE_ANON_KEY: test-anon-key
+  VITE_SUPABASE_PUBLISHABLE_KEY: test-anon-key
+  VITE_EXTERNAL_SUPABASE_URL: https://example.supabase.co
+  VITE_EXTERNAL_SUPABASE_ANON_KEY: test-anon-key
+
+jobs:
+  flaky-baseline:
+    name: Test suite — sem retry (medição de flakiness)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true  # não quebrar main por flakiness medida
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.2'
+
+      - name: Restaurar cache de dependências
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Instalar dependências
+        run: bun install --frozen-lockfile
+
+      - name: Rodar testes SEM retry (3 passadas para medir instabilidade)
+        run: |
+          PASS=0; FAIL=0; TOTAL=0
+
+          for i in 1 2 3; do
+            echo "=== Passada $i ==="
+            if bun run vitest run \
+              --reporter=json \
+              --outputFile="test-results-$i.json" \
+              2>vitest-stderr-$i.txt; then
+              echo "Passada $i: PASSOU"
+              PASS=$((PASS + 1))
+            else
+              echo "Passada $i: FALHOU"
+              FAIL=$((FAIL + 1))
+            fi
+            TOTAL=$((TOTAL + 1))
+          done
+
+          echo ""
+          echo "=== Resultado de flakiness ($TOTAL passadas) ==="
+          echo "  PASSOU: $PASS"
+          echo "  FALHOU: $FAIL"
+
+          if [ "$FAIL" -gt 0 ] && [ "$PASS" -gt 0 ]; then
+            echo "::warning::Testes intermitentes detectados ($FAIL/$TOTAL passadas falharam). Investigar."
+          elif [ "$FAIL" -eq 3 ]; then
+            echo "::error::Testes falharam em TODAS as 3 passadas — falha real, não flakiness."
+          else
+            echo "Suite estável ($PASS/$TOTAL passadas passaram sem retry)."
+          fi
+        env:
+          VITEST_RETRY: 0
+
+      - name: Extrair testes que falharam
+        if: always()
+        run: |
+          for i in 1 2 3; do
+            if [ -f "test-results-$i.json" ]; then
+              echo "=== Falhas passada $i ==="
+              python3 -c "
+          import json, sys
+          try:
+              d = json.load(open('test-results-$i.json'))
+              suites = d.get('testResults', [])
+              for s in suites:
+                  for t in s.get('assertionResults', []):
+                      if t.get('status') != 'passed':
+                          print(f\"  FALHOU: {t.get('ancestorTitles',[])} > {t.get('title','?')}\")
+          except Exception as e:
+              print(f'  (erro ao parsear: {e})')
+          " 2>/dev/null || true
+            fi
+          done
+
+      - name: Upload resultados
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flaky-test-results-${{ github.run_id }}
+          path: |
+            test-results-*.json
+            vitest-stderr-*.txt
+          retention-days: 14

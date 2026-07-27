@@ -2,6 +2,7 @@ import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getCli
 import { requireServiceRoleOrCron, requireUser } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { isSafeMediaCdnUrl } from "../_shared/evolution-media.ts";
+import { getStoragePublicUrl } from "../_shared/storage-url.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -87,8 +88,7 @@ Deno.serve(async (req) => {
           });
           if (error) { failed++; return; }
 
-          const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(storagePath);
-          await supabase.from('contacts').update({ avatar_url: urlData.publicUrl }).eq('id', contact.id);
+          await supabase.from('contacts').update({ avatar_url: getStoragePublicUrl('avatars', storagePath) }).eq('id', contact.id);
           updated++;
         } catch { failed++; }
       }));

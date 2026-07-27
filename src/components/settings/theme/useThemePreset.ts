@@ -125,7 +125,8 @@ export function useThemePreset() {
         save(DEFAULT_PRESET_ID, borderRadius);
       }
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only init
+  }, []);
 
   useEffect(() => {
     const preset = PRESETS.find(p => p.id === activePreset);

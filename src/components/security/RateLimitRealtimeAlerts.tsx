@@ -7,7 +7,10 @@ import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getLogger } from '@/lib/logger';
-import { normalizeSecurityAlert, type NormalizedSecurityAlert as SecurityAlert } from '@/lib/normalizers';
+import {
+  normalizeSecurityAlert,
+  type NormalizedSecurityAlert as SecurityAlert,
+} from '@/lib/normalizers';
 import { fetchUnresolvedSecurityAlerts, resolveSecurityAlert } from '@/hooks/useSecurityAlerts';
 
 const log = getLogger('RateLimitRealtimeAlerts');
@@ -65,7 +68,7 @@ export function RateLimitRealtimeAlerts() {
         { event: 'INSERT', schema: 'zapp', table: 'security_alerts' },
         (payload) => {
           const newAlert = normalizeSecurityAlert(
-            payload.new as unknown as Record<string, unknown>
+            payload.new as unknown as Record<string, unknown> // ignore-audit — Realtime payload.new typed as `object`; bridge to Record<string,unknown> required for normalizer
           );
           setAlerts((prev) => [newAlert, ...prev].slice(0, 10));
 
@@ -81,7 +84,8 @@ export function RateLimitRealtimeAlerts() {
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only init
+  }, []);
 
   const playAlertSound = () => {
     try {

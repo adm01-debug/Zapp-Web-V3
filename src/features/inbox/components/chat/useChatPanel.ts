@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useChatScheduleMessage } from './hooks/useChatScheduleMessage';
 import { useChatQuickReplyControl } from './hooks/useChatQuickReplyControl';
@@ -188,7 +187,7 @@ export function useChatPanel({
 
   useEffect(() => {
     initResolve();
-  }, [conversation.contact.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [conversation.contact.id, initResolve]);
 
   useAutomations({
     remoteJid: conversation.contact.id,

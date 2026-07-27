@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -70,14 +71,14 @@ export function AIGenerateDialog({
         .from('audio-memes')
         .upload(storagePath, blob, { contentType: 'audio/mpeg', cacheControl: '31536000' });
       if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from('audio-memes').getPublicUrl(storagePath);
+      const savedUrl = resolvePublicStorageUrl('audio-memes', storagePath) ?? '';
       const {
         data: { user },
       } = await supabase.auth.getUser();
       let aiCategory = 'outros';
       try {
         const { data: classifyData, error: classifyError } = await supabase.functions.invoke('classify-audio-meme', {
-          body: { audio_url: urlData.publicUrl, file_name: genPrompt },
+          body: { audio_url: savedUrl, file_name: genPrompt },
         });
         if (!classifyError && classifyData?.category) aiCategory = classifyData.category;
       } catch (err) {
@@ -85,7 +86,7 @@ export function AIGenerateDialog({
       }
       await insertAudioMeme({
         name: genPrompt.substring(0, 80),
-        audio_url: urlData.publicUrl,
+        audio_url: savedUrl,
         category: aiCategory,
         is_favorite: false,
         use_count: 0,

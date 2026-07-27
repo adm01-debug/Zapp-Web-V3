@@ -1,63 +1,39 @@
-## 📝 Descrição
+## Descrição
+<!-- Descreva brevemente o que foi feito e por quê -->
 
-<!-- Descreva as mudanças realizadas. Seja claro e objetivo. -->
+## Tipo de mudança
+- [ ] `feat`: Nova funcionalidade
+- [ ] `fix`: Correção de bug
+- [ ] `refactor`: Refatoração sem feat nem fix
+- [ ] `docs`: Documentação
+- [ ] `ci`: CI/CD
+- [ ] `security`: Segurança
+- [ ] `chore`: Tarefas diversas
 
+## Checklist de qualidade
 
-## 🎯 Tipo de Mudança
+### Para todo PR
+- [ ] Título segue Conventional Commits (`tipo: descrição em minúsculas`)
+- [ ] PR aborda um único tema
+- [ ] Build local passando (`bun run build`)
+- [ ] TypeScript sem novos erros (`bun run typecheck`)
 
-<!-- Marque com [x] as opções aplicáveis -->
+### Para PRs com `fix:`
+- [ ] **OBRIGATÓRIO**: Inclui ao menos um teste de regressão que falha sem a correção
+- [ ] O teste está em `src/**/__tests__/*.test.ts(x)`
+- [ ] Cobertura não regrediu — `bun run test --coverage` passa com os thresholds em `vitest.config.ts`
 
-- [ ] 🐛 Bug fix (correção de bug)
-- [ ] ✨ Nova feature (funcionalidade nova)
-- [ ] 💥 Breaking change (mudança que quebra compatibilidade)
-- [ ] 📚 Documentação
-- [ ] 🎨 Estilo/UI
-- [ ] ♻️ Refatoração
-- [ ] ⚡ Performance
-- [ ] ✅ Testes
-- [ ] 🔧 DevOps/CI
-- [ ] 🔒 Segurança
+### Para PRs com mudanças de banco (migrations)
+- [ ] Migration tem seção de ROLLBACK documentada (ou justificativa de irreversibilidade)
+- [ ] Testada em ambiente local antes de propor para produção
+- [ ] Nome do arquivo é único (sem prefixo duplicado)
 
-## 📷 Screenshots (se aplicável)
+### Para PRs de segurança
+- [ ] Nenhuma credencial, token ou secret no código
+- [ ] `git diff --stat HEAD | grep -i secret` retorna vazio
 
-<!-- Adicione screenshots para mudanças visuais -->
+## Testes relacionados
+<!-- Liste os arquivos de teste adicionados/modificados -->
 
-
-## 🧪 Testes Realizados
-
-<!-- Descreva como testou as mudanças -->
-
-- [ ] Testei localmente
-- [ ] Testes unitários passam
-- [ ] Testei no ambiente de staging
-- [ ] Testei em múltiplos navegadores
-- [ ] Testei em dispositivos móveis
-
-## ✅ Checklist
-
-<!-- Verifique todos os itens antes de solicitar review -->
-
-- [ ] Código segue o padrão do projeto
-- [ ] Self-review realizado
-- [ ] Comentei código complexo
-- [ ] Documentação atualizada (se necessário)
-- [ ] Sem console.log ou debug code
-- [ ] Sem secrets/credenciais hardcoded
-- [ ] Tipos TypeScript corretos
-- [ ] RLS policies consideradas (se DB)
-
-## 🔗 Issues Relacionadas
-
-<!-- Link para issues relacionadas: Closes #123, Fixes #456 -->
-
-
-## ⚠️ Notas para Reviewer
-
-<!-- Pontos que merecem atenção especial -->
-
-
-
-## Schema Checklist
-- [ ] Todos os `createClient()` usam `db: { schema: "zapp" }`
-- [ ] Imports de tipos via `@/integrations/supabase/schema` (não `types`)
-- [ ] Realtime subscriptions usam `schema: "zapp"` ou `schema: "evo"` (nunca `public`)
+## Notas para o revisor
+<!-- Qualquer contexto adicional que ajude na revisão -->

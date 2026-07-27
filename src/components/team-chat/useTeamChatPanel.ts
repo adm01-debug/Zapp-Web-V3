@@ -15,6 +15,7 @@ import {
   TeamConversation,
 } from '@/hooks/useTeamChat';
 import { supabase } from '@/integrations/supabase/client';
+import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
 import { toast } from 'sonner';
 import { useDebouncedValue } from '@/hooks/useDebounce';
 import { usePerformanceMetrics } from '@/hooks/usePerformanceMonitoring';
@@ -238,8 +239,7 @@ export function useTeamChatPanel(conversation: TeamConversation) {
           .from('team-chat-files')
           .upload(path, blob, { contentType: 'audio/webm' });
         if (error) throw error;
-        const { data: urlData } = supabase.storage.from('team-chat-files').getPublicUrl(path);
-        handleSendMedia(urlData.publicUrl, 'audio', '🎤 Mensagem de áudio');
+        handleSendMedia(resolvePublicStorageUrl('team-chat-files', path) ?? '', 'audio', '🎤 Mensagem de áudio');
       } catch (err) {
         toast.error('Erro ao enviar áudio');
         log.error('Audio upload error:', err);

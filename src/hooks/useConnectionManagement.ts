@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * useConnectionManagement.ts (v1.0)
  * Unified connection management consolidating:
@@ -22,13 +21,13 @@ type PoolTelemetry = {
   getPoolMetrics?: () => ConnectionMetrics;
   getPoolDiagnostics?: () => Record<string, unknown>;
 };
-const poolClient = safeClient as unknown as PoolTelemetry;
+const poolClient = safeClient as unknown as PoolTelemetry; // ignore-audit — safeClient (TypedSupabaseClient) has no index signature; bridge to local PoolTelemetry interface is intentional
 const EMPTY_METRICS = {
   activeConnections: 0,
   maxConcurrent: 0,
   poolUtilization: 0,
   totalErrors: 0,
-} as unknown as ConnectionMetrics;
+} as unknown as ConnectionMetrics; // ignore-audit — literal object lacks ConnectionMetrics index signature; bridge assigns typed fallback constant
 
 // ──────────────────────────────────────────────────────────────────────────
 // CONNECTION ALERTS PUSH
@@ -86,6 +85,7 @@ export function useConnectionAlertsPush() {
     return () => {
       cancelled = true;
       if (channel) {
+        channel.unsubscribe();
         supabase.removeChannel(channel);
       }
     };
@@ -113,7 +113,11 @@ const CONN_QUEUES_KEY = (id: string | undefined) => ['connection-queues', id] as
 export function useConnectionQueues(connectionId?: string) {
   const queryClient = useQueryClient();
 
-  const { data: connectionQueues = [], isLoading, refetch } = useQuery({
+  const {
+    data: connectionQueues = [],
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: CONN_QUEUES_KEY(connectionId),
     queryFn: async () => {
       const { data, error } = await supabase
@@ -127,35 +131,41 @@ export function useConnectionQueues(connectionId?: string) {
     staleTime: 30_000,
   });
 
-  const addQueue = useCallback(async (queueId: string) => {
-    if (!connectionId) return;
-    try {
-      const { error } = await supabase
-        .from('whatsapp_connection_queues')
-        .insert({ whatsapp_connection_id: connectionId, queue_id: queueId });
-      if (error) throw error;
-      void queryClient.invalidateQueries({ queryKey: CONN_QUEUES_KEY(connectionId) });
-    } catch (err) {
-      log.error('Error adding queue to connection:', err);
-      throw err;
-    }
-  }, [connectionId, queryClient]);
+  const addQueue = useCallback(
+    async (queueId: string) => {
+      if (!connectionId) return;
+      try {
+        const { error } = await supabase
+          .from('whatsapp_connection_queues')
+          .insert({ whatsapp_connection_id: connectionId, queue_id: queueId });
+        if (error) throw error;
+        void queryClient.invalidateQueries({ queryKey: CONN_QUEUES_KEY(connectionId) });
+      } catch (err) {
+        log.error('Error adding queue to connection:', err);
+        throw err;
+      }
+    },
+    [connectionId, queryClient]
+  );
 
-  const removeQueue = useCallback(async (queueId: string) => {
-    if (!connectionId) return;
-    try {
-      const { error } = await supabase
-        .from('whatsapp_connection_queues')
-        .delete()
-        .eq('whatsapp_connection_id', connectionId)
-        .eq('queue_id', queueId);
-      if (error) throw error;
-      void queryClient.invalidateQueries({ queryKey: CONN_QUEUES_KEY(connectionId) });
-    } catch (err) {
-      log.error('Error removing queue from connection:', err);
-      throw err;
-    }
-  }, [connectionId, queryClient]);
+  const removeQueue = useCallback(
+    async (queueId: string) => {
+      if (!connectionId) return;
+      try {
+        const { error } = await supabase
+          .from('whatsapp_connection_queues')
+          .delete()
+          .eq('whatsapp_connection_id', connectionId)
+          .eq('queue_id', queueId);
+        if (error) throw error;
+        void queryClient.invalidateQueries({ queryKey: CONN_QUEUES_KEY(connectionId) });
+      } catch (err) {
+        log.error('Error removing queue from connection:', err);
+        throw err;
+      }
+    },
+    [connectionId, queryClient]
+  );
 
   return { connectionQueues, isLoading, addQueue, removeQueue, refetch };
 }

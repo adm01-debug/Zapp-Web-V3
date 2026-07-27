@@ -3,6 +3,7 @@
 DROP POLICY IF EXISTS "Authenticated users can view profiles" ON public.profiles;
 DROP POLICY IF EXISTS "Team members can view basic profiles" ON public.profiles;
 
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
 CREATE POLICY "Users can view own profile"
 ON public.profiles FOR SELECT TO authenticated
 USING (user_id = auth.uid());
@@ -47,6 +48,7 @@ USING (
 
 -- stickers: restrict to admin or uploader
 DROP POLICY IF EXISTS "Authenticated users can delete stickers" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own stickers" ON storage.objects;
 CREATE POLICY "Users can delete own stickers"
 ON storage.objects FOR DELETE TO authenticated
 USING (
@@ -59,6 +61,7 @@ USING (
 
 -- audio-memes: restrict to admin or uploader
 DROP POLICY IF EXISTS "Auth delete own audio memes" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own audio memes" ON storage.objects;
 CREATE POLICY "Users can delete own audio memes"
 ON storage.objects FOR DELETE TO authenticated
 USING (

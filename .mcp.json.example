@@ -1,23 +1,20 @@
-# MCP Configuration Example
-# Copy this file to .mcp.json and fill in your actual values
-
 {
   "mcpServers": {
     "portainer": {
       "type": "http",
-      "url": "https://portainer-mcp.atomicabr.com.br/mcp"
+      "url": "https://portainer-mcp.SUA_EMPRESA.com.br/mcp"
     },
     "evolution": {
       "type": "http",
-      "url": "https://evolution-mcp.adm01.workers.dev/mcp"
+      "url": "https://evolution-mcp.SUA_EMPRESA.workers.dev/mcp"
     },
     "supabase-selfhosted": {
       "type": "http",
-      "url": "https://supabase-mcp.atomicabr.com.br/<SUPABASE_SERVICE_ROLE_KEY>/mcp"
+      "url": "https://supabase-mcp.SUA_EMPRESA.com.br/s-SEU_TOKEN_AQUI/mcp"
     },
     "github": {
       "type": "http",
-      "url": "https://github-mcp-server.adm01.workers.dev/mcp"
+      "url": "https://github-mcp-server.SUA_EMPRESA.workers.dev/mcp"
     }
   }
 }

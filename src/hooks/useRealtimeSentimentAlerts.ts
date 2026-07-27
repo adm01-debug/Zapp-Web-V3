@@ -20,8 +20,7 @@ export function useRealtimeSentimentAlerts() {
         },
         (payload) => {
           const record = payload.new as Record<string, unknown>;
-          const level =
-            typeof record?.alert_level === 'string' ? record.alert_level : undefined;
+          const level = typeof record?.alert_level === 'string' ? record.alert_level : undefined;
           const rawScore = record?.sentiment_score;
           const score =
             typeof rawScore === 'number' && Number.isFinite(rawScore) ? rawScore : undefined;
@@ -43,6 +42,7 @@ export function useRealtimeSentimentAlerts() {
       .subscribe();
 
     return () => {
+      void channel.unsubscribe();
       supabase.removeChannel(channel).catch(() => {});
     };
   }, [settings, isQuietHours]);

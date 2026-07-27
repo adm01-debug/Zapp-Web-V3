@@ -26,7 +26,7 @@ export function NumberReputationMonitor() {
 
   useEffect(() => {
     loadData();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mountedRef]);
 
   const loadData = async () => {
     setLoading(true);

@@ -21,6 +21,7 @@ USING (true)
 WITH CHECK (true);
 
 -- Política de Upload para Atendentes Autenticados
+DROP POLICY IF EXISTS "Authenticated users can upload media" ON storage.objects;
 CREATE POLICY "Authenticated users can upload media" 
 ON storage.objects FOR INSERT 
 TO authenticated 

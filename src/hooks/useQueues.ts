@@ -99,6 +99,7 @@ export function useQueues() {
 
     return () => {
       cancelled = true;
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);

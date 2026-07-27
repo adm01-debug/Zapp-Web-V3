@@ -76,6 +76,7 @@ export function useAudioMessagePlayer({
       )
       .subscribe();
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel).catch(() => {});
     };
   }, [messageId]);
@@ -88,7 +89,10 @@ export function useAudioMessagePlayer({
         'postgres_changes',
         {
           event: '*',
-          schema: 'zapp',
+          // voice_conversion_queue is physical in public schema (added to supabase_realtime
+          // publication by migration 20260724000024). zapp.voice_conversion_queue is a VIEW
+          // proxy created by migration 20260724000050 — VIEWs never emit WAL events.
+          schema: 'public',
           table: 'voice_conversion_queue',
           filter: `message_id=eq.${messageId}`,
         },
@@ -129,6 +133,7 @@ export function useAudioMessagePlayer({
     fetchStatus();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel).catch(() => {});
     };
   }, [messageId, onVoiceChange]);

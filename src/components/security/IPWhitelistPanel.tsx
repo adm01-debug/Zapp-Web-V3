@@ -60,7 +60,7 @@ export function IPWhitelistPanel() {
 
   useEffect(() => {
     fetchWhitelistedIPs();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mountedRef]);
 
   const handleAddIP = async () => {
     if (!newIP.trim()) {

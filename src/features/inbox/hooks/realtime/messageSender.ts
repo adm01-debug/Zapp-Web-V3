@@ -17,7 +17,6 @@ import {
   buildEvolutionPayload,
   type SendMessageResult,
 } from './messageSenderHelpers';
-import { isValidUUID } from '@/utils/uuid';
 
 const MAX_RETRIES = 3;
 const lastInstabilityToastByContact = new Map<string, number>();
@@ -35,23 +34,14 @@ export async function sendMessageToContact(
   mediaPayload?: string,
   opts: { optimisticId?: string; conversationId?: string } = {}
 ): Promise<SendMessageResult> {
-  if (!isValidUUID(contactId)) {
-    throw new Error('contactId inválido (não é UUID) — possível WhatsApp JID');
-  }
-
   const { data: profile } = await supabase
     .from('profiles')
     .select('id')
     .eq('user_id', (await supabase.auth.getUser()).data.user?.id ?? '')
     .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
-  // Generate id client-side so the RETURNING clause always carries a non-null id
-  // even if the INSTEAD OF trigger on zapp.messages does not assign NEW.id before RETURN NEW.
-  const messageId = crypto.randomUUID();
-
   const { data, error } = await dbFrom('messages')
     .insert({
-      id: messageId,
       contact_id: contactId,
       agent_id: profile?.id,
       content,
@@ -59,7 +49,10 @@ export async function sendMessageToContact(
       message_type: messageType,
       media_url: mediaUrl || null,
       is_read: true,
-      status: 'sending',
+      // FIX #6: 'sending' viola CHECK constraint eolution_messages_status_check
+      // Valores válidos: received|sent|delivered|read|deleted|pending|played|failed
+      // DB-side defesa: fn_messages_instead_of_insert normaliza sending←pending
+      status: 'pending',
     })
     .select()
     .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
@@ -67,13 +60,6 @@ export async function sendMessageToContact(
   if (error) {
     log.error('Error saving message to DB:', error);
     throw error;
-  }
-
-  if (!data) {
-    log.error(
-      'Error saving message to DB: INSERT returned no data (RLS may have blocked RETURNING)'
-    );
-    throw new Error('Message insert returned no data');
   }
 
   const effectiveId = opts.optimisticId || data.id;
@@ -104,7 +90,7 @@ export async function sendMessageToContact(
       log.warn('WhatsApp connection not active, message marked as failed');
       await dbFrom('messages')
         .update({ status: 'failed', error_reason: 'Nenhuma conexão WhatsApp ativa disponível' })
-        .eq('id', data.id || messageId);
+        .eq('id', data.id);
 
       await safeClient.from('audit_logs', (q) =>
         q.insert({
@@ -120,7 +106,7 @@ export async function sendMessageToContact(
 
     const phone = contact?.phone?.replace(/\D/g, '');
     if (!phone) {
-      throw new Error('Contato sem número de telefone válido');
+      throw new Error('Contato sem núuero de telefone válido');
     }
 
     // The Evolution API routes every call by instance NAME, never by the internal
@@ -217,9 +203,10 @@ export async function sendMessageToContact(
             .catch((e: unknown) => log.warn('Failed to write retry audit log', e));
 
           // Persist counters so the "2/3" indicator survives a page reload.
+          // DB-side triggers normalize 'retrying' -> 'pending' via CHECK constraint protection
           dbFrom('messages')
             .update({
-              status: 'retrying',
+              status: 'retrying', // DB trigger remaps to 'pending' via messages_update_trigger
               retry_attempt: attempt,
               retry_total: total,
             })
@@ -233,7 +220,7 @@ export async function sendMessageToContact(
             lastInstabilityToastByContact.set(contactId, Date.now());
             toast({
               title: 'Conexão instável',
-              description: `Tentando reenviar… (${attempt}/${total})`,
+              description: `Tentando reenviar... (${attempt}/${total})`,
             });
           }
         },
@@ -252,6 +239,7 @@ export async function sendMessageToContact(
       if (auth.isAuth) {
         await dbFrom('messages')
           .update({
+            // DB trigger normalizes 'failed_auth' -> 'failed' via messages_update_trigger
             status: 'failed_auth',
             whatsapp_connection_id: resolvedConnectionId,
             error_code: auth.code ? String(auth.code) : null,
@@ -314,6 +302,7 @@ export async function sendMessageToContact(
     if (auth.isAuth) {
       await dbFrom('messages')
         .update({
+          // DB trigger normalizes 'failed_auth' -> 'failed' via messages_update_trigger
           status: 'failed_auth',
           error_code: auth.code ? String(auth.code) : null,
           error_reason: auth.reason || reason,
@@ -326,6 +315,7 @@ export async function sendMessageToContact(
       );
     } else {
       // If error came from withRetry exhausting attempts, mark failed_retries.
+      // DB trigger normalizes 'failed_retries' -> 'failed' via messages_update_trigger
       await dbFrom('messages')
         .update({
           status: 'failed_retries',

@@ -1,0 +1,71 @@
+name: Migration Uniqueness Gate
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+
+jobs:
+  migration-uniqueness-check:
+    name: Check Migration Uniqueness
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate migration name uniqueness
+        run: |
+          #!/bin/bash
+          set -eo pipefail
+
+          MIGRATIONS_DIR="supabase/migrations"
+          ERRORS=0
+
+          echo "=== Checking migration file name uniqueness ==="
+          echo ""
+
+          # Get all migration filenames
+          if [ ! -d "$MIGRATIONS_DIR" ]; then
+            echo "No migrations directory found. Skipping."
+            exit 0
+          fi
+
+          # Check 1 : Duplicate exact filenames (though OS should prevent this)
+          DUPLICATES=$(find "$MIGRATIONS_DIR" -name "*.sql" -type f | sed 's|.*/||' | sort | uniq -d)
+
+          if [ -n "$DUPLICATES" ]; then
+            echo "### ERROR: Duplicate migration filenames detected!"
+            echo "$DUPLICATES"
+            ERRORS=$((ERRORS+1))
+          fi
+
+          # Check 2: Duplicate names (full name without extension)
+          DUP_NAMES=$(find "$MIGRATIONS_DIR" -name "*.sql" -type f | sed 's|.*/||' | sed 's/\.sql$//' | sort | uniq -d)
+
+          if [ -n "$DUP_NAMES" ]; then
+            echo ""
+            echo "### ERROR: Duplicate migration names detected!"
+            echo "Collisions:"
+            echo "$DUP_NAMES"
+            echo ""
+            echo "Fix: Rename one of the colliding files with a different suffix."
+            ERRORS=$((ERRORS+1))
+          fi
+
+          echo ""
+          TOTAL_MIGRATIONS=$(find "$MIGRATIONS_DIR" -name "*.sql" -type f | wc -l | tr -d ' ')
+          echo "Total migration files: $TOTAL_MIGRATIONS"
+          echo "Uniqueness check complete."
+
+          if [ $ERRORS -gt 0 ]; then
+            echo ""
+            echo "### FAILED: $ERRORS uniqueness violation(s) detected."
+            echo "Each migration file MUST have a unique name."
+            exit 1
+          else
+            echo "### PASS: All migration names are unique."
+          fi

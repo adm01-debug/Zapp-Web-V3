@@ -40,6 +40,17 @@ firebase-adminsdk*.json
 *chave*.txt
 
 # ====================
+# CONFIGURAÇÕES MCP (CRÍTICO - CONTÉM TOKENS!)
+# ====================
+# O arquivo .mcp.json contém URLs autenticadas com tokens embutidos.
+# NUNCA commitar. Usar .mcp.json.example como referência.
+.mcp.json
+.mcp.json.bak
+.mcp.json.backup
+.mcp.local.json
+*.mcp.local.json
+
+# ====================
 # LOGS
 # ====================
 logs/
@@ -206,3 +217,24 @@ design-system-audit.md
 
 # Relatórios de CI gerados por check-types-schemas.mjs e scripts similares
 reports/
+
+# Artefatos históricos de sessões/auditorias (movidos para docs/history/)
+ROUND-15-*.md
+ROUND-17-*.md
+MIGRATION-*-EXECUTION-READY.md
+MIGRATION-EXECUTION-PLAN.md
+EXECUTION-SIMULATION-*.md
+EXHAUSTIVE_VALIDATION_REPORT.md
+DEPLOYMENT-READINESS-CERTIFICATE.md
+DEPLOYMENT_EXECUTION_STATUS.md
+PRODUCTION_EXCELLENCE_IMPLEMENTATION.md
+PERFORMANCE-SLA-VALIDATION.md
+RUNTIME-RLS-VALIDATION.md
+SCHEMA-INTROSPECTION-PROTECTION.md
+FALHAS_E_GAPS.md
+FINAL_CHECKLIST.txt
+IMPLEMENTATION_SUMMARY.txt
+SMOKE-TESTS-ROUND15.sql
+ROUND-15-EXHAUSTIVE-TEST-SUITE.sql
+.gitignore_mcp_patch
+

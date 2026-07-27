@@ -108,7 +108,9 @@ var list_contacts_default = defineTool3({
 });
 
 // src/lib/mcp/index.ts
-var supabaseUrl = Deno.env.get("SELFHOSTED_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL") ?? "https://supabase.atomicabr.com.br";
+var _supabaseUrlRaw = Deno.env.get("SELFHOSTED_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL");
+if (!_supabaseUrlRaw) throw new Error("[mcp] SELFHOSTED_SUPABASE_URL or SUPABASE_URL env var is required");
+var supabaseUrl = _supabaseUrlRaw;
 var mcp_default = defineMcp({
   name: "zapp-web-mcp",
   title: "ZAPP Web MCP",

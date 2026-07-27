@@ -1,5 +1,5 @@
 -- Gmail Accounts table
-CREATE TABLE public.gmail_accounts (
+CREATE TABLE IF NOT EXISTS public.gmail_accounts (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   email_address TEXT NOT NULL,
@@ -17,32 +17,40 @@ CREATE TABLE public.gmail_accounts (
 
 ALTER TABLE public.gmail_accounts ENABLE ROW LEVEL SECURITY;
 
+-- Ensure user_id column exists (table may have been created with profile_id by an earlier migration)
+ALTER TABLE public.gmail_accounts ADD COLUMN IF NOT EXISTS user_id UUID;
+
+DROP POLICY IF EXISTS "Users can view own gmail accounts" ON public.gmail_accounts;
 CREATE POLICY "Users can view own gmail accounts"
   ON public.gmail_accounts FOR SELECT
   TO authenticated
   USING (user_id = auth.uid() OR public.is_admin_or_supervisor(auth.uid()));
 
+DROP POLICY IF EXISTS "Users can insert own gmail accounts" ON public.gmail_accounts;
 CREATE POLICY "Users can insert own gmail accounts"
   ON public.gmail_accounts FOR INSERT
   TO authenticated
   WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can update own gmail accounts" ON public.gmail_accounts;
 CREATE POLICY "Users can update own gmail accounts"
   ON public.gmail_accounts FOR UPDATE
   TO authenticated
   USING (user_id = auth.uid() OR public.is_admin_or_supervisor(auth.uid()));
 
+DROP POLICY IF EXISTS "Users can delete own gmail accounts" ON public.gmail_accounts;
 CREATE POLICY "Users can delete own gmail accounts"
   ON public.gmail_accounts FOR DELETE
   TO authenticated
   USING (user_id = auth.uid());
 
-CREATE TRIGGER update_gmail_accounts_updated_at
+DROP TRIGGER IF EXISTS update_gmail_accounts_updated_at ON public.gmail_accounts;
+CREATE OR REPLACE TRIGGER update_gmail_accounts_updated_at
   BEFORE UPDATE ON public.gmail_accounts
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Email Threads table
-CREATE TABLE public.email_threads (
+CREATE TABLE IF NOT EXISTS public.email_threads (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   gmail_account_id UUID NOT NULL REFERENCES public.gmail_accounts(id) ON DELETE CASCADE,
   gmail_thread_id TEXT NOT NULL,
@@ -66,6 +74,7 @@ CREATE TABLE public.email_threads (
 
 ALTER TABLE public.email_threads ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view threads of own accounts" ON public.email_threads;
 CREATE POLICY "Users can view threads of own accounts"
   ON public.email_threads FOR SELECT
   TO authenticated
@@ -73,6 +82,7 @@ CREATE POLICY "Users can view threads of own accounts"
     EXISTS (SELECT 1 FROM public.gmail_accounts ga WHERE ga.id = gmail_account_id AND (ga.user_id = auth.uid() OR public.is_admin_or_supervisor(auth.uid())))
   );
 
+DROP POLICY IF EXISTS "Users can insert threads for own accounts" ON public.email_threads;
 CREATE POLICY "Users can insert threads for own accounts"
   ON public.email_threads FOR INSERT
   TO authenticated
@@ -80,6 +90,7 @@ CREATE POLICY "Users can insert threads for own accounts"
     EXISTS (SELECT 1 FROM public.gmail_accounts ga WHERE ga.id = gmail_account_id AND ga.user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "Users can update threads of own accounts" ON public.email_threads;
 CREATE POLICY "Users can update threads of own accounts"
   ON public.email_threads FOR UPDATE
   TO authenticated
@@ -87,6 +98,7 @@ CREATE POLICY "Users can update threads of own accounts"
     EXISTS (SELECT 1 FROM public.gmail_accounts ga WHERE ga.id = gmail_account_id AND (ga.user_id = auth.uid() OR public.is_admin_or_supervisor(auth.uid())))
   );
 
+DROP POLICY IF EXISTS "Users can delete threads of own accounts" ON public.email_threads;
 CREATE POLICY "Users can delete threads of own accounts"
   ON public.email_threads FOR DELETE
   TO authenticated
@@ -94,16 +106,17 @@ CREATE POLICY "Users can delete threads of own accounts"
     EXISTS (SELECT 1 FROM public.gmail_accounts ga WHERE ga.id = gmail_account_id AND ga.user_id = auth.uid())
   );
 
-CREATE TRIGGER update_email_threads_updated_at
+DROP TRIGGER IF EXISTS update_email_threads_updated_at ON public.email_threads;
+CREATE OR REPLACE TRIGGER update_email_threads_updated_at
   BEFORE UPDATE ON public.email_threads
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
-CREATE INDEX idx_email_threads_account ON public.email_threads(gmail_account_id);
-CREATE INDEX idx_email_threads_contact ON public.email_threads(contact_id);
-CREATE INDEX idx_email_threads_last_message ON public.email_threads(last_message_at DESC);
+CREATE INDEX IF NOT EXISTS idx_email_threads_account ON public.email_threads(gmail_account_id);
+CREATE INDEX IF NOT EXISTS idx_email_threads_contact ON public.email_threads(contact_id);
+CREATE INDEX IF NOT EXISTS idx_email_threads_last_message ON public.email_threads(last_message_at DESC);
 
 -- Email Messages table
-CREATE TABLE public.email_messages (
+CREATE TABLE IF NOT EXISTS public.email_messages (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   thread_id UUID NOT NULL REFERENCES public.email_threads(id) ON DELETE CASCADE,
   gmail_message_id TEXT NOT NULL,
@@ -132,6 +145,7 @@ CREATE TABLE public.email_messages (
 
 ALTER TABLE public.email_messages ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view messages of own accounts" ON public.email_messages;
 CREATE POLICY "Users can view messages of own accounts"
   ON public.email_messages FOR SELECT
   TO authenticated
@@ -139,6 +153,7 @@ CREATE POLICY "Users can view messages of own accounts"
     EXISTS (SELECT 1 FROM public.gmail_accounts ga WHERE ga.id = gmail_account_id AND (ga.user_id = auth.uid() OR public.is_admin_or_supervisor(auth.uid())))
   );
 
+DROP POLICY IF EXISTS "Users can insert messages for own accounts" ON public.email_messages;
 CREATE POLICY "Users can insert messages for own accounts"
   ON public.email_messages FOR INSERT
   TO authenticated
@@ -146,6 +161,7 @@ CREATE POLICY "Users can insert messages for own accounts"
     EXISTS (SELECT 1 FROM public.gmail_accounts ga WHERE ga.id = gmail_account_id AND ga.user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "Users can update messages of own accounts" ON public.email_messages;
 CREATE POLICY "Users can update messages of own accounts"
   ON public.email_messages FOR UPDATE
   TO authenticated
@@ -153,12 +169,12 @@ CREATE POLICY "Users can update messages of own accounts"
     EXISTS (SELECT 1 FROM public.gmail_accounts ga WHERE ga.id = gmail_account_id AND (ga.user_id = auth.uid() OR public.is_admin_or_supervisor(auth.uid())))
   );
 
-CREATE INDEX idx_email_messages_thread ON public.email_messages(thread_id);
-CREATE INDEX idx_email_messages_account ON public.email_messages(gmail_account_id);
-CREATE INDEX idx_email_messages_date ON public.email_messages(internal_date DESC);
+CREATE INDEX IF NOT EXISTS idx_email_messages_thread ON public.email_messages(thread_id);
+CREATE INDEX IF NOT EXISTS idx_email_messages_account ON public.email_messages(gmail_account_id);
+CREATE INDEX IF NOT EXISTS idx_email_messages_date ON public.email_messages(internal_date DESC);
 
 -- Email Labels table
-CREATE TABLE public.email_labels (
+CREATE TABLE IF NOT EXISTS public.email_labels (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   gmail_account_id UUID NOT NULL REFERENCES public.gmail_accounts(id) ON DELETE CASCADE,
   gmail_label_id TEXT NOT NULL,
@@ -173,6 +189,7 @@ CREATE TABLE public.email_labels (
 
 ALTER TABLE public.email_labels ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view labels of own accounts" ON public.email_labels;
 CREATE POLICY "Users can view labels of own accounts"
   ON public.email_labels FOR SELECT
   TO authenticated
@@ -180,6 +197,7 @@ CREATE POLICY "Users can view labels of own accounts"
     EXISTS (SELECT 1 FROM public.gmail_accounts ga WHERE ga.id = gmail_account_id AND (ga.user_id = auth.uid() OR public.is_admin_or_supervisor(auth.uid())))
   );
 
+DROP POLICY IF EXISTS "Users can manage labels of own accounts" ON public.email_labels;
 CREATE POLICY "Users can manage labels of own accounts"
   ON public.email_labels FOR ALL
   TO authenticated
@@ -187,4 +205,4 @@ CREATE POLICY "Users can manage labels of own accounts"
     EXISTS (SELECT 1 FROM public.gmail_accounts ga WHERE ga.id = gmail_account_id AND ga.user_id = auth.uid())
   );
 
-CREATE INDEX idx_email_labels_account ON public.email_labels(gmail_account_id);
+CREATE INDEX IF NOT EXISTS idx_email_labels_account ON public.email_labels(gmail_account_id);

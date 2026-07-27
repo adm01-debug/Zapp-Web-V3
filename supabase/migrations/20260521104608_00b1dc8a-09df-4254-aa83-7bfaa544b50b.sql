@@ -29,7 +29,7 @@ BEGIN
       AND created_at > now() - (p_hours || ' hours')::interval
     GROUP BY 1, 2 ORDER BY 1;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- 3. Funções de ação do DLQ
 CREATE OR REPLACE FUNCTION public.rpc_dlq_log_item_action(
@@ -40,24 +40,26 @@ CREATE OR REPLACE FUNCTION public.rpc_dlq_log_item_action(
 BEGIN
     INSERT INTO public.dlq_audit_log (item_id, action, reason, performed_by)
     VALUES (p_item_id, p_action, p_reason, auth.uid());
-    
+
     IF p_action = 'delete' THEN
-        DELETE FROM public.failed_messages WHERE id = p_item_id;
+        DELETE FROM zapp.failed_messages WHERE id = p_item_id;
     END IF;
-    
+
     RETURN TRUE;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+-- Drop first: earlier migration created with parameter name p_id; cannot rename via CREATE OR REPLACE
+DROP FUNCTION IF EXISTS public.rpc_dlq_retry_now(UUID);
 CREATE OR REPLACE FUNCTION public.rpc_dlq_retry_now(p_item_id UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
-    UPDATE public.failed_messages 
-    SET next_retry_at = now(), status = 'pending' 
+    UPDATE zapp.failed_messages
+    SET next_retry_at = now(), status = 'pending'
     WHERE id = p_item_id;
     RETURN TRUE;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- 4. Colunas finais de compatibilidade
 ALTER TABLE public.qr_attempts ADD COLUMN IF NOT EXISTS connection_name TEXT;

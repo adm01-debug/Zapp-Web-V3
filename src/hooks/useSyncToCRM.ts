@@ -49,23 +49,23 @@ export interface UseSyncToCRMReturn {
 
 async function callSyncRpc(input: SyncConversationInput): Promise<SyncConversationResult> {
   // Usa `as any` só na fronteira porque a RPC pode ainda não estar tipada nos types gerados.
-  const { data, error } = await (supabase.rpc as unknown as (
-    fn: string,
-    params: Record<string, unknown>,
-  ) => Promise<{ data: unknown; error: unknown }>) (
-    'sync_conversation_to_crm',
-    {
-      p_phone: input.phone,
-      p_channel: input.channel,
-      p_direction: input.direction,
-      p_assunto: input.assunto ?? null,
-      p_resumo: input.resumo ?? null,
-      p_sentiment: input.sentiment ?? 'neutral',
-      p_message_count: input.messageCount ?? 0,
-      p_agent_name: input.agentName ?? null,
-      p_zapp_conversation_id: input.zappConversationId ?? null,
-    },
-  );
+  const { data, error } = await (
+    supabase.rpc as unknown as (
+      // ignore-audit — sync_conversation_to_crm absent from generated DB types; typed rpc() overload rejects the call
+      fn: string,
+      params: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: unknown }>
+  )('sync_conversation_to_crm', {
+    p_phone: input.phone,
+    p_channel: input.channel,
+    p_direction: input.direction,
+    p_assunto: input.assunto ?? null,
+    p_resumo: input.resumo ?? null,
+    p_sentiment: input.sentiment ?? 'neutral',
+    p_message_count: input.messageCount ?? 0,
+    p_agent_name: input.agentName ?? null,
+    p_zapp_conversation_id: input.zappConversationId ?? null,
+  });
 
   if (error) {
     const err = error as { code?: string; message?: string };
@@ -76,7 +76,9 @@ async function callSyncRpc(input: SyncConversationInput): Promise<SyncConversati
     return { synced: false, reason: 'error' };
   }
 
-  const result = (data && typeof data === 'object' ? data : { synced: false }) as SyncConversationResult;
+  const result = (
+    data && typeof data === 'object' ? data : { synced: false }
+  ) as SyncConversationResult;
   return { ...result, synced: !!result.synced };
 }
 
@@ -113,7 +115,7 @@ export function useSyncToCRM(): UseSyncToCRMReturn {
     (input: SyncConversationInput) => {
       void syncConversationAsync(input).catch((err) => log.error('syncConversation failed', err));
     },
-    [syncConversationAsync],
+    [syncConversationAsync]
   );
 
   return {

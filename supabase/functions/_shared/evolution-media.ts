@@ -1,6 +1,7 @@
 // Shared media persistence helpers for Evolution API functions
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isRecord } from "./evolution-helpers.ts";
+import { getStoragePublicUrl } from "./storage-url.ts";
 
 /** evolution-media utilities and exports. */
 export function isValidMediaBytes(bytes: Uint8Array, messageType: string): boolean {
@@ -92,9 +93,9 @@ export async function persistMediaToStorage(
     });
     if (uploadErr) { console.error(`[MEDIA] Upload error for ${messageType}:`, uploadErr); return null; }
 
-    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
-    console.log(`[MEDIA] Persisted ${messageType} (${(bytes.length / 1024).toFixed(1)}KB) → ${urlData.publicUrl}`);
-    return urlData.publicUrl;
+    const publicUrl = getStoragePublicUrl(bucket, fileName);
+    console.log(`[MEDIA] Persisted ${messageType} (${(bytes.length / 1024).toFixed(1)}KB) → ${publicUrl}`);
+    return publicUrl;
   } catch (err) { console.error(`[MEDIA] persistMediaToStorage error:`, err); return null; }
 }
 
@@ -150,9 +151,9 @@ export async function persistMediaViaApi(
     });
     if (uploadErr) { console.error(`[MEDIA] base64 upload error:`, uploadErr); return null; }
 
-    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
+    const publicUrl = getStoragePublicUrl(bucket, fileName);
     console.log(`[MEDIA] Persisted ${messageType} via API (${(bytes.length / 1024).toFixed(1)}KB)`);
-    return urlData.publicUrl;
+    return publicUrl;
   } catch (err) { console.error(`[MEDIA] persistMediaViaApi error:`, err); return null; }
 }
 

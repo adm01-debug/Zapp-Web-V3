@@ -557,7 +557,8 @@ export function useExternalMessages(remoteJid: string | null) {
       loadOlderAbortRef.current = null;
       if (mountedRef.current) setLoadingOlder(false);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only init
+  }, []);
 
   const initialFetch = useCallback(async () => {
     if (!remoteJid || !mountedRef.current) {

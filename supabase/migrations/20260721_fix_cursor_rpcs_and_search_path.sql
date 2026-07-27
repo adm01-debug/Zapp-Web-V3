@@ -415,12 +415,34 @@ GRANT EXECUTE ON FUNCTION zapp.search_contacts_cursor(text, text, text, text, te
 -- 5. is_admin_or_supervisor: search_path was 'public'; bodies use fully-
 --    qualified zapp.* references so only the config needs patching.
 -- ---------------------------------------------------------------------------
-ALTER FUNCTION zapp.is_admin_or_supervisor()     SET search_path = zapp;
-ALTER FUNCTION zapp.is_admin_or_supervisor(uuid) SET search_path = zapp;
+DO $ias_sp$ BEGIN
+  BEGIN
+    ALTER FUNCTION zapp.is_admin_or_supervisor() SET search_path = zapp;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'SKIP zapp.is_admin_or_supervisor() SET search_path: %', SQLERRM;
+  END;
+  BEGIN
+    ALTER FUNCTION zapp.is_admin_or_supervisor(uuid) SET search_path = zapp;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'SKIP zapp.is_admin_or_supervisor(uuid) SET search_path: %', SQLERRM;
+  END;
+END $ias_sp$;
 
 
 -- ---------------------------------------------------------------------------
 -- 6. dispatch_error_logs was NOT in supabase_realtime publication.
 --    Any Realtime subscription on it was a silent no-op.
 -- ---------------------------------------------------------------------------
-ALTER PUBLICATION supabase_realtime ADD TABLE zapp.dispatch_error_logs;
+DO $pub_del$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime')
+     AND EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+                 WHERE n.nspname = 'zapp' AND c.relname = 'dispatch_error_logs')
+     AND NOT EXISTS (SELECT 1 FROM pg_publication_tables
+                     WHERE pubname = 'supabase_realtime'
+                       AND schemaname = 'zapp' AND tablename = 'dispatch_error_logs')
+  THEN
+    EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE zapp.dispatch_error_logs';
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'SKIP ALTER PUBLICATION supabase_realtime ADD TABLE zapp.dispatch_error_logs: %', SQLERRM;
+END $pub_del$;

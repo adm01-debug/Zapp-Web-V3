@@ -1,0 +1,23 @@
+# Auto-generated files — prevent merge conflicts by using "ours" strategy.
+# types.ts is generated from the DB schema; merge conflicts here are always
+# resolved by re-running the generator, not by hand-editing.
+src/integrations/supabase/types.ts merge=ours
+
+# Lock files — regenerated from package.json; conflicts mean the file is stale.
+bun.lock merge=ours
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.svg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary

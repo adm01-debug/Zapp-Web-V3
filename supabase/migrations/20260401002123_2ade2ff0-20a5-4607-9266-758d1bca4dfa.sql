@@ -31,6 +31,7 @@ USING (
   )
 );
 
+DROP POLICY IF EXISTS "Users can update own stickers" ON storage.objects;
 CREATE POLICY "Users can update own stickers"
 ON storage.objects FOR UPDATE TO authenticated
 USING (

@@ -102,6 +102,7 @@ export function useAutomationLogs(filters: AutomationLogsFilters) {
       )
       .subscribe();
     return () => {
+      ch.unsubscribe();
       supabase.removeChannel(ch);
     };
   }, [page, filterRule, filterStatus, filterJid, filterFrom, filterTo, queryClient]);
