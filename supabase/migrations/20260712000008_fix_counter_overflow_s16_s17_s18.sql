@@ -45,7 +45,7 @@ WHERE event_count_bigint = 1; -- Only update rows not yet modified
 
 -- Drop old column and rename new one
 ALTER TABLE public.webhook_rate_limits
-  DROP COLUMN event_count;
+  DROP COLUMN IF EXISTS event_count;
 
 ALTER TABLE public.webhook_rate_limits
   RENAME COLUMN event_count_bigint TO event_count;

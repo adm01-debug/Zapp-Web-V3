@@ -141,7 +141,7 @@ export function InstanceSettingsDialog({
           'auto_reconnect_enabled, reconnect_interval_seconds, max_reconnect_attempts, loop_protection_active'
         )
         .eq('id', connectionId)
-        .single();
+        .maybeSingle();
 
       if (!error && data && mountedRef.current) {
         setReconnectConfig({

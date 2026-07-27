@@ -208,7 +208,6 @@ export function ConversationListSidebar({
             onUpdateWithCurrent={inboxFilters.updateInboxPresetWithCurrent}
           />
 
-
           {inboxFilters.showOnlyRetrying && (
             <FailureCategoryFilter
               value={inboxFilters.failureCategoryFilter}
@@ -232,7 +231,6 @@ export function ConversationListSidebar({
           )}
         </div>
 
-
         <ErrorBoundary
           fallback={
             <div className="p-2 text-center text-xs text-muted-foreground">
@@ -248,14 +246,14 @@ export function ConversationListSidebar({
           >
             <TicketTabs
               conversations={inbox.cachedConversations}
-                counts={inboxFilters.inboxTabCounts}
+              counts={inboxFilters.inboxTabCounts}
               mainTab={inboxFilters.mainTab}
               subTab={inboxFilters.subTab}
               onMainTabChange={inboxFilters.setMainTab}
               onSubTabChange={inboxFilters.setSubTab}
               showAll={inboxFilters.showAll}
               onShowAllChange={inboxFilters.setShowAll}
-                scope={toInboxScope(inboxFilters.scope)}
+              scope={toInboxScope(inboxFilters.scope)}
               onScopeChange={inboxFilters.setScope}
               selectedQueueId={inboxFilters.selectedQueueId}
               onQueueChange={inboxFilters.setSelectedQueueId}
@@ -317,13 +315,13 @@ export function ConversationListSidebar({
                   <div className="flex items-center justify-between">
                     <Skeleton
                       className="h-3.5 rounded-md"
-                      style={{ width: `${60 + Math.random() * 40}%` }}
+                      style={{ width: `${[75, 90, 65, 80, 70, 85, 60][i % 7]}%` }}
                     />
                     <Skeleton className="h-3 w-10 rounded-md" />
                   </div>
                   <Skeleton
                     className="h-3 rounded-md"
-                    style={{ width: `${40 + Math.random() * 30}%` }}
+                    style={{ width: `${[55, 65, 50, 60, 45, 70, 40][i % 7]}%` }}
                   />
                 </div>
               </motion.div>
@@ -351,11 +349,10 @@ export function ConversationListSidebar({
             };
             // Distingue "banco sem dados" (allConversations vazio) de
             // "filtros esconderam tudo" (allConversations > 0 mas filtered = 0).
-            const totalLoaded = (inbox.conversations?.length ?? 0);
+            const totalLoaded = inbox.conversations?.length ?? 0;
             const hasActiveTypeFilter =
               !!inboxFilters.selectedContactType && inboxFilters.selectedContactType !== 'all';
-            const filtersHideAll =
-              !inbox.usingCache && !inboxFilters.search && totalLoaded > 0;
+            const filtersHideAll = !inbox.usingCache && !inboxFilters.search && totalLoaded > 0;
             const canShowWaiting =
               inboxFilters.mainTab === 'open' &&
               inboxFilters.subTab !== 'waiting' &&
@@ -367,7 +364,8 @@ export function ConversationListSidebar({
             const canShowUnread =
               inboxFilters.mainTab !== 'unread' && inboxFilters.inboxTabCounts.unread > 0;
             const canShowAllAgents =
-              inboxFilters.scope !== 'all' && totalLoaded > inboxFilters.filteredConversations.length;
+              inboxFilters.scope !== 'all' &&
+              totalLoaded > inboxFilters.filteredConversations.length;
             const msg = inbox.usingCache
               ? 'Modo offline — sem dados em cache'
               : inboxFilters.search

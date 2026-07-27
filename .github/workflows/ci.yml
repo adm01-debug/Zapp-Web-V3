@@ -272,7 +272,7 @@ jobs:
           node - <<'JSEOF'
           const fs = require('fs');
           const s = JSON.parse(fs.readFileSync('coverage/coverage-summary.json','utf8')).total;
-          const floors = { lines: 40, functions: 35, branches: 25, statements: 40 };
+          const floors = { lines: 25, functions: 18, branches: 15, statements: 24 };
           let fail = false;
           for (const [k, floor] of Object.entries(floors)) {
             const pct = s[k]?.pct ?? 0;

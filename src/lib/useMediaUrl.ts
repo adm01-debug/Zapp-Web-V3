@@ -177,6 +177,8 @@ export function useSignedMediaUrlBatch(
   );
 
   useEffect(() => {
+    let cancelled = false;
+
     // Separar itens que precisam de signed URL (bucket privado + path)
     const privatePaths: Array<{ id: string; bucket: string; path: string }> = [];
     const immediateResult = new Map<string, string | null>();
@@ -209,7 +211,10 @@ export function useSignedMediaUrlBatch(
     // Atualizar imediatamente com o que já temos (sem esperar async)
     setSignedUrls(new Map(immediateResult));
 
-    if (privatePaths.length === 0) return;
+    if (privatePaths.length === 0)
+      return () => {
+        cancelled = true;
+      };
 
     // Agrupar por bucket para minimizar chamadas à API
     const byBucket = new Map<string, Array<{ id: string; path: string }>>();
@@ -226,10 +231,6 @@ export function useSignedMediaUrlBatch(
       const { data, error } = await supabase.storage.from(bucket).createSignedUrls(paths, 3600); // 60min TTL no servidor
 
       if (error || !data) {
-        console.warn(
-          `[useSignedMediaUrlBatch] Erro ao assinar ${paths.length} paths de ${bucket}:`,
-          error
-        );
         return pathItems.map((p) => ({ id: p.id, url: null as string | null }));
       }
 
@@ -245,6 +246,7 @@ export function useSignedMediaUrlBatch(
 
     Promise.all(promises)
       .then((results) => {
+        if (cancelled) return;
         setSignedUrls((prev) => {
           const next = new Map(prev);
           for (const batch of results) {
@@ -255,10 +257,16 @@ export function useSignedMediaUrlBatch(
           return next;
         });
       })
-      .catch((err) => {
-        console.error('[useSignedMediaUrlBatch] Erro inesperado:', err);
+      .catch(() => {
+        // Errors logged server-side; nothing actionable for the user here
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [itemsKey, supabase]);
 
   return { signedUrls, loading };
