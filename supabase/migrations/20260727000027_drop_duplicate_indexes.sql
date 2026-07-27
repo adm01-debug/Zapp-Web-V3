@@ -1,0 +1,52 @@
+-- ============================================================
+-- Migration: 20260727000027_drop_duplicate_indexes
+-- Objetivo: Documentar remoção de índices duplicados
+-- Status: COMENTADO — executar manualmente via psql (fora de transaction)
+-- Criado: 2026-07-27
+--参阅: Step 27
+--参阅: Step 26 (quarantine infrastructure — ops.index_quarantine)
+-- ============================================================
+
+-- AUDITORIA: Encontrar duplicatas (executar ANTES de qualquer DROP)
+-- SELECT
+--     schemaname, tablename, indexname, indexdef,
+--     pg_relation_size(indexrelid) AS size
+-- FROM pg_indexes
+-- WHERE schemaname IN ('evo','financeiro','zapp')
+--   AND indexname IN (
+--       'contact_id_graveyard_id_idx',
+--       'colaboradores_cpf_idx',
+--       'vendas_unificadas_empresa_idx'
+--   )
+-- ORDER BY schemaname, tablename, indexname;
+
+-- PASSO 1: Registrar em quarantine ANTES de dropar
+-- INSERT INTO ops.index_quarantine (schemaname, tablename, indexname, reason)
+-- VALUES
+--     ('evo',          'contact_id_graveyard', 'contact_id_graveyard_id_idx', 'Duplicado — idx_scan=0 por 90+ dias'),
+--     ('financeiro',   'colaboradores',         'colaboradores_cpf_idx',         'Duplicado de unique constraint'),
+--     ('financeiro',   'vendas_unificadas',     'vendas_unificadas_empresa_idx', 'Duplicado — outra index já cobre esta coluna')
+-- ON CONFLICT DO NOTHING;
+
+-- PASSO 2: Dropar duplicatas (EXECUTAR FORA DE TRANSACTION)
+-- DROP INDEX CONCURRENTLY IF EXISTS evo.contact_id_graveyard_id_idx;
+-- DROP INDEX CONCURRENTLY IF EXISTS financeiro.colaboradores_cpf_idx;
+-- DROP INDEX CONCURRENTLY IF EXISTS financeiro.vendas_unificadas_empresa_idx;
+
+-- PASSO 3: Marcar como dropped
+-- UPDATE ops.index_quarantine
+-- SET status = 'dropped', drop_authorized_by = 'dba_review_2026_07_27'
+-- WHERE indexname IN (
+--     'contact_id_graveyard_id_idx',
+--     'colaboradores_cpf_idx',
+--     'vendas_unificadas_empresa_idx'
+-- );
+
+-- VALIDAÇÃO POS-DROP
+-- SELECT schemaname, tablename, indexname FROM pg_indexes
+-- WHERE indexname IN (
+--     'contact_id_graveyard_id_idx',
+--     'colaboradores_cpf_idx',
+--     'vendas_unificadas_empresa_idx'
+-- );
+-- -- Deve retornar 0 linhas se os drops funcionaram
