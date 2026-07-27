@@ -40,6 +40,7 @@ BEGIN
     WHERE tablename = 'login_attempts' 
     AND policyname = 'Only admins can view login attempts'
   ) THEN
+DROP POLICY IF EXISTS "Only admins can view login attempts" ON public.login_attempts;
     CREATE POLICY "Only admins can view login attempts"
     ON public.login_attempts
     FOR SELECT

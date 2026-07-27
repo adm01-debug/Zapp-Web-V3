@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS public.audit_logs (
 
 -- Enable RLS for audit_logs
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admins can view audit logs" ON public.audit_logs;
 CREATE POLICY "Admins can view audit logs" ON public.audit_logs FOR SELECT USING (
   EXISTS (
     SELECT 1 FROM public.profiles

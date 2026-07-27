@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS public.sts_telemetry (
 ALTER TABLE public.sts_telemetry ENABLE ROW LEVEL SECURITY;
 
 -- Simple policy for authenticated users to insert (if client reports errors)
+DROP POLICY IF EXISTS "Authenticated users can insert telemetry" ON public.sts_telemetry;
 CREATE POLICY "Authenticated users can insert telemetry" 
 ON public.sts_telemetry FOR INSERT 
 WITH CHECK (auth.uid() IS NOT NULL);

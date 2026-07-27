@@ -19,24 +19,28 @@ CREATE POLICY "Admins and own agents can view NPS surveys"
 
 -- 3. Fix storage DELETE policies - add ownership check
 DROP POLICY IF EXISTS "Authenticated users can delete stickers" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own stickers" ON storage.objects;
 CREATE POLICY "Users can delete own stickers"
   ON storage.objects FOR DELETE
   TO authenticated
   USING (bucket_id = 'stickers' AND (storage.foldername(name))[1] = auth.uid()::text);
 
 DROP POLICY IF EXISTS "Authenticated users can delete audio memes" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own audio memes" ON storage.objects;
 CREATE POLICY "Users can delete own audio memes"
   ON storage.objects FOR DELETE
   TO authenticated
   USING (bucket_id = 'audio-memes' AND (storage.foldername(name))[1] = auth.uid()::text);
 
 DROP POLICY IF EXISTS "Authenticated users can delete custom emojis" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own custom emojis" ON storage.objects;
 CREATE POLICY "Users can delete own custom emojis"
   ON storage.objects FOR DELETE
   TO authenticated
   USING (bucket_id = 'custom-emojis' AND (storage.foldername(name))[1] = auth.uid()::text);
 
 DROP POLICY IF EXISTS "Authenticated users can delete audio messages" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own audio messages" ON storage.objects;
 CREATE POLICY "Users can delete own audio messages"
   ON storage.objects FOR DELETE
   TO authenticated

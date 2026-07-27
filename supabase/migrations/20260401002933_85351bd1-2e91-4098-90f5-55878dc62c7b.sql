@@ -26,6 +26,7 @@ USING (is_admin_or_supervisor(auth.uid()));
 -- Regular users use the RPC function instead of direct SELECT
 -- But we still need a policy for the function's SECURITY DEFINER context
 -- So add a restrictive policy for non-admins
+DROP POLICY IF EXISTS "Users can view own reset requests no token" ON public.password_reset_requests;
 CREATE POLICY "Users can view own reset requests no token"
 ON public.password_reset_requests FOR SELECT TO authenticated
 USING (user_id = auth.uid());
@@ -45,6 +46,7 @@ WITH CHECK (
 -- 3. Fix whatsapp-media SELECT: restrict to assigned contacts
 DROP POLICY IF EXISTS "Users can read whatsapp media" ON storage.objects;
 
+DROP POLICY IF EXISTS "Users can read assigned whatsapp media" ON storage.objects;
 CREATE POLICY "Users can read assigned whatsapp media"
 ON storage.objects FOR SELECT TO authenticated
 USING (

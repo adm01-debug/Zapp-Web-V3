@@ -1,5 +1,6 @@
 -- conversations
 DROP POLICY "Users can manage conversations" ON public.conversations;
+DROP POLICY IF EXISTS "Users can manage conversations" ON public.conversations;
 CREATE POLICY "Users can manage conversations" 
 ON public.conversations FOR ALL 
 TO authenticated 
@@ -8,6 +9,7 @@ WITH CHECK (auth.uid() IS NOT NULL);
 
 -- automation_executions
 DROP POLICY "executions_insert_authenticated" ON public.automation_executions;
+DROP POLICY IF EXISTS "executions_insert_authenticated" ON public.automation_executions;
 CREATE POLICY "executions_insert_authenticated" 
 ON public.automation_executions FOR INSERT 
 TO authenticated 
@@ -36,6 +38,7 @@ USING (auth.uid() IS NOT NULL);
 
 -- evolution_send_idempotency
 DROP POLICY "service_role_all_evolution_send_idempotency" ON public.evolution_send_idempotency;
+DROP POLICY IF EXISTS "service_role_all_evolution_send_idempotency" ON public.evolution_send_idempotency;
 CREATE POLICY "service_role_all_evolution_send_idempotency" 
 ON public.evolution_send_idempotency FOR ALL 
 TO authenticated 

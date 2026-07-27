@@ -3,6 +3,7 @@ DROP POLICY "Authenticated users can update NPS surveys" ON public.nps_surveys;
 DROP POLICY "Authenticated users can delete NPS surveys" ON public.nps_surveys;
 DROP POLICY "Authenticated users can create NPS surveys" ON public.nps_surveys;
 
+DROP POLICY IF EXISTS "Authenticated users can create NPS surveys" ON public.nps_surveys;
 CREATE POLICY "Authenticated users can create NPS surveys"
 ON public.nps_surveys FOR INSERT TO authenticated 
 WITH CHECK (agent_id IN (SELECT id FROM public.profiles WHERE user_id = auth.uid()));

@@ -71,7 +71,9 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Habilitar RLS e Políticas
 ALTER TABLE public.evolution_health_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow service role all access" ON public.evolution_health_logs;
 CREATE POLICY "Allow service role all access" ON public.evolution_health_logs FOR ALL TO service_role USING (true);
+DROP POLICY IF EXISTS "Admins can view health logs" ON public.evolution_health_logs;
 CREATE POLICY "Admins can view health logs" ON public.evolution_health_logs FOR SELECT TO authenticated USING (
   EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role IN ('admin', 'supervisor'))
 );

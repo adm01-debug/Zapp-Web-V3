@@ -13,6 +13,7 @@ DROP POLICY IF EXISTS "Users can insert versions" ON public.entity_versions;
 DROP POLICY IF EXISTS "Authenticated can view versions" ON public.entity_versions;
 DROP POLICY IF EXISTS "Authenticated can insert versions" ON public.entity_versions;
 
+DROP POLICY IF EXISTS "entity_versions_select_own_org" ON public.entity_versions;
 CREATE POLICY "entity_versions_select_own_org"
 ON public.entity_versions FOR SELECT TO authenticated
 USING (
@@ -25,6 +26,7 @@ USING (
   )
 );
 
+DROP POLICY IF EXISTS "entity_versions_insert_own" ON public.entity_versions;
 CREATE POLICY "entity_versions_insert_own"
 ON public.entity_versions FOR INSERT TO authenticated
 WITH CHECK (
@@ -39,6 +41,7 @@ WITH CHECK (
 DROP POLICY IF EXISTS "Authenticated users can view email threads" ON public.email_threads;
 DROP POLICY IF EXISTS "Users can manage email threads they have access to" ON public.email_threads;
 
+DROP POLICY IF EXISTS "email_threads_select_own_or_assigned" ON public.email_threads;
 CREATE POLICY "email_threads_select_own_or_assigned"
 ON public.email_threads FOR SELECT TO authenticated
 USING (
@@ -55,6 +58,7 @@ USING (
   )
 );
 
+DROP POLICY IF EXISTS "email_threads_manage_own" ON public.email_threads;
 CREATE POLICY "email_threads_manage_own"
 ON public.email_threads FOR ALL TO authenticated
 USING (
@@ -88,6 +92,7 @@ WITH CHECK (
 DROP POLICY IF EXISTS "Authenticated users can view email messages" ON public.email_messages;
 DROP POLICY IF EXISTS "Users can manage their email messages" ON public.email_messages;
 
+DROP POLICY IF EXISTS "email_messages_select_own" ON public.email_messages;
 CREATE POLICY "email_messages_select_own"
 ON public.email_messages FOR SELECT TO authenticated
 USING (
@@ -101,6 +106,7 @@ USING (
   )
 );
 
+DROP POLICY IF EXISTS "email_messages_manage_own" ON public.email_messages;
 CREATE POLICY "email_messages_manage_own"
 ON public.email_messages FOR ALL TO authenticated
 USING (
@@ -130,6 +136,7 @@ WITH CHECK (
 
 DROP POLICY IF EXISTS "Authenticated can view connection queues" ON public.whatsapp_connection_queues;
 
+DROP POLICY IF EXISTS "whatsapp_connection_queues_select_org" ON public.whatsapp_connection_queues;
 CREATE POLICY "whatsapp_connection_queues_select_org"
 ON public.whatsapp_connection_queues FOR SELECT TO authenticated
 USING (
