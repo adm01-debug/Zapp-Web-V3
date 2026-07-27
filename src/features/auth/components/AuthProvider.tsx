@@ -422,6 +422,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           event: 'UPDATE',
           schema: 'zapp',
           table: 'profiles',
+          // profiles.id is a surrogate UUID; auth.uid() lives in profiles.user_id
           filter: `user_id=eq.${user.id}`,
         },
         () => {
