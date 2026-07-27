@@ -922,7 +922,9 @@ Deno.serve(async (req) => {
             .eq('instance_name', instance)
             .eq('from_me', false)
             .eq('is_read', false)
+            // Secondary sort on id makes pagination deterministic when created_at ties exist.
             .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
             .range(offset, offset + PAGE_SIZE - 1);
 
           if (pageErr) {
@@ -959,14 +961,20 @@ Deno.serve(async (req) => {
           // Persist read state only for the exact IDs acknowledged by Evolution.
           // Restricting by message_id prevents marking as read any messages that
           // arrived after allMsgRows was collected but before the proxy call returned.
+          // Batch in chunks of 500 — PostgREST encodes .in() values in the URL query
+          // string, and large lists exceed the ~8 KB limit of most HTTP servers.
           const acknowledgedIds = readMessages.map((m) => m.id);
-          const { error: updateErr } = await supabase
-            .from('evolution_messages')
-            .update({ is_read: true })
-            .in('message_id', acknowledgedIds)
-            .eq('instance_name', instance);
-          if (updateErr) {
-            log.warn('[evolution-api] read-messages: failed to persist is_read=true:', updateErr.message);
+          const BATCH = 500;
+          for (let i = 0; i < acknowledgedIds.length; i += BATCH) {
+            const chunk = acknowledgedIds.slice(i, i + BATCH);
+            const { error: updateErr } = await supabase
+              .from('evolution_messages')
+              .update({ is_read: true })
+              .in('message_id', chunk)
+              .eq('instance_name', instance);
+            if (updateErr) {
+              log.warn('[evolution-api] read-messages: failed to persist is_read=true (chunk):', updateErr.message);
+            }
           }
           return new Response(JSON.stringify(envelope), {
             status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

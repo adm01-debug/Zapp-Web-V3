@@ -57,14 +57,21 @@ export function TalkXLiveMonitor({ campaignId }: Props) {
       )
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'zapp',
-          table: 'talkx_recipients',
-          filter: `campaign_id=eq.${campaignId}`,
-        },
-        () => {
-          setRecipientsKey((k) => k + 1);
+        { event: 'INSERT', schema: 'zapp', table: 'talkx_recipients', filter: `campaign_id=eq.${campaignId}` },
+        () => { setRecipientsKey((k) => k + 1); }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'zapp', table: 'talkx_recipients', filter: `campaign_id=eq.${campaignId}` },
+        () => { setRecipientsKey((k) => k + 1); }
+      )
+      // DELETE: server-side filter requires REPLICA IDENTITY FULL; check client-side.
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'zapp', table: 'talkx_recipients' },
+        (payload) => {
+          const old = (payload as { old?: { campaign_id?: string } }).old;
+          if (old?.campaign_id === campaignId) setRecipientsKey((k) => k + 1);
         }
       )
       .subscribe();

@@ -54,11 +54,22 @@ export const createService = <T = any>(tableName: string, options?: ServiceOptio
           ...filterParams
         } = filters;
 
+        const BATCH = 500;
+
         // Apply field filters
         Object.entries(filterParams).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
             if (Array.isArray(value)) {
-              query = query.in(key, value);
+              const arr = value as unknown[];
+              if (arr.length > BATCH) {
+                console.warn(
+                  `[genericService] list(): filter "${key}" has ${arr.length} values ` +
+                    `(limit: ${BATCH}). Chunk arrays before calling list() to avoid HTTP 414.`
+                );
+                query = query.in(key, arr.slice(0, BATCH));
+              } else {
+                query = query.in(key, arr);
+              }
             } else if (typeof value === 'object' && value !== null) {
               // Handle range filters: { min: 10, max: 100 }
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -171,18 +182,34 @@ export const createService = <T = any>(tableName: string, options?: ServiceOptio
      * Update multiple records matching a condition
      */
     async updateMany(condition: Record<string, unknown>, updates: Partial<T>): Promise<T[]> {
-      let query = db.from(tableName).update(updates);
+      const BATCH = 500;
+      const entries = Object.entries(condition);
+      const arrayEntry = entries.find(([, v]) => Array.isArray(v) && (v as unknown[]).length > BATCH);
 
-      Object.entries(condition).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          query = query.in(key, value);
-        } else {
-          query = query.eq(key, value);
+      if (arrayEntry) {
+        const [arrKey, arrVals] = arrayEntry;
+        const otherEntries = entries.filter(([k]) => k !== arrKey);
+        const allData: T[] = [];
+        for (let i = 0; i < (arrVals as unknown[]).length; i += BATCH) {
+          const chunk = (arrVals as unknown[]).slice(i, i + BATCH);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          let q: any = db.from(tableName).update(updates);
+          otherEntries.forEach(([k, v]) => { q = q.eq(k, v); });
+          q = q.in(arrKey, chunk);
+          const { data, error } = await q.select();
+          if (error) throw error;
+          allData.push(...(data || []));
         }
+        return allData;
+      }
+
+      let query = db.from(tableName).update(updates);
+      entries.forEach(([key, value]) => {
+        if (Array.isArray(value)) query = query.in(key, value);
+        else query = query.eq(key, value);
       });
 
       const { data, error } = await query.select();
-
       if (error) throw error;
       return data || [];
     },
@@ -201,9 +228,30 @@ export const createService = <T = any>(tableName: string, options?: ServiceOptio
      * Delete multiple records matching a condition
      */
     async deleteMany(condition: Record<string, unknown>): Promise<number> {
+      const BATCH = 500;
+      const entries = Object.entries(condition);
+      const arrayEntry = entries.find(([, v]) => Array.isArray(v) && (v as unknown[]).length > BATCH);
+
+      if (arrayEntry) {
+        const [arrKey, arrVals] = arrayEntry;
+        const otherEntries = entries.filter(([k]) => k !== arrKey);
+        let totalCount = 0;
+        for (let i = 0; i < (arrVals as unknown[]).length; i += BATCH) {
+          const chunk = (arrVals as unknown[]).slice(i, i + BATCH);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          let q: any = db.from(tableName).delete();
+          otherEntries.forEach(([k, v]) => { q = q.eq(k, v); });
+          q = q.in(arrKey, chunk);
+          const { count, error } = await q;
+          if (error) throw error;
+          totalCount += count || 0;
+        }
+        return totalCount;
+      }
+
       let query = db.from(tableName).delete();
 
-      Object.entries(condition).forEach(([key, value]) => {
+      entries.forEach(([key, value]) => {
         if (Array.isArray(value)) {
           query = query.in(key, value);
         } else {

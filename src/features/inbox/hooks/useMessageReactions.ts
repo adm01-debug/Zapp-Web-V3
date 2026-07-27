@@ -23,19 +23,33 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
   useEffect(() => {
     if (!messageId || options?.disableRealtime) return;
 
+    const invalidate = () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.messageReactions.message(messageId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.operationsLogsAll() });
+    };
+
+    // INSERT/UPDATE: server-side filter works (new row always present).
+    // DELETE: server-side filter requires REPLICA IDENTITY FULL; without it the
+    // old row is absent and the filter never matches — reaction removals are
+    // silently dropped. Subscribe to DELETE without a filter and check client-side.
     const channel = supabase
       .channel(`reactions:${messageId}`)
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'zapp',
-          table: 'message_reactions',
-          filter: `message_id=eq.${messageId}`,
-        },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: queryKeys.messageReactions.message(messageId) });
-          void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.operationsLogsAll() });
+        { event: 'INSERT', schema: 'zapp', table: 'message_reactions', filter: `message_id=eq.${messageId}` },
+        invalidate
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'zapp', table: 'message_reactions', filter: `message_id=eq.${messageId}` },
+        invalidate
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'zapp', table: 'message_reactions' },
+        (payload) => {
+          const old = (payload as { old?: { message_id?: string } }).old;
+          if (old?.message_id === messageId) invalidate();
         }
       )
       .subscribe();

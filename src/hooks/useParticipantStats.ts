@@ -41,12 +41,16 @@ export function useParticipantStats(conversationId: string, simulationModeEnable
         profile_id: string | null;
         profiles: { name: string | null } | null;
       };
-      const { data: rawReceipts, error: recError } = await fromTable('team_message_receipts')
-        .select('status, profile_id, profiles(name)')
-        .in('message_id', messageIds);
-      if (recError) throw recError;
-
-      const allReceipts = (rawReceipts as ReceiptRow[] | null) ?? [];
+      const allReceipts: ReceiptRow[] = [];
+      const BATCH = 500;
+      for (let i = 0; i < messageIds.length; i += BATCH) {
+        const chunk = messageIds.slice(i, i + BATCH);
+        const { data: rawReceipts, error: recError } = await fromTable('team_message_receipts')
+          .select('status, profile_id, profiles(name)')
+          .in('message_id', chunk);
+        if (recError) throw recError;
+        allReceipts.push(...((rawReceipts as ReceiptRow[] | null) ?? []));
+      }
       const statsMap: Record<string, StatEntry> = {};
 
       messages.forEach((m) => {

@@ -1,11 +1,18 @@
 # CI Status Gate — posts 'ci' commit-status + check-run so the branch-protection
-# required check "ci" is satisfied on every push/PR.
+# required check "ci" is satisfied.
+#
+# On feature-branch pushes (not targeting main/develop) we post success immediately
+# because the heavy quality checks don't run there.
+#
+# On pull_request events (targeting main/develop) we poll until the Quality Gate
+# workflow completes, then mirror its conclusion as the "ci" status so branch
+# protection can't be satisfied by a broken quality check.
 name: CI Status Gate
 on:
   push:
-    branches-ignore: [main, develop]
+    branches-ignore: [main, develop, master]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, master]
   workflow_dispatch:
 permissions:
   statuses: write
@@ -14,19 +21,57 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     steps:
-      - name: Post ci success
+      - name: Post ci status
         env:
           GH_TOKEN: ${{ github.token }}
           PR_SHA: ${{ github.event.pull_request.head.sha }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           SHA="${PR_SHA:-$GITHUB_SHA}"
-          echo "Posting ci:success for SHA ${SHA}"
+          echo "Event: ${EVENT_NAME}, SHA: ${SHA}"
+
+          if [ "${EVENT_NAME}" = "pull_request" ]; then
+            # On PRs: wait for the Quality Gate workflow and mirror its conclusion.
+            # Poll every 30 s, timeout after 20 min (matches quality-gate runtime).
+            DEADLINE=$(( $(date +%s) + 1200 ))
+            CONCLUSION=""
+            while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+              RUNS=$(gh api \
+                "/repos/$GITHUB_REPOSITORY/commits/$SHA/check-runs?check_name=quality-gate&per_page=5" \
+                --jq '.check_runs | map(select(.status=="completed")) | first' 2>/dev/null || echo "null")
+              CONCLUSION=$(echo "$RUNS" | jq -r '.conclusion // empty' 2>/dev/null || true)
+              if [ -n "$CONCLUSION" ]; then
+                echo "Quality Gate concluded: $CONCLUSION"
+                break
+              fi
+              echo "Quality Gate not yet completed — waiting 30 s …"
+              sleep 30
+            done
+
+            if [ -z "$CONCLUSION" ]; then
+              # Timed out waiting — fail safe.
+              STATE=failure
+              DESC="CI gate timed out waiting for Quality Gate"
+            elif [ "$CONCLUSION" = "success" ]; then
+              STATE=success
+              DESC="Quality Gate passed"
+            else
+              STATE=failure
+              DESC="Quality Gate: $CONCLUSION"
+            fi
+          else
+            # Feature-branch pushes: no quality-gate runs here, post success directly.
+            STATE=success
+            DESC="CI gate passed (feature branch)"
+          fi
+
+          echo "Posting ci:${STATE} for SHA ${SHA}"
           gh api --method POST "/repos/$GITHUB_REPOSITORY/statuses/$SHA" \
-            -f state=success \
+            -f state="$STATE" \
             -f context=ci \
-            -f description="CI gate passed" || true
+            -f description="$DESC" || true
           gh api --method POST "/repos/$GITHUB_REPOSITORY/check-runs" \
             -f name=ci \
             -f head_sha="$SHA" \
             -f status=completed \
-            -f conclusion=success || true
+            -f conclusion="$STATE" || true

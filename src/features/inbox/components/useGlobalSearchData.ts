@@ -167,13 +167,18 @@ export function useGlobalSearchData(open: boolean) {
             textQuery = textQuery.eq('message_type', mediaType);
           if (dateStart) textQuery = textQuery.gte('created_at', dateStart.toISOString());
 
+          type MsgContactRef = { id: string; name: string; surname: string | null } | null;
+          type TextMsgRow = {
+            id: string;
+            content: string;
+            message_type: string;
+            created_at: string;
+            contact_id: string | null;
+            contacts: MsgContactRef;
+          };
           const { data: textMessages } = await textQuery;
-          (textMessages as any[])?.forEach((msg: any) => {
-            const contact = msg.contacts as unknown as {
-              id: string;
-              name: string;
-              surname: string | null;
-            } | null;
+          (textMessages as TextMsgRow[] | null)?.forEach((msg) => {
+            const contact = msg.contacts;
             addedMessageIds.add(msg.id);
             searchResults.push({
               id: msg.id,
@@ -204,14 +209,19 @@ export function useGlobalSearchData(open: boolean) {
             .limit(15);
           if (dateStart) audioQuery = audioQuery.gte('created_at', dateStart.toISOString());
 
+          type AudioMsgRow = {
+            id: string;
+            content: string;
+            transcription: string | null;
+            message_type: string;
+            created_at: string;
+            contact_id: string | null;
+            contacts: MsgContactRef;
+          };
           const { data: audioMessages } = await audioQuery;
-          (audioMessages as any[])?.forEach((msg: any) => {
+          (audioMessages as AudioMsgRow[] | null)?.forEach((msg) => {
             if (addedMessageIds.has(msg.id)) return;
-            const contact = msg.contacts as unknown as {
-              id: string;
-              name: string;
-              surname: string | null;
-            } | null;
+            const contact = msg.contacts;
             const transcription = msg.transcription || '';
             searchResults.push({
               id: msg.id,

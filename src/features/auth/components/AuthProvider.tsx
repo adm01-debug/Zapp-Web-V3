@@ -431,18 +431,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
+    // INSERT/UPDATE: server-side filter works because the new row is always present.
+    // DELETE: server-side filter only works with REPLICA IDENTITY FULL; without it,
+    // the old row is absent and the filter never matches — role revocations are silently
+    // dropped. We subscribe to DELETE without a server-side filter and check client-side.
     const rolesChannel = supabase
       .channel(`roles-updates-${user.id}`)
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'zapp',
           table: 'user_roles',
           filter: `user_id=eq.${user.id}`,
         },
-        () => {
-          void fetchRolesAndPermissions(user.id);
+        () => { void fetchRolesAndPermissions(user.id); }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'zapp',
+          table: 'user_roles',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => { void fetchRolesAndPermissions(user.id); }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'zapp',
+          table: 'user_roles',
+        },
+        (payload) => {
+          const oldRow = (payload as { old?: { user_id?: string } }).old;
+          if (oldRow?.user_id === user.id) {
+            void fetchRolesAndPermissions(user.id);
+          }
         }
       )
       .subscribe();

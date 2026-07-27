@@ -123,8 +123,13 @@ export function useRealtimeMessages() {
       ];
 
       if (missingIds.length > 0) {
-        const { data: extraRaw } = await supabase.from('evolution_contacts').select('*').in('id', missingIds);
-        ((extraRaw as unknown as Contact[] | null) ?? []).forEach((c: Contact) => contactMap.set(c.id, c));
+        // Batch in chunks of 500 to stay under PostgREST's URL query-string limit.
+        const BATCH = 500;
+        for (let i = 0; i < missingIds.length; i += BATCH) {
+          const chunk = missingIds.slice(i, i + BATCH);
+          const { data: extraRaw } = await supabase.from('evolution_contacts').select('*').in('id', chunk);
+          ((extraRaw as unknown as Contact[] | null) ?? []).forEach((c: Contact) => contactMap.set(c.id, c));
+        }
       }
 
       if (!isMountedRef.current) return;

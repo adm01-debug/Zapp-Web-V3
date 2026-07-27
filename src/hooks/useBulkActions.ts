@@ -118,11 +118,14 @@ export function useBulkActions<T extends { id: string }>(
         },
         action: async (actionItems: T[]) => {
           const ids = actionItems.map((i) => i.id);
-          const { error } = await fromTable(tableName)
-            .delete()
-            .in('id', ids);
-          
-          if (error) throw error;
+          // PostgREST encodes .in() values in the URL; large lists hit the ~8 KB
+          // HTTP limit and silently return 0 rows. Batch in chunks of 500.
+          const BATCH = 500;
+          for (let i = 0; i < ids.length; i += BATCH) {
+            const chunk = ids.slice(i, i + BATCH);
+            const { error } = await fromTable(tableName).delete().in('id', chunk);
+            if (error) throw error;
+          }
           toast.success(`${ids.length} item(s) excluído(s)`);
         },
       },
@@ -132,11 +135,14 @@ export function useBulkActions<T extends { id: string }>(
         variant: 'outline' as const,
         action: async (actionItems: T[]) => {
           const ids = actionItems.map((i) => i.id);
-          const { error } = await fromTable(tableName)
-            .update({ status: 'archived', updated_at: new Date().toISOString() } as Record<string, unknown>)
-            .in('id', ids);
-          
-          if (error) throw error;
+          const BATCH = 500;
+          for (let i = 0; i < ids.length; i += BATCH) {
+            const chunk = ids.slice(i, i + BATCH);
+            const { error } = await fromTable(tableName)
+              .update({ status: 'archived', updated_at: new Date().toISOString() } as Record<string, unknown>)
+              .in('id', chunk);
+            if (error) throw error;
+          }
           toast.success(`${ids.length} item(s) arquivado(s)`);
         },
       },

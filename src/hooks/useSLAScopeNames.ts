@@ -10,16 +10,23 @@ export function useSLAScopeNames(
   queueIds: string[],
   agentIds: string[]
 ) {
+  const BATCH = 500;
+
   const { data: contactNames = {} } = useQuery({
     queryKey: queryKeys.sla.contactNames(contactIds),
     queryFn: async () => {
       const validIds = contactIds.filter(isValidUUID);
       if (validIds.length === 0) return {};
-      const { data } = await supabase.from('contacts').select('id, name, phone').in('id', validIds);
+      const all: { id: string; name: string; phone: string }[] = [];
+      for (let i = 0; i < validIds.length; i += BATCH) {
+        const { data } = await supabase
+          .from('contacts')
+          .select('id, name, phone')
+          .in('id', validIds.slice(i, i + BATCH));
+        all.push(...(data || []));
+      }
       const map: Record<string, string> = {};
-      (data || []).forEach((c) => {
-        map[c.id] = `${c.name} (${c.phone})`;
-      });
+      all.forEach((c) => { map[c.id] = `${c.name} (${c.phone})`; });
       return map;
     },
     enabled: scope === 'contact' && contactIds.length > 0,
@@ -29,11 +36,16 @@ export function useSLAScopeNames(
     queryKey: queryKeys.sla.queueNames(queueIds),
     queryFn: async () => {
       if (queueIds.length === 0) return {};
-      const { data } = await supabase.from('queues').select('id, name').in('id', queueIds);
+      const all: { id: string; name: string }[] = [];
+      for (let i = 0; i < queueIds.length; i += BATCH) {
+        const { data } = await supabase
+          .from('queues')
+          .select('id, name')
+          .in('id', queueIds.slice(i, i + BATCH));
+        all.push(...(data || []));
+      }
       const map: Record<string, string> = {};
-      (data || []).forEach((q) => {
-        map[q.id] = q.name;
-      });
+      all.forEach((q) => { map[q.id] = q.name; });
       return map;
     },
     enabled: scope === 'queue' && queueIds.length > 0,
@@ -43,11 +55,16 @@ export function useSLAScopeNames(
     queryKey: queryKeys.sla.agentNames(agentIds),
     queryFn: async () => {
       if (agentIds.length === 0) return {};
-      const { data } = await supabase.from('profiles').select('id, name').in('id', agentIds);
+      const all: { id: string; name: string }[] = [];
+      for (let i = 0; i < agentIds.length; i += BATCH) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, name')
+          .in('id', agentIds.slice(i, i + BATCH));
+        all.push(...(data || []));
+      }
       const map: Record<string, string> = {};
-      (data || []).forEach((a) => {
-        map[a.id] = a.name;
-      });
+      all.forEach((a) => { map[a.id] = a.name; });
       return map;
     },
     enabled: scope === 'agent' && agentIds.length > 0,

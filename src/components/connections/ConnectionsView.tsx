@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { motion, AnimatePresence } from 'framer-motion';
 import { StaggeredList, StaggeredItem } from '@/components/ui/motion';
@@ -44,6 +44,7 @@ import { IntegrationsPanel } from './IntegrationsPanel';
 import { NumberReputationMonitor } from './NumberReputationMonitor';
 import { ConnectionCard } from './ConnectionCard';
 import { DegradedQuickActions } from './DegradedQuickActions';
+import type { DegradedConnection } from './DegradedQuickActions';
 import { QrCountdown } from './QrCountdown';
 import { QrTtlBadge } from './QrTtlBadge';
 import { QrAttemptHistory } from './QrAttemptHistory';
@@ -124,6 +125,14 @@ export function ConnectionsView() {
   // Auto-sync Evolution instances not yet in whatsapp_connections
   useEvolutionAutoSync();
   useEvolutionAutoReconnect();
+
+  const handleDegradedShowQrCode = useCallback(
+    (conn: Pick<DegradedConnection, 'id' | 'instance_id' | 'name'>) => {
+      const full = connections.find((c) => c.id === conn.id);
+      if (full) void handleShowQrCode(full);
+    },
+    [connections, handleShowQrCode]
+  );
 
   const [businessHoursDialog, setBusinessHoursDialog] = useState({
     open: false,
@@ -559,7 +568,7 @@ export function ConnectionsView() {
         ))}
       </div>
 
-      <DegradedQuickActions connections={connections as any} onShowQrCode={handleShowQrCode as any} />
+      <DegradedQuickActions connections={connections} onShowQrCode={handleDegradedShowQrCode} />
 
       {/* Connections List */}
       {loading ? (
