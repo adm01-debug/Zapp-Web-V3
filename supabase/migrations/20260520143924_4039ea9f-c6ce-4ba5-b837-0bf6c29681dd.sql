@@ -40,6 +40,8 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- RPC: Return Transfer
+-- Drop old overload with RETURNS public.conversation_transfers (different return type — CREATE OR REPLACE cannot change it)
+DROP FUNCTION IF EXISTS public.fn_return_transfer(UUID, TEXT);
 CREATE OR REPLACE FUNCTION public.fn_return_transfer(
     p_transfer_id UUID,
     p_reason TEXT
