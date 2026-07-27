@@ -42,7 +42,7 @@ BEGIN
     VALUES (p_item_id, p_action, p_reason, auth.uid());
 
     IF p_action = 'delete' THEN
-        DELETE FROM public.failed_messages WHERE id = p_item_id;
+        DELETE FROM zapp.failed_messages WHERE id = p_item_id;
     END IF;
 
     RETURN TRUE;
@@ -54,7 +54,7 @@ DROP FUNCTION IF EXISTS public.rpc_dlq_retry_now(UUID);
 CREATE OR REPLACE FUNCTION public.rpc_dlq_retry_now(p_item_id UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
-    UPDATE public.failed_messages
+    UPDATE zapp.failed_messages
     SET next_retry_at = now(), status = 'pending'
     WHERE id = p_item_id;
     RETURN TRUE;
