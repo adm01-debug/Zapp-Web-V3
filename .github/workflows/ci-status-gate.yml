@@ -16,7 +16,7 @@ on:
       pr_numbers:
         description: 'Space-separated PR numbers to merge'
         required: false
-        default: '548 550 551 553 555 557 558 559 560 561 562'
+        default: '548 550 551 553 559 562 563 564 565 566 567'
       delete_branches:
         description: 'Set to true to delete merged branches'
         required: false
@@ -51,30 +51,44 @@ jobs:
 
       - name: Merge PRs (admin bypass)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.merge_prs == 'true'
+        id: merge_prs
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          MERGED_BRANCHES=''
           FAILED=''
           for pr in ${{ github.event.inputs.pr_numbers }}; do
             echo "=== Merging PR #${pr} ==="
-            if gh pr merge "${pr}" --repo $GITHUB_REPOSITORY --squash --admin --yes 2>&1; then
-              echo "PR #${pr} merged OK"
+            BRANCH=$(gh pr view "${pr}" --repo "$GITHUB_REPOSITORY" --json headRefName -q .headRefName 2>/dev/null || true)
+            if gh pr merge "${pr}" --repo "$GITHUB_REPOSITORY" --squash --admin 2>&1; then
+              echo "PR #${pr} merged OK (branch: ${BRANCH})"
+              [ -n "$BRANCH" ] && MERGED_BRANCHES="${MERGED_BRANCHES} ${BRANCH}"
             else
               echo "WARNING: Could not merge PR #${pr}"
               FAILED="${FAILED} ${pr}"
             fi
           done
-          echo "Done. Failed PRs: ${FAILED:-none}"
+          echo "merged_branches=${MERGED_BRANCHES}" >> "$GITHUB_OUTPUT"
+          if [ -n "$FAILED" ]; then
+            echo "FAILED PRs:${FAILED}"
+            exit 1
+          fi
+          echo "All PRs merged successfully."
 
       - name: Delete merged branches
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.merge_prs == 'true' && github.event.inputs.delete_branches == 'true'
+        if: always() && github.event_name == 'workflow_dispatch' && github.event.inputs.merge_prs == 'true' && github.event.inputs.delete_branches == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          MERGED_BRANCHES: ${{ steps.merge_prs.outputs.merged_branches }}
         run: |
-          for branch in claude/validate-last-300-commits-idslez claude/zapp-web-v3-audit-74uxvx claude/zapp-web-v3-audit-38vfik claude/zapp-pipeline-restoration-1ul28y claude/zapp-messages-persistence-fix-2prigo claude/zapp-web-messages-missing-eb8x7y claude/zapp-pipeline-contacts-proxy-3zxaon fix/pipeline-persistence-and-inbox-t17-50 feat/migration-rollback-template feat/pr-size-gate fix/ci-gate-e-melhorias-processo; do
-            echo "Deleting ${branch}..."
+          if [ -z "$MERGED_BRANCHES" ]; then
+            echo "No branches to delete."
+            exit 0
+          fi
+          for branch in $MERGED_BRANCHES; do
+            echo "Deleting branch: ${branch}"
             gh api --method DELETE "/repos/$GITHUB_REPOSITORY/git/refs/heads/${branch}" \
-              && echo "Deleted ${branch}" \
-              || echo "Skip ${branch} (may be already deleted)"
+              && echo "Deleted: ${branch}" \
+              || echo "Skip (already gone): ${branch}"
           done
-          echo "Branch cleanup complete"
+          echo "Branch cleanup complete."
