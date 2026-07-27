@@ -11,6 +11,12 @@ import { isRecord } from '../_shared/evolution-helpers.ts';
 
 const MAX_BATCH = 20;
 const MAX_RETRIES = 5;
+const ENTRY_TIMEOUT_MS = 30_000;
+
+// Only these event types can be replayed by this reprocessor.
+// All other event types stored in the DLQ (via the outer catch in evolution-webhook/index.ts)
+// are immediately abandoned so they do not accumulate forever as pending.
+const REPLAYABLE_EVENT_TYPES = new Set(['messages.upsert']);
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return handleCorsPreflight(req);
@@ -26,13 +32,13 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-    // Fetch pending DLQ entries for message events only — events we know how to replay.
+    // Fetch ALL pending DLQ entries regardless of event_type so non-replayable entries
+    // are promptly abandoned rather than accumulating forever with retry_count=0.
     const { data: rows, error } = await supabase
       .schema('evo')
       .from('evolution_webhook_dlq')
       .select('*')
       .eq('status', 'pending')
-      .in('event_type', ['messages.upsert'])
       .lt('retry_count', MAX_RETRIES)
       .order('created_at', { ascending: true })
       .limit(MAX_BATCH);
@@ -47,13 +53,29 @@ Deno.serve(async (req) => {
     }
 
     let succeeded = 0;
-    let failed = 0;
+    let retrying = 0;
     let abandoned = 0;
 
     for (const row of rows) {
+      const eventType = (row.event_type as string) || '';
+      const retryCount = (row.retry_count as number) || 0;
+
+      // Immediately abandon event types the reprocessor cannot replay.
+      // These arrive via the outer catch in evolution-webhook/index.ts for any failed event.
+      if (!REPLAYABLE_EVENT_TYPES.has(eventType)) {
+        await markDlqEntry(
+          supabase,
+          row.id,
+          'abandoned',
+          retryCount + 1,
+          `event type '${eventType}' is not replayable by the DLQ reprocessor`
+        );
+        abandoned++;
+        continue;
+      }
+
       const instance = (row.instance_name as string) || '';
       const payload = row.payload as Record<string, unknown> | null;
-      const retryCount = (row.retry_count as number) || 0;
 
       if (!instance || !payload) {
         await markDlqEntry(supabase, row.id, 'abandoned', retryCount + 1, 'missing instance_name or payload');
@@ -96,11 +118,11 @@ Deno.serve(async (req) => {
       };
 
       try {
-        if (!key.fromMe) {
-          await handleIncomingMessage(supabase, instance, payload, key, supabaseUrl, supabaseServiceKey);
-        } else {
-          await handleOutgoingWhatsAppMessage(supabase, instance, payload, key);
-        }
+        const work = key.fromMe
+          ? handleOutgoingWhatsAppMessage(supabase, instance, payload, key)
+          : handleIncomingMessage(supabase, instance, payload, key, supabaseUrl, supabaseServiceKey);
+
+        await withTimeout(work, ENTRY_TIMEOUT_MS, `dlq entry ${row.id}`);
         await markDlqEntry(supabase, row.id, 'succeeded', retryCount + 1, null);
         succeeded++;
       } catch (e) {
@@ -108,11 +130,11 @@ Deno.serve(async (req) => {
         console.error(`[dlq-reprocess] entry ${row.id} failed on attempt ${retryCount + 1}: ${msg}`);
         const nextStatus = retryCount + 1 >= MAX_RETRIES ? 'abandoned' : 'pending';
         await markDlqEntry(supabase, row.id, nextStatus, retryCount + 1, msg.slice(0, 500));
-        if (nextStatus === 'abandoned') abandoned++; else failed++;
+        if (nextStatus === 'abandoned') abandoned++; else retrying++;
       }
     }
 
-    return jsonResp({ processed: rows.length, succeeded, failed, abandoned });
+    return jsonResp({ processed: rows.length, succeeded, retrying, abandoned });
   } catch (err) {
     console.error('[dlq-reprocess] unhandled error:', err instanceof Error ? err.message : String(err));
     return jsonResp({ error: true, message: 'Internal server error' }, 500);
@@ -133,12 +155,25 @@ async function markDlqEntry(
       status,
       retry_count: retryCount,
       last_attempt_at: new Date().toISOString(),
-      ...(errorMessage ? { error_message: errorMessage } : {}),
+      // Always write error_message (null clears a previous failure's message on success).
+      error_message: errorMessage,
       ...(status === 'succeeded' ? { succeeded_at: new Date().toISOString() } : {}),
     })
     .eq('id', id);
   if (error) {
     console.error(`[dlq-reprocess] failed to update DLQ entry ${id}:`, error.message);
+  }
+}
+
+async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`[timeout] ${label} exceeded ${ms}ms`)), ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timer!);
   }
 }
 
