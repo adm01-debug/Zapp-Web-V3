@@ -13,7 +13,16 @@ ALTER FUNCTION public.fn_log_reconnection_attempt(uuid, integer, text, text, tex
 ALTER FUNCTION public.increment_voice_task_attempt(uuid) SET search_path = public;
 ALTER FUNCTION public.cleanup_old_stress_metrics(integer) SET search_path = public;
 ALTER FUNCTION public.rpc_check_and_trigger_gmail_revalidation() SET search_path = public;
-ALTER FUNCTION public.match_kb_chunks(extensions.vector, double precision, integer, text) SET search_path = public;
+DO $v_mkb$ BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE t.typname = 'vector' AND n.nspname = 'extensions'
+  ) THEN
+    EXECUTE 'ALTER FUNCTION public.match_kb_chunks(extensions.vector, double precision, integer, text) SET search_path = public';
+  ELSE
+    RAISE NOTICE 'SKIP match_kb_chunks SET search_path — extensions.vector not available';
+  END IF;
+END $v_mkb$;
 ALTER FUNCTION public.rpc_log_service_event(text, text, text, text, text, jsonb, jsonb, text) SET search_path = public;
 ALTER FUNCTION public.audit_settings_changes() SET search_path = public;
 ALTER FUNCTION public.is_admin_or_supervisor(uuid) SET search_path = public;
