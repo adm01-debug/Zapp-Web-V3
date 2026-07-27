@@ -4,8 +4,6 @@ import { createZappClient } from '../_shared/db-client.ts';
 import { z } from "https://esm.sh/zod@3.23.8";
 import { contractErrorResponse, getCorsHeaders, checkRateLimit } from "../_shared/validation.ts";
 
-const corsHeaders = getCorsHeaders();
-
 const PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_CLOUD_PHONE_NUMBER_ID") ?? "";
 const ACCESS_TOKEN = Deno.env.get("WHATSAPP_CLOUD_ACCESS_TOKEN") ?? "";
 const GRAPH_VERSION = "v21.0";
@@ -50,13 +48,6 @@ const SendSchema = z.object({
   messageIds: z.array(z.string()).optional(),
 });
 
-function jsonResponse(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-
 async function callGraph(path: string, payload: Record<string, unknown>) {
   const url = `https://graph.facebook.com/${GRAPH_VERSION}/${PHONE_NUMBER_ID}/${path}`;
   const r = await fetch(url, {
@@ -84,6 +75,13 @@ async function callGraph(path: string, payload: Record<string, unknown>) {
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  const jsonResponse = (data: unknown, status = 200) =>
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

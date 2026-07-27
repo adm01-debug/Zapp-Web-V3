@@ -45,9 +45,11 @@ Deno.serve(async (req) => {
     }
 
     const admin = createZappAdminClient();
+    // User-scoped client applies RLS — only returns campaigns the user's workspace owns.
+    const userClient = createZappClient(req);
 
-    // Verify campaign exists
-    const { data: campaign, error: campErr } = await admin
+    // Verify campaign exists AND belongs to the authenticated user's workspace (via RLS).
+    const { data: campaign, error: campErr } = await userClient
       .from("talkx_campaigns")
       .select("id, status")
       .eq("id", campaignId)
