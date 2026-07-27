@@ -226,7 +226,6 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
     [
       ensureInstance,
       contactId,
-      contactPhone,
       whatsappConnectionId,
       sendStickerMessage,
       getSafePhone,

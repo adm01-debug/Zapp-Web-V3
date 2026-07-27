@@ -1,1 +1,121 @@
-bmFtZTogQ0kgR2F0ZQoKb246CiAgcHVzaDoKICAgIGJyYW5jaGVzOiBbbWFpbiwgZGV2ZWxvcF0KICBwdWxsX3JlcXVlc3Q6CiAgICBicmFuY2hlczogW21haW4sIGRldmVsb3BdCgpjb25jdXJyZW5jeToKICBncm91cDogY2ktZ2F0ZS0ke3sgZ2l0aHViLndvcmtmbG93IH19LSR7eyBnaXRodWIucmVmIH19CiAgY2FuY2VsLWluLXByb2dyZXNzOiB0cnVlCgplbnY6CiAgQ0k6IHRydWUKICBWSVRFX1NVUEFCQVNFX1VSTDogaHR0cHM6Ly9leGFtcGxlLnN1cGFiYXNlLmNvCiAgVklURV9TVVBBQkFTRV9BTk9OX0tFWTogdGVzdC1hbm9uLWtleQogIFZJVEVfU1VQQUJBU0VfUFVCTElTSEFCTEVfS0VZOiB0ZXN0LWFub24ta2V5CiAgVklURV9FWFRFUk5BTF9TVVBBQkFTRV9VUkw6IGh0dHBzOi8vZXhhbXBsZS5zdXBhYmFzZS5jbwogIFZJVEVfRVhURVJOQUxfU1VQQUJBU0VfQU5PTl9LRVk6IHRlc3QtYW5vbi1rZXkKCiMg4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACiMgQ0kgR2F0ZSDigJQgcmVzb2x2ZSBvIGNoaWNrZW4tYW5kLWVnZyBkYSBwcm90ZcOnw6NvIGRlIGJyYW5jaAojCiMgTyByZXF1aXJlZF9zdGF0dXNfY2hlY2sgZGEgbWFpbiBleGlnZSBvIGNvbnRleHRvICJjaSIuCiMgTmVuaHVtIHdvcmtmbG93IGFudGVyaW9yIHJlcG9ydGF2YSBlc3NlIGNvbnRleHRvIOKGkiBQUnMgYmxvcXVlYWRvcwojIGluZGVmaW5pZGFtZW50ZSBlbSAiRXhwZWN0ZWQg4oCUIFdhaXRpbmcgZm9yIHN0YXR1cyB0byBiZSByZXBvcnRlZCIuCiMKIyBFc3RhIHdvcmtmbG93IGNyaWEgbyBqb2IgYGNpYCBxdWU6CiMgICAxLiBWZXJpZmljYSBjb25zaXN0w6puY2lhIGRvIGxvY2tmaWxlCiMgICAyLiBSb2RhIG8gVHlwZVNjcmlwdCByYXRjaGV0IChibG9xdWVhbnRlKQojICAgMy4gUm9kYSBvIHRzLW5vY2hlY2sgZHJpZnQgZ2F0ZSAoYmxvcXVlYW50ZSkKIyAgIDQuIFJvZGEgb3MgZ3VhcmRyYWlscyBkZSBzY2hlbWEgU3VwYWJhc2UgKGJsb3F1ZWFudGUpCiMgICA1LiBSb2RhIG9zIHRlc3RlcyB1bml0w6FyaW9zIChibG9xdWVhbnRlIOKAlCAyMDg4IHBhc3NhbmRvIGVtIHByb2QpCiMgICA2LiBWZXJpZmljYSBvIGJ1aWxkIGRlIHByb2R1w6fDo28gKGJsb3F1ZWFudGUpCiMKIyBFdGFwYSAxOCBkbyBQbGFubyA1MCBFdGFwYXMgKE9uZGEgMSDigJQgUHJvY2Vzc28pCiMg4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACgpqb2JzOgogIGNpOgogICAgbmFtZTogQ0kKICAgIHJ1bnMtb246IHVidW50dS1sYXRlc3QKICAgIHN0ZXBzOgogICAgICAtIG5hbWU6IENoZWNrb3V0CiAgICAgICAgdXNlczogYWN0aW9ucy9jaGVja291dEB2NwogICAgICAgIHdpdGg6CiAgICAgICAgICBwZXJzaXN0LWNyZWRlbnRpYWxzOiBmYWxzZQogICAgICAgICAgZmV0Y2gtZGVwdGg6IDAKCiAgICAgIC0gbmFtZTogU2V0dXAgQnVuCiAgICAgICAgdXNlczogb3Zlbi1zaC9zZXR1cC1idW5AdjIKICAgICAgICB3aXRoOgogICAgICAgICAgYnVuLXZlcnNpb246IDEuMy4xNAoKICAgICAgLSBuYW1lOiBJbnN0YWxsIGRlcGVuZGVuY2llcwogICAgICAgIHJ1bjogYnVuIGluc3RhbGwKCiAgICAgICMg4pSA4pSAIDEuIExvY2tmaWxlIGNvbnNpc3RlbmN5IOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAogICAgICAtIG5hbWU6IFZlcmlmeSBidW4ubG9jayBpcyBpbiBzeW5jIHdpdGggcGFja2FnZS5qc29uCiAgICAgICAgcnVuOiB8CiAgICAgICAgICBpZiBbICIke3sgZ2l0aHViLmV2ZW50X25hbWUgfX0iID0gInB1bGxfcmVxdWVzdCIgXTsgdGhlbgogICAgICAgICAgICBnaXQgZmV0Y2ggb3JpZ2luICR7eyBnaXRodWIuYmFzZV9yZWYgfX0KICAgICAgICAgICAgQkFTRT0ib3JpZ2luLyR7eyBnaXRodWIuYmFzZV9yZWYgfX0iCiAgICAgICAgICAgIExPQ0tfRElGRj0kKGdpdCBkaWZmICIkQkFTRSIuLi5IRUFEIC0tbmFtZS1vbmx5IC0tIGJ1bi5sb2NrKQogICAgICAgICAgICBPTERfUEtHPSQoZ2l0IHNob3cgIiRCQVNFOnBhY2thZ2UuanNvbiIgMj4vZGV2L251bGwgfHwgZWNobyAne30nKQogICAgICAgICAgICBORVdfUEtHPSQoY2F0IHBhY2thZ2UuanNvbikKICAgICAgICAgIGVsc2UKICAgICAgICAgICAgTE9DS19ESUZGPSQoZ2l0IGRpZmYgSEVBRF4gSEVBRCAtLW5hbWUtb25seSAtLSBidW4ubG9jayAyPi9kZXYvbnVsbCB8fCB0cnVlKQogICAgICAgICAgICBPTERfUEtHPSQoZ2l0IHNob3cgIkhFQUReOnBhY2thZ2UuanNvbiIgMj4vZGV2L251bGwgfHwgZWNobyAne30nKQogICAgICAgICAgICBORVdfUEtHPSQoY2F0IHBhY2thZ2UuanNvbikKICAgICAgICAgIGZpCiAgICAgICAgICBPTERfREVQUz0kKGVjaG8gIiRPTERfUEtHIiB8IGpxIC1TYyAne2Q6KC5kZXBlbmRlbmNpZXMvL3t9KSxkZDooLmRldkRlcGVuZGVuY2llcy8ve30pLHBkOigucGVlckRlcGVuZGVuY2llcy8ve30pLG9kOigub3B0aW9uYWxEZXBlbmRlbmNpZXMvL3t9KX0nKQogICAgICAgICAgTkVXX0RFUFM9JChlY2hvICIkTkVXX1BLRyIgfCBqcSAtU2MgJ3tkOiguZGVwZW5kZW5jaWVzLy97fSksZGQ6KC5kZXZEZXBlbmRlbmNpZXMvL3t9KSxwZDooLnBlZXJEZXBlbmRlbmNpZXMvL3t9KSxvZDooLm9wdGlvbmFsRGVwZW5kZW5jaWVzLy97fSl9JykKICAgICAgICAgIGlmIFsgIiRPTERfREVQUyIgIT0gIiRORVdfREVQUyIgXSAmJiBbIC16ICIkTE9DS19ESUZGIiBdOyB0aGVuCiAgICAgICAgICAgIGVjaG8gIjo6ZXJyb3I6OkRlcGVuZGVuY3kgZmllbGRzIGluIHBhY2thZ2UuanNvbiBjaGFuZ2VkIHdpdGhvdXQgdXBkYXRpbmcgYnVuLmxvY2suIFJ1biAnYnVuIGluc3RhbGwnIGxvY2FsbHkgYW5kIGNvbW1pdCB0aGUgdXBkYXRlZCBsb2NrZmlsZS4iCiAgICAgICAgICAgIGV4aXQgMQogICAgICAgICAgZmkKICAgICAgICAgIGVjaG8gIkxvY2tmaWxlIGNvbnNpc3RlbmN5IE9LIgoKICAgICAgIyDilIDilIAgMi4gVHlwZVNjcmlwdCByYXRjaGV0IChibG9xdWVhbnRlKSDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKICAgICAgLSBuYW1lOiBUeXBlU2NyaXB0IHJhdGNoZXQKICAgICAgICAjIEZhbGhhIHNlIG5vdm9zIGVycm9zIFRTIGFwYXJlY2VyZW0gZW0gYXJxdWl2b3MgaG9qZSBsaW1wb3MsCiAgICAgICAgIyBvdSBzZSBvIHRvdGFsIGRlIGVycm9zIGNyZXNjZXIuIEJhc2VsaW5lIGVtIHRzYy1lcnJvci1iYXNlbGluZS5qc29uLgogICAgICAgIHJ1bjogbm9kZSBzY3JpcHRzL2NoZWNrLXRzYy1yYXRjaGV0Lm1qcwoKICAgICAgIyDilIDilIAgMy4gdHMtbm9jaGVjayBkcmlmdCBnYXRlIChibG9xdWVhbnRlKSDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKICAgICAgLSBuYW1lOiB0cy1ub2NoZWNrIGRyaWZ0IGdhdGUKICAgICAgICAjIEZhbGhhIHNlIG5vdm9zIEB0cy1ub2NoZWNrIGZvcmVtIGludHJvZHV6aWRvcyBmb3JhIGRvIGJhc2VsaW5lLgogICAgICAgIHJ1bjogbm9kZSBzY3JpcHRzL2NoZWNrLXRzLW5vY2hlY2subWpzCgogICAgICAjIOKUgOKUgCA0LiBTY2hlbWEgZ3VhcmRyYWlscyAoYmxvcXVlYW50ZXMpIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAogICAgICAtIG5hbWU6IFNjaGVtYSB1c2FnZSBndWFyZHJhaWwgKHphcHAvZXZvKQogICAgICAgICMgUHJvw61iZSAuc2NoZW1hKCdwdWJsaWMnKSwgY3JlYXRlQ2xpZW50IHNlbSBzY2hlbWEgemFwcC9ldm8uCiAgICAgICAgcnVuOiBub2RlIHNjcmlwdHMvY2hlY2stc2NoZW1hLXVzYWdlLm1qcwoKICAgICAgLSBuYW1lOiBTdXBhYmFzZSBjYXN0IHNhZmV0eSAoU1VQLTAwMS4uMDA2KQogICAgICAgICMgUHJvw61iZSAoc3VwYWJhc2UgYXMgYW55KSBzZW0gLy8gaWdub3JlLWF1ZGl0LgogICAgICAgIHJ1bjogbm9kZSBzY3JpcHRzL2xpbnQtc3VwYWJhc2UtY2FzdHMubWpzCgogICAgICAjIOKUgOKUgCA1LiBVbml0IHRlc3RzIChibG9xdWVhbnRlKSDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKICAgICAgLSBuYW1lOiBVbml0IHRlc3RzCiAgICAgICAgZW52OgogICAgICAgICAgTk9ERV9PUFRJT05TOiAtLW1heC1vbGQtc3BhY2Utc2l6ZT02MTQ0CiAgICAgICAgcnVuOiBidW4gcnVuIHRlc3QgLS0gLS1yZXBvcnRlcj12ZXJib3NlCgogICAgICAtIG5hbWU6IFVwbG9hZCBjb3ZlcmFnZSByZXBvcnQKICAgICAgICBpZjogYWx3YXlzKCkKICAgICAgICB1c2VzOiBhY3Rpb25zL3VwbG9hZC1hcnRpZmFjdEB2NAogICAgICAgIHdpdGg6CiAgICAgICAgICBuYW1lOiBjaS1nYXRlLWNvdmVyYWdlCiAgICAgICAgICBwYXRoOiBjb3ZlcmFnZS8KICAgICAgICAgIHJldGVudGlvbi1kYXlzOiA3CgogICAgICAjIOKUgOKUgCA2LiBCdWlsZCB2ZXJpZmljYXRpb24gKGJsb3F1ZWFudGUpIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAogICAgICAtIG5hbWU6IEJ1aWxkIGZvciBwcm9kdWN0aW9uCiAgICAgICAgcnVuOiBidW54IHZpdGUgYnVpbGQKCiAgICAgIC0gbmFtZTogQ0kgZ2F0ZSBwYXNzZWQKICAgICAgICBydW46IHwKICAgICAgICAgIGVjaG8gIkFsbCBDSSBjaGVja3MgcGFzc2VkLiIKICAgICAgICAgIGVjaG8gImNvbnRleHQ6IGNpIOKAlCByZXF1aXJlZCBjaGVjayBzYXRpc2ZpZWQuIgo=
+name: CI Gate
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-gate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: true
+  VITE_SUPABASE_URL: https://example.supabase.co
+  VITE_SUPABASE_ANON_KEY: test-anon-key
+  VITE_SUPABASE_PUBLISHABLE_KEY: test-anon-key
+  VITE_EXTERNAL_SUPABASE_URL: https://example.supabase.co
+  VITE_EXTERNAL_SUPABASE_ANON_KEY: test-anon-key
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CI Gate — resolve o chicken-and-egg da proteção de branch
+#
+# O required_status_check da main exige o contexto "ci".
+# Nenhum workflow anterior reportava esse contexto → PRs bloqueados
+# indefinidamente em "Expected — Waiting for status to be reported".
+#
+# Esta workflow cria o job `ci` que:
+#   1. Verifica consistência do lockfile
+#   2. Roda o TypeScript ratchet (bloqueante)
+#   3. Roda o ts-nocheck drift gate (bloqueante)
+#   4. Roda os guardrails de schema Supabase (bloqueante)
+#   5. Roda os testes unitários (bloqueante — 2088 passando em prod)
+#   6. Verifica o build de produção (bloqueante)
+#
+# Etapa 18 do Plano 50 Etapas (Onda 1 — Processo)
+# ─────────────────────────────────────────────────────────────────────────────
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install
+
+      # ── 1. Lockfile consistency ────────────────────────────────────────
+      - name: Verify bun.lock is in sync with package.json
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch origin ${{ github.base_ref }}
+            BASE="origin/${{ github.base_ref }}"
+            LOCK_DIFF=$(git diff "$BASE"...HEAD --name-only -- bun.lock)
+            OLD_PKG=$(git show "$BASE:package.json" 2>/dev/null || echo '{}')
+            NEW_PKG=$(cat package.json)
+          else
+            LOCK_DIFF=$(git diff HEAD^ HEAD --name-only -- bun.lock 2>/dev/null || true)
+            OLD_PKG=$(git show "HEAD^:package.json" 2>/dev/null || echo '{}')
+            NEW_PKG=$(cat package.json)
+          fi
+          OLD_DEPS=$(echo "$OLD_PKG" | jq -Sc '{d:(.dependencies//{}),dd:(.devDependencies//{}),pd:(.peerDependencies//{}),od:(.optionalDependencies//{})}')
+          NEW_DEPS=$(echo "$NEW_PKG" | jq -Sc '{d:(.dependencies//{}),dd:(.devDependencies//{}),pd:(.peerDependencies//{}),od:(.optionalDependencies//{})}')
+          if [ "$OLD_DEPS" != "$NEW_DEPS" ] && [ -z "$LOCK_DIFF" ]; then
+            echo "::error::Dependency fields in package.json changed without updating bun.lock. Run 'bun install' locally and commit the updated lockfile."
+            exit 1
+          fi
+          echo "Lockfile consistency OK"
+
+      # ── 2. TypeScript ratchet (bloqueante) ────────────────────────────
+      - name: TypeScript ratchet
+        # Falha se novos erros TS aparecerem em arquivos hoje limpos,
+        # ou se o total de erros crescer. Baseline em tsc-error-baseline.json.
+        run: node scripts/check-tsc-ratchet.mjs
+
+      # ── 3. ts-nocheck drift gate (bloqueante) ─────────────────────────
+      - name: ts-nocheck drift gate
+        # Falha se novos @ts-nocheck forem introduzidos fora do baseline.
+        run: node scripts/check-ts-nocheck.mjs
+
+      # ── 4. Schema guardrails (bloqueantes) ────────────────────────────
+      - name: Schema usage guardrail (zapp/evo)
+        # Proíbe .schema('public'), createClient sem schema zapp/evo.
+        run: node scripts/check-schema-usage.mjs
+
+      - name: Supabase cast safety (SUP-001..006)
+        # Proíbe (supabase as any) sem // ignore-audit.
+        run: node scripts/lint-supabase-casts.mjs
+
+      # ── 5. Unit tests (bloqueante) ────────────────────────────────────
+      - name: Unit tests
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: bun run test -- --reporter=verbose
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-gate-coverage
+          path: coverage/
+          retention-days: 7
+
+      # ── 6. Build verification (bloqueante) ────────────────────────────
+      - name: Build for production
+        run: bunx vite build
+
+      - name: CI gate passed
+        run: |
+          echo "All CI checks passed."
+          echo "context: ci — required check satisfied."
