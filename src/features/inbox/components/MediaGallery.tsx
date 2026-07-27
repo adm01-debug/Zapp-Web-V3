@@ -106,8 +106,8 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
   const mediaItems = useMemo((): MediaItem[] => {
     if (!messages) return [];
     return messages
-      .filter((m: any): m is typeof m & { media_url: string } => Boolean(m.media_url))
-      .map((m: any) => ({
+      .filter((m): m is typeof m & { media_url: string } => Boolean(m.media_url))
+      .map((m) => ({
         id: m.id,
         url: m.media_url,
         type: getMediaType(m.media_url, m.message_type),
