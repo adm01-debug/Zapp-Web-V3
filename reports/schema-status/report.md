@@ -1,6 +1,6 @@
 # Schema Status Report — ✅ OK
 
-- **Gerado em:** 2026-07-26T23:49:32.976Z
+- **Gerado em:** 2026-07-27T00:55:24.197Z
 - **Requeridos:** `zapp, evo`
 
 ## Local (arquivo `types.ts`)
@@ -17,6 +17,6 @@
 | Campo | Valor |
 |-------|-------|
 | Status | ⏭️ skipped |
-| Motivo | flag --local-only |
+| Motivo | ZAPP_META_URL/ZAPP_META_TOKEN ausentes |
 | Schemas presentes | _(nenhum)_ |
 | Schemas ausentes | _(nenhum)_ |

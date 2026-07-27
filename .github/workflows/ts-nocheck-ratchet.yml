@@ -7,9 +7,9 @@ on:
       - 'src/**'
 
 env:
-  # Baseline documentado em 26/07/2026
-  # Atualizar quando numero diminuir (celebrar!)
-  TS_NOCHECK_BASELINE: 9
+  # Baseline documentado em 27/07/2026
+  # Todos os @ts-nocheck removidos — baseline zerado!
+  TS_NOCHECK_BASELINE: 0
 
 jobs:
   ts-nocheck-ratchet:

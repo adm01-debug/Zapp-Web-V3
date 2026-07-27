@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * types-manual.ts — Extensões manuais ao Database type gerado.
  *
@@ -9,8 +8,8 @@
  * `META_URL` e `META_TOKEN` apontando para a VPS. Sem esses schemas, o
  * remapeamento `GeneratedDatabase['zapp' | 'evo']` produz erros TS2339 em
  * cascata neste arquivo e em dezenas de hooks/componentes que dependem
- * dele. Portanto o `@ts-nocheck` aqui é *load-bearing*, não decorativo —
- * removê-lo exige regerar `types.ts` fora do sandbox Lovable Cloud.
+ * dele. A supressão de checagem ts-nocheck era load-bearing enquanto
+ * types.ts não continha os schemas zapp/evo — agora removida.
  */
 
 import type { Database as GeneratedDatabase } from './types';

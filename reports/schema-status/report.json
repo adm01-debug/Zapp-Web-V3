@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-26T23:49:32.976Z",
+  "generated_at": "2026-07-27T00:55:24.197Z",
   "ci": {
     "run_id": null,
     "run_attempt": null,
@@ -20,7 +20,7 @@
       "zapp",
       "evo"
     ],
-    "local_only": true,
+    "local_only": false,
     "meta_url_present": false,
     "meta_token_present": false
   },
@@ -38,7 +38,7 @@
   },
   "remote": {
     "status": "skipped",
-    "reason": "flag --local-only",
+    "reason": "ZAPP_META_URL/ZAPP_META_TOKEN ausentes",
     "http_status": null,
     "present_schemas": [],
     "missing_schemas": [],
