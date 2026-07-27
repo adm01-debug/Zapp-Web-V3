@@ -6,15 +6,7 @@ export type SearchFilter = 'all' | 'text' | 'image' | 'video' | 'audio' | 'docum
 
 /** Date range preset for the in-chat search panel; 'last_interaction' derives the cutoff from message gaps, 'custom' uses explicit from/to dates. */
 export type DatePreset =
-  | 'all'
-  | 'last_interaction'
-  | 'today'
-  | '3d'
-  | '7d'
-  | '14d'
-  | '30d'
-  | '90d'
-  | 'custom';
+  'all' | 'last_interaction' | 'today' | '3d' | '7d' | '14d' | '30d' | '90d' | 'custom';
 
 const URL_REGEX = /https?:\/\/\S+/i;
 
@@ -129,7 +121,7 @@ export function useChatSearch({
       onHighlightChangeRef.current(new Set(), null);
       onSearchQueryChangeRef.current?.('');
     }
-  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // Debounce query
   useEffect(() => {
@@ -141,7 +133,7 @@ export function useChatSearch({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [query]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [query]);
 
   // Date filter helper
   const matchesDateRange = useCallback(
