@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
@@ -29,6 +29,14 @@ export function useTranscriptionNotifications(options: TranscriptionNotification
 
   const { settings, isQuietHours } = useNotificationSettings();
 
+  // Capture unstable references in refs so the effect dep array stays stable.
+  // settings and isQuietHours change reference on every render from useNotificationSettings;
+  // including them in deps would tear down and recreate the Realtime channel on every render.
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+  const isQuietHoursRef = useRef(isQuietHours);
+  isQuietHoursRef.current = isQuietHours;
+
   useEffect(() => {
     if (!enabled) return;
 
@@ -52,14 +60,15 @@ export function useTranscriptionNotifications(options: TranscriptionNotification
 
           log.info('Transcription notification received');
 
-          if (!isQuietHours()) {
-            if (playSound && settings?.soundEnabled) {
+          const currentSettings = settingsRef.current;
+          if (!isQuietHoursRef.current()) {
+            if (playSound && currentSettings?.soundEnabled) {
               playNotificationSound('message');
             }
-            if (showBrowserNotification && settings?.browserNotifications) {
+            if (showBrowserNotification && currentSettings?.browserNotifications) {
               showBrowserNotif('Transcrição concluída', String(row.transcription ?? ''));
             }
-            if (showToast && settings?.transcriptionNotificationEnabled) {
+            if (showToast && currentSettings?.transcriptionNotificationEnabled) {
               toast({ title: 'Transcrição concluída', description: String(row.transcription ?? '') });
             }
           }
@@ -68,7 +77,8 @@ export function useTranscriptionNotifications(options: TranscriptionNotification
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, [enabled, showToast, playSound, showBrowserNotification, settings, isQuietHours]);
+  }, [enabled, showToast, playSound, showBrowserNotification]);
 }
