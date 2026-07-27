@@ -1,90 +1,94 @@
-# Baseline Catalog — 2026-07-16
+# Baseline do Estado do Banco
 
-> Snapshot do estado do banco de dados no momento inicial da organização.
-> Uso: comparação futura, drift detection, auditing.
+Este diretório armazena snapshots imutáveis do schema de produção.
 
-## Resumo executivo
+## Propósito
 
-| Schema | Tables | Views | Matviews | Functions | Triggers |
-|--------|--------|-------|----------|-----------|----------|
-| zapp | 320 | 406 | 6 | 1052 | ~300 |
-| evo | 193 | 16 | 4 | 69 | 446 |
-| public | 1 | 539 | 0 | 145 | 0 |
-| bpm | ~30 | ~15 | 0 | ~40 | ~30 |
-| ops | 20 | 4 | 0 | 47 | 2 |
-| financeiro | ~25 | ~5 | 0 | ~20 | ~10 |
-| vendas | ~20 | ~5 | 0 | ~15 | ~5 |
-| logistica | ~15 | ~3 | 0 | ~10 | ~5 |
-| ai | ~10 | ~2 | 0 | ~15 | ~5 |
-| archive | ~5 | 1 | 0 | 5 | 0 |
-| email_app | ~10 | 1 | 0 | 10 | 0 |
-| artes | ~5 | 1 | 0 | 5 | 0 |
+- Permite medir regressão de qualquer etapa do plano
+- Bloqueia o argumento "mas funcionava antes" — tem o antes documentado
+- Permite criar o ambiente de staging reproduzindo o estado real (não os 944 arquivos)
 
-## Índices
+## Conteúdo esperado
 
-Total estimado: **2176 índices**
-- Utilizados (idx_scan > 0): ~195 (9%)
-- Não utilizados: ~1981 (91%) — candidatos a quarantine
+| Arquivo | Conteúdo | Gerado em |
+|---|---|---|
+| `schema_YYYYMMDD.sql` | `pg_dump --schema-only` de produção | antes de cada onda |
+| `catalog_YYYYMMDD.json` | Contagens por schema/objeto | antes de cada onda |
+| `cron_jobs_YYYYMMDD.json` | Export de `cron.job` | antes de cada onda |
 
-## Crons
+## Snapshot de catálogo (27/07/2026)
 
-Total: **80+ active cron jobs**
-Maioria: 6h, 1h, 30min intervals
+```json
+{
+  "date": "2026-07-27",
+  "source": "supabase.atomicabr.com.br",
+  "postgres_version": "15.8",
+  "schemas_total": 225,
+  "tables_total": 832,
+  "index_size_mb": 159,
+  "schemas": {
+    "zapp":      { "tables": 320, "views": 406, "matviews": 6, "functions": 1052, "triggers": 219 },
+    "evo":       { "tables": 193, "views":  16, "matviews": 4, "functions":   69, "triggers": 446 },
+    "public":    { "tables":   1, "views": 539, "matviews": 0, "functions":  145, "triggers":   9 },
+    "bpm":       { "tables":  41, "views":   0, "matviews": 0, "functions":    0, "triggers":  32 },
+    "email_app": { "tables":  33, "views":   0, "matviews": 0, "functions":    0, "triggers":  23 },
+    "ai":        { "tables":  31, "views":   0, "matviews": 0, "functions":    0, "triggers":  14 },
+    "archive":   { "tables":  25, "views":   0, "matviews": 0, "functions":    2, "triggers":   1 },
+    "ops":       { "tables":  20, "views":   4, "matviews": 0, "functions":   47, "triggers":   0 },
+    "financeiro":{ "tables":  16, "views":  11, "matviews": 0, "functions":   45, "triggers":  19 },
+    "vendas":    { "tables":  14, "views":   5, "matviews": 0, "functions":   21, "triggers":  12 },
+    "logistica": { "tables":   3, "views":   0, "matviews": 0, "functions":    0, "triggers":   2 },
+    "artes":     { "tables":   2, "views":   1, "matviews": 0, "functions":   15, "triggers":   1 }
+  },
+  "crons": {
+    "total_active": 80,
+    "successes_7d": 22239,
+    "failures_7d": 7,
+    "failure_rate_pct": 0.03
+  },
+  "indexes": {
+    "total": 2176,
+    "unused_idx_scan_0": 1987,
+    "unused_pct": 91,
+    "size_unused_mb": 77,
+    "duplicates": 3
+  },
+  "migrations": {
+    "applied_in_db": 52,
+    "files_in_repo": 944,
+    "malformed_versions": ["20260716","20260717","20260722","20260722.2"]
+  },
+  "storage_buckets": {
+    "whatsapp_media": { "public": true, "objects": 5088, "size_gb": 9.56 },
+    "recibos_entrega": { "public": true },
+    "avatars":         { "public": true },
+    "audio_memes":     { "public": true },
+    "custom_emojis":   { "public": true },
+    "stickers":        { "public": true },
+    "comprovantes_financeiro": { "public": false },
+    "email_attachments":       { "public": false },
+    "etiquetas_remessa":       { "public": false },
+    "fechamentos":             { "public": false },
+    "audio_messages":          { "public": false },
+    "team_chat_files":         { "public": false },
+    "quarantine":              { "public": false }
+  }
+}
+```
 
-## Particionamento
+## Como atualizar
 
-3 tabelas particionadas (25 partições cada):
-- `evo.evolution_messages`
-- `evo.evolution_conversations`
-- `evo.evolution_webhook_events_v2`
+```sql
+-- Contagens por schema
+SELECT
+  n.nspname AS schema,
+  COUNT(*) FILTER (WHERE c.relkind='r') AS tables,
+  COUNT(*) FILTER (WHERE c.relkind='v') AS views,
+  COUNT(*) FILTER (WHERE c.relkind='m') AS matviews
+FROM pg_class c
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname NOT IN ('pg_catalog','information_schema','pg_toast')
+GROUP BY n.nspname ORDER BY tables DESC;
+```
 
-## Extensões (schema public)
-
-- pg_trgm
-- vector
-- unaccent
-- pgjwt
-- uuid-ossp
-- pg_stat_statements
-- pg_net
-- pg_cron
-- hypopg
-
-**⚠️ HIGH RISK: mover extensões para schema separado pode quebrar clientes.**
-
-## Migrations
-
-- No repositório: 900+ arquivos
-- No banco (schema_migrations): 52 versões
-- Tracking started: 2026-07-16
-- 4 versões mal formatadas identificadas
-
-## Views públicas (PostgREST /api/v1/)
-
-- `public.evolution_*`: ~182 views (leitura evo)
-- `public.zapp_*`: ~300 views (leitura zapp)
-- `public.bpm_*`: ~41 views
-- `public.vendas_*`: ~12 views
-- `public.logistica_*`: ~3 views
-- Todas: `security_invoker = on` (respeita RLS da tabela base)
-
-## Contrato de fronteira zapp/evo
-
-- zapp → evo: ~254 views (leitura de dados Evolution API)
-- evo → zapp: ~30 pipeline functions (webhook ingestion)
-- evo NUNCA pode criar FKs para zapp
-
-## Storage Buckets
-
-- Total: 13 buckets
-- públicos: whatsapp-media (9.56 GB PII), recibos-entrega
-- ⚠️ Both need to become private with signed URLs
-
-## Status de governança
-
-- [ ] Migrations auditadas
-- [ ] Índices quarantine implementados
-- [ ] FK gaps resolvidos
-- [ ] RLS coverage verificado
-- [x] DDL guardrails ativos
-- [ ] Storage bucket policies aplicados
+> Rodar este snapshot antes de CADA onda do plano e commitar o resultado aqui.

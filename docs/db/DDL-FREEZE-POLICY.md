@@ -1,96 +1,86 @@
-# DDL FREEZE POLICY
+# Política de Freeze de DDL
 
-> **Restrição de alterações estruturais no banco de dados — enforced by `ops.ddl_violations_live`**
-
----
-
-## Regra central
-
-**Uma alteração estrutural (DDL) por vez, com versionamento, staging primeiro.**
-
-Qualquer mudança de schema (CREATE TABLE, ALTER TABLE, CREATE INDEX, etc.) deve seguir
-este fluxo antes de ser aplicada em produção.
+**Vigente durante o Plano DB de 50 Etapas (ondas 0–5).**
 
 ---
 
-## O que é considerado DDL
+## Regra geral
 
-| DDL | Exemplo |
-|-----|---------|
-| CREATE / ALTER / DROP TABLE | `CREATE TABLE foo (...)` |
-| CREATE / DROP INDEX | `CREATE INDEX CONCURRENTLY` |
-| CREATE / ALTER / DROP VIEW | `CREATE VIEW v_foo AS SELECT` |
-| CREATE / REPLACE / DROP FUNCTION | `CREATE OR REPLACE FUNCTION fn_foo()` |
-| CREATE / ALTER / DROP TRIGGER | `CREATE TRIGGER trg_foo` |
-| ALTER TABLE ... ADD COLUMN | `ALTER TABLE t ADD c int` |
-| ALTER TABLE ... ADD CONSTRAINT | `ALTER TABLE t ADD PRIMARY KEY` |
-| CREATE / ALTER SCHEMA | `CREATE SCHEMA bar` |
+> **Uma única mudança estrutural coordenada por vez.**  
+> Nenhuma DDL simultânea de agentes, devs ou crons fora do fluxo normal.
 
 ---
 
-## Fluxo obrigatório
+## O que é DDL estrutural
 
-```
-1. branch dedicado (ex: feature/minha-mudanca)
-2. criar migration em supabase/migrations/
-   - nome: YYYYMMDDHHMMSS_descricao.sql
-   - exemplo: 20260801000001_add_phone_to_contatos.sql
-3. aplicar em staging primeiro
-   - supabase db push
-   - ou: psql -f migration.sql
-4. validar:
-   - smoke tests passam
-   - RLS intacto (ops.v_ddl_violations_unresolved)
-   - nenhuma regressão funcional
-5. code review + merge para main
-6. aplicar em produção
-7. verificar pós-deploy: ops.v_ddl_violations_unresolved retorna 0 linhas
-```
+- `CREATE TABLE`, `DROP TABLE`, `ALTER TABLE ... ADD/DROP COLUMN`
+- `CREATE VIEW`, `DROP VIEW`, `CREATE OR REPLACE VIEW`
+- `CREATE FUNCTION`, `DROP FUNCTION`, `CREATE OR REPLACE FUNCTION`
+- `CREATE INDEX`, `DROP INDEX`
+- `ALTER TYPE`, `CREATE DOMAIN`
+- Qualquer mudança em schemas de negócio (`zapp`, `evo`, `bpm`, `email_app`, `ai`, `financeiro`, `vendas`, `logistica`, `artes`, `ops`, `archive`)
+
+## O que NÃO é bloqueado pelo freeze
+
+- `INSERT`, `UPDATE`, `DELETE` (DML normal)
+- `VACUUM`, `ANALYZE` (utilitário)
+- Criação de partições pelo cron `auto-create-monthly-partitions` (operação declarada)
+- Views recriadas pelo cron `ensure-evolution-backcompat-views` (operação declarada — mas etapa 11 tornará isso controlado)
 
 ---
 
-## O que NÃO é DDL
+## Durante o freeze
 
-- `INSERT`, `UPDATE`, `DELETE` (DML)
-- `VACUUM`, `ANALYZE` (manutenção)
-- `GRANT`, `REVOKE` (perfis/pERMISSÕES)
-- `COMMENT ON` (metadados)
-- `NOTIFY` (triggers de evento via event trigger — mas não DDL do objeto)
+| Ação | Quem pode | Processo |
+|---|---|---|
+| DDL na onda corrente | Dev/agente designado | Migration versionada → staging → aprovação → prod |
+| DDL urgente (incidente) | DBA sênior ou service_role | Documentar em `ops.ddl_audit` + criar migration retroativa em <24h |
+| DDL de outra onda | ❌ Bloqueado | Aguardar conclusão da onda corrente |
+| DDL manual sem migration | ❌ Bloqueado | Gera alerta P1 (etapa 3) |
 
 ---
 
-## Governança: `ops.ddl_violations_live`
+## Onda em andamento
 
-A tabela `ops.ddl_violations_live` é populada pelo trigger de evento `trg_ddl_violation_capture`
-que intercepta DDL executado fora de migrations versionadas.
+| Campo | Valor |
+|---|---|
+| Onda atual | 0 — Salvaguardas |
+| Data início | 27/07/2026 |
+| Responsável | time de plataforma |
+| Próxima onda | 1 (Fronteiras de Schema) — aguardar staging |
 
-**Nunca ignore violações reportadas nessa tabela.**
+---
+
+## Verificação rápida antes de qualquer DDL
 
 ```sql
--- Consultar violações
-SELECT * FROM ops.v_ddl_violations_unresolved;
+-- Há DDL pendente não coberto por migration?
+SELECT schema_name, object_name, object_type, detected_at, age
+FROM ops.v_ddl_violations_unresolved
+ORDER BY detected_at DESC;
 
--- Resolver: criar migration retrospectiva para o DDL que foi executado diretamente
+-- Última migration aplicada
+SELECT version, name, inserted_at
+FROM supabase_migrations.schema_migrations
+ORDER BY inserted_at DESC LIMIT 5;
+
+-- Estado do cron de guardrail
+SELECT jobname, last_run_status, last_end_time
+FROM cron.job_run_details jrd
+JOIN cron.job j ON j.jobid = jrd.jobid
+WHERE j.jobname = 'ops-guardrails-deadman'
+ORDER BY jrd.end_time DESC LIMIT 1;
 ```
 
 ---
 
-## Exceções documentadas
+## Histórico de ondas
 
-Apenasumulk operations documentadas em migration com prefixo `_BULK_` no nome:
-
-```
-supabase/migrations/20260801000001_BULK_cleanup_orphaned_rows.sql
-```
-
----
-
-## Padrão de nome de migration
-
-```
-YYYYMMDDHHMMSS_[descricao_curta_em_underscore].sql
-```
-
-- 14 dígitos obrigatórios
-- Descrição: max 50 caracteres, apenas `a-z0-9_`
-- Não usar pontos, espaços ou caracteres especiais
+| Onda | Etapas | Início | Fim | Status |
+|---|---|---|---|---|
+| 0 — Salvaguardas | 1–4 | 27/07/2026 | — | ▶ Em andamento |
+| 1 — Fronteiras | 5–15 | — | — | ⏳ Aguarda staging |
+| 2 — Tabelas/Tipos/RLS | 16–24 | — | — | ⏳ Aguarda onda 1 |
+| 3 — Índices | 25–31 | — | — | ⏳ Pode sobrepor onda 2 |
+| 4 — Crons | 32–38 | — | — | ⏳ Aguarda onda 2 |
+| 5 — Documentação | 39–50 | 27/07/2026 | — | ▶ Em andamento (paralelo) |

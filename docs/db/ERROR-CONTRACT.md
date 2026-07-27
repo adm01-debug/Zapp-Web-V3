@@ -1,107 +1,128 @@
-# ERROR CONTRACT
+# Contrato de Erros — PostgreSQL Functions e RPCs
 
-> Convenção de erros de negócio em PostgreSQL — para aplicação e database.
-
----
-
-## SQLSTATEs de Negócio
-
-| SQLSTATE | Significado | Uso |
-|----------|-------------|-----|
-| `P0001` | Business rule violation | `RAISE EXCEPTION USING ERRCODE = 'P0001'` |
-| `42883` | Stub function (fail-open) | `RAISE EXCEPTION USING ERRCODE = '42883'` |
-| `23505` | Unique violation | Conflito de chave |
-| `23503` | Foreign key violation | Referência inválida |
-| `23514` | Check constraint violation | Validação falhou |
-| `22P02` | Invalid text representation | JSON/UUID malformado |
+**Versão:** 1.0 · **Data:** 27/07/2026 · **Etapa 23 do plano DB.**
 
 ---
 
-## Padrão de Erro Business (P0001)
+## Princípio
+
+Toda função/RPC que pode falhar deve comunicar erros de forma **previsível e discriminável** pelo frontend. O cliente TypeScript captura `error.code` (SQLSTATE) e `error.message` para decidir o que mostrar ao usuário.
+
+---
+
+## Códigos SQLSTATE Utilizados
+
+| Código | Categoria | Quando usar |
+|---|---|---|
+| `P0001` | Raised exception | Erro de negócio explícito: validação, não autorizado, recurso não encontrado |
+| `42883` | Undefined function | Função não existe — usada por stubs para fail-open controlado |
+| `23505` | Unique violation | Conflito de unicidade (INSERT duplicado) |
+| `23503` | FK violation | Referência a registro inexistente |
+| `22023` | Invalid parameter value | Parâmetro inválido (ex: sort_direction inválido) |
+| `28000` | Invalid auth spec | Não autenticado |
+| `42501` | Insufficient privilege | Sem permissão para executar a operação |
+
+---
+
+## Padrão de RAISE EXCEPTION para RPCs
 
 ```sql
--- Forma correta
-RAISE EXCEPTION USING
-    errcode  = 'P0001',
-    message  = 'CONTACT_NOT_FOUND:O contato não existe',
-    hint     = 'Verifique se o contact_id está correto';
+-- Padrão aprovado: P0001 com mensagem estruturada
+RAISE EXCEPTION 'error_code:mensagem_para_o_usuario'
+    USING ERRCODE = 'P0001';
 
--- Handling em TypeScript
-try {
-    await supabase.rpc('fn_create_contact', { p_name: 'João' });
-} catch (err: any) {
-    if (err.code === 'P0001') {
-        const [code, ...rest] = err.message.split(':');
-        // code = 'CONTACT_NOT_FOUND'
-        // rest = ['O contato não existe']
-    }
+-- Exemplos reais:
+RAISE EXCEPTION 'not_authorized:Usuário sem permissão de administrador'
+    USING ERRCODE = 'P0001';
+
+RAISE EXCEPTION 'resource_not_found:Workspace % não encontrado', p_workspace_id
+    USING ERRCODE = 'P0001';
+
+RAISE EXCEPTION 'validation_failed:sort_direction deve ser ASC ou DESC'
+    USING ERRCODE = 'P0001';
+```
+
+---
+
+## Padrão de Tratamento no Frontend
+
+```typescript
+// Padrão em hooks TypeScript:
+const { data, error } = await supabase.rpc('fn_name', params);
+
+if (error) {
+  // Discriminar por código:
+  if (error.code === '42883') {
+    // Função não existe — fail-open, comportamento degradado
+    console.warn('Feature não disponível:', error.message);
+    return defaultValue;
+  }
+  if (error.code === 'P0001') {
+    // Erro de negócio — mostrar ao usuário
+    const [errorType, userMessage] = error.message.split(':');
+    toast.error(userMessage || 'Erro na operação');
+    return null;
+  }
+  // Erro inesperado — log + generic message
+  console.error('DB error:', error);
+  toast.error('Erro inesperado. Tente novamente.');
+  return null;
 }
 ```
 
 ---
 
-## Anti-patterns
+## Stubs com Fail-Open Controlado
 
-### ❌ Retornar objeto em vez de RAISE
-```sql
--- ERRADO: esconde o erro
-CREATE OR REPLACE FUNCTION fn_bad(...)
-RETURNS JSONB AS $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM contatos WHERE id = p_id) THEN
-        RETURN '{"success": false, "error": "not_found"}'::JSONB;
-    END IF;
-END;
-$$;
--- Problema: client pode não verificar retorno e assumir sucesso
-```
+RPCs que ainda não foram implementadas (GAPs documentados em CLAUDE.md) usam o padrão `RAISE EXCEPTION` com `P0001` para indicar explicitamente que a feature não está disponível:
 
-### ✅ Usar RAISE EXCEPTION
 ```sql
--- CORRETO: falha audível
-CREATE OR REPLACE FUNCTION fn_good(...)
-RETURNS void AS $$
+-- Padrão para stubs (GAP-*):
+CREATE OR REPLACE FUNCTION zapp.initiate_gmail_oauth(...)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = zapp, pg_catalog
+AS $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM contatos WHERE id = p_id) THEN
-        RAISE EXCEPTION USING
-            errcode = 'P0001',
-            message = 'CONTACT_NOT_FOUND:ID ' || p_id || ' não existe';
-    END IF;
+    RAISE EXCEPTION 'not_implemented:Autenticação Gmail não está disponível neste ambiente. Configure via painel OAuth.'
+        USING ERRCODE = 'P0001';
 END;
 $$;
 ```
 
----
-
-## Funções Stub (fail-open)
-
-| Função Stub | SQLSTATE | Motivo |
-|-------------|----------|--------|
-| `fn_create_contact` | 42883 | Substituir por implementação real |
-| `fn_update_company` | 42883 | Substituir por implementação real |
-| `fn_validate_token`  | 42883 | Implementação real em auth schema |
+**Anti-padrão a evitar:**
+```sql
+-- ERRADO — retorna sucesso falso sem RAISE:
+RETURN json_build_object('success', false, 'message', 'Not implemented');
+-- Frontend não detecta como erro, pode fazer setIsAuthenticated(true) silenciosamente
+```
 
 ---
 
-## Validação de parâmetros (ORDER BY dinâmico)
+## Erros de SQL Injection Prevention
 
 ```sql
--- ✅ Prevenir SQL injection em ORDER BY
-CREATE OR REPLACE FUNCTION fn_list_users(sort_col TEXT, sort_dir TEXT)
-RETURNS TABLE(id UUID, name TEXT) AS $$
-DECLARE
-    valid_cols TEXT[] := ARRAY['id','name','created_at','email'];
-BEGIN
-    IF sort_col NOT IN (SELECT unnest(valid_cols)) THEN
-        RAISE EXCEPTION USING errcode='P0001', message='INVALID_SORT_COL';
-    END IF;
-    IF sort_dir NOT IN ('asc','desc') THEN
-        RAISE EXCEPTION USING errcode='P0001', message='INVALID_SORT_DIR';
-    END IF;
-    RETURN QUERY EXECUTE format(
-        'SELECT id, name FROM zapp.users ORDER BY %I %s',
-        sort_col, sort_dir
-    );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-- Para parâmetros usados em ORDER BY dinâmico:
+v_dir := UPPER(p_sort_direction);
+IF v_dir NOT IN ('ASC','DESC') THEN
+    RAISE EXCEPTION 'validation_failed:sort_direction deve ser ASC ou DESC, recebido: %', p_sort_direction
+        USING ERRCODE = 'P0001';
+END IF;
+-- Usar v_dir (sanitizado) no SQL dinâmico, nunca p_sort_direction direto
 ```
+
+---
+
+## Registro de Stubs Ativos
+
+| Função | SQLSTATE | Status | Etapa de implementação |
+|---|---|---|---|
+| `zapp.initiate_gmail_oauth` | P0001 | stub | GAP-2 — OAuth real pendente |
+| `zapp.complete_gmail_oauth` | P0001 | stub | GAP-2 |
+| `zapp.sync_to_crm` | P0001 | stub | GAP-3 |
+| `zapp.export_user_data` | P0001 | stub parcial | GAP-4 |
+| `zapp.import_user_data` | P0001 | stub | GAP-4 |
+| `zapp.enrich_contact` | P0001 | stub | GAP-5 |
+| `zapp.get_latest_analysis` | P0001 | stub | GAP-6 |
+| `zapp.check_download_permission` | 42883 fail-open | corrigido BUG-9 | implementado |

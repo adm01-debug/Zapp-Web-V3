@@ -1,144 +1,92 @@
-# STAGING ENVIRONMENT SETUP
+# Ambiente de Staging — Procedimento
 
-> **Procedimento de provisionamento de staging — Banco de dados PostgreSQL**
-
-## Objetivo
-
-Estabelecer uma cópia funcional do banco de produção em ambiente staging para validar
-migrations, alterações de schema e procedimentos operacionais antes de aplicar em produção.
+**Etapa 1 do plano DB.** Toda DDL estrutural DEVE passar por staging antes de produção.
 
 ---
 
-## 1. Pré-requisitos
+## Por que staging é obrigatório aqui
 
-```bash
-# Acesso ao servidor de produção (AtomicaBR VPS)
-# Acesso ao servidor de staging
-# Supabase CLI autenticado
-# Credenciais de superusuário PostgreSQL
-```
+O banco de produção tem **52 migrations registradas** mas **944 arquivos** no repositório — ou seja, o banco foi construído por DDL direto, fora do fluxo de migrations. Reaplicar os 944 arquivos num banco vazio **não** reproduz o estado de produção. O ambiente de staging deve ser criado a partir do **baseline.sql** (etapa 2), não dos arquivos individuais.
 
 ---
 
-## 2.backup de produção
+## Provisionar o staging
+
+### Opção A — Supabase CLI + dump de schema
 
 ```bash
-# No servidor de produção
+# 1. Exportar schema real de produção
 pg_dump \
-  -h localhost \
-  -p 5432 \
-  -U supabase_admin \
-  -Fc \
-  --no-acl \
+  --schema-only \
   --no-owner \
-  --no-security-labels \
-  -b \
-  -v \
-  -f /var/lib/postgresql/backups/prod_backup_$(date +%Y%m%d_%H%M%S).dump \
-  postgres
+  --no-acl \
+  --schema='zapp,evo,public,bpm,email_app,ai,archive,ops,financeiro,vendas,logistica,artes,monitoring' \
+  "postgresql://<user>:<pass>@supabase.atomicabr.com.br:5432/postgres" \
+  > docs/db/baseline/schema_$(date +%Y%m%d).sql
+
+# 2. Carregar no staging (Supabase local ou instância separada)
+psql "postgresql://<staging-url>" < docs/db/baseline/schema_$(date +%Y%m%d).sql
+
+# 3. Verificar diff de schema (deve ser zero)
+pg_dump --schema-only "postgresql://<prod>" > /tmp/prod.sql
+pg_dump --schema-only "postgresql://<staging>" > /tmp/staging.sql
+diff <(pg_format /tmp/prod.sql) <(pg_format /tmp/staging.sql) | head -50
 ```
 
----
-
-## 3. Restore em staging
+### Opção B — Supabase self-hosted (Docker Compose / Swarm)
 
 ```bash
-# No servidor de staging
-pg_restore \
-  -h localhost \
-  -p 5432 \
-  -U supabase_admin \
-  -d postgres \
-  --clean \
-  --if-exists \
-  -v \
-  /path/to/prod_backup_YYYYMMDD_HHMMSS.dump
+# No mesmo VPS, criar uma instância separada com compose:
+cd infra/staging
+docker compose up -d
+# Carregar baseline (acima)
 ```
 
 ---
 
-## 4. Verificações pós-restore
+## Fluxo de deploy DDL (regra inegociável)
+
+```
+Dev escreve migration (^\d{14}$_descricao.sql)
+        │
+        ▼
+CI valida: nome, colisão, idempotência, search_path
+        │
+        ▼
+Aplicar em STAGING
+        │
+        ▼
+Medir diff de schema contra baseline: deve ser 0 antes, ≥1 depois
+        │
+        ▼
+Revisor aprova
+        │
+        ▼
+Aplicar em PRODUÇÃO (nunca DDL manual)
+```
+
+---
+
+## Guardrail de DDL manual em produção
+
+O cron `ops-guardrails-deadman` (jobid 82, `*/10 * * * *`) chama `ops.fn_guardrails_check`, que detecta objetos criados fora de migration. Reforçar para gerar alerta P1 (etapa 3).
+
+A tabela `ops.ddl_audit` (24.452 linhas auditadas) registra todo DDL executado. Consultar antes de qualquer intervenção:
 
 ```sql
--- Verificar integridade do cluster
-SELECT pg_is_in_recovery();
-
--- Verificar contagem de schemas
-SELECT count(*) FROM information_schema.schemata
-WHERE schema_name NOT IN ('pg_catalog','information_schema','extensions');
-
--- Verificar RLS ativo
-SELECT
-  schemaname,
-  tablename,
-  rowsecurity
-FROM pg_tables
-WHERE schemaname IN ('zapp','evo','public','bpm','financeiro','vendas','logistica','ai')
-ORDER BY schemaname, tablename;
+SELECT event_time, object_type, schema_name, object_name, command_tag, session_user
+FROM ops.ddl_audit
+WHERE event_time > now() - interval '7 days'
+ORDER BY event_time DESC;
 ```
 
 ---
 
-## 5. Configurar staging como não-produção
+## Status (27/07/2026)
 
-```sql
--- Desabilitar crons de produção
-UPDATE cron.job SET active = false
-WHERE jobname NOT LIKE '%staging%';
+- [ ] Staging provisionado
+- [ ] Baseline.sql gerado e commitado em `docs/db/baseline/`
+- [ ] Diff de schema staging↔prod = 0
+- [ ] DDL manual em produção alerta P1 (etapa 3)
 
--- Configurar logging para debug
-ALTER DATABASE postgres SET log_min_messages TO 'notice';
-ALTER DATABASE postgres SET log_connections = on;
-ALTER DATABASE postgres SET log_disconnections = on;
-```
-
----
-
-## 6. Validar objetos críticos
-
-```sql
--- Verificar views de compatibilidade (evo)
-SELECT schemaname, viewname
-FROM pg_views
-WHERE schemaname = 'public'
-  AND viewname LIKE 'evolution_%'
-ORDER BY viewname;
-
--- Verificar tabelas particionadas
-SELECT
-  parent.relname AS partitioned_table,
-  count(child.relname) AS partition_count
-FROM pg_inherits
-JOIN pg_class parent ON parent.oid = pg_inherits.inhparent
-JOIN pg_class child  ON child.oid   = pg_inherits.inhrelid
-GROUP BY parent.relname;
-```
-
----
-
-## 7. Rotina de sincronização incremental
-
-```bash
-# Após primeiro restore completo, usar replicação lógica para manter staging atualizado
-# Configurar slot de replicação em produção:
-SELECT pg_create_logical_replication_slot('staging_sync', 'pgoutput');
-
-# Em staging, configurar assinatura (execute apenas em manutenção)
-CREATE SUBSCRIPTION staging_sub
-  CONNECTION 'host=<PROD_HOST> port=5432 dbname=postgres user=supabase_admin password=<PASS>'
-  PUBLICATION prod_pub
-  WITH (copy_data = false);
-```
-
----
-
-## 8. Checklist de validação
-
-- [ ] Restore concluído sem erros
-- [ ] Todos os schemas acessíveis
-- [ ] RLS verificado nas tabelas de negócio
-- [ ] Views de compatibilidade Evo presentes
-- [ ] Tabelas particionadas intactas
-- [ ] Crons de produção desabilitados
-- [ ] Logging configurado
-- [ ] Credenciais de staging distintas de produção
+> Até o staging estar disponível, **nenhuma das etapas de onda 2+ deve ser aplicada em produção**.
