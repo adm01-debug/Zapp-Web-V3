@@ -22,7 +22,7 @@ export type ErrorSuppression = 'intentional' | 'expected' | 'recoverable' | 'log
 
 /** Generic callable constraint — mirrors TypeScript stdlib utility-type convention. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyFn = (...args: any[]) => any;
+export type AnyFn = (...args: any[]) => any; // ignore-audit
 
 /**
  * Marker for intentional error suppression.
