@@ -437,7 +437,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'automation_executions' },
         (payload) => {
-          const row = (payload.new ?? payload.old) as Record<string, unknown>;
+          const row = (payload.eventType === 'DELETE' ? payload.old : payload.new) as Record<string, unknown>;
           if (row?.remote_jid === remoteJid)
             void queryClient.invalidateQueries({ queryKey: key });
         }

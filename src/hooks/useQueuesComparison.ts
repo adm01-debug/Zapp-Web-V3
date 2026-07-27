@@ -66,14 +66,23 @@ export function useQueuesComparison(dateRange: DateRange) {
 
       let messageList: Array<{ id: string; contact_id: string }> = [];
       if (contactIds.length > 0) {
-        const { data: msgs, error: msgsErr } = await supabase
-          .from('evolution_messages')
-          .select('id, contact_id')
-          .in('contact_id', contactIds)
-          .gte('created_at', fromIso)
-          .lte('created_at', toIso);
+        const BATCH = 500;
+        const batches = Array.from({ length: Math.ceil(contactIds.length / BATCH) }, (_, i) =>
+          contactIds.slice(i * BATCH, (i + 1) * BATCH)
+        );
+        const batchResults = await Promise.all(
+          batches.map((chunk) =>
+            supabase
+              .from('evolution_messages')
+              .select('id, contact_id')
+              .in('contact_id', chunk)
+              .gte('created_at', fromIso)
+              .lte('created_at', toIso)
+          )
+        );
+        const msgsErr = batchResults.find((r) => r.error)?.error ?? null;
         if (msgsErr) throw msgsErr;
-        messageList = msgs || [];
+        messageList = batchResults.flatMap((r) => r.data ?? []);
       }
 
       return queueList.map((q) => {

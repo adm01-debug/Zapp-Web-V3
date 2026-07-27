@@ -59,11 +59,16 @@ export function useInboxBulkActions({ refetch, filteredConversations }: UseInbox
         setBulkLoading(false);
         return;
       }
-      const { error } = await dbFrom('messages')
-        .update({ is_read: true })
-        .in('contact_id', contactIds)
-        .eq('is_read', false);
-      if (error) throw error;
+      const BATCH = 500;
+      let bulkErr: { message: string } | null = null;
+      for (let i = 0; i < contactIds.length && !bulkErr; i += BATCH) {
+        const { error } = await dbFrom('messages')
+          .update({ is_read: true })
+          .in('contact_id', contactIds.slice(i, i + BATCH))
+          .eq('is_read', false);
+        if (error) bulkErr = error;
+      }
+      if (bulkErr) throw bulkErr;
       toast.success(`${contactIds.length} conversa(s) marcada(s) como lida(s)`);
       clearSelection();
       refetch();
