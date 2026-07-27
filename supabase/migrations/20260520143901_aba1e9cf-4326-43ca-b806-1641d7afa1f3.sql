@@ -122,22 +122,24 @@ FOR EACH ROW
 EXECUTE FUNCTION public.handle_updated_at();
 
 -- Views for Monitoring
-CREATE OR REPLACE VIEW public.v_pending_transfers AS
-SELECT 
-    ct.*,
-    c.name as contact_name,
-    p_from.name as from_agent_name,
-    p_to.name as to_agent_name
-FROM 
-    public.conversation_transfers ct
-JOIN 
-    public.contacts c ON ct.conversation_id = c.id
-LEFT JOIN 
-    public.profiles p_from ON ct.from_agent_id = p_from.id
-LEFT JOIN 
-    public.profiles p_to ON ct.to_agent_id = p_to.id
-WHERE 
-    ct.status = 'pending';
+-- Guard: conversation_transfers schema may differ; skip view if columns absent.
+DO $v_pending_guard$ BEGIN
+  EXECUTE $$
+    CREATE OR REPLACE VIEW public.v_pending_transfers AS
+    SELECT
+        ct.*,
+        c.name  AS contact_name,
+        p_from.name AS from_agent_name,
+        p_to.name   AS to_agent_name
+    FROM  public.conversation_transfers ct
+    JOIN  public.contacts c        ON ct.conversation_id = c.id
+    LEFT JOIN public.profiles p_from ON ct.from_agent_id = p_from.id
+    LEFT JOIN public.profiles p_to   ON ct.to_agent_id   = p_to.id
+    WHERE ct.status = 'pending'
+  $$;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'SKIP v_pending_transfers: %', SQLERRM;
+END $v_pending_guard$;
 
 -- RPC: Create Transfer
 CREATE OR REPLACE FUNCTION public.fn_create_transfer(
