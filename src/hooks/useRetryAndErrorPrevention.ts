@@ -148,9 +148,11 @@ export function useSafeAsync<T>(
 ) {
   const { operation = 'Unknown', fallback, shouldThrow = false, dependencies = [] } = options || {};
 
+  const fnRef = useRef(fn);
+  fnRef.current = fn;
   const executeAsync = useCallback(
     async () =>
-      safeCallback(() => withErrorRecovery(fn, { operation, fallback, shouldThrow }), {
+      safeCallback(() => withErrorRecovery(fnRef.current, { operation, fallback, shouldThrow }), {
         name: operation,
       })(),
     [operation, fallback, shouldThrow, ...dependencies] // eslint-disable-line react-hooks/exhaustive-deps
@@ -181,9 +183,11 @@ export function useSafeRetry<T>(
     dependencies = [],
   } = options || {};
 
+  const fnRef = useRef(fn);
+  fnRef.current = fn;
   const executeRetry = useCallback(
     async () =>
-      retryWithBackoff(fn, {
+      retryWithBackoff(fnRef.current, {
         operation,
         maxAttempts,
         delayMs,
@@ -226,15 +230,16 @@ export function useSafeCallback<T extends (...args: any[]) => any>(
     dependencies = [],
   } = options || {};
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const callbackRef = useRef(callback);
+  callbackRef.current = callback;
   return useCallback(
-    safeCallback(callback, {
-      name,
-      fallbackReturn,
-      shouldThrow,
-    }),
-    [...dependencies]
-  );
+    (...args: Parameters<T>): ReturnType<T> => {
+      return (safeCallback(callbackRef.current, { name, fallbackReturn, shouldThrow }) as T)(
+        ...args
+      );
+    },
+    [name, fallbackReturn, shouldThrow, ...dependencies] // eslint-disable-line react-hooks/exhaustive-deps
+  ) as unknown as T;
 }
 
 /**
@@ -252,17 +257,21 @@ export function useSafePromise<T>(
 ) {
   const { operation = 'Unknown', onReject, shouldThrow = false, dependencies = [] } = options || {};
 
+  const onRejectRef = useRef(onReject);
+  onRejectRef.current = onReject;
   useEffect(() => {
     let cancelled = false;
     handlePromiseRejection(promise, {
       operation,
-      onReject: cancelled ? undefined : onReject,
+      onReject: cancelled ? undefined : onRejectRef.current,
       shouldThrow,
     }).catch(() => {
       // Already logged
     });
-    return () => { cancelled = true; };
-  }, [promise, ...dependencies]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+    };
+  }, [operation, promise, shouldThrow, ...dependencies]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /**
@@ -288,6 +297,14 @@ export function useAsyncEffect<T>(
     dependencies?: DependencyList;
   }
 ) {
+  const { operation = 'Async effect', cleanup, fallback, dependencies } = options ?? {};
+
+  const effectRef = useRef(effect);
+  effectRef.current = effect;
+  const cleanupRef = useRef(cleanup);
+  cleanupRef.current = cleanup;
+  const fallbackRef = useRef(fallback);
+  fallbackRef.current = fallback;
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -295,21 +312,21 @@ export function useAsyncEffect<T>(
 
     (async () => {
       try {
-        await withErrorRecovery(effect, {
-          operation: options?.operation || 'Async effect',
+        await withErrorRecovery(effectRef.current, {
+          operation,
           shouldThrow: false,
         });
       } catch (error) {
-        log.error(`Async effect failed: ${options?.operation || 'Unknown'}`, error);
-        options?.fallback?.();
+        log.error(`Async effect failed: ${operation}`, error);
+        fallbackRef.current?.();
       }
     })();
 
     return () => {
       abortRef.current?.abort();
-      options?.cleanup?.();
+      cleanupRef.current?.();
     };
-  }, options?.dependencies); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [operation, ...(dependencies ?? [])]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /**
@@ -374,9 +391,13 @@ export function useRetryableAsync<T>(
     retryMetricsTracker.registerExecutor(operationName, executorRef.current);
   }, [operationName]);
 
+  const fnRef = useRef(fn);
+  fnRef.current = fn;
+  const shouldRetryRef = useRef(shouldRetry);
+  shouldRetryRef.current = shouldRetry;
   const execute = useCallback(async () => {
     try {
-      return await executorRef.current.execute(fn, shouldRetry);
+      return await executorRef.current.execute(fnRef.current, shouldRetryRef.current);
     } catch (error) {
       log.error(`Retry exhausted for ${operationName}:`, error);
       throw error;
@@ -418,7 +439,10 @@ export function useRetryMetrics(operationName?: string) {
 /** Monitors all retry operations globally with health status tracking. */
 export function useGlobalRetryMetrics() {
   const [allMetrics, setAllMetrics] = useState<Map<string, RetryMetrics>>(new Map());
-  const [healthStatus, setHealthStatus] = useState<{ healthy: string[]; degraded: string[] }>({ healthy: [], degraded: [] });
+  const [healthStatus, setHealthStatus] = useState<{ healthy: string[]; degraded: string[] }>({
+    healthy: [],
+    degraded: [],
+  });
 
   useEffect(() => {
     const interval = setInterval(() => {
