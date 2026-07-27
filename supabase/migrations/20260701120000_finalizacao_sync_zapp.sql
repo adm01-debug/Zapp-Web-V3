@@ -28,6 +28,8 @@ ALTER TABLE zapp.instance_registry ADD COLUMN IF NOT EXISTS message_count_sent i
 ALTER TABLE zapp.instance_registry ADD COLUMN IF NOT EXISTS message_count_received integer DEFAULT 0;
 ALTER TABLE zapp.instance_registry ADD COLUMN IF NOT EXISTS error_logs text;
 ALTER TABLE zapp.instance_registry ADD COLUMN IF NOT EXISTS metadata jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE zapp.instance_registry ADD COLUMN IF NOT EXISTS responsible_name text;
+ALTER TABLE zapp.instance_registry ADD COLUMN IF NOT EXISTS responsible_email text;
 
 -- 1.2 zapp.conversation_transfers (+7)
 ALTER TABLE zapp.conversation_transfers ADD COLUMN IF NOT EXISTS from_agent_id uuid;
