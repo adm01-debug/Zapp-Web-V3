@@ -9404,4 +9404,18 @@ export const Constants = {
       warroom_alert_type: ["info", "warning", "critical", "sla_breach"],
     },
   },
+  zapp: {
+    Tables: Record<string, never>
+    Views: Record<string, never>
+    Functions: Record<string, never>
+    Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
+  }
+  evo: {
+    Tables: Record<string, never>
+    Views: Record<string, never>
+    Functions: Record<string, never>
+    Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
+  }
 } as const

@@ -53,8 +53,7 @@ CREATE INDEX IF NOT EXISTS idx_conversations_queue_agent_status
 
 -- Query: SELECT * FROM audit_logs WHERE entity_type = 'contact' AND action = 'update' AND created_at > $1
 CREATE INDEX IF NOT EXISTS idx_audit_logs_entity_action_time
-  ON zapp.audit_logs (entity_type, action, created_at DESC)
-  WHERE created_at > NOW() - INTERVAL '90 days';
+  ON zapp.audit_logs (entity_type, action, created_at DESC);
 
 -- =============================================================================
 -- WEBHOOK EVENTS - Processados por instance + event

@@ -29,8 +29,7 @@ CREATE INDEX IF NOT EXISTS idx_analytics_events_category
   ON zapp.analytics_events (category, timestamp DESC);
 
 CREATE INDEX IF NOT EXISTS idx_analytics_events_action
-  ON zapp.analytics_events (action, timestamp DESC)
-  WHERE timestamp > NOW() - INTERVAL '90 days';
+  ON zapp.analytics_events (action, timestamp DESC);
 
 CREATE INDEX IF NOT EXISTS idx_analytics_events_workspace
   ON zapp.analytics_events (workspace_id, timestamp DESC)
