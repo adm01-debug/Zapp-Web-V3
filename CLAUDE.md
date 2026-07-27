@@ -100,21 +100,21 @@
 
 ### Storage Buckets (13 buckets em produção)
 
-| Bucket | Público | Limite |
-|--------|---------|--------|
-| `audio-memes` | não | 5 MB |
-| `audio-messages` | não | — |
-| `avatars` | sim | 5 MB |
-| `comprovantes-financeiro` | não | 20 MB |
-| `custom-emojis` | sim | 512 KB |
-| `email-attachments` | não | — |
-| `etiquetas-remessa` | não | 10 MB |
-| `fechamentos` | não | 20 MB |
-| `quarantine` | não | — |
-| `recibos-entrega` | sim | 10 MB |
-| `stickers` | sim | 512 KB |
-| `team-chat-files` | não | — |
-| `whatsapp-media` | não | — |
+| Bucket | Público | Limite | Notas |
+|--------|---------|--------|-------|
+| `audio-memes` | não | 5 MB | |
+| `audio-messages` | **sim** | — | **LEITURA pública** via `/storage/v1/object/public/` — UPLOAD requer autenticação (policy `auth_write_audio_msgs`). Armazena PTTs do WhatsApp (BAIXA sensibilidade). `allowed_mime_types: [ogg,webm,mpeg,mp3,aac,mp4]`. **BUG-38 resolvido.** |
+| `avatars` | sim | 5 MB | |
+| `comprovantes-financeiro` | não | 20 MB | |
+| `custom-emojis` | sim | 512 KB | |
+| `email-attachments` | não | — | |
+| `etiquetas-remessa` | não | 10 MB | |
+| `fechamentos` | não | 20 MB | |
+| `quarantine` | não | — | |
+| `recibos-entrega` | sim | 10 MB | |
+| `stickers` | sim | 512 KB | |
+| `team-chat-files` | não | — | |
+| `whatsapp-media` | não | — | |
 
 
 ### Bugs Conhecidos e Gaps de Implementação
@@ -175,6 +175,7 @@
 | ~~BUG-35~~ | `supabase/functions/{ai-router,connection-health-check,send-rate-limit-alert,_shared/evolution-webhook-handlers}.ts` | CORRIGIDO 2026-07-24: 5 edge functions escreviam notificações em `zapp.notifications` (VIEW proxy → `public.notifications`, tabela nunca adicionada à publication `supabase_realtime`) em vez de `zapp.app_notifications` (tabela física, publicada). Notificações de: chamada entrante, alertas de conexão, rate-limit bloqueado, escalada de IA urgente, conversa escalonada — TODAS não chegavam ao frontend via Realtime. Fix: 5 substituições `from('notifications')` → `from('app_notifications')` | Resolvido |
 | ~~BUG-36~~ | `src/features/admin/hooks/monitoring/useTransfersPaginated.ts` + `supabase/migrations/20260724000049` | CORRIGIDO 2026-07-24: `rpc_list_transfers_paginated` existia apenas no schema `public` (migration `20260627191315`). `safeClient.rpc('rpc_list_transfers_paginated', ...)` via cliente com `db.schema='zapp'` → PostgREST envia `Content-Profile: zapp` → procura `zapp.rpc_list_transfers_paginated` → não encontra → PGRST202. Hook de transferências paginadas sempre falhava. Fix: `20260724000049` cria wrapper `zapp.rpc_list_transfers_paginated` delegando para `public.rpc_list_transfers_paginated` com REVOKE/GRANT corretos | Resolvido — `20260724000049` |
 | ~~BUG-37~~ | 25 tabelas em edge functions via `createZappAdminClient()` sem VIEW proxy em `zapp` | CORRIGIDO 2026-07-25: 25 tabelas físicas em `public` (ou `email_app`) acessadas por 14 edge functions via `createZappAdminClient()` (db: `zapp`) sem correspondência no schema `zapp` → PGRST205 em runtime. Tabelas: `gmail_accounts`, `gmail_threads`, `gmail_messages`, `gmail_health_logs`, `gmail_health_summary`, `gmail_revalidation_jobs`, `gmail_labels`, `voice_conversion_queue`, `sts_telemetry`, `imap_smtp_accounts`, `whatsapp_official_credentials`, `whatsapp_cloud_webhook_pings`, `channel_provider_routes`, `provider_configs`, `provider_sessions`, `provider_session_logs`, `proxy_metrics`, `proxy_alerts`, `query_telemetry`, `instance_processing_pauses`, `sicoob_contact_mapping`, `sicoob_reply_outbox`, `rate_limit_logs`, `user_service_accounts`, `messages_whatsapp`. Fix: `20260724000050` cria 25 VIEWs `WITH (security_invoker=on)` em `zapp` com REVOKE/GRANT granulares | Resolvido — `20260724000050` |
+| ~~BUG-38~~ | Storage: `audio-messages` bucket + RLS | CORRIGIDO 2026-07-27: bucket `audio-messages` tinha `public=false` + sem policy `SELECT` para `anon` → `/storage/v1/object/public/audio-messages/...` retornava HTTP 400 para todo áudio. `createSignedUrl()` também falhava com anon key (bucket privado). Fix: `public=true` + `allowed_mime_types=[ogg,webm,mpeg,mp3,aac,mp4]` + `CREATE POLICY anon_read_audio_messages FOR SELECT TO anon`. Verificado: áudio retorna HTTP 200. Migration: `20260727000000_fix_audio_messages_storage.sql`. Runbook: `docs/INCIDENT_RUNBOOK.md` seção 4. | Resolvido — `20260727000000` |
 
 
 ---
