@@ -29,7 +29,6 @@ permissions:
   checks: write
   pull-requests: write
   contents: write
-  administration: write
 
 jobs:
   ci:
