@@ -74,6 +74,7 @@ Deno.serve(async (req) => {
 
   // Handle webhook events (POST request)
   if (req.method === 'POST') {
+    let payload: z.infer<typeof WhatsAppWebhookSchema> | undefined;
     try {
       const supabase = createZappAdminClient();
 
@@ -110,7 +111,7 @@ Deno.serve(async (req) => {
         return jsonResponse({ success: true, warning: "Invalid payload format" }, 200, req);
       }
 
-      const payload = parsed.data;
+      payload = parsed.data;
       log.info("Received webhook", { entries: payload.entry.length });
 
       // Process status updates

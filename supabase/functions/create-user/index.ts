@@ -43,6 +43,19 @@ Deno.serve(async (req) => {
     const { email, password, name, nickname, signature, job_title, avatar_url, role, gmail_email, google_services, dropbox_email } = parsed.data;
     const sanitizedName = sanitizeString(name) || name;
 
+    // Privilege escalation guard: supervisors cannot assign admin or supervisor roles.
+    // requireAdminOrSupervisor admits both roles, so check caller's actual role here.
+    if (role === 'admin' || role === 'supervisor') {
+      const { data: callerRole } = await adminClient
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', authed.user.id)
+        .single();
+      if (!callerRole || callerRole.role !== 'admin') {
+        return errorResponse('Only admins can assign admin or supervisor roles', 403, req);
+      }
+    }
+
     // Create user via admin API
     const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
       email,

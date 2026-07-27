@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
         .select('created_at')
         .order('created_at', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
 
       if (!lastMsgError && lastMsg) {
         dbConnected = true
@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
       }
 
       const { count: pendingCount, error: pendingError } = await supabase
-        .from('message_queue')
+        .from('evolution_message_queue')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'pending')
 

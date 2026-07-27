@@ -649,6 +649,7 @@ Deno.serve(async (req) => {
 
     if (action === 'instance-info') return await proxy(`/instance/info/${instance}`, 'GET');
     if (action === 'restart-instance') {
+      await authorizeRoles(req, supabaseUrl, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY')) ?? '', ['admin', 'dev']);
       await supabase.from('audit_logs').insert({
         action: 'instance_restart_attempt',
         entity_type: 'whatsapp_connection',
