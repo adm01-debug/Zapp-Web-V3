@@ -92,12 +92,7 @@ export const AudioMessagePlayer = memo(function AudioMessagePlayer({
 
   return (
     <div className="space-y-2">
-      <audio
-        ref={audioRef}
-        src={resolvedUrl || undefined}
-        preload="metadata"
-        crossOrigin="anonymous"
-      />
+      <audio ref={audioRef} src={resolvedUrl || undefined} preload="none" crossOrigin="anonymous" />
       <div
         className={cn(
           'flex min-w-[200px] items-center gap-3 rounded-lg p-2',
@@ -217,7 +212,8 @@ export const AudioMessagePlayer = memo(function AudioMessagePlayer({
           </div>
         </div>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <button type="button"
+          <button
+            type="button"
             onClick={cycleSpeed}
             className={cn(
               'h-6 rounded-full px-1.5 text-[10px] font-semibold transition-colors',

@@ -32,8 +32,7 @@ async function logAccess(dev: boolean) {
       action: 'Access Dev Diagnostics',
       category: 'Audit',
       details: {
-        user_agent: navigator.userAgent,
-        screen: `${window.innerWidth}x${window.innerHeight}`,
+        browser: navigator.userAgent.split('/')[0],
       },
     })
   );

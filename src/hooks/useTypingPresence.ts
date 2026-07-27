@@ -58,13 +58,17 @@ export function useTypingPresence({
   const handleTypingStop = useCallback(() => {
     if (!channelRef.current) return;
     if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
-    channelRef.current.track({ userId: currentUserId, userName: currentUserName, isTyping: false });
+    void channelRef.current
+      .track({ userId: currentUserId, userName: currentUserName, isTyping: false })
+      .catch(() => {});
   }, [currentUserId, currentUserName]);
 
   const handleTypingStart = useCallback(() => {
     if (!channelRef.current) return;
     if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
-    channelRef.current.track({ userId: currentUserId, userName: currentUserName, isTyping: true });
+    void channelRef.current
+      .track({ userId: currentUserId, userName: currentUserName, isTyping: true })
+      .catch(() => {});
     stopTimerRef.current = setTimeout(() => {
       handleTypingStop();
     }, 3000);

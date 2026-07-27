@@ -56,11 +56,10 @@ export const ExternalProductManagement: React.FC = () => {
   const getSubcategories = (parentId: string) => categories.filter((c) => c.parent_id === parentId);
 
   const buildFilters = useCallback(
-    (pageOverride?: number): Record<string, unknown> => {
-      const currentPage = pageOverride ?? page;
+    (explicitPage: number): Record<string, unknown> => {
       const params: Record<string, unknown> = {
         limit: PAGE_SIZE,
-        offset: currentPage * PAGE_SIZE,
+        offset: explicitPage * PAGE_SIZE,
         only_in_stock: onlyInStock,
       };
       if (search) params.search = search;
@@ -68,7 +67,7 @@ export const ExternalProductManagement: React.FC = () => {
       if (supplierId !== 'all') params.supplier_id = supplierId;
       return params;
     },
-    [page, search, categoryId, supplierId, onlyInStock]
+    [search, categoryId, supplierId, onlyInStock]
   );
 
   // Initial load — uses fixed initial params so buildFilters (which closes over
@@ -90,7 +89,7 @@ export const ExternalProductManagement: React.FC = () => {
 
   // Page changes
   useEffect(() => {
-    if (page > 0) fetchProducts(buildFilters());
+    if (page > 0) fetchProducts(buildFilters(page));
   }, [page, fetchProducts, buildFilters]);
 
   const totalPages = Math.ceil(totalProducts / PAGE_SIZE);
@@ -120,7 +119,7 @@ export const ExternalProductManagement: React.FC = () => {
             <Badge variant="secondary">{totalProducts.toLocaleString('pt-BR')} produtos</Badge>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => fetchProducts(buildFilters())}>
+            <Button variant="outline" size="sm" onClick={() => fetchProducts(buildFilters(page))}>
               <RefreshCw className="mr-1 h-4 w-4" />
               Atualizar
             </Button>

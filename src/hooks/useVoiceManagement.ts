@@ -12,7 +12,7 @@ interface VoiceState {
 }
 
 interface SpeechRecognitionInstance {
-  language: string;
+  lang: string;
   continuous: boolean;
   interimResults: boolean;
   onstart: (() => void) | null;
@@ -63,7 +63,7 @@ export function useSpeechToTextManagement(language: string = 'pt-BR'): VoiceStat
       }
 
       recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.language = language;
+      recognitionRef.current.lang = language;
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true;
 

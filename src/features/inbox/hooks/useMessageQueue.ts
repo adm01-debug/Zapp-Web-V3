@@ -164,6 +164,10 @@ export function useMessageQueue(
     localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queueToSave));
   }, [queue]);
 
+  const updateProgress = useCallback((id: string, progress: number) => {
+    setQueue((prev) => prev.map((item) => (item.id === id ? { ...item, progress } : item)));
+  }, []);
+
   // Versão corrigida e simplificada do processamento
   const processNextInQueue = useCallback(
     async (contactId: string) => {
@@ -374,10 +378,6 @@ export function useMessageQueue(
     },
     []
   );
-
-  const updateProgress = useCallback((id: string, progress: number) => {
-    setQueue((prev) => prev.map((item) => (item.id === id ? { ...item, progress } : item)));
-  }, []);
 
   const retryMessage = useCallback((id: string) => {
     setQueue((prev) =>

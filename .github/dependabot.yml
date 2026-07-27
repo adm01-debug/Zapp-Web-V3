@@ -1,6 +1,5 @@
 version: 2
 enable-beta-ecosystems: true
-enable-mile-high-markdown: false
 updates:
   - package-ecosystem: npm
     directory: "/"
@@ -27,9 +26,7 @@ updates:
           - "patch"
     ignore:
       - dependency-name: "xlsx"
-        reason: "Projeto usa tarball CDN da SheetJS — registry npm não tem versões >= 0.19"
       - dependency-name: "@supabase/postgrest-js"
-        reason: "Lovable usa versão privada; upgrade pode quebrar tipos gerados no CI"
       - dependency-name: "react"
         update-types: ["version-update:semver-major"]
       - dependency-name: "react-dom"

@@ -179,27 +179,6 @@ export function useRealtimeInbox() {
     return { contact: selectedContactFallback, messages: [], unreadCount: 0, lastMessage: null };
   }, [selectedConversation, selectedContactFallback]);
 
-  // Reconcile message queue with incoming messages
-  useEffect(() => {
-    if (!selectedMessages || selectedMessages.length === 0 || !selectedContactId) return;
-    const recent = selectedMessages.slice(-10);
-    recent.forEach((msg) => {
-      if (msg.external_id && (msg.sender === 'agent' || msg.sender === 'bot')) {
-        const status =
-          msg.status === 'failed' || msg.status === 'failed_auth' || msg.status === 'failed_retries'
-            ? 'failed'
-            : 'confirmed';
-        messageQueue.reconcileWithDelivery(selectedContactId, msg.external_id, status);
-      } else if (msg.content && msg.sender === 'bot') {
-        messageQueue.reconcileWithDelivery(
-          selectedContactId,
-          msg.content,
-          msg.status === 'failed' ? 'failed' : 'confirmed'
-        );
-      }
-    });
-  }, [selectedMessages, selectedContactId, messageQueue]);
-
   // Listen for SLA alerts
   useEffect(() => {
     const handler = (e: Event) => {
@@ -354,6 +333,27 @@ export function useRealtimeInbox() {
     }
     await Promise.all([refetch(), refetchSelectedMessages()]);
   });
+
+  // Reconcile message queue with incoming messages — must be after messageQueue is initialized
+  useEffect(() => {
+    if (!selectedMessages || selectedMessages.length === 0 || !selectedContactId) return;
+    const recent = selectedMessages.slice(-10);
+    recent.forEach((msg) => {
+      if (msg.external_id && (msg.sender === 'agent' || msg.sender === 'bot')) {
+        const status =
+          msg.status === 'failed' || msg.status === 'failed_auth' || msg.status === 'failed_retries'
+            ? 'failed'
+            : 'confirmed';
+        messageQueue.reconcileWithDelivery(selectedContactId, msg.external_id, status);
+      } else if (msg.content && msg.sender === 'bot') {
+        messageQueue.reconcileWithDelivery(
+          selectedContactId,
+          msg.content,
+          msg.status === 'failed' ? 'failed' : 'confirmed'
+        );
+      }
+    });
+  }, [selectedMessages, selectedContactId, messageQueue]);
 
   const handleSelectConversation = useCallback(
     (contactId: string) => {
