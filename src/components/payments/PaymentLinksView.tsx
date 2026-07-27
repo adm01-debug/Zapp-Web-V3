@@ -63,6 +63,7 @@ export function PaymentLinksView() {
       )
       .subscribe();
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel).catch(() => {});
     };
   }, [fetchData]);

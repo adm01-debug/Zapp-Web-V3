@@ -57,11 +57,14 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'team_message_reactions' },
         () => {
-          void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.reactions(conversationId) });
+          void queryClient.invalidateQueries({
+            queryKey: queryKeys.teamChat.reactions(conversationId),
+          });
         }
       )
       .subscribe();
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [conversationId, queryClient]);
@@ -117,7 +120,10 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
     },
     onError: (err: { status?: number; code?: string | number } & Error, _variables, context) => {
       if (context?.previousReactions) {
-        queryClient.setQueryData(queryKeys.teamChat.reactions(conversationId), context.previousReactions);
+        queryClient.setQueryData(
+          queryKeys.teamChat.reactions(conversationId),
+          context.previousReactions
+        );
       }
       const e = err as { status?: number; code?: string };
       const status = e?.status || e?.code;

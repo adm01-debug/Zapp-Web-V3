@@ -106,6 +106,7 @@ export function QrAttemptsPanel() {
       })
       .subscribe();
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
@@ -220,8 +221,17 @@ export function QrAttemptsPanel() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
-                <SelectTrigger className="h-9 w-[140px]"><SelectValue /></SelectTrigger>
+              <Select
+                value={statusFilter}
+                onValueChange={(v) =>
+                  setStatusFilter(
+                    v as typeof statusFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
+                  )
+                }
+              >
+                <SelectTrigger className="h-9 w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos status</SelectItem>
                   <SelectItem value="pending">Pendente</SelectItem>

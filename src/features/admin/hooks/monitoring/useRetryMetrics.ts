@@ -56,7 +56,12 @@ export interface RetryMetricsFilters {
 export function useRetryMetrics(filters: RetryMetricsFilters = {}) {
   const queryClient = useQueryClient();
   const { hours = 24, action = null, instance = null, status = null } = filters;
-  const queryKey = queryKeys.adminOps.evolutionRetryMetricsFiltered({ hours, action, instance, status });
+  const queryKey = queryKeys.adminOps.evolutionRetryMetricsFiltered({
+    hours,
+    action,
+    instance,
+    status,
+  });
 
   const query = useQuery<RetryMetricsResponse>({
     queryKey,
@@ -121,12 +126,15 @@ export function useRetryMetrics(filters: RetryMetricsFilters = {}) {
         'postgres_changes',
         { event: 'INSERT', schema: 'zapp', table: 'evolution_retry_metrics' },
         () => {
-          void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.evolutionRetryMetrics() });
+          void queryClient.invalidateQueries({
+            queryKey: queryKeys.adminOps.evolutionRetryMetrics(),
+          });
         }
       )
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [queryClient]);

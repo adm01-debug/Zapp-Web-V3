@@ -50,9 +50,7 @@ function readPersistedSession(): Session | null {
       keys.sort((a, b) => a.length - b.length)[0];
     const chunkKeys = keys
       .filter((k) => k.startsWith(`${baseKey}.`))
-      .sort(
-        (a, b) => Number(a.slice(baseKey.length + 1)) - Number(b.slice(baseKey.length + 1))
-      );
+      .sort((a, b) => Number(a.slice(baseKey.length + 1)) - Number(b.slice(baseKey.length + 1)));
     raw =
       chunkKeys.length > 0
         ? chunkKeys.map((k) => localStorage.getItem(k) ?? '').join('')
@@ -66,11 +64,12 @@ function readPersistedSession(): Session | null {
   const tryParse = (text: string): Session | null => {
     try {
       const parsed = JSON.parse(text) as
-        | (Session & { currentSession?: Session })
-        | { currentSession?: Session };
-      const session = ('access_token' in parsed && parsed.access_token
-        ? parsed
-        : (parsed as { currentSession?: Session }).currentSession) as Session | undefined;
+        (Session & { currentSession?: Session }) | { currentSession?: Session };
+      const session = (
+        'access_token' in parsed && parsed.access_token
+          ? parsed
+          : (parsed as { currentSession?: Session }).currentSession
+      ) as Session | undefined;
       if (!session?.user || !session?.refresh_token) return null;
       // Valida expires_at: deve ser número positivo finito (rejeita null, strings,
       // NaN, Infinity, 0, negativos — todos indicam sessão corrompida ou inválida).
@@ -117,11 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
-      const { data, error } = await withTimeout(
-        authService.getProfile(userId),
-        8000,
-        'getProfile'
-      );
+      const { data, error } = await withTimeout(authService.getProfile(userId), 8000, 'getProfile');
       if (error || !data) {
         log.error('[Auth] Failed to fetch profile for user:', userId, error);
         return;
@@ -242,8 +237,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // guard de try/catch: navigator.onLine pode lançar em ambientes restritos
       // (ex.: extensões de browser, workers com políticas estritas).
       const isOffline = (() => {
-        try { return typeof navigator !== 'undefined' && !navigator.onLine; }
-        catch { return false; }
+        try {
+          return typeof navigator !== 'undefined' && !navigator.onLine;
+        } catch {
+          return false;
+        }
       })();
       if (isOffline) {
         log.warn('[Auth] Dispositivo offline e sem sessão local — aguardando rede.');
@@ -411,7 +409,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [refreshAll, runBootstrap, retryBootstrap]);
 
-
   useEffect(() => {
     if (!user) return;
 
@@ -450,7 +447,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .subscribe();
 
     return () => {
+      profileChannel.unsubscribe();
       supabase.removeChannel(profileChannel);
+      rolesChannel.unsubscribe();
       supabase.removeChannel(rolesChannel);
     };
   }, [user, fetchProfile, fetchRolesAndPermissions]);

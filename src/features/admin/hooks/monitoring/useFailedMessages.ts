@@ -1,4 +1,3 @@
-
 import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
@@ -118,11 +117,15 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         }
         return true;
       });
-      const total = (rootCause && filtered.length !== list.length)
-        ? filtered.length
-        : (list[0]?.total_count != null ? Number(list[0].total_count) : 0);
+      const total =
+        rootCause && filtered.length !== list.length
+          ? filtered.length
+          : list[0]?.total_count != null
+            ? Number(list[0].total_count)
+            : 0;
       const rows: FailedMessageRow[] = filtered.map(
-        ({ total_count: _t, ...rest }: Record<string, unknown>) => rest as unknown as FailedMessageRow
+        ({ total_count: _t, ...rest }: Record<string, unknown>) =>
+          rest as unknown as FailedMessageRow
       );
       return { rows, total, deniedReason: null as string | null };
     },
@@ -163,6 +166,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       })
       .subscribe();
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [queryClient]);

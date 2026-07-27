@@ -109,6 +109,7 @@ export function WhisperMode({
       )
       .subscribe();
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel).catch(() => {});
     };
   }, [contactId, queryClient, contactIsUUID]);
@@ -232,7 +233,9 @@ export function WhisperMode({
                     toast.error('Erro ao enviar áudio');
                     return;
                   }
-                  sendWhisper.mutate({ audioUrl: resolvePublicStorageUrl('audio-messages', data.path) ?? '' });
+                  sendWhisper.mutate({
+                    audioUrl: resolvePublicStorageUrl('audio-messages', data.path) ?? '',
+                  });
                 }}
               />
               <Button
