@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import {
   Dialog,
@@ -123,17 +123,7 @@ export function InstanceSettingsDialog({
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loadingTab, setLoadingTab] = useState('');
 
-  useEffect(() => {
-    if (open && instanceName) {
-      loadSettings();
-      loadProfile();
-      if (connectionId) {
-        loadReconnectConfig();
-      }
-    }
-  }, [open, instanceName, connectionId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadReconnectConfig = async () => {
+  const loadReconnectConfig = useCallback(async () => {
     if (!connectionId) return;
     try {
       const { data, error } = await safeFrom('whatsapp_connections')
@@ -154,7 +144,51 @@ export function InstanceSettingsDialog({
     } catch (err) {
       log.error('Error loading reconnect config:', err);
     }
-  };
+  }, [connectionId, mountedRef]);
+
+  const loadSettings = useCallback(async () => {
+    setLoadingTab('settings');
+    try {
+      const data = (await getSettings(instanceName)) as Record<string, unknown> | null;
+      if (data && mountedRef.current)
+        setSettingsData({
+          rejectCall: (data.rejectCall as boolean) ?? false,
+          msgCall: (data.msgCall as string) ?? '',
+          groupsIgnore: (data.groupsIgnore as boolean) ?? false,
+          alwaysOnline: (data.alwaysOnline as boolean) ?? false,
+          readMessages: (data.readMessages as boolean) ?? false,
+          readStatus: (data.readStatus as boolean) ?? false,
+          syncFullHistory: (data.syncFullHistory as boolean) ?? false,
+        });
+    } catch (err) {
+      log.error('Error loading settings:', err);
+    }
+    if (mountedRef.current) setLoadingTab('');
+  }, [instanceName, getSettings, mountedRef]);
+
+  const loadProfile = useCallback(async () => {
+    try {
+      const data = (await fetchProfile(instanceName)) as Record<string, unknown> | null;
+      if (data && mountedRef.current)
+        setProfile({
+          name: (data.name as string) ?? '',
+          status: (data.status as string) ?? '',
+          pictureUrl: (data.profilePictureUrl as string) ?? '',
+        });
+    } catch (err) {
+      log.error('Error loading profile:', err);
+    }
+  }, [instanceName, fetchProfile, mountedRef]);
+
+  useEffect(() => {
+    if (open && instanceName) {
+      loadSettings();
+      loadProfile();
+      if (connectionId) {
+        loadReconnectConfig();
+      }
+    }
+  }, [open, instanceName, connectionId, loadSettings, loadProfile, loadReconnectConfig]);
 
   const saveReconnectConfig = async () => {
     if (!connectionId) return;
@@ -191,40 +225,6 @@ export function InstanceSettingsDialog({
       log.error('Error loading audit logs:', err);
     }
     if (mountedRef.current) setLoadingTab('');
-  };
-
-  const loadSettings = async () => {
-    setLoadingTab('settings');
-    try {
-      const data = (await getSettings(instanceName)) as Record<string, unknown> | null;
-      if (data && mountedRef.current)
-        setSettingsData({
-          rejectCall: (data.rejectCall as boolean) ?? false,
-          msgCall: (data.msgCall as string) ?? '',
-          groupsIgnore: (data.groupsIgnore as boolean) ?? false,
-          alwaysOnline: (data.alwaysOnline as boolean) ?? false,
-          readMessages: (data.readMessages as boolean) ?? false,
-          readStatus: (data.readStatus as boolean) ?? false,
-          syncFullHistory: (data.syncFullHistory as boolean) ?? false,
-        });
-    } catch (err) {
-      log.error('Error loading settings:', err);
-    }
-    if (mountedRef.current) setLoadingTab('');
-  };
-
-  const loadProfile = async () => {
-    try {
-      const data = (await fetchProfile(instanceName)) as Record<string, unknown> | null;
-      if (data && mountedRef.current)
-        setProfile({
-          name: (data.name as string) ?? '',
-          status: (data.status as string) ?? '',
-          pictureUrl: (data.profilePictureUrl as string) ?? '',
-        });
-    } catch (err) {
-      log.error('Error loading profile:', err);
-    }
   };
 
   const loadLabels = async () => {
