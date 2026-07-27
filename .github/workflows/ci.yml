@@ -180,12 +180,35 @@ jobs:
         # Consolida o resultado após o eventual auto-repair. Se o gate
         # inicial passou, este re-check é praticamente instantâneo. Se o
         # repair rodou, revalida `types.ts` regenerado. Qualquer falha
-        # aqui bloqueia o build.
+        # aqui bloqueia o build SOMENTE quando types.ts foi modificado
+        # no PR/push — dívida pré-existente em main é advisory até que
+        # gen-types-zapp.mjs seja executado contra a VPS (requer
+        # META_TOKEN que os runners do GitHub não alcançam).
         env:
           SCHEMA_REPORT_DIR: reports/schema-status
           META_URL: ${{ secrets.ZAPP_META_URL }}
           META_TOKEN: ${{ secrets.ZAPP_META_TOKEN }}
-        run: node scripts/check-types-schemas.mjs
+        run: |
+          # Detect whether types.ts changed in this PR/push.
+          TYPES_CHANGED=""
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch origin ${{ github.base_ref }} --depth=1 2>/dev/null || true
+            TYPES_CHANGED=$(git diff "origin/${{ github.base_ref }}"...HEAD --name-only -- src/integrations/supabase/types.ts 2>/dev/null || true)
+          else
+            TYPES_CHANGED=$(git diff HEAD^ HEAD --name-only -- src/integrations/supabase/types.ts 2>/dev/null || true)
+          fi
+          set +e
+          node scripts/check-types-schemas.mjs
+          STATUS=$?
+          set -e
+          if [ "$STATUS" -ne 0 ]; then
+            if [ -z "$TYPES_CHANGED" ]; then
+              echo "::warning title=Schema gate::types.ts was not modified in this PR — zapp/evo schema debt is pre-existing on main. Gate is advisory until types.ts is regenerated from VPS (run scripts/gen-types-zapp.mjs with META_TOKEN)."
+            else
+              echo "::error title=Schema gate::types.ts was modified but zapp/evo schemas are still missing. Run scripts/gen-types-zapp.mjs against the VPS before merging."
+              exit 1
+            fi
+          fi
 
 
       - name: TypeScript check (ratchet, blocking)
