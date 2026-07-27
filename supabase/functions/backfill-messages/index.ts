@@ -148,19 +148,38 @@ Deno.serve(async (req) => {
     });
 
   const body = await req.json().catch(() => ({}));
-  const offset: number  = Number(body.offset ?? 0);
+  // cursor_after_ts: ISO timestamp string — only fetch messages with
+  // messageTimestamp > this value (Unix seconds).  Preferred over offset because
+  // it avoids re-scanning already-processed rows.  The response includes
+  // next_cursor_ts (ISO of the last message's timestamp) for chaining.
+  // offset still accepted for backwards-compat but deprecated.
+  const cursorAfterTs: string | null = (typeof body.cursor_after_ts === 'string')
+    ? body.cursor_after_ts
+    : null;
+  const offset: number  = cursorAfterTs ? 0 : Number(body.offset ?? 0);
   const limit: number   = Math.min(Number(body.limit ?? 200), 500);
   const dryRun: boolean = body.dryRun === true;
 
-  console.log(`[backfill] start offset=${offset} limit=${limit} dryRun=${dryRun}`);
+  // Convert cursor ISO string to Unix seconds for the Evolution API where filter
+  const cursorUnixSec: number | null = cursorAfterTs
+    ? Math.floor(new Date(cursorAfterTs).getTime() / 1000)
+    : null;
+
+  console.log(`[backfill] start cursor_after_ts=${cursorAfterTs ?? 'none'} offset=${offset} limit=${limit} dryRun=${dryRun}`);
 
   // 1. Buscar mensagens da Evolution API
   let evMsgs: Record<string, unknown>[] = [];
   try {
+    // Use timestamp-based filter when a cursor is provided — Evolution API
+    // supports { where: { messageTimestamp: { gte: <unix_seconds> } } }.
+    // This avoids re-scanning already-processed messages on each page.
+    const whereClause = cursorUnixSec
+      ? { messageTimestamp: { gte: cursorUnixSec } }
+      : {};
     const res = await fetch(`${EVOLUTION_URL}/chat/findMessages/${INSTANCE}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_KEY },
-      body: JSON.stringify({ where: {}, limit, offset }),
+      body: JSON.stringify({ where: whereClause, limit, offset }),
     });
     if (!res.ok) {
       const txt = await res.text().catch(() => '');
@@ -180,15 +199,32 @@ Deno.serve(async (req) => {
   console.log(`[backfill] fetched ${evMsgs.length} msgs from Evolution API`);
 
   if (evMsgs.length === 0) {
-    return json({ processed: 0, inserted: 0, skipped: 0, errors: 0, done: true, next_offset: offset });
+    return json({ processed: 0, inserted: 0, skipped: 0, errors: 0, done: true, next_offset: offset, next_cursor_ts: cursorAfterTs });
   }
+
+  // Extract the latest timestamp from this batch for cursor chaining.
+  // messageTimestamp may be Unix seconds (10 digits) or milliseconds (13 digits).
+  let batchMaxTs: number | null = null;
+  for (const m of evMsgs) {
+    const ts = m.messageTimestamp as number | string | undefined;
+    if (ts) {
+      const n = typeof ts === 'string' ? parseInt(ts, 10) : ts;
+      if (!isNaN(n) && n > 0) {
+        const normalized = n < 1e10 ? n : Math.floor(n / 1000); // normalize to seconds
+        if (batchMaxTs === null || normalized > batchMaxTs) batchMaxTs = normalized;
+      }
+    }
+  }
+  const nextCursorTs: string | null = batchMaxTs
+    ? new Date(batchMaxTs * 1000).toISOString()
+    : null;
 
   if (dryRun) {
     const sample = evMsgs.slice(0, 3).map(m => {
       const key = (m.key ?? {}) as Record<string, unknown>;
       return { message_id: key.id, remoteJid: key.remoteJid, fromMe: key.fromMe };
     });
-    return json({ dryRun: true, count: evMsgs.length, sample, next_offset: offset + evMsgs.length });
+    return json({ dryRun: true, count: evMsgs.length, sample, next_offset: offset + evMsgs.length, next_cursor_ts: nextCursorTs });
   }
 
   const supabase = createZappAdminClient();
@@ -255,10 +291,10 @@ Deno.serve(async (req) => {
     }
   }
 
-  const next_offset = offset + evMsgs.length;
+  const next_offset = cursorAfterTs ? 0 : offset + evMsgs.length;
   const done = evMsgs.length < limit;
 
-  console.log(`[backfill] done: inserted=${inserted} skipped=${skipped} errors=${errors} next_offset=${next_offset}`);
+  console.log(`[backfill] done: inserted=${inserted} skipped=${skipped} errors=${errors} next_offset=${next_offset} next_cursor_ts=${nextCursorTs}`);
 
   return json({
     processed: evMsgs.length,
@@ -266,6 +302,7 @@ Deno.serve(async (req) => {
     skipped,
     errors,
     next_offset,
+    next_cursor_ts: nextCursorTs,
     done,
   });
 });
