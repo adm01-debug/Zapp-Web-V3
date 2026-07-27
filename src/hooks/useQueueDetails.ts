@@ -99,15 +99,20 @@ export function useQueueDetails(id: string | undefined) {
           new Set(contactsData.map((c) => c.assigned_to).filter(Boolean) as string[])
         );
 
-        const [messagesResult, agentResult] = await Promise.all([
-          dbFrom('evolution_messages')
-            .select('contact_id, created_at')
-            .in('contact_id', contactIds)
-            .order('created_at', { ascending: false }),
-          assignedToIds.length > 0
-            ? supabase.from('profiles').select('id, name, avatar_url').in('id', assignedToIds)
-            : Promise.resolve({ data: [] as { id: string; name: string; avatar_url: string | null }[] }),
-        ]);
+        const BATCH = 500;
+        const msgChunks = await Promise.all(
+          Array.from({ length: Math.ceil(contactIds.length / BATCH) }, (_, i) =>
+            dbFrom('evolution_messages')
+              .select('contact_id, created_at')
+              .in('contact_id', contactIds.slice(i * BATCH, (i + 1) * BATCH))
+              .order('created_at', { ascending: false })
+          )
+        );
+        const messagesResult = { data: msgChunks.flatMap((r) => r.data ?? []) };
+
+        const agentResult = assignedToIds.length > 0
+          ? await supabase.from('profiles').select('id, name, avatar_url').in('id', assignedToIds)
+          : { data: [] as { id: string; name: string; avatar_url: string | null }[] };
 
         if (isCancelled()) return;
 

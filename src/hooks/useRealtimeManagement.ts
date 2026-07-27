@@ -34,12 +34,14 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
           new?: Record<string, unknown>;
           old?: Record<string, unknown>;
         }) => {
+          const row = payload.eventType === 'DELETE' ? payload.old : payload.new;
+          if (!row) return;
           setUpdates((prev) => [
             ...prev,
             {
-              id: String(payload.new?.id ?? Date.now()),
+              id: String(row.id ?? `del-${Date.now()}`),
               type: payload.eventType,
-              data: payload.new ?? payload.old ?? {},
+              data: row,
               timestamp: new Date().toISOString(),
             },
           ]);

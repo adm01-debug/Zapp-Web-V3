@@ -51,10 +51,16 @@ export function useAgentPerformanceRanking() {
       if (stats.length === 0) return [];
 
       const profileIds = stats.map((s) => s.profile_id);
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, name, avatar_url')
-        .in('id', profileIds as never);
+      const BATCH = 500;
+      const profileChunks = await Promise.all(
+        Array.from({ length: Math.ceil(profileIds.length / BATCH) }, (_, i) =>
+          supabase
+            .from('profiles')
+            .select('id, name, avatar_url')
+            .in('id', profileIds.slice(i * BATCH, (i + 1) * BATCH) as never)
+        )
+      );
+      const profilesData = profileChunks.flatMap((r) => r.data ?? []);
 
       const profiles = unwrapRows<ProfileRow>(profilesData);
       const profileMap = new Map(profiles.map((p) => [p.id, p]));

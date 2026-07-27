@@ -126,11 +126,14 @@ async function fetchMessageDiagnostics(): Promise<MessageDiagnostic> {
     );
     const contactNameMap = new Map<string, string>();
     if (contactIds.length > 0) {
-      const { data: contacts } = await supabase
-        .from('contacts')
-        .select('id, name')
-        .in('id', contactIds);
-      contacts?.forEach((c) => contactNameMap.set(c.id, c.name));
+      const BATCH = 500;
+      for (let i = 0; i < contactIds.length; i += BATCH) {
+        const { data: contacts } = await supabase
+          .from('contacts')
+          .select('id, name')
+          .in('id', contactIds.slice(i, i + BATCH));
+        contacts?.forEach((c) => contactNameMap.set(c.id, c.name));
+      }
     }
     for (const f of failures) {
       recentFailures.push({

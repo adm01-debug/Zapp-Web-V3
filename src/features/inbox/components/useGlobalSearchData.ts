@@ -252,18 +252,28 @@ export function useGlobalSearchData(open: boolean) {
               `name.ilike.%${safeQuery}%,surname.ilike.%${safeQuery}%,phone.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%`
             );
 
+          type ContactRow = {
+            id: string;
+            name: string;
+            surname: string | null;
+            phone: string | null;
+            email: string | null;
+            created_at: string;
+            tags: string[] | null;
+          };
           const { data: contacts } = await contactQuery
             .order('name', { ascending: true })
             .limit(10);
           if (contacts) {
-            let filtered = contacts as any[];
+            const typed = contacts as ContactRow[];
+            let filtered = typed;
             if (tags.length > 0) {
               const tagNames = allTags.filter((t) => tags.includes(t.id)).map((t) => t.name);
-              filtered = (contacts as any[]).filter(
-                (c: any) => c.tags && c.tags.some((tag: string) => tagNames.includes(tag))
+              filtered = typed.filter(
+                (c) => c.tags && c.tags.some((tag) => tagNames.includes(tag))
               );
             }
-            filtered.forEach((contact: any) => {
+            filtered.forEach((contact) => {
               searchResults.push({
                 id: contact.id,
                 type: 'contact',
@@ -271,7 +281,7 @@ export function useGlobalSearchData(open: boolean) {
                 preview: contact.phone || contact.email || '',
                 timestamp: new Date(contact.created_at),
                 contactId: contact.id,
-                tags: contact.tags,
+                tags: contact.tags ?? undefined,
               });
             });
           }
