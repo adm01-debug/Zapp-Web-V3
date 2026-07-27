@@ -25,7 +25,7 @@ export const messageService = {
       id: m.id || '',
       conversationId: m.conversationId || m.contact_id || '',
       timestamp: createdAt ? new Date(createdAt) : new Date(),
-      isEdited: !!m.is_deleted === false, // Heuristic for mapped types
+      isEdited: m.is_deleted == null, // true only when is_deleted is null/undefined
       type: (m.message_type || m.type || 'text') as Message['type'],
       mediaUrl: m.media_url || m.mediaUrl || '',
       sender: (m.sender || (m.sender_id ? 'agent' : 'contact')) as Message['sender'],
