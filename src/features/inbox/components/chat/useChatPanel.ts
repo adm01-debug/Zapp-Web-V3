@@ -187,7 +187,7 @@ export function useChatPanel({
 
   useEffect(() => {
     initResolve();
-  }, [conversation.contact.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [conversation.contact.id, initResolve]);
 
   useAutomations({
     remoteJid: conversation.contact.id,
