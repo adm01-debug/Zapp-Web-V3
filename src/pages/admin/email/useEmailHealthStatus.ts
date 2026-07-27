@@ -48,6 +48,7 @@ export function useEmailHealthStatus() {
 
   const mountedRef = useMountedRef();
 
+  /** Fetches email health metrics from the edge function, falling back to the DB health summary on error. */
   const loadHealth = async () => {
     setLoading(true);
     try {
@@ -158,6 +159,7 @@ export function useEmailHealthStatus() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
+  /** Triggers a backend token revalidation job and shows a toast promise tracking its progress. */
   const handleRevalidate = async () => {
     const revalidatePromise = async () => {
       const projectUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -180,6 +182,7 @@ export function useEmailHealthStatus() {
     });
   };
 
+  /** Executes a named admin action (markRead or rpc_test) on a specific thread/account and reports the result. */
   const handleAction = async (action: 'markRead' | 'rpc_test', id: string) => {
     setIsRetrying((prev) => ({ ...prev, [id]: true }));
     try {

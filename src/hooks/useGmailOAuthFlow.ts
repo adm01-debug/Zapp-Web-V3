@@ -75,6 +75,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
 
   // ── Calcula status do token ─────────────────────────────────────────
 
+  /** Computes and stores the token status (valid/expiring/expired/disconnected) for each email account. */
   const computeStatuses = useCallback((accs: EmailAccount[]) => {
     const now = Date.now();
     const statuses: Record<string, TokenStatus> = {};
@@ -100,6 +101,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
 
   // ── Refresh de token ────────────────────────────────────────────────
 
+  /** Refreshes the OAuth token for a given email account, guarding against concurrent refresh calls. */
   const refreshNow = useCallback(async (accountId: string) => {
     if (refreshingRef.current.has(accountId)) return;
     refreshingRef.current.add(accountId);
@@ -168,6 +170,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
 
   // ── OAuth initiate ──────────────────────────────────────────────────
 
+  /** Opens the Google OAuth popup, listens for the auth-code message, and exchanges the code for tokens. */
   const startOAuth = useCallback(() => {
     // Guarda contra clique duplo / chamadas concorrentes: sem isto, dois
     // listeners 'message' ficariam ativos e ambos tentariam exchangeCode
@@ -272,6 +275,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
 
   // ── Disconnect ───────────────────────────────────────────────────
 
+  /** Revokes the OAuth token and removes the email account from the local token-status map. */
   const disconnect = useCallback(async (accountId: string) => {
     try {
       await emailRevokeAccount(accountId);
