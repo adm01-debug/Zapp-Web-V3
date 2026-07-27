@@ -13,12 +13,13 @@ import { getCorsHeaders } from '../_shared/cors.ts';
  */
 
 const EVOLUTION_URL = Deno.env.get('EVOLUTION_API_URL') ?? 'https://evolution.atomicabr.com.br';
-const EVOLUTION_KEY = Deno.env.get('EVOLUTION_API_KEY') ?? '2D10188F28DD94ACD5D18DFDB01BFB07';
+const EVOLUTION_KEY = Deno.env.get('EVOLUTION_API_KEY');
+if (!EVOLUTION_KEY) throw new Error('[backfill] EVOLUTION_API_KEY env var is required');
 const INSTANCE = 'wpp2';
 const CONNECTION_ID = '7296bde3-1349-44da-bad6-a017b1951303';
 
-// messageTypes que devem ser ignorados no backfill
-const SKIP_TYPES = new Set(['reaction', 'stickerMessage', 'protocolMessage', 'ephemeralMessage']);
+// messageTypes que devem ser ignorados no backfill (valores normalizados de extractMessageType)
+const SKIP_TYPES = new Set(['reaction', 'sticker', 'protocolMessage', 'ephemeralMessage']);
 
 // Normaliza phone_number: remove @s.whatsapp.net, trata grupos (retorna null para @g.us)
 function extractPhone(remoteJid: string): string | null {
@@ -81,8 +82,8 @@ function tsToIso(ts: number | string | undefined): string {
   if (!ts) return new Date().toISOString();
   const n = typeof ts === 'string' ? parseInt(ts, 10) : ts;
   if (isNaN(n) || n <= 0) return new Date().toISOString();
-  // Se for em segundos (< 2e12), multiplicar por 1000
-  return new Date(n < 2e12 ? n * 1000 : n).toISOString();
+  // Separar segundos (10 dígitos, ~1.8e9) de milissegundos (13 dígitos, ~1.8e12)
+  return new Date(n < 1e10 ? n * 1000 : n).toISOString();
 }
 
 // Garante/cria contato e retorna seu UUID
@@ -92,11 +93,12 @@ async function upsertContact(
   remoteJid: string,
   pushName: string | undefined,
 ): Promise<string | null> {
-  // Tenta buscar contato existente por phone
+  // Tenta buscar contato existente por phone (excluindo soft-deleted)
   const { data: existing } = await supabase
     .from('evolution_contacts')
     .select('id')
     .eq('instance_name', INSTANCE)
+    .is('deleted_at', null)
     .or(`phone_number.eq.${phone},remote_jid.eq.${remoteJid}`)
     .limit(1)
     .maybeSingle();
@@ -211,15 +213,19 @@ Deno.serve(async (req) => {
     // Pular tipos ignorados
     if (SKIP_TYPES.has(msgType)) { skipped++; continue; }
 
-    // Garantir contato
+    // Pular mensagens sem ID estável (null msgId seria não-único no UNIQUE constraint)
+    if (!msgId) { skipped++; continue; }
+
+    // Garantir contato — abortar se falhar (evita orphan com contact_id=null)
     const contactId = await upsertContact(supabase, phone, remoteJid, pushName || undefined);
+    if (!contactId) { errors++; continue; }
 
     // Inserir mensagem com ON CONFLICT DO NOTHING
     const { error: insErr } = await supabase
       .schema('evo' as 'zapp')
       .from('evolution_messages')
       .insert({
-        message_id:    msgId || null,
+        message_id:    msgId,
         remote_jid:    remoteJid,
         from_me:       fromMe,
         direction:     fromMe ? 'outbound' : 'inbound',
@@ -228,10 +234,9 @@ Deno.serve(async (req) => {
         content:       extractContent(msg),
         push_name:     pushName || null,
         instance_name: INSTANCE,
-        contact_id:    contactId ?? null,
-        created_at:    tsToIso(tsRaw),
-        payload:       msg as unknown as Record<string, unknown>,
-        raw_data:      msg as unknown as Record<string, unknown>,
+        contact_id:    contactId,
+        timestamp:     tsToIso(tsRaw),
+        raw:           msg as unknown as Record<string, unknown>,
       })
       .select('id')
       // ON CONFLICT DO NOTHING via postgrest: ignorar erro de unique violation

@@ -84,7 +84,7 @@ BEGIN
     v_score := v_score - 20;
     v_penalties := v_penalties || jsonb_build_object(
       'code', 'messages_no_contact',
-      'detail', format('%s messages (%.1f%%) lack contact_id', v_msg_no_contact, 100.0 * v_msg_no_contact / v_msg_total),
+      'detail', format('%s messages (%s%%) lack contact_id', v_msg_no_contact, round(100.0 * v_msg_no_contact / v_msg_total, 1)),
       'points', -20
     );
   END IF;
