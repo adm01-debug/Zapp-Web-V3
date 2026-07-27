@@ -16,8 +16,10 @@ const EVOLUTION_URL = Deno.env.get('EVOLUTION_API_URL');
 if (!EVOLUTION_URL) throw new Error('[backfill] EVOLUTION_API_URL env var is required');
 const EVOLUTION_KEY = Deno.env.get('EVOLUTION_API_KEY');
 if (!EVOLUTION_KEY) throw new Error('[backfill] EVOLUTION_API_KEY env var is required');
-const INSTANCE = 'wpp2';
-const CONNECTION_ID = '7296bde3-1349-44da-bad6-a017b1951303';
+const INSTANCE = Deno.env.get('BACKFILL_INSTANCE_NAME');
+if (!INSTANCE) throw new Error('[backfill] BACKFILL_INSTANCE_NAME env var is required');
+const CONNECTION_ID = Deno.env.get('BACKFILL_CONNECTION_ID');
+if (!CONNECTION_ID) throw new Error('[backfill] BACKFILL_CONNECTION_ID env var is required');
 
 // messageTypes que devem ser ignorados no backfill (valores normalizados de extractMessageType)
 const SKIP_TYPES = new Set(['reaction', 'sticker', 'protocolMessage', 'ephemeralMessage']);
