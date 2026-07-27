@@ -12,6 +12,18 @@ import { fetchUnresolvedSecurityAlerts, resolveSecurityAlert } from '@/hooks/use
 
 const log = getLogger('RateLimitRealtimeAlerts');
 
+function playAlertSound() {
+  try {
+    const audio = new Audio('/notification.mp3');
+    audio.volume = 0.5;
+    audio.play().catch((err: unknown) => {
+      log.debug('[RateLimitRealtimeAlerts] alert sound blocked by autoplay policy', err);
+    });
+  } catch (e) {
+    log.warn('[RateLimitRealtimeAlerts] could not create Audio element for alert sound', e);
+  }
+}
+
 const ALERT_CONFIG: Record<
   string,
   { icon: React.ComponentType<{ className?: string }>; color: string; bg: string }
@@ -81,21 +93,7 @@ export function RateLimitRealtimeAlerts() {
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const playAlertSound = () => {
-    try {
-      const audio = new Audio('/notification.mp3');
-      audio.volume = 0.5;
-      // Autoplay may be blocked before user interaction — log at debug, not warn.
-      audio.play().catch((err: unknown) => {
-        log.debug('[RateLimitRealtimeAlerts] alert sound blocked by autoplay policy', err);
-      });
-    } catch (e) {
-      // Audio API unsupported or file unavailable — alerts still work without sound.
-      log.warn('[RateLimitRealtimeAlerts] could not create Audio element for alert sound', e);
-    }
-  };
+  }, [mountedRef]);
 
   const handleDismiss = async (alertId: string) => {
     setDismissed((prev) => new Set([...prev, alertId]));
