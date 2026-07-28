@@ -7,6 +7,12 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { motion } from 'framer-motion';
 import type { TalkXRecipient } from '@/hooks/useTalkX';
 
+/**
+ * FIX 2026-07-28: Polling interval aumentado de 5s para 15s.
+ * MOTIVO: Evitar excesso de requisições simultâneas.
+ */
+const TALKX_POLL_INTERVAL = 15000; // 15s polling (era 5000)
+
 const STATUS_MAP: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   pending: { label: 'Pendente', icon: Clock, color: 'text-muted-foreground' },
   sending: { label: 'Enviando', icon: Loader2, color: 'text-primary' },
@@ -35,8 +41,8 @@ export function TalkXRecipientsList({ campaignId }: Props) {
       return data ?? [];
     },
     enabled: !!campaignId,
-    refetchInterval: 5000,
-    staleTime: 4_000,
+    refetchInterval: TALKX_POLL_INTERVAL,
+    staleTime: 13_000,
   });
 
   if (isLoading) {

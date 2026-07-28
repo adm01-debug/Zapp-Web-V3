@@ -24,7 +24,10 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 1000 * 60 * 5,
+            // FIX 2026-07-28: staleTime aumentado de 5min para 10min
+            // para reduzir refetches desnecessários. Queries com refetchInterval
+            // explícito continuam respeitando seu próprio staleTime.
+            staleTime: 1000 * 60 * 10, // 10 minutos (era 5)
             gcTime: 1000 * 60 * 60,
             // tanstackRetry e a fonte unica da verdade para retry semantico.
             // Erros permanentes (401/403/42501/42P01/permission denied) nunca
