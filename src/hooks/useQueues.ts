@@ -35,12 +35,31 @@ interface QueueWithMembers extends Queue {
   waiting_count: number;
 }
 
+interface CreateQueueInput {
+  name: string;
+  description?: string | null;
+  color?: string;
+}
+
+interface UseQueuesResult {
+  loading: boolean;
+  mutating: boolean;
+  error: Error | null;
+  queues: QueueWithMembers[];
+  refetch: () => void;
+  createQueue: (queue: CreateQueueInput) => Promise<boolean>;
+  deleteQueue: (queueId: string) => Promise<boolean>;
+  addMember: (queueId: string, profileId: string) => Promise<boolean>;
+  removeMember: (queueId: string, profileId: string) => Promise<boolean>;
+}
+
 /** Re-exported module members. */
-export type { Queue, QueueMember, QueueWithMembers };
+export type { Queue, QueueMember, QueueWithMembers, CreateQueueInput, UseQueuesResult };
 
 /** Fetches queues with members and positions, subscribing to realtime changes on queues, queue_members, and queue_positions tables for live updates. */
-export function useQueues() {
+export function useQueues(): UseQueuesResult {
   const [loading, setLoading] = useState(true);
+  const [mutating, setMutating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [queues, setQueues] = useState<QueueWithMembers[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
