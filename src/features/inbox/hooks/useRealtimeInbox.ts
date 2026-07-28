@@ -18,6 +18,14 @@ import { useMessageQueue, QueueItem } from './useMessageQueue';
 import { useInboxHeartbeat } from './useInboxHeartbeat';
 import { useInboxDeepLinks } from './useInboxDeepLinks';
 import { useInboxSource } from './useInboxSource';
+import type { OptimisticMessage, SendExternalResult } from './realtime/externalSenderTypes';
+
+type AddExternalMessageArg = Parameters<NonNullable<ReturnType<typeof useRealtimeInboxSource>['addExternalMessage']>>[0];
+
+/** Converte a bolha otimista (status como string livre) no formato RealtimeMessage esperado pelo store. */
+function toRealtimeMessage(optimistic: OptimisticMessage) {
+  return optimistic as unknown as AddExternalMessageArg;
+}
 
 const log = getLogger('useRealtimeInbox');
 
@@ -285,11 +293,11 @@ export function useRealtimeInbox() {
             },
           });
           if (optimistic.external_id) item.externalId = optimistic.external_id;
-          addExternalMessage?.(optimistic);
+          addExternalMessage?.(toRealtimeMessage(optimistic));
         } else if (attachments && attachments.length > 0) {
           // Send all attachments, track successes. Only add optimistic bubbles
           // if ALL succeed — prevents phantom messages when one file fails.
-          const results: Array<{ optimistic: ReturnType<typeof makeOptimisticBubble>; externalId: string | null }> = [];
+          const results: SendExternalResult[] = [];
           let multiSendFailed = false;
           for (let i = 0; i < attachments.length; i++) {
             if (multiSendFailed) break;
@@ -311,11 +319,11 @@ export function useRealtimeInbox() {
           if (!multiSendFailed) {
             for (const r of results) {
               if (r.externalId) item.externalId = r.externalId;
-              addExternalMessage?.(r.optimistic);
+              addExternalMessage?.(toRealtimeMessage(r.optimistic));
             }
           } else {
             // Remove the queue item so the user can retry
-            messageQueue.remove(item.id);
+            messageQueue.removeFromQueue(item.id);
           }
         } else {
           const { optimistic } = await sendExternalText(contactId, content, {
@@ -325,7 +333,7 @@ export function useRealtimeInbox() {
             },
           });
           if (optimistic.external_id) item.externalId = optimistic.external_id;
-          addExternalMessage?.(optimistic);
+          addExternalMessage?.(toRealtimeMessage(optimistic));
         }
       } catch (err) {
         log.error('Failed to send external message/media:', err);
