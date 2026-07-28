@@ -11,7 +11,8 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from './schema';
 
 // Accept clients bound to either schema (zapp is canonical, public via view proxy).
-type AnySupabaseClient = SupabaseClient<Database, string>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- cliente pode estar ligado a 'zapp' ou 'public'
+type AnySupabaseClient = SupabaseClient<Database, any, any>;
 
 /**
  * Safe WhatsApp Connections Query

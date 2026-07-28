@@ -192,7 +192,7 @@ export default function AdminAutomationLogsPage() {
                     {new Date(r.created_at).toLocaleString()}
                   </TableCell>
                   <TableCell className="font-medium">{ruleName}</TableCell>
-                  <TableCell className="max-w-[180px] truncate text-xs">{r.remote_jid}</TableCell>
+                  <TableCell className="max-w-[180px] truncate text-xs">{String(r.remote_jid ?? '')}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="text-xs">
                       {triggerType}

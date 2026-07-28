@@ -168,7 +168,14 @@ export function useNewConversation(
       };
       const sendValidation = sendTextPayloadSchema.safeParse(rawSendPayload);
       if (!sendValidation.success) {
-        const mapped = mapValidationIssuesToContractError(sendValidation.error.issues);
+        const mapped = mapValidationIssuesToContractError(
+          sendValidation.error.issues.map((i) => ({
+            ...i,
+            path: i.path.filter(
+              (seg): seg is string | number => typeof seg === 'string' || typeof seg === 'number'
+            ),
+          }))
+        );
         toast.error(`${mapped.message} (código: ${mapped.code})`);
         setIsSending(false);
         return;
