@@ -81,7 +81,14 @@ class OfflineQueueDB {
   }
 
   async update(message: QueuedMessage): Promise<void> {
-    return this.remove(message.id).then(() => this.add(message));
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      store.put(message); // atomic upsert, no remove+add gap
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
   }
 
   async clear(): Promise<void> {
