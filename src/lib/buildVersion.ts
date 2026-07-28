@@ -118,7 +118,20 @@ async function checkVersion(): Promise<void> {
       credentials: 'omit',
       headers: { 'Cache-Control': 'no-store', Pragma: 'no-cache' },
       signal: controller.signal,
+      // FIX 2026-07-28: Seguir manualmente em vez de seguir redirects SSO do Vercel.
+      // Deploys em zapp-web-v3-*.vercel.app podem estar atrás de vercel.com SSO
+      // (login obrigatório) que redireciona /version.json → /login. Sem isso,
+      // checkVersion faz loop eterno de fetch + forceBundleRefresh + reload.
+      redirect: 'manual',
     });
+    // FIX 2026-07-28: Tratar 3xx como "ambiente protegido" — não atualizar build id.
+    // Evita loop de reload quando o deploy está protegido por SSO.
+    if (res.status >= 300 && res.status < 400) {
+      log.warn(
+        `[buildVersion] ${VERSION_URL} returned ${res.status} (redirect/SSO) — skipping version check.`,
+      );
+      return;
+    }
     if (!res.ok) return;
     const payload = (await res.json()) as { buildId?: string } | null;
     const remote = payload?.buildId;
@@ -156,6 +169,9 @@ function isSkippableEnv(): boolean {
       host === 'lovableproject-dev.com' || host.endsWith('.lovableproject-dev.com') ||
       host === 'beta.lovable.dev' || host.endsWith('.beta.lovable.dev')
     ) return true;
+    // FIX 2026-07-28: Pular watcher em .vercel.app enquanto SSO protection estiver ativa.
+    // Sem isso, checkVersion busca /version.json -> 302 -> vercel.com/login -> loop.
+    if (host.endsWith('.vercel.app')) return true;
     if (new URL(window.location.href).searchParams.get('sw') === 'off') return true;
   } catch { /* noop */ }
   return false;
