@@ -233,7 +233,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
                 </p>
                 <p className="text-[9px] uppercase text-warning-foreground/60">
                   {formatSize(file.file_size || 0)} •{' '}
-                  {format(new Date(file.created_at), 'dd MMM HH:mm', { locale: ptBR })}
+                  {format(new Date(file.created_at ?? Date.now()), 'dd MMM HH:mm', { locale: ptBR })}
                 </p>
               </div>
               <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">

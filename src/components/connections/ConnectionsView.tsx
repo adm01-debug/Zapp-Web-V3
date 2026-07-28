@@ -455,7 +455,7 @@ export function ConnectionsView() {
                         Payload Evolution API (Mascarado)
                       </p>
                       <pre className="max-h-40 overflow-x-auto rounded bg-black/5 p-2 font-mono text-[9px]">
-                        {JSON.stringify(maskSensitiveData(qrCodeDialog.rawPayload), null, 2)}
+                        {JSON.stringify(maskSensitiveData(qrCodeDialog.rawPayload as Record<string, unknown> | null | undefined), null, 2)}
                       </pre>
                       <p className="text-[8px] italic text-muted-foreground">
                         * Dados sensíveis como chaves de API e strings Base64 foram ocultados por

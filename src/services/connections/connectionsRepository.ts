@@ -87,8 +87,8 @@ export const connectionsRepository = {
 
   // Channel connections
   async listChannelConnections(filters?: Partial<ChannelConnection> & QueryParams) {
-    const limit = filters?.limit ?? 50;
-    const offset = filters?.offset ?? 0;
+    const limit = Number(filters?.limit ?? 50);
+    const offset = Number(filters?.offset ?? 0);
     const { data, error, count } = await supabase
       .from('channel_connections')
       .select('*', { count: 'exact' })

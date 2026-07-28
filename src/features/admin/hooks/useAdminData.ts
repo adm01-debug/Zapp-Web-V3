@@ -223,7 +223,7 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
           toast.error('Erro ao enviar foto');
           return false;
         }
-        avatarUrl = resolvePublicStorageUrl('avatars', filePath);
+        avatarUrl = resolvePublicStorageUrl('avatars', filePath) ?? undefined;
       }
 
       const { error } = await supabase
@@ -291,7 +291,7 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
           toast.error('Erro ao fazer upload da foto');
           return false;
         }
-        avatarUrl = resolvePublicStorageUrl('avatars', filePath);
+        avatarUrl = resolvePublicStorageUrl('avatars', filePath) ?? undefined;
       }
 
       try {
