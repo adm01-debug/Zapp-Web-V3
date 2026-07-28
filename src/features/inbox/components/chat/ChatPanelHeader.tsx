@@ -121,11 +121,7 @@ export function ChatPanelHeader({
               }}
             />
             <AvatarFallback className="bg-primary/15 text-sm font-semibold text-primary">
-              {conversation.contact.name
-                .split(' ')
-                .map((n: any) => n[0])
-                .join('')
-                .slice(0, 2)}
+              {(conversation.contact.name ?? '').split(' ').map((n: any) => n[0]).join('')}
             </AvatarFallback>
           </Avatar>
           <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-card bg-[hsl(var(--online))]" />

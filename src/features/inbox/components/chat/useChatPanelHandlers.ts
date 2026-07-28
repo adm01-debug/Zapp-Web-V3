@@ -21,7 +21,7 @@ interface UseChatPanelHandlersOptions {
   contactId: string;
   contactPhone: string;
   instanceName?: string;
-  onSendMessage: (content: string, attachments?: File[], onProgress?: (p: number) => void) => void;
+  onSendMessage: (content: string, attachments?: File[], onProgress?: (p: number) => void) => Promise<void>;
   editMessageApi: (
     instance: string,
     params: { number: string; messageId: string; text: string }
@@ -84,7 +84,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   const EDIT_WINDOW_MINUTES = 15;
 
   const handleEditStart = useCallback((message: Message) => {
-    const minutesAgo = (Date.now() - message.timestamp.getTime()) / 60000;
+    const minutesAgo = (Date.now() - new Date(message.timestamp).getTime()) / 60000;
     if (minutesAgo > EDIT_WINDOW_MINUTES) {
       toast({
         title: 'Tempo expirado',
@@ -158,11 +158,14 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
       setLastSendError(null);
 
       try {
-        const { simulateLatency, shouldSimulateFailure } =
-          await import('@/features/inbox/utils/simulateChatLatency');
-        await simulateLatency();
-        if (shouldSimulateFailure())
-          throw new Error('Falha simulada no envio via WhatsApp API (Debug Mode)');
+        // ⚠️ Debug-only: simulated latency + failure gate — NEVER in production
+        if (import.meta.env.DEV) {
+          const { simulateLatency, shouldSimulateFailure } =
+            await import('@/features/inbox/utils/simulateChatLatency');
+          await simulateLatency();
+          if (shouldSimulateFailure())
+            throw new Error('Falha simulada no envio via WhatsApp API (Debug Mode)');
+        }
 
         if (isWhisperRef.current) {
           if (attachments && attachments.length > 0)
@@ -196,9 +199,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
           toast({ title: 'Sussurro enviado', description: 'Nota interna registrada com sucesso.' });
           setIsWhisper(false);
         } else {
-          await Promise.resolve(
-            onSendMessage(messageContent, attachments, (p) => setSendProgress(p))
-          );
+          await onSendMessage(messageContent, attachments, (p) => setSendProgress(p));
           setSendProgress(100);
         }
         lastFailedSendRef.current = null;

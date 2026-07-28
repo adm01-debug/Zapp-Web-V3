@@ -96,7 +96,7 @@ export function ChatPanel({
   const { templates: _quickReplyTemplates } = useQuickReplies();
   // Ferramentas de desenvolvimento (Checklist 10/10) só para devs reais.
   const { roles: userRoles } = useUserRole();
-  const isDevExact = userRoles.includes('dev');
+  const isDevExact = (userRoles ?? []).includes('dev');
   const {
     dialogs,
     openDialog,
@@ -301,7 +301,7 @@ export function ChatPanel({
         id: m.id,
         content: m.content,
         sender: m.sender,
-        timestamp: m.timestamp.toISOString(),
+        timestamp: new Date(m.timestamp).toISOString(),
       })),
     [messages]
   );
@@ -537,24 +537,32 @@ export function ChatPanel({
           signatureName={agentName}
           onToggleSignature={toggleSignature}
           onPollSent={async (poll) => {
-            await dbFrom('messages').insert({
-              contact_id: conversation.contact.id,
-              whatsapp_connection_id: whatsappConnectionId,
-              content: `📊 *Enquete:* ${poll.name}\n${poll.options.map((o, i) => `${i + 1}. ${o}`).join('\n')}`,
-              message_type: 'text',
-              sender: 'agent',
-              status: 'sending',
-            });
+            try {
+              await dbFrom('messages').insert({
+                contact_id: conversation.contact.id,
+                whatsapp_connection_id: whatsappConnectionId,
+                content: `📊 *Enquete:* ${poll.name}\n${poll.options.map((o, i) => `${i + 1}. ${o}`).join('\n')}`,
+                message_type: 'text',
+                sender: 'agent',
+                status: 'sending',
+              });
+            } catch (err) {
+              log.error('Failed to insert poll message', err);
+            }
           }}
           onContactSent={async (contactName) => {
-            await dbFrom('messages').insert({
-              contact_id: conversation.contact.id,
-              whatsapp_connection_id: whatsappConnectionId,
-              content: `📇 Cartão de contato: ${contactName}`,
-              message_type: 'text',
-              sender: 'agent',
-              status: 'sending',
-            });
+            try {
+              await dbFrom('messages').insert({
+                contact_id: conversation.contact.id,
+                whatsapp_connection_id: whatsappConnectionId,
+                content: `📇 Cartão de contato: ${contactName}`,
+                message_type: 'text',
+                sender: 'agent',
+                status: 'sending',
+              });
+            } catch (err) {
+              log.error('Failed to insert contact card message', err);
+            }
           }}
           onOpenCatalog={() => openDialog('catalogDirect')}
           onSelectSuggestion={(text) => handlers.setInputValue(text)}

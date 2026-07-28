@@ -26,9 +26,9 @@ export function sortMessagesByCreatedAt(messages: RealtimeMessage[]): RealtimeMe
 
 /**
  * Deterministic dedup by `id` (fallback to `external_id`). When the same key
- * appears more than once, keep the entry with the most recent
- * `status_updated_at`/`created_at` — this prevents realtime races between
- * optimistic INSERT + status UPDATE from producing duplicate bubbles.
+ * appears more than once, canonical DB messages (external_id set) always win
+ * over optimistic bubbles. For two canonical or two optimistic messages with
+ * the same key, keep the one with the most recent status_updated_at/created_at.
  */
 export function dedupeMessages(messages: RealtimeMessage[]): RealtimeMessage[] {
   const byKey = new Map<string, RealtimeMessage>();
@@ -41,6 +41,15 @@ export function dedupeMessages(messages: RealtimeMessage[]): RealtimeMessage[] {
       byKey.set(key, raw);
       continue;
     }
+    // Canonical (has external_id) always wins over optimistic (no external_id)
+    const rawIsCanonical = !!raw.external_id;
+    const prevIsCanonical = !!prev.external_id;
+    if (rawIsCanonical && !prevIsCanonical) {
+      byKey.set(key, raw);
+      continue;
+    }
+    if (!rawIsCanonical && prevIsCanonical) continue; // keep canonical
+    // Both same type: keep most recent
     const prevTs = new Date(prev.status_updated_at || prev.created_at || 0).getTime();
     const nextTs = new Date(raw.status_updated_at || raw.created_at || 0).getTime();
     byKey.set(key, nextTs >= prevTs ? raw : prev);

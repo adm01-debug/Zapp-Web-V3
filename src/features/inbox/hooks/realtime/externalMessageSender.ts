@@ -284,6 +284,9 @@ export async function sendExternalPtv(
 
   const externalId = envelope?.key?.id ?? null;
 
+  // Clean up the local blob URL — it was only needed for optimistic UI preview
+  URL.revokeObjectURL(localVideoUrl);
+
   logAudit(RPC.logOutboundEvent, {
     p_conversation_id: remoteJid,
     p_message_type: 'video_ptv',
