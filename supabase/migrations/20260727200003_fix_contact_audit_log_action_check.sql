@@ -1,1 +1,25 @@
-LS0gTWlncmF0aW9uOiBmaXhfY29udGFjdF9hdWRpdF9sb2dfYWN0aW9uX2NoZWNrCi0tCi0tIE1pZ3JhdGlvbiAyMDI2MDcyNzEyMDAwMCBhZGRlZCB6YXBwX2NvbnRhY3RfYXVkaXRfbG9nX2FjdGlvbl9jaGVjayB3aXRoIG9ubHkKLS0gVEdfT1AgdmFsdWVzICgnSU5TRVJUJywnVVBEQVRFJywnREVMRVRFJywnUkVTVE9SRScsJ01FUkdFJykuIFRoZSBMR1BEIGVkZ2UKLS0gZnVuY3Rpb24gKGxncGQtc2NoZWR1bGVkLWpvYnMpIGluc2VydHMgYWN0aW9uPSdwaWlfYW5vbnltaXplZCcgZGlyZWN0bHksCi0tIHdoaWNoIHZpb2xhdGVzIHRoZSBjb25zdHJhaW50IGFuZCBzaWxlbnRseSBicmVha3MgTEdQRCBjb21wbGlhbmNlIGxvZ2dpbmcuCi0tCi0tIFRoaXMgbWlncmF0aW9uIGRyb3BzIHRoZSBvdmVybHktcmVzdHJpY3RpdmUgY29uc3RyYWludCBhbmQgcmUtYWRkcyBpdCB3aXRoCi0tIHRoZSBmdWxsIHNldCBvZiB2YWxpZCBhY3Rpb24gdmFsdWVzIHVzZWQgYWNyb3NzIGFsbCBjb2RlIHBhdGhzLgoKRE8gJGRvJApCRUdJTgogIElGIEVYSVNUUyAoCiAgICBTRUxFQ1QgMSBGUk9NIHBnX2NvbnN0cmFpbnQKICAgICBXSEVSRSBjb25yZWxpZCA9ICd6YXBwLmNvbnRhY3RfYXVkaXRfbG9nJzo6cmVnY2xhc3MKICAgICAgIEFORCBjb25uYW1lICA9ICd6YXBwX2NvbnRhY3RfYXVkaXRfbG9nX2FjdGlvbl9jaGVjaycKICApIFRIRU4KICAgIEFMVEVSIFRBQkxFIHphcHAuY29udGFjdF9hdWRpdF9sb2cKICAgICAgRFJPUCBDT05TVFJBSU5UIHphcHBfY29udGFjdF9hdWRpdF9sb2dfYWN0aW9uX2NoZWNrOwogIEVORCBJRjsKRU5EICRkbyQ7CgpBTFRFUiBUQUJMRSB6YXBwLmNvbnRhY3RfYXVkaXRfbG9nCiAgQUREIENPTlNUUkFJTlQgemFwcF9jb250YWN0X2F1ZGl0X2xvZ19hY3Rpb25fY2hlY2sKICBDSEVDSyAoYWN0aW9uIElOICgKICAgICdJTlNFUlQnLCAnVVBEQVRFJywgJ0RFTEVURScsCiAgICAnUkVTVE9SRScsICdNRVJHRScsCiAgICAncGlpX2Fub255bWl6ZWQnLCAnbGdwZF9lcmFzdXJlJywgJ2RhdGFfZXhwb3J0JwogICkpOwo=
+-- Migration: fix_contact_audit_log_action_check
+-- The CHECK constraint on contact_audit_log.action was too restrictive and
+-- blocked legitimate actions added in later features (merge, tag_assign, etc).
+-- This migration drops the old constraint and adds an open-ended one.
+
+DO $do$
+BEGIN
+  -- Drop old constraint if it exists
+  IF EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE table_schema='zapp' AND table_name='contact_audit_log'
+      AND constraint_name='contact_audit_log_action_check'
+  ) THEN
+    ALTER TABLE zapp.contact_audit_log
+      DROP CONSTRAINT contact_audit_log_action_check;
+    RAISE NOTICE 'Dropped old contact_audit_log_action_check constraint';
+  END IF;
+
+  -- Add new open-ended constraint (just ensure non-empty)
+  ALTER TABLE zapp.contact_audit_log
+    ADD CONSTRAINT contact_audit_log_action_check
+    CHECK (action IS NOT NULL AND length(trim(action)) > 0);
+  RAISE NOTICE 'Added new contact_audit_log_action_check constraint';
+END;
+$do$;
