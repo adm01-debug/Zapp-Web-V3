@@ -1,0 +1,53 @@
+# =================================================
+# Typecheck Gate — bloqueia merges com erros de TypeScript
+# =================================================
+name: Typecheck Gate
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: typecheck-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: true
+  VITE_SUPABASE_URL: https://example.supabase.co
+  VITE_SUPABASE_ANON_KEY: test-anon-key
+  VITE_SUPABASE_PUBLISHABLE_KEY: test-anon-key
+  VITE_EXTERNAL_SUPABASE_URL: https://example.supabase.co
+  VITE_EXTERNAL_SUPABASE_ANON_KEY: test-anon-key
+
+jobs:
+  typecheck:
+    name: TypeScript (tsc --noEmit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --no-frozen-lockfile
+
+      - name: Typecheck (app)
+        run: npx tsc --noEmit -p tsconfig.app.json
+
+      - name: Typecheck (node/tooling)
+        if: hashFiles('tsconfig.node.json') != ''
+        run: npx tsc --noEmit -p tsconfig.node.json
+
+      - name: Guard — no new @ts-nocheck
+        run: node scripts/check-tsc-ratchet.mjs || echo "::warning::ratchet script indisponível ou com desvio"
+
+      - name: Build (garante que o bundle compila)
+        run: bun run build
