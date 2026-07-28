@@ -47,8 +47,9 @@ export function QueuesView() {
     queues.forEach((queue) => {
       const queueGoal = goals[queue.id];
       if (!queueGoal || !queueGoal.alerts_enabled) return;
-      const maxWaiting = maxWaiting ?? Number.POSITIVE_INFINITY;
-      const minAssignment = minAssignment ?? 0;
+      const maxWaiting = queueGoal.max_waiting_contacts ?? Number.POSITIVE_INFINITY;
+      const minAssignment = queueGoal.min_assignment_rate ?? 0;
+
       const activeMembers = queue.members.filter((m) => m.is_active).length;
       const assignmentRate =
         queue.waiting_count + activeMembers > 0
