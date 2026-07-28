@@ -20,7 +20,9 @@ import { useInboxDeepLinks } from './useInboxDeepLinks';
 import { useInboxSource } from './useInboxSource';
 import type { OptimisticMessage, SendExternalResult } from './realtime/externalSenderTypes';
 
-type AddExternalMessageArg = Parameters<NonNullable<ReturnType<typeof useRealtimeInboxSource>['addExternalMessage']>>[0];
+type AddExternalMessageArg = Parameters<
+  NonNullable<ReturnType<typeof useInboxSource>['addExternalMessage']>
+>[0];
 
 /** Converte a bolha otimista (status como string livre) no formato RealtimeMessage esperado pelo store. */
 function toRealtimeMessage(optimistic: OptimisticMessage) {
