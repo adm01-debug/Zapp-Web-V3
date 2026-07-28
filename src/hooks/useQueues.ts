@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface QueueMemberProfile {
@@ -42,6 +42,7 @@ export function useQueues() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [queues, setQueues] = useState<QueueWithMembers[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
   const channelName = useRef(`queues-realtime:${Math.random().toString(36).slice(2, 10)}`);
 
   useEffect(() => {
@@ -102,7 +103,57 @@ export function useQueues() {
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
+  }, [refreshKey]);
+
+  const refetch = useCallback(() => {
+    setRefreshKey((k) => k + 1);
   }, []);
 
-  return { loading, error, queues };
+  const createQueue = useCallback(
+    async (queue: { name: string; description?: string; color?: string }) => {
+      const { error: err } = await supabase.from('queues').insert({
+        name: queue.name,
+        description: queue.description ?? null,
+        color: queue.color ?? '#3B82F6',
+      });
+      if (err) throw err;
+      refetch();
+    },
+    [refetch]
+  );
+
+  const deleteQueue = useCallback(
+    async (queueId: string) => {
+      const { error: err } = await supabase.from('queues').delete().eq('id', queueId);
+      if (err) throw err;
+      refetch();
+    },
+    [refetch]
+  );
+
+  const addMember = useCallback(
+    async (queueId: string, profileId: string) => {
+      const { error: err } = await supabase
+        .from('queue_members')
+        .insert({ queue_id: queueId, profile_id: profileId, is_active: true });
+      if (err) throw err;
+      refetch();
+    },
+    [refetch]
+  );
+
+  const removeMember = useCallback(
+    async (queueId: string, profileId: string) => {
+      const { error: err } = await supabase
+        .from('queue_members')
+        .delete()
+        .eq('queue_id', queueId)
+        .eq('profile_id', profileId);
+      if (err) throw err;
+      refetch();
+    },
+    [refetch]
+  );
+
+  return { loading, error, queues, refetch, createQueue, deleteQueue, addMember, removeMember };
 }

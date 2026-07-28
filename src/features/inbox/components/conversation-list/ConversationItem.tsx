@@ -28,35 +28,49 @@ import { toValidDate } from '@/utils/date/normalize';
 
 interface ConversationContact {
   id?: string;
-  name?: string;
-  pushName?: string;
-  phone?: string;
+  name?: string | null;
+  pushName?: string | null;
+  phone?: string | null;
   contact_type?: string | null;
-  avatar?: string;
-  avatar_url?: string;
-  company_name?: string;
-  company?: string;
-  organization?: string;
-  job_title?: string;
-  jobTitle?: string;
-  role?: string;
-  updated_at?: string;
-  ai_sentiment?: SentimentLevel | null;
-  tags?: string[];
+  avatar?: string | null;
+  avatar_url?: string | null;
+  company_name?: string | null;
+  company?: string | null;
+  organization?: string | null;
+  job_title?: string | null;
+  jobTitle?: string | null;
+  role?: string | null;
+  updated_at?: string | null;
+  ai_sentiment?: SentimentLevel | string | null;
+  tags?: string[] | null;
 }
 
 interface ConversationLike {
-  id: string;
-  contact?: ConversationContact;
-  status?: string;
+  id?: string;
+  contact?: ConversationContact | null;
+  status?: string | null;
   unreadCount?: number;
-  lastMessage?: { content?: string; created_at?: string };
-  updatedAt?: string;
-  assignedTo?: { id?: string; name: string; avatar?: string };
-  priority?: string;
+  lastMessage?: {
+    id?: string;
+    content?: string | null;
+    created_at?: string | null;
+    sender?: string;
+    status?: string | null;
+    retry_attempt?: number | null;
+    retry_total?: number | null;
+  } | null;
+  updatedAt?: string | Date | null;
+  createdAt?: string | Date | null;
+  assignedTo?: string | { id?: string; name?: string; avatar?: string | null } | null;
+  priority?: string | null;
   sentimentScore?: number;
-  sentiment?: SentimentLevel | null;
+  sentiment?: SentimentLevel | string | null;
+  pinnedAt?: string | null;
+  queue?: { id: string; name?: string } | null;
+  tags?: string[] | null;
+  connection_type?: string | null;
 }
+
 
 export function ChannelBadge({ type }: { type?: string | null }) {
   const iconClass = 'w-2.5 h-2.5 text-primary-foreground';
@@ -206,13 +220,19 @@ export const ConversationItem = memo(function ConversationItem({
   const { density } = useDensity();
   const isCompactMode = density === 'compact' || density === 'dense' || forceCompact;
 
-  const contact = conversation.contact;
-  const contactId = contact?.id || conversation.id;
+  const contact = conversation.contact ?? undefined;
+  const contactId = contact?.id || conversation.id || '';
   const status = conversation.status || 'open';
   const unreadCount = conversation.unreadCount || 0;
-  const lastMessage = conversation.lastMessage;
-  const tags: string[] = (contact as { tags?: string[] } | undefined)?.tags ?? [];
-  const avatarUrl = contact?.avatar || contact?.avatar_url;
+  const lastMessage = conversation.lastMessage ?? undefined;
+  const tags: string[] = contact?.tags ?? [];
+  const avatarUrl = contact?.avatar || contact?.avatar_url || undefined;
+  const assignedTo =
+    typeof conversation.assignedTo === 'string'
+      ? { id: conversation.assignedTo, name: '', avatar: undefined }
+      : (conversation.assignedTo ?? null);
+  const assignedAvatar = assignedTo?.avatar ?? undefined;
+  const assignedInitial = assignedTo?.name?.[0] ?? '?';
 
   const companyName = contact?.company_name || contact?.company || contact?.organization;
 
@@ -224,12 +244,12 @@ export const ConversationItem = memo(function ConversationItem({
 
   const StatusIcon = statusIcons[status as keyof typeof statusIcons] || AlertCircle;
   const sentiment: SentimentLevel | null =
-    conversation.sentiment ||
+    (conversation.sentiment as SentimentLevel | null | undefined) ||
     (conversation.sentimentScore !== undefined
       ? getSentimentFromScore(conversation.sentimentScore)
-      : contact?.ai_sentiment
-        ? contact.ai_sentiment
-        : null);
+      : ((contact?.ai_sentiment as SentimentLevel | null | undefined) ?? null)) ||
+    null;
+
 
   const rootRef = useRef<HTMLDivElement>(null);
   const inView = useInViewport(rootRef, { rootMargin: '200px', keepVisibleMs: 1500 });
@@ -303,11 +323,11 @@ export const ConversationItem = memo(function ConversationItem({
                     .slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
-              {conversation.assignedTo ? (
+              {assignedTo ? (
                 <Avatar className="absolute -bottom-0.5 -right-0.5 h-4 w-4 ring-1 ring-sidebar">
-                  <AvatarImage src={conversation.assignedTo.avatar} />
+                  <AvatarImage src={assignedAvatar} />
                   <AvatarFallback className="bg-secondary text-[7px] font-bold text-secondary-foreground">
-                    {conversation.assignedTo.name[0]}
+                    {assignedInitial}
                   </AvatarFallback>
                 </Avatar>
               ) : (
@@ -429,11 +449,11 @@ export const ConversationItem = memo(function ConversationItem({
               {lastMessage && (
                 <div className="mt-1 flex flex-col gap-1">
                   <SLAIndicatorForContact
-                    conversation={conversation}
+                    conversation={conversation as never}
                     compact={isCompactMode}
                     className="w-full justify-start"
                   />
-                  <RetryFailureBadge message={lastMessage} compact />
+                  <RetryFailureBadge message={lastMessage as never} compact />
                 </div>
               )}
             </div>
@@ -458,7 +478,7 @@ export const ConversationItem = memo(function ConversationItem({
       )}
       <div className="flex items-center gap-2 border-t border-border/30 pt-1 text-[10px] text-muted-foreground/60">
         <span>
-          {conversation.unreadCount > 0 ? `${conversation.unreadCount} não lidas` : 'Sem novas'}
+          {unreadCount > 0 ? `${unreadCount} não lidas` : 'Sem novas'}
         </span>
         {conversation.status && (
           <span>• {conversation.status === 'resolved' ? 'Resolvido' : 'Aberto'}</span>
@@ -536,11 +556,11 @@ export const ConversationItem = memo(function ConversationItem({
                     .toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              {conversation.assignedTo ? (
+              {assignedTo ? (
                 <Avatar className="absolute -bottom-1 -right-1 h-5 w-5 shadow-sm ring-2 ring-background">
-                  <AvatarImage src={conversation.assignedTo.avatar} />
+                  <AvatarImage src={assignedAvatar} />
                   <AvatarFallback className="bg-secondary text-[8px] font-bold text-secondary-foreground">
-                    {conversation.assignedTo.name[0]}
+                    {assignedInitial}
                   </AvatarFallback>
                 </Avatar>
               ) : (

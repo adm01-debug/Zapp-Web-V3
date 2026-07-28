@@ -98,16 +98,37 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
+interface ChartTooltipItem {
+  name?: string | number;
+  dataKey?: string | number;
+  value?: number | string;
+  color?: string;
+  payload?: Record<string, unknown> & { fill?: string };
+  [key: string]: unknown;
+}
+
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
-    React.ComponentProps<'div'> & {
-      hideLabel?: boolean;
-      hideIndicator?: boolean;
-      indicator?: 'line' | 'dot' | 'dashed';
-      nameKey?: string;
-      labelKey?: string;
-    }
+  Omit<React.ComponentProps<'div'>, 'color'> & {
+    active?: boolean;
+    payload?: ChartTooltipItem[];
+    label?: unknown;
+    labelKey?: string;
+    labelClassName?: string;
+    labelFormatter?: (label: unknown, payload: ChartTooltipItem[]) => React.ReactNode;
+    formatter?: (
+      value: ChartTooltipItem['value'],
+      name: ChartTooltipItem['name'],
+      item: ChartTooltipItem,
+      index: number,
+      payload: ChartTooltipItem[]
+    ) => React.ReactNode;
+    color?: string;
+    hideLabel?: boolean;
+    hideIndicator?: boolean;
+    indicator?: 'line' | 'dot' | 'dashed';
+    nameKey?: string;
+  }
 >(
   (
     {
@@ -176,7 +197,7 @@ const ChartTooltipContent = React.forwardRef<
           {payload.map((item, index) => {
             const key = `${nameKey || item.name || item.dataKey || 'value'}`;
             const itemConfig = getPayloadConfigFromPayload(config, item, key);
-            const indicatorColor = color || item.payload.fill || item.color;
+            const indicatorColor = color || item.payload?.fill || item.color;
 
             return (
               <div
@@ -250,7 +271,13 @@ const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<'div'> &
     Pick<RechartsPrimitive.LegendProps, 'verticalAlign'> & {
-      payload?: RechartsPrimitive.LegendProps['payload'];
+      payload?: Array<{
+        value?: string | number;
+        dataKey?: string | number;
+        color?: string;
+        payload?: Record<string, unknown>;
+        [key: string]: unknown;
+      }>;
       hideIcon?: boolean;
       nameKey?: string;
     }

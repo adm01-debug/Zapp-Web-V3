@@ -29,7 +29,11 @@ import { QueueCard } from './QueueCard';
 export function QueuesView() {
   const navigate = useNavigate();
   const { queues, loading, createQueue, deleteQueue, addMember, removeMember } = useQueues();
-  const { goals } = useQueueGoals();
+  const { goals: goalsList } = useQueueGoals();
+  const goals = useMemo<Record<string, (typeof goalsList)[number]>>(
+    () => Object.fromEntries(goalsList.map((g) => [g.queue_id, g])),
+    [goalsList]
+  );
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
   const [goalsDialogOpen, setGoalsDialogOpen] = useState(false);
