@@ -12,7 +12,7 @@ interface AddMemberDialogProps {
   onOpenChange: (open: boolean) => void;
   queueId: string;
   existingMemberIds: string[];
-  onAddMember: (profileId: string) => Promise<void>;
+  onAddMember: (profileId: string) => void | boolean | Promise<void | boolean>;
 }
 
 /** Add Member Dialog component for the queues section. */
