@@ -40,7 +40,7 @@ export function useTypingPresence({
           (presences as Array<{ userId?: string; userName?: string; isTyping?: boolean }>).forEach(
             (p) => {
               if (p.isTyping && p.userId && p.userId !== currentUserId) {
-                users.push({ userId: p.userId, userName: p.userName || '' });
+                users.push({ userId: p.userId, userName: p.userName || '', name: p.userName || '' });
               }
             }
           );
