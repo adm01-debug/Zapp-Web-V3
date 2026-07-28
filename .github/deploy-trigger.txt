@@ -1,1 +1,11 @@
-deploy triggered 2026-07-28T11:25:00Z
+fix(edge-functions): restaura 4 Edge Functions + Dockerfile + 3 configs (base64)
+
+Scan exaustivo revelou:
+- supabase/functions/lgpd-scheduled-jobs/index.ts
+- supabase/functions/backfill-messages/index.ts
+- supabase/functions/evolution-api/index.ts
+- supabase/functions/_shared/edge-contract-schemas.ts
+- Dockerfile
+- .commitlintrc.json
+- vercel.json
+- docs/security/CREDENTIAL_ROTATION_RUNBOOK.md
