@@ -18,6 +18,9 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { isExternalConfigured, getExternalSupabase } from '@/integrations/supabase/externalClient';
+
+// ignore-audit — nomes de tabela dinâmicos exigem cliente não tipado
+const getDynamicClient = () => getExternalSupabase() as unknown as SupabaseClient;
 import { dbGet, dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { Contact360Data } from '@/types/contact360';
@@ -139,7 +142,7 @@ export function useExternalCargos() {
       const allCargos: string[] = [];
 
       // 1. Fetch from salespeople.role (accessible - no RLS blocking)
-      const { data: salesRoles, error: e1 } = await getExternalSupabase()
+      const { data: salesRoles, error: e1 } = await getDynamicClient()
         .from('salespeople')
         .select('role')
         .not('role', 'is', null)
@@ -875,7 +878,7 @@ export function useExternalCatalog() {
     categories: categoriesQuery.data || [],
     suppliers: suppliersQuery.data || [],
     loading: productsQuery.isLoading || productsQuery.isFetching,
-    error: productsQuery.error?.message || null,
+    error: (productsQuery.error as Error | null)?.message || null,
     fetchProducts,
     fetchProduct,
     fetchCategories,
@@ -900,7 +903,6 @@ import { validateEntityAccess, validateRpcAccess } from '@/integrations/datasour
 // This hook is intentionally generic — it works with arbitrary table/rpc names
 // supplied at runtime, so we use an untyped client to avoid requiring compile-time
 // table name literals that SupabaseClient<Database> enforces.
-const getDynamicClient = () => getExternalSupabase() as unknown as SupabaseClient; // ignore-audit — dynamic table names require untyped client; see comment above
 
 // ─── Direct query helper ────────────────────────────────────────────────
 async function queryExternal<T = unknown>(params: {
@@ -1112,12 +1114,12 @@ export function useExternalMutation() {
       validateEntityAccess(params.table, 'external');
       const dc = getDynamicClient();
       if (params.action === 'insert') {
-        const { data, error } = await dc.from(params.table).insert(params.data).select();
+        const { data, error } = await dc.from(params.table).insert(params.data as never).select();
         if (error) throw new Error(error.message);
         return data;
       }
       if (params.action === 'update') {
-        let q = dc.from(params.table).update(params.data);
+        let q = dc.from(params.table).update(params.data as never);
         if (params.match) {
           for (const [k, v] of Object.entries(params.match)) q = q.eq(k, v as string);
         }

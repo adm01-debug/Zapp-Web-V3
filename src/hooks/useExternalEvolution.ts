@@ -462,7 +462,7 @@ export function useExternalConversations(enabled = true) {
           // We limit concurrent fetches to avoid overloading the proxy.
           const enrichments = await Promise.all(
             jidsToFetch.map((jid) =>
-              queryExternalProxy<ContactEnrichmentData>({
+              queryExternalProxy<ContactEnrichmentData[]>({
                 action: 'rpc',
                 rpc: 'rpc_get_contact',
                 params: {
@@ -478,7 +478,7 @@ export function useExternalConversations(enabled = true) {
           enrichments.forEach(({ jid, res }) => {
             if (res?.data) {
               contactEnrichmentCache.set(jid, {
-                data: res.data,
+                data: (Array.isArray(res.data) ? res.data[0] : res.data) as ContactEnrichmentData,
                 timestamp: now,
               });
             }
