@@ -294,7 +294,12 @@ export function useDashboardDataManagement(filters?: DashboardFilters) {
         .lte('updated_at', merged.dateRange.to.toISOString());
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      return (data || []) as Array<{
+        id: string;
+        assigned_to: string | null;
+        queue_id: string | null;
+        updated_at: string;
+      }>;
     },
   });
 
