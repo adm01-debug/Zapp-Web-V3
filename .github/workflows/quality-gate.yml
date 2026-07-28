@@ -1,213 +1,139 @@
-bmFtZTogUXVhbGl0eSBHYXRlCgpvbjoKICBwdXNoOgogICAgYnJhbmNoZXM6
-IFsgbWFpbiwgbWFzdGVyIF0KICBwdWxsX3JlcXVlc3Q6CiAgICBicmFuY2hl
-czogWyBtYWluLCBtYXN0ZXIgXQoKam9iczoKICBxdWFsaXR5LWdhdGU6CiAg
-ICBydW5zLW9uOiB1YnVudHUtbGF0ZXN0CiAgICBlbnY6CiAgICAgIENJOiB0
-cnVlCiAgICAgIFZJVEVfU1VQQUJBU0VfVVJMOiBodHRwczovL2V4YW1wbGUu
-c3VwYWJhc2UuY28KICAgICAgVklURV9TVVBBQkFTRV9BTk9OX0tFWTogdGVz
-dC1hbm9uLWtleQogICAgICBWSVRFX0VYVEVSTkFMX1NVUEFCQVNFX1VSTDog
-aHR0cHM6Ly9leGFtcGxlLnN1cGFiYXNlLmNvCiAgICAgIFZJVEVfRVhURVJO
-QUxfU1VQQUJBU0VfQU5PTl9LRVk6IHRlc3QtYW5vbi1rZXkKICAgIHN0ZXBz
-OgogICAgICAtIHVzZXM6IGFjdGlvbnMvY2hlY2tvdXRAdjQKICAgICAgICB3
-aXRoOgogICAgICAgICAgcGVyc2lzdC1jcmVkZW50aWFsczogZmFsc2UKCiAg
-ICAgIC0gbmFtZTogU2V0dXAgQnVuCiAgICAgICAgdXNlczogb3Zlbi1zaC9z
-ZXR1cC1idW5AdjIKICAgICAgICB3aXRoOgogICAgICAgICAgYnVuLXZlcnNp
-b246IDEuMy4xNAoKICAgICAgLSBuYW1lOiBJbnN0YWxsIGRlcGVuZGVuY2ll
-cwogICAgICAgIHJ1bjogYnVuIGluc3RhbGwKCiAgICAgIC0gbmFtZTogTGlu
-dCAoYWR2aXNvcnkg4oCUIHByZS1leGlzdGluZyBkZWJ0KQogICAgICAgICMg
-QlVHRklYIDIwMjYtMDctMDY6IGBzZXQgK2VgIHPDsyBldml0YSBhYm9ydCBu
-byBtZWlvIGRvIHNjcmlwdDsgbyBleGl0CiAgICAgICAgIyBjb2RlIGRvIHN0
-ZXAgw6kgbyBkbyDDmkxUSU1PIGNvbWFuZG8uIFNlbSBgZXhpdCAwYCwgdW0g
-bGludCB2ZXJtZWxobwogICAgICAgICMgZGVycnViYXZhIG8gam9iIGludGVp
-cm8gZSBwdWxhdmEgVHlwZSBDaGVjay9UZXN0cy9FMkUg4oCUIGV4YXRhbWVu
-dGUgbwogICAgICAgICMgcXVlICJhZHZpc29yeSIgcHJvbWV0aWEgbsOjbyBm
-YXplci4gUGFkcsOjbyBhZ29yYSBpZMOqbnRpY28gYW8gY2kueW1sLgogICAg
-ICAgIHJ1bjogfAogICAgICAgICAgc2V0ICtlCiAgICAgICAgICBucG0gcnVu
-IGxpbnQKICAgICAgICAgIHN0YXR1cz0kPwogICAgICAgICAgaWYgWyAiJHN0
-YXR1cyIgLW5lIDAgXTsgdGhlbgogICAgICAgICAgICBlY2hvICI6Ondhcm5p
-bmcgdGl0bGU9RVNMaW50IGRlYnQ6Om5wbSBydW4gbGludCBmYWxob3UgZW0g
-ZMOpYml0byBwcsOpLWV4aXN0ZW50ZSAoZXhpdCAkc3RhdHVzKS4gQWR2aXNv
-cnkgYXTDqSBhIGxpbXBlemEgZGEgYmFzZWxpbmUuIgogICAgICAgICAgZmkK
-ICAgICAgICAgIGV4aXQgMAoKICAgICAgLSBuYW1lOiBSZWZhY3RvciBndWFy
-ZHMgKHJhdGNoZXRzIOKAlCBkZWFkIGNvZGUgKyBkYXRhIGxheWVyKQogICAg
-ICAgICMgQ2FwdHVyYSBjYWRhIGV4aXQgY29kZSBzZXBhcmFkYW1lbnRlIHBh
-cmEgbsOjbyBtYXNjYXJhciB1bWEgZmFsaGEgZGUKICAgICAgICAjIGNoZWNr
-LWRlYWQtY29kZSBxdWFuZG8gY2hlY2stZGF0YS1sYXllciBwYXNzYSAoYW50
-ZXM6IHN0YXR1cz0kPyBzw7MKICAgICAgICAjIGNhcHR1cmF2YSBvIMOaTFRJ
-TU8gc2NyaXB0LCBlbnTDo28gZGVhZC1jb2RlIGZhbGhhbmRvICsgZGF0YS1s
-YXllciBPSwogICAgICAgICMgcmVzdWx0YXZhIGVtIHN0YXR1cz0wIGUgbyB3
-YXJuaW5nIG51bmNhIGRpc3BhcmF2YSkuCiAgICAgICAgcnVuOiB8CiAgICAg
-ICAgICBzZXQgK2UKICAgICAgICAgIG5vZGUgc2NyaXB0cy9jaGVjay1kZWFk
-LWNvZGUubWpzCiAgICAgICAgICBzdGF0dXNfZGVhZD0kPwogICAgICAgICAg
-bm9kZSBzY3JpcHRzL2NoZWNrLWRhdGEtbGF5ZXIubWpzCiAgICAgICAgICBz
-dGF0dXNfZGF0YT0kPwogICAgICAgICAgaWYgWyAiJHN0YXR1c19kZWFkIiAt
-bmUgMCBdIHx8IFsgIiRzdGF0dXNfZGF0YSIgLW5lIDAgXTsgdGhlbgogICAg
-ICAgICAgICBlY2hvICI6Ondhcm5pbmcgdGl0bGU9UmVmYWN0b3IgZGVidDo6
-RGVhZC1jb2RlIG9yIGRhdGEtbGF5ZXIgcmF0Y2hldCBmbGFnZ2VkIHZpb2xh
-dGlvbnMuIEFkdmlzb3J5IOKAlCB0cmFja2VkIGFzIGZvbGxvdy11cCBjbGVh
-bnVwIGRlYnQuIgogICAgICAgICAgZmkKICAgICAgICAgIGV4aXQgMAoKICAg
-ICAgLSBuYW1lOiBNaWdyYXRpb24gbGludGVyIOKAlCBzdGF0aWMgZHJpZnQg
-Z3VhcmQgKGJsb2NraW5nIG9uIG5ldyB2aW9sYXRpb25zKQogICAgICAgICMg
-RTMxOiBTY2FucyBvbmx5IG1pZ3JhdGlvbiBmaWxlcyBjaGFuZ2VkIGluIHRo
-aXMgUFIvcHVzaC4KICAgICAgICAjIENhdGNoZXMgTUwtMDAxIChTRUNERUYg
-d2l0aG91dCBzZWFyY2hfcGF0aCksIE1MLTAwMiAod3JpdGVzIHRvIHB1Ymxp
-YwogICAgICAgICMgVklFVyBwcm94aWVzKSwgTUwtMDAzIChSZWFsdGltZSBh
-ZGQgVEFCTEUgb24gVklFVyksIE1MLTAwNCAobmV3IHphcHAKICAgICAgICAj
-IHRhYmxlIHdpdGhvdXQgUkxTKSwgTUwtMDA1IChHUkFOVCBUTyBQVUJMSUMv
-YW5vbiksIE1MLTAwNyAoaW50ZXJuYWwgVVJMcykuCiAgICAgICAgIyBIaXN0
-b3JpY2FsIHZpb2xhdGlvbnMgaW4gb2xkIG1pZ3JhdGlvbnMgYXJlIEVYQ0xV
-REVEIChDSEFOR0VEX0ZJTEVTIGZpbHRlcikuCiAgICAgICAgcnVuOiB8CiAg
-ICAgICAgICBpZiBbICIke3sgZ2l0aHViLmV2ZW50X25hbWUgfX0iID0gInB1
-bGxfcmVxdWVzdCIgXTsgdGhlbgogICAgICAgICAgICBiYXNlPSIke3sgZ2l0
-aHViLmV2ZW50LnB1bGxfcmVxdWVzdC5iYXNlLnNoYSB9fSIKICAgICAgICAg
-IGVsc2UKICAgICAgICAgICAgYmFzZT0iSEVBRH4xIgogICAgICAgICAgZmkK
-ICAgICAgICAgIGNoYW5nZWQ9JChnaXQgZGlmZiAtLW5hbWUtb25seSAiJGJh
-c2UiLi4uSEVBRCAtLSAic3VwYWJhc2UvbWlncmF0aW9ucy8qLnNxbCIgMj4v
-ZGV2L251bGwgfHwgdHJ1ZSkKICAgICAgICAgIGlmIFsgLXogIiRjaGFuZ2Vk
-IiBdOyB0aGVuCiAgICAgICAgICAgIGVjaG8gIk5vIG1pZ3JhdGlvbiBmaWxl
-cyBjaGFuZ2VkIOKAlCBsaW50ZXIgc2tpcHBlZC4iCiAgICAgICAgICAgIGV4
-aXQgMAogICAgICAgICAgZmkKICAgICAgICAgIGVjaG8gIkxpbnRpbmcgY2hh
-bmdlZCBtaWdyYXRpb25zOiIKICAgICAgICAgIGVjaG8gIiRjaGFuZ2VkIgog
-ICAgICAgICAgQ0hBTkdFRF9GSUxFUz0iJGNoYW5nZWQiIG5vZGUgc2NyaXB0
-cy9saW50LW1pZ3JhdGlvbnMubWpzCgogICAgICAtIG5hbWU6IFJMUY2NvdmVy
-YWdlIGF1ZGl0IChFMzQg4oCUIGJsb2NraW5nIG9uIG1pc3NpbmcgUkxTKQog
-ICAgICAgICMgUGFyc2VzIG1pZ3JhdGlvbnMgdG8gdmVyaWZ5IGFsbCBjcml0
-aWNhbCB6YXBwIHRhYmxlcyBoYXZlCiAgICAgICAgIyBFTkFCTEUgUk9XIExF
-VkVMIFNFQ1VSSVRZLiBGYWlscyBpZiBhbnkgY3JpdGljYWwgdGFibGUgaXMg
-bWlzc2luZwogICAgICAgICMgUkxTIGVudGlyZWx5OyBhZHZpc29yeSB3YXJu
-aW5ncyBmb3IgdGFibGVzIHdpdGggbm8gQ1JFQVRFIFBPTEJDWQ2ICAgICAgICAj
-IChtYXkgdXNlIHNlcnZpY2Vfcm9sZSBCWVBBU1NST1MgaW5zdGVhZCkuCiAg
-ICAgICAgcnVuOiBub2RlIHNjcmlwdHMvYXVkaXQtcmxzLWNvdmVyYWdlLm1q
-cyAtLWNoZWNrCgogICAgICAtIG5hbWU6IFNjaGVtYSB1c2FnZSBndWFyZHJh
-aWwgKHphcHAvZXZvKQogICAgICAgICMgRmFsaGEgbyBidWlsZCBzZSBhcGFy
-ZWNlciAuc2NoZW1hKCdwdWJsaWMnKSwgY3JlYXRlQ2xpZW50IHNlbSBzY2hl
-bWEKICAgICAgICAjIHphcHAvZXZvLCBvdSBVUkxzICoud3VwYWJhc2UuY28g
-ZW0gY8OzZGlnbyBkZSBwcm9kdcOnw6NvLgogICAgICAgIHJ1bjogbm9kZSBz
-Y3JpcHRzL2NoZWNrLXNjaGVtYS11c2FnZS5tanMKCiAgICAgIC0gbmFtZTog
-U3VwYWJhc2UgY2FzdCBzYWZldHkgKFNVUC0wMDEuLjAwNiDigJQgYmxvY2tp
-bmcgb24gZXJyb3JzKQogICAgICAgICMgRmFsaGEgbyBidWlsZCBzZSBlbmNv
-bnRyYXIgKHN1cGFiYXNlIGFzIGFueSkgc2VtIC8vIGlnbm9yZS1hdWRpdCwK
-ICAgICAgICAjIChjbGllbnQgYXMgYW55KSBlbSBFZGdlIEZ1bmN0aW9ucywg
-b3Ugb3V0cm9zIHBhZHLDtWVzIGluc2VndXJvcyBkZQogICAgICAgICMgYWNl
-c3NvIGFvIGJhbmNvLiBXYXJuaW5ncyAoU1VQLTAwNCkgc8OjbyBhZHZpc29y
-eSAoZXhpdCAwKS4KICAgICAgICBydW46IG5vZGUgc2NyaXB0cy9saW50LXN1
-cGFiYXNlLWNhc3RzLm1qcwoKICAgICAgLSBuYW1lOiBTY2hlbWEgYWNjZXNz
-IHNpbXVsYXRpb24gKH4zMDAgY2Vuw6FyaW9zKQogICAgICAgICMgU2ltdWxh
-w6fDo28gZXN0w6F0aWNhIGRlIGFjZXNzbyBhIHphcHAvZXZvLCBSZWFsdGlt
-ZSBlIEVkZ2UgRnVuY3Rpb25zLgogICAgICAgICMgRmFsaGEgbyBidWlsZCBz
-ZSBkZXRlY3RhciBjaGFtYWRhcyBldm8uKiBzZW0gLnNjaGVtYSgnZXZvJyks
-IFJlYWx0aW1lCiAgICAgICAgIyBwb3N0Z3Jlc19jaGFuZ2VzIHNlbSBzY2hl
-bWEsIG91IGNyZWF0ZUNsaWVudCBzZW0gZGI6e3NjaGVtYX0uCiAgICAgICAg
-cnVuOiBub2RlIHNjcmlwdHMvc2ltdWxhdGUtc2NoZW1hLWFjY2Vzcy5tanMK
-CiAgICAgIC0gbmFtZTogVHlwZSBDaGVjayAoYWR2aXNvcnkgaW4gQ0kg4oCU
-IHByaXZhdGUgcmVnaXN0cnkgdW5hdmFpbGFibGUpCiAgICAgICAgIyBidW4u
-bG9jayBwaW5zIEBzdXBhYmFzZS9wb3N0Z3Jlc3QtanNAMi4xMTAuMCB0byBM
-b3ZhYmxlJ3MgcHJpdmF0ZQogICAgICAgICMgR29vZ2xlIEFydGlmYWN0IFJl
-Z2lzdHJ5IChlW5yb3BlLXdlc3Q0LW5wbS5wa2cuZGV2KS4gR2l0SHViIEFj
-dGlvbnMgQ0kKICAgICAgICAjIGNhbm5vdCBhdXRoZW50aWNhdGUgdG8gR0FS
-IOKGkiBmYWxscyBiYWNrIHRvIHB1YmxpYyBucG0g4oaSIGluY29tcGF0aWJs
-ZQogICAgICAgICMgdmVyc2lvbiDihpIgMTU2IHBoYW50b20gVFMgZXJyb3Jz
-IGFjcm9zcyAzMCBmaWxlcy4gQWR2aXNvcnkgaW4gQ0kgb25seTsKICAgICAg
-ICAjIHRoZSBnYXRlIHJlbWFpbnMgaGFyZCBpbnNpZGUgTG92YWJsZSdzIG93
-biBidWlsZCBlbnZpcm9ubWVudC4KICAgICAgICBydW46IHwKICAgICAgICAg
-IHNldCArZQogICAgICAgICAgYnVueCB0c2MgLS1ub0VtaXQgLXAgdHNjb25m
-aWcuYXBwLmpzb24KICAgICAgICAgIHN0YXR1cz0kPwogICAgICAgICAgaWYg
-WyAiJHN0YXR1cyIgLW5lIDAgXTsgdGhlbgogICAgICAgICAgICBlY2hvICIK
-Oi53YXJuaW5nIHRpdGxlPVR5cGVTY3JpcHQgKEdBUiByZWdpc3RyeSBtaXNt
-YXRjaCk6OlRTIGVycm9ycyBhcmUgY2F1c2VkIGJ5IENJIGZhbGxpbmcgYmFj
-ayB0byBwdWJsaWMgbnBtIGZvciBEc3VwYWJhc2UvcG9zdGdyZXN0LWpzIChM
-b3ZhYmxlIHByaXZhdGUgR0FSIGlzIHVuYXZhaWxhYmxlIGluIEdpdEh1YiBB
-Y3Rpb25zKS4gTm90IGEgY29kZSByZWdyZXNzaW9uLiIKICAgICAgICAgIGZp
-CiAgICAgICAgICBleGl0IDAKCiAgICAgIC0gbmFtZTogQ2x1c3RlciB0eXBl
-Y2hlY2sgcmF0Y2hldCDigJQgYmxvY2tpbmcgKGNybS1zYWxlcywgcXVldWVz
-LCBvYnNlcnZhYmlsaXR5KQogICAgICAgICMgQmxvcXVlaWEgcmVncmVzc8O1
-ZXMgbm9zIGNsdXN0ZXJzIGrDoSAxMDAlIGxpbXBvcy4gU2UgYWxndW0gYXJx
-dWl2bwogICAgICAgICMgbGlzdGFkbyBuZXNzZXMgY2x1c3RlcnMgcmVpbnRy
-b2R1emlyIEB0cy1ub2NoZWNrIG91IGVycm8gVFMsIG8gam9iCiAgICAgICAg
-IyBmYWxoYSBpbWVkaWF0YW1lbnRlIChzZW0gY29udGludWUtb24tZXJyb3Ip
-LgogICAgICAgIHJ1bjogfAogICAgICAgICAgbm9kZSBzY3JpcHRzL2NoZWNr
-LWNsdXN0ZXItdHlwZWNoZWNrLm1qcyAtLWNsdXN0ZXIgY3JtLXNhbGVzCiAg
-ICAgICAgICBub2RlIHNjcmlwdHMvY2hlY2stY2x1c3Rlci10eXBlY2hlY2su
-bWpzIC0tY2x1c3RlciBxdWV1ZXMKICAgICAgICAgIG5vZGUgc2NyaXB0cy9j
-aGVjay1jbHVzdGVyLXR5cGVjaGVjay5tanMgLS1jbHVzdGVyIG9ic2VydmFi
-aWxpdHkKCiAgICAgIC0gbmFtZTogQ2x1c3RlciB0eXBlY2hlY2sgcmF0Y2hl
-dCDigJQgYWR2aXNvcnkgKGluYm94LWNvcmUpCiAgICAgICAgIyBDbHVzdGVy
-IGNvbSBkw612aWRhIHJlbWFuZXNjZW50ZSBjb25oZWNpZGEuIFJlcG9ydGFt
-b3MgY29tbyB3YXJuaW5nCiAgICAgICAgIyBhdMOpIGEgbGltcGV6YSBjb21w
-bGV0YTsgYXNzaW0gcXVlIGZpY2FyIGxpbXBvLCBtb3ZlbW9zIHBhcmEgbwog
-ICAgICAgICMgYmxvY28gYmxvY2tpbmcgYWNpbWEuCiAgICAgICAgcnVuOiBu
-b2RlIHNjcmlwdHMvY2hlY2stY2x1c3Rlci10eXBlY2hlY2subWpzIC0tY2x1
-c3RlciBpbmJveC1jb3JlCiAgICAgICAgY29udGludWUtb24tZXJyb3I6IHRy
-dWUKCiAgICAgIC0gbmFtZTogVHlwZVNjcmlwdCBSYXRjaGV0IChibG9ja2lu
-ZykKICAgICAgICAjIFBvcnTDo28gcmVhbCBkZSByZWdyZXNzw6NvIFRTLiBD
-b21wYXJhIGNvbnRyYQogICAgICAgICMgc2NyaXB0cy90c2MtZXJyb3ItYmFz
-ZWxpbmUuanNvbiBlIGZhbGhhIHNlIGFwYXJlY2VyZW0gbm92b3MgZXJyb3Mg
-b3UKICAgICAgICAjIHNlIHVtIGFycXVpdm8gaG9qZSBsaW1wbyB2b2x0YXIg
-YSBlcnJhci4gYC0tdXBkYXRlYCDDqSBNQU5VQUwg4oCUIG51bmNhCiAgICAg
-ICAgIyByb2RhIGVtIFBSL3B1c2guIFVzZSBgbm9kZSBzY3JpcHRzL2NoZWNr
-LXRzYy1yYXRjaGV0Lm1qcyAtLXVwZGF0ZWAKICAgICAgICAjIGxvY2FsbWVu
-dGUgYXBlbmFzIHF1YW5kbyBvIGJhc2VsaW5lIFJFRFVaSVIgKHByb2dyZXNz
-bykuCiAgICAgICAgcnVuOiBub2RlIHNjcmlwdHMvY2hlY2stdHNjLXJhdGNo
-ZXQubWpzCgogICAgICAtIG5hbWU6IFN1cGFiYXNlIHR5cGVzIGZyZXNobmVz
-cyAoYWR2aXNvcnkgc2Ugc2VjcmV0cyBhdXNlbnRlcykKICAgICAgICAjIEJs
-b3F1ZWlhIGRlcGxveSBzZSBzcmMvaW50ZWdyYXRpb25zL3N1cGFiYXNlL3R5
-cGVzLnRzIGVzdGl2ZXIKICAgICAgICAjIGRlZmFzYWRvIGVtIHJlbGHDp8Oz
-IGFvIHNjaGVtYSBhdHVhbCBkYSBWUFMuIFNraXBhIGNvbSB3YXJuaW5nCiAg
-ICAgICAgIyBxdWFuZG8gWkFQUF9NRVRBX1VSTC9aQVBQX01FVEFfVE9LRU4g
-bsOjbyBlc3TDo28gY29uZmlndXJhZG9zCiAgICAgICAgIyAoZXguOiBQUnMg
-ZGUgZm9ya3MpLgogICAgICAgIGVudjoKICAgICAgICAgIFpBUFBfTUVUQV9V
-Ukw6ICR7eyBzZWNyZXRzLlpBUFBfTUVUQV9VUkwgfX0KICAgICAgICAgIFpB
-UFBfTUVUQV9UT0tFTjogJHt7IHNlY3JldHMuWkFQUF9NRVRBX1RPS0VOIH19
-CiAgICAgICAgcnVuOiBub2RlIHNjcmlwdHMvY2hlY2stdHlwZXMtZnJlc2hu
-ZXNzLm1qcwoKCgoKCgogICAgICAtIG5hbWU6IFVuaXQgJiBJbnRlZ3JhdGlv
-biBUZXN0cyAoYmxvY2tpbmcpCiAgICAgICAgIyBUaGUgT09NIHdhcyBhIHNp
-bmdsZSBpbmZpbml0ZS1sb29wIHRlc3QgKHVzZU1lc3NhZ2VzLCBub3cgcXVh
-cmFudGluZWQpCiAgICAgICAgIyBwbHVzIGEgZmxha3kgd2FpdEZvcj50ZXN0
-VGltZW91dCBtaXNtYXRjaCAoZml4ZWQpLiBUaGUgc3VpdGUgaXMgbm93CiAg
-ICAgICAgIyBzdGFibGU6IDIwODggcGFzc2VkIC8gMCBmYWlsZWQsIG5vIE9P
-TSwgdmVyaWZpZWQgYWNyb3NzIHJlcGVhdGVkIHJ1bnMuCiAgICAgICAgIyBI
-YXJkIGdhdGUgYWdhaW4uCiAgICAgICAgcnVuOiBucG0gcnVuIHRlc3QKCiAg
-ICAgIC0gbmFtZTogQ292ZXJhZ2UgcmF0Y2hldCAoRTQ1IOKAlCBhZHZpc29y
-eSB1bnRpbCBiYXNlbGluZSBjYWxpYnJhdGVkKQogICAgICAgICMgUnVucyB0
-ZXN0cyB3aXRoIC0tY292ZXJhZ2UgYW5kIGNoZWNrcyB0aGF0IG92ZXJhbGwg
-Y292ZXJhZ2UgZG9lcyBub3QKICAgICAgICAjIGRyb3AgYmVsb3cgdGhlIGNv
-bW1pdHRlZCBiYXNlbGluZSBpbiBzY3JpcHRzL2NvdmVyYWdlLWJhc2VsaW5l
-Lmpzb24uCiAgICAgICAgIyBDdXJyZW50bHkgYWR2aXNvcnkgKGNvbnRpbnVl
-LW9uLWVycm9yOiB0cnVlKSBiZWNhdXNlIHRoZSBpbml0aWFsCiAgICAgICAg
-IyBiYXNlbGluZSByZXF1aXJlcyBhIHN1Y2Nlc3NmdWwgY292ZXJhZ2UgcnVu
-IHRvIGNhbGlicmF0ZS4gT25jZQogICAgICAgICMgY2FsaWJyYXRlZCB2aWEg
-YG5wbSBydW4gdGVzdDpjb3ZlcmFnZTpyYXRjaGV0IC0tIC0tdXBkYXRlYCwg
-dGhpcwogICAgICAgICMgc3RlcCBzaG91bGQgYmUgbWFkZSBibG9ja2luZyBi
-eSByZW1vdmluZyBjb250aW51ZS1vbi1lcnJvci4KICAgICAgICBydW46IHwK
-ICAgICAgICAgIG5wbSBydW4gdGVzdDpjb3ZlcmFnZSAtLSAtLXJlcG9ydGVy
-PWRvdAogICAgICAgICAgbm9kZSBzY3JpcHRzL2NoZWNrLWNvdmVyYWdlLXJh
-dGNoZXQubWpzCiAgICAgICAgY29udGludWUtb24tZXJyb3I6IHRydWUKCiAg
-ICAgIC0gbmFtZTogRnV6emluZyBUZXN0cyAoYWR2aXNvcnkg4oCUIG5vIGVk
-Z2UgcnVudGltZSBpbiBDSSkKICAgICAgICAjIFRoZXJlIGlzIG5vIFN1cGFi
-YXNlIGVkZ2UgcnVudGltZSBhdCBsb2NhbGhvc3Q6NTQzMjEgaW4gQ0ksIHNv
-IHRoaXMKICAgICAgICAjIG9ubHkgc21va2UtY2hlY2tzIHRoYXQgdGhlIGZ1
-enplciBoYXJuZXNzIGl0c2VsZiBydW5zOyBpdCBjYW5ub3QgZnV6egogICAg
-ICAgICMgcmVhbCBmdW5jdGlvbnMgaGVyZS4gS2VwdCBub24tYmxvY2tpbmcg
-b24gcHVycG9zZS4KICAgICAgICBydW46IG5wbSBydW4gdGVzdDpmdXp6IC0t
-IC0tcnVucyAyMCAtLWJhc2VVcmwgaHR0cDovL2xvY2FsaG9zdDo1NDMyMS9m
-dW5jdGlvbnMvdjEKICAgICAgICBjb250aW51ZS1vbi1lcnJvcjogdHJ1ZQoK
-ICAgICAgLSBuYW1lOiBJbnN0YWxsIFBsYXl3cmlnaHQgQnJvd3NlcnMKICAg
-ICAgICBydW46IGJ1bnggcGxheXdyaWdodCBpbnN0YWxsIC0td2l0aC1kZXBz
-CgogICAgICAtIG5hbWU6IEUyRSBUZXN0cwogICAgICAgICMgU3VpdGUgaGVy
-bcOpdGljYSBlbSBzcmMvdGVzdHMvZTJlIChhcHAtYm9vdC5zcGVjLnRzKTog
-c29iZSBvIHZpdGUgZGV2CiAgICAgICAgIyBjb20gZW52IHBsYWNlaG9sZGVy
-IGUgdmFsaWRhIGJvb3QgcmVhbCBkbyBTUEEuIEEgc3VpdGUgLi9lMmUgKHJh
-aXopCiAgICAgICAgIyBleGlnZSBiYWNrZW5kIHZpdm8gKyBjcmVkZW5jaWFp
-cyBlIHBlcnRlbmNlIGFvIHNtb2tlIHByZS1kZXBsb3kuCiAgICAgICAgcnVu
-OiBucG0gcnVuIHRlc3Q6ZTJlCgogICAgICAjIE5PVEU6IHRoZSBvbGQgIlNt
-b2tlIFRlc3RzIiBzdGVwIHJhbiBgcGxheXdyaWdodCB0ZXN0IHRlc3RzL2Uy
-ZS9zbW9rZS5zcGVjLnRzYAogICAgICAjIGFnYWluc3QgdGhlIGRlZmF1bHQg
-Y29uZmlnIHdob3NlIHRlc3REaXIgaXMgLi9zcmMvdGVzdHMvZTJlLCBzbyBp
-dAogICAgICAjIGNvbGxlY3RlZCBaRVJPIHRlc3RzIGFuZCBhbHdheXMgcGFz
-c2VkIOKAlCBhIGZhbHNlIGdyZWVuLiBUaGUgc21va2Ugc3VpdGUKICAgICAg
-IyBuZWVkcyByZWFsIGxvZ2luIGNyZWRlbnRpYWxzICsgYSBsaXZlIGJhY2tl
-bmQgYW5kIGJlbG9uZ3MgaW4gYQogICAgICAjIHByZS1kZXBsb3kvc3RhZ2lu
-ZyBqb2IsIG5vdCB0aGlzIGVwaGVtZXJhbCBnYXRlLiBSZW1vdmVkIHJhdGhl
-ciB0aGFuCiAgICAgICMga2VlcCBhIGRlY29yYXRpdmUgc3RlcC4KCiAgICAg
-IC0gbmFtZTogUGVyZm9ybWFuY2UgQnVkZ2V0IEdhdGUKICAgICAgICBydW46
-IG5wbSBydW4gcGVyZjpidWRnZXQKICAgICAgICBjb250aW51ZS1vbi1lcnJv
-cjogdHJ1ZQo=
+name: Quality Gate
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    env:
+      CI: true
+      VITE_SUPABASE_URL: https://example.supabase.co
+      VITE_SUPABASE_ANON_KEY: test-anon-key
+      VITE_EXTERNAL_SUPABASE_URL: https://example.supabase.co
+      VITE_EXTERNAL_SUPABASE_ANON_KEY: test-anon-key
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Lint (advisory — pre-existing debt)
+        # BUGFIX 2026-07-06: `set +e` só evita abort no meio do script; o exit
+        # code do step é o do ÚNTIMO comando. Sem `exit 0`, um lint vermelho
+        # derrubava o job inteiro e pulava Type Check/Tests/E2E — exatamente o
+        # que "advisory" prometia não fazer. Padrão agora idêntico ao ci.yml.
+        run: |
+          set +e
+          npm run lint
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "::warning title=ESLint debt::npm run lint falhou em débito pré-existente (exit $status). Advisory até a limpeza da baseline."
+          fi
+          exit 0
+
+      - name: Refactor guards (ratchets — dead code + data layer)
+        # Captura cada exit code separadamente para não mascarar uma falha de
+        # check-dead-code quando check-data-layer passa (antes: status=$? só
+        # capturava o ÚNTIMO script, então dead-code falhando + data-layer OK
+        # resultava em status=0 e o warning nunca disparava).
+        run: |
+          set +e
+          node scripts/check-dead-code.mjs
+          status_dead=$?
+          node scripts/check-data-layer.mjs
+          status_data=$?
+          if [ "$status_dead" -ne 0 ] || [ "$status_data" -ne 0 ]; then
+            echo "::warning title=Refactor debt::Dead-code or data-layer ratchet flagged violations. Advisory — tracked as follow-up cleanup debt."
+          fi
+          exit 0
+
+      - name: Migration linter — static drift guard (blocking on new violations)
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+          else
+            base="HEAD~1"
+          fi
+          changed=$(git diff --name-only "$base"...HEAD -- "supabase/migrations/*.sql" 2>/dev/null || true)
+          if [ -z "$changed" ]; then
+            echo "No migration files changed — linter skipped."
+            exit 0
+          fi
+          echo "Linting changed migrations:"
+          echo "$changed"
+          CHANGED_FILES="$changed" node scripts/lint-migrations.mjs
+
+      - name: RLS coverage audit (E34 — blocking on missing RLS)
+        run: node scripts/audit-rls-coverage.mjs --check
+
+      - name: Schema usage guardrail (zapp/evo)
+        run: node scripts/check-schema-usage.mjs
+
+      - name: Supabase cast safety (SUP-001..006 — blocking on errors)
+        run: node scripts/lint-supabase-casts.mjs
+
+      - name: Schema access simulation (~300 cenários)
+        run: node scripts/simulate-schema-access.mjs
+
+      - name: Type Check (advisory in CI — private registry unavailable)
+        run: |
+          set +e
+          bunx tsc --noEmit -p tsconfig.app.json
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "::warning title=TypeScript (GAR registry mismatch)::TS errors are caused by CI falling back to public npm for @supabase/postgrest-js (Lovable private GAR is unavailable in GitHub Actions). Not a code regression."
+          fi
+          exit 0
+
+      - name: Cluster typecheck ratchet — blocking (crm-sales, queues, observability)
+        run: |
+          node scripts/check-cluster-typecheck.mjs --cluster crm-sales
+          node scripts/check-cluster-typecheck.mjs --cluster queues
+          node scripts/check-cluster-typecheck.mjs --cluster observability
+
+      - name: Cluster typecheck ratchet — advisory (inbox-core)
+        run: node scripts/check-cluster-typecheck.mjs --cluster inbox-core
+        continue-on-error: true
+
+      - name: TypeScript Ratchet (blocking)
+        run: node scripts/check-tsc-ratchet.mjs
+
+      - name: Supabase types freshness (advisory se secrets ausentes)
+        env:
+          ZAPP_META_URL: ${{ secrets.ZAPP_META_URL }}
+          ZAPP_META_TOKEN: ${{ secrets.ZAPP_META_TOKEN }}
+        run: node scripts/check-types-freshness.mjs
+
+      - name: Unit & Integration Tests (blocking)
+        run: npm run test
+
+      - name: Coverage ratchet (E45 — advisory until baseline calibrated)
+        run: |
+          npm run test:coverage -- --reporter=dot
+          node scripts/check-coverage-ratchet.mjs
+        continue-on-error: true
+
+      - name: Fuzzing Tests (advisory — no edge runtime in CI)
+        run: npm run test:fuzz -- --runs 20 --baseUrl http://localhost:54321/functions/v1
+        continue-on-error: true
+
+      - name: Install Playwright Browsers
+        run: bunx playwright install --with-deps
+
+      - name: E2E Tests
+        run: npm run test:e2e
+
+      - name: Performance Budget Gate
+        run: npm run perf:budget
+        continue-on-error: true
