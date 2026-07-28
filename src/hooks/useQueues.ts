@@ -135,7 +135,7 @@ export function useQueues(): UseQueuesResult {
    * the boolean success flag).
    */
   const runMutation = useCallback(
-    async (label: string, fn: () => Promise<{ error: unknown }>): Promise<boolean> => {
+    async (label: string, fn: () => PromiseLike<{ error: unknown }>): Promise<boolean> => {
       setMutating(true);
       try {
         const { error: err } = await fn();
