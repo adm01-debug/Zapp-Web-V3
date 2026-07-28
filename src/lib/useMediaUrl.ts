@@ -186,13 +186,23 @@ export function useSignedMediaUrlBatch(
     for (const item of items) {
       if (!item.media_bucket || !item.media_path) {
         // Tentar formato legado (público)
-        immediateResult.set(item.id, resolvePublicMediaUrl(item));
+        immediateResult.set(item.id, resolvePublicMediaUrl({
+            mediaBucket: item.media_bucket,
+            mediaPath: item.media_path,
+            mediaUrl: item.media_url,
+            mediaStatus: item.media_status,
+          }));
         continue;
       }
 
       if (isPublicBucket(item.media_bucket)) {
         // Bucket público — URL síncrona
-        immediateResult.set(item.id, resolvePublicMediaUrl(item));
+        immediateResult.set(item.id, resolvePublicMediaUrl({
+            mediaBucket: item.media_bucket,
+            mediaPath: item.media_path,
+            mediaUrl: item.media_url,
+            mediaStatus: item.media_status,
+          }));
         continue;
       }
 
