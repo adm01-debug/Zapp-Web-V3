@@ -279,7 +279,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     setLastSendError(null);
     setLastSendErrorDetail(null);
     try {
-      await Promise.resolve(onSendMessage(failedSend.content, failedSend.attachments));
+      await onSendMessage(failedSend.content, failedSend.attachments);
       lastFailedSendRef.current = null;
       toast({ title: 'Reenviado', description: 'A mensagem foi enviada com sucesso.' });
     } catch (err: unknown) {
