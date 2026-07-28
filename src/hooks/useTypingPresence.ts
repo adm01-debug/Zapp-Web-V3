@@ -1,19 +1,32 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-interface TypingUser {
+/** Usuário atualmente digitando na conversa (excluindo o próprio agente). */
+export interface TypingUser {
   userId: string;
   userName: string;
   /** Alias amigável para exibição na UI. */
   name?: string;
 }
 
-interface UseTypingPresenceParams {
+/**
+ * Parâmetros do canal de presença de digitação.
+ *
+ * O canal é escopado exclusivamente por `conversationId` — não existe
+ * segmentação por JID remoto, por isso nenhum campo `remoteJid` é aceito.
+ */
+export interface UseTypingPresenceParams {
   conversationId: string;
-  /** JID remoto opcional (usado apenas para escopo do canal). */
-  remoteJid?: string;
   currentUserId?: string;
   currentUserName?: string;
+}
+
+/** Contrato de retorno do hook, consumido por ChatPanel e useChatPanel. */
+export interface UseTypingPresenceResult {
+  typingUsers: TypingUser[];
+  handleTypingStart: () => void;
+  handleTypingStop: () => void;
+  isContactTyping: boolean;
 }
 
 /** Hook: use Typing Presence. */
@@ -21,7 +34,7 @@ export function useTypingPresence({
   conversationId,
   currentUserId = '',
   currentUserName = '',
-}: UseTypingPresenceParams) {
+}: UseTypingPresenceParams): UseTypingPresenceResult {
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

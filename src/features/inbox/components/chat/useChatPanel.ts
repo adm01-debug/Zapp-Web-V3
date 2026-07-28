@@ -124,7 +124,6 @@ export function useChatPanel({
 
   const { typingUsers, handleTypingStart, handleTypingStop } = useTypingPresence({
     conversationId: conversation.id,
-    remoteJid: conversation.contact.id,
     currentUserId: conversation.assignedTo?.id || 'agent',
     currentUserName: conversation.assignedTo?.name || 'Agente',
   });
