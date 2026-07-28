@@ -196,6 +196,9 @@ export const ChatMessagesArea = memo(
               setTimeout(() => {
                 isFetchingOlderRef.current = false;
               }, 100);
+            }).catch((err) => {
+              console.error('[ChatMessagesArea] onLoadOlder failed:', err);
+              isFetchingOlderRef.current = false;
             });
           }
         }

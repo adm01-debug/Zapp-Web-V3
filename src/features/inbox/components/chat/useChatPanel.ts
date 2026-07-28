@@ -146,17 +146,21 @@ export function useChatPanel({
     handleSendAudioMeme,
   } = useChatMediaSending(conversation.contact.id, conversation.contact.phone);
 
+  const settingsTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
   const handleVoiceChange = useCallback(
     (v: string) => {
       updateSettings({ tts_voice_id: v });
-      setTimeout(() => saveSettings(), 100);
+      if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current);
+      settingsTimerRef.current = setTimeout(() => saveSettings(), 100);
     },
     [updateSettings, saveSettings]
   );
   const handleSpeedChange = useCallback(
     (s: number) => {
       updateSettings({ tts_speed: s });
-      setTimeout(() => saveSettings(), 100);
+      if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current);
+      settingsTimerRef.current = setTimeout(() => saveSettings(), 100);
     },
     [updateSettings, saveSettings]
   );

@@ -287,18 +287,35 @@ export function useRealtimeInbox() {
           if (optimistic.external_id) item.externalId = optimistic.external_id;
           addExternalMessage?.(optimistic);
         } else if (attachments && attachments.length > 0) {
+          // Send all attachments, track successes. Only add optimistic bubbles
+          // if ALL succeed — prevents phantom messages when one file fails.
+          const results: Array<{ optimistic: ReturnType<typeof makeOptimisticBubble>; externalId: string | null }> = [];
+          let multiSendFailed = false;
           for (let i = 0; i < attachments.length; i++) {
+            if (multiSendFailed) break;
             const file = attachments[i];
-            const { optimistic } = await sendExternalMedia(contactId, file, {
-              contactAvatar: currentAvatar,
-              caption: i === 0 ? content : undefined,
-              onProgress: (p) => {
-                const total = (i / attachments.length) * 100 + p / attachments.length;
-                messageQueue.updateProgress(item.id, total);
-              },
-            });
-            if (optimistic.external_id) item.externalId = optimistic.external_id;
-            addExternalMessage?.(optimistic);
+            try {
+              const { optimistic } = await sendExternalMedia(contactId, file, {
+                contactAvatar: currentAvatar,
+                caption: i === 0 ? content : undefined,
+                onProgress: (p) => {
+                  const total = (i / attachments.length) * 100 + p / attachments.length;
+                  messageQueue.updateProgress(item.id, total);
+                },
+              });
+              results.push({ optimistic, externalId: optimistic.external_id });
+            } catch {
+              multiSendFailed = true;
+            }
+          }
+          if (!multiSendFailed) {
+            for (const r of results) {
+              if (r.externalId) item.externalId = r.externalId;
+              addExternalMessage?.(r.optimistic);
+            }
+          } else {
+            // Remove the queue item so the user can retry
+            messageQueue.remove(item.id);
           }
         } else {
           const { optimistic } = await sendExternalText(contactId, content, {
