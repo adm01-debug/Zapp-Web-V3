@@ -1,1 +1,157 @@
-bmFtZTog8J+agCBCdWlsZCAmIERlcGxveSDigJQgWkFQUCB3ZWIgdjMKCm9uOgogIHB1c2g6CiAgICBicmFuY2hlczogW21haW5dCiAgd29ya2Zsb3dfZGlzcGF0Y2g6CiAgICBpbnB1dHM6CiAgICAgIGltYWdlX3RhZzoKICAgICAgICBkZXNjcmlwdGlvbjogIkltYWdlIHRhZyBvdmVycmlkZSAoZGVmYXVsdDogcHJvZHVjdGlvbi08c2hhPikiCiAgICAgICAgcmVxdWlyZWQ6IGZhbHNlCiAgICAgICAgdHlwZTogc3RyaW5nCgpwZXJtaXNzaW9uczoKICBjb250ZW50czogcmVhZAogIHBhY2thZ2VzOiB3cml0ZQogIGFjdGlvbnM6IHdyaXRlCgpjb25jdXJyZW5jeToKICBncm91cDogZGVwbG95LXZwcwogIGNhbmNlbC1pbi1wcm9ncmVzczogZmFsc2UKCmVudjoKICBSRUdJU1RSWTogZ2hjci5pbwogIElNQUdFX05BTUU6ICR7eyBnaXRodWIucmVwb3NpdG9yeSB9fS96YXBwLXdlYgoKam9iczoKICBidWlsZC1hbmQtcHVzaDoKICAgIG5hbWU6IEJ1aWxkICYgcHVzaCBpbWFnZQogICAgcnVucy1vbjogdWJ1bnR1LWxhdGVzdAogICAgb3V0cHV0czoKICAgICAgaW1hZ2U6ICR7eyBzdGVwcy5tZXRhLm91dHB1dHMuaW1hZ2UgfX0KICAgIHN0ZXBzOgogICAgICAtIHVzZXM6IGFjdGlvbnMvY2hlY2tvdXRAdjcKCiAgICAgIC0gdXNlczogZG9ja2VyL3NldHVwLWJ1aWxkeC1hY3Rpb25AdjQKCiAgICAgIC0gbmFtZTogTG9naW4gdG8gR0hDUgogICAgICAgIHVzZXM6IGRvY2tlci9sb2dpbi1hY3Rpb25AdjQKICAgICAgICB3aXRoOgogICAgICAgICAgcmVnaXN0cnk6ICR7eyBlbnYuUkVHSVNUUlkgfX0KICAgICAgICAgIHVzZXJuYW1lOiAke3sgZ2l0aHViLmFjdG9yIH19CiAgICAgICAgICBwYXNzd29yZDogJHt7IHNlY3JldHMuR0lUSFVCX1RPS0VOIH19CgogICAgICAtIG5hbWU6IENvbXB1dGUgaW1hZ2UgdGFnCiAgICAgICAgaWQ6IG1ldGEKICAgICAgICBydW46IHwKICAgICAgICAgIFRBRz0iJHt7IGlucHV0cy5pbWFnZV90YWcgfX0iCiAgICAgICAgICBpZiBbIC16ICIkVEFHIiBdOyB0aGVuIFRBRz0icHJvZHVjdGlvbi0ke0dJVEhVQl9TSEE6OjEyfSI7IGZpCiAgICAgICAgICBlY2hvICJpbWFnZT0ke3sgZW52LlJFR0lTVFJZIH19LyR7eyBlbnYuSU1BR0VfTkFNRSB9fToke1RBR30iID4+ICIkR0lUSFVCX09VVFBVVCIKCiAgICAgIC0gbmFtZTogQnVpbGQgYW5kIHB1c2gKICAgICAgICB1c2VzOiBkb2NrZXIvYnVpbGQtcHVzaC1hY3Rpb25AdjcKICAgICAgICB3aXRoOgogICAgICAgICAgY29udGV4dDogLgogICAgICAgICAgcHVzaDogdHJ1ZQogICAgICAgICAgdGFnczogfAogICAgICAgICAgICAke3sgc3RlcHMubWV0YS5vdXRwdXRzLmltYWdlIH19CiAgICAgICAgICAgICR7eyBlbnYuUkVHSVNUUlkgfX0vJHt7IGVudi5JTUFHRV9OQU1FIH19OnByb2R1Y3Rpb24tbGF0ZXN0CiAgICAgICAgICBidWlsZC1hcmdzOiB8CiAgICAgICAgICAgIFZJVEVfU1VQQUJBU0VfVVJMPSR7eyBzZWNyZXRzLlZJVEVfU1VQQUJBU0VfVVJMIH19CiAgICAgICAgICAgIFZJVEVfU1VQQUJBU0VfQU5PTl9LRVk9JHt7IHNlY3JldHMuVklURV9TVVBBQkFTRV9QVUJMSVNIQUJMRV9LRVkgfX0KICAgICAgICAgICAgVklURV9TVVBBQkFTRV9QVUJMSVNIQUJMRV9LRVk9JHt7IHNlY3JldHMuVklURV9TVVBBQkFTRV9QVUJMSVNIQUJMRV9LRVkgfX0KICAgICAgICAgICAgVklURV9TRU5UUllfRFNOPSR7eyBzZWNyZXRzLlZJVEVfU0VOVFJZX0RTTiB9fQogICAgICAgICAgICBWSVRFX1NFTlRSWV9FTlZJUk9OTUVOVD1wcm9kdWN0aW9uCiAgICAgICAgICAgIFZJVEVfQVBQX0VOVj1wcm9kdWN0aW9uCgogIGRlcGxveToKICAgIG5hbWU6IERlcGxveSB0byBWUFMKICAgIHJ1bnMtb246IHVidW50dS1sYXRlc3QKICAgIG5lZWRzOiBidWlsZC1hbmQtcHVzaAogICAgZW52aXJvbm1lbnQ6IHByb2R1Y3Rpb24KICAgIHN0ZXBzOgogICAgICAtIG5hbWU6IFZlcmlmeSByZXF1aXJlZCBzZWNyZXRzCiAgICAgICAgcnVuOiB8CiAgICAgICAgICBtaXNzaW5nPSIiCiAgICAgICAgICBbIC16ICIke1BPUlRBSU5FUl9BUElfVE9LRU59IiBdICYmIG1pc3Npbmc9IiRtaXNzaW5nIFBPUlRBSU5FUl9BUElfVE9LRU4iCiAgICAgICAgICBbIC16ICIke1BPUlRBSU5FUl9VUkx9IiBdICAgICAgICAmJiBtaXNzaW5nPSIkbWlzc2luZyBQT1JUQUlORVJfVVJMIgogICAgICAgICAgaWYgWyAtbiAiJG1pc3NpbmciIF07IHRoZW4KICAgICAgICAgICAgZWNobyAiOjplcnJvcjo6UmVxdWlyZWQgc2VjcmV0cyBub3QgY29uZmlndXJlZDoke21pc3Npbmd9IgogICAgICAgICAgICBlY2hvICJBZGQgdGhlbSBhdDogU2V0dGluZ3MgLT4gRW52aXJvbm1lbnRzIC0+IHByb2R1Y3Rpb24iCiAgICAgICAgICAgIGV4aXQgMQogICAgICAgICAgZmkKICAgICAgICBlbnY6CiAgICAgICAgICBQT1JUQUlORVJfQVBJX1RPS0VOOiAke3sgc2VjcmV0cy5QT1JUQUlORVJfQVBJX1RPS0VOIH19CiAgICAgICAgICBQT1JUQUlORVJfVVJMOiAke3sgc2VjcmV0cy5QT1JUQUlORVJfVVJMIH19CgogICAgICAtIG5hbWU6IERlcGxveSB2aWEgUG9ydGFpbmVyIEFQSQogICAgICAgIGVudjoKICAgICAgICAgIFBPUlRBSU5FUl9BUElfVE9LRU46ICR7eyBzZWNyZXRzLlBPUlRBSU5FUl9BUElfVE9LRU4gfX0KICAgICAgICAgIFBPUlRBSU5FUl9VUkw6ICR7eyBzZWNyZXRzLlBPUlRBSU5FUl9VUkwgfX0KICAgICAgICAgIFpBUFBfSU1BR0U6ICR7eyBuZWVkcy5idWlsZC1hbmQtcHVzaC5vdXRwdXRzLmltYWdlIH19CiAgICAgICAgcnVuOiB8CiAgICAgICAgICBzZXQgLWV1byBwaXBlZmFpbAogICAgICAgICAgZWNobyAiRGVwbG95aW5nOiAke1pBUFBfSU1BR0V9IgoKICAgICAgICAgICMgQ29tcG9zZSBjb21wbGV0byBjb20gdG9kb3Mgb3MgbGFiZWxzIFRyYWVmaWsgKEhvc3QgcnVsZSBvYnJpZ2F0b3JpbykKICAgICAgICAgIGNhdCA+IC90bXAvY29tcG9zZS55bWwgPDwgJ0NPTVBPU0VZTUwnCiAgICAgICAgICB2ZXJzaW9uOiAiMy44IgogICAgICAgICAgc2VydmljZXM6CiAgICAgICAgICAgIHdlYjoKICAgICAgICAgICAgICBpbWFnZTogZ2hjci5pby9hZG0wMS1kZWJ1Zy96YXBwLXdlYi12My96YXBwLXdlYjpwcm9kdWN0aW9uLWxhdGVzdAogICAgICAgICAgICAgIG5ldHdvcmtzOgogICAgICAgICAgICAgICAgLSBBdG9taWNhQlJOZXQKICAgICAgICAgICAgICBoZWFsdGhjaGVjazoKICAgICAgICAgICAgICAgIHRlc3Q6IFsiQ01EIiwgIndnZXQiLCAiLXFPLSIsICJodHRwOi8vMTI3LjAuMC4xL2hlYWx0aHoiXQogICAgICAgICAgICAgICAgaW50ZXJ2YWw6IDMwcwogICAgICAgICAgICAgICAgdGltZW91dDogNXMKICAgICAgICAgICAgICAgIHJldHJpZXM6IDMKICAgICAgICAgICAgICAgIHN0YXJ0X3BlcmlvZDogMzBzCiAgICAgICAgICAgICAgZGVwbG95OgogICAgICAgICAgICAgICAgbW9kZTogcmVwbGljYXRlZAogICAgICAgICAgICAgICAgcmVwbGljYXM6IDEKICAgICAgICAgICAgICAgIHBsYWNlbWVudDoKICAgICAgICAgICAgICAgICAgY29uc3RyYWludHM6CiAgICAgICAgICAgICAgICAgICAgLSBub2RlLnJvbGUgPT0gbWFuYWdlcgogICAgICAgICAgICAgICAgbGFiZWxzOgogICAgICAgICAgICAgICAgICAtIHRyYWVmaWsuZW5hYmxlPXRydWUKICAgICAgICAgICAgICAgICAgLSAidHJhZWZpay5odHRwLnJvdXRlcnMuemFwcC1wcm9kLnJ1bGU9SG9zdChgemFwcC5hdG9taWNhYnIuY29tLmJyYCkiCiAgICAgICAgICAgICAgICAgIC0gdHJhZWZpay5odHRwLnNlcnZpY2VzLnphcHAtcHJvZC5sb2FkYmFsYW5jZXIuc2VydmVyLnBvcnQ9ODAKICAgICAgICAgICAgICAgICAgLSB0cmFlZmlrLmh0dHAucm91dGVycy56YXBwLXByb2Quc2VydmljZT16YXBwLXByb2QKICAgICAgICAgICAgICAgICAgLSB0cmFlZmlrLmh0dHAucm91dGVycy56YXBwLXByb2QuZW50cnlwb2ludHM9d2Vic2VjdXJlCiAgICAgICAgICAgICAgICAgIC0gdHJhZWZpay5odHRwLnJvdXRlcnMuemFwcC1wcm9kLnRscy5jZXJ0cmVzb2x2ZXI9bGV0c2VuY3J5cHRyZXNvbHZlcgogICAgICAgICAgICAgICAgICAtIHRyYWVmaWsuaHR0cC5yb3V0ZXJzLnphcHAtcHJvZC50bHM9dHJ1ZQogICAgICAgICAgICAgICAgICAtIGNvbS5jZW50dXJ5bGlua2xhYnMud2F0Y2h0b3dlci5lbmFibGU9ZmFsc2UKICAgICAgICAgICAgICAgIHVwZGF0ZV9jb25maWc6CiAgICAgICAgICAgICAgICAgIGZhaWx1cmVfYWN0aW9uOiByb2xsYmFjawogICAgICAgICAgICAgICAgICBtb25pdG9yOiA2MHMKICAgICAgICAgICAgICAgICAgb3JkZXI6IHN0YXJ0LWZpcnN0CiAgICAgICAgICAgICAgICByZXNvdXJjZXM6CiAgICAgICAgICAgICAgICAgIGxpbWl0czoKICAgICAgICAgICAgICAgICAgICBtZW1vcnk6IDI1Nk0KICAgICAgICAgICAgICAgICAgICBjcHVzOiAiMC41IgogICAgICAgICAgbmV0d29ya3M6CiAgICAgICAgICAgIEF0b21pY2FCUk5ldDoKICAgICAgICAgICAgICBleHRlcm5hbDogdHJ1ZQogICAgICAgICAgICAgIG5hbWU6IEF0b21pY2FCUk5ldAogICAgICAgICAgQ09NUE9TRVlNTAoKICAgICAgICAgICMgU2VyaWFsaXphIG8gWUFNTCBjb21vIHN0cmluZyBKU09OCiAgICAgICAgICBTVEFDS19DT05URU5UPSQoY2F0IC90bXAvY29tcG9zZS55bWwgfCBqcSAtUnMgLikKICAgICAgICAgIFBBWUxPQUQ9IntcInB1bGxJbWFnZVwiOnRydWUsXCJwcnVuZVwiOmZhbHNlLFwic3RhY2tGaWxlQ29udGVudFwiOiR7U1RBQ0tfQ09OVEVOVH19IgoKICAgICAgICAgIEhUVFA9JChjdXJsIC1zIC1vIC90bXAvcHIuanNvbiAtdyAiJXtodHRwX2NvZGV9IiBcCiAgICAgICAgICAgIC1YIFBVVCAiJHtQT1JUQUlORVJfVVJMfS9hcGkvc3RhY2tzLzE1Nz9lbmRwb2ludElkPTEiIFwKICAgICAgICAgICAgLUggIlgtQVBJLUtleTogJHtQT1JUQUlORVJfQVBJX1RPS0VOfSIgXAogICAgICAgICAgICAtSCAiQ29udGVudC1UeXBlOiBhcHBsaWNhdGlvbi9qc29uIiBcCiAgICAgICAgICAgIC1kICIke1BBWUxPQUR9IikKCiAgICAgICAgICBlY2hvICJQb3J0YWluZXIgSFRUUDogJHtIVFRQfSIKICAgICAgICAgIGNhdCAvdG1wL3ByLmpzb24gfCBoZWFkIC1jIDQwMCB8fCB0cnVlCiAgICAgICAgICBbICIke0hUVFB9IiA9ICIyMDAiIF0gfHwgeyBlY2hvICI6OmVycm9yOjpEZXBsb3kgZmFpbGVkIEhUVFAgJHtIVFRQfSI7IGV4aXQgMTsgfQoKICAgICAgICAgIGVjaG8gIkFndWFyZGFuZG8gMjBzIHJvbGxvdXQuLi4iCiAgICAgICAgICBzbGVlcCAyMAoKICAgICAgICAgIEhDPSQoY3VybCAtcyAtbyAvZGV2L251bGwgLXcgIiV7aHR0cF9jb2RlfSIgLS1tYXgtdGltZSAxNSBcCiAgICAgICAgICAgIGh0dHBzOi8vemFwcC5hdG9taWNhYnIuY29tLmJyL2F1dGggfHwgZWNobyAwMDApCiAgICAgICAgICBlY2hvICJIZWFsdGggL2F1dGg6ICR7SEN9IgogICAgICAgICAgY2FzZSAiJHtIQ30iIGluIDIwMHwzMDF8MzAyKSBlY2hvICJBcHAgT0siIDs7ICopIGVjaG8gIjo6d2FybmluZzo6SEM9JHtIQ30iOyBlc2FjCg==
+name: 🚀 Build & Deploy — ZAPP web v3
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag override (default: production-<sha>)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+  actions: write
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/zapp-web
+
+jobs:
+  build-and-push:
+    name: Build & push image
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tag
+        id: meta
+        run: |
+          TAG="${{ inputs.image_tag }}"
+          if [ -z "$TAG" ]; then TAG="production-${GITHUB_SHA::12}"; fi
+          echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:production-latest
+          build-args: |
+            VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
+            VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+            VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+            VITE_SENTRY_DSN=${{ secrets.VITE_SENTRY_DSN }}
+            VITE_SENTRY_ENVIRONMENT=production
+            VITE_APP_ENV=production
+
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment: production
+    steps:
+      - name: Verify required secrets
+        run: |
+          missing=""
+          [ -z "${PORTAINER_API_TOKEN}" ] && missing="$missing PORTAINER_API_TOKEN"
+          [ -z "${PORTAINER_URL}" ]        && missing="$missing PORTAINER_URL"
+          if [ -n "$missing" ]; then
+            echo "::error::Required secrets not configured:${missing}"
+            echo "Add them at: Settings -> Environments -> production"
+            exit 1
+          fi
+        env:
+          PORTAINER_API_TOKEN: ${{ secrets.PORTAINER_API_TOKEN }}
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+
+      - name: Deploy via Portainer API
+        env:
+          PORTAINER_API_TOKEN: ${{ secrets.PORTAINER_API_TOKEN }}
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+          ZAPP_IMAGE: ${{ needs.build-and-push.outputs.image }}
+        run: |
+          set -euo pipefail
+          echo "Deploying: ${ZAPP_IMAGE}"
+
+          cat > /tmp/compose.yml << 'COMPOSEYML'
+          version: "3.8"
+          services:
+            web:
+              image: ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-latest
+              networks:
+                - AtomicaBRNet
+              healthcheck:
+                test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+                interval: 30s
+                timeout: 5s
+                retries: 3
+                start_period: 30s
+              deploy:
+                mode: replicated
+                replicas: 1
+                placement:
+                  constraints:
+                    - node.role == manager
+                labels:
+                  - traefik.enable=true
+                  - "traefik.http.routers.zapp-prod.rule=Host(`zapp.atomicabr.com.br`)"
+                  - traefik.http.services.zapp-prod.loadbalancer.server.port=80
+                  - traefik.http.routers.zapp-prod.service=zapp-prod
+                  - traefik.http.routers.zapp-prod.entrypoints=websecure
+                  - traefik.http.routers.zapp-prod.tls.certresolver=letsencryptresolver
+                  - traefik.http.routers.zapp-prod.tls=true
+                  - com.centurylinklabs.watchtower.enable=false
+                update_config:
+                  failure_action: rollback
+                  monitor: 60s
+                  order: start-first
+                resources:
+                  limits:
+                    memory: 256M
+                    cpus: "0.5"
+          networks:
+            AtomicaBRNet:
+              external: true
+              name: AtomicaBRNet
+          COMPOSEYML
+
+          STACK_CONTENT=$(cat /tmp/compose.yml | jq -Rs .)
+          PAYLOAD="{\"pullImage\":true,\"prune\":false,\"stackFileContent\":${STACK_CONTENT}}"
+
+          HTTP=$(curl -s -o /tmp/pr.json -w "%{http_code}" \
+            -X PUT "${PORTAINER_URL}/api/stacks/157?endpointId=1" \
+            -H "X-API-Key: ${PORTAINER_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "${PAYLOAD}")
+
+          echo "Portainer HTTP: ${HTTP}"
+          cat /tmp/pr.json | head -c 400 || true
+          [ "${HTTP}" = "200" ] || { echo "::error::Deploy failed HTTP ${HTTP}"; exit 1; }
+
+          echo "Aguardando 20s rollout..."
+          sleep 20
+
+          HC=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 \
+            https://zapp.atomicabr.com.br/auth || echo 000)
+          echo "Health /auth: ${HC}"
+          case "${HC}" in 200|301|302) echo "App OK" ;; *) echo "::warning::HC=${HC}"; esac
