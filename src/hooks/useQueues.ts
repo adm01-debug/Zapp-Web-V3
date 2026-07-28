@@ -129,51 +129,81 @@ export function useQueues(): UseQueuesResult {
     setRefreshKey((k) => k + 1);
   }, []);
 
-  const createQueue = useCallback(
-    async (queue: { name: string; description?: string; color?: string }) => {
-      const { error: err } = await supabase.from('queues').insert({
-        name: queue.name,
-        description: queue.description ?? null,
-        color: queue.color ?? '#3B82F6',
-      });
-      if (err) throw err;
-      refetch();
+  /**
+   * Executes a mutation, keeping error/mutating state consistent and never
+   * leaking an unhandled rejection to the caller (UI components only need
+   * the boolean success flag).
+   */
+  const runMutation = useCallback(
+    async (label: string, fn: () => Promise<{ error: unknown }>): Promise<boolean> => {
+      setMutating(true);
+      try {
+        const { error: err } = await fn();
+        if (err) throw err instanceof Error ? err : new Error(String(err));
+        setError(null);
+        refetch();
+        return true;
+      } catch (err) {
+        const normalized = err instanceof Error ? err : new Error(String(err));
+        logger.error(`useQueues.${label} failed`, normalized);
+        setError(normalized);
+        return false;
+      } finally {
+        setMutating(false);
+      }
     },
     [refetch]
+  );
+
+  const createQueue = useCallback(
+    (queue: CreateQueueInput) =>
+      runMutation('createQueue', () =>
+        supabase.from('queues').insert({
+          name: queue.name,
+          description: queue.description ?? null,
+          color: queue.color ?? '#3B82F6',
+        })
+      ),
+    [runMutation]
   );
 
   const deleteQueue = useCallback(
-    async (queueId: string) => {
-      const { error: err } = await supabase.from('queues').delete().eq('id', queueId);
-      if (err) throw err;
-      refetch();
-    },
-    [refetch]
+    (queueId: string) =>
+      runMutation('deleteQueue', () => supabase.from('queues').delete().eq('id', queueId)),
+    [runMutation]
   );
 
   const addMember = useCallback(
-    async (queueId: string, profileId: string) => {
-      const { error: err } = await supabase
-        .from('queue_members')
-        .insert({ queue_id: queueId, profile_id: profileId, is_active: true });
-      if (err) throw err;
-      refetch();
-    },
-    [refetch]
+    (queueId: string, profileId: string) =>
+      runMutation('addMember', () =>
+        supabase
+          .from('queue_members')
+          .insert({ queue_id: queueId, profile_id: profileId, is_active: true })
+      ),
+    [runMutation]
   );
 
   const removeMember = useCallback(
-    async (queueId: string, profileId: string) => {
-      const { error: err } = await supabase
-        .from('queue_members')
-        .delete()
-        .eq('queue_id', queueId)
-        .eq('profile_id', profileId);
-      if (err) throw err;
-      refetch();
-    },
-    [refetch]
+    (queueId: string, profileId: string) =>
+      runMutation('removeMember', () =>
+        supabase
+          .from('queue_members')
+          .delete()
+          .eq('queue_id', queueId)
+          .eq('profile_id', profileId)
+      ),
+    [runMutation]
   );
 
-  return { loading, error, queues, refetch, createQueue, deleteQueue, addMember, removeMember };
+  return {
+    loading,
+    mutating,
+    error,
+    queues,
+    refetch,
+    createQueue,
+    deleteQueue,
+    addMember,
+    removeMember,
+  };
 }
