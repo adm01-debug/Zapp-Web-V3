@@ -232,9 +232,22 @@ export function ProtectedRoute({
     );
   }
 
-  if (!user) {
+  if (!user || timedOut) {
     recordAuthzFailure({ route: location.pathname, reason: 'unauthenticated' });
     return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  // Force redirect to /auth when session is stale (cookie from another domain, expired JWT, etc.)
+  // user exists from GoTrue cache but all API calls return 401/403
+  if (!authLoading && user) {
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error || !data.session) {
+        log.warn('[ProtectedRoute] Stale session detected — forcing redirect to /auth');
+        supabase.auth.signOut().then(() => {
+          window.location.replace('/auth');
+        });
+      }
+    });
   }
 
   // Resolve effective required roles: DB override wins when present
