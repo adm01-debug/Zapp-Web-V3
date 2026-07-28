@@ -1,20 +1,17 @@
 /**
  * Tests for runConnectionDiagnostics() in diagnostics.ts.
  *
- * Note: diagnostics.ts contains incomplete/broken code at lines 65-88
- * (references to `results`, `connError`, `connData`, `SystemConnectionForm`,
- * `systemConnectionSchema` that are undefined). The outer try/catch absorbs the
- * ReferenceError as a "Global Error" fail step. Tests cover the two reachable
- * observable paths.
+ * diagnostics.ts was refactored: the previously "broken" code paths are now
+ * functional. Tests cover the observable behavior after the fix.
  *
  * Paths:
  * - No session → Auth Check fail, early return (no DB calls)
- * - Session present → Auth Check pass → broken code → ReferenceError caught
- *   as "Global Error" fail
+ * - Session present → Auth Check pass → Config Validation fail (null config)
+ *   → returns early (no Global Error thrown)
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// ── Hoisted mocks ─────────────────────────────────────────────────────────────
+// ── Hoisted mocks ─────────────────────────────────────────────────────────────────────────────
 // diagLog is assigned at module load time via getLogger('diagnostics').
 // The stable logger object must be returned by the very first mockGetLogger call,
 // so we bake it into the vi.hoisted factory (not into beforeEach).
@@ -42,15 +39,16 @@ vi.mock('@/lib/logger', () => ({
   getLogger: mockGetLogger,
 }));
 
-// ── Import SUT AFTER mocks ────────────────────────────────────────────────────
+// ── Import SUT AFTER mocks ────────────────────────────────────────────────────────────────────
+
 import { runConnectionDiagnostics } from '../diagnostics';
 
-// ── Setup ─────────────────────────────────────────────────────────────────────
+// ── Setup ────────────────────────────────────────────────────────────────────────────────────
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
-// ── return shape ──────────────────────────────────────────────────────────────
+// ── return shape ───────────────────────────────────────────────────────────────────────────────
 describe('runConnectionDiagnostics — return shape', () => {
   it('always returns an object with timestamp and steps', async () => {
     mockGetSession.mockResolvedValue({ data: { session: null } });
@@ -67,7 +65,7 @@ describe('runConnectionDiagnostics — return shape', () => {
   });
 });
 
-// ── auth check step ───────────────────────────────────────────────────────────
+// ── auth check step ───────────────────────────────────────────────────────────────────────────
 describe('runConnectionDiagnostics — auth check (step 1)', () => {
   it('step 1 status is "fail" when session is null', async () => {
     mockGetSession.mockResolvedValue({ data: { session: null } });
@@ -99,27 +97,27 @@ describe('runConnectionDiagnostics — auth check (step 1)', () => {
   });
 });
 
-// ── global error catch ────────────────────────────────────────────────────────
+// ── config validation / error catch ──────────────────────────────────────────────────
 describe('runConnectionDiagnostics — global catch (broken code path)', () => {
-  it('adds a "Global Error" fail step when session exists (broken code throws)', async () => {
+  // diagnostics.ts was fixed: when session exists but config rows are missing,
+  // Config Validation fails (no Global Error is thrown).
+  it('adds a "Config Validation" fail step when session exists but config rows are null', async () => {
     mockGetSession.mockResolvedValue({
       data: { session: { user: { email: 'u@test.com', id: 'uid-1' } } },
     });
     mockSafeClientFrom.mockResolvedValue({ data: null, error: null });
     const result = await runConnectionDiagnostics();
-    const errorStep = result.steps.find(s => s.step === 'Global Error');
-    expect(errorStep?.status).toBe('fail');
+    const configStep = result.steps.find(s => s.step === 'Config Validation');
+    expect(configStep?.status).toBe('fail');
   });
 
-  it('Global Error details includes the error message', async () => {
+  it('returns at least 2 steps when session exists (Auth Check + Config Validation)', async () => {
     mockGetSession.mockResolvedValue({
       data: { session: { user: { email: 'u@test.com', id: 'uid-1' } } },
     });
     mockSafeClientFrom.mockResolvedValue({ data: null, error: null });
     const result = await runConnectionDiagnostics();
-    const errorStep = result.steps.find(s => s.step === 'Global Error');
-    const details = errorStep?.details as { message?: string } | undefined;
-    expect(typeof details?.message).toBe('string');
+    expect(result.steps.length).toBeGreaterThanOrEqual(2);
   });
 
   it('resolves without unhandled rejection when session exists', async () => {
@@ -139,7 +137,7 @@ describe('runConnectionDiagnostics — global catch (broken code path)', () => {
   });
 });
 
-// ── logger integration ────────────────────────────────────────────────────────
+// ── logger integration ──────────────────────────────────────────────────────────────────────────
 describe('runConnectionDiagnostics — logger', () => {
   it('logs a warning for auth fail step', async () => {
     mockGetSession.mockResolvedValue({ data: { session: null } });

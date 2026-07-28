@@ -33,7 +33,7 @@ const NODE_TO_FILE: Record<string, string> = {
   UM: 'src/features/inbox/data-access/messageRepository.ts',
   UMS: 'src/features/inbox/hooks/useMessageStatus.ts',
   UTN: 'src/hooks/useTranscriptionNotifications.ts',
-  URD: 'src/hooks/useRealtimeDashboard.ts',
+  // URD removed — useRealtimeDashboard is a thin delegate with no direct messages postgres_changes
   UEM: 'src/components/monitoring/hooks/useEvolutionMonitoring.ts',
   AMP: 'src/features/inbox/components/useAudioMessagePlayer.ts',
 };
@@ -98,8 +98,8 @@ describe('Diagrama TRILHA_MENSAGENS_NAVEGAVEL — eventos realtime nas arestas',
         if (missingInDiagram.length)
           parts.push(`faltam no diagrama: ${missingInDiagram.join(', ')}`);
         if (phantomInDiagram.length)
-          parts.push(`fantasma no diagrama: ${phantomInDiagram.join(', ')}`);
-        throw new Error(`Aresta DB -> ${node} desalinhada (${parts.join(' | ')}). ${UPDATE_HINT}`);
+          parts.push(`phantoms no diagrama: ${phantomInDiagram.join(', ')}`);
+        throw new Error(`${file}: ${parts.join('; ')}. ${UPDATE_HINT}`);
       }
     });
   }

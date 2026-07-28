@@ -29,12 +29,14 @@ const LS_BUS_PREFIX = 'ctd:bus:';
 function writeLock(key: string, expiresAt = Date.now() + 10_000, ownerId = 'other-tab') {
   localStorage.setItem(
     LS_LOCK_PREFIX + key,
-    JSON.stringify({ ownerId, acquiredAt: Date.now(), expiresAt }),
+    // version:1 + sequence:0 required by readLock (MELHORIA #8 versioned payloads)
+    JSON.stringify({ version: 1 as const, ownerId, acquiredAt: Date.now(), expiresAt, sequence: 0 }),
   );
 }
 
 function writeCachedResult(key: string, value: unknown, expiresAt = Date.now() + 30_000) {
-  localStorage.setItem(LS_RESULT_PREFIX + key, JSON.stringify({ value, expiresAt }));
+  // version:1 + payloadHash + sequence required by readPersistedResult (MELHORIA #8)
+  localStorage.setItem(LS_RESULT_PREFIX + key, JSON.stringify({ version: 1 as const, value, expiresAt, payloadHash: 'test-hash-' + key, sequence: 0 }));
 }
 
 function writeBusEntry(key: string, ts: number) {
@@ -46,7 +48,7 @@ beforeEach(() => {
   localStorage.clear();
 });
 
-// ── constants ─────────────────────────────────────────────────────────────────
+// ── constants ─────────────────────────────────────────────────────────────────────────
 
 describe('crossTabDedupe — constants', () => {
   it('LS_PREFIX equals "ctd:lock:"', () => {
@@ -63,7 +65,7 @@ describe('crossTabDedupe — constants', () => {
   });
 });
 
-// ── gcExpiredKeys — empty / non-ctd ──────────────────────────────────────────
+// ── gcExpiredKeys — empty / non-ctd ──────────────────────────────────────────────
 
 describe('gcExpiredKeys — empty localStorage', () => {
   it('returns zeros when localStorage is empty', () => {
@@ -81,7 +83,7 @@ describe('gcExpiredKeys — empty localStorage', () => {
   });
 });
 
-// ── gcExpiredKeys — locks ─────────────────────────────────────────────────────
+// ── gcExpiredKeys — locks ───────────────────────────────────────────────────────────
 
 describe('gcExpiredKeys — locks', () => {
   it('sweeps an expired lock and returns locksSwept: 1', () => {
@@ -114,7 +116,7 @@ describe('gcExpiredKeys — locks', () => {
   });
 });
 
-// ── gcExpiredKeys — results ───────────────────────────────────────────────────
+// ── gcExpiredKeys — results ──────────────────────────────────────────────────────────
 
 describe('gcExpiredKeys — results', () => {
   it('sweeps an expired result', () => {
@@ -132,7 +134,7 @@ describe('gcExpiredKeys — results', () => {
   });
 });
 
-// ── gcExpiredKeys — bus ───────────────────────────────────────────────────────
+// ── gcExpiredKeys — bus ────────────────────────────────────────────────────────────────
 
 describe('gcExpiredKeys — bus entries', () => {
   it('sweeps an old bus entry (older than 15 seconds)', () => {
@@ -148,7 +150,7 @@ describe('gcExpiredKeys — bus entries', () => {
   });
 });
 
-// ── clearCrossTabDedupe ───────────────────────────────────────────────────────
+// ── clearCrossTabDedupe ───────────────────────────────────────────────────────────────
 
 describe('clearCrossTabDedupe', () => {
   it('removes ctd:lock: entries from localStorage', () => {
@@ -181,7 +183,7 @@ describe('clearCrossTabDedupe', () => {
   });
 });
 
-// ── subscribeDedupe — string matcher ─────────────────────────────────────────
+// ── subscribeDedupe — string matcher ───────────────────────────────────────────────
 
 describe('subscribeDedupe — string matcher', () => {
   it('calls handler on exact key match', () => {
@@ -210,7 +212,7 @@ describe('subscribeDedupe — string matcher', () => {
   });
 });
 
-// ── subscribeDedupe — RegExp matcher ─────────────────────────────────────────
+// ── subscribeDedupe — RegExp matcher ──────────────────────────────────────────────
 
 describe('subscribeDedupe — RegExp matcher', () => {
   it('calls handler when key matches the RegExp', () => {
@@ -230,7 +232,7 @@ describe('subscribeDedupe — RegExp matcher', () => {
   });
 });
 
-// ── subscribeDedupe — multiple subscribers ────────────────────────────────────
+// ── subscribeDedupe — multiple subscribers ──────────────────────────────────────────
 
 describe('subscribeDedupe — multiple subscribers', () => {
   it('all matching subscribers receive the notification', () => {
@@ -279,7 +281,7 @@ describe('subscribeDedupe — multiple subscribers', () => {
   });
 });
 
-// ── __notifyLocal ─────────────────────────────────────────────────────────────
+// ── __notifyLocal ─────────────────────────────────────────────────────────────────────────
 
 describe('__notifyLocal', () => {
   it('passes data through to the subscriber', () => {
@@ -301,7 +303,7 @@ describe('__notifyLocal', () => {
   });
 });
 
-// ── dedupedFetch — memory cache ───────────────────────────────────────────────
+// ── dedupedFetch — memory cache ─────────────────────────────────────────────────────────
 
 describe('dedupedFetch — memory cache', () => {
   it('calls the fetcher exactly once for repeated calls', async () => {
@@ -325,7 +327,7 @@ describe('dedupedFetch — memory cache', () => {
   });
 });
 
-// ── dedupedFetch — persisted LS cache ────────────────────────────────────────
+// ── dedupedFetch — persisted LS cache ────────────────────────────────────────────
 
 describe('dedupedFetch — persisted localStorage cache', () => {
   it('returns the pre-cached LS result without calling the fetcher', async () => {
@@ -345,7 +347,7 @@ describe('dedupedFetch — persisted localStorage cache', () => {
   });
 });
 
-// ── dedupedFetch — inflight dedup ─────────────────────────────────────────────
+// ── dedupedFetch — inflight dedup ──────────────────────────────────────────────────
 
 describe('dedupedFetch — inflight deduplication', () => {
   it('concurrent calls to the same key share a single fetcher invocation', async () => {
@@ -373,7 +375,7 @@ describe('dedupedFetch — inflight deduplication', () => {
   });
 });
 
-// ── dedupedFetch — after clear ────────────────────────────────────────────────
+// ── dedupedFetch — after clear ─────────────────────────────────────────────────────
 
 describe('dedupedFetch — after clearCrossTabDedupe', () => {
   it('re-invokes the fetcher after cache is cleared', async () => {
