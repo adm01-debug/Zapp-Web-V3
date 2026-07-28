@@ -218,7 +218,9 @@ export function useAutomations({
         const actions = rule.actions ?? {};
 
         // Escalonar SLA: aplica tag de sistema sla:<level> e remove níveis anteriores
-        const escalate = actions.escalate_sla;
+        const escalate = (actions.escalate_sla ?? undefined) as
+          | { enabled?: boolean; level?: string; reason?: string | null }
+          | undefined;
         let slaTags: string[] = [];
         if (escalate?.enabled) {
           const level = String(escalate.level ?? 'high');
