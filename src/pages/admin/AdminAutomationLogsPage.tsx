@@ -179,12 +179,14 @@ export default function AdminAutomationLogsPage() {
               </TableRow>
             )}
             {rows.map((r) => {
-              const triggerType =
-                r.rule_snapshot?.trigger_type ?? r.trigger_payload?.trigger_type ?? '—';
-              const ruleName =
+              const triggerType = String(
+                r.rule_snapshot?.trigger_type ?? r.trigger_payload?.trigger_type ?? '—'
+              );
+              const ruleName = String(
                 r.rule_snapshot?.name ??
-                (r.rule_id ? ruleNameById[r.rule_id] : null) ??
-                '(regra removida)';
+                  (r.rule_id ? ruleNameById[r.rule_id] : null) ??
+                  '(regra removida)'
+              );
               const tagsCount = (r.applied_tags ?? []).length;
               return (
                 <TableRow key={r.id} className="cursor-pointer" onClick={() => setDetail(r)}>
