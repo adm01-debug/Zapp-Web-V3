@@ -5,7 +5,7 @@
   "installCommand": "bun install",
   "rewrites": [
     {
-      "source": "/((?!api|_next|favicon.ico|icons|sw.js|workbox|manifest.webmanifest).*)",
+      "source": "/((?!api|_next|favicon.ico|icons|sw.js|workbox|manifest.json|manifest.webmanifest).*)",
       "destination": "/index.html"
     }
   ],
