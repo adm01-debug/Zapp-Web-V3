@@ -1,1 +1,108 @@
-aW1wb3J0IHsgY3JlYXRlWmFwcEFkbWluQ2xpZW50IH0gZnJvbSAnLi4vX3NoYXJlZC9kYi1jbGllbnQudHMnOwppbXBvcnQgeyByZXF1aXJlU2VydmljZVJvbGVPckNyb24gfSBmcm9tICcuLi9fc2hhcmVkL2F1dGgudHMnOwppbXBvcnQgeyBnZXRDb3JzSGVhZGVycyB9IGZyb20gJy4uL19zaGFyZWQvY29ycy50cyc7CgovKioKICogYmFja2ZpbGwtbWVzc2FnZXMg4oCUIEJhY2tmaWxsIGhpc3TDs3JpY28gZGUgbWVuc2FnZW5zIGRhIEV2b2x1dGlvbiBBUEkgcGFyYSBvIGJhbmNvLgogKgogKiBQYWdpbmEgbWVuc2FnZW5zIGRhIEV2b2x1dGlvbiBBUEkgZSBpbnNlcmUgbm8gYmFuY28gdXNhbmRvIE9OIENPTkZMSUNUIERPIE5PVEhJTkcuCiAqIEdhcmFudGUgaWRlbXBvdMOqbmNpYTogcG9kZSBzZXIgZXhlY3V0YWRvIG3Dumx0aXBsYXMgdmV6ZXMgc2VtIGR1cGxpY2HDp8Ojby4KICoKICogQm9keTogeyBvZmZzZXQ/OiBudW1iZXIsIGxpbWl0PzogbnVtYmVyLCBkcnlSdW4/OiBib29sZWFuIH0KICogUmV0dXJuczogeyBwcm9jZXNzZWQsIGluc2VydGVkLCBza2lwcGVkLCBlcnJvcnMsIG5leHRfb2Zmc2V0LCBkb25lIH0KICovCgpjb25zdCBFVk9MVVRJT05fVVJMID0gRGVuby5lbnYuZ2V0KCdFVk9MVVRJT05fQVBJX1VSTCcpOwppZiAoIUVWT0xVVElPTl9VUkwpIHRocm93IG5ldyBFcnJvcignW2JhY2tmaWxsXSBFVk9MVVRJT05fQVBJX1VSTCBlbnYgdmFyIGlzIHJlcXVpcmVkJyk7CmNvbnN0IEVWT0xVVElPTl9LRVkgPSBEZW5vLmVudi5nZXQoJ0VWT0xVVElPTl9BUElfS0VZJyk7CmlmICghRVZPTFVUSU9OX0tFWSkgdGhyb3cgbmV3IEVycm9yKCdbYmFja2ZpbGxdIEVWT0xVVElPTl9BUElfS0VZIGVudiB2YXIgaXMgcmVxdWlyZWQnKTsKY29uc3QgSU5TVEFOQ0UgPSBEZW5vLmVudi5nZXQoJ0JBQ0tGSUxMX0lOU1RBTkNFX05BTUUnKTsKaWYgKCFJTlNUQU5DRSkgdGhyb3cgbmV3IEVycm9yKCdbYmFja2ZpbGxdIEJBQ0tGSUxMX0lOU1RBTkNFX05BTUUgZW52IHZhciBpcyByZXF1aXJlZCcpOwpjb25zdCBDT05ORUNUSU9OX0lEID0gRGVuby5lbnYuZ2V0KCdCQUNLRklMTF9DT05ORUNUSU9OX0lEJyk7CmlmICghQ09OTkVDVElPTl9JRCkgdGhyb3cgbmV3IEVycm9yKCdbYmFja2ZpbGxdIEJBQ0tGSUxMX0NPTk5FQ1RJT05fSUQgZW52IHZhciBpcyByZXF1aXJlZCcpOwoKY29uc3QgU0tJUF9UWVBFUyA9IG5ldyBTZXQoWydyZWFjdGlvbicsICdzdGlja2VyJywgJ3Byb3RvY29sTWVzc2FnZScsICdlcGhlbWVyYWxNZXNzYWdlJ10pOwoKZnVuY3Rpb24gZXh0cmFjdFBob25lKHJlbW90ZUppZDogc3RyaW5nKTogc3RyaW5nIHwgbnVsbCB7CiAgaWYgKCFyZW1vdGVKaWQpIHJldHVybiBudWxsOwogIGlmIChyZW1vdGVKaWQuZW5kc1dpdGgoJ0BnLnVzJykpIHJldHVybiBudWxsOwogIGlmIChyZW1vdGVKaWQuZW5kc1dpdGgoJ0Bicm9hZGNhc3QnKSkgcmV0dXJuIG51bGw7CiAgcmV0dXJuIHJlbW90ZUppZC5zcGxpdCgnQCcpWzBdLnJlcGxhY2UoL1xEL2csICcnKS5zbGljZSgtMTMpOwp9CgpmdW5jdGlvbiBleHRyYWN0Q29udGVudChtc2c6IFJlY29yZDxzdHJpbmcsIHVua25vd24+KTogc3RyaW5nIHwgbnVsbCB7CiAgY29uc3QgbSA9IChtc2cubWVzc2FnZSA/PyB7fSkgYXMgUmVjb3JkPHN0cmluZywgdW5rbm93bj47CiAgaWYgKHR5cGVvZiBtLmNvbnZlcnNhdGlvbiA9PT0gJ3N0cmluZycpIHJldHVybiBtLmNvbnZlcnNhdGlvbiB8fCBudWxsOwogIGNvbnN0IGV4dCA9IG0uZXh0ZW5kZWRUZXh0TWVzc2FnZSBhcyBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPiB8IHVuZGVmaW5lZDsKICBpZiAoZXh0Py50ZXh0ICYmIHR5cGVvZiBleHQudGV4dCA9PT0gJ3N0cmluZycpIHJldHVybiBleHQudGV4dCB8fCBudWxsOwogIHJldHVybiBudWxsOwp9CgpmdW5jdGlvbiBleHRyYWN0TWVzc2FnZVR5cGUobXNnOiBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPik6IHN0cmluZyB7CiAgY29uc3QgbSA9IChtc2cubWVzc2FnZSA/PyB7fSkgYXMgUmVjb3JkPHN0cmluZywgdW5rbm93bj47CiAgY29uc3Qga2V5cyA9IE9iamVjdC5rZXlzKG0pOwogIGlmIChrZXlzLmxlbmd0aCA9PT0gMCkgcmV0dXJuICd1bmtub3duJzsKICBpZiAobS5jb252ZXJzYXRpb24gIT09IHVuZGVmaW5lZCkgcmV0dXJuICd0ZXh0JzsKICBpZiAobS5pbWFnZU1lc3NhZ2UgIT09IHVuZGVmaW5lZCkgcmV0dXJuICdpbWFnZSc7CiAgaWYgKG0udmlkZW9NZXNzYWdlICE9PSB1bmRlZmluZWQpIHJldHVybiAndmlkZW8nOwogIGlmIChtLmF1ZGlvTWVzc2FnZSAhPT0gdW5kZWZpbmVkKSByZXR1cm4gJ2F1ZGlvJzsKICBpZiAobS5kb2N1bWVudE1lc3NhZ2UgIT09IHVuZGVmaW5lZCkgcmV0dXJuICdkb2N1bWVudCc7CiAgaWYgKG0uc3RpY2tlck1lc3NhZ2UgIT09IHVuZGVmaW5lZCkgcmV0dXJuICdzdGlja2VyJzsKICBpZiAobS5yZWFjdGlvbk1lc3NhZ2UgIT09IHVuZGVmaW5lZCkgcmV0dXJuICdyZWFjdGlvbic7CiAgcmV0dXJuIGtleXNbMF0gPz8gJ3Vua25vd24nOwp9CgpmdW5jdGlvbiB0c1RvSXNvKHRzOiBudW1iZXIgfCBzdHJpbmcgfCB1bmRlZmluZWQpOiBzdHJpbmcgewogIGlmICghdHMpIHJldHVybiBuZXcgRGF0ZSgpLnRvSVNPU3RyaW5nKCk7CiAgY29uc3QgbiA9IHR5cGVvZiB0cyA9PT0gJ3N0cmluZycgPyBwYXJzZUludCh0cywgMTApIDogdHM7CiAgaWYgKGlzTmFOKG4pIHx8IG4gPD0gMCkgcmV0dXJuIG5ldyBEYXRlKCkudG9JU09TdHJpbmcoKTsKICByZXR1cm4gbmV3IERhdGUobiA8IDFlMTAgPyBuICogMTAwMCA6IG4pLnRvSVNPU3RyaW5nKCk7Cn0KCmFzeW5jIGZ1bmN0aW9uIHVwc2VydENvbnRhY3Qoc3VwYWJhc2U6UmV0dXJuVHlwZTx0eXBlb2YgY3JlYXRlWmFwcEFkbWluQ2xpZW50PixwaG9uZTpzdHJpbmcscmVtb3RlSmlkOnN0cmluZyxwdXNoTmFtZTpzdHJpbmd8dW5kZWZpbmVkKTpQcm9taXNlPHN0cmluZ3xudWxsPnsKICBjb25zdCB7IGRhdGE6IGV4aXN0aW5nIH0gPSBhd2FpdCBzdXBhYmFzZS5mcm9tKCdldm9sdXRpb25fY29udGFjdHMnKS5zZWxlY3QoJ2lkJykuZXEoJ2luc3RhbmNlX25hbWUnLElOU1RBTkNFKS5pcygnZGVsZXRlZF9hdCcsbnVsbCkub3IoYHBob25lX251bWJlci5lcS4ke3Bob25lfSxyZW1vdGVfamlkLmVxLiR7cmVtb3RlSmlkfWApLmxpbWl0KDEpLm1heWJlU2luZ2xlKCk7CiAgaWYgKGV4aXN0aW5nPy5pZCkgcmV0dXJuIGV4aXN0aW5nLmlkIGFzIHN0cmluZzsKICBjb25zdCB7IGRhdGE6IGNyZWF0ZWQsIGVycm9yIH0gPSBhd2FpdCBzdXBhYmFzZS5zY2hlbWEoJ3B1YmxpYycgYXMgJ3phcHAnKS5mcm9tKCdjb250YWN0cycpLmluc2VydCh7cGhvbmUsbmFtZTpwdXNoTmFtZXx8cGhvbmUsd2hhdHNhcHBfY29ubmVjdGlvbl9pZDpDT05ORUNUSU9OX0lELGluc3RhbmNlX25hbWU6SU5TVEFOQ0UscmVtb3RlX2ppZDpyZW1vdGVKaWR9KS5zZWxlY3QoJ2lkJykuc2luZ2xlKCk7CiAgaWYgKGVycm9yKSB7Y29uc29sZS5lcnJvcignW2JhY2tmaWxsXSB1cHNlcnRDb250YWN0IGVycm9yJyxwaG9uZSxlcnJvci5tZXNzYWdlKTtyZXR1cm4gbnVsbDt9CiAgcmV0dXJuIChjcmVhdGVkIGFzIHsgaWQ6IHN0cmluZyB9KS5pZDsKfQoKRGVuby5zZXJ2ZShhc3luYyAocmVxKSA9PiB7CiAgaWYgKHJlcS5tZXRob2QgPT09ICdPUFRJT05TJykgcmV0dXJuIG5ldyBSZXNwb25zZShudWxsLHtoZWFkZXJzOmdldENvcnNIZWFkZXJzKHJlcSl9KTsKICBjb25zdCBhdXRoRXJyID0gcmVxdWlyZVNlcnZpY2VSb2xlT3JDcm9uKHJlcSk7CiAgaWYgKGF1dGhFcnIpIHJldHVybiBhdXRoRXJyOwogIGlmIChyZXEubWV0aG9kICE9PSAnUE9TVCcpIHJldHVybiBuZXcgUmVzcG9uc2UoSlNPTi5zdHJpbmdpZnkoe2Vycm9yOidtZXRob2Rfbm90X2FsbG93ZWQnfSkse3N0YXR1czo0MDUsaGVhZGVyczp7Li4uZ2V0Q29yc0hlYWRlcnMocmVxKSwnQ29udGVudC1UeXBlJzonYXBwbGljYXRpb24vanNvbid9fSk7CiAgY29uc3QganNvbj0oZGF0YTp1bmtub3duLHN0YXR1cz0yMDApPT5uZXcgUmVzcG9uc2UoSlNPTi5zdHJpbmdpZnkoZGF0YSkse3N0YXR1cyxoZWFkZXJzOnsuLi5nZXRDb3JzSGVhZGVycyhyZXEpLCdDb250ZW50LVR5cGUnOidhcHBsaWNhdGlvbi9qc29uJ319KTsKICBjb25zdCBib2R5PWF3YWl0IHJlcS5qc29uKCkuY2F0Y2goKCk9Pih7fSkpOwogIGNvbnN0IG9mZnNldDpudW1iZXI9TnVtYmVyKGJvZHkub2Zmc2V0Pz8wKTsKICBjb25zdCBsaW1pdDpudW1iZXI9TWF0aC5taW4oTnVtYmVyKGJvZHkubGltaXQ/PzIwMCksNTAwKTsKICBjb25zdCBkcnlSdW46Ym9vbGVhbj1ib2R5LmRyeVJ1bj09PXRydWU7CiAgbGV0IGV2TXNnczpSZWNvcmQ8c3RyaW5nLHVua25vd24+W109W107CiAgdHJ5ewogICAgY29uc3QgcmVzPWF3YWl0IGZldGNoKGAke0VWT0xVVElPTl9VUkx9L2NoYXQvZmluZE1lc3NhZ2VzLyR7SU5TVEFOQ0V9YCx7bWV0aG9kOidQT1NUJyxoZWFkZXJzOnsnQ29udGVudC1UeXBlJzonYXBwbGljYXRpb24vanNvbicsYXBpa2V5OkVWT0xVVElPTl9LRVl9LGJvZHk6SlNPTi5zdHJpbmdpZnkoe3doZXJlOnt9LGxpbWl0LG9mZnNldH0pfSk7CiAgICBpZighcmVzLm9rKXJldHVybiBqc29uKHtlcnJvcjondHVwc3RyZWFtX2Vycm9yJyxzdGF0dXM6cmVzLnN0YXR1c30sNTAyKTsKICAgIGNvbnN0IGRhdGE9YXdhaXQgcmVzLmpzb24oKTsKICAgIGV2TXNncz1BcnJheS5pc0FycmF5KGRhdGEpP2RhdGE6QXJyYXkuaXNBcnJheShkYXRhPy5tZXNzYWdlcyk/ZGF0YS5tZXNzYWdlczpbXTsKICB9Y2F0Y2goZXJyKXtyZXR1cm4ganNvbih7ZXJyb3I6J2V2b2x1dGlvbl9mZXRjaF9mYWlsZWQnfSw1MDIpO30KICBpZihldk1zZ3MubGVuZ3RoPT09MClyZXR1cm4ganNvbih7cHJvY2Vzc2VkOjAsaW5zZXJ0ZWQ6MCxza2lwcGVkOjAsZXJyb3JzOjAsZG9uZTp0cnVlLG5leHRfb2Zmc2V0Om9mZnNldH0pOwogIGlmKGRyeVJ1bilyZXR1cm4ganNvbih7ZHJ5UnVuOnRydWUsY291bnQ6ZXZNc2dzLmxlbmd0aCxuZXh0X29mZnNldDpvZmZzZXQrZXZNc2dzLmxlbmd0aH0pOwogIGNvbnN0IHN1cGFiYXNlPWNyZWF0ZVphcHBBZG1pbkNsaWVudCgpOwogIGxldCBpbnNlcnRlZD0wLHNraXBwZWQ9MCxlcnJvcnM9MDsKICBmb3IoY29uc3QgbXNnIG9mIGV2TXNncyl7CiAgICBjb25zdCBrZXk9KG1zZy5rZXk/P3t9KSBhcyBSZWNvcmQ8c3RyaW5nLHVua25vd24+OwogICAgY29uc3QgcmVtb3RlSmlkPShrZXkucmVtb3RlSmlkPz8nJykgYXMgc3RyaW5nOwogICAgY29uc3QgbXNnSWQ9KGtleS5pZD8/JycpIGFzIHN0cmluZzsKICAgIGNvbnN0IGZyb21NZT1Cb29sZWFuKGtleS5mcm9tTWUpOwogICAgY29uc3QgcHVzaE5hbWU9KG1zZy5wdXNoTmFtZT8/JycpIGFzIHN0cmluZzsKICAgIGNvbnN0IG1zZ1R5cGU9ZXh0cmFjdE1lc3NhZ2VUeXBlKG1zZyk7CiAgICBjb25zdCBwaG9uZT1leHRyYWN0UGhvbmUocmVtb3RlSmlkKTsKICAgIGlmKCFwaG9uZSl7c2tpcHBlZCsrO2NvbnRpbnVlO30KICAgIGlmKFNLSVBfVFlQRVMuaGFzKG1zZ1R5cGUpKXtza2lwcGVkKys7Y29udGludWU7fQogICAgaWYoIW1zZ0lkKXtza2lwcGVkKys7Y29udGludWU7fQogICAgY29uc3QgY29udGFjdElkPWF3YWl0IHVwc2VydENvbnRhY3Qoc3VwYWJhc2UscGhvbmUscmVtb3RlSmlkLHB1c2hOYW1lfHx1bmRlZmluZWQpOwogICAgaWYoIWNvbnRhY3RJZCl7ZXJyb3JzKys7Y29udGludWU7fQogICAgY29uc3Qge2Vycm9yOmluc0Vycn09YXdhaXQgc3VwYWJhc2Uuc2NoZW1hKCdldm8nIGFzICd6YXBwJykuZnJvbSgnZXZvbHV0aW9uX21lc3NhZ2VzJykuaW5zZXJ0KHttZXNzYWdlX2lkOm1zZ0lkLHJlbW90ZV9qaWQ6cmVtb3RlSmlkLGZyb21fbWU6ZnJvbU1lLGRpcmVjdGlvbjpmcm9tTWU/J291dGJvdW5kJzonaW5ib3VuZCcsc3RhdHVzOmZyb21NZT8nc2VudCc6J3JlY2VpdmVkJyxtZXNzYWdlX3R5cGU6bXNnVHlwZSxjb250ZW50OmV4dHJhY3RDb250ZW50KG1zZykscHVzaF9uYW1lOnB1c2hOYW1lfHxudWxsLGluc3RhbmNlX25hbWU6SU5TVEFOQ0UsY29udGFjdF9pZDpjb250YWN0SWQsdGltZXN0YW1wOnRzVG9Jc28obXNnLm1lc3NhZ2VUaW1lc3RhbXAgYXMgbnVtYmVyKSxyYXc6bXNnIGFzIHVua25vd24gYXMgUmVjb3JkPHN0cmluZyx1bmtub3duPn0pLnNlbGVjdCgnaWQnKTsKICAgIGlmKGluc0Vycil7aWYoKGluc0VyciBhcyB7Y29kZT86c3RyaW5nfSkuY29kZT09PScyMzUwNScpe3NraXBwZWQrKzt9ZWxzZXtjb25zb2xlLmVycm9yKCdbYmFja2ZpbGxdIGluc2VydCBlcnJvcicsbXNnSWQsaW5zRXJyLm1lc3NhZ2UpO2Vycm9ycysrO319ZWxzZXtpbnNlcnRlZCsrO30KICB9CiAgcmV0dXJuIGpzb24oe3Byb2Nlc3NlZDpldk1zZ3MubGVuZ3RoLGluc2VydGVkLHNraXBwZWQsZXJyb3JzLG5leHRfb2Zmc2V0Om9mZnNldCtldk1zZ3MubGVuZ3RoLGRvbmU6ZXZNc2dzLmxlbmd0aDxsaW1pdH0pOwp9KTsK
+import { createZappAdminClient } from '../_shared/db-client.ts';
+import { requireServiceRoleOrCron } from '../_shared/auth.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
+
+/**
+ * backfill-messages — Backfill histórico de mensagens da Evolution API para o banco.
+ *
+ * Pagina mensagens da Evolution API e insere no banco usando ON CONFLICT DO NOTHING.
+ * Garante idempotência: pode ser executado múltiplas vezes sem duplicação.
+ *
+ * Body: { offset?: number, limit?: number, dryRun?: boolean }
+ * Returns: { processed, inserted, skipped, errors, next_offset, done }
+ */
+
+const EVOLUTION_URL = Deno.env.get('EVOLUTION_API_URL');
+if (!EVOLUTION_URL) throw new Error('[backfill] EVOLUTION_API_URL env var is required');
+const EVOLUTION_KEY = Deno.env.get('EVOLUTION_API_KEY');
+if (!EVOLUTION_KEY) throw new Error('[backfill] EVOLUTION_API_KEY env var is required');
+const INSTANCE = Deno.env.get('BACKFILL_INSTANCE_NAME');
+if (!INSTANCE) throw new Error('[backfill] BACKFILL_INSTANCE_NAME env var is required');
+const CONNECTION_ID = Deno.env.get('BACKFILL_CONNECTION_ID');
+if (!CONNECTION_ID) throw new Error('[backfill] BACKFILL_CONNECTION_ID env var is required');
+
+const SKIP_TYPES = new Set(['reaction', 'sticker', 'protocolMessage', 'ephemeralMessage']);
+
+function extractPhone(remoteJid: string): string | null {
+  if (!remoteJid) return null;
+  if (remoteJid.endsWith('@g.us')) return null;
+  if (remoteJid.endsWith('@broadcast')) return null;
+  return remoteJid.split('@')[0].replace(/\D/g, '').slice(-13);
+}
+
+function extractContent(msg: Record<string, unknown>): string | null {
+  const m = (msg.message ?? {}) as Record<string, unknown>;
+  if (typeof m.conversation === 'string') return m.conversation || null;
+  const ext = m.extendedTextMessage as Record<string, unknown> | undefined;
+  if (ext?.text && typeof ext.text === 'string') return ext.text || null;
+  return null;
+}
+
+function extractMessageType(msg: Record<string, unknown>): string {
+  const m = (msg.message ?? {}) as Record<string, unknown>;
+  const keys = Object.keys(m);
+  if (keys.length === 0) return 'unknown';
+  if (m.conversation !== undefined) return 'text';
+  if (m.imageMessage !== undefined) return 'image';
+  if (m.videoMessage !== undefined) return 'video';
+  if (m.audioMessage !== undefined) return 'audio';
+  if (m.documentMessage !== undefined) return 'document';
+  if (m.stickerMessage !== undefined) return 'sticker';
+  if (m.reactionMessage !== undefined) return 'reaction';
+  return keys[0] ?? 'unknown';
+}
+
+function tsToIso(ts: number | string | undefined): string {
+  if (!ts) return new Date().toISOString();
+  const n = typeof ts === 'string' ? parseInt(ts, 10) : ts;
+  if (isNaN(n) || n <= 0) return new Date().toISOString();
+  return new Date(n < 1e10 ? n * 1000 : n).toISOString();
+}
+
+async function upsertContact(supabase: ReturnType<typeof createZappAdminClient>, phone: string, remoteJid: string, pushName: string | undefined): Promise<string | null> {
+  const { data: existing } = await supabase.from('evolution_contacts').select('id').eq('instance_name', INSTANCE).is('deleted_at', null).or(`phone_number.eq.${phone},remote_jid.eq.${remoteJid}`).limit(1).maybeSingle();
+  if (existing?.id) return existing.id as string;
+  const { data: created, error } = await supabase.schema('public' as 'zapp').from('contacts').insert({ phone, name: pushName || phone, whatsapp_connection_id: CONNECTION_ID, instance_name: INSTANCE, remote_jid: remoteJid }).select('id').single();
+  if (error) { console.error('[backfill] upsertContact error', phone, error.message); return null; }
+  return (created as { id: string }).id;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers: getCorsHeaders(req) });
+  const authErr = requireServiceRoleOrCron(req);
+  if (authErr) return authErr;
+  if (req.method !== 'POST') return new Response(JSON.stringify({ error: 'method_not_allowed' }), { status: 405, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+  const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+  const body = await req.json().catch(() => ({}));
+  const offset: number = Number(body.offset ?? 0);
+  const limit: number = Math.min(Number(body.limit ?? 200), 500);
+  const dryRun: boolean = body.dryRun === true;
+  let evMsgs: Record<string, unknown>[] = [];
+  try {
+    const res = await fetch(`${EVOLUTION_URL}/chat/findMessages/${INSTANCE}`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_KEY }, body: JSON.stringify({ where: {}, limit, offset }) });
+    if (!res.ok) return json({ error: 'upstream_error', status: res.status }, 502);
+    const data = await res.json();
+    evMsgs = Array.isArray(data) ? data : Array.isArray(data?.messages) ? data.messages : [];
+  } catch (err) { return json({ error: 'evolution_fetch_failed' }, 502); }
+  if (evMsgs.length === 0) return json({ processed: 0, inserted: 0, skipped: 0, errors: 0, done: true, next_offset: offset });
+  if (dryRun) return json({ dryRun: true, count: evMsgs.length, next_offset: offset + evMsgs.length });
+  const supabase = createZappAdminClient();
+  let inserted = 0, skipped = 0, errors = 0;
+  for (const msg of evMsgs) {
+    const key = (msg.key ?? {}) as Record<string, unknown>;
+    const remoteJid = (key.remoteJid ?? '') as string;
+    const msgId = (key.id ?? '') as string;
+    const fromMe = Boolean(key.fromMe);
+    const pushName = (msg.pushName ?? '') as string;
+    const msgType = extractMessageType(msg);
+    const phone = extractPhone(remoteJid);
+    if (!phone) { skipped++; continue; }
+    if (SKIP_TYPES.has(msgType)) { skipped++; continue; }
+    if (!msgId) { skipped++; continue; }
+    const contactId = await upsertContact(supabase, phone, remoteJid, pushName || undefined);
+    if (!contactId) { errors++; continue; }
+    const { error: insErr } = await supabase.schema('evo' as 'zapp').from('evolution_messages').insert({ message_id: msgId, remote_jid: remoteJid, from_me: fromMe, direction: fromMe ? 'outbound' : 'inbound', status: fromMe ? 'sent' : 'received', message_type: msgType, content: extractContent(msg), push_name: pushName || null, instance_name: INSTANCE, contact_id: contactId, timestamp: tsToIso(msg.messageTimestamp as number), raw: msg as unknown as Record<string, unknown> }).select('id');
+    if (insErr) { if ((insErr as { code?: string }).code === '23505') { skipped++; } else { console.error('[backfill] insert error', msgId, insErr.message); errors++; } } else { inserted++; }
+  }
+  return json({ processed: evMsgs.length, inserted, skipped, errors, next_offset: offset + evMsgs.length, done: evMsgs.length < limit });
+});
