@@ -1,1 +1,31 @@
-IyBSVU5CT09LIERFIEVNRVJHRU5DSUEgLSBSb3RhY2FvIGRlIENyZWRlbmNpYWlzCgojIyBUb2tlbiBDb21wcm9tZXRpZG8KVVJMOiBodHRwczovL3N1cGFiYXNlLW1jcC5hdG9taWNhYnIuY29tLmJyL3MtYTUwMTc0MTY0ZTRiMDNlZjE4MWEyOWRiNjVkMmRiODAvbWNwCgojIyBBY29lcyBNYW51YWlzIE9icmlnYXRvcmlhcyAoZW0gb3JkZW0pOgoxLiBSb3RhY2lvbmFyIHRva2VuIE1DUCBTdXBhYmFzZSAocGFpbmVsIGFkbWluKQoyLiBSb3RhY2lvbmFyIFNFUlZJQ0VfUk9MRV9LRVkKMy4gUm90YWNpb25hciBBTk9OX0tFWSAoaW52YWxpZGEgdG9kb3Mgb3MgdXN1YXJpb3MgLSBqYW5lbGEgZGUgbWFudXRlbmNhbykKNC4gUm90YWNpb25hciBFdm9sdXRpb24gQVBJIEtleSArIHJlY29uZmlndXJhciB3ZWJob29rcwo1LiBSb3RhY2lvbmFyIFBvcnRhaW5lciB0b2tlbgo2LiBFbWl0aXIgbm92byBHaXRIdWIgUEFUIHBhcmEgVlBTIChlc2NvcG9zOiByZXBvLCB3b3JrZmxvdywgcGFja2FnZXM6cmVhZCkKCiMjIFZlcmlmaWNhY2FvIHBvcy1yb3RhY2FvCmdpdCBzdGF0dXMgLm1jcC5qc29uICAjIGRldmUgc2VyIHVudHJhY2tlZApncmVwIG1jcC5qc29uIC5naXRpZ25vcmUgICMgZGV2ZSByZXRvcm5hciBsaW5oYXMKZG9ja2VyIHJ1biAtLXJtIC12ICQocHdkKTovdm9sdW1lIHpyaWNldGhlemF2L2dpdGxlYWtzOmxhdGVzdCBkZXRlY3QgLS1zb3VyY2UgL3ZvbHVtZQo=
+# RUNBOOK DE EMERGENCIA - Rotacao de Credenciais
+
+## Token Comprometido
+
+1. Revogar imediatamente no servico afetado
+2. Atualizar nos secrets do GitHub
+3. Atualizar no Portainer/VPS
+4. Notificar equipe
+5. Documentar o incidente
+
+## Evolution API Key
+
+- Portainer > stack evolution > env AUTHENTICATION_API_KEY
+- Atualizar: zapp.whatsapp_connections, evo.evolution_instance_credentials
+- Credencial n8n: tyLhN1fGwJveaDCg
+
+## Supabase JWT
+
+- Portainer > stack supabase > env JWT_SECRET, ANON_KEY, SERVICE_ROLE_KEY
+- Propagar: Vercel env, Edge Functions secrets, n8n
+- JANELA DE MANUTENCAO obrigatoria
+
+## GitHub PAT
+
+- github.com > Settings > Developer settings > PAT
+- Atualizar no VPS: git remote set-url origin https://TOKEN@github.com/...
+
+## Validacao pos-rotacao
+
+SELECT * FROM zapp.v_security_posture;
+-- Esperado: security_score=10, grade=EXCELENTE

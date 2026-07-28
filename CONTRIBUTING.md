@@ -1,1 +1,82 @@
-IyBHdWlhIGRlIENvbnRyaWJ1acOnw6NvIOKAlCB6YXBwLXdlYi12MwoKIyMgQ29udmVudGlvbmFsIENvbW1pdHMgKE9CUklHQVTDs1JJTykKClRvZG8gY29tbWl0IERFVkUgc2VndWlyIG8gcGFkcsOjbyBDb252ZW50aW9uYWwgQ29tbWl0cy4gTyBjb21taXRsaW50IGJsb3F1ZWlhIFBScyBmb3JhIGRvIHBhZHLDo28uCgojIyMgRm9ybWF0bwpgYGAKPHRpcG8+KDxlc2NvcG8gb3BjaW9uYWw+KTogPGRlc2NyacOnw6NvIGVtIG1pbsO6c2N1bGFzPgoKW2NvcnBvIG9wY2lvbmFsXQoKW3JvZGFww6Ugb3BjaW9uYWxdCmBgYAoKIyMjIFRpcG9zIHBlcm1pdGlkb3MKfCBUaXBvIHwgUXVhbmRvIHVzYXIgfAp8LS0tLS0tfC0tLS0tLS0tLS0tLS0tLXwKfCBgZmVhdGAgfCBOb3ZhIGZ1bmNpb25hbGlkYWRlIHwKfCBgZml4YCB8IENvcnJlw6fDo28gZGUgYnVnIHwKfCBgZG9jc2AgfCBEb2N1bWVudGHDp8OjbyBhcGVuYXMgfAp8IGBzdHlsZWAgfCBGb3JtYXRhw6fDo28sIHNlbSBtdWRhbsOnYSBkZSBsw7NnaWNhIHwKfCBgcmVmYWN0b3JgIHwgUmVmYXRvcmHDp8OjbyBzZW0gZmVhdCBuZW0gZml4IHwKfCBgcGVyZmAgfCBNZWxob3JpYSBkZSBwZXJmb3JtYW5jZSB8CnwgYHRlc3RgIHwgQWRpw6fDo28gb3UgY29ycmXDp8OjbyBkZSB0ZXN0ZXMgfAp8IGBidWlsZGAgfCBNdWRhbsOnYXMgZW0gYnVpbGQgb3UgZGVwZW5kw6puY2lhcyB8CnwgYGNpYCB8IE11ZGFuw6dhcyBlbSBDSS9DRCB8CnwgYGNob3JlYCB8IFRhcmVmYXMgZGl2ZXJzYXMgKHNlbSBjw7NkaWdvIGRlIHByb2R1w6fDo28pIHwKfCBgc2VjdXJpdHlgIHwgQ29ycmXDp8O1ZXMgZGUgc2VndXJhbsOnYSB8CnwgYHJldmVydGAgfCBSZXZlcnRlciBjb21taXQgYW50ZXJpb3IgfAoKIyMjIOKZjCBQUk9CSUJJRExPCi0gVMOtdHVsb3MgZ2Vuw6lyaWNvczogYCJDaGFuZ2VzImAsIGAiRml4ZWQiYCwgYCJVcGRhdGUiYCwgYCJXSVAiYAotIE1haXXDunNjdWxvIG5hIGRlc2NyacOnw6NvOiBgZmVhdDogQWRpY2lvbmFyIGZpbHRyb2Ag4oaSIGBmZWF0OiBhZGljaW9uYXIgZmlsdHJvYAotIFBvbnRvIGZpbmFsIG5hIGRlc2NyacOnw6NvOiBgZml4OiBidWcuYCDihpIgYGZpeDogYnVnYAotIE1haXMgZGUgMTAwIGNhcmFjdGVyZXMgbmEgbGluaGEgZGUgdMOtdHVsbwoKIyMjIOKchSBFeGVtcGxvcyBjb3JyZXRvcwpgYGAKZmVhdChpbmJveCk6IGFkaWNpb25hciBmaWx0cm8gZGUgY29udmVyc2FzIHBvciB0YWcKZml4KGF1dGgpOiBjb3JyaWdpciBkZXN2aW8gZGUgc2Vzc8OjbyBlbSBkaXNwb3NpdGl2b3MgbGVudG9zCnNlY3VyaXR5KEUwMyk6IHJlbW92ZXIgLm1jcC5qc29uIGRvIHZlcnNpb25hbWVudG8KZG9jcyhhZHIpOiBjcmlhciBBRFItMDAzIHJldmVydGVuZG8gYnVja2V0IHDDumJsaWNvCmNpKG1pZ3JhdGlvbnMpOiBnYXRlIGRlIHVuaWNpZGFkZSBkZSBwcmVmaXhvIGRlIG1pZ3JhdGlvbgpgYGAKCiMjIFJlZ3JhcyBkZSBQUgoKMS4gKipVbSBQUiA9IHVtIHRlbWEqKiDigJQgUFJzIGNvbSBtw7psdGlwbG9zIHRlbWFzIGluZGVwZW5kZW50ZXMgc2Vyw6NvIHNvbGljaXRhZG9zIGEgc2VyZW0gc2VwYXJhZG9zCjIuICoqVGFtYW5obyBpZGVhbCoqOiDiiaQgMzAwIGxpbmhhcy4gQm90IGNvbWVudGEgYWNpbWEgZGUgNTAwLiBBY2ltYSBkZSA4MDAgPSBuZWNlc3NpdGEganVzdGlmaWNhdGl2YQozLiAqKlRlc3RlcyBvYnJpZ2F0w7NyaW9zKio6IFBScyBjb20gdMOtdHVsbyBgZml4OmAgREVWRU0gaW5jbHVpciBhbyBtZW5vcyB1bSBhcnF1aXZvIGAudGVzdC5gCjQuICoqU2VtIHNlbGYtbWVyZ2UqKjogdG9kbyBQUiBwcmVjaXNhIGRlIGFvIG1lbm9zIDEgcmV2aXPDo28gaHVtYW5hIChjdWFuZG8gYnJhbmNoIHByb3RlY3Rpb24gYXRpdm8pCgojIyBQYWRyw6NvIGRlIFRlc3RlcwoKVG9kb3Mgb3MgdGVzdGVzIGZpY2FtIGVtIGBzcmMvKiovX190ZXN0c19fL2AgY29tIGV4dGVuc8OjbyBgLnRlc3QudHNgIG91IGAudGVzdC50c3hgLgoKVmVqYSBbVEVTVElOR19DT05WRU5USU9OLm1kXShkb2NzL1RFU1RJTkdfQ09OVkVOVElPTi5tZCkgcGFyYSBkZXRhbGhlcy4KCiMjIENvbmZpZ3VyYcOnw6NvIGRvIEFtYmllbnRlCgpgYGBiYXNoCmNwIC5tY3AuanNvbi5leGFtcGxlIC5tY3AuanNvbiAgIyBOVU5DQSBjb21taXRhciAubWNwLmpzb24KYnVuIGluc3RhbGwKYnVuIHJ1biBkZXYKYGBgCgojIyBQYXJhIEFnZW50ZXMgQXV0b21hdGl6YWRvcyAoTG92YWJsZSwgQ2xhdWRlKQoK4pqg77iPICoqT0JSSUBBVE9SSU8gcGFyYSBhZ2VudGVzKio6IAotIFVzYXIgc2VtcHJlIGBmZWF0fGZpeHxjaG9yZXxkb2NzfHJlZmFjdG9yfGNpfHRlc3R8YnVpbGR8c2VjdXJpdHl8cGVyZnxyZXZlcnQ6YCBubyBpbsOtY2lvIGRvIGNvbW1pdAotIE51bmNhIHVzYXIgIkNoYW5nZXMiIG91IHTDrXR1bG9zIGdlbsOpcmljb3MKLSBBY3JlcGFyIFBSIGVtIGJyYW5jaCwgbnVuY2EgY29tbWl0YXIgZGlyZXRhbWVudGUgbmEgbWFpbgoKLS0tCipFc3RlIGRvY3VtZW50byDDqSBmb250ZSBkZSB2ZXJkYWRlLiBDTEFVREUubWQgcmVkaXJlY2lvbmEgcGFyYSBjw6EuKg==
+# Guia de Contribuição — zapp-web-v3
+
+## Conventional Commits
+
+Todos os commits DEVEM seguir o formato:
+
+```
+type(scope): descrição curta em minúsculas
+
+Corpo opcional (max 120 chars/linha)
+```
+
+### Tipos permitidos
+
+| Tipo | Uso |
+|------|-----|
+| `feat` | Nova funcionalidade |
+| `fix` | Correção de bug |
+| `docs` | Documentação |
+| `style` | Formatação, sem alteração lógica |
+| `refactor` | Refatoração sem mudar comportamento |
+| `perf` | Melhoria de performance |
+| `test` | Testes |
+| `build` | Build / deps |
+| `ci` | CI/CD |
+| `chore` | Maint / configs |
+| `security` | Segurança |
+| `revert` | Revert |
+
+### Regras
+
+- `type-case`: `lower-case` obrigatório
+- `subject-case`: `lower-case` obrigatório
+- `subject-min-length`: mínimo 10 chars
+- `subject-max-length`: máximo 100 chars
+- `header-max-length`: máximo 100 chars
+- `body-max-line-length`: máximo 120 chars
+- Não terminar com `.`
+
+### Exemplos
+
+```bash
+# Correto
+git commit -m "feat(contacts): adiciona filtro por tag na busca"
+git commit -m "fix(realtime): corrige schema zapp nas subscriptions"
+git commit -m "security(db): revoga execute anon em fn_rate_limit_check"
+
+# Errado
+git commit -m "Fixed bug"              # sem tipo
+git commit -m "feat: Fix Bug"          # case errado
+git commit -m "feat: x"               # muito curto
+```
+
+## Branch Strategy
+
+- `main` — produção (protegida)
+- Feature branches: `feat/nome-da-feature`
+- Fix branches: `fix/nome-do-bug`
+
+## Pull Requests
+
+1. Fork ou branch a partir de `main`
+2. Commits seguindo Conventional Commits
+3. PR contra `main`
+4. CI deve passar (TypeScript, ESLint, build, security)
+
+## Code Style
+
+- TypeScript strict mode
+- ESLint + Prettier
+- Sem `// @ts-nocheck` em arquivos novos
+- `.single()` → `.maybeSingle()` para queries que podem retornar 0 linhas
+- Realtime subscriptions: `schema: 'public'` (mesmo apontando para zapp)
+
+## Database
+
+- Toda nova tabela DEVE ter RLS habilitado
+- Views no schema `public` DEVEM ter `security_invoker = true`
+- Funções SECURITY DEFINER DEVEM ter `SET search_path`
+- NUNCA fazer `GRANT EXECUTE ON FUNCTION ... TO anon`
+- Backup convention: `_backup_*_yyyymmdd`
+- `pg_cron` VACUUM como single statement
