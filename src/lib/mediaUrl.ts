@@ -16,6 +16,12 @@
  *   3. Frontend (este arquivo): sanitizeMediaUrl() corrige na camada de
  *      apresentação como defesa em profundidade, mesmo que algum dado antigo
  *      chegue via realtime ou cache.
+ *
+ * FIX WhatsApp 403 (Jul/2026):
+ *   URLs do CDN WhatsApp (mmg.whatsapp.net, cdn.whatsapp.net, etc.) expiram
+ *   rapidamente e retornam 403. Em vez de retornar null (placeholder vazio),
+ *   reescrevemos a URL através do media proxy (zapp-media-proxy.adm01.workers.dev)
+ *   que obtém um token novo server-side e serve a mídia.
  */
 
 // ---------------------------------------------------------------------------
@@ -27,6 +33,29 @@ export const SUPABASE_PUBLIC_URL = 'https://supabase.atomicabr.com.br';
 
 /** Base URL para acesso a objetos públicos no Supabase Storage. */
 const STORAGE_PUBLIC_BASE = `${SUPABASE_PUBLIC_URL}/storage/v1/object/public`;
+
+/**
+ * Media proxy URL para rotear URLs de CDN WhatsApp expiradas.
+ * O Cloudflare Worker em zapp-media-proxy.adm01.workers.dev atua como proxy
+ * reverso, renovando tokens de acesso às mídias do WhatsApp server-side.
+ *
+ * Quando uma URL do CDN WhatsApp está expirada (retornando 403),
+ * o frontend reescreve a URL para passar pelo proxy, que obtém um
+ * token novo e serve a mídia via proxy?url=<encoded_url>.
+ */
+export const MEDIA_PROXY_URL = 'https://zapp-media-proxy.adm01.workers.dev';
+
+/**
+ * Domínios de CDN WhatsApp que devem ser roteados através do media proxy.
+ * Esses domínios servem mídia com URLs temporárias que expiram rapidamente.
+ */
+const WHATSAPP_CDN_PATTERNS = [
+  'mmg.whatsapp.net',
+  'mmg.whatsapp.com',
+  'cdn.whatsapp.net',
+  'media.whatsapp.net',
+  '.whatsapp.net', // fallback genérico para qualquer subdomínio
+] as const;
 
 /**
  * Hosts internos que NUNCA devem chegar ao browser.
@@ -57,21 +86,64 @@ export function resolveMediaUrl(bucket: string, path: string): string {
 }
 
 /**
+ * Verifica se uma URL é de um domínio do CDN WhatsApp.
+ * Inclui mmg.whatsapp.net, cdn.whatsapp.net, media.whatsapp.net, etc.
+ */
+export function isWhatsAppMediaUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  return WHATSAPP_CDN_PATTERNS.some((pattern) => lower.includes(pattern));
+}
+
+/**
+ * Rewrite a WhatsApp CDN URL through the media proxy.
+ *
+ * O proxy (Cloudflare Worker) recebe a URL original como query param
+ * e obtém um token fresco do WhatsApp server-side, servindo a mídia
+ * sem expor o token ao browser.
+ *
+ * @param url - URL original do CDN WhatsApp (ex: https://mmg.whatsapp.net/...)
+ * @returns URL reescrita através do proxy, ou a URL original se não for WhatsApp
+ *
+ * @example
+ * proxyMediaUrl('https://mmg.whatsapp.net/o1/v/t24/f2/m233/AQPD...')
+ * // → 'https://zapp-media-proxy.adm01.workers.dev/proxy?url=https%3A%2F%2Fmmg.whatsapp.net%2F...'
+ */
+export function proxyMediaUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (!isWhatsAppMediaUrl(url)) return url;
+  try {
+    const encoded = encodeURIComponent(url);
+    return `${MEDIA_PROXY_URL}/proxy?url=${encoded}`;
+  } catch {
+    // Se encodeURIComponent falhar (URL muito malformada), retorna null
+    return null;
+  }
+}
+
+/**
  * Sanitiza qualquer URL de mídia, corrigindo hosts internos em runtime.
  * Defesa em profundidade — garante que URLs com kong:8000 nunca cheguem
  * ao browser mesmo que passem pelo banco ou venham via realtime.
  *
- * Também detecta URLs do CDN WhatsApp (.enc / mmg.whatsapp.net) que são
- * inacessíveis ao browser e retorna null para essas.
+ * URLs do CDN WhatsApp (.enc / mmg.whatsapp.net) são reescritas através
+ * do media proxy (zapp-media-proxy.adm01.workers.dev) em vez de retornar
+ * null — assim o browser pode exibi-las com token renovado server-side.
  *
- * @returns URL sanitizada, ou null se a mídia não for renderizável.
+ * @returns URL sanitizada (possivelmente via proxy), ou null se inválida.
  */
 export function sanitizeMediaUrl(url: string | null | undefined): string | null {
   if (!url) return null;
 
-  // Detectar URLs WhatsApp CDN (não renderizáveis pelo browser)
-  if (url.includes('mmg.whatsapp.net') || url.includes('.enc?')) {
-    return null; // mídia não renderizável — usar placeholder
+  // URLs WhatsApp CDN → reescrever através do media proxy
+  // (em vez de retornar null como antes do fix WhatsApp-403)
+  if (isWhatsAppMediaUrl(url)) {
+    return proxyMediaUrl(url);
+  }
+
+  // URLs .enc (criptografadas) → também via proxy
+  if (url.includes('.enc?')) {
+    return proxyMediaUrl(url);
   }
 
   // Corrigir host interno → host público
@@ -92,10 +164,12 @@ export function sanitizeMediaUrl(url: string | null | undefined): string | null 
 /**
  * Detecta se uma URL de mídia é do tipo WhatsApp CDN (inacessível ao browser).
  * URLs .enc são AES-256-CBC criptografadas + expiráveis via parâmetro oe=.
+ *
+ * @deprecated Use isWhatsAppMediaUrl() para detecção mais abrangente.
  */
 export function isWhatsAppCdnUrl(url: string | null | undefined): boolean {
   if (!url) return false;
-  return url.includes('mmg.whatsapp.net') || url.includes('.enc?');
+  return isWhatsAppMediaUrl(url) || url.includes('.enc?');
 }
 
 /**
@@ -192,11 +266,14 @@ export function resolvePublicStorageUrl(bucket: string, path: string | null | un
 
 /**
  * Resolve a URL final de uma mensagem de mídia para exibição no browser.
- * Retorna null se a mídia não for renderizável (CDN WhatsApp, expirada, falha).
+ * Retorna null se a mídia não for renderizável (expirada, falha).
+ *
+ * URLs do CDN WhatsApp são automaticamente reescritas através do media proxy
+ * (zapp-media-proxy.adm01.workers.dev) em vez de retornar null.
  *
  * Ordem de preferência:
  * 1. media_bucket + media_path (formato novo, canônico)
- * 2. media_url (formato legado, sanitizado)
+ * 2. media_url (formato legado, sanitizado + proxy se WhatsApp CDN)
  * 3. null (placeholder)
  */
 export function resolveMessageMediaUrl(params: {
@@ -213,10 +290,10 @@ export function resolveMessageMediaUrl(params: {
     return url;
   }
 
-  // Formato legado
+  // Formato legado — sanitizar (agora inclui proxy para WhatsApp CDN)
   if (mediaUrl) {
     const sanitized = sanitizeMediaUrl(mediaUrl);
-    if (!sanitized) return null; // CDN WhatsApp ou invalida
+    if (!sanitized) return null; // inválida
     if (isMediaUrlFailed(sanitized)) return null;
     return sanitized;
   }

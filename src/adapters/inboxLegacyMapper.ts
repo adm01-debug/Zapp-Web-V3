@@ -3,6 +3,7 @@ import type {
   ConversationWithMessages,
   RealtimeMessage,
 } from '@/features/inbox/hooks/realtime/types';
+import { proxyMediaUrl, sanitizeMediaUrl } from '@/lib/mediaUrl';
 
 /**
  * Pure transformation functions to map between internal Realtime formats
@@ -48,7 +49,14 @@ export function mapToLegacyConversation(
   };
 }
 
-/** Maps an array of RealtimeMessages to the legacy Message UI shape, injecting contactAvatar where available. */
+/**
+ * Maps an array of RealtimeMessages to the legacy Message UI shape,
+ * injecting contactAvatar where available.
+ *
+ * WhatsApp CDN URLs (mmg.whatsapp.net, cdn.whatsapp.net, etc.) are
+ * automatically rewritten through the media proxy so the browser never
+ * hits WhatsApp's CDN directly with expired tokens.
+ */
 export function mapToLegacyMessages(
   messageSource: RealtimeMessage[],
   contactId: string,
@@ -63,7 +71,9 @@ export function mapToLegacyMessages(
     agentId: m.agent_id || undefined,
     timestamp: new Date(m.created_at),
     status: (m.status as Message['status'] | null) || (m.is_read ? 'read' : 'delivered'),
-    mediaUrl: m.media_url || undefined,
+    // Route WhatsApp CDN URLs through the media proxy to avoid 403 errors
+    // sanitizeMediaUrl() now rewrites WhatsApp CDN URLs via proxy instead of returning null
+    mediaUrl: sanitizeMediaUrl(m.media_url) || undefined,
     transcription: m.transcription || null,
     transcriptionStatus: (m.transcription_status as Message['transcriptionStatus']) || null,
     is_deleted: m.is_deleted ?? false,
