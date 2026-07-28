@@ -102,17 +102,27 @@ export const ChatMessagesArea = memo(
       const prevScrollHeightRef = useRef<number | null>(null);
       const [showScrollBottom, setShowScrollBottom] = useState(false);
 
+      const messageRefsRef = useRef<Map<string, HTMLDivElement>>(new Map());
+      
       useImperativeHandle(ref, () => ({
         scrollToBottom: () => {
           const container = scrollContainerRef.current;
           if (container) container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
         },
-        registerMessageRef: (_messageId: string, _el: HTMLDivElement | null) => {
-          // Placeholder
+        registerMessageRef: (messageId: string, el: HTMLDivElement | null) => {
+          const map = messageRefsRef.current;
+          if (el) map.set(messageId, el);
+          else map.delete(messageId);
         },
-        scrollToMessage: (_messageId: string): boolean => {
-          // Placeholder
-          return true;
+        scrollToMessage: (messageId: string): boolean => {
+          const el = messageRefsRef.current.get(messageId);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
+            setTimeout(() => el.classList.remove('ring-2', 'ring-primary', 'ring-offset-2'), 3000);
+            return true;
+          }
+          return false;
         },
         getScrollContainer: () => scrollContainerRef.current,
       }));

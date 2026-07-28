@@ -68,7 +68,7 @@ export function useChatPanel({
   hasMoreOlder = false,
 }: ChatPanelProps) {
   const { roles: userRoles } = useUserRole();
-  const isDevExact = userRoles.includes('dev');
+  const isDevExact = (userRoles ?? []).includes('dev');
 
   const { dialogs, openDialog, closeDialog } = useChatDialogs();
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -98,7 +98,15 @@ export function useChatPanel({
     setActiveHighlightId,
   } = chatSearch;
 
-  const filters = useChatFilters(messages);
+  const sortedMessages = useMemo(() => {
+    // Defensive: sort chronologically and dedup by id
+    const seen = new Set<string>();
+    return [...messages]
+      .filter(m => { const k = m.id; if (!k || seen.has(k)) return false; seen.add(k); return true; })
+      .sort((a, b) => new Date(a.timestamp ?? 0).getTime() - new Date(b.timestamp ?? 0).getTime());
+  }, [messages]);
+
+  const filters = useChatFilters(sortedMessages);
   const {
     failuresOnly,
     failureCategory,
