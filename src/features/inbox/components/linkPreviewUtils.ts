@@ -1,4 +1,3 @@
-
 // URL regex pattern
 /** U R L_ R E G E X constant. */
 export const URL_REGEX =
@@ -43,10 +42,44 @@ export function getDomain(url: string): string {
   }
 }
 
+/**
+ * Domains allowed by CSP img-src for favicon loading.
+ * External favicons from other domains will fail CSP and trigger console violations.
+ * The app falls back to a Globe icon via onError when favicon is empty or fails.
+ *
+ * @see vercel.json Content-Security-Policy img-src directive
+ */
+const FAVICON_SAFE_DOMAINS = new Set([
+  'supabase.atomicabr.com.br',
+  'zapp-media-proxy.adm01.workers.dev',
+  'googleusercontent.com',
+  'lh3.googleusercontent.com',
+  'whatsapp.net',
+  'img.youtube.com',
+  'i.ytimg.com',
+  'www.youtube.com',
+  'youtube.com',
+]);
+
+function isFaviconSafe(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname;
+    for (const domain of FAVICON_SAFE_DOMAINS) {
+      if (hostname === domain || hostname.endsWith('.' + domain)) {
+        return true;
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 /** get Favicon function. */
 export function getFavicon(url: string): string {
   try {
-    return `${new URL(url).origin}/favicon.ico`;
+    const faviconUrl = `${new URL(url).origin}/favicon.ico`;
+    return isFaviconSafe(faviconUrl) ? faviconUrl : '';
   } catch {
     return '';
   }

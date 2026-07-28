@@ -27,6 +27,7 @@ export function LinkPreview({ url, className, compact = false, showRemove, onRem
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [faviconError, setFaviconError] = useState(false);
 
   useEffect(() => {
     setIsLoading(true); setError(false);
@@ -81,7 +82,7 @@ export function LinkPreview({ url, className, compact = false, showRemove, onRem
   if (compact) return (
     <motion.a href={url} target="_blank" rel="noopener noreferrer" initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }}
       className={cn("flex items-center gap-2 p-2 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors group", className)}>
-      {metadata.favicon && !imageError ? <img src={metadata.favicon} alt="" className="w-4 h-4 rounded" onError={() => setImageError(true)} /> : <Globe className="w-4 h-4 text-muted-foreground" />}
+      {metadata.favicon && !faviconError ? <img src={metadata.favicon} alt="" className="w-4 h-4 rounded" onError={() => setFaviconError(true)} /> : <Globe className="w-4 h-4 text-muted-foreground" />}
       <span className="text-sm font-medium truncate flex-1">{metadata.title || getDomain(url)}</span>
       <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground" />
     </motion.a>
@@ -98,7 +99,7 @@ export function LinkPreview({ url, className, compact = false, showRemove, onRem
       )}
       <div className="p-3 space-y-1">
         <div className="flex items-center gap-2">
-          {metadata.favicon && !imageError ? <img src={metadata.favicon} alt="" className="w-4 h-4 rounded" onError={() => setImageError(true)} /> : <Globe className="w-4 h-4 text-muted-foreground" />}
+          {metadata.favicon && !faviconError ? <img src={metadata.favicon} alt="" className="w-4 h-4 rounded" onError={() => setFaviconError(true)} /> : <Globe className="w-4 h-4 text-muted-foreground" />}
           <span className="text-xs text-muted-foreground truncate">{metadata.siteName || getDomain(url)}</span>
         </div>
         {metadata.title && <h4 className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">{metadata.title}</h4>}

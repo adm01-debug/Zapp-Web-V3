@@ -169,16 +169,24 @@ describe('getDomain', () => {
 // ── getFavicon ────────────────────────────────────────────────────────────────
 
 describe('getFavicon', () => {
-  it('returns origin + /favicon.ico for https URL', () => {
-    expect(getFavicon('https://example.com/page')).toBe('https://example.com/favicon.ico');
+  it('returns favicon URL for CSP-whitelisted domain (youtube.com)', () => {
+    expect(getFavicon('https://youtube.com/watch?v=123')).toBe('https://youtube.com/favicon.ico');
   });
 
-  it('includes port in origin', () => {
-    expect(getFavicon('https://example.com:8080/page')).toBe('https://example.com:8080/favicon.ico');
+  it('returns empty string for non-whitelisted external domain', () => {
+    expect(getFavicon('https://example.com/page')).toBe('');
+  });
+
+  it('returns empty string for non-whitelisted domain with port', () => {
+    expect(getFavicon('https://example.com:8080/page')).toBe('');
   });
 
   it('returns empty string for invalid URL', () => {
     expect(getFavicon('not-a-url')).toBe('');
+  });
+
+  it('returns favicon URL for whatsapp.net subdomain', () => {
+    expect(getFavicon('https://mmg.whatsapp.net/some-path')).toBe('https://mmg.whatsapp.net/favicon.ico');
   });
 });
 
