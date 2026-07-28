@@ -1,5 +1,4 @@
 import { useState, memo } from 'react';
-import { useAuth } from '@/features/auth';
 import { AnimatePresence } from '@/components/ui/motion';
 import { cn } from '@/lib/utils';
 import { Reply, Forward, Copy } from 'lucide-react';
@@ -74,7 +73,6 @@ export const MessageBubble = memo(function MessageBubble({
   density = 'comfortable',
   onAudioVoiceChange,
 }: MessageBubbleProps) {
-  const { profile: _profile } = useAuth();
   const [isActionsActive, setIsActionsActive] = useState(false);
 
   const isSent = message.sender === 'agent';
