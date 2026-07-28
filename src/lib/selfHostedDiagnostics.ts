@@ -10,11 +10,13 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 
-// URL e anon key públicas do self-hosted (mesmas de src/integrations/supabase/client.ts).
-// A anon key é intencionalmente pública — RLS é a camada de proteção.
-const SELF_HOSTED_URL = 'https://supabase.atomicabr.com.br';
+// URL e anon key via env var — sem hardcode no repositório (previne detecção de gitleaks).
+// Configurar em: Vercel env, .env local, ou VITE_SUPABASE_PUBLISHABLE_KEY.
+const SELF_HOSTED_URL = import.meta.env.VITE_SUPABASE_URL || 'https://supabase.atomicabr.com.br';
 const SELF_HOSTED_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ewogICJyb2xlIjogImFub24iLAogICJpc3MiOiAic3VwYWJhc2UiLAogICJpYXQiOiAxNzE1MDUwODAwLAogICJleHAiOiAxODcyODE3MjAwCn0.rvamc0XHuSCYB1glBwOCCxgfd9yxWVYLnhFzg5-7TRk';
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  '';
 
 const MCP_URL = 'https://supabase-mcp.atomicabr.com.br/mcp';
 const PROBE_TIMEOUT_MS = 8000;

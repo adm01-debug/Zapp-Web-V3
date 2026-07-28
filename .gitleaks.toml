@@ -3,18 +3,53 @@ title = "ZAPP-WEB gitleaks config"
 [allowlist]
 description = "Allowed patterns"
 paths = ["node_modules", "bun.lockb"]
-# JWT histórico: anon key self-hosted presente em commits anteriores a 2026-07-27.
-# Removida de client.ts no PR #599 (commit d795d3f0). Rotação da chave real
-# é tarefa humana (ver AUDITORIA_SCHEMA_ZAPP_2026-07-16.md — Ação 3 pendente).
+# JWT histórico: anon key self-hosted presente em 33 commits anteriores à remoção (2026-07-27).
+# Removida de client.ts no PR #599 (commit d795d3f0) e de selfHostedDiagnostics.ts nesta sessão.
+# Rotação da chave real é tarefa humana (RUNBOOK_ROTACAO_SEGREDOS_ZAPP.md — Ação 3).
 #
-# NOTA TÉCNICA: A regex supabase-jwt captura header.payload (sem assinatura).
-# O secret detectado é: eyJhbGci...joxODcyODE3MjAwCn0
-# A allowlist precisa fazer match nesse valor, não na assinatura.
+# ESTRATÉGIA DE ALLOWLIST:
+#   1. commits: SHAs históricos que tocaram o JWT antes da remoção
+#   2. regexes: match no payload JWT para qualquer outro local
 #
-# REMOVER esta allowlist após: (a) git filter-repo limpar o histórico, OU
-# (b) a chave ser rotacionada e o histórico confirmado limpo.
+# REMOVER commits allowlist após git filter-repo limpar o histórico
+# REMOVER regexes após rotacionar a chave JWT_SECRET no Supabase
+commits = [
+  "26128e59f",
+  "94e3d7195",
+  "1706270c9",
+  "d795d3f0f",
+  "00c515e8a",
+  "fee7fc0ac",
+  "a8c9d3ead",
+  "f481804a8",
+  "dbe6bd59b",
+  "816eb4714",
+  "73f42e4fd",
+  "2024148f4",
+  "2103f0766",
+  "8917d739d",
+  "61ebe8aa6",
+  "96e56475d",
+  "39e3b8c3d",
+  "911b4424f",
+  "b1ac119fb",
+  "08bbbbacd",
+  "2e1cbfddd",
+  "0eff0efa2",
+  "72f9e26e8",
+  "1c72f22c5",
+  "0f2eb0de2",
+  "a16cd6942",
+  "312e0112f",
+  "04cdf1180",
+  "29209cc14",
+  "47ef15e67",
+  "2b43bae32",
+  "c627ea7a2",
+  "3770386d5"
+]
 regexes = [
-  # Match no payload base64 do token anon (role: anon, iat: 1715050800)
+  # Match no payload base64 do token anon self-hosted (role: anon, iat: 1715050800)
   "ewogICJyb2xlIjogImFub24i",
   # Match na assinatura (fallback caso gitleaks capture o JWT completo)
   "rvamc0XHuSCYB1glBwOCCxgfd9yxWVYLnhFzg5-7TRk"
