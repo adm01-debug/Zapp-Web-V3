@@ -458,7 +458,7 @@ export function useRealtimeMessages() {
             wrapMessagesHandler(
               'useRealtimeMessages',
               // Use ref to avoid stale closure and prevent re-subscription on handler changes
-              (p) => handleNewMessageRef.current(p)
+              (p: RealtimePostgresChangesPayload<RealtimeMessage>) => handleNewMessageRef.current(p)
             )(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
         }
       )
@@ -473,7 +473,7 @@ export function useRealtimeMessages() {
           if (active)
             wrapMessagesHandler(
               'useRealtimeMessages',
-              (p) => handleMessageUpdateRef.current(p)
+              (p: RealtimePostgresChangesPayload<RealtimeMessage>) => handleMessageUpdateRef.current(p)
             )(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
         }
       )
@@ -488,7 +488,7 @@ export function useRealtimeMessages() {
           if (active)
             wrapMessagesHandler(
               'useRealtimeMessages',
-              (p) => handleMessageDeleteRef.current(p)
+              (p: RealtimePostgresChangesPayload<RealtimeMessage>) => handleMessageDeleteRef.current(p)
             )(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
         }
       )
