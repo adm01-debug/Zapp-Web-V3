@@ -545,7 +545,7 @@ export function useGoalsDashboardManagement() {
         .gte('created_at', dateRange.from.toISOString())
         .lte('created_at', dateRange.to.toISOString());
       if (error) throw error;
-      return data || [];
+      return (data || []) as Array<{ id: string; sender: string | null; created_at: string }>;
     },
     enabled: !!profile?.id,
   });
@@ -768,7 +768,9 @@ export function useWarRoomDataManagement() {
       const { data: contacts, error: contactsErr } = await dbFrom('contacts').select('assigned_to');
       if (contactsErr) log.warn('contacts fetch failed (warroom agents)');
 
-      const contactCounts = (contacts || []).reduce<Record<string, number>>((acc, c) => {
+      const contactCounts = ((contacts || []) as Array<{ assigned_to: string | null }>).reduce<
+        Record<string, number>
+      >((acc, c) => {
         if (c.assigned_to) acc[c.assigned_to] = (acc[c.assigned_to] || 0) + 1;
         return acc;
       }, {});
