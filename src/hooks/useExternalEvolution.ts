@@ -276,7 +276,13 @@ export function applyReconciliation(
   return { remapSize };
 }
 
-const POLL_INTERVAL = 5000; // 5s polling
+/**
+ * FIX 2026-07-28: Polling interval aumentado de 5s para 15s.
+ * MOTIVO: 5s era excessivo e causava centenas de requisições simultâneas
+ * quando múltiplas conversas estavam abertas (120 req/min por conversa).
+ * 15s mantém responsividade aceitável com 1/3 do volume de requests.
+ */
+const POLL_INTERVAL = 15000; // 15s polling (era 5000)
 const DEFAULT_INSTANCE = DEFAULT_WHATSAPP_INSTANCE;
 const SIDEBAR_DAYS_BACK = 7;
 const SIDEBAR_LIMIT = 200;

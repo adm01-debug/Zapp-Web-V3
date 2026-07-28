@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { BridgeService } from '@/services/connections/BridgeService';
@@ -33,6 +33,7 @@ export interface UseBridgeHealthResult {
 
 // ═══════════════════════════════════════════════════════════
 // Hub Tab Navigation Management (useHubTabNavigation consolidation)
+// FIX 2026-07-28: Loop bidirecional corrigido com isInternalUpdate ref
 // ═══════════════════════════════════════════════════════════
 
 /** Hook: use Hub Tab Navigation Management. */
@@ -53,10 +54,14 @@ export function useHubTabNavigationManagement(
 
   const [tab, setTab] = useState<HubTab>(() => validateTab(searchParams.get('tab')));
 
-  // Sincroniza query param ao mudar aba
+  // Flag para evitar loop infinito entre URL e estado
+  const isInternalUpdate = useRef(false);
+
+  // Sincroniza query param ao mudar aba (usuário clica)
   useEffect(() => {
     const current = searchParams.get('tab');
     if (current !== tab) {
+      isInternalUpdate.current = true;
       setSearchParams(
         (prev) => {
           prev.set('tab', tab);
@@ -68,7 +73,12 @@ export function useHubTabNavigationManagement(
   }, [tab, searchParams, setSearchParams]);
 
   // Sincroniza aba se query param mudar externamente (ex: botão voltar)
+  // Só atualiza se NÃO foi uma atualização interna (evita loop)
   useEffect(() => {
+    if (isInternalUpdate.current) {
+      isInternalUpdate.current = false;
+      return;
+    }
     const t = searchParams.get('tab');
     const validated = validateTab(t);
     if (validated !== tab) {
