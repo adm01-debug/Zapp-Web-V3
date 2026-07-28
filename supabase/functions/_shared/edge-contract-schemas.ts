@@ -1,1 +1,38 @@
-aW1wb3J0IHsgeiB9IGZyb20gJ2h0dHBzOi8vZXNtLnNoL3pvZEAzLjIzLjgnOwppbXBvcnQgewogIEV2b2x1dGlvbldlYmhvb2tWMVNjaGVtYSwKICBFdm9sdXRpb25XZWJob29rVjJTY2hlbWEsCiAgTWV0YVdlYmhvb2tQYXlsb2FkU2NoZW1hLAp9IGZyb20gJy4vd2ViaG9vay1zY2hlbWFzLnRzJzsKaW1wb3J0IHsgY29udHJhY3RFcnJvclJlc3BvbnNlIH0gZnJvbSAnLi92YWxpZGF0aW9uLnRzJzsKCmV4cG9ydCB7IHogfTsKCmV4cG9ydCBjb25zdCBFREdFX0ZVTkNUSU9OX05BTUVTID0gWydhYmFja2ZpbGwtbWVzc2FnZXMnLCdhaS1hdXRvLXRhZycsJ2FpLWNodXJuLWFuYWx5c2lzJywnYWktY2xhc3NpZnktdGlja2V0cycsJ2FpLWNvbnZlcnNhdGlvbi1hbmFseXNpcycsJ2FpLWNvbnZlcnNhdGlvbi1zdW1tYXJ5JywnYWktZW5oYW5jZS1tZXNzYWdlJywnYWktcHJveHknLCdhaS1yb3V0ZXInLCdhaS1zdWdnZXN0LXJlcGx5JywnYWktdHJhbnNjcmliZS1hdWRpbycsJ2V2b2x1dGlvbi1hcGknLCdldm9sdXRpb24td2ViaG9vaycsJ2xncGQtc2NoZWR1bGVkLWpvYnMnLCd3aGF0c2FwcC1jbG91ZC13ZWJob29rJ10gYXMgY29uc3Q7Cgpjb25zdCBKc29uVmFsdWVTY2hlbWE6IHouWm9kVHlwZTx1bmtub3duPiA9IHoubGF6eSgoKSA9PiB6LnVuaW9uKFt6LnN0cmluZygpLHoubnVtYmVyKCksIHouYm9vbGVhbigpLCB6Lm51bGwoKSwgei5hcnJheShKc29uVmFsdWVTY2hlbWEpLCB6LnJlY29yZChKc29uVmFsdWVTY2hlbWEpXSkpOwpjb25zdCBKc29uT2JqZWN0U2NoZW1hID0gei5yZWNvcmQoSnNvblZhbHVlU2NoZW1hKTsKY29uc3QgTm9uRW1wdHlPYmplY3RTY2hlbWEgPSBKc29uT2JqZWN0U2NoZW1hLnJlZmluZSgodikgPT4gT2JqZWN0LmtleXModikubGVuZ3RoID4gMCx7bWVzc2FnZToncGF5bG9hZCBtdXN0IGluY2x1ZGUgYXQgbGVhc3Qgb25lIGZpZWxkJ30pOwpjb25zdCBOb0JvZHlTY2hlbWEgPSB6LnVuZGVmaW5lZCgpLm9wdGlvbmFsKCk7CgpleHBvcnQgY29uc3QgV2ViaG9va0NvbnRyYWN0U2NoZW1hcyA9IHsnZXZvbHV0aW9uLXdlYmhvb2snOnt2MTpFdm9sdXRpb25XZWJob29rVjFTY2hlbWEsdjI6RXZvbHV0aW9uV2ViaG9va1YyU2NoZW1hfSwnd2hhdHNhcHAtY2xvdWQtd2ViaG9vayc6e3YxOk1ldGFXZWJob29rUGF5bG9hZFNjaGVtYX0sJ2dtYWlsLXdlYmhvb2snOnt2MTpOb25FbXB0eU9iamVjdFNjaGVtYX0sJ2VsZXZlbmxhYnMtd2ViaG9vayc6e3YxOk5vbkVtcHR5T2JqZWN0U2NoZW1hfX0gYXMgY29uc3Q7CgpleHBvcnQgaW50ZXJmYWNlIENvbnRyYWN0TGlmZWN5Y2xlIHtjdXJyZW50OnN0cmluZzsgc3VwcG9ydGVkOnN0cmluZ1tdOyBkZXByZWNhdGVkPzpSZWNvcmQ8c3RyaW5nLHtzdW5zZXQ6c3RyaW5nO3JlcGxhY2VtZW50OnN0cmluZ30+O30KZXhwb3J0IHR5cGUgQ29udHJhY3RWZXJzaW9uTWFwID0gUmVjb3JkPHN0cmluZyx6LlpvZFR5cGVBbnk+OwoKY29uc3Qgc3BlY2lmaWNTY2hlbWFzOlBhcnRpYWw8UmVjb3JkPHN0cmluZyxDb250cmFjdFZlcnNpb25NYXA+PiA9IHsnYWktcm91dGVyJzp7djE6ei5vYmplY3Qoe2FjdGlvbjp6LnN0cmluZygpLm1pbigxKX0pLnBhc3N0aHJvdWdoKCl9LCdoZWFsdGgnOnt2MTpOb0JvZHlTY2hlbWF9LCdtZXRyaWNzJzp7djE6Tm9Cb2R5U2NoZW1hfSwuLi5XZWJob29rQ29udHJhY3RTY2hlbWFzfTsKCmV4cG9ydCBjb25zdCBFZGdlRnVuY3Rpb25Db250cmFjdFNjaGVtYXM6UmVjb3JkPHN0cmluZyxDb250cmFjdFZlcnNpb25NYXA+PU9iamVjdC5mcm9tRW50cmllcyhFREdFX0ZVTkNUSU9OX05BTUVTLm1hcCgobikgPT4gW24sc3BlY2lmaWNTY2hlbWFzW25dPz97djE6Tm9uRW1wdHlPYmplY3RTY2hlbWEub3IoTm9Cb2R5U2NoZW1hKX1dKSk7CgpleHBvcnQgZnVuY3Rpb24gZ2V0Q29udHJhY3RTY2hlbWEobmFtZTpzdHJpbmcsdmVyc2lvbj0ndjEnKTp6LlpvZFR5cGVBbnl8dW5kZWZpbmVkIHtyZXR1cm4gRWRnZUZ1bmN0aW9uQ29udHJhY3RTY2hlbWFzW25hbWVdPy5bdmVyc2lvbl07fQpleHBvcnQgZnVuY3Rpb24gZ2V0Q29udHJhY3RMaWZlY3ljbGUobmFtZTpzdHJpbmcpOkNvbnRyYWN0TGlmZWN5Y2xle2NvbnN0IHZlcnNpb25zPU9iamVjdC5rZXlzKEVkZ2VGdW5jdGlvbkNvbnRyYWN0U2NoZW1hc1tuYW1lXT8/e30pO3JldHVybnt9O30KZXhwb3J0IGZ1bmN0aW9uIHZhbGlkYXRlQ29udHJhY3RQYXlsb2FkKG5hbWU6c3RyaW5nLHZlcnNpb246c3RyaW5nLHBheWxvYWQ6dW5rbm93bil7Y29uc3Qgc2NoZW1hPWdldENvbnRyYWN0U2NoZW1hKG5hbWUsdmVyc2lvbik7aWYoIXNjaGVtYSlyZXR1cm57c3VjY2VzczpmYWxzZSBhcyBjb25zdCxlcnJvcjpuZXcgei5ab2RFcnJvcihbe2NvZGU6J2N1c3RvbScscGF0aDpbJ2NvbnRyYWN0J10sbWVzc2FnZTpgdW5zdXBwb3J0ZWQgJHtuYW1lfUAke3ZlcnNpb259YH1dKX07cmV0dXJuIHNjaGVtYS5zYWZlUGFyc2UocGF5bG9hZCk7fQpleHBvcnQgYXN5bmMgZnVuY3Rpb24gcGFyc2VDb250cmFjdFJlcXVlc3Q8VD11bmtub3duPihyZXE6UmVxdWVzdCxjb250cmFjdE5hbWU6c3RyaW5nLG9wdHM6e3ZlcnNpb24/OnN0cmluZztyZXF1ZXN0SWQ/OnN0cmluZ309e30pe2NvbnN0IGxpZmVjeWNsZT1nZXRDb250cmFjdExpZmVjeWNsZShjb250cmFjdE5hbWUpO2xldCBwYXlsb2FkO3RyeXtwYXlsb2FkPWF3YWl0IHJlcS5qc29uKCk7fWNhdGNoe3JldHVybntzdWNjZXNzOmZhbHNlLHZlcnNpb246b3B0cy52ZXJzaW9uPz9saWZlY3ljbGUuY3VycmVudCxsaWZlY3ljbGUscmVzcG9uc2U6Y29udHJhY3RFcnJvclJlc3BvbnNlKCdpbnZhbGlkX2pzb24nLGBJbnZhbGlkIEpTT04gZm9yICR7Y29udHJhY3ROYW1lfWAsW10sb3B0cy5yZXF1ZXN0SWQscmVxKX07fWNvbnN0IHZlcnNpb249b3B0cy52ZXJzaW9uPz9saWZlY3ljbGUuY3VycmVudDtjb25zdCByZXN1bHQ9dmFsaWRhdGVDb250cmFjdFBheWxvYWQoY29udHJhY3ROYW1lLHZlcnNpb24scGF5bG9hZCk7aWYoIXJlc3VsdC5zdWNjZXNzKXJldHVybntzdWNjZXNzOmZhbHNlLHZlcnNpb24sbGlmZWN5Y2xlLHJlc3BvbnNlOmNvbnRyYWN0RXJyb3JSZXNwb25zZSgnY29udHJhY3RfdmlvbGF0aW9uJyxgVmFsaWRhdGlvbiBmYWlsZWQgZm9yICR7Y29udHJhY3ROYW1lfWAscmVzdWx0LmVycm9yLmlzc3VlcyxvcHRzLnJlcXVlc3RJZCxyZXEpfTtyZXR1cm57c3VjY2Vzczp0cnVlLGRhdGE6cmVzdWx0LmRhdGEgYXMgVCx2ZXJzaW9uLGxpZmVjeWNsZX07fQo=
+import { z } from 'https://esm.sh/zod@3.23.8';
+import {
+  EvolutionWebhookV1Schema,
+  EvolutionWebhookV2Schema,
+} from './evolution-schemas.ts';
+
+// ─── Webhook inbound (Evolution → Edge Function) ───────────────────────────
+export const WebhookPayloadSchema = z.union([
+  EvolutionWebhookV1Schema,
+  EvolutionWebhookV2Schema,
+]);
+
+export type WebhookPayload = z.infer<typeof WebhookPayloadSchema>;
+
+// ─── Send-message contract ──────────────────────────────────────────────────
+export const SendMessageSchema = z.object({
+  instanceName: z.string().min(1),
+  to:           z.string().min(1),
+  text:         z.string().optional(),
+  mediaUrl:     z.string().url().optional(),
+  mediaType:    z.enum(['image', 'video', 'audio', 'document']).optional(),
+  caption:      z.string().optional(),
+  filename:     z.string().optional(),
+}).refine(d => d.text || d.mediaUrl, {
+  message: 'Either text or mediaUrl is required',
+});
+
+export type SendMessageInput = z.infer<typeof SendMessageSchema>;
+
+// ─── Rate-limit check request ───────────────────────────────────────────────
+export const RateLimitCheckSchema = z.object({
+  identifier:     z.string().min(1),
+  rpcName:        z.string().min(1),
+  maxCalls:       z.number().int().positive().default(60),
+  windowMinutes:  z.number().int().positive().default(1),
+});
+
+export type RateLimitCheckInput = z.infer<typeof RateLimitCheckSchema>;
