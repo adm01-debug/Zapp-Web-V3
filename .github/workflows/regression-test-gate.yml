@@ -33,7 +33,7 @@ jobs:
           echo "$COMMITS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
-      - name: E46 — Enforce regression test for fix: PRs
+      - name: "E46 — Enforce regression test for fix: PRs"
         # Advisory: warns when fix: PR has no test file changes.
         # Set ADVISORY=false (or remove continue-on-error) to make this blocking.
         env:
