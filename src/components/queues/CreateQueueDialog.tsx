@@ -14,7 +14,11 @@ import { Textarea } from '@/components/ui/textarea';
 interface CreateQueueDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (queue: { name: string; description: string; color: string }) => void;
+  onSubmit: (queue: {
+    name: string;
+    description: string;
+    color: string;
+  }) => void | boolean | Promise<void | boolean>;
 }
 
 const COLORS = [
@@ -41,7 +45,9 @@ export function CreateQueueDialog({ open, onOpenChange, onSubmit }: CreateQueueD
 
     setLoading(true);
     try {
-      await onSubmit({ name, description, color });
+      const result = await onSubmit({ name, description, color });
+      // Keep the dialog open when the mutation explicitly reported a failure.
+      if (result === false) return;
       setName('');
       setDescription('');
       setColor(COLORS[0]);
