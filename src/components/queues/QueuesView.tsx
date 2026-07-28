@@ -47,12 +47,14 @@ export function QueuesView() {
     queues.forEach((queue) => {
       const queueGoal = goals[queue.id];
       if (!queueGoal || !queueGoal.alerts_enabled) return;
+      const maxWaiting = maxWaiting ?? Number.POSITIVE_INFINITY;
+      const minAssignment = minAssignment ?? 0;
       const activeMembers = queue.members.filter((m) => m.is_active).length;
       const assignmentRate =
         queue.waiting_count + activeMembers > 0
           ? Math.round((activeMembers / (queue.waiting_count + activeMembers)) * 100)
           : 100;
-      if (queue.waiting_count > queueGoal.max_waiting_contacts) {
+      if (queue.waiting_count > maxWaiting) {
         const alertKey = `${queue.id}-waiting_contacts`;
         if (!dismissedAlerts.has(alertKey))
           allAlerts.push({
@@ -62,12 +64,12 @@ export function QueuesView() {
             queueColor: queue.color,
             message: `${queue.waiting_count} contatos aguardando atendimento`,
             severity:
-              queue.waiting_count > queueGoal.max_waiting_contacts * 1.5 ? 'critical' : 'warning',
+              queue.waiting_count > maxWaiting * 1.5 ? 'critical' : 'warning',
             currentValue: queue.waiting_count,
-            threshold: queueGoal.max_waiting_contacts,
+            threshold: maxWaiting,
           });
       }
-      if (assignmentRate < queueGoal.min_assignment_rate && queue.waiting_count > 0) {
+      if (assignmentRate < minAssignment && queue.waiting_count > 0) {
         const alertKey = `${queue.id}-assignment_rate`;
         if (!dismissedAlerts.has(alertKey))
           allAlerts.push({
@@ -76,9 +78,9 @@ export function QueuesView() {
             queueName: queue.name,
             queueColor: queue.color,
             message: 'Taxa de atribuição abaixo do esperado',
-            severity: assignmentRate < queueGoal.min_assignment_rate * 0.5 ? 'critical' : 'warning',
+            severity: assignmentRate < minAssignment * 0.5 ? 'critical' : 'warning',
             currentValue: assignmentRate,
-            threshold: queueGoal.min_assignment_rate,
+            threshold: minAssignment,
           });
       }
     });
