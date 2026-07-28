@@ -1,62 +1,83 @@
-IyBhcHBseS10eXBlcy1wYXRjaC55bWwKIyBVcGRhdGVkIHRvIGNyZWF0ZSBQ
-UiBpbnN0ZWFkIG9mIGRpcmVjdCBjb21taXQgKGJyYW5jaCBwcm90ZWN0aW9u
-IG5vdyBhY3RpdmUpCgpuYW1lOiBBcHBseSB0eXBlcy50cyBwYXRjaCAod2hh
-dHNhcHBfY29ubmVjdGlvbnMpCgpvbjoKICB3b3JrZmxvd19kaXNwYXRjaDoK
-CnBlcm1pc3Npb25zOgogIGNvbnRlbnRzOiB3cml0ZQogIHB1bGwtcmVxdWVz
-dHM6IHdyaXRlCgpqb2JzOgogIGFwcGx5LXBhdGNoOgogICAgbmFtZTogQXBw
-bHkgd2hhdHNhcHBfY29ubmVjdGlvbnMgdHlwZXMgcGF0Y2gKICAgIHJ1bnMt
-b246IHVidW50dS1sYXRlc3QKICAgIHN0ZXBzOgogICAgICAtIG5hbWU6IENo
-ZWNrb3V0CiAgICAgICAgdXNlczogYWN0aW9ucy9jaGVja291dEB2NAogICAg
-ICAgIHdpdGg6CiAgICAgICAgICB0b2tlbjogJHt7IHNlY3JldHMuR0lUSFVC
-X1RPS0VOIH19CiAgICAgICAgICBmZXRjaC1kZXB0aDogMAoKICAgICAgLSBu
-YW1lOiBTZXR1cCBOb2RlLmpzCiAgICAgICAgdXNlczogYWN0aW9ucy9zZXR1
-cC1ub2RlQHY0CiAgICAgICAgd2l0aDoKICAgICAgICAgIG5vZGUtdmVyc2lv
-bjogJzIwJwoKICAgICAgLSBuYW1lOiBSdW4gcGF0Y2ggc2NyaXB0CiAgICAg
-ICAgcnVuOiBiYXNoIHNjcmlwdHMvYXBwbHktdHlwZXMtcGF0Y2guc2gKCiAg
-ICAgIC0gbmFtZTogQ2hlY2sgZm9yIGNoYW5nZXMKICAgICAgICBpZDogZGlm
-ZgogICAgICAgIHJ1bjogfAogICAgICAgICAgaWYgZ2l0IGRpZmYgLS1xdWll
-dCBzcmMvaW50ZWdyYXRpb25zL3N1cGFiYXNlL3R5cGVzLnRzOyB0aGVuCiAg
-ICAgICAgICAgIGVjaG8gImNoYW5nZWQ9ZmFsc2UiID4+ICRHSVRIVUJfT1VU
-UFVUCiAgICAgICAgICAgIGVjaG8gIk5vIGNoYW5nZXMgbmVlZGVkIgogICAg
-ICAgICAgZWxzZQogICAgICAgICAgICBlY2hvICJjaGFuZ2VkPXRydWUiID4+
-ICRHSVRIVUJfT1VUUFVUCiAgICAgICAgICAgIGVjaG8gIkNoYW5nZXMgZGV0
-ZWN0ZWQiCiAgICAgICAgICAgIGdpdCBkaWZmIC0tc3RhdCBzcmMvaW50ZWdy
-YXRpb25zL3N1cGFiYXNlL3R5cGVzLnRzCiAgICAgICAgICBmaQoKICAgICAg
-LSBuYW1lOiBDcmVhdGUgUFIgaWYgY2hhbmdlZAogICAgICAgIGlmOiBzdGVw
-cy5kaWZmLm91dHB1dHMuY2hhbmdlZCA9PSAndHJ1ZScKICAgICAgICBydW46
-IHwKICAgICAgICAgIGdpdCBjb25maWcgdXNlci5uYW1lICdnaXRodWItYWN0
-aW9uc1tib3RdJwogICAgICAgICAgZ2l0IGNvbmZpZyB1c2VyLmVtYWlsICdn
-aXRodWItYWN0aW9uc1tib3RdQHVzZXJzLm5vcmVwbHkuZ2l0aHViLmNvbScK
-CiAgICAgICAgICBUSU1FU1RBTVA9JChkYXRlICslWSVtJWQlSCVNJVMpCiAg
-ICAgICAgICBCUkFOQ0hfTkFNRT0iZml4L3R5cGVzLXBhdGNoLSR7VElNRVNU
-QU1QfSIKCiAgICAgICAgICBnaXQgY2hlY2tvdXQgLWIgIiRCUkFOQ0hfTkFN
-RSIKICAgICAgICAgIGdpdCBhZGQgc3JjL2ludGVncmF0aW9ucy9zdXBhYmFz
-ZS90eXBlcy50cwogICAgICAgICAgZ2l0IGNvbW1pdCAtbSAnZml4KHR5cGVz
-KTogYWRkIG1pc3Npbmcgd2hhdHNhcHBfY29ubmVjdGlvbnMgY29sdW1ucyB2
-aWEgYXBwbHktdHlwZXMtcGF0Y2guc2gnCiAgICAgICAgICBnaXQgcHVzaCAt
-dSBvcmlnaW4gIiRCUkFOQ0hfTkFNRSIKCiAgICAgICAgICBnaCBwciBjcmVh
-dGUgXAogICAgICAgICAgICAtLXRpdGxlICJmaXgodHlwZXMpOiBhZGQgbWlz
-c2luZyB3aGF0c2FwcF9jb25uZWN0aW9ucyBjb2x1bW5zIiBcCiAgICAgICAg
-ICAgIC0tYm9keSAiIyMgU3VtbWFyeQoKQXV0b21hdGVkIHR5cGVzIHBhdGNo
-IGZvciB3aGF0c2FwcF9jb25uZWN0aW9ucyBjb2x1bW5zLgoKQ29sdW1ucyBh
-ZGRlZDogYXBpX3R5cGUsIGFwaV91cmwsIGNvbm5lY3RlZF9hdCwgZGlzY29u
-bmVjdGVkX2F0LCBldm9faW5zdGFuY2VfaWQsIGlzX2FjdGl2ZSwgbGFzdF9j
-b25uZWN0ZWRfYXQsIHJvdXRpbmdfbW9kZSwgc2V0dGluZ3MsIHdlYmhvb2tf
-dXJsCgojIyBWZXJpZmljYXRpb24KCi0gWyBdIENJIHBhc3NlcwotIFsgXSBU
-eXBlU2NyaXB0IGNvbXBpbGVzIHdpdGhvdXQgZXJyb3JzCi0gWyBdIDEgYXBw
-cm92YWwgcmVxdWlyZWQgYmVmb3JlIG1lcmdlIiBcCiAgICAgICAgICAgIC0t
-YmFzZSBtYWluCgogICAgICAtIG5hbWU6IFN1bW1hcnkKICAgICAgICBydW46
-IHwKICAgICAgICAgIGlmIFsgIiR7eyBzdGVwcy5kaWZmLm91dHB1dHMuY2hh
-bmdlZCB9fSIgPSAidHJ1ZSIgXTsgdGhlbgogICAgICAgICAgICBlY2hvICcj
-IyDinIUgdHlwZXMudHMgcGF0Y2ggUFIgY3JlYXRlZCcgPj4gJEdJVEhVQl9T
-VEVQX1NVTU1BUlkKICAgICAgICAgICAgZWNobyAnQ29sdW1ucyBhZGRlZDog
-YXBpX3R5cGUsIGFwaV91cmwsIGNvbm5lY3RlZF9hdCwgZGlzY29ubmVjdGVk
-X2F0LCBldm9faW5zdGFuY2VfaWQsJyA+PiAkR0lUSFVCX1NURVBfU1VNTUFS
-WQogICAgICAgICAgICBlY2hvICdpc19hY3RpdmUsIGxhc3RfY29ubmVjdGVk
-X2F0LCByb3V0aW5nX21vZGUsIHNldHRpbmdzLCB3ZWJob29rX3VybCcgPj4g
-JEdJVEhVQl9TVEVQX1NVTU1BUlkKICAgICAgICAgICAgZWNobyAnJyA+PiAk
-R0lUSFVCX1NURVBfU1VNTUFSWQogICAgICAgICAgICBlY2hvICdQUiByZXF1
-aXJlcyAxIGFwcHJvdmFsIGJlZm9yZSBtZXJnZS4nID4+ICRHSVRIVUJfU1RF
-UF9TVU1NQVJZCiAgICAgICAgICBlbHNlCiAgICAgICAgICAgIGVjaG8gJyMj
-IOKEue+4jyBBbHJlYWR5IHVwIHRvIGRhdGUg4oCUIG5vIGNoYW5nZXMgbmVl
-ZGVkJyA+PiAkR0lUSFVCX1NURVBfU1VNTUFSWQogICAgICAgICAgZmkK
+# apply-types-patch.yml
+# Updated to create PR instead of direct commit (branch protection now active)
+
+name: Apply types.ts patch (whatsapp_connections)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  apply-patch:
+    name: Apply whatsapp_connections types patch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run patch script
+        run: bash scripts/apply-types-patch.sh
+
+      - name: Check for changes
+        id: diff
+        run: |
+          if git diff --quiet src/integrations/supabase/types.ts; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No changes needed"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Changes detected"
+            git diff --stat src/integrations/supabase/types.ts
+          fi
+
+      - name: Create PR if changed
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          BRANCH_NAME="fix/types-patch-${TIMESTAMP}"
+
+          git checkout -b "$BRANCH_NAME"
+          git add src/integrations/supabase/types.ts
+          git commit -m 'fix(types): add missing whatsapp_connections columns via apply-types-patch.sh'
+          git push -u origin "$BRANCH_NAME"
+
+          gh pr create \
+            --title "fix(types): add missing whatsapp_connections columns" \
+            --body "## Summary
+
+Automated types patch for whatsapp_connections columns.
+
+Columns added: api_type, api_url, connected_at, disconnected_at, evo_instance_id, is_active, last_connected_at, routing_mode, settings, webhook_url
+
+## Verification
+
+- [ ] CI passes
+- [ ] TypeScript compiles without errors
+- [ ] 1 approval required before merge" \
+            --base main
+
+      - name: Summary
+        run: |
+          if [ "${{ steps.diff.outputs.changed }}" = "true" ]; then
+            echo '## ✅ types.ts patch PR created' >> $GITHUB_STEP_SUMMARY
+            echo 'Columns added: api_type, api_url, connected_at, disconnected_at, evo_instance_id,' >> $GITHUB_STEP_SUMMARY
+            echo 'is_active, last_connected_at, routing_mode, settings, webhook_url' >> $GITHUB_STEP_SUMMARY
+            echo '' >> $GITHUB_STEP_SUMMARY
+            echo 'PR requires 1 approval before merge.' >> $GITHUB_STEP_SUMMARY
+          else
+            echo '## ℹ️ Already up to date — no changes needed' >> $GITHUB_STEP_SUMMARY
+          fi
