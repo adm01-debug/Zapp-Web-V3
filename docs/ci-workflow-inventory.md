@@ -1,1 +1,47 @@
-IyBJbnZlbnTDoXJpbyBkZSBXb3JrZmxvd3MgQ0kKCkludmVudMOhcmlvIGRvcyB3b3JrZmxvd3MgZW0gYC5naXRodWIvd29ya2Zsb3dzL2AgY29tIGNhdGVnb3JpemHDp8OjbyBkZSBhw6fDo28uCgpBdHVhbGl6YWRvIGVtIDI2LzA3LzIwMjYgKEUgMTggLSBQbGFubyA1MCBFdGFwYXMpCgojIyDinIUgS0VFUCAtIE1hbnRlciBBdGl2bwoKfCBBcnF1aXZvIHwgVHJpZ2dlciB8IE9ic2VydmHDp8OjbyB8CnwtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS18LS0tLS0tLS0tLS0tLS0tLS0tLS18LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tfAp8IGBjaS55bWxgIHwgUFIgKyBwdXNoIG1haW4gfCBDSSBwcmluY2lwYWwgfAp8IGBxdWFsaXR5LWdhdGUueW1sYCB8IFBSIHwgR2F0ZSBkZSBxdWFsaWRhZGUgfAp8IGBzY2hlbWEtc25hcHNob3QueW1sYCB8IHNjaGVkdWxlICsgUFIgfCBTbmFwc2hvdCBkbyBzY2hlbWEgfAp8IGBkZXBsb3ktdnBzLnltbGAgfCBwdXNoIG1haW4gfCBEZXBsb3kgcGFyYSBWUFMgfAp8IGBtaWdyYXRpb24tdW5pcXVlbmVzcy55bWxgIHwgUFIgKyBwdXNoIG1haW4gfCBHYXRlIGRlIG1pZ3Jhw6fDo28gfAp8IGBzZWN1cml0eS55bWxgIHwgUFIgKyBwdXNoIG1haW4gfCBTY2FubmluZyBkZSBzZWd1cmFuw6dhIHwKfCBgY29kZXFsLnltbGAgfCBzY2hlZHVsZSArIHB1c2ggfCBBbsOhbGlzZSBkZSBzZWd1cmFuw6dhIEdpdEh1YiB8CnwgYHNlY3VyaXR5LWludm9rZXItZ2F0ZS55bWxgIHwgUFIgfCBHYXRlIGRlIFNFQ1VSSVRZIElOVk9LRVIgfAp8IGBicmFuY2gtcHJvdGVjdGlvbi1zZW50aW5lbC55bWxgIHwgcHVzaCBtYWluIHwgU2VudGluZWxhIGRlIGJyYW5jaCB8CnwgYHNjaGVtYS1kcmlmdC55bWxgIHwgUFIgfCBEZXRlY8Onw6NvIGRlIGRyaWZ0IHxDCnwgYGRlbm8tY29udHJhY3QtdGVzdHMueW1sYCB8IFBSIHwgQ29udHJhY3QgdGVzdHMgfAp8IGBnZW4tdHlwZXMtemFwcC55bWxgIHwgc2NoZWR1bGUgfCBHZXJhw6fDo28gZGUgdGlwb3MgKG9mZmxpbmUgZG8gcHJlYnVpbGQpIHwKfCBgcmF0Y2hldC10aWdodGVuLnltbGAgfCBQUiB8IFJhdGNoZXQgZGUgcXVhbGlkYWRlIHwKfCBgdHMtbm9jaGVjay1yYXRjaGV0LnltbGAgfCBQUiB8IFJhdGNoZXQgZGUgQHRzLW5vY2hlY2sgfAp8IGBoZWFsdGgtcmV2aWV3LnltbGAgfCBzY2hlZHVsZSAoMTUvMTUpIHwgUmV2aWV3IHF1aW56ZW5hbCB8CnwgYHByLXNpemUtY2hlY2sueW1sYCB8IFBSIHwgVmVyaWZpY2HDp8OjbyBkZSB0YW1hbmhvIGRlIFBSIHwKfCBgZTJlLWFkbWluLXZwcy55bWxgIHwgUFIgfCBFMkUgcGFnZSBhZG1pbiB8CnwgYGUyZS1jcm0tdnBzLnltbGAgfCBQUiB8IEUyRSBwYWdlIENSTSB8CnwgYGUyZS1ldm9sdXRpb24tdnBzLnltbGAgfCBQUiB8IEUyRSBFdm9sdXRpb24gQVBJIHwKfCBgZTJlLWlubm94LXZwcy55bWxgIHwgUFIgfCBFMkUgSW5ib3ggfAp8IGBjbGVhbnVwLWUyZS1kYXRhLnltbGAgfCBzY2hlZHVsZSB8IExpbXBlemEgZGUgZGFkb3MgRTJFIHwKfCBgc2VlZC1lMmUtY29udGFjdHMueW1sYCB8IG1hbnVhbCB8IFNlZWQgZGUgY29udGF0b3MgcGFyYSBFMkUgfAp8IGBzZWVkLWUyZS11c2VyLnltbGAgfCBtYW51YWwgfCBTZWVkIGRlIHVzdcOhcmlvIHBhcmEgRTJFIHwKfCBgdmFsaWRhdGUtZTJlLXVzZXIueW1sYCB8IG1hbnVhbCB8IFZhbGlkYcOnw6NvIGRlIHVzdcOhcmlvIEUyRSB8CnwgYGNoZWNrLXJlYWx0aW1lLWRlYWQtY2hhbm5lbHMueW1sYCB8IFBSIHwgQ2hlY2sgZGUgY2hhbm5lbHMgbW9ydG9zIHwKCiMjIOKaoO+4jyBSRVZJRVcgLSBWZXJpZmljYXIgc2UgYWluZGEgc8OjbyBuZWNlc3PDoXJpb3MKCnwgQXJxdWl2byB8IFN1c3BlaXRhIHwgQcOnw6NvIHN1Z2VyaWRhIHwKfC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS18LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLXwtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tfAp8IGBhcHBseS1jaGF0cGFuZWwtZml4ZXMueW1sYCB8IFNjcmlwdCBkZSBhcGxpY2HDp8OjbyBvbmUtdGltZSBkZSBjb3JyZcOnw7VlcyBkbyBDaGF0UGFuZWwgfCBWZXJpZmljYXIgc2UgYWluZGEgw6kgZXhlY3V0YWRvOyBzZSBuw6NvLCBkZWxldGFyIHwKfCBgYXBwbHktdHlwZXMtcGF0Y2gueW1sYCB8IFNjcmlwdCBkZSBhcGxpY2HDp8OjbyBvbmUtdGltZSBkZSBwYXRjaCBkZSB0aXBvcyB8IFZlcmlmaWNhciBzZSBhaW5kYSDDqSBleGVjdXRhZG87IHNlIG7Do28sIGRlbGV0YXIgfAp8IGBmaXgtc2NoZW1hLXJlZnMueW1sYCB8IDg2MSBieXRlcywgY29ycmXDp8OjbyBvbmUtdGltZSBkZSBzY2hlbWEgcmVmcyB8IFZlcmlmaWNhciBzZSBhaW5kYSDDqSBleGVjdXRhZG87IHNlIG7Do28sIGRlbGV0YXIgfAoKIyMgUHLDs3hpbW9zIHBhc3NvcwoKLSBbIF0gVmVyaWZpY2FyIHNlIGB3b3JrZmxvd3MgUkVWSUVXYCBwb3N1ZW0gdHJpZ2dlciBgc2NoZWR1bGU6Y3JvbmAgYXRpdm8KLSBbIF0gU2UgbsOjbyBwb3N1ZW0gY3JvbiwgZGVsZXRhciBhcXVlbGVzIHF1ZSBuw6NvIGZvcmFtIGV4ZWN1dGFkb3MgbmFzIMO6bHRpbWFzIDIgc2VtYW5hcwotIFsgXSBNZXRhOiByZWR1emlyIGRlIDIyIHBhcmEgMTIgd29ya2Zsb3dzCg==
+# Inventário de Workflows CI
+
+Inventário dos workflows GitHub Actions ativos em `.github/workflows/`.
+
+## Workflows Principais
+
+| Arquivo | Nome | Trigger | Propósito |
+|---------|------|---------|----------|
+| `ci.yml` | CI/CD Pipeline | push/PR main | Lint, types, testes, build |
+| `deploy-vps.yml` | Build & Deploy | push main | Docker build + deploy Portainer |
+| `ci-gate.yml` | CI Gate | push/PR | Gate de qualidade |
+| `security.yml` | Security & Compliance | push | Audit deps, secrets scan |
+| `gitleaks.yml` | Secret Scan | push | Detecta segredos expostos |
+| `schema-drift.yml` | schema-drift-guard | push | Valida drift de schema |
+| `security-invoker-gate.yml` | Security Invoker Gate | push/PR | Bloqueia views sem security_invoker |
+| `quality-gate.yml` | Quality Gate | push/PR | TypeScript, ESLint |
+
+## Workflows de Suporte
+
+| Arquivo | Propósito |
+|---------|----------|
+| `codeql.yml` | Análise CodeQL de segurança |
+| `branch-protection-sentinel.yml` | Protege branch main |
+| `schema-snapshot.yml` | Snapshot semanal de schema |
+| `gen-types-zapp.yml` | Regenera types Supabase |
+| `ratchet-tighten.yml` | Tighten ESLint ratchet |
+| `deno-contract-tests.yml` | Testes de contrato Edge Functions |
+
+## Status Esperado no PR
+
+Todos os checks abaixo devem estar verdes:
+- CI Gate
+- Security & Compliance
+- Secret Scan (gitleaks)
+- Quality Gate (TypeScript, ESLint)
+- Security Invoker Gate
+
+## Action Versions Canonicas
+
+- `actions/checkout` → `@v4`
+- `actions/upload-artifact` → `@v4`
+- `actions/setup-node` → `@v4`
+- `actions/cache` → `@v4`
+- `oven-sh/setup-bun` → `@v2`
+- `docker/setup-buildx-action` → `@v4`
+- `docker/login-action` → `@v4`
+- `docker/build-push-action` → `@v7`

@@ -1,1 +1,58 @@
-IyBDb252ZW7Dp8OjbyBkZSBUZXN0ZXMg4oCUIHphcHAtd2ViLXYzCgojIyBSZWdyYSBQcmluY2lwYWwKClRPRE9TIG9zIHRlc3RlcyBmaWNhbSBlbSBgc3JjLyoqL19fdGVzdHNfXy8qLnRlc3QudHNgIG91IGBzcmMvKiovX190ZXN0c19fLyoudGVzdC50c3hgLgoKTsOjbyBleGlzdGUgZXhjZcOnw6NvLiBUb2Rvcywgc2VtcHJlLgoKIyMgUmF6w6NvCgpBdMOpIDI2LzA3LzIwMjYgZXhpc3RpYW0gNSBkaXJldMOzcmlvcyBkZSB0ZXN0ZSBkaXN0aW50b3MgKGBzcmMvdGVzdGAsIGBzcmMvdGVzdHNgLCBgc3JjL19fdGVzdHNfX2AsIGB0ZXN0cy9gLCBgZTJlL2ApIHF1ZSBjYXVzYXZhbToKLSBDb25mdXPDo28gc29icmUgb25kZSBhZGljaW9uYXIgbm92b3MgdGVzdGVzCi0gQ29iZXJ0dXJhIGluY29uc2lzdGVudGUKLSBsaW50L0NJIGNvbSBjb21wb3J0YW1lbnRvIGVzcGVjaWFscwoKIyMgRXN0cnV0dXJhIENvcnJldGEKCmBgYAovc3JjCiAgL2NvbXBvbmVudHMKICAgIC9JbmJveAogICAgICAvX190ZXN0c19fCiAgICAgICAgSW5ib3gudGVzdC50c3ggICMgVGVzdGUgZG8gY29tcG9uZW50ZQogIC9saWIKICAgIC9fX3Rlc3RzX18KICAgICAgbWVkaWFVcmwudGVzdC50cyAgIyBUZXN0ZSBkYSBsaWIKICAvZmVhdHVyZXMKICAgIC9hdXRoCiAgICAgIC9fX3Rlc3RzX18KICAgICAgICBhdXRoLnRlc3QudHMKYGBgCgojIyBOb21lbmNsYXR1cmEKCmBgYAojIFVuaXQgdGVzdHMgKGRlZmF1bHQpCipbQ29tcG9uZW50ZV0udGVzdC50cyh4KQoKIyBJbnRlZ3JhdGlvbiB0ZXN0cwoqLmludGVncmF0aW9uLnRlc3QudHMoeCkKCiMgRS1FIHRlc3RzIChzw7MgbmEgcGFzdGEgZTJlLykKZTJlLyouc3BlYy50cwpgYGAKCiMjIFBhcmEgUFJzIGNvbSBgZml4OmAKClRPRE86IGluY2x1aXIgYW8gbWVub3MgMSBhcnF1aXZvIGRlIHRlc3RlIHF1ZSBGQUxIQSBzZW0gYSBjb3JyZcOnw6NvLgoKIyMgQ29tYW5kb3MgUMOpdGlzCgpgYGBiYXNoCiMgVW5pdCBmZXN0cyAocnVuIG9uY2UpCmJ1biBydW4gdGVzdAoKIyBXYXRjaCBtb2RlCmJ1biBydW4gdGVzdDp3YXRjaAoKIyBFMkUKYnVuIHJ1biB0ZXN0OmUyZQoKIyBDb3ZlcmFnZQpidW4gcnVuIHRlc3QgLS0gLS1jb3ZlcmFnZQpgYGAKCiMjIERpcmV0w7NyaW9zIEhpc3TDs3JpY29zIChEZXByZWNhZG9zKQoKT3MgZGlyZXTDs3Jpb3MgYWJhaXhvIGFpbmRhIGV4aXN0ZW0gcG9yIGhpc3TDs3JpYSBtYXMgTsODTyBkZXZlbSBzZXIgdXNhZG9zIHBhcmEgbm92b3MgdGVzdGVzOgoKLSBgc3JjL3Rlc3QvYCDigJQgbW92lWxvcyBwYXJhIGBzcmMvKiovX190ZXN0c19fL2AKLSBgc3JjL3Rlc3RzL2AgLSBtb3bDqS1sb3MgcGFyYSBgc3JjLyoqL19fdGVzdHNfXy9gCi0gYHRlc3RzL2AgKG5vIHJvb3QpIOKAlCBtb3bDqS1sb3MgcGFyYSBgc3JjLyoqL19fdGVzdHNfXy9gCgpUb2RhIG52b2EgYWRpw6fDo28gZGUgdGVzdGUgZGV2ZSBzZWd1aXIgYSBjb252ZW7Dp8OjbyBhdHVhbC4K
+# Convenção de Testes — zapp-web-v3
+
+## Regra Principal
+
+**Nenhum arquivo de teste pode importar de barrel exports (`index.ts`) que carreguem side-effects pesados.** Isso causa:
+- Timeout de inicialização do happy-dom
+- Vazamento de estado entre testes
+- Falhas flaky em ambiente CI
+
+## Estrutura de Imports em Testes
+
+```typescript
+// ✅ CORRETO — import direto do módulo
+import { useMessages } from '@/hooks/useMessages';
+import { formatDate } from '@/lib/utils/date';
+
+// ❌ ERRADO — import via barrel que carrega outros hooks
+import { useMessages } from '@/hooks'; // carrega todos os hooks = side-effects
+```
+
+## Arquivos Que Não Devem Ser Importados em Testes
+
+- `src/hooks/index.ts` — carrega subscriptions Realtime
+- `src/lib/supabase.ts` — inicializa cliente Supabase
+- `src/integrations/supabase/client.ts` — idem
+
+## Padrão Para Mocks
+
+```typescript
+// vitest.setup.ts ou no próprio teste
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: { from: vi.fn(), rpc: vi.fn() }
+}));
+```
+
+## Timeouts
+
+- Default: 5000ms (vitest.config.ts)
+- Para testes de UI: 10000ms
+- Para testes de integração: 30000ms
+- NUNCA usar `waitFor` sem timeout explícito
+
+## Naming
+
+- `*.test.ts` — testes unitários
+- `*.test.tsx` — testes de componente React
+- `*.spec.ts` — testes de integração
+- `e2e/*.spec.ts` — testes E2E (Playwright)
+
+## Coverage
+
+Floors configurados em `vitest.config.ts`:
+- lines: 25%
+- functions: 18%
+- branches: 15%
+- statements: 24%
+
+Nunca baixar os floors. Só subir.
