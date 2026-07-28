@@ -49,6 +49,9 @@ import { useInboxShortcuts } from '../hooks/useInboxShortcuts';
 import { dbFrom } from '@/integrations/datasource/db';
 import type { MessageQueueController } from '../hooks/useMessageQueue';
 import { useUserRole } from '@/features/auth';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('ChatPanel');
 
 if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
   (window as Window).requestIdleCallback(() => {

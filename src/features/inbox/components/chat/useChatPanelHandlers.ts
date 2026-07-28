@@ -21,7 +21,11 @@ interface UseChatPanelHandlersOptions {
   contactId: string;
   contactPhone: string;
   instanceName?: string;
-  onSendMessage: (content: string, attachments?: File[], onProgress?: (p: number) => void) => Promise<void>;
+  onSendMessage: (
+    content: string,
+    attachments?: File[],
+    onProgress?: (p: number) => void
+  ) => void | Promise<void>;
   editMessageApi: (
     instance: string,
     params: { number: string; messageId: string; text: string }
