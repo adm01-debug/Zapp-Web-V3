@@ -4,10 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 interface TypingUser {
   userId: string;
   userName: string;
+  /** Alias amigável para exibição na UI. */
+  name?: string;
 }
 
 interface UseTypingPresenceParams {
   conversationId: string;
+  /** JID remoto opcional (usado apenas para escopo do canal). */
+  remoteJid?: string;
   currentUserId?: string;
   currentUserName?: string;
 }
