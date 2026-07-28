@@ -341,7 +341,7 @@ export function ChatPanel({
 
   const { transferConversation: handleTransfer } = useTransferConversation({
     contactId: conversation.contact.id,
-    whatsappConnectionId,
+    whatsappConnectionId: whatsappConnectionId ?? undefined,
   });
 
   const handleScheduleMessage = useChatScheduleMessage({
