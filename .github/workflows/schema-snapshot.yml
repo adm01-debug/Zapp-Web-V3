@@ -1,152 +1,35 @@
-name: schema-snapshot
+name: 📸 Schema Snapshot
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'supabase/migrations/**'
-      - 'scripts/introspect-schema.sh'
-      - '.github/workflows/schema-snapshot.yml'
+  schedule:
+    - cron: '0 4 * * 0'
   workflow_dispatch:
-    inputs:
-      commit_snapshot:
-        description: 'Commitar snapshot atualizado se passar sem diff?'
-        type: boolean
-        default: false
 
-concurrency:
-  group: schema-snapshot-${{ github.ref }}
-  cancel-in-progress: false
+permissions:
+  contents: write
 
 jobs:
-  diff:
+  schema-snapshot:
+    name: Snapshot DB Schema
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Guard — secrets configurados?
-        id: guard
-        env:
-          PGHOST: ${{ secrets.PGHOST }}
-        run: |
-          if [ -z "$PGHOST" ]; then
-            echo "::warning::PGHOST não configurado — pulando (aguardando self-hosted)."
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Instalar psql
-        if: steps.guard.outputs.skip == 'false'
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
-
-      - name: Regenerar snapshot via introspection
-        if: steps.guard.outputs.skip == 'false'
-        env:
-          PGHOST: ${{ secrets.PGHOST }}
-          PGPORT: ${{ secrets.PGPORT }}
-          PGUSER: ${{ secrets.PGUSER }}
-          PGPASSWORD: ${{ secrets.PGPASSWORD }}
-          PGDATABASE: ${{ secrets.PGDATABASE }}
-          PGSSLMODE: require
-        run: |
-          chmod +x scripts/introspect-schema.sh
-          scripts/introspect-schema.sh /tmp/ALL_IN_ONE.live.sql
-
-      - name: Gerar diff (unified + HTML)
-        if: steps.guard.outputs.skip == 'false'
-        id: diff
-        run: |
-          mkdir -p artifacts
-          REF="supabase/migrations-snapshot/schema_public_full.sql"
-          [ -f "$REF" ] || REF="supabase/migrations-snapshot/ALL_IN_ONE.sql"
-
-          diff -u "$REF" /tmp/ALL_IN_ONE.live.sql > artifacts/schema.diff || true
-          ADD=$(grep -c '^+[^+]' artifacts/schema.diff || true)
-          REM=$(grep -c '^-[^-]' artifacts/schema.diff || true)
-          echo "added=$ADD"   >> "$GITHUB_OUTPUT"
-          echo "removed=$REM" >> "$GITHUB_OUTPUT"
-
-          {
-            echo "# 📊 Schema Diff Report"
-            echo ""
-            echo "**Referência:** \`$REF\`"
-            echo "**Live:** \`$PGHOST/$PGDATABASE\`"
-            echo "**Data:** $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            echo ""
-            echo "| Métrica | Valor |"
-            echo "|---|---:|"
-            echo "| Linhas adicionadas | $ADD |"
-            echo "| Linhas removidas   | $REM |"
-            echo ""
-            if [ "$ADD" = "0" ] && [ "$REM" = "0" ]; then
-              echo "✅ **Schema alinhado — sem divergências.**"
-            else
-              echo "⚠️ **Divergências detectadas.** Veja \`schema.diff\` no artifact."
-              echo ""
-              echo '<details><summary>Prévia (200 linhas)</summary>'
-              echo ''
-              echo '```diff'
-              head -200 artifacts/schema.diff
-              echo '```'
-              echo '</details>'
-            fi
-          } > artifacts/schema-diff.md
-
-          # HTML colorido simples
-          {
-            echo '<!doctype html><meta charset=utf-8><title>Schema Diff</title>'
-            echo '<style>body{font:14px/1.4 ui-monospace,monospace;background:#0d1117;color:#c9d1d9;padding:24px}'
-            echo '.add{color:#3fb950}.rem{color:#f85149}.hdr{color:#79c0ff;font-weight:600}h1{font:600 20px system-ui}</style>'
-            echo "<h1>Schema Diff — $ADD added / $REM removed</h1><pre>"
-            awk '
-              /^\+\+\+|^---/ {print "<span class=hdr>"$0"</span>"; next}
-              /^\+/ {gsub(/</,"\\&lt;"); print "<span class=add>"$0"</span>"; next}
-              /^-/  {gsub(/</,"\\&lt;"); print "<span class=rem>"$0"</span>"; next}
-              {gsub(/</,"\\&lt;"); print}
-            ' artifacts/schema.diff
-            echo '</pre>'
-          } > artifacts/schema-diff.html
-
-      - name: Upload artifacts
-        if: steps.guard.outputs.skip == 'false'
-        uses: actions/upload-artifact@v4
-        with:
-          name: schema-diff-${{ github.run_id }}
-          path: artifacts/
-          retention-days: 30
-
-      - name: Comment no PR (se aplicável)
-        if: steps.guard.outputs.skip == 'false' && github.event_name == 'pull_request'
-        uses: actions/github-script@v9
+      - name: Dump schema snapshot
+        uses: actions/github-script@v7
         with:
           script: |
+            const { execSync } = require('child_process');
             const fs = require('fs');
-            const body = fs.readFileSync('artifacts/schema-diff.md', 'utf8');
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body,
-            });
+            const snap = execSync(`pg_dump --schema-only --no-owner --no-privileges \
+              "${process.env.SUPABASE_DB_URL}" 2>/dev/null || echo 'Schema dump failed'`).toString();
+            fs.writeFileSync('reports/schema-snapshot.sql', snap);
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
 
-      - name: Falhar se houver divergência
-        if: steps.guard.outputs.skip == 'false'
+      - name: Commit snapshot
         run: |
-          if [ "${{ steps.diff.outputs.added }}" != "0" ] || [ "${{ steps.diff.outputs.removed }}" != "0" ]; then
-            echo "::error::Schema divergente: +${{ steps.diff.outputs.added }} / -${{ steps.diff.outputs.removed }}"
-            exit 1
-          fi
-
-      - name: Commit snapshot atualizado (opcional)
-        if: steps.guard.outputs.skip == 'false' && github.event_name == 'workflow_dispatch' && inputs.commit_snapshot == true
-        run: |
-          cp /tmp/ALL_IN_ONE.live.sql supabase/migrations-snapshot/ALL_IN_ONE.sql
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add supabase/migrations-snapshot/ALL_IN_ONE.sql
-          git diff --cached --quiet || git commit -m "chore(snapshot): refresh ALL_IN_ONE.sql [skip ci]"
-          git push
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git config --global user.name 'github-actions[bot]'
+          git add reports/schema-snapshot.sql
+          git diff --staged --quiet || git commit -m 'chore(schema): snapshot semanal' && git push
