@@ -6,7 +6,7 @@ src/integrations/supabase/types.ts merge=ours
 # Lock files — regenerated from package.json; conflicts mean the file is stale.
 bun.lock merge=ours
 
-# Binary files
+# Binary files — treated as binary to prevent CRLF/LF conversion issues
 *.png binary
 *.jpg binary
 *.jpeg binary
@@ -21,3 +21,43 @@ bun.lock merge=ours
 *.pdf binary
 *.zip binary
 *.tar.gz binary
+
+# ============================================================
+# CRITICAL: Enforce text encoding for all source file types.
+# Prevents base64-encoded content from being stored as text blobs.
+#
+# Root cause (2026-07-28): Lovable/MCP agent's github_push_files
+# was storing file content as base64-encoded text strings in the repo.
+# Marking these extensions as 'text eol=lf' ensures git and GitHub
+# enforce text-mode storage and line-ending normalization.
+#
+# Affected file types confirmed: .ts, .tsx, .sql, .yml, .json, .md
+# ============================================================
+
+# TypeScript / JavaScript — MUST be text
+*.ts      text eol=lf
+*.tsx     text eol=lf
+*.js      text eol=lf
+*.mjs     text eol=lf
+*.cjs     text eol=lf
+
+# Config — MUST be text
+*.json    text eol=lf
+*.yaml    text eol=lf
+*.yml     text eol=lf
+*.toml    text eol=lf
+
+# SQL migrations — MUST be text (never base64!)
+*.sql     text eol=lf
+
+# Web & markup — MUST be text
+*.html    text eol=lf
+*.css     text eol=lf
+*.md      text eol=lf
+*.mdx     text eol=lf
+*.txt     text eol=lf
+
+# Shell & infra — MUST be text
+*.sh      text eol=lf
+Dockerfile text eol=lf
+.env*     text eol=lf
