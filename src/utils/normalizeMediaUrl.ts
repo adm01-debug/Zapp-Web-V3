@@ -15,7 +15,7 @@ export const normalizeMediaUrl = (url?: string | null): string => {
     .trim()
     .replace(/^"+|"+$/g, '')
     // Fix corrupted escaped-quote artifacts: domain.com"/path → domain.com/path
-    .replace(/\.supabase\.co"\/\//, '.supabase.co/')
-    .replace(/\.atomicabr\.com\.br"\/\//, '.atomicabr.com.br/')
+    .replace(/\.supabase\.co"\//, '.supabase.co/')
+    .replace(/\.atomicabr\.com\.br"\//, '.atomicabr.com.br/')
     .replace(/([^:]\/)\/+/g, '$1');
 };
