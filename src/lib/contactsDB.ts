@@ -1,10 +1,10 @@
 /**
- * contactsDB.ts — Bridge layer for contact operations on the EXTERNAL CRM database
+ * contactsDB.ts — Bridge layer for contact operations on the self-hosted Supabase
  *
  * ARCHITECTURE:
- * - Contacts live in the EXTERNAL Supabase (GESTÃO DE CLIENTES / pgxfvjmuubtbowutlide)
- * - NOT in the Lovable Cloud DB (allrjhkpuscmgbsnmjlv)
- * - This module provides typed CRUD helpers that always use the correct database
+ * - Contacts live in the self-hosted Supabase (schema zapp, via VITE_EXTERNAL_SUPABASE_*)
+ * - Previously referenced external managed Supabase (GESTÃO DE CLIENTES)
+ * - This module provides typed CRUD helpers that use the consolidated self-hosted database
  *
  * Tables on External DB:
  *   contacts (49 cols), contact_notes, contact_phones, contact_emails,
