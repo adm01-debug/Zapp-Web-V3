@@ -18,7 +18,7 @@ interface WebhookEvent {
   processed?: boolean | null;
 }
 
-interface VisibleColumns extends WebhookViewColumns {}
+type VisibleColumns = WebhookViewColumns;
 
 interface Prefs {
   visibleColumns: VisibleColumns;
