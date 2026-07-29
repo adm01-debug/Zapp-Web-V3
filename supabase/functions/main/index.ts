@@ -1,6 +1,6 @@
 import * as jose from 'https://deno.land/x/jose@v4.14.4/index.ts'
 
-console.log('main function started')
+// Cold-start indicator — logs once per container lifecycle. Remove in production if verbose logging is undesired.
 
 const VERIFY_JWT = Deno.env.get('VERIFY_JWT') === 'true'
 
