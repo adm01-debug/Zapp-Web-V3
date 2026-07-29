@@ -43,7 +43,8 @@ const localClient = createZappAdminClient();
 
 // Eventos do payload Meta que conhecemos. Qualquer field fora desta lista é
 // ignorado (e logado), em vez de processado às cegas.
-const SUPPORTED_FIELDS = new Set(["messages"]);
+// Meta WhatsApp Cloud API notification fields
+const SUPPORTED_FIELDS = new Set(["messages", "statuses"]);
 
 function jidFromPhone(phone: string): string {
   const digits = String(phone || "").replace(/\D/g, "");
