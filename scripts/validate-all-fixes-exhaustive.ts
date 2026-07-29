@@ -433,7 +433,7 @@ const INTEGRITY_CHECKS: Check[] = [
           // Skip .rpc() calls (legitimate use of as any)
           if (line.includes('.rpc(') && line.includes('as any')) continue;
           // Skip "client as any" or "supabase as any" (type narrowing)
-          if (line.match(/= .* as any[\),;]/) || line.match(/\.as any\) ?/)) continue;
+          if (line.match(/= .* as any[),;]/) || line.match(/\.as any\) ?/)) continue;
           // Find any other as any
           if (line.match(/as any[^a-zA-Z_]/)) {
             return false;

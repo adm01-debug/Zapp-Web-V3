@@ -35,7 +35,7 @@ async function runConcurrent(
   }
 
   const results = await Promise.all(promises);
-  const totalMs = Date.now() - start;
+  const _totalMs = Date.now() - start;
   const success = results.filter((r) => r.ok).length;
   const failed = results.length - success;
   const times = results.map((r) => r.ms).sort((a, b) => a - b);
@@ -135,7 +135,7 @@ const STRESS_TESTS: StressTest[] = [
         `${SUPABASE_URL}/rest/v1/permissions?limit=1`,
         `${SUPABASE_URL}/rest/v1/contacts?limit=1`,
       ];
-      const s = Date.now();
+      const _s = Date.now();
       const promises: Promise<{ ok: boolean; ms: number }>[] = [];
       for (let i = 0; i < 200; i++) {
         const url = endpoints[i % endpoints.length];

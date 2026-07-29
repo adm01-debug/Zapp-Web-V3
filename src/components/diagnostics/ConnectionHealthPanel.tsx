@@ -36,7 +36,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-interface ConnectionHealthLocal extends ConnectionHealth {}
+type ConnectionHealthLocal = ConnectionHealth;
 
 /** Connection Health Panel component for the diagnostics section. */
 export function ConnectionHealthPanel(): JSX.Element {

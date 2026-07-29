@@ -23,7 +23,7 @@ async function test(name: string, fn: () => Promise<{ ok: boolean; details: stri
 
 async function main() {
   let totalPassed = 0;
-  let totalFailed = 0;
+  const totalFailed = 0;
 
   console.log('\n🔐 AUTH FLOW VALIDATION\n');
   console.log('═'.repeat(70));

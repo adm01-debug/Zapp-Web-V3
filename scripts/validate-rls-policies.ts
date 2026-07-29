@@ -30,18 +30,18 @@ interface TableInfo {
   policies: number;
 }
 
-async function getRLSPolicies(schema: string): Promise<PolicyInfo[]> {
+async function _getRLSPolicies(_schema: string): Promise<PolicyInfo[]> {
   // Tenta via pg_policies (PostgREST expõe information_schema)
-  const r = await fetchJson(
-    `${SUPABASE_URL}/rest/v1/information_schema.role_routine_grants?routine_schema=eq.${schema}&limit=1`
+  const _r = await fetchJson(
+    `${SUPABASE_URL}/rest/v1/information_schema.role_routine_grants?routine_schema=eq.${_schema}&limit=1`
   );
   // Fallback: usar RPC público se existir
   return [];
 }
 
-async function getTablesWithRLS(schema: string): Promise<TableInfo[]> {
+async function _getTablesWithRLS(_schema: string): Promise<TableInfo[]> {
   // Lista tabelas no schema
-  const tablesRes = await fetchJson(
+  const _tablesRes = await fetchJson(
     `${SUPABASE_URL}/rest/v1/role_permissions?select=role&limit=1`
   );
   return [];
@@ -53,14 +53,14 @@ async function main() {
 
   // Lista schemas
   const schemas = ['zapp', 'evo', 'public'];
-  const results: { schema: string; tables: number; withRLS: number; pct: string }[] = [];
+  const _results: { schema: string; tables: number; withRLS: number; pct: string }[] = [];
 
   for (const schema of schemas) {
     // Conta tabelas via tentativa de query
     const r = await fetchJson(`${SUPABASE_URL}/rest/v1/${schema === 'public' ? 'role_permissions' : 'contacts'}?select=*&limit=1`);
     if (r.status === 200 || r.status === 401 || r.status === 404) {
       // Tabela existe
-      const tablesRes = await fetchJson(
+      const _tablesRes = await fetchJson(
         `${SUPABASE_URL}/rest/v1/${schema === 'public' ? 'role_permissions' : 'contacts'}?select=count&limit=1`
       );
       console.log(`📂 ${schema}:`);

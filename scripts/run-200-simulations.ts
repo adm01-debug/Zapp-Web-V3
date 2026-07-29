@@ -47,7 +47,7 @@ async function fetchJson(url: string, options: RequestInit = {}): Promise<{ stat
 const SIMULATIONS: SimTest[] = [];
 
 // Helper to generate variations
-function genVariations<T>(name: string, base: Omit<SimTest, 'id'>, variations: number): SimTest[] {
+function genVariations(_name: string, base: Omit<SimTest, 'id'>, variations: number): SimTest[] {
   const tests: SimTest[] = [];
   for (let i = 0; i < variations; i++) {
     tests.push({
@@ -265,7 +265,7 @@ async function main() {
     for (const sim of sims) {
       try {
         const ok = await sim.test();
-        const status = ok ? '✅' : '❌';
+        const _status = ok ? '✅' : '❌';
         if (ok) {
           catPassed++;
           totalPassed++;
