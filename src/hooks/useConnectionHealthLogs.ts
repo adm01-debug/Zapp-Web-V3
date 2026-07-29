@@ -10,6 +10,33 @@ export interface HealthLog {
   checked_at: string;
 }
 
+export interface ConnectionHealth {
+  id: string;
+  name: string;
+  instance_name: string | null;
+  status: string;
+  phone_number: string | null;
+  last_health_check: string | null;
+  health_status: string | null;
+  health_response_ms: number | null;
+}
+
+/**
+ * Busca conexões WhatsApp com metadados de health check.
+ * Extraído de ConnectionHealthPanel para respeitar o guardrail de data-layer
+ * (components/pages não chamam supabase.from() diretamente).
+ */
+export async function fetchConnectionsHealth(): Promise<ConnectionHealth[]> {
+  const { data, error } = await supabase
+    .from('whatsapp_connections')
+    .select(
+      'id, name, instance_name, status, phone_number, last_health_check, health_status, health_response_ms'
+    )
+    .order('name');
+  if (error) throw error;
+  return (data ?? []) as ConnectionHealth[];
+}
+
 export async function fetchConnectionHealthLogs(): Promise<HealthLog[]> {
   const { data, error } = await supabase
     .from('connection_health_logs')

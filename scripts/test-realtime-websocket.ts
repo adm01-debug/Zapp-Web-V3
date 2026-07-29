@@ -15,7 +15,8 @@ let totalFailed = 0;
 async function testWebSocket(name: string, url: string, options: any): Promise<boolean> {
   process.stdout.write(`\n⏳ ${name}... `);
   return new Promise((resolve) => {
-    const ws = new (global as any).WebSocket
+    const hasWebSocket = typeof (global as any).WebSocket !== 'undefined';
+    const ws = hasWebSocket
       ? new (global as any).WebSocket(url, options.protocols)
       : null;
 
