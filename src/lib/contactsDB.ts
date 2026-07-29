@@ -107,7 +107,7 @@ function getClient(): SupabaseClient {
     throw new Error(
       '[contactsDB] External Supabase not configured. ' +
         'Set VITE_EXTERNAL_SUPABASE_URL and VITE_EXTERNAL_SUPABASE_ANON_KEY. ' +
-        'Contacts live on the external CRM database, not Lovable Cloud.'
+        'Contacts are served via the self-hosted Supabase instance (schema zapp).'
     );
   }
   return client;

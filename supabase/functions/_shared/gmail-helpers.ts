@@ -24,8 +24,15 @@ export function getSupabaseAdmin(): SupabaseClient {
 
 // ── CORS ──────────────────────────────────────────────────────────────
 
-/** cors Headers constant. */
-export const corsHeaders = {
+import { getCorsHeaders } from './cors.ts';
+
+/** cors Headers factory — delegates to shared getCorsHeaders. */
+export function getCorsHeadersForRequest(req: Request): Record<string, string> {
+  return getCorsHeaders(req);
+}
+
+/** @deprecated Use getCorsHeadersForRequest instead. */
+export const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };

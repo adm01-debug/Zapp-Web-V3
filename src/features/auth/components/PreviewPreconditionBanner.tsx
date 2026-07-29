@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { AlertTriangle, ExternalLink, RefreshCw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const PUBLISHED_URL = 'https://pronto-talk-suite.lovable.app';
+const PUBLISHED_URL = import.meta.env.VITE_PUBLISHED_URL || window.location.origin;
 
 function isPreviewHost(): boolean {
   if (typeof window === 'undefined') return false;

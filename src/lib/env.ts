@@ -38,7 +38,7 @@ function parseEnv() {
     // Vite expõe variáveis com prefixo VITE_ para o frontend
     SUPABASE_PUBLIC_URL: import.meta.env.VITE_SUPABASE_URL ?? import.meta.env.VITE_SUPABASE_PUBLIC_URL,
     SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY ?? import.meta.env.VITE_ANON_KEY,
-    APP_VERSION: import.meta.env.VITE_APP_VERSION ?? import.meta.env.VITE_VERSIION,
+    APP_VERSION: import.meta.env.VITE_APP_VERSION ?? import.meta.env.VITE_VERSION,
   };
 
   const result = envSchema.safeParse(rawEnv);
