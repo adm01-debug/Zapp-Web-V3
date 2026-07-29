@@ -1,7 +1,7 @@
 // Helper: grava métricas de retry da Evolution API (fire-and-forget, service role).
 // NUNCA relança erro — falha de gravação não pode quebrar o hot path de envio.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
 /** log-retry-metric utilities and exports. */
 export interface RetryReason {
