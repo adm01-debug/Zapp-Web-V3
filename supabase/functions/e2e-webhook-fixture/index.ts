@@ -11,7 +11,7 @@
  *
  * Auth: service-role JWT OR an admin user JWT (same pattern as e2e-fixtures).
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { createZappAdminClient } from '../_shared/db-client.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';

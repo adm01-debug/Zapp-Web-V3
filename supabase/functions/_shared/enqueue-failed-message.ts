@@ -6,7 +6,7 @@
 // - Só registra erros transitórios: 5xx, 429, timeout, network_error.
 // - Erros permanentes (400/401/403/404/422) NÃO entram na fila.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { buildIdempotencyKey, classifyRetryReason, computeBackoffMsByReason } from './dlq-backoff.ts';
 
 /** enqueue-failed-message utilities and exports. */

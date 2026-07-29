@@ -15,7 +15,7 @@
  *   // Com service_role (sem auth do caller)
  *   const admin = createZappAdminClient();
  */
-import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 function requireEnv(name: string): string {
   const v = Deno.env.get(name);

@@ -13,7 +13,7 @@
  *   - zapp.failed_messages            (tabela física; acessada via createZappAdminClient)
  *   - evolution_webhook_events        (FATOR X / external)
  */
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { createZappAdminClient } from '../_shared/db-client.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts'
