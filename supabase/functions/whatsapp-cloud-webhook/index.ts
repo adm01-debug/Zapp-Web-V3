@@ -123,7 +123,6 @@ Deno.serve(async (req) => {
       void recordPing("handshake", { rid, mode, source: req.headers.get("user-agent") ?? null });
       return new Response(challenge ?? "", { status: 200, headers: getCorsHeaders(req) });
     }
-    console.warn(`[whatsapp-cloud-webhook][${rid}] verification failed mode=${mode}`);
     void recordPing("invalid_token", { rid, mode, hadToken: !!token });
     return new Response("forbidden", { status: 403, headers: getCorsHeaders(req) });
   }
