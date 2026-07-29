@@ -240,3 +240,11 @@ SMOKE-TESTS-ROUND15.sql
 ROUND-15-EXHAUSTIVE-TEST-SUITE.sql
 .gitignore_mcp_patch
 
+
+# ====================
+# BLOBS GRANDES — DADOS, NÃO CÓDIGO (adicionado pela auditoria Hermes 2026-07-28)
+# ====================
+# Arquivos de dados Lalamove — 23+ MB de JSON, PDF, HTML, docx
+lalamove_*
+Credencias*
+Credenciais*
