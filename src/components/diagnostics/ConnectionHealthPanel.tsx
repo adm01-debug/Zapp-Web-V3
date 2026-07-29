@@ -4,7 +4,12 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('ConnectionHealthPanel');
 import { supabase } from '@/integrations/supabase/client';
-import { fetchConnectionHealthLogs, type HealthLog } from '@/hooks/useConnectionHealthLogs';
+import {
+  fetchConnectionHealthLogs,
+  fetchConnectionsHealth,
+  type HealthLog,
+  type ConnectionHealth,
+} from '@/hooks/useConnectionHealthLogs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,20 +36,11 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-interface ConnectionHealth {
-  id: string;
-  name: string;
-  instance_name: string | null;
-  status: string;
-  phone_number: string | null;
-  last_health_check: string | null;
-  health_status: string | null;
-  health_response_ms: number | null;
-}
+interface ConnectionHealthLocal extends ConnectionHealth {}
 
 /** Connection Health Panel component for the diagnostics section. */
 export function ConnectionHealthPanel(): JSX.Element {
-  const [connections, setConnections] = useState<ConnectionHealth[]>([]);
+  const [connections, setConnections] = useState<ConnectionHealthLocal[]>([]);
   const [recentLogs, setRecentLogs] = useState<HealthLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
@@ -69,18 +65,13 @@ export function ConnectionHealthPanel(): JSX.Element {
   };
 
   const fetchData = useCallback(async (): Promise<void> => {
-    const [connResult, logs] = await Promise.all([
-      supabase
-        .from('whatsapp_connections')
-        .select(
-          'id, name, instance_name, status, phone_number, last_health_check, health_status, health_response_ms'
-        )
-        .order('name'),
+    const [connections, logs] = await Promise.all([
+      fetchConnectionsHealth(),
       fetchConnectionHealthLogs(),
     ]);
 
     if (!mountedRef.current) return;
-    if (connResult.data) setConnections(connResult.data as ConnectionHealth[]);
+    setConnections(connections);
     setRecentLogs(logs);
     setLoading(false);
   }, [mountedRef]);
