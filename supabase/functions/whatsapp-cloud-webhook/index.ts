@@ -120,7 +120,6 @@ Deno.serve(async (req) => {
     const token = url.searchParams.get("hub.verify_token");
     const challenge = url.searchParams.get("hub.challenge");
     if (mode === "subscribe" && token && VERIFY_TOKEN && timingSafeStringEqual(token, VERIFY_TOKEN)) {
-      console.log(`[whatsapp-cloud-webhook][${rid}] verification ok`);
       void recordPing("handshake", { rid, mode, source: req.headers.get("user-agent") ?? null });
       return new Response(challenge ?? "", { status: 200, headers: getCorsHeaders(req) });
     }
@@ -208,7 +207,6 @@ Deno.serve(async (req) => {
         const field = change?.field;
         if (!SUPPORTED_FIELDS.has(field)) {
           ignoredFields++;
-          console.log(`[whatsapp-cloud-webhook][${rid}] ignored field=${field}`);
           continue;
         }
         const value = change?.value ?? {};
