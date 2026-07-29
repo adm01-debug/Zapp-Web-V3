@@ -69,7 +69,7 @@ jobs:
       - name: Setup Node (for migration linter)
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Migration linter — static drift guard (E31)
         # Runs before applying to Postgres — fast static gate catches

@@ -9,11 +9,10 @@
 import { timingSafeStringEqual, requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
+
+// Metrics endpoint — public by design (Prometheus scrape).
+// CORS delegates to shared getCorsHeaders which validates against allowed origins.
 
 const SCRAPE_TOKEN = Deno.env.get("METRICS_SCRAPE_TOKEN") ?? "";
 
@@ -141,14 +140,14 @@ async function collect(): Promise<Sample[]> {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: getCorsHeaders(req) });
   if (req.method !== "GET") {
-    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+    return new Response("Method not allowed", { status: 405, headers: getCorsHeaders(req) });
   }
   if (SCRAPE_TOKEN) {
     const provided = req.headers.get("x-metrics-token") ?? new URL(req.url).searchParams.get("token") ?? "";
     if (!timingSafeStringEqual(provided, SCRAPE_TOKEN)) {
-      return new Response("forbidden", { status: 403, headers: corsHeaders });
+      return new Response("forbidden", { status: 403, headers: getCorsHeaders(req) });
     }
   } else {
     // Fail-closed: when METRICS_SCRAPE_TOKEN is not configured, require service role or cron secret
@@ -159,7 +158,7 @@ Deno.serve(async (req) => {
     const body = fmt(await collect());
     return new Response(body, {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "text/plain; version=0.0.4; charset=utf-8" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "text/plain; version=0.0.4; charset=utf-8" },
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -167,7 +166,7 @@ Deno.serve(async (req) => {
     // returning a valid text/plain Prometheus body (zapp_metrics_scrape_error gauge).
     return new Response(`# scrape_error ${msg}\nzapp_metrics_scrape_error 1\n`, {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "text/plain; version=0.0.4; charset=utf-8" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "text/plain; version=0.0.4; charset=utf-8" },
     });
   }
 });
