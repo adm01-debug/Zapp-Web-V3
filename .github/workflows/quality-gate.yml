@@ -25,14 +25,18 @@ jobs:
         with:
           bun-version: 1.3.14
 
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+
       - name: Install dependencies
         run: bun install
 
       - name: Lint (advisory — pre-existing debt)
-        # BUGFIX 2026-07-06: `set +e` só evita abort no meio do script; o exit
-        # code do step é o do ÚNTIMO comando. Sem `exit 0`, um lint vermelho
-        # derrubava o job inteiro e pulava Type Check/Tests/E2E — exatamente o
-        # que "advisory" prometia não fazer. Padrão agora idêntico ao ci.yml.
         run: |
           set +e
           npm run lint
@@ -43,10 +47,6 @@ jobs:
           exit 0
 
       - name: Refactor guards (ratchets — dead code + data layer)
-        # Captura cada exit code separadamente para não mascarar uma falha de
-        # check-dead-code quando check-data-layer passa (antes: status=$? só
-        # capturava o ÚNTIMO script, então dead-code falhando + data-layer OK
-        # resultava em status=0 e o warning nunca disparava).
         run: |
           set +e
           node scripts/check-dead-code.mjs
