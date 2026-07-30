@@ -14,10 +14,12 @@ import { seedAvatarCache } from '@/features/inbox';
 import { isValidUUID } from '@/utils/uuid';
 import { mapToLegacyConversation, mapToLegacyMessages } from '@/adapters/inboxLegacyMapper';
 import { dbFrom } from '@/integrations/datasource/db';
+import { queryExternalProxy } from '@/lib/externalProxy';
 import { useMessageQueue, QueueItem } from './useMessageQueue';
 import { useInboxHeartbeat } from './useInboxHeartbeat';
 import { useInboxDeepLinks } from './useInboxDeepLinks';
 import { useInboxSource } from './useInboxSource';
+import { DEFAULT_INSTANCE } from '@/hooks/evolutionFetchers';
 import type { OptimisticMessage, SendExternalResult } from './realtime/externalSenderTypes';
 
 type AddExternalMessageArg = Parameters<
@@ -162,6 +164,12 @@ export function useRealtimeInbox() {
     [conversations, selectedContactId]
   );
 
+  // ── Fallback contact search ───────────────────────────────────────────────
+  // When the clicked conversation is NOT in the sidebar list (BREAK POINT A),
+  // try multiple strategies to find/build a contact so ChatPanel renders:
+  //   1. LOCAL (all modes): search contacts by id / phone / remote_jid
+  //   2. EXTERNAL PROXY (USE_EXTERNAL_DB only): query rpc_get_contact by JID
+  //   3. SYNTHETIC (last resort): build a minimal contact from the raw ID
   useEffect(() => {
     if (!selectedContactId || selectedConversation) {
       setSelectedContactFallback(null);
@@ -170,12 +178,71 @@ export function useRealtimeInbox() {
 
     let cancelled = false;
     const loadSelectedContact = async () => {
-      const { data, error } = await supabase
-        .from('contacts')
-        .select('*')
-        .eq('id', selectedContactId)
-        .maybeSingle();
-      if (!cancelled && !error) setSelectedContactFallback(data || null);
+      const raw = String(selectedContactId);
+      const isJid = raw.includes('@');
+      const isUuid = isValidUUID(raw);
+      const phone: string | null = isJid
+        ? raw.split('@')[0].replace(/\D/g, '')
+        : !isUuid
+          ? raw.replace(/\D/g, '')
+          : null;
+
+      // ── Strategy A: local Supabase contacts lookup ──────────────────────
+      let localResult: Record<string, unknown> | null = null;
+      let query = supabase.from('contacts').select('*');
+      if (phone && !isUuid) {
+        query = query.eq('phone', phone);
+      } else if (isUuid) {
+        query = query.eq('id', raw);
+      }
+      const { data: localData, error: localError } = await query.maybeSingle();
+      if (!localError && localData) {
+        localResult = localData as Record<string, unknown>;
+      }
+
+      // ── Strategy B: external proxy rpc_get_contact (USE_EXTERNAL_DB) ────
+      // Only trigger if local search failed AND we have a JID (external mode)
+      if (!localResult && USE_EXTERNAL_DB && isJid) {
+        try {
+          const remoteJid = raw;
+          const proxyResult = await queryExternalProxy<Record<string, unknown>[]>({
+            action: 'rpc',
+            rpc: 'rpc_get_contact',
+            params: { p_remote_jid: remoteJid, p_instance: DEFAULT_INSTANCE },
+          });
+          if (proxyResult?.data?.[0]) {
+            const ext = proxyResult.data[0];
+            localResult = {
+              id: remoteJid,
+              name: (ext.name || ext.push_name || phone || remoteJid) as string,
+              phone: phone ?? remoteJid,
+              remote_jid: remoteJid,
+              avatar_url: (ext.avatar_url || null) as string | null,
+              company: (ext.company || null) as string | null,
+              tags: ext.tags ?? null,
+              instance_name: DEFAULT_INSTANCE,
+            };
+          }
+        } catch {
+          // External proxy unavailable — fall through to Strategy C
+        }
+      }
+
+      // ── Strategy C: synthetic fallback (JID without local/external data) ─
+      if (!localResult && USE_EXTERNAL_DB) {
+        localResult = {
+          id: raw,
+          name: raw.includes('@') ? raw.split('@')[0] : raw,
+          phone: phone ?? raw,
+          remote_jid: raw.includes('@') ? raw : null,
+          avatar_url: null,
+          company: null,
+          tags: null,
+          instance_name: DEFAULT_INSTANCE,
+        };
+      }
+
+      if (!cancelled) setSelectedContactFallback(localResult as ConversationContact | null);
     };
     void loadSelectedContact();
     return () => {
