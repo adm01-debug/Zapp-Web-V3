@@ -1,8 +1,8 @@
 {
   "framework": "vite",
-  "buildCommand": "vite build",
+  "buildCommand": "bun run build",
   "outputDirectory": "dist",
-  "installCommand": "npm install",
+  "installCommand": "bun install",
   "rewrites": [
     {
       "source": "/((?!api|_next|favicon.ico|icons|sw.js|workbox|manifest.json|manifest.webmanifest).*)",
