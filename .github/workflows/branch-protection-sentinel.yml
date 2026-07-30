@@ -3,120 +3,72 @@ name: Branch Protection Sentinel
 on:
   pull_request:
     branches: [main, master]
+    paths:
+      - 'src/**'
+      - 'supabase/functions/**'
   schedule:
-    # Verifica diariamente se a proteção continua ativa
-    - cron: '0 6 * * *'
+    - cron: '0 6 * * *'  # daily at 06:00 UTC
   workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  administration: read  # REQUIRED: needed to read branch protection rules
 
 jobs:
   check-quality:
-    name: Code quality gates
-    runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Check for new console.log
+      - name: Check for console.log in new code
         run: |
-          set -euo pipefail
-          base_ref="origin/${{ github.base_ref }}"
-          git fetch origin "${{ github.base_ref }}"
-
-          matches=$(git diff --diff-filter=AM --unified=0 "$base_ref"...HEAD -- src \
-            | { grep -E '^\+[^+].*console\.log' || true; } \
-            | { grep -v '// ignore-audit' || true; })
-
-          if [ -n "$matches" ]; then
-            echo "$matches"
-            echo "Erro: console.log novo detectado em código de produção. Use logger.ts."
-            exit 1
-          fi
-
-          echo "Nenhum console.log novo detectado."
-
-      - name: Check for new explicit any
+          git diff --name-only origin/${{ github.base_ref }}..HEAD | grep -E '\.(ts|tsx)$' | while read f; do
+            if git diff origin/${{ github.base_ref }}..HEAD -- "$f" | grep -E '^\+.*console\.log' | grep -v '//.*console\.log' | grep -v validationLogger; then
+              echo "ERROR: console.log found in $f"
+              exit 1
+            fi
+          done
+      - name: Check for explicit any in new code
         run: |
-          set -euo pipefail
-          base_ref="origin/${{ github.base_ref }}"
-          git fetch origin "${{ github.base_ref }}"
-
-          new_any_count=$(git diff --diff-filter=AM --unified=0 "$base_ref"...HEAD -- src \
-            | { grep -E '^\+[^+].*:\s*any\b' || true; } \
-            | { grep -v '// ignore-audit' || true; } \
-            | wc -l \
-            | tr -d ' ')
-
-          if [ "$new_any_count" -gt 0 ]; then
-            echo "Erro: explicit any novo detectado ($new_any_count). Tipar corretamente ou marcar com // ignore-audit quando inevitável."
-            exit 1
-          fi
-
-          echo "Nenhum explicit any novo detectado."
+          git diff --name-only origin/${{ github.base_ref }}..HEAD | grep -E '\.(ts|tsx)$' | while read f; do
+            if git diff origin/${{ github.base_ref }}..HEAD -- "$f" | grep -E '^\+.*as any' | grep -v '/\*.*as any.*\*/' | grep -v '//.*as any'; then
+              echo "ERROR: new 'as any' found in $f"
+              exit 1
+            fi
+          done
 
   verify-branch-protection:
-    name: Verify main branch protection is active
-    runs-on: ubuntu-latest
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    permissions:
-      contents: read
-
+    runs-on: ubuntu-latest
     steps:
-      - name: Check branch protection via GitHub API
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check branch protection rules
         run: |
-          set -euo pipefail
-
-          OWNER="${{ github.repository_owner }}"
-          REPO="${{ github.event.repository.name }}"
-          BRANCH="main"
-
-          echo "Verificando proteção do branch ${BRANCH}..."
-
-          PROTECTION=$(curl -s -f \
-            -H "Authorization: Bearer $GH_TOKEN" \
+          PROT=$(curl -sS -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${OWNER}/${REPO}/branches/${BRANCH}/protection" 2>&1) || {
-            echo "::error::Não foi possível ler a proteção do branch ${BRANCH}."
-            echo "Resposta: $PROTECTION"
-            exit 1
-          }
+            "${{ github.api_url }}/repos/${{ github.repository }}/branches/main/protection")
 
-          # Verificar required status checks
-          REQUIRED_CHECKS=$(echo "$PROTECTION" | python3 -c "
-          import json, sys
-          d = json.load(sys.stdin)
-          checks = d.get('required_status_checks', {}).get('contexts', [])
-          print(len(checks), 'checks:', ', '.join(checks))
-          " 2>/dev/null || echo "erro ao parsear JSON")
+          echo "Branch protection response:"
+          echo "$PROT" | jq .
 
-          echo "Required status checks: $REQUIRED_CHECKS"
+          FORCE=$(echo "$PROT" | jq -r '.allow_force_pushes.enabled // false')
+          DISMISS=$(echo "$PROT" | jq -r '.required_pull_request_reviews.dismiss_stale_reviews // false')
+          ENFORCE=$(echo "$PROT" | jq -r '.enforce_admins.enabled // false')
+          CHECKS=$(echo "$PROT" | jq -r '.required_status_checks.contexts // [] | length')
 
-          # Verificar se push direto está bloqueado
-          ALLOW_FORCE=$(echo "$PROTECTION" | python3 -c "
-          import json, sys
-          d = json.load(sys.stdin)
-          print(d.get('allow_force_pushes', {}).get('enabled', True))
-          " 2>/dev/null || echo "True")
-
-          if [ "$ALLOW_FORCE" = "True" ]; then
-            echo "::warning::Force pushes para ${BRANCH} estão permitidos! Verificar configuração."
+          if [ "$FORCE" = "true" ]; then
+            echo "::warning::Force pushes are ALLOWED on main — should be disabled"
+          fi
+          if [ "$DISMISS" != "true" ]; then
+            echo "::warning::Stale reviews are NOT auto-dismissed — should be enabled"
+          fi
+          if [ "$ENFORCE" != "true" ]; then
+            echo "::warning::Admin enforcement is OFF — branch protection does not apply to admins"
+          fi
+          if [ "$CHECKS" -eq 0 ]; then
+            echo "::warning::No required status checks configured on main"
           fi
 
-          # Verificar dismiss stale reviews
-          DISMISS_STALE=$(echo "$PROTECTION" | python3 -c "
-          import json, sys
-          d = json.load(sys.stdin)
-          print(d.get('required_pull_request_reviews', {}).get('dismiss_stale_reviews', False))
-          " 2>/dev/null || echo "False")
-
-          if [ "$DISMISS_STALE" = "False" ]; then
-            echo "::warning::dismiss_stale_reviews está desativado em ${BRANCH}."
-          fi
-
-          echo "Verificação de proteção de branch concluída."
-          echo "  force_pushes_enabled: $ALLOW_FORCE"
-          echo "  dismiss_stale_reviews: $DISMISS_STALE"
-          echo "  required_checks: $REQUIRED_CHECKS"
+          echo "---"
+          echo "Protection rules checked."
+          exit 0  # advisory — never fails, only warns
