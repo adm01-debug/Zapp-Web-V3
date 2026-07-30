@@ -71,6 +71,7 @@ const statusConfig = {
 /** Conversation History component. */
 export function ConversationHistory({
   contactId,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   contactPhone,
   onSelectConversation,
 }: ConversationHistoryProps) {

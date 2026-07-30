@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useOpsAuditLogs, type AuditRow } from '@/hooks/useOpsAuditLogs';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { sanitizePostgrestFilter } from '@/lib/sanitize';

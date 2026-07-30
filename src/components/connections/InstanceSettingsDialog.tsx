@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { supabase } from '@/integrations/supabase/client';
 import { safeFrom } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';

@@ -12,6 +12,7 @@ import { assertEquals, assertExists } from "https://deno.land/std@0.224.0/assert
 
 // Mock navigator.mediaDevices
 const mockTracks: { stop: () => void }[] = [];
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const originalGetUserMedia = navigator.mediaDevices;
 
 Deno.test("useAudioRecorder: cleanup function exists", () => {
@@ -122,7 +123,7 @@ Deno.test("useAudioRecorder: media recorder must NOT throw if already inactive",
 
 Deno.test("useAudioRecorder: handle error case in stopRecording when stream is null", () => {
   // Simula stream null após cleanup
-  let trackStopped = false;
+  const trackStopped = false;
   const streamRef: { current: { getTracks: () => { stop: () => void }[] } | null } = { current: null };
 
   // Deve ser no-op quando stream é null

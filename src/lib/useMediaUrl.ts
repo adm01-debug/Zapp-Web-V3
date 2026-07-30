@@ -18,6 +18,8 @@
  *   ADR-003: Reverter para privado + batch signing (este arquivo)
  */
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {

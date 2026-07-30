@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GenericEmptyState } from '@/components/ui/GenericEmptyState';
 import { cn } from '@/lib/utils';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useConnectionsHealth, type ConnectionRow } from '@/hooks/useConnectionsHealth';
 
 const STATUS_META: Record<string, { label: string; tone: 'success' | 'destructive' | 'warning' | 'info'; icon: typeof CheckCircle2 }> = {

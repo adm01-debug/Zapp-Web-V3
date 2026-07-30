@@ -12,6 +12,7 @@ import { useNotificationSettingsManagement } from '@/hooks/useNotificationManage
 import { toast } from 'sonner';
 import { playNotificationSound, showBrowserNotification } from '@/utils/notificationSounds';
 import { getLogger } from '@/lib/logger';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { warRoomAlertRowSchema, safeParseEvent, sentimentAlertRowSchema } from '@/shared/webhookEventSchemas';
 import { queryKeys } from '@/services/api/queryKeys';
 

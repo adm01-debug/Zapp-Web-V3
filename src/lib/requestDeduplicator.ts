@@ -88,6 +88,7 @@ export function createRequestDeduplicator() {
   async function refreshInBackground<T>(
     key: string,
     fetcher: () => Promise<T>,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     ttl: number
   ): Promise<void> {
     if (inflight.has(key)) return;

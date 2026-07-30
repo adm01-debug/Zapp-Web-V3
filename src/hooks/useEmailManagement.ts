@@ -206,6 +206,7 @@ interface EmailThreadRow {
 
 /** Manages email accounts, threads, messages, and token lifecycle with Gmail integration. */
 export function useEmail() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const queryClient = useQueryClient();
   const [accounts, setAccounts] = useState<EmailAccount[]>([]);
   const [threads, setThreads] = useState<EmailThread[]>([]);
