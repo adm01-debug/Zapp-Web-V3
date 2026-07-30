@@ -277,12 +277,14 @@ export const ChatMessagesArea = memo(
               position: 'relative',
             }}
           >
-            {virtualizer.getVirtualItems().map((virtualRow) => {
+            {virtualizerRef.current.getVirtualItems().map((virtualRow) => {
               const message = messages[virtualRow.index];
               if (!message) return null;
               return (
                 <div
                   key={message.id || virtualRow.index}
+                  data-index={virtualRow.index}
+                  ref={virtualizerRef.current.measureElement}
                   style={{
                     position: 'absolute',
                     top: 0,
