@@ -22,7 +22,8 @@ export default defineConfig({
     // test that actually hung — useMessages, an infinite re-render loop — is
     // quarantined, not merely waited on).
     testTimeout: 15000,
-    // On CI, retry a failing test up to twice before marking it failed. Several
+    reporter: 'dot',
+    // On CI, retry a failing test up to twice before marking it failed.
     // realtime/async tests are inherently timing-sensitive; a transient miss
     // shouldn't redden a blocking gate, but a genuine failure still fails all
     // three attempts. No retries locally so flakiness stays visible during dev.
