@@ -11,13 +11,14 @@ import { getLogger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { validatePttBlob } from '@/lib/audio/pttLimits';
 import { seedAvatarCache } from '@/features/inbox';
-import { isValidUUID } from '@/utils/uuid';
+import { resolveContactRef } from '@/features/inbox/utils/contactRef';
 import { mapToLegacyConversation, mapToLegacyMessages } from '@/adapters/inboxLegacyMapper';
 import { dbFrom } from '@/integrations/datasource/db';
 import { useMessageQueue, QueueItem } from './useMessageQueue';
 import { useInboxHeartbeat } from './useInboxHeartbeat';
 import { useInboxDeepLinks } from './useInboxDeepLinks';
 import { useInboxSource } from './useInboxSource';
+import { useFallbackContact } from './useFallbackContact';
 
 const log = getLogger('useRealtimeInbox');
 
@@ -44,8 +45,6 @@ export function useRealtimeInbox() {
     delay: number;
     message?: string;
   } | null>(null);
-  const [selectedContactFallback, setSelectedContactFallback] =
-    useState<ConversationContact | null>(null);
   const [whisperCount, setWhisperCount] = useState(0);
   const postSendTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -71,6 +70,7 @@ export function useRealtimeInbox() {
     hasMoreMessages,
     addExternalMessage,
     localRealtime,
+    selectedConversationInstance,
   } = source;
 
   const {
@@ -124,32 +124,14 @@ export function useRealtimeInbox() {
     [conversations, selectedContactId]
   );
 
-  useEffect(() => {
-    if (!selectedContactId || selectedConversation || USE_EXTERNAL_DB) {
-      setSelectedContactFallback(null);
-      return;
-    }
+  // E02: resolve via useFallbackContact (UUID → contacts.id, JID → evolution_contacts.remote_jid)
+  const resolvedSelectedConversation = useFallbackContact(selectedContactId, selectedConversation);
 
-    let cancelled = false;
-    const loadSelectedContact = async () => {
-      const { data, error } = await supabase
-        .from('contacts')
-        .select('*')
-        .eq('id', selectedContactId)
-        .maybeSingle();
-      if (!cancelled && !error) setSelectedContactFallback(data || null);
-    };
-    void loadSelectedContact();
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedContactId, selectedConversation]);
-
-  const resolvedSelectedConversation = useMemo<ConversationWithMessages | null>(() => {
-    if (selectedConversation) return selectedConversation;
-    if (!selectedContactFallback) return null;
-    return { contact: selectedContactFallback, messages: [], unreadCount: 0, lastMessage: null };
-  }, [selectedConversation, selectedContactFallback]);
+  // --- E03: resolve instanceName with fallback chain ---
+  const instanceName = useMemo(
+    () => selectedConversationInstance || selectedConversation?.contact?.instance_name || '',
+    [selectedConversationInstance, selectedConversation]
+  );
 
   // Reconcile message queue with incoming messages
   useEffect(() => {
@@ -198,7 +180,7 @@ export function useRealtimeInbox() {
     // when a non-UUID string is used as a filter on a uuid column.
     // Skip both the count query and the realtime subscription in that case.
 
-    if (!isValidUUID(selectedContactId)) {
+    if (resolveContactRef(selectedContactId)?.type !== 'uuid') {
       log.debug(
         '[whisperCount] selectedContactId is not a UUID — skipping whisper query (likely a WhatsApp JID)',
         { selectedContactId }
@@ -449,5 +431,7 @@ export function useRealtimeInbox() {
     batcherStatus: USE_EXTERNAL_DB ? null : localRealtime.batcherStatus,
     deliveryAlert,
     messageQueue,
+    /** Resolved instance name for the selected conversation (E03 propagation). */
+    instanceName,
   };
 }

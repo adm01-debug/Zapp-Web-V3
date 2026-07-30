@@ -1,9 +1,24 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { isValidUUID } from '@/utils/uuid';
+import { getLogger } from '@/lib/logger';
 import type { ConversationWithMessages, ConversationContact } from './realtime/types';
 
-/** Resolves the selected conversation from the list or falls back to a fresh DB lookup by contact ID, JID, or phone; returns null while loading. */
+const log = getLogger('useFallbackContact');
+
+/**
+ * When `selectedContactId` is set but no matching conversation exists in the
+ * loaded in-memory list, this hook attempts a direct DB lookup so the inbox
+ * view can still display the selected contact.
+ *
+ * Two primary branches are tried, based on the value's format:
+ *  - UUID  → `contacts.id` (application contact from the zapp schema)
+ *  - JID   → `evolution_contacts.remote_jid` ordered by `updated_at DESC`
+ *            (WhatsApp contact from the Evolution API view)
+ *  - Phone → `contacts.phone` (bare number, last-resort fallback)
+ *
+ * Errors are logged with `log.warn` — never silenced.
+ */
 export function useFallbackContact(
   selectedContactId: string | null,
   selectedConversation: ConversationWithMessages | null
@@ -19,24 +34,82 @@ export function useFallbackContact(
 
     let cancelled = false;
     const loadSelectedContact = async () => {
-      // FIX B1: the handshake may arrive as a UUID, JID (`num@s.whatsapp.net`)
-      // or a bare phone number. Detect which to avoid passing a phone number
-      // into the `id` (UUID) column — causes 400 from PostgREST.
-      const raw: string = String(selectedContactId);
-      const isJid = raw.includes('@');
-      const isUuid = isValidUUID(raw);
-      const phone: string | null = isJid
-        ? raw.split('@')[0].replace(/\D/g, '')
-        : !isUuid
-          ? (raw as string).replace(/\D/g, '')
-          : null;
+      try {
+        const raw = String(selectedContactId);
+        const isJid = raw.includes('@');
+        const isUuid = isValidUUID(raw);
 
-      let query = supabase.from('contacts').select('*');
-      query = phone && !isUuid ? query.eq('phone', phone) : query.eq('id', raw);
+        let contactData: ConversationContact | null = null;
 
-      const { data, error } = await query.maybeSingle();
-      if (!cancelled && !error) setSelectedContactFallback(data || null);
+        if (isUuid) {
+          // ── Branch 1: UUID → contacts.id ──────────────────────────
+          const { data, error } = await supabase
+            .from('contacts')
+            .select('*')
+            .eq('id', raw)
+            .maybeSingle();
+
+          if (error) {
+            log.warn('Fallback contact query (UUID→contacts.id) failed', {
+              selectedContactId: raw,
+              error,
+            });
+          }
+          if (data) {
+            contactData = data as unknown as ConversationContact;
+          }
+        } else if (isJid) {
+          // ── Branch 2: JID → evolution_contacts.remote_jid ──────────
+          const { data, error } = await supabase
+            .from('evolution_contacts')
+            .select('*')
+            .eq('remote_jid', raw)
+            .order('updated_at', { ascending: false })
+            .maybeSingle();
+
+          if (error) {
+            log.warn('Fallback contact query (JID→evolution_contacts.remote_jid) failed', {
+              selectedContactId: raw,
+              error,
+            });
+          }
+          if (data) {
+            contactData = mapEvoContactToConversationContact(data as Record<string, unknown>, raw);
+          }
+        } else {
+          // ── Branch 3: bare phone → contacts.phone ──────────────────
+          const phone = raw.replace(/\D/g, '');
+          if (phone) {
+            const { data, error } = await supabase
+              .from('contacts')
+              .select('*')
+              .eq('phone', phone)
+              .maybeSingle();
+
+            if (error) {
+              log.warn('Fallback contact query (phone→contacts.phone) failed', {
+                selectedContactId: raw,
+                phone,
+                error,
+              });
+            }
+            if (data) {
+              contactData = data as unknown as ConversationContact;
+            }
+          }
+        }
+
+        if (!cancelled) {
+          setSelectedContactFallback(contactData);
+        }
+      } catch (err) {
+        log.warn('Fallback contact lookup threw an exception', {
+          selectedContactId,
+          error: err,
+        });
+      }
     };
+
     void loadSelectedContact();
     return () => {
       cancelled = true;
@@ -46,6 +119,47 @@ export function useFallbackContact(
   return useMemo<ConversationWithMessages | null>(() => {
     if (selectedConversation) return selectedConversation;
     if (!selectedContactFallback) return null;
-    return { contact: selectedContactFallback, messages: [], unreadCount: 0, lastMessage: null };
+    return {
+      contact: selectedContactFallback,
+      messages: [],
+      unreadCount: 0,
+      lastMessage: null,
+    };
   }, [selectedConversation, selectedContactFallback]);
+}
+
+/**
+ * Maps an `evolution_contacts` raw row (from the zapp view that wraps
+ * `evo.evolution_contacts`) to the `ConversationContact` shape expected
+ * by the inbox.
+ */
+function mapEvoContactToConversationContact(
+  row: Record<string, unknown>,
+  remoteJid: string
+): ConversationContact {
+  const phoneNumber =
+    (row.phone_number as string) || (remoteJid.includes('@') ? remoteJid.split('@')[0] : remoteJid);
+
+  return {
+    id: remoteJid,
+    name: (row.full_name as string) || (row.push_name as string) || remoteJid,
+    surname: (row.last_name as string) || null,
+    nickname: (row.push_name as string) || (row.nickname as string) || null,
+    phone: phoneNumber,
+    email: (row.email as string) || null,
+    avatar_url: (row.profile_picture_url as string) || null,
+    tags: Array.isArray(row.tags) ? (row.tags as string[]) : null,
+    company: (row.company as string) || null,
+    job_title: (row.role_title as string) || null,
+    assigned_to: (row.assigned_to as string) || null,
+    queue_id: (row.queue_id as string) || null,
+    created_at: (row.created_at as string) || new Date().toISOString(),
+    updated_at: (row.updated_at as string) || new Date().toISOString(),
+    whatsapp_connection_id: null,
+    contact_type: 'whatsapp',
+    group_category: null,
+    ai_sentiment: null,
+    channel_type: 'whatsapp',
+    channel_connection_id: null,
+  };
 }
