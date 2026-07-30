@@ -29,10 +29,11 @@ function allMigrationsSql(): string {
 /**
  * Retorna apenas a definição mais recente de uma função (última ocorrência
  * de CREATE OR REPLACE FUNCTION <name>...$fn$/$function$;).
+ * Aceita funções em qualquer schema (public, zapp, evo, etc).
  */
 function latestDefinition(sql: string, fnName: string): string {
   const re = new RegExp(
-    `CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+public\\.${fnName}\\b[\\s\\S]*?\\$(?:fn|function|\\w*)\\$\\s*;`,
+    `CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+(?:public|zapp)\\.${fnName}\\b[\\s\\S]*?\\$(?:fn|function|\\w*)\\$\\s*;`,
     'gi',
   );
   const matches = sql.match(re) ?? [];
