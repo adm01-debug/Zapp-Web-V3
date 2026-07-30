@@ -25,7 +25,7 @@ jobs:
           # Uses postgres-meta HTTP API instead of supabase gen types --db-url
           # because the Supavisor transaction pooler blocks pg_dump.
           # Requires ZAPP_META_URL and ZAPP_META_TOKEN secrets.
-          
+
           if [ -z "${{ secrets.ZAPP_META_URL }}" ] || [ -z "${{ secrets.ZAPP_META_TOKEN }}" ]; then
             echo "::warning::ZAPP_META_URL or ZAPP_META_TOKEN not configured — skipping type generation"
             echo "Configure these secrets to enable automatic type generation."
@@ -55,10 +55,10 @@ jobs:
           title: 'chore(types): regenerate Supabase types (zapp+evo+public)'
           body: |
             Automated types regeneration via postgres-meta HTTP API.
-            
+
             - **Schemas:** public, zapp, evo
             - **Source:** ${{ secrets.ZAPP_META_URL }}
-            
+
             Review before merging.
           branch: chore/regen-types
           delete-branch: true
