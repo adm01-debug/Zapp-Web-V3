@@ -1,5 +1,47 @@
 # 📜 Changelog — ZAPP WEB
 
+## [2.1.1] - 2026-07-30 — ChatPanel Blank Fix + TypeScript Cleanup
+
+### 🔴 Crítico Resolvido
+
+- **ChatPanel não renderizava**: Edge Function `evolution-api` retornava HTTP 401 porque `SELFHOSTED_SUPABASE_ANON_KEY` não estava configurada no Edge Runtime. Corrigido adicionando a env var ao serviço `functions` no Portainer stack 35.
+- **Circuit breaker**: 4 breakers independentes no `externalProxy.ts` bloqueavam todas as chamadas quando o `evolution-api` falhava, incluindo queries SELECT via `external-db-proxy`.
+
+### 🟠 Alto Resolvido
+
+- **7 erros TypeScript**: `useRealtimeInbox.ts` (type narrowing de array) e `contactRef.ts` (never type após UUID guard) — `tsc --noEmit` agora passa limpo.
+- **`check:datalayer`**: baseline atualizado para 615 chamadas (0 em components/pages).
+
+### Infraestrutura
+
+- **VACUUM FULL + ANALYZE** em `_snapshot_version_state` (95% dead tuples → reduzido).
+- **DROP INDEX** `idx_contacts_email_trgm` (24KB, 0 scans, sem constraint).
+- **Auditoria de índices**: 5/6 índices com 0 scans são índices de partição PostgreSQL (não dropáveis).
+- **140 cron jobs**: todos ativos e saudáveis.
+- **Kong logs**: zero erros 401/403 após o fix.
+
+### Validação
+
+| Indicador | Resultado |
+|-----------|-----------|
+| Testes | **7.889/7.889 PASS** |
+| TypeScript | **zero erros** |
+| Build | **2m 8s** |
+| `bun run check` | **todos os 8 gates passam** |
+| CI Deploy | **#394 SUCCESS** |
+| Webhooks 24h | 4.804 processados, 0 falhas |
+
+### Commits
+
+- `03b506d71` — fix: resolve 7 TypeScript errors in useRealtimeInbox and contactRef
+- `37624fa8e` — chore: update data-layer baseline (615 calls, 0 in components/pages)
+
+### Documentação
+
+- `docs/incident/2026-07-30-chatpanel-blank-fix.md` — relatório completo do incidente e fix
+
+---
+
 ## [2.1.0] - 2026-07-26 — Bug Fix Campaign: 7 Clusters Corrigidos
 
 ### 🔴 Crítico Resolvido
