@@ -57,16 +57,14 @@ export const contactsRepository = {
    */
   search: async (query: string): Promise<Contact[]> => {
     const safe = sanitizePostgrestFilter(query);
-    const { data: byName, error: nameError } = await supabase
-      .from('contacts')
+    const { data: byName, error: nameError } = await (supabase.from('contacts') as any)
       .select('*')
       .ilike('name', `%${safe}%`)
       .limit(20);
 
     if (nameError && nameError.code !== 'PGRST116') throw nameError;
 
-    const { data: byEmail, error: emailError } = await supabase
-      .from('contacts')
+    const { data: byEmail, error: emailError } = await (supabase.from('contacts') as any)
       .select('*')
       .ilike('email', `%${safe}%`)
       .limit(20);
