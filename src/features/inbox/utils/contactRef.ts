@@ -66,8 +66,9 @@ export function resolveContactRef(raw: string | null | undefined): ContactRef | 
   }
 
   // ── Caminho JID ───────────────────────────────────────────
-  const isGroup = value.endsWith('@g.us');
-  const hasSuffix = JID_SUFFIXES.some((s) => value.endsWith(s));
+  const str = value as string;
+  const isGroup = str.endsWith('@g.us');
+  const hasSuffix = JID_SUFFIXES.some((s) => str.endsWith(s));
   const remoteJid = hasSuffix
     ? value
     : PHONE_ONLY_RE.test(value)

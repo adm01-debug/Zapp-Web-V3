@@ -261,13 +261,14 @@ export function useRealtimeInbox() {
       // ── Strategy B: external proxy rpc_get_contact (USE_EXTERNAL_DB) ────
       if (!localResult && USE_EXTERNAL_DB && isJidRef(ref)) {
         try {
-          const proxyResult = await queryExternalProxy<Record<string, unknown>[]>({
+          const proxyResult = await queryExternalProxy<Record<string, unknown>>({
             action: 'rpc',
             rpc: 'rpc_get_contact',
             params: { p_remote_jid: ref.remoteJid, p_instance: DEFAULT_INSTANCE },
           });
-          if (proxyResult?.data?.[0]) {
-            const ext = proxyResult.data[0];
+          const first = proxyResult?.data?.[0];
+          if (first) {
+            const ext = first as Record<string, unknown>;
             localResult = {
               id: ref.remoteJid,
               name: (ext.name || ext.push_name || ref.phone || ref.remoteJid) as string,
