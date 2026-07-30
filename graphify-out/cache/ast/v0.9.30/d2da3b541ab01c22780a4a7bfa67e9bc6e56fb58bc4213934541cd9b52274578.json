@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260502_create_10_extra_tables_sql", "label": "20260502_create_10_extra_tables.sql", "file_type": "code", "source_file": "supabase/migrations/20260502_create_10_extra_tables.sql", "source_location": null}], "edges": []}

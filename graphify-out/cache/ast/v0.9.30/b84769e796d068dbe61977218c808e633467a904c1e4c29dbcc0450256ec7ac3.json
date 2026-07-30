@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260703100000_harden_net_ssrf_block_sql", "label": "20260703100000_harden_net_ssrf_block.sql", "file_type": "code", "source_file": "supabase/migrations/20260703100000_harden_net_ssrf_block.sql", "source_location": null}], "edges": []}

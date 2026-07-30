@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260528102756_drop_duplicate_instance_registry_policy_sql", "label": "20260528102756_drop-duplicate-instance-registry-policy.sql", "file_type": "code", "source_file": "supabase/migrations/20260528102756_drop-duplicate-instance-registry-policy.sql", "source_location": null}], "edges": []}

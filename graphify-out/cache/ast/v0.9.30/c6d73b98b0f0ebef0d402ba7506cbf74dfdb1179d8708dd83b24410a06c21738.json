@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260724000042_create_zapp_views_for_email_app_tables_sql", "label": "20260724000042_create_zapp_views_for_email_app_tables.sql", "file_type": "code", "source_file": "supabase/migrations/20260724000042_create_zapp_views_for_email_app_tables.sql", "source_location": null}], "edges": []}

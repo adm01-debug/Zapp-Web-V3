@@ -163,7 +163,7 @@ export function useRealtimeInbox() {
   );
 
   useEffect(() => {
-    if (!selectedContactId || selectedConversation || USE_EXTERNAL_DB) {
+    if (!selectedContactId || selectedConversation) {
       setSelectedContactFallback(null);
       return;
     }

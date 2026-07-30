@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_from_lovable_00_setup_sql", "label": "00_setup.sql", "file_type": "code", "source_file": "supabase/migrations-from-lovable/00_setup.sql", "source_location": null}], "edges": []}

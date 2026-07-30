@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260724000019_fix_realtime_zapp_table_publications_sql", "label": "20260724000019_fix_realtime_zapp_table_publications.sql", "file_type": "code", "source_file": "supabase/migrations/20260724000019_fix_realtime_zapp_table_publications.sql", "source_location": null}], "edges": []}

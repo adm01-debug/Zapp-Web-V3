@@ -1,0 +1,1292 @@
+{
+  "schema": "zapp",
+  "total_fks": 173,
+  "tables": 321,
+  "views": 406,
+  "fn": 998,
+  "size_mb": 1563,
+  "top_tables_by_fk_refs": [
+    [
+      "profiles",
+      40
+    ],
+    [
+      "evolution_contacts",
+      32
+    ],
+    [
+      "users",
+      28
+    ],
+    [
+      "whatsapp_connections",
+      13
+    ],
+    [
+      "queues",
+      8
+    ],
+    [
+      "departments",
+      7
+    ],
+    [
+      "channel_connections",
+      5
+    ],
+    [
+      "provider_configs",
+      5
+    ],
+    [
+      "audio_memes",
+      2
+    ],
+    [
+      "campaigns",
+      2
+    ]
+  ],
+  "largest_tables": [
+    [
+      "webhook_events_processed",
+      "96 MB",
+      "202K rows"
+    ],
+    [
+      "webhook_audit_log",
+      "85 MB",
+      "220K rows"
+    ],
+    [
+      "evolution_messages_wpp2",
+      "64 MB",
+      "57K rows"
+    ],
+    [
+      "evolution_contacts",
+      "31 MB",
+      "21K rows"
+    ]
+  ],
+  "cache_hit_ratio": "99.82%",
+  "db_version": "PostgreSQL 15.8",
+  "connections": {
+    "total": 37,
+    "active": 4,
+    "idle": 31
+  },
+  "edges": [
+    {
+      "from": "agent_presence",
+      "from_column": "current_queue_id",
+      "to": "queues",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "agent_presence",
+      "from_column": "user_id",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "agent_stats",
+      "from_column": "profile_id",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "agent_visibility_grants",
+      "from_column": "agent_id",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "agent_visibility_grants",
+      "from_column": "can_see_agent_id",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "agent_visibility_grants",
+      "from_column": "granted_by",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "ai_conversation_tags",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "allowed_countries",
+      "from_column": "added_by",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "app_notifications",
+      "from_column": "user_id",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "audio_meme_favorites",
+      "from_column": "meme_id",
+      "to": "audio_memes",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "auto_close_config",
+      "from_column": "updated_by",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "automation_executions",
+      "from_column": "department_id",
+      "to": "departments",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "automation_executions",
+      "from_column": "rule_id",
+      "to": "automation_rules",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "automation_rules",
+      "from_column": "department_id",
+      "to": "departments",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "automations",
+      "from_column": "channel_id",
+      "to": "service_channels",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "automations",
+      "from_column": "department_id",
+      "to": "departments",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "blocked_countries",
+      "from_column": "blocked_by",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "blocked_ips",
+      "from_column": "blocked_by",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "calls",
+      "from_column": "agent_id",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "calls",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "campaign_ab_variants",
+      "from_column": "campaign_id",
+      "to": "campaigns",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "campaign_contacts",
+      "from_column": "campaign_id",
+      "to": "campaigns",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "campaign_contacts",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "campaigns",
+      "from_column": "whatsapp_connection_id",
+      "to": "whatsapp_connections",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "channel_connections",
+      "from_column": "whatsapp_connection_id",
+      "to": "whatsapp_connections",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "channel_provider_routes",
+      "from_column": "channel_connection_id",
+      "to": "channel_connections",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "channel_provider_routes",
+      "from_column": "current_provider_id",
+      "to": "provider_configs",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "channel_provider_routes",
+      "from_column": "fallback_provider_id",
+      "to": "provider_configs",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "channel_provider_routes",
+      "from_column": "primary_provider_id",
+      "to": "provider_configs",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "channel_provider_routes",
+      "from_column": "whatsapp_connection_id",
+      "to": "whatsapp_connections",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "channel_routing_rules",
+      "from_column": "channel_connection_id",
+      "to": "channel_connections",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "channel_routing_rules",
+      "from_column": "queue_id",
+      "to": "queues",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "chatbot_executions",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "chatbot_executions",
+      "from_column": "flow_id",
+      "to": "chatbot_flows",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "chatbot_flows",
+      "from_column": "whatsapp_connection_id",
+      "to": "whatsapp_connections",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "client_wallet_rules",
+      "from_column": "agent_id",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "connection_health_logs",
+      "from_column": "connection_id",
+      "to": "whatsapp_connections",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "contact_custom_fields",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "contact_intelligence",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "contact_notes",
+      "from_column": "author_id",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "contact_notes",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "contact_phones",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "contact_purchases",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "contact_purchases",
+      "from_column": "deal_id",
+      "to": "sales_deals",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "contact_segments",
+      "from_column": "created_by",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "contact_tags",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "contact_tags",
+      "from_column": "tag_id",
+      "to": "tags",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_analyses",
+      "from_column": "analyzed_by",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_analyses",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_audit_logs",
+      "from_column": "actor_id",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_audit_logs",
+      "from_column": "conversation_id",
+      "to": "conversation_pins",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_audit_logs",
+      "from_column": "performed_by",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_closures",
+      "from_column": "closed_by",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_closures",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_events",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_events",
+      "from_column": "from_agent_id",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_events",
+      "from_column": "from_queue_id",
+      "to": "queues",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_events",
+      "from_column": "performed_by",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_events",
+      "from_column": "to_agent_id",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_events",
+      "from_column": "to_queue_id",
+      "to": "queues",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_memory",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_memory",
+      "from_column": "updated_by",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_participants",
+      "from_column": "thread_id",
+      "to": "conversation_threads",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_sla",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_sla",
+      "from_column": "sla_configuration_id",
+      "to": "sla_configurations",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_snoozes",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_snoozes",
+      "from_column": "snoozed_by",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_tasks",
+      "from_column": "assigned_to",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_tasks",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "conversation_transfers",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "crisis_room_alerts",
+      "from_column": "acknowledged_by",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "csat_auto_config",
+      "from_column": "updated_by",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "csat_auto_config",
+      "from_column": "whatsapp_connection_id",
+      "to": "whatsapp_connections",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "csat_surveys",
+      "from_column": "agent_id",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "csat_surveys",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "deal_activities",
+      "from_column": "deal_id",
+      "to": "sales_deals",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "deal_activities",
+      "from_column": "performed_by",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "department_invitations",
+      "from_column": "created_by",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "department_invitations",
+      "from_column": "department_id",
+      "to": "departments",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "department_invitations",
+      "from_column": "invited_by",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "dev_diagnostic_logs",
+      "from_column": "user_id",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "dlq_audit_log",
+      "from_column": "performed_by",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "email_revalidation_jobs",
+      "from_column": "account_id",
+      "to": "email_accounts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "extensions",
+      "from_column": "tenant_external_id",
+      "to": "tenants",
+      "to_column": "external_id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "favorite_contacts",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "followup_executions",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "followup_executions",
+      "from_column": "sequence_id",
+      "to": "followup_sequences",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "followup_sequences",
+      "from_column": "whatsapp_connection_id",
+      "to": "whatsapp_connections",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "followup_steps",
+      "from_column": "sequence_id",
+      "to": "followup_sequences",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "geo_blocking_settings",
+      "from_column": "updated_by",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "instance_processing_pauses",
+      "from_column": "paused_by",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "instance_registry",
+      "from_column": "owner_id",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "ip_whitelist",
+      "from_column": "added_by",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "media_quarantine",
+      "from_column": "rule_id",
+      "to": "media_security_config",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "message_reactions",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "message_reactions",
+      "from_column": "user_id",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "mfa_sessions",
+      "from_column": "user_id",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "outbound_message_queue",
+      "from_column": "audio_meme_id",
+      "to": "audio_memes",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "outbound_message_queue",
+      "from_column": "sticker_id",
+      "to": "stickers",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "password_reset_requests",
+      "from_column": "reviewed_by",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "password_reset_tokens",
+      "from_column": "request_id",
+      "to": "password_reset_requests",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "perfis_usuarios",
+      "from_column": "id",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "pii_access_log",
+      "from_column": "accessed_by",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "pinned_conversations",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "pinned_conversations",
+      "from_column": "pinned_by",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "profiles",
+      "from_column": "department_id",
+      "to": "departments",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "profiles",
+      "from_column": "user_id",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "provider_session_logs",
+      "from_column": "provider_id",
+      "to": "provider_configs",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "provider_session_logs",
+      "from_column": "session_id",
+      "to": "provider_sessions",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "provider_sessions",
+      "from_column": "channel_connection_id",
+      "to": "channel_connections",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "provider_sessions",
+      "from_column": "provider_id",
+      "to": "provider_configs",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "provider_sessions",
+      "from_column": "whatsapp_connection_id",
+      "to": "whatsapp_connections",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "qr_attempts",
+      "from_column": "connection_id",
+      "to": "whatsapp_connections",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "queue_analytics",
+      "from_column": "queue_id",
+      "to": "queues",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "queue_members",
+      "from_column": "profile_id",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "queue_members",
+      "from_column": "queue_id",
+      "to": "queues",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "queue_positions",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "queue_routing_rules",
+      "from_column": "queue_id",
+      "to": "queues",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "queues",
+      "from_column": "department_id",
+      "to": "departments",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "queues",
+      "from_column": "sla_policy_id",
+      "to": "sla_policies",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "quick_replies",
+      "from_column": "owner_id",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "reconnection_logs",
+      "from_column": "connection_id",
+      "to": "channel_connections",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "reminders",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "reprocess_jobs",
+      "from_column": "requested_by",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "role_permissions",
+      "from_column": "permission_id",
+      "to": "permissions",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "sales_deals",
+      "from_column": "assigned_to",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "sales_deals",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "sales_deals",
+      "from_column": "stage_id",
+      "to": "sales_pipeline_stages",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "scheduled_messages",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "scheduled_messages",
+      "from_column": "whatsapp_connection_id",
+      "to": "whatsapp_connections",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "security_audit_logs",
+      "from_column": "user_id",
+      "to": "profiles",
+      "to_column": "user_id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "sicoob_contact_mapping",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "sicoob_contact_mapping",
+      "from_column": "zappweb_agent_id",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "sla_delivery_violations",
+      "from_column": "resolved_by",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "sla_history",
+      "from_column": "resolved_by",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "sla_history",
+      "from_column": "sla_config_id",
+      "to": "sla_configurations",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "sla_history",
+      "from_column": "thread_id",
+      "to": "conversation_threads",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "sla_rules",
+      "from_column": "agent_id",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "sla_rules",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "sla_violations",
+      "from_column": "sla_policy_id",
+      "to": "sla_policies",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "sticker_favorites",
+      "from_column": "sticker_id",
+      "to": "stickers",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "stickers",
+      "from_column": "owner_id",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "sticky_assignments",
+      "from_column": "agent_profile_id",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "sticky_assignments",
+      "from_column": "channel_connection_id",
+      "to": "channel_connections",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "sticky_assignments",
+      "from_column": "queue_id",
+      "to": "queues",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "system_connections",
+      "from_column": "created_by",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "system_health_incidents",
+      "from_column": "created_by",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "tags",
+      "from_column": "created_by",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "talkx_blacklist",
+      "from_column": "blocked_by",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "talkx_blacklist",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "talkx_campaigns",
+      "from_column": "whatsapp_connection_id",
+      "to": "whatsapp_connections",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "talkx_recipients",
+      "from_column": "campaign_id",
+      "to": "talkx_campaigns",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "talkx_recipients",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "team_conversation_members",
+      "from_column": "conversation_id",
+      "to": "team_conversations",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "team_conversation_members",
+      "from_column": "profile_id",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "team_conversations",
+      "from_column": "created_by",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "team_conversations",
+      "from_column": "department_id",
+      "to": "departments",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "team_message_receipts",
+      "from_column": "message_id",
+      "to": "team_messages",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "team_message_receipts",
+      "from_column": "profile_id",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "team_messages",
+      "from_column": "conversation_id",
+      "to": "team_conversations",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "team_messages",
+      "from_column": "reply_to_id",
+      "to": "team_messages",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "team_messages",
+      "from_column": "sender_id",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "transfer_comments",
+      "from_column": "agent_id",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "transfer_comments",
+      "from_column": "transfer_id",
+      "to": "conversation_transfers",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "user_roles",
+      "from_column": "user_id",
+      "to": "profiles",
+      "to_column": "user_id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "user_roles",
+      "from_column": "user_id",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "user_sessions",
+      "from_column": "device_id",
+      "to": "user_devices",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "voice_conversion_queue",
+      "from_column": "requested_by",
+      "to": "users",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "warroom_alerts",
+      "from_column": "dismissed_by",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "whatsapp_official_credentials",
+      "from_column": "connection_id",
+      "to": "whatsapp_connections",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "whatsapp_templates",
+      "from_column": "whatsapp_connection_id",
+      "to": "whatsapp_connections",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "whisper_messages",
+      "from_column": "contact_id",
+      "to": "evolution_contacts",
+      "to_column": "id",
+      "relation": "foreign_key"
+    },
+    {
+      "from": "whisper_messages",
+      "from_column": "target_agent_id",
+      "to": "profiles",
+      "to_column": "id",
+      "relation": "foreign_key"
+    }
+  ]
+}

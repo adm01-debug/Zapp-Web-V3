@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260711_fk_backing_indexes_wave2_sql", "label": "20260711_fk_backing_indexes_wave2.sql", "file_type": "code", "source_file": "supabase/migrations/20260711_fk_backing_indexes_wave2.sql", "source_location": null}], "edges": []}

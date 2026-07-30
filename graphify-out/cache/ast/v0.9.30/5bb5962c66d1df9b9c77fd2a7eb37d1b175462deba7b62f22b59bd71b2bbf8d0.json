@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260705124545_column_level_security_whatsapp_connections_sql", "label": "20260705124545_column_level_security_whatsapp_connections.sql", "file_type": "code", "source_file": "supabase/migrations/20260705124545_column_level_security_whatsapp_connections.sql", "source_location": null}], "edges": []}
