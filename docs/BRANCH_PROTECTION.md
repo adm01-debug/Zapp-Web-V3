@@ -29,11 +29,14 @@ Com branch protection:
    - ☑ **Require a pull request before merging**
      - ☑ Require approvals → `1`
      - ☑ Dismiss stale pull request approvals when new commits are pushed
-   - ☑ **Require status checks to pass before merging**
+   - ☑ **Require status checks to pass before merging
      - ☑ Require branches to be up to date before merging
      - Adicionar ao "Search for status checks":
-       - `gitleaks` (de `.github/workflows/security.yml`)
-       - `branch-protection-sentinel` (de `.github/workflows/branch-protection-sentinel.yml`)
+       - `quality-gate` (lint, ratchets, TS, tests)
+       - `typecheck` (TS ratchet via check-tsc-ratchet.mjs)
+       - `test:chat` (chat module suite, 14 files)
+       - `gitleaks` (security scan)
+       - `branch-protection-sentinel` (policy enforcement)
    - ☑ **Require conversation resolution before merging**
    - ☑ **Do not allow bypassing the above settings**
    - ☐ Allow force pushes (deixar **DESmarcado**)

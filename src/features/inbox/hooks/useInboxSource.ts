@@ -91,5 +91,6 @@ export function useInboxSource(useExternalDb: boolean, selectedContactId: string
     addExternalMessage: useExternalDb ? externalMsgs.addMessage : undefined,
     // Original realtime hooks for notifications etc
     localRealtime,
+    selectedConversationInstance,
   };
 }

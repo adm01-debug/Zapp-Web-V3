@@ -282,10 +282,10 @@ describe('useFallbackContact', () => {
     expect(mockFrom).not.toHaveBeenCalled();
   });
 
-  // ── Phone fallback ────────────────────────────────────────────────────
+  // ── Bare phone (now handled as JID via resolveContactRef) ────────────
 
-  it('bare phone: queries contacts.phone and returns data', async () => {
-    const chain = mockUuidOk(mockContactRow);
+  it('bare phone: queries evolution_contacts.remote_jid via resolveContactRef', async () => {
+    const chain = mockJidOk(mockEvoContactRow);
 
     const { result } = renderHook(() =>
       useFallbackContact(PHONE_BARE, null as ConversationWithMessages | null)
@@ -295,8 +295,8 @@ describe('useFallbackContact', () => {
       expect(result.current).not.toBeNull();
     });
 
-    expect(mockFrom).toHaveBeenCalledWith('contacts');
-    expect(chain.eq).toHaveBeenCalledWith('phone', PHONE_BARE);
+    expect(mockFrom).toHaveBeenCalledWith('evolution_contacts');
+    expect(chain.eq).toHaveBeenCalledWith('remote_jid', PHONE_BARE);
     expect(result.current?.contact.name).toBe('Maria Silva');
   });
 });

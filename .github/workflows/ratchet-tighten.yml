@@ -26,6 +26,6 @@ jobs:
           const changed = execSync('git status --porcelain scripts/data-layer-baseline.json').toString().trim();
           if (!changed) { console.log('baseline já justo — nada a fazer.'); process.exit(0); }
           execSync('git config user.name "ratchet-bot" && git config user.email "bot@users.noreply.github.com"');
-          execSync('git add scripts/data-layer-baseline.json && git commit -m "chore(ratchet): auto-tighten data-layer baseline [skip ci]" && git push');
+          execSync('git add scripts/data-layer-baseline.json && git commit -m "chore(ratchet): auto-tighten data-layer baseline" && git push');
           console.log('✅ baseline apertado e commitado.');
           EOF

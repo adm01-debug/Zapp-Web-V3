@@ -48,6 +48,11 @@ import { useTransferConversation } from '../hooks/useTransferConversation';
 import { useInboxShortcuts } from '../hooks/useInboxShortcuts';
 import { dbFrom } from '@/integrations/datasource/db';
 import { useUserRole } from '@/features/auth';
+import { getLogger } from '@/lib/logger';
+import { toast } from '@/hooks/use-toast';
+import { isValidUUID } from '@/utils/uuid';
+
+const log = getLogger('ChatPanel');
 
 if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
   (window as Window).requestIdleCallback(() => {
@@ -60,7 +65,7 @@ if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
 interface ChatPanelProps extends LoadOlderProps {
   conversation: Conversation;
   messages: Message[];
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, attachments?: File[], onProgress?: (p: number) => void) => void;
   onSendAudio?: (blob: Blob) => Promise<void>;
   showDetails?: boolean;
   onToggleDetails?: () => void;
@@ -72,6 +77,8 @@ interface ChatPanelProps extends LoadOlderProps {
   isLoading?: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   messageQueue?: any;
+  /** Instance name propagated from parent inbox (E03). Falls back to hook-level resolution. */
+  instanceName?: string;
 }
 
 export function ChatPanel({
@@ -89,9 +96,10 @@ export function ChatPanel({
   hasMoreOlder = false,
   initialHighlightMessageId,
   onHighlightConsumed,
-  whisperCount: _whisperCount = 0,
   isLoading = false,
   messageQueue,
+  whisperCount: _whisperCount = 0,
+  instanceName: instanceNameProp,
 }: ChatPanelProps) {
   const { templates: _quickReplyTemplates } = useQuickReplies();
   // Ferramentas de desenvolvimento (Checklist 10/10) só para devs reais.
@@ -175,7 +183,7 @@ export function ChatPanel({
     handleSendSticker,
     handleSendCustomEmoji,
     handleSendAudioMeme,
-  } = useChatMediaSending(conversation.contact.id, conversation.contact.phone);
+  } = useChatMediaSending(conversation.contact.id, conversation.contact.phone, instanceNameProp);
 
   const saveSettingsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debouncedSave = useCallback(() => {
@@ -235,6 +243,16 @@ export function ChatPanel({
   useEffect(() => {
     initResolve();
   }, [conversation.contact.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // E03 DEV guard: warn if instanceName is empty — editing/media will fail
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && !instanceName) {
+      log.warn('[ChatPanel] instanceName vazio — edição e envio de mídia podem falhar', {
+        contactId: conversation.contact.id,
+        phone: conversation.contact.phone,
+      });
+    }
+  }, [instanceName, conversation.contact.id, conversation.contact.phone]);
 
   // Avalia regras de automação para a conversa ativa
   useAutomations({
@@ -537,24 +555,62 @@ export function ChatPanel({
           signatureName={agentName}
           onToggleSignature={toggleSignature}
           onPollSent={async (poll) => {
-            await dbFrom('messages').insert({
-              contact_id: conversation.contact.id,
-              whatsapp_connection_id: whatsappConnectionId,
-              content: `📊 *Enquete:* ${poll.name}\n${poll.options.map((o, i) => `${i + 1}. ${o}`).join('\n')}`,
-              message_type: 'text',
-              sender: 'agent',
-              status: 'sending',
-            });
+            if (!isValidUUID(conversation.contact.id)) {
+              toast({
+                title: 'Enquete indisponível',
+                description:
+                  'Esta conversa usa ID externo (JID WhatsApp). Enquetes requerem contato interno com UUID.',
+                variant: 'destructive',
+              });
+              return;
+            }
+            try {
+              const { error } = await dbFrom('messages').insert({
+                contact_id: conversation.contact.id,
+                whatsapp_connection_id: whatsappConnectionId,
+                content: `📊 *Enquete:* ${poll.name}\n${poll.options.map((o, i) => `${i + 1}. ${o}`).join('\n')}`,
+                message_type: 'text',
+                sender: 'agent',
+                status: 'sending',
+              });
+              if (error) throw error;
+            } catch (err) {
+              log.error('Failed to insert poll message:', err);
+              toast({
+                title: 'Erro ao enviar enquete',
+                description: 'Não foi possível registrar a enquete. Tente novamente.',
+                variant: 'destructive',
+              });
+            }
           }}
           onContactSent={async (contactName) => {
-            await dbFrom('messages').insert({
-              contact_id: conversation.contact.id,
-              whatsapp_connection_id: whatsappConnectionId,
-              content: `📇 Cartão de contato: ${contactName}`,
-              message_type: 'text',
-              sender: 'agent',
-              status: 'sending',
-            });
+            if (!isValidUUID(conversation.contact.id)) {
+              toast({
+                title: 'Contato indisponível',
+                description:
+                  'Esta conversa usa ID externo (JID WhatsApp). Compartilhamento de contato requer contato interno com UUID.',
+                variant: 'destructive',
+              });
+              return;
+            }
+            try {
+              const { error } = await dbFrom('messages').insert({
+                contact_id: conversation.contact.id,
+                whatsapp_connection_id: whatsappConnectionId,
+                content: `📇 Cartão de contato: ${contactName}`,
+                message_type: 'text',
+                sender: 'agent',
+                status: 'sending',
+              });
+              if (error) throw error;
+            } catch (err) {
+              log.error('Failed to insert contact card message:', err);
+              toast({
+                title: 'Erro ao enviar contato',
+                description: 'Não foi possível registrar o cartão de contato. Tente novamente.',
+                variant: 'destructive',
+              });
+            }
           }}
           onOpenCatalog={() => openDialog('catalogDirect')}
           onSelectSuggestion={(text) => handlers.setInputValue(text)}

@@ -1,0 +1,263 @@
+# =================================================
+# DB Health Gate — 5 Database Invariants
+# =================================================
+# Runs on push/PR to main (non-blocking advisory, plus
+# a blocking check on every push).
+# Invariants:
+#   1. Connection — can reach Supabase PostgreSQL
+#   2. Schema — all required schemas exist (zapp, evo, auth)
+#   3. RLS — no public tables without RLS in zapp schema
+#   4. Key tables — essential tables exist
+#   5. Recent migration — last migration applied within 7 days
+# =================================================
+
+name: DB Health Gate
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Daily probe at 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: db-health-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.ZAPP_META_URL }}
+  SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.ZAPP_META_TOKEN }}
+
+jobs:
+  db-health:
+    name: DB Health (5 invariants)
+    runs-on: ubuntu-latest
+    # Skip on scheduled runs if no secrets are configured
+    if: ${{ env.SUPABASE_URL != '' && env.SUPABASE_SERVICE_KEY != '' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Invariant 1 — Connection check
+        run: |
+          echo "::group::Invariant 1: Connection"
+          RESULT=$(bunx --silent tsx -e "
+            const { createClient } = require('@supabase/supabase-js');
+            const client = createClient(
+              process.env.SUPABASE_URL,
+              process.env.SUPABASE_SERVICE_KEY
+            );
+            client.rpc('extensions.pg_stat_statements_info').then(r => {
+              if (r.error) throw r.error;
+              console.log('OK — connection established');
+              process.exit(0);
+            }).catch(e => {
+              console.error('FAIL —', e.message);
+              process.exit(1);
+            });
+          " 2>&1) || true
+          echo "$RESULT"
+          if echo "$RESULT" | grep -q "OK"; then
+            echo "INVARIANT_1=pass" >> $GITHUB_ENV
+          else
+            echo "INVARIANT_1=fail" >> $GITHUB_ENV
+          fi
+          echo "::endgroup::"
+
+      - name: Invariant 2 — Required schemas exist
+        run: |
+          echo "::group::Invariant 2: Schema existence"
+          RESULT=$(bunx --silent tsx -e "
+            const { createClient } = require('@supabase/supabase-js');
+            const client = createClient(
+              process.env.SUPABASE_URL,
+              process.env.SUPABASE_SERVICE_KEY
+            );
+            client.rpc('extensions.pg_stat_statements_info').then(async () => {
+              const { data, error } = await client
+                .from('information_schema.schemata')
+                .select('schema_name')
+                .in('schema_name', ['zapp', 'evo', 'auth']);
+              if (error) throw error;
+              const found = data.map(r => r.schema_name).sort();
+              const expected = ['auth', 'evo', 'zapp'];
+              if (JSON.stringify(found) === JSON.stringify(expected)) {
+                console.log('OK — schemas:', found.join(', '));
+                process.exit(0);
+              } else {
+                console.error('FAIL — expected', expected.join(','), 'got', found.join(','));
+                process.exit(1);
+              }
+            }).catch(e => {
+              console.error('FAIL —', e.message);
+              process.exit(1);
+            });
+          " 2>&1) || true
+          echo "$RESULT"
+          if echo "$RESULT" | grep -q "OK"; then
+            echo "INVARIANT_2=pass" >> $GITHUB_ENV
+          else
+            echo "INVARIANT_2=fail" >> $GITHUB_ENV
+          fi
+          echo "::endgroup::"
+
+      - name: Invariant 3 — RLS coverage in zapp schema
+        run: |
+          echo "::group::Invariant 3: RLS coverage"
+          RESULT=$(bunx --silent tsx -e "
+            const { createClient } = require('@supabase/supabase-js');
+            const client = createClient(
+              process.env.SUPABASE_URL,
+              process.env.SUPABASE_SERVICE_KEY
+            );
+            client.rpc('extensions.pg_stat_statements_info').then(async () => {
+              const { data, error } = await client
+                .from('information_schema.tables')
+                .select('table_name, row_security')
+                .eq('table_schema', 'zapp')
+                .eq('table_type', 'BASE TABLE');
+              if (error) throw error;
+              const noRls = data.filter(t => !t.row_security);
+              if (noRls.length === 0) {
+                console.log('OK — all', data.length, 'tables have RLS');
+                process.exit(0);
+              } else {
+                console.error('FAIL —', noRls.length, 'tables without RLS:', noRls.map(t => t.table_name).join(', '));
+                process.exit(1);
+              }
+            }).catch(e => {
+              console.error('FAIL —', e.message);
+              process.exit(1);
+            });
+          " 2>&1) || true
+          echo "$RESULT"
+          if echo "$RESULT" | grep -q "OK"; then
+            echo "INVARIANT_3=pass" >> $GITHUB_ENV
+          else
+            echo "INVARIANT_3=fail" >> $GITHUB_ENV
+          fi
+          echo "::endgroup::"
+
+      - name: Invariant 4 — Key tables exist
+        run: |
+          echo "::group::Invariant 4: Key tables"
+          RESULT=$(bunx --silent tsx -e "
+            const { createClient } = require('@supabase/supabase-js');
+            const client = createClient(
+              process.env.SUPABASE_URL,
+              process.env.SUPABASE_SERVICE_KEY
+            );
+            client.rpc('extensions.pg_stat_statements_info').then(async () => {
+              const tables = [
+                { schema: 'zapp', name: 'profiles' },
+                { schema: 'zapp', name: 'workspaces' },
+                { schema: 'zapp', name: 'contatos' },
+                { schema: 'zapp', name: 'whatsapp_connections' },
+                { schema: 'evo', name: 'evolution_messages' },
+                { schema: 'evo', name: 'evolution_contacts' },
+              ];
+              for (const t of tables) {
+                const { data, error } = await client
+                  .from('information_schema.tables')
+                  .select('table_name')
+                  .eq('table_schema', t.schema)
+                  .eq('table_name', t.name)
+                  .single();
+                if (error || !data) {
+                  console.error('MISSING —', t.schema + '.' + t.name);
+                  process.exit(1);
+                }
+              }
+              console.log('OK — all 6 key tables found');
+              process.exit(0);
+            }).catch(e => {
+              console.error('FAIL —', e.message);
+              process.exit(1);
+            });
+          " 2>&1) || true
+          echo "$RESULT"
+          if echo "$RESULT" | grep -q "OK"; then
+            echo "INVARIANT_4=pass" >> $GITHUB_ENV
+          else
+            echo "INVARIANT_4=fail" >> $GITHUB_ENV
+          fi
+          echo "::endgroup::"
+
+      - name: Invariant 5 — Recent migration applied
+        run: |
+          echo "::group::Invariant 5: Migration freshness"
+          RESULT=$(bunx --silent tsx -e "
+            const { createClient } = require('@supabase/supabase-js');
+            const client = createClient(
+              process.env.SUPABASE_URL,
+              process.env.SUPABASE_SERVICE_KEY
+            );
+            client.rpc('extensions.pg_stat_statements_info').then(async () => {
+              const { data, error } = await client
+                .from('supabase_migrations')
+                .select('applied_at')
+                .order('applied_at', { ascending: false })
+                .limit(1)
+                .single();
+              if (error) {
+                console.error('FAIL — cannot read supabase_migrations:', error.message);
+                process.exit(1);
+              }
+              const lastApplied = new Date(data.applied_at);
+              const daysSince = (Date.now() - lastApplied.getTime()) / 86400000;
+              if (daysSince <= 7) {
+                console.log('OK — last migration applied', daysSince.toFixed(1), 'days ago');
+                process.exit(0);
+              } else {
+                console.warn('WARN — last migration was', daysSince.toFixed(1), 'days ago (threshold: 7 days)');
+                process.exit(0);
+              }
+            }).catch(e => {
+              console.error('FAIL —', e.message);
+              process.exit(1);
+            });
+          " 2>&1) || true
+          echo "$RESULT"
+          if echo "$RESULT" | grep -q "OK"; then
+            echo "INVARIANT_5=pass" >> $GITHUB_ENV
+          else
+            echo "INVARIANT_5=fail" >> $GITHUB_ENV
+          fi
+          echo "::endgroup::"
+
+      - name: Summary
+        run: |
+          echo "::group::DB Health Summary"
+          echo "Invariant 1 (Connection): ${{ env.INVARIANT_1 }}"
+          echo "Invariant 2 (Schemas):    ${{ env.INVARIANT_2 }}"
+          echo "Invariant 3 (RLS):        ${{ env.INVARIANT_3 }}"
+          echo "Invariant 4 (Key tables): ${{ env.INVARIANT_4 }}"
+          echo "Invariant 5 (Migration):  ${{ env.INVARIANT_5 }}"
+          FAILS=0
+          [ "${{ env.INVARIANT_1 }}" = "fail" ] && FAILS=$((FAILS+1))
+          [ "${{ env.INVARIANT_2 }}" = "fail" ] && FAILS=$((FAILS+1))
+          [ "${{ env.INVARIANT_3 }}" = "fail" ] && FAILS=$((FAILS+1))
+          [ "${{ env.INVARIANT_4 }}" = "fail" ] && FAILS=$((FAILS+1))
+          echo "Total failures: $FAILS / 5"
+          if [ "$FAILS" -gt 0 ]; then
+            echo "::warning title=DB Health::${FAILS}/5 invariants failed — review the logs above."
+          fi
+          echo "::endgroup::"
+
+      - name: Block on connection failure
+        if: env.INVARIANT_1 == 'fail'
+        run: |
+          echo "::error::DB connection check failed. Cannot verify database health."
+          exit 1

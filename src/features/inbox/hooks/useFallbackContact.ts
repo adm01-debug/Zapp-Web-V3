@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { isValidUUID } from '@/utils/uuid';
 import { getLogger } from '@/lib/logger';
+import { resolveContactRef } from '@/features/inbox/utils/contactRef';
 import type { ConversationWithMessages, ConversationContact } from './realtime/types';
 
 const log = getLogger('useFallbackContact');
@@ -36,12 +36,13 @@ export function useFallbackContact(
     const loadSelectedContact = async () => {
       try {
         const raw = String(selectedContactId);
-        const isJid = raw.includes('@');
-        const isUuid = isValidUUID(raw);
+        const ref = resolveContactRef(raw);
 
         let contactData: ConversationContact | null = null;
 
-        if (isUuid) {
+        if (!ref) {
+          // null/undefined/empty — nothing to query
+        } else if (ref.type === 'uuid') {
           // ── Branch 1: UUID → contacts.id ──────────────────────────
           const { data, error } = await supabase
             .from('contacts')
@@ -58,7 +59,7 @@ export function useFallbackContact(
           if (data) {
             contactData = data as unknown as ConversationContact;
           }
-        } else if (isJid) {
+        } else if (ref.type === 'jid') {
           // ── Branch 2: JID → evolution_contacts.remote_jid ──────────
           const { data, error } = await supabase
             .from('evolution_contacts')
@@ -75,27 +76,6 @@ export function useFallbackContact(
           }
           if (data) {
             contactData = mapEvoContactToConversationContact(data as Record<string, unknown>, raw);
-          }
-        } else {
-          // ── Branch 3: bare phone → contacts.phone ──────────────────
-          const phone = raw.replace(/\D/g, '');
-          if (phone) {
-            const { data, error } = await supabase
-              .from('contacts')
-              .select('*')
-              .eq('phone', phone)
-              .maybeSingle();
-
-            if (error) {
-              log.warn('Fallback contact query (phone→contacts.phone) failed', {
-                selectedContactId: raw,
-                phone,
-                error,
-              });
-            }
-            if (data) {
-              contactData = data as unknown as ConversationContact;
-            }
           }
         }
 

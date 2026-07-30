@@ -101,7 +101,6 @@ export const ChatMessagesArea = memo(
       const prevScrollHeightRef = useRef<number | null>(null);
       const [showScrollBottom, setShowScrollBottom] = useState(false);
       const messageIndexRef = useRef(new Map<string, number>());
-      const virtualizerRef = useRef<ReturnType<typeof useVirtualizer>>(null!);
 
       // Build a map of message id → index for O(1) scroll-to-message lookups
       useEffect(() => {
@@ -121,7 +120,7 @@ export const ChatMessagesArea = memo(
         scrollToMessage: (messageId: string): boolean => {
           const idx = messageIndexRef.current.get(messageId);
           if (idx !== undefined && idx >= 0) {
-            virtualizerRef.current.scrollToIndex(idx, { align: 'center', behavior: 'smooth' });
+            virtualizer.scrollToIndex(idx, { align: 'center', behavior: 'smooth' });
             return true;
           }
           // Message not yet in the virtual list — try loading older pages
@@ -172,26 +171,23 @@ export const ChatMessagesArea = memo(
       useConversationReactionsRealtime(conversationId, messageIds);
 
       // Stable estimateSize — reads from messagesRef to avoid recreating on every render
-      const getItemSize = useCallback(
-        (index: number) => {
-          const item = messagesRef.current[index];
-          if (!item) return 80;
-          if (item.type === 'image' || item.type === 'video') return 300;
-          if (item.type === 'audio') return 120;
-          if (item.type === 'document') return 100;
-          const content = item.content || '';
-          const lines = Math.ceil(content.length / 60);
-          return Math.max(80, 70 + lines * 22);
-        },
-        []
-      );
+      const getItemSize = useCallback((index: number) => {
+        const item = messagesRef.current[index];
+        if (!item) return 80;
+        if (item.type === 'image' || item.type === 'video') return 300;
+        if (item.type === 'audio') return 120;
+        if (item.type === 'document') return 100;
+        const content = item.content || '';
+        const lines = Math.ceil(content.length / 60);
+        return Math.max(80, 70 + lines * 22);
+      }, []);
 
-      virtualizerRef.current = useVirtualizer({
+      const virtualizer = useVirtualizer({
         count: messages.length,
         getScrollElement: () => scrollContainerRef.current,
         estimateSize: getItemSize,
-        measureElement: (element) => element?.getBoundingClientRect().height ?? 80,
-        scrollMargin: 12,
+        measureElement: (el) => el?.getBoundingClientRect().height ?? 80,
+        scrollMargin: 150,
         overscan: 12,
       });
 
@@ -272,19 +268,17 @@ export const ChatMessagesArea = memo(
 
           <div
             style={{
-              height: `${virtualizerRef.current.getTotalSize()}px`,
+              height: `${virtualizer.getTotalSize()}px`,
               width: '100%',
               position: 'relative',
             }}
           >
-            {virtualizerRef.current.getVirtualItems().map((virtualRow) => {
+            {virtualizer.getVirtualItems().map((virtualRow) => {
               const message = messages[virtualRow.index];
               if (!message) return null;
               return (
                 <div
                   key={message.id || virtualRow.index}
-                  data-index={virtualRow.index}
-                  ref={virtualizerRef.current.measureElement}
                   style={{
                     position: 'absolute',
                     top: 0,

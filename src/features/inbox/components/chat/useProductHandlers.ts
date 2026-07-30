@@ -4,7 +4,7 @@ import { InteractiveMessage, InteractiveButton, LocationMessage } from '@/types/
 import { ExternalProduct } from '@/hooks/useExternalApiManagement';
 
 interface UseProductHandlersOptions {
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, attachments?: File[], onProgress?: (p: number) => void) => void;
 }
 
 /** use Product Handlers component for the chat section. */
