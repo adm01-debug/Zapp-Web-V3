@@ -1,110 +1,18 @@
-# apply-chatpanel-fixes.yml
-# NOTE: Due to branch protection on main, this workflow now creates a PR instead of pushing directly.
-# The PR will require approval before merging.
-
 name: Apply ChatPanel Fixes
 
 on:
   workflow_dispatch:
-    inputs:
-      create_pr:
-        description: 'Create PR instead of direct commit (default: true)'
-        required: false
-        type: boolean
-        default: true
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  migrate:
+  noop:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Apply all 8 fixes via migration script
-        run: node scripts/migrate-chatpanel.mjs
-
-      - name: Check for changes
-        id: diff
+      - name: Disabled — script missing
         run: |
-          if git diff --quiet; then
-            echo "changed=false" >> $GITHUB_OUTPUT
-            echo "No changes needed"
-          else
-            echo "changed=true" >> $GITHUB_OUTPUT
-            echo "Changes detected"
-            git diff --stat
-          fi
-
-      - name: Create PR with changes
-        if: steps.diff.outputs.changed == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          TIMESTAMP=$(date +%Y%m%d%H%M%S)
-          BRANCH_NAME="fix/chatpanel-fixes-${TIMESTAMP}"
-
-          git checkout -b "$BRANCH_NAME"
-          git add -A
-          git commit -m "fix: apply all 8 ChatPanel critical fixes
-
-          1. Add hook imports (useTransferConversation, useScheduledMediaUpload, useSafeInteractiveMessage)
-          2. Remove as any casts → type-safe dialog functions
-          3. currentUserId: agent → real agent ID
-          4. assignedTo: null → real assignedTo
-          5. handleTransfer stub → useTransferConversation
-          6. Signed URL TTL 1h → 7 days
-          7. Upload error handling with toast
-          8. Poll/contact status sent → sending"
-
-          git push -u origin "$BRANCH_NAME"
-
-          gh pr create \
-            --title "fix: apply all 8 ChatPanel critical fixes" \
-            --body "## Summary
-
-This PR applies 8 critical fixes to ChatPanel:
-
-1. Add hook imports (useTransferConversation, useScheduledMediaUpload, useSafeInteractiveMessage)
-2. Remove \`as any\` casts → type-safe dialog functions
-3. currentUserId: agent → real agent ID
-4. assignedTo: null → real assignedTo
-5. handleTransfer stub → useTransferConversation
-6. Signed URL TTL 1h → 7 days
-7. Upload error handling with toast
-8. Poll/contact status sent → sending
-
-## Verification
-
-- [ ] CI passes
-- [ ] PR requires 1 approval before merge
-
-## Notes
-
-Created by automated workflow" \
-            --base main
-
-      - name: Summary
-        if: steps.diff.outputs.changed == 'true'
-        run: |
-          echo "## ✅ ChatPanel Fixes PR Created" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "PR created successfully. Please review and merge." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "1 approval required before merge." >> $GITHUB_STEP_SUMMARY
-
-      - name: No changes needed
-        if: steps.diff.outputs.changed == 'false'
-        run: |
-          echo "## ℹ️ No changes needed" >> $GITHUB_STEP_SUMMARY
-          echo "All ChatPanel fixes are already applied."
+          echo "⚠️  This workflow is disabled. The script scripts/migrate-chatpanel.mjs does not exist."
+          echo "    Fix: either create the script or remove this workflow file."
+          exit 1

@@ -1,6 +1,3 @@
-# apply-types-patch.yml
-# Updated to create PR instead of direct commit (branch protection now active)
-
 name: Apply types.ts patch (whatsapp_connections)
 
 on:
@@ -11,73 +8,11 @@ permissions:
   pull-requests: write
 
 jobs:
-  apply-patch:
-    name: Apply whatsapp_connections types patch
+  noop:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Run patch script
-        run: bash scripts/apply-types-patch.sh
-
-      - name: Check for changes
-        id: diff
+      - name: Disabled — types are now generated via MCP
         run: |
-          if git diff --quiet src/integrations/supabase/types.ts; then
-            echo "changed=false" >> $GITHUB_OUTPUT
-            echo "No changes needed"
-          else
-            echo "changed=true" >> $GITHUB_OUTPUT
-            echo "Changes detected"
-            git diff --stat src/integrations/supabase/types.ts
-          fi
-
-      - name: Create PR if changed
-        if: steps.diff.outputs.changed == 'true'
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
-
-          TIMESTAMP=$(date +%Y%m%d%H%M%S)
-          BRANCH_NAME="fix/types-patch-${TIMESTAMP}"
-
-          git checkout -b "$BRANCH_NAME"
-          git add src/integrations/supabase/types.ts
-          git commit -m 'fix(types): add missing whatsapp_connections columns via apply-types-patch.sh'
-          git push -u origin "$BRANCH_NAME"
-
-          gh pr create \
-            --title "fix(types): add missing whatsapp_connections columns" \
-            --body "## Summary
-
-Automated types patch for whatsapp_connections columns.
-
-Columns added: api_type, api_url, connected_at, disconnected_at, evo_instance_id, is_active, last_connected_at, routing_mode, settings, webhook_url
-
-## Verification
-
-- [ ] CI passes
-- [ ] TypeScript compiles without errors
-- [ ] 1 approval required before merge" \
-            --base main
-
-      - name: Summary
-        run: |
-          if [ "${{ steps.diff.outputs.changed }}" = "true" ]; then
-            echo '## ✅ types.ts patch PR created' >> $GITHUB_STEP_SUMMARY
-            echo 'Columns added: api_type, api_url, connected_at, disconnected_at, evo_instance_id,' >> $GITHUB_STEP_SUMMARY
-            echo 'is_active, last_connected_at, routing_mode, settings, webhook_url' >> $GITHUB_STEP_SUMMARY
-            echo '' >> $GITHUB_STEP_SUMMARY
-            echo 'PR requires 1 approval before merge.' >> $GITHUB_STEP_SUMMARY
-          else
-            echo '## ℹ️ Already up to date — no changes needed' >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "⚠️  This workflow is disabled. types.ts is now generated via Supabase MCP or gen-types-zapp."
+          echo "    The text-patching approach is brittle and replaced by full regeneration."
+          exit 1
