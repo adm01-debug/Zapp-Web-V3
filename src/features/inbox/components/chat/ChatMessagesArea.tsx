@@ -56,7 +56,6 @@ interface ChatMessagesAreaProps extends LoadOlderProps {
 /** Chat Messages Area Ref interface definition. */
 export interface ChatMessagesAreaRef {
   scrollToBottom: () => void;
-  registerMessageRef: (messageId: string, el: HTMLDivElement | null) => void;
   scrollToMessage: (messageId: string) => boolean;
   /** Exposes the internal scroll container so parent hooks can attach passive listeners. */
   getScrollContainer: () => HTMLElement | null;
@@ -101,18 +100,34 @@ export const ChatMessagesArea = memo(
       const prevLengthRef = useRef(messages.length);
       const prevScrollHeightRef = useRef<number | null>(null);
       const [showScrollBottom, setShowScrollBottom] = useState(false);
+      const messageIndexRef = useRef(new Map<string, number>());
+
+      // Build a map of message id → index for O(1) scroll-to-message lookups
+      useEffect(() => {
+        const map = new Map<string, number>();
+        messages.forEach((m, idx) => {
+          if (m.id) map.set(m.id, idx);
+          if (m.external_id) map.set(m.external_id, idx);
+        });
+        messageIndexRef.current = map;
+      }, [messages]);
 
       useImperativeHandle(ref, () => ({
         scrollToBottom: () => {
           const container = scrollContainerRef.current;
           if (container) container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
         },
-        registerMessageRef: (_messageId: string, _el: HTMLDivElement | null) => {
-          // Placeholder
-        },
-        scrollToMessage: (_messageId: string): boolean => {
-          // Placeholder
-          return true;
+        scrollToMessage: (messageId: string): boolean => {
+          const idx = messageIndexRef.current.get(messageId);
+          if (idx !== undefined && idx >= 0) {
+            virtualizer.scrollToIndex(idx, { align: 'center', behavior: 'smooth' });
+            return true;
+          }
+          // Message not yet in the virtual list — try loading older pages
+          if (hasMoreOlder && onLoadOlder) {
+            Promise.resolve(onLoadOlder());
+          }
+          return false;
         },
         getScrollContainer: () => scrollContainerRef.current,
       }));
@@ -125,12 +140,19 @@ export const ChatMessagesArea = memo(
       const conversationId = messages[0]?.conversationId;
 
       useEffect(() => {
-        if (!conversationId) return;
+        // remoteJid needed for both channel name and server-side filter
+        const remoteJid = contactJid;
+        if (!conversationId || !remoteJid) return;
         const channel = supabase
-          .channel(`chat-updates-shared`)
+          .channel(`chat-updates:${remoteJid}`)
           .on(
             'postgres_changes',
-            { event: 'UPDATE', schema: 'evo', table: 'evolution_messages' },
+            {
+              event: 'UPDATE',
+              schema: 'evo',
+              table: 'evolution_messages',
+              filter: `remote_jid=eq.${remoteJid}`,
+            },
             (payload) => {
               const updatedMsg = payload.new as { id: string };
               if (updatedMsg.id && messagesRef.current.some((m) => m.id === updatedMsg.id)) {
@@ -142,15 +164,16 @@ export const ChatMessagesArea = memo(
         return () => {
           supabase.removeChannel(channel);
         };
-      }, [conversationId, queryClient]);
+      }, [conversationId, contactJid, queryClient]);
 
       // Realtime de reações: 1 canal por conversa, invalida apenas IDs visíveis
       const messageIds = useMemo(() => messages.map((m) => m.id), [messages]);
       useConversationReactionsRealtime(conversationId, messageIds);
 
+      // Stable estimateSize — reads from messagesRef to avoid recreating on every render
       const getItemSize = useCallback(
         (index: number) => {
-          const item = messages[index];
+          const item = messagesRef.current[index];
           if (!item) return 80;
           if (item.type === 'image' || item.type === 'video') return 300;
           if (item.type === 'audio') return 120;
@@ -159,13 +182,15 @@ export const ChatMessagesArea = memo(
           const lines = Math.ceil(content.length / 60);
           return Math.max(80, 70 + lines * 22);
         },
-        [messages]
+        []
       );
 
       const virtualizer = useVirtualizer({
         count: messages.length,
         getScrollElement: () => scrollContainerRef.current,
         estimateSize: getItemSize,
+        measureElement: (element) => element?.getBoundingClientRect().height ?? 80,
+        scrollMargin: 12,
         overscan: 12,
       });
 

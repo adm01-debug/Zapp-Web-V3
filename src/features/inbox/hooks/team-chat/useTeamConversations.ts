@@ -125,7 +125,7 @@ export function useTeamConversations() {
   useEffect(() => {
     if (!profile) return;
     const channel = supabase
-      .channel('team-chat-updates')
+      .channel(`team-chat-updates:${profile.id}`)
       // team_messages: tabela base em zapp
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_messages' }, () => {
         void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
