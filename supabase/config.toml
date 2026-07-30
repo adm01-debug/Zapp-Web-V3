@@ -108,3 +108,6 @@ verify_jwt = true
 # (60 req/60s) protege contra abuso sem necessitar de JWT.
 [functions.login-attempts]
 verify_jwt = false
+
+[functions.migrate-helper]
+verify_jwt = false
