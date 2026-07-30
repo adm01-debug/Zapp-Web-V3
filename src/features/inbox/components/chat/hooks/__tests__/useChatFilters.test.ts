@@ -67,7 +67,14 @@ const MSG_FAILED = makeMsg('f1', 'failed');
 const MSG_FAILED_AUTH = makeMsg('fa1', 'failed_auth');
 const MSG_FAILED_RETRIES = makeMsg('fr1', 'failed_retries');
 
-const ALL_MESSAGES = [MSG_SENT, MSG_DELIVERED, MSG_READ, MSG_FAILED, MSG_FAILED_AUTH, MSG_FAILED_RETRIES];
+const ALL_MESSAGES = [
+  MSG_SENT,
+  MSG_DELIVERED,
+  MSG_READ,
+  MSG_FAILED,
+  MSG_FAILED_AUTH,
+  MSG_FAILED_RETRIES,
+];
 const ONLY_GOOD = [MSG_SENT, MSG_DELIVERED, MSG_READ];
 const ONLY_FAILED = [MSG_FAILED, MSG_FAILED_AUTH, MSG_FAILED_RETRIES];
 
@@ -164,10 +171,12 @@ describe('useChatFilters — failedMessages computation', () => {
   });
 
   it('returns only failed messages from a mixed array', () => {
-    const { result } = renderHook(() => useChatFilters(ALL_MESSAGES), { wrapper: makeWrapper('/') });
+    const { result } = renderHook(() => useChatFilters(ALL_MESSAGES), {
+      wrapper: makeWrapper('/'),
+    });
     expect(result.current.failedMessages).toHaveLength(3);
     expect(result.current.failedMessages.map((m) => m.id)).toEqual(
-      expect.arrayContaining(['f1', 'fa1', 'fr1']),
+      expect.arrayContaining(['f1', 'fa1', 'fr1'])
     );
   });
 
@@ -262,7 +271,7 @@ describe('useChatFilters — visibleMessages computation', () => {
     });
     expect(result.current.visibleMessages).toHaveLength(3);
     expect(result.current.visibleMessages.map((m) => m.id)).toEqual(
-      expect.arrayContaining(['f1', 'fa1', 'fr1']),
+      expect.arrayContaining(['f1', 'fa1', 'fr1'])
     );
   });
 
@@ -286,7 +295,9 @@ describe('useChatFilters — visibleMessages computation', () => {
 describe('useChatFilters — setFailuresOnly', () => {
   it('setting true adds ?failuresOnly=1 to the URL', () => {
     const { result } = renderHook(() => useChatFilters([]), { wrapper: makeWrapper('/') });
-    act(() => { result.current.setFailuresOnly(true); });
+    act(() => {
+      result.current.setFailuresOnly(true);
+    });
     expect(result.current.failuresOnly).toBe(true);
   });
 
@@ -294,7 +305,9 @@ describe('useChatFilters — setFailuresOnly', () => {
     const { result } = renderHook(() => useChatFilters([]), {
       wrapper: makeWrapper('/?failuresOnly=1'),
     });
-    act(() => { result.current.setFailuresOnly(false); });
+    act(() => {
+      result.current.setFailuresOnly(false);
+    });
     expect(result.current.failuresOnly).toBe(false);
   });
 
@@ -302,14 +315,18 @@ describe('useChatFilters — setFailuresOnly', () => {
     const { result } = renderHook(() => useChatFilters([]), {
       wrapper: makeWrapper('/?failuresOnly=1&failureCategory=failed'),
     });
-    act(() => { result.current.setFailuresOnly(false); });
+    act(() => {
+      result.current.setFailuresOnly(false);
+    });
     expect(result.current.failuresOnly).toBe(false);
     expect(result.current.failureCategory).toBeNull();
   });
 
   it('accepts a functional updater (false → true)', () => {
     const { result } = renderHook(() => useChatFilters([]), { wrapper: makeWrapper('/') });
-    act(() => { result.current.setFailuresOnly((prev) => !prev); });
+    act(() => {
+      result.current.setFailuresOnly((prev) => !prev);
+    });
     expect(result.current.failuresOnly).toBe(true);
   });
 
@@ -317,7 +334,9 @@ describe('useChatFilters — setFailuresOnly', () => {
     const { result } = renderHook(() => useChatFilters([]), {
       wrapper: makeWrapper('/?failuresOnly=1'),
     });
-    act(() => { result.current.setFailuresOnly((prev) => !prev); });
+    act(() => {
+      result.current.setFailuresOnly((prev) => !prev);
+    });
     expect(result.current.failuresOnly).toBe(false);
   });
 });
@@ -326,19 +345,25 @@ describe('useChatFilters — setFailuresOnly', () => {
 describe('useChatFilters — setFailureCategory', () => {
   it('sets ?failureCategory=failed in the URL', () => {
     const { result } = renderHook(() => useChatFilters([]), { wrapper: makeWrapper('/') });
-    act(() => { result.current.setFailureCategory('failed'); });
+    act(() => {
+      result.current.setFailureCategory('failed');
+    });
     expect(result.current.failureCategory).toBe('failed');
   });
 
   it('sets ?failureCategory=failed_auth in the URL', () => {
     const { result } = renderHook(() => useChatFilters([]), { wrapper: makeWrapper('/') });
-    act(() => { result.current.setFailureCategory('failed_auth'); });
+    act(() => {
+      result.current.setFailureCategory('failed_auth');
+    });
     expect(result.current.failureCategory).toBe('failed_auth');
   });
 
   it('sets ?failureCategory=failed_retries in the URL', () => {
     const { result } = renderHook(() => useChatFilters([]), { wrapper: makeWrapper('/') });
-    act(() => { result.current.setFailureCategory('failed_retries'); });
+    act(() => {
+      result.current.setFailureCategory('failed_retries');
+    });
     expect(result.current.failureCategory).toBe('failed_retries');
   });
 
@@ -346,7 +371,9 @@ describe('useChatFilters — setFailureCategory', () => {
     const { result } = renderHook(() => useChatFilters([]), {
       wrapper: makeWrapper('/?failureCategory=failed'),
     });
-    act(() => { result.current.setFailureCategory(null); });
+    act(() => {
+      result.current.setFailureCategory(null);
+    });
     expect(result.current.failureCategory).toBeNull();
   });
 
@@ -354,8 +381,54 @@ describe('useChatFilters — setFailureCategory', () => {
     const { result } = renderHook(() => useChatFilters([]), {
       wrapper: makeWrapper('/?failureCategory=failed'),
     });
-    act(() => { result.current.setFailureCategory('failed_retries'); });
+    act(() => {
+      result.current.setFailureCategory('failed_retries');
+    });
     expect(result.current.failureCategory).toBe('failed_retries');
+  });
+});
+
+// ── regression: D-01 memo stability ────────────────────────────────────────────
+describe('useChatFilters — D-01 regression: memo stability across re-renders', () => {
+  it('failedMessages reference stays stable when messages content does not change', () => {
+    const msgs = [makeMsg('f1', 'failed'), makeMsg('ok', 'sent')];
+    const { result, rerender } = renderHook(() => useChatFilters(msgs), {
+      wrapper: makeWrapper('/'),
+    });
+    const firstRef = result.current.failedMessages;
+    // Re-render with the same array
+    rerender();
+    expect(result.current.failedMessages).toBe(firstRef);
+  });
+
+  it('categoryCounts reference stays stable when messages content does not change', () => {
+    const msgs = [makeMsg('f1', 'failed')];
+    const { result, rerender } = renderHook(() => useChatFilters(msgs), {
+      wrapper: makeWrapper('/'),
+    });
+    const firstRef = result.current.categoryCounts;
+    rerender();
+    expect(result.current.categoryCounts).toBe(firstRef);
+  });
+
+  it('visibleMessages reference stays stable when messages content does not change', () => {
+    const msgs = [makeMsg('ok', 'sent')];
+    const { result, rerender } = renderHook(() => useChatFilters(msgs), {
+      wrapper: makeWrapper('/'),
+    });
+    const firstRef = result.current.visibleMessages;
+    rerender();
+    expect(result.current.visibleMessages).toBe(firstRef);
+  });
+
+  it('categoryFilteredMessages reference stays stable when messages content does not change', () => {
+    const msgs = [makeMsg('f1', 'failed')];
+    const { result, rerender } = renderHook(() => useChatFilters(msgs), {
+      wrapper: makeWrapper('/'),
+    });
+    const firstRef = result.current.categoryFilteredMessages;
+    rerender();
+    expect(result.current.categoryFilteredMessages).toBe(firstRef);
   });
 });
 

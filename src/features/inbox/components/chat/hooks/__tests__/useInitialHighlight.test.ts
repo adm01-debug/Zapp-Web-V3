@@ -242,7 +242,7 @@ describe('useInitialHighlight — highlight clears after 3 500 ms', () => {
     });
     renderHook(() => useInitialHighlight(p));
     vi.advanceTimersByTime(3500);
-    const calls = p.setHighlightedMessageIds.mock.calls;
+    const calls = (p.setHighlightedMessageIds as unknown as ReturnType<typeof vi.fn>).mock.calls;
     const lastArg = calls[calls.length - 1][0];
     expect(lastArg).toBeInstanceOf(Set);
     expect(lastArg.size).toBe(0);
@@ -290,9 +290,7 @@ describe('useInitialHighlight — message not found after 20 attempts', () => {
     });
     renderHook(() => useInitialHighlight(p));
     vi.advanceTimersByTime(250 * 21);
-    expect(toast).toHaveBeenCalledWith(
-      expect.objectContaining({ variant: 'destructive' })
-    );
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }));
   });
 
   it('calls onHighlightConsumed after exhausted attempts', () => {
@@ -313,6 +311,30 @@ describe('useInitialHighlight — message not found after 20 attempts', () => {
     renderHook(() => useInitialHighlight(p));
     vi.advanceTimersByTime(250 * 21);
     expect(p.setHighlightedMessageIds).not.toHaveBeenCalled();
+  });
+});
+
+// ── regression: D-02 messageKey stability ──────────────────────────────────────
+describe('useInitialHighlight — D-02 regression: stable deps when array ref changes', () => {
+  it('does not re-trigger find logic when messages array ref changes but IDs are the same', () => {
+    const msg = makeMsg('msg-1');
+    const initialMessages = [msg];
+    const p = makeParams({
+      initialHighlightMessageId: 'msg-1',
+      messages: initialMessages,
+    });
+    const { rerender } = renderHook(() => useInitialHighlight(p));
+    // First render: should have found and called setHighlightedMessageIds
+    expect(p.setHighlightedMessageIds).toHaveBeenCalledTimes(1);
+    expect(p.setActiveHighlightId).toHaveBeenCalledTimes(1);
+    p.setHighlightedMessageIds.mockClear();
+    p.setActiveHighlightId.mockClear();
+    // Re-render with a NEW array reference but same IDs
+    rerender();
+    // Should NOT have called setHighlightedMessageIds again
+    expect(p.setHighlightedMessageIds).not.toHaveBeenCalled();
+    // Should NOT have called setActiveHighlightId again
+    expect(p.setActiveHighlightId).not.toHaveBeenCalled();
   });
 });
 
