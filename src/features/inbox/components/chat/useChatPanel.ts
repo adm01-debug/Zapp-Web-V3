@@ -46,6 +46,8 @@ export interface ChatPanelProps extends LoadOlderProps {
   whisperCount?: number;
   isLoading?: boolean;
   messageQueue?: MessageQueueController;
+  /** WhatsApp instance name for this conversation (enables edit, stickers, automations). */
+  instanceName?: string;
 }
 
 /** use Chat Panel component for the chat section. */
@@ -66,6 +68,7 @@ export function useChatPanel({
   onCancelLoadOlder,
   loadingOlder = false,
   hasMoreOlder = false,
+  instanceName: instanceNameProp,
 }: ChatPanelProps) {
   const { roles: userRoles } = useUserRole();
   const isDevExact = (userRoles ?? []).includes('dev');
@@ -143,7 +146,7 @@ export function useChatPanel({
     handleSendSticker,
     handleSendCustomEmoji,
     handleSendAudioMeme,
-  } = useChatMediaSending(conversation.contact.id, conversation.contact.phone);
+  } = useChatMediaSending(conversation.contact.id, conversation.contact.phone, instanceNameProp);
 
   const settingsTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
