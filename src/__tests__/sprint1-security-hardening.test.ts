@@ -13,14 +13,23 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const MIGRATIONS_DIR = join(process.cwd(), 'supabase', 'migrations');
+const ARCHIVE_DIR = join(MIGRATIONS_DIR, 'archive');
 
-/** Retorna o conteúdo concatenado de todas as migrations (histórico completo). */
+/** Retorna o conteúdo concatenado de todas as migrations (histórico completo), incluindo archive/. */
 function allMigrationsSql(): string {
   try {
     const files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql'));
-    return files
-      .map((f) => readFileSync(join(MIGRATIONS_DIR, f), 'utf-8'))
-      .join('\n');
+    let sql = files.map((f) => readFileSync(join(MIGRATIONS_DIR, f), 'utf-8')).join('\n');
+    // Também lê migrations arquivadas — a baseline consolidation (commit 3100e6e69)
+    // moveu 962 migrations aplicadas para archive/; os guards de segurança do
+    // Sprint 1 (HIGH-1..HIGH-3) estão nas arquivadas.
+    try {
+      const archived = readdirSync(ARCHIVE_DIR).filter((f) => f.endsWith('.sql'));
+      sql += '\n' + archived.map((f) => readFileSync(join(ARCHIVE_DIR, f), 'utf-8')).join('\n');
+    } catch {
+      /* archive dir may not exist */
+    }
+    return sql;
   } catch {
     return '';
   }
@@ -28,13 +37,14 @@ function allMigrationsSql(): string {
 
 /**
  * Retorna apenas a definição mais recente de uma função (última ocorrência
- * de CREATE OR REPLACE FUNCTION <name>...$fn$/$function$;).
- * Aceita funções em qualquer schema (public, zapp, evo, etc).
+ * de CREATE OR REPLACE FUNCTION public.<name>...$fn$/$function$;).
+ * Busca apenas em schema public porque é o schema autoritativo — as funções
+ * wrapper em zapp.* delegam para public.* onde os guards de segurança vivem.
  */
 function latestDefinition(sql: string, fnName: string): string {
   const re = new RegExp(
-    `CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+(?:public|zapp)\\.${fnName}\\b[\\s\\S]*?\\$(?:fn|function|\\w*)\\$\\s*;`,
-    'gi',
+    `CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+public\\.${fnName}\\b[\\s\\S]*?\\$(?:fn|function|\\w*)\\$\\s*;`,
+    'gi'
   );
   const matches = sql.match(re) ?? [];
   return matches[matches.length - 1] ?? '';
