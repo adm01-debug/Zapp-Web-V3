@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

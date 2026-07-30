@@ -32,6 +32,7 @@ export const sendMessageSchema = z.object({
 // Contatos
 // ─────────────────────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const brazilianPhoneRegex = /^(\+?55)?[1-9]{2}9?[0-9]{8}$/;
 
 export const contactPhoneSchema = z

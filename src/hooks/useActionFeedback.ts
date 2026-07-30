@@ -125,6 +125,7 @@ export function useActionFeedback() {
       return new Promise((resolve) => {
         const { description, undoDuration = 5000, onUndo, onConfirm } = options;
         let undone = false;
+        // eslint-disable-next-line prefer-const
         let timeoutId: ReturnType<typeof setTimeout>;
         const toastResult = showFeedback('info', {
           description,

@@ -3,6 +3,7 @@ import type {
   ConversationWithMessages,
   RealtimeMessage,
 } from '@/features/inbox/hooks/realtime/types';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { proxyMediaUrl, sanitizeMediaUrl } from '@/lib/mediaUrl';
 
 /**

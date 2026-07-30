@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useAIProviderHealth, type UsageLog } from '@/hooks/useAIProviderHealth';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';

@@ -6,6 +6,7 @@ import { getLogger } from '@/lib/logger';
 const log = getLogger('useGoalNotifications');
 
 const CHECK_INTERVAL_MS = 300000; // 5 minutes
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const NOTIFY_THRESHOLDS = [50, 75, 100];
 
 interface GoalRow {

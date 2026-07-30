@@ -686,7 +686,9 @@ export function useSidebarFavoritesManagement() {
   useEffect(() => {
     try {
       localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
-    } catch {}
+    } catch {
+      // fallback silencioso
+    }
   }, [favorites]);
 
   const toggleFavorite = useCallback((id: string) => {

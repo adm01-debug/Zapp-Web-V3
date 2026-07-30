@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getLogger } from '@/lib/logger';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const log = getLogger('useSentimentData');
 import { supabase } from '@/integrations/supabase/client';
 import { subDays, startOfDay, endOfDay, isWithinInterval, format } from 'date-fns';

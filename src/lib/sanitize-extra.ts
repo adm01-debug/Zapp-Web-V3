@@ -102,7 +102,7 @@ export function sanitizeFilename(filename: string): string {
 
   let clean = filename
     .replace(/\.\./g, '') // Remove path traversal
-    .replace(/[\/\\]/g, '') // Remove separadores
+    .replace(/[/\\]/g, '') // Remove separadores
     // eslint-disable-next-line no-control-regex
     .replace(/[\x00-\x1F\x7F]/g, ''); // Remove control chars
 

@@ -125,6 +125,7 @@ export async function detectSchemaDrift(): Promise<DriftReport> {
       checkedAt,
       durationMs,
     };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (err) {
     return {
       missingFromTypes: [],

@@ -277,6 +277,7 @@ export const healthCheck = new HealthCheckService();
 /**
  * Hook React para health check periódico.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function useHealthCheck(intervalMs: number = 30_000) {
   // Nota: implementação completa requer useState/useEffect
   // Este é apenas o helper para usar no componente

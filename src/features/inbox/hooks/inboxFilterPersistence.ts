@@ -57,7 +57,8 @@ function pick<T extends string>(value: string | null | undefined, allowed: reado
 
 function sanitizeSearch(value: string | null | undefined): string | null {
   if (typeof value !== 'string') return null;
-  const trimmed = value.replace(/[\u0000-\u001f\u007f]/g, '').trim();
+  // eslint-disable-next-line no-control-regex
+  const trimmed = value.replace(/[\x00-\x1F\x7F]/g, '').trim();
   if (!trimmed) return '';
   return trimmed.slice(0, MAX_SEARCH_LENGTH);
 }
