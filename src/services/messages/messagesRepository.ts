@@ -128,8 +128,7 @@ export const messagesRepository = {
 
   // Mark as read
   async markMessagesAsRead(conversationId: string, _userId: string) {
-    const { error } = await supabase
-      .from('evolution_messages')
+    const { error } = await (supabase.from('evolution_messages') as any)
       .update({ is_read: true })
       .eq('conversation_id', conversationId)
       .eq('is_read', false);
