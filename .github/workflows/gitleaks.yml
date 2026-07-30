@@ -26,17 +26,36 @@ jobs:
             | tar -xz -C /usr/local/bin gitleaks
           gitleaks version
 
-      - name: Scan full history (push to main)
+      - name: Scan pushed commits (push to main)
+        # Escaneia apenas os commits novos empurrados, nao o historico completo.
+        # Historico completo ja foi escaneado em commits anteriores.
+        # Fallback para HEAD..HEAD (diff vazio) quando before=0000... (force push / primeiro push).
         if: github.event_name == 'push'
         run: |
-          gitleaks detect \
-            --config=.gitleaks.toml \
-            --source=. \
-            --no-git=false \
-            --redact \
-            --exit-code=1 \
-            --report-format=sarif \
-            --report-path=gitleaks-report.sarif
+          BEFORE="${{ github.event.before }}"
+          EMPTY="0000000000000000000000000000000000000000"
+          if [ "$BEFORE" = "$EMPTY" ]; then
+            echo "First push or force push — scanning HEAD only"
+            LOG_OPTS="HEAD^1..HEAD 2>/dev/null || HEAD"
+            gitleaks detect \
+              --config=.gitleaks.toml \
+              --source=. \
+              --log-opts="HEAD" \
+              --redact \
+              --exit-code=1 \
+              --report-format=sarif \
+              --report-path=gitleaks-report.sarif
+          else
+            echo "Scanning commits: $BEFORE..HEAD"
+            gitleaks detect \
+              --config=.gitleaks.toml \
+              --source=. \
+              --log-opts="$BEFORE..HEAD" \
+              --redact \
+              --exit-code=1 \
+              --report-format=sarif \
+              --report-path=gitleaks-report.sarif
+          fi
         continue-on-error: false
 
       - name: Scan PR delta only
