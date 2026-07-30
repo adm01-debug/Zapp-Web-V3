@@ -75,15 +75,16 @@ const VirtualizedItem = memo(
     selectionMode: boolean;
     onToggleSelection?: (id: string) => void;
     onSelectConversation: (contactId: string) => void;
+    onMarkAsRead?: (contactId: string) => void;
   }) => {
     const contactId = conversation.contact.id;
     const isSelected = selectedContactId === contactId;
     const isMultiSelected = selectedIds.has(contactId);
     const isPinned = pinnedIds.has(contactId);
-    const handleSelect = useCallback(
-      () => onSelectConversation(contactId),
-      [onSelectConversation, contactId],
-    );
+    const handleSelect = useCallback(() => {
+      onSelectConversation(contactId);
+      onMarkAsRead?.(contactId);
+    }, [onSelectConversation, onMarkAsRead, contactId]);
 
     return (
       <div
@@ -119,7 +120,7 @@ export function VirtualizedRealtimeList({
   selectionMode = false,
   selectedIds = EMPTY_SET,
   onToggleSelection,
-  onMarkAsRead: _onMarkAsRead,
+  onMarkAsRead,
   onArchive: _onArchive,
   onPin: _onPin,
   pinnedIds = EMPTY_SET,
@@ -146,14 +147,13 @@ export function VirtualizedRealtimeList({
       }
     }
 
+    // Only dedup + pin sort. Main sort comes from the inboxFilterPipeline upstream.
     return deduped.sort((a, b) => {
       const aPin = pinnedIds.has(a.contact.id);
       const bPin = pinnedIds.has(b.contact.id);
       if (aPin && !bPin) return -1;
       if (!aPin && bPin) return 1;
-      const aTime = a.lastMessage ? new Date(a.lastMessage.created_at).getTime() : 0;
-      const bTime = b.lastMessage ? new Date(b.lastMessage.created_at).getTime() : 0;
-      return bTime - aTime;
+      return 0; // preserve pipeline order for non-pinned items
     });
   }, [safeConversations, pinnedIds]);
 
@@ -192,6 +192,7 @@ export function VirtualizedRealtimeList({
               selectionMode={selectionMode}
               onToggleSelection={onToggleSelection}
               onSelectConversation={onSelectConversation}
+              onMarkAsRead={onMarkAsRead}
             />
           );
         })}

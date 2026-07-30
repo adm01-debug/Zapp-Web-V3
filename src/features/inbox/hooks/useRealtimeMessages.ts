@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { dbFrom, dbTable, dbChannel, dbRemoveChannel } from '@/integrations/datasource/db';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { getLogger } from '@/lib/logger';
+import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 import { sendMessageToContact } from './realtime/messageSender';
 import { subscribeAllSendStatus, getSendStatus } from './realtime/sendStatusBus';
 import {
@@ -189,7 +190,7 @@ export function useRealtimeMessages() {
    *     todas processadas (array de mensagens por contact_id)
    */
   const pendingHydrateRef = useRef<Map<string, RealtimeMessage[]>>(new Map());
-  const hydrateTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hydrateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cleanupHydrateBatchRef = useRef<(() => void) | null>(null);
 
   /** Processa UM contato já buscado contra todas as mensagens pendentes para ele. */
@@ -452,6 +453,7 @@ export function useRealtimeMessages() {
           event: 'INSERT',
           schema: 'evo',
           table: 'evolution_messages',
+          filter: `instance_name=eq.${DEFAULT_WHATSAPP_INSTANCE}`,
         },
         (payload) => {
           if (active)
@@ -468,12 +470,14 @@ export function useRealtimeMessages() {
           event: 'UPDATE',
           schema: 'evo',
           table: 'evolution_messages',
+          filter: `instance_name=eq.${DEFAULT_WHATSAPP_INSTANCE}`,
         },
         (payload) => {
           if (active)
             wrapMessagesHandler(
               'useRealtimeMessages',
-              (p: RealtimePostgresChangesPayload<RealtimeMessage>) => handleMessageUpdateRef.current(p)
+              (p: RealtimePostgresChangesPayload<RealtimeMessage>) =>
+                handleMessageUpdateRef.current(p)
             )(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
         }
       )
@@ -483,12 +487,14 @@ export function useRealtimeMessages() {
           event: 'DELETE',
           schema: 'evo',
           table: 'evolution_messages',
+          filter: `instance_name=eq.${DEFAULT_WHATSAPP_INSTANCE}`,
         },
         (payload) => {
           if (active)
             wrapMessagesHandler(
               'useRealtimeMessages',
-              (p: RealtimePostgresChangesPayload<RealtimeMessage>) => handleMessageDeleteRef.current(p)
+              (p: RealtimePostgresChangesPayload<RealtimeMessage>) =>
+                handleMessageDeleteRef.current(p)
             )(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
         }
       )
@@ -500,7 +506,6 @@ export function useRealtimeMessages() {
       active = false;
       void dbRemoveChannel('messages', channel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchConversations]);
   // ^^ Only depend on fetchConversations (stable); handlers are accessed via refs above
   // to prevent re-subscriptions when notification settings load/change.

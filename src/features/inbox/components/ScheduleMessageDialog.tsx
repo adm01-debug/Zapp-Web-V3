@@ -1,11 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -22,7 +17,11 @@ interface ScheduleMessageDialogProps {
 }
 
 /** Schedule Message Dialog component. */
-export function ScheduleMessageDialog({ open, onOpenChange, onSchedule }: ScheduleMessageDialogProps) {
+export function ScheduleMessageDialog({
+  open,
+  onOpenChange,
+  onSchedule,
+}: ScheduleMessageDialogProps) {
   const [message, setMessage] = useState('');
   const [date, setDate] = useState(format(addDays(new Date(), 1), 'yyyy-MM-dd'));
   const [time, setTime] = useState('09:00');
@@ -37,23 +36,34 @@ export function ScheduleMessageDialog({ open, onOpenChange, onSchedule }: Schedu
 
   const handleSchedule = () => {
     if (!message.trim()) {
-      toast({ title: 'Mensagem vazia', description: 'Digite uma mensagem para agendar', variant: 'destructive' });
+      toast({
+        title: 'Mensagem vazia',
+        description: 'Digite uma mensagem para agendar',
+        variant: 'destructive',
+      });
       return;
     }
     const [hours, minutes] = time.split(':').map(Number);
-    const scheduledDate = setMinutes(setHours(new Date(date), hours), minutes);
-    
+    // Parse date as LOCAL midnight to avoid UTC offset shifting the day (e.g. UTC-3 turns
+    // 2026-08-01T00:00:00Z into 2026-07-31T21:00 local — one day early).
+    const [y, mo, d] = date.split('-').map(Number);
+    const scheduledDate = new Date(y, mo - 1, d, hours, minutes);
+
     if (scheduledDate <= new Date()) {
-      toast({ title: 'Data inválida', description: 'A data de agendamento deve ser no futuro', variant: 'destructive' });
+      toast({
+        title: 'Data inválida',
+        description: 'A data de agendamento deve ser no futuro',
+        variant: 'destructive',
+      });
       return;
     }
-    
+
     onSchedule(message, scheduledDate, attachment || undefined);
     toast({
       title: 'Mensagem agendada!',
       description: `Será enviada em ${format(scheduledDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
     });
-    
+
     onOpenChange(false);
     setMessage('');
     setAttachment(null);
@@ -70,7 +80,7 @@ export function ScheduleMessageDialog({ open, onOpenChange, onSchedule }: Schedu
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-whatsapp" />
+            <Clock className="h-5 w-5 text-whatsapp" />
             Agendar Mensagem
           </DialogTitle>
         </DialogHeader>
@@ -86,7 +96,7 @@ export function ScheduleMessageDialog({ open, onOpenChange, onSchedule }: Schedu
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleQuickSchedule(schedule.getDate)}
-                  className="px-3 py-1.5 text-xs font-medium rounded-full bg-muted hover:bg-muted/80 transition-colors"
+                  className="rounded-full bg-muted px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted/80"
                 >
                   {schedule.label}
                 </motion.button>
@@ -98,7 +108,7 @@ export function ScheduleMessageDialog({ open, onOpenChange, onSchedule }: Schedu
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="date" className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
+                <Calendar className="h-4 w-4" />
                 Data
               </Label>
               <Input
@@ -111,15 +121,10 @@ export function ScheduleMessageDialog({ open, onOpenChange, onSchedule }: Schedu
             </div>
             <div className="space-y-2">
               <Label htmlFor="time" className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
+                <Clock className="h-4 w-4" />
                 Hora
               </Label>
-              <Input
-                id="time"
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-              />
+              <Input id="time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
             </div>
           </div>
 
@@ -139,16 +144,12 @@ export function ScheduleMessageDialog({ open, onOpenChange, onSchedule }: Schedu
           <div className="space-y-2">
             <Label>Anexo (opcional)</Label>
             {attachment ? (
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <div className="flex items-center justify-between rounded-lg bg-muted p-3">
                 <div className="flex items-center gap-2">
-                  <Paperclip className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm truncate max-w-[200px]">{attachment.name}</span>
+                  <Paperclip className="h-4 w-4 text-muted-foreground" />
+                  <span className="max-w-[200px] truncate text-sm">{attachment.name}</span>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setAttachment(null)}
-                >
+                <Button variant="ghost" size="sm" onClick={() => setAttachment(null)}>
                   Remover
                 </Button>
               </div>
@@ -158,7 +159,7 @@ export function ScheduleMessageDialog({ open, onOpenChange, onSchedule }: Schedu
                 className="w-full"
                 onClick={() => document.getElementById('file-upload')?.click()}
               >
-                <Paperclip className="w-4 h-4 mr-2" />
+                <Paperclip className="mr-2 h-4 w-4" />
                 Anexar arquivo
               </Button>
             )}
@@ -172,12 +173,15 @@ export function ScheduleMessageDialog({ open, onOpenChange, onSchedule }: Schedu
 
           {/* Preview */}
           {date && time && (
-            <div className="p-3 bg-muted/50 rounded-lg">
+            <div className="rounded-lg bg-muted/50 p-3">
               <p className="text-sm text-muted-foreground">
                 A mensagem será enviada em{' '}
                 <span className="font-medium text-foreground">
                   {format(
-                    setMinutes(setHours(new Date(date), parseInt(time.split(':')[0])), parseInt(time.split(':')[1])),
+                    setMinutes(
+                      setHours(new Date(date), parseInt(time.split(':')[0])),
+                      parseInt(time.split(':')[1])
+                    ),
                     "EEEE, dd 'de' MMMM 'às' HH:mm",
                     { locale: ptBR }
                   )}
@@ -197,7 +201,7 @@ export function ScheduleMessageDialog({ open, onOpenChange, onSchedule }: Schedu
                 disabled={!message.trim()}
                 className="bg-whatsapp hover:bg-whatsapp-dark"
               >
-                <Clock className="w-4 h-4 mr-2" />
+                <Clock className="mr-2 h-4 w-4" />
                 Agendar
               </Button>
             </motion.div>

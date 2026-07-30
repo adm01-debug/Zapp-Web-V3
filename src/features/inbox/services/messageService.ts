@@ -25,7 +25,9 @@ export const messageService = {
       id: m.id || '',
       conversationId: m.conversationId || m.contact_id || '',
       timestamp: createdAt ? new Date(createdAt) : new Date(),
-      isEdited: m.is_deleted == null, // true only when is_deleted is null/undefined
+      isEdited:
+        (m as Record<string, unknown>).is_edited === true ||
+        (m.updated_at != null && m.created_at != null && m.updated_at !== m.created_at), // true when explicitly edited
       type: (m.message_type || m.type || 'text') as Message['type'],
       mediaUrl: m.media_url || m.mediaUrl || '',
       sender: (m.sender || (m.sender_id ? 'agent' : 'contact')) as Message['sender'],

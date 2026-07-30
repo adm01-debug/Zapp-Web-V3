@@ -94,7 +94,8 @@ export function DocumentPreview({ url: _url, fileName, fileSize, isSent }: Docum
           )}
         </div>
       </div>
-      <button type="button"
+      <button
+        type="button"
         onClick={(e) => {
           e.stopPropagation();
           handleDownload();
@@ -195,7 +196,7 @@ export const VideoPreview = forwardRef<HTMLDivElement, VideoPreviewProps>(functi
         <motion.div
           whileHover={{ scale: 1.02 }}
           className={cn(
-            'relative w-auto cursor-pointer overflow-hidden bg-card',
+            'group relative w-auto cursor-pointer overflow-hidden bg-card',
             isPtv
               ? 'h-[240px] w-[240px] rounded-full border-2 border-primary/20'
               : 'max-w-full rounded-md'
@@ -248,7 +249,8 @@ export const VideoPreview = forwardRef<HTMLDivElement, VideoPreviewProps>(functi
               </motion.div>
             )}
           </AnimatePresence>
-          <button type="button"
+          <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               setShowFullscreen(true);
