@@ -47,8 +47,7 @@ src/components/connections/AddConnectionDialog.tsx  # UI real de criação de co
 src/components/connections/ConnectionsStats.tsx  # widget de 3 cards de estatísticas de conexões; planejado para adição ao dashboard
 src/components/connections/QrCodeDialog.tsx  # modal real de QR code; tipo QrCodeDialogState duplicado em features/connections impede wiring
 src/components/team-chat/TeamChatMessageRow.tsx  # row de mensagens com reactions, TTS e context-menu; referenciado apenas em teste de auditoria, nunca renderizado
-src/features/inbox/components/chat/useChatPanel.ts  # orquestra estado do chat-panel (agendamento, quick-replies, TTS, drag-drop, atalhos); ChatPanel.tsx migrou para importar useChatPanelHandlers diretamente
-src/features/inbox/components/conversation-list/ConversationItemComfortable.tsx  # variante de densidade "confortável"; ConversationItem.tsx é self-contained e não delega
+src/features/inbox/components/conversation-list/ConversationItemComfortable.tsx
 src/features/inbox/components/conversation-list/ConversationItemCompact.tsx  # variante de densidade "compacta"; planejado mas não roteado por ConversationItem.tsx
 src/features/inbox/hooks/inboxFilterPipeline.ts  # pipeline puro sem hook (applyInboxFilters); cobre tabs, escopos, busca, agente, fila, tags, data — pronto para substituir filtragem inline
 src/features/inbox/hooks/realtime/useConversationActions.ts  # hook de send+markAsRead no subdomínio realtime; coexiste com outro useConversationActions (pin/snooze) por nome
