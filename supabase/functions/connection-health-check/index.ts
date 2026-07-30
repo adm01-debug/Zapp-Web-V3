@@ -64,6 +64,7 @@ async function fetchLastActivityAt(externalUrl: string, externalKey: string, ins
     const ext = createClient(externalUrl, externalKey, { db: { schema: 'zapp' }, auth: { persistSession: false, autoRefreshToken: false } });
     const TIMEOUT_MS = 8000;
     const queryPromise = ext
+      .schema('evo')
       .from('evolution_messages')
       .select('created_at')
       .eq('instance_name', instanceName)

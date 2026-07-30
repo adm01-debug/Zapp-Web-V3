@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { getLogger } from '@/lib/logger';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from '@/hooks/use-toast';
+import { dbFrom } from '@/integrations/datasource/db';
 
 const log = getLogger('useMessageQueue');
 
@@ -320,6 +321,21 @@ export function useMessageQueue(
                   'Atingido limite de tentativas. Você pode tentar manualmente ou remover o item.',
                 variant: 'destructive',
               });
+              // Persistir no banco para rastreamento e possivel reprocessamento via DLQ
+              dbFrom('failed_messages')
+                .insert({
+                  id: uuidv4(),
+                  instance_name: 'client-queue',
+                  remote_jid: contactId,
+                  status: 'abandoned',
+                  payload: { content: itemToProcess.content, type: itemToProcess.type },
+                  error_message: errorMsg,
+                  retry_count: itemToProcess.retryCount,
+                  max_retries: config.maxRetries,
+                  last_attempt_at: new Date().toISOString(),
+                })
+                .then(() => log.debug('Failed message persisted to zapp.failed_messages'))
+                .catch((e) => log.warn('Failed to persist failed_message to DB', e));
             } else {
               log.info(`Scheduled retry for ${itemToProcess.id} in ${Math.round(delay / 1000)}s`);
             }

@@ -354,6 +354,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
       setReplyToMessage,
       setForwardMessage,
       openDialog,
+      instanceName,
     });
 
   const { handleInputChange, handleKeyDown, handleSlashCommand } = useInputHandlers({
