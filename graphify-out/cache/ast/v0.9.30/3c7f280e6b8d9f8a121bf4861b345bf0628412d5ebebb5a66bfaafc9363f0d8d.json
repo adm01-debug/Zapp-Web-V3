@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260703140000_sweep_latent_anon_grant_mines_sql", "label": "20260703140000_sweep_latent_anon_grant_mines.sql", "file_type": "code", "source_file": "supabase/migrations/20260703140000_sweep_latent_anon_grant_mines.sql", "source_location": null}], "edges": []}

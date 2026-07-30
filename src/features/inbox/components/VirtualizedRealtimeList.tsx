@@ -66,6 +66,7 @@ const VirtualizedItem = memo(
     selectionMode,
     onToggleSelection,
     onSelectConversation,
+    onMarkAsRead,
   }: {
     virtualRow: VirtualItem;
     conversation: ConversationWithMessages;

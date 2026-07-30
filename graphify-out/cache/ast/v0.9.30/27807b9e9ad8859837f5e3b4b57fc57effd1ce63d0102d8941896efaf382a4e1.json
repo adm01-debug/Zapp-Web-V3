@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_manual_rollbacks_20260529120100_harden_rls_down_sql", "label": "20260529120100_harden_rls_DOWN.sql", "file_type": "code", "source_file": "supabase/manual-rollbacks/20260529120100_harden_rls_DOWN.sql", "source_location": null}], "edges": []}

@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260712001000_add_fk_indexes_sql", "label": "20260712001000_add_fk_indexes.sql", "file_type": "code", "source_file": "supabase/migrations/20260712001000_add_fk_indexes.sql", "source_location": null}], "edges": []}

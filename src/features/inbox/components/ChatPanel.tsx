@@ -100,7 +100,6 @@ export function ChatPanel({
   messageQueue,
   instanceName: instanceNameProp,
 }: ChatPanelProps) {
-  const { templates: _quickReplyTemplates } = useQuickReplies();
   // Ferramentas de desenvolvimento (Checklist 10/10) só para devs reais.
   const { roles: userRoles } = useUserRole();
   const isDevExact = (userRoles ?? []).includes('dev');
@@ -290,27 +289,6 @@ export function ChatPanel({
     onHighlightConsumed,
   });
 
-  const _canGenerateSummary = messages.length >= 10;
-
-  // Memoize expensive derived arrays to avoid re-creation on every keystroke
-  const _lastContactMessages = useMemo(
-    () =>
-      messages
-        .filter((m) => m.sender === 'contact')
-        .slice(-5)
-        .map((m) => m.content),
-    [messages]
-  );
-  const _allMessagesForHeader = useMemo(
-    () =>
-      messages.map((m) => ({
-        id: m.id,
-        content: m.content,
-        sender: m.sender,
-        timestamp: new Date(m.timestamp).toISOString(),
-      })),
-    [messages]
-  );
   const {
     filtered: filteredQuickReplies,
     selectedIndex: selectedQuickReplyIndex,
@@ -519,7 +497,7 @@ export function ChatPanel({
           isSending={handlers.isSending}
           sendProgress={handlers.sendProgress}
           isWhisper={handlers.isWhisper}
-          onToggleWhisper={() => handlers.setIsWhisper(!handlers.isWhisper)}
+          onToggleWhisper={() => handlers.setIsWhisper((v) => !v)}
           onInputChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onBlur={handleTypingStop}
@@ -529,7 +507,7 @@ export function ChatPanel({
           onSlashCommand={handlers.handleSlashCommand}
           onCloseSlashCommands={() => closeDialog('slashCommands')}
           onQuickReply={handleQuickReply}
-          onRecordToggle={() => handlers.setIsRecordingAudio(!handlers.isRecordingAudio)}
+          onRecordToggle={() => handlers.setIsRecordingAudio((v) => !v)}
           onAudioSend={(blob) => handlers.handleAudioSend(blob, onSendAudio)}
           onAudioCancel={() => handlers.setIsRecordingAudio(false)}
           onOpenInteractiveBuilder={() => openDialog('interactiveBuilder')}

@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260702180000_harden_public_cookies_and_internal_tables_sql", "label": "20260702180000_harden_public_cookies_and_internal_tables.sql", "file_type": "code", "source_file": "supabase/migrations/20260702180000_harden_public_cookies_and_internal_tables.sql", "source_location": null}], "edges": []}

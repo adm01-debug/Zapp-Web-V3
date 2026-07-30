@@ -249,4 +249,5 @@ lalamove_*
 Credencias*
 Credenciais*
 deno.lock
-graphify-out/ # Knowledge Graph
+# Knowledge Graph (Graphify) — 22MB+ JSON, regenerado via CI
+graphify-out/

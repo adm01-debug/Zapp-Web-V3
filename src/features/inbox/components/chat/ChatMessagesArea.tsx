@@ -325,7 +325,7 @@ export const ChatMessagesArea = memo(
                     activeHighlightId={activeHighlightId}
                     searchQuery={searchQuery}
                     onAudioVoiceChange={onAudioVoiceChange}
-                    registerRef={noopRegisterRef}
+                    registerRef={registerRef}
                     instanceName={instanceName}
                     contactJid={contactJid}
                   />

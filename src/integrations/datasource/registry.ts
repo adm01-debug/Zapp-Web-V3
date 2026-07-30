@@ -45,7 +45,8 @@ export type LogicalEntity =
   | 'evolution_messages'
   | 'provider_configs'
   | 'automation_executions'
-  | 'whisper_messages';
+  | 'whisper_messages'
+  | 'failed_messages';
 
 /** Datasource Client type alias. */
 export type DatasourceClient = 'lovable' | 'external';
@@ -62,24 +63,25 @@ export const ENTITY_MAP = {
   // Após consolidação, todas as entidades usam o client principal (lovable)
   // que tem auth session. As tabelas sem prefixo evolution_* têm o schema
   // Lovable (name, phone, etc) — as evolution_* são raw Evolution API format.
-  messages:             { client: 'lovable', table: 'messages' },
-  contacts:             { client: 'lovable', table: 'contacts' },
-  conversations:        { client: 'lovable', table: 'conversations' },
-  audit_log:            { client: 'lovable', table: 'audit_log' },
-  calls:                { client: 'lovable', table: 'calls' },
-  deleted_contacts:     { client: 'lovable', table: 'v_deleted_contacts' },
-  profiles:             { client: 'lovable', table: 'profiles' },
-  user_roles:           { client: 'lovable', table: 'user_roles' },
-  queues:               { client: 'lovable', table: 'queues' },
-  queue_positions:      { client: 'lovable', table: 'queue_positions' },
+  messages: { client: 'lovable', table: 'messages' },
+  contacts: { client: 'lovable', table: 'contacts' },
+  conversations: { client: 'lovable', table: 'conversations' },
+  audit_log: { client: 'lovable', table: 'audit_log' },
+  calls: { client: 'lovable', table: 'calls' },
+  deleted_contacts: { client: 'lovable', table: 'v_deleted_contacts' },
+  profiles: { client: 'lovable', table: 'profiles' },
+  user_roles: { client: 'lovable', table: 'user_roles' },
+  queues: { client: 'lovable', table: 'queues' },
+  queue_positions: { client: 'lovable', table: 'queue_positions' },
   whatsapp_connections: { client: 'lovable', table: 'whatsapp_connections' },
-  team_conversations:   { client: 'lovable', table: 'team_conversations' },
-  evolution_contacts:   { client: 'lovable', table: 'evolution_contacts' },
-  evolution_messages:   { client: 'lovable', table: 'evolution_messages' },
-  imap_smtp_accounts:   { client: 'lovable', table: 'imap_smtp_accounts' },
-  provider_configs:        { client: 'lovable', table: 'provider_configs' },
-  automation_executions:   { client: 'lovable', table: 'automation_executions' },
-  whisper_messages:        { client: 'lovable', table: 'whisper_messages' },
+  team_conversations: { client: 'lovable', table: 'team_conversations' },
+  evolution_contacts: { client: 'lovable', table: 'evolution_contacts' },
+  evolution_messages: { client: 'lovable', table: 'evolution_messages' },
+  imap_smtp_accounts: { client: 'lovable', table: 'imap_smtp_accounts' },
+  provider_configs: { client: 'lovable', table: 'provider_configs' },
+  automation_executions: { client: 'lovable', table: 'automation_executions' },
+  whisper_messages: { client: 'lovable', table: 'whisper_messages' },
+  failed_messages: { client: 'lovable', table: 'failed_messages' },
 } as const satisfies Record<LogicalEntity, EntityMapping>;
 
 /** get Entity Mapping function. */

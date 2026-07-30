@@ -335,7 +335,7 @@ export function useMessageQueue(
                   last_attempt_at: new Date().toISOString(),
                 })
                 .then(() => log.debug('Failed message persisted to zapp.failed_messages'))
-                .catch((e) => log.warn('Failed to persist failed_message to DB', e));
+                .catch((e: unknown) => log.warn('Failed to persist failed_message to DB', e));
             } else {
               log.info(`Scheduled retry for ${itemToProcess.id} in ${Math.round(delay / 1000)}s`);
             }

@@ -52,8 +52,10 @@ export function useMessageSignature() {
 
   const applySignature = useCallback(
     (content: string): string => {
-      if (!signatureEnabled || !agentSignature) return content;
-      return `*${agentSignature}:*\n${content}`;
+      if (!signatureEnabled || !agentSignature || !content) return content;
+      const prefix = `*${agentSignature}:*\n`;
+      if (content.startsWith(prefix)) return content; // já assinado — idempotente
+      return `${prefix}${content}`;
     },
     [signatureEnabled, agentSignature]
   );

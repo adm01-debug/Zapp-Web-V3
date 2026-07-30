@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_scripts_check_schema_drift_sql", "label": "check_schema_drift.sql", "file_type": "code", "source_file": "scripts/check_schema_drift.sql", "source_location": null}], "edges": []}

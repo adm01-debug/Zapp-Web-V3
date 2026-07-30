@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260710_revoke_auth_admin_functions_sql", "label": "20260710_revoke_auth_admin_functions.sql", "file_type": "code", "source_file": "supabase/migrations/20260710_revoke_auth_admin_functions.sql", "source_location": null}], "edges": []}

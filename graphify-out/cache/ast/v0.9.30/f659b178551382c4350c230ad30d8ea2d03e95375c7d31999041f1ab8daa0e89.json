@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260703110000_cleanup_residual_anon_grants_sql", "label": "20260703110000_cleanup_residual_anon_grants.sql", "file_type": "code", "source_file": "supabase/migrations/20260703110000_cleanup_residual_anon_grants.sql", "source_location": null}], "edges": []}

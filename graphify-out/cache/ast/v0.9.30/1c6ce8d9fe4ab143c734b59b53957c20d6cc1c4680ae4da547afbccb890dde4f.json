@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260711123000_r14_health_selfheal_no_change_sql", "label": "20260711123000_r14_health_selfheal_no_change.sql", "file_type": "code", "source_file": "supabase/migrations/20260711123000_r14_health_selfheal_no_change.sql", "source_location": null}], "edges": []}

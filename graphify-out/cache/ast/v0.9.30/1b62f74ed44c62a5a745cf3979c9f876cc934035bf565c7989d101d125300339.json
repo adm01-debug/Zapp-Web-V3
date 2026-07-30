@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260724000004_fix_missing_realtime_publications_sql", "label": "20260724000004_fix_missing_realtime_publications.sql", "file_type": "code", "source_file": "supabase/migrations/20260724000004_fix_missing_realtime_publications.sql", "source_location": null}], "edges": []}

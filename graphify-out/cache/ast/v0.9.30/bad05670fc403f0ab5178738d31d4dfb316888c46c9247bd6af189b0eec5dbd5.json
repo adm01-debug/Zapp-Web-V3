@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260710_health_score_pk_idle_fix_sql", "label": "20260710_health_score_pk_idle_fix.sql", "file_type": "code", "source_file": "supabase/migrations/20260710_health_score_pk_idle_fix.sql", "source_location": null}], "edges": []}

@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260716180000_perf_indexes_hotpath_sql", "label": "20260716180000_perf_indexes_hotpath.sql", "file_type": "code", "source_file": "supabase/migrations/20260716180000_perf_indexes_hotpath.sql", "source_location": null}], "edges": []}

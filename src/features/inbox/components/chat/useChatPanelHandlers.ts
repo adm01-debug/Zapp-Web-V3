@@ -9,6 +9,7 @@ import { Message } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
 import { dbFrom } from '@/integrations/datasource/db';
 import { isValidUUID } from '@/utils/uuid';
+import { resolveContactRef, isJidRef } from '@/features/inbox/utils/contactRef';
 import { type DialogKey } from './hooks/useChatDialogs';
 import { type ActiveTool } from './ChatHeaderToolbar';
 import { useInputHandlers } from './useInputHandlers';
@@ -118,28 +119,63 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
       if ((!currentInput.trim() && !bypassEmptyText) || isSendingRef.current) return;
 
       if (currentEditing) {
+        const ref = resolveContactRef(contactId);
+        const targetJid = isJidRef(ref) ? ref.remoteJid : null;
         const externalId = currentEditing.external_id;
-        const contactJid = contactPhone ? `${contactPhone}@s.whatsapp.net` : '';
+        const newText = currentInput.trim();
+
+        // Pré-condições explícitas — falhar visivelmente em vez de falso-sucesso
+        if (!instanceName || !externalId || !targetJid) {
+          log.warn('[editMessage] pré-condições ausentes', {
+            hasInstance: !!instanceName,
+            hasExternalId: !!externalId,
+            hasJid: !!targetJid,
+          });
+          toast({
+            title: 'Não foi possível editar',
+            description: !externalId
+              ? 'Esta mensagem ainda não foi confirmada pelo WhatsApp.'
+              : 'Instância WhatsApp não resolvida para esta conversa.',
+            variant: 'destructive',
+          });
+          setEditingMessage(null);
+          setInputValue('');
+          return;
+        }
+
         setIsSending(true);
         try {
-          if (instanceName && externalId && contactJid)
-            await editMessageApi(instanceName, {
-              number: contactJid,
-              messageId: externalId,
-              text: currentInput.trim(),
-            });
-          await dbFrom('messages')
-            .update({ content: currentInput.trim(), updated_at: new Date().toISOString() })
-            .eq('id', currentEditing.id);
-          toast({
-            title: 'Mensagem editada',
-            description: 'A mensagem foi atualizada com sucesso.',
+          // 1. Fonte da verdade é o WhatsApp. Se falhar aqui, não tocamos no banco local.
+          await editMessageApi(instanceName, {
+            number: targetJid,
+            messageId: externalId,
+            text: newText,
           });
+
+          // 2. Espelhar no banco, verificando rowcount de verdade.
+          const { data: updated, error: dbError } = await dbFrom('messages')
+            .update({ content: newText, updated_at: new Date().toISOString() })
+            .eq('id', currentEditing.id)
+            .select('id');
+
+          if (dbError) throw dbError;
+          if (!updated || updated.length === 0) {
+            log.warn('[editMessage] UPDATE casou 0 linhas', { id: currentEditing.id });
+            toast({
+              title: 'Editada no WhatsApp',
+              description: 'A alteração foi enviada, mas o histórico local não foi atualizado.',
+            });
+          } else {
+            toast({
+              title: 'Mensagem editada',
+              description: 'A mensagem foi atualizada com sucesso.',
+            });
+          }
         } catch (err) {
-          log.error('Failed to edit message:', err);
+          log.error('[editMessage] falhou', err);
           toast({
             title: 'Erro ao editar',
-            description: 'Nao foi possivel editar a mensagem.',
+            description: err instanceof Error ? err.message : 'Não foi possível editar a mensagem.',
             variant: 'destructive',
           });
         } finally {
@@ -153,6 +189,9 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
       // Só aplica assinatura quando há texto real.
       const trimmedInput = currentInput.trim();
       const messageContent = trimmedInput ? applySignature(trimmedInput) : '';
+      // Guardar texto BRUTO para reidratar o campo em caso de falha/undo.
+      // `messageContent` já contém a assinatura — reenviá-lo duplicaria a assinatura.
+      const rawInput = trimmedInput;
       const wasReply = replyToMessageRef.current;
       setIsSending(true);
       setSendProgress(0);
@@ -212,7 +251,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
           icon: 'ok',
           delay: 3000,
           onUndo: () => {
-            setInputValue(messageContent);
+            setInputValue(rawInput);
             if (wasReply) setReplyToMessage(wasReply);
             toast({
               title: 'Mensagem restaurada',
@@ -231,7 +270,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         lastFailedSendRef.current = { content: messageContent, attachments };
         setLastSendError(msg);
         setLastSendErrorDetail(detail);
-        setInputValue(messageContent);
+        setInputValue(rawInput);
         if (wasReply) setReplyToMessage(wasReply);
         toast({ title: 'Erro ao enviar', description: msg, variant: 'destructive' });
       } finally {

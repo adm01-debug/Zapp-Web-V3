@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260619150122_32d00e43_8883_459d_8dbd_c56c417fc0a0_sql", "label": "20260619150122_32d00e43-8883-459d-8dbd-c56c417fc0a0.sql", "file_type": "code", "source_file": "supabase/migrations/20260619150122_32d00e43-8883-459d-8dbd-c56c417fc0a0.sql", "source_location": null}], "edges": []}

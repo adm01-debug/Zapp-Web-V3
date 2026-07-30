@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260703120000_harden_vendas_financeiro_anon_leaks_sql", "label": "20260703120000_harden_vendas_financeiro_anon_leaks.sql", "file_type": "code", "source_file": "supabase/migrations/20260703120000_harden_vendas_financeiro_anon_leaks.sql", "source_location": null}], "edges": []}
