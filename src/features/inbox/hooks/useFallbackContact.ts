@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { isValidUUID } from '@/utils/uuid';
+import { log } from '@/lib/logger';
+import { resolveContactRef } from '@/features/inbox/utils/contactRef';
 import type { ConversationWithMessages, ConversationContact } from './realtime/types';
 
 /** Resolves the selected conversation from the list or falls back to a fresh DB lookup by contact ID, JID, or phone; returns null while loading. */
@@ -19,23 +20,48 @@ export function useFallbackContact(
 
     let cancelled = false;
     const loadSelectedContact = async () => {
-      // FIX B1: the handshake may arrive as a UUID, JID (`num@s.whatsapp.net`)
-      // or a bare phone number. Detect which to avoid passing a phone number
-      // into the `id` (UUID) column — causes 400 from PostgREST.
-      const raw: string = String(selectedContactId);
-      const isJid = raw.includes('@');
-      const isUuid = isValidUUID(raw);
-      const phone: string | null = isJid
-        ? raw.split('@')[0].replace(/\D/g, '')
-        : !isUuid
-          ? (raw as string).replace(/\D/g, '')
-          : null;
+      const ref = resolveContactRef(selectedContactId);
+      if (!ref) {
+        setSelectedContactFallback(null);
+        return;
+      }
 
-      let query = supabase.from('contacts').select('*');
-      query = phone && !isUuid ? query.eq('phone', phone) : query.eq('id', raw);
+      let data: ConversationContact | null = null;
+      let error: unknown = null;
 
-      const { data, error } = await query.maybeSingle();
-      if (!cancelled && !error) setSelectedContactFallback(data || null);
+      if (ref.kind === 'uuid') {
+        const result = await supabase
+          .from('contacts')
+          .select('*')
+          .eq('id', ref.uuid)
+          .maybeSingle();
+        data = result.data as ConversationContact | null;
+        error = result.error;
+      } else {
+        const result = await supabase
+          .from('evolution_contacts')
+          .select('*')
+          .eq('remote_jid', ref.remoteJid)
+          .order('updated_at', { ascending: false, nullsFirst: false })
+          .limit(1)
+          .maybeSingle();
+        data = result.data as ConversationContact | null;
+        error = result.error;
+      }
+
+      if (cancelled) return;
+
+      if (error) {
+        log.warn('[useFallbackContact] falha ao carregar contato', {
+          contactId: selectedContactId,
+          kind: ref.kind,
+          error,
+        });
+        setSelectedContactFallback(null);
+        return;
+      }
+
+      setSelectedContactFallback(data);
     };
     void loadSelectedContact();
     return () => {
