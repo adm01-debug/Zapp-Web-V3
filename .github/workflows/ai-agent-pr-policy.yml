@@ -1,71 +1,54 @@
 name: AI Agent PR Policy
 
-# Validates that AI-agent-authored commits (Claude, Lovable, Copilot) arrive
-# via a PR targeting main — never pushed directly to main or develop.
-
 on:
-  push:
+  pull_request:
     branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  check-direct-push:
-    name: Block direct AI pushes to main
+  check-ai-authors:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 5
+          fetch-depth: 0
 
-      - name: Detect AI-authored commits pushed directly
+      - name: Check for AI-generated commits in PR
         run: |
-          set -euo pipefail
-
           AI_AUTHORS=(
             "claude" "copilot" "lovable" "github-actions" "dependabot"
             "noreply@anthropic.com" "noreply@github.com"
           )
 
-          # Commits that arrived in this push (not via PR merge)
-          # On a direct push github.event.before is the previous HEAD.
-          BEFORE="${{ github.event.before }}"
-          AFTER="${{ github.sha }}"
+          # Get commits unique to this PR (not on base branch)
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
 
-          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
-            echo "First push to branch — skip check."
+          echo "Checking commits in PR: $BASE..$HEAD"
+          COMMITS=$(git log --no-merges --format='%an <%ae>' "$BASE..$HEAD" 2>/dev/null || true)
+
+          if [ -z "$COMMITS" ]; then
+            echo "No commits to check."
             exit 0
           fi
 
-          # Merge commits from PRs have two parents; skip them.
-          DIRECT_COMMITS=$(git log --no-merges --format="%H %ae %an" "${BEFORE}..${AFTER}" 2>/dev/null || true)
+          BLOCKED=false
+          for author in "${AI_AUTHORS[@]}"; do
+            if echo "$COMMITS" | grep -qi "$author"; then
+              echo "::error::Blocked AI-authored commit detected: '$author'"
+              BLOCKED=true
+            fi
+          done
 
-          if [ -z "$DIRECT_COMMITS" ]; then
-            echo "No direct commits detected."
-            exit 0
-          fi
-
-          VIOLATIONS=""
-          while IFS= read -r line; do
-            SHA=$(echo "$line" | awk '{print $1}')
-            EMAIL=$(echo "$line" | awk '{print $2}')
-            NAME=$(echo "$line" | awk '{print $3}')
-            for ai in "${AI_AUTHORS[@]}"; do
-              if echo "${EMAIL,,} ${NAME,,}" | grep -qi "$ai"; then
-                VIOLATIONS="${VIOLATIONS}\n  ${SHA:0:8} by ${NAME} <${EMAIL}>"
-                break
-              fi
-            done
-          done <<< "$DIRECT_COMMITS"
-
-          if [ -n "$VIOLATIONS" ]; then
-            echo "::error::AI-agent commits detected pushed directly to ${GITHUB_REF_NAME} (bypass PR policy):"
-            echo -e "$VIOLATIONS"
+          if [ "$BLOCKED" = true ]; then
             echo ""
-            echo "All AI-agent changes must arrive via a pull request."
-            echo "See CONTRIBUTING.md § AI Agents para detalhes."
+            echo "AI agents must use pull requests — direct commits are not allowed."
+            echo "Committers found:"
+            echo "$COMMITS"
             exit 1
           fi
 
-          echo "OK — no AI-authored direct pushes detected."
+          echo "✅ No AI-authored commits detected."
