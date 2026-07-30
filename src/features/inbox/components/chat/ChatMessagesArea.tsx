@@ -103,7 +103,19 @@ export const ChatMessagesArea = memo(
       const [showScrollBottom, setShowScrollBottom] = useState(false);
 
       const messageRefsRef = useRef<Map<string, HTMLDivElement>>(new Map());
-      
+      const messageIndexRef = useRef<Map<string, number>>(new Map());
+      const [pendingFlashId, setPendingFlashId] = useState<string | null>(null);
+
+      // Rebuild index map when messages change (cheap: O(n) once per render batch)
+      useEffect(() => {
+        const map = new Map<string, number>();
+        messages.forEach((m, i) => {
+          if (m.id) map.set(m.id, i);
+          if (m.external_id) map.set(m.external_id, i);
+        });
+        messageIndexRef.current = map;
+      }, [messages]);
+
       useImperativeHandle(ref, () => ({
         scrollToBottom: () => {
           const container = scrollContainerRef.current;
@@ -115,14 +127,11 @@ export const ChatMessagesArea = memo(
           else map.delete(messageId);
         },
         scrollToMessage: (messageId: string): boolean => {
-          const el = messageRefsRef.current.get(messageId);
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            el.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
-            setTimeout(() => el.classList.remove('ring-2', 'ring-primary', 'ring-offset-2'), 3000);
-            return true;
-          }
-          return false;
+          const index = messageIndexRef.current.get(messageId);
+          if (index === undefined) return false; // not loaded yet — caller should paginate
+          virtualizer.scrollToIndex(index, { align: 'center', behavior: 'smooth' });
+          setPendingFlashId(messageId);
+          return true;
         },
         getScrollContainer: () => scrollContainerRef.current,
       }));
@@ -192,14 +201,16 @@ export const ChatMessagesArea = memo(
           if (onLoadOlder) {
             isFetchingOlderRef.current = true;
             prevScrollHeightRef.current = container.scrollHeight;
-            Promise.resolve(onLoadOlder()).finally(() => {
-              setTimeout(() => {
+            Promise.resolve(onLoadOlder())
+              .finally(() => {
+                setTimeout(() => {
+                  isFetchingOlderRef.current = false;
+                }, 100);
+              })
+              .catch((err) => {
+                console.error('[ChatMessagesArea] onLoadOlder failed:', err);
                 isFetchingOlderRef.current = false;
-              }, 100);
-            }).catch((err) => {
-              console.error('[ChatMessagesArea] onLoadOlder failed:', err);
-              isFetchingOlderRef.current = false;
-            });
+              });
           }
         }
       }, [hasMoreOlder, loadingOlder, onLoadOlder]);
@@ -218,7 +229,20 @@ export const ChatMessagesArea = memo(
         log.info('Message deleted:', id);
       }, []);
 
-      const noopRegisterRef = useCallback(() => {}, []);
+      const registerRef = useCallback((el: HTMLDivElement | null) => {
+        if (!el) return;
+        const messageId = el.getAttribute('data-message-id');
+        if (!messageId) return;
+        const map = messageRefsRef.current;
+        map.set(messageId, el);
+        // Auto-cleanup when element is removed from DOM (virtualizer unmount)
+        const observer = new MutationObserver(() => {
+          if (!document.contains(el)) map.delete(messageId);
+        });
+        observer.observe(el.parentElement!, { childList: true });
+        // Store observer for cleanup — we track by messageId
+        el.setAttribute('data-observer-id', messageId);
+      }, []);
 
       return (
         <div
