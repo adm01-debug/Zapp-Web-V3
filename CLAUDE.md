@@ -212,6 +212,18 @@ curl -s "http://supabase_meta:8080/generators/typescript?included_schemas=public
 
 ---
 
+## Knowledge Graph (Graphify)
+
+O repositório possui um **grafo de conhecimento** em `graphify-out/` (Apache 2.0, on-device).
+
+- **17.146 nós, 40.507 arestas, 1.765 comunidades**
+- **Top god nodes:** `cn()` (790°), `Button` (495°), `supabase` (371°)
+- **MCP server:** 8 tools (`graphify_query`, `graphify_path`, `graphify_db_crossref`, etc.)
+
+**Sempre consultar o grafo antes de `search_files`/grep.** Regenerar: `bash scripts/regenerate-graph.sh`
+
+---
+
 ## Documentação de Referência
 
 | Doc | Conteúdo |

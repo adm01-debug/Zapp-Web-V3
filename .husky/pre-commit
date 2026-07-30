@@ -1,1 +1,14 @@
+#!/usr/bin/env bash
+# pre-commit — ZAPP Web v3 (2026-07-30 — Graphify integration)
+set -e
 bun run lint-staged
+echo ""
+echo "🔒 check-schema-usage..."
+node scripts/check-schema-usage.mjs || { echo "❌ Schema violations"; exit 1; }
+if [ -f "graphify-out/graph.json" ]; then
+    NEWER_COUNT=$(find src supabase/migrations -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.sql" \) -newer "graphify-out/graph.json" 2>/dev/null | wc -l)
+    if [ "$NEWER_COUNT" -gt 50 ]; then
+        echo "⚠️  Graphify: $NEWER_COUNT files newer than graph. Regenerate: bash scripts/regenerate-graph.sh"
+    fi
+fi
+echo "✅ pre-commit OK"
