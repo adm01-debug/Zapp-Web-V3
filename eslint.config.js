@@ -160,5 +160,38 @@ export default tseslint.config(
       ],
     },
   },
-  ...storybook.configs["flat/recommended"]
+  ...storybook.configs["flat/recommended"],
+  // ── ANTI-REGRESSION GUARDS (ChatPanel fixes E01-E20) ───────────────────
+  // Previne reintrodução dos bugs corrigidos na auditoria 2026-07-30.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: [
+      "src/lib/constants/whatsappInstances.ts",
+      "src/features/inbox/hooks/realtime/externalSenderTypes.ts",
+      "src/integrations/zappweb/evolutionClient.ts",
+      "src/lib/whatsappAdapter.ts",
+      "src/pages/admin/external-db-explorer/catalog.ts",
+      "src/**/__tests__/**",
+      "src/**/*.test.{ts,tsx}",
+      "src/**/*.spec.{ts,tsx}",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          // E03/E07: hardcoded instance name — usar instanceName resolvido
+          selector: "Literal[value='wpp2']",
+          message:
+            "Instância WhatsApp hardcoded. Use instanceName da conversa ou DEFAULT_INSTANCE do evolutionFetchers. Ver CONTACTREF.md.",
+        },
+        {
+          // E05: canal Realtime com nome fixo causa colisão de tópico
+          selector:
+            "CallExpression[callee.property.name='channel'] > TemplateLiteral[expressions.length=0]",
+          message:
+            "Canal Realtime com nome fixo (template literal sem interpolação) causa colisão. Inclua o remote_jid da conversa: `chat-updates:${contactJid}`.",
+        },
+      ],
+    },
+  },
 );

@@ -13,6 +13,7 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 import { useScheduledMessages } from '@/hooks/useScheduledMessages';
 import { useMessageSignature } from '@/features/inbox';
 import { useChatMediaSending } from '../hooks/useChatMediaSending';
+import { resolveContactRef, isUuidRef } from '../utils/contactRef';
 import { CRMAutoSync } from './CRMAutoSync';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { ChatToolPanels } from './chat/ChatToolPanels';
@@ -522,13 +523,15 @@ export function ChatPanel({
           onToggleSignature={toggleSignature}
           onPollSent={async (poll) => {
             try {
+              const ref = resolveContactRef(conversation.contact.id);
+              if (!isUuidRef(ref)) return; // external mode — handled by Evolution webhook
               await dbFrom('messages').insert({
-                contact_id: conversation.contact.id,
+                contact_id: ref.uuid,
                 whatsapp_connection_id: whatsappConnectionId,
                 content: `📊 *Enquete:* ${poll.name}\n${poll.options.map((o, i) => `${i + 1}. ${o}`).join('\n')}`,
                 message_type: 'text',
                 sender: 'agent',
-                status: 'sending',
+                status: 'sent',
               });
             } catch (err) {
               log.error('Failed to insert poll message', err);
@@ -536,13 +539,15 @@ export function ChatPanel({
           }}
           onContactSent={async (contactName) => {
             try {
+              const ref = resolveContactRef(conversation.contact.id);
+              if (!isUuidRef(ref)) return; // external mode — handled by Evolution webhook
               await dbFrom('messages').insert({
-                contact_id: conversation.contact.id,
+                contact_id: ref.uuid,
                 whatsapp_connection_id: whatsappConnectionId,
                 content: `📇 Cartão de contato: ${contactName}`,
                 message_type: 'text',
                 sender: 'agent',
-                status: 'sending',
+                status: 'sent',
               });
             } catch (err) {
               log.error('Failed to insert contact card message', err);

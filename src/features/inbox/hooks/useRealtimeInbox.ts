@@ -12,12 +12,7 @@ import { toast } from 'sonner';
 import { validatePttBlob } from '@/lib/audio/pttLimits';
 import { seedAvatarCache } from '@/features/inbox';
 import { isValidUUID } from '@/utils/uuid';
-import {
-  resolveContactRef,
-  isUuidRef,
-  isJidRef,
-  contactRefToString,
-} from '@/features/inbox/utils/contactRef';
+import { resolveContactRef, isUuidRef, isJidRef, contactRefToString } from '../utils/contactRef';
 import { mapToLegacyConversation, mapToLegacyMessages } from '@/adapters/inboxLegacyMapper';
 import { dbFrom } from '@/integrations/datasource/db';
 import { queryExternalProxy } from '@/lib/externalProxy';
@@ -527,7 +522,7 @@ export function useRealtimeInbox() {
         markAsRead(contactId);
       }
     },
-    [setSelectedContact, markAsRead]
+    [setSelectedContact, markAsRead, instanceName]
   );
 
   const handleNotificationView = useCallback(() => {

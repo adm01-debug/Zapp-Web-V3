@@ -9,7 +9,7 @@ import { Message } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
 import { dbFrom } from '@/integrations/datasource/db';
 import { isValidUUID } from '@/utils/uuid';
-import { resolveContactRef, isJidRef } from '@/features/inbox/utils/contactRef';
+import { resolveContactRef, isJidRef } from '../../utils/contactRef';
 import { type DialogKey } from './hooks/useChatDialogs';
 import { type ActiveTool } from './ChatHeaderToolbar';
 import { useInputHandlers } from './useInputHandlers';

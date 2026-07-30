@@ -104,7 +104,6 @@ export const ChatMessagesArea = memo(
 
       const messageRefsRef = useRef<Map<string, HTMLDivElement>>(new Map());
       const messageIndexRef = useRef<Map<string, number>>(new Map());
-      const [pendingFlashId, setPendingFlashId] = useState<string | null>(null);
 
       // Rebuild index map when messages change (cheap: O(n) once per render batch)
       useEffect(() => {
@@ -128,41 +127,38 @@ export const ChatMessagesArea = memo(
         },
         scrollToMessage: (messageId: string): boolean => {
           const index = messageIndexRef.current.get(messageId);
-          if (index === undefined) return false; // not loaded yet — caller should paginate
+          if (index === undefined) return false;
           virtualizer.scrollToIndex(index, { align: 'center', behavior: 'smooth' });
-          setPendingFlashId(messageId);
           return true;
         },
         getScrollContainer: () => scrollContainerRef.current,
       }));
 
-      // `messages` é um novo array a cada mensagem recebida; usar como dep direta
-      // recriava (unsubscribe+subscribe) este canal a cada UPDATE realtime. O ref
-      // mantém o `.some()` sempre atualizado sem forçar a resubscrição.
-      const messagesRef = useRef(messages);
-      messagesRef.current = messages;
       const conversationId = messages[0]?.conversationId;
 
       useEffect(() => {
-        if (!conversationId) return;
+        if (!conversationId || !contactJid) return;
         const channel = supabase
-          .channel(`chat-updates-shared`)
+          .channel(`chat-updates:${contactJid}`)
           .on(
             'postgres_changes',
-            { event: 'UPDATE', schema: 'evo', table: 'evolution_messages' },
-            (payload) => {
-              const updatedMsg = payload.new as { id: string };
-              if (updatedMsg.id && messagesRef.current.some((m) => m.id === updatedMsg.id)) {
-                void queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() });
-              }
+            {
+              event: 'UPDATE',
+              schema: 'evo',
+              table: 'evolution_messages',
+              filter: `remote_jid=eq.${contactJid}`,
+            },
+            () => {
+              void queryClient.invalidateQueries({
+                queryKey: queryKeys.messages.all(),
+              });
             }
           )
           .subscribe();
         return () => {
-          channel.unsubscribe();
-          supabase.removeChannel(channel);
+          void supabase.removeChannel(channel);
         };
-      }, [conversationId, queryClient]);
+      }, [conversationId, contactJid, queryClient]);
 
       // Realtime de reações: 1 canal por conversa, invalida apenas IDs visíveis
       const messageIds = useMemo(() => messages.map((m) => m.id), [messages]);
