@@ -91,6 +91,8 @@ export function useInboxSource(useExternalDb: boolean, selectedContactId: string
     loadingOlderMessages: useExternalDb ? externalMsgs.loadingOlder : false,
     hasMoreMessages: useExternalDb ? externalMsgs.hasMore : false,
     addExternalMessage: useExternalDb ? externalMsgs.addMessage : undefined,
+    // WhatsApp instance da conversa selecionada (para edição, mídia, automações)
+    selectedConversationInstance,
     // Original realtime hooks for notifications etc
     localRealtime,
   };

@@ -342,6 +342,7 @@ export function RealtimeInboxView() {
                       initialHighlightMessageId={inbox.pendingMessageId}
                       isLoading={inbox.selectedMessagesLoading}
                       messageQueue={inbox.messageQueue}
+                      instanceName={inbox.instanceName}
                       onHighlightConsumed={() => {
                         inbox.setPendingMessageId(null);
                         try {

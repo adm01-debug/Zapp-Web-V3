@@ -75,6 +75,9 @@ interface ChatPanelProps extends LoadOlderProps {
   whisperCount?: number;
   isLoading?: boolean;
   messageQueue?: MessageQueueController;
+  /** WhatsApp instance name for this conversation (enables edit, stickers, automations).
+   *  Propagated from inbox source via RealtimeInboxView. */
+  instanceName?: string;
 }
 
 export function ChatPanel({
@@ -95,6 +98,7 @@ export function ChatPanel({
   whisperCount: _whisperCount = 0,
   isLoading = false,
   messageQueue,
+  instanceName: instanceNameProp,
 }: ChatPanelProps) {
   const { templates: _quickReplyTemplates } = useQuickReplies();
   // Ferramentas de desenvolvimento (Checklist 10/10) só para devs reais.
@@ -177,7 +181,7 @@ export function ChatPanel({
     handleSendSticker,
     handleSendCustomEmoji,
     handleSendAudioMeme,
-  } = useChatMediaSending(conversation.contact.id, conversation.contact.phone);
+  } = useChatMediaSending(conversation.contact.id, conversation.contact.phone, instanceNameProp);
 
   const saveSettingsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debouncedSave = useCallback(() => {

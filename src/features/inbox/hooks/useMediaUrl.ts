@@ -83,7 +83,12 @@ function classifyError(raw: unknown): MediaError {
   const err = raw instanceof Error ? raw : new Error(String(raw));
   const msg = err.message.toLowerCase();
 
-  if (msg.includes('410') || msg.includes('expired') || msg.includes('gone')) {
+  if (
+    msg.includes('410') ||
+    msg.includes('403') ||
+    msg.includes('expired') ||
+    msg.includes('gone')
+  ) {
     return {
       reason: 'expired',
       message: 'Esta mídia expirou no WhatsApp e não pôde ser recuperada.',

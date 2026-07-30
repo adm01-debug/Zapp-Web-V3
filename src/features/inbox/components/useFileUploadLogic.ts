@@ -59,8 +59,8 @@ export function useFileUploadLogic(opts: {
   const [isMultiMode, setIsMultiMode] = useState(false);
   const [caption, setCaption] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, _setUploadProgress] = useState(0);
-  const [uploadStage, _setUploadStage] = useState<'uploading' | 'sending' | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStage, setUploadStage] = useState<'uploading' | 'sending' | null>(null);
   const [currentQueueIndex, setCurrentQueueIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -148,13 +148,19 @@ export function useFileUploadLogic(opts: {
     setIsMultiMode(false);
     setCaption('');
     setCurrentQueueIndex(0);
+    setUploadProgress(0);
+    setUploadStage(null);
     setIsDialogOpen(false);
-  }, [filePreview, fileQueue]);
+  }, [filePreview, fileQueue, setUploadProgress, setUploadStage]);
 
   const sendFileViaApi = useCallback(
     async (file: File, category: string | undefined, cap?: string) => {
       if (!instanceName || !recipientNumber) return null;
+      setUploadStage('uploading');
+      setUploadProgress(15);
       const mediaUrl = await uploadFileToStorage(file);
+      setUploadProgress(70);
+      setUploadStage('sending');
       const messageContent =
         category === 'document'
           ? file.name
@@ -209,6 +215,8 @@ export function useFileUploadLogic(opts: {
       uploadFileToStorage,
       sendMediaMessage,
       sendAudioMessage,
+      setUploadStage,
+      setUploadProgress,
     ]
   );
 
@@ -229,6 +237,7 @@ export function useFileUploadLogic(opts: {
       toast.info('Enviando arquivo...', { id: 'file-upload', duration: 30000 });
       try {
         const sent = await sendFileViaApi(file, category, currentCaption);
+        setUploadProgress(100);
         toast.success('Arquivo enviado!', { id: 'file-upload' });
         if (sent) onFileSent?.(buildFileMessageData(sent.result, sent.mediaUrl, sent.category));
       } catch (err) {

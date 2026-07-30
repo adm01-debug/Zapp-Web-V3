@@ -123,39 +123,59 @@ export function CRMAutoSync({ conversation, messageCount, agentName, messages }:
   const lastSyncedStatus = useRef<string>('');
   const lastSyncedId = useRef<string>('');
 
+  // Estabilizar referências: extrair primitivas para evitar re-render em cascata
+  const convId = conversation.id;
+  const convStatus = conversation.status;
+  const convPhone = conversation.contact.phone;
+  const convName = conversation.contact.name;
+  const msgLen = messages?.length ?? 0;
+
   const sentiment = useMemo(() => detectSentiment(messages), [messages]);
 
   useEffect(() => {
     if (!isConfigured) return;
-    if (!conversation.contact.phone) return;
+    if (!convPhone) return;
 
     const shouldSync =
-      conversation.status === 'resolved' &&
-      (lastSyncedStatus.current !== 'resolved' || lastSyncedId.current !== conversation.id);
+      convStatus === 'resolved' &&
+      (lastSyncedStatus.current !== 'resolved' || lastSyncedId.current !== convId);
 
     if (shouldSync) {
-      lastSyncedStatus.current = conversation.status;
-      lastSyncedId.current = conversation.id;
+      lastSyncedStatus.current = convStatus;
+      lastSyncedId.current = convId;
 
       const summary = buildSummary(conversation, messages);
 
       syncConversation({
-        phone: conversation.contact.phone,
+        phone: convPhone,
         channel: 'whatsapp',
         direction: 'inbound',
-        assunto: `Conversa WhatsApp — ${conversation.contact.name}`,
+        assunto: `Conversa WhatsApp — ${convName}`,
         resumo: summary,
         sentiment,
-        messageCount: messageCount || messages?.length || 0,
+        messageCount: messageCount || msgLen,
         agentName: agentName || undefined,
-        zappConversationId: conversation.id,
+        zappConversationId: convId,
       });
 
-      log.info('CRM auto-sync triggered:', { id: conversation.id, sentiment });
+      log.info('CRM auto-sync triggered:', { id: convId, sentiment });
     }
-
-    lastSyncedStatus.current = conversation.status;
-  }, [conversation, isConfigured, syncConversation, messageCount, agentName, messages, sentiment]);
+    // Nota: lastSyncedStatus só deve ser atualizado DENTRO do shouldSync
+    // (linha 157 do original fora do if quebrava o guard)
+  }, [
+    convId,
+    convStatus,
+    convPhone,
+    convName,
+    isConfigured,
+    syncConversation,
+    messageCount,
+    agentName,
+    msgLen,
+    sentiment,
+    conversation,
+    messages,
+  ]);
 
   return null; // Invisible component
 }

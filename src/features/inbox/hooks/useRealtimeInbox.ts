@@ -88,8 +88,18 @@ export function useRealtimeInbox() {
     loadingOlderMessages,
     hasMoreMessages,
     addExternalMessage,
+    selectedConversationInstance,
     localRealtime,
   } = source;
+
+  // ── Resolved instance name ──────────────────────────────────────────────
+  // Priority: inbox source (from conversation list) > fallback contact >
+  // undefined (causes dev warning + disables edit/automations)
+  const instanceName = useMemo<string | undefined>(() => {
+    if (selectedConversationInstance) return selectedConversationInstance;
+    const fb = selectedContactFallback as { instance_name?: string } | null;
+    return fb?.instance_name ?? undefined;
+  }, [selectedConversationInstance, selectedContactFallback]);
 
   const {
     sendMessage,
@@ -184,63 +194,106 @@ export function useRealtimeInbox() {
 
     let cancelled = false;
     const loadSelectedContact = async () => {
-      const raw = String(selectedContactId);
-      const isJid = raw.includes('@');
-      const isUuid = isValidUUID(raw);
-      const phone: string | null = isJid
-        ? raw.split('@')[0].replace(/\D/g, '')
-        : !isUuid
-          ? raw.replace(/\D/g, '')
-          : null;
-
-      // ── Strategy A: local Supabase contacts lookup ──────────────────────
-      let localResult: Record<string, unknown> | null = null;
-      let query = supabase.from('contacts').select('*');
-      if (phone && !isUuid) {
-        query = query.eq('phone', phone);
-      } else if (isUuid) {
-        query = query.eq('id', raw);
+      const ref = resolveContactRef(selectedContactId);
+      if (!ref) {
+        if (!cancelled) setSelectedContactFallback(null);
+        return;
       }
-      const { data: localData, error: localError } = await query.maybeSingle();
-      if (!localError && localData) {
-        localResult = localData as Record<string, unknown>;
+
+      // ── Strategy A: local Supabase lookup, ramificada por tipo ──────────
+      let localResult: Record<string, unknown> | null = null;
+
+      if (isUuidRef(ref)) {
+        // UUID → contacts.id
+        const { data, error } = await supabase
+          .from('contacts')
+          .select('*')
+          .eq('id', ref.uuid)
+          .maybeSingle();
+        if (error) {
+          log.warn('[fallbackContact] erro ao buscar contato por UUID', {
+            uuid: ref.uuid,
+            code: error.code,
+            message: error.message,
+          });
+        } else if (data) {
+          localResult = data as Record<string, unknown>;
+        }
+      } else if (isJidRef(ref)) {
+        // JID → busca por phone (contatos locais sincronizados)
+        if (ref.phone) {
+          const { data, error } = await supabase
+            .from('contacts')
+            .select('*')
+            .eq('phone', ref.phone)
+            .maybeSingle();
+          if (error) {
+            log.warn('[fallbackContact] erro ao buscar contato por phone', {
+              phone: ref.phone,
+              code: error.code,
+              message: error.message,
+            });
+          } else if (data) {
+            localResult = data as Record<string, unknown>;
+          }
+        }
+        // Se phone não encontrou, tenta por remote_jid em evolution_contacts
+        if (!localResult) {
+          const { data, error } = await supabase
+            .from('evolution_contacts')
+            .select('*')
+            .eq('remote_jid', ref.remoteJid)
+            .order('updated_at', { ascending: false, nullsFirst: false })
+            .limit(1)
+            .maybeSingle();
+          if (error) {
+            log.warn('[fallbackContact] erro ao buscar evolution_contacts por JID', {
+              remoteJid: ref.remoteJid,
+              code: error.code,
+              message: error.message,
+            });
+          } else if (data) {
+            localResult = data as Record<string, unknown>;
+          }
+        }
       }
 
       // ── Strategy B: external proxy rpc_get_contact (USE_EXTERNAL_DB) ────
-      // Only trigger if local search failed AND we have a JID (external mode)
-      if (!localResult && USE_EXTERNAL_DB && isJid) {
+      if (!localResult && USE_EXTERNAL_DB && isJidRef(ref)) {
         try {
-          const remoteJid = raw;
           const proxyResult = await queryExternalProxy<Record<string, unknown>[]>({
             action: 'rpc',
             rpc: 'rpc_get_contact',
-            params: { p_remote_jid: remoteJid, p_instance: DEFAULT_INSTANCE },
+            params: { p_remote_jid: ref.remoteJid, p_instance: DEFAULT_INSTANCE },
           });
           if (proxyResult?.data?.[0]) {
             const ext = proxyResult.data[0];
             localResult = {
-              id: remoteJid,
-              name: (ext.name || ext.push_name || phone || remoteJid) as string,
-              phone: phone ?? remoteJid,
-              remote_jid: remoteJid,
+              id: ref.remoteJid,
+              name: (ext.name || ext.push_name || ref.phone || ref.remoteJid) as string,
+              phone: ref.phone ?? ref.remoteJid,
+              remote_jid: ref.remoteJid,
               avatar_url: (ext.avatar_url || null) as string | null,
               company: (ext.company || null) as string | null,
               tags: ext.tags ?? null,
               instance_name: DEFAULT_INSTANCE,
             };
           }
-        } catch {
-          // External proxy unavailable — fall through to Strategy C
+        } catch (err) {
+          log.warn('[fallbackContact] external proxy indisponível', {
+            remoteJid: ref.remoteJid,
+            error: String(err),
+          });
         }
       }
 
-      // ── Strategy C: synthetic fallback (JID without local/external data) ─
+      // ── Strategy C: synthetic fallback (last resort) ────────────────────
       if (!localResult && USE_EXTERNAL_DB) {
         localResult = {
-          id: raw,
-          name: raw.includes('@') ? raw.split('@')[0] : raw,
-          phone: phone ?? raw,
-          remote_jid: raw.includes('@') ? raw : null,
+          id: contactRefToString(ref),
+          name: isJidRef(ref) ? ref.remoteJid.split('@')[0] : ref.raw,
+          phone: isJidRef(ref) ? (ref.phone ?? ref.raw) : ref.raw,
+          remote_jid: isJidRef(ref) ? ref.remoteJid : null,
           avatar_url: null,
           company: null,
           tags: null,
@@ -463,7 +516,11 @@ export function useRealtimeInbox() {
 
       if (USE_EXTERNAL_DB) {
         void supabase.functions.invoke('evolution-api', {
-          body: { action: 'read-messages', instanceName: 'wpp2', remoteJid: contactId },
+          body: {
+            action: 'read-messages',
+            instanceName: instanceName ?? DEFAULT_INSTANCE,
+            remoteJid: contactId,
+          },
         });
       } else {
         markAsRead(contactId);
@@ -577,6 +634,7 @@ export function useRealtimeInbox() {
     loadingOlderMessages,
     hasMoreMessages,
     whisperCount,
+    instanceName,
     batcherStatus: USE_EXTERNAL_DB ? null : localRealtime.batcherStatus,
     deliveryAlert,
     messageQueue,

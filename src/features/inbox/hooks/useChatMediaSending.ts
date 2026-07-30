@@ -21,16 +21,27 @@ import { isValidUUID } from '@/utils/uuid';
  *   + fallback para primeira conexão ativa.
  */
 /** Encapsulates WhatsApp instance resolution and media-message sending (stickers, custom emojis, audio memes) for a given contact. */
-export function useChatMediaSending(contactId: string, contactPhone: string | undefined) {
-  const [instanceName, setInstanceName] = useState('');
+export function useChatMediaSending(
+  contactId: string,
+  contactPhone: string | undefined,
+  instanceHint?: string
+) {
+  const [instanceName, setInstanceName] = useState(instanceHint ?? '');
   const [whatsappConnectionId, setWhatsappConnectionId] = useState<string | null>(null);
   const resolvedRef = useRef(false);
 
+  // Accept external instance hint (propagated from inbox source)
+  useEffect(() => {
+    if (instanceHint) setInstanceName(instanceHint);
+  }, [instanceHint]);
+
   useEffect(() => {
     resolvedRef.current = false;
-    setInstanceName('');
+    if (!instanceHint) {
+      setInstanceName('');
+    }
     setWhatsappConnectionId(null);
-  }, [contactId]);
+  }, [contactId, instanceHint]);
 
   const { sendStickerMessage } = useEvolutionApi();
 
