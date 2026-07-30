@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { Message } from '@/types/chat';
 import type { ChatMessagesAreaRef } from '../ChatMessagesArea';
 import { toast } from '@/hooks/use-toast';
@@ -25,6 +25,10 @@ export function useInitialHighlight({
   setActiveHighlightId,
   onHighlightConsumed,
 }: Params) {
+  // Stable key that only changes when actual message IDs change, preventing
+  // unnecessary re-subscriptions when only the array reference changes
+  const messageKey = useMemo(() => messages.map((m) => m.id).join('|'), [messages]);
+
   useEffect(() => {
     if (!initialHighlightMessageId) return;
 
@@ -83,5 +87,5 @@ export function useInitialHighlight({
       if (highlightTimer) clearTimeout(highlightTimer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialHighlightMessageId, messages, onHighlightConsumed]);
+  }, [initialHighlightMessageId, messageKey, onHighlightConsumed]);
 }

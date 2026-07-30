@@ -116,13 +116,32 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         const externalId = currentEditing.external_id;
         const contactJid = contactPhone ? `${contactPhone}@s.whatsapp.net` : '';
         setIsSending(true);
+
+        // Guard: all three are needed for the Evolution API edit call.
+        // Without them the API is never invoked, so we fail early instead
+        // of updating the DB locally (which would be a false success).
+        if (!instanceName || !externalId || !contactJid) {
+          const missing = [!instanceName && 'instanceName', !externalId && 'externalId', !contactJid && 'contactJid']
+            .filter(Boolean)
+            .join(', ');
+          log.error('Cannot edit message — missing required params', { missing, instanceName, externalId, contactJid });
+          toast({
+            title: 'Erro ao editar',
+            description: 'Nao foi possivel editar a mensagem. Dados da instancia incompletos.',
+            variant: 'destructive',
+          });
+          setIsSending(false);
+          setEditingMessage(null);
+          setInputValue('');
+          return;
+        }
+
         try {
-          if (instanceName && externalId && contactJid)
-            await editMessageApi(instanceName, {
-              number: contactJid,
-              messageId: externalId,
-              text: currentInput.trim(),
-            });
+          await editMessageApi(instanceName, {
+            number: contactJid,
+            messageId: externalId,
+            text: currentInput.trim(),
+          });
           await dbFrom('messages')
             .update({ content: currentInput.trim(), updated_at: new Date().toISOString() })
             .eq('id', currentEditing.id);

@@ -56,6 +56,20 @@ export function useInboxSource(useExternalDb: boolean, selectedContactId: string
     [useExternalDb, externalMsgs]
   );
 
+  // --- E03: expose instance_name from the selected conversation ---
+  const selectedConversation = useMemo(
+    () =>
+      conversations.find(
+        (c) => c.contact.id === selectedContactId || c.contact.remote_jid === selectedContactId
+      ) || null,
+    [conversations, selectedContactId]
+  );
+
+  const selectedConversationInstance = useMemo(
+    () => selectedConversation?.contact?.instance_name ?? '',
+    [selectedConversation]
+  );
+
   return {
     conversations,
     loading,

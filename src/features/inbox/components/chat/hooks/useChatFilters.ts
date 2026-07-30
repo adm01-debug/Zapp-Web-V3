@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Message } from '@/types/chat';
 
@@ -42,21 +42,33 @@ export function useChatFilters(messages: Message[]) {
     }, { replace: true });
   }, [setSearchParams]);
 
-  const failedMessages = messages.filter(
-    (m) => m.status === 'failed' || m.status === 'failed_auth' || m.status === 'failed_retries',
+  const failedMessages = useMemo(
+    () => messages.filter(
+      (m) => m.status === 'failed' || m.status === 'failed_auth' || m.status === 'failed_retries',
+    ),
+    [messages],
   );
 
-  const categoryCounts = {
-    failed: failedMessages.filter((m) => m.status === 'failed').length,
-    failed_auth: failedMessages.filter((m) => m.status === 'failed_auth').length,
-    failed_retries: failedMessages.filter((m) => m.status === 'failed_retries').length,
-  };
+  const categoryCounts = useMemo(
+    () => ({
+      failed: failedMessages.filter((m) => m.status === 'failed').length,
+      failed_auth: failedMessages.filter((m) => m.status === 'failed_auth').length,
+      failed_retries: failedMessages.filter((m) => m.status === 'failed_retries').length,
+    }),
+    [failedMessages],
+  );
 
-  const categoryFilteredMessages = failureCategory 
-    ? failedMessages.filter((m) => m.status === failureCategory) 
-    : failedMessages;
+  const categoryFilteredMessages = useMemo(
+    () => failureCategory 
+      ? failedMessages.filter((m) => m.status === failureCategory) 
+      : failedMessages,
+    [failureCategory, failedMessages],
+  );
 
-  const visibleMessages = failuresOnly ? categoryFilteredMessages : messages;
+  const visibleMessages = useMemo(
+    () => failuresOnly ? categoryFilteredMessages : messages,
+    [failuresOnly, categoryFilteredMessages, messages],
+  );
 
   return {
     failuresOnly,

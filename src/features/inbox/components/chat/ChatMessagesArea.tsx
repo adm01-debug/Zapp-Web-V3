@@ -101,6 +101,7 @@ export const ChatMessagesArea = memo(
       const prevScrollHeightRef = useRef<number | null>(null);
       const [showScrollBottom, setShowScrollBottom] = useState(false);
       const messageIndexRef = useRef(new Map<string, number>());
+      const virtualizerRef = useRef<ReturnType<typeof useVirtualizer>>(null!);
 
       // Build a map of message id → index for O(1) scroll-to-message lookups
       useEffect(() => {
@@ -120,7 +121,7 @@ export const ChatMessagesArea = memo(
         scrollToMessage: (messageId: string): boolean => {
           const idx = messageIndexRef.current.get(messageId);
           if (idx !== undefined && idx >= 0) {
-            virtualizer.scrollToIndex(idx, { align: 'center', behavior: 'smooth' });
+            virtualizerRef.current.scrollToIndex(idx, { align: 'center', behavior: 'smooth' });
             return true;
           }
           // Message not yet in the virtual list — try loading older pages
@@ -185,7 +186,7 @@ export const ChatMessagesArea = memo(
         []
       );
 
-      const virtualizer = useVirtualizer({
+      virtualizerRef.current = useVirtualizer({
         count: messages.length,
         getScrollElement: () => scrollContainerRef.current,
         estimateSize: getItemSize,
@@ -271,7 +272,7 @@ export const ChatMessagesArea = memo(
 
           <div
             style={{
-              height: `${virtualizer.getTotalSize()}px`,
+              height: `${virtualizerRef.current.getTotalSize()}px`,
               width: '100%',
               position: 'relative',
             }}

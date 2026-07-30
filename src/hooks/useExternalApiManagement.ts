@@ -391,7 +391,7 @@ export function useExternalConversations(enabled = true) {
 }
 
 /** Fetches Evolution API messages for a contact with pagination and cross-tab synchronization. */
-export function useExternalMessages(remoteJid: string | null) {
+export function useExternalMessages(remoteJid: string | null, instanceName?: string) {
   const queryClient = useQueryClient();
   const [messages, setMessages] = useState<RealtimeMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -447,7 +447,7 @@ export function useExternalMessages(remoteJid: string | null) {
       setLoading(true);
       setError(null);
       const evoMessages = await dedupedFetch(
-        `inbox:initial:${remoteJid}:${CONVERSATION_PAGE_SIZE}:${DEFAULT_INSTANCE}`,
+        `inbox:initial:${remoteJid}:${CONVERSATION_PAGE_SIZE}:${instanceName ?? DEFAULT_INSTANCE}`,
         () => fetchMessagesByJid(remoteJid, CONVERSATION_PAGE_SIZE),
         { lockTtl: 10_000, resultTtl: 15_000, waitTimeout: 8_000 }
       );
@@ -477,7 +477,7 @@ export function useExternalMessages(remoteJid: string | null) {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [remoteJid, mountedRef, getContactAvatar]);
+  }, [remoteJid, mountedRef, getContactAvatar, instanceName]);
 
   const pollNewMessages = useCallback(async () => {
     if (!remoteJid || !mountedRef.current) return;
@@ -486,7 +486,7 @@ export function useExternalMessages(remoteJid: string | null) {
 
     try {
       const newOnes = await dedupedFetch(
-        `inbox:poll:${remoteJid}:${afterDate}:${DEFAULT_INSTANCE}:${jidToPhone(remoteJid)}`,
+        `inbox:poll:${remoteJid}:${afterDate}:${instanceName ?? DEFAULT_INSTANCE}:${jidToPhone(remoteJid)}`,
         () => fetchMessagesAfter(remoteJid, afterDate),
         { lockTtl: 4_000, resultTtl: POLL_INTERVAL - 1_000, waitTimeout: 3_000 }
       );
@@ -503,7 +503,7 @@ export function useExternalMessages(remoteJid: string | null) {
     } catch (err) {
       logMessages.error('Error polling external messages:', err);
     }
-  }, [remoteJid, mountedRef, getContactAvatar]);
+  }, [remoteJid, mountedRef, getContactAvatar, instanceName]);
 
   const loadOlder = useCallback(async () => {
     if (!remoteJid || !mountedRef.current || loadingOlder || !hasMore) return;
@@ -520,7 +520,7 @@ export function useExternalMessages(remoteJid: string | null) {
 
     try {
       setLoadingOlder(true);
-      const dedupeKey = `older:${remoteJid}:${oldest}:${CONVERSATION_PAGE_SIZE}:${DEFAULT_INSTANCE}`;
+      const dedupeKey = `older:${remoteJid}:${oldest}:${CONVERSATION_PAGE_SIZE}:${instanceName ?? DEFAULT_INSTANCE}`;
       const older = await dedupedFetch(
         dedupeKey,
         () => fetchMessagesByJid(remoteJid, CONVERSATION_PAGE_SIZE, oldest, controller.signal),
@@ -551,7 +551,7 @@ export function useExternalMessages(remoteJid: string | null) {
       }
       if (mountedRef.current) setLoadingOlder(false);
     }
-  }, [remoteJid, messages, loadingOlder, hasMore, mountedRef]);
+  }, [remoteJid, messages, loadingOlder, hasMore, mountedRef, instanceName]);
 
   // Initial fetch on jid change
   useEffect(() => {
@@ -575,7 +575,7 @@ export function useExternalMessages(remoteJid: string | null) {
   useEffect(() => {
     if (!remoteJid) return;
     const jidPrefixes = [
-      `inbox:initial:${remoteJid}:${CONVERSATION_PAGE_SIZE}:${DEFAULT_INSTANCE}`,
+      `inbox:initial:${remoteJid}:${CONVERSATION_PAGE_SIZE}:${instanceName ?? DEFAULT_INSTANCE}`,
       `inbox:poll:${remoteJid}:`,
       `older:${remoteJid}:`,
     ];
