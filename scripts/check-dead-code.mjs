@@ -14,7 +14,7 @@
  * Exit: 0 = limpo | 1 = código morto detectado
  */
 import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
-import { join, dirname, resolve } from 'path';
+import { join, dirname, resolve, sep } from 'path';
 
 const ROOT = process.cwd();
 const SRC = join(ROOT, 'src');
@@ -81,9 +81,19 @@ const allowlist = new Set(
     : []
 );
 
+// Normalize Windows backslashes to forward slashes for cross-platform allowlist matching
+function normalizePath(f) {
+  let rel = f.replace(ROOT, '');
+  // Strip leading separator
+  if (rel.startsWith('/') || rel.startsWith('\\')) rel = rel.slice(1);
+  // Normalize to forward slashes
+  rel = rel.replace(/\\/g, '/');
+  return rel;
+}
+
 const dead = files
   .filter(f => !referenced.has(f))
-  .map(f => f.replace(ROOT, '').replace(/^[\/]/, '').replace(/\/g, '/'))
+  .map(f => normalizePath(f))
   .filter(rel => !rel.startsWith('src/components/ui/'))
   .filter(rel => !/\.(test|spec|stories)\.(ts|tsx)$/.test(rel))
   .filter(rel => !/__tests__|src\/test\/|src\/tests\/|src\/stories\//.test(rel))
