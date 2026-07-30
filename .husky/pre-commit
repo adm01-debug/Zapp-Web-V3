@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# pre-commit — ZAPP Web v3 (2026-07-30 — Graphify integration)
+# pre-commit — ZAPP Web v3 (Graphify integration 2026-07-30)
 set -e
 bun run lint-staged
 echo ""
