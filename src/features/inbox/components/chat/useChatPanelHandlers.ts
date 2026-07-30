@@ -8,7 +8,7 @@ import { useAuth } from '@/features/auth';
 import { Message } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
 import { dbFrom } from '@/integrations/datasource/db';
-import { isValidUUID } from '@/utils/uuid';
+import { resolveContactRef } from '@/features/inbox/utils/contactRef';
 import { type DialogKey } from './hooks/useChatDialogs';
 import { type ActiveTool } from './ChatHeaderToolbar';
 import { useInputHandlers } from './useInputHandlers';
@@ -121,10 +121,19 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         // Without them the API is never invoked, so we fail early instead
         // of updating the DB locally (which would be a false success).
         if (!instanceName || !externalId || !contactJid) {
-          const missing = [!instanceName && 'instanceName', !externalId && 'externalId', !contactJid && 'contactJid']
+          const missing = [
+            !instanceName && 'instanceName',
+            !externalId && 'externalId',
+            !contactJid && 'contactJid',
+          ]
             .filter(Boolean)
             .join(', ');
-          log.error('Cannot edit message — missing required params', { missing, instanceName, externalId, contactJid });
+          log.error('Cannot edit message — missing required params', {
+            missing,
+            instanceName,
+            externalId,
+            contactJid,
+          });
           toast({
             title: 'Erro ao editar',
             description: 'Nao foi possivel editar a mensagem. Dados da instancia incompletos.',
@@ -193,7 +202,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
 
           // Guard: whisper_messages.contact_id is uuid. When USE_EXTERNAL_DB=true,
           // opts.contactId may be a WhatsApp JID. Passing a JID causes PostgREST 400.
-          if (!isValidUUID(opts.contactId)) {
+          if (resolveContactRef(opts.contactId)?.type !== 'uuid') {
             toast({
               title: 'Sussurro indisponivel',
               description:

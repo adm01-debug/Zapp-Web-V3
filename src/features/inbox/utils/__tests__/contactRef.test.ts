@@ -37,11 +37,12 @@ describe('resolveContactRef', () => {
     expect((ref as UuidRef).value).toBe('F47AC10B-58CC-4372-A567-0E02B2C3D479');
   });
 
-  it('resolves nil UUID as type uuid', () => {
+  it('rejects nil UUID (version=0, variant=0) as non-UUID per strict RFC 4122', () => {
+    // The strict regex requires version nibble ∈ [1-8] and variant nibble ∈ [89ab].
+    // nil UUID 00000000-... has both as 0, so it falls through to JID.
     const ref = resolveContactRef('00000000-0000-0000-0000-000000000000');
     expect(ref).not.toBeNull();
-    expect(ref!.type).toBe('uuid');
-    expect((ref as UuidRef).value).toBe('00000000-0000-0000-0000-000000000000');
+    expect(ref!.type).toBe('jid');
   });
 
   // ── WhatsApp JID (@s.whatsapp.net) ────────────────────────────────────────
