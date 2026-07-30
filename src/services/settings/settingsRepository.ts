@@ -48,13 +48,11 @@ export const settingsRepository = {
       .eq('user_id', userId)
       .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
-    if (error) return null;
     return data;
   },
 
   async updateUserSettings(userId: string, updates: Partial<UserSettings>) {
-    const { data, error } = await supabase
-      .from('user_settings')
+    const { data, error } = await (supabase.from('user_settings') as any)
       .update(updates)
       .eq('user_id', userId)
       .select()
@@ -69,7 +67,7 @@ export const settingsRepository = {
       .upsert({
         user_id: userId,
         ...settings,
-      })
+      } as any)
       .select()
       .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
@@ -89,8 +87,7 @@ export const settingsRepository = {
   },
 
   async updateWorkspaceSettings(workspaceId: string, updates: Partial<WorkspaceSettings>) {
-    const { data, error } = await supabase
-      .from('workspace_settings')
+    const { data, error } = await (supabase.from('workspace_settings') as any)
       .update(updates)
       .eq('workspace_id', workspaceId)
       .select()
@@ -105,7 +102,7 @@ export const settingsRepository = {
       .upsert({
         workspace_id: workspaceId,
         ...settings,
-      })
+      } as any)
       .select()
       .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
@@ -118,16 +115,8 @@ export const settingsRepository = {
       .channel(`user_settings:${userId}`)
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'zapp',
-          table: 'user_settings',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload: { eventType: string; new: unknown; old: unknown }) => {
-          if (payload.eventType === 'DELETE') return;
-          callback(payload.new as UserSettings);
-        }
+        { event: '*', schema: 'zapp', table: 'user_settings', filter: `user_id=eq.${userId}` },
+        (payload) => callback(payload.new as UserSettings)
       )
       .subscribe();
   },
@@ -146,10 +135,7 @@ export const settingsRepository = {
           table: 'workspace_settings',
           filter: `workspace_id=eq.${workspaceId}`,
         },
-        (payload: { eventType: string; new: unknown; old: unknown }) => {
-          if (payload.eventType === 'DELETE') return;
-          callback(payload.new as WorkspaceSettings);
-        }
+        (payload) => callback(payload.new as WorkspaceSettings)
       )
       .subscribe();
   },
