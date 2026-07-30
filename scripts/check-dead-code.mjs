@@ -83,7 +83,7 @@ const allowlist = new Set(
 
 const dead = files
   .filter(f => !referenced.has(f))
-  .map(f => f.replace(ROOT + '/', ''))
+  .map(f => f.replace(ROOT, '').replace(/^[\/]/, '').replace(/\/g, '/'))
   .filter(rel => !rel.startsWith('src/components/ui/'))
   .filter(rel => !/\.(test|spec|stories)\.(ts|tsx)$/.test(rel))
   .filter(rel => !/__tests__|src\/test\/|src\/tests\/|src\/stories\//.test(rel))

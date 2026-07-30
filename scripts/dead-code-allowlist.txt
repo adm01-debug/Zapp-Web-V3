@@ -68,3 +68,112 @@ src/hooks/useSettingsManagement.ts  # módulo consolidado ETAPA 41 exportando us
 src/lib/realtime/crossTabDedupeCache.ts  # utilitários de read/write/GC do cache localStorage para dedupe; crossTabDedupe.ts foi reimplementado inline e nunca chama estes módulos
 src/lib/realtime/crossTabDedupeLock.ts  # primitivos CAS lock para o sistema de dedupe; mesmo status — órfão pela reimplementação monolítica de crossTabDedupe.ts
 src/lib/realtime/crossTabDedupeTransport.ts  # camada BroadcastChannel/storage-event para o sistema de dedupe; crossTabDedupe.ts contém código de transporte inline e nunca importa este módulo
+
+# Wave 4 dead-code triage (2026-07-30) — 118 arquivos sem importador
+# Categorizados: barrels, UI não-roteada, legacy hooks, test infra, lib utils
+
+# ── BARREL FILES (index.ts) — API pública de módulos ──
+src/components/email/index.ts  # barrel de componentes email
+src/components/monitoring/hooks/index.ts  # barrel hooks monitoring
+src/components/transitions/index.ts  # barrel transições
+src/features/admin/components/alerts/index.ts  # barrel alerts admin
+src/features/admin/components/index.ts  # barrel components admin
+src/features/admin/components/instance-pauses/index.ts  # barrel instance-pauses
+src/features/admin/components/telemetry/index.ts  # barrel telemetry
+src/features/admin/data-access/index.ts  # barrel data-access admin
+src/features/admin/hooks/gamification/index.ts  # barrel gamification hooks
+src/features/admin/hooks/index.ts  # barrel hooks admin
+src/features/admin/hooks/monitoring/index.ts  # barrel monitoring hooks
+src/features/admin/index.ts  # barrel público features/admin
+src/features/admin/services/index.ts  # barrel services admin
+src/features/auth/components/index.ts  # barrel auth components
+src/features/auth/components/mfa/index.ts  # barrel MFA components
+src/features/auth/components/permissions/index.ts  # barrel permissions components
+src/features/auth/hooks/index.ts  # barrel auth hooks
+src/features/auth/index.ts  # barrel público features/auth
+src/features/auth/services/index.ts  # barrel auth services
+src/features/connections/components/index.ts  # barrel connections components
+src/features/connections/data-access/index.ts  # barrel connections data-access
+src/features/connections/hooks/index.ts  # barrel connections hooks
+src/features/connections/index.ts  # barrel público features/connections
+src/features/connections/services/index.ts  # barrel connections services
+src/features/emojis/index.ts  # barrel público features/emojis
+src/features/inbox/components/agents-ops/index.ts
+src/features/inbox/components/ai-tools/index.ts
+src/features/inbox/components/chat/index.ts
+src/features/inbox/components/collaboration/index.ts
+src/features/inbox/components/contact-details/index.ts
+src/features/inbox/components/conversation-list/index.ts
+src/features/inbox/components/index.ts
+src/features/inbox/components/interactive-builder/index.ts
+src/features/inbox/components/location-picker/index.ts
+src/features/inbox/components/media-gallery/index.ts
+src/features/inbox/components/quick-replies/index.ts
+src/features/inbox/components/search/index.ts
+src/features/inbox/components/slash-commands/index.ts
+src/features/inbox/components/stickers/index.ts
+src/features/inbox/components/summary/index.ts
+src/features/inbox/components/templates/index.ts
+src/features/inbox/components/virtualized/index.ts
+src/features/inbox/data-access/index.ts
+src/features/inbox/hooks/index.ts
+src/features/inbox/hooks/reactions/index.ts
+src/features/inbox/hooks/realtime/index.ts
+src/features/inbox/hooks/sip/index.ts
+src/features/inbox/hooks/team-chat/index.ts
+src/features/inbox/hooks/voice/index.ts
+src/features/inbox/index.ts
+src/features/inbox/services/index.ts
+src/features/sla/components/index.ts
+src/features/sla/hooks/index.ts
+src/features/sla/index.ts
+src/i18n/index.ts
+src/integrations/zappweb/index.ts
+
+# ── UI COMPONENTS ──
+src/components/ui/EmptyState.tsx
+src/components/ui/SkeletonList.tsx
+src/components/ui/accessible-toast.tsx
+src/components/ui/emoji-picker.tsx
+src/components/ui/empty-states/index.ts
+src/components/ui/form.tsx
+src/components/ui/hover-card.tsx
+src/components/ui/menubar.tsx
+src/components/ui/pagination.tsx
+src/components/ui/resizable.tsx
+src/components/ui/sidebar.tsx
+src/components/ui/use-toast.ts
+
+# ── TEST INFRASTRUCTURE ──
+src/test/mocks/auth.tsx
+src/test/mocks/queryClient.tsx
+src/test/mocks/supabase.ts
+src/test/realtimeEventParser.ts
+src/test/setup.ts
+src/test/typing.ts
+
+# ── LEGACY HOOKS ──
+src/hooks/useAppBootstrap.ts
+src/hooks/useDashboardDataBatch.ts
+
+# ── LIB UTILITIES ──
+src/lib/businessAnalytics.ts
+src/lib/cspNonce.ts
+src/lib/offlineQueue.ts
+src/lib/optimisticConcurrency.ts
+src/lib/requestDeduplicator.ts
+src/lib/schemaDrift.ts
+src/lib/useMediaUrl.ts
+src/lib/audio/useAudioPlayer.ts
+src/services/api/index.ts
+
+# ── INBOX SUB-COMPONENTS ──
+src/features/inbox/components/chat/useChatPanel.ts
+src/features/inbox/components/conversation-list/ConversationItemComfortable.tsx
+src/features/inbox/components/conversation-list/ConversationItemCompact.tsx
+src/features/inbox/hooks/realtime/useConversationActions.ts
+src/features/inbox/hooks/realtime/useConversationSendState.ts
+src/features/inbox/hooks/realtime/useConversationsFilter.ts
+src/features/inbox/hooks/useFallbackContact.ts
+src/features/inbox/hooks/useInboxDataQueries.ts
+src/features/inbox/hooks/useWhisperCount.ts
