@@ -2,7 +2,7 @@ name: 🗂️ Generate Supabase Types (zapp)
 
 on:
   schedule:
-    - cron: '0 6 * * 1'
+    - cron: '0 6 * * 1'  # Mondays 06:00 UTC
   workflow_dispatch:
 
 permissions:
@@ -10,34 +10,55 @@ permissions:
   pull-requests: write
 
 jobs:
-  gen-types:
-    name: Generate & PR types.ts
+  generate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@v1
         with:
-          bun-version: 1.3.x
+          bun-version: latest
 
-      - name: Install Supabase CLI
-        run: npm install -g supabase@latest
-
-      - name: Generate types
+      - name: Generate types via postgres-meta API
         run: |
-          supabase gen types typescript \
-            --db-url "${{ secrets.SUPABASE_DB_URL }}" \
-            --schema zapp,evo,public > src/integrations/supabase/types.ts
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          # Uses postgres-meta HTTP API instead of supabase gen types --db-url
+          # because the Supavisor transaction pooler blocks pg_dump.
+          # Requires ZAPP_META_URL and ZAPP_META_TOKEN secrets.
+          
+          if [ -z "${{ secrets.ZAPP_META_URL }}" ] || [ -z "${{ secrets.ZAPP_META_TOKEN }}" ]; then
+            echo "::warning::ZAPP_META_URL or ZAPP_META_TOKEN not configured — skipping type generation"
+            echo "Configure these secrets to enable automatic type generation."
+            exit 0
+          fi
+
+          curl -sS -o types.ts \
+            -H "apikey: ${{ secrets.ZAPP_META_TOKEN }}" \
+            -H "Authorization: Bearer ${{ secrets.ZAPP_META_TOKEN }}" \
+            "${{ secrets.ZAPP_META_URL }}/generators/typescript?included_schemas=public,zapp,evo&detect_one_to_one_relationships=true"
+
+          TARGET="src/integrations/supabase/types.ts"
+          if [ -s types.ts ] && grep -q "export type Database" types.ts; then
+            mv types.ts "$TARGET"
+            echo "✅ types.ts regenerated ($(wc -c < "$TARGET") bytes)"
+          else
+            echo "::warning::Generated types.ts is empty or invalid — keeping current version"
+            rm -f types.ts
+            exit 0
+          fi
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7
+        if: success()
+        uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: 'chore(types): regenera types.ts via supabase gen'
-          title: '🗂️ chore(types): regenera types.ts'
-          branch: 'chore/regen-types'
+          commit-message: 'chore(types): regenerate types.ts (schedule + postgres-meta API)'
+          title: 'chore(types): regenerate Supabase types (zapp+evo+public)'
+          body: |
+            Automated types regeneration via postgres-meta HTTP API.
+            
+            - **Schemas:** public, zapp, evo
+            - **Source:** ${{ secrets.ZAPP_META_URL }}
+            
+            Review before merging.
+          branch: chore/regen-types
           delete-branch: true
-          labels: 'types,automated'
