@@ -1,4 +1,6 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { lazyWithRetry } from '@/lib/lazyWithRetry';
+import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
 import { BrowserRouter } from 'react-router-dom';
 import { getLogger } from '@/lib/logger';
 import { Toaster } from '@/components/ui/toaster';
@@ -21,18 +23,18 @@ import { TransitionProvider } from '@/components/transitions';
 const log = getLogger('App');
 
 // Deferred non-critical providers loaded after first paint
-const RealtimeSentimentAlertProvider = lazy(() =>
+const RealtimeSentimentAlertProvider = lazyWithRetry(() =>
   import('@/components/notifications/UnifiedNotificationProviders').then((m) => ({
     default: m.RealtimeSentimentAlertProvider,
   }))
 );
-const IncomingCallAlert = lazy(() =>
+const IncomingCallAlert = lazyWithRetry(() =>
   import('@/components/calls/IncomingCallAlert').then((m) => ({ default: m.IncomingCallAlert }))
 );
-const EasterEggsProvider = lazy(() =>
+const EasterEggsProvider = lazyWithRetry(() =>
   import('@/components/effects/EasterEggs').then((m) => ({ default: m.EasterEggsProvider }))
 );
-const InAppNotificationProvider = lazy(() =>
+const InAppNotificationProvider = lazyWithRetry(() =>
   import('@/components/mobile/InAppNotificationProvider').then((m) => ({
     default: m.InAppNotificationProvider,
   }))
@@ -45,13 +47,15 @@ const InAppNotificationProvider = lazy(() =>
  */
 function DeferredProviders() {
   return (
-    <Suspense fallback={null}>
-      <RealtimeSentimentAlertProvider />
-      <IncomingCallAlert />
-      <InAppNotificationProvider>
-        <EasterEggsProvider />
-      </InAppNotificationProvider>
-    </Suspense>
+    <ErrorBoundary fallback={null}>
+      <Suspense fallback={null}>
+        <RealtimeSentimentAlertProvider />
+        <IncomingCallAlert />
+        <InAppNotificationProvider>
+          <EasterEggsProvider />
+        </InAppNotificationProvider>
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 
@@ -59,7 +63,7 @@ function DeferredProviders() {
  * Deferred hooks component — lazy-loaded so hooks don't run until after first paint.
  * Plain function (no forwardRef): renders nothing, exists only to call hooks.
  */
-const DeferredHooks = lazy(() =>
+const DeferredHooks = lazyWithRetry(() =>
   import('@/hooks/useServiceWorker').then((swMod) =>
     import('@/features/auth').then((spMod) =>
       import('@/lib/buildVersion').then((bvMod) => ({

@@ -24,8 +24,21 @@ const CURRENT_BUILD_ID: string =
 
 const VERSION_URL = '/version.json';
 const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 min
-const RELOAD_FLAG = 'zapp-build-reload-once';
+const RELOAD_STATE_KEY = 'zapp-build-reload-state';
 const SW_PURGE_FLAG = 'zapp-workbox-purged-once';
+
+// Cota de reloads por alvo: até 2 hard reloads para o MESMO targetBuildId,
+// dentro de uma janela de 10min desde a primeira tentativa. Um deploy novo
+// (targetBuildId diferente) zera o contador — sem isso, 2 deploys seguidos na
+// mesma sessão deixariam o mismatch genuíno abortado para sempre.
+const MAX_RELOADS_PER_TARGET = 2;
+const RELOAD_WINDOW_MS = 10 * 60 * 1000;
+
+interface ReloadState {
+  targetBuildId: string;
+  attempts: number;
+  firstAttemptAt: number;
+}
 
 let started = false;
 let intervalId: ReturnType<typeof setInterval> | undefined;
@@ -45,9 +58,10 @@ async function detectAndPurgeStaleWorkboxSW(): Promise<void> {
     const hasWorkbox = keys.some((k) => /^workbox-(precache|runtime)/i.test(k));
     if (!hasWorkbox) return;
     log.warn('[buildVersion] Workbox cache entries detected — purging.', keys);
+    // One-shot isolado: o flag é gravado pelo forceBundleRefresh quando chamado
+    // SEM targetBuildId (registro isolado), para não consumir a cota de mismatch.
     const already = sessionStorage.getItem(SW_PURGE_FLAG) === '1';
     if (already) return;
-    try { sessionStorage.setItem(SW_PURGE_FLAG, '1'); } catch { /* noop */ }
     await forceBundleRefresh('stale-workbox-cache');
   } catch {
     workboxChecked = false;
@@ -73,26 +87,95 @@ async function purgeClientCaches(): Promise<void> {
   }
 }
 
-/**
- * Wipe caches + SW and force a hard reload. Guarded so a broken deploy cannot
- * pin the tab in an infinite reload loop (a second mismatch within the same
- * session bails out and just logs).
- */
-export async function forceBundleRefresh(reason: string): Promise<void> {
-  log.warn('[buildVersion] Forcing bundle refresh:', reason);
-  const alreadyReloaded = sessionStorage.getItem(RELOAD_FLAG) === '1';
-  await purgeClientCaches();
-  if (alreadyReloaded) {
-    log.error(
-      '[buildVersion] Version mismatch persists after reload — aborting to avoid loop.',
-    );
-    return;
-  }
+function readReloadState(): ReloadState | null {
   try {
-    sessionStorage.setItem(RELOAD_FLAG, '1');
+    const raw = sessionStorage.getItem(RELOAD_STATE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as ReloadState;
+    if (
+      typeof parsed?.attempts !== 'number' ||
+      typeof parsed.targetBuildId !== 'string' ||
+      typeof parsed.firstAttemptAt !== 'number'
+    ) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Decide se um reload é permitido e, se for, grava a tentativa.
+ *
+ * - Com targetBuildId (mismatch genuíno de version.json/SW): registro
+ *   estruturado em `zapp-build-reload-state`, cota de 2 reloads por alvo com
+ *   expiração de 10min. Alvo diferente → contador zera.
+ * - Sem targetBuildId (ex.: purge de workbox stale): registro ISOLADO
+ *   one-shot (`zapp-workbox-purged-once`) que não contamina a cota de mismatch.
+ *
+ * Retorna false quando a cota foi excedida (abort — sem purge, sem reload).
+ */
+function acquireReloadQuota(targetBuildId?: string): boolean {
+  if (!targetBuildId) {
+    try {
+      if (sessionStorage.getItem(SW_PURGE_FLAG) === '1') return false;
+      sessionStorage.setItem(SW_PURGE_FLAG, '1');
+    } catch {
+      /* storage full / disabled — reload anyway */
+    }
+    return true;
+  }
+  const now = Date.now();
+  let state = readReloadState();
+  if (
+    !state ||
+    state.targetBuildId !== targetBuildId ||
+    now - state.firstAttemptAt > RELOAD_WINDOW_MS
+  ) {
+    // Primeira tentativa para este alvo (ou registro expirado) — zera contador.
+    state = { targetBuildId, attempts: 0, firstAttemptAt: now };
+  }
+  if (state.attempts >= MAX_RELOADS_PER_TARGET) return false;
+  state.attempts += 1;
+  try {
+    sessionStorage.setItem(RELOAD_STATE_KEY, JSON.stringify(state));
   } catch {
     /* storage full / disabled — reload anyway */
   }
+  return true;
+}
+
+/**
+ * Wipe caches + SW and force a hard reload. Guarded so a broken deploy cannot
+ * pin the tab in an infinite reload loop: a per-target quota (2 reloads, 10min
+ * window) bails out and surfaces a `zapp-update-required` event instead of
+ * purging/unregistering blindly.
+ *
+ * A decisão de cota acontece ANTES de qualquer purge — no abort não
+ * desregistramos SWs nem limpamos caches (evita o ciclo unregister →
+ * re-register → activate que gerava spam de logs e deixava o app morto).
+ */
+export async function forceBundleRefresh(
+  reason: string,
+  targetBuildId?: string,
+): Promise<void> {
+  log.warn('[buildVersion] Forcing bundle refresh:', reason, { targetBuildId });
+  if (!acquireReloadQuota(targetBuildId)) {
+    log.error(
+      '[buildVersion] Version mismatch persists after reload — aborting to avoid loop.',
+      { targetBuildId },
+    );
+    window.dispatchEvent(
+      new CustomEvent('zapp-update-required', {
+        // 'unknown' quando não há alvo (ex.: purge de workbox) — o banner tipa
+        // remote como string e não deve renderizar "undefined" na UI.
+        detail: { current: CURRENT_BUILD_ID, remote: targetBuildId ?? 'unknown' },
+      }),
+    );
+    return;
+  }
+  await purgeClientCaches();
   // Bypass query param — CDNs that respeitam query invalidam o cache-edge.
   try {
     const url = new URL(window.location.href);
@@ -133,6 +216,18 @@ async function checkVersion(): Promise<void> {
       return;
     }
     if (!res.ok) return;
+    // Valida o content-type ANTES de res.json(): quando /version.json cai no
+    // rewrite SPA (deploy sem o arquivo), o servidor responde text/html e
+    // res.json() lançaria SyntaxError — engolido pelo catch vazio, deixando o
+    // watcher permanentemente cego. Aqui logamos e saímos sem forçar refresh.
+    const contentType = res.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      log.warn(
+        '[buildVersion] version.json returned non-JSON (likely SPA fallback)',
+        { contentType },
+      );
+      return;
+    }
     const payload = (await res.json()) as { buildId?: string } | null;
     const remote = payload?.buildId;
     if (!remote || remote === CURRENT_BUILD_ID) {
@@ -140,7 +235,7 @@ async function checkVersion(): Promise<void> {
         // Build atual bate com o servidor — limpa TODAS as flags de guarda para
         // evitar que uma sessao antiga fique presa em estado de "purga".
         try {
-          sessionStorage.removeItem(RELOAD_FLAG);
+          sessionStorage.removeItem(RELOAD_STATE_KEY);
           sessionStorage.removeItem(SW_PURGE_FLAG);
         } catch { /* noop */ }
       }
@@ -148,6 +243,7 @@ async function checkVersion(): Promise<void> {
     }
     await forceBundleRefresh(
       `client=${CURRENT_BUILD_ID} server=${remote}`,
+      remote,
     );
   } catch {
     /* offline / timeout / network hiccup — retry next tick */
@@ -228,4 +324,11 @@ export function getCurrentBuildId(): string {
   return CURRENT_BUILD_ID;
 }
 
-export const __TEST__ = { CURRENT_BUILD_ID };
+export const __TEST__ = {
+  CURRENT_BUILD_ID,
+  RELOAD_STATE_KEY,
+  SW_PURGE_FLAG,
+  MAX_RELOADS_PER_TARGET,
+  RELOAD_WINDOW_MS,
+  readReloadState,
+};

@@ -48,13 +48,15 @@ const emitVersionJsonPlugin = () => ({
 });
 
 // Vite plugin: stamps public/sw.js copied into dist with the current BUILD_ID
-// and appends an explicit purge of legacy Workbox precache buckets. This is the
+// and appends a single `activate` listener that notifies open tabs. This is the
 // "publish pipeline step" that invalidates the old Service Worker automatically:
 //   1. Stamping the build id guarantees a byte-diff on every deploy, so the
 //      browser sees the SW as changed and runs install/activate.
-//   2. The appended block deletes `workbox-precache-*` / `workbox-runtime-*`
-//      caches on activate and postMessages a `SW_UPDATED` event to all clients
-//      so open tabs reload into the fresh bundle.
+//   2. The appended `activate` listener postMessages a `SW_UPDATED` event to all
+//      clients so open tabs reload into the fresh bundle.
+// NOTE: install/skipWaiting and the ALL-caches purge live in public/sw.js itself.
+//      This plugin deliberately adds NO install listener — a second install
+//      handler would duplicate the lifecycle work on every SW cycle.
 const stampSwVersionPlugin = () => ({
   name: 'zapp-stamp-sw-version',
   apply: 'build' as const,
@@ -69,23 +71,12 @@ const stampSwVersionPlugin = () => ({
         `// ZAPP_SW_BUILD_ID=${BUILD_ID}\n` +
         `// Auto-injected by stampSwVersionPlugin — do not edit in dist/.\n` +
         `self.__ZAPP_SW_BUILD_ID = ${JSON.stringify(BUILD_ID)};\n`;
-      const purgeAndNotify = `
+      const notifyClients = `
 
-// -- Auto-injected: invalidate legacy Workbox SW + notify open clients --
-self.addEventListener('install', (event) => {
-  event.waitUntil((async () => {
-    try {
-      const keys = await caches.keys();
-      const legacy = keys.filter((k) =>
-        /^workbox-precache-v\\d+/.test(k) || /^workbox-runtime-/.test(k) || /workbox/i.test(k)
-      );
-      await Promise.all(legacy.map((k) => caches.delete(k).catch(() => false)));
-      if (legacy.length) {
-        console.log('[ServiceWorker] Purged legacy Workbox caches on install:', legacy);
-      }
-    } catch (_e) { /* Cache Storage unavailable — non-fatal */ }
-  })());
-});
+// -- Auto-injected by stampSwVersionPlugin: notify open clients of the new build --
+// install/skipWaiting and the ALL-caches purge are owned by public/sw.js.
+// This listener ONLY broadcasts SW_UPDATED after activation, so open tabs
+// hard-reload into the fresh bundle. No cache purging here (redundant).
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     try {
@@ -97,7 +88,7 @@ self.addEventListener('activate', (event) => {
   })());
 });
 `;
-      await fs.writeFile(swPath, banner + original + purgeAndNotify, 'utf8');
+      await fs.writeFile(swPath, banner + original + notifyClients, 'utf8');
     } catch (err) {
       // Non-fatal: sw.js may be absent in some builds; publish should not break.
       console.warn('[stampSwVersionPlugin] Could not stamp sw.js:', (err as Error).message);

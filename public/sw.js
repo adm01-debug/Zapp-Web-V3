@@ -1,4 +1,13 @@
 // Push-only service worker. NEVER caches app shell.
+//
+// Lifecycle ownership:
+//   - install  -> skipWaiting() only (no cache priming; push-only SW).
+//   - activate -> clients.claim() + purge ALL caches (no app-shell caching).
+// At build time, stampSwVersionPlugin (vite.config.ts) appends a SECOND
+// `activate` listener that postMessages SW_UPDATED (buildId) to open tabs and
+// stamps self.__ZAPP_SW_BUILD_ID (byte-diff per deploy). The plugin adds NO
+// install listener — this file owns install/skipWaiting, so the final dist/sw.js
+// has exactly ONE install handler and TWO activate handlers (purge + notify).
 self.addEventListener('install', (event) => {
   console.log('[ServiceWorker] Install');
   // FIX: event.waitUntil() ensures skipWaiting() fully resolves before activate.
