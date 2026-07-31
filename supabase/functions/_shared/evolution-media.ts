@@ -67,7 +67,7 @@ export async function persistMediaToStorage(
     return null;
   }
   try {
-    const resp = await fetch(cdnUrl, { signal: AbortSignal.timeout(15000), redirect: 'error' });
+    const resp = await fetch(cdnUrl, { signal: AbortSignal.timeout(30000), redirect: 'error' });
     if (!resp.ok) { console.error(`[MEDIA] Download failed (${resp.status}) for ${messageType}`); return null; }
 
     const arrayBuf = await resp.arrayBuffer();
@@ -117,7 +117,7 @@ export async function persistMediaViaApi(
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': evolutionKey },
       body: JSON.stringify({ message: { key: data.key, message: data.message }, convertToMp4: false }),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(30000),
     });
 
     if (!resp.ok) { console.error(`[MEDIA] getBase64 API error (${resp.status})`); return null; }

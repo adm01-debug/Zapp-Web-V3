@@ -278,7 +278,7 @@ export async function handleStickerMedia(
         const resp = await fetch(apiUrl, {
           method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionKey },
           body: JSON.stringify({ message: { key: data.key, message: data.message }, convertToMp4: false }),
-          signal: AbortSignal.timeout(15000),
+          signal: AbortSignal.timeout(30000),
         });
         if (resp.ok) {
           const result = await resp.json();
