@@ -419,6 +419,24 @@ describe('useContactIntelligence — simulação (fix 2026-07-31)', () => {
       ]);
     });
 
+    it('F1: total_messages=0 mas days_since_contact=5 → fallback NAO roda (query pesada pulada)', async () => {
+      // F1 (revisao Claude): o fallback so tem efeito em lastAt; com
+      // days_since_contact preenchido, lastAt existe e a query de 23+ particoes
+      // seria trabalho jogado fora.
+      sb.setResult('contact_intelligence', {
+        data: { total_messages: 0, days_since_contact: 5 },
+        error: null,
+      });
+
+      const { result } = renderIntel(PHONE_13);
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      expect(sb.calls.from).toEqual(['contact_intelligence']);
+      expect(sb.calls.in).toEqual([]);
+      expect(result.current.intelligence?.briefing.days_since_last_contact).toBe(5);
+      expect(result.current.intelligence?.briefing.total_interactions).toBe(0);
+    });
+
     it('total_messages>0 mas days_since_contact=null → fallback roda e days vem do created_at', async () => {
       sb.setResult('contact_intelligence', {
         data: { total_messages: 42, days_since_contact: null },

@@ -300,12 +300,17 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
           ? new Date(Date.now() - raw.days_since_contact * 24 * 60 * 60 * 1000)
           : null;
 
-      if (!totalMessages || !lastAt) {
+      // F1 (revisao Claude): o fallback so tem efeito em `lastAt` (o count saiu
+      // no PR #645 e a linha 351 so escreve lastAt). Quando days_since_contact
+      // ja preencheu lastAt, rodar a query pesada e trabalho jogado fora.
+      if (!lastAt) {
         // Guard de LID aplicado AQUI (query pesada em evolution_messages, 23+
         // particoes): phone com 14+ digitos nao e DDI+DDD+numero BR -- e LID do
         // WhatsApp (ex.: '551199384518134' tem 15) e nunca existira como
-        // remote_jid sargable; pular evita varredura inutil. O lookup barato
-        // em contact_intelligence (acima) JA rodou para qualquer phone >= 8.
+        // remote_jid sargable; pular evita varredura inutil. O mesmo guard
+        // (10-13 digitos) cobre numeros curtos sem DDI, que tambem nao existem
+        // como remote_jid. O lookup barato em contact_intelligence (acima) JA
+        // rodou para qualquer phone >= 8.
         const phoneDigits = ident.kind === 'phone' ? ident.value : null;
         const isLid = phoneDigits != null && (phoneDigits.length > 13 || phoneDigits.length < 10);
         if (!isLid) {
