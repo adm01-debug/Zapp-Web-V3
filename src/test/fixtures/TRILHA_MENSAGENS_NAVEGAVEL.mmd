@@ -53,7 +53,7 @@ flowchart LR
 
   subgraph RENDER["6. Render"]
     MSI["MessageStatusInline"]
-    VML["VirtualizedMessageList"]
+    CMA2["ChatMessagesArea (virtualizado)"]
     MB["MessageBubble"]
   end
 
@@ -131,8 +131,8 @@ flowchart LR
   %% Render
   UMSS --> MSI
   UMS --> MSI
-  UM --> VML
-  VML --> MB
+  UM --> CMA2
+  CMA2 --> MB
   MSI --> MB
   UTN -.-> MB
 
@@ -164,7 +164,7 @@ flowchart LR
   click URMG "src/hooks/useRealtimeMessages.ts"
   click URN "src/features/inbox/hooks/realtime/useRealtimeNotifications.ts"
   click UTN "src/hooks/useTranscriptionNotifications.ts"
-  click VML "src/features/inbox/components/VirtualizedMessageList.tsx"
+  click CMA2 "src/features/inbox/components/chat/ChatMessagesArea.tsx"
   %% AUTO:CLICKS:END
 
 %% AUTO:LEGEND:START — gerado por scripts/regen-trilha-mensagens.ts
