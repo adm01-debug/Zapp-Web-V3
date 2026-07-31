@@ -4,6 +4,7 @@
 // data is missing so the panel always renders a usable state.
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { ContactIntelligenceRow } from '@/integrations/supabase/types-manual';
 import { log } from '@/lib/logger';
 import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { isValidUUID } from '@/utils/uuid';
@@ -114,21 +115,26 @@ export interface ContactIntelligenceView {
   disc_tips: DISCTips | null;
 }
 
-interface RawIntel {
-  contact_id?: string;
-  sentiment?: string | null;
-  engagement_score?: number | null;
-  predicted_value?: number | null;
-  risk_level?: string | null;
-  disc_profile?: string | null;
-  // Colunas REAIS de zapp.contact_intelligence (verificadas no banco 2026-07-31).
-  // ATENCAO: 'total_interactions' e 'last_contact_at' NAO existem no schema --
-  // os nomes corretos sao total_messages (contagem do pipeline) e
-  // days_since_contact (dias desde o ultimo contato). Usar os nomes errados
-  // fazia o fallback de evolution_messages rodar SEMPRE e o briefing exibir 0.
-  total_messages?: number | null;
-  days_since_contact?: number | null;
-}
+/**
+ * RawIntel = campos de zapp.contact_intelligence usados pelo hook, derivados
+ * do tipo verificado ContactIntelligenceRow (espelho do information_schema).
+ * Todos os campos opcionais para tolerar linhas parcialmente nulas.
+ * NAO adicionar colunas que nao existem no banco: o TS agora valida (a
+ * interface espelha o tipo real, nao ha mais cast `as never` escondendo).
+ */
+type RawIntel = Pick<
+  ContactIntelligenceRow,
+  | 'contact_id'
+  | 'sentiment'
+  | 'engagement_score'
+  | 'predicted_value'
+  | 'risk_level'
+  | 'disc_profile'
+  | 'total_messages'
+  | 'days_since_contact'
+> & {
+  [K in keyof ContactIntelligenceRow]?: ContactIntelligenceRow[K] | null;
+};
 
 const DISC_TEMPLATES: Record<'D' | 'I' | 'S' | 'C', DISCTips> = {
   D: {
@@ -281,13 +287,17 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
         // `error`, senao um 400 vira `data: null` silencioso -- foi exatamente
         // isso que manteve este bug invisivel em producao.
         const { data: intel, error } = await supabase
+          // `as never` e obrigatorio: o schema zapp nao esta no types.ts gerado
+          // (debito documentado em types-manual.ts). O TIPO DO RESULTADO usa
+          // ContactIntelligenceRow (espelho verificado) -- coluna inexistente
+          // como total_interactions agora quebra o typecheck.
           .from('contact_intelligence' as never)
           .select('*')
           .or(ident.kind === 'uuid' ? `contact_id.eq.${ident.value}` : `phone.eq.${ident.value}`)
           .limit(1)
           .maybeSingle();
         if (error) log.warn('contact_intelligence lookup failed:', error.message);
-        raw = (intel ?? null) as unknown as RawIntel | null; // ignore-audit — contact_intelligence maybeSingle() returns Row|null with no overlap to RawIntel; bridge is intentional
+        raw = (intel ?? null) as unknown as RawIntel | null; // ignore-audit — ponte intencional: Row do PostgREST (schema zapp fora do types gerado) → RawIntel verificado
       } catch (err) {
         log.warn('contact_intelligence lookup threw:', err);
       }
