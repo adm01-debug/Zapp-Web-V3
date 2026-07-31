@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { queryExternalProxy, __testing } from '../externalProxy';
+import { isServerHealthError } from '../externalProxyFetch';
 import { recordQueryEvent, recordRetryOutcome } from '@/lib/clientTelemetry';
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
@@ -392,6 +393,141 @@ describe('circuit breaker', () => {
     expect(__testing!.isBreakerOpen('test').open).toBe(true);
     __testing!.resetBreakerAndCoalesce();
     expect(__testing!.isBreakerOpen('test').open).toBe(false);
+  });
+});
+
+// ── health circuit breaker (server degradation) ──────────────────────────────
+
+describe('health circuit breaker — backend degradado (5xx / pool)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const usePoolError = () =>
+    __testing!.setInvokeOverride(
+      makeErrorOverride('FunctionsHttpError', 'Timed out acquiring connection from connection pool.', 500)
+    );
+
+  const failTimes = async (n: number, table = 'test') => {
+    for (let i = 0; i < n; i++) {
+      await queryExternalProxy({ table }).catch(() => {});
+    }
+  };
+
+  it('permanece fechado após 2 falhas de pool; abre na 3ª (threshold=3)', async () => {
+    usePoolError();
+    await failTimes(2);
+    expect(__testing!.isBreakerOpen('test').open).toBe(false);
+    await failTimes(1);
+    expect(__testing!.isBreakerOpen('test').open).toBe(true);
+  });
+
+  it('short-circuita chamadas seguintes com erro "circuit open"', async () => {
+    usePoolError();
+    await failTimes(3);
+    await expect(queryExternalProxy({ table: 'test' })).rejects.toThrow('circuit open');
+  });
+
+  it('auto-fecha após 60s de cooldown', async () => {
+    usePoolError();
+    await failTimes(3);
+    expect(__testing!.isBreakerOpen('test').open).toBe(true);
+    vi.advanceTimersByTime(60_001);
+    expect(__testing!.isBreakerOpen('test').open).toBe(false);
+  });
+
+  it('falhas espaçadas além da janela de 30s não acumulam', async () => {
+    usePoolError();
+    await failTimes(2);
+    vi.advanceTimersByTime(31_000);
+    await failTimes(1);
+    expect(__testing!.isBreakerOpen('test').open).toBe(false);
+  });
+
+  it('400 "Bad Request" genérico NÃO abre o health breaker', async () => {
+    __testing!.setInvokeOverride(makeErrorOverride('FunctionsHttpError', 'Bad Request', 400));
+    await failTimes(5);
+    expect(__testing!.isBreakerOpen('test').open).toBe(false);
+  });
+
+  it('400 "Database connection error. Retrying the connection." abre o health breaker', async () => {
+    __testing!.setInvokeOverride(
+      makeErrorOverride('FunctionsHttpError', 'Database connection error. Retrying the connection.', 400)
+    );
+    await failTimes(3);
+    expect(__testing!.isBreakerOpen('test').open).toBe(true);
+  });
+
+  it('após o cooldown, chamada bem-sucedida mantém o breaker fechado', async () => {
+    usePoolError();
+    await failTimes(3);
+    expect(__testing!.isBreakerOpen('test').open).toBe(true);
+    vi.advanceTimersByTime(60_001);
+    __testing!.setInvokeOverride(makeSuccessOverride([{ id: 1 }], 1));
+    const result = await queryExternalProxy({ table: 'test' });
+    expect(result.data).toEqual([{ id: 1 }]);
+    expect(__testing!.isBreakerOpen('test').open).toBe(false);
+  });
+
+  it('health breaker é independente por target', async () => {
+    usePoolError();
+    await failTimes(3, 'contacts');
+    expect(__testing!.isBreakerOpen('contacts').open).toBe(true);
+    expect(__testing!.isBreakerOpen('messages').open).toBe(false);
+  });
+
+  it('resetBreakerAndCoalesce limpa o health breaker', async () => {
+    usePoolError();
+    await failTimes(3);
+    expect(__testing!.isBreakerOpen('test').open).toBe(true);
+    __testing!.resetBreakerAndCoalesce();
+    expect(__testing!.isBreakerOpen('test').open).toBe(false);
+  });
+});
+
+// ── isServerHealthError classification ────────────────────────────────────────
+
+describe('isServerHealthError — classificação', () => {
+  it('classifica 5xx como health error', () => {
+    expect(isServerHealthError({ name: 'FunctionsHttpError', message: 'HTTP 500', status: 500 })).toBe(true);
+    expect(isServerHealthError({ name: 'FunctionsHttpError', message: 'HTTP 503', status: 503 })).toBe(true);
+  });
+
+  it('classifica mensagens de pool/database como health error mesmo com 400', () => {
+    expect(
+      isServerHealthError({
+        name: 'FunctionsHttpError',
+        message: 'Timed out acquiring connection from connection pool.',
+        status: 500,
+      })
+    ).toBe(true);
+    expect(
+      isServerHealthError({
+        name: 'FunctionsHttpError',
+        message: 'Database connection error. Retrying the connection.',
+        status: 400,
+      })
+    ).toBe(true);
+  });
+
+  it('NÃO classifica 400 genérico nem 401/403 como health error', () => {
+    expect(isServerHealthError({ name: 'FunctionsHttpError', message: 'Bad Request', status: 400 })).toBe(false);
+    expect(isServerHealthError({ name: 'FunctionsHttpError', message: 'Unauthorized', status: 401 })).toBe(false);
+    expect(isServerHealthError({ name: 'FunctionsHttpError', message: 'Forbidden', status: 403 })).toBe(false);
+  });
+});
+
+// ── telemetria única por falha ────────────────────────────────────────────────
+
+describe('queryExternalProxy — telemetria sem duplicação', () => {
+  it('registra UMA ÚNICA query event por falha HTTP (sem re-record no catch)', async () => {
+    __testing!.setInvokeOverride(makeErrorOverride('FunctionsHttpError', 'HTTP 500', 500));
+    await queryExternalProxy({ table: 'contacts' }).catch(() => {});
+    expect(recordQueryEvent).toHaveBeenCalledTimes(1);
   });
 });
 
