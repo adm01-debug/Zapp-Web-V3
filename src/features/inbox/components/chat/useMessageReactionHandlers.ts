@@ -13,7 +13,6 @@ interface UseMessageReactionHandlersOptions {
   setReplyToMessage: React.Dispatch<React.SetStateAction<Message | null>>;
   setForwardMessage: React.Dispatch<React.SetStateAction<Message | null>>;
   openDialog: (key: DialogKey) => void;
-  instanceName?: string;
 }
 
 /** use Message Reaction Handlers component for the chat section. */
@@ -23,7 +22,6 @@ export function useMessageReactionHandlers({
   setReplyToMessage,
   setForwardMessage,
   openDialog,
-  instanceName = 'wpp2',
 }: UseMessageReactionHandlersOptions) {
   const forwardMessageRef = useRef(forwardMessage);
   forwardMessageRef.current = forwardMessage;

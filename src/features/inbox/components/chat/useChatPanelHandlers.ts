@@ -411,7 +411,6 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
       setReplyToMessage,
       setForwardMessage,
       openDialog,
-      instanceName,
     });
 
   // ── BUG-03: callbacks reais dos slash commands ─────────────────────────────
