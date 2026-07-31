@@ -21,7 +21,7 @@ export interface UseTypingPresenceParams {
   currentUserName?: string;
 }
 
-/** Contrato de retorno do hook, consumido por ChatPanel e useChatPanel. */
+/** Contrato de retorno do hook, consumido por ChatPanel. */
 export interface UseTypingPresenceResult {
   typingUsers: TypingUser[];
   handleTypingStart: () => void;
