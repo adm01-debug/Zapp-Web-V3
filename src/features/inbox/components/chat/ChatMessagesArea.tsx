@@ -105,6 +105,32 @@ export const ChatMessagesArea = memo(
       const messageRefsRef = useRef<Map<string, HTMLDivElement>>(new Map());
       const messageIndexRef = useRef<Map<string, number>>(new Map());
 
+      // ── scrollMargin ──────────────────────────────────────────────────────────
+      // Distancia do topo do scroll container ate o inicio do bloco virtual.
+      // Necessario porque conteudo estatico (ChatWatermark + banner de
+      // criptografia) precede o bloco, deslocando os offsets em ~150-220px.
+      // Sem isso, o virtualizer renderiza items errados na viewport e o
+      // translateY posiciona items com offset incorreto.
+      const listStartRef = useRef<HTMLDivElement>(null);
+      const [scrollMargin, setScrollMargin] = useState(0);
+
+      const hasMessages = messages.length > 0;
+      useLayoutEffect(() => {
+        const el = listStartRef.current;
+        const container = scrollContainerRef.current;
+        if (!el || !container) return;
+
+        const measure = () => {
+          setScrollMargin(el.offsetTop);
+        };
+        measure();
+
+        // Re-mede quando o container redimensiona (resize de janela ou painel)
+        const ro = new ResizeObserver(measure);
+        ro.observe(container);
+        return () => ro.disconnect();
+      }, [hasMessages]); // re-executa quando banner aparece/some
+
       // Rebuild index map when messages change (cheap: O(n) once per render batch)
       useEffect(() => {
         const map = new Map<string, number>();
@@ -161,7 +187,7 @@ export const ChatMessagesArea = memo(
         };
       }, [conversationId, contactJid, queryClient]);
 
-      // Realtime de reações: 1 canal por conversa, invalida apenas IDs visíveis
+      // Realtime de reacoes: 1 canal por conversa, invalida apenas IDs visiveis
       const messageIds = useMemo(() => messages.map((m) => m.id), [messages]);
       useConversationReactionsRealtime(conversationId, messageIds);
 
@@ -205,6 +231,10 @@ export const ChatMessagesArea = memo(
         estimateSize: getItemSize,
         overscan: 12,
         measureElement: (el) => el.getBoundingClientRect().height,
+        // scrollMargin informa ao tanstack-virtual o offset entre o topo do
+        // scroll container e o inicio do bloco virtual, ajustando o calculo de
+        // quais items estao na viewport e o valor de virtualRow.start.
+        scrollMargin,
       });
 
       const handleScroll = useCallback(() => {
@@ -226,7 +256,7 @@ export const ChatMessagesArea = memo(
                 }, 100);
               })
               .catch((err) => {
-                console.error('[ChatMessagesArea] onLoadOlder failed:', err);
+                log.error('[ChatMessagesArea] onLoadOlder failed:', err);
                 isFetchingOlderRef.current = false;
               });
           }
@@ -258,7 +288,6 @@ export const ChatMessagesArea = memo(
           if (!document.contains(el)) map.delete(messageId);
         });
         observer.observe(el.parentElement!, { childList: true });
-        // Store observer for cleanup — we track by messageId
         el.setAttribute('data-observer-id', messageId);
       }, []);
 
@@ -281,7 +310,7 @@ export const ChatMessagesArea = memo(
               <EmptyState
                 icon={Clock}
                 title="Nenhuma mensagem ainda"
-                description="As mensagens aparecerão aqui quando a conversa começar"
+                description="As mensagens aparecerao aqui quando a conversa comecar"
                 illustration="messages"
                 size="sm"
               />
@@ -295,10 +324,14 @@ export const ChatMessagesArea = memo(
                   <Lock className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="mb-1 text-[14px] font-bold">Criptografia de Ponta a Ponta</h3>
-                <p className="text-[12px] text-muted-foreground">As mensagens são protegidas.</p>
+                <p className="text-[12px] text-muted-foreground">As mensagens sao protegidas.</p>
               </div>
             </div>
           )}
+
+          {/* Marcador: offsetTop deste elemento = scrollMargin do virtualizer.
+              Deve ficar imediatamente ANTES do container virtual. */}
+          <div ref={listStartRef} />
 
           <div
             style={{
@@ -324,7 +357,10 @@ export const ChatMessagesArea = memo(
                     top: 0,
                     left: 0,
                     width: '100%',
-                    transform: `translateY(${virtualRow.start}px)`,
+                    // virtualRow.start e em coordenadas do scroll container;
+                    // subtraimos scrollMargin para obter a posicao relativa
+                    // ao container virtual (que comeca em scrollMargin px do topo).
+                    transform: `translateY(${virtualRow.start - scrollMargin}px)`,
                     paddingBottom: '1rem',
                   }}
                 >
