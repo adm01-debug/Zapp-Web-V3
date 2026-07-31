@@ -66,6 +66,7 @@ interface ChatPanelHeaderProps {
   failuresOnly?: boolean;
   onToggleFailuresOnly?: () => void;
   failuresCount?: number;
+  whisperCount?: number;
   onOpenValidation?: () => void;
 }
 
@@ -91,6 +92,7 @@ export function ChatPanelHeader({
   failuresOnly,
   onToggleFailuresOnly,
   failuresCount,
+  whisperCount,
   onOpenValidation,
 }: ChatPanelHeaderProps) {
   const isMobile = useIsMobile();
@@ -121,7 +123,10 @@ export function ChatPanelHeader({
               }}
             />
             <AvatarFallback className="bg-primary/15 text-sm font-semibold text-primary">
-              {(conversation.contact.name ?? '').split(' ').map((n: any) => n[0]).join('')}
+              {(conversation.contact.name ?? '')
+                .split(' ')
+                .map((n: any) => n[0])
+                .join('')}
             </AvatarFallback>
           </Avatar>
           <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-card bg-[hsl(var(--online))]" />
@@ -147,6 +152,15 @@ export function ChatPanelHeader({
               </span>
             )}
 
+            {whisperCount !== undefined && whisperCount > 0 && (
+              <span
+                className="text-warning-accessible inline-flex h-4 items-center rounded-full border border-warning/30 bg-warning/15 px-1.5 text-[10px] font-bold leading-none"
+                title="Mensagens sussurradas"
+              >
+                🤫 {whisperCount}
+              </span>
+            )}
+
             {conversation.queue && (
               <Badge
                 variant="outline"
@@ -163,7 +177,7 @@ export function ChatPanelHeader({
             <SLAIndicatorForContact conversation={conversation} />
 
             {sendState === 'retrying' && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/15 px-2 py-0.5 text-[10px] font-medium text-warning-accessible">
+              <span className="text-warning-accessible inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/15 px-2 py-0.5 text-[10px] font-medium">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-warning" />
                 Tentando reenviar…
               </span>
