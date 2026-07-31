@@ -35,10 +35,6 @@ const _colunasReais: ContactIntelligenceRow = {
   days_since_contact: null,
   disc_profile: null,
   inbound_ratio: null,
-  briefing: null,
-  rapport_guide: null,
-  best_times_to_call: null,
-  triggers: null,
 };
 void _colunasReais;
 
@@ -76,10 +72,6 @@ describe('contactIntelligence schema guard (F4)', () => {
         'days_since_contact',
         'disc_profile',
         'inbound_ratio',
-        'briefing',
-        'rapport_guide',
-        'best_times_to_call',
-        'triggers',
       ].sort()
     );
   });
