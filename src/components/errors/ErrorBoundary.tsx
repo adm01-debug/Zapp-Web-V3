@@ -261,7 +261,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 {!isStackOverflow && (
                   <Button onClick={this.handleGoHome} variant="outline" className="flex-1">
                     <Home className="mr-2 h-4 w-4" />
-                    Voltar ao in\u00edcio
+                    {'Voltar ao in\u00edcio'}
                   </Button>
                 )}
               </div>
@@ -271,7 +271,7 @@ export class ErrorBoundary extends Component<Props, State> {
                   onClick={this.handleReload}
                   className="w-full text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
                 >
-                  Ou recarregue a p\u00e1gina completamente
+                  {'Ou recarregue a p\u00e1gina completamente'}
                 </button>
               )}
             </CardContent>
