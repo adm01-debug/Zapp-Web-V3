@@ -142,7 +142,7 @@ describe('BUG-12 — ids sem .substr', () => {
     const hookSource = readFileSync(resolve(testDir, '../useChatInputLogic.ts'), 'utf8');
     expect(hookSource).not.toContain('.substr(');
 
-    const inputSource = readFileSync(resolve(testDir, '../ChatMessageInput.tsx'), 'utf8');
-    expect(inputSource).not.toContain('.substr(');
+    // ChatMessageInput.tsx foi removido (código morto); a geração de ids
+    // vive no useChatInputLogic, já verificado acima.
   });
 });

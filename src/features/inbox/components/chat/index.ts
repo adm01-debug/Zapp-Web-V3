@@ -10,7 +10,6 @@ export * from './ChatHeaderToolbar';
 export * from './ChatInputArea';
 export * from './ChatInputToolbars';
 export * from './ChatMessageBubble';
-export * from './ChatMessageInput';
 export * from './ChatMessagesArea';
 export * from './ChatPanelHeader';
 export * from './ChatQuickRepliesPopover';

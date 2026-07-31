@@ -87,8 +87,6 @@ export * from './UniversityHelp';
 export * from './VideoFullscreen';
 /** Re-exported module members. */
 export { MessageBubble as VirtualMessageBubble } from './VirtualMessageBubble';
-export * from './VirtualizedConversationList';
-export * from './VirtualizedMessageList';
 export * from './VirtualizedRealtimeList';
 export * from './VoiceChanger';
 export * from './VoiceChangerPicker';
@@ -118,4 +116,3 @@ export * from './slash-commands';
 export * from './stickers';
 export * from './summary';
 export * from './templates';
-export * from './virtualized';
