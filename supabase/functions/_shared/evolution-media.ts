@@ -88,9 +88,15 @@ export async function persistMediaToStorage(
     const fileName = `${messageType}/${safeId}_${Date.now()}.${ext}`;
     const bucket = messageType === 'audio' ? 'audio-messages' : 'whatsapp-media';
 
-    const { error: uploadErr } = await supabase.storage.from(bucket).upload(fileName, bytes, {
-      contentType: respContentType, cacheControl: '31536000', upsert: true,
-    });
+    let uploadErr: any;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { error } = await supabase.storage.from(bucket).upload(fileName, bytes, {
+        contentType: respContentType, cacheControl: '31536000', upsert: true,
+      });
+      uploadErr = error;
+      if (!uploadErr) break;
+      if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+    }
     if (uploadErr) { console.error(`[MEDIA] Upload error for ${messageType}:`, uploadErr); return null; }
 
     const publicUrl = getStoragePublicUrl(bucket, fileName);
@@ -143,9 +149,19 @@ export async function persistMediaViaApi(
 
     const result = await resp.json();
     const b64 = (result.base64 as string) || (result.data as string) || (result.media as string);
-    if (!b64) return null;
+    if (!b64) {
+      console.warn(`[MEDIA] API returned 200 but no base64 for ${messageType} ${messageId}. Response keys: ${Object.keys(result).join(',')}`);
+      return null;
+    }
 
     const raw = b64.includes(',') ? b64.split(',')[1] : b64;
+    // Proteção contra crash do isolate: base64 > 50MB decodifica para ~37MB,
+    // o que pode exceder o limite de memória do Edge Runtime (~128MB por isolate)
+    const MAX_BASE64_BYTES = 50_000_000; // 50MB
+    if (raw.length > MAX_BASE64_BYTES) {
+      console.warn(`[MEDIA] Base64 too large (${(raw.length/1_000_000).toFixed(1)}MB) for ${messageType} ${messageId} — skipping to avoid isolate crash`);
+      return null;
+    }
     const binaryStr = atob(raw);
     const bytes = new Uint8Array(binaryStr.length);
     for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
@@ -156,19 +172,31 @@ export async function persistMediaViaApi(
     if (mimeType.includes('jpeg') || mimeType.includes('jpg')) ext = 'jpg';
     else if (mimeType.includes('png')) ext = 'png';
     else if (mimeType.includes('webp')) ext = 'webp';
-    else if (mimeType.includes('mp4')) ext = 'mp4';
+    else if (mimeType.includes('mp4') || mimeType.includes('mpeg')) ext = 'mp4';
     else if (mimeType.includes('ogg') || mimeType.includes('opus')) ext = 'ogg';
-    else if (mimeType.includes('mpeg')) ext = 'mp3';
+    else if (mimeType.includes('aac')) ext = 'aac';
+    else if (mimeType.includes('mp3') || mimeType.includes('mpeg')) ext = 'mp3';
+    else if (mimeType.includes('wav') || mimeType.includes('wave')) ext = 'wav';
     else if (mimeType.includes('pdf')) ext = 'pdf';
+    else if (mimeType.includes('quicktime') || mimeType.includes('mov')) ext = 'mov';
 
     const safeId = messageId.replace(/[^a-zA-Z0-9]/g, '');
     const fileName = `${messageType}/${safeId}_${Date.now()}.${ext}`;
     const bucket = messageType === 'audio' ? 'audio-messages' : 'whatsapp-media';
 
-    const { error: uploadErr } = await supabase.storage.from(bucket).upload(fileName, bytes, {
-      contentType: mimeType, cacheControl: '31536000', upsert: true,
-    });
-    if (uploadErr) { console.error(`[MEDIA] base64 upload error:`, uploadErr); return null; }
+    // Retry upload até 3x com backoff exponencial (S20 — conexão intermitente)
+    let uploadErr: any;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { error } = await supabase.storage.from(bucket).upload(fileName, bytes, {
+        contentType: mimeType, cacheControl: '31536000', upsert: true,
+      });
+      uploadErr = error;
+      if (!uploadErr) break;
+      if (attempt < 2) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1))); // 1s, 2s
+      }
+    }
+    if (uploadErr) { console.error(`[MEDIA] base64 upload error after retries:`, uploadErr); return null; }
 
     const publicUrl = getStoragePublicUrl(bucket, fileName);
     console.log(`[MEDIA] Persisted ${messageType} via API (${(bytes.length / 1024).toFixed(1)}KB)`);
