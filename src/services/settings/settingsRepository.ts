@@ -52,8 +52,7 @@ export const settingsRepository = {
   },
 
   async updateUserSettings(userId: string, updates: Partial<UserSettings>) {
-    const { data, error } = await supabase
-      .from('user_settings')
+    const { data, error } = await (supabase.from('user_settings') as any)
       .update(updates)
       .eq('user_id', userId)
       .select()
@@ -68,7 +67,7 @@ export const settingsRepository = {
       .upsert({
         user_id: userId,
         ...settings,
-      })
+      } as any) // tipos reais do DB diferem da interface local (Lovable Cloud legado)
       .select()
       .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
@@ -88,8 +87,7 @@ export const settingsRepository = {
   },
 
   async updateWorkspaceSettings(workspaceId: string, updates: Partial<WorkspaceSettings>) {
-    const { data, error } = await supabase
-      .from('workspace_settings')
+    const { data, error } = await (supabase.from('workspace_settings') as any)
       .update(updates)
       .eq('workspace_id', workspaceId)
       .select()
@@ -104,7 +102,7 @@ export const settingsRepository = {
       .upsert({
         workspace_id: workspaceId,
         ...settings,
-      })
+      } as any) // tipos reais do DB diferem da interface local
       .select()
       .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
