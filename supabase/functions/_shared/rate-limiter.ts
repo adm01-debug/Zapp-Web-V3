@@ -41,11 +41,10 @@ export async function checkRateLimit(supabase: SupabaseClient, {
 
       // Create a promise that rejects if RPC takes too long
       const rpcPromise = supabase.rpc('increment_webhook_rate_limit', {
-        p_instance_id: instanceId,
         p_event_type: eventType,
+        p_instance_id: instanceId,
         p_window_start: bucket,
         p_limit: limit,
-        p_window_seconds: windowSeconds,
       });
 
       const timeoutPromise = new Promise((_, reject) =>
