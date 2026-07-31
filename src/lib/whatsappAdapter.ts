@@ -28,6 +28,7 @@ import type {
   SendStickerParams,
   SendReactionParams,
   SendLocationParams,
+  SendInteractiveParams,
   SendContactParams,
   SendTemplateParams,
   PresenceParams,
@@ -50,6 +51,7 @@ export type {
   SendStickerParams,
   SendReactionParams,
   SendLocationParams,
+  SendInteractiveParams,
   SendContactParams,
   TemplateComponent,
   SendTemplateParams,
@@ -230,6 +232,65 @@ export async function sendContact(params: SendContactParams) {
   });
 }
 
+/** send Interactive function. */
+export async function sendInteractive(params: SendInteractiveParams) {
+  const { transport } = await resolveTransport();
+  if (transport === 'cloud') {
+    // A edge function whatsapp-cloud-send ainda nao aceita `interactive` no
+    // enum de `type` (zod rejeita com 400) — a chamada abaixo falha de forma
+    // explicita, sem falso sucesso, ate o schema Cloud ganhar suporte.
+    return invokeCloud({
+      to: toPhone(params.remoteJid),
+      type: 'interactive',
+      interactive: {
+        type: params.type === 'list' ? 'list' : params.type === 'cta_url' ? 'cta_url' : 'button',
+        header:
+          params.header?.type === 'text' && params.header.text
+            ? { type: 'text', text: params.header.text }
+            : undefined,
+        body: { text: params.body },
+        footer: params.footer ? { text: params.footer } : undefined,
+        action:
+          params.type === 'list'
+            ? { button: params.listButtonText, sections: params.sections }
+            : {
+                buttons: params.buttons?.map((b) => ({
+                  type: 'reply',
+                  reply: { id: b.id, title: b.title },
+                })),
+              },
+      },
+    });
+  }
+  return invokeEvolution(params.type === 'list' ? 'send-list' : 'send-buttons', {
+    instanceName: params.instance ?? DEFAULT_INSTANCE,
+    number: toPhone(params.remoteJid),
+    text: params.body,
+    header: params.header?.text,
+    footer: params.footer,
+    // Formato nativo Evolution: buttons[{ buttonId, buttonText:{displayText} }]
+    buttons: params.buttons?.map((b) => ({
+      buttonId: b.id,
+      buttonText: { displayText: b.title },
+    })),
+    list: params.sections
+      ? {
+          title: params.body,
+          description: params.footer,
+          buttonText: params.listButtonText,
+          sections: params.sections.map((s) => ({
+            title: s.title,
+            rows: s.rows.map((r) => ({
+              rowId: r.id,
+              title: r.title,
+              description: r.description,
+            })),
+          })),
+        }
+      : undefined,
+  });
+}
+
 /** send Template function. */
 export async function sendTemplate(params: SendTemplateParams) {
   const { transport, degraded, reason } = await resolveTransport();
@@ -328,6 +389,7 @@ export const whatsapp = {
   sendSticker,
   sendReaction,
   sendLocation,
+  sendInteractive,
   sendContact,
   sendTemplate,
   sendPresence,

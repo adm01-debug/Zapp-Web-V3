@@ -67,6 +67,19 @@ export interface SendLocationParams {
   instance?: string;
 }
 
+/** Send Interactive Params interface definition. */
+export interface SendInteractiveParams {
+  remoteJid: string;
+  instance?: string;
+  type: 'buttons' | 'list' | 'cta_url';
+  body: string;
+  header?: { type: 'text' | 'image' | 'video' | 'document'; text?: string; mediaUrl?: string };
+  footer?: string;
+  buttons?: { id: string; title: string }[];
+  listButtonText?: string;
+  sections?: { title?: string; rows: { id: string; title: string; description?: string }[] }[];
+}
+
 /** Send Contact Params interface definition. */
 export interface SendContactParams {
   remoteJid: string;
