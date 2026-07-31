@@ -41,7 +41,11 @@ export async function handleOutgoingWhatsAppMessage(
   if (!parsed.content && parsed.messageType === 'text') return;
 
   let { mediaUrl } = parsed;
-  if (mediaUrl && ['image', 'video', 'audio', 'document'].includes(parsed.messageType)) {
+  if (parsed.messageType === 'audio' && mediaUrl) {
+    const msgId = key.id.replace(/[^a-zA-Z0-9]/g, '');
+    const apiUrl = await persistMediaViaApi(supabase, instance, data, parsed.messageType, msgId);
+    if (apiUrl) mediaUrl = apiUrl;
+  } else if (mediaUrl && ['image', 'video', 'document'].includes(parsed.messageType)) {
     const msgId = key.id.replace(/[^a-zA-Z0-9]/g, '');
     const permanentUrl = await persistMediaToStorage(supabase, mediaUrl, parsed.messageType, msgId);
     if (permanentUrl) mediaUrl = permanentUrl;
