@@ -32,6 +32,8 @@ import {
   Clock,
 } from 'lucide-react';
 import { InputPreviewBars } from './InputPreviewBars';
+import { ChatSendProgress } from './ChatSendProgress';
+import { getQueueLength, normalizeAttempts, getLastAttemptDuration } from './chatInputGuards';
 import { useChatInputLogic, setNativeValue } from './useChatInputLogic';
 import { playNotificationSound } from '@/utils/notificationSounds';
 import { formatFileSize } from '@/utils/whatsappFileTypes';
@@ -73,6 +75,7 @@ interface ChatInputAreaProps {
   onSend: (attachments?: File[]) => void;
   onCancelReply: () => void;
   onCancelEdit?: () => void;
+  onEditStart?: (message: Message) => void;
   onSlashCommand: (command: SlashCommand, subCommand?: string) => void;
   onCloseSlashCommands: () => void;
   onQuickReply: (reply: QuickReplyItem) => void;
@@ -121,7 +124,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
     messages,
     quickReplies,
     isSending = false,
-    sendProgress: _sendProgress = 0,
+    sendProgress = 0,
     onInputChange,
     onKeyDown,
     onBlur,
@@ -317,7 +320,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
       </AnimatePresence>
 
       <AnimatePresence>
-        {(isSending || (props.queue?.length ?? 0) > 0) && (
+        {(isSending || getQueueLength(props.queue) > 0) && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -409,16 +412,16 @@ export function ChatInputArea(props: ChatInputAreaProps) {
                     transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
                   />
                 </div>
-                {(item.attempts?.length ?? 0) > 0 && (
+                {normalizeAttempts(item.attempts).length > 0 && (
                   <div className="mt-1 hidden border-t border-primary/5 pt-1 group-hover:block">
                     <div className="flex items-center justify-between text-[8px] text-muted-foreground">
                       <span>
-                        {(item.attempts ?? []).length}{' '}
-                        {(item.attempts ?? []).length === 1 ? 'tentativa' : 'tentativas'}
+                        {normalizeAttempts(item.attempts).length}{' '}
+                        {normalizeAttempts(item.attempts).length === 1 ? 'tentativa' : 'tentativas'}
                       </span>
-                      {(item.attempts ?? [])[((item.attempts ?? []).length ?? 1) - 1]?.duration && (
+                      {getLastAttemptDuration(item.attempts) !== undefined && (
                         <span>
-                          {(item.attempts ?? [])[((item.attempts ?? []).length ?? 1) - 1]?.duration}
+                          {getLastAttemptDuration(item.attempts)}
                           ms
                         </span>
                       )}
@@ -428,6 +431,13 @@ export function ChatInputArea(props: ChatInputAreaProps) {
               </div>
             ))}
           </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Barra de progresso do contrato onProgress (sendProgress): visível apenas
+          enquanto envia e a fila está vazia, para não duplicar com a barra de fila acima. */}
+      <AnimatePresence>
+        {isSending && sendProgress > 0 && getQueueLength(props.queue) === 0 && (
+          <ChatSendProgress isSending={isSending} sendProgress={sendProgress} />
         )}
       </AnimatePresence>
       <div
@@ -464,7 +474,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
         </AnimatePresence>
 
         {/* Improved Message Queue Stats */}
-        {isRetryEnabled && props.queue && props.queue.length > 0 && (
+        {isRetryEnabled && getQueueLength(props.queue) > 0 && (
           <div className="mb-2 flex items-center justify-between rounded-lg border border-border/50 bg-muted/20 px-2 py-1">
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5">
@@ -475,8 +485,8 @@ export function ChatInputArea(props: ChatInputAreaProps) {
               </div>
               <div className="mx-1 h-3 w-px bg-border" />
               <span className="text-[10px] font-medium text-muted-foreground">
-                {props.queue.length}{' '}
-                {props.queue.length === 1 ? 'mensagem pendente' : 'mensagens pendentes'}
+                {getQueueLength(props.queue)}{' '}
+                {getQueueLength(props.queue) === 1 ? 'mensagem pendente' : 'mensagens pendentes'}
               </span>
             </div>
             <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-success">
@@ -580,14 +590,11 @@ export function ChatInputArea(props: ChatInputAreaProps) {
                     const lastOwnMessage = [...messages]
                       .reverse()
                       .find((m) => m.sender === 'agent' && !m.is_deleted);
-                    if (
-                      lastOwnMessage &&
-                      typeof props.onCancelEdit === 'function' &&
-                      typeof props.onCancelReply === 'function'
-                    ) {
-                      // This is a heuristic shortcut for accessibility
-                      // In a full implementation, we'd pass onEditStart as a prop
+                    if (lastOwnMessage && props.onEditStart) {
+                      // ArrowUp com input vazio: abre o modo de edição da última
+                      // mensagem própria (o hook valida a janela de 15 minutos).
                       e.preventDefault();
+                      props.onEditStart(lastOwnMessage);
                     }
                   }
                 }}

@@ -502,6 +502,7 @@ export function ChatPanel({
           onSend={(att) => handlers.handleSend(att)}
           onCancelReply={() => handlers.setReplyToMessage(null)}
           onCancelEdit={handlers.handleCancelEdit}
+          onEditStart={handlers.handleEditStart}
           onSlashCommand={handlers.handleSlashCommand}
           onCloseSlashCommands={() => closeDialog('slashCommands')}
           onQuickReply={handleQuickReply}
