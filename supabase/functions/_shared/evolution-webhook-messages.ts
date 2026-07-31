@@ -119,7 +119,13 @@ export async function handleIncomingMessage(
     mediaUrl = await handleStickerMedia(supabase, instance, data, message, key);
   }
 
-  if (mediaUrl && ['image', 'video', 'audio', 'document'].includes(messageType)) {
+  if (messageType === 'audio' && mediaUrl) {
+    // Áudios do WhatsApp CDN são sempre encrypted (.enc) — magic bytes nunca batem.
+    // Pular a tentativa de download direto e ir direto para a API, que decripta server-side.
+    const msgId = key.id || `${Date.now()}`;
+    const apiUrl = await persistMediaViaApi(supabase, instance, data, messageType, msgId);
+    if (apiUrl) mediaUrl = apiUrl;
+  } else if (mediaUrl && ['image', 'video', 'document'].includes(messageType)) {
     const msgId = key.id || `${Date.now()}`;
     const permanentUrl = await persistMediaToStorage(supabase, mediaUrl, messageType, msgId);
     if (permanentUrl) mediaUrl = permanentUrl;
