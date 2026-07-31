@@ -78,6 +78,11 @@ const EDIT_MSG: Message = {
   conversationId: 'conv-1',
 } as unknown as Message;
 
+type EditMessageApiMock = (
+  instance: string,
+  params: { number: string; messageId: string; text: string }
+) => Promise<unknown>;
+
 function makeHandlers(editMessageApi: ReturnType<typeof vi.fn>) {
   return renderHook(() =>
     useChatPanelHandlers({
@@ -86,7 +91,7 @@ function makeHandlers(editMessageApi: ReturnType<typeof vi.fn>) {
       contactPhone: '5511999887766',
       instanceName: 'wpp2',
       onSendMessage: vi.fn(),
-      editMessageApi,
+      editMessageApi: editMessageApi as unknown as EditMessageApiMock,
       applySignature: (t: string) => t,
       handleTypingStart: vi.fn(),
       handleTypingStop: vi.fn(),

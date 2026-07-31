@@ -57,6 +57,15 @@ vi.mock('../useMessageReactionHandlers', () => ({
 // ── Test helpers ──────────────────────────────────────────────────────────────
 
 type OnSendMessageMock = ReturnType<typeof vi.fn>;
+type OnSendMessageProp = (
+  content: string,
+  attachments?: File[],
+  onProgress?: (p: number) => void
+) => void | Promise<void>;
+type EditMessageApiProp = (
+  instance: string,
+  params: { number: string; messageId: string; text: string }
+) => Promise<unknown>;
 
 function makeHandlers(onSendMessage: OnSendMessageMock) {
   return renderHook(() =>
@@ -65,8 +74,8 @@ function makeHandlers(onSendMessage: OnSendMessageMock) {
       contactId: 'uuid-contact-1',
       contactPhone: '5511999887766',
       instanceName: 'wpp2',
-      onSendMessage,
-      editMessageApi: vi.fn(),
+      onSendMessage: onSendMessage as unknown as OnSendMessageProp,
+      editMessageApi: vi.fn() as unknown as EditMessageApiProp,
       applySignature: (t: string) => t,
       handleTypingStart: vi.fn(),
       handleTypingStop: vi.fn(),
