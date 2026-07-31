@@ -139,7 +139,7 @@ describe('Scenario 2: Traefik (Reverse Proxy) Down', () => {
   }
 
   it('triggers circuit breaker after repeated ghost-post failures during proxy outage', async () => {
-    const { queryExternalProxy, __testing } = await import('@/lib/externalProxy');
+    const { __testing } = await import('@/lib/externalProxy');
     __testing!.resetBreakerAndCoalesce();
 
     let invokeCount = 0;

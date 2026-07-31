@@ -6,7 +6,7 @@
  */
 import { z } from 'zod';
 import { safeGetJSON, safeSetJSON } from '@/lib/safeStorage';
-import type { MainTab, SubTab } from '@/features/inbox/components/TicketTabs';
+import type { MainTab, SubTab } from '../components/TicketTabs';
 import type { FailureCategory } from '@/features/inbox';
 
 const PRESETS_KEY = 'inbox_filter_presets_v1';

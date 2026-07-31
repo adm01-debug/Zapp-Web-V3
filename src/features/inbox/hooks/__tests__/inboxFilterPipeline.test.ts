@@ -5,8 +5,8 @@ import {
   computeInboxTabCounts,
   type ApplyInboxFiltersOptions,
 } from '../inboxFilterPipeline';
-import type { ConversationWithMessages, RealtimeMessage } from '@/features/inbox/hooks/realtime/types';
-import type { InboxFiltersState } from '@/features/inbox/components/InboxFilters';
+import type { ConversationWithMessages, RealtimeMessage } from '../realtime/types';
+import type { InboxFiltersState } from '../../components/InboxFilters';
 
 vi.mock('@/features/inbox', () => ({
   filterByContactType: (conversations: ConversationWithMessages[], type: string | null) => {

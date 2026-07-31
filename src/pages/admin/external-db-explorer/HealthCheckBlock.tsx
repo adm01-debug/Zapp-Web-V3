@@ -6,6 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Activity, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
 import { queryExternalProxy } from '@/lib/externalProxy';
 import { getLogger } from '@/lib/logger';
+import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 
 const log = getLogger('AdminExternalDbExplorer.Health');
 
@@ -33,7 +34,7 @@ export function HealthCheckBlock() {
         const res = await queryExternalProxy({
           action: 'rpc',
           rpc: 'rpc_dashboard_home',
-          params: { p_instance: 'wpp2', p_assigned_to: null },
+          params: { p_instance: DEFAULT_WHATSAPP_INSTANCE, p_assigned_to: null },
         });
         return { ok: !res.error, ms: Math.round(performance.now() - t0), error: res.error };
       } catch (e) {
@@ -46,7 +47,7 @@ export function HealthCheckBlock() {
       const res = await queryExternalProxy({
         action: 'rpc',
         rpc: 'rpc_dashboard_home',
-        params: { p_instance: 'wpp2', p_assigned_to: null },
+        params: { p_instance: DEFAULT_WHATSAPP_INSTANCE, p_assigned_to: null },
       });
       lastPayload = res.data;
     } catch (e) {

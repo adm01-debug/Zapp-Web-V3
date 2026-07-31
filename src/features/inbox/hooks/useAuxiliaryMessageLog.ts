@@ -18,7 +18,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
-import { resolveContactRef, isUuidRef } from '@/features/inbox/utils/contactRef';
+import { resolveContactRef, isUuidRef } from '../utils/contactRef';
 
 export interface AuxMessageInsert {
   contactId: string;

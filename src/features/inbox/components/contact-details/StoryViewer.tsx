@@ -7,8 +7,9 @@ import { Loader2, Image as ImageIcon, Video, ChevronLeft, ChevronRight, X } from
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatRelativeTime } from '@/lib/formatters';
+import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 
-const DEFAULT_INSTANCE_NAME = 'wpp2';
+const DEFAULT_INSTANCE_NAME = DEFAULT_WHATSAPP_INSTANCE;
 
 const getMediaType = (msg: WhatsAppStatusMessage): 'image' | 'video' | 'text' => {
   if (msg.message?.imageMessage) return 'image';

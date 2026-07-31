@@ -22,6 +22,7 @@ import { WifiOff, RefreshCw, Loader2, MessageSquarePlus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 import { useInboxSidebarResize } from './useInboxSidebarResize';
 import { useInboxKeyboardShortcuts } from './useInboxKeyboardShortcuts';
 
@@ -62,7 +63,7 @@ export function RealtimeInboxView() {
   const inbox = useRealtimeInbox();
   const { sidebarWidth, windowWidth, startResizing, resetWidth } = useInboxSidebarResize();
 
-  useEvolutionAutoReconnect('wpp2');
+  useEvolutionAutoReconnect(DEFAULT_WHATSAPP_INSTANCE);
 
   useSLAAlerts({
     contactId: inbox.selectedContactId,
@@ -77,7 +78,7 @@ export function RealtimeInboxView() {
     deliveryDelayMs: inbox.deliveryAlert?.delay,
     customMessage: inbox.deliveryAlert?.message,
   });
-  useRealtimeContacts({ instance: 'wpp2' });
+  useRealtimeContacts({ instance: DEFAULT_WHATSAPP_INSTANCE });
   useRealtimeFallbackRefetch();
 
   const inboxFilters = useInboxFilters({

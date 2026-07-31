@@ -1,5 +1,7 @@
+import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
+
 /** INSTANCE. */
-export const INSTANCE = 'wpp2';
+export const INSTANCE = DEFAULT_WHATSAPP_INSTANCE;
 /** POLL_MS. */
 export const POLL_MS = 15_000;
 

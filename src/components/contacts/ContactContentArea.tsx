@@ -1,5 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 import { ContactEmptyState } from './ContactEmptyState';
 import { ContactCard } from './ContactCard';
 import { ContactListItem } from './ContactListItem';
@@ -78,7 +79,7 @@ export function ContactContentArea({
     return (
       <Card className="border-warning/20">
         <CardContent className="p-6">
-          <DuplicateContactsPanel workspaceId={workspaceId || 'wpp2'} onMergeComplete={onRefresh} />
+          <DuplicateContactsPanel workspaceId={workspaceId || DEFAULT_WHATSAPP_INSTANCE} onMergeComplete={onRefresh} />
         </CardContent>
       </Card>
     );
@@ -88,7 +89,7 @@ export function ContactContentArea({
     return (
       <Card className="border-destructive/20">
         <CardContent className="p-6">
-          <ContactRecycleBin workspaceId={workspaceId || 'wpp2'} onRestored={onRefresh} />
+          <ContactRecycleBin workspaceId={workspaceId || DEFAULT_WHATSAPP_INSTANCE} onRestored={onRefresh} />
         </CardContent>
       </Card>
     );

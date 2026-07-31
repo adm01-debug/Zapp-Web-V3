@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Database, RefreshCw, Webhook } from 'lucide-react';
 import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { useBridgeHealth } from '@/hooks/connections/useBridgeHealth';
+import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 import { BridgeStatusBadge } from './bridge/BridgeStatusBadge';
 import { BridgeInfoRow } from './bridge/BridgeInfoRow';
 import { BridgeStatCard } from './bridge/BridgeStatCard';
@@ -60,7 +61,7 @@ export function BridgeSupabaseView() {
               value={externalUrl ? `${externalUrl}/functions/v1/evolution-webhook` : '—'}
               mono
             />
-            <BridgeInfoRow label="Instância" value="wpp2" />
+            <BridgeInfoRow label="Instância" value={DEFAULT_WHATSAPP_INSTANCE} />
             <BridgeInfoRow
               label="Auth"
               value={isExternalConfigured ? 'Anon key configurada' : 'Faltando'}

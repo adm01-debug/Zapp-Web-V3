@@ -148,7 +148,7 @@ export default function AdminInstancePausesPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
             <div>
               <Label htmlFor="instance">Instância</Label>
-              <Input id="instance" value={instance} onChange={(e) => setInstance(e.target.value as WhatsAppInstance)} placeholder="wpp2" />
+              <Input id="instance" value={instance} onChange={(e) => setInstance(e.target.value as WhatsAppInstance)} placeholder={DEFAULT_WHATSAPP_INSTANCE} />
             </div>
             <div>
               <Label htmlFor="minutes">Minutos</Label>

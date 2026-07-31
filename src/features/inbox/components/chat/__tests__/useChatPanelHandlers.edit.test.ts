@@ -18,11 +18,6 @@ const mockToast = vi.fn();
 vi.mock('@/hooks/use-toast', () => ({ toast: (p: unknown) => mockToast(p) }));
 
 const mockDbUpdate = vi.fn();
-const mockDbEq = vi.fn(() => ({
-  eq: vi.fn(() => ({
-    select: vi.fn(() => Promise.resolve({ data: [{ id: 'msg-1' }], error: null })),
-  })),
-}));
 const mockDbFrom = vi.fn((..._args: unknown[]): unknown => ({ update: mockDbUpdate }));
 mockDbUpdate.mockReturnValue({
   eq: vi.fn(() => ({

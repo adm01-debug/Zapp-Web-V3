@@ -21,6 +21,7 @@ import {
   ArrowLeft, Clock, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
 import { HmacAuditHistoryPanel } from '@/pages/admin-webhook-secret-status/HmacAuditHistoryPanel';
+import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 
 const PHASE_LABEL: Record<Phase, string> = {
   'config': 'Configuração do secret',
@@ -38,7 +39,7 @@ const PHASE_LABEL: Record<Phase, string> = {
 /** Default export. */
 export default function HmacSelfTestPage() {
   const [params, setParams] = useSearchParams();
-  const initialInstance = params.get('instance') ?? 'wpp2';
+  const initialInstance = params.get('instance') ?? DEFAULT_WHATSAPP_INSTANCE;
   const initialNeg = params.get('include_negative') !== 'false';
 
   const [instance, setInstance] = useState(initialInstance);
@@ -111,7 +112,7 @@ export default function HmacSelfTestPage() {
               id="instance"
               value={instance}
               onChange={(e) => setInstance(e.target.value)}
-              placeholder="wpp2"
+              placeholder={DEFAULT_WHATSAPP_INSTANCE}
               data-testid="hmac-selftest-instance-input"
             />
           </div>

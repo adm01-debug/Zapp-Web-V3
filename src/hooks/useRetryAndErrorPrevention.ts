@@ -147,7 +147,7 @@ export function useSafeAsync<T>(
     dependencies?: DependencyList;
   }
 ) {
-  const { operation = 'Unknown', fallback, shouldThrow = false, dependencies = [] } = options || {};
+  const { operation = 'Unknown', fallback, shouldThrow = false } = options || {};
 
   const fnRef = useRef(fn);
   fnRef.current = fn;
@@ -181,7 +181,6 @@ export function useSafeRetry<T>(
     maxAttempts = 3,
     delayMs = 100,
     backoffMultiplier = 2,
-    dependencies = [],
   } = options || {};
 
   const fnRef = useRef(fn);
@@ -227,7 +226,6 @@ export function useSafeCallback<T extends AnyFn>(
     name = 'Anonymous',
     fallbackReturn,
     shouldThrow = false,
-    dependencies = [],
   } = options || {};
 
   const callbackRef = useRef(callback);
@@ -255,7 +253,7 @@ export function useSafePromise<T>(
     dependencies?: DependencyList;
   }
 ) {
-  const { operation = 'Unknown', onReject, shouldThrow = false, dependencies = [] } = options || {};
+  const { operation = 'Unknown', onReject, shouldThrow = false } = options || {};
 
   const onRejectRef = useRef(onReject);
   onRejectRef.current = onReject;
@@ -297,7 +295,7 @@ export function useAsyncEffect<T>(
     dependencies?: DependencyList;
   }
 ) {
-  const { operation = 'Async effect', cleanup, fallback, dependencies } = options ?? {};
+  const { operation = 'Async effect', cleanup, fallback } = options ?? {};
 
   const effectRef = useRef(effect);
   effectRef.current = effect;
@@ -382,7 +380,6 @@ export function useRetryableAsync<T>(
     operationName = 'Unknown',
     config = RETRY_CONFIG_TRANSIENT,
     shouldRetry,
-    dependencies = [],
   } = options || {};
 
   const executorRef = useRef<RetryExecutor>(new RetryExecutor(config, operationName));

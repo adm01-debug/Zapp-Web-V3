@@ -9,6 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/schema';
 import { queryKeys } from '@/services/api/queryKeys';
+import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 
 interface ExternalMessage {
   message_timestamp: string;
@@ -116,7 +117,7 @@ const POLL_MS = 20_000;
 /** Evaluates and applies automation rules to conversations with tag matching and filtering. */
 export function useAutomations({
   remoteJid,
-  instanceName = 'wpp2',
+  instanceName = DEFAULT_WHATSAPP_INSTANCE,
   assignedTo = null,
 }: UseAutomationsArgs) {
   const rulesRef = useRef<AutomationRule[]>([]);

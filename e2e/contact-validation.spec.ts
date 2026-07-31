@@ -87,7 +87,7 @@ test.describe('Contact Validation - Zod Schemas', () => {
     // Adicionar 51 tags
     for (let i = 0; i < 51; i++) {
       await page.click('[data-testid="add-tag"]');
-      await page.fill(`[data-testid="tag-input-${i}"]', `tag-${i}`);
+      await page.fill(`[data-testid="tag-input-${i}"]`, `tag-${i}`);
     }
 
     await page.click('[data-testid="submit-contact"]');

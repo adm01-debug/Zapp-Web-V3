@@ -14,8 +14,8 @@ import {
   validatePresetName,
   type InboxFilterPreset,
   type InboxFilterPresetInput,
-} from '@/features/inbox/hooks/inboxFilterPresets';
-import type { MainTab, SubTab } from '@/features/inbox/components/TicketTabs';
+} from '../hooks/inboxFilterPresets';
+import type { MainTab, SubTab } from './TicketTabs';
 
 
 interface Props {

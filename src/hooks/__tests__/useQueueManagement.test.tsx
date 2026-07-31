@@ -11,7 +11,9 @@ function makeWrapper() {
 
 const mockFrom = vi.hoisted(() => vi.fn());
 const mockRpc = vi.hoisted(() => vi.fn());
-const mockUseAuth = vi.hoisted(() => vi.fn(() => ({ user: { id: 'u1' } })));
+const mockUseAuth = vi.hoisted(() =>
+  vi.fn<() => { user: { id: string } | null }>(() => ({ user: { id: 'u1' } }))
+);
 const mockInvalidateQueries = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 
 vi.mock('@/integrations/supabase/client', () => ({
@@ -92,7 +94,7 @@ describe('useQueueManagement — hooks consolidados', () => {
     });
 
     it('não busca sem usuário autenticado', async () => {
-      mockUseAuth.mockReturnValue({ user: null as any });
+      mockUseAuth.mockReturnValue({ user: null });
       const { result } = renderHook(() => useQueuesCrudManagement(), { wrapper: makeWrapper() });
       // useQuery with enabled:false is not loading (idle/pending), not fetching
       expect(result.current.loading).toBe(false);

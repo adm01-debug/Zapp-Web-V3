@@ -2,12 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { externalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { useAuth } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
+import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 import type { IncomingCall } from '@/types/incomingCall';
 
 
 const log = getLogger('IncomingCallBroadcast');
 
-const DEFAULT_INSTANCE = 'wpp2';
+const DEFAULT_INSTANCE = DEFAULT_WHATSAPP_INSTANCE;
 
 interface BroadcastPayload {
   remote_jid?: string;
