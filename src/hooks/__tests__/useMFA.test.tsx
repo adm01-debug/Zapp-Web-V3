@@ -1,6 +1,14 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import type {
+  AuthMFAEnrollResponse,
+  AuthMFAChallengeResponse,
+  AuthMFAVerifyResponse,
+  AuthMFAListFactorsResponse,
+  AuthMFAUnenrollResponse,
+  AuthMFAGetAuthenticatorAssuranceLevelResponse,
+} from '@supabase/supabase-js';
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
@@ -9,9 +17,9 @@ vi.mock('@/integrations/supabase/client', () => ({
         enroll: vi.fn(),
         challenge: vi.fn(),
         verify: vi.fn(),
-        listFactors: vi.fn().mockResolvedValue({ data: { totp: [], phone: [], all: [] }, error: null } as any),
+        listFactors: vi.fn().mockResolvedValue({ data: { totp: [], phone: [], all: [] }, error: null }),
         unenroll: vi.fn(),
-        getAuthenticatorAssuranceLevel: vi.fn().mockResolvedValue({ data: { currentLevel: 'aal1', nextLevel: 'aal1', currentAuthenticationMethods: [] }, error: null } as any),
+        getAuthenticatorAssuranceLevel: vi.fn().mockResolvedValue({ data: { currentLevel: 'aal1', nextLevel: 'aal1', currentAuthenticationMethods: [] }, error: null }),
       },
     },
     from: vi.fn().mockReturnValue({
@@ -32,8 +40,8 @@ import { useMFA } from '@/hooks/useMFA';
 describe('useMFA', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(supabase.auth.mfa.listFactors).mockResolvedValue({ data: { totp: [], phone: [], all: [] }, error: null } as any);
-    vi.mocked(supabase.auth.mfa.getAuthenticatorAssuranceLevel).mockResolvedValue({ data: { currentLevel: 'aal1', nextLevel: 'aal1', currentAuthenticationMethods: [] }, error: null } as any);
+    vi.mocked(supabase.auth.mfa.listFactors).mockResolvedValue({ data: { totp: [], phone: [], all: [] }, error: null } as unknown as AuthMFAListFactorsResponse);
+    vi.mocked(supabase.auth.mfa.getAuthenticatorAssuranceLevel).mockResolvedValue({ data: { currentLevel: 'aal1', nextLevel: 'aal1', currentAuthenticationMethods: [] }, error: null } as unknown as AuthMFAGetAuthenticatorAssuranceLevelResponse);
   });
 
   it('initializes with default state', () => {
@@ -43,7 +51,7 @@ describe('useMFA', () => {
   });
 
   it('enrollTOTP calls mfa.enroll', async () => {
-    vi.mocked(supabase.auth.mfa.enroll).mockResolvedValue({ data: { id: 'f1', type: 'totp', totp: { qr_code: 'qr', secret: 'ABC', uri: 'otpauth://...' } }, error: null } as any);
+    vi.mocked(supabase.auth.mfa.enroll).mockResolvedValue({ data: { id: 'f1', type: 'totp', totp: { qr_code: 'qr', secret: 'ABC', uri: 'otpauth://...' } }, error: null } as unknown as AuthMFAEnrollResponse);
 
     const { result } = renderHook(() => useMFA());
     await act(async () => {
@@ -56,8 +64,8 @@ describe('useMFA', () => {
   });
 
   it('verifyTOTP calls challenge then verify', async () => {
-    vi.mocked(supabase.auth.mfa.challenge).mockResolvedValue({ data: { id: 'ch-1' }, error: null } as any);
-    vi.mocked(supabase.auth.mfa.verify).mockResolvedValue({ data: {}, error: null } as any);
+    vi.mocked(supabase.auth.mfa.challenge).mockResolvedValue({ data: { id: 'ch-1' }, error: null } as unknown as AuthMFAChallengeResponse);
+    vi.mocked(supabase.auth.mfa.verify).mockResolvedValue({ data: {}, error: null } as unknown as AuthMFAVerifyResponse);
 
     const { result } = renderHook(() => useMFA());
     await act(async () => {
@@ -72,7 +80,7 @@ describe('useMFA', () => {
   });
 
   it('unenroll calls mfa.unenroll', async () => {
-    vi.mocked(supabase.auth.mfa.unenroll).mockResolvedValue({ data: { id: 'f1' }, error: null } as any);
+    vi.mocked(supabase.auth.mfa.unenroll).mockResolvedValue({ data: { id: 'f1' }, error: null } as unknown as AuthMFAUnenrollResponse);
     const { result } = renderHook(() => useMFA());
     await act(async () => {
       await result.current.unenroll('f1');
@@ -81,7 +89,7 @@ describe('useMFA', () => {
   });
 
   it('fetchFactors retrieves TOTP factors', async () => {
-    vi.mocked(supabase.auth.mfa.listFactors).mockResolvedValue({ data: { totp: [{ id: 'f1', factor_type: 'totp', status: 'verified', created_at: '', updated_at: '' }], phone: [], all: [] }, error: null } as any);
+    vi.mocked(supabase.auth.mfa.listFactors).mockResolvedValue({ data: { totp: [{ id: 'f1', factor_type: 'totp', status: 'verified', created_at: '', updated_at: '' }], phone: [], all: [] }, error: null } as unknown as AuthMFAListFactorsResponse);
 
     const { result } = renderHook(() => useMFA());
     await act(async () => {

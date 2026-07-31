@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { getExternalSupabase } from '@/integrations/supabase/externalClient';
 import { log } from '@/lib/logger';
+import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 
 interface ExternalMsg {
   from_me: boolean;
@@ -41,7 +42,7 @@ const POLL_MS = 20_000;
 
 export function useAutomations({
   remoteJid,
-  instanceName = 'wpp2',
+  instanceName = DEFAULT_WHATSAPP_INSTANCE,
   assignedTo = null,
 }: UseAutomationsArgs) {
   const rulesRef = useRef<AutomationRule[]>([]);

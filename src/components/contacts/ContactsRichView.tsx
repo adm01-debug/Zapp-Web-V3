@@ -12,6 +12,7 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 
 import { useContactsViewState } from './useContactsViewState';
 import { ContactToolbar } from './ContactToolbar';
@@ -218,7 +219,7 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = ({ onOpenChat }
               onClearFilters={clearFilters}
               onImport={() => setIsImportOpen(true)}
               getCRMData={getCRMData}
-              workspaceId="wpp2"
+              workspaceId={DEFAULT_WHATSAPP_INSTANCE}
               onRefresh={() => crud.refetch()}
             />
 
@@ -237,7 +238,7 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = ({ onOpenChat }
       <ContactsShortcutHelp open={showShortcutHelp} onClose={() => setShowShortcutHelp(false)} />
 
       <ContactDialogs
-        workspaceId="wpp2"
+        workspaceId={DEFAULT_WHATSAPP_INSTANCE}
         isAddDialogOpen={isAddDialogOpen}
         setIsAddDialogOpen={setIsAddDialogOpen}
         onContactSaved={() => crud.refetch()}
@@ -254,7 +255,7 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = ({ onOpenChat }
       <ContactImportDialog
         open={isImportOpen}
         onOpenChange={setIsImportOpen}
-        workspaceId="wpp2"
+        workspaceId={DEFAULT_WHATSAPP_INSTANCE}
         onImportComplete={() => crud.refetch()}
       />
 

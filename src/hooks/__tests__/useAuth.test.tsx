@@ -3,6 +3,7 @@ import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuth, AuthProvider } from '../useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import type { AuthTokenResponsePassword } from '@supabase/supabase-js';
 import React from 'react';
 
 // Mock Supabase
@@ -59,10 +60,10 @@ describe('useAuth hook', () => {
   });
 
   it('handles sign in successfully', async () => {
-    (vi.mocked(supabase.auth.signInWithPassword) as any).mockResolvedValue({
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({
       data: { user: { id: '123' } as never, session: null },
       error: null,
-    });
+    } as unknown as AuthTokenResponsePassword);
 
     const { result } = renderHook(() => useAuth(), { wrapper });
 

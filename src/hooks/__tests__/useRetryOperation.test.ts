@@ -88,7 +88,7 @@ describe('useRetryOperation — fatal error codes', () => {
 describe('useRetryOperation — transient retry', () => {
   it('succeeds on the second attempt after a transient failure', async () => {
     const { result } = renderHook(() => useRetryOperation(3, 100));
-    const fn = vi.fn()
+    const fn = vi.fn<() => Promise<string>>()
       .mockRejectedValueOnce(new Error('network timeout'))
       .mockResolvedValue('success');
 
@@ -97,7 +97,7 @@ describe('useRetryOperation — transient retry', () => {
       const promise = result.current.withRetry(fn);
       // Advance fake timers past the retry delay
       await vi.runAllTimersAsync();
-      value = await promise as any;
+      value = await promise;
     });
     expect(fn).toHaveBeenCalledTimes(2);
     expect(value).toBe('success');

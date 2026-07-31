@@ -1,4 +1,5 @@
 import { useDeliveryStats } from '@/hooks/useDeliveryStats';
+import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 import { Loader2, Check, CheckCheck, Send, Users } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -42,7 +43,7 @@ function KpiCard({ icon, label, value, lastAt, tone }: {
 }
 
 /** Delivery Stats Panel component. */
-export function DeliveryStatsPanel({ remoteJid, instance = 'wpp2' }: Props) {
+export function DeliveryStatsPanel({ remoteJid, instance = DEFAULT_WHATSAPP_INSTANCE }: Props) {
   const { data, isLoading, error } = useDeliveryStats(remoteJid, instance);
 
   if (isLoading) {

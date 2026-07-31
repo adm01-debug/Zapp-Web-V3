@@ -40,12 +40,13 @@ describe('VoiceDictationButton', () => {
 
   it('returns null when not supported', async () => {
     const { useSpeechToText } = await import('@/hooks/useSpeechToText');
-    vi.mocked(useSpeechToText as any).mockReturnValueOnce({
+    vi.mocked(useSpeechToText).mockReturnValueOnce({
       isListening: false,
       isSupported: false,
       transcript: '',
       startListening: vi.fn(),
       stopListening: vi.fn(),
+      resetTranscript: vi.fn(),
       toggleListening: vi.fn(),
     });
 

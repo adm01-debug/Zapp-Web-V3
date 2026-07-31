@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { ComponentProps, ReactNode } from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import NotFound from '../NotFound';
@@ -6,11 +7,11 @@ import NotFound from '../NotFound';
 // Mock framer-motion to avoid animation side-effects in tests
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-    h1: ({ children, ...props }: any) => <h1 {...props}>{children}</h1>,
-    p: ({ children, ...props }: any) => <p {...props}>{children}</p>,
+    div: ({ children, ...props }: ComponentProps<'div'>) => <div {...props}>{children}</div>,
+    h1: ({ children, ...props }: ComponentProps<'h1'>) => <h1 {...props}>{children}</h1>,
+    p: ({ children, ...props }: ComponentProps<'p'>) => <p {...props}>{children}</p>,
   },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
+  AnimatePresence: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
 // Mock logger

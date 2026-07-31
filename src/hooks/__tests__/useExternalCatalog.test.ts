@@ -846,7 +846,7 @@ describe('Data Integrity', () => {
     const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
     let fetched: ExternalProduct | undefined;
     await act(async () => {
-      fetched = await result.current.fetchProduct('p1') as any;
+      fetched = (await result.current.fetchProduct('p1')) ?? undefined;
     });
 
     expect(fetched!.variants![0].color_hex).toBe('#4169E1');

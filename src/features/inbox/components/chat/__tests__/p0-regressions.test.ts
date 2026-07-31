@@ -8,7 +8,7 @@
  * These tests are pure unit simulations — no DOM, no React, no network.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 // ────────────────────────────────────────────────────────────────────
 // HELPERS — local re-implementations of the production functions
@@ -131,7 +131,7 @@ describe('P0-2 — suppressAutoBottomRef prevents scroll competition (E04)', () 
     scrollToIndexCalls = [];
   });
 
-  const mockAutoScrollEffect = (messagesLength: number) => {
+  const mockAutoScrollEffect = (_messagesLength: number) => {
     if (suppressAutoBottomRef) return; // suppressed
     scrollToBottomCalls++;
   };
@@ -313,7 +313,7 @@ describe('P0-4 — Cache keys are scoped per instance (E07)', () => {
 //      into messages.contact_id (UUID FK), causing PostgREST 400 for JID contacts.
 // ────────────────────────────────────────────────────────────────────
 describe('P0-5 — isValidUUID guard blocks JID inserts into FK column (E14)', () => {
-  const simulateOnPollSentCurrent = (contactId: string): 'insert' | 'skipped' => {
+  const simulateOnPollSentCurrent = (_contactId: string): 'insert' | 'skipped' => {
     // BASELINE: no guard, always attempts insert (would fail for JID)
     return 'insert';
   };

@@ -49,7 +49,6 @@ const getRegistrationsMock = vi.fn<
 >();
 
 let replaceSpy: MockInstance<typeof window.location.replace>;
-let reloadSpy: MockInstance<typeof window.location.reload>;
 let dispatchSpy: MockInstance<typeof window.dispatchEvent>;
 
 beforeEach(() => {
@@ -77,7 +76,6 @@ beforeEach(() => {
   });
 
   replaceSpy = vi.spyOn(window.location, 'replace').mockImplementation(() => undefined);
-  reloadSpy = vi.spyOn(window.location, 'reload').mockImplementation(() => undefined);
   dispatchSpy = vi.spyOn(window, 'dispatchEvent');
 });
 

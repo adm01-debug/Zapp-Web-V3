@@ -31,7 +31,6 @@ import { useChatPanelHandlers } from '../useChatPanelHandlers';
 import { insertWhisperMessage } from '../../../hooks/useWhisperMessagesMutation';
 import { useProductHandlers } from '../useProductHandlers';
 import { whatsapp } from '@/lib/whatsappAdapter';
-import { dbFrom } from '@/integrations/datasource/db';
 import { useInputHandlers } from '../useInputHandlers';
 import { ChatMessagesArea } from '../ChatMessagesArea';
 import type { Message, InteractiveButton } from '@/types/chat';

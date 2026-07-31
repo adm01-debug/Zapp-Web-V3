@@ -5,6 +5,7 @@ import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { queryKeys } from '@/services/api/queryKeys';
 import { startOfHour, format, parseISO, subHours } from 'date-fns';
 import { getLogger } from '@/lib/logger';
+import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 
 const log = getLogger('useDeliveryStats');
 
@@ -150,7 +151,7 @@ function generateMockData(remoteJid: string): DeliveryStatsResult {
 }
 
 /** Retrieves message delivery statistics and success rates. */
-export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2') {
+export function useDeliveryStats(remoteJid: string | undefined, instance: string = DEFAULT_WHATSAPP_INSTANCE) {
   return useQuery<DeliveryStatsResult>({
     queryKey: queryKeys.deliveryStats.contact(remoteJid, instance),
     enabled: !!remoteJid,
