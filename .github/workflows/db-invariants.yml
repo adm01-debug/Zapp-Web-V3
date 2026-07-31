@@ -138,28 +138,46 @@ jobs:
       # ------------------------------------------------------------------
       - name: "INV-4: channel() calls must have matching unsubscribe() cleanup"
         run: |
-          echo "Checking for .channel() without .unsubscribe()..."
+          echo "Checking for .channel() without .unsubscribe() / removeChannel()..."
           VIOLATIONS=""
 
-          while IFS= read -r file; do
-            HAS_SUBSCRIBE=$(grep -c "\.subscribe()" "$file" 2>/dev/null || echo "0")
-            HAS_UNSUBSCRIBE=$(grep -c "\.unsubscribe()" "$file" 2>/dev/null || echo "0")
+          # Two-phase discovery: (1) same-line "supabase.channel(" and
+          # (2) multi-line format where ".channel(" is on its own indented line.
+          # Then filter to only files that contain useEffect — factory/repository
+          # patterns that return a channel to the caller have no useEffect and
+          # are excluded (cleanup is the responsibility of the caller).
+          CHANNEL_FILES=$(
+            {
+              grep -rl "supabase\.channel(" src/ \
+                --include="*.ts" --include="*.tsx" 2>/dev/null || true
+              grep -rl "supabase" src/ \
+                --include="*.ts" --include="*.tsx" 2>/dev/null | \
+                xargs -r grep -l "^[[:space:]]*\.channel(" 2>/dev/null || true
+            } | sort -u | xargs -r grep -l "useEffect" 2>/dev/null || true
+          )
 
-            if [ "$HAS_SUBSCRIBE" -gt 0 ] && [ "$HAS_UNSUBSCRIBE" -eq 0 ]; then
-              VIOLATIONS="${VIOLATIONS}\n  $file (subscribe: $HAS_SUBSCRIBE, unsubscribe: 0)"
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            # Match .subscribe( with or without a callback arg
+            HAS_SUBSCRIBE=$(grep -c "\.subscribe(" "$file" 2>/dev/null || true); HAS_SUBSCRIBE=${HAS_SUBSCRIBE:-0}
+            # Accept both explicit .unsubscribe() and supabase.removeChannel()
+            # (removeChannel internally calls unsubscribe on the channel)
+            HAS_CLEANUP=$(grep -cE "\.unsubscribe\(\)|removeChannel" "$file" 2>/dev/null || true); HAS_CLEANUP=${HAS_CLEANUP:-0}
+
+            if [ "$HAS_SUBSCRIBE" -gt 0 ] && [ "$HAS_CLEANUP" -eq 0 ]; then
+              VIOLATIONS="${VIOLATIONS}\n  $file (subscribe: $HAS_SUBSCRIBE, cleanup: 0)"
             fi
-          done < <(grep -rl "supabase\.channel(" src/ \
-            --include="*.ts" --include="*.tsx" 2>/dev/null || true)
+          done <<< "$CHANNEL_FILES"
 
           if [ -n "$VIOLATIONS" ]; then
-            echo "::error::INV-4 VIOLATION — .channel() without .unsubscribe() cleanup."
+            echo "::error::INV-4 VIOLATION — .channel() without .unsubscribe() / removeChannel() cleanup."
             echo -e "Files with missing cleanup:$VIOLATIONS"
             echo ""
             echo "Fix: Add a cleanup function to the useEffect:"
             echo "     return () => { channel.unsubscribe(); supabase.removeChannel(channel); };"
             exit 1
           fi
-          echo "INV-4 passed: all channel subscriptions have unsubscribe() cleanup."
+          echo "INV-4 passed: all channel subscriptions have unsubscribe()/removeChannel() cleanup."
 
       # ------------------------------------------------------------------
       # INV-5: No bare schema-less table reference in realtime .on() callbacks
