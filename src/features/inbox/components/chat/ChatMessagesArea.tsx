@@ -180,6 +180,25 @@ export const ChatMessagesArea = memo(
               });
             }
           )
+          // BUG-25: mensagens apagadas no banco (Evolution) devem sumir da UI.
+          // REPLICA IDENTITY FULL na tabela garante payload.old.id no DELETE.
+          .on(
+            'postgres_changes',
+            {
+              event: 'DELETE',
+              schema: 'evo',
+              table: 'evolution_messages',
+              filter: `remote_jid=eq.${contactJid}`,
+            },
+            (payload) => {
+              const oldMsg = payload.old as { id?: string };
+              if (oldMsg?.id) {
+                void queryClient.invalidateQueries({
+                  queryKey: queryKeys.messages.all(),
+                });
+              }
+            }
+          )
           .subscribe();
         return () => {
           channel.unsubscribe();
@@ -215,12 +234,29 @@ export const ChatMessagesArea = memo(
         (index: number) => {
           const item = messages[index];
           if (!item) return 80;
-          if (item.type === 'image' || item.type === 'video') return 300;
-          if (item.type === 'audio') return 120;
-          if (item.type === 'document') return 100;
-          const content = item.content || '';
-          const lines = Math.ceil(content.length / 60);
-          return Math.max(80, 70 + lines * 22);
+          // Altura base por tipo de mensagem
+          let h: number;
+          if (item.type === 'image' || item.type === 'video') h = 300;
+          else if (item.type === 'audio') h = 120;
+          else if (item.type === 'document') h = 100;
+          else {
+            const content = item.content || '';
+            const lines = Math.ceil(content.length / 60);
+            h = Math.max(80, 70 + lines * 22);
+          }
+          // BUG-21: incrementos para recursos que aumentam a altura do bubble
+          if (item.replyTo) h += 56; // citação (reply) no topo do bubble
+          if (Array.isArray(item.reactions) && item.reactions.length > 0) {
+            h += 24; // linha de reações
+          }
+          if (
+            item.interactive &&
+            Array.isArray(item.interactive.buttons) &&
+            item.interactive.buttons.length > 0
+          ) {
+            h += 40 * item.interactive.buttons.length; // botões interativos
+          }
+          return h;
         },
         [messages]
       );
