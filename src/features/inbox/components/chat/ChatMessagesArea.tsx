@@ -156,6 +156,7 @@ export const ChatMessagesArea = memo(
           )
           .subscribe();
         return () => {
+          channel.unsubscribe();
           void supabase.removeChannel(channel);
         };
       }, [conversationId, contactJid, queryClient]);
@@ -309,7 +310,10 @@ export const ChatMessagesArea = memo(
             {virtualizer.getVirtualItems().map((virtualRow) => {
               const message = messages[virtualRow.index];
               if (!message) return null;
-              const group = groupInfo[virtualRow.index] ?? { isFirstInGroup: true, isLastInGroup: true };
+              const group = groupInfo[virtualRow.index] ?? {
+                isFirstInGroup: true,
+                isLastInGroup: true,
+              };
               return (
                 <div
                   key={message.id || virtualRow.index}
