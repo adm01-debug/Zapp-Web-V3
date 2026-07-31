@@ -7,8 +7,15 @@
  * Uso: bun run scripts/run-200-simulations.ts
  */
 
-const SUPABASE_URL = 'https://supabase.atomicabr.com.br';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ewogICJyb2xlIjogImFub24iLAogICJpc3MiOiAic3VwYWJhc2UiLAogICJpYXQiOiAxNzE1MDUwODAwLAogICJleHAiOiAxODcyODE3MjAwCn0.rvamc0XHuSCYB1glBwOCCxgfd9yxWVYLnhFzg5-7TRk';
+const SUPABASE_URL = process.env.SUPABASE_URL ?? 'https://supabase.atomicabr.com.br';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? '';
+
+if (!SUPABASE_ANON_KEY) {
+  console.error('❌ SUPABASE_ANON_KEY não configurada — as simulações NÃO podem validar nada (tudo retornaria 401).');
+  console.error('   Exporte a anon key (pública por design, vai no bundle do browser) do Supabase self-hosted:');
+  console.error('   export SUPABASE_ANON_KEY=<anon-key>   (ou defina VITE_SUPABASE_ANON_KEY no .env)');
+  process.exit(1);
+}
 
 let totalPassed = 0;
 let totalFailed = 0;
@@ -52,7 +59,7 @@ function genVariations(_name: string, base: Omit<SimTest, 'id'>, variations: num
   for (let i = 0; i < variations; i++) {
     tests.push({
       ...base,
-      id: `${name}-${i + 1}`,
+      id: `${_name}-${i + 1}`,
       description: `${base.description} [variant ${i + 1}/${variations}]`,
     });
   }
