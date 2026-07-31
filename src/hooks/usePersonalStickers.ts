@@ -21,7 +21,7 @@ interface UsePersonalStickersResult {
   stickers: StickerItem[];
   isLoading: boolean;
   uploading: boolean;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  fileInputRef: React.RefObject<HTMLInputElement>;
   handleUpload: (files: FileList | null) => Promise<void>;
   toggleFavorite: { mutate: (sticker: StickerItem) => void };
   deleteSticker: { mutate: (sticker: StickerItem) => void };
@@ -34,7 +34,7 @@ export function usePersonalStickers(): UsePersonalStickersResult {
   const { profile } = useAuth();
   const ownerId = profile?.id;
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
   const QUERY_KEY = useMemo(() => ['personal-stickers', ownerId] as const, [ownerId]);

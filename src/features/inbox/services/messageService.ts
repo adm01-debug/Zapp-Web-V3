@@ -81,7 +81,15 @@ export const messageService = {
               isWhisper: true,
             })
           );
-          allData = allData.concat(mappedWhispers);
+          // Ponte entre modelos: `mapMessage` retorna `Message` (src/types/chat),
+          // mas `allData` acumula o shape RealtimeMessage — cast explícito no
+          // ponto de integração (mesmo padrão do `as Message` em mapMessage).
+          allData = allData.concat(
+            mappedWhispers as unknown as (Partial<RealtimeMessage> & {
+              isWhisper?: boolean;
+              sender_id?: string;
+            })[]
+          );
         }
       } else {
         log.debug(
