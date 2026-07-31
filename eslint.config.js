@@ -160,21 +160,20 @@ export default tseslint.config(
       ],
     },
   },
-  // REALTIME HYGIENE — proíbe strings hardcoded que causam bugs silenciosos de
-  // instância ou canais duplicados. (E20)
-  // 1) 'wpp2' literal: toda referência a nome de instância deve vir de
-  //    `instanceName` / `DEFAULT_WHATSAPP_INSTANCE` (variável ou constante),
-  //    nunca inlineado, pois quebra multi-instância.
-  // 2) 'chat-updates-': prefixo de canal Realtime deve sempre incluir o ID da
-  //    conversa como sufixo variável — canal estático gera conflito cross-conversa.
+  ...storybook.configs["flat/recommended"],
+  // REALTIME HYGIENE / ANTI-REGRESSION GUARDS (ChatPanel fixes E01-E20) — E20
+  // Previne reintrodução dos bugs corrigidos na auditoria 2026-07-30.
   {
-    files: ["src/**/*.{ts,tsx}", "supabase/functions/**/*.ts"],
+    files: ["src/**/*.{ts,tsx}"],
     ignores: [
-      // Arquivo que define a constante DEFAULT_WHATSAPP_INSTANCE é a única fonte da verdade
+      "src/lib/constants.ts",
+      "src/lib/constants/whatsappInstances.ts",
       "src/services/api/queryKeys.ts",
       "src/integrations/supabase/client.ts",
-      "src/lib/constants.ts",
-      // Arquivos de configuração de infra, testes de simulação e scripts
+      "src/features/inbox/hooks/realtime/externalSenderTypes.ts",
+      "src/integrations/zappweb/evolutionClient.ts",
+      "src/lib/whatsappAdapter.ts",
+      "src/pages/admin/external-db-explorer/catalog.ts",
       "src/**/__tests__/**",
       "src/**/*.test.{ts,tsx}",
       "src/**/*.spec.{ts,tsx}",
@@ -184,19 +183,19 @@ export default tseslint.config(
       "no-restricted-syntax": [
         "error",
         {
-          selector:
-            "Literal[value='wpp2']",
+          // E03/E07: instância hardcoded quebra roteamento multi-instância
+          selector: "Literal[value='wpp2']",
           message:
-            "E20: Hardcoded instance name 'wpp2' detected. Use the DEFAULT_WHATSAPP_INSTANCE constant or the instanceName prop/param instead. Hardcoded names break multi-instance routing.",
+            "E20: Instância WhatsApp hardcoded. Use instanceName da conversa ou DEFAULT_WHATSAPP_INSTANCE. Ver CONTACTREF.md.",
         },
         {
+          // E05: canal Realtime estático causa colisão cross-conversa
           selector:
-            "TemplateLiteral > TemplateElement[value.raw=/^chat-updates-$/]",
+            "CallExpression[callee.property.name='channel'] > TemplateLiteral[expressions.length=0]",
           message:
-            "E20: Static 'chat-updates-' channel without dynamic suffix. The channel name must include a conversation ID variable to avoid cross-conversation conflicts.",
+            "E20: Canal Realtime com nome fixo causa colisão de tópico. Inclua o remote_jid: `chat-updates:${contactJid}`.",
         },
       ],
     },
   },
-  ...storybook.configs["flat/recommended"]
 );

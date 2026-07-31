@@ -17,7 +17,6 @@ import { getLogger } from '@/lib/logger';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { EmptyState } from '@/components/ui/empty-states';
 import { supabase } from '@/integrations/supabase/client';
-import { isValidUUID } from '@/utils/uuid';
 import { ChatWatermark } from './ChatWatermark';
 import { Message, InteractiveButton } from '@/types/chat';
 import { motion, AnimatePresence } from '@/components/ui/motion';
@@ -128,49 +127,38 @@ export const ChatMessagesArea = memo(
         },
         scrollToMessage: (messageId: string): boolean => {
           const index = messageIndexRef.current.get(messageId);
-          if (index === undefined) return false; // not loaded yet — caller should paginate
+          if (index === undefined) return false;
           virtualizer.scrollToIndex(index, { align: 'center', behavior: 'smooth' });
           return true;
         },
         getScrollContainer: () => scrollContainerRef.current,
       }));
 
-      // `messages` é um novo array a cada mensagem recebida; usar como dep direta
-      // recriava (unsubscribe+subscribe) este canal a cada UPDATE realtime. O ref
-      // mantém o `.some()` sempre atualizado sem forçar a resubscrição.
-      const messagesRef = useRef(messages);
-      messagesRef.current = messages;
       const conversationId = messages[0]?.conversationId;
 
       useEffect(() => {
-        if (!conversationId) return;
-        const uuidConversation = isValidUUID(conversationId);
+        if (!conversationId || !contactJid) return;
         const channel = supabase
-          .channel(`chat-updates-${conversationId}`)
+          .channel(`chat-updates:${contactJid}`)
           .on(
             'postgres_changes',
             {
               event: 'UPDATE',
               schema: 'evo',
               table: 'evolution_messages',
-              ...(uuidConversation ? { filter: `contact_id=eq.${conversationId}` } : {}),
+              filter: `remote_jid=eq.${contactJid}`,
             },
-            (payload) => {
-              const updatedMsg = payload.new as { id: string; contact_id?: string };
-              const belongsHere = uuidConversation
-                ? updatedMsg.contact_id === conversationId
-                : messagesRef.current.some((m) => m.id === updatedMsg.id);
-              if (belongsHere) {
-                void queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() });
-              }
+            () => {
+              void queryClient.invalidateQueries({
+                queryKey: queryKeys.messages.all(),
+              });
             }
           )
           .subscribe();
         return () => {
-          channel.unsubscribe();
-          supabase.removeChannel(channel);
+          void supabase.removeChannel(channel);
         };
-      }, [conversationId, queryClient]);
+      }, [conversationId, contactJid, queryClient]);
 
       // Realtime de reações: 1 canal por conversa, invalida apenas IDs visíveis
       const messageIds = useMemo(() => messages.map((m) => m.id), [messages]);

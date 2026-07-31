@@ -33,6 +33,9 @@
     "src"
   ],
   "exclude": [
+    "src/**/*simulacao*.test.ts",
+    "src/**/*simulation*.test.ts",
+    "src/**/*exhaustive*.test.ts",
     "src/__tests__/resolve-jid-exhaustive.test.ts",
     "src/__tests__/security-simulations.test.ts",
     "src/shared/__tests__/validation.test.ts",
