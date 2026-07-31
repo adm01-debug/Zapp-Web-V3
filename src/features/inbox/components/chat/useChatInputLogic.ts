@@ -42,6 +42,9 @@ export function useChatInputLogic({
   const [sendAnimation, setSendAnimation] = useState(false);
   const [isSendingFiles, setIsSendingFiles] = useState(false);
   const [attachments, setAttachments] = useState<ChatInputAttachment[]>([]);
+  // Ref espelhado dos attachments para revogar previews no unmount
+  const attachmentsRef = useRef(attachments);
+  attachmentsRef.current = attachments;
   const lastErrorRef = useRef<string | null>(null);
   const inputValueRef = useRef(inputValue);
   inputValueRef.current = inputValue;
@@ -63,6 +66,15 @@ export function useChatInputLogic({
   useEffect(() => {
     autoResize();
   }, [inputValue, autoResize]);
+
+  // Revoga object URLs pendentes no unmount (evita vazamento de memória)
+  useEffect(() => {
+    return () => {
+      attachmentsRef.current.forEach((a) => {
+        if (a.preview) URL.revokeObjectURL(a.preview);
+      });
+    };
+  }, []);
 
   // Auto-save drafts
   useEffect(() => {
@@ -110,7 +122,7 @@ export function useChatInputLogic({
     setAttachments((prev) => [
       ...prev,
       {
-        id: Math.random().toString(36).substr(2, 9),
+        id: Math.random().toString(36).slice(2, 11),
         file,
         preview,
         category: validation.category || 'document',
@@ -181,6 +193,10 @@ export function useChatInputLogic({
       if (isMobile && navigator.vibrate) navigator.vibrate(50);
 
       await onSend(attachments.map((a) => a.file));
+      // Revoga os previews antes de limpar a lista (evita vazamento de object URLs)
+      attachments.forEach((a) => {
+        if (a.preview) URL.revokeObjectURL(a.preview);
+      });
       setAttachments([]);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Erro ao enviar';

@@ -117,7 +117,7 @@ export const ChatMessageInput = forwardRef<ChatMessageInputRef, ChatMessageInput
       setAttachments((prev) => [
         ...prev,
         {
-          id: Math.random().toString(36).substr(2, 9),
+          id: Math.random().toString(36).slice(2, 11),
           file,
           preview,
           category: validation.category || 'document',
