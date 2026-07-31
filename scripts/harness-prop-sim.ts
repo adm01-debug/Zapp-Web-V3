@@ -58,8 +58,8 @@ fc.assert(
 );
 
 fc.assert(
-  fc.property(fc.string(), (s) => {
-    // Simetria: null/undefined sempre false
+  fc.property(fc.string(), () => {
+    // Sem invariante adicional: strings arbitrárias já cobertas pelas SIMs 1-2
   }),
   { numRuns: 1 }
 );
@@ -104,8 +104,9 @@ fc.assert(
 check('contactRefToString round-trip', () => {
   const u = '550e8400-e29b-41d4-a716-446655440000';
   const j = '551146375517@s.whatsapp.net';
-  const ru = resolveContactRef(u)!;
-  const rj = resolveContactRef(j)!;
+  const ru = resolveContactRef(u);
+  const rj = resolveContactRef(j);
+  if (!ru || !rj) throw new Error('resolveContactRef falhou em round-trip');
   if (contactRefToString(ru) !== u) throw new Error('round-trip uuid falhou');
   if (contactRefToString(rj) !== j) throw new Error('round-trip jid falhou');
   if (contactRefToString(null) !== '(null)') throw new Error('null deveria → "(null)" (sentinela legada, usada em useFallbackContact)');
@@ -184,7 +185,7 @@ for (const [id, nConcurrent] of occCases) {
 
   const okCount = results.filter((r) => r.ok).length;
   if (okCount !== 1) throw new Error(`SIM3: esperado 1 sucesso, obtido ${okCount} (n=${nConcurrent}, id=${id})`);
-  const finalVersion = store.get(id)!.version;
+  const finalVersion = store.get(id)?.version;
   if (finalVersion !== 2) throw new Error(`SIM3: versão final ${finalVersion} ≠ 2 (id=${id})`);
 }
 passed += 100;
@@ -194,7 +195,7 @@ passed += 100;
 // ─────────────────────────────────────────────────────────────────────────────
 const insertCases = fc.sample(fc.uuid(), { numRuns: 50, seed: 20260731 });
 for (const id of insertCases) {
-  const { store, makeQuery } = makeStore();
+  const { makeQuery } = makeStore();
   const ins = await insertWithVersion(makeQuery(id), { id, updated_at: new Date().toISOString() });
   if (!ins.ok) throw new Error('SIM4: insert falhou');
   if (ins.newVersion !== 1) throw new Error(`SIM4: insert version ${ins.newVersion} ≠ 1`);
