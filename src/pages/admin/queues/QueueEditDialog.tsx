@@ -81,7 +81,7 @@ export function QueueEditDialog({
               <Input
                 id="queue-color"
                 type="color"
-                value={editing?.color ?? '#3B82F6'}
+                value={editing?.color ?? 'bg-primary'}
                 onChange={(e) => onChange({ ...(editing ?? {}), color: e.target.value })}
               />
             </div>

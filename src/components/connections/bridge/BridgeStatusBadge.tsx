@@ -19,7 +19,7 @@ export function BridgeStatusBadge({ status, isConfigured }: BridgeStatusBadgePro
 
   if (status === 'online') {
     return (
-      <Badge className="gap-1 bg-emerald-500/15 text-emerald-500 border-emerald-500/30">
+      <Badge className="gap-1 bg-success/15 text-success border-success/30">
         <CheckCircle2 className="w-3 h-3" /> Online
       </Badge>
     );

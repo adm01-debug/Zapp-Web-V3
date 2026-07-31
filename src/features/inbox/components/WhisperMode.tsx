@@ -139,20 +139,20 @@ export function WhisperMode({
   return (
     <div
       className={cn(
-        'flex flex-col rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30',
+        'flex flex-col rounded-lg border border-warning bg-warning dark:border-warning dark:bg-warning/30',
         className
       )}
     >
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between rounded-t-lg px-3 py-2 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900/30"
+        className="flex items-center justify-between rounded-t-lg px-3 py-2 text-xs font-medium text-warning transition-colors hover:bg-warning dark:text-warning dark:hover:bg-warning/30"
       >
         <div className="flex items-center gap-1.5">
           <Eye className="h-3.5 w-3.5" />
           <span>Modo Whisper</span>
           {whispers.length > 0 && (
-            <span className="rounded-full bg-amber-200 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-800 dark:text-amber-200">
+            <span className="rounded-full bg-warning px-1.5 py-0.5 text-[10px] font-semibold text-warning dark:bg-warning dark:text-warning">
               {whispers.length}
             </span>
           )}
@@ -169,10 +169,10 @@ export function WhisperMode({
           <div className="max-h-40 flex-1 space-y-1.5 overflow-y-auto p-2">
             {isLoading ? (
               <div className="flex justify-center py-2">
-                <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                <Loader2 className="h-4 w-4 animate-spin text-warning" />
               </div>
             ) : whispers.length === 0 ? (
-              <p className="py-2 text-center text-xs text-amber-600 dark:text-amber-400">
+              <p className="py-2 text-center text-xs text-warning dark:text-warning">
                 Nenhuma mensagem interna ainda
               </p>
             ) : (
@@ -188,12 +188,12 @@ export function WhisperMode({
                     className={cn(
                       'max-w-[85%] rounded-lg px-2.5 py-1.5 text-xs',
                       w.sender_id === profile?.id
-                        ? 'bg-amber-300 text-amber-900 dark:bg-amber-700 dark:text-amber-100'
-                        : 'border border-amber-200 bg-card text-amber-800 dark:border-amber-700 dark:bg-amber-900 dark:text-amber-200'
+                        ? 'bg-warning text-warning dark:bg-warning dark:text-warning'
+                        : 'border border-warning bg-card text-warning dark:border-warning dark:bg-warning dark:text-warning'
                     )}
                   >
                     {w.sender && w.sender_id !== profile?.id && (
-                      <p className="mb-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                      <p className="mb-0.5 text-[10px] font-semibold text-warning dark:text-warning">
                         {w.sender.name}
                       </p>
                     )}
@@ -212,14 +212,14 @@ export function WhisperMode({
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="flex gap-1.5 border-t border-amber-200 p-2 dark:border-amber-800">
+          <div className="flex gap-1.5 border-t border-warning p-2 dark:border-warning">
             <Textarea
               ref={textareaRef}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Mensagem interna (visível só para a equipe)..."
-              className="max-h-24 min-h-[36px] flex-1 resize-none border-amber-200 bg-card text-xs focus:ring-amber-300 dark:border-amber-700 dark:bg-amber-900"
+              className="max-h-24 min-h-[36px] flex-1 resize-none border-warning bg-card text-xs focus:ring-amber-300 dark:border-warning dark:bg-warning"
               rows={1}
             />
             <div className="flex flex-col gap-1">

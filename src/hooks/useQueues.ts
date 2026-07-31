@@ -161,7 +161,7 @@ export function useQueues(): UseQueuesResult {
         supabase.from('queues').insert({
           name: queue.name,
           description: queue.description ?? null,
-          color: queue.color ?? '#3B82F6',
+          color: queue.color ?? 'bg-primary',
         })
       ),
     [runMutation]

@@ -16,7 +16,7 @@ export function ConnectionsWebhooksTab() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Webhook className="h-5 w-5 text-emerald-500" /> Webhooks Inter-App
+            <Webhook className="h-5 w-5 text-success" /> Webhooks Inter-App
           </CardTitle>
           <CardDescription>
             Permita que outros sistemas criados no Lovable se conectem ao ZAPP Web
@@ -55,7 +55,7 @@ export function ConnectionsWebhooksTab() {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-600">
+                    <Badge className="border-success/20 bg-success/10 text-success">
                       Ativo
                     </Badge>
                   </td>

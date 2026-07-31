@@ -132,8 +132,8 @@ export function SwDebugWidget() {
           <span
             className={`ml-1 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
               killSwitchOk
-                ? 'bg-green-500/15 text-green-700 dark:text-green-400'
-                : 'bg-red-500/15 text-red-700 dark:text-red-400'
+                ? 'bg-success/15 text-success dark:text-success'
+                : 'bg-destructive/15 text-destructive dark:text-destructive'
             }`}
           >
             {killSwitchOk ? 'kill-switch OK' : 'atenção'}
@@ -153,30 +153,30 @@ export function SwDebugWidget() {
         <>
           <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-muted-foreground">
             <dt className="font-medium text-foreground">Build</dt>
-            <dd className="truncate font-mono">{snap?.buildId ?? '—'}</dd>
+            <dd className="truncate font-mono">{snap?.buildId ?? '—'}</dd> // @technical
 
             <dt className="font-medium text-foreground">Estado</dt>
-            <dd className="font-mono">{snap?.state ?? '…'}</dd>
+            <dd className="font-mono">{snap?.state ?? '…'}</dd> // @technical
 
             <dt className="font-medium text-foreground">Script</dt>
-            <dd className="truncate font-mono text-[10px]">
+            <dd className="truncate font-mono text-[10px]"> // @technical
               {snap?.scriptUrl ?? '—'}
             </dd>
 
             <dt className="font-medium text-foreground">Scope</dt>
-            <dd className="truncate font-mono text-[10px]">{snap?.scope ?? '—'}</dd>
+            <dd className="truncate font-mono text-[10px]">{snap?.scope ?? '—'}</dd> // @technical
 
             <dt className="font-medium text-foreground">Workbox no sw.js</dt>
             <dd
-              className={`font-mono ${snap?.isWorkbox ? 'text-red-500' : 'text-green-600 dark:text-green-400'}`}
+              className={`font-mono ${snap?.isWorkbox ? 'text-destructive' : 'text-success dark:text-success'}`} // @technical
             >
               {snap ? (snap.isWorkbox ? 'detectado' : 'não') : '…'}
             </dd>
 
             <dt className="font-medium text-foreground">Caches ({caches_.length})</dt>
             <dd
-              className={`font-mono break-all ${
-                hasWorkboxCache ? 'text-red-500' : ''
+              className={`font-mono break-all ${ // @technical
+                hasWorkboxCache ? 'text-destructive' : ''
               }`}
             >
               {caches_.length === 0 ? 'nenhuma' : caches_.join(', ')}

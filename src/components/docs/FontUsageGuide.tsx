@@ -24,7 +24,7 @@ export function FontUsageGuide() {
             </CardHeader>
             <CardContent className="text-sm space-y-2">
               <p><strong>Uso:</strong> Interface geral, títulos, parágrafos, botões e labels.</p>
-              <p><strong>Herança:</strong> É a fonte padrão do sistema. Não use <code>font-sans</code> explicitamente, ela já é herdada.</p>
+              <p><strong>Herança:</strong> É a fonte padrão do sistema. Não use <code></code> explicitamente, ela já é herdada.</p>
             </CardContent>
           </Card>
           
@@ -54,8 +54,8 @@ export function FontUsageGuide() {
           <TableBody>
             <TableRow>
               <TableCell>
-                <p className="font-sans text-destructive">Redundante:</p>
-                <code className="text-xs">&lt;p className="font-sans"&gt;Texto&lt;/p&gt;</code>
+                <p className=" text-destructive">Redundante:</p>
+                <code className="text-xs">&lt;p className=""&gt;Texto&lt;/p&gt;</code>
               </TableCell>
               <TableCell>
                 <p className="text-success font-medium">Limpo (Herança Global):</p>
@@ -64,7 +64,7 @@ export function FontUsageGuide() {
             </TableRow>
             <TableRow>
               <TableCell>
-                <p className="font-mono text-destructive">Texto comum em mono:</p>
+                <p className="font-mono text-destructive">Texto comum em mono:</p> // @technical
                 <code className="text-xs">&lt;span className="font-mono"&gt;Configurações&lt;/span&gt;</code>
               </TableCell>
               <TableCell>
@@ -99,7 +99,7 @@ export function FontUsageGuide() {
       <section className="space-y-4">
         <h2 className="text-2xl font-bold border-b pb-2">Auditoria Automática</h2>
         <p className="text-sm text-muted-foreground">
-          O build do projeto falhará no CI se novas ocorrências de <code>font-sans</code> ou <code>font-mono</code> (fora de contexto técnico) forem detectadas.
+          O build do projeto falhará no CI se novas ocorrências de <code></code> ou <code>font-mono</code> (fora de contexto técnico) forem detectadas.
           Use <code>@ds-ignore</code> se precisar ignorar uma regra em caso excepcional devidamente justificado.
         </p>
       </section>

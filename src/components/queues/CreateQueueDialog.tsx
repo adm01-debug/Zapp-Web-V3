@@ -22,11 +22,11 @@ interface CreateQueueDialogProps {
 }
 
 const COLORS = [
-  '#3B82F6', // blue
-  '#10B981', // green
-  '#F59E0B', // amber
-  '#EF4444', // red
-  '#8B5CF6', // purple
+  'bg-primary', // blue
+  'bg-success', // green
+  'bg-warning', // amber
+  'bg-destructive', // red
+  'bg-accent', // purple
   '#EC4899', // pink
   '#06B6D4', // cyan
   '#84CC16', // lime

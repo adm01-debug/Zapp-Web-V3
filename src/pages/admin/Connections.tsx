@@ -449,7 +449,7 @@ export default function AdminConnectionsPage() {
                         value={editOpen ? draftUrl : externalUrl}
                         onChange={(e) => setDraftUrl(e.target.value)}
                         readOnly={!editOpen}
-                        className="font-mono text-xs"
+                        className="font-mono text-xs" // @technical
                       />
                     </div>
                     <div className="space-y-2">
@@ -466,7 +466,7 @@ export default function AdminConnectionsPage() {
                         onChange={(e) => setDraftKey(e.target.value)}
                         readOnly={!editOpen}
                         placeholder={editOpen ? 'eyJhbGciOi...' : ''}
-                        className="font-mono text-xs"
+                        className="font-mono text-xs" // @technical
                       />
                     </div>
                     {editOpen && (
@@ -477,7 +477,7 @@ export default function AdminConnectionsPage() {
                       </p>
                     )}
                     {isAdmin === false && (
-                      <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-600">
+                      <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 p-3 text-xs text-warning">
                         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                         <span>
                           Você não está autenticado como admin. As políticas de segurança bloqueiam
@@ -582,7 +582,7 @@ export default function AdminConnectionsPage() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
-                      <Globe className="h-5 w-5 text-blue-500" /> Bitrix24
+                      <Globe className="h-5 w-5 text-primary" /> Bitrix24
                     </CardTitle>
                     <Badge variant="outline">Pendente</Badge>
                   </div>
@@ -607,7 +607,7 @@ export default function AdminConnectionsPage() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
-                      <Link className="h-5 w-5 text-orange-500" /> n8n (Workflows)
+                      <Link className="h-5 w-5 text-warning" /> n8n (Workflows)
                     </CardTitle>
                     <Badge variant="outline">Pendente</Badge>
                   </div>
@@ -643,7 +643,7 @@ export default function AdminConnectionsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Webhook className="h-5 w-5 text-emerald-500" /> Webhooks Inter-App
+                    <Webhook className="h-5 w-5 text-success" /> Webhooks Inter-App
                   </CardTitle>
                   <CardDescription>
                     Permita que outros sistemas criados no Lovable se conectem ao ZAPP Web
@@ -674,7 +674,7 @@ export default function AdminConnectionsPage() {
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-600">
+                            <Badge className="border-success/20 bg-success/10 text-success">
                               Ativo
                             </Badge>
                           </td>
@@ -711,10 +711,10 @@ export default function AdminConnectionsPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
             >
-              <Card className="border-purple-500/20 bg-purple-500/5">
+              <Card className="border-accent/20 bg-accent/5">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Cpu className="h-5 w-5 text-purple-500" /> MCP (Model Context Protocol) para
+                    <Cpu className="h-5 w-5 text-accent" /> MCP (Model Context Protocol) para
                     Claude
                   </CardTitle>
                   <CardDescription>
@@ -723,9 +723,9 @@ export default function AdminConnectionsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="space-y-4 rounded-lg border border-purple-500/20 bg-background p-4">
+                  <div className="space-y-4 rounded-lg border border-accent/20 bg-background p-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="flex items-center gap-2 font-semibold text-purple-500">
+                      <h4 className="flex items-center gap-2 font-semibold text-accent">
                         <ShieldCheck className="h-4 w-4" /> Endpoint do Servidor MCP
                       </h4>
                       <Badge variant="secondary">Experimental</Badge>
@@ -757,7 +757,7 @@ export default function AdminConnectionsPage() {
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto whitespace-pre rounded border border-secondary/20 bg-muted p-3 font-mono text-[10px]">
+                  <div className="overflow-x-auto whitespace-pre rounded border border-secondary/20 bg-muted p-3 font-mono text-[10px]"> // @technical
                     {`"mcpServers": {
   "zapp-web": {
     "command": "npx",

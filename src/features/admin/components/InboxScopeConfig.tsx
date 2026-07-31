@@ -341,7 +341,7 @@ export function InboxScopeConfig() {
                       <p className="line-clamp-2 text-[10px] text-muted-foreground">
                         {scope.description || 'Sem descrição'}
                       </p>
-                      <div className="mt-1 inline-block rounded bg-muted px-1.5 py-0.5 font-mono text-[8px] uppercase">
+                      <div className="mt-1 inline-block rounded bg-muted px-1.5 py-0.5 font-mono text-[8px] uppercase"> // @technical
                         ID: {scope.name}
                       </div>
                     </div>
