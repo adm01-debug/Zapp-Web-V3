@@ -5,22 +5,24 @@ import { normalizeMediaUrl } from '@/utils/normalizeMediaUrl';
 import { toast } from 'sonner';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { newRequestId } from '@/lib/withRequestId';
-import { dbFrom } from '@/integrations/datasource/db';
 import type { AudioMemeItem } from '@/hooks/useAudioManagement';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
 import { isValidUUID } from '@/utils/uuid';
+import { insertAuxMessage } from './useAuxiliaryMessageLog';
 
 /**
  * Encapsulates WhatsApp instance resolution and media-message sending
  * (stickers, custom emojis, audio memes) to keep ChatPanel lean.
  *
- * HISTÓRICO:
+ * HISTORICO:
  * - Audit 02/05/2026: safe-guard em contactPhone, retry no updateMessageStatus.
- * - 2026-07-08: removida referência à tabela fantasma `evolution_contacts`.
- *   Resolução de instância agora usa exclusivamente `contacts.whatsapp_connection_id`
- *   + fallback para primeira conexão ativa.
+ * - 2026-07-08: removida referencia a tabela fantasma `evolution_contacts`.
+ *   Resolucao de instancia agora usa exclusivamente `contacts.whatsapp_connection_id`
+ *   + fallback para primeira conexao ativa.
+ * - 2026-07-31 (E14-A): inserts de mensagens auxiliares roteados via
+ *   insertAuxMessage. JID mode: skip (Evolution API persiste automaticamente).
+ *   UUID mode: insert em zapp.messages como antes.
  */
-/** Encapsulates WhatsApp instance resolution and media-message sending (stickers, custom emojis, audio memes) for a given contact. */
 export function useChatMediaSending(
   contactId: string,
   contactPhone: string | undefined,
@@ -141,7 +143,7 @@ export function useChatMediaSending(
   const ensureInstance = useCallback(async (): Promise<string | null> => {
     const resolved = instanceName || (await resolveInstance());
     if (!resolved || !contactPhone) {
-      toast.error('Conexão WhatsApp não disponível.');
+      toast.error('Conexao WhatsApp nao disponivel.');
       return null;
     }
     return resolved;
@@ -152,58 +154,46 @@ export function useChatMediaSending(
       const inst = await ensureInstance();
       if (!inst) return;
 
-      // BUG 2 FIX: Safe phone extraction instead of non-null assertion
       const phone = getSafePhone();
       if (!phone) {
-        toast.error('Telefone do contato não disponível.');
+        toast.error('Telefone do contato nao disponivel.');
         return;
       }
 
       try {
-        const { data: dbData, error: dbDataErr } = await supabase
-          .from('messages')
-          .insert({
-            contact_id: contactId,
-            whatsapp_connection_id: whatsappConnectionId,
-            content: '[Sticker]',
-            message_type: 'sticker',
-            media_url: stickerUrl,
-            sender: 'agent',
-            status: 'sending',
-          })
-          .select('id')
-          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
+        // E14-A: roteamento correto UUID→messages / JID→skip
+        const { id: messageId, mode: insertMode } = await insertAuxMessage({
+          contactId,
+          whatsappConnectionId,
+          content: '[Sticker]',
+          messageType: 'sticker',
+          mediaUrl: stickerUrl,
+        });
 
-        if (dbDataErr) {
-          log.error('[Sticker] DB insert failed:', dbDataErr);
-        }
-
-        const messageId = dbData?.id;
         let externalId: string | null = null;
 
         try {
           const result = await sendStickerMessage(inst, phone, stickerUrl);
           externalId = (result as any)?.key?.id || null;
         } catch (err: unknown) {
-          if (messageId) await updateMessageStatus(messageId, 'failed');
+          if (messageId && insertMode === 'local') await updateMessageStatus(messageId, 'failed');
           toast.error(err instanceof Error ? err.message : 'Erro ao enviar figurinha');
           return;
         }
 
         if (!externalId) {
-          if (messageId) await updateMessageStatus(messageId, 'failed');
+          if (messageId && insertMode === 'local') await updateMessageStatus(messageId, 'failed');
           toast.error('Erro ao enviar figurinha: falha na API');
           return;
         }
 
-        // FALHA 5 FIX: Proper error handling on status update
-        if (messageId) {
+        if (messageId && insertMode === 'local') {
           await updateMessageStatus(messageId, 'sent', externalId);
         }
 
-        // FALHA 6 FIX: Auto-save with error handling
+        // Auto-save sticker
         try {
-          const { data: existing, error: _existingErr } = await supabase
+          const { data: existing } = await supabase
             .from('stickers')
             .select('id')
             .eq('image_url', stickerUrl)
@@ -249,10 +239,9 @@ export function useChatMediaSending(
       const inst = await ensureInstance();
       if (!inst) return;
 
-      // BUG 2 FIX
       const phone = getSafePhone();
       if (!phone) {
-        toast.error('Telefone do contato não disponível.');
+        toast.error('Telefone do contato nao disponivel.');
         return;
       }
 
@@ -278,43 +267,40 @@ export function useChatMediaSending(
               headers: trace.headers,
             });
 
-        const dbPromise = dbFrom('messages')
-          .insert({
-            contact_id: contactId,
-            whatsapp_connection_id: whatsappConnectionId,
-            content: isUrl ? '[Emoji]' : emojiUrl,
-            message_type: isUrl ? 'image' : 'text',
-            media_url: isUrl ? emojiUrl : null,
-            sender: 'agent',
-            status: 'sending',
-            request_id: trace.requestId,
-          })
-          .select('id')
-          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
+        // E14-A: roteamento correto via insertAuxMessage
+        const auxPromise = insertAuxMessage({
+          contactId,
+          whatsappConnectionId,
+          content: isUrl ? '[Emoji]' : emojiUrl,
+          messageType: isUrl ? 'image' : 'text',
+          mediaUrl: isUrl ? emojiUrl : null,
+          requestId: trace.requestId,
+        });
 
-        const results = await Promise.allSettled([apiPromise, dbPromise]);
+        const results = await Promise.allSettled([apiPromise, auxPromise]);
         const apiResult =
           results[0].status === 'fulfilled' ? results[0].value : { error: true, data: null };
-        const dbResult =
-          results[1].status === 'fulfilled' ? results[1].value : { data: null, error: true };
+        const auxResult =
+          results[1].status === 'fulfilled'
+            ? results[1].value
+            : { id: null, mode: 'skip' as const };
 
-        const messageId = dbResult?.data?.id;
+        const messageId = auxResult.id;
         const externalId = apiResult?.data?.key?.id || null;
 
-        if (results[0].status === 'rejected' || results[1].status === 'rejected') {
-          if (messageId) await updateMessageStatus(messageId, 'failed');
+        if (results[0].status === 'rejected') {
+          if (messageId && auxResult.mode === 'local') await updateMessageStatus(messageId, 'failed');
           toast.error('Erro ao enviar emoji');
           return;
         }
 
         if (apiResult?.error || !externalId) {
-          if (messageId) await updateMessageStatus(messageId, 'failed');
+          if (messageId && auxResult.mode === 'local') await updateMessageStatus(messageId, 'failed');
           toast.error('Erro ao enviar emoji');
           return;
         }
 
-        // FIX: proper await instead of fire-and-forget
-        if (messageId) {
+        if (messageId && auxResult.mode === 'local') {
           await updateMessageStatus(messageId, 'sent', externalId);
         }
         toast.success('Emoji enviado!');
@@ -332,7 +318,7 @@ export function useChatMediaSending(
 
       const phone = getSafePhone();
       if (!phone) {
-        toast.error('Telefone do contato não disponível.');
+        toast.error('Telefone do contato nao disponivel.');
         return;
       }
 
@@ -342,17 +328,12 @@ export function useChatMediaSending(
         const normalizedAudioUrl = normalizeMediaUrl(audioUrl);
         const trace = newRequestId('audio');
 
-        // DOC ARCHITECTURE COMPLIANCE:
-        // We still insert into local 'messages' (Lovable Cloud) for UI persistence,
-        // but if we have a memeId, the backend (FATOR X) will handle use_count++ and audio_meme_id linkage
-        // when we invoke the edge function.
-
         const apiPromise = supabase.functions.invoke('evolution-api', {
           body: {
             action: 'send-audio',
             instanceName: inst,
             number: phone,
-            audio: normalizedAudioUrl, // Use 'audio' as per evolution-api index.ts
+            audio: normalizedAudioUrl,
             encoding: true,
             isPtt: true, // Audio memes MUST appear as voice notes (green waveform)
             audio_meme_id: memeId,
@@ -360,52 +341,49 @@ export function useChatMediaSending(
           headers: trace.headers,
         });
 
-        const dbPromise = dbFrom('messages')
-          .insert({
-            contact_id: contactId,
-            whatsapp_connection_id: whatsappConnectionId,
-            content: '[Áudio Meme]',
-            message_type: 'audio',
-            media_url: normalizedAudioUrl,
-            sender: 'agent',
-            status: 'sending',
-            request_id: trace.requestId,
-            // If your local 'messages' table has audio_meme_id, propagate it
-            ...(memeId ? { audio_meme_id: memeId } : {}),
-          })
-          .select('id')
-          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
+        // E14-A: roteamento correto via insertAuxMessage
+        const auxPromise = insertAuxMessage({
+          contactId,
+          whatsappConnectionId,
+          content: '[Audio Meme]',
+          messageType: 'audio',
+          mediaUrl: normalizedAudioUrl,
+          requestId: trace.requestId,
+          audioMemeId: memeId,
+        });
 
-        const results = await Promise.allSettled([apiPromise, dbPromise]);
+        const results = await Promise.allSettled([apiPromise, auxPromise]);
         const apiResult =
           results[0].status === 'fulfilled' ? results[0].value : { error: true, data: null };
-        const dbResult =
-          results[1].status === 'fulfilled' ? results[1].value : { data: null, error: true };
+        const auxResult =
+          results[1].status === 'fulfilled'
+            ? results[1].value
+            : { id: null, mode: 'skip' as const };
 
-        const messageId = dbResult?.data?.id;
+        const messageId = auxResult.id;
 
-        if (results[0].status === 'rejected' || results[1].status === 'rejected') {
+        if (results[0].status === 'rejected') {
           log.error('Audio meme send failed - rejected promise');
-          if (messageId) await updateMessageStatus(messageId, 'failed');
-          toast.error('Erro ao enviar áudio meme');
+          if (messageId && auxResult.mode === 'local') await updateMessageStatus(messageId, 'failed');
+          toast.error('Erro ao enviar audio meme');
           return;
         }
 
         if (apiResult?.error || !apiResult?.data?.key?.id) {
           log.error('Audio meme send failed', apiResult?.error);
-          if (messageId) await updateMessageStatus(messageId, 'failed');
-          toast.error('Erro ao enviar áudio meme');
+          if (messageId && auxResult.mode === 'local') await updateMessageStatus(messageId, 'failed');
+          toast.error('Erro ao enviar audio meme');
           return;
         }
 
         const externalId = apiResult.data.key.id;
-        if (messageId) {
+        if (messageId && auxResult.mode === 'local') {
           await updateMessageStatus(messageId, 'sent', externalId);
         }
-        toast.success('🔊 Áudio meme enviado!');
+        toast.success('Audio meme enviado!');
       } catch (err) {
         log.error('handleSendAudioMeme error', err);
-        toast.error('Erro ao enviar áudio meme');
+        toast.error('Erro ao enviar audio meme');
       }
     },
     [ensureInstance, contactId, whatsappConnectionId, getSafePhone, updateMessageStatus]
