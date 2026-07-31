@@ -538,9 +538,12 @@ export function useRealtimeInbox() {
   }, [newMessageNotification, handleSelectConversation, dismissNotification]);
 
   const toggleSound = useCallback(() => {
-    setSoundOn((prev) => !prev);
-    setSoundEnabled(!soundOn);
-  }, [soundOn, setSoundEnabled]);
+    setSoundOn((prev) => {
+      const next = !prev;
+      setSoundEnabled(next);
+      return next;
+    });
+  }, [setSoundEnabled]);
 
   const legacyConversation = useMemo(
     () => mapToLegacyConversation(resolvedSelectedConversation),

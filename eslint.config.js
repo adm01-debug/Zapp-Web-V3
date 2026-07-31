@@ -160,5 +160,43 @@ export default tseslint.config(
       ],
     },
   },
+  // REALTIME HYGIENE — proíbe strings hardcoded que causam bugs silenciosos de
+  // instância ou canais duplicados. (E20)
+  // 1) 'wpp2' literal: toda referência a nome de instância deve vir de
+  //    `instanceName` / `DEFAULT_WHATSAPP_INSTANCE` (variável ou constante),
+  //    nunca inlineado, pois quebra multi-instância.
+  // 2) 'chat-updates-': prefixo de canal Realtime deve sempre incluir o ID da
+  //    conversa como sufixo variável — canal estático gera conflito cross-conversa.
+  {
+    files: ["src/**/*.{ts,tsx}", "supabase/functions/**/*.ts"],
+    ignores: [
+      // Arquivo que define a constante DEFAULT_WHATSAPP_INSTANCE é a única fonte da verdade
+      "src/services/api/queryKeys.ts",
+      "src/integrations/supabase/client.ts",
+      "src/lib/constants.ts",
+      // Arquivos de configuração de infra, testes de simulação e scripts
+      "src/**/__tests__/**",
+      "src/**/*.test.{ts,tsx}",
+      "src/**/*.spec.{ts,tsx}",
+      "scripts/**",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "Literal[value='wpp2']",
+          message:
+            "E20: Hardcoded instance name 'wpp2' detected. Use the DEFAULT_WHATSAPP_INSTANCE constant or the instanceName prop/param instead. Hardcoded names break multi-instance routing.",
+        },
+        {
+          selector:
+            "TemplateLiteral > TemplateElement[value.raw=/^chat-updates-$/]",
+          message:
+            "E20: Static 'chat-updates-' channel without dynamic suffix. The channel name must include a conversation ID variable to avoid cross-conversation conflicts.",
+        },
+      ],
+    },
+  },
   ...storybook.configs["flat/recommended"]
 );

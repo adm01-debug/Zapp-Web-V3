@@ -453,7 +453,6 @@ export function useRealtimeMessages() {
           event: 'INSERT',
           schema: 'evo',
           table: 'evolution_messages',
-          filter: `instance_name=eq.${DEFAULT_WHATSAPP_INSTANCE}`,
         },
         (payload) => {
           if (active)
@@ -470,7 +469,6 @@ export function useRealtimeMessages() {
           event: 'UPDATE',
           schema: 'evo',
           table: 'evolution_messages',
-          filter: `instance_name=eq.${DEFAULT_WHATSAPP_INSTANCE}`,
         },
         (payload) => {
           if (active)
@@ -487,7 +485,6 @@ export function useRealtimeMessages() {
           event: 'DELETE',
           schema: 'evo',
           table: 'evolution_messages',
-          filter: `instance_name=eq.${DEFAULT_WHATSAPP_INSTANCE}`,
         },
         (payload) => {
           if (active)

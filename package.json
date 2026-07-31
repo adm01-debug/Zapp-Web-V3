@@ -25,6 +25,7 @@
     "test": "NODE_OPTIONS=--max-old-space-size=6144 vitest run",
     "test:coverage": "NODE_OPTIONS=--max-old-space-size=6144 vitest run --coverage",
     "test:coverage:ratchet": "node scripts/check-coverage-ratchet.mjs",
+    "test:chat": "NODE_OPTIONS=--max-old-space-size=6144 vitest run src/features/inbox/components/chat/__tests__/",
     "test:watch": "NODE_OPTIONS=--max-old-space-size=6144 vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
