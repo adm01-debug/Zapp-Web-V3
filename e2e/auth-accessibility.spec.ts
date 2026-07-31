@@ -44,7 +44,6 @@ async function runAxe(page: Page, label: string) {
   );
 
   if (blocking.length > 0) {
-    // eslint-disable-next-line no-console
     console.log(
       `Violações a11y (${label}):`,
       JSON.stringify(

@@ -134,7 +134,6 @@ test.describe('Navegação por teclado em /auth', () => {
       (v) => v.impact === 'serious' || v.impact === 'critical'
     );
     if (blocking.length > 0) {
-      // eslint-disable-next-line no-console
       console.log(
         'Violações a11y (toast visível):',
         JSON.stringify(
