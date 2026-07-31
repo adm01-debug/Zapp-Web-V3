@@ -43,7 +43,7 @@ interface Captured {
 async function installSendMocks(page: Page, captured: Captured) {
   await page.route("**/functions/v1/evolution-api**", async (route: Route) => {
     const req = route.request();
-    let body: any = null;
+    let body: { action?: string; text?: string; mediaUrl?: string; mediaType?: string } | null = null;
     try { body = req.postDataJSON(); } catch { /* noop */ }
     if (body?.action === "send-text" && typeof body?.text === "string") {
       captured.sentText = body.text;

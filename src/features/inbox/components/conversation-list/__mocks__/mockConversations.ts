@@ -100,7 +100,7 @@ function buildConversation(seed: MockSeed): ConversationWithMessages {
 }
 
 /** M O C K_ C O N V E R S A T I O N S constant. */
-export const MOCK_CONVERSATIONS: ConversationWithMessages[] = [
+const MOCK_SEEDS: MockSeed[] = [
   {
     unreadCount: 7,
     updatedAt: minutesAgo(2),
@@ -426,4 +426,6 @@ export const MOCK_CONVERSATIONS: ConversationWithMessages[] = [
       sender: 'agent',
     },
   },
-].map(buildConversation as any);
+];
+
+export const MOCK_CONVERSATIONS: ConversationWithMessages[] = MOCK_SEEDS.map(buildConversation);

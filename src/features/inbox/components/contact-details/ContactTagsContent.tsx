@@ -15,7 +15,7 @@ export function ContactTagsContent({ contact, conversation }: ContactTagsContent
 
   return (
     <div className="flex flex-wrap gap-1.5">
-      {contactTags.map((tag: any, i: any) => (
+      {contactTags.map((tag: string, i: number) => (
         <motion.div
           key={`contact-${tag}`}
           initial={{ opacity: 0, scale: 0.8 }}

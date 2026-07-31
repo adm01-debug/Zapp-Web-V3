@@ -174,7 +174,7 @@ export function useChatMediaSending(
 
         try {
           const result = await sendStickerMessage(inst, phone, stickerUrl);
-          externalId = (result as any)?.key?.id || null;
+          externalId = (result as { key?: { id?: string } } | null)?.key?.id || null;
         } catch (err: unknown) {
           if (messageId && insertMode === 'local') await updateMessageStatus(messageId, 'failed');
           toast.error(err instanceof Error ? err.message : 'Erro ao enviar figurinha');

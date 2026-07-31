@@ -186,6 +186,7 @@ export const MessageStatusPanel = memo(function MessageStatusPanel({
     message.contact_read_at,
     message.is_read,
     message.updated_at,
+    message.created_at,
     lastUpdate,
     sentStamp,
   ]);

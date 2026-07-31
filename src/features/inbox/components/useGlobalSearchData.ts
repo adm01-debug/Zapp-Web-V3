@@ -25,6 +25,32 @@ export interface SearchResult {
   crmPhone?: string;
 }
 
+interface SearchContactRef {
+  id: string;
+  name: string;
+  surname: string | null;
+}
+
+interface SearchMessageRow {
+  id: string;
+  content: string;
+  message_type: string | null;
+  created_at: string;
+  contact_id: string | null;
+  contacts: SearchContactRef | null;
+  transcription?: string | null;
+}
+
+interface SearchContactRow {
+  id: string;
+  name: string;
+  surname: string | null;
+  phone: string | null;
+  email: string | null;
+  created_at: string;
+  tags: string[];
+}
+
 /** Result Type type alias. */
 export type ResultType = 'message' | 'contact' | 'transcription' | 'action' | 'crm';
 /** Date Filter type alias. */
@@ -170,12 +196,8 @@ export function useGlobalSearchData(open: boolean) {
           if (dateStart) textQuery = textQuery.gte('created_at', dateStart.toISOString());
 
           const { data: textMessages } = await textQuery;
-          (textMessages as any[])?.forEach((msg: any) => {
-            const contact = msg.contacts as unknown as {
-              id: string;
-              name: string;
-              surname: string | null;
-            } | null;
+          (textMessages as SearchMessageRow[])?.forEach((msg) => {
+            const contact = msg.contacts;
             addedMessageIds.add(msg.id);
             searchResults.push({
               id: msg.id,
@@ -190,7 +212,7 @@ export function useGlobalSearchData(open: boolean) {
               contactName: contact
                 ? `${contact.name}${contact.surname ? ` ${contact.surname}` : ''}`
                 : undefined,
-              messageType: msg.message_type,
+              messageType: msg.message_type ?? undefined,
             });
           });
         }
@@ -207,13 +229,9 @@ export function useGlobalSearchData(open: boolean) {
           if (dateStart) audioQuery = audioQuery.gte('created_at', dateStart.toISOString());
 
           const { data: audioMessages } = await audioQuery;
-          (audioMessages as any[])?.forEach((msg: any) => {
+          (audioMessages as SearchMessageRow[])?.forEach((msg) => {
             if (addedMessageIds.has(msg.id)) return;
-            const contact = msg.contacts as unknown as {
-              id: string;
-              name: string;
-              surname: string | null;
-            } | null;
+            const contact = msg.contacts;
             const transcription = msg.transcription || '';
             searchResults.push({
               id: msg.id,
@@ -230,7 +248,7 @@ export function useGlobalSearchData(open: boolean) {
               contactName: contact
                 ? `${contact.name}${contact.surname ? ` ${contact.surname}` : ''}`
                 : undefined,
-              messageType: msg.message_type,
+              messageType: msg.message_type ?? undefined,
             });
           });
         }
@@ -248,14 +266,14 @@ export function useGlobalSearchData(open: boolean) {
             .order('name', { ascending: true })
             .limit(10);
           if (contacts) {
-            let filtered = contacts as any[];
+            let filtered = contacts as SearchContactRow[];
             if (tags.length > 0) {
               const tagNames = allTags.filter((t) => tags.includes(t.id)).map((t) => t.name);
-              filtered = (contacts as any[]).filter(
-                (c: any) => c.tags && c.tags.some((tag: string) => tagNames.includes(tag))
+              filtered = (contacts as SearchContactRow[]).filter(
+                (c) => c.tags && c.tags.some((tag) => tagNames.includes(tag))
               );
             }
-            filtered.forEach((contact: any) => {
+            filtered.forEach((contact) => {
               searchResults.push({
                 id: contact.id,
                 type: 'contact',

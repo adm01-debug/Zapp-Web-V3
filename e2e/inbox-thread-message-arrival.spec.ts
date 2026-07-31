@@ -68,7 +68,7 @@ interface MockState {
 async function installMessagesMock(page: Page, state: MockState) {
   const handler = async (route: Route) => {
     const req: Request = route.request();
-    let body: any = null;
+    let body: { p_remote_jid?: string } | null = null;
     try { body = req.postDataJSON(); } catch { /* noop */ }
     const jid: string | undefined = body?.p_remote_jid;
 

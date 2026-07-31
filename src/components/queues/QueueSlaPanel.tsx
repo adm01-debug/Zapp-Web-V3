@@ -36,6 +36,14 @@ const PRIORITY_COLOR: Record<QueueSlaRow['sla_priority'], string> = {
   low: 'bg-muted text-muted-foreground',
 };
 
+interface QueueSkillRequirementRow {
+  skill_name: string | null;
+}
+
+interface ChannelConnectionRow {
+  channel_type: string | null;
+}
+
 export const QueueSlaPanel = () => {
   const [filters, setFilters] = useState<QueueSlaFilters>({
     skill_name: null,
@@ -54,8 +62,24 @@ export const QueueSlaPanel = () => {
         safeFrom('queue_skill_requirements').select('skill_name'),
         safeFrom('channel_connections').select('channel_type'),
       ]);
-      setSkills(Array.from(new Set((sk ?? []).map((s: any) => s.skill_name).filter(Boolean))));
-      setChannels(Array.from(new Set((ch ?? []).map((c: any) => c.channel_type).filter(Boolean))));
+      setSkills(
+        Array.from(
+          new Set(
+            ((sk ?? []) as QueueSkillRequirementRow[])
+              .map((s) => s.skill_name)
+              .filter((s): s is string => Boolean(s))
+          )
+        )
+      );
+      setChannels(
+        Array.from(
+          new Set(
+            ((ch ?? []) as ChannelConnectionRow[])
+              .map((c) => c.channel_type)
+              .filter((c): c is string => Boolean(c))
+          )
+        )
+      );
     })();
   }, []);
 

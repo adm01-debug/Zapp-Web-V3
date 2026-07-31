@@ -323,7 +323,8 @@ export const ChatMessagesArea = memo(
         const observer = new MutationObserver(() => {
           if (!document.contains(el)) map.delete(messageId);
         });
-        observer.observe(el.parentElement!, { childList: true });
+        const parent = el.parentElement;
+        if (parent) observer.observe(parent, { childList: true });
         el.setAttribute('data-observer-id', messageId);
       }, []);
 

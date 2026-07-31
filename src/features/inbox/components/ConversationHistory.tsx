@@ -69,6 +69,12 @@ const statusConfig = {
 };
 
 /** Conversation History component. */
+interface HistoryMessage {
+  created_at: string;
+  sender: string;
+  content: string;
+}
+
 export function ConversationHistory({
   contactId,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -120,7 +126,7 @@ export function ConversationHistory({
 
       // Group messages by day to create "conversation sessions"
       const groupedByDay: Record<string, typeof messages> = {};
-      messages.forEach((msg: any) => {
+      messages.forEach((msg: HistoryMessage) => {
         const dayKey = format(new Date(msg.created_at), 'yyyy-MM-dd');
         if (!groupedByDay[dayKey]) {
           groupedByDay[dayKey] = [];

@@ -223,7 +223,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
     }
     // reset cache if needed (handled by dynamicRowHeight key mostly)
     itemHeights.current = {};
-  }, [filteredMessages, conversation.id, profile, updateStatusMutation]);
+  }, [filteredMessages, conversation.id, profile, updateStatusMutation, isNearBottomRef, scrollRef]);
 
   useEffect(() => {
     // If we are at the bottom, stay at the bottom
@@ -233,7 +233,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
         listRef.current.scrollToRow({ index: lastIndex, align: 'end' });
       }
     }
-  }, [filteredMessages, conversation.id]);
+  }, [filteredMessages, conversation.id, isNearBottomRef, listRef]);
 
   // Handle incoming messages while reading old ones
   useEffect(() => {
@@ -247,11 +247,11 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
       // The scroll container naturally stays where it is if content is added at the end,
       // unless we are using a virtualized list that might shift things.
     }
-  }, [filteredMessages, profile]);
+  }, [filteredMessages, profile, isNearBottomRef, scrollRef]);
 
   useEffect(() => {
     if (showSearch) searchInputRef.current?.focus();
-  }, [showSearch]);
+  }, [showSearch, searchInputRef]);
 
   const dateFirstIndexes = useMemo(() => {
     const seen = new Set<string>();

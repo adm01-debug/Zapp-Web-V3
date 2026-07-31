@@ -126,7 +126,7 @@ export function useRealtimeMessages() {
         ...new Set(
           messageList
             .map((m) => m.contact_id)
-            .filter((id): id is string => Boolean(id) && !contactMap.has(id!))
+            .filter((id): id is string => Boolean(id) && !contactMap.has(id))
         ),
       ];
 

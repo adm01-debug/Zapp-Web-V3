@@ -28,12 +28,13 @@ export function ObjectionDetector({
   onSelectSuggestion,
 }: ObjectionDetectorProps) {
   const detector = useObjectionDetector(contactId, contactName, lastMessages, allMessages);
+  const { handleSelect: detectorHandleSelect } = detector;
 
   const handleSelect = useCallback(
     (text: string) => {
-      detector.handleSelect(text, onSelectSuggestion);
+      detectorHandleSelect(text, onSelectSuggestion);
     },
-    [detector.handleSelect, onSelectSuggestion]
+    [detectorHandleSelect, onSelectSuggestion]
   );
 
   /* ── Pre-analysis state ── */

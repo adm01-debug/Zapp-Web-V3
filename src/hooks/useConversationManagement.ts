@@ -276,10 +276,11 @@ export function useConversationAnalyses(contactId: string | null) {
   } = useQuery({
     queryKey: key,
     queryFn: async () => {
+      if (!contactId) throw new Error('contactId ausente');
       const { data, error } = await supabase
         .from('conversation_analyses')
         .select('*')
-        .eq('contact_id', contactId!)
+        .eq('contact_id', contactId)
         .order('created_at', { ascending: false })
         .limit(20);
       if (error) throw error;

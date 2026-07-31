@@ -13,6 +13,7 @@ import {
   chunkArray,
 } from './realtime/realtimeUtils';
 import { useRealtimeNotifications } from './realtime/useRealtimeNotifications';
+import type { MessageReaction } from './realtime/types';
 import { useMessageUpdateBatcher } from './realtime/useMessageUpdateBatcher';
 import { touchLastSeen } from '../services/touchLastSeen';
 import { logMessagesSubscribe, wrapMessagesHandler } from '@/lib/devRealtimeLogger';
@@ -73,7 +74,7 @@ export interface RealtimeMessage {
   retry_total?: number | null;
   /** Cache do avatar do contato para mensagens recebidas. Propagado durante a hidratação/reconciliação. */
   contactAvatar?: string | null;
-  reactions?: any[] | null; // ignore-audit: reaction shape from Evolution API is untyped
+  reactions?: MessageReaction[] | null; // ignore-audit: reaction shape from Evolution API is untyped
   /** Metadados de mídia (ex: ptt, isPtv). Presente em mensagens de áudio/vídeo. */
   media_meta?: { ptt?: boolean; isPtv?: boolean; [key: string]: unknown } | null;
   /** Referência ao audio meme (soundboard). Presente em mensagens otimistas enviadas via soundboard. */

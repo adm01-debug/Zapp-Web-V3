@@ -15,7 +15,13 @@ async function generateHmac(payload: string, secret: string) {
 const WEBHOOK_URL = Deno.env.get("WEBHOOK_URL") || "http://localhost:54321/functions/v1/evolution-webhook";
 const SECRET = Deno.env.get("EVOLUTION_WEBHOOK_SECRET") || "test-secret";
 
-async function sendFuzz(payload: any) {
+interface FuzzPayload {
+  event: string;
+  instance: string;
+  data: unknown;
+}
+
+async function sendFuzz(payload: FuzzPayload) {
   const body = JSON.stringify(payload);
   const signature = await generateHmac(body, SECRET);
   

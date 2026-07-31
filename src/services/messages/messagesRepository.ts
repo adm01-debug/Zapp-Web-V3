@@ -21,7 +21,7 @@ export interface Message {
   media_url?: string;
   status?: string;
   timestamp?: string;
-  raw?: Record<string, any>;
+  raw?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   contact_id?: string;
@@ -41,8 +41,8 @@ export interface Message {
   transcription?: string | null;
   transcription_status?: string | null;
   ptt?: boolean;
-  media_meta?: Record<string, any> | null;
-  reactions?: any[];
+  media_meta?: Record<string, unknown> | null;
+  reactions?: unknown[];
   caption?: string | null;
   full_name?: string | null;
   phone_number?: string | null;
@@ -63,7 +63,7 @@ export interface Conversation {
   unread_count?: number;
   assigned_to?: string | null;
   status?: 'aberta' | 'arquivada';
-  raw?: Record<string, any>;
+  raw?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -128,7 +128,16 @@ export const messagesRepository = {
 
   // Mark as read
   async markMessagesAsRead(conversationId: string, _userId: string) {
-    const { error } = await (supabase.from('evolution_messages') as any)
+    const { error } = await (supabase as unknown as {
+      from(t: string): {
+        update(v: Record<string, unknown>): {
+          eq(c: string, v: unknown): {
+            eq(c: string, v: unknown): Promise<{ error: { message: string } | null }>;
+          };
+        };
+      };
+    })
+      .from('evolution_messages')
       .update({ is_read: true })
       .eq('conversation_id', conversationId)
       .eq('is_read', false);

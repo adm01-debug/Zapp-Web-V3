@@ -72,8 +72,8 @@ export function SicoobBridgeDashboard() {
     },
   });
 
-  const mappings = data?.mappings ?? [];
-  const recentMessages = data?.recentMessages ?? [];
+  const mappings = useMemo(() => data?.mappings ?? [], [data?.mappings]);
+  const recentMessages = useMemo(() => data?.recentMessages ?? [], [data?.recentMessages]);
   const loading = isFetching;
   const loadData = () => {
     void refetch();

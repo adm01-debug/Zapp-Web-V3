@@ -82,7 +82,7 @@ export function useIncomingCallListener() {
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, [profile?.id]);
+  }, [profile?.id, mountedRef]);
 
   return { incomingCall, dismissCall };
 }

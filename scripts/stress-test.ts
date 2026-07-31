@@ -15,10 +15,10 @@ const { values } = parseArgs({
   strict: false,
 });
 
-const BASE_URL = values.baseUrl!;
-const endpoints = values.endpoints!.split(",");
-const concurrency = parseInt(values.concurrency!);
-const duration = parseInt(values.duration!);
+const BASE_URL = values.baseUrl ?? "http://localhost:54321/functions/v1";
+const endpoints = (values.endpoints ?? "health-check,status,connection-health-check").split(",");
+const concurrency = parseInt(values.concurrency ?? "20");
+const duration = parseInt(values.duration ?? "10");
 
 console.log(`\n🔥 Starting Multi-Endpoint Stress Test`);
 console.log(`📍 Base URL: ${BASE_URL}`);

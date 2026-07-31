@@ -44,6 +44,7 @@ export function useSLAAlertPreferences() {
   const { data: preferences = DEFAULT_SLA_ALERT_PREFERENCES, isLoading } = useQuery({
     queryKey,
     queryFn: async (): Promise<SLAAlertPreferences> => {
+      if (!user) throw new Error('Usuário não autenticado');
       const { data, error } = await safeClient.from<SLAAlertPreferences>(
         'sla_alert_preferences',
         (q) =>
@@ -51,7 +52,7 @@ export function useSLAAlertPreferences() {
             .select(
               'enabled, alert_first_response, alert_resolution, severity_warning, severity_breached'
             )
-            .eq('user_id', user!.id)
+            .eq('user_id', user.id)
             .limit(1)
       );
 

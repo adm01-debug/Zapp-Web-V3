@@ -196,24 +196,25 @@ export function useRealtimeMonitorManagement(tableName: string, schema: string =
 
 export function useTypingPresenceManagement(userId: string, chatId: string) {
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
-  const channelRef = useRef<any>(null);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     if (!userId || !chatId) return;
 
-    channelRef.current = supabase.channel(`typing:${chatId}`);
-    channelRef.current
+    const channel = supabase.channel(`typing:${chatId}`);
+    channelRef.current = channel;
+    channel
       .on('presence', { event: 'sync' }, () => {
-        const state = channelRef.current.presenceState() as Record<string, Array<{ typing?: boolean }>>;
+        const state = channel.presenceState() as Record<string, Array<{ typing?: boolean }>>;
         const users = (Object.entries(state) as Array<[string, Array<{ typing?: boolean }>]>)
           .filter(([, presence]) => Boolean(presence?.[0]?.typing))
           .map(([key]) => key);
         setTypingUsers(users);
       })
-      .subscribe(async (status: string) => {
+      .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          await channelRef.current.track({ typing: true });
+          await channel.track({ typing: true });
         }
       });
 

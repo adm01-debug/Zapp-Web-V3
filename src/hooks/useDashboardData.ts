@@ -149,7 +149,7 @@ export function useDashboardData(filters?: DashboardFilters) {
       queuesStats,
       recentActivity,
     };
-  }, [contactsData, agentsData, queuesData, merged]);
+  }, [contactsData, agentsData, queuesData]);
 
   const refetch = useCallback(() => {
     return Promise.all([

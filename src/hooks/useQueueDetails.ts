@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { dbFrom } from '@/integrations/datasource/db';
 import { getLogger } from '@/lib/logger';
@@ -47,16 +47,7 @@ export function useQueueDetails(id: string | undefined) {
   const [metrics, setMetrics] = useState<QueueMetrics | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!id) return;
-    let cancelled = false;
-    void fetchAll(() => cancelled);
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
-
-  async function fetchAll(isCancelled: () => boolean) {
+  const fetchAll = useCallback(async (isCancelled: () => boolean) => {
     if (!id) return;
     try {
       setLoading(true);
@@ -152,7 +143,16 @@ export function useQueueDetails(id: string | undefined) {
     } finally {
       if (!isCancelled()) setLoading(false);
     }
-  }
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    void fetchAll(() => cancelled);
+    return () => {
+      cancelled = true;
+    };
+  }, [id, fetchAll]);
 
   return { queue, members, contacts, metrics, loading };
 }

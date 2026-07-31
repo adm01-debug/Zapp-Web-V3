@@ -31,16 +31,17 @@ export function useOnboarding() {
   const { data: hasCompletedOnboarding = null, isLoading: loading } = useQuery({
     queryKey,
     queryFn: async (): Promise<boolean> => {
+      if (!user) throw new Error('Usuário não autenticado');
       // Fast path: localStorage already confirmed completion
-      if (user && readLocal(user.id)) return true;
+      if (readLocal(user.id)) return true;
       try {
         const { data } = await supabase
           .from('user_settings')
           .select('onboarding_completed')
-          .eq('user_id', user!.id)
+          .eq('user_id', user.id)
           .maybeSingle();
         if (data?.onboarding_completed) {
-          writeLocal(user!.id, true);
+          writeLocal(user.id, true);
           return true;
         }
         return false;

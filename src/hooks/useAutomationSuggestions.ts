@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,7 +38,10 @@ export interface AutomationSuggestion {
 
 export function useAutomationSuggestions(remoteJid: string | null) {
   const queryClient = useQueryClient();
-  const SUGGESTIONS_KEY = ['automation-suggestions', remoteJid] as const;
+  const SUGGESTIONS_KEY = useMemo(
+    () => ['automation-suggestions', remoteJid] as const,
+    [remoteJid]
+  );
 
   const {
     data: suggestions = [],
@@ -47,6 +50,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
   } = useQuery({
     queryKey: SUGGESTIONS_KEY,
     queryFn: async () => {
+      if (!remoteJid) return [] as AutomationSuggestion[];
       // FIX #2: Join com automations(name) causa 400 (relationship não existe).
       // Faz 2 queries: primeiro as exec, depois as rules.
       const { data: execs } = await safeClient.from<_RawExecRow>('automation_executions', (q) =>
@@ -54,7 +58,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
           .select(
             'id, rule_id, suggestion_text, recommended_tag, kb_sources, status, created_at, instance_name, remote_jid'
           )
-          .eq('remote_jid', remoteJid!)
+          .eq('remote_jid', remoteJid)
           .eq('status', 'pending')
           .not('suggestion_text', 'is', null)
           .order('created_at', { ascending: false })

@@ -60,6 +60,14 @@ interface MediaGalleryProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface GalleryMessage {
+  id: string;
+  media_url: string | null;
+  message_type: string;
+  created_at: string;
+  content: string;
+}
+
 /** Media Gallery component. */
 export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProps) {
   const [filter, setFilter] = useState<'all' | 'image' | 'video' | 'audio' | 'document'>('all');
@@ -106,8 +114,11 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
   const mediaItems = useMemo((): MediaItem[] => {
     if (!messages) return [];
     return messages
-      .filter((m: any): m is typeof m & { media_url: string } => Boolean(m.media_url))
-      .map((m: any) => ({
+      .filter(
+        (m: GalleryMessage): m is GalleryMessage & { media_url: string } =>
+          Boolean(m.media_url)
+      )
+      .map((m: GalleryMessage & { media_url: string }) => ({
         id: m.id,
         url: m.media_url,
         type: getMediaType(m.media_url, m.message_type),

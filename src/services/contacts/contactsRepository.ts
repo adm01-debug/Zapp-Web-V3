@@ -22,7 +22,7 @@ export interface Contact {
   deleted_reason?: string | null;
   created_at?: string;
   updated_at?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -57,14 +57,16 @@ export const contactsRepository = {
    */
   search: async (query: string): Promise<Contact[]> => {
     const safe = sanitizePostgrestFilter(query);
-    const { data: byName, error: nameError } = await (supabase.from('contacts') as any)
+    const { data: byName, error: nameError } = await supabase
+      .from('contacts')
       .select('*')
       .ilike('name', `%${safe}%`)
       .limit(20);
 
     if (nameError && nameError.code !== 'PGRST116') throw nameError;
 
-    const { data: byEmail, error: emailError } = await (supabase.from('contacts') as any)
+    const { data: byEmail, error: emailError } = await supabase
+      .from('contacts')
       .select('*')
       .ilike('email', `%${safe}%`)
       .limit(20);

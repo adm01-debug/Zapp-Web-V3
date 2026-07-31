@@ -266,10 +266,11 @@ export function useNotificationSettingsManagement(userId?: string) {
   } = useQuery({
     queryKey: NOTIFICATION_SETTINGS_KEY(resolvedUserId),
     queryFn: async () => {
+      if (!resolvedUserId) throw new Error('resolvedUserId ausente');
       const { data, error: err } = await supabase
         .from('user_settings')
         .select('*')
-        .eq('user_id', resolvedUserId!)
+        .eq('user_id', resolvedUserId)
         .maybeSingle();
       if (err && err.code !== 'PGRST116') throw err;
       return normalizeSettings(data as UserSettingsRow);

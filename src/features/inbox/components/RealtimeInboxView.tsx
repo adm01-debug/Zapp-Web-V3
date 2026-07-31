@@ -121,9 +121,10 @@ export function RealtimeInboxView() {
     lastUnreadRef.current = total;
   }, [inboxFilters.filteredConversations, announce]);
 
+  const inboxSetGlobalSearchOpen = inbox.setGlobalSearchOpen;
   const openGlobalSearch = useCallback(
-    () => inbox.setGlobalSearchOpen(true),
-    [inbox.setGlobalSearchOpen]
+    () => inboxSetGlobalSearchOpen(true),
+    [inboxSetGlobalSearchOpen]
   );
   useGlobalSearchShortcut({ onOpen: openGlobalSearch });
 
@@ -135,7 +136,8 @@ export function RealtimeInboxView() {
     markAsRead: inboxMarkAsRead,
     setPendingContactId: inboxSetPendingContactId,
   } = inbox;
-  const inboxUseExternalDb = (inbox as any).useExternalDb as boolean | undefined;
+  const inboxUseExternalDb = (inbox as unknown as { useExternalDb?: boolean })
+    .useExternalDb as boolean | undefined;
   const { setMainTab: filtersSetMainTab, setSubTab: filtersSetSubTab } = inboxFilters;
 
   useEffect(() => {

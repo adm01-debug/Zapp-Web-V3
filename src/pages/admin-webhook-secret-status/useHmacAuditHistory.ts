@@ -94,7 +94,7 @@ export function useHmacAuditHistory(range: RangeKey, instanceFilter: string, lim
     };
   }, [queryClient]);
 
-  const rows = data ?? [];
+  const rows = useMemo(() => data ?? [], [data]);
   const visibleRows = rows.slice(0, limit);
 
   const stats = useMemo(() => {

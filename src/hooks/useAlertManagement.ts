@@ -3,7 +3,7 @@
 // Cloud (o schema oficial vive na VPS self-hosted). Enquanto o
 // gen-types-zapp.mjs não é rodado com acesso à VPS, usamos `db as any` só na
 // fronteira dessas tabelas. A superfície pública do hook permanece 100% tipada.
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -347,7 +347,7 @@ export function useSentimentAlertsManagement(): UseSentimentAlertsResult {
 /** Monitors webhook endpoint health with failure detection and alert management. */
 export function useWebhookHealthAlertsManagement(): UseWebhookHealthAlertsResult {
   const queryClient = useQueryClient();
-  const key = ['webhook-health-checks'] as const;
+  const key = useMemo(() => ['webhook-health-checks'] as const, []);
 
   const { data: alerts = [], isLoading: loading } = useQuery({
     queryKey: key,
@@ -367,7 +367,7 @@ export function useWebhookHealthAlertsManagement(): UseWebhookHealthAlertsResult
 
   const checkHealth = useCallback(
     () => queryClient.invalidateQueries({ queryKey: key }),
-    [queryClient]
+    [queryClient, key]
   );
 
   const acknowledgeAlert = useCallback(async (alertId: string) => {
@@ -381,7 +381,7 @@ export function useWebhookHealthAlertsManagement(): UseWebhookHealthAlertsResult
     } catch (error) {
       log.error('Failed to acknowledge webhook health alert:', error);
     }
-  }, [queryClient]);
+  }, [queryClient, key]);
 
   return { alerts, loading, acknowledgeAlert, checkHealth };
 }

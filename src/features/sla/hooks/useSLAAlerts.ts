@@ -150,11 +150,25 @@ export function useSLAAlerts(params: SLAAlertParams) {
   const queryClient = useQueryClient();
   // Removed redundant assignment using direct params access
 
+  const {
+    contactId,
+    contactName,
+    scope,
+    ruleName,
+    customMessage,
+    onOpenConversation,
+    firstResponseStatus,
+    awaitingMs,
+    resolutionStatus,
+    resolutionDurationMs,
+    deliveryDelayStatus,
+    deliveryDelayMs,
+  } = params;
+
   useEffect(() => {
-    if (params.scope === 'none' || !params.contactId) return;
-    if (!isValidUUID(params.contactId)) return;
+    if (scope === 'none' || !contactId) return;
+    if (!isValidUUID(contactId)) return;
     if (!preferences.enabled) return;
-    const contactId = params.contactId;
 
     const fire = async (kind: AlertKind, severity: AlertSeverity, durationMs: number | null) => {
       // Respect per-user preferences. Defaults are all-on, so users without a row keep current behavior.
@@ -210,18 +224,18 @@ export function useSLAAlerts(params: SLAAlertParams) {
               ? 'Atraso na leitura'
               : 'Resolução';
 
-        const customMsg = params.customMessage;
+        const customMsg = customMessage;
         const title =
           kind === 'delivery_delay'
-            ? `Mensagem não lida — ${params.contactName}`
-            : `SLA ${isBreach ? 'violado' : 'em risco'} — ${params.contactName}`;
+            ? `Mensagem não lida — ${contactName}`
+            : `SLA ${isBreach ? 'violado' : 'em risco'} — ${contactName}`;
 
         const description =
           customMsg ||
-          `${kindLabel} · ${formatDurationMs(durationMs)} · ${params.ruleName ?? 'regra padrão'}`;
+          `${kindLabel} · ${formatDurationMs(durationMs)} · ${ruleName ?? 'regra padrão'}`;
 
-        const action = params.onOpenConversation
-          ? { label: 'Abrir conversa', onClick: () => params.onOpenConversation?.() }
+        const action = onOpenConversation
+          ? { label: 'Abrir conversa', onClick: () => onOpenConversation?.() }
           : undefined;
 
         if (isBreach) {
@@ -236,8 +250,8 @@ export function useSLAAlerts(params: SLAAlertParams) {
         const auditMetadata = {
           kind,
           severity,
-          scope: params.scope,
-          rule_name: params.ruleName,
+          scope: scope,
+          rule_name: ruleName,
           duration_ms: durationMs,
         };
         // Audit trail — await with proper error propagation, not fire-and-forget
@@ -278,11 +292,11 @@ export function useSLAAlerts(params: SLAAlertParams) {
           .invoke('sla-alert-forward', {
             body: {
               contact_id: contactId,
-              contact_name: params.contactName,
+              contact_name: contactName,
               kind,
               severity,
-              scope: params.scope,
-              rule_name: params.ruleName,
+              scope: scope,
+              rule_name: ruleName,
               duration_ms: durationMs,
               occurred_at: new Date().toISOString(),
             },
@@ -296,29 +310,29 @@ export function useSLAAlerts(params: SLAAlertParams) {
       }
     };
 
-    if (params.firstResponseStatus === 'warning' || params.firstResponseStatus === 'breached') {
-      void fire('first_response', params.firstResponseStatus, params.awaitingMs);
+    if (firstResponseStatus === 'warning' || firstResponseStatus === 'breached') {
+      void fire('first_response', firstResponseStatus, awaitingMs);
     }
-    if (params.resolutionStatus === 'warning' || params.resolutionStatus === 'breached') {
-      void fire('resolution', params.resolutionStatus, params.resolutionDurationMs);
+    if (resolutionStatus === 'warning' || resolutionStatus === 'breached') {
+      void fire('resolution', resolutionStatus, resolutionDurationMs);
     }
-    const dStatus = params.deliveryDelayStatus;
+    const dStatus = deliveryDelayStatus;
     if (dStatus === 'warning' || dStatus === 'breached') {
-      void fire('delivery_delay', dStatus, params.deliveryDelayMs ?? null);
+      void fire('delivery_delay', dStatus, deliveryDelayMs ?? null);
     }
   }, [
-    params.contactId,
-    params.scope,
-    params.firstResponseStatus,
-    params.resolutionStatus,
-    params.awaitingMs,
-    params.resolutionDurationMs,
-    params.deliveryDelayStatus,
-    params.deliveryDelayMs,
-    params.ruleName,
-    params.contactName,
-    params.customMessage,
-    params.onOpenConversation,
+    contactId,
+    scope,
+    firstResponseStatus,
+    resolutionStatus,
+    awaitingMs,
+    resolutionDurationMs,
+    deliveryDelayStatus,
+    deliveryDelayMs,
+    ruleName,
+    contactName,
+    customMessage,
+    onOpenConversation,
     preferences,
     queryClient,
   ]);

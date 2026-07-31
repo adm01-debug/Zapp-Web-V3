@@ -25,10 +25,11 @@ export function useContactCustomFields(contactId: string | undefined) {
   const { data: fields = [], isLoading } = useQuery({
     queryKey,
     queryFn: async (): Promise<CustomField[]> => {
+      if (!contactId) return [];
       const { data, error } = await supabase
         .from('contact_custom_fields')
         .select('*')
-        .eq('contact_id', contactId!)
+        .eq('contact_id', contactId)
         .order('field_name');
       if (error) {
         log.error('Error fetching custom fields:', error);

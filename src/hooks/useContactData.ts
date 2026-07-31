@@ -19,11 +19,12 @@ export function useContactData(contactId: string | undefined): UseContactDataRes
   } = useQuery({
     queryKey: ['contact', contactId],
     queryFn: async () => {
+      if (!contactId) throw new Error('contactId ausente');
       try {
         const { data, error: fetchError } = await supabase
           .from('contacts')
           .select('*')
-          .eq('id', contactId!)
+          .eq('id', contactId)
           .maybeSingle();
         if (fetchError) throw new Error(fetchError.message);
         return data as ContactRow | null;

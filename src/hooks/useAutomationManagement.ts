@@ -1,5 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -170,11 +170,14 @@ export function useAutomations({
       const client = getClient();
       if (!client) return;
 
-      const { data: msgs, error } = await client.rpc('rpc_list_messages' as any, {
-        p_remote_jid: remoteJid,
-        p_instance: instanceName,
-        p_limit: 10,
-      });
+      const { data: msgs, error } = await (client as unknown as SupabaseClient).rpc(
+        'rpc_list_messages',
+        {
+          p_remote_jid: remoteJid,
+          p_instance: instanceName,
+          p_limit: 10,
+        }
+      );
 
       if (error) throw error;
       if (!msgs || !Array.isArray(msgs) || !isMounted.current) return;
@@ -387,7 +390,7 @@ export function useAutomations({
 /** Generates AI-powered automation suggestions based on conversation patterns and history. */
 export function useAutomationSuggestions(remoteJid: string | null) {
   const queryClient = useQueryClient();
-  const key = ['automation-suggestions', remoteJid] as const;
+  const key = useMemo(() => ['automation-suggestions', remoteJid] as const, [remoteJid]);
 
   const { data: suggestions = [], isLoading: loading } = useQuery({
     queryKey: key,
@@ -434,7 +437,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
 
   const refresh = useCallback(
     () => queryClient.invalidateQueries({ queryKey: key }),
-    [queryClient, remoteJid]
+    [queryClient, key]
   );
 
   useEffect(() => {
@@ -454,7 +457,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       ch.unsubscribe();
       supabase.removeChannel(ch);
     };
-  }, [remoteJid, queryClient]);
+  }, [remoteJid, queryClient, key]);
 
   const accept = useCallback(
     async (id: string) => {
@@ -463,7 +466,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       );
       void queryClient.invalidateQueries({ queryKey: key });
     },
-    [queryClient, remoteJid]
+    [queryClient, key]
   );
 
   const dismiss = useCallback(
@@ -473,7 +476,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       );
       void queryClient.invalidateQueries({ queryKey: key });
     },
-    [queryClient, remoteJid]
+    [queryClient, key]
   );
 
   const applyRecommendedTag = useCallback(
@@ -507,7 +510,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         return false;
       }
     },
-    [suggestions, queryClient, remoteJid]
+    [suggestions, queryClient, key]
   );
 
   return { suggestions, loading, refresh, accept, dismiss, applyRecommendedTag };

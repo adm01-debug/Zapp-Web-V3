@@ -43,6 +43,17 @@ export interface MessageSendHistory {
   auditEntries: AuditEntry[];
 }
 
+interface OutboundAuditRow {
+  id: string;
+  event_type: string | null;
+  status: string | null;
+  latency_ms: number | null;
+  instance_name: string | null;
+  error_message: string | null;
+  created_at: string;
+  metadata: unknown;
+}
+
 const STALE_MS = 15_000;
 
 /** Fetches the full send-history audit trail for a message (retry metrics + outbound audit log), normalises shapes via Zod, and dedupes entries for the debug sheet. */
@@ -87,7 +98,8 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
         details: e.details,
       }));
 
-      const outboundEntries: AuditEntry[] = (outboundAuditRes.data ?? []).map((e: any) => ({
+      const outboundEntries: AuditEntry[] = (outboundAuditRes.data ?? []).map(
+        (e: OutboundAuditRow) => ({
         id: e.id,
         action: `OUTBOUND_${(e.event_type ?? 'send').toUpperCase()}`,
         createdAt: e.created_at,

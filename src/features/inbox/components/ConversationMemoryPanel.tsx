@@ -116,7 +116,10 @@ export function ConversationMemoryPanel({ contactId, profileId }: ConversationMe
       updated_by: profileId,
     };
 
-    const { error } = await saveConversationMemory(memory.id, payload as any);
+    const { error } = await saveConversationMemory(
+      memory.id,
+      payload as Parameters<typeof saveConversationMemory>[1]
+    );
 
     if (!error) {
       toast.success('Memória salva');

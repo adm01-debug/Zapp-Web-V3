@@ -93,7 +93,7 @@ export const ChatHeader = memo(function ChatHeader({
   const { intelligence: intel } = useContactIntelligence(
     isExternalConfigured ? conversation.contact.phone : undefined
   );
-  const _briefing = (intel as any)?.found ? (intel as any).briefing : null;
+  const _briefing = intel?.found ? intel.briefing : null;
   const { avatarUrl } = useContactAvatar(conversation.contact.id, conversation.contact.avatar);
   const { density, cycleDensity } = useDensity();
 
@@ -131,7 +131,7 @@ export const ChatHeader = memo(function ChatHeader({
               }}
             />
             <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-[11px] font-black uppercase text-primary">
-              {(conversation.contact.name ?? '').split(' ').map((n: any) => n[0]).join('')}
+              {(conversation.contact.name ?? '').split(' ').map((n: string) => n[0]).join('')}
             </AvatarFallback>
           </Avatar>
           <div className="absolute inset-0 rounded-full bg-primary/20 opacity-0 blur-md transition-opacity group-hover:opacity-100" />

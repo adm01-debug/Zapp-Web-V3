@@ -34,11 +34,13 @@ export function useOnboardingChecklist() {
   const { data: status = DEFAULT_STATUS, isLoading, refetch } = useQuery({
     queryKey: ['onboarding-status', user?.id],
     queryFn: async (): Promise<OnboardingStatus> => {
+      if (!user) throw new Error('Usuário não autenticado');
+      const userId = user.id;
       const [profileRes, whatsappRes, settingsRes, templatesRes] = await Promise.all([
-        supabase.from('profiles').select('name, avatar_url').eq('user_id', user!.id).maybeSingle(),
-        supabase.from('whatsapp_connections').select('id').eq('created_by', user!.id).limit(1),
-        supabase.from('user_settings').select('id').eq('user_id', user!.id).maybeSingle(),
-        supabase.from('message_templates').select('id').eq('created_by', user!.id).limit(1),
+        supabase.from('profiles').select('name, avatar_url').eq('user_id', userId).maybeSingle(),
+        supabase.from('whatsapp_connections').select('id').eq('created_by', userId).limit(1),
+        supabase.from('user_settings').select('id').eq('user_id', userId).maybeSingle(),
+        supabase.from('message_templates').select('id').eq('created_by', userId).limit(1),
       ]);
       if (profileRes.error) log.error('Error checking onboarding status:', profileRes.error);
       return {

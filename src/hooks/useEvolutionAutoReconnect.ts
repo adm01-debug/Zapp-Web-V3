@@ -112,6 +112,8 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
   const circuitOpenUntilRef = useRef(0);
   /** Ref to scheduleNextAttempt — avoids circular deps between it and attemptSpecificReconnect. */
   const scheduleNextAttemptRef = useRef<(() => void) | null>(null);
+  /** Ref espelho de attemptSpecificReconnect — evita deps circulares (preenchido após a definição do callback). */
+  const attemptSpecificReconnectRef = useRef<(() => Promise<void>) | null>(null);
 
   const setIsReconnecting = useCallback((v: boolean) => {
     isReconnectingRef.current = v;
@@ -258,7 +260,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
     const nextDelay = Math.min(backoffRef.current * 2, MAX_BACKOFF_MS);
     backoffRef.current = nextDelay;
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => void attemptSpecificReconnect(), nextDelay);
+    timerRef.current = setTimeout(() => void attemptSpecificReconnectRef.current?.(), nextDelay);
   }, [setIsReconnecting, instanceName]);
 
   // Populate ref AFTER definition — breaks circular deps without stale closures
@@ -314,8 +316,10 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
     getInstanceStatus,
     queryClient,
     setIsReconnecting,
-    eventBus,
+    mountedRef,
   ]);
+
+  attemptSpecificReconnectRef.current = attemptSpecificReconnect;
 
   /**
    * Polling loop (30 s interval).
