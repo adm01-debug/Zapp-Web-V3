@@ -428,7 +428,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     handleSendInteractiveMessage,
     handleInteractiveButtonClick,
     handleSendLocation,
-  } = useProductHandlers({ onSendMessage });
+  } = useProductHandlers({ onSendMessage, contactId, contactPhone, instanceName });
 
   const { handleAudioVoiceChange } = useAudioVoiceChange();
 

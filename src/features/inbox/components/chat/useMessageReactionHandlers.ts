@@ -1,5 +1,4 @@
 import { useCallback, useRef } from 'react';
-import { log } from '@/lib/logger';
 import { toast } from '@/hooks/use-toast';
 import { Message } from '@/types/chat';
 import { type DialogKey } from './hooks/useChatDialogs';
@@ -36,9 +35,13 @@ export function useMessageReactionHandlers({
     [setReplyToMessage, inputRef]
   );
 
-  const handleCopyMessage = useCallback((content: string) => {
-    navigator.clipboard.writeText(content);
-    toast({ title: 'Copiado!', description: 'Mensagem copiada para a area de transferencia.' });
+  const handleCopyMessage = useCallback(async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      toast({ title: 'Copiado!', description: 'Mensagem copiada para a area de transferencia.' });
+    } catch {
+      toast({ title: 'Falha ao copiar: permissao negada', variant: 'destructive' });
+    }
   }, []);
 
   const handleForwardMessage = useCallback(

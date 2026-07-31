@@ -1,16 +1,28 @@
 import { useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { log } from '@/lib/logger';
 import { InteractiveMessage, InteractiveButton, LocationMessage } from '@/types/chat';
 import { ExternalProduct } from '@/hooks/useExternalApiManagement';
+import { whatsapp } from '@/lib/whatsappAdapter';
+import { dbFrom } from '@/integrations/datasource/db';
+import { isValidUUID } from '@/utils/uuid';
 
 interface UseProductHandlersOptions {
+  contactId?: string;
+  contactPhone?: string;
+  instanceName?: string;
   onSendMessage: (content: string, attachments?: File[], onProgress?: (p: number) => void) => void | Promise<void>;
 }
 
 /** use Product Handlers component for the chat section. */
-export function useProductHandlers({ onSendMessage }: UseProductHandlersOptions) {
+export function useProductHandlers({
+  onSendMessage,
+  contactId,
+  contactPhone,
+  instanceName,
+}: UseProductHandlersOptions) {
   const handleSendProduct = useCallback(
-    (product: ExternalProduct) => {
+    async (product: ExternalProduct) => {
       const price = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
         product.sale_price
       );
@@ -33,8 +45,17 @@ export function useProductHandlers({ onSendMessage }: UseProductHandlersOptions)
       ]
         .filter(Boolean)
         .join('\n');
-      onSendMessage(lines);
-      toast({ title: 'Produto enviado!', description: `${product.name} - ${price}` });
+      // Envio com await: toast de sucesso so apos o envio realmente resolver.
+      try {
+        await onSendMessage(lines);
+        toast({ title: 'Produto enviado!', description: `${product.name} - ${price}` });
+      } catch (err) {
+        toast({
+          title: 'Erro ao enviar produto',
+          description: err instanceof Error ? err.message : 'Falha ao enviar o produto.',
+          variant: 'destructive',
+        });
+      }
     },
     [onSendMessage]
   );
@@ -50,14 +71,62 @@ export function useProductHandlers({ onSendMessage }: UseProductHandlersOptions)
     toast({ title: 'Botao clicado', description: `Resposta: ${button.title}` });
   }, []);
 
-  const handleSendLocation = useCallback((location: LocationMessage) => {
-    toast({
-      title: 'Localizacao enviada!',
-      description: location.isLive
-        ? `Localizacao em tempo real por ${location.liveUntil ? Math.round((location.liveUntil.getTime() - Date.now()) / 60000) : 15} minutos`
-        : location.name || 'Localizacao compartilhada',
-    });
-  }, []);
+  const handleSendLocation = useCallback(
+    async (location: LocationMessage) => {
+      // Guard: sem telefone nao ha para onde enviar a localizacao.
+      const phone = (contactPhone || '').replace(/\D/g, '');
+      if (!phone) {
+        toast({ title: 'Contato sem telefone', variant: 'destructive' });
+        return;
+      }
+      try {
+        await whatsapp.sendLocation({
+          remoteJid: `${phone}@s.whatsapp.net`,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          name: location.name,
+          address: location.address,
+          instance: instanceName,
+        });
+        // Persiste a mensagem apenas quando contactId e um UUID valido
+        // (JID do WhatsApp violaria a FK da coluna contact_id).
+        // Convencao do repo (messageSenderHelpers.ts): coordenadas vao como
+        // JSON no content com message_type='location' — a tabela messages
+        // NAO tem colunas latitude/longitude.
+        if (contactId && isValidUUID(contactId)) {
+          const { error: persistError } = await dbFrom('messages').insert({
+            contact_id: contactId,
+            content: JSON.stringify({
+              latitude: location.latitude,
+              longitude: location.longitude,
+              name: location.name ?? null,
+              address: location.address ?? null,
+            }),
+            message_type: 'location',
+            sender: 'agent',
+            status: 'sent',
+            whatsapp_connection_id: null,
+          });
+          if (persistError) {
+            log.error('Failed to persist location message:', persistError);
+          }
+        }
+        toast({
+          title: 'Localizacao enviada!',
+          description: location.isLive
+            ? `Localizacao em tempo real por ${location.liveUntil ? Math.round((location.liveUntil.getTime() - Date.now()) / 60000) : 15} minutos`
+            : location.name || 'Localizacao compartilhada',
+        });
+      } catch (err) {
+        toast({
+          title: 'Erro ao enviar localizacao',
+          description: err instanceof Error ? err.message : 'Falha ao enviar a localizacao.',
+          variant: 'destructive',
+        });
+      }
+    },
+    [contactId, contactPhone, instanceName]
+  );
 
   return {
     handleSendProduct,
