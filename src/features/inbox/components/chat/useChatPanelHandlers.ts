@@ -210,12 +210,15 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         }
 
         if (isWhisperRef.current) {
-          if (attachments && attachments.length > 0)
+          if (attachments && attachments.length > 0) {
             toast({
               title: 'Aviso',
               description: 'Arquivos nao sao suportados em modo sussurro no momento.',
               variant: 'destructive',
             });
+            setIsSending(false);
+            return;
+          }
           if (!profile?.id) throw new Error('Usuario nao autenticado');
 
           // Guard: whisper_messages.contact_id is uuid. When USE_EXTERNAL_DB=true,
@@ -265,14 +268,27 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
           typeof (err as { detail?: string }).detail === 'string'
             ? (err as { detail: string }).detail
             : null;
-        lastFailedSendRef.current = { content: messageContent, attachments };
-        setLastSendError(msg);
-        setLastSendErrorDetail(detail);
-        // Envio falhou de forma síncrona: zera a barra de progresso.
-        setSendProgress(0);
-        setInputValue(rawInput);
-        if (wasReply) setReplyToMessage(wasReply);
-        toast({ title: 'Erro ao enviar', description: msg, variant: 'destructive' });
+        if (isWhisperRef.current) {
+          // Sussurro NÃO passa pelo reenvio via WhatsApp (onSendMessage):
+          // gravar lastFailedSendRef faria o retryLastSend vazar a nota
+          // interna para o cliente. Apenas restaura o estado e mostra o erro.
+          lastFailedSendRef.current = null; // limpa ref de envio normal anterior
+          setLastSendError(msg);
+          setLastSendErrorDetail(detail);
+          setSendProgress(0);
+          setInputValue(rawInput);
+          if (wasReply) setReplyToMessage(wasReply);
+          toast({ title: 'Erro ao enviar sussurro', description: msg, variant: 'destructive' });
+        } else {
+          lastFailedSendRef.current = { content: messageContent, attachments };
+          setLastSendError(msg);
+          setLastSendErrorDetail(detail);
+          // Envio falhou de forma síncrona: zera a barra de progresso.
+          setSendProgress(0);
+          setInputValue(rawInput);
+          if (wasReply) setReplyToMessage(wasReply);
+          toast({ title: 'Erro ao enviar', description: msg, variant: 'destructive' });
+        }
       } finally {
         setIsSending(false);
       }
