@@ -132,26 +132,10 @@ export const VirtualizedMessageList = forwardRef<
         if (index === -1) return false;
 
         suppressAutoBottomRef.current = true;
-        // Pass 1 — virtualizer scrolls approximately based on estimated sizes.
-        virtualizer.scrollToIndex(index, { align: 'center' });
-
-        // Pass 2 — após o item ser montado / medido, refinamos via DOM
-        // `scrollIntoView` para garantir que a bolha fique realmente
-        // centralizada (importante quando `getItemSize` subestima a altura
-        // de bolhas com mídia ou texto longo).
-        requestAnimationFrame(() => {
-          virtualizer.scrollToIndex(index, { align: 'center' });
-          requestAnimationFrame(() => {
-            const node = parentRef.current?.querySelector<HTMLElement>(
-              `[data-message-id="${CSS.escape(messageId)}"]`
-            );
-            node?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-            // Libera o auto-bottom no próximo ciclo.
-            setTimeout(() => {
-              suppressAutoBottomRef.current = false;
-            }, 400);
-          });
-        });
+        virtualizer.scrollToIndex(index, { align: 'center', behavior: 'smooth' });
+        setTimeout(() => {
+          suppressAutoBottomRef.current = false;
+        }, 600);
         return true;
       },
       [listItems, virtualizer]

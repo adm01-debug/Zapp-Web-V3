@@ -17,6 +17,7 @@ import { getLogger } from '@/lib/logger';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { EmptyState } from '@/components/ui/empty-states';
 import { supabase } from '@/integrations/supabase/client';
+import { isValidUUID } from '@/utils/uuid';
 import { ChatWatermark } from './ChatWatermark';
 import { Message, InteractiveButton } from '@/types/chat';
 import { motion, AnimatePresence } from '@/components/ui/motion';
@@ -104,7 +105,6 @@ export const ChatMessagesArea = memo(
 
       const messageRefsRef = useRef<Map<string, HTMLDivElement>>(new Map());
       const messageIndexRef = useRef<Map<string, number>>(new Map());
-      const [pendingFlashId, setPendingFlashId] = useState<string | null>(null);
 
       // Rebuild index map when messages change (cheap: O(n) once per render batch)
       useEffect(() => {
@@ -130,7 +130,6 @@ export const ChatMessagesArea = memo(
           const index = messageIndexRef.current.get(messageId);
           if (index === undefined) return false; // not loaded yet — caller should paginate
           virtualizer.scrollToIndex(index, { align: 'center', behavior: 'smooth' });
-          setPendingFlashId(messageId);
           return true;
         },
         getScrollContainer: () => scrollContainerRef.current,
@@ -145,14 +144,23 @@ export const ChatMessagesArea = memo(
 
       useEffect(() => {
         if (!conversationId) return;
+        const uuidConversation = isValidUUID(conversationId);
         const channel = supabase
-          .channel(`chat-updates-shared`)
+          .channel(`chat-updates-${conversationId}`)
           .on(
             'postgres_changes',
-            { event: 'UPDATE', schema: 'evo', table: 'evolution_messages' },
+            {
+              event: 'UPDATE',
+              schema: 'evo',
+              table: 'evolution_messages',
+              ...(uuidConversation ? { filter: `contact_id=eq.${conversationId}` } : {}),
+            },
             (payload) => {
-              const updatedMsg = payload.new as { id: string };
-              if (updatedMsg.id && messagesRef.current.some((m) => m.id === updatedMsg.id)) {
+              const updatedMsg = payload.new as { id: string; contact_id?: string };
+              const belongsHere = uuidConversation
+                ? updatedMsg.contact_id === conversationId
+                : messagesRef.current.some((m) => m.id === updatedMsg.id);
+              if (belongsHere) {
                 void queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() });
               }
             }
