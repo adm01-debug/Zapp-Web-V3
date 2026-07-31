@@ -15,7 +15,6 @@ import { useMessageSignature } from '@/features/inbox';
 import { useChatMediaSending } from '../hooks/useChatMediaSending';
 import { resolveContactRef, isUuidRef } from '../utils/contactRef';
 import { CRMAutoSync } from './CRMAutoSync';
-import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { ChatToolPanels } from './chat/ChatToolPanels';
 import { ChatDialogs } from './chat/ChatDialogs';
 import { ChatPanelHeader } from './chat/ChatPanelHeader';
@@ -101,7 +100,7 @@ export function ChatPanel({
   hasMoreOlder = false,
   initialHighlightMessageId,
   onHighlightConsumed,
-  whisperCount: _whisperCount = 0,
+  whisperCount = 0,
   isLoading = false,
   messageQueue,
   instanceName: instanceNameProp,
@@ -109,13 +108,7 @@ export function ChatPanel({
   // Ferramentas de desenvolvimento (Checklist 10/10) só para devs reais.
   const { roles: userRoles } = useUserRole();
   const isDevExact = (userRoles ?? []).includes('dev');
-  const {
-    dialogs,
-    openDialog,
-    closeDialog,
-    toggleDialog: _toggleDialog,
-    resetDialogs: _resetDialogs,
-  } = useChatDialogs();
+  const { dialogs, openDialog, closeDialog } = useChatDialogs();
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const [activeTool, setActiveTool] = useState<ActiveTool>(null);
@@ -336,8 +329,6 @@ export function ChatPanel({
     scheduleMessage,
     onDone: () => closeDialog('scheduleDialog'),
   });
-
-  const _ambient = useAmbientColor(conversation.sentiment);
 
   return (
     <div
