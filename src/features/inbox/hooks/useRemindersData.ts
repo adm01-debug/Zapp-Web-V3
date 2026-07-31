@@ -19,6 +19,10 @@ export async function createReminder(payload: {
   title: string;
   remind_at: string;
 }) {
+  // Guard: reminders.contact_id is uuid — reject JID strings silently.
+  if (!isValidUUID(payload.contact_id)) {
+    return { error: new Error('contact_id must be a UUID'), data: null };
+  }
   return supabase.from('reminders').insert(payload);
 }
 
