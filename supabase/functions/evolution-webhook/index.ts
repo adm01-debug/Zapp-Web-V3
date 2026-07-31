@@ -228,6 +228,7 @@ Deno.serve(async (req) => {
   const EVENT_RATE_LIMITS: Record<string, number> = {
     "chats.update":    2000, // sync de chat: gerado por toda mensagem recebida
     "contacts.update": 1000, // importacao/sync de contatos em massa
+    "messages.update":  600, // 2x default: atualizacao de status (DELIVERY_ACK, READ, PLAYED)
     "messages.upsert":  600, // 2x default: bursts em grupos grandes
     "groups.upsert":    600, // sincronizacao inicial de grupos
   };
