@@ -27,7 +27,7 @@ import type { ChatMessagesAreaRef } from '../ChatMessagesArea';
 import type { Message } from '@/types/chat';
 
 // ── Estado compartilhado entre mocks e testes ────────────────────────────────
-const { channelSpy, channelMock, queryClientMock, scrollToIndexSpy } = vi.hoisted(() => {
+const { channelSpy, queryClientMock, scrollToIndexSpy } = vi.hoisted(() => {
   const channelSpy = vi.fn();
   const channelMock = { on: vi.fn(), subscribe: vi.fn() };
   channelMock.on.mockReturnValue(channelMock);
