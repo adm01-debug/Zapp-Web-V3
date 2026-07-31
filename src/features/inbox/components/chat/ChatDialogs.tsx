@@ -1,11 +1,8 @@
 import { Suspense, lazy } from 'react';
-import { getLogger } from '@/lib/logger';
-
-const log = getLogger('ChatDialogs');
-import { toast } from '@/hooks/use-toast';
 import { Conversation, Message, InteractiveMessage, LocationMessage } from '@/types/chat';
 import { ExternalProduct } from '@/hooks/useExternalApiManagement';
 import { ExternalProductCatalog } from '@/components/catalog/ExternalProductCatalog';
+import type { SearchResult } from '../useGlobalSearchData';
 
 const TransferDialog = lazy(() => import('../TransferDialog').then(m => ({ default: m.TransferDialog })));
 const ScheduleMessageDialog = lazy(() => import('../ScheduleMessageDialog').then(m => ({ default: m.ScheduleMessageDialog })));
@@ -39,6 +36,7 @@ interface ChatDialogsProps {
   onSendLocation: (location: LocationMessage) => void;
   onSendProduct: (product: ExternalProduct) => void;
   onSetInputValue: (value: string | ((prev: string) => string)) => void;
+  onSelectSearchResult?: (result: SearchResult) => void;
 }
 
 /** Chat Dialogs component for the chat section. */
@@ -46,6 +44,7 @@ export function ChatDialogs({
   dialogs, openDialog, closeDialog, conversation, forwardMessage, callDirection,
   contactId, onTransfer, onScheduleMessage, onSendInteractiveMessage,
   onForwardToTargets, onSendLocation, onSendProduct, onSetInputValue,
+  onSelectSearchResult,
 }: ChatDialogsProps) {
   return (
     <>
@@ -53,7 +52,7 @@ export function ChatDialogs({
         {dialogs.transferDialog && <TransferDialog open={dialogs.transferDialog} onOpenChange={(v) => v ? openDialog('transferDialog') : closeDialog('transferDialog')} onTransfer={onTransfer as (type: "agent" | "connection" | "queue", targetId: string, message?: string) => void} />}
         {dialogs.scheduleDialog && <ScheduleMessageDialog open={dialogs.scheduleDialog} onOpenChange={(v) => v ? openDialog('scheduleDialog') : closeDialog('scheduleDialog')} onSchedule={onScheduleMessage} />}
         {dialogs.callDialog && <CallDialog open={dialogs.callDialog} onOpenChange={(v) => v ? openDialog('callDialog') : closeDialog('callDialog')} contact={{ name: conversation.contact.name, phone: conversation.contact.phone, avatar: conversation.contact.avatar }} direction={callDirection} onEnd={() => closeDialog('callDialog')} />}
-        {dialogs.globalSearch && <GlobalSearch open={dialogs.globalSearch} onOpenChange={(v) => v ? openDialog('globalSearch') : closeDialog('globalSearch')} onSelectResult={(result) => { log.debug('Selected:', result); toast({ title: 'Resultado selecionado', description: result.title }); }} />}
+        {dialogs.globalSearch && <GlobalSearch open={dialogs.globalSearch} onOpenChange={(v) => v ? openDialog('globalSearch') : closeDialog('globalSearch')} onSelectResult={(result) => { closeDialog('globalSearch'); onSelectSearchResult?.(result); }} />}
         {dialogs.interactiveBuilder && <InteractiveMessageBuilder open={dialogs.interactiveBuilder} onOpenChange={(v) => v ? openDialog('interactiveBuilder') : closeDialog('interactiveBuilder')} onSend={onSendInteractiveMessage} />}
         {dialogs.forwardDialog && <ForwardMessageDialog open={dialogs.forwardDialog} onOpenChange={(v) => v ? openDialog('forwardDialog') : closeDialog('forwardDialog')} message={forwardMessage} onForward={onForwardToTargets} />}
         {dialogs.locationPicker && <LocationPicker open={dialogs.locationPicker} onOpenChange={(v) => v ? openDialog('locationPicker') : closeDialog('locationPicker')} onSend={onSendLocation} />}

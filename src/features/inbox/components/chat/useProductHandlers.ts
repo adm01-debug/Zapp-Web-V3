@@ -60,16 +60,45 @@ export function useProductHandlers({
     [onSendMessage]
   );
 
-  const handleSendInteractiveMessage = useCallback((interactive: InteractiveMessage) => {
-    toast({
-      title: 'Mensagem interativa enviada!',
-      description: `Mensagem com ${interactive.buttons?.length || 0} botoes enviada.`,
-    });
-  }, []);
+  const handleSendInteractiveMessage = useCallback(
+    async (interactive: InteractiveMessage) => {
+      // Guard: sem telefone nao ha para onde enviar a mensagem interativa.
+      const phone = (contactPhone || '').replace(/\D/g, '');
+      if (!phone) {
+        toast({ title: 'Contato sem telefone', variant: 'destructive' });
+        return;
+      }
+      try {
+        await whatsapp.sendInteractive({
+          remoteJid: `${phone}@s.whatsapp.net`,
+          instance: instanceName,
+          ...interactive,
+        });
+        // Toast de sucesso so apos o envio realmente resolver.
+        toast({
+          title: 'Mensagem interativa enviada!',
+          description: `Mensagem com ${interactive.buttons?.length || 0} botoes enviada.`,
+        });
+      } catch (err) {
+        toast({
+          title: 'Erro ao enviar mensagem interativa',
+          description:
+            err instanceof Error ? err.message : 'Falha ao enviar a mensagem interativa.',
+          variant: 'destructive',
+        });
+      }
+    },
+    [contactPhone, instanceName]
+  );
 
-  const handleInteractiveButtonClick = useCallback((button: InteractiveButton) => {
-    toast({ title: 'Botao clicado', description: `Resposta: ${button.title}` });
-  }, []);
+  const handleInteractiveButtonClick = useCallback(
+    (button: InteractiveButton) => {
+      // BUG-08: o clique em botao interativo agora responde no chat,
+      // enviando o titulo do botao como mensagem (em vez de so um toast fake).
+      onSendMessage(button.title ?? button.id);
+    },
+    [onSendMessage]
+  );
 
   const handleSendLocation = useCallback(
     async (location: LocationMessage) => {

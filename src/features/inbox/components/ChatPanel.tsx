@@ -9,6 +9,7 @@ import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { useQuickReplies } from '@/features/inbox';
 import { useTextToSpeech } from '@/hooks/useTextToSpeech';
 import { useUserSettings } from '@/hooks/useUserSettings';
+import { toast } from '@/hooks/use-toast';
 
 import { useScheduledMessages } from '@/hooks/useScheduledMessages';
 import { useMessageSignature } from '@/features/inbox';
@@ -579,6 +580,15 @@ export function ChatPanel({
           onSendLocation={handlers.handleSendLocation}
           onSendProduct={handlers.handleSendProduct}
           onSetInputValue={handlers.setInputValue}
+          onSelectSearchResult={(result) => {
+            // BUG-24: resultado de mensagem navega direto na conversa;
+            // demais tipos (contato, acao, crm) mostram um toast informativo.
+            if (result.type === 'message' && result.id) {
+              messagesAreaRef.current?.scrollToMessage(result.id);
+            } else {
+              toast({ title: 'Resultado', description: result.title });
+            }
+          }}
         />
       </div>
 
