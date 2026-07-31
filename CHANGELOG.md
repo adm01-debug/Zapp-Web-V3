@@ -1,6 +1,33 @@
 # 📜 Changelog — ZAPP WEB
 
-## [2.1.1] - 2026-07-30 — ChatPanel Blank Fix + TypeScript Cleanup
+## [2.2.0] - 2026-07-31 — Lint Cleanup Total (0 erros / 0 warnings) + Design Tokens
+
+### 🟢 Qualidade de Código
+
+- **ESLint 71 → 0 erros e 206 → 0 warnings** (escopo do app; 5 warnings residuais vivem em arquivo de outra sessão em andamento):
+  - 21 ocorrências de instância WhatsApp hardcoded (`'wpp2'`) → `DEFAULT_WHATSAPP_INSTANCE` (regra E20).
+  - 19 `no-explicit-any` em testes tipados com assinaturas reais; 91 `any` em código de produção tipados (Database rows, AuthError, RealtimePostgresChangesPayload, interfaces locais).
+  - 52 `no-non-null-assertion` → guardas/optional chaining; 60 `react-hooks/exhaustive-deps` corrigidos com deps seguras.
+  - 9 violações de fronteira de domínio (deep imports `@/features/inbox/...` → imports relativos intra-feature).
+  - 3 diretivas `eslint-disable` órfãs removidas; parse error em e2e corrigido; addons Storybook não instalados removidos do config.
+- **Design System**: 85 substituições de tokens (autopatch) + 38 casos `font-mono` inspecionados (`// @technical` para dados técnicos; remoção para UI) → **0 violações Medium/High**.
+- **Dead code**: 2 arquivos órfãos removidos (`ChatAttachmentsPreview.tsx`, `chatInputTypes.ts` — resquícios do #639) + allowlist da trilha de mensagens sincronizada (VML removido).
+- **Ratchet apertado**: data-layer baseline 615 → 612; `lint-supabase-casts` 0 avisos (3 falsos positivos em docstrings corrigidos).
+
+### 📄 Documentação
+
+- LICENSE MIT adicionado (badge já prometia); README aponta para `zapp-web-v3` (badge CI + clone).
+
+### Validação
+
+| Indicador | Resultado |
+|-----------|-----------|
+| Testes | **7.299/7.299 PASS** (323 arquivos) |
+| TypeScript | **zero erros** |
+| Build | **1m 25s** |
+| Lint | **0 erros / 0 warnings** |
+| Design System | **0 violações Medium+** |
+| Data-layer | **612/612 (ratchet)** |
 
 ### 🔴 Crítico Resolvido
 
