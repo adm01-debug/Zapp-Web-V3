@@ -2,7 +2,7 @@ import { dbFrom } from '@/integrations/datasource/db';
 import { getLogger } from '@/lib/logger';
 import { sendMessageToContact } from './messageSender';
 import { isValidUUID } from '@/utils/uuid';
-import { touchLastSeen } from '@/features/inbox';
+import { touchLastSeen } from '@/features/inbox/services/touchLastSeen';
 import type { ConversationWithMessages } from './types';
 
 const log = getLogger('ConversationActions');
