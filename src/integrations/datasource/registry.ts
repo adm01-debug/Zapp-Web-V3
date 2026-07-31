@@ -46,7 +46,13 @@ export type LogicalEntity =
   | 'provider_configs'
   | 'automation_executions'
   | 'whisper_messages'
-  | 'failed_messages';
+  | 'failed_messages'
+  | 'conversation_snoozes'
+  | 'pinned_conversations'
+  | 'contact_notes'
+  | 'contact_tags'
+  | 'reminders'
+  | 'tags';
 
 /** Datasource Client type alias. */
 export type DatasourceClient = 'lovable' | 'external';
@@ -82,6 +88,13 @@ export const ENTITY_MAP = {
   automation_executions: { client: 'lovable', table: 'automation_executions' },
   whisper_messages: { client: 'lovable', table: 'whisper_messages' },
   failed_messages: { client: 'lovable', table: 'failed_messages' },
+  // ── Slash commands (BUG-03): tabelas reais usadas pelos callbacks ────────
+  conversation_snoozes: { client: 'lovable', table: 'conversation_snoozes' },
+  pinned_conversations: { client: 'lovable', table: 'pinned_conversations' },
+  contact_notes: { client: 'lovable', table: 'contact_notes' },
+  contact_tags: { client: 'lovable', table: 'contact_tags' },
+  reminders: { client: 'lovable', table: 'reminders' },
+  tags: { client: 'lovable', table: 'tags' },
 } as const satisfies Record<LogicalEntity, EntityMapping>;
 
 /** get Entity Mapping function. */
