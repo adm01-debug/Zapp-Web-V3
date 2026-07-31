@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from '@/components/ui/motion';
 import { X, Image as ImageIcon, FileText, FileVideo, FileAudio } from 'lucide-react';
 import { formatFileSize } from '@/utils/whatsappFileTypes';
-import type { QueuedFile } from './ChatMessageInput';
+import type { QueuedFile } from './chatInputTypes';
 
 interface ChatAttachmentsPreviewProps {
   attachments: QueuedFile[];
