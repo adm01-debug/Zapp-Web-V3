@@ -36,11 +36,12 @@ function resolveIdentifier(value?: string): ResolvedIdent | null {
   if (looksLikeUuid) return { kind: 'uuid', value: raw };
   // Normaliza: remove '+', espacos, parenteses e hifens antes de comparar.
   const digits = raw.replace(/[^0-9]/g, '');
-  // Guard de LID: numeros com 14+ digitos nao sao DDI+DDD+numero BR, sao LIDs
-  // do WhatsApp (ex.: '551199384518134' tem 15 digitos) e a query por
-  // `remote_jid` nunca encontra nada -- retorna null para pular a query.
-  // Aceita apenas 10-13 digitos (BR com/sem DDI).
-  if (digits.length < 10 || digits.length > 13) return null;
+  // Aceita a partir de 8 digitos (numero local sem DDI/DDD) -- o lookup em
+  // `contact_intelligence` e BARATO (tabela pequena) e deve rodar para
+  // qualquer phone. O guard de LID (14+ digitos) aplica-se SOMENTE a query
+  // pesada de `evolution_messages` (ver call-site) -- bloquear aqui deixaria
+  // 27% dos contatos (LIDs com dados em contact_intelligence) sem briefing.
+  if (digits.length < 8) return null;
   return { kind: 'phone', value: sanitizePostgrestFilter(digits) };
 }
 
@@ -120,9 +121,13 @@ interface RawIntel {
   predicted_value?: number | null;
   risk_level?: string | null;
   disc_profile?: string | null;
-  last_contact_at?: string | null;
-  total_interactions?: number | null;
-  relationship_score?: number | null;
+  // Colunas REAIS de zapp.contact_intelligence (verificadas no banco 2026-07-31).
+  // ATENCAO: 'total_interactions' e 'last_contact_at' NAO existem no schema --
+  // os nomes corretos sao total_messages (contagem do pipeline) e
+  // days_since_contact (dias desde o ultimo contato). Usar os nomes errados
+  // fazia o fallback de evolution_messages rodar SEMPRE e o briefing exibir 0.
+  total_messages?: number | null;
+  days_since_contact?: number | null;
 }
 
 const DISC_TEMPLATES: Record<'D' | 'I' | 'S' | 'C', DISCTips> = {
@@ -238,8 +243,7 @@ function buildBriefing(
   const days =
     lastAt != null ? Math.floor((Date.now() - lastAt.getTime()) / (1000 * 60 * 60 * 24)) : null;
   const relationship_score =
-    raw?.relationship_score ??
-    (raw?.engagement_score != null ? Math.round(raw.engagement_score) : null);
+    raw?.engagement_score != null ? Math.round(raw.engagement_score) : null;
   const opening_tip =
     days != null && days > 30
       ? 'Cliente sem contato há tempo — resgate com mensagem personalizada.'
@@ -288,10 +292,23 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
         log.warn('contact_intelligence lookup threw:', err);
       }
 
-      const totalMessages = raw?.total_interactions ?? 0;
-      let lastAt: Date | null = raw?.last_contact_at ? new Date(raw.last_contact_at) : null;
+      const totalMessages = raw?.total_messages ?? 0;
+      // days_since_contact e o campo real (dias); converter em data aproximada
+      // para manter o contrato de buildBriefing (que calcula days a partir de lastAt).
+      let lastAt: Date | null =
+        raw?.days_since_contact != null
+          ? new Date(Date.now() - raw.days_since_contact * 24 * 60 * 60 * 1000)
+          : null;
 
       if (!totalMessages || !lastAt) {
+        // Guard de LID aplicado AQUI (query pesada em evolution_messages, 23+
+        // particoes): phone com 14+ digitos nao e DDI+DDD+numero BR -- e LID do
+        // WhatsApp (ex.: '551199384518134' tem 15) e nunca existira como
+        // remote_jid sargable; pular evita varredura inutil. O lookup barato
+        // em contact_intelligence (acima) JA rodou para qualquer phone >= 8.
+        const phoneDigits = ident.kind === 'phone' ? ident.value : null;
+        const isLid = phoneDigits != null && (phoneDigits.length > 13 || phoneDigits.length < 10);
+        if (!isLid) {
         try {
           // `evolution_messages` nao tem coluna `phone`: por telefone o vinculo
           // correto e `remote_jid`. Os dois sufixos que coexistem no banco sao
@@ -304,7 +321,8 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
           // indice btree (remote_jid, created_at DESC) que ja existe nas particoes.
           // A contagem exata (count) do PostgREST tambem conta TODAS as linhas e
           // anula o `limit(1)` -- o total decorativo ja vem de
-          // contact_intelligence.total_interactions.
+          // contact_intelligence.total_messages (coluna real; total_interactions
+          // nao existe no schema e era lido como 0).
           let query = supabase
             .from('evolution_messages' as never)
             .select('created_at')
@@ -338,6 +356,7 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
             log.warn('messages stats lookup skipped:', err);
           }
         }
+        } // !isLid
       }
 
       const found = !!raw || totalMessages > 0;
