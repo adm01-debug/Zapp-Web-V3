@@ -72,7 +72,7 @@ const sb = vi.hoisted(() => {
       },
       maybeSingle: () => Promise.resolve(getResult(table)),
       // `await query` no hook (cadeia sem maybeSingle em alguns caminhos)
-      then: (onFulfilled: (v: QueryResult) => unknown) =>
+      then: <T,>(onFulfilled: (v: QueryResult) => T) =>
         Promise.resolve(getResult(table)).then(onFulfilled),
     };
     return chain;
