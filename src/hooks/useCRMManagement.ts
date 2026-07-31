@@ -18,10 +18,10 @@ type ContactIntelligence = Pick<
   ContactIntelligenceRow,
   'contact_id' | 'sentiment' | 'engagement_score' | 'predicted_value' | 'risk_level'
 > & {
-  sentiment: string | null;
-  engagement_score: number | null;
-  predicted_value: number | null;
-  risk_level: string | null;
+  sentiment: string;
+  engagement_score: number;
+  predicted_value: number;
+  risk_level: string;
 };
 
 interface ContactNote {
@@ -30,32 +30,6 @@ interface ContactNote {
   content: string;
   author_id: string;
   created_at: string;
-}
-
-/**
- * ContactAssignment — espelho de zapp.contact_assignments (colunas reais da
- * migration 20260715_create_missing_schema_objects.sql:44-52).
- * UNIQUE (contact_id): no maximo 1 linha por contato.
- */
-interface ContactAssignment {
-  id: string;
-  contact_id: string;
-  assigned_to_user_id: string;
-  assigned_at: string;
-  created_at: string;
-  updated_at: string;
-}
-
-/**
- * EnrichedContactData — shape do RETURNS jsonb de zapp.enrich_contact(uuid)
- * (migration 20260724000005_fix_critical_sql_bugs.sql:149-174): objeto com
- * contact_id, enriched, source e data (row_to_json do contato).
- */
-interface EnrichedContactData {
-  contact_id: string;
-  enriched: boolean;
-  source: string;
-  data: Record<string, unknown> | null;
 }
 
 interface ContactCustomField {
@@ -191,7 +165,7 @@ export function useContactNotesManagement(contactId?: string) {
 }
 
 export function useContactEnrichedDataManagement(contactId?: string) {
-  const [enrichedData, setEnrichedData] = useState<EnrichedContactData | null>(null);
+  const [enrichedData, setEnrichedData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -229,7 +203,7 @@ export function useContactEnrichedDataManagement(contactId?: string) {
 }
 
 export function useContactAssignmentManagement(contactId?: string) {
-  const [assignment, setAssignment] = useState<ContactAssignment | null>(null);
+  const [assignment, setAssignment] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
 
