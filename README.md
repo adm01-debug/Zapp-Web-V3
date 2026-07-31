@@ -1,6 +1,6 @@
 # 🚀 ZAPP-WEB (Pronto Talk Suite)
 
-![CI](https://github.com/adm01-debug/zapp-web/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/adm01-debug/zapp-web-v3/actions/workflows/ci.yml/badge.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)
 ![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react)
 ![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase)
@@ -66,8 +66,8 @@ ZAPP-WEB (Pronto Talk Suite) é uma plataforma completa de atendimento ao client
 
 ```bash
 # 1. Clone o repositório
-git clone git@github.com:adm01-debug/zapp-web.git
-cd zapp-web
+git clone git@github.com:adm01-debug/zapp-web-v3.git
+cd zapp-web-v3
 
 # 2. Use a versão correta do Node.js
 nvm use

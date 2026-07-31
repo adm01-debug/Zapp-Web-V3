@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { User, Session, type AuthError } from '@supabase/supabase-js';
 import { useQueryClient } from '@tanstack/react-query';
 import { authService, Profile } from '../services/authService';
 import { log } from '@/lib/logger';
@@ -174,14 +174,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const fetchRoles = useCallback(
-    (userId: string) => fetchRolesAndPermissions(userId),
-    [fetchRolesAndPermissions]
-  );
-  const fetchPermissions = useCallback(
-    (userId: string) => fetchRolesAndPermissions(userId),
-    [fetchRolesAndPermissions]
-  );
   const refreshAll = useCallback(
     async (userId: string, options: { showLoading?: boolean } = {}) => {
       const { showLoading = true } = options;
@@ -466,7 +458,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: null };
       } catch (e) {
         log.error('[Auth] Sign in error:', e);
-        return { error: e as any };
+        return { error: e as AuthError };
       }
     },
     [refreshAll]
@@ -483,7 +475,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: null };
       } catch (e) {
         log.error('[Auth] Sign up error:', e);
-        return { error: e as any };
+        return { error: e as AuthError };
       }
     },
     [refreshAll]

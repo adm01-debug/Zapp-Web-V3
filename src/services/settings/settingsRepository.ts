@@ -42,7 +42,7 @@ export interface WorkspaceSettings {
 export const settingsRepository = {
   // User Settings
   async getUserSettings(userId: string): Promise<UserSettings | null> {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('user_settings')
       .select('*')
       .eq('user_id', userId)
@@ -52,7 +52,8 @@ export const settingsRepository = {
   },
 
   async updateUserSettings(userId: string, updates: Partial<UserSettings>) {
-    const { data, error } = await (supabase.from('user_settings') as any)
+    const { data, error } = await supabase
+      .from('user_settings')
       .update(updates)
       .eq('user_id', userId)
       .select()
@@ -67,7 +68,7 @@ export const settingsRepository = {
       .upsert({
         user_id: userId,
         ...settings,
-      } as any)
+      })
       .select()
       .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
@@ -87,7 +88,8 @@ export const settingsRepository = {
   },
 
   async updateWorkspaceSettings(workspaceId: string, updates: Partial<WorkspaceSettings>) {
-    const { data, error } = await (supabase.from('workspace_settings') as any)
+    const { data, error } = await supabase
+      .from('workspace_settings')
       .update(updates)
       .eq('workspace_id', workspaceId)
       .select()
@@ -102,7 +104,7 @@ export const settingsRepository = {
       .upsert({
         workspace_id: workspaceId,
         ...settings,
-      } as any)
+      })
       .select()
       .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 

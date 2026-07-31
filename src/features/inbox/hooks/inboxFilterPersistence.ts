@@ -6,7 +6,7 @@
  * localStorage é o fallback quando a URL não traz o parâmetro.
  */
 import { safeGetJSON, safeSetJSON } from '@/lib/safeStorage';
-import type { MainTab, SubTab } from '@/features/inbox/components/TicketTabs';
+import type { MainTab, SubTab } from '../components/TicketTabs';
 import type { FailureCategory } from '@/features/inbox';
 
 const STORAGE_KEY = 'inbox_filters_v1';

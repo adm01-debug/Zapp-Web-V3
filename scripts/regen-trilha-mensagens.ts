@@ -74,7 +74,6 @@ const EXTRA_CLICKS: { id: string; path: string }[] = [
   { id: "RUTL",   path: "src/features/inbox/hooks/realtime/realtimeUtils.ts" },
   { id: "URN",    path: "src/features/inbox/hooks/realtime/useRealtimeNotifications.ts" },
   { id: "MSI",    path: "src/features/inbox/components/chat/MessageStatusInline.tsx" },
-  { id: "VML",    path: "src/features/inbox/components/VirtualizedMessageList.tsx" },
   { id: "MB",     path: "src/features/inbox/components/chat/MessageBubble.tsx" },
 ];
 
