@@ -1,52 +1,41 @@
-# ==========================================
-# ZAPP-WEB CODEOWNERS
-# ==========================================
-# Define responsáveis por revisão de código
-# Documentação: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
-# ==========================================
+# CODEOWNERS -- Exige revisao humana para arquivos criticos.
+# O bot gpt-engineer-app[bot] (Lovable) commita diretamente em main;
+# o CODEOWNERS sozinho nao bloqueia pushes diretos, mas registra
+# os donos para revisao quando PRs forem criados.
+#
+# Para bloquear pushes diretos: habilitar branch protection em:
+# Settings -> Branches -> Branch protection rules -> main
+# -> Require pull request before merging
+# -> Require approvals: 1
+# -> Include administrators
 
-# ===================
-# DEFAULT OWNER
-# ===================
-# Todas as mudanças requerem aprovação do admin
+# Donos globais
 * @adm01-debug
 
-# ===================
-# ÁREAS CRÍTICAS (bloqueiam merge sem aprovação)
-# ===================
+# Supabase types (canonicos)
+src/integrations/supabase/types.ts @adm01-debug
+src/integrations/supabase/types-manual.ts @adm01-debug
+src/integrations/supabase/schema.ts @adm01-debug
+src/integrations/supabase/client.ts @adm01-debug
+src/integrations/supabase/cookieStorage.ts @adm01-debug
 
-# Supabase client, tipos e schema — NUNCA sobrescrever por bot
-/src/integrations/supabase/ @adm01-debug
+# Utilitarios de roteamento
+src/features/inbox/utils/contactRef.ts @adm01-debug
+src/features/inbox/hooks/useFallbackContact.ts @adm01-debug
+src/features/inbox/hooks/useAuxiliaryMessageLog.ts @adm01-debug
+src/features/inbox/hooks/useChatMediaSending.ts @adm01-debug
+src/features/inbox/hooks/useRealtimeInbox.ts @adm01-debug
+src/features/inbox/hooks/useInboxSource.ts @adm01-debug
+src/features/inbox/hooks/useExternalApiManagement.ts @adm01-debug
 
-# Supabase (Database, Edge Functions, Migrations)
-/supabase/ @adm01-debug
+# Componentes de chat criticos
+src/features/inbox/components/chat/ChatMessagesArea.tsx @adm01-debug
+src/features/inbox/components/ChatPanel.tsx @adm01-debug
 
-# Segurança
-/src/components/security/ @adm01-debug
-/src/hooks/useSecurity* @adm01-debug
-/supabase/functions/webauthn/ @adm01-debug
-
-# Configuração e Build
-/*.json @adm01-debug
-/*.ts @adm01-debug
-/.github/ @adm01-debug
-
-# ===================
-# COMPONENTES
-# ===================
-
-# Inbox e Chat (core do sistema)
-/src/components/inbox/ @adm01-debug
-/src/components/chat/ @adm01-debug
-
-# Dashboard e Relatórios
-/src/components/dashboard/ @adm01-debug
-/src/components/reports/ @adm01-debug
-
-# ===================
-# DOCUMENTAÇÃO
-# ===================
-/docs/ @adm01-debug
-/README.md @adm01-debug
-/CONTRIBUTING.md @adm01-debug
-/SECURITY.md @adm01-debug
+# CI e configuracao
+vitest.config.ts @adm01-debug
+package.json @adm01-debug
+vercel.json @adm01-debug
+vite.config.ts @adm01-debug
+.github/ @adm01-debug
+.lovableignore @adm01-debug

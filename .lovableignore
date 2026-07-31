@@ -1,23 +1,25 @@
 # ============================================================
-# .lovableignore — Protege arquivos críticos contra sobrescrita
+# .lovableignore -- Protege arquivos criticos contra sobrescrita
 # pelo bot Lovable (que commita diretamente em main).
 #
-# HISTÓRICO:
-#   16/07/2026 — types.ts foi sobrescrito pelo Lovable com o schema
+# HISTORICO:
+#   16/07/2026 -- types.ts foi sobrescrito pelo Lovable com o schema
 #     do Cloud (public, 157 entradas). Cobertura caiu para 40,7%.
-#   17/07/2026 — REGENERADO e VALIDADO contra pg_catalog:
-#       zapp    312/312 tabelas · 409/410 views · 394 functions
-#       evo     193/193 tabelas ·   20/20 views
-#       public    1/1 tabela    · 532/535 views
+#   17/07/2026 -- REGENERADO e VALIDADO contra pg_catalog:
+#       zapp    312/312 tabelas x 409/410 views x 394 functions
+#       evo     193/193 tabelas x   20/20 views
+#       public    1/1 tabela    x 532/535 views
 #     types-manual.ts e schema.ts referenciam GeneratedDatabase['zapp'];
-#     o remapeamento ['public']→zapp foi ELIMINADO.
+#     o remapeamento ['public']->zapp foi ELIMINADO.
+#   31/07/2026 -- Sessao de auditoria ChatPanel (50 itens):
+#     Adicionados arquivos criticos corrigidos em E01/E02/E14/E16.
 #
-# BANCO CANÔNICO: https://supabase.atomicabr.com.br — schema zapp
+# BANCO CANONICO: https://supabase.atomicabr.com.br -- schema zapp
 #
-# REGRA: estes arquivos SÓ são modificados via PR humano.
+# REGRA: estes arquivos SO sao modificados via PR humano.
 # ============================================================
 
-# --- Supabase client e tipos (canônicos) ---
+# --- Supabase client e tipos (canonicos) ---
 src/integrations/supabase/client.ts
 src/integrations/supabase/types.ts
 src/integrations/supabase/types-manual.ts
@@ -36,7 +38,7 @@ supabase/functions/_shared/vault.ts
 scripts/check-schema-usage.mjs
 scripts/check-schema-drift.sh
 
-# --- Docs canônicos ---
+# --- Docs canonicos ---
 docs/SCHEMA_REFERENCE.md
 CLAUDE.md
 
@@ -44,9 +46,26 @@ CLAUDE.md
 vercel.json
 vite.config.ts
 
-# --- CI gates de segurança ---
+# --- CI gates de seguranca ---
 .github/workflows/security-invoker-gate.yml
 .github/workflows/rls-gate.yml
 
 # --- Gitleaks config ---
 .gitleaks.toml
+
+# --- Utilitarios de roteamento de contato (E01) ---
+src/features/inbox/utils/contactRef.ts
+
+# --- Fallback de contato corrigido (E02) ---
+src/features/inbox/hooks/useFallbackContact.ts
+
+# --- Auxiliar de mensagens: routing UUID/JID (E14-A) ---
+src/features/inbox/hooks/useAuxiliaryMessageLog.ts
+src/features/inbox/hooks/useChatMediaSending.ts
+
+# --- ChatMessagesArea com scrollMargin e groupInfo (E16) ---
+src/features/inbox/components/chat/ChatMessagesArea.tsx
+
+# --- Test runner config (E19) ---
+vitest.config.ts
+package.json
