@@ -54,22 +54,32 @@ jobs:
       - name: "INV-1: No schema:'public' in Realtime subscriptions"
         run: |
           echo "Checking for schema:'public' in .channel().on() calls..."
+          # Known INV-1 exceptions (physical tables that legitimately live in 'public' schema
+          # and are part of supabase_realtime publication):
+          #   useAudioMessagePlayer.ts  — voice_conversion_queue is physical in public
+          #                              (migration 20260724000024 adds it to the publication)
           FOUND=$(grep -rn "schema: ['\"]public['\"]" src/ \
             --include="*.ts" --include="*.tsx" \
-            -l 2>/dev/null || true)
+            -l 2>/dev/null | \
+            grep -v "src/features/inbox/components/useAudioMessagePlayer\.ts" \
+            || true)
 
           if [ -n "$FOUND" ]; then
             echo "::error::INV-1 VIOLATION — schema:'public' detected in subscription(s)."
             echo "Files with violations:"
             grep -rn "schema: ['\"]public['\"]" src/ \
-              --include="*.ts" --include="*.tsx" 2>/dev/null || true
+              --include="*.ts" --include="*.tsx" \
+              --exclude="useAudioMessagePlayer.ts" 2>/dev/null || true
             echo ""
             echo "Fix: Replace schema:'public' with schema:'zapp' (for zapp.* tables) or"
             echo "     schema:'evo' (for root evo tables like evolution_messages)."
             echo "     Views in 'public' are proxy aliases and NEVER emit Realtime events."
+            echo ""
+            echo "If the table is genuinely physical in 'public' and added to the publication,"
+            echo "add a file-level exception in db-invariants.yml INV-1 step with justification."
             exit 1
           fi
-          echo "INV-1 passed: no schema:'public' subscriptions found."
+          echo "INV-1 passed: no schema:'public' subscriptions found (1 known exception: useAudioMessagePlayer.ts)."
 
       # ------------------------------------------------------------------
       # INV-2: No leaf partition name in Realtime table subscriptions.

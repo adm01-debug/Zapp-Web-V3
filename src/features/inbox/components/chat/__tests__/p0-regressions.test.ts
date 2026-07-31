@@ -219,7 +219,7 @@ describe('P0-3 — Global inbox Realtime subscriptions have no instance filter (
   // Simulates whether an event from a given instance passes the subscription
   const eventPassesSubscription = (eventInstance: string, sub: SubscriptionConfig): boolean => {
     if (!sub.filter) return true; // no filter → all instances pass
-    const [col, , val] = sub.filter.split('=eq.') as [string, string, string];
+    const [col, val] = sub.filter.split('=eq.') as [string, string];
     return col === 'instance_name' && val === eventInstance;
   };
 
