@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { CheckCircle2 } from 'lucide-react';
+import { isValidUUID } from '@/utils/uuid';
 
 interface CloseConversationDialogProps {
   open: boolean;
@@ -73,6 +74,12 @@ export function CloseConversationDialog({
   const handleClose = async () => {
     if (!reason) {
       toast.error('Selecione o motivo de encerramento');
+      return;
+    }
+    // Guard: conversation_closures.contact_id is uuid. If contactId is a WhatsApp
+    // JID (external mode), the INSERT would fail with a PostgREST 400 type error.
+    if (!isValidUUID(contactId)) {
+      toast.error('Encerramento indisponível para conversas sem contato registrado (ID externo).');
       return;
     }
     setSaving(true);

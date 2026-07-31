@@ -66,7 +66,11 @@ if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
 interface ChatPanelProps extends LoadOlderProps {
   conversation: Conversation;
   messages: Message[];
-  onSendMessage: (content: string) => void;
+  onSendMessage: (
+    content: string,
+    attachments?: File[],
+    onProgress?: (p: number) => void
+  ) => void | Promise<void>;
   onSendAudio?: (blob: Blob) => Promise<void>;
   showDetails?: boolean;
   onToggleDetails?: () => void;
