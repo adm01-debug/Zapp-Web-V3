@@ -218,8 +218,21 @@ export function useGlobalSettingsManagement() {
   };
 }
 
+/**
+ * WebhookPreferenceRow — espelho de zapp.webhook_preferences (migration
+ * 20260715_create_missing_schema_objects.sql:243-249). A coluna `preferences`
+ * é JSONB (configuração por usuário); o estado do hook é o ARRAY de linhas.
+ */
+interface WebhookPreferenceRow {
+  id: string;
+  user_id: string;
+  preferences: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export function useWebhookViewPreferencesManagement(userId?: string) {
-  const [preferences, setPreferences] = useState<any>(null);
+  const [preferences, setPreferences] = useState<WebhookPreferenceRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
 
