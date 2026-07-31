@@ -9,14 +9,20 @@ import { isValidUUID } from '@/utils/uuid';
 // contact_assignments/contact_custom_fields vivem no schema `zapp` da instância
 // self-hosted, mas os types gerados no ambiente Lovable (Cloud) não as expõem.
 // Enquanto scripts/gen-types-zapp.mjs não rodar contra a VPS, isolamos a
-// tipagem apenas na fronteira do postgrest — a superfície pública do hook
-interface ContactIntelligence {
-  contact_id: string;
+// tipagem apenas na fronteira do postgrest — a superfície pública do hook.
+// ContactIntelligenceRow (types-manual) é o espelho verificado do banco
+// (2026-07-31): campos abaixo são Pick de colunas REAIS — coluna inexistente
+// (ex.: total_interactions) quebra o typecheck.
+import type { ContactIntelligenceRow } from '@/integrations/supabase/types-manual';
+type ContactIntelligence = Pick<
+  ContactIntelligenceRow,
+  'contact_id' | 'sentiment' | 'engagement_score' | 'predicted_value' | 'risk_level'
+> & {
   sentiment: string;
   engagement_score: number;
   predicted_value: number;
   risk_level: string;
-}
+};
 
 interface ContactNote {
   id: string;
