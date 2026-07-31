@@ -7,9 +7,13 @@ interface ChatSendProgressProps {
 
 /** Chat Send Progress component for the chat section. */
 export function ChatSendProgress({ isSending, sendProgress }: ChatSendProgressProps) {
+  // Barra com progresso REAL: permanece visível enquanto a fila de envio
+  // reporta 0 < progresso < 100 (upload de mídia), mesmo depois de isSending
+  // cair ao finalizar o enfileiramento.
+  const showBar = isSending || (sendProgress > 0 && sendProgress < 100);
   return (
     <AnimatePresence>
-      {isSending && (
+      {showBar && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}

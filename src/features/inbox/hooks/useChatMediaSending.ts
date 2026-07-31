@@ -7,7 +7,7 @@ import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { newRequestId } from '@/lib/withRequestId';
 import type { AudioMemeItem } from '@/hooks/useAudioManagement';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
-import { isValidUUID } from '@/utils/uuid';
+import { resolveContactRef, isUuidRef } from '../utils/contactRef';
 import { insertAuxMessage } from './useAuxiliaryMessageLog';
 
 /**
@@ -82,7 +82,7 @@ export function useChatMediaSending(
 
   const resolveInstance = useCallback(async (): Promise<string> => {
     if (instanceName) return instanceName;
-    if (!isValidUUID(contactId)) return '';
+    if (!isUuidRef(resolveContactRef(contactId))) return '';
 
     try {
       let connectionId: string | null = null;
@@ -289,13 +289,15 @@ export function useChatMediaSending(
         const externalId = apiResult?.data?.key?.id || null;
 
         if (results[0].status === 'rejected') {
-          if (messageId && auxResult.mode === 'local') await updateMessageStatus(messageId, 'failed');
+          if (messageId && auxResult.mode === 'local')
+            await updateMessageStatus(messageId, 'failed');
           toast.error('Erro ao enviar emoji');
           return;
         }
 
         if (apiResult?.error || !externalId) {
-          if (messageId && auxResult.mode === 'local') await updateMessageStatus(messageId, 'failed');
+          if (messageId && auxResult.mode === 'local')
+            await updateMessageStatus(messageId, 'failed');
           toast.error('Erro ao enviar emoji');
           return;
         }
@@ -364,14 +366,16 @@ export function useChatMediaSending(
 
         if (results[0].status === 'rejected') {
           log.error('Audio meme send failed - rejected promise');
-          if (messageId && auxResult.mode === 'local') await updateMessageStatus(messageId, 'failed');
+          if (messageId && auxResult.mode === 'local')
+            await updateMessageStatus(messageId, 'failed');
           toast.error('Erro ao enviar audio meme');
           return;
         }
 
         if (apiResult?.error || !apiResult?.data?.key?.id) {
           log.error('Audio meme send failed', apiResult?.error);
-          if (messageId && auxResult.mode === 'local') await updateMessageStatus(messageId, 'failed');
+          if (messageId && auxResult.mode === 'local')
+            await updateMessageStatus(messageId, 'failed');
           toast.error('Erro ao enviar audio meme');
           return;
         }

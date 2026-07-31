@@ -11,7 +11,6 @@ import { getLogger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { validatePttBlob } from '@/lib/audio/pttLimits';
 import { seedAvatarCache } from '@/features/inbox';
-import { isValidUUID } from '@/utils/uuid';
 import { resolveContactRef, isUuidRef, isJidRef, contactRefToString } from '../utils/contactRef';
 import { mapToLegacyConversation, mapToLegacyMessages } from '@/adapters/inboxLegacyMapper';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -337,7 +336,7 @@ export function useRealtimeInbox() {
     // when a non-UUID string is used as a filter on a uuid column.
     // Skip both the count query and the realtime subscription in that case.
 
-    if (!isValidUUID(selectedContactId)) {
+    if (!isUuidRef(resolveContactRef(selectedContactId))) {
       log.debug(
         '[whisperCount] selectedContactId is not a UUID — skipping whisper query (likely a WhatsApp JID)',
         { selectedContactId }
@@ -594,13 +593,14 @@ export function useRealtimeInbox() {
     handleSelectConversation,
     handleNotificationView,
     handleSendMessage: useCallback(
-      (content: string, attachments?: File[]) => {
+      (content: string, attachments?: File[], onProgress?: (p: number) => void) => {
         if (!selectedContactId) return;
         messageQueue.addToQueue(
           selectedContactId,
           content || (attachments?.length ? `Enviando ${attachments.length} anexo(s)` : ''),
           attachments,
-          attachments?.length ? 'attachment' : 'text'
+          attachments?.length ? 'attachment' : 'text',
+          onProgress
         );
       },
       [selectedContactId, messageQueue]

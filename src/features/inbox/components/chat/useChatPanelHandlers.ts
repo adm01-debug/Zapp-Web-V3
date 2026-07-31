@@ -8,8 +8,7 @@ import { useAuth } from '@/features/auth';
 import { Message } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
 import { dbFrom } from '@/integrations/datasource/db';
-import { isValidUUID } from '@/utils/uuid';
-import { resolveContactRef, isJidRef } from '../../utils/contactRef';
+import { resolveContactRef, isUuidRef, isJidRef } from '../../utils/contactRef';
 import { type DialogKey } from './hooks/useChatDialogs';
 import { type ActiveTool } from './ChatHeaderToolbar';
 import { useInputHandlers } from './useInputHandlers';
@@ -221,7 +220,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
 
           // Guard: whisper_messages.contact_id is uuid. When USE_EXTERNAL_DB=true,
           // opts.contactId may be a WhatsApp JID. Passing a JID causes PostgREST 400.
-          if (!isValidUUID(contactId)) {
+          if (!isUuidRef(resolveContactRef(contactId))) {
             toast({
               title: 'Sussurro indisponivel',
               description:
@@ -243,7 +242,6 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
           setIsWhisper(false);
         } else {
           await onSendMessage(messageContent, attachments, (p) => setSendProgress(p));
-          setSendProgress(100);
         }
         lastFailedSendRef.current = null;
         undoToast({
@@ -270,6 +268,8 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         lastFailedSendRef.current = { content: messageContent, attachments };
         setLastSendError(msg);
         setLastSendErrorDetail(detail);
+        // Envio falhou de forma síncrona: zera a barra de progresso.
+        setSendProgress(0);
         setInputValue(rawInput);
         if (wasReply) setReplyToMessage(wasReply);
         toast({ title: 'Erro ao enviar', description: msg, variant: 'destructive' });

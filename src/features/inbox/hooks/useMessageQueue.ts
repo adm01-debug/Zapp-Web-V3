@@ -62,7 +62,8 @@ export interface MessageQueueController {
     contactId: string,
     content: string,
     attachments?: File[],
-    type?: QueueItem['type']
+    type?: QueueItem['type'],
+    onProgress?: (p: number) => void
   ) => void;
   retryMessage: (id: string) => void;
   updateProgress: (id: string, progress: number) => void;
@@ -83,6 +84,7 @@ export function useMessageQueue(
   configOverrides?: Partial<Record<string, Partial<QueueConfig>>>
 ): MessageQueueController {
   const [queue, setQueue] = useState<QueueItem[]>([]);
+  const queueRef = useRef<QueueItem[]>([]);
   const isProcessingRef = useRef<Record<string, boolean>>({});
   const activeTimersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
   const processedDeliveriesRef = useRef<Set<string>>(new Set());
@@ -165,7 +167,16 @@ export function useMessageQueue(
     localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queueToSave));
   }, [queue]);
 
+  // Espelho síncrono da fila: permite notificar onProgress sem efeitos
+  // colaterais dentro de updaters de setState.
+  useEffect(() => {
+    queueRef.current = queue;
+  }, [queue]);
+
   const updateProgress = useCallback((id: string, progress: number) => {
+    // Notifica o caller (ex.: barra de progresso do input) com o progresso real
+    // da fila: 5 (início do envio), 15 (mídia), % de upload, 100 (confirmado), 0 (falha).
+    queueRef.current.find((i) => i.id === id)?.onProgress?.(progress);
     setQueue((prev) => prev.map((item) => (item.id === id ? { ...item, progress } : item)));
   }, []);
 
@@ -220,10 +231,11 @@ export function useMessageQueue(
             );
 
             setQueue((q) =>
-              q.map((i) =>
-                i.id === itemToProcess.id ? { ...i, status: 'sending', progress: 5 } : i
-              )
+              q.map((i) => (i.id === itemToProcess.id ? { ...i, status: 'sending' } : i))
             );
+
+            // Notifica o caller que o envio começou de verdade (barra de progresso do input).
+            updateProgress(itemToProcess.id, 5);
 
             // Internal tracking for sequential media uploads
             if (itemToProcess.type !== 'text') {
@@ -240,7 +252,6 @@ export function useMessageQueue(
                   ? {
                       ...i,
                       status: 'confirmed',
-                      progress: 100,
                       completedAt,
                       nextRetryAt: undefined,
                       attempts: [...(i.attempts || []), { timestamp: Date.now(), duration }],
@@ -248,6 +259,9 @@ export function useMessageQueue(
                   : i
               )
             );
+
+            // Envio confirmado: fecha a barra de progresso do input em 100%.
+            updateProgress(itemToProcess.id, 100);
 
             const t2 = setTimeout(() => {
               activeTimersRef.current.delete(t2);
@@ -303,7 +317,6 @@ export function useMessageQueue(
                       status: shouldAutoRetry ? 'pending' : 'failed',
                       retryCount: i.retryCount + (shouldAutoRetry ? 1 : 0),
                       error: err,
-                      progress: 0,
                       nextRetryAt,
                       attempts: [
                         ...(i.attempts || []),
@@ -313,6 +326,9 @@ export function useMessageQueue(
                   : i
               )
             );
+
+            // Falha (ou retry agendado): zera a barra de progresso do input.
+            updateProgress(itemToProcess.id, 0);
 
             if (!shouldAutoRetry) {
               toast({
@@ -374,7 +390,8 @@ export function useMessageQueue(
       contactId: string,
       content: string,
       attachments?: File[],
-      type: 'text' | 'attachment' | 'audio' = 'text'
+      type: 'text' | 'attachment' | 'audio' = 'text',
+      onProgress?: (p: number) => void
     ) => {
       const newItem: QueueItem = {
         id: `queue:${uuidv4()}`,
@@ -382,6 +399,7 @@ export function useMessageQueue(
         content,
         type,
         attachments,
+        onProgress,
         status: 'pending',
         retryCount: 0,
         progress: 0,
@@ -419,6 +437,16 @@ export function useMessageQueue(
         return;
       }
       processedDeliveriesRef.current.add(dedupeKey);
+
+      if (status === 'confirmed') {
+        const confirmedItem = queueRef.current.find(
+          (i) =>
+            i.contactId === contactId && (i.externalId === externalId || i.content === externalId)
+        );
+        // Confirmação via webhook antes do processamento local marcar 100:
+        // fecha a barra de progresso do input em vez de deixá-la presa.
+        confirmedItem?.onProgress?.(100);
+      }
 
       setQueue((prev) => {
         const item = prev.find(
@@ -499,6 +527,10 @@ export function useMessageQueue(
     reconcileWithDelivery,
     getMetrics,
     removeFromQueue: (id: string) => {
+      const item = queueRef.current.find((i) => i.id === id);
+      // Remoção de item em voo (falha multi-anexo ou cancelamento do usuário)
+      // sem confirmação: zera o progresso para a barra do input não ficar presa.
+      if (item && item.status !== 'confirmed') item.onProgress?.(0);
       setQueue((prev) => prev.filter((item) => item.id !== id));
     },
   };
