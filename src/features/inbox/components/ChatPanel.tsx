@@ -362,7 +362,7 @@ export function ChatPanel({
             onVoiceChange={setVoiceId}
             onSpeedChange={setSpeed}
             onBack={onBack}
-            onGenerateSummary={() => handleSetActiveTool('summary')}
+            onGenerateSummary={() => handleSetActiveTool('aiAssistant')}
             onCloseConversation={() => openDialog('closeDialog')}
             failuresOnly={failuresOnly}
             failuresCount={failedMessages.length}
