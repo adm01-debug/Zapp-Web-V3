@@ -23,7 +23,7 @@ const mockDbEq = vi.fn(() => ({
     select: vi.fn(() => Promise.resolve({ data: [{ id: 'msg-1' }], error: null })),
   })),
 }));
-const mockDbFrom = vi.fn(() => ({ update: mockDbUpdate }));
+const mockDbFrom = vi.fn((..._args: unknown[]): unknown => ({ update: mockDbUpdate }));
 mockDbUpdate.mockReturnValue({
   eq: vi.fn(() => ({
     select: vi.fn(() => Promise.resolve({ data: [{ id: 'msg-1' }], error: null })),
