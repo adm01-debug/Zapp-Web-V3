@@ -1,7 +1,7 @@
 /**
  * Typed helpers for dynamic Supabase table operations.
  *
- * Provides a type-safe wrapper that avoids `(supabase as any)`
+ * Provides a type-safe wrapper that avoids raw `supabase` casts
  * while preventing deep type instantiation with large schemas.
  */
 
