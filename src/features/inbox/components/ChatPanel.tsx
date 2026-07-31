@@ -367,6 +367,7 @@ export function ChatPanel({
             failuresCount={failedMessages.length}
             onToggleFailuresOnly={() => setFailuresOnly((v) => !v)}
             activeTool={activeTool}
+            whisperCount={whisperCount}
             onSetActiveTool={handleSetActiveTool}
           />
         )}
