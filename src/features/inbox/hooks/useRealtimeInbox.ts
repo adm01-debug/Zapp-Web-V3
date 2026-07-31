@@ -1,13 +1,12 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useOfflineCache } from '@/hooks/useOfflineCache';
-import { type ConversationWithMessages, type RealtimeMessage } from '@/features/inbox';
+import { type RealtimeMessage } from '@/features/inbox';
 import { useAuth } from '@/features/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { validatePttBlob } from '@/lib/audio/pttLimits';
 import { seedAvatarCache } from '@/features/inbox';
-import { isValidUUID } from '@/utils/uuid';
 import { resolveContactRef, isUuidRef } from '../utils/contactRef';
 import { mapToLegacyConversation, mapToLegacyMessages } from '@/adapters/inboxLegacyMapper';
 import { dbFrom } from '@/integrations/datasource/db';
