@@ -159,10 +159,10 @@ jobs:
           while IFS= read -r file; do
             [ -z "$file" ] && continue
             # Match .subscribe( with or without a callback arg
-            HAS_SUBSCRIBE=$(grep -c "\.subscribe(" "$file" 2>/dev/null); HAS_SUBSCRIBE=${HAS_SUBSCRIBE:-0}
+            HAS_SUBSCRIBE=$(grep -c "\.subscribe(" "$file" 2>/dev/null || true); HAS_SUBSCRIBE=${HAS_SUBSCRIBE:-0}
             # Accept both explicit .unsubscribe() and supabase.removeChannel()
             # (removeChannel internally calls unsubscribe on the channel)
-            HAS_CLEANUP=$(grep -cE "\.unsubscribe\(\)|removeChannel" "$file" 2>/dev/null); HAS_CLEANUP=${HAS_CLEANUP:-0}
+            HAS_CLEANUP=$(grep -cE "\.unsubscribe\(\)|removeChannel" "$file" 2>/dev/null || true); HAS_CLEANUP=${HAS_CLEANUP:-0}
 
             if [ "$HAS_SUBSCRIBE" -gt 0 ] && [ "$HAS_CLEANUP" -eq 0 ]; then
               VIOLATIONS="${VIOLATIONS}\n  $file (subscribe: $HAS_SUBSCRIBE, cleanup: 0)"
