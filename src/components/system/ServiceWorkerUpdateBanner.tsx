@@ -2,19 +2,48 @@ import { useEffect, useState } from 'react';
 import { RefreshCw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+interface ZappUpdateDetail {
+  current: string;
+  remote: string;
+}
+
 /**
  * Listens for the `sw-update-available` event dispatched by useServiceWorker
  * when a new bundle is detected. Prompts the user to reload to avoid the
  * "two frontends" symptom (different tabs/devices serving different bundle hashes).
+ *
+ * Also listens for `zapp-update-required` (dispatched by src/lib/buildVersion.ts)
+ * when the app is stuck on an old bundle after reload (persistent mismatch).
+ * In that case the reload uses a `_bv` cache-buster to bypass the stale bundle.
  */
 export function ServiceWorkerUpdateBanner() {
   const [visible, setVisible] = useState(false);
+  const [forced, setForced] = useState(false);
+  const [updateDetail, setUpdateDetail] = useState<ZappUpdateDetail | null>(null);
 
   useEffect(() => {
     const onUpdate = () => setVisible(true);
     document.addEventListener('sw-update-available', onUpdate);
-    return () => document.removeEventListener('sw-update-available', onUpdate);
+
+    const onUpdateRequired = (event: Event) => {
+      const detail = (event as CustomEvent<ZappUpdateDetail>).detail;
+      setUpdateDetail(detail ?? null);
+      setForced(true);
+      setVisible(true);
+    };
+    window.addEventListener('zapp-update-required', onUpdateRequired);
+
+    return () => {
+      document.removeEventListener('sw-update-available', onUpdate);
+      window.removeEventListener('zapp-update-required', onUpdateRequired);
+    };
   }, []);
+
+  const handleReload = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('_bv', String(Date.now()));
+    window.location.replace(url.toString());
+  };
 
   if (!visible) return null;
 
@@ -26,15 +55,24 @@ export function ServiceWorkerUpdateBanner() {
     >
       <RefreshCw className="w-5 h-5 text-primary shrink-0 mt-0.5" aria-hidden="true" />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium">Nova versão disponível</p>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Recarregue para evitar inconsistências entre abas e dispositivos.
+        <p className="text-sm font-medium">
+          {forced ? 'Atualização necessária' : 'Nova versão disponível'}
         </p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {forced
+            ? 'Uma nova versão está disponível mas o app não conseguiu recarregar sozinho.'
+            : 'Recarregue para evitar inconsistências entre abas e dispositivos.'}
+        </p>
+        {forced && updateDetail && (
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Versão atual: {updateDetail.current} → {updateDetail.remote}
+          </p>
+        )}
         <div className="flex gap-2 mt-2">
           <Button
             size="sm"
             variant="default"
-            onClick={() => window.location.reload()}
+            onClick={handleReload}
             className="gap-1.5 h-7"
           >
             <RefreshCw className="w-3.5 h-3.5" />

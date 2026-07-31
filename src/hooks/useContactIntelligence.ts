@@ -36,8 +36,25 @@ function resolveIdentifier(value?: string): ResolvedIdent | null {
   if (looksLikeUuid) return { kind: 'uuid', value: raw };
   // Normaliza: remove '+', espacos, parenteses e hifens antes de comparar.
   const digits = raw.replace(/[^0-9]/g, '');
-  if (digits.length < 8) return null;
+  // Guard de LID: numeros com 14+ digitos nao sao DDI+DDD+numero BR, sao LIDs
+  // do WhatsApp (ex.: '551199384518134' tem 15 digitos) e a query por
+  // `remote_jid` nunca encontra nada -- retorna null para pular a query.
+  // Aceita apenas 10-13 digitos (BR com/sem DDI).
+  if (digits.length < 10 || digits.length > 13) return null;
   return { kind: 'phone', value: sanitizePostgrestFilter(digits) };
+}
+
+/**
+ * Detecta TimeoutError do fetch/supabase-js: o erro chega com
+ * `name === 'TimeoutError'` (undici/fetch) ou mensagem de timeout/abort.
+ * Usado para logar com `log.error` (Sentry) em vez de `log.warn` generico.
+ */
+function isTimeoutError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  return (
+    err.name === 'TimeoutError' ||
+    /timeout|timed ?out|ETIMEDOUT|aborted?/i.test(err.message)
+  );
 }
 
 /** Hook: Contact Briefing. */
@@ -271,35 +288,55 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
         log.warn('contact_intelligence lookup threw:', err);
       }
 
-      let totalMessages = raw?.total_interactions ?? 0;
+      const totalMessages = raw?.total_interactions ?? 0;
       let lastAt: Date | null = raw?.last_contact_at ? new Date(raw.last_contact_at) : null;
 
       if (!totalMessages || !lastAt) {
         try {
           // `evolution_messages` nao tem coluna `phone`: por telefone o vinculo
-          // correto e `remote_jid`. O prefixo com LIKE cobre os dois sufixos que
-          // coexistem no banco -- `@s.whatsapp.net` e `@lid` -- e continua
-          // sargable (prefixo fixo, curinga so no fim).
-          const {
-            data: msgs,
-            count,
-            error,
-          } = await supabase
+          // correto e `remote_jid`. Os dois sufixos que coexistem no banco sao
+          // cobertos com igualdade exata via `.in()`: `@s.whatsapp.net` e `@lid`.
+          // IMPORTANTE: NUNCA voltar para LIKE de prefixo aqui -- `remote_jid`
+          // tem collation nao-C, entao `LIKE '...%@'` nao usa indice e o Postgres
+          // varre TODAS as 25+ particoes (EXPLAIN confirmado: Index Scan em
+          // pidx_msgs_created_at em todas com Filter remote_jid LIKE), causando
+          // TimeoutError de 12s em producao. Igualdade exata e sargable e usa o
+          // indice btree (remote_jid, created_at DESC) que ja existe nas particoes.
+          // A contagem exata (count) do PostgREST tambem conta TODAS as linhas e
+          // anula o `limit(1)` -- o total decorativo ja vem de
+          // contact_intelligence.total_interactions.
+          let query = supabase
             .from('evolution_messages' as never)
-            .select('created_at', { count: 'exact', head: false })
-            .or(
-              ident.kind === 'uuid'
-                ? `contact_id.eq.${ident.value}`
-                : `remote_jid.like.${ident.value}@*`
-            )
+            .select('created_at')
             .order('created_at', { ascending: false })
             .limit(1);
-          if (error) log.warn('messages stats lookup failed:', error.message);
-          if (count != null) totalMessages = totalMessages || count;
+          if (ident.kind === 'uuid') {
+            query = query.eq('contact_id', ident.value);
+          } else {
+            query = query.in('remote_jid', [
+              `${ident.value}@s.whatsapp.net`,
+              `${ident.value}@lid`,
+            ]);
+          }
+          const { data: msgs, error } = await query;
+          if (error) {
+            // postgrest-js NUNCA lanca TimeoutError: ele captura erros de fetch
+            // (incluindo AbortError/TimeoutError) e os devolve no campo `error`.
+            // Sem esta checagem o timeout de producao vira apenas um warn.
+            if (/timeout|aborted|fetch/i.test(error.message ?? '')) {
+              log.error('messages stats lookup timed out (evolution_messages scan):', error);
+            } else {
+              log.warn('messages stats lookup failed:', error.message);
+            }
+          }
           const rows = (msgs ?? []) as Array<{ created_at?: string }>;
           if (!lastAt && rows[0]?.created_at) lastAt = new Date(rows[0].created_at);
         } catch (err) {
-          log.warn('messages stats lookup skipped:', err);
+          if (isTimeoutError(err)) {
+            log.error('messages stats lookup timed out (evolution_messages scan):', err);
+          } else {
+            log.warn('messages stats lookup skipped:', err);
+          }
         }
       }
 
@@ -315,7 +352,9 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
       };
     },
     enabled,
-    staleTime: 60_000,
+    retry: false,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
   });
 
   return { intelligence: data ?? null, loading: isLoading };

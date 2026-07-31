@@ -1,9 +1,8 @@
-import { useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { dbFrom } from '@/integrations/datasource/db';
 import { getLogger } from '@/lib/logger';
 import { sendMessageToContact } from './messageSender';
 import { isValidUUID } from '@/utils/uuid';
+import { touchLastSeen } from '@/features/inbox';
 import type { ConversationWithMessages } from './types';
 
 const log = getLogger('ConversationActions');
@@ -19,8 +18,6 @@ interface UseConversationActionsOptions {
 
 /** Provides sendMessage and markAsRead actions that write through to Supabase and optimistically update the local conversation list. */
 export function useConversationActions({ commitConversations }: UseConversationActionsOptions) {
-  const lastSeenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const sendMessage = async (
     contactId: string,
     content: string,
@@ -75,18 +72,8 @@ export function useConversationActions({ commitConversations }: UseConversationA
       .eq('is_read', false);
     if (error) log.error('Error marking messages as read:', error);
 
-    if (lastSeenTimerRef.current) clearTimeout(lastSeenTimerRef.current);
-    lastSeenTimerRef.current = setTimeout(async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        await supabase
-          .from('profiles')
-          .update({ last_seen: new Date().toISOString() })
-          .eq('user_id', user.id);
-      }
-    }, 5000);
+    // Touch last_seen throttled global (máx. 1 PATCH a cada 2min, deduplicado entre instâncias)
+    touchLastSeen();
 
     commitConversations((prev) =>
       prev.map((c) =>

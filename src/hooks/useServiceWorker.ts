@@ -79,7 +79,8 @@ async function unregisterAllServiceWorkers(): Promise<void> {
     // funcionar sem ficar presa em "ja purguei nesta sessao".
     try {
       sessionStorage.removeItem('zapp_sw_purged_v3');
-      sessionStorage.removeItem('zapp-build-reload-once');
+      sessionStorage.removeItem('zapp-build-reload-state');
+      sessionStorage.removeItem('zapp-build-reload-once'); // legado
       sessionStorage.removeItem('zapp-workbox-purged-once');
       sessionStorage.removeItem('sw-cache-reset-done');
     } catch { /* noop */ }
@@ -215,7 +216,7 @@ export function useServiceWorker() {
                 '[ServiceWorker] SW_UPDATED for a newer build — forcing hard refresh',
                 { swBuildId, currentBuildId },
               );
-              void forceBundleRefresh(`sw-updated:${swBuildId}`);
+              void forceBundleRefresh(`sw-updated:${swBuildId}`, swBuildId);
             });
           }
         };

@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { dbFrom, dbTable, dbChannel, dbRemoveChannel } from '@/integrations/datasource/db';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { getLogger } from '@/lib/logger';
-import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 import { sendMessageToContact } from './realtime/messageSender';
 import { subscribeAllSendStatus, getSendStatus } from './realtime/sendStatusBus';
 import {
@@ -16,6 +14,7 @@ import {
 } from './realtime/realtimeUtils';
 import { useRealtimeNotifications } from './realtime/useRealtimeNotifications';
 import { useMessageUpdateBatcher } from './realtime/useMessageUpdateBatcher';
+import { touchLastSeen } from '@/features/inbox';
 import { logMessagesSubscribe, wrapMessagesHandler } from '@/lib/devRealtimeLogger';
 import { isValidUUID } from '@/utils/uuid';
 export type { MessageBatcherStatus } from './realtime/useMessageUpdateBatcher';
@@ -541,8 +540,6 @@ export function useRealtimeMessages() {
     return response;
   };
 
-  const lastSeenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const markAsRead = async (contactId: string) => {
     // ── UUID guard ──────────────────────────────────────────────────────────
     // messages.contact_id (and evo.evolution_messages.contact_id) are uuid
@@ -568,20 +565,8 @@ export function useRealtimeMessages() {
       .eq('is_read', false);
     if (error) log.error('Error marking messages as read:', error);
 
-    // Debounce last_seen update to avoid flooding DB during active chat
-    if (lastSeenTimerRef.current) clearTimeout(lastSeenTimerRef.current);
-    lastSeenTimerRef.current = setTimeout(async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        // FIX: profiles.id = auth.uid() — use 'id', not 'user_id' (ghost column)
-        await supabase
-          .from('profiles')
-          .update({ last_seen: new Date().toISOString() })
-          .eq('id', user.id);
-      }
-    }, 5000);
+    // Touch last_seen throttled global (máx. 1 PATCH a cada 2min, deduplicado entre instâncias)
+    touchLastSeen();
 
     commitConversations((prev) =>
       prev.map((c) =>
