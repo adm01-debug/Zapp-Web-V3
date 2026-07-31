@@ -15,6 +15,8 @@ import { useInputHandlers } from './useInputHandlers';
 import { useProductHandlers } from './useProductHandlers';
 import { useAudioVoiceChange } from './useAudioVoiceChange';
 import { useMessageReactionHandlers } from './useMessageReactionHandlers';
+import { ticketStore } from '@/lib/inbox/ticketStore';
+import { isValidUUID } from '@/utils/uuid';
 
 interface UseChatPanelHandlersOptions {
   conversationId: string;
@@ -412,6 +414,121 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
       instanceName,
     });
 
+  // ── BUG-03: callbacks reais dos slash commands ─────────────────────────────
+  // Cada callback valida contato (UUID) e perfil autenticado e lanca erro —
+  // o try/catch do useInputHandlers mostra toast de erro e so confirma
+  // sucesso apos o INSERT/UPDATE resolver de verdade.
+
+  const onResolveConversation = useCallback(async () => {
+    if (!contactId || !isValidUUID(contactId) || !profile?.id) {
+      throw new Error('Nao foi possivel resolver: contato ou usuario invalido.');
+    }
+    ticketStore.setStatus(contactId, 'resolved', profile.id);
+  }, [contactId, profile]);
+
+  const onSnooze = useCallback(
+    async (until: string) => {
+      if (!contactId || !isValidUUID(contactId) || !profile?.id) {
+        throw new Error('Nao foi possivel adiar: contato ou usuario invalido.');
+      }
+      const { error } = await dbFrom('conversation_snoozes').insert({
+        contact_id: contactId,
+        snooze_until: until,
+        snoozed_by: profile.id,
+        reason: 'slash',
+      });
+      if (error) throw error;
+    },
+    [contactId, profile]
+  );
+
+  const onStarToggle = useCallback(async () => {
+    if (!contactId || !isValidUUID(contactId) || !profile?.id) {
+      throw new Error('Nao foi possivel favoritar: contato ou usuario invalido.');
+    }
+    // Ja favoritada por este usuario? Remove; senao, insere o pin.
+    const { data: existing, error: selectError } = await dbFrom('pinned_conversations')
+      .select('contact_id')
+      .eq('contact_id', contactId)
+      .eq('pinned_by', profile.id)
+      .maybeSingle();
+    if (selectError) throw selectError;
+    if (existing) {
+      const { error: deleteError } = await dbFrom('pinned_conversations')
+        .delete()
+        .eq('contact_id', contactId)
+        .eq('pinned_by', profile.id);
+      if (deleteError) throw deleteError;
+    } else {
+      const { error: insertError } = await dbFrom('pinned_conversations').insert({
+        contact_id: contactId,
+        pinned_by: profile.id,
+        position: 0,
+      });
+      if (insertError) throw insertError;
+    }
+  }, [contactId, profile]);
+
+  const onRemind = useCallback(
+    async (at: string, title?: string) => {
+      if (!contactId || !isValidUUID(contactId) || !profile?.id) {
+        throw new Error('Nao foi possivel criar lembrete: contato ou usuario invalido.');
+      }
+      const { error } = await dbFrom('reminders').insert({
+        contact_id: contactId,
+        profile_id: profile.id,
+        title: title ?? 'Lembrete',
+        remind_at: at,
+      });
+      if (error) throw error;
+    },
+    [contactId, profile]
+  );
+
+  const onAddNote = useCallback(
+    async (content: string) => {
+      if (!contactId || !isValidUUID(contactId) || !profile?.id) {
+        throw new Error('Nao foi possivel registrar nota: contato ou usuario invalido.');
+      }
+      const { error } = await dbFrom('contact_notes').insert({
+        contact_id: contactId,
+        author_id: profile.id,
+        content,
+      });
+      if (error) throw error;
+    },
+    [contactId, profile]
+  );
+
+  const onAddTag = useCallback(
+    async (name: string) => {
+      if (!contactId || !isValidUUID(contactId) || !profile?.id) {
+        throw new Error('Nao foi possivel adicionar tag: contato ou usuario invalido.');
+      }
+      // Procura a tag pelo nome (ILIKE) e vincula via contact_tags.
+      const { data: tag, error: selectError } = await dbFrom('tags')
+        .select('id')
+        .ilike('name', `%${name}%`)
+        .limit(1)
+        .maybeSingle();
+      if (selectError) throw selectError;
+      if (!tag) {
+        toast({ title: 'Tag nao encontrada', description: `Nenhuma tag com nome "${name}".` });
+        return;
+      }
+      const { error: insertError } = await dbFrom('contact_tags').insert({
+        contact_id: contactId,
+        tag_id: tag.id,
+      });
+      if (insertError) throw insertError;
+    },
+    [contactId, profile]
+  );
+
+  const onTransferDialog = useCallback(() => {
+    openDialog('transferDialog');
+  }, [openDialog]);
+
   const { handleInputChange, handleKeyDown, handleSlashCommand } = useInputHandlers({
     setInputValue,
     setIsWhisper,
@@ -421,6 +538,13 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     handleTypingStop,
     handleSend,
     handleSetActiveTool,
+    onResolveConversation,
+    onSnooze,
+    onStarToggle,
+    onRemind,
+    onAddNote,
+    onAddTag,
+    onTransferDialog,
   });
 
   const {
