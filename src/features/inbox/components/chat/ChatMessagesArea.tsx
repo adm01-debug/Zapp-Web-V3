@@ -164,6 +164,26 @@ export const ChatMessagesArea = memo(
       const messageIds = useMemo(() => messages.map((m) => m.id), [messages]);
       useConversationReactionsRealtime(conversationId, messageIds);
 
+      const SAME_GROUP_MS = 5 * 60 * 1000;
+      const groupInfo = useMemo(
+        () =>
+          messages.map((msg, i) => {
+            const prev = messages[i - 1];
+            const next = messages[i + 1];
+            const ts = new Date(msg.timestamp ?? 0).getTime();
+            const isFirstInGroup =
+              !prev ||
+              prev.sender !== msg.sender ||
+              ts - new Date(prev.timestamp ?? 0).getTime() > SAME_GROUP_MS;
+            const isLastInGroup =
+              !next ||
+              next.sender !== msg.sender ||
+              new Date(next.timestamp ?? 0).getTime() - ts > SAME_GROUP_MS;
+            return { isFirstInGroup, isLastInGroup };
+          }),
+        [messages] // eslint-disable-line react-hooks/exhaustive-deps
+      );
+
       const getItemSize = useCallback(
         (index: number) => {
           const item = messages[index];
@@ -183,6 +203,7 @@ export const ChatMessagesArea = memo(
         getScrollElement: () => scrollContainerRef.current,
         estimateSize: getItemSize,
         overscan: 12,
+        measureElement: (el) => el.getBoundingClientRect().height,
       });
 
       const handleScroll = useCallback(() => {
@@ -288,9 +309,12 @@ export const ChatMessagesArea = memo(
             {virtualizer.getVirtualItems().map((virtualRow) => {
               const message = messages[virtualRow.index];
               if (!message) return null;
+              const group = groupInfo[virtualRow.index] ?? { isFirstInGroup: true, isLastInGroup: true };
               return (
                 <div
                   key={message.id || virtualRow.index}
+                  data-index={virtualRow.index}
+                  ref={virtualizer.measureElement}
                   style={{
                     position: 'absolute',
                     top: 0,
@@ -302,8 +326,8 @@ export const ChatMessagesArea = memo(
                 >
                   <MessageBubble
                     message={message}
-                    isFirstInGroup={true}
-                    isLastInGroup={true}
+                    isFirstInGroup={group.isFirstInGroup}
+                    isLastInGroup={group.isLastInGroup}
                     contactAvatar={contactAvatar}
                     onSpeak={onSpeak}
                     onStop={onStop}

@@ -48,6 +48,7 @@ import { useChatAutoScroll } from '../hooks/useChatAutoScroll';
 import { useTransferConversation } from '../hooks/useTransferConversation';
 import { useInboxShortcuts } from '../hooks/useInboxShortcuts';
 import { dbFrom } from '@/integrations/datasource/db';
+import { isValidUUID } from '@/utils/uuid';
 import type { MessageQueueController } from '../hooks/useMessageQueue';
 import { useUserRole } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
@@ -522,6 +523,7 @@ export function ChatPanel({
           signatureName={agentName}
           onToggleSignature={toggleSignature}
           onPollSent={async (poll) => {
+            if (!isValidUUID(conversation.contact.id)) return;
             try {
               const ref = resolveContactRef(conversation.contact.id);
               if (!isUuidRef(ref)) return; // external mode — handled by Evolution webhook
@@ -538,6 +540,7 @@ export function ChatPanel({
             }
           }}
           onContactSent={async (contactName) => {
+            if (!isValidUUID(conversation.contact.id)) return;
             try {
               const ref = resolveContactRef(conversation.contact.id);
               if (!isUuidRef(ref)) return; // external mode — handled by Evolution webhook

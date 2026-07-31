@@ -1,0 +1,207 @@
+# ==========================================================================
+# DB INVARIANTS — E20
+# Validates that critical database contracts are not violated by any PR.
+# These are structural invariants that must NEVER regress.
+# ==========================================================================
+# Invariants checked:
+#   INV-1: All app Realtime subscriptions use the correct physical schema
+#           (schema:'zapp' for zapp tables, schema:'evo' for evo root tables)
+#           — proxy views in 'public' are never in the publication.
+#   INV-2: No Supabase subscription targets a leaf partition (the partition
+#           table name must be the root; publish_via_partition_root=true).
+#   INV-3: No hardcoded DEFAULT_WHATSAPP_INSTANCE ('wpp2') in subscription
+#           filters — multi-instance routing requires dynamic instance params.
+#   INV-4: Every useEffect that calls supabase.channel() must call
+#           channel.unsubscribe() in its cleanup function (no leak).
+#   INV-5: No bare .from('evolution_messages') without schema qualification in
+#           realtime .on() callbacks (must use schema:'evo', table:'evolution_messages').
+# ==========================================================================
+
+name: DB Invariants
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "src/**"
+      - "supabase/**"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "src/**"
+      - "supabase/**"
+
+concurrency:
+  group: db-invariants-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  invariants:
+    name: Check DB Invariants
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ------------------------------------------------------------------
+      # INV-1: Supabase Realtime subscriptions must not use schema:'public'
+      #         for tables that are proxy views (not physical tables in the
+      #         publication). The client's default schema is 'zapp'; only
+      #         evo root tables legitimately use schema:'evo'.
+      # ------------------------------------------------------------------
+      - name: "INV-1: No schema:'public' in Realtime subscriptions"
+        run: |
+          echo "Checking for schema:'public' in .channel().on() calls..."
+          # Known INV-1 exceptions (physical tables that legitimately live in 'public' schema
+          # and are part of supabase_realtime publication):
+          #   useAudioMessagePlayer.ts  — voice_conversion_queue is physical in public
+          #                              (migration 20260724000024 adds it to the publication)
+          FOUND=$(grep -rn "schema: ['\"]public['\"]" src/ \
+            --include="*.ts" --include="*.tsx" \
+            -l 2>/dev/null | \
+            grep -v "src/features/inbox/components/useAudioMessagePlayer\.ts" \
+            || true)
+
+          if [ -n "$FOUND" ]; then
+            echo "::error::INV-1 VIOLATION — schema:'public' detected in subscription(s)."
+            echo "Files with violations:"
+            grep -rn "schema: ['\"]public['\"]" src/ \
+              --include="*.ts" --include="*.tsx" \
+              --exclude="useAudioMessagePlayer.ts" 2>/dev/null || true
+            echo ""
+            echo "Fix: Replace schema:'public' with schema:'zapp' (for zapp.* tables) or"
+            echo "     schema:'evo' (for root evo tables like evolution_messages)."
+            echo "     Views in 'public' are proxy aliases and NEVER emit Realtime events."
+            echo ""
+            echo "If the table is genuinely physical in 'public' and added to the publication,"
+            echo "add a file-level exception in db-invariants.yml INV-1 step with justification."
+            exit 1
+          fi
+          echo "INV-1 passed: no schema:'public' subscriptions found (1 known exception: useAudioMessagePlayer.ts)."
+
+      # ------------------------------------------------------------------
+      # INV-2: No leaf partition name in Realtime table subscriptions.
+      #         Partitioned tables emit CDC from the ROOT, not from partitions.
+      #         Pattern: table names ending in _wpp2, _artes, _comercial_01…15,
+      #         _compras, _financeiro, _gravacao, _logistica, _marketing, _archive.
+      # ------------------------------------------------------------------
+      - name: "INV-2: No partition-leaf table names in Realtime subscriptions"
+        run: |
+          LEAF_PATTERN="(evolution_messages|evolution_conversations|evolution_webhook_events_v2)_(wpp2|artes|comercial_[0-9]+|compras|default|financeiro|gravacao|logistica|marketing|archive|wpp2_archive)"
+
+          echo "Checking for partition leaf table subscriptions..."
+          FOUND=$(grep -rEn "table: ['\"]${LEAF_PATTERN}['\"]" src/ \
+            --include="*.ts" --include="*.tsx" 2>/dev/null || true)
+
+          if [ -n "$FOUND" ]; then
+            echo "::error::INV-2 VIOLATION — Realtime subscription on partition leaf detected."
+            echo "$FOUND"
+            echo ""
+            echo "Fix: Subscribe to the ROOT table (e.g., 'evolution_messages') instead."
+            echo "     With publish_via_partition_root=true, CDC events are only emitted"
+            echo "     from the root relation. Leaf partition subscriptions silently no-op."
+            exit 1
+          fi
+          echo "INV-2 passed: no partition-leaf subscriptions found."
+
+      # ------------------------------------------------------------------
+      # INV-3: No hardcoded instance name 'wpp2' in subscription filters.
+      #         Dynamic instance routing requires the instance name to come
+      #         from a variable (prop, param, or DEFAULT_WHATSAPP_INSTANCE const).
+      # ------------------------------------------------------------------
+      - name: "INV-3: No hardcoded 'wpp2' in Realtime subscription filters"
+        run: |
+          echo "Checking for hardcoded 'wpp2' in filter strings..."
+          # Matches: filter: `instance_name=eq.wpp2` or similar literal patterns
+          FOUND=$(grep -rn "=eq\.wpp2\b" src/ \
+            --include="*.ts" --include="*.tsx" 2>/dev/null | \
+            grep -v "DEFAULT_WHATSAPP_INSTANCE\|// \|^[[:space:]]*//" || true)
+
+          if [ -n "$FOUND" ]; then
+            echo "::error::INV-3 VIOLATION — hardcoded 'wpp2' instance filter in Realtime subscription."
+            echo "$FOUND"
+            echo ""
+            echo "Fix: Use a variable for the instance name:"
+            echo "     filter: \`instance_name=eq.\${instanceName}\`"
+            echo "     where instanceName comes from props, params, or DEFAULT_WHATSAPP_INSTANCE."
+            exit 1
+          fi
+          echo "INV-3 passed: no hardcoded 'wpp2' instance filters found."
+
+      # ------------------------------------------------------------------
+      # INV-4: Every useEffect that calls supabase.channel() must have a
+      #         cleanup function calling channel.unsubscribe().
+      #         This is a best-effort heuristic: we check files that contain
+      #         .channel( and verify they also contain .unsubscribe() somewhere.
+      # ------------------------------------------------------------------
+      - name: "INV-4: channel() calls must have matching unsubscribe() cleanup"
+        run: |
+          echo "Checking for .channel() without .unsubscribe()..."
+          VIOLATIONS=""
+
+          while IFS= read -r file; do
+            HAS_SUBSCRIBE=$(grep -c "\.subscribe()" "$file" 2>/dev/null || echo "0")
+            HAS_UNSUBSCRIBE=$(grep -c "\.unsubscribe()" "$file" 2>/dev/null || echo "0")
+
+            if [ "$HAS_SUBSCRIBE" -gt 0 ] && [ "$HAS_UNSUBSCRIBE" -eq 0 ]; then
+              VIOLATIONS="${VIOLATIONS}\n  $file (subscribe: $HAS_SUBSCRIBE, unsubscribe: 0)"
+            fi
+          done < <(grep -rl "supabase\.channel(" src/ \
+            --include="*.ts" --include="*.tsx" 2>/dev/null || true)
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "::error::INV-4 VIOLATION — .channel() without .unsubscribe() cleanup."
+            echo -e "Files with missing cleanup:$VIOLATIONS"
+            echo ""
+            echo "Fix: Add a cleanup function to the useEffect:"
+            echo "     return () => { channel.unsubscribe(); supabase.removeChannel(channel); };"
+            exit 1
+          fi
+          echo "INV-4 passed: all channel subscriptions have unsubscribe() cleanup."
+
+      # ------------------------------------------------------------------
+      # INV-5: No bare schema-less table reference in realtime .on() callbacks
+      #         where the table is evolution_messages or evolution_conversations.
+      #         These MUST include schema:'evo' to target the physical root.
+      # ------------------------------------------------------------------
+      - name: "INV-5: evolution_messages/conversations subscriptions must use schema:'evo'"
+        run: |
+          echo "Checking evolution_* table subscriptions for correct schema..."
+
+          # Find files subscribing to evolution_messages or evolution_conversations
+          FILES=$(grep -rl "table: ['\"]evolution_\(messages\|conversations\)['\"]" src/ \
+            --include="*.ts" --include="*.tsx" 2>/dev/null || true)
+
+          VIOLATIONS=""
+          for file in $FILES; do
+            # Check that schema:'evo' appears in the same file
+            HAS_EVO_SCHEMA=$(grep -c "schema: ['\"]evo['\"]" "$file" 2>/dev/null || echo "0")
+            if [ "$HAS_EVO_SCHEMA" -eq 0 ]; then
+              VIOLATIONS="${VIOLATIONS}\n  $file"
+            fi
+          done
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "::error::INV-5 VIOLATION — evolution_messages/conversations subscribed without schema:'evo'."
+            echo -e "Files with missing schema:$VIOLATIONS"
+            echo ""
+            echo "Fix: Add schema: 'evo' to the .on() config:"
+            echo "     .on('postgres_changes', { schema: 'evo', table: 'evolution_messages', ... }, cb)"
+            echo "     The zapp.evolution_messages VIEW never emits CDC events."
+            exit 1
+          fi
+          echo "INV-5 passed: all evolution_* subscriptions include schema:'evo'."
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "======================================"
+          echo "ALL 5 DB INVARIANTS PASSED"
+          echo "======================================"
+          echo "INV-1: No schema:'public' in subscriptions  ✓"
+          echo "INV-2: No partition-leaf table subscriptions ✓"
+          echo "INV-3: No hardcoded 'wpp2' in filters       ✓"
+          echo "INV-4: channel() cleanup present             ✓"
+          echo "INV-5: evolution_* uses schema:'evo'         ✓"

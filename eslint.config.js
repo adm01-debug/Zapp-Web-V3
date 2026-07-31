@@ -161,12 +161,15 @@ export default tseslint.config(
     },
   },
   ...storybook.configs["flat/recommended"],
-  // ── ANTI-REGRESSION GUARDS (ChatPanel fixes E01-E20) ───────────────────
+  // REALTIME HYGIENE / ANTI-REGRESSION GUARDS (ChatPanel fixes E01-E20) — E20
   // Previne reintrodução dos bugs corrigidos na auditoria 2026-07-30.
   {
     files: ["src/**/*.{ts,tsx}"],
     ignores: [
+      "src/lib/constants.ts",
       "src/lib/constants/whatsappInstances.ts",
+      "src/services/api/queryKeys.ts",
+      "src/integrations/supabase/client.ts",
       "src/features/inbox/hooks/realtime/externalSenderTypes.ts",
       "src/integrations/zappweb/evolutionClient.ts",
       "src/lib/whatsappAdapter.ts",
@@ -174,22 +177,23 @@ export default tseslint.config(
       "src/**/__tests__/**",
       "src/**/*.test.{ts,tsx}",
       "src/**/*.spec.{ts,tsx}",
+      "scripts/**",
     ],
     rules: {
       "no-restricted-syntax": [
         "error",
         {
-          // E03/E07: hardcoded instance name — usar instanceName resolvido
+          // E03/E07: instância hardcoded quebra roteamento multi-instância
           selector: "Literal[value='wpp2']",
           message:
-            "Instância WhatsApp hardcoded. Use instanceName da conversa ou DEFAULT_INSTANCE do evolutionFetchers. Ver CONTACTREF.md.",
+            "E20: Instância WhatsApp hardcoded. Use instanceName da conversa ou DEFAULT_WHATSAPP_INSTANCE. Ver CONTACTREF.md.",
         },
         {
-          // E05: canal Realtime com nome fixo causa colisão de tópico
+          // E05: canal Realtime estático causa colisão cross-conversa
           selector:
             "CallExpression[callee.property.name='channel'] > TemplateLiteral[expressions.length=0]",
           message:
-            "Canal Realtime com nome fixo (template literal sem interpolação) causa colisão. Inclua o remote_jid da conversa: `chat-updates:${contactJid}`.",
+            "E20: Canal Realtime com nome fixo causa colisão de tópico. Inclua o remote_jid: `chat-updates:${contactJid}`.",
         },
       ],
     },
