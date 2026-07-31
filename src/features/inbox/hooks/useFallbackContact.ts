@@ -1,13 +1,29 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
-import { resolveContactRef } from '@/features/inbox/utils/contactRef';
+import { resolveContactRef, contactRefToString } from '@/features/inbox/utils/contactRef';
+import { queryExternalProxy } from '@/lib/externalProxy';
+import { DEFAULT_INSTANCE } from '@/hooks/evolutionFetchers';
 import type { ConversationWithMessages, ConversationContact } from './realtime/types';
 
-/** Resolves the selected conversation from the list or falls back to a fresh DB lookup by contact ID, JID, or phone; returns null while loading. */
+/**
+ * Resolves the selected conversation from the list or falls back to a fresh DB
+ * lookup by contact ID, JID, or phone; returns null while loading.
+ *
+ * E02: ramifica a identidade do contato via `resolveContactRef` ANTES de
+ * qualquer query ao banco:
+ * - UUID → `contacts.id`
+ * - JID  → `contacts.phone` (contato local sincronizado) e, se não achar,
+ *           `evolution_contacts.remote_jid`. Com `useExternalDb`, ainda tenta
+ *           o proxy `rpc_get_contact` e, por último, um contato sintético.
+ *
+ * Filtrar uma coluna `uuid` com um JID gera PostgREST 400 ("invalid input
+ * syntax for type uuid") — a ramificação é obrigatória.
+ */
 export function useFallbackContact(
   selectedContactId: string | null,
-  selectedConversation: ConversationWithMessages | null
+  selectedConversation: ConversationWithMessages | null,
+  useExternalDb = true
 ): ConversationWithMessages | null {
   const [selectedContactFallback, setSelectedContactFallback] =
     useState<ConversationContact | null>(null);
@@ -26,65 +42,117 @@ export function useFallbackContact(
         return;
       }
 
-      let data: ConversationContact | null = null;
-      let error: unknown = null;
+      // ── Strategy A: local Supabase lookup, ramificada por tipo ──────────
+      let localResult: Record<string, unknown> | null = null;
 
       if (ref.kind === 'uuid') {
-        const result = await supabase.from('contacts').select('*').eq('id', ref.uuid).maybeSingle();
-        data = result.data as ConversationContact | null;
-        error = result.error;
+        // UUID → contacts.id
+        const { data, error } = await supabase
+          .from('contacts')
+          .select('*')
+          .eq('id', ref.uuid)
+          .maybeSingle();
+        if (error) {
+          log.warn('[useFallbackContact] erro ao buscar contato por UUID', {
+            uuid: ref.uuid,
+            code: error.code,
+            message: error.message,
+          });
+        } else if (data) {
+          localResult = data as Record<string, unknown>;
+        }
       } else {
-        // JID → primeiro tenta contato local sincronizado por phone
-        // (evita PostgREST 400 ao filtrar coluna uuid com valor JID)
+        // JID → busca por phone (contatos locais sincronizados)
         if (ref.phone) {
-          const result = await supabase
+          const { data, error } = await supabase
             .from('contacts')
             .select('*')
             .eq('phone', ref.phone)
             .maybeSingle();
-          if (result.error) {
+          if (error) {
             log.warn('[useFallbackContact] erro ao buscar contato por phone', {
               phone: ref.phone,
-              code: result.error.code,
-              message: result.error.message,
+              code: error.code,
+              message: error.message,
             });
-          } else if (result.data) {
-            data = result.data as ConversationContact | null;
+          } else if (data) {
+            localResult = data as Record<string, unknown>;
           }
         }
-        // Se phone não encontrou, consulta evolution_contacts por remote_jid
-        if (!data) {
-          const result = await supabase
+        // Se phone não encontrou, tenta por remote_jid em evolution_contacts
+        if (!localResult) {
+          const { data, error } = await supabase
             .from('evolution_contacts')
             .select('*')
             .eq('remote_jid', ref.remoteJid)
             .order('updated_at', { ascending: false, nullsFirst: false })
             .limit(1)
             .maybeSingle();
-          data = result.data as ConversationContact | null;
-          error = result.error;
+          if (error) {
+            log.warn('[useFallbackContact] erro ao buscar evolution_contacts por JID', {
+              remoteJid: ref.remoteJid,
+              code: error.code,
+              message: error.message,
+            });
+          } else if (data) {
+            localResult = data as Record<string, unknown>;
+          }
         }
+      }
+
+      // ── Strategy B: external proxy rpc_get_contact (useExternalDb) ──────
+      if (!localResult && useExternalDb && ref.kind === 'jid') {
+        try {
+          const proxyResult = await queryExternalProxy<Record<string, unknown>>({
+            action: 'rpc',
+            rpc: 'rpc_get_contact',
+            params: { p_remote_jid: ref.remoteJid, p_instance: DEFAULT_INSTANCE },
+          });
+          const first = proxyResult?.data?.[0];
+          if (first) {
+            const ext = first as Record<string, unknown>;
+            localResult = {
+              id: ref.remoteJid,
+              name: (ext.name || ext.push_name || ref.phone || ref.remoteJid) as string,
+              phone: ref.phone ?? ref.remoteJid,
+              remote_jid: ref.remoteJid,
+              avatar_url: (ext.avatar_url || null) as string | null,
+              company: (ext.company || null) as string | null,
+              tags: ext.tags ?? null,
+              instance_name: DEFAULT_INSTANCE,
+            };
+          }
+        } catch (err) {
+          log.warn('[useFallbackContact] external proxy indisponível', {
+            remoteJid: ref.remoteJid,
+            error: String(err),
+          });
+        }
+      }
+
+      // ── Strategy C: synthetic fallback (last resort, useExternalDb) ─────
+      if (!localResult && useExternalDb) {
+        localResult = {
+          id: contactRefToString(ref),
+          name: ref.kind === 'jid' ? ref.remoteJid.split('@')[0] : ref.raw,
+          phone: ref.kind === 'jid' ? (ref.phone ?? ref.raw) : ref.raw,
+          remote_jid: ref.kind === 'jid' ? ref.remoteJid : null,
+          avatar_url: null,
+          company: null,
+          tags: null,
+          instance_name: DEFAULT_INSTANCE,
+        };
       }
 
       if (cancelled) return;
 
-      if (error) {
-        log.warn('[useFallbackContact] falha ao carregar contato', {
-          contactId: selectedContactId,
-          kind: ref.kind,
-          error,
-        });
-        setSelectedContactFallback(null);
-        return;
-      }
-
-      setSelectedContactFallback(data);
+      setSelectedContactFallback(localResult as ConversationContact | null);
     };
     void loadSelectedContact();
     return () => {
       cancelled = true;
     };
-  }, [selectedContactId, selectedConversation]);
+  }, [selectedContactId, selectedConversation, useExternalDb]);
 
   return useMemo<ConversationWithMessages | null>(() => {
     if (selectedConversation) return selectedConversation;

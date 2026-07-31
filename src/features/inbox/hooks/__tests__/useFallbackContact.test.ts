@@ -18,11 +18,16 @@ const mockOrder = vi.fn(() => ({ limit: mockLimit }));
 const mockEq = vi.fn(() => ({ maybeSingle: mockMaybeSingle, order: mockOrder }));
 const mockSelect = vi.fn(() => ({ eq: mockEq }));
 const mockFrom = vi.fn(() => ({ select: mockSelect }));
+const mockQueryExternalProxy = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: (...args: unknown[]) => mockFrom(...args),
   },
+}));
+
+vi.mock('@/lib/externalProxy', () => ({
+  queryExternalProxy: (...args: unknown[]) => mockQueryExternalProxy(...args),
 }));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -100,6 +105,25 @@ describe('useFallbackContact — bare phone input', () => {
     await waitFor(() => {
       expect(mockEq).toHaveBeenCalledWith('phone', MOCK_PHONE);
     });
+  });
+});
+
+describe('useFallbackContact — external mode synthetic fallback', () => {
+  it('builds a synthetic contact when local lookups and proxy fail (JID)', async () => {
+    mockQueryExternalProxy.mockRejectedValue(new Error('proxy down'));
+    mockMaybeSingle
+      .mockResolvedValueOnce({ data: null, error: null }) // contacts por phone
+      .mockResolvedValueOnce({ data: null, error: null }); // evolution_contacts
+
+    const { result } = renderHook(() => useFallbackContact(MOCK_JID, null));
+
+    await waitFor(() => {
+      expect(result.current?.contact.id).toBe(MOCK_JID);
+      expect(result.current?.contact.remote_jid).toBe(MOCK_JID);
+    });
+    expect(mockQueryExternalProxy).toHaveBeenCalledWith(
+      expect.objectContaining({ rpc: 'rpc_get_contact' })
+    );
   });
 });
 

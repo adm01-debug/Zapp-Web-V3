@@ -1,24 +1,21 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useOfflineCache } from '@/hooks/useOfflineCache';
-import {
-  type ConversationWithMessages,
-  type ConversationContact,
-  type RealtimeMessage,
-} from '@/features/inbox';
+import { type ConversationWithMessages, type RealtimeMessage } from '@/features/inbox';
 import { useAuth } from '@/features/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { validatePttBlob } from '@/lib/audio/pttLimits';
 import { seedAvatarCache } from '@/features/inbox';
-import { resolveContactRef, isUuidRef, isJidRef, contactRefToString } from '../utils/contactRef';
+import { isValidUUID } from '@/utils/uuid';
+import { resolveContactRef, isUuidRef } from '../utils/contactRef';
 import { mapToLegacyConversation, mapToLegacyMessages } from '@/adapters/inboxLegacyMapper';
 import { dbFrom } from '@/integrations/datasource/db';
-import { queryExternalProxy } from '@/lib/externalProxy';
 import { useMessageQueue, QueueItem } from './useMessageQueue';
 import { useInboxHeartbeat } from './useInboxHeartbeat';
 import { useInboxDeepLinks } from './useInboxDeepLinks';
 import { useInboxSource } from './useInboxSource';
+import { useFallbackContact } from './useFallbackContact';
 import { DEFAULT_INSTANCE } from '@/hooks/evolutionFetchers';
 import type { OptimisticMessage, SendExternalResult } from './realtime/externalSenderTypes';
 
@@ -56,8 +53,6 @@ export function useRealtimeInbox() {
     delay: number;
     message?: string;
   } | null>(null);
-  const [selectedContactFallback, setSelectedContactFallback] =
-    useState<ConversationContact | null>(null);
   const [whisperCount, setWhisperCount] = useState(0);
   const postSendTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -85,15 +80,6 @@ export function useRealtimeInbox() {
     selectedConversationInstance,
     localRealtime,
   } = source;
-
-  // ── Resolved instance name ──────────────────────────────────────────────
-  // Priority: inbox source (from conversation list) > fallback contact >
-  // undefined (causes dev warning + disables edit/automations)
-  const instanceName = useMemo<string | undefined>(() => {
-    if (selectedConversationInstance) return selectedConversationInstance;
-    const fb = selectedContactFallback as { instance_name?: string } | null;
-    return fb?.instance_name ?? undefined;
-  }, [selectedConversationInstance, selectedContactFallback]);
 
   const {
     sendMessage,
@@ -176,139 +162,24 @@ export function useRealtimeInbox() {
 
   // ── Fallback contact search ───────────────────────────────────────────────
   // When the clicked conversation is NOT in the sidebar list (BREAK POINT A),
-  // try multiple strategies to find/build a contact so ChatPanel renders:
-  //   1. LOCAL (all modes): search contacts by id / phone / remote_jid
-  //   2. EXTERNAL PROXY (USE_EXTERNAL_DB only): query rpc_get_contact by JID
-  //   3. SYNTHETIC (last resort): build a minimal contact from the raw ID
-  useEffect(() => {
-    if (!selectedContactId || selectedConversation) {
-      setSelectedContactFallback(null);
-      return;
-    }
+  // useFallbackContact resolves the contact (JID vs UUID via resolveContactRef)
+  // and returns the conversation, trying local lookup (contacts.id / phone /
+  // evolution_contacts.remote_jid), external proxy rpc_get_contact, and a
+  // synthetic last-resort contact.
+  const resolvedSelectedConversation = useFallbackContact(
+    selectedContactId,
+    selectedConversation,
+    USE_EXTERNAL_DB
+  );
 
-    let cancelled = false;
-    const loadSelectedContact = async () => {
-      const ref = resolveContactRef(selectedContactId);
-      if (!ref) {
-        if (!cancelled) setSelectedContactFallback(null);
-        return;
-      }
-
-      // ── Strategy A: local Supabase lookup, ramificada por tipo ──────────
-      let localResult: Record<string, unknown> | null = null;
-
-      if (isUuidRef(ref)) {
-        // UUID → contacts.id
-        const { data, error } = await supabase
-          .from('contacts')
-          .select('*')
-          .eq('id', ref.uuid)
-          .maybeSingle();
-        if (error) {
-          log.warn('[fallbackContact] erro ao buscar contato por UUID', {
-            uuid: ref.uuid,
-            code: error.code,
-            message: error.message,
-          });
-        } else if (data) {
-          localResult = data as Record<string, unknown>;
-        }
-      } else if (isJidRef(ref)) {
-        // JID → busca por phone (contatos locais sincronizados)
-        if (ref.phone) {
-          const { data, error } = await supabase
-            .from('contacts')
-            .select('*')
-            .eq('phone', ref.phone)
-            .maybeSingle();
-          if (error) {
-            log.warn('[fallbackContact] erro ao buscar contato por phone', {
-              phone: ref.phone,
-              code: error.code,
-              message: error.message,
-            });
-          } else if (data) {
-            localResult = data as Record<string, unknown>;
-          }
-        }
-        // Se phone não encontrou, tenta por remote_jid em evolution_contacts
-        if (!localResult) {
-          const { data, error } = await supabase
-            .from('evolution_contacts')
-            .select('*')
-            .eq('remote_jid', ref.remoteJid)
-            .order('updated_at', { ascending: false, nullsFirst: false })
-            .limit(1)
-            .maybeSingle();
-          if (error) {
-            log.warn('[fallbackContact] erro ao buscar evolution_contacts por JID', {
-              remoteJid: ref.remoteJid,
-              code: error.code,
-              message: error.message,
-            });
-          } else if (data) {
-            localResult = data as Record<string, unknown>;
-          }
-        }
-      }
-
-      // ── Strategy B: external proxy rpc_get_contact (USE_EXTERNAL_DB) ────
-      if (!localResult && USE_EXTERNAL_DB && isJidRef(ref)) {
-        try {
-          const proxyResult = await queryExternalProxy<Record<string, unknown>>({
-            action: 'rpc',
-            rpc: 'rpc_get_contact',
-            params: { p_remote_jid: ref.remoteJid, p_instance: DEFAULT_INSTANCE },
-          });
-          const first = proxyResult?.data?.[0];
-          if (first) {
-            const ext = first as Record<string, unknown>;
-            localResult = {
-              id: ref.remoteJid,
-              name: (ext.name || ext.push_name || ref.phone || ref.remoteJid) as string,
-              phone: ref.phone ?? ref.remoteJid,
-              remote_jid: ref.remoteJid,
-              avatar_url: (ext.avatar_url || null) as string | null,
-              company: (ext.company || null) as string | null,
-              tags: ext.tags ?? null,
-              instance_name: DEFAULT_INSTANCE,
-            };
-          }
-        } catch (err) {
-          log.warn('[fallbackContact] external proxy indisponível', {
-            remoteJid: ref.remoteJid,
-            error: String(err),
-          });
-        }
-      }
-
-      // ── Strategy C: synthetic fallback (last resort) ────────────────────
-      if (!localResult && USE_EXTERNAL_DB) {
-        localResult = {
-          id: contactRefToString(ref),
-          name: isJidRef(ref) ? ref.remoteJid.split('@')[0] : ref.raw,
-          phone: isJidRef(ref) ? (ref.phone ?? ref.raw) : ref.raw,
-          remote_jid: isJidRef(ref) ? ref.remoteJid : null,
-          avatar_url: null,
-          company: null,
-          tags: null,
-          instance_name: DEFAULT_INSTANCE,
-        };
-      }
-
-      if (!cancelled) setSelectedContactFallback(localResult as ConversationContact | null);
-    };
-    void loadSelectedContact();
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedContactId, selectedConversation]);
-
-  const resolvedSelectedConversation = useMemo<ConversationWithMessages | null>(() => {
-    if (selectedConversation) return selectedConversation;
-    if (!selectedContactFallback) return null;
-    return { contact: selectedContactFallback, messages: [], unreadCount: 0, lastMessage: null };
-  }, [selectedConversation, selectedContactFallback]);
+  // ── Resolved instance name ──────────────────────────────────────────────
+  // Priority: inbox source (from conversation list) > fallback contact >
+  // undefined (causes dev warning + disables edit/automations)
+  const instanceName = useMemo<string | undefined>(() => {
+    if (selectedConversationInstance) return selectedConversationInstance;
+    const fb = resolvedSelectedConversation?.contact as { instance_name?: string } | null;
+    return fb?.instance_name ?? undefined;
+  }, [selectedConversationInstance, resolvedSelectedConversation]);
 
   // Listen for SLA alerts
   useEffect(() => {
