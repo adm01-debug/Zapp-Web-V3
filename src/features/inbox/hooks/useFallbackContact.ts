@@ -30,23 +30,40 @@ export function useFallbackContact(
       let error: unknown = null;
 
       if (ref.kind === 'uuid') {
-        const result = await supabase
-          .from('contacts')
-          .select('*')
-          .eq('id', ref.uuid)
-          .maybeSingle();
+        const result = await supabase.from('contacts').select('*').eq('id', ref.uuid).maybeSingle();
         data = result.data as ConversationContact | null;
         error = result.error;
       } else {
-        const result = await supabase
-          .from('evolution_contacts')
-          .select('*')
-          .eq('remote_jid', ref.remoteJid)
-          .order('updated_at', { ascending: false, nullsFirst: false })
-          .limit(1)
-          .maybeSingle();
-        data = result.data as ConversationContact | null;
-        error = result.error;
+        // JID → primeiro tenta contato local sincronizado por phone
+        // (evita PostgREST 400 ao filtrar coluna uuid com valor JID)
+        if (ref.phone) {
+          const result = await supabase
+            .from('contacts')
+            .select('*')
+            .eq('phone', ref.phone)
+            .maybeSingle();
+          if (result.error) {
+            log.warn('[useFallbackContact] erro ao buscar contato por phone', {
+              phone: ref.phone,
+              code: result.error.code,
+              message: result.error.message,
+            });
+          } else if (result.data) {
+            data = result.data as ConversationContact | null;
+          }
+        }
+        // Se phone não encontrou, consulta evolution_contacts por remote_jid
+        if (!data) {
+          const result = await supabase
+            .from('evolution_contacts')
+            .select('*')
+            .eq('remote_jid', ref.remoteJid)
+            .order('updated_at', { ascending: false, nullsFirst: false })
+            .limit(1)
+            .maybeSingle();
+          data = result.data as ConversationContact | null;
+          error = result.error;
+        }
       }
 
       if (cancelled) return;

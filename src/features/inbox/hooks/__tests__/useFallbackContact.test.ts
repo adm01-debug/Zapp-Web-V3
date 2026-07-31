@@ -13,7 +13,9 @@ import { useFallbackContact } from '../useFallbackContact';
 // ── Mock supabase client ──────────────────────────────────────────────────────
 
 const mockMaybeSingle = vi.fn();
-const mockEq = vi.fn(() => ({ maybeSingle: mockMaybeSingle }));
+const mockLimit = vi.fn(() => ({ maybeSingle: mockMaybeSingle }));
+const mockOrder = vi.fn(() => ({ limit: mockLimit }));
+const mockEq = vi.fn(() => ({ maybeSingle: mockMaybeSingle, order: mockOrder }));
 const mockSelect = vi.fn(() => ({ eq: mockEq }));
 const mockFrom = vi.fn(() => ({ select: mockSelect }));
 
@@ -72,6 +74,21 @@ describe('useFallbackContact — JID input', () => {
 
     await waitFor(() => {
       expect(mockEq).not.toHaveBeenCalledWith('id', MOCK_JID);
+    });
+  });
+
+  it('falls back to evolution_contacts by remote_jid when phone lookup finds nothing', async () => {
+    mockMaybeSingle
+      .mockResolvedValueOnce({ data: null, error: null }) // contacts por phone
+      .mockResolvedValueOnce({ data: mockContact, error: null }); // evolution_contacts
+
+    renderHook(() => useFallbackContact(MOCK_JID, null));
+
+    await waitFor(() => {
+      expect(mockFrom).toHaveBeenCalledWith('evolution_contacts');
+      expect(mockEq).toHaveBeenCalledWith('remote_jid', MOCK_JID);
+      expect(mockOrder).toHaveBeenCalledWith('updated_at', expect.anything());
+      expect(mockLimit).toHaveBeenCalledWith(1);
     });
   });
 });
