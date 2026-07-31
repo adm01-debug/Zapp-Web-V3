@@ -54,7 +54,7 @@ function emptyChannel(): Partial<ServiceChannel> {
     sticky_enabled: false,
     sticky_ttl_hours: 24,
     is_default: false,
-    color: "#3B82F6",
+    color: "bg-primary",
   };
 }
 
@@ -340,7 +340,7 @@ export default function AdminChannelsPage() {
 
               <div>
                 <Label htmlFor="ch-color">Cor</Label>
-                <Input id="ch-color" type="color" value={editing.color ?? "#3B82F6"} onChange={(e) => setEditing({ ...editing, color: e.target.value })} />
+                <Input id="ch-color" type="color" value={editing.color ?? "bg-primary"} onChange={(e) => setEditing({ ...editing, color: e.target.value })} />
               </div>
               <div>
                 <Label htmlFor="ch-description">Descrição</Label>

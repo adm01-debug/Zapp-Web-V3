@@ -164,7 +164,7 @@
   }
 
   /* Garante que superfícies translúcidas tradicionais virem opacas e vívidas.
-   * IMPORTANTE: escopado a `.dark` — em light mode forçar #000 quebra contraste
+   * IMPORTANTE: escopado a `.dark` — em light mode forçar bg-foreground quebra contraste
    * das labels/textos do form de auth (foreground escuro sobre fundo preto). */
   .dark .bg-background\/80, .dark .bg-background\/90, .dark .bg-background\/95, .dark .bg-background\/60, .dark .bg-background\/50, .dark .bg-background\/70,
   .dark .bg-card\/80, .dark .bg-card\/90, .dark .bg-card\/95, .dark .bg-card\/60, .dark .bg-card\/50, .dark .bg-card\/70,

@@ -35,15 +35,15 @@ import { cn } from '@/lib/utils';
 import { useTags, Tag as TagType } from '@/hooks/useTags';
 
 const COLORS = [
-  '#ef4444', // red
+  'bg-destructive', // red
   '#f97316', // orange
-  '#eab308', // yellow
-  '#22c55e', // green
+  'bg-warning', // yellow
+  'bg-success', // green
   '#06b6d4', // cyan
-  '#3b82f6', // blue
-  '#8b5cf6', // violet
+  'bg-primary', // blue
+  'bg-accent', // violet
   '#ec4899', // pink
-  '#6b7280', // gray
+  'bg-muted', // gray
 ];
 
 /** Tags View component for the tags section. */

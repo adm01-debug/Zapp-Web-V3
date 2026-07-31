@@ -8,7 +8,7 @@ interface BridgeStatCardProps {
 export function BridgeStatCard({ label, value, tone }: BridgeStatCardProps) {
   const toneClass =
     tone === 'success'
-      ? 'text-emerald-500'
+      ? 'text-success'
       : tone === 'error'
         ? 'text-destructive'
         : 'text-foreground';

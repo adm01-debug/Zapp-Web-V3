@@ -71,7 +71,7 @@ export function ConnectionsExternalDbTab({
                 value={editOpen ? draftUrl : externalUrl}
                 onChange={(e) => setDraftUrl(e.target.value)}
                 readOnly={!editOpen}
-                className="font-mono text-xs"
+                className="font-mono text-xs" // @technical
               />
             </div>
             <div className="space-y-2">
@@ -89,7 +89,7 @@ export function ConnectionsExternalDbTab({
                 onChange={(e) => setDraftKey(e.target.value)}
                 readOnly={!editOpen}
                 placeholder={editOpen ? 'eyJhbGciOi...' : ''}
-                className="font-mono text-xs"
+                className="font-mono text-xs" // @technical
               />
             </div>
             {editOpen && (
@@ -99,7 +99,7 @@ export function ConnectionsExternalDbTab({
               </p>
             )}
             {isAdmin === false && (
-              <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-600">
+              <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 p-3 text-xs text-warning">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
                   Você não está autenticado como admin. As políticas de segurança bloqueiam a

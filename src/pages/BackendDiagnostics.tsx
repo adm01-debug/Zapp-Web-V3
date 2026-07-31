@@ -95,7 +95,7 @@ function PingRow({ label, result }: { label: string; result: PingResult }) {
     result.status === "checking" ? (
       <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
     ) : result.status === "ok" ? (
-      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+      <CheckCircle2 className="h-4 w-4 text-success" />
     ) : result.status === "error" ? (
       <XCircle className="h-4 w-4 text-destructive" />
     ) : null;
@@ -107,7 +107,7 @@ function PingRow({ label, result }: { label: string; result: PingResult }) {
         {label}
       </span>
       <span className="text-right">
-        {result.status === "ok" && <span className="text-emerald-600 dark:text-emerald-400">OK · {result.latencyMs}ms</span>}
+        {result.status === "ok" && <span className="text-success dark:text-success">OK · {result.latencyMs}ms</span>}
         {result.status === "error" && <span className="text-destructive">{result.error ?? "falha"}</span>}
         {result.status === "checking" && <span className="text-muted-foreground">verificando…</span>}
         {result.status === "idle" && <span className="text-muted-foreground">—</span>}

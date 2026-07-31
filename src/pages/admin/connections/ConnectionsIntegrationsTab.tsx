@@ -51,7 +51,7 @@ export function ConnectionsIntegrationsTab() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <Link className="h-5 w-5 text-orange-500" /> n8n (Workflows)
+              <Link className="h-5 w-5 text-warning" /> n8n (Workflows)
             </CardTitle>
             <Badge variant="outline">Pendente</Badge>
           </div>

@@ -185,7 +185,7 @@ export default function ZappWebbDemoPage() {
         <div className="flex-1">
           <h1 className="font-display font-bold">Zap Webb · Inbox Demo</h1>
           <p className="text-[11px] text-muted-foreground">
-            Instância: <span className="font-mono">{ZAPPWEB_INSTANCE}</span> · Realtime ativo
+            Instância: <span className="font-mono">{ZAPPWEB_INSTANCE}</span> · Realtime ativo // @technical
           </p>
         </div>
         <Badge variant="outline" className="gap-1">
@@ -365,7 +365,7 @@ export default function ZappWebbDemoPage() {
                     </div>
                     <div className="flex justify-between text-[11px]">
                       <span className="text-muted-foreground">Score</span>
-                      <span className="font-mono">{contact.lead_score}/100</span>
+                      <span className="font-mono">{contact.lead_score}/100</span> // @technical
                     </div>
                     {contact.company && (
                       <div className="flex justify-between text-[11px]">

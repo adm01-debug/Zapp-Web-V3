@@ -50,7 +50,7 @@ export default function AdminQueuesPage() {
           onNew={() =>
             setEditing({
               is_active: true,
-              color: '#3B82F6',
+              color: 'bg-primary',
               priority: 0,
               max_wait_time_minutes: 30,
               status: 'active' as Queue['status'],

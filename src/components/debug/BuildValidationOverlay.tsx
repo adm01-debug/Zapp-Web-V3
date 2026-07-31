@@ -62,7 +62,7 @@ export const BuildValidationOverlay: React.FC = () => {
                     )}
                   </div>
                   {lastError && (
-                    <div className="text-[10px] text-destructive bg-destructive/10 p-2 rounded border border-destructive/20 font-mono break-words">
+                    <div className="text-[10px] text-destructive bg-destructive/10 p-2 rounded border border-destructive/20 font-mono break-words"> // @technical
                       {lastError}
                     </div>
                   )}

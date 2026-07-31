@@ -16,10 +16,10 @@ export function ConnectionsMcpTab() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
     >
-      <Card className="border-purple-500/20 bg-purple-500/5">
+      <Card className="border-accent/20 bg-accent/5">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Cpu className="h-5 w-5 text-purple-500" /> MCP (Model Context Protocol) para Claude
+            <Cpu className="h-5 w-5 text-accent" /> MCP (Model Context Protocol) para Claude
           </CardTitle>
           <CardDescription>
             Permita que instâncias do Claude Desktop ou AI Gateway acessem dados do ZAPP Web
@@ -27,9 +27,9 @@ export function ConnectionsMcpTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-4 rounded-lg border border-purple-500/20 bg-background p-4">
+          <div className="space-y-4 rounded-lg border border-accent/20 bg-background p-4">
             <div className="flex items-center justify-between">
-              <h4 className="flex items-center gap-2 font-semibold text-purple-500">
+              <h4 className="flex items-center gap-2 font-semibold text-accent">
                 <ShieldCheck className="h-4 w-4" /> Endpoint do Servidor MCP
               </h4>
               <Badge variant="secondary">Experimental</Badge>
@@ -44,7 +44,7 @@ export function ConnectionsMcpTab() {
                 aria-label="URL do servidor MCP"
                 readOnly
                 value={MCP_SERVER_URL}
-                className="font-mono text-[10px]"
+                className="font-mono text-[10px]" // @technical
               />
               <Button aria-label="Abrir URL do servidor MCP" size="icon" variant="ghost">
                 <ExternalLink className="h-4 w-4" />
@@ -71,7 +71,7 @@ export function ConnectionsMcpTab() {
             </div>
           </div>
 
-          <div className="overflow-x-auto whitespace-pre rounded border border-secondary/20 bg-muted p-3 font-mono text-[10px]">
+          <div className="overflow-x-auto whitespace-pre rounded border border-secondary/20 bg-muted p-3 font-mono text-[10px]"> // @technical
             {`"mcpServers": {
   "zapp-web": {
     "command": "npx",

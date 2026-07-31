@@ -503,7 +503,7 @@ function useAdminChannelsManagement(statusFilter: string, search: string) {
         p_sticky_ttl_hours: editing.sticky_ttl_hours ?? 24,
         p_is_default: !!editing.is_default,
         p_description: editing.description?.trim() || null,
-        p_color: editing.color ?? '#3B82F6',
+        p_color: editing.color ?? 'bg-primary',
       });
       if (error) throw new Error(error.message);
       toast.success(editing.id ? 'Canal atualizado' : 'Canal criado');

@@ -134,15 +134,15 @@ export function ProtectedRoute({
             {!isOffline && (
               <>
                 <dt>Backend:</dt>
-                <dd className="truncate font-mono">{backendUrl}</dd>
+                <dd className="truncate font-mono">{backendUrl}</dd> // @technical
                 <dt>Tempo de resposta:</dt>
-                <dd className="font-mono">{elapsedLabel}</dd>
+                <dd className="font-mono">{elapsedLabel}</dd> // @technical
               </>
             )}
             {isOffline && (
               <>
                 <dt>Status de rede:</dt>
-                <dd className="font-mono text-destructive">Offline</dd>
+                <dd className="font-mono text-destructive">Offline</dd> // @technical
               </>
             )}
           </dl>

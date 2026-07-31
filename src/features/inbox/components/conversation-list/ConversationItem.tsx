@@ -286,7 +286,7 @@ export const ConversationItem = memo(function ConversationItem({
           {isSelected && (
             <motion.div
               layoutId="conversationActiveCompact"
-              className="absolute left-1 top-1/2 z-20 h-6 w-1 -translate-y-1/2 rounded-full bg-white"
+              className="absolute left-1 top-1/2 z-20 h-6 w-1 -translate-y-1/2 rounded-full bg-background"
             />
           )}
 
@@ -351,7 +351,7 @@ export const ConversationItem = memo(function ConversationItem({
                         ref={ref}
                         data-testid="conversation-primary"
                         className={cn(
-                          'mx-0 block min-w-0 truncate rounded-none border-0 text-left font-sans text-[15px] font-normal tracking-wide transition-colors duration-200',
+                          'mx-0 block min-w-0 truncate rounded-none border-0 text-left  text-[15px] font-normal tracking-wide transition-colors duration-200',
                           isSelected ? 'text-primary-foreground' : 'text-foreground'
                         )}
                       >
@@ -376,7 +376,7 @@ export const ConversationItem = memo(function ConversationItem({
                     <span
                       className={cn(
                         'h-4.5 flex min-w-[18px] animate-bounce-in items-center justify-center rounded-full px-1 text-[10px] font-black tabular-nums shadow-md',
-                        isSelected ? 'bg-white text-primary' : 'bg-primary text-primary-foreground'
+                        isSelected ? 'bg-background text-primary' : 'bg-primary text-primary-foreground'
                       )}
                     >
                       {unreadCount}
@@ -438,7 +438,7 @@ export const ConversationItem = memo(function ConversationItem({
                       className={cn(
                         'h-4.5 px-1.5 text-[9px] font-black uppercase tracking-wider transition-colors',
                         isSelected
-                          ? 'border-white/20 bg-white/20 text-white'
+                          ? 'border-border/20 bg-background/20 text-foreground'
                           : 'border-warning/30 bg-warning/10 text-warning'
                       )}
                     >
@@ -586,7 +586,7 @@ export const ConversationItem = memo(function ConversationItem({
                         ref={ref}
                         data-testid="conversation-primary"
                         className={cn(
-                          'mx-0 block min-w-0 truncate rounded-none border-0 text-left font-sans text-[15px] font-normal tracking-wide transition-colors duration-200',
+                          'mx-0 block min-w-0 truncate rounded-none border-0 text-left  text-[15px] font-normal tracking-wide transition-colors duration-200',
                           isSelected ? 'text-primary-foreground' : 'text-foreground'
                         )}
                       >
@@ -611,7 +611,7 @@ export const ConversationItem = memo(function ConversationItem({
                     <span
                       className={cn(
                         'flex h-5 min-w-[20px] animate-bounce-in items-center justify-center rounded-full px-1.5 text-[11px] font-black tabular-nums shadow-lg',
-                        isSelected ? 'bg-white text-primary' : 'bg-primary text-primary-foreground'
+                        isSelected ? 'bg-background text-primary' : 'bg-primary text-primary-foreground'
                       )}
                     >
                       {unreadCount}
@@ -674,7 +674,7 @@ export const ConversationItem = memo(function ConversationItem({
                       className={cn(
                         'h-5 px-2 text-[10px] font-black uppercase tracking-wider transition-colors',
                         isSelected
-                          ? 'border-white/20 bg-white/20 text-white'
+                          ? 'border-border/20 bg-background/20 text-foreground'
                           : 'border-warning/30 bg-warning/10 text-warning'
                       )}
                     >
