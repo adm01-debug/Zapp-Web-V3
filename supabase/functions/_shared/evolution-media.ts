@@ -112,15 +112,32 @@ export async function persistMediaViaApi(
     const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
     if (!evolutionUrl || !evolutionKey) return null;
 
-    const baseUrl = evolutionUrl.replace(/\/+$/, '');
+    const baseUrl = evolutionUrl.replace(/\\/+$/, '');
+    
+    // Áudios precisam de timeout maior — arquivos podem ter vários MB
+    const timeoutMs = messageType === 'audio' ? 90000 : 30000;
+
+    // Para áudio: extrair o innerMessage explicitamente para garantir mediaKey presente
+    const rawMessage = data.message as Record<string, unknown> | undefined;
+    let innerMessage = rawMessage;
+    if (messageType === 'audio' && rawMessage) {
+      const audioMsg = rawMessage.audioMessage || rawMessage.audio || 
+                       (rawMessage.message as Record<string, unknown>)?.audioMessage;
+      if (audioMsg) innerMessage = { audioMessage: audioMsg };
+    }
+
     const resp = await fetch(`${baseUrl}/chat/getBase64FromMediaMessage/${encodeURIComponent(instance)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': evolutionKey },
-      body: JSON.stringify({ message: { key: data.key, message: data.message }, convertToMp4: false }),
-      signal: AbortSignal.timeout(30000),
+      body: JSON.stringify({ message: { key: data.key, message: innerMessage }, convertToMp4: false }),
+      signal: AbortSignal.timeout(timeoutMs),
     });
 
-    if (!resp.ok) { console.error(`[MEDIA] getBase64 API error (${resp.status})`); return null; }
+    if (!resp.ok) {
+      const errBody = await resp.text().catch(() => '');
+      console.error(`[MEDIA] getBase64 API error (${resp.status}) for ${messageType} ${messageId}: ${errBody.slice(0,200)}`);
+      return null;
+    }
 
     const result = await resp.json();
     const b64 = (result.base64 as string) || (result.data as string) || (result.media as string);
