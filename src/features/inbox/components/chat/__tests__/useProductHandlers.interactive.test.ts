@@ -12,7 +12,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useProductHandlers } from '../useProductHandlers';
 import { whatsapp } from '@/lib/whatsappAdapter';
-import { dbFrom } from '@/integrations/datasource/db';
 import type { InteractiveButton } from '@/types/chat';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
