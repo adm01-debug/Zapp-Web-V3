@@ -13,8 +13,6 @@
     "moduleDetection": "force",
     "moduleResolution": "bundler",
     "noEmit": true,
-    "incremental": true,
-    "tsBuildInfoFile": "./.tsbuildinfo",
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
