@@ -17,7 +17,7 @@ const mockLimit = vi.fn(() => ({ maybeSingle: mockMaybeSingle }));
 const mockOrder = vi.fn(() => ({ limit: mockLimit }));
 const mockEq = vi.fn(() => ({ maybeSingle: mockMaybeSingle, order: mockOrder }));
 const mockSelect = vi.fn(() => ({ eq: mockEq }));
-const mockFrom = vi.fn(() => ({ select: mockSelect }));
+const mockFrom = vi.fn((..._args: unknown[]): unknown => ({ select: mockSelect }));
 const mockQueryExternalProxy = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({

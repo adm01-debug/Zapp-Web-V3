@@ -57,7 +57,7 @@ jobs:
             ${{ steps.meta.outputs.image }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:production-latest
           build-args: |
-            VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
+            VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL || 'https://supabase.atomicabr.com.br' }}
             VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
             VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
             VITE_SENTRY_DSN=${{ secrets.VITE_SENTRY_DSN }}
