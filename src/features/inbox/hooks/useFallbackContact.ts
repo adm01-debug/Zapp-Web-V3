@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
-import { resolveContactRef, contactRefToString } from '@/features/inbox/utils/contactRef';
+import { resolveContactRef, contactRefToString } from '../utils/contactRef';
 import { queryExternalProxy } from '@/lib/externalProxy';
 import { DEFAULT_INSTANCE } from '@/hooks/evolutionFetchers';
 import type { ConversationWithMessages, ConversationContact } from './realtime/types';
