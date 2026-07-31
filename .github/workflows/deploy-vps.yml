@@ -27,8 +27,6 @@ jobs:
   build-and-push:
     name: Build & push image
     runs-on: ubuntu-latest
-    # Obrigatório: sem isto os secrets do Environment "production"
-    # (VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY) não são injetados no build.
     environment: production
     outputs:
       image: ${{ steps.meta.outputs.image }}
@@ -41,7 +39,7 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
         run: |
           if [ -z "${VITE_SUPABASE_PUBLISHABLE_KEY}" ]; then
-            echo "::error title=Secret ausente::VITE_SUPABASE_PUBLISHABLE_KEY não está definido no Environment 'production'. Settings -> Environments -> production -> Add secret."
+            echo "::error title=Secret ausente::VITE_SUPABASE_PUBLISHABLE_KEY não está definido no Environment 'production'."
             exit 1
           fi
           if [ -z "${VITE_SUPABASE_URL}" ]; then
@@ -49,7 +47,7 @@ jobs:
           else
             case "${VITE_SUPABASE_URL}" in
               *.supabase.co*)
-                echo "::error title=URL inválida::VITE_SUPABASE_URL aponta para Lovable Cloud (*.supabase.co). Este projeto usa Supabase self-hosted."
+                echo "::error title=URL inválida::VITE_SUPABASE_URL aponta para Lovable Cloud."
                 exit 1 ;;
             esac
             echo "VITE_SUPABASE_URL OK (self-hosted)."
@@ -101,7 +99,6 @@ jobs:
           [ -z "${PORTAINER_URL}" ]        && missing="$missing PORTAINER_URL"
           if [ -n "$missing" ]; then
             echo "::error::Required secrets not configured:${missing}"
-            echo "Add them at: Settings -> Environments -> production"
             exit 1
           fi
         env:
@@ -117,11 +114,20 @@ jobs:
           set -euo pipefail
           echo "Deploying: ${ZAPP_IMAGE}"
 
+          # ============================================================
+          # ETAPA 12 — VPS Disk Defense Plan
+          # FIX: usa ZAPP_IMAGE (SHA-based, imutuavel) em vez de
+          # production-latest (moving tag que gera dangling images).
+          # production-latest ainda e pushado no build para referencia
+          # externa, mas o STACK SWARM referencia a tag SHA imutavel.
+          # Antes: cada deploy = 1 dangling x 51MB ~ 3.5GB/dia.
+          # Depois: stack aponta para SHA imutavel, zero dangling.
+          # ============================================================
           cat > /tmp/compose.yml << 'COMPOSEYML'
           version: "3.8"
           services:
             web:
-              image: ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-latest
+              image: ZAPP_IMAGE_PLACEHOLDER
               networks:
                 - AtomicaBRNet
               healthcheck:
@@ -145,6 +151,7 @@ jobs:
                   - traefik.http.routers.zapp-prod.tls.certresolver=letsencryptresolver
                   - traefik.http.routers.zapp-prod.tls=true
                   - com.centurylinklabs.watchtower.enable=false
+                  - com.atomicabr.tier=critical
                 update_config:
                   failure_action: rollback
                   monitor: 60s
@@ -158,6 +165,10 @@ jobs:
               external: true
               name: AtomicaBRNet
           COMPOSEYML
+
+          # Substitui o placeholder pelo SHA-based tag real
+          sed -i "s|ZAPP_IMAGE_PLACEHOLDER|${ZAPP_IMAGE}|g" /tmp/compose.yml
+          echo "Image no compose: $(grep 'image:' /tmp/compose.yml | head -1 | xargs)"
 
           STACK_CONTENT=$(cat /tmp/compose.yml | jq -Rs .)
           PAYLOAD="{\"pullImage\":true,\"prune\":false,\"stackFileContent\":${STACK_CONTENT}}"
