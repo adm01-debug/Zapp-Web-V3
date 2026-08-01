@@ -14,6 +14,10 @@ permissions:
   contents: read
   actions: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   regenerate-graph:
     name: Build knowledge graph

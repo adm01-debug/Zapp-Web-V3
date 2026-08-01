@@ -1,0 +1,85 @@
+name: health-score-anti-drift
+
+# R25 P2-8 — Anti-drift de fn_system_health_score (Regra F3).
+# A função foi modificada silenciosamente por deploys no passado (incidente
+# 8KB→19KB/48ms→1200ms). Este gate bloqueia PRs que alterem o corpo da função
+# SEM uma migration versionada correspondente em supabase/migrations/.
+#
+# Lógica:
+#   1. Extrai o corpo de fn_system_health_score (e fn_score_security_acl) do
+#      diff do PR (linhas +/- que tocam essas definições).
+#   2. Se houver alteração, exige que o PR também inclua migration versionada
+#      nova em supabase/migrations/ (regex ^\d{14}_).
+#   3. Se alterou sem migration → FAIL (bloqueia merge via branch protection).
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+      - 'scripts/**'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+      - 'scripts/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  anti-drift:
+    name: Health score anti-drift (F3)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect fn_system_health_score / fn_score_security_acl changes
+        id: detect
+        run: |
+          set -euo pipefail
+          base_ref="origin/${{ github.base_ref || 'main' }}"
+          git fetch origin "${{ github.base_ref || 'main' }}" 2>/dev/null || true
+
+          # Arquivos .sql tocados no PR
+          changed_sql=$(git diff --diff-filter=AM --name-only "$base_ref"...HEAD -- '*.sql' 2>/dev/null || true)
+
+          # Corpo da função foi alterado? Procura por CREATE OR REPLACE das duas funções
+          touched=""
+          if [ -n "$changed_sql" ]; then
+            for f in $changed_sql; do
+              if grep -qE "fn_system_health_score|fn_score_security_acl" "$f" 2>/dev/null; then
+                # Migration versionada nova (14 dígitos) = alteração legítima
+                if ! echo "$f" | grep -qE 'supabase/migrations/[0-9]{14}_'; then
+                  touched="$touched $f"
+                fi
+              fi
+            done
+          fi
+
+          # Também verifica diffs contra base (arquivos renomeados/copiados)
+          fn_diff=$(git diff --diff-filter=ACMR "$base_ref"...HEAD -- 'supabase/migrations/*.sql' 2>/dev/null | grep -cE '^\+.*(fn_system_health_score|fn_score_security_acl)' || true)
+
+          if [ -n "$touched" ] || [ "${fn_diff:-0}" -gt 0 ]; then
+            echo "::error::fn_system_health_score/fn_score_security_acl alteradas SEM migration versionada (Regra F3):$touched (novas linhas: ${fn_diff})"
+            echo "drift=true" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+          echo "Sem alteração de fn_system_health_score/fn_score_security_acl sem migration. OK."
+          echo "drift=false" >> "$GITHUB_OUTPUT"
+
+      - name: Report
+        if: always()
+        run: |
+          if [ "${{ steps.detect.outputs.drift }}" = "true" ]; then
+            echo "❌ Anti-drift F3: alteração de função canônica sem migration versionada."
+          else
+            echo "✅ Anti-drift F3: funções canônicas protegidas."
+          fi
