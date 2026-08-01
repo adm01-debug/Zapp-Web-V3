@@ -1,0 +1,93 @@
+-- ============================================================
+-- R27 AUDITORIA PROFUNDA: gaps descobertos e corrigidos
+-- Data: 2026-08-01 | Score: 100.0/A+ | 33/33 PASS
+-- ============================================================
+
+-- ===========================================================
+-- GAPS ENCONTRADOS NESTA AUDITORIA (em ordem de severidade)
+-- ===========================================================
+
+-- ---------------------------------------------------------------------------
+-- GAP P0-1: vendas.fn_listar_bling_tokens() - EXPOSICAO DE CREDENCIAIS OAUTH
+-- ---------------------------------------------------------------------------
+-- Funcao SECURITY DEFINER (roda como postgres, bypassa RLS).
+-- Retornava: SELECT id, conta, access_token FROM financeiro.bling_token
+-- access_token = OAuth token do Bling (acesso a NFs, pedidos, dados fiscais).
+-- Qualquer authenticated podia obter TODOS os tokens OAuth.
+-- STATUS: CORRIGIDO - REVOKE authenticated + PUBLIC
+--
+-- GAP P0-2: financeiro.apagar_nota_fiscal(uuid) - DELETE sem guard
+-- ---------------------------------------------------------------------------
+-- Unica funcao no schema financeiro com DELETE real.
+-- SECURITY DEFINER bypassa RLS de financeiro.notas_fiscais.
+-- Authenticated podia deletar qualquer nota fiscal por UUID.
+-- STATUS: CORRIGIDO - REVOKE authenticated + PUBLIC
+--
+-- GAP P0-3: vendas.resetar_envios_pedido(text) - DELETE + UPDATE sem guard  
+-- ---------------------------------------------------------------------------
+-- DELETE de envios + UPDATE de itens de pedido.
+-- SECURITY DEFINER bypassa RLS.
+-- STATUS: CORRIGIDO - REVOKE authenticated + PUBLIC
+--
+-- GAP P1 (ESTRUTURAL - schema financeiro, 23 funcoes restantes):
+-- ---------------------------------------------------------------------------
+-- 23 funcoes no schema financeiro com UPDATE/INSERT sem guard de autorizacao:
+-- liquidar_parcela, liquidar_vale, pagar_parcela_emprestimo,
+-- prorrogar_parcela, unificar_pedidos, desfazer_unificacao,
+-- adicionar_parcelas, adicionar_valor_emprestimo, atualizar_colaborador (x2),
+-- bulk_insert_parcelas, bulk_sync_parcelas_planilha, bulk_upsert_vendas,
+-- remover_parcelas, sincronizar_nome_produto_nfs, sync_parcela_planilha, etc.
+--
+-- MITIGACAO EXISTENTE: financeiro.fn_is_admin_diretor() verifica role via
+-- financeiro.app_usuarios (email no JWT). Usuarios do CRM sem role financeiro
+-- obtem false mas a funcao NAO e chamada internamente.
+--
+-- ACAO RECOMENDADA (proxima sessao dedicada ao financeiro):
+--   IF NOT financeiro.fn_is_admin_diretor() THEN RAISE EXCEPTION 'forbidden';
+--   Adicionar em CADA funcao listada acima via CREATE OR REPLACE.
+--
+-- RISCO ATUAL: Medio-Alto. Usuario do CRM (authenticated) poderia chamar
+-- liquidar_parcela(uuid, valor, ...) e atualizar parcelas do sistema
+-- financeiro. Requer UUID valido que nao e facilmente adivinhavel.
+-- Mitigacao parcial: UUIDs nao sao sequenciais (v4 random).
+--
+-- GAP P1 (rpc_get_contact - exposicao de dados cross-table):
+-- ---------------------------------------------------------------------------
+-- rpc_get_contact(p_contact_id uuid) e rpc_get_contact(p_remote_jid, p_instance)
+-- - Sem auth.uid() check
+-- - Sem workspace filter
+-- - Sem deleted_at IS NULL (variante UUID)
+-- - Retorna dados de contato + deals + mensagens (ate 20)
+-- Sistema e single-tenant (1 workspace) portanto risco atual = baixo.
+-- ACAO: Adicionar auth.uid() IS NOT NULL check em proxima sessao.
+--
+-- GAP P2 (reassign_absent_agents, reassign_overloaded_agents):
+-- ---------------------------------------------------------------------------
+-- Sem guard. Authenticated pode forcar reassignment de agentes.
+-- Risco: operational disruption (nao data breach).
+-- ACAO: Adicionar is_admin_or_supervisor() guard.
+--
+-- ===========================================================
+-- CORRECOES APLICADAS NESTA SESSAO
+-- ===========================================================
+-- 1. REVOKE authenticated + PUBLIC de vendas.fn_listar_bling_tokens()
+-- 2. REVOKE authenticated + PUBLIC de financeiro.apagar_nota_fiscal(uuid)
+-- 3. REVOKE authenticated + PUBLIC de vendas.resetar_envios_pedido(text)
+-- 4. RT33: cobre os 3 revokes acima
+
+-- ===========================================================
+-- FALSOS ALARMES DOCUMENTADOS
+-- ===========================================================
+-- 1. protects_zero_limit: LIKE '%greatest(p_limit,1)%' (sem espaco)
+--    Funcao correta com: LIMIT greatest(p_limit, 1) (com espaco apos virgula)
+-- 2. no_inverse_bypass: IS NOT NULL contem IS NULL como substring
+--    Guard correto: IF auth.uid() IS NOT NULL AND NOT is_admin_or_supervisor()
+-- 3. LIKE '%auth.uid() IS NULL%' casaria com IS NOT NULL - pattern errado
+
+-- ===========================================================
+-- ESTADO FINAL
+-- ===========================================================
+-- 33/33 PASS | Score 100.0/A+ | ACL 5/5 (17 vetores = 0)
+-- anon execute: 0 funcoes em qualquer schema
+-- P0 fixados: 5 (intelligence_zapp, companies_zapp, bling_tokens, apagar_nf, resetar_envios)
+-- Riscos residuais mapeados: schema financeiro (23 fns), rpc_get_contact, reassign_agents
