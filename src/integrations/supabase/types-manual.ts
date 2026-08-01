@@ -109,6 +109,10 @@ export type ContactIntelligenceRow = {
   rapport_guide: string[] | null;
   best_times_to_call: string[] | null;
   triggers: string[] | null;
+  sentiment: string | null;
+  predicted_value: number | null;
+  total_messages: number | null;
+  days_since_contact: number | null;
   created_at: string;
   updated_at: string;
 };
