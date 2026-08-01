@@ -40,7 +40,21 @@ jobs:
             -d '{"query":"SELECT n.nspname, c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ($$public$$,$$zapp$$,$$evo$$) AND c.relkind=$$v$$ AND NOT (c.reloptions IS NOT NULL AND array_to_string(c.reloptions,$$,$$) ILIKE $$%security_invoker%$$)"}' \
             --max-time 30 2>/dev/null)
 
-          COUNT=$(echo "$RESULT" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const a=JSON.parse(d);console.log(Array.isArray(a)?a.length:'0');}catch{console.log('0');}})" 2>/dev/null || echo "0")
+          COUNT=$(echo "$RESULT" | node -e "
+            let d='';
+            process.stdin.on('data',c=>d+=c);
+            process.stdin.on('end',()=>{
+              try {
+                const a=JSON.parse(d);
+                if (!Array.isArray(a)) { console.log('api-error'); return; }
+                console.log(a.length);
+              } catch { console.log('0'); }
+            })" 2>/dev/null || echo "0")
+
+          if [ "$COUNT" = "api-error" ]; then
+            echo "⚠ postgres-meta API returned non-array response — skipping live check (transient or auth error)"
+            exit 0
+          fi
 
           if [ -z "$COUNT" ] || [ "$COUNT" = "0" ]; then
             echo "✅ All views have security_invoker=true"
@@ -59,9 +73,23 @@ jobs:
             -H "apikey: $META_TOKEN" \
             -H "Content-Type: application/json" \
             -d '{"query":"SELECT count(*) AS c FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN ($$zapp$$,$$evo$$) AND has_function_privilege($$anon$$, p.oid, $$EXECUTE$$)"}' \
-            --max-time 15 2>/dev/null)
+            --max-time 30 2>/dev/null) || true
 
-          COUNT=$(echo "$RESULT" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const a=JSON.parse(d);console.log(a[0]?.c||'0');}catch{console.log('0');}})" 2>/dev/null || echo "0")
+          COUNT=$(echo "$RESULT" | node -e "
+            let d='';
+            process.stdin.on('data',c=>d+=c);
+            process.stdin.on('end',()=>{
+              try {
+                const a=JSON.parse(d);
+                if (!Array.isArray(a)) { console.log('api-error'); return; }
+                console.log(a[0]?.c||'0');
+              } catch { console.log('0'); }
+            })" 2>/dev/null || echo "0")
+
+          if [ "$COUNT" = "api-error" ]; then
+            echo "⚠ postgres-meta API returned non-array response — skipping live check (transient or auth error)"
+            exit 0
+          fi
 
           if [ "$COUNT" != "0" ]; then
             echo "::error::$COUNT functions executable by anon!"

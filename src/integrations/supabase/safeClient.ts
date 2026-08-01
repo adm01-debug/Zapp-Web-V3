@@ -25,7 +25,17 @@ const _log = getLogger('safeClient');
 
 // Dynamic table accessor — bypasses the overloaded `from()` signature that
 // requires a string-literal table name from the generated types.
-type DynamicSupabaseClient = { from(t: string): ReturnType<typeof supabase.from> };
+// Interface mínima (não ReturnType) — o types completo (F4) torna o builder
+// gigante e ReturnType dispara TS2589 (deep instantiation).
+interface DynamicSupabaseClient {
+  from(t: string): {
+    select(
+      columns: string,
+      opts?: { count?: 'exact' | 'planned' | 'estimated'; head?: boolean },
+    ): { limit: (n: number) => Promise<{ data: unknown; error: PostgrestError | null }> };
+    select(columns: string): Promise<{ data: unknown; error: PostgrestError | null }>;
+  };
+}
 
 // Dynamic RPC accessor — bypasses the generated RPC-name union so dynamic/stub
 // names can be called without compile-time errors.

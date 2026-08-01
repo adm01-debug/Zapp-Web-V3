@@ -7,14 +7,50 @@ import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
 import { ValidationProvider } from '@/components/providers/ValidationProvider';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { getLogger } from '@/lib/logger';
-import { isChunkLoadError, triggerChunkReload } from '@/lib/lazyWithRetry';
+import {
+  isChunkLoadError,
+  triggerChunkReload,
+  resetChunkReloadGuard,
+} from '@/lib/lazyWithRetry';
 import { tanstackRetry } from '@/lib/errors/queryErrors';
 
 const log = getLogger('AppProviders');
 
+/**
+ * Terminal state for chunk recovery: the automatic reload budget is spent and a
+ * stale bundle is still in memory. Rendering a plain, dependency-free screen is
+ * deliberate — the provider tree that failed to mount is exactly what we cannot
+ * rely on here, so this uses no context, no lazy import and no UI-kit component.
+ */
+function StaleBundleNotice() {
+  return (
+    <div
+      role="alert"
+      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-4 bg-background p-6 text-center"
+    >
+      <h1 className="text-xl font-semibold text-foreground">Nova versao disponivel</h1>
+      <p className="max-w-md text-sm text-muted-foreground">
+        Esta aba esta rodando uma versao antiga do app e nao conseguiu se atualizar
+        sozinha. Clique abaixo para recarregar e voltar ao atendimento.
+      </p>
+      <button
+        type="button"
+        onClick={() => {
+          resetChunkReloadGuard();
+          window.location.reload();
+        }}
+        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+      >
+        Atualizar agora
+      </button>
+    </div>
+  );
+}
+
 /** App Providers component for the providers section. */
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [errorKey, setErrorKey] = useState(0);
+  const [staleBundle, setStaleBundle] = useState(false);
   const retryCountRef = useRef(0);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const MAX_RETRIES = 3;
@@ -45,6 +81,10 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     retryCountRef.current = 0;
   }, []);
 
+  if (staleBundle) {
+    return <StaleBundleNotice />;
+  }
+
   return (
     <ErrorBoundary
       resetKey={errorKey}
@@ -56,8 +96,17 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         log.error('ErrorBoundary caught:', error.message);
 
         if (isChunkLoadError(error)) {
-          log.warn('Chunk load error detected - triggering hard reload to recover stale chunks');
-          triggerChunkReload();
+          // triggerChunkReload() returns false once the per-session reload budget
+          // is spent. Ignoring that return value is what let a stale bundle cycle
+          // the tab indefinitely with no user-visible signal.
+          if (triggerChunkReload()) {
+            log.warn('Chunk load error detected - reloading once to recover stale chunks');
+          } else {
+            log.error(
+              'Chunk recovery budget exhausted - stale bundle persists, prompting user to update'
+            );
+            setStaleBundle(true);
+          }
           return;
         }
 
