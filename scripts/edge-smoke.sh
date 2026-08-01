@@ -70,13 +70,13 @@ do
 done
 
 # T2 — allowlist: POST sem token deve retornar != 401
+# (cleanup-rate-limit-logs NÃO entra aqui: exige CRON_SECRET → 401 fail-closed, ver T6)
 for fn in \
   health-check \
   status \
   email-track-pixel \
   email-track-link \
-  login-attempts \
-  cleanup-rate-limit-logs
+  login-attempts
 do
   expect_ne T2 "$fn" 401
 done
@@ -100,13 +100,29 @@ else
   FAILED=1
 fi
 
-# T5 — bloqueio no Kong: funções request-terminated devem retornar 404
+# T5 — defesa em profundidade das funções de dados: SEM token deve ser
+# bloqueado — 401 (gate allowlist) ou 404 (Kong request-termination), nunca 2xx.
 for fn in \
   external-db-proxy \
   external-db-bridge \
   analyze-external-db
 do
-  expect_eq T5 "$fn" 404
+  code="$(http_code POST "$fn")"
+  if [ "$code" = "401" ] || [ "$code" = "404" ]; then
+    printf 'PASS T5 %s=%s\n' "$fn" "$code"
+  else
+    printf 'FAIL T5 %s=%s\n' "$fn" "$code"
+    FAILED=1
+  fi
+done
+
+# T6 — crons/schedulers na allowlist: sem CRON_SECRET devem ser fail-closed (401/403)
+for fn in \
+  cleanup-rate-limit-logs \
+  nps-scheduler \
+  sicoob-outbox-consumer
+do
+  expect_eq T6 "$fn" 401
 done
 
 if [ "$FAILED" -eq 1 ]; then
