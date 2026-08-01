@@ -16,10 +16,21 @@
 -- authenticated executá-las DENTRO da RLS é o uso pretendido. anon permanece
 -- SEM EXECUTE e SEM SELECT nas views → superfície pública inalterada.
 --
+<<<<<<< Updated upstream
 -- Aplicado ao vivo em 2026-08-01 ~14:47 UTC. Validação:
 --   SET ROLE authenticated; SELECT count(*) FROM public.messages;  → 59127 (OK)
 --   SET ROLE anon;          SELECT count(*) FROM public.messages;  → permission denied (esperado)
 --   Varredura RLS fns: broken = 0
+=======
+-- [S3/S4 R25] A varredura defensiva usa pg_depend (dependência REAL policy→fn)
+-- em vez de regex por nome (evita homônimos/overloads/outros schemas) e filtra
+-- prokind='f' (GRANT ON FUNCTION rejeita procedures/agregados).
+--
+-- Aplicado ao vivo em 2026-08-01 ~14:47 UTC. Validação:
+--   SET ROLE authenticated; SELECT count(*) FROM public.messages;  → 59127 (OK)
+--   SET ROLE anon;          SELECT count(*) FROM public.messages;  → permission denied (esperado)
+--   Varredura pg_depend: broken = 0
+>>>>>>> Stashed changes
 -- ============================================================================
 
 -- 1) Alvos diretos e confirmados (inbox + admin)
@@ -32,13 +43,21 @@ REVOKE EXECUTE ON FUNCTION zapp.is_admin_painel()            FROM anon;
 REVOKE EXECUTE ON FUNCTION zapp.current_user_is_privileged() FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION zapp.is_admin_painel()            FROM PUBLIC;
 
+<<<<<<< Updated upstream
 -- 3) Varredura defensiva: re-conceder a QUALQUER função referenciada por policy
 --    de RLS que authenticated ainda não consiga executar (à prova de futuras
 --    revogações em massa). No estado atual: 0 adicionais (broken=0).
+=======
+-- 3) Varredura defensiva via pg_depend (dependência real pg_policy → pg_proc):
+--    re-concede a QUALQUER função usada por policy de RLS que authenticated
+--    ainda não consiga executar (à prova de futuras revogações em massa).
+--    prokind='f' exclui procedures/agregados (S4); sem regex por nome (S3).
+>>>>>>> Stashed changes
 DO $$
 DECLARE r record;
 BEGIN
   FOR r IN
+<<<<<<< Updated upstream
     WITH rls_fns AS (
       SELECT DISTINCT (m)[1] AS fnname
       FROM (SELECT regexp_matches(
@@ -51,6 +70,17 @@ BEGIN
     JOIN rls_fns rf ON rf.fnname=p.proname
     WHERE n.nspname IN ('public','zapp','evo')
       AND NOT has_function_privilege('authenticated', p.oid,'EXECUTE')
+=======
+    SELECT n.nspname AS sch, p.proname, pg_get_function_identity_arguments(p.oid) AS args
+    FROM pg_depend d
+    JOIN pg_proc p ON p.oid = d.refobjid
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE d.classid = 'pg_policy'::regclass
+      AND d.refclassid = 'pg_proc'::regclass
+      AND n.nspname IN ('public','zapp','evo')
+      AND p.prokind = 'f'
+      AND NOT has_function_privilege('authenticated', p.oid, 'EXECUTE')
+>>>>>>> Stashed changes
   LOOP
     EXECUTE format('GRANT EXECUTE ON FUNCTION %I.%I(%s) TO authenticated', r.sch, r.proname, r.args);
     RAISE LOG 'R25 P0-1: granted EXECUTE on %.%(%) to authenticated', r.sch, r.proname, r.args;
