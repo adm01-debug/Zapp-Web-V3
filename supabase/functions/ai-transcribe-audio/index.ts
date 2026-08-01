@@ -12,7 +12,15 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("authorization");
     if (!authHeader) return errorResponse("Unauthorized", 401, req);
 
-    const body = await req.json();
+    let body: Record<string, unknown> = {};
+    if (req.method === 'POST' || req.method === 'PUT') {
+      try {
+        body = await req.json();
+      } catch {
+        return errorResponse("Invalid JSON body", 400, req);
+      }
+    }
+
     const aiRouterUrl = Deno.env.get("AI_ROUTER_URL");
     if (!aiRouterUrl) return errorResponse("AI_ROUTER_URL not configured", 503, req);
     const res = await fetch(aiRouterUrl, {
