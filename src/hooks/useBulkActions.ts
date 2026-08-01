@@ -132,8 +132,12 @@ export function useBulkActions<T extends { id: string }>(
         variant: 'outline' as const,
         action: async (actionItems: T[]) => {
           const ids = actionItems.map((i) => i.id);
-          const { error } = await fromTable(tableName)
-            .update({ status: 'archived', updated_at: new Date().toISOString() } as never)
+          const { error } = await (fromTable(tableName) as unknown as {
+            update: (values: { status: string; updated_at: string }) => {
+              in: (col: string, vals: string[]) => Promise<{ error: { message: string } | null }>;
+            };
+          })
+            .update({ status: 'archived', updated_at: new Date().toISOString() })
             .in('id', ids);
           
           if (error) throw error;
