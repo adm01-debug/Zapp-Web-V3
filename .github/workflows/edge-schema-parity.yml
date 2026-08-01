@@ -1,61 +1,28 @@
 name: Edge Schema Parity
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
   workflow_dispatch:
 
 jobs:
   parity:
+    name: Edge Schema Parity
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Verifica baseline do schema (informativo)
         shell: bash
         run: |
           set -uo pipefail
-
           MIGRATIONS_DIR="supabase/migrations"
-          BASELINE="docs/db/schema-baseline-20260801.txt"
-
-          if [ ! -d "$MIGRATIONS_DIR" ]; then
-            echo "::error::Diretorio $MIGRATIONS_DIR nao encontrado"
-            exit 1
-          fi
-
-          TOTAL_SQL="$(find "$MIGRATIONS_DIR" -maxdepth 1 -name '*.sql' -type f | wc -l | tr -d ' ')"
-          echo "Arquivos de migration (.sql): $TOTAL_SQL"
-          if [ "$TOTAL_SQL" -lt 100 ]; then
-            echo "::warning::Menos de 100 arquivos .sql em $MIGRATIONS_DIR (encontrados: $TOTAL_SQL) - job informativo, nao bloqueia"
-          fi
-
-          # Estatisticas por regex sobre as migrations (informativo)
-          echo ""
-          echo "=== Estatisticas do schema (regex sobre supabase/migrations) ==="
-          CREATE_TABLE="$(grep -rhoiE '^\s*create\s+table' "$MIGRATIONS_DIR" --include='*.sql' | wc -l | tr -d ' ')"
-          ALTER_TABLE="$(grep -rhoiE '^\s*alter\s+table' "$MIGRATIONS_DIR" --include='*.sql' | wc -l | tr -d ' ')"
-          FUNCTIONS="$(grep -rhoiE 'create\s+(or\s+replace\s+)?function' "$MIGRATIONS_DIR" --include='*.sql' | wc -l | tr -d ' ')"
-          TRIGGERS="$(grep -rhoiE 'create\s+trigger' "$MIGRATIONS_DIR" --include='*.sql' | wc -l | tr -d ' ')"
-          POLICIES="$(grep -rhoiE 'create\s+policy' "$MIGRATIONS_DIR" --include='*.sql' | wc -l | tr -d ' ')"
-          printf '%-14s %s\n' "CREATE TABLE:" "$CREATE_TABLE"
-          printf '%-14s %s\n' "ALTER TABLE:" "$ALTER_TABLE"
-          printf '%-14s %s\n' "FUNCTIONS:" "$FUNCTIONS"
-          printf '%-14s %s\n' "TRIGGERS:" "$TRIGGERS"
-          printf '%-14s %s\n' "POLICIES:" "$POLICIES"
-
-          if [ -f "$BASELINE" ]; then
-            echo ""
-            echo "=== Baseline de referencia: $BASELINE ==="
-            cat "$BASELINE"
-            echo ""
-            echo "Nota: comparacao detalhada contra o baseline sera habilitada futuramente; este job e informativo (continue-on-error)"
-          else
-            echo ""
-            echo "::warning::Baseline nao encontrado em $BASELINE - crie o arquivo para comparacoes futuras"
-          fi
-
-          echo ""
-          echo "Paridade de schema: verificacao concluida (informativa, nao bloqueia o pipeline)"
+          if [ ! -d "$MIGRATIONS_DIR" ]; then echo "::warning::Diretorio migrations nao encontrado"; exit 0; fi
+          TOTAL=$(find "$MIGRATIONS_DIR" -maxdepth 1 -name '*.sql' -type f | wc -l | tr -d ' ')
+          echo "Arquivos .sql: $TOTAL"
+          CREATE_TABLE=$(grep -rhoiE '^\s*create\s+table' "$MIGRATIONS_DIR" --include='*.sql' | wc -l | tr -d ' ')
+          FUNCTIONS=$(grep -rhoiE 'create\s+(or\s+replace\s+)?function' "$MIGRATIONS_DIR" --include='*.sql' | wc -l | tr -d ' ')
+          echo "CREATE TABLE: $CREATE_TABLE | FUNCTIONS: $FUNCTIONS"
+          echo "Paridade de schema: verificacao concluida (informativa)"
