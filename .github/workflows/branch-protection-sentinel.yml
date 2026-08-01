@@ -51,6 +51,8 @@ jobs:
     steps:
       - name: Check branch protection rules
         run: |
+          set -euo pipefail
+
           RESP=$(curl -sS -w "\n%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
@@ -66,33 +68,64 @@ jobs:
             exit 0
           fi
 
+          if [ "$HTTP_CODE" = "404" ]; then
+            echo "::error::Branch protection NOT configured on main — this is a security gap"
+            echo "::error::Configure branch protection in: Settings > Branches > Branch protection rules"
+            exit 1
+          fi
+
           if [ "$HTTP_CODE" != "200" ]; then
-            echo "::warning::Branch protection API returned HTTP $HTTP_CODE — cannot verify rules"
+            echo "::error::Branch protection API returned HTTP $HTTP_CODE"
             echo "Response: $PROT"
-            exit 0
+            exit 1
           fi
 
           echo "Branch protection response:"
           echo "$PROT" | jq .
 
+          FAILED=0
+
           FORCE=$(echo "$PROT" | jq -r '.allow_force_pushes.enabled // false')
           DISMISS=$(echo "$PROT" | jq -r '.required_pull_request_reviews.dismiss_stale_reviews // false')
           ENFORCE=$(echo "$PROT" | jq -r '.enforce_admins.enabled // false')
+          REQUIRE_PR=$(echo "$PROT" | jq -r '.required_pull_request_reviews // null')
           CHECKS=$(echo "$PROT" | jq -r '.required_status_checks.contexts // [] | length')
 
           if [ "$FORCE" = "true" ]; then
-            echo "::warning::Force pushes are ALLOWED on main — should be disabled"
+            echo "::error::Force pushes are ALLOWED on main — must be disabled"
+            FAILED=1
+          else
+            echo "OK: force pushes disabled"
           fi
+
+          if [ "$REQUIRE_PR" = "null" ]; then
+            echo "::error::Pull request reviews NOT required on main — PRs can be merged without review"
+            FAILED=1
+          else
+            echo "OK: pull request reviews required"
+          fi
+
           if [ "$DISMISS" != "true" ]; then
-            echo "::warning::Stale reviews are NOT auto-dismissed — should be enabled"
+            echo "::warning::Stale reviews are NOT auto-dismissed — recommend enabling"
+          else
+            echo "OK: stale reviews auto-dismissed"
           fi
+
           if [ "$ENFORCE" != "true" ]; then
             echo "::warning::Admin enforcement is OFF — branch protection does not apply to admins"
+          else
+            echo "OK: admin enforcement ON"
           fi
+
           if [ "$CHECKS" -eq 0 ]; then
-            echo "::warning::No required status checks configured on main"
+            echo "::warning::No required status checks configured on main — recommend adding ci/build"
+          else
+            echo "OK: $CHECKS required status check(s) configured"
           fi
 
           echo "---"
-          echo "Protection rules checked."
-          exit 0  # advisory — never fails, only warns
+          if [ "$FAILED" = "1" ]; then
+            echo "::error::Branch protection sentinel FAILED — critical rules missing on main"
+            exit 1
+          fi
+          echo "Branch protection rules OK."
