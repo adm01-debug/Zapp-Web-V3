@@ -2,27 +2,18 @@ name: schema-drift-guard
 
 # Dois jobs:
 # 1. static-drift (PR/push) — análise estática sem acesso ao banco.
-#    Detecta SQL DDL criado fora de supabase/migrations/ (drift estático).
 # 2. live-drift (manual/webhook) — conecta ao banco via DATABASE_URL.
-#    O monitoramento AUTOMÁTICO roda IN-CLUSTER via Swarm stack schema-drift-guard
-#    (ops.check_schema_drift() 1x/dia → ops.schema_drift_log).
-#    Motivo: o Postgres canônico NÃO é exposto à internet; runners do GitHub não
-#    alcançam o banco. Este job é manual/opcional para ambientes com DATABASE_URL.
 
 on:
   pull_request:
     branches: [main, master]
-    paths:
-      - 'src/**'
-      - 'supabase/**'
-      - 'infra/**'
   push:
     branches: [main, master]
   workflow_dispatch:
 
 jobs:
   static-drift:
-    name: Static schema drift check (no DB required)
+    name: schema-drift-guard
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' || github.event_name == 'push'
     steps:
@@ -31,9 +22,6 @@ jobs:
           fetch-depth: 0
 
       - name: Detect DDL outside supabase/migrations/
-        # Bloqueia PR se DDL (CREATE TABLE/VIEW/FUNCTION/INDEX, ALTER TABLE) aparecer
-        # em arquivos .sql fora de supabase/migrations/ ou infra/migrations/.
-        # Esses arquivos bypassam o Supabase CLI e causam drift silencioso.
         run: |
           set -euo pipefail
           base_ref="origin/${{ github.base_ref || 'main' }}"
@@ -58,7 +46,7 @@ jobs:
           ddl_found=0
           for f in $changed_sql; do
             if grep -qiE '^\s*(CREATE|ALTER|DROP)\s+(TABLE|VIEW|FUNCTION|INDEX|SCHEMA|TYPE|SEQUENCE|TRIGGER|POLICY)' "$f" 2>/dev/null; then
-              echo "::error file=$f::DDL fora de supabase/migrations/ ou infra/migrations/ detectado. Mova para supabase/migrations/ para manter o rastreamento correto."
+              echo "::error file=$f::DDL fora de supabase/migrations/ ou infra/migrations/ detectado."
               ddl_found=1
             fi
           done
@@ -81,7 +69,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "DATABASE_URL não definido — pulando (o guard roda in-cluster).";
-            exit 0;
+            echo "DATABASE_URL não definido — pulando (o guard roda in-cluster)."
+            exit 0
           fi
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "SELECT ops.check_schema_drift(true);"
