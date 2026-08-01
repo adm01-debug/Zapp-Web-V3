@@ -180,7 +180,7 @@ export function ChatDialogs({
           <div className="mb-2 px-3">
             <RealtimeTranscription
               onTranscript={(text, isFinal) => {
-                if (isFinal) onSetInputValue((prev: string) => prev + ' ' + text);
+                if (isFinal) onSetInputValue((prev: string) => (prev ? prev + ' ' : '') + text);
               }}
               onStatusChange={() => {}}
               className="w-full"

@@ -78,7 +78,7 @@ export const MessageBubble = memo(function MessageBubble({
   const isSent = message.sender === 'agent';
   const senderName = isSent ? 'Você' : message.senderName || 'Contato';
   const { avatarUrl } = useContactAvatar(
-    message.conversationId,
+    contactJid,
     message.contactAvatar || contactAvatar
   );
 
