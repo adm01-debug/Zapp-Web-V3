@@ -3,7 +3,7 @@ import { isFeatureEnabled } from '@/lib/featureFlags';
 import { cn } from '@/lib/utils';
 import { Message } from '@/types/chat';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from '@/components/ui/motion';
 import { RichTextToolbar } from './RichTextToolbar';
 import { AIRewriteButton } from './AIRewriteButton';
 import { MentionAutocomplete, useMentions } from './MentionAutocomplete';

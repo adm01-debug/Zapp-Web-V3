@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from '@/components/ui/motion';
 import { Pencil, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ReplyPreview } from '../ReplyQuote';
@@ -22,7 +22,7 @@ export function InputPreviewBars({
     <>
       <AnimatePresence>
         {replyToMessage && !editingMessage && (
-          <ReplyPreview message={replyToMessage} onCancel={onCancelReply} />
+          <ReplyPreview key="reply-preview" message={replyToMessage} onCancel={onCancelReply} />
         )}
       </AnimatePresence>
 

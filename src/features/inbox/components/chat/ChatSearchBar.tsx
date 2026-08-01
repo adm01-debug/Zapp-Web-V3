@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Message } from '@/types/chat';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '@/components/ui/motion';
 import { useChatSearch } from '@/features/inbox';
 import { Search, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { ChatSearchFilters } from './ChatSearchFilters';
@@ -46,7 +46,7 @@ export function ChatSearchBar({ messages, isOpen, onClose, onNavigateToMessage, 
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="overflow-hidden border-b border-border/40 bg-background/95 backdrop-blur-md shrink-0">
+        <motion.div key="chat-search-bar" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="overflow-hidden border-b border-border/40 bg-background/95 backdrop-blur-md shrink-0">
           <div className="px-3 md:px-4 py-3 space-y-2.5" role="search">
             <div className="flex items-center gap-1.5">
               <div className="relative flex-1 min-w-0 flex items-center gap-2.5 bg-accent/40 rounded-xl px-4 h-11 border border-transparent focus-within:border-primary/20 focus-within:bg-accent/60 transition-all duration-300">
