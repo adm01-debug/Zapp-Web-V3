@@ -1,0 +1,5 @@
+_test/
+tests/
+*.test.ts
+deno.json
+migrate-helper/
