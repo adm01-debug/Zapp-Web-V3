@@ -146,7 +146,7 @@ jobs:
           echo ""
           echo "=== Testando funcoes protegidas (sem Authorization) ==="
           # Funcoes protegidas que existem em producao (nao estao na PUBLIC_FNS allowlist)
-          PROTECTED_FNS="evolution-webhook ai-router"
+          PROTECTED_FNS="evolution-api ai-router"
           for fn in $PROTECTED_FNS; do
             # Pular se estiver na allowlist (pode ter sido adicionada)
             if grep -qx "$fn" "$ALLOWLIST_FILE" 2>/dev/null; then

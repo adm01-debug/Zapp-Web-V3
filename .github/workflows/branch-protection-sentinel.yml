@@ -10,10 +10,9 @@ on:
     - cron: '0 6 * * *'  # daily at 06:00 UTC
   workflow_dispatch:
 
-# GITHUB_TOKEN does not have administration:read, so the branch protection
-# API call below uses gh api (via GITHUB_TOKEN) and warns on 403/error.
-# If you need authenticated read of branch protection rules, set up
-# ACTIONS_PAT secret with repo/administration:read scope.
+# branch-protection check uses ACTIONS_PAT secret (requires administration:read scope).
+# If ACTIONS_PAT is not configured, the verify-branch-protection job fails.
+# Create a PAT with repo + administration:read scope and add as ACTIONS_PAT secret.
 permissions:
   contents: read
   pull-requests: read
@@ -56,8 +55,8 @@ jobs:
           set -euo pipefail
 
           if [ -z "${ACTIONS_PAT:-}" ]; then
-            echo "::warning::ACTIONS_PAT not set — branch protection check requires administration:read scope; skipping"
-            exit 0
+            echo "::error::ACTIONS_PAT not set — branch protection check requires administration:read scope; configure the ACTIONS_PAT secret"
+            exit 1
           fi
 
           RESP=$(curl -sS -w "\n%{http_code}" \

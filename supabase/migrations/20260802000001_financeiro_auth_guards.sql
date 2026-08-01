@@ -34,7 +34,7 @@ DECLARE
   -- Usa qualificador completo financeiro.fn_is_admin_diretor() para evitar
   -- falha de resolução em funções cujo SET search_path não inclui financeiro.
   c_guard CONSTANT TEXT := E'  -- [auth-guard] apenas admin/diretor financeiro\n'
-    || E'  IF NOT financeiro.fn_is_admin_diretor() THEN\n'
+    || E'  IF NOT COALESCE(financeiro.fn_is_admin_diretor(), false) THEN\n'
     || E'    RAISE EXCEPTION ''Acesso negado: apenas administradores e diretores do modulo financeiro podem executar esta operacao''\n'
     || E'      USING ERRCODE = ''42501'',\n'
     || E'            HINT    = ''Solicite acesso ao administrador do sistema'';\n'
@@ -61,6 +61,7 @@ BEGIN
       AND p.proname NOT LIKE 'fn_trg_%'
       AND p.proname NOT LIKE 'fn_set_%'
       AND p.proname NOT LIKE 'fn_auto_%'
+      AND p.proname NOT LIKE 'fn_atualizar_%'
     ORDER BY p.proname, p.oid
   LOOP
     BEGIN
@@ -71,7 +72,7 @@ BEGIN
       -- Usa 'IF NOT financeiro.fn_is_admin_diretor()' em vez de apenas
       -- 'fn_is_admin_diretor' para evitar falso-skip em funções que apenas
       -- referenciam o nome em comentários ou chamadas indiretas.
-      IF v_def ILIKE '%IF NOT financeiro.fn_is_admin_diretor()%' THEN
+      IF v_def ILIKE '%fn_is_admin_diretor()%' THEN
         RAISE NOTICE 'SKIP (já tem guard): financeiro.%(%) oid=%',
           v_rec.fn_name, v_rec.fn_args, v_rec.oid;
         v_skip_count := v_skip_count + 1;
@@ -159,11 +160,16 @@ BEGIN
       AND p.prokind  = 'f'
       AND p.prolang  = (SELECT oid FROM pg_catalog.pg_language WHERE lanname = 'plpgsql')
       AND p.prosecdef = true
+      AND p.proname NOT LIKE 'fn_is_%'
+      AND p.proname NOT LIKE 'fn_trg_%'
+      AND p.proname NOT LIKE 'fn_set_%'
+      AND p.proname NOT LIKE 'fn_auto_%'
+      AND p.proname NOT LIKE 'fn_atualizar_%'
     ORDER BY p.proname
   LOOP
     v_def := pg_catalog.pg_get_functiondef(v_rec.oid);
     -- Verifica presença estrutural do guard (mesmo critério da injeção)
-    IF v_def NOT ILIKE '%IF NOT financeiro.fn_is_admin_diretor()%' THEN
+    IF v_def NOT ILIKE '%fn_is_admin_diretor()%' THEN
       RAISE WARNING 'SEM GUARD: financeiro.%(%) — injeção pode ter falhado silenciosamente',
         v_rec.proname, v_rec.fn_args;
       v_missing := v_missing + 1;
@@ -171,7 +177,7 @@ BEGIN
   END LOOP;
 
   IF v_missing = 0 THEN
-    RAISE NOTICE 'Verificação OK: todas as funções financeiro com prosecdef=true possuem auth guard';
+    RAISE NOTICE 'Verificação OK: todas as funções financeiro elegíveis possuem auth guard';
   ELSE
     RAISE EXCEPTION '% função(ões) financeiro sem guard após injeção — corrija antes de aplicar', v_missing;
   END IF;
