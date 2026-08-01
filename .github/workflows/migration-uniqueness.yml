@@ -8,6 +8,10 @@ on:
     paths:
       - 'supabase/migrations/**'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   migration-uniqueness-check:
     name: Migration Uniqueness Gate

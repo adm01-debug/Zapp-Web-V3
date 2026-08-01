@@ -8,6 +8,10 @@ on:
     - cron: '0 9 1,15 * *'
   workflow_dispatch: {}  # Permite execução manual
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   pr-check:
     permissions: {}

@@ -11,6 +11,10 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   static-drift:
     name: schema-drift-guard

@@ -9,6 +9,18 @@ permissions:
   pull-requests: write
   issues: write
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Etapa 16 do Plano 50 Etapas: Definir limite de tamanho de PR
+#
+# PR ideal: ≤300 linhas | Teto: 800 linhas
+# Acima do teto: bot comenta + adiciona label size/XL
+# Acima do ideal: bot comenta + adiciona label size/L (aviso)
+# ─────────────────────────────────────────────────────────────────────────────
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   pr-size:
     name: PR Size Gate
