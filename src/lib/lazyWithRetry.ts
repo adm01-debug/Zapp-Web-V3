@@ -5,6 +5,28 @@ export const CHUNK_RELOAD_SESSION_KEY = '__zapp_chunk_reload_at';
 const CHUNK_RELOAD_COOLDOWN_MS = 30_000;
 
 /**
+ * Session key holding how many chunk-recovery reloads already happened in this tab.
+ *
+ * The cooldown alone (CHUNK_RELOAD_COOLDOWN_MS) only rate-limits reloads; it does
+ * NOT bound them. When production redeploys faster than a user can finish loading
+ * (observed 2026-08-01: ~20 deploys in minutes, three distinct bundles in a single
+ * session), every reload lands on yet another build whose chunk hashes no longer
+ * match the in-memory entry bundle. The cooldown then simply spaces an infinite
+ * reload loop 30 s apart, with nothing visible to the operator.
+ */
+export const CHUNK_RELOAD_COUNT_SESSION_KEY = '__zapp_chunk_reload_count';
+
+/**
+ * Maximum automatic recovery reloads per tab session.
+ *
+ * Two is deliberate: one reload covers the ordinary "a deploy shipped while this
+ * tab was open" case. A second covers a deploy landing during the first reload.
+ * Beyond that the tab is losing a race it cannot win automatically, so we stop
+ * and hand control to the user instead of thrashing.
+ */
+export const MAX_CHUNK_RELOADS = 2;
+
+/**
  * Maximum future-clock-skew tolerance when reading the cooldown timestamp.
  *
  * Exported so that any module that duplicates the cooldown guard (e.g.
@@ -50,7 +72,49 @@ export function isChunkLoadError(err: unknown): boolean {
 }
 
 /**
- * Triggers a hard page reload if the 30-second cooldown has elapsed.
+ * Reads the reload counter, clamped into [0, MAX_CHUNK_RELOADS].
+ *
+ * Clamping (rather than resetting to 0) is the safe direction: a corrupted or
+ * oversized value degrades to "exhausted", which shows the user an actionable
+ * prompt. Resetting to 0 on garbage would re-open the infinite loop this guard
+ * exists to close.
+ */
+function readReloadCount(): number {
+  try {
+    const parsed = Number(sessionStorage.getItem(CHUNK_RELOAD_COUNT_SESSION_KEY) ?? '0');
+    if (!Number.isFinite(parsed) || parsed < 0) return 0;
+    return Math.min(parsed, MAX_CHUNK_RELOADS);
+  } catch {
+    return 0;
+  }
+}
+
+/** True when automatic chunk recovery has given up and the UI must prompt the user. */
+export function hasExhaustedChunkReloads(): boolean {
+  return readReloadCount() >= MAX_CHUNK_RELOADS;
+}
+
+/**
+ * Clears both guard keys. Call this from the user-facing "update now" action so
+ * the manual reload starts from a clean slate.
+ */
+export function resetChunkReloadGuard(): void {
+  try {
+    sessionStorage.removeItem(CHUNK_RELOAD_COUNT_SESSION_KEY);
+    sessionStorage.removeItem(CHUNK_RELOAD_SESSION_KEY);
+  } catch {
+    /* sessionStorage unavailable - nothing to clear */
+  }
+}
+
+/**
+ * Triggers a hard page reload when the cooldown has elapsed AND the per-session
+ * reload budget is not exhausted.
+ *
+ * @returns true when a reload was initiated; false when the caller should fall
+ *          back to a visible "new version available" prompt. Callers MUST handle
+ *          the false case - silently returning is what produced the invisible
+ *          loop before this guard existed.
  *
  * BUG B + E FIX: uses Number.isFinite() instead of isNaN().
  * isNaN() does NOT catch Infinity: Date.now()-Infinity=-Infinity, -Inf>30000=false.
@@ -74,6 +138,13 @@ export function isChunkLoadError(err: unknown): boolean {
  */
 export function triggerChunkReload(): boolean {
   try {
+    // Budget check comes first: an exhausted tab must never reload again, no
+    // matter how long the cooldown says it has been waiting.
+    const count = readReloadCount();
+    if (count >= MAX_CHUNK_RELOADS) {
+      return false;
+    }
+
     const rawLast = sessionStorage.getItem(CHUNK_RELOAD_SESSION_KEY);
     const parsed = Number(rawLast ?? '0');
     const now = Date.now();
@@ -86,11 +157,16 @@ export function triggerChunkReload(): boolean {
         : 0;
     if (now - last > CHUNK_RELOAD_COOLDOWN_MS) {
       sessionStorage.setItem(CHUNK_RELOAD_SESSION_KEY, String(now));
+      sessionStorage.setItem(CHUNK_RELOAD_COUNT_SESSION_KEY, String(count + 1));
       window.location.reload();
       return true;
     }
     return false;
   } catch {
+    // sessionStorage is unavailable (private mode, storage disabled). We cannot
+    // persist a counter across the reload, so the budget cannot be enforced here.
+    // Reloading once is still the best available recovery; the browser's own
+    // reload-loop detection is the remaining backstop.
     window.location.reload();
     return true;
   }
@@ -110,8 +186,8 @@ export function triggerChunkReload(): boolean {
  *
  * Guard guarantee: regardless of how many non-chunk failures occur,
  *   the function either succeeds or exhausts maxAttempts and throws;
- *   chunk errors always escalate to a page reload, never to a visible error
- *   boundary (unless the 30-second cooldown is active).
+ *   chunk errors escalate to a page reload while the per-session budget lasts,
+ *   and afterwards propagate to the error boundary so the UI can prompt the user.
  */
 /** Wraps React.lazy with automatic retry on chunk-load errors, escalating to a page reload when needed. */
 export function lazyWithRetry<T extends React.ComponentType<any>>( // eslint-disable-line @typescript-eslint/no-explicit-any
