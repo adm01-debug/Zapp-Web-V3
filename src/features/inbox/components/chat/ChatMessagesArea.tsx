@@ -285,7 +285,7 @@ export const ChatMessagesArea = memo(
           if (onLoadOlder) {
             isFetchingOlderRef.current = true;
             prevScrollHeightRef.current = container.scrollHeight;
-            Promise.resolve(onLoadOlder())
+            void Promise.resolve(onLoadOlder())
               .finally(() => {
                 setTimeout(() => {
                   isFetchingOlderRef.current = false;
@@ -311,7 +311,8 @@ export const ChatMessagesArea = memo(
 
       const handleMessageDeleted = useCallback((id: string) => {
         log.info('Message deleted:', id);
-      }, []);
+        void queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() });
+      }, [queryClient]);
 
       const registerRef = useCallback((el: HTMLDivElement | null) => {
         if (!el) return;
@@ -390,7 +391,7 @@ export const ChatMessagesArea = memo(
               };
               return (
                 <div
-                  key={message.id || virtualRow.index}
+                  key={message.id ?? virtualRow.index}
                   data-index={virtualRow.index}
                   ref={virtualizer.measureElement}
                   style={{

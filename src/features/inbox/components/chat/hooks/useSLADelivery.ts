@@ -69,8 +69,9 @@ export function useSLADelivery({ contactId, messages }: UseSLADeliveryProps) {
       }
     };
 
-    const interval = setInterval(checkDeliveryDelay, 60000);
-    checkDeliveryDelay();
+    const interval = setInterval(() => { void checkDeliveryDelay(); }, 60000);
+    void checkDeliveryDelay();
     return () => clearInterval(interval);
-  }, [contactId, messages]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contactId, messages.length]);
 }

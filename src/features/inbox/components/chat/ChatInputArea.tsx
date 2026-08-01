@@ -302,6 +302,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
                   )}
                   <button
                     type="button"
+                    aria-label={`Remover anexo ${att.file.name}`}
                     onClick={() => logic.removeAttachment(att.id)}
                     className="absolute right-1 top-1 rounded-full bg-background/80 p-0.5 text-foreground opacity-0 transition-opacity hover:bg-destructive hover:text-foreground group-hover:opacity-100"
                   >
@@ -465,7 +466,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 rounded-full border border-destructive/20 bg-destructive/10 px-2 py-0.5">
-                  <span className="text-[10px] font-bold text-destructive">LIVE</span>
+                  <span className="text-[10px] font-bold text-destructive">AO VIVO</span>
                 </div>
               </div>
               <AudioRecorder onSend={onAudioSend} onCancel={onAudioCancel} />
@@ -490,7 +491,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
               </span>
             </div>
             <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-success">
-              <Check className="h-3 w-3" /> Online
+              <Check className="h-3 w-3" /> Ativo
             </div>
           </div>
         )}
@@ -634,7 +635,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
                       ? 'Responder mensagem'
                       : 'Digite sua mensagem'
                 }
-                aria-describedby={logic.charCount > 0 ? 'char-counter' : undefined}
+                aria-describedby={logic.charCount > 100 ? 'char-counter' : undefined}
               />
               {logic.charCount > 100 && (
                 <span

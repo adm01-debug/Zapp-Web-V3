@@ -1,4 +1,4 @@
-import { useState, memo } from 'react';
+import { useState, memo, useMemo } from 'react';
 import { AnimatePresence } from '@/components/ui/motion';
 import { cn } from '@/lib/utils';
 import { Reply, Forward, Copy } from 'lucide-react';
@@ -104,10 +104,13 @@ export const MessageBubble = memo(function MessageBubble({
     !(message.type === 'location' && message.location) &&
     !(message.type === 'interactive' && message.interactive);
 
-  const mediaRefreshKey =
-    instanceName && contactJid && message.external_id
-      ? { instanceName, remoteJid: contactJid, fromMe: isSent, id: message.external_id }
-      : undefined;
+  const mediaRefreshKey = useMemo(
+    () =>
+      instanceName && contactJid && message.external_id
+        ? { instanceName, remoteJid: contactJid, fromMe: isSent, id: message.external_id }
+        : undefined,
+    [instanceName, contactJid, message.external_id, isSent]
+  );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.ctrlKey || e.metaKey) return;
@@ -263,9 +266,11 @@ export const MessageBubble = memo(function MessageBubble({
         <ContextMenuItem onClick={() => onForward(message)} className="gap-2">
           <Forward className="h-3.5 w-3.5" /> Encaminhar
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => onCopy(message.content || '')} className="gap-2">
-          <Copy className="h-3.5 w-3.5" /> Copiar
-        </ContextMenuItem>
+        {message.content && (
+          <ContextMenuItem onClick={() => onCopy(message.content || '')} className="gap-2">
+            <Copy className="h-3.5 w-3.5" /> Copiar
+          </ContextMenuItem>
+        )}
       </ContextMenuContent>
     </ContextMenu>
   );

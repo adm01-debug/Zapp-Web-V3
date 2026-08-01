@@ -134,7 +134,7 @@ export function SecondaryToolbar({
             </Button>
           </TooltipTrigger>
           <TooltipContent side="top" className="text-[10px] font-medium">
-            Whisper
+            Sussurro
           </TooltipContent>
         </Tooltip>
       )}
@@ -144,7 +144,7 @@ export function SecondaryToolbar({
         contactName={contactName}
       />
       <StickerPicker onSendSticker={onSendSticker} />
-      <AudioMemePicker onSendAudioMeme={(meme) => onSendAudioMeme(meme.audio_url)} />
+      <AudioMemePicker onSendAudioMeme={(meme) => { if (meme.audio_url) onSendAudioMeme(meme.audio_url); }} />
       <VoiceChangerPicker onSendAudio={onSendAudioMeme} />
       <CustomEmojiPicker onSendEmoji={onSendCustomEmoji} />
       <EmojiPicker

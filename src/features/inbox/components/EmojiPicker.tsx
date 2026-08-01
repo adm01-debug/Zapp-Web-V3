@@ -194,7 +194,6 @@ const POPULAR_EMOJIS = [
   '💦',
   '💨',
   '💤',
-  '💨',
 ];
 
 interface EmojiPickerProps {
