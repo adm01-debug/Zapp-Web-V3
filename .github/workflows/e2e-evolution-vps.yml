@@ -77,8 +77,12 @@ jobs:
             e2e/whatsapp-reactions-realtime.spec.ts \
             e2e/whatsapp-reactions-advanced.spec.ts"
           if [ "${{ github.event.inputs.include_webhook_parity }}" = "true" ]; then
-            SPECS="$SPECS e2e/webhook-providers-parity.spec.ts"
-            export E2E_WEBHOOK_PARITY=1
+            # DESCONTINUADO 2026-08-01: e2e-webhook-fixture removida (Fase E4/E32)
+            # A spec fica no repo apenas como referência histórica; execução falha
+            # porque a edge function não existe mais no self-hosted.
+            echo "⚠️ webhook-providers-parity descontinuada (fixture removida em E4/E32)"
+            # SPECS="$SPECS e2e/webhook-providers-parity.spec.ts"
+            # export E2E_WEBHOOK_PARITY=1
           fi
           if [ "${{ github.event.inputs.include_voice_changer }}" = "true" ]; then
             SPECS="$SPECS e2e/voice-changer-integration.spec.ts"

@@ -1,4 +1,6 @@
 /**
+ * @deprecated 2026-08-01 (Fase E4/E32) — edge function `e2e-fixtures` removida.
+ * Mantido como referência histórica; qualquer execução falha (404).
  * Helpers de seed determinístico e cleanup para testes E2E.
  *
  * Garantias:
