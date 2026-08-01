@@ -67,7 +67,10 @@ jobs:
 
       - name: Check no anon-executable functions
         run: |
-          if [ -z "$META_URL" ]; then exit 0; fi
+          if [ -z "$META_URL" ] || [ -z "$META_TOKEN" ]; then
+            echo "⚠ Secrets not configured — skipping live check"
+            exit 0
+          fi
 
           RESULT=$(curl -sS "$META_URL/query" \
             -H "apikey: $META_TOKEN" \

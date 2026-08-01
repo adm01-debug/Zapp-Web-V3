@@ -72,8 +72,10 @@ jobs:
 
           # Verifica que nenhuma funcao protegida esta na allowlist acidentalmente
           # Escopa a busca apenas ao bloco PUBLIC_FNS para evitar falso-positivo
+          # Inclui funcoes de infra criticas (ai-router, evolution-api) que nunca
+          # devem ser publicas mesmo que sejam lancadas por clients internos.
           PUBLIC_FNS_BLOCK=$(sed -n '/const PUBLIC_FNS/,/^\s*\]/p' "$INDEX")
-          PROTECTED_FNS="admin delete-user reset-password"
+          PROTECTED_FNS="admin delete-user reset-password ai-router evolution-api"
           for fn in $PROTECTED_FNS; do
             if echo "$PUBLIC_FNS_BLOCK" | grep -q "\"$fn\"" || echo "$PUBLIC_FNS_BLOCK" | grep -q "'$fn'"; then
               echo "::error::Funcao protegida '$fn' encontrada na PUBLIC_FNS allowlist"
@@ -165,7 +167,8 @@ jobs:
               if [ "$code" = "401" ] || [ "$code" = "403" ]; then
                 echo "OK: '$fn' exige auth (http=$code)"
               elif [ "$code" = "404" ]; then
-                echo "::warning::Funcao '$fn' retornou 404 — funcao pode nao estar implantada"
+                echo "::error::Funcao protegida '$fn' retornou 404 com VERIFY_JWT=true ativo — funcao nao esta implantada mas deveria estar protegida"
+                FAILED=1
               else
                 echo "::error::Funcao protegida '$fn' retornou HTTP $code sem auth — deveria retornar 401/403 (VERIFY_JWT=true ativo)"
                 FAILED=1

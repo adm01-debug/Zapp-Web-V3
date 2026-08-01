@@ -57,11 +57,14 @@ BEGIN
       AND p.prosecdef = true        -- prosecdef=true; exclui overloads INVOKER
       -- Exclui funções de guarda/predicate (causariam recursão infinita)
       -- e funções de trigger/automação (executam em contexto DML, não HTTP)
+      -- e funções de sincronização internas (chamadas por triggers e service_role)
       AND p.proname NOT LIKE 'fn_is_%'
       AND p.proname NOT LIKE 'fn_trg_%'
       AND p.proname NOT LIKE 'fn_set_%'
       AND p.proname NOT LIKE 'fn_auto_%'
       AND p.proname NOT LIKE 'fn_atualizar_%'
+      AND p.proname NOT LIKE 'fn_sync_%'    -- sync triggers (fn_sync_nf_para_vendas, fn_sync_status_ordem*)
+      AND p.proname <> 'fn_app_role'        -- helper de auth usado por RLS e service_role
     ORDER BY p.proname, p.oid
   LOOP
     BEGIN
@@ -69,10 +72,10 @@ BEGIN
       v_def := pg_catalog.pg_get_functiondef(v_rec.oid);
 
       -- Pula se guard ESTRUTURAL já presente (idempotência robusta).
-      -- Usa 'IF NOT financeiro.fn_is_admin_diretor()' em vez de apenas
-      -- 'fn_is_admin_diretor' para evitar falso-skip em funções que apenas
-      -- referenciam o nome em comentários ou chamadas indiretas.
-      IF v_def ILIKE '%fn_is_admin_diretor()%' THEN
+      -- Verifica a estrutura completa do guard (IF NOT COALESCE(...)) em vez de apenas
+      -- o nome da função, para evitar falso-skip em funções que referenciam
+      -- fn_is_admin_diretor() em comentários ou chamadas indiretas sem o guard.
+      IF v_def ILIKE '%IF NOT COALESCE(financeiro.fn_is_admin_diretor()%' THEN
         RAISE NOTICE 'SKIP (já tem guard): financeiro.%(%) oid=%',
           v_rec.fn_name, v_rec.fn_args, v_rec.oid;
         v_skip_count := v_skip_count + 1;
@@ -165,11 +168,13 @@ BEGIN
       AND p.proname NOT LIKE 'fn_set_%'
       AND p.proname NOT LIKE 'fn_auto_%'
       AND p.proname NOT LIKE 'fn_atualizar_%'
+      AND p.proname NOT LIKE 'fn_sync_%'    -- sync triggers (fn_sync_nf_para_vendas, fn_sync_status_ordem*)
+      AND p.proname <> 'fn_app_role'        -- helper de auth usado por RLS e service_role
     ORDER BY p.proname
   LOOP
     v_def := pg_catalog.pg_get_functiondef(v_rec.oid);
     -- Verifica presença estrutural do guard (mesmo critério da injeção)
-    IF v_def NOT ILIKE '%fn_is_admin_diretor()%' THEN
+    IF v_def NOT ILIKE '%IF NOT COALESCE(financeiro.fn_is_admin_diretor()%' THEN
       RAISE WARNING 'SEM GUARD: financeiro.%(%) — injeção pode ter falhado silenciosamente',
         v_rec.proname, v_rec.fn_args;
       v_missing := v_missing + 1;
