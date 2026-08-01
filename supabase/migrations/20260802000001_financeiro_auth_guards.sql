@@ -174,7 +174,7 @@ $$;
 -- Documenta o risco residual remanescente após aplicação
 -- ============================================================
 COMMENT ON SCHEMA financeiro IS
-  E'Schema do módulo financeiro (16 tabelas, 23+ funções SECURITY DEFINER).\n'
+  E'Schema do módulo financeiro (16 tabelas, 23+ funções com execução privilegiada).\n'
   'Guards fn_is_admin_diretor() adicionados via migration 20260802000001 em 2026-08-02.\n'
   'Risco residual P1 mapeado em R27 (2026-08-01): UUIDs não adivinháveis como mitigação parcial.\n'
   'Para auditoria completa ver: supabase/migrations/20260801200000_r27_deep_audit_p0_gaps_rt33.sql';
