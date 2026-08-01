@@ -1,0 +1,10 @@
+{
+ "lote": 13,
+ "funcoes": [
+  "cleanup-storage-orphans",
+  "whatsapp-cloud-webhook-verify",
+  "ai-enhance-message",
+  "contacts-import",
+  "talkx-scheduler"
+ ]
+}

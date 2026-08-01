@@ -1,0 +1,10 @@
+{
+ "lote": 15,
+ "funcoes": [
+  "sla-alert-forward",
+  "evolution-sync",
+  "webhook-hmac-selftest",
+  "reprocess-failed-messages",
+  "file-security-scanner"
+ ]
+}

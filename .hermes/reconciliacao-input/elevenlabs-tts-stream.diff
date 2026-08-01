@@ -1,0 +1,44 @@
+diff --git a/supabase/functions/elevenlabs-tts-stream/index.ts b/supabase/functions/elevenlabs-tts-stream/index.ts
+index 975025796..959db1bd2 100644
+--- a/supabase/functions/elevenlabs-tts-stream/index.ts
++++ b/supabase/functions/elevenlabs-tts-stream/index.ts
+@@ -1,6 +1,5 @@
+-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders, checkRateLimit } from "../_shared/validation.ts";
++import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders } from "../_shared/validation.ts";
+ import { ElevenLabsTTSSchema, parseBody } from "../_shared/schemas.ts";
+-import { requireUser } from "../_shared/auth.ts";
+ 
+ Deno.serve(async (req) => {
+   const cors = handleCors(req);
+@@ -9,12 +8,6 @@ Deno.serve(async (req) => {
+   const log = new Logger("elevenlabs-tts-stream");
+ 
+   try {
+-    const authed = await requireUser(req);
+-    if (authed instanceof Response) return authed;
+-
+-    const rl = checkRateLimit(`elevenlabs-tts:${authed.user.id}`, 20, 60_000);
+-    if (!rl.allowed) return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
+-
+     const parsed = parseBody(ElevenLabsTTSSchema, await req.json());
+     if (!parsed.success) return errorResponse(parsed.error, 400, req);
+ 
+@@ -46,7 +39,6 @@ Deno.serve(async (req) => {
+             use_speaker_boost: true,
+           },
+         }),
+-        signal: AbortSignal.timeout(30_000),
+       }
+     );
+ 
+@@ -67,7 +59,8 @@ Deno.serve(async (req) => {
+       },
+     });
+   } catch (error: unknown) {
+-    log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
+-    return errorResponse('Internal server error', 500, req);
++    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
++    log.error("Unhandled error", { error: errorMessage });
++    return errorResponse(errorMessage, 500, req);
+   }
+ });

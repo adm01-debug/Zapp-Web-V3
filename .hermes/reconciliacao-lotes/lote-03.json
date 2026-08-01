@@ -1,0 +1,10 @@
+{
+ "lote": 3,
+ "funcoes": [
+  "whatsapp-cloud-webhook",
+  "whatsapp-webhook",
+  "gmail-webhook",
+  "elevenlabs-webhook",
+  "evolution-api"
+ ]
+}

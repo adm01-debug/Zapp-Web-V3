@@ -1,0 +1,10 @@
+{
+ "lote": 18,
+ "funcoes": [
+  "sicoob-bridge-reply",
+  "sla-alert-log-failure",
+  "tests",
+  "evolution-retry-metrics",
+  "bitrix-api"
+ ]
+}

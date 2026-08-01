@@ -1,0 +1,10 @@
+{
+ "lote": 25,
+ "funcoes": [
+  "auto-escalate-sla",
+  "elevenlabs-agent-token",
+  "elevenlabs-sfx",
+  "elevenlabs-voice",
+  "sentiment-alert"
+ ]
+}

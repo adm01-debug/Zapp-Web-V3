@@ -1,0 +1,34 @@
+diff --git a/supabase/functions/elevenlabs-sfx/index.ts b/supabase/functions/elevenlabs-sfx/index.ts
+index f12b694a8..d22302772 100644
+--- a/supabase/functions/elevenlabs-sfx/index.ts
++++ b/supabase/functions/elevenlabs-sfx/index.ts
+@@ -1,7 +1,6 @@
+-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit } from "../_shared/validation.ts";
++import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+ import { ElevenLabsSFXSchema, parseBody } from "../_shared/schemas.ts";
+ import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+-import { requireUser } from "../_shared/auth.ts";
+ 
+ Deno.serve(async (req) => {
+   const cors = handleCors(req);
+@@ -10,12 +9,6 @@ Deno.serve(async (req) => {
+   const log = new Logger("elevenlabs-sfx");
+ 
+   try {
+-    const authed = await requireUser(req);
+-    if (authed instanceof Response) return authed;
+-
+-    const rl = checkRateLimit(`elevenlabs-sfx:${authed.user.id}`, 15, 60_000);
+-    if (!rl.allowed) return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
+-
+     const parsed = parseBody(ElevenLabsSFXSchema, await req.json());
+     if (!parsed.success) return errorResponse(parsed.error, 400, req);
+ 
+@@ -40,7 +33,6 @@ Deno.serve(async (req) => {
+         "Content-Type": "application/json",
+       },
+       body: JSON.stringify(body),
+-      signal: AbortSignal.timeout(30_000),
+     });
+ 
+     if (!response.ok) {

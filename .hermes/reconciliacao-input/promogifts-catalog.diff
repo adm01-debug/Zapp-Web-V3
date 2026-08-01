@@ -1,0 +1,75 @@
+diff --git a/supabase/functions/promogifts-catalog/index.ts b/supabase/functions/promogifts-catalog/index.ts
+index 0ae35112b..7aae1b46e 100644
+--- a/supabase/functions/promogifts-catalog/index.ts
++++ b/supabase/functions/promogifts-catalog/index.ts
+@@ -1,10 +1,4 @@
+-// schema-check-exempt: este arquivo cria clientes para o banco EXTERNO PromoGifts
+-// (projeto Supabase separado, acessado via PROMOGIFTS_SUPABASE_URL/ANON_KEY).
+-// O schema do projeto externo não é controlado por este repo — a regra
+-// db.schema='zapp' da check-schema-usage não se aplica a esses createClient.
+-// O cliente local do ZAPP usa createZappClient (importado de _shared/db-client).
+ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+-import { createZappClient } from '../_shared/db-client.ts';
+ import { z } from "https://esm.sh/zod@3.23.8";
+ import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
+ 
+@@ -48,7 +42,7 @@ const ListProductsSchema = z.object({
+   category_id: z.string().uuid().optional(),
+   supplier_id: z.string().uuid().optional(),
+   limit: z.number().int().min(1).max(100).default(50),
+-  offset: z.number().int().min(0).max(1_000_000).default(0),
++  offset: z.number().int().min(0).default(0),
+   order_by: z.enum(ALLOWED_ORDER_FIELDS).default("name"),
+   ascending: z.boolean().default(true),
+   only_active: z.boolean().default(true),
+@@ -79,7 +73,7 @@ const ActionSchema = z.object({
+  * (que o driver já previne).
+  */
+ function sanitizeSearch(input: string): string {
+-  return input.replace(/[%_.\\(),:'"\`]/g, "").trim().slice(0, 100);
++  return input.replace(/[%_.\\(),:'"`]/g, "").trim().slice(0, 100);
+ }
+ 
+ const PRODUCT_FIELDS = `id, name, description, short_description, sku, sale_price, suggested_price,
+@@ -143,7 +137,7 @@ async function runHealthCheck(req: Request) {
+ 
+   const startedAt = performance.now();
+   try {
+-    const extClient = createClient(extUrl, extKey, { auth: { persistSession: false, autoRefreshToken: false } });
++    const extClient = createClient(extUrl, extKey);
+     const { error } = await extClient.from("categories").select("id", { count: "exact", head: true }).limit(1);
+     const duration_ms = Math.round(performance.now() - startedAt);
+     if (error) {
+@@ -209,7 +203,11 @@ Deno.serve(async (req) => {
+       return jsonRes({ error: "Unauthorized" }, 401, req);
+     }
+ 
+-    const localClient = createZappClient(req);
++    const localClient = createClient(
++      Deno.env.get("SUPABASE_URL")!,
++      Deno.env.get("SUPABASE_ANON_KEY")!,
++      { global: { headers: { Authorization: authHeader } } }
++    );
+ 
+     const { data: userData, error: userErr } = await localClient.auth.getUser();
+     if (userErr || !userData?.user) {
+@@ -241,7 +239,7 @@ Deno.serve(async (req) => {
+       log.error("Missing PromoGifts external DB secrets", { missing });
+       return jsonRes(buildMisconfigPayload(missing), 503, req);
+     }
+-    const extClient = createClient(extUrl, extKey, { auth: { persistSession: false, autoRefreshToken: false } });
++    const extClient = createClient(extUrl, extKey);
+ 
+     const bodyParse = ActionSchema.safeParse(rawBody);
+     if (!bodyParse.success) {
+@@ -307,7 +305,8 @@ Deno.serve(async (req) => {
+ 
+     return jsonRes({ error: "Invalid action" }, 400, req);
+   } catch (err) {
+-    log.error("Error", { error: errMessage(err) });
+-    return jsonRes({ error: 'Internal server error' }, 500, req);
++    const msg = errMessage(err);
++    log.error("Error", { error: msg });
++    return jsonRes({ error: msg }, 500, req);
+   }
+ });

@@ -1,0 +1,10 @@
+{
+ "lote": 2,
+ "funcoes": [
+  "external-db-proxy",
+  "external-db-bridge",
+  "public-api",
+  "analyze-external-db",
+  "evolution-webhook"
+ ]
+}

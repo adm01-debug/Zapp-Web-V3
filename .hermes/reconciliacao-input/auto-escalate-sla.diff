@@ -1,0 +1,27 @@
+diff --git a/supabase/functions/auto-escalate-sla/index.ts b/supabase/functions/auto-escalate-sla/index.ts
+index 0f979a001..0687aeabf 100644
+--- a/supabase/functions/auto-escalate-sla/index.ts
++++ b/supabase/functions/auto-escalate-sla/index.ts
+@@ -1,18 +1,16 @@
+-import { createZappAdminClient } from '../_shared/db-client.ts';
++import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+ import { getCorsHeaders, handleCors, jsonResponse, errorResponse, Logger } from '../_shared/validation.ts';
+-import { requireServiceRoleOrCron } from '../_shared/auth.ts';
+ 
+ Deno.serve(async (req) => {
+   const corsResponse = handleCors(req);
+   if (corsResponse) return corsResponse;
+ 
+-  const authErr = requireServiceRoleOrCron(req);
+-  if (authErr) return authErr;
+-
+   const log = new Logger('auto-escalate-sla');
+ 
+   try {
+-    const supabase = createZappAdminClient();
++    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
++    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
++    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+ 
+     log.info('Starting auto-escalation check');
+ 

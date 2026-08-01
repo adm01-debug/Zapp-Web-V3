@@ -1,0 +1,33 @@
+diff --git a/supabase/functions/cleanup-rate-limit-logs/index.ts b/supabase/functions/cleanup-rate-limit-logs/index.ts
+index f9dd2c0ac..0872f91be 100644
+--- a/supabase/functions/cleanup-rate-limit-logs/index.ts
++++ b/supabase/functions/cleanup-rate-limit-logs/index.ts
+@@ -1,6 +1,6 @@
+-import { handleCors, errorResponse, jsonResponse, Logger } from "../_shared/validation.ts";
++import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
++import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+ import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+-import { createZappAdminClient } from "../_shared/db-client.ts";
+ 
+ Deno.serve(async (req) => {
+   const cors = handleCors(req);
+@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
+   const log = new Logger("cleanup-rate-limit-logs");
+ 
+   try {
+-    const supabaseClient = createZappAdminClient();
++    const supabaseClient = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
+ 
+     log.info("Starting rate limit logs cleanup");
+ 
+@@ -45,7 +45,8 @@ Deno.serve(async (req) => {
+     log.done(200, summary);
+     return jsonResponse({ success: true, ...summary }, 200, req);
+   } catch (error: unknown) {
+-    log.error("Cleanup error", { error: error instanceof Error ? error.message : String(error) });
+-    return errorResponse('Internal server error', 500, req);
++    const msg = error instanceof Error ? error.message : "Unknown error";
++    log.error("Cleanup error", { error: msg });
++    return errorResponse(msg, 500, req);
+   }
+ });

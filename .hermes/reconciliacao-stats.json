@@ -1,0 +1,776 @@
+{
+ "_shared": {
+  "arquivos": 5,
+  "add": 452,
+  "del": 38,
+  "diff_file": "_shared.diff"
+ },
+ "_test": {
+  "arquivos": 1,
+  "add": 0,
+  "del": 429,
+  "diff_file": "_test.diff"
+ },
+ "ai-auto-tag": {
+  "arquivos": 1,
+  "add": 162,
+  "del": 48,
+  "diff_file": "ai-auto-tag.diff"
+ },
+ "ai-churn-analysis": {
+  "arquivos": 1,
+  "add": 112,
+  "del": 27,
+  "diff_file": "ai-churn-analysis.diff"
+ },
+ "ai-classify-tickets": {
+  "arquivos": 1,
+  "add": 92,
+  "del": 27,
+  "diff_file": "ai-classify-tickets.diff"
+ },
+ "ai-conversation-analysis": {
+  "arquivos": 1,
+  "add": 251,
+  "del": 39,
+  "diff_file": "ai-conversation-analysis.diff"
+ },
+ "ai-conversation-summary": {
+  "arquivos": 1,
+  "add": 195,
+  "del": 38,
+  "diff_file": "ai-conversation-summary.diff"
+ },
+ "ai-enhance-message": {
+  "arquivos": 1,
+  "add": 71,
+  "del": 25,
+  "diff_file": "ai-enhance-message.diff"
+ },
+ "ai-proxy": {
+  "arquivos": 1,
+  "add": 139,
+  "del": 43,
+  "diff_file": "ai-proxy.diff"
+ },
+ "ai-router": {
+  "arquivos": 1,
+  "add": 22,
+  "del": 203,
+  "diff_file": "ai-router.diff"
+ },
+ "ai-suggest-reply": {
+  "arquivos": 1,
+  "add": 154,
+  "del": 26,
+  "diff_file": "ai-suggest-reply.diff"
+ },
+ "ai-transcribe-audio": {
+  "arquivos": 1,
+  "add": 153,
+  "del": 35,
+  "diff_file": "ai-transcribe-audio.diff"
+ },
+ "analyze-external-db": {
+  "arquivos": 1,
+  "add": 73,
+  "del": 164,
+  "diff_file": "analyze-external-db.diff"
+ },
+ "approve-password-reset": {
+  "arquivos": 1,
+  "add": 41,
+  "del": 111,
+  "diff_file": "approve-password-reset.diff"
+ },
+ "audio-transcribe": {
+  "arquivos": 1,
+  "add": 47,
+  "del": 150,
+  "diff_file": "audio-transcribe.diff"
+ },
+ "auto-close-conversations": {
+  "arquivos": 1,
+  "add": 5,
+  "del": 9,
+  "diff_file": "auto-close-conversations.diff"
+ },
+ "auto-escalate-sla": {
+  "arquivos": 1,
+  "add": 4,
+  "del": 6,
+  "diff_file": "auto-escalate-sla.diff"
+ },
+ "automation-suggest-reply": {
+  "arquivos": 1,
+  "add": 44,
+  "del": 158,
+  "diff_file": "automation-suggest-reply.diff"
+ },
+ "backfill-messages": {
+  "arquivos": 1,
+  "add": 229,
+  "del": 26,
+  "diff_file": "backfill-messages.diff"
+ },
+ "batch-fetch-avatars": {
+  "arquivos": 1,
+  "add": 9,
+  "del": 21,
+  "diff_file": "batch-fetch-avatars.diff"
+ },
+ "bitrix-api": {
+  "arquivos": 1,
+  "add": 8,
+  "del": 33,
+  "diff_file": "bitrix-api.diff"
+ },
+ "chatbot-l1": {
+  "arquivos": 1,
+  "add": 3,
+  "del": 3,
+  "diff_file": "chatbot-l1.diff"
+ },
+ "classify-audio-meme": {
+  "arquivos": 1,
+  "add": 1,
+  "del": 16,
+  "diff_file": "classify-audio-meme.diff"
+ },
+ "classify-emoji": {
+  "arquivos": 1,
+  "add": 1,
+  "del": 15,
+  "diff_file": "classify-emoji.diff"
+ },
+ "classify-sticker": {
+  "arquivos": 1,
+  "add": 1,
+  "del": 15,
+  "diff_file": "classify-sticker.diff"
+ },
+ "cleanup-rate-limit-logs": {
+  "arquivos": 1,
+  "add": 6,
+  "del": 5,
+  "diff_file": "cleanup-rate-limit-logs.diff"
+ },
+ "cleanup-storage-orphans": {
+  "arquivos": 1,
+  "add": 19,
+  "del": 80,
+  "diff_file": "cleanup-storage-orphans.diff"
+ },
+ "client-observability": {
+  "arquivos": 1,
+  "add": 12,
+  "del": 23,
+  "diff_file": "client-observability.diff"
+ },
+ "connection-health-check": {
+  "arquivos": 1,
+  "add": 26,
+  "del": 132,
+  "diff_file": "connection-health-check.diff"
+ },
+ "connection-test": {
+  "arquivos": 1,
+  "add": 36,
+  "del": 26,
+  "diff_file": "connection-test.diff"
+ },
+ "contact-media": {
+  "arquivos": 1,
+  "add": 31,
+  "del": 19,
+  "diff_file": "contact-media.diff"
+ },
+ "contacts-import": {
+  "arquivos": 1,
+  "add": 24,
+  "del": 71,
+  "diff_file": "contacts-import.diff"
+ },
+ "create-user": {
+  "arquivos": 1,
+  "add": 15,
+  "del": 23,
+  "diff_file": "create-user.diff"
+ },
+ "detect-new-device": {
+  "arquivos": 1,
+  "add": 75,
+  "del": 94,
+  "diff_file": "detect-new-device.diff"
+ },
+ "e2e-fixtures": {
+  "arquivos": 1,
+  "add": 32,
+  "del": 34,
+  "diff_file": "e2e-fixtures.diff"
+ },
+ "e2e-webhook-fixture": {
+  "arquivos": 1,
+  "add": 28,
+  "del": 21,
+  "diff_file": "e2e-webhook-fixture.diff"
+ },
+ "elevenlabs-agent-token": {
+  "arquivos": 1,
+  "add": 3,
+  "del": 7,
+  "diff_file": "elevenlabs-agent-token.diff"
+ },
+ "elevenlabs-dialogue": {
+  "arquivos": 1,
+  "add": 4,
+  "del": 11,
+  "diff_file": "elevenlabs-dialogue.diff"
+ },
+ "elevenlabs-scribe-token": {
+  "arquivos": 1,
+  "add": 4,
+  "del": 11,
+  "diff_file": "elevenlabs-scribe-token.diff"
+ },
+ "elevenlabs-sfx": {
+  "arquivos": 1,
+  "add": 1,
+  "del": 9,
+  "diff_file": "elevenlabs-sfx.diff"
+ },
+ "elevenlabs-sts": {
+  "arquivos": 1,
+  "add": 6,
+  "del": 22,
+  "diff_file": "elevenlabs-sts.diff"
+ },
+ "elevenlabs-tts": {
+  "arquivos": 1,
+  "add": 7,
+  "del": 11,
+  "diff_file": "elevenlabs-tts.diff"
+ },
+ "elevenlabs-tts-stream": {
+  "arquivos": 1,
+  "add": 4,
+  "del": 11,
+  "diff_file": "elevenlabs-tts-stream.diff"
+ },
+ "elevenlabs-voice": {
+  "arquivos": 1,
+  "add": 3,
+  "del": 7,
+  "diff_file": "elevenlabs-voice.diff"
+ },
+ "elevenlabs-voice-design": {
+  "arquivos": 1,
+  "add": 4,
+  "del": 13,
+  "diff_file": "elevenlabs-voice-design.diff"
+ },
+ "elevenlabs-webhook": {
+  "arquivos": 1,
+  "add": 14,
+  "del": 19,
+  "diff_file": "elevenlabs-webhook.diff"
+ },
+ "email-imap-bridge": {
+  "arquivos": 1,
+  "add": 55,
+  "del": 166,
+  "diff_file": "email-imap-bridge.diff"
+ },
+ "email-track-link": {
+  "arquivos": 1,
+  "add": 8,
+  "del": 13,
+  "diff_file": "email-track-link.diff"
+ },
+ "email-track-pixel": {
+  "arquivos": 1,
+  "add": 13,
+  "del": 9,
+  "diff_file": "email-track-pixel.diff"
+ },
+ "evolution-api": {
+  "arquivos": 1,
+  "add": 762,
+  "del": 89,
+  "diff_file": "evolution-api.diff"
+ },
+ "evolution-bitrix-sync": {
+  "arquivos": 1,
+  "add": 47,
+  "del": 57,
+  "diff_file": "evolution-bitrix-sync.diff"
+ },
+ "evolution-chatbot": {
+  "arquivos": 1,
+  "add": 42,
+  "del": 94,
+  "diff_file": "evolution-chatbot.diff"
+ },
+ "evolution-credentials": {
+  "arquivos": 1,
+  "add": 58,
+  "del": 23,
+  "diff_file": "evolution-credentials.diff"
+ },
+ "evolution-followup": {
+  "arquivos": 1,
+  "add": 17,
+  "del": 49,
+  "diff_file": "evolution-followup.diff"
+ },
+ "evolution-health": {
+  "arquivos": 1,
+  "add": 13,
+  "del": 15,
+  "diff_file": "evolution-health.diff"
+ },
+ "evolution-retry-metrics": {
+  "arquivos": 1,
+  "add": 31,
+  "del": 11,
+  "diff_file": "evolution-retry-metrics.diff"
+ },
+ "evolution-sender": {
+  "arquivos": 1,
+  "add": 34,
+  "del": 90,
+  "diff_file": "evolution-sender.diff"
+ },
+ "evolution-sentiment": {
+  "arquivos": 1,
+  "add": 36,
+  "del": 106,
+  "diff_file": "evolution-sentiment.diff"
+ },
+ "evolution-sync": {
+  "arquivos": 1,
+  "add": 20,
+  "del": 58,
+  "diff_file": "evolution-sync.diff"
+ },
+ "evolution-templates": {
+  "arquivos": 1,
+  "add": 20,
+  "del": 46,
+  "diff_file": "evolution-templates.diff"
+ },
+ "evolution-webhook": {
+  "arquivos": 1,
+  "add": 2,
+  "del": 2,
+  "diff_file": "evolution-webhook.diff"
+ },
+ "external-db-bridge": {
+  "arquivos": 1,
+  "add": 45,
+  "del": 189,
+  "diff_file": "external-db-bridge.diff"
+ },
+ "external-db-proxy": {
+  "arquivos": 5,
+  "add": 145,
+  "del": 635,
+  "diff_file": "external-db-proxy.diff"
+ },
+ "fetch-whatsapp-avatar": {
+  "arquivos": 1,
+  "add": 94,
+  "del": 125,
+  "diff_file": "fetch-whatsapp-avatar.diff"
+ },
+ "file-security-scanner": {
+  "arquivos": 1,
+  "add": 15,
+  "del": 57,
+  "diff_file": "file-security-scanner.diff"
+ },
+ "get-mapbox-token": {
+  "arquivos": 1,
+  "add": 1,
+  "del": 5,
+  "diff_file": "get-mapbox-token.diff"
+ },
+ "get-sip-password": {
+  "arquivos": 1,
+  "add": 20,
+  "del": 10,
+  "diff_file": "get-sip-password.diff"
+ },
+ "gmail-health": {
+  "arquivos": 1,
+  "add": 15,
+  "del": 13,
+  "diff_file": "gmail-health.diff"
+ },
+ "gmail-oauth": {
+  "arquivos": 1,
+  "add": 202,
+  "del": 116,
+  "diff_file": "gmail-oauth.diff"
+ },
+ "gmail-send": {
+  "arquivos": 1,
+  "add": 93,
+  "del": 336,
+  "diff_file": "gmail-send.diff"
+ },
+ "gmail-sync": {
+  "arquivos": 1,
+  "add": 121,
+  "del": 493,
+  "diff_file": "gmail-sync.diff"
+ },
+ "gmail-token-refresh": {
+  "arquivos": 1,
+  "add": 119,
+  "del": 211,
+  "diff_file": "gmail-token-refresh.diff"
+ },
+ "gmail-webhook": {
+  "arquivos": 1,
+  "add": 97,
+  "del": 244,
+  "diff_file": "gmail-webhook.diff"
+ },
+ "health": {
+  "arquivos": 1,
+  "add": 0,
+  "del": 127,
+  "diff_file": "health.diff"
+ },
+ "health-check": {
+  "arquivos": 1,
+  "add": 16,
+  "del": 9,
+  "diff_file": "health-check.diff"
+ },
+ "hello": {
+  "arquivos": 1,
+  "add": 2,
+  "del": 1,
+  "diff_file": "hello.diff"
+ },
+ "instance-pause-control": {
+  "arquivos": 1,
+  "add": 44,
+  "del": 46,
+  "diff_file": "instance-pause-control.diff"
+ },
+ "lgpd-scheduled-jobs": {
+  "arquivos": 1,
+  "add": 229,
+  "del": 27,
+  "diff_file": "lgpd-scheduled-jobs.diff"
+ },
+ "login-attempts": {
+  "arquivos": 1,
+  "add": 10,
+  "del": 11,
+  "diff_file": "login-attempts.diff"
+ },
+ "main": {
+  "arquivos": 1,
+  "add": 8,
+  "del": 30,
+  "diff_file": "main.diff"
+ },
+ "mcp": {
+  "arquivos": 1,
+  "add": 0,
+  "del": 128,
+  "diff_file": "mcp.diff"
+ },
+ "mcp-server": {
+  "arquivos": 1,
+  "add": 5,
+  "del": 10,
+  "diff_file": "mcp-server.diff"
+ },
+ "metrics": {
+  "arquivos": 1,
+  "add": 0,
+  "del": 172,
+  "diff_file": "metrics.diff"
+ },
+ "migrate-helper": {
+  "arquivos": 1,
+  "add": 0,
+  "del": 138,
+  "diff_file": "migrate-helper.diff"
+ },
+ "migrate-media-storage": {
+  "arquivos": 1,
+  "add": 36,
+  "del": 112,
+  "diff_file": "migrate-media-storage.diff"
+ },
+ "nps-scheduler": {
+  "arquivos": 1,
+  "add": 0,
+  "del": 141,
+  "diff_file": "nps-scheduler.diff"
+ },
+ "outlook-oauth": {
+  "arquivos": 1,
+  "add": 97,
+  "del": 402,
+  "diff_file": "outlook-oauth.diff"
+ },
+ "promogifts-catalog": {
+  "arquivos": 1,
+  "add": 12,
+  "del": 13,
+  "diff_file": "promogifts-catalog.diff"
+ },
+ "provider-healthcheck": {
+  "arquivos": 1,
+  "add": 57,
+  "del": 76,
+  "diff_file": "provider-healthcheck.diff"
+ },
+ "provider-router": {
+  "arquivos": 1,
+  "add": 51,
+  "del": 190,
+  "diff_file": "provider-router.diff"
+ },
+ "proxy-health": {
+  "arquivos": 1,
+  "add": 7,
+  "del": 22,
+  "diff_file": "proxy-health.diff"
+ },
+ "proxy-metrics": {
+  "arquivos": 1,
+  "add": 7,
+  "del": 4,
+  "diff_file": "proxy-metrics.diff"
+ },
+ "public-api": {
+  "arquivos": 1,
+  "add": 101,
+  "del": 22,
+  "diff_file": "public-api.diff"
+ },
+ "queue-rebalance": {
+  "arquivos": 1,
+  "add": 50,
+  "del": 98,
+  "diff_file": "queue-rebalance.diff"
+ },
+ "recheck-webhook-signature": {
+  "arquivos": 1,
+  "add": 54,
+  "del": 29,
+  "diff_file": "recheck-webhook-signature.diff"
+ },
+ "recover-corrupted-audios": {
+  "arquivos": 1,
+  "add": 7,
+  "del": 10,
+  "diff_file": "recover-corrupted-audios.diff"
+ },
+ "reprocess-failed-messages": {
+  "arquivos": 1,
+  "add": 21,
+  "del": 53,
+  "diff_file": "reprocess-failed-messages.diff"
+ },
+ "secure-upload": {
+  "arquivos": 1,
+  "add": 10,
+  "del": 52,
+  "diff_file": "secure-upload.diff"
+ },
+ "seed-teams-users": {
+  "arquivos": 1,
+  "add": 7,
+  "del": 7,
+  "diff_file": "seed-teams-users.diff"
+ },
+ "send-email": {
+  "arquivos": 1,
+  "add": 44,
+  "del": 111,
+  "diff_file": "send-email.diff"
+ },
+ "send-rate-limit-alert": {
+  "arquivos": 1,
+  "add": 8,
+  "del": 9,
+  "diff_file": "send-rate-limit-alert.diff"
+ },
+ "send-scheduled-report": {
+  "arquivos": 1,
+  "add": 40,
+  "del": 128,
+  "diff_file": "send-scheduled-report.diff"
+ },
+ "sentiment-alert": {
+  "arquivos": 1,
+  "add": 4,
+  "del": 5,
+  "diff_file": "sentiment-alert.diff"
+ },
+ "sicoob-bridge": {
+  "arquivos": 1,
+  "add": 16,
+  "del": 21,
+  "diff_file": "sicoob-bridge.diff"
+ },
+ "sicoob-bridge-reply": {
+  "arquivos": 1,
+  "add": 10,
+  "del": 37,
+  "diff_file": "sicoob-bridge-reply.diff"
+ },
+ "sicoob-outbox-consumer": {
+  "arquivos": 1,
+  "add": 0,
+  "del": 259,
+  "diff_file": "sicoob-outbox-consumer.diff"
+ },
+ "sla-alert-forward": {
+  "arquivos": 1,
+  "add": 41,
+  "del": 39,
+  "diff_file": "sla-alert-forward.diff"
+ },
+ "sla-alert-log-failure": {
+  "arquivos": 1,
+  "add": 29,
+  "del": 15,
+  "diff_file": "sla-alert-log-failure.diff"
+ },
+ "speech-to-text": {
+  "arquivos": 1,
+  "add": 3,
+  "del": 11,
+  "diff_file": "speech-to-text.diff"
+ },
+ "talkx-add-recipients": {
+  "arquivos": 1,
+  "add": 0,
+  "del": 139,
+  "diff_file": "talkx-add-recipients.diff"
+ },
+ "talkx-control": {
+  "arquivos": 1,
+  "add": 0,
+  "del": 158,
+  "diff_file": "talkx-control.diff"
+ },
+ "talkx-scheduler": {
+  "arquivos": 1,
+  "add": 25,
+  "del": 68,
+  "diff_file": "talkx-scheduler.diff"
+ },
+ "talkx-send": {
+  "arquivos": 1,
+  "add": 71,
+  "del": 255,
+  "diff_file": "talkx-send.diff"
+ },
+ "tests": {
+  "arquivos": 1,
+  "add": 0,
+  "del": 43,
+  "diff_file": "tests.diff"
+ },
+ "ticket-router": {
+  "arquivos": 1,
+  "add": 99,
+  "del": 119,
+  "diff_file": "ticket-router.diff"
+ },
+ "virustotal-test": {
+  "arquivos": 1,
+  "add": 7,
+  "del": 14,
+  "diff_file": "virustotal-test.diff"
+ },
+ "voice-agent": {
+  "arquivos": 1,
+  "add": 8,
+  "del": 76,
+  "diff_file": "voice-agent.diff"
+ },
+ "voice-changer": {
+  "arquivos": 1,
+  "add": 21,
+  "del": 43,
+  "diff_file": "voice-changer.diff"
+ },
+ "voice-copilot-action": {
+  "arquivos": 1,
+  "add": 17,
+  "del": 99,
+  "diff_file": "voice-copilot-action.diff"
+ },
+ "webauthn": {
+  "arquivos": 1,
+  "add": 58,
+  "del": 199,
+  "diff_file": "webauthn.diff"
+ },
+ "webhook-diagnostic": {
+  "arquivos": 3,
+  "add": 185,
+  "del": 89,
+  "diff_file": "webhook-diagnostic.diff"
+ },
+ "webhook-hmac-selftest": {
+  "arquivos": 1,
+  "add": 43,
+  "del": 34,
+  "diff_file": "webhook-hmac-selftest.diff"
+ },
+ "webhook-secret-status": {
+  "arquivos": 1,
+  "add": 26,
+  "del": 35,
+  "diff_file": "webhook-secret-status.diff"
+ },
+ "whatsapp-cloud-api": {
+  "arquivos": 1,
+  "add": 26,
+  "del": 34,
+  "diff_file": "whatsapp-cloud-api.diff"
+ },
+ "whatsapp-cloud-secrets-status": {
+  "arquivos": 1,
+  "add": 6,
+  "del": 2,
+  "diff_file": "whatsapp-cloud-secrets-status.diff"
+ },
+ "whatsapp-cloud-send": {
+  "arquivos": 1,
+  "add": 28,
+  "del": 60,
+  "diff_file": "whatsapp-cloud-send.diff"
+ },
+ "whatsapp-cloud-webhook": {
+  "arquivos": 1,
+  "add": 54,
+  "del": 57,
+  "diff_file": "whatsapp-cloud-webhook.diff"
+ },
+ "whatsapp-cloud-webhook-verify": {
+  "arquivos": 1,
+  "add": 25,
+  "del": 72,
+  "diff_file": "whatsapp-cloud-webhook-verify.diff"
+ },
+ "whatsapp-webhook": {
+  "arquivos": 1,
+  "add": 9,
+  "del": 43,
+  "diff_file": "whatsapp-webhook.diff"
+ }
+}

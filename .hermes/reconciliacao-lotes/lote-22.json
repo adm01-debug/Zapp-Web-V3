@@ -1,0 +1,10 @@
+{
+ "lote": 22,
+ "funcoes": [
+  "classify-audio-meme",
+  "elevenlabs-voice-design",
+  "recover-corrupted-audios",
+  "send-rate-limit-alert",
+  "classify-emoji"
+ ]
+}

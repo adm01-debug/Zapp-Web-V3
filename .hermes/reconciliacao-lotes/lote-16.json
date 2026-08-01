@@ -1,0 +1,10 @@
+{
+ "lote": 16,
+ "funcoes": [
+  "e2e-fixtures",
+  "evolution-followup",
+  "evolution-templates",
+  "voice-changer",
+  "connection-test"
+ ]
+}

@@ -1,0 +1,56 @@
+diff --git a/supabase/functions/recover-corrupted-audios/index.ts b/supabase/functions/recover-corrupted-audios/index.ts
+index 91c5f3097..81a03c7a8 100644
+--- a/supabase/functions/recover-corrupted-audios/index.ts
++++ b/supabase/functions/recover-corrupted-audios/index.ts
+@@ -1,11 +1,12 @@
+-import { createZappAdminClient } from '../_shared/db-client.ts';
++import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+ import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
+-import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+ 
++const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
++const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+ const EVOLUTION_API_URL = (Deno.env.get("EVOLUTION_API_URL") || "").replace(/\/+$/, "");
+-const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? '';
++const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY")!;
+ 
+-const supabase = createZappAdminClient();
++const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+ 
+ function isValidAudioBytes(bytes: Uint8Array): boolean {
+   if (bytes.length < 4) return false;
+@@ -24,7 +25,6 @@ async function getMediaBase64(instanceName: string, messageId: string): Promise<
+       method: "POST",
+       headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_KEY },
+       body: JSON.stringify({ message: { key: { id: messageId } }, convertToMp4: false }),
+-      signal: AbortSignal.timeout(30_000),
+     });
+     if (!resp.ok) return null;
+     const data = await resp.json();
+@@ -39,9 +39,6 @@ Deno.serve(async (req) => {
+   const corsResponse = handleCors(req);
+   if (corsResponse) return corsResponse;
+ 
+-  const denied = requireServiceRoleOrCron(req);
+-  if (denied) return denied;
+-
+   const headers = { ...getCorsHeaders(req), "Content-Type": "application/json" };
+   const log = new Logger("recover-corrupted-audios");
+ 
+@@ -87,7 +84,7 @@ Deno.serve(async (req) => {
+         const existingUrl = msg.media_url;
+         if (existingUrl) {
+           try {
+-            const checkResp = await fetch(existingUrl, { signal: AbortSignal.timeout(10_000) });
++            const checkResp = await fetch(existingUrl);
+             if (checkResp.ok) {
+               const existingBytes = new Uint8Array(await checkResp.arrayBuffer());
+               if (isValidAudioBytes(existingBytes)) { results.skipped++; continue; }
+@@ -132,6 +129,6 @@ Deno.serve(async (req) => {
+     }), { headers });
+   } catch (err) {
+     log.error("Error", { error: err instanceof Error ? err.message : String(err) });
+-    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers });
++    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }), { status: 500, headers });
+   }
+ });

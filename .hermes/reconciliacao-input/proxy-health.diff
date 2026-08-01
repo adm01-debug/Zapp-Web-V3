@@ -1,0 +1,87 @@
+diff --git a/supabase/functions/proxy-health/index.ts b/supabase/functions/proxy-health/index.ts
+index f418a694c..6b87f4c9b 100644
+--- a/supabase/functions/proxy-health/index.ts
++++ b/supabase/functions/proxy-health/index.ts
+@@ -9,11 +9,8 @@
+ //
+ // Ideal para chamar via cron a cada 5 minutos com evaluate=1.
+ 
+-import { createZappAdminClient } from '../_shared/db-client.ts'
++import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
+ import { getCorsHeaders, mergeCsvHeaderValues } from '../_shared/validation.ts'
+-import { timingSafeStringEqual } from '../_shared/auth.ts'
+-
+-const HEALTH_TOKEN = Deno.env.get('PROXY_HEALTH_TOKEN') ?? ''
+ 
+ function getJsonCorsHeaders(req?: Request) {
+   const shared = getCorsHeaders(req)
+@@ -60,7 +57,6 @@ export function quantile(sorted: number[], q: number): number {
+   return sorted[base]
+ }
+ 
+-/** Computed Metrics interface definition. */
+ export interface ComputedMetrics {
+   window_minutes: number
+   sample_size: number
+@@ -80,7 +76,6 @@ export interface ComputedMetrics {
+   by_target: Array<{ target: string; count: number; error_rate: number; p95_ms: number }>
+ }
+ 
+-/** compute Metrics function. */
+ export function computeMetrics(rows: MetricRow[], windowMinutes: number): ComputedMetrics {
+   const total = rows.length
+   if (total === 0) {
+@@ -146,7 +141,6 @@ export function computeMetrics(rows: MetricRow[], windowMinutes: number): Comput
+   }
+ }
+ 
+-/** Alert Candidate interface definition. */
+ export interface AlertCandidate {
+   kind: 'error_rate' | 'timeout_rate' | 'latency_p95'
+   severity: 'warning' | 'critical'
+@@ -154,7 +148,6 @@ export interface AlertCandidate {
+   threshold: number
+ }
+ 
+-/** evaluate Alerts function. */
+ export function evaluateAlerts(m: ComputedMetrics): AlertCandidate[] {
+   const out: AlertCandidate[] = []
+   if (m.sample_size < THRESHOLDS.min_sample_size) return out
+@@ -185,22 +178,15 @@ Deno.serve(async (req) => {
+     return new Response('ok', { headers: getJsonCorsHeaders(req) })
+   }
+ 
+-  if (HEALTH_TOKEN) {
+-    const auth = req.headers.get('Authorization') ?? ''
+-    const provided = auth.startsWith('Bearer ') ? auth.slice(7) : (new URL(req.url).searchParams.get('token') ?? '')
+-    if (!timingSafeStringEqual(provided, HEALTH_TOKEN)) {
+-      return new Response(JSON.stringify({ error: 'unauthorized' }), {
+-        status: 401,
+-        headers: { ...getJsonCorsHeaders(req), 'Content-Type': 'application/json' },
+-      })
+-    }
+-  }
+-
+   const url = new URL(req.url)
+   const windowMinutes = Math.min(Math.max(Number(url.searchParams.get('window') ?? '15'), 1), 240)
+   const evaluate = url.searchParams.get('evaluate') === '1'
+ 
+-  const supabase = createZappAdminClient()
++  const sbUrl = Deno.env.get('SUPABASE_URL')!
++  const sbKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
++  const supabase = createClient(sbUrl, sbKey, {
++    auth: { persistSession: false, autoRefreshToken: false },
++  })
+ 
+   // Fetch up to 5000 most recent samples in the window (enough for solid p95)
+   const since = new Date(Date.now() - windowMinutes * 60_000).toISOString()
+@@ -212,8 +198,7 @@ Deno.serve(async (req) => {
+     .limit(5000)
+ 
+   if (error) {
+-    console.error('[proxy-health] query failed:', error.message);
+-    return new Response(JSON.stringify({ error: "Internal server error" }), {
++    return new Response(JSON.stringify({ error: error.message }), {
+       status: 500, headers: { ...getJsonCorsHeaders(req), 'Content-Type': 'application/json' },
+     })
+   }

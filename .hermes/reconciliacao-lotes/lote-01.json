@@ -1,0 +1,10 @@
+{
+ "lote": 1,
+ "funcoes": [
+  "webauthn",
+  "approve-password-reset",
+  "login-attempts",
+  "create-user",
+  "detect-new-device"
+ ]
+}

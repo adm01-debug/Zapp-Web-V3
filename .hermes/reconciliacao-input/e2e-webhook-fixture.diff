@@ -1,0 +1,111 @@
+diff --git a/supabase/functions/e2e-webhook-fixture/index.ts b/supabase/functions/e2e-webhook-fixture/index.ts
+index 134d99cbf..5efc9b168 100644
+--- a/supabase/functions/e2e-webhook-fixture/index.ts
++++ b/supabase/functions/e2e-webhook-fixture/index.ts
+@@ -11,11 +11,15 @@
+  *
+  * Auth: service-role JWT OR an admin user JWT (same pattern as e2e-fixtures).
+  */
+-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+-import { createZappAdminClient } from '../_shared/db-client.ts';
++import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
++
++const corsHeaders = {
++  "Access-Control-Allow-Origin": "*",
++  "Access-Control-Allow-Headers":
++    "authorization, x-client-info, apikey, content-type",
++  "Access-Control-Allow-Methods": "POST, OPTIONS",
++};
+ 
+-import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+-import { timingSafeStringEqual } from '../_shared/auth.ts';
+ const E2E_PREFIX = "e2e-";
+ 
+ type Action =
+@@ -35,10 +39,10 @@ interface RequestBody {
+   remotePhone?: string; // bare digits, e.g. 5511999990000
+ }
+ 
+-function json(req: Request, status: number, body: unknown) {
++function json(status: number, body: unknown) {
+   return new Response(JSON.stringify(body), {
+     status,
+-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
++    headers: { ...corsHeaders, "Content-Type": "application/json" },
+   });
+ }
+ 
+@@ -53,8 +57,9 @@ async function authorize(req: Request): Promise<{ ok: boolean; reason?: string }
+   const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+   if (!token) return { ok: false, reason: "missing-bearer" };
+   const serviceKey = envOrThrow("SUPABASE_SERVICE_ROLE_KEY");
+-  if (timingSafeStringEqual(token, serviceKey)) return { ok: true };
+-  const admin = createZappAdminClient();
++  if (token === serviceKey) return { ok: true };
++  const url = envOrThrow("SUPABASE_URL");
++  const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+   const { data: userData, error: userErr } = await admin.auth.getUser(token);
+   if (userErr || !userData?.user) return { ok: false, reason: "invalid-jwt" };
+   const { data: roleRow } = await admin
+@@ -81,14 +86,16 @@ function validateBody(raw: unknown): { ok: true; body: RequestBody } | { ok: fal
+ }
+ 
+ function lovableClient() {
+-  return createZappAdminClient();
++  return createClient(envOrThrow("SUPABASE_URL"), envOrThrow("SUPABASE_SERVICE_ROLE_KEY"), {
++    auth: { persistSession: false },
++  });
+ }
+ 
+ function externalClient() {
+   return createClient(
+     envOrThrow("EXTERNAL_SUPABASE_URL"),
+     envOrThrow("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY"),
+-    { auth: { persistSession: false }, db: { schema: 'zapp' } },
++    { auth: { persistSession: false } },
+   );
+ }
+ 
+@@ -348,31 +355,31 @@ function safeJson(text: string) {
+ // Handler
+ // ------------------------------------------------------------------
+ Deno.serve(async (req) => {
+-  if (req.method === "OPTIONS") return handleCorsPreflight(req);
+-  if (req.method !== "POST") return json(req, 405, { error: "method-not-allowed" });
++  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
++  if (req.method !== "POST") return json(405, { error: "method-not-allowed" });
+ 
+   const authz = await authorize(req);
+-  if (!authz.ok) return json(req, 401, { error: "unauthorized", reason: authz.reason });
++  if (!authz.ok) return json(401, { error: "unauthorized", reason: authz.reason });
+ 
+   let raw: unknown;
+-  try { raw = await req.json(); } catch { return json(req, 400, { error: "invalid-json" }); }
++  try { raw = await req.json(); } catch { return json(400, { error: "invalid-json" }); }
+   const parsed = validateBody(raw);
+-  if (!parsed.ok) return json(req, 400, { error: parsed.error });
++  if (!parsed.ok) return json(400, { error: parsed.error });
+   const body = parsed.body;
+ 
+   try {
+     switch (body.action) {
+       case "seed-cloud-creds":
+-        return json(req, 200, await seedCloudCreds(body.runId));
++        return json(200, await seedCloudCreds(body.runId));
+       case "send-evolution":
+-        return json(req, 200, await sendEvolution(body.runId, body));
++        return json(200, await sendEvolution(body.runId, body));
+       case "send-cloud":
+-        return json(req, 200, await sendCloud(body.runId, body));
++        return json(200, await sendCloud(body.runId, body));
+       case "cleanup":
+-        return json(req, 200, await cleanup(body.runId));
++        return json(200, await cleanup(body.runId));
+     }
+   } catch (e) {
+-    console.error('[e2e-webhook-fixture] unhandled error:', e instanceof Error ? e.message : e);
+-    return json(req, 500, { error: "fixture-op-failed" });
++    const msg = e instanceof Error ? e.message : String(e);
++    return json(500, { error: "fixture-op-failed", message: msg });
+   }
+ });

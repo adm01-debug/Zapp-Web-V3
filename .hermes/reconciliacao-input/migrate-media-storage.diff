@@ -1,0 +1,255 @@
+diff --git a/supabase/functions/migrate-media-storage/index.ts b/supabase/functions/migrate-media-storage/index.ts
+index 2e4f5879b..b0cadb65a 100644
+--- a/supabase/functions/migrate-media-storage/index.ts
++++ b/supabase/functions/migrate-media-storage/index.ts
+@@ -1,64 +1,19 @@
+-import { type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+-import { handleCors, jsonResponse, errorResponse, Logger } from "../_shared/validation.ts";
+-import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+-import { createZappAdminClient } from "../_shared/db-client.ts";
+-import { getStoragePublicUrl } from "../_shared/storage-url.ts";
+-
+-/**
+- * Edge Function: WhatsApp Media Migration Service
+- *
+- * Migrates media attachments from temporary WhatsApp CDN URLs to permanent Supabase Storage.
+- * WhatsApp CDN URLs expire after 24-72 hours; permanent storage ensures messages remain queryable.
+- *
+- * Security & Authorization:
+- * - Service-role or cron-triggered only (no user access)
+- * - Prevents unauthorized bulk media downloads/storage abuse
+- * - Scheduled via pg_cron for periodic batch processing
+- *
+- * Migration Strategy:
+- * 1. Query messages table for rows with WhatsApp CDN URLs (mmg.whatsapp.net, pps.whatsapp.net)
+- * 2. For each message:
+- *    a. Fetch media from CDN using stored auth_token (expires soon)
+- *    b. Upload to Supabase Storage (permanent, never expires)
+- *    c. Update messages.media_url to new storage path (gs://bucket/object)
+- *    d. Log success/failure to query_telemetry
+- * 3. Return summary: processed, migrated, failed count
+- *
+- * Failure Handling:
+- * - Transient errors (network timeout, CDN 502): Logged, skipped (retry on next run)
+- * - Permanent errors (CDN 404, invalid auth): Logged, not retried
+- * - If messages query fails: Fall back to simpler migration logic (see migrateSimple)
+- * - Returns 200 even on partial failures (idempotent; next run catches remainder)
+- *
+- * Storage Path Format:
+- * - Input: https://mmg.whatsapp.net/d/f/Ad12345abcdef... (WhatsApp CDN)
+- * - Output: gs://zapp-web-v3-bucket/whatsapp-media/2026/07/message-uuid-image.jpg
+- * - Preserves media type (image, video, audio, document) in path for organization
+- *
+- * Performance:
+- * - Batch size: 50 messages per run (prevents timeout, manageable API load)
+- * - Ordered by created_at DESC (migrates newest first; older media already likely expired)
+- * - Parallel downloads + uploads (not sequential per message)
+- * - Rate limit: 60 requests/60s per service (respects API quotas)
+- *
+- * Monitoring:
+- * - Logs to query_telemetry (one row per run: count, duration, error_count)
+- * - Alert on high failure rate (> 20% failures → possible auth revocation)
+- * - Tracks storage usage growth (how much data moved to permanent storage)
+- */
+-Deno.serve(async (req) => {
++import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
++import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
++import { handleCors, jsonResponse, errorResponse, Logger, requireEnv } from "../_shared/validation.ts";
++
++serve(async (req) => {
+   const corsResponse = handleCors(req);
+   if (corsResponse) return corsResponse;
+ 
+-  const denied = requireServiceRoleOrCron(req);
+-  if (denied) return denied;
+-
+   const log = new Logger("migrate-media-storage");
+ 
+   try {
++    const supabaseUrl = requireEnv('SUPABASE_URL');
++    const supabaseKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
+     const evolutionUrl = Deno.env.get('EVOLUTION_API_URL');
+     const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
+-    const supabase = createZappAdminClient();
++    const supabase = createClient(supabaseUrl, supabaseKey);
+ 
+     // Get all active WhatsApp connections with instance IDs
+     const { data: connections } = await supabase
+@@ -68,14 +23,8 @@ Deno.serve(async (req) => {
+       .limit(10);
+ 
+     const instanceMap = new Map<string, string>();
+-    const connsArray = Array.isArray(connections) ? connections : [];
+-    for (const conn of connsArray) {
+-      if (typeof conn === 'object' && conn !== null && !Array.isArray(conn)) {
+-        const connObj = conn as Record<string, unknown>;
+-        const id = typeof connObj.id === 'string' ? connObj.id : '';
+-        const instanceId = typeof connObj.instance_id === 'string' ? connObj.instance_id : '';
+-        if (id && instanceId) instanceMap.set(id, instanceId);
+-      }
++    for (const conn of connections || []) {
++      if (conn.instance_id) instanceMap.set(conn.id, conn.instance_id);
+     }
+ 
+     // Find all messages with WhatsApp CDN URLs
+@@ -107,48 +56,36 @@ Deno.serve(async (req) => {
+     const details: string[] = [];
+ 
+     for (const msg of messages) {
+-      let messageId = '';
+-      let messageType = '';
+-
+       try {
+-        if (typeof msg !== 'object' || msg === null || Array.isArray(msg)) continue;
+-        const msgObj = msg as Record<string, unknown>;
+-        const mediaUrl = typeof msgObj.media_url === 'string' ? msgObj.media_url : '';
+-        messageType = typeof msgObj.message_type === 'string' ? msgObj.message_type : '';
+-        messageId = typeof msgObj.id === 'string' ? msgObj.id : '';
+-        const externalId = typeof msgObj.external_id === 'string' ? msgObj.external_id : '';
+-        const connId = typeof msgObj.whatsapp_connection_id === 'string' ? msgObj.whatsapp_connection_id : '';
+-
+-        if (!mediaUrl || !messageType || !messageId) continue;
+-
+-        let permanentUrl = await downloadAndUpload(supabase, mediaUrl, messageType, messageId, log);
++        let permanentUrl = await downloadAndUpload(supabase, msg.media_url, msg.message_type, msg.id, log);
+ 
+-        if (!permanentUrl && evolutionUrl && evolutionKey && externalId) {
+-          log.info("CDN failed, trying API fallback", { messageId: messageId });
++        if (!permanentUrl && evolutionUrl && evolutionKey && msg.external_id) {
++          log.info("CDN failed, trying API fallback", { messageId: msg.id });
++          const connId = msg.whatsapp_connection_id;
+           const instance = connId ? instanceMap.get(connId) : null;
+           const instancesToTry = instance ? [instance] : Array.from(instanceMap.values());
+ 
+           for (const inst of instancesToTry) {
+             permanentUrl = await getBase64Fallback(
+               supabase, evolutionUrl, evolutionKey, inst,
+-              externalId, messageType, messageId, log
++              msg.external_id, msg.message_type, msg.id, log
+             );
+             if (permanentUrl) break;
+           }
+         }
+ 
+         if (permanentUrl) {
+-          await supabase.from('messages').update({ media_url: permanentUrl }).eq('id', messageId);
++          await supabase.from('messages').update({ media_url: permanentUrl }).eq('id', msg.id);
+           migrated++;
+-          details.push(`✅ ${messageType} ${messageId.substring(0, 8)}`);
++          details.push(`✅ ${msg.message_type} ${msg.id.substring(0, 8)}`);
+         } else {
+           failed++;
+-          details.push(`❌ ${messageType} ${messageId.substring(0, 8)} (irrecuperável)`);
++          details.push(`❌ ${msg.message_type} ${msg.id.substring(0, 8)} (irrecuperável)`);
+         }
+       } catch (err) {
+-        log.error(`Migration error for ${messageId}`, { error: err instanceof Error ? err.message : String(err) });
++        log.error(`Migration error for ${msg.id}`, { error: err instanceof Error ? err.message : String(err) });
+         failed++;
+-        details.push(`❌ ${messageType} ${messageId.substring(0, 8)} (erro)`);
++        details.push(`❌ ${msg.message_type} ${msg.id.substring(0, 8)} (erro)`);
+       }
+ 
+       await new Promise(r => setTimeout(r, 300));
+@@ -168,12 +105,13 @@ Deno.serve(async (req) => {
+   } catch (err: unknown) {
+     log.error('Migration error', { error: err instanceof Error ? err.message : String(err) });
+     log.done(500);
+-    return errorResponse('Internal server error', 500, req);
++    return errorResponse(err instanceof Error ? err.message : 'Unknown error', 500, req);
+   }
+ });
+ 
+ async function downloadAndUpload(
+-  supabase: SupabaseClient,
++  // deno-lint-ignore no-explicit-any
++  supabase: any,
+   cdnUrl: string,
+   messageType: string,
+   messageId: string,
+@@ -203,7 +141,8 @@ async function downloadAndUpload(
+ }
+ 
+ async function getBase64Fallback(
+-  supabase: SupabaseClient,
++  // deno-lint-ignore no-explicit-any
++  supabase: any,
+   evolutionUrl: string,
+   evolutionKey: string,
+   instance: string,
+@@ -229,18 +168,8 @@ async function getBase64Fallback(
+       return null;
+     }
+ 
+-    let result: unknown;
+-    try {
+-      result = await resp.json();
+-    } catch {
+-      return null;
+-    }
+-
+-    if (typeof result !== 'object' || result === null || Array.isArray(result)) return null;
+-    const resultObj = result as Record<string, unknown>;
+-    const b64 = (typeof resultObj.base64 === 'string' ? resultObj.base64 : '')
+-      || (typeof resultObj.data === 'string' ? resultObj.data : '')
+-      || (typeof resultObj.media === 'string' ? resultObj.media : '');
++    const result = await resp.json();
++    const b64 = (result.base64 as string) || (result.data as string) || (result.media as string);
+     if (!b64) return null;
+ 
+     const raw = b64.includes(',') ? b64.split(',')[1] : b64;
+@@ -250,7 +179,7 @@ async function getBase64Fallback(
+ 
+     if (bytes.length < 100) return null;
+ 
+-    const mimeType = (typeof resultObj.mimetype === 'string' ? resultObj.mimetype : '') || 'application/octet-stream';
++    const mimeType = (result.mimetype as string) || 'application/octet-stream';
+     const ext = detectExtension(mimeType, messageType);
+     return await uploadToStorage(supabase, bytes, mimeType, messageType, messageId, ext);
+   } catch (err) {
+@@ -273,7 +202,8 @@ function detectExtension(contentType: string, messageType: string): string {
+ }
+ 
+ async function uploadToStorage(
+-  supabase: SupabaseClient,
++  // deno-lint-ignore no-explicit-any
++  supabase: any,
+   bytes: Uint8Array,
+   contentType: string,
+   messageType: string,
+@@ -293,11 +223,13 @@ async function uploadToStorage(
+     return null;
+   }
+ 
+-  return getStoragePublicUrl(bucket, fileName);
++  const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
++  return urlData.publicUrl;
+ }
+ 
+ async function migrateSimple(
+-  supabase: SupabaseClient,
++  // deno-lint-ignore no-explicit-any
++  supabase: any,
+   req: Request,
+   log: Logger,
+ ): Promise<Response> {
+@@ -318,17 +250,9 @@ async function migrateSimple(
+   let failed = 0;
+ 
+   for (const msg of messages) {
+-    if (typeof msg !== 'object' || msg === null || Array.isArray(msg)) continue;
+-    const msgObj = msg as Record<string, unknown>;
+-    const mediaUrl = typeof msgObj.media_url === 'string' ? msgObj.media_url : '';
+-    const messageType = typeof msgObj.message_type === 'string' ? msgObj.message_type : '';
+-    const messageId = typeof msgObj.id === 'string' ? msgObj.id : '';
+-
+-    if (!mediaUrl || !messageType || !messageId) continue;
+-
+-    const url = await downloadAndUpload(supabase, mediaUrl, messageType, messageId, log);
++    const url = await downloadAndUpload(supabase, msg.media_url, msg.message_type, msg.id, log);
+     if (url) {
+-      await supabase.from('messages').update({ media_url: url }).eq('id', messageId);
++      await supabase.from('messages').update({ media_url: url }).eq('id', msg.id);
+       migrated++;
+     } else {
+       failed++;

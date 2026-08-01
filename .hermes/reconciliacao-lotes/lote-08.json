@@ -1,0 +1,10 @@
+{
+ "lote": 8,
+ "funcoes": [
+  "ai-auto-tag",
+  "automation-suggest-reply",
+  "audio-transcribe",
+  "ai-transcribe-audio",
+  "ai-proxy"
+ ]
+}

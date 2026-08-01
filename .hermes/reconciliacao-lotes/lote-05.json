@@ -1,0 +1,10 @@
+{
+ "lote": 5,
+ "funcoes": [
+  "_test",
+  "gmail-send",
+  "gmail-token-refresh",
+  "talkx-send",
+  "gmail-oauth"
+ ]
+}

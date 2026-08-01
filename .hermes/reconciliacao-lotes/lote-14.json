@@ -1,0 +1,10 @@
+{
+ "lote": 14,
+ "funcoes": [
+  "instance-pause-control",
+  "whatsapp-cloud-send",
+  "voice-agent",
+  "recheck-webhook-signature",
+  "evolution-credentials"
+ ]
+}

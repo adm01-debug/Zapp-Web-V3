@@ -1,0 +1,376 @@
+diff --git a/supabase/functions/webhook-diagnostic/contract.test.ts b/supabase/functions/webhook-diagnostic/contract.test.ts
+index 29e8d3d01..87140e4df 100644
+--- a/supabase/functions/webhook-diagnostic/contract.test.ts
++++ b/supabase/functions/webhook-diagnostic/contract.test.ts
+@@ -1,68 +1,65 @@
+-/**
+- * Testes de contrato do webhook-diagnostic e schemas compartilhados.
+- * [REWRITE 2026-07-10] Arquivo reescrito: versão anterior referenciava API
+- * antiga (campo `messages` e `result.fieldErrors`) que não existe mais em
+- * `schemas.ts` — 4/5 testes falhavam permanentemente na main.
+- */
+-import { assertEquals, assert } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+-import { parseBody, AiSuggestReplySchema } from "../_shared/schemas.ts";
+-import { WebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
+-import { WebhookDiagnosticV1Schema } from "../_shared/contract-schemas.ts";
+ 
+-function issuePaths(result: ReturnType<typeof parseBody>): string[] {
+-  return result.success ? [] : (result.issues ?? []).map((i) => i.path.join("."));
+-}
++import { assertEquals } from "https://deno.land/std@0.168.0/testing/asserts.ts";
++import { parseBody, AiSuggestReplySchema, WebhookPayloadSchema } from "../_shared/schemas.ts";
+ 
+-Deno.test("Contract: AiSuggestReplySchema - payload válido", () => {
++Deno.test("Contract: AiSuggestReplySchema - Valid Payload", () => {
+   const payload = {
+-    conversationHistory: [
+-      { role: "agent", content: "Olá!" },
+-      { role: "user", content: "Como posso ajudar?" },
++    messages: [
++      { sender: "agent", content: "Olá!" },
++      { sender: "user", content: "Como posso ajudar?" }
+     ],
+     contactName: "João Silva",
+-    contactId: "550e8400-e29b-41d4-a716-446655440000",
+-    requestId: "test-req-550e8400-e29b-41d4-a716-446655440000",
++    contactId: "550e8400-e29b-41d4-a716-446655440000"
+   };
++  
+   const result = parseBody(AiSuggestReplySchema, payload);
+-  assertEquals(result.success, true, JSON.stringify(result));
++  assertEquals(result.success, true);
+ });
+ 
+-Deno.test("Contract: AiSuggestReplySchema - payload inválido (cenário 422)", () => {
++Deno.test("Contract: AiSuggestReplySchema - Invalid Payload (422 Scenario)", () => {
+   const payload = {
+-    conversationHistory: "not-an-array", // deve ser array
+-    contactId: "invalid-uuid",           // deve ser UUID
++    messages: "not-an-array", // Error: messages must be array
++    contactId: "invalid-uuid"  // Error: must be UUID
+   };
++  
+   const result = parseBody(AiSuggestReplySchema, payload);
+   assertEquals(result.success, false);
+-  const paths = issuePaths(result);
+-  assert(paths.includes("conversationHistory"), `esperava issue em conversationHistory: ${paths}`);
+-  assert(paths.includes("contactId"), `esperava issue em contactId: ${paths}`);
++  if (!result.success) {
++    assertEquals(!!result.fieldErrors.messages, true);
++    assertEquals(!!result.fieldErrors.contactId, true);
++  }
+ });
+ 
+-Deno.test("Contract: WebhookPayloadSchema - payload Evolution válido", () => {
+-  const payload = { event: "messages.upsert", instance: "main-instance", data: { id: "msg-123" } };
++Deno.test("Contract: WebhookPayloadSchema - Valid Evolution Payload", () => {
++  const payload = {
++    event: "messages.upsert",
++    instance: "main-instance",
++    data: { id: "msg-123", content: "Hello" }
++  };
++  
+   const result = parseBody(WebhookPayloadSchema, payload);
+-  assertEquals(result.success, true, JSON.stringify(result));
++  assertEquals(result.success, true);
+ });
+ 
+-Deno.test("Contract: WebhookPayloadSchema - campo obrigatório ausente", () => {
+-  const result = parseBody(WebhookPayloadSchema, { event: "messages.upsert" }); // sem instance
++Deno.test("Contract: WebhookPayloadSchema - Missing Required Fields", () => {
++  const payload = {
++    event: "messages.upsert"
++    // Missing instance
++  };
++  
++  const result = parseBody(WebhookPayloadSchema, payload);
+   assertEquals(result.success, false);
+-  // WebhookPayloadSchema é union(V1,V2): Zod reporta invalid_union na raiz,
+-  // com os erros por campo aninhados em unionErrors — basta garantir a rejeição
+-  // e que a mensagem serializada aponte o campo ausente.
+-  const serialized = JSON.stringify(result.success ? {} : result.issues);
+-  assert(serialized.includes("instance") || issuePaths(result).includes("instance") || issuePaths(result).includes(""),
+-    `esperava rejeição apontando instance: ${serialized}`);
++  if (!result.success) {
++    assertEquals(!!result.fieldErrors.instance, true);
++  }
+ });
+ 
+-Deno.test("Contract: WebhookPayloadSchema - valores vazios rejeitados", () => {
+-  const result = parseBody(WebhookPayloadSchema, { event: "", instance: "   " });
++Deno.test("Contract: WebhookPayloadSchema - Empty Values Validation", () => {
++  const payload = {
++    event: "",
++    instance: "   "
++  };
++  
++  const result = parseBody(WebhookPayloadSchema, payload);
+   assertEquals(result.success, false);
+ });
+-
+-Deno.test("Contract: WebhookDiagnosticV1Schema - body do próprio endpoint", () => {
+-  assertEquals(WebhookDiagnosticV1Schema.safeParse({}).success, true);
+-  assertEquals(WebhookDiagnosticV1Schema.safeParse({ action: "ping", instanceName: "wpp2" }).success, true);
+-  assertEquals(WebhookDiagnosticV1Schema.safeParse({ instanceName: "" }).success, false);
+-});
+diff --git a/supabase/functions/webhook-diagnostic/diagnostic.test.ts b/supabase/functions/webhook-diagnostic/diagnostic.test.ts
+index cb9b59241..58f8a4d1f 100644
+--- a/supabase/functions/webhook-diagnostic/diagnostic.test.ts
++++ b/supabase/functions/webhook-diagnostic/diagnostic.test.ts
+@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+ 
+ // Mock implementation of logic for testing without actual DB/API calls
+ // In a real scenario, we'd use a test DB or mock the fetch
+-function calculateHealthScore(connections: { status: string }[], webhooks: { configured: boolean }[]) {
++function calculateHealthScore(connections: any[], webhooks: any[]) {
+   if (connections.length === 0) return 0;
+   const activeCount = connections.filter(c => c.status === 'connected').length;
+   const webhookOk = webhooks.every(w => w.configured);
+@@ -37,7 +37,7 @@ Deno.test("Health Score Calculation - Webhook Missing", () => {
+ });
+ 
+ Deno.test("Health Score Calculation - No Connections", () => {
+-  const connections: { status: string }[] = [];
++  const connections: any[] = [];
+   const webhooks = [{ configured: true }];
+   const score = calculateHealthScore(connections, webhooks);
+   assertEquals(score, 0);
+diff --git a/supabase/functions/webhook-diagnostic/index.ts b/supabase/functions/webhook-diagnostic/index.ts
+index 2db80332f..927d89222 100644
+--- a/supabase/functions/webhook-diagnostic/index.ts
++++ b/supabase/functions/webhook-diagnostic/index.ts
+@@ -1,92 +1,191 @@
+-import { createZappAdminClient } from '../_shared/db-client.ts';
++import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+ import { WEBHOOK_EVENTS } from '../_shared/evolution-sync-actions.ts';
+-import { requireAdminOrSupervisor } from '../_shared/auth.ts';
+-import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
++
++const corsHeaders = {
++  'Access-Control-Allow-Origin': '*',
++  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
++};
+ 
+ Deno.serve(async (req: Request) => {
+-  if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
++  if (req.method === 'OPTIONS') {
++    return new Response('ok', { headers: corsHeaders });
++  }
+ 
+   try {
+-    const authed = await requireAdminOrSupervisor(req);
+-    if (authed instanceof Response) return authed;
+-
++    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
++    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+     const evolutionUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
+-    const evolutionKey = Deno.env.get('EVOLUTION_API_KEY') ?? '';
+-    const supabase = createZappAdminClient();
++    const evolutionKey = Deno.env.get('EVOLUTION_API_KEY')!;
++    const supabase = createClient(supabaseUrl, serviceKey);
+ 
+     const body = await req.json().catch(() => ({}));
+     const action = body.action || 'full-diagnostic';
+-    const rawInstanceName: unknown = body.instanceName;
++    const instanceName = body.instanceName;
+ 
+-    const INSTANCE_RE = /^[a-zA-Z0-9_-]{1,64}$/;
+-    if (rawInstanceName !== undefined && rawInstanceName !== null) {
+-      if (typeof rawInstanceName !== 'string' || !INSTANCE_RE.test(rawInstanceName)) {
+-        return new Response(JSON.stringify({ error: 'instanceName contains invalid characters' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+-      }
+-    }
+-    const instanceName = rawInstanceName as string | undefined;
+     const results: Record<string, unknown> = { timestamp: new Date().toISOString(), action };
+ 
+-    const { data: connections } = await supabase.from('whatsapp_connections').select('id, instance_id, status, health_status, last_health_check, phone_number');
+-    results.connections = connections?.map(c => ({ instance: c.instance_id, dbStatus: c.status, healthStatus: c.health_status, phone: c.phone_number, lastCheck: c.last_health_check })) || [];
++    // 1. Check all connections in DB
++    const { data: connections } = await supabase
++      .from('whatsapp_connections')
++      .select('id, instance_id, status, health_status, last_health_check, phone_number');
++
++    results.connections = connections?.map(c => ({
++      instance: c.instance_id,
++      dbStatus: c.status,
++      healthStatus: c.health_status,
++      phone: c.phone_number,
++      lastCheck: c.last_health_check,
++    })) || [];
++
++    // 2. For each connection (or specified), check Evolution API directly
++    const instances = instanceName
++      ? [{ instance_id: instanceName }]
++      : (connections || []);
+ 
+-    const instances = instanceName ? [{ instance_id: instanceName }] : (connections || []);
+     const diagnostics = [];
+ 
+     for (const conn of instances) {
+       const diag: Record<string, unknown> = { instance: conn.instance_id };
+-      const dbConnRecord = (connections || []).find((c: Record<string, unknown>) => c.instance_id === conn.instance_id);
+ 
++      // 2a. Check instance connection state
++      const dbConnRecord = (connections || []).find((c: Record<string, unknown>) => c.instance_id === conn.instance_id);
+       try {
+         let state = 'unknown';
+-        const statusRes = await fetch(`${evolutionUrl}/instance/connectionState/${conn.instance_id}`, { headers: { apikey: evolutionKey }, signal: AbortSignal.timeout(10000) });
+-        if (statusRes.ok) { const statusData = await statusRes.json(); state = statusData?.instance?.state || statusData?.state || 'unknown'; }
+-        if (state === 'unknown') state = dbConnRecord?.status === 'connected' ? 'open' : (dbConnRecord?.status || 'unknown');
++        // /instance/connectionState returns {"instance":{"state":"open"}} — correct endpoint for status checks
++        const statusRes = await fetch(`${evolutionUrl}/instance/connectionState/${conn.instance_id}`, {
++          headers: { apikey: evolutionKey },
++          signal: AbortSignal.timeout(10000),
++        });
++        if (statusRes.ok) {
++          const statusData = await statusRes.json();
++          state = statusData?.instance?.state || statusData?.state || 'unknown';
++        }
++        // Fallback: use DB status if API unreachable
++        if (state === 'unknown') {
++          state = dbConnRecord?.status === 'connected' ? 'open' : (dbConnRecord?.status || 'unknown');
++        }
+         diag.connectionState = state;
+         diag.statusOk = state === 'open' || state === 'connected';
+-      } catch (e) { diag.connectionState = 'error'; diag.statusError = e instanceof Error ? e.message : 'timeout'; }
++      } catch (e) {
++        diag.connectionState = 'error';
++        diag.statusError = e instanceof Error ? e.message : 'timeout';
++      }
+ 
++      // 2b. Check webhook configuration
+       try {
+-        const whRes = await fetch(`${evolutionUrl}/webhook/find/${conn.instance_id}`, { headers: { apikey: evolutionKey }, signal: AbortSignal.timeout(10000) });
+-        const whData = await whRes.json().catch(() => ({}));
++        const whRes = await fetch(`${evolutionUrl}/webhook/find/${conn.instance_id}`, {
++          headers: { apikey: evolutionKey },
++          signal: AbortSignal.timeout(10000),
++        });
++        const whData = await whRes.json();
+         const webhook = whData?.webhook || whData;
++        
+         const expectedUrl = `${supabaseUrl}/functions/v1/evolution-webhook`;
+         const currentUrl = webhook?.url || webhook?.webhookUrl || '';
+         const events = webhook?.events || [];
++
+         const criticalEvents = ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED', 'CONTACTS_UPSERT', 'SEND_MESSAGE'];
+         const missingEvents = criticalEvents.filter(e => !events.includes(e));
+         const missingAll = WEBHOOK_EVENTS.filter(e => !events.includes(e));
+-        diag.webhook = { url: currentUrl, urlCorrect: currentUrl === expectedUrl, expectedUrl, eventsCount: events.length, events, missingCritical: missingEvents, missingFromCanonical: missingAll, enabled: webhook?.enabled !== false, webhookByEvents: webhook?.webhookByEvents, webhookBase64: webhook?.webhookBase64 };
+-        if (!currentUrl || currentUrl !== expectedUrl) { diag.webhookSeverity = 'critical'; diag.webhookIssue = 'URL incorreta ou ausente'; }
+-        else if (missingEvents.length > 0) { diag.webhookSeverity = 'warning'; diag.webhookIssue = `${missingEvents.length} eventos críticos ausentes`; }
+-        else { diag.webhookSeverity = 'ok'; }
+-      } catch (e) { diag.webhook = { error: e instanceof Error ? e.message : 'timeout' }; diag.webhookSeverity = 'error'; }
+ 
++        diag.webhook = {
++          url: currentUrl,
++          urlCorrect: currentUrl === expectedUrl,
++          expectedUrl,
++          eventsCount: events.length,
++          events,
++          missingCritical: missingEvents,
++          missingFromCanonical: missingAll,
++          enabled: webhook?.enabled !== false,
++          webhookByEvents: webhook?.webhookByEvents,
++          webhookBase64: webhook?.webhookBase64,
++        };
++
++        // Severity assessment
++        if (!currentUrl || currentUrl !== expectedUrl) {
++          diag.webhookSeverity = 'critical';
++          diag.webhookIssue = 'URL incorreta ou ausente';
++        } else if (missingEvents.length > 0) {
++          diag.webhookSeverity = 'warning';
++          diag.webhookIssue = `${missingEvents.length} eventos críticos ausentes`;
++        } else {
++          diag.webhookSeverity = 'ok';
++        }
++      } catch (e) {
++        diag.webhook = { error: e instanceof Error ? e.message : 'timeout' };
++        diag.webhookSeverity = 'error';
++      }
++
++      // 2c. Check recent message flow (scoped to this instance via whatsapp_connection_id)
+       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+       const connDbId = dbConnRecord?.id as string | undefined;
+-      let msgQuery = supabase.from('messages').select('sender, created_at').gte('created_at', oneHourAgo);
++      let msgQuery = supabase
++        .from('messages')
++        .select('sender, created_at')
++        .gte('created_at', oneHourAgo);
+       if (connDbId) msgQuery = msgQuery.eq('whatsapp_connection_id', connDbId);
+       const { data: recentMsgs } = await msgQuery;
++
+       const incoming = recentMsgs?.filter(m => m.sender === 'contact').length || 0;
+       const outgoing = recentMsgs?.filter(m => m.sender === 'agent').length || 0;
+-      diag.messageFlow = { lastHour: { incoming, outgoing, total: (recentMsgs?.length || 0) }, incomingOk: incoming > 0, flowHealth: incoming === 0 && outgoing > 0 ? 'outbound-only' : incoming === 0 ? 'no-traffic' : 'healthy' };
+ 
++      diag.messageFlow = {
++        lastHour: { incoming, outgoing, total: (recentMsgs?.length || 0) },
++        incomingOk: incoming > 0,
++        flowHealth: incoming === 0 && outgoing > 0 ? 'outbound-only' : incoming === 0 ? 'no-traffic' : 'healthy',
++      };
++
++      // 2d. Auto-fix if requested
+       if (action === 'auto-fix' && (diag.webhookSeverity === 'critical' || diag.webhookSeverity === 'warning')) {
+         try {
+-          const fixRes = await fetch(`${evolutionUrl}/webhook/set/${conn.instance_id}`, { method: 'POST', headers: { apikey: evolutionKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ webhook: { enabled: true, url: `${supabaseUrl}/functions/v1/evolution-webhook`, webhookByEvents: false, webhookBase64: true, events: WEBHOOK_EVENTS } }), signal: AbortSignal.timeout(15000) });
++          // Evolution API v4.x requires the body wrapped in { webhook: { ... } }
++          const fixRes = await fetch(`${evolutionUrl}/webhook/set/${conn.instance_id}`, {
++            method: 'POST',
++            headers: { apikey: evolutionKey, 'Content-Type': 'application/json' },
++            body: JSON.stringify({
++              webhook: {
++                enabled: true,
++                url: `${supabaseUrl}/functions/v1/evolution-webhook`,
++                webhookByEvents: false,
++                webhookBase64: true,
++                events: WEBHOOK_EVENTS,
++              },
++            }),
++            signal: AbortSignal.timeout(15000),
++          });
+           diag.autoFix = { applied: fixRes.ok, status: fixRes.status };
+-        } catch (e) { diag.autoFix = { applied: false, error: e instanceof Error ? e.message : 'failed' }; }
++        } catch (e) {
++          diag.autoFix = { applied: false, error: e instanceof Error ? e.message : 'failed' };
++        }
+       }
++
+       diagnostics.push(diag);
+     }
+ 
+     results.diagnostics = diagnostics;
+-    const scores = diagnostics.map(d => { let score = 100; if (d.connectionState !== 'open') score -= 40; if (d.webhookSeverity === 'critical') score -= 40; else if (d.webhookSeverity === 'warning') score -= 20; if ((d.messageFlow as Record<string, unknown>)?.flowHealth !== 'healthy') score -= 20; return Math.max(0, score); });
+-    results.overallHealth = { score: scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0, status: scores.every(s => s >= 80) ? 'healthy' : scores.some(s => s < 40) ? 'critical' : 'degraded' };
+ 
+-    return new Response(JSON.stringify(results), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
++    // 3. Overall health score
++    const scores = diagnostics.map(d => {
++      let score = 100;
++      if (d.connectionState !== 'open') score -= 40;
++      if (d.webhookSeverity === 'critical') score -= 40;
++      else if (d.webhookSeverity === 'warning') score -= 20;
++      if ((d.messageFlow as Record<string, unknown>)?.flowHealth !== 'healthy') score -= 20;
++      return Math.max(0, score);
++    });
++
++    results.overallHealth = {
++      score: scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0,
++      status: scores.every(s => s >= 80) ? 'healthy' : scores.some(s => s < 40) ? 'critical' : 'degraded',
++    };
++
++    return new Response(JSON.stringify(results), {
++      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
++    });
+   } catch (err) {
+-    console.error('[webhook-diagnostic] error:', err instanceof Error ? err.message : String(err));
+-    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
++    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' }), {
++      status: 500,
++      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
++    });
+   }
+-});
+\ No newline at end of file
++});

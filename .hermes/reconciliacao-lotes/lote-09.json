@@ -1,0 +1,10 @@
+{
+ "lote": 9,
+ "funcoes": [
+  "ai-suggest-reply",
+  "metrics",
+  "send-scheduled-report",
+  "connection-health-check",
+  "talkx-control"
+ ]
+}

@@ -1,0 +1,10 @@
+{
+ "lote": 17,
+ "funcoes": [
+  "secure-upload",
+  "webhook-secret-status",
+  "whatsapp-cloud-api",
+  "contact-media",
+  "e2e-webhook-fixture"
+ ]
+}

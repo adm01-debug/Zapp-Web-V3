@@ -1,0 +1,46 @@
+diff --git a/supabase/functions/virustotal-test/index.ts b/supabase/functions/virustotal-test/index.ts
+index 0efc9554c..e23585631 100644
+--- a/supabase/functions/virustotal-test/index.ts
++++ b/supabase/functions/virustotal-test/index.ts
+@@ -1,5 +1,5 @@
+-import { handleCors, jsonResponse, Logger, errorResponse, checkRateLimit } from "../_shared/validation.ts";
+-import { requireUser } from "../_shared/auth.ts";
++import { handleCors, jsonResponse, Logger, errorResponse } from "../_shared/validation.ts";
++import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+ 
+ /**
+  * Endpoint to test VirusTotal connection and API Key
+@@ -10,17 +10,11 @@ Deno.serve(async (req) => {
+ 
+   const log = new Logger("virustotal-test", req);
+ 
+-  try {
+-    const authed = await requireUser(req);
+-    if (authed instanceof Response) return authed;
+-
+-    const rl = checkRateLimit(`virustotal-test:${authed.user.id}`, 10, 60_000);
+-    if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);
+-
+-    if (req.method !== "POST") {
+-      return errorResponse("Method not allowed", 405, req);
+-    }
++  if (req.method !== "POST") {
++    return errorResponse("Method not allowed", 405, req);
++  }
+ 
++  try {
+     const { apiKey } = await req.json();
+ 
+     if (!apiKey) {
+@@ -34,10 +28,9 @@ Deno.serve(async (req) => {
+       headers: {
+         "x-apikey": apiKey,
+       },
+-      signal: AbortSignal.timeout(10_000),
+     });
+ 
+-    const data = await response.json().catch(() => ({}));
++    const data = await response.json();
+ 
+     if (!response.ok) {
+       log.error("VirusTotal API test failed", { status: response.status, data });

@@ -1,0 +1,10 @@
+{
+ "lote": 4,
+ "funcoes": [
+  "evolution-sender",
+  "ai-router",
+  "_shared",
+  "gmail-sync",
+  "outlook-oauth"
+ ]
+}

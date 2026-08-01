@@ -1,0 +1,43 @@
+diff --git a/supabase/functions/elevenlabs-scribe-token/index.ts b/supabase/functions/elevenlabs-scribe-token/index.ts
+index 25bb4fcc1..053c20896 100644
+--- a/supabase/functions/elevenlabs-scribe-token/index.ts
++++ b/supabase/functions/elevenlabs-scribe-token/index.ts
+@@ -1,5 +1,4 @@
+-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit } from "../_shared/validation.ts";
+-import { requireUser } from "../_shared/auth.ts";
++import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+ 
+ Deno.serve(async (req) => {
+   const cors = handleCors(req);
+@@ -8,12 +7,6 @@ Deno.serve(async (req) => {
+   const log = new Logger("elevenlabs-scribe-token");
+ 
+   try {
+-    const authed = await requireUser(req);
+-    if (authed instanceof Response) return authed;
+-
+-    const rl = checkRateLimit(`elevenlabs-scribe-token:${authed.user.id}`, 20, 60_000);
+-    if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);
+-
+     const ELEVENLABS_API_KEY = requireEnv('ELEVENLABS_API_KEY');
+ 
+     log.info("Requesting ElevenLabs realtime scribe token");
+@@ -21,7 +14,6 @@ Deno.serve(async (req) => {
+     const response = await fetch('https://api.elevenlabs.io/v1/single-use-token/realtime_scribe', {
+       method: 'POST',
+       headers: { 'xi-api-key': ELEVENLABS_API_KEY },
+-      signal: AbortSignal.timeout(10_000),
+     });
+ 
+     if (!response.ok) {
+@@ -36,7 +28,8 @@ Deno.serve(async (req) => {
+     log.done(200);
+     return jsonResponse({ token: data.token }, 200, req);
+   } catch (error) {
+-    log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
+-    return errorResponse('Internal server error', 500, req);
++    const msg = error instanceof Error ? error.message : 'Unknown error';
++    log.error("Unhandled error", { error: msg });
++    return errorResponse(msg, 500, req);
+   }
+ });

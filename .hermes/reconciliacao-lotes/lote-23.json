@@ -1,0 +1,10 @@
+{
+ "lote": 23,
+ "funcoes": [
+  "classify-sticker",
+  "elevenlabs-dialogue",
+  "elevenlabs-scribe-token",
+  "elevenlabs-tts-stream",
+  "mcp-server"
+ ]
+}

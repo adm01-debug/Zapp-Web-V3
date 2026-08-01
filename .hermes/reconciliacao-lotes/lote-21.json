@@ -1,0 +1,10 @@
+{
+ "lote": 21,
+ "funcoes": [
+  "promogifts-catalog",
+  "email-track-pixel",
+  "email-track-link",
+  "virustotal-test",
+  "elevenlabs-tts"
+ ]
+}

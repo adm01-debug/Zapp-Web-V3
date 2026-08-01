@@ -1,0 +1,166 @@
+diff --git a/supabase/functions/e2e-fixtures/index.ts b/supabase/functions/e2e-fixtures/index.ts
+index 57a428c70..c73a2d282 100644
+--- a/supabase/functions/e2e-fixtures/index.ts
++++ b/supabase/functions/e2e-fixtures/index.ts
+@@ -10,14 +10,18 @@
+  * Auth: aceita service-role JWT OU um usuário admin autenticado.
+  *
+  * Schemas tocados:
+- *   - zapp.failed_messages            (tabela física; acessada via createZappAdminClient)
++ *   - public.failed_messages          (Lovable Cloud)
+  *   - evolution_webhook_events        (FATOR X / external)
+  */
+-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+-import { createZappAdminClient } from '../_shared/db-client.ts';
++import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
++
++const corsHeaders = {
++  'Access-Control-Allow-Origin': '*',
++  'Access-Control-Allow-Headers':
++    'authorization, x-client-info, apikey, content-type',
++  'Access-Control-Allow-Methods': 'POST, OPTIONS',
++};
+ 
+-import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts'
+-import { timingSafeStringEqual } from '../_shared/auth.ts';
+ const E2E_PREFIX = 'e2e-';
+ 
+ type SeedTarget = 'failed_messages' | 'webhook_events';
+@@ -33,10 +37,10 @@ interface RequestBody {
+   count?: number;
+ }
+ 
+-function json(req: Request, status: number, body: unknown) {
++function json(status: number, body: unknown) {
+   return new Response(JSON.stringify(body), {
+     status,
+-    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
++    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+   });
+ }
+ 
+@@ -53,21 +57,17 @@ async function authorize(req: Request): Promise<{ ok: boolean; reason?: string }
+   if (!token) return { ok: false, reason: 'missing-bearer' };
+ 
+   const serviceKey = envOrThrow('SUPABASE_SERVICE_ROLE_KEY');
+-  if (timingSafeStringEqual(token, serviceKey)) return { ok: true };
++  if (token === serviceKey) return { ok: true };
+ 
+   // Otherwise, validate the JWT and confirm the user has app_role='admin'.
+-  const admin = createZappAdminClient();
++  const url = envOrThrow('SUPABASE_URL');
++  const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+   const { data: userData, error: userErr } = await admin.auth.getUser(token);
+-  if (userErr || !userData || !userData.user) return { ok: false, reason: 'invalid-jwt' };
+-
+-  const userObj = userData.user as Record<string, unknown>;
+-  const userId = typeof userObj.id === 'string' ? userObj.id : '';
+-  if (!userId) return { ok: false, reason: 'invalid-jwt' };
+-
++  if (userErr || !userData?.user) return { ok: false, reason: 'invalid-jwt' };
+   const { data: roleRow, error: roleErr } = await admin
+     .from('user_roles')
+     .select('role')
+-    .eq('user_id', userId)
++    .eq('user_id', userData.user.id)
+     .eq('role', 'admin')
+     .maybeSingle();
+   if (roleErr) return { ok: false, reason: 'role-lookup-failed' };
+@@ -96,14 +96,16 @@ function validateBody(raw: unknown): { ok: true; body: RequestBody } | { ok: fal
+ }
+ 
+ function lovableClient() {
+-  return createZappAdminClient();
++  return createClient(envOrThrow('SUPABASE_URL'), envOrThrow('SUPABASE_SERVICE_ROLE_KEY'), {
++    auth: { persistSession: false },
++  });
+ }
+ 
+ function externalClient() {
+   return createClient(
+     envOrThrow('EXTERNAL_SUPABASE_URL'),
+     envOrThrow('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'),
+-    { auth: { persistSession: false }, db: { schema: 'zapp' } },
++    { auth: { persistSession: false } },
+   );
+ }
+ 
+@@ -128,8 +130,7 @@ async function seedFailedMessages(runId: string, count: number) {
+   }));
+   const { data, error } = await supabase.from('failed_messages').insert(rows).select('id');
+   if (error) throw new Error(`failed_messages insert: ${error.message}`);
+-  const inserted = Array.isArray(data) ? data.length : 0;
+-  return { inserted };
++  return { inserted: data?.length ?? 0 };
+ }
+ 
+ async function seedWebhookEvents(runId: string, count: number) {
+@@ -148,8 +149,7 @@ async function seedWebhookEvents(runId: string, count: number) {
+   }));
+   const { data, error } = await ext.from('evolution_webhook_events').insert(rows).select('id');
+   if (error) throw new Error(`evolution_webhook_events insert: ${error.message}`);
+-  const inserted = Array.isArray(data) ? data.length : 0;
+-  return { inserted };
++  return { inserted: data?.length ?? 0 };
+ }
+ 
+ // ============================================================
+@@ -164,8 +164,7 @@ async function cleanupFailedMessages(runId: string) {
+     .like('instance_name', `${E2E_PREFIX}${runId}%`)
+     .select('id');
+   if (error) throw new Error(`failed_messages cleanup: ${error.message}`);
+-  const deleted = Array.isArray(data) ? data.length : 0;
+-  return { deleted };
++  return { deleted: data?.length ?? 0 };
+ }
+ 
+ async function cleanupWebhookEvents(runId: string) {
+@@ -176,8 +175,7 @@ async function cleanupWebhookEvents(runId: string) {
+     .like('instance_name', `${E2E_PREFIX}${runId}%`)
+     .select('id');
+   if (error) throw new Error(`evolution_webhook_events cleanup: ${error.message}`);
+-  const deleted = Array.isArray(data) ? data.length : 0;
+-  return { deleted };
++  return { deleted: data?.length ?? 0 };
+ }
+ 
+ // ============================================================
+@@ -185,20 +183,20 @@ async function cleanupWebhookEvents(runId: string) {
+ // ============================================================
+ 
+ Deno.serve(async (req) => {
+-  if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
+-  if (req.method !== 'POST') return json(req, 405, { error: 'method-not-allowed' });
++  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
++  if (req.method !== 'POST') return json(405, { error: 'method-not-allowed' });
+ 
+   const authz = await authorize(req);
+-  if (!authz.ok) return json(req, 401, { error: 'unauthorized', reason: authz.reason });
++  if (!authz.ok) return json(401, { error: 'unauthorized', reason: authz.reason });
+ 
+   let raw: unknown;
+   try {
+     raw = await req.json();
+   } catch {
+-    return json(req, 400, { error: 'invalid-json' });
++    return json(400, { error: 'invalid-json' });
+   }
+   const parsed = validateBody(raw);
+-  if (!parsed.ok) return json(req, 400, { error: parsed.error });
++  if (!parsed.ok) return json(400, { error: parsed.error });
+   const { action, runId, target = 'all', count = 3 } = parsed.body;
+ 
+   try {
+@@ -220,9 +218,9 @@ Deno.serve(async (req) => {
+       }
+     }
+ 
+-    return json(req, 200, result);
++    return json(200, result);
+   } catch (e) {
+-    console.error('[e2e-fixtures] unhandled error:', e instanceof Error ? e.message : e);
+-    return json(req, 500, { error: 'fixture-op-failed' });
++    const msg = e instanceof Error ? e.message : String(e);
++    return json(500, { error: 'fixture-op-failed', message: msg });
+   }
+ });

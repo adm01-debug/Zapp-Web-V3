@@ -1,0 +1,10 @@
+{
+ "lote": 7,
+ "funcoes": [
+  "provider-router",
+  "ai-conversation-summary",
+  "email-imap-bridge",
+  "fetch-whatsapp-avatar",
+  "ticket-router"
+ ]
+}

@@ -1,0 +1,10 @@
+{
+ "lote": 19,
+ "funcoes": [
+  "main",
+  "sicoob-bridge",
+  "client-observability",
+  "batch-fetch-avatars",
+  "get-sip-password"
+ ]
+}

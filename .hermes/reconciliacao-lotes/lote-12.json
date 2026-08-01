@@ -1,0 +1,10 @@
+{
+ "lote": 12,
+ "funcoes": [
+  "mcp",
+  "health",
+  "ai-classify-tickets",
+  "voice-copilot-action",
+  "evolution-bitrix-sync"
+ ]
+}

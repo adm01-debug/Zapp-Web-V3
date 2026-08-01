@@ -1,0 +1,72 @@
+diff --git a/supabase/functions/create-user/index.ts b/supabase/functions/create-user/index.ts
+index f65c3816d..9585b095b 100644
+--- a/supabase/functions/create-user/index.ts
++++ b/supabase/functions/create-user/index.ts
+@@ -1,7 +1,6 @@
++import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+ import { z } from "https://esm.sh/zod@3.23.8";
+-import { handleCors, errorResponse, jsonResponse, Logger, sanitizeString, checkRateLimit, getClientIP } from "../_shared/validation.ts";
+-import { requireAdminOrSupervisor } from "../_shared/auth.ts";
+-import { createZappAdminClient } from "../_shared/db-client.ts";
++import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, sanitizeString, checkRateLimit, getClientIP } from "../_shared/validation.ts";
+ 
+ Deno.serve(async (req) => {
+   const cors = handleCors(req);
+@@ -14,10 +13,11 @@ Deno.serve(async (req) => {
+   if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
+ 
+   try {
+-    const authed = await requireAdminOrSupervisor(req);
+-    if (authed instanceof Response) return authed;
++    const supabaseUrl = requireEnv("SUPABASE_URL");
++    const supabaseAnonKey = requireEnv("SUPABASE_ANON_KEY");
++    const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+ 
+-    const adminClient = createZappAdminClient();
++    const { user: caller } = await authorizeRoles(req, supabaseUrl, supabaseAnonKey, ['admin', 'dev']);
+ 
+ 
+     const bodySchema = z.object({
+@@ -53,24 +53,15 @@ Deno.serve(async (req) => {
+ 
+     if (createError) {
+       log.error("User creation failed", { error: createError.message });
+-      const userFacingMsg = createError.message.toLowerCase().includes("already registered")
+-        ? "Email already registered"
+-        : "User creation failed";
+-      return errorResponse(userFacingMsg, 400, req);
++      return errorResponse(createError.message, 400, req);
+     }
+ 
+-    // Upsert the role — UPDATE alone silently no-ops when the user_roles row
+-    // doesn't exist yet (trigger race after createUser), leaving the role unset.
+-    if (role && newUser.user) {
+-      const { error: roleError } = await adminClient
++    // If a specific role was provided (not default 'agent'), update it
++    if (role && role !== "agent" && newUser.user) {
++      await adminClient
+         .from("user_roles")
+-        .upsert({ user_id: newUser.user.id, role }, { onConflict: 'user_id' });
+-      if (roleError) {
+-        log.error("Role assignment failed", { error: roleError.message });
+-        // Roll back the user creation so the caller knows the full setup failed.
+-        await adminClient.auth.admin.deleteUser(newUser.user!.id).catch(() => {});
+-        return errorResponse("User created but role assignment failed — user rolled back", 500, req);
+-      }
++        .update({ role })
++        .eq("user_id", newUser.user.id);
+     }
+ 
+     // Update profile with additional fields
+@@ -141,8 +132,9 @@ Deno.serve(async (req) => {
+ 
+     log.done(200, { userId: newUser.user?.id });
+     return jsonResponse({ success: true, user_id: newUser.user?.id }, 200, req);
+-  } catch (err: unknown) {
++  } catch (err: any) {
++    if (err.status) return errorResponse(err.message, err.status, req);
+     log.error("Unhandled error", { error: err instanceof Error ? err.message : String(err) });
+-    return errorResponse("Internal server error", 500, req);
++    return errorResponse(err instanceof Error ? err.message : "Erro interno", 500, req);
+   }
+ });

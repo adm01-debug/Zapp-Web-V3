@@ -1,0 +1,81 @@
+diff --git a/supabase/functions/evolution-retry-metrics/index.ts b/supabase/functions/evolution-retry-metrics/index.ts
+index 240ca85a2..1cf40e2d3 100644
+--- a/supabase/functions/evolution-retry-metrics/index.ts
++++ b/supabase/functions/evolution-retry-metrics/index.ts
+@@ -1,6 +1,10 @@
+ // Edge function admin-only: lista/agrega métricas de retry da Evolution API.
+-import { getCorsHeaders } from '../_shared/cors.ts';
+-import { createZappAdminClient, createZappClient } from '../_shared/db-client.ts';
++import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
++
++const corsHeaders = {
++  'Access-Control-Allow-Origin': '*',
++  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
++};
+ 
+ interface RetryRow {
+   id: string;
+@@ -73,24 +77,40 @@ function aggregate(rows: RetryRow[]) {
+ 
+ Deno.serve(async (req) => {
+   if (req.method === 'OPTIONS') {
+-    return new Response('ok', { headers: getCorsHeaders(req) });
++    return new Response('ok', { headers: corsHeaders });
+   }
+ 
+   try {
+-    const { data: userData, error: userErr } = await createZappClient(req).auth.getUser();
++    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
++    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
++    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
++
++    const authHeader = req.headers.get('Authorization');
++    if (!authHeader) {
++      return new Response(JSON.stringify({ error: 'Missing authorization' }), {
++        status: 401,
++        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
++      });
++    }
++
++    // Validação de admin/supervisor
++    const userClient = createClient(supabaseUrl, anonKey, {
++      global: { headers: { Authorization: authHeader } },
++    });
++    const { data: userData, error: userErr } = await userClient.auth.getUser();
+     if (userErr || !userData?.user) {
+       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+         status: 401,
+-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
++        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+       });
+     }
+ 
+-    const admin = createZappAdminClient();
++    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+     const { data: roleCheck } = await admin.rpc('is_admin_or_supervisor', { _user_id: userData.user.id });
+     if (!roleCheck) {
+       return new Response(JSON.stringify({ error: 'Forbidden — admin or supervisor only' }), {
+         status: 403,
+-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
++        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+       });
+     }
+ 
+@@ -146,13 +166,13 @@ Deno.serve(async (req) => {
+       windowHours: hours,
+     }), {
+       status: 200,
+-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
++      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+     });
+   } catch (e) {
+-    console.error('[evolution-retry-metrics] error:', e instanceof Error ? e.message : String(e));
+-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
++    console.error('[evolution-retry-metrics] error:', e);
++    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : 'Unknown error' }), {
+       status: 500,
+-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
++      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+     });
+   }
+ });

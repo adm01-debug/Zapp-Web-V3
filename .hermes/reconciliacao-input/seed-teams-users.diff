@@ -1,0 +1,35 @@
+diff --git a/supabase/functions/seed-teams-users/index.ts b/supabase/functions/seed-teams-users/index.ts
+index 3f51527ff..a421dd03b 100644
+--- a/supabase/functions/seed-teams-users/index.ts
++++ b/supabase/functions/seed-teams-users/index.ts
+@@ -1,15 +1,15 @@
+-import { createZappAdminClient } from '../_shared/db-client.ts';
++import { createClient } from "https://esm.sh/@supabase/supabase-js@2.42.0";
+ import { corsHeaders } from "../_shared/validation.ts";
+-import { requireServiceRoleOnly } from "../_shared/auth.ts";
+ 
+ Deno.serve(async (req) => {
+   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+ 
+-  const denied = requireServiceRoleOnly(req);
+-  if (denied) return denied;
+-
+   try {
+-    const supabase = createZappAdminClient();
++    const supabase = createClient(
++      Deno.env.get("SUPABASE_URL")!,
++      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
++      { auth: { persistSession: false } }
++    );
+ 
+     const users = [
+       { email: "admin_ti@zappweb.com", password: "ti123", role: "admin", department: "TI", name: "Admin TI", dept_id: "d2222222-2222-2222-2222-222222222222" },
+@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
+       status: 200,
+     });
+   } catch (err) {
+-    return new Response(JSON.stringify({ error: "Internal server error" }), {
++    return new Response(JSON.stringify({ error: err.message }), {
+       headers: { ...corsHeaders, "Content-Type": "application/json" },
+       status: 500,
+     });

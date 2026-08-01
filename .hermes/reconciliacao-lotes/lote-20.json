@@ -1,0 +1,10 @@
+{
+ "lote": 20,
+ "funcoes": [
+  "proxy-health",
+  "elevenlabs-sts",
+  "evolution-health",
+  "gmail-health",
+  "health-check"
+ ]
+}

@@ -1,0 +1,44 @@
+diff --git a/supabase/functions/elevenlabs-dialogue/index.ts b/supabase/functions/elevenlabs-dialogue/index.ts
+index e8107a7a3..a02d82791 100644
+--- a/supabase/functions/elevenlabs-dialogue/index.ts
++++ b/supabase/functions/elevenlabs-dialogue/index.ts
+@@ -1,6 +1,5 @@
+-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders, checkRateLimit } from "../_shared/validation.ts";
++import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders } from "../_shared/validation.ts";
+ import { ElevenLabsDialogueSchema, parseBody } from "../_shared/schemas.ts";
+-import { requireUser } from "../_shared/auth.ts";
+ 
+ Deno.serve(async (req) => {
+   const cors = handleCors(req);
+@@ -9,12 +8,6 @@ Deno.serve(async (req) => {
+   const log = new Logger("elevenlabs-dialogue");
+ 
+   try {
+-    const authed = await requireUser(req);
+-    if (authed instanceof Response) return authed;
+-
+-    const rl = checkRateLimit(`elevenlabs-dialogue:${authed.user.id}`, 10, 60_000);
+-    if (!rl.allowed) return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
+-
+     const parsed = parseBody(ElevenLabsDialogueSchema, await req.json());
+     if (!parsed.success) return errorResponse(parsed.error, 400, req);
+ 
+@@ -36,7 +29,6 @@ Deno.serve(async (req) => {
+           script,
+           language_code: languageCode,
+         }),
+-        signal: AbortSignal.timeout(30_000),
+       }
+     );
+ 
+@@ -56,7 +48,8 @@ Deno.serve(async (req) => {
+       headers: { ...getCorsHeaders(req), 'Content-Type': 'audio/mpeg' },
+     });
+   } catch (err: unknown) {
+-    log.error("Unhandled error", { error: err instanceof Error ? err.message : String(err) });
+-    return errorResponse('Internal server error', 500, req);
++    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
++    log.error("Unhandled error", { error: errorMessage });
++    return errorResponse(errorMessage, 500, req);
+   }
+ });

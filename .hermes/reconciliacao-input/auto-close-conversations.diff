@@ -1,0 +1,38 @@
+diff --git a/supabase/functions/auto-close-conversations/index.ts b/supabase/functions/auto-close-conversations/index.ts
+index 1c625c69b..eada725f9 100644
+--- a/supabase/functions/auto-close-conversations/index.ts
++++ b/supabase/functions/auto-close-conversations/index.ts
+@@ -1,18 +1,16 @@
+-import { createZappAdminClient } from '../_shared/db-client.ts';
++import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+ import { getCorsHeaders, handleCors, jsonResponse, errorResponse, Logger } from '../_shared/validation.ts';
+-import { requireServiceRoleOrCron } from '../_shared/auth.ts';
+ 
+ Deno.serve(async (req) => {
+   const corsResponse = handleCors(req);
+   if (corsResponse) return corsResponse;
+ 
+-  const authErr = requireServiceRoleOrCron(req);
+-  if (authErr) return authErr;
+-
+   const log = new Logger('auto-close-conversations');
+ 
+   try {
+-    const supabase = createZappAdminClient();
++    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
++    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
++    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+ 
+     // Get auto-close config
+     const { data: config, error: configError } = await supabase
+@@ -37,9 +35,7 @@ Deno.serve(async (req) => {
+       .from('contacts')
+       .select('id, name, phone, assigned_to')
+       .lt('updated_at', cutoffDate.toISOString())
+-      .not('assigned_to', 'is', null)
+-      .order('updated_at', { ascending: true })
+-      .limit(200);
++      .not('assigned_to', 'is', null);
+ 
+     if (staleError) {
+       log.error('Error finding stale contacts', { error: staleError.message });

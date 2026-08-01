@@ -1,0 +1,10 @@
+{
+ "lote": 10,
+ "funcoes": [
+  "send-email",
+  "migrate-media-storage",
+  "queue-rebalance",
+  "evolution-sentiment",
+  "nps-scheduler"
+ ]
+}

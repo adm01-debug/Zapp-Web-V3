@@ -1,0 +1,10 @@
+{
+ "lote": 6,
+ "funcoes": [
+  "ai-conversation-analysis",
+  "webhook-diagnostic",
+  "sicoob-outbox-consumer",
+  "lgpd-scheduled-jobs",
+  "backfill-messages"
+ ]
+}

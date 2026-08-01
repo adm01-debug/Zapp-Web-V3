@@ -1,0 +1,9 @@
+{
+ "lote": 26,
+ "funcoes": [
+  "whatsapp-cloud-secrets-status",
+  "chatbot-l1",
+  "get-mapbox-token",
+  "hello"
+ ]
+}

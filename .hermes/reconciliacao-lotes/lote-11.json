@@ -1,0 +1,10 @@
+{
+ "lote": 11,
+ "funcoes": [
+  "ai-churn-analysis",
+  "talkx-add-recipients",
+  "migrate-helper",
+  "evolution-chatbot",
+  "provider-healthcheck"
+ ]
+}

@@ -1,0 +1,10 @@
+{
+ "lote": 24,
+ "funcoes": [
+  "auto-close-conversations",
+  "seed-teams-users",
+  "speech-to-text",
+  "cleanup-rate-limit-logs",
+  "proxy-metrics"
+ ]
+}
