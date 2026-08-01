@@ -311,13 +311,17 @@ export function ChatPanel({
 
   // Stable refs for ChatMessagesArea to prevent re-renders on input change
   const contactJid = useMemo(() => {
+    // Prefer the canonical remote_jid (present for groups, @lid, and broadcast JIDs
+    // where phone is null). Fall back to deriving from phone for legacy contacts.
+    const rj = conversation.contact.remote_jid;
+    if (rj) return rj;
     const ph = conversation.contact.phone;
     if (!ph) return '';
     // Strategy B/C may have stored a full JID (e.g. 120363@g.us) in the phone field —
     // appending @s.whatsapp.net would produce a malformed double-suffix JID.
     if (ph.includes('@')) return ph;
     return `${ph}@s.whatsapp.net`;
-  }, [conversation.contact.phone]);
+  }, [conversation.contact.remote_jid, conversation.contact.phone]);
   const contactAvatar = conversation.contact.avatar || undefined;
   const handleScrollToMessage = useCallback(
     (id: string) => messagesAreaRef.current?.scrollToMessage(id),

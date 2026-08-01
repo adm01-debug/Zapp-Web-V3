@@ -23,6 +23,7 @@ export function mapToLegacyConversation(
       id: resolved.contact.id,
       name: resolved.contact.name,
       phone: resolved.contact.phone,
+      remote_jid: resolved.contact.remote_jid ?? undefined,
       email: resolved.contact.email || undefined,
       avatar: resolved.contact.avatar_url || undefined,
       tags: resolved.contact.tags || [],

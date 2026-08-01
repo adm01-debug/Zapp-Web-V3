@@ -101,8 +101,9 @@ export function useFallbackContact(
       }
 
       // ── Strategy B: external proxy rpc_get_contact (useExternalDb) ──────
-      // Skip for group/broadcast JIDs (ref.phone === null): rpc_get_contact takes a phone, not a JID
-      if (!localResult && useExternalDb && ref.kind === 'jid' && ref.phone !== null) {
+      // rpc_get_contact takes p_remote_jid (the full JID), not a phone number.
+      // Groups (@g.us) and @lid contacts have phone=null but still have a valid remoteJid.
+      if (!localResult && useExternalDb && ref.kind === 'jid') {
         try {
           const proxyResult = await queryExternalProxy<Record<string, unknown>>({
             action: 'rpc',
