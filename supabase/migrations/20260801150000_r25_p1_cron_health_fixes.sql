@@ -55,7 +55,7 @@ CREATE OR REPLACE FUNCTION zapp.fn_archive_old_wpp2_messages(p_months_old intege
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'zapp', 'evo'
+ SET search_path TO 'zapp', 'evo', 'pg_catalog'
 AS $function$
 DECLARE
   v_safe_months    INT := GREATEST(p_months_old, 12);
