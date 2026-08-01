@@ -20,7 +20,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           toast:
             'group toast group-[.toaster]:bg-card group-[.toaster]:text-foreground group-[.toaster]:border-border/60 group-[.toaster]:shadow-[0_8px_30px_-8px_hsl(var(--foreground)/0.12)] group-[.toaster]:rounded-xl',
           title: 'group-[.toast]:font-semibold',
-          description: 'group-[.toast]:text-[13px] group-[.toast]:opacity-90',
+          description: 'group-[.toast]:text-[13px]',
           actionButton:
             'group-[.toast]:bg-primary group-[.toast]:text-primary-foreground group-[.toast]:rounded-lg group-[.toast]:font-medium group-[.toast]:shadow-none',
           cancelButton:
@@ -31,7 +31,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           success:
             'group-[.toaster]:!bg-success group-[.toaster]:!border-success group-[.toaster]:!text-success-foreground',
           error:
-            'group-[.toaster]:!bg-destructive group-[.toaster]:!border-destructive group-[.toaster]:!text-white [&_[data-title]]:!text-white [&_[data-description]]:!text-white [&_[data-description]]:!opacity-100',
+            'group-[.toaster]:!bg-destructive group-[.toaster]:!border-destructive group-[.toaster]:!text-white',
           warning:
             'group-[.toaster]:!bg-warning group-[.toaster]:!border-warning group-[.toaster]:!text-warning-foreground',
           info: 'group-[.toaster]:!bg-info group-[.toaster]:!border-info group-[.toaster]:!text-info-foreground',
