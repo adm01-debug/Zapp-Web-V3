@@ -113,6 +113,10 @@ export type ContactIntelligenceRow = {
   predicted_value: number | null;
   total_messages: number | null;
   days_since_contact: number | null;
+  phone: string | null;
+  contact_name: string | null;
+  lead_status: string | null;
+  inbound_ratio: number | null;
   created_at: string;
   updated_at: string;
 };
