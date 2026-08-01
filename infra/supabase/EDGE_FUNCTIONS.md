@@ -43,7 +43,7 @@
 - sicoob-bridge, sicoob-bridge-reply
 - bitrix-api, external-db-bridge
 - secure-upload, file-security-scanner
-- e2e-fixtures, e2e-webhook-fixture
+- e2e-fixtures, e2e-webhook-fixture (❌ removidas 2026-08-01 — Fase E4/E32; ver docs/edge/relatorio-e4-2026-08-01.md)
 - +30 outras funções
 
-Total: 120 Edge Functions ✅
+Total: 120 Edge Functions ✅ (127 no volume de produção self-hosted)
