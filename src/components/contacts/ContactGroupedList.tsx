@@ -112,14 +112,14 @@ export function ContactGroupedList({
                       <ContactListItem
                         key={contact.id}
                         contact={contact}
-                        isSelected={selectedIds.includes(contact.id)}
+                        isSelected={selectedIds.includes(contact.id ?? '')}
                         onToggleSelect={onToggleSelect}
                         onOpenChat={onOpenChat}
                         onEdit={onEdit}
                         onDelete={onDelete}
                         index={index}
-                        companyLogo={getCRMData?.(contact.phone)?.logo_url}
-                        companyName={getCRMData?.(contact.phone)?.company_name}
+                        companyLogo={getCRMData?.(contact.phone ?? '')?.logo_url}
+                        companyName={getCRMData?.(contact.phone ?? '')?.company_name}
                         searchQuery={searchQuery}
                       />
                     ))}

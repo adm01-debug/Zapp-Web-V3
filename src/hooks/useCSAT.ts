@@ -97,11 +97,11 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
     }) => {
       const { error } = await supabase.from('csat_surveys').insert({
         contact_id: data.contact_id,
-        agent_id: data.agent_id,
+        agent_id: data.agent_id ?? undefined,
         rating: data.rating,
-        feedback: data.feedback || null,
+        feedback: data.feedback ?? undefined,
         conversation_resolved_at: new Date().toISOString(),
-      });
+      } as never);
       if (error) throw error;
     },
     onSuccess: () => {

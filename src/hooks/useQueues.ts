@@ -85,8 +85,32 @@ export function useQueues(): UseQueuesResult {
         if (positionsRes.error) throw positionsRes.error;
 
         if (!cancelled) {
-          const queueList: Queue[] = queuesRes.data || [];
-          const memberList: QueueMember[] = membersRes.data || [];
+          const queueList: Queue[] = (queuesRes.data || []).map((q) => ({
+            id: q.id,
+            name: q.name,
+            color: q.color ?? 'bg-primary',
+            is_active: q.is_active ?? true,
+            max_wait_time_minutes: q.max_wait_time_minutes ?? 0,
+            priority: q.priority ?? 0,
+            description: q.description ?? null,
+            created_at: q.created_at,
+            updated_at: q.updated_at,
+          }));
+          const memberList: QueueMember[] = (membersRes.data || []).map((m) => ({
+            id: m.id,
+            queue_id: m.queue_id,
+            profile_id: m.profile_id,
+            is_active: m.is_active ?? true,
+            created_at: m.created_at,
+            profile: m.profile
+              ? {
+                  id: m.profile.id,
+                  name: m.profile.name,
+                  avatar_url: m.profile.avatar_url,
+                  is_active: m.profile.is_active ?? true,
+                }
+              : null,
+          }));
           const positionList: Array<{ queue_id: string }> = positionsRes.data || [];
 
           const waitingByQueue: Record<string, number> = {};

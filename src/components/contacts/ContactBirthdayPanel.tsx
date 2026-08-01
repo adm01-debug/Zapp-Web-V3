@@ -84,14 +84,14 @@ export function ContactBirthdayPanel({ contacts, onContactClick }: ContactBirthd
           <div className="space-y-2">
             {upcoming.map((item, i) => {
               const { text, variant } = getDaysLabel(item.daysUntil);
-              const colors = getAvatarColor(item.contact.name);
+              const colors = getAvatarColor(item.contact.name ?? '');
               return (
                 <motion.button
                   key={item.contact.id}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  onClick={() => onContactClick?.(item.contact.id)}
+                  onClick={() => onContactClick?.(item.contact.id ?? '')}
                   className={cn(
                     'flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors',
                     'hover:bg-muted/50',
@@ -101,10 +101,10 @@ export function ContactBirthdayPanel({ contacts, onContactClick }: ContactBirthd
                   <Avatar className="h-8 w-8">
                     <AvatarImage
                       src={item.contact.avatar_url || undefined}
-                      alt={item.contact.name}
+                      alt={item.contact.name ?? undefined}
                     />
                     <AvatarFallback className={cn(colors.bg, colors.text, 'text-[10px]')}>
-                      {getInitials(item.contact.name)}
+                      {getInitials(item.contact.name ?? '')}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">

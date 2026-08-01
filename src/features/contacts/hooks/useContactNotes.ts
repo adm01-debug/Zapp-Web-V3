@@ -93,6 +93,8 @@ export function useContactNotes(contactId: string) {
 
       return (data || []).map<ContactNote>((note) => ({
         ...note,
+        created_at: note.created_at ?? '',
+        updated_at: note.updated_at ?? '',
         author: authorsMap.get(note.author_id) ?? {
           id: note.author_id,
           name: null,

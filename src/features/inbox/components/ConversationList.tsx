@@ -22,7 +22,10 @@ interface ConversationListProps {
 function toConversationItemData(conversation: Conversation): ConversationItemData {
   return {
     id: conversation.id,
-    contact: conversation.contact,
+    contact: {
+      ...conversation.contact,
+      id: conversation.contact.id ?? undefined,
+    },
     status: conversation.status,
     unreadCount: conversation.unreadCount,
     lastMessage: conversation.lastMessage
@@ -244,7 +247,7 @@ export function ConversationList({
                 >
                   <ConversationContextMenu
                     conversationId={conversation.id}
-                    contactName={conversation.contact.name}
+                    contactName={conversation.contact.name ?? ''}
                     isMuted={conversation.is_muted}
                   >
                     <ConversationItem

@@ -63,7 +63,7 @@ export function useChatbotFlows() {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (data || []) as ChatbotFlow[];
+      return (data || []) as unknown as ChatbotFlow[];
     },
     staleTime: Infinity,
   });

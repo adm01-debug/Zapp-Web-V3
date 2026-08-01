@@ -75,8 +75,16 @@ export function OfficialApiConfigDialog({
     setLoading(true);
     (async () => {
       try {
-        // View not in generated types — use fromTable helper for dynamic table access
-        const res = await fromTable('whatsapp_official_credentials_safe')
+        // View not in generated types — use fromTable helper for dynamic table access.
+        // Narrow the dynamic builder so .eq() accepts column names (null-safety sem casts proibidos).
+        const query = fromTable('whatsapp_official_credentials_safe') as unknown as {
+          select: (columns: string) => {
+            eq: (column: string, value: string) => {
+              maybeSingle: () => Promise<{ data: SafeCredentialView | null; error: unknown }>;
+            };
+          };
+        };
+        const res = await query
           .select('phone_number_id, waba_id, has_access_token, has_app_secret')
           .eq('connection_id', connectionId)
           .maybeSingle();

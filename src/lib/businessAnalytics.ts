@@ -205,7 +205,17 @@ class BusinessAnalytics {
         timestamp: e.timestamp,
       }));
 
-      const { error } = await supabase.from('analytics_events').insert(rows);
+      // `analytics_events` não está nos types gerados — usa builder estrutural estreito
+      // (o `from` tipado degeneraria para o union de 300+ tabelas → TS2769).
+      const { error } = await (
+        supabase as unknown as {
+          from: (table: string) => {
+            insert: (rows: unknown[]) => Promise<{ error: unknown }>;
+          };
+        }
+      )
+        .from('analytics_events')
+        .insert(rows);
 
       if (error) throw error;
 

@@ -40,7 +40,7 @@ export function useOnboardingChecklist() {
         supabase.from('profiles').select('name, avatar_url').eq('user_id', userId).maybeSingle(),
         supabase.from('whatsapp_connections').select('id').eq('created_by', userId).limit(1),
         supabase.from('user_settings').select('id').eq('user_id', userId).maybeSingle(),
-        supabase.from('message_templates').select('id').eq('created_by', userId).limit(1),
+        supabase.from('message_templates').select('id').eq('user_id', userId).limit(1),
       ]);
       if (profileRes.error) log.error('Error checking onboarding status:', profileRes.error);
       return {

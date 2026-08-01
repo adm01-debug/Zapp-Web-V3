@@ -84,14 +84,16 @@ export function AuthEventTrendChart() {
     staleTime: 25_000,
   });
 
-  const summaryQuery = useQuery({
+  const summaryQuery = useQuery<SummaryResp>({
     queryKey: queryKeys.adminOps.authEventSummaryDetailed(hours, filterTrim),
     queryFn: async () => {
       const { data, error } = await supabase.rpc('rpc_instance_auth_event_summary', {
         p_instance: filterTrim as string,
       });
       if (error) throw error;
-      return data as SummaryResp; // ignore-audit: narrows Supabase query result to local interface
+      // RPC retorna shape agregado (window_hours/total/motivos); types.ts gerado
+      // expõe apenas um overload parcial — normaliza via unknown para a interface local.
+      return data as unknown as SummaryResp;
     },
     refetchInterval: 30_000,
     staleTime: 25_000,

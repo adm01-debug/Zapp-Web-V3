@@ -240,8 +240,7 @@ export function useBusinessLogicCatalogManagement(
         }
 
         for (const imgUrl of imageUrls) {
-          const { data: dbResult, error: dbError } = await supabase
-            .from('messages')
+          const { data: dbResult, error: dbError } = await dbFrom('messages')
             .insert({
               contact_id: contact.id,
               content: imgUrl,
@@ -276,8 +275,7 @@ export function useBusinessLogicCatalogManagement(
           }
         }
 
-        const { data: textDbResult, error: textDbError } = await supabase
-          .from('messages')
+        const { data: textDbResult, error: textDbError } = await dbFrom('messages')
           .insert({
             contact_id: contact.id,
             content: message,

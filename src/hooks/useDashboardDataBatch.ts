@@ -78,7 +78,9 @@ export function useDashboardDataBatch(filters?: DashboardFilters) {
       merged.dateRange.to.toISOString(),
     ],
     queryFn: async (): Promise<DashboardInitResult> => {
-      const { data, error } = await supabase.rpc('rpc_dashboard_init', {
+      const { data, error } = await (supabase as unknown as {
+        rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+      }).rpc('rpc_dashboard_init', {
         p_agent_id:  merged.agentId  ?? undefined,
         p_queue_id:  merged.queueId  ?? undefined,
         p_date_from: merged.dateRange.from.toISOString(),

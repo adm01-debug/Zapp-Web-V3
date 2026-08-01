@@ -164,8 +164,10 @@ export function useContactsSearch() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc(
-        'search_contacts_cursor' as Parameters<typeof supabase.rpc>[0],
+      const { data, error } = await (supabase as unknown as {
+        rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+      }).rpc(
+        'search_contacts_cursor',
         {
           search_term: debouncedSearch || '',
           contact_type_filter: activeTab === 'all' ? undefined : activeTab,

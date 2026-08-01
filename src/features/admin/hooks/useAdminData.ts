@@ -177,10 +177,10 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         .upsert(
           {
             user_id: userId,
-            role: newRole as string,
-            role_key: newRole as string,
+            role: newRole,
+            role_key: newRole,
             workspace_id: ws?.id ?? '',
-          } as never,
+          },
           { onConflict: 'user_id' }
         );
       if (error) {
@@ -237,7 +237,7 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
           phone: editingUser.phone,
           avatar_url: avatarUrl,
           access_level: editingUser.access_level,
-          max_chats: editingUser.max_chats,
+          max_chats: editingUser.max_chats ?? undefined,
           can_download: editingUser.can_download,
         })
         .eq('id', editingUser.id);

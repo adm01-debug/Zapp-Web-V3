@@ -35,7 +35,7 @@ export function ConversationHeatmap() {
     if (messages) {
       const heatmap: Record<string, number> = {};
       messages.forEach((m) => {
-        const date = new Date(m.created_at);
+        const date = new Date(m.created_at ?? '');
         const key = `${date.getDay()}-${date.getHours()}`;
         heatmap[key] = (heatmap[key] || 0) + 1;
       });

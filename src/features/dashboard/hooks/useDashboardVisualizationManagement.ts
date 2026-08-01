@@ -586,9 +586,11 @@ export function useGoalsDashboardManagement() {
     const allGoals: Goal[] = [];
 
     const messageConfig = customGoals.find((g) => g.goal_type === 'messages_sent');
-    const messagesTarget = messageConfig
+    const rawMessagesTarget = messageConfig
       ? messageConfig[`${period}_target` as keyof typeof messageConfig]
-      : DEFAULT_GOALS.messages_sent[period as keyof typeof DEFAULT_GOALS.messages_sent];
+      : undefined;
+    const messagesTarget =
+      typeof rawMessagesTarget === 'number' ? rawMessagesTarget : undefined;
 
     allGoals.push({
       id: 'messages-sent',
@@ -605,9 +607,11 @@ export function useGoalsDashboardManagement() {
     });
 
     const contactConfig = customGoals.find((g) => g.goal_type === 'contacts_handled');
-    const contactsTarget = contactConfig
+    const rawContactsTarget = contactConfig
       ? contactConfig[`${period}_target` as keyof typeof contactConfig]
-      : DEFAULT_GOALS.contacts_handled[period as keyof typeof DEFAULT_GOALS.contacts_handled];
+      : undefined;
+    const contactsTarget =
+      typeof rawContactsTarget === 'number' ? rawContactsTarget : undefined;
 
     allGoals.push({
       id: 'contacts-handled',

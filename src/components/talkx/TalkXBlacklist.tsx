@@ -55,7 +55,7 @@ export function TalkXBlacklist() {
     useTalkXBlacklist(showAddDialog);
 
   const filteredAvailable = useMemo(() => {
-    const nonBlocked = availableContacts.filter((c) => !blacklistedIds.has(c.id));
+    const nonBlocked = availableContacts.filter((c) => !blacklistedIds.has(c.id ?? ''));
     if (!contactSearch.trim()) return nonBlocked.slice(0, 50);
     const q = contactSearch.toLowerCase();
     return nonBlocked
@@ -115,7 +115,7 @@ export function TalkXBlacklist() {
                     filteredAvailable.map((c) => (
                       <button type="button"
                         key={c.id}
-                        onClick={() => setSelectedContactId(c.id)}
+                        onClick={() => setSelectedContactId(c.id ?? '')}
                         className={`w-full px-3 py-2 text-left text-sm transition-colors ${
                           selectedContactId === c.id ? 'bg-primary/10' : 'hover:bg-muted/50'
                         }`}

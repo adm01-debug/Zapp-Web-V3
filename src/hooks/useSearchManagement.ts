@@ -60,7 +60,14 @@ export function useKnowledgeBaseSearchManagement(query: string) {
         log.error('Knowledge base search error:', err);
         return [] as SearchResult[];
       }
-      return (data || []) as SearchResult[];
+      return (data || []).map((row) => ({
+        id: row.id,
+        title: row.title,
+        content: row.content,
+        type: 'article' as const,
+        score: row.rank,
+        timestamp: '',
+      }));
     },
     enabled: !!query.trim(),
     staleTime: 30_000,
@@ -88,7 +95,12 @@ export function useSearchHistoryManagement() {
         log.error('Error fetching search history:', err);
         throw err;
       }
-      return (data || []) as SearchHistoryEntry[];
+      return (data || []).map((row) => ({
+        id: String(row.id),
+        query: row.query,
+        timestamp: row.timestamp,
+        result_type: row.result_type ?? '',
+      }));
     },
     staleTime: 30_000,
   });

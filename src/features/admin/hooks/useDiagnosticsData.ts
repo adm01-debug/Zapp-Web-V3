@@ -130,14 +130,16 @@ async function fetchMessageDiagnostics(): Promise<MessageDiagnostic> {
         .from('contacts')
         .select('id, name')
         .in('id', contactIds);
-      contacts?.forEach((c) => contactNameMap.set(c.id, c.name));
+      contacts?.forEach((c) => {
+        if (c.id) contactNameMap.set(c.id, c.name ?? '');
+      });
     }
     for (const f of failures) {
       recentFailures.push({
-        id: f.id,
-        content: f.content,
+        id: f.id ?? '',
+        content: f.content ?? '',
         status: f.status || 'unknown',
-        created_at: f.created_at,
+        created_at: f.created_at ?? '',
         contact_name: f.contact_id
           ? (contactNameMap.get(f.contact_id) ?? 'Desconhecido')
           : 'Desconhecido',
@@ -223,8 +225,8 @@ async function fetchErrorLogs(): Promise<ErrorLog[]> {
         type: 'message',
         severity: 'error',
         message: 'Falha no envio de mensagem',
-        details: `Mensagem "${msg.content?.slice(0, 50)}..." falhou ao enviar`,
-        timestamp: new Date(msg.created_at),
+        details: `Mensagem "${msg.content?.slice(0, 50) ?? ''}..." falhou ao enviar`,
+        timestamp: new Date(msg.created_at ?? Date.now()),
       });
     }
   }

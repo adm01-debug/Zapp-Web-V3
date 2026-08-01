@@ -97,7 +97,17 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
 
       // BUG 3 FIX: Runtime validation instead of unsafe cast
       if (data) {
-        const validated = data.filter(validateStickerRow);
+        const validated = data
+          .filter(validateStickerRow)
+          .map((row) => ({
+            id: row.id,
+            name: row.name ?? null,
+            image_url: row.image_url,
+            category: row.category ?? 'outros',
+            is_favorite: row.is_favorite ?? false,
+            use_count: row.use_count ?? 0,
+            owner_id: row.owner_id ?? null,
+          }));
         if (validated.length !== data.length) {
           log.warn(`[fetchStickers] ${data.length - validated.length} rows failed validation`);
         }

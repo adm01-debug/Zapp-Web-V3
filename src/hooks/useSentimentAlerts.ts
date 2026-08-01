@@ -61,11 +61,18 @@ export function useSentimentAlerts() {
       if (error) throw error;
 
       return (data || []).map(
-        (entry: { id: string; entity_id: string; created_at: string; details?: Record<string, unknown> }) => ({
+        (entry: {
+          id: string;
+          entity_id: string | null;
+          created_at: string | null;
+          details?: unknown;
+        }) => ({
           id: entry.id,
-          contactId: entry.entity_id,
-          createdAt: entry.created_at,
-          ...((entry.details || {}) as Record<string, unknown>),
+          contactId: entry.entity_id ?? '',
+          createdAt: entry.created_at ?? '',
+          ...((entry.details && typeof entry.details === 'object' && !Array.isArray(entry.details)
+            ? entry.details
+            : {}) as Record<string, unknown>),
         })
       );
     } catch {

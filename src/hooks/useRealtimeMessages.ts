@@ -116,7 +116,28 @@ export function useRealtimeMessages() {
       if (messagesError) throw messagesError;
 
       const contactList: Contact[] = (contactsRaw as unknown as Contact[] | null) ?? [];
-      const messageList: Message[] = messages ?? [];
+      // A row bruta de evo.evolution_messages tem TODOS os campos nullable e
+      // não expõe os campos computados da view zapp.messages (sender,
+      // is_from_me, is_deleted, external_id, whatsapp_connection_id,
+      // transcription...). Normaliza com defaults null-safe e deriva os
+      // campos computados para manter o contrato da interface Message.
+      const messageList: Message[] = (messages ?? []).map((m) => ({
+        ...m,
+        id: m.id ?? '',
+        content: m.content ?? '',
+        message_type: m.message_type ?? '',
+        created_at: m.created_at ?? '',
+        updated_at: m.updated_at ?? '',
+        is_read: m.is_read ?? false,
+        is_deleted: m.deleted_at != null,
+        is_from_me: m.from_me ?? false,
+        sender: m.from_me ? 'agent' : 'contact',
+        external_id: m.message_id,
+        whatsapp_connection_id: null,
+        agent_id: null,
+        transcription: null,
+        transcription_status: null,
+      }));
 
       const contactMap = new Map<string, Contact>();
       contactList.forEach((c) => contactMap.set(c.id, c));

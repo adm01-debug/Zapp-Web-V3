@@ -26,7 +26,7 @@ export function ContactCard({
   contact, isSelected, onToggleSelect, onOpenChat, onEdit, onDelete, index, companyLogo, companyName, searchQuery,
 }: ContactItemProps) {
   const typeConfig = CONTACT_TYPE_CONFIG[contact.contact_type || 'cliente'] || CONTACT_TYPE_CONFIG.cliente;
-  const avatarColors = getAvatarColor(contact.name);
+  const avatarColors = getAvatarColor(contact.name ?? '');
 
   return (
     <motion.div
@@ -41,7 +41,7 @@ export function ContactCard({
         "hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/30",
         isSelected && "ring-2 ring-primary/50 border-primary/30 bg-primary/5"
       )}
-      onClick={() => onOpenChat(contact.id)}
+      onClick={() => onOpenChat(contact.id ?? '')}
     >
       {/* Top accent bar */}
       <div className={cn("h-1 w-full", typeConfig.gradient)} />
@@ -56,7 +56,7 @@ export function ContactCard({
       >
         <Checkbox
           checked={isSelected}
-          onCheckedChange={(checked) => onToggleSelect(contact.id, !!checked)}
+          onCheckedChange={(checked) => onToggleSelect(contact.id ?? '', !!checked)}
           className="bg-background/80 backdrop-blur-sm"
         />
       </div>
@@ -73,7 +73,7 @@ export function ContactCard({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
-            <DropdownMenuItem onClick={() => onOpenChat(contact.id)}>
+            <DropdownMenuItem onClick={() => onOpenChat(contact.id ?? '')}>
               <MessageSquare className="w-4 h-4 mr-2" />Conversar
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onEdit(contact)}>
@@ -93,9 +93,9 @@ export function ContactCard({
           <div className="relative">
             <motion.div layoutId={`avatar-${contact.id}`}>
               <Avatar className="w-12 h-12 ring-2 ring-background shadow-md">
-                <AvatarImage src={contact.avatar_url || undefined} alt={contact.name} />
+                <AvatarImage src={contact.avatar_url || undefined} alt={contact.name ?? undefined} />
                 <AvatarFallback className={cn('font-bold text-sm', avatarColors.bg, avatarColors.text)}>
-                  {getInitials(contact.name)}
+                  {getInitials(contact.name ?? '')}
                 </AvatarFallback>
               </Avatar>
             </motion.div>
@@ -177,13 +177,13 @@ export function ContactCard({
           <div className="flex items-center gap-2 text-xs text-muted-foreground group/phone" onClick={(e) => e.stopPropagation()}>
             <Phone className="w-3.5 h-3.5 shrink-0" />
             <a
-              href={`https://wa.me/${contact.phone.replace(/\D/g, '')}`}
+              href={`https://wa.me/${contact.phone?.replace(/\D/g, '') ?? ''}`}
               target="_blank"
               rel="noopener noreferrer"
               className=" text-[11px] truncate hover:text-primary hover:underline transition-colors"
               title="Abrir no WhatsApp"
             >
-              <HighlightText text={contact.phone} highlight={searchQuery} />
+              <HighlightText text={contact.phone ?? ''} highlight={searchQuery} />
             </a>
           </div>
           {contact.email && (
@@ -219,7 +219,7 @@ export function ContactCard({
         {/* Footer */}
         <div className="flex items-center justify-between pt-1 border-t border-border/30">
           <span className="text-[10px] text-muted-foreground">
-            {format(new Date(contact.created_at), "dd MMM yyyy", { locale: ptBR })}
+            {format(new Date(contact.created_at ?? ''), "dd MMM yyyy", { locale: ptBR })}
           </span>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
             <Button
@@ -227,7 +227,7 @@ export function ContactCard({
               variant="ghost"
               size="icon"
               className="w-7 h-7 hover:bg-primary/10 hover:text-primary"
-              onClick={() => onOpenChat(contact.id)}
+              onClick={() => onOpenChat(contact.id ?? '')}
               title="Conversar"
             >
               <MessageSquare className="w-3.5 h-3.5" />

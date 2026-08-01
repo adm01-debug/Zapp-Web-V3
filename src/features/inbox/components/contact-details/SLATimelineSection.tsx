@@ -72,7 +72,7 @@ export function SLATimelineSection({ conversation }: SLATimelineSectionProps) {
   const slaQueueId = scope === 'current' || scope === 'queue' ? (queue?.id ?? null) : null;
   const slaAgentId = scope === 'current' || scope === 'agent' ? (assignedTo?.id ?? null) : null;
   const { data: sla } = useApplicableSLA({
-    contactId: scope === 'none' ? undefined : contact.id,
+    contactId: scope === 'none' ? undefined : (contact.id ?? undefined),
     company: scope === 'none' ? null : (contact.company ?? null),
     jobTitle: scope === 'none' ? null : (contact.job_title ?? null),
     contactType: scope === 'none' ? null : (contact.contact_type ?? null),

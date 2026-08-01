@@ -100,6 +100,7 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
       level: number;
     }) => {
       const { error } = await supabase.from('agent_skills').insert({
+        agent_id: profileId,
         profile_id: profileId,
         skill_name: skillName,
         skill_level: level,

@@ -31,6 +31,9 @@ interface Props {
 export function TalkXCampaignEditor({ campaign, onClose }: Props) {
   const ed = useCampaignEditor(campaign, onClose);
 
+  // Normaliza contatos para o tipo ContactItem (id/name não-nulos) — null-safety sem casts.
+  const contactItems = (ed.contacts || []).map((c) => ({ ...c, id: c.id ?? '', name: c.name ?? '' }));
+
   return (
     <div className="h-full flex flex-col gap-4 md:gap-6 p-4 md:p-6 overflow-auto">
       {/* Header */}
@@ -99,7 +102,7 @@ export function TalkXCampaignEditor({ campaign, onClose }: Props) {
               {ed.showPreview && (
                 <TalkXMessagePreview
                   messageTemplate={ed.messageTemplate}
-                  contacts={ed.selectedContacts.length > 0 ? (ed.contacts || []).filter((c) => ed.selectedContacts.includes(c.id)) : ed.contacts || []}
+                  contacts={ed.selectedContacts.length > 0 ? contactItems.filter((c) => ed.selectedContacts.includes(c.id)) : contactItems}
                   mediaUrl={ed.hasMedia ? ed.mediaUrl : undefined}
                   mediaType={ed.hasMedia ? ed.mediaType : undefined}
                 />
@@ -183,8 +186,8 @@ export function TalkXCampaignEditor({ campaign, onClose }: Props) {
         {/* Right Column */}
         <TalkXContactSelector
           campaign={campaign}
-          contacts={ed.contacts || []}
-          filteredContacts={ed.filteredContacts}
+          contacts={contactItems}
+          filteredContacts={ed.filteredContacts.map((c) => ({ ...c, id: c.id ?? '', name: c.name ?? '' }))}
           selectedContacts={ed.selectedContacts}
           contactSearch={ed.contactSearch}
           setContactSearch={ed.setContactSearch}
