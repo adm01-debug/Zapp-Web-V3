@@ -65,8 +65,9 @@ export {
   invalidateWhatsAppModeCache,
   invalidateTransportCache,
 } from './whatsappAdapterTransport';
+import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 
-const DEFAULT_INSTANCE = 'wpp2';
+const DEFAULT_INSTANCE = ACTIVE_WHATSAPP_INSTANCE;
 
 // ----- Helpers --------------------------------------------------------------
 

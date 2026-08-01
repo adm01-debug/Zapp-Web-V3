@@ -1,5 +1,7 @@
+import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
+
 /** Default WhatsApp instance name used when no specific instance is configured on the contact. */
-export const DEFAULT_INSTANCE = 'wpp2';
+export const DEFAULT_INSTANCE = ACTIVE_WHATSAPP_INSTANCE;
 
 /**
  * SendError — Error enriquecido com o motivo bruto do upstream para que

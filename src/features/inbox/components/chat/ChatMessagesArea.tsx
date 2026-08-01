@@ -319,9 +319,13 @@ export const ChatMessagesArea = memo(
         if (!messageId) return;
         const map = messageRefsRef.current;
         map.set(messageId, el);
-        // Auto-cleanup when element is removed from DOM (virtualizer unmount)
+        // Auto-cleanup when element is removed from DOM (virtualizer unmount).
+        // Disconnect is mandatory — without it observers accumulate across navigation.
         const observer = new MutationObserver(() => {
-          if (!document.contains(el)) map.delete(messageId);
+          if (!document.contains(el)) {
+            map.delete(messageId);
+            observer.disconnect();
+          }
         });
         const parent = el.parentElement;
         if (parent) observer.observe(parent, { childList: true });

@@ -310,10 +310,14 @@ export function ChatPanel({
   });
 
   // Stable refs for ChatMessagesArea to prevent re-renders on input change
-  const contactJid = useMemo(
-    () => (conversation.contact.phone ? `${conversation.contact.phone}@s.whatsapp.net` : ''),
-    [conversation.contact.phone]
-  );
+  const contactJid = useMemo(() => {
+    const ph = conversation.contact.phone;
+    if (!ph) return '';
+    // Strategy B/C may have stored a full JID (e.g. 120363@g.us) in the phone field —
+    // appending @s.whatsapp.net would produce a malformed double-suffix JID.
+    if (ph.includes('@')) return ph;
+    return `${ph}@s.whatsapp.net`;
+  }, [conversation.contact.phone]);
   const contactAvatar = conversation.contact.avatar || undefined;
   const handleScrollToMessage = useCallback(
     (id: string) => messagesAreaRef.current?.scrollToMessage(id),

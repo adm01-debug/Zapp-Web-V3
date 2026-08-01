@@ -144,6 +144,19 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
           return;
         }
 
+        // Re-validate edit window at send time (TOCTOU: handleEditStart checked at open, not at submit)
+        const minutesElapsed = (Date.now() - new Date(currentEditing.timestamp).getTime()) / 60000;
+        if (minutesElapsed > EDIT_WINDOW_MINUTES) {
+          toast({
+            title: 'Tempo expirado',
+            description: `Você só pode editar mensagens nos primeiros ${EDIT_WINDOW_MINUTES} minutos.`,
+            variant: 'destructive',
+          });
+          setEditingMessage(null);
+          setInputValue('');
+          return;
+        }
+
         setIsSending(true);
         try {
           // 1. Fonte da verdade é o WhatsApp. Se falhar aqui, não tocamos no banco local.
@@ -154,7 +167,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
           });
 
           // 2. Espelhar no banco, verificando rowcount de verdade.
-          const { data: updated, error: dbError } = await dbFrom('messages')
+          const { data: updated, error: dbError } = await dbFrom('evolution_messages')
             .update({ content: newText, updated_at: new Date().toISOString() })
             .eq('id', currentEditing.id)
             .select('id');
