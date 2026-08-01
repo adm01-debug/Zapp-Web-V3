@@ -15,41 +15,166 @@ jobs:
   parity:
     name: Edge Schema Parity
     runs-on: ubuntu-latest
-    continue-on-error: true
+    # NOTE: continue-on-error REMOVIDO — falhas bloqueiam o pipeline
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Verifica baseline do schema (informativo)
+      - name: Verificar integridade do schema (enforce)
         shell: bash
         run: |
           set -uo pipefail
 
           MIGRATIONS_DIR="supabase/migrations"
+          FAILED=0
 
+          # ================================================================
+          # 1. Diretório de migrations deve existir com arquivos suficientes
+          # ================================================================
           if [ ! -d "$MIGRATIONS_DIR" ]; then
-            echo "::warning::Diretorio $MIGRATIONS_DIR nao encontrado"
-            exit 0
+            echo "::error::Diretorio $MIGRATIONS_DIR nao encontrado — schema ausente"
+            exit 1
           fi
 
           TOTAL_SQL="$(find "$MIGRATIONS_DIR" -maxdepth 1 -name '*.sql' -type f | wc -l | tr -d ' ')"
           echo "Arquivos de migration (.sql): $TOTAL_SQL"
           if [ "$TOTAL_SQL" -lt 10 ]; then
-            echo "::warning::Menos de 10 arquivos .sql em $MIGRATIONS_DIR (encontrados: $TOTAL_SQL) - ok para PR inicial"
+            echo "::error::Menos de 10 arquivos .sql em $MIGRATIONS_DIR (encontrados: $TOTAL_SQL) — repositorio incompleto"
+            FAILED=1
           fi
 
+          # ================================================================
+          # 2. Entrypoint JWT e allowlist PUBLIC_FNS
+          # ================================================================
           echo ""
-          echo "=== Estatisticas do schema (regex sobre supabase/migrations) ==="
+          echo "=== Verificando entrypoint JWT e PUBLIC_FNS ==="
+          INDEX="supabase/functions/main/index.ts"
+          if [ ! -f "$INDEX" ]; then
+            echo "::error::$INDEX nao encontrado — entrypoint JWT obrigatorio"
+            FAILED=1
+          else
+            echo "OK: $INDEX encontrado"
+
+            if ! grep -q "const PUBLIC_FNS" "$INDEX"; then
+              echo "::error::PUBLIC_FNS nao encontrado em $INDEX — allowlist JWT obrigatoria"
+              FAILED=1
+            else
+              COUNT=$(grep -oE "['\"][A-Za-z0-9_-]+['\"]" "$INDEX" \
+                | head -200 | grep -c "'" || true)
+              if [ "$COUNT" -eq 0 ]; then
+                echo "::error::PUBLIC_FNS esta vazia — nenhuma funcao na allowlist JWT"
+                FAILED=1
+              else
+                echo "OK: PUBLIC_FNS tem ${COUNT} entradas"
+              fi
+            fi
+
+            # Funcoes protegidas NAO podem estar na allowlist
+            PROTECTED_FNS="admin delete-user reset-password"
+            PROTECTED_FOUND=0
+            for fn in $PROTECTED_FNS; do
+              if grep -q "\"$fn\"" "$INDEX" || grep -q "'$fn'" "$INDEX"; then
+                echo "::error::Funcao protegida '$fn' encontrada na PUBLIC_FNS — RISCO CRITICO DE SEGURANCA"
+                FAILED=1
+                PROTECTED_FOUND=1
+              fi
+            done
+            if [ "$PROTECTED_FOUND" -eq 0 ]; then
+              echo "OK: nenhuma funcao protegida (admin, delete-user, reset-password) na allowlist"
+            fi
+          fi
+
+          # ================================================================
+          # 3. Verificar GRANT EXECUTE para anon em funcoes (escalacao de priv)
+          # ================================================================
+          echo ""
+          echo "=== Verificando concessoes de EXECUTE para anon ==="
+          # Pattern: GRANT EXECUTE ON FUNCTION ... TO anon (ou TO public sem REVOKE posterior)
+          # Procura somente em migrations de aplicacao (nao arquivadas)
+          ANON_GRANTS=""
+          while IFS= read -r sqlfile; do
+            # Procura por GRANT EXECUTE ... TO anon (ou TO public)
+            MATCH=$(grep -niE \
+              'GRANT\s+EXECUTE\s+ON\s+FUNCTION[^;]+\bTO\s+(anon|"anon")\s*[;,]' \
+              "$sqlfile" 2>/dev/null || true)
+            if [ -n "$MATCH" ]; then
+              # Verifica se a mesma linha tem REVOKE (double-check — raro mas possivel)
+              ANON_GRANTS="${ANON_GRANTS}${sqlfile}:${MATCH}\n"
+            fi
+          done < <(find "$MIGRATIONS_DIR" -maxdepth 1 -name '*.sql' -type f | sort)
+
+          if [ -n "$ANON_GRANTS" ]; then
+            echo "::error::GRANT EXECUTE ON FUNCTION para 'anon' encontrado — possivel escalacao de privilegio:"
+            printf '%b' "$ANON_GRANTS"
+            FAILED=1
+          else
+            echo "OK: nenhum GRANT EXECUTE para anon em funcoes das migrations"
+          fi
+
+          # ================================================================
+          # 4. SECURITY DEFINER sem SET search_path (regressao de seguranca)
+          # ================================================================
+          echo ""
+          echo "=== Verificando SECURITY DEFINER sem search_path fixo ==="
+          SECDEF_VIOLATIONS=0
+          while IFS= read -r sqlfile; do
+            if grep -qi 'SECURITY[[:space:]]\+DEFINER' "$sqlfile" 2>/dev/null; then
+              if ! grep -qi 'SET[[:space:]]\+search_path' "$sqlfile" 2>/dev/null; then
+                echo "::warning::$sqlfile tem SECURITY DEFINER mas nao define SET search_path (verifique manualmente)"
+                SECDEF_VIOLATIONS=$((SECDEF_VIOLATIONS + 1))
+              fi
+            fi
+          done < <(find "$MIGRATIONS_DIR" -maxdepth 1 -name '*.sql' -type f | sort)
+
+          if [ "$SECDEF_VIOLATIONS" -eq 0 ]; then
+            echo "OK: todas as migrations com SECURITY DEFINER incluem SET search_path"
+          else
+            echo "::warning::${SECDEF_VIOLATIONS} arquivo(s) com SECURITY DEFINER sem search_path detectados (ver avisos acima)"
+          fi
+
+          # ================================================================
+          # 5. URLs de producao hardcoded em edge functions (fora de _shared)
+          # ================================================================
+          echo ""
+          echo "=== Verificando URLs hardcoded de producao em edge functions ==="
+          HARDCODED_URLS=$(grep -rn "https://supabase\.atomicabr\.com\.br" \
+            supabase/functions/ \
+            --include='*.ts' \
+            --exclude-dir='_shared' \
+            -l 2>/dev/null || true)
+          if [ -n "$HARDCODED_URLS" ]; then
+            echo "::warning::URLs de producao hardcoded encontradas (use variaveis de ambiente):"
+            echo "$HARDCODED_URLS"
+          else
+            echo "OK: nenhuma URL de producao hardcoded fora de _shared"
+          fi
+
+          # ================================================================
+          # 6. Estatísticas gerais (informativo)
+          # ================================================================
+          echo ""
+          echo "=== Estatisticas gerais do schema ==="
           CREATE_TABLE="$(grep -rhoiE '^\s*create\s+table' "$MIGRATIONS_DIR" --include='*.sql' | wc -l | tr -d ' ')"
           ALTER_TABLE="$(grep -rhoiE '^\s*alter\s+table' "$MIGRATIONS_DIR" --include='*.sql' | wc -l | tr -d ' ')"
           FUNCTIONS="$(grep -rhoiE 'create\s+(or\s+replace\s+)?function' "$MIGRATIONS_DIR" --include='*.sql' | wc -l | tr -d ' ')"
           TRIGGERS="$(grep -rhoiE 'create\s+trigger' "$MIGRATIONS_DIR" --include='*.sql' | wc -l | tr -d ' ')"
           POLICIES="$(grep -rhoiE 'create\s+policy' "$MIGRATIONS_DIR" --include='*.sql' | wc -l | tr -d ' ')"
-          printf '%-14s %s\n' "CREATE TABLE:" "$CREATE_TABLE"
-          printf '%-14s %s\n' "ALTER TABLE:" "$ALTER_TABLE"
-          printf '%-14s %s\n' "FUNCTIONS:" "$FUNCTIONS"
-          printf '%-14s %s\n' "TRIGGERS:" "$TRIGGERS"
-          printf '%-14s %s\n' "POLICIES:" "$POLICIES"
+          printf '%-16s %s\n' "CREATE TABLE:"  "$CREATE_TABLE"
+          printf '%-16s %s\n' "ALTER TABLE:"   "$ALTER_TABLE"
+          printf '%-16s %s\n' "FUNCTIONS:"     "$FUNCTIONS"
+          printf '%-16s %s\n' "TRIGGERS:"      "$TRIGGERS"
+          printf '%-16s %s\n' "POLICIES:"      "$POLICIES"
+          printf '%-16s %s\n' "TOTAL SQL:"     "$TOTAL_SQL"
 
+          # ================================================================
+          # Resultado final
+          # ================================================================
           echo ""
-          echo "Paridade de schema: verificacao concluida (informativa, nao bloqueia o pipeline)"
+          echo "=== Resultado ==="
+          if [ "$FAILED" = "1" ]; then
+            echo "::error::Edge Schema Parity FALHOU — corrigir os problemas criticos acima antes de mergear"
+            exit 1
+          fi
+          echo "Edge Schema Parity OK — nenhuma violacao critica detectada"
