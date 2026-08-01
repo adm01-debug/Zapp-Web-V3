@@ -1,13 +1,19 @@
 -- ============================================================
--- Passo P1: Guards de autorização nas 23 funções SECURITY DEFINER
+-- Passo P1: Guards de autorização nas funções SECURITY DEFINER
 --           do schema financeiro que realizam UPDATE/INSERT/DELETE
 --           sem verificação de papel do chamador.
 --
--- Estratégia: lê o corpo atual de cada função via pg_get_functiondef(),
+-- Estratégia: descobre dinamicamente TODAS as funções PL/pgSQL
+-- com SECURITY DEFINER no schema financeiro (via p.prosecdef=true),
 -- injeta  financeiro.fn_is_admin_diretor()  como primeira instrução
--- do bloco BEGIN, e re-executa via EXECUTE.
--- Em caso de falha na injeção, emite WARNING e pula a função
--- (não reverte a migration inteira).
+-- do bloco BEGIN via pg_get_functiondef() + EXECUTE.
+--
+-- Idempotência: verifica presença estrutural do guard
+--   (IF NOT financeiro.fn_is_admin_diretor()) para evitar falsos
+--   positivos em funções que apenas mencionam o nome.
+--
+-- Fail-closed: qualquer falha de injeção aborta a migration inteira
+--   via RAISE EXCEPTION — hardening parcial é pior do que nenhum.
 --
 -- Auditoria: 2026-08-01 R27 — risco P1 mapeado
 -- Aplicado:  2026-08-02
@@ -35,7 +41,9 @@ DECLARE
     || E'  END IF;\n';
 
 BEGIN
-  -- Seleciona todas as overloads das funções-alvo no schema financeiro
+  -- Seleciona TODAS as funções PL/pgSQL SECURITY DEFINER no schema financeiro.
+  -- p.prosecdef = true garante que não alvejamos overloads SECURITY INVOKER.
+  -- A lista não é hardcoded para cobrir funções presentes e futuras.
   FOR v_rec IN
     SELECT
       p.oid,
@@ -43,34 +51,21 @@ BEGIN
       pg_catalog.pg_get_function_identity_arguments(p.oid) AS fn_args
     FROM pg_catalog.pg_proc p
     JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
-    WHERE n.nspname = 'financeiro'
-      AND p.prokind   = 'f'          -- somente funções normais
-      AND p.prolang   = (SELECT oid FROM pg_catalog.pg_language WHERE lanname = 'plpgsql')
-      AND p.proname IN (
-        'liquidar_parcela',
-        'liquidar_vale',
-        'pagar_parcela_emprestimo',
-        'prorrogar_parcela',
-        'unificar_pedidos',
-        'desfazer_unificacao',
-        'adicionar_parcelas',
-        'adicionar_valor_emprestimo',
-        'atualizar_colaborador',
-        'bulk_insert_parcelas',
-        'bulk_sync_parcelas_planilha',
-        'bulk_upsert_vendas',
-        'remover_parcelas',
-        'sincronizar_nome_produto_nfs',
-        'sync_parcela_planilha'
-      )
+    WHERE n.nspname  = 'financeiro'
+      AND p.prokind  = 'f'          -- somente funções normais (não aggregates/window)
+      AND p.prolang  = (SELECT oid FROM pg_catalog.pg_language WHERE lanname = 'plpgsql')
+      AND p.prosecdef = true        -- somente SECURITY DEFINER; exclui overloads INVOKER
     ORDER BY p.proname, p.oid
   LOOP
     BEGIN
       -- Obtém definição completa da função
       v_def := pg_catalog.pg_get_functiondef(v_rec.oid);
 
-      -- Pula se guard já presente (idempotência)
-      IF v_def ILIKE '%fn_is_admin_diretor%' THEN
+      -- Pula se guard ESTRUTURAL já presente (idempotência robusta).
+      -- Usa 'IF NOT financeiro.fn_is_admin_diretor()' em vez de apenas
+      -- 'fn_is_admin_diretor' para evitar falso-skip em funções que apenas
+      -- referenciam o nome em comentários ou chamadas indiretas.
+      IF v_def ILIKE '%IF NOT financeiro.fn_is_admin_diretor()%' THEN
         RAISE NOTICE 'SKIP (já tem guard): financeiro.%(%) oid=%',
           v_rec.fn_name, v_rec.fn_args, v_rec.oid;
         v_skip_count := v_skip_count + 1;
@@ -109,28 +104,41 @@ BEGIN
       v_ok_count := v_ok_count + 1;
 
     EXCEPTION WHEN OTHERS THEN
+      v_fail_count := v_fail_count + 1;
       RAISE WARNING 'FALHA ao injetar guard em financeiro.%(%) oid=% — SQLSTATE=% MSG=%',
         v_rec.fn_name, v_rec.fn_args, v_rec.oid, SQLSTATE, SQLERRM;
-      v_fail_count := v_fail_count + 1;
     END;
   END LOOP;
+
+  -- ============================================================
+  -- Fail-closed: aborta a migration se qualquer injeção falhou.
+  -- Hardening parcial é pior do que nenhum: dá falsa impressão
+  -- de segurança. Re-aplicar após corrigir as causas raiz.
+  -- ============================================================
+  IF v_fail_count > 0 THEN
+    RAISE EXCEPTION
+      'Abortando migration: % função(ões) financeiro com falha na injeção de guard — revisar WARNINGs acima e re-aplicar',
+      v_fail_count
+      USING ERRCODE = 'P0001';
+  END IF;
 
   RAISE NOTICE '=== Resultado da injeção de guards financeiro ===';
   RAISE NOTICE 'Injetados com sucesso : %', v_ok_count;
   RAISE NOTICE 'Pulados (já tinham)   : %', v_skip_count;
   RAISE NOTICE 'Falhas                : %', v_fail_count;
 
-  -- Aviso informativo (não aborta migration) se NENHUMA função foi encontrada
-  -- (indício de que o schema financeiro não foi aplicado corretamente neste ambiente)
-  IF (v_ok_count + v_skip_count + v_fail_count) = 0 THEN
-    RAISE WARNING 'Nenhuma função financeiro encontrada — schema pode não estar aplicado no self-hosted';
+  -- Erro fatal se schema financeiro não está aplicado neste ambiente
+  IF (v_ok_count + v_skip_count) = 0 THEN
+    RAISE EXCEPTION
+      'Nenhuma função financeiro SECURITY DEFINER encontrada — schema pode não estar aplicado neste ambiente'
+      USING ERRCODE = 'P0001';
   END IF;
 END;
 $$;
 
 -- ============================================================
 -- Verificação pós-injeção: lista funções que ainda não têm guard
--- (somente como informativo — não bloqueia a migration)
+-- (somente como informativo — injeção acima já é fail-closed)
 -- ============================================================
 DO $$
 DECLARE
@@ -143,20 +151,15 @@ BEGIN
            pg_catalog.pg_get_function_identity_arguments(p.oid) AS fn_args
     FROM pg_catalog.pg_proc p
     JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
-    WHERE n.nspname = 'financeiro'
-      AND p.prokind = 'f'
-      AND p.prolang = (SELECT oid FROM pg_catalog.pg_language WHERE lanname = 'plpgsql')
-      AND p.proname IN (
-        'liquidar_parcela','liquidar_vale','pagar_parcela_emprestimo',
-        'prorrogar_parcela','unificar_pedidos','desfazer_unificacao',
-        'adicionar_parcelas','adicionar_valor_emprestimo','atualizar_colaborador',
-        'bulk_insert_parcelas','bulk_sync_parcelas_planilha','bulk_upsert_vendas',
-        'remover_parcelas','sincronizar_nome_produto_nfs','sync_parcela_planilha'
-      )
+    WHERE n.nspname  = 'financeiro'
+      AND p.prokind  = 'f'
+      AND p.prolang  = (SELECT oid FROM pg_catalog.pg_language WHERE lanname = 'plpgsql')
+      AND p.prosecdef = true
     ORDER BY p.proname
   LOOP
     v_def := pg_catalog.pg_get_functiondef(v_rec.oid);
-    IF v_def NOT ILIKE '%fn_is_admin_diretor%' THEN
+    -- Verifica presença estrutural do guard (mesmo critério da injeção)
+    IF v_def NOT ILIKE '%IF NOT financeiro.fn_is_admin_diretor()%' THEN
       RAISE WARNING 'SEM GUARD: financeiro.%(%) — injeção pode ter falhado silenciosamente',
         v_rec.proname, v_rec.fn_args;
       v_missing := v_missing + 1;
@@ -164,7 +167,7 @@ BEGIN
   END LOOP;
 
   IF v_missing = 0 THEN
-    RAISE NOTICE 'Verificação OK: todas as funções financeiro encontradas possuem auth guard';
+    RAISE NOTICE 'Verificação OK: todas as funções financeiro SECURITY DEFINER possuem auth guard';
   ELSE
     RAISE WARNING '% função(ões) financeiro sem guard após injeção — revisar manualmente', v_missing;
   END IF;
@@ -176,6 +179,6 @@ $$;
 -- ============================================================
 COMMENT ON SCHEMA financeiro IS
   E'Schema do módulo financeiro (16 tabelas, 23+ funções com execução privilegiada).\n'
-  'Guards fn_is_admin_diretor() adicionados via migration 20260802000001 em 2026-08-02.\n'
+  'Guards fn_is_admin_diretor() adicionados dinamicamente (prosecdef=true) via migration 20260802000001 em 2026-08-02.\n'
   'Risco residual P1 mapeado em R27 (2026-08-01): UUIDs não adivinháveis como mitigação parcial.\n'
   'Para auditoria completa ver: supabase/migrations/20260801200000_r27_deep_audit_p0_gaps_rt33.sql';

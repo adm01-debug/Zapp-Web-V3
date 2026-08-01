@@ -52,8 +52,8 @@ jobs:
             })" 2>/dev/null || echo "0")
 
           if [ "$COUNT" = "api-error" ]; then
-            echo "⚠ postgres-meta API returned non-array response — skipping live check (transient or auth error)"
-            exit 0
+            echo "::error::postgres-meta API returned non-array response — cannot verify security_invoker (fail-closed)"
+            exit 1
           fi
 
           if [ -z "$COUNT" ] || [ "$COUNT" = "0" ]; then
@@ -87,8 +87,8 @@ jobs:
             })" 2>/dev/null || echo "0")
 
           if [ "$COUNT" = "api-error" ]; then
-            echo "⚠ postgres-meta API returned non-array response — skipping live check (transient or auth error)"
-            exit 0
+            echo "::error::postgres-meta API returned non-array response — cannot verify anon-executable functions (fail-closed)"
+            exit 1
           fi
 
           if [ "$COUNT" != "0" ]; then

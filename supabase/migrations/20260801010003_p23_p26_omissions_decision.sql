@@ -44,7 +44,7 @@ COMMENT ON TABLE zapp.profiles IS
 -- Os rótulos (admin, manager, supervisor, agent, special_agent, dev)
 -- são idênticos em ambos os ambientes — apenas a posição ordinal difere,
 -- sem efeito observável no comportamento da aplicação.
-COMMENT ON TYPE zapp.app_role IS
+COMMENT ON TYPE public.app_role IS
   E'Papéis de usuário da plataforma.\n'
   'Ordem dos valores: admin, manager, supervisor, agent, special_agent, dev.\n'
   'Difere da ordem original Lovable (admin, supervisor, agent, special_agent, dev, manager) de forma deliberada;\n'

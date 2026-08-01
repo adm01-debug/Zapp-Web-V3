@@ -54,7 +54,7 @@ jobs:
           set -euo pipefail
 
           RESP=$(curl -sS -w "\n%{http_code}" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Authorization: Bearer ${{ secrets.ACTIONS_PAT || secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             "${{ github.api_url }}/repos/${{ github.repository }}/branches/main/protection")
 
@@ -62,10 +62,9 @@ jobs:
           PROT=$(echo "$RESP" | sed '$d')
 
           if [ "$HTTP_CODE" = "403" ]; then
-            echo "::warning::GITHUB_TOKEN lacks administration:read — cannot verify branch protection rules"
-            echo "::warning::To enable this check, create ACTIONS_PAT secret with repo/administration:read scope"
-            echo "Branch protection check skipped (permission denied)."
-            exit 0
+            echo "::error::Branch protection API denied (HTTP 403) — ACTIONS_PAT secret with administration:read scope is required"
+            echo "::error::Create an ACTIONS_PAT secret with repo + administration:read scope to enable this enforcement check"
+            exit 1
           fi
 
           if [ "$HTTP_CODE" = "404" ]; then
@@ -103,6 +102,13 @@ jobs:
             FAILED=1
           else
             echo "OK: pull request reviews required"
+            APPROVALS=$(echo "$PROT" | jq -r '.required_pull_request_reviews.required_approving_review_count // 0')
+            if [ "${APPROVALS:-0}" -lt 1 ]; then
+              echo "::error::required_approving_review_count is ${APPROVALS:-0} — minimum 1 approval required before merge"
+              FAILED=1
+            else
+              echo "OK: $APPROVALS required approval(s) configured"
+            fi
           fi
 
           if [ "$DISMISS" != "true" ]; then

@@ -61,17 +61,20 @@ jobs:
           # Verifica que há pelo menos uma função na allowlist
           COUNT=$(sed -n '/const PUBLIC_FNS/,/^\s*\]/p' "$INDEX" \
             | grep -oE "['\"][A-Za-z0-9_-]+['\"]" \
-            | grep -c "'" || true)
-          if [ "$COUNT" -eq 0 ]; then
+            | wc -l || true)
+          COUNT="${COUNT// /}"
+          if [ "${COUNT:-0}" -eq 0 ]; then
             echo "::error::PUBLIC_FNS esta vazia — nenhuma funcao na allowlist"
             exit 1
           fi
           echo "OK: PUBLIC_FNS tem ${COUNT} entradas (estatico)"
 
           # Verifica que nenhuma funcao protegida esta na allowlist acidentalmente
+          # Escopa a busca apenas ao bloco PUBLIC_FNS para evitar falso-positivo
+          PUBLIC_FNS_BLOCK=$(sed -n '/const PUBLIC_FNS/,/^\s*\]/p' "$INDEX")
           PROTECTED_FNS="admin delete-user reset-password"
           for fn in $PROTECTED_FNS; do
-            if grep -q "\"$fn\"" "$INDEX" || grep -q "'$fn'" "$INDEX"; then
+            if echo "$PUBLIC_FNS_BLOCK" | grep -q "\"$fn\"" || echo "$PUBLIC_FNS_BLOCK" | grep -q "'$fn'"; then
               echo "::error::Funcao protegida '$fn' encontrada na PUBLIC_FNS allowlist"
               exit 1
             fi
@@ -141,8 +144,8 @@ jobs:
           # Se VERIFY_JWT_ENABLED=false (runtime ainda nao ativado), apenas avisa
           echo ""
           echo "=== Testando funcoes protegidas (sem Authorization) ==="
-          # Funcoes protegidas conhecidas que existem em producao
-          PROTECTED_FNS="send-message search-contacts get-analytics"
+          # Funcoes protegidas que existem em producao (nao estao na PUBLIC_FNS allowlist)
+          PROTECTED_FNS="evolution-webhook ai-router"
           for fn in $PROTECTED_FNS; do
             # Pular se estiver na allowlist (pode ter sido adicionada)
             if grep -qx "$fn" "$ALLOWLIST_FILE" 2>/dev/null; then
@@ -178,11 +181,12 @@ jobs:
             fi
           done
 
-          # ---- 3. Funcao com JWT invalido deve retornar 401 ----
+          # ---- 3. Funcao protegida com JWT invalido deve retornar 401 ----
+          # Usa 'evolution-webhook' (nao esta na PUBLIC_FNS) — deve exigir JWT valido
           echo ""
-          echo "=== Testando rejeicao de JWT invalido ==="
+          echo "=== Testando rejeicao de JWT invalido em funcao protegida ==="
           FAKE_JWT="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0Iiwicm9sZSI6ImFub24iLCJleHAiOjB9.invalidsignature"
-          fn="health-check"
+          fn="evolution-webhook"
           code="$(curl -s -o /dev/null -w '%{http_code}' \
             --max-time 10 \
             -H "Authorization: Bearer $FAKE_JWT" \
@@ -190,14 +194,16 @@ jobs:
           code="${code:-000}"
 
           if [ "$code" = "000" ]; then
-            echo "::warning::health-check sem resposta com JWT invalido — problema de rede?"
-          elif [ "$code" = "401" ]; then
-            echo "OK: JWT invalido rejeitado com 401 em '$fn'"
-          elif [ "$code" = "200" ]; then
-            # health-check esta na PUBLIC_FNS, portanto JWT invalido e ignorado — OK
-            echo "OK: '$fn' esta na PUBLIC_FNS — JWT invalido ignorado (http=200 esperado)"
+            echo "::warning::$fn sem resposta com JWT invalido — problema de rede?"
+          elif [ "$code" = "401" ] || [ "$code" = "403" ]; then
+            echo "OK: JWT invalido rejeitado com $code em '$fn'"
+          elif [ "$code" = "404" ]; then
+            echo "::warning::$fn retornou 404 — funcao pode nao estar implantada"
+          elif [ "$VERIFY_JWT_ENABLED" = "true" ]; then
+            echo "::error::$fn aceitou JWT invalido com http=$code (VERIFY_JWT=true ativo) — vulnerabilidade de autenticacao"
+            FAILED=1
           else
-            echo "INFO: '$fn' com JWT invalido retornou http=$code"
+            echo "INFO: '$fn' com JWT invalido retornou http=$code (VERIFY_JWT nao ativo)"
           fi
 
           # ---- Resultado final ----

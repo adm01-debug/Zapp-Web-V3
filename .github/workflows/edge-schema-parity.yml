@@ -16,6 +16,7 @@ jobs:
     name: Edge Schema Parity
     runs-on: ubuntu-latest
     # NOTE: continue-on-error REMOVIDO — falhas bloqueiam o pipeline
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -63,8 +64,9 @@ jobs:
             else
               COUNT=$(sed -n '/const PUBLIC_FNS/,/^\s*\]/p' "$INDEX" \
                 | grep -oE "['\"][A-Za-z0-9_-]+['\"]" \
-                | grep -c "'" || true)
-              if [ "$COUNT" -eq 0 ]; then
+                | wc -l || true)
+              COUNT="${COUNT// /}"
+              if [ "${COUNT:-0}" -eq 0 ]; then
                 echo "::error::PUBLIC_FNS esta vazia — nenhuma funcao na allowlist JWT"
                 FAILED=1
               else
@@ -73,10 +75,12 @@ jobs:
             fi
 
             # Funcoes protegidas NAO podem estar na allowlist
+            # Escopa busca ao bloco PUBLIC_FNS para evitar falso-positivo em comentarios ou outros contextos
+            PUBLIC_FNS_BLOCK=$(sed -n '/const PUBLIC_FNS/,/^\s*\]/p' "$INDEX")
             PROTECTED_FNS="admin delete-user reset-password"
             PROTECTED_FOUND=0
             for fn in $PROTECTED_FNS; do
-              if grep -q "\"$fn\"" "$INDEX" || grep -q "'$fn'" "$INDEX"; then
+              if echo "$PUBLIC_FNS_BLOCK" | grep -q "\"$fn\"" || echo "$PUBLIC_FNS_BLOCK" | grep -q "'$fn'"; then
                 echo "::error::Funcao protegida '$fn' encontrada na PUBLIC_FNS — RISCO CRITICO DE SEGURANCA"
                 FAILED=1
                 PROTECTED_FOUND=1
@@ -96,13 +100,13 @@ jobs:
           # Procura somente em migrations de aplicacao (nao arquivadas)
           ANON_GRANTS=""
           while IFS= read -r sqlfile; do
-            # Procura por GRANT EXECUTE ... TO anon (ou TO public)
-            MATCH=$(grep -niE \
-              'GRANT\s+EXECUTE\s+ON\s+FUNCTION[^;]+\bTO\s+(anon|"anon")\s*[;,]' \
-              "$sqlfile" 2>/dev/null || true)
+            # Colapsa newlines para capturar GRANTs multilinhas e anon em qualquer posição da lista TO
+            NORMALIZED=$(tr '\n' ' ' < "$sqlfile" 2>/dev/null || true)
+            MATCH=$(echo "$NORMALIZED" | grep -oiE \
+              'GRANT[[:space:]]+EXECUTE[[:space:]]+ON[[:space:]]+FUNCTION[^;]*\banon\b[^;]*;' \
+              2>/dev/null || true)
             if [ -n "$MATCH" ]; then
-              # Verifica se a mesma linha tem REVOKE (double-check — raro mas possivel)
-              ANON_GRANTS="${ANON_GRANTS}${sqlfile}:${MATCH}\n"
+              ANON_GRANTS="${ANON_GRANTS}${sqlfile}: ${MATCH}\n"
             fi
           done < <(find "$MIGRATIONS_DIR" -maxdepth 1 -name '*.sql' -type f | sort)
 
@@ -121,18 +125,20 @@ jobs:
           echo "=== Verificando SECURITY DEFINER sem search_path fixo ==="
           SECDEF_VIOLATIONS=0
           while IFS= read -r sqlfile; do
-            if grep -qi 'SECURITY[[:space:]]\+DEFINER' "$sqlfile" 2>/dev/null; then
-              if ! grep -qi 'SET[[:space:]]\+search_path' "$sqlfile" 2>/dev/null; then
-                echo "::warning::$sqlfile tem SECURITY DEFINER mas nao define SET search_path (verifique manualmente)"
-                SECDEF_VIOLATIONS=$((SECDEF_VIOLATIONS + 1))
-              fi
+            SECDEF_COUNT=$(grep -ciE 'SECURITY[[:space:]]+DEFINER' "$sqlfile" 2>/dev/null || echo "0")
+            SEARCH_PATH_COUNT=$(grep -ciE 'SET[[:space:]]+search_path' "$sqlfile" 2>/dev/null || echo "0")
+            SECDEF_COUNT="${SECDEF_COUNT// /}"
+            SEARCH_PATH_COUNT="${SEARCH_PATH_COUNT// /}"
+            if [ "${SECDEF_COUNT:-0}" -gt 0 ] && [ "${SEARCH_PATH_COUNT:-0}" -lt "${SECDEF_COUNT:-0}" ]; then
+              echo "::warning::$sqlfile: ${SECDEF_COUNT} SECURITY DEFINER mas apenas ${SEARCH_PATH_COUNT} SET search_path — verifique manualmente"
+              SECDEF_VIOLATIONS=$((SECDEF_VIOLATIONS + 1))
             fi
           done < <(find "$MIGRATIONS_DIR" -maxdepth 1 -name '*.sql' -type f | sort)
 
           if [ "$SECDEF_VIOLATIONS" -eq 0 ]; then
             echo "OK: todas as migrations com SECURITY DEFINER incluem SET search_path"
           else
-            echo "::warning::${SECDEF_VIOLATIONS} arquivo(s) com SECURITY DEFINER sem search_path detectados (ver avisos acima)"
+            echo "::warning::${SECDEF_VIOLATIONS} arquivo(s) com SECURITY DEFINER sem search_path suficiente detectados (ver avisos acima)"
           fi
 
           # ================================================================
