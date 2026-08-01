@@ -40,10 +40,11 @@ export function useWebAuthn() {
   const { data: passkeys = [], refetch: refetchPasskeys } = useQuery({
     queryKey: PASSKEYS_KEY(user?.id),
     queryFn: async () => {
+      if (!user) throw new Error('Usuário não autenticado');
       const { data, error } = await supabase
         .from('passkey_credentials')
         .select('id, credential_id, friendly_name, device_type, created_at, last_used_at')
-        .eq('user_id', user!.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       if (error) {
         log.error('Failed to fetch passkeys:', error);

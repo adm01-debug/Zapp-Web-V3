@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { loginAs } from './helpers/testHelpers';
 
 test.describe('Teams - Message Reactions Advanced @teams @reactions @advanced', () => {
@@ -172,7 +173,7 @@ test.describe('Teams - Message Reactions Advanced @teams @reactions @advanced', 
     const m1 = p1.locator(`[data-testid^="message-container-"]`).filter({ hasText: uniqueText });
     const m2 = p2.locator(`[data-testid^="message-container-"]`).filter({ hasText: uniqueText });
 
-    const waitSettled = async (p: any) => {
+    const waitSettled = async (p: Page) => {
       const container = p.locator(`[data-testid^="reactions-container-"]`).filter({ has: p.locator('..', { hasText: uniqueText }) });
       await expect(container).toHaveAttribute('data-is-toggling', 'false', { timeout: 15000 });
     };

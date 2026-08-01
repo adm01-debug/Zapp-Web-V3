@@ -49,7 +49,12 @@ function callExternalRpc(
   fn: string,
   args: Record<string, unknown>
 ) {
-  return (client as unknown as { rpc: typeof client.rpc }).rpc(fn as any, args);
+  return (client as unknown as {
+    rpc: (
+      name: string,
+      params?: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
+  }).rpc(fn, args);
 }
 
 /** Hook: fallback Find Chats. */

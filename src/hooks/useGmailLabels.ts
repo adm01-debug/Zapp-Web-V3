@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -25,13 +25,14 @@ export const SYSTEM_LABELS: Array<{ id: string; name: string; icon: string; colo
 /** Hook: use Email Labels. */
 export function useEmailLabels(accountId: string | null) {
   const queryClient = useQueryClient();
-  const key = ['email-labels', accountId] as const;
+  const key = useMemo(() => ['email-labels', accountId] as const, [accountId]);
 
   const { data: labels = [], isLoading, error: queryError } = useQuery({
     queryKey: key,
     queryFn: async () => {
+      if (!accountId) return [];
       const { data, error: dbErr } = await safeClient.from('email_labels', (q) =>
-        q.select('*').eq('account_id', accountId!).order('name', { ascending: true })
+        q.select('*').eq('account_id', accountId).order('name', { ascending: true })
       );
       if (dbErr) {
         log.warn('Email labels load error', dbErr.message);

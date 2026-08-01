@@ -67,11 +67,11 @@ export function SLARateChart({ dailyData }: { dailyData: DailyData[] }) {
                   border: '1px solid hsl(var(--border))',
                   borderRadius: '8px',
                 }}
-                formatter={((value: any) => [
+                formatter={(value) => [
                   String(typeof value === 'number' ? value.toFixed(1) : Number(value).toFixed(1)) +
                     '%',
                   'Taxa SLA',
-                ]) as any}
+                ]}
               />
               <Area
                 type="monotone"

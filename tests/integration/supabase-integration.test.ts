@@ -31,7 +31,7 @@ describe('Auth & Data Integration', () => {
           data: null
         })
       })
-    } as any));
+    }));
 
     const result = await mockSupabase.from('profiles').select('*').eq('id', '1');
     expect(result.error?.message).toBe('Connection Timeout');

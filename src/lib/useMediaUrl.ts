@@ -18,7 +18,7 @@
  *   ADR-003: Reverter para privado + batch signing (este arquivo)
  */
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   sanitizeMediaUrl,
@@ -43,7 +43,6 @@ export const PUBLIC_BUCKETS = new Set([
   'stickers', // figurinhas — sempre público
   'audio-memes', // sons de notificação — sempre público
   'custom-emojis', // emojis customizados — sempre público
-  'recibos-entrega', // comprovantes de entrega — sempre público
 ]);
 
 /**
@@ -177,6 +176,11 @@ export function useSignedMediaUrlBatch(
     [items]
   );
 
+  // Espelho em ref: o effect depende apenas de itemsKey (estável), mas lê os
+  // items mais recentes sem re-executar a cada render quando a identidade muda.
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+
   useEffect(() => {
     let cancelled = false;
 
@@ -184,7 +188,7 @@ export function useSignedMediaUrlBatch(
     const privatePaths: Array<{ id: string; bucket: string; path: string }> = [];
     const immediateResult = new Map<string, string | null>();
 
-    for (const item of items) {
+    for (const item of itemsRef.current) {
       if (!item.media_bucket || !item.media_path) {
         // Tentar formato legado (público)
         immediateResult.set(item.id, resolvePublicMediaUrl({
@@ -312,28 +316,23 @@ export function useMessageMediaUrl(params: {
   /** URL pré-resolvida pelo batch (de useSignedMediaUrlBatch) */
   preResolvedSignedUrl?: string | null;
 }): string | null {
+  const { mediaBucket, mediaPath, mediaUrl, mediaStatus, preResolvedSignedUrl } = params;
   return useMemo(() => {
     // Prioridade: URL pré-resolvida pelo batch signer
-    if (params.preResolvedSignedUrl) return params.preResolvedSignedUrl;
+    if (preResolvedSignedUrl) return preResolvedSignedUrl;
 
     // Fallback: resolução pública (funciona para buckets públicos)
-    const publicUrl = resolvePublicMediaUrl(params);
+    const publicUrl = resolvePublicMediaUrl({ mediaBucket, mediaPath, mediaUrl, mediaStatus });
     if (publicUrl) return publicUrl;
 
     // Tentar cache local de signed URL (para buckets privados já carregados)
-    if (params.mediaBucket && params.mediaPath && !isPublicBucket(params.mediaBucket)) {
-      const cacheKey = `${params.mediaBucket}/${params.mediaPath}`;
+    if (mediaBucket && mediaPath && !isPublicBucket(mediaBucket)) {
+      const cacheKey = `${mediaBucket}/${mediaPath}`;
       return getCachedSignedUrl(cacheKey);
     }
 
     return null;
-  }, [
-    params.mediaBucket,
-    params.mediaPath,
-    params.mediaUrl,
-    params.mediaStatus,
-    params.preResolvedSignedUrl,
-  ]);
+  }, [mediaBucket, mediaPath, mediaUrl, mediaStatus, preResolvedSignedUrl]);
 }
 
 // ---------------------------------------------------------------------------

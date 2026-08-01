@@ -25,11 +25,12 @@ export function useLGPDAuditLogs(userId: string | undefined, limit = 50) {
   const { data: logs = [], isLoading: loading, error: queryError, refetch } = useQuery({
     queryKey: ['lgpd-audit-logs', userId, limit] as const,
     queryFn: async () => {
+      if (!userId) throw new Error('userId ausente');
       const orFilter = LGPD_ACTION_PREFIXES.map((p) => `action.ilike.${p}%`).join(',');
       const { data, error: qErr } = await supabase
         .from('audit_logs')
         .select('id, action, entity_type, entity_id, details, created_at')
-        .eq('user_id', userId!)
+        .eq('user_id', userId)
         .or(orFilter)
         .order('created_at', { ascending: false })
         .limit(limit);

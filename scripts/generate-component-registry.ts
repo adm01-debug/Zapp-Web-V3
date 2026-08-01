@@ -23,7 +23,12 @@ function extractVariants(content: string) {
   return variantObj;
 }
 
-const registry: Record<string, any> = {};
+interface RegistryEntry {
+  name: string;
+  variants: Record<string, string[]> | null;
+}
+
+const registry: Record<string, RegistryEntry> = {};
 
 const files = readdirSync(UI_DIR);
 for (const file of files) {

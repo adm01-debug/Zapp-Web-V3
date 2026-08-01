@@ -3,7 +3,7 @@
 // Notes:
 // - `stickers` table has columns: id, name, image_url, category, is_favorite, use_count, owner_id (from schema list).
 // - Storage bucket is `stickers` (public).
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
@@ -34,10 +34,10 @@ export function usePersonalStickers(): UsePersonalStickersResult {
   const { profile } = useAuth();
   const ownerId = profile?.id;
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null!);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
-  const QUERY_KEY = ['personal-stickers', ownerId] as const;
+  const QUERY_KEY = useMemo(() => ['personal-stickers', ownerId] as const, [ownerId]);
 
   const {
     data: stickers = [],

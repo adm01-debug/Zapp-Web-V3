@@ -51,7 +51,7 @@ export function mockOf<T>(partial: Partial<T> = {}): T {
 /**
  * Cast any callable (including a real function replaced via `vi.mock`) to
  * a Vitest `Mock` so `.mockReturnValue`, `.mockResolvedValue` etc. type-check
- * without `(fn as any).mockReturnValue(...)`.
+ * without raw `fn` casts on `.mockReturnValue(...)`.
  *
  * @example
  *   asMock(useIsMobile).mockReturnValue(true);
@@ -63,7 +63,7 @@ export function asMock<T extends AnyFn>(fn: T): Mock<T> {
 
 /**
  * Attach an arbitrary typed bag to `globalThis` / `window` for tests that
- * stash spies or counters on the global. Avoids `(globalThis as any).foo`.
+ * stash spies or counters on the global. Avoids direct `globalThis` casts.
  *
  * @example
  *   const g = globalAs<{ __queryTelemetry?: { total: number } }>();

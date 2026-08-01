@@ -12,13 +12,24 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ewogICJyb2xlIjogImFub
 let totalPassed = 0;
 let totalFailed = 0;
 
-async function testWebSocket(name: string, url: string, options: any): Promise<boolean> {
+interface WsTestOptions {
+  protocols?: string | string[];
+}
+
+interface MinimalWebSocket {
+  on(event: string, listener: (err?: { message?: string }) => void): void;
+  close(): void;
+}
+
+type MinimalWebSocketCtor = new (url: string, protocols?: string | string[]) => MinimalWebSocket;
+
+async function testWebSocket(name: string, url: string, options: WsTestOptions | string[]): Promise<boolean> {
   process.stdout.write(`\n⏳ ${name}... `);
   return new Promise((resolve) => {
-    const hasWebSocket = typeof (global as any).WebSocket !== 'undefined';
-    const ws = hasWebSocket
-      ? new (global as any).WebSocket(url, options.protocols)
-      : null;
+    const WebSocketCtor = (globalThis as unknown as { WebSocket?: MinimalWebSocketCtor }).WebSocket;
+    const hasWebSocket = typeof WebSocketCtor !== 'undefined';
+    const protocols = Array.isArray(options) ? options : options.protocols;
+    const ws = hasWebSocket && WebSocketCtor ? new WebSocketCtor(url, protocols) : null;
 
     if (!ws) {
       console.log('⚠️  WebSocket not available in this Node version');
@@ -47,8 +58,8 @@ async function testWebSocket(name: string, url: string, options: any): Promise<b
       resolve(true);
     });
 
-    ws.on('error', (err: any) => {
-      console.log(`❌ error: ${err.message}`);
+    ws.on('error', (err) => {
+      console.log(`❌ error: ${err?.message}`);
       totalFailed++;
       clearTimeout(timeout);
       resolve(false);

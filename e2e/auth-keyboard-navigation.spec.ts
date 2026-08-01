@@ -84,9 +84,10 @@ test.describe('Navegação por teclado em /auth', () => {
       };
     });
     expect(outline).not.toBeNull();
+    if (!outline) throw new Error('outline ausente');
     const hasVisibleFocus =
-      (outline!.outlineStyle !== 'none' && outline!.outlineWidth !== '0px') ||
-      (outline!.boxShadow && outline!.boxShadow !== 'none');
+      (outline.outlineStyle !== 'none' && outline.outlineWidth !== '0px') ||
+      (outline.boxShadow && outline.boxShadow !== 'none');
     expect(hasVisibleFocus, 'Elemento focado deve ter outline ou box-shadow visível').toBeTruthy();
   });
 

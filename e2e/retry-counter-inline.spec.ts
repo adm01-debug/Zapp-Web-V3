@@ -86,7 +86,8 @@ test.describe('Contador inline de retry (X/Y) em tempo real', () => {
 
       const first = await readAttempt(page);
       expect(first, 'snapshot inicial do badge ausente').not.toBeNull();
-      const totalRetries = first!.total;
+      if (!first) throw new Error('snapshot inicial do badge ausente');
+      const totalRetries = first.total;
       expect(totalRetries, 'totalRetries deve ser >= 2').toBeGreaterThanOrEqual(2);
 
       // 2) O contador deve AVANÇAR em tempo real (X cresce sem reload).
@@ -99,10 +100,10 @@ test.describe('Contador inline de retry (X/Y) em tempo real', () => {
           },
           {
             timeout: 15_000,
-            message: `contador não avançou além de ${first!.attempt}/${totalRetries}`,
+            message: `contador não avançou além de ${first.attempt}/${totalRetries}`,
           },
         )
-        .toBeGreaterThan(first!.attempt);
+        .toBeGreaterThan(first.attempt);
 
       // Sanity: o total nunca muda durante a corrida.
       const mid = await readAttempt(page);

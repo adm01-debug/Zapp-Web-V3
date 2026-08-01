@@ -29,7 +29,7 @@ export function OpsTransfersTab() {
     pageSize: PAGE_SIZE,
   });
 
-  const rows = data?.rows ?? [];
+  const rows = useMemo(() => data?.rows ?? [], [data?.rows]);
   const total = data?.total ?? 0;
   const deniedReason = data?.deniedReason ?? null;
 

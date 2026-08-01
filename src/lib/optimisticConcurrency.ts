@@ -30,6 +30,25 @@ export type UpdateResult<T> =
   | { ok: false; conflict: ConflictError }
   | { ok: false; error: string };
 
+interface VersionedRow<T> {
+  data: T | null;
+  error: { message: string } | null;
+}
+
+interface VersionedEqSelectBuilder<T> {
+  eq(column: string, value: unknown): VersionedEqSelectBuilder<T>;
+  select(columns?: string): { maybeSingle(): Promise<VersionedRow<T>> };
+  maybeSingle(): Promise<VersionedRow<T>>;
+}
+
+interface VersionedQueryBuilder<T> {
+  update(payload: Record<string, unknown>): VersionedEqSelectBuilder<T>;
+  select(columns?: string): VersionedEqSelectBuilder<T>;
+  insert(payload: Record<string, unknown>): {
+    select(): { maybeSingle(): Promise<VersionedRow<T>> };
+  };
+}
+
 /**
  * Helper para update com version checking.
  *
@@ -49,7 +68,7 @@ export type UpdateResult<T> =
  * ```
  */
 export async function updateWithVersionCheck<T extends VersionedEntity>(
-  query: any, // SupabaseQueryBuilder
+  query: VersionedQueryBuilder<T>,
   entityId: string,
   expectedVersion: number,
   updates: Partial<T>
@@ -107,7 +126,7 @@ export async function updateWithVersionCheck<T extends VersionedEntity>(
  * Helper para INSERT com version inicial.
  */
 export async function insertWithVersion<T extends Omit<VersionedEntity, 'version' | 'updated_at'>>(
-  query: any,
+  query: VersionedQueryBuilder<T & VersionedEntity>,
   data: T
 ): Promise<UpdateResult<T & VersionedEntity>> {
   const payload = {

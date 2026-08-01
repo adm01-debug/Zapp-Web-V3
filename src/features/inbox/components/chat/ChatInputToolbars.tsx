@@ -188,7 +188,7 @@ export function SecondaryToolbar({
         </Tooltip>
       )}
       <FileUploader
-        ref={fileUploaderRef as any}
+        ref={fileUploaderRef as React.Ref<FileUploaderRef>}
         instanceName={instanceName || ''}
         recipientNumber={contactPhone}
         contactId={contactId}

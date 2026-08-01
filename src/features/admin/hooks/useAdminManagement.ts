@@ -602,9 +602,9 @@ function useAdminQueuesManagement() {
       return {
         queues: (qRes.data ?? []) as Queue[],
         queueMembers: (mRes.data ?? []) as QueueMember[],
-        queueSkills: (sRes.data ?? []).map((r: any) => ({
+        queueSkills: ((sRes.data ?? []) as Array<{ min_level?: number | null }>).map((r) => ({
           ...r,
-          min_level: (r as { min_level?: number | null }).min_level ?? 1,
+          min_level: r.min_level ?? 1,
         })) as QueueSkill[],
         queueDepartments: (dRes.data ?? []) as QueueDepartment[],
         queueChannels: (cRes.data ?? []) as QueueServiceChannel[],

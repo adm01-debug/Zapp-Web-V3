@@ -10,7 +10,7 @@
  * Backward compatibility maintained through re-exports of legacy hook names.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase as _supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -1094,7 +1094,7 @@ export function useEmailSearch(accountId: string | null) {
 
 /** Tracks SLA metrics for email threads with configurable thresholds and status monitoring. */
 export function useEmailSLA(accountId: string | null, config: Partial<SLAConfig> = {}) {
-  const slaConfig: SLAConfig = { ...DEFAULT_SLA, ...config };
+  const slaConfig: SLAConfig = useMemo(() => ({ ...DEFAULT_SLA, ...config }), [config]);
   const [records, setRecords] = useState<Record<string, EmailSLARecord>>({});
 
   const registerThread = useCallback(

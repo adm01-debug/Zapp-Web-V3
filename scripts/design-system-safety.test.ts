@@ -21,8 +21,9 @@ describe("Design System Safety & Integrity", () => {
           const token = parts[parts.length - 1];
           // Remove variants if present (though split-pop handles the last part)
           const cleanToken = token.includes(':') ? token.split(':').pop() : token;
+          if (!cleanToken) throw new Error(`token ausente em ${replacement}`);
           
-          expect(ALLOWED_TOKENS).toContain(cleanToken!);
+          expect(ALLOWED_TOKENS).toContain(cleanToken);
         }
       });
     });

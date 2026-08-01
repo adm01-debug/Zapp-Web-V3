@@ -41,7 +41,8 @@ describe("Design System Auditor", () => {
       const { replacement } = getSuggestion("Literal Color", match);
       if (replacement) {
         const token = replacement.split("-").pop();
-        expect(allowedSemanticSuffixes).toContain(token!);
+        if (!token) throw new Error(`token ausente em ${replacement}`);
+        expect(allowedSemanticSuffixes).toContain(token);
       }
     });
   });

@@ -50,6 +50,7 @@ import { QrAttemptHistory } from './QrAttemptHistory';
 import { RefreshQrButton } from './RefreshQrButton';
 import { IdempotencyMissBanner } from './IdempotencyMissBanner';
 import { useConnectionsManager } from '@/features/connections';
+import type { WhatsAppConnection } from '@/features/connections/hooks/useConnectionsManager';
 import { useEvolutionAutoSync } from '@/hooks/useEvolutionAutoSync';
 import { useEvolutionAutoReconnect } from '@/hooks/useEvolutionAutoReconnect';
 
@@ -556,8 +557,10 @@ export function ConnectionsView() {
       </div>
 
       <DegradedQuickActions
-        connections={connections as any}
-        onShowQrCode={handleShowQrCode as any}
+        connections={connections}
+        onShowQrCode={(connection) =>
+          handleShowQrCode(connection as WhatsAppConnection)
+        }
       />
 
       {/* Connections List */}

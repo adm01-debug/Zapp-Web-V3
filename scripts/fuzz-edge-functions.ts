@@ -11,9 +11,9 @@ const { values } = parseArgs({
   strict: false,
 });
 
-const BASE_URL = values.baseUrl!;
-const RUNS = parseInt(values.runs!);
-const CONCURRENCY = parseInt(values.concurrency!);
+const BASE_URL = values.baseUrl ?? "http://localhost:54321/functions/v1";
+const RUNS = parseInt(values.runs ?? "100");
+const CONCURRENCY = parseInt(values.concurrency ?? "10");
 
 // Critical functions to fuzz
 const TARGET_FUNCTIONS = [

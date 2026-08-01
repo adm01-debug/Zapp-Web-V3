@@ -91,9 +91,11 @@ export function useMessageQueue(
   const currentlySendingRef = useRef<number>(0);
 
   useEffect(() => {
+    const activeTimers = activeTimersRef.current;
+    const processedDeliveries = processedDeliveriesRef.current;
     return () => {
-      activeTimersRef.current.forEach(clearTimeout);
-      processedDeliveriesRef.current.clear();
+      activeTimers.forEach(clearTimeout);
+      processedDeliveries.clear();
       currentlySendingRef.current = 0;
     };
   }, []);

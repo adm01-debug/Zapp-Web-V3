@@ -18,17 +18,22 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const url = process.env.VITE_SUPABASE_URL!;
-const anon = process.env.VITE_SUPABASE_PUBLISHABLE_KEY!;
-if (!url || !anon) throw new Error("VITE_SUPABASE_URL/PUBLISHABLE_KEY ausentes");
+function requireEnv(name: string): string {
+  const v = process.env[name];
+  if (!v) throw new Error(`Env var ${name} ausente`);
+  return v;
+}
+
+const url = requireEnv("VITE_SUPABASE_URL");
+const anon = requireEnv("VITE_SUPABASE_PUBLISHABLE_KEY");
 
 type Role = "admin" | "supervisor" | "agent" | "special_agent";
 
 const CREDS: Record<Role, { email: string; password: string }> = {
-  admin: { email: process.env.RLS_TEST_ADMIN_EMAIL!, password: process.env.RLS_TEST_ADMIN_PASSWORD! },
-  supervisor: { email: process.env.RLS_TEST_SUPERVISOR_EMAIL!, password: process.env.RLS_TEST_SUPERVISOR_PASSWORD! },
-  agent: { email: process.env.RLS_TEST_AGENT_EMAIL!, password: process.env.RLS_TEST_AGENT_PASSWORD! },
-  special_agent: { email: process.env.RLS_TEST_SPECIAL_AGENT_EMAIL!, password: process.env.RLS_TEST_SPECIAL_AGENT_PASSWORD! },
+  admin: { email: requireEnv("RLS_TEST_ADMIN_EMAIL"), password: requireEnv("RLS_TEST_ADMIN_PASSWORD") },
+  supervisor: { email: requireEnv("RLS_TEST_SUPERVISOR_EMAIL"), password: requireEnv("RLS_TEST_SUPERVISOR_PASSWORD") },
+  agent: { email: requireEnv("RLS_TEST_AGENT_EMAIL"), password: requireEnv("RLS_TEST_AGENT_PASSWORD") },
+  special_agent: { email: requireEnv("RLS_TEST_SPECIAL_AGENT_EMAIL"), password: requireEnv("RLS_TEST_SPECIAL_AGENT_PASSWORD") },
 };
 
 async function clientFor(role: Role): Promise<SupabaseClient> {

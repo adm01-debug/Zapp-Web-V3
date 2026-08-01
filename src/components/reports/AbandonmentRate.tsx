@@ -122,7 +122,7 @@ export function AbandonmentRate() {
                         <Cell key={idx} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={((value: any) => [String(value), 'Conversas']) as any} />
+                    <Tooltip formatter={(value) => [String(value), 'Conversas']} />
                   </PieChart>
                 </ResponsiveContainer>
               )}

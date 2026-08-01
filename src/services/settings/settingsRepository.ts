@@ -42,18 +42,18 @@ export interface WorkspaceSettings {
 export const settingsRepository = {
   // User Settings
   async getUserSettings(userId: string): Promise<UserSettings | null> {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('user_settings')
       .select('*')
       .eq('user_id', userId)
       .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
-    if (error) return null;
     return data;
   },
 
   async updateUserSettings(userId: string, updates: Partial<UserSettings>) {
-    const { data, error } = await (supabase.from('user_settings') as any)
+    const { data, error } = await supabase
+      .from('user_settings')
       .update(updates)
       .eq('user_id', userId)
       .select()
@@ -68,7 +68,7 @@ export const settingsRepository = {
       .upsert({
         user_id: userId,
         ...settings,
-      } as any) // tipos reais do DB diferem da interface local (Lovable Cloud legado)
+      })
       .select()
       .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
@@ -88,7 +88,8 @@ export const settingsRepository = {
   },
 
   async updateWorkspaceSettings(workspaceId: string, updates: Partial<WorkspaceSettings>) {
-    const { data, error } = await (supabase.from('workspace_settings') as any)
+    const { data, error } = await supabase
+      .from('workspace_settings')
       .update(updates)
       .eq('workspace_id', workspaceId)
       .select()
@@ -103,7 +104,7 @@ export const settingsRepository = {
       .upsert({
         workspace_id: workspaceId,
         ...settings,
-      } as any) // tipos reais do DB diferem da interface local
+      })
       .select()
       .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
@@ -116,16 +117,8 @@ export const settingsRepository = {
       .channel(`user_settings:${userId}`)
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'zapp',
-          table: 'user_settings',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload: { eventType: string; new: unknown; old: unknown }) => {
-          if (payload.eventType === 'DELETE') return;
-          callback(payload.new as UserSettings);
-        }
+        { event: '*', schema: 'zapp', table: 'user_settings', filter: `user_id=eq.${userId}` },
+        (payload) => callback(payload.new as UserSettings)
       )
       .subscribe();
   },
@@ -144,10 +137,7 @@ export const settingsRepository = {
           table: 'workspace_settings',
           filter: `workspace_id=eq.${workspaceId}`,
         },
-        (payload: { eventType: string; new: unknown; old: unknown }) => {
-          if (payload.eventType === 'DELETE') return;
-          callback(payload.new as WorkspaceSettings);
-        }
+        (payload) => callback(payload.new as WorkspaceSettings)
       )
       .subscribe();
   },

@@ -44,7 +44,7 @@ export function useTeamConversations() {
       const lastReadMap = new Map(
         membershipsResult.data?.map((m) => [m.conversation_id, m.last_read_at]) || []
       );
-      const allMembers = membersResult.data || [];
+      const allMembers = (membersResult.data || []) as Array<{ conversation_id: string }>;
 
       const { data: recentMessages } = await supabase
         .from('team_messages')
@@ -91,7 +91,7 @@ export function useTeamConversations() {
 
       const enriched: TeamConversation[] = conversations.map((conv) => {
         const members = (allMembers || []).filter(
-          (m: any) => m.conversation_id === conv.id
+          (m) => m.conversation_id === conv.id
         ) as TeamMember[];
         const lastMsg = lastMessageMap.get(conv.id) || null;
 

@@ -78,7 +78,13 @@ async function fetchAvatarBatch(jids: string[]): Promise<Record<string, string |
     const client = getExternalSupabase();
     if (client) {
       try {
-        const { data, error } = await (client.rpc as any)(RPC_NAME, { p_jids: jids });
+        const { data, error } = await (client.rpc as unknown as (
+          name: string,
+          params?: Record<string, unknown>
+        ) => Promise<{
+          data: unknown;
+          error: { code?: string; message?: string } | null;
+        }>)(RPC_NAME, { p_jids: jids });
         if (error) {
           const isMissing = error.code === '42883' || error.message?.includes('does not exist');
           if (isMissing) {

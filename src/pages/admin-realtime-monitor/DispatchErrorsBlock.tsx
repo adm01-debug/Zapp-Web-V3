@@ -25,7 +25,7 @@ interface Props {
 export function DispatchErrorsBlock({ windowHours }: Props) {
   const { data, isLoading, error } = useFailedMessages({ hours: windowHours, pageSize: 500 });
 
-  const rows = data?.rows ?? [];
+  const rows = useMemo(() => data?.rows ?? [], [data?.rows]);
   const byAgent = useMemo(() => aggregateByAgent(rows), [rows]);
   const byChannel = useMemo(() => aggregateByChannel(rows), [rows]);
 

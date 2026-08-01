@@ -120,10 +120,11 @@ export function useConnectionQueues(connectionId?: string) {
   } = useQuery({
     queryKey: CONN_QUEUES_KEY(connectionId),
     queryFn: async () => {
+      if (!connectionId) throw new Error('connectionId ausente');
       const { data, error } = await supabase
         .from('whatsapp_connection_queues')
         .select('*')
-        .eq('whatsapp_connection_id', connectionId!);
+        .eq('whatsapp_connection_id', connectionId);
       if (error) throw error;
       return (data || []) as ConnectionQueue[];
     },

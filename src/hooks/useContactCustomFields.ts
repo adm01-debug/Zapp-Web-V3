@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
@@ -18,7 +18,7 @@ export interface ContactCustomField {
 /** Hook: use Contact Custom Fields. */
 export function useContactCustomFields(contactId: string | undefined) {
   const queryClient = useQueryClient();
-  const FIELDS_KEY = ['contact-custom-fields', contactId] as const;
+  const FIELDS_KEY = useMemo(() => ['contact-custom-fields', contactId] as const, [contactId]);
 
   const {
     data: fields = [],
@@ -27,10 +27,11 @@ export function useContactCustomFields(contactId: string | undefined) {
   } = useQuery({
     queryKey: FIELDS_KEY,
     queryFn: async () => {
+      if (!contactId) return [];
       const { data, error } = await supabase
         .from('contact_custom_fields')
         .select('*')
-        .eq('contact_id', contactId!)
+        .eq('contact_id', contactId)
         .order('field_name', { ascending: true });
 
       if (error) {
@@ -62,7 +63,7 @@ export function useContactCustomFields(contactId: string | undefined) {
         log.error('Error adding custom field:', err);
       }
     },
-    [contactId, queryClient]
+    [contactId, queryClient, FIELDS_KEY]
   );
 
   const removeField = useCallback(
@@ -75,7 +76,7 @@ export function useContactCustomFields(contactId: string | undefined) {
         log.error('Error removing custom field:', err);
       }
     },
-    [queryClient, contactId]
+    [queryClient, FIELDS_KEY]
   );
 
   return { fields, isLoading, addField, removeField, refetch };

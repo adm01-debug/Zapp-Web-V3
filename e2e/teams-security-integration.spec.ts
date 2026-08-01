@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { loginAs } from './helpers/testHelpers';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+type AppWindow = Window & { supabase: SupabaseClient };
 
 /**
  * Integration Tests for Teams Module - RBAC & RLS Enforcement.
@@ -14,7 +17,7 @@ test.describe('Teams - RBAC & RLS Enforcement @teams', () => {
 
   test(`Visibility Check for ${roleUnderTest}`, async ({ page }) => {
     // 1. Authenticate and stabilize
-    await loginAs(page, roleUnderTest as any);
+    await loginAs(page, roleUnderTest as Parameters<typeof loginAs>[1]);
     await page.waitForURL(/\/team-chat/, { waitUntil: 'networkidle', timeout: 30000 });
 
     // 2. Wait for the primary container to be ready
@@ -40,8 +43,9 @@ test.describe('Teams - RBAC & RLS Enforcement @teams', () => {
 
     const tiDeptId = 'd2222222-2222-2222-2222-222222222222';
     
-    const securityCheck = await page.evaluate(async (deptId) => {
-      const client = (window as any).supabase;
+    const securityCheck = await page.evaluate(
+      async (deptId): Promise<{ listCount: number; deletedCount: number }> => {
+      const client = (window as AppWindow).supabase;
       
       // 1. Attempt to list messages from a conversation in another department directly
       const { data: listData } = await client
@@ -82,8 +86,8 @@ test.describe('Teams - RBAC & RLS Enforcement @teams', () => {
     const uniqueMsgContent = `Governed-Security-Check-${Date.now()}`;
     
     // Inject and get ID
-    const msgId = await adminPage.evaluate(async (content) => {
-      const client = (window as any).supabase;
+    const msgId = await adminPage.evaluate(async (content): Promise<string> => {
+      const client = (window as AppWindow).supabase;
       const { data: conv } = await client.from('team_conversations').select('id').eq('name', 'Geral').single();
       const { data: profile } = await client.from('profiles').select('id').single();
 
@@ -99,7 +103,7 @@ test.describe('Teams - RBAC & RLS Enforcement @teams', () => {
 
     // Admin performs soft delete
     await adminPage.evaluate(async (id) => {
-      await (window as any).supabase
+      await (window as AppWindow).supabase
         .from('team_messages')
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', id);
@@ -114,8 +118,8 @@ test.describe('Teams - RBAC & RLS Enforcement @teams', () => {
     await expect(agentPage.getByText(uniqueMsgContent)).not.toBeVisible({ timeout: 10000 });
 
     // Verification: RLS blocks direct fetch
-    const directApiCheck = await agentPage.evaluate(async (id) => {
-      const { data } = await (window as any).supabase
+    const directApiCheck = await agentPage.evaluate(async (id): Promise<unknown> => {
+      const { data } = await (window as AppWindow).supabase
         .from('team_messages')
         .select('*')
         .eq('id', id)
@@ -144,7 +148,7 @@ test.describe('Teams - RBAC & RLS Enforcement @teams', () => {
     
     const contextVerificationMsg = `Audit-Trail-${Date.now()}`;
     await financePage.evaluate(async (content) => {
-      const client = (window as any).supabase;
+      const client = (window as AppWindow).supabase;
       const { data: conv } = await client.from('team_conversations').select('id').eq('name', 'Financeiro').single();
       const { data: profile } = await client.from('profiles').select('id').single();
       await client.from('team_messages').insert({ conversation_id: conv.id, content, sender_id: profile.id });
@@ -174,8 +178,14 @@ test.describe('Teams - RBAC & RLS Enforcement @teams', () => {
     await expect(supportPage.getByText(/Conversa transferida com sucesso/i)).toBeVisible();
 
     // 3. Validate Persistence & Isolation
-    const backendAudit = await supportPage.evaluate(async () => {
-      const client = (window as any).supabase;
+    const backendAudit = await supportPage.evaluate(
+      async (): Promise<{
+        id: string;
+        department_id: string | null;
+        metadata: unknown;
+        msgs: Array<{ content: string }>;
+      }> => {
+      const client = (window as AppWindow).supabase;
       const { data: conv } = await client
         .from('team_conversations')
         .select('metadata, department_id, id')
@@ -194,7 +204,7 @@ test.describe('Teams - RBAC & RLS Enforcement @teams', () => {
     expect(backendAudit.department_id).toBe(tiDeptId);
     expect(backendAudit.metadata).toHaveProperty('transferred_at');
     // Messages must persist after migration
-    expect(backendAudit.msgs.map((m: any) => m.content)).toContain(contextVerificationMsg);
+    expect(backendAudit.msgs.map((m) => m.content)).toContain(contextVerificationMsg);
 
     // 4. Cross-User Visibility Check
     // Finance Agent must no longer see it

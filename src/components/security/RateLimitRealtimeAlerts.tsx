@@ -98,7 +98,7 @@ export function RateLimitRealtimeAlerts() {
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [mountedRef]);
 
   const handleDismiss = async (alertId: string) => {
     setDismissed((prev) => new Set([...prev, alertId]));

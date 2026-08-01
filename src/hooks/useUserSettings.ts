@@ -116,9 +116,10 @@ export function useUserSettings() {
   const { data: serverSettings, isLoading } = useQuery({
     queryKey: USER_SETTINGS_KEY(user?.id),
     queryFn: async () => {
+      if (!user) throw new Error('Usuário não autenticado');
       const { data: rows, error } = await safeClient.from<UserSettings>(
         'user_settings',
-        (q) => q.select('*').eq('user_id', user!.id).limit(1)
+        (q) => q.select('*').eq('user_id', user.id).limit(1)
       );
       if (error) {
         log.error('Error fetching settings:', error);

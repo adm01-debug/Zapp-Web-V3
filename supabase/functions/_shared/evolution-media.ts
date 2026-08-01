@@ -127,6 +127,8 @@ export async function persistMediaViaApi(
     const rawMessage = data.message as Record<string, unknown> | undefined;
     let innerMessage = rawMessage;
     if (messageType === 'audio' && rawMessage) {
+      // O payload do Evolution webhook pode vir como { audioMessage: {...} } ou
+      // encapsulado em { message: { audioMessage: {...} } }
       const audioMsg = rawMessage.audioMessage || rawMessage.audio || 
                        (rawMessage.message as Record<string, unknown>)?.audioMessage;
       if (audioMsg) innerMessage = { audioMessage: audioMsg };
@@ -155,7 +157,7 @@ export async function persistMediaViaApi(
     const raw = b64.includes(',') ? b64.split(',')[1] : b64;
     // Proteção contra crash do isolate: base64 > 50MB decodifica para ~37MB,
     // o que pode exceder o limite de memória do Edge Runtime (~128MB por isolate)
-    const MAX_BASE64_BYTES = 50_000_000;
+    const MAX_BASE64_BYTES = 50_000_000; // 50MB
     if (raw.length > MAX_BASE64_BYTES) {
       console.warn(`[MEDIA] Base64 too large (${(raw.length/1_000_000).toFixed(1)}MB) for ${messageType} ${messageId} — skipping to avoid isolate crash`);
       return null;
@@ -182,7 +184,7 @@ export async function persistMediaViaApi(
     const fileName = `${messageType}/${safeId}_${Date.now()}.${ext}`;
     const bucket = messageType === 'audio' ? 'audio-messages' : 'whatsapp-media';
 
-    // Retry upload até 3x com backoff exponencial
+    // Retry upload até 3x com backoff exponencial (S20 — conexão intermitente)
     let uploadErr: any;
     for (let attempt = 0; attempt < 3; attempt++) {
       const { error } = await supabase.storage.from(bucket).upload(fileName, bytes, {
@@ -190,7 +192,9 @@ export async function persistMediaViaApi(
       });
       uploadErr = error;
       if (!uploadErr) break;
-      if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+      if (attempt < 2) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1))); // 1s, 2s
+      }
     }
     if (uploadErr) { console.error(`[MEDIA] base64 upload error after retries:`, uploadErr); return null; }
 

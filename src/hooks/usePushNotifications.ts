@@ -8,18 +8,19 @@ export type { PushNotificationState, NotificationPayload };
 /** Hook: use Push Notifications. */
 export function usePushNotifications() {
   const mgmt = usePushNotificationsManagement();
+  const { isSubscribed, toggleSubscription } = mgmt;
 
   const subscribe = useCallback(async () => {
-    if (!mgmt.isSubscribed) {
-      await mgmt.toggleSubscription();
+    if (!isSubscribed) {
+      await toggleSubscription();
     }
-  }, [mgmt.isSubscribed, mgmt.toggleSubscription]);
+  }, [isSubscribed, toggleSubscription]);
 
   const unsubscribe = useCallback(async () => {
-    if (mgmt.isSubscribed) {
-      await mgmt.toggleSubscription();
+    if (isSubscribed) {
+      await toggleSubscription();
     }
-  }, [mgmt.isSubscribed, mgmt.toggleSubscription]);
+  }, [isSubscribed, toggleSubscription]);
 
   return {
     ...mgmt,

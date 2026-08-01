@@ -36,10 +36,8 @@ const REFRESH_INTERVAL = 30_000;
 export function useAdminWebhookStatus() {
   const { filters, setFilters } = useUrlFilters();
 
-  const selectedInstance = useMemo<string | null>(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('instance');
-  }, [filters]); // refresh when other filters change too
+  // Re-lido a cada render: setFilters/setInstance atualizam a URL e disparam re-render.
+  const selectedInstance = new URLSearchParams(window.location.search).get('instance');
 
   const setInstance = useCallback(
     (next: string | null) => {
@@ -112,7 +110,7 @@ export function useAdminWebhookStatus() {
   }, [secretQuery, eventsQuery, instancesQuery]);
 
   // ── Derived event metrics ────────────────────────────────────────────────
-  const events = eventsQuery.data ?? [];
+  const events = useMemo(() => eventsQuery.data ?? [], [eventsQuery.data]);
   const lastEvent = events[0];
   const total24h = events.length;
   const validSigned = events.filter((e) => e.signature_valid === true).length;

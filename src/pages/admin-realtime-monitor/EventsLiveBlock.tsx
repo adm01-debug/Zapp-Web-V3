@@ -60,7 +60,7 @@ export function EventsLiveBlock({ windowHours, autoRefresh, onNavigateTo }: Prop
     refetchInterval: autoRefresh ? 15_000 : false,
   });
 
-  const rows = data ?? [];
+  const rows = useMemo(() => data ?? [], [data]);
   const totals = useMemo(() => {
     const total = rows.length;
     const errored = rows.filter((r) => r.error_message).length;

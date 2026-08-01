@@ -297,7 +297,6 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     },
     [
       contactId,
-      contactPhone,
       instanceName,
       editMessageApi,
       applySignature,

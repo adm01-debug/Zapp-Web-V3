@@ -7,8 +7,15 @@
  * Uso: bun run scripts/run-200-simulations.ts
  */
 
-const SUPABASE_URL = 'https://supabase.atomicabr.com.br';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ewogICJyb2xlIjogImFub24iLAogICJpc3MiOiAic3VwYWJhc2UiLAogICJpYXQiOiAxNzE1MDUwODAwLAogICJleHAiOiAxODcyODE3MjAwCn0.rvamc0XHuSCYB1glBwOCCxgfd9yxWVYLnhFzg5-7TRk';
+const SUPABASE_URL = process.env.SUPABASE_URL ?? 'https://supabase.atomicabr.com.br';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? '';
+
+if (!SUPABASE_ANON_KEY) {
+  console.error('❌ SUPABASE_ANON_KEY não configurada — as simulações NÃO podem validar nada (tudo retornaria 401).');
+  console.error('   Exporte a anon key (pública por design, vai no bundle do browser) do Supabase self-hosted:');
+  console.error('   export SUPABASE_ANON_KEY=<anon-key>   (ou defina VITE_SUPABASE_ANON_KEY no .env)');
+  process.exit(1);
+}
 
 let totalPassed = 0;
 let totalFailed = 0;
@@ -21,7 +28,7 @@ interface SimTest {
   test: () => Promise<boolean>;
 }
 
-async function fetchJson(url: string, options: RequestInit = {}): Promise<{ status: number; data: any }> {
+async function fetchJson(url: string, options: RequestInit = {}): Promise<{ status: number; data: unknown }> {
   try {
     const res = await fetch(url, {
       ...options,
@@ -32,7 +39,7 @@ async function fetchJson(url: string, options: RequestInit = {}): Promise<{ stat
       },
     });
     const text = await res.text();
-    let data: any = text;
+    let data: unknown = text;
     try { data = JSON.parse(text); } catch { /* not JSON */ }
     return { status: res.status, data };
   } catch (err) {
@@ -52,7 +59,7 @@ function genVariations(_name: string, base: Omit<SimTest, 'id'>, variations: num
   for (let i = 0; i < variations; i++) {
     tests.push({
       ...base,
-      id: `${name}-${i + 1}`,
+      id: `${_name}-${i + 1}`,
       description: `${base.description} [variant ${i + 1}/${variations}]`,
     });
   }
@@ -145,7 +152,7 @@ SIMULATIONS.push(...genVariations('FIX-3-contact-intelligence', {
     for (const t of tests) {
       const r = await fetchJson(t.url, { method: 'GET' });
       // Não deve dar erro de type mismatch (400 com mensagem "invalid input syntax")
-      if (r.data && typeof r.data === 'object' && r.data.message &&
+      if (r.data && typeof r.data === 'object' && 'message' in r.data && typeof r.data.message === 'string' &&
           r.data.message.includes('invalid input syntax')) {
         return false;
       }
@@ -217,7 +224,7 @@ SIMULATIONS.push(...genVariations('MIG-2-round-2', {
     // 200 = OK
     if (r.status === 200) return true;
     if (r.status === 404) return true; // PGRST202
-    if (r.data && r.data.message && r.data.message.includes('not found')) return true;
+    if (r.data && typeof r.data === 'object' && 'message' in r.data && typeof r.data.message === 'string' && r.data.message.includes('not found')) return true;
     return r.status === 400 || r.status === 401; // RLS = expected
   },
 }, 30));

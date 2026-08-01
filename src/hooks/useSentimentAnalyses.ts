@@ -33,9 +33,11 @@ export function useRealSentimentData(days: number): SentimentData[] | null {
 
       analyses.forEach((a) => {
         const dateKey = format(new Date(a.created_at), 'yyyy-MM-dd');
-        if (!dayMap.has(dateKey))
-          dayMap.set(dateKey, { positive: 0, negative: 0, neutral: 0, total: 0, alerts: 0 });
-        const entry = dayMap.get(dateKey)!;
+        let entry = dayMap.get(dateKey);
+        if (!entry) {
+          entry = { positive: 0, negative: 0, neutral: 0, total: 0, alerts: 0 };
+          dayMap.set(dateKey, entry);
+        }
         entry.total++;
         if (a.sentiment === 'positivo') entry.positive++;
         else if (a.sentiment === 'negativo') {

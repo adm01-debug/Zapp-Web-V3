@@ -13,8 +13,11 @@
 import { test, expect } from "./fixtures/auth";
 
 const ENABLED = process.env.E2E_WEBHOOK_PARITY === "1";
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL!;
-const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY!;
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL ?? "";
+const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "";
+if (ENABLED && (!SUPABASE_URL || !SUPABASE_KEY)) {
+  throw new Error("VITE_SUPABASE_URL/VITE_SUPABASE_PUBLISHABLE_KEY ausentes (E2E_WEBHOOK_PARITY=1)");
+}
 
 interface SendResult {
   provider: "evolution" | "cloud";
@@ -26,7 +29,7 @@ interface SendResult {
   content: string;
 }
 
-async function callFixture(token: string, body: Record<string, unknown>): Promise<any> {
+async function callFixture(token: string, body: Record<string, unknown>): Promise<unknown> {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/e2e-webhook-fixture`, {
     method: "POST",
     headers: {
@@ -43,7 +46,7 @@ async function callFixture(token: string, body: Record<string, unknown>): Promis
 
 async function pollMessage(token: string, remoteJid: string, messageId: string, timeoutMs = 15_000) {
   const deadline = Date.now() + timeoutMs;
-  let last: any = null;
+  let last: unknown = null;
   while (Date.now() < deadline) {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/external-db-proxy`, {
       method: "POST",
@@ -86,10 +89,11 @@ test.describe("Webhook → unified inbox parity", () => {
     token = await page.evaluate(() => {
       // Supabase v2 stores session under a key like sb-<ref>-auth-token
       for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i)!;
+        const k = localStorage.key(i);
+        if (!k) continue;
         if (k.startsWith("sb-") && k.endsWith("-auth-token")) {
           try {
-            const raw = JSON.parse(localStorage.getItem(k)!);
+            const raw = JSON.parse(localStorage.getItem(k) ?? "null");
             return raw?.access_token ?? raw?.currentSession?.access_token ?? "";
           } catch { /* noop */ }
         }
@@ -99,7 +103,9 @@ test.describe("Webhook → unified inbox parity", () => {
     await ctx.close();
     expect(token, "expected an authenticated admin token in localStorage").toBeTruthy();
 
-    const seed = await callFixture(token, { action: "seed-cloud-creds", runId });
+    const seed = (await callFixture(token, { action: "seed-cloud-creds", runId })) as {
+      phoneNumberId: string;
+    };
     cloudPhoneNumberId = seed.phoneNumberId;
     expect(cloudPhoneNumberId).toMatch(/^e2e-phone-/);
   });
@@ -111,7 +117,7 @@ test.describe("Webhook → unified inbox parity", () => {
   });
 
   test("evolution provider: synthetic webhook lands in evolution_messages", async () => {
-    const sent: SendResult = await callFixture(token, { action: "send-evolution", runId });
+    const sent = (await callFixture(token, { action: "send-evolution", runId })) as SendResult;
     expect(sent.status, `evolution-webhook returned ${sent.status}: ${JSON.stringify(sent.response)}`).toBe(200);
 
     const row = await pollMessage(token, sent.remoteJid, sent.messageId);
@@ -122,11 +128,11 @@ test.describe("Webhook → unified inbox parity", () => {
   });
 
   test("cloud provider: synthetic webhook lands in evolution_messages", async () => {
-    const sent: SendResult = await callFixture(token, {
+    const sent = (await callFixture(token, {
       action: "send-cloud",
       runId,
       phoneNumberId: cloudPhoneNumberId,
-    });
+    })) as SendResult;
     expect(sent.status, `whatsapp-cloud-webhook returned ${sent.status}: ${JSON.stringify(sent.response)}`).toBe(200);
 
     const row = await pollMessage(token, sent.remoteJid, sent.messageId);
@@ -138,19 +144,19 @@ test.describe("Webhook → unified inbox parity", () => {
 
   test("parity: both providers produce structurally identical rows", async () => {
     // Send a fresh pair with the same content and assert column-by-column parity.
-    const evo: SendResult = await callFixture(token, {
+    const evo = (await callFixture(token, {
       action: "send-evolution",
       runId,
       content: `parity-${runId}`,
       messageId: `${runId}-evo-${Date.now()}`,
-    });
-    const cloud: SendResult = await callFixture(token, {
+    })) as SendResult;
+    const cloud = (await callFixture(token, {
       action: "send-cloud",
       runId,
       phoneNumberId: cloudPhoneNumberId,
       content: `parity-${runId}`,
       messageId: `${runId}-cloud-${Date.now()}`,
-    });
+    })) as SendResult;
     expect(evo.status).toBe(200);
     expect(cloud.status).toBe(200);
 
