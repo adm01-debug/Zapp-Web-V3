@@ -357,7 +357,11 @@ export function TertiaryToolsMenu({
           <div className="border-b border-border p-3">
             <h4 className="text-sm font-medium text-foreground">Respostas Rápidas</h4>
           </div>
-          <div className="max-h-64 space-y-1 overflow-y-auto p-2">{quickRepliesList}</div>
+          <div className="max-h-64 space-y-1 overflow-y-auto p-2">
+            {quickReplies.length === 0 ? (
+              <p className="py-4 text-center text-xs text-muted-foreground">Nenhuma resposta rápida cadastrada</p>
+            ) : quickRepliesList}
+          </div>
         </PopoverContent>
       </Popover>
       {onToggleSignature && (

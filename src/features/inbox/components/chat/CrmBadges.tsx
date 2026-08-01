@@ -15,6 +15,17 @@ interface CrmBadgesProps {
   crmRfm: { segment_code?: string | null } | null;
 }
 
+const RFM_PT: Record<string, string> = {
+  Champions:          'Campeões',
+  'Loyal Customers':  'Fiéis',
+  'At Risk':          'Em risco',
+  "Can't Lose Them":  'Não perder',
+  'Need Attention':   'Atenção',
+  Hibernating:        'Hibernando',
+  Lost:               'Perdido',
+  Promising:          'Promissor',
+};
+
 const rfmSegmentColors: Record<string, string> = {
   Champions: 'bg-success/15 text-success border-success/30',
   'Loyal Customers': 'bg-info/15 text-info border-info/30',
@@ -47,9 +58,9 @@ export function CrmBadges({ crmCompany, crmCustomer, crmRfm }: CrmBadgesProps) {
       )}
       {crmRfm?.segment_code && (
         <Tooltip>
-          <TooltipTrigger>
+          <TooltipTrigger asChild>
             <Badge variant="outline" className={cn('text-[10px]', rfmSegmentColors[crmRfm.segment_code] || 'bg-muted/20')}>
-              {crmRfm.segment_code}
+              {RFM_PT[crmRfm.segment_code] ?? crmRfm.segment_code}
             </Badge>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="text-xs">

@@ -352,7 +352,7 @@ export const ChatMessagesArea = memo(
               <EmptyState
                 icon={Clock}
                 title="Nenhuma mensagem ainda"
-                description="As mensagens aparecerao aqui quando a conversa comecar"
+                description="As mensagens aparecerão aqui quando a conversa começar"
                 illustration="messages"
                 size="sm"
               />
@@ -366,7 +366,7 @@ export const ChatMessagesArea = memo(
                   <Lock className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="mb-1 text-[14px] font-bold">Criptografia de Ponta a Ponta</h3>
-                <p className="text-[12px] text-muted-foreground">As mensagens sao protegidas.</p>
+                <p className="text-[12px] text-muted-foreground">As mensagens são protegidas.</p>
               </div>
             </div>
           )}
@@ -445,6 +445,7 @@ export const ChatMessagesArea = memo(
           <AnimatePresence>
             {showScrollBottom && (
               <motion.div
+                key="scroll-to-bottom"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}

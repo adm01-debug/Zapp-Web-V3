@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '@/components/ui/motion';
 import { FileText, Image, Video, Music, File } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -47,7 +47,7 @@ export const ChatSearchResultsList = forwardRef<HTMLDivElement, ChatSearchResult
               <span className="text-[10px] text-muted-foreground shrink-0 w-10 tabular-nums">{format(msg.timestamp, 'HH:mm')}</span>
               <span className="truncate flex-1">
                 <HighlightedText text={snippet} query={debouncedQuery} />
-                {(msg.content || '').length > 80 && '…'}
+                {(msg.content || msg.transcription || msg.mediaUrl || '').length > 80 && '…'}
               </span>
               <span className={cn("text-[9px] px-1.5 py-0.5 rounded-md shrink-0 font-medium", msg.sender === 'agent' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
                 {msg.sender === 'agent' ? 'Você' : 'Contato'}

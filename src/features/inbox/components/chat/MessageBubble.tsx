@@ -184,17 +184,20 @@ export const MessageBubble = memo(function MessageBubble({
           {message.isWhisper && <WhisperBadge />}
 
           <AnimatePresence>
-            <QuickReactionBar
-              messageId={message.id}
-              isSent={isSent}
-              instanceName={instanceName}
-              contactJid={contactJid}
-              externalId={message.external_id}
-              senderType={message.sender}
-              refreshKey={message.updated_at}
-              disableRealtime
-              forceShow={isActionsActive}
-            />
+            {isActionsActive && (
+              <QuickReactionBar
+                key="quick-reaction-bar"
+                messageId={message.id}
+                isSent={isSent}
+                instanceName={instanceName}
+                contactJid={contactJid}
+                externalId={message.external_id}
+                senderType={message.sender}
+                refreshKey={message.updated_at}
+                disableRealtime
+                forceShow={isActionsActive}
+              />
+            )}
           </AnimatePresence>
 
           {!message.is_deleted && (
