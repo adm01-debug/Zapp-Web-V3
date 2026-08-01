@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260704120000_idx_messages_placeholder_sql", "label": "20260704120000_idx_messages_placeholder.sql", "file_type": "code", "source_file": "supabase/migrations/20260704120000_idx_messages_placeholder.sql", "source_location": null}], "edges": []}

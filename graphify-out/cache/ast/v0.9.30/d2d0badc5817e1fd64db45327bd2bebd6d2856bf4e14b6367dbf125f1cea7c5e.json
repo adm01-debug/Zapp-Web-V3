@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260703200000_harden_extensions_sign_statstatements_default_priv_sql", "label": "20260703200000_harden_extensions_sign_statstatements_default_priv.sql", "file_type": "code", "source_file": "supabase/migrations/20260703200000_harden_extensions_sign_statstatements_default_priv.sql", "source_location": null}], "edges": []}

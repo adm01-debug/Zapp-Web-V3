@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260725000002_create_zapp_views_shared_module_tables_sql", "label": "20260725000002_create_zapp_views_shared_module_tables.sql", "file_type": "code", "source_file": "supabase/migrations/20260725000002_create_zapp_views_shared_module_tables.sql", "source_location": null}], "edges": []}

@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260725000008_fix_system_health_incidents_schema_gaps_sql", "label": "20260725000008_fix_system_health_incidents_schema_gaps.sql", "file_type": "code", "source_file": "supabase/migrations/20260725000008_fix_system_health_incidents_schema_gaps.sql", "source_location": null}], "edges": []}

@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260726000200_add_profiles_user_roles_to_realtime_sql", "label": "20260726000200_add_profiles_user_roles_to_realtime.sql", "file_type": "code", "source_file": "supabase/migrations/20260726000200_add_profiles_user_roles_to_realtime.sql", "source_location": null}], "edges": []}

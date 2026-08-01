@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260724000011_fix_evo_schema_blanket_auth_policies_sql", "label": "20260724000011_fix_evo_schema_blanket_auth_policies.sql", "file_type": "code", "source_file": "supabase/migrations/20260724000011_fix_evo_schema_blanket_auth_policies.sql", "source_location": null}], "edges": []}
