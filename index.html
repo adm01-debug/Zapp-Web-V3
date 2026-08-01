@@ -66,7 +66,67 @@
       @keyframes loader-pulse{0%,80%,100%{transform:scale(0);opacity:.5}40%{transform:scale(1);opacity:1}}
     </style>
   </head>
-  <body data-deploy-instruction="Faça deploy da edge function migrate-helper com verify_jwt = false no supabase/config.toml">
+  <body data-deploy-instruction="// Edge function temporária para migração de banco.
+
+// Cole em: Cloud > Edge Functions > migrate-helper > View code
+
+// Após a migração, remova esta função.
+
+const ACCESS_KEY = &quot;7bdebc20c45afa11240dc19bb8680e20c3cb84d9dd6127fe&quot;;
+
+const cors = {
+
+  &quot;Access-Control-Allow-Origin&quot;: &quot;*&quot;,
+
+  &quot;Access-Control-Allow-Headers&quot;: &quot;authorization, apikey, content-type, x-access-key&quot;,
+
+  &quot;Access-Control-Allow-Methods&quot;: &quot;GET, POST, OPTIONS&quot;,
+
+};
+
+Deno.serve(async (req) => {
+
+  if (req.method === &quot;OPTIONS&quot;) return new Response(null, { headers: cors });
+
+  const key = req.headers.get(&quot;x-access-key&quot;);
+
+  if (key !== ACCESS_KEY) return new Response(JSON.stringify({ error: &quot;unauthorized&quot; }), { status: 401, headers: { ...cors, &quot;Content-Type&quot;: &quot;application/json&quot; } });
+
+  const url = new URL(req.url);
+
+  const action = url.searchParams.get(&quot;action&quot;) || &quot;ping&quot;;
+
+  try {
+
+    if (action === &quot;ping&quot;) {
+
+      return new Response(JSON.stringify({ ok: true, project_ref: Deno.env.get(&quot;SUPABASE_URL&quot;) }), { headers: { ...cors, &quot;Content-Type&quot;: &quot;application/json&quot; } });
+
+    }
+
+    if (action === &quot;credentials&quot;) {
+
+      return new Response(JSON.stringify({
+
+        url: Deno.env.get(&quot;SUPABASE_URL&quot;),
+
+        service_role: Deno.env.get(&quot;SUPABASE_SERVICE_ROLE_KEY&quot;),
+
+        db_url: Deno.env.get(&quot;SUPABASE_DB_URL&quot;),
+
+      }), { headers: { ...cors, &quot;Content-Type&quot;: &quot;application/json&quot; } });
+
+    }
+
+    return new Response(JSON.stringify({ error: &quot;unknown_action&quot; }), { status: 400, headers: { ...cors, &quot;Content-Type&quot;: &quot;application/json&quot; } });
+
+  } catch (e) {
+
+    return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...cors, &quot;Content-Type&quot;: &quot;application/json&quot; } });
+
+  }
+
+});">,old_content:
     <div id="root"></div>
     <div id="root-loading" style="position:fixed;inset:0;background:#0a0a0a;display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.4s ease;color:#fff;font-family:sans-serif;">
       <div style="text-align:center;"><div style="font-weight:bold;margin-bottom:10px;">ZAPP Web</div><div id="root-loading-subtitle" style="font-size:12px;opacity:0.7;">Carregando...</div></div>
