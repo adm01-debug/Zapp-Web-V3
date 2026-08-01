@@ -11,14 +11,16 @@ BEGIN;
 -- 1. Backup completo
 CREATE TABLE IF NOT EXISTS evo._evolution_contacts_backup_20260801 AS SELECT * FROM evo.evolution_contacts;
 
--- 2. Merge map
+-- 2. Merge map (PK = merged_id: cada merged tem 1 survivor — grupos de 3+ linhas
+--    geram multiplos merged para o MESMO survivor, entao survivor_id nao e unico)
 CREATE TABLE IF NOT EXISTS zapp._contact_merge_map_20260801 (
-  survivor_id uuid PRIMARY KEY,
-  merged_id   uuid NOT NULL,
+  merged_id   uuid PRIMARY KEY,
+  survivor_id uuid NOT NULL,
   phone_number text,
   instance_name text,
   merged_at   timestamptz NOT NULL DEFAULT now()
 );
+ALTER TABLE zapp._contact_merge_map_20260801 ENABLE ROW LEVEL SECURITY;
 
 INSERT INTO zapp._contact_merge_map_20260801 (survivor_id, merged_id, phone_number, instance_name)
 WITH dup AS (

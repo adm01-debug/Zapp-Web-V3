@@ -16,6 +16,7 @@ DROP VIEW public.warroom_alerts;
 
 -- 2. Backup da tabela
 CREATE TABLE IF NOT EXISTS zapp._warroom_alerts_backup_20260801 AS SELECT * FROM zapp.warroom_alerts;
+ALTER TABLE zapp._warroom_alerts_backup_20260801 ENABLE ROW LEVEL SECURITY;
 
 -- 3. Dropar CHECK text (o enum passa a validar o domínio)
 ALTER TABLE zapp.warroom_alerts DROP CONSTRAINT IF EXISTS chk_warroom_alert_type;
