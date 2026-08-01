@@ -72,11 +72,7 @@ const sb = vi.hoisted(() => {
       },
       maybeSingle: () => Promise.resolve(getResult(table)),
       // `await query` no hook (cadeia sem maybeSingle em alguns caminhos)
-<<<<<<< HEAD
       then: <T,>(onFulfilled: (v: QueryResult) => T) =>
-=======
-      then: (onFulfilled: (v: QueryResult) => unknown) =>
->>>>>>> c31f6c367 (refactor: elimina ultimo useState<any> (webhook_preferences tipado) + 18 simulacoes exaustivas do useCRMManagement [LINT-CLEAN] (#654))
         Promise.resolve(getResult(table)).then(onFulfilled),
     };
     return chain;
