@@ -1,8 +1,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 import { LogPayload, QueryLogContext, QueryOutcome, MetricSample } from './types.ts'
 
-import { getCorsHeaders, handleCorsPreflight } from '../../_shared/cors.ts';
-/** utils utilities and exports. */
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-correlation-id',
+  'Access-Control-Expose-Headers': 'x-correlation-id, x-request-id, server-timing',
+}
+
 export function shortRid(): string {
   try {
     return crypto.randomUUID().slice(0, 8)
@@ -11,7 +15,6 @@ export function shortRid(): string {
   }
 }
 
-/** log Event function. */
 export function logEvent(base: LogPayload, extra: LogPayload = {}) {
   try {
     console.log(JSON.stringify({ fn: 'external-db-proxy', ts: new Date().toISOString(), ...base, ...extra }))
@@ -20,7 +23,6 @@ export function logEvent(base: LogPayload, extra: LogPayload = {}) {
   }
 }
 
-/** build Query Log function. */
 export function buildQueryLog(ctx: QueryLogContext, outcome: QueryOutcome): LogPayload {
   return {
     phase: 'query',
@@ -40,7 +42,6 @@ export function buildQueryLog(ctx: QueryLogContext, outcome: QueryOutcome): LogP
   }
 }
 
-/** is Schema Cache Error function. */
 export function isSchemaCacheError(err: { message?: string; code?: string } | null | undefined): boolean {
   if (!err) return false
   if (err.code === 'PGRST002') return true
@@ -48,21 +49,18 @@ export function isSchemaCacheError(err: { message?: string; code?: string } | nu
   return /schema cache/i.test(msg) && /PGRST002|could not query the database/i.test(msg)
 }
 
-/** is Statement Timeout function. */
 export function isStatementTimeout(err: { message?: string; code?: string } | null | undefined): boolean {
   if (!err) return false
   if (err.code === '57014') return true
   return /statement timeout|canceling statement/i.test(err.message || '')
 }
 
-/** is Schema Not Exposed function. */
 export function isSchemaNotExposed(err: { message?: string; code?: string } | null | undefined): boolean {
   if (!err) return false
   if (err.code === 'PGRST106') return true
   return /Invalid schema:/i.test(err.message || '')
 }
 
-/** classify Upstream Error function. */
 export function classifyUpstreamError(
   message: string | undefined,
   timeoutFired: boolean,
@@ -82,15 +80,15 @@ export function classifyUpstreamError(
 let metricsClient: ReturnType<typeof createClient> | null = null
 function getMetricsClient() {
   if (metricsClient) return metricsClient
-  const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))
-  const key = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))
+  const url = Deno.env.get('SUPABASE_URL')
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
   if (!url || !key) return null
   metricsClient = createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "zapp" } })
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
   return metricsClient
 }
 
-/** record Metric function. */
 export function recordMetric(sample: MetricSample) {
   const client = getMetricsClient()
   if (!client) return
@@ -109,7 +107,6 @@ export function recordMetric(sample: MetricSample) {
   })
 }
 
-/** error Body function. */
 export function errorBody(
   cid: string,
   rid: string,

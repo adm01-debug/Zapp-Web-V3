@@ -1,7 +1,5 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
-import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getCorsHeaders } from "../_shared/validation.ts";
-import { requireAdminOrSupervisor, timingSafeStringEqual } from "../_shared/auth.ts";
-import { createZappAdminClient } from "../_shared/db-client.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
 
 /**
  * 3-layer health check para conexões Evolution.
@@ -61,20 +59,14 @@ async function fetchOwnerJid(baseUrl: string, key: string, instanceName: string,
 
 async function fetchLastActivityAt(externalUrl: string, externalKey: string, instanceName: string, log: Logger): Promise<Date | null> {
   try {
-    const ext = createClient(externalUrl, externalKey, { db: { schema: 'zapp' }, auth: { persistSession: false, autoRefreshToken: false } });
-    const TIMEOUT_MS = 8000;
-    const queryPromise = ext
-      .schema('evo')
+    const ext = createClient(externalUrl, externalKey);
+    const { data, error } = await ext
       .from('evolution_messages')
       .select('created_at')
       .eq('instance_name', instanceName)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('external query timeout')), TIMEOUT_MS)
-    );
-    const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
     if (error) { log.warn('external messages query error', { error: error.message }); return null; }
     if (!data?.created_at) return null;
     return new Date(data.created_at as string);
@@ -124,69 +116,11 @@ function evaluateHealth(a: EvalArgs): EvalResult {
 // Exposto para testes
 export { evaluateHealth };
 
-// ── Roteamento por NOME de instância (incidente wpp2 2026-07-04) ──────────────
-// A Evolution API roteia todas as rotas pelo NOME; `instance_id` guarda o UUID
-// interno (linhas novas) ou o nome (linhas legadas). Usar o UUID gera 404 e
-// desativa silenciosamente as 3 camadas do health-check.
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function routableInstanceName(conn: { instance_name?: string | null; instance_id?: string | null }): string | null {
-  const name = conn.instance_name?.trim();
-  if (name && !UUID_RE.test(name)) return name;
-  const legacy = conn.instance_id?.trim();
-  if (legacy && !UUID_RE.test(legacy)) return legacy;
-  return null;
-}
-
-/** Filtro PostgREST nome-OU-uuid para o alvo do "Verificar agora". */
-function instanceOrFilter(instance: string): string {
-  // Allowlist: alphanumeric, hyphen, underscore, dot — covers all valid instance names and UUIDs
-  const safe = String(instance).replace(/[^a-zA-Z0-9._-]/g, '');
-  return `instance_name.eq."${safe}",instance_id.eq."${safe}"`;
-}
-
-interface EvoInstanceSummary { name: string | null; ownerJid: string | null; state: string | null }
-
-/** Snapshot de todas as instâncias — base do detector de instância fantasma. */
-async function fetchAllInstances(baseUrl: string, key: string, log: Logger): Promise<EvoInstanceSummary[]> {
-  try {
-    const r = await fetch(`${baseUrl}/instance/fetchInstances`, {
-      headers: { 'apikey': key }, signal: AbortSignal.timeout(8000),
-    });
-    if (!r.ok) { await r.text(); return []; }
-    const arr = await r.json();
-    if (!Array.isArray(arr)) return [];
-    return arr.map((i: Record<string, unknown>) => {
-      const inner = (i?.instance ?? {}) as Record<string, unknown>;
-      return {
-        name: (i?.name ?? inner?.instanceName ?? null) as string | null,
-        ownerJid: (i?.ownerJid ?? inner?.ownerJid ?? inner?.owner ?? null) as string | null,
-        state: (i?.connectionStatus ?? inner?.state ?? null) as string | null,
-      };
-    });
-  } catch (e) {
-    log.warn('fetchAllInstances threw (ghost detector skipped)', { error: e instanceof Error ? e.message : String(e) });
-    return [];
-  }
-}
-
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
   const log = new Logger("connection-health-check");
-
-  const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? '';
-  const cronSecret = Deno.env.get('CRON_SECRET') ?? '';
-  const bearer = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
-  const xCron = req.headers.get('x-cron-secret') ?? '';
-  const isInternalCaller = (serviceKey && timingSafeStringEqual(bearer, serviceKey)) || (cronSecret && timingSafeStringEqual(xCron, cronSecret));
-  if (!isInternalCaller) {
-    const authed = await requireAdminOrSupervisor(req);
-    if (authed instanceof Response) return authed;
-    const rl = checkRateLimit(`connection-health-check:${authed.user.id}`, 20, 60_000);
-    if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
-  }
 
   try {
     const evolutionUrl = requireEnv('EVOLUTION_API_URL');
@@ -194,16 +128,16 @@ Deno.serve(async (req) => {
     const isPlaceholder = (v: string) => !v || /PLACEHOLDER|REPLACE_ME|YOUR_|CHANGE_ME/i.test(v);
     const isValidUrl = (v: string) => { try { new URL(v); return true; } catch { return false; } };
     if (isPlaceholder(evolutionUrl) || isPlaceholder(evolutionKey) || !isValidUrl(evolutionUrl)) {
-      return new Response(JSON.stringify({ error: 'evolution_api_not_configured', message: 'Configure os secrets EVOLUTION_API_URL (URL válida) e EVOLUTION_API_KEY.' }), { status: 503, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'evolution_api_not_configured', message: 'Configure os secrets EVOLUTION_API_URL (URL válida) e EVOLUTION_API_KEY.' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
     }
-    const supabase = createZappAdminClient();
+    const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'));
     const baseUrl = evolutionUrl.replace(/\/+$/, '');
 
     // FATOR X (opcional — se faltar, layer 3 é skipped graciosamente)
-    const externalUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL')) ?? Deno.env.get('FATOR_X_URL');
-    const externalKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'))
+    const externalUrl = Deno.env.get('EXTERNAL_SUPABASE_URL') ?? Deno.env.get('FATOR_X_URL');
+    const externalKey = Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY')
                      ?? Deno.env.get('FATOR_X_SERVICE_ROLE_KEY')
-                     ?? (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
+                     ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY');
 
     // Allow targeting a single instance (manual "Verificar agora" do card)
     let onlyInstance: string | null = null;
@@ -218,30 +152,17 @@ Deno.serve(async (req) => {
 
     let query = supabase
       .from('whatsapp_connections')
-      .select('id, instance_id, instance_name, status, phone_number, owner_jid, health_status, health_reason');
-    // Aceita tanto o nome roteável (front pós-fix) quanto o UUID legado.
-    if (onlyInstance) query = query.or(instanceOrFilter(onlyInstance));
+      .select('id, instance_id, status, phone_number, health_status, health_reason');
+    if (onlyInstance) query = query.eq('instance_id', onlyInstance);
 
     const { data: connections, error: connError } = await query;
     if (connError || !connections) return errorResponse('Failed to fetch connections', 500, req);
-
-    // Detector de instância fantasma: snapshot único de todas as instâncias.
-    const allInstances = await fetchAllInstances(baseUrl, evolutionKey, log);
 
     const results = [];
     const alertsToCreate: Array<{ connection_id: string; instance_id: string; phone: string | null; reason: 'disconnected' | 'degraded' | 'phantom_session' | 'webhook_silent' | 'stale_session' }> = [];
 
     for (const conn of connections) {
-      // Roteamento SEMPRE pelo nome — o UUID em instance_id gera 404 na Evolution
-      // e desativava silenciosamente as 3 camadas (incidente wpp2 2026-07-04).
-      const evoName = routableInstanceName(conn);
-      if (!evoName) {
-        if (conn.instance_id || conn.instance_name) {
-          log.warn('connection sem nome roteável — health-check pulado', { id: conn.id, instance_id: conn.instance_id });
-          results.push({ instance_id: conn.instance_id, instance_name: conn.instance_name ?? null, status: 'error', reason: 'missing_instance_name' });
-        }
-        continue;
-      }
+      if (!conn.instance_id) continue;
       const start = performance.now();
       let socketState: string | null = null;
       let httpErrorMessage: string | null = null;
@@ -249,7 +170,7 @@ Deno.serve(async (req) => {
 
       // Layer 1
       try {
-        const resp = await fetch(`${baseUrl}/instance/connectionState/${encodeURIComponent(evoName)}`, {
+        const resp = await fetch(`${baseUrl}/instance/connectionState/${conn.instance_id}`, {
           method: 'GET', headers: { 'apikey': evolutionKey },
           signal: AbortSignal.timeout(10000),
         });
@@ -273,9 +194,9 @@ Deno.serve(async (req) => {
       let lastActivityAt: Date | null = null;
       if (socketState === 'open') {
         const [owner, activity] = await Promise.all([
-          fetchOwnerJid(baseUrl, evolutionKey, evoName, log),
+          fetchOwnerJid(baseUrl, evolutionKey, conn.instance_id, log),
           externalUrl && externalKey
-            ? fetchLastActivityAt(externalUrl, externalKey, evoName, log)
+            ? fetchLastActivityAt(externalUrl, externalKey, conn.instance_id, log)
             : Promise.resolve(null),
         ]);
         ownerJid = owner;
@@ -289,38 +210,9 @@ Deno.serve(async (req) => {
         now: new Date(),
       });
 
-      // Detector de instância fantasma: a MESMA conta WhatsApp (ownerJid) pareada
-      // e "open" numa instância cujo nome difere do roteável desta conexão.
-      const expectedOwner = (conn.owner_jid as string | null) ?? null;
-      const ghost = allInstances.find((i) =>
-        i.state === 'open' && i.name && i.name !== evoName && i.ownerJid &&
-        ((expectedOwner && i.ownerJid === expectedOwner) ||
-         (conn.phone_number && i.ownerJid.startsWith(String(conn.phone_number)))));
-      if (ghost) {
-        const title = `👻 Instância fantasma detectada para ${evoName}`;
-        try {
-          const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
-          const { data: recent } = await supabase.from('warroom_alerts')
-            .select('id').eq('title', title).gte('created_at', sixHoursAgo).limit(1);
-          if (!recent || recent.length === 0) {
-            await supabase.from('warroom_alerts').insert({
-              alert_type: 'critical',
-              title,
-              message: `O número ${conn.phone_number ?? expectedOwner ?? '?'} está pareado e ATIVO na instância "${ghost.name}", mas esta conexão roteia por "${evoName}". Eventos/envios não fluem pelo pipeline. Runbook: docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5_wpp2.md §4.`,
-              source: 'connection_health',
-            });
-          }
-        } catch (e) {
-          log.warn('ghost alert failed', { error: e instanceof Error ? e.message : String(e) });
-        }
-        log.warn('GHOST INSTANCE detected', { expected: evoName, ghost: ghost.name });
-      }
-
       await persistResult(supabase, conn, evalResult, responseTime, httpErrorMessage, alertsToCreate, log, ownerJid);
       results.push({
         instance_id: conn.instance_id,
-        instance_name: evoName,
-        ghost_instance: ghost?.name ?? null,
         socket_state: socketState,
         owner_jid: ownerJid ? ownerJid.split('@')[0] : null, // sem @s.whatsapp.net no payload de retorno
         last_activity_at: lastActivityAt?.toISOString() ?? null,
@@ -338,8 +230,8 @@ Deno.serve(async (req) => {
         .from('connection_alert_preferences')
         .select('user_id, alert_on_degraded, alert_on_disconnected, push_enabled');
       optInUserIds = (prefs ?? [])
-        .filter((p: { push_enabled: boolean; alert_on_degraded: boolean; alert_on_disconnected: boolean }) => p.push_enabled && (p.alert_on_degraded || p.alert_on_disconnected))
-        .map((p: { user_id: string }) => p.user_id);
+        .filter((p: any) => p.push_enabled && (p.alert_on_degraded || p.alert_on_disconnected))
+        .map((p: any) => p.user_id);
     }
 
     for (const alert of alertsToCreate) {
@@ -366,8 +258,8 @@ Deno.serve(async (req) => {
           user_id: uid, title, message, type: 'connection_alert',
           metadata: { connection_id: alert.connection_id, instance_id: alert.instance_id, reason: alert.reason, phone: alert.phone },
         }));
-        await supabase.from('app_notifications').insert(rows).then(({ error }) => {
-          if (error) log.warn("app_notifications insert failed", { error: error.message });
+        await supabase.from('notifications').insert(rows).then(({ error }) => {
+          if (error) log.warn("notifications insert failed", { error: error.message });
         });
       }
     }
@@ -379,13 +271,15 @@ Deno.serve(async (req) => {
     log.done(200, { checked: results.length, alerts: alertsToCreate.length });
     return jsonResponse({ success: true, checked_at: new Date().toISOString(), connections: results, alerts_created: alertsToCreate.length }, 200, req);
   } catch (err) {
-    log.error("Health check error", { error: err instanceof Error ? err.message : String(err) });
-    return errorResponse('Internal server error', 500, req);
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    log.error("Health check error", { error: msg });
+    return errorResponse(msg, 500, req);
   }
 });
 
 async function persistResult(
-  supabase: ReturnType<typeof createZappAdminClient>,
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
   conn: { id: string; instance_id: string; status: string; health_status: string | null; phone_number: string | null },
   evalResult: EvalResult,
   responseTime: number,
@@ -434,7 +328,7 @@ async function persistResult(
           connection_id: conn.id,
           instance_id: conn.instance_id,
           phone: conn.phone_number,
-          reason: (evalResult.reason as 'disconnected' | 'degraded' | 'phantom_session' | 'webhook_silent' | 'stale_session' | null) || 'disconnected',
+          reason: (evalResult.reason as any) || 'disconnected',
         });
       }
     }
@@ -455,7 +349,7 @@ async function persistResult(
       connection_id: conn.id,
       instance_id: conn.instance_id,
       phone: conn.phone_number,
-      reason: (evalResult.reason as 'disconnected' | 'degraded' | 'phantom_session' | 'webhook_silent' | 'stale_session' | null) || 'degraded',
+      reason: (evalResult.reason as any) || 'degraded',
     });
   }
 

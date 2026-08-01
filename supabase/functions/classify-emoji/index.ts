@@ -1,6 +1,5 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
 import { ClassifyEmojiSchema, parseBody } from "../_shared/schemas.ts";
-import { requireUser, requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 const EMOJI_CATEGORIES = [
   'sorriso', 'riso', 'amor', 'triste', 'raiva',
@@ -15,19 +14,6 @@ Deno.serve(async (req) => {
   if (cors) return cors;
 
   const log = new Logger("classify-emoji");
-
-  try {
-    const serviceOk = requireServiceRoleOrCron(req);
-    if (serviceOk !== null) {
-      const authed = await requireUser(req);
-      if (authed instanceof Response) return authed;
-      const rl = checkRateLimit(`classify-emoji:${authed.user.id}`, 30, 60_000);
-      if (!rl.allowed) return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
-    }
-  } catch (err: unknown) {
-    log.error("Auth error", { error: err instanceof Error ? err.message : String(err) });
-    return errorResponse("Internal server error", 500, req);
-  }
 
   try {
     const parsed = parseBody(ClassifyEmojiSchema, await req.json());

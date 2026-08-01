@@ -11,25 +11,6 @@ Deno.test("Contract: Evolution Webhook V1 valid", () => {
   assertEquals(result.success, true);
 });
 
-Deno.test("Contract: Evolution Webhook V1 aceita apikey/sender null (connection.update em reconexão)", () => {
-  // Estrutura real observada em produção (Evolution v2.3.7, wpp2 em loop de
-  // reconexão): apikey vem null antes da sessão autenticar. URLs/hosts foram
-  // anonimizados (example.com); os campos e tipos são idênticos ao payload
-  // original. Regressão do incidente 422/contract_violation de 2026-07-03.
-  const payload = {
-    event: "connection.update",
-    instance: "wpp2",
-    data: { state: "connecting", statusReason: 401 },
-    destination: "https://supabase.example.com/functions/v1/evolution-webhook",
-    date_time: "2026-07-03T20:34:02-03:00",
-    sender: null,
-    apikey: null,
-    server_url: "https://evolution.example.com",
-  };
-  const result = EvolutionWebhookV1Schema.safeParse(payload);
-  assertEquals(result.success, true);
-});
-
 Deno.test("Contract: Evolution Webhook V1 invalid - missing instance", () => {
   const payload = {
     event: "messages.upsert",

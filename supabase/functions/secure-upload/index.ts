@@ -1,6 +1,5 @@
-import { handleCors, jsonResponse, Logger, securityErrorResponse, requireEnv, checkRateLimit } from "../_shared/validation.ts";
-import { requireUser } from "../_shared/auth.ts";
-import { createZappAdminClient } from "../_shared/db-client.ts";
+import { handleCors, jsonResponse, Logger, securityErrorResponse, requireEnv } from "../_shared/validation.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 /**
  * Secure Upload Middleware
@@ -9,18 +8,6 @@ import { createZappAdminClient } from "../_shared/db-client.ts";
  * Standardized error response (so the frontend can switch on `code`):
  *   { error: true, code, message, verdict, scanId, details? }
  */
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB — OOM guard (F5b)
-const ALLOWED_BUCKETS = new Set(["whatsapp-media", "audio-messages"]);
-
-// Splits on '/', decodes percent-encoding, then drops empty / dot / dotdot segments.
-// Guards against ....// bypass that replace(/\.\./) leaves as traversal-ready slashes.
-const sanitizeStoragePath = (raw: string): string =>
-  raw
-    .split('/')
-    .flatMap(seg => { try { return [decodeURIComponent(seg)]; } catch { return [seg]; } })
-    .filter(seg => seg !== '' && seg !== '.' && seg !== '..')
-    .join('/');
-
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
@@ -36,8 +23,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authed = await requireUser(req);
-    if (authed instanceof Response) {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
       return securityErrorResponse(
         { code: "UNAUTHORIZED", message: "Sessão inválida ou expirada." },
         401,
@@ -45,45 +32,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    const rl = checkRateLimit(`secure-upload:${authed.user.id}`, 10, 60_000);
-    if (!rl.allowed) {
-      return securityErrorResponse(
-        { code: "RATE_LIMIT_EXCEEDED", message: "Limite de uploads atingido. Tente novamente em instantes." },
-        429,
-        req,
-      );
-    }
-
     const formData = await req.formData();
     const file = formData.get("file") as File;
-
-    // Restrict bucket to known-safe values; ignore any attacker-supplied name
-    const requestedBucket = (formData.get("bucket") as string) || "whatsapp-media";
-    const bucket = ALLOWED_BUCKETS.has(requestedBucket) ? requestedBucket : "whatsapp-media";
-    const rawPathValue = formData.get("path");
-    const rawPath = typeof rawPathValue === "string" ? rawPathValue : null;
-    const customPath = rawPath ? sanitizeStoragePath(rawPath) || null : null;
-
-    if (file && file.size > MAX_FILE_SIZE) {
-      return securityErrorResponse(
-        { code: "FILE_TOO_LARGE", message: "Arquivo excede o limite de 50 MB." },
-        413,
-        req,
-      );
-    }
+    const bucket = (formData.get("bucket") as string) || "whatsapp-media";
+    const customPath = formData.get("path") as string;
 
     if (!file) {
       return securityErrorResponse(
         { code: "INVALID_INPUT", message: "Nenhum arquivo enviado.", details: { field: "file" } },
         400,
-        req,
-      );
-    }
-
-    if (file.size > MAX_FILE_SIZE) {
-      return securityErrorResponse(
-        { code: "FILE_TOO_LARGE", message: "Arquivo excede o tamanho máximo permitido de 50 MB." },
-        413,
         req,
       );
     }
@@ -110,7 +67,6 @@ Deno.serve(async (req) => {
 
         const lookup = await fetch(`https://www.virustotal.com/api/v3/files/${sha256}`, {
           headers: { "x-apikey": vtApiKey },
-          signal: AbortSignal.timeout(10_000),
         });
 
         if (lookup.ok) {
@@ -159,12 +115,14 @@ Deno.serve(async (req) => {
     }
 
     // 2. Persist to storage
-    const supabase = createZappAdminClient();
+    const supabaseUrl = requireEnv("SUPABASE_URL");
+    const supabaseServiceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const fileExt = file.name.split(".").pop();
     const fileName =
       customPath ||
-      `secure/${crypto.randomUUID()}.${fileExt}`;
+      `secure/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
     log.info("Persistindo no storage", { path: fileName });
 

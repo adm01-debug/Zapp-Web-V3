@@ -1,5 +1,5 @@
 import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts'
-import { buildQueryLog, classifyUpstreamError } from './lib/utils.ts'
+import { buildQueryLog, classifyUpstreamError } from './index.ts'
 
 Deno.test('classifyUpstreamError: timeout flag wins → 504', () => {
   const r = classifyUpstreamError('whatever', true)

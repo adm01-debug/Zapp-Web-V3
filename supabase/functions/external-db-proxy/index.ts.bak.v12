@@ -1,0 +1,141 @@
+// external-db-proxy v1.2 (2026-05-04) — response shape canônico (campos críticos primeiro)
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, content-type, apikey",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const supabase = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+
+// Whitelist de schemas suportados
+const ALLOWED_SCHEMAS = ["public"];
+// Lista de tabelas com whitelist (segurança)
+const SCHEMA_TABLE_WHITELIST: Record<string, string[]> = {
+  public: [
+    "evolution_contacts", "evolution_messages", "evolution_chats", "evolution_calls",
+    "companies", "contact_emails", "department_invitations", "interactions",
+    "sla_delivery_rules", "sla_delivery_violations", "team_message_reactions",
+    "whisper_files", "gmail_cache_test", "gmail_test_fail", "gmail_test_telemetry",
+    "evolution_webhook_events", "whatsapp_cloud_webhook_pings", "gmail_health_logs",
+    "gmail_revalidation_jobs", "dispatch_error_logs", "query_telemetry", "api_keys",
+    "profiles", "gmail_accounts",
+  ],
+};
+
+function isSafeIdent(s: string): boolean {
+  return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(s);
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405, headers: { ...cors, "Content-Type": "application/json" }
+    });
+  }
+
+  const cid = crypto.randomUUID();
+  const rid = req.headers.get("x-request-id") || crypto.randomUUID();
+  const start = Date.now();
+
+  let body: any = {};
+  try {
+    body = await req.json();
+  } catch {
+    return new Response(JSON.stringify({
+      error: "Invalid JSON body",
+      cid, rid,
+    }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+  }
+
+  const schema = String(body?.schema ?? "public");
+  const table = String(body?.table ?? "");
+  const select_cols = String(body?.select ?? "*");
+  const limit = Math.min(Math.max(Number(body?.limit ?? 50), 1), 500);
+  const filter = body?.filter && typeof body.filter === "object" ? body.filter : null;
+  const order_by = body?.order_by ? String(body.order_by) : null;
+  const order_asc = Boolean(body?.order_asc);
+
+  // Validação de identificadores (segurança contra SQL injection)
+  if (!isSafeIdent(schema)) {
+    return new Response(JSON.stringify({
+      error: "Invalid schema identifier",
+      schema, cid, rid,
+    }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+  }
+
+  if (!isSafeIdent(table)) {
+    return new Response(JSON.stringify({
+      error: "Invalid table identifier",
+      table, cid, rid,
+    }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+  }
+
+  // Schemas não suportados → response canônico (schema_unavailable PRIMEIRO)
+  if (!ALLOWED_SCHEMAS.includes(schema)) {
+    return new Response(JSON.stringify({
+      schema_unavailable: true,
+      cid, rid,
+      schema, table,
+      message: `Schema '${schema}' não está disponível neste self-hosted. Schemas suportados: ${ALLOWED_SCHEMAS.join(", ")}`,
+      data: [], count: 0,
+      latency_ms: Date.now() - start,
+    }), { status: 200, headers: { ...cors, "Content-Type": "application/json" } });
+  }
+
+  // Whitelist de tabelas
+  const allowedTables = SCHEMA_TABLE_WHITELIST[schema] || [];
+  if (allowedTables.length > 0 && !allowedTables.includes(table)) {
+    return new Response(JSON.stringify({
+      error: `Table '${table}' not in whitelist for schema '${schema}'`,
+      cid, rid,
+      data: [], count: 0,
+    }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
+  }
+
+  try {
+    let query = supabase.from(table).select(select_cols, { count: "exact" }).limit(limit);
+
+    if (filter) {
+      for (const [key, value] of Object.entries(filter)) {
+        if (!isSafeIdent(key)) continue;
+        query = query.eq(key, value as any);
+      }
+    }
+
+    if (order_by && isSafeIdent(order_by)) {
+      query = query.order(order_by, { ascending: order_asc });
+    }
+
+    const { data, count, error } = await query;
+    
+    if (error) {
+      return new Response(JSON.stringify({
+        error: error.message,
+        cid, rid,
+        data: [], count: 0,
+        latency_ms: Date.now() - start,
+      }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+
+    return new Response(JSON.stringify({
+      ok: true,
+      cid, rid,
+      data: data || [],
+      count: count ?? (data?.length || 0),
+      schema, table,
+      latency_ms: Date.now() - start,
+    }), { status: 200, headers: { ...cors, "Content-Type": "application/json" } });
+  } catch (e) {
+    return new Response(JSON.stringify({
+      error: (e as Error).message,
+      cid, rid,
+      data: [], count: 0,
+    }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
+  }
+});

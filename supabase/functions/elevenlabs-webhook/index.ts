@@ -1,8 +1,5 @@
-import { handleCors, errorResponse, jsonResponse, Logger } from "../_shared/validation.ts";
-import { timingSafeStringEqual } from "../_shared/auth.ts";
-import { createZappAdminClient } from "../_shared/db-client.ts";
-import { parseOrReject } from "../_shared/contract-kit.ts";
-import { ElevenLabsWebhookV1Schema } from "../_shared/contract-schemas.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -10,29 +7,26 @@ Deno.serve(async (req) => {
 
   const log = new Logger("elevenlabs-webhook");
 
-  // Fail-closed: reject if secret is unconfigured or token mismatch
+  // Validate secret token if configured
   const url = new URL(req.url);
   const token = url.searchParams.get('token');
   const expectedToken = Deno.env.get('ELEVENLABS_WEBHOOK_SECRET');
-
-  if (!expectedToken || !token || !timingSafeStringEqual(token, expectedToken)) {
-    log.warn("Unauthorized webhook call (invalid or missing token)");
+  
+  if (expectedToken && token !== expectedToken) {
+    log.warn("Unauthorized webhook call (invalid token)");
     return errorResponse('Unauthorized', 401, req);
   }
 
   try {
-    const raw = await req.json().catch(() => null);
-    // Contrato elevenlabs-webhook@v1: envelope 422 único em payload inválido.
-    const parsed = parseOrReject('elevenlabs-webhook', { v1: ElevenLabsWebhookV1Schema }, req, raw, {
-      requestId: log.getRequestId?.() ?? undefined,
-    });
-    if (!parsed.ok) return parsed.response;
-    const body = parsed.data as Record<string, unknown>;
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== 'object') {
+      return errorResponse('Invalid JSON payload', 400, req);
+    }
 
     const eventType = String(body.type || body.event_type || 'unknown').slice(0, 100);
     log.info(`event=${eventType}`);
 
-    const supabase = createZappAdminClient();
+    const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'));
 
     // Log the webhook event
     await supabase.from('audit_logs').insert({
@@ -68,7 +62,8 @@ Deno.serve(async (req) => {
     log.done(200);
     return jsonResponse({ received: true, event: eventType }, 200, req);
   } catch (error) {
-    log.error('Unhandled error', { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse('Internal server error', 500, req);
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    log.error('Unhandled error', { error: msg });
+    return errorResponse(msg, 500, req);
   }
 });

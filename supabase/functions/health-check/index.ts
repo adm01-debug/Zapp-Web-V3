@@ -1,11 +1,16 @@
-import { createZappAdminClient } from '../_shared/db-client.ts';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return handleCorsPreflight(req);
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const startTime = Date.now();
-  const status: { status: string; timestamp: string; version: string; checks: Record<string, unknown>; response_time_ms?: number } = {
+  const status: any = {
     status: "healthy",
     timestamp: new Date().toISOString(),
     version: "1.0.0",
@@ -13,7 +18,9 @@ Deno.serve(async (req) => {
   };
 
   try {
-    const supabase = createZappAdminClient();
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // 1. Check Database
     const { error: dbError } = await supabase.from('profiles').select('count', { count: 'exact', head: true }).limit(1);
@@ -23,12 +30,12 @@ Deno.serve(async (req) => {
     status.latency_ms = Date.now() - startTime;
     return new Response(JSON.stringify(status), {
       status: status.status === "healthy" ? 200 : 503,
-      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ status: "error", message: "Health check failed" }), {
+    return new Response(JSON.stringify({ status: "error", message: err.message }), {
       status: 500,
-      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

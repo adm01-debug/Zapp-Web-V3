@@ -5,9 +5,11 @@
 // Lê o evento direto do FATOR X via service role do projeto externo.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
-import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
-import { requireAdminOrSupervisor } from '../_shared/auth.ts';
-import { checkRateLimit } from '../_shared/validation.ts';
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 interface RecheckRequest {
   event_id: string;
   /** Assinatura observada no recebimento (opcional, vem do payload se presente). */
@@ -49,54 +51,77 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    // 1. AuthN + AuthZ — server-side JWT verification + admin/supervisor role check
-    const authed = await requireAdminOrSupervisor(req);
-    if (authed instanceof Response) return authed;
-    const rl = checkRateLimit(`recheck-webhook-signature:${authed.user.id}`, 20, 60_000);
-    if (!rl.allowed) {
-      return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
-        status: 429,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+    // 1. AuthN — Bearer JWT do usuário logado
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claims, error: claimsErr } = await supabase.auth.getClaims(token);
+    if (claimsErr || !claims?.claims?.sub) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const userId = claims.claims.sub as string;
+
+    // 2. AuthZ — apenas admin (via has_role no Lovable Cloud)
+    const { data: isAdmin, error: roleErr } = await supabase.rpc('has_role', {
+      _user_id: userId,
+      _role: 'admin',
+    });
+    if (roleErr || !isAdmin) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // 2. Body
+    // 3. Body
     let body: RecheckRequest;
     try {
       body = (await req.json()) as RecheckRequest;
     } catch {
       return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
         status: 400,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
     if (!body?.event_id || typeof body.event_id !== 'string') {
       return new Response(JSON.stringify({ error: 'event_id required' }), {
         status: 400,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // 3. Secret + FATOR X creds
+    // 4. Secret + FATOR X creds
     const secret =
       Deno.env.get('EVOLUTION_WEBHOOK_SECRET') || Deno.env.get('WEBHOOK_SECRET') || '';
-    const extUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
-    const extKey = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
+    const extUrl = Deno.env.get('EXTERNAL_SUPABASE_URL');
+    const extKey = Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY');
     if (!extUrl || !extKey) {
       return new Response(JSON.stringify({ error: 'External DB not configured' }), {
         status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
     const ext = createClient(extUrl, extKey, {
-      db: { schema: 'zapp' },
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    // 4. Buscar evento
+    // 5. Buscar evento
     const { data: ev, error: evErr } = await ext
       .from('evolution_webhook_events')
       .select('id,event_type,instance_name,created_at,payload')
@@ -104,8 +129,8 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (evErr || !ev) {
       return new Response(
-        JSON.stringify({ error: 'Event not found' }),
-        { status: 404, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
+        JSON.stringify({ error: evErr?.message ?? 'Event not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -126,11 +151,11 @@ Deno.serve(async (req) => {
         'WEBHOOK_SECRET não configurado no backend — impossível recomputar a assinatura.';
       return new Response(JSON.stringify(result), {
         status: 200,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // 5. Extrair assinatura observada do payload (se a Evolution salvou nos headers)
+    // 6. Extrair assinatura observada do payload (se a Evolution salvou nos headers)
     const payload = ev.payload as Record<string, unknown> | null;
     const headersField = (payload?._headers ?? payload?.headers ?? null) as
       | Record<string, string>
@@ -148,7 +173,7 @@ Deno.serve(async (req) => {
     }
     result.observed_signature = observed;
 
-    // 6. Recomputar — usamos JSON.stringify do payload armazenado.
+    // 7. Recomputar — usamos JSON.stringify do payload armazenado.
     // Limitação conhecida: o webhook original assina o RAW BODY, não o JSON re-serializado.
     // Diferenças de espaçamento/ordenação podem invalidar a assinatura mesmo com o secret correto.
     const raw = JSON.stringify(payload ?? {});
@@ -172,12 +197,12 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify(result), {
       status: 200,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
+      JSON.stringify({ error: e instanceof Error ? e.message : 'Internal error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });

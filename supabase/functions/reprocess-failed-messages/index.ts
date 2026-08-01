@@ -1,34 +1,29 @@
 // Reprocessa entradas pendentes na DLQ `failed_messages`.
 // Chamada por pg_cron a cada 15min ou manualmente por admin.
-// Auth: SUPABASE_SERVICE_ROLE_KEY (via createZappAdminClient) ou admin JWT.
-import { createZappAdminClient } from '../_shared/db-client.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 import { computeBackoffMs, classifyRetryReason, computeBackoffMsByReason } from '../_shared/dlq-backoff.ts';
-import { requireServiceRoleOrCron, requireAdminOrSupervisor } from '../_shared/auth.ts';
 
-import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 const MAX_BATCH = 25;
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return handleCorsPreflight(req); // sets Access-Control-Allow-Origin
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
-  try {
-    // Accept internal (service role / cron) or admin/supervisor user JWTs.
-    const internalDenied = requireServiceRoleOrCron(req);
-    if (internalDenied) {
-      const authed = await requireAdminOrSupervisor(req);
-      if (authed instanceof Response) return authed;
-    }
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Uses service-role credentials (SUPABASE_SERVICE_ROLE_KEY) via createZappAdminClient()
-    const supabase = createZappAdminClient();
+  const evolutionUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
+  const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
+  if (!evolutionUrl || !evolutionKey) {
+    return json({ error: true, message: 'Evolution credentials missing' }, 500);
+  }
 
-    const evolutionUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
-    const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
-    if (!evolutionUrl || !evolutionKey) {
-      return json({ error: true, message: 'Evolution credentials missing' }, 500);
-    }
-
-    const { data: rows, error } = await supabase
+  const { data: rows, error } = await supabase
     .from('failed_messages')
     .select('*')
     .in('status', ['pending', 'retrying'])
@@ -36,10 +31,7 @@ Deno.serve(async (req) => {
     .order('created_at', { ascending: true })
     .limit(MAX_BATCH);
 
-  if (error) {
-    console.error('[reprocess-failed-messages] fetch error', error.message);
-    return json({ error: true, message: 'Failed to fetch messages' }, 500);
-  }
+  if (error) return json({ error: true, message: error.message }, 500);
   if (!rows || rows.length === 0) return json({ processed: 0, message: 'no pending messages' });
 
   let succeeded = 0;
@@ -50,31 +42,12 @@ Deno.serve(async (req) => {
     const attempt = row.retry_count + 1;
     try {
       const payload = row.payload as Record<string, unknown>;
-      const rawPath = (payload.__path as string) || '/message/sendText';
+      const path = (payload.__path as string) || '/message/sendText';
       const idemKey = typeof payload.__idemKey === 'string' ? payload.__idemKey : null;
-      const instance = row.instance_name as string;
+      const instance = row.instance_name;
       const body = { ...payload };
       delete (body as Record<string, unknown>).__path;
       delete (body as Record<string, unknown>).__idemKey;
-
-      // Validate path and instance to prevent SSRF via malicious DB rows.
-      // Path is narrowed to /message/* sub-paths — the only paths the DLQ is meant to retry.
-      const SAFE_PATH_RE = /^\/message\/[a-zA-Z0-9/_-]{1,64}$/;
-      // Instance names may include dots (e.g. provider-assigned IDs like "tenant.v1.abc123").
-      const INSTANCE_RE = /^[a-zA-Z0-9._-]{1,128}$/;
-      if (!SAFE_PATH_RE.test(rawPath) || !INSTANCE_RE.test(instance ?? '') || instance === '.' || instance === '..') {
-        console.error('[dlq-reprocess] unsafe path or instance, abandoning row', { id: row.id });
-        await supabase.from('failed_messages').update({
-          status: 'abandoned',
-          retry_count: attempt,
-          last_attempt_at: new Date().toISOString(),
-          error_message: 'unsafe path or instance_name rejected',
-        }).eq('id', row.id);
-        abandoned++;
-        continue;
-      }
-      const path = rawPath;
-
       console.info('[dlq-reprocess]', JSON.stringify({
         id: row.id, instance, path, attempt, max: row.max_retries, hasIdem: !!idemKey,
       }));
@@ -89,7 +62,6 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: fetchHeaders,
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(15_000),
       });
       const respText = await resp.text();
 
@@ -144,16 +116,12 @@ Deno.serve(async (req) => {
     }
   }
 
-    return json({ processed: rows.length, succeeded, failed, abandoned });
-  } catch (err) {
-    console.error('[reprocess-failed-messages] unhandled error:', err instanceof Error ? err.message : String(err));
-    return json({ error: true, message: 'Internal server error' }, 500);
-  }
+  return json({ processed: rows.length, succeeded, failed, abandoned });
 });
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 }

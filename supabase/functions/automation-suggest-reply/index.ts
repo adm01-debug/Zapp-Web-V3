@@ -1,13 +1,13 @@
 // Edge function: gera sugestão de resposta para uma execução de automação
 // Usa Lovable AI Gateway (sem API key do usuário) + Knowledge Base + Tag Recommender
-import { createZappAdminClient } from "../_shared/db-client.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
-import { isValidUUID } from "../_shared/validation.ts";
 
-const MAX_MESSAGE_CONTENT_LEN = 2_000;
-const MAX_CONTACT_NAME_LEN = 200;
-const MAX_HISTORY_MESSAGES = 8;
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-cron-secret",
+};
 
 interface Body {
   executionId: string;
@@ -38,12 +38,7 @@ interface ExtTag {
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-3-flash-preview";
 
-/**
- * Builds full-text search query from last N customer messages for Knowledge Base lookup.
- * Extracts last 4 customer-only messages, normalizes to lowercase, strips non-alphanumeric chars,
- * filters words <3 characters, limits to first 20 terms. Prevents FTS query injection via
- * character filtering; enables matching KB articles by customer intent.
- */
+/** Constrói uma query textual a partir das últimas mensagens do cliente para alimentar a busca FTS na KB. */
 function buildSearchQuery(messages: Array<{ from_me: boolean; content: string }>): string {
   const fromCustomer = messages.filter((m) => !m.from_me).slice(-4);
   const text = fromCustomer.map((m) => m.content).join(" ");
@@ -58,14 +53,8 @@ function buildSearchQuery(messages: Array<{ from_me: boolean; content: string }>
     .trim();
 }
 
-/**
- * Fetches relevant Knowledge Base articles via FTS search (up to 4 results).
- * Calls search_knowledge_base RPC with normalized query, extracts category/title/content.
- * Returns formatted snippet (title + first 600 chars per article) and source titles for citations.
- * Graceful failure: Network errors, empty results, parse errors → returns empty snippet + sources.
- */
 async function fetchKnowledgeContext(
-  supabase: ReturnType<typeof createZappAdminClient>,
+  supabase: ReturnType<typeof createClient>,
   query: string,
 ): Promise<{ snippet: string; sources: string[] }> {
   if (!query) return { snippet: "", sources: [] };
@@ -78,21 +67,12 @@ async function fetchKnowledgeContext(
       console.warn("[automation-suggest-reply] KB search error:", error.message);
       return { snippet: "", sources: [] };
     }
-    const hitsArray = Array.isArray(data) ? data : [];
-    if (!hitsArray.length) return { snippet: "", sources: [] };
-    const hits = hitsArray
-      .filter((h): h is Record<string, unknown> => typeof h === 'object' && h !== null && !Array.isArray(h))
-      .map(h => ({
-        category: typeof h.category === 'string' ? h.category : null,
-        title: typeof h.title === 'string' ? h.title : '',
-        content: typeof h.content === 'string' ? h.content : '',
-      }))
-      .filter(h => h.title);
+    const hits = (data ?? []) as KbHit[];
     if (!hits.length) return { snippet: "", sources: [] };
     const snippet = hits
       .map(
         (h) =>
-          `[${h.category ?? "geral"}] ${h.title}\n${h.content.slice(0, 600)}`,
+          `[${h.category ?? "geral"}] ${h.title}\n${(h.content ?? "").slice(0, 600)}`,
       )
       .join("\n---\n");
     return { snippet, sources: hits.map((h) => h.title) };
@@ -102,15 +82,12 @@ async function fetchKnowledgeContext(
   }
 }
 
-/**
- * Fetches tag catalog from external Supabase (evolution_tags table, up to 60 rows).
- * Supports dual config: SELFHOSTED_SUPABASE_URL takes precedence; falls back to EXTERNAL_SUPABASE_URL.
- * Returns empty array if config missing or fetch fails (graceful degradation for tag recommendations).
- * Used by AI to narrow suggested tags to available taxonomy.
- */
 async function fetchExternalTags(): Promise<ExtTag[]> {
+  const url = Deno.env.get("EXTERNAL_SUPABASE_URL");
+  const key = Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY");
+  if (!url || !key) return [];
   try {
-    const ext = createZappAdminClient();
+    const ext = createClient(url, key);
     const { data, error } = await ext
       .from("evolution_tags")
       .select("id, name, color, description")
@@ -126,13 +103,7 @@ async function fetchExternalTags(): Promise<ExtTag[]> {
   }
 }
 
-/**
- * Calls Lovable AI Gateway with tool-use to generate suggested response + tag recommendation.
- * Validates tag against allowed list (enum constraint prevents AI tag injection).
- * Falls back to raw message content if tool parsing fails (graceful degradation).
- * Handles rate limit (429) and payment (402) errors as exceptions; network timeout = 30s AbortSignal.
- * Returns { reply: trimmed text, recommended_tag: null if no match or tag not in list }.
- */
+/** Chama o LLM com tool-calling para devolver { reply, recommended_tag }. */
 async function callAi(
   systemPrompt: string,
   userPrompt: string,
@@ -183,16 +154,15 @@ async function callAi(
       tools,
       tool_choice: { type: "function", function: { name: "suggest_response" } },
     }),
-    signal: AbortSignal.timeout(30_000),
   });
 
   if (resp.status === 429) throw new Response(
     JSON.stringify({ error: "Rate limit. Tente novamente em instantes." }),
-    { status: 429, headers: { "Content-Type": "application/json" } },
+    { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
   if (resp.status === 402) throw new Response(
     JSON.stringify({ error: "Créditos de IA esgotados na workspace." }),
-    { status: 402, headers: { "Content-Type": "application/json" } },
+    { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
   if (!resp.ok) throw new Error(`AI gateway: ${resp.status}`);
 
@@ -216,28 +186,8 @@ async function callAi(
   return { reply: fallback, recommended_tag: null };
 }
 
-/**
- * Edge Function: Automation Suggest Reply — AI-Powered Response Generation
- *
- * Generates contextual response suggestions for automation rules via LLM (Gemini 3 Flash).
- * Uses Knowledge Base search + external tag catalog to enrich AI context and guide recommendations.
- *
- * Authorization: Service-role or cron-triggered only (internal automation engine).
- * Request Body: { executionId, ruleId, recentMessages?, contactName?, skipAi? }
- *
- * Flow:
- * 1. Fetch automation rule (template, custom AI prompt)
- * 2. If skipAi=true or template+!customPrompt: return template directly
- * 3. Otherwise: build FTS query from recent messages → search KB → fetch tag catalog
- * 4. Call LLM with system prompt (template or custom) + conversation context
- * 5. Extract AI suggestion + recommended tag (validated against catalog)
- * 6. Fallback: return template or LLM content on parse errors
- *
- * Response: { suggestion, recommended_tag?, kb_sources? }
- * Handles rate limits (429), payment errors (402), and graceful fallback to template.
- */
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   // Internal-only: called by the automation engine with service role.
   const denied = requireServiceRoleOrCron(req);
@@ -245,82 +195,48 @@ Deno.serve(async (req) => {
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("Required environment variables missing");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
 
-    const rawBody = await req.json();
-    if (typeof rawBody !== 'object' || rawBody === null || Array.isArray(rawBody)) {
-      throw new Error("Invalid request body");
-    }
-    const bodyObj = rawBody as Record<string, unknown>;
-    const executionId = typeof bodyObj.executionId === 'string' ? bodyObj.executionId : '';
-    const ruleId = typeof bodyObj.ruleId === 'string' ? bodyObj.ruleId : '';
-    const recentMessages = Array.isArray(bodyObj.recentMessages) ? bodyObj.recentMessages : undefined;
-    const contactName = typeof bodyObj.contactName === 'string' ? bodyObj.contactName : undefined;
-    const skipAi = bodyObj.skipAi === true;
-
-    if (!executionId || !ruleId) throw new Error("executionId and ruleId are required");
-    if (!isValidUUID(executionId)) throw new Error("executionId must be a valid UUID");
-    if (!isValidUUID(ruleId)) throw new Error("ruleId must be a valid UUID");
-
-    const supabase = createZappAdminClient();
+    const body = (await req.json()) as Body;
+    const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
     const { data: rule, error: ruleErr } = await supabase
       .from("automation_rules")
       .select("name, description, actions, trigger_type")
-      .eq("id", ruleId)
+      .eq("id", body.ruleId)
       .maybeSingle();
     if (ruleErr || !rule) throw new Error("Rule not found");
 
-    const ruleObj = rule as Record<string, unknown>;
-    const actions = typeof ruleObj.actions === 'object' && ruleObj.actions !== null && !Array.isArray(ruleObj.actions)
-      ? (ruleObj.actions as Record<string, unknown>)
-      : {};
-    const customPrompt = typeof actions.ai_prompt === 'string' ? actions.ai_prompt : "";
-    const template = typeof actions.template === 'string' ? actions.template : "";
+    const actions = (rule.actions ?? {}) as Record<string, unknown>;
+    const customPrompt = (actions.ai_prompt as string) ?? "";
+    const template = (actions.template as string) ?? "";
 
     let suggestion = template;
     let recommendedTag: string | null = null;
     let kbSources: string[] = [];
 
-    const useAi = !skipAi && (!template || customPrompt);
+    const useAi = !body.skipAi && (!template || customPrompt);
 
     if (useAi) {
-      const recent = Array.isArray(recentMessages) ? recentMessages : [];
-      const validMessages = recent
-        .filter((m): m is Record<string, unknown> => typeof m === 'object' && m !== null && !Array.isArray(m));
-      // Truncate each message to prevent prompt injection via oversized content
-      const history = validMessages
-        .slice(-MAX_HISTORY_MESSAGES)
-        .map(m => {
-          const isFromMe = m.from_me === true;
-          const rawContent = typeof m.content === 'string' ? m.content : '';
-          // Truncate and strip control characters to limit injection surface
-          const content = rawContent.slice(0, MAX_MESSAGE_CONTENT_LEN).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '');
-          return `${isFromMe ? "Atendente" : "Cliente"}: ${content}`;
-        })
+      const recent = body.recentMessages ?? [];
+      const history = recent
+        .slice(-8)
+        .map((m) => `${m.from_me ? "Atendente" : "Cliente"}: ${m.content}`)
         .join("\n");
 
       // 1) Busca contexto na knowledge base (parallel com tags)
-      const searchQuery = buildSearchQuery(validMessages.map(m => ({
-        from_me: m.from_me === true,
-        content: typeof m.content === 'string' ? m.content : '',
-      })));
+      const searchQuery = buildSearchQuery(recent);
       const [{ snippet: kbSnippet, sources }, tags] = await Promise.all([
         fetchKnowledgeContext(supabase, searchQuery),
         fetchExternalTags(),
       ]);
       kbSources = sources;
 
-      const validTags = tags
-        .filter((t): t is Record<string, unknown> => typeof t === 'object' && t !== null && !Array.isArray(t))
-        .map(t => ({
-          name: typeof t.name === 'string' ? t.name : '',
-          description: typeof t.description === 'string' ? t.description : '',
-        }))
-        .filter(t => t.name);
-      const tagNames = validTags.map((t) => t.name);
-      const tagCatalog = validTags.length
-        ? validTags
+      const tagNames = tags.map((t) => t.name).filter(Boolean);
+      const tagCatalog = tags.length
+        ? tags
             .map((t) => `- ${t.name}${t.description ? `: ${t.description}` : ""}`)
             .join("\n")
         : "(nenhuma tag cadastrada)";
@@ -337,19 +253,10 @@ Deno.serve(async (req) => {
           : "") +
         `\n\nTAGS DISPONÍVEIS NO CRM (escolha no MÁXIMO uma para classificar a conversa, ou null):\n${tagCatalog}`;
 
-      const ruleName = typeof ruleObj.name === 'string' ? ruleObj.name : 'sem-nome';
-      const ruleTrigger = typeof ruleObj.trigger_type === 'string' ? ruleObj.trigger_type : 'unknown';
-      // Sanitize contactName — customer-controlled, strip control chars and cap length
-      const safeContactName = (contactName ?? '—')
-        .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '')
-        .slice(0, MAX_CONTACT_NAME_LEN);
-      // Wrap untrusted customer content in XML delimiters so the model can distinguish
-      // instructions from data — structural defense against prompt injection.
-      const userPrompt = `Regra disparada: ${ruleName} (${ruleTrigger})
-Cliente: ${safeContactName}
-<historico_conversa>
+      const userPrompt = `Regra disparada: ${rule.name} (${rule.trigger_type})
+Cliente: ${body.contactName ?? "—"}
+Histórico recente:
 ${history || "(sem mensagens)"}
-</historico_conversa>
 
 Gere a melhor próxima resposta do atendente e recomende a tag mais adequada.`;
 
@@ -358,28 +265,7 @@ Gere a melhor próxima resposta do atendente e recomende a tag mais adequada.`;
         suggestion = ai.reply || template || "";
         recommendedTag = ai.recommended_tag;
       } catch (e) {
-        if (e instanceof Response) {
-          // Re-wrap with CORS headers so browsers receive the 429/402 error properly.
-          // Parse and re-serialise so stack traces or internal details from the upstream
-          // API are never forwarded verbatim to the browser (CodeQL: stack-trace exposure).
-          let safeBody: string;
-          try {
-            const raw = await e.json();
-            let errorMsg = 'Request failed';
-            if (typeof raw === 'object' && raw !== null && !Array.isArray(raw)) {
-              const rawObj = raw as Record<string, unknown>;
-              errorMsg = (typeof rawObj.error === 'string' ? rawObj.error : null)
-                || (typeof rawObj.message === 'string' ? rawObj.message : 'Request failed');
-            }
-            safeBody = JSON.stringify({ error: errorMsg });
-          } catch {
-            safeBody = JSON.stringify({ error: 'Request failed' });
-          }
-          return new Response(safeBody, {
-            status: e.status,
-            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
-          });
-        }
+        if (e instanceof Response) return e; // 429/402 com payload já formatado
         throw e;
       }
     }
@@ -391,7 +277,7 @@ Gere a melhor próxima resposta do atendente e recomende a tag mais adequada.`;
         recommended_tag: recommendedTag,
         kb_sources: kbSources,
       })
-      .eq("id", executionId);
+      .eq("id", body.executionId);
 
     return new Response(
       JSON.stringify({
@@ -399,13 +285,13 @@ Gere a melhor próxima resposta do atendente e recomende a tag mais adequada.`;
         recommended_tag: recommendedTag,
         kb_sources: kbSources,
       }),
-      { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
     console.error("automation-suggest-reply error:", err);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
+      JSON.stringify({ error: err instanceof Error ? err.message : "unknown" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });

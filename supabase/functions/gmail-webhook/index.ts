@@ -1,26 +1,24 @@
-import { createZappAdminClient } from '../_shared/db-client.ts';
-import { getSecret } from '../_shared/mod.ts';
-import { requireUser } from '../_shared/auth.ts';
-import { timingSafeEqual } from '../_shared/hmac-validation.ts';
-import { initSentry, captureException, captureMessage } from '../_shared/sentry.ts';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
-const PUBSUB_TOPIC = (() => {
-  const v = Deno.env.get('GMAIL_PUBSUB_TOPIC');
-  if (!v) throw new Error('[gmail-webhook] GMAIL_PUBSUB_TOPIC env var is required — set it before deploying');
-  return v;
-})();
+const PUBSUB_TOPIC = Deno.env.get('GMAIL_PUBSUB_TOPIC') ?? 'projects/your-project/topics/gmail';
 
-Deno.serve(async (req) => {
-  initSentry('gmail-webhook');
+serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
-
-  const supabase = createZappAdminClient();
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  );
 
   const json = (data: unknown, status = 200) =>
-    new Response(JSON.stringify(data), { status, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+    new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     // ── Push notification do Google Pub/Sub (POST sem body action) ────
@@ -28,37 +26,9 @@ Deno.serve(async (req) => {
       const body = await req.json().catch(() => ({}));
       const { action } = body;
 
-      // F2 security fix: fail-closed auth for Pub/Sub push notifications.
-      // The 'registerWatch' action uses its own token auth via getValidToken().
-      // All other POST requests (Pub/Sub pushes) MUST present a valid token.
-      if (!action) {
-        // F2+vault: read token from vault first (gmail_pubsub_token), env fallback for legacy
-        const expectedToken = await getSecret('gmail_pubsub_token') ?? Deno.env.get('GMAIL_PUBSUB_TOKEN');
-        if (!expectedToken) {
-          return json({ error: 'Webhook authentication not configured' }, 401);
-        }
-        const receivedToken = new URL(req.url).searchParams.get('token');
-        if (!receivedToken || !timingSafeEqual(receivedToken, expectedToken)) {
-          return json({ error: 'Invalid or missing push token' }, 401);
-        }
-      }
-
       // ── registerWatch — registra Pub/Sub watch para uma conta ─────
       if (action === 'registerWatch') {
-        const authed = await requireUser(req);
-        if (authed instanceof Response) return authed;
-
         const { accountId } = body;
-
-        // Verify the authenticated user owns this gmail_accounts row.
-        const { data: accountCheck } = await supabase
-          .from('gmail_accounts')
-          .select('id')
-          .eq('id', accountId)
-          .eq('user_id', authed.user.id)
-          .maybeSingle();
-        if (!accountCheck) return json({ error: 'Conta não encontrada ou acesso negado' }, 403);
-
         const token = await getValidToken(supabase, accountId);
         if (!token) return json({ error: 'Token inválido' }, 401);
 
@@ -70,130 +40,110 @@ Deno.serve(async (req) => {
             labelIds: ['INBOX'],
             labelFilterBehavior: 'INCLUDE',
           }),
-          signal: AbortSignal.timeout(15_000),
         });
-        if (!watchRes.ok) {
-          const watchErr = await watchRes.json().catch(() => ({}));
-          return json({ error: 'Watch failed', detail: watchErr }, 500);
-        }
+
         const watchData = await watchRes.json();
-        if (watchData.error) {
-          console.error('[gmail-webhook] watch setup error', watchData.error);
-          return json({ error: 'Failed to setup Gmail watch' }, 400);
-        }
+        if (watchData.error) return json({ error: watchData.error.message }, 400);
 
-        const expires = watchData.expiration ? new Date(parseInt(watchData.expiration)).toISOString() : null;
-        await supabase.from('email_watch_history').upsert({
-          account_id: accountId, history_id: watchData.historyId ?? null,
-          expires_at: expires, watch_registered_at: new Date().toISOString(),
-          status: 'active',
-        }, { onConflict: 'account_id' });
+        // Salva expiration e historyId na conta
+        await supabase.from('gmail_accounts').update({
+          watch_expiry: new Date(Number(watchData.expiration)).toISOString(),
+          watch_resource: watchData.historyId,
+          history_id: watchData.historyId,
+        }).eq('id', accountId);
 
-        return json({ ok: true, historyId: watchData.historyId, expiresAt: expires });
+        return json({ expiration: new Date(Number(watchData.expiration)).toISOString(), historyId: watchData.historyId });
       }
 
-      // ── Pub/Sub push: process email notification ────────────────────
-      const { message } = body;
-      if (!message?.data) return json({ ok: true, skipped: 'no_message' });
+      // ── Pub/Sub push notification (sem action = webhook do Google) ──
+      if (!action && body.message) {
+        const pubsubData = JSON.parse(atob(body.message.data ?? ''));
+        const { emailAddress, historyId } = pubsubData;
 
-      let decoded: { emailAddress?: string; historyId?: string };
-      try {
-        decoded = JSON.parse(atob(message.data));
-      } catch {
-        return json({ error: 'Bad payload' }, 400);
+        if (!emailAddress) return json({ ok: true });
+
+        // Encontra conta pelo email
+        const { data: account } = await supabase
+          .from('gmail_accounts')
+          .select('id, history_id, access_token, token_expiry, refresh_token')
+          .eq('email', emailAddress)
+          .eq('is_active', true)
+          .single();
+
+        if (!account) return json({ ok: true });
+
+        // Refresh token se necessário
+        const token = await ensureFreshToken(supabase, account);
+        if (!token) return json({ ok: true });
+
+        // Busca history desde último historyId
+        const startHistoryId = account.history_id ?? historyId;
+        await processHistory(supabase, token, account.id, startHistoryId);
+
+        // Atualiza historyId
+        await supabase.from('gmail_accounts').update({ history_id: String(historyId) }).eq('id', account.id);
+
+        return json({ ok: true });
       }
-
-      const { emailAddress, historyId } = decoded;
-      if (!emailAddress || !historyId) return json({ ok: true, skipped: 'missing_fields' });
-
-      const { data: account } = await supabase.from('email_accounts').select('id, access_token, refresh_token, token_expires_at').eq('email', emailAddress).maybeSingle();
-      if (!account) return json({ ok: true, skipped: 'account_not_found' });
-
-      const token = await getValidToken(supabase, account.id);
-      if (!token) return json({ ok: true, skipped: 'invalid_token' });
-
-      const { data: watch } = await supabase.from('email_watch_history').select('history_id').eq('account_id', account.id).maybeSingle();
-      const startHistoryId = watch?.history_id ?? historyId;
-
-      await processHistory(supabase, token, account.id, startHistoryId);
-
-      await supabase.from('email_watch_history').upsert({
-        account_id: account.id, history_id: historyId,
-        status: 'active',
-      }, { onConflict: 'account_id' });
-
-      return json({ ok: true });
     }
 
-    // ── GET: status endpoint ────────────────────────────────────────
-    if (req.method === 'GET') {
-      const tokenConfigured = !!(await getSecret('gmail_pubsub_token') ?? Deno.env.get('GMAIL_PUBSUB_TOKEN'));
-      return json({ service: 'gmail-webhook', status: 'healthy', token_configured: tokenConfigured });
-    }
+    return json({ error: 'Método não suportado' }, 405);
 
-    return json({ error: 'Method not allowed' }, 405);
   } catch (err) {
-    console.error('[gmail-webhook]', err instanceof Error ? (err.stack ?? err.message) : String(err));
-    await captureException(err, {
-      functionName: 'gmail-webhook',
-      requestUrl: req.url,
-      metadata: {
-        method: req.method,
-      },
-    });
-    return json({ error: 'Internal server error' }, 500);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[gmail-webhook]', msg);
+    return json({ error: msg }, 500);
   }
 });
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
-// Marks a Gmail message error that is deterministically non-retryable (e.g. 400 Bad Request,
-// 403 Permission Denied). processHistory skips these so history_id can advance and the
-// account is not permanently stalled. Transient errors (network, 429, 5xx) are thrown as
-// plain Error so Pub/Sub retries the batch without advancing history_id.
-class NonRetryableMessageError extends Error {
-  constructor(msg: string) { super(msg); this.name = 'NonRetryableMessageError'; }
+async function getValidToken(supabase: ReturnType<typeof createClient>, accountId: string): Promise<string | null> {
+  const { data: acc } = await supabase
+    .from('gmail_accounts')
+    .select('access_token, token_expiry, refresh_token')
+    .eq('id', accountId)
+    .single();
+
+  if (!acc) return null;
+  return await ensureFreshToken(supabase, { id: accountId, ...acc });
 }
 
+async function ensureFreshToken(
+  supabase: ReturnType<typeof createClient>,
+  account: { id: string; access_token: string; token_expiry: string; refresh_token: string }
+): Promise<string | null> {
+  const expiry = new Date(account.token_expiry).getTime();
+  const now    = Date.now();
 
-async function getValidToken(supabase: ReturnType<typeof createClient>, accountId: string): Promise<string | null> {
-  const { data: account, error } = await supabase.from('email_accounts').select('access_token, refresh_token, token_expires_at, client_id, client_secret').eq('id', accountId).maybeSingle();
-  if (error || !account) return null;
+  // Token válido por mais de 5 min
+  if (expiry - now > 5 * 60 * 1000) return account.access_token;
 
-  const expiresAt = account.token_expires_at ? new Date(account.token_expires_at) : null;
-  const isExpired = !expiresAt || expiresAt <= new Date(Date.now() + 60_000);
-
-  if (!isExpired) return account.access_token;
-
-  if (!account.refresh_token) return null;
-
-  const clientId = account.client_id ?? Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
-  const clientSecret = account.client_secret ?? Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
-  if (!clientId || !clientSecret) return null;
-
-  const refreshRes = await fetch('https://oauth2.googleapis.com/token', {
+  // Refresh
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      grant_type: 'refresh_token',
       refresh_token: account.refresh_token,
-      client_id: clientId,
-      client_secret: clientSecret,
+      client_id:     Deno.env.get('GOOGLE_CLIENT_ID')!,
+      client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET')!,
+      grant_type:    'refresh_token',
     }),
-    signal: AbortSignal.timeout(10_000),
   });
 
-  if (!refreshRes.ok) return null;
+  const tokens = await tokenRes.json();
+  if (tokens.error) {
+    await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', account.id);
+    return null;
+  }
 
-  const refreshData = await refreshRes.json();
-  const newToken = refreshData.access_token;
-  const newExpiry = new Date(Date.now() + refreshData.expires_in * 1000).toISOString();
+  const newExpiry = new Date(now + (tokens.expires_in ?? 3600) * 1000).toISOString();
+  await supabase.from('gmail_accounts').update({
+    access_token: tokens.access_token,
+    token_expiry: newExpiry,
+  }).eq('id', account.id);
 
-  await supabase.from('email_accounts').update({
-    access_token: newToken, token_expires_at: newExpiry,
-  }).eq('id', accountId);
-
-  return newToken;
+  return tokens.access_token;
 }
 
 async function processHistory(
@@ -204,15 +154,8 @@ async function processHistory(
 ): Promise<void> {
   const histRes = await fetch(
     `${GMAIL_API}/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded`,
-    { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000) }
+    { headers: { Authorization: `Bearer ${token}` } }
   );
-  if (!histRes.ok) {
-    // 5xx → transient: throw so Pub/Sub retries and history_id is held in place.
-    // 4xx → permanent API error: log and return so history_id can advance and the account is not stalled.
-    if (histRes.status >= 500) throw new Error(`Gmail history API transient error: ${histRes.status}`);
-    console.error('[gmail-webhook] processHistory non-retryable HTTP error', histRes.status);
-    return;
-  }
   const histData = await histRes.json();
   if (histData.error) return;
 
@@ -223,30 +166,9 @@ async function processHistory(
     }
   }
 
-  // Fetch and persist all new messages in parallel.
-  // Error taxonomy drives whether history_id advances:
-  //   NonRetryableMessageError → poison-pill (bad request, permission denied) — skip and advance.
-  //   Any other error (network timeout, AbortError, Gmail 429/5xx) → transient — throw so
-  //   Pub/Sub retries the push notification and history_id is held in place, preventing data loss.
-  const results = await Promise.allSettled(
-    addedMessages.slice(0, 20).map(msgId => fetchAndPersistMessage(supabase, token, accountId, msgId))
-  );
-  const failures = results.filter(r => r.status === 'rejected');
-  const transientFailures = failures.filter(f => !(f.reason instanceof NonRetryableMessageError));
-  for (const r of results) {
-    if (r.status === 'rejected') {
-      const isPoison = r.reason instanceof NonRetryableMessageError;
-      (isPoison ? console.warn : console.error)(
-        '[gmail-webhook] processHistory message failed:',
-        r.reason instanceof Error ? r.reason.message : String(r.reason),
-      );
-    }
-  }
-  // Transient failures: hold history_id so Pub/Sub can retry and recover the missed messages.
-  // Non-retryable poison-pill failures: already skipped inside fetchAndPersistMessage or
-  // thrown as NonRetryableMessageError; do not stall the account for deterministically bad msgs.
-  if (transientFailures.length > 0) {
-    throw new Error(`${transientFailures.length}/${results.length} messages had transient failures — deferring to Pub/Sub retry`);
+  // Busca e persiste cada nova mensagem
+  for (const msgId of addedMessages.slice(0, 20)) {
+    await fetchAndPersistMessage(supabase, token, accountId, msgId);
   }
 }
 
@@ -258,48 +180,9 @@ async function fetchAndPersistMessage(
 ): Promise<void> {
   const msgRes = await fetch(`${GMAIL_API}/messages/${messageId}?format=full`, {
     headers: { Authorization: `Bearer ${token}` },
-    signal: AbortSignal.timeout(10_000),
   });
-  if (!msgRes.ok) {
-    if (msgRes.status === 404) return; // deleted before ingestion, skip silently
-    if (msgRes.status === 429 || msgRes.status >= 500) {
-      throw new Error(`Gmail API transient HTTP error for message ${messageId}: ${msgRes.status}`);
-    }
-    throw new NonRetryableMessageError(`Gmail API non-retryable HTTP error for message ${messageId}: ${msgRes.status}`);
-  }
   const msg = await msgRes.json();
-  if (msg.error) {
-    // 404: message deleted before ingestion — expected and harmless, skip silently.
-    if (msg.error.code === 404) return;
-
-    // Inspect the reason/status fields for fine-grained retryability classification.
-    // Coarse code-only checks misclassify retryable 401/403 variants as non-retryable,
-    // causing processHistory to skip those messages and advance history_id, permanently
-    // dropping emails that could have been recovered on the next Pub/Sub retry.
-    const reason = ((msg.error.errors?.[0]?.reason) ?? '').toLowerCase();
-    const status = ((msg.error.status) ?? '').toLowerCase();
-
-    // Transient: hold history_id so Pub/Sub retries and recovers the missed messages.
-    // 401 is NOT blanket-transient — only the specific UNAUTHENTICATED status (token-expiry)
-    // qualifies. Blanket 401 classification causes persistent retry loops for account-level
-    // auth failures where the token stays valid but the API keeps rejecting the request.
-    const isTransient =
-      msg.error.code === 429 ||                        // standard rate-limit header
-      msg.error.code >= 500 ||                         // server errors
-      reason === 'ratelimitexceeded' ||
-      reason === 'userratelimitexceeded' ||
-      reason === 'quotaexceeded' ||
-      status === 'unauthenticated' ||                  // token expired — specific renewable failure
-      status === 'resource_exhausted';
-
-    if (isTransient) {
-      throw new Error(`Gmail API transient error for message ${messageId}: ${msg.error.code} ${reason || (msg.error.message ?? '')}`);
-    }
-
-    // Non-retryable (e.g. insufficientPermissions, badRequest): skip as a poison pill so the
-    // account is not permanently stalled by a single bad message.
-    throw new NonRetryableMessageError(`Gmail API non-retryable error for message ${messageId}: ${msg.error.code} ${reason || (msg.error.message ?? '')}`);
-  }
+  if (msg.error) return;
 
   const headers: Record<string, string> = {};
   for (const h of msg.payload?.headers ?? []) {
@@ -347,32 +230,16 @@ async function fetchAndPersistMessage(
   const isSent       = labelIds.includes('SENT');
   const hasAttach    = !!(msg.payload?.parts ?? []).some((p: Record<string, unknown>) => p.filename);
 
-  // Step 1: insert the thread row if it doesn't exist yet (no-op on conflict).
-  await supabase.from('gmail_threads').upsert({
-    account_id:      accountId,
-    thread_id:       threadId,
+  // Upsert gmail_threads
+  const { data: thread } = await supabase.from('gmail_threads').upsert({
+    account_id:       accountId,
+    thread_id:        threadId,
     subject,
     snippet,
-    label_ids:       labelIds,
-    last_message_at: date,
-  }, { onConflict: 'account_id,thread_id', ignoreDuplicates: true });
-
-  // Step 2: update metadata only when this message is strictly more recent.
-  // PostgreSQL row-level locking serialises concurrent writers; the WHERE
-  // predicate guarantees the newest timestamp always wins, preventing an older
-  // parallel message from clobbering subject / snippet / last_message_at.
-  await supabase.from('gmail_threads')
-    .update({ subject, snippet, label_ids: labelIds, last_message_at: date })
-    .eq('account_id', accountId)
-    .eq('thread_id', threadId)
-    .lt('last_message_at', date);
-
-  // Step 3: fetch the row id needed for the message upsert below.
-  const { data: thread } = await supabase.from('gmail_threads')
-    .select('id')
-    .eq('account_id', accountId)
-    .eq('thread_id', threadId)
-    .single();
+    label_ids:        labelIds,
+    last_message_at:  date,
+    unread_count:     isRead ? 0 : 1,
+  }, { onConflict: 'account_id,thread_id' }).select('id').single();
 
   if (!thread) return;
 
@@ -396,18 +263,4 @@ async function fetchAndPersistMessage(
     has_attachments: hasAttach,
     internal_date:  date,
   }, { onConflict: 'account_id,message_id' });
-
-  // Recompute unread_count from actual message records — avoids the literal
-  // 0/1 last-write-wins race when concurrent messages share the same thread.
-  const { count: unreadCount } = await supabase
-    .from('gmail_messages')
-    .select('id', { count: 'exact', head: true })
-    .eq('thread_id_ref', thread.id)
-    .eq('is_read', false);
-
-  if (unreadCount !== null) {
-    await supabase.from('gmail_threads')
-      .update({ unread_count: unreadCount })
-      .eq('id', thread.id);
-  }
 }

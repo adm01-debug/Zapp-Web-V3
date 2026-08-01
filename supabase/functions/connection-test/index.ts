@@ -3,8 +3,8 @@
 //  - credenciais do provedor (Evolution ou Meta Cloud)
 //  - permissões/escopos (instância autenticada / phone number alcançável)
 //  - entrega de webhook (POST sintético assinado contra a URL pública correta)
-import { getCorsHeaders } from "../_shared/validation.ts";
-import { requireAdminOrSupervisor } from "../_shared/auth.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/validation.ts";
 
 type Mode = "official" | "unofficial";
 type Status = "pass" | "warn" | "fail" | "skip";
@@ -16,11 +16,11 @@ interface Check {
   durationMs?: number;
 }
 
-const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? '';
-const SUPABASE_SERVICE_ROLE_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? '';;
-const PROJECT_FUNCTIONS_BASE = `${SUPABASE_URL}/functions/v1`;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const PROJECT_FUNCTIONS_BASE = SUPABASE_URL.replace(".supabase.co", ".functions.supabase.co");
 
-const ANON_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY')) ?? "";
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
 async function timed<T>(fn: () => Promise<T>): Promise<{ value?: T; error?: string; ms: number }> {
   const t0 = Date.now();
@@ -67,7 +67,7 @@ async function runEvolutionChecks(): Promise<Check[]> {
 
   // 2. Provider alcançável
   const reach = await timed(async () => {
-    const r = await fetch(`${url}/`, { headers: { apikey: key }, signal: AbortSignal.timeout(10_000) });
+    const r = await fetch(`${url}/`, { headers: { apikey: key } });
     return { status: r.status, body: (await r.text()).slice(0, 120) };
   });
   checks.push({
@@ -82,11 +82,10 @@ async function runEvolutionChecks(): Promise<Check[]> {
   const conn = await timed(async () => {
     const r = await fetch(`${url}/instance/connectionState/${encodeURIComponent(instance)}`, {
       headers: { apikey: key },
-      signal: AbortSignal.timeout(10_000),
     });
     const txt = await r.text();
-    let parsed: Record<string, unknown> | null = null;
-    try { parsed = JSON.parse(txt) as Record<string, unknown>; } catch { /* keep raw */ }
+    let parsed: any = null;
+    try { parsed = JSON.parse(txt); } catch { /* keep raw */ }
     return { status: r.status, parsed, raw: txt.slice(0, 200) };
   });
   const state =
@@ -106,11 +105,10 @@ async function runEvolutionChecks(): Promise<Check[]> {
   const wh = await timed(async () => {
     const r = await fetch(`${url}/webhook/find/${encodeURIComponent(instance)}`, {
       headers: { apikey: key },
-      signal: AbortSignal.timeout(10_000),
     });
     const txt = await r.text();
-    let parsed: Record<string, unknown> | null = null;
-    try { parsed = JSON.parse(txt) as Record<string, unknown>; } catch { /* keep raw */ }
+    let parsed: any = null;
+    try { parsed = JSON.parse(txt); } catch { /* keep raw */ }
     return { status: r.status, parsed };
   });
   const expectedWebhook = `${PROJECT_FUNCTIONS_BASE}/evolution-webhook`;
@@ -161,11 +159,11 @@ async function runCloudChecks(): Promise<Check[]> {
   const meta = await timed(async () => {
     const r = await fetch(
       `https://graph.facebook.com/${graphVersion}/${phoneId}?fields=display_phone_number,verified_name,quality_rating,code_verification_status`,
-      { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000) },
+      { headers: { Authorization: `Bearer ${token}` } },
     );
     const txt = await r.text();
-    let parsed: Record<string, unknown> | null = null;
-    try { parsed = JSON.parse(txt) as Record<string, unknown>; } catch { /* keep raw */ }
+    let parsed: any = null;
+    try { parsed = JSON.parse(txt); } catch { /* keep raw */ }
     return { status: r.status, parsed, raw: txt.slice(0, 250) };
   });
   if (meta.error || !meta.value) {
@@ -230,7 +228,7 @@ function appendCloudWebhookChecks(checks: Check[], verifyToken: string, appSecre
     u.searchParams.set("hub.verify_token", verifyToken);
     u.searchParams.set("hub.challenge", challenge);
     const t0 = Date.now();
-    const r = await fetch(u.toString(), { signal: AbortSignal.timeout(10_000) });
+    const r = await fetch(u.toString());
     const body = await r.text();
     return {
       id: "cloud.webhook.handshake",
@@ -257,7 +255,7 @@ function appendCloudWebhookChecks(checks: Check[], verifyToken: string, appSecre
     if (ANON_KEY) headers["Authorization"] = `Bearer ${ANON_KEY}`;
     const t0 = Date.now();
     const r = await fetch(`${PROJECT_FUNCTIONS_BASE}/whatsapp-cloud-webhook`, {
-      method: "POST", headers, body: payload, signal: AbortSignal.timeout(10_000),
+      method: "POST", headers, body: payload,
     });
     const body = await r.text();
     return {
@@ -302,7 +300,7 @@ async function appendWebhookCheck(checks: Check[], _mode: Mode, secret: string):
   let body = "";
   try {
     res = await fetch(`${PROJECT_FUNCTIONS_BASE}/evolution-webhook`, {
-      method: "POST", headers, body: payload, signal: AbortSignal.timeout(10_000),
+      method: "POST", headers, body: payload,
     });
     body = (await res.text()).slice(0, 200);
   } catch (e) {
@@ -329,16 +327,28 @@ async function appendWebhookCheck(checks: Check[], _mode: Mode, secret: string):
 // ==================== HTTP entry ====================
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: getCorsHeaders(req) });
+    return new Response(null, { headers: corsHeaders });
   }
   if (req.method !== "POST") {
-    return new Response("method not allowed", { status: 405, headers: getCorsHeaders(req) });
+    return new Response("method not allowed", { status: 405, headers: corsHeaders });
   }
 
-  // Restrict to admin/supervisor — any authenticated user could otherwise
-  // probe Evolution/Meta credentials and internal webhook configurations.
-  const authed = await requireAdminOrSupervisor(req);
-  if (authed instanceof Response) return authed;
+  // Auth: precisa de usuário logado (admin idealmente). Validamos JWT.
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (!authHeader.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  if (userErr || !userData?.user) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   let mode: Mode = "unofficial";
   try {
@@ -367,6 +377,6 @@ Deno.serve(async (req) => {
         ? `${PROJECT_FUNCTIONS_BASE}/whatsapp-cloud-webhook`
         : `${PROJECT_FUNCTIONS_BASE}/evolution-webhook`,
     }),
-    { status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
+    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
 });

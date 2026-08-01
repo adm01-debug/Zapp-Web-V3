@@ -2,11 +2,14 @@
 // Pinga todos os provedores ativos. Atualiza provider_configs.status, registra log
 // e dispara switchover automático em rotas cujo current_provider_id ficou offline.
 
-import { createZappAdminClient } from '../_shared/db-client.ts';
-import { requireServiceRoleOrCron, requireUser } from "../_shared/auth.ts";
-import { checkRateLimit } from "../_shared/validation.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 async function ping(baseUrl: string, authToken: string | null, providerType: string) {
   const url = baseUrl.replace(/\/$/, "") + (
     providerType === "evolution" ? "/" :
@@ -32,21 +35,17 @@ async function ping(baseUrl: string, authToken: string | null, providerType: str
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return handleCorsPreflight(req);
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Accept service-role/cron (automated) OR user JWT (admin UI-triggered)
-  if (requireServiceRoleOrCron(req)) {
-    const authed = await requireUser(req);
-    if (authed instanceof Response) return authed;
-    const rl = checkRateLimit(`provider-healthcheck:${authed.user.id}`, 10, 60_000);
-    if (!rl.allowed) {
-      return new Response(JSON.stringify({ error: "rate_limit_exceeded" }), {
-        status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
-      });
-    }
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceKey) {
+    return new Response(JSON.stringify({ error: "missing_env" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
-  const admin = createZappAdminClient();
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 
   const { data: providers } = await admin
     .from("provider_configs")
@@ -55,72 +54,54 @@ Deno.serve(async (req) => {
 
   if (!providers || providers.length === 0) {
     return new Response(JSON.stringify({ checked: 0, message: "no active providers" }), {
-      status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  type ProviderResult = { provider: string; ok: boolean; latency_ms: number; status: string };
+  const results: any[] = [];
+  for (const p of providers) {
+    const r = await ping(p.base_url, p.auth_token, p.provider_type);
+    const newStatus = r.ok ? "online" : "offline";
 
-  const settled = await Promise.allSettled(
-    providers.map(async (p): Promise<ProviderResult> => {
-      const r = await ping(p.base_url, p.auth_token, p.provider_type);
-      const newStatus = r.ok ? "online" : "offline";
+    await admin.from("provider_configs").update({
+      status: newStatus,
+      last_ping_at: new Date().toISOString(),
+      last_ping_latency_ms: r.latencyMs,
+      last_error: r.error,
+    }).eq("id", p.id);
 
-      await admin.from("provider_configs").update({
-        status: newStatus,
-        last_ping_at: new Date().toISOString(),
-        last_ping_latency_ms: r.latencyMs,
-        last_error: r.error,
-      }).eq("id", p.id);
+    await admin.from("provider_session_logs").insert({
+      provider_id: p.id,
+      level: r.ok ? "info" : "warn",
+      event: "healthcheck",
+      message: r.error ?? "ok",
+      latency_ms: r.latencyMs,
+    });
 
-      await admin.from("provider_session_logs").insert({
-        provider_id: p.id,
-        level: r.ok ? "info" : "warn",
-        event: "healthcheck",
-        message: r.error ?? "ok",
-        latency_ms: r.latencyMs,
-      });
+    // Se provedor caiu E é o atual de alguma rota, tenta switchover para fallback
+    if (!r.ok) {
+      const { data: affectedRoutes } = await admin
+        .from("channel_provider_routes")
+        .select("id, fallback_provider_id, primary_provider_id")
+        .eq("current_provider_id", p.id);
 
-      // Se provedor caiu E é o atual de alguma rota, tenta switchover para fallback
-      if (!r.ok) {
-        const { data: affectedRoutes } = await admin
-          .from("channel_provider_routes")
-          .select("id, fallback_provider_id, primary_provider_id")
-          .eq("current_provider_id", p.id);
-
-        await Promise.allSettled(
-          (affectedRoutes ?? []).map(async (route) => {
-            const target = route.fallback_provider_id && route.fallback_provider_id !== p.id
-              ? route.fallback_provider_id
-              : route.primary_provider_id !== p.id ? route.primary_provider_id : null;
-            if (target) {
-              await admin.from("channel_provider_routes").update({
-                current_provider_id: target,
-                switched_reason: `healthcheck_failover: ${p.name} offline`,
-              }).eq("id", route.id);
-            }
-          })
-        );
+      for (const route of affectedRoutes ?? []) {
+        const target = route.fallback_provider_id && route.fallback_provider_id !== p.id
+          ? route.fallback_provider_id
+          : route.primary_provider_id !== p.id ? route.primary_provider_id : null;
+        if (target) {
+          await admin.from("channel_provider_routes").update({
+            current_provider_id: target,
+            switched_reason: `healthcheck_failover: ${p.name} offline`,
+          }).eq("id", route.id);
+        }
       }
+    }
 
-      return { provider: p.name, ok: r.ok, latency_ms: r.latencyMs, status: newStatus };
-    })
-  );
+    results.push({ provider: p.name, ok: r.ok, latency_ms: r.latencyMs, status: newStatus });
+  }
 
-  const results: ProviderResult[] = settled
-    .map(r => (r.status === "fulfilled" ? r.value : null))
-    .filter((v): v is ProviderResult => v !== null);
-  const errors = settled
-    .filter((r): r is PromiseRejectedResult => r.status === "rejected")
-    .map(r => r.reason instanceof Error ? r.reason.message : String(r.reason));
-  if (errors.length > 0) console.error('[provider-healthcheck] rejected tasks:', errors);
-
-  return new Response(JSON.stringify({
-    checked: results.length,
-    results,
-    errors: errors.length > 0 ? errors : undefined,
-    finished_at: new Date().toISOString(),
-  }), {
-    status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+  return new Response(JSON.stringify({ checked: results.length, results, finished_at: new Date().toISOString() }), {
+    status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });

@@ -1,6 +1,5 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, securityErrorResponse, checkRateLimit } from "../_shared/validation.ts";
-import { requireUser } from "../_shared/auth.ts";
-import { createZappAdminClient } from "../_shared/db-client.ts";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, securityErrorResponse } from "../_shared/validation.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 /**
  * File Security Scanner Edge Function
@@ -26,16 +25,11 @@ Deno.serve(async (req) => {
   const log = new Logger("file-security-scanner", req);
 
   try {
-    const authed = await requireUser(req);
-    if (authed instanceof Response) return authed;
-
-    const rl = checkRateLimit(`file-security-scanner:${authed.user.id}`, 5, 60_000);
-    if (!rl.allowed) {
-      return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
-    }
-
     const VIRUSTOTAL_API_KEY = requireEnv("VIRUSTOTAL_API_KEY");
-    const supabase = createZappAdminClient();
+    const supabaseUrl = requireEnv("SUPABASE_URL");
+    const supabaseServiceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     if (req.method !== "POST") {
       return securityErrorResponse(
@@ -47,18 +41,7 @@ Deno.serve(async (req) => {
 
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    const rawBucket = (formData.get("bucket") as string) || "uploads";
-
-    // Restrict to an explicit allowlist — prevents writing to arbitrary/privileged buckets.
-    const ALLOWED_UPLOAD_BUCKETS = new Set(['uploads', 'chat-attachments', 'attachments', 'documents']);
-    if (!ALLOWED_UPLOAD_BUCKETS.has(rawBucket)) {
-      return securityErrorResponse(
-        { code: "INVALID_INPUT", message: "Bucket de destino não permitido.", details: { field: "bucket" } },
-        400,
-        req,
-      );
-    }
-    const bucketId = rawBucket;
+    const bucketId = (formData.get("bucket") as string) || "uploads";
 
     if (!file) {
       return securityErrorResponse(
@@ -78,7 +61,6 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { "x-apikey": VIRUSTOTAL_API_KEY },
       body: vtFormData,
-      signal: AbortSignal.timeout(30_000),
     });
 
     if (!vtResponse.ok) {
@@ -96,15 +78,7 @@ Deno.serve(async (req) => {
     }
 
     const vtData = await vtResponse.json();
-    const analysisId: string | undefined = vtData?.data?.id;
-    if (!analysisId) {
-      log.error("VirusTotal response missing data.id", { vtData: JSON.stringify(vtData).substring(0, 200) });
-      return securityErrorResponse(
-        { code: "SCAN_UNAVAILABLE", message: "Serviço de varredura retornou resposta inválida.", verdict: "unknown" },
-        502,
-        req,
-      );
-    }
+    const analysisId: string = vtData.data.id;
 
     log.info("Analysis submitted", { analysisId });
 
@@ -114,31 +88,15 @@ Deno.serve(async (req) => {
     const maxAttempts = 10;
 
     while (attempts < maxAttempts) {
-      try {
-        const pollResponse = await fetch(
-          `https://www.virustotal.com/api/v3/analyses/${analysisId}`,
-          { headers: { "x-apikey": VIRUSTOTAL_API_KEY }, signal: AbortSignal.timeout(10_000) },
-        );
+      const pollResponse = await fetch(
+        `https://www.virustotal.com/api/v3/analyses/${analysisId}`,
+        { headers: { "x-apikey": VIRUSTOTAL_API_KEY } },
+      );
 
-        if (!pollResponse.ok) {
-          log.warn("Poll returned non-2xx", { attempt: attempts + 1, status: pollResponse.status });
-          attempts++;
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-          continue;
-        }
-        analysisResult = await pollResponse.json();
-        if (!analysisResult?.data?.attributes?.status) {
-          log.warn("Poll response missing expected shape", { attempt: attempts + 1 });
-          attempts++;
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-          continue;
-        }
-        const status = analysisResult.data.attributes.status;
+      analysisResult = await pollResponse.json();
+      const status = analysisResult.data.attributes.status;
 
-        if (status === "completed") break;
-      } catch (pollErr) {
-        log.warn("Poll attempt failed, retrying", { attempt: attempts + 1, error: pollErr instanceof Error ? pollErr.message : String(pollErr) });
-      }
+      if (status === "completed") break;
 
       log.debug("Analysis still in progress...", { attempt: attempts + 1 });
       await new Promise((resolve) => setTimeout(resolve, 2000));

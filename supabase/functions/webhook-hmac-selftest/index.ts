@@ -23,8 +23,6 @@
 // virar classe, etc.) o deploy continua compilando e o self-test cai em
 // fallbacks bem definidos em vez de quebrar.
 import * as hmacModule from '../_shared/hmac-validation.ts';
-import { requireServiceRoleOrCron } from '../_shared/auth.ts';
-import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * Adapter de validador HMAC
@@ -59,35 +57,34 @@ type ValidatorResult = {
 
 type ValidatorFn = (req: Request) => Promise<ValidatorResult>;
 
-function normalizeResult(raw: unknown): ValidatorResult {
+// deno-lint-ignore no-explicit-any
+function normalizeResult(raw: any): ValidatorResult {
   if (raw == null || typeof raw !== 'object') {
     return { valid: false, signatureFound: false, error: 'validator returned non-object' };
   }
-  const r = raw as Record<string, unknown>;
   // Aceita aliases: valid|ok|isValid e signatureFound|hasSignature|signature_present
-  const valid = Boolean(r.valid ?? r.ok ?? r.isValid ?? false);
+  const valid = Boolean(raw.valid ?? raw.ok ?? raw.isValid ?? false);
   const signatureFound = Boolean(
-    r.signatureFound ?? r.hasSignature ?? r.signature_present ?? false,
+    raw.signatureFound ?? raw.hasSignature ?? raw.signature_present ?? false,
   );
-  const error = typeof r.error === 'string'
-    ? r.error
-    : (typeof r.reason === 'string' ? r.reason : undefined);
-  const payload = typeof r.payload === 'string' ? r.payload : null;
+  const error = typeof raw.error === 'string'
+    ? raw.error
+    : (typeof raw.reason === 'string' ? raw.reason : undefined);
+  const payload = typeof raw.payload === 'string' ? raw.payload : null;
   return { valid, signatureFound, error, payload };
 }
 
 function resolveValidator(secret: string, strict = false): ValidatorFn {
-  const mod = hmacModule as unknown as Record<string, unknown>;
+  // deno-lint-ignore no-explicit-any
+  const mod = hmacModule as any;
 
   // 1 + 2) createWebhookValidator(secret, strict?) → (req) => Promise<result>
-  type AnyFactory = (...args: unknown[]) => unknown;
   if (typeof mod.createWebhookValidator === 'function') {
-    const createValidator = mod.createWebhookValidator as AnyFactory;
     let factory: (req: Request) => Promise<unknown>;
     try {
-      factory = createValidator(secret, strict) as (req: Request) => Promise<unknown>;
+      factory = mod.createWebhookValidator(secret, strict);
     } catch {
-      factory = createValidator(secret) as (req: Request) => Promise<unknown>;
+      factory = mod.createWebhookValidator(secret);
     }
     if (typeof factory === 'function') {
       return async (req) => normalizeResult(await factory(req));
@@ -96,8 +93,7 @@ function resolveValidator(secret: string, strict = false): ValidatorFn {
 
   // 3) createValidator(secret) — possível rename
   if (typeof mod.createValidator === 'function') {
-    const createValidator = mod.createValidator as AnyFactory;
-    const factory = (createValidator(secret, strict) ?? createValidator(secret)) as AnyFactory | null;
+    const factory = mod.createValidator(secret, strict) ?? mod.createValidator(secret);
     if (typeof factory === 'function') {
       return async (req) => normalizeResult(await factory(req));
     }
@@ -106,8 +102,7 @@ function resolveValidator(secret: string, strict = false): ValidatorFn {
   // 4) default export como factory
   if (typeof mod.default === 'function') {
     try {
-      const defaultFn = mod.default as AnyFactory;
-      const factory = defaultFn(secret, strict) as AnyFactory | null;
+      const factory = mod.default(secret, strict);
       if (typeof factory === 'function') {
         return async (req) => normalizeResult(await factory(req));
       }
@@ -119,10 +114,9 @@ function resolveValidator(secret: string, strict = false): ValidatorFn {
   // 5) Classe WebhookSecurityService com .validateRequest
   if (typeof mod.WebhookSecurityService === 'function') {
     try {
-      const Svc = mod.WebhookSecurityService as new (...args: unknown[]) => Record<string, unknown>;
-      const svc = new Svc(secret, strict);
+      const svc = new mod.WebhookSecurityService(secret, strict);
       if (typeof svc?.validateRequest === 'function') {
-        return async (req) => normalizeResult(await svc.validateRequest.bind(svc)(req as unknown as Parameters<typeof svc.validateRequest>[0]));
+        return async (req) => normalizeResult(await svc.validateRequest(req));
       }
     } catch {
       // segue para fallback final
@@ -136,14 +130,12 @@ function resolveValidator(secret: string, strict = false): ValidatorFn {
   ) {
     return async (req) => {
       try {
-        const extractFn = mod.extractSignatureFromHeaders as (headers: Headers) => string | null;
-        const verifyFn = mod.verifyHmacSignature as (body: string, sig: string, secret: string) => Promise<boolean>;
-        const sig: string | null = extractFn(req.headers);
+        const sig: string | null = mod.extractSignatureFromHeaders(req.headers);
         const body = await req.text();
         if (!sig) {
           return { valid: !strict, signatureFound: false, payload: body, error: strict ? 'Missing webhook signature' : undefined };
         }
-        const ok: boolean = await verifyFn(body, sig, secret);
+        const ok: boolean = await mod.verifyHmacSignature(body, sig, secret);
         return {
           valid: ok,
           signatureFound: true,
@@ -167,9 +159,29 @@ function resolveValidator(secret: string, strict = false): ValidatorFn {
 }
 
 /**
- * CORS headers — fornecidos por `_shared/cors.ts` (getCorsHeaders / handleCorsPreflight).
- * Origin-aware: retorna o header específico para origens na allowlist ou `*` como fallback.
+ * CORS headers — definidos inline (sem dependência de pacote externo) para
+ * compatibilidade com qualquer versão do runtime do Supabase Edge Functions.
+ *
+ * Inclui todos os headers que o `@supabase/supabase-js` envia por padrão
+ * (incluindo metadados de plataforma/runtime), além de Methods e Max-Age para
+ * evitar preflights repetidos.
  */
+const corsHeaders: Record<string, string> = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Allow-Headers': [
+    'authorization',
+    'x-client-info',
+    'apikey',
+    'content-type',
+    'x-supabase-client-platform',
+    'x-supabase-client-platform-version',
+    'x-supabase-client-runtime',
+    'x-supabase-client-runtime-version',
+  ].join(', '),
+  'Access-Control-Max-Age': '86400',
+  'Vary': 'Origin',
+};
 
 const DEFAULT_TOLERANCE_SECONDS = 300; // 5 minutos
 const MAX_TOLERANCE_SECONDS = 3600;    // 1 hora (cap defensivo)
@@ -280,11 +292,8 @@ function structuredLog(event: {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return handleCorsPreflight(req);
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
-
-  const authError = requireServiceRoleOrCron(req);
-  if (authError !== null) return authError;
 
   const requestId = crypto.randomUUID();
   const startedAt = Date.now();
@@ -312,7 +321,7 @@ Deno.serve(async (req) => {
         failed_phase: 'config' as Phase,
         error: 'No webhook secret configured (EVOLUTION_WEBHOOK_SECRET / WEBHOOK_SECRET).',
       }),
-      { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
   structuredLog({
@@ -645,6 +654,6 @@ Deno.serve(async (req) => {
         ? `HMAC + replay protection OK: ${scenarios.length} cenários passaram (janela ${toleranceSec}s).`
         : `Falha em ${failedScenarios.length}/${scenarios.length} cenários (1ª fase com erro: ${firstFailedPhase ?? 'desconhecida'}).`,
     }),
-    { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
+    { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   );
 });

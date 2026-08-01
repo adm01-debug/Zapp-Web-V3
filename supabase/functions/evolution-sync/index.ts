@@ -1,89 +1,52 @@
-import { getCorsHeaders, handleCors, checkRateLimit } from "../_shared/validation.ts";
-import { createZappAdminClient } from "../_shared/db-client.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { getCorsHeaders, handleCors } from "../_shared/validation.ts";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 import {
   syncContacts, syncMessages, syncAllMessages,
   setupWebhook, cleanupMock, fullSync,
 } from "../_shared/evolution-sync-actions.ts";
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 
   const corsHeaders = getCorsHeaders(req);
 
   // Admin/supervisor-only — destructive sync ops cannot be triggered anonymously.
-  let authed: Awaited<ReturnType<typeof requireAdminOrSupervisor>>;
-  try {
-    authed = await requireAdminOrSupervisor(req);
-  } catch (err: unknown) {
-    console.error('[Sync] Auth error:', err instanceof Error ? err.message : String(err));
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
+  const authed = await requireAdminOrSupervisor(req);
   if (authed instanceof Response) return authed;
-
-  const rl = checkRateLimit(`evolution-sync:${authed.user.id}`, 10, 60_000);
-  if (!rl.allowed) {
-    return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
-      status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
 
   const evolutionApiUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
   const evolutionApiKey = Deno.env.get('EVOLUTION_API_KEY');
-  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-  if (!evolutionApiUrl || !evolutionApiKey || !supabaseUrl) {
-    return new Response(JSON.stringify({ error: 'Server misconfigured' }), {
+  if (!evolutionApiUrl || !evolutionApiKey) {
+    return new Response(JSON.stringify({ error: 'Evolution API not configured' }), {
       status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
-  const supabase = createZappAdminClient();
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    let rawBody: unknown;
-    try {
-      rawBody = await req.json();
-    } catch {
-      rawBody = {};
-    }
-
-    if (typeof rawBody !== 'object' || rawBody === null || Array.isArray(rawBody)) {
-      rawBody = {};
-    }
-
-    const body = rawBody as Record<string, unknown>;
-    const action = typeof body.action === 'string' ? body.action : 'sync-contacts';
-    const rawInstanceName = typeof body.instanceName === 'string' ? body.instanceName : 'wpp2';
-    const pageNum = typeof body.page === 'number' ? body.page : 1;
-    const offsetNum = typeof body.offset === 'number' ? body.offset : 100;
-    const page = Math.min(Math.max(1, Math.floor(pageNum)), 10_000);
-    const offset = Math.min(Math.max(1, Math.floor(offsetNum)), 1_000);
-
-    // Reject instance names that could inject path segments into Evolution API URLs
-    const INSTANCE_NAME_RE = /^[a-zA-Z0-9_-]{1,64}$/;
-    if (!INSTANCE_NAME_RE.test(rawInstanceName)) {
-      return new Response(JSON.stringify({ error: 'Invalid instanceName' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    const instanceName = rawInstanceName;
+    const body = await req.json().catch(() => ({}));
+    const action = body.action || 'sync-contacts';
+    const instanceName = body.instanceName || 'wpp2';
+    const page = body.page || 1;
+    const offset = body.offset || 100;
 
     if (action === 'sync-contacts') {
       return await syncContacts(supabase, evolutionApiUrl, evolutionApiKey, instanceName, corsHeaders, page, offset);
     }
 
-    const contactPhone = typeof body.contactPhone === 'string' ? body.contactPhone : '';
     if (action === 'sync-messages') {
-      return await syncMessages(supabase, evolutionApiUrl, evolutionApiKey, instanceName, contactPhone, corsHeaders);
+      return await syncMessages(supabase, evolutionApiUrl, evolutionApiKey, instanceName, body.contactPhone, corsHeaders);
     }
 
-    const webhookUrl = typeof body.webhookUrl === 'string' ? body.webhookUrl : '';
     if (action === 'setup-webhook') {
-      return await setupWebhook(evolutionApiUrl, evolutionApiKey, instanceName, supabaseUrl, webhookUrl, corsHeaders);
+      return await setupWebhook(evolutionApiUrl, evolutionApiKey, instanceName, supabaseUrl, body.webhookUrl, corsHeaders);
     }
 
     if (action === 'cleanup-mock') {
@@ -94,10 +57,8 @@ Deno.serve(async (req) => {
       return await fullSync(supabase, evolutionApiUrl, evolutionApiKey, instanceName, supabaseUrl, corsHeaders);
     }
 
-    const messagesPerContactNum = typeof body.messagesPerContact === 'number' ? body.messagesPerContact : 200;
-    const messagesPerContact = Math.min(Math.max(1, Math.floor(messagesPerContactNum)), 1_000);
     if (action === 'sync-all-messages') {
-      return await syncAllMessages(supabase, evolutionApiUrl, evolutionApiKey, instanceName, messagesPerContact, corsHeaders);
+      return await syncAllMessages(supabase, evolutionApiUrl, evolutionApiKey, instanceName, body.messagesPerContact || 200, corsHeaders);
     }
 
     return new Response(JSON.stringify({ error: 'Unknown action', validActions: ['sync-contacts', 'sync-messages', 'sync-all-messages', 'setup-webhook', 'cleanup-mock', 'full-sync'] }), {
@@ -105,7 +66,8 @@ Deno.serve(async (req) => {
     });
   } catch (error: unknown) {
     console.error('[Sync] Error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: message }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

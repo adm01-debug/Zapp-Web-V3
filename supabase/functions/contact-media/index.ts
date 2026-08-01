@@ -10,8 +10,15 @@
 // Auth: requires a valid Supabase JWT (verified in code).
 // RLS on `messages` is enforced via the user-scoped client.
 
-import { createZappClient } from '../_shared/db-client.ts';
-import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+};
+
 interface CursorPayload {
   created_at: string;
   id: string;
@@ -37,10 +44,10 @@ function decodeCursor(raw: string): CursorPayload | null {
   }
 }
 
-function jsonResponse(req: Request, body: unknown, status = 200): Response {
+function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
 
@@ -50,7 +57,7 @@ const UUID_RE =
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return handleCorsPreflight(req);
+    return new Response("ok", { headers: corsHeaders });
   }
 
   // Accept GET with query params or POST with JSON body.
@@ -62,17 +69,16 @@ Deno.serve(async (req) => {
     try {
       params = (await req.json()) ?? {};
     } catch {
-      return jsonResponse(req, { error: "Invalid JSON body" }, 400);
+      return jsonResponse({ error: "Invalid JSON body" }, 400);
     }
   } else {
-    return jsonResponse(req, { error: "Method not allowed" }, 405);
+    return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
   // ── Validate input ──────────────────────────────────────────────────
   const contactId = String(params.contact_id ?? "").trim();
   if (!UUID_RE.test(contactId)) {
     return jsonResponse(
-      req,
       { error: "contact_id is required and must be a UUID" },
       400,
     );
@@ -87,7 +93,6 @@ Deno.serve(async (req) => {
   const mediaType = String(params.media_type ?? "all").toLowerCase();
   if (!VALID_TYPES.has(mediaType)) {
     return jsonResponse(
-      req,
       { error: `media_type must be one of: ${[...VALID_TYPES].join(", ")}` },
       400,
     );
@@ -105,28 +110,37 @@ Deno.serve(async (req) => {
 
   if (cursorRaw) {
     cursor = decodeCursor(cursorRaw);
-    if (!cursor) return jsonResponse(req, { error: "Invalid cursor" }, 400);
+    if (!cursor) return jsonResponse({ error: "Invalid cursor" }, 400);
     mode = "cursor";
   } else if (offsetRaw !== null) {
     if (!Number.isFinite(offsetRaw) || offsetRaw < 0) {
-      return jsonResponse(req, { error: "offset must be a non-negative number" }, 400);
+      return jsonResponse({ error: "offset must be a non-negative number" }, 400);
     }
-    offset = Math.min(Math.trunc(offsetRaw), 1_000_000);
+    offset = Math.trunc(offsetRaw);
     mode = "offset";
   }
 
   // ── Auth: require JWT ───────────────────────────────────────────────
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader.startsWith("Bearer ")) {
-    return jsonResponse(req, { error: "Missing Authorization header" }, 401);
+    return jsonResponse({ error: "Missing Authorization header" }, 401);
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!supabaseUrl || !anonKey) {
+    return jsonResponse({ error: "Server misconfigured" }, 500);
   }
 
   // User-scoped client → RLS applies on `messages`.
-  const supabase = createZappClient(req);
+  const supabase = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+    auth: { persistSession: false },
+  });
 
   const { data: userData, error: userErr } = await supabase.auth.getUser();
   if (userErr || !userData?.user) {
-    return jsonResponse(req, { error: "Unauthorized" }, 401);
+    return jsonResponse({ error: "Unauthorized" }, 401);
   }
 
   // ── Build query ─────────────────────────────────────────────────────
@@ -165,10 +179,8 @@ Deno.serve(async (req) => {
 
   const { data, error } = await q;
   if (error) {
-    console.error("[contact-media] query error", error.message);
     return jsonResponse(
-      req,
-      { error: "Failed to load media" },
+      { error: "Failed to load media", detail: error.message },
       500,
     );
   }
@@ -184,7 +196,7 @@ Deno.serve(async (req) => {
       : null;
   const nextOffset = hasMore && mode === "offset" ? offset + items.length : null;
 
-  return jsonResponse(req, {
+  return jsonResponse({
     items,
     page: {
       mode,

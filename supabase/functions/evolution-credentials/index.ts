@@ -7,7 +7,7 @@
  * SEGURANÇA:
  * - Requer JWT válido (authenticated)
  * - Lê api_key do Vault Supabase (NUNCA de env var ou config pública)
- * - CORS restrito a origens conhecidas via _shared/cors.ts
+ * - CORS restrito a origens conhecidas
  * - Não loga o valor da key
  *
  * v2 — CAUSA RAIZ CORRIGIDA (auditoria integração full 2026-07-06):
@@ -26,38 +26,73 @@
  * A api_key é injetada no header X-Evolution-Key (não no body)
  * para evitar log inadvertido em DevTools Network.
  */
-import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
-import { requireAdminOrSupervisor } from '../_shared/auth.ts';
-import { checkRateLimit } from '../_shared/validation.ts';
-import { createZappAdminClient } from '../_shared/db-client.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const ALLOWED_ORIGINS = [
+  'https://zapp-web-v3.vercel.app',
+  'https://zapp-web-v3-juca1.vercel.app',
+  'https://zapp-web-v3-git-main-juca1.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+];
 
 const INSTANCE = 'wpp2';
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return handleCorsPreflight(req);
+  const origin = req.headers.get('origin') || '';
+  const allowOrigin = ALLOWED_ORIGINS.includes(origin)
+    ? origin
+    : ALLOWED_ORIGINS[0];
+
+  // CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': allowOrigin,
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Authorization, Content-Type, apikey',
+        'Access-Control-Max-Age': '86400',
+      },
+    });
+  }
 
   if (req.method !== 'GET') {
     return new Response('Method Not Allowed', { status: 405 });
   }
 
-  // [C-2 2026-07-12] Least-privilege gate: a Evolution `api_key` é a chave GLOBAL de
-  // admin da instância (cria/deleta instâncias, lê todas as conversas, envia para
-  // qualquer número). Antes qualquer JWT autenticado (inclusive agente de baixo
-  // privilégio) recebia a key no header X-Evolution-Key — bastava abrir o DevTools.
-  // Agora exige role admin OU supervisor via RPC is_admin_or_supervisor; qualquer
-  // outro papel recebe 403 ANTES de tocarmos no Vault.
-  const authed = await requireAdminOrSupervisor(req);
-  if (authed instanceof Response) return authed;
+  // Verificar autenticação JWT
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized', message: 'JWT Bearer token required' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
 
-  const rl = checkRateLimit(`evolution-credentials:${authed.user.id}`, 20, 60_000);
-  if (!rl.allowed) {
-    return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
-      status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    });
+  const jwt = authHeader.replace('Bearer ', '');
+
+  // Criar cliente Supabase com JWT do usuário (valida automaticamente)
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+    { global: { headers: { Authorization: `Bearer ${jwt}` } } }
+  );
+
+  // Verificar autenticidade do JWT
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized', message: 'Invalid JWT' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 
   // service_role → RPC SECURITY DEFINER (única ponte segura até o vault)
-  const supabaseAdmin = createZappAdminClient();
+  const supabaseAdmin = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  );
 
   const { data: rpcRows, error: rpcError } = await supabaseAdmin.rpc(
     'fn_edge_get_evolution_credentials',
@@ -74,7 +109,7 @@ Deno.serve(async (req: Request) => {
     );
     return new Response(
       JSON.stringify({ error: 'Configuration Error', message: 'Evolution API not configured' }),
-      { status: 503, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+      { status: 503, headers: { 'Content-Type': 'application/json' } }
     );
   }
 
@@ -90,8 +125,8 @@ Deno.serve(async (req: Request) => {
     {
       status: 200,
       headers: {
-        ...getCorsHeaders(req),
         'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': allowOrigin,
         'Access-Control-Expose-Headers': 'X-Evolution-Key',
         // api_key no header para não aparecer no body/log de resposta
         'X-Evolution-Key': row.api_key,

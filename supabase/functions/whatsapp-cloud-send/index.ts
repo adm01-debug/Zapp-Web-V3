@@ -1,14 +1,17 @@
 // WhatsApp Cloud API sender — text, media, template, sticker, reaction, location, contacts, read
 // Auth: requires JWT (validated below). Body schema validated with Zod.
-import { createZappClient } from '../_shared/db-client.ts';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://esm.sh/zod@3.23.8";
-import { contractErrorResponse, getCorsHeaders, checkRateLimit } from "../_shared/validation.ts";
+import { contractErrorResponse, getCorsHeaders } from "../_shared/validation.ts";
 
 const corsHeaders = getCorsHeaders();
 
 const PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_CLOUD_PHONE_NUMBER_ID") ?? "";
 const ACCESS_TOKEN = Deno.env.get("WHATSAPP_CLOUD_ACCESS_TOKEN") ?? "";
 const GRAPH_VERSION = "v21.0";
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
 const SendSchema = z.object({
   to: z.string().min(5), // E.164 phone w/o '+'
@@ -66,20 +69,8 @@ async function callGraph(path: string, payload: Record<string, unknown>) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(15_000),
   });
-
-  let data: unknown;
-  try {
-    data = await r.json();
-  } catch {
-    data = {};
-  }
-
-  if (!data || typeof data !== 'object' || Array.isArray(data)) {
-    data = {};
-  }
-
+  const data = await r.json().catch(() => ({}));
   return { ok: r.ok, status: r.status, data };
 }
 
@@ -96,20 +87,17 @@ Deno.serve(async (req) => {
   if (!auth.startsWith("Bearer ")) {
     return jsonResponse({ error: "unauthorized" }, 401);
   }
-  let authedUserId = "";
   try {
-    const supa = createZappClient(req);
+    const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: auth } },
+    });
     const { data: userData, error: userErr } = await supa.auth.getUser();
-    if (userErr || !userData || typeof userData !== 'object' || !userData.user) {
+    if (userErr || !userData?.user) {
       return jsonResponse({ error: "unauthorized" }, 401);
     }
-    authedUserId = userData.user.id;
   } catch {
     return jsonResponse({ error: "unauthorized" }, 401);
   }
-
-  const rl = checkRateLimit(`whatsapp-cloud-send:${authedUserId}`, 60, 60_000);
-  if (!rl.allowed) return jsonResponse({ error: "rate_limit_exceeded", message: "Tente novamente em instantes." }, 429);
 
   if (!PHONE_NUMBER_ID || !ACCESS_TOKEN) {
     return jsonResponse(
@@ -143,28 +131,17 @@ Deno.serve(async (req) => {
   // Special case: marking messages as read uses the same /messages endpoint
   // but with a different payload shape (no `to`, requires status=read + message_id).
   if (p.type === "read") {
-    const messageIds = Array.isArray(p.messageIds) ? p.messageIds : [];
-    if (messageIds.length === 0) {
+    if (!p.messageIds?.length) {
       return jsonResponse({ error: "message_ids_required" }, 400);
     }
     const results = [];
-    for (const midRaw of messageIds) {
-      const mid = typeof midRaw === 'string' ? midRaw : '';
-      if (!mid) {
-        results.push({ id: '', ok: false, status: 0 });
-        continue;
-      }
-      try {
-        const r = await callGraph("messages", {
-          messaging_product: "whatsapp",
-          status: "read",
-          message_id: mid,
-        });
-        results.push({ id: mid, ok: r.ok, status: r.status });
-      } catch (e) {
-        console.error("[whatsapp-cloud-send] read mark failed", mid, e instanceof Error ? e.message : String(e));
-        results.push({ id: mid, ok: false, status: 0 });
-      }
+    for (const mid of p.messageIds) {
+      const r = await callGraph("messages", {
+        messaging_product: "whatsapp",
+        status: "read",
+        message_id: mid,
+      });
+      results.push({ id: mid, ok: r.ok, status: r.status });
     }
     const allOk = results.every((x) => x.ok);
     return jsonResponse({ ok: allOk, results }, allOk ? 200 : 502);
@@ -243,30 +220,21 @@ Deno.serve(async (req) => {
   try {
     const r = await callGraph("messages", payload);
     if (!r.ok) {
-      const dataStr = typeof r.data === 'object' && r.data !== null ? JSON.stringify(r.data).slice(0, 500) : '';
       console.error(
         "[whatsapp-cloud-send] graph error",
         r.status,
-        dataStr
+        JSON.stringify(r.data).slice(0, 500)
       );
-      return jsonResponse({ error: "graph_error" }, 502);
+      return jsonResponse(
+        { error: "graph_error", status: r.status, details: r.data },
+        502
+      );
     }
-
-    const data = r.data as Record<string, unknown>;
-    let waMsgId: string | null = null;
-    if (Array.isArray(data.messages)) {
-      const firstMsg = data.messages[0];
-      if (firstMsg && typeof firstMsg === 'object' && !Array.isArray(firstMsg)) {
-        const msg = firstMsg as Record<string, unknown>;
-        if (typeof msg.id === 'string') {
-          waMsgId = msg.id;
-        }
-      }
-    }
-
-    return jsonResponse({ ok: true, messageId: waMsgId });
+    // deno-lint-ignore no-explicit-any
+    const waMsgId = (r.data as any)?.messages?.[0]?.id ?? null;
+    return jsonResponse({ ok: true, messageId: waMsgId, raw: r.data });
   } catch (e) {
-    console.error("[whatsapp-cloud-send] fetch error", e instanceof Error ? e.message : String(e));
-    return jsonResponse({ error: "fetch_error" }, 502);
+    console.error("[whatsapp-cloud-send] fetch error", e);
+    return jsonResponse({ error: "fetch_error", message: String(e) }, 502);
   }
 });

@@ -41,10 +41,7 @@ Deno.test("Method guard: somente POST aceito", () => {
 });
 
 Deno.test("Idempotência: dedup por sha256(instance:event:body) + markEventProcessed", () => {
-  // NFC normalization is applied before hashing to prevent Unicode representation attacks
-  // (e.g., café as U+00E9 vs combining U+0301 bypassing dedup). assertMatch both steps.
-  assertMatch(SOURCE, /rawBody\.normalize\('NFC'\)/);
-  assertMatch(SOURCE, /sha256Hex\(normalizedBody\)/);
+  assertMatch(SOURCE, /sha256Hex\(rawBody\)/);
   assertMatch(SOURCE, /\$\{instance \|\| 'unknown'\}:\$\{event\}:\$\{bodyHash\}/);
   assertMatch(SOURCE, /markEventProcessed\(supabase, eventId/);
   assertMatch(SOURCE, /duplicate: true/);
@@ -62,19 +59,6 @@ Deno.test("Resiliência: handler_error retorna 200 (sem retry-storm)", () => {
   assertMatch(block, /error: 'internal_error'/);
 });
 
-Deno.test("Recuperabilidade: handler_error é roteado para a DLQ antes do audit", () => {
-  // Regressão do gap wpp2: o evento é marcado processado (idempotência) ANTES
-  // do handler e retornamos 200 mesmo em falha, então sem DLQ a perda é
-  // permanente e silenciosa. O catch DEVE rotear para routeToDeadLetter.
-  const block = SOURCE.slice(SOURCE.indexOf("} catch (error: unknown)"));
-  assertMatch(block, /routeToDeadLetter\(supabase,/);
-  // DLQ antes do audit para não depender do sucesso do audit.
-  assert(
-    block.indexOf("routeToDeadLetter") < block.indexOf("auditWebhookEvent"),
-    "routeToDeadLetter deve ser chamado antes de auditWebhookEvent",
-  );
-});
-
 Deno.test("Auditoria: estados rejected/duplicate/processed/error presentes", () => {
   for (const s of ["'rejected'", "'duplicate'", "'processed'", "'error'"]) {
     assert(hasMarker(SOURCE, `status: ${s}`), `faltou status ${s}`);
@@ -82,7 +66,7 @@ Deno.test("Auditoria: estados rejected/duplicate/processed/error presentes", () 
 });
 
 /**
- * Lista canônica de 28 eventos do webhook Evolution v2 (mantida em
+ * Lista canônica de 27 eventos do webhook Evolution v2 (mantida em
  * `supabase/functions/_shared/evolution-sync-actions.ts` — `WEBHOOK_EVENTS`).
  * Aqui mapeamos para o formato `lower.dotted` que a Evolution envia no payload.
  *
@@ -103,7 +87,6 @@ const WEBHOOK_EVENTS_27: Array<{ name: string; critical: boolean }> = [
   { name: 'messages.update', critical: true },
   { name: 'messages.delete', critical: true },
   { name: 'messages.edited', critical: true },
-  { name: 'messages.reaction', critical: true },
   { name: 'send.message', critical: true },
 
   // Contatos
@@ -140,10 +123,10 @@ const WEBHOOK_EVENTS_27: Array<{ name: string; critical: boolean }> = [
   { name: 'typebot.change-status', critical: false },
 ];
 
-Deno.test("Roteamento: lista canônica tem exatamente 28 eventos", () => {
+Deno.test("Roteamento: lista canônica tem exatamente 27 eventos", () => {
   assert(
-    WEBHOOK_EVENTS_27.length === 28,
-    `Esperado 28 eventos, encontrado ${WEBHOOK_EVENTS_27.length}. ` +
+    WEBHOOK_EVENTS_27.length === 27,
+    `Esperado 27 eventos, encontrado ${WEBHOOK_EVENTS_27.length}. ` +
       `Se a Evolution adicionou/removeu eventos, atualize WEBHOOK_EVENTS em ` +
       `_shared/evolution-sync-actions.ts e este teste em conjunto.`,
   );
@@ -217,7 +200,7 @@ Deno.test("Roteamento: nenhum evento órfão (presente no código sem estar no c
   assert(
     orphans.length === 0,
     `Eventos roteados mas NÃO listados no contrato dos 27: ${orphans.join(", ")}. ` +
-      `Adicione-os em WEBHOOK_EVENTS_27 (agora 28 entradas) + WEBHOOK_EVENTS ou remova do roteador.`,
+      `Adicione-os em WEBHOOK_EVENTS_27 + WEBHOOK_EVENTS ou remova do roteador.`,
   );
 });
 

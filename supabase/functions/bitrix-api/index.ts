@@ -1,7 +1,6 @@
-import { createZappAdminClient } from '../_shared/db-client.ts';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://esm.sh/zod@3.23.8";
-import { handleCors, errorResponse, jsonResponse, Logger, getCorsHeaders, validateBitrixOrigin, checkRateLimit } from "../_shared/validation.ts";
-import { requireUser } from "../_shared/auth.ts";
+import { handleCors, errorResponse, jsonResponse, Logger, getCorsHeaders, validateBitrixOrigin } from "../_shared/validation.ts";
 
 const BitrixBodySchema = z.object({
   action: z.enum([
@@ -42,13 +41,6 @@ Deno.serve(async (req) => {
     log.warn('rejected: invalid origin', { reason: originCheck.reason, origin: originCheck.origin });
     return errorResponse('invalid origin', 401, req);
   }
-
-  // Require authenticated Supabase user to prevent cross-app CRM data exfiltration
-  const authed = await requireUser(req);
-  if (authed instanceof Response) return authed;
-
-  const rl = checkRateLimit(`bitrix-api:${authed.user.id}`, 30, 60_000);
-  if (!rl.allowed) return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
 
   try {
     const BITRIX_WEBHOOK_URL = Deno.env.get('BITRIX_WEBHOOK_URL');
@@ -128,7 +120,9 @@ Deno.serve(async (req) => {
         };
         break;
       case 'sync_contacts': {
-        const supabase = createZappAdminClient();
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
         const contactsResponse = await fetch(`${BITRIX_WEBHOOK_URL}/crm.contact.list`, {
           method: 'POST',
@@ -137,12 +131,7 @@ Deno.serve(async (req) => {
             filter: filters || {},
             select: ['ID', 'NAME', 'LAST_NAME', 'EMAIL', 'PHONE', 'COMPANY_ID', 'POST'],
           }),
-          signal: AbortSignal.timeout(15_000),
         });
-        if (!contactsResponse.ok) {
-          const errText = await contactsResponse.text().catch(() => '');
-          return errorResponse(`Bitrix API error [${contactsResponse.status}]: ${errText.slice(0, 200)}`, 502, req);
-        }
         const contactsData = await contactsResponse.json();
 
         if (contactsData.result) {
@@ -181,12 +170,7 @@ Deno.serve(async (req) => {
               POST: data?.jobTitle,
             },
           }),
-          signal: AbortSignal.timeout(15_000),
         });
-        if (!pushResponse.ok) {
-          const errText = await pushResponse.text().catch(() => '');
-          return errorResponse(`Bitrix API error [${pushResponse.status}]: ${errText.slice(0, 200)}`, 502, req);
-        }
         const pushData = await pushResponse.json();
         log.done(200);
         return jsonResponse({ success: true, bitrixId: pushData.result }, 200, req);
@@ -206,12 +190,7 @@ Deno.serve(async (req) => {
               UF_CRM_WHATSAPP_CONTACT_ID: data?.contactId,
             },
           }),
-          signal: AbortSignal.timeout(15_000),
         });
-        if (!leadResponse.ok) {
-          const errText = await leadResponse.text().catch(() => '');
-          return errorResponse(`Bitrix API error [${leadResponse.status}]: ${errText.slice(0, 200)}`, 502, req);
-        }
         const leadData = await leadResponse.json();
         log.done(200);
         return jsonResponse({ success: true, leadId: leadData.result }, 200, req);
@@ -226,12 +205,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: body ? JSON.stringify(body) : undefined,
-        signal: AbortSignal.timeout(15_000),
       });
-      if (!bitrixResponse.ok) {
-        const errText = await bitrixResponse.text().catch(() => '');
-        return errorResponse(`Bitrix API error [${bitrixResponse.status}]: ${errText.slice(0, 200)}`, 502, req);
-      }
       const responseData = await bitrixResponse.json();
 
       if (responseData.error) {
@@ -245,7 +219,8 @@ Deno.serve(async (req) => {
 
     return errorResponse('Endpoint não definido', 400, req);
   } catch (error: unknown) {
-    log.error('Unhandled error', { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse('Internal server error', 500, req);
+    const msg = error instanceof Error ? error.message : 'Erro desconhecido';
+    log.error('Unhandled error', { error: msg });
+    return errorResponse(msg, 500, req);
   }
 });

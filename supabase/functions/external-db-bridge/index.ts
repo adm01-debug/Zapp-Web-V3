@@ -1,33 +1,6 @@
-import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit } from "../_shared/validation.ts";
-import { requireUser } from "../_shared/auth.ts";
-import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
 import { ExternalDbBridgeSchema, parseBody } from "../_shared/schemas.ts";
-
-// Allowlist of RPC function names callable via this bridge (user-scoped, RLS applies).
-// Never include functions that bypass RLS or expose admin-only data.
-const ALLOWED_RPC_FUNCTIONS = new Set([
-  'check_duplicate_request',
-  'record_processed_request',
-  'acquire_idempotency_lock',
-  'get_contact_summary',
-  'get_queue_stats',
-  'search_contacts_fts',
-  'get_conversation_history',
-  'mark_messages_read',
-]);
-
-// Allowlist of PostgREST filter operators — prevents operator injection attacks.
-const ALLOWED_FILTER_OPERATORS = new Set([
-  'eq', 'neq', 'lt', 'lte', 'gt', 'gte',
-  'like', 'ilike', 'is', 'in',
-  'cs', 'cd', 'sl', 'sr', 'nxr', 'nxl', 'adj', 'ov',
-]);
-
-// Allowlist for countMode PostgREST parameter.
-const ALLOWED_COUNT_MODES = new Set(['exact', 'planned', 'estimated']);
-
-// Validates plain SQL identifiers — no dots (would trigger PostgREST relationship traversal).
-const STRICT_IDENT_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 
 // ─── Telemetry helper ─────────────────────────────────────────
 interface TelemetryPayload {
@@ -47,13 +20,6 @@ interface TelemetryPayload {
 const SLOW_QUERY_THRESHOLD_MS = 3000;
 const VERY_SLOW_QUERY_THRESHOLD_MS = 8000;
 
-/**
- * Classifies query performance severity based on execution duration and error status.
- * Used for telemetry to prioritize slow/failing queries for optimization.
- * @param durationMs - Query execution time in milliseconds
- * @param hasError - Whether the query encountered an error
- * @returns Severity classification: 'error', 'very_slow' (8s+), 'slow' (3s+), or 'ok'
- */
 function classifySeverity(durationMs: number, hasError: boolean): string {
   if (hasError) return "error";
   if (durationMs >= VERY_SLOW_QUERY_THRESHOLD_MS) return "very_slow";
@@ -61,14 +27,8 @@ function classifySeverity(durationMs: number, hasError: boolean): string {
   return "ok";
 }
 
-/**
- * Asynchronously emits database query telemetry to Supabase.
- * Fire-and-forget pattern: silently swallows errors to prevent blocking operations.
- * Telemetry helps identify performance bottlenecks, slow queries, and error patterns.
- * @param supabaseAdmin - Supabase admin client (service role key)
- * @param payload - Telemetry metrics (operation, duration, severity, etc.)
- */
-async function emitTelemetry(supabaseAdmin: ReturnType<typeof createZappAdminClient>, payload: TelemetryPayload): Promise<void> {
+// deno-lint-ignore no-explicit-any
+async function emitTelemetry(supabaseAdmin: any, payload: TelemetryPayload): Promise<void> {
   try {
     await supabaseAdmin.from("query_telemetry").insert({
       operation: payload.operation,
@@ -88,25 +48,6 @@ async function emitTelemetry(supabaseAdmin: ReturnType<typeof createZappAdminCli
   }
 }
 
-/**
- * Edge Function: External Database Bridge
- *
- * Proxies SELECT, INSERT, UPDATE, DELETE, and RPC operations to Supabase database
- * with comprehensive validation, RLS enforcement, and telemetry.
- * Implements table whitelist for write operations to prevent unauthorized modifications.
- * Uses user-scoped client (RLS) for security and service-role admin for admin-only RPCs.
- *
- * Security:
- * - Bearer token required for all requests
- * - User authentication via Supabase.auth.getUser()
- * - Write operations whitelisted to safe tables only
- * - RLS policies enforced via user-scoped client
- *
- * Features:
- * - Query timing & severity classification for performance monitoring
- * - Fire-and-forget telemetry to prevent request blocking
- * - Graceful error handling with structured responses
- */
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
@@ -114,85 +55,52 @@ Deno.serve(async (req) => {
   const log = new Logger("external-db-bridge");
 
   try {
-    const supabaseAdmin = createZappAdminClient();
+    const supabaseUrl = requireEnv("SUPABASE_URL");
+    const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-    // Auth — server-side JWT verification (getClaims is client-side only, unsafe)
-    const authed = await requireUser(req);
-    if (authed instanceof Response) return authed;
-    const userId = authed.user.id;
+    // Auth check
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return errorResponse("Unauthorized", 401, req);
+    }
 
-    const rl = checkRateLimit(`external-db-bridge:${userId}`, 60, 60_000);
-    if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
-
-    const supabaseUser = createZappClient(req);
+    const anonKey = requireEnv("SUPABASE_ANON_KEY");
+    const supabaseUser = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userError } = await supabaseUser.auth.getUser();
+    if (userError || !userData?.user) {
+      return errorResponse("Unauthorized", 401, req);
+    }
+    const userId = userData.user.id;
 
     // Parse & validate body
     const parsed = parseBody(ExternalDbBridgeSchema, await req.json());
     if (!parsed.success) return errorResponse(parsed.error, 400, req);
 
-    if (!parsed.data || typeof parsed.data !== 'object' || Array.isArray(parsed.data)) {
-      return errorResponse("Invalid request data", 400, req);
-    }
-    const parsedData = parsed.data as Record<string, unknown>;
-    const action = typeof parsedData.action === 'string' ? parsedData.action : '';
-    const table = typeof parsedData.table === 'string' ? parsedData.table : '';
-    const rpc = typeof parsedData.rpc === 'string' ? parsedData.rpc : '';
-    const params = (parsedData.params && typeof parsedData.params === 'object' && !Array.isArray(parsedData.params))
-      ? (parsedData.params as Record<string, unknown>)
-      : null;
-    const limit = typeof parsedData.limit === 'number' ? Math.max(1, parsedData.limit) : null;
-    const offset = typeof parsedData.offset === 'number' ? Math.min(Math.max(0, parsedData.offset), 1_000_000) : null;
-    const rawCountMode = typeof parsedData.countMode === 'string' ? parsedData.countMode : '';
-    const countMode = ALLOWED_COUNT_MODES.has(rawCountMode) ? rawCountMode : '';
+    const { action, table, rpc, params, limit, offset, countMode } = parsed.data;
 
     const startTime = performance.now();
     let result: unknown = null;
     let queryError: string | null = null;
     let recordCount: number | null = null;
 
-    const allowedTablesForWrite = new Set([
-      'contacts', 'messages', 'conversation_templates', 'conversation_logs',
-      'talkx_campaigns', 'talkx_recipients', 'talkx_blacklist',
-      'gmail_accounts', 'gmail_labels', 'gmail_threads', 'gmail_messages',
-      'orders', 'order_items', 'invoices', 'profiles',
-      'organization_settings', 'user_settings', 'audit_logs'
-    ]);
-
     try {
       if (action === "select" && table) {
-        // Validate table identifier — dots trigger PostgREST relationship traversal.
-        if (!STRICT_IDENT_RE.test(table)) {
-          return errorResponse("Invalid table name", 400, req);
-        }
-        const selectStr = (params && typeof params.select === 'string') ? params.select : "*";
-        let query = supabaseUser.from(table).select(selectStr, {
+        // deno-lint-ignore no-explicit-any
+        let query: any = supabaseAdmin.from(table).select(params?.select as string || "*", {
           count: (countMode as "exact" | "planned" | "estimated") || undefined,
         });
-
-        if (params && typeof params === 'object' && Array.isArray(params.filters)) {
-          for (const f of params.filters) {
-            if (f && typeof f === 'object' && !Array.isArray(f)) {
-              const fObj = f as Record<string, unknown>;
-              const fColumn = typeof fObj.column === 'string' ? fObj.column : '';
-              const fOperator = typeof fObj.operator === 'string' ? fObj.operator : '';
-              // Validate column (no dots — would trigger PostgREST relationship traversal).
-              // Allowlist operator to prevent PostgREST operator injection.
-              if (fColumn && STRICT_IDENT_RE.test(fColumn) && fOperator && ALLOWED_FILTER_OPERATORS.has(fOperator)) {
-                query = query.filter(fColumn, fOperator, fObj.value);
-              }
-            }
+        if (params?.filters) {
+          for (const f of params.filters as Array<{ column: string; operator: string; value: unknown }>) {
+            query = query.filter(f.column, f.operator, f.value);
           }
         }
-
-        if (params && typeof params === 'object' && params.order && typeof params.order === 'object' && !Array.isArray(params.order)) {
-          const ordObj = params.order as Record<string, unknown>;
-          const ordColumn = typeof ordObj.column === 'string' ? ordObj.column : '';
-          // Validate column name — no dots (PostgREST relationship traversal risk).
-          if (ordColumn && STRICT_IDENT_RE.test(ordColumn)) {
-            query = query.order(ordColumn, { ascending: typeof ordObj.ascending === 'boolean' ? ordObj.ascending : true });
-          }
+        if (params?.order) {
+          const ord = params.order as { column: string; ascending?: boolean };
+          query = query.order(ord.column, { ascending: ord.ascending ?? true });
         }
-
         if (limit) query = query.limit(limit);
         if (offset) query = query.range(offset, offset + (limit || 50) - 1);
 
@@ -201,73 +109,35 @@ Deno.serve(async (req) => {
         result = data;
         recordCount = count ?? (Array.isArray(data) ? data.length : null);
       } else if (action === "rpc" && rpc) {
-        // Strict whitelist — prevents calling arbitrary DB functions with service-role access.
-        if (!ALLOWED_RPC_FUNCTIONS.has(rpc)) {
-          return errorResponse(`RPC function not permitted: ${rpc}`, 403, req);
-        }
-        // Use user-scoped client so RLS applies (not service-role which bypasses all policies).
-        const { data, error } = await supabaseUser.rpc(rpc, params || {});
+        const { data, error } = await supabaseAdmin.rpc(rpc, params || {});
         if (error) throw error;
         result = data;
         recordCount = Array.isArray(data) ? data.length : 1;
       } else if (action === "insert" && table) {
-        if (!allowedTablesForWrite.has(table)) {
-          return errorResponse(`Insert not allowed for table: ${table}`, 403, req);
-        }
-        const rowsVal = (params && typeof params === 'object' && params.rows) ? params.rows : params;
-        const { data, error } = await supabaseUser.from(table).insert(rowsVal).select();
+        const { data, error } = await supabaseAdmin.from(table).insert(params?.rows || params).select();
         if (error) throw error;
         result = data;
         recordCount = Array.isArray(data) ? data.length : 1;
       } else if (action === "update" && table) {
-        if (!allowedTablesForWrite.has(table)) {
-          return errorResponse(`Update not allowed for table: ${table}`, 403, req);
-        }
-        if (!params || typeof params !== 'object' || !params.match || typeof params.match !== 'object' || Array.isArray(params.match)) {
-          return errorResponse("Update requires params.match object with filter criteria", 400, req);
-        }
-        const matchObj = params.match as Record<string, unknown>;
-        if (Object.keys(matchObj).length === 0) {
-          return errorResponse("Update requires at least one filter criterion in params.match", 400, req);
-        }
-
-        const updateValues = (params.values && typeof params.values === 'object' && !Array.isArray(params.values))
-          ? (params.values as Record<string, unknown>)
-          : {};
-        let query = supabaseUser.from(table).update(updateValues);
-
-        for (const [k, v] of Object.entries(matchObj)) {
-          const kStr = typeof k === 'string' ? k : '';
-          if (kStr) {
-            query = query.eq(kStr, v as string);
+        // deno-lint-ignore no-explicit-any
+        let query: any = supabaseAdmin.from(table).update(params?.values || {});
+        if (params?.match) {
+          for (const [k, v] of Object.entries(params.match)) {
+            query = query.eq(k, v as string);
           }
         }
-
         const { data, error } = await query.select();
         if (error) throw error;
         result = data;
         recordCount = Array.isArray(data) ? data.length : 0;
       } else if (action === "delete" && table) {
-        if (!allowedTablesForWrite.has(table)) {
-          return errorResponse(`Delete not allowed for table: ${table}`, 403, req);
-        }
-        if (!params || typeof params !== 'object' || !params.match || typeof params.match !== 'object' || Array.isArray(params.match)) {
-          return errorResponse("Delete requires params.match object with filter criteria", 400, req);
-        }
-        const matchObj = params.match as Record<string, unknown>;
-        if (Object.keys(matchObj).length === 0) {
-          return errorResponse("Delete requires at least one filter criterion in params.match", 400, req);
-        }
-
-        let query = supabaseUser.from(table).delete();
-
-        for (const [k, v] of Object.entries(matchObj)) {
-          const kStr = typeof k === 'string' ? k : '';
-          if (kStr) {
-            query = query.eq(kStr, v as string);
+        // deno-lint-ignore no-explicit-any
+        let query: any = supabaseAdmin.from(table).delete();
+        if (params?.match) {
+          for (const [k, v] of Object.entries(params.match)) {
+            query = query.eq(k, v as string);
           }
         }
-
         const { data, error } = await query.select();
         if (error) throw error;
         result = data;
@@ -276,21 +146,7 @@ Deno.serve(async (req) => {
         return errorResponse("Invalid action or missing table/rpc", 400, req);
       }
     } catch (err) {
-      // Map PG/PostgREST error codes to generic messages so raw schema metadata
-      // (column names, relation names, constraint details) never reaches the caller.
-      const pgCode = (err as { code?: string }).code ?? '';
-      const pgCodeMap: Record<string, string> = {
-        '23505': 'Duplicate key — record already exists',
-        '23503': 'Foreign key constraint violation',
-        '23502': 'Required field is missing',
-        '23514': 'Check constraint violation',
-        '42501': 'Insufficient privileges',
-        '42P01': 'Relation not found',
-        'PGRST116': 'No rows returned',
-        'PGRST301': 'Database error',
-        'PGRST205': 'Schema not available',
-      };
-      queryError = pgCodeMap[pgCode] ?? 'Database operation failed';
+      queryError = err instanceof Error ? err.message : String(err);
     }
 
     const durationMs = performance.now() - startTime;
@@ -325,6 +181,6 @@ Deno.serve(async (req) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     log.error("Fatal error", { error: msg });
-    return errorResponse("Internal server error", 500, req);
+    return errorResponse(msg, 500, req);
   }
 });
