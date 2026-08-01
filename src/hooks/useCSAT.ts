@@ -91,17 +91,17 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
   const submitSurvey = useMutation({
     mutationFn: async (data: {
       contact_id: string;
-      agent_id?: string;
+      agent_id: string;
       rating: number;
       feedback?: string;
     }) => {
       const { error } = await supabase.from('csat_surveys').insert({
         contact_id: data.contact_id,
-        agent_id: data.agent_id ?? undefined,
+        agent_id: data.agent_id,
         rating: data.rating,
-        feedback: data.feedback ?? undefined,
+        ...(data.feedback !== undefined ? { feedback: data.feedback } : {}),
         conversation_resolved_at: new Date().toISOString(),
-      } as never);
+      });
       if (error) throw error;
     },
     onSuccess: () => {

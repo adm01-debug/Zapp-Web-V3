@@ -790,7 +790,11 @@ function useRolesManagement() {
         id: string;
         user_id: string;
         role: string;
-        profiles: unknown;
+        profiles:
+          | null
+          | undefined
+          | Partial<AdminProfileRef>
+          | Array<Partial<AdminProfileRef>>;
       };
       const { data, error } = await safeClient.from<RoleRow>('user_roles', (q) =>
         q
@@ -799,7 +803,7 @@ function useRolesManagement() {
       );
       if (error || !data) return [] as UserWithRole[];
       return data.map((u) => {
-        const ref = normalizeProfileRef(u.profiles as never);
+        const ref = normalizeProfileRef(u.profiles);
         return {
           id: u.id,
           user_id: u.user_id,
