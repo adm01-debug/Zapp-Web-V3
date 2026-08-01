@@ -68,7 +68,7 @@ export function resolveContactRef(raw: string | null | undefined): ContactRef | 
   // ── Caminho JID ───────────────────────────────────────────
   const str = value as string;
   // @broadcast JIDs (status@broadcast) are not groups but have no phone either
-  const isGroup = str.endsWith('@g.us') || str.endsWith('@broadcast');
+  const isGroup = str.endsWith('@g.us');
   // @lid JIDs use a device privacy identifier — numeric portion is NOT an E.164 phone
   const isLid = str.endsWith('@lid');
   const hasSuffix = JID_SUFFIXES.some((s) => str.endsWith(s));

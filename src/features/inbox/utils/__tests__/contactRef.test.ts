@@ -111,8 +111,8 @@ describe('resolveContactRef — JID com sufixo', () => {
     assertJid(resolveContactRef('120363123456789@g.us'), '120363123456789@g.us', null, true);
   });
 
-  it('JID @lid (LinkedIn-style)', () => {
-    assertJid(resolveContactRef('5511999999999@lid'), '5511999999999@lid', '5511999999999', false);
+  it('JID @lid (device privacy ID — numeric portion is NOT an E.164 phone)', () => {
+    assertJid(resolveContactRef('5511999999999@lid'), '5511999999999@lid', null, false);
   });
 
   it('JID @broadcast', () => {
