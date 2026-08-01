@@ -263,6 +263,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
       <AnimatePresence>
         {logic.attachments.length > 0 && (
           <motion.div
+            key="attachments-preview"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -323,6 +324,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
       <AnimatePresence>
         {(isSending || getQueueLength(props.queue) > 0) && (
           <motion.div
+            key="queue-progress"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -438,7 +440,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
           enquanto envia e a fila está vazia, para não duplicar com a barra de fila acima. */}
       <AnimatePresence>
         {isSending && sendProgress > 0 && getQueueLength(props.queue) === 0 && (
-          <ChatSendProgress isSending={isSending} sendProgress={sendProgress} />
+          <ChatSendProgress key="send-progress" isSending={isSending} sendProgress={sendProgress} />
         )}
       </AnimatePresence>
       <div
@@ -453,6 +455,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
         <AnimatePresence>
           {isRecordingAudio && isV2AudioEnabled && (
             <motion.div
+              key="audio-recorder"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
@@ -556,6 +559,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
               <AnimatePresence>
                 {logic.showMarkdownPreview && logic.hasText && logic.showRichToolbar && (
                   <motion.div
+                    key="markdown-preview"
                     initial={{ opacity: 0, scale: 0.98 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.98 }}
@@ -826,26 +830,29 @@ export function ChatInputArea(props: ChatInputAreaProps) {
           </div>
         </div>
 
-        {logic.isMobile && logic.hasText && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="scrollbar-none mt-1.5 flex items-center gap-1.5 overflow-x-auto pb-0.5"
-          >
-            <AIRewriteButton
-              inputValue={inputValue}
-              contactName={contactName}
-              onRewrite={(newText) => setNativeValue(inputRef, newText)}
-            />
-            <RichTextToggle
-              active={logic.showRichToolbar}
-              onToggle={() => logic.setShowRichToolbar(!logic.showRichToolbar)}
-            />
-            <CustomEmojiPicker onSendEmoji={onSendCustomEmoji} />
-            <StickerPicker onSendSticker={onSendSticker} />
-          </motion.div>
-        )}
+        <AnimatePresence>
+          {logic.isMobile && logic.hasText && (
+            <motion.div
+              key="mobile-quick-tools"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="scrollbar-none mt-1.5 flex items-center gap-1.5 overflow-x-auto pb-0.5"
+            >
+              <AIRewriteButton
+                inputValue={inputValue}
+                contactName={contactName}
+                onRewrite={(newText) => setNativeValue(inputRef, newText)}
+              />
+              <RichTextToggle
+                active={logic.showRichToolbar}
+                onToggle={() => logic.setShowRichToolbar(!logic.showRichToolbar)}
+              />
+              <CustomEmojiPicker onSendEmoji={onSendCustomEmoji} />
+              <StickerPicker onSendSticker={onSendSticker} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </>
   );
