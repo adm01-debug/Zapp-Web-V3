@@ -29,6 +29,10 @@ DECLARE
   v_ok_count  INT := 0;
   v_skip_count INT := 0;
   v_fail_count INT := 0;
+  v_as_pos    INT;    -- posição de '\nAS $' em v_def (marca início do corpo)
+  v_body_off  INT;    -- offset até fim do delimitador de abertura dollar-quote
+  v_body_text TEXT;   -- corpo da função extraído após o delimiter dollar-quote
+  v_begin_cnt INT;    -- contagem de '\nBEGIN\n' sem indentação no corpo
 
   -- Guard a ser injetado logo após o BEGIN do bloco principal
   -- Usa qualificador completo financeiro.fn_is_admin_diretor() para evitar
@@ -103,25 +107,66 @@ BEGIN
         CONTINUE;
       END IF;
 
-      -- Localiza o primeiro \nBEGIN\n no corpo da função
-      -- pg_get_functiondef usa E'\n' como quebra de linha
-      v_begin_pos := position(E'\nBEGIN\n' IN v_def);
-
-      IF v_begin_pos = 0 THEN
-        -- Tenta variante sem DECLARE (BEGIN logo após $$)
-        v_begin_pos := position(E'\nbegin\n' IN lower(v_def));
+      -- ----------------------------------------------------------------
+      -- Extrai o corpo da função após o delimitador dollar-quote para
+      -- evitar falsos positivos com literais de string contendo
+      -- E'\nBEGIN\n' que apareçam antes do BEGIN real do bloco principal.
+      -- pg_get_functiondef() produz: header + '\nAS $tag$\n' + body + '$tag$\n'
+      -- ----------------------------------------------------------------
+      v_as_pos := position(E'\nAS $' IN v_def);
+      IF v_as_pos > 0 THEN
+        -- A partir de v_as_pos+4 (no '$' do tag de abertura), localiza
+        -- o '$\n' que fecha o tag (ex: '$function$\n' → offset 10 para 'function')
+        v_body_off := position(E'$\n' IN substring(v_def FROM v_as_pos + 4));
+        IF v_body_off > 0 THEN
+          -- Corpo começa no caractere imediatamente após o '\n' do tag de abertura
+          v_body_text := E'\n' || substring(v_def FROM v_as_pos + 4 + v_body_off);
+        ELSE
+          v_body_text := E'\n' || substring(v_def FROM v_as_pos + 4);
+        END IF;
+      ELSE
+        -- Fallback: usa v_def inteiro (sem separar header do corpo)
+        v_body_text := E'\n' || v_def;
       END IF;
 
-      IF v_begin_pos = 0 THEN
-        RAISE WARNING 'SKIP (BEGIN não encontrado): financeiro.%(%) oid=% — injeção não é possível sem localizar BEGIN',
+      -- Conta '\nBEGIN\n' SEM indentação no corpo extraído.
+      -- BEGINs aninhados ficam indentados ('\n  BEGIN\n') e NÃO são contados.
+      -- Literais de string com E'\nBEGIN\n' são contados → detecta caso ambíguo.
+      -- length('\nbegin\n') = 7 — usado como divisor para a contagem.
+      v_begin_cnt := (
+        length(lower(v_body_text)) -
+        length(replace(lower(v_body_text), E'\nbegin\n', ''))
+      ) / 7;
+
+      IF v_begin_cnt = 0 THEN
+        RAISE EXCEPTION 'BEGIN nao encontrado no corpo: financeiro.%(%) oid=% — '
+          'injecao impossivel sem localizar BEGIN no bloco principal',
           v_rec.fn_name, v_rec.fn_args, v_rec.oid;
-        v_fail_count := v_fail_count + 1;
-        CONTINUE;
+      END IF;
+
+      IF v_begin_cnt > 1 THEN
+        -- Fail-closed: múltiplos BEGIN sem indentação = ambíguo.
+        -- Pode ser literal de string ou BEGIN aninhado não-indentado.
+        -- Guard não pode ser injetado com segurança — requer revisão manual.
+        RAISE EXCEPTION 'BEGIN ambiguo: financeiro.%(%) oid=% — % ocorrencias de '
+          'newline+BEGIN+newline sem indentacao no corpo; '
+          'possivel literal de string ou BEGIN aninhado nao-indentado — '
+          'guard nao pode ser injetado com seguranca; revisar manualmente',
+          v_rec.fn_name, v_rec.fn_args, v_rec.oid, v_begin_cnt;
+      END IF;
+
+      -- Exatamente 1 BEGIN de nível superior confirmado no corpo.
+      -- Agora é seguro usar position() em v_def — a unicidade garante que
+      -- a primeira ocorrência em v_def é o BEGIN correto do bloco principal.
+      v_begin_pos := position(E'\nBEGIN\n' IN v_def);
+      IF v_begin_pos = 0 THEN
+        -- Fallback para BEGIN em minúsculas (preservado pelo pg_get_functiondef)
+        v_begin_pos := position(E'\nbegin\n' IN lower(v_def));
       END IF;
 
       -- Reconstrói definição com guard logo após \nBEGIN\n
       -- v_begin_pos aponta para o \n que precede BEGIN
-      -- length(E'\nBEGIN\n') = 7; queremos manter o \nBEGIN\n intacto
+      -- length(E'\nBEGIN\n') = 7; preserva o \nBEGIN\n intacto
       v_new_def :=
           left(v_def, v_begin_pos + 6)   -- preserva até o \n após BEGIN
         || c_guard
