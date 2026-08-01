@@ -1,6 +1,10 @@
 # BANCO CANONICO: supabase.atomicabr.com.br (self-hosted VPS)
-# O projeto Lovable Cloud allrjhkpuscmgbsnmjlv foi DESCONTINUADO em 30/06/2026.
-# Refs: docs/cutover/2026-06-30_RUNBOOK.md
+# Projeto Lovable Cloud ativo ate 2026-08-01: uqysyzndkfiwfztbqvsl
+# (ref anterior allrjhkpuscmgbsnmjlv era INCORRETO)
+# AVISO: verify_jwt abaixo NAO E HONRADO pelo edge-runtime self-hosted.
+# O runtime le a env global VERIFY_JWT + a allowlist em
+# supabase/functions/main/index.ts (PUBLIC_FNS) — FONTE DE VERDADE.
+# Mantido para compatibilidade com CLI local.
 project_id = "default"
 
 [functions.ai-conversation-summary]

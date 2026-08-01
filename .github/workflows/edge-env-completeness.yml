@@ -1,0 +1,50 @@
+name: Edge Env Completeness
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verifica variaveis de ambiente usadas vs declaradas
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ENV_REQUIRED="supabase/functions/.env.required"
+          if [ ! -f "$ENV_REQUIRED" ]; then
+            echo "::error::Arquivo $ENV_REQUIRED nao encontrado"
+            exit 1
+          fi
+
+          # Variaveis usadas via Deno.env.get(...) no codigo das edge functions
+          grep -rhoE "Deno\.env\.get\(['\"][A-Z0-9_]+['\"]\)" supabase/functions/ \
+            | grep -oE '[A-Z0-9_]{3,}' \
+            | sort -u > /tmp/used.txt || true
+
+          # Variaveis declaradas em .env.required (ignora comentarios e linhas vazias;
+          # normaliza o formato NOME=valor para comparar apenas o nome)
+          grep -vE '^\s*(#|$)' "$ENV_REQUIRED" \
+            | sed 's/=.*//' \
+            | sort -u > /tmp/declared.txt || true
+
+          echo "Variaveis usadas no codigo: $(wc -l < /tmp/used.txt)"
+          echo "Variaveis declaradas em .env.required: $(wc -l < /tmp/declared.txt)"
+
+          MISSING="$(comm -23 /tmp/used.txt /tmp/declared.txt)"
+          if [ -n "$MISSING" ]; then
+            echo "::error::Variaveis usadas mas NAO declaradas em .env.required:"
+            while IFS= read -r var; do
+              echo "::error::  - $var"
+            done <<< "$MISSING"
+            echo "::error::Adicione as variaveis acima em supabase/functions/.env.required"
+            exit 1
+          fi
+
+          echo "OK: todas as variaveis usadas via Deno.env.get estao declaradas em .env.required"

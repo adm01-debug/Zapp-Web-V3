@@ -1,0 +1,33 @@
+# ============================================================
+# BASELINE DE REFERENCIA DO SCHEMA - zapp-web-v3
+# Data de referencia: 2026-08-01
+# Fonte: auditoria do banco (contagens reais por schema)
+# Uso: comparado pelo workflow edge-schema-parity.yml
+# IMPORTANTE: atualize este arquivo MANUALMENTE sempre que o
+# schema mudar de forma intencional (DDL versionado). Ele e o
+# snapshot de referencia para deteccao de divergencias.
+# ============================================================
+#
+# TABELAS POR SCHEMA
+TABELAS_ZAPP=323
+TABELAS_EVO=189
+TABELAS_EMAIL_APP=33
+TABELAS_AI=31
+TABELAS_OPS=29
+TABELAS_BPM=41
+TABELAS_FINANCEIRO=16
+TABELAS_VENDAS=14
+TABELAS_ARCHIVE=25
+TABELAS_PUBLIC=2
+VIEWS_PUBLIC=2
+#
+# FUNCOES / POLICIES / TRIGGERS / TIPOS
+FUNCOES_ZAPP=1054
+POLICIES=705
+TRIGGERS=216
+ENUMS=17
+#
+# INDICES / CONSTRAINTS / CRON
+INDICES=840
+UNIQUE_CONSTRAINTS=45
+CRON_JOBS=148

@@ -1,0 +1,110 @@
+name: Edge Auth Smoke
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      supabase_url:
+        description: Base URL do gateway de Edge Functions
+        required: false
+        default: https://supabase.atomicabr.com.br
+        type: string
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: "${{ inputs.supabase_url || secrets.SUPABASE_URL || 'https://supabase.atomicabr.com.br' }}"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Smoke test de autenticacao das edge functions
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SUPABASE_URL="${SUPABASE_URL:-}"
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "::error::SUPABASE_URL nao definido (informe via input do workflow, secret ou default)"
+            exit 1
+          fi
+          BASE_URL="${SUPABASE_URL%/}"
+
+          INDEX="supabase/functions/main/index.ts"
+          if [ ! -f "$INDEX" ]; then
+            echo "::error::Arquivo $INDEX nao encontrado"
+            exit 1
+          fi
+
+          # 1) Extrai a allowlist PUBLIC_FNS (linhas entre 'const PUBLIC_FNS = new Set(' e ']);')
+          ALLOWLIST="$(mktemp)"
+          sed -n '/const PUBLIC_FNS = new Set/,/^\]/p' "$INDEX" \
+            | grep -vE '^\s*//' \
+            | grep -oE "['\"][A-Za-z0-9_-]+['\"]" \
+            | tr -d "'\"" \
+            | sort -u > "$ALLOWLIST" || true
+          echo "Allowlist PUBLIC_FNS extraida: $(wc -l < "$ALLOWLIST") funcao(oes)"
+          if [ ! -s "$ALLOWLIST" ]; then
+            echo "::warning::Allowlist vazia: todas as funcoes serao tratadas como privadas"
+          fi
+
+          # 2) Lista diretorios de funcoes (exclui _shared, _test, tests, main e .deployignore)
+          FAILED=0
+          CHECKED=0
+          for fn_dir in supabase/functions/*/; do
+            [ -d "$fn_dir" ] || continue
+            fn="$(basename "$fn_dir")"
+            case "$fn" in
+              _shared|_test|tests|main) continue ;;
+            esac
+
+            if [ -f "supabase/functions/.deployignore" ]; then
+              skip=""
+              while IFS= read -r pat; do
+                pat="${pat%/}"
+                pat="${pat#*/}"
+                if [ "$pat" = "$fn" ]; then
+                  skip=1
+                  break
+                fi
+              done < <(grep -vE '^\s*(#|$)' "supabase/functions/.deployignore" || true)
+              if [ -n "$skip" ]; then
+                echo "Pulando '$fn' (listada no .deployignore)"
+                continue
+              fi
+            fi
+
+            # 3) Testa a politica de auth: publica deve responder != 401; privada deve responder 401
+            CHECKED=$((CHECKED + 1))
+            code="$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE_URL/functions/v1/$fn" -d '{}' || true)"
+            code="${code:-000}"
+            if [ "$code" = "000" ]; then
+              echo "::warning::'$fn': curl falhou (gateway inacessivel?) - code=000"
+            fi
+
+            if grep -qx "$fn" "$ALLOWLIST"; then
+              if [ "$code" = "401" ]; then
+                echo "::error::FUNCAO PUBLICA '$fn' retornou 401 (esperado != 401; recebido: $code)"
+                FAILED=1
+              else
+                echo "OK: '$fn' (publica, http=$code)"
+              fi
+            else
+              if [ "$code" != "401" ]; then
+                echo "::error::FUNCAO PRIVADA '$fn' nao retornou 401 (esperado: 401; recebido: $code)"
+                FAILED=1
+              else
+                echo "OK: '$fn' (privada, http=401)"
+              fi
+            fi
+          done
+
+          echo ""
+          echo "Funcoes testadas: $CHECKED"
+          if [ "$FAILED" = "1" ]; then
+            echo "::error::Smoke test de auth FALHOU: uma ou mais edge functions violaram a politica de autenticacao (publica deve responder != 401; privada deve responder 401)"
+            exit 1
+          fi
+          echo "Smoke test de auth concluido com sucesso"
