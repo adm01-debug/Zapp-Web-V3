@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
+import { getSignedMediaUrl } from '@/lib/storageSignedUrls';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { Button } from '@/components/ui/button';
@@ -234,7 +234,7 @@ export function WhisperMode({
                     return;
                   }
                   sendWhisper.mutate({
-                    audioUrl: resolvePublicStorageUrl('audio-messages', data.path) ?? '',
+                    audioUrl: (await getSignedMediaUrl('audio-messages', data.path, 604800)) ?? '',
                   });
                 }}
               />

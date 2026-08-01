@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
-import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
+import { getSignedMediaUrl } from '@/lib/storageSignedUrls';
 import { toast } from '@/hooks/use-toast';
 import { dbFrom } from '@/integrations/datasource/db';
 
@@ -15,11 +15,12 @@ export function useAudioVoiceChange() {
         .from('audio-messages')
         .upload(filePath, newBlob);
       if (uploadError) throw uploadError;
-      // Store the Supabase Storage URL (contains /storage/v1/) so the audio player's
-      // resolveAudioUrl hook can extract bucket+path and generate a fresh signed URL
-      // at render time (7-day TTL, regenerated on each play). resolvePublicStorageUrl
-      // sanitizes the host so no kong:8000 URLs are persisted to the DB.
-      const mediaUrl = resolvePublicStorageUrl('audio-messages', filePath);
+      // Store the SIGNED URL (contains /storage/v1/object/sign/audio-messages/)
+      // so the audio player's resolveAudioUrl hook can extract bucket+path and
+      // generate a fresh signed URL at render time (7-day TTL, regenerated on
+      // each play). getSignedMediaUrl signs via the authenticated supabase
+      // client — no public URL is persisted for this PRIVATE bucket (LGPD).
+      const mediaUrl = await getSignedMediaUrl('audio-messages', filePath, 604800);
       const { error: updateError } = await dbFrom('messages')
         .update({ media_url: mediaUrl, updated_at: new Date().toISOString() })
         .eq('id', messageId);
