@@ -40,6 +40,7 @@ export function useSLADelivery({ contactId, messages }: UseSLADeliveryProps) {
             },
           })
         );
+        return;
       }
 
       const lastOutbound = [...messages]
@@ -48,7 +49,9 @@ export function useSLADelivery({ contactId, messages }: UseSLADeliveryProps) {
 
       if (!lastOutbound) return;
 
-      const deliveredAt = new Date(lastOutbound.updated_at ?? Date.now()).getTime();
+      const deliveredAt = new Date(
+        lastOutbound.updated_at ?? lastOutbound.timestamp
+      ).getTime();
       const delay = Date.now() - deliveredAt;
 
       if (delay >= BREACH_THRESHOLD) {

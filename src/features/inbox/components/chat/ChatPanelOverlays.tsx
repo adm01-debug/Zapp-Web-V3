@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { AnimatePresence } from 'framer-motion';
+import { motion } from '@/components/ui/motion';
 import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 
 const WhisperMode = lazy(() => import('../WhisperMode').then((m) => ({ default: m.WhisperMode })));
@@ -40,21 +41,39 @@ export function ChatPanelOverlays({
 
       <AnimatePresence>
         {showVisualValidation && (
-          <SectionErrorBoundary sectionName="VisualValidation">
-            <Suspense fallback={null}>
-              <VisualValidationChecklist onClose={onCloseVisualValidation} />
-            </Suspense>
-          </SectionErrorBoundary>
+          <motion.div
+            key="visual-validation"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <SectionErrorBoundary sectionName="VisualValidation">
+              <Suspense fallback={null}>
+                <VisualValidationChecklist onClose={onCloseVisualValidation} />
+              </Suspense>
+            </SectionErrorBoundary>
+          </motion.div>
         )}
       </AnimatePresence>
 
-      {showWhisper && (
-        <SectionErrorBoundary sectionName="WhisperMode">
-          <Suspense fallback={null}>
-            <WhisperMode contactId={contactId} className="mx-3 mb-2" defaultExpanded={true} />
-          </Suspense>
-        </SectionErrorBoundary>
-      )}
+      <AnimatePresence>
+        {showWhisper && (
+          <motion.div
+            key="whisper-mode"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <SectionErrorBoundary sectionName="WhisperMode">
+              <Suspense fallback={null}>
+                <WhisperMode contactId={contactId} className="mx-3 mb-2" defaultExpanded={true} />
+              </Suspense>
+            </SectionErrorBoundary>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
