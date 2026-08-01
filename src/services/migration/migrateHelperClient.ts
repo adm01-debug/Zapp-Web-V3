@@ -10,7 +10,7 @@
  */
 
 /** Ações permitidas ao acionar a migrate-helper a partir do painel. */
-export const MIGRATE_ACTIONS = ['ping', 'status', 'migrate', 'verify'] as const;
+export const MIGRATE_ACTIONS = ['ping', 'status', 'migrate', 'verify', 'logs'] as const;
 
 /** União das ações permitidas. */
 export type MigrateAction = (typeof MIGRATE_ACTIONS)[number];

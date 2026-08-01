@@ -16,7 +16,9 @@ const ACTION_LABELS: Record<MigrateAction, string> = {
   status: 'Status — estado atual da migração',
   migrate: 'Migrate — executar migração',
   verify: 'Verify — validar pós-migração',
+  logs: 'Logs — auditoria das últimas execuções',
 };
+
 
 /** Painel administrativo para acionar a edge function migrate-helper e acompanhar o status. */
 export default function MigrationStatusPanel() {
