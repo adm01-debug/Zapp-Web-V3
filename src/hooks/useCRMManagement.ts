@@ -18,10 +18,10 @@ type ContactIntelligence = Pick<
   ContactIntelligenceRow,
   'contact_id' | 'sentiment' | 'engagement_score' | 'predicted_value' | 'risk_level'
 > & {
-  sentiment: string;
-  engagement_score: number;
-  predicted_value: number;
-  risk_level: string;
+  sentiment: string | null;
+  engagement_score: number | null;
+  predicted_value: number | null;
+  risk_level: string | null;
 };
 
 interface ContactNote {
