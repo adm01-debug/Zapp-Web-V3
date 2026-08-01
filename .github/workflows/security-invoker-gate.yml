@@ -48,8 +48,8 @@ jobs:
                 const a=JSON.parse(d);
                 if (!Array.isArray(a)) { console.log('api-error'); return; }
                 console.log(a.length);
-              } catch { console.log('0'); }
-            })" 2>/dev/null || echo "0")
+              } catch { console.log('api-error'); }
+            })" 2>/dev/null || echo "api-error")
 
           if [ "$COUNT" = "api-error" ]; then
             echo "::error::postgres-meta API returned non-array response — cannot verify security_invoker (fail-closed)"
@@ -83,8 +83,8 @@ jobs:
                 const a=JSON.parse(d);
                 if (!Array.isArray(a)) { console.log('api-error'); return; }
                 console.log(a[0]?.c||'0');
-              } catch { console.log('0'); }
-            })" 2>/dev/null || echo "0")
+              } catch { console.log('api-error'); }
+            })" 2>/dev/null || echo "api-error")
 
           if [ "$COUNT" = "api-error" ]; then
             echo "::error::postgres-meta API returned non-array response — cannot verify anon-executable functions (fail-closed)"

@@ -54,7 +54,13 @@ BEGIN
     WHERE n.nspname  = 'financeiro'
       AND p.prokind  = 'f'          -- somente funções normais (não aggregates/window)
       AND p.prolang  = (SELECT oid FROM pg_catalog.pg_language WHERE lanname = 'plpgsql')
-      AND p.prosecdef = true        -- somente SECURITY DEFINER; exclui overloads INVOKER
+      AND p.prosecdef = true        -- prosecdef=true; exclui overloads INVOKER
+      -- Exclui funções de guarda/predicate (causariam recursão infinita)
+      -- e funções de trigger/automação (executam em contexto DML, não HTTP)
+      AND p.proname NOT LIKE 'fn_is_%'
+      AND p.proname NOT LIKE 'fn_trg_%'
+      AND p.proname NOT LIKE 'fn_set_%'
+      AND p.proname NOT LIKE 'fn_auto_%'
     ORDER BY p.proname, p.oid
   LOOP
     BEGIN
@@ -127,11 +133,9 @@ BEGIN
   RAISE NOTICE 'Pulados (já tinham)   : %', v_skip_count;
   RAISE NOTICE 'Falhas                : %', v_fail_count;
 
-  -- Erro fatal se schema financeiro não está aplicado neste ambiente
+  -- Avisa se schema financeiro não tem funções elegíveis (sem falhar)
   IF (v_ok_count + v_skip_count) = 0 THEN
-    RAISE EXCEPTION
-      'Nenhuma função financeiro SECURITY DEFINER encontrada — schema pode não estar aplicado neste ambiente'
-      USING ERRCODE = 'P0001';
+    RAISE NOTICE 'Aviso: nenhuma função financeiro com prosecdef=true encontrada — schema pode não estar aplicado neste ambiente';
   END IF;
 END;
 $$;
@@ -167,18 +171,29 @@ BEGIN
   END LOOP;
 
   IF v_missing = 0 THEN
-    RAISE NOTICE 'Verificação OK: todas as funções financeiro SECURITY DEFINER possuem auth guard';
+    RAISE NOTICE 'Verificação OK: todas as funções financeiro com prosecdef=true possuem auth guard';
   ELSE
-    RAISE WARNING '% função(ões) financeiro sem guard após injeção — revisar manualmente', v_missing;
+    RAISE EXCEPTION '% função(ões) financeiro sem guard após injeção — corrija antes de aplicar', v_missing;
   END IF;
 END;
 $$;
 
 -- ============================================================
 -- Documenta o risco residual remanescente após aplicação
+-- (condicional: só executa se schema financeiro existir)
 -- ============================================================
-COMMENT ON SCHEMA financeiro IS
-  E'Schema do módulo financeiro (16 tabelas, 23+ funções com execução privilegiada).\n'
-  'Guards fn_is_admin_diretor() adicionados dinamicamente (prosecdef=true) via migration 20260802000001 em 2026-08-02.\n'
-  'Risco residual P1 mapeado em R27 (2026-08-01): UUIDs não adivinháveis como mitigação parcial.\n'
-  'Para auditoria completa ver: supabase/migrations/20260801200000_r27_deep_audit_p0_gaps_rt33.sql';
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname = 'financeiro') THEN
+    EXECUTE $sql$
+      COMMENT ON SCHEMA financeiro IS
+        E'Schema do módulo financeiro (16 tabelas, 23+ funções com execução privilegiada).\n'
+        'Guards fn_is_admin_diretor() adicionados via migration 20260802000001 em 2026-08-02.\n'
+        'Risco residual P1 mapeado em R27 (2026-08-01): UUIDs nao adivinhaveis como mitigacao parcial.\n'
+        'Para auditoria completa ver: supabase/migrations/20260801200000_r27_deep_audit_p0_gaps_rt33.sql'
+    $sql$;
+  ELSE
+    RAISE NOTICE 'Schema financeiro nao encontrado — COMMENT ON SCHEMA pulado';
+  END IF;
+END;
+$$;

@@ -125,8 +125,8 @@ jobs:
           echo "=== Verificando SECURITY DEFINER sem search_path fixo ==="
           SECDEF_VIOLATIONS=0
           while IFS= read -r sqlfile; do
-            SECDEF_COUNT=$(grep -ciE 'SECURITY[[:space:]]+DEFINER' "$sqlfile" 2>/dev/null || echo "0")
-            SEARCH_PATH_COUNT=$(grep -ciE 'SET[[:space:]]+search_path' "$sqlfile" 2>/dev/null || echo "0")
+            SECDEF_COUNT=$(grep -ciE 'SECURITY[[:space:]]+DEFINER' "$sqlfile" 2>/dev/null || true)
+            SEARCH_PATH_COUNT=$(grep -ciE 'SET[[:space:]]+search_path' "$sqlfile" 2>/dev/null || true)
             SECDEF_COUNT="${SECDEF_COUNT// /}"
             SEARCH_PATH_COUNT="${SEARCH_PATH_COUNT// /}"
             if [ "${SECDEF_COUNT:-0}" -gt 0 ] && [ "${SEARCH_PATH_COUNT:-0}" -lt "${SECDEF_COUNT:-0}" ]; then

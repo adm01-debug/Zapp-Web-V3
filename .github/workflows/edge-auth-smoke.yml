@@ -60,6 +60,7 @@ jobs:
 
           # Verifica que há pelo menos uma função na allowlist
           COUNT=$(sed -n '/const PUBLIC_FNS/,/^\s*\]/p' "$INDEX" \
+            | grep -vE '^\s*//' \
             | grep -oE "['\"][A-Za-z0-9_-]+['\"]" \
             | wc -l || true)
           COUNT="${COUNT// /}"
@@ -182,28 +183,33 @@ jobs:
           done
 
           # ---- 3. Funcao protegida com JWT invalido deve retornar 401 ----
-          # Usa 'evolution-webhook' (nao esta na PUBLIC_FNS) — deve exigir JWT valido
+          # Usa 'ai-router' (fora da PUBLIC_FNS) — deve exigir JWT valido
           echo ""
           echo "=== Testando rejeicao de JWT invalido em funcao protegida ==="
           FAKE_JWT="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0Iiwicm9sZSI6ImFub24iLCJleHAiOjB9.invalidsignature"
-          fn="evolution-webhook"
-          code="$(curl -s -o /dev/null -w '%{http_code}' \
-            --max-time 10 \
-            -H "Authorization: Bearer $FAKE_JWT" \
-            "$BASE_URL/functions/v1/$fn" || true)"
-          code="${code:-000}"
-
-          if [ "$code" = "000" ]; then
-            echo "::warning::$fn sem resposta com JWT invalido — problema de rede?"
-          elif [ "$code" = "401" ] || [ "$code" = "403" ]; then
-            echo "OK: JWT invalido rejeitado com $code em '$fn'"
-          elif [ "$code" = "404" ]; then
-            echo "::warning::$fn retornou 404 — funcao pode nao estar implantada"
-          elif [ "$VERIFY_JWT_ENABLED" = "true" ]; then
-            echo "::error::$fn aceitou JWT invalido com http=$code (VERIFY_JWT=true ativo) — vulnerabilidade de autenticacao"
-            FAILED=1
+          fn="ai-router"
+          # Pular se funcao estiver na allowlist (evita falso positivo)
+          if grep -qx "$fn" "$ALLOWLIST_FILE" 2>/dev/null; then
+            echo "SKIP: '$fn' esta na allowlist — JWT test pulado"
           else
-            echo "INFO: '$fn' com JWT invalido retornou http=$code (VERIFY_JWT nao ativo)"
+            code="$(curl -s -o /dev/null -w '%{http_code}' \
+              --max-time 10 \
+              -H "Authorization: Bearer $FAKE_JWT" \
+              "$BASE_URL/functions/v1/$fn" || true)"
+            code="${code:-000}"
+
+            if [ "$code" = "000" ]; then
+              echo "::warning::$fn sem resposta com JWT invalido — problema de rede?"
+            elif [ "$code" = "401" ] || [ "$code" = "403" ]; then
+              echo "OK: JWT invalido rejeitado com $code em '$fn'"
+            elif [ "$code" = "404" ]; then
+              echo "::warning::$fn retornou 404 — funcao pode nao estar implantada"
+            elif [ "$VERIFY_JWT_ENABLED" = "true" ]; then
+              echo "::error::$fn aceitou JWT invalido com http=$code (VERIFY_JWT=true ativo) — vulnerabilidade de autenticacao"
+              FAILED=1
+            else
+              echo "INFO: '$fn' com JWT invalido retornou http=$code (VERIFY_JWT nao ativo)"
+            fi
           fi
 
           # ---- Resultado final ----
