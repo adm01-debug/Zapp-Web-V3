@@ -203,7 +203,7 @@ export function ChatPanelHeader({
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-success"></span>
                 </span>
                 <span className="text-[11px] font-medium text-muted-foreground/80 transition-colors group-hover:text-foreground">
-                  Online
+                  Ativo
                 </span>
               </div>
             )}
@@ -252,7 +252,7 @@ export function ChatPanelHeader({
               Abrir em popup
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem disabled>
               <Tag className="mr-2 h-4 w-4" />
               Adicionar tag
             </DropdownMenuItem>
@@ -265,11 +265,11 @@ export function ChatPanelHeader({
               Agendar mensagem
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem disabled>
               <CheckCircle className="mr-2 h-4 w-4" />
               Marcar como resolvido
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem disabled>
               <Archive className="mr-2 h-4 w-4" />
               Arquivar
             </DropdownMenuItem>
