@@ -59,8 +59,9 @@ jobs:
           fi
 
           # Verifica que há pelo menos uma função na allowlist
-          COUNT=$(grep -oE "['\"][A-Za-z0-9_-]+['\"]" "$INDEX" \
-            | head -200 | grep -c "'" || true)
+          COUNT=$(sed -n '/const PUBLIC_FNS/,/^\s*\]/p' "$INDEX" \
+            | grep -oE "['\"][A-Za-z0-9_-]+['\"]" \
+            | grep -c "'" || true)
           if [ "$COUNT" -eq 0 ]; then
             echo "::error::PUBLIC_FNS esta vazia — nenhuma funcao na allowlist"
             exit 1

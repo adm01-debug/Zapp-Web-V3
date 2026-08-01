@@ -25,9 +25,10 @@ DECLARE
   v_fail_count INT := 0;
 
   -- Guard a ser injetado logo após o BEGIN do bloco principal
-  -- Usa search_path = financeiro, então fn_is_admin_diretor resolve sem qualificador
+  -- Usa qualificador completo financeiro.fn_is_admin_diretor() para evitar
+  -- falha de resolução em funções cujo SET search_path não inclui financeiro.
   c_guard CONSTANT TEXT := E'  -- [auth-guard] apenas admin/diretor financeiro\n'
-    || E'  IF NOT fn_is_admin_diretor() THEN\n'
+    || E'  IF NOT financeiro.fn_is_admin_diretor() THEN\n'
     || E'    RAISE EXCEPTION ''Acesso negado: apenas administradores e diretores do modulo financeiro podem executar esta operacao''\n'
     || E'      USING ERRCODE = ''42501'',\n'
     || E'            HINT    = ''Solicite acesso ao administrador do sistema'';\n'
@@ -119,8 +120,8 @@ BEGIN
   RAISE NOTICE 'Pulados (já tinham)   : %', v_skip_count;
   RAISE NOTICE 'Falhas                : %', v_fail_count;
 
-  -- Falha da migration apenas se NENHUMA função foi encontrada
-  -- (indício de que o schema financeiro não foi aplicado corretamente)
+  -- Aviso informativo (não aborta migration) se NENHUMA função foi encontrada
+  -- (indício de que o schema financeiro não foi aplicado corretamente neste ambiente)
   IF (v_ok_count + v_skip_count + v_fail_count) = 0 THEN
     RAISE WARNING 'Nenhuma função financeiro encontrada — schema pode não estar aplicado no self-hosted';
   END IF;
@@ -157,7 +158,7 @@ BEGIN
     v_def := pg_catalog.pg_get_functiondef(v_rec.oid);
     IF v_def NOT ILIKE '%fn_is_admin_diretor%' THEN
       RAISE WARNING 'SEM GUARD: financeiro.%(%) — injeção pode ter falhado silenciosamente',
-        v_rec.fn_name, v_rec.fn_args;
+        v_rec.proname, v_rec.fn_args;
       v_missing := v_missing + 1;
     END IF;
   END LOOP;
