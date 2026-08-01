@@ -118,7 +118,7 @@ export async function persistMediaViaApi(
     const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
     if (!evolutionUrl || !evolutionKey) return null;
 
-    const baseUrl = evolutionUrl.replace(/\\/+$/, '');
+    const baseUrl = evolutionUrl.replace(/\/+$/, '');
     
     // Áudios precisam de timeout maior — arquivos podem ter vários MB
     const timeoutMs = messageType === 'audio' ? 90000 : 30000;
