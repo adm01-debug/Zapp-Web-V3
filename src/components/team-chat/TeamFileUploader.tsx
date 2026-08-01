@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { getLogger } from '@/lib/logger';
-import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
+import { getSignedMediaUrl } from '@/lib/storageSignedUrls';
 
 const log = getLogger('TeamFileUploader');
 import { supabase } from '@/integrations/supabase/client';
@@ -72,7 +72,11 @@ export function TeamFileUploader({ conversationId, onFileSent, disabled }: TeamF
       if (uploadError) throw uploadError;
 
       const mediaType = getMediaType(file);
-      onFileSent(resolvePublicStorageUrl('team-chat-files', path) ?? '', mediaType, file.name);
+      onFileSent(
+        (await getSignedMediaUrl('team-chat-files', path, 604800)) ?? '',
+        mediaType,
+        file.name
+      );
       
       URL.revokeObjectURL(preview.url);
       setPreview(null);

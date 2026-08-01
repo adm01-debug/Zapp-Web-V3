@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
+import { getSignedMediaUrl } from '@/lib/storageSignedUrls';
 import { useAuth } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
 import { toast } from 'sonner';
@@ -92,7 +92,7 @@ export function useTeamChatDraft({
             if (uploadError) throw uploadError;
 
             onFileSent(
-              resolvePublicStorageUrl('team-chat-files', path) ?? '',
+              (await getSignedMediaUrl('team-chat-files', path, 604800)) ?? '',
               'image',
               `📋 Imagem colada`
             );

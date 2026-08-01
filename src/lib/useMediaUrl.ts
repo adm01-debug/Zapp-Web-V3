@@ -43,6 +43,7 @@ export const PUBLIC_BUCKETS = new Set([
   'stickers', // figurinhas — sempre público
   'audio-memes', // sons de notificação — sempre público
   'custom-emojis', // emojis customizados — sempre público
+  'recibos-entrega', // comprovantes de entrega — sempre público
 ]);
 
 /**
