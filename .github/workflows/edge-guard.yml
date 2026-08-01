@@ -1,0 +1,52 @@
+name: edge-guard
+
+# Guardas bloqueantes para Edge Functions em PRs:
+# 1. Proíbe comandos de deploy manual via CLI em qualquer arquivo (bypassa o
+#    pipeline e causa drift silencioso).
+# 2. Proíbe a seção [functions.migrate-helper] em supabase/config.toml.
+# 3. Proíbe arquivos .bak em supabase/functions/ (lixo de backup commitado).
+
+on:
+  pull_request:
+
+jobs:
+  guard:
+    name: Edge guard checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Block manual deploy commands
+        # Nota: escopo restrito a código ativo (.github/supabase/scripts) — docs/**
+        # histórico contém referências legítimas ao CLI. A linha do grep abaixo
+        # contém o padrão proibido E o path deste arquivo, então é auto-excluída
+        # pelo grep -v. Mensagens e comentários NÃO podem conter o padrão.
+        run: |
+          set -euo pipefail
+          MATCHES=$(grep -rn 'supabase functions deploy' .github supabase scripts --include='*.yml' --include='*.sh' --include='*.toml' | grep -v '.github/workflows/edge-guard.yml' || true)
+          if [ -n "$MATCHES" ]; then
+            echo "::error::Referência a deploy manual de Edge Function encontrada:"
+            echo "$MATCHES"
+            exit 1
+          fi
+          echo "Guard OK: nenhum deploy manual detectado."
+
+      - name: Block migrate-helper in config.toml
+        run: |
+          set -euo pipefail
+          if grep -q '^\[functions\.migrate-helper\]' supabase/config.toml 2>/dev/null; then
+            echo "::error::[functions.migrate-helper] presente em supabase/config.toml — seção proibida."
+            exit 1
+          fi
+          echo "Guard OK: sem migrate-helper no config.toml."
+
+      - name: Block .bak files in supabase/functions
+        run: |
+          set -euo pipefail
+          BAKS=$(find supabase/functions -type f -name '*.bak' 2>/dev/null || true)
+          if [ -n "$BAKS" ]; then
+            echo "::error::Arquivos .bak encontrados em supabase/functions/:"
+            echo "$BAKS"
+            exit 1
+          fi
+          echo "Guard OK: sem arquivos .bak."
