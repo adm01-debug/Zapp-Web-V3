@@ -29,44 +29,6 @@ import type { Database as GeneratedDatabase } from './types';
  */
 export type ManualZappTables = Record<never, never>;
 
-/**
- * ContactIntelligenceRow — espelho EXATO de zapp.contact_intelligence,
- * verificado via information_schema em 2026-07-31 (15 colunas reais).
- *
- * ATENÇÃO: a tabela NÃO possui as colunas `total_interactions` nem
- * `last_contact_at` — os nomes reais são `total_messages` e
- * `days_since_contact`. O hook useContactIntelligence leu os nomes errados
- * por meses (o cast `as never` escondia o erro de coluna no typecheck).
- * Usar este tipo no lugar de `as never` faz o TS pegar coluna inexistente.
- *
- * Colunas (nome | tipo | nullable | default):
- *   id uuid NO gen_random_uuid(); contact_id uuid NO;
- *   sentiment text YES; engagement_score numeric YES;
- *   predicted_value numeric YES; risk_level text YES;
- *   created_at timestamptz NO now(); updated_at timestamptz NO now();
- *   phone text YES; contact_name text YES; lead_status text YES;
- *   total_messages integer YES DEFAULT 0;
- *   days_since_contact integer YES;
- *   disc_profile text YES DEFAULT 'C'; inbound_ratio numeric YES DEFAULT 0.
- */
-export type ContactIntelligenceRow = {
-  id: string;
-  contact_id: string;
-  sentiment: string | null;
-  engagement_score: number | null;
-  predicted_value: number | null;
-  risk_level: string | null;
-  created_at: string;
-  updated_at: string;
-  phone: string | null;
-  contact_name: string | null;
-  lead_status: string | null;
-  total_messages: number | null;
-  days_since_contact: number | null;
-  disc_profile: string | null;
-  inbound_ratio: number | null;
-};
-
 /** Standalone manual types — use directly, not through MergeTables. */
 export type ManualUserSettings = {
   Row: {

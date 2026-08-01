@@ -253,5 +253,3 @@ graphify-out/ # Knowledge Graph
 
 .vercel
 .env*
-!supabase/functions/.env.required
-!supabase/functions/.deployignore
