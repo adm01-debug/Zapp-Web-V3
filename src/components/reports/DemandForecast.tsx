@@ -44,7 +44,7 @@ export function DemandForecast() {
     for (let i = 0; i < 24; i++) hourBuckets[i] = [];
 
     messages.forEach((m) => {
-      const d = new Date(m.created_at);
+      const d = new Date(m.created_at ?? '');
       const dayOfWeek = getDay(d);
       const hour = getHours(d);
       dayBuckets[dayOfWeek].push(1);

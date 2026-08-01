@@ -6,36 +6,68 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
-/** User Settings interface. */
+/**
+ * User Settings interface — alinhada ao schema `zapp` (canônico do client),
+ * tabela `user_settings` (created_at/id/onboarding_completed/updated_at/user_id NOT NULL).
+ */
 export interface UserSettings {
-  id: string;
-  user_id: string;
-  theme: 'light' | 'dark' | 'auto';
-  language: string;
-  notifications_enabled: boolean;
-  email_notifications: boolean;
-  desktop_notifications: boolean;
-  timezone?: string;
-  preferences?: Record<string, unknown>;
+  auto_assignment_enabled: boolean | null;
+  auto_assignment_method: string | null;
+  auto_transcription_enabled: boolean | null;
+  away_message: string | null;
+  browser_notifications_enabled: boolean | null;
+  business_hours_enabled: boolean | null;
+  business_hours_end: string | null;
+  business_hours_start: string | null;
+  closing_message: string | null;
+  compact_mode: boolean | null;
   created_at: string;
+  goal_sound_type: string | null;
+  id: string;
+  inactivity_timeout: number | null;
+  inbox_filters: Json | null;
+  language: string | null;
+  mention_sound_type: string | null;
+  message_sound_type: string | null;
+  onboarding_completed: boolean;
+  quiet_hours_enabled: boolean | null;
+  quiet_hours_end: string | null;
+  quiet_hours_start: string | null;
+  sentiment_alert_enabled: boolean | null;
+  sentiment_alert_threshold: number | null;
+  sentiment_consecutive_count: number | null;
+  sla_sound_type: string | null;
+  sound_enabled: boolean | null;
+  theme: string | null;
+  transcription_notification_enabled: boolean | null;
+  transcription_sound_type: string | null;
+  tts_speed: number | null;
+  tts_voice_id: string | null;
   updated_at: string;
+  user_id: string;
+  welcome_message: string | null;
+  work_days: string[] | null;
 }
 
-/** Workspace Settings interface definition. */
+/**
+ * Workspace Settings interface — alinhada ao schema `zapp` (canônico do client),
+ * tabela `workspace_settings` (created_at/id/name/updated_at/workspace_id NOT NULL).
+ */
 export interface WorkspaceSettings {
-  id: string;
-  workspace_id: string;
-  name: string;
-  description?: string;
-  logo_url?: string;
-  default_queue?: string;
-  working_hours_start?: string;
-  working_hours_end?: string;
-  timezone?: string;
-  settings?: Record<string, unknown>;
   created_at: string;
+  default_queue: string | null;
+  description: string | null;
+  id: string;
+  logo_url: string | null;
+  name: string;
+  settings: Json | null;
+  timezone: string | null;
   updated_at: string;
+  working_hours_end: string | null;
+  working_hours_start: string | null;
+  workspace_id: string;
 }
 
 /** settings Repository constant. */
@@ -66,8 +98,8 @@ export const settingsRepository = {
     const { data, error } = await supabase
       .from('user_settings')
       .upsert({
-        user_id: userId,
         ...settings,
+        user_id: userId,
       })
       .select()
       .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
@@ -102,8 +134,10 @@ export const settingsRepository = {
     const { data, error } = await supabase
       .from('workspace_settings')
       .upsert({
-        workspace_id: workspaceId,
         ...settings,
+        // Insert do schema zapp exige name/workspace_id (NOT NULL)
+        name: settings.name ?? '',
+        workspace_id: workspaceId,
       })
       .select()
       .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;

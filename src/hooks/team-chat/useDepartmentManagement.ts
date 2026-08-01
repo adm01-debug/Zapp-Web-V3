@@ -107,7 +107,7 @@ export function useDepartmentManagement(
       return (data ?? []).map((l) => ({
         id: l.id,
         action: l.action,
-        created_at: l.created_at,
+        created_at: l.created_at ?? '',
         details: (l.details as { profile_name?: string }) ?? {},
       }));
     },
@@ -143,6 +143,7 @@ export function useDepartmentManagement(
         department_id: initialDepartment.id,
         code,
         expires_at: expires,
+        created_by: currentUser?.id ?? '',
         role: 'agent',
         email: '',
         status: 'pending',

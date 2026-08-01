@@ -90,7 +90,9 @@ export function useAppBootstrap() {
   const { data, isLoading, error } = useQuery({
     queryKey: BOOTSTRAP_KEY,
     queryFn: async (): Promise<AppBootstrapData> => {
-      const { data: result, error: rpcError } = await supabase.rpc('rpc_app_bootstrap');
+      const { data: result, error: rpcError } = await (supabase as unknown as {
+        rpc: (name: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+      }).rpc('rpc_app_bootstrap');
       if (rpcError) throw rpcError;
       return result as unknown as AppBootstrapData;
     },

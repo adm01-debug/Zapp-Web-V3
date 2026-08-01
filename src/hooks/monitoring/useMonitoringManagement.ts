@@ -342,7 +342,7 @@ export function useMonitoringActionsManagement(
         .select('id')
         .eq('message_id', testId)
         .maybeSingle();
-      if (msg) await supabase.from('evolution_messages').delete().eq('id', msg.id);
+      if (msg?.id) await supabase.from('evolution_messages').delete().eq('id', msg.id);
       setWebhookTest({
         status: msg ? 'success' : 'error',
         message: msg

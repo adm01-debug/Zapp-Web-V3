@@ -133,7 +133,7 @@ export function useBulkActions<T extends { id: string }>(
         action: async (actionItems: T[]) => {
           const ids = actionItems.map((i) => i.id);
           const { error } = await fromTable(tableName)
-            .update({ status: 'archived', updated_at: new Date().toISOString() } as Record<string, unknown>)
+            .update({ status: 'archived', updated_at: new Date().toISOString() } as never)
             .in('id', ids);
           
           if (error) throw error;

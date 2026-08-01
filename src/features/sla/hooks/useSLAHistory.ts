@@ -91,6 +91,7 @@ async function fetchSLAHistory(period: HistoryPeriod): Promise<SLAHistoryData> {
   });
 
   slaRecords?.forEach(record => {
+    if (!record.created_at) return;
     const dateKey = format(new Date(record.created_at), 'yyyy-MM-dd');
     const dayData = dailyMap.get(dateKey);
     if (dayData) {

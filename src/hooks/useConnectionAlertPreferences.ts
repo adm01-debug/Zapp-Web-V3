@@ -24,6 +24,6 @@ export async function upsertConnectionAlertPrefs(
 ): Promise<{ error: { message: string } | null }> {
   const { error } = await supabase
     .from('connection_alert_preferences')
-    .upsert({ user_id: userId, ...prefs }, { onConflict: 'user_id' });
+    .upsert({ user_id: userId, ...prefs } as never, { onConflict: 'user_id' });
   return { error };
 }

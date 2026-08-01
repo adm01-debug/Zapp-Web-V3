@@ -84,14 +84,14 @@ export const ChatHeader = memo(function ChatHeader({
   onOpenValidation,
 }: ChatHeaderProps) {
   const { data: crmData } = useExternalContact360(
-    isExternalConfigured ? conversation.contact.phone : undefined
+    isExternalConfigured ? (conversation.contact.phone ?? undefined) : undefined
   );
   const _crmCompany = crmData?.found ? crmData.company : null;
   const _crmCustomer = crmData?.found ? crmData.customer : null;
   const _crmRfm = crmData?.found ? crmData.rfm : null;
 
   const { intelligence: intel } = useContactIntelligence(
-    isExternalConfigured ? conversation.contact.phone : undefined
+    isExternalConfigured ? (conversation.contact.phone ?? undefined) : undefined
   );
   const _briefing = intel?.found ? intel.briefing : null;
   const { avatarUrl } = useContactAvatar(conversation.contact.id, conversation.contact.avatar);
@@ -123,7 +123,7 @@ export const ChatHeader = memo(function ChatHeader({
           <Avatar className="h-[44px] w-[44px] border border-border/10 shadow-xl ring-2 ring-background transition-shadow group-hover:shadow-primary/20">
             <AvatarImage
               src={avatarUrl || undefined}
-              alt={conversation.contact.name}
+              alt={conversation.contact.name ?? undefined}
               referrerPolicy="no-referrer"
               className="h-full w-full object-cover"
               onError={(e) => {
@@ -220,7 +220,7 @@ export const ChatHeader = memo(function ChatHeader({
           </Tooltip>
         )}
 
-        <RealtimeCollaboration contactId={conversation.contact.id} className="mr-1" />
+        <RealtimeCollaboration contactId={conversation.contact.id ?? ''} className="mr-1" />
 
         {onOpenWhisper && (
           <Tooltip>

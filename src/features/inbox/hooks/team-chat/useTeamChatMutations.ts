@@ -103,8 +103,20 @@ export function useSendTeamMessage() {
           if (!oldData?.pages) return oldData;
           const newPages = [...oldData.pages];
           if (newPages.length > 0) {
+            // Constrói o TeamMessage otimista com defaults null-safe a partir
+            // da row retornada pelo insert (todos os campos são nullable).
             const msgWithSender: TeamMessage = {
-              ...data,
+              id: data?.id ?? '',
+              conversation_id: data?.conversation_id ?? vars.conversationId,
+              sender_id: data?.sender_id ?? profile?.id ?? '',
+              content: data?.content ?? vars.content,
+              message_type: data?.message_type ?? 'text',
+              media_url: data?.media_url ?? null,
+              media_type: data?.media_type ?? null,
+              reply_to_id: data?.reply_to_id ?? null,
+              is_edited: data?.is_edited ?? false,
+              created_at: data?.created_at ?? new Date().toISOString(),
+              updated_at: data?.updated_at ?? new Date().toISOString(),
               sender: {
                 id: profile?.id ?? '',
                 name: profile?.name ?? '',

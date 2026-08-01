@@ -37,7 +37,7 @@ export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
   if (!contact) return null;
 
   const typeCfg = contact.contact_type ? CONTACT_TYPE_CONFIG[contact.contact_type] : null;
-  const initials = contact.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+  const initials = (contact.name ?? '').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
   const healthColor = getHealthColor(health);
 
   return (
@@ -49,7 +49,7 @@ export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
           <div className="flex items-start justify-between">
             <motion.div layoutId={`avatar-${contact.id}`}>
               <Avatar className="w-20 h-20 border-4 border-background shadow-xl">
-                <AvatarImage src={contact.avatar_url || ''} alt={contact.name} />
+                <AvatarImage src={contact.avatar_url || ''} alt={contact.name ?? undefined} />
                 <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
                   {initials}
                 </AvatarFallback>
@@ -181,7 +181,7 @@ export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
                   <Button 
                     size="sm" 
                     className="h-8 px-3 rounded-full"
-                    onClick={() => onOpenChat(contact.phone, contact.name)}
+                    onClick={() => onOpenChat(contact.phone ?? '', contact.name ?? '')}
                   >
                     Chat
                   </Button>
@@ -262,7 +262,7 @@ export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
                   <Calendar className="w-4 h-4" /> Criado em
                 </span>
                 <span className="font-medium">
-                  {format(new Date(contact.created_at), "dd 'de' MMMM, yyyy", { locale: ptBR })}
+                  {format(new Date(contact.created_at ?? ''), "dd 'de' MMMM, yyyy", { locale: ptBR })}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
@@ -276,7 +276,7 @@ export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
         </div>
 
         <SheetFooter className="mt-8 pt-6 border-t border-border/30 sticky bottom-0 bg-background">
-          <Button className="w-full gap-2 h-12 text-base shadow-lg shadow-primary/20" onClick={() => onOpenChat(contact.phone, contact.name)}>
+          <Button className="w-full gap-2 h-12 text-base shadow-lg shadow-primary/20" onClick={() => onOpenChat(contact.phone ?? '', contact.name ?? '')}>
             <MessageSquare className="w-5 h-5" />
             Abrir Conversa no WhatsApp
           </Button>

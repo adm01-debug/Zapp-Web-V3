@@ -18,17 +18,34 @@ export interface BlacklistEntry {
   } | null;
 }
 
+/** Builder estrutural estreito para `talkx_blacklist` — evita TS2589 do builder tipado completo. */
+interface BlacklistQueryBuilder {
+  select: (columns: string) => {
+    order: (column: string, options?: { ascending?: boolean }) => Promise<{
+      data: BlacklistEntry[] | null;
+      error: unknown;
+    }>;
+  };
+  insert: (values: {
+    contact_id: string;
+    reason: string;
+    blocked_by?: string | null;
+  }) => Promise<{ error: unknown }>;
+}
+
+const blacklistQuery = fromTable('talkx_blacklist') as unknown as BlacklistQueryBuilder;
+
 export function useTalkXBlacklist(showAddDialog: boolean) {
   const queryClient = useQueryClient();
 
   const { data: blacklist = [], isLoading } = useQuery({
     queryKey: queryKeys.talkx.blacklist(),
     queryFn: async () => {
-      const { data, error } = await fromTable('talkx_blacklist')
+      const { data, error } = await blacklistQuery
         .select('*, contacts:contact_id(name, phone, company, avatar_url)')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (data ?? []) as BlacklistEntry[];
+      return data ?? [];
     },
     staleTime: Infinity,
   });
@@ -63,7 +80,7 @@ export function useTalkXBlacklist(showAddDialog: boolean) {
         .select('id')
         .eq('user_id', user?.id ?? '')
         .maybeSingle();
-      const { error } = await fromTable('talkx_blacklist').insert({
+      const { error } = await blacklistQuery.insert({
         contact_id: contactId,
         reason,
         blocked_by: profile?.id,

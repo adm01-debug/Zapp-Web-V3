@@ -94,13 +94,13 @@ export function ContactsTable({
     return [...contacts].sort((a, b) => {
       let valA = '', valB = '';
       switch (sortField) {
-        case 'name': valA = a.name.toLowerCase(); valB = b.name.toLowerCase(); break;
+        case 'name': valA = (a.name ?? '').toLowerCase(); valB = (b.name ?? '').toLowerCase(); break;
         case 'type': valA = a.contact_type || ''; valB = b.contact_type || ''; break;
-        case 'phone': valA = a.phone; valB = b.phone; break;
+        case 'phone': valA = a.phone ?? ''; valB = b.phone ?? ''; break;
         case 'email': valA = a.email || ''; valB = b.email || ''; break;
         case 'company': valA = a.company || ''; valB = b.company || ''; break;
         case 'job_title': valA = a.job_title || ''; valB = b.job_title || ''; break;
-        case 'created_at': valA = a.created_at; valB = b.created_at; break;
+        case 'created_at': valA = a.created_at ?? ''; valB = b.created_at ?? ''; break;
       }
       const cmp = valA.localeCompare(valB);
       return sortDir === 'asc' ? cmp : -cmp;
@@ -115,7 +115,7 @@ export function ContactsTable({
             <th scope="col" className="p-3 w-10">
               <Checkbox
                 checked={selectedIds.length === contacts.length && contacts.length > 0}
-                onCheckedChange={(checked) => onSelectIds(checked ? contacts.map(c => c.id) : [])}
+                onCheckedChange={(checked) => onSelectIds(checked ? contacts.map(c => c.id ?? '') : [])}
                 aria-label="Selecionar todos"
               />
             </th>
@@ -133,8 +133,8 @@ export function ContactsTable({
         <tbody>
           {sortedContacts.map((contact, index) => {
             const typeConfig = CONTACT_TYPE_CONFIG[contact.contact_type || 'cliente'] || CONTACT_TYPE_CONFIG.cliente;
-            const avatarColors = getAvatarColor(contact.name);
-            const crmData = getCRMData?.(contact.phone);
+            const avatarColors = getAvatarColor(contact.name ?? '');
+            const crmData = getCRMData?.(contact.phone ?? '');
             return (
               <motion.tr
                 key={contact.id}
@@ -143,15 +143,15 @@ export function ContactsTable({
                 transition={{ delay: index * 0.015 }}
                 className={cn(
                   "border-b border-border/10 last:border-0 hover:bg-muted/30 transition-all duration-150 cursor-pointer group",
-                  selectedIds.includes(contact.id) && "bg-primary/5 border-l-2 border-l-primary"
+                  selectedIds.includes(contact.id ?? '') && "bg-primary/5 border-l-2 border-l-primary"
                 )}
-                onClick={() => onOpenChat(contact.id)}
+                onClick={() => onOpenChat(contact.id ?? '')}
               >
                 <td className="p-3" onClick={(e) => e.stopPropagation()}>
                   <Checkbox
-                    checked={selectedIds.includes(contact.id)}
+                    checked={selectedIds.includes(contact.id ?? '')}
                     onCheckedChange={(checked) =>
-                      onSelectIds(checked ? [...selectedIds, contact.id] : selectedIds.filter(id => id !== contact.id))
+                      onSelectIds(checked ? [...selectedIds, contact.id ?? ''] : selectedIds.filter(id => id !== contact.id))
                     }
                   />
                 </td>
@@ -159,9 +159,9 @@ export function ContactsTable({
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <Avatar className="w-9 h-9">
-                        <AvatarImage src={contact.avatar_url || undefined} alt={contact.name} />
+                        <AvatarImage src={contact.avatar_url || undefined} alt={contact.name ?? undefined} />
                         <AvatarFallback className={cn('font-semibold text-xs', avatarColors.bg, avatarColors.text)}>
-                          {getInitials(contact.name)}
+                          {getInitials(contact.name ?? '')}
                         </AvatarFallback>
                       </Avatar>
                       <div className={cn(
@@ -187,7 +187,7 @@ export function ContactsTable({
                 <td className="p-3">
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Phone className="w-3.5 h-3.5 shrink-0" />
-                    <HighlightText text={contact.phone} highlight={searchQuery} className=" text-[11px]" />
+                    <HighlightText text={contact.phone ?? ''} highlight={searchQuery} className=" text-[11px]" />
                   </div>
                 </td>
                 <td className="p-3">
@@ -242,7 +242,7 @@ export function ContactsTable({
                 </td>
                 <td className="p-3 text-right">
                   <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                    <Button aria-label="Conversar" variant="ghost" size="icon" className="w-7 h-7 hover:bg-primary/10 hover:text-primary" onClick={() => onOpenChat(contact.id)} title="Conversar">
+                    <Button aria-label="Conversar" variant="ghost" size="icon" className="w-7 h-7 hover:bg-primary/10 hover:text-primary" onClick={() => onOpenChat(contact.id ?? '')} title="Conversar">
                       <MessageSquare className="w-3.5 h-3.5" />
                     </Button>
                     <DropdownMenu>

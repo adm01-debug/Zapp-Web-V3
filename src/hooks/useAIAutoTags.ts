@@ -52,6 +52,7 @@ export function useRetagRecentContacts(onSuccess: (count: number | undefined) =>
 
       let processed = 0;
       for (const contact of contacts) {
+        if (!contact.id) continue;
         try {
           await autoTag({ contactId: contact.id });
           processed++;

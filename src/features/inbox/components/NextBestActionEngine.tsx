@@ -60,7 +60,7 @@ export function NextBestActionEngine({ contactId, contactName }: NextBestActionP
 
         if (lastMsg) {
           const hoursSinceLastMsg =
-            (Date.now() - new Date(lastMsg.created_at).getTime()) / (1000 * 60 * 60);
+            (Date.now() - new Date(lastMsg.created_at ?? '').getTime()) / (1000 * 60 * 60);
 
           if (lastMsg.sender === 'contact' && hoursSinceLastMsg > 1) {
             suggestedActions.push({

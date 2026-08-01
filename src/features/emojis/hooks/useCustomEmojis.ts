@@ -129,7 +129,7 @@ export function useCustomEmojis(enabled = true) {
         const { data: userData } = await supabase.auth.getUser();
         const { error: insErr } = await supabase.from('custom_emojis').insert({
           name: p.name.trim(),
-          image_url: resolvePublicStorageUrl(BUCKET, p.storagePath),
+          image_url: resolvePublicStorageUrl(BUCKET, p.storagePath) ?? '',
           category: p.selectedCategory,
           uploaded_by: userData.user?.id ?? null,
         });

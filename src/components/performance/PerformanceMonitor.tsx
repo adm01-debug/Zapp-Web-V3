@@ -124,7 +124,7 @@ export function PerformanceMonitor() {
 
   // Format DB history for chart
   const dbChartData = dbHistory.map(s => ({
-    time: new Date(s.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    time: new Date(s.created_at ?? '').toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
     fcp: s.fcp,
     page_load: s.page_load,
     memory: s.memory_used,

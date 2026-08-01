@@ -223,11 +223,12 @@ export const safeClient = {
             exists = isPermissionError || !isNotFound;
           }
         } else {
+          // ignore-audit — .limit() not on RPC return type in generated types
           const { error } = await (
-            supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as unknown as {
-              limit: (n: number) => Promise<{ error: unknown }>;
-            }
-          ).limit(0); // ignore-audit — .limit() not on RPC return type in generated types
+            (supabase as unknown as {
+              rpc: (name: string) => { limit: (n: number) => Promise<{ error: unknown }> };
+            }).rpc(name)
+          ).limit(0);
           if (!error) {
             exists = true;
           } else {

@@ -59,7 +59,7 @@ export function useDlqAuditLog(opts: UseDlqAuditLogOptions = {}) {
     queryFn: async () => {
       const { data, error } = await supabase.rpc('rpc_dlq_list_audit', {
         p_limit: limit,
-        p_action: action,
+        p_action: action ?? undefined,
         p_offset: currentPage * limit,
       });
       if (error) throw error;

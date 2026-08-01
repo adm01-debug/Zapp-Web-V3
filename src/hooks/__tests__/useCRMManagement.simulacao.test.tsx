@@ -235,7 +235,7 @@ describe('useContactEnrichedDataManagement (enrich_contact RPC)', () => {
     });
     const { result } = renderHook(() => useContactEnrichedDataManagement(UUID), { wrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(sb.calls.rpc).toContainEqual(['enrich_contact', { contact_id: UUID }]);
+    expect(sb.calls.rpc).toContainEqual(['enrich_contact', { p_contact_id: UUID }]);
     expect(result.current.enrichedData?.source).toBe('stub');
     expect(result.current.enrichedData?.enriched).toBe(false);
   });

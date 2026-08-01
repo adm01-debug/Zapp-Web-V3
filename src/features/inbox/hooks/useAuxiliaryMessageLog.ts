@@ -16,7 +16,7 @@
  * pois a mensagem ja foi enviada via WhatsApp independentemente.
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { dbFrom } from '@/integrations/datasource/db';
 import { log } from '@/lib/logger';
 import { resolveContactRef, isUuidRef } from '../utils/contactRef';
 
@@ -75,8 +75,7 @@ export async function insertAuxMessage(
 
   // UUID mode: insert no historico local para UI otimista.
   try {
-    const { data, error } = await supabase
-      .from('messages')
+    const { data, error } = await dbFrom('messages')
       .insert({
         contact_id: ref.uuid,
         whatsapp_connection_id: whatsappConnectionId,

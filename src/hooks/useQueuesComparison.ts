@@ -38,7 +38,9 @@ export function useQueuesComparison(dateRange: DateRange) {
 
       if (qErr) throw qErr;
 
-      const queueList: Array<{ id: string; name: string; color: string }> = queues || [];
+      const queueList: Array<{ id: string; name: string; color: string }> = (queues || []).map(
+        (q) => ({ id: q.id, name: q.name, color: q.color ?? '' })
+      );
 
       if (queueList.length === 0) return [];
 
@@ -73,7 +75,8 @@ export function useQueuesComparison(dateRange: DateRange) {
           .gte('created_at', fromIso)
           .lte('created_at', toIso);
         if (msgsErr) throw msgsErr;
-        messageList = msgs || [];
+        messageList = (msgs || [])
+          .filter((m): m is { id: string; contact_id: string } => m.id !== null && m.contact_id !== null);
       }
 
       return queueList.map((q) => {

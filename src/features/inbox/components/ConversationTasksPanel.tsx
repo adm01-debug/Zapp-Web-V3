@@ -57,7 +57,19 @@ export function ConversationTasksPanel({ contactId, profileId }: ConversationTas
   const loadTasks = useCallback(async () => {
     setLoading(true);
     const data = await fetchConversationTasks(contactId);
-    setTasks(data);
+    setTasks(
+      data.map((t) => ({
+        id: t.id,
+        title: t.title ?? '',
+        description: t.description,
+        priority: t.priority ?? 'medium',
+        status: t.status ?? 'pending',
+        due_date: t.due_date,
+        assigned_to: t.assigned_to,
+        completed_at: t.completed_at,
+        created_at: t.created_at ?? '',
+      }))
+    );
     setLoading(false);
   }, [contactId]);
 

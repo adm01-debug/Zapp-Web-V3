@@ -26,7 +26,7 @@ export function ContactListItem({
   contact, isSelected, onToggleSelect, onOpenChat, onEdit, onDelete, index, companyLogo, companyName, searchQuery,
 }: ContactItemProps) {
   const typeConfig = CONTACT_TYPE_CONFIG[contact.contact_type || 'cliente'] || CONTACT_TYPE_CONFIG.cliente;
-  const avatarColors = getAvatarColor(contact.name);
+  const avatarColors = getAvatarColor(contact.name ?? '');
 
   return (
     <motion.div
@@ -39,13 +39,13 @@ export function ContactListItem({
         "hover:bg-muted/30 hover:border-primary/15 transition-all duration-150 cursor-pointer",
         isSelected && "bg-primary/5 border-primary/30"
       )}
-      onClick={() => onOpenChat(contact.id)}
+      onClick={() => onOpenChat(contact.id ?? '')}
     >
       {/* Checkbox */}
       <div onClick={(e) => e.stopPropagation()}>
         <Checkbox
           checked={isSelected}
-          onCheckedChange={(checked) => onToggleSelect(contact.id, !!checked)}
+          onCheckedChange={(checked) => onToggleSelect(contact.id ?? '', !!checked)}
         />
       </div>
 
@@ -53,9 +53,9 @@ export function ContactListItem({
       <div className="relative shrink-0">
         <motion.div layoutId={`avatar-${contact.id}`}>
           <Avatar className="w-[53px] h-[53px]">
-            <AvatarImage src={contact.avatar_url || undefined} alt={contact.name} />
+            <AvatarImage src={contact.avatar_url || undefined} alt={contact.name ?? undefined} />
             <AvatarFallback className={cn('font-semibold text-sm', avatarColors.bg, avatarColors.text)}>
-              {getInitials(contact.name)}
+              {getInitials(contact.name ?? '')}
             </AvatarFallback>
           </Avatar>
         </motion.div>
@@ -124,13 +124,13 @@ export function ContactListItem({
       <div className="hidden lg:flex items-center gap-2 text-xs text-muted-foreground min-w-[140px]" onClick={(e) => e.stopPropagation()}>
         <Phone className="w-3.5 h-3.5 shrink-0" />
         <a
-          href={`https://wa.me/${contact.phone.replace(/\D/g, '')}`}
+          href={`https://wa.me/${contact.phone?.replace(/\D/g, '') ?? ''}`}
           target="_blank"
           rel="noopener noreferrer"
           className=" text-[11px] hover:text-primary hover:underline transition-colors"
           title="Abrir no WhatsApp"
         >
-          <HighlightText text={contact.phone} highlight={searchQuery} />
+          <HighlightText text={contact.phone ?? ''} highlight={searchQuery} />
         </a>
       </div>
 
@@ -168,7 +168,7 @@ export function ContactListItem({
 
       {/* Date */}
       <span className="hidden md:block text-[11px] text-muted-foreground shrink-0">
-        {format(new Date(contact.created_at), "dd/MM/yy", { locale: ptBR })}
+        {format(new Date(contact.created_at ?? ''), "dd/MM/yy", { locale: ptBR })}
       </span>
 
       {/* Actions */}
@@ -176,7 +176,7 @@ export function ContactListItem({
         className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
         onClick={(e) => e.stopPropagation()}
       >
-        <Button aria-label="Conversar" variant="ghost" size="icon" className="w-7 h-7 hover:bg-primary/10 hover:text-primary" onClick={() => onOpenChat(contact.id)} title="Conversar">
+        <Button aria-label="Conversar" variant="ghost" size="icon" className="w-7 h-7 hover:bg-primary/10 hover:text-primary" onClick={() => onOpenChat(contact.id ?? '')} title="Conversar">
           <MessageSquare className="w-3.5 h-3.5" />
         </Button>
         <DropdownMenu>

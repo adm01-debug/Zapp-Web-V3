@@ -14,7 +14,7 @@ export async function fetchIPWhitelist(): Promise<WhitelistedIP[]> {
     .select('*')
     .order('created_at', { ascending: false });
   if (error || !data) return [];
-  return data;
+  return data.map((row) => ({ ...row, created_at: row.created_at ?? '' }));
 }
 
 export async function addIPToWhitelist(params: {

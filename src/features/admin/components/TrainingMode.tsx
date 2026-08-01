@@ -85,7 +85,16 @@ export function TrainingMode(): JSX.Element {
       .eq('profile_id', profileId)
       .order('created_at', { ascending: false })
       .limit(10);
-    if (data) setSessions(data);
+    if (data) {
+      setSessions(
+        data.map((s) => ({
+          id: s.id ?? '',
+          scenario_name: s.scenario_name ?? '',
+          status: s.status ?? '',
+          score: s.score ?? null,
+        }))
+      );
+    }
   }, [profileId]);
 
   useEffect(() => {

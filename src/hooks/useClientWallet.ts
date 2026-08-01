@@ -64,7 +64,7 @@ export function useClientWallet() {
         ]);
 
       const rules: WalletRule[] = rawRules.map((rule) => ({
-        ...rule,
+        ...(rule as unknown as WalletRule),
         agent: agentsData?.find((a) => a.id === rule.agent_id),
         connection: connectionsResult.data?.find((c) => c.id === rule.whatsapp_connection_id),
       }));

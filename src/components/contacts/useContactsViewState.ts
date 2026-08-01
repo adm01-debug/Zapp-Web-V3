@@ -53,7 +53,7 @@ export function useContactsViewState() {
 
   const handleSelectAll = useCallback(() => {
     setSelectedIds(prev =>
-      prev.length === filteredContacts.length ? [] : filteredContacts.map(c => c.id)
+      prev.length === filteredContacts.length ? [] : filteredContacts.map(c => c.id ?? '')
     );
   }, [filteredContacts, setSelectedIds]);
 
@@ -66,10 +66,10 @@ export function useContactsViewState() {
     const esc = (v: string) => (v.includes(',') || v.includes('"') || v.includes('\n')) ? `"${v.replace(/"/g, '""')}"` : v;
     const headers = ['Nome','Sobrenome','Apelido','Telefone','Email','Empresa','Cargo','Tipo','Tags','Criado em'];
     const csvRows = filteredContacts.map(c => [
-      esc(c.name), esc(c.surname||''), esc(c.nickname||''), esc(c.phone),
+      esc(c.name ?? ''), esc(c.surname||''), esc(c.nickname||''), esc(c.phone ?? ''),
       esc(c.email||''), esc(c.company||''), esc(c.job_title||''),
       esc(c.contact_type||'cliente'), esc((c.tags||[]).join('; ')),
-      esc(format(new Date(c.created_at), 'dd/MM/yyyy', { locale: ptBR })),
+      esc(format(new Date(c.created_at ?? ''), 'dd/MM/yyyy', { locale: ptBR })),
     ].join(','));
     const csv = '\uFEFF' + [headers.join(','), ...csvRows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

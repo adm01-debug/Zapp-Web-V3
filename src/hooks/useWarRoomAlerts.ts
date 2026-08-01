@@ -11,9 +11,9 @@ interface WarRoomAlert {
   alert_type: string;
   title: string;
   message: string;
-  is_read: boolean;
+  is_read: boolean | null;
   source: string | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 const VALID_ALERT_TYPES = ['critical', 'warning', 'info', 'sla_breach'];

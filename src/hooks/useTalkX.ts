@@ -42,13 +42,32 @@ export function useTalkX() {
   });
 
   const createCampaign = useMutation({
-    mutationFn: async (campaign: Omit<TalkXCampaign, 'id' | 'created_at'>) => {
+    mutationFn: async (campaign: Partial<TalkXCampaignInput>) => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from('talkx_campaigns')
-        .insert({ ...campaign, created_by: user?.id ?? null } as never)
+        .insert({
+          name: campaign.name ?? '',
+          status: campaign.status ?? 'draft',
+          message_template: campaign.message_template ?? '',
+          media_type: campaign.media_type ?? null,
+          media_url: campaign.media_url ?? null,
+          scheduled_at: campaign.scheduled_at ?? null,
+          started_at: campaign.started_at ?? null,
+          completed_at: campaign.completed_at ?? null,
+          delivered_count: 0,
+          sent_count: campaign.sent_count ?? 0,
+          failed_count: campaign.failed_count ?? 0,
+          total_recipients: campaign.total_recipients ?? 0,
+          send_interval_min: campaign.send_interval_min ?? 0,
+          send_interval_max: campaign.send_interval_max ?? 0,
+          typing_delay_min: campaign.typing_delay_min ?? 0,
+          typing_delay_max: campaign.typing_delay_max ?? 0,
+          whatsapp_connection_id: campaign.whatsapp_connection_id ?? null,
+          created_by: user?.id ?? null,
+        })
         .select()
         .single();
       if (error) throw error;
@@ -62,10 +81,27 @@ export function useTalkX() {
   });
 
   const updateCampaign = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<TalkXCampaign> & { id: string }) => {
+    mutationFn: async ({ id, ...updates }: { id: string } & Partial<TalkXCampaignInput>) => {
       const { data, error } = await supabase
         .from('talkx_campaigns')
-        .update(updates as never)
+        .update({
+          name: updates.name,
+          status: updates.status,
+          message_template: updates.message_template ?? undefined,
+          media_type: updates.media_type,
+          media_url: updates.media_url,
+          scheduled_at: updates.scheduled_at,
+          started_at: updates.started_at,
+          completed_at: updates.completed_at,
+          sent_count: updates.sent_count,
+          failed_count: updates.failed_count,
+          total_recipients: updates.total_recipients,
+          send_interval_min: updates.send_interval_min,
+          send_interval_max: updates.send_interval_max,
+          typing_delay_min: updates.typing_delay_min,
+          typing_delay_max: updates.typing_delay_max,
+          whatsapp_connection_id: updates.whatsapp_connection_id,
+        })
         .eq('id', id)
         .select()
         .single();
@@ -205,22 +241,54 @@ export interface TalkXCampaign {
 }
 
 /**
+ * TalkXCampaignInput — payload de criação/atualização de campanha.
+ * Shape explícito SEM index signature: `Omit<TalkXCampaign, ...>` degenera para
+ * `{[key: string]: unknown}` (keyof vira `string` por causa do index signature),
+ * o que tornava todos os campos `unknown` e exigia `as never` no insert/update.
+ */
+export interface TalkXCampaignInput {
+  name: string;
+  status: string;
+  message_template: string | null;
+  media_type: string | null;
+  media_url: string | null;
+  scheduled_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  sent_count: number;
+  failed_count: number;
+  total_recipients: number;
+  send_interval_min: number;
+  send_interval_max: number;
+  typing_delay_min: number;
+  typing_delay_max: number;
+  whatsapp_connection_id: string | null;
+}
+
+/**
  * TalkXRecipient — destinatário de uma campanha Talk X.
+ * Alinhado ao shape real da tabela `talkx_recipients` (campos anuláveis).
  */
 export interface TalkXRecipient {
-  id: string;
-  campaign_id: string;
-  phone: string;
-  name: string | null;
-  status: 'pending' | 'sent' | 'failed' | 'skipped' | string;
-  sent_at: string | null;
+  id: string | null;
+  campaign_id: string | null;
+  contact_id: string | null;
+  created_at: string | null;
+  delivered_at: string | null;
   error_message: string | null;
-  created_at: string;
+  personalized_message: string | null;
+  request_id: string | null;
+  sent_at: string | null;
+  status: string;
+  updated_at: string | null;
+  phone?: string | null;
+  name?: string | null;
   variables?: Record<string, unknown> | null;
-  personalized_message?: string | null;
   contacts?: {
     name?: string | null;
     nickname?: string | null;
+    phone?: string | null;
+    company?: string | null;
     avatar_url?: string | null;
   } | null;
   [key: string]: unknown;

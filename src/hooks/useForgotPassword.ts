@@ -47,6 +47,7 @@ export function useForgotPassword() {
         reason: reason || null,
         ip_address: null,
         user_agent: navigator.userAgent,
+        status: 'pending',
       });
 
       if (insertError) throw insertError;

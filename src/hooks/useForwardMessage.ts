@@ -62,7 +62,15 @@ export function useForwardMessage(
         .select('id, name, avatar_url, participant_count')
         .order('name');
       if (error) throw error;
-      if (mountedRef.current) setGroups(data || []);
+      if (mountedRef.current)
+        setGroups(
+          (data || []).map((g) => ({
+            id: g.id,
+            name: g.name,
+            avatar_url: g.avatar_url ?? undefined,
+            participant_count: g.participant_count ?? 0,
+          }))
+        );
     } catch (error) {
       log.error('Error fetching groups:', error);
     }
@@ -76,7 +84,9 @@ export function useForwardMessage(
   }, [open, fetchContacts, fetchGroups]);
 
   const filteredContacts = contacts.filter(
-    (c) => c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.phone.includes(searchQuery)
+    (c) =>
+      (c.name ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.phone ?? '').includes(searchQuery)
   );
 
   const filteredGroups = groups.filter((g) =>

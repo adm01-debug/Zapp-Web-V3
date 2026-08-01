@@ -21,7 +21,7 @@ interface AssignmentSectionProps {
 export function AssignmentSection({ conversation }: AssignmentSectionProps) {
   const { agents } = useAgents();
   const { queues } = useQueues();
-  const assignment = useContactAssignment(conversation.contact.id) as unknown as {
+  const assignment = useContactAssignment(conversation.contact.id ?? '') as unknown as {
     assignAgent: (userId: string) => Promise<void> | void;
     assignQueue: (queueId: string) => Promise<void> | void;
   };
