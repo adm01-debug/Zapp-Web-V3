@@ -8,8 +8,10 @@
 
 BEGIN;
 
-UPDATE zapp._authoritative_time
-SET server_time = NOW()
-WHERE id = 1;
+-- UPSERT (nao UPDATE): se a linha id=1 nao existir em algum ambiente,
+-- a correcao continua efetiva (INSERT), mantendo a idempotencia real.
+INSERT INTO zapp._authoritative_time (id, server_time)
+VALUES (1, NOW())
+ON CONFLICT (id) DO UPDATE SET server_time = NOW();
 
 COMMIT;
