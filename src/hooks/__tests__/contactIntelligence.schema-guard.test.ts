@@ -76,6 +76,10 @@ describe('contactIntelligence schema guard (F4)', () => {
         'days_since_contact',
         'disc_profile',
         'inbound_ratio',
+        'briefing',
+        'rapport_guide',
+        'best_times_to_call',
+        'triggers',
       ].sort()
     );
   });
