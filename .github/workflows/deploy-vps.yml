@@ -35,28 +35,14 @@ jobs:
 
       - name: 🛡️ Preflight Secrets Validation
         env:
+          CI: "true"
+          ENFORCE_DEPLOY_SECRETS: "1"
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: |
-          missing=()
-          [ -z "$VITE_SUPABASE_URL" ] && missing+=("VITE_SUPABASE_URL")
-          [ -z "$VITE_SUPABASE_PUBLISHABLE_KEY" ] && missing+=("VITE_SUPABASE_PUBLISHABLE_KEY")
-          [ -z "$SUPABASE_SERVICE_ROLE_KEY" ] && missing+=("SUPABASE_SERVICE_ROLE_KEY")
-          [ -z "$SUPABASE_DB_URL" ] && missing+=("SUPABASE_DB_URL")
-          
-          if [ ${#missing[@]} -ne 0 ]; then
-            echo "::error title=🚀 Deploy Bloqueado::Os seguintes secrets obrigatórios estão faltando: ${missing[*]}"
-            echo "Acesse Settings > Secrets and variables > Actions para configurar."
-            exit 1
-          fi
+        run: node scripts/check-deploy-secrets.mjs
 
-          case "${VITE_SUPABASE_URL}" in
-            *.supabase.co*)
-              echo "::error title=URL inválida::VITE_SUPABASE_URL aponta para Lovable Cloud. Deploy ZAPP v3 requer VPS Self-Hosted."
-              exit 1 ;;
-          esac
           
           echo "✅ Todos os secrets críticos (Auth, DB, Service Role) estão presentes."
 
