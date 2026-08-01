@@ -157,6 +157,3 @@ export const AchievementsSystemLazy = lazyWithRetry(async () => {
   const m = await import('@/components/gamification/AchievementsSystem');
   return { default: m.AchievementsSystem };
 }) as React.LazyExoticComponent<React.ComponentType<{ userId?: string; showCompact?: boolean }>>;
-
-/** Lazy-loaded MigrationStatusPage with 3-attempt retry backoff. */
-export const MigrationStatusPage = lazyWithRetry(() => import('@/pages/MigrationStatusPage'));

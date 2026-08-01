@@ -2,7 +2,7 @@
 // NÃO é honrado pelo runtime edge self-hosted (supabase/edge-runtime) quando este
 // arquivo é o entrypoint. Esta allowlist (PUBLIC_FNS) é a FONTE DE VERDADE:
 // funções listadas aqui são chamadas SEM JWT mesmo com VERIFY_JWT=true; qualquer
-// outra função exige Authorization: Bearer com JWT válido.
+// outra função exige Authorization: Bearer <JWT válido>.
 
 import * as jose from 'https://deno.land/x/jose@v4.14.4/index.ts'
 
@@ -12,30 +12,44 @@ const VERIFY_JWT = Deno.env.get('VERIFY_JWT') === 'true'
 
 // Allowlist de funções públicas: não exigem JWT (webhooks externos, health checks,
 // endpoints chamados pelo frontend sem sessão). Manter em sincronia com o deploy.
+// Fonte: docs/edge/reconciliacao-2026-08.md (Fase E2, 2026-08-01) + classificação E21.
 const PUBLIC_FNS = new Set<string>([
+  // webhooks com HMAC próprio (fail-closed via *_STRICT + secrets HMAC)
   'evolution-webhook',
   'whatsapp-webhook',
   'whatsapp-cloud-webhook',
   'whatsapp-cloud-webhook-verify',
   'elevenlabs-webhook',
   'gmail-webhook',
+  // públicos por design (sem dado sensível)
   'email-track-pixel',
   'email-track-link',
-  'login-attempts',
-  'sentiment-alert',
-  'evolution-health',
-  'evolution-sender',
-  'send-rate-limit-alert',
-  'cleanup-rate-limit-logs',
-  'classify-audio-meme',
-  'classify-emoji',
-  'classify-sticker',
   'health-check',
   'status',
+  'login-attempts',
+  // cron/alert com segredo próprio (CRON_SECRET / *_SECRET)
+  'cleanup-rate-limit-logs',
+  'cleanup-storage-orphans',
+  'auto-close-conversations',
+  'auto-escalate-sla',
+  'queue-rebalance',
+  'nps-scheduler',
+  'sicoob-outbox-consumer',
+  'talkx-scheduler',
+  'sla-alert-forward',
+  'sentiment-alert',
+  'evolution-health',
+  'bitrix-api',
+  'send-rate-limit-alert',
+  'evolution-sync',
+  // service-to-service com secret próprio (sem JWT de usuário)
   'sicoob-bridge',
+  'sicoob-bridge-reply',
+  'gmail-oauth',
   'public-api',
-  'health',
-  'metrics',
+  // scrape/health com bearer de segredo próprio (NÃO-JWT: PROXY_METRICS_TOKEN / HEALTH_TOKEN)
+  'proxy-metrics',
+  'proxy-health',
 ])
 
 // O segredo JWT pode vir direto de JWT_SECRET ou de um arquivo montado no container
@@ -48,31 +62,18 @@ if (jwtSecretFile) {
     fileSecret = Deno.readTextFileSync(jwtSecretFile)
   } catch (e) {
     // Arquivo ausente/ilegível NUNCA pode derrubar o entrypoint compartilhado:
-    // loga e cai para o fallback JWT_SECRET.
-    console.error(`[main] JWT_SECRET_FILE ilegível (${jwtSecretFile}):`, e)
+    // loga e continua (o fallback JWT_SECRET abaixo cobre o caso normal).
+    console.error('[main] aviso: JWT_SECRET_FILE ilegível — usando JWT_SECRET', e)
   }
 }
-const JWT_SECRET = (fileSecret || Deno.env.get('JWT_SECRET') || '').trim()
+const rawSecret = (fileSecret || Deno.env.get('JWT_SECRET') || '').trim()
+const JWT_SECRET = rawSecret.startsWith('MISSING__') ? '' : rawSecret
 
-// Fail-fast on startup: if JWT verification is enabled but JWT_SECRET is absent,
-// every request would be validated against an undefined key — surface the misconfiguration now.
+// Fail-fast on startup: se VERIFY_JWT=true sem segredo resolvido, cada request
+// seria validado contra chave indefinida — derruba o container no boot.
 if (VERIFY_JWT && !JWT_SECRET) {
   console.error('[main] FATAL: VERIFY_JWT=true but JWT_SECRET/JWT_SECRET_FILE is not set — refusing to start')
   throw new Error('JWT_SECRET required when VERIFY_JWT is enabled')
-}
-// Placeholder não-resolvido (MISSING__) também é fail-fast: senão tudo retorna 401 silencioso.
-if (VERIFY_JWT && JWT_SECRET.startsWith('MISSING__')) {
-  console.error(`[main] FATAL: JWT_SECRET não foi resolvida (valor começa com 'MISSING__') — refusing to start`)
-  throw new Error('JWT_SECRET unresolved (MISSING__ placeholder) when VERIFY_JWT is enabled')
-}
-
-// Guard de env não resolvida: no runtime self-hosted, secrets ausentes podem chegar
-// como 'MISSING__<NOME>'. Apenas avisamos no boot — não bloqueamos o boot.
-for (const key of ['VERIFY_JWT', 'JWT_SECRET', 'JWT_SECRET_FILE']) {
-  const value = Deno.env.get(key)
-  if (value && value.startsWith('MISSING__')) {
-    console.warn(`[main] WARNING: env var "${key}" não foi resolvida (valor começa com 'MISSING__'). Verifique as secrets do runtime self-hosted.`)
-  }
 }
 
 // Allowlist for function names: lowercase alpha, digits, hyphen; no traversal, no self-invocation.
@@ -89,7 +90,7 @@ function getAuthToken(req: Request) {
 
 async function verifyJWT(jwt: string): Promise<boolean> {
   const encoder = new TextEncoder()
-  const secretKey = encoder.encode(JWT_SECRET!)
+  const secretKey = encoder.encode(JWT_SECRET)
   try {
     await jose.jwtVerify(jwt, secretKey)
   } catch (err) {
@@ -104,28 +105,6 @@ Deno.serve(async (req: Request) => {
   const { pathname } = url
   const path_parts = pathname.split('/')
   const service_name = path_parts[1]
-
-  // Funções na allowlist (PUBLIC_FNS) não exigem JWT mesmo com VERIFY_JWT=true.
-  const isPublic = service_name ? PUBLIC_FNS.has(service_name) : false
-
-  if (req.method !== 'OPTIONS' && VERIFY_JWT && !isPublic) {
-    try {
-      const token = getAuthToken(req)
-      const isValidJWT = await verifyJWT(token)
-      if (!isValidJWT) {
-        return new Response(JSON.stringify({ msg: 'Invalid JWT' }), {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-        })
-      }
-    } catch (e) {
-      console.error(e)
-      return new Response(JSON.stringify({ msg: 'Authorization failed' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
-  }
 
   if (!service_name || service_name === '') {
     return new Response(JSON.stringify({ msg: 'missing function name in request' }), {
@@ -144,6 +123,27 @@ Deno.serve(async (req: Request) => {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     })
+  }
+
+  // Gate de autenticação: OPTIONS (CORS preflight) sempre passa; allowlist passa
+  // sem token; todo o resto exige Bearer JWT válido quando VERIFY_JWT=true.
+  if (req.method !== 'OPTIONS' && VERIFY_JWT && !PUBLIC_FNS.has(service_name)) {
+    try {
+      const token = getAuthToken(req)
+      const isValidJWT = await verifyJWT(token)
+      if (!isValidJWT) {
+        return new Response(JSON.stringify({ msg: 'Invalid JWT' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+    } catch (e) {
+      console.error(e)
+      return new Response(JSON.stringify({ msg: 'Authorization failed' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
   }
 
   const servicePath = `/home/deno/functions/${service_name}`
