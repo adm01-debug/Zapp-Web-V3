@@ -169,7 +169,7 @@ const DISC_TEMPLATES: Record<'D' | 'I' | 'S' | 'C', DISCTips> = {
 
 function buildDisc(raw: RawIntel | null): DISCTips | null {
   const key = (raw?.disc_profile || '').toUpperCase();
-  if (key === 'D' || key === 'I' || key === 'S' || key === 'C') return DISC_TEMPLATES[key];
+  if (key === 'D' || key === 'I' || key === 'S' || key === 'C') return DISC_TEMPLATES[key as keyof typeof DISC_TEMPLATES];
   return null;
 }
 
