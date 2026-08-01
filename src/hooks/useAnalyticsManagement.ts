@@ -181,7 +181,7 @@ export function useLatestAnalysisManagement(timeWindow: number = 24) {
 
 /** Hook: use Message Attempts Management. */
 export function useMessageAttemptsManagement(messageId: string) {
-  const { data: attempts = [], isLoading: loading } = useQuery({
+  const { data: attempts = [], isLoading: loading, error } = useQuery({
     queryKey: ['message-attempts', messageId] as const,
     queryFn: async () => {
       const { data, error: err } = await supabase
@@ -195,7 +195,7 @@ export function useMessageAttemptsManagement(messageId: string) {
     staleTime: 30_000,
   });
 
-  return { attempts, loading };
+  return { attempts, loading, error: error as Error | null };
 }
 
 /** Re-exported module members. */

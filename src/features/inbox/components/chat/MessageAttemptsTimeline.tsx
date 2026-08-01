@@ -84,7 +84,9 @@ export function MessageAttemptsTimeline({ messageId, enabled }: MessageAttemptsT
 
   const finalReason =
     row.status === 'succeeded'
-      ? 'Entregue após retentativa.'
+      ? row.retry_count > 0
+        ? 'Entregue após retentativa.'
+        : 'Entregue na primeira tentativa.'
       : row.error_message ?? row.last_retry_reason ?? null;
 
   return (
@@ -149,7 +151,7 @@ export function MessageAttemptsTimeline({ messageId, enabled }: MessageAttemptsT
           )}
           {row.last_retry_reason && row.last_retry_reason !== row.error_message && (
             <p className="text-muted-foreground italic">
-              Reason: {row.last_retry_reason}
+              Motivo: {row.last_retry_reason}
             </p>
           )}
         </div>

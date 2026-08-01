@@ -81,7 +81,7 @@ export function SendErrorBanner({ error, detail, isRetrying, onRetry, onDismiss 
         </div>
       </div>
       {hasDetail && showDetail && (
-        <div className="border-t border-destructive/30 bg-destructive/5 px-3 py-2 text-[11px]  text-destructive/90">
+        <div className="border-t border-destructive/30 bg-destructive/5 px-3 py-2 text-[11px] text-destructive/90">
           <div className="flex items-start justify-between gap-2">
             <pre className="whitespace-pre-wrap break-words flex-1 min-w-0">{detail}</pre>
             <Button

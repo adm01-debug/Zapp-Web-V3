@@ -24,7 +24,7 @@ export function ChatSendProgress({ isSending, sendProgress }: ChatSendProgressPr
             <span className="text-[10px] font-medium uppercase tracking-wider text-primary">
               Enviando...
             </span>
-            <span className="text-[10px] font-bold text-primary">{Math.round(sendProgress)}%</span>
+            <span className="text-[10px] font-bold text-primary">{Math.min(100, Math.round(sendProgress))}%</span>
           </div>
           <div className="h-1 w-full overflow-hidden rounded-full bg-primary/10">
             <motion.div
