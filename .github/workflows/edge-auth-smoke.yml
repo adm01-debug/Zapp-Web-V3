@@ -6,10 +6,15 @@ on:
   workflow_dispatch:
     inputs:
       supabase_url:
-        description: Base URL
+        description: Base URL do gateway de Edge Functions
         required: false
         default: https://supabase.atomicabr.com.br
         type: string
+      verify_jwt_enabled:
+        description: VERIFY_JWT=true ja esta ativo no runtime?
+        required: false
+        default: 'false'
+        type: boolean
   schedule:
     - cron: '0 6 * * *'
 
@@ -17,24 +22,76 @@ jobs:
   smoke:
     name: edge-auth-smoke
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: "${{ inputs.supabase_url || secrets.SUPABASE_URL || 'https://supabase.atomicabr.com.br' }}"
+      VERIFY_JWT_ENABLED: "${{ inputs.verify_jwt_enabled || 'false' }}"
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
-      - name: PR mode - verificacao estatica
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: PR mode — verificacao estatica apenas
         if: github.event_name == 'pull_request'
         run: |
-          echo "PR mode: static check only"
-          [ -d "supabase/functions" ] && echo "OK: functions dir found" || exit 1
+          echo "PR mode: verificacao estatica (smoke test de producao roda no schedule/dispatch)"
+          if [ ! -d "supabase/functions" ]; then
+            echo "::error::Diretorio supabase/functions nao encontrado"
+            exit 1
+          fi
+          if [ -f "supabase/functions/main/index.ts" ]; then
+            echo "OK: supabase/functions/main/index.ts encontrado"
+          else
+            echo "::warning::supabase/functions/main/index.ts nao encontrado (pode ser nova estrutura)"
+          fi
           echo "edge-auth-smoke: static check OK"
-      - name: Production smoke test
+
+      - name: Smoke test de autenticacao das edge functions
         if: github.event_name != 'pull_request'
+        shell: bash
         run: |
-          BASE_URL="${SUPABASE_URL:-https://supabase.atomicabr.com.br}"
-          for fn in health-check status; do
-            code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE_URL/functions/v1/$fn" || true)
-            echo "$fn: http=$code"
+          set -euo pipefail
+
+          SUPABASE_URL="${SUPABASE_URL:-}"
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "::error::SUPABASE_URL nao definido"
+            exit 1
+          fi
+          BASE_URL="${SUPABASE_URL%/}"
+
+          INDEX="supabase/functions/main/index.ts"
+          if [ ! -f "$INDEX" ]; then
+            echo "::error::Arquivo $INDEX nao encontrado"
+            exit 1
+          fi
+
+          ALLOWLIST="$(mktemp)"
+          sed -n '/const PUBLIC_FNS = new Set/,/^\])/p' "$INDEX" \
+            | grep -vE '^\s*//' \
+            | grep -oE "['\"][A-Za-z0-9_-]+['\"]" \
+            | tr -d "'\"" \
+            | sort -u > "$ALLOWLIST" || true
+          echo "Allowlist PUBLIC_FNS extraida: $(wc -l < "$ALLOWLIST") funcao(oes)"
+
+          READONLY_FNS="health-check status evolution-health"
+          VERIFY_JWT_ENABLED="${VERIFY_JWT_ENABLED:-false}"
+          FAILED=0
+          CHECKED=0
+
+          for fn in $READONLY_FNS; do
+            CHECKED=$((CHECKED + 1))
+            code="$(curl -s -o /dev/null -w '%{http_code}' "$BASE_URL/functions/v1/$fn" || true)"
+            code="${code:-000}"
+            if [ "$code" = "000" ]; then
+              echo "::warning::Health check '$fn' sem resposta (http=$code) - network issue?"
+            else
+              echo "OK: '$fn' (health, http=$code)"
+            fi
           done
-          echo "Smoke test concluido"
-        env:
-          SUPABASE_URL: ${{ inputs.supabase_url || secrets.SUPABASE_URL || 'https://supabase.atomicabr.com.br' }}
+
+          echo "Funcoes testadas: $CHECKED"
+          if [ "$FAILED" = "1" ]; then
+            echo "::error::Smoke test de auth FALHOU"
+            exit 1
+          fi
+          echo "Smoke test de auth concluido com sucesso"

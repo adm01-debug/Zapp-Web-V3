@@ -19,24 +19,58 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: PR mode - verificacao estatica
+
+      - name: PR mode — verificacao estatica apenas
         if: github.event_name == 'pull_request'
         run: |
-          echo "PR mode: static check only"
-          [ -d "supabase/functions" ] && echo "OK: functions dir found" || exit 1
-          [ -f "supabase/functions/.env.required" ] && echo "OK: .env.required found" || echo "::warning::.env.required nao encontrado"
+          echo "PR mode: verificacao estatica (drift check de producao roda no schedule/dispatch)"
+          if [ ! -d "supabase/functions" ]; then
+            echo "::error::Diretorio supabase/functions nao encontrado"
+            exit 1
+          fi
+          if [ -f "supabase/functions/.env.required" ]; then
+            echo "OK: .env.required encontrado"
+            wc -l < supabase/functions/.env.required || true
+          else
+            echo "::warning::.env.required nao encontrado"
+          fi
           echo "edge-drift-check: static check OK"
-      - name: Production drift check
+
+      - name: E37 — Comparar hash das funcoes do repo vs producao
         if: github.event_name != 'pull_request'
         run: |
+          set +e
           MISSING=0
           for fn_dir in supabase/functions/*/; do
             fn=$(basename "$fn_dir")
-            [ "$fn" = "_shared" ] && continue; [ "$fn" = "main" ] && continue
+            [ "$fn" = "_shared" ] && continue
+            [ "$fn" = "main" ] && continue
             [ ! -f "$fn_dir/index.ts" ] && continue
             code=$(curl -sk -o /dev/null -w "%{http_code}" --max-time 15 "https://supabase.atomicabr.com.br/functions/v1/$fn")
-            [ "$code" = "404" ] || [ "$code" = "000" ] && MISSING=$((MISSING+1))
+            if [ "$code" = "404" ] || [ "$code" = "000" ]; then
+              echo "AVISO: $fn: resposta HTTP $code (possivel drift ou rota bloqueada)"
+              MISSING=$((MISSING+1))
+            fi
           done
           echo "Funcoes com resposta inesperada: $MISSING"
-          [ "$MISSING" -gt 5 ] && exit 1
-          echo "Baseline E37 OK"
+          if [ "$MISSING" -gt 5 ]; then
+            echo "::error::Drift detectado: $MISSING funcoes nao respondem como esperado"
+            exit 1
+          fi
+          echo "Todas as funcoes respondem (baseline E37)"
+
+      - name: E38 — Completude de ambiente
+        if: github.event_name != 'pull_request'
+        run: |
+          set +e
+          grep -rhoE "Deno\.env\.get\([\"'][A-Z0-9_]+[\"']\)" supabase/functions/ \
+            | grep -oE "[A-Z0-9_]{3,}" | sort -u > /tmp/req-repo.txt
+          sort -u supabase/functions/.env.required > /tmp/declared.txt 2>/dev/null || touch /tmp/declared.txt
+          comm -23 /tmp/req-repo.txt /tmp/declared.txt > /tmp/missing.txt
+          echo "Variaveis usadas mas NAO declaradas em .env.required:"
+          cat /tmp/missing.txt
+          if [ -s /tmp/missing.txt ]; then
+            echo "::error::Completude de ambiente falhou"
+            exit 1
+          fi
+          echo "Todas as variaveis usadas estao declaradas em .env.required"

@@ -91,10 +91,20 @@ function canonicalTable(raw) {
 
 let files;
 try {
-  files = readdirSync(MIGRATION_DIR)
-    .filter(f => TIMESTAMP_RE.test(f))
-    .sort()
-    .map(f => join(MIGRATION_DIR, f));
+  // R25 fix: varre também supabase/migrations/archive/ — o #628 (baseline)
+  // arquivou 966 migrations que contêm o ENABLE ROW LEVEL SECURITY das
+  // tabelas ativas (o banco real está correto; o gate sem archive dava
+  // falso-positivo em 10 tabelas críticas).
+  const dirs = [MIGRATION_DIR, join(MIGRATION_DIR, 'archive')];
+  files = [];
+  for (const dir of dirs) {
+    files = files.concat(
+      readdirSync(dir)
+        .filter(f => TIMESTAMP_RE.test(f))
+        .sort()
+        .map(f => join(dir, f))
+    );
+  }
 } catch {
   console.error(`Cannot read ${MIGRATION_DIR}`);
   process.exit(1);
