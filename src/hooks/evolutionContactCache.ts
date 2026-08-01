@@ -15,10 +15,18 @@ export interface ContactEnrichmentData {
 /** C A C H E_ T T L constant. */
 export const CACHE_TTL = 300_000; // 5 minutes
 
+/** Tempo mínimo entre tentativas de um JID que FALHOU no enriquecimento. */
+export const FAILURE_COOLDOWN_MS = 60_000; // 1 minute
+
 /** contact Enrichment Cache constant. */
 export const contactEnrichmentCache = new Map<
   string,
-  { data: ContactEnrichmentData; timestamp: number }
+  {
+    data: ContactEnrichmentData | null;
+    timestamp: number;
+    /** Preenchido quando a última tentativa falhou (evita re-hammer no próximo poll). */
+    failedAt?: number;
+  }
 >();
 
 /**

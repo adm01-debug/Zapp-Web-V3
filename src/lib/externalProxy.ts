@@ -16,6 +16,7 @@ import {
   isBreakerOpen,
   recordBreakerFailure,
   recordBreakerSuccess,
+  recordHealthFailure,
   isAuthLocked,
   isConfigAuthLocked,
   tripAuthLock,
@@ -33,6 +34,7 @@ import {
   normalizeInvokeError,
   isPersistentConfigAuthError,
   isTransientRuntimeError,
+  isServerHealthError,
   setInvokeOverride,
   clearInvokeOverride,
   type InvokeOverrideFn,
@@ -162,6 +164,10 @@ async function executeProxyCall<T>(
   if (signal) invokeOptions.signal = signal;
 
   const startedAt = performance.now();
+  // Evita telemetria duplicada: o catch final só registra erros que ainda
+  // não passaram por recordQueryEvent (ex.: exceção inesperada do loop).
+  // Declarado FORA do try porque o catch precisa ler.
+  let recorded = false;
 
   try {
     const MAX_ATTEMPTS = 3;
@@ -210,9 +216,11 @@ async function executeProxyCall<T>(
         error?.status === undefined;
       const isAuthError = !ok && (error?.status === 401 || error?.status === 403);
       const isConfigAuthError = !ok && isPersistentConfigAuthError(error);
+      const isHealthError = !ok && !isAuthError && !isConfigAuthError && isServerHealthError(error);
       const transient = error ? isTransientRuntimeError(error) || isGhostPost : false;
       if (transient) transientCount += 1;
       if (isGhostPost) recordBreakerFailure(meta.target);
+      if (isHealthError) recordHealthFailure(meta.target);
       if (isAuthError) tripAuthLock(meta.target, AUTH_LOCK_MS, 'auth_401_403');
       if (isConfigAuthError) tripConfigAuthLock('config_service_role_mismatch');
       if (ok) recordBreakerSuccess(meta.target);
@@ -298,6 +306,7 @@ async function executeProxyCall<T>(
         startedAt,
         correlationId,
       });
+      recorded = true;
 
       if (isAbort) {
         const abortErr = new Error('Aborted');
@@ -323,6 +332,7 @@ async function executeProxyCall<T>(
         startedAt,
         correlationId,
       });
+      recorded = true;
       throw new Error(data.error);
     }
 
@@ -343,7 +353,7 @@ async function executeProxyCall<T>(
     const message = (err as Error)?.message ?? '';
     if (name === 'AbortError') throw err;
 
-    if (!/External DB proxy error|Aborted/i.test(message)) {
+    if (!recorded && !/External DB proxy error|Aborted/i.test(message)) {
       const durationMs = Math.round(performance.now() - startedAt);
       const isTimeout = name === 'TimeoutError' || /timeout/i.test(message);
       recordQueryEvent({

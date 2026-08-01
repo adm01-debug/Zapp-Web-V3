@@ -11,6 +11,47 @@ export const SUPABASE_ANON = SUPABASE_RESOLVED_ANON_KEY;
 /** F U N C T I O N S_ B A S E constant. */
 export const FUNCTIONS_BASE = isSupabaseConfigured ? `${SUPABASE_URL}/functions/v1` : '';
 
+// ─── Per-attempt timeout ─────────────────────────────────────────────────────
+// A função doente pode pendurar sem resposta (gateway/edge runtime travado).
+// Sem timeout, cada tentativa do proxy ficaria bloqueada indefinidamente.
+// 20s cobre consultas legítimas pesadas (o edge function timeout padrão é 30s)
+// e aborta apenas hangs reais. O abort dispara `TimeoutError` (não retry —
+// retry imediato contra função pendurada é inútil) e a telemetria registra
+// severity 'timeout'.
+const FETCH_TIMEOUT_MS = 20_000;
+
+/** Compõe o signal do caller com um timeout de 20s via AbortController manual (sem depender de AbortSignal.timeout/any). */
+function composeTimeoutSignal(callerSignal?: AbortSignal): {
+  signal: AbortSignal | undefined;
+  cleanup: () => void;
+} {
+  if (typeof AbortController === 'undefined') {
+    return { signal: callerSignal, cleanup: () => {} };
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort(new DOMException('Proxy request timed out', 'TimeoutError'));
+  }, FETCH_TIMEOUT_MS);
+  const onCallerAbort = () => controller.abort(callerSignal?.reason);
+
+  if (callerSignal) {
+    if (callerSignal.aborted) {
+      clearTimeout(timer);
+      controller.abort(callerSignal.reason);
+    } else {
+      callerSignal.addEventListener('abort', onCallerAbort, { once: true });
+    }
+  }
+
+  return {
+    signal: controller.signal,
+    cleanup: () => {
+      clearTimeout(timer);
+      callerSignal?.removeEventListener('abort', onCallerAbort);
+    },
+  };
+}
+
 // ─── Test-only invoke override ────────────────────────────────────────────────
 /** Invoke Override Fn type alias. */
 export type InvokeOverrideFn =
@@ -80,35 +121,40 @@ export async function invokeViaFetch<T>(
   }
 
   try {
-    const res = await fetch(`${FUNCTIONS_BASE}/${fnName}`, {
-      method: 'POST',
-      signal: opts.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: SUPABASE_ANON,
-        Authorization: authHeader,
-        ...(opts.headers ?? {}),
-      },
-      body: JSON.stringify(opts.body ?? {}),
-    });
-    const text = await res.text();
-    let parsed: unknown = null;
+    const { signal, cleanup } = composeTimeoutSignal(opts.signal);
     try {
-      parsed = text ? JSON.parse(text) : null;
-    } catch {
-      parsed = text;
+      const res = await fetch(`${FUNCTIONS_BASE}/${fnName}`, {
+        method: 'POST',
+        signal,
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: SUPABASE_ANON,
+          Authorization: authHeader,
+          ...(opts.headers ?? {}),
+        },
+        body: JSON.stringify(opts.body ?? {}),
+      });
+      const text = await res.text();
+      let parsed: unknown = null;
+      try {
+        parsed = text ? JSON.parse(text) : null;
+      } catch {
+        parsed = text;
+      }
+      if (!res.ok) {
+        const msg =
+          parsed && typeof parsed === 'object' && 'error' in (parsed as Record<string, unknown>)
+            ? String((parsed as Record<string, unknown>).error)
+            : `HTTP ${res.status}`;
+        return {
+          data: null,
+          error: { name: 'FunctionsHttpError', message: msg, status: res.status },
+        };
+      }
+      return { data: (parsed as T) ?? null, error: null };
+    } finally {
+      cleanup();
     }
-    if (!res.ok) {
-      const msg =
-        parsed && typeof parsed === 'object' && 'error' in (parsed as Record<string, unknown>)
-          ? String((parsed as Record<string, unknown>).error)
-          : `HTTP ${res.status}`;
-      return {
-        data: null,
-        error: { name: 'FunctionsHttpError', message: msg, status: res.status },
-      };
-    }
-    return { data: (parsed as T) ?? null, error: null };
   } catch (e: unknown) {
     const err = e as { name?: string; message?: string };
     return {
@@ -207,4 +253,34 @@ export function isTransientRuntimeError(err: unknown): boolean {
     /\b502\b/.test(message) ||
     /\b504\b/.test(message)
   );
+}
+
+/**
+ * Returns true when the error indicates DEGRADED BACKEND HEALTH: HTTP 5xx,
+ * pool de conexões esgotado ou erro de conexão com o banco. Essas falhas não
+ * se resolvem com retry imediato — devem contar para o health circuit breaker
+ * (3 falhas em 30s → short-circuit de 60s) para não martelar a função doente.
+ * Casos vistos em produção (2026-07-31):
+ *   - HTTP 500 "Timed out acquiring connection from connection pool."
+ *   - HTTP 400 "Database connection error. Retrying the connection."
+ */
+export function isServerHealthError(err: unknown): boolean {
+  const { status, message = '' } = normalizeInvokeError(err);
+  const m = message.toLowerCase();
+  if (status !== undefined && status >= 500) return true;
+  if (
+    /timed out acquiring connection|connection pool|database connection error|retrying the connection|pool exhausted|no more connections|too many clients/i.test(
+      m
+    )
+  ) {
+    return true;
+  }
+  if (
+    status !== undefined &&
+    (status === 400 || status === 429) &&
+    /pool|database|connection|timeout|temporarily unavailable/i.test(m)
+  ) {
+    return true;
+  }
+  return false;
 }

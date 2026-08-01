@@ -274,6 +274,7 @@ import {
 import {
   contactEnrichmentCache,
   CACHE_TTL,
+  FAILURE_COOLDOWN_MS,
   safeParseTags,
   type ContactEnrichmentData,
 } from './evolutionContactCache';
@@ -283,6 +284,28 @@ import { OPTIMISTIC_PREFIX, applyReconciliation } from './evolutionReconcile';
 
 const logConversations = getLogger('useExternalConversations');
 const logMessages = getLogger('useExternalMessages');
+
+/** Máx. de RPCs de enriquecimento simultâneos (protege a função/DB externo de fan-out 30× por poll). */
+const ENRICHMENT_CONCURRENCY = 5;
+
+/** Executa `fn` sobre `items` com no máximo `limit` execuções concorrentes, preservando a ordem. */
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const idx = next;
+      next += 1;
+      results[idx] = await fn(items[idx]);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
 
 /** Fetches Evolution API conversations with contact enrichment from external database. */
 export function useExternalConversations(enabled = true) {
@@ -314,6 +337,9 @@ export function useExternalConversations(enabled = true) {
       const jidsToFetch = firstJids.filter((jid) => {
         const cached = contactEnrichmentCache.get(jid);
         if (!cached) return true;
+        // JID que falhou recentemente: respeita o cooldown e só volta a tentar
+        // depois dele (evita re-hammer da função doente a cada poll de 15s).
+        if (cached.failedAt) return now - cached.failedAt >= FAILURE_COOLDOWN_MS;
         const conv = conversations.find((c) => c.contact.id === jid);
         const lastMsgTime = conv?.lastMessage ? new Date(conv.lastMessage.created_at).getTime() : 0;
         return now - cached.timestamp > CACHE_TTL || lastMsgTime > cached.timestamp;
@@ -321,16 +347,24 @@ export function useExternalConversations(enabled = true) {
 
       if (jidsToFetch.length > 0) {
         try {
-          const enrichments = await Promise.all(
-            jidsToFetch.map((jid) =>
-              queryExternalProxy<ContactEnrichmentData>({
-                action: 'rpc',
-                rpc: 'rpc_get_contact',
-                params: { p_remote_jid: jid, p_instance: DEFAULT_INSTANCE },
-              })
-                .then((res) => ({ jid, res }))
-                .catch(() => ({ jid, res: null }))
-            )
+          // Concorrência limitada: antes eram até 30 RPCs paralelos por poll —
+          // com o backend degradado isso ampliava a exaustão do pool.
+          const enrichments = await mapWithConcurrency(
+            jidsToFetch,
+            ENRICHMENT_CONCURRENCY,
+            async (jid) => {
+              try {
+                const res = await queryExternalProxy<ContactEnrichmentData>({
+                  action: 'rpc',
+                  rpc: 'rpc_get_contact',
+                  params: { p_remote_jid: jid, p_instance: DEFAULT_INSTANCE },
+                });
+                return { jid, res, failed: false as const };
+              } catch {
+                contactEnrichmentCache.set(jid, { data: null, timestamp: now, failedAt: now });
+                return { jid, res: null, failed: true as const };
+              }
+            }
           );
 
           enrichments.forEach(({ jid, res }) => {
