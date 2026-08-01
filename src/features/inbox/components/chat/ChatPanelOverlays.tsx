@@ -1,6 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { AnimatePresence } from 'framer-motion';
-import { motion } from '@/components/ui/motion';
+import { AnimatePresence, motion } from '@/components/ui/motion';
 import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 
 const WhisperMode = lazy(() => import('../WhisperMode').then((m) => ({ default: m.WhisperMode })));

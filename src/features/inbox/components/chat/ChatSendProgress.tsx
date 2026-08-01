@@ -15,6 +15,7 @@ export function ChatSendProgress({ isSending, sendProgress }: ChatSendProgressPr
     <AnimatePresence>
       {showBar && (
         <motion.div
+          key="send-progress-bar"
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
