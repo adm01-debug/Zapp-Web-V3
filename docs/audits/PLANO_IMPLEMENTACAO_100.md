@@ -5,7 +5,7 @@
 
 Convenção de ID: `F<bloco>-<seq>` — ex. `F1-01` = primeiro achado do bloco 1 da análise.
 
-**Total de achados até agora: 39** (14 Bloco 1 + 13 Bloco 2 + 12 Bloco 3).
+**Total de achados até agora: 63** (14 Bloco 1 + 13 Bloco 2 + 12 Bloco 3 + 24 Bloco 4).
 
 ---
 
@@ -107,115 +107,215 @@ CREATE INDEX CONCURRENTLY idx_msg_unread_inbound
 
 ## Tema 7 — Frontend: auth e sessão
 
+_(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
+
 ### F3-01 — CRÍTICO (P0): `supabase.auth.getSession()` fora de `useEffect` em `ProtectedRoute.tsx`
 
 - **Origem:** Etapa 22 (Bloco 3).
-- **Evidência:** `src/features/auth/components/ProtectedRoute.tsx` linhas 260-269:
-  ```typescript
-  if (!authLoading && user) {
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (error || !data.session) {
-        supabase.auth.signOut().then(() => {
-          window.location.replace('/auth');
-        });
-      }
-    });
-  }
-  ```
-  Executa em cada render (2× em StrictMode). Se `getSession()` retornar null transitoriamente, dispara logout automático.
-- **Ação:** mover para `useEffect(() => { ... }, [authLoading, user])` com `AbortController` para cancelar em unmount, e adicionar debounce/guard para não redispatchar `signOut` se já em progresso.
-- **Aceite:** teste manual com Chrome DevTools "Network throttling: Slow 3G" — user autenticado não deve ser deslogado por race entre `getSession` calls; nenhum `supabase.auth.signOut()` inesperado dispara em logs.
+- **Evidência:** `src/features/auth/components/ProtectedRoute.tsx` linhas 260-269 — executa em cada render (2× em StrictMode). Se `getSession()` retornar null transitoriamente, dispara logout automático.
+- **Ação:** mover para `useEffect(() => { ... }, [authLoading, user])` com `AbortController`.
+- **Aceite:** teste manual com "Slow 3G" — user autenticado não é deslogado por race entre `getSession` calls.
 
 ### F3-02 — `isDev` bypass total sem log de auditoria
 
 - **Origem:** Etapa 28 (Bloco 3).
-- **Evidência:** `ProtectedRoute.tsx` linhas 304-307. Se role `dev` for concedida em produção por engano, ninguém sabe que rotas o user acessou.
-- **Ação:** adicionar `void supabase.rpc('log_security_event', { p_event_type: 'dev_bypass_used', p_resource: location.pathname, ... });` antes do return, com throttle (só logar 1× por session+path).
-- **Aceite:** tabela `zapp.security_events` (ou `ops.security_events`) recebe eventos `dev_bypass_used` quando role `dev` acessa rota que exigiria outro role.
+- **Ação:** adicionar `void supabase.rpc('log_security_event', { p_event_type: 'dev_bypass_used', ... })` com throttle.
+- **Aceite:** `zapp.security_events` recebe eventos `dev_bypass_used`.
 
 ### F3-03 — `verifyHttpOnlyCookieAuth()` é dead code — remover
 
-- **Origem:** Etapa 23.
-- **Evidência:** `cookieStorage.ts` linha ~92: `export function verifyHttpOnlyCookieAuth(): boolean { return true; }` marcada `@deprecated`. `AuthProvider.tsx` linha 416 loga `[Auth] Security check failed` quando retorna false — condição impossível.
-- **Ação:** (a) remover a função do `cookieStorage.ts`; (b) remover import + chamada em `AuthProvider.tsx`; (c) grep global por outros call sites.
-- **Aceite:** função inexistente; `bun run build` sucede.
-
 ### F3-04 — `refreshAll` sem `AbortController` — race em `TOKEN_REFRESHED` consecutivo
-
-- **Origem:** Etapa 24.
-- **Evidência:** `AuthProvider.tsx` `refreshAll = useCallback(async (userId, options) => { Promise.all([fetchProfile(userId), fetchRolesAndPermissions(userId)]); ... })`. Se `onAuthStateChange` emite `TOKEN_REFRESHED` + `USER_UPDATED` em <1 s, duas passadas concorrentes rodam sem cancelamento.
-- **Ação:** passar `AbortSignal` para `fetchProfile` e `fetchRolesAndPermissions`; manter `AbortController` em `useRef` que é abortado no início de cada nova chamada.
-- **Aceite:** rodar teste com dois `authService.onAuthStateChange` triggers em rápida sucessão — apenas uma passada resolve, a anterior é cancelada.
 
 ### F3-05 — Parsing frágil de `role_permissions` — pode retornar `permissions = []` silenciosamente
 
-- **Origem:** Etapa 25.
-- **Evidência:** `AuthProvider.tsx` linha 130-140:
-  ```typescript
-  const perm = Array.isArray(p.permissions) ? p.permissions[0] : p.permissions;
-  return (perm as { name?: string } | null)?.name;
-  ```
-- **Ação:** (a) logar warning estruturado quando `userPermissions.length > 0` mas `permNames.length === 0` (indica parse quebrado); (b) emitir toast pro user "Erro ao carregar permissões" quando isso ocorre.
-- **Aceite:** log de warning presente quando parse retorna vazio; teste unitário cobre ambos shapes (array + objeto).
-
-### F3-06 — Realtime `zapp.profiles` só captura UPDATE
-
-- **Origem:** Etapa 26.
-- **Evidência:** `AuthProvider.tsx` linha ~500:
-  ```typescript
-  .on('postgres_changes', { event: 'UPDATE', schema: 'zapp', table: 'profiles', ... })
-  ```
-  Para `user_roles` já usa `event: '*'`.
-- **Ação:** trocar `event: 'UPDATE'` para `event: '*'` na subscription de `profiles`.
-- **Aceite:** teste manual — deletar profile via SQL → front deve receber notification (embora provavelmente nunca aconteça, é consistência).
+### F3-06 — Realtime `zapp.profiles` só captura UPDATE — trocar para `event: '*'`
 
 ### F3-07 — `retryBootstrap()` pode empilhar `getSession()` sob `navigator.locks`
 
-- **Origem:** Etapa 27.
-- **Evidência:** `AuthProvider.tsx` `retryBootstrap` verifica `isRetryingRef.current` mas o `withTimeout(supabase.auth.getSession(), 8000, ...)` do `runBootstrap` original continua pendurado.
-- **Ação:** propagar `AbortSignal` no `withTimeout` OU usar `AbortController` que é abortado antes de novo bootstrap iniciar. Alternativa: usar `bootstrapRunRef` como fonte de verdade e descartar respostas se `runId !== bootstrapRunRef.current` (já faz, mas o lock ainda fica contido).
-- **Aceite:** logs mostram apenas 1 `getSession` ativo por vez sob `navigator.locks`.
-
 ### F3-08 — Deletar `externalSessionBridge.ts` — dead code ativo
-
-- **Origem:** Etapa 29.
-- **Evidência:** `externalSessionBridge.ts` (8 099 B / 140 linhas) é no-op desde 2026-07-15 (`externalSupabase === supabase`). 3 guards `if ((externalSupabase as unknown) === (supabase as unknown)) return () => {}` em `registerExternalSessionBridge`, `mirrorExternalSignIn`, `mirrorExternalSignOut`.
-- **Ação:** (a) deletar `externalSessionBridge.ts` e `externalClient.ts`; (b) remover import + `registerExternalSessionBridge()` em `main.tsx`; (c) buscar e remover call sites de `mirrorExternalSignIn` / `mirrorExternalSignOut` (deve haver em auth flows).
-- **Aceite:** repo sem referências a `externalSessionBridge`; `bun run build` sucede; nenhum re-teste de auth quebrado.
 
 ### F3-09 — `signOut` sem fallback local se supabase-js falhar
 
-- **Origem:** Etapa 30.
-- **Evidência:** `AuthProvider.tsx` `signOut` chama `authService.signOut()` — se falhar (network, storage), state React limpa mas `localStorage['sb-*-auth-token']` permanece.
-- **Ação:** try/catch com cleanup manual `Object.keys(localStorage).filter(k => k.startsWith('sb-')).forEach(k => localStorage.removeItem(k))` no catch/finally.
-- **Aceite:** teste manual: simular network offline, chamar signOut, confirmar que localStorage sb-* foi limpo mesmo assim.
+### F3-10 — `QuotaExceededError` silenciado em cookieStorage — CustomEvent + toast
 
-### F3-10 — `QuotaExceededError` silenciado em cookieStorage — user perde sessão sem aviso
+### F3-11 — `markTimeToMainScreen` triplicado no ProtectedRoute — guard com `useRef`
 
-- **Origem:** Etapa 30.
-- **Evidência:** `cookieStorage.ts` linha ~55: `try { localStorage.setItem(...); } catch { /* ignora */ }`. Se localStorage cheio, próximo reload perde sessão.
-- **Ação:** emitir `window.dispatchEvent(new CustomEvent('zapp:storage-quota-exceeded', { detail: { key } }))` no catch. Um listener global em `AppProviders` ou `AppContent` mostra toast/dialog pro user.
-- **Aceite:** ao encher localStorage propositalmente e forçar signIn, toast "Espaço de armazenamento cheio — sua sessão pode ser perdida ao recarregar" aparece.
-
-### F3-11 — `markTimeToMainScreen` triplicado no ProtectedRoute
-
-- **Origem:** Etapa 30.
-- **Evidência:** chamado em 3 lugares (linhas ~306, ~314, ~365).
-- **Ação:** guard com `useRef<Set<string>>` de paths já marcados nesta sessão de componente — só marca a primeira vez.
-- **Aceite:** métrica `time_to_main_screen` tem 1 sample por path por session, não 3.
-
-### F3-12 — `log_security_event` sem contexto suficiente
-
-- **Origem:** Etapa 30.
-- **Evidência:** `ProtectedRoute.tsx` linhas 340, 375: envia `p_event_type`, `p_resource`, `p_action`, `p_status`, `p_details`. Sem `tenant_id`, `user_agent`, `ip_hash`, `session_id`.
-- **Ação:** enriquecer com contexto — `p_user_agent: navigator.userAgent`, `p_tenant_id: <extract from JWT>`, `p_session_id: session.access_token.slice(-16)` (hash do fim do token para correlação).
-- **Aceite:** `zapp.security_events` tem colunas populated; queries de forensics por tenant/session viáveis.
+### F3-12 — `log_security_event` sem contexto (tenant/UA/IP) — enriquecer
 
 ---
 
 ## Tema 8 — Frontend: inbox e mensageria
 
-_(aguardando Bloco 4 — próximo chat)_
+### F4-01 — `fetchConversations` sem cursor/paginação (500+1000 fixo)
+
+- **Origem:** Etapa 31/32 (Bloco 4).
+- **Evidência:** `useRealtimeMessages.ts` linhas ~250: `SEEDED_CONTACT_LIMIT = 500`, `RECENT_MESSAGES_LIMIT = 1000`.
+- **Ação:** substituir por cursor com `updated_at + id`, tamanho de página 100, load-more sob demanda ao rolar sidebar.
+- **Aceite:** tenant com 5000+ contatos ativos carrega inbox em < 2 s; sidebar suporta scroll infinito com virtualização.
+
+### F4-02 — `fetchConversations` sem guard de mount para setState/commitConversations
+
+- **Origem:** Etapa 32 (Bloco 4).
+- **Evidência:** await do `.select()` sem checar `active` flag; se hook desmonta durante fetch, setState roda após unmount.
+- **Ação:** propagar `AbortController` do `useEffect` para as chamadas `dbFrom`, e no `.finally` checar `active` antes de setLoading/setError.
+- **Aceite:** navegar entre rotas durante fetch inicial não gera warning "Can't perform a React state update on an unmounted component".
+
+### F4-03 — Channel realtime com nome aleatório (`Math.random()`)
+
+- **Origem:** Etapa 32 (Bloco 4).
+- **Evidência:** `useRealtimeMessages.ts` linha ~330: `` const channelName = `messages-realtime-${Math.random().toString(36).slice(2, 9)}` ``.
+- **Ação:** usar chave estável (ex.: `` `messages-realtime-${profile.id}` ``); cleanup async esperar unsubscribe antes de novo subscribe (usar promise).
+- **Aceite:** logs mostram apenas 1 channel `messages-realtime-*` por sessão de user; unsubscribe → new subscribe é sequencial em StrictMode.
+
+### F4-04 — `conversationSendState` computed fora de `useMemo`
+
+- **Origem:** Etapa 32 (Bloco 4).
+- **Evidência:** `useRealtimeMessages.ts` linhas ~560-600: `for (const c of conversations) { ... getSendStatus(m.id) }` — O(n·m) a cada render.
+- **Ação:** envolver em `useMemo` com deps `[conversations, sendStateTick]`.
+- **Aceite:** DevTools Profiler mostra o cálculo cacheado; render de 500 conversations sem re-computar quando outra parte do state muda.
+
+### F4-05 — `USE_EXTERNAL_DB = true` hardcoded
+
+- **Origem:** Etapa 31 (Bloco 4).
+- **Evidência:** `useRealtimeInbox.ts` linha 27: `const USE_EXTERNAL_DB = true;`.
+- **Ação:** trocar por `import.meta.env.VITE_USE_EXTERNAL_DB === 'true'`; documentar em `.env.example`.
+- **Aceite:** toggle via env sem PR; teste em ambos os modos.
+
+### F4-06 — `handleSelectConversation` chama `evolution-api/read-messages` fire-and-forget
+
+- **Origem:** Etapa 31 (Bloco 4).
+- **Evidência:** `useRealtimeInbox.ts` linha ~370: `void supabase.functions.invoke('evolution-api', { ... })` sem `.catch`.
+- **Ação:** adicionar `.catch(err => log.warn('[read-messages] failed', err))` no mínimo; opcionalmente reintroduzir toast silenciado para não spammar.
+- **Aceite:** falhas de `read-messages` aparecem em GlitchTip; UI não trava.
+
+### F4-07 — Reconciliação de delivery limitada a `.slice(-10)`
+
+- **Origem:** Etapa 32 (Bloco 4).
+- **Evidência:** `useRealtimeInbox.ts` linha ~330: `const recent = selectedMessages.slice(-10)`.
+- **Ação:** ampliar para todas as mensagens `external_id != null` da última janela (`created_at > now() - interval '5min'`).
+- **Aceite:** teste com burst de 20 mensagens: todas reconciliam com queue.
+
+### F4-08 — `seededAvatarsRef` sem limpeza — memory leak
+
+- **Origem:** Etapa 33 (Bloco 4).
+- **Ação:** convert `Set<string>` para `Map<string, timestamp>` com TTL 30min; sweep periódico via `setInterval`.
+- **Aceite:** heap snapshot após 4h de uso mostra Set com < 1000 entries.
+
+### F4-09 — `convProbeRef` log de debug em produção
+
+- **Origem:** Etapa 33 (Bloco 4).
+- **Evidência:** `useRealtimeInbox.ts` linhas ~140-165: `log.info('[probe] conversations state', { ... })`.
+- **Ação:** guard com `import.meta.env.DEV` ou remover completamente.
+- **Aceite:** produção não tem entradas `[probe]` no console.
+
+### F4-10 — `processedDeliveriesRef` (Set) cresce sem cap
+
+- **Origem:** Etapa 32 (Bloco 4).
+- **Evidência:** `useMessageQueue.ts` linha ~30: `const processedDeliveriesRef = useRef<Set<string>>(new Set())`. Cada `reconcileWithDelivery` adiciona; nunca remove.
+- **Ação:** substituir por LRU (`lru-cache` já em deps) com cap de 5000.
+- **Aceite:** heap snapshot em session de 8h mostra < 5000 entries.
+
+### F4-11 — `localStorage.setItem` sem try/catch em useMessageQueue
+
+- **Origem:** Etapa 32 (Bloco 4).
+- **Evidência:** `useMessageQueue.ts` linha ~135: `useEffect(() => { localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queueToSave)); }, [queue])`.
+- **Ação:** envolver em try/catch; no catch emitir `CustomEvent('zapp:storage-quota-exceeded')` (reuso do handler do F3-10).
+- **Aceite:** encher localStorage propositalmente + enfileirar msg → toast aparece; sem crash.
+
+### F4-12 — `beforeunload` handler ausente — cascade de sends no próximo load
+
+- **Origem:** Etapa 32 (Bloco 4).
+- **Ação:** listener `beforeunload` que marque items `sending` como `pending` no localStorage antes do unload (already handled parcialmente no restore, mas garantir ordem).
+- **Aceite:** fechar aba com 10 msgs pending, reabrir → sends ocorrem em rate limitado (não paralelo).
+
+### F4-13 — Classificação de erro sem diferenciar retryable
+
+- **Origem:** Etapa 32 (Bloco 4).
+- **Evidência:** `useMessageQueue.ts` linhas ~230-260: qualquer erro é considerado retryable até esgotar `maxRetries`. Erros 400/403 (validação) retentam desnecessário.
+- **Ação:** classificar via `messageSenderHelpers.classifyAuthError` + novos helpers para 4xx permanentes.
+- **Aceite:** erro 400 é `failed` imediato (sem retry); 429/5xx entra no loop.
+
+### F4-14 — `dbFrom('failed_messages').insert` falha silenciosa
+
+- **Origem:** Etapa 32 (Bloco 4).
+- **Evidência:** `zapp.failed_messages` está **vazia** apesar do path `!shouldAutoRetry` no useMessageQueue inserir.
+- **Ação:** (a) confirmar RLS da tabela; (b) `.insert(...).select()` para ter erro estruturado; (c) log estruturado do erro em GlitchTip.
+- **Aceite:** forçar 4 falhas seguidas → registro aparece em `failed_messages`; se der erro, GlitchTip captura.
+
+### F4-15 — `sendMessageToContact` faz 8 round-trips por mensagem
+
+- **Origem:** Etapa 32 (Bloco 4).
+- **Evidência:** `messageSender.ts` — 8 queries no happy path.
+- **Ação:** criar RPC SECDEF `rpc_send_message_atomic(p_contact_id, p_content, p_type, p_media_url, p_optimistic_id, p_conversation_id)` que faz insert de mensagem + audit_logs em 1 transação, retornando `messageId` + payload pronto para Evolution. Front chama a RPC, depois invoca Evolution, depois RPC de finalize.
+- **Aceite:** envio de 50 mensagens rápidas gera 100 queries (2× por msg) em vez de 400.
+
+### F4-16 — `buildSendIdempotencyKeyFromFingerprint` 5min bucket colide
+
+- **Origem:** Etapa 32 (Bloco 4).
+- **Ação:** reduzir bucket para 30s OU incluir hash do timestamp exato do add-to-queue no fingerprint.
+- **Aceite:** manual retry com conteúdo diferente após 30s gera nova key.
+
+### F4-17 — `messageSender.audit_logs` fire-and-forget sem retry
+
+- **Origem:** Etapa 32 (Bloco 4).
+- **Evidência:** `.then(() => null).catch(e => log.warn(...))` para writes de audit.
+- **Ação:** enfileirar em local buffer + flush retry 3× com backoff; se falhar 3×, escrever em `localStorage` como fallback.
+- **Aceite:** simular DB offline durante audit_log write → audit não é perdido.
+
+### F4-18 — `retry_attempt` e `error_reason` 100% NULL em `messages` (bug de persistência)
+
+- **Origem:** Etapa 33.5 (Bloco 4).
+- **Evidência:** 8 failed + 23 pending com `error_code/error_reason/retry_attempt = NULL`. Código de `messageSender.ts` explicitamente escreve esses campos.
+- **Ação:**
+  1. Investigar `fn_messages_instead_of_update` (`INSTEAD OF UPDATE` na view `messages`) — provavelmente descarta os campos que não estão na tabela-fonte `evo.evolution_messages`.
+  2. Adicionar colunas `error_code`, `error_reason`, `retry_attempt`, `retry_total` em `evo.evolution_messages` (ou tabela `zapp.message_send_metadata` linkada por FK).
+  3. Ajustar trigger para propagar corretamente.
+- **Aceite:** query `SELECT COUNT(*) FROM zapp.messages WHERE status='failed' AND error_reason IS NOT NULL` retorna > 0 após 1 dia em produção.
+
+### F4-19 — `extractEvolutionMessageId` pode retornar null; msgs sent sem external_id
+
+- **Origem:** Etapa 32 (Bloco 4).
+- **Evidência:** 42 messages sem external_id, incluindo 1 sent e 1 delivered.
+- **Ação:** se `extractEvolutionMessageId` retornar null e response 200, marcar status como `sent_unverified` e enfileirar job de reconciliation contra `evo.evolution_webhook_events_v2` que resolva o external_id pelo timestamp + phone.
+- **Aceite:** teste manual — Evolution retorna 200 sem key.id → status = sent_unverified; após webhook chegar, resolve para external_id real.
+
+### F4-20 — `useMediaUrl.refreshCache` sem cap (potencial 100s MB)
+
+- **Origem:** Etapa 33 (Bloco 4).
+- **Ação:** substituir por `LRUCache` com maxSize por bytes (ex.: 50 MB) usando `lru-cache` + `sizeCalculation`.
+- **Aceite:** heap snapshot após visitar 500 conversas com mídia mostra cache < 60 MB.
+
+### F4-21 — `buildFileHash(originalUrl) != buildFileHash(dataUrl)` — cache DB nunca hit
+
+- **Origem:** Etapa 33 (Bloco 4).
+- **Evidência:** `zapp.media_cache` **vazia** em produção.
+- **Ação:** unificar a chave — hash do `originalUrl` como identidade + `storage_path` apontando para o cache real. Ou remover `media_cache` completamente e usar apenas cache em memória.
+- **Aceite:** após 24h em produção, `zapp.media_cache` tem > 0 rows; hit rate > 50% em imagens visualizadas 2×.
+
+### F4-22 — `media_cache.storage_path` armazenando data URL base64 (anti-pattern)
+
+- **Origem:** Etapa 33 (Bloco 4).
+- **Ação:** trocar para upload real ao R2/MinIO retornando URL público; `storage_path` = URL do bucket.
+- **Aceite:** `avg(pg_column_size(storage_path))` em `media_cache` < 200 bytes.
+
+### F4-23 — Cron `retry-stuck-messages` opera em tabela vazia (`outbound_message_queue`) — 23 msgs pending há 5 dias
+
+- **Origem:** Etapa 33.5 (Bloco 4).
+- **Evidência:** `fn_retry_stuck_messages()` faz `UPDATE zapp.outbound_message_queue SET status='pending'` mas a table está vazia; as mensagens presas estão em `zapp.messages` (via `evo.evolution_messages`).
+- **Ação:**
+  1. Reescrever `fn_retry_stuck_messages()` para operar em `evo.evolution_messages` diretamente: `WHERE status='pending' AND updated_at < now() - interval '10 min' AND (retry_attempt IS NULL OR retry_attempt < 3)`.
+  2. Ao pegar, invocar edge function de re-send ou marcar como `failed` com `error_reason='timeout_pipeline'` se retry_attempt >= 3.
+  3. Adicionar guard para não repostar msgs cuja Evolution API já processou (checar via `webhook_events_processed`).
+- **Aceite:** após deploy, as 23 mensagens presas resolvem em < 30 min (sent com external_id OU failed com reason claro).
+
+### F4-24 — Cron `media_pipeline_health_check` (jobid 213) falha por schema drift
+
+- **Origem:** Etapa 33.5 (Bloco 4).
+- **Evidência:** falhas históricas: `column "severity" of relation "warroom_alerts" does not exist` e `chk_warroom_alert_type` violation com `alert_type='media_pipeline'`.
+- **Ação:** (a) verificar schema atual de `zapp.warroom_alerts` — adicionar coluna `severity` ou remover do INSERT; (b) atualizar constraint `chk_warroom_alert_type` para incluir `'media_pipeline'` ou trocar por outro tipo aceito.
+- **Aceite:** run manual de `SELECT zapp.fn_run_media_health_alert()` sem erro; 4557 alertas históricos processados.
+
+---
 
 ## Tema 9 — Frontend: admin e observabilidade
 
