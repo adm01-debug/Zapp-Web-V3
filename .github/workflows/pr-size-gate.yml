@@ -9,17 +9,9 @@ permissions:
   pull-requests: write
   issues: write
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Etapa 16 do Plano 50 Etapas: Definir limite de tamanho de PR
-#
-# PR ideal: ≤300 linhas | Teto: 800 linhas
-# Acima do teto: bot comenta + adiciona label size/XL
-# Acima do ideal: bot comenta + adiciona label size/L (aviso)
-# ─────────────────────────────────────────────────────────────────────────────
-
 jobs:
   pr-size:
-    name: PR Size Check
+    name: PR Size Gate
     runs-on: ubuntu-latest
     steps:
       - name: Check PR size and comment
@@ -39,7 +31,6 @@ jobs:
             const IDEAL  = 300;
             const CEILING = 800;
 
-            // ── Determinar label de tamanho ──────────────────────────────
             let label;
             if      (total <= 50)      label = 'size/XS';
             else if (total <= IDEAL)   label = 'size/S';
@@ -47,132 +38,45 @@ jobs:
             else if (total <= CEILING) label = 'size/L';
             else                       label = 'size/XL';
 
-            // ── Criar labels se necessário ──────────────────────────────
             const sizeLabels = ['size/XS','size/S','size/M','size/L','size/XL'];
             for (const lbl of sizeLabels) {
               try {
-                await github.rest.issues.getLabel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  name: lbl
-                });
+                await github.rest.issues.getLabel({ owner: context.repo.owner, repo: context.repo.repo, name: lbl });
               } catch {
-                const colors = {
-                  'size/XS': '0e8a16', 'size/S': '7cfc00',
-                  'size/M': 'fbca04', 'size/L': 'eb6420', 'size/XL': 'b60205'
-                };
+                const colors = { 'size/XS': '0e8a16', 'size/S': '7cfc00', 'size/M': 'fbca04', 'size/L': 'eb6420', 'size/XL': 'b60205' };
                 try {
-                  await github.rest.issues.createLabel({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    name: lbl,
-                    color: colors[lbl]
-                  });
+                  await github.rest.issues.createLabel({ owner: context.repo.owner, repo: context.repo.repo, name: lbl, color: colors[lbl] });
                 } catch(e) { console.log('Label creation skipped:', e.message); }
               }
             }
 
-            // ── Remover labels de tamanho anteriores ─────────────────────
             for (const lbl of sizeLabels) {
               try {
-                await github.rest.issues.removeLabel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.issue.number,
-                  name: lbl
-                });
-              } catch { /* Label não existia neste PR */ }
+                await github.rest.issues.removeLabel({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, name: lbl });
+              } catch { }
             }
 
-            // ── Adicionar label atual ─────────────────────────────────────
             try {
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                labels: [label]
-              });
+              await github.rest.issues.addLabels({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, labels: [label] });
             } catch(e) { console.log('Could not add label:', e.message); }
 
-            // ── Gerar comentário se necessário ────────────────────────────
             let comment = null;
-
             if (total > CEILING) {
-              comment = [
-                `## ⚠️ PR muito grande — ${total} linhas (+${additions}/−${deletions})`,
-                '',
-                `Este PR excede o **teto de ${CEILING} linhas** definido no Plano 50 Etapas (Etapa 16).`,
-                '',
-                '**Ação necessária antes do merge:**',
-                '1. Dividir em PRs menores com **um tema cada**, OU',
-                '2. Adicionar uma justificativa escrita no corpo do PR explicando por que a divisão não é possível',
-                '',
-                `> "Um PR = um tema. PR ideal ≤${IDEAL} linhas, teto de ${CEILING}."`,
-                '> — [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md)',
-                '',
-                '<details>',
-                '<summary>Por que esse limite?</summary>',
-                '',
-                'PRs grandes aumentam o tempo de review, elevam o risco de conflito e',
-                'tornam o histórico ilegível. O PR #545 do histórico recente tinha **911 linhas**',
-                'cobrindo **7 temas independentes** e **zero testes** — exatamente esse padrão',
-                'que este gate identifica para o reviewer.',
-                '',
-                '</details>'
-              ].join('\n');
+              comment = `## PR muito grande — ${total} linhas (+${additions}/-${deletions})\n\nEste PR excede o teto de ${CEILING} linhas.`;
             } else if (total > IDEAL) {
-              comment = [
-                `## 📏 PR acima do ideal — ${total} linhas (+${additions}/−${deletions})`,
-                '',
-                `Este PR está acima do tamanho ideal de **${IDEAL} linhas** (teto: ${CEILING}).`,
-                'Considere dividir se possível — não é obrigatório, mas é recomendado.'
-              ].join('\n');
+              comment = `## PR acima do ideal — ${total} linhas (+${additions}/-${deletions})\n\nConsidere dividir se possível.`;
             }
 
-            // ── Atualizar ou criar comentário ───────────────────────────────
             if (comment) {
               const MARKER = '<!-- pr-size-gate -->';
               const body = MARKER + '\n' + comment;
-
-              const { data: comments } = await github.rest.issues.listComments({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number
-              });
-
+              const { data: comments } = await github.rest.issues.listComments({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number });
               const existing = comments.find(c => c.body.startsWith(MARKER));
-
               if (existing) {
-                await github.rest.issues.updateComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  comment_id: existing.id,
-                  body
-                });
+                await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
               } else {
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.issue.number,
-                  body
-                });
+                await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body });
               }
             }
 
-            // ── Summary ──────────────────────────────────────────────────
-            await core.summary
-              .addHeading('PR Size Report', 2)
-              .addTable([
-                [{data: 'Métrica', header: true}, {data: 'Valor', header: true}],
-                ['Adições',   String(additions)],
-                ['Remoções',  String(deletions)],
-                ['Total',     String(total)],
-                ['Limite ideal', String(IDEAL)],
-                ['Teto',      String(CEILING)],
-                ['Label',     label]
-              ])
-              .write();
-
-            // Não falha o CI por tamanho ┄ só comenta e etiqueta.
-            // O bloqueio real de PRs > CEILING deve ser revisão humana.
             console.log(`PR size: ${total} lines (${label})`);

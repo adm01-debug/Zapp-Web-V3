@@ -2,8 +2,7 @@ name: Migration Uniqueness Gate
 
 on:
   pull_request:
-    paths:
-      - 'supabase/migrations/**'
+    branches: [main]
   push:
     branches: [main]
     paths:
@@ -11,7 +10,7 @@ on:
 
 jobs:
   migration-uniqueness-check:
-    name: Check Migration Uniqueness
+    name: Migration Uniqueness Gate
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,13 +27,11 @@ jobs:
           echo "=== Checking migration file name uniqueness ==="
           echo ""
 
-          # Get all migration filenames
           if [ ! -d "$MIGRATIONS_DIR" ]; then
             echo "No migrations directory found. Skipping."
             exit 0
           fi
 
-          # Check 1 : Duplicate exact filenames (though OS should prevent this)
           DUPLICATES=$(find "$MIGRATIONS_DIR" -name "*.sql" -type f | sed 's|.*/||' | sort | uniq -d)
 
           if [ -n "$DUPLICATES" ]; then
@@ -43,7 +40,6 @@ jobs:
             ERRORS=$((ERRORS+1))
           fi
 
-          # Check 2: Duplicate names (full name without extension)
           DUP_NAMES=$(find "$MIGRATIONS_DIR" -name "*.sql" -type f | sed 's|.*/||' | sed 's/\.sql$//' | sort | uniq -d)
 
           if [ -n "$DUP_NAMES" ]; then
