@@ -1,0 +1,91 @@
+name: 🤖 Bootstrap Self-Hosted Runner
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: write   # necessário para criar registration token de runner
+
+jobs:
+  register-runner:
+    name: Gerar token e registrar runner na VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Gerar Runner Registration Token
+        id: token
+        run: |
+          echo "=== Gerando registration token via GITHUB_TOKEN interno ==="
+          RESPONSE=$(curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.GH_TOKEN_ACTIONS }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/runners/registration-token)
+
+          echo "Response: $RESPONSE"
+          TOKEN=$(echo "$RESPONSE" | jq -r '.token // empty')
+          EXPIRES=$(echo "$RESPONSE" | jq -r '.expires_at // empty')
+
+          if [ -z "$TOKEN" ]; then
+            echo "::error::Falha ao gerar token. Resposta: $RESPONSE"
+            exit 1
+          fi
+
+          echo "::add-mask::$TOKEN"
+          echo "runner_token=$TOKEN" >> "$GITHUB_OUTPUT"
+          echo "expires=$EXPIRES" >> "$GITHUB_OUTPUT"
+          echo "✅ Token gerado! Expira em: $EXPIRES"
+
+      - name: Instalar runner na VPS via SSH
+        env:
+          RUNNER_TOKEN: ${{ steps.token.outputs.runner_token }}
+          VPS_HOST: ${{ secrets.VPS_SSH_HOST }}
+          VPS_USER: ${{ secrets.VPS_SSH_USER }}
+          REPO_URL: https://github.com/${{ github.repository }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ci
+          chmod 600 ~/.ssh/id_ci
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          # Atualizar o Docker secret com o registration token temporário
+          # e iniciar o runner via stack já existente (replicas 0 -> 1)
+          ssh -i ~/.ssh/id_ci -o StrictHostKeyChecking=no \
+            "$VPS_USER@$VPS_HOST" bash << SSHEOF
+            set -euo pipefail
+
+            echo "=== Atualizando Docker secret gh_runner_pat_v1 ==="
+            # Remover secret antigo e criar novo com o registration token
+            docker secret rm gh_runner_pat_v1 2>/dev/null || true
+            echo "$RUNNER_TOKEN" | docker secret create gh_runner_pat_v1 -
+            echo "✅ Secret atualizado"
+
+            # Atualizar variável de ambiente na stack para usar RUNNER_TOKEN
+            # O registration token exige RUNNER_TOKEN, não GITHUB_ACCESS_TOKEN
+            docker service update \
+              --env-add RUNNER_TOKEN_FILE=/run/secrets/gh_runner_pat_v1 \
+              --env-rm GITHUB_ACCESS_TOKEN \
+              --replicas 1 \
+              github-actions-runner_runner 2>/dev/null || echo "Service update attempted"
+
+            echo "✅ Runner stack atualizada com replicas=1"
+SSHEOF
+
+      - name: Aguardar e verificar registro
+        run: |
+          echo "Aguardando 60s para o runner inicializar..."
+          sleep 60
+
+          RUNNERS=$(curl -s \
+            -H "Authorization: Bearer ${{ secrets.GH_TOKEN_ACTIONS }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/runners)
+
+          echo "Runners registrados:"
+          echo "$RUNNERS" | jq '[.runners[] | {name, status, labels: [.labels[].name]}]'
+
+          VPS_RUNNER=$(echo "$RUNNERS" | jq '[.runners[] | select(.labels[].name == "vps-zapp")] | length')
+          if [ "$VPS_RUNNER" -gt 0 ]; then
+            echo "✅ Runner vps-zapp registrado com sucesso!"
+          else
+            echo "::warning::Runner vps-zapp não encontrado ainda — pode precisar de mais tempo"
+          fi
