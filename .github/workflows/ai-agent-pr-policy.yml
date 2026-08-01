@@ -1,7 +1,7 @@
 name: AI Agent PR Policy
 
 on:
-  pull_request:
+  push:
     branches: [main, develop]
   workflow_dispatch:
 
@@ -20,18 +20,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check for AI-generated commits in PR
+      - name: Check for AI-generated direct pushes to protected branch
         run: |
           AI_AUTHORS=(
             "claude" "copilot" "lovable" "github-actions" "dependabot"
             "noreply@anthropic.com" "noreply@github.com"
           )
 
-          # Get commits unique to this PR (not on base branch)
-          BASE="${{ github.event.pull_request.base.sha }}"
-          HEAD="${{ github.event.pull_request.head.sha }}"
+          # Check commits pushed directly to the protected branch
+          BASE="${{ github.event.before }}"
+          HEAD="${{ github.sha }}"
 
-          echo "Checking commits in PR: $BASE..$HEAD"
+          echo "Checking direct push commits: $BASE..$HEAD"
           COMMITS=$(git log --no-merges --format='%an <%ae>' "$BASE..$HEAD" 2>/dev/null || true)
 
           if [ -z "$COMMITS" ]; then
@@ -42,17 +42,17 @@ jobs:
           BLOCKED=false
           for author in "${AI_AUTHORS[@]}"; do
             if echo "$COMMITS" | grep -qi "$author"; then
-              echo "::error::Blocked AI-authored commit detected: '$author'"
+              echo "::error::Blocked AI-authored direct push detected: '$author'"
               BLOCKED=true
             fi
           done
 
           if [ "$BLOCKED" = true ]; then
             echo ""
-            echo "AI agents must use pull requests — direct commits are not allowed."
+            echo "AI agents must open pull requests — direct pushes to protected branches are not allowed."
             echo "Committers found:"
             echo "$COMMITS"
             exit 1
           fi
 
-          echo "✅ No AI-authored commits detected."
+          echo "✅ No AI-authored direct pushes detected."
