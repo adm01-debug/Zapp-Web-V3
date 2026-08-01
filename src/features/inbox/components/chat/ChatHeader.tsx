@@ -94,7 +94,7 @@ export const ChatHeader = memo(function ChatHeader({
     isExternalConfigured ? (conversation.contact.phone ?? undefined) : undefined
   );
   const _briefing = intel?.found ? intel.briefing : null;
-  const { avatarUrl } = useContactAvatar(conversation.contact.id, conversation.contact.avatar);
+  const { avatarUrl } = useContactAvatar(conversation.contact.remote_jid, conversation.contact.avatar);
   const { density, cycleDensity } = useDensity();
 
   return (

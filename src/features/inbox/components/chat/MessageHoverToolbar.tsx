@@ -153,7 +153,7 @@ export function MessageHoverToolbar({
         <ToolbarButton onClick={() => onForward(message)} title="Encaminhar">
           <Forward className="h-3.5 w-3.5" />
         </ToolbarButton>
-        <ToolbarButton onClick={() => onCopy(message.content)} title="Copiar">
+        <ToolbarButton onClick={() => onCopy(message.content || '')} title="Copiar">
           <Copy className="h-3.5 w-3.5" />
         </ToolbarButton>
         {message.type === 'text' && (
