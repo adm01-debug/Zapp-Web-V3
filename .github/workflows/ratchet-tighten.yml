@@ -6,6 +6,10 @@ on:
     branches: [main]
 permissions:
   contents: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   tighten:
     runs-on: ubuntu-latest

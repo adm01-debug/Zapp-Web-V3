@@ -12,6 +12,10 @@ on:
     - cron: '0 6 * * 1' # Monday 06:00 UTC — full scan
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   gitleaks:
     name: 🔍 Secret Scan (gitleaks)

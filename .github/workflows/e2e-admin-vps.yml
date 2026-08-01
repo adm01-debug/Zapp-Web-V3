@@ -16,6 +16,10 @@ on:
           - self-hosted
           - ubuntu-latest
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   validate-user:
     name: Pré-check — permissões CRM do E2E user

@@ -25,6 +25,10 @@ on:
     # Diário 06:00 BRT (09:00 UTC)
     - cron: '0 9 * * *'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   pr-check:
     permissions: {}
