@@ -3,23 +3,6 @@
 -- ----------------------------------------------------------------------------
 -- Medido ao vivo 2026-08-01 15:00 UTC: todas têm coluna(s) natural(is) ÚNICA(s)
 -- (verificado: uniq == total em todas). public._grant_backup_20260730 está
-<<<<<<< Updated upstream
--- vazia (0 rows) → identity id.
--- ============================================================================
-
-ALTER TABLE evo._evolution_contacts_backup_20260801
-  ADD PRIMARY KEY (id);
-ALTER TABLE zapp._bucket_backup_20260801
-  ADD PRIMARY KEY (id);
-ALTER TABLE zapp._cron_backup_20260801
-  ADD PRIMARY KEY (jobid);
-ALTER TABLE zapp._policy_backup_20260801
-  ADD PRIMARY KEY (schemaname, tablename, policyname);
-ALTER TABLE zapp._warroom_alerts_backup_20260801
-  ADD PRIMARY KEY (id);
-ALTER TABLE public._grant_backup_20260730
-  ADD COLUMN id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY;
-=======
 -- vazia (0 rows) → identity id. Idempotente: guard por catálogo (B2 R25).
 -- ============================================================================
 
@@ -52,7 +35,6 @@ BEGIN
     ALTER TABLE public._grant_backup_20260730 ADD PRIMARY KEY (id);
   END IF;
 END $$;
->>>>>>> Stashed changes
 
 -- Validação:
 --   SELECT n.nspname, c.relname FROM pg_class c JOIN pg_namespace n

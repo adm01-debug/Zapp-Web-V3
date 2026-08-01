@@ -5,8 +5,6 @@
 -- adiciona o vetor que penaliza quando existir função referenciada em policy
 -- de RLS que authenticated não consiga executar — a lacuna exata que deixou
 -- o incidente #668 (403 no inbox) passar silencioso pelo score 5/5.
-<<<<<<< Updated upstream
-=======
 --
 -- [S2 R25] REVOKE ALL de PUBLIC/anon após CREATE (senão função nova nasce com
 -- PUBLIC EXECUTE e o próprio vetor v_anon_exe_evo_zapp_breach a contaria).
@@ -14,7 +12,6 @@
 -- por nome — evita homônimos/overloads e falso-positivo permanente.
 -- [C4 R25] auth_rls_fn_denied entra no bucket 3 (como open_high), não no 0:
 -- EXECUTE faltante é falha de disponibilidade, não exposição a anon.
->>>>>>> Stashed changes
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION zapp.fn_score_security_acl()
@@ -38,11 +35,7 @@ DECLARE
   v_rls_zero_policy         int := 0;
   v_anon_exe_evo_zapp_breach int := 0;  -- R19 G2
   v_legacy_rls_off_anon     int := 0;   -- G8 2026-07-11
-<<<<<<< Updated upstream
-  v_auth_rls_fn_denied      int := 0;   -- R25 P1-7.c: funções de RLS inexecutáveis por authenticated
-=======
   v_auth_rls_fn_denied      int := 0;   -- R25 P1-7.c
->>>>>>> Stashed changes
   v_score                   int := 0;
 BEGIN
   SELECT count(*) INTO v_anon_email_execute
@@ -149,20 +142,6 @@ BEGIN
     AND t.rowsecurity = false
     AND has_table_privilege('anon', t.schemaname||'.'||t.tablename, 'SELECT');
 
-<<<<<<< Updated upstream
-  -- R25 P1-7.c: toda função referenciada em policy de RLS (public/zapp/evo)
-  -- precisa ser executável por authenticated — incidente #668 (403 inbox).
-  WITH rls_fns AS (
-    SELECT DISTINCT (m)[1] AS fnname
-    FROM (SELECT regexp_matches(
-            COALESCE(pg_get_expr(polqual,polrelid),'')||' '||COALESCE(pg_get_expr(polwithcheck,polrelid),''),
-            '([a-z_][a-z0-9_]*)\s*\(', 'g') AS m
-          FROM pg_policy) s)
-  SELECT count(*) INTO v_auth_rls_fn_denied
-  FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
-  JOIN rls_fns rf ON rf.fnname=p.proname
-  WHERE n.nspname IN ('public','zapp','evo')
-=======
   -- R25 P1-7.c: toda função usada por policy de RLS (dependência REAL pg_depend)
   -- precisa ser executável por authenticated — incidente #668 (403 inbox).
   -- COUNT(DISTINCT oid): a mesma função pode ser referenciada por N policies.
@@ -174,7 +153,6 @@ BEGIN
     AND d.refclassid = 'pg_proc'::regclass
     AND n.nspname IN ('public','zapp','evo')
     AND p.prokind = 'f'
->>>>>>> Stashed changes
     AND NOT has_function_privilege('authenticated', p.oid, 'EXECUTE');
 
   v_score := CASE
@@ -184,13 +162,8 @@ BEGIN
       OR v_anon_any_execute>0 OR v_public_grant_execute>0
       OR v_auth_purge_no_guard>0 OR v_evo_views_no_si>0
       OR v_rls_zero_policy>0 OR v_anon_exe_evo_zapp_breach>0
-<<<<<<< Updated upstream
-      OR v_legacy_rls_off_anon>0 OR v_auth_rls_fn_denied>0 THEN 0
-    WHEN v_open_high>0 THEN 3
-=======
       OR v_legacy_rls_off_anon>0 THEN 0
     WHEN v_open_high>0 OR v_auth_rls_fn_denied>0 THEN 3
->>>>>>> Stashed changes
     ELSE 5
   END;
 
@@ -210,12 +183,6 @@ BEGIN
     'anon_exe_evo_zapp_breach',v_anon_exe_evo_zapp_breach,
     'legacy_rls_off_anon',v_legacy_rls_off_anon,
     'auth_rls_fn_denied',v_auth_rls_fn_denied,
-<<<<<<< Updated upstream
-    'monitoring','pg_cron 30min - R23-2026-07-16: si=true fix + R19+G8 + R25-2026-08-01: auth_rls_fn_denied'
-  );
-END;
-$function$;
-=======
     'monitoring','pg_cron 30min - R23-2026-07-16: si=true fix + R19+G8 + R25-2026-08-01: auth_rls_fn_denied(pg_depend)'
   );
 END;
@@ -228,4 +195,3 @@ REVOKE ALL ON FUNCTION zapp.fn_score_security_acl() FROM PUBLIC, anon;
 --   SELECT (zapp.fn_score_security_acl())->>'auth_rls_fn_denied';  -- 0
 -- Mutação: REVOKE EXECUTE ... FROM authenticated (current_user_is_privileged)
 --   → score 3 (bucket alto), auth_rls_fn_denied 1; GRANT de volta → 5/0.
->>>>>>> Stashed changes

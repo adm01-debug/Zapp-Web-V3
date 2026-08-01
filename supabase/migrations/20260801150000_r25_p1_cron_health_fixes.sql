@@ -8,21 +8,6 @@
 --      não inclui 'qr_pending' (nem 'connecting'/'reconnecting').
 --   2) job 88 archive-old-wpp2-messages (1 falha/dia):
 --      INSERT INTO evolution_messages_wpp2_archive SELECT * FROM wpp2 — a
-<<<<<<< Updated upstream
---      archive tem 41 colunas, a fonte 48 (faltam reply_to_id, media_bucket,
---      media_path, media_sha256, media_status, transcription_status,
---      transcription).
---   3) job 100 analytics-log-retention (1 falha/dia):
---      public.dblink(text,text) não existe — extensão dblink instalada no
---      schema zapp (Regra CR3: qualificar com schema correto).
---   4) jobs 226-229 disk-*-prune (1 falha/dia cada):
---      VACUUM dentro de comando multi-statement do pg_cron = proibido em
---      transação. Removido do cron (autovacuum cobre).
--- ============================================================================
-
--- 1) CHECK constraint do instance_registry aceita estados legítimos da Evolution
-ALTER TABLE zapp.instance_registry DROP CONSTRAINT instance_registry_status_check;
-=======
 --      archive tinha 41 colunas, a fonte 48. Alinhada abaixo + job reescrito
 --      com lista explícita de colunas (C1 R25: SELECT * é posicional).
 --   3) job 100 analytics-log-retention (1 falha/dia):
@@ -37,7 +22,6 @@ ALTER TABLE zapp.instance_registry DROP CONSTRAINT instance_registry_status_chec
 
 -- 1) CHECK constraint do instance_registry aceita estados legítimos da Evolution
 ALTER TABLE zapp.instance_registry DROP CONSTRAINT IF EXISTS instance_registry_status_check;
->>>>>>> Stashed changes
 ALTER TABLE zapp.instance_registry ADD CONSTRAINT instance_registry_status_check
   CHECK (status = ANY (ARRAY['active','inactive','connected','connecting',
     'disconnected','qr_pending','reconnecting','degraded','archived',
@@ -65,9 +49,6 @@ BEGIN
   END IF;
 END $$;
 
-<<<<<<< Updated upstream
--- 3) fn_analytics_log_retention: public.dblink → zapp.dblink (schema real da extensão)
-=======
 -- 2c) [C1 R25] job 88 reescrito com lista EXPLÍCITA de colunas (SELECT * era
 -- posicional — a archive pode divergir em ordem/attnum por colunas dropadas).
 CREATE OR REPLACE FUNCTION zapp.fn_archive_old_wpp2_messages(p_months_old integer DEFAULT 12, p_batch_size integer DEFAULT 1000)
@@ -125,7 +106,6 @@ END; $function$;
 
 -- 3) fn_analytics_log_retention: public.dblink → zapp.dblink + p_days validado
 --    + sem EXECUTE para PUBLIC/anon/authenticated (S1 R25)
->>>>>>> Stashed changes
 CREATE OR REPLACE FUNCTION ops.fn_analytics_log_retention(p_days integer DEFAULT 14)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -138,12 +118,9 @@ DECLARE
   v_result jsonb := '[]'::jsonb;
   v_deleted text;
 BEGIN
-<<<<<<< Updated upstream
-=======
   IF p_days IS NULL OR p_days < 1 THEN
     RAISE EXCEPTION 'fn_analytics_log_retention: p_days invalido: %', p_days;
   END IF;
->>>>>>> Stashed changes
   FOR v_tbl IN
     SELECT t.relname
     FROM zapp.dblink(
@@ -153,10 +130,6 @@ BEGIN
            AND c.relname ~ '^log_events_[0-9a-f_]{36}$'$q$)::text
     ) AS t(relname text)
   LOOP
-<<<<<<< Updated upstream
-    -- allowlist estrita: apenas _analytics.log_events_<uuid-com-underscores>
-=======
->>>>>>> Stashed changes
     v_deleted := zapp.dblink_exec(v_conn::text, format(
       $fmt$DELETE FROM _analytics.%I WHERE "timestamp" < (now() at time zone 'utc') - interval '%s days'$fmt$,
       v_tbl, p_days));
@@ -165,19 +138,6 @@ BEGIN
   RETURN jsonb_build_object('retention_days', p_days, 'executed_at', now(), 'tables', v_result);
 END $function$;
 
-<<<<<<< Updated upstream
--- 4) Remove VACUUM dos comandos de cron (proibido em transação pg_cron)
-SELECT cron.unschedule('disk-log-prune-daily');
-SELECT cron.schedule('disk-log-prune-daily', '0 3 * * *',
-  $$DELETE FROM ops.host_disk_log WHERE checked_at < now() - interval '30 days';$$);
-SELECT cron.unschedule('disk-hires-prune-daily');
-SELECT cron.schedule('disk-hires-prune-daily', '15 3 * * *',
-  $$SELECT ops.prune_disk_hires();$$);
-SELECT cron.unschedule('disk-baseline-prune-weekly');
-SELECT cron.schedule('disk-baseline-prune-weekly', '30 3 * * 0',
-  $$SELECT ops.prune_disk_baseline();$$);
-SELECT cron.unschedule('disk-events-prune-weekly');
-=======
 REVOKE ALL ON FUNCTION ops.fn_analytics_log_retention(integer) FROM PUBLIC, anon, authenticated;
 
 -- 4) Remove VACUUM dos comandos de cron (proibido em transação pg_cron).
@@ -188,7 +148,6 @@ SELECT cron.schedule('disk-hires-prune-daily', '15 3 * * *',
   $$SELECT ops.prune_disk_hires();$$);
 SELECT cron.schedule('disk-baseline-prune-weekly', '30 3 * * 0',
   $$SELECT ops.prune_disk_baseline();$$);
->>>>>>> Stashed changes
 SELECT cron.schedule('disk-events-prune-weekly', '45 3 * * 0',
   $$DELETE FROM ops.disk_event_log WHERE ts < now() - interval '90 days';$$);
 
@@ -198,7 +157,4 @@ SELECT cron.schedule('disk-events-prune-weekly', '45 3 * * 0',
 --     WHERE table_schema='evo' AND table_name='evolution_messages_wpp2_archive'; -- 48
 --   SELECT count(*) FROM cron.job_run_details WHERE status='failed'
 --     AND start_time > now() - interval '1 hour'; -- 0
-<<<<<<< Updated upstream
-=======
 --   SELECT has_function_privilege('PUBLIC','ops.fn_analytics_log_retention(integer)','EXECUTE'); -- false
->>>>>>> Stashed changes
