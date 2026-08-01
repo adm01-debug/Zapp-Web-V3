@@ -1,0 +1,37 @@
+# Baseline de schema — Supabase self-hosted (supabase.atomicabr.com.br)
+# Gerado: 2026-08-01 via query real no banco (pg_class/pg_namespace/pg_proc/pg_policies)
+# SQL de geração registrado na migration 20260801000000 de referência (docs/db/schema-baseline-20260801.txt)
+
+# Tabelas (relkind='r')
+TABELAS_PUBLIC=2
+TABELAS_ZAPP=325
+TABELAS_EVO=189
+TABELAS_EMAIL_APP=33
+TABELAS_AI=31
+TABELAS_OPS=29
+TABELAS_BPM=41
+TABELAS_FINANCEIRO=16
+TABELAS_VENDAS=14
+TABELAS_ARCHIVE=27
+
+# Views (relkind='v')
+VIEWS_PUBLIC=539
+VIEWS_ZAPP=407
+
+# Funcoes
+FUNCOES_ZAPP=1054
+
+# Policies (schemas zapp,ai,email_app,evo,financeiro,vendas)
+POLICIES_TOTAL=1344
+
+# Enums (schema zapp)
+ENUMS_ZAPP=18
+
+# Indices (schema zapp)
+INDICES_ZAPP=844
+
+# Unique constraints (schema zapp)
+UNIQUE_CONSTRAINTS_ZAPP=95
+
+# Cron jobs
+CRON_JOBS=148

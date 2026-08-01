@@ -75,9 +75,13 @@ const INTERNAL_HOSTS = [
 /**
  * Constrói a URL pública a partir de bucket + path.
  *
+ * ⚠️ SOMENTE para buckets deliberadamente públicos (PUBLIC_BUCKETS).
+ * Para buckets privados (whatsapp-media, audio-messages, team-chat-files),
+ * usar getSignedMediaUrl() de @/lib/storageSignedUrls.
+ *
  * @example
- * resolveMediaUrl('whatsapp-media', 'image/ABC123.jpg')
- * // → 'https://supabase.atomicabr.com.br/storage/v1/object/public/whatsapp-media/image/ABC123.jpg'
+ * resolveMediaUrl('avatars', 'image/ABC123.jpg')
+ * // → 'https://supabase.atomicabr.com.br/storage/v1/object/public/avatars/image/ABC123.jpg'
  */
 export function resolveMediaUrl(bucket: string, path: string): string {
   if (!bucket || !path) return '';
@@ -190,9 +194,13 @@ export function isWhatsAppUrlExpired(url: string | null | undefined): boolean {
 
 /**
  * Buckets PÚBLICOS: URL construída via /storage/v1/object/public/...
- * Qualquer outro bucket é PRIVADO e requer signed URL.
+ * Qualquer outro bucket é PRIVADO e requer signed URL (ver storageSignedUrls.ts).
+ *
+ * Lista canônica (LGPD 2026-08-01): avatars, stickers, custom-emojis,
+ * audio-memes, recibos-entrega — NÃO contêm PII de conversas.
  */
 export const PUBLIC_BUCKETS = new Set([
+  'audio-memes',
   'avatars',
   'custom-emojis',
   'recibos-entrega',
@@ -283,8 +291,13 @@ export function resolveMessageMediaUrl(params: {
 }): string | null {
   const { mediaBucket, mediaPath, mediaUrl } = params;
 
-  // Formato novo (canônico)
+  // Formato novo (canônico) — apenas buckets públicos têm URL direta
   if (mediaBucket && mediaPath) {
+    if (!isBucketPublic(mediaBucket)) {
+      // Bucket privado → signed URL obrigatória (getSignedMediaUrl /
+      // useSignedMediaUrlBatch); URL pública retornaria 403 após privatização.
+      return null;
+    }
     const url = resolveMediaUrl(mediaBucket, mediaPath);
     if (isMediaUrlFailed(url)) return null;
     return url;

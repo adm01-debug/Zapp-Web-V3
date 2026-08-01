@@ -22,8 +22,8 @@ export function PushNotificationCard() {
     setTestSending(true);
     try {
       await showNotification({
-        title: '🔔 Teste de Push',
-        body: 'Esta é uma notificação push de teste.',
+        title: '🔔 Teste de notificação',
+        body: 'Notificação de teste — canal de push operacional.',
         tag: 'test-push-' + Date.now(),
       });
     } finally {

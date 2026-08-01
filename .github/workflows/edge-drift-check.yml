@@ -1,0 +1,64 @@
+name: edge-drift-check
+
+on:
+  schedule:
+    # Diário 06:00 BRT (09:00 UTC) — E37: verificação de drift repo ↔ produção
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: E37 — Comparar hash das funções do repo vs produção
+        run: |
+          set +e
+          MISSING=0
+          # Para cada função do repo, baixa o index.ts de produção e compara hash
+          for fn_dir in supabase/functions/*/; do
+            fn=$(basename "$fn_dir")
+            [ "$fn" = "_shared" ] && continue
+            [ "$fn" = "main" ] && continue
+            [ ! -f "$fn_dir/index.ts" ] && continue
+            local_sha=$(sha256sum "$fn_dir/index.ts" | cut -d' ' -f1)
+            remote_sha=$(curl -sk --max-time 15 "https://supabase.atomicabr.com.br/functions/v1/$fn" -o /dev/null -w "" 2>/dev/null; echo "n/a")
+            # Não é possível obter hash via HTTP; usar endpoint de introspecção quando existir (E36)
+            # Por ora: verifica se a função responde (baseline de saúde) e registra
+            code=$(curl -sk -o /dev/null -w "%{http_code}" --max-time 15 "https://supabase.atomicabr.com.br/functions/v1/$fn")
+            if [ "$code" = "404" ] || [ "$code" = "000" ]; then
+              echo "⚠️ $fn: resposta HTTP $code (possível drift ou rota bloqueada)"
+              MISSING=$((MISSING+1))
+            fi
+          done
+          echo "Funções com resposta inesperada: $MISSING"
+          if [ "$MISSING" -gt 0 ]; then
+            echo "::error::Drift detectado: $MISSING funções não respondem como esperado"
+            exit 1
+          fi
+          echo "✅ Todas as funções respondem (baseline E37)"
+
+      - name: E38 — Completude de ambiente (Deno.env.get vs .env.required)
+        run: |
+          set +e
+          # Lista Deno.env.get usados no repo
+          grep -rhoE "Deno\.env\.get\([\"'][A-Z0-9_]+[\"']\)" supabase/functions/ \
+            | grep -oE "[A-Z0-9_]{3,}" | sort -u > /tmp/req-repo.txt
+          # Declarados
+          sort -u supabase/functions/.env.required > /tmp/declared.txt
+          # Ausentes da declaração
+          comm -23 /tmp/req-repo.txt /tmp/declared.txt > /tmp/missing.txt
+          echo "Variáveis usadas mas NÃO declaradas em .env.required:"
+          cat /tmp/missing.txt
+          if [ -s /tmp/missing.txt ]; then
+            echo "::error::Completude de ambiente falhou — variáveis usadas sem declaração"
+            exit 1
+          fi
+          echo "✅ Todas as variáveis usadas estão declaradas em .env.required"

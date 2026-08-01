@@ -19,7 +19,7 @@
     "check:casts": "node scripts/lint-supabase-casts.mjs",
     "check:fnsync": "bash scripts/check-edge-function-sync.sh",
     "verify": "bun run check",
-    "prebuild": "bun run scripts/generate-component-registry.ts",
+    "prebuild": "node scripts/check-deploy-secrets.mjs && bun run scripts/generate-component-registry.ts",
     "lint": "eslint . --max-warnings 999 || true; bun run scripts/check-design-system.ts --ci || true",
     "preview": "vite preview",
     "test": "NODE_OPTIONS=--max-old-space-size=6144 vitest run",
@@ -56,7 +56,8 @@
     "types:repair": "node scripts/repair-types-schemas.mjs",
     "version:bump:patch": "npm version patch --no-git-tag-version",
     "version:bump:minor": "npm version minor --no-git-tag-version",
-    "version:bump:major": "npm version major --no-git-tag-version"
+    "version:bump:major": "npm version major --no-git-tag-version",
+    "check:deploysecrets": "node scripts/check-deploy-secrets.mjs"
   },
   "dependencies": {
     "@axe-core/react": "^4.12.1",

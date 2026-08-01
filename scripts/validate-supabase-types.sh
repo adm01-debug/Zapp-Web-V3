@@ -59,10 +59,27 @@ if [ -n "${SUPABASE_PROJECT_ID:-}" ] && [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; the
 elif [ -d "supabase" ] && command -v docker &> /dev/null && docker ps &> /dev/null; then
   # Try local generation if supabase folder exists and docker is running
   npx supabase gen types typescript --local > "$TYPES_FILE.new"
+elif [ -n "${META_URL:-}" ] && [ -n "${META_TOKEN:-}" ]; then
+  # Self-hosted (AtomicaBR): postgres-meta via gen-types-zapp.mjs
+  # (schemas public+zapp+evo; preserva a cauda Lovable do types.ts atual).
+  echo "🔄 Generating types via postgres-meta (self-hosted)..."
+  if [ ! -f "$TYPES_FILE" ]; then
+    echo "❌ Error: $TYPES_FILE not found (cannot preserve Lovable tail)."
+    exit 1
+  fi
+  cp "$TYPES_FILE" "$TYPES_FILE.new"
+  if ! META_URL="$META_URL" META_TOKEN="$META_TOKEN" SCHEMAS="${SCHEMAS:-public,zapp,evo}" \
+       OUT_FILE="$TYPES_FILE.new" node scripts/gen-types-zapp.mjs; then
+    # Resiliencia: falha de infra (endpoint fora, OOM do postgres-meta, DNS do
+    # Kong) NAO deve quebrar o typecheck local — usa o arquivo atual e avisa.
+    echo "⚠️ Self-hosted generation failed — keeping current types.ts (check META_URL/META_TOKEN/endpoint)."
+    cp "$TYPES_FILE" "$TYPES_FILE.new"
+  fi
 else
   # If we are in a limited environment (like the agent sandbox or CI without secrets/docker),
   # we skip actual generation and just validate the existing file if it exists.
   echo "⚠️ Skipping actual type generation (Docker/Secrets unavailable)."
+  echo "   Local self-hosted hint: set META_URL and META_TOKEN in .env (see .env.example)."
   if [ -f "$TYPES_FILE" ]; then
     cp "$TYPES_FILE" "$TYPES_FILE.new"
   else

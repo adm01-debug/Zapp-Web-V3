@@ -118,6 +118,10 @@ Todos os JIDs/instâncias de teste são prefixados com `*-test` para facilitar l
 
 ## Paridade de provedores (webhook → inbox)
 
+> ⚠️ **DESCONTINUADO em 2026-08-01 (Fase E4/E32):** esta spec dependia da edge
+> function `e2e-webhook-fixture`, **removida** do self-hosted e do repositório.
+> O código fica como referência histórica; não executar (falha com 404).
+
 `e2e/webhook-providers-parity.spec.ts` envia eventos sintéticos de webhook
 para **ambos** os provedores (`evolution-webhook` e `whatsapp-cloud-webhook`)
 e valida que cada evento aterrissa em `evolution_messages` com o mesmo
