@@ -62,10 +62,10 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [lastSendError, setLastSendError] = useState<string | null>(null);
   const [lastSendErrorDetail, setLastSendErrorDetail] = useState<string | null>(null);
-  // Guarda o texto BRUTO (pre-assinatura) + attachments: retryLastSend aplica
-  // applySignature novamente ao reenviar, igual ao fluxo normal de envio.
-  // Guardar content assinado faria retryLastSend duplicar a assinatura.
-  const lastFailedSendRef = useRef<{ raw: string; attachments?: File[] } | null>(null);
+  // Guarda content + attachments juntos: um envio só-mídia falho tem
+  // messageContent === '' (falsy), então checar `!payload` sozinho fazia
+  // retryLastSend virar no-op silencioso para esse caso.
+  const lastFailedSendRef = useRef<{ content: string; attachments?: File[] } | null>(null);
   const lastFailedAudioRef = useRef<{
     blob: Blob;
     onSendAudio: (blob: Blob) => Promise<void>;
@@ -282,7 +282,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
           if (wasReply) setReplyToMessage(wasReply);
           toast({ title: 'Erro ao enviar sussurro', description: msg, variant: 'destructive' });
         } else {
-          lastFailedSendRef.current = { raw: rawInput, attachments };
+          lastFailedSendRef.current = { content: messageContent, attachments };
           setLastSendError(msg);
           setLastSendErrorDetail(detail);
           // Envio falhou de forma síncrona: zera a barra de progresso.
@@ -339,10 +339,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     setLastSendError(null);
     setLastSendErrorDetail(null);
     try {
-      // Reaplica assinatura ao texto bruto, igual ao fluxo normal de handleSend.
-      // Antes, failedSend.content era o texto JÁ assinado → causava assinatura dupla.
-      const retryContent = failedSend.raw ? applySignature(failedSend.raw) : '';
-      await onSendMessage(retryContent, failedSend.attachments);
+      await onSendMessage(failedSend.content, failedSend.attachments);
       lastFailedSendRef.current = null;
       toast({ title: 'Reenviado', description: 'A mensagem foi enviada com sucesso.' });
     } catch (err: unknown) {
@@ -359,7 +356,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     } finally {
       setIsSending(false);
     }
-  }, [onSendMessage, applySignature]);
+  }, [onSendMessage]);
 
   const dismissSendError = useCallback(() => {
     setLastSendError(null);

@@ -18,18 +18,65 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const { data: pr } = await github.rest.pulls.get({ owner: context.repo.owner, repo: context.repo.repo, pull_number: context.issue.number });
-            const additions = pr.additions; const deletions = pr.deletions; const total = additions + deletions;
-            const IDEAL = 300; const CEILING = 800;
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            const additions = pr.additions;
+            const deletions = pr.deletions;
+            const total = additions + deletions;
+
+            const IDEAL  = 300;
+            const CEILING = 800;
+
             let label;
-            if (total <= 50) label = 'size/XS';
-            else if (total <= IDEAL) label = 'size/S';
-            else if (total <= 500) label = 'size/M';
+            if      (total <= 50)      label = 'size/XS';
+            else if (total <= IDEAL)   label = 'size/S';
+            else if (total <= 500)     label = 'size/M';
             else if (total <= CEILING) label = 'size/L';
-            else label = 'size/XL';
+            else                       label = 'size/XL';
+
             const sizeLabels = ['size/XS','size/S','size/M','size/L','size/XL'];
             for (const lbl of sizeLabels) {
-              try { await github.rest.issues.removeLabel({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, name: lbl }); } catch {}
+              try {
+                await github.rest.issues.getLabel({ owner: context.repo.owner, repo: context.repo.repo, name: lbl });
+              } catch {
+                const colors = { 'size/XS': '0e8a16', 'size/S': '7cfc00', 'size/M': 'fbca04', 'size/L': 'eb6420', 'size/XL': 'b60205' };
+                try {
+                  await github.rest.issues.createLabel({ owner: context.repo.owner, repo: context.repo.repo, name: lbl, color: colors[lbl] });
+                } catch(e) { console.log('Label creation skipped:', e.message); }
+              }
             }
-            try { await github.rest.issues.addLabels({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, labels: [label] }); } catch(e) { console.log('Label error:', e.message); }
+
+            for (const lbl of sizeLabels) {
+              try {
+                await github.rest.issues.removeLabel({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, name: lbl });
+              } catch { }
+            }
+
+            try {
+              await github.rest.issues.addLabels({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, labels: [label] });
+            } catch(e) { console.log('Could not add label:', e.message); }
+
+            let comment = null;
+            if (total > CEILING) {
+              comment = `## PR muito grande — ${total} linhas (+${additions}/-${deletions})\n\nEste PR excede o teto de ${CEILING} linhas.`;
+            } else if (total > IDEAL) {
+              comment = `## PR acima do ideal — ${total} linhas (+${additions}/-${deletions})\n\nConsidere dividir se possível.`;
+            }
+
+            if (comment) {
+              const MARKER = '<!-- pr-size-gate -->';
+              const body = MARKER + '\n' + comment;
+              const { data: comments } = await github.rest.issues.listComments({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number });
+              const existing = comments.find(c => c.body.startsWith(MARKER));
+              if (existing) {
+                await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
+              } else {
+                await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body });
+              }
+            }
+
             console.log(`PR size: ${total} lines (${label})`);
