@@ -170,3 +170,15 @@
 
 /* ===== CONTENT VISIBILITY OPTIMIZATION ===== */
 .content-auto { content-visibility: auto; contain-intrinsic-size: auto 500px; }
+
+/* ===== SONNER TOAST — WCAG AA contrast enforcement ===== */
+/* Sonner's rich-colors mode derives a pinkish foreground (~#f0d0d0) from the destructive
+   background (#cb5e5f), yielding contrast ~2.75:1 (need 4.5:1 for WCAG AA normal text).
+   Tailwind JIT does not generate [&_[data-attr]] nested-bracket selectors from string
+   literals, so the Toaster classNames.error override never reaches child elements.
+   This rule guarantees pure white text on error toasts unconditionally. */
+[data-type="error"] [data-title],
+[data-type="error"] [data-description] {
+  color: rgb(255, 255, 255) !important;
+  opacity: 1 !important;
+}
