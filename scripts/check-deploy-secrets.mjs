@@ -8,8 +8,8 @@
  * instância self-hosted.
  *
  * Enforcement:
- *   - Sempre falha quando CI=true, DEPLOY=true ou ENFORCE_DEPLOY_SECRETS=1.
- *   - Em ambiente local (sandbox/dev) apenas avisa, para não travar `bun run dev`.
+ *   - Falha (exit 1) quando DEPLOY=true ou ENFORCE_DEPLOY_SECRETS=1 (pipeline de deploy).
+ *   - Em build local/CI de PR apenas avisa, para não travar dev e checks de qualidade.
  *     Use SKIP_DEPLOY_SECRETS_CHECK=1 para silenciar por completo.
  */
 
@@ -34,9 +34,7 @@ if (truthy(process.env.SKIP_DEPLOY_SECRETS_CHECK)) {
 }
 
 const enforce =
-  truthy(process.env.CI) ||
-  truthy(process.env.DEPLOY) ||
-  truthy(process.env.ENFORCE_DEPLOY_SECRETS);
+  truthy(process.env.DEPLOY) || truthy(process.env.ENFORCE_DEPLOY_SECRETS);
 
 const missing = REQUIRED.filter((name) => !truthy(process.env[name]));
 const errors = missing.map((name) => `${name} ausente — esperado: ${HINTS[name]}`);
