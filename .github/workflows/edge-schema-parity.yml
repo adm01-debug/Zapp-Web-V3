@@ -66,6 +66,7 @@ jobs:
               FAILED=1
             else
               COUNT=$(sed -n '/const PUBLIC_FNS/,/^\s*\]/p' "$INDEX" \
+                | grep -vE '^\s*//' \
                 | grep -oE "['\"][A-Za-z0-9_-]+['\"]" \
                 | wc -l || true)
               COUNT="${COUNT// /}"
@@ -106,7 +107,7 @@ jobs:
             # Colapsa newlines para capturar GRANTs multilinhas e anon em qualquer posição da lista TO
             NORMALIZED=$(tr '\n' ' ' < "$sqlfile" 2>/dev/null || true)
             MATCH=$(echo "$NORMALIZED" | grep -oiE \
-              'GRANT[[:space:]]+EXECUTE[[:space:]]+ON[[:space:]]+FUNCTION[^;]*\bTO\b[[:space:],[:alnum:]_"]*("?anon"?|"?public"?)[[:space:],[:alnum:]_"]*;' \
+              'GRANT[[:space:]]+(EXECUTE|ALL([[:space:]]+PRIVILEGES)?)[[:space:]]+ON[[:space:]]+FUNCTION[^;]*\bTO\b[[:space:],[:alnum:]_"]*("?anon"?|"?public"?)[[:space:],[:alnum:]_"]*;' \
               2>/dev/null || true)
             if [ -n "$MATCH" ]; then
               ANON_GRANTS="${ANON_GRANTS}${sqlfile}: ${MATCH}\n"
