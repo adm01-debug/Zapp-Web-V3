@@ -1,87 +1,49 @@
 name: schema-drift-guard
 
-# Dois jobs:
-# 1. static-drift (PR/push) — análise estática sem acesso ao banco.
-#    Detecta SQL DDL criado fora de supabase/migrations/ (drift estático).
-# 2. live-drift (manual/webhook) — conecta ao banco via DATABASE_URL.
-#    O monitoramento AUTOMÁTICO roda IN-CLUSTER via Swarm stack schema-drift-guard
-#    (ops.check_schema_drift() 1x/dia → ops.schema_drift_log).
-#    Motivo: o Postgres canônico NÃO é exposto à internet; runners do GitHub não
-#    alcançam o banco. Este job é manual/opcional para ambientes com DATABASE_URL.
-
 on:
   pull_request:
     branches: [main, master]
-    paths:
-      - 'src/**'
-      - 'supabase/**'
-      - 'infra/**'
   push:
     branches: [main, master]
   workflow_dispatch:
 
 jobs:
   static-drift:
-    name: Static schema drift check (no DB required)
+    name: schema-drift-guard
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' || github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Detect DDL outside supabase/migrations/
-        # Bloqueia PR se DDL (CREATE TABLE/VIEW/FUNCTION/INDEX, ALTER TABLE) aparecer
-        # em arquivos .sql fora de supabase/migrations/ ou infra/migrations/.
-        # Esses arquivos bypassam o Supabase CLI e causam drift silencioso.
         run: |
           set -euo pipefail
           base_ref="origin/${{ github.base_ref || 'main' }}"
           git fetch origin "${{ github.base_ref || 'main' }}" 2>/dev/null || true
-
           if git rev-parse "$base_ref" >/dev/null 2>&1; then
-            changed_sql=$(git diff --diff-filter=AM --name-only "$base_ref"...HEAD -- '*.sql' | \
-              grep -v '^supabase/migrations/' | \
-              grep -v '^infra/migrations/' | \
-              grep -v '^scripts/' | \
-              grep -v '^supabase/functions/' | \
-              grep -v '^supabase/ci/' || true)
+            changed_sql=$(git diff --diff-filter=AM --name-only "$base_ref"...HEAD -- '*.sql' | grep -v '^supabase/migrations/' | grep -v '^infra/migrations/' | grep -v '^scripts/' | grep -v '^supabase/functions/' | grep -v '^supabase/ci/' || true)
           else
             changed_sql=""
           fi
-
-          if [ -z "$changed_sql" ]; then
-            echo "Sem arquivos .sql fora dos diretórios de migrations. OK."
-            exit 0
-          fi
-
+          if [ -z "$changed_sql" ]; then echo "Sem .sql fora de migrations. OK."; exit 0; fi
           ddl_found=0
           for f in $changed_sql; do
             if grep -qiE '^\s*(CREATE|ALTER|DROP)\s+(TABLE|VIEW|FUNCTION|INDEX|SCHEMA|TYPE|SEQUENCE|TRIGGER|POLICY)' "$f" 2>/dev/null; then
-              echo "::error file=$f::DDL fora de supabase/migrations/ ou infra/migrations/ detectado. Mova para supabase/migrations/ para manter o rastreamento correto."
-              ddl_found=1
+              echo "::error file=$f::DDL fora de supabase/migrations/"; ddl_found=1
             fi
           done
-
-          if [ "$ddl_found" -eq 1 ]; then
-            exit 1
-          fi
-          echo "Nenhum DDL fora dos diretórios rastreados. OK."
-
+          if [ "$ddl_found" -eq 1 ]; then exit 1; fi
+          echo "Nenhum DDL fora dos diretorios rastreados. OK."
   live-drift:
     name: Live schema drift (requer DATABASE_URL)
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
-      - name: Instalar psql
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
-      - name: Guard de drift (via função no banco)
-        env:
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          if [ -z "$DATABASE_URL" ]; then
-            echo "DATABASE_URL não definido — pulando (o guard roda in-cluster).";
-            exit 0;
-          fi
+          if [ -z "$DATABASE_URL" ]; then echo "DATABASE_URL nao definido"; exit 0; fi
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "SELECT ops.check_schema_drift(true);"
