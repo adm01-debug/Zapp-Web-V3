@@ -17,7 +17,67 @@
 --
 -- Auditoria: 2026-08-01 R27 — risco P1 mapeado
 -- Aplicado:  2026-08-02
+--
 -- ============================================================
+-- ROLLBACK: para reverter esta migration:
+--   1. Recuperar definições originais:
+--      SELECT fn_def FROM financeiro._backup_fn_guards_20260802 ORDER BY fn_name;
+--   2. Executar cada fn_def para restaurar as funções sem guard.
+--   3. DROP TABLE financeiro._backup_fn_guards_20260802;
+-- ============================================================
+
+-- ============================================================
+-- Backup: salva pg_get_functiondef() de todas as funções
+-- elegíveis ANTES da injeção para permitir rollback preciso.
+-- Idempotente: ignora se a tabela já existir com dados.
+-- ============================================================
+DO $$
+DECLARE
+  v_count INT;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname = 'financeiro') THEN
+    RAISE NOTICE 'Schema financeiro nao encontrado — backup pulado';
+    RETURN;
+  END IF;
+
+  CREATE TABLE IF NOT EXISTS financeiro._backup_fn_guards_20260802 (
+    fn_oid       OID         NOT NULL,
+    fn_schema    TEXT        NOT NULL DEFAULT 'financeiro',
+    fn_name      TEXT        NOT NULL,
+    fn_args      TEXT        NOT NULL,
+    fn_def       TEXT        NOT NULL,
+    backed_up_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
+
+  -- Idempotência: popula apenas se a tabela estiver vazia
+  IF NOT EXISTS (SELECT 1 FROM financeiro._backup_fn_guards_20260802 LIMIT 1) THEN
+    INSERT INTO financeiro._backup_fn_guards_20260802 (fn_oid, fn_name, fn_args, fn_def)
+    SELECT
+      p.oid,
+      p.proname,
+      pg_catalog.pg_get_function_identity_arguments(p.oid),
+      pg_catalog.pg_get_functiondef(p.oid)
+    FROM pg_catalog.pg_proc p
+    JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname   = 'financeiro'
+      AND p.prokind   = 'f'
+      AND p.prolang   = (SELECT oid FROM pg_catalog.pg_language WHERE lanname = 'plpgsql')
+      AND p.prosecdef = true
+      AND p.proname NOT LIKE 'fn_is_%'
+      AND p.proname NOT LIKE 'fn_trg_%'
+      AND p.proname NOT LIKE 'fn_set_%'
+      AND p.proname NOT LIKE 'fn_auto_%'
+      AND p.proname NOT LIKE 'fn_atualizar_%'
+      AND p.proname NOT LIKE 'fn_sync_%'
+      AND p.proname <> 'fn_app_role';
+
+    GET DIAGNOSTICS v_count = ROW_COUNT;
+    RAISE NOTICE 'Backup: % definicoes salvas em financeiro._backup_fn_guards_20260802', v_count;
+  ELSE
+    RAISE NOTICE 'Backup ja existente — pulando (idempotente)';
+  END IF;
+END;
+$$;
 
 DO $$
 DECLARE
@@ -265,8 +325,8 @@ BEGIN
     EXECUTE $sql$
       COMMENT ON SCHEMA financeiro IS
         E'Schema do módulo financeiro (16 tabelas, 23+ funções com execução privilegiada).\n'
-        'Guards fn_is_admin_diretor() adicionados via migration 20260802000001 em 2026-08-02.\n'
-        'Risco residual P1 mapeado em R27 (2026-08-01): UUIDs nao adivinhaveis como mitigacao parcial.\n'
+        E'Guards fn_is_admin_diretor() adicionados via migration 20260802000001 em 2026-08-02.\n'
+        E'Risco residual P1 mapeado em R27 (2026-08-01): UUIDs nao adivinhaveis como mitigacao parcial.\n'
         'Para auditoria completa ver: supabase/migrations/20260801200000_r27_deep_audit_p0_gaps_rt33.sql'
     $sql$;
   ELSE
