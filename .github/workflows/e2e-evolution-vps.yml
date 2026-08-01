@@ -7,10 +7,6 @@ on:
         description: 'URL alvo da VPS'
         required: false
         default: 'https://zapp.atomicabr.com.br'
-      include_webhook_parity:
-        description: 'Rodar webhook-providers-parity (requer EVOLUTION_WEBHOOK_SECRET no backend)?'
-        required: false
-        default: 'false'
       include_voice_changer:
         description: 'Rodar voice-changer-integration?'
         required: false
@@ -76,14 +72,6 @@ jobs:
             e2e/whatsapp-connection.spec.ts \
             e2e/whatsapp-reactions-realtime.spec.ts \
             e2e/whatsapp-reactions-advanced.spec.ts"
-          if [ "${{ github.event.inputs.include_webhook_parity }}" = "true" ]; then
-            # DESCONTINUADO 2026-08-01: e2e-webhook-fixture removida (Fase E4/E32)
-            # A spec fica no repo apenas como referência histórica; execução falha
-            # porque a edge function não existe mais no self-hosted.
-            echo "⚠️ webhook-providers-parity descontinuada (fixture removida em E4/E32)"
-            # SPECS="$SPECS e2e/webhook-providers-parity.spec.ts"
-            # export E2E_WEBHOOK_PARITY=1
-          fi
           if [ "${{ github.event.inputs.include_voice_changer }}" = "true" ]; then
             SPECS="$SPECS e2e/voice-changer-integration.spec.ts"
           fi
@@ -100,7 +88,6 @@ jobs:
             echo ""
             echo "- Alvo: \`$E2E_BASE_URL\`"
             echo "- Resultado do step Evolution: \`${{ steps.run_evolution.outcome }}\`"
-            echo "- webhook-parity: \`${{ github.event.inputs.include_webhook_parity }}\`"
             echo "- voice-changer: \`${{ github.event.inputs.include_voice_changer }}\`"
             echo ""
             echo "## Últimas linhas do log"
