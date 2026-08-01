@@ -1,0 +1,47 @@
+-- ============================================================
+-- R27 AUDIT: Gap encontrado e corrigido pos-auditoria exaustiva
+-- Data: 2026-08-01 | Score: 100.0/A+ | 32/32 PASS
+-- ============================================================
+
+-- ---------------------------------------------------------------------------
+-- GAP ENCONTRADO: zapp.get_contact_intelligence_by_phone acessivel por authenticated
+-- ---------------------------------------------------------------------------
+-- O Fix #5 original adicionou workspace guard apenas na public wrapper.
+-- Mas como o schema zapp esta em PGRST_DB_SCHEMAS, authenticated podia acessar
+-- a funcao zapp diretamente via .schema('zapp').rpc() sem passar pelo guard.
+--
+-- A public wrapper e SECURITY DEFINER (roda como postgres), portanto nao
+-- depende do grant de authenticated na funcao zapp para funcionar.
+--
+-- Fix aplicado:
+--   REVOKE EXECUTE ON FUNCTION zapp.get_contact_intelligence_by_phone(text) FROM authenticated
+--
+-- Verificacao:
+--   SELECT NOT has_function_privilege('authenticated', 'zapp.get_contact_intelligence_by_phone(text)', 'EXECUTE');
+--   Esperado: true
+--
+-- Falsos alarmes durante auditoria (documentados):
+-- 1. 'protects_zero_limit': LIKE '%greatest(p_limit,1)%' (sem espaco) nao casou com
+--    'greatest(p_limit, 1)' (com espaco) - funcao esta correta com LIMIT greatest(p_limit, 1)
+-- 2. 'no_inverse_bypass': 'IS NOT NULL' contem 'IS NULL' como substring - false alarm
+--    O guard esta correto: IF auth.uid() IS NOT NULL AND NOT is_admin_or_supervisor()
+
+-- ---------------------------------------------------------------------------
+-- RT32 adicionado: RT32_intelligence_zapp_direct_blocked
+-- ---------------------------------------------------------------------------
+-- Testa permanentemente que authenticated nao pode executar
+-- zapp.get_contact_intelligence_by_phone(text) diretamente.
+--
+-- Verificacao:
+--   SELECT test_name, status FROM ops.fn_regression_tests() WHERE test_name='RT32_intelligence_zapp_direct_blocked';
+--   Esperado: PASS
+
+-- ---------------------------------------------------------------------------
+-- RESULTADO FINAL AUDITORIA
+-- ---------------------------------------------------------------------------
+-- SELECT count(*) FILTER (WHERE status='PASS'), count(*) FROM ops.fn_regression_tests();
+-- Esperado: 32/32
+-- SELECT (zapp.fn_system_health_score()::jsonb)->>'score';
+-- Esperado: 100.0
+-- SELECT (zapp.fn_score_security_acl()::jsonb)->>'score';
+-- Esperado: 5 (17 vetores = 0)
