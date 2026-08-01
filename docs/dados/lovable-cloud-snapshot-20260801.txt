@@ -1,0 +1,13 @@
+# Snapshot da base Lovable Cloud (projeto uqysyzndkfiwfztbqvsl / 22c0b518-7895-4f4f-9ea0-978457a2c37a)
+# Data: 2026-08-01 (pos-desativacao dos crons)
+# Total de itens: 3162
+COLUMN: 1611
+POLICY: 459
+CONSTRAINT: 424
+INDEX: 342
+TABLE: 147
+FUNCTION: 98
+TRIGGER: 81
+
+Dump completo (507 KB): C:\Users\Joaquim\AppData\Local\hermes\profiles\otimizado\cache\terminal\hermes-results\call_01_ET_r08vYOBwRV7qDBI8UTqU8383.txt
+Crons ativos na cloud: 0 (sicoob-outbox-drain desativado + purge_query_telemetry_daily desativado em 2026-08-01)
