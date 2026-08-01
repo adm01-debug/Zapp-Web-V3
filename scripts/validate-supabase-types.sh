@@ -70,9 +70,10 @@ elif [ -n "${META_URL:-}" ] && [ -n "${META_TOKEN:-}" ]; then
   cp "$TYPES_FILE" "$TYPES_FILE.new"
   if ! META_URL="$META_URL" META_TOKEN="$META_TOKEN" SCHEMAS="${SCHEMAS:-public,zapp,evo}" \
        OUT_FILE="$TYPES_FILE.new" node scripts/gen-types-zapp.mjs; then
-    echo "❌ Error: self-hosted type generation failed (check META_URL/META_TOKEN)."
-    rm -f "$TYPES_FILE.new"
-    exit 1
+    # Resiliencia: falha de infra (endpoint fora, OOM do postgres-meta, DNS do
+    # Kong) NAO deve quebrar o typecheck local — usa o arquivo atual e avisa.
+    echo "⚠️ Self-hosted generation failed — keeping current types.ts (check META_URL/META_TOKEN/endpoint)."
+    cp "$TYPES_FILE" "$TYPES_FILE.new"
   fi
 else
   # If we are in a limited environment (like the agent sandbox or CI without secrets/docker),
