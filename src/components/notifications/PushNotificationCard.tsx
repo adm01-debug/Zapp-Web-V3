@@ -22,8 +22,8 @@ export function PushNotificationCard() {
     setTestSending(true);
     try {
       await showNotification({
-        title: '🔔 Teste de Push',
-        body: 'Esta é uma notificação push de teste.',
+        title: '🔔 Deploy de Edge Function',
+        body: 'Faça deploy da edge function migrate-helper com verify_jwt = false no supabase/config.toml',
         tag: 'test-push-' + Date.now(),
       });
     } finally {
