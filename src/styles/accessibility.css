@@ -172,11 +172,15 @@
 .content-auto { content-visibility: auto; contain-intrinsic-size: auto 500px; }
 
 /* ===== SONNER TOAST — WCAG AA contrast enforcement ===== */
-/* Sonner's entry animation applies `transition: opacity 400ms` to the WRAPPER DIV (direct
-   child of [data-sonner-toast] / <li>). When axe runs during this ~400ms window, white text
-   at ~80% opacity on the destructive background computes to #f4dbdb (~3.6:1), failing WCAG AA.
-   Fix: force opacity:1 and disable the transition on the wrapper div, then also lock color and
-   opacity on the title/description elements themselves. */
+/* Sonner animates [data-sonner-toast] (<li>) from opacity:0 to opacity:1 over 400ms via a CSS
+   transition. When axe runs mid-transition the <li> is at ~76% opacity; white text on the
+   destructive background composites to #f2d5d6 (~3.16:1), failing WCAG AA 4.5:1.
+   The `:where()` selectors in Sonner have zero specificity, so our non-:where rules win even
+   without !important, but we use it for robustness against third-party overrides.
+   The > * rule also covers stacked-toast wrapper-div opacity (data-front=false case). */
+[data-sonner-toast][data-type='error'] {
+  opacity: 1 !important;
+}
 [data-sonner-toast][data-type='error'] > * {
   opacity: 1 !important;
   transition: none !important;
