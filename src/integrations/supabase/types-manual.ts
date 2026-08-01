@@ -99,28 +99,6 @@ export type ManualWorkspaceSettings = {
   };
 };
 
-export type ContactIntelligenceRow = {
-  id: string;
-  contact_id: string;
-  engagement_score: number | null;
-  risk_level: string | null;
-  disc_profile: string | null;
-  briefing: string | null;
-  rapport_guide: string[] | null;
-  best_times_to_call: string[] | null;
-  triggers: string[] | null;
-  sentiment: string | null;
-  predicted_value: number | null;
-  total_messages: number | null;
-  days_since_contact: number | null;
-  phone: string | null;
-  contact_name: string | null;
-  lead_status: string | null;
-  inbound_ratio: number | null;
-  created_at: string;
-  updated_at: string;
-};
-
 type MergeTables<Base, Extra> = {
   [K in keyof Base | keyof Extra]: K extends keyof Extra
     ? Extra[K]

@@ -42,12 +42,13 @@ export interface WorkspaceSettings {
 export const settingsRepository = {
   // User Settings
   async getUserSettings(userId: string): Promise<UserSettings | null> {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('user_settings')
       .select('*')
       .eq('user_id', userId)
       .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
+    if (error) return null;
     return data;
   },
 
@@ -115,8 +116,16 @@ export const settingsRepository = {
       .channel(`user_settings:${userId}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'zapp', table: 'user_settings', filter: `user_id=eq.${userId}` },
-        (payload) => callback(payload.new as UserSettings)
+        {
+          event: '*',
+          schema: 'zapp',
+          table: 'user_settings',
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload: { eventType: string; new: unknown; old: unknown }) => {
+          if (payload.eventType === 'DELETE') return;
+          callback(payload.new as UserSettings);
+        }
       )
       .subscribe();
   },
@@ -135,7 +144,10 @@ export const settingsRepository = {
           table: 'workspace_settings',
           filter: `workspace_id=eq.${workspaceId}`,
         },
-        (payload) => callback(payload.new as WorkspaceSettings)
+        (payload: { eventType: string; new: unknown; old: unknown }) => {
+          if (payload.eventType === 'DELETE') return;
+          callback(payload.new as WorkspaceSettings);
+        }
       )
       .subscribe();
   },
