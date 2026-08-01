@@ -210,11 +210,7 @@ export function useQueues(): UseQueuesResult {
   const removeMember = useCallback(
     (queueId: string, profileId: string) =>
       runMutation('removeMember', () =>
-        supabase
-          .from('queue_members')
-          .delete()
-          .eq('queue_id', queueId)
-          .eq('profile_id', profileId)
+        supabase.from('queue_members').delete().eq('queue_id', queueId).eq('profile_id', profileId)
       ),
     [runMutation]
   );

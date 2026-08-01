@@ -16,7 +16,12 @@ interface OnboardingStatus {
   [key: string]: boolean;
 }
 
-const DEFAULT_STATUS: OnboardingStatus = { profile: false, whatsapp: false, settings: false, templates: false };
+const DEFAULT_STATUS: OnboardingStatus = {
+  profile: false,
+  whatsapp: false,
+  settings: false,
+  templates: false,
+};
 
 /** Hook: use Onboarding Checklist. */
 export function useOnboardingChecklist() {
@@ -31,7 +36,11 @@ export function useOnboardingChecklist() {
     }
   }, [user?.id]);
 
-  const { data: status = DEFAULT_STATUS, isLoading, refetch } = useQuery({
+  const {
+    data: status = DEFAULT_STATUS,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['onboarding-status', user?.id],
     queryFn: async (): Promise<OnboardingStatus> => {
       if (!user) throw new Error('Usuário não autenticado');
@@ -54,7 +63,9 @@ export function useOnboardingChecklist() {
     staleTime: 60_000,
   });
 
-  const checkStatus = useCallback(() => { void refetch(); }, [refetch]);
+  const checkStatus = useCallback(() => {
+    void refetch();
+  }, [refetch]);
 
   const dismiss = useCallback(() => {
     try {

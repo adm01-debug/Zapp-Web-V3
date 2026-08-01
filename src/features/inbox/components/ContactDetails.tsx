@@ -201,8 +201,12 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
             isLoadingSLA={isLoadingSLA}
             aiTagsError={aiTagsError}
             slaError={slaError}
-            onRetryAITags={() => { void refetchAITags(); }}
-            onRetrySLA={() => { void refetchSLA(); }}
+            onRetryAITags={() => {
+              void refetchAITags();
+            }}
+            onRetrySLA={() => {
+              void refetchSLA();
+            }}
           />
         </Accordion>
 

@@ -59,6 +59,23 @@ BEGIN
   END LOOP;
 END $$;
 
--- Rollback:
+-- Rollback do step 1 (funções fixas):
 --   REVOKE EXECUTE ON FUNCTION zapp.current_user_is_privileged() FROM authenticated;
 --   REVOKE EXECUTE ON FUNCTION zapp.is_admin_painel()            FROM authenticated;
+--
+-- Rollback do step 3 (varredura defensiva — funções adicionais concedidas pelo loop):
+--   Levante quais funções receberam GRANT com a query abaixo e emita REVOKE
+--   manualmente para cada uma:
+--
+--   SELECT n.nspname, p.proname, pg_get_function_identity_arguments(p.oid) AS args
+--   FROM pg_depend d
+--   JOIN pg_proc p ON p.oid = d.refobjid
+--   JOIN pg_namespace n ON n.oid = p.pronamespace
+--   WHERE d.classid = 'pg_policy'::regclass
+--     AND d.refclassid = 'pg_proc'::regclass
+--     AND n.nspname IN ('public','zapp','evo')
+--     AND p.prokind = 'f'
+--     AND has_function_privilege('authenticated', p.oid, 'EXECUTE');
+--
+--   Então: REVOKE EXECUTE ON FUNCTION <sch>.<fn>(<args>) FROM authenticated;
+--   ATENÇÃO: revogar funções de RLS essenciais reintroduzirá o bug #668 (403 no inbox).

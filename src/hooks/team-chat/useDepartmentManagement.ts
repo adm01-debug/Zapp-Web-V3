@@ -74,7 +74,7 @@ export function useDepartmentManagement(
             setWhatsappInstanceId(data.whatsapp_instance_id || '');
           }
         },
-        (err: unknown) => log.warn('[DeptMgmt] load whatsapp settings failed:', err),
+        (err: unknown) => log.warn('[DeptMgmt] load whatsapp settings failed:', err)
       );
   }, [open, view, initialDepartment.id]);
 
@@ -151,7 +151,9 @@ export function useDepartmentManagement(
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.departments.invites(initialDepartment.id) });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.departments.invites(initialDepartment.id),
+      });
       toast({ title: 'Link de convite criado' });
     },
     onError: () => {
@@ -165,7 +167,9 @@ export function useDepartmentManagement(
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.departments.invites(initialDepartment.id) });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.departments.invites(initialDepartment.id),
+      });
       toast({ title: 'Convite removido' });
     },
     onError: () => {
@@ -206,23 +210,27 @@ export function useDepartmentManagement(
         data: { user },
       } = await supabase.auth.getUser();
       try {
-        await supabase
-          .from('audit_logs')
-          .insert({
-            action: action === 'add' ? 'ADD_MEMBER' : 'REMOVE_MEMBER',
-            entity_id: initialDepartment.id,
-            entity_type: 'department',
-            user_id: user?.id,
-            details: { profile_id: profileId },
-          });
+        await supabase.from('audit_logs').insert({
+          action: action === 'add' ? 'ADD_MEMBER' : 'REMOVE_MEMBER',
+          entity_id: initialDepartment.id,
+          entity_type: 'department',
+          user_id: user?.id,
+          details: { profile_id: profileId },
+        });
       } catch (err: unknown) {
         log.warn('[audit] department member change log failed', err);
       }
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.departments.profiles(initialDepartment.id) });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.departments.audit(initialDepartment.id) });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.departmentChat.agents(initialDepartment.id) });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.departments.profiles(initialDepartment.id),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.departments.audit(initialDepartment.id),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.departmentChat.agents(initialDepartment.id),
+      });
     },
     onError: () => {
       toast({ title: 'Erro ao gerenciar membro', variant: 'destructive' });

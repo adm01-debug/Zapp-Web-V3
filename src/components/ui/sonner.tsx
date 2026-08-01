@@ -34,8 +34,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
             'group-[.toaster]:!bg-destructive group-[.toaster]:!border-destructive group-[.toaster]:!text-white [&_[data-title]]:!text-white [&_[data-description]]:!text-white [&_[data-description]]:!opacity-100',
           warning:
             'group-[.toaster]:!bg-warning group-[.toaster]:!border-warning group-[.toaster]:!text-warning-foreground',
-          info:
-            'group-[.toaster]:!bg-info group-[.toaster]:!border-info group-[.toaster]:!text-info-foreground',
+          info: 'group-[.toaster]:!bg-info group-[.toaster]:!border-info group-[.toaster]:!text-info-foreground',
         },
       }}
       {...props}

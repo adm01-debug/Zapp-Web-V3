@@ -54,17 +54,15 @@ export function useCustomEmojis(enabled = true) {
         log.error('[useCustomEmojis] fetch failed', error);
         throw error;
       }
-      return (data ?? []).map(
-        (r): CustomEmoji => ({
-          id: r.id,
-          name: r.name ?? '',
-          image_url: r.image_url,
-          category: r.category ?? DEFAULT_CATEGORY,
-          is_favorite: r.is_favorite ?? false,
-          use_count: r.use_count ?? 0,
-          uploaded_by: r.uploaded_by ?? null,
-        })
-      );
+      return (data ?? []).map((r): CustomEmoji => ({
+        id: r.id,
+        name: r.name ?? '',
+        image_url: r.image_url,
+        category: r.category ?? DEFAULT_CATEGORY,
+        is_favorite: r.is_favorite ?? false,
+        use_count: r.use_count ?? 0,
+        uploaded_by: r.uploaded_by ?? null,
+      }));
     },
     enabled,
     staleTime: 30_000,
@@ -171,7 +169,9 @@ export function useCustomEmojis(enabled = true) {
           return;
         }
         queryClient.setQueryData<CustomEmoji[]>(EMOJIS_QUERY_KEY, (prev) =>
-          (prev ?? []).map((e) => (e.id === emoji.id ? { ...e, use_count: (e.use_count ?? 0) + 1 } : e))
+          (prev ?? []).map((e) =>
+            e.id === emoji.id ? { ...e, use_count: (e.use_count ?? 0) + 1 } : e
+          )
         );
       } catch (err) {
         log.error('[useCustomEmojis] increment use_count failed', err);
@@ -180,45 +180,51 @@ export function useCustomEmojis(enabled = true) {
     [queryClient]
   );
 
-  const toggleFavorite = useCallback(async (e: MouseEvent, emoji: CustomEmoji) => {
-    e.stopPropagation();
-    const next = !emoji.is_favorite;
-    queryClient.setQueryData<CustomEmoji[]>(EMOJIS_QUERY_KEY, (prev) =>
-      (prev ?? []).map((x) => (x.id === emoji.id ? { ...x, is_favorite: next } : x))
-    );
-    try {
-      const { error } = await supabase
-        .from('custom_emojis')
-        .update({ is_favorite: next })
-        .eq('id', emoji.id);
-      if (error) throw error;
-    } catch (err) {
-      log.error('[useCustomEmojis] toggleFavorite failed', err);
+  const toggleFavorite = useCallback(
+    async (e: MouseEvent, emoji: CustomEmoji) => {
+      e.stopPropagation();
+      const next = !emoji.is_favorite;
       queryClient.setQueryData<CustomEmoji[]>(EMOJIS_QUERY_KEY, (prev) =>
-        (prev ?? []).map((x) => (x.id === emoji.id ? { ...x, is_favorite: !next } : x))
+        (prev ?? []).map((x) => (x.id === emoji.id ? { ...x, is_favorite: next } : x))
       );
-      toast.error('Falha ao atualizar favorito');
-    }
-  }, [queryClient]);
+      try {
+        const { error } = await supabase
+          .from('custom_emojis')
+          .update({ is_favorite: next })
+          .eq('id', emoji.id);
+        if (error) throw error;
+      } catch (err) {
+        log.error('[useCustomEmojis] toggleFavorite failed', err);
+        queryClient.setQueryData<CustomEmoji[]>(EMOJIS_QUERY_KEY, (prev) =>
+          (prev ?? []).map((x) => (x.id === emoji.id ? { ...x, is_favorite: !next } : x))
+        );
+        toast.error('Falha ao atualizar favorito');
+      }
+    },
+    [queryClient]
+  );
 
-  const handleCategoryChange = useCallback(async (emoji: CustomEmoji, category: string) => {
-    queryClient.setQueryData<CustomEmoji[]>(EMOJIS_QUERY_KEY, (prev) =>
-      (prev ?? []).map((x) => (x.id === emoji.id ? { ...x, category } : x))
-    );
-    try {
-      const { error } = await supabase
-        .from('custom_emojis')
-        .update({ category })
-        .eq('id', emoji.id);
-      if (error) throw error;
-    } catch (err) {
-      log.error('[useCustomEmojis] category change failed', err);
+  const handleCategoryChange = useCallback(
+    async (emoji: CustomEmoji, category: string) => {
       queryClient.setQueryData<CustomEmoji[]>(EMOJIS_QUERY_KEY, (prev) =>
-        (prev ?? []).map((x) => (x.id === emoji.id ? { ...x, category: emoji.category } : x))
+        (prev ?? []).map((x) => (x.id === emoji.id ? { ...x, category } : x))
       );
-      toast.error('Falha ao atualizar categoria');
-    }
-  }, [queryClient]);
+      try {
+        const { error } = await supabase
+          .from('custom_emojis')
+          .update({ category })
+          .eq('id', emoji.id);
+        if (error) throw error;
+      } catch (err) {
+        log.error('[useCustomEmojis] category change failed', err);
+        queryClient.setQueryData<CustomEmoji[]>(EMOJIS_QUERY_KEY, (prev) =>
+          (prev ?? []).map((x) => (x.id === emoji.id ? { ...x, category: emoji.category } : x))
+        );
+        toast.error('Falha ao atualizar categoria');
+      }
+    },
+    [queryClient]
+  );
 
   const handleDelete = useCallback(
     async (e: MouseEvent, emoji: CustomEmoji) => {

@@ -225,10 +225,12 @@ export const safeClient = {
         } else {
           // ignore-audit — .limit() not on RPC return type in generated types
           const { error } = await (
-            (supabase as unknown as {
+            supabase as unknown as {
               rpc: (name: string) => { limit: (n: number) => Promise<{ error: unknown }> };
-            }).rpc(name)
-          ).limit(0);
+            }
+          )
+            .rpc(name)
+            .limit(0);
           if (!error) {
             exists = true;
           } else {

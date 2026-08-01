@@ -25,7 +25,6 @@ interface SearchHistoryEntry {
   resultCount?: number;
 }
 
-
 /** Manages global search modal with Ctrl+K keyboard shortcut. */
 export function useGlobalSearchShortcutManagement(onSearch?: (query: string) => void) {
   const [isOpen, setIsOpen] = useState(false);
@@ -82,7 +81,11 @@ const SEARCH_HISTORY_KEY = ['search-history'] as const;
 export function useSearchHistoryManagement() {
   const queryClient = useQueryClient();
 
-  const { data: history = [], isLoading: loading, refetch } = useQuery({
+  const {
+    data: history = [],
+    isLoading: loading,
+    refetch,
+  } = useQuery({
     queryKey: SEARCH_HISTORY_KEY,
     queryFn: async () => {
       const { data, error: err } = await supabase
@@ -108,7 +111,9 @@ export function useSearchHistoryManagement() {
   const addToHistory = useCallback(
     async (query: string, resultType: string) => {
       try {
-        await safeClient.from('search_history', (q) => q.insert({ query, result_type: resultType }));
+        await safeClient.from('search_history', (q) =>
+          q.insert({ query, result_type: resultType })
+        );
         void queryClient.invalidateQueries({ queryKey: SEARCH_HISTORY_KEY });
       } catch (err) {
         log.error('Error adding to history:', err);
@@ -224,8 +229,6 @@ export function useSearchInsightsManagement(timeWindow: number = 7) {
 
   return { insights, loading };
 }
-
-
 
 /** Searches messages within a specific chat by ID and query. */
 export function useChatSearchManagement(chatId: string, query: string) {

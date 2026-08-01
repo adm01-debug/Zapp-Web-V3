@@ -88,6 +88,9 @@ jobs:
             code="${code:-000}"
             if [ "$code" = "000" ]; then
               echo "::warning::Health check '$fn' sem resposta (http=$code) - network issue?"
+            elif [ "$code" = "500" ] || [ "$code" = "502" ] || [ "$code" = "503" ]; then
+              echo "::error::Health check '$fn' falhou com http=$code"
+              FAILED=1
             else
               echo "OK: '$fn' (health, http=$code)"
             fi

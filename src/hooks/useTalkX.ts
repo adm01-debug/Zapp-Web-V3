@@ -149,47 +149,56 @@ export function useTalkX() {
     onError: (err: Error) => toast.error(`Erro: ${err.message}`),
   });
 
-  const startCampaign = useCallback(async (id: string) => {
-    try {
-      const { error } = await supabase.functions.invoke('talkx-control', {
-        body: { action: 'start', campaignId: id },
-      });
-      if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
-      toast.success('Campanha iniciada!');
-    } catch (err) {
-      log.error('startCampaign error', err);
-      toast.error('Erro ao iniciar campanha');
-    }
-  }, [queryClient]);
+  const startCampaign = useCallback(
+    async (id: string) => {
+      try {
+        const { error } = await supabase.functions.invoke('talkx-control', {
+          body: { action: 'start', campaignId: id },
+        });
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
+        toast.success('Campanha iniciada!');
+      } catch (err) {
+        log.error('startCampaign error', err);
+        toast.error('Erro ao iniciar campanha');
+      }
+    },
+    [queryClient]
+  );
 
-  const pauseCampaign = useCallback(async (id: string) => {
-    try {
-      const { error } = await supabase.functions.invoke('talkx-control', {
-        body: { action: 'pause', campaignId: id },
-      });
-      if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
-      toast.success('Campanha pausada!');
-    } catch (err) {
-      log.error('pauseCampaign error', err);
-      toast.error('Erro ao pausar campanha');
-    }
-  }, [queryClient]);
+  const pauseCampaign = useCallback(
+    async (id: string) => {
+      try {
+        const { error } = await supabase.functions.invoke('talkx-control', {
+          body: { action: 'pause', campaignId: id },
+        });
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
+        toast.success('Campanha pausada!');
+      } catch (err) {
+        log.error('pauseCampaign error', err);
+        toast.error('Erro ao pausar campanha');
+      }
+    },
+    [queryClient]
+  );
 
-  const cancelCampaign = useCallback(async (id: string) => {
-    try {
-      const { error } = await supabase.functions.invoke('talkx-control', {
-        body: { action: 'cancel', campaignId: id },
-      });
-      if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
-      toast.success('Campanha cancelada!');
-    } catch (err) {
-      log.error('cancelCampaign error', err);
-      toast.error('Erro ao cancelar campanha');
-    }
-  }, [queryClient]);
+  const cancelCampaign = useCallback(
+    async (id: string) => {
+      try {
+        const { error } = await supabase.functions.invoke('talkx-control', {
+          body: { action: 'cancel', campaignId: id },
+        });
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
+        toast.success('Campanha cancelada!');
+      } catch (err) {
+        log.error('cancelCampaign error', err);
+        toast.error('Erro ao cancelar campanha');
+      }
+    },
+    [queryClient]
+  );
 
   const { refetch: refetchCampaigns } = campaignsQuery;
 

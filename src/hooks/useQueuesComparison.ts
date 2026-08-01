@@ -75,8 +75,9 @@ export function useQueuesComparison(dateRange: DateRange) {
           .gte('created_at', fromIso)
           .lte('created_at', toIso);
         if (msgsErr) throw msgsErr;
-        messageList = (msgs || [])
-          .filter((m): m is { id: string; contact_id: string } => m.id !== null && m.contact_id !== null);
+        messageList = (msgs || []).filter(
+          (m): m is { id: string; contact_id: string } => m.id !== null && m.contact_id !== null
+        );
       }
 
       return queueList.map((q) => {

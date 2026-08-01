@@ -79,7 +79,10 @@ export function ContactContentArea({
     return (
       <Card className="border-warning/20">
         <CardContent className="p-6">
-          <DuplicateContactsPanel workspaceId={workspaceId || DEFAULT_WHATSAPP_INSTANCE} onMergeComplete={onRefresh} />
+          <DuplicateContactsPanel
+            workspaceId={workspaceId || DEFAULT_WHATSAPP_INSTANCE}
+            onMergeComplete={onRefresh}
+          />
         </CardContent>
       </Card>
     );
@@ -89,7 +92,10 @@ export function ContactContentArea({
     return (
       <Card className="border-destructive/20">
         <CardContent className="p-6">
-          <ContactRecycleBin workspaceId={workspaceId || DEFAULT_WHATSAPP_INSTANCE} onRestored={onRefresh} />
+          <ContactRecycleBin
+            workspaceId={workspaceId || DEFAULT_WHATSAPP_INSTANCE}
+            onRestored={onRefresh}
+          />
         </CardContent>
       </Card>
     );
@@ -178,7 +184,12 @@ export function ContactContentArea({
   if (viewMode === 'kanban')
     return (
       <ContactKanbanView
-        contacts={contacts.map((c) => ({ ...c, id: c.id ?? '', name: c.name ?? '', phone: c.phone ?? '' }))}
+        contacts={contacts.map((c) => ({
+          ...c,
+          id: c.id ?? '',
+          name: c.name ?? '',
+          phone: c.phone ?? '',
+        }))}
         onContactClick={onContactClick}
       />
     );

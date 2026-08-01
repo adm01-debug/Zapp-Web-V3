@@ -589,8 +589,7 @@ export function useGoalsDashboardManagement() {
     const rawMessagesTarget = messageConfig
       ? messageConfig[`${period}_target` as keyof typeof messageConfig]
       : undefined;
-    const messagesTarget =
-      typeof rawMessagesTarget === 'number' ? rawMessagesTarget : undefined;
+    const messagesTarget = typeof rawMessagesTarget === 'number' ? rawMessagesTarget : undefined;
 
     allGoals.push({
       id: 'messages-sent',
@@ -610,8 +609,7 @@ export function useGoalsDashboardManagement() {
     const rawContactsTarget = contactConfig
       ? contactConfig[`${period}_target` as keyof typeof contactConfig]
       : undefined;
-    const contactsTarget =
-      typeof rawContactsTarget === 'number' ? rawContactsTarget : undefined;
+    const contactsTarget = typeof rawContactsTarget === 'number' ? rawContactsTarget : undefined;
 
     allGoals.push({
       id: 'contacts-handled',

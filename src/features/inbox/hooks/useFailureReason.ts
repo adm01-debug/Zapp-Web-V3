@@ -59,7 +59,9 @@ export function useFailureReason(messageId: string | undefined, enabled: boolean
         finalHttpStatus: data.final_http_status,
         attempts: data.attempt_count ?? 0,
         finalStatus:
-          data.final_status === 'success' || data.final_status === 'failed' || data.final_status === 'exhausted'
+          data.final_status === 'success' ||
+          data.final_status === 'failed' ||
+          data.final_status === 'exhausted'
             ? data.final_status
             : 'failed',
       };

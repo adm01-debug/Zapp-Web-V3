@@ -100,17 +100,18 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
 
       const outboundEntries: AuditEntry[] = (outboundAuditRes.data ?? []).map(
         (e: OutboundAuditRow) => ({
-        id: e.id,
-        action: `OUTBOUND_${(e.event_type ?? 'send').toUpperCase()}`,
-        createdAt: e.created_at,
-        details: {
-          status: e.status,
-          latency: e.latency_ms,
-          instance: e.instance_name,
-          error_message: e.error_message,
-          ...(e.metadata && typeof e.metadata === 'object' ? e.metadata : {}),
-        },
-      }));
+          id: e.id,
+          action: `OUTBOUND_${(e.event_type ?? 'send').toUpperCase()}`,
+          createdAt: e.created_at,
+          details: {
+            status: e.status,
+            latency: e.latency_ms,
+            instance: e.instance_name,
+            error_message: e.error_message,
+            ...(e.metadata && typeof e.metadata === 'object' ? e.metadata : {}),
+          },
+        })
+      );
 
       const combinedAudit = dedupeAuditEntries(
         [...auditEntries, ...outboundEntries].sort(

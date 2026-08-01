@@ -244,7 +244,9 @@ export function ChatPanelHeader({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48 border-border bg-popover">
             <DropdownMenuItem
-              onClick={() => openChatPopup(conversation.contact.id ?? '', conversation.contact.name ?? '')}
+              onClick={() =>
+                openChatPopup(conversation.contact.id ?? '', conversation.contact.name ?? '')
+              }
             >
               <ExternalLink className="mr-2 h-4 w-4" />
               Abrir em popup

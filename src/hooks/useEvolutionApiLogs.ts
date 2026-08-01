@@ -62,7 +62,9 @@ export function useEvolutionApiLogs({
         instance_name: row.instance_name,
         attempt_count: row.attempt_count ?? 0,
         final_status:
-          row.final_status === 'success' || row.final_status === 'failed' || row.final_status === 'exhausted'
+          row.final_status === 'success' ||
+          row.final_status === 'failed' ||
+          row.final_status === 'exhausted'
             ? row.final_status
             : 'failed',
         final_http_status: row.final_http_status,

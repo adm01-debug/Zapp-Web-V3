@@ -90,9 +90,14 @@ export function useAppBootstrap() {
   const { data, isLoading, error } = useQuery({
     queryKey: BOOTSTRAP_KEY,
     queryFn: async (): Promise<AppBootstrapData> => {
-      const { data: result, error: rpcError } = await (supabase as unknown as {
-        rpc: (name: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
-      }).rpc('rpc_app_bootstrap');
+      const { data: result, error: rpcError } = await (
+        supabase as unknown as {
+          rpc: (
+            name: string,
+            args?: Record<string, unknown>
+          ) => Promise<{ data: unknown; error: { message: string } | null }>;
+        }
+      ).rpc('rpc_app_bootstrap');
       if (rpcError) throw rpcError;
       return result as unknown as AppBootstrapData;
     },
@@ -101,22 +106,18 @@ export function useAppBootstrap() {
     retry: 1,
   });
 
-  const profile             = useMemo(() => data?.profile           ?? null, [data]);
-  const roles               = useMemo(() => data?.roles             ?? [],   [data]);
-  const permissions         = useMemo(() => data?.permissions       ?? [],   [data]);
-  const rolePermissions     = useMemo(() => data?.role_permissions  ?? [],   [data]);
-  const globalSettings      = useMemo(() => data?.global_settings   ?? [],   [data]);
-  const departments         = useMemo(() => data?.departments       ?? [],   [data]);
+  const profile = useMemo(() => data?.profile ?? null, [data]);
+  const roles = useMemo(() => data?.roles ?? [], [data]);
+  const permissions = useMemo(() => data?.permissions ?? [], [data]);
+  const rolePermissions = useMemo(() => data?.role_permissions ?? [], [data]);
+  const globalSettings = useMemo(() => data?.global_settings ?? [], [data]);
+  const departments = useMemo(() => data?.departments ?? [], [data]);
   const unreadNotifications = useMemo(() => data?.unread_notifications ?? 0, [data]);
 
-  const isAdmin = useMemo(
-    () => roles.some((r: string) => r === 'admin' || r === 'dev'),
-    [roles]
-  );
+  const isAdmin = useMemo(() => roles.some((r: string) => r === 'admin' || r === 'dev'), [roles]);
 
   const getSetting = useCallback(
-    (key: string): string | null =>
-      globalSettings.find((s) => s.key === key)?.value ?? null,
+    (key: string): string | null => globalSettings.find((s) => s.key === key)?.value ?? null,
     [globalSettings]
   );
 

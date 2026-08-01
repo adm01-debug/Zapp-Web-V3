@@ -211,7 +211,12 @@ const ContactRow = memo(
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button aria-label="Opções do contato" variant="ghost" size="icon" className="h-8 w-8">
+              <Button
+                aria-label="Opções do contato"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+              >
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -260,7 +265,9 @@ const TableHeader = memo(
         <div className="w-4 shrink-0">
           <Checkbox
             checked={allSelected}
-            onCheckedChange={(checked) => onSelectIds(checked ? contacts.map((c) => c.id ?? '') : [])}
+            onCheckedChange={(checked) =>
+              onSelectIds(checked ? contacts.map((c) => c.id ?? '') : [])
+            }
             aria-label={allSelected ? 'Desmarcar todos' : 'Selecionar todos'}
           />
         </div>

@@ -89,8 +89,7 @@ vi.mock('@/integrations/supabase/client', () => ({
       return Promise.resolve(sb.getResult(fn));
     },
     auth: {
-      getUser: () =>
-        Promise.resolve({ data: { user: { id: 'uid-3242312e' } }, error: null }),
+      getUser: () => Promise.resolve({ data: { user: { id: 'uid-3242312e' } }, error: null }),
     },
   },
 }));
@@ -190,7 +189,13 @@ describe('useContactNotesManagement (contact_notes)', () => {
   it('listar notas: select + eq contact_id', async () => {
     sb.setResult('contact_notes', {
       data: [
-        { id: 'n1', contact_id: UUID, content: 'nota', author_id: 'a1', created_at: '2026-07-31T00:00:00Z' },
+        {
+          id: 'n1',
+          contact_id: UUID,
+          content: 'nota',
+          author_id: 'a1',
+          created_at: '2026-07-31T00:00:00Z',
+        },
       ],
       error: null,
     });
@@ -254,7 +259,9 @@ describe('useContactEnrichedDataManagement (enrich_contact RPC)', () => {
   });
 
   it('JID: nao chama RPC (guard UUID)', async () => {
-    const { result } = renderHook(() => useContactEnrichedDataManagement('55@s.whatsapp.net'), { wrapper });
+    const { result } = renderHook(() => useContactEnrichedDataManagement('55@s.whatsapp.net'), {
+      wrapper,
+    });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(sb.calls.rpc).toHaveLength(0);
   });
@@ -276,7 +283,9 @@ describe('useContactAssignmentManagement (contact_assignments)', () => {
     const { result } = renderHook(() => useContactAssignmentManagement(UUID), { wrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(sb.calls.from).toContain('contact_assignments');
-    expect(result.current.assignment?.assigned_to_user_id).toBe('3242312e-710b-4e3a-80e5-ead70f210fc7');
+    expect(result.current.assignment?.assigned_to_user_id).toBe(
+      '3242312e-710b-4e3a-80e5-ead70f210fc7'
+    );
   });
 
   it('assignToUser: upsert com contact_id + assigned_to_user_id e refetch', async () => {

@@ -25,7 +25,7 @@ ALTER TABLE zapp.instance_registry DROP CONSTRAINT IF EXISTS instance_registry_s
 ALTER TABLE zapp.instance_registry ADD CONSTRAINT instance_registry_status_check
   CHECK (status = ANY (ARRAY['active','inactive','connected','connecting',
     'disconnected','qr_pending','reconnecting','degraded','archived',
-    'not_provisioned']));
+    'not_provisioned','logged_out']));
 
 -- 2) Alinha evolution_messages_wpp2_archive com a fonte (48 colunas)
 ALTER TABLE evo.evolution_messages_wpp2_archive
@@ -55,7 +55,7 @@ CREATE OR REPLACE FUNCTION zapp.fn_archive_old_wpp2_messages(p_months_old intege
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'zapp', 'evo'
+ SET search_path TO 'zapp', 'evo', 'pg_catalog'
 AS $function$
 DECLARE
   v_safe_months    INT := GREATEST(p_months_old, 12);
@@ -63,10 +63,10 @@ DECLARE
   v_already_in_arc INT; v_newly_archived INT; v_deleted INT;
 BEGIN
   SELECT count(*) INTO v_already_in_arc
-  FROM (SELECT id,instance_name FROM evo.evolution_messages_wpp2 WHERE created_at < v_cutoff ORDER BY created_at ASC LIMIT p_batch_size) b
+  FROM (SELECT id,instance_name FROM evo.evolution_messages WHERE created_at < v_cutoff AND instance_name = 'wpp2' ORDER BY created_at ASC LIMIT p_batch_size) b
   WHERE EXISTS(SELECT 1 FROM evo.evolution_messages_wpp2_archive a WHERE a.id=b.id AND a.instance_name=b.instance_name);
 
-  WITH batch AS (SELECT * FROM evo.evolution_messages_wpp2 WHERE created_at < v_cutoff ORDER BY created_at ASC LIMIT p_batch_size)
+  WITH batch AS (SELECT * FROM evo.evolution_messages WHERE created_at < v_cutoff AND instance_name = 'wpp2' ORDER BY created_at ASC LIMIT p_batch_size)
   INSERT INTO evo.evolution_messages_wpp2_archive
     (id, message_id, remote_jid, from_me, message_type, content, media_url,
      media_mimetype, quoted_message_id, is_starred, is_important, category,
@@ -90,8 +90,8 @@ BEGIN
   ON CONFLICT (id,instance_name) DO NOTHING;
   GET DIAGNOSTICS v_newly_archived = ROW_COUNT;
 
-  WITH td AS (SELECT m.id,m.instance_name FROM evo.evolution_messages_wpp2 m WHERE m.created_at < v_cutoff ORDER BY m.created_at ASC LIMIT p_batch_size)
-  DELETE FROM evo.evolution_messages_wpp2 WHERE (id,instance_name) IN (
+  WITH td AS (SELECT m.id,m.instance_name FROM evo.evolution_messages m WHERE m.created_at < v_cutoff AND m.instance_name = 'wpp2' ORDER BY m.created_at ASC LIMIT p_batch_size)
+  DELETE FROM evo.evolution_messages WHERE (id,instance_name) IN (
     SELECT t.id,t.instance_name FROM td t WHERE EXISTS(SELECT 1 FROM evo.evolution_messages_wpp2_archive a WHERE a.id=t.id AND a.instance_name=t.instance_name)
   );
   GET DIAGNOSTICS v_deleted = ROW_COUNT;
@@ -103,6 +103,7 @@ BEGIN
     'months_old_applied',v_safe_months,'batch_size',p_batch_size,'ts',now()
   );
 END; $function$;
+REVOKE ALL ON FUNCTION zapp.fn_archive_old_wpp2_messages(integer, integer) FROM PUBLIC, anon, authenticated;
 
 -- 3) fn_analytics_log_retention: public.dblink → zapp.dblink + p_days validado
 --    + sem EXECUTE para PUBLIC/anon/authenticated (S1 R25)

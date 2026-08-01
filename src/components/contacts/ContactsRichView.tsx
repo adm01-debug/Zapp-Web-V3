@@ -158,7 +158,9 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = ({ onOpenChat }
         <ContactsRichHeader
           totalCount={totalCount}
           contactCountByType={contactCountByType}
-          uniqueCompanies={uniqueCompanies as string[] /* ignore-audit: filter(Boolean) narrows (string|null)[] to string[] at source */}
+          uniqueCompanies={
+            uniqueCompanies as string[] /* ignore-audit: filter(Boolean) narrows (string|null)[] to string[] at source */
+          }
           contactsForStats={contactsForStats}
           contactsForBirthday={contactsForBirthday}
           highContrast={highContrast}
@@ -194,9 +196,15 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = ({ onOpenChat }
           setFilterTag={setFilterTag}
           filterDateRange={filterDateRange}
           setFilterDateRange={setFilterDateRange}
-          uniqueCompanies={uniqueCompanies as string[] /* ignore-audit: filter(Boolean) narrows (string|null)[] to string[] at source */}
-          uniqueJobTitles={uniqueJobTitles as string[] /* ignore-audit: filter(Boolean) narrows (string|null)[] to string[] at source */}
-          uniqueTags={uniqueTags as string[] /* ignore-audit: flatMap result safely typed as string[] at source */}
+          uniqueCompanies={
+            uniqueCompanies as string[] /* ignore-audit: filter(Boolean) narrows (string|null)[] to string[] at source */
+          }
+          uniqueJobTitles={
+            uniqueJobTitles as string[] /* ignore-audit: filter(Boolean) narrows (string|null)[] to string[] at source */
+          }
+          uniqueTags={
+            uniqueTags as string[] /* ignore-audit: flatMap result safely typed as string[] at source */
+          }
           onApplyPreset={state.handleApplyPreset}
           groupByCompany={state.groupByCompany}
           setGroupByCompany={state.setGroupByCompany}

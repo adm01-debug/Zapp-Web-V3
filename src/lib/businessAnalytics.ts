@@ -64,10 +64,7 @@ class BusinessAnalytics {
     this.config = config;
 
     if (config.flushIntervalMs && !this.flushTimer) {
-      this.flushTimer = setInterval(
-        () => this.flush(),
-        config.flushIntervalMs
-      );
+      this.flushTimer = setInterval(() => this.flush(), config.flushIntervalMs);
     }
   }
 

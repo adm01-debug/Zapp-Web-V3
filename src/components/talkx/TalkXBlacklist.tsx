@@ -74,7 +74,6 @@ export function TalkXBlacklist() {
     );
   }, [blacklist, search]);
 
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
@@ -113,7 +112,8 @@ export function TalkXBlacklist() {
                     </p>
                   ) : (
                     filteredAvailable.map((c) => (
-                      <button type="button"
+                      <button
+                        type="button"
                         key={c.id}
                         onClick={() => setSelectedContactId(c.id ?? '')}
                         className={`w-full px-3 py-2 text-left text-sm transition-colors ${
@@ -165,7 +165,7 @@ export function TalkXBlacklist() {
                         setReason(OPT_OUT_REASONS[0]);
                         setCustomReason('');
                       },
-                    },
+                    }
                   );
                 }}
                 disabled={!selectedContactId || addMutation.isPending}

@@ -164,23 +164,25 @@ export function useContactsSearch() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-      const { data, error } = await (supabase as unknown as {
-        rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
-      }).rpc(
-        'search_contacts_cursor',
-        {
-          search_term: debouncedSearch || '',
-          contact_type_filter: activeTab === 'all' ? undefined : activeTab,
-          company_filter: filterCompany || undefined,
-          job_title_filter: filterJobTitle || undefined,
-          tag_filter: filterTag || undefined,
-          date_from: dateFrom ?? undefined,
-          sort_field: sortField,
-          sort_direction: sortDirection,
-          page_size: PAGE_SIZE,
-          cursor_id: currentPageCursor,
+      const { data, error } = await (
+        supabase as unknown as {
+          rpc: (
+            name: string,
+            args: Record<string, unknown>
+          ) => Promise<{ data: unknown; error: { message: string } | null }>;
         }
-      );
+      ).rpc('search_contacts_cursor', {
+        search_term: debouncedSearch || '',
+        contact_type_filter: activeTab === 'all' ? undefined : activeTab,
+        company_filter: filterCompany || undefined,
+        job_title_filter: filterJobTitle || undefined,
+        tag_filter: filterTag || undefined,
+        date_from: dateFrom ?? undefined,
+        sort_field: sortField,
+        sort_direction: sortDirection,
+        page_size: PAGE_SIZE,
+        cursor_id: currentPageCursor,
+      });
       if (error) throw error;
       return Array.isArray(data) ? (data as unknown as (Contact & { total_count: number })[]) : [];
     },

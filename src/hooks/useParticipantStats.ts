@@ -14,7 +14,7 @@ export function useParticipantStats(conversationId: string, simulationModeEnable
   return useQuery<StatEntry[]>({
     queryKey: queryKeys.messageReactions.participantStatsDetailed(
       conversationId,
-      simulationModeEnabled,
+      simulationModeEnabled
     ),
     queryFn: async () => {
       if (simulationModeEnabled) {

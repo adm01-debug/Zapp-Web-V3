@@ -79,7 +79,10 @@ export function OfficialApiConfigDialog({
         // Narrow the dynamic builder so .eq() accepts column names (null-safety sem casts proibidos).
         const query = fromTable('whatsapp_official_credentials_safe') as unknown as {
           select: (columns: string) => {
-            eq: (column: string, value: string) => {
+            eq: (
+              column: string,
+              value: string
+            ) => {
               maybeSingle: () => Promise<{ data: SafeCredentialView | null; error: unknown }>;
             };
           };
@@ -137,8 +140,9 @@ export function OfficialApiConfigDialog({
     if (form.access_token) payload.access_token = form.access_token;
     if (form.app_secret) payload.app_secret = form.app_secret;
     // Table not in generated types — use fromTable helper for dynamic table access
-    const { error } = await fromTable('whatsapp_official_credentials')
-      .upsert(payload, { onConflict: 'connection_id' }) as { error: { message: string } | null };
+    const { error } = (await fromTable('whatsapp_official_credentials').upsert(payload, {
+      onConflict: 'connection_id',
+    })) as { error: { message: string } | null };
     setSaving(false);
     if (error) {
       toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });

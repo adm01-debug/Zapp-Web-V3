@@ -185,7 +185,9 @@ export function useMonitoringDataManagement(
 
   // Stable ref for callback to avoid useEffect dep churn
   const onConnectionsUpdateRef = useRef(onConnectionsUpdate);
-  useEffect(() => { onConnectionsUpdateRef.current = onConnectionsUpdate; }, [onConnectionsUpdate]);
+  useEffect(() => {
+    onConnectionsUpdateRef.current = onConnectionsUpdate;
+  }, [onConnectionsUpdate]);
 
   const { data = DEFAULT_SNAPSHOT, isLoading: loading } = useQuery({
     queryKey: ['monitoring-data', period] as const,

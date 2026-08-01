@@ -378,7 +378,11 @@ export function useContactCustomFieldsManagement(contactId?: string) {
         // field_value é coluna text (string | null): converte valores não-string
         // com guard (null/undefined → null; demais tipos → serialização JSON).
         const serializedValue =
-          fieldValue == null ? null : typeof fieldValue === 'string' ? fieldValue : JSON.stringify(fieldValue);
+          fieldValue == null
+            ? null
+            : typeof fieldValue === 'string'
+              ? fieldValue
+              : JSON.stringify(fieldValue);
         const { error: err } = await supabase.from('contact_custom_fields').upsert({
           contact_id: contactId,
           field_name: fieldName,

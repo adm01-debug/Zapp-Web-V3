@@ -89,7 +89,8 @@ export function useBitrixApiManagement() {
           data?.config && typeof data.config === 'object' && !Array.isArray(data.config)
             ? (data.config as Record<string, unknown>)
             : null;
-        const webhookUrl = config && typeof config.webhook_url === 'string' ? config.webhook_url : null;
+        const webhookUrl =
+          config && typeof config.webhook_url === 'string' ? config.webhook_url : null;
         if (webhookUrl) {
           setIsConnected(true);
           setWebhookUrl(webhookUrl);

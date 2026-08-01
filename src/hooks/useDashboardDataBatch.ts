@@ -1,7 +1,12 @@
 import { useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { DashboardFilters, DashboardStats, QueueStats, RecentActivity } from './dashboardTypes';
+import type {
+  DashboardFilters,
+  DashboardStats,
+  QueueStats,
+  RecentActivity,
+} from './dashboardTypes';
 
 /**
  * useDashboardDataBatch — single RPC call replacing 3 individual queries.
@@ -21,7 +26,7 @@ interface BatchContact {
   id: string;
   name: string | null;
   phone: string | null;
-  assigned_to: string | null;  // varchar in DB
+  assigned_to: string | null; // varchar in DB
   queue_id: string | null;
   updated_at: string;
 }
@@ -57,14 +62,14 @@ export function useDashboardDataBatch(filters?: DashboardFilters) {
   const queryClient = useQueryClient();
 
   const merged = useMemo(() => {
-    const now         = new Date();
-    const startOfDay  = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const endOfDay    = new Date(startOfDay);
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfDay = new Date(startOfDay);
     endOfDay.setDate(endOfDay.getDate() + 1);
     return {
       dateRange: { from: startOfDay, to: endOfDay },
-      queueId:   null as string | null,
-      agentId:   null as string | null,
+      queueId: null as string | null,
+      agentId: null as string | null,
       ...filters,
     };
   }, [filters]);
@@ -78,13 +83,18 @@ export function useDashboardDataBatch(filters?: DashboardFilters) {
       merged.dateRange.to.toISOString(),
     ],
     queryFn: async (): Promise<DashboardInitResult> => {
-      const { data, error } = await (supabase as unknown as {
-        rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
-      }).rpc('rpc_dashboard_init', {
-        p_agent_id:  merged.agentId  ?? undefined,
-        p_queue_id:  merged.queueId  ?? undefined,
+      const { data, error } = await (
+        supabase as unknown as {
+          rpc: (
+            name: string,
+            args: Record<string, unknown>
+          ) => Promise<{ data: unknown; error: { message: string } | null }>;
+        }
+      ).rpc('rpc_dashboard_init', {
+        p_agent_id: merged.agentId ?? undefined,
+        p_queue_id: merged.queueId ?? undefined,
         p_date_from: merged.dateRange.from.toISOString(),
-        p_date_to:   merged.dateRange.to.toISOString(),
+        p_date_to: merged.dateRange.to.toISOString(),
       });
       if (error) throw error;
       return data as unknown as DashboardInitResult;
@@ -97,37 +107,37 @@ export function useDashboardDataBatch(filters?: DashboardFilters) {
 
     const { agents, contacts, queues } = batchData;
 
-    const openConversations    = contacts.filter((c) => !!c.assigned_to).length;
+    const openConversations = contacts.filter((c) => !!c.assigned_to).length;
     const pendingConversations = contacts.filter((c) => !c.assigned_to && !!c.queue_id).length;
 
     const queuesStats: QueueStats[] = queues.map((q) => ({
-      id:            q.id,
-      name:          q.name,
-      color:         q.color,
-      waitingCount:  q.waiting_count,
-      onlineAgents:  q.online_members,
-      totalAgents:   q.total_members,
+      id: q.id,
+      name: q.name,
+      color: q.color,
+      waitingCount: q.waiting_count,
+      onlineAgents: q.online_members,
+      totalAgents: q.total_members,
     }));
 
     const recentActivity: RecentActivity[] = contacts.slice(0, 10).map((c) => ({
-      id:            c.id,
-      contactName:   c.name   ?? 'Contact',
-      contactPhone:  c.phone  ?? '',
+      id: c.id,
+      contactName: c.name ?? 'Contact',
+      contactPhone: c.phone ?? '',
       contactAvatar: null,
-      lastMessage:   '',
-      timestamp:     c.updated_at,
-      status:        'unread' as const,
-      unreadCount:   0,
+      lastMessage: '',
+      timestamp: c.updated_at,
+      status: 'unread' as const,
+      unreadCount: 0,
     }));
 
     return {
       openConversations,
       pendingConversations,
-      resolvedToday:      0,
+      resolvedToday: 0,
       totalConversations: contacts.length,
-      onlineAgents:       agents.online,
-      totalAgents:        agents.total,
-      avgResponseTime:    null,
+      onlineAgents: agents.online,
+      totalAgents: agents.total,
+      avgResponseTime: null,
       queuesStats,
       recentActivity,
     };

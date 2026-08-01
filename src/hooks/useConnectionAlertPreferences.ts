@@ -8,7 +8,7 @@ export interface ConnectionAlertPrefs {
 }
 
 export async function fetchConnectionAlertPrefs(
-  userId: string,
+  userId: string
 ): Promise<ConnectionAlertPrefs | null> {
   const { data } = await supabase
     .from('connection_alert_preferences')
@@ -20,7 +20,7 @@ export async function fetchConnectionAlertPrefs(
 
 export async function upsertConnectionAlertPrefs(
   userId: string,
-  prefs: ConnectionAlertPrefs,
+  prefs: ConnectionAlertPrefs
 ): Promise<{ error: { message: string } | null }> {
   const { error } = await supabase
     .from('connection_alert_preferences')

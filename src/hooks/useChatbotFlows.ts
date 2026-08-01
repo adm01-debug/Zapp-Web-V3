@@ -113,7 +113,7 @@ export function useChatbotFlows() {
         .update(payload as ChatbotFlowUpdate)
         .eq('id', id)
         .select()
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
       if (error) throw error;
       return data;
     },

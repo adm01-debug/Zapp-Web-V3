@@ -95,7 +95,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
   useEffect(() => {
     if (!remoteJid) return;
     const ch = supabase
-      .channel(`automation-exec-${remoteJid}`)
+      .channel(`automation-suggestions-${remoteJid}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'automation_executions' },

@@ -21,7 +21,10 @@ export interface BlacklistEntry {
 /** Builder estrutural estreito para `talkx_blacklist` — evita TS2589 do builder tipado completo. */
 interface BlacklistQueryBuilder {
   select: (columns: string) => {
-    order: (column: string, options?: { ascending?: boolean }) => Promise<{
+    order: (
+      column: string,
+      options?: { ascending?: boolean }
+    ) => Promise<{
       data: BlacklistEntry[] | null;
       error: unknown;
     }>;
@@ -67,14 +70,10 @@ export function useTalkXBlacklist(showAddDialog: boolean) {
   const blacklistedIds = useMemo(() => new Set(blacklist.map((b) => b.contact_id)), [blacklist]);
 
   const addMutation = useMutation({
-    mutationFn: async ({
-      contactId,
-      reason,
-    }: {
-      contactId: string;
-      reason: string;
-    }) => {
-      const { data: { user } } = await supabase.auth.getUser();
+    mutationFn: async ({ contactId, reason }: { contactId: string; reason: string }) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const { data: profile } = await supabase
         .from('profiles')
         .select('id')

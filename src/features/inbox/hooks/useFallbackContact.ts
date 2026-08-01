@@ -101,6 +101,8 @@ export function useFallbackContact(
       }
 
       // ── Strategy B: external proxy rpc_get_contact (useExternalDb) ──────
+      // rpc_get_contact takes p_remote_jid (the full JID), not a phone number.
+      // Groups (@g.us) and @lid contacts have phone=null but still have a valid remoteJid.
       if (!localResult && useExternalDb && ref.kind === 'jid') {
         try {
           const proxyResult = await queryExternalProxy<Record<string, unknown>>({
@@ -114,7 +116,7 @@ export function useFallbackContact(
             localResult = {
               id: ref.remoteJid,
               name: (ext.name || ext.push_name || ref.phone || ref.remoteJid) as string,
-              phone: ref.phone ?? ref.remoteJid,
+              phone: ref.phone,
               remote_jid: ref.remoteJid,
               avatar_url: (ext.avatar_url || null) as string | null,
               company: (ext.company || null) as string | null,
@@ -132,10 +134,13 @@ export function useFallbackContact(
 
       // ── Strategy C: synthetic fallback (last resort, useExternalDb) ─────
       if (!localResult && useExternalDb) {
+        // For groups/broadcast (phone === null), store null — not the JID string — to avoid
+        // poisoning the phone field with a JID like "120363@g.us"
+        const syntheticPhone = ref.kind === 'jid' ? ref.phone : null;
         localResult = {
           id: contactRefToString(ref),
           name: ref.kind === 'jid' ? ref.remoteJid.split('@')[0] : ref.raw,
-          phone: ref.kind === 'jid' ? (ref.phone ?? ref.raw) : ref.raw,
+          phone: syntheticPhone,
           remote_jid: ref.kind === 'jid' ? ref.remoteJid : null,
           avatar_url: null,
           company: null,

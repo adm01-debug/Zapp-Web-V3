@@ -176,9 +176,7 @@ export function useCampaignEditor(campaign: TalkXCampaign | null, onClose: () =>
   }, []);
 
   const selectAll = useCallback(() => {
-    const ids = filteredContacts
-      .map((c) => c.id)
-      .filter((id): id is string => id !== null);
+    const ids = filteredContacts.map((c) => c.id).filter((id): id is string => id !== null);
     const allSelected = ids.every((id) => selectedContacts.includes(id));
     setSelectedContacts((prev) =>
       allSelected ? prev.filter((id) => !ids.includes(id)) : [...new Set([...prev, ...ids])]

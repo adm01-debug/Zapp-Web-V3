@@ -851,14 +851,12 @@ function useRolesManagement() {
     const { data: ws } = await safeClient.single<{ id: string }>('workspaces', (q) =>
       q.select('id').order('created_at').limit(1)
     );
-    const { error } = await supabase
-      .from('user_roles')
-      .insert({
-        user_id: selectedRoleUser,
-        role: selectedRole,
-        role_key: selectedRole,
-        workspace_id: ws?.id ?? '',
-      });
+    const { error } = await supabase.from('user_roles').insert({
+      user_id: selectedRoleUser,
+      role: selectedRole,
+      role_key: selectedRole,
+      workspace_id: ws?.id ?? '',
+    });
     if (error) toast.error('Erro ao adicionar role');
     else {
       toast.success('Role adicionada com sucesso');

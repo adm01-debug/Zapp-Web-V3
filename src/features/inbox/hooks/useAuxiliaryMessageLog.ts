@@ -46,9 +46,7 @@ export interface AuxMessageResult {
  * Registra uma mensagem auxiliar no banco correto baseado no tipo do contactId.
  * Nunca lanca excecao — retorna { id: null, mode } em caso de erro.
  */
-export async function insertAuxMessage(
-  payload: AuxMessageInsert
-): Promise<AuxMessageResult> {
+export async function insertAuxMessage(payload: AuxMessageInsert): Promise<AuxMessageResult> {
   const {
     contactId,
     whatsappConnectionId,
