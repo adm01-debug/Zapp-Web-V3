@@ -33,6 +33,45 @@ const resolvePublicEnv = (mode: string) => {
 // serves and force a hard refresh.
 const BUILD_ID = `${Date.now()}`;
 
+// ---------------------------------------------------------------------------
+// Vercel Skew Protection — manual wiring (REQUIRED for Vite)
+//
+// Vercel only wires Skew Protection automatically for Next.js, SvelteKit, Nuxt
+// and Astro. A plain Vite SPA is an "unsupported framework": flipping the
+// dashboard toggle alone changes NOTHING, because the CDN can only route a
+// request to an older deployment when that request identifies the deployment
+// via `?dpl=`, an `x-deployment-id` header, or the `__vdpl` cookie.
+//
+// Without this block the failure is: a tab holding build N keeps its entry
+// bundle in memory; deploy N+1 lands; the tab lazy-loads a chunk whose hash
+// only existed in build N; the request arrives unidentified, is served by
+// deployment N+1, and 404s. React then throws "Failed to fetch dynamically
+// imported module", the ErrorBoundary tears down the provider tree, and every
+// lazy route (including the chat panel) stops mounting.
+//
+// Observed in production 2026-08-01 20:20 with Skew Protection already ENABLED
+// (12 h max age): useServiceWorker, InAppNotificationProvider, IncomingCallAlert
+// and CallDialog all 404'd, and the tab cycled through three bundles.
+//
+// renderBuiltUrl rewrites every emitted asset reference at build time, so the
+// old bundle asks for `/assets/chunk-abc.js?dpl=dpl_<old>` and the CDN can pin
+// it to the deployment that actually contains that hash.
+//
+// Guarded on BOTH variables so local builds, CI builds and any non-Vercel
+// build keep emitting plain relative URLs and behave exactly as before.
+// ---------------------------------------------------------------------------
+const VERCEL_DEPLOYMENT_ID = process.env.VERCEL_DEPLOYMENT_ID ?? '';
+const SKEW_PROTECTION_ENABLED = process.env.VERCEL_SKEW_PROTECTION_ENABLED === '1';
+const PIN_ASSETS_TO_DEPLOYMENT = SKEW_PROTECTION_ENABLED && VERCEL_DEPLOYMENT_ID.length > 0;
+
+if (PIN_ASSETS_TO_DEPLOYMENT) {
+  console.info(`[skew-protection] Pinning built asset URLs to ${VERCEL_DEPLOYMENT_ID}`);
+} else if (SKEW_PROTECTION_ENABLED) {
+  console.warn(
+    '[skew-protection] VERCEL_SKEW_PROTECTION_ENABLED=1 but VERCEL_DEPLOYMENT_ID is empty — assets will NOT be pinned.',
+  );
+}
+
 // Vite plugin: writes dist/version.json at the end of each production build.
 const emitVersionJsonPlugin = () => ({
   name: 'zapp-emit-version-json',
@@ -129,6 +168,16 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+    },
+  },
+  // Appends ?dpl=<deploymentId> to every built asset reference so Vercel Skew
+  // Protection can route stale-bundle requests to the deployment that owns the
+  // hash. Returning undefined restores Vite's default (plain relative URL), so
+  // every non-Vercel build path is byte-identical to before this change.
+  experimental: {
+    renderBuiltUrl(filename: string) {
+      if (!PIN_ASSETS_TO_DEPLOYMENT) return undefined;
+      return `/${filename}?dpl=${VERCEL_DEPLOYMENT_ID}`;
     },
   },
   define: {
