@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260727300013_qualify_cron_search_paths_sql", "label": "20260727300013_qualify_cron_search_paths.sql", "file_type": "code", "source_file": "supabase/migrations/20260727300013_qualify_cron_search_paths.sql", "source_location": null}], "edges": []}

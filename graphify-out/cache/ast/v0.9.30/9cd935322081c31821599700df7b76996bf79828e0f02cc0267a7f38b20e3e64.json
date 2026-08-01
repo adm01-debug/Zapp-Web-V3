@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260716200600_r23_revoke_public_exec_zapp_sql", "label": "20260716200600_r23_revoke_public_exec_zapp.sql", "file_type": "code", "source_file": "supabase/migrations/20260716200600_r23_revoke_public_exec_zapp.sql", "source_location": null}], "edges": []}

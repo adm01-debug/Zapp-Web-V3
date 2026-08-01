@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260711_fn_score_security_acl_expanded_sql", "label": "20260711_fn_score_security_acl_expanded.sql", "file_type": "code", "source_file": "supabase/migrations/20260711_fn_score_security_acl_expanded.sql", "source_location": null}], "edges": []}

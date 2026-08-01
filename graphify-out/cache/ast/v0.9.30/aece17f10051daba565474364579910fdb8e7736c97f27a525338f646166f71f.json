@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260710240001_r12_fn_health_score_canonical_rewrite_sql", "label": "20260710240001_r12_fn_health_score_canonical_rewrite.sql", "file_type": "code", "source_file": "supabase/migrations/20260710240001_r12_fn_health_score_canonical_rewrite.sql", "source_location": null}], "edges": []}

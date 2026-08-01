@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260703210001_sweep_sd_fn_explicit_public_grants_sql", "label": "20260703210001_sweep_sd_fn_explicit_public_grants.sql", "file_type": "code", "source_file": "supabase/migrations/20260703210001_sweep_sd_fn_explicit_public_grants.sql", "source_location": null}], "edges": []}

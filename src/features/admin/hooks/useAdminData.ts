@@ -177,10 +177,10 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         .upsert(
           {
             user_id: userId,
-            role: newRole as string,
-            role_key: newRole as string,
+            role: newRole,
+            role_key: newRole,
             workspace_id: ws?.id ?? '',
-          } as never,
+          },
           { onConflict: 'user_id' }
         );
       if (error) {

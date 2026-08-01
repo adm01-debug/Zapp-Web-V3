@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260724000045_move_batch2_public_tables_to_zapp_part2_sql", "label": "20260724000045_move_batch2_public_tables_to_zapp_part2.sql", "file_type": "code", "source_file": "supabase/migrations/20260724000045_move_batch2_public_tables_to_zapp_part2.sql", "source_location": null}], "edges": []}

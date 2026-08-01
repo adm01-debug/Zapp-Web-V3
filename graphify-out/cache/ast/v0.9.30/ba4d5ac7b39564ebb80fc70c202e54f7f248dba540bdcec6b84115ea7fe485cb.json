@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260716210000_login_attempts_escalation_note_sql", "label": "20260716210000_login_attempts_escalation_note.sql", "file_type": "code", "source_file": "supabase/migrations/20260716210000_login_attempts_escalation_note.sql", "source_location": null}], "edges": []}
