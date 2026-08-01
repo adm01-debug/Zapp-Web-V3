@@ -1,8 +1,8 @@
 name: Edge Auth Smoke
 
 on:
-  push:
-    branches: [main]
+  # Manual por padrao: NAO martela producao a cada push (POST em ~120 funcoes
+  # tem efeitos colaterais). Use o input para rodar a validacao completa.
   workflow_dispatch:
     inputs:
       supabase_url:
@@ -10,12 +10,23 @@ on:
         required: false
         default: https://supabase.atomicabr.com.br
         type: string
+      verify_jwt_enabled:
+        description: VERIFY_JWT=true ja esta ativo no runtime (validacao completa)?
+        required: false
+        default: 'false'
+        type: boolean
+  # Disparo automatico diario apenas no modo seguro (health checks read-only)
+  schedule:
+    - cron: '0 6 * * *'
 
 jobs:
   smoke:
     runs-on: ubuntu-latest
     env:
       SUPABASE_URL: "${{ inputs.supabase_url || secrets.SUPABASE_URL || 'https://supabase.atomicabr.com.br' }}"
+      VERIFY_JWT_ENABLED: "${{ inputs.verify_jwt_enabled || 'false' }}"
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,7 +38,7 @@ jobs:
 
           SUPABASE_URL="${SUPABASE_URL:-}"
           if [ -z "$SUPABASE_URL" ]; then
-            echo "::error::SUPABASE_URL nao definido (informe via input do workflow, secret ou default)"
+            echo "::error::SUPABASE_URL nao definido (informe via input do workflow ou secret)"
             exit 1
           fi
           BASE_URL="${SUPABASE_URL%/}"
@@ -38,73 +49,74 @@ jobs:
             exit 1
           fi
 
-          # 1) Extrai a allowlist PUBLIC_FNS (linhas entre 'const PUBLIC_FNS = new Set(' e ']);')
+          # 1) Extrai a allowlist PUBLIC_FNS
           ALLOWLIST="$(mktemp)"
-          sed -n '/const PUBLIC_FNS = new Set/,/^\]/p' "$INDEX" \
+          sed -n '/const PUBLIC_FNS = new Set/,/^\]:*$/p' "$INDEX" \
             | grep -vE '^\s*//' \
             | grep -oE "['\"][A-Za-z0-9_-]+['\"]" \
             | tr -d "'\"" \
             | sort -u > "$ALLOWLIST" || true
           echo "Allowlist PUBLIC_FNS extraida: $(wc -l < "$ALLOWLIST") funcao(oes)"
-          if [ ! -s "$ALLOWLIST" ]; then
-            echo "::warning::Allowlist vazia: todas as funcoes serao tratadas como privadas"
-          fi
 
-          # 2) Lista diretorios de funcoes (exclui _shared, _test, tests, main e .deployignore)
+          # 2) Lista de funcoes READ-ONLY seguras (GET, sem efeitos colaterais) —
+          #    usada no modo seguro (VERIFY_JWT=false ou schedule diario)
+          READONLY_FNS="health-check status evolution-health"
+          VERIFY_JWT_ENABLED="${VERIFY_JWT_ENABLED:-false}"
+
           FAILED=0
           CHECKED=0
-          for fn_dir in supabase/functions/*/; do
-            [ -d "$fn_dir" ] || continue
-            fn="$(basename "$fn_dir")"
-            case "$fn" in
-              _shared|_test|tests|main) continue ;;
-            esac
 
-            if [ -f "supabase/functions/.deployignore" ]; then
-              skip=""
-              while IFS= read -r pat; do
-                pat="${pat%/}"
-                pat="${pat#*/}"
-                if [ "$pat" = "$fn" ]; then
-                  skip=1
-                  break
+          if [ "$VERIFY_JWT_ENABLED" = "true" ]; then
+            # MODO COMPLETO: valida a politica de auth para TODAS as funcoes deployaveis
+            # (publica deve responder != 401; privada deve responder 401).
+            # Funcoes na allowlist que se auto-protegem com auth interna (guard proprio,
+            # ex.: Bearer de servico) sao aceitas com 401 mesmo sendo 'publicas'.
+            AUTO_PROTECTED="sicoob-bridge public-api health metrics"
+            for fn_dir in supabase/functions/*/; do
+              [ -d "$fn_dir" ] || continue
+              fn="$(basename "$fn_dir")"
+              case "$fn" in
+                _shared|_test|tests|main) continue ;;
+              esac
+              CHECKED=$((CHECKED + 1))
+              code="$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE_URL/functions/v1/$fn" -d '{}' || true)"
+              code="${code:-000}"
+              if grep -qx "$fn" "$ALLOWLIST"; then
+                if [ "$code" = "401" ] && ! echo "$AUTO_PROTECTED" | grep -qw "$fn"; then
+                  echo "::error::FUNCAO PUBLICA '$fn' retornou 401 (esperado != 401; recebido: $code)"
+                  FAILED=1
+                else
+                  echo "OK: '$fn' (publica, http=$code)"
                 fi
-              done < <(grep -vE '^\s*(#|$)' "supabase/functions/.deployignore" || true)
-              if [ -n "$skip" ]; then
-                echo "Pulando '$fn' (listada no .deployignore)"
-                continue
+              else
+                if [ "$code" != "401" ]; then
+                  echo "::error::FUNCAO PRIVADA '$fn' nao retornou 401 (esperado: 401; recebido: $code)"
+                  FAILED=1
+                else
+                  echo "OK: '$fn' (privada, http=401)"
+                fi
               fi
-            fi
-
-            # 3) Testa a politica de auth: publica deve responder != 401; privada deve responder 401
-            CHECKED=$((CHECKED + 1))
-            code="$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE_URL/functions/v1/$fn" -d '{}' || true)"
-            code="${code:-000}"
-            if [ "$code" = "000" ]; then
-              echo "::warning::'$fn': curl falhou (gateway inacessivel?) - code=000"
-            fi
-
-            if grep -qx "$fn" "$ALLOWLIST"; then
-              if [ "$code" = "401" ]; then
-                echo "::error::FUNCAO PUBLICA '$fn' retornou 401 (esperado != 401; recebido: $code)"
+            done
+          else
+            # MODO SEGURO (padrao): apenas health checks read-only, sem POST em producao
+            for fn in $READONLY_FNS; do
+              CHECKED=$((CHECKED + 1))
+              code="$(curl -s -o /dev/null -w '%{http_code}' "$BASE_URL/functions/v1/$fn" || true)"
+              code="${code:-000}"
+              if [ "$code" = "000" ] || [ "$code" = "401" ]; then
+                echo "::error::Health check '$fn' falhou (http=$code)"
                 FAILED=1
               else
-                echo "OK: '$fn' (publica, http=$code)"
+                echo "OK: '$fn' (health, http=$code)"
               fi
-            else
-              if [ "$code" != "401" ]; then
-                echo "::error::FUNCAO PRIVADA '$fn' nao retornou 401 (esperado: 401; recebido: $code)"
-                FAILED=1
-              else
-                echo "OK: '$fn' (privada, http=401)"
-              fi
-            fi
-          done
+            done
+            echo "Modo seguro: VERIFY_JWT_ENABLED=$VERIFY_JWT_ENABLED — validacao completa requer input verify_jwt_enabled=true"
+          fi
 
           echo ""
           echo "Funcoes testadas: $CHECKED"
           if [ "$FAILED" = "1" ]; then
-            echo "::error::Smoke test de auth FALHOU: uma ou mais edge functions violaram a politica de autenticacao (publica deve responder != 401; privada deve responder 401)"
+            echo "::error::Smoke test de auth FALHOU"
             exit 1
           fi
           echo "Smoke test de auth concluido com sucesso"

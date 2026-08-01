@@ -44,6 +44,13 @@ Cabeçalho do `supabase/functions/main/index.ts` (repo):
 
 ## 4. Tabela das 23 funções públicas (PUBLIC_FNS)
 
+> Revisão 2026-08-01 (validação Claude): removidas `bitrix-api`, `get-mapbox-token`,
+> `connection-health-check` e `evolution-sync` — todas exigem JWT de usuário internamente
+> (`requireUser`/`requireAdminOrSupervisor`) e são auto-protegidas; classificá-las como
+> públicas era herança do `config.toml`. Adicionadas `sicoob-bridge`, `public-api`,
+> `health` e `metrics` — autenticam com header **não-JWT** (Bearer de serviço / x-api-key /
+> x-metrics-token) e quebrariam com `VERIFY_JWT=true` sem a allowlist.
+
 | # | Função | Categoria |
 |---|---|---|
 | 1 | `evolution-webhook` | Webhook / integração externa |
@@ -54,23 +61,23 @@ Cabeçalho do `supabase/functions/main/index.ts` (repo):
 | 6 | `gmail-webhook` | Webhook / integração externa |
 | 7 | `email-track-pixel` | Webhook / integração externa |
 | 8 | `email-track-link` | Webhook / integração externa |
-| 9 | `bitrix-api` | Webhook / integração externa |
-| 10 | `evolution-sync` | Webhook / integração externa |
+| 9 | `sicoob-bridge` | Ponte autenticada com Bearer de serviço (não-JWT) |
+| 10 | `public-api` | API externa autenticada com x-api-key (não-JWT) |
 | 11 | `evolution-sender` | Webhook / integração externa |
 | 12 | `sentiment-alert` | Webhook / integração externa |
 | 13 | `login-attempts` | Frontend sem sessão |
-| 14 | `get-mapbox-token` | Frontend sem sessão |
-| 15 | `connection-health-check` | Health / status |
-| 16 | `evolution-health` | Health / status |
-| 17 | `health-check` | Health / status |
-| 18 | `status` | Health / status |
+| 14 | `evolution-health` | Health / status |
+| 15 | `health-check` | Health / status |
+| 16 | `status` | Health / status |
+| 17 | `health` | Probe autenticada com Bearer HEALTH_SECRET (não-JWT) |
+| 18 | `metrics` | Scrape autenticado com x-metrics-token (não-JWT) |
 | 19 | `send-rate-limit-alert` | Infra / classificação |
 | 20 | `cleanup-rate-limit-logs` | Infra / classificação |
 | 21 | `classify-audio-meme` | Infra / classificação |
 | 22 | `classify-emoji` | Infra / classificação |
 | 23 | `classify-sticker` | Infra / classificação |
 
-*(Categorias organizadas por conveniência de leitura; a fonte canônica é o `Set` em `main/index.ts`, linha 15.)*
+*(Categorias organizadas por conveniência de leitura; a fonte canônica é o `Set` em `main/index.ts`.)*
 
 ---
 

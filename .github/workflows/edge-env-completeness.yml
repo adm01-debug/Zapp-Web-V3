@@ -26,7 +26,14 @@ jobs:
           # Variaveis usadas via Deno.env.get(...) no codigo das edge functions
           grep -rhoE "Deno\.env\.get\(['\"][A-Z0-9_]+['\"]\)" supabase/functions/ \
             | grep -oE '[A-Z0-9_]{3,}' \
-            | sort -u > /tmp/used.txt || true
+            | sort -u > /tmp/used_deno.txt || true
+
+          # Variaveis usadas via requireEnv(...) no _shared (mesma importancia)
+          grep -rhoE "requireEnv\(['\"][A-Z0-9_]+['\"]\)" supabase/functions/ \
+            | grep -oE '[A-Z0-9_]{3,}' \
+            | sort -u > /tmp/used_req.txt || true
+
+          cat /tmp/used_deno.txt /tmp/used_req.txt | sort -u > /tmp/used.txt
 
           # Variaveis declaradas em .env.required (ignora comentarios e linhas vazias;
           # normaliza o formato NOME=valor para comparar apenas o nome)
@@ -34,7 +41,7 @@ jobs:
             | sed 's/=.*//' \
             | sort -u > /tmp/declared.txt || true
 
-          echo "Variaveis usadas no codigo: $(wc -l < /tmp/used.txt)"
+          echo "Variaveis usadas no codigo (Deno.env.get + requireEnv): $(wc -l < /tmp/used.txt)"
           echo "Variaveis declaradas em .env.required: $(wc -l < /tmp/declared.txt)"
 
           MISSING="$(comm -23 /tmp/used.txt /tmp/declared.txt)"
@@ -47,4 +54,4 @@ jobs:
             exit 1
           fi
 
-          echo "OK: todas as variaveis usadas via Deno.env.get estao declaradas em .env.required"
+          echo "OK: todas as variaveis usadas (Deno.env.get e requireEnv) estao declaradas em .env.required"

@@ -22,35 +22,48 @@ const PUBLIC_FNS = new Set<string>([
   'email-track-pixel',
   'email-track-link',
   'login-attempts',
-  'get-mapbox-token',
   'sentiment-alert',
-  'connection-health-check',
   'evolution-health',
   'evolution-sender',
-  'bitrix-api',
   'send-rate-limit-alert',
   'cleanup-rate-limit-logs',
-  'evolution-sync',
   'classify-audio-meme',
   'classify-emoji',
   'classify-sticker',
   'health-check',
   'status',
+  'sicoob-bridge',
+  'public-api',
+  'health',
+  'metrics',
 ])
 
 // O segredo JWT pode vir direto de JWT_SECRET ou de um arquivo montado no container
 // via JWT_SECRET_FILE (ex.: /run/secrets/jwt_secret em Docker Swarm). O trim remove
 // quebras de linha típicas de arquivos de segredo.
 const jwtSecretFile = Deno.env.get('JWT_SECRET_FILE')
-const JWT_SECRET = (jwtSecretFile
-  ? Deno.readTextFileSync(jwtSecretFile)
-  : (Deno.env.get('JWT_SECRET') ?? '')).trim()
+let fileSecret = ''
+if (jwtSecretFile) {
+  try {
+    fileSecret = Deno.readTextFileSync(jwtSecretFile)
+  } catch (e) {
+    // Arquivo ausente/ilegível NUNCA pode derrubar o entrypoint compartilhado:
+    // loga e cai para o fallback JWT_SECRET.
+    console.error(`[main] JWT_SECRET_FILE ilegível (${jwtSecretFile}):`, e)
+  }
+}
+const JWT_SECRET = (fileSecret || Deno.env.get('JWT_SECRET') || '').trim()
 
 // Fail-fast on startup: if JWT verification is enabled but JWT_SECRET is absent,
 // every request would be validated against an undefined key — surface the misconfiguration now.
 if (VERIFY_JWT && !JWT_SECRET) {
   console.error('[main] FATAL: VERIFY_JWT=true but JWT_SECRET/JWT_SECRET_FILE is not set — refusing to start')
   throw new Error('JWT_SECRET required when VERIFY_JWT is enabled')
+}
+// Placeholder não-resolvido (MISSING__) também é fail-fast: senão tudo retorna 401 silencioso.
+if (VERIFY_JWT && JWT_SECRET.startsWith('MISSING__')) {
+  console.error(`[main] FATAL: JWT_SECRET não foi resolvida (valor começa com 'MISSING__') — refusing to start`)
+  throw new Error('JWT_SECRET unresolved (MISSING__ placeholder) when VERIFY_JWT is enabled')
 }
 
 // Guard de env não resolvida: no runtime self-hosted, secrets ausentes podem chegar
