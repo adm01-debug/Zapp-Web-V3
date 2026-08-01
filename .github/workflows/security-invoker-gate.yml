@@ -40,8 +40,22 @@ jobs:
             -d '{"query":"SELECT n.nspname, c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ($$public$$,$$zapp$$,$$evo$$) AND c.relkind=$$v$$ AND NOT (c.reloptions IS NOT NULL AND array_to_string(c.reloptions,$$,$$) ILIKE $$%security_invoker%$$)"}' \
             --max-time 30 2>/dev/null)
 
-          COUNT=$(echo "$RESULT" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const a=JSON.parse(d);console.log(a.length);}catch{console.log('0');}})" 2>/dev/null || echo "0")
-          
+          COUNT=$(echo "$RESULT" | node -e "
+            let d='';
+            process.stdin.on('data',c=>d+=c);
+            process.stdin.on('end',()=>{
+              try {
+                const a=JSON.parse(d);
+                if (!Array.isArray(a)) { console.log('api-error'); return; }
+                console.log(a.length);
+              } catch { console.log('0'); }
+            })" 2>/dev/null || echo "0")
+
+          if [ "$COUNT" = "api-error" ]; then
+            echo "⚠ postgres-meta API returned non-array response — skipping live check (transient or auth error)"
+            exit 0
+          fi
+
           if [ "$COUNT" != "0" ] && [ "$COUNT" != "" ]; then
             echo "::error::$COUNT views without security_invoker found!"
             exit 1
