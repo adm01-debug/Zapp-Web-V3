@@ -240,8 +240,7 @@ export function useBusinessLogicCatalogManagement(
         }
 
         for (const imgUrl of imageUrls) {
-          const { data: dbResult, error: dbError } = await supabase
-            .from('messages')
+          const { data: dbResult, error: dbError } = await dbFrom('messages')
             .insert({
               contact_id: contact.id,
               content: imgUrl,
@@ -256,16 +255,19 @@ export function useBusinessLogicCatalogManagement(
           if (dbError || !dbResult?.id)
             throw new Error(dbError?.message ?? 'Image DB insert failed');
 
-          const { data: apiResult, error: mediaApiErr } = await supabase.functions.invoke('evolution-api', {
-            body: {
-              action: 'send-media',
-              instanceName: evoName,
-              number: contact.phone,
-              mediatype: 'image',
-              media: imgUrl,
-              caption: '',
-            },
-          });
+          const { data: apiResult, error: mediaApiErr } = await supabase.functions.invoke(
+            'evolution-api',
+            {
+              body: {
+                action: 'send-media',
+                instanceName: evoName,
+                number: contact.phone,
+                mediatype: 'image',
+                media: imgUrl,
+                caption: '',
+              },
+            }
+          );
           if (mediaApiErr) throw mediaApiErr;
 
           const externalId = extractEvolutionMessageId(apiResult);
@@ -276,8 +278,7 @@ export function useBusinessLogicCatalogManagement(
           }
         }
 
-        const { data: textDbResult, error: textDbError } = await supabase
-          .from('messages')
+        const { data: textDbResult, error: textDbError } = await dbFrom('messages')
           .insert({
             contact_id: contact.id,
             content: message,
@@ -292,14 +293,17 @@ export function useBusinessLogicCatalogManagement(
         if (textDbError || !textDbResult?.id)
           throw new Error(textDbError?.message ?? 'Text DB insert failed');
 
-        const { data: textApiResult, error: textApiErr } = await supabase.functions.invoke('evolution-api', {
-          body: {
-            action: 'send-text',
-            instanceName: evoName,
-            number: contact.phone,
-            text: message,
-          },
-        });
+        const { data: textApiResult, error: textApiErr } = await supabase.functions.invoke(
+          'evolution-api',
+          {
+            body: {
+              action: 'send-text',
+              instanceName: evoName,
+              number: contact.phone,
+              text: message,
+            },
+          }
+        );
         if (textApiErr) throw textApiErr;
 
         const textExternalId = extractEvolutionMessageId(textApiResult);
@@ -402,7 +406,11 @@ export function useBusinessLogicPipelineManagement(
   const [formCloseDate, setFormCloseDate] = useState('');
   const [formNotes, setFormNotes] = useState('');
 
-  const { data: pipelineData, isLoading: loading, refetch } = useQuery({
+  const {
+    data: pipelineData,
+    isLoading: loading,
+    refetch,
+  } = useQuery({
     queryKey: PIPELINE_KEY,
     queryFn: async () => {
       const [stagesRes, dealsRes, contactsRes, agentsRes] = await Promise.all([

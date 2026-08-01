@@ -199,7 +199,7 @@ export function CRMSyncButton({
   const handleSync = async () => {
     try {
       const result = await syncConversationAsync({
-        phone: conversation.contact.phone,
+        phone: conversation.contact.phone ?? '',
         channel: 'whatsapp',
         direction: 'inbound',
         assunto: `Conversa WhatsApp — ${conversation.contact.name}`,

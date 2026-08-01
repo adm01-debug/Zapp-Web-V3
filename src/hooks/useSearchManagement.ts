@@ -25,7 +25,6 @@ interface SearchHistoryEntry {
   resultCount?: number;
 }
 
-
 /** Manages global search modal with Ctrl+K keyboard shortcut. */
 export function useGlobalSearchShortcutManagement(onSearch?: (query: string) => void) {
   const [isOpen, setIsOpen] = useState(false);
@@ -60,7 +59,14 @@ export function useKnowledgeBaseSearchManagement(query: string) {
         log.error('Knowledge base search error:', err);
         return [] as SearchResult[];
       }
-      return (data || []) as SearchResult[];
+      return (data || []).map((row) => ({
+        id: row.id,
+        title: row.title,
+        content: row.content,
+        type: 'article' as const,
+        score: row.rank,
+        timestamp: '',
+      }));
     },
     enabled: !!query.trim(),
     staleTime: 30_000,
@@ -75,7 +81,11 @@ const SEARCH_HISTORY_KEY = ['search-history'] as const;
 export function useSearchHistoryManagement() {
   const queryClient = useQueryClient();
 
-  const { data: history = [], isLoading: loading, refetch } = useQuery({
+  const {
+    data: history = [],
+    isLoading: loading,
+    refetch,
+  } = useQuery({
     queryKey: SEARCH_HISTORY_KEY,
     queryFn: async () => {
       const { data, error: err } = await supabase
@@ -88,7 +98,12 @@ export function useSearchHistoryManagement() {
         log.error('Error fetching search history:', err);
         throw err;
       }
-      return (data || []) as SearchHistoryEntry[];
+      return (data || []).map((row) => ({
+        id: String(row.id),
+        query: row.query,
+        timestamp: row.timestamp,
+        result_type: row.result_type ?? '',
+      }));
     },
     staleTime: 30_000,
   });
@@ -96,7 +111,9 @@ export function useSearchHistoryManagement() {
   const addToHistory = useCallback(
     async (query: string, resultType: string) => {
       try {
-        await safeClient.from('search_history', (q) => q.insert({ query, result_type: resultType }));
+        await safeClient.from('search_history', (q) =>
+          q.insert({ query, result_type: resultType })
+        );
         void queryClient.invalidateQueries({ queryKey: SEARCH_HISTORY_KEY });
       } catch (err) {
         log.error('Error adding to history:', err);
@@ -212,8 +229,6 @@ export function useSearchInsightsManagement(timeWindow: number = 7) {
 
   return { insights, loading };
 }
-
-
 
 /** Searches messages within a specific chat by ID and query. */
 export function useChatSearchManagement(chatId: string, query: string) {

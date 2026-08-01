@@ -24,6 +24,7 @@ import { log, getLogger } from '@/lib/logger';
 import { invalidateRouteRolesCache } from '@/features/auth';
 import { normalizeProfileRef, type AdminProfileRef } from '../utils/profileMappers';
 import type { AppRole } from '@/features/auth';
+import type { Json } from '@/integrations/supabase/schema';
 
 // ─── Type Exports ────────────────────────────────────────────────────────────
 
@@ -372,8 +373,8 @@ function useAdminAutomationsManagement() {
       description: editing.description,
       is_active: editing.is_active,
       trigger_type: editing.trigger_type,
-      trigger_config: editing.trigger_config,
-      actions: editing.actions,
+      trigger_config: editing.trigger_config as unknown as Json,
+      actions: editing.actions as unknown as Json,
       priority: editing.priority ?? 100,
       cooldown_seconds: editing.cooldown_seconds ?? 300,
       channel_id: editing.channel_id || null,
@@ -842,9 +843,16 @@ function useRolesManagement() {
   const handleAddRole = async () => {
     if (!selectedRoleUser || !selectedRole) return;
     setRolesUpdating(true);
-    const { error } = await supabase
-      .from('user_roles')
-      .insert({ user_id: selectedRoleUser, role: selectedRole });
+    // role_key e workspace_id são NOT NULL sem default (schema real); app é single-workspace.
+    const { data: ws } = await safeClient.single<{ id: string }>('workspaces', (q) =>
+      q.select('id').order('created_at').limit(1)
+    );
+    const { error } = await supabase.from('user_roles').insert({
+      user_id: selectedRoleUser,
+      role: selectedRole,
+      role_key: selectedRole,
+      workspace_id: ws?.id ?? '',
+    });
     if (error) toast.error('Erro ao adicionar role');
     else {
       toast.success('Role adicionada com sucesso');

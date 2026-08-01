@@ -58,6 +58,25 @@ interface EnrichedContactData {
   data: Record<string, unknown> | null;
 }
 
+/**
+ * Converte o RETURNS Json de zapp.enrich_contact(uuid) para o shape
+ * EnrichedContactData com guard: valores ausentes/atípicos viram defaults
+ * (nunca lança — o hook só renderiza painel enriquecido quando há dados).
+ */
+function parseEnrichedContactData(value: unknown): EnrichedContactData | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const obj = value as Record<string, unknown>;
+  return {
+    contact_id: String(obj.contact_id ?? ''),
+    enriched: Boolean(obj.enriched),
+    source: String(obj.source ?? ''),
+    data:
+      obj.data && typeof obj.data === 'object' && !Array.isArray(obj.data)
+        ? (obj.data as Record<string, unknown>)
+        : null,
+  };
+}
+
 interface ContactCustomField {
   id: string;
   contact_id: string;
@@ -92,7 +111,19 @@ export function useContactIntelligenceManagement(contactId?: string) {
         .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (err && err.code !== 'PGRST116') throw err;
-      if (mountedRef.current) setIntelligence(data || null);
+      if (mountedRef.current) {
+        setIntelligence(
+          data
+            ? {
+                contact_id: data.contact_id ?? '',
+                sentiment: data.sentiment ?? '',
+                engagement_score: data.engagement_score ?? 0,
+                predicted_value: data.predicted_value ?? 0,
+                risk_level: data.risk_level ?? '',
+              }
+            : null
+        );
+      }
     } catch (err) {
       if (mountedRef.current) {
         log.error('Error fetching contact intelligence:', err);
@@ -136,7 +167,17 @@ export function useContactNotesManagement(contactId?: string) {
         .order('created_at', { ascending: false });
 
       if (err) throw err;
-      if (mountedRef.current) setNotes(data || []);
+      if (mountedRef.current) {
+        setNotes(
+          (data ?? []).map((n) => ({
+            id: n.id ?? '',
+            contact_id: n.contact_id ?? '',
+            content: n.content ?? '',
+            author_id: n.author_id ?? '',
+            created_at: n.created_at ?? '',
+          }))
+        );
+      }
     } catch (err) {
       if (mountedRef.current) {
         log.error('Error fetching contact notes:', err);
@@ -205,12 +246,13 @@ export function useContactEnrichedDataManagement(contactId?: string) {
     const fetchEnrichedData = async () => {
       try {
         const { data, error: err } = await supabase.rpc('enrich_contact', {
-          contact_id: contactId,
+          p_contact_id: contactId,
         });
 
         if (cancelled) return;
         if (err) throw err;
-        setEnrichedData(data);
+        // Returns: Json — converte com guard para o shape EnrichedContactData.
+        setEnrichedData(parseEnrichedContactData(data));
       } catch (err) {
         if (cancelled) return;
         log.error('Error enriching contact data:', err);
@@ -333,10 +375,19 @@ export function useContactCustomFieldsManagement(contactId?: string) {
       if (!contactId) return;
 
       try {
+        // field_value é coluna text (string | null): converte valores não-string
+        // com guard (null/undefined → null; demais tipos → serialização JSON).
+        const serializedValue =
+          fieldValue == null
+            ? null
+            : typeof fieldValue === 'string'
+              ? fieldValue
+              : JSON.stringify(fieldValue);
         const { error: err } = await supabase.from('contact_custom_fields').upsert({
           contact_id: contactId,
           field_name: fieldName,
-          field_value: fieldValue,
+          field_type: 'text',
+          field_value: serializedValue,
         });
 
         if (err) throw err;

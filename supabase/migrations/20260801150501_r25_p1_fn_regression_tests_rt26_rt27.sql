@@ -20,7 +20,7 @@ DECLARE
 BEGIN
   -- RT01-RT24 mantidos intactos
   v_start:=clock_timestamp();
-  SELECT COUNT(*) INTO v_n FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='v' AND c.relname IN('zapp_audit_log','contact_audit_log','conversation_audit_logs','webhook_audit_log','team_messages','app_notifications','whatsapp_official_credentials') AND c.reloptions @> ARRAY['security_invoker=on'];
+  SELECT COUNT(*) INTO v_n FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='v' AND c.relname IN('zapp_audit_log','contact_audit_log','conversation_audit_logs','webhook_audit_log','team_messages','app_notifications','whatsapp_official_credentials') AND EXISTS(SELECT 1 FROM pg_options_to_table(COALESCE(c.reloptions,ARRAY[]::text[])) WHERE option_name='security_invoker' AND option_value IN ('on','true'));
   RETURN QUERY SELECT 'RT01_bridge_views_security_invoker'::text,CASE WHEN v_n=7 THEN 'PASS' ELSE 'FAIL' END::text,v_n::text||'/7'::text,round(EXTRACT(MILLISECONDS FROM (clock_timestamp()-v_start))::numeric,1);
 
   v_start:=clock_timestamp();

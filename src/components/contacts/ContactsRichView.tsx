@@ -26,6 +26,7 @@ import { ContactsBulkActionBar } from './ContactsBulkActionBar';
 import { ContactsShortcutHelp } from './ContactsShortcutHelp';
 import { useContactsKeyboardShortcuts } from './useContactsKeyboardShortcuts';
 import type { Contact } from './types';
+import type { Contact as CRUDContact } from './useContactsCRUD';
 
 interface ContactsRichViewProps {
   /** Mantido por compatibilidade com a rota; não usado internamente. */
@@ -95,6 +96,24 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = ({ onOpenChat }
   // Stub de CRM batch
   const getCRMData = (_phone: string) => undefined;
 
+  // Converte o Contact do módulo de contatos para o tipo do useContactsCRUD
+  // (que exige id/name/phone não-nulos) — null-safety sem casts.
+  const toCRUDContact = useCallback(
+    (c: Contact): CRUDContact => ({
+      id: c.id ?? '',
+      name: c.name ?? '',
+      nickname: c.nickname,
+      surname: c.surname,
+      job_title: c.job_title,
+      company: c.company,
+      phone: c.phone ?? '',
+      email: c.email,
+      contact_type: c.contact_type,
+      tags: c.tags,
+    }),
+    []
+  );
+
   const contactsForContent: Contact[] = useMemo(() => (contacts as Contact[]) ?? [], [contacts]);
 
   const handleContactClick = useCallback(
@@ -106,15 +125,15 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = ({ onOpenChat }
   );
 
   const contactsForStats = useMemo(
-    () => contactsForContent.map((c) => ({ created_at: c.created_at })),
+    () => contactsForContent.map((c) => ({ created_at: c.created_at ?? '' })),
     [contactsForContent]
   );
 
   const contactsForBirthday = useMemo(
     () =>
       contactsForContent.map((c) => ({
-        id: c.id,
-        name: c.name,
+        id: c.id ?? '',
+        name: c.name ?? '',
         avatar_url: c.avatar_url,
         birthday: null as string | null,
       })),
@@ -139,7 +158,9 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = ({ onOpenChat }
         <ContactsRichHeader
           totalCount={totalCount}
           contactCountByType={contactCountByType}
-          uniqueCompanies={uniqueCompanies as string[] /* ignore-audit: filter(Boolean) narrows (string|null)[] to string[] at source */}
+          uniqueCompanies={
+            uniqueCompanies as string[] /* ignore-audit: filter(Boolean) narrows (string|null)[] to string[] at source */
+          }
           contactsForStats={contactsForStats}
           contactsForBirthday={contactsForBirthday}
           highContrast={highContrast}
@@ -175,9 +196,15 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = ({ onOpenChat }
           setFilterTag={setFilterTag}
           filterDateRange={filterDateRange}
           setFilterDateRange={setFilterDateRange}
-          uniqueCompanies={uniqueCompanies as string[] /* ignore-audit: filter(Boolean) narrows (string|null)[] to string[] at source */}
-          uniqueJobTitles={uniqueJobTitles as string[] /* ignore-audit: filter(Boolean) narrows (string|null)[] to string[] at source */}
-          uniqueTags={uniqueTags as string[] /* ignore-audit: flatMap result safely typed as string[] at source */}
+          uniqueCompanies={
+            uniqueCompanies as string[] /* ignore-audit: filter(Boolean) narrows (string|null)[] to string[] at source */
+          }
+          uniqueJobTitles={
+            uniqueJobTitles as string[] /* ignore-audit: filter(Boolean) narrows (string|null)[] to string[] at source */
+          }
+          uniqueTags={
+            uniqueTags as string[] /* ignore-audit: flatMap result safely typed as string[] at source */
+          }
           onApplyPreset={state.handleApplyPreset}
           groupByCompany={state.groupByCompany}
           setGroupByCompany={state.setGroupByCompany}
@@ -211,8 +238,8 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = ({ onOpenChat }
               activeFiltersCount={activeFiltersCount}
               onToggleSelect={state.handleToggleSelect}
               onContactClick={handleContactClick}
-              onEdit={(c) => openEditDialog(c)}
-              onDelete={(c) => setDeleteTarget(c)}
+              onEdit={(c) => openEditDialog(toCRUDContact(c))}
+              onDelete={(c) => setDeleteTarget(toCRUDContact(c))}
               onSelectIds={crud.setSelectedIds}
               onAddContact={() => setIsAddDialogOpen(true)}
               onClearSearch={clearSearch}
@@ -265,11 +292,11 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = ({ onOpenChat }
         onClose={() => setQuickViewContact(null)}
         onEdit={(c) => {
           setQuickViewContact(null);
-          openEditDialog(c);
+          openEditDialog(toCRUDContact(c));
         }}
         onDelete={(c) => {
           setQuickViewContact(null);
-          setDeleteTarget(c);
+          setDeleteTarget(toCRUDContact(c));
         }}
         onOpenChat={(phone) => {
           setQuickViewContact(null);

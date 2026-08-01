@@ -5,6 +5,7 @@ import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { log } from '@/lib/logger';
+import type { TablesUpdate } from '@/integrations/supabase/schema';
 
 // Default settings values (usados quando não há dados no banco)
 const DEFAULT_USER_SETTINGS = {
@@ -93,7 +94,25 @@ export function useUserSettingsManagement(userIdParam?: string) {
         .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (err && err.code !== 'PGRST116') throw err;
-      if (mountedRef.current && id === fetchIdRef.current) setSettings(data || null);
+      if (mountedRef.current && id === fetchIdRef.current) {
+        setSettings(
+          data
+            ? {
+                ...data,
+                user_id: data.user_id ?? '',
+                theme:
+                  data.theme === 'light' || data.theme === 'dark' || data.theme === 'system'
+                    ? data.theme
+                    : 'system',
+                language: data.language ?? 'pt-BR',
+                // timezone/notifications_enabled não são colunas em user_settings:
+                // mantém os defaults do módulo (paridade com o comportamento anterior).
+                timezone: DEFAULT_USER_SETTINGS.timezone,
+                notifications_enabled: DEFAULT_USER_SETTINGS.notifications_enabled,
+              }
+            : null
+        );
+      }
     } catch (err) {
       if (mountedRef.current && id === fetchIdRef.current) {
         log.error('Error fetching user settings:', err);
@@ -108,9 +127,17 @@ export function useUserSettingsManagement(userIdParam?: string) {
       if (!userId) return;
 
       try {
+        // UserSettings tem index signature ([key: string]: unknown) — o Update
+        // do PostgREST exige chaves conhecidas. Filtra undefined e passa o
+        // restante como TablesUpdate (cast controlado, sem `as any`).
+        const dbUpdates: TablesUpdate<'user_settings'> = {};
+        for (const [key, value] of Object.entries(updates)) {
+          if (value === undefined) continue;
+          (dbUpdates as Record<string, unknown>)[key] = value;
+        }
         const { error: err } = await supabase
           .from('user_settings')
-          .update(updates)
+          .update(dbUpdates)
           .eq('user_id', userId);
 
         if (err) throw err;
@@ -162,8 +189,25 @@ export function useGlobalSettingsManagement() {
 
         if (err && err.code !== 'PGRST116') throw err;
         if (mounted.current) {
-          setSettingsRows(data || []);
-          setSettings(data?.[0] || null);
+          setSettingsRows(
+            (data ?? []).map((r) => ({
+              id: r.id ?? '',
+              key: r.key ?? '',
+              value: r.value ?? '',
+              description: r.description ?? undefined,
+            }))
+          );
+          const first = data?.[0];
+          setSettings(
+            first
+              ? {
+                  ...first,
+                  maintenance_mode: first.value === 'true',
+                  feature_flags: {},
+                  api_rate_limit: Number(first.value) || 0,
+                }
+              : null
+          );
         }
       } catch (err) {
         log.error('Error fetching global settings:', err);
@@ -258,7 +302,20 @@ export function useWebhookViewPreferencesManagement(userId?: string) {
         .eq('user_id', userId);
 
       if (err) throw err;
-      if (mountedRef.current) setPreferences(data || []);
+      if (mountedRef.current) {
+        setPreferences(
+          (data ?? []).map((r) => ({
+            id: r.id ?? '',
+            user_id: r.user_id ?? '',
+            preferences:
+              r.preferences && typeof r.preferences === 'object' && !Array.isArray(r.preferences)
+                ? (r.preferences as Record<string, unknown>)
+                : null,
+            created_at: r.created_at ?? '',
+            updated_at: r.updated_at ?? '',
+          }))
+        );
+      }
     } catch (err) {
       if (mountedRef.current) {
         log.error('Error fetching webhook preferences:', err);
@@ -302,7 +359,15 @@ export function useOnboardingChecklistManagement(userId?: string) {
         .eq('user_id', userId);
 
       if (err) throw err;
-      if (mountedRef.current) setSteps(data || []);
+      if (mountedRef.current) {
+        setSteps(
+          (data ?? []).map((r) => ({
+            id: r.id ?? '',
+            completed: r.completed ?? false,
+            timestamp: r.timestamp ?? undefined,
+          }))
+        );
+      }
     } catch (err) {
       if (mountedRef.current) {
         log.error('Error fetching onboarding steps:', err);

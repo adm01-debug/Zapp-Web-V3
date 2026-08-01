@@ -133,13 +133,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function normalizeAuditLog(row: {
   id: string;
-  created_at: string;
+  created_at: string | null;
   action?: string | null;
   details?: unknown;
 }): AuditLogRow {
   return {
     id: row.id,
-    created_at: row.created_at,
+    created_at: row.created_at ?? new Date().toISOString(),
     action: row.action ?? null,
     details: isRecord(row.details) ? row.details : null,
   };

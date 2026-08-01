@@ -104,7 +104,15 @@ export function ContactAccordionSections({
         icon={<Info className="h-3.5 w-3.5 text-primary" />}
         label="Informações"
       >
-        <ContactInfoSection contact={contact} enrichedData={enrichedData} />
+        <ContactInfoSection
+          contact={{
+            id: contact.id ?? '',
+            phone: contact.phone ?? '',
+            email: contact.email ?? undefined,
+            createdAt: contact.createdAt,
+          }}
+          enrichedData={enrichedData}
+        />
       </Section>
 
       <Section
@@ -113,7 +121,7 @@ export function ContactAccordionSections({
         icon={<Smartphone className="h-3.5 w-3.5 text-primary" />}
         label="Status WhatsApp"
       >
-        <WhatsAppStatusSection phone={contact.phone} />
+        <WhatsAppStatusSection phone={contact.phone ?? ''} />
       </Section>
 
       {(slaInfo ||
@@ -148,7 +156,7 @@ export function ContactAccordionSections({
         label="Configurações de SLA"
       >
         <SectionErrorBoundary sectionName="Configurações de SLA">
-          <SLADeliveryConfigSection contactId={contact.id} />
+          <SLADeliveryConfigSection contactId={contact.id ?? ''} />
         </SectionErrorBoundary>
       </Section>
 
@@ -161,7 +169,7 @@ export function ContactAccordionSections({
             label="CRM 360°"
           >
             <SectionErrorBoundary sectionName="CRM 360°">
-              <ExternalContact360Panel phone={contact.phone} />
+              <ExternalContact360Panel phone={contact.phone ?? ''} />
             </SectionErrorBoundary>
           </Section>
           <Section
@@ -171,7 +179,7 @@ export function ContactAccordionSections({
             label="Inteligência Comercial"
           >
             <SectionErrorBoundary sectionName="Inteligência Comercial">
-              <ContactIntelligencePanel phone={contact.phone} />
+              <ContactIntelligencePanel phone={contact.phone ?? ''} />
             </SectionErrorBoundary>
           </Section>
         </div>
@@ -207,7 +215,7 @@ export function ContactAccordionSections({
         label="Tarefas"
       >
         <SectionErrorBoundary sectionName="Tarefas">
-          <ConversationTasksPanel contactId={contact.id} profileId={profileId} />
+          <ConversationTasksPanel contactId={contact.id ?? ''} profileId={profileId} />
         </SectionErrorBoundary>
       </Section>
 
@@ -218,7 +226,7 @@ export function ContactAccordionSections({
         label="Lembretes"
       >
         <SectionErrorBoundary sectionName="Lembretes">
-          <RemindersPanel contactId={contact.id} profileId={profileId} />
+          <RemindersPanel contactId={contact.id ?? ''} profileId={profileId} />
         </SectionErrorBoundary>
       </Section>
 
@@ -229,7 +237,7 @@ export function ContactAccordionSections({
         label="Memória Viva"
       >
         <SectionErrorBoundary sectionName="Memória Viva">
-          <ConversationMemoryPanel contactId={contact.id} profileId={profileId} />
+          <ConversationMemoryPanel contactId={contact.id ?? ''} profileId={profileId} />
         </SectionErrorBoundary>
       </Section>
 
@@ -240,7 +248,7 @@ export function ContactAccordionSections({
         label="Scoring & LGPD"
       >
         <SectionErrorBoundary sectionName="Scoring & LGPD">
-          <LeadRiskScorePanel contactId={contact.id} />
+          <LeadRiskScorePanel contactId={contact.id ?? ''} />
         </SectionErrorBoundary>
       </Section>
 
@@ -251,7 +259,7 @@ export function ContactAccordionSections({
         label="Compras & Propostas"
       >
         <SectionErrorBoundary sectionName="Compras & Propostas">
-          <ContactPurchasesPanel contactId={contact.id} profileId={profileId} />
+          <ContactPurchasesPanel contactId={contact.id ?? ''} profileId={profileId} />
         </SectionErrorBoundary>
       </Section>
 
@@ -262,7 +270,7 @@ export function ContactAccordionSections({
         label="Notas Privadas"
       >
         <SectionErrorBoundary sectionName="Notas Privadas">
-          <PrivateNotes contactId={contact.id} />
+          <PrivateNotes contactId={contact.id ?? ''} />
         </SectionErrorBoundary>
       </Section>
 
@@ -273,7 +281,7 @@ export function ContactAccordionSections({
         label="Linha do Tempo"
       >
         <SectionErrorBoundary sectionName="Linha do Tempo">
-          <ConversationTimeline contactId={contact.id} />
+          <ConversationTimeline contactId={contact.id ?? ''} />
         </SectionErrorBoundary>
       </Section>
 
@@ -285,8 +293,8 @@ export function ContactAccordionSections({
       >
         <SectionErrorBoundary sectionName="Histórico">
           <ConversationHistory
-            contactId={contact.id}
-            contactPhone={contact.phone}
+            contactId={contact.id ?? ''}
+            contactPhone={contact.phone ?? ''}
             onSelectConversation={(id) => log.debug('Selected conversation:', id)}
           />
         </SectionErrorBoundary>
@@ -299,7 +307,7 @@ export function ContactAccordionSections({
         label="Entregas & Leituras"
       >
         <SectionErrorBoundary sectionName="Entregas & Leituras">
-          <DeliveryStatsPanel remoteJid={contact.id} />
+          <DeliveryStatsPanel remoteJid={contact.id ?? ''} />
         </SectionErrorBoundary>
       </Section>
 
@@ -323,14 +331,14 @@ export function ContactAccordionSections({
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4">
-            <ContactStatsSection contactId={contact.id} />
+            <ContactStatsSection contactId={contact.id ?? ''} />
           </AccordionContent>
         </AccordionItem>
-        <SharedMediaAccordionItem contactId={contact.id} onOpen={openMedia} />
+        <SharedMediaAccordionItem contactId={contact.id ?? ''} onOpen={openMedia} />
       </motion.div>
 
       {mediaMounted && (
-        <MediaGallery contactId={contact.id} open={mediaOpen} onOpenChange={setMediaOpen} />
+        <MediaGallery contactId={contact.id ?? ''} open={mediaOpen} onOpenChange={setMediaOpen} />
       )}
     </>
   );

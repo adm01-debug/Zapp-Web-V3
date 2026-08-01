@@ -119,7 +119,7 @@ async function alreadyFiredPersistent(
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (error || !data) return null;
+    if (error || !data || !data.created_at) return null;
     return new Date(data.created_at).getTime();
   } catch {
     return null;

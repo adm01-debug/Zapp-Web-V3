@@ -47,7 +47,15 @@ export function RemindersPanel({ contactId, profileId }: RemindersPanelProps) {
     }
     setLoading(true);
     const data = await fetchReminders(contactId, profileId);
-    setReminders(data);
+    setReminders(
+      data.map((r) => ({
+        id: r.id,
+        title: r.title,
+        remind_at: r.remind_at,
+        is_dismissed: r.is_dismissed,
+        created_at: r.created_at ?? '',
+      }))
+    );
     setLoading(false);
   }, [contactId, profileId]);
 

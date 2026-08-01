@@ -188,7 +188,7 @@ BEGIN
 END;
 $function$;
 
-REVOKE ALL ON FUNCTION zapp.fn_score_security_acl() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION zapp.fn_score_security_acl() FROM PUBLIC, anon, authenticated;
 
 -- Validação:
 --   SELECT (zapp.fn_score_security_acl())->>'score';  -- 5

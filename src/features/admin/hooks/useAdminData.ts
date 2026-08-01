@@ -146,10 +146,7 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         ];
         const { data: profilesData } =
           userIds.length > 0
-            ? await supabase.from('profiles').select('user_id, name, email').in(
-                'user_id',
-                userIds
-              )
+            ? await supabase.from('profiles').select('user_id, name, email').in('user_id', userIds)
             : { data: [] };
         const profiles = unwrapRows<ProfileMini>(profilesData);
 
@@ -161,7 +158,6 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
       }
     }
 
-
     setLoading(false);
   }, [activeTab]);
 
@@ -172,17 +168,15 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
       const { data: ws } = await safeClient.single<{ id: string }>('workspaces', (q) =>
         q.select('id').order('created_at').limit(1)
       );
-      const { error } = await supabase
-        .from('user_roles')
-        .upsert(
-          {
-            user_id: userId,
-            role: newRole as string,
-            role_key: newRole as string,
-            workspace_id: ws?.id ?? '',
-          } as never,
-          { onConflict: 'user_id' }
-        );
+      const { error } = await supabase.from('user_roles').upsert(
+        {
+          user_id: userId,
+          role: newRole,
+          role_key: newRole,
+          workspace_id: ws?.id ?? '',
+        },
+        { onConflict: 'user_id' }
+      );
       if (error) {
         toast.error('Erro ao atualizar role');
       } else {
@@ -237,7 +231,7 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
           phone: editingUser.phone,
           avatar_url: avatarUrl,
           access_level: editingUser.access_level,
-          max_chats: editingUser.max_chats,
+          max_chats: editingUser.max_chats ?? undefined,
           can_download: editingUser.can_download,
         })
         .eq('id', editingUser.id);

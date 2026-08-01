@@ -68,10 +68,10 @@ const ContactRow = memo(
     getCRMData?: (phone: string) => CRMBatchResult | null;
     searchQuery?: string;
   }) => {
-    const avatarColors = getAvatarColor(contact.name);
+    const avatarColors = getAvatarColor(contact.name ?? '');
     const typeConfig =
       CONTACT_TYPE_CONFIG[contact.contact_type || 'cliente'] || CONTACT_TYPE_CONFIG.cliente;
-    const crmData = getCRMData?.(contact.phone);
+    const crmData = getCRMData?.(contact.phone ?? '');
 
     return (
       <div
@@ -83,14 +83,14 @@ const ContactRow = memo(
         role="row"
         tabIndex={0}
         aria-selected={isSelected}
-        onClick={() => onOpenChat(contact.id)}
-        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onOpenChat(contact.id)}
+        onClick={() => onOpenChat(contact.id ?? '')}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onOpenChat(contact.id ?? '')}
       >
         {/* Checkbox */}
         <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
           <Checkbox
             checked={isSelected}
-            onCheckedChange={(checked) => onToggleSelect(contact.id, !!checked)}
+            onCheckedChange={(checked) => onToggleSelect(contact.id ?? '', !!checked)}
             aria-label={`Selecionar ${contact.name}`}
           />
         </div>
@@ -99,11 +99,11 @@ const ContactRow = memo(
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div className="relative shrink-0">
             <Avatar className="h-9 w-9">
-              <AvatarImage src={contact.avatar_url || undefined} alt={contact.name} />
+              <AvatarImage src={contact.avatar_url || undefined} alt={contact.name ?? undefined} />
               <AvatarFallback
                 className={cn('text-xs font-semibold', avatarColors.bg, avatarColors.text)}
               >
-                {getInitials(contact.name)}
+                {getInitials(contact.name ?? '')}
               </AvatarFallback>
             </Avatar>
             <div
@@ -171,7 +171,7 @@ const ContactRow = memo(
         <div className="hidden min-w-[140px] max-w-[200px] flex-col md:flex">
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <Phone className="h-3 w-3" />
-            <HighlightText text={contact.phone} highlight={searchQuery} />
+            <HighlightText text={contact.phone ?? ''} highlight={searchQuery} />
           </div>
           {contact.email && (
             <div className="mt-0.5 flex items-center gap-1.5 truncate text-[10px] text-muted-foreground">
@@ -205,13 +205,18 @@ const ContactRow = memo(
             variant="ghost"
             size="icon"
             className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
-            onClick={() => onOpenChat(contact.id)}
+            onClick={() => onOpenChat(contact.id ?? '')}
           >
             <MessageSquare className="h-4 w-4" />
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button aria-label="Opções do contato" variant="ghost" size="icon" className="h-8 w-8">
+              <Button
+                aria-label="Opções do contato"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+              >
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -260,7 +265,9 @@ const TableHeader = memo(
         <div className="w-4 shrink-0">
           <Checkbox
             checked={allSelected}
-            onCheckedChange={(checked) => onSelectIds(checked ? contacts.map((c) => c.id) : [])}
+            onCheckedChange={(checked) =>
+              onSelectIds(checked ? contacts.map((c) => c.id ?? '') : [])
+            }
             aria-label={allSelected ? 'Desmarcar todos' : 'Selecionar todos'}
           />
         </div>
@@ -340,7 +347,7 @@ export const ContactsTableVirtual: React.FC<ContactsTableVirtualProps> = ({
               >
                 <ContactRow
                   contact={contact}
-                  isSelected={selectedIds.includes(contact.id)}
+                  isSelected={selectedIds.includes(contact.id ?? '')}
                   onToggleSelect={handleToggleSelect}
                   onOpenChat={onOpenChat}
                   onEdit={onEdit}

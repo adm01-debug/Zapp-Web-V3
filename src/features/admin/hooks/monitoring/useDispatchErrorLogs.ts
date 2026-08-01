@@ -86,13 +86,13 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
       const fromIso = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
       const { data, error } = await supabase.rpc('rpc_list_dispatch_error_logs_cursor', {
         p_from: fromIso,
-        p_to: to,
-        p_instance: instance,
-        p_agent: agent,
-        p_error_code: errorCode,
-        p_search: search,
+        p_to: to ?? undefined,
+        p_instance: instance ?? undefined,
+        p_agent: agent ?? undefined,
+        p_error_code: errorCode ?? undefined,
+        p_search: search ?? undefined,
         p_limit: pageSize,
-        p_cursor_id: currentPageCursor,
+        p_cursor_id: currentPageCursor ?? undefined,
       });
       if (error) throw error;
       const list = (data ?? []) as unknown as _RpcRow[];

@@ -3,8 +3,22 @@ import { Activity, RefreshCw, TrendingUp, Database, Trash2, Clock } from 'lucide
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import { usePerformanceSnapshots } from '@/hooks/usePerformanceMonitoring';
 import { classifyMetricStatus, type PerformanceMetricStatus } from './classifyMetricStatus';
 
@@ -18,15 +32,24 @@ interface PerformanceMetric {
 /** Performance Monitor component for the performance section. */
 export function PerformanceMonitor() {
   const [metrics, setMetrics] = useState<PerformanceMetric[]>([]);
-  const [localHistory, setLocalHistory] = useState<Array<{ time: string; fcp: number; memory: number }>>([]);
+  const [localHistory, setLocalHistory] = useState<
+    Array<{ time: string; fcp: number; memory: number }>
+  >([]);
   const [cacheStats, setCacheStats] = useState({ hits: 0, misses: 0, size: 0 });
   const [loading, setLoading] = useState(false);
   const [period, setPeriod] = useState('24');
-  const { history: dbHistory, saveSnapshot, loadHistory, clearOldSnapshots } = usePerformanceSnapshots();
+  const {
+    history: dbHistory,
+    saveSnapshot,
+    loadHistory,
+    clearOldSnapshots,
+  } = usePerformanceSnapshots();
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const collectMetrics = useCallback(async () => {
@@ -36,13 +59,18 @@ export function PerformanceMonitor() {
     const fcp = perf.getEntriesByName('first-contentful-paint')[0];
     const fcpValue = fcp ? Math.round(fcp.startTime) : 0;
 
-    const memInfo = (performance as unknown as { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory; // ignore-audit — performance.memory is a Chrome-only extension not in standard lib
+    const memInfo = (
+      performance as unknown as { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }
+    ).memory; // ignore-audit — performance.memory is a Chrome-only extension not in standard lib
     const memoryUsed = memInfo ? Math.round(memInfo.usedJSHeapSize / 1048576) : 0;
     const memoryTotal = memInfo ? Math.round(memInfo.totalJSHeapSize / 1048576) : 256;
-    const memoryPercent = memInfo ? Math.round((memInfo.usedJSHeapSize / memInfo.totalJSHeapSize) * 100) : 0;
+    const memoryPercent = memInfo
+      ? Math.round((memInfo.usedJSHeapSize / memInfo.totalJSHeapSize) * 100)
+      : 0;
 
     const domNodes = document.querySelectorAll('*').length;
-    const conn = (navigator as unknown as { connection?: { effectiveType: string; rtt: number } }).connection; // ignore-audit — navigator.connection (Network Information API) not yet in standard lib
+    const conn = (navigator as unknown as { connection?: { effectiveType: string; rtt: number } })
+      .connection; // ignore-audit — navigator.connection (Network Information API) not yet in standard lib
     const networkType = conn?.effectiveType || '4g';
     const rtt = conn?.rtt || 0;
 
@@ -51,22 +79,61 @@ export function PerformanceMonitor() {
     const ttfb = nav ? Math.round(nav.responseStart - nav.requestStart) : 0;
 
     const newMetrics: PerformanceMetric[] = [
-      { name: 'FCP', value: fcpValue, unit: 'ms', status: classifyMetricStatus(fcpValue, 1800, 3000) },
-      { name: 'Page Load', value: pageLoadTime, unit: 'ms', status: classifyMetricStatus(pageLoadTime, 3000, 5000) },
-      { name: 'DOM Ready', value: domReady, unit: 'ms', status: classifyMetricStatus(domReady, 2000, 4000) },
+      {
+        name: 'FCP',
+        value: fcpValue,
+        unit: 'ms',
+        status: classifyMetricStatus(fcpValue, 1800, 3000),
+      },
+      {
+        name: 'Page Load',
+        value: pageLoadTime,
+        unit: 'ms',
+        status: classifyMetricStatus(pageLoadTime, 3000, 5000),
+      },
+      {
+        name: 'DOM Ready',
+        value: domReady,
+        unit: 'ms',
+        status: classifyMetricStatus(domReady, 2000, 4000),
+      },
       { name: 'TTFB', value: ttfb, unit: 'ms', status: classifyMetricStatus(ttfb, 200, 500) },
-      { name: 'Memória JS', value: memoryUsed, unit: `MB / ${memoryTotal}MB`, status: classifyMetricStatus(memoryPercent, 60, 80) },
-      { name: 'DOM Nodes', value: domNodes, unit: 'nós', status: classifyMetricStatus(domNodes, 1500, 3000) },
+      {
+        name: 'Memória JS',
+        value: memoryUsed,
+        unit: `MB / ${memoryTotal}MB`,
+        status: classifyMetricStatus(memoryPercent, 60, 80),
+      },
+      {
+        name: 'DOM Nodes',
+        value: domNodes,
+        unit: 'nós',
+        status: classifyMetricStatus(domNodes, 1500, 3000),
+      },
       { name: 'RTT', value: rtt, unit: 'ms', status: classifyMetricStatus(rtt, 100, 300) },
-      { name: 'Conexão', value: networkType === '4g' ? 100 : networkType === '3g' ? 60 : 30, unit: networkType, status: networkType === '4g' ? 'good' : networkType === '3g' ? 'warning' : 'critical' },
+      {
+        name: 'Conexão',
+        value: networkType === '4g' ? 100 : networkType === '3g' ? 60 : 30,
+        unit: networkType,
+        status: networkType === '4g' ? 'good' : networkType === '3g' ? 'warning' : 'critical',
+      },
     ];
 
     setMetrics(newMetrics);
 
-    const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    setLocalHistory(prev => [...prev.slice(-20), { time: now, fcp: fcpValue, memory: memoryUsed }]);
+    const now = new Date().toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    setLocalHistory((prev) => [
+      ...prev.slice(-20),
+      { time: now, fcp: fcpValue, memory: memoryUsed },
+    ]);
 
-    const cacheKeys = Object.keys(localStorage).filter(k => k.startsWith('cache_') || k.startsWith('tanstack'));
+    const cacheKeys = Object.keys(localStorage).filter(
+      (k) => k.startsWith('cache_') || k.startsWith('tanstack')
+    );
     setCacheStats({
       hits: parseInt(localStorage.getItem('cache_hits') || '0'),
       misses: parseInt(localStorage.getItem('cache_misses') || '0'),
@@ -74,7 +141,9 @@ export function PerformanceMonitor() {
     });
 
     // Persist to Supabase
-    const overallScore = Math.round((newMetrics.filter(m => m.status === 'good').length / Math.max(newMetrics.length, 1)) * 100);
+    const overallScore = Math.round(
+      (newMetrics.filter((m) => m.status === 'good').length / Math.max(newMetrics.length, 1)) * 100
+    );
     await saveSnapshot({
       fcp: fcpValue,
       page_load: pageLoadTime,
@@ -102,29 +171,52 @@ export function PerformanceMonitor() {
     loadHistory(parseInt(period));
   }, [loadHistory, period]);
 
-  const overallScore = Math.round((metrics.filter(m => m.status === 'good').length / Math.max(metrics.length, 1)) * 100);
+  const overallScore = Math.round(
+    (metrics.filter((m) => m.status === 'good').length / Math.max(metrics.length, 1)) * 100
+  );
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'good': return <Badge className="bg-primary/10 text-primary border-primary/30 text-[10px]">Bom</Badge>;
-      case 'warning': return <Badge className="bg-warning/10 text-warning border-warning/30 text-[10px]">{String.fromCodePoint(0x41, 0x74, 0x65, 0x6e, 0x63, 0x61, 0x6f)}</Badge>;
-      case 'critical': return <Badge variant="destructive" className="text-[10px]">{String.fromCodePoint(0x43, 0x72, 0xed, 0x74, 0x69, 0x63, 0x6f)}</Badge>;
-      default: return null;
+      case 'good':
+        return (
+          <Badge className="border-primary/30 bg-primary/10 text-[10px] text-primary">Bom</Badge>
+        );
+      case 'warning':
+        return (
+          <Badge className="border-warning/30 bg-warning/10 text-[10px] text-warning">
+            {String.fromCodePoint(0x41, 0x74, 0x65, 0x6e, 0x63, 0x61, 0x6f)}
+          </Badge>
+        );
+      case 'critical':
+        return (
+          <Badge variant="destructive" className="text-[10px]">
+            {String.fromCodePoint(0x43, 0x72, 0xed, 0x74, 0x69, 0x63, 0x6f)}
+          </Badge>
+        );
+      default:
+        return null;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'good': return 'text-primary';
-      case 'warning': return 'text-warning';
-      case 'critical': return 'text-destructive';
-      default: return 'text-muted-foreground';
+      case 'good':
+        return 'text-primary';
+      case 'warning':
+        return 'text-warning';
+      case 'critical':
+        return 'text-destructive';
+      default:
+        return 'text-muted-foreground';
     }
   };
 
   // Format DB history for chart
-  const dbChartData = dbHistory.map(s => ({
-    time: new Date(s.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+  const dbChartData = dbHistory.map((s) => ({
+    time: new Date(s.created_at ?? '').toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
     fcp: s.fcp,
     page_load: s.page_load,
     memory: s.memory_used,
@@ -136,17 +228,19 @@ export function PerformanceMonitor() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-primary/10">
-            <Activity className="w-5 h-5 text-primary" />
+          <div className="rounded-xl bg-primary/10 p-2">
+            <Activity className="h-5 w-5 text-primary" />
           </div>
           <div>
             <h2 className="text-xl font-bold">Monitor de Performance</h2>
-            <p className="text-sm text-muted-foreground">Métricas em tempo real + histórico persistido</p>
+            <p className="text-sm text-muted-foreground">
+              Métricas em tempo real + histórico persistido
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-[130px] h-8 text-xs">
+            <SelectTrigger className="h-8 w-[130px] text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -157,12 +251,23 @@ export function PerformanceMonitor() {
               <SelectItem value="168">7 dias</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" onClick={() => clearOldSnapshots()} className="h-8 text-xs">
-            <Trash2 className="w-3 h-3 mr-1" />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => clearOldSnapshots()}
+            className="h-8 text-xs"
+          >
+            <Trash2 className="mr-1 h-3 w-3" />
             Limpar antigos
           </Button>
-          <Button variant="outline" size="sm" onClick={collectMetrics} disabled={loading} className="h-8 text-xs">
-            <RefreshCw className={`w-3 h-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={collectMetrics}
+            disabled={loading}
+            className="h-8 text-xs"
+          >
+            <RefreshCw className={`mr-1 h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
         </div>
@@ -173,9 +278,26 @@ export function PerformanceMonitor() {
         <CardContent className="pt-6">
           <div className="flex items-center gap-6">
             <div className="relative">
-              <svg className="w-24 h-24 -rotate-90" viewBox="0 0 36 36" aria-hidden="true">
-                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="hsl(var(--muted))" strokeWidth="3" />
-                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={overallScore >= 80 ? 'hsl(var(--primary))' : overallScore >= 50 ? 'hsl(40, 100%, 50%)' : 'hsl(var(--destructive))'} strokeWidth="3" strokeDasharray={`${overallScore}, 100`} />
+              <svg className="h-24 w-24 -rotate-90" viewBox="0 0 36 36" aria-hidden="true">
+                <path
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  fill="none"
+                  stroke="hsl(var(--muted))"
+                  strokeWidth="3"
+                />
+                <path
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  fill="none"
+                  stroke={
+                    overallScore >= 80
+                      ? 'hsl(var(--primary))'
+                      : overallScore >= 50
+                        ? 'hsl(40, 100%, 50%)'
+                        : 'hsl(var(--destructive))'
+                  }
+                  strokeWidth="3"
+                  strokeDasharray={`${overallScore}, 100`}
+                />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="text-2xl font-bold">{overallScore}</span>
@@ -184,12 +306,14 @@ export function PerformanceMonitor() {
             <div>
               <p className="text-lg font-semibold">Score de Performance</p>
               <p className="text-sm text-muted-foreground">
-                {overallScore >= 80 ? 'Excelente! Aplicação performando bem.' :
-                 overallScore >= 50 ? 'Razoável. Há oportunidades de otimização.' :
-                 'Atenção! Performance precisa de melhorias.'}
+                {overallScore >= 80
+                  ? 'Excelente! Aplicação performando bem.'
+                  : overallScore >= 50
+                    ? 'Razoável. Há oportunidades de otimização.'
+                    : 'Atenção! Performance precisa de melhorias.'}
               </p>
-              <p className="text-xs text-muted-foreground/60 mt-1">
-                <Clock className="w-3 h-3 inline mr-1" />
+              <p className="mt-1 text-xs text-muted-foreground/60">
+                <Clock className="mr-1 inline h-3 w-3" />
                 {dbHistory.length} snapshots no período selecionado
               </p>
             </div>
@@ -198,18 +322,18 @@ export function PerformanceMonitor() {
       </Card>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {metrics.map((metric) => (
           <Card key={metric.name}>
-            <CardContent className="pt-4 pb-4">
+            <CardContent className="pb-4 pt-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground truncate">{metric.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">{metric.name}</p>
                   {getStatusBadge(metric.status)}
                 </div>
                 <p className={`text-xl font-bold ${getStatusColor(metric.status)}`}>
                   {metric.value}
-                  <span className="text-xs text-muted-foreground ml-1">{metric.unit}</span>
+                  <span className="ml-1 text-xs text-muted-foreground">{metric.unit}</span>
                 </p>
               </div>
             </CardContent>
@@ -222,9 +346,11 @@ export function PerformanceMonitor() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <TrendingUp className="w-5 h-5" />
+              <TrendingUp className="h-5 w-5" />
               Histórico Persistido
-              <Badge variant="secondary" className="text-[10px] ml-auto">{dbChartData.length} pontos</Badge>
+              <Badge variant="secondary" className="ml-auto text-[10px]">
+                {dbChartData.length} pontos
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -233,10 +359,35 @@ export function PerformanceMonitor() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
                 <XAxis dataKey="time" fontSize={10} stroke="hsl(var(--muted-foreground))" />
                 <YAxis fontSize={10} stroke="hsl(var(--muted-foreground))" />
-                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
-                <Area type="monotone" dataKey="score" name="Score (%)" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.1)" />
-                <Area type="monotone" dataKey="fcp" name="FCP (ms)" stroke="hsl(var(--secondary))" fill="hsl(var(--secondary) / 0.1)" />
-                <Area type="monotone" dataKey="memory" name="Memória (MB)" stroke="hsl(var(--accent-foreground))" fill="hsl(var(--accent-foreground) / 0.1)" />
+                <Tooltip
+                  contentStyle={{
+                    background: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="score"
+                  name="Score (%)"
+                  stroke="hsl(var(--primary))"
+                  fill="hsl(var(--primary) / 0.1)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="fcp"
+                  name="FCP (ms)"
+                  stroke="hsl(var(--secondary))"
+                  fill="hsl(var(--secondary) / 0.1)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="memory"
+                  name="Memória (MB)"
+                  stroke="hsl(var(--accent-foreground))"
+                  fill="hsl(var(--accent-foreground) / 0.1)"
+                />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
@@ -248,7 +399,7 @@ export function PerformanceMonitor() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Activity className="w-5 h-5" />
+              <Activity className="h-5 w-5" />
               Sessão Atual (tempo real)
             </CardTitle>
           </CardHeader>
@@ -258,9 +409,28 @@ export function PerformanceMonitor() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
                 <XAxis dataKey="time" fontSize={10} stroke="hsl(var(--muted-foreground))" />
                 <YAxis fontSize={10} stroke="hsl(var(--muted-foreground))" />
-                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
-                <Area type="monotone" dataKey="fcp" name="FCP (ms)" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.1)" />
-                <Area type="monotone" dataKey="memory" name="Memória (MB)" stroke="hsl(var(--secondary))" fill="hsl(var(--secondary) / 0.1)" />
+                <Tooltip
+                  contentStyle={{
+                    background: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="fcp"
+                  name="FCP (ms)"
+                  stroke="hsl(var(--primary))"
+                  fill="hsl(var(--primary) / 0.1)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="memory"
+                  name="Memória (MB)"
+                  stroke="hsl(var(--secondary))"
+                  fill="hsl(var(--secondary) / 0.1)"
+                />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
@@ -271,7 +441,7 @@ export function PerformanceMonitor() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Database className="w-5 h-5" />
+            <Database className="h-5 w-5" />
             Cache Inteligente
           </CardTitle>
         </CardHeader>

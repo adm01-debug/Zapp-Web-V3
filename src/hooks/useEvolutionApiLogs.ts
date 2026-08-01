@@ -55,7 +55,35 @@ export function useEvolutionApiLogs({
 
       const { data, error } = await q;
       if (error) throw error;
-      return (data as RetryMetric[]) ?? []; // ignore-audit: narrows Supabase query result to local interface
+      return (data ?? []).map((row) => ({
+        id: row.id ?? '',
+        action: row.action ?? '',
+        method: row.method ?? '',
+        instance_name: row.instance_name,
+        attempt_count: row.attempt_count ?? 0,
+        final_status:
+          row.final_status === 'success' ||
+          row.final_status === 'failed' ||
+          row.final_status === 'exhausted'
+            ? row.final_status
+            : 'failed',
+        final_http_status: row.final_http_status,
+        retry_reasons: Array.isArray(row.retry_reasons)
+          ? row.retry_reasons
+              .map((r) => {
+                if (typeof r !== 'object' || r === null) return null;
+                const obj = r as Record<string, unknown>;
+                return {
+                  attempt: typeof obj.attempt === 'number' ? obj.attempt : 0,
+                  reason: typeof obj.reason === 'string' ? obj.reason : '',
+                  status: typeof obj.status === 'number' ? obj.status : undefined,
+                };
+              })
+              .filter((r): r is NonNullable<typeof r> => r !== null)
+          : [],
+        total_duration_ms: row.total_duration_ms,
+        created_at: row.created_at ?? '',
+      }));
     },
     refetchInterval: 15_000,
     staleTime: 10_000,

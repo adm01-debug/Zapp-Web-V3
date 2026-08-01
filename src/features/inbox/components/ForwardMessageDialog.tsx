@@ -135,14 +135,14 @@ export function ForwardMessageDialog({
                 <div className="space-y-1">
                   <AnimatePresence>
                     {fwd.filteredContacts.map((contact, i) => {
-                      const isSelected = fwd.selectedContacts.includes(contact.id);
+                      const isSelected = fwd.selectedContacts.includes(contact.id ?? '');
                       return (
                         <motion.button
                           key={contact.id}
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: i * 0.02 }}
-                          onClick={() => fwd.toggleContact(contact.id)}
+                          onClick={() => fwd.toggleContact(contact.id ?? '')}
                           className={cn(
                             'flex w-full items-center gap-3 rounded-lg p-3 text-left transition-all',
                             isSelected
@@ -152,9 +152,12 @@ export function ForwardMessageDialog({
                         >
                           <Checkbox checked={isSelected} className="pointer-events-none" />
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={contact.avatar_url ?? undefined} alt={contact.name} />
+                            <AvatarImage
+                              src={contact.avatar_url ?? undefined}
+                              alt={contact.name ?? undefined}
+                            />
                             <AvatarFallback className="bg-primary/10 text-sm text-primary">
-                              {contact.name
+                              {(contact.name ?? '')
                                 .split(' ')
                                 .map((n: string) => n[0])
                                 .join('')

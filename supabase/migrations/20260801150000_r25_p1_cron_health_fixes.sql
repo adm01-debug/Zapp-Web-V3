@@ -103,6 +103,7 @@ BEGIN
     'months_old_applied',v_safe_months,'batch_size',p_batch_size,'ts',now()
   );
 END; $function$;
+REVOKE ALL ON FUNCTION zapp.fn_archive_old_wpp2_messages(integer, integer) FROM PUBLIC, anon, authenticated;
 
 -- 3) fn_analytics_log_retention: public.dblink → zapp.dblink + p_days validado
 --    + sem EXECUTE para PUBLIC/anon/authenticated (S1 R25)

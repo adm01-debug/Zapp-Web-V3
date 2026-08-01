@@ -49,13 +49,21 @@ export function useFailureReason(messageId: string | undefined, enabled: boolean
 
       const reasons = Array.isArray(data.retry_reasons) ? data.retry_reasons : [];
       const last = reasons[reasons.length - 1];
-      const reason = last?.reason ?? `http_${data.final_http_status ?? 'error'}`;
+      const reason =
+        last && typeof last === 'object' && 'reason' in last && typeof last.reason === 'string'
+          ? last.reason
+          : `http_${data.final_http_status ?? 'error'}`;
 
       return {
         reason,
         finalHttpStatus: data.final_http_status,
-        attempts: data.attempt_count,
-        finalStatus: data.final_status,
+        attempts: data.attempt_count ?? 0,
+        finalStatus:
+          data.final_status === 'success' ||
+          data.final_status === 'failed' ||
+          data.final_status === 'exhausted'
+            ? data.final_status
+            : 'failed',
       };
     },
   });

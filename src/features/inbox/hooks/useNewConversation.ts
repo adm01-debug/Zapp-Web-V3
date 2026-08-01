@@ -75,7 +75,14 @@ export function useNewConversation(
         )
         .limit(10);
       if (cancelled) return;
-      setContacts(data || []);
+      setContacts(
+        (data ?? []).map((c) => ({
+          id: c.id ?? '',
+          name: c.name ?? '',
+          phone: c.phone ?? '',
+          avatar_url: c.avatar_url,
+        }))
+      );
       setIsLoading(false);
     }, 300);
     return () => {

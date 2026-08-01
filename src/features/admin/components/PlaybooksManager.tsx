@@ -69,8 +69,13 @@ export function PlaybooksManager(): JSX.Element {
     queryFn: async () => {
       const data = await fetchPlaybooks();
       return data.map((p) => ({
-        ...p,
+        id: p.id ?? '',
+        name: p.name ?? '',
+        description: p.description ?? null,
+        category: p.category ?? 'general',
         steps: Array.isArray(p.steps) ? (p.steps as unknown as PlaybookStep[]) : [],
+        is_active: p.is_active ?? true,
+        created_at: p.created_at ?? '',
       }));
     },
   });

@@ -64,7 +64,7 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
     slaError,
     refetchAITags,
     refetchSLA,
-  } = useContactEnrichedData(contact.id);
+  } = useContactEnrichedData(contact.id ?? '');
   const { profileId } = useConversationActions();
   const panelRef = useRef<HTMLDivElement>(null);
   const [accordionValue, setAccordionValue] = useState<string[]>(getStoredAccordionState);
@@ -182,7 +182,7 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
       </div>
 
       <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto bg-background/50">
-        <AnalysisBadges contactId={contact.id} className="px-4 pb-2 pt-2" />
+        <AnalysisBadges contactId={contact.id ?? ''} className="px-4 pb-2 pt-2" />
 
         <Accordion
           type="multiple"
@@ -201,8 +201,12 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
             isLoadingSLA={isLoadingSLA}
             aiTagsError={aiTagsError}
             slaError={slaError}
-            onRetryAITags={() => { void refetchAITags(); }}
-            onRetrySLA={() => { void refetchSLA(); }}
+            onRetryAITags={() => {
+              void refetchAITags();
+            }}
+            onRetrySLA={() => {
+              void refetchSLA();
+            }}
           />
         </Accordion>
 
@@ -215,8 +219,8 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
         contact={{
-          id: contact.id,
-          name: contact.name,
+          id: contact.id ?? '',
+          name: contact.name ?? '',
           phone: contact.phone ?? null,
           email: contact.email ?? null,
           company: enrichedData?.company ?? null,

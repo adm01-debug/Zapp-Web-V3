@@ -6,11 +6,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // evolution_instance_credentials reside no schema 'evo' (física, service_role only).
 // evolution_health_logs foi movida para schema 'zapp' (migration 20260724000044) — usar supabase diretamente.
-// (schema 'evo' não incluído em ExtendedDatabase gerado; cast controlado)
-const evo = (supabase as unknown as { schema: (s: string) => ReturnType<typeof supabase.schema> }).schema('evo');
+// (schema 'evo' fora do tipo gerado do client 'zapp'; widening controlado para SupabaseClient genérico)
+const evo = (supabase as unknown as SupabaseClient).schema('evo');
 
 /** Evolution Instance Credential interface definition. */
 export interface EvolutionInstanceCredential {

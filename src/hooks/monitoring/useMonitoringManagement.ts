@@ -185,7 +185,9 @@ export function useMonitoringDataManagement(
 
   // Stable ref for callback to avoid useEffect dep churn
   const onConnectionsUpdateRef = useRef(onConnectionsUpdate);
-  useEffect(() => { onConnectionsUpdateRef.current = onConnectionsUpdate; }, [onConnectionsUpdate]);
+  useEffect(() => {
+    onConnectionsUpdateRef.current = onConnectionsUpdate;
+  }, [onConnectionsUpdate]);
 
   const { data = DEFAULT_SNAPSHOT, isLoading: loading } = useQuery({
     queryKey: ['monitoring-data', period] as const,
@@ -342,7 +344,7 @@ export function useMonitoringActionsManagement(
         .select('id')
         .eq('message_id', testId)
         .maybeSingle();
-      if (msg) await supabase.from('evolution_messages').delete().eq('id', msg.id);
+      if (msg?.id) await supabase.from('evolution_messages').delete().eq('id', msg.id);
       setWebhookTest({
         status: msg ? 'success' : 'error',
         message: msg

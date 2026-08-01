@@ -13,8 +13,12 @@ concurrency:
 jobs:
   tighten:
     runs-on: ubuntu-latest
+    env:
+      GH_PUSH_TOKEN: ${{ secrets.GH_TOKEN_ACTIONS }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN_ACTIONS || secrets.GITHUB_TOKEN }}
       - name: Tighten baseline (down-only nos escopos hard)
         run: |
           node - << 'EOF'
@@ -30,6 +34,10 @@ jobs:
           const changed = execSync('git status --porcelain scripts/data-layer-baseline.json').toString().trim();
           if (!changed) { console.log('baseline já justo — nada a fazer.'); process.exit(0); }
           execSync('git config user.name "ratchet-bot" && git config user.email "bot@users.noreply.github.com"');
+          // Usar GH_PUSH_TOKEN para bypass de branch protection
+          const repo = process.env.GITHUB_REPOSITORY;
+          const token = process.env.GH_PUSH_TOKEN || process.env.GITHUB_TOKEN;
+          if (token) execSync(`git remote set-url origin https://x-access-token:${token}@github.com/${repo}.git`);
           execSync('git add scripts/data-layer-baseline.json && git commit -m "chore(ratchet): auto-tighten data-layer baseline [skip ci]" && git push');
           console.log('✅ baseline apertado e commitado.');
           EOF

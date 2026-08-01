@@ -49,7 +49,21 @@ export function useMetaCapi() {
       setLoading(false);
       return;
     }
-    if (data) setEvents(data);
+    if (data) {
+      setEvents(
+        data.map((e) => ({
+          id: e.id ?? '',
+          event_name: e.event_name ?? '',
+          event_time: e.event_time,
+          contact_id: e.contact_id,
+          pixel_id: e.pixel_id,
+          action_source: e.action_source,
+          custom_data: e.custom_data ?? {},
+          sent_to_meta: e.sent_to_meta,
+          created_at: e.created_at,
+        }))
+      );
+    }
     setLoading(false);
   }, []);
 

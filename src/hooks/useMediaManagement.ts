@@ -2,6 +2,7 @@
 // Consolidates: usePersonalStickers, useCustomEmojis, useExportData, useImportData, useDownloadPermission
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { callExtRpc } from '@/integrations/supabase/externalClient';
 import { log } from '@/lib/logger';
 import { useMountedRef } from '@/hooks/useMountedRef';
 
@@ -45,7 +46,15 @@ export function usePersonalStickersManagement(userId?: string) {
         .eq('user_id', userId);
 
       if (err) throw err;
-      if (mountedRef.current) setStickers(data || []);
+      if (mountedRef.current)
+        setStickers(
+          (data || []).map((s) => ({
+            id: s.id,
+            url: s.url,
+            name: s.name ?? '',
+            category: s.category ?? '',
+          }))
+        );
     } catch (err) {
       if (mountedRef.current) {
         log.error('Error fetching stickers:', err);
@@ -73,7 +82,15 @@ export function useCustomEmojisManagement() {
         const { data, error: err } = await supabase.from('custom_emojis').select('*');
 
         if (err) throw err;
-        if (mounted.current) setEmojis(data || []);
+        if (mounted.current)
+          setEmojis(
+            (data || []).map((e) => ({
+              id: e.id,
+              code: e.name,
+              name: e.name,
+              url: e.image_url,
+            }))
+          );
       } catch (err) {
         log.error('Error fetching emojis:', err);
       } finally {
@@ -96,9 +113,7 @@ export function useExportDataManagement() {
     setProgress(0);
 
     try {
-      const { data, error: err } = await supabase.rpc('export_user_data', {
-        export_format: format,
-      });
+      const { data, error: err } = await supabase.rpc('export_user_data');
 
       if (err) throw err;
 
@@ -151,7 +166,7 @@ export function useImportDataManagement() {
       const text = await file.text();
       const data = JSON.parse(text);
 
-      const { error: err } = await supabase.rpc('import_user_data', { data });
+      const { error: err } = await supabase.rpc('import_user_data', { p_data: data });
 
       if (err) throw err;
     } catch (err) {
@@ -181,13 +196,13 @@ export function useDownloadPermissionManagement(resourceId?: string) {
 
     const checkPermission = async () => {
       try {
-        const { data, error: err } = await supabase.rpc('check_download_permission', {
+        const { data, error: err } = await callExtRpc(supabase, 'check_download_permission', {
           resource_id: resourceId,
         });
 
         if (cancelled) return;
         if (err) throw err;
-        setHasPermission(data || false);
+        setHasPermission(Boolean(data));
       } catch (err) {
         if (cancelled) return;
         log.error('Error checking download permission:', err);

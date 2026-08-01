@@ -76,11 +76,21 @@ export const contactsRepository = {
     // Combine and deduplicate results
     const combined = [...(byName || []), ...(byEmail || [])];
     const uniqueIds = new Set();
-    return combined.filter((contact) => {
-      if (uniqueIds.has(contact.id)) return false;
-      uniqueIds.add(contact.id);
-      return true;
-    });
+    return combined
+      .filter((contact) => {
+        if (uniqueIds.has(contact.id)) return false;
+        uniqueIds.add(contact.id);
+        return true;
+      })
+      .map((contact) => ({
+        id: contact.id ?? '',
+        name: contact.name ?? '',
+        email: contact.email ?? undefined,
+        phone: contact.phone ?? undefined,
+        deleted_at: contact.deleted_at,
+        created_at: contact.created_at ?? undefined,
+        updated_at: contact.updated_at ?? undefined,
+      }));
   },
 
   /**

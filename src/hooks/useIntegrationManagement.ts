@@ -84,9 +84,16 @@ export function useBitrixApiManagement() {
 
         if (cancelled) return;
         if (err && err.code !== 'PGRST116') throw err;
-        if (data?.config?.webhook_url) {
+        // config é JSONB: extrai webhook_url com guard de tipo.
+        const config =
+          data?.config && typeof data.config === 'object' && !Array.isArray(data.config)
+            ? (data.config as Record<string, unknown>)
+            : null;
+        const webhookUrl =
+          config && typeof config.webhook_url === 'string' ? config.webhook_url : null;
+        if (webhookUrl) {
           setIsConnected(true);
-          setWebhookUrl(data.config.webhook_url);
+          setWebhookUrl(webhookUrl);
         }
       } catch (err) {
         log.error('Error checking Bitrix connection:', err);
@@ -121,7 +128,12 @@ export function useTalkXManagement() {
         if (err && err.code !== 'PGRST116') throw err;
         if (data) {
           setIsEnabled(true);
-          setConfig(data.config);
+          // config é JSONB: converte com guard (objeto → Record; demais → null).
+          setConfig(
+            data.config && typeof data.config === 'object' && !Array.isArray(data.config)
+              ? (data.config as Record<string, unknown>)
+              : null
+          );
         }
       } catch (err) {
         log.error('Error fetching TalkX config:', err);
