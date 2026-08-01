@@ -51,7 +51,7 @@ jobs:
 
           # 1) Extrai a allowlist PUBLIC_FNS
           ALLOWLIST="$(mktemp)"
-          sed -n '/const PUBLIC_FNS = new Set/,/^\]:*$/p' "$INDEX" \
+          sed -n '/const PUBLIC_FNS = new Set/,/^\])/p' "$INDEX" \
             | grep -vE '^\s*//' \
             | grep -oE "['\"][A-Za-z0-9_-]+['\"]" \
             | tr -d "'\"" \
