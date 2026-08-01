@@ -10,9 +10,10 @@ on:
     - cron: '0 6 * * *'  # daily at 06:00 UTC
   workflow_dispatch:
 
-# branch-protection check uses ACTIONS_PAT secret (requires administration:read scope).
+# branch-protection check uses ACTIONS_PAT secret (requires Administration: read permission).
 # If ACTIONS_PAT is not configured, the verify-branch-protection job fails.
-# Create a PAT with repo + administration:read scope and add as ACTIONS_PAT secret.
+# Create a fine-grained token scoped to this repository with the Administration: read
+# permission (not the classic "repo" scope) and add it as the ACTIONS_PAT secret.
 permissions:
   contents: read
   pull-requests: read
@@ -59,7 +60,8 @@ jobs:
             exit 1
           fi
 
-          RESP=$(curl -sS -w "\n%{http_code}" \
+          RESP=$(curl -sS --connect-timeout 10 --max-time 30 \
+            -w "\n%{http_code}" \
             -H "Authorization: Bearer $ACTIONS_PAT" \
             -H "Accept: application/vnd.github+json" \
             "${{ github.api_url }}/repos/${{ github.repository }}/branches/main/protection")

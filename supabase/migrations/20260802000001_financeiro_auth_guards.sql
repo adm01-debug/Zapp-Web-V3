@@ -41,6 +41,27 @@ DECLARE
     || E'  END IF;\n';
 
 BEGIN
+  -- ============================================================
+  -- Preflight: verifica que fn_is_admin_diretor() existe com
+  -- exatamente 0 argumentos antes de qualquer injeção.
+  -- Sem essa checagem, EXECUTE v_new_def compila sem erros
+  -- (PostgreSQL valida refs de função apenas em runtime), e a
+  -- falha só aparece em produção no primeiro uso real — derrubando
+  -- todas as operações financeiras protegidas simultaneamente.
+  -- ============================================================
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_proc p
+    JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'financeiro'
+      AND p.proname = 'fn_is_admin_diretor'
+      AND p.pronargs = 0
+  ) THEN
+    RAISE EXCEPTION
+      'Abortando migration: financeiro.fn_is_admin_diretor() (pronargs=0) nao encontrada — aplique a migration que cria essa funcao antes desta'
+      USING ERRCODE = 'P0001';
+  END IF;
+
   -- Seleciona TODAS as funções PL/pgSQL SECURITY DEFINER no schema financeiro.
   -- p.prosecdef = true garante que não alvejamos overloads SECURITY INVOKER.
   -- A lista não é hardcoded para cobrir funções presentes e futuras.
