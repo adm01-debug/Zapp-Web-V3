@@ -6,7 +6,7 @@
  * 4. useAdminManagement — normalizeProfileRef com embed tipado (sem as never)
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
@@ -91,7 +91,6 @@ describe('useCSAT — submitSurvey contrato zapp (agent_id NOT NULL)', () => {
   });
 
   it('3. agente sem id NAO e aceito (contrato agora exige string)', () => {
-    const { result } = renderHook(() => useCSAT('today'), { wrapper });
     // Tipo: agent_id é string obrigatória — passar undefined deve falhar em TS;
     // runtime: o objeto simplesmente não monta (simulação de contrato).
     const data = { contact_id: 'c-3', agent_id: undefined, rating: 4 } as never;
