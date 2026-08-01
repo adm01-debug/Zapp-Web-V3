@@ -58,10 +58,10 @@ expect_ne() {
 }
 
 # T1 — fora da allowlist: POST sem token deve retornar 401
+# (analyze-external-db NÃO entra aqui: está bloqueada no Kong → 404, ver T5)
 for fn in \
   create-user \
   approve-password-reset \
-  analyze-external-db \
   evolution-api \
   ai-router \
   connection-health-check
@@ -99,6 +99,15 @@ else
   printf 'FAIL T4 health-check=%s\n' "$T4_CODE"
   FAILED=1
 fi
+
+# T5 — bloqueio no Kong: funções request-terminated devem retornar 404
+for fn in \
+  external-db-proxy \
+  external-db-bridge \
+  analyze-external-db
+do
+  expect_eq T5 "$fn" 404
+done
 
 if [ "$FAILED" -eq 1 ]; then
   printf 'SMOKE FAILED\n' >&2

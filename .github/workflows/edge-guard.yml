@@ -17,12 +17,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Block manual deploy commands
-        # Nota: a linha do grep abaixo contém o padrão proibido E o path deste
-        # arquivo, então é auto-excluída pelo grep -v. Mensagens e comentários
-        # NÃO podem conter o padrão, senão o guard se auto-bloqueia.
+        # Nota: escopo restrito a código ativo (.github/supabase/scripts) — docs/**
+        # histórico contém referências legítimas ao CLI. A linha do grep abaixo
+        # contém o padrão proibido E o path deste arquivo, então é auto-excluída
+        # pelo grep -v. Mensagens e comentários NÃO podem conter o padrão.
         run: |
           set -euo pipefail
-          MATCHES=$(grep -rn 'supabase functions deploy' . --include='*.yml' --include='*.sh' --include='*.md' --include='*.toml' | grep -v '.github/workflows/edge-guard.yml' || true)
+          MATCHES=$(grep -rn 'supabase functions deploy' .github supabase scripts --include='*.yml' --include='*.sh' --include='*.toml' | grep -v '.github/workflows/edge-guard.yml' || true)
           if [ -n "$MATCHES" ]; then
             echo "::error::Referência a deploy manual de Edge Function encontrada:"
             echo "$MATCHES"

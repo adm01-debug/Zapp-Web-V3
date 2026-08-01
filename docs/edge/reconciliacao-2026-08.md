@@ -172,7 +172,7 @@
 
 ## Adendo — validação de segunda sessão (01/08/2026 ~16:30 UTC)
 
-Executado em paralelo pela sessão de orquestração; complementa (não substitui) as seções acima.
+Executado em paralelo pela sessão de orquestração; **complementa e REVISA parcialmente** as seções acima (as revisões de classificação estão marcadas como propostas — as tabelas A/B/C/D da seção 2 permanecem a fonte até decisão na E3).
 
 ### Gate de autenticação — suíte real (E28, parcial)
 | Teste | Resultado | Evidência |
@@ -180,7 +180,7 @@ Executado em paralelo pela sessão de orquestração; complementa (não substitu
 | Fora da allowlist, sem token | **401** | `evolution-api`, `ai-router` → 401 |
 | Token inválido | **401** `Invalid JWT` | `ai-router` com `Bearer token-invalido` |
 | Allowlist sem token | **≠401** | `status` → 200; `evolution-webhook` GET → 405; `login-attempts` → 400 |
-| Webhook sem HMAC | **fail-closed** | `evolution-webhook` → 401 `Missing webhook signature`; `whatsapp-cloud-webhook` → 503 `webhook_not_configured`; `gmail/elevenlabs-webhook` → 500 (nenhum devolve dado) |
+| Webhook sem HMAC | **fail-closed** | `evolution-webhook` → 401 `Missing webhook signature`; `whatsapp-cloud-webhook` → 503 `webhook_not_configured`; `gmail/elevenlabs-webhook` → 500 (nenhum devolve dado). Nota `elevenlabs-webhook`: a seção C acima descreve produção como fail-open sem secret; o 500 observado (exceção por secret ausente) na prática não processa o payload — provisionar `ELEVENLABS_WEBHOOK_SECRET` (E25) elimina o comportamento indeterminado. |
 | JWT válido em função protegida | passa o gate | `connection-health-check` com JWT service_role → 401 da função (`user session required` = requireUser ativo) |
 
 **Contagem real da allowlist: 31 funções** (`PUBLIC_FNS` em `main/index.ts`, linhas 18–52). Nenhuma função perigosa presente (`external-db-*`, `mcp`, `metrics`, `hello`, `virustotal-test`, `gmail-tests.test.ts` fora).
@@ -188,12 +188,14 @@ Executado em paralelo pela sessão de orquestração; complementa (não substitu
 ### Regressão da allowlist (E24-b) — SEM regressão encontrada
 `approve-password-reset` (painel admin logado), `detect-new-device` (hook só roda com `access_token`), `webauthn` (registration exige user; login passkey é action-based no mesmo endpoint), `create-user` (admin): todos os fluxos do frontend enviam JWT via `supabase.functions.invoke`. O 401 sem token é o gate funcionando como projetado.
 
-### Reteste das funções de dados com JWT válido (F1.5)
-| Função | Sem token | Com JWT authenticated | Decisão |
+### Reteste das funções de dados com JWT válido (F1.5) — REVISÃO PROPOSTA
+> As tabelas acima classificam `external-db-proxy` como B (deploy v1.10 na E3). O reteste abaixo **propõe** balde D (remoção) para as três, com base em 0 consumidores no frontend (`src/` não chama nenhuma) — a decisão final pertence à E3, não está tomada por este adendo.
+
+| Função | Sem token | Com JWT authenticated | Proposta |
 |---|---|---|---|
-| `external-db-proxy` | 404 (Kong) | **401 interno** (`User from sub claim does not exist`) | Viva, protegida, **0 consumidores no frontend** → balde D (remover) |
-| `external-db-bridge` | 404 (Kong) | **404** | Morta → D (remover) |
-| `analyze-external-db` | 404 (Kong) | **401 interno** (`Invalid or expired token`) | Viva, protegida, 0 consumidores → D (remover) |
+| `external-db-proxy` | 404 (Kong) | **401 interno** (`User from sub claim does not exist`) | D (remover) — viva, protegida, 0 consumidores |
+| `external-db-bridge` | 404 (Kong) | **404** | D (remover) — morta |
+| `analyze-external-db` | 404 (Kong) | **401 interno** (`Invalid or expired token`) | D (remover) — viva, protegida, 0 consumidores |
 
 ### E20 executado — `.bak` movidos
 Os **20 `.bak`** foram movidos do diretório servido para `/home/deno/functions/.backups/shared-bak-20260801/` (grep prévio: 0 imports). Fora do `.backups`: **0**.
@@ -201,7 +203,7 @@ Os **20 `.bak`** foram movidos do diretório servido para `/home/deno/functions/
 ### F0 — artefatos imutáveis
 - Tarball: `/home/deno/functions/.backups/prod-functions-20260801.tgz` (sha256 `28d4cedbe62f11f70b158030c33a642b7ba18642b729ede25b27b1059961cb14`)
 - Manifesto: `docs/edge/manifest-prod-20260801.md5` (124 index.ts + 49 `_shared`)
-- **Volume: 124 funções com `index.ts`** (127 entradas − `_shared` − 3 não-funções: `main`, `gmail-tests.test.ts`, `hello` são dirs/arquivos, não rotas).
+- **Volume: 124 funções com `index.ts`** (127 entradas de diretório − 3 sem index.ts: `_shared/`, `auth-email-hook/` [só testes], `gmail-tests.test.ts` [arquivo solto]). `hello/` TEM index.ts (balde B, alinhado com a CSV).
 
 ### F6.6 — gate spec viva ≡ YAML ✅
 `docker service inspect supabase_functions` → `Mounts: [{Source: /root/supabase/docker/volumes/functions, Target: /home/deno/functions, Type: bind}]`, `VERIFY_JWT=true`, 4 secrets — idêntico ao YAML versionado. Qualquer `docker stack deploy` com YAML divergente destrói a allowlist (risco documentado no plano).
@@ -216,4 +218,6 @@ Os **20 `.bak`** foram movidos do diretório servido para `/home/deno/functions/
 
 ### E32-complete (PR complementar)
 A suíte E2E ainda continha código apontando para as fixtures removidas (morto, mas quebrado por design): `e2e/utils/seed.ts` (0 imports) e `e2e/webhook-providers-parity.spec.ts` (descontinuada no workflow, chamava `e2e-webhook-fixture`) + `cleanupWebhookProviderE2E`. **Removidos** neste PR. `cleanupTestData` preservado (usa `rpc_e2e_cleanup`, sem edge function).
+
+> Nota: `docs/edge/inventario-109.csv` (E15) — as colunas `decisao` e `responsavel` estão vazias por design; preenchimento é a fase seguinte (E3), após ground truth das críticas.
 
