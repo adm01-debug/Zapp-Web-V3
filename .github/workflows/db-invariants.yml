@@ -71,11 +71,15 @@ jobs:
           echo "Checking for hardcoded 'wpp2' in filter strings..."
           FOUND=$(grep -rn "=eq\.wpp2\b" src/ \
             --include="*.ts" --include="*.tsx" 2>/dev/null | \
-            grep -v "DEFAULT_WHATSAPP_INSTANCE\|// \|^[[:space:]]*//' || true)
+            grep -v "DEFAULT_WHATSAPP_INSTANCE\|// \|^[[:space:]]*//" || true)
 
           if [ -n "$FOUND" ]; then
             echo "::error::INV-3 VIOLATION — hardcoded 'wpp2' instance filter in Realtime subscription."
             echo "$FOUND"
+            echo ""
+            echo "Fix: Use a variable for the instance name:"
+            echo '     filter: `instance_name=eq.${instanceName}`'
+            echo "     where instanceName comes from props, params, or DEFAULT_WHATSAPP_INSTANCE."
             exit 1
           fi
           echo "INV-3 passed."
