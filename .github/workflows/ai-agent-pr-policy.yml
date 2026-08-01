@@ -31,8 +31,14 @@ jobs:
           BASE="${{ github.event.before }}"
           HEAD="${{ github.sha }}"
 
-          echo "Checking direct push commits: $BASE..$HEAD"
-          COMMITS=$(git log --no-merges --format='%an <%ae>' "$BASE..$HEAD" 2>/dev/null || true)
+          # Guard against zero-SHA on initial push (new branch with no prior commit)
+          if [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            echo "Initial push to branch — checking all commits up to $HEAD"
+            COMMITS=$(git log --no-merges --format='%an <%ae>' "$HEAD" 2>/dev/null || true)
+          else
+            echo "Checking direct push commits: $BASE..$HEAD"
+            COMMITS=$(git log --no-merges --format='%an <%ae>' "$BASE..$HEAD" 2>/dev/null || true)
+          fi
 
           if [ -z "$COMMITS" ]; then
             echo "No commits to check."
