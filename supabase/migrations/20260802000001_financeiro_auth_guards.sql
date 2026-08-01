@@ -221,7 +221,7 @@ DECLARE
   v_missing INT := 0;
 BEGIN
   FOR v_rec IN
-    SELECT p.oid, p.proname,
+    SELECT p.oid, p.proname AS fn_name,
            pg_catalog.pg_get_function_identity_arguments(p.oid) AS fn_args
     FROM pg_catalog.pg_proc p
     JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
@@ -242,7 +242,7 @@ BEGIN
     -- Verifica presença estrutural do guard (mesmo critério da injeção)
     IF v_def NOT ILIKE '%IF NOT COALESCE(financeiro.fn_is_admin_diretor()%' THEN
       RAISE WARNING 'SEM GUARD: financeiro.%(%) — injeção pode ter falhado silenciosamente',
-        v_rec.proname, v_rec.fn_args;
+        v_rec.fn_name, v_rec.fn_args;
       v_missing := v_missing + 1;
     END IF;
   END LOOP;

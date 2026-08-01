@@ -66,9 +66,9 @@ jobs:
             })" 2>/dev/null || echo "api-error")
 
           if [ "$COUNT" = "api-error" ]; then
-            echo "::warning::postgres-meta returned unexpected format (HTTP $HTTP_CODE) — cannot verify security_invoker; skipping"
+            echo "::error::postgres-meta returned unexpected format (HTTP $HTTP_CODE) — security_invoker gate cannot be verified; failing to prevent blind spot"
             echo "Response preview: $(echo "$RESULT" | head -c 200)"
-            exit 0
+            exit 1
           fi
 
           if [ -z "$COUNT" ] || [ "$COUNT" = "0" ]; then
@@ -122,9 +122,9 @@ jobs:
             })" 2>/dev/null || echo "api-error")
 
           if [ "$COUNT" = "api-error" ]; then
-            echo "::warning::postgres-meta returned unexpected format (HTTP $HTTP_CODE) — cannot verify anon-executable functions; skipping"
+            echo "::error::postgres-meta returned unexpected format (HTTP $HTTP_CODE) — anon-function gate cannot be verified; failing to prevent blind spot"
             echo "Response preview: $(echo "$RESULT" | head -c 200)"
-            exit 0
+            exit 1
           fi
 
           if [ "$COUNT" != "0" ]; then
