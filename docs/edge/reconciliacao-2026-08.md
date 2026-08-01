@@ -167,3 +167,53 @@
 - **_shared (B)**: resolver primeiro (E19) — adições `*-legacy.ts` + README + teste são ruído; core `auth.ts`/`db-client.ts`/`validation.ts` idênticos nos dois lados.
 - **`.bak` (E20)**: 20 arquivos em produção, nenhum importado — remover do snapshot.
 - **main (B-CRÍTICO)**: produção roda template vanilla; a allowlist E24 já está aplicada em `supabase/functions/main/index.ts`.
+
+---
+
+## Adendo — validação de segunda sessão (01/08/2026 ~16:30 UTC)
+
+Executado em paralelo pela sessão de orquestração; complementa (não substitui) as seções acima.
+
+### Gate de autenticação — suíte real (E28, parcial)
+| Teste | Resultado | Evidência |
+|---|---|---|
+| Fora da allowlist, sem token | **401** | `evolution-api`, `ai-router` → 401 |
+| Token inválido | **401** `Invalid JWT` | `ai-router` com `Bearer token-invalido` |
+| Allowlist sem token | **≠401** | `status` → 200; `evolution-webhook` GET → 405; `login-attempts` → 400 |
+| Webhook sem HMAC | **fail-closed** | `evolution-webhook` → 401 `Missing webhook signature`; `whatsapp-cloud-webhook` → 503 `webhook_not_configured`; `gmail/elevenlabs-webhook` → 500 (nenhum devolve dado) |
+| JWT válido em função protegida | passa o gate | `connection-health-check` com JWT service_role → 401 da função (`user session required` = requireUser ativo) |
+
+**Contagem real da allowlist: 31 funções** (`PUBLIC_FNS` em `main/index.ts`, linhas 18–52). Nenhuma função perigosa presente (`external-db-*`, `mcp`, `metrics`, `hello`, `virustotal-test`, `gmail-tests.test.ts` fora).
+
+### Regressão da allowlist (E24-b) — SEM regressão encontrada
+`approve-password-reset` (painel admin logado), `detect-new-device` (hook só roda com `access_token`), `webauthn` (registration exige user; login passkey é action-based no mesmo endpoint), `create-user` (admin): todos os fluxos do frontend enviam JWT via `supabase.functions.invoke`. O 401 sem token é o gate funcionando como projetado.
+
+### Reteste das funções de dados com JWT válido (F1.5)
+| Função | Sem token | Com JWT authenticated | Decisão |
+|---|---|---|---|
+| `external-db-proxy` | 404 (Kong) | **401 interno** (`User from sub claim does not exist`) | Viva, protegida, **0 consumidores no frontend** → balde D (remover) |
+| `external-db-bridge` | 404 (Kong) | **404** | Morta → D (remover) |
+| `analyze-external-db` | 404 (Kong) | **401 interno** (`Invalid or expired token`) | Viva, protegida, 0 consumidores → D (remover) |
+
+### E20 executado — `.bak` movidos
+Os **20 `.bak`** foram movidos do diretório servido para `/home/deno/functions/.backups/shared-bak-20260801/` (grep prévio: 0 imports). Fora do `.backups`: **0**.
+
+### F0 — artefatos imutáveis
+- Tarball: `/home/deno/functions/.backups/prod-functions-20260801.tgz` (sha256 `28d4cedbe62f11f70b158030c33a642b7ba18642b729ede25b27b1059961cb14`)
+- Manifesto: `docs/edge/manifest-prod-20260801.md5` (124 index.ts + 49 `_shared`)
+- **Volume: 124 funções com `index.ts`** (127 entradas − `_shared` − 3 não-funções: `main`, `gmail-tests.test.ts`, `hello` são dirs/arquivos, não rotas).
+
+### F6.6 — gate spec viva ≡ YAML ✅
+`docker service inspect supabase_functions` → `Mounts: [{Source: /root/supabase/docker/volumes/functions, Target: /home/deno/functions, Type: bind}]`, `VERIFY_JWT=true`, 4 secrets — idêntico ao YAML versionado. Qualquer `docker stack deploy` com YAML divergente destrói a allowlist (risco documentado no plano).
+
+### E26 — secrets ausentes no env do container (amostra crítica)
+`CRON_SECRET`, `WHATSAPP_CLOUD_APP_SECRET`, `WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`, `ELEVENLABS_WEBHOOK_SECRET`, `WEBHOOK_SECRET`, `GMAIL_PUBSUB_TOKEN`, `GOOGLE_CLIENT_ID/SECRET`, `MICROSOFT_*`, `BITRIX_WEBHOOK_URL`, `RESEND_API_KEY`, `VIRUSTOTAL_API_KEY`, `SICOOB_GIFTS_URL`, `SICOOB_GIFTS_BRIDGE_SECRET` (88 candidatas no grep bruto; triagem fina em `env-gap.md`). **Nenhuma causa fail-open** (webhooks 401/503/500 sem HMAC).
+
+### Achados novos (fora do escopo E0–E5, registrar)
+1. **Bug latente de criação de usuário**: `POST /auth/v1/admin/users` falha com `23503 agent_stats_profile_id_fkey` — trigger `artes.handle_new_auth_user()` roda antes da criação do profile para users criados via admin API. Fluxo de signup do frontend pode estar usando caminho alternativo; investigar separadamente.
+2. **Secret scanning do GitHub: 0 alertas** — a `ACCESS_KEY` do migrate-helper não foi detectada automaticamente; a remoção do repo (PR #666) + rotação pendente são a única mitigação.
+3. **Cloud cron**: apenas `purge_query_telemetry_daily` (jobid 1) — bate com relatorio-e0.
+
+### E32-complete (PR complementar)
+A suíte E2E ainda continha código apontando para as fixtures removidas (morto, mas quebrado por design): `e2e/utils/seed.ts` (0 imports) e `e2e/webhook-providers-parity.spec.ts` (descontinuada no workflow, chamava `e2e-webhook-fixture`) + `cleanupWebhookProviderE2E`. **Removidos** neste PR. `cleanupTestData` preservado (usa `rpc_e2e_cleanup`, sem edge function).
+

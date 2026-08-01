@@ -24,29 +24,3 @@ export async function cleanupTestData(): Promise<void> {
     /* cleanup best-effort */
   }
 }
-
-/**
- * Best-effort teardown for the webhook-providers-parity spec.
- * Calls the e2e-webhook-fixture function with `action: 'cleanup'` so any
- * synthetic creds + evolution_messages / evolution_contacts seeded under
- * the given `runId` are removed. Safe to call without auth — the function
- * itself enforces admin/service-role.
- */
-export async function cleanupWebhookProviderE2E(runId: string, token?: string): Promise<void> {
-  const url = process.env.VITE_SUPABASE_URL;
-  const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !key || !runId.startsWith('e2e-')) return;
-  try {
-    await fetch(`${url}/functions/v1/e2e-webhook-fixture`, {
-      method: 'POST',
-      headers: {
-        apikey: key,
-        Authorization: `Bearer ${token ?? key}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ action: 'cleanup', runId }),
-    });
-  } catch {
-    /* cleanup best-effort */
-  }
-}
