@@ -149,7 +149,8 @@ BEGIN
   -- RT27 (R25 P1-7): authenticated consegue ler as views críticas do front
   -- (end-to-end; captura permission denied de RLS chain security_invoker)
   -- NOTA: SET LOCAL ROLE é proibido dentro de SECURITY DEFINER — delegado ao
-  -- helper SECURITY INVOKER ops.fn_auth_can_read_front_views() (criado na migration).
+  -- helper ops.fn_auth_can_read_front_views() (SECURITY DEFINER, checagem
+  -- estatica has_*_privilege — SET ROLE e proibido em SECURITY DEFINER).
   v_start:=clock_timestamp();
   SELECT ops.fn_auth_can_read_front_views() INTO v_pass;
   RETURN QUERY SELECT 'RT27_authenticated_reads_front_views'::text,
