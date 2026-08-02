@@ -40,6 +40,14 @@ for par in $esperado_por_bloco; do
   [ "$real" -eq "$esperado" ] || falhar "bloco ${bloco}: esperado ${esperado} achados, encontrado ${real}."
 done
 
+# O indice e derivado dos dois planos. Se ficar desatualizado, o agente de
+# correcao le uma foto velha do backlog — foi exatamente o que aconteceu no PR #712.
+if command -v node >/dev/null 2>&1; then
+  node scripts/gerar-indice-achados.mjs --check || falhar "INDICE_ACHADOS.md desatualizado. Rode: node scripts/gerar-indice-achados.mjs"
+else
+  echo "::notice title=Integridade do plano::node ausente — sincronia do INDICE_ACHADOS.md nao verificada."
+fi
+
 if [ "$FALHAS" -gt 0 ]; then
   echo ""
   echo "O plano de auditoria perdeu conteudo. Achado nao se deleta nem se renumera —"

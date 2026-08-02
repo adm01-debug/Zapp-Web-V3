@@ -1,5 +1,13 @@
 # AUDITORIA DA EXECUÇÃO — Blocos 1 e 2 do `PLANO_QA_ANALISE_100.md`
 
+> ## FOTO DE 2026-08-02 10:44 — leia com esta ressalva
+>
+> Este arquivo audita **apenas os Blocos 1 e 2**. A linha "Blocos 3-10 (etapas 21-100): todos não iniciados" e o total de "38 achados" descrevem o backlog **naquele momento**, quando o `PLANO_IMPLEMENTACAO_100.md` tinha **155 achados** — não os 200 de hoje. Datado por `git`: os dois commits deste arquivo (`e6b264c8a` às 10:30 e `1d3f933fd` às 10:44) apontam para versões do plano com 155 achados.
+>
+> **Não leia como contradição ativa.** Os Blocos 3 a 10 produziram achados reais e medidos — F9-01..F9-11 estão documentados em `RELATORIO_EXECUCAO_ANALISE.md`, e F9-16/17/18 foram revalidados contra produção na Etapa 3.
+>
+> **O que continua valendo, e é o mais importante daqui:** a régua de DESCOBERTA aplicada aos Blocos 1 e 2 deu **45% completo, 45% parcial, 10% não iniciado**. Se ela valer para os outros oito blocos, "Concluído" no relatório de execução significa *o bloco produziu achados*, não *as 10 etapas foram esgotadas*. Ninguém aplicou essa régua aos Blocos 3-10 — é trabalho em aberto, e provavelmente o maior risco silencioso deste backlog.
+
 > Cross-check honesto das 20 etapas dos Blocos 1 e 2 contra o que realmente foi executado.
 >
 > **Régua aplicada:** DESCOBERTA de bugs. Estamos na fase de descoberta — o objetivo agora é **encontrar** os problemas, não corrigi-los. Uma etapa está cumprida se descobriu os bugs que tinha que descobrir. Entregáveis formais (CSV, snapshot markdown, EXPLAIN ANALYZE) são artefatos de correção, não de descoberta.

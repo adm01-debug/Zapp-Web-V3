@@ -16,11 +16,15 @@
 | 5 | Contatos e CRM (46-55) | ✅ Concluído | 30 (F5-01 a F5-30) |
 | 6 | Conexões WhatsApp (56-65) | ✅ Concluído | 30 (F6-01 a F6-30) |
 | 7 | Admin e monitoramento (66-75) | ✅ Concluído | 32 (F7-01 a F7-32) |
-| 8 | SLA/BPM (76-80) | ✅ Concluído | 15 (F8-01 a F8-15) |
-| 9 | Resiliência e edge cases (81-90) | ⏸ Pendente | — |
-| 10 | Cross-browser / a11y / perf (91-100) | ⏸ Pendente | — |
+| 8 | SLA/BPM (76-80) | ✅ Concluído | 17 (F8-01 a F8-17) |
+| 9 | Resiliência e edge cases (81-90) | ✅ Concluído | 19 (F9-01 a F9-19 — 11 no 9A + 8 no 9B) |
+| 10 | Cross-browser / a11y / perf (91-100) | ✅ Concluído | 9 (F10-01 a F10-09) |
 
-**Achados até aqui: 170 (14 Bloco 1 + 13 Bloco 2 + 12 Bloco 3 + 24 Bloco 4 + 30 Bloco 5 + 30 Bloco 6 + 32 Bloco 7 + 15 Bloco 8).**
+> **Tabela corrigida em 2026-08-02.** As linhas dos Blocos 8, 9 e 10 estavam desatualizadas e eram **desmentidas pelo próprio corpo deste arquivo**: o Bloco 9A está documentado a partir da linha 600 (11 achados, executado em 2026-08-02) e o Bloco 10 entrou pelo commit `4993f1b7d` (Tema 16, F10-01..F10-09). O Bloco 8 fechou com 17 achados, não 15. Números conferidos contra o `PLANO_IMPLEMENTACAO_100.md`, que é a fonte: F8=17, F9=19, F10=9, total 200.
+>
+> **Ressalva que continua valendo:** "✅ Concluído" aqui significa *o bloco produziu achados*, não *as 10 etapas do bloco foram esgotadas*. A única auditoria com régua dura (`AUDITORIA_EXECUCAO.md`) cobriu apenas os Blocos 1 e 2 e encontrou 45% completo / 45% parcial / 10% não iniciado. Os Blocos 3-10 nunca passaram por essa régua.
+
+**Achados: 200** (14 Bloco 1 + 13 Bloco 2 + 12 Bloco 3 + 24 Bloco 4 + 30 Bloco 5 + 30 Bloco 6 + 32 Bloco 7 + 17 Bloco 8 + 19 Bloco 9 + 9 Bloco 10). *Corrigido em 2026-08-02 — dizia 170 e parava no Bloco 8. Fonte: `PLANO_IMPLEMENTACAO_100.md`, conferido pelo gate `scripts/check-audit-docs-integrity.sh`.*
 
 ---
 

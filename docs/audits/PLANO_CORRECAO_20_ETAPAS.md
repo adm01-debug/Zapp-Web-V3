@@ -103,6 +103,7 @@ Vale registrar: os 200 achados têm **evidência medida com números reais** e *
 **Ambiente:** repo em `/workspace/repos/zapp-web-v3` (container Claude Code na VPS). Banco: `SUPABASE SELF HOSTED - MCP`, schema principal `zapp`.
 
 **Regras duras:**
+- **Comece pelo `docs/audits/INDICE_ACHADOS.md`.** É um índice derivado (regenerado por `node scripts/gerar-indice-achados.mjs`) que cruza os 200 achados com as 20 etapas e responde, sem abrir os 222 KB do plano: quais achados são da etapa, o que bloqueia cada um, se tem `Ação`/`Aceite` escritos ou é só título-resumo, qual rollback se aplica e em que linha o corpo começa. Ele também lista quatro defeitos de esteira que **só aparecem no cruzamento dos dois documentos** — 55 achados ativos sem etapa, 7 dependências em ordem invertida, 8 obsoletos ainda alocados e 19 alocados sem `Ação`. Ler isso antes de planejar a sessão evita desperdício.
 - `git push --force`, `git reset --hard` e `rebase -i` são **proibidos** — há histórico de incidente com perda de 30k commits em outro repo.
 - Husky `pre-commit` tenta rodar `bun`, que não existe no container. Procedimento: `mv .husky/pre-commit .husky/pre-commit.disabled_temp` → commit → `mv` de volta. **Sempre restaurar.**
 - PAT do GitHub expira com frequência. Se o push falhar com `Invalid username or token`, **pare e peça** — não invente credencial.
