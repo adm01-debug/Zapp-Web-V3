@@ -24,6 +24,24 @@ A causa real é a mesma de **F9-13**: as funções `dblink` vivem no schema `zap
 
 **Consequência para o plano:** achados dos blocos 1-7 foram medidos há semanas. Alguns envelheceram, outros nasceram com diagnóstico incompleto. **A Etapa 1 revalida antes de qualquer correção.**
 
+#### Amostragem de validação (17 achados testados em 2026-08-02)
+
+Para dimensionar o problema em vez de supor, revalidei 17 achados dos Blocos 5-8 escolhidos por terem aceite verificável em SQL:
+
+| Resultado | Qtd | Detalhe |
+|---|---:|---|
+| **Confirmados** | 15 | Contagens batem; divergências pequenas (269→280 alertas, 724→731, 20445→20446 contatos) são crescimento natural, não erro |
+| **Defeito de referência** | 2 | F7-16 e F6-06 |
+
+**Taxa de defeito: ~12%.** O corpo dos achados é sólido — o que falha é a **qualificação de schema**:
+
+- **F7-16** — diagnóstico errado (extensão instalada, função já qualificada, cron não falha 100%).
+- **F6-06** — aponta `evo.fn_alert_wpp2_disconnection`; a função vive em **`zapp`**. O problema substantivo (hardcode `'wpp2'`) **está confirmado**, mas executar a Ação como escrita criaria uma função nova em `evo` em vez de corrigir a existente — **duplicata silenciosa em produção**.
+
+Ambos os defeitos são da mesma classe: quem mediu usava `search_path` e não qualificou o schema. **Na Etapa 1, verificar `pg_proc`/`pg_class` de todo objeto citado antes de aceitar a referência.**
+
+Confirmados sem ressalva na amostra: F5-04 (ainda stub), F5-07 (funções ausentes), F5-11, F5-13, F5-26, F6-16, F6-18, F6-23, F7-11, F7-14, F7-18, F7-20, F8-02 (41 tabelas, 0 rows), F8-04 (2 stubs), F8-06 (**82 de 82** policies permissivas), F8-08.
+
 ### 2. A severidade não é utilizável como está
 
 - **102 dos 200 achados não têm severidade no título**; apenas 77 seguem o padrão `CRÍTICO/ALTO/MÉDIO/BAIXO`. Os Temas 1-4 e 7 foram escritos antes da convenção se firmar.
@@ -89,12 +107,16 @@ Vale registrar: os 200 achados têm **evidência medida com números reais** e *
 
 #### Etapa 1 — Revalidar e recalibrar o backlog
 **Achados:** nenhum consumido (meta-etapa sobre o próprio plano).
-**Por que primeiro:** F7-16 provou que há diagnóstico errado no backlog. Corrigir cegamente desperdiça sessões e pode causar dano.
+**Por que primeiro:** a amostragem de 17 achados encontrou **12% com defeito de referência** (F7-16, F6-06). Corrigir cegamente desperdiça sessões e pode causar dano.
 **Escopo:**
 1. Re-executar o **Aceite** de todos os 44 achados marcados `CRÍTICO` — muitos foram medidos há semanas. Marcar obsoletos.
-2. Normalizar severidade nos 102 achados sem etiqueta, usando escala honesta: `SEC` (segurança/LGPD) > `QUEBRADO` (feature morta) > `RISCO` (latente) > `DEGRADADO` (perf/UX) > `HIGIENE`.
-3. Adicionar campo `Depende de:` nos achados da tabela de raízes da Parte I.
-4. Adicionar campo `Rollback:` nos achados que alteram RLS, trigger, view ou cron em produção.
+2. **Verificar a qualificação de schema de todo objeto citado** (`pg_proc`, `pg_class`, `pg_policies`) — a amostragem achou 12% de defeito nessa classe. Referência errada faz a Ação criar duplicata em vez de corrigir.
+
+3. Normalizar severidade nos 102 achados sem etiqueta, usando escala honesta: `SEC` (segurança/LGPD) > `QUEBRADO` (feature morta) > `RISCO` (latente) > `DEGRADADO` (perf/UX) > `HIGIENE`.
+
+4. Adicionar campo `Depende de:` nos achados da tabela de raízes da Parte I.
+
+5. Adicionar campo `Rollback:` nos achados que alteram RLS, trigger, view ou cron em produção.
 **Pronto quando:** todo achado tem severidade normalizada e nenhum `CRÍTICO` está sem revalidação.
 **Risco:** nenhum (só documentação).
 
