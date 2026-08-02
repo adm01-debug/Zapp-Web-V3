@@ -108,6 +108,7 @@ Vale registrar: os 200 achados têm **evidência medida com números reais** e *
 - PAT do GitHub expira com frequência. Se o push falhar com `Invalid username or token`, **pare e peça** — não invente credencial.
 - `cron.job_run_details` retém **~3,5 dias**. Qualquer janela maior é cega.
 - Objetos `zapp.*` frequentemente são **VIEW** de `evo.*` (`contacts`, `messages`, `evolution_guardian_heartbeat`). Confirme `relkind` antes de concluir que uma constraint ou tabela não existe — essa armadilha já derrubou duas premissas.
+- **Fonte de verdade de schema é o `pg_catalog`, ponto.** Não é o diretório `supabase/migrations/`, não é o `archive/`, não é PostgREST/OpenAPI. Grep em arquivo de migração responde "o repositório contém este comando", **nunca** "o banco está neste estado". Dois motivos concretos: (a) `ALTER PUBLICATION` emitido por `EXECUTE format(...)` dentro de bloco `DO` é invisível a grep; (b) `supabase/migrations/archive/` tem **963** arquivos, 70 deles mexendo na publicação, e o efeito deles continua no banco depois que o arquivo saiu do diretório ativo. O PR #712 nasceu inteiro desse erro — 1292 linhas de migração para adicionar 25 tabelas que já estavam lá.
 
 **Procedimentos de rollback canônicos** (referenciados pelo campo `Rollback:` de cada achado — Etapa 1, item 5):
 

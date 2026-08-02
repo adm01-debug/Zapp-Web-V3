@@ -43,6 +43,9 @@ jobs:
       - name: Lint (blocking — E02/F1-10)
         run: npm run lint
 
+      - name: Integridade dos documentos de auditoria (blocking)
+        run: bash scripts/check-audit-docs-integrity.sh
+
       - name: Refactor guards (ratchets — dead code + data layer)
         run: |
           set +e

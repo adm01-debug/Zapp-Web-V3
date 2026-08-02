@@ -8,6 +8,7 @@
 #   INV-3: No hardcoded DEFAULT_WHATSAPP_INSTANCE in subscription filters
 #   INV-4: Every useEffect that calls supabase.channel() must call unsubscribe()
 #   INV-5: No bare .from('evolution_messages') without schema qualification
+#   INV-6: supabase_realtime publication has not regressed (source: pg_catalog)
 # ==========================================================================
 
 name: DB Invariants
@@ -142,14 +143,30 @@ jobs:
           fi
           echo "INV-5 passed."
 
+      - name: "INV-6: publicacao supabase_realtime nao regrediu (fonte: pg_catalog)"
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          # Unico invariante que consulta o banco. Os INV-1..5 sao estaticos, e
+          # estatico nao resolve esta pergunta: `ALTER PUBLICATION` emitido por
+          # EXECUTE format(...) dentro de bloco DO e invisivel a grep. Foi assim
+          # que o PR #712 concluiu que faltavam 25 tabelas que ja estavam la.
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "::notice title=INV-6 nao executou::secret SUPABASE_DB_URL ausente. Enquanto o secret nao existir, drift na publicacao supabase_realtime passa despercebido no CI. Rodar manualmente: psql \"\$SUPABASE_DB_URL\" -v ON_ERROR_STOP=1 -f scripts/sql/check-realtime-publication.sql"
+            exit 0
+          fi
+          command -v psql >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client; }
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f scripts/sql/check-realtime-publication.sql
+
       - name: Summary
         if: success()
         run: |
           echo "======================================"
-          echo "ALL 5 DB INVARIANTS PASSED"
+          echo "DB INVARIANTS PASSED (INV-6 pode ter sido pulado)"
           echo "======================================"
           echo "INV-1: No schema:'public' in subscriptions  v"
           echo "INV-2: No partition-leaf table subscriptions v"
           echo "INV-3: No hardcoded 'wpp2' in filters       v"
           echo "INV-4: channel() cleanup present             v"
           echo "INV-5: evolution_* uses schema:'evo'         v"
+          echo "INV-6: publicacao supabase_realtime intacta   v (skip sem secret)"
