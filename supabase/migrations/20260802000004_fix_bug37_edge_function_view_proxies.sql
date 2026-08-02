@@ -205,43 +205,16 @@ GRANT ALL  ON zapp.user_service_accounts TO service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON zapp.user_service_accounts TO authenticated;
 
 -- ── 20. messages_whatsapp ─────────────────────────────────────────────────────
--- P1: The source table public.messages_whatsapp may not exist on all envs
--- (the only migration creating it is in archive/ and was never deployed).
--- Fix: create the source table if absent, then ALWAYS create the view proxy.
--- evolution-health unconditionally queries zapp.messages_whatsapp for created_at;
--- leaving the view absent causes PGRST205 on every health check call.
--- Source schema: archive/20260502_edge_function_tables.sql (never deployed).
-DO $$
-BEGIN
-  -- Create source table if absent (idempotent).
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_class c
-    JOIN pg_namespace n ON n.oid = c.relnamespace
-    WHERE n.nspname = 'public' AND c.relname = 'messages_whatsapp'
-      AND c.relkind IN ('r','p','f','v')
-  ) THEN
-    CREATE TABLE public.messages_whatsapp (
-      id            uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
-      contact_id    uuid,
-      instance_name text,
-      remote_jid    text,
-      message_id    text,
-      content       text,
-      message_type  text        DEFAULT 'text',
-      is_from_me    boolean     DEFAULT false,
-      status        text,
-      media_url     text,
-      created_at    timestamptz DEFAULT now()
-    );
-    RAISE NOTICE 'Created public.messages_whatsapp table.';
-  END IF;
+-- evolution-health queries zapp.messages_whatsapp for created_at of the last message.
+-- Source: evo.evolution_messages (partitioned root, always exists, RLS 100%).
+-- Creating public.messages_whatsapp was wrong: fresh envs get an empty stub
+-- (evolution-health sees no real data) and the table has no RLS (anon DML via REST).
+-- Correct fix: proxy evo.evolution_messages directly — real data, always exists,
+-- RLS via security_invoker=on.
+CREATE OR REPLACE VIEW zapp.messages_whatsapp
+  WITH (security_invoker = on)
+AS SELECT * FROM evo.evolution_messages;
 
-  -- Always create/replace view — evolution-health always needs this.
-  EXECUTE 'CREATE OR REPLACE VIEW zapp.messages_whatsapp
-             WITH (security_invoker = on)
-           AS SELECT * FROM public.messages_whatsapp';
-  EXECUTE 'REVOKE ALL ON zapp.messages_whatsapp FROM PUBLIC, anon';
-  EXECUTE 'GRANT ALL    ON zapp.messages_whatsapp TO service_role';
-  EXECUTE 'GRANT SELECT ON zapp.messages_whatsapp TO authenticated';
-  RAISE NOTICE 'Created zapp.messages_whatsapp view proxy.';
-END $$;
+REVOKE ALL ON zapp.messages_whatsapp FROM PUBLIC, anon;
+GRANT ALL    ON zapp.messages_whatsapp TO service_role;
+GRANT SELECT ON zapp.messages_whatsapp TO authenticated;
