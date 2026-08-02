@@ -25,11 +25,9 @@ ALTER ROLE authenticated SET statement_timeout = '15s';
 ALTER ROLE service_role SET statement_timeout = '60s';
 
 -- F9-17 item 1: Remover jwt_secret do catálogo (cópia órfã)
--- ⚠️ PENDENTE: ALTER DATABASE RESET requer superuser (MCP conecta como postgres sem superuser)
--- Para aplicar: Portainer → console do container postgres → psql -U superuser
--- ALTER DATABASE postgres RESET app.settings.jwt_secret;
+-- ✅ APLICADO 2026-08-02 via Portainer (supabase_admin)
+ALTER DATABASE postgres RESET app.settings.jwt_secret;
 
 -- F9-16: Remover jwt_exp do catálogo (cópia órfã)
--- ⚠️ PENDENTE: ALTER DATABASE RESET requer superuser (MCP conecta como postgres sem superuser)
--- Para aplicar: Portainer → console do container postgres → psql -U superuser
--- ALTER DATABASE postgres RESET app.settings.jwt_exp;
+-- ✅ APLICADO 2026-08-02 via Portainer (supabase_admin)
+ALTER DATABASE postgres RESET app.settings.jwt_exp;
