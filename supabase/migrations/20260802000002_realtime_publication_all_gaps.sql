@@ -22,7 +22,7 @@
 --   6.  zapp.security_audit_logs
 --   7.  zapp.password_reset_requests
 --   8.  zapp.hmac_selftest_audit
---   9.  zapp.evolution_retry_metrics
+--   9.  zapp.evolution_retry_metrics  [VIEW — sempre pulada; corrigida em 20260802000003]
 --   10. zapp.message_reactions
 --   11. zapp.team_message_reactions
 --   12. zapp.audio_meme_favorites

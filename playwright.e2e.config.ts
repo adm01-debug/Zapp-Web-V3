@@ -18,7 +18,7 @@ import path from 'node:path';
  *   E2E_BASE_URL (opcional, default http://localhost:5173)
  */
 
-const STORAGE_STATE = path.resolve(__dirname, 'e2e/.auth/user.json');
+const STORAGE_STATE = path.resolve(process.cwd(), 'e2e/.auth/user.json');
 const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:5173';
 
 export default defineConfig({

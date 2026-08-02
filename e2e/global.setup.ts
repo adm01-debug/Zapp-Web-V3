@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { loginViaUI } from './fixtures/auth';
 
-const STORAGE_STATE = path.resolve(__dirname, '.auth/user.json');
+const STORAGE_STATE = path.resolve(process.cwd(), 'e2e/.auth/user.json');
 
 /**
  * Project `setup` do Playwright: executa uma única vez antes dos demais

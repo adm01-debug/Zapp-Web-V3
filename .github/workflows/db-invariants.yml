@@ -38,17 +38,25 @@ jobs:
       - name: "INV-1: No schema:'public' in Realtime subscriptions"
         run: |
           echo "Checking for schema:'public' in .channel().on() calls..."
+          # Whitelist exceptions — files where schema:'public' is intentional because
+          # the physical table lives in public and is added to supabase_realtime:
+          #   useAudioMessagePlayer.ts — public.audio-messages bucket (physical)
+          #   useRetryMetrics.ts       — public.evolution_retry_metrics (physical table,
+          #                              added by migration 20260802000003; zapp.evolution_retry_metrics
+          #                              is a VIEW that never emits CDC events)
           FOUND=$(grep -rn "schema: ['\"']public['\"']" src/ \
             --include="*.ts" --include="*.tsx" \
             -l 2>/dev/null | \
-            grep -v "src/features/inbox/components/useAudioMessagePlayer\.ts" \
+            grep -v "src/features/inbox/components/useAudioMessagePlayer\.ts" | \
+            grep -v "src/features/admin/hooks/monitoring/useRetryMetrics\.ts" \
             || true)
 
           if [ -n "$FOUND" ]; then
             echo "::error::INV-1 VIOLATION — schema:'public' detected in subscription(s)."
             grep -rn "schema: ['\"']public['\"']" src/ \
               --include="*.ts" --include="*.tsx" \
-              --exclude="useAudioMessagePlayer.ts" 2>/dev/null || true
+              --exclude="useAudioMessagePlayer.ts" \
+              --exclude="useRetryMetrics.ts" 2>/dev/null || true
             exit 1
           fi
           echo "INV-1 passed."

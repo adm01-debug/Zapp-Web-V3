@@ -15,6 +15,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import React from 'react';
 import { ChatSearchBar } from '../ChatSearchBar';
 import type { Message } from '@/types/chat';
 
@@ -107,9 +108,9 @@ vi.mock('@/features/inbox/components/chat/ChatSearchFilters', () => ({
 }));
 
 vi.mock('@/features/inbox/components/chat/ChatSearchResultsList', () => ({
-  ChatSearchResultsList: ({ ref: _ref, ...props }: { ref?: React.Ref<HTMLDivElement>; [k: string]: unknown }) => (
+  ChatSearchResultsList: React.forwardRef<HTMLDivElement>((_props, _ref) => (
     <div data-testid="search-results-list" />
-  ),
+  )),
 }));
 
 // ── Tipos e fixtures ──────────────────────────────────────────────────────────

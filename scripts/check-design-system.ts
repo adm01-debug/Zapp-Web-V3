@@ -346,7 +346,18 @@ if (require.main === module) {
     console.log(`📝 Generated audit report: design-system-audit.md (${filteredViolations.length} violations)`);
   }
 
-  if (ci && filteredViolations.length > 0) {
-    process.exit(1);
+  if (ci) {
+    const maxArg = process.argv.slice(2).find((a) => a.startsWith('--max='));
+    const maxAllowed = maxArg ? Number(maxArg.split('=')[1]) : 0;
+    const count = filteredViolations.length;
+    if (count > maxAllowed) {
+      console.error(`\n🚨 Design System: ${count} violações — teto do ratchet é ${maxAllowed}. Reduza as violações ou suba o teto conscientemente.`);
+      process.exit(1);
+    }
+    if (count < maxAllowed) {
+      console.log(`\n✅ Design System: ${count} violações (teto ${maxAllowed}) — aperte o ratchet para ${count}.`);
+    } else {
+      console.log(`\n✅ Design System: ${count} violações — exatamente no teto do ratchet.`);
+    }
   }
 }
