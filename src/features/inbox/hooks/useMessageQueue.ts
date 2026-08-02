@@ -169,11 +169,27 @@ export function useMessageQueue(
     try {
       localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queueToSave));
     } catch (e) {
-      // QuotaExceededError — broadcast so the UI can surface a warning (F4-11).
+      // QuotaExceededError — broadcast so the listener below can surface the warning.
       window.dispatchEvent(new CustomEvent('zapp:storage-quota-exceeded', { detail: { key: QUEUE_STORAGE_KEY } }));
       log.warn('[useMessageQueue] localStorage quota exceeded — queue not persisted', e);
     }
   }, [queue]);
+
+  // Listen for storage-quota-exceeded events (emitted above) and show a toast
+  // so users know the outbound queue was not persisted.  Without this listener
+  // the dispatchEvent above is a silent no-op.
+  useEffect(() => {
+    const onQuotaExceeded = () => {
+      toast({
+        title: 'Armazenamento local cheio',
+        description:
+          'A fila de mensagens não pôde ser salva localmente. Recarregue a página ou limpe dados do navegador.',
+        variant: 'destructive',
+      });
+    };
+    window.addEventListener('zapp:storage-quota-exceeded', onQuotaExceeded);
+    return () => window.removeEventListener('zapp:storage-quota-exceeded', onQuotaExceeded);
+  }, []);
 
   // Espelho síncrono da fila: permite notificar onProgress sem efeitos
   // colaterais dentro de updaters de setState.
