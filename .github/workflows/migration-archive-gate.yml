@@ -24,7 +24,8 @@ jobs:
           HEAD="${{ github.event.pull_request.head.sha }}"
 
           NEW_FILES=$(git diff --name-only --diff-filter=A "$BASE" "$HEAD" \
-            -- 'supabase/migrations/archive/*.sql' 2>/dev/null || true)
+            -- 'supabase/migrations/archive/' 2>/dev/null \
+            | grep '\.sql$' || true)
 
           if [ -n "$NEW_FILES" ]; then
             echo "::error::New SQL files added to supabase/migrations/archive/:"
