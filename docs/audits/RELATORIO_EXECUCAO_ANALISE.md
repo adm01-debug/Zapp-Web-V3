@@ -677,19 +677,89 @@ Sete dos dezenove achados são a **mesma falha estrutural**: rotina de resiliên
 
 ---
 
-## Retomada — próximo chat
+## Bloco 10 — Cross-browser, mobile, a11y e performance (etapas 91-100)
 
-**Bloco 10 — etapas 91-100 (último bloco):** cross-browser, mobile, acessibilidade, PWA offline, Lighthouse. Roteiro em `PLANO_QA_ANALISE_100.md`.
+**Executado:** 2026-08-02 · **Achados:** 9 (F10-01..F10-09) no Tema 16.
+**Severidade:** 3 ALTO · 5 MÉDIO · 1 BAIXO. **AUDITORIA CONCLUÍDA: 100/100 etapas, 200 achados.**
 
-**Avisos para quem pegar o Bloco 10:**
-- A etapa de **PWA offline** vai colidir com F9-01/F9-02/F9-03 — a fila offline está morta, o SW é stub e o `index.html` desregistra service workers a cada sessão. Não remedir: referenciar e focar no que for novo (manifest, instalabilidade, Lighthouse PWA score).
-- Ao medir crons, lembrar do teto de **3,46 dias** de histórico em `cron.job_run_details`.
-- Cuidado com objetos `zapp.*` que são **VIEW** de `evo.*` — já derrubaram duas premissas nesta auditoria (etapa 87 e F9-14). Confirmar `relkind` antes de concluir ausência de constraint ou de redundância.
+### A diferença deste bloco
 
-**Pendência operacional (bloqueia publicação, não a auditoria):**
-- **PAT do GitHub expirado** no container. Há **3 commits locais** aguardando push em `adm01-debug/zapp-web-v3`: `13d0126f7` (HANDOFF 9A), `42ac0c681` (Tema 15) e o commit deste bloco. Trabalho preservado; basta credencial nova.
+Os blocos anteriores encontraram funcionalidades ausentes ou quebradas. O Bloco 10 encontrou o ferramental **inteiro instalado e pago** — `vite-plugin-pwa`, `@axe-core/playwright`, `@storybook/addon-a11y`, `rollup-plugin-visualizer`, `@playwright/test`, todos em versões atuais no `package.json`. O problema é que **quatro deles não estão ligados em lugar nenhum**, e o roteiro descrevia cada um como "já existe" / "já configurado" / "já habilitado".
 
-**Documentos ao final desta sessão (Blocos 1-9 concluídos, 90/100 etapas):**
-- `docs/audits/PLANO_QA_ANALISE_100.md` — roteiro fixo (não alterado).
-- `docs/audits/PLANO_IMPLEMENTACAO_100.md` — **191 achados** nos Temas 1-15B.
+| Etapa | Escopo | Veredito |
+|---|---|---|
+| 91-94 | Chrome/Safari/Firefox/Edge + mobile | **Só Chromium** — 3 das 4 etapas com cobertura zero |
+| 95 | PWA install + offline | Plugin declarado, **nunca importado** |
+| 96 | Keyboard-only | Coberto, mas só nas telas de auth |
+| 97 | Screen reader / axe | Roda — em **3 rotas pré-login** |
+| 98 | Contraste WCAG AA | Addon instalado, **não registrado** |
+| 99 | Print stylesheet | Impressão **globalmente bloqueada** |
+| 100 | Bundle + Lighthouse | Bundle OK; **Lighthouse inexistente**; gate desarmado |
+
+### Achados P0
+
+- **F10-01 (ALTO)** — `playwright.config.ts` tem **um único project**: `Desktop Chrome`. Zero webkit, firefox, Edge ou viewport mobile. As etapas 92 (Safari/iOS 17+), 93 (Firefox ESR) e 94 (Edge) têm cobertura **zero**. O agravante é que o app usa `navigator.onLine`, `SyncManager`, `IndexedDB` e `serviceWorker` — exatamente as APIs que mais divergem em WebKit — e a UI tem **217 arquivos `.tsx` com breakpoints Tailwind** nunca testados em viewport reduzido.
+- **F10-02 (ALTO)** — **28 dos 61 specs E2E nunca executam em nenhum workflow.** Os 4 workflows que consomem `e2e/` selecionam subconjuntos por variável `SPECS="..."` hardcoded, e **2 dos 4 são `workflow_dispatch`** (manuais). Entre os órfãos: `critical-flows`, `visual-regression`, `pipeline`, `dlq-idempotency`, `failure-isolation-per-thread` e 8 specs `teams-*`. Os testes estão escritos, revisados e commitados — o custo já foi pago, falta apenas rodar.
+- **F10-05 (ALTO)** — O gate de acessibilidade cobre **3 rotas, todas pré-login** (`/auth`, `/forgot-password`, `/reset-password`), porque `playwright.a11y.config.ts` restringe `testMatch` a 2 arquivos. Existe um `chat-accessibility.spec.ts` no repo que o filtro **deixa de fora**. Assimetria que resume o problema: as telas de login, usadas segundos por dia, têm verificação; o inbox, onde ~50 operadores passam 8 horas, não tem nenhuma.
+
+### P1 relevantes
+
+- **F10-03** — `vite-plugin-pwa` aparece **exatamente uma vez** no repo: na própria declaração do `package.json`. Nunca importado. O `public/sw.js` é manual. Há 4 specs cujo propósito é garantir a **ausência** de workbox — a decisão real do projeto é anti-PWA, e a dependência é resíduo.
+- **F10-04** — `.storybook/main.ts` registra **um único addon** (`addon-links`). O `addon-a11y` está instalado e inerte, junto de `addon-docs`, `addon-vitest` e `@chromatic-com/storybook`. Resultado: **nenhuma verificação automatizada de contraste WCAG AA existe no projeto**.
+- **F10-06** — O "Performance Budget Gate" roda com `continue-on-error: true` — falha vira verde. Contradiz a **Definição de pronto do próprio plano** ("run em CI passa sem `|| true`"). O repo já sabia: `CI_GATES_REDUNDANCY_REPORT.md` documenta o gate como não-bloqueante.
+- **F10-07** — **Lighthouse não existe** em nenhum arquivo do repositório. Sem LCP, CLS, TBT ou PWA score.
+- **F10-08** — `useScreenProtection` (ativo globalmente em `App.tsx:72`) injeta `@media print { body { display: none !important } }`. Qualquer `Ctrl+P` produz **página em branco**. Não é bug — é proteção deliberada de PII — mas colide com a etapa 99 e não está registrada em ADR nem sinalizada ao usuário.
+- **F10-09** — Três configs Playwright com `testDir` divergentes. `"test:e2e": "playwright test"` roda **sem `--config`**, usando o default que aponta para `src/tests/e2e` (**13 specs**), não `e2e/` (**61**). É esse o script dos jobs "E2E Tests" em `ci.yml` e `quality-gate.yml` — verdes executando 13 testes enquanto 61 aguardam.
+
+---
+
+## Conclusão da auditoria — 100/100 etapas
+
+**200 achados** distribuídos em 16 temas. A execução cobriu as 100 etapas do `PLANO_QA_ANALISE_100.md` com medição factual: schema completo, contagens reais (nunca estimadas), `pg_get_functiondef` integral, histórico de cron, grep no frontend e `EXPLAIN (ANALYZE, BUFFERS)` onde havia query relevante.
+
+### O padrão que atravessa a auditoria inteira
+
+O achado mais importante não é nenhum item individual — é a **repetição estrutural**. Dezenas de rotinas de qualidade e resiliência reportam sucesso sem fazer trabalho:
+
+- **Erro engolido:** `EXCEPTION WHEN OTHERS THEN NULL` (F9-11), `EXCEPTION` retornando JSON sem re-raise (F9-13), `continue-on-error: true` (F10-06).
+- **Alvo errado:** roteador de DLQ apontado para tabelas legadas (F9-09), guard filtrando o campo errado (F9-07), `testDir` para o diretório menor (F10-09), `testMatch` para 2 arquivos (F10-05).
+- **Ferramenta instalada e desligada:** fila offline sem consumidor (F9-01), SW stub (F9-02), `vite-plugin-pwa` fantasma (F10-03), `addon-a11y` não registrado (F10-04), 28 specs órfãos (F10-02).
+- **Métrica que mede a si mesma:** heartbeat auto-alimentado por cron (F9-12), dashboard com fallback `overallRate: 100` (F8-07).
+
+**Todos os painéis mostram verde.** A instrumentação foi construída, é sofisticada, e em boa parte não está conectada ao que deveria observar.
+
+### Os P0 que exigem decisão imediata
+
+| Achado | Risco |
+|---|---|
+| **F9-16** | Tokens JWT válidos por **365 dias** (padrão: 1h) — sem revogação possível |
+| **F9-17** | `jwt_secret` em texto claro no catálogo, legível por `anon` |
+| **F9-12** | Deadman switch do guardian **incapaz de disparar** |
+| **F9-07** | 1.843 alertas duplicados soterrando os `critical` reais numa razão de 1:921 |
+| **F9-09** | DLQ **nunca recebeu uma linha** — roteador na tabela errada |
+| **F8-01/02/06** | Página órfã, módulo BPM vazio, RLS `USING(true)` sem isolamento |
+
+**Ordem de deploy importa:** corrigir F9-09 sem antes corrigir F9-10 ativa um bug latente que trava o canal de alertas permanentemente.
+
+### Premissas do roteiro corrigidas pela execução
+
+O `PLANO_QA_ANALISE_100.md` foi escrito antes da medição e errou em pontos verificáveis — registrados para que não se propaguem:
+
+- Etapa 81: `useOnlineStatus` **não existe** (o real é `offlineQueue.ts`, morto).
+- Etapa 87: `uq_msg_msgid_instance` **existe** (a negativa anterior veio de consultar uma view).
+- Etapa 88: 108.894 rows, não 171k.
+- Etapa 90: não há janela de "5 falhas em 10s" — só falhas consecutivas.
+- Etapas 95/97/98/100: ferramental descrito como "já configurado" está instalado mas desligado.
+- Instrumentação: `cron.job_run_details` retém **3,46 dias**, não 7.
+
+### Próximo passo
+
+A fase de **análise** está encerrada. O `PLANO_IMPLEMENTACAO_100.md` é agora o backlog de correção: cada um dos 200 achados tem Origem, Evidência medida, Ação executável e Aceite verificável. Sugestão de sequência: P0 de segurança (F9-16, F9-17) → P0 de observabilidade cega (F9-07, F9-09, F9-10, F9-12, F9-13) → gates de CI desarmados (F10-02, F10-06) → o restante por tema.
+
+**Pendência operacional:** o **PAT do GitHub expirou** no container. Há **4 commits locais** aguardando push em `adm01-debug/zapp-web-v3`. Todo o trabalho está preservado em `main` local; basta credencial nova.
+
+**Documentos finais:**
+- `docs/audits/PLANO_QA_ANALISE_100.md` — roteiro fixo, 100 etapas (não alterado em nenhuma sessão).
+- `docs/audits/PLANO_IMPLEMENTACAO_100.md` — **200 achados** nos Temas 1-16.
 - `docs/audits/RELATORIO_EXECUCAO_ANALISE.md` — este documento.
+- `docs/audits/HANDOFF_BLOCO_9A.md` — handoff consumido.

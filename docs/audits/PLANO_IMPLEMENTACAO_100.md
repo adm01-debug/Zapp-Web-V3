@@ -5,7 +5,7 @@
 
 Convenção de ID: `F<bloco>-<seq>` — ex. `F1-01` = primeiro achado do bloco 1 da análise.
 
-**Total de achados até agora: 191** (14 Bloco 1 + 13 Bloco 2 + 12 Bloco 3 + 24 Bloco 4 + 30 Bloco 5 + 30 Bloco 6 + 32 Bloco 7 + 17 Bloco 8 + 11 Bloco 9A + 8 Bloco 9B).
+**Total de achados até agora: 200** (14 Bloco 1 + 13 Bloco 2 + 12 Bloco 3 + 24 Bloco 4 + 30 Bloco 5 + 30 Bloco 6 + 32 Bloco 7 + 17 Bloco 8 + 11 Bloco 9A + 8 Bloco 9B + 9 Bloco 10).
 
 ---
 
@@ -1784,3 +1784,179 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
   2. Remover a classe `CircuitBreaker` de `retryStrategyAudit.ts` junto com o arquivo, conforme F9-05.
   3. Adicionar janela deslizante ao breaker canônico (ex.: 5 falhas em 60s) para cobrir degradação intermitente, hoje invisível ao contador consecutivo.
 - **Aceite:** `grep -rln "THRESHOLD\|failureThreshold\|circuitBreakerThreshold" src/ --include=*.ts | grep -v __tests__ | wc -l` retorna `1`.
+
+---
+
+## Tema 16 — Cross-browser, mobile, a11y e performance (Bloco 10, etapas 91-100)
+
+**Executado em:** 2026-08-02 · **Etapas:** 91-94 (cross-browser), 95 (PWA), 96 (teclado), 97 (screen reader), 98 (contraste WCAG), 99 (print), 100 (bundle/Lighthouse).
+**Achados:** 9 (F10-01..F10-09) — 3 ALTO, 5 MÉDIO, 1 BAIXO.
+
+**Natureza deste bloco:** diferente dos anteriores, o Bloco 10 encontrou o ferramental **todo instalado** — `vite-plugin-pwa`, `@axe-core/playwright`, `@storybook/addon-a11y`, `rollup-plugin-visualizer` e `@playwright/test` estão em `package.json` com versões atuais. O problema não é ausência de ferramenta: é que **quatro delas não estão ligadas em lugar nenhum**. O roteiro descreve cada uma como "já existe" / "já configurado" / "já habilitado" — e em três casos isso é falso.
+
+**Colisão declarada com o Bloco 9 (não remedido aqui):** a etapa 95 (PWA offline) depende de `offlineQueue.ts` (morto, F9-01), do handler de sync no `sw.js` (stub, F9-02) e do purge de Service Worker no `index.html` (F9-03). Este tema registra apenas o que é **novo**: a dependência fantasma do plugin.
+
+---
+
+### F10-01 — ALTO (P0): a suíte cross-browser cobre apenas Chromium — Safari, Firefox, Edge e mobile não têm um único teste
+
+- **Origem:** Etapas 91-94 (Bloco 10).
+- **Evidência:**
+  - `playwright.config.ts` declara **um único project**: `{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }`. Não há `webkit`, `firefox`, `Desktop Edge`, `Pixel 5` nem `iPhone 13`.
+  - `playwright.a11y.config.ts` repete exatamente o mesmo project único — nenhum navegador adicional.
+  - Cobertura por etapa do roteiro: **91** parcialmente atendida (Chrome desktop sim, Chrome Android **não**); **92** (Safari desktop + iOS 17+) — **zero**; **93** (Firefox ESR) — **zero**; **94** (Edge Chromium) — **zero**.
+  - O `@playwright/test` v1.61.1 instalado já traz webkit e firefox — não há impedimento técnico, apenas configuração ausente.
+  - Risco concreto e não hipotético: o app usa `navigator.onLine`, `SyncManager`, `IndexedDB` e `serviceWorker` (`offlineQueue.ts`, `buildVersion.ts`) — APIs com divergências conhecidas de comportamento em WebKit/iOS. Nenhuma delas jamais foi executada fora do Chromium.
+  - Mobile também não é coberto por viewport: nenhum project define `viewport` reduzido, embora a UI tenha **217 arquivos `.tsx` com breakpoints Tailwind** (`md:`/`lg:`) — layout responsivo extenso, verificação zero.
+- **Ação:**
+  1. Adicionar projects em `playwright.config.ts`: `webkit`, `firefox`, `Mobile Chrome` (`devices['Pixel 5']`) e `Mobile Safari` (`devices['iPhone 13']`).
+  2. Rodar a matriz completa apenas no workflow de `main`/nightly e manter só `chromium` no PR, para não estourar tempo de CI.
+  3. Priorizar `webkit` no primeiro corte — é onde as APIs de offline/SW divergem mais e onde está iOS Safari, exigido pela etapa 92.
+- **Aceite:** `grep -c "name: '" playwright.config.ts` retorna `>= 4` e o run de CI publica resultados para webkit e firefox (hoje: 1 project, só chromium).
+
+### F10-02 — ALTO (P0): 28 dos 61 testes E2E nunca são executados por nenhum workflow
+
+- **Origem:** Etapas 91-94 (Bloco 10).
+- **Evidência:**
+  - `ls e2e/*.spec.ts | wc -l` = **61 specs**, todos versionados (`git ls-files e2e/` = 68 arquivos).
+  - Cruzando cada nome de arquivo contra `.github/workflows/`: **31 referenciados**, 30 não. Descontando `auth-accessibility.spec.ts` e `auth-keyboard-navigation.spec.ts` — que rodam via `testMatch` do `test:a11y` sem serem citados por nome — restam **28 specs genuinamente órfãos**.
+  - Os 4 workflows que consomem `e2e/` (`e2e-admin-vps`, `e2e-crm-vps`, `e2e-evolution-vps`, `e2e-inbox-vps`) selecionam subconjuntos por variável `SPECS="..."` hardcoded. Um spec novo em `e2e/` **não é coletado automaticamente** — precisa ser adicionado à lista à mão.
+  - Agravante de gatilho: **2 dos 4** rodam em `pull_request` (`e2e-crm-vps`, `e2e-inbox-vps`). Os outros dois são **`workflow_dispatch` apenas** — execução manual, nunca automática.
+  - Entre os órfãos há testes de valor evidente: `critical-flows.spec.ts`, `visual-regression.spec.ts`, `pipeline.spec.ts`, `dlq-idempotency.spec.ts`, `failure-isolation-per-thread.spec.ts`, `error-handling.spec.ts` e **8 specs `teams-*`** (incluindo `teams-security-integration.spec.ts`).
+  - O custo já foi pago — os testes estão escritos, revisados e commitados. O que falta é execução.
+- **Ação:**
+  1. Substituir as listas `SPECS` hardcoded por seleção via tag/grep do Playwright (`--grep @admin`), de modo que specs novos entrem automaticamente.
+  2. Criar um job nightly que rode `playwright test --config=playwright.e2e.config.ts` **sem filtro**, cobrindo os 61 de uma vez.
+  3. Converter `e2e-admin-vps` e `e2e-evolution-vps` para também disparar em `pull_request`, ou documentar explicitamente por que são manuais.
+- **Aceite:** script que compara `ls e2e/*.spec.ts` com os specs efetivamente executados no último run de CI retorna diferença `0` (hoje: 28).
+
+### F10-03 — MÉDIO (P1): `vite-plugin-pwa` é dependência fantasma — declarada, instalada, nunca importada
+
+(cross-ref: F9-02, F9-03)
+
+- **Origem:** Etapa 95 (Bloco 10).
+- **Evidência:**
+  - `package.json:140` declara `"vite-plugin-pwa": "^0.21.0"` em devDependencies.
+  - `grep -rn "VitePWA\|vite-plugin-pwa"` em todo o repo (excluindo `node_modules` e lockfile) retorna **exatamente uma linha: a própria declaração no `package.json`**. Nenhum import, nenhum uso no array `plugins` de `vite.config.ts`.
+  - Contraste no mesmo arquivo: `rollup-plugin-visualizer` **é** importado (`vite.config.ts:6`) e usado condicionalmente (`vite.config.ts:119`, `mode === 'production'`). O padrão correto existe ao lado.
+  - Consequência: `public/sw.js` é um Service Worker **escrito à mão** (confirmado no Bloco 9A), não gerado pelo plugin. Não há precache, não há manifest injection, não há estratégia Cache-First — a etapa 95 descreve "service worker Cache-First" que não existe.
+  - Sinal de intenção revertida: há 4 specs em `src/tests/e2e/` cujo propósito é **garantir a ausência** de workbox (`no-workbox-after-reload`, `no-workbox-precache`, `no-workbox-precache-cache-storage`, `no-service-worker-persist`). O projeto ativamente testa que o PWA **não** está lá.
+- **Ação:**
+  1. Remover `vite-plugin-pwa` do `package.json` — a decisão de projeto, evidenciada pelos 4 specs anti-workbox, é não usá-lo.
+  2. Registrar ADR consolidando a postura anti-PWA junto com F9-03 (purge de SW no `index.html`), para que a próxima auditoria não trate isso como regressão.
+  3. Corrigir a etapa 95 do roteiro, que descreve um ferramental desativado.
+- **Aceite:** `grep -c "vite-plugin-pwa" package.json` retorna `0`, ou o plugin passa a aparecer no array `plugins` de `vite.config.ts`.
+
+### F10-04 — MÉDIO (P1): `@storybook/addon-a11y` instalado mas não registrado — o contraste WCAG nunca é verificado
+
+- **Origem:** Etapa 98 (Bloco 10).
+- **Evidência:**
+  - `package.json:152` declara `"@storybook/addon-a11y": "^10.4.6"`.
+  - `.storybook/main.ts` registra **um único addon**:
+    ```ts
+    addons: [
+      "@storybook/addon-links",
+    ],
+    ```
+    Sem `addon-a11y`, o painel de acessibilidade nunca carrega e nenhuma regra de contraste roda no Storybook.
+  - Outros três addons também estão instalados e não registrados: `@storybook/addon-docs`, `@storybook/addon-vitest`, `@chromatic-com/storybook`.
+  - `.storybook/preview.*` não tem nenhuma chave `a11y` ou `parameters.a11y` — não há configuração de regras nem exceções.
+  - A etapa 98 afirma "`@storybook/addon-a11y` **já habilitado**; ratchet no CI". Ambas as metades são falsas: não está habilitado, e `grep -rn "storybook" .github/workflows/` não retorna nenhum job de build ou teste de Storybook.
+  - Efeito prático: **nenhuma verificação automatizada de contraste WCAG AA existe no projeto**, nem via Storybook nem via axe (o axe roda, mas restrito a 3 rotas — F10-05).
+- **Ação:**
+  1. Adicionar `"@storybook/addon-a11y"` e `"@storybook/addon-docs"` ao array `addons` de `.storybook/main.ts`.
+  2. Configurar `parameters.a11y` em `.storybook/preview.ts` com as regras de contraste do WCAG AA e `test: 'error'` para falhar em violação.
+  3. Adicionar job de CI rodando `build-storybook` + `@storybook/addon-vitest`, estabelecendo o ratchet que a etapa 98 pressupõe.
+- **Aceite:** `grep -c "addon-a11y" .storybook/main.ts` retorna `1` e o painel Accessibility aparece no Storybook (hoje: 0).
+
+### F10-05 — ALTO (P0): a verificação de acessibilidade cobre só 3 telas de autenticação — o produto inteiro fica de fora
+
+- **Origem:** Etapa 97 (Bloco 10).
+- **Evidência:**
+  - `playwright.a11y.config.ts:18` restringe o escopo por `testMatch`:
+    ```ts
+    testMatch: ['**/auth-accessibility.spec.ts', '**/auth-keyboard-navigation.spec.ts']
+    ```
+    Apenas **2 arquivos**, ambos de autenticação.
+  - O próprio CI documenta o alcance em `.github/workflows/ci.yml:343`: *"Run axe regression suite (**/auth, /forgot-password, /reset-password** + keyboard nav)"* — três rotas públicas, todas pré-login.
+  - Existe um terceiro spec de acessibilidade no repo — **`e2e/chat-accessibility.spec.ts`** — que o `testMatch` **não inclui**, ficando fora do gate de a11y.
+  - Não coberto: inbox (a tela onde os ~50 operadores passam o expediente), CRM/contatos, admin, dashboards, filas. `@axe-core/react` também está instalado (`package.json:63`), mas serve só para avisos em dev, não é gate.
+  - Assimetria reveladora: as telas de login — usadas alguns segundos por dia — têm verificação de acessibilidade; o inbox, usado 8 horas por dia, não tem nenhuma.
+- **Ação:**
+  1. Ampliar `testMatch` para `['**/*-accessibility.spec.ts', '**/*-keyboard-navigation.spec.ts']`, incorporando de imediato `chat-accessibility.spec.ts`.
+  2. Criar `inbox-accessibility.spec.ts` cobrindo lista de conversas, painel de chat e composer com `AxeBuilder().analyze()`.
+  3. Estabelecer ratchet de violações por rota (baseline atual, proibido subir), no mesmo padrão de `check-coverage-ratchet.mjs`.
+- **Aceite:** `bun run test:a11y --list` inclui ao menos uma rota autenticada do inbox (hoje: só `/auth`, `/forgot-password`, `/reset-password`).
+
+### F10-06 — MÉDIO (P1): o gate de performance roda com `continue-on-error: true` — nunca reprova nada
+
+- **Origem:** Etapa 100 (Bloco 10).
+- **Evidência:**
+  - `.github/workflows/quality-gate.yml:141-143`:
+    ```yaml
+    - name: Performance Budget Gate
+      run: npm run perf:budget
+      continue-on-error: true
+    ```
+    O passo chama-se "Gate" mas é incapaz de barrar merge — falha vira aviso verde.
+  - O próprio repo já reconhece o problema: `.github/workflows/CI_GATES_REDUNDANCY_REPORT.md:42` lista *"Performance Budget Gate | `npm run perf:budget` | ❌ | ✅ (continue-on-error) | ❌ | ❌"*.
+  - Contradiz diretamente a **Definição de pronto** declarada no `PLANO_QA_ANALISE_100.md`: *"(c) run em CI passa sem `|| true`"*. `continue-on-error: true` é a forma YAML de `|| true`.
+  - A infraestrutura funciona: `scripts/check-performance-budget.mjs` existe, com `perf:budget:baseline` para regravar o baseline — só falta ser obrigatório.
+  - Padrão adjacente no mesmo arquivo: `test:fuzz` (linha 133) também roda com `continue-on-error: true`. Dois gates de qualidade cosméticos no mesmo workflow.
+- **Ação:**
+  1. Regravar o baseline com `npm run perf:budget:baseline` no estado atual, para partir de um patamar honesto.
+  2. Remover `continue-on-error: true` do passo Performance Budget Gate.
+  3. Se o bundle estiver acima do budget hoje, abrir issue de redução em vez de manter o gate desligado — o padrão atual esconde a dívida.
+- **Aceite:** `grep -A2 "Performance Budget Gate" .github/workflows/quality-gate.yml` não contém `continue-on-error`.
+
+### F10-07 — MÉDIO (P1): Lighthouse não existe no repositório, embora a etapa 100 o exija
+
+- **Origem:** Etapa 100 (Bloco 10).
+- **Evidência:**
+  - `grep -rln "lighthouse" --include=*.yml --include=*.json --include=*.mjs .` (fora de `node_modules`) → **nenhum arquivo**. Sem `@lhci/cli`, sem `lighthouserc.json`, sem action `treosh/lighthouse-ci-action`, sem script npm.
+  - A metade "bundle" da etapa 100 **está atendida**: `rollup-plugin-visualizer` é importado e ativo em build de produção (`vite.config.ts:6,119`), e `perf:budget` existe — ainda que desarmado (F10-06).
+  - A metade "Lighthouse" não tem nenhum artefato: não há medição de LCP, CLS, TBT nem de PWA score. Sem isso, não existe número para os critérios de performance percebida que o gate de release pressupõe.
+  - Relevante para o público real: os operadores acessam `https://zapp.atomicabr.com.br` de máquinas de escritório e celulares; sem métrica de campo nem de laboratório, regressões de carga passam despercebidas.
+- **Ação:**
+  1. Adicionar `@lhci/cli` com `lighthouserc.json` apontando para o preview do build de PR.
+  2. Configurar assertions mínimas (`performance >= 0.7`, `accessibility >= 0.9`) começando permissivas e apertando por ratchet.
+  3. Rodar em nightly, não em todo PR — Lighthouse é lento e ruidoso sob concorrência de runner.
+- **Aceite:** existe `lighthouserc.json` e o CI publica scores como artefato em pelo menos um workflow.
+
+### F10-08 — MÉDIO (P1): impressão está globalmente bloqueada — a etapa 99 pede transcript imprimível e o app entrega página em branco
+
+- **Origem:** Etapa 99 (Bloco 10).
+- **Evidência:**
+  - Única ocorrência de `@media print` em todo o `src/` está em `src/features/auth/hooks/useScreenProtection.ts:155`, injetada dinamicamente:
+    ```css
+    @media print { body { display: none !important; } }
+    ```
+  - O hook é ativado **globalmente**, em `src/App.tsx:72` (`spMod.useScreenProtection()`), junto de bloqueios de cópia, arraste e menu de contexto.
+  - Resultado observável: qualquer `Ctrl+P` em qualquer tela do sistema produz **página em branco**. Não existe folha de estilo de impressão para transcript de conversa, nem lógica de redação de PII.
+  - **Calibração:** isto não é um bug — é proteção deliberada de PII, coerente com um sistema que trafega conversas de clientes, e resolve a preocupação de vazamento da forma mais radical possível. O achado é o **conflito não resolvido**: o roteiro da etapa 99 pressupõe impressão suportada com redação, e a decisão contrária não está registrada em nenhum ADR nem comentada no código.
+  - Risco operacional real: se alguém do comercial precisar anexar um transcript a um processo, não há caminho — e a ausência de mensagem ao usuário faz parecer defeito do navegador.
+- **Ação:**
+  1. Decidir e registrar em ADR: impressão proibida (posição atual) **ou** impressão suportada com redação.
+  2. Se proibida, adicionar aviso visível no `@media print` (`body::after` com "Impressão desabilitada por política de privacidade") em vez de `display: none` silencioso.
+  3. Se suportada, criar rota dedicada de exportação de transcript com PII mascarada, isenta do `useScreenProtection`, e exportar em PDF em vez de `window.print()`.
+- **Aceite:** existe ADR sobre política de impressão **e** a tentativa de imprimir produz mensagem explicativa, não página em branco.
+
+### F10-09 — BAIXO (P1): três configs Playwright com `testDir` divergentes — `test:e2e` aponta para o diretório com 13 specs, não o de 61
+
+(cross-ref: F10-02)
+
+- **Origem:** Etapas 91-94 (Bloco 10).
+- **Evidência:**
+  - Três arquivos de configuração coexistem com alvos diferentes:
+    - `playwright.config.ts:4` → `testDir: './src/tests/e2e'` (**13 specs**)
+    - `playwright.e2e.config.ts:25` → `testDir: './e2e'` (**61 specs**)
+    - `playwright.a11y.config.ts:17` → `testDir: './e2e'` + `testMatch` de 2 arquivos
+  - O script `"test:e2e": "playwright test"` (`package.json:30`) roda **sem `--config`**, ou seja, usa o default `playwright.config.ts` → executa os **13** specs de `src/tests/e2e/`, não os 61 de `e2e/`.
+  - Esse é exatamente o script invocado por `.github/workflows/ci.yml:311` e `.github/workflows/quality-gate.yml:139` — os dois jobs chamados "E2E Tests" no CI principal.
+  - O nome dá a entender cobertura ampla; a cobertura real é o diretório menor, cujos specs são majoritariamente sobre boot e ausência de workbox (`app-boot`, `boot-resilience`, `no-workbox-*`).
+  - Ninguém percebe porque ambos passam: o job fica verde executando 13 testes enquanto 61 aguardam em outro diretório.
+- **Ação:**
+  1. Renomear os scripts para revelar o alvo: `test:e2e:boot` (config default) e `test:e2e:full` (`--config=playwright.e2e.config.ts`).
+  2. Fazer os jobs "E2E Tests" do `ci.yml` e `quality-gate.yml` chamarem explicitamente a config pretendida.
+  3. Considerar fundir as três configs em uma com `projects` distintos, eliminando a divergência de `testDir`.
+- **Aceite:** `grep -n '"test:e2e"' package.json` mostra `--config` explícito, e o run de CI reporta contagem de testes compatível com o diretório pretendido.
