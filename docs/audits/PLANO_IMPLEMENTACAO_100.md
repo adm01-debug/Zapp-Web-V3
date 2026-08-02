@@ -2154,10 +2154,20 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
   3. Auditar consumidores antes de remover: `grep -rn "idempotency_key" src/ supabase/functions/`.
 - **Aceite:** a coluna deixa de existir **ou** `SELECT count(*) FROM zapp.webhook_events_processed WHERE idempotency_key IS NULL AND processed_at > now()-interval '1 day'` retorna `0`.
 
-### F9-16 — CRÍTICO (P0): tokens JWT configurados com validade de 365 dias
+### F9-16 — CRÍTICO (P0): tokens JWT configurados com validade de 365 dias [REVISADO 2026-08-02]
 
 - **Sev:** `SEC`
 - **Origem:** Etapa 89 (Bloco 9B).
+- **⚠️ Revalidado em 2026-08-02 (recon pré-execução da Etapa 3) — REFERÊNCIA ERRADA. Não executar a Ação como escrita.** Dois números do corpo acima não descrevem produção:
+  - **(a) A validade efetiva do token é 8 horas, não 365 dias.** O GoTrue roda com `GOTRUE_JWT_EXP=28800` no ambiente (lido de dentro do container `supabase_auth`, `supabase/gotrue:v2.189.0`). Nessa versão o env **vence** o `app.settings.jwt_exp` do banco. O `31536000` medido em `pg_db_role_setting` existe, mas **não emite token nenhum**: varredura em `pg_proc` (todas as funções), `pg_views` e `information_schema.columns.column_default` retorna **zero** referências a `app.settings.jwt_exp`. Executar o item 1 da Ação deixaria o Aceite verde **sem mudar um segundo** da validade real — a armadilha exata que o recon existia para pegar.
+  - **(b) São 18 usuários, 10 ativos em 30 dias** — não "~50 operadores". Medido em `auth.users`: 18 totais, 10 com login nos últimos 30 dias, 54 sessões, 18 tocadas em 7 dias, 53 refresh tokens não revogados.
+  - **(c) A rotação de refresh token já está ativa** — `GOTRUE_SECURITY_REFRESH_TOKEN_ROTATION_ENABLED=true`, `GOTRUE_SECURITY_REFRESH_TOKEN_REUSE_INTERVAL=10` (confirmado por env, além dos 208/261 tokens com `parent` preenchido). O item 2 da Ação está satisfeito de antemão.
+- **Sev revisada em 2026-08-02:** de `SEC` para `DEGRADADO`. Com 8h de validade e rotação ativa, um token vazado deixa de ser um ano de acesso e vira uma janela de horas. Continua havendo higiene a fazer; deixou de ser P0.
+- **Ação revisada:**
+  1. `ALTER DATABASE postgres RESET app.settings.jwt_exp;` — remover a cópia órfã, que hoje só serve para enganar auditoria. **Não** gravar `3600` no banco: seria manter o mesmo engano com outro número.
+  2. Se e quando se quiser encurtar a sessão de verdade, o alvo é `GOTRUE_JWT_EXP` **no stack file** (não só no serviço em execução, ou o próximo redeploy reverte). Decisão de produto — 8h ≈ uma jornada de trabalho —, não de segurança urgente: combinar com o Pink.
+  3. O item 3 original (rotacionar no mesmo deploy para tornar o corte retroativo) **cai**. Ele existia porque tokens de 365 dias não expirariam sozinhos; com 8h, expiram. Ver F9-17.
+- **Aceite revisado:** `SELECT current_setting('app.settings.jwt_exp', true)` retorna `NULL`, **e** o valor de `GOTRUE_JWT_EXP` fica registrado como a validade real vigente.
 - **Evidência:**
   - `pg_db_role_setting` no nível do banco contém `app.settings.jwt_exp=31536000` — **31.536.000 segundos = 365 dias**.
   - Referência: o padrão do Supabase é `3600` (1 hora). O valor em produção é **8.760× maior**.
@@ -2170,13 +2180,24 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
   3. Rotacionar `jwt_secret` no mesmo deploy, invalidando de uma vez todos os tokens de 365 dias já emitidos e em circulação.
 - **Aceite:** `SELECT current_setting('app.settings.jwt_exp')` retorna `3600` (hoje: `31536000`).
 
-### F9-17 — ALTO (P0): `jwt_secret` persistido em texto claro no catálogo, legível por `anon` e `authenticated`
+### F9-17 — ALTO (P0): `jwt_secret` persistido em texto claro no catálogo, legível por `anon` e `authenticated` [REVISADO 2026-08-02]
 
 (cross-ref: F9-16)
 
 - **Sev:** `SEC`
 - **Rollback:** R-POL
 - **Origem:** Etapa 89 (Bloco 9B).
+- **⚠️ Revalidado em 2026-08-02 (recon pré-execução da Etapa 3) — ACHADO VÁLIDO, mas a premissa de risco da Ação já está satisfeita.** O secret **já é servido pelo ambiente**; o que está no catálogo é uma **cópia órfã**:
+  - `supabase_auth`, `supabase_realtime`, `supabase_storage`, `supabase_kong` e `supabase_functions` montam todos o Docker Swarm secret `supabase_jwt_secret_v1` (41 bytes = 40 chars + newline, bate com os 40 chars do catálogo). `GOTRUE_JWT_SECRET` **não existe** como variável de ambiente — é injetado no entrypoint a partir do secret montado.
+  - PostgREST **não** lê o secret do catálogo: `current_setting('pgrst.jwt_secret', true)` é `NULL` e não há nenhuma entrada `pgrst.*` em `pg_db_role_setting` para `authenticator`. A fonte dele é env.
+  - **Zero** objetos do banco leem `app.settings.jwt_secret`: varredura em `pg_proc`, `pg_views` e `information_schema.columns.column_default` retorna vazio. `pgjwt 0.2.0` está instalado, mas não usa a setting.
+  - Consequência: o item 1 deixa de ser a coreografia "configurar -> verificar -> resetar" e vira um `RESET` isolado sobre um valor que **ninguém lê**. O cenário que dava risco `ALTO` à etapa — resetar antes de configurar e derrubar a API — **não existe neste ambiente**.
+  - A "calibração honesta do vetor" registrada acima **continua correta** e não deve ser reescrita para mais nem para menos: segue sendo defesa em profundidade.
+- **Ação revisada:**
+  1. `ALTER DATABASE postgres RESET app.settings.jwt_secret;` — seguro, sem pré-requisito. Verificar login logo em seguida mesmo assim.
+  2. **Rotação desacoplada da Etapa 3.** Continua justificada (o valor esteve legível a todo role por tempo indeterminado), mas deixou de ser pré-requisito de qualquer outra coisa. Vira item próprio, com janela e **lista de propagação fechada antes**. Rotacionar regenera `anon key` e `service_role key`, que são JWTs assinados com esse secret. Consumidores levantados no recon — dentro da stack: Swarm secrets `supabase_jwt_secret_v1` e `supabase_service_key_v1`; envs `ANON_KEY` (storage), `SUPABASE_ANON_KEY` (kong e functions), `PROMOGIFTS_SUPABASE_ANON_KEY` (functions), `METRICS_JWT_SECRET` e `SECRET_KEY_BASE` (realtime). Fora da stack: n8n (credencial `tyLhN1fGwJveaDCg` e demais), Evolution API, os ~20 MCPs `SUPABASE - * - MCP` deste workspace, `VITE_SUPABASE_ANON_KEY` do frontend e os Cloudflare Workers. **A lista fora da stack ainda não foi conferida item a item — fazer isso é pré-condição da janela.**
+  3. Item 3 (`REVOKE SELECT ON pg_catalog.pg_db_role_setting FROM PUBLIC`) — **recomendação: não aplicar, decisão registrada.** Cumprido o item 1, o que sobra legível no catálogo é `TimeZone`, `work_mem`, `search_path`, `statement_timeout` e afins. O risco de quebrar o schema cache do PostgREST passa a ser maior que o ganho. Reabrir só se algum secret voltar a ser gravado ali.
+- **Aceite mantido**, com uma ressalva: ele agora prova **remoção de redundância**, não migração de fonte — a migração já estava feita antes desta auditoria.
 - **Evidência:**
   - `pg_db_role_setting` do banco corrente contém `app.settings.jwt_secret=<40 caracteres>` em texto claro, junto de parâmetros operacionais inócuos (`TimeZone`, `work_mem`, `search_path`).
   - Permissões medidas: `has_table_privilege('anon','pg_catalog.pg_db_role_setting','SELECT')` = **true**; idem para `authenticated`. `has_function_privilege('anon','pg_catalog.current_setting(text)','EXECUTE')` = **true**. `length(current_setting('app.settings.jwt_secret'))` = **40**.
@@ -2189,10 +2210,13 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
   3. Revogar o acesso amplo ao catálogo, se a versão do PostgREST permitir: `REVOKE SELECT ON pg_catalog.pg_db_role_setting FROM PUBLIC;`
 - **Aceite:** `SELECT current_setting('app.settings.jwt_secret', true)` retorna `NULL` e a autenticação segue funcionando (prova de que a fonte migrou para o ambiente).
 
-### F9-18 — MÉDIO (P1): `authenticated` tem `statement_timeout` de 120s, 4× o padrão do cluster — uma query travada segura a conexão por 2 minutos
+### F9-18 — MÉDIO (P1): `authenticated` tem `statement_timeout` de 120s, 4× o padrão do cluster — uma query travada segura a conexão por 2 minutos [CONFIRMADO 2026-08-02]
 
 - **Sev:** `DEGRADADO`
 - **Origem:** Etapa 89 (Bloco 9B).
+- **✅ Revalidado em 2026-08-02 (recon pré-execução da Etapa 3) — CONFIRMADO, sem alteração.** Releitura de `pg_db_role_setting`: `authenticated statement_timeout=120s`; `service_role` **sem `statement_timeout` próprio**, herdando os 30s do cluster; `anon=5s`; `authenticator=8s`; `postgres=120s`. A Ação vale exatamente como escrita.
+- **Dois detalhes que o corpo original não registrava:** (a) `authenticated` também tem `lock_timeout=10s` e `authenticator` tem `lock_timeout=8s` — vale manter coerência ao mexer no `statement_timeout`; (b) `supabase_auth_admin` tem `idle_in_transaction_session_timeout=60000` **sem unidade**, que o Postgres interpreta como 60000 ms = 60s. Funciona, mas destoa dos demais (`60s`) e vale normalizar por legibilidade.
+- **Ordem dentro da Etapa 3:** este é o **primeiro** item a executar — reversível, sem impacto em sessão, e serve de ensaio do caminho `ALTER ROLE` -> reload -> verificação **de dentro de uma conexão real do PostgREST**, não só via `pg_roles`.
 - **Evidência:**
   - Timeouts efetivos medidos por role: `anon=5s` · `authenticator=8s` · **`authenticated=120s`** · `service_role=herdado` · `postgres=120s`. Default do cluster (`pg_settings`): **30s**.
   - O roteiro da etapa 89 pergunta pelo comportamento acima de 30s — a resposta é que o usuário logado tem **quatro vezes** essa folga.

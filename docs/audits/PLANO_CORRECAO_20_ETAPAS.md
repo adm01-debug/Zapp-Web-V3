@@ -214,15 +214,47 @@ Vale registrar: os 200 achados têm **evidência medida com números reais** e *
 > - **O gate armado já pagou o próprio custo dentro da etapa:** o `no-restricted-imports` reprovou um import de domínio escrito nos testes novos do F6-26. Corrigido na hora — exatamente o comportamento que a etapa existia para habilitar.
 >
 > **Próxima:** **Etapa 3 — Credenciais e sessão JWT** (F9-16, F9-17, F9-18). Antes dela, confirmar que o primeiro run do CI com os gates armados ficou verde — se não ficou, o que reprovou é achado novo, não motivo para reverter.
+>
+> **RESULTADO DO PASSO 0 (2026-08-02) — reprovou, foi corrigido, e a regra herdada foi respeitada.** `Quality Gate` ficou verde; **`CI/CD Pipeline` ficou vermelho** a partir de `42a6ef0bb`, no job `Accessibility regression (axe)`. Nenhum dos quatro pontos previstos como prováveis reprovou (ratchet de design-system, lint, `test:e2e:boot` e performance budget passaram todos).
+>
+> - **Causa real:** `package.json` tem `"type": "module"` e a reescrita do F10-05 introduziu `path.resolve(__dirname, ...)` avaliado no carregamento do config — `ReferenceError: __dirname is not defined in ES module scope`. O Playwright morria **antes de listar teste**. Assinatura no CI: o passo levava **63s** no último run verde e passou a morrer em **0-1s**. O mesmo bug estava em `e2e/global.setup.ts:6` e `playwright.e2e.config.ts:21`, derrubando junto todo o caminho autenticado. Corrigido nos três com `process.cwd()` (commit `fc35cd7b7`).
+> - **Correção de rumo registrada:** o primeiro diagnóstico desta sessão culpou o `testMatch` largo e o commit `ff1a89e29` **não resolveu**. A duração de 1s já indicava startup, não teste. O `testMatch` largo era problema real, mas secundário — virou `E02-N10b`.
+> - **Nenhum gate foi desligado**, conforme a regra da Etapa 2.
+> - **4 achados novos:** `E02-N10` (o `__dirname`), `E02-N10b` (`testMatch` largo), `E02-N11` (`ratchet-tighten` falha em 9/9 runs, crônica e anterior à Etapa 2 — o push do bot é rejeitado), `E02-N12` (`test:e2e:full` não coleta nenhum teste: `_page` em `authenticated-flows.spec.ts` aborta a coleção inteira). Detalhes em `RELATORIO_CORRECAO.md`.
+> - **Verificação do conserto por comando real:** `playwright test --config=playwright.a11y.config.ts --list` → **9 testes / 2 arquivos** sem credenciais (só os specs públicos) e **14 testes / 4 arquivos** com credenciais (entra `chat-accessibility.spec.ts`). O gate ficou funcional **e** mais largo, que era o objetivo do F10-05.
 
 ### Fase 1 — Segurança (risco independente do resto)
 
-#### Etapa 3 — Credenciais e sessão JWT
+#### Etapa 3 — Credenciais e sessão JWT · REDESENHADA 2026-08-02 (recon pre-execucao)
 **Achados:** F9-16, F9-17, F9-18.
 **Por que aqui:** único grupo cujo risco não depende de mais nada estar funcionando. Tokens válidos por **365 dias** e `jwt_secret` legível no catálogo.
 **Escopo:** `jwt_exp` 31536000 → 3600; mover `jwt_secret` para variável de ambiente do GoTrue/PostgREST; rotacionar o secret; `statement_timeout` de `authenticated` 120s → 15s.
 **Pronto quando:** `current_setting('app.settings.jwt_secret', true)` retorna `NULL` e a autenticação segue operando.
 **Risco:** **ALTO — janela de manutenção obrigatória.** Rotacionar o secret invalida todas as sessões: os ~50 operadores refazem login. Confirmar refresh-token rotation no GoTrue **antes**, ou o corte de 1h força re-login horário.
+
+
+> **Redesenhada em 2026-08-02, antes de qualquer execução.** O recon prévio derrubou duas premissas do bloco acima. **Nada foi executado em produção** — o texto original fica preservado para histórico; o que vale é o que está abaixo e nos corpos revisados de F9-16, F9-17 e F9-18.
+>
+> **O que mudou:**
+>
+> | Premissa do plano | O que a medição mostrou |
+> |---|---|
+> | Tokens válidos por **365 dias** | Validade efetiva é **8 horas**. `GOTRUE_JWT_EXP=28800` no ambiente do `supabase_auth` vence o `app.settings.jwt_exp` do banco. O `31536000` existe no catálogo mas **não emite token** — zero referências a ele em `pg_proc`, `pg_views` e `column_default`. |
+> | `jwt_secret` precisa ser **movido** para o ambiente | Já está lá. Os cinco serviços da stack montam o Swarm secret `supabase_jwt_secret_v1`; PostgREST não lê `pgrst.jwt_secret` do catálogo. O que está no banco é **cópia órfã que ninguém lê**. |
+> | Rotação é **pré-requisito** do corte de `jwt_exp` | Não é mais. Ela existia para invalidar tokens de 365 dias; com 8h eles expiram sozinhos. |
+> | **~50 operadores** refazem login | **18 usuários, 10 ativos** em 30 dias. E a rotação de refresh token já está ativa (`..._ROTATION_ENABLED=true`). |
+>
+> **Escopo revisado:** (1) `statement_timeout` de `authenticated` 120s → 15s e `service_role` explícito em 60s; (2) `RESET app.settings.jwt_secret` — remoção de redundância; (3) `RESET app.settings.jwt_exp` — remoção da cópia órfã, **sem** gravar `3600` no lugar.
+>
+> **Fora do escopo da etapa, movido para item próprio:** **rotação do `jwt_secret`**. Continua justificada, mas deixou de ser pré-requisito de qualquer coisa. Exige janela e lista de propagação fechada — regenera `anon key` e `service_role key`, que quebram n8n, Evolution, os ~20 MCPs Supabase, o frontend e os Workers. A lista fora da stack **ainda não foi conferida item a item**.
+>
+> **Fora do escopo, com decisão registrada:** o `REVOKE` no `pg_catalog` (item 3 do F9-17) — **não aplicar**. Com o secret fora do banco, o ganho não paga o risco de quebrar o schema cache do PostgREST.
+>
+> **Ordem interna:** F9-18 primeiro (ensaio do caminho `ALTER ROLE` → reload → verificação), depois F9-17 item 1, depois F9-16 revisado.
+>
+> **Risco revisado: BAIXO — janela de manutenção deixa de ser obrigatória** para esta etapa. São três `ALTER` reversíveis, nenhum toca sessão. A janela passa a ser necessária apenas para a rotação, que saiu daqui. O `Pronto quando` original continua válido, com a ressalva de que ele agora prova remoção de redundância, não migração de fonte.
+>
+> **Pendência que não é desta etapa mas condiciona a entrada nela:** o `Passo 0` só fecha quando o run de `fc35cd7b7` confirmar `CI/CD Pipeline` verde. Backups conferidos e verdes em 2026-08-02: banco 15:16 UTC (783 tabelas, R2 OK) e configuração 18:56 UTC (root.key validada).
 
 #### Etapa 4 — Isolamento multi-tenant
 **Achados:** F5-14, F5-15, F5-16, F5-20, F6-17, F6-27, F8-06.

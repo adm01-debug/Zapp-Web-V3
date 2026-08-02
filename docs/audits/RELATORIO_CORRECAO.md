@@ -114,3 +114,38 @@ Três decisões que valem registro:
 1. **A Etapa 2 está fechada.** Próxima: Etapa 3 — Credenciais e sessão JWT (F9-16, F9-17, F9-18).
 2. **O primeiro run do CI após este commit é o teste real.** Os gates passaram a morder. Se algo reprovar, é achado novo — a regra da etapa é explícita: **não desligar o gate de novo**.
 3. **Ponto de atenção no `ci.yml`:** o passo de lint agora faz `exit $status`. Se o job "quality" do `ci.yml` for required status check da branch protection, um erro de lint passa a bloquear merge — que é exatamente a intenção.
+
+---
+
+## Etapa 3 — Credenciais e sessão JWT · 🔍 **RECON CONCLUÍDO, EXECUÇÃO NÃO INICIADA**
+
+**Data:** 2026-08-02. **Nada foi alterado em produção nesta sessão** — nenhum `ALTER ROLE`, nenhum `ALTER DATABASE`, nenhum toque no `jwt_secret`. O que segue é medição.
+
+### Passo 0
+
+Reprovou e foi corrigido antes de qualquer coisa. Registro completo na Etapa 2 do `PLANO_CORRECAO_20_ETAPAS.md` e nos achados `E02-N10`, `E02-N10b`, `E02-N11` e `E02-N12` acima. Commits `ff1a89e29` e `fc35cd7b7`. **O verde do `CI/CD Pipeline` em `fc35cd7b7` ainda precisa ser confirmado** — é a única pendência que separa a Etapa 3 de começar.
+
+### O recon derrubou duas premissas do plano
+
+| # | Premissa | Medição de 2026-08-02 | Efeito |
+|---|---|---|---|
+| 1 | `jwt_exp` = 365 dias | `GOTRUE_JWT_EXP=28800` (**8h**) no ambiente do `supabase_auth`. O `31536000` do banco **não emite token**: zero referências a `app.settings.jwt_exp` em `pg_proc`, `pg_views` e `column_default` | F9-16 rebaixado de `SEC` para `DEGRADADO`; Ação reescrita |
+| 2 | Secret precisa ser **movido** para o ambiente | Já está: 5 serviços montam o Swarm secret `supabase_jwt_secret_v1` (41 bytes). `GOTRUE_JWT_SECRET` não existe como env — vem do secret montado. PostgREST não lê `pgrst.jwt_secret` do catálogo | F9-17 item 1 vira `RESET` isolado; risco `ALTO` da etapa evapora |
+| 3 | Rotação é pré-requisito do corte | Não é. Existia para invalidar tokens de 365 dias; com 8h expiram sozinhos | Rotação sai da Etapa 3 |
+| 4 | ~50 operadores refazem login | **18 usuários, 10 ativos** em 30 dias, 54 sessões. `GOTRUE_SECURITY_REFRESH_TOKEN_ROTATION_ENABLED=true`, reuse 10s | Janela deixa de ser obrigatória |
+
+### Medições que ficam como linha de base
+
+- **`pg_db_role_setting`:** `authenticated statement_timeout=120s` + `lock_timeout=10s`; `service_role` **sem `statement_timeout`** (herda 30s do cluster), `idle_in_transaction=300s`; `anon=5s`; `authenticator=8s`; `postgres=120s`. `supabase_auth_admin` com `idle_in_transaction_session_timeout=60000` sem unidade.
+- **Nível de banco (`postgres`):** `app.settings.jwt_exp=31536000`, `app.settings.jwt_secret` (40 chars), `TimeZone=America/Sao_Paulo`, `work_mem=16MB`, `effective_cache_size=4GB`, `idle_in_transaction=60s`.
+- **Consumidores do secret dentro da stack:** `supabase_auth`, `supabase_realtime` (+`METRICS_JWT_SECRET`, `SECRET_KEY_BASE`), `supabase_storage` (+env `ANON_KEY`), `supabase_kong` (+env `SUPABASE_ANON_KEY`), `supabase_functions` (+`SUPABASE_ANON_KEY`, `PROMOGIFTS_SUPABASE_ANON_KEY`). Swarm secrets envolvidos: `supabase_jwt_secret_v1` e `supabase_service_key_v1`.
+- **Backups verificados antes de tudo:** banco 2026-08-02 15:16 UTC (54,7 MB, 783 tabelas, R2 OK); configuração 2026-08-02 18:56 UTC (root.key validada).
+- **Nota operacional confirmada na prática:** `portainer_inspect_service` e `portainer_get_stack_file` devolvem valores de env — o recon foi feito por `portainer_exec_container` listando **só nomes**. Nenhum valor de secret circulou. `supabase_rest` (`postgrest/postgrest:v14.12`) **não tem shell**, então sua configuração foi inferida pelo lado do banco.
+
+### O que a próxima sessão precisa saber
+
+1. **Confirmar o `CI/CD Pipeline` de `fc35cd7b7`.** Sinal de saúde do job de a11y: duração de ~60s. Se voltar a morrer em 0-1s, é config que não carrega, não teste que reprova.
+2. **A Etapa 3 encolheu para três `ALTER` reversíveis** e risco baixo. Ordem: F9-18 → F9-17 item 1 → F9-16 revisado. Detalhes nos corpos revisados.
+3. **A rotação do `jwt_secret` virou item próprio** e ainda não tem lista de propagação fechada fora da stack (n8n, Evolution, ~20 MCPs, frontend, Workers). **Fechar essa lista é pré-condição da janela.**
+4. **O `REVOKE` no `pg_catalog` está com decisão de não aplicar**, registrada no F9-17. Reabrir só se algum secret voltar ao catálogo.
+5. **Duas correções de rumo desta sessão** valem como método: o primeiro diagnóstico do Passo 0 estava errado e o commit não resolveu — o que denunciou foi a **duração** do passo, não a mensagem. E o F9-16 mostra que `current_setting` no banco pode dar Aceite verde sem descrever produção. Em ambos, o que salvou foi medir o efeito, não confiar no artefato.

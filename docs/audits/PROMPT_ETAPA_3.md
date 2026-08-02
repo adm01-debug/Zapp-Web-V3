@@ -1,5 +1,17 @@
 # PROMPT — Etapa 3: credenciais e sessão JWT
 
+> ## ⚠️ PARCIALMENTE SUPERADO EM 2026-08-02 — leia isto antes de usar este arquivo
+>
+> O recon descrito abaixo foi executado. **Nada foi alterado em produção.** Três partes deste prompt não descrevem mais o ambiente:
+>
+> 1. **`jwt_exp` de 365 dias:** falso na prática. `GOTRUE_JWT_EXP=28800` (8h) no ambiente do `supabase_auth` vence o valor do banco, e **nada no banco lê** `app.settings.jwt_exp`. F9-16 foi rebaixado para `DEGRADADO`.
+> 2. **"Mover o secret para o ambiente":** já feito antes desta auditoria. Cinco serviços montam o Swarm secret `supabase_jwt_secret_v1`; PostgREST não lê o secret do catálogo. O Bloco B vira um `RESET` isolado.
+> 3. **Rotação como parte da etapa:** desacoplada. Deixou de ser pré-requisito do corte de `jwt_exp` e virou item próprio, com janela e lista de propagação.
+>
+> **Passo 0 reprovou** e foi corrigido (`ff1a89e29`, `fc35cd7b7`) — mas por um motivo que este prompt não previa: `__dirname` em ESM quebrando o carregamento das configs Playwright. Ver `E02-N10` no relatório.
+>
+> **Fonte da verdade agora:** `PLANO_CORRECAO_20_ETAPAS.md` → Etapa 3 (bloco "Redesenhada em 2026-08-02"), os corpos revisados de F9-16/F9-17/F9-18 em `PLANO_IMPLEMENTACAO_100.md`, e a seção "Etapa 3" de `RELATORIO_CORRECAO.md`. O que continua válido aqui: as **regras duras do ambiente**, o **rollback escrito**, o **aviso sobre `portainer_inspect_service`** (confirmado na prática) e a **checagem de integridade antes do commit**.
+
 > Cole o conteúdo abaixo num chat novo. Este arquivo existe para não depender do histórico de conversa.
 > Gerado em 2026-08-02, ao fim da Etapa 2 (commits `9d818bc9a` + `42a6ef0bb` + `ff04b78cb`).
 
