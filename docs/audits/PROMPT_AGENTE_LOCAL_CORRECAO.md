@@ -94,6 +94,29 @@ Delegue. Você é o orquestrador; não faça tudo no thread principal — o cont
 
 O **reviewer** roda ao fim de cada etapa, antes do commit. Se ele vetar, corrija antes de seguir.
 
+## 4-bis. Pool de subagentes instalados — descoberta e mapeamento
+
+A tabela acima define os **8 papéis funcionais** que esta missão exige. Ela **não é a lista de agentes disponíveis** na máquina — o repositório local tem um pool de subagentes especializados (~50) que só você enxerga.
+
+**Primeira ação da sessão, antes de qualquer etapa:**
+
+1. **Inventarie o pool.** Liste os subagentes disponíveis (`.claude/agents/`, `~/.claude/agents/`, ou o comando equivalente da sua instalação). Leia a descrição de cada um.
+2. **Mapeie pool → papel.** Para cada um dos 8 papéis, escolha o agente instalado que melhor corresponde. Um papel pode virar vários agentes (ex.: `db-schema` pode se decompor em um de RLS, um de funções/triggers e um de views). Vários papéis podem cair no mesmo agente. **O que não pode é papel sem dono.**
+3. **Registre o mapa** em `RELATORIO_CORRECAO.md`, numa tabela `Papel | Agente instalado | Etapas`. Se algum papel não tiver agente correspondente, diga qual e assuma você mesmo — mas registre a lacuna.
+4. **Não use agente por existir.** 50 disponíveis não significa 50 acionados. Cada subagente custa contexto e cria superfície de conflito. Acione o mínimo que cobre a etapa.
+
+**Regras de concorrência — obrigatórias a partir de 2 subagentes simultâneos:**
+
+- **Propriedade exclusiva de arquivo.** Dois subagentes **nunca** editam o mesmo arquivo na mesma rodada. Antes de despachar, declare o conjunto de arquivos de cada um e verifique que não há interseção. Se houver, serialize.
+- **Escrita em banco é serializada por você.** Nenhum subagente aplica no Supabase — nunca, em nenhuma circunstância. Eles escrevem migração; **só o orquestrador aplica**, uma etapa por vez, após autorização. Dois agentes escrevendo em produção em paralelo é o cenário que não tem rollback.
+- **Paralelismo respeita o caminho crítico.** `3→16`, `6→7`, `13→14,19`, `F9-10→F9-09` são sequenciais. Só paralelize etapas sem dependência entre si — as boas candidatas são **18** (28 achados independentes), **15**, **20** e **9**.
+- **Teto de 3 subagentes simultâneos.** Acima disso, o custo de reconciliar diffs supera o ganho, e você perde a capacidade de saber qual agente causou uma regressão.
+- **Um subagente, um escopo, uma entrega.** Nada de agente "genérico" pegando sobras. Se sobrou trabalho sem dono, o problema é o mapeamento, não o agente.
+- **Reconciliação antes do commit.** Ao receber os diffs, rode `npx tsc --noEmit` e a suíte de testes **com tudo aplicado junto** antes de commitar. Verde individualmente não garante verde em conjunto.
+- **O `reviewer` roda sempre por último e sozinho**, com o diff consolidado da etapa. Nunca em paralelo com quem escreveu o código.
+
+**Se o pool tiver agentes que este prompt não previu** (segurança, performance, acessibilidade, documentação, migração de dados), use-os — mas subordinados ao mesmo contrato da seção 4: recebem os IDs de achado, o texto integral e **a nota de revisão correspondente**; entregam diff + saída real do Aceite + o que não fechou.
+
 ## 5. As 7 regras que a revisão produziu — valem para todos os subagentes
 
 1. **O roteador de rotas é `src/components/routing/AppRoutes.tsx`** (e `AdminRoutes.tsx`). Não é `src/App.tsx`, nem `src/pages/ViewRouter.tsx`, nem `src/pages/lazyViews.ts` — os três existem mas não registram `<Route>`. `?view=` é resolvido por `lazyViews.ts` (76 imports dinâmicos). **Órfã ≠ inalcançável.** Esse erro produziu 4 falsos positivos.
