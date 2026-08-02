@@ -152,9 +152,11 @@ jobs:
           # Funcoes protegidas que existem em producao (nao estao na PUBLIC_FNS allowlist)
           PROTECTED_FNS="evolution-api ai-router"
           for fn in $PROTECTED_FNS; do
-            # Pular se estiver na allowlist (pode ter sido adicionada)
+            # evolution-api e ai-router sao SEMPRE protegidas — se aparecerem na
+            # allowlist e uma regressao de seguranca que deve falhar o CI
             if grep -qx "$fn" "$ALLOWLIST_FILE" 2>/dev/null; then
-              echo "SKIP: '$fn' esta na allowlist — pulando teste de autenticacao"
+              echo "::error::ALLOWLIST REGRESSION: '$fn' foi adicionada a PUBLIC_FNS — funcao protegida nao pode ser publica"
+              FAILED=1
               continue
             fi
 
@@ -193,9 +195,10 @@ jobs:
           echo "=== Testando rejeicao de JWT invalido em funcao protegida ==="
           FAKE_JWT="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0Iiwicm9sZSI6ImFub24iLCJleHAiOjB9.invalidsignature"
           fn="ai-router"
-          # Pular se funcao estiver na allowlist (evita falso positivo)
+          # ai-router e SEMPRE protegida — se estiver na allowlist e regressao de seguranca
           if grep -qx "$fn" "$ALLOWLIST_FILE" 2>/dev/null; then
-            echo "SKIP: '$fn' esta na allowlist — JWT test pulado"
+            echo "::error::ALLOWLIST REGRESSION: '$fn' foi adicionada a PUBLIC_FNS — funcao protegida nao pode ser publica"
+            FAILED=1
           else
             code="$(curl -s -o /dev/null -w '%{http_code}' \
               --max-time 10 \
