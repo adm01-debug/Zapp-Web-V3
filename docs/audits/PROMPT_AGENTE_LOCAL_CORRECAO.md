@@ -37,16 +37,40 @@ Resultado da revisão dos 172: **121 ✅ VÁLIDO · 17 ⚠️ REFERÊNCIA · 11 
 ### Trilha A — CÓDIGO (local, autônomo)
 Etapas **13, 15, 16, 18, 19, 20** e as partes de frontend das demais. Arquivos `.ts`, `.tsx`, `.json`, `.md`, configs, testes. Você tem autonomia total: edite, teste, refatore, commite na branch local. Rodar `npm run lint`, `npm run test`, `npx tsc --noEmit` é barato e seguro.
 
-### Trilha B — BANCO DE DADOS (produção, exige aprovação)
-Etapas **3, 4, 5, 6, 7, 8, 10, 11, 12, 14, 17** mexem em RLS, funções, views, triggers e crons do Supabase **self-hosted em produção** (`supabase.atomicabr.com.br`, schema `zapp`). **Não existe ambiente local espelhado.**
+### Trilha B — BANCO DE DADOS (produção, aplicação sob autorização)
+Etapas **3, 4, 5, 6, 7, 8, 10, 11, 12, 14, 17** mexem em RLS, funções, views, triggers e crons do Supabase **self-hosted em produção** (`supabase.atomicabr.com.br`, schema `zapp`).
 
-**Regra absoluta da Trilha B:**
-1. Você **PODE** ler o banco à vontade (`SELECT`, `pg_catalog`, `EXPLAIN` sem `ANALYZE`).
-2. Você **ESCREVE** a mudança como arquivo de migração em `supabase/migrations/<timestamp>_<slug>.sql`, com o bloco de **rollback capturado** no cabeçalho (ver códigos `R-POL`, `R-FN`, `R-VIEW`, `R-CRON`, `R-DDL` na Parte II do plano).
-3. Você **NÃO APLICA** nada em produção sem que o Abner diga explicitamente "pode aplicar a Etapa N". Pare e pergunte.
-4. Toda migração da Trilha B precisa de: (a) o `SELECT` de captura do estado anterior **executado e com a saída colada no cabeçalho**; (b) o comando de reversão escrito; (c) o comando do Aceite pronto para rodar depois.
+**Você tem MCP com permissão de escrita nesse banco. Leia esta parte devagar.**
 
-Se uma etapa é mista, separe em dois commits: um de código (Trilha A) e um de migração (Trilha B, não aplicada).
+**Capacidade não é autorização.** O MCP conectado é a **produção**: dados reais de cliente, servindo o app neste momento. **Não existe ambiente espelhado, não existe staging, não existe undo automático.** O fato de o comando funcionar não torna a decisão sua. Um `DROP POLICY` que "só" derruba o isolamento multi-tenant executa em 40 ms e não avisa nada.
+
+**O que você pode fazer sem pedir nada:**
+- Qualquer leitura: `SELECT`, `pg_catalog`, `information_schema`, `pg_policy`, `cron.job`, `EXPLAIN` **sem** `ANALYZE`.
+- Isso cobre 100% do trabalho de diagnóstico e de verificação de Aceite pós-aplicação. Use à vontade — ler é o que separa achado revalidado de achado presumido.
+
+**O que exige autorização explícita do Abner, por etapa:**
+Qualquer escrita. Sem exceção: `CREATE`, `ALTER`, `DROP`, `INSERT`, `UPDATE`, `DELETE`, `GRANT`, `REVOKE`, `cron.schedule`, `cron.alter_job`, `cron.unschedule`, `CREATE OR REPLACE FUNCTION/VIEW`, `TRUNCATE`, `VACUUM`. A autorização é **por etapa e por sessão** — "pode aplicar a Etapa 5" não autoriza a Etapa 6, e não vale para a sessão seguinte.
+
+**Protocolo de aplicação — os 7 passos, em ordem, sem pular:**
+1. **Escreva a migração** em `supabase/migrations/<timestamp>_<slug>.sql` antes de tocar no banco. O `pg_catalog` é a fonte de verdade do *estado*, mas o repositório é o registro do *que foi feito por quem e quando* — sem o arquivo não há rastreabilidade nem revisão de PR.
+2. **Capture o rollback e cole a saída no cabeçalho da migração.** Use o código correspondente da Parte II: `R-POL` (policies), `R-FN` (funções/triggers), `R-VIEW` (views + triggers `INSTEAD OF`), `R-CRON` (jobs), `R-DDL` (tabelas/colunas/índices/dados). Rollback não capturado = não aplica.
+3. **Mostre ao Abner:** o diff da migração, a saída da captura, o comando de reversão e o comando do Aceite. **Peça autorização e pare.**
+4. **Aplique somente após o "pode aplicar".** Uma etapa por vez. **Nunca** aplique duas etapas no mesmo turno — se a segunda quebrar, você não sabe qual causou.
+5. **Verifique o Aceite imediatamente**, via `pg_catalog`, e cole a saída real. Não deduza pelo retorno do comando ("ALTER POLICY" não prova que a policy ficou certa).
+6. **Verifique o app**, não só o banco: as etapas 4, 5, 6 e 7 alteram RLS e views das quais o frontend depende. Rode os testes e confira uma tela real que consome o objeto alterado.
+7. **Registre em `RELATORIO_CORRECAO.md`**: comando aplicado, saída, Aceite verificado, horário. Se algo saiu diferente do previsto, reverta usando o rollback capturado e reporte — **não tente consertar por cima**.
+
+**Sempre pare e pergunte, mesmo com autorização da etapa em mãos, se a ação envolver:**
+- `DROP` de qualquer objeto com dependentes (funções, views, policies em uso).
+- Qualquer coisa que toque em **dado de cliente** (`UPDATE`/`DELETE` em `evolution_contacts`, `evolution_messages`, `empresas`, `profiles`).
+- `TRUNCATE`, ou `DELETE` sem `WHERE` restritivo.
+- Criar tabela nova (proibido por princípio do projeto; exceção única `_backup_<nome>_<yyyymmdd>`).
+- Alterar objeto que resolveu para **schema diferente do citado no achado** — homônima em 2 schemas já causou 2 incidentes nesta base.
+- Etapa 6 (`zapp.contacts`) em qualquer circunstância: é **risco muito alto**, causa-raiz de 5 achados, e a view tem triggers `INSTEAD OF` que o `DROP VIEW ... CASCADE` leva junto.
+
+**Antes de qualquer `UPDATE`/`DELETE` em tabela com dados:** `CREATE TABLE <schema>._backup_<tabela>_<yyyymmdd> AS SELECT * FROM <tabela>;` — e confira a contagem das duas.
+
+Se uma etapa é mista, separe em dois commits: um de código (Trilha A) e um de migração (Trilha B), deixando claro na mensagem se a migração **foi aplicada** ou **está pendente de autorização**.
 
 ## 4. Subagentes especializados
 
