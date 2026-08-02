@@ -1,0 +1,8 @@
+-- E15 Onda 2: Fixes rápidos
+-- F4-05: USE_EXTERNAL_DB → VITE_USE_EXTERNAL_DB (ver commit 1283bb994)
+-- F4-24: OBSOLETO (warroom_alerts já tem severity, cron 213 OK)
+-- F4-23: outbound_message_queue vazia (0 rows) — nada a corrigir
+-- F4-22: media_cache vazia — Ação Frágil (Aceite reescrito na revisão)
+-- F4-18: retry_attempt/error_reason são colunas da VIEW, não da tabela base
+--   evo.evolution_messages (particionada, 17M+ rows) não tem essas colunas
+--   ADR necessário antes de adicionar colunas à tabela particionada
