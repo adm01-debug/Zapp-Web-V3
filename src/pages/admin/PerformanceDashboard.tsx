@@ -5,6 +5,17 @@ import type { WebVitalMetric } from '@/lib/webVitals';
 import { Gauge, Zap, Layout, Timer, BarChart3, ShieldCheck } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+
+/** Thresholds for progress bar normalization per metric (good/poor boundaries) */
+const THRESHOLDS: Record<string, number> = {
+  LCP: 2500,  // Largest Contentful Paint: 2.5s good
+  INP: 200,   // Interaction to Next Paint: 200ms good
+  CLS: 0.1,   // Cumulative Layout Shift: 0.1 good
+  FCP: 1800,  // First Contentful Paint: 1.8s good
+  TTFB: 800,  // Time to First Byte: 800ms good
+  FID: 100,   // First Input Delay: 100ms good
+};
+
 /** Performance Dashboard. */
 export default function PerformanceDashboard() {
   const [metrics, setMetrics] = useState<WebVitalMetric[]>([]);
@@ -75,7 +86,7 @@ export default function PerformanceDashboard() {
                 </span>
               </div>
               <Progress
-                value={Math.min((m.value / 4000) * 100, 100)}
+                value={Math.min((m.value / (THRESHOLDS[m.name] || 4000)) * 100, 100)}
                 className="h-1.5"
                 // Custom indicator color handled via CSS if possible or just use default
               />
@@ -116,19 +127,19 @@ export default function PerformanceDashboard() {
           <div className="space-y-4">
             <div className="flex items-center justify-between text-sm">
               <span>Largest Contentful Paint (LCP)</span>
-              <span className="font-mono">&lt; 2500ms</span> // @technical
+              <span className="font-mono">&lt; 2500ms</span> {/* @technical */}
             </div>
             <Progress value={25} className="h-1" />
 
             <div className="flex items-center justify-between text-sm">
               <span>Cumulative Layout Shift (CLS)</span>
-              <span className="font-mono">&lt; 0.100</span> // @technical
+              <span className="font-mono">&lt; 0.100</span> {/* @technical */}
             </div>
             <Progress value={10} className="h-1" />
 
             <div className="flex items-center justify-between text-sm">
               <span>Bundle Size (Gzip)</span>
-              <span className="font-mono">&lt; 500KB</span> // @technical
+              <span className="font-mono">&lt; 500KB</span> {/* @technical */}
             </div>
             <Progress value={80} className="h-1" />
           </div>
