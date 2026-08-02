@@ -109,11 +109,10 @@ export function useRealtimeInbox() {
     loading
   );
 
-  // 🔬 Probe: log transitions in the conversations array coming from the data source
-  // (external Evolution DB when USE_EXTERNAL_DB=true). Emits on every length change,
-  // and always at least once with initial=true so we can prove 0→N hydration.
+  // 🔬 Probe: log transitions in the conversations array (dev-only — never runs in production).
   const convProbeRef = useRef<{ len: number; logged: boolean }>({ len: -1, logged: false });
   useEffect(() => {
+    if (!import.meta.env.DEV) return;
     const len = conversations?.length ?? 0;
     const prev = convProbeRef.current.len;
     if (len !== prev || !convProbeRef.current.logged) {
