@@ -2,7 +2,8 @@
 -- Achados: F5-12 (pg_trgm), F5-22 (normalização phone), F5-23 (campos busca)
 
 -- F5-12: Índice pg_trgm em full_name (já existia em push_name e email)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_contacts_fullname_trgm
+-- NOTA: sem CONCURRENTLY — MCP executa em transação implícita
+CREATE INDEX IF NOT EXISTS idx_contacts_fullname_trgm
   ON evo.evolution_contacts USING gin (full_name gin_trgm_ops);
 
 -- F5-22 + F5-23: search_contacts_cursor ampliado
