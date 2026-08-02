@@ -9,44 +9,92 @@ Convenção de ID: `F<bloco>-<seq>` — ex. `F1-01` = primeiro achado do bloco 1
 
 ---
 
+## Como ler um achado — campos de triagem (normalizados em 2026-08-02, Etapa 1 itens 3-5)
+
+Cada achado traz, logo abaixo do título, até quatro campos:
+
+| Campo | Para que serve |
+|---|---|
+| **Sev:** | Severidade normalizada. Presente nos 200. |
+| **Depende de:** | Achado ou decisão que precisa vir antes. Executar fora de ordem desperdiça a sessão ou ativa bug latente. |
+| **Raiz de:** | Achados que são sintoma deste. Corrigir a raiz costuma fechar vários de uma vez. |
+| **Rollback:** | Código do procedimento de reversão (`R-POL`, `R-FN`, `R-VIEW`, `R-CRON`, `R-DDL`, `R-CODE`), detalhado na **Parte II do `PLANO_CORRECAO_20_ETAPAS.md`**. **Ausência do campo significa que a Ação não altera produção.** |
+
+### Escala de severidade
+
+Ordenada, do mais para o menos urgente:
+
+| Classe | Significa | Qtd | % |
+|---|---|---:|---:|
+| `SEC` | Segurança ou LGPD: vazamento, RLS aberta, PII exposta, segredo legível, bypass de auth | 28 | 14,0% |
+| `QUEBRADO` | Feature morta ou que mente: não executa, retorna vazio sempre, KPI falso | 46 | 23,0% |
+| `RISCO` | Latente: funciona hoje e quebra sob condição — race, ausência de fallback, hardcode, falta de validação | 43 | 21,5% |
+| `DEGRADADO` | Performance, custo ou UX ruins, **sem** perda de função | 34 | 17,0% |
+| `HIGIENE` | Organização, dead code, lint, cobertura de teste, duplicata | 38 | 19,0% |
+| — | Obsoletos — fora da esteira | 11 | 5,5% |
+
+> A etiqueta antiga no título (`CRÍTICO (P0)` / `ALTO` / `MÉDIO` / `BAIXO`) foi **preservada para rastreabilidade mas não é mais canônica**. Ela estava inflacionada — 16 `CRÍTICO` em 30 achados só no F5 — e misturava naturezas incompatíveis (vazamento cross-tenant e lentidão de busca com a mesma etiqueta). **Ordene por `Sev:`.**
+
+> **Leitura sugerida da esteira:** `SEC` e `QUEBRADO` primeiro, mas sempre checando `Depende de:` — 34 achados têm pré-requisito e 15 são raízes. As duas maiores raízes são **F6-04** (6 sintomas) e **F5-01** (5 sintomas): valem mais que qualquer achado isolado.
+
+---
+
 ## Tema 1 — Higienização do repositório
 
 > **Nota de revisão (2026-08-02, Lote C) — achados F1-\*.** F1-05 a F1-14 são **títulos-resumo sem `Evidência`/`Ação`/`Aceite`** (mesmo padrão do bloco F2). A substância de cada um foi revalidada abaixo/em `REVISAO_BACKLOG_172.md`, mas não são executáveis pela esteira enquanto Ação e Aceite não forem escritos. F1-01 a F1-04 têm Ação e foram confirmados: os 5 alvos existem na raiz e `scripts/` já existe.
 
 ### F1-01 — Deletar `___TEMP_VERSION_CHECK_DO_NOT_MERGE.txt`
+- **Sev:** `HIGIENE`
+- **Rollback:** R-CODE
 - **Ação:** `git rm ___TEMP_VERSION_CHECK_DO_NOT_MERGE.txt`.
 - **Aceite:** arquivo ausente em `main`.
 
 ### F1-02 — Ignorar e remover `__pycache__/`
+- **Sev:** `HIGIENE`
+- **Rollback:** R-CODE
 - **Ação:** adicionar `__pycache__/` e `*.pyc` ao `.gitignore`; `git rm -r --cached __pycache__`.
 
 ### F1-03 — Mover scripts soltos para `scripts/`
+- **Sev:** `HIGIENE`
 - **Evidência:** `ci_cost_analysis.py`, `gen_insert.cjs` na raiz.
 - **Ação:** `mv` para `scripts/`. Atualizar `package.json`.
 
 ### F1-04 — Migrar `lgpd_deploy.sql` para `supabase/migrations/`
+- **Sev:** `RISCO`
+- **Rollback:** R-DDL
 - **Ação:** renomear com timestamp; registrar em `supabase_migrations.schema_migrations`.
 
 ### F1-05 — Mover 8 relatórios `.md` da raiz para `docs/audits/history/`
+- **Sev:** `HIGIENE`
 - **⚠️ Revisado em 2026-08-02 — números corrigidos:** a raiz tem **21 arquivos `.md`**, não 8. Destes, ~9 são relatórios movíveis (`CI_COST_ANALYSIS_REPORT.md`, `QUALITY_METRICS_REPORT.md`, `REGRESSION_SIMULATION_REPORT.md`, `RLS_AUDIT_REPORT.md`, `PLANO_CORRECOES_CI_CD.md`, `FLUXO_CLIQUE_CHATPANEL.md`, …) e os demais são canônicos de raiz (`README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`, `AGENTS.md`, `CLAUDE.md`) e **não devem ser movidos**. Além disso **`docs/audits/history/` não existe** — a Ação precisa criar o diretório antes do `git mv`.
 
 ### F1-06 — Deletar duplicata `playwright.e2e.config.fixed.ts`
 
+- **Sev:** `HIGIENE`
+- **Rollback:** R-CODE
 ### F1-07 — Consolidar 5 pastas de teste em `src/**/__tests__/` + `e2e/`
 
+- **Sev:** `HIGIENE`
 ### F1-08 — Deletar `supabase/functions-legacy/` (grep imports antes)
 
+- **Sev:** `HIGIENE`
+- **Rollback:** R-CODE
 ### F1-09 — Mover/deletar `supabase/fatorx-migrations/` (projeto errado)
 
+- **Sev:** `RISCO`
+- **Rollback:** R-CODE
 ---
 
 ## Tema 2 — Gates de CI e qualidade
 
 ### F1-10 — Remover `|| true` do script `lint` em `package.json`
+- **Sev:** `QUEBRADO`
+- **Raiz de:** F10-06
 - **⚠️ Revisado em 2026-08-02 — há DOIS `|| true`, não um.** `package.json` l.23: `"lint": "eslint . --max-warnings 999 || true; bun run scripts/check-design-system.ts --ci || true"`. Remover só o primeiro deixa o gate ainda cego pelo segundo. **Armadilha adicional:** o segundo comando invoca `bun`, que **não existe no container** — ao remover o `|| true` o script passa a falhar sempre. Trocar `bun run` por `npx tsx`/`node` na mesma correção.
 
 ### F1-11 — Reduzir `--max-warnings 999 → 0` progressivamente
 
+- **Sev:** `HIGIENE`
 ---
 
 ## Tema 3 — Segurança Supabase
@@ -54,20 +102,29 @@ Convenção de ID: `F<bloco>-<seq>` — ex. `F1-01` = primeiro achado do bloco 1
 > **Nota de revisão (2026-08-02, Lote A):** os achados **F2-\*** foram herdados do Bloco 2 como títulos-resumo — não possuem seções `Evidência` / `Ação` / `Aceite`. A evidência de cada um foi **revalidada e confirmada** nesta revisão (ver `REVISAO_BACKLOG_172.md`), mas eles **não são executáveis pela esteira de correção** enquanto Ação e Aceite não forem escritos. Tratar como `📝 AÇÃO FRÁGIL (estrutural)`.
 
 ### F2-01 — Revogar `EXECUTE` de `authenticated` nas 6 TRIGGER functions em `public`
+
+- **Sev:** `SEC`
+- **Rollback:** R-POL
 - `fn_contacts_proxy_delete/insert/update`, `fn_messages_bridge_delete/insert/update`.
 
 ### F2-02 — Revogar `EXECUTE` de `authenticated` nas 3 outras TRIGGER functions em `public`
 - `handle_new_user_settings`, `on_role_change`, `trg_fn_set_transfer_ticket`.
+- **Sev:** `SEC`
+- **Rollback:** R-POL
 - **⚠️ Revisado em 2026-08-02:** as 3 existem **em `public` E em `zapp`** (homônimas). O `REVOKE` **deve** qualificar `public.<fn>(<args>)`; sem qualificação o comando pode atingir a função errada. `authenticated` tem `EXECUTE` nas 3 de `public` — problema confirmado.
 
 ### F2-03 — Revisar 9 RPCs SECDEF em `public` — garantir `auth.uid()` + tenant check
 - `rpc_get_contact` (2 overloads), `rpc_app_bootstrap`, `rpc_dashboard_init`, `generate_transfer_ticket`, `get_companies_by_phones_batch`, `get_contact_intelligence_by_phone`, `increment_webhook_rate_limit`, `is_instance_paused`, `log_rls_denied`.
+- **Sev:** `SEC`
+- **Rollback:** R-POL
 - **⚠️ Revisado em 2026-08-02:** 7 dos 9 nomes também existem em `zapp` (`rpc_get_contact` — 4 overloads em `public`+`zapp` —, `generate_transfer_ticket`, `get_companies_by_phones_batch`, `get_contact_intelligence_by_phone`, `increment_webhook_rate_limit`, `is_instance_paused`, `log_rls_denied`). **Qualificar `public.` em toda alteração.** `public` tem 19 funções SECDEF acessíveis a `authenticated`.
 
 ### F2-04 — Auditoria CSV das 119 SECDEF+authenticated em `zapp` (`docs/audits/secdef-zapp.csv`)
 
+- **Sev:** `SEC`
 ### F2-05 — Auditoria similar em `financeiro` (25), `artes` (11), `vendas` (5)
 
+- **Sev:** `SEC`
 ---
 
 ## Tema 4 — Performance de banco
@@ -76,14 +133,22 @@ Convenção de ID: `F<bloco>-<seq>` — ex. `F1-01` = primeiro achado do bloco 1
 
 ### F2-09 — Mover `ops.fn_regression_tests()` para off-peak + MV cached (8,8 s/call → 0)
 
+- **Sev:** `DEGRADADO`
+- **Rollback:** R-CRON
 ### F2-10 — Consolidar 588 042 INSERTs unitários em `financeiro.pagamentos_diarios` para batch
 
+- **Sev:** `DEGRADADO`
+- **Rollback:** R-DDL
 ### F2-11 — Investigar `zapp.fn_system_health_score_cached` (289 ms apesar do nome "_cached")
 
+- **Sev:** `DEGRADADO`
 ### F2-12 — Reduzir invalidações do PostgREST schema cache (203 s totais em introspection)
 
+- **Sev:** `DEGRADADO`
 ### F2-13 — Índice parcial em `zapp.messages` para badge unread inbound
 
+- **Sev:** `DEGRADADO`
+- **Rollback:** R-DDL
 - **⚠️ Revisado em 2026-08-02 — referência corrigida.** O SQL original **não roda**, por 3 motivos: (a) `zapp.messages` é **VIEW** (`relkind='v'`) sobre `evo.evolution_messages` — `CREATE INDEX` em view falha; (b) `evo.evolution_messages` é **tabela particionada** (`relkind='p'`) — `CREATE INDEX CONCURRENTLY` não é suportado em tabela particionada; (c) a view **remapeia** `direction`: base grava `'inbound'`/`'outbound'`, a view expõe `'incoming'`/`'outgoing'`. Índice equivalente não existe hoje — o problema de performance é real.
 - **Ação (reescrita):** criar o índice em cada partição de `evo.evolution_messages` e anexar ao índice pai:
 ```sql
@@ -103,6 +168,9 @@ CREATE INDEX idx_msg_unread_inbound
 > **Nota de revisão (2026-08-02):** vide nota estrutural dos achados `F2-*` no Tema 3 — sem `Ação`/`Aceite` formais.
 
 ### F2-06 — Consolidar 4 pares de duplicatas de cron
+
+- **Sev:** `DEGRADADO`
+- **Rollback:** R-CRON
 - `cleanup_expired_contact_ids` (190) + `evo_cleanup_expired_contact_ids` (189).
 - `purge-processed-webhook-events` (54) + `purge_webhook_events_processed` (152).
 - `purge-webhook-audit-log-90d` (209) + `purge_webhook_audit` (61).
@@ -110,19 +178,28 @@ CREATE INDEX idx_msg_unread_inbound
 
 ### F2-07 — Escalonar 6 VACUUMs diários (02:06–02:21) em janelas > 5 min
 
+- **Sev:** `DEGRADADO`
+- **Rollback:** R-CRON
 ### F2-08 — Reagrupar chain logflare (7 jobs, 03:00–03:45) em job único
 
+- **Sev:** `DEGRADADO`
+- **Rollback:** R-CRON
 ---
 
 ## Tema 6 — Frontend: router, navegação, arquitetura
 
 ### F1-12 — Homônimos em `src/pages/` — padronizar `<slug>/index.tsx`
 
+- **Sev:** `HIGIENE`
 ### F1-13 — 11 pages órfãs (sem `<Route>`) mas lazy-carregadas — decidir URL ou `?view=`
+- **Sev:** `HIGIENE`
+- **Depende de:** **F1-14**
 - **⚠️ Revisado em 2026-08-02 — número corrigido:** medindo contra o roteador de rotas real (`src/components/routing/AppRoutes.tsx`), são **17** arquivos em `src/pages/` sem `<Route>`, não 11: `AdminAlertHistoryPage`, `AdminAlertHistoryPageParts`, `AdminDispatchErrorsHistoryPage`, `AdminEvolutionApiLogsPage`, `AdminEvolutionApiLogsPageParts`, `AdminFailedMessagesPage`, `AdminInstancePausesPage`, `AdminRealtimeMonitorPage`, `AdminSearchInsightsPage`, `AdminTelemetriaPage`, `AdminWebhookEventsPage`, `AdminWebhookOverviewPage`, `AdminWebhookSecretStatusPage`, `BackendDiagnostics`, `RealtimeFanoutDebug`, `SendStatusBusDebug`, `ViewRouter`. Nem todos são "pages": `ViewRouter` e os `*Parts` são infraestrutura/fragmentos. `src/pages/lazyViews.ts` tem **76** imports dinâmicos — a maioria dessas telas é alcançável por `?view=`, então **órfã ≠ inalcançável** (mesmo erro que produziu os falsos positivos F8-01/F8-10).
 
 ### F1-14 — Consolidar padrão duplo URL canônica vs `?view=X&tab=Y`
 
+- **Sev:** `HIGIENE`
+- **Raiz de:** F1-13, F7-09
 ---
 
 ## Tema 7 — Frontend: auth e sessão
@@ -131,6 +208,7 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F3-01 — CRÍTICO (P0): `supabase.auth.getSession()` fora de `useEffect` em `ProtectedRoute.tsx`
 
+- **Sev:** `SEC`
 - **Origem:** Etapa 22 (Bloco 3).
 - **Evidência:** `src/features/auth/components/ProtectedRoute.tsx` linhas 260-269 — executa em cada render (2× em StrictMode). Se `getSession()` retornar null transitoriamente, dispara logout automático.
 - **⚠️ Revisado em 2026-08-02 — linha corrigida:** o `supabase.auth.getSession().then(...)` está na **l.243**, dentro do bloco `if (!authLoading && user) { ... }` no corpo do componente (fora de qualquer `useEffect` — os `useEffect` do arquivo estão nas l.55 e l.74). **As linhas 260-269 citadas apontam para outro trecho** — o bloco `const isDev = hasRole('dev'); if (isDev) { markTimeToMainScreen(...); return children; }` (l.261-264), que é o assunto do **F3-02**. Diagnóstico do F3-01 confirmado; a referência de linha é que estava trocada.
@@ -139,35 +217,48 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F3-02 — `isDev` bypass total sem log de auditoria
 
+- **Sev:** `SEC`
 - **Origem:** Etapa 28 (Bloco 3).
 - **📝 Revisado em 2026-08-02 — a chamada como escrita falha.** O bypass está confirmado (`ProtectedRoute.tsx` l.261-264). Mas `zapp.log_security_event` tem assinatura **`(p_event_type text, p_resource text, p_action text, p_status text, p_details jsonb)`** — **5 parâmetros, nenhum com DEFAULT**. Invocar com apenas `p_event_type` retorna `function ... does not exist`.
 - **Ação (corrigida):** `void supabase.rpc('log_security_event', { p_event_type: 'dev_bypass_used', p_resource: location.pathname, p_action: 'route_access', p_status: 'bypassed', p_details: { roles: userRoles } })` com throttle.
 - **Aceite:** `SELECT count(*) FROM zapp.security_events WHERE event_type='dev_bypass_used' AND created_at > now() - interval '1 day'` > 0 após uso do bypass em ambiente dev.
 
 ### F3-03 — ~~OBSOLETO~~ `verifyHttpOnlyCookieAuth()` é dead code — remover
+- **Sev:** — (achado **OBSOLETO** — não entra na esteira)
+- **Rollback:** R-CODE
 - **🔄 Revalidado em 2026-08-02 — FALSO POSITIVO. NÃO REMOVER.** A função é **chamada em produção**: `src/features/auth/components/AuthProvider.tsx` l.8 (import) e **l.327** (`if (!verifyHttpOnlyCookieAuth()) { ... }`), no caminho de bootstrap de sessão. Definição em `src/integrations/supabase/cookieStorage.ts` l.92. Remover quebraria o bootstrap de auth.
 
 > **Nota de revisão (2026-08-02, Lote C) — achados F3-03 a F3-12.** São **títulos-resumo sem `Evidência`/`Ação`/`Aceite`**. A substância de cada um foi revalidada em `REVISAO_BACKLOG_172.md`; escrever Ação e Aceite antes de entrar na esteira. Arquivo de referência para quase todos: `src/features/auth/components/AuthProvider.tsx`.
 
 ### F3-04 — `refreshAll` sem `AbortController` — race em `TOKEN_REFRESHED` consecutivo
 
+- **Sev:** `RISCO`
 ### F3-05 — Parsing frágil de `role_permissions` — pode retornar `permissions = []` silenciosamente
 
+- **Sev:** `RISCO`
 ### F3-06 — Realtime `zapp.profiles` só captura UPDATE — trocar para `event: '*'`
 
+- **Sev:** `RISCO`
 ### F3-07 — `retryBootstrap()` pode empilhar `getSession()` sob `navigator.locks`
 
+- **Sev:** `RISCO`
 ### F3-08 — ~~OBSOLETO~~ Deletar `externalSessionBridge.ts` — dead code ativo
+- **Sev:** — (achado **OBSOLETO** — não entra na esteira)
+- **Rollback:** R-CODE
 - **🔄 Revalidado em 2026-08-02 — FALSO POSITIVO. NÃO DELETAR.** O arquivo é `src/integrations/supabase/externalSessionBridge.ts` (o PLANO não dava caminho) e está **registrado no boot da aplicação**: `src/main.tsx` l.9 `import { registerExternalSessionBridge } from './integrations/supabase/externalSessionBridge'`. Também é importado por `src/features/auth/services/authService.ts` l.6. Deletar quebraria o build e o bridge de sessão externa.
 
 ### F3-09 — `signOut` sem fallback local se supabase-js falhar
 
+- **Sev:** `RISCO`
 ### F3-10 — `QuotaExceededError` silenciado em cookieStorage — CustomEvent + toast
 
+- **Sev:** `DEGRADADO`
 ### F3-11 — `markTimeToMainScreen` triplicado no ProtectedRoute — guard com `useRef`
 
+- **Sev:** `HIGIENE`
 ### F3-12 — `log_security_event` sem contexto (tenant/UA/IP) — enriquecer
 
+- **Sev:** `SEC`
 ---
 
 ## Tema 8 — Frontend: inbox e mensageria
@@ -180,6 +271,7 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-01 — `fetchConversations` sem cursor/paginação (500+1000 fixo)
 
+- **Sev:** `DEGRADADO`
 - **Origem:** Etapa 31/32 (Bloco 4).
 - **Evidência:** `useRealtimeMessages.ts` linhas ~250: `SEEDED_CONTACT_LIMIT = 500`, `RECENT_MESSAGES_LIMIT = 1000`.
 - **Ação:** substituir por cursor com `updated_at + id`, tamanho de página 100, load-more sob demanda ao rolar sidebar.
@@ -187,6 +279,7 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-02 — `fetchConversations` sem guard de mount para setState/commitConversations
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 32 (Bloco 4).
 - **Evidência:** await do `.select()` sem checar `active` flag; se hook desmonta durante fetch, setState roda após unmount.
 - **Ação:** propagar `AbortController` do `useEffect` para as chamadas `dbFrom`, e no `.finally` checar `active` antes de setLoading/setError.
@@ -194,6 +287,7 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-03 — Channel realtime com nome aleatório (`Math.random()`)
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 32 (Bloco 4).
 - **Evidência:** `useRealtimeMessages.ts` linha ~330: `` const channelName = `messages-realtime-${Math.random().toString(36).slice(2, 9)}` ``.
 - **Ação:** usar chave estável (ex.: `` `messages-realtime-${profile.id}` ``); cleanup async esperar unsubscribe antes de novo subscribe (usar promise).
@@ -201,6 +295,7 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-04 — `conversationSendState` computed fora de `useMemo`
 
+- **Sev:** `DEGRADADO`
 - **Origem:** Etapa 32 (Bloco 4).
 - **Evidência:** `useRealtimeMessages.ts` linhas ~560-600: `for (const c of conversations) { ... getSendStatus(m.id) }` — O(n·m) a cada render.
 - **Ação:** envolver em `useMemo` com deps `[conversations, sendStateTick]`.
@@ -208,6 +303,7 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-05 — `USE_EXTERNAL_DB = true` hardcoded
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 31 (Bloco 4).
 - **Evidência:** `useRealtimeInbox.ts` linha 27: `const USE_EXTERNAL_DB = true;`.
 - **Ação:** trocar por `import.meta.env.VITE_USE_EXTERNAL_DB === 'true'`; documentar em `.env.example`.
@@ -215,6 +311,7 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-06 — `handleSelectConversation` chama `evolution-api/read-messages` fire-and-forget
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 31 (Bloco 4).
 - **Evidência:** `useRealtimeInbox.ts` linha ~370: `void supabase.functions.invoke('evolution-api', { ... })` sem `.catch`.
 - **Ação:** adicionar `.catch(err => log.warn('[read-messages] failed', err))` no mínimo; opcionalmente reintroduzir toast silenciado para não spammar.
@@ -222,6 +319,7 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-07 — Reconciliação de delivery limitada a `.slice(-10)`
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 32 (Bloco 4).
 - **Evidência:** `useRealtimeInbox.ts` linha ~330: `const recent = selectedMessages.slice(-10)`.
 - **Ação:** ampliar para todas as mensagens `external_id != null` da última janela (`created_at > now() - interval '5min'`).
@@ -229,12 +327,14 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-08 — `seededAvatarsRef` sem limpeza — memory leak
 
+- **Sev:** `DEGRADADO`
 - **Origem:** Etapa 33 (Bloco 4).
 - **Ação:** convert `Set<string>` para `Map<string, timestamp>` com TTL 30min; sweep periódico via `setInterval`.
 - **Aceite:** heap snapshot após 4h de uso mostra Set com < 1000 entries.
 
 ### F4-09 — `convProbeRef` log de debug em produção
 
+- **Sev:** `HIGIENE`
 - **Origem:** Etapa 33 (Bloco 4).
 - **Evidência:** `useRealtimeInbox.ts` linhas ~140-165: `log.info('[probe] conversations state', { ... })`.
 - **Ação:** guard com `import.meta.env.DEV` ou remover completamente.
@@ -242,6 +342,7 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-10 — `processedDeliveriesRef` (Set) cresce sem cap
 
+- **Sev:** `DEGRADADO`
 - **Origem:** Etapa 32 (Bloco 4).
 - **Evidência:** `useMessageQueue.ts` linha ~30: `const processedDeliveriesRef = useRef<Set<string>>(new Set())`. Cada `reconcileWithDelivery` adiciona; nunca remove.
 - **Ação:** substituir por LRU (`lru-cache` já em deps) com cap de 5000.
@@ -249,6 +350,7 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-11 — `localStorage.setItem` sem try/catch em useMessageQueue
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 32 (Bloco 4).
 - **Evidência:** `useMessageQueue.ts` linha ~135: `useEffect(() => { localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queueToSave)); }, [queue])`.
 - **Ação:** envolver em try/catch; no catch emitir `CustomEvent('zapp:storage-quota-exceeded')` (reuso do handler do F3-10).
@@ -256,12 +358,14 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-12 — `beforeunload` handler ausente — cascade de sends no próximo load
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 32 (Bloco 4).
 - **Ação:** listener `beforeunload` que marque items `sending` como `pending` no localStorage antes do unload (already handled parcialmente no restore, mas garantir ordem).
 - **Aceite:** fechar aba com 10 msgs pending, reabrir → sends ocorrem em rate limitado (não paralelo).
 
 ### F4-13 — Classificação de erro sem diferenciar retryable
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 32 (Bloco 4).
 - **Evidência:** `useMessageQueue.ts` linhas ~230-260: qualquer erro é considerado retryable até esgotar `maxRetries`. Erros 400/403 (validação) retentam desnecessário.
 - **Ação:** classificar via `messageSenderHelpers.classifyAuthError` + novos helpers para 4xx permanentes.
@@ -269,6 +373,7 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-14 — `dbFrom('failed_messages').insert` falha silenciosa
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 32 (Bloco 4).
 - **Evidência:** `zapp.failed_messages` está **vazia** apesar do path `!shouldAutoRetry` no useMessageQueue inserir.
 - **Ação:** (a) confirmar RLS da tabela; (b) `.insert(...).select()` para ter erro estruturado; (c) log estruturado do erro em GlitchTip.
@@ -276,6 +381,7 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-15 — `sendMessageToContact` faz 8 round-trips por mensagem
 
+- **Sev:** `DEGRADADO`
 - **Origem:** Etapa 32 (Bloco 4).
 - **Evidência:** `messageSender.ts` — 8 queries no happy path.
 - **Ação:** criar RPC SECDEF `rpc_send_message_atomic(p_contact_id, p_content, p_type, p_media_url, p_optimistic_id, p_conversation_id)` que faz insert de mensagem + audit_logs em 1 transação, retornando `messageId` + payload pronto para Evolution. Front chama a RPC, depois invoca Evolution, depois RPC de finalize.
@@ -283,6 +389,7 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-16 — `buildSendIdempotencyKeyFromFingerprint` 5min bucket colide
 
+- **Sev:** `RISCO`
 - **✅ Revisado em 2026-08-02:** confirmado em **`src/lib/sendIdempotency.ts`** — `DEFAULT_BUCKET_MS = 5 * 60 * 1000` (l.54); a função está na l.114. O PLANO não citava o caminho.
 
 - **Origem:** Etapa 32 (Bloco 4).
@@ -291,6 +398,7 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-17 — `messageSender.audit_logs` fire-and-forget sem retry
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 32 (Bloco 4).
 - **Evidência:** `.then(() => null).catch(e => log.warn(...))` para writes de audit.
 - **Ação:** enfileirar em local buffer + flush retry 3× com backoff; se falhar 3×, escrever em `localStorage` como fallback.
@@ -298,6 +406,8 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-18 — `retry_attempt` e `error_reason` 100% NULL em `messages` (bug de persistência)
 
+- **Sev:** `QUEBRADO`
+- **Rollback:** R-FN
 - **Origem:** Etapa 33.5 (Bloco 4).
 - **Evidência:** 8 failed + 23 pending com `error_code/error_reason/retry_attempt = NULL`. Código de `messageSender.ts` explicitamente escreve esses campos.
 - **Ação:**
@@ -309,6 +419,7 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-19 — `extractEvolutionMessageId` pode retornar null; msgs sent sem external_id
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 32 (Bloco 4).
 - **Evidência:** 42 messages sem external_id, incluindo 1 sent e 1 delivered.
 - **Ação:** se `extractEvolutionMessageId` retornar null e response 200, marcar status como `sent_unverified` e enfileirar job de reconciliation contra `evo.evolution_webhook_events_v2` que resolva o external_id pelo timestamp + phone.
@@ -316,12 +427,14 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-20 — `useMediaUrl.refreshCache` sem cap (potencial 100s MB)
 
+- **Sev:** `DEGRADADO`
 - **Origem:** Etapa 33 (Bloco 4).
 - **Ação:** substituir por `LRUCache` com maxSize por bytes (ex.: 50 MB) usando `lru-cache` + `sizeCalculation`.
 - **Aceite:** heap snapshot após visitar 500 conversas com mídia mostra cache < 60 MB.
 
 ### F4-21 — `buildFileHash(originalUrl) != buildFileHash(dataUrl)` — cache DB nunca hit
 
+- **Sev:** `DEGRADADO`
 - **Origem:** Etapa 33 (Bloco 4).
 - **Evidência:** `zapp.media_cache` **vazia** em produção.
 - **Ação:** unificar a chave — hash do `originalUrl` como identidade + `storage_path` apontando para o cache real. Ou remover `media_cache` completamente e usar apenas cache em memória.
@@ -329,6 +442,7 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-22 — `media_cache.storage_path` armazenando data URL base64 (anti-pattern)
 
+- **Sev:** `DEGRADADO`
 - **Origem:** Etapa 33 (Bloco 4).
 - **Ação:** trocar para upload real ao R2/MinIO retornando URL público; `storage_path` = URL do bucket.
 - **📝 Revisado em 2026-08-02 — Aceite não mensurável hoje:** `zapp.media_cache` tem **0 rows**, então `avg(pg_column_size(storage_path))` retorna NULL antes e depois da correção. Depende de F4-21 popular a tabela primeiro.
@@ -336,6 +450,8 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-23 — Cron `retry-stuck-messages` opera em tabela vazia (`outbound_message_queue`) — 23 msgs pending há 5 dias
 
+- **Sev:** `QUEBRADO`
+- **Rollback:** R-CRON
 - **Origem:** Etapa 33.5 (Bloco 4).
 - **Evidência:** `fn_retry_stuck_messages()` faz `UPDATE zapp.outbound_message_queue SET status='pending'` mas a table está vazia; as mensagens presas estão em `zapp.messages` (via `evo.evolution_messages`).
 - **Ação:**
@@ -346,6 +462,9 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-24 — ~~OBSOLETO~~ Cron `media_pipeline_health_check` (jobid 213) falha por schema drift
 
+- **Sev:** — (achado **OBSOLETO** — não entra na esteira)
+- **Raiz de:** F7-15 (duplicata)
+- **Rollback:** R-CRON
 - **Origem:** Etapa 33.5 (Bloco 4).
 - **Evidência:** falhas históricas: `column "severity" of relation "warroom_alerts" does not exist` e `chk_warroom_alert_type` violation com `alert_type='media_pipeline'`.
 - **Ação:** (a) verificar schema atual de `zapp.warroom_alerts` — adicionar coluna `severity` ou remover do INSERT; (b) atualizar constraint `chk_warroom_alert_type` para incluir `'media_pipeline'` ou trocar por outro tipo aceito.
@@ -370,6 +489,9 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-01 — CRÍTICO (P0): view `zapp.contacts` descarta silenciosamente CPF, endereço, is_blocked/is_favorite e vários outros campos
 
+- **Sev:** `QUEBRADO`
+- **Raiz de:** F5-02, F5-03, F5-05, F5-06, F5-09 — **corrigir esta primeiro elimina ou reduz os 5**
+- **Rollback:** R-FN + R-VIEW
 - **Origem:** Etapa 46 (Bloco 5).
 - **Evidência:** `pg_get_viewdef('zapp.contacts')` mostra colunas HARDCODED: `NULL::text AS cpf`, `NULL::text AS address`, `NULL::text AS city`, `NULL::text AS state`, `'BR'::text AS country`, `false AS is_blocked`, `false AS is_favorite`, `NULL::text AS surname`, `'normal'::text AS ai_priority`, `'neutral'::text AS ai_sentiment`, `'whatsapp'::text AS channel_type`, `NULL::uuid AS channel_connection_id`, `NULL::text AS group_category`, `0 AS risk_score`. UI pode inserir/editar esses campos; DB descarta.
 - **Ação:** decidir por coluna: (a) adicionar suporte real em `evo.evolution_contacts` + propagar via triggers, ou (b) remover da view e limpar UI. Não deixar coluna "fantasma".
@@ -377,6 +499,9 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-02 — CRÍTICO (P0): trigger UPDATE da view `zapp.contacts` dropa campos LGPD, soft-delete, workspace e AI (mesmo padrão do F4-18)
 
+- **Sev:** `QUEBRADO`
+- **Depende de:** **F5-01** (view `zapp.contacts` incompleta — corrigir a view antes do trigger)
+- **Rollback:** R-FN
 - **Origem:** Etapa 47 (Bloco 5).
 - **Evidência:** `fn_contacts_view_update_handler()` só propaga 16 colunas (`full_name`, `phone_number`, `email`, `profile_picture_url`, `lead_status`, `assigned_to`, `queue_id`, `company`, `notes`, `tags`, `whatsapp_labels`, `lead_score`, `last_message_at`, `instance_name`, `raw_data`, `updated_at`). Descartados: `deleted_at`, `deleted_by`, `deleted_reason`, `workspace_id`, `contact_type`, `ai_priority`, `ai_sentiment`, `channel_type`, `group_category`, `risk_score`, `lead_origin`, `last_seen_at`, `first_message_at`, `unread_count`, `total_purchases`, `consent_status`, `nickname`, `surname`, `first_name`, `last_name`, `role_title`, `is_blocked`, `is_favorite`, `cpf`, `address`, `city`, `state`, `country`.
 - **Ação:**
@@ -387,6 +512,9 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-03 — CRÍTICO (P0): trigger DELETE da view faz HARD DELETE — viola requisito LGPD de soft-delete com undo 30d
 
+- **Sev:** `SEC`
+- **Depende de:** **F5-01**
+- **Rollback:** R-FN
 - **Origem:** Etapa 49 (Bloco 5).
 - **Evidência:** `fn_contacts_view_delete_handler()` executa `DELETE FROM evo.evolution_contacts WHERE id = OLD.id`. Sem soft-delete, sem timestamp, sem janela de undo. `evo.evolution_contacts` **tem** coluna `deleted_at` (implica soft-delete estava planejado), e a view filtra `WHERE ec.deleted_at IS NULL` — mas o trigger DELETE ignora tudo isso.
 - **Ação:**
@@ -398,6 +526,9 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-04 — CRÍTICO (P0): `zapp.merge_contacts()` LEVANTA EXCEPTION 'implementacao pendente (etapa 30)' — merge está morto desde deploy
 
+- **Sev:** `QUEBRADO`
+- **Depende de:** **F5-08** (merge depende de uma estratégia única de normalização de telefone)
+- **Rollback:** R-FN
 - **Origem:** Etapa 48 (Bloco 5).
 - **Evidência:** `pg_get_functiondef(zapp.merge_contacts)` mostra body de 5 linhas terminando em `RAISE EXCEPTION 'merge_contacts: implementacao pendente (etapa 30)' USING ERRCODE = '0A000'`. `SELECT COUNT(*) FROM evo.evolution_contacts WHERE merge_source_id IS NOT NULL` retorna **0** — feature nunca funcionou em produção. `bulk_auto_merge_duplicates` chama essa função em loop e propaga a exception.
 - **Ação:**
@@ -407,6 +538,9 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-05 — CRÍTICO (P0): `bulk_soft_delete_contacts` referencia colunas `deleted_by`, `deleted_reason` que NÃO existem na view `zapp.contacts` — RPC falha em cada chamada
 
+- **Sev:** `QUEBRADO`
+- **Depende de:** **F5-01** (as colunas citadas só existem depois de a view ser corrigida)
+- **Rollback:** R-DDL + R-FN + R-VIEW
 - **Origem:** Etapa 49 (Bloco 5).
 - **Evidência:** RPC executa `UPDATE zapp.contacts SET deleted_at=now(), deleted_by=auth.uid(), deleted_reason=p_reason, updated_at=now()`. View `zapp.contacts` só tem coluna `deleted_at`; não expõe `deleted_by` nem `deleted_reason`. Postgres rejeita statement no parse com `column "deleted_by" of relation "contacts" does not exist`.
 - **Ação:**
@@ -418,6 +552,9 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-06 — CRÍTICO (P0): sem coluna CPF em `evo.evolution_contacts` e sem coluna CNPJ em lugar nenhum — feature de validação é impossível
 
+- **Sev:** `QUEBRADO`
+- **Depende de:** **F5-01**
+- **Rollback:** R-DDL + R-FN + R-VIEW
 - **Origem:** Etapa 46 (Bloco 5).
 - **Evidência:** `SELECT column_name FROM information_schema.columns WHERE table_schema='evo' AND table_name='evolution_contacts'` mostra 44 colunas — **nenhuma** contém `cpf` ou `cnpj`. View `zapp.contacts` expõe `cpf` HARDCODED NULL. UI pode ter campo de CPF, mas dado vai para o void.
 - **Ação:**
@@ -428,6 +565,8 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-07 — CRÍTICO (P0): sem `validate_cpf(text)` nem `validate_cnpj(text)` no banco — só `mask_cpf`
 
+- **Sev:** `QUEBRADO`
+- **Rollback:** R-FN
 - **Origem:** Etapa 46 (Bloco 5).
 - **Evidência:** `SELECT proname FROM pg_proc WHERE proname ILIKE '%cpf%' OR proname ILIKE '%cnpj%'` retorna só `zapp.mask_cpf(cpf text)`. Sem validação de dígitos verificadores.
 - **Ação:**
@@ -439,6 +578,8 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-08 — CRÍTICO (P0): 5 estratégias diferentes de normalização de telefone — merge, search e intelligence usam estratégias divergentes
 
+- **Sev:** `RISCO`
+- **Raiz de:** F5-04, F5-22
 - **Origem:** Etapa 46, 48, 55 (Bloco 5).
 - **Evidência:** 4 funções SQL retornam formatos diferentes para o mesmo input:
   - `fn_normalize_br_phone('+55 (41) 9 9988-7777')` → `41999887777` (10→11 dígitos, sem 55)
@@ -457,6 +598,10 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-09 — CRÍTICO (P0): `add_contact_note` DESCARTA `p_note_type` e `p_is_pinned` silenciosamente — colunas não existem em `zapp.contact_notes`
 
+- **Sev:** `QUEBRADO`
+- **Depende de:** **F5-01**
+- **Raiz de:** F5-11
+- **Rollback:** R-DDL + R-FN
 - **Origem:** Etapa 52 (Bloco 5).
 - **Evidência:** `zapp.add_contact_note(p_contact_id, p_content, p_note_type='general', p_is_pinned=false)` — INSERT só usa 3 colunas: `contact_id, author_id, content`. `zapp.contact_notes` tem 6 colunas (`id, contact_id, author_id, content, created_at, updated_at`) — sem `note_type`, sem `is_pinned`, sem `version`. Signature mente.
 - **Ação:**
@@ -466,6 +611,9 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-10 — CRÍTICO (P0): `useContactNotes.addNote` BYPASSA a RPC — INSERT direto na tabela contorna toda validação de segurança
 
+- **Sev:** `SEC`
+- **Raiz de:** F5-11
+- **Rollback:** R-POL
 - **Origem:** Etapa 52 (Bloco 5).
 - **Evidência:** `src/features/contacts/hooks/useContactNotes.ts` linhas ~100-115: `supabase.from('contact_notes').insert({ contact_id, author_id, content }).select().maybeSingle()`. Não chama `add_contact_note` RPC. Se RLS `contact_notes_insert` policy falhar (edge case, migração incompleta, etc.), insert passa sem validação.
 - **Ação:**
@@ -476,6 +624,8 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-11 — CRÍTICO (P0): `zapp.contact_notes` **VAZIA** em produção (0 rows) — feature 100% dead
 
+- **Sev:** `QUEBRADO`
+- **Depende de:** **F5-09** e **F5-10** (a tabela só recebe linhas depois de a RPC funcionar e o bypass ser removido)
 - **Origem:** Etapa 52 (Bloco 5).
 - **Evidência:** `SELECT COUNT(*) FROM zapp.contact_notes` retorna 0; `notes_7d=0`, `notes_30d=0`, `total=0`. Feature ativa em produção mas nunca produziu dado.
 - **Ação:**
@@ -486,6 +636,7 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-12 — CRÍTICO (P0): `search_contacts_cursor` NÃO usa `pg_trgm` — full scan em ILIKE
 
+- **Sev:** `DEGRADADO`
 - **Origem:** Etapa 55 (Bloco 5).
 - **Evidência:** RPC body: `v_where := v_where || ' AND (c.name ILIKE $1 OR c.email ILIKE $1 OR c.phone ILIKE $1)'`. Índices `pg_trgm` existem em `evo.evolution_contacts.push_name` e `.email`, mas RPC busca em `zapp.contacts.name` (que é `COALESCE(full_name, push_name, 'Sem nome')`) — nenhum índice trgm em `full_name`. Search em 20k+ contatos → sequential scan.
 - **Ação:**
@@ -496,6 +647,8 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-13 — CRÍTICO (P0): `zapp.tags.name` UNIQUE global — cross-workspace conflict impossibilita multi-tenant real
 
+- **Sev:** `SEC`
+- **Rollback:** R-DDL
 - **Origem:** Etapa 50 (Bloco 5).
 - **Evidência:** `CREATE UNIQUE INDEX uq_tags_name ON zapp.tags (name)`. Se workspace A criar tag "VIP" via `bulk_add_tag`, workspace B não consegue criar sua própria "VIP" — a RPC faz `SELECT id FROM zapp.tags WHERE name = p_tag LIMIT 1` e pega o de A, e o `INSERT INTO zapp.contact_tags` associa contatos de B ao tag_id de A. **Contatos misturados entre tenants por nome de tag idêntico.**
 - **Ação:**
@@ -506,6 +659,8 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-14 — ~~OBSOLETO~~ CRÍTICO (P0): RLS `evo.evolution_contacts.contacts_insert` policy tem `WITH CHECK NULL` — anyone pode inserir contato com qualquer `assigned_to`
 
+- **Sev:** — (achado **OBSOLETO** — não entra na esteira)
+- **Rollback:** R-POL
 - **Origem:** Etapa 46 (Bloco 5).
 - **Evidência:** `SELECT polname, polcmd, pg_get_expr(polqual, polrelid), pg_get_expr(polwithcheck, polrelid) FROM pg_policy WHERE polrelid='evo.evolution_contacts'::regclass` mostra `contacts_insert` com `polcmd='a'` e `polqual=NULL` — sem `WITH CHECK` expression. Qualquer authenticated pode inserir contato com `assigned_to = <UUID de outro user>`, `workspace_id` de outro tenant.
 - **🔄 Revalidado em 2026-08-02 — FALSO POSITIVO.** A policy `contacts_insert` (`polcmd='a'`) **tem** `WITH CHECK`: `EXISTS (SELECT 1 FROM zapp.profiles p WHERE p.user_id = auth.uid() AND p.role = ANY(ARRAY['admin','supervisor']))`. O `polqual=NULL` observado é o comportamento **normal** de policy `INSERT` (usa `polwithcheck`, não `polqual`) — a medição original leu a coluna errada. Hoje só admin/supervisor insere. **Não executar a Ação.** Risco residual a registrar em outro achado: o `WITH CHECK` não valida `assigned_to`, então admin/supervisor pode atribuir a qualquer usuário.
@@ -516,6 +671,8 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-15 — CRÍTICO (P0): RLS `contacts_select` expõe contatos `assigned_to IS NULL` a TODOS os usuários — cross-tenant leak
 
+- **Sev:** `SEC`
+- **Rollback:** R-POL
 - **Origem:** Etapa 46 (Bloco 5).
 - **Evidência:** Policy `contacts_select` `polqual`: `((EXISTS (admin/supervisor)) OR (assigned_to = <profile>) OR (assigned_to IS NULL))`. **Última cláusula não filtra por workspace**. Todo contato sem `assigned_to` é visível para toda a base de usuários.
 - **Ação:**
@@ -525,6 +682,8 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-16 — CRÍTICO (P0): `get_default_workspace_id()` retorna workspace mais antigo — sem tenant isolation em contatos
 
+- **Sev:** `SEC`
+- **Rollback:** R-POL + R-VIEW
 - **Origem:** Etapa 46 (Bloco 5).
 - **Evidência:** `get_default_workspace_id()` faz `SELECT id FROM zapp.workspaces ORDER BY created_at LIMIT 1`. View `zapp.contacts.workspace_id` = essa constante para TODOS os contatos. `evo.evolution_contacts` não tem coluna `workspace_id`. Toda infra multi-tenant é fake.
 - **Ação:**
@@ -536,6 +695,7 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-17 — `bulk_add_tag` sem cap de tamanho + sem visibility check por contato
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 50 (Bloco 5).
 - **Evidência:** RPC não valida `array_length(p_contact_ids, 1)` (ao contrário de `bulk_soft_delete_contacts` que caps em 500). Chamada com 100k UUIDs consome memória do worker. Também só verifica `is_admin_or_supervisor()`; sem check por contato — admin pode tag contatos de outro workspace.
 - **Ação:**
@@ -545,6 +705,7 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-18 — `bulk_auto_merge_duplicates` seleção de primário sem regra LGPD explícita — pode migrar consent errado
 
+- **Sev:** `SEC`
 - **Origem:** Etapa 48 (Bloco 5).
 - **Evidência:** RPC ordena `array_agg(ct.id ORDER BY coalesce(ct.total_messages, 0) DESC, ct.created_at ASC)`. Se primário tiver `lgpd_opt_out_at IS NOT NULL` (usuário pediu remoção) e secundário tiver `lgpd_consent_at` (deu consent), merge tornaria opt-out o consentimento antigo — violação LGPD.
 - **Ação:**
@@ -555,6 +716,8 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-19 — `get_contact_intelligence_by_phone` lê SÓ `evo.evolution_messages_wpp2` — multi-instância bug
 
+- **Sev:** `QUEBRADO`
+- **Rollback:** R-FN + R-VIEW
 - **Origem:** Etapa 51 (Bloco 5).
 - **⚠️ Revisado em 2026-08-02 — referência corrigida:** o hardcode `_wpp2` está **apenas em `zapp.get_contact_intelligence_by_phone`** (13.129 chars). A homônima `public.get_contact_intelligence_by_phone` (731 chars) **não** contém `evolution_messages_wpp2`. **Qualificar `zapp.` na Ação** — sem isso o refactor pode reescrever a função errada. Distribuição atual: `wpp2`=17.493, `wpp_pink_test`=2.949, outras=4 (total 20.446).
 - **Evidência:** RPC body: `FROM evo.evolution_messages_wpp2 m WHERE m.remote_jid = v_jid_s ...`. Hardcoded `_wpp2`. **17492 contatos estão em `wpp2` (85.5%) mas 2949 estão em `wpp_pink_test` + 4 em outras instâncias**. Esses 2953 contatos recebem intelligence com `total_interactions=0` e sentiment `neutral` mesmo tendo histórico real.
@@ -565,6 +728,8 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-20 — `contacts_count_by_type` SECURITY DEFINER sem filtro por workspace — data leak agregado
 
+- **Sev:** `SEC`
+- **Rollback:** R-POL
 - **Origem:** Etapa 55 (Bloco 5).
 - **Evidência:** RPC `SELECT COALESCE(lead_status, 'open')::text, count(*) FROM evo.evolution_contacts WHERE deleted_at IS NULL GROUP BY lead_status` — sem `workspace_id` filter. Any authenticated vê agregado global.
 - **Ação:** adicionar `AND workspace_id = (SELECT workspace_id FROM zapp.profiles WHERE user_id = auth.uid())` após F5-16.
@@ -572,6 +737,7 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-21 — `search_contacts_cursor` faz COUNT CTE em cada página — custo dobrado
 
+- **Sev:** `DEGRADADO`
 - **Origem:** Etapa 55 (Bloco 5).
 - **Evidência:** Query gerada: `WITH total AS (SELECT COUNT(*)::bigint FROM zapp.contacts c <where>) SELECT ..., t.cnt AS total_count FROM zapp.contacts c, total t <where> ORDER BY ... LIMIT $8`. COUNT é recomputado a cada requisição de página.
 - **Ação:**
@@ -582,6 +748,8 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-22 — `search_contacts_cursor` sem normalização de phone na busca — busca por telefone formatado falha
 
+- **Sev:** `DEGRADADO`
+- **Depende de:** **F5-08**
 - **Origem:** Etapa 55 (Bloco 5).
 - **Evidência:** `c.phone ILIKE '%<search>%'`. Se user digita `(41) 9 9988-7777`, busca é `%(41) 9 9988-7777%` — literal. Contato armazenado como `+5541999887777` não casa.
 - **Ação:**
@@ -591,6 +759,7 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-23 — `search_contacts_cursor` só busca em `name`, `email`, `phone` — não busca em company, job_title, nickname, cpf
 
+- **Sev:** `DEGRADADO`
 - **Origem:** Etapa 55 (Bloco 5).
 - **Evidência:** WHERE clause: `c.name ILIKE $1 OR c.email ILIKE $1 OR c.phone ILIKE $1`. UI tem filtros de company/job_title separados, mas usuário que busca "Acme" no campo geral não encontra contato da Acme Corp.
 - **Ação:**
@@ -600,6 +769,7 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-24 — `useContactsSearch.pageIndexToCursor` sem deep-link support — jump-to-page-N via URL retorna page 0
 
+- **Sev:** `DEGRADADO`
 - **Origem:** Etapa 55 (Bloco 5).
 - **Evidência:** Mapa é populado incrementalmente ao navegar. URL `?p=5` (deep link) inicia com `pageIndexToCursor = Map([[0,null]])` — `currentPageCursor = get(5) ?? null` = null → RPC retorna page 0.
 - **⚠️ Revisado em 2026-08-02 — caminho corrigido:** o arquivo canônico é **`src/features/contacts/hooks/useContactsSearch.ts` (l.159)**. `src/hooks/useContactsSearch.ts` é apenas um re-export de 2 linhas — editar lá não tem efeito.
@@ -611,6 +781,7 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-25 — `useContactNotes` N+1 query + sem pagination + sem edit mutation
 
+- **Sev:** `DEGRADADO`
 - **Origem:** Etapa 52 (Bloco 5).
 - **Evidência:** Hook faz `.from('contact_notes').select(...)`, depois `.from('profiles').select('id, name, avatar_url').in('id', authorIds)` — 2 queries em vez de 1 JOIN. Sem `.limit()` — carrega TODAS as notas. Sem mutation de UPDATE (só add e delete).
 - **Ação:**
@@ -621,6 +792,8 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-26 — 20445 contatos, ZERO com `lgpd_consent_at` ou `lgpd_opt_out_at` set — compliance LGPD ausente
 
+- **Sev:** `SEC`
+- **Rollback:** R-FN
 - **Origem:** Etapa 49 (Bloco 5).
 - **Evidência:** `SELECT COUNT(*) FROM evo.evolution_contacts WHERE lgpd_consent_at IS NOT NULL` = 0. `SELECT MAX(lgpd_last_updated_at)` = NULL. Colunas existem mas nunca populadas.
 - **Ação:**
@@ -632,6 +805,8 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-27 — Trigger INSERT view assume individual (`@s.whatsapp.net`) — quebra suporte a grupos (`@g.us`)
 
+- **Sev:** `QUEBRADO`
+- **Rollback:** R-FN
 - **Origem:** Etapa 46 (Bloco 5).
 - **Evidência:** `fn_contacts_view_insert_handler` fallback: `COALESCE(NULLIF(NEW.remote_jid,''), NULLIF(NEW.external_id,''), NEW.phone || '@s.whatsapp.net')`. Contato de grupo tem JID `<groupid>@g.us`; se UI não fornecer `remote_jid` explícito, trigger monta JID errado.
 - **Ação:**
@@ -641,6 +816,8 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-28 — `rpc_get_contact` (4 overloads em `public` + `zapp`) expõe deals/messages/tasks de contatos opted-out — LGPD violation
 
+- **Sev:** `SEC`
+- **Rollback:** R-FN
 - **Origem:** Etapa 46 (Bloco 5).
 - **Evidência:** Todas 4 versões: `WHERE c.id = p_contact_id` (ou `WHERE remote_jid = p_remote_jid AND deleted_at IS NULL`). Filtro só por `deleted_at`, não por `lgpd_opt_out_at`. Após opt-out, dado ainda é acessível via RPC.
 - **Ação:**
@@ -651,6 +828,8 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-29 — Sem FK/relação `zapp.contacts` ↔ `zapp.empresas` — Etapa 54 (validar FK cascade) é unmeetable
 
+- **Sev:** `RISCO`
+- **Rollback:** R-DDL
 - **Origem:** Etapa 54 (Bloco 5).
 - **Evidência:** `zapp.empresas` tem 51688 rows mas schema mínimo (6 colunas: `id, created_at, nome, email jsonb, telefone, bitrix_empresa_id`). Sem FK de/para `contacts`. Só `empresas_pkey` como index. Coluna `company` em `zapp.contacts` é `text` livre, não referencia `empresas.id`.
 - **Ação:**
@@ -660,6 +839,8 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 ### F5-30 — `zapp.tags` schema mistura AI tag suggestions com canonical tags — dupla responsabilidade
 
+- **Sev:** `HIGIENE`
+- **Rollback:** R-CODE
 - **Origem:** Etapa 50 (Bloco 5).
 - **Evidência:** `zapp.tags` tem 11 colunas: `(id, name, color, description, created_by, created_at, updated_at)` (canonical tag definition) MAIS `(contact_id, tag_name, confidence, source)` (parece ML tag suggestion linkada a contato específico). Duas responsabilidades numa tabela; UNIQUE constraint só em `name`.
 - **Ação:**
@@ -678,6 +859,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-01 — CRÍTICO (P0): pairing code (Etapa 58) 100% AUSENTE do código
 
+- **Sev:** `QUEBRADO`
 - **Origem:** Etapa 58 (Bloco 6).
 - **Evidência:** `grep -rn "pairing\|Pairing\|PAIRING\|pairing_code\|pairingCode" src` retorna **1 hit** — apenas um JSDoc em `useEvolutionApiManagement.ts` linha 296: `"lifecycle operations: create, connect, reconnect, logout, restart, delete, and QR/pairing-code retrieval"`. Nenhuma implementação. `grep -rn "pairing" no banco` também retorna 0 funções.
 - **Ação:**
@@ -688,6 +870,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-02 — CRÍTICO (P0): `handleAddConnection` NÃO chama Evolution `/instance/create` — só INSERT no banco
 
+- **Sev:** `QUEBRADO`
 - **Origem:** Etapa 56 (Bloco 6).
 - **Evidência:** `src/features/connections/hooks/parts/useConnectionsActions.ts` linhas ~44-65: `handleAddConnection` faz `safeClient.single('whatsapp_connections', q => q.insert({...}))` e depois chama `handleShowQrCode` que invoca `whatsappConnectionService.requestQrCode`. Nunca chama `createInstance` do `useEvolutionApi`. Instância só passa a existir no Evolution API se um sync automático (`useEvolutionAutoSync`) depois puxar — o que requer que instância já tenha sido criada por outro caminho (ex.: Evolution manager direto). Fluxo de criação via UI está quebrado.
 - **Ação:**
@@ -699,6 +882,9 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-03 — CRÍTICO (P0): estado divergente wpp2 entre `zapp.whatsapp_connections` e `evo.evolution_instance_credentials`
 
+- **Sev:** `QUEBRADO`
+- **Depende de:** **F6-04** (definir a fonte canônica antes de reconciliar o estado)
+- **Rollback:** R-VIEW
 - **Origem:** Etapa 60 (Bloco 6).
 - **Evidência:** JOIN por `instance_name`:
   - `zapp.whatsapp_connections.wpp2`: `status='connected'`, `health_status='ok'`, `last_connected_at='2026-08-01 20:36'`
@@ -714,6 +900,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-04 — CRÍTICO (P0): 2 fontes de verdade para instância (whatsapp_connections vs evolution_instance_credentials) sem canonical
 
+- **Sev:** `RISCO`
+- **Raiz de:** F6-03, F6-06, F6-13, F6-14, F6-16, F6-24 — **a maior raiz do backlog: 6 sintomas**
 - **Origem:** Etapa 56, 60, 61, 64 (Bloco 6).
 - **Evidência:** `zapp.whatsapp_connections` (39 colunas, 3 rows) e `evo.evolution_instance_credentials` (17 colunas, 1 row) armazenam informação sobreposta: `instance_name`, `api_url`, `api_key`, `webhook_url`, `display_name`, `department`, `is_active`, `health_status`, `last_health_check`. Frontend usa a primeira; edge functions e crons usam a segunda. `zapp.instance_registry` também existe com 22 rows e statuses distintos. **3 fontes de verdade parcialmente sobrepostas**.
 - **Ação:**
@@ -724,6 +912,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-05 — CRÍTICO (P0): `fn_reconcile_dispatch` reutiliza `request_id` do net_worker → 373 rows (22%) com applied_at anterior a dispatched_at
 
+- **Sev:** `QUEBRADO`
+- **Rollback:** R-FN
 - **Origem:** Etapa 59 (Bloco 6).
 - **Evidência:** `pg_get_functiondef(zapp.fn_reconcile_dispatch)` mostra `INSERT INTO evo.evolution_reconcile_jobs (request_id) VALUES (v_req_id) ON CONFLICT (request_id) DO UPDATE SET dispatched_at = now()`. `pg_net` recicla request_ids ao longo do tempo. Quando `request_id` colide com o de um job antigo, o UPDATE só toca `dispatched_at`, preservando `applied_at` antigo do job anterior. Resultado: `SELECT COUNT(*) FROM evo.evolution_reconcile_jobs WHERE applied_at < dispatched_at - INTERVAL '1 day'` retorna **373 rows de 1663 (22%)**. Sample: id=24041 tem `dispatched_at=2026-08-02 01:15` mas `applied_at=2026-07-28 03:31` (delta=-4d21h44min).
 - **Ação:**
@@ -734,6 +924,9 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-06 — CRÍTICO (P0): `fn_alert_wpp2_disconnection` hardcoded para instance_name='wpp2' — não escala multi-instância
 
+- **Sev:** `RISCO`
+- **Depende de:** **F6-04**
+- **Rollback:** R-FN
 - **Origem:** Etapa 60, 61 (Bloco 6).
 - **Evidência:** `SELECT status, phone_number, ... FROM zapp.whatsapp_connections WHERE instance_name = 'wpp2' LIMIT 1`. Alert body: `format('Instancia wpp2 (%s) desconectada ha %s minutos', ...)`. Também `evo.fn_bootstrap_wpp2_instance` (nome hardcoded), cron `wpp2_disconnection_watchdog` (jobid 104), cron `wpp2-session-expiry-watchdog` (jobid 120). **Multi-instância** (Etapa 61) é fantasia com esse pattern.
 - **Ação:**
@@ -745,6 +938,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-07 — `fn_alert_wpp2_disconnection` NÃO é SECURITY DEFINER — inconsistente com pattern das outras funções afins
 
+- **Sev:** `RISCO`
+- **Rollback:** R-POL
 - **Origem:** Etapa 60 (Bloco 6).
 - **Evidência:** `SELECT prosecdef FROM pg_proc WHERE proname='fn_alert_wpp2_disconnection'` → `false`. Todas as outras funções afins (`fn_alert_connection_drift`, `fn_reconcile_dispatch`, `fn_reconcile_apply`, `fn_sync_instance_registry_status`, `fn_detect_401_bursts`) são `SECDEF=true`. A função lê `zapp.whatsapp_connections` e insere em `evo.evolution_alerts` — se chamada por cron owner `postgres`, funciona; se chamada por RPC de authenticated, pode ser bloqueada por RLS.
 - **Ação:** `ALTER FUNCTION zapp.fn_alert_wpp2_disconnection() SECURITY DEFINER SET search_path = pg_catalog, zapp, evo, public`.
@@ -754,6 +949,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-08 — CRÍTICO (P0): 17 de 18 alerts `wpp2_disconnection` nunca resolvidos (94% backlog) — alert fatigue
 
+- **Sev:** `DEGRADADO`
+- **Rollback:** R-FN
 - **Origem:** Etapa 60 (Bloco 6).
 - **Evidência:** `SELECT COUNT(*), COUNT(*) FILTER (WHERE resolved_at IS NOT NULL) FROM evo.evolution_alerts WHERE alert_type='wpp2_disconnection'` → `total_ever=18, resolved=1, acked=1`. Alertas nas últimas 10h: 8:00, 9:00, 10:00, 11:10, 12:10, 13:20, 14:20, 15:30, 16:30, 17:40 — um por hora. Anti-flood check `created_at > now() - 60 minutes AND resolved_at IS NULL` funciona (guardaria a alerta a cada 1h), MAS como `resolved_at` nunca é setado, alertas se acumulam indefinidamente sem trigger de auto-close quando instância volta.
 - **Ação:**
@@ -764,6 +961,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-09 — CRÍTICO (P0): cron `wpp2_disconnection_watchdog` (104) schedule `*/10 6-23 * * *` — 6h gap noturno de detecção (23h→6h)
 
+- **Sev:** `RISCO`
+- **Rollback:** R-CRON
 - **Origem:** Etapa 60 (Bloco 6).
 - **Evidência:** Schedule limita execução a `6-23` (06:00 até 23:59). Entre 23:00 e 06:00 (7 horas) o watchdog não roda. Se WhatsApp cair às 02:00, alerta só chega às 06:10 — 4h+ de delay. Também `message_pipeline_stalled_alert` `0 8-22 * * *` = 10h gap.
 - **Ação:**
@@ -774,6 +973,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-10 — ~~OBSOLETO~~ cron `sync-instance-registry-status` (96) perdeu 11% das execuções em 24h (256/288)
 
+- **Sev:** — (achado **OBSOLETO** — não entra na esteira)
+- **Rollback:** R-CRON
 - **Origem:** Etapa 64 (Bloco 6).
 - **Evidência:** Schedule `2-59/5 * * * *` (a cada 5min, offset 2min) = esperado 12 execuções/hora × 24h = 288/dia. `SELECT COUNT(*) FROM cron.job_run_details WHERE jobid=96 AND start_time > NOW() - INTERVAL '24 hours'` retorna 256. 32 execuções perdidas (11%). Provável causa: concorrência com outros crons que usam mesmo pool, ou reboots de container postgres.
 - **Ação:**
@@ -785,6 +986,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-11 — 6 triggers em `zapp.whatsapp_connections`; 4 são duplicatas divergentes (2 pares)
 
+- **Sev:** `RISCO`
+- **Rollback:** R-FN
 - **Origem:** Etapa 62 (Bloco 6).
 - **Evidência:** `pg_trigger` mostra 6 triggers:
   - `update_whatsapp_connections_updated_at` (função `update_updated_at_column`) + `trg_wconn_updated_at` (função `fn_wconn_updated_at`) — ambos BEFORE UPDATE fazendo `NEW.updated_at = now()`. Duplicata funcionalmente pura.
@@ -799,6 +1002,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-12 — `fn_validate_whatsapp_connection_url` cai para hardcoded default se vault vazio — não fail-secure
 
+- **Sev:** `SEC`
+- **Rollback:** R-FN
 - **Origem:** Etapa 56 (Bloco 6).
 - **Evidência:** Trigger body: `SELECT decrypted_secret INTO v_allowed_url FROM vault.decrypted_secrets WHERE name = 'evolution_api_url'; IF v_allowed_url IS NULL THEN v_allowed_url := 'https://evolution.atomicabr.com.br'; END IF`. Se vault estiver corrompido/vazio, valida contra URL hardcoded — permite INSERTs mesmo em ambiente onde vault deveria ser fonte única. Also, mensagem de erro do `RAISE EXCEPTION` **expõe a URL esperada** (`api_url invalida: X | esperado: Y`) — potencial info leak.
 - **Ação:**
@@ -808,6 +1013,9 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-13 — CRÍTICO (P0): `api_url` e `api_key` são NOT NULL sem default — INSERT via `useConnectionsActions.handleAddConnection` faltaria valores
 
+- **Sev:** `RISCO`
+- **Depende de:** **F6-04**
+- **Rollback:** R-DDL
 - **Origem:** Etapa 56 (Bloco 6).
 - **Evidência:** Schema de `zapp.whatsapp_connections`: `api_url text NOT NULL` (sem default), `api_key text NOT NULL` (sem default). `handleAddConnection` faz INSERT com só 7 colunas: `name, phone_number, instance_id, instance_name, status, is_default, api_type`. Sem `api_url` e `api_key`. INSERT deveria falhar por NOT NULL. As 3 rows atuais em produção têm valores — indica que INSERTs foram feitos por outro caminho (Evolution manager? seed migration?). UI provavelmente nunca conseguiu criar conexão.
 - **Ação:**
@@ -818,6 +1026,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-14 — Só 1 registro em `evo.evolution_instance_credentials` (wpp2); 2 conexões em `whatsapp_connections` órfãs
 
+- **Sev:** `HIGIENE`
+- **Depende de:** **F6-04**
 - **Origem:** Etapa 63, 64 (Bloco 6).
 - **Evidência:** LEFT JOIN `whatsapp_connections wc LEFT JOIN evolution_instance_credentials eic USING (instance_name)` mostra: `wpp2` (JOINed), `wppmkt` (eic=NULL), `wpp_pink_test` (eic=NULL). Cron 96 (`sync-instance-registry-status`) rodou 810x em 7d mas não corrigiu essas 2 órfãs. Instance drift real.
 - **Ação:**
@@ -828,6 +1038,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-15 — "WPP Marketing (Cloud API Oficial)" tem `api_type='evolution'` — nome enganoso vs config real
 
+- **Sev:** `HIGIENE`
 - **Origem:** Etapa 56 (Bloco 6).
 - **Evidência:** Row: `name='WPP Marketing (Cloud API Oficial)'`, `api_type='evolution'`, `instance_id=NULL`, `is_active=false`, `health_status='provisioned'`. Nome sugere Meta Cloud API, `api_type` diz Evolution. Provavelmente configurada incorretamente, ficou dormente. Confusão para operador.
 - **Ação:**
@@ -839,6 +1050,9 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-16 — CRÍTICO (P0): `created_by = NULL` em 3/3 rows de `whatsapp_connections` — ownership perdida
 
+- **Sev:** `SEC`
+- **Depende de:** **F6-04**
+- **Rollback:** R-FN
 - **Origem:** Etapa 56 (Bloco 6).
 - **Evidência:** `SELECT COUNT(*) FILTER (WHERE created_by IS NULL) FROM zapp.whatsapp_connections` = 3 (todas as rows). Sem trilha de ownership. Combinado com F6-17 (RLS permite orphan INSERTs), qualquer authenticated pode listar/editar conexões porque a policy `wconn_insert_auth` também tem cláusula `created_by IS NULL OR ...`. Sem accountability.
 - **Ação:**
@@ -849,6 +1063,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-17 — CRÍTICO (P0): RLS `wconn_insert_auth` policy `WITH CHECK (created_by IS NULL OR created_by = auth.uid())` permite orphan INSERTs
 
+- **Sev:** `SEC`
+- **Rollback:** R-POL
 - **Origem:** Etapa 56 (Bloco 6).
 - **Evidência:** `pg_get_expr(polwithcheck)` = `((created_by IS NULL) OR (created_by = auth.uid()))`. Cláusula `(created_by IS NULL)` permite INSERT sem ownership — combinado com F6-16, é como as 3 rows atuais entraram. Sem workspace/tenant filter na policy.
 - **Ação:**
@@ -858,6 +1074,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-18 — Policy `auth_secure_123` (nome de código de teste) em produção
 
+- **Sev:** `SEC`
+- **Rollback:** R-POL
 - **Origem:** Etapa 56 (Bloco 6).
 - **Evidência:** `SELECT polname FROM pg_policy WHERE polrelid='zapp.whatsapp_connections'::regclass` retorna `auth_secure_123` entre as 4 policies. Nome sugere teste/debug (`_123` suffix). Policy USING: `(has_role(auth.uid(), 'agent'::zapp.app_role) OR is_admin_or_supervisor())`. Funcionalmente equivalente a `whatsapp_connections_admin_write`, mas com nome não profissional.
 - **Ação:** `ALTER POLICY auth_secure_123 ON zapp.whatsapp_connections RENAME TO whatsapp_connections_agent_or_admin_read`.
@@ -865,6 +1083,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-19 — CRÍTICO (P0): `evo.evolution_ip_watch` = 0 rows total — pipeline VPS→DB de detecção 401 morto
 
+- **Sev:** `QUEBRADO`
 - **Origem:** Etapa 65 (Bloco 6).
 - **Evidência:** `SELECT COUNT(*), MAX(created_at) FROM evo.evolution_ip_watch` → `total=0, newest=NULL`. Comentário dentro de `fn_detect_401_bursts` confirma: `"BLIND: evolution_ip_watch=0 rows — VPS log pipeline (Traefik→DB) not active"`. Pipeline documentado como quebrado há semanas (`Ref: AUDITORIA_EVO_API_2026-07-12.md OBS-2`).
 - **Ação:**
@@ -874,6 +1093,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-20 — CRÍTICO (P0): `fn_detect_401_bursts` documenta seu próprio "monitoring gap" no comentário — cega por design atual
 
+- **Sev:** `QUEBRADO`
 - **Origem:** Etapa 65 (Bloco 6).
 - **Evidência:** Body da função contém string literal: `'evo.evolution_ip_watch=0 registros históricos. Ação: configurar Traefik access log → Supabase API. Monitoramento DB-side cego até lá.'`. Função também insere CHECKLIST inteiro no `message` de alertas (7 passos para operador seguir). **Antipattern**: documentação misturada com telemetria; alerta polui `warroom_alerts` sem oferecer detecção real.
 - **Ação:**
@@ -884,6 +1104,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-21 — CRÍTICO (P0): 373 reconcile_jobs (22%) com `applied_at < dispatched_at - 1 day` — telemetria corrompida
 
+- **Sev:** `QUEBRADO`
+- **Rollback:** R-FN
 - **Origem:** Etapa 59 (Bloco 6).
 - **Evidência:** Consequência direta de F6-05. `SELECT COUNT(*) FROM evo.evolution_reconcile_jobs WHERE applied_at < dispatched_at - INTERVAL '1 day'` retorna 373 de 1663 total. Qualquer métrica de "tempo médio de reconcile" ou "latência p95" computada dessa tabela é **completamente falsa**.
 - **Ação:**
@@ -895,6 +1117,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-22 — 1389 alertas em `zapp.warroom_alerts` em 7d (863 info + 385 critical + 141 warning) — alert fatigue extrema
 
+- **Sev:** `DEGRADADO`
 - **Origem:** Etapa 60, 65 (Bloco 6).
 - **Evidência:** `SELECT alert_type, COUNT(*) FROM warroom_alerts WHERE created_at > NOW() - INTERVAL '7 days' GROUP BY 1`: `info=863, critical=385, warning=141`. **385 críticos em 7 dias = 55/dia = >2/hora**. Se ninguém age em >99% dessas alertas (padrão de F6-08), sinal:ruído é catastrófico. Alertas de "critical" perdem significado quando são a norma.
 - **Ação:**
@@ -906,6 +1129,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-23 — `evo.evolution_alerts` 269 unresolved backlog — nenhum triage
 
+- **Sev:** `DEGRADADO`
 - **Origem:** Etapa 60 (Bloco 6).
 - **Evidência:** `SELECT COUNT(*) FROM evo.evolution_alerts WHERE resolved_at IS NULL AND acknowledged_at IS NULL` = 269. Zero triage/acknowledge. Cron `purge_evolution_alerts` (65) rodando diariamente às 04:00 — mas só purga rows antigas, não força triage.
 - **Ação:**
@@ -917,6 +1141,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-24 — `zapp.instance_registry` tem 22 rows; só 3 provisionadas (14%)
 
+- **Sev:** `HIGIENE`
+- **Depende de:** **F6-04**
 - **Origem:** Etapa 61, 64 (Bloco 6).
 - **Evidência:** `SELECT status, COUNT(*) FROM zapp.instance_registry GROUP BY status`: `archived, connected, not_provisioned` totalizando 22. Apenas 3 estão em `whatsapp_connections` (fonte real). 19 registradas mas não provisionadas ou arquivadas.
 - **⚠️ Revisado em 2026-08-02 — números corrigidos.** A distribuição real é **`not_provisioned=20`, `archived=1`, `connected=1`** (total 22). Ou seja: **1 provisionada (4,5%)**, não 3 (14%). As 3 rows de `whatsapp_connections` não têm correspondência 1:1 com `status='connected'` no registry — reforça o descasamento de F6-04/F6-14. O item 2 da Ação (documentar `instance_registry` como "registry de intenção") fica ainda mais justificado.
@@ -928,6 +1154,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-25 — `instance_auth_events` últimas 17 rows com `event_type=NULL`, `http_status=NULL`, `success=false` — instrumentação quebrada
 
+- **Sev:** `QUEBRADO`
+- **Rollback:** R-FN
 - **Origem:** Etapa 65 (Bloco 6).
 - **Evidência:** `SELECT event_type, http_status, success, COUNT(*) FROM zapp.instance_auth_events WHERE created_at > NOW() - INTERVAL '24 hours' GROUP BY 1,2,3` retorna **UMA row**: `event_type=NULL, http_status=NULL, success=false, count=17`. Todas as 17 inserções falharam em popular os campos essenciais. Instrumentação do lado do produtor (edge function/trigger) está quebrada — schema espera dados, produtor envia só shell.
 - **⚠️ Revisado em 2026-08-02 — o problema é MUITO maior que o descrito.** Não são 17 rows nas últimas 24h: a tabela tem **2.495 rows no total, das quais 2.495 (100%) têm `event_type IS NULL` e `success = false`**. Nenhuma row jamais foi gravada corretamente. Além disso o produtor **parou**: última row em `2026-08-01 15:40`, **0 rows nas últimas 24h**. Reescrever a Evidência com esses números — a Ação (investigar produtor + NOT NULL) continua correta, mas a prioridade sobe.
@@ -939,6 +1167,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-26 — Test coverage módulo connections: 2 test files para ~30 arquivos (0 tests em componentes)
 
+- **Sev:** `HIGIENE`
 - **Origem:** Etapa 56-65 (Bloco 6).
 - **✅ Revisado em 2026-08-02:** os 2 test files confirmados (`useConnectionsState.test.ts`, `useHubTabNavigation.test.tsx`). **Escopo real subestimado:** o módulo tem **52 arquivos** (14 em `src/features/connections/` + 32 em `src/components/connections/` + 6 em services), não ~30.
 - **Evidência:** `find src -path "*connection*" -name "*.test.*"` retorna 2 files: `useHubTabNavigation.test.tsx` e `useConnectionsState.test.ts` (328 linhas). Zero tests para: `useConnectionsActions` (100+ linhas de business logic crítica), `useConnectionsRealtime`, `useConnectionsManager` (dispatcher central), `whatsappConnectionService`, `whatsappConnectionRepository`, `BridgeService`, e **30+ componentes** (ConnectionsView 649 linhas, ConnectionCard 359, InstanceSettingsDialog 496, etc.).
@@ -950,6 +1179,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-27 — CRÍTICO (P0): `useEvolutionAutoSync` faz SELECT sem filtro por workspace/user — cross-tenant leak potencial
 
+- **Sev:** `SEC`
+- **Rollback:** R-POL
 - **Origem:** Etapa 61 (Bloco 6).
 - **Evidência:** `src/hooks/useEvolutionAutoSync.ts` linhas 20-30: `supabase.from('whatsapp_connections').select('instance_id, phone_number')`. Sem `.eq('workspace_id', currentWorkspace)`. Depende só de RLS. Se RLS `contacts_select`-style estiver frouxa (F6-17, F6-18), retorna instâncias de outros tenants. Pior: `INSERT` de instância "missing" sem check de workspace pode acidentalmente atribuir instância de tenant A ao workspace de user B.
 - **Ação:**
@@ -960,6 +1191,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-28 — `handleDelete` engole erro do Evolution API `.catch(log.warn)` — deixa instância órfã lá
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 63 (Bloco 6).
 - **Evidência:** `src/features/connections/hooks/parts/useConnectionsActions.ts` linhas ~120-125: `await deleteInstance(evoName).catch((e) => log.warn('Failed to delete evolution instance:', e))`. Se Evolution API 5xx, delete no banco continua — instância fica órfã no Evolution manager, consumindo recursos, potencialmente ainda recebendo webhooks para uma tabela que não existe mais.
 - **Ação:**
@@ -971,6 +1203,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-29 — `handleAddConnection` valida só `name` — permite `phone_number` vazio
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 56 (Bloco 6).
 - **Evidência:** `useConnectionsActions.handleAddConnection`: `if (!newConnection.name) { toast(...); return; }`. Não valida `phone_number`. INSERT com phone vazio passa (`phone_number` é nullable no schema). Depois, `useEvolutionAutoSync` matcha por phone e não encontra match, criando duplicatas.
 - **Ação:**
@@ -980,6 +1213,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F6-30 — Múltiplas cópias de tabelas em múltiplos schemas: 13 objetos para 5 nomes distintos
 
+- **Sev:** `HIGIENE`
+- **Rollback:** R-DDL
 - **Origem:** Etapa 56, 60, 61 (Bloco 6).
 - **Evidência:** `pg_class`:
   - `qr_attempts`: 2 (zapp TABLE, public VIEW)
@@ -1002,6 +1237,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-01 — `PerformanceDashboard.tsx` renderiza `// @technical` como texto literal em 3 blocos JSX
 
+- **Sev:** `HIGIENE`
+- **Raiz de:** F7-02, F7-03
 - **Origem:** Etapa 66 (Bloco 7).
 - **Evidência:** `src/pages/admin/PerformanceDashboard.tsx` linhas ~120-140 (bloco "Budget de Performance (CI Gate)"): 3 ocorrências de `// @technical` fora de `{/* */}` — texto renderizado no DOM. Usuário vê `< 2500ms // @technical` na tela.
 - **Ação:**
@@ -1012,6 +1249,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-02 — `AdminBridgeStatusPage.tsx` mesmo bug após `</p>`
 
+- **Sev:** `HIGIENE`
+- **Depende de:** **F7-01** (mesmo bug e mesma lint rule)
 - **Origem:** Etapa 66 (Bloco 7).
 - **Evidência:** `src/pages/admin/AdminBridgeStatusPage.tsx` linha ~65: `// @technical` aparece como texto entre elementos irmãos.
 - **Ação:** trocar por `{/* @technical */}` ou remover. Aplicar lint rule global.
@@ -1019,6 +1258,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-03 — `AdminEmailAuditPage.tsx` `// @technical` dentro do children de `<Badge>`
 
+- **Sev:** `HIGIENE`
+- **Depende de:** **F7-01**
 - **Origem:** Etapa 66 (Bloco 7).
 - **Evidência:** `src/pages/admin/AdminEmailAuditPage.tsx` linha ~125: `// @technical` está dentro do children do `<Badge>` — quebra linha visual antes de `Total:`.
 - **Ação:** remover.
@@ -1026,6 +1267,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-04 — `AdminBridgeStatusPage.tsx` latência 42ms e uptime 99.9% hardcoded
 
+- **Sev:** `QUEBRADO`
 - **Origem:** Etapa 67 (Bloco 7).
 - **Evidência:** KPI cards com valor literal `'42ms'` e `'99.9%'` — "Latência Bridge" NÃO mede; "Uptime 24h" NÃO calcula.
 - **Ação:**
@@ -1036,6 +1278,9 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-05 — `AuditEvidenceDashboard.tsx` página inteira MOCK ESTÁTICO
 
+- **Sev:** `QUEBRADO`
+- **Depende de:** decisão de produto da **Etapa 13** (a página é conformidade real ou removível?)
+- **Rollback:** R-CODE
 - **Origem:** Etapa 67 (Bloco 7).
 - **Evidência:** `src/pages/admin/AuditEvidenceDashboard.tsx` (78 L completo): array `evidences` com 3 items hardcoded, badge `V5.0.0-PROD` hardcoded, botão "Ver no Repositório" sem `href`.
 - **Ação:**
@@ -1046,6 +1291,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-06 — `setLastLastUpdate` (typo)
 
+- **Sev:** `HIGIENE`
 - **Origem:** Etapa 68 (Bloco 7).
 - **Evidência:** `PerformanceDashboard.tsx` linha 8: `const [lastUpdate, setLastLastUpdate] = useState(new Date());`.
 - **Ação:** renomear para `setLastUpdate`.
@@ -1053,6 +1299,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-07 — Normalização de progress bar hardcoded a 4000 para todas as métricas Web Vitals
 
+- **Sev:** `DEGRADADO`
 - **Origem:** Etapa 68 (Bloco 7).
 - **Evidência:** `<Progress value={Math.min((m.value / 4000) * 100, 100)} />`. CLS (0-1) dá 0.025%; TTFB (100-500ms) 2-12%; INP (200ms good) 5%. Comparação sem sentido.
 - **Ação:**
@@ -1063,6 +1310,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-08 — Polling 500x/hora sem `document.visibilityState`
 
+- **Sev:** `DEGRADADO`
 - **Origem:** Etapa 68 (Bloco 7).
 - **Evidência:** `const interval = setInterval(update, 2000);` sem pausar quando aba oculta.
 - **Ação:**
@@ -1073,6 +1321,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-09 — Rota `/admin/webhook-overview` inexistente
 
+- **Sev:** `QUEBRADO`
+- **Depende de:** **F1-14** (decidir URL canônica vs `?view=` define se o alvo é uma rota nova ou o `?view=` existente)
 - **Origem:** Etapa 69 (Bloco 7).
 - **Evidência:** `AdminInboxSyncStatusPage.tsx` alert "sem inbound" linka `<Link to="/admin/webhook-overview">`. Listagem de `src/pages/admin/` NÃO contém `AdminWebhookOverviewPage.tsx`. Route table cai em NotFound.
 - **Ação:**
@@ -1082,6 +1332,9 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-10 — `AdminChannelsPage.tsx` `color: "bg-primary"` usado como inline style `backgroundColor`
 
+- **Sev:** `QUEBRADO`
+- **Depende de:** nada — mas o **Aceite só é verificável depois** de existir ao menos 1 canal (`zapp.service_channels` tem 0 linhas)
+- **Rollback:** R-DDL
 - **Origem:** Etapa 70 (Bloco 7).
 - **Evidência:** `emptyChannel()` retorna `color: "bg-primary"` (classe Tailwind), depois usado em `<span style={{ backgroundColor: ch.color }}>` — CSS `background-color: bg-primary` é inválido. Canais criados via UI ficam sem cor de fundo.
 - **Ação:**
@@ -1092,6 +1345,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-11 — `zapp.provider_message_log` = 0 rows total
 
+- **Sev:** `QUEBRADO`
 - **Origem:** Etapa 71 (Bloco 7).
 - **Evidência:** `AdminWhatsAppLogsPage` diz "provider_message_log — últimas 150 entradas" mas painel sempre em EmptyState. Sistema em produção deveria estar logando.
 - **Ação:**
@@ -1102,6 +1356,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-12 — `AdminSecurityLogsPage` KPI "Tentativas Negadas (24h)" mente sobre janela
 
+- **Sev:** `SEC`
+- **Raiz de:** F7-28
 - **Origem:** Etapa 71 (Bloco 7).
 - **Evidência:** 
   1. `zapp.security_audit_logs` = 0 rows total.
@@ -1114,6 +1370,9 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-13 — Painel Rate Limiting inteiro sempre em zero
 
+- **Sev:** `QUEBRADO`
+- **Depende de:** decisão de produto da **Etapa 13** (rate limiting existe ou a página sai?)
+- **Rollback:** R-CODE
 - **Origem:** Etapa 71 (Bloco 7).
 - **Evidência:** `rate_limit_logs=0`, `blocked_ips=0`, `ip_whitelist=0`. `RateLimitDashboard.tsx` (489 L) exibe 4 KPIs cards + 5 tabs permanentemente vazios.
 - **Ação:**
@@ -1124,6 +1383,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-14 — `webhook_health_alerts` 724 unresolved (98.6% backlog); sistema pede "não vá pra prod"
 
+- **Sev:** `DEGRADADO`
+- **Rollback:** R-CRON + R-FN
 - **Origem:** Etapa 72 (Bloco 7).
 - **Evidência:** total=734, unresolved=724, last_24h=20. Breakdown: `burnin_critical_alert=709`, `lovable_parity_drift=9`, `burnin_disconnection=4`, `backup_sentinel_stale=2`. Título recorrente: `E10-03: N new critical alert(s) during burn-in — 72h counter reset. Investigate before go-live.` Cron 145 gera 1-2/h.
 - **Ação:**
@@ -1135,6 +1396,9 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-15 — ~~OBSOLETO~~ Cron 213 `media_pipeline_health_check` 42.8% falha
 
+- **Sev:** — (achado **OBSOLETO** — não entra na esteira)
+- **Depende de:** **F4-24** — mesmo cron (jobid 213), achado duplicado; ambos obsoletos
+- **Rollback:** R-CRON + R-FN
 - **Origem:** Etapa 73 (Bloco 7).
 - **Evidência:** Duas cascatas: (a) coluna `severity` NÃO EXISTE em `warroom_alerts`; (b) `alert_type='media_pipeline'` viola `chk_warroom_alert_type`.
 - **Ação:**
@@ -1147,6 +1411,9 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-16 — ~~OBSOLETO~~ Cron 100 `analytics-log-retention` 100% falha (`dblink` não instalada)
 
+- **Sev:** — (achado **OBSOLETO** — não entra na esteira)
+- **Depende de:** **F9-13** (mesma causa-raiz: `search_path` sem `zapp`) — ambos já obsoletos
+- **Rollback:** R-CRON
 - **Origem:** Etapa 73 (Bloco 7).
 - **Evidência:** `function public.dblink(text, text) does not exist`. Extensão dblink NÃO instalada.
 - **Ação:**
@@ -1157,6 +1424,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-17 — `remote_jid` completo em URL query (PII em logs)
 
+- **Sev:** `SEC`
 - **Origem:** Etapa 74 (Bloco 7).
 - **Evidência:** `<Link to={`/?contact=${encodeURIComponent(c.remote_jid)}`}>` em `AdminInboxSyncStatusPage.tsx` — vaza número WhatsApp em logs/Referer/telemetria.
 - **Ação:**
@@ -1167,6 +1435,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-18 — `hmac_selftest_audit` = 0 rows
 
+- **Sev:** `QUEBRADO`
 - **Origem:** Etapa 71 (Bloco 7).
 - **Evidência:** Edge function `webhook-hmac-selftest` roda (botão dispara) mas nunca insere audit.
 - **Ação:**
@@ -1177,6 +1446,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-19 — `STATUS_BADGE[ch.status]` sem defensive fallback
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 70 (Bloco 7).
 - **Evidência:** `AdminChannelsPage.tsx` — se `ch.status='provisioning'` (não mapeado), `statusInfo=undefined` → `TypeError`.
 - **Ação:** `const statusInfo = STATUS_BADGE[ch.status] ?? { label: ch.status, variant: 'outline' };` + teste.
@@ -1184,6 +1454,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-20 — `automation_executions` = 0 rows
 
+- **Sev:** `QUEBRADO`
 - **Origem:** Etapa 71 (Bloco 7).
 - **Evidência:** `AdminAutomationLogsPage` mostra filtros elaborados mas tabela vazia. Regras são criadas (`AdminAutomationsPage` 790 L) mas execuções não logadas OU escritas em outra tabela.
 - **Ação:**
@@ -1194,6 +1465,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-21 — ~~OBSOLETO~~ `HmacSelfTestPage` useEffect com dependência `[run]` — risco de loop infinito
 
+- **Sev:** — (achado **OBSOLETO** — não entra na esteira)
 - **Origem:** Etapa 75 (Bloco 7).
 - **Evidência:** `useEffect(() => { void run(); }, [run])`. Se `run` NÃO estiver em `useCallback` dentro de `useHmacSelfTest`, muda referência a cada render → loop.
 - **Ação:**
@@ -1205,6 +1477,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-22 — Botão "Run test suite" sem confirmação; label hardcoded "50 testes"
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 75 (Bloco 7).
 - **Evidência:** `AdminEvoApiHealthPage.tsx` — clique acidental dispara 50 tests em produção sem confirmação.
 - **Ação:**
@@ -1215,6 +1488,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-23 — Decisão de variant baseada em `overall?.includes('🟢')` (contrato frágil)
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 75 (Bloco 7).
 - **Evidência:** `<Alert variant={readiness.overall?.includes('🟢') ? 'default' : 'destructive'}>`. Se backend trocar emoji, todos os banners viram destructive.
 - **Ação:**
@@ -1226,6 +1500,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-24 — `AdminWhatsAppWebhookVerifyCard.tsx` chave React duplicável
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 75 (Bloco 7).
 - **Evidência:** `<li key={`${p.kind}-${p.created_at}`}>` — 2 pings do mesmo tipo no mesmo ms → warning + remount errado.
 - **Ação:** incluir `id`: `<li key={p.id ?? `${p.kind}-${p.created_at}`}>`. Adicionar `id` no payload retornado.
@@ -1233,6 +1508,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-25 — Cloud API webhook sem tráfego há 90 dias
 
+- **Sev:** `QUEBRADO`
 - **Origem:** Etapa 75b (Bloco 7).
 - **Evidência:** `zapp.whatsapp_cloud_webhook_pings`: 173 total, 0 last 24h, 0 last 7d. Último: `2026-05-04 10:30 UTC`. `AdminWhatsAppWebhookVerifyCard` sempre zero. Sem alertagem.
 - **Ação:**
@@ -1244,6 +1520,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-26 — `AdminQueuesPage` helper `NOT_IMPLEMENTED` em produção
 
+- **Sev:** `HIGIENE`
 - **Origem:** Etapa 75 (Bloco 7).
 - **Evidência:** `const NOT_IMPLEMENTED = 'Ação indisponível nesta versão. Em breve.'; const notImplemented = () => toast.info(NOT_IMPLEMENTED);`.
 - **Ação:**
@@ -1253,6 +1530,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-27 — `AdminProvidersPage` promete "health-check 2min" mas `provider_configs` vazia
 
+- **Sev:** `QUEBRADO`
+- **Rollback:** R-CRON
 - **Origem:** Etapa 75 (Bloco 7).
 - **Evidência:** Descrição promete health-check automático 2min, mas tabela vazia.
 - **Ação:**
@@ -1263,6 +1542,9 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-28 — `AdminSecurityLogsPage` comentário TODO em prod, filtro sem janela
 
+- **Sev:** `SEC`
+- **Depende de:** **F7-12** (o filtro sem janela de 24h é o mesmo defeito; corrigir uma vez)
+- **Rollback:** R-POL
 - **Origem:** Etapa 75 (Bloco 7).
 - **Evidência:** Grid tem 4 slots mas 1 card + comentário `{/* Adicionar mais cards conforme necessário */}`. Filtro sem janela 24h (mesmo bug de F7-12).
 - **Ação:**
@@ -1273,6 +1555,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-29 — `AdminFailedAuthMessagesPage` sem validação `from > to` nem timezone
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 75 (Bloco 7).
 - **Evidência:** `useState<Date | undefined>` sem validação; `new Date(dateStr)` sem timezone.
 - **Ação:**
@@ -1283,6 +1566,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-30 — `AdminEmailStatusPage` usa `location.hash =` em app path-based
 
+- **Sev:** `QUEBRADO`
 - **Origem:** Etapa 69 (Bloco 7).
 - **Evidência:** `onClick={() => (window.location.hash = '#admin/email-audit')}` em app com react-router-dom `BrowserRouter` — não navega.
 - **Ação:** `import { useNavigate } from 'react-router-dom'; const navigate = useNavigate(); onClick={() => navigate('/admin/email-audit')}`.
@@ -1290,6 +1574,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-31 — `SelfHostedHealthPage` sem AbortController + results stale em erro
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 75 (Bloco 7).
 - **Evidência:** `run = async () => { ... }` sem cancel signal. Clique duplo dispara 10 requests. Se throw, `results` antigos stale.
 - **Ação:**
@@ -1299,6 +1584,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 ### F7-32 — ~~OBSOLETO~~ `AdminAutomationLogsPage` paginação 0-indexed inconsistente
 
+- **Sev:** — (achado **OBSOLETO** — não entra na esteira)
 - **Origem:** Etapa 75 (Bloco 7).
 - **Evidência:** `const [page, setPage] = useState(0);` e `setPage(0)` no reset. Convenção Supabase 0-indexed mas UI mostra "página N" ao usuário.
 - **Ação:**
@@ -1317,6 +1603,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F8-01 — ~~OBSOLETO~~ CRÍTICO (P0): página `SLAAlertPreferences.tsx` órfã — 215 linhas de UI inalcançáveis em produção
 
+- **Sev:** — (achado **OBSOLETO** — não entra na esteira)
+- **Rollback:** R-CODE
 - **Origem:** Etapa 78 (Bloco 8).
 - **Evidência:** `wc -l src/pages/SLAAlertPreferences.tsx` = 215 linhas (formulário completo de canal in-app/email/webhook + thresholds + silence hours). `grep -rn "SLAAlertPreferences" src/App.tsx src/pages/lazyViews.ts src/pages/ViewRouter.tsx` retorna **0 matches**. Página nunca é registrada em `<Route>`, `lazyViews`, ou navegação por `?view=`. Combinado: `SELECT COUNT(*) FROM zapp.sla_alert_preferences` = 0 rows — nenhum usuário jamais configurou preferência.
 - **Ação:**
@@ -1329,6 +1617,9 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F8-02 — CRÍTICO (P0): schema `bpm` inteiro morto — 41 tabelas com 0 rows, zero funções, zero views
 
+- **Sev:** `QUEBRADO`
+- **Raiz de:** F8-04, F8-05, F8-06, F8-15
+- **Rollback:** R-CRON + R-DDL
 - **Origem:** Etapa 77 (Bloco 8).
 - **Evidência:** `SELECT relkind, COUNT(*) FROM pg_class JOIN pg_namespace ON pg_namespace.oid=relnamespace WHERE nspname='bpm' GROUP BY relkind` → `r=41, i=62` (zero `v`, zero `m`, zero `f`). `COUNT(*)` real (não estimado) de 9 tabelas críticas (`bpm_cards`, `bpm_flows`, `bpm_flow_steps`, `bpm_automations`, `bpm_automation_executions`, `bpm_activity_log`, `bpm_card_movements`, `bpm_card_comments`, `bpm_sla_records`) todas retornam 0. Módulo BPM nunca teve tráfego em produção.
 - **Ação:**
@@ -1340,6 +1631,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F8-03 — CRÍTICO (P0): 3+ sistemas SLA paralelos sem canonical
 
+- **Sev:** `RISCO`
+- **Raiz de:** F8-04, F8-05, F8-08, F8-14, F8-17
 - **Origem:** Etapa 77 (Bloco 8).
 - **Evidência:** existem 4 fontes distintas de "SLA":
   - `bpm.bpm_sla_records` (0 rows) — SLA por card BPM
@@ -1356,6 +1649,9 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F8-04 — CRÍTICO (P0): triggers `zapp.bpm_track_sla()` e `bpm_track_sla_on_create()` são stubs vazios
 
+- **Sev:** `QUEBRADO`
+- **Depende de:** **F8-02** (decisão sobre o schema `bpm`) e **F8-03** (qual sistema SLA é canônico)
+- **Rollback:** R-FN
 - **Origem:** Etapa 79 (Bloco 8).
 - **Evidência:** `pg_get_functiondef(zapp.bpm_track_sla)` e `pg_get_functiondef(zapp.bpm_track_sla_on_create)` retornam body idêntico: `BEGIN RETURN NEW; END;`. Amarrados em `bpm.bpm_cards` como triggers AFTER INSERT (`bpm_sla_on_create`) e AFTER UPDATE (`bpm_sla_on_move`). Consequência: quando/se um card for criado ou movido, **nenhum record de SLA será materializado** em `bpm.bpm_sla_records`. Cron 198 fica NOP eterno.
 - **Ação:**
@@ -1367,6 +1663,9 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F8-05 — CRÍTICO (P0): cron 198 chama função no-op (`bpm_check_breached_slas`); a versão completa (`fn_check_all_cards_sla`) é dead code
 
+- **Sev:** `QUEBRADO`
+- **Depende de:** **F8-02** e **F8-03**
+- **Rollback:** R-CRON + R-FN
 - **Origem:** Etapa 79 (Bloco 8).
 - **Evidência:** cron 198 (`*/5 * * * *`) executa `SELECT zapp.bpm_check_breached_slas()` — corpo tem 5 linhas: `UPDATE bpm_sla_records SET is_breached=TRUE WHERE exited_at IS NULL AND is_breached=FALSE AND deadline_at < NOW()`. Só marca flag; nenhuma notificação. `zapp.fn_check_all_cards_sla()` (também SECDEF) tem body completo com `INSERT INTO evolution_alerts (alert_type='sla_exceeded', severity, message, payload)` incluindo dedup por 4h — mas **nenhum cron a chama** (`grep command from cron.job WHERE command ILIKE '%fn_check_all_cards_sla%'` = 0).
 - **Ação:**
@@ -1377,6 +1676,9 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F8-06 — CRÍTICO (P0): RLS de todas as 41 tabelas `bpm.*` é `USING(true) WITH CHECK(true)` para `authenticated`
 
+- **Sev:** `SEC`
+- **Depende de:** **F8-02** — se o schema for removido, o achado desaparece
+- **Rollback:** R-POL
 - **Origem:** Etapa 79 (Bloco 8).
 - **Evidência:** `SELECT * FROM pg_policies WHERE schemaname='bpm'` = 82 rows (2 por tabela). Padrão: `auth_full_access` para role `{authenticated}` com `qual=true, with_check=true`, e `service_full_access` para role `{service_role}` com mesmo qual. Zero policy filtra por `workspace_id`, `owner_id`, tenant, ou qualquer coisa. RLS "ligado" mas efetivamente aberto para qualquer authenticated. Repete o padrão sistêmico já registrado em F5-XX/F6-XX.
 - **Ação:**
@@ -1387,6 +1689,7 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F8-07 — CRÍTICO (P0): `useSLAMetrics.overallRate` fallback = 100 mascara dashboard vazio
 
+- **Sev:** `QUEBRADO`
 - **Origem:** Etapa 76 (Bloco 8).
 - **Evidência:** `src/features/sla/hooks/useSLAMetrics.ts` tem **dois** fallbacks: `overallRate: combinedTotal > 0 ? ((frOnTime + resOnTime) / combinedTotal) * 100 : 100` (visão geral) e `overallRate: total > 0 ? ((s.frOn + s.resOn) / total) * 100 : 100` (por agente). Como `zapp.conversation_sla` está com 0 rows, `combinedTotal=0` e dashboard exibe eternamente "SLA 100%". Métrica cosmética que esconde a ausência total de dados — usuário nunca percebe que módulo está morto.
 - **Ação:**
@@ -1396,6 +1699,9 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F8-08 — CRÍTICO (P0): `zapp.queues` = 0 rows → `rpc_queue_sla_panel` sempre retorna vazio; comentário v2 admite bug histórico ainda não corrigido
 
+- **Sev:** `QUEBRADO`
+- **Depende de:** **F8-03**
+- **Rollback:** R-VIEW
 - **Origem:** Etapa 76 (Bloco 8).
 - **Evidência:** `COUNT(*)` real: `zapp.queues=0, queue_positions=0, sticky_assignments=0, queue_members=0`. `pg_get_functiondef(zapp.rpc_queue_sla_panel)` contém comentário: `-- v2 (2026-07-02): CTEs de espera/SLA repontadas de zapp.contacts.queue_id (que é NULL::uuid hardcoded na view => métricas eternamente 0, bug provado)`. Ou seja: bug histórico documentado; v2 tentou corrigir mas painel continua vazio porque a fonte alternativa (`zapp.queue_positions`) também está vazia.
 - **Ação:**
@@ -1407,6 +1713,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F8-09 — CRÍTICO (P0): `evo.evolution_health_logs` vazia → cron 163 (`evo-peak-hours-sla`) retorna `NO_PEAK_DATA` em 100% das execuções
 
+- **Sev:** `QUEBRADO`
+- **Rollback:** R-CRON
 - **Origem:** Etapa 79 (Bloco 8).
 - **Evidência:** `evo.fn_peak_hours_sla_check` (SECDEF, cron 163 `*/15 * * * *`) faz `SELECT COUNT(*) FROM evo.evolution_health_logs WHERE created_at >= now() - p_window AND EXTRACT(HOUR ...) BETWEEN 11 AND 21`. Cron 163 rodou 237 vezes em 7d (última 2026-08-02 13:45), todas succeeded — mas o path early-return é `IF v_total_checks = 0 THEN ... RETURN 'NO_PEAK_DATA'`. Nunca chega no cálculo real de uptime.
 - **Ação:**
@@ -1418,6 +1726,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F8-10 — ~~OBSOLETO~~ MÉDIO (P1): `src/pages/SLADashboard.tsx` (22 linhas) é wrapper dead code
 
+- **Sev:** — (achado **OBSOLETO** — não entra na esteira)
+- **Rollback:** R-CODE
 - **Origem:** Etapa 76 (Bloco 8).
 - **Evidência:** `cat src/pages/SLADashboard.tsx` mostra 22 linhas: só monta Sidebar + `<SLADashboardComponent />` importado de `@/components/queues/SLADashboard` (349 linhas — o real). Router (`ViewRouter.tsx`) importa direto de `@/components/queues/SLADashboard`, pulando o wrapper. Arquivo em `src/pages/` só serve para confundir grep e IDE.
 - **Ação:**
@@ -1428,6 +1738,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F8-11 — MÉDIO (P1): `zapp.sla_alert_preferences` tem policy redundante — `users_own_preferences` é subset estrito de `auth_secure_105`
 
+- **Sev:** `HIGIENE`
+- **Rollback:** R-POL
 - **Origem:** Etapa 78 (Bloco 8).
 - **Evidência:** `SELECT policyname, qual FROM pg_policies WHERE tablename='sla_alert_preferences'`:
   - `auth_secure_105` (role authenticated): `((user_id = auth.uid()) OR is_admin_or_supervisor())`
@@ -1441,6 +1753,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F8-12 — BAIXO (P1): `src/hooks/useSLAHistory.ts` é re-export duplicado (2 linhas)
 
+- **Sev:** `HIGIENE`
+- **Rollback:** R-CODE
 - **Origem:** Etapa 77 (Bloco 8).
 - **Evidência:** `cat src/hooks/useSLAHistory.ts` retorna literal: `/** React hook: use S L A History. */\nexport * from '@/features/sla/hooks/useSLAHistory';`. Duas linhas. Diferentes lugares no repo podem importar `@/hooks/useSLAHistory` ou `@/features/sla/hooks/useSLAHistory` — mesma coisa mas leva a confusão de barrel.
 - **Ação:**
@@ -1452,6 +1766,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F8-13 — BAIXO (P1): smoke test data ("F4 SLA", "E2 Race") vazando em produção há 3 meses
 
+- **Sev:** `HIGIENE`
+- **Rollback:** R-DDL
 - **Origem:** Etapa 80 (Bloco 8).
 - **Evidência:** `SELECT * FROM zapp.sla_delivery_rules` retorna 2 rows: `name='F4 SLA' created_at='2026-05-04T01:38:46Z'`, `name='E2 Race' created_at='2026-05-04T09:11:46Z'`. `SELECT * FROM zapp.sla_delivery_violations ORDER BY detected_at` mostra 2 rows: 1 warning resolved 2026-05-04T01:10, 1 breach unresolved 2026-05-04T01:36 (ainda unresolved 90+ dias depois). Nomes explícitos de smoke test/regressão.
 - **Ação:**
@@ -1461,6 +1777,9 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F8-14 — MÉDIO (P1): cron 205 (`verify-alert-delivery-10min`) não cobre alertas SLA — premissa da etapa 80 é falsa
 
+- **Sev:** `QUEBRADO`
+- **Depende de:** **F8-03**
+- **Rollback:** R-CRON
 - **Origem:** Etapa 80 (Bloco 8).
 - **Evidência:** `ops.fn_verify_alert_delivery` filtra `evo.evolution_alerts WHERE severity='critical' AND payload ? 'notify_request_id'`. Bloco 8 (etapa 80) do PLANO_QA descreve o cron como "verificar entrega em cada canal" para SLA breach. Mas: (a) breach SLA de BPM nunca aterrissa em `evolution_alerts` (F8-05 mostra que cron 198 só marca flag), (b) 275 delivered / 2 failed / 0 unverifiable em 7d — mas todos são alertas de outros produtores (`ops.disk-defense`, `fn_detect_401_bursts`, `connection_health`, `pg_cron:auth-session-overflow-alert`), não SLA.
 - **Ação:**
@@ -1470,6 +1789,9 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F8-15 — MÉDIO (P1): `bpm.bpm_sla_records` só tem `pkey` — sem índice em `deadline_at, exited_at, is_breached`
 
+- **Sev:** `DEGRADADO`
+- **Depende de:** **F8-02**
+- **Rollback:** R-DDL
 - **Origem:** Etapa 79 (Bloco 8).
 - **Evidência:** `SELECT indexname, indexdef FROM pg_indexes WHERE schemaname='bpm' AND tablename='bpm_sla_records'` retorna 1 row: `bpm_sla_records_pkey` (unique btree em `id`). Cron 198 faz `UPDATE ... WHERE exited_at IS NULL AND is_breached=FALSE AND deadline_at < NOW()` a cada 5min. Tabela 0 rows hoje = não pesa. Quando módulo for populado (F8-02), seq scan ao passar 10k rows já custa; ao passar 1M vira problema.
 - **Ação:**
@@ -1479,6 +1801,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F8-16 — MÉDIO (P1): histórico documentado de blackout de notificação em 31/07/2026 18:40 UTC — 14 falhas, 0 sucessos em 2h
 
+- **Sev:** `RISCO`
+- **Rollback:** R-CRON
 - **Origem:** Etapa 80 (Bloco 8) — retroativo, descoberto ao auditar `zapp.warroom_alerts`.
 - **Evidência:** `SELECT * FROM zapp.warroom_alerts WHERE source='fn_verify_alert_delivery'` retorna 1 row: `alert_type='critical', title='BLACKOUT DE NOTIFICACAO — nenhum alerta critico esta sendo entregue', message='Ultimas 02:00:00 no canal: 0 entregas confirmadas, 14 falhas', created_at='2026-07-31T18:40:00.123Z'`. Nenhum blackout depois. Evento aconteceu, foi capturado pelo cron 205 (validando que o mecanismo funciona), mas: (a) não há registro de investigação/post-mortem, (b) o próprio evento passou despercebido — `warroom_alerts` tem 4501 rows total, se ninguém filtra por `severity='critical' AND source='fn_verify_alert_delivery'` regularmente, esse alerta específico se perde.
 - **Ação:**
@@ -1489,6 +1813,9 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F8-17 — MÉDIO (P1): `zapp.fn_check_all_cards_sla` tem `search_path` sem `bpm` — resolução implícita via views é armadilha oculta
 
+- **Sev:** `RISCO`
+- **Depende de:** **F8-03**
+- **Rollback:** R-FN + R-VIEW
 - **Origem:** Etapa 79 (Bloco 8).
 - **Evidência:** `pg_get_functiondef(zapp.fn_check_all_cards_sla)` mostra `SET search_path TO 'zapp', 'evo', 'monitoring'`. Body faz `FROM bpm_cards c JOIN bpm_flow_steps s`. Como `bpm` não está no search_path, PostgreSQL resolve `bpm_cards` → view `zapp.bpm_cards` (que aponta para `bpm.bpm_cards` via `SELECT *`). Funciona hoje, mas: (a) qualquer refactor da view `zapp.bpm_cards` adicionando GROUP BY, DISTINCT ou UNION quebra a resolução automática de UPDATE/JOIN, (b) se view for dropada por engano, função falha silenciosamente com "relation does not exist". A função `zapp.bpm_check_breached_slas` tem o mesmo padrão. Fragilidade sistêmica.
 - **Ação:**
@@ -1512,6 +1839,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F9-01 — ALTO (P0): `src/lib/offlineQueue.ts` (226 linhas) não tem um único consumidor em produção — a fila offline é código morto
 
+- **Sev:** `HIGIENE`
+- **Rollback:** R-CODE
 - **Origem:** Etapa 81 (Bloco 9A).
 - **Evidência:**
   - `wc -l src/lib/offlineQueue.ts` = **226 linhas**, exportando `offlineQueue`, `enqueueMessage()`, `processQueue()`, `getQueueStats()`, `setupOnlineListener()`.
@@ -1527,6 +1856,7 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F9-02 — ALTO (P0): `sendQueuedMessages()` no Service Worker é stub de `console.log` e a tag de sync não bate com a registrada
 
+- **Sev:** `QUEBRADO`
 - **Origem:** Etapa 81 (Bloco 9A).
 - **Evidência:**
   - `public/sw.js:141-143`, corpo integral da função:
@@ -1546,6 +1876,7 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F9-03 — MÉDIO (P1): `index.html` desregistra todos os Service Workers na primeira visita de cada sessão, inviabilizando Background Sync por design
 
+- **Sev:** `QUEBRADO`
 - **Origem:** Etapa 81 (Bloco 9A).
 - **Evidência:**
   - `index.html:74` — script inline `recoverPreview()` roda em toda carga: usa flag de sessão `zapp_sw_purged_v3` em `sessionStorage`; se `firstRun` (flag ausente) **ou** `suspicious`, executa `regs.map(r => r.unregister())` seguido de `caches.delete(k)` para todas as chaves.
@@ -1560,6 +1891,7 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F9-04 — MÉDIO (P1): cliente supabase-js criado sem qualquer política de retry — falha de rede transitória vira erro imediato para o usuário
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 82 (Bloco 9A).
 - **Evidência:**
   - `grep -rn "retry\|backoff\|exponential" src/integrations/supabase/client.ts` → **nenhum hit de retry**. Os 3 únicos hits são `timeout`: `setTimeout` (linha 143) e `clearTimeout` (162), pertencentes ao `AbortController` do bootstrap de auth (linha 129), não a repetição de request.
@@ -1574,6 +1906,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F9-05 — BAIXO (P1): quatro implementações paralelas de backoff exponencial coexistem (1.266 linhas), sem fonte única de verdade
 
+- **Sev:** `HIGIENE`
+- **Rollback:** R-CODE
 - **Origem:** Etapa 82 (Bloco 9A).
 - **Evidência:**
   - `wc -l` das camadas concorrentes: `src/lib/retry.ts` **95**, `src/lib/retryConfig.ts` **220**, `src/lib/retryStrategyAudit.ts` **420**, `src/hooks/useRetryAndErrorPrevention.ts` **531** → **1.266 linhas** para o mesmo conceito.
@@ -1588,6 +1922,7 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F9-06 — MÉDIO (P1): não existe indicador de perda de conectividade de rede/Supabase — o único "status" da UI reporta conexões WhatsApp
 
+- **Sev:** `DEGRADADO`
 - **Origem:** Etapa 83 (Bloco 9A).
 - **Evidência:**
   - `src/components/layout/ConnectionStatusIndicator.tsx` — docstring linha 2: *"Indicador discreto de status das conexões WhatsApp"*. Linha 47 monta o texto a partir de `disconnected.length` de instâncias Evolution, não de `navigator.onLine` nem do estado do canal realtime.
@@ -1604,6 +1939,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 (cross-ref: F6-19, F6-20)
 
+- **Sev:** `DEGRADADO`
+- **Rollback:** R-FN
 - **Origem:** Etapa 84 (Bloco 9A).
 - **Evidência:**
   - `pg_get_functiondef('evo.fn_detect_401_bursts')` — o guard de 24h consulta **`message`**:
@@ -1625,6 +1962,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F9-08 — MÉDIO (P1): `zapp.warroom_alerts` não tem política de retenção e acumula desde 2026-05-12
 
+- **Sev:** `DEGRADADO`
+- **Rollback:** R-CRON
 - **Origem:** Etapa 84 (Bloco 9A).
 - **Evidência:**
   - `SELECT count(*), min(created_at), max(created_at) FROM zapp.warroom_alerts` → **4.505 rows**, janela de **2026-05-12 20:05** a **2026-08-02 14:45** (82 dias, sem nenhuma purga).
@@ -1641,6 +1980,9 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 (cross-ref: F4-14, F4-23)
 
+- **Sev:** `QUEBRADO`
+- **Depende de:** **F9-10** — **pré-requisito**: corrigir F9-09 antes de F9-10 ativa bug latente. Inverter a ordem natural.
+- **Rollback:** R-CRON
 - **Origem:** Etapa 85 (Bloco 9A).
 - **Evidência:**
   - `pg_get_functiondef('zapp.fn_route_failed_webhooks_to_dlq')` — o cursor que escolhe as tabelas contém:
@@ -1661,6 +2003,9 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F9-10 — MÉDIO (P1): `fn_monitor_dlq_health` "resolve" alertas sem alterar os booleanos do WHERE — o primeiro alerta trava o canal para sempre
 
+- **Sev:** `QUEBRADO`
+- **Raiz de:** F9-09 (ordem invertida — ver abaixo)
+- **Rollback:** R-FN
 - **Origem:** Etapa 85 (Bloco 9A).
 - **Evidência:**
   - `pg_get_functiondef('zapp.fn_monitor_dlq_health')` — ramo de resolução:
@@ -1684,6 +2029,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 (cross-ref: F4-14)
 
+- **Sev:** `RISCO`
+- **Rollback:** R-POL
 - **Origem:** Etapa 85 (Bloco 9A).
 - **Evidência:**
   - `pg_get_functiondef('evo.fn_flag_poison_messages')` — o INSERT do alerta está envolvido em:
@@ -1717,6 +2064,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F9-12 — CRÍTICO (P0): o deadman switch do guardian é auto-alimentado por um cron — nunca poderá disparar
 
+- **Sev:** `QUEBRADO`
+- **Rollback:** R-CRON + R-FN
 - **Origem:** Etapa 86 (Bloco 9B).
 - **Evidência:**
   - `evo.fn_check_guardian_alive()` (cron 188) alerta quando `now() - max(heartbeat_at) > 15 min` para `service_name='swarm-task-guardian'`.
@@ -1739,6 +2088,9 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 (cross-ref: F9-12)
 
+- **Sev:** `QUEBRADO`
+- **Raiz de:** F7-16
+- **Rollback:** R-CRON + R-FN
 - **Origem:** Etapa 86 (Bloco 9B).
 - **Evidência:**
   - Execução direta da função hoje: `SELECT evo.fn_sync_guardian_heartbeat()` →
@@ -1757,6 +2109,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F9-14 — MÉDIO (P1): a "resiliência" do heartbeat é ilusória — os dois destinos são a mesma tabela física
 
+- **Sev:** `RISCO`
+- **Rollback:** R-FN
 - **Origem:** Etapa 86 (Bloco 9B).
 - **Evidência:**
   - O cron 193 chama-se `guardian-db-heartbeat-resilient` e faz **dois INSERTs**, um em `zapp.evolution_guardian_heartbeat` e outro em `evo.evolution_guardian_heartbeat`, sugerindo redundância entre destinos independentes.
@@ -1772,6 +2126,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F9-15 — MÉDIO (P1): `idempotency_key` é 100% NULL em 108.894 linhas, mantendo um índice único sem função
 
+- **Sev:** `HIGIENE`
+- **Rollback:** R-DDL
 - **Origem:** Etapa 88 (Bloco 9B).
 - **Evidência:**
   - `SELECT count(*) FROM zapp.webhook_events_processed WHERE idempotency_key IS NULL` → **108.894 de 108.894 (100%)**. A coluna nunca foi preenchida por nenhum produtor.
@@ -1786,6 +2142,7 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F9-16 — CRÍTICO (P0): tokens JWT configurados com validade de 365 dias
 
+- **Sev:** `SEC`
 - **Origem:** Etapa 89 (Bloco 9B).
 - **Evidência:**
   - `pg_db_role_setting` no nível do banco contém `app.settings.jwt_exp=31536000` — **31.536.000 segundos = 365 dias**.
@@ -1803,6 +2160,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 (cross-ref: F9-16)
 
+- **Sev:** `SEC`
+- **Rollback:** R-POL
 - **Origem:** Etapa 89 (Bloco 9B).
 - **Evidência:**
   - `pg_db_role_setting` do banco corrente contém `app.settings.jwt_secret=<40 caracteres>` em texto claro, junto de parâmetros operacionais inócuos (`TimeZone`, `work_mem`, `search_path`).
@@ -1818,6 +2177,7 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F9-18 — MÉDIO (P1): `authenticated` tem `statement_timeout` de 120s, 4× o padrão do cluster — uma query travada segura a conexão por 2 minutos
 
+- **Sev:** `DEGRADADO`
 - **Origem:** Etapa 89 (Bloco 9B).
 - **Evidência:**
   - Timeouts efetivos medidos por role: `anon=5s` · `authenticator=8s` · **`authenticated=120s`** · `service_role=herdado` · `postgres=120s`. Default do cluster (`pg_settings`): **30s**.
@@ -1834,6 +2194,7 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F9-19 — MÉDIO (P1): três circuit breakers independentes para a mesma Evolution API, com limiares divergentes e sem estado compartilhado
 
+- **Sev:** `RISCO`
 - **Origem:** Etapa 90 (Bloco 9B).
 - **Evidência:**
   - Implementação 1 — `src/lib/evolutionCircuitBreaker.ts` (**260 L**): máquina de estados `CLOSED/OPEN/HALF_OPEN`, `failureThreshold: 5`, cooldown **30.000 ms**, estado por instância em memória. Consumidor: `src/lib/evolutionSendRetry.ts:27`.
@@ -1863,6 +2224,7 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F10-01 — ALTO (P0): a suíte cross-browser cobre apenas Chromium — Safari, Firefox, Edge e mobile não têm um único teste
 
+- **Sev:** `HIGIENE`
 - **Origem:** Etapas 91-94 (Bloco 10).
 - **Evidência:**
   - `playwright.config.ts` declara **um único project**: `{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }`. Não há `webkit`, `firefox`, `Desktop Edge`, `Pixel 5` nem `iPhone 13`.
@@ -1879,6 +2241,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F10-02 — ALTO (P0): 28 dos 61 testes E2E nunca são executados por nenhum workflow
 
+- **Sev:** `HIGIENE`
+- **Depende de:** **F10-09** (apontar o `testDir` certo é pré-requisito para os 28 specs rodarem)
 - **Origem:** Etapas 91-94 (Bloco 10).
 - **Evidência:**
   - `ls e2e/*.spec.ts | wc -l` = **61 specs**, todos versionados (`git ls-files e2e/` = 68 arquivos).
@@ -1897,6 +2261,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 (cross-ref: F9-02, F9-03)
 
+- **Sev:** `HIGIENE`
+- **Rollback:** R-CODE
 - **Origem:** Etapa 95 (Bloco 10).
 - **Evidência:**
   - `package.json:140` declara `"vite-plugin-pwa": "^0.21.0"` em devDependencies.
@@ -1912,6 +2278,7 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F10-04 — MÉDIO (P1): `@storybook/addon-a11y` instalado mas não registrado — o contraste WCAG nunca é verificado
 
+- **Sev:** `HIGIENE`
 - **Origem:** Etapa 98 (Bloco 10).
 - **Evidência:**
   - `package.json:152` declara `"@storybook/addon-a11y": "^10.4.6"`.
@@ -1934,6 +2301,7 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F10-05 — ALTO (P0): a verificação de acessibilidade cobre só 3 telas de autenticação — o produto inteiro fica de fora
 
+- **Sev:** `HIGIENE`
 - **Origem:** Etapa 97 (Bloco 10).
 - **Evidência:**
   - `playwright.a11y.config.ts:18` restringe o escopo por `testMatch`:
@@ -1953,6 +2321,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F10-06 — MÉDIO (P1): o gate de performance roda com `continue-on-error: true` — nunca reprova nada
 
+- **Sev:** `QUEBRADO`
+- **Depende de:** **F1-10** (mesma classe: gate de CI que nunca reprova — tratar juntos na Etapa 2)
 - **Origem:** Etapa 100 (Bloco 10).
 - **Evidência:**
   - `.github/workflows/quality-gate.yml:141-143`:
@@ -1974,6 +2344,7 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F10-07 — MÉDIO (P1): Lighthouse não existe no repositório, embora a etapa 100 o exija
 
+- **Sev:** `HIGIENE`
 - **Origem:** Etapa 100 (Bloco 10).
 - **Evidência:**
   - `grep -rln "lighthouse" --include=*.yml --include=*.json --include=*.mjs .` (fora de `node_modules`) → **nenhum arquivo**. Sem `@lhci/cli`, sem `lighthouserc.json`, sem action `treosh/lighthouse-ci-action`, sem script npm.
@@ -1988,6 +2359,7 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 ### F10-08 — MÉDIO (P1): impressão está globalmente bloqueada — a etapa 99 pede transcript imprimível e o app entrega página em branco
 
+- **Sev:** `HIGIENE`
 - **Origem:** Etapa 99 (Bloco 10).
 - **Evidência:**
   - Única ocorrência de `@media print` em todo o `src/` está em `src/features/auth/hooks/useScreenProtection.ts:155`, injetada dinamicamente:
@@ -2008,6 +2380,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
 (cross-ref: F10-02)
 
+- **Sev:** `HIGIENE`
+- **Raiz de:** F10-02
 - **Origem:** Etapas 91-94 (Bloco 10).
 - **Evidência:**
   - Três arquivos de configuração coexistem com alvos diferentes:

@@ -52,12 +52,26 @@ Confirmados sem ressalva na amostra: F5-04 (ainda stub), F5-07 (funções ausent
 
 Vários achados são **sintomas do mesmo defeito** e não devem ser trabalhados isoladamente:
 
-| Raiz | Sintomas dependentes |
-|---|---|
-| `F5-01` view `zapp.contacts` descarta campos | F5-02, F5-05, F5-09 — todos derivam da view incompleta |
-| `F6-03/F6-04` duas fontes de verdade de instância | F6-13, F6-14, F6-16, F6-24 |
-| `F9-13` `dblink` em schema não previsto | F7-16 (mesma causa, diagnóstico divergente) |
-| `F9-09` DLQ com alvo errado | F9-10 é **pré-requisito** — inverter a ordem ativa bug latente |
+**Mapa completo de raízes (levantado na Etapa 1, item 4 — os campos `Depende de:` e `Raiz de:` já estão gravados em cada achado):**
+
+| Raiz | Sintomas dependentes | Ganho |
+|---|---|---:|
+| **`F6-04`** duas fontes de verdade de instância | F6-03, F6-06, F6-13, F6-14, F6-16, F6-24 | 6 |
+| **`F5-01`** view `zapp.contacts` descarta campos | F5-02, F5-03, F5-05, F5-06, F5-09 | 5 |
+| **`F8-03`** 3 sistemas SLA paralelos sem canonical | F8-04, F8-05, F8-08, F8-14, F8-17 | 5 |
+| **`F8-02`** schema `bpm` morto | F8-04, F8-05, F8-06, F8-15 | 4 |
+| `F5-08` 5 estratégias de normalização de telefone | F5-04, F5-22 | 2 |
+| `F5-09` + `F5-10` RPC de notas quebrada e bypassada | F5-11 (tabela vazia é consequência) | 1 |
+| `F7-01` `// @technical` renderizado como texto | F7-02, F7-03 | 2 |
+| `F7-12` filtro sem janela de 24h | F7-28 (mesmo defeito) | 1 |
+| `F1-14` padrão duplo URL canônica vs `?view=` | F1-13, F7-09 | 2 |
+| `F1-10` gate de lint com `\|\| true` | F10-06 (mesma classe) | 1 |
+| `F10-09` `testDir` divergente | F10-02 (28 specs não rodam) | 1 |
+| `F9-13` `search_path` sem `zapp` | F7-16 — **ambos já obsoletos** | — |
+| `F9-10` DLQ resolve alertas sem alterar os booleanos | F9-09 é **pré-requisito** — inverter a ordem ativa bug latente | — |
+| `F4-24` ≡ `F7-15` | mesmo cron (jobid 213) — **duplicata, ambos obsoletos** | — |
+
+**34 achados têm `Depende de:` e 15 são raízes.** Corrigir só `F6-04`, `F5-01`, `F8-03` e `F8-02` na ordem certa endereça **20 achados** — 10% do backlog em 4 decisões.
 
 Corrigir a raiz primeiro reduz o backlog real bem abaixo de 200.
 
@@ -74,7 +88,9 @@ Misturá-los com correção técnica trava a esteira. Vão para a **Etapa 13**, 
 
 ### 5. Nenhum achado tem plano de rollback
 
-Vários alteram RLS, triggers e views em produção com **20.445 contatos** e 17,5k mensagens ativas. O formato Origem/Evidência/Ação/Aceite é excelente para diagnóstico, mas não cobre "e se der errado". A Etapa 1 adiciona esse campo aos achados de risco alto.
+Vários alteram RLS, triggers e views em produção com **20.445 contatos** e 17,5k mensagens ativas. O formato Origem/Evidência/Ação/Aceite é excelente para diagnóstico, mas não cobre "e se der errado".
+
+**Resolvido em 2026-08-02 (Etapa 1, item 5):** **93 dos 200 achados** ganharam o campo `Rollback:` apontando para um dos 6 procedimentos canônicos definidos na Parte II — `R-POL` (policies), `R-FN` (funções e triggers), `R-VIEW` (views), `R-CRON` (jobs pg_cron), `R-DDL` (tabelas, colunas, índices, dados) e `R-CODE` (remoção de arquivo ou rota). Os outros 107 não alteram produção. **Achado com `Rollback:` não pode ser executado sem a captura do estado anterior salva e commitada.**
 
 ### O que continua muito bom
 
@@ -93,6 +109,17 @@ Vale registrar: os 200 achados têm **evidência medida com números reais** e *
 - `cron.job_run_details` retém **~3,5 dias**. Qualquer janela maior é cega.
 - Objetos `zapp.*` frequentemente são **VIEW** de `evo.*` (`contacts`, `messages`, `evolution_guardian_heartbeat`). Confirme `relkind` antes de concluir que uma constraint ou tabela não existe — essa armadilha já derrubou duas premissas.
 
+**Procedimentos de rollback canônicos** (referenciados pelo campo `Rollback:` de cada achado — Etapa 1, item 5):
+
+| Código | Aplica-se a | Capturar **antes** de executar | Como reverter |
+|---|---|---|---|
+| `R-POL` | Policies / RLS | `SELECT polname, polcmd, pg_get_expr(polqual,polrelid) AS q, pg_get_expr(polwithcheck,polrelid) AS wc FROM pg_policy WHERE polrelid='<schema>.<tabela>'::regclass;` | `DROP POLICY <nome> ON <tabela>` + recriar do texto salvo. Se a mudança foi `ENABLE ROW LEVEL SECURITY`, o inverso é `DISABLE`. Lembrete: em policy `INSERT` (`polcmd='a'`) a expressão vive em `polwithcheck` — `polqual` é sempre NULL. |
+| `R-FN` | Funções e triggers | `pg_get_functiondef('<schema>.<fn>'::regproc)` e `pg_get_triggerdef` | `CREATE OR REPLACE FUNCTION` com o texto salvo. **Nunca `DROP`** — pode haver dependentes. Antes de qualquer alteração, resolver o schema com `pg_proc` + `pg_namespace`: função homônima em 2 schemas já produziu 2 incidentes nesta base. |
+| `R-VIEW` | Views (inclusive as `zapp.*` sobre `evo.*`) | `pg_get_viewdef('<schema>.<view>', true)` **mais** os triggers `INSTEAD OF` | `CREATE OR REPLACE VIEW` com a definição salva. Se foi preciso `DROP VIEW ... CASCADE`, recriar também triggers e grants — o CASCADE leva os dois junto. |
+| `R-CRON` | Jobs do pg_cron | `SELECT jobid, jobname, schedule, command, active, nodename, username FROM cron.job WHERE jobid=<n>;` | `cron.alter_job(<n>, schedule:=…, command:=…, active:=…)`. Job criado do zero: `cron.unschedule(<n>)`. Regra do ambiente: job com `VACUUM` tem de ser **single-statement**. |
+| `R-DDL` | Tabelas, colunas, índices, dados | Tabela: `CREATE TABLE <schema>._backup_<tabela>_<yyyymmdd> AS SELECT * FROM <tabela>;` · Índice: `pg_get_indexdef` · Coluna: tipo, default e nullability de `information_schema.columns` | ALTER inverso a partir do capturado; dados restaurados do `_backup_*`. Convenção do projeto: `_backup_<nome>_<yyyymmdd>` são os **únicos** objetos novos permitidos. |
+| `R-CODE` | Remoção de arquivo, página ou rota | Nada a capturar — o git é o backup. Mas confirmar consumidores: `grep -rn "<símbolo>" src/` **incluindo** `main.tsx`, `src/components/routing/AppRoutes.tsx` e `src/components/routing/AdminRoutes.tsx` | `git revert <sha>`. Nunca `git reset --hard`. |
+
 **Definição de pronto por etapa:**
 1. Todo achado da etapa tem seu **Aceite** verificado com comando real, e a saída registrada.
 2. Achados que se revelarem obsoletos são marcados `~~OBSOLETO~~` com a evidência da revalidação — não deletados.
@@ -105,7 +132,7 @@ Vale registrar: os 200 achados têm **evidência medida com números reais** e *
 
 ### Fase 0 — Fundação (não toca em produção)
 
-#### Etapa 1 — Revalidar e recalibrar o backlog · 🟡 revalidação CONCLUÍDA (itens 1-2) · itens 3-5 pendentes
+#### Etapa 1 — Revalidar e recalibrar o backlog · ✅ **CONCLUÍDA** (itens 1 a 5)
 **Achados:** nenhum consumido (meta-etapa sobre o próprio plano).
 **Por que primeiro:** a amostragem de 17 achados encontrou **12% com defeito de referência** (F7-16, F6-06). Corrigir cegamente desperdiça sessões e pode causar dano.
 **Escopo:**
@@ -137,6 +164,27 @@ Vale registrar: os 200 achados têm **evidência medida com números reais** e *
 > - **Ainda pendentes nesta etapa:** item 3 (normalizar severidade nos 102 sem etiqueta), item 4 (campo `Depende de:`) e item 5 (campo `Rollback:`).
 >
 > **Não executar sem antes ler o veredito do achado.** Os 3 casos de maior risco: **F7-09** (mandava criar uma página que já existe), **F6-06** (criaria função duplicada em `evo`) e **F8-01** (removeria página alcançável por `?view=`).
+
+> **Concluído em 2026-08-02 — itens 3, 4 e 5.**
+>
+> **Item 3 — severidade normalizada nos 200 achados.** Campo `Sev:` gravado logo abaixo do título de cada um, na escala `SEC` > `QUEBRADO` > `RISCO` > `DEGRADADO` > `HIGIENE`. A etiqueta antiga do título foi preservada para rastreabilidade, mas **não é mais canônica** — 25 achados sequer tinham corpo estruturado e nenhum tinha severidade utilizável.
+>
+> | Classe | Qtd | % |
+> |---|---:|---:|
+> | `SEC` | 28 | 14,0% |
+> | `QUEBRADO` | 46 | 23,0% |
+> | `RISCO` | 43 | 21,5% |
+> | `DEGRADADO` | 34 | 17,0% |
+> | `HIGIENE` | 38 | 19,0% |
+> | obsoletos | 11 | 5,5% |
+>
+> O retrato honesto muda a leitura do backlog: **74 achados (37%) são `SEC` ou `QUEBRADO`** — bem menos que os 44 `CRÍTICO (P0)` inflacionados sugeriam em proporção, mas com fronteira utilizável. E **72 (36%) são `DEGRADADO` ou `HIGIENE`** — a metade de baixo pode esperar sem culpa.
+>
+> **Item 4 — dependências e causa-raiz.** Campos `Depende de:` (34 achados) e `Raiz de:` (15 raízes) gravados. Mapa completo na Parte I, item 3. As 4 maiores raízes — **F6-04**, **F5-01**, **F8-03**, **F8-02** — governam 20 achados: 10% do backlog decidido em 4 decisões, não em 20 correções.
+>
+> **Item 5 — rollback.** 93 achados receberam `Rollback:` com um dos 6 procedimentos canônicos (`R-POL`, `R-FN`, `R-VIEW`, `R-CRON`, `R-DDL`, `R-CODE`), definidos na Parte II. Os 107 restantes não alteram produção — a ausência do campo é informação, não esquecimento.
+>
+> **Etapa 1 encerrada.** Próxima: **Etapa 2 — ligar a rede de segurança do CI** (F1-10, F1-11, F10-02, F10-04, F10-05, F10-06, F10-09, F6-26). Note que F1-10 é raiz de F10-06 e F10-09 é pré-requisito de F10-02: a etapa já vem com ordem interna definida.
 
 #### Etapa 2 — Ligar a rede de segurança do CI
 **Achados:** F1-10, F1-11, F10-02, F10-04, F10-05, F10-06, F10-09, F6-26.
