@@ -183,12 +183,28 @@ for b in 1 2 3 4 5 6 7 8 9 10; do echo -n "F$b:$(grep -c "^### F$b-" docs/audits
 ```
 Mais: `git status` limpo, `.husky/pre-commit` restaurado, nenhum segredo no diff (`git diff --stat` + varredura por `ghp_`, `github_pat_`, `service_role`, `eyJ`), e `RELATORIO_CORRECAO.md` com todas as etapas executadas preenchidas.
 
-## 8. Fluxo de git
+## 8. Fluxo de git — o código NÃO volta ao GitHub até estar impecável
+
+Esta é a regra central da missão. Leia inteira antes do primeiro commit.
+
+**O trabalho é local do começo ao fim.** Você faz as Etapas 3 a 20 na máquina, commitando localmente, **sem publicar nada**, até que o gate global da seção 7 passe por completo. Só então o código sobe.
 
 - Trabalhe em **branch de feature**: `git checkout -b fix/esteira-etapas-3-20`.
-- Commite por etapa, nunca em bloco único. Commits pequenos e reversíveis.
-- **Não toque em `main`** até o gate global passar.
-- Publicação: `git push -u origin fix/esteira-etapas-3-20` e abra PR. **Não faça merge sozinho** — o Abner revisa.
+- Commite por etapa, nunca em bloco único. Commits pequenos e reversíveis. **Commit local ≠ push** — commite à vontade, publique nunca (até o gate).
+- **ZERO `git push` durante a execução das etapas.** Não é "evite", é zero. Nem para `main`, nem para a branch de feature, nem para branch nova, nem "só para não perder". Se você se pegar formulando um motivo para publicar antes do gate, o motivo está errado — vá para o parágrafo de backup abaixo.
+- **Nunca faça commit em `main`.** `main` fica intocada até o merge do PR, que **não é seu** — quem faz é o Abner.
+- **Publicação (uma única vez, no fim):** gate global verde → `git push -u origin fix/esteira-etapas-3-20` → abrir PR descrevendo etapas concluídas, achados fechados, migrações aplicadas vs. pendentes, e o que ficou bloqueado. **Não faça merge sozinho.**
+- Se o gate falhar, **conserte e rode o gate de novo**. Não publique "quase pronto" com ressalva no PR — a missão é entregar impecável, e a ressalva vira dívida de outra pessoa.
+
+**Backup sem publicar — obrigatório, e não viola a regra acima.** Semanas de trabalho num único disco é risco inaceitável (este projeto já teve um incidente de perda de histórico). Ao fim de **cada etapa**, gere um bundle local fora do repositório:
+
+```bash
+git bundle create ~/backups/zapp-web-v3_E<NN>_$(date +%Y%m%d_%H%M).bundle --all
+```
+
+O bundle é um arquivo único, restaurável com `git clone <arquivo>.bundle`, e não toca no remoto. Guarde numa pasta sincronizada (NAS, drive Z:, backup externo). Registre em `RELATORIO_CORRECAO.md` o caminho do último bundle gerado.
+
+**Exceção — só se o Abner autorizar explicitamente:** publicar uma branch de segurança `wip/esteira-etapas-3-20-backup` como cópia remota. Se autorizado: nunca `main`, nunca abrir PR a partir dela, nome sempre com prefixo `wip/`, e ela **não substitui** o gate nem o bundle. Sem essa autorização expressa, vale a regra de zero push.
 - Husky `pre-commit` pode chamar `bun`. Se falhar: `mv .husky/pre-commit .husky/pre-commit.disabled_temp` → commit → `mv` de volta. **Sempre restaurar** e conferir com `git status` que voltou.
 - Se o push falhar com erro de credencial, **pare e peça**. Não invente token. Cheque antes: `git config --global --list | grep -i insteadof` (deve vir vazio — regra de `insteadOf` com PAT expirado já travou push nesta base).
 
