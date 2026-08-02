@@ -30,7 +30,8 @@ function toRealtimeMessage(optimistic: OptimisticMessage) {
 const log = getLogger('useRealtimeInbox');
 
 // Feature flag: use external evolution DB (FATOR X) as data source.
-const USE_EXTERNAL_DB = true;
+// NOTE: hardcoded true → configurável via VITE_USE_EXTERNAL_DB
+const USE_EXTERNAL_DB = import.meta.env.VITE_USE_EXTERNAL_DB !== 'false';
 
 export function useRealtimeInbox() {
   const { profile } = useAuth();
