@@ -26,29 +26,202 @@
 
 ## Bloco 1 — Inventário estrutural (etapas 1-10)
 
-_(Detalhes registrados anteriormente.)_
+Higienização do repositório, gates de CI/qualidade e arquitetura de frontend/router. 14 achados F1-01 a F1-14 detalhados em `PLANO_IMPLEMENTACAO_100.md` Temas 1, 2 e 6.
+
+Achados agrupados abaixo pelos Temas 1, 2, 6 do plano. Cada item referencia a numeração de `PLANO_IMPLEMENTACAO_100.md`; consultar o plano para causa raiz completa, arquivo/linha e correção proposta.
+
+### Higienização do repositório (Tema 1)
+
+- **F1-01** — Deletar `___TEMP_VERSION_CHECK_DO_NOT_MERGE.txt`
+- **F1-02** — Ignorar e remover `__pycache__/`
+- **F1-03** — Mover scripts soltos para `scripts/`
+- **F1-04** — Migrar `lgpd_deploy.sql` para `supabase/migrations/`
+- **F1-05** — Mover 8 relatórios `.md` da raiz para `docs/audits/history/`
+- **F1-06** — Deletar duplicata `playwright.e2e.config.fixed.ts`
+- **F1-07** — Consolidar 5 pastas de teste em `src/**/__tests__/` + `e2e/`
+- **F1-08** — Deletar `supabase/functions-legacy/` (grep imports antes)
+- **F1-09** — Mover/deletar `supabase/fatorx-migrations/` (projeto errado)
+
+### Gates de CI e qualidade (Tema 2)
+
+- **F1-10** — Remover `|| true` do script `lint` em `package.json`
+- **F1-11** — Reduzir `--max-warnings 999 → 0` progressivamente
+
+### Frontend: router, navegação, arquitetura (Tema 6)
+
+- **F1-12** — Homônimos em `src/pages/` — padronizar `<slug>/index.tsx`
+- **F1-13** — 11 pages órfãs (sem `<Route>`) mas lazy-carregadas — decidir URL ou `?view=`
+- **F1-14** — Consolidar padrão duplo URL canônica vs `?view=X&tab=Y`
+
+---
 
 ## Bloco 2 — Auditoria do banco (etapas 11-20)
 
-_(Detalhes registrados anteriormente.)_
+Segurança Supabase (SECDEF/RLS/EXECUTE grants), performance de banco e consolidação de cron jobs. 13 achados F2-01 a F2-13 detalhados em `PLANO_IMPLEMENTACAO_100.md` Temas 3, 4 e 5.
+
+Achados agrupados abaixo pelos Temas 3, 4, 5 do plano. Cada item referencia a numeração de `PLANO_IMPLEMENTACAO_100.md`; consultar o plano para causa raiz completa, arquivo/linha e correção proposta.
+
+### Segurança Supabase (Tema 3)
+
+- **F2-01** — Revogar `EXECUTE` de `authenticated` nas 6 TRIGGER functions em `public`
+- **F2-02** — Revogar `EXECUTE` de `authenticated` nas 3 outras TRIGGER functions em `public`
+- **F2-03** — Revisar 9 RPCs SECDEF em `public` — garantir `auth.uid()` + tenant check
+- **F2-04** — Auditoria CSV das 119 SECDEF+authenticated em `zapp` (`docs/audits/secdef-zapp.csv`)
+- **F2-05** — Auditoria similar em `financeiro` (25), `artes` (11), `vendas` (5)
+
+### Performance de banco (Tema 4)
+
+- **F2-09** — Mover `ops.fn_regression_tests()` para off-peak + MV cached (8,8 s/call → 0)
+- **F2-10** — Consolidar 588 042 INSERTs unitários em `financeiro.pagamentos_diarios` para batch
+- **F2-11** — Investigar `zapp.fn_system_health_score_cached` (289 ms apesar do nome "_cached")
+- **F2-12** — Reduzir invalidações do PostgREST schema cache (203 s totais em introspection)
+- **F2-13** — Índice parcial em `zapp.messages` para badge unread inbound
+
+### Consolidação de cron jobs (Tema 5)
+
+- **F2-06** — Consolidar 4 pares de duplicatas de cron
+- **F2-07** — Escalonar 6 VACUUMs diários (02:06–02:21) em janelas > 5 min
+- **F2-08** — Reagrupar chain logflare (7 jobs, 03:00–03:45) em job único
+
+---
 
 ## Bloco 3 — Autenticação e sessão (etapas 21-30)
 
-_(Detalhes registrados anteriormente.)_
+Frontend de autenticação e sessão (`ProtectedRoute`, `refreshAll`, `signOut`, cookie storage). 12 achados F3-01 a F3-12 detalhados em `PLANO_IMPLEMENTACAO_100.md` Tema 7.
+
+Achados agrupados abaixo pelos Temas 7 do plano. Cada item referencia a numeração de `PLANO_IMPLEMENTACAO_100.md`; consultar o plano para causa raiz completa, arquivo/linha e correção proposta.
+
+### Frontend: auth e sessão (Tema 7)
+
+- **F3-01** (P0) — `supabase.auth.getSession()` fora de `useEffect` em `ProtectedRoute.tsx`
+- **F3-02** — `isDev` bypass total sem log de auditoria
+- **F3-03** — `verifyHttpOnlyCookieAuth()` é dead code — remover
+- **F3-04** — `refreshAll` sem `AbortController` — race em `TOKEN_REFRESHED` consecutivo
+- **F3-05** — Parsing frágil de `role_permissions` — pode retornar `permissions = []` silenciosamente
+- **F3-06** — Realtime `zapp.profiles` só captura UPDATE — trocar para `event: '*'`
+- **F3-07** — `retryBootstrap()` pode empilhar `getSession()` sob `navigator.locks`
+- **F3-08** — Deletar `externalSessionBridge.ts` — dead code ativo
+- **F3-09** — `signOut` sem fallback local se supabase-js falhar
+- **F3-10** — `QuotaExceededError` silenciado em cookieStorage — CustomEvent + toast
+- **F3-11** — `markTimeToMainScreen` triplicado no ProtectedRoute — guard com `useRef`
+- **F3-12** — `log_security_event` sem contexto (tenant/UA/IP) — enriquecer
+
+---
 
 ## Bloco 4 — Inbox e mensageria (etapas 31-45)
 
-_(Detalhes registrados anteriormente. 24 achados F4-01 a F4-24 em `PLANO_IMPLEMENTACAO_100.md` Tema 8.)_
+Frontend de inbox e mensageria — envio, reconciliação de delivery, media cache, filas outbound e crons de suporte. 24 achados F4-01 a F4-24 detalhados em `PLANO_IMPLEMENTACAO_100.md` Tema 8.
+
+Achados agrupados abaixo pelos Temas 8 do plano. Cada item referencia a numeração de `PLANO_IMPLEMENTACAO_100.md`; consultar o plano para causa raiz completa, arquivo/linha e correção proposta.
+
+### Frontend: inbox e mensageria (Tema 8)
+
+- **F4-01** — `fetchConversations` sem cursor/paginação (500+1000 fixo)
+- **F4-02** — `fetchConversations` sem guard de mount para setState/commitConversations
+- **F4-03** — Channel realtime com nome aleatório (`Math.random()`)
+- **F4-04** — `conversationSendState` computed fora de `useMemo`
+- **F4-05** — `USE_EXTERNAL_DB = true` hardcoded
+- **F4-06** — `handleSelectConversation` chama `evolution-api/read-messages` fire-and-forget
+- **F4-07** — Reconciliação de delivery limitada a `.slice(-10)`
+- **F4-08** — `seededAvatarsRef` sem limpeza — memory leak
+- **F4-09** — `convProbeRef` log de debug em produção
+- **F4-10** — `processedDeliveriesRef` (Set) cresce sem cap
+- **F4-11** — `localStorage.setItem` sem try/catch em useMessageQueue
+- **F4-12** — `beforeunload` handler ausente — cascade de sends no próximo load
+- **F4-13** — Classificação de erro sem diferenciar retryable
+- **F4-14** — `dbFrom('failed_messages').insert` falha silenciosa
+- **F4-15** — `sendMessageToContact` faz 8 round-trips por mensagem
+- **F4-16** — `buildSendIdempotencyKeyFromFingerprint` 5min bucket colide
+- **F4-17** — `messageSender.audit_logs` fire-and-forget sem retry
+- **F4-18** — `retry_attempt` e `error_reason` 100% NULL em `messages` (bug de persistência)
+- **F4-19** — `extractEvolutionMessageId` pode retornar null; msgs sent sem external_id
+- **F4-20** — `useMediaUrl.refreshCache` sem cap (potencial 100s MB)
+- **F4-21** — `buildFileHash(originalUrl) != buildFileHash(dataUrl)` — cache DB nunca hit
+- **F4-22** — `media_cache.storage_path` armazenando data URL base64 (anti-pattern)
+- **F4-23** — Cron `retry-stuck-messages` opera em tabela vazia (`outbound_message_queue`) — 23 msgs pending há 5 dias
+- **F4-24** — Cron `media_pipeline_health_check` (jobid 213) falha por schema drift
+
+---
 
 ## Bloco 5 — Contatos e CRM (etapas 46-55)
 
-_(Detalhes registrados anteriormente. 30 achados F5-01 a F5-30 em `PLANO_IMPLEMENTACAO_100.md` Tema 11.)_
+Camada `zapp.contacts` (view + triggers), CPF/CNPJ, normalização de telefone, RLS de contatos, notas, tags, LGPD e busca. 30 achados F5-01 a F5-30 detalhados em `PLANO_IMPLEMENTACAO_100.md` Tema 11. Base factual medida em 02/08/2026 — resumo: 20 445 contatos com 0 registros de consent LGPD, `zapp.contact_notes` = 0 rows, `zapp.merge_contacts()` levanta EXCEPTION em runtime.
+
+Achados agrupados abaixo pelos Temas 11 do plano. Cada item referencia a numeração de `PLANO_IMPLEMENTACAO_100.md`; consultar o plano para causa raiz completa, arquivo/linha e correção proposta.
+
+### Contatos e CRM (Tema 11)
+
+- **F5-01** (P0) — view `zapp.contacts` descarta silenciosamente CPF, endereço, is_blocked/is_favorite e vários outros campos
+- **F5-02** (P0) — trigger UPDATE da view `zapp.contacts` dropa campos LGPD, soft-delete, workspace e AI (mesmo padrão do F4-18)
+- **F5-03** (P0) — trigger DELETE da view faz HARD DELETE — viola requisito LGPD de soft-delete com undo 30d
+- **F5-04** (P0) — `zapp.merge_contacts()` LEVANTA EXCEPTION 'implementacao pendente (etapa 30)' — merge está morto desde deploy
+- **F5-05** (P0) — `bulk_soft_delete_contacts` referencia colunas `deleted_by`, `deleted_reason` que NÃO existem na view `zapp.contacts` — RPC falha em cada chamada
+- **F5-06** (P0) — sem coluna CPF em `evo.evolution_contacts` e sem coluna CNPJ em lugar nenhum — feature de validação é impossível
+- **F5-07** (P0) — sem `validate_cpf(text)` nem `validate_cnpj(text)` no banco — só `mask_cpf`
+- **F5-08** (P0) — 5 estratégias diferentes de normalização de telefone — merge, search e intelligence usam estratégias divergentes
+- **F5-09** (P0) — `add_contact_note` DESCARTA `p_note_type` e `p_is_pinned` silenciosamente — colunas não existem em `zapp.contact_notes`
+- **F5-10** (P0) — `useContactNotes.addNote` BYPASSA a RPC — INSERT direto na tabela contorna toda validação de segurança
+- **F5-11** (P0) — `zapp.contact_notes` **VAZIA** em produção (0 rows) — feature 100% dead
+- **F5-12** (P0) — `search_contacts_cursor` NÃO usa `pg_trgm` — full scan em ILIKE
+- **F5-13** (P0) — `zapp.tags.name` UNIQUE global — cross-workspace conflict impossibilita multi-tenant real
+- **F5-14** (P0) — RLS `evo.evolution_contacts.contacts_insert` policy tem `WITH CHECK NULL` — anyone pode inserir contato com qualquer `assigned_to`
+- **F5-15** (P0) — RLS `contacts_select` expõe contatos `assigned_to IS NULL` a TODOS os usuários — cross-tenant leak
+- **F5-16** (P0) — `get_default_workspace_id()` retorna workspace mais antigo — sem tenant isolation em contatos
+- **F5-17** — `bulk_add_tag` sem cap de tamanho + sem visibility check por contato
+- **F5-18** — `bulk_auto_merge_duplicates` seleção de primário sem regra LGPD explícita — pode migrar consent errado
+- **F5-19** — `get_contact_intelligence_by_phone` lê SÓ `evo.evolution_messages_wpp2` — multi-instância bug
+- **F5-20** — `contacts_count_by_type` SECURITY DEFINER sem filtro por workspace — data leak agregado
+- **F5-21** — `search_contacts_cursor` faz COUNT CTE em cada página — custo dobrado
+- **F5-22** — `search_contacts_cursor` sem normalização de phone na busca — busca por telefone formatado falha
+- **F5-23** — `search_contacts_cursor` só busca em `name`, `email`, `phone` — não busca em company, job_title, nickname, cpf
+- **F5-24** — `useContactsSearch.pageIndexToCursor` sem deep-link support — jump-to-page-N via URL retorna page 0
+- **F5-25** — `useContactNotes` N+1 query + sem pagination + sem edit mutation
+- **F5-26** — 20445 contatos, ZERO com `lgpd_consent_at` ou `lgpd_opt_out_at` set — compliance LGPD ausente
+- **F5-27** — Trigger INSERT view assume individual (`@s.whatsapp.net`) — quebra suporte a grupos (`@g.us`)
+- **F5-28** — `rpc_get_contact` (4 overloads em `public` + `zapp`) expõe deals/messages/tasks de contatos opted-out — LGPD violation
+- **F5-29** — Sem FK/relação `zapp.contacts` ↔ `zapp.empresas` — Etapa 54 (validar FK cascade) é unmeetable
+- **F5-30** — `zapp.tags` schema mistura AI tag suggestions com canonical tags — dupla responsabilidade
 
 ---
 
 ## Bloco 6 — Conexões WhatsApp (etapas 56-65)
 
-_(Detalhes registrados anteriormente. 30 achados F6-01 a F6-30 em `PLANO_IMPLEMENTACAO_100.md` Tema 12. Base factual medida em 02/08/2026 01:25 UTC — resumo: evolution_instance_credentials=1 row unhealthy, whatsapp_connections=3 rows com created_by=NULL em 100%, evolution_reconcile_jobs 373/1663 (22%) com timestamps corrompidos, wpp2_disconnection 17/18 unresolved, evolution_ip_watch=0 rows total.)_
+Camada de conexões WhatsApp — `whatsapp_connections`, `evolution_instance_credentials`, reconciliação de dispatch, watchdog wpp2 e detecção de 401. 30 achados F6-01 a F6-30 detalhados em `PLANO_IMPLEMENTACAO_100.md` Tema 12. Base factual medida em 02/08/2026 01:25 UTC — resumo: evolution_instance_credentials=1 row unhealthy, whatsapp_connections=3 rows com created_by=NULL em 100%, evolution_reconcile_jobs 373/1663 (22%) com timestamps corrompidos, wpp2_disconnection 17/18 unresolved, evolution_ip_watch=0 rows total.
+
+Achados agrupados abaixo pelos Temas 12 do plano. Cada item referencia a numeração de `PLANO_IMPLEMENTACAO_100.md`; consultar o plano para causa raiz completa, arquivo/linha e correção proposta.
+
+### Conexões WhatsApp (Tema 12)
+
+- **F6-01** (P0) — pairing code (Etapa 58) 100% AUSENTE do código
+- **F6-02** (P0) — `handleAddConnection` NÃO chama Evolution `/instance/create` — só INSERT no banco
+- **F6-03** (P0) — estado divergente wpp2 entre `zapp.whatsapp_connections` e `evo.evolution_instance_credentials`
+- **F6-04** (P0) — 2 fontes de verdade para instância (whatsapp_connections vs evolution_instance_credentials) sem canonical
+- **F6-05** (P0) — `fn_reconcile_dispatch` reutiliza `request_id` do net_worker → 373 rows (22%) com applied_at anterior a dispatched_at
+- **F6-06** (P0) — `fn_alert_wpp2_disconnection` hardcoded para instance_name='wpp2' — não escala multi-instância
+- **F6-07** — `fn_alert_wpp2_disconnection` NÃO é SECURITY DEFINER — inconsistente com pattern das outras funções afins
+- **F6-08** (P0) — 17 de 18 alerts `wpp2_disconnection` nunca resolvidos (94% backlog) — alert fatigue
+- **F6-09** (P0) — cron `wpp2_disconnection_watchdog` (104) schedule `*/10 6-23 * * *` — 6h gap noturno de detecção (23h→6h)
+- **F6-10** — cron `sync-instance-registry-status` (96) perdeu 11% das execuções em 24h (256/288)
+- **F6-11** — 6 triggers em `zapp.whatsapp_connections`; 4 são duplicatas divergentes (2 pares)
+- **F6-12** — `fn_validate_whatsapp_connection_url` cai para hardcoded default se vault vazio — não fail-secure
+- **F6-13** (P0) — `api_url` e `api_key` são NOT NULL sem default — INSERT via `useConnectionsActions.handleAddConnection` faltaria valores
+- **F6-14** — Só 1 registro em `evo.evolution_instance_credentials` (wpp2); 2 conexões em `whatsapp_connections` órfãs
+- **F6-15** — "WPP Marketing (Cloud API Oficial)" tem `api_type='evolution'` — nome enganoso vs config real
+- **F6-16** (P0) — `created_by = NULL` em 3/3 rows de `whatsapp_connections` — ownership perdida
+- **F6-17** (P0) — RLS `wconn_insert_auth` policy `WITH CHECK (created_by IS NULL OR created_by = auth.uid())` permite orphan INSERTs
+- **F6-18** — Policy `auth_secure_123` (nome de código de teste) em produção
+- **F6-19** (P0) — `evo.evolution_ip_watch` = 0 rows total — pipeline VPS→DB de detecção 401 morto
+- **F6-20** (P0) — `fn_detect_401_bursts` documenta seu próprio "monitoring gap" no comentário — cega por design atual
+- **F6-21** (P0) — 373 reconcile_jobs (22%) com `applied_at < dispatched_at - 1 day` — telemetria corrompida
+- **F6-22** — 1389 alertas em `zapp.warroom_alerts` em 7d (863 info + 385 critical + 141 warning) — alert fatigue extrema
+- **F6-23** — `evo.evolution_alerts` 269 unresolved backlog — nenhum triage
+- **F6-24** — `zapp.instance_registry` tem 22 rows; só 3 provisionadas (14%)
+- **F6-25** — `instance_auth_events` últimas 17 rows com `event_type=NULL`, `http_status=NULL`, `success=false` — instrumentação quebrada
+- **F6-26** — Test coverage módulo connections: 2 test files para ~30 arquivos (0 tests em componentes)
+- **F6-27** (P0) — `useEvolutionAutoSync` faz SELECT sem filtro por workspace/user — cross-tenant leak potencial
+- **F6-28** — `handleDelete` engole erro do Evolution API `.catch(log.warn)` — deixa instância órfã lá
+- **F6-29** — `handleAddConnection` valida só `name` — permite `phone_number` vazio
+- **F6-30** — Múltiplas cópias de tabelas em múltiplos schemas: 13 objetos para 5 nomes distintos
 
 ---
 
