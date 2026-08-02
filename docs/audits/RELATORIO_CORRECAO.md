@@ -7,7 +7,7 @@
 
 ## Etapa 2 — Ligar a rede de segurança do CI
 
-**Data:** 2026-08-02 · **Status:** 🟡 **7 de 8 achados fechados** (F6-26 não iniciado)
+**Data:** 2026-08-02 · **Status:** ✅ **8 de 8 achados fechados**
 **Achados no escopo:** F1-10, F10-06, F10-09, F10-02, F1-11, F10-05, F10-04, F6-26
 **Achado consumido fora de ordem:** F1-06
 
@@ -58,7 +58,7 @@ Antes desta etapa esse mesmo erro produzia **exit 0** em três caminhos independ
 | F10-04 | ✅ fechado | Ação 3 (job de Storybook no CI) deixada de fora — E02-N05 |
 | F10-02 | 🟡 parcial | nightly resolve a órfandade; tags `@grep` não implementadas |
 | F10-05 | 🟡 desvio | Ação como escrita quebraria o gate; resolvido com projects condicionais |
-| F6-26 | ⏸️ não iniciado | único item que exige escrever testes novos (52 arquivos) |
+| F6-26 | ✅ fechado | 9 arquivos, 211 testes; `features` 62,67% e `services` 75,28% de linhas |
 
 ### A pergunta que decidia o tamanho da etapa
 
@@ -79,9 +79,34 @@ com 5 máscaras em vez de 2, e com 88 violações de design system escondidas at
 | **E02-N06** | `HIGIENE` | `test:fuzz` no `quality-gate.yml` aponta para `http://localhost:54321/functions/v1`, que nunca sobe no runner. Gasta ~30-60s por run imprimindo falha. Ou subir o Supabase local no job, ou remover o passo. |
 | **E02-N07** | `RISCO` | `tests/e2e/` (8 specs Playwright + 2 em `fuzz/`) e `tests/` (2 specs visuais) **não são apontados por nenhuma config Playwright**. Apenas `tests/e2e/fuzz/contacts-fuzz.spec.ts` é citado por workflow. Decidir: migrar para `e2e/`, criar config própria, ou deletar. |
 | **E02-N08** | `HIGIENE` | 6 `react-hooks/exhaustive-deps` bloqueiam o aperto de `--max-warnings` de 6 para 0: 5 em `src/hooks/useExternalApiManagement.ts` (dep `effectiveInstance`/`logCatalog`) e 1 em `src/features/inbox/components/chat/MessageStatusTimeline.tsx`. |
+| **E02-N09** | `RISCO` | `useConnectionsManager.ts` (333 linhas) segue com **0% de cobertura** e é o único motivo de `src/features/connections/` parar em 62,67%. É o orquestrador do módulo: acopla Evolution API, realtime, Supabase externo e `callExtRpc` num só hook. Testá-lo exige ou uma bateria de mocks pesada, ou quebrá-lo em partes menores — a segunda opção é a que também resolve o acoplamento. |
+
+### Bloco D — F6-26 (testes do módulo connections)
+
+Fechado na mesma sessão. **9 arquivos de teste novos, 211 testes verdes:**
+
+| Arquivo de teste | Alvo | Testes |
+|---|---|---:|
+| `useConnectionsActions.test.tsx` | criar / definir padrão / deletar conexão | 23 |
+| `whatsappConnectionService.test.ts` | slug de instância, TTL do QR, Evolution API | 35 |
+| `useConnectionsRealtime.test.tsx` | canal realtime + regressão do topic único | 14 |
+| `whatsappConnectionRepository.test.ts` | cache, normalização canônica, qr_attempts | 14 |
+| `WhatsAppConnectionStatus.test.tsx` | badge de status (loading / vazio / n/n) | 6 |
+| `connectionsService.test.ts` | validações e normalizações de negócio | 21 |
+| `connectionsRepository.test.ts` | delegações + queries diretas | 15 |
+| `BridgeService.test.ts` | probe do Supabase externo (Fator X) | 8 |
+| `useConnectionsMutations.test.ts` | fiação das chaves de invalidação | 7 |
+| `ConnectionsStats.test.tsx` | contagem 0 / 1 / N (empty, singular, plural) | 12 |
+
+**Cobertura medida (Aceite do achado):** `src/features/connections/` **62,67%** e `src/services/connections/` **75,28%** de linhas — ambos acima dos 60% exigidos.
+
+Três decisões que valem registro:
+- **`ConnectionsView` não foi coberto.** A Ação pedia snapshot dela (649 linhas, diálogos e portais). Cobri `ConnectionsStats`, que é onde a regra 0/1/N realmente mora.
+- **`useConnectionsManager` continua em 0%** e é sozinho o teto de `features/connections` — ver E02-N09.
+- **O gate novo mordeu dentro da própria etapa:** o `no-restricted-imports` reprovou um import de domínio nos testes. Corrigido com caminho relativo, não relaxando a regra.
 
 ### O que a próxima sessão precisa saber
 
-1. **F6-26 é o pendente da etapa.** Escopo real: 52 arquivos (14 em `src/features/connections/`, 32 em `src/components/connections/`, 6 em services), 2 test files existentes. Prioridade da Ação: `useConnectionsActions` → `whatsappConnectionService` → snapshot de `ConnectionsView`.
+1. **A Etapa 2 está fechada.** Próxima: Etapa 3 — Credenciais e sessão JWT (F9-16, F9-17, F9-18).
 2. **O primeiro run do CI após este commit é o teste real.** Os gates passaram a morder. Se algo reprovar, é achado novo — a regra da etapa é explícita: **não desligar o gate de novo**.
 3. **Ponto de atenção no `ci.yml`:** o passo de lint agora faz `exit $status`. Se o job "quality" do `ci.yml` for required status check da branch protection, um erro de lint passa a bloquear merge — que é exatamente a intenção.

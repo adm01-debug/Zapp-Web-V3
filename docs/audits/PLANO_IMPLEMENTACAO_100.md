@@ -1174,7 +1174,14 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 ### F6-26 — Test coverage módulo connections: 2 test files para ~30 arquivos (0 tests em componentes)
 
 - **Sev:** `HIGIENE`
-- **⏸️ NÃO INICIADO na Etapa 2 (2026-08-02).** Blocos A, B e C fechados; F6-26 é o único item da etapa que exige escrever código de teste novo (52 arquivos de escopo). Interrompido conscientemente em vez de começar pela metade, conforme regra da etapa. **Reabrir como primeiro item de uma sessão dedicada.**
+- **✅ Corrigido em 2026-08-02 (Etapa 2, Bloco D).** **9 arquivos de teste novos, 211 testes, todos verdes.** Aceite verificado com `vitest --coverage`:
+  - `src/features/connections/` → **62,67% linhas** (era ~0% fora de `useConnectionsState`) ✅
+  - `src/services/connections/` → **75,28% linhas** (era **0%**) ✅
+- **Prioridade da Ação respeitada:** `useConnectionsActions` primeiro (23 testes — F6-02 depende dele), depois `whatsappConnectionService` (35), depois componente com 0/1/N.
+- **Arquivos cobertos a 100% de linhas:** `useConnectionsActions`, `whatsappConnectionService`, `whatsappConnectionRepository`, `useConnectionsRealtime`, `WhatsAppConnectionStatus`, `connectionsService`, `connectionsRepository`, `BridgeService`, `useConnectionsMutations`, `ConnectionsStats`.
+- **⚠️ Desvio de escopo na Ação 3:** o snapshot pedido era de `ConnectionsView` (649 linhas, arrasta diálogos, portais e estado global). Foi coberto `ConnectionsStats` em seu lugar — é onde mora a regra de contagem 0/1/N (empty state, singular, plural) que a Ação queria exercitar, sem o custo de montar a view inteira. `ConnectionsView` segue sem teste.
+- **Não coberto:** `useConnectionsManager.ts` (333 linhas, 0%) — orquestrador com Evolution API, realtime e Supabase externo acoplados; é sozinho o motivo de `features/connections` parar em 62,67% e não mais. Registrado como **E02-N09**. Também sem cobertura: `useConnectionsQueries.ts` e os 30+ componentes de `src/components/connections/` (fora dos dois diretórios do Aceite).
+- **Achado colateral:** o gate de lint recém-armado reprovou um import de domínio no próprio teste (`@/features/connections/services/...` violando o `no-restricted-imports`). Corrigido com caminho relativo intra-feature — o guard funcionou como projetado.
 - **Origem:** Etapa 56-65 (Bloco 6).
 - **✅ Revisado em 2026-08-02:** os 2 test files confirmados (`useConnectionsState.test.ts`, `useHubTabNavigation.test.tsx`). **Escopo real subestimado:** o módulo tem **52 arquivos** (14 em `src/features/connections/` + 32 em `src/components/connections/` + 6 em services), não ~30.
 - **Evidência:** `find src -path "*connection*" -name "*.test.*"` retorna 2 files: `useHubTabNavigation.test.tsx` e `useConnectionsState.test.ts` (328 linhas). Zero tests para: `useConnectionsActions` (100+ linhas de business logic crítica), `useConnectionsRealtime`, `useConnectionsManager` (dispatcher central), `whatsappConnectionService`, `whatsappConnectionRepository`, `BridgeService`, e **30+ componentes** (ConnectionsView 649 linhas, ConnectionCard 359, InstanceSettingsDialog 496, etc.).
