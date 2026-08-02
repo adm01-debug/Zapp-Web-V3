@@ -11,6 +11,8 @@ Convenção de ID: `F<bloco>-<seq>` — ex. `F1-01` = primeiro achado do bloco 1
 
 ## Tema 1 — Higienização do repositório
 
+> **Nota de revisão (2026-08-02, Lote C) — achados F1-\*.** F1-05 a F1-14 são **títulos-resumo sem `Evidência`/`Ação`/`Aceite`** (mesmo padrão do bloco F2). A substância de cada um foi revalidada abaixo/em `REVISAO_BACKLOG_172.md`, mas não são executáveis pela esteira enquanto Ação e Aceite não forem escritos. F1-01 a F1-04 têm Ação e foram confirmados: os 5 alvos existem na raiz e `scripts/` já existe.
+
 ### F1-01 — Deletar `___TEMP_VERSION_CHECK_DO_NOT_MERGE.txt`
 - **Ação:** `git rm ___TEMP_VERSION_CHECK_DO_NOT_MERGE.txt`.
 - **Aceite:** arquivo ausente em `main`.
@@ -26,6 +28,7 @@ Convenção de ID: `F<bloco>-<seq>` — ex. `F1-01` = primeiro achado do bloco 1
 - **Ação:** renomear com timestamp; registrar em `supabase_migrations.schema_migrations`.
 
 ### F1-05 — Mover 8 relatórios `.md` da raiz para `docs/audits/history/`
+- **⚠️ Revisado em 2026-08-02 — números corrigidos:** a raiz tem **21 arquivos `.md`**, não 8. Destes, ~9 são relatórios movíveis (`CI_COST_ANALYSIS_REPORT.md`, `QUALITY_METRICS_REPORT.md`, `REGRESSION_SIMULATION_REPORT.md`, `RLS_AUDIT_REPORT.md`, `PLANO_CORRECOES_CI_CD.md`, `FLUXO_CLIQUE_CHATPANEL.md`, …) e os demais são canônicos de raiz (`README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`, `AGENTS.md`, `CLAUDE.md`) e **não devem ser movidos**. Além disso **`docs/audits/history/` não existe** — a Ação precisa criar o diretório antes do `git mv`.
 
 ### F1-06 — Deletar duplicata `playwright.e2e.config.fixed.ts`
 
@@ -40,6 +43,7 @@ Convenção de ID: `F<bloco>-<seq>` — ex. `F1-01` = primeiro achado do bloco 1
 ## Tema 2 — Gates de CI e qualidade
 
 ### F1-10 — Remover `|| true` do script `lint` em `package.json`
+- **⚠️ Revisado em 2026-08-02 — há DOIS `|| true`, não um.** `package.json` l.23: `"lint": "eslint . --max-warnings 999 || true; bun run scripts/check-design-system.ts --ci || true"`. Remover só o primeiro deixa o gate ainda cego pelo segundo. **Armadilha adicional:** o segundo comando invoca `bun`, que **não existe no container** — ao remover o `|| true` o script passa a falhar sempre. Trocar `bun run` por `npx tsx`/`node` na mesma correção.
 
 ### F1-11 — Reduzir `--max-warnings 999 → 0` progressivamente
 
@@ -115,6 +119,7 @@ CREATE INDEX idx_msg_unread_inbound
 ### F1-12 — Homônimos em `src/pages/` — padronizar `<slug>/index.tsx`
 
 ### F1-13 — 11 pages órfãs (sem `<Route>`) mas lazy-carregadas — decidir URL ou `?view=`
+- **⚠️ Revisado em 2026-08-02 — número corrigido:** medindo contra o roteador de rotas real (`src/components/routing/AppRoutes.tsx`), são **17** arquivos em `src/pages/` sem `<Route>`, não 11: `AdminAlertHistoryPage`, `AdminAlertHistoryPageParts`, `AdminDispatchErrorsHistoryPage`, `AdminEvolutionApiLogsPage`, `AdminEvolutionApiLogsPageParts`, `AdminFailedMessagesPage`, `AdminInstancePausesPage`, `AdminRealtimeMonitorPage`, `AdminSearchInsightsPage`, `AdminTelemetriaPage`, `AdminWebhookEventsPage`, `AdminWebhookOverviewPage`, `AdminWebhookSecretStatusPage`, `BackendDiagnostics`, `RealtimeFanoutDebug`, `SendStatusBusDebug`, `ViewRouter`. Nem todos são "pages": `ViewRouter` e os `*Parts` são infraestrutura/fragmentos. `src/pages/lazyViews.ts` tem **76** imports dinâmicos — a maioria dessas telas é alcançável por `?view=`, então **órfã ≠ inalcançável** (mesmo erro que produziu os falsos positivos F8-01/F8-10).
 
 ### F1-14 — Consolidar padrão duplo URL canônica vs `?view=X&tab=Y`
 
@@ -128,16 +133,21 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 - **Origem:** Etapa 22 (Bloco 3).
 - **Evidência:** `src/features/auth/components/ProtectedRoute.tsx` linhas 260-269 — executa em cada render (2× em StrictMode). Se `getSession()` retornar null transitoriamente, dispara logout automático.
+- **⚠️ Revisado em 2026-08-02 — linha corrigida:** o `supabase.auth.getSession().then(...)` está na **l.243**, dentro do bloco `if (!authLoading && user) { ... }` no corpo do componente (fora de qualquer `useEffect` — os `useEffect` do arquivo estão nas l.55 e l.74). **As linhas 260-269 citadas apontam para outro trecho** — o bloco `const isDev = hasRole('dev'); if (isDev) { markTimeToMainScreen(...); return children; }` (l.261-264), que é o assunto do **F3-02**. Diagnóstico do F3-01 confirmado; a referência de linha é que estava trocada.
 - **Ação:** mover para `useEffect(() => { ... }, [authLoading, user])` com `AbortController`.
 - **Aceite:** teste manual com "Slow 3G" — user autenticado não é deslogado por race entre `getSession` calls.
 
 ### F3-02 — `isDev` bypass total sem log de auditoria
 
 - **Origem:** Etapa 28 (Bloco 3).
-- **Ação:** adicionar `void supabase.rpc('log_security_event', { p_event_type: 'dev_bypass_used', ... })` com throttle.
-- **Aceite:** `zapp.security_events` recebe eventos `dev_bypass_used`.
+- **📝 Revisado em 2026-08-02 — a chamada como escrita falha.** O bypass está confirmado (`ProtectedRoute.tsx` l.261-264). Mas `zapp.log_security_event` tem assinatura **`(p_event_type text, p_resource text, p_action text, p_status text, p_details jsonb)`** — **5 parâmetros, nenhum com DEFAULT**. Invocar com apenas `p_event_type` retorna `function ... does not exist`.
+- **Ação (corrigida):** `void supabase.rpc('log_security_event', { p_event_type: 'dev_bypass_used', p_resource: location.pathname, p_action: 'route_access', p_status: 'bypassed', p_details: { roles: userRoles } })` com throttle.
+- **Aceite:** `SELECT count(*) FROM zapp.security_events WHERE event_type='dev_bypass_used' AND created_at > now() - interval '1 day'` > 0 após uso do bypass em ambiente dev.
 
-### F3-03 — `verifyHttpOnlyCookieAuth()` é dead code — remover
+### F3-03 — ~~OBSOLETO~~ `verifyHttpOnlyCookieAuth()` é dead code — remover
+- **🔄 Revalidado em 2026-08-02 — FALSO POSITIVO. NÃO REMOVER.** A função é **chamada em produção**: `src/features/auth/components/AuthProvider.tsx` l.8 (import) e **l.327** (`if (!verifyHttpOnlyCookieAuth()) { ... }`), no caminho de bootstrap de sessão. Definição em `src/integrations/supabase/cookieStorage.ts` l.92. Remover quebraria o bootstrap de auth.
+
+> **Nota de revisão (2026-08-02, Lote C) — achados F3-03 a F3-12.** São **títulos-resumo sem `Evidência`/`Ação`/`Aceite`**. A substância de cada um foi revalidada em `REVISAO_BACKLOG_172.md`; escrever Ação e Aceite antes de entrar na esteira. Arquivo de referência para quase todos: `src/features/auth/components/AuthProvider.tsx`.
 
 ### F3-04 — `refreshAll` sem `AbortController` — race em `TOKEN_REFRESHED` consecutivo
 
@@ -147,7 +157,8 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F3-07 — `retryBootstrap()` pode empilhar `getSession()` sob `navigator.locks`
 
-### F3-08 — Deletar `externalSessionBridge.ts` — dead code ativo
+### F3-08 — ~~OBSOLETO~~ Deletar `externalSessionBridge.ts` — dead code ativo
+- **🔄 Revalidado em 2026-08-02 — FALSO POSITIVO. NÃO DELETAR.** O arquivo é `src/integrations/supabase/externalSessionBridge.ts` (o PLANO não dava caminho) e está **registrado no boot da aplicação**: `src/main.tsx` l.9 `import { registerExternalSessionBridge } from './integrations/supabase/externalSessionBridge'`. Também é importado por `src/features/auth/services/authService.ts` l.6. Deletar quebraria o build e o bridge de sessão externa.
 
 ### F3-09 — `signOut` sem fallback local se supabase-js falhar
 

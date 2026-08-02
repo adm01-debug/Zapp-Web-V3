@@ -1,13 +1,13 @@
 # REVISÃO DO CORPO DOS 172 ACHADOS (Blocos 1-8)
 
 **Base:** `docs/audits/PLANO_IMPLEMENTACAO_100.md` · **Método:** `docs/audits/HANDOFF_REVISAO_BACKLOG.md`
-**Status geral:** Lotes A e B concluídos (114/172) · Lote C pendente.
+**Status geral:** Lotes A e B concluídos + Lote C parcial (140/172) · falta F7 (32).
 
 | Lote | Blocos | Achados | Status | Sessão | Resultado |
 |---|---|---:|---|---|---|
 | A | F2, F5, F8 | 60 | ✅ concluído | 2026-08-02 | 40 ✅ · 6 ⚠️ · 3 🔄 · 10 📝 · 1 ❓ |
 | B | F4, F6 | 54 | ✅ concluído | 2026-08-02 | 44 ✅ · 4 ⚠️ · 2 🔄 · 4 📝 |
-| C | F1, F3, F7 | 58 | ⬜ pendente | — | — |
+| C | F1, F3, F7 | 58 | 🟡 parcial (26/58) | 2026-08-02 | F1+F3: 13 ✅ · 4 ⚠️ · 2 🔄 · 6 📝 · 1 ❓ — **F7 (32) pendente** |
 
 ---
 
@@ -250,3 +250,80 @@ Além das duas regras já registradas (roteador `AppRoutes.tsx` e `polwithcheck`
 - **Verificar se o Aceite fecha com a Ação.** Três defeitos do Lote B foram desse tipo, nenhum aparecia na amostragem de origem. Pergunta padrão: *"se eu executar exatamente os passos da Ação, o comando do Aceite retorna o valor esperado?"*
 - **Confirmar existência de toda tabela/arquivo citado como destino**, não só como origem.
 - **Ignorar números de linha** — em F4 todos os 16 estavam defasados. Localizar por símbolo.
+
+---
+---
+
+# LOTE C — estágio 1: F1 (14) + F3 (12) = 26 achados
+
+**Sessão:** 2026-08-02 · **Resultado:** 13 ✅ · 4 ⚠️ · 2 🔄 · 6 📝 · 1 ❓
+**F7 (32 achados) fica pendente** — parada em limite de bloco por orçamento de contexto, conforme §3 do handoff.
+
+## Resumo — F1 + F3
+
+### O padrão "deletar algo que está em uso" chegou a 4 ocorrências
+
+**F3-03** e **F3-08** repetem exatamente o erro de F8-01/F8-10 do Lote A. Ambos mandam remover código que está em produção:
+
+- **F3-03** — `verifyHttpOnlyCookieAuth()` é chamada em `AuthProvider.tsx:327`, no bootstrap de sessão. Não é dead code.
+- **F3-08** — `externalSessionBridge.ts` está **registrado no boot** (`src/main.tsx:9`) e importado por `authService.ts:6`. O próprio título ("dead code **ativo**") já era contraditório.
+
+Quatro de quatro vieram da mesma causa: **a auditoria grepou o lugar errado ou não grepou os consumidores**. Para o Lote C/F7, a regra vira obrigatória: *nenhum achado de remoção sem grep de consumidores em `src/` inteiro, incluindo `main.tsx` e `AppRoutes.tsx`.*
+
+### Assinatura de RPC não conferida (novo)
+
+**F3-02** manda chamar `supabase.rpc('log_security_event', { p_event_type: 'dev_bypass_used', ... })`. A assinatura real é **`(p_event_type, p_resource, p_action, p_status, p_details)` — 5 parâmetros, nenhum com DEFAULT**. A chamada como escrita retorna `function does not exist`. Corrigida no PLANO.
+
+### Contagens infladas ou deflacionadas
+
+| Achado | PLANO | Real |
+|---|---|---|
+| F1-05 | 8 relatórios `.md` na raiz | **21** `.md` (só ~9 movíveis; 6 são canônicos que não devem sair) |
+| F1-10 | 1 `\|\| true` no script `lint` | **2** — e o segundo invoca `bun`, que não existe no container |
+| F1-13 | 11 pages órfãs | **17** sem `<Route>` — mas `lazyViews.ts` tem 76 imports, então órfã ≠ inalcançável |
+
+## Vereditos — Bloco F1 (14)
+
+| Achado | Veredito | Evidência da revisão | Correção |
+|---|---|---|---|
+| F1-01 | ✅ VÁLIDO | `___TEMP_VERSION_CHECK_DO_NOT_MERGE.txt` existe na raiz | — |
+| F1-02 | ✅ VÁLIDO | `__pycache__/` existe; `.gitignore` tem **0** entradas para ele | — |
+| F1-03 | ✅ VÁLIDO | `ci_cost_analysis.py` e `gen_insert.cjs` na raiz; `scripts/` já existe | — |
+| F1-04 | ✅ VÁLIDO | `lgpd_deploy.sql` existe na raiz | — |
+| F1-05 | ⚠️ REFERÊNCIA | 21 `.md` na raiz, não 8; `docs/audits/history/` **não existe** | ✅ corrigido + lista dos que não devem ser movidos |
+| F1-06 | ✅ VÁLIDO | `playwright.e2e.config.fixed.ts` existe | — |
+| F1-07 | 📝 AÇÃO FRÁGIL | "5 pastas" não corresponde a nada mensurável: **84** dirs de teste sob `src/`, 10 sob `supabase/`, 2 `tests`, 1 `e2e` | definir o que conta como "pasta de teste" + Ação/Aceite |
+| F1-08 | ✅ VÁLIDO | `supabase/functions-legacy/` existe | — |
+| F1-09 | ✅ VÁLIDO | `supabase/fatorx-migrations/` existe | — |
+| F1-10 | ⚠️ REFERÊNCIA | **dois** `\|\| true` na l.23 do `package.json`; segundo chama `bun` (inexistente no container) | ✅ corrigido |
+| F1-11 | ✅ VÁLIDO | `--max-warnings 999` confirmado na l.23 | — |
+| F1-12 | 📝 AÇÃO FRÁGIL | sem Evidência; o único homônimo `pages/`↔`components/` medido é `SLADashboard.tsx` | definir critério de homônimo + Ação/Aceite |
+| F1-13 | ⚠️ REFERÊNCIA | **17** sem `<Route>` (não 11); `lazyViews.ts` com 76 imports dinâmicos | ✅ lista completa registrada |
+| F1-14 | 📝 AÇÃO FRÁGIL | sem Evidência/Ação/Aceite; o padrão duplo é real (24 `path=` em `AppRoutes` + 76 lazy views por `?view=`) | escrever Ação/Aceite |
+
+## Vereditos — Bloco F3 (12)
+
+| Achado | Veredito | Evidência da revisão | Correção |
+|---|---|---|---|
+| F3-01 | ⚠️ REFERÊNCIA | `getSession().then(...)` está na **l.243**, no corpo de render (os `useEffect` estão em l.55 e l.74) — diagnóstico ✅. As linhas 260-269 citadas apontam para o bloco `isDev` (assunto do F3-02) | ✅ linha corrigida |
+| F3-02 | 📝 AÇÃO FRÁGIL | bypass confirmado (l.261-264). Mas `zapp.log_security_event` exige **5 params sem DEFAULT** — a chamada da Ação falharia | ✅ Ação e Aceite reescritos |
+| F3-03 | 🔄 OBSOLETO | **não é dead code:** chamada em `AuthProvider.tsx:327`; definida em `cookieStorage.ts:92` | ✅ `~~OBSOLETO~~` — NÃO REMOVER |
+| F3-04 | ✅ VÁLIDO | `refreshAll = useCallback(...)` em `AuthProvider.tsx` l.177; sem `AbortController` no arquivo | — |
+| F3-05 | ✅ VÁLIDO | `.from('role_permissions')` l.151. **Reforço:** `zapp.role_permissions` tem **0 rows** — o parsing retorna `[]` sempre, não só "silenciosamente" | — |
+| F3-06 | ❓ INDETERMINÁVEL | não localizei subscription realtime de `profiles` com os greps desta passagem — verificar em sessão com acesso a runtime/browser | — |
+| F3-07 | ✅ VÁLIDO | `retryBootstrap = useCallback` l.294; comentários sobre `navigator.locks` nas l.30 e l.258 confirmam o risco descrito | — |
+| F3-08 | 🔄 OBSOLETO | **importado no boot:** `main.tsx:9` (`registerExternalSessionBridge`) e `authService.ts:6`. Caminho real: `src/integrations/supabase/` | ✅ `~~OBSOLETO~~` — NÃO DELETAR |
+| F3-09 | 📝 AÇÃO FRÁGIL | sem Evidência/Ação/Aceite | escrever |
+| F3-10 | 📝 AÇÃO FRÁGIL | sem Evidência/Ação/Aceite (F4-11 depende deste handler) | escrever |
+| F3-11 | ✅ VÁLIDO | `markTimeToMainScreen` chamado em l.263 e l.327 além do import (l.4) — duplicação confirmada; a 3ª ocorrência não foi isolada nesta passagem | — |
+| F3-12 | ✅ VÁLIDO | `zapp.security_events` **tem** `ip_address`, `user_agent`, `workspace_id` — mas `zapp.log_security_event(...)` não recebe nenhum dos três; o contexto não tem como ser gravado | — |
+
+## Regras acumuladas para o F7 (32 achados restantes)
+
+1. Roteador de rotas é `src/components/routing/AppRoutes.tsx`; `?view=` é resolvido por `src/pages/lazyViews.ts` (76 imports). **Órfã ≠ inalcançável.**
+2. Nenhum achado de remoção sem grep de consumidores em `src/` inteiro (incluindo `main.tsx`).
+3. `polcmd='a'` → ler `polwithcheck`.
+4. Conferir se o Aceite fecha com a Ação.
+5. Confirmar existência de todo alvo citado como **destino**.
+6. Ignorar números de linha — localizar por símbolo.
+7. **Novo:** conferir assinatura de RPC antes de aceitar chamada proposta em Ação.
