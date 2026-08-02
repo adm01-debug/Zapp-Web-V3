@@ -186,12 +186,33 @@ Vale registrar: os 200 achados têm **evidência medida com números reais** e *
 >
 > **Etapa 1 encerrada.** Próxima: **Etapa 2 — ligar a rede de segurança do CI** (F1-10, F1-11, F10-02, F10-04, F10-05, F10-06, F10-09, F6-26). Note que F1-10 é raiz de F10-06 e F10-09 é pré-requisito de F10-02: a etapa já vem com ordem interna definida.
 
-#### Etapa 2 — Ligar a rede de segurança do CI
+#### Etapa 2 — Ligar a rede de segurança do CI · 🟡 **CONCLUÍDA (7/8)** — F6-26 pendente
 **Achados:** F1-10, F1-11, F10-02, F10-04, F10-05, F10-06, F10-09, F6-26.
 **Por que agora:** as 18 etapas seguintes vão mexer em 200 pontos do sistema. Sem gate funcionando, cada correção pode introduzir regressão invisível. Hoje: `lint` tem `|| true`, `perf:budget` tem `continue-on-error`, `test:e2e` roda 13 specs em vez de 61, e 28 specs nunca executam.
 **Escopo:** remover `|| true` e `continue-on-error`; apontar `test:e2e` para a config certa; coletar specs por tag em vez de lista hardcoded; registrar `addon-a11y`; ampliar `testMatch` do axe.
 **Pronto quando:** um PR com erro deliberado de lint **reprova**.
 **Risco:** médio — pode expor falhas pré-existentes. Se acontecer, registre como achado novo e **não desligue o gate de novo**.
+
+> **Concluída em 2026-08-02 — 7 dos 8 achados.** Relatório completo em `docs/audits/RELATORIO_CORRECAO.md`.
+>
+> **Aceite da etapa verificado com comando real:** erro deliberado de ESLint → `exit 1`; código limpo → `exit 0`. Antes, o mesmo erro produzia `exit 0` em três caminhos independentes.
+>
+> | Achado | Veredito |
+> |---|---|
+> | F1-10 | ✅ fechado — eram **5** camadas de máscara, não 2 |
+> | F1-11 | ✅ fechado — `--max-warnings` 999 → **6** (baseline medido) |
+> | F10-09 | ✅ fechado — eram **4** configs Playwright, não 3 |
+> | F10-06 | ✅ fechado — ⚠️ mas o script de perf **não mede nada** (E02-N02) |
+> | F10-04 | ✅ fechado |
+> | F10-02 | 🟡 parcial — nightly cobre os 61 specs; tags `@grep` não feitas |
+> | F10-05 | 🟡 desvio — a Ação como escrita quebraria o gate de a11y |
+> | F6-26 | ⏸️ **não iniciado** — 52 arquivos, exige sessão dedicada |
+>
+> - **A pergunta que decidia o tamanho da etapa foi respondida:** o CI **instala `bun`** (`oven-sh/setup-bun@v2`, 1.3.14). A ausência de `bun` é do container de trabalho, não do CI.
+> - **F1-06 consumido fora de ordem:** `playwright.e2e.config.fixed.ts` deletado junto de F10-09 — era a 4ª config e confundiria o trabalho.
+> - **8 achados novos registrados** (E02-N01 a E02-N08), sendo E02-N02 `QUEBRADO` e E02-N01/E02-N07 `RISCO`. Nenhum gate foi desligado.
+>
+> **Próxima:** **Etapa 3 — Credenciais e sessão JWT** (F9-16, F9-17, F9-18). Antes dela, confirmar que o primeiro run do CI com os gates armados ficou verde — se não ficou, o que reprovou é achado novo, não motivo para reverter.
 
 ### Fase 1 — Segurança (risco independente do resto)
 

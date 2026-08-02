@@ -10,6 +10,16 @@ const preview: Preview = {
         date: /Date$/i,
       },
     },
+    // E02/F10-04 — regras de contraste WCAG AA no painel Accessibility.
+    a11y: {
+      config: {
+        rules: [
+          { id: 'color-contrast', enabled: true },
+          { id: 'color-contrast-enhanced', enabled: false },
+        ],
+      },
+      test: 'error',
+    },
     backgrounds: {
       default: 'light',
       values: [

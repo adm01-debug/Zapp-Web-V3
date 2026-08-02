@@ -71,6 +71,7 @@ Ordenada, do mais para o menos urgente:
 ### F1-06 — Deletar duplicata `playwright.e2e.config.fixed.ts`
 
 - **Sev:** `HIGIENE`
+- **✅ Consumido fora de ordem em 2026-08-02, dentro da Etapa 2 (junto de F10-09).** `playwright.e2e.config.fixed.ts` removido via `git rm`. Motivo do desvio: era a 4ª config Playwright e confundiria qualquer trabalho em F10-09. `Rollback: R-CODE` (git revert basta). **Aceite:** `ls playwright*.ts` → 3 arquivos.
 - **Rollback:** R-CODE
 ### F1-07 — Consolidar 5 pastas de teste em `src/**/__tests__/` + `e2e/`
 
@@ -89,12 +90,17 @@ Ordenada, do mais para o menos urgente:
 
 ### F1-10 — Remover `|| true` do script `lint` em `package.json`
 - **Sev:** `QUEBRADO`
+- **✅ Corrigido em 2026-08-02 (Etapa 2) — ⚠️ escopo era maior que o descrito.** Não eram 2 camadas de máscara, eram **5**: os dois `|| true` do `package.json`, o wrapper `set +e … exit 0` do passo "Lint (advisory)" em `quality-gate.yml`, e mais dois wrappers iguais em `ci.yml` ("ESLint diagnostics" e "Design-system diagnostics"). Remover só os `|| true` deixaria o gate cego pelas outras três. Todas as 5 foram removidas.
+- **A armadilha do `bun` não se confirmou no CI.** `ci.yml:99/202`, `quality-gate.yml:27` e os 4 `e2e-*-vps.yml` usam `oven-sh/setup-bun@v2` com `bun-version: 1.3.14`. O `bun` só falta no **container local** — a máscara não protegia contra isso. `bun run scripts/check-design-system.ts` foi mantido (funciona no CI); ver achado novo **E02-N01**.
+- **Débito real de ESLint medido:** 2.238 arquivos analisados → **1 erro + 6 warnings**. O erro era `variant` não usado em `src/hooks/use-toast.ts:64` (corrigido para `variant: _variant`). O `--max-warnings 999` protegia 6 warnings.
+- **Design-system:** `--ci` reprovava com **88 violações**. Em vez de manter cosmético, o script ganhou `--max=<n>` (ratchet, padrão dos `check-*-ratchet` do repo) e o teto foi congelado em 88 — regressão acima disso reprova. Ver **E02-N03**.
 - **Raiz de:** F10-06
 - **⚠️ Revisado em 2026-08-02 — há DOIS `|| true`, não um.** `package.json` l.23: `"lint": "eslint . --max-warnings 999 || true; bun run scripts/check-design-system.ts --ci || true"`. Remover só o primeiro deixa o gate ainda cego pelo segundo. **Armadilha adicional:** o segundo comando invoca `bun`, que **não existe no container** — ao remover o `|| true` o script passa a falhar sempre. Trocar `bun run` por `npx tsx`/`node` na mesma correção.
 
 ### F1-11 — Reduzir `--max-warnings 999 → 0` progressivamente
 
 - **Sev:** `HIGIENE`
+- **✅ Corrigido em 2026-08-02 (Etapa 2).** Achado sem corpo (título-resumo). Baseline honesto medido antes de apertar: **6 warnings, 0 erros**. `--max-warnings` foi de **999 → 6**. Verificado que o teto morde: `eslint . --max-warnings 5` → exit 1; `--max-warnings 6` → exit 0. Próximo aperto: 6 → 0 depende de resolver 5 `react-hooks/exhaustive-deps` em `useExternalApiManagement.ts` e 1 em `MessageStatusTimeline.tsx`.
 ---
 
 ## Tema 3 — Segurança Supabase
@@ -1168,6 +1174,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 ### F6-26 — Test coverage módulo connections: 2 test files para ~30 arquivos (0 tests em componentes)
 
 - **Sev:** `HIGIENE`
+- **⏸️ NÃO INICIADO na Etapa 2 (2026-08-02).** Blocos A, B e C fechados; F6-26 é o único item da etapa que exige escrever código de teste novo (52 arquivos de escopo). Interrompido conscientemente em vez de começar pela metade, conforme regra da etapa. **Reabrir como primeiro item de uma sessão dedicada.**
 - **Origem:** Etapa 56-65 (Bloco 6).
 - **✅ Revisado em 2026-08-02:** os 2 test files confirmados (`useConnectionsState.test.ts`, `useHubTabNavigation.test.tsx`). **Escopo real subestimado:** o módulo tem **52 arquivos** (14 em `src/features/connections/` + 32 em `src/components/connections/` + 6 em services), não ~30.
 - **Evidência:** `find src -path "*connection*" -name "*.test.*"` retorna 2 files: `useHubTabNavigation.test.tsx` e `useConnectionsState.test.ts` (328 linhas). Zero tests para: `useConnectionsActions` (100+ linhas de business logic crítica), `useConnectionsRealtime`, `useConnectionsManager` (dispatcher central), `whatsappConnectionService`, `whatsappConnectionRepository`, `BridgeService`, e **30+ componentes** (ConnectionsView 649 linhas, ConnectionCard 359, InstanceSettingsDialog 496, etc.).
@@ -2242,6 +2249,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 ### F10-02 — ALTO (P0): 28 dos 61 testes E2E nunca são executados por nenhum workflow
 
 - **Sev:** `HIGIENE`
+- **🟡 Parcialmente corrigido em 2026-08-02 (Etapa 2).** Ação 2 (job nightly rodando a suíte inteira) **feita**: `.github/workflows/e2e-nightly-full.yml` roda `test:e2e:full` sem filtro, cron 06:00 UTC. Ação 1 (trocar as listas `SPECS` por `--grep @tag`) **não feita** — exigiria tagear 61 specs; o nightly resolve a órfandade sem esse custo. Ação 3 (converter `e2e-admin-vps`/`e2e-evolution-vps` para `pull_request`) **não feita**: ambos exigem VPS viva, e o padrão do repo é pular VPS em PR.
+- **Aceite verificado com comando real:** criado `scripts/check-e2e-spec-coverage.mjs`; `node scripts/check-e2e-spec-coverage.mjs` → `specs em e2e/: 61 · órfãos: 0 · exit 0`. O script roda como job próprio (`spec-coverage`) e reprova se um spec novo ficar sem execução.
 - **Depende de:** **F10-09** (apontar o `testDir` certo é pré-requisito para os 28 specs rodarem)
 - **Origem:** Etapas 91-94 (Bloco 10).
 - **Evidência:**
@@ -2279,6 +2288,8 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 ### F10-04 — MÉDIO (P1): `@storybook/addon-a11y` instalado mas não registrado — o contraste WCAG nunca é verificado
 
 - **Sev:** `HIGIENE`
+- **✅ Corrigido em 2026-08-02 (Etapa 2).** `@storybook/addon-a11y` e `@storybook/addon-docs` registrados em `.storybook/main.ts`; `parameters.a11y` com `color-contrast` habilitado e `test: 'error'` gravado em `.storybook/preview.ts`. **Aceite:** `grep -c "addon-a11y" .storybook/main.ts` → `1`.
+- **Ação 3 não feita:** job de CI com `build-storybook` + `addon-vitest` ficou fora — o repo já tem 48 workflows e o custo/benefício de mais um job foi julgado pior que o ganho. Registrado como **E02-N05**.
 - **Origem:** Etapa 98 (Bloco 10).
 - **Evidência:**
   - `package.json:152` declara `"@storybook/addon-a11y": "^10.4.6"`.
@@ -2302,6 +2313,10 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 ### F10-05 — ALTO (P0): a verificação de acessibilidade cobre só 3 telas de autenticação — o produto inteiro fica de fora
 
 - **Sev:** `HIGIENE`
+- **🟡 Corrigido com desvio em 2026-08-02 (Etapa 2) — ⚠️ a Ação como escrita era insuficiente.** Ampliar o `testMatch` para `**/*-accessibility.spec.ts` passa a incluir `e2e/chat-accessibility.spec.ts`, que chama `login(page)` do `testHelpers`. O job `a11y` do `ci.yml` **não tem credenciais** e aponta para um vite local com Supabase placeholder: a ampliação sozinha transformaria um gate verde-e-estreito num gate **vermelho-e-quebrado**.
+- **O que foi feito:** `playwright.a11y.config.ts` reescrito com dois projects — `public` (specs `auth-*`, sem storageState, roda em qualquer runner) e `authenticated` (todo o resto, com `storageState` de `e2e/global.setup.ts`), este **só registrado quando `E2E_USER_EMAIL`+`E2E_USER_PASSWORD` existem**. `webServer` passa a ser omitido quando `E2E_BASE_URL` aponta para ambiente já de pé. Um passo `bun run test:a11y --project=authenticated` foi adicionado ao `e2e-inbox-vps.yml`, que tem VPS e secrets.
+- **Correção de referência:** `chat-accessibility.spec.ts` **não estava órfão** — já roda dentro da lista `SPECS` de `e2e-inbox-vps.yml`. O que faltava era ele estar no **gate de a11y**, não execução.
+- **Aceite:** atendido pelo caminho do `e2e-inbox-vps` (rota autenticada de inbox/chat sob axe), não pelo job `a11y` do `ci.yml`. Ação 2 (criar `inbox-accessibility.spec.ts`) e Ação 3 (ratchet de violações por rota) **não feitas** — ver **E02-N04**.
 - **Origem:** Etapa 97 (Bloco 10).
 - **Evidência:**
   - `playwright.a11y.config.ts:18` restringe o escopo por `testMatch`:
@@ -2322,6 +2337,9 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 ### F10-06 — MÉDIO (P1): o gate de performance roda com `continue-on-error: true` — nunca reprova nada
 
 - **Sev:** `QUEBRADO`
+- **✅ Corrigido em 2026-08-02 (Etapa 2) — ⚠️ mas a premissa "a infraestrutura funciona" é FALSA.** O `continue-on-error: true` foi removido do passo Performance Budget Gate (**Aceite:** `grep -A2 "Performance Budget Gate" .github/workflows/quality-gate.yml` não contém `continue-on-error`). Porém `scripts/check-performance-budget.mjs` **não mede nada**: `currentMetrics` é um objeto literal (`LCP: 1200, bundleSize: 450*1024`…) com valor fixo no código. O gate deixou de ser advisory e continua passando sempre — por outro motivo. Ver **E02-N02**; foi adicionado `console.warn` no script para que ninguém confunda o verde com medição.
+- **`perf:budget:baseline` não foi executado:** ele grava `performance-baseline.json` com os mesmos literais e o arquivo **nunca é lido** pelo script. Rodá-lo teria produzido artefato inútil.
+- **`test:fuzz` (o segundo gate cosmético citado):** mantido `continue-on-error: true` — aponta para `localhost:54321`, que não existe no runner. É advisory correto, não máscara. Registrado como **E02-N06**.
 - **Depende de:** **F1-10** (mesma classe: gate de CI que nunca reprova — tratar juntos na Etapa 2)
 - **Origem:** Etapa 100 (Bloco 10).
 - **Evidência:**
@@ -2381,6 +2399,10 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 (cross-ref: F10-02)
 
 - **Sev:** `HIGIENE`
+- **✅ Corrigido em 2026-08-02 (Etapa 2) — ⚠️ eram QUATRO configs, não três.** `playwright.e2e.config.fixed.ts` (duplicata órfã, achado **F1-06**) ainda existia. Foi **deletada nesta etapa** — F1-06 consumido fora de ordem, de propósito: manter a quarta config enquanto se mexia nas outras três era convite a erro. Zero referências em código ou workflow (só menções em `docs/audits/`).
+- **O que foi feito:** `test:e2e` passou a declarar `--config=playwright.config.ts`; criados `test:e2e:boot` (13 specs de `src/tests/e2e`) e `test:e2e:full` (61 specs de `e2e/`). Os jobs "E2E Tests" de `ci.yml` e `quality-gate.yml` chamam `test:e2e:boot` e dizem no nome o que rodam. **O alvo não mudou** — mudou o fato de estar declarado; apontar o gate bloqueante para os 61 specs de VPS o deixaria vermelho por falta de backend.
+- **Ação 3 (fundir as configs em uma com `projects`) não feita:** as três restantes têm `webServer`/`storageState` incompatíveis. Fundir é refatoração própria, não higiene.
+- **Correção de referência adicional:** os specs não vivem em 2 diretórios, e sim em **4** — `e2e/` (61), `src/tests/e2e/` (13), `tests/e2e/` (10, dos quais 3 são `.test.ts` de vitest) e `tests/` (2 visuais). Ver **E02-N07**.
 - **Raiz de:** F10-02
 - **Origem:** Etapas 91-94 (Bloco 10).
 - **Evidência:**

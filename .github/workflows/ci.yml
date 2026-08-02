@@ -109,19 +109,12 @@ jobs:
           bunx eslint .
           status=$?
           if [ "$status" -ne 0 ]; then
-            echo "::warning title=ESLint debt::ESLint currently fails on existing repository debt. This step is diagnostic until the debt is baselined/cleaned."
+            echo "::error title=ESLint::ESLint reprovou. Teto: --max-warnings 6 (baseline medido em 2026-08-02)."
           fi
-          exit 0
+          exit $status
 
-      - name: Design-system diagnostics
-        run: |
-          set +e
-          bun run scripts/check-design-system.ts --ci
-          status=$?
-          if [ "$status" -ne 0 ]; then
-            echo "::warning title=Design-system debt::Design-system check failed; keeping it advisory until the existing baseline is cleaned."
-          fi
-          exit 0
+      - name: Design-system ratchet (blocking — teto 88, E02/F1-10)
+        run: bun run scripts/check-design-system.ts --ci --max=88
 
       - name: Supabase schema coverage gate (zapp + evo)
         id: schema_gate
@@ -307,8 +300,8 @@ jobs:
       - name: Install Playwright Browsers
         run: bunx playwright install --with-deps
 
-      - name: Run E2E tests
-        run: bun run test:e2e
+      - name: Run E2E tests (boot suite — src/tests/e2e, 13 specs)
+        run: bun run test:e2e:boot
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
