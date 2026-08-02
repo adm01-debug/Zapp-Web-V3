@@ -19,6 +19,7 @@ import {
   GoalNotificationProvider,
 } from '@/components/notifications/UnifiedNotificationProviders';
 import { OfflineIndicator, ConnectionToast } from '@/components/ui/offline-indicator';
+import { SupabaseConnectivityBanner } from '@/components/ui/supabase-connectivity-banner';
 import { DegradedConnectionsBanner } from '@/components/alerts/DegradedConnectionsBanner';
 
 export const IndexContentConnected = forwardRef<HTMLDivElement>(
@@ -99,6 +100,7 @@ export const IndexContentConnected = forwardRef<HTMLDivElement>(
 
           <OfflineIndicator />
           <ConnectionToast />
+          <SupabaseConnectivityBanner />
           <DegradedConnectionsBanner onNavigate={setCurrentView} />
 
           <WelcomeModal

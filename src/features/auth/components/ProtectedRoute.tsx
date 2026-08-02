@@ -115,15 +115,31 @@ export function ProtectedRoute({
   useEffect(() => {
     if (authLoading || !user) return;
     let cancelled = false;
-    void supabase.auth.getSession().then(({ data, error }) => {
-      if (cancelled) return;
-      if (error || !data.session) {
-        log.warn('[ProtectedRoute] Stale session detected — forcing redirect to /auth');
-        void supabase.auth.signOut().then(() => {
-          window.location.replace('/auth');
-        });
-      }
-    });
+    void supabase.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error || !data.session) {
+          log.warn('[ProtectedRoute] Stale session detected — forcing redirect to /auth');
+          void supabase.auth
+            .signOut()
+            .catch(() => {
+              // Fallback: rede fora / GoTrue com erro — limpa a sessão local
+              // mesmo assim para o usuário não ficar preso numa sessão inválida.
+              try {
+                Object.keys(localStorage).forEach((k) => {
+                  if (k.startsWith('sb-') || k.startsWith('zapp')) localStorage.removeItem(k);
+                });
+                sessionStorage.clear();
+              } catch {
+                /* noop */
+              }
+            })
+            .finally(() => {
+              window.location.replace('/auth');
+            });
+        }
+      });
     return () => {
       cancelled = true;
     };

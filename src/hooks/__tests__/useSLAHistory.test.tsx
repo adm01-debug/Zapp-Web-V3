@@ -11,7 +11,7 @@ vi.mock('@/integrations/supabase/client', () => ({
   },
 }));
 
-import { useSLAHistory } from '@/hooks/useSLAHistory';
+import { useSLAHistory } from '@/features/sla/hooks/useSLAHistory';
 
 function createWrapper() {
   const queryClient = new QueryClient({

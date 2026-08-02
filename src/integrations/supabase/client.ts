@@ -158,9 +158,17 @@ const boundedFetch: typeof fetch = (input, init) => {
     }
   }
 
-  return fetch(input, { ...init, signal: controller.signal }).finally(() =>
-    clearTimeout(timeoutId),
-  );
+  return fetch(input, { ...init, signal: controller.signal })
+    .catch((err: unknown) => {
+      // Falha real de rede/timeout → avisa o monitor de conectividade para
+      // marcar backend-down imediatamente (não espera o próximo heartbeat).
+      // Dynamic import evita ciclo de módulos (client → monitor → client).
+      void import('./connectivityMonitor')
+        .then((m) => m.reportSupabaseRequestFailure(err))
+        .catch(() => {});
+      throw err;
+    })
+    .finally(() => clearTimeout(timeoutId));
 };
 
 // ---------------------------------------------------------------------------

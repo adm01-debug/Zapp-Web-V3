@@ -5,7 +5,26 @@ import {
   mirrorExternalSignOut,
 } from '@/integrations/supabase/externalSessionBridge';
 import { Session } from '@supabase/supabase-js';
-import type { PostgrestError } from '@supabase/supabase-js';
+import type { AuthError, PostgrestError } from '@supabase/supabase-js';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('authService');
+
+/** Limpa chaves de sessão locais (fallback quando o signOut remoto falha). */
+function clearLocalAuthStorage(): void {
+  try {
+    Object.keys(localStorage).forEach((k) => {
+      if (k.startsWith('sb-') || k.startsWith('zapp')) localStorage.removeItem(k);
+    });
+  } catch {
+    /* localStorage bloqueado — nada a fazer */
+  }
+  try {
+    sessionStorage.clear();
+  } catch {
+    /* noop */
+  }
+}
 
 /** Profile. */
 export interface Profile {
@@ -56,22 +75,44 @@ export const authService = {
     return result;
   },
 
-  async signOut() {
+  async signOut(): Promise<{ error: AuthError | null }> {
+    // Mirror externo nunca bloqueia o logout local (no-op pós-consolidação).
     await mirrorExternalSignOut();
-    return await supabase.auth.signOut();
+
+    try {
+      return await supabase.auth.signOut();
+    } catch (err) {
+      // Fallback local: rede indisponível ou GoTrue com erro. Sem isto, o
+      // usuário ficaria "logado" com uma sessão morta e a UI presa. Garante
+      // que a sessão local seja destruída mesmo offline.
+      log.warn('[authService] signOut remoto falhou — aplicando fallback local', err);
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch {
+        // Último recurso: limpeza manual do storage.
+        clearLocalAuthStorage();
+      }
+      return { error: err as AuthError };
+    }
   },
 
-  async getProfile(userId: string): Promise<{ data: Profile | null; error: PostgrestError | null }> {
+  async getProfile(
+    userId: string,
+    signal?: AbortSignal
+  ): Promise<{ data: Profile | null; error: PostgrestError | null }> {
     const { data, error } = await (supabase
       .from('profiles') as unknown as {
         select: (s: string) => {
           eq: (c: string, v: string) => {
-            maybeSingle: () => Promise<{ data: Profile | null; error: PostgrestError | null }>;
+            abortSignal: (sig: AbortSignal) => {
+              maybeSingle: () => Promise<{ data: Profile | null; error: PostgrestError | null }>;
+            };
           };
         };
       })
       .select('*')
       .eq('user_id', userId)
+      .abortSignal(signal ?? new AbortController().signal)
       .maybeSingle();
 
     return { data: (data as Profile | null) ?? null, error };
