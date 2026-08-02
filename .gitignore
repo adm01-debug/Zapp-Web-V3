@@ -251,6 +251,11 @@ Credenciais*
 deno.lock
 graphify-out/ # Knowledge Graph
 
+# Python artifacts (F1-02)
+__pycache__/
+*.pyc
+*.pyo
+
 .vercel
 .env*
 !supabase/functions/.env.required
