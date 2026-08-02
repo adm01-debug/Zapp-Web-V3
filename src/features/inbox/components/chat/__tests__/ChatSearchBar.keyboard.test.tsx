@@ -90,10 +90,10 @@ vi.mock('@/components/ui/button', () => ({
 
 vi.mock('@/components/ui/tooltip', () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  TooltipTrigger: ({ children, asChild }: { children: React.ReactNode; asChild?: boolean }) => (
+  TooltipTrigger: ({ children, asChild: _asChild }: { children: React.ReactNode; asChild?: boolean }) => (
     <>{children}</>
   ),
-  TooltipContent: ({ children }: { children: React.ReactNode }) => null,
+  TooltipContent: () => null,
 }));
 
 vi.mock('lucide-react', () => ({
