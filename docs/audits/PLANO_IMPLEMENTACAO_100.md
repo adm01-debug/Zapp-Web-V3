@@ -5,7 +5,7 @@
 
 Convenção de ID: `F<bloco>-<seq>` — ex. `F1-01` = primeiro achado do bloco 1 da análise.
 
-**Total de achados até agora: 155** (14 Bloco 1 + 13 Bloco 2 + 12 Bloco 3 + 24 Bloco 4 + 30 Bloco 5 + 30 Bloco 6 + 32 Bloco 7).
+**Total de achados até agora: 172** (14 Bloco 1 + 13 Bloco 2 + 12 Bloco 3 + 24 Bloco 4 + 30 Bloco 5 + 30 Bloco 6 + 32 Bloco 7 + 17 Bloco 8).
 
 ---
 
@@ -1253,3 +1253,183 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 - **Aceite:** primeira página exibida como "1"; reset volta para "1".
 
 ---
+
+
+## Tema 14 — SLA/BPM (Bloco 8)
+
+_(Achados F8-01 a F8-17 registrados no Bloco 8.)_
+
+### F8-01 — CRÍTICO (P0): página `SLAAlertPreferences.tsx` órfã — 215 linhas de UI inalcançáveis em produção
+
+- **Origem:** Etapa 78 (Bloco 8).
+- **Evidência:** `wc -l src/pages/SLAAlertPreferences.tsx` = 215 linhas (formulário completo de canal in-app/email/webhook + thresholds + silence hours). `grep -rn "SLAAlertPreferences" src/App.tsx src/pages/lazyViews.ts src/pages/ViewRouter.tsx` retorna **0 matches**. Página nunca é registrada em `<Route>`, `lazyViews`, ou navegação por `?view=`. Combinado: `SELECT COUNT(*) FROM zapp.sla_alert_preferences` = 0 rows — nenhum usuário jamais configurou preferência.
+- **Ação:**
+  1. Decidir: (a) publicar a página adicionando entrada em `lazyViews.ts` + rota em `App.tsx`/`ViewRouter.tsx` + link no menu admin, ou (b) remover `SLAAlertPreferences.tsx` + hook `useSLAAlertPreferences` + tabela `zapp.sla_alert_preferences`.
+  2. Se (a): teste E2E que abre a rota e persiste 1 preferência.
+  3. Se (b): migration DROP + `git rm`.
+- **Aceite:** rota `/sla/preferences` (ou equivalente) resolve com 200 e persiste uma preferência **OU** grep confirma remoção completa (código + tabela + hook).
+
+### F8-02 — CRÍTICO (P0): schema `bpm` inteiro morto — 41 tabelas com 0 rows, zero funções, zero views
+
+- **Origem:** Etapa 77 (Bloco 8).
+- **Evidência:** `SELECT relkind, COUNT(*) FROM pg_class JOIN pg_namespace ON pg_namespace.oid=relnamespace WHERE nspname='bpm' GROUP BY relkind` → `r=41, i=62` (zero `v`, zero `m`, zero `f`). `COUNT(*)` real (não estimado) de 9 tabelas críticas (`bpm_cards`, `bpm_flows`, `bpm_flow_steps`, `bpm_automations`, `bpm_automation_executions`, `bpm_activity_log`, `bpm_card_movements`, `bpm_card_comments`, `bpm_sla_records`) todas retornam 0. Módulo BPM nunca teve tráfego em produção.
+- **Ação:**
+  1. Decidir com Produto: BPM está roadmap ativo, sunset, ou hibernando?
+  2. Se ativo: publicar módulo (rotas, seeds mínimos, teste E2E de criar 1 card).
+  3. Se sunset: migration `DROP SCHEMA bpm CASCADE` (é rápido — não há FKs entrantes verificáveis) + remover 82 views `public.bpm_*` e `zapp.bpm_*` + remover 41 hooks/services do frontend.
+  4. Se hibernando: adicionar comment em `pg_namespace` (`COMMENT ON SCHEMA bpm IS 'Módulo em hibernação — não populado em prod até 2026-Q4'`) e mover crons 198 (e correlatos) para `active=false`.
+- **Aceite:** decisão registrada em `docs/adrs/`, schema tem `COMMENT` ou foi dropado, cron 198 alinha com decisão (ativo se módulo ativo; inativo se sunset/hibernando).
+
+### F8-03 — CRÍTICO (P0): 3+ sistemas SLA paralelos sem canonical
+
+- **Origem:** Etapa 77 (Bloco 8).
+- **Evidência:** existem 4 fontes distintas de "SLA":
+  - `bpm.bpm_sla_records` (0 rows) — SLA por card BPM
+  - `zapp.conversation_sla` (0 rows) — SLA por conversa WhatsApp
+  - `zapp.sla_delivery_violations` (2 rows, smoke test 2026-05-04) — violações de política SLA
+  - `zapp.sla_violations`, `zapp.sla_history`, `zapp.sla_rules`, `zapp.sla_policies` (0 rows cada) — camada adicional não usada
+  - `evo.evolution_alerts` (severity='critical') — alertas gerais nos quais SLA breaches deveriam aterrissar mas não aterrissam
+  Total: **9 tabelas SLA em `zapp`** + 1 em `bpm` + parte de `evo.evolution_alerts`. Nenhuma é fonte de verdade documentada.
+- **Ação:**
+  1. Escrever ADR canonicalizando 1 fonte de verdade por dimensão (SLA de card BPM, SLA de fila de atendimento, SLA de conversa).
+  2. Marcar tabelas redundantes como deprecated com `COMMENT ON TABLE ... IS 'DEPRECATED: usar ...'` + adicionar advisor.
+  3. Migration que dropa tabelas 0-row confirmadas obsoletas.
+- **Aceite:** `docs/db/schema-topology.md` mapeia SLA canonical → derivados; 1 ADR aprovado; contagem de tabelas `zapp.sla_*` cai de 9 para ≤ 3.
+
+### F8-04 — CRÍTICO (P0): triggers `zapp.bpm_track_sla()` e `bpm_track_sla_on_create()` são stubs vazios
+
+- **Origem:** Etapa 79 (Bloco 8).
+- **Evidência:** `pg_get_functiondef(zapp.bpm_track_sla)` e `pg_get_functiondef(zapp.bpm_track_sla_on_create)` retornam body idêntico: `BEGIN RETURN NEW; END;`. Amarrados em `bpm.bpm_cards` como triggers AFTER INSERT (`bpm_sla_on_create`) e AFTER UPDATE (`bpm_sla_on_move`). Consequência: quando/se um card for criado ou movido, **nenhum record de SLA será materializado** em `bpm.bpm_sla_records`. Cron 198 fica NOP eterno.
+- **Ação:**
+  1. Implementar `bpm_track_sla_on_create`: INSERT em `bpm.bpm_sla_records (card_id, step_id, sla_hours, entered_at, deadline_at)` com `sla_hours` vindo de `bpm.bpm_flow_steps.sla_hours` e `deadline_at = now() + sla_hours * interval '1 hour'`.
+  2. Implementar `bpm_track_sla`: se `NEW.current_step_id != OLD.current_step_id`, UPDATE do record ativo com `exited_at = now(), time_in_step_minutes = ...` e INSERT novo record para o step de destino.
+  3. Teste vitest: criar 1 card, mover 1 vez, verificar 2 rows em `bpm_sla_records` com `entered_at`/`exited_at`/`deadline_at` corretos.
+- **Aceite:** INSERT em `bpm.bpm_cards` cria row em `bpm.bpm_sla_records`; UPDATE de `current_step_id` fecha o record anterior e cria novo. Teste verde.
+
+### F8-05 — CRÍTICO (P0): cron 198 chama função no-op (`bpm_check_breached_slas`); a versão completa (`fn_check_all_cards_sla`) é dead code
+
+- **Origem:** Etapa 79 (Bloco 8).
+- **Evidência:** cron 198 (`*/5 * * * *`) executa `SELECT zapp.bpm_check_breached_slas()` — corpo tem 5 linhas: `UPDATE bpm_sla_records SET is_breached=TRUE WHERE exited_at IS NULL AND is_breached=FALSE AND deadline_at < NOW()`. Só marca flag; nenhuma notificação. `zapp.fn_check_all_cards_sla()` (também SECDEF) tem body completo com `INSERT INTO evolution_alerts (alert_type='sla_exceeded', severity, message, payload)` incluindo dedup por 4h — mas **nenhum cron a chama** (`grep command from cron.job WHERE command ILIKE '%fn_check_all_cards_sla%'` = 0).
+- **Ação:**
+  1. Decidir intenção: cron 198 deve marcar flag OU emitir alerta?
+  2. Se emitir: rewrite `bpm_check_breached_slas` para incluir a lógica de `fn_check_all_cards_sla` (INSERT em `evolution_alerts` com dedup) OU trocar cron 198 para chamar `fn_check_all_cards_sla` diretamente.
+  3. Dropar a função órfã que sobrar.
+- **Aceite:** breach de SLA em `bpm.bpm_cards` produz row em `evolution_alerts` dentro de 5min; dedup impede duplicatas na mesma janela de 4h; só 1 função SLA-checker existe.
+
+### F8-06 — CRÍTICO (P0): RLS de todas as 41 tabelas `bpm.*` é `USING(true) WITH CHECK(true)` para `authenticated`
+
+- **Origem:** Etapa 79 (Bloco 8).
+- **Evidência:** `SELECT * FROM pg_policies WHERE schemaname='bpm'` = 82 rows (2 por tabela). Padrão: `auth_full_access` para role `{authenticated}` com `qual=true, with_check=true`, e `service_full_access` para role `{service_role}` com mesmo qual. Zero policy filtra por `workspace_id`, `owner_id`, tenant, ou qualquer coisa. RLS "ligado" mas efetivamente aberto para qualquer authenticated. Repete o padrão sistêmico já registrado em F5-XX/F6-XX.
+- **Ação:**
+  1. Se módulo BPM for reativado (F8-02): substituir cada `auth_full_access` por policy que valida `workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid())` ou equivalente.
+  2. Padronizar via migration única gerando as 41 policies.
+  3. Teste: usuário do workspace A não pode SELECT em row de workspace B.
+- **Aceite:** teste SQL verde para todas as 41 tabelas; 0 rows retornadas para query cross-workspace.
+
+### F8-07 — CRÍTICO (P0): `useSLAMetrics.overallRate` fallback = 100 mascara dashboard vazio
+
+- **Origem:** Etapa 76 (Bloco 8).
+- **Evidência:** `src/features/sla/hooks/useSLAMetrics.ts` tem **dois** fallbacks: `overallRate: combinedTotal > 0 ? ((frOnTime + resOnTime) / combinedTotal) * 100 : 100` (visão geral) e `overallRate: total > 0 ? ((s.frOn + s.resOn) / total) * 100 : 100` (por agente). Como `zapp.conversation_sla` está com 0 rows, `combinedTotal=0` e dashboard exibe eternamente "SLA 100%". Métrica cosmética que esconde a ausência total de dados — usuário nunca percebe que módulo está morto.
+- **Ação:**
+  1. Substituir fallback por sentinela distinguível: `overallRate: combinedTotal > 0 ? ((frOnTime + resOnTime) / combinedTotal) * 100 : null` e no componente renderizar "Sem dados" quando `null`.
+  2. Adicionar teste unitário que garanta que `useSLAMetrics` com input `[]` retorna `overallRate: null` (não 100).
+- **Aceite:** dashboard exibe "Sem dados no período" quando `conversation_sla` vazia; teste verde.
+
+### F8-08 — CRÍTICO (P0): `zapp.queues` = 0 rows → `rpc_queue_sla_panel` sempre retorna vazio; comentário v2 admite bug histórico ainda não corrigido
+
+- **Origem:** Etapa 76 (Bloco 8).
+- **Evidência:** `COUNT(*)` real: `zapp.queues=0, queue_positions=0, sticky_assignments=0, queue_members=0`. `pg_get_functiondef(zapp.rpc_queue_sla_panel)` contém comentário: `-- v2 (2026-07-02): CTEs de espera/SLA repontadas de zapp.contacts.queue_id (que é NULL::uuid hardcoded na view => métricas eternamente 0, bug provado)`. Ou seja: bug histórico documentado; v2 tentou corrigir mas painel continua vazio porque a fonte alternativa (`zapp.queue_positions`) também está vazia.
+- **Ação:**
+  1. Popular `zapp.queues` com filas iniciais (é ADR de Produto).
+  2. Popular `zapp.queue_members` com atribuições reais de agentes.
+  3. Se filas não fazem parte do escopo v3: remover página SLADashboard/rota + dropar `rpc_queue_sla_panel`.
+- **Aceite:** `rpc_queue_sla_panel` retorna ≥ 1 row real em produção **OU** rota removida.
+
+### F8-09 — CRÍTICO (P0): `evo.evolution_health_logs` vazia → cron 163 (`evo-peak-hours-sla`) retorna `NO_PEAK_DATA` em 100% das execuções
+
+- **Origem:** Etapa 79 (Bloco 8).
+- **Evidência:** `evo.fn_peak_hours_sla_check` (SECDEF, cron 163 `*/15 * * * *`) faz `SELECT COUNT(*) FROM evo.evolution_health_logs WHERE created_at >= now() - p_window AND EXTRACT(HOUR ...) BETWEEN 11 AND 21`. Cron 163 rodou 237 vezes em 7d (última 2026-08-02 13:45), todas succeeded — mas o path early-return é `IF v_total_checks = 0 THEN ... RETURN 'NO_PEAK_DATA'`. Nunca chega no cálculo real de uptime.
+- **Ação:**
+  1. Investigar por que `evo.evolution_health_logs` está vazia (é populada por qual produtor? crashado? deprecated?).
+  2. Se produtor existiu e crashou: reativar produtor.
+  3. Se deprecated: dropar `evo.evolution_health_logs` + `fn_peak_hours_sla_check` + cron 163.
+- **Aceite:** ou cron 163 retorna `uptime_pct` real (≠ `NO_PEAK_DATA`), ou tabela+função+cron foram removidos.
+
+### F8-10 — MÉDIO (P1): `src/pages/SLADashboard.tsx` (22 linhas) é wrapper dead code
+
+- **Origem:** Etapa 76 (Bloco 8).
+- **Evidência:** `cat src/pages/SLADashboard.tsx` mostra 22 linhas: só monta Sidebar + `<SLADashboardComponent />` importado de `@/components/queues/SLADashboard` (349 linhas — o real). Router (`ViewRouter.tsx`) importa direto de `@/components/queues/SLADashboard`, pulando o wrapper. Arquivo em `src/pages/` só serve para confundir grep e IDE.
+- **Ação:**
+  1. `git rm src/pages/SLADashboard.tsx`.
+  2. Verificar que ninguém mais importa `@/pages/SLADashboard`.
+- **Aceite:** arquivo ausente; `tsc --noEmit` passa; app renderiza SLA dashboard normalmente.
+
+### F8-11 — MÉDIO (P1): `zapp.sla_alert_preferences` tem policy redundante — `users_own_preferences` é subset estrito de `auth_secure_105`
+
+- **Origem:** Etapa 78 (Bloco 8).
+- **Evidência:** `SELECT policyname, qual FROM pg_policies WHERE tablename='sla_alert_preferences'`:
+  - `auth_secure_105` (role authenticated): `((user_id = auth.uid()) OR is_admin_or_supervisor())`
+  - `users_own_preferences` (role authenticated): `(user_id = auth.uid())`
+  - `service_full_access` (role service_role): `true`
+  Como RLS é OR entre policies, `users_own_preferences` nunca adiciona acesso — sempre é dominado por `auth_secure_105`. Ruído semântico + custo de plan cache extra por policy.
+- **Ação:**
+  1. Migration `DROP POLICY users_own_preferences ON zapp.sla_alert_preferences`.
+  2. Adicionar teste RLS que garanta: admin acessa qualquer row, usuário comum só a própria.
+- **Aceite:** 2 policies restam (uma para `authenticated`, uma para `service_role`); teste passa.
+
+### F8-12 — BAIXO (P1): `src/hooks/useSLAHistory.ts` é re-export duplicado (2 linhas)
+
+- **Origem:** Etapa 77 (Bloco 8).
+- **Evidência:** `cat src/hooks/useSLAHistory.ts` retorna literal: `/** React hook: use S L A History. */\nexport * from '@/features/sla/hooks/useSLAHistory';`. Duas linhas. Diferentes lugares no repo podem importar `@/hooks/useSLAHistory` ou `@/features/sla/hooks/useSLAHistory` — mesma coisa mas leva a confusão de barrel.
+- **Ação:**
+  1. `grep -rn "hooks/useSLAHistory" src/` → identificar todos consumidores.
+  2. Substituir todos por `@/features/sla/hooks/useSLAHistory`.
+  3. `git rm src/hooks/useSLAHistory.ts`.
+- **Aceite:** grep para `@/hooks/useSLAHistory` = 0; teste + tsc passam.
+
+### F8-13 — BAIXO (P1): smoke test data ("F4 SLA", "E2 Race") vazando em produção há 3 meses
+
+- **Origem:** Etapa 80 (Bloco 8).
+- **Evidência:** `SELECT * FROM zapp.sla_delivery_rules` retorna 2 rows: `name='F4 SLA' created_at='2026-05-04T01:38:46Z'`, `name='E2 Race' created_at='2026-05-04T09:11:46Z'`. `SELECT * FROM zapp.sla_delivery_violations ORDER BY detected_at` mostra 2 rows: 1 warning resolved 2026-05-04T01:10, 1 breach unresolved 2026-05-04T01:36 (ainda unresolved 90+ dias depois). Nomes explícitos de smoke test/regressão.
+- **Ação:**
+  1. `DELETE FROM zapp.sla_delivery_violations WHERE detected_at < '2026-06-01'` + `DELETE FROM zapp.sla_delivery_rules WHERE name IN ('F4 SLA', 'E2 Race')`.
+  2. Verificar se testes automatizados ainda dependem desses IDs — se sim, mover seed para `tests/fixtures/`.
+- **Aceite:** `SELECT COUNT(*) FROM zapp.sla_delivery_rules WHERE name LIKE 'F4%' OR name LIKE 'E2%'` = 0; testes verdes.
+
+### F8-14 — MÉDIO (P1): cron 205 (`verify-alert-delivery-10min`) não cobre alertas SLA — premissa da etapa 80 é falsa
+
+- **Origem:** Etapa 80 (Bloco 8).
+- **Evidência:** `ops.fn_verify_alert_delivery` filtra `evo.evolution_alerts WHERE severity='critical' AND payload ? 'notify_request_id'`. Bloco 8 (etapa 80) do PLANO_QA descreve o cron como "verificar entrega em cada canal" para SLA breach. Mas: (a) breach SLA de BPM nunca aterrissa em `evolution_alerts` (F8-05 mostra que cron 198 só marca flag), (b) 275 delivered / 2 failed / 0 unverifiable em 7d — mas todos são alertas de outros produtores (`ops.disk-defense`, `fn_detect_401_bursts`, `connection_health`, `pg_cron:auth-session-overflow-alert`), não SLA.
+- **Ação:**
+  1. Alinhar etapa 80 do PLANO_QA_ANALISE com realidade: cron 205 é verificação de entrega de alertas críticos gerais, não específico de SLA.
+  2. Se objetivo era cobrir SLA: rewrite `fn_check_all_cards_sla` (F8-05) para publicar alerta em `evolution_alerts` com `payload->notify_request_id` — só então cron 205 passa a cobrir.
+- **Aceite:** documentação alinhada (comment na função + ADR de fluxo de alerta); breach SLA passa por cron 205 quando implementado.
+
+### F8-15 — MÉDIO (P1): `bpm.bpm_sla_records` só tem `pkey` — sem índice em `deadline_at, exited_at, is_breached`
+
+- **Origem:** Etapa 79 (Bloco 8).
+- **Evidência:** `SELECT indexname, indexdef FROM pg_indexes WHERE schemaname='bpm' AND tablename='bpm_sla_records'` retorna 1 row: `bpm_sla_records_pkey` (unique btree em `id`). Cron 198 faz `UPDATE ... WHERE exited_at IS NULL AND is_breached=FALSE AND deadline_at < NOW()` a cada 5min. Tabela 0 rows hoje = não pesa. Quando módulo for populado (F8-02), seq scan ao passar 10k rows já custa; ao passar 1M vira problema.
+- **Ação:**
+  1. Migration: `CREATE INDEX CONCURRENTLY idx_bpm_sla_records_open_deadline ON bpm.bpm_sla_records (deadline_at) WHERE exited_at IS NULL AND is_breached = FALSE;`
+  2. `EXPLAIN ANALYZE` da query do cron 198 depois de popular 100k rows sintéticos.
+- **Aceite:** query do cron 198 usa `idx_bpm_sla_records_open_deadline` em EXPLAIN; execução < 100ms com 100k rows abertos.
+
+### F8-16 — MÉDIO (P1): histórico documentado de blackout de notificação em 31/07/2026 18:40 UTC — 14 falhas, 0 sucessos em 2h
+
+- **Origem:** Etapa 80 (Bloco 8) — retroativo, descoberto ao auditar `zapp.warroom_alerts`.
+- **Evidência:** `SELECT * FROM zapp.warroom_alerts WHERE source='fn_verify_alert_delivery'` retorna 1 row: `alert_type='critical', title='BLACKOUT DE NOTIFICACAO — nenhum alerta critico esta sendo entregue', message='Ultimas 02:00:00 no canal: 0 entregas confirmadas, 14 falhas', created_at='2026-07-31T18:40:00.123Z'`. Nenhum blackout depois. Evento aconteceu, foi capturado pelo cron 205 (validando que o mecanismo funciona), mas: (a) não há registro de investigação/post-mortem, (b) o próprio evento passou despercebido — `warroom_alerts` tem 4501 rows total, se ninguém filtra por `severity='critical' AND source='fn_verify_alert_delivery'` regularmente, esse alerta específico se perde.
+- **Ação:**
+  1. Adicionar painel admin/dashboard que destaque alertas críticos de `warroom_alerts` últimas 30d — foco em `source='fn_verify_alert_delivery'`.
+  2. Escrever post-mortem retroativo para o evento de 31/07 18:40 UTC — o que causou 14 falhas? (provavelmente relacionado a incidente registrado em F7-XX).
+  3. Configurar alerta secundário: se `fn_verify_alert_delivery` emitir blackout, PagerDuty/Slack fora do próprio pipeline que está quebrado.
+- **Aceite:** dashboard existe; post-mortem em `docs/postmortems/2026-07-31-notification-blackout.md`; teste de blackout dispara notificação fora do canal principal.
+
+### F8-17 — MÉDIO (P1): `zapp.fn_check_all_cards_sla` tem `search_path` sem `bpm` — resolução implícita via views é armadilha oculta
+
+- **Origem:** Etapa 79 (Bloco 8).
+- **Evidência:** `pg_get_functiondef(zapp.fn_check_all_cards_sla)` mostra `SET search_path TO 'zapp', 'evo', 'monitoring'`. Body faz `FROM bpm_cards c JOIN bpm_flow_steps s`. Como `bpm` não está no search_path, PostgreSQL resolve `bpm_cards` → view `zapp.bpm_cards` (que aponta para `bpm.bpm_cards` via `SELECT *`). Funciona hoje, mas: (a) qualquer refactor da view `zapp.bpm_cards` adicionando GROUP BY, DISTINCT ou UNION quebra a resolução automática de UPDATE/JOIN, (b) se view for dropada por engano, função falha silenciosamente com "relation does not exist". A função `zapp.bpm_check_breached_slas` tem o mesmo padrão. Fragilidade sistêmica.
+- **Ação:**
+  1. Substituir `search_path TO 'zapp','evo','monitoring'` por `search_path TO 'bpm','zapp','evo','monitoring'` (ou qualificar `FROM bpm.bpm_cards c JOIN bpm.bpm_flow_steps s`).
+  2. Regra de estilo: toda função SECDEF que toca outro schema deve qualificar explicitamente ou incluir o schema no search_path.
+  3. Grep `pg_proc.prosrc` por outras funções `zapp.*` que fazem `FROM bpm_*` sem qualificar — provavelmente `bpm_refresh_dashboards` também (confirmar).
+- **Aceite:** grep sql retorna 0 funções `zapp.*` que fazem FROM/JOIN em objeto `bpm.*` sem qualificação nem `bpm` no search_path.
