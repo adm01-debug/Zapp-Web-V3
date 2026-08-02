@@ -34,6 +34,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: PR mode — verificacao estatica
         if: github.event_name == 'pull_request'
@@ -59,18 +61,25 @@ jobs:
           fi
 
           # Verifica que há pelo menos uma função na allowlist
-          COUNT=$(grep -oE "['\"][A-Za-z0-9_-]+['\"]" "$INDEX" \
-            | head -200 | grep -c "'" || true)
-          if [ "$COUNT" -eq 0 ]; then
+          COUNT=$(sed -n '/const PUBLIC_FNS/,/^\s*\]/p' "$INDEX" \
+            | grep -vE '^\s*//' \
+            | grep -oE "['\"][A-Za-z0-9_-]+['\"]" \
+            | wc -l || true)
+          COUNT="${COUNT// /}"
+          if [ "${COUNT:-0}" -eq 0 ]; then
             echo "::error::PUBLIC_FNS esta vazia — nenhuma funcao na allowlist"
             exit 1
           fi
           echo "OK: PUBLIC_FNS tem ${COUNT} entradas (estatico)"
 
           # Verifica que nenhuma funcao protegida esta na allowlist acidentalmente
-          PROTECTED_FNS="admin delete-user reset-password"
+          # Escopa a busca apenas ao bloco PUBLIC_FNS para evitar falso-positivo
+          # Inclui funcoes de infra criticas (ai-router, evolution-api) que nunca
+          # devem ser publicas mesmo que sejam lancadas por clients internos.
+          PUBLIC_FNS_BLOCK=$(sed -n '/const PUBLIC_FNS/,/^\s*\]/p' "$INDEX")
+          PROTECTED_FNS="admin delete-user reset-password ai-router evolution-api"
           for fn in $PROTECTED_FNS; do
-            if grep -q "\"$fn\"" "$INDEX" || grep -q "'$fn'" "$INDEX"; then
+            if echo "$PUBLIC_FNS_BLOCK" | grep -q "\"$fn\"" || echo "$PUBLIC_FNS_BLOCK" | grep -q "'$fn'"; then
               echo "::error::Funcao protegida '$fn' encontrada na PUBLIC_FNS allowlist"
               exit 1
             fi
@@ -140,12 +149,14 @@ jobs:
           # Se VERIFY_JWT_ENABLED=false (runtime ainda nao ativado), apenas avisa
           echo ""
           echo "=== Testando funcoes protegidas (sem Authorization) ==="
-          # Funcoes protegidas conhecidas que existem em producao
-          PROTECTED_FNS="send-message search-contacts get-analytics"
+          # Funcoes protegidas que existem em producao (nao estao na PUBLIC_FNS allowlist)
+          PROTECTED_FNS="evolution-api ai-router"
           for fn in $PROTECTED_FNS; do
-            # Pular se estiver na allowlist (pode ter sido adicionada)
+            # evolution-api e ai-router sao SEMPRE protegidas — se aparecerem na
+            # allowlist e uma regressao de seguranca que deve falhar o CI
             if grep -qx "$fn" "$ALLOWLIST_FILE" 2>/dev/null; then
-              echo "SKIP: '$fn' esta na allowlist — pulando teste de autenticacao"
+              echo "::error::ALLOWLIST REGRESSION: '$fn' foi adicionada a PUBLIC_FNS — funcao protegida nao pode ser publica"
+              FAILED=1
               continue
             fi
 
@@ -160,7 +171,8 @@ jobs:
               if [ "$code" = "401" ] || [ "$code" = "403" ]; then
                 echo "OK: '$fn' exige auth (http=$code)"
               elif [ "$code" = "404" ]; then
-                echo "::warning::Funcao '$fn' retornou 404 — funcao pode nao estar implantada"
+                echo "::error::Funcao protegida '$fn' retornou 404 com VERIFY_JWT=true ativo — funcao nao esta implantada mas deveria estar protegida"
+                FAILED=1
               else
                 echo "::error::Funcao protegida '$fn' retornou HTTP $code sem auth — deveria retornar 401/403 (VERIFY_JWT=true ativo)"
                 FAILED=1
@@ -177,26 +189,35 @@ jobs:
             fi
           done
 
-          # ---- 3. Funcao com JWT invalido deve retornar 401 ----
+          # ---- 3. Funcao protegida com JWT invalido deve retornar 401 ----
+          # Usa 'ai-router' (fora da PUBLIC_FNS) — deve exigir JWT valido
           echo ""
-          echo "=== Testando rejeicao de JWT invalido ==="
+          echo "=== Testando rejeicao de JWT invalido em funcao protegida ==="
           FAKE_JWT="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0Iiwicm9sZSI6ImFub24iLCJleHAiOjB9.invalidsignature"
-          fn="health-check"
-          code="$(curl -s -o /dev/null -w '%{http_code}' \
-            --max-time 10 \
-            -H "Authorization: Bearer $FAKE_JWT" \
-            "$BASE_URL/functions/v1/$fn" || true)"
-          code="${code:-000}"
-
-          if [ "$code" = "000" ]; then
-            echo "::warning::health-check sem resposta com JWT invalido — problema de rede?"
-          elif [ "$code" = "401" ]; then
-            echo "OK: JWT invalido rejeitado com 401 em '$fn'"
-          elif [ "$code" = "200" ]; then
-            # health-check esta na PUBLIC_FNS, portanto JWT invalido e ignorado — OK
-            echo "OK: '$fn' esta na PUBLIC_FNS — JWT invalido ignorado (http=200 esperado)"
+          fn="ai-router"
+          # ai-router e SEMPRE protegida — se estiver na allowlist e regressao de seguranca
+          if grep -qx "$fn" "$ALLOWLIST_FILE" 2>/dev/null; then
+            echo "::error::ALLOWLIST REGRESSION: '$fn' foi adicionada a PUBLIC_FNS — funcao protegida nao pode ser publica"
+            FAILED=1
           else
-            echo "INFO: '$fn' com JWT invalido retornou http=$code"
+            code="$(curl -s -o /dev/null -w '%{http_code}' \
+              --max-time 10 \
+              -H "Authorization: Bearer $FAKE_JWT" \
+              "$BASE_URL/functions/v1/$fn" || true)"
+            code="${code:-000}"
+
+            if [ "$code" = "000" ]; then
+              echo "::warning::$fn sem resposta com JWT invalido — problema de rede?"
+            elif [ "$code" = "401" ] || [ "$code" = "403" ]; then
+              echo "OK: JWT invalido rejeitado com $code em '$fn'"
+            elif [ "$code" = "404" ]; then
+              echo "::warning::$fn retornou 404 — funcao pode nao estar implantada"
+            elif [ "$VERIFY_JWT_ENABLED" = "true" ]; then
+              echo "::error::$fn aceitou JWT invalido com http=$code (VERIFY_JWT=true ativo) — vulnerabilidade de autenticacao"
+              FAILED=1
+            else
+              echo "INFO: '$fn' com JWT invalido retornou http=$code (VERIFY_JWT nao ativo)"
+            fi
           fi
 
           # ---- Resultado final ----
