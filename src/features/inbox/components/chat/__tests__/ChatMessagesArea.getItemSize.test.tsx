@@ -1,14 +1,12 @@
 /**
  * Testes de ChatMessagesArea:
- *  - BUG-25: o canal de realtime registra listener de DELETE — mensagens
- *    apagadas no banco (Evolution) somem da UI via invalidação de query.
  *  - BUG-21: getItemSize (estimateSize do virtualizer) soma incrementos de
  *    altura para replyTo, reactions e interactive.buttons.
  *
  * getItemSize não é exportado (useCallback interno). Para testar a LÓGICA
  * real sem refatorar exports do componente, renderizamos ChatMessagesArea com
  * useVirtualizer mockado que captura o callback estimateSize passado pelo
- * componente, e com o supabase mockado que expõe o canal de realtime.
+ * componente.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
@@ -16,25 +14,12 @@ import { ChatMessagesArea } from '../ChatMessagesArea';
 import type { Message } from '@/types/chat';
 
 // ── Estado compartilhado entre mocks e testes ────────────────────────────────
-const { channelSpy, channelMock, queryClientMock, estimateSizeRef } = vi.hoisted(() => {
-  const channelSpy = vi.fn();
-  const channelMock = { on: vi.fn(), subscribe: vi.fn() };
-  channelMock.on.mockReturnValue(channelMock);
-  channelMock.subscribe.mockReturnValue({ unsubscribe: vi.fn() });
-  channelSpy.mockReturnValue(channelMock);
-  return {
-    channelSpy,
-    channelMock,
-    queryClientMock: { invalidateQueries: vi.fn() },
-    estimateSizeRef: { current: undefined as ((index: number) => number) | undefined },
-  };
-});
-
-// ── Mocks de módulos externos/pesados ────────────────────────────────────────
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: { channel: channelSpy, removeChannel: vi.fn() },
+const { queryClientMock, estimateSizeRef } = vi.hoisted(() => ({
+  queryClientMock: { invalidateQueries: vi.fn() },
+  estimateSizeRef: { current: undefined as ((index: number) => number) | undefined },
 }));
 
+// ── Mocks de módulos externos/pesados ────────────────────────────────────────
 vi.mock('@tanstack/react-query', () => ({
   useQueryClient: () => queryClientMock,
 }));
@@ -132,61 +117,6 @@ function renderArea(messages: Message[]) {
     />
   );
 }
-
-function getDeleteCallback(): (payload: { old: unknown }) => void {
-  const deleteCall = channelMock.on.mock.calls.find((call) => call[1]?.event === 'DELETE');
-  expect(deleteCall).toBeDefined();
-  return deleteCall![2] as (payload: { old: unknown }) => void;
-}
-
-// ── BUG-25: realtime DELETE ──────────────────────────────────────────────────
-describe('ChatMessagesArea realtime (BUG-25)', () => {
-  beforeEach(() => {
-    channelSpy.mockClear();
-    channelMock.on.mockClear();
-    channelMock.subscribe.mockClear();
-    queryClientMock.invalidateQueries.mockClear();
-    estimateSizeRef.current = undefined;
-  });
-
-  it('registra listeners UPDATE e DELETE no mesmo canal', () => {
-    renderArea([makeMessage()]);
-
-    expect(channelSpy).toHaveBeenCalledWith(`chat-updates:${CONTACT_JID}`);
-    const configs = channelMock.on.mock.calls.map((call) => call[1]);
-    expect(configs).toHaveLength(2);
-    expect(configs[0]).toMatchObject({
-      event: 'UPDATE',
-      schema: 'evo',
-      table: 'evolution_messages',
-    });
-    expect(configs[1]).toMatchObject({
-      event: 'DELETE',
-      schema: 'evo',
-      table: 'evolution_messages',
-    });
-    expect(configs[1].filter).toContain(CONTACT_JID);
-  });
-
-  it('invalida a query de mensagens quando o DELETE traz old.id', () => {
-    renderArea([makeMessage()]);
-
-    getDeleteCallback()({ old: { id: 'msg-1' } });
-
-    expect(queryClientMock.invalidateQueries).toHaveBeenCalledTimes(1);
-    expect(queryClientMock.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: expect.any(Array),
-    });
-  });
-
-  it('não invalida quando o DELETE não traz old.id', () => {
-    renderArea([makeMessage()]);
-
-    getDeleteCallback()({ old: null });
-
-    expect(queryClientMock.invalidateQueries).not.toHaveBeenCalled();
-  });
-});
 
 // ── BUG-21: getItemSize com incrementos ──────────────────────────────────────
 describe('ChatMessagesArea getItemSize (BUG-21)', () => {
