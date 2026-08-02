@@ -1041,7 +1041,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 - **Ação:**
   1. Se conformidade é objetivo real: puxar de `zapp.compliance_evidences` (a criar).
   2. Botão com `href={buildGithubUrl(ev.path)}` (usar `GITHUB_URL` env).
-  3. Se não é: **remover a página** e sua rota do sidebar.
+  3. Se não é: **remover a página** e o registro da rota em `src/components/routing/AdminRoutes.tsx` (lazy import na linha 34, `<Route>` na 249). **Corrigido em 2026-08-02:** não há entrada no sidebar (`sidebarNavConfig.ts` não referencia esta página) — a referência original a "rota do sidebar" estava errada.
 - **Aceite:** ou página lê dados reais e "Ver no Repositório" abre GitHub, ou página é removida.
 
 ### F7-06 — `setLastLastUpdate` (typo)
@@ -1076,7 +1076,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 - **Origem:** Etapa 69 (Bloco 7).
 - **Evidência:** `AdminInboxSyncStatusPage.tsx` alert "sem inbound" linka `<Link to="/admin/webhook-overview">`. Listagem de `src/pages/admin/` NÃO contém `AdminWebhookOverviewPage.tsx`. Route table cai em NotFound.
 - **Ação:**
-  1. Criar página `AdminWebhookOverviewPage` OU redirecionar para `/admin/whatsapp-logs` (tab webhooks).
+  1. **Corrigido em 2026-08-02 — NÃO criar a página.** `AdminWebhookOverviewPage.tsx` **já existe** em `src/pages/` (não em `src/pages/admin/`, que foi onde a evidência procurou), com lazy import em `src/pages/lazyViews.ts:103` e item de menu `webhook-overview` em `src/components/layout/sidebarNavConfig.ts:145` — é alcançável por `?view=webhook-overview`. O que falta é só a **rota de path**: ou corrigir o `<Link>` de `AdminInboxSyncStatusPage.tsx:112` para o destino real, ou registrar `/admin/webhook-overview` em `src/components/routing/AdminRoutes.tsx` apontando para a página existente.
   2. Grep global de `Link to="/admin/...` e validar cada destino.
 - **Aceite:** clique no link não gera 404.
 
@@ -1088,7 +1088,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
   1. Padronizar: guardar `color` como hex ou CSS variable name.
   2. `emptyChannel()` retorna `color: 'var(--primary)'`.
   3. Migration: `UPDATE zapp.service_channels SET color = CASE ... END`.
-- **Aceite:** canais existentes renderizam com fundo colorido.
+- **Aceite (reescrito em 2026-08-02 — Lote C est.2):** o critério original é vácuo: `zapp.service_channels` tem **0 linhas**, logo não há "canais existentes" e a migration do item 3 afeta 0 registros (mantê-la como profilática). Novo critério binário: criar um canal pela UI → o valor gravado em `color` é hex ou CSS var (**nunca** `bg-primary`) e o swatch de `AdminChannelsPage.tsx:149` renderiza com fundo colorido; `grep -c '"bg-primary"' src/pages/admin/AdminChannelsPage.tsx` retorna 0.
 
 ### F7-11 — `zapp.provider_message_log` = 0 rows total
 
@@ -1131,8 +1131,9 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
   2. Trigger auto-resolve quando counter zera.
   3. Widget de backlog no sidebar admin.
 - **Aceite:** backlog < 50; nenhum alerta com "go-live" após decisão.
+- **Revisado em 2026-08-02 (Lote C est.2):** números atualizados — **741 total · 731 não resolvidos · 12 em 24h**; breakdown `burnin_critical_alert` 715, `lovable_parity_drift` 9, `burnin_disconnection` 4, `backup_sentinel_stale` 3. O backlog **cresceu** desde a medição original (724→731). Atenção: `zapp.webhook_health_alerts` **não tem coluna `resolved`** — usar `resolved_at IS NULL`. Cron 145 confirmado: `burnin-monitor`, `*/15 * * * *`, `SELECT evo.fn_burnin_monitor()`, ativo.
 
-### F7-15 — Cron 213 `media_pipeline_health_check` 42.8% falha
+### F7-15 — ~~OBSOLETO~~ Cron 213 `media_pipeline_health_check` 42.8% falha
 
 - **Origem:** Etapa 73 (Bloco 7).
 - **Evidência:** Duas cascatas: (a) coluna `severity` NÃO EXISTE em `warroom_alerts`; (b) `alert_type='media_pipeline'` viola `chk_warroom_alert_type`.
@@ -1142,8 +1143,9 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
   3. Atualizar `fn_run_media_health_alert()`.
   4. `fn_verify_warroom_schema()` no CI.
 - **Aceite:** cron 213 100% sucesso nas próximas 24h.
+- **Revalidado em 2026-08-02 (Lote C est.2):** as duas cascatas já foram corrigidas. `severity varchar(20)` **existe** em `zapp.warroom_alerts`; a constraint `chk_warroom_alert_type` **não existe mais** (`alert_type` virou enum `warroom_alert_type`). `cron.job_run_details` do jobid 213: 16 sucessos × 4 falhas, **todas as falhas ≤ 2026-07-30**, último sucesso 2026-08-02T16:00Z. Achado obsoleto — não executar.
 
-### F7-16 — Cron 100 `analytics-log-retention` 100% falha (`dblink` não instalada)
+### F7-16 — ~~OBSOLETO~~ Cron 100 `analytics-log-retention` 100% falha (`dblink` não instalada)
 
 - **Origem:** Etapa 73 (Bloco 7).
 - **Evidência:** `function public.dblink(text, text) does not exist`. Extensão dblink NÃO instalada.
@@ -1151,6 +1153,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
   1. `CREATE EXTENSION IF NOT EXISTS dblink;` (via `supabase_db_query`).
   2. Ou reescrever para não usar dblink (FDW permanente).
 - **Aceite:** cron 100 sucesso.
+- **Revalidado em 2026-08-02 (Lote C est.2):** dblink **v1.2 instalada**; 4 funções `dblink` no schema `zapp`; `ops.fn_analytics_log_retention` existe e o jobid 100 teve último run **succeeded** em 2026-08-02T05:20Z ("1 row"). Últimas falhas em 2026-07-31. `CREATE EXTENSION` seria no-op — não executar.
 
 ### F7-17 — `remote_jid` completo em URL query (PII em logs)
 
@@ -1185,11 +1188,11 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 - **Evidência:** `AdminAutomationLogsPage` mostra filtros elaborados mas tabela vazia. Regras são criadas (`AdminAutomationsPage` 790 L) mas execuções não logadas OU escritas em outra tabela.
 - **Ação:**
   1. Auditar `useAutomationLogs` — qual tabela consulta?
-  2. Se `evo.evolution_automation_logs` for real, criar view compat.
+  2. ~~Se `evo.evolution_automation_logs` for real, criar view compat.~~ **Corrigido em 2026-08-02:** já feito — `zapp.evolution_automation_logs` **já existe como VIEW** sobre a tabela `evo.evolution_automation_logs`. Item resolvido. O hook a auditar é `src/hooks/useAutomationLogs.ts` (`src/pages/admin/useAutomationLogs.ts` é apenas re-export).
   3. Verificar engine de execução — insere onde?
 - **Aceite:** disparar regra manualmente → row visible no painel.
 
-### F7-21 — `HmacSelfTestPage` useEffect com dependência `[run]` — risco de loop infinito
+### F7-21 — ~~OBSOLETO~~ `HmacSelfTestPage` useEffect com dependência `[run]` — risco de loop infinito
 
 - **Origem:** Etapa 75 (Bloco 7).
 - **Evidência:** `useEffect(() => { void run(); }, [run])`. Se `run` NÃO estiver em `useCallback` dentro de `useHmacSelfTest`, muda referência a cada render → loop.
@@ -1198,6 +1201,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
   2. Se não: envolver em `useCallback` OU usar ref pattern.
   3. Teste: mount + assert 1 chamada após 500ms.
 - **Aceite:** DevTools Network → só 1 request no mount.
+- **Revalidado em 2026-08-02 (Lote C est.2):** o risco não se materializa. `run` é `admin.runSecurityTest`, definido com `useCallback` em `src/features/admin/hooks/useAdminManagement.ts:1122`, deps `[instance, includeNegative, logSecurityAudit, syncSecurityAlert]`; `logSecurityAudit` (1027) e `syncSecurityAlert` (1055) também são `useCallback`, e os outros dois são primitivos. Referência estável → sem loop. Itens 1 e 2 são no-op; manter só o item 3 (teste de regressão) se desejado.
 
 ### F7-22 — Botão "Run test suite" sem confirmação; label hardcoded "50 testes"
 
@@ -1218,6 +1222,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
   2. Frontend usa enum.
   3. Contract test Zod na resposta RPC.
 - **Aceite:** trocar emoji não muda comportamento visual.
+- **Revisado em 2026-08-02 (Lote C est.2):** são **2 ocorrências**, não 1 — `AdminEvoApiHealthPage.tsx:100` (`readiness.overall`) e `:111` (`runTestsData.overall`). Corrigir as duas.
 
 ### F7-24 — `AdminWhatsAppWebhookVerifyCard.tsx` chave React duplicável
 
@@ -1292,7 +1297,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
   2. Catch: `if (!controller.signal.aborted) { setResults([]); toast.error(...); }`.
 - **Aceite:** clique múltiplo aborta anteriores; erro deixa results vazios com toast.
 
-### F7-32 — `AdminAutomationLogsPage` paginação 0-indexed inconsistente
+### F7-32 — ~~OBSOLETO~~ `AdminAutomationLogsPage` paginação 0-indexed inconsistente
 
 - **Origem:** Etapa 75 (Bloco 7).
 - **Evidência:** `const [page, setPage] = useState(0);` e `setPage(0)` no reset. Convenção Supabase 0-indexed mas UI mostra "página N" ao usuário.
@@ -1301,6 +1306,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
   2. `setPage(1)` no reset.
   3. Rótulo "Página 1 de 10", não "Página 0".
 - **Aceite:** primeira página exibida como "1"; reset volta para "1".
+- **Revalidado em 2026-08-02 (Lote C est.2):** **o Aceite já passa hoje.** `AdminAutomationLogsPage.tsx:234` renderiza `Página {page + 1}`, então a primeira página aparece como "1" e `setPage(0)` volta para "1". O usuário nunca vê "Página 0". Resta apenas preferência de convenção interna — sem impacto observável.
 
 ---
 

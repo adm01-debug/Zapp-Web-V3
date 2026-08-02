@@ -1,13 +1,13 @@
 # REVISÃO DO CORPO DOS 172 ACHADOS (Blocos 1-8)
 
 **Base:** `docs/audits/PLANO_IMPLEMENTACAO_100.md` · **Método:** `docs/audits/HANDOFF_REVISAO_BACKLOG.md`
-**Status geral:** Lotes A e B concluídos + Lote C parcial (140/172) · falta F7 (32).
+**Status geral:** ✅ **172/172 revisados** — Lotes A, B e C concluídos em 2026-08-02. Taxa de defeito de referência: 28/172 = 16,3%.
 
 | Lote | Blocos | Achados | Status | Sessão | Resultado |
 |---|---|---:|---|---|---|
 | A | F2, F5, F8 | 60 | ✅ concluído | 2026-08-02 | 40 ✅ · 6 ⚠️ · 3 🔄 · 10 📝 · 1 ❓ |
 | B | F4, F6 | 54 | ✅ concluído | 2026-08-02 | 44 ✅ · 4 ⚠️ · 2 🔄 · 4 📝 |
-| C | F1, F3, F7 | 58 | 🟡 parcial (26/58) | 2026-08-02 | F1+F3: 13 ✅ · 4 ⚠️ · 2 🔄 · 6 📝 · 1 ❓ — **F7 (32) pendente** |
+| C | F1, F3, F7 | 58 | ✅ concluído | 2026-08-02 | 37 ✅ · 7 ⚠️ · 6 🔄 · 7 📝 · 1 ❓ (F1+F3: 13·4·2·6·1 · F7: 24·3·4·1·0) |
 
 ---
 
@@ -327,3 +327,98 @@ Quatro de quatro vieram da mesma causa: **a auditoria grepou o lugar errado ou n
 5. Confirmar existência de todo alvo citado como **destino**.
 6. Ignorar números de linha — localizar por símbolo.
 7. **Novo:** conferir assinatura de RPC antes de aceitar chamada proposta em Ação.
+
+---
+
+# LOTE C — estágio 2: F7 (32 achados) — Tema 13, Admin/monitoramento/dashboards
+
+**Sessão:** 2026-08-02 · **Escopo:** linhas 1003-1307 do `PLANO_IMPLEMENTACAO_100.md` (range reconferido: F7-01 na 1003, F7-32 na 1295, Tema 14 na 1308).
+
+## Resumo — F7
+
+**Taxa de defeito de referência/evidência: 7/32 = 22%** (3 ⚠️ REFERÊNCIA + 4 🔄 OBSOLETO). Somando 1 📝 AÇÃO FRÁGIL, **8 dos 32 não estão prontos para a esteira**.
+
+### O achado que causaria dano se executado como escrito
+
+**F7-09** manda *"criar página `AdminWebhookOverviewPage`"*. A página **já existe** — em `src/pages/AdminWebhookOverviewPage.tsx` (fora de `src/pages/admin/`, que foi onde a evidência procurou), com lazy import registrado em `src/pages/lazyViews.ts:103` e item de menu `webhook-overview` em `src/components/layout/sidebarNavConfig.ts:145`. Executar a Ação criaria uma **duplicata**. O defeito real é mais estreito: só falta a **rota de path** `/admin/webhook-overview`, que o `<Link>` de `AdminInboxSyncStatusPage.tsx:112` assume existir.
+
+### Regra nova: existe um oitavo arquivo de roteamento
+
+A regra 1 dos lotes anteriores dizia que o roteador é `src/components/routing/AppRoutes.tsx`. Incompleto: as **27 rotas `/admin/*` vivem em `src/components/routing/AdminRoutes.tsx`** — `AppRoutes.tsx` não contém nenhuma. Todo achado que fale de rota admin (existência, remoção, destino de `<Link>`) precisa ser grepado contra `AdminRoutes.tsx`.
+
+### Ressalva à regra 6 (homônimos)
+
+`src/pages/admin/useAutomationLogs.ts` **é** um re-export puro de `src/hooks/useAutomationLogs.ts` — ao contrário dos homônimos listados na regra 6. Vale conferir caso a caso em vez de assumir que homônimo nunca é re-export.
+
+### Dois crons que a auditoria pegou quebrados e que já foram corrigidos
+
+| Achado | Diagnóstico original | Medição de 2026-08-02 |
+|---|---|---|
+| F7-15 | cron 213 falha por (a) coluna `severity` inexistente e (b) violação de `chk_warroom_alert_type` | `severity varchar(20)` **existe** em `zapp.warroom_alerts`; a constraint **não existe mais** (`alert_type` virou enum `warroom_alert_type`); 16 sucessos × 4 falhas na janela retida, **todas as falhas ≤ 2026-07-30**, último sucesso 2026-08-02T16:00Z |
+| F7-16 | cron 100 falha 100% — "dblink não instalada" | dblink **v1.2 instalada**, 4 funções `dblink` em `zapp`, `ops.fn_analytics_log_retention` existe; último run **succeeded** (2026-08-02T05:20Z, "1 row"); últimas falhas em 2026-07-31 |
+
+F7-16 já era conhecido (é o caso-exemplo do handoff). F7-15 é novo — mesma classe: achado medido antes da correção.
+
+### Erro de coluna na evidência de F7-14
+
+A evidência fala em "724 unresolved". A tabela `zapp.webhook_health_alerts` **não tem coluna `resolved`** — tem `resolved_at timestamptz`. Quem revalidar precisa usar `resolved_at IS NULL`, senão a query erra. O número em si está confirmado e cresceu: **741 total, 731 não resolvidos, 12 nas últimas 24h**.
+
+## Vereditos — Bloco F7 (32 achados)
+
+| Achado | Veredito | Evidência da revisão | Correção necessária |
+|---|---|---|---|
+| F7-01 | ✅ VÁLIDO | 3 ocorrências de `// @technical` em `PerformanceDashboard.tsx` (119, 125, 131 — não ~120-140) | — (obs.: item 3 exige `eslint-plugin-react`, ausente; `eslint.config.js` só carrega react-hooks e react-refresh) |
+| F7-02 | ✅ VÁLIDO | `AdminBridgeStatusPage.tsx:82`, após `</p>` | — (mesma obs. de plugin) |
+| F7-03 | ✅ VÁLIDO | `AdminEmailAuditPage.tsx:133`, dentro do children do `<Badge>`; `Total: {total}` na 134 | — |
+| F7-04 | ✅ VÁLIDO | `{lovableDb === true ? '42ms' : '--'}` (121) e `99.9%` (126) literais; `zapp.webhook_health_checks` existe (tabela) → destino da Ação confere | — |
+| F7-05 | ⚠️ REFERÊNCIA | Mock confirmado (78 L, array `evidences`, badge `V5.0.0-PROD`, "Ver no Repositório" sem `href`). Mas **não há entrada no sidebar**: a rota está em `AdminRoutes.tsx:34,249`. `zapp.compliance_evidences` não existe (coerente com "a criar") | trocar "rota do sidebar" por `src/components/routing/AdminRoutes.tsx` (linhas 34 e 249) |
+| F7-06 | ✅ VÁLIDO | `setLastLastUpdate` em 2 pontos (11 e 16) | — |
+| F7-07 | ✅ VÁLIDO | `Math.min((m.value / 4000) * 100, 100)` na linha 78 | — |
+| F7-08 | ✅ VÁLIDO | `setInterval(update, 2000)` na 18; zero ocorrências de `visibilitychange`/`document.hidden` no arquivo | — |
+| F7-09 | ⚠️ REFERÊNCIA | **`AdminWebhookOverviewPage.tsx` existe** em `src/pages/` + lazy em `lazyViews.ts:103` + sidebar `webhook-overview` (145). O que falta é a rota de path em `AdminRoutes.tsx` (27 rotas, nenhuma `webhook-overview`) | reescrever item 1: não criar página; corrigir o `<Link>` (`AdminInboxSyncStatusPage.tsx:112`) para `/?view=webhook-overview` **ou** registrar a rota apontando para a página existente |
+| F7-10 | 📝 AÇÃO FRÁGIL | Bug confirmado: `color: "bg-primary"` em `emptyChannel()` (57), consumido como `style={{ backgroundColor: ch.color }}` (149); ainda default do `<Input type="color">` (343). Porém **`zapp.service_channels` tem 0 linhas** | Aceite é vácuo ("canais existentes") e a migration do item 3 afeta 0 linhas — reescrever Aceite para criação via UI |
+| F7-11 | ✅ VÁLIDO | `zapp.provider_message_log` = 0 rows; CardDescription confirmada em `AdminWhatsAppLogsPage.tsx:125` | — |
+| F7-12 | ✅ VÁLIDO | `zapp.security_audit_logs` = 0 rows; título "(24h)" na 56 e filtro sem janela na 61 | — |
+| F7-13 | ✅ VÁLIDO | `rate_limit_logs`=0, `blocked_ips`=0, `ip_whitelist`=0; `RateLimitDashboard.tsx` com 489 L e 5 `TabsTrigger` | — (se optar por remover: consumidores são `AdminRoutes.tsx:7,72`; não há item de sidebar) |
+| F7-14 | ✅ VÁLIDO | Hoje: 741 total · 731 não resolvidos · 12 em 24h. Breakdown: `burnin_critical_alert` 715, `lovable_parity_drift` 9, `burnin_disconnection` 4, `backup_sentinel_stale` 3. Cron 145 = `burnin-monitor`, `*/15 * * * *`, `evo.fn_burnin_monitor()`, ativo | atualizar números e trocar `resolved` por `resolved_at IS NULL` (a coluna `resolved` não existe) |
+| F7-15 | 🔄 OBSOLETO | `severity varchar(20)` existe em `zapp.warroom_alerts`; `chk_warroom_alert_type` não existe mais (`alert_type` = enum `warroom_alert_type`); cron 213 com 16 sucessos, falhas só até 2026-07-30, último sucesso 2026-08-02T16:00Z | marcar `~~OBSOLETO~~` + linha de revalidação |
+| F7-16 | 🔄 OBSOLETO | dblink v1.2 instalada; 4 funções `dblink` em `zapp`; `ops.fn_analytics_log_retention` existe; cron 100 último run succeeded (2026-08-02T05:20Z) | marcar `~~OBSOLETO~~` (já apontado no handoff) |
+| F7-17 | ✅ VÁLIDO | `to={\`/?contact=${encodeURIComponent(c.remote_jid)}\`}` em `AdminInboxSyncStatusPage.tsx:225` | — (obs.: o `aria-label` da 223 também expõe o número; incluir no escopo da Ação) |
+| F7-18 | ✅ VÁLIDO | `zapp.hmac_selftest_audit` = 0 rows, `max(created_at)` NULL | — |
+| F7-19 | ✅ VÁLIDO | `STATUS_BADGE` cobre só `active`/`paused`/`disabled` (43-47); uso sem fallback na 142 | — |
+| F7-20 | ⚠️ REFERÊNCIA | `zapp.automation_executions` = 0 rows confirmado. Mas o item 2 já está feito: **`zapp.evolution_automation_logs` já existe como VIEW** sobre a tabela `evo.evolution_automation_logs` | remover/atualizar item 2; apontar a auditoria para `src/hooks/useAutomationLogs.ts` (o de `pages/admin/` é re-export) |
+| F7-21 | 🔄 OBSOLETO | `run` = `runSecurityTest`, que **está** em `useCallback` (`useAdminManagement.ts:1122`) com deps `[instance, includeNegative, logSecurityAudit, syncSecurityAlert]`; os dois callbacks também são `useCallback` (1027, 1055) e os outros dois são primitivos → referência estável, sem loop | marcar `~~OBSOLETO~~`; preservar só o item 3 (teste de regressão) se quiser blindagem |
+| F7-22 | ✅ VÁLIDO | `'Rodando 50 testes…'` hardcoded (`AdminEvoApiHealthPage.tsx:92`); nenhum `AlertDialog` no arquivo; `runTestsData.total_tests` existe (115) → item 2 executável | — |
+| F7-23 | ✅ VÁLIDO | `includes('🟢')` em **2 pontos** (100 e 111), não 1 | ampliar a Ação para as duas ocorrências |
+| F7-24 | ✅ VÁLIDO | `key={\`${p.kind}-${p.created_at}\`}` na 162 | — (obs.: `id` existe na tabela e já é selecionado em `useWhatsAppLogs.ts:46` — a parte "adicionar `id` no payload" pode ser no-op; confirmar a fonte de `verify` em `AdminWhatsAppModePage.tsx:144`) |
+| F7-25 | ✅ VÁLIDO | Números batem exatamente: 173 total, 0 em 24h, 0 em 7d, último `2026-05-04T10:30:09Z` | — |
+| F7-26 | ✅ VÁLIDO | `NOT_IMPLEMENTED` (8) e `notImplemented` (34) ligados a **7 handlers** (82, 108-113) | — |
+| F7-27 | ✅ VÁLIDO | Texto "Health-check automático a cada 2 minutos" em `AdminProvidersPage.tsx:106`; `zapp.provider_configs` = 0 rows; **nenhum cron** com `provider_configs` no command → cai no item 3 | — |
+| F7-28 | ✅ VÁLIDO | `{/* Adicionar mais cards conforme necessário */}` na 65; filtro sem janela na 61 | — |
+| F7-29 | ✅ VÁLIDO | `useState<Date | undefined>(undefined)` (25, 26); sem validação `from > to`, sem `startOfDay`/`endOfDay` | — |
+| F7-30 | ✅ VÁLIDO | `window.location.hash = '#admin/email-audit'` na 72, sem `useNavigate`. Destino `/admin/email-audit` **existe** (`AdminRoutes.tsx:238`) → Ação executável | — |
+| F7-31 | ✅ VÁLIDO | `const run = async () =>` (46) com `try/finally` **sem `catch`** → results stale e erro não tratado; nenhum `AbortController` no arquivo | — |
+| F7-32 | 🔄 OBSOLETO | O dano descrito não existe: a UI já renderiza `Página {page + 1}` (`AdminAutomationLogsPage.tsx:234`), então a primeira página já aparece como "1" e `setPage(0)` volta para "1". **O Aceite já passa hoje**; resta só preferência de convenção interna | marcar `~~OBSOLETO~~` |
+
+## Achados novos gerados pelo Lote C — estágio 2
+
+1. **Rotas admin fora do `AppRoutes.tsx`** — `src/components/routing/AdminRoutes.tsx` concentra 27 rotas `/admin/*`. Não é um achado de produto, mas invalida qualquer grep de rota feito só contra `AppRoutes.tsx`.
+2. **`AdminWebhookOverviewPage` sem rota de path** — a página existe e é alcançável por `?view=`, mas todo `<Link to="/admin/webhook-overview">` cai em NotFound. Vale um grep global de `Link to="/admin/` contra as 27 rotas (é o item 2 da Ação de F7-09, que continua válido).
+3. **`zapp.service_channels` vazia** — nenhum canal de atendimento cadastrado em produção. Afeta F7-10 e F7-19 (o crash de `STATUS_BADGE` é hipotético enquanto não houver linhas).
+
+---
+
+# FECHAMENTO — 172/172 revisados
+
+| Lote | Achados | ✅ | ⚠️ | 🔄 | 📝 | ❓ |
+|---|---:|---:|---:|---:|---:|---:|
+| A (F2, F5, F8) | 60 | 40 | 6 | 3 | 10 | 1 |
+| B (F4, F6) | 54 | 44 | 4 | 2 | 4 | 0 |
+| C est. 1 (F1, F3) | 26 | 13 | 4 | 2 | 6 | 1 |
+| C est. 2 (F7) | 32 | 24 | 3 | 4 | 1 | 0 |
+| **Total** | **172** | **121** | **17** | **11** | **21** | **2** |
+
+- **Taxa de defeito de referência/evidência: 28/172 = 16,3%** (17 ⚠️ + 11 🔄). A amostragem de origem estimava ~12% — o número real é ~4 pontos maior, mas da mesma ordem de grandeza.
+- **Não prontos para a esteira: 49/172 = 28,5%** (somando os 21 📝 AÇÃO FRÁGIL). O defeito estrutural (Ação/Aceite mal formulados) é **maior** que o defeito factual — a auditoria mediu bem e redigiu mal.
+- **2 ❓ INDETERMINÁVEL** permanecem: dependem de execução em browser.
+- Todas as correções de referência foram aplicadas diretamente no `PLANO_IMPLEMENTACAO_100.md`. Nenhum achado foi deletado ou renumerado; os 200 IDs seguem íntegros.

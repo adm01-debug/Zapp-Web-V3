@@ -137,7 +137,11 @@ grep -m1 "Total de achados" docs/audits/PLANO_IMPLEMENTACAO_100.md  # deve conti
 |---|---|---:|---|---|---|
 | A | F2, F5, F8 | 60 | ✅ concluído | 2026-08-02 | 40 ✅ · 6 ⚠️ · 3 🔄 · 10 📝 · 1 ❓ — ver `REVISAO_BACKLOG_172.md` |
 | B | F4, F6 | 54 | ✅ concluído | 2026-08-02 | 44 ✅ · 4 ⚠️ · 2 🔄 · 4 📝 — ver `REVISAO_BACKLOG_172.md` |
-| C | F1, F3, F7 | 58 | 🟡 parcial (26/58) | 2026-08-02 | F1+F3 revisados; **F7 (32) pendente** |
+| C | F1, F3, F7 | 58 | ✅ concluído | 2026-08-02 | 37 ✅ · 7 ⚠️ · 6 🔄 · 7 📝 · 1 ❓ — ver `REVISAO_BACKLOG_172.md` |
+
+**✅ MISSÃO ENCERRADA em 2026-08-02 — 172/172 revisados.** Resultado consolidado: 121 ✅ · 17 ⚠️ · 11 🔄 · 21 📝 · 2 ❓. Taxa de defeito de referência/evidência: **28/172 = 16,3%**. A Etapa 1 do `PLANO_CORRECAO_20_ETAPAS.md` foi marcada com a revalidação concluída (itens 1-2); itens 3-5 (severidade, `Depende de:`, `Rollback:`) seguem pendentes.
+
+**Regra descoberta no último lote (importante para a esteira):** as 27 rotas `/admin/*` vivem em `src/components/routing/AdminRoutes.tsx` — **não** em `AppRoutes.tsx`. Qualquer grep de rota admin feito só contra `AppRoutes.tsx` produz falso negativo.
 
 **Ao concluir os 3 lotes:** atualizar a Etapa 1 do `PLANO_CORRECAO_20_ETAPAS.md` marcando a revalidação como feita, e registrar a taxa final de defeito (a amostragem apontou ~12% — o número real sai daqui).
 

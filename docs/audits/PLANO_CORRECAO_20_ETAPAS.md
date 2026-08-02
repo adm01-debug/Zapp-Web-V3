@@ -105,7 +105,7 @@ Vale registrar: os 200 achados têm **evidência medida com números reais** e *
 
 ### Fase 0 — Fundação (não toca em produção)
 
-#### Etapa 1 — Revalidar e recalibrar o backlog
+#### Etapa 1 — Revalidar e recalibrar o backlog · 🟡 revalidação CONCLUÍDA (itens 1-2) · itens 3-5 pendentes
 **Achados:** nenhum consumido (meta-etapa sobre o próprio plano).
 **Por que primeiro:** a amostragem de 17 achados encontrou **12% com defeito de referência** (F7-16, F6-06). Corrigir cegamente desperdiça sessões e pode causar dano.
 **Escopo:**
@@ -119,6 +119,24 @@ Vale registrar: os 200 achados têm **evidência medida com números reais** e *
 5. Adicionar campo `Rollback:` nos achados que alteram RLS, trigger, view ou cron em produção.
 **Pronto quando:** todo achado tem severidade normalizada e nenhum `CRÍTICO` está sem revalidação.
 **Risco:** nenhum (só documentação).
+
+> **Concluído em 2026-08-02 — itens 1 e 2 (revalidação e qualificação de schema).**
+> Os **172 achados dos Blocos 1-8** foram revisados um a um nas 4 dimensões do handoff, em 3 lotes (A: F2/F5/F8 · B: F4/F6 · C: F1/F3/F7). Vereditos completos em `docs/audits/REVISAO_BACKLOG_172.md`; correções aplicadas diretamente no `PLANO_IMPLEMENTACAO_100.md`. Os 28 achados F9-*/F10-* já haviam sido revisados na sessão de origem.
+>
+> | Veredito | Qtd | % |
+> |---|---:|---:|
+> | ✅ VÁLIDO | 121 | 70,3% |
+> | ⚠️ REFERÊNCIA | 17 | 9,9% |
+> | 🔄 OBSOLETO | 11 | 6,4% |
+> | 📝 AÇÃO FRÁGIL | 21 | 12,2% |
+> | ❓ INDETERMINÁVEL | 2 | 1,2% |
+>
+> - **Taxa final de defeito de referência/evidência: 28/172 = 16,3%** (⚠️ + 🔄). A amostragem de 17 achados estimava ~12% — subestimou em ~4 pontos, mas acertou a ordem de grandeza.
+> - **Não executáveis como escritos: 49/172 = 28,5%** (somando 📝). O defeito **estrutural** (Ação que não roda ou Aceite não verificável) é maior que o **factual** — a auditoria mediu bem e redigiu mal.
+> - **11 achados obsoletos** foram marcados `~~OBSOLETO~~` com a evidência da revalidação; nenhum foi deletado e nenhum ID foi renumerado (os 200 seguem íntegros).
+> - **Ainda pendentes nesta etapa:** item 3 (normalizar severidade nos 102 sem etiqueta), item 4 (campo `Depende de:`) e item 5 (campo `Rollback:`).
+>
+> **Não executar sem antes ler o veredito do achado.** Os 3 casos de maior risco: **F7-09** (mandava criar uma página que já existe), **F6-06** (criaria função duplicada em `evo`) e **F8-01** (removeria página alcançável por `?view=`).
 
 #### Etapa 2 — Ligar a rede de segurança do CI
 **Achados:** F1-10, F1-11, F10-02, F10-04, F10-05, F10-06, F10-09, F6-26.
