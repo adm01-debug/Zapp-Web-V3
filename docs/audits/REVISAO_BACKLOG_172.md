@@ -1,12 +1,12 @@
 # REVISÃO DO CORPO DOS 172 ACHADOS (Blocos 1-8)
 
 **Base:** `docs/audits/PLANO_IMPLEMENTACAO_100.md` · **Método:** `docs/audits/HANDOFF_REVISAO_BACKLOG.md`
-**Status geral:** Lote A concluído (60/172) · Lotes B e C pendentes.
+**Status geral:** Lotes A e B concluídos (114/172) · Lote C pendente.
 
 | Lote | Blocos | Achados | Status | Sessão | Resultado |
 |---|---|---:|---|---|---|
 | A | F2, F5, F8 | 60 | ✅ concluído | 2026-08-02 | 40 ✅ · 6 ⚠️ · 3 🔄 · 10 📝 · 1 ❓ |
-| B | F4, F6 | 54 | ⬜ pendente | — | — |
+| B | F4, F6 | 54 | ✅ concluído | 2026-08-02 | 44 ✅ · 4 ⚠️ · 2 🔄 · 4 📝 |
 | C | F1, F3, F7 | 58 | ⬜ pendente | — | — |
 
 ---
@@ -131,3 +131,122 @@ Somando o defeito estrutural do bloco F2 (10 📝), **20 dos 60 achados não est
 - **Antes de qualquer coisa no Lote C (F1, F3, F7):** re-grepar todo achado de "página órfã / dead code / rota inexistente" contra `src/components/routing/AppRoutes.tsx`. Dois dos três falsos positivos do Lote A vieram desse erro.
 - **No Lote B (F4, F6):** F6-06 já é um caso conhecido de homônima. Rodar a query de resolução de schema (§4 do handoff) para **todos** os nomes de função de uma vez, antes de abrir qualquer achado.
 - **Policies:** `polcmd='a'` → ler `polwithcheck`. Nunca concluir "sem restrição" a partir de `polqual=NULL`.
+
+---
+---
+
+# LOTE B — F4 (24) + F6 (30) = 54 achados
+
+**Sessão:** 2026-08-02 · **Resultado:** 44 ✅ VÁLIDO · 4 ⚠️ REFERÊNCIA · 2 🔄 OBSOLETO · 4 📝 AÇÃO FRÁGIL · 0 ❓
+
+**Taxa de defeito de referência/evidência: 6/54 = 11%** (4 ⚠️ + 2 🔄). Acumulado A+B: **15/114 = 13%**.
+
+## Resumo executivo do Lote B
+
+### O achado que causaria erro imediato na esteira
+
+**F4-18** manda investigar `fn_messages_instead_of_update` — **função que não existe em nenhum schema**. O trigger real na view `zapp.messages` é `messages_instead_of_update` → **`zapp.messages_update_trigger()`**. O diagnóstico está certo por outra via: a view expõe `error_code`/`error_reason`/`retry_attempt`/`retry_total`, mas `evo.evolution_messages` tem 48 colunas e **nenhuma das quatro** — o writeback não tem destino.
+
+### Dois achados já resolvidos entre a auditoria e esta revisão
+
+- **F4-24** — o schema drift foi corrigido: `zapp.warroom_alerts` **tem** a coluna `severity`, a tabela **não tem nenhuma CHECK constraint** (`chk_warroom_alert_type` não existe mais), e o cron 213 rodou 6/6 com sucesso em 24h.
+- **F6-10** — o cron 96 rodou **288/288 (100%)** nas últimas 24h, acima do próprio Aceite (≥97%). A perda de 11% era transitória.
+
+### Padrão novo do Lote B: Aceite mais amplo que a Ação
+
+Três achados têm diagnóstico correto mas **Aceite que nunca fecha** com a Ação proposta — a esteira ficaria presa tentando validar:
+
+| Achado | Ação cobre | Aceite exige |
+|---|---|---|
+| F6-06 | refatorar **3** funções com `'wpp2'` | `pg_proc.prosrc` sem `'wpp2'` — há **47** funções |
+| F6-07 | `SECURITY DEFINER` em **1** função | todas `fn_alert_*` SECDEF — falta também `zapp.fn_alert_connection_lost` |
+| F4-22 | trocar `storage_path` por URL real | `avg(pg_column_size(...))` numa tabela com **0 rows** |
+
+### Ambiguidade de caminho nos achados F4
+
+As Evidências F4 citam **nomes de arquivo sem caminho**, e dois têm homônimo real (arquivos distintos, não re-exports): `useRealtimeMessages.ts` (canônico em `src/features/inbox/hooks/`, 697 l.; existe outro em `src/hooks/`, 310 l.) e `useMediaUrl.ts` (canônico em `src/features/inbox/hooks/`; existe outro em `src/lib/`). Os **números de linha estão todos defasados** — as 16 linhas revalidadas foram registradas em nota de bloco no PLANO. Regra: localizar por símbolo, nunca por linha.
+
+---
+
+## Vereditos — Bloco F4 (24 achados)
+
+| Achado | Veredito | Evidência da revisão | Correção necessária |
+|---|---|---|---|
+| F4-01 | ✅ VÁLIDO | `SEEDED_CONTACT_LIMIT=500` / `RECENT_MESSAGES_LIMIT=1000` em l.24-25, usados em `.limit()` nas l.377/384 | ✅ nota de bloco: caminho canônico + linha real |
+| F4-02 | ✅ VÁLIDO | `fetchConversations` (l.369): `setLoading(true)` → 2 `await dbFrom` → `commitConversations` → `finally { setLoading(false) }`, **sem guard `active`** | ✅ nota de bloco |
+| F4-03 | ✅ VÁLIDO | `const channelName = \`messages-realtime-${Math.random()...}\`` em **l.427** | ✅ nota de bloco |
+| F4-04 | ✅ VÁLIDO | `conversationSendState` declarado l.588, loop até l.613, fora de `useMemo` (o `useMemo` da l.617 é do `filteredConversations`) | — |
+| F4-05 | ✅ VÁLIDO | `const USE_EXTERNAL_DB = true;` em `useRealtimeInbox.ts` **l.33** (PLANO: 27) | — |
+| F4-06 | ✅ VÁLIDO | `void supabase.functions.invoke('evolution-api', { action: 'read-messages' })` l.383-385, sem `.catch` | — |
+| F4-07 | ✅ VÁLIDO | `const recent = selectedMessages.slice(-10)` l.358 | — |
+| F4-08 | ✅ VÁLIDO | `seededAvatarsRef = useRef<Set<string>>(new Set())` l.142, sem TTL/sweep | (estrutural) achado sem seção `Evidência` |
+| F4-09 | ✅ VÁLIDO | `log.info('[probe] conversations state', ...)` l.121, sem guard `import.meta.env.DEV` | — |
+| F4-10 | ✅ VÁLIDO | `processedDeliveriesRef = useRef<Set<string>>(new Set())` l.90; `.add()` l.441 sem remoção | — |
+| F4-11 | ✅ VÁLIDO | `localStorage.setItem(QUEUE_STORAGE_KEY, ...)` l.169 sem try/catch | — |
+| F4-12 | ✅ VÁLIDO | `grep beforeunload` em `useMessageQueue.ts` = 0 hits — ausência confirmada | (estrutural) sem `Evidência` |
+| F4-13 | ✅ VÁLIDO | `shouldAutoRetry = itemToProcess.retryCount < config.maxRetries` l.308 — sem classificação de 4xx | — |
+| F4-14 | ✅ VÁLIDO | `dbFrom('failed_messages')` l.343 com `.then()` e sem `.select()` l.355; `zapp.failed_messages` = **0 rows** | — |
+| F4-15 | ✅ VÁLIDO | happy path confirmado: `dbFrom('messages')` l.43 → `audit_logs` l.70 → `dbFrom('contacts')` l.80 → `dbFrom('messages')` l.91 → `audit_logs` l.95 → … (≥8 round-trips) | — |
+| F4-16 | ✅ VÁLIDO | `DEFAULT_BUCKET_MS = 5 * 60 * 1000` em **`src/lib/sendIdempotency.ts` l.54**; função na l.114 | ✅ caminho adicionado no PLANO |
+| F4-17 | ✅ VÁLIDO | `.catch((e: unknown) => log.warn('Failed to write retry audit log', e))` l.203 | — |
+| F4-18 | ⚠️ REFERÊNCIA | **`fn_messages_instead_of_update` não existe.** Trigger real: `messages_instead_of_update` → `zapp.messages_update_trigger()`. View expõe as 4 colunas; `evo.evolution_messages` (48 col.) não tem nenhuma. 8 failed + 23 pending, 0 com `error_reason`/`retry_attempt` | ✅ nome da função corrigido no PLANO |
+| F4-19 | ✅ VÁLIDO | **42** mensagens sem external_id — número exato confirmado | — |
+| F4-20 | ✅ VÁLIDO | `const refreshCache = new Map<string, string>()` l.75 — sem LRU, sem `maxSize`, sem `sizeCalculation` | ✅ nota de bloco (homônimo `src/lib/useMediaUrl.ts`) |
+| F4-21 | ✅ VÁLIDO | `buildFileHash(originalUrlRef.current)` l.176 vs `buildFileHash(dataUrl)` l.214 — chaves diferentes; `zapp.media_cache` = **0 rows** | — |
+| F4-22 | 📝 AÇÃO FRÁGIL | tabela vazia → `avg(pg_column_size(storage_path))` retorna NULL antes e depois da correção | ✅ Aceite reescrito (3 critérios discriminantes) |
+| F4-23 | ✅ VÁLIDO | `zapp.outbound_message_queue` = **0 rows**; `fn_retry_stuck_messages` faz `UPDATE zapp.outbound_message_queue` (confirmado no corpo); **23 pending** em `zapp.messages` — número exato | — |
+| F4-24 | 🔄 OBSOLETO | `warroom_alerts` **tem** `severity`; **0 CHECK constraints** na tabela; cron 213 com **6/6 succeeded** em 24h | ✅ `~~OBSOLETO~~` + revalidação |
+
+---
+
+## Vereditos — Bloco F6 (30 achados)
+
+| Achado | Veredito | Evidência da revisão | Correção necessária |
+|---|---|---|---|
+| F6-01 | ✅ VÁLIDO | `grep -rni pairing src/` = **1 hit**, exatamente o JSDoc em `useEvolutionApiManagement.ts:296`. Zero implementação | — |
+| F6-02 | ✅ VÁLIDO | `handleAddConnection` l.36-76; `.insert({...})` l.53; **zero ocorrências de `createInstance`** no arquivo | — |
+| F6-03 | ⚠️ REFERÊNCIA | divergência real permanece, números mudaram: eic `health='degraded'` (não `unhealthy`), `online_instances=1` (não 0), `last_check` 2026-08-02 16:10; wconn `last_connected_at` 2026-08-02 02:31 | ✅ evidência atualizada + Aceite com schemas qualificados |
+| F6-04 | ✅ VÁLIDO | 3 fontes confirmadas: `zapp.whatsapp_connections` (3 rows), `evo.evolution_instance_credentials` (1 row), `zapp.instance_registry` (22 rows) | — |
+| F6-05 | ✅ VÁLIDO | `ON CONFLICT (request_id) DO UPDATE SET dispatched_at = now()` literal; **361 anômalos de 1609** (22,4%) | ✅ nota: PK já é `id`; passo 2 reduz-se a dropar `..._request_id_key UNIQUE` |
+| F6-06 | 📝 AÇÃO FRÁGIL | refs corretas (`zapp.fn_alert_wpp2_disconnection`, `evo.fn_bootstrap_wpp2_instance`, crons 104/120). Mas **47 funções** têm `'wpp2'` em `prosrc` e a Ação refatora 3 | ✅ Aceite reescrito |
+| F6-07 | 📝 AÇÃO FRÁGIL | `prosecdef=false` confirmado; as 5 afins citadas são `true`. **Mas `zapp.fn_alert_connection_lost` também é `false`** — o Aceite não fecha com a Ação | ✅ Ação complementada + Aceite reescrito |
+| F6-08 | ✅ VÁLIDO | `alert_type='wpp2_disconnection'`: **18 total, 1 resolvido** — números exatos | — |
+| F6-09 | ✅ VÁLIDO | cron 104 `*/10 6-23 * * *` confirmado (108 execuções/24h = exatamente 18h de cobertura); `message_pipeline_stalled_alert` `0 8-22 * * *` confirmado | — |
+| F6-10 | 🔄 OBSOLETO | cron 96 nas últimas 24h: **288 succeeded / 0 falhas = 100%** | ✅ `~~OBSOLETO~~` + revalidação |
+| F6-11 | ✅ VÁLIDO | 6 triggers confirmados com nomes e funções exatos, incluindo os 2 pares divergentes | — |
+| F6-12 | ✅ VÁLIDO | corpo contém literalmente o fallback `'https://evolution.atomicabr.com.br'` e a mensagem `api_url invalida: % \| esperado: %` | — |
+| F6-13 | ✅ VÁLIDO | `information_schema`: `api_url` NOT NULL sem default, `api_key` NOT NULL sem default — exato | — |
+| F6-14 | ✅ VÁLIDO | `evolution_instance_credentials` só tem `wpp2`; `wppmkt` e `wpp_pink_test` órfãs em `whatsapp_connections` | — |
+| F6-15 | ✅ VÁLIDO | row confirmada: `name='WPP Marketing (Cloud API Oficial)'`, `api_type='evolution'`, `is_active=false`, `health_status='provisioned'` | — |
+| F6-16 | ✅ VÁLIDO | `created_by IS NULL` em **3/3** rows | — |
+| F6-17 | ✅ VÁLIDO | `polwithcheck` = `((created_by IS NULL) OR (created_by = auth.uid()))` — literal (leitura correta de `polwithcheck`, não `polqual`) | — |
+| F6-18 | ✅ VÁLIDO | `auth_secure_123` presente, `polcmd='r'`, qual = `has_role(auth.uid(),'agent') OR is_admin_or_supervisor()` | — |
+| F6-19 | ✅ VÁLIDO | `evo.evolution_ip_watch` = **0 rows** | — |
+| F6-20 | ✅ VÁLIDO | corpo contém `BLIND`, `CHECKLIST` e `Traefik`; função tem **128 linhas** (Aceite "<100" é mensurável) | — |
+| F6-21 | ✅ VÁLIDO | 361 de 1609 (22,4%) — consequência de F6-05 confirmada | — |
+| F6-22 | ✅ VÁLIDO | 7d: `info=860`, `critical=363`, `warning=141` (PLANO: 863/385/141 — drift natural) | — |
+| F6-23 | ✅ VÁLIDO | **278** alertas sem `resolved_at` e sem `acknowledged_at` (PLANO: 269) | — |
+| F6-24 | ⚠️ REFERÊNCIA | distribuição real: `not_provisioned=20`, `archived=1`, `connected=1`. É **1 provisionada (4,5%)**, não 3 (14%) | ✅ números corrigidos no PLANO |
+| F6-25 | ⚠️ REFERÊNCIA | **muito pior que o descrito:** 2.495 rows no total, **100%** com `event_type IS NULL` e `success=false`. Produtor **parou** — última row 2026-08-01 15:40, 0 nas últimas 24h | ✅ evidência corrigida; prioridade sobe |
+| F6-26 | ✅ VÁLIDO | 2 test files confirmados. Escopo real: **52 arquivos** (14+32+6), não ~30 | ✅ número corrigido |
+| F6-27 | ✅ VÁLIDO | `src/hooks/useEvolutionAutoSync.ts` l.22 `.from('whatsapp_connections')` sem filtro; INSERT na l.76 | — |
+| F6-28 | 📝 AÇÃO FRÁGIL | `.catch((e) => log.warn(...))` l.125 confirmado. **Mas `zapp.evolution_pending_deletes` não existe** e a Ação manda enfileirar nela sem passo de criação | ✅ passo de criação do DDL adicionado |
+| F6-29 | ✅ VÁLIDO | `if (!newConnection.name)` l.37 é a única validação; `phone_number` entra no INSERT (l.55) sem checagem | — |
+| F6-30 | ✅ VÁLIDO | **13 objetos / 5 nomes**, composição exata: `evolution_alerts` 3 (evo:r, public:v, zapp:v), `evolution_instance_credentials` 3, `evolution_reconcile_jobs` 3, `instance_auth_events` 2, `qr_attempts` 2 | — |
+
+---
+
+## Achados novos gerados pelo Lote B
+
+6. **`zapp.fn_alert_connection_lost` também não é SECURITY DEFINER** — segunda exceção do padrão, não citada em F6-07.
+7. **`zapp.instance_auth_events` tem 2.495 rows 100% corrompidas e o produtor parou em 2026-08-01** — magnitude muito acima do registrado em F6-25; candidato a P0 próprio.
+8. **`zapp.evolution_pending_deletes` é citada como destino em F6-28 mas não existe** — mesmo padrão de `docs/audits/secdef-zapp.csv` em F2-04: alvo de entregável tratado como objeto existente.
+9. **Homônimos de arquivo em `src/`** (`useRealtimeMessages.ts`, `useMediaUrl.ts`, `useContactsSearch.ts`, `useContactIntelligence.ts`, `useSLAHistory.ts`, `SLADashboard.tsx`) — o padrão de duplicação entre `src/hooks/`, `src/lib/`, `src/features/` e `src/components/` já apareceu em 3 blocos. F1-12 deveria virar prioridade, pois é a causa-raiz de vários erros de referência.
+
+## Recomendação atualizada para o Lote C (F1, F3, F7)
+
+Além das duas regras já registradas (roteador `AppRoutes.tsx` e `polwithcheck`), somar:
+
+- **Verificar se o Aceite fecha com a Ação.** Três defeitos do Lote B foram desse tipo, nenhum aparecia na amostragem de origem. Pergunta padrão: *"se eu executar exatamente os passos da Ação, o comando do Aceite retorna o valor esperado?"*
+- **Confirmar existência de toda tabela/arquivo citado como destino**, não só como origem.
+- **Ignorar números de linha** — em F4 todos os 16 estavam defasados. Localizar por símbolo.

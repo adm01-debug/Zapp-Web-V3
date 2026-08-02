@@ -161,6 +161,12 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ## Tema 8 — Frontend: inbox e mensageria
 
+> **Nota de revisão (2026-08-02, Lote B) — caminhos de arquivo dos achados F4-\*.** As Evidências citam **nomes de arquivo sem caminho**, e dois deles são **ambíguos** (existem 2 arquivos distintos, não re-exports):
+> - `useRealtimeMessages.ts` → canônico **`src/features/inbox/hooks/useRealtimeMessages.ts`** (697 l.). Existe também `src/hooks/useRealtimeMessages.ts` (310 l.), implementação separada que importa `supabase` direto.
+> - `useMediaUrl.ts` → canônico **`src/features/inbox/hooks/useMediaUrl.ts`**. Existe também `src/lib/useMediaUrl.ts` (hook central, ADR-001/ADR-003).
+> Sem ambiguidade: `useRealtimeInbox.ts` → `src/features/inbox/hooks/`; `useMessageQueue.ts` → `src/features/inbox/hooks/`; `messageSender.ts` → `src/features/inbox/hooks/realtime/`.
+> **Os números de linha do PLANO estão defasados** (o código evoluiu). Linhas revalidadas em 2026-08-02: F4-01 l.24-25 e 377/384 · F4-02 l.369-405 · F4-03 l.427 · F4-04 l.588-613 · F4-05 l.33 · F4-06 l.383 · F4-07 l.358 · F4-08 l.142 · F4-09 l.121 · F4-10 l.90 · F4-11 l.169 · F4-13 l.308 · F4-14 l.343-355 · F4-17 l.194-203 · F4-20 l.75 · F4-21 l.176 vs l.214. **Localizar por símbolo, não por número de linha.**
+
 ### F4-01 — `fetchConversations` sem cursor/paginação (500+1000 fixo)
 
 - **Origem:** Etapa 31/32 (Bloco 4).
@@ -266,6 +272,8 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 ### F4-16 — `buildSendIdempotencyKeyFromFingerprint` 5min bucket colide
 
+- **✅ Revisado em 2026-08-02:** confirmado em **`src/lib/sendIdempotency.ts`** — `DEFAULT_BUCKET_MS = 5 * 60 * 1000` (l.54); a função está na l.114. O PLANO não citava o caminho.
+
 - **Origem:** Etapa 32 (Bloco 4).
 - **Ação:** reduzir bucket para 30s OU incluir hash do timestamp exato do add-to-queue no fingerprint.
 - **Aceite:** manual retry com conteúdo diferente após 30s gera nova key.
@@ -282,7 +290,8 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 - **Origem:** Etapa 33.5 (Bloco 4).
 - **Evidência:** 8 failed + 23 pending com `error_code/error_reason/retry_attempt = NULL`. Código de `messageSender.ts` explicitamente escreve esses campos.
 - **Ação:**
-  1. Investigar `fn_messages_instead_of_update` (`INSTEAD OF UPDATE` na view `messages`) — provavelmente descarta os campos que não estão na tabela-fonte `evo.evolution_messages`.
+  0. **⚠️ Revisado em 2026-08-02 — referência corrigida.** **`fn_messages_instead_of_update` não existe em nenhum schema.** O trigger real na view `zapp.messages` chama-se `messages_instead_of_update` e executa **`zapp.messages_update_trigger()`**. Diagnóstico confirmado por outra via: a view `zapp.messages` **expõe** `error_code`, `error_reason`, `retry_attempt`, `retry_total`, mas `evo.evolution_messages` tem **48 colunas e nenhuma das quatro** — logo o writeback não tem destino. Contagens exatas confirmadas: 8 `failed` + 23 `pending`, **0** com `error_reason` e **0** com `retry_attempt`.
+  1. Investigar **`zapp.messages_update_trigger()`** (trigger `messages_instead_of_update`, `INSTEAD OF UPDATE` na view `zapp.messages`) — descarta os campos que não existem na tabela-fonte `evo.evolution_messages`.
   2. Adicionar colunas `error_code`, `error_reason`, `retry_attempt`, `retry_total` em `evo.evolution_messages` (ou tabela `zapp.message_send_metadata` linkada por FK).
   3. Ajustar trigger para propagar corretamente.
 - **Aceite:** query `SELECT COUNT(*) FROM zapp.messages WHERE status='failed' AND error_reason IS NOT NULL` retorna > 0 após 1 dia em produção.
@@ -311,7 +320,8 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
 
 - **Origem:** Etapa 33 (Bloco 4).
 - **Ação:** trocar para upload real ao R2/MinIO retornando URL público; `storage_path` = URL do bucket.
-- **Aceite:** `avg(pg_column_size(storage_path))` em `media_cache` < 200 bytes.
+- **📝 Revisado em 2026-08-02 — Aceite não mensurável hoje:** `zapp.media_cache` tem **0 rows**, então `avg(pg_column_size(storage_path))` retorna NULL antes e depois da correção. Depende de F4-21 popular a tabela primeiro.
+- **Aceite (reescrito):** (a) F4-21 resolvido e `zapp.media_cache` com > 0 rows; (b) `SELECT max(pg_column_size(storage_path)) FROM zapp.media_cache` < 500 bytes **e** `SELECT count(*) FROM zapp.media_cache WHERE storage_path LIKE 'data:%'` = 0; (c) `storage_path` resolve para URL pública acessível.
 
 ### F4-23 — Cron `retry-stuck-messages` opera em tabela vazia (`outbound_message_queue`) — 23 msgs pending há 5 dias
 
@@ -323,11 +333,12 @@ _(Achados F3-01 a F3-12 registrados no Bloco 3, mantidos abaixo.)_
   3. Adicionar guard para não repostar msgs cuja Evolution API já processou (checar via `webhook_events_processed`).
 - **Aceite:** após deploy, as 23 mensagens presas resolvem em < 30 min (sent com external_id OU failed com reason claro).
 
-### F4-24 — Cron `media_pipeline_health_check` (jobid 213) falha por schema drift
+### F4-24 — ~~OBSOLETO~~ Cron `media_pipeline_health_check` (jobid 213) falha por schema drift
 
 - **Origem:** Etapa 33.5 (Bloco 4).
 - **Evidência:** falhas históricas: `column "severity" of relation "warroom_alerts" does not exist` e `chk_warroom_alert_type` violation com `alert_type='media_pipeline'`.
 - **Ação:** (a) verificar schema atual de `zapp.warroom_alerts` — adicionar coluna `severity` ou remover do INSERT; (b) atualizar constraint `chk_warroom_alert_type` para incluir `'media_pipeline'` ou trocar por outro tipo aceito.
+- **🔄 Revalidado em 2026-08-02 — CORRIGIDO, condição não existe mais.** (a) `zapp.warroom_alerts` **tem** a coluna `severity` (última da tabela — foi adicionada); (b) a tabela **não possui nenhuma CHECK constraint** — `chk_warroom_alert_type` não existe mais; (c) o cron 213 (`0 */4 * * *`) rodou **6 de 6** execuções esperadas nas últimas 24h, todas `succeeded`. O schema drift foi resolvido entre a auditoria e esta revisão.
 - **Aceite:** run manual de `SELECT zapp.fn_run_media_health_alert()` sem erro; 4557 alertas históricos processados.
 
 ---
@@ -687,7 +698,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
   1. Definir `evo.evolution_instance_credentials.health_status` como fonte de verdade única para health.
   2. Cron `fn_update_instance_health` (já existe) escreve em `evolution_instance_credentials`; adicionar cron para propagar de volta para `whatsapp_connections.health_status`.
   3. Alternativa preferível: remover `health_status`/`last_connected_at` de `whatsapp_connections` (data drift crônico); UI lê via JOIN da view `zapp.evolution_instances`.
-- **Aceite:** query `SELECT wc.instance_name, wc.health_status AS ui_h, eic.health_status AS canonical_h FROM whatsapp_connections wc JOIN evolution_instance_credentials eic USING (instance_name) WHERE wc.health_status IS DISTINCT FROM eic.health_status` retorna 0 rows.
+- **⚠️ Revisado em 2026-08-02 — evidência atualizada (a divergência permanece, os números não).** Medição atual: `zapp.whatsapp_connections.wpp2` = `status='connected'`, `health_status='ok'`, `last_connected_at='2026-08-02 02:31'`; `evo.evolution_instance_credentials.wpp2` = `health_status='degraded'` (não `'unhealthy'`), `online_instances=1` (não 0), `total_instances=1`, `last_health_check='2026-08-02 16:10'`. **Divergência confirmada** (`ok` vs `degraded`), porém menos severa que o descrito. Atualizar os valores citados antes de usar o achado como baseline.
+- **Aceite:** query `SELECT wc.instance_name, wc.health_status AS ui_h, eic.health_status AS canonical_h FROM zapp.whatsapp_connections wc JOIN evo.evolution_instance_credentials eic USING (instance_name) WHERE wc.health_status IS DISTINCT FROM eic.health_status` retorna 0 rows. *(schemas qualificados na revisão — a query original dependia de `search_path`.)*
 
 ### F6-04 — CRÍTICO (P0): 2 fontes de verdade para instância (whatsapp_connections vs evolution_instance_credentials) sem canonical
 
@@ -705,7 +717,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 - **Evidência:** `pg_get_functiondef(zapp.fn_reconcile_dispatch)` mostra `INSERT INTO evo.evolution_reconcile_jobs (request_id) VALUES (v_req_id) ON CONFLICT (request_id) DO UPDATE SET dispatched_at = now()`. `pg_net` recicla request_ids ao longo do tempo. Quando `request_id` colide com o de um job antigo, o UPDATE só toca `dispatched_at`, preservando `applied_at` antigo do job anterior. Resultado: `SELECT COUNT(*) FROM evo.evolution_reconcile_jobs WHERE applied_at < dispatched_at - INTERVAL '1 day'` retorna **373 rows de 1663 (22%)**. Sample: id=24041 tem `dispatched_at=2026-08-02 01:15` mas `applied_at=2026-07-28 03:31` (delta=-4d21h44min).
 - **Ação:**
   1. Trocar `ON CONFLICT (request_id) DO UPDATE` por `ON CONFLICT DO NOTHING`.
-  2. Ou usar `id bigserial` como PK e `request_id` como coluna secundária sem UNIQUE (permite duplicate request_ids ao longo do tempo).
+  2. Ou usar `id bigserial` como PK e `request_id` como coluna secundária sem UNIQUE (permite duplicate request_ids ao longo do tempo). **Revisado 2026-08-02:** a PK **já é** `id` (`evolution_reconcile_jobs_pkey`); o que existe a mais é `evolution_reconcile_jobs_request_id_key UNIQUE (request_id)` — o passo 2 se reduz a `DROP CONSTRAINT evolution_reconcile_jobs_request_id_key`. Números atuais: **361 anômalos de 1609** (22,4%); corpo com `ON CONFLICT (request_id) DO UPDATE SET dispatched_at = now()` confirmado literalmente.
   3. Backfill: `UPDATE evo.evolution_reconcile_jobs SET applied_at = NULL WHERE applied_at < dispatched_at`.
 - **Aceite:** query `SELECT COUNT(*) FROM evo.evolution_reconcile_jobs WHERE applied_at < dispatched_at - INTERVAL '1 hour'` retorna 0 após 7 dias; métrica de latência de reconcile fica confiável.
 
@@ -717,14 +729,17 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
   1. Refatorar `fn_alert_wpp2_disconnection()` → `fn_alert_instance_disconnection(p_instance text DEFAULT NULL)` que itera sobre `SELECT instance_name FROM zapp.whatsapp_connections WHERE is_active AND api_type='evolution'`.
   2. Renomear crons: `wpp2_disconnection_watchdog` → `instance_disconnection_watchdog`.
   3. Refatorar `fn_bootstrap_wpp2_instance` para receber `p_instance_name`.
-- **Aceite:** grep por `'wpp2'` em `pg_proc.prosrc` retorna 0 hits (exceto migrations históricas); adicionar 2ª instância dispara alertas corretamente.
+- **📝 Revisado em 2026-08-02 — Aceite inatingível pela Ação.** Referências conferidas e corretas: `fn_alert_wpp2_disconnection` resolve para **`zapp`**, `evo.fn_bootstrap_wpp2_instance` existe em `evo`, crons 104 (`*/10 6-23 * * *`) e 120 (`*/15 * * * *`) existem. **Porém: `SELECT ... FROM pg_proc WHERE prosrc ILIKE '%wpp2%'` retorna 47 funções** (em `zapp`, `evo`, `ops` e `monitoring`) — a Ação refatora 3. O Aceite como escrito nunca fecha.
+- **Aceite (reescrito):** (a) as 3 funções nomeadas na Ação não contêm mais `'wpp2'` literal; (b) `SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE p.prosrc ILIKE '%wpp2%' AND n.nspname IN ('zapp','evo')` cai de 47 para o inventário residual documentado em ADR (funções de bootstrap/migração histórica podem manter o literal, desde que listadas); (c) adicionar 2ª instância ativa dispara alerta de desconexão para ela.
 
 ### F6-07 — `fn_alert_wpp2_disconnection` NÃO é SECURITY DEFINER — inconsistente com pattern das outras funções afins
 
 - **Origem:** Etapa 60 (Bloco 6).
 - **Evidência:** `SELECT prosecdef FROM pg_proc WHERE proname='fn_alert_wpp2_disconnection'` → `false`. Todas as outras funções afins (`fn_alert_connection_drift`, `fn_reconcile_dispatch`, `fn_reconcile_apply`, `fn_sync_instance_registry_status`, `fn_detect_401_bursts`) são `SECDEF=true`. A função lê `zapp.whatsapp_connections` e insere em `evo.evolution_alerts` — se chamada por cron owner `postgres`, funciona; se chamada por RPC de authenticated, pode ser bloqueada por RLS.
 - **Ação:** `ALTER FUNCTION zapp.fn_alert_wpp2_disconnection() SECURITY DEFINER SET search_path = pg_catalog, zapp, evo, public`.
-- **Aceite:** `SELECT prosecdef FROM pg_proc WHERE proname LIKE 'fn_alert_%'` mostra `true` para todas.
+- **📝 Revisado em 2026-08-02 — Aceite falha mesmo após a Ação.** `prosecdef=false` confirmado para `zapp.fn_alert_wpp2_disconnection`, e as afins citadas são todas `true` (`fn_alert_connection_drift`, `fn_reconcile_dispatch`, `fn_reconcile_apply`, `fn_sync_instance_registry_status`, `fn_detect_401_bursts`). **Mas existe uma segunda exceção não citada: `zapp.fn_alert_connection_lost` também é `prosecdef=false`.** A Ação corrige 1 função; o Aceite exige 2.
+- **Ação (complemento):** aplicar o mesmo `ALTER FUNCTION ... SECURITY DEFINER SET search_path = pg_catalog, zapp, evo, public` em `zapp.fn_alert_connection_lost()`.
+- **Aceite:** `SELECT proname FROM pg_proc WHERE proname LIKE 'fn_alert_%' AND NOT prosecdef` retorna 0 rows.
 
 ### F6-08 — CRÍTICO (P0): 17 de 18 alerts `wpp2_disconnection` nunca resolvidos (94% backlog) — alert fatigue
 
@@ -746,7 +761,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
   3. Aplicar mesmo pattern em `message_pipeline_stalled_alert`.
 - **Aceite:** `SELECT schedule FROM cron.job WHERE jobname='wpp2_disconnection_watchdog'` = `*/10 * * * *`; disconnection às 03:00 gera alerta em <10min.
 
-### F6-10 — cron `sync-instance-registry-status` (96) perdeu 11% das execuções em 24h (256/288)
+### F6-10 — ~~OBSOLETO~~ cron `sync-instance-registry-status` (96) perdeu 11% das execuções em 24h (256/288)
 
 - **Origem:** Etapa 64 (Bloco 6).
 - **Evidência:** Schedule `2-59/5 * * * *` (a cada 5min, offset 2min) = esperado 12 execuções/hora × 24h = 288/dia. `SELECT COUNT(*) FROM cron.job_run_details WHERE jobid=96 AND start_time > NOW() - INTERVAL '24 hours'` retorna 256. 32 execuções perdidas (11%). Provável causa: concorrência com outros crons que usam mesmo pool, ou reboots de container postgres.
@@ -754,7 +769,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
   1. Verificar `cron.job_run_details WHERE jobid=96 ORDER BY start_time DESC LIMIT 100` para identificar padrão de gaps.
   2. Se sistemático, escalonar schedule offset para reduzir contention.
   3. Adicionar métrica em `zapp.warroom_alerts` quando gap > 15min.
-- **Aceite:** execuções em 24h >= 280/288 (>= 97%).
+- **🔄 Revalidado em 2026-08-02 — condição não existe mais.** `SELECT status, count(*) FROM cron.job_run_details WHERE jobid=96 AND start_time > now() - interval '24 hours'` retorna **288 `succeeded` / 0 falhas = 100%** — acima do próprio Aceite (>= 97%). A perda de 11% era transitória (provável reboot de container na janela original). Manter o item 3 da Ação (alerta quando gap > 15min) como melhoria preventiva, se desejado.
+- **Aceite:** execuções em 24h >= 280/288 (>= 97%). **Já satisfeito: 288/288.**
 
 ### F6-11 — 6 triggers em `zapp.whatsapp_connections`; 4 são duplicatas divergentes (2 pares)
 
@@ -892,6 +908,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 - **Origem:** Etapa 61, 64 (Bloco 6).
 - **Evidência:** `SELECT status, COUNT(*) FROM zapp.instance_registry GROUP BY status`: `archived, connected, not_provisioned` totalizando 22. Apenas 3 estão em `whatsapp_connections` (fonte real). 19 registradas mas não provisionadas ou arquivadas.
+- **⚠️ Revisado em 2026-08-02 — números corrigidos.** A distribuição real é **`not_provisioned=20`, `archived=1`, `connected=1`** (total 22). Ou seja: **1 provisionada (4,5%)**, não 3 (14%). As 3 rows de `whatsapp_connections` não têm correspondência 1:1 com `status='connected'` no registry — reforça o descasamento de F6-04/F6-14. O item 2 da Ação (documentar `instance_registry` como "registry de intenção") fica ainda mais justificado.
 - **Ação:**
   1. Auditar as 22 rows: para cada, decidir manter (relevância histórica), archive, ou hard-delete.
   2. Documentar `instance_registry` como "registry de intenção" separado de "instâncias reais" (whatsapp_connections/evolution_instance_credentials).
@@ -902,6 +919,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 - **Origem:** Etapa 65 (Bloco 6).
 - **Evidência:** `SELECT event_type, http_status, success, COUNT(*) FROM zapp.instance_auth_events WHERE created_at > NOW() - INTERVAL '24 hours' GROUP BY 1,2,3` retorna **UMA row**: `event_type=NULL, http_status=NULL, success=false, count=17`. Todas as 17 inserções falharam em popular os campos essenciais. Instrumentação do lado do produtor (edge function/trigger) está quebrada — schema espera dados, produtor envia só shell.
+- **⚠️ Revisado em 2026-08-02 — o problema é MUITO maior que o descrito.** Não são 17 rows nas últimas 24h: a tabela tem **2.495 rows no total, das quais 2.495 (100%) têm `event_type IS NULL` e `success = false`**. Nenhuma row jamais foi gravada corretamente. Além disso o produtor **parou**: última row em `2026-08-01 15:40`, **0 rows nas últimas 24h**. Reescrever a Evidência com esses números — a Ação (investigar produtor + NOT NULL) continua correta, mas a prioridade sobe.
 - **Ação:**
   1. Investigar quem escreve em `zapp.instance_auth_events`: grep `instance_auth_events` em edge functions e RPCs.
   2. Adicionar NOT NULL constraints em `event_type` e `success` para forçar produtor a preencher.
@@ -911,6 +929,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 ### F6-26 — Test coverage módulo connections: 2 test files para ~30 arquivos (0 tests em componentes)
 
 - **Origem:** Etapa 56-65 (Bloco 6).
+- **✅ Revisado em 2026-08-02:** os 2 test files confirmados (`useConnectionsState.test.ts`, `useHubTabNavigation.test.tsx`). **Escopo real subestimado:** o módulo tem **52 arquivos** (14 em `src/features/connections/` + 32 em `src/components/connections/` + 6 em services), não ~30.
 - **Evidência:** `find src -path "*connection*" -name "*.test.*"` retorna 2 files: `useHubTabNavigation.test.tsx` e `useConnectionsState.test.ts` (328 linhas). Zero tests para: `useConnectionsActions` (100+ linhas de business logic crítica), `useConnectionsRealtime`, `useConnectionsManager` (dispatcher central), `whatsappConnectionService`, `whatsappConnectionRepository`, `BridgeService`, e **30+ componentes** (ConnectionsView 649 linhas, ConnectionCard 359, InstanceSettingsDialog 496, etc.).
 - **Ação:**
   1. Priorizar tests para `useConnectionsActions` (F6-02 depende desses tests para regressão).
@@ -933,7 +952,8 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 - **Origem:** Etapa 63 (Bloco 6).
 - **Evidência:** `src/features/connections/hooks/parts/useConnectionsActions.ts` linhas ~120-125: `await deleteInstance(evoName).catch((e) => log.warn('Failed to delete evolution instance:', e))`. Se Evolution API 5xx, delete no banco continua — instância fica órfã no Evolution manager, consumindo recursos, potencialmente ainda recebendo webhooks para uma tabela que não existe mais.
 - **Ação:**
-  1. Se `deleteInstance` falhar com retry-able (5xx, timeout), enfileirar em `zapp.evolution_pending_deletes` para retry via cron.
+  0. **📝 Revisado em 2026-08-02:** `.catch((e) => log.warn(...))` confirmado em `src/features/connections/hooks/parts/useConnectionsActions.ts` **l.125**. **Mas `zapp.evolution_pending_deletes` NÃO EXISTE** — a Ação manda enfileirar numa tabela que precisa ser criada antes. Sem esse passo, a esteira falha com `relation does not exist`.
+  1. **Criar** `zapp.evolution_pending_deletes (id uuid PK default gen_random_uuid(), instance_name text NOT NULL, requested_by uuid, requested_at timestamptz NOT NULL default now(), attempts int NOT NULL default 0, last_error text, resolved_at timestamptz)` + RLS + cron de retry. Só então: se `deleteInstance` falhar com retry-able (5xx, timeout), enfileirar nela.
   2. Se falhar com 404 (já deletada), OK continuar.
   3. Se 4xx (auth/perms), abortar delete no banco e alertar usuário.
 - **Aceite:** teste com Evolution 500 → banco não deleta, tarefa fica em pending_deletes; cron retry resolve.

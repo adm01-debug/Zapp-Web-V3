@@ -136,7 +136,7 @@ grep -m1 "Total de achados" docs/audits/PLANO_IMPLEMENTACAO_100.md  # deve conti
 | Lote | Blocos | Achados | Status | Sessão | Resultado |
 |---|---|---:|---|---|---|
 | A | F2, F5, F8 | 60 | ✅ concluído | 2026-08-02 | 40 ✅ · 6 ⚠️ · 3 🔄 · 10 📝 · 1 ❓ — ver `REVISAO_BACKLOG_172.md` |
-| B | F4, F6 | 54 | ⬜ pendente | — | — |
+| B | F4, F6 | 54 | ✅ concluído | 2026-08-02 | 44 ✅ · 4 ⚠️ · 2 🔄 · 4 📝 — ver `REVISAO_BACKLOG_172.md` |
 | C | F1, F3, F7 | 58 | ⬜ pendente | — | — |
 
 **Ao concluir os 3 lotes:** atualizar a Etapa 1 do `PLANO_CORRECAO_20_ETAPAS.md` marcando a revalidação como feita, e registrar a taxa final de defeito (a amostragem apontou ~12% — o número real sai daqui).
