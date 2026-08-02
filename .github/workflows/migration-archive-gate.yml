@@ -1,0 +1,41 @@
+name: Guard — No new migrations in archive/
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/archive/**'
+
+permissions:
+  contents: read
+
+jobs:
+  block-archive-migrations:
+    name: Block SQL files added to migrations/archive/
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for new SQL files in archive/
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+
+          NEW_FILES=$(git diff --name-only --diff-filter=A "$BASE" "$HEAD" \
+            -- 'supabase/migrations/archive/*.sql' 2>/dev/null || true)
+
+          if [ -n "$NEW_FILES" ]; then
+            echo "::error::New SQL files added to supabase/migrations/archive/:"
+            echo "$NEW_FILES" | while read -r f; do echo "  - $f"; done
+            echo ""
+            echo "Files in archive/ are NEVER processed by the Supabase CLI."
+            echo "Place migrations in supabase/migrations/ (root) instead."
+            echo ""
+            echo "If you intentionally want to archive a migration without deploying it,"
+            echo "document the decision in a comment and get explicit approval."
+            exit 1
+          fi
+
+          echo "✅ No new SQL files in migrations/archive/"
