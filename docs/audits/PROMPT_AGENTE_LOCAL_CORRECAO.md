@@ -78,7 +78,7 @@ Delegue. Você é o orquestrador; não faça tudo no thread principal — o cont
 
 | Subagente | Escopo | Etapas típicas |
 |---|---|---|
-| **db-schema** | `pg_catalog`, views, triggers, funções, RLS, grants. Escreve migrações com rollback. **Nunca aplica.** | 4, 5, 6, 7, 8 |
+| **db-schema** | `pg_catalog`, views, triggers, funções, RLS, grants. Escreve migrações com rollback. **Nunca aplica — quem aplica é o orquestrador, e só após autorização da etapa.** | 4, 5, 6, 7, 8 |
 | **db-ops** | Crons, filas, DLQ, alertas, dblink, deadman switch | 9, 10, 11, 12 |
 | **frontend-inbox** | `src/features/inbox/**` — realtime, fila de mensagens, mídia | 15 |
 | **frontend-auth** | `src/features/auth/**`, `src/integrations/supabase/**` | 3, 16 |
