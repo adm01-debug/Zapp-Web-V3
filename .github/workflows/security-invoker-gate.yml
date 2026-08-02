@@ -38,7 +38,7 @@ jobs:
             -H "apikey: $META_TOKEN" \
             -H "Content-Type: application/json" \
             -d '{"query":"SELECT n.nspname, c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ($$public$$,$$zapp$$,$$evo$$) AND c.relkind=$$v$$ AND NOT (c.reloptions IS NOT NULL AND array_to_string(c.reloptions,$$,$$) ILIKE $$%security_invoker%$$)"}' \
-            --max-time 30 2>/dev/null)
+            --max-time 30 2>/dev/null) || true
 
           COUNT=$(echo "$RESULT" | node -e "
             let d='';
