@@ -563,7 +563,7 @@ Camada de SLA e BPM — `zapp.conversation_sla`, `zapp.sla_*` (9 tabelas), 41 ta
 
 ---
 
-## Achados do Bloco 8 (15 itens registrados em `PLANO_IMPLEMENTACAO_100.md` Tema 14)
+## Achados do Bloco 8 (17 itens registrados em `PLANO_IMPLEMENTACAO_100.md` Tema 14)
 
 ### Página órfã / rotas quebradas
 
@@ -597,42 +597,63 @@ Camada de SLA e BPM — `zapp.conversation_sla`, `zapp.sla_*` (9 tabelas), 41 ta
 
 ---
 
+## Bloco 9A — Resiliência e edge cases (etapas 81-85)
+
+**Executado:** 2026-08-02 · **Achados:** 11 (F9-01..F9-11) no Tema 15 do `PLANO_IMPLEMENTACAO_100.md`.
+**Severidade:** 1 CRÍTICO · 3 ALTO · 6 MÉDIO · 1 BAIXO.
+
+### O que foi medido
+
+| Etapa | Escopo | Veredito |
+|---|---|---|
+| 81 | Fila offline + Service Worker | **Feature morta** — 3 defeitos independentes em série |
+| 82 | Retry em rede intermitente | supabase-js **sem retry**; 4 implementações paralelas de backoff |
+| 83 | Reconexão + banner de status | **Banner inexistente** para rede/Supabase |
+| 84 | Detecção de 401 sustentado | Cron funciona, mas **guard quebrado** gera 96 alertas/dia |
+| 85 | DLQ (crons 87/146/91) | **Roteador aponta para tabelas erradas** — DLQ nunca recebeu 1 linha |
+
+### Achados P0
+
+- **F9-07 (CRÍTICO)** — `fn_detect_401_bursts` faz o guard de dedup em `message LIKE '%stale_api_key_hunt%'`, mas a string está no `title`. Medição: `title`=1843 hits, `message`=0. Resultado: 96 alertas em 24h para 96 execuções do cron — razão 1:1. Acumulado de **1.843 alertas idênticos** = 40,9% de toda a `zapp.warroom_alerts`. Os 2 alertas `critical` legítimos de burst 401 (2026-08-01) ficam soterrados numa proporção de 1:921.
+- **F9-09 (ALTO)** — `fn_route_failed_webhooks_to_dlq` exclui explicitamente `evolution_webhook_events_v2` e `_v2_%` do cursor, restando 22 tabelas legadas com ~5 rows somadas. O volume vivo (**46.286 rows**, partição `_2026_07` com 43.798) fica fora do alcance. `evo.evolution_webhook_dlq` = **0 rows** desde sempre; há 1 evento falhado órfão parado desde **2026-06-13 (50 dias)**. O cron reporta 362 execuções `succeeded` fazendo trabalho zero.
+- **F9-01 (ALTO)** — `src/lib/offlineQueue.ts` (226 L) tem **zero consumidores** em produção. `setupOnlineListener()` nunca é invocada; o hook `useOnlineStatus` pressuposto pelo roteiro **não existe** no repo.
+- **F9-02 (ALTO)** — `sendQueuedMessages()` no `public/sw.js` é stub de `console.log`, e a tag registrada (`send-queued-messages`) diverge da escutada (`send-messages`). Somados a F9-01 e F9-03, são três defeitos em série no mesmo caminho.
+
+### P1 relevantes
+
+- **F9-10** — `fn_monitor_dlq_health` grava `resolved_at`/`acknowledged_at` mas não os booleanos `resolved`/`acknowledged` do próprio WHERE. Latente hoje (DLQ vazia), mas **corrigir F9-09 sem corrigir este ativa o bug**: o primeiro alerta trava o canal permanentemente em `alert_already_open`. Ordem de deploy importa.
+- **F9-03** — `index.html:74` desregistra todos os Service Workers a cada primeira carga de sessão (`sessionStorage` zera ⇒ `firstRun` sempre true), tornando Background Sync inviável por design.
+- **F9-11** — `fn_flag_poison_messages` engole a falha do INSERT de alerta com `EXCEPTION WHEN OTHERS THEN NULL`, enquanto a função irmã no mesmo schema faz `RAISE WARNING` corretamente. Sem batch no UPDATE.
+- **F9-08** — `zapp.warroom_alerts` sem retenção: 4.505 rows desde 2026-05-12, 42,8% originadas de um único cron cego.
+- **F9-04 / F9-05** — Cliente supabase-js sem política de retry; 1.266 linhas em 4 implementações concorrentes de backoff, com a mais elaborada (420 L) servindo apenas 2 diálogos de CRUD.
+
+### Confirmações e correções de premissa
+
+- **F6-19 confirmado** — `evo.evolution_ip_watch` segue em 0 rows.
+- **F4-23 confirmado e ampliado** — padrão "cron ativo sobre tabela vazia" replicado integralmente na DLQ: 1.207 execuções em 3,46 dias, 100% `succeeded`, 100% no-op.
+- **Premissa do roteiro corrigida (etapa 81)** — o roteiro cita `useOnlineStatus`; o hook não existe. O equivalente real é `src/lib/offlineQueue.ts`, que está morto.
+- **Instrumentação** — `cron.job_run_details` retém **3,46 dias** (29.199 runs), não 7. Qualquer janela de análise de cron acima de 3 dias é cega.
+
+---
+
 ## Retomada — próximo chat
 
-Onde parar de Bloco 8 e o que executar em seguida:
-
-1. **Bloco 9 — Resiliência e edge cases (etapas 81-90):**
-   - 81: Rede offline durante envio → Service Worker + `useOnlineStatus`
-   - 82: Rede intermitente → retry exponencial supabase-js
-   - 83: Supabase down + reconexão → banner + jitter + filas locais
-   - 84: Evolution API 401 sustentado → `evo-detect-401-bursts` (173)
-   - 85: Fila cheia DLQ → crons `route-failed-webhooks-to-dlq` (87), `dlq-poison-guard` (146), `monitor-dlq-health` (91)
+1. **Bloco 9B — Resiliência, parte 2 (etapas 86-90):**
    - 86: Deadman switch → `guardian-heartbeat-sync` (131), `guardian-db-heartbeat-resilient` (193), `check-guardian-alive` (188)
    - 87: Race condition envio simultâneo → `uq_msg_msgid_instance`
    - 88: Idempotência → `webhook_events_processed` (171k linhas)
    - 89: Timeout > 30s → `statement_timeout` PostgREST
-   - 90: Circuit breaker → 5 falhas em 10s
+   - 90: Circuit breaker → 5 falhas em 10s (`src/lib/evolutionCircuitBreaker.ts`)
 
-2. **Bloco 10:** roteiro completo em `PLANO_QA_ANALISE_100.md` (etapas 91-100: cross-browser, mobile, a11y, PWA offline, Lighthouse).
+2. **Bloco 10 — etapas 91-100:** cross-browser, mobile, a11y, PWA offline, Lighthouse. Roteiro em `PLANO_QA_ANALISE_100.md`.
 
-**Contexto crítico do Bloco 8 para o próximo chat:**
-- **9 achados P0** identificados (F8-01, 02, 03, 04, 05, 06, 07, 08, 09).
-- **Página órfã (F8-01)**: `SLAAlertPreferences.tsx` (215 L) inteira sem rota — feature 100% inalcançável em prod.
-- **BPM inteiro morto (F8-02)**: 41 tabelas `bpm.*` com 0 rows, zero funções, zero views. Módulo BPM nunca teve dados.
-- **3+ sistemas SLA paralelos (F8-03)**: `bpm.bpm_sla_records`, `zapp.conversation_sla`, `zapp.sla_delivery_violations`, `evo.evolution_alerts` — nenhum canonical.
-- **Triggers stubs (F8-04)**: `bpm_track_sla` e `bpm_track_sla_on_create` são `BEGIN RETURN NEW; END`.
-- **Cron 198 no-op (F8-05)**: 702 execuções em 7d, todas UPDATE 0 rows. Função "real" `fn_check_all_cards_sla` é dead code.
-- **RLS insegura (F8-06)**: `bpm_sla_records` = `USING(true) WITH CHECK(true)` — sem tenant isolation.
-- **Dashboard eterno 100% (F8-07)**: `useSLAMetrics` fallback `overallRate: 100` quando vazio — métrica cosmética que mascara ausência de dados.
-- **Panorama de fila impossível (F8-08)**: `zapp.queues` = 0 rows; comentário v2 de `rpc_queue_sla_panel` admite `queue_id NULL::uuid hardcoded => métricas eternamente 0`.
-- **Cron 163 `NO_PEAK_DATA` sempre (F8-09)**: `evo.evolution_health_logs` = 0 rows na última hora, 234 execuções em vácuo em 7d.
+**Avisos para quem pegar o Bloco 9B:**
+- Verificar antes de medir se `uq_msg_msgid_instance` (etapa 87) **existe de fato** — sessão anterior registrou que o Plano A menciona a constraint mas ela não foi localizada no banco.
+- A etapa 90 tem código real a auditar: `src/lib/evolutionCircuitBreaker.ts` (1 import de produção, 4 de teste) — checar se o consumidor está no caminho crítico ou se repete o padrão de F9-01.
+- Ao medir crons, lembrar do teto de **3,46 dias** de histórico.
 
-**P1 relevantes:**
-- **F8-14**: Cron 205 `verify-alert-delivery-10min` não cobre alertas SLA — roteiro da etapa 80 tinha premissa falsa.
-- **F8-15**: Falta índice parcial em `bpm_sla_records (deadline_at) WHERE exited_at IS NULL AND is_breached=false`.
-- **F8-13**: Smoke test data ("F4 SLA", "E2 Race") vazando em prod há 3 meses.
-
-**Documentos ao final desta sessão (8 blocos concluídos):**
-- `docs/audits/PLANO_QA_ANALISE_100.md` — roteiro (não alterado).
-- `docs/audits/PLANO_IMPLEMENTACAO_100.md` — 170 achados nos Temas 1-14.
+**Documentos ao final desta sessão (Blocos 1-8 + 9A concluídos):**
+- `docs/audits/PLANO_QA_ANALISE_100.md` — roteiro fixo (não alterado).
+- `docs/audits/PLANO_IMPLEMENTACAO_100.md` — **183 achados** nos Temas 1-15.
 - `docs/audits/RELATORIO_EXECUCAO_ANALISE.md` — este documento.
+- `docs/audits/HANDOFF_BLOCO_9A.md` — handoff consumido nesta sessão.

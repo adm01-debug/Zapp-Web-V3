@@ -5,7 +5,7 @@
 
 Convenção de ID: `F<bloco>-<seq>` — ex. `F1-01` = primeiro achado do bloco 1 da análise.
 
-**Total de achados até agora: 172** (14 Bloco 1 + 13 Bloco 2 + 12 Bloco 3 + 24 Bloco 4 + 30 Bloco 5 + 30 Bloco 6 + 32 Bloco 7 + 17 Bloco 8).
+**Total de achados até agora: 183** (14 Bloco 1 + 13 Bloco 2 + 12 Bloco 3 + 24 Bloco 4 + 30 Bloco 5 + 30 Bloco 6 + 32 Bloco 7 + 17 Bloco 8 + 11 Bloco 9A).
 
 ---
 
@@ -1433,3 +1433,207 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
   2. Regra de estilo: toda função SECDEF que toca outro schema deve qualificar explicitamente ou incluir o schema no search_path.
   3. Grep `pg_proc.prosrc` por outras funções `zapp.*` que fazem `FROM bpm_*` sem qualificar — provavelmente `bpm_refresh_dashboards` também (confirmar).
 - **Aceite:** grep sql retorna 0 funções `zapp.*` que fazem FROM/JOIN em objeto `bpm.*` sem qualificação nem `bpm` no search_path.
+
+
+## Tema 15 — Resiliência e edge cases (Bloco 9A, etapas 81-85)
+
+**Executado em:** 2026-08-02 · **Etapas:** 81 (rede offline), 82 (rede intermitente), 83 (Supabase down + reconexão), 84 (Evolution 401 sustentado), 85 (fila cheia / DLQ).
+**Achados:** 11 (F9-01..F9-11) — 1 CRÍTICO, 3 ALTO, 6 MÉDIO, 1 BAIXO.
+
+**Confirmações de achados anteriores (sem novo número F):**
+- `F6-19` **confirmado**: `evo.evolution_ip_watch` segue com `COUNT(*) = 0` — pipeline VPS→DB nunca escreveu uma linha.
+- `F4-23` **confirmado e ampliado**: o padrão "cron ativo sobre tabela vazia" se repete integralmente na DLQ — 3 crons (87/146/91) somam **1.207 execuções em 3,46 dias**, todas `succeeded`, todas no-op, sobre `evo.evolution_webhook_dlq` com **0 rows**.
+- **Nota de instrumentação:** `cron.job_run_details` retém **3,46 dias** (29.199 runs, mais antigo `2026-07-30 04:00`), não os 7 dias assumidos no handoff. Toda janela de análise de cron acima de 3 dias é cega.
+
+---
+
+### F9-01 — ALTO (P0): `src/lib/offlineQueue.ts` (226 linhas) não tem um único consumidor em produção — a fila offline é código morto
+
+- **Origem:** Etapa 81 (Bloco 9A).
+- **Evidência:**
+  - `wc -l src/lib/offlineQueue.ts` = **226 linhas**, exportando `offlineQueue`, `enqueueMessage()`, `processQueue()`, `getQueueStats()`, `setupOnlineListener()`.
+  - `grep -rn "enqueueMessage\|setupOnlineListener\|processQueue\|getQueueStats\|offlineQueue" src/ --include=*.ts --include=*.tsx` excluindo o próprio arquivo → **0 hits reais**. O único retorno é `processQueue` homônimo e não relacionado em `src/components/gamification/GamificationProvider.tsx:96` (fila de toasts de gamificação).
+  - `setupOnlineListener()` — a única função que registra `window.addEventListener('online', ...)` para drenar a fila — **nunca é invocada**; não aparece em `main.tsx`, `App.tsx` nem em nenhum provider.
+  - Consequência medida: nenhum caminho de envio chama `enqueueMessage`. O `messageSender.ts` (usado pelo inbox) importa `invokeEvolutionWithRetry` de `@/lib/evolutionSendRetry`, que falha direto sem enfileirar.
+  - A etapa 81 do PLANO_QA pressupõe o hook `useOnlineStatus` — `grep -rn "useOnlineStatus" src/` retorna **0 hits**. O hook não existe.
+- **Ação:**
+  1. Decidir explicitamente: ativar ou remover. Se ativar, chamar `setupOnlineListener()` em `src/main.tsx` no bootstrap e envolver o `catch` de `sendMessageToContact` em `messageSender.ts` com `enqueueMessage(...)` quando `!navigator.onLine`.
+  2. Se remover, deletar `src/lib/offlineQueue.ts` e o handler `sync` órfão em `public/sw.js` (ver F9-02).
+  3. Criar `src/hooks/useOnlineStatus.ts` como fonte única de estado de rede, consumido por F9-06 (banner) e pela fila.
+- **Aceite:** `grep -rn "enqueueMessage" src/ | grep -v "src/lib/offlineQueue.ts" | wc -l` retorna `>= 1` (ativado) **ou** `test ! -f src/lib/offlineQueue.ts` retorna 0 (removido). Estado atual — arquivo existe com 0 consumidores — reprova.
+
+### F9-02 — ALTO (P0): `sendQueuedMessages()` no Service Worker é stub de `console.log` e a tag de sync não bate com a registrada
+
+- **Origem:** Etapa 81 (Bloco 9A).
+- **Evidência:**
+  - `public/sw.js:141-143`, corpo integral da função:
+    ```js
+    async function sendQueuedMessages() {
+      console.log('[ServiceWorker] Processing queued messages');
+    }
+    ```
+    Não abre IndexedDB, não lê `pending-messages`, não faz fetch. É no-op puro.
+  - **Tag mismatch**: `src/lib/offlineQueue.ts:137` registra `await reg.sync.register('send-queued-messages')`, mas `public/sw.js:138` escuta `if (event.tag === 'send-messages')`. As strings divergem — o handler jamais dispararia mesmo se a fila estivesse ativa (F9-01).
+  - Ou seja, há **dois defeitos independentes em série**: a fila nunca é preenchida, e se fosse, o sync não seria roteado, e se fosse roteado, o handler não enviaria nada.
+- **Ação:**
+  1. Unificar a tag em uma constante compartilhada (`send-queued-messages`) referenciada nos dois arquivos.
+  2. Implementar `sendQueuedMessages()` de fato: abrir `zapp-offline-queue` / store `pending-messages`, iterar, `fetch` para a edge function de envio, remover em sucesso, incrementar `attempts` em falha (espelhando `processQueue()` de `offlineQueue.ts:149-182`).
+  3. Adicionar teste vitest que registra a tag e assere que o handler lê ao menos 1 item do IndexedDB mockado.
+- **Aceite:** `grep -c "indexedDB" public/sw.js` retorna `>= 1` **e** a string de tag em `sw.js` é idêntica à de `offlineQueue.ts` (`diff <(grep -o "send-[a-z-]*messages" public/sw.js | sort -u) <(grep -o "send-[a-z-]*messages" src/lib/offlineQueue.ts | sort -u)` vazio).
+
+### F9-03 — MÉDIO (P1): `index.html` desregistra todos os Service Workers na primeira visita de cada sessão, inviabilizando Background Sync por design
+
+- **Origem:** Etapa 81 (Bloco 9A).
+- **Evidência:**
+  - `index.html:74` — script inline `recoverPreview()` roda em toda carga: usa flag de sessão `zapp_sw_purged_v3` em `sessionStorage`; se `firstRun` (flag ausente) **ou** `suspicious`, executa `regs.map(r => r.unregister())` seguido de `caches.delete(k)` para todas as chaves.
+  - Como `sessionStorage` é zerado a cada nova aba/sessão, `firstRun` é verdadeiro em toda primeira carga — o unregister é **incondicional na prática**, não apenas em caso suspeito.
+  - Efeito combinado: `navigator.serviceWorker.ready` (usado em `offlineQueue.ts:135`) resolve para um registro recém-destruído ou nunca reinstalado; nenhum código do repo re-registra `/sw.js` após o purge (`grep -rn "register('/sw.js')\|register(\"/sw.js\")" src/` → 0 hits).
+  - Coerente com `src/lib/buildVersion.ts:53-67`, que trata cache de workbox como estado a ser expurgado (`forceBundleRefresh('stale-workbox-cache')`) — a postura do projeto hoje é anti-SW.
+- **Ação:**
+  1. Restringir o purge ao ramo `suspicious` apenas, removendo `firstRun` da condição de disparo.
+  2. Se o SW for mantido para push notifications (há handlers `push`/`notificationclick` em `sw.js:31,77`), adicionar re-registro explícito de `/sw.js` após o purge.
+  3. Documentar em ADR a decisão sobre PWA/offline — hoje há `manifest.json` + `sw.js` em `public/` sem estratégia declarada.
+- **Aceite:** recarregar a app duas vezes em abas novas e verificar `navigator.serviceWorker.getRegistrations()` com `length >= 1` na segunda carga; hoje retorna `0`.
+
+### F9-04 — MÉDIO (P1): cliente supabase-js criado sem qualquer política de retry — falha de rede transitória vira erro imediato para o usuário
+
+- **Origem:** Etapa 82 (Bloco 9A).
+- **Evidência:**
+  - `grep -rn "retry\|backoff\|exponential" src/integrations/supabase/client.ts` → **nenhum hit de retry**. Os 3 únicos hits são `timeout`: `setTimeout` (linha 143) e `clearTimeout` (162), pertencentes ao `AbortController` do bootstrap de auth (linha 129), não a repetição de request.
+  - Não há `global.fetch` customizado com retry na criação do client; qualquer `.from().select()` que caia em `TypeError: Failed to fetch` propaga direto ao componente.
+  - A infraestrutura de retry existe no repo (`src/lib/retry.ts`, `withRetry`), mas só é aplicada em **2 pontos de produção**: `src/lib/evolutionSendRetry.ts:15` e `src/features/inbox/components/AIConversationAssistant.tsx:26`. Nenhum deles cobre leituras de dados do inbox.
+  - Cenário da etapa 82 (30% de perda de pacotes) hoje resulta em ~30% de telas em estado de erro, sem retentativa.
+- **Ação:**
+  1. Injetar `fetch` customizado na criação do client em `src/integrations/supabase/client.ts` que envolva a chamada em `withRetry` de `@/lib/retry` para erros de rede e HTTP 5xx/429 (nunca 4xx de negócio).
+  2. Limitar a 2 retentativas com backoff ~300ms/900ms + jitter, para não mascarar indisponibilidade real nem estourar o SLA de UI.
+  3. Excluir do wrapper as chamadas de `auth` já cobertas pelo `AbortController`, evitando dupla temporização.
+- **Aceite:** `grep -n "global:" src/integrations/supabase/client.ts` mostra `fetch` customizado, e teste vitest com `fetch` mockado falhando 2x e sucedendo na 3ª retorna dados sem erro ao chamador.
+
+### F9-05 — BAIXO (P1): quatro implementações paralelas de backoff exponencial coexistem (1.266 linhas), sem fonte única de verdade
+
+- **Origem:** Etapa 82 (Bloco 9A).
+- **Evidência:**
+  - `wc -l` das camadas concorrentes: `src/lib/retry.ts` **95**, `src/lib/retryConfig.ts` **220**, `src/lib/retryStrategyAudit.ts` **420**, `src/hooks/useRetryAndErrorPrevention.ts` **531** → **1.266 linhas** para o mesmo conceito.
+  - Cada uma define seu próprio jitter: `retryStrategyAudit.ts:179-182` (`jitterFactor` 0.15/0.2/0.25/0.3 em 4 presets), `failedMessagesEnqueue.ts:37` (`capped * 0.15`), `retry.ts:52` (jitter próprio), `useMessageQueue.ts:14` (`jitter: boolean`).
+  - `retryStrategyAudit.ts` expõe 4 configs (`RETRY_CONFIG_TRANSIENT/API/DATABASE/ASYNC`) e é consumido por **um único arquivo** (`src/hooks/useRetryAndErrorPrevention.ts:33`), que por sua vez tem apenas **2 consumidores de produção** (`EditContactDialog.tsx:30`, `useContactFormV3.ts:6`) — ambos formulários de contato, nenhum caminho de mensageria.
+  - Resultado prático: o caminho crítico (envio de mensagem) usa `retry.ts`, enquanto as 420 linhas de política mais elaborada servem dois diálogos de CRUD.
+- **Ação:**
+  1. Eleger `src/lib/retry.ts` + `src/lib/retryConfig.ts` como fonte única; reescrever `withRetry` para aceitar um preset de `retryConfig`.
+  2. Migrar `useRetryAndErrorPrevention.ts` para consumir esse preset e deletar `src/lib/retryStrategyAudit.ts`.
+  3. Substituir os cálculos locais de jitter em `failedMessagesEnqueue.ts` e `useMessageQueue.ts` por import do helper único.
+- **Aceite:** `grep -rl "Math.random()" src/lib/*retry* src/lib/failedMessagesEnqueue.ts src/features/inbox/hooks/useMessageQueue.ts | wc -l` retorna `1` (apenas o helper canônico).
+
+### F9-06 — MÉDIO (P1): não existe indicador de perda de conectividade de rede/Supabase — o único "status" da UI reporta conexões WhatsApp
+
+- **Origem:** Etapa 83 (Bloco 9A).
+- **Evidência:**
+  - `src/components/layout/ConnectionStatusIndicator.tsx` — docstring linha 2: *"Indicador discreto de status das conexões WhatsApp"*. Linha 47 monta o texto a partir de `disconnected.length` de instâncias Evolution, não de `navigator.onLine` nem do estado do canal realtime.
+  - `grep -rn "navigator.onLine" src/` retorna **4 arquivos**, nenhum deles de UI global: `offlineQueue.ts` (morto, F9-01), `AuthProvider.tsx:233` (só no bootstrap, converte em `bootstrapError='offline'`), `useInboxHeartbeat.ts:13` (grava presença do agente no banco).
+  - `AuthProvider.tsx:114` + `ProtectedRoute.tsx:114-115` exibem estado offline **apenas durante o bootstrap inicial**; se a rede cair com a sessão já montada, nenhuma superfície da UI muda.
+  - Cenário da etapa 83 (Supabase indisponível com app aberto): o usuário continua digitando e clicando em enviar sem qualquer sinal visual de degradação.
+- **Ação:**
+  1. Criar `useOnlineStatus()` (ver F9-01, ação 3) combinando `navigator.onLine` com o estado do canal realtime do supabase-js.
+  2. Renderizar banner global persistente no shell da aplicação enquanto o estado for degradado, com contador de itens pendentes vindo de `getQueueStats()`.
+  3. Desabilitar o botão de envio (ou trocar seu rótulo para "Enfileirar") enquanto offline, evitando falha silenciosa.
+- **Aceite:** com `navigator.onLine` forçado a `false` via DevTools após login, um elemento com `role="status"` fica visível no shell; hoje nenhum elemento muda.
+
+### F9-07 — CRÍTICO (P0): guard de deduplicação de `fn_detect_401_bursts` filtra o campo errado — 96 alertas idênticos por dia, 1.843 acumulados
+
+(cross-ref: F6-19, F6-20)
+
+- **Origem:** Etapa 84 (Bloco 9A).
+- **Evidência:**
+  - `pg_get_functiondef('evo.fn_detect_401_bursts')` — o guard de 24h consulta **`message`**:
+    ```sql
+    WHERE source='fn_detect_401_bursts' AND alert_type='info'
+      AND message LIKE '%stale_api_key_hunt%'
+      AND created_at > now() - interval '24h'
+    ```
+    Mas a string `stale_api_key_hunt` está no **`title`** (`'🔍 OBS-2 stale_api_key_hunt: encontre o consumer com chave velha'`); o `message` começa com *"A Evolution API gera ~1 × 401 a cada 5 min..."*.
+  - Medição direta: `SELECT count(*) FILTER (WHERE title LIKE '%stale_api_key_hunt%') AS t, count(*) FILTER (WHERE message LIKE '%stale_api_key_hunt%') AS m FROM zapp.warroom_alerts WHERE source='fn_detect_401_bursts' AND alert_type='info'` → **t=1843, m=0**. O predicado nunca casa, `v_already_hunt` é sempre `false`.
+  - Prova da razão 1:1 com o cron: alertas `info` nas últimas 24h = **96**; execuções do jobid 173 (`*/15 * * * *`) em 24h = **96**. Um alerta por execução, sem exceção.
+  - Volume acumulado desde 2026-07-13: **1.843 alertas** a 91,1/dia — **40,9% de toda a tabela** `zapp.warroom_alerts` (4.505 rows) é este único alerta repetido.
+  - Efeito colateral grave: a fadiga de alerta encobre os sinais reais — os 2 alertas `critical` de burst 401 legítimos (`'🚨 401 BURST: 5 signals em 15min'`, 2026-08-01) estão soterrados numa proporção de 1:921.
+- **Ação:**
+  1. `CREATE OR REPLACE FUNCTION evo.fn_detect_401_bursts()` trocando o predicado do guard para `title LIKE '%stale_api_key_hunt%'` (ou, preferencialmente, `(title || ' ' || message) LIKE ...` para resistir a futura reescrita de texto).
+  2. Purgar o histórico redundante mantendo o mais recente: `DELETE FROM zapp.warroom_alerts WHERE source='fn_detect_401_bursts' AND alert_type='info' AND id <> (SELECT id FROM zapp.warroom_alerts WHERE source='fn_detect_401_bursts' AND alert_type='info' ORDER BY created_at DESC LIMIT 1)`.
+  3. Adicionar índice de suporte ao guard: `CREATE INDEX CONCURRENTLY idx_warroom_alerts_source_type_created ON zapp.warroom_alerts (source, alert_type, created_at DESC)`.
+- **Aceite:** após o fix, `SELECT count(*) FROM zapp.warroom_alerts WHERE source='fn_detect_401_bursts' AND alert_type='info' AND created_at > now()-interval '24h'` retorna `<= 1` (hoje: 96).
+
+### F9-08 — MÉDIO (P1): `zapp.warroom_alerts` não tem política de retenção e acumula desde 2026-05-12
+
+- **Origem:** Etapa 84 (Bloco 9A).
+- **Evidência:**
+  - `SELECT count(*), min(created_at), max(created_at) FROM zapp.warroom_alerts` → **4.505 rows**, janela de **2026-05-12 20:05** a **2026-08-02 14:45** (82 dias, sem nenhuma purga).
+  - Nenhum cron de limpeza referencia a tabela: `SELECT count(*) FROM cron.job WHERE command ILIKE '%warroom_alerts%'` no conjunto auditado retorna apenas produtores (`fn_detect_401_bursts`), nenhum consumidor ou faxineiro.
+  - Composição atual é dominada por ruído: **1.927 rows (42,8%)** têm `source='fn_detect_401_bursts'`, das quais 1.843 são o alerta duplicado de F9-07 e 82 são o `warning` de "401 DETECTION BLIND" (guard de 6h funcionando como projetado, mas repetindo 3,8×/dia enquanto `evolution_ip_watch=0`).
+  - Sem retenção, o custo cresce linearmente e a query de guard de F9-07 (sem índice, ver ação 3 daquele achado) degrada junto.
+- **Ação:**
+  1. Criar cron de retenção: `DELETE FROM zapp.warroom_alerts WHERE created_at < now() - interval '90 days' AND alert_type <> 'critical'` em schedule diário.
+  2. Silenciar o `warning` recorrente de "401 DETECTION BLIND" ampliando o guard de 6h para 7 dias — é uma condição estrutural conhecida (F6-19), não um evento.
+  3. Após F9-07, reavaliar o volume: espera-se queda de ~42% no tamanho da tabela.
+- **Aceite:** `SELECT max(now() - created_at) FROM zapp.warroom_alerts WHERE alert_type <> 'critical'` retorna `< 90 days`.
+
+### F9-09 — ALTO (P0): o roteador de DLQ exclui explicitamente a partição viva (`_v2_%`) e opera apenas sobre 22 tabelas legadas vazias
+
+(cross-ref: F4-14, F4-23)
+
+- **Origem:** Etapa 85 (Bloco 9A).
+- **Evidência:**
+  - `pg_get_functiondef('zapp.fn_route_failed_webhooks_to_dlq')` — o cursor que escolhe as tabelas contém:
+    ```sql
+    AND t.table_name NOT IN ('evolution_webhook_events_v2','evolution_webhook_events_default')
+    AND t.table_name NOT LIKE 'evolution_webhook_events_v2_%'
+    ```
+  - Reproduzindo o predicado, as **22 tabelas elegíveis** são todas legadas por departamento (`_artes`, `_comercial_01..15`, `_compras`, `_financeiro`, `_gravacao`, `_logistica`, `_marketing`, `_wpp2`). Volume somado ≈ **5 rows** (`pg_class.reltuples`).
+  - O volume real vive exatamente onde o cron não olha: `evolution_webhook_events_v2_2026_07` = **43.798 rows**, `_v2_2026_08` (mês corrente) = 51. `SELECT count(*) FROM evo.evolution_webhook_events_v2` = **46.286**.
+  - Consequência medida: `SELECT count(*) FROM evo.evolution_webhook_dlq` = **0 rows** — a DLQ nunca recebeu uma linha. Enquanto isso há **1 evento órfão** elegível parado em `_v2` (`processed=false AND error_message IS NOT NULL AND created_at < now()-'30min'`), o mais antigo de **2026-06-13**, ou seja, **50 dias sem roteamento**.
+  - O cron 87 roda `*/10 * * * *` — **362 execuções em 3,46 dias, 100% `succeeded`**, todas retornando `newly_routed_to_dlq: 0`. Sucesso reportado, trabalho zero.
+  - `EXPLAIN (ANALYZE, BUFFERS)` da query correta contra `_v2`: **Seq Scan** em `_2026_07` com `Rows Removed by Filter: 46206`, `Buffers: shared hit=2403`, `Execution Time: 16.203 ms` — não há índice parcial em `(processed, error_message)`.
+- **Ação:**
+  1. Corrigir o cursor para incluir a partição-mãe `evolution_webhook_events_v2` (e remover o `NOT LIKE '_v2_%'`, já que consultar a mãe cobre todas as partições via partition pruning).
+  2. Criar índice de suporte antes de ativar, para não introduzir Seq Scan a cada 10 min: `CREATE INDEX CONCURRENTLY idx_evt_v2_unprocessed_failed ON evo.evolution_webhook_events_v2 (created_at) WHERE processed=false AND error_message IS NOT NULL`.
+  3. Rodar backfill único para drenar o órfão de 2026-06-13 e validar o caminho até `evo.evolution_webhook_dlq`.
+- **Aceite:** após o fix, `SELECT count(*) FROM evo.evolution_webhook_dlq` retorna `>= 1` e `SELECT count(*) FROM evo.evolution_webhook_events_v2 WHERE processed=false AND error_message IS NOT NULL AND created_at < now()-interval '30 minutes'` retorna `0`.
+
+### F9-10 — MÉDIO (P1): `fn_monitor_dlq_health` "resolve" alertas sem alterar os booleanos do WHERE — o primeiro alerta trava o canal para sempre
+
+- **Origem:** Etapa 85 (Bloco 9A).
+- **Evidência:**
+  - `pg_get_functiondef('zapp.fn_monitor_dlq_health')` — ramo de resolução:
+    ```sql
+    UPDATE evo.evolution_alerts
+    SET resolved_at = now(), acknowledged_at = now()
+    WHERE alert_type='dlq_accumulation' AND acknowledged=false AND resolved=false;
+    ```
+    Escreve apenas os timestamps; **`acknowledged` e `resolved` permanecem `false`**.
+  - Ambas as colunas booleanas existem e são distintas dos timestamps — `information_schema.columns` para `evo.evolution_alerts` lista `acknowledged:boolean`, `acknowledged_at:timestamptz`, `resolved:boolean`, `resolved_at:timestamptz`.
+  - Efeito 1 (ruído de escrita): a cada 30 min o cron 91 reescreve as mesmas linhas que acredita ter fechado — **120 execuções em 3,46 dias**, todas `succeeded`.
+  - Efeito 2 (mais grave): o ramo de criação usa `IF NOT EXISTS (... acknowledged=false AND resolved=false)` para evitar flood. Como nada nunca sai desse predicado, **assim que o primeiro alerta `dlq_accumulation` for criado, nenhum outro será criado jamais** — a função entra permanentemente no retorno `'alert_already_open'`.
+  - Hoje o defeito está latente e não observável: `SELECT count(*) FROM evo.evolution_alerts WHERE alert_type='dlq_accumulation'` = **0**, porque a DLQ está vazia por causa de F9-09. Corrigir F9-09 sem corrigir este achado ativa o bug.
+- **Ação:**
+  1. Alterar o UPDATE para `SET resolved=true, acknowledged=true, resolved_at=now(), acknowledged_at=now()`.
+  2. Adicionar `AND resolved_at IS NULL` ao WHERE, tornando a operação idempotente e eliminando a reescrita a cada 30 min.
+  3. Ordenar o deploy: este fix **antes** do fix de F9-09, para que o alerta funcione quando a DLQ começar a receber dados.
+- **Aceite:** simular com `INSERT` de um alerta `dlq_accumulation` e rodar `SELECT zapp.fn_monitor_dlq_health(p_threshold := 10)` com DLQ vazia — a linha deve terminar com `resolved=true`, e uma segunda execução deve retornar `status='healthy'` sem tocar em linhas (`rowCount=0`).
+
+### F9-11 — MÉDIO (P1): `fn_flag_poison_messages` engole silenciosamente a falha do alerta — mensagens envenenadas podem ser marcadas sem ninguém saber
+
+(cross-ref: F4-14)
+
+- **Origem:** Etapa 85 (Bloco 9A).
+- **Evidência:**
+  - `pg_get_functiondef('evo.fn_flag_poison_messages')` — o INSERT do alerta está envolvido em:
+    ```sql
+    EXCEPTION WHEN OTHERS THEN NULL; END;
+    ```
+    Qualquer erro ao gravar em `zapp.webhook_health_alerts` (RLS, coluna ausente, constraint) é descartado sem log, sem `RAISE WARNING`, sem contador no retorno.
+  - O `UPDATE ... SET status='poison'` **fora** do bloco protegido é commitado normalmente: o resultado possível é DLQ com linhas `poison` e zero alertas correspondentes — falha invisível.
+  - Contraste interno: a função irmã `fn_route_failed_webhooks_to_dlq` trata a mesma classe de erro corretamente, com `RAISE WARNING 'dlq_router: tabela % inacessivel (SQLSTATE=%): %'` e contador `v_skipped` exposto no JSON de retorno. O padrão bom já existe no mesmo schema.
+  - O `jsonb` retornado (`checked_at`, `newly_flagged`, `total_dlq_rows`) **não tem campo de erro** — o cron 146 registra `succeeded` mesmo com o alerta perdido. Medição: **725 execuções em 3,46 dias, 100% `succeeded`**, todas com `total_dlq_rows: 0` (latente por F9-09).
+  - O UPDATE também não tem `LIMIT`/batch: se a DLQ acumular após o fix de F9-09, um único ciclo pode marcar toda a tabela numa transação.
+- **Ação:**
+  1. Trocar `EXCEPTION WHEN OTHERS THEN NULL` por `RAISE WARNING` + campo `alert_insert_failed: true` no `jsonb` de retorno, espelhando `fn_route_failed_webhooks_to_dlq`.
+  2. Adicionar `p_batch_size integer DEFAULT 500` e aplicar `WHERE id IN (SELECT id FROM ... LIMIT p_batch_size)` no UPDATE.
+  3. Revisar as demais funções do schema pelo mesmo antipadrão: `SELECT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN ('evo','zapp') AND pg_get_functiondef(p.oid) ILIKE '%WHEN OTHERS THEN NULL%'`.
+- **Aceite:** `pg_get_functiondef('evo.fn_flag_poison_messages')` não contém a string `THEN NULL` e o `jsonb` de retorno inclui a chave `alert_insert_failed`.
