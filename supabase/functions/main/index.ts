@@ -34,6 +34,7 @@ const PUBLIC_FNS = new Set<string>([
   'email-track-pixel',
   'email-track-link',
   'health-check',
+  'db-health-monitor',
   'status',
   'login-attempts',
   // cron/alert com segredo próprio (CRON_SECRET / *_SECRET)
