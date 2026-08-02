@@ -151,11 +151,30 @@ jobs:
           # estatico nao resolve esta pergunta: `ALTER PUBLICATION` emitido por
           # EXECUTE format(...) dentro de bloco DO e invisivel a grep. Foi assim
           # que o PR #712 concluiu que faltavam 25 tabelas que ja estavam la.
+          #
+          # Separacao deliberada entre falha de INFRA e falha de INVARIANTE:
+          # sem secret, sem psql ou sem conectividade -> avisa e passa (nao ha o
+          # que afirmar). Com conexao de pe -> o check e BLOQUEANTE. Um gate que
+          # reprova por motivo ambiental treina o time a ignorar gate.
           if [ -z "${SUPABASE_DB_URL:-}" ]; then
-            echo "::notice title=INV-6 nao executou::secret SUPABASE_DB_URL ausente. Enquanto o secret nao existir, drift na publicacao supabase_realtime passa despercebido no CI. Rodar manualmente: psql \"\$SUPABASE_DB_URL\" -v ON_ERROR_STOP=1 -f scripts/sql/check-realtime-publication.sql"
+            echo "::notice title=INV-6 nao executou::secret SUPABASE_DB_URL ausente. Enquanto ele nao existir, drift na publicacao supabase_realtime passa despercebido no CI."
             exit 0
           fi
-          command -v psql >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client; }
+
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client || true
+          fi
+          if ! command -v psql >/dev/null 2>&1; then
+            echo "::warning title=INV-6 nao executou::psql indisponivel no runner. Invariante nao verificado."
+            exit 0
+          fi
+
+          if ! psql "$SUPABASE_DB_URL" -Atc 'SELECT 1' >/dev/null 2>&1; then
+            echo "::warning title=INV-6 nao executou::sem conectividade com o banco a partir do runner. Invariante nao verificado."
+            exit 0
+          fi
+
+          echo "Conectividade OK — rodando o invariante em modo bloqueante."
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f scripts/sql/check-realtime-publication.sql
 
       - name: Summary
