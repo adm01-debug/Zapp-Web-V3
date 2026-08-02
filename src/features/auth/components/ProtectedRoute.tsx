@@ -108,6 +108,27 @@ export function ProtectedRoute({
     };
   }, [authLoading, user, requiredPermission]);
 
+  // Stale-session guard: verify JWT is still valid after auth state settles.
+  // Must run inside useEffect — calling getSession() in the render body fires
+  // twice under React StrictMode and can trigger a spurious logout when the
+  // first call transiently returns null before GoTrue cache is warm.
+  useEffect(() => {
+    if (authLoading || !user) return;
+    let cancelled = false;
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (cancelled) return;
+      if (error || !data.session) {
+        log.warn('[ProtectedRoute] Stale session detected — forcing redirect to /auth');
+        void supabase.auth.signOut().then(() => {
+          window.location.replace('/auth');
+        });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, user]);
+
   // Tela de erro quando o backend nao respondeu no boot.
   // Precede o "loading" para evitar spinner infinito ou redirect que so vai
   // recair na mesma tela apos o /auth tentar carregar de novo.
@@ -235,19 +256,6 @@ export function ProtectedRoute({
   if (!user || timedOut) {
     recordAuthzFailure({ route: location.pathname, reason: 'unauthenticated' });
     return <Navigate to="/auth" state={{ from: location }} replace />;
-  }
-
-  // Force redirect to /auth when session is stale (cookie from another domain, expired JWT, etc.)
-  // user exists from GoTrue cache but all API calls return 401/403
-  if (!authLoading && user) {
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (error || !data.session) {
-        log.warn('[ProtectedRoute] Stale session detected — forcing redirect to /auth');
-        supabase.auth.signOut().then(() => {
-          window.location.replace('/auth');
-        });
-      }
-    });
   }
 
   // Resolve effective required roles: DB override wins when present
