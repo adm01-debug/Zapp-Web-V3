@@ -38,6 +38,12 @@ jobs:
       - name: "INV-1: No schema:'public' in Realtime subscriptions"
         run: |
           echo "Checking for schema:'public' in .channel().on() calls..."
+          # Whitelist exceptions — files where schema:'public' is intentional because
+          # the physical table lives in public and is added to supabase_realtime:
+          #   useAudioMessagePlayer.ts — public.audio-messages bucket (physical)
+          #   useRetryMetrics.ts       — public.evolution_retry_metrics (physical table,
+          #                              added by migration 20260802000003; zapp.evolution_retry_metrics
+          #                              is a VIEW that never emits CDC events)
           FOUND=$(grep -rn "schema: ['\"']public['\"']" src/ \
             --include="*.ts" --include="*.tsx" \
             -l 2>/dev/null | \
