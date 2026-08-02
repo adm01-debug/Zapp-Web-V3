@@ -15,12 +15,12 @@
 | 4 | Inbox e mensageria (31-45) | ✅ Concluído | 24 (F4-01 a F4-24) |
 | 5 | Contatos e CRM (46-55) | ✅ Concluído | 30 (F5-01 a F5-30) |
 | 6 | Conexões WhatsApp (56-65) | ✅ Concluído | 30 (F6-01 a F6-30) |
-| 7 | Admin e monitoramento (66-75) | ⏸ Pendente | — |
+| 7 | Admin e monitoramento (66-75) | ✅ Concluído | 32 (F7-01 a F7-32) |
 | 8 | SLA/BPM (76-80) | ⏸ Pendente | — |
 | 9 | Resiliência e edge cases (81-90) | ⏸ Pendente | — |
 | 10 | Cross-browser / a11y / perf (91-100) | ⏸ Pendente | — |
 
-**Achados até aqui: 123 (14 Bloco 1 + 13 Bloco 2 + 12 Bloco 3 + 24 Bloco 4 + 30 Bloco 5 + 30 Bloco 6).**
+**Achados até aqui: 155 (14 Bloco 1 + 13 Bloco 2 + 12 Bloco 3 + 24 Bloco 4 + 30 Bloco 5 + 30 Bloco 6 + 32 Bloco 7).**
 
 ---
 
@@ -48,249 +48,293 @@ _(Detalhes registrados anteriormente. 30 achados F5-01 a F5-30 em `PLANO_IMPLEME
 
 ## Bloco 6 — Conexões WhatsApp (etapas 56-65)
 
-Arquivos auditados linha a linha:
-- `src/features/connections/index.ts` (barrel).
-- `src/features/connections/hooks/useConnectionsManager.ts` (dispatcher central).
-- `src/features/connections/hooks/parts/useConnectionsState.ts` (estado local).
-- `src/features/connections/hooks/parts/useConnectionsActions.ts` (business logic).
-- `src/features/connections/hooks/parts/useConnectionsRealtime.ts` (subscribe).
-- `src/features/connections/services/whatsappConnectionService.ts` (3168 B, QR + normalize).
-- `src/features/connections/data-access/whatsappConnectionRepository.ts` (repo com columnMap).
-- `src/services/connections/connectionsRepository.ts` (4136 B, genericService).
-- `src/services/connections/connectionsService.ts` (2978 B, business rules).
-- `src/services/connections/useConnectionsQueries.ts` (2806 B, React Query hooks).
-- `src/services/connections/useConnectionsMutations.ts` (2091 B).
-- `src/services/connections/BridgeService.ts` (1515 B, external Supabase health).
-- `src/hooks/useEvolutionAutoSync.ts`, `src/hooks/useEvolutionAutoReconnect.ts`.
-- `src/hooks/useEvolutionApi.ts` + `src/hooks/useEvolutionApiManagement.ts` (create/connect/logout/delete).
-- `src/integrations/zappweb/evolutionClient.ts` (client HTTP).
-- `src/lib/evolutionInstance.ts` (evolutionInstanceName resolver).
-- 30 componentes em `src/components/connections/` (ConnectionsView 649 linhas, ConnectionCard 359, InstanceSettingsDialog 496, NumberReputationMonitor 160, QrCodeDialog 214, AddConnectionDialog 144, etc.).
-- Pages: `src/pages/admin/Connections.tsx`, `src/pages/admin/connections/{ConnectionsExternalDbTab,ConnectionsMcpTab,ConnectionsWebhooksTab,ConnectionsIntegrationsTab}.tsx`.
-
-Auditoria SQL profunda:
-- Tabelas: `evo.evolution_instance_credentials` (17 col, TABLE, 1 row), `zapp.whatsapp_connections` (39 col, TABLE, 3 rows), `zapp.instance_registry` (22 rows), `zapp.qr_attempts` (TABLE, 5 rows), `evo.evolution_reconcile_jobs` (TABLE, 1663 rows), `evo.evolution_alerts` (TABLE), `zapp.instance_auth_events` (TABLE), `evo.evolution_ip_watch` (TABLE, 0 rows).
-- Views compat: `public.qr_attempts`, `public.evolution_reconcile_jobs`, `public.evolution_alerts`, `public.evolution_instance_credentials`, `public.instance_auth_events`, `zapp.evolution_reconcile_jobs`, `zapp.evolution_alerts`, `zapp.evolution_instance_credentials`, `zapp.evolution_instances`.
-- Funções auditadas: `zapp.fn_reconcile_dispatch`, `zapp.fn_reconcile_apply`, `zapp.fn_alert_wpp2_disconnection`, `zapp.fn_alert_connection_drift`, `zapp.fn_sync_instance_registry_status`, `zapp.fn_connection_drift_summary`, `zapp.fn_mark_qr_attempt_connected`, `zapp.cleanup_old_qr_attempts`, `zapp.fn_register_instance`, `zapp.fn_reprocess_instance_webhook_events`, `zapp.pause_instance`/`unpause_instance`/`is_instance_paused`, `zapp.rpc_instance_stats`/`_auth_event_summary`/`_auth_event_trend`, `zapp.rpc_resolve_instance_by_phone`/`_whatsapp_instance`, `zapp.get_connection_id_for_instance`, `zapp.get_connection_instance`, `evo.fn_bootstrap_wpp2_instance`, `evo.fn_burnin_disconnection_check`, `evo.fn_detect_401_bursts`, `evo.fn_detect_external_401_bursts`, `evo.fn_detect_instance_recreate`, `evo.fn_update_instance_health`, `zapp.fn_validate_whatsapp_connection_url`, `zapp.fn_clear_qr_on_connect`, `zapp.fn_wconn_updated_at`, `zapp.fn_log_whatsapp_connection_state_change`, `zapp.auto_pause_instance_on_auth_spike`, `zapp.cleanup_old_instance_auth_events`.
-- Crons auditados: 27 (`whatsapp_reconcile_dispatch`, `*/5`), 30 (`_apply`, `1-59/5`), 32 (`connection_drift_alert`, `4-59/5`), 34 (`evolution-pipeline-health-check-bateria10`), 35 (`evolution-jid-health-check-5min`), 65 (`purge_evolution_alerts`, `0 4 * * *`), 67 (`_reconcile_cleanup`, `17 3 * * *`), 68 (`_reconcile_reaper`, `*/3`), 88 (`archive-old-wpp2-messages`, `0 3 1 * *`), 96 (`sync-instance-registry-status`, `2-59/5`), 101 (`qr-attempts-expire-15min`, `*/15`), 104 (`wpp2_disconnection_watchdog`, `*/10 6-23`), 120 (`wpp2-session-expiry-watchdog`, `*/15`), 137 (`monthly-evo-audit`, `0 6 1 * *`), 138 (`ensure-evolution-backcompat-views`, `0 */6 * * *`), 158-173 (evo-* alerta chain), 182 (`evolution-pipeline-probe-15min`), 185 (`vacuum-instance-credentials-daily`), 189 (`evo_cleanup_expired_contact_ids`), 217 (`expire-whatsapp-media-1h`).
-
-### Base factual do banco (medida em 02/08/2026 01:25 UTC)
-
-| Métrica | Valor |
-|---|---|
-| `evo.evolution_instance_credentials` total | **1** (só wpp2, health_status='unhealthy', online_instances=0) |
-| `zapp.whatsapp_connections` total | **3** (wpp2 connected/ok, wpp_pink_test disconnected/error, wppmkt disconnected/provisioned) |
-| `zapp.whatsapp_connections` com `created_by IS NULL` | **3 (100%)** — ownership perdida em todas |
-| `zapp.instance_registry` total | 22 (statuses: `archived, connected, not_provisioned`) |
-| Discrepância `whatsapp_connections` vs `evolution_instance_credentials` | 2 conexões órfãs (wppmkt, wpp_pink_test) sem credenciais |
-| **Estado divergente wpp2** | `whatsapp_connections.health='ok'` **vs** `evolution_instance_credentials.health='unhealthy'` |
-| Triggers em `zapp.whatsapp_connections` | **6** (4 são duplicatas em 2 pares divergentes: updated_at × 2, clear_qr × 2) |
-| RLS policies em `zapp.whatsapp_connections` | 4 (`auth_secure_123` com nome de teste, `wconn_insert_auth` permite orphan) |
-| RLS policies em `evo.evolution_instance_credentials` | 1 (`evo_creds_service_role_only` — só service_role) |
-| `zapp.qr_attempts` total | **5** (todos status=`expired`, 2 nas últimas 24h) |
-| `evo.evolution_reconcile_jobs` total | 1663 (1663 applied, **8 failed**, 12 last hour) |
-| `evo.evolution_reconcile_jobs` com `applied_at < dispatched_at - 1 day` | **373 (22%)** — timestamps corrompidos por reciclagem de request_id |
-| `evo.evolution_alerts` unresolved+unacked | **269 backlog** |
-| `wpp2_disconnection` alerts total (all-time) | 18 (17 unresolved, 1 acked = 94% backlog) |
-| `wpp2_disconnection` alerts últimas 10h | 10 (padrão: 1 alerta a cada ~1h) |
-| `zapp.warroom_alerts` últimos 7d | **1389** (863 info, 385 critical, 141 warning) — alert fatigue |
-| `evo.evolution_ip_watch` total | **0** — pipeline VPS→DB de detecção 401 morto |
-| `zapp.instance_auth_events` últimas 24h | 17 rows, TODAS com `event_type=NULL, http_status=NULL, success=false` |
-| Cron 96 `sync-instance-registry-status` execuções últimas 24h | 256/288 esperado (**11% de perda**) |
-| Cron 27, 30, 32, 68, 101, 104, 173 últimas 7d | 100% sucesso (mas F6-20 mostra que sucesso não implica detecção real) |
-| Múltiplas cópias de tabelas em schemas | qr_attempts (2×), reconcile_jobs (3×), alerts (3×), instance_credentials (3×), auth_events (2×) — **13 objetos, 5 nomes** |
-| Test coverage `src/features/connections/` + `src/services/connections/` | 2 test files para ~30 arquivos (0 tests em componentes) |
-| Pairing code (Etapa 58) | **0 hits em código** — feature 100% ausente |
-
-### Etapa 56 — Criar instância Evolution
-
-**Descoberta P0**: `handleAddConnection` em `useConnectionsActions.ts` NUNCA chama `useEvolutionApi.createInstance()`. Só faz `safeClient.single('whatsapp_connections', q => q.insert({...}))` com 7 colunas (name, phone_number, instance_id, instance_name, status, is_default, api_type). Depois chama `handleShowQrCode` que dispara `whatsappConnectionService.requestQrCode(evoName)` — mas se a instância nunca foi criada no Evolution API, essa chamada retorna 404. **Fluxo de criação via UI está quebrado desde deploy** — as 3 rows atuais foram criadas por outro caminho (Evolution manager direto? seed migration?). → **F6-02** (P0).
-
-**Descoberta P0**: `zapp.whatsapp_connections.api_url` e `.api_key` são `NOT NULL` sem default. INSERT do `handleAddConnection` faltaria essas colunas — deveria falhar. Que as 3 rows atuais existam prova que insere via outro caminho. → **F6-13** (P0).
-
-**Descoberta P0**: RLS `wconn_insert_auth` policy WITH CHECK `(created_by IS NULL) OR (created_by = auth.uid())` permite orphan INSERTs. Combinado com F6-16 (100% das rows com `created_by=NULL`), sem ownership. → **F6-17** (P0).
-
-**Descoberta P0**: Trigger `trg_validate_whatsapp_connection_url` cai para hardcoded default `'https://evolution.atomicabr.com.br'` se vault estiver vazio — não fail-secure. Mensagem de erro do RAISE expõe URL esperada. → **F6-12**.
-
-Policy `auth_secure_123` — nome de código de teste (`_123` suffix) em produção → **F6-18**.
-
-Múltiplas cópias de tabelas em schemas: `qr_attempts` (2), `reconcile_jobs` (3), `alerts` (3), `instance_credentials` (3), `auth_events` (2) — 13 objetos para 5 nomes distintos → **F6-30**.
-
-`handleAddConnection` valida só `name`, permite `phone_number` vazio → **F6-29**.
-
-### Etapa 57 — QR code
-
-Cron `qr-attempts-expire-15min` (jobid 101) rodou 283x em 7d, mas `zapp.qr_attempts` tem só 5 rows total (todas expired, 2 nas últimas 24h). Cron opera em set trivialmente pequeno. `whatsappConnectionService.detectQrTtlMs` faz clamp entre 15s-300s (default 60s) — parses `count`, `qrcode.count`, `ttl`, `expires_in` — múltiplos fallbacks, resiliente.
-
-`whatsappConnectionService.logQrAttempt` é chamado a cada request — mas só 5 rows históricos sugerem que **fluxo de QR raramente é executado em produção** (wpp2 já está autenticado; wpp_pink_test/wppmkt sem uso ativo).
-
-### Etapa 58 — Pairing code
-
-**Descoberta P0**: pairing code **100% AUSENTE** do código. Grep de `pairing|Pairing|PAIRING|pairing_code|pairingCode` em `src/**` retorna **1 hit** — apenas comentário JSDoc em `useEvolutionApiManagement.ts` linha 296 dizendo `"lifecycle operations: create, connect, reconnect, logout, restart, delete, and QR/pairing-code retrieval"`. Sem implementação. Banco tem 0 funções relacionadas. Feature promised no plano nunca foi implementada. → **F6-01** (P0).
-
-### Etapa 59 — Reconexão automática
-
-Crons `whatsapp_reconcile_dispatch` (27, `*/5`), `_apply` (30, `1-59/5`), `_reaper` (68, `*/3`) — todos ativos, 100% sucesso em 7d (exceto _apply com 1 falha em 850, 0.12%).
-
-**Descoberta P0**: `fn_reconcile_dispatch` chama `net.http_get('/instance/fetchInstances')` e faz `INSERT INTO evolution_reconcile_jobs (request_id) ON CONFLICT (request_id) DO UPDATE SET dispatched_at = now()`. `pg_net` recicla request_ids ao longo do tempo. Quando colide com job antigo, UPDATE só toca dispatched_at, preservando `applied_at` antigo. **373 rows (22%) com `applied_at < dispatched_at - 1 day`**. Sample: id=24041 tem `dispatched_at=2026-08-02 01:15` mas `applied_at=2026-07-28 03:31` (delta=-4d21h). → **F6-05**, **F6-21** (ambas P0).
-
-Métrica de latência de reconcile completamente corrompida.
-
-`useEvolutionAutoReconnect` (frontend) com exponential backoff (2s→60s), MAX_CONSECUTIVE_RECONNECT_ATTEMPTS=20 (adicionado 2026-07-05 para evitar loop infinito), circuit breaker em 401/403. Bem estruturado.
-
-### Etapa 60 — Disconnection alerts
-
-**Descoberta P0**: `fn_alert_wpp2_disconnection` **NÃO é SECURITY DEFINER** (prosecdef=false). Todas as funções afins são SECDEF. → **F6-07**.
-
-**Descoberta P0**: Função hardcoded para `WHERE instance_name = 'wpp2'`. Multi-instância impossível com esse pattern. Também `fn_bootstrap_wpp2_instance`, cron `wpp2_disconnection_watchdog` (104), cron `wpp2-session-expiry-watchdog` (120) — tudo hardcoded. → **F6-06** (P0).
-
-**Descoberta P0**: cron `wpp2_disconnection_watchdog` (104) schedule `*/10 6-23 * * *` — **BUSINESS_HOURS_ONLY**. Gap de 7h (23:00→06:00) sem monitoramento. Disconnection às 03:00 gera alerta só às 06:10. → **F6-09** (P0).
-
-**Descoberta P0**: 17 de 18 alerts `wpp2_disconnection` all-time **nunca resolvidos** (`resolved_at IS NULL`). Últimas 10h: alerta a cada ~1h (08:00, 09:00, 10:00, 11:10, 12:10, 13:20, 14:20, 15:30, 16:30, 17:40). Anti-flood check `resolved_at IS NULL AND created_at > now() - 60 min` funciona (evita spam >1x/h), mas como resolved_at nunca é setado (sem trigger de auto-close quando instância volta), alertas pilham indefinidamente. **94% backlog**. → **F6-08** (P0).
-
-**Descoberta P0**: `zapp.whatsapp_connections.wpp2.status='connected'`, `health_status='ok'` — MAS `evo.evolution_instance_credentials.wpp2.health_status='unhealthy'`, `online_instances=0`. **Duas fontes de verdade, conclusões opostas**. UI mostra "conectado" enquanto Evolution API está degradada. Os 17 alerts corroboram queda real, mas UI está mentindo. → **F6-03**, **F6-04** (ambas P0).
-
-### Etapa 61 — Multi-instância
-
-**Descoberta P0**: `useEvolutionAutoSync` faz `.from('whatsapp_connections').select('instance_id, phone_number')` sem filtro por workspace/user. Se RLS estiver frouxa, retorna instâncias de outros tenants; INSERT de "missing" instances pode atribuir instância de tenant A ao workspace de user B. → **F6-27** (P0).
-
-`fn_alert_wpp2_disconnection` hardcoded (F6-06) já registrado. Todo conceito multi-instância é atualmente teórico — só 1 instância provisionada (wpp2 em `evolution_instance_credentials`).
-
-### Etapa 62 — Logout
-
-**Descoberta**: `useEvolutionApi.disconnectInstance(evoName)` chama edge function `evolution-api` action `disconnect`. Preserva `whatsapp_connections` row com `status='disconnected'`. Trigger `trg_clear_qr_connect` seta `disconnected_at = now()`. OK funcionalmente.
-
-**Descoberta**: 6 triggers em `zapp.whatsapp_connections`; 4 duplicatas em 2 pares divergentes:
-- `update_whatsapp_connections_updated_at` + `trg_wconn_updated_at` (mesmo comportamento)
-- `clear_qr_on_connect_trigger` (só limpa qr_code) + `trg_clear_qr_connect` (limpa qr_code + qr_code_base64 + seta connected_at/last_connected_at/disconnected_at)
-
-→ **F6-11**.
-
-### Etapa 63 — Delete de instância
-
-**Descoberta**: `handleDelete` em `useConnectionsActions.ts` chama `deleteInstance(evoName).catch((e) => log.warn(...))` — **engole erro do Evolution API**. Se 500, delete no banco continua; instância fica órfã no Evolution manager consumindo recursos, potencialmente ainda recebendo webhooks. → **F6-28**.
-
-Sem purge de R2 mencionado no plano — grep de `r2\|R2\|cascade` em code de handleDelete não retorna nada relacionado.
-
-### Etapa 64 — Instance drift detection
-
-Cron `sync-instance-registry-status` (96, `2-59/5`) rodou 810x em 7d = ~48h esperado × 12/h = 576... na verdade `*/5min = 12/h × 24h × 7d = 2016 esperado`. **256 execuções em últimas 24h** de 288 esperado = 11% de perda. → **F6-10**.
-
-`fn_sync_instance_registry_status` compara `zapp.instance_registry` com `zapp.whatsapp_connections` (não com `evo.evolution_instance_credentials`) — sync baseado em fonte errada (F6-04).
-
-`zapp.instance_registry` tem 22 rows (statuses: archived, connected, not_provisioned) mas só 3 têm entry em `whatsapp_connections` (14% provisionadas). → **F6-24**.
-
-LEFT JOIN `whatsapp_connections wc LEFT JOIN evolution_instance_credentials eic USING (instance_name)` mostra 2 órfãs (wppmkt, wpp_pink_test sem credentials). → **F6-14**.
-
-`WPP Marketing` name diz "Cloud API Oficial" mas `api_type='evolution'` — inconsistência. → **F6-15**.
-
-### Etapa 65 — 401 burst
-
-**Descoberta P0**: `evo.evolution_ip_watch` = **0 rows total** — pipeline VPS→DB de detecção 401 documentado como quebrado no próprio código da função. → **F6-19** (P0).
-
-**Descoberta P0**: `fn_detect_401_bursts` (SECDEF) contém string literal explicando o próprio monitoring gap: `"BLIND: evolution_ip_watch=0 rows — VPS log pipeline (Traefik→DB) not active"`. Insere CHECKLIST de 7 passos dentro do `message` de alertas para operador. Antipattern — documentação misturada com telemetria; polui `warroom_alerts` sem oferecer detecção real. Cron 173 rodou 283x em 7d mas cada run é essencialmente no-op documentado. → **F6-20** (P0).
-
-`zapp.instance_auth_events` últimas 24h: 17 rows, TODAS com `event_type=NULL, http_status=NULL, success=false`. Instrumentação do produtor quebrada — escreve shells sem dados. → **F6-25**.
-
-`zapp.warroom_alerts` últimos 7d: 1389 alertas (863 info + 385 critical + 141 warning) = 55 críticos/dia. Se ninguém age em >99%, sinal:ruído catastrófico. → **F6-22**.
-
-`evo.evolution_alerts` unresolved+unacked = 269. Nenhum triage sistemático. → **F6-23**.
-
-### Análise de test coverage
-
-`find src -path "*connection*" -name "*.test.*"` retorna 2 arquivos:
-- `src/hooks/connections/__tests__/useHubTabNavigation.test.tsx`
-- `src/features/connections/hooks/parts/__tests__/useConnectionsState.test.ts` (328 linhas)
-
-Zero tests em: `useConnectionsActions`, `useConnectionsRealtime`, `useConnectionsManager`, `whatsappConnectionService`, `whatsappConnectionRepository`, `BridgeService`, **30+ componentes** (ConnectionsView 649L, ConnectionCard 359L, InstanceSettingsDialog 496L). → **F6-26**.
+_(Detalhes registrados anteriormente. 30 achados F6-01 a F6-30 em `PLANO_IMPLEMENTACAO_100.md` Tema 12. Base factual medida em 02/08/2026 01:25 UTC — resumo: evolution_instance_credentials=1 row unhealthy, whatsapp_connections=3 rows com created_by=NULL em 100%, evolution_reconcile_jobs 373/1663 (22%) com timestamps corrompidos, wpp2_disconnection 17/18 unresolved, evolution_ip_watch=0 rows total.)_
 
 ---
 
-## Achados do Bloco 6 (30 itens registrados em `PLANO_IMPLEMENTACAO_100.md` Tema 12)
+## Bloco 7 — Admin e monitoramento (etapas 66-75)
 
-### Fluxo de criação — arquitetura quebrada
+Arquivos auditados linha a linha (24 páginas em `src/pages/admin/`, ~5800 linhas de código):
 
-- **F6-01** (P0) — pairing code (Etapa 58) 100% ausente do código.
-- **F6-02** (P0) — `handleAddConnection` não chama Evolution `/instance/create`; só INSERT no banco.
-- **F6-13** (P0) — `api_url` e `api_key` NOT NULL sem default — INSERT via UI faltaria valores.
-- **F6-29** — `handleAddConnection` valida só `name` — permite phone vazio.
+**Páginas de monitoramento (foco Bloco 7):**
+- `AdminWhatsAppLogsPage.tsx` (310 L) — envios/webhooks/erros, últimas 150 entradas.
+- `AdminEvoApiHealthPage.tsx` (186 L) — saúde/alertas/DR/canais/histórico, run 50-test suite.
+- `AdminAutomationLogsPage.tsx` (325 L) — audit trail de automation rules, filtros por regra/status/jid/data.
+- `AdminSecurityLogsPage.tsx` (136 L) — tentativas negadas, mudanças de permissão.
+- `AdminFailedAuthMessagesPage.tsx` (217 L) — falhas login com bloqueio, filtro por data.
+- `AdminInboxSyncStatusPage.tsx` (312 L) — pipeline FATOR X ↔ Inbox, buckets 5min/1h/24h.
+- `AdminBridgeStatusPage.tsx` (168 L) — status Lovable ↔ FATOR X, incidents, auto-refresh.
+- `AdminEmailStatusPage.tsx` (343 L) — saúde do email, falhas operacionais, request-id.
+- `AdminEmailAuditPage.tsx` (311 L) — auditoria de revalidação, paginação.
+- `AdminChannelsPage.tsx` (394 L) — canais de atendimento, sticky agent, routing modes.
+- `AdminProvidersPage.tsx` (373 L) — provedores (Evolution/WPPConnect/Baileys), health-check.
+- `AdminQueuesPage.tsx` (117 L) — filas, distribuição, membros, canais.
+- `AdminAutomationsPage.tsx` (790 L) — regras de automação (config).
+- `RateLimitDashboard.tsx` (489 L) — rate limiting, IPs bloqueados/whitelist, alertas.
+- `PerformanceDashboard.tsx` (139 L) — Core Web Vitals, budget CI.
+- `AuditEvidenceDashboard.tsx` (78 L) — evidências de conformidade.
+- `HmacSelfTestPage.tsx` (321 L) — validação HMAC + janela temporal + replay.
+- `AdminWhatsAppSecretsCard.tsx` (129 L) + `AdminWhatsAppWebhookVerifyCard.tsx` (202 L) — secrets + handshake.
+- `SelfHostedHealthPage.tsx` (165 L) — probes Supabase self-hosted + MCP.
+- `AdminOperationsPage.tsx` (70 L), `AdminDevDiagnosticsPage.tsx` (208 L).
 
-### Fontes de verdade divergentes
+**Tabelas auditadas:**
+`zapp.provider_message_log`, `zapp.dispatch_error_logs`, `zapp.whatsapp_cloud_webhook_pings`, `zapp.failed_messages`, `zapp.security_audit_logs`, `zapp.security_events`, `zapp.login_attempts`, `zapp.rate_limit_logs`, `zapp.blocked_ips`, `zapp.ip_whitelist`, `zapp.webhook_endpoints`, `zapp.webhook_events`, `zapp.webhook_events_processed`, `zapp.webhook_health_alerts`, `zapp.webhook_health_checks`, `zapp.hmac_selftest_audit`, `zapp.system_health_incidents`, `zapp.email_health_summary`, `zapp.email_revalidation_jobs`, `zapp.provider_configs`, `zapp.automation_executions`, `zapp.audit_logs`, `zapp.warroom_alerts`, `cron.job`, `cron.job_run_details`.
 
-- **F6-03** (P0) — estado wpp2 divergente entre `whatsapp_connections` (connected/ok) e `evolution_instance_credentials` (unhealthy/0 online).
-- **F6-04** (P0) — 2 fontes de verdade para instância sem canonical (3 se contarmos instance_registry).
-- **F6-14** — 2 órfãs em `whatsapp_connections` sem row em `evolution_instance_credentials`.
-- **F6-15** — "WPP Marketing (Cloud API Oficial)" com api_type='evolution'.
-- **F6-24** — `instance_registry` 22 rows, só 3 provisionadas (14%).
-- **F6-30** — 13 objetos em múltiplos schemas para 5 nomes distintos.
+**Views compat mapeadas (padrão do Bloco 6):**
+`public.provider_message_log` → `zapp.provider_message_log`;
+`public.dispatch_error_logs` → `zapp.dispatch_error_logs`;
+`public.security_audit_logs` → `zapp.security_audit_logs`;
+`public.failed_messages` → `zapp.failed_messages`;
+`public.login_attempts` → `zapp.login_attempts`.
 
-### Reconciliação e telemetria corrompida
+### Base factual do banco (medida em 02/08/2026 02:15 UTC)
 
-- **F6-05** (P0) — `fn_reconcile_dispatch` reutiliza request_id → 373 rows (22%) com applied_at antes de dispatched_at.
-- **F6-21** (P0) — telemetria de latência de reconcile completamente corrompida.
-- **F6-10** — cron 96 (`sync-instance-registry-status`) perde 11% de execuções.
+| Métrica | Valor |
+|---|---|
+| `zapp.provider_message_log` total | **0 rows** — nenhuma mensagem logada em produção |
+| `zapp.dispatch_error_logs` total | 1 row, latest = **2026-05-04** (~3 meses atrás), tabela morta |
+| `zapp.whatsapp_cloud_webhook_pings` total | 173 rows, **0 nas últimas 24h, 0 nos últimos 7d** |
+| `zapp.whatsapp_cloud_webhook_pings` latest entry | **2026-05-04 10:30 UTC** (~90 dias sem eventos) |
+| `zapp.failed_messages` total | 0 rows |
+| `zapp.security_audit_logs` total | **0 rows** — mesma tabela referenciada pela SecurityLogs page |
+| `zapp.security_events` total | 0 rows |
+| `zapp.login_attempts` total | 2 rows, 6 total_attempts, 0 currently locked |
+| `zapp.login_attempts` índices | 4 índices (PK + `idx_login_attempts_locked` + `idx_login_attempts_email_locked` + `login_attempts_email_unique` UNIQUE) — G21 correção mantida |
+| `zapp.rate_limit_logs` total | **0 rows** — RateLimitDashboard sempre em zero |
+| `zapp.blocked_ips` total | 0 rows |
+| `zapp.ip_whitelist` total | 0 rows |
+| `zapp.webhook_endpoints` total | **0 rows** — nenhum outbound webhook configurado |
+| `zapp.webhook_events` total | 0 rows |
+| `zapp.hmac_selftest_audit` total | **0 rows** — self-test HMAC nunca gravou |
+| `zapp.system_health_incidents` total | 0 rows |
+| `zapp.email_revalidation_jobs` total | 0 rows |
+| `zapp.provider_configs` total | 0 rows |
+| `zapp.automation_executions` total | **0 rows** — audit trail sempre vazio |
+| `zapp.audit_logs` total | 7269 (186 last 24h, 21 actions, 6 entities) — **única tabela de auditoria funcional** |
+| `zapp.webhook_health_alerts` total | 734 rows, **724 unresolved (98.6% backlog)**, 20 last 24h |
+| `zapp.webhook_health_alerts` breakdown unresolved | 709 `burnin_critical_alert` + 9 `lovable_parity_drift` + 4 `burnin_disconnection` + 2 `backup_sentinel_stale` |
+| Título recorrente | `E10-03: N new critical alert(s) during burn-in — 72h counter reset. Investigate before go-live.` |
+| Cron jobs ativos | **149 jobs** |
+| Cron 213 `media_pipeline_health_check` | **9/21 falhas (42.8%)** — coluna `severity` inexistente + violação `chk_warroom_alert_type` |
+| Cron 100 `analytics-log-retention` | **2/2 falhas (100%)** — `function public.dblink(text, text) does not exist` |
+| Cron 216 `cleanup-cron-job-logs` | 1/3 falhas (33%) |
 
-### Alertas quebrados / hardcoded
+### Etapa 66 — JSX literal renderizado como texto
 
-- **F6-06** (P0) — `fn_alert_wpp2_disconnection` hardcoded para 'wpp2' — não escala multi-instância.
-- **F6-07** — função NÃO é SECURITY DEFINER (inconsistente).
-- **F6-08** (P0) — 17/18 alerts `wpp2_disconnection` nunca resolvidos (94% backlog).
-- **F6-09** (P0) — cron 104 schedule `*/10 6-23` — 7h gap noturno.
+**Descoberta P0**: `PerformanceDashboard.tsx` (linhas ~120-140) renderiza **3× `// @technical` como TEXTO LITERAL** no JSX, não como comentário:
 
-### Segurança/RLS
+```jsx
+<span>Largest Contentful Paint (LCP)</span>
+<span className="font-mono">&lt; 2500ms</span> // @technical
+...
+<span className="font-mono">&lt; 0.100</span> // @technical
+...
+<span className="font-mono">&lt; 500KB</span> // @technical
+```
 
-- **F6-12** — `fn_validate_whatsapp_connection_url` fallback hardcoded se vault vazio.
-- **F6-16** (P0) — `created_by=NULL` em 3/3 rows (ownership perdida).
-- **F6-17** (P0) — RLS `wconn_insert_auth` permite orphan INSERTs.
-- **F6-18** — policy `auth_secure_123` (nome de teste em produção).
-- **F6-27** (P0) — `useEvolutionAutoSync` sem filtro workspace/user (cross-tenant leak potencial).
+Em JSX inline (fora de `{ /* */ }`), `//` NÃO é comentário — é texto renderizado no DOM. O usuário vê `< 2500ms // @technical` na tela. → **F7-01** (P0).
 
-### Detecção 401 morta
+**Descoberta P0**: `AdminBridgeStatusPage.tsx` linha ~65 tem mesmo bug:
+```jsx
+<p className="font-mono text-xs">{lastCheck.toLocaleTimeString()}</p> // @technical
+```
+Após `</p>` fechar o elemento, `// @technical` aparece como TEXTO LITERAL entre elementos irmãos. → **F7-02** (P0).
 
-- **F6-19** (P0) — `evo.evolution_ip_watch` = 0 rows total, pipeline VPS→DB morto.
-- **F6-20** (P0) — `fn_detect_401_bursts` documenta próprio "monitoring gap" no comentário.
-- **F6-25** — `instance_auth_events` 17 rows com todos os campos essenciais NULL.
+**Descoberta P0**: `AdminEmailAuditPage.tsx` linha ~125:
+```jsx
+<Badge variant="outline" className="font-mono"> // @technical
+  Total: {total}
+</Badge>
+```
+`// @technical` está dentro dos **children** do Badge, antes do "Total:" — renderizado no DOM. → **F7-03** (P0).
 
-### Backlog / Alert fatigue
+### Etapa 67 — Latência/uptime hardcoded
 
-- **F6-22** — 1389 alertas em 7d em `warroom_alerts` (55 críticos/dia).
-- **F6-23** — 269 unresolved em `evolution_alerts`.
+**Descoberta P0**: `AdminBridgeStatusPage.tsx` KPI cards mockados:
+```jsx
+<p className="text-2xl font-black">{lovableDb === true ? '42ms' : '--'}</p>
+<p className="text-2xl font-black">99.9%</p>
+```
+Latência de bridge sempre exibe `'42ms'` (string hardcoded) quando lovableDb está online; NÃO mede nada. Uptime 24h é literal `'99.9%'`. → **F7-04** (P0).
 
-### Cleanup / higiene
+**Descoberta P0**: `AuditEvidenceDashboard.tsx` (78 linhas) é **página inteira MOCK ESTÁTICO**. Array `evidences` hardcoded com 3 entradas, `<Badge>V5.0.0-PROD</Badge>` (versão hardcoded), botão `<button>Ver no Repositório</button>` sem `href` (nunca abre nada). Nenhuma leitura de banco. → **F7-05** (P0).
 
-- **F6-11** — 6 triggers, 4 duplicatas em 2 pares divergentes.
-- **F6-26** — test coverage: 2 test files para ~30 arquivos.
-- **F6-28** — `handleDelete` engole erro Evolution API.
+### Etapa 68 — PerformanceDashboard bugs adicionais
+
+**Descoberta P0**: `PerformanceDashboard.tsx` linha 8: `const [lastUpdate, setLastLastUpdate] = useState(new Date());` — nome do setter tem `Last` duplicado (`setLastLastUpdate`). Typo em código de produção. → **F7-06** (P0).
+
+**Descoberta P0**: Normalização de progress bar hardcoded a 4000 para TODAS as métricas: `Math.min((m.value / 4000) * 100, 100)`.
+- CLS (0-1): dá 0.025% (barra invisível)
+- TTFB (100-500ms típico): 2-12%
+- LCP (~2500ms good): 62%
+- INP (200ms good): 5%
+Mesma barra representa coisas diferentes; comparação sem sentido. → **F7-07** (P0).
+
+**P1**: `setInterval(update, 2000)` — polling 500x/hora mesmo com aba oculta. Sem `document.visibilityState` check. → **F7-08**.
+
+### Etapa 69 — Rotas inexistentes / navegação quebrada
+
+**Descoberta P0**: `AdminInboxSyncStatusPage.tsx` alert "sem inbound" leva a `<Link to="/admin/webhook-overview">Webhook Overview</Link>`. **Nenhum arquivo `AdminWebhookOverviewPage.tsx` em `src/pages/admin/`** — rota 404. → **F7-09** (P0).
+
+**Descoberta P1**: `AdminEmailStatusPage.tsx` "Ver Auditoria":
+```jsx
+onClick={() => (window.location.hash = '#admin/email-audit')}
+```
+Muda `location.hash` mas app usa **react-router-dom com path-based routing** — hash é ignorado, botão não navega. → **F7-30** (P1).
+
+### Etapa 70 — Canais e status hardcoded
+
+**Descoberta P0**: `AdminChannelsPage.tsx` `emptyChannel()` retorna `color: "bg-primary"` (classe Tailwind). Depois no card: `style={{ backgroundColor: ch.color }}`. Resultado: `background-color: bg-primary;` — valor CSS inválido. Canais criados via UI ficam **sem cor de fundo**. → **F7-10** (P0).
+
+**Descoberta P0**: `STATUS_BADGE[ch.status]` sem fallback — se backend adicionar novo status, `statusInfo` retorna `undefined` e `statusInfo.variant` lança `TypeError`. → **F7-19** (P0).
+
+### Etapa 71 — Tabelas vazias com painéis sempre em 0
+
+**Descoberta P0**: `zapp.provider_message_log` = 0 rows. `AdminWhatsAppLogsPage` diz "últimas 150 entradas" mas **tabela COMPLETAMENTE VAZIA**. → **F7-11** (P0).
+
+**Descoberta P0**: `zapp.security_audit_logs` = 0 + `zapp.security_events` = 0. `AdminSecurityLogsPage` KPI "Tentativas Negadas (24h)" mostra `.filter(l => l.status === 'denied').length` — filtra a lista INTEIRA (não corta 24h), e a lista é vazia. Rótulo mente. → **F7-12** (P0).
+
+**Descoberta P0**: `zapp.rate_limit_logs` = 0, `zapp.blocked_ips` = 0, `zapp.ip_whitelist` = 0. `RateLimitDashboard` (489 L) inteiro permanentemente em zero. → **F7-13** (P0).
+
+**Descoberta P1**: `zapp.automation_executions` = 0 rows. `AdminAutomationLogsPage` filtros + tabela sempre vazios. → **F7-20** (P1).
+
+**Descoberta P1**: `zapp.hmac_selftest_audit` = 0 rows. `HmacSelfTestPage` monta `<HmacAuditHistoryPanel>` que consulta essa tabela — sempre vazia. Sem trilha de conformidade. → **F7-18** (P1).
+
+### Etapa 72 — Alert fatigue crítico
+
+**Descoberta P0**: `zapp.webhook_health_alerts` = **734 total, 724 UNRESOLVED (98.6% backlog)**. Título recorrente: `E10-03: N new critical alert(s) during burn-in — 72h counter reset. Investigate before go-live.` — sistema literalmente pede pra não ir a produção, enquanto está em produção. 709/724 são `burnin_critical_alert` do cron 145 (`burnin-monitor`, `*/15`). Nenhuma UI mostra esse backlog. → **F7-14** (P0).
+
+Padrão: 1-2 alertas por hora, contador se reinicia a cada 72h sem ser resolvido — cron gera perpetuamente.
+
+### Etapa 73 — Cron jobs quebrados
+
+**Descoberta P0**: Cron 213 `media_pipeline_health_check` (`0 */4 * * *`) — **9/21 falhas em 7d (42.8%)**. Função `zapp.fn_run_media_health_alert()` faz `INSERT INTO zapp.warroom_alerts` com coluna `severity` que **não existe** e `alert_type='media_pipeline'` que **viola** `chk_warroom_alert_type`. Cascata de fixes incompletos. Health-check do pipeline de mídia morto há semanas. → **F7-15** (P0).
+
+**Descoberta P0**: Cron 100 `analytics-log-retention` (`20 5 * * *`) — **2/2 falhas (100%)**. Erro: `function public.dblink(text, text) does not exist`. Extensão `dblink` NÃO instalada. Tabelas `_analytics.log_events_*` incham indefinidamente. → **F7-16** (P0).
+
+### Etapa 74 — PII em URL
+
+**Descoberta P1**: `AdminInboxSyncStatusPage.tsx`:
+```jsx
+<Link to={`/?contact=${encodeURIComponent(c.remote_jid)}`}>
+```
+`remote_jid` (`5541999999999@s.whatsapp.net`) via URL vaza para logs Traefik + Service Worker + `document.referrer`. → **F7-17** (P1).
+
+### Etapa 75 — Interações inseguras/frágeis
+
+**Descoberta P1**: `AdminEvoApiHealthPage.tsx` botão "Run test suite" dispara 50 testes em prod sem AlertDialog. Label "Rodando 50 testes…" hardcoded. → **F7-22** (P1).
+
+**Descoberta P1**: `AdminEvoApiHealthPage.tsx` — variant baseada em `readiness.overall?.includes('🟢')` — se backend trocar emoji, todos os banners viram destructive. → **F7-23** (P1).
+
+**Descoberta P1**: `AdminWhatsAppWebhookVerifyCard.tsx` key React `${p.kind}-${p.created_at}` — duplicáveis. → **F7-24** (P1).
+
+### Etapa 75b — Webhook Cloud API silencioso há 90 dias
+
+**Descoberta P0**: `zapp.whatsapp_cloud_webhook_pings` = 173 rows, **zero nas últimas 24h, zero nos últimos 7 dias**. Última entrada: `2026-05-04 10:30 UTC`. `AdminWhatsAppWebhookVerifyCard` "Recebimento de eventos (últimas 24h)" sempre zero. Sem alertagem sobre condição prolongada. → **F7-25** (P0).
+
+### Análises UX/dead-code
+
+**P0**: `HmacSelfTestPage.tsx` useEffect com dependência `[run]` — se `run` não estiver em `useCallback`, dispara em loop infinito. Risco de DDOS acidental na edge function `webhook-hmac-selftest`. → **F7-21** (P0).
+
+**P0**: `SelfHostedHealthPage.tsx` sem AbortController; erros mantêm results stale. → **F7-31** (P0).
+
+**P1 outros**: `AdminQueuesPage` `NOT_IMPLEMENTED` toast em prod (F7-26); `AdminProvidersPage` promete "health-check 2min" mas `provider_configs` vazia (F7-27); `AdminSecurityLogsPage` comentário `{/* Adicionar mais cards */}` em prod (F7-28); `AdminFailedAuthMessagesPage` sem validação `from > to` (F7-29); `AdminAutomationLogsPage` paginação 0-indexed (F7-32).
+
+---
+
+## Achados do Bloco 7 (32 itens registrados em `PLANO_IMPLEMENTACAO_100.md` Tema 13)
+
+### JSX quebrado — texto literal renderizado
+
+- **F7-01** (P0) — `PerformanceDashboard.tsx`: `// @technical` renderizado como texto em 3 blocos JSX.
+- **F7-02** (P0) — `AdminBridgeStatusPage.tsx`: mesmo bug após `</p>`.
+- **F7-03** (P0) — `AdminEmailAuditPage.tsx`: mesmo bug dentro de `<Badge>` children.
+
+### Dashboards mock / hardcoded
+
+- **F7-04** (P0) — `AdminBridgeStatusPage.tsx` latência `'42ms'` e uptime `'99.9%'` hardcoded.
+- **F7-05** (P0) — `AuditEvidenceDashboard.tsx` página inteira é mock estático.
+
+### PerformanceDashboard
+
+- **F7-06** (P0) — `setLastLastUpdate` (typo com `Last` duplicado).
+- **F7-07** (P0) — normalização de progress bar hardcoded a 4000.
+- **F7-08** (P1) — polling 500x/h sem `document.visibilityState` check.
+
+### Rotas inexistentes / navegação quebrada
+
+- **F7-09** (P0) — `AdminInboxSyncStatusPage` linka para `/admin/webhook-overview` inexistente.
+- **F7-30** (P1) — `AdminEmailStatusPage` usa `location.hash =` em app path-based.
+
+### Estados / configurações inconsistentes
+
+- **F7-10** (P0) — `AdminChannelsPage` cor Tailwind como inline style (background-color inválido).
+- **F7-19** (P0) — `STATUS_BADGE[ch.status]` sem fallback (TypeError).
+
+### Tabelas vazias / painéis inúteis
+
+- **F7-11** (P0) — `provider_message_log` = 0 rows.
+- **F7-12** (P0) — `security_audit_logs` = 0 rows + rótulo "24h" mente.
+- **F7-13** (P0) — `rate_limit_logs`, `blocked_ips`, `ip_whitelist` = 0 todas.
+- **F7-18** (P1) — `hmac_selftest_audit` = 0 rows.
+- **F7-20** (P1) — `automation_executions` = 0 rows.
+
+### Alert fatigue / infra quebrada
+
+- **F7-14** (P0) — `webhook_health_alerts` 724 unresolved (98.6%).
+- **F7-15** (P0) — Cron 213 42.8% falha por schema mismatch.
+- **F7-16** (P0) — Cron 100 100% falha por `dblink` não instalada.
+- **F7-25** (P0) — Cloud API webhook sem tráfego há 90 dias.
+
+### Segurança secundária / PII
+
+- **F7-17** (P1) — `remote_jid` completo em URL query.
+
+### UX / interações inseguras
+
+- **F7-21** (P0) — `HmacSelfTestPage` useEffect com `[run]` — risco de loop infinito.
+- **F7-22** (P1) — "Run test suite" sem confirmação; label hardcoded.
+- **F7-23** (P1) — decisão baseada em `overall?.includes('🟢')`.
+- **F7-24** (P1) — chave React `${kind}-${created_at}` — duplicáveis.
+- **F7-31** (P0) — `SelfHostedHealthPage` sem AbortController.
+
+### Dead code / TODO em produção
+
+- **F7-26** (P1) — `AdminQueuesPage` helper `NOT_IMPLEMENTED`.
+- **F7-27** (P1) — `AdminProvidersPage` promete "health-check 2min" mas `provider_configs` vazia.
+- **F7-28** (P1) — `AdminSecurityLogsPage` comentário `{/* Adicionar mais cards */}`.
+- **F7-29** (P1) — `AdminFailedAuthMessagesPage` sem validação `from > to`.
+- **F7-32** (P1) — `AdminAutomationLogsPage` paginação 0-indexed.
 
 ---
 
 ## Retomada — próximo chat
 
-Onde parar de Bloco 6 e o que executar em seguida:
+Onde parar de Bloco 7 e o que executar em seguida:
 
-1. **Bloco 7 — Admin e monitoramento (etapas 66-75):**
-   - Admin webhook overview (`AdminWebhookOverviewPage.tsx`) — cards com total/pending/failed/processed em 1h/24h/7d.
-   - Admin webhook events (`AdminWebhookEventsPage.tsx`) — busca por `remoteJid`, paginação virtual em 171k eventos.
-   - Admin webhook secret status (`AdminWebhookSecretStatusPage.tsx`) — validar assinatura HMAC, secret rotation.
-   - Admin failed messages (`AdminFailedMessagesPage.tsx`) — retry individual/em lote, root cause tag.
-   - Admin alert history (`AdminAlertHistoryPage.tsx`) — filtro por severidade, canal (Slack/e-mail/PagerDuty).
-   - Admin dispatch errors (`AdminDispatchErrorsHistoryPage.tsx`) — cross-ref com `evo.evolution_alerts`.
-   - Admin Evolution API logs (`AdminEvolutionApiLogsPage.tsx`) — filtro por status HTTP (foco 401/429/500).
-   - Admin realtime monitor (`AdminRealtimeMonitorPage.tsx`) — canais ativos, mensagens/s, lag WAL sender.
-   - Admin telemetria (`AdminTelemetriaPage.tsx`) — SLI/SLO, error budget.
-   - Admin search insights (`AdminSearchInsightsPage.tsx`) — termos mais buscados, zero-result queries.
+1. **Bloco 8 — SLA/BPM (etapas 76-80):**
+   - `bpm.bpm_slas`, `bpm.bpm_sla_breaches` — SLI/SLO, quantos SLAs quebrados por queue/canal/agente.
+   - `bpm.bpm_workflow_executions` — workflow builder e engine.
+   - `bpm.bpm_card_activities`, `bpm.bpm_stages` — auditoria de movimentação.
+   - `bpm.bpm_automations`, `bpm.bpm_automation_executions` — regras engatilhadas no BPM.
+   - Cron 198 `bpm-check-breached-slas` (`*/5`) — verificar execuções e falhas.
 
-2. **Bloco 8-10:** roteiro completo em `PLANO_QA_ANALISE_100.md`.
+2. **Bloco 9-10:** roteiro completo em `PLANO_QA_ANALISE_100.md`.
 
-**Contexto crítico do Bloco 6 para o próximo chat:**
-- 16 achados P0 identificados — priorizar F6-02 (add não cria instância), F6-03 (fontes divergentes), F6-05 (telemetria corrompida), F6-19 (detecção 401 morta), F6-27 (cross-tenant leak potencial) na correção.
-- `evo.evolution_instance_credentials` deveria ser fonte canonical mas cron sync usa `whatsapp_connections`; sistema de duas fontes com drift permanente.
-- Multi-instância é fantasia com fn_alert_wpp2_disconnection hardcoded, fn_bootstrap_wpp2_instance hardcoded, cron `wpp2_disconnection_watchdog` hardcoded — refactor amplo para escalar.
-- Pairing code (Etapa 58) é feature promised mas nunca implementada. Suporte só a QR.
-- 401 burst detection é **cegueira documentada**: pipeline VPS→DB morto (0 rows em evolution_ip_watch), função sabe disso e insere CHECKLIST no próprio alerta pedindo pra operador consertar. Detecção real depende de GlitchTip (que já funciona) ou reativação do pipeline.
-- Alert fatigue: 1389 alerts em 7d (185/dia), 94% backlog em wpp2_disconnection, 269 unresolved em evolution_alerts. Sinal:ruído colapsou.
+**Contexto crítico do Bloco 7 para o próximo chat:**
+- **17 achados P0** identificados (F7-01, 02, 03, 04, 05, 06, 07, 09, 10, 11, 12, 13, 14, 15, 16, 19, 21, 25, 31).
+- **Bugs de JSX literal (F7-01, 02, 03)**: `// @technical` renderizado como texto em 3 páginas. Fix mecânico (regex sweep + `react/jsx-no-comment-textnodes` ESLint rule).
+- **Mock em prod (F7-04, F7-05)**: `AdminBridgeStatusPage` "42ms" hardcoded, `AuditEvidenceDashboard` inteira estática.
+- **Tabelas vazias (F7-11, 12, 13, 18, 20)**: 5 tabelas críticas com 0 rows, 5 páginas admin sempre em EmptyState. Diagnóstico caso a caso: instrumentação broken vs. features não implementadas.
+- **Alert fatigue máximo (F7-14)**: `webhook_health_alerts` com 724 unresolved (98.6%), sistema pede "não vá pra prod" perpetuamente. Cron 145 gerando 1-2 alerts/hora. Decisão política + auto-resolve trigger.
+- **Crons quebrados (F7-15, F7-16)**: 213 (media_pipeline_health) 43% falha por schema mismatch em warroom_alerts; 100 (analytics-log-retention) 100% falha por dblink não instalada. Fixes: schema audit da fn_run_media_health_alert + `CREATE EXTENSION dblink`.
+- **Cloud API silencioso 90 dias (F7-25)**: `whatsapp_cloud_webhook_pings` sem entradas desde 2026-05-04.
+- **Rota inexistente (F7-09)**: `AdminInboxSyncStatusPage` linka `/admin/webhook-overview` — página não existe.
+- **PII em URL (F7-17)**: remote_jid completo em query string vaza para logs Traefik + Referer.
+- **Segurança/UX (F7-21, F7-31)**: HmacSelfTestPage risco loop infinito; SelfHostedHealthPage sem AbortController.
 
-**Documentos ao final desta sessão (6 blocos concluídos):**
+**Documentos ao final desta sessão (7 blocos concluídos):**
 - `docs/audits/PLANO_QA_ANALISE_100.md` — roteiro (não alterado).
-- `docs/audits/PLANO_IMPLEMENTACAO_100.md` — 123 achados nos Temas 1-12.
+- `docs/audits/PLANO_IMPLEMENTACAO_100.md` — 155 achados nos Temas 1-13.
 - `docs/audits/RELATORIO_EXECUCAO_ANALISE.md` — este documento.
