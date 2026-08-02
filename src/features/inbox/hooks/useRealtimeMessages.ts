@@ -424,7 +424,7 @@ export function useRealtimeMessages() {
 
     log.info('Subscribing to realtime', { source: 'dbTable' });
 
-    const channelName = `messages-realtime-${Math.random().toString(36).slice(2, 9)}`;
+    const channelName = 'messages-realtime'; // F4-03: nome determinístico — 1 channel estável por sessão (sem Math.random() no nome)
     logMessagesSubscribe('useRealtimeMessages', { event: 'INSERT', table: dbTable('messages') });
     logMessagesSubscribe('useRealtimeMessages', { event: 'UPDATE', table: dbTable('messages') });
     logMessagesSubscribe('useRealtimeMessages', { event: 'DELETE', table: dbTable('messages') });

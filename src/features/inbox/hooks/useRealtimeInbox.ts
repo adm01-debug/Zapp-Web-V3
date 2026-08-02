@@ -33,6 +33,13 @@ const log = getLogger('useRealtimeInbox');
 // NOTE: hardcoded true → configurável via VITE_USE_EXTERNAL_DB
 const USE_EXTERNAL_DB = import.meta.env.VITE_USE_EXTERNAL_DB !== 'false';
 
+// F4-08: TTL + sweep do cache de avatares semeados. O Set antigo crescia sem
+// limite (memory leak) e nunca re-seedeava avatares alterados. Cada entrada
+// expira após AVATAR_SEED_TTL_MS e um sweep periódico (a cada 5min) remove as
+// expiradas — o mapa fica limitado aos contatos vistos na janela TTL.
+const AVATAR_SEED_TTL_MS = 30 * 60 * 1000; // 30min
+const AVATAR_SEED_SWEEP_MS = 5 * 60 * 1000; // 5min
+
 export function useRealtimeInbox() {
   const { profile } = useAuth();
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
@@ -140,16 +147,38 @@ export function useRealtimeInbox() {
 
   // Seed avatar cache — only once per contact ID to avoid redundant calls when
   // the conversations array gets a new reference without data changes.
-  const seededAvatarsRef = useRef<Set<string>>(new Set());
+  // F4-08: Map<contactId, lastSeededAt> com TTL — após AVATAR_SEED_TTL_MS a
+  // entrada expira e o avatar pode ser re-semeado (cobre mudança de foto).
+  const seededAvatarsRef = useRef<Map<string, number>>(new Map());
   useEffect(() => {
     if (!conversations || conversations.length === 0) return;
+    const now = Date.now();
     conversations.forEach((c) => {
-      if (c.contact.avatar_url && !seededAvatarsRef.current.has(c.contact.id)) {
+      const lastSeededAt = seededAvatarsRef.current.get(c.contact.id);
+      if (
+        c.contact.avatar_url &&
+        (lastSeededAt === undefined || now - lastSeededAt >= AVATAR_SEED_TTL_MS)
+      ) {
         seedAvatarCache(c.contact.id, c.contact.avatar_url);
-        seededAvatarsRef.current.add(c.contact.id);
+        seededAvatarsRef.current.set(c.contact.id, now);
       }
     });
   }, [conversations]);
+
+  // F4-08: sweep periódico (5min) — remove entradas expiradas para manter o
+  // mapa com tamanho limitado (memory bound) e permitir re-seed futuro.
+  useEffect(() => {
+    const sweep = () => {
+      const now = Date.now();
+      for (const [contactId, lastSeededAt] of seededAvatarsRef.current) {
+        if (now - lastSeededAt >= AVATAR_SEED_TTL_MS) {
+          seededAvatarsRef.current.delete(contactId);
+        }
+      }
+    };
+    const interval = setInterval(sweep, AVATAR_SEED_SWEEP_MS);
+    return () => clearInterval(interval);
+  }, []);
 
   // Load fallback contact if not found in list
   const selectedConversation = useMemo(
