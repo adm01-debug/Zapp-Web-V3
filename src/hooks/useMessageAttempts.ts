@@ -32,6 +32,6 @@ export function useMessageAttempts(messageId: string | null, options?: { enabled
   return {
     data: (result.attempts[0] as MessageAttemptRow | undefined) ?? null,
     isLoading: result.loading,
-    error: null as Error | null,
+    error: result.error,
   };
 }

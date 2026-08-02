@@ -71,7 +71,7 @@ export function AutomationSuggestionsBar({
                   size="sm"
                   variant="ghost"
                   className="h-6 px-2 text-xs ml-auto"
-                  onClick={() => applyRecommendedTag(s.id)}
+                  onClick={() => void applyRecommendedTag(s.id)}
                   title="Aplicar tag ao contato"
                 >
                   Aplicar

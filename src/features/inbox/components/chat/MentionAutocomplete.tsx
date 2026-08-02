@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '@/components/ui/motion';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useMountedRef } from '@/hooks/useMountedRef';
@@ -44,7 +44,7 @@ export function MentionAutocomplete({
         .limit(50);
       if (data && mounted.current) setAgents(data as AgentMention[]); // ignore-audit: narrows Supabase query result to local interface
     };
-    fetchAgents();
+    void fetchAgents();
   }, [mounted]);
 
   // Detect @ mention
@@ -87,11 +87,11 @@ export function MentionAutocomplete({
     [onSelect, mentionStart]
   );
 
-  if (!isOpen || filtered.length === 0) return null;
-
   return (
     <AnimatePresence>
+      {isOpen && filtered.length > 0 && (
       <motion.div
+        key="mention-list"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 8 }}
@@ -125,6 +125,7 @@ export function MentionAutocomplete({
           ))}
         </div>
       </motion.div>
+      )}
     </AnimatePresence>
   );
 }

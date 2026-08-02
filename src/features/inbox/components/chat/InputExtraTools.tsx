@@ -74,7 +74,11 @@ export function InputExtraTools({
             <p className="text-xs text-muted-foreground">Digite / para usar atalhos</p>
           </div>
           <div className="max-h-64 space-y-1 overflow-y-auto p-2">
-            {quickReplies.map((reply) => (
+            {quickReplies.length === 0 ? (
+              <p className="px-3 py-4 text-center text-xs text-muted-foreground">
+                Nenhuma resposta rápida cadastrada
+              </p>
+            ) : quickReplies.map((reply) => (
               <motion.button
                 key={reply.id}
                 whileHover={{ x: 4 }}
@@ -90,6 +94,7 @@ export function InputExtraTools({
               </motion.button>
             ))}
           </div>
+
         </PopoverContent>
       </Popover>
 

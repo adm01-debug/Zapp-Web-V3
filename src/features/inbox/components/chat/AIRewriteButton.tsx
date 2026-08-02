@@ -100,7 +100,7 @@ export function AIRewriteButton({ inputValue, onRewrite, contactName }: AIRewrit
             return (
               <button type="button"
                 key={tone.id}
-                onClick={() => handleRewrite(tone.id)}
+                onClick={() => { void handleRewrite(tone.id); }}
                 disabled={isLoading || !hasText}
                 className={cn(
                   "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-left transition-colors",

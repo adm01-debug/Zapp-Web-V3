@@ -20,7 +20,7 @@
 import { memo, useMemo } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CheckCheck, Check, Clock, AlertCircle, Eye, TrendingUp, Users } from 'lucide-react';
-import { format, isToday, isYesterday } from 'date-fns';
+import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useDeliveryStats } from '@/hooks/useDeliveryStats';
@@ -123,7 +123,9 @@ export const MessageStatusPanel = memo(function MessageStatusPanel({
       : (message.contact_id ?? undefined)
   );
   const isSent = message.sender === 'agent';
-  const isFailed = TERMINAL_FAILURES.has(message.status as never);
+  const isFailed = TERMINAL_FAILURES.has(
+    message.status as 'failed' | 'failed_auth' | 'failed_retries'
+  );
 
   const lastUpdate = message.status_updated_at ?? message.updated_at ?? null;
   const sentStamp = message.created_at ?? message.timestamp ?? null;
@@ -162,7 +164,7 @@ export const MessageStatusPanel = memo(function MessageStatusPanel({
     return [
       {
         reached: true,
-        label: 'Enviada',
+        label: 'Recebida',
         stamp: formatStamp(sentStamp),
         icon: <Check className="h-3 w-3" />,
       },
@@ -307,7 +309,8 @@ export const MessageStatusPanel = memo(function MessageStatusPanel({
                     }}
                     itemStyle={{ padding: '0px' }}
                     labelFormatter={
-                      ((label: string | number) => format(new Date(label), 'HH:mm')) as never
+                      ((label: string | number) =>
+                        format(parseISO(String(label).replace(' ', 'T')), 'HH:mm')) as never
                     }
                   />
                   <Line

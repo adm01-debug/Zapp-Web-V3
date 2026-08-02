@@ -18,7 +18,7 @@ export function useChatDragAndDrop(fileUploaderRef: React.RefObject<FileUploader
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    dragCounterRef.current--;
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
     if (dragCounterRef.current === 0) setIsDraggingOver(false);
   }, []);
 

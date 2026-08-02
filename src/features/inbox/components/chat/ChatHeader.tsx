@@ -38,7 +38,7 @@ interface ChatHeaderProps {
   showAIAssistant: boolean;
   showDetails: boolean;
   voiceId: string;
-  speed: number;
+  speed?: number;
   onToggleAIAssistant: () => void;
   onToggleDetails: () => void;
   onStartCall: () => void;
@@ -46,7 +46,7 @@ interface ChatHeaderProps {
   onOpenTransfer: () => void;
   onOpenSchedule: () => void;
   onVoiceChange: (voiceId: string) => void;
-  onSpeedChange: (speed: number) => void;
+  onSpeedChange?: (speed: number) => void;
   onBack?: () => void;
   onCloseConversation?: () => void;
   onGenerateSummary?: (tool?: string) => void;
@@ -94,7 +94,7 @@ export const ChatHeader = memo(function ChatHeader({
     isExternalConfigured ? (conversation.contact.phone ?? undefined) : undefined
   );
   const _briefing = intel?.found ? intel.briefing : null;
-  const { avatarUrl } = useContactAvatar(conversation.contact.id, conversation.contact.avatar);
+  const { avatarUrl } = useContactAvatar(conversation.contact.remote_jid, conversation.contact.avatar);
   const { density, cycleDensity } = useDensity();
 
   return (

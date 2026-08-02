@@ -54,6 +54,11 @@ export function useChatQuickReplyControl({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      if (e.key === 'Escape' && quickRepliesOpen) {
+        e.preventDefault();
+        closeQuickReplies();
+        return;
+      }
       if (quickRepliesOpen && filtered.length > 0) {
         if (e.key === 'ArrowDown') {
           e.preventDefault();
@@ -69,11 +74,6 @@ export function useChatQuickReplyControl({
           e.preventDefault();
           const sel = filtered[selectedIndex];
           if (sel) handleQuickReply(sel);
-          return;
-        }
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          closeQuickReplies();
           return;
         }
       }

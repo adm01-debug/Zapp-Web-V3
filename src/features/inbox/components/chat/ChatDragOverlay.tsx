@@ -11,6 +11,7 @@ export function ChatDragOverlay({ isDraggingOver }: ChatDragOverlayProps) {
     <AnimatePresence>
       {isDraggingOver && (
         <motion.div
+          key="drag-overlay"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

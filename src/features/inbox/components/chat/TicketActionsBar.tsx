@@ -94,7 +94,7 @@ export function TicketActionsBar({ contactId, onOpenHistory }: TicketActionsBarP
     };
   }, []);
 
-  const meta = STATUS_META[status];
+  const meta = STATUS_META[status] ?? STATUS_META.open;
   const Icon = meta.icon;
   const isMine = assignedTo && profile?.id === assignedTo;
   const assignedProfile = useMemo(
@@ -106,6 +106,8 @@ export function TicketActionsBar({ contactId, onOpenHistory }: TicketActionsBarP
     setIsRouting(true);
     try {
       await atribuirAuto();
+    } catch (err) {
+      console.error('[TicketActionsBar] atribuirAuto failed:', err);
     } finally {
       if (mountedRef.current) setIsRouting(false);
     }

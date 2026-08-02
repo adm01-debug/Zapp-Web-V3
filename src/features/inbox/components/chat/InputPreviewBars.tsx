@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from '@/components/ui/motion';
 import { Pencil, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ReplyPreview } from '../ReplyQuote';
@@ -22,13 +22,14 @@ export function InputPreviewBars({
     <>
       <AnimatePresence>
         {replyToMessage && !editingMessage && (
-          <ReplyPreview message={replyToMessage} onCancel={onCancelReply} />
+          <ReplyPreview key="reply-preview" message={replyToMessage} onCancel={onCancelReply} />
         )}
       </AnimatePresence>
 
       <AnimatePresence>
         {editingMessage && (
           <motion.div
+            key="editing-preview"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -50,7 +51,7 @@ export function InputPreviewBars({
                 variant="ghost"
                 size="sm"
                 className="h-8 shrink-0 rounded-full border border-destructive/20 px-3 text-xs font-bold text-destructive transition-all hover:bg-destructive/10 hover:text-destructive"
-                onClick={onCancelEdit}
+                onClick={() => onCancelEdit?.()}
               >
                 <X className="mr-1 h-3.5 w-3.5" />
                 Cancelar Edição

@@ -3,7 +3,7 @@ import { isFeatureEnabled } from '@/lib/featureFlags';
 import { cn } from '@/lib/utils';
 import { Message } from '@/types/chat';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from '@/components/ui/motion';
 import { RichTextToolbar } from './RichTextToolbar';
 import { AIRewriteButton } from './AIRewriteButton';
 import { MentionAutocomplete, useMentions } from './MentionAutocomplete';
@@ -263,6 +263,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
       <AnimatePresence>
         {logic.attachments.length > 0 && (
           <motion.div
+            key="attachments-preview"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -302,6 +303,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
                   )}
                   <button
                     type="button"
+                    aria-label={`Remover anexo ${att.file.name}`}
                     onClick={() => logic.removeAttachment(att.id)}
                     className="absolute right-1 top-1 rounded-full bg-background/80 p-0.5 text-foreground opacity-0 transition-opacity hover:bg-destructive hover:text-foreground group-hover:opacity-100"
                   >
@@ -322,6 +324,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
       <AnimatePresence>
         {(isSending || getQueueLength(props.queue) > 0) && (
           <motion.div
+            key="queue-progress"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -437,7 +440,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
           enquanto envia e a fila está vazia, para não duplicar com a barra de fila acima. */}
       <AnimatePresence>
         {isSending && sendProgress > 0 && getQueueLength(props.queue) === 0 && (
-          <ChatSendProgress isSending={isSending} sendProgress={sendProgress} />
+          <ChatSendProgress key="send-progress" isSending={isSending} sendProgress={sendProgress} />
         )}
       </AnimatePresence>
       <div
@@ -452,6 +455,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
         <AnimatePresence>
           {isRecordingAudio && isV2AudioEnabled && (
             <motion.div
+              key="audio-recorder"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
@@ -465,7 +469,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 rounded-full border border-destructive/20 bg-destructive/10 px-2 py-0.5">
-                  <span className="text-[10px] font-bold text-destructive">LIVE</span>
+                  <span className="text-[10px] font-bold text-destructive">AO VIVO</span>
                 </div>
               </div>
               <AudioRecorder onSend={onAudioSend} onCancel={onAudioCancel} />
@@ -490,7 +494,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
               </span>
             </div>
             <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-success">
-              <Check className="h-3 w-3" /> Online
+              <Check className="h-3 w-3" /> Ativo
             </div>
           </div>
         )}
@@ -555,6 +559,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
               <AnimatePresence>
                 {logic.showMarkdownPreview && logic.hasText && logic.showRichToolbar && (
                   <motion.div
+                    key="markdown-preview"
                     initial={{ opacity: 0, scale: 0.98 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.98 }}
@@ -634,7 +639,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
                       ? 'Responder mensagem'
                       : 'Digite sua mensagem'
                 }
-                aria-describedby={logic.charCount > 0 ? 'char-counter' : undefined}
+                aria-describedby={logic.charCount > 100 ? 'char-counter' : undefined}
               />
               {logic.charCount > 100 && (
                 <span
@@ -825,26 +830,29 @@ export function ChatInputArea(props: ChatInputAreaProps) {
           </div>
         </div>
 
-        {logic.isMobile && logic.hasText && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="scrollbar-none mt-1.5 flex items-center gap-1.5 overflow-x-auto pb-0.5"
-          >
-            <AIRewriteButton
-              inputValue={inputValue}
-              contactName={contactName}
-              onRewrite={(newText) => setNativeValue(inputRef, newText)}
-            />
-            <RichTextToggle
-              active={logic.showRichToolbar}
-              onToggle={() => logic.setShowRichToolbar(!logic.showRichToolbar)}
-            />
-            <CustomEmojiPicker onSendEmoji={onSendCustomEmoji} />
-            <StickerPicker onSendSticker={onSendSticker} />
-          </motion.div>
-        )}
+        <AnimatePresence>
+          {logic.isMobile && logic.hasText && (
+            <motion.div
+              key="mobile-quick-tools"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="scrollbar-none mt-1.5 flex items-center gap-1.5 overflow-x-auto pb-0.5"
+            >
+              <AIRewriteButton
+                inputValue={inputValue}
+                contactName={contactName}
+                onRewrite={(newText) => setNativeValue(inputRef, newText)}
+              />
+              <RichTextToggle
+                active={logic.showRichToolbar}
+                onToggle={() => logic.setShowRichToolbar(!logic.showRichToolbar)}
+              />
+              <CustomEmojiPicker onSendEmoji={onSendCustomEmoji} />
+              <StickerPicker onSendSticker={onSendSticker} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </>
   );

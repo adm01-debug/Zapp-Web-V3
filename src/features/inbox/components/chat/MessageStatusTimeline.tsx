@@ -97,7 +97,7 @@ export const MessageStatusTimeline = memo(function MessageStatusTimeline({
           label: 'Na fila',
           description: 'Mensagem aceita pelo backend e aguardando envio.',
           icon: Clock,
-          state: currentRank >= 0 ? 'done' : 'current',
+          state: currentRank >= 0 || isFailed ? 'done' : 'current',
           timestamp: createdAt,
         },
         {
@@ -106,7 +106,7 @@ export const MessageStatusTimeline = memo(function MessageStatusTimeline({
           description: 'Saiu do servidor em direção ao WhatsApp.',
           icon: Send,
           state: stateFor(1),
-          timestamp: isCurrent(1) ? statusAt ?? null : currentRank > 1 ? null : null,
+          timestamp: isCurrent(1) ? statusAt ?? null : currentRank > 1 ? createdAt : null,
           approximate: currentRank > 1,
         },
         {
@@ -150,13 +150,13 @@ export const MessageStatusTimeline = memo(function MessageStatusTimeline({
       },
       {
         key: 'read',
-        label: status === 'read' ? 'Visualizada' : 'Não visualizada',
-        description: status === 'read'
+        label: effectiveStatus === 'read' ? 'Visualizada' : 'Não visualizada',
+        description: effectiveStatus === 'read'
           ? 'Você abriu e marcou como visualizada.'
           : 'A mensagem ainda não foi visualizada.',
         icon: CheckCheck,
-        state: status === 'read' ? 'done' : 'pending',
-        timestamp: status === 'read' ? statusAt ?? null : null,
+        state: effectiveStatus === 'read' ? 'done' : 'pending',
+        timestamp: effectiveStatus === 'read' ? statusAt ?? null : null,
       },
     ];
 

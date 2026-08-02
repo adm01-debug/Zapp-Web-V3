@@ -170,9 +170,11 @@ export const MessageStatusInline = memo(function MessageStatusInline({
         <MessageStatusTimestamps message={message} className="ml-1" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="top" className="text-[10px] px-2 py-1 bg-popover/95 border-border/40 backdrop-blur-md">
-          {tooltip}
-        </TooltipContent>
+        {tooltip && (
+          <TooltipContent side="top" className="text-[10px] px-2 py-1 bg-popover/95 border-border/40 backdrop-blur-md">
+            {tooltip}
+          </TooltipContent>
+        )}
       </Tooltip>
     </MessageStatusPanel>
   );

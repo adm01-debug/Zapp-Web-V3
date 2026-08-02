@@ -285,7 +285,7 @@ export const ChatMessagesArea = memo(
           if (onLoadOlder) {
             isFetchingOlderRef.current = true;
             prevScrollHeightRef.current = container.scrollHeight;
-            Promise.resolve(onLoadOlder())
+            void Promise.resolve(onLoadOlder())
               .finally(() => {
                 setTimeout(() => {
                   isFetchingOlderRef.current = false;
@@ -311,7 +311,8 @@ export const ChatMessagesArea = memo(
 
       const handleMessageDeleted = useCallback((id: string) => {
         log.info('Message deleted:', id);
-      }, []);
+        void queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() });
+      }, [queryClient]);
 
       const registerRef = useCallback((el: HTMLDivElement | null) => {
         if (!el) return;
@@ -351,7 +352,7 @@ export const ChatMessagesArea = memo(
               <EmptyState
                 icon={Clock}
                 title="Nenhuma mensagem ainda"
-                description="As mensagens aparecerao aqui quando a conversa comecar"
+                description="As mensagens aparecerão aqui quando a conversa começar"
                 illustration="messages"
                 size="sm"
               />
@@ -365,7 +366,7 @@ export const ChatMessagesArea = memo(
                   <Lock className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="mb-1 text-[14px] font-bold">Criptografia de Ponta a Ponta</h3>
-                <p className="text-[12px] text-muted-foreground">As mensagens sao protegidas.</p>
+                <p className="text-[12px] text-muted-foreground">As mensagens são protegidas.</p>
               </div>
             </div>
           )}
@@ -390,7 +391,7 @@ export const ChatMessagesArea = memo(
               };
               return (
                 <div
-                  key={message.id || virtualRow.index}
+                  key={message.id ?? virtualRow.index}
                   data-index={virtualRow.index}
                   ref={virtualizer.measureElement}
                   style={{
@@ -444,6 +445,7 @@ export const ChatMessagesArea = memo(
           <AnimatePresence>
             {showScrollBottom && (
               <motion.div
+                key="scroll-to-bottom"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}

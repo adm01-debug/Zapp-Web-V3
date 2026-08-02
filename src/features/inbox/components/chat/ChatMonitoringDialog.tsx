@@ -21,7 +21,7 @@ const EMPTY_METRICS: QueueMetrics = {
 export function ChatMonitoringDialog({ open, onOpenChange, metrics }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-4xl">
+      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Métricas de Envio e Performance</DialogTitle>
         </DialogHeader>

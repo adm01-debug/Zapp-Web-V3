@@ -171,7 +171,7 @@ export function MessageBubbleBody({
             text={message.content}
             className={cn(
               'whitespace-pre-wrap text-[15px] leading-[1.6] tracking-tight',
-              highlightedMessageIds?.has(message.id) ? '' : ''
+              highlightedMessageIds?.has(message.id) ? 'bg-primary/10 ring-1 ring-primary/30 rounded' : ''
             )}
             showPreviews={!message.isWhisper}
             maxPreviews={1}
