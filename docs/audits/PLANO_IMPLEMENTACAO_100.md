@@ -5,7 +5,7 @@
 
 Convenção de ID: `F<bloco>-<seq>` — ex. `F1-01` = primeiro achado do bloco 1 da análise.
 
-**Total de achados até agora: 183** (14 Bloco 1 + 13 Bloco 2 + 12 Bloco 3 + 24 Bloco 4 + 30 Bloco 5 + 30 Bloco 6 + 32 Bloco 7 + 17 Bloco 8 + 11 Bloco 9A).
+**Total de achados até agora: 191** (14 Bloco 1 + 13 Bloco 2 + 12 Bloco 3 + 24 Bloco 4 + 30 Bloco 5 + 30 Bloco 6 + 32 Bloco 7 + 17 Bloco 8 + 11 Bloco 9A + 8 Bloco 9B).
 
 ---
 
@@ -1637,3 +1637,150 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
   2. Adicionar `p_batch_size integer DEFAULT 500` e aplicar `WHERE id IN (SELECT id FROM ... LIMIT p_batch_size)` no UPDATE.
   3. Revisar as demais funções do schema pelo mesmo antipadrão: `SELECT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN ('evo','zapp') AND pg_get_functiondef(p.oid) ILIKE '%WHEN OTHERS THEN NULL%'`.
 - **Aceite:** `pg_get_functiondef('evo.fn_flag_poison_messages')` não contém a string `THEN NULL` e o `jsonb` de retorno inclui a chave `alert_insert_failed`.
+
+---
+
+## Tema 15B — Resiliência e edge cases (Bloco 9B, etapas 86-90)
+
+**Executado em:** 2026-08-02 · **Etapas:** 86 (deadman switch), 87 (race condition no envio), 88 (idempotência), 89 (timeouts), 90 (circuit breaker).
+**Achados:** 8 (F9-12..F9-19) — 2 CRÍTICO, 2 ALTO, 4 MÉDIO.
+
+**Correções de premissa do roteiro (etapas que passaram sem achado próprio):**
+- **Etapa 87 — CONFORME.** A constraint `uq_msg_msgid_instance` **existe** em `evo.evolution_messages` (tabela particionada), e cada partição carrega seu índice único equivalente `evolution_messages_<part>_message_id_instance_name_key` (22 partições verificadas). A nota da sessão anterior — "Plano A menciona mas não existe" — nasceu de consultar `zapp.messages`, que é **VIEW**; constraints não são visíveis pela view. Proteção contra envio duplicado está de pé.
+- **Etapa 88 — volume corrigido.** `zapp.webhook_events_processed` tem **108.894 rows**, não as 171k do roteiro. A diferença é retenção: o cron 152 `purge_webhook_events_processed` (`30 4 * * *`) mantém janela de **3,45 dias** e roda `succeeded` diariamente.
+- **Etapa 90 — janela inexistente.** O roteiro descreve "5 falhas em 10s". O breaker real conta **falhas consecutivas sem janela temporal** (`failureThreshold: 5`, cooldown 30.000 ms). Não há critério de 10s em nenhuma das três implementações.
+
+---
+
+### F9-12 — CRÍTICO (P0): o deadman switch do guardian é auto-alimentado por um cron — nunca poderá disparar
+
+- **Origem:** Etapa 86 (Bloco 9B).
+- **Evidência:**
+  - `evo.fn_check_guardian_alive()` (cron 188) alerta quando `now() - max(heartbeat_at) > 15 min` para `service_name='swarm-task-guardian'`.
+  - O cron **193** (`guardian-db-heartbeat-resilient`, `*/5 * * * *`) executa, sem qualquer verificação de vitalidade do serviço:
+    ```sql
+    INSERT INTO evo.evolution_guardian_heartbeat (service_name, heartbeat_at)
+    VALUES ('swarm-task-guardian', NOW()) ON CONFLICT ... DO NOTHING;
+    ```
+    Grava o **mesmo `service_name`** que o guardian real usaria. O gap monitorado nunca passa de 5 min por construção.
+  - Prova de origem: `SELECT COALESCE(details->>'source','(cron 193 direto)'), count(*) FROM evo.evolution_guardian_heartbeat GROUP BY 1` → **uma única linha: 2.168 heartbeats, todos sem `details`**. A função que representaria o guardian real (`fn_sync_guardian_heartbeat`) grava `details->>'source'='dblink'` — **zero ocorrências**.
+  - Cadência confirma a autoria: **288 heartbeats nas últimas 24h** = exatamente 1440/5, a frequência do cron 193.
+  - Efeito observável: os alertas `guardian_heartbeat_missing` em `evo.evolution_alerts` cessaram em **2026-07-15** (3 no total: 12/07, 13/07, 15/07) — o silêncio desde então é o cron mascarando, não o serviço saudável. **0 alertas abertos hoje**.
+- **Ação:**
+  1. Alterar o cron 193 para gravar `service_name='pg-cron-liveness'` — o propósito declarado no próprio comentário do comando é "provar que o banco está processando crons", que é um sinal **diferente** de vitalidade do guardian.
+  2. Ajustar `fn_check_guardian_alive` para filtrar exclusivamente heartbeats com `details->>'source'='dblink'`, ignorando qualquer origem sintética.
+  3. Validar após o fix: com o cron 131 ainda quebrado (F9-13), o alerta `guardian_heartbeat_missing` deve voltar a disparar em ≤15 min.
+- **Aceite:** `SELECT count(DISTINCT service_name) FROM evo.evolution_guardian_heartbeat WHERE heartbeat_at > now()-interval '1h'` retorna `2` (guardian real + liveness do cron), hoje retorna `1`.
+
+### F9-13 — ALTO (P0): `fn_sync_guardian_heartbeat` quebrada há 7+ dias por `search_path` sem `zapp`, com a falha convertida em `succeeded` pelo cron
+
+(cross-ref: F9-12)
+
+- **Origem:** Etapa 86 (Bloco 9B).
+- **Evidência:**
+  - Execução direta da função hoje: `SELECT evo.fn_sync_guardian_heartbeat()` →
+    ```json
+    {"status":"error","message":"function dblink(text, unknown) does not exist","checked_at":"2026-08-02T12:15:41-03"}
+    ```
+  - Causa raiz é resolução de schema, não ausência de extensão: `pg_extension` reporta `dblink` versão **1.2 instalada**, mas as 4 sobrecargas da função vivem em **`zapp.dblink(...)`** — enquanto a função declara `SET search_path TO 'evo', 'vault'`. `zapp` não está no caminho. (Drift adicional: `pg_extension.extnamespace` ainda aponta para `public`, onde há **0 funções `dblink`**.)
+  - Pré-requisitos de credencial estão **corretos** — não é problema de segredo: `vault.decrypted_secrets` tem `evolution_pg_password` com valor válido (`PRESENTE_VALIDO`), e o fallback `evo._secure_config` está corretamente marcado `[MIGRADO PARA VAULT ...]`.
+  - Mascaramento: o `EXCEPTION WHEN OTHERS` final retorna JSON de erro **sem re-raise**. O cron 131 acumula **729 execuções, 0 falhas**, `last_msg='1 row'` — sucesso reportado para uma função que não faz nada há mais de 7 dias.
+  - Consequência combinada com F9-12: nenhum heartbeat real jamais chegou ao banco, e nada alertou.
+- **Ação:**
+  1. `ALTER FUNCTION evo.fn_sync_guardian_heartbeat(text) SET search_path TO 'evo','vault','zapp';` — ou, preferencialmente, qualificar a chamada como `zapp.dblink(...)` no corpo, tornando-a imune a search_path.
+  2. Trocar o `EXCEPTION WHEN OTHERS` por `RAISE WARNING` antes do `RETURN`, para que a falha apareça nos logs do pg_cron.
+  3. Fazer o cron 131 falhar de fato quando `status='error'`: envolver com `SELECT CASE WHEN (evo.fn_sync_guardian_heartbeat()->>'status')='error' THEN 1/0 END` ou registrar em `zapp.warroom_alerts`.
+- **Aceite:** `SELECT count(*) FROM evo.evolution_guardian_heartbeat WHERE details->>'source'='dblink' AND heartbeat_at > now()-interval '30 minutes'` retorna `>= 1` (hoje: 0 em todo o histórico).
+
+### F9-14 — MÉDIO (P1): a "resiliência" do heartbeat é ilusória — os dois destinos são a mesma tabela física
+
+- **Origem:** Etapa 86 (Bloco 9B).
+- **Evidência:**
+  - O cron 193 chama-se `guardian-db-heartbeat-resilient` e faz **dois INSERTs**, um em `zapp.evolution_guardian_heartbeat` e outro em `evo.evolution_guardian_heartbeat`, sugerindo redundância entre destinos independentes.
+  - `pg_class.relkind` desmente: `evo.evolution_guardian_heartbeat` = **TABELA**; `zapp.evolution_guardian_heartbeat` = **VIEW**, com `pg_get_viewdef` = `SELECT ... FROM evo.evolution_guardian_heartbeat` (passthrough puro, sem filtro).
+  - Confirmação por dados: ambas reportam exatamente **2.167 rows** e o mesmo `max(heartbeat_at)`.
+  - O segundo INSERT sempre colide com a linha que o primeiro acabou de gravar: `return_message` do cron 193 é literalmente **`INSERT 0 0`**. Metade do trabalho do cron é desperdiçada, e a mensagem de retorno registrada no histórico é enganosa (sugere que nada foi inserido).
+  - `fn_check_guardian_alive` herda a ilusão: computa `GREATEST(max(evo...), max(zapp...))` sobre "AMBAS as tabelas", conforme seu próprio comentário — mas são a mesma. Se `evo` for corrompida, os dois braços caem juntos.
+- **Ação:**
+  1. Remover o INSERT redundante em `zapp.evolution_guardian_heartbeat` do comando do cron 193.
+  2. Simplificar `fn_check_guardian_alive` para ler apenas `evo.evolution_guardian_heartbeat`, eliminando o `GREATEST` que finge cobertura dupla.
+  3. Corrigir os comentários de ambos os objetos, que hoje documentam uma redundância inexistente.
+- **Aceite:** `SELECT return_message FROM cron.job_run_details WHERE jobid=193 ORDER BY start_time DESC LIMIT 1` deixa de retornar `INSERT 0 0` e passa a refletir 1 linha inserida.
+
+### F9-15 — MÉDIO (P1): `idempotency_key` é 100% NULL em 108.894 linhas, mantendo um índice único sem função
+
+- **Origem:** Etapa 88 (Bloco 9B).
+- **Evidência:**
+  - `SELECT count(*) FROM zapp.webhook_events_processed WHERE idempotency_key IS NULL` → **108.894 de 108.894 (100%)**. A coluna nunca foi preenchida por nenhum produtor.
+  - O índice `webhook_events_processed_idempotency_key_key` (btree único) existe e é mantido a cada INSERT sobre uma coluna que só contém NULL — custo de escrita sem benefício de leitura. (Não causa erro: o PostgreSQL permite múltiplos NULLs em índice único.)
+  - A idempotência **real** está funcionando, por outra coluna: `webhook_events_processed_event_id_uq` sobre `event_id`. Verificação de duplicatas lógicas: `SELECT count(*) FROM (SELECT instance, message_key_id ... GROUP BY 1,2 HAVING count(*)>1)` → **0**. Nenhum evento processado duas vezes.
+  - Risco: qualquer código futuro que consulte `WHERE idempotency_key = $1` retornará vazio silenciosamente e reprocessará o evento, sem que nada acuse o problema.
+- **Ação:**
+  1. Decidir a coluna canônica. Se `event_id` é a chave (evidência diz que sim), `DROP INDEX zapp.webhook_events_processed_idempotency_key_key` e `ALTER TABLE ... DROP COLUMN idempotency_key`.
+  2. Se `idempotency_key` for requisito de roadmap, popular no produtor e adicionar `CHECK (idempotency_key IS NOT NULL)` para impedir regressão ao estado atual.
+  3. Auditar consumidores antes de remover: `grep -rn "idempotency_key" src/ supabase/functions/`.
+- **Aceite:** a coluna deixa de existir **ou** `SELECT count(*) FROM zapp.webhook_events_processed WHERE idempotency_key IS NULL AND processed_at > now()-interval '1 day'` retorna `0`.
+
+### F9-16 — CRÍTICO (P0): tokens JWT configurados com validade de 365 dias
+
+- **Origem:** Etapa 89 (Bloco 9B).
+- **Evidência:**
+  - `pg_db_role_setting` no nível do banco contém `app.settings.jwt_exp=31536000` — **31.536.000 segundos = 365 dias**.
+  - Referência: o padrão do Supabase é `3600` (1 hora). O valor em produção é **8.760× maior**.
+  - Consequência direta: um access token que vaze por qualquer via — `localStorage` de máquina compartilhada, log de proxy, print de DevTools, extensão de navegador — permanece **válido por um ano**. Logout no cliente não invalida o token já emitido; sem rotação de `jwt_secret`, não há como revogá-lo.
+  - Agrava-se com F9-17: quem obtiver o secret pode forjar tokens com o mesmo horizonte de validade.
+  - Contexto de exposição: ~50 usuários da Promo Brindes operando o inbox, muitos em máquinas compartilhadas de setor.
+- **Ação:**
+  1. Reduzir para `ALTER DATABASE postgres SET app.settings.jwt_exp = 3600;` e reiniciar GoTrue/PostgREST para releitura.
+  2. Confirmar que o refresh token rotation está ativo no GoTrue antes do corte, para não forçar re-login de hora em hora.
+  3. Rotacionar `jwt_secret` no mesmo deploy, invalidando de uma vez todos os tokens de 365 dias já emitidos e em circulação.
+- **Aceite:** `SELECT current_setting('app.settings.jwt_exp')` retorna `3600` (hoje: `31536000`).
+
+### F9-17 — ALTO (P0): `jwt_secret` persistido em texto claro no catálogo, legível por `anon` e `authenticated`
+
+(cross-ref: F9-16)
+
+- **Origem:** Etapa 89 (Bloco 9B).
+- **Evidência:**
+  - `pg_db_role_setting` do banco corrente contém `app.settings.jwt_secret=<40 caracteres>` em texto claro, junto de parâmetros operacionais inócuos (`TimeZone`, `work_mem`, `search_path`).
+  - Permissões medidas: `has_table_privilege('anon','pg_catalog.pg_db_role_setting','SELECT')` = **true**; idem para `authenticated`. `has_function_privilege('anon','pg_catalog.current_setting(text)','EXECUTE')` = **true**. `length(current_setting('app.settings.jwt_secret'))` = **40**.
+  - **Calibração honesta do vetor:** via PostgREST, `anon` não executa SQL arbitrário, e `pg_catalog` não está entre os schemas expostos — não é exploração de um passo. O que este achado quebra é **defesa em profundidade**: qualquer RPC `SECURITY DEFINER` que aceite nome de setting, qualquer SQL injection em função existente, ou qualquer alargamento futuro de schema exposto converte-se imediatamente em vazamento total do secret.
+  - Com o secret em mãos, um atacante forja tokens `service_role` — que ignoram todas as RLS auditadas nos Blocos 3-8 — e, por F9-16, com validade de um ano.
+  - O secret **não deveria estar no banco**: o padrão Supabase é injetá-lo por variável de ambiente em GoTrue/PostgREST, nunca por `ALTER DATABASE SET`.
+- **Ação:**
+  1. `ALTER DATABASE postgres RESET app.settings.jwt_secret;` e garantir que GoTrue/PostgREST leem `JWT_SECRET` do ambiente (Docker Swarm secret).
+  2. Rotacionar o secret no mesmo deploy — o valor atual deve ser considerado comprometido, já que esteve legível a todo role por tempo indeterminado.
+  3. Revogar o acesso amplo ao catálogo, se a versão do PostgREST permitir: `REVOKE SELECT ON pg_catalog.pg_db_role_setting FROM PUBLIC;`
+- **Aceite:** `SELECT current_setting('app.settings.jwt_secret', true)` retorna `NULL` e a autenticação segue funcionando (prova de que a fonte migrou para o ambiente).
+
+### F9-18 — MÉDIO (P1): `authenticated` tem `statement_timeout` de 120s, 4× o padrão do cluster — uma query travada segura a conexão por 2 minutos
+
+- **Origem:** Etapa 89 (Bloco 9B).
+- **Evidência:**
+  - Timeouts efetivos medidos por role: `anon=5s` · `authenticator=8s` · **`authenticated=120s`** · `service_role=herdado` · `postgres=120s`. Default do cluster (`pg_settings`): **30s**.
+  - O roteiro da etapa 89 pergunta pelo comportamento acima de 30s — a resposta é que o usuário logado tem **quatro vezes** essa folga.
+  - Assimetria relevante: `authenticator` (o role de conexão do PostgREST) tem 8s, mas após `SET ROLE authenticated` o limite aplicado passa a ser o do role destino, 120s. O teto baixo do authenticator dá falsa sensação de proteção.
+  - `service_role` sem valor próprio herda os 30s do cluster — edge functions são mais estritas que o navegador do usuário, o inverso do esperado.
+  - Contraste com o EXPLAIN de F9-09: a query mais pesada medida nesta auditoria roda em 16ms. Não há carga legítima conhecida que justifique 120s; o efeito prático é manter conexões do pool ocupadas durante incidentes.
+  - Mitigação parcial já presente: `idle_in_transaction_session_timeout=60s` no nível do banco limita transação ociosa — mas não query ativa.
+- **Ação:**
+  1. `ALTER ROLE authenticated SET statement_timeout = '15s';` — folga confortável sobre os 16ms observados no pior caso.
+  2. Definir explicitamente `ALTER ROLE service_role SET statement_timeout = '60s';` para jobs de backend, em vez de herdar.
+  3. Se algum relatório pesado precisar de mais, isolá-lo em RPC própria com `SET LOCAL statement_timeout` no corpo da função.
+- **Aceite:** `SELECT (SELECT c FROM unnest(rolconfig) c WHERE c LIKE 'statement_timeout%') FROM pg_roles WHERE rolname='authenticated'` retorna `statement_timeout=15s`.
+
+### F9-19 — MÉDIO (P1): três circuit breakers independentes para a mesma Evolution API, com limiares divergentes e sem estado compartilhado
+
+- **Origem:** Etapa 90 (Bloco 9B).
+- **Evidência:**
+  - Implementação 1 — `src/lib/evolutionCircuitBreaker.ts` (**260 L**): máquina de estados `CLOSED/OPEN/HALF_OPEN`, `failureThreshold: 5`, cooldown **30.000 ms**, estado por instância em memória. Consumidor: `src/lib/evolutionSendRetry.ts:27`.
+  - Implementação 2 — classe `CircuitBreaker` dentro de `src/lib/retryStrategyAudit.ts:241`: `circuitBreakerThreshold: 10`, `circuitBreakerResetMs: 60000`, com `circuitBreakerMap` próprio.
+  - Implementação 3 — objeto literal em `src/integrations/zappweb/evolutionClient.ts:136`: `THRESHOLD: 3`, `OPEN_MS: 30 * 60_000` (**30 minutos**), disparado só por 401/403.
+  - Divergência de política para o **mesmo serviço**: abre com 3, 5 ou 10 falhas; permanece aberto por 30s, 60s ou 30min. Um caminho de código pode estar em `OPEN` enquanto outro segue martelando a Evolution API — nenhum dos três compartilha estado.
+  - O breaker principal não tem janela temporal: conta apenas falhas **consecutivas**. Cinco falhas espaçadas ao longo de uma hora abrem o circuito igual a cinco falhas em um segundo — e um único sucesso intercalado zera o contador, impedindo a abertura sob degradação intermitente (exatamente o cenário da etapa 82).
+  - Estado é in-memory e some no reload — decisão deliberada e documentada no cabeçalho do arquivo, mas significa que N abas do mesmo operador mantêm N circuitos distintos.
+- **Ação:**
+  1. Eleger `src/lib/evolutionCircuitBreaker.ts` como implementação única; migrar `evolutionClient.ts` para consumi-lo, preservando a regra específica de 401/403 como um tipo de falha (não como breaker paralelo).
+  2. Remover a classe `CircuitBreaker` de `retryStrategyAudit.ts` junto com o arquivo, conforme F9-05.
+  3. Adicionar janela deslizante ao breaker canônico (ex.: 5 falhas em 60s) para cobrir degradação intermitente, hoje invisível ao contador consecutivo.
+- **Aceite:** `grep -rln "THRESHOLD\|failureThreshold\|circuitBreakerThreshold" src/ --include=*.ts | grep -v __tests__ | wc -l` retorna `1`.

@@ -636,24 +636,60 @@ Camada de SLA e BPM — `zapp.conversation_sla`, `zapp.sla_*` (9 tabelas), 41 ta
 
 ---
 
+## Bloco 9B — Resiliência e edge cases (etapas 86-90)
+
+**Executado:** 2026-08-02 · **Achados:** 8 (F9-12..F9-19) no Tema 15B do `PLANO_IMPLEMENTACAO_100.md`.
+**Severidade:** 2 CRÍTICO · 2 ALTO · 4 MÉDIO. **Bloco 9 fechado: 19 achados (F9-01..F9-19).**
+
+### O que foi medido
+
+| Etapa | Escopo | Veredito |
+|---|---|---|
+| 86 | Deadman switch (crons 131/188/193) | **Nunca pode disparar** — heartbeat falsificado por cron |
+| 87 | Race condition no envio | **CONFORME** — constraint existe e cobre 22 partições |
+| 88 | Idempotência (`webhook_events_processed`) | Funciona por `event_id`; `idempotency_key` 100% NULL |
+| 89 | Timeouts / `statement_timeout` | **2 achados de segurança graves** fora do escopo previsto |
+| 90 | Circuit breaker | **Três implementações** divergentes para o mesmo serviço |
+
+### Achados P0
+
+- **F9-12 (CRÍTICO)** — O deadman switch do guardian é **auto-alimentado**. `fn_check_guardian_alive` (cron 188) alerta se o heartbeat passar de 15 min, mas o cron 193 injeta `INSERT ... ('swarm-task-guardian', NOW())` a cada 5 min **sem verificar se o serviço está vivo**. Prova de autoria: os **2.168 heartbeats** da tabela vêm todos sem `details` (assinatura do cron); a origem legítima (`details->>'source'='dblink'`) tem **zero ocorrências** em todo o histórico. Os alertas `guardian_heartbeat_missing` cessaram em **15/07** — o silêncio é o cron mascarando, não saúde.
+- **F9-16 (CRÍTICO)** — `app.settings.jwt_exp = 31536000` = **365 dias** de validade de token, contra o padrão Supabase de 3600s. **8.760× maior.** Token vazado (máquina compartilhada, log, DevTools) permanece válido por um ano e não há revogação sem rotacionar o secret. Contexto: ~50 operadores, muitos em máquinas de setor compartilhadas.
+- **F9-13 (ALTO)** — `fn_sync_guardian_heartbeat` (cron 131) está quebrada há 7+ dias: retorna `function dblink(text, unknown) does not exist`. A extensão **está instalada** (v1.2) e o segredo do Vault **é válido** — a causa é `search_path` (`'evo','vault'`) sem `zapp`, que é onde as 4 sobrecargas de `dblink` realmente vivem. O `EXCEPTION WHEN OTHERS` converte o erro em JSON e o cron registra **729 execuções, 0 falhas**.
+- **F9-17 (ALTO)** — `app.settings.jwt_secret` (40 chars) persistido em texto claro em `pg_db_role_setting`, com `anon` e `authenticated` tendo `SELECT` no catálogo e `EXECUTE` em `current_setting`. Não é exploração de um passo (PostgREST não expõe `pg_catalog`), mas anula a defesa em profundidade: qualquer SQL injection ou RPC `SECURITY DEFINER` mal parametrizada vira vazamento total. Combinado com F9-16, permite forjar tokens `service_role` válidos por um ano.
+
+### P1 relevantes
+
+- **F9-14** — `zapp.evolution_guardian_heartbeat` é **VIEW** passthrough de `evo.*`. O cron chamado `guardian-db-heartbeat-resilient` insere nas "duas" — mesma tabela física. O segundo INSERT sempre colide: `return_message` é literalmente `INSERT 0 0`. A redundância é ilusória e `fn_check_guardian_alive` faz `GREATEST` sobre a mesma fonte.
+- **F9-18** — `statement_timeout` por role: `anon=5s`, `authenticator=8s`, **`authenticated=120s`**, default do cluster `30s`. O usuário logado tem 4× a folga do cluster, enquanto a query mais pesada medida nesta auditoria roda em **16ms**.
+- **F9-15** — `idempotency_key` **100% NULL** (108.894/108.894) com índice único mantido a cada INSERT. A idempotência real funciona por `event_id` — 0 duplicatas verificadas.
+- **F9-19** — **Três** circuit breakers para a Evolution API: `evolutionCircuitBreaker.ts` (threshold 5, 30s), `retryStrategyAudit.ts` (10, 60s), `evolutionClient.ts` (3, **30min**). Sem estado compartilhado — um pode estar OPEN enquanto outro martela a API.
+
+### Correções de premissa do roteiro
+
+- **Etapa 87 — a constraint EXISTE.** `uq_msg_msgid_instance` está em `evo.evolution_messages`, com índice único equivalente em cada uma das 22 partições. A nota da sessão anterior ("Plano A menciona mas não existe") veio de consultar `zapp.messages`, que é **VIEW** — constraints não aparecem por view. Proteção contra envio duplicado está de pé.
+- **Etapa 88 — 108.894 rows, não 171k.** A diferença é retenção: cron 152 `purge_webhook_events_processed` mantém janela de 3,45 dias.
+- **Etapa 90 — não existe janela de 10s.** O roteiro descreve "5 falhas em 10s"; o breaker conta falhas **consecutivas** sem janela temporal. Um sucesso intercalado zera o contador — degradação intermitente nunca abre o circuito.
+
+### Padrão sistêmico do Bloco 9 inteiro
+
+Sete dos dezenove achados são a **mesma falha estrutural**: rotina de resiliência que reporta `succeeded` sem fazer trabalho, porque o erro é engolido ou o alvo está errado. F9-01/02 (fila offline sem consumidor), F9-07 (guard no campo errado), F9-09 (roteador na tabela errada), F9-11 e F9-13 (`EXCEPTION WHEN OTHERS` mascarando), F9-12 (heartbeat auto-alimentado). **A instrumentação de resiliência do sistema hoje mede a si mesma, não o serviço.**
+
+---
+
 ## Retomada — próximo chat
 
-1. **Bloco 9B — Resiliência, parte 2 (etapas 86-90):**
-   - 86: Deadman switch → `guardian-heartbeat-sync` (131), `guardian-db-heartbeat-resilient` (193), `check-guardian-alive` (188)
-   - 87: Race condition envio simultâneo → `uq_msg_msgid_instance`
-   - 88: Idempotência → `webhook_events_processed` (171k linhas)
-   - 89: Timeout > 30s → `statement_timeout` PostgREST
-   - 90: Circuit breaker → 5 falhas em 10s (`src/lib/evolutionCircuitBreaker.ts`)
+**Bloco 10 — etapas 91-100 (último bloco):** cross-browser, mobile, acessibilidade, PWA offline, Lighthouse. Roteiro em `PLANO_QA_ANALISE_100.md`.
 
-2. **Bloco 10 — etapas 91-100:** cross-browser, mobile, a11y, PWA offline, Lighthouse. Roteiro em `PLANO_QA_ANALISE_100.md`.
+**Avisos para quem pegar o Bloco 10:**
+- A etapa de **PWA offline** vai colidir com F9-01/F9-02/F9-03 — a fila offline está morta, o SW é stub e o `index.html` desregistra service workers a cada sessão. Não remedir: referenciar e focar no que for novo (manifest, instalabilidade, Lighthouse PWA score).
+- Ao medir crons, lembrar do teto de **3,46 dias** de histórico em `cron.job_run_details`.
+- Cuidado com objetos `zapp.*` que são **VIEW** de `evo.*` — já derrubaram duas premissas nesta auditoria (etapa 87 e F9-14). Confirmar `relkind` antes de concluir ausência de constraint ou de redundância.
 
-**Avisos para quem pegar o Bloco 9B:**
-- Verificar antes de medir se `uq_msg_msgid_instance` (etapa 87) **existe de fato** — sessão anterior registrou que o Plano A menciona a constraint mas ela não foi localizada no banco.
-- A etapa 90 tem código real a auditar: `src/lib/evolutionCircuitBreaker.ts` (1 import de produção, 4 de teste) — checar se o consumidor está no caminho crítico ou se repete o padrão de F9-01.
-- Ao medir crons, lembrar do teto de **3,46 dias** de histórico.
+**Pendência operacional (bloqueia publicação, não a auditoria):**
+- **PAT do GitHub expirado** no container. Há **3 commits locais** aguardando push em `adm01-debug/zapp-web-v3`: `13d0126f7` (HANDOFF 9A), `42ac0c681` (Tema 15) e o commit deste bloco. Trabalho preservado; basta credencial nova.
 
-**Documentos ao final desta sessão (Blocos 1-8 + 9A concluídos):**
+**Documentos ao final desta sessão (Blocos 1-9 concluídos, 90/100 etapas):**
 - `docs/audits/PLANO_QA_ANALISE_100.md` — roteiro fixo (não alterado).
-- `docs/audits/PLANO_IMPLEMENTACAO_100.md` — **183 achados** nos Temas 1-15.
+- `docs/audits/PLANO_IMPLEMENTACAO_100.md` — **191 achados** nos Temas 1-15B.
 - `docs/audits/RELATORIO_EXECUCAO_ANALISE.md` — este documento.
-- `docs/audits/HANDOFF_BLOCO_9A.md` — handoff consumido nesta sessão.
