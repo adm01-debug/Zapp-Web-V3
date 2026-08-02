@@ -5,7 +5,7 @@
 
 Convenção de ID: `F<bloco>-<seq>` — ex. `F1-01` = primeiro achado do bloco 1 da análise.
 
-**Total de achados até agora: 93** (14 Bloco 1 + 13 Bloco 2 + 12 Bloco 3 + 24 Bloco 4 + 30 Bloco 5).
+**Total de achados até agora: 123** (14 Bloco 1 + 13 Bloco 2 + 12 Bloco 3 + 24 Bloco 4 + 30 Bloco 5 + 30 Bloco 6).
 
 ---
 
@@ -627,3 +627,321 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
   2. Migrar dados existentes: rows com `contact_id NOT NULL` vão para tag_suggestions; rows canônicas ficam.
   3. Ajustar `bulk_add_tag` para operar só em canonical + criar tags.
 - **Aceite:** `SELECT COUNT(*) FROM zapp.tags WHERE contact_id IS NOT NULL` = 0 após migração; `zapp.contact_tag_suggestions` popula.
+
+
+---
+
+## Tema 12 — Conexões WhatsApp
+
+_(Achados F6-01 a F6-30 registrados no Bloco 6.)_
+
+### F6-01 — CRÍTICO (P0): pairing code (Etapa 58) 100% AUSENTE do código
+
+- **Origem:** Etapa 58 (Bloco 6).
+- **Evidência:** `grep -rn "pairing\|Pairing\|PAIRING\|pairing_code\|pairingCode" src` retorna **1 hit** — apenas um JSDoc em `useEvolutionApiManagement.ts` linha 296: `"lifecycle operations: create, connect, reconnect, logout, restart, delete, and QR/pairing-code retrieval"`. Nenhuma implementação. `grep -rn "pairing" no banco` também retorna 0 funções.
+- **Ação:**
+  1. Adicionar action `pairing-code` no edge function bridge Evolution.
+  2. Implementar `whatsappConnectionService.requestPairingCode(evoName, phone)` → chama Evolution `/instance/connect?number=<phone>` retornando `{pairingCode: string, code: string}`.
+  3. Adicionar botão "Usar código de emparelhamento" em `QrCodeDialog.tsx` que troca para PairingCodeDialog exibindo o código em formato `XXXX-XXXX`.
+- **Aceite:** `grep -rn "pairing" src/**/*.tsx` retorna implementação real; UI mostra opção "QR" ou "código"; conexão via pairing code funciona em produção.
+
+### F6-02 — CRÍTICO (P0): `handleAddConnection` NÃO chama Evolution `/instance/create` — só INSERT no banco
+
+- **Origem:** Etapa 56 (Bloco 6).
+- **Evidência:** `src/features/connections/hooks/parts/useConnectionsActions.ts` linhas ~44-65: `handleAddConnection` faz `safeClient.single('whatsapp_connections', q => q.insert({...}))` e depois chama `handleShowQrCode` que invoca `whatsappConnectionService.requestQrCode`. Nunca chama `createInstance` do `useEvolutionApi`. Instância só passa a existir no Evolution API se um sync automático (`useEvolutionAutoSync`) depois puxar — o que requer que instância já tenha sido criada por outro caminho (ex.: Evolution manager direto). Fluxo de criação via UI está quebrado.
+- **Ação:**
+  1. Antes do INSERT em `whatsapp_connections`, chamar `useEvolutionApi().createInstance({instanceName, integration: 'WHATSAPP-BAILEYS', qrcode: true, ...})`.
+  2. Aguardar sucesso e usar `result.instance.instanceId` como `evo_instance_id`.
+  3. Só então fazer INSERT no banco com dados sincronizados.
+  4. Se createInstance falhar, mostrar erro e não deixar registro fantasma no banco.
+- **Aceite:** teste manual — criar conexão via UI e verificar `evo.evolution_instance_credentials` recebeu nova row + Evolution manager (`https://evolution.atomicabr.com.br/manager`) mostra a instância; teste de rollback — Evolution retorna 500 → nenhum registro criado em `whatsapp_connections`.
+
+### F6-03 — CRÍTICO (P0): estado divergente wpp2 entre `zapp.whatsapp_connections` e `evo.evolution_instance_credentials`
+
+- **Origem:** Etapa 60 (Bloco 6).
+- **Evidência:** JOIN por `instance_name`:
+  - `zapp.whatsapp_connections.wpp2`: `status='connected'`, `health_status='ok'`, `last_connected_at='2026-08-01 20:36'`
+  - `evo.evolution_instance_credentials.wpp2`: `health_status='unhealthy'`, `online_instances=0`, `total_instances=1`, `last_health_check='2026-08-02 01:20'`
+  
+  Duas fontes de verdade, conclusões opostas para a mesma instância no mesmo momento. UI provavelmente lê de `whatsapp_connections` (frontend usa `useConnectionsManager` → `whatsappConnectionRepository.fetchConnections` → tabela `whatsapp_connections`). Usuário vê "conectado" enquanto Evolution está unhealthy. **17 alerts `wpp2_disconnection` em 7 dias** (F6-08) corroboram: Evolution API caiu 17× mas UI nunca mostrou.
+- **Ação:**
+  1. Definir `evo.evolution_instance_credentials.health_status` como fonte de verdade única para health.
+  2. Cron `fn_update_instance_health` (já existe) escreve em `evolution_instance_credentials`; adicionar cron para propagar de volta para `whatsapp_connections.health_status`.
+  3. Alternativa preferível: remover `health_status`/`last_connected_at` de `whatsapp_connections` (data drift crônico); UI lê via JOIN da view `zapp.evolution_instances`.
+- **Aceite:** query `SELECT wc.instance_name, wc.health_status AS ui_h, eic.health_status AS canonical_h FROM whatsapp_connections wc JOIN evolution_instance_credentials eic USING (instance_name) WHERE wc.health_status IS DISTINCT FROM eic.health_status` retorna 0 rows.
+
+### F6-04 — CRÍTICO (P0): 2 fontes de verdade para instância (whatsapp_connections vs evolution_instance_credentials) sem canonical
+
+- **Origem:** Etapa 56, 60, 61, 64 (Bloco 6).
+- **Evidência:** `zapp.whatsapp_connections` (39 colunas, 3 rows) e `evo.evolution_instance_credentials` (17 colunas, 1 row) armazenam informação sobreposta: `instance_name`, `api_url`, `api_key`, `webhook_url`, `display_name`, `department`, `is_active`, `health_status`, `last_health_check`. Frontend usa a primeira; edge functions e crons usam a segunda. `zapp.instance_registry` também existe com 22 rows e statuses distintos. **3 fontes de verdade parcialmente sobrepostas**.
+- **Ação:**
+  1. Decidir modelo: (a) `evolution_instance_credentials` é canonical para tudo related a Evolution API — `whatsapp_connections` vira view de compat OU (b) `whatsapp_connections` é canonical do frontend — `evolution_instance_credentials` mantém apenas segredos criptografados.
+  2. Documentar em `docs/audits/instance-source-of-truth.md`.
+  3. Migrar RPCs e crons para usar a canonical.
+- **Aceite:** grep de `evo.evolution_instance_credentials` em código de crons não retorna referências à `zapp.whatsapp_connections`; frontend só lê a canonical.
+
+### F6-05 — CRÍTICO (P0): `fn_reconcile_dispatch` reutiliza `request_id` do net_worker → 373 rows (22%) com applied_at anterior a dispatched_at
+
+- **Origem:** Etapa 59 (Bloco 6).
+- **Evidência:** `pg_get_functiondef(zapp.fn_reconcile_dispatch)` mostra `INSERT INTO evo.evolution_reconcile_jobs (request_id) VALUES (v_req_id) ON CONFLICT (request_id) DO UPDATE SET dispatched_at = now()`. `pg_net` recicla request_ids ao longo do tempo. Quando `request_id` colide com o de um job antigo, o UPDATE só toca `dispatched_at`, preservando `applied_at` antigo do job anterior. Resultado: `SELECT COUNT(*) FROM evo.evolution_reconcile_jobs WHERE applied_at < dispatched_at - INTERVAL '1 day'` retorna **373 rows de 1663 (22%)**. Sample: id=24041 tem `dispatched_at=2026-08-02 01:15` mas `applied_at=2026-07-28 03:31` (delta=-4d21h44min).
+- **Ação:**
+  1. Trocar `ON CONFLICT (request_id) DO UPDATE` por `ON CONFLICT DO NOTHING`.
+  2. Ou usar `id bigserial` como PK e `request_id` como coluna secundária sem UNIQUE (permite duplicate request_ids ao longo do tempo).
+  3. Backfill: `UPDATE evo.evolution_reconcile_jobs SET applied_at = NULL WHERE applied_at < dispatched_at`.
+- **Aceite:** query `SELECT COUNT(*) FROM evo.evolution_reconcile_jobs WHERE applied_at < dispatched_at - INTERVAL '1 hour'` retorna 0 após 7 dias; métrica de latência de reconcile fica confiável.
+
+### F6-06 — CRÍTICO (P0): `fn_alert_wpp2_disconnection` hardcoded para instance_name='wpp2' — não escala multi-instância
+
+- **Origem:** Etapa 60, 61 (Bloco 6).
+- **Evidência:** `SELECT status, phone_number, ... FROM zapp.whatsapp_connections WHERE instance_name = 'wpp2' LIMIT 1`. Alert body: `format('Instancia wpp2 (%s) desconectada ha %s minutos', ...)`. Também `evo.fn_bootstrap_wpp2_instance` (nome hardcoded), cron `wpp2_disconnection_watchdog` (jobid 104), cron `wpp2-session-expiry-watchdog` (jobid 120). **Multi-instância** (Etapa 61) é fantasia com esse pattern.
+- **Ação:**
+  1. Refatorar `fn_alert_wpp2_disconnection()` → `fn_alert_instance_disconnection(p_instance text DEFAULT NULL)` que itera sobre `SELECT instance_name FROM zapp.whatsapp_connections WHERE is_active AND api_type='evolution'`.
+  2. Renomear crons: `wpp2_disconnection_watchdog` → `instance_disconnection_watchdog`.
+  3. Refatorar `fn_bootstrap_wpp2_instance` para receber `p_instance_name`.
+- **Aceite:** grep por `'wpp2'` em `pg_proc.prosrc` retorna 0 hits (exceto migrations históricas); adicionar 2ª instância dispara alertas corretamente.
+
+### F6-07 — `fn_alert_wpp2_disconnection` NÃO é SECURITY DEFINER — inconsistente com pattern das outras funções afins
+
+- **Origem:** Etapa 60 (Bloco 6).
+- **Evidência:** `SELECT prosecdef FROM pg_proc WHERE proname='fn_alert_wpp2_disconnection'` → `false`. Todas as outras funções afins (`fn_alert_connection_drift`, `fn_reconcile_dispatch`, `fn_reconcile_apply`, `fn_sync_instance_registry_status`, `fn_detect_401_bursts`) são `SECDEF=true`. A função lê `zapp.whatsapp_connections` e insere em `evo.evolution_alerts` — se chamada por cron owner `postgres`, funciona; se chamada por RPC de authenticated, pode ser bloqueada por RLS.
+- **Ação:** `ALTER FUNCTION zapp.fn_alert_wpp2_disconnection() SECURITY DEFINER SET search_path = pg_catalog, zapp, evo, public`.
+- **Aceite:** `SELECT prosecdef FROM pg_proc WHERE proname LIKE 'fn_alert_%'` mostra `true` para todas.
+
+### F6-08 — CRÍTICO (P0): 17 de 18 alerts `wpp2_disconnection` nunca resolvidos (94% backlog) — alert fatigue
+
+- **Origem:** Etapa 60 (Bloco 6).
+- **Evidência:** `SELECT COUNT(*), COUNT(*) FILTER (WHERE resolved_at IS NOT NULL) FROM evo.evolution_alerts WHERE alert_type='wpp2_disconnection'` → `total_ever=18, resolved=1, acked=1`. Alertas nas últimas 10h: 8:00, 9:00, 10:00, 11:10, 12:10, 13:20, 14:20, 15:30, 16:30, 17:40 — um por hora. Anti-flood check `created_at > now() - 60 minutes AND resolved_at IS NULL` funciona (guardaria a alerta a cada 1h), MAS como `resolved_at` nunca é setado, alertas se acumulam indefinidamente sem trigger de auto-close quando instância volta.
+- **Ação:**
+  1. Trigger em `zapp.whatsapp_connections` AFTER UPDATE OF status: se `NEW.status = 'connected' AND OLD.status != 'connected'`, executar `UPDATE evo.evolution_alerts SET resolved_at = now(), resolved_by='auto:reconnected' WHERE alert_type='wpp2_disconnection' AND resolved_at IS NULL`.
+  2. Cron `auto-resolve-stale-alerts` (a cada 1h): resolver alertas `wpp2_disconnection` onde instância voltou.
+  3. Purge de alertas `resolved_at < now() - 30d` (cron `purge_evolution_alerts` já existe — verificar se filtra corretamente).
+- **Aceite:** `SELECT COUNT(*) FILTER (WHERE resolved_at IS NULL) FROM evo.evolution_alerts WHERE alert_type='wpp2_disconnection'` cai para <= 1 em 24h após reconexão.
+
+### F6-09 — CRÍTICO (P0): cron `wpp2_disconnection_watchdog` (104) schedule `*/10 6-23 * * *` — 6h gap noturno de detecção (23h→6h)
+
+- **Origem:** Etapa 60 (Bloco 6).
+- **Evidência:** Schedule limita execução a `6-23` (06:00 até 23:59). Entre 23:00 e 06:00 (7 horas) o watchdog não roda. Se WhatsApp cair às 02:00, alerta só chega às 06:10 — 4h+ de delay. Também `message_pipeline_stalled_alert` `0 8-22 * * *` = 10h gap.
+- **Ação:**
+  1. Trocar schedule para `*/10 * * * *` (24h/dia).
+  2. Se preocupação era pager fatigue noturno, filtrar dentro da função: `IF EXTRACT(hour FROM now() AT TIME ZONE 'America/Sao_Paulo') NOT BETWEEN 8 AND 22 THEN severity='low' ELSE 'critical' END`.
+  3. Aplicar mesmo pattern em `message_pipeline_stalled_alert`.
+- **Aceite:** `SELECT schedule FROM cron.job WHERE jobname='wpp2_disconnection_watchdog'` = `*/10 * * * *`; disconnection às 03:00 gera alerta em <10min.
+
+### F6-10 — cron `sync-instance-registry-status` (96) perdeu 11% das execuções em 24h (256/288)
+
+- **Origem:** Etapa 64 (Bloco 6).
+- **Evidência:** Schedule `2-59/5 * * * *` (a cada 5min, offset 2min) = esperado 12 execuções/hora × 24h = 288/dia. `SELECT COUNT(*) FROM cron.job_run_details WHERE jobid=96 AND start_time > NOW() - INTERVAL '24 hours'` retorna 256. 32 execuções perdidas (11%). Provável causa: concorrência com outros crons que usam mesmo pool, ou reboots de container postgres.
+- **Ação:**
+  1. Verificar `cron.job_run_details WHERE jobid=96 ORDER BY start_time DESC LIMIT 100` para identificar padrão de gaps.
+  2. Se sistemático, escalonar schedule offset para reduzir contention.
+  3. Adicionar métrica em `zapp.warroom_alerts` quando gap > 15min.
+- **Aceite:** execuções em 24h >= 280/288 (>= 97%).
+
+### F6-11 — 6 triggers em `zapp.whatsapp_connections`; 4 são duplicatas divergentes (2 pares)
+
+- **Origem:** Etapa 62 (Bloco 6).
+- **Evidência:** `pg_trigger` mostra 6 triggers:
+  - `update_whatsapp_connections_updated_at` (função `update_updated_at_column`) + `trg_wconn_updated_at` (função `fn_wconn_updated_at`) — ambos BEFORE UPDATE fazendo `NEW.updated_at = now()`. Duplicata funcionalmente pura.
+  - `clear_qr_on_connect_trigger` (função `clear_qr_on_connect`) + `trg_clear_qr_connect` (função `fn_clear_qr_on_connect`) — ambos BEFORE UPDATE limpando QR. **Divergentes**: primeiro só limpa `qr_code`; segundo limpa `qr_code + qr_code_base64` e seta `connected_at`, `last_connected_at`, `disconnected_at`.
+  - `trg_validate_whatsapp_connection_url` — OK
+  - `trg_log_whatsapp_connection_state_change` — OK
+- **Ação:**
+  1. `DROP TRIGGER update_whatsapp_connections_updated_at ON zapp.whatsapp_connections` (versão antiga).
+  2. `DROP TRIGGER clear_qr_on_connect_trigger` (versão antiga, incompleta).
+  3. Manter `trg_wconn_updated_at` e `trg_clear_qr_connect` (versões novas).
+- **Aceite:** `SELECT COUNT(*) FROM pg_trigger WHERE tgrelid='zapp.whatsapp_connections'::regclass AND NOT tgisinternal` retorna 4.
+
+### F6-12 — `fn_validate_whatsapp_connection_url` cai para hardcoded default se vault vazio — não fail-secure
+
+- **Origem:** Etapa 56 (Bloco 6).
+- **Evidência:** Trigger body: `SELECT decrypted_secret INTO v_allowed_url FROM vault.decrypted_secrets WHERE name = 'evolution_api_url'; IF v_allowed_url IS NULL THEN v_allowed_url := 'https://evolution.atomicabr.com.br'; END IF`. Se vault estiver corrompido/vazio, valida contra URL hardcoded — permite INSERTs mesmo em ambiente onde vault deveria ser fonte única. Also, mensagem de erro do `RAISE EXCEPTION` **expõe a URL esperada** (`api_url invalida: X | esperado: Y`) — potencial info leak.
+- **Ação:**
+  1. Remover fallback hardcoded: `IF v_allowed_url IS NULL THEN RAISE EXCEPTION 'vault.evolution_api_url ausente' USING ERRCODE = '42501' END IF`.
+  2. Mensagem genérica: `RAISE EXCEPTION 'api_url invalida' USING DETAIL = format('recebido: %s', NEW.api_url)`.
+- **Aceite:** vault vazio → INSERT rejeitado com erro claro; mensagem não vaza URL esperada.
+
+### F6-13 — CRÍTICO (P0): `api_url` e `api_key` são NOT NULL sem default — INSERT via `useConnectionsActions.handleAddConnection` faltaria valores
+
+- **Origem:** Etapa 56 (Bloco 6).
+- **Evidência:** Schema de `zapp.whatsapp_connections`: `api_url text NOT NULL` (sem default), `api_key text NOT NULL` (sem default). `handleAddConnection` faz INSERT com só 7 colunas: `name, phone_number, instance_id, instance_name, status, is_default, api_type`. Sem `api_url` e `api_key`. INSERT deveria falhar por NOT NULL. As 3 rows atuais em produção têm valores — indica que INSERTs foram feitos por outro caminho (Evolution manager? seed migration?). UI provavelmente nunca conseguiu criar conexão.
+- **Ação:**
+  1. Adicionar defaults: `ALTER TABLE zapp.whatsapp_connections ALTER COLUMN api_url SET DEFAULT (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'evolution_api_url')`.
+  2. `api_key` é per-instance no Evolution API — populado após `createInstance()` retornar `hash`. Fluxo correto (após F6-02 fix): (a) createInstance retorna `hash`, (b) INSERT com `api_key = <hash>`.
+  3. Adicionar teste que confirma que INSERT via `useConnectionsActions.handleAddConnection` funciona ponta-a-ponta em ambiente limpo.
+- **Aceite:** criar conexão nova via UI funciona; row tem `api_url` e `api_key` populados.
+
+### F6-14 — Só 1 registro em `evo.evolution_instance_credentials` (wpp2); 2 conexões em `whatsapp_connections` órfãs
+
+- **Origem:** Etapa 63, 64 (Bloco 6).
+- **Evidência:** LEFT JOIN `whatsapp_connections wc LEFT JOIN evolution_instance_credentials eic USING (instance_name)` mostra: `wpp2` (JOINed), `wppmkt` (eic=NULL), `wpp_pink_test` (eic=NULL). Cron 96 (`sync-instance-registry-status`) rodou 810x em 7d mas não corrigiu essas 2 órfãs. Instance drift real.
+- **Ação:**
+  1. Investigar por que `sync-instance-registry-status` não popula `evolution_instance_credentials` para essas instâncias.
+  2. Decidir: (a) as 2 órfãs são zombie state (nunca provisionadas no Evolution) — deletar; (b) provisionar no Evolution API + popular credentials.
+  3. Adicionar constraint `FOREIGN KEY (instance_name) REFERENCES evolution_instance_credentials(instance_name)` em `whatsapp_connections` (após limpeza) para prevenir órfãs futuras.
+- **Aceite:** LEFT JOIN retorna 0 rows com `eic IS NULL`; FK constraint ativa.
+
+### F6-15 — "WPP Marketing (Cloud API Oficial)" tem `api_type='evolution'` — nome enganoso vs config real
+
+- **Origem:** Etapa 56 (Bloco 6).
+- **Evidência:** Row: `name='WPP Marketing (Cloud API Oficial)'`, `api_type='evolution'`, `instance_id=NULL`, `is_active=false`, `health_status='provisioned'`. Nome sugere Meta Cloud API, `api_type` diz Evolution. Provavelmente configurada incorretamente, ficou dormente. Confusão para operador.
+- **Ação:**
+  1. Confirmar com stakeholder se conexão deve usar Cloud API ou Evolution.
+  2. Se Cloud API: `UPDATE whatsapp_connections SET api_type='official' WHERE id='5658bc88-...'`.
+  3. Se abandonada: deletar com purge de referências.
+  4. Adicionar validação em `useConnectionsActions.handleAddConnection`: se nome contém "Cloud API" ou "Oficial", forçar `api_type='official'`.
+- **Aceite:** row corrigida OU deletada; UI não permite criar conexão com nome/type divergentes.
+
+### F6-16 — CRÍTICO (P0): `created_by = NULL` em 3/3 rows de `whatsapp_connections` — ownership perdida
+
+- **Origem:** Etapa 56 (Bloco 6).
+- **Evidência:** `SELECT COUNT(*) FILTER (WHERE created_by IS NULL) FROM zapp.whatsapp_connections` = 3 (todas as rows). Sem trilha de ownership. Combinado com F6-17 (RLS permite orphan INSERTs), qualquer authenticated pode listar/editar conexões porque a policy `wconn_insert_auth` também tem cláusula `created_by IS NULL OR ...`. Sem accountability.
+- **Ação:**
+  1. Backfill: `UPDATE whatsapp_connections SET created_by = (SELECT id FROM auth.users WHERE email='<owner>@promobrindes.com.br')` para rows históricas.
+  2. Adicionar `created_by uuid NOT NULL DEFAULT auth.uid()` em `zapp.whatsapp_connections`.
+  3. Trigger BEFORE INSERT que rejeita se `NEW.created_by IS NULL` (após backfill).
+- **Aceite:** `SELECT COUNT(*) FILTER (WHERE created_by IS NULL) FROM whatsapp_connections` = 0; INSERT sem `created_by` recebe auto-populate ou falha.
+
+### F6-17 — CRÍTICO (P0): RLS `wconn_insert_auth` policy `WITH CHECK (created_by IS NULL OR created_by = auth.uid())` permite orphan INSERTs
+
+- **Origem:** Etapa 56 (Bloco 6).
+- **Evidência:** `pg_get_expr(polwithcheck)` = `((created_by IS NULL) OR (created_by = auth.uid()))`. Cláusula `(created_by IS NULL)` permite INSERT sem ownership — combinado com F6-16, é como as 3 rows atuais entraram. Sem workspace/tenant filter na policy.
+- **Ação:**
+  1. `ALTER POLICY wconn_insert_auth ON zapp.whatsapp_connections WITH CHECK (created_by = auth.uid() AND workspace_id = (SELECT workspace_id FROM zapp.profiles WHERE user_id = auth.uid()))`.
+  2. Adicionar `workspace_id uuid NOT NULL` em `whatsapp_connections` primeiro (multi-tenant, alinhado com F5-16).
+- **Aceite:** INSERT com `created_by IS NULL` recebe `new row violates row-level security policy`.
+
+### F6-18 — Policy `auth_secure_123` (nome de código de teste) em produção
+
+- **Origem:** Etapa 56 (Bloco 6).
+- **Evidência:** `SELECT polname FROM pg_policy WHERE polrelid='zapp.whatsapp_connections'::regclass` retorna `auth_secure_123` entre as 4 policies. Nome sugere teste/debug (`_123` suffix). Policy USING: `(has_role(auth.uid(), 'agent'::zapp.app_role) OR is_admin_or_supervisor())`. Funcionalmente equivalente a `whatsapp_connections_admin_write`, mas com nome não profissional.
+- **Ação:** `ALTER POLICY auth_secure_123 ON zapp.whatsapp_connections RENAME TO whatsapp_connections_agent_or_admin_read`.
+- **Aceite:** grep por policies com `_[0-9]` suffix em pg_policy retorna 0 hits em `zapp.*`.
+
+### F6-19 — CRÍTICO (P0): `evo.evolution_ip_watch` = 0 rows total — pipeline VPS→DB de detecção 401 morto
+
+- **Origem:** Etapa 65 (Bloco 6).
+- **Evidência:** `SELECT COUNT(*), MAX(created_at) FROM evo.evolution_ip_watch` → `total=0, newest=NULL`. Comentário dentro de `fn_detect_401_bursts` confirma: `"BLIND: evolution_ip_watch=0 rows — VPS log pipeline (Traefik→DB) not active"`. Pipeline documentado como quebrado há semanas (`Ref: AUDITORIA_EVO_API_2026-07-12.md OBS-2`).
+- **Ação:**
+  1. Escolher entre: (a) configurar Traefik access log → PostgREST insert em `evo.evolution_ip_watch`; (b) usar GlitchTip (que já recebe 401s desde 2026-07-12) como fonte + edge function que faz pull periódico; (c) descontinuar `evolution_ip_watch` e refatorar `fn_detect_401_bursts` para depender só de outras fontes.
+  2. Decisão documentada com owner + prazo.
+- **Aceite:** OU pipeline reativado (`SELECT COUNT(*) FROM evo.evolution_ip_watch WHERE created_at > NOW() - INTERVAL '1 day'` > 0) OU função refatorada + tabela DROPada.
+
+### F6-20 — CRÍTICO (P0): `fn_detect_401_bursts` documenta seu próprio "monitoring gap" no comentário — cega por design atual
+
+- **Origem:** Etapa 65 (Bloco 6).
+- **Evidência:** Body da função contém string literal: `'evo.evolution_ip_watch=0 registros históricos. Ação: configurar Traefik access log → Supabase API. Monitoramento DB-side cego até lá.'`. Função também insere CHECKLIST inteiro no `message` de alertas (7 passos para operador seguir). **Antipattern**: documentação misturada com telemetria; alerta polui `warroom_alerts` sem oferecer detecção real.
+- **Ação:**
+  1. Após F6-19 (pipeline funcional), remover checklist do body da função — mover para runbook em `docs/runbooks/evolution-401-burst.md`.
+  2. Alerta faz REFERÊNCIA ao runbook: `See docs/runbooks/evolution-401-burst.md`, não copia conteúdo.
+  3. Simplificar função para apenas detecção real (sem alertas informativos sobre "modo cego").
+- **Aceite:** função tem <100 linhas (atualmente >100); checklist migrado para markdown; alertas contêm apenas dado relevante ao momento.
+
+### F6-21 — CRÍTICO (P0): 373 reconcile_jobs (22%) com `applied_at < dispatched_at - 1 day` — telemetria corrompida
+
+- **Origem:** Etapa 59 (Bloco 6).
+- **Evidência:** Consequência direta de F6-05. `SELECT COUNT(*) FROM evo.evolution_reconcile_jobs WHERE applied_at < dispatched_at - INTERVAL '1 day'` retorna 373 de 1663 total. Qualquer métrica de "tempo médio de reconcile" ou "latência p95" computada dessa tabela é **completamente falsa**.
+- **Ação:**
+  1. Corrigir F6-05 primeiro.
+  2. Backfill: `UPDATE evo.evolution_reconcile_jobs SET applied_at = NULL WHERE applied_at < dispatched_at`.
+  3. Recomputar métricas históricas com filtro `applied_at >= dispatched_at`.
+  4. Adicionar assertion no proxima migration: `ALTER TABLE evo.evolution_reconcile_jobs ADD CONSTRAINT chk_applied_after_dispatched CHECK (applied_at IS NULL OR applied_at >= dispatched_at)`.
+- **Aceite:** constraint aceita; futuras rows sempre `applied_at >= dispatched_at`.
+
+### F6-22 — 1389 alertas em `zapp.warroom_alerts` em 7d (863 info + 385 critical + 141 warning) — alert fatigue extrema
+
+- **Origem:** Etapa 60, 65 (Bloco 6).
+- **Evidência:** `SELECT alert_type, COUNT(*) FROM warroom_alerts WHERE created_at > NOW() - INTERVAL '7 days' GROUP BY 1`: `info=863, critical=385, warning=141`. **385 críticos em 7 dias = 55/dia = >2/hora**. Se ninguém age em >99% dessas alertas (padrão de F6-08), sinal:ruído é catastrófico. Alertas de "critical" perdem significado quando são a norma.
+- **Ação:**
+  1. Auditoria de 24h: para cada `alert_type`, catalogar (a) quem consome (Slack/email/PagerDuty), (b) taxa de ação real, (c) tempo médio até resolução.
+  2. Reclassificar: alertas com ação=0% em 7d viram `info` ou são descontinuados.
+  3. Rate limit por `alert_type`: máximo 1 por hora, exceto se novos dados são materialmente diferentes.
+  4. Deduplicação: agregar N alertas do mesmo tipo/janela em 1 alerta com `count`.
+- **Aceite:** `SELECT COUNT(*) FROM warroom_alerts WHERE alert_type='critical' AND created_at > NOW() - INTERVAL '7 days'` cai para <= 50 (redução de 87%); taxa de resolução `resolved_at IS NOT NULL` > 60%.
+
+### F6-23 — `evo.evolution_alerts` 269 unresolved backlog — nenhum triage
+
+- **Origem:** Etapa 60 (Bloco 6).
+- **Evidência:** `SELECT COUNT(*) FROM evo.evolution_alerts WHERE resolved_at IS NULL AND acknowledged_at IS NULL` = 269. Zero triage/acknowledge. Cron `purge_evolution_alerts` (65) rodando diariamente às 04:00 — mas só purga rows antigas, não força triage.
+- **Ação:**
+  1. Dashboard admin (`AdminAlertHistoryPage.tsx` — já existe) com contador de "pendentes por severidade" no topo.
+  2. SLA: alertas `critical` acknowledged em <15min, `high` em <1h, `medium` em <4h.
+  3. Auto-escalation: alerta critical sem ack por 30min notifica PagerDuty.
+  4. Alinhar com F6-08 (auto-resolve quando condição volta).
+- **Aceite:** `unresolved_count` cai para <= 20 em 30 dias.
+
+### F6-24 — `zapp.instance_registry` tem 22 rows; só 3 provisionadas (14%)
+
+- **Origem:** Etapa 61, 64 (Bloco 6).
+- **Evidência:** `SELECT status, COUNT(*) FROM zapp.instance_registry GROUP BY status`: `archived, connected, not_provisioned` totalizando 22. Apenas 3 estão em `whatsapp_connections` (fonte real). 19 registradas mas não provisionadas ou arquivadas.
+- **Ação:**
+  1. Auditar as 22 rows: para cada, decidir manter (relevância histórica), archive, ou hard-delete.
+  2. Documentar `instance_registry` como "registry de intenção" separado de "instâncias reais" (whatsapp_connections/evolution_instance_credentials).
+  3. Adicionar coluna `archived_reason` para justificar archives.
+- **Aceite:** registry tem só rows justificadas; `not_provisioned` count = 0 OU tem `archived_reason` claro.
+
+### F6-25 — `instance_auth_events` últimas 17 rows com `event_type=NULL`, `http_status=NULL`, `success=false` — instrumentação quebrada
+
+- **Origem:** Etapa 65 (Bloco 6).
+- **Evidência:** `SELECT event_type, http_status, success, COUNT(*) FROM zapp.instance_auth_events WHERE created_at > NOW() - INTERVAL '24 hours' GROUP BY 1,2,3` retorna **UMA row**: `event_type=NULL, http_status=NULL, success=false, count=17`. Todas as 17 inserções falharam em popular os campos essenciais. Instrumentação do lado do produtor (edge function/trigger) está quebrada — schema espera dados, produtor envia só shell.
+- **Ação:**
+  1. Investigar quem escreve em `zapp.instance_auth_events`: grep `instance_auth_events` em edge functions e RPCs.
+  2. Adicionar NOT NULL constraints em `event_type` e `success` para forçar produtor a preencher.
+  3. Log estruturado no produtor.
+- **Aceite:** `SELECT COUNT(*) FILTER (WHERE event_type IS NULL) FROM zapp.instance_auth_events WHERE created_at > NOW() - INTERVAL '1 day'` = 0 após correção.
+
+### F6-26 — Test coverage módulo connections: 2 test files para ~30 arquivos (0 tests em componentes)
+
+- **Origem:** Etapa 56-65 (Bloco 6).
+- **Evidência:** `find src -path "*connection*" -name "*.test.*"` retorna 2 files: `useHubTabNavigation.test.tsx` e `useConnectionsState.test.ts` (328 linhas). Zero tests para: `useConnectionsActions` (100+ linhas de business logic crítica), `useConnectionsRealtime`, `useConnectionsManager` (dispatcher central), `whatsappConnectionService`, `whatsappConnectionRepository`, `BridgeService`, e **30+ componentes** (ConnectionsView 649 linhas, ConnectionCard 359, InstanceSettingsDialog 496, etc.).
+- **Ação:**
+  1. Priorizar tests para `useConnectionsActions` (F6-02 depende desses tests para regressão).
+  2. Tests para `whatsappConnectionService` mockando Evolution API.
+  3. Snapshot tests para ConnectionsView com 0/1/N conexões (empty state, single, plural).
+- **Aceite:** coverage do módulo `src/features/connections/` e `src/services/connections/` >= 60% linhas cobertas.
+
+### F6-27 — CRÍTICO (P0): `useEvolutionAutoSync` faz SELECT sem filtro por workspace/user — cross-tenant leak potencial
+
+- **Origem:** Etapa 61 (Bloco 6).
+- **Evidência:** `src/hooks/useEvolutionAutoSync.ts` linhas 20-30: `supabase.from('whatsapp_connections').select('instance_id, phone_number')`. Sem `.eq('workspace_id', currentWorkspace)`. Depende só de RLS. Se RLS `contacts_select`-style estiver frouxa (F6-17, F6-18), retorna instâncias de outros tenants. Pior: `INSERT` de instância "missing" sem check de workspace pode acidentalmente atribuir instância de tenant A ao workspace de user B.
+- **Ação:**
+  1. Adicionar `.eq('workspace_id', workspace.id)` no SELECT (workspace via context).
+  2. INSERT com `workspace_id = workspace.id` explícito.
+  3. Alinhado com F5-16 (workspace_id real em contatos) e F6-17 (RLS multi-tenant real).
+- **Aceite:** user de workspace A não vê/importa instâncias de workspace B; teste com 2 workspaces confirma isolamento.
+
+### F6-28 — `handleDelete` engole erro do Evolution API `.catch(log.warn)` — deixa instância órfã lá
+
+- **Origem:** Etapa 63 (Bloco 6).
+- **Evidência:** `src/features/connections/hooks/parts/useConnectionsActions.ts` linhas ~120-125: `await deleteInstance(evoName).catch((e) => log.warn('Failed to delete evolution instance:', e))`. Se Evolution API 5xx, delete no banco continua — instância fica órfã no Evolution manager, consumindo recursos, potencialmente ainda recebendo webhooks para uma tabela que não existe mais.
+- **Ação:**
+  1. Se `deleteInstance` falhar com retry-able (5xx, timeout), enfileirar em `zapp.evolution_pending_deletes` para retry via cron.
+  2. Se falhar com 404 (já deletada), OK continuar.
+  3. Se 4xx (auth/perms), abortar delete no banco e alertar usuário.
+- **Aceite:** teste com Evolution 500 → banco não deleta, tarefa fica em pending_deletes; cron retry resolve.
+
+### F6-29 — `handleAddConnection` valida só `name` — permite `phone_number` vazio
+
+- **Origem:** Etapa 56 (Bloco 6).
+- **Evidência:** `useConnectionsActions.handleAddConnection`: `if (!newConnection.name) { toast(...); return; }`. Não valida `phone_number`. INSERT com phone vazio passa (`phone_number` é nullable no schema). Depois, `useEvolutionAutoSync` matcha por phone e não encontra match, criando duplicatas.
+- **Ação:**
+  1. Adicionar validação: `if (!newConnection.phone_number || !isValidBrazilianPhone(newConnection.phone_number)) { toast('Número inválido'); return; }`.
+  2. Schema Zod para `NewConnectionData` com `phone_number: z.string().regex(BR_PHONE_REGEX)`.
+- **Aceite:** teste — click "Conectar" com phone vazio → toast erro, sem INSERT.
+
+### F6-30 — Múltiplas cópias de tabelas em múltiplos schemas: 13 objetos para 5 nomes distintos
+
+- **Origem:** Etapa 56, 60, 61 (Bloco 6).
+- **Evidência:** `pg_class`:
+  - `qr_attempts`: 2 (zapp TABLE, public VIEW)
+  - `evolution_reconcile_jobs`: 3 (evo TABLE, public VIEW, zapp VIEW)
+  - `evolution_alerts`: 3 (evo TABLE, public VIEW, zapp VIEW)
+  - `evolution_instance_credentials`: 3 (evo TABLE, public VIEW, zapp VIEW)
+  - `instance_auth_events`: 2 (zapp TABLE, public VIEW)
+  
+  13 objetos para 5 conceitos. Views compat criadas para PostgREST/Supabase auto-expose em schemas `public` e `zapp`. Manutenção multiplicada por 3.
+- **Ação:**
+  1. Documentar em `docs/db/schema-topology.md` qual é canonical para cada conceito.
+  2. Views compat devem ser thin passthroughs (`SELECT * FROM canonical`), não têm lógica.
+  3. Auditar se PostgREST realmente precisa de views em `public` — se todas as tabelas relevantes estão em schemas expostos (via `db-schemas` config), pode dispensar.
+  4. Se necessário, gerar views compat via migration reproduzível (não manual).
+- **Aceite:** `docs/db/schema-topology.md` mapeia canonical → compat views; cron `ensure-evolution-backcompat-views` (jobid 138) sincroniza (já existe).
