@@ -43,7 +43,8 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import type { WhatsAppConnection } from '../../types';
+import type { Dispatch, SetStateAction } from 'react';
+import type { WhatsAppApiType, WhatsAppConnection } from '../../types';
 
 // ── mocks ─────────────────────────────────────────────────────────────────────
 // vi.mock é içado para o topo do arquivo: os spies precisam nascer em vi.hoisted,
@@ -166,13 +167,13 @@ function setup(over: Partial<Harness> = {}) {
   const { result } = renderHook(() =>
     useConnectionsActions(
       h.connections,
-      h.setConnections,
-      h.setIsCreating,
-      h.setIsAddDialogOpen,
-      h.setNewConnection,
-      h.handleShowQrCode,
-      h.disconnectInstance,
-      h.deleteInstance,
+      h.setConnections as unknown as Dispatch<SetStateAction<WhatsAppConnection[]>>,
+      h.setIsCreating as unknown as Dispatch<SetStateAction<boolean>>,
+      h.setIsAddDialogOpen as unknown as Dispatch<SetStateAction<boolean>>,
+      h.setNewConnection as unknown as Dispatch<SetStateAction<{ name: string; phone_number: string; api_type: WhatsAppApiType }>>,
+      h.handleShowQrCode as unknown as (conn: WhatsAppConnection) => void | Promise<void>,
+      h.disconnectInstance as unknown as (instance: string) => Promise<unknown>,
+      h.deleteInstance as unknown as (instance: string) => Promise<unknown>,
       h.newConnection
     )
   );

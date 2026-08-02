@@ -68,7 +68,7 @@ beforeEach(() => {
 
 describe('connectionsService.listWhatsAppConnections', () => {
   it('repassa os filtros ao repositório sem alterá-los', async () => {
-    const filters = { status: 'connected', limit: 10 };
+    const filters = { status: 'connected' as const, limit: 10 };
     await connectionsService.listWhatsAppConnections(filters);
     expect(repo.listWhatsAppConnections).toHaveBeenCalledWith(filters);
   });
