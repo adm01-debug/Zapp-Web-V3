@@ -134,8 +134,8 @@ export function DegradedQuickActions({ connections, onShowQrCode }: Props) {
                           {latency && (
                             <Badge
                               variant="outline"
-                              className={cn('h-4 gap-1 px-1.5 font-mono text-[10px]', latency.tone)} // @technical
-                            >
+                              className={cn('h-4 gap-1 px-1.5 font-mono text-[10px]', latency.tone)}
+                            > {/* @technical */}
                               <Activity className="h-2.5 w-2.5" />
                               {latency.label}
                             </Badge>

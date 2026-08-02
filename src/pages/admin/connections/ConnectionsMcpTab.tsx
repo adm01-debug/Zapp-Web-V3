@@ -44,8 +44,8 @@ export function ConnectionsMcpTab() {
                 aria-label="URL do servidor MCP"
                 readOnly
                 value={MCP_SERVER_URL}
-                className="font-mono text-[10px]" // @technical
-              />
+                className="font-mono text-[10px]"
+              /> {/* @technical */}
               <Button aria-label="Abrir URL do servidor MCP" size="icon" variant="ghost">
                 <ExternalLink className="h-4 w-4" />
               </Button>
@@ -71,7 +71,7 @@ export function ConnectionsMcpTab() {
             </div>
           </div>
 
-          <div className="overflow-x-auto whitespace-pre rounded border border-secondary/20 bg-muted p-3 font-mono text-[10px]"> // @technical
+          <div className="overflow-x-auto whitespace-pre rounded border border-secondary/20 bg-muted p-3 font-mono text-[10px]"> {/* @technical */}
             {`"mcpServers": {
   "zapp-web": {
     "command": "npx",

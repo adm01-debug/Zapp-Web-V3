@@ -161,7 +161,7 @@ export const MessageStatusTimeline = memo(function MessageStatusTimeline({
     ];
 
     return isInbound ? buildInbound() : buildOutbound();
-  }, [effectiveStatus, status, createdAt, statusAt, isFailed, isInbound]);
+  }, [effectiveStatus, createdAt, statusAt, isFailed, isInbound]);
 
   return (
     <ol

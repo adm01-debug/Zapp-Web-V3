@@ -523,7 +523,7 @@ export function useExternalMessages(
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [remoteJid, mountedRef, getContactAvatar, instanceName]);
+  }, [remoteJid, mountedRef, getContactAvatar, instanceName, effectiveInstance]);
 
   const pollNewMessages = useCallback(async () => {
     if (!remoteJid || !mountedRef.current) return;
@@ -549,7 +549,7 @@ export function useExternalMessages(
     } catch (err) {
       logMessages.error('Error polling external messages:', err);
     }
-  }, [remoteJid, mountedRef, getContactAvatar, instanceName]);
+  }, [remoteJid, mountedRef, getContactAvatar, instanceName, effectiveInstance]);
 
   const loadOlder = useCallback(async () => {
     if (!remoteJid || !mountedRef.current || loadingOlder || !hasMore) return;
@@ -604,7 +604,7 @@ export function useExternalMessages(
       }
       if (mountedRef.current) setLoadingOlder(false);
     }
-  }, [remoteJid, messages, loadingOlder, hasMore, mountedRef, instanceName]);
+  }, [remoteJid, messages, loadingOlder, hasMore, mountedRef, instanceName, effectiveInstance]);
 
   // Initial fetch on jid change
   useEffect(() => {
@@ -664,7 +664,7 @@ export function useExternalMessages(
       }
     });
     return unsub;
-  }, [remoteJid, mountedRef, instanceName]);
+  }, [remoteJid, mountedRef, instanceName, effectiveInstance]);
 
   const addMessage = useCallback((message: RealtimeMessage) => {
     setMessages((prev) => {
@@ -896,7 +896,7 @@ export function useExternalCatalog() {
         return null;
       }
     },
-    [queryClient]
+    [queryClient, logCatalog]
   );
 
   const fetchCategories = useCallback(() => {

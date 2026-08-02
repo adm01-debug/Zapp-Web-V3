@@ -71,8 +71,8 @@ export function ConnectionsExternalDbTab({
                 value={editOpen ? draftUrl : externalUrl}
                 onChange={(e) => setDraftUrl(e.target.value)}
                 readOnly={!editOpen}
-                className="font-mono text-xs" // @technical
-              />
+                className="font-mono text-xs"
+              /> {/* @technical */}
             </div>
             <div className="space-y-2">
               <Label htmlFor="supabase-anon-key">Chave Anon (Public)</Label>
@@ -89,8 +89,8 @@ export function ConnectionsExternalDbTab({
                 onChange={(e) => setDraftKey(e.target.value)}
                 readOnly={!editOpen}
                 placeholder={editOpen ? 'eyJhbGciOi...' : ''}
-                className="font-mono text-xs" // @technical
-              />
+                className="font-mono text-xs"
+              /> {/* @technical */}
             </div>
             {editOpen && (
               <p className="text-[11px] text-muted-foreground">

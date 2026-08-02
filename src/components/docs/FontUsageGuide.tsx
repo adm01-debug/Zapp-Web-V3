@@ -64,7 +64,7 @@ export function FontUsageGuide() {
             </TableRow>
             <TableRow>
               <TableCell>
-                <p className="font-mono text-destructive">Texto comum em mono:</p> // @technical
+                <p className="font-mono text-destructive">Texto comum em mono:</p> {/* @technical */}
                 <code className="text-xs">&lt;span className="font-mono"&gt;Configurações&lt;/span&gt;</code>
               </TableCell>
               <TableCell>

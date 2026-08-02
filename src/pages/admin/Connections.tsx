@@ -449,8 +449,8 @@ export default function AdminConnectionsPage() {
                         value={editOpen ? draftUrl : externalUrl}
                         onChange={(e) => setDraftUrl(e.target.value)}
                         readOnly={!editOpen}
-                        className="font-mono text-xs" // @technical
-                      />
+                        className="font-mono text-xs"
+                      /> {/* @technical */}
                     </div>
                     <div className="space-y-2">
                       <Label>Chave Anon (Public)</Label>
@@ -466,8 +466,8 @@ export default function AdminConnectionsPage() {
                         onChange={(e) => setDraftKey(e.target.value)}
                         readOnly={!editOpen}
                         placeholder={editOpen ? 'eyJhbGciOi...' : ''}
-                        className="font-mono text-xs" // @technical
-                      />
+                        className="font-mono text-xs"
+                      /> {/* @technical */}
                     </div>
                     {editOpen && (
                       <p className="text-[11px] text-muted-foreground">
@@ -757,7 +757,7 @@ export default function AdminConnectionsPage() {
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto whitespace-pre rounded border border-secondary/20 bg-muted p-3 font-mono text-[10px]"> // @technical
+                  <div className="overflow-x-auto whitespace-pre rounded border border-secondary/20 bg-muted p-3 font-mono text-[10px]"> {/* @technical */}
                     {`"mcpServers": {
   "zapp-web": {
     "command": "npx",
