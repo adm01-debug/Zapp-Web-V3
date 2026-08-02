@@ -135,7 +135,7 @@ grep -m1 "Total de achados" docs/audits/PLANO_IMPLEMENTACAO_100.md  # deve conti
 
 | Lote | Blocos | Achados | Status | Sessão | Resultado |
 |---|---|---:|---|---|---|
-| A | F2, F5, F8 | 60 | ⬜ pendente | — | — |
+| A | F2, F5, F8 | 60 | ✅ concluído | 2026-08-02 | 40 ✅ · 6 ⚠️ · 3 🔄 · 10 📝 · 1 ❓ — ver `REVISAO_BACKLOG_172.md` |
 | B | F4, F6 | 54 | ⬜ pendente | — | — |
 | C | F1, F3, F7 | 58 | ⬜ pendente | — | — |
 

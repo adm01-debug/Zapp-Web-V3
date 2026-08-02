@@ -47,14 +47,18 @@ Convenção de ID: `F<bloco>-<seq>` — ex. `F1-01` = primeiro achado do bloco 1
 
 ## Tema 3 — Segurança Supabase
 
+> **Nota de revisão (2026-08-02, Lote A):** os achados **F2-\*** foram herdados do Bloco 2 como títulos-resumo — não possuem seções `Evidência` / `Ação` / `Aceite`. A evidência de cada um foi **revalidada e confirmada** nesta revisão (ver `REVISAO_BACKLOG_172.md`), mas eles **não são executáveis pela esteira de correção** enquanto Ação e Aceite não forem escritos. Tratar como `📝 AÇÃO FRÁGIL (estrutural)`.
+
 ### F2-01 — Revogar `EXECUTE` de `authenticated` nas 6 TRIGGER functions em `public`
 - `fn_contacts_proxy_delete/insert/update`, `fn_messages_bridge_delete/insert/update`.
 
 ### F2-02 — Revogar `EXECUTE` de `authenticated` nas 3 outras TRIGGER functions em `public`
 - `handle_new_user_settings`, `on_role_change`, `trg_fn_set_transfer_ticket`.
+- **⚠️ Revisado em 2026-08-02:** as 3 existem **em `public` E em `zapp`** (homônimas). O `REVOKE` **deve** qualificar `public.<fn>(<args>)`; sem qualificação o comando pode atingir a função errada. `authenticated` tem `EXECUTE` nas 3 de `public` — problema confirmado.
 
 ### F2-03 — Revisar 9 RPCs SECDEF em `public` — garantir `auth.uid()` + tenant check
 - `rpc_get_contact` (2 overloads), `rpc_app_bootstrap`, `rpc_dashboard_init`, `generate_transfer_ticket`, `get_companies_by_phones_batch`, `get_contact_intelligence_by_phone`, `increment_webhook_rate_limit`, `is_instance_paused`, `log_rls_denied`.
+- **⚠️ Revisado em 2026-08-02:** 7 dos 9 nomes também existem em `zapp` (`rpc_get_contact` — 4 overloads em `public`+`zapp` —, `generate_transfer_ticket`, `get_companies_by_phones_batch`, `get_contact_intelligence_by_phone`, `increment_webhook_rate_limit`, `is_instance_paused`, `log_rls_denied`). **Qualificar `public.` em toda alteração.** `public` tem 19 funções SECDEF acessíveis a `authenticated`.
 
 ### F2-04 — Auditoria CSV das 119 SECDEF+authenticated em `zapp` (`docs/audits/secdef-zapp.csv`)
 
@@ -63,6 +67,8 @@ Convenção de ID: `F<bloco>-<seq>` — ex. `F1-01` = primeiro achado do bloco 1
 ---
 
 ## Tema 4 — Performance de banco
+
+> **Nota de revisão (2026-08-02):** vide nota estrutural dos achados `F2-*` no Tema 3 — sem `Ação`/`Aceite` formais.
 
 ### F2-09 — Mover `ops.fn_regression_tests()` para off-peak + MV cached (8,8 s/call → 0)
 
@@ -73,15 +79,24 @@ Convenção de ID: `F<bloco>-<seq>` — ex. `F1-01` = primeiro achado do bloco 1
 ### F2-12 — Reduzir invalidações do PostgREST schema cache (203 s totais em introspection)
 
 ### F2-13 — Índice parcial em `zapp.messages` para badge unread inbound
+
+- **⚠️ Revisado em 2026-08-02 — referência corrigida.** O SQL original **não roda**, por 3 motivos: (a) `zapp.messages` é **VIEW** (`relkind='v'`) sobre `evo.evolution_messages` — `CREATE INDEX` em view falha; (b) `evo.evolution_messages` é **tabela particionada** (`relkind='p'`) — `CREATE INDEX CONCURRENTLY` não é suportado em tabela particionada; (c) a view **remapeia** `direction`: base grava `'inbound'`/`'outbound'`, a view expõe `'incoming'`/`'outgoing'`. Índice equivalente não existe hoje — o problema de performance é real.
+- **Ação (reescrita):** criar o índice em cada partição de `evo.evolution_messages` e anexar ao índice pai:
 ```sql
-CREATE INDEX CONCURRENTLY idx_msg_unread_inbound
-  ON zapp.messages (direction, is_read)
+-- 1) no pai (sem CONCURRENTLY; particionada aceita, mas trava DDL nas partições)
+CREATE INDEX idx_msg_unread_inbound
+  ON evo.evolution_messages (direction, is_read)
   WHERE is_read = false AND direction = 'inbound';
+-- 2) alternativa sem lock longo: CREATE INDEX CONCURRENTLY por partição
+--    + CREATE INDEX ... ON ONLY evo.evolution_messages + ALTER INDEX ... ATTACH PARTITION
 ```
+- **Aceite:** `EXPLAIN` da query do badge usa `idx_msg_unread_inbound`; `pg_indexes` lista o índice em todas as partições de `evo.evolution_messages`.
 
 ---
 
 ## Tema 5 — Consolidação de cron jobs
+
+> **Nota de revisão (2026-08-02):** vide nota estrutural dos achados `F2-*` no Tema 3 — sem `Ação`/`Aceite` formais.
 
 ### F2-06 — Consolidar 4 pares de duplicatas de cron
 - `cleanup_expired_contact_ids` (190) + `evo_cleanup_expired_contact_ids` (189).
@@ -385,7 +400,7 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 - **Evidência:** `SELECT column_name FROM information_schema.columns WHERE table_schema='evo' AND table_name='evolution_contacts'` mostra 44 colunas — **nenhuma** contém `cpf` ou `cnpj`. View `zapp.contacts` expõe `cpf` HARDCODED NULL. UI pode ter campo de CPF, mas dado vai para o void.
 - **Ação:**
   1. Adicionar `cpf text`, `cnpj text` em `evo.evolution_contacts` (com constraint length 11 e 14 respectivamente, digits-only).
-  2. Adicionar `pii_cpf_masked_at timestamptz` (mascarar via cron para compliance).
+  2. Adicionar `pii_cpf_masked_at timestamptz` (mascarar via cron para compliance). **Revisado 2026-08-02:** `evo.evolution_contacts` **já tem** `pii_masked_at` — avaliar reuso antes de criar coluna nova.
   3. Atualizar view + triggers.
 - **Aceite:** `INSERT INTO zapp.contacts (name, phone, cpf) VALUES ('X', '+5541999887777', '12345678909')` persiste CPF; `SELECT cpf FROM zapp.contacts WHERE ...` retorna o valor.
 
@@ -467,10 +482,11 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
   3. `bulk_add_tag` filtra por workspace do caller.
 - **Aceite:** dois workspaces podem ter tag "VIP" independentes; contatos de A com tag "VIP" não aparecem na busca de B.
 
-### F5-14 — CRÍTICO (P0): RLS `evo.evolution_contacts.contacts_insert` policy tem `WITH CHECK NULL` — anyone pode inserir contato com qualquer `assigned_to`
+### F5-14 — ~~OBSOLETO~~ CRÍTICO (P0): RLS `evo.evolution_contacts.contacts_insert` policy tem `WITH CHECK NULL` — anyone pode inserir contato com qualquer `assigned_to`
 
 - **Origem:** Etapa 46 (Bloco 5).
 - **Evidência:** `SELECT polname, polcmd, pg_get_expr(polqual, polrelid), pg_get_expr(polwithcheck, polrelid) FROM pg_policy WHERE polrelid='evo.evolution_contacts'::regclass` mostra `contacts_insert` com `polcmd='a'` e `polqual=NULL` — sem `WITH CHECK` expression. Qualquer authenticated pode inserir contato com `assigned_to = <UUID de outro user>`, `workspace_id` de outro tenant.
+- **🔄 Revalidado em 2026-08-02 — FALSO POSITIVO.** A policy `contacts_insert` (`polcmd='a'`) **tem** `WITH CHECK`: `EXISTS (SELECT 1 FROM zapp.profiles p WHERE p.user_id = auth.uid() AND p.role = ANY(ARRAY['admin','supervisor']))`. O `polqual=NULL` observado é o comportamento **normal** de policy `INSERT` (usa `polwithcheck`, não `polqual`) — a medição original leu a coluna errada. Hoje só admin/supervisor insere. **Não executar a Ação.** Risco residual a registrar em outro achado: o `WITH CHECK` não valida `assigned_to`, então admin/supervisor pode atribuir a qualquer usuário.
 - **Ação:**
   1. `ALTER POLICY contacts_insert ON evo.evolution_contacts WITH CHECK (assigned_to::text = (SELECT p.id::text FROM zapp.profiles p WHERE p.user_id = auth.uid()) OR is_admin_or_supervisor())`.
   2. Adicionar teste que confirma que non-admin não pode inserir com `assigned_to` de outro.
@@ -518,6 +534,7 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 ### F5-19 — `get_contact_intelligence_by_phone` lê SÓ `evo.evolution_messages_wpp2` — multi-instância bug
 
 - **Origem:** Etapa 51 (Bloco 5).
+- **⚠️ Revisado em 2026-08-02 — referência corrigida:** o hardcode `_wpp2` está **apenas em `zapp.get_contact_intelligence_by_phone`** (13.129 chars). A homônima `public.get_contact_intelligence_by_phone` (731 chars) **não** contém `evolution_messages_wpp2`. **Qualificar `zapp.` na Ação** — sem isso o refactor pode reescrever a função errada. Distribuição atual: `wpp2`=17.493, `wpp_pink_test`=2.949, outras=4 (total 20.446).
 - **Evidência:** RPC body: `FROM evo.evolution_messages_wpp2 m WHERE m.remote_jid = v_jid_s ...`. Hardcoded `_wpp2`. **17492 contatos estão em `wpp2` (85.5%) mas 2949 estão em `wpp_pink_test` + 4 em outras instâncias**. Esses 2953 contatos recebem intelligence com `total_interactions=0` e sentiment `neutral` mesmo tendo histórico real.
 - **Ação:**
   1. Refatorar para consultar tabela pai `evo.evolution_messages` (particionada) OU dispatch por instância: `FROM evo.evolution_messages_{instance_name}`.
@@ -563,6 +580,7 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
 
 - **Origem:** Etapa 55 (Bloco 5).
 - **Evidência:** Mapa é populado incrementalmente ao navegar. URL `?p=5` (deep link) inicia com `pageIndexToCursor = Map([[0,null]])` — `currentPageCursor = get(5) ?? null` = null → RPC retorna page 0.
+- **⚠️ Revisado em 2026-08-02 — caminho corrigido:** o arquivo canônico é **`src/features/contacts/hooks/useContactsSearch.ts` (l.159)**. `src/hooks/useContactsSearch.ts` é apenas um re-export de 2 linhas — editar lá não tem efeito.
 - **Ação:**
   1. Se `cursor_id` for null e `page > 0`, RPC internalmente faz `OFFSET (page * page_size)` (fallback lento mas correto).
   2. Frontend: quando restaura de URL, se page > 0, carrega páginas 0..N em sequência via `refetch` (custo alto, mas correto para deep-links raros).
@@ -626,7 +644,8 @@ _(Achados F5-01 a F5-30 registrados no Bloco 5.)_
   1. Separar: `zapp.tags` (canonical: id, workspace_id, name, color, description, created_by, timestamps) + `zapp.contact_tag_suggestions` (ML: id, contact_id, tag_name, confidence, source, created_at).
   2. Migrar dados existentes: rows com `contact_id NOT NULL` vão para tag_suggestions; rows canônicas ficam.
   3. Ajustar `bulk_add_tag` para operar só em canonical + criar tags.
-- **Aceite:** `SELECT COUNT(*) FROM zapp.tags WHERE contact_id IS NOT NULL` = 0 após migração; `zapp.contact_tag_suggestions` popula.
+- **📝 Revisado em 2026-08-02 — Aceite reescrito:** `zapp.tags` está com **0 rows** hoje, logo o passo 2 ("migrar dados existentes") é no-op e o Aceite original já é verdadeiro antes de qualquer mudança — não discrimina sucesso.
+- **Aceite (reescrito):** (a) `zapp.contact_tag_suggestions` existe com as colunas `(id, contact_id, tag_name, confidence, source, created_at)`; (b) `zapp.tags` **não possui mais** as colunas `contact_id`, `tag_name`, `confidence`, `source` (`information_schema.columns` retorna 0 para elas); (c) `bulk_add_tag` insere em `zapp.tags` sem tocar em colunas de sugestão; (d) teste vitest cria 1 tag canônica + 1 sugestão e verifica que caem em tabelas distintas.
 
 
 ---
@@ -1259,7 +1278,7 @@ _(Achados F6-01 a F6-30 registrados no Bloco 6.)_
 
 _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 
-### F8-01 — CRÍTICO (P0): página `SLAAlertPreferences.tsx` órfã — 215 linhas de UI inalcançáveis em produção
+### F8-01 — ~~OBSOLETO~~ CRÍTICO (P0): página `SLAAlertPreferences.tsx` órfã — 215 linhas de UI inalcançáveis em produção
 
 - **Origem:** Etapa 78 (Bloco 8).
 - **Evidência:** `wc -l src/pages/SLAAlertPreferences.tsx` = 215 linhas (formulário completo de canal in-app/email/webhook + thresholds + silence hours). `grep -rn "SLAAlertPreferences" src/App.tsx src/pages/lazyViews.ts src/pages/ViewRouter.tsx` retorna **0 matches**. Página nunca é registrada em `<Route>`, `lazyViews`, ou navegação por `?view=`. Combinado: `SELECT COUNT(*) FROM zapp.sla_alert_preferences` = 0 rows — nenhum usuário jamais configurou preferência.
@@ -1267,7 +1286,9 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
   1. Decidir: (a) publicar a página adicionando entrada em `lazyViews.ts` + rota em `App.tsx`/`ViewRouter.tsx` + link no menu admin, ou (b) remover `SLAAlertPreferences.tsx` + hook `useSLAAlertPreferences` + tabela `zapp.sla_alert_preferences`.
   2. Se (a): teste E2E que abre a rota e persiste 1 preferência.
   3. Se (b): migration DROP + `git rm`.
-- **Aceite:** rota `/sla/preferences` (ou equivalente) resolve com 200 e persiste uma preferência **OU** grep confirma remoção completa (código + tabela + hook).
+- **🔄 Revalidado em 2026-08-02 — FALSO POSITIVO (erro de arquivo).** A página **está roteada**: `src/components/routing/AppRoutes.tsx` l.27 `const SLAAlertPreferences = lazyWithRetry(() => import('@/pages/SLAAlertPreferences'))` e rota `path="/sla/preferences"` (l.144-147). A evidência original grepou `src/App.tsx`, `src/pages/lazyViews.ts` e `src/pages/ViewRouter.tsx` — os 3 arquivos **existem**, mas **não são o roteador de rotas** deste app; por isso o grep deu 0. O arquivo tem **221 linhas** (não 215). **Não remover a página.**
+- **O que permanece verdadeiro:** `SELECT COUNT(*) FROM zapp.sla_alert_preferences` = **0** — feature alcançável porém **sem adoção**. Reescrever o achado como problema de descoberta/UX (falta link no menu admin), não de rota inexistente.
+- **Aceite (reescrito):** `/sla/preferences` está acessível a partir da navegação (não só por URL direta) **e** ≥ 1 row em `zapp.sla_alert_preferences` após teste E2E.
 
 ### F8-02 — CRÍTICO (P0): schema `bpm` inteiro morto — 41 tabelas com 0 rows, zero funções, zero views
 
@@ -1304,6 +1325,7 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
   1. Implementar `bpm_track_sla_on_create`: INSERT em `bpm.bpm_sla_records (card_id, step_id, sla_hours, entered_at, deadline_at)` com `sla_hours` vindo de `bpm.bpm_flow_steps.sla_hours` e `deadline_at = now() + sla_hours * interval '1 hour'`.
   2. Implementar `bpm_track_sla`: se `NEW.current_step_id != OLD.current_step_id`, UPDATE do record ativo com `exited_at = now(), time_in_step_minutes = ...` e INSERT novo record para o step de destino.
   3. Teste vitest: criar 1 card, mover 1 vez, verificar 2 rows em `bpm_sla_records` com `entered_at`/`exited_at`/`deadline_at` corretos.
+- **✅ Revisado em 2026-08-02:** bodies e triggers confirmados (`bpm_sla_on_create`→`zapp.bpm_track_sla_on_create`, `bpm_sla_on_move`→`zapp.bpm_track_sla`, ambos `tgenabled='O'`). **Achado adicional:** existe um **3º** trigger SLA em `bpm.bpm_cards` não citado — `trg_check_card_sla` → `zapp.fn_check_card_sla`. Auditar os 3 juntos para não criar lógica duplicada.
 - **Aceite:** INSERT em `bpm.bpm_cards` cria row em `bpm.bpm_sla_records`; UPDATE de `current_step_id` fecha o record anterior e cria novo. Teste verde.
 
 ### F8-05 — CRÍTICO (P0): cron 198 chama função no-op (`bpm_check_breached_slas`); a versão completa (`fn_check_all_cards_sla`) é dead code
@@ -1343,6 +1365,7 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
   1. Popular `zapp.queues` com filas iniciais (é ADR de Produto).
   2. Popular `zapp.queue_members` com atribuições reais de agentes.
   3. Se filas não fazem parte do escopo v3: remover página SLADashboard/rota + dropar `rpc_queue_sla_panel`.
+- **✅ Revisado em 2026-08-02:** contagens confirmadas (`queues`, `queue_positions`, `queue_members`, `sticky_assignments` = 0). **Ressalva:** o comentário v2 citado está **desatualizado** — a view `zapp.contacts` hoje expõe `ec.queue_id` real, não `NULL::uuid` hardcoded. O painel continua vazio pela ausência de dados, não pelo hardcode. Atualizar o comentário da função junto com a correção.
 - **Aceite:** `rpc_queue_sla_panel` retorna ≥ 1 row real em produção **OU** rota removida.
 
 ### F8-09 — CRÍTICO (P0): `evo.evolution_health_logs` vazia → cron 163 (`evo-peak-hours-sla`) retorna `NO_PEAK_DATA` em 100% das execuções
@@ -1350,19 +1373,21 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 - **Origem:** Etapa 79 (Bloco 8).
 - **Evidência:** `evo.fn_peak_hours_sla_check` (SECDEF, cron 163 `*/15 * * * *`) faz `SELECT COUNT(*) FROM evo.evolution_health_logs WHERE created_at >= now() - p_window AND EXTRACT(HOUR ...) BETWEEN 11 AND 21`. Cron 163 rodou 237 vezes em 7d (última 2026-08-02 13:45), todas succeeded — mas o path early-return é `IF v_total_checks = 0 THEN ... RETURN 'NO_PEAK_DATA'`. Nunca chega no cálculo real de uptime.
 - **Ação:**
-  1. Investigar por que `evo.evolution_health_logs` está vazia (é populada por qual produtor? crashado? deprecated?).
+  0. **⚠️ Revisado em 2026-08-02 — evidência corrigida:** a tabela **não está vazia** — tem **1 row** (`instance_name='wpp2'`, `status='success'`, `performed_at='2026-06-13T16:01:13Z'`, `created_at='2026-07-01T14:51:41Z'`). Como a janela do cron é `'1 hour'`, esse row único fica sempre fora e o early-return `NO_PEAK_DATA` se mantém — **a conclusão do achado continua válida**. Números atualizados: cron 163 com **245** execuções `succeeded`, última em **2026-08-02 15:45**.
+  1. Investigar por que `evo.evolution_health_logs` está **praticamente vazia** (1 row de 13/06, produtor parou depois disso — qual é? crashado? deprecated?).
   2. Se produtor existiu e crashou: reativar produtor.
   3. Se deprecated: dropar `evo.evolution_health_logs` + `fn_peak_hours_sla_check` + cron 163.
 - **Aceite:** ou cron 163 retorna `uptime_pct` real (≠ `NO_PEAK_DATA`), ou tabela+função+cron foram removidos.
 
-### F8-10 — MÉDIO (P1): `src/pages/SLADashboard.tsx` (22 linhas) é wrapper dead code
+### F8-10 — ~~OBSOLETO~~ MÉDIO (P1): `src/pages/SLADashboard.tsx` (22 linhas) é wrapper dead code
 
 - **Origem:** Etapa 76 (Bloco 8).
 - **Evidência:** `cat src/pages/SLADashboard.tsx` mostra 22 linhas: só monta Sidebar + `<SLADashboardComponent />` importado de `@/components/queues/SLADashboard` (349 linhas — o real). Router (`ViewRouter.tsx`) importa direto de `@/components/queues/SLADashboard`, pulando o wrapper. Arquivo em `src/pages/` só serve para confundir grep e IDE.
 - **Ação:**
   1. `git rm src/pages/SLADashboard.tsx`.
   2. Verificar que ninguém mais importa `@/pages/SLADashboard`.
-- **Aceite:** arquivo ausente; `tsc --noEmit` passa; app renderiza SLA dashboard normalmente.
+- **🔄 Revalidado em 2026-08-02 — FALSO POSITIVO (erro de arquivo). NÃO EXECUTAR.** O wrapper **é o entrypoint da rota `/sla`**: `src/components/routing/AppRoutes.tsx` l.25 `const SLADashboard = lazyWithRetry(() => import('@/pages/SLADashboard'))`, usado na rota `path="/sla"` (l.128-131). A afirmação de que "`ViewRouter.tsx` importa direto de `@/components/queues/SLADashboard`" é falsa para o roteador de rotas. `git rm src/pages/SLADashboard.tsx` **quebraria o build** — mesmo erro de medição do F8-01.
+- **O que permanece verdadeiro:** o wrapper adiciona `Sidebar` + `SectionErrorBoundary`; o componente real (`src/components/queues/SLADashboard.tsx`, 349 linhas) é importado por ele. Homonímia entre `pages/` e `components/queues/` continua atrapalhando grep/IDE → tratar junto com F1-12 (padronização de homônimos), não como remoção.
 
 ### F8-11 — MÉDIO (P1): `zapp.sla_alert_preferences` tem policy redundante — `users_own_preferences` é subset estrito de `auth_secure_105`
 
@@ -1385,6 +1410,7 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
   1. `grep -rn "hooks/useSLAHistory" src/` → identificar todos consumidores.
   2. Substituir todos por `@/features/sla/hooks/useSLAHistory`.
   3. `git rm src/hooks/useSLAHistory.ts`.
+- **✅ Revisado em 2026-08-02:** 2 linhas confirmadas. Consumidor real existente: **`src/hooks/__tests__/useSLAHistory.test.tsx` l.14** — ajustar o import do teste antes do `git rm`.
 - **Aceite:** grep para `@/hooks/useSLAHistory` = 0; teste + tsc passam.
 
 ### F8-13 — BAIXO (P1): smoke test data ("F4 SLA", "E2 Race") vazando em produção há 3 meses
@@ -1431,7 +1457,7 @@ _(Achados F8-01 a F8-17 registrados no Bloco 8.)_
 - **Ação:**
   1. Substituir `search_path TO 'zapp','evo','monitoring'` por `search_path TO 'bpm','zapp','evo','monitoring'` (ou qualificar `FROM bpm.bpm_cards c JOIN bpm.bpm_flow_steps s`).
   2. Regra de estilo: toda função SECDEF que toca outro schema deve qualificar explicitamente ou incluir o schema no search_path.
-  3. Grep `pg_proc.prosrc` por outras funções `zapp.*` que fazem `FROM bpm_*` sem qualificar — provavelmente `bpm_refresh_dashboards` também (confirmar).
+  3. Grep `pg_proc.prosrc` por outras funções `zapp.*` que fazem `FROM bpm_*` sem qualificar. **Confirmado em 2026-08-02:** `zapp.bpm_refresh_dashboards` e `zapp.bpm_check_breached_slas` têm o **mesmo** `proconfig` (`search_path=zapp, evo, monitoring`, sem `bpm`) — as 3 funções entram no escopo. Existem **41 views `zapp.bpm_*`** (+41 em `public`) sustentando a resolução implícita.
 - **Aceite:** grep sql retorna 0 funções `zapp.*` que fazem FROM/JOIN em objeto `bpm.*` sem qualificação nem `bpm` no search_path.
 
 
