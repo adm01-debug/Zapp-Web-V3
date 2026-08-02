@@ -108,4 +108,8 @@ CREATE POLICY auth_secure_145 ON zapp.empresas FOR SELECT TO authenticated USING
 -- ============================================================
 -- GAP 18: zapp.rpc_dispatch_error_stats — REVOKE (sem uso no front; coluna acao corrompida no CSV)
 -- ============================================================
-REVOKE EXECUTE ON FUNCTION zapp.rpc_dispatch_error_stats(p_hours integer) FROM authenticated;
+DO $$ BEGIN
+  REVOKE EXECUTE ON FUNCTION zapp.rpc_dispatch_error_stats(p_hours integer) FROM authenticated;
+EXCEPTION WHEN undefined_function THEN
+  RAISE NOTICE 'zapp.rpc_dispatch_error_stats(integer) não existe neste ambiente — REVOKE ignorado';
+END $$;
