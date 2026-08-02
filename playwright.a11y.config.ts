@@ -26,6 +26,12 @@ const HAS_E2E_CREDENTIALS = Boolean(
   process.env.E2E_USER_EMAIL && process.env.E2E_USER_PASSWORD
 );
 
+// E02-N10 — o alvo do project `public` precisa ser "a11y em rota publica",
+// nao "todo `auth-*.spec.ts`": `auth-flow`, `auth-extended` e
+// `auth-session-lifecycle` exigem backend real e reprovavam o job `a11y` do
+// ci.yml, que roda sem credenciais. Segue por padrao (nao nominal), como F10-05 pedia.
+const PUBLIC_A11Y = /auth-.*(accessibility|keyboard-navigation)\.spec\.ts$/;
+
 export default defineConfig({
   testDir: './e2e',
   testMatch: [
@@ -54,14 +60,14 @@ export default defineConfig({
       : []),
     {
       name: 'public',
-      testMatch: ['**/auth-*.spec.ts'],
+      testMatch: [PUBLIC_A11Y],
       use: { ...devices['Desktop Chrome'] },
     },
     ...(HAS_E2E_CREDENTIALS
       ? [
           {
             name: 'authenticated',
-            testIgnore: ['**/auth-*.spec.ts', '**/global.setup.ts'],
+            testIgnore: [PUBLIC_A11Y, '**/global.setup.ts'],
             use: { ...devices['Desktop Chrome'], storageState: STORAGE_STATE },
             dependencies: ['setup'],
           },
