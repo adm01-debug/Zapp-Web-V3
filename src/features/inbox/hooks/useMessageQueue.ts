@@ -166,7 +166,13 @@ export function useMessageQueue(
       ...item,
       attachments: undefined, // Não serializável
     }));
-    localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queueToSave));
+    try {
+      localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queueToSave));
+    } catch (e) {
+      // QuotaExceededError — broadcast so the UI can surface a warning (F4-11).
+      window.dispatchEvent(new CustomEvent('zapp:storage-quota-exceeded', { detail: { key: QUEUE_STORAGE_KEY } }));
+      log.warn('[useMessageQueue] localStorage quota exceeded — queue not persisted', e);
+    }
   }, [queue]);
 
   // Espelho síncrono da fila: permite notificar onProgress sem efeitos
