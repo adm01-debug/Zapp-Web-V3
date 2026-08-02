@@ -136,15 +136,26 @@ export function useRealtimeInbox() {
     }
   }, [conversations, loading, error, cachedConversations, usingCache]);
 
-  // Seed avatar cache — only once per contact ID to avoid redundant calls when
-  // the conversations array gets a new reference without data changes.
-  const seededAvatarsRef = useRef<Set<string>>(new Set());
+  // Seed avatar cache — Map<contactId, seedTimestamp> with 30-min TTL prevents
+  // unbounded growth when the inbox stays open for hours (F4-08).
+  const seededAvatarsRef = useRef<Map<string, number>>(new Map());
+  useEffect(() => {
+    const sweep = setInterval(() => {
+      const cutoff = Date.now() - 1_800_000;
+      seededAvatarsRef.current.forEach((ts, id) => {
+        if (ts < cutoff) seededAvatarsRef.current.delete(id);
+      });
+    }, 300_000);
+    return () => clearInterval(sweep);
+  }, []);
   useEffect(() => {
     if (!conversations || conversations.length === 0) return;
+    const now = Date.now();
     conversations.forEach((c) => {
-      if (c.contact.avatar_url && !seededAvatarsRef.current.has(c.contact.id)) {
+      const ts = seededAvatarsRef.current.get(c.contact.id);
+      if (c.contact.avatar_url && (ts === undefined || now - ts > 1_800_000)) {
         seedAvatarCache(c.contact.id, c.contact.avatar_url);
-        seededAvatarsRef.current.add(c.contact.id);
+        seededAvatarsRef.current.set(c.contact.id, now);
       }
     });
   }, [conversations]);
