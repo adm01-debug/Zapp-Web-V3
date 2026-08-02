@@ -16,11 +16,11 @@
 | 5 | Contatos e CRM (46-55) | ✅ Concluído | 30 (F5-01 a F5-30) |
 | 6 | Conexões WhatsApp (56-65) | ✅ Concluído | 30 (F6-01 a F6-30) |
 | 7 | Admin e monitoramento (66-75) | ✅ Concluído | 32 (F7-01 a F7-32) |
-| 8 | SLA/BPM (76-80) | ⏸ Pendente | — |
+| 8 | SLA/BPM (76-80) | ✅ Concluído | 15 (F8-01 a F8-15) |
 | 9 | Resiliência e edge cases (81-90) | ⏸ Pendente | — |
 | 10 | Cross-browser / a11y / perf (91-100) | ⏸ Pendente | — |
 
-**Achados até aqui: 155 (14 Bloco 1 + 13 Bloco 2 + 12 Bloco 3 + 24 Bloco 4 + 30 Bloco 5 + 30 Bloco 6 + 32 Bloco 7).**
+**Achados até aqui: 170 (14 Bloco 1 + 13 Bloco 2 + 12 Bloco 3 + 24 Bloco 4 + 30 Bloco 5 + 30 Bloco 6 + 32 Bloco 7 + 15 Bloco 8).**
 
 ---
 
@@ -480,34 +480,159 @@ Padrão: 1-2 alertas por hora, contador se reinicia a cada 72h sem ser resolvido
 - **F7-29** (P1) — `AdminFailedAuthMessagesPage` sem validação `from > to`.
 - **F7-32** (P1) — `AdminAutomationLogsPage` paginação 0-indexed.
 
+
+---
+
+## Bloco 8 — SLA/BPM (etapas 76-80)
+
+Camada de SLA e BPM — `zapp.conversation_sla`, `zapp.sla_*` (9 tabelas), 41 tabelas `bpm.*`, cron `bpm-check-breached-slas` (198), cron `verify-alert-delivery-10min` (205), cron `evo-peak-hours-sla` (163) e páginas frontend `SLADashboard`, `SLAHistory`, `SLAAlertPreferences`. 15 achados F8-01 a F8-15 detalhados em `PLANO_IMPLEMENTACAO_100.md` Tema 14. Base factual medida em 02/08/2026 ~13:00 UTC — resumo: schema `bpm.*` inteiro morto (41 tabelas com 0 rows, zero funções, zero views); `zapp.conversation_sla` = 0 rows; `zapp.sla_delivery_violations` com 1 row unresolved há 3 meses; cron 198 executa função enxuta `zapp.bpm_check_breached_slas()` (5 linhas) que faz UPDATE em tabela 0-row; cron 163 executa 234× em 7d retornando sempre `NO_PEAK_DATA`; `zapp.queues` = 0 rows; comentário v2 de `rpc_queue_sla_panel` admite: "zapp.contacts.queue_id é NULL::uuid hardcoded => métricas eternamente 0".
+
+### Base factual (medida em 02/08/2026 ~13:00 UTC)
+
+| Métrica | Valor |
+|---|---|
+| Schema `bpm.*` tabelas base | **41 tabelas, TODAS com 0 rows** — módulo BPM inteiro nunca teve dados |
+| Schema `bpm.*` funções + views | **0 funções, 0 views** — código apenas de tabelas |
+| `zapp.conversation_sla` total | 0 rows (view `public.conversation_sla` usada por `useSLAMetrics` / `useSLAHistory`) |
+| `zapp.sla_alert_preferences` total | **0 rows** — página `SLAAlertPreferences` sempre vazia |
+| `zapp.sla_configurations` total | 0 rows |
+| `zapp.sla_delivery_rules` total | 2 rows — smoke test com nomes "F4 SLA" e "E2 Race" datadas 2026-05-04 |
+| `zapp.sla_delivery_violations` total | 2 rows (smoke test), **1 unresolved há ~3 meses** |
+| `zapp.sla_policies` total | 0 rows |
+| `zapp.sla_rules` total | 0 rows |
+| `zapp.sla_violations` total | 0 rows |
+| `zapp.sla_history` total | 0 rows |
+| `zapp.queues`, `queue_positions`, `sticky_assignments` | **0 rows todas** — panorama de fila vazio |
+| `evo.evolution_health_logs` últimas 1h | 0 rows — cron 163 sempre retorna `NO_PEAK_DATA` |
+| Cron 198 `bpm-check-breached-slas` (`*/5`) | 702 execuções em 7d, 100% succeeded, cada uma `UPDATE 0` em `bpm_sla_records` |
+| Cron 205 `verify-alert-delivery-10min` (`*/10`) | Filtra `evo.evolution_alerts` por `severity='critical' AND payload ? 'notify_request_id'` — **0 alerts SLA nessa tabela** |
+| Cron 163 `evo-peak-hours-sla` (`*/15`) | 234 execuções 7d, **todas retornam `NO_PEAK_DATA`** (dependência morta) |
+| Triggers `zapp.bpm_track_sla()` / `bpm_track_sla_on_create()` | **STUBS VAZIOS** (`BEGIN RETURN NEW; END`) |
+| Função `zapp.fn_check_all_cards_sla` | Completa (com INSERT em `evolution_alerts`) mas **dead code** — cron 198 chama outra função |
+| RLS `bpm.bpm_sla_records` | `auth_full_access USING(true) WITH CHECK(true)` — sem tenant isolation |
+
+### Consumidores frontend SLA
+
+- `src/pages/SLADashboard.tsx` (22 L, wrapper dead code)
+- `src/components/queues/SLADashboard.tsx` (349 L, componente real usado pelo router)
+- `src/pages/SLAHistory.tsx` (registrado em ViewRouter)
+- `src/pages/SLAAlertPreferences.tsx` (215 L, **ÓRFÃ — sem rota em ViewRouter/lazyViews/App**)
+- `src/features/sla/hooks/`: `useSLAMetrics`, `useSLAHistory`, `useSLAAlertPreferences`, `useSLAAlerts`, `useSLAAlertHistory`
+- `src/hooks/useSLAHistory.ts` (2 L, apenas re-export duplicado)
+- Zero uso de `bpm.*` no frontend (só em `types.ts` autogerado)
+
+### Etapa 76 — Página `SLAAlertPreferences` órfã sem rota
+
+**Descoberta P0**: `src/pages/SLAAlertPreferences.tsx` tem 215 linhas de UI completa (configurações de canal in-app/email/webhook, thresholds, quiet hours), mas `grep -r "SLAAlertPreferences" src/` não encontra a página em nenhum `<Route>`, `lazyViews`, `App.tsx` ou `ViewRouter.tsx`. **Página inteira é inalcançável em produção**. Tabela `zapp.sla_alert_preferences` também está com 0 rows. → **F8-01** (P0).
+
+### Etapa 77 — Módulo BPM inteiro morto
+
+**Descoberta P0**: Schema `bpm.*` tem **41 tabelas base** (`bpm_cards`, `bpm_flows`, `bpm_flow_steps`, `bpm_automations`, `bpm_automation_executions`, `bpm_activity_log`, `bpm_card_movements`, `bpm_sla_records`, `bpm_registers`, `bpm_forms` etc), **zero funções**, **zero views**, e **TODAS as 41 tabelas com `n_live_tup=0`**. Módulo BPM inteiro nunca teve dados em produção. → **F8-02** (P0).
+
+**Descoberta P0**: 3+ sistemas SLA paralelos convivendo sem canonical: `bpm.bpm_sla_records` (0 rows), `zapp.conversation_sla` (0 rows), `zapp.sla_delivery_violations` (smoke test), `evo.evolution_alerts` (severity='critical'). Nenhum é fonte de verdade; código de checagem se espalha. → **F8-03** (P0).
+
+**Descoberta P0**: Triggers `zapp.bpm_track_sla()` e `zapp.bpm_track_sla_on_create()` são **STUBS VAZIOS**: corpo apenas `BEGIN RETURN NEW; END`. Não fazem tracking algum. → **F8-04** (P0).
+
+### Etapa 78 — Cron 198 chama função errada
+
+**Descoberta P0**: Cron 198 `bpm-check-breached-slas` (`*/5`) executa `zapp.bpm_check_breached_slas()` que tem apenas 5 linhas de `UPDATE bpm.bpm_sla_records SET is_breached=true WHERE deadline_at < now() AND exited_at IS NULL AND is_breached=false` — tabela zerada, então 100% no-op. A função "real" (completa, com INSERT em `evolution_alerts` + notificação) é `zapp.fn_check_all_cards_sla` — **dead code ativo**, ninguém chama. → **F8-05** (P0).
+
+**Descoberta P0**: RLS de `bpm.bpm_sla_records` = `auth_full_access` com `USING(true) WITH CHECK(true)` — qualquer usuário autenticado pode ler/escrever qualquer row. Sem tenant isolation. → **F8-06** (P0).
+
+### Etapa 79 — Dashboard SLA mostra 100% eternamente
+
+**Descoberta P0**: `useSLAMetrics.ts` tem fallback `overallRate: total > 0 ? (...) : 100` — quando `zapp.conversation_sla` está vazia (o caso hoje), dashboard sempre exibe "SLA 100%". Métrica cosmética que mascara ausência total de dados. → **F8-07** (P0).
+
+**Descoberta P0**: `zapp.queues` = 0 rows → `rpc_queue_sla_panel` sempre retorna vazio. Comentário v2 da função admite: "zapp.contacts.queue_id é NULL::uuid hardcoded na view => métricas eternamente 0". Panorama de fila é impossível de renderizar. → **F8-08** (P0).
+
+**Descoberta P0**: `evo.evolution_health_logs` = 0 rows na última hora → cron 163 `evo-peak-hours-sla` executa 234× em 7d, **todas retornando `NO_PEAK_DATA`**. Dependência de dados morta. → **F8-09** (P0).
+
+### Etapa 80 — Verificação de entrega + higiene
+
+**Descoberta P1**: Cron 205 `verify-alert-delivery-10min` executa `ops.fn_verify_alert_delivery()` que filtra `evo.evolution_alerts WHERE severity='critical' AND payload ? 'notify_request_id'`. **Zero alerts SLA nessa tabela** — o roteiro da etapa 80 tinha premissa falsa: SLA breach nunca chega em `evolution_alerts`. Cron opera em vácuo. → **F8-14** (P1).
+
+**Descoberta P1**: Falta índice parcial em `bpm.bpm_sla_records (deadline_at) WHERE exited_at IS NULL AND is_breached=false` para a query do cron 198. Como tabela tem 0 rows hoje, não pesa; mas se BPM for populado, cron precisa do índice para não fazer seq scan a cada 5min. → **F8-15** (P1).
+
+**Descoberta P1**: `src/pages/SLADashboard.tsx` (22 L) é **dead code** — router importa direto de `@/components/queues/SLADashboard` (349 L). Wrapper obsoleto. → **F8-10** (P1).
+
+**Descoberta P1**: `zapp.sla_alert_preferences` tem policies RLS overlapping: `auth_secure_105` + `users_own_preferences` + `service_full_access`. Dois USING conflitantes para o mesmo `authenticated` role. → **F8-11** (P1).
+
+**Descoberta P1**: `src/hooks/useSLAHistory.ts` (2 L) é apenas re-export de `src/features/sla/hooks/useSLAHistory.ts`. Duplicidade de import path — códigos importam de ambos. → **F8-12** (P1).
+
+**Descoberta P1**: Smoke test data com nomes explícitos "F4 SLA" e "E2 Race" datados 2026-05-04 estão vazando em produção há 3 meses em `zapp.sla_delivery_rules` (2 rows) e `zapp.sla_delivery_violations` (2 rows, 1 unresolved). Falta limpeza pós-teste. → **F8-13** (P1).
+
+---
+
+## Achados do Bloco 8 (15 itens registrados em `PLANO_IMPLEMENTACAO_100.md` Tema 14)
+
+### Página órfã / rotas quebradas
+
+- **F8-01** (P0) — `SLAAlertPreferences.tsx` (215 L) sem `<Route>` — página inalcançável.
+
+### Módulo BPM morto
+
+- **F8-02** (P0) — 41 tabelas `bpm.*` com 0 rows; zero funções; zero views.
+- **F8-03** (P0) — 3+ sistemas SLA paralelos sem canonical.
+- **F8-04** (P0) — Triggers `bpm_track_sla*` são stubs vazios.
+
+### Cron 198 e função errada
+
+- **F8-05** (P0) — Cron 198 chama `bpm_check_breached_slas` (no-op); `fn_check_all_cards_sla` (completa) é dead code.
+- **F8-06** (P0) — RLS `bpm_sla_records` = `USING(true) WITH CHECK(true)`.
+
+### Dashboard eterno em 100%
+
+- **F8-07** (P0) — `useSLAMetrics.overallRate` fallback = 100 quando vazio.
+- **F8-08** (P0) — `zapp.queues` = 0 rows → `rpc_queue_sla_panel` sempre vazio.
+- **F8-09** (P0) — `evo.evolution_health_logs` = 0 rows → cron 163 sempre `NO_PEAK_DATA`.
+
+### Higiene / dead code / índices
+
+- **F8-10** (P1) — `src/pages/SLADashboard.tsx` (22 L) dead code.
+- **F8-11** (P1) — `sla_alert_preferences` policies RLS overlapping.
+- **F8-12** (P1) — `src/hooks/useSLAHistory.ts` re-export duplicado.
+- **F8-13** (P1) — Smoke test data ("F4 SLA", "E2 Race") em prod há 3 meses.
+- **F8-14** (P1) — Cron 205 não cobre alertas SLA — premissa da etapa 80 é falsa.
+- **F8-15** (P1) — Falta índice parcial `bpm_sla_records (deadline_at) WHERE exited_at IS NULL AND is_breached=false`.
+
 ---
 
 ## Retomada — próximo chat
 
-Onde parar de Bloco 7 e o que executar em seguida:
+Onde parar de Bloco 8 e o que executar em seguida:
 
-1. **Bloco 8 — SLA/BPM (etapas 76-80):**
-   - `bpm.bpm_slas`, `bpm.bpm_sla_breaches` — SLI/SLO, quantos SLAs quebrados por queue/canal/agente.
-   - `bpm.bpm_workflow_executions` — workflow builder e engine.
-   - `bpm.bpm_card_activities`, `bpm.bpm_stages` — auditoria de movimentação.
-   - `bpm.bpm_automations`, `bpm.bpm_automation_executions` — regras engatilhadas no BPM.
-   - Cron 198 `bpm-check-breached-slas` (`*/5`) — verificar execuções e falhas.
+1. **Bloco 9 — Resiliência e edge cases (etapas 81-90):**
+   - 81: Rede offline durante envio → Service Worker + `useOnlineStatus`
+   - 82: Rede intermitente → retry exponencial supabase-js
+   - 83: Supabase down + reconexão → banner + jitter + filas locais
+   - 84: Evolution API 401 sustentado → `evo-detect-401-bursts` (173)
+   - 85: Fila cheia DLQ → crons `route-failed-webhooks-to-dlq` (87), `dlq-poison-guard` (146), `monitor-dlq-health` (91)
+   - 86: Deadman switch → `guardian-heartbeat-sync` (131), `guardian-db-heartbeat-resilient` (193), `check-guardian-alive` (188)
+   - 87: Race condition envio simultâneo → `uq_msg_msgid_instance`
+   - 88: Idempotência → `webhook_events_processed` (171k linhas)
+   - 89: Timeout > 30s → `statement_timeout` PostgREST
+   - 90: Circuit breaker → 5 falhas em 10s
 
-2. **Bloco 9-10:** roteiro completo em `PLANO_QA_ANALISE_100.md`.
+2. **Bloco 10:** roteiro completo em `PLANO_QA_ANALISE_100.md` (etapas 91-100: cross-browser, mobile, a11y, PWA offline, Lighthouse).
 
-**Contexto crítico do Bloco 7 para o próximo chat:**
-- **17 achados P0** identificados (F7-01, 02, 03, 04, 05, 06, 07, 09, 10, 11, 12, 13, 14, 15, 16, 19, 21, 25, 31).
-- **Bugs de JSX literal (F7-01, 02, 03)**: `// @technical` renderizado como texto em 3 páginas. Fix mecânico (regex sweep + `react/jsx-no-comment-textnodes` ESLint rule).
-- **Mock em prod (F7-04, F7-05)**: `AdminBridgeStatusPage` "42ms" hardcoded, `AuditEvidenceDashboard` inteira estática.
-- **Tabelas vazias (F7-11, 12, 13, 18, 20)**: 5 tabelas críticas com 0 rows, 5 páginas admin sempre em EmptyState. Diagnóstico caso a caso: instrumentação broken vs. features não implementadas.
-- **Alert fatigue máximo (F7-14)**: `webhook_health_alerts` com 724 unresolved (98.6%), sistema pede "não vá pra prod" perpetuamente. Cron 145 gerando 1-2 alerts/hora. Decisão política + auto-resolve trigger.
-- **Crons quebrados (F7-15, F7-16)**: 213 (media_pipeline_health) 43% falha por schema mismatch em warroom_alerts; 100 (analytics-log-retention) 100% falha por dblink não instalada. Fixes: schema audit da fn_run_media_health_alert + `CREATE EXTENSION dblink`.
-- **Cloud API silencioso 90 dias (F7-25)**: `whatsapp_cloud_webhook_pings` sem entradas desde 2026-05-04.
-- **Rota inexistente (F7-09)**: `AdminInboxSyncStatusPage` linka `/admin/webhook-overview` — página não existe.
-- **PII em URL (F7-17)**: remote_jid completo em query string vaza para logs Traefik + Referer.
-- **Segurança/UX (F7-21, F7-31)**: HmacSelfTestPage risco loop infinito; SelfHostedHealthPage sem AbortController.
+**Contexto crítico do Bloco 8 para o próximo chat:**
+- **9 achados P0** identificados (F8-01, 02, 03, 04, 05, 06, 07, 08, 09).
+- **Página órfã (F8-01)**: `SLAAlertPreferences.tsx` (215 L) inteira sem rota — feature 100% inalcançável em prod.
+- **BPM inteiro morto (F8-02)**: 41 tabelas `bpm.*` com 0 rows, zero funções, zero views. Módulo BPM nunca teve dados.
+- **3+ sistemas SLA paralelos (F8-03)**: `bpm.bpm_sla_records`, `zapp.conversation_sla`, `zapp.sla_delivery_violations`, `evo.evolution_alerts` — nenhum canonical.
+- **Triggers stubs (F8-04)**: `bpm_track_sla` e `bpm_track_sla_on_create` são `BEGIN RETURN NEW; END`.
+- **Cron 198 no-op (F8-05)**: 702 execuções em 7d, todas UPDATE 0 rows. Função "real" `fn_check_all_cards_sla` é dead code.
+- **RLS insegura (F8-06)**: `bpm_sla_records` = `USING(true) WITH CHECK(true)` — sem tenant isolation.
+- **Dashboard eterno 100% (F8-07)**: `useSLAMetrics` fallback `overallRate: 100` quando vazio — métrica cosmética que mascara ausência de dados.
+- **Panorama de fila impossível (F8-08)**: `zapp.queues` = 0 rows; comentário v2 de `rpc_queue_sla_panel` admite `queue_id NULL::uuid hardcoded => métricas eternamente 0`.
+- **Cron 163 `NO_PEAK_DATA` sempre (F8-09)**: `evo.evolution_health_logs` = 0 rows na última hora, 234 execuções em vácuo em 7d.
 
-**Documentos ao final desta sessão (7 blocos concluídos):**
+**P1 relevantes:**
+- **F8-14**: Cron 205 `verify-alert-delivery-10min` não cobre alertas SLA — roteiro da etapa 80 tinha premissa falsa.
+- **F8-15**: Falta índice parcial em `bpm_sla_records (deadline_at) WHERE exited_at IS NULL AND is_breached=false`.
+- **F8-13**: Smoke test data ("F4 SLA", "E2 Race") vazando em prod há 3 meses.
+
+**Documentos ao final desta sessão (8 blocos concluídos):**
 - `docs/audits/PLANO_QA_ANALISE_100.md` — roteiro (não alterado).
-- `docs/audits/PLANO_IMPLEMENTACAO_100.md` — 155 achados nos Temas 1-13.
+- `docs/audits/PLANO_IMPLEMENTACAO_100.md` — 170 achados nos Temas 1-14.
 - `docs/audits/RELATORIO_EXECUCAO_ANALISE.md` — este documento.
