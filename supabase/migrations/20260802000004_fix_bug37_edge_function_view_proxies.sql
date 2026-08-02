@@ -211,9 +211,24 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON zapp.user_service_accounts TO authentica
 -- (evolution-health sees no real data) and the table has no RLS (anon DML via REST).
 -- Correct fix: proxy evo.evolution_messages directly — real data, always exists,
 -- RLS via security_invoker=on.
+-- Explicit projection preserves the established messages_whatsapp column contract
+-- (including from_me AS is_from_me) so CREATE OR REPLACE VIEW succeeds on envs
+-- where this view already exists with that column layout.
 CREATE OR REPLACE VIEW zapp.messages_whatsapp
   WITH (security_invoker = on)
-AS SELECT * FROM evo.evolution_messages;
+AS SELECT
+  id,
+  contact_id,
+  instance_name,
+  remote_jid,
+  message_id,
+  content,
+  message_type,
+  from_me AS is_from_me,
+  status,
+  media_url,
+  created_at
+FROM evo.evolution_messages;
 
 REVOKE ALL ON zapp.messages_whatsapp FROM PUBLIC, anon;
 GRANT ALL    ON zapp.messages_whatsapp TO service_role;
