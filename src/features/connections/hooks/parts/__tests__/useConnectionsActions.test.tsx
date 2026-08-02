@@ -35,7 +35,9 @@
  *     - em erro: toast destrutivo e estado inalterado
  *   handleDelete
  *     - deleta a instância na Evolution pelo NOME, nunca pelo UUID
- *     - segue com o delete no banco mesmo se a Evolution falhar
+ *     - 404 da Evolution: segue com o delete no banco (já não existe)
+ *     - 5xx/timeout da Evolution: NÃO deleta no banco, marca para retry
+ *     - 4xx da Evolution: aborta o delete no banco e alerta o usuário
  *     - pula a chamada à Evolution quando não há nome resolvível
  *     - remove a conexão do estado local
  *     - em erro do banco: toast destrutivo e conexão preservada no estado
@@ -219,6 +221,44 @@ describe('useConnectionsActions — handleAddConnection', () => {
     expect(singleSpy).not.toHaveBeenCalled();
   });
 
+  it('rejeita phone_number vazio com toast destrutivo e sem tocar no banco', async () => {
+    const { result, h } = setup({
+      newConnection: { name: 'Vendas', phone_number: '', api_type: 'evolution' },
+    });
+    await act(async () => {
+      await result.current.handleAddConnection();
+    });
+    expect(toastSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Número de telefone inválido', variant: 'destructive' })
+    );
+    expect(singleSpy).not.toHaveBeenCalled();
+    expect(h.setIsCreating).not.toHaveBeenCalled();
+  });
+
+  it('rejeita phone_number fora do formato brasileiro', async () => {
+    const { result } = setup({
+      newConnection: { name: 'Vendas', phone_number: '123', api_type: 'evolution' },
+    });
+    await act(async () => {
+      await result.current.handleAddConnection();
+    });
+    expect(toastSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Número de telefone inválido', variant: 'destructive' })
+    );
+    expect(singleSpy).not.toHaveBeenCalled();
+  });
+
+  it('normaliza phone_number brasileiro formatado antes do INSERT', async () => {
+    const { result } = setup({
+      newConnection: { name: 'Vendas', phone_number: '+55 (11) 98765-4321', api_type: 'evolution' },
+    });
+    await act(async () => {
+      await result.current.handleAddConnection();
+    });
+    const insert = findRecorded('insert')?.arg as Record<string, unknown>;
+    expect(insert.phone_number).toBe('11987654321');
+  });
+
   it('marca is_default=true quando é a primeira conexão', async () => {
     const { result } = setup({ connections: [] });
     await act(async () => {
@@ -250,7 +290,7 @@ describe('useConnectionsActions — handleAddConnection', () => {
 
   it('usa prefixo official_ no fluxo official, sem chamar generateInstanceName', async () => {
     const { result } = setup({
-      newConnection: { name: 'Meta', phone_number: '', api_type: 'official' },
+      newConnection: { name: 'Meta', phone_number: '5511988887777', api_type: 'official' },
     });
     await act(async () => {
       await result.current.handleAddConnection();
@@ -306,7 +346,7 @@ describe('useConnectionsActions — handleAddConnection', () => {
 
   it('NÃO abre o QR Code no fluxo official', async () => {
     const { result, h } = setup({
-      newConnection: { name: 'Meta', phone_number: '', api_type: 'official' },
+      newConnection: { name: 'Meta', phone_number: '5511988887777', api_type: 'official' },
     });
     await act(async () => {
       await result.current.handleAddConnection();
@@ -434,9 +474,11 @@ describe('useConnectionsActions — handleDelete', () => {
     expect(h.deleteInstance).not.toHaveBeenCalledWith(conn.instance_id);
   });
 
-  it('segue com o delete no banco mesmo se a Evolution falhar', async () => {
+  it('404 da Evolution: segue com o delete no banco (instância já não existe)', async () => {
     const { result, h } = setup({
-      deleteInstance: vi.fn().mockRejectedValue(new Error('404 instance not found')),
+      deleteInstance: vi
+        .fn()
+        .mockRejectedValue(Object.assign(new Error('404 instance not found'), { apiStatus: 404 })),
     });
     await act(async () => {
       await result.current.handleDelete(makeConnection());
@@ -444,6 +486,56 @@ describe('useConnectionsActions — handleDelete', () => {
     expect(recorded.some((r) => r.op === 'delete')).toBe(true);
     expect(h.setConnections).toHaveBeenCalled();
     expect(toastSpy).toHaveBeenCalledWith({ title: 'Conexão removida' });
+  });
+
+  it('5xx da Evolution: NÃO deleta no banco, marca para retry e preserva o registro', async () => {
+    const { result, h } = setup({
+      deleteInstance: vi
+        .fn()
+        .mockRejectedValue(Object.assign(new Error('internal error'), { apiStatus: 500 })),
+    });
+    await act(async () => {
+      await result.current.handleDelete(makeConnection({ id: 'conn-1' }));
+    });
+    expect(recorded.some((r) => r.op === 'delete')).toBe(false);
+    const update = recorded.find((r) => r.op === 'update')?.arg as Record<string, unknown>;
+    expect(update.settings).toMatchObject({ delete_pending: true });
+    expect(recorded.find((r) => r.op === 'eq')).toEqual({ op: 'eq', col: 'id', val: 'conn-1' });
+    expect(h.setConnections).not.toHaveBeenCalled();
+    expect(toastSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Remoção adiada', variant: 'destructive' })
+    );
+  });
+
+  it('timeout/rede da Evolution (sem status): NÃO deleta no banco, marca para retry', async () => {
+    const { result } = setup({
+      deleteInstance: vi.fn().mockRejectedValue(new Error('network timeout')),
+    });
+    await act(async () => {
+      await result.current.handleDelete(makeConnection());
+    });
+    expect(recorded.some((r) => r.op === 'delete')).toBe(false);
+    expect(recorded.some((r) => r.op === 'update')).toBe(true);
+    expect(toastSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Remoção adiada', variant: 'destructive' })
+    );
+  });
+
+  it('4xx da Evolution (auth/perms): aborta o delete no banco e alerta o usuário', async () => {
+    const { result, h } = setup({
+      deleteInstance: vi
+        .fn()
+        .mockRejectedValue(Object.assign(new Error('forbidden'), { apiStatus: 403 })),
+    });
+    await act(async () => {
+      await result.current.handleDelete(makeConnection());
+    });
+    expect(recorded.some((r) => r.op === 'delete')).toBe(false);
+    expect(recorded.some((r) => r.op === 'update')).toBe(false);
+    expect(h.setConnections).not.toHaveBeenCalled();
+    expect(toastSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Erro ao deletar', variant: 'destructive' })
+    );
   });
 
   it('pula a Evolution quando não há nome de instância resolvível', async () => {
