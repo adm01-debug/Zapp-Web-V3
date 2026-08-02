@@ -10,10 +10,10 @@ on:
     - cron: '0 6 * * *'  # daily at 06:00 UTC
   workflow_dispatch:
 
-# GITHUB_TOKEN does not have administration:read, so the branch protection
-# API call below uses gh api (via GITHUB_TOKEN) and warns on 403/error.
-# If you need authenticated read of branch protection rules, set up
-# ACTIONS_PAT secret with repo/administration:read scope.
+# branch-protection check uses ACTIONS_PAT secret (requires Administration: read permission).
+# If ACTIONS_PAT is not configured, the verify-branch-protection job fails.
+# Create a fine-grained token scoped to this repository with the Administration: read
+# permission (not the classic "repo" scope) and add it as the ACTIONS_PAT secret.
 permissions:
   contents: read
   pull-requests: read
@@ -28,6 +28,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Check for console.log in new code
         run: |
           git diff --name-only origin/${{ github.base_ref }}..HEAD | grep -E '\.(ts|tsx)$' | while read f; do
@@ -50,9 +52,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check branch protection rules
+        env:
+          ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
         run: |
-          RESP=$(curl -sS -w "\n%{http_code}" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          set -euo pipefail
+
+          if [ -z "${ACTIONS_PAT:-}" ]; then
+            echo "::error::ACTIONS_PAT not set — branch protection check requires administration:read scope; configure the ACTIONS_PAT secret"
+            exit 1
+          fi
+
+          RESP=$(curl -sS --connect-timeout 10 --max-time 30 \
+            -w "\n%{http_code}" \
+            -H "Authorization: Bearer $ACTIONS_PAT" \
             -H "Accept: application/vnd.github+json" \
             "${{ github.api_url }}/repos/${{ github.repository }}/branches/main/protection")
 
@@ -60,39 +72,75 @@ jobs:
           PROT=$(echo "$RESP" | sed '$d')
 
           if [ "$HTTP_CODE" = "403" ]; then
-            echo "::warning::GITHUB_TOKEN lacks administration:read — cannot verify branch protection rules"
-            echo "::warning::To enable this check, create ACTIONS_PAT secret with repo/administration:read scope"
-            echo "Branch protection check skipped (permission denied)."
-            exit 0
+            echo "::error::Branch protection API denied (HTTP 403) — ACTIONS_PAT may lack administration:read scope"
+            exit 1
+          fi
+
+          if [ "$HTTP_CODE" = "404" ]; then
+            echo "::error::Branch protection NOT configured on main — this is a security gap"
+            echo "::error::Configure branch protection in: Settings > Branches > Branch protection rules"
+            exit 1
           fi
 
           if [ "$HTTP_CODE" != "200" ]; then
-            echo "::warning::Branch protection API returned HTTP $HTTP_CODE — cannot verify rules"
+            echo "::error::Branch protection API returned HTTP $HTTP_CODE"
             echo "Response: $PROT"
-            exit 0
+            exit 1
           fi
 
           echo "Branch protection response:"
           echo "$PROT" | jq .
 
+          FAILED=0
+
           FORCE=$(echo "$PROT" | jq -r '.allow_force_pushes.enabled // false')
           DISMISS=$(echo "$PROT" | jq -r '.required_pull_request_reviews.dismiss_stale_reviews // false')
           ENFORCE=$(echo "$PROT" | jq -r '.enforce_admins.enabled // false')
+          REQUIRE_PR=$(echo "$PROT" | jq -r '.required_pull_request_reviews // null')
           CHECKS=$(echo "$PROT" | jq -r '.required_status_checks.contexts // [] | length')
 
           if [ "$FORCE" = "true" ]; then
-            echo "::warning::Force pushes are ALLOWED on main — should be disabled"
+            echo "::error::Force pushes are ALLOWED on main — must be disabled"
+            FAILED=1
+          else
+            echo "OK: force pushes disabled"
           fi
+
+          if [ "$REQUIRE_PR" = "null" ]; then
+            echo "::error::Pull request reviews NOT required on main — PRs can be merged without review"
+            FAILED=1
+          else
+            echo "OK: pull request reviews required"
+            APPROVALS=$(echo "$PROT" | jq -r '.required_pull_request_reviews.required_approving_review_count // 0')
+            if [ "${APPROVALS:-0}" -lt 1 ]; then
+              echo "::error::required_approving_review_count is ${APPROVALS:-0} — minimum 1 approval required before merge"
+              FAILED=1
+            else
+              echo "OK: $APPROVALS required approval(s) configured"
+            fi
+          fi
+
           if [ "$DISMISS" != "true" ]; then
-            echo "::warning::Stale reviews are NOT auto-dismissed — should be enabled"
+            echo "::warning::Stale reviews are NOT auto-dismissed — recommend enabling"
+          else
+            echo "OK: stale reviews auto-dismissed"
           fi
+
           if [ "$ENFORCE" != "true" ]; then
             echo "::warning::Admin enforcement is OFF — branch protection does not apply to admins"
+          else
+            echo "OK: admin enforcement ON"
           fi
+
           if [ "$CHECKS" -eq 0 ]; then
-            echo "::warning::No required status checks configured on main"
+            echo "::warning::No required status checks configured on main — recommend adding ci/build"
+          else
+            echo "OK: $CHECKS required status check(s) configured"
           fi
 
           echo "---"
-          echo "Protection rules checked."
-          exit 0  # advisory — never fails, only warns
+          if [ "$FAILED" = "1" ]; then
+            echo "::error::Branch protection sentinel FAILED — critical rules missing on main"
+            exit 1
+          fi
+          echo "Branch protection rules OK."

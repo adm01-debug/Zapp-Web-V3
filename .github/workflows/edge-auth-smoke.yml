@@ -34,20 +34,58 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
-      - name: PR mode — verificacao estatica apenas
+      - name: PR mode — verificacao estatica
         if: github.event_name == 'pull_request'
         run: |
-          echo "PR mode: verificacao estatica (smoke test de producao roda no schedule/dispatch)"
+          set -euo pipefail
+
           if [ ! -d "supabase/functions" ]; then
             echo "::error::Diretorio supabase/functions nao encontrado"
             exit 1
           fi
-          if [ -f "supabase/functions/main/index.ts" ]; then
-            echo "OK: supabase/functions/main/index.ts encontrado"
-          else
-            echo "::warning::supabase/functions/main/index.ts nao encontrado (pode ser nova estrutura)"
+
+          INDEX="supabase/functions/main/index.ts"
+          if [ ! -f "$INDEX" ]; then
+            echo "::error::$INDEX nao encontrado — entrypoint JWT obrigatorio"
+            exit 1
           fi
+          echo "OK: $INDEX encontrado"
+
+          # Verifica que PUBLIC_FNS existe e tem membros
+          if ! grep -q "const PUBLIC_FNS" "$INDEX"; then
+            echo "::error::PUBLIC_FNS nao encontrado em $INDEX — allowlist JWT obrigatoria"
+            exit 1
+          fi
+
+          # Verifica que há pelo menos uma função na allowlist
+          COUNT=$(sed -n '/const PUBLIC_FNS/,/^\s*\]/p' "$INDEX" \
+            | grep -vE '^\s*//' \
+            | grep -oE "['\"][A-Za-z0-9_-]+['\"]" \
+            | wc -l || true)
+          COUNT="${COUNT// /}"
+          if [ "${COUNT:-0}" -eq 0 ]; then
+            echo "::error::PUBLIC_FNS esta vazia — nenhuma funcao na allowlist"
+            exit 1
+          fi
+          echo "OK: PUBLIC_FNS tem ${COUNT} entradas (estatico)"
+
+          # Verifica que nenhuma funcao protegida esta na allowlist acidentalmente
+          # Escopa a busca apenas ao bloco PUBLIC_FNS para evitar falso-positivo
+          # Inclui funcoes de infra criticas (ai-router, evolution-api) que nunca
+          # devem ser publicas mesmo que sejam lancadas por clients internos.
+          PUBLIC_FNS_BLOCK=$(sed -n '/const PUBLIC_FNS/,/^\s*\]/p' "$INDEX")
+          PROTECTED_FNS="admin delete-user reset-password ai-router evolution-api"
+          for fn in $PROTECTED_FNS; do
+            if echo "$PUBLIC_FNS_BLOCK" | grep -q "\"$fn\"" || echo "$PUBLIC_FNS_BLOCK" | grep -q "'$fn'"; then
+              echo "::error::Funcao protegida '$fn' encontrada na PUBLIC_FNS allowlist"
+              exit 1
+            fi
+          done
+          echo "OK: nenhuma funcao sensivel acidentalmente na allowlist"
+
           echo "edge-auth-smoke: static check OK"
 
       - name: Smoke test de autenticacao das edge functions
@@ -69,33 +107,127 @@ jobs:
             exit 1
           fi
 
-          ALLOWLIST="$(mktemp)"
-          sed -n '/const PUBLIC_FNS = new Set/,/^\])/p' "$INDEX" \
+          # ---- Extrair allowlist PUBLIC_FNS do entrypoint ----
+          ALLOWLIST_FILE="$(mktemp)"
+          sed -n '/const PUBLIC_FNS = new Set/,/^\s*\]\s*)/p' "$INDEX" \
             | grep -vE '^\s*//' \
             | grep -oE "['\"][A-Za-z0-9_-]+['\"]" \
             | tr -d "'\"" \
-            | sort -u > "$ALLOWLIST" || true
-          echo "Allowlist PUBLIC_FNS extraida: $(wc -l < "$ALLOWLIST") funcao(oes)"
+            | sort -u > "$ALLOWLIST_FILE" || true
+          ALLOWLIST_COUNT="$(wc -l < "$ALLOWLIST_FILE")"
+          echo "Allowlist PUBLIC_FNS extraida: ${ALLOWLIST_COUNT} funcao(oes)"
 
-          READONLY_FNS="health-check status evolution-health"
           VERIFY_JWT_ENABLED="${VERIFY_JWT_ENABLED:-false}"
           FAILED=0
-          CHECKED=0
 
-          for fn in $READONLY_FNS; do
-            CHECKED=$((CHECKED + 1))
-            code="$(curl -s -o /dev/null -w '%{http_code}' "$BASE_URL/functions/v1/$fn" || true)"
+          # ---- 1. Health checks: funcoes publicas devem responder sem auth ----
+          # Espera-se 200 ou 404 (funcao existe mas nenhum body), nunca 401/403
+          PUBLIC_HEALTH_FNS="health-check status evolution-health"
+          echo ""
+          echo "=== Testando funcoes publicas (sem Authorization) ==="
+          for fn in $PUBLIC_HEALTH_FNS; do
+            code="$(curl -s -o /dev/null -w '%{http_code}' \
+              --max-time 10 \
+              "$BASE_URL/functions/v1/$fn" || true)"
             code="${code:-000}"
+
             if [ "$code" = "000" ]; then
-              echo "::warning::Health check '$fn' sem resposta (http=$code) - network issue?"
+              echo "::warning::Funcao publica '$fn' sem resposta — problema de rede?"
+            elif [ "$code" = "401" ] || [ "$code" = "403" ]; then
+              echo "::error::Funcao publica '$fn' retornou HTTP $code sem auth — deveria ser acessivel (esta na PUBLIC_FNS?)"
+              FAILED=1
+            elif [ "$code" = "500" ] || [ "$code" = "502" ] || [ "$code" = "503" ]; then
+              echo "::error::Funcao publica '$fn' falhou com http=$code — verificar saude do gateway"
+              FAILED=1
             else
-              echo "OK: '$fn' (health, http=$code)"
+              echo "OK: '$fn' acessivel sem auth (http=$code)"
             fi
           done
 
-          echo "Funcoes testadas: $CHECKED"
+          # ---- 2. Funcoes protegidas devem exigir JWT ----
+          # Se VERIFY_JWT_ENABLED=true, funcoes fora da allowlist devem retornar 401
+          # Se VERIFY_JWT_ENABLED=false (runtime ainda nao ativado), apenas avisa
+          echo ""
+          echo "=== Testando funcoes protegidas (sem Authorization) ==="
+          # Funcoes protegidas que existem em producao (nao estao na PUBLIC_FNS allowlist)
+          PROTECTED_FNS="evolution-api ai-router"
+          for fn in $PROTECTED_FNS; do
+            # evolution-api e ai-router sao SEMPRE protegidas — se aparecerem na
+            # allowlist e uma regressao de seguranca que deve falhar o CI
+            if grep -qx "$fn" "$ALLOWLIST_FILE" 2>/dev/null; then
+              echo "::error::ALLOWLIST REGRESSION: '$fn' foi adicionada a PUBLIC_FNS — funcao protegida nao pode ser publica"
+              FAILED=1
+              continue
+            fi
+
+            code="$(curl -s -o /dev/null -w '%{http_code}' \
+              --max-time 10 \
+              "$BASE_URL/functions/v1/$fn" || true)"
+            code="${code:-000}"
+
+            if [ "$code" = "000" ]; then
+              echo "::warning::Funcao protegida '$fn' sem resposta — problema de rede?"
+            elif [ "$VERIFY_JWT_ENABLED" = "true" ]; then
+              if [ "$code" = "401" ] || [ "$code" = "403" ]; then
+                echo "OK: '$fn' exige auth (http=$code)"
+              elif [ "$code" = "404" ]; then
+                echo "::error::Funcao protegida '$fn' retornou 404 com VERIFY_JWT=true ativo — funcao nao esta implantada mas deveria estar protegida"
+                FAILED=1
+              else
+                echo "::error::Funcao protegida '$fn' retornou HTTP $code sem auth — deveria retornar 401/403 (VERIFY_JWT=true ativo)"
+                FAILED=1
+              fi
+            else
+              # VERIFY_JWT nao ativo ainda: apenas avisa se funcao retornar 200
+              if [ "$code" = "200" ]; then
+                echo "::warning::VERIFY_JWT nao ativo: '$fn' retornou 200 sem auth — ative VERIFY_JWT=true no runtime"
+              elif [ "$code" = "401" ] || [ "$code" = "403" ]; then
+                echo "OK: '$fn' ja exige auth (http=$code) mesmo sem VERIFY_JWT global"
+              else
+                echo "INFO: '$fn' retornou http=$code sem auth (VERIFY_JWT nao ativo)"
+              fi
+            fi
+          done
+
+          # ---- 3. Funcao protegida com JWT invalido deve retornar 401 ----
+          # Usa 'ai-router' (fora da PUBLIC_FNS) — deve exigir JWT valido
+          echo ""
+          echo "=== Testando rejeicao de JWT invalido em funcao protegida ==="
+          FAKE_JWT="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0Iiwicm9sZSI6ImFub24iLCJleHAiOjB9.invalidsignature"
+          fn="ai-router"
+          # ai-router e SEMPRE protegida — se estiver na allowlist e regressao de seguranca
+          if grep -qx "$fn" "$ALLOWLIST_FILE" 2>/dev/null; then
+            echo "::error::ALLOWLIST REGRESSION: '$fn' foi adicionada a PUBLIC_FNS — funcao protegida nao pode ser publica"
+            FAILED=1
+          else
+            code="$(curl -s -o /dev/null -w '%{http_code}' \
+              --max-time 10 \
+              -H "Authorization: Bearer $FAKE_JWT" \
+              "$BASE_URL/functions/v1/$fn" || true)"
+            code="${code:-000}"
+
+            if [ "$code" = "000" ]; then
+              echo "::warning::$fn sem resposta com JWT invalido — problema de rede?"
+            elif [ "$code" = "401" ] || [ "$code" = "403" ]; then
+              echo "OK: JWT invalido rejeitado com $code em '$fn'"
+            elif [ "$code" = "404" ]; then
+              echo "::warning::$fn retornou 404 — funcao pode nao estar implantada"
+            elif [ "$VERIFY_JWT_ENABLED" = "true" ]; then
+              echo "::error::$fn aceitou JWT invalido com http=$code (VERIFY_JWT=true ativo) — vulnerabilidade de autenticacao"
+              FAILED=1
+            else
+              echo "INFO: '$fn' com JWT invalido retornou http=$code (VERIFY_JWT nao ativo)"
+            fi
+          fi
+
+          # ---- Resultado final ----
+          echo ""
+          echo "=== Resultado ==="
+          echo "VERIFY_JWT_ENABLED: $VERIFY_JWT_ENABLED"
+          echo "Allowlist funcoes publicas: $ALLOWLIST_COUNT"
+
           if [ "$FAILED" = "1" ]; then
-            echo "::error::Smoke test de auth FALHOU"
+            echo "::error::Smoke test de autenticacao FALHOU — funcoes protegidas acessiveis sem JWT"
             exit 1
           fi
-          echo "Smoke test de auth concluido com sucesso"
+          echo "Smoke test de autenticacao concluido com sucesso"

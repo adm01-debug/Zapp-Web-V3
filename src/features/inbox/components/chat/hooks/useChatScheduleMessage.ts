@@ -26,7 +26,7 @@ export function useChatScheduleMessage({ contactId, scheduleMessage, onDone }: P
         let mediaUrl: string | undefined;
         let messageType = 'text';
         if (attachment) {
-          const fileName = `scheduled_${Date.now()}_${attachment.name}`;
+          const fileName = `scheduled_${crypto.randomUUID()}_${attachment.name}`;
           const { error: uploadError } = await supabase.storage
             .from('whatsapp-media')
             .upload(fileName, attachment);
@@ -36,6 +36,7 @@ export function useChatScheduleMessage({ contactId, scheduleMessage, onDone }: P
               description: `Falha ao anexar: ${uploadError.message}`,
               variant: 'destructive',
             });
+            return;
           } else {
             const { data: signedData } = await supabase.storage
               .from('whatsapp-media')
@@ -54,6 +55,11 @@ export function useChatScheduleMessage({ contactId, scheduleMessage, onDone }: P
         onDone();
       } catch (err) {
         log.error('Failed to schedule message:', err);
+        toast({
+          title: 'Erro ao agendar mensagem',
+          description: 'Tente novamente.',
+          variant: 'destructive',
+        });
       }
     },
     [contactId, scheduleMessage, onDone]

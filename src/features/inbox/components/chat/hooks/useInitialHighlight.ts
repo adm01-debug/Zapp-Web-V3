@@ -91,9 +91,10 @@ export function useInitialHighlight({
       timers.forEach(clearTimeout);
       timers.clear();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     initialHighlightMessageId,
-    messages,
+    messages.length,
     onHighlightConsumed,
     messagesAreaRef,
     setHighlightedMessageIds,

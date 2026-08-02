@@ -63,7 +63,7 @@ export function useChatbotFlows() {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (data || []) as ChatbotFlow[];
+      return (data || []) as unknown as ChatbotFlow[];
     },
     staleTime: Infinity,
   });
@@ -113,7 +113,7 @@ export function useChatbotFlows() {
         .update(payload as ChatbotFlowUpdate)
         .eq('id', id)
         .select()
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
       if (error) throw error;
       return data;
     },

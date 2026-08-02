@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { fromTable } from '@/lib/supabaseHelpers';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { queryKeys } from '@/services/api/queryKeys';
 
 interface StatEntry {
@@ -14,7 +14,7 @@ export function useParticipantStats(conversationId: string, simulationModeEnable
   return useQuery<StatEntry[]>({
     queryKey: queryKeys.messageReactions.participantStatsDetailed(
       conversationId,
-      simulationModeEnabled,
+      simulationModeEnabled
     ),
     queryFn: async () => {
       if (simulationModeEnabled) {
@@ -41,12 +41,13 @@ export function useParticipantStats(conversationId: string, simulationModeEnable
         profile_id: string | null;
         profiles: { name: string | null } | null;
       };
-      const { data: rawReceipts, error: recError } = await fromTable('team_message_receipts')
-        .select('status, profile_id, profiles(name)')
-        .in('message_id', messageIds);
+      const { data: rawReceipts, error: recError } = await safeClient.from<ReceiptRow>(
+        'team_message_receipts',
+        (q) => q.select('status, profile_id, profiles(name)').in('message_id', messageIds)
+      );
       if (recError) throw recError;
 
-      const allReceipts = (rawReceipts as ReceiptRow[] | null) ?? [];
+      const allReceipts = rawReceipts ?? [];
       const statsMap: Record<string, StatEntry> = {};
 
       messages.forEach((m) => {

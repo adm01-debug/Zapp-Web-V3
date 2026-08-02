@@ -137,7 +137,7 @@ export function SLAIndicatorForContact({
   // (rules-of-hooks). O early-return de `!contact` fica depois dos hooks; os
   // inputs usam optional chaining para tolerar contato ausente.
   const { data: applicable, isLoading } = useApplicableSLA({
-    contactId: contact?.id,
+    contactId: contact?.id ?? undefined,
     company: contact?.company ?? null,
     jobTitle: contact?.job_title ?? null,
     contactType: contact?.contact_type ?? null,

@@ -91,7 +91,7 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
   const submitSurvey = useMutation({
     mutationFn: async (data: {
       contact_id: string;
-      agent_id?: string;
+      agent_id: string;
       rating: number;
       feedback?: string;
     }) => {
@@ -99,7 +99,7 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
         contact_id: data.contact_id,
         agent_id: data.agent_id,
         rating: data.rating,
-        feedback: data.feedback || null,
+        ...(data.feedback !== undefined ? { feedback: data.feedback } : {}),
         conversation_resolved_at: new Date().toISOString(),
       });
       if (error) throw error;

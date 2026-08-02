@@ -97,6 +97,7 @@ export function AIEnhanceButton({ inputValue, onInputChange, contactName }: AIEn
       <AnimatePresence>
         {originalMessage !== null && !isLoading && (
           <motion.div
+            key="undo-button"
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
@@ -151,7 +152,7 @@ export function AIEnhanceButton({ inputValue, onInputChange, contactName }: AIEn
               <motion.button
                 key={tone.id}
                 whileHover={{ x: 4 }}
-                onClick={() => handleEnhance(tone.id)}
+                onClick={() => { void handleEnhance(tone.id); }}
                 className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent/50"
               >
                 <span className="text-lg">{tone.emoji}</span>

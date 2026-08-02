@@ -53,8 +53,8 @@ export function useIncomingCallListener() {
             if (!mountedRef.current) return;
 
             if (contact) {
-              contactName = contact.name || contact.phone;
-              contactPhone = contact.phone;
+              contactName = contact.name || contact.phone || 'Desconhecido';
+              contactPhone = contact.phone || '';
             }
           }
 

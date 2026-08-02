@@ -47,32 +47,34 @@ jobs:
           base_ref="origin/${{ github.base_ref || 'main' }}"
           git fetch origin "${{ github.base_ref || 'main' }}" 2>/dev/null || true
 
-          # Arquivos .sql tocados no PR
+          # Arquivos .sql tocados no PR (adicionados ou modificados)
           changed_sql=$(git diff --diff-filter=AM --name-only "$base_ref"...HEAD -- '*.sql' 2>/dev/null || true)
 
-          # Corpo da função foi alterado? Procura por CREATE OR REPLACE das duas funções
+          # Falha apenas se um arquivo NÃO-migration redefine as funções
+          # via CREATE OR REPLACE FUNCTION. Meras menções (doc, comentário,
+          # GRANT, teste) em migrations versionadas são legítimas e não devem
+          # disparar o gate.
           touched=""
           if [ -n "$changed_sql" ]; then
             for f in $changed_sql; do
-              if grep -qE "fn_system_health_score|fn_score_security_acl" "$f" 2>/dev/null; then
-                # Migration versionada nova (14 dígitos) = alteração legítima
-                if ! echo "$f" | grep -qE 'supabase/migrations/[0-9]{14}_'; then
-                  touched="$touched $f"
-                fi
+              # Migrations versionadas (14 dígitos) = caminho legítimo → skip
+              if echo "$f" | grep -qE 'supabase/migrations/[0-9]{14}_'; then
+                continue
+              fi
+              # Fora do caminho legítimo: verifica redefinição real da função
+              if grep -qPi 'CREATE\s+OR\s+REPLACE\s+FUNCTION\s+\w*\.(fn_system_health_score|fn_score_security_acl)' "$f" 2>/dev/null; then
+                touched="$touched $f"
               fi
             done
           fi
 
-          # Também verifica diffs contra base (arquivos renomeados/copiados)
-          fn_diff=$(git diff --diff-filter=ACMR "$base_ref"...HEAD -- 'supabase/migrations/*.sql' 2>/dev/null | grep -cE '^\+.*(fn_system_health_score|fn_score_security_acl)' || true)
-
-          if [ -n "$touched" ] || [ "${fn_diff:-0}" -gt 0 ]; then
-            echo "::error::fn_system_health_score/fn_score_security_acl alteradas SEM migration versionada (Regra F3):$touched (novas linhas: ${fn_diff})"
+          if [ -n "$touched" ]; then
+            echo "::error::fn_system_health_score/fn_score_security_acl redefinidas fora de migration versionada (Regra F3):$touched"
             echo "drift=true" >> "$GITHUB_OUTPUT"
             exit 1
           fi
 
-          echo "Sem alteração de fn_system_health_score/fn_score_security_acl sem migration. OK."
+          echo "Sem redefinição de fn_system_health_score/fn_score_security_acl fora de migration. OK."
           echo "drift=false" >> "$GITHUB_OUTPUT"
 
       - name: Report

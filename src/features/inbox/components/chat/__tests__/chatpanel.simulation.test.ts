@@ -1,5 +1,5 @@
 /**
- * SIMULAÇÃO — bateria de edge cases do módulo chat (19 cenários numerados).
+ * SIMULAÇÃO — bateria de edge cases do módulo chat (17 cenários numerados).
  *
  * Cobre cenários que os testes de regressão existentes NÃO exercitam:
  *   - usoChatPanelHandlers (1-3): regressão anti-fix do whisper com
@@ -8,14 +8,11 @@
  *     (JID, lat/lng negativos, phone vazio, buttons [], title ausente).
  *   - useInputHandlers (11-17): callbacks AUSENTES e comandos honestos
  *     (/archive, /priority) com todos os callbacks presentes.
- *   - ChatMessagesArea (18-19): handler realtime de DELETE com e sem
- *     payload.old.id (BUG-25 — REPLICA IDENTITY FULL).
  *
  * Padrões de mock copiados de:
  *   - useChatPanelHandlers.whisper.test.ts  (insertWhisperMessage, useAuth, undoToast)
  *   - useProductHandlers.location.test.ts   (whatsapp.sendLocation, dbFrom, toast)
  *   - useInputHandlers.slash.test.ts        (callbacks, makeHandlers)
- *   - ChatMessagesArea.scrollToMessage.test.tsx (supabase/query/virtualizer/logger/RO)
  *
  * NOTA: useInputHandlers e useProductHandlers são usados REAIS (importam
  * apenas toast + tipos + módulos mockados), então o mesmo arquivo consegue
@@ -23,17 +20,13 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act, render } from '@testing-library/react';
-// NOTA: arquivo .ts (sem JSX) — os renders do ChatMessagesArea usam
-// createElement para manter o nome de arquivo exato pedido (.ts).
-import { createElement } from 'react';
+import { renderHook, act } from '@testing-library/react';
 import { useChatPanelHandlers } from '../useChatPanelHandlers';
 import { insertWhisperMessage } from '../../../hooks/useWhisperMessagesMutation';
 import { useProductHandlers } from '../useProductHandlers';
 import { whatsapp } from '@/lib/whatsappAdapter';
 import { useInputHandlers } from '../useInputHandlers';
-import { ChatMessagesArea } from '../ChatMessagesArea';
-import type { Message, InteractiveButton } from '@/types/chat';
+import type { InteractiveButton } from '@/types/chat';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -78,63 +71,6 @@ vi.mock('../useMessageReactionHandlers', () => ({
     handleForwardToTargets: vi.fn(),
   }),
 }));
-
-// ── Mocks ChatMessagesArea (mesmo padrão do scrollToMessage test) ────────────
-const { channelSpy, channelMock, queryClientMock } = vi.hoisted(() => {
-  const channelSpy = vi.fn();
-  const channelMock = { on: vi.fn(), subscribe: vi.fn() };
-  channelMock.on.mockReturnValue(channelMock);
-  channelMock.subscribe.mockReturnValue({ unsubscribe: vi.fn() });
-  channelSpy.mockReturnValue(channelMock);
-  return {
-    channelSpy,
-    channelMock,
-    queryClientMock: { invalidateQueries: vi.fn() },
-  };
-});
-
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: { channel: channelSpy, removeChannel: vi.fn() },
-}));
-
-vi.mock('@tanstack/react-query', () => ({
-  useQueryClient: () => queryClientMock,
-}));
-
-vi.mock('@tanstack/react-virtual', () => ({
-  useVirtualizer: () => ({
-    getTotalSize: () => 0,
-    getVirtualItems: () => [],
-    measureElement: () => {},
-    scrollToIndex: vi.fn(),
-  }),
-}));
-
-vi.mock('@/components/ui/motion', () => ({
-  motion: new Proxy({}, { get: () => 'div' }),
-  AnimatePresence: () => null,
-}));
-
-vi.mock('@/features/inbox/components/chat/MessageBubble', () => ({
-  MessageBubble: () => null,
-}));
-vi.mock('@/features/inbox/components/chat/ChatWatermark', () => ({
-  ChatWatermark: () => null,
-}));
-vi.mock('@/features/inbox/components/TypingIndicator', () => ({
-  TypingIndicator: () => null,
-}));
-vi.mock('@/features/inbox/hooks/reactions/useConversationReactionsRealtime', () => ({
-  useConversationReactionsRealtime: () => {},
-}));
-
-// happy-dom não expõe ResizeObserver; o componente o usa no useLayoutEffect
-class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-vi.stubGlobal('ResizeObserver', ResizeObserverStub);
 
 // ── Fixtures compartilhadas ───────────────────────────────────────────────────
 
@@ -580,85 +516,3 @@ describe('SIMULAÇÃO 11-17 — useInputHandlers', () => {
   });
 });
 
-// ═════════════════════════════════════════════════════════════════════════════
-// SIMULAÇÃO 18-19 — ChatMessagesArea (realtime DELETE — BUG-25)
-// ═════════════════════════════════════════════════════════════════════════════
-
-function makeMessage(overrides: Partial<Message>): Message {
-  return {
-    id: 'm1',
-    conversationId: 'conv-1',
-    content: 'mensagem',
-    type: 'text',
-    sender: 'contact',
-    timestamp: new Date(),
-    status: 'sent',
-    ...overrides,
-  };
-}
-
-const baseProps = {
-  isContactTyping: false,
-  typingUserName: '',
-  ttsLoading: false,
-  ttsPlaying: false,
-  ttsMessageId: null,
-  onSpeak: vi.fn(),
-  onStop: vi.fn(),
-  onReply: vi.fn(),
-  onForward: vi.fn(),
-  onCopy: vi.fn(),
-  onScrollToMessage: vi.fn(),
-  onInteractiveButtonClick: vi.fn(),
-  onLoadOlder: vi.fn(),
-  loadingOlder: false,
-  hasMoreOlder: false,
-};
-
-/** Retorna o callback registrado no .on('postgres_changes', {event:'DELETE'}) do canal. */
-function getRealtimeDeleteHandler(): (payload: { old?: { id?: string } }) => void {
-  const calls = channelMock.on.mock.calls as unknown as [
-    string,
-    { event?: string },
-    (payload: { old?: { id?: string } }) => void,
-  ][];
-  const deleteCall = calls.find(([, config]) => config?.event === 'DELETE');
-  expect(deleteCall, 'handler DELETE registrado no canal realtime').toBeDefined();
-  return deleteCall![2];
-}
-
-describe('SIMULAÇÃO 18-19 — ChatMessagesArea realtime DELETE', () => {
-  it('CENARIO 18 — DELETE com payload.old SEM id → queryClient.invalidateQueries NÃO chamado', () => {
-    render(
-      createElement(ChatMessagesArea, {
-        ...baseProps,
-        messages: [makeMessage({ id: 'm1' })],
-        contactJid: '5511999887766@s.whatsapp.net',
-      })
-    );
-
-    const handler = getRealtimeDeleteHandler();
-    // payload.old sem id (REPLICA IDENTITY ausente na tabela) → sem invalidação.
-    handler({ old: {} });
-
-    expect(queryClientMock.invalidateQueries).not.toHaveBeenCalled();
-  });
-
-  it('CENARIO 19 — DELETE com payload.old COM id → invalidateQueries chamado', () => {
-    render(
-      createElement(ChatMessagesArea, {
-        ...baseProps,
-        messages: [makeMessage({ id: 'm1' })],
-        contactJid: '5511999887766@s.whatsapp.net',
-      })
-    );
-
-    const handler = getRealtimeDeleteHandler();
-    handler({ old: { id: 'WAMID.123' } });
-
-    expect(queryClientMock.invalidateQueries).toHaveBeenCalledTimes(1);
-    expect(queryClientMock.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ['messages'],
-    });
-  });
-});

@@ -79,7 +79,10 @@ export function ContactContentArea({
     return (
       <Card className="border-warning/20">
         <CardContent className="p-6">
-          <DuplicateContactsPanel workspaceId={workspaceId || DEFAULT_WHATSAPP_INSTANCE} onMergeComplete={onRefresh} />
+          <DuplicateContactsPanel
+            workspaceId={workspaceId || DEFAULT_WHATSAPP_INSTANCE}
+            onMergeComplete={onRefresh}
+          />
         </CardContent>
       </Card>
     );
@@ -89,7 +92,10 @@ export function ContactContentArea({
     return (
       <Card className="border-destructive/20">
         <CardContent className="p-6">
-          <ContactRecycleBin workspaceId={workspaceId || DEFAULT_WHATSAPP_INSTANCE} onRestored={onRefresh} />
+          <ContactRecycleBin
+            workspaceId={workspaceId || DEFAULT_WHATSAPP_INSTANCE}
+            onRestored={onRefresh}
+          />
         </CardContent>
       </Card>
     );
@@ -124,14 +130,14 @@ export function ContactContentArea({
           <ContactCard
             key={contact.id}
             contact={contact}
-            isSelected={selectedIds.includes(contact.id)}
+            isSelected={selectedIds.includes(contact.id ?? '')}
             onToggleSelect={onToggleSelect}
             onOpenChat={onContactClick}
             onEdit={onEdit}
             onDelete={onDelete}
             index={index}
-            companyLogo={getCRMData(contact.phone)?.logo_url}
-            companyName={getCRMData(contact.phone)?.company_name}
+            companyLogo={getCRMData(contact.phone ?? '')?.logo_url}
+            companyName={getCRMData(contact.phone ?? '')?.company_name}
             searchQuery={search}
           />
         ))}
@@ -160,14 +166,14 @@ export function ContactContentArea({
           <ContactListItem
             key={contact.id}
             contact={contact}
-            isSelected={selectedIds.includes(contact.id)}
+            isSelected={selectedIds.includes(contact.id ?? '')}
             onToggleSelect={onToggleSelect}
             onOpenChat={onContactClick}
             onEdit={onEdit}
             onDelete={onDelete}
             index={index}
-            companyLogo={getCRMData(contact.phone)?.logo_url}
-            companyName={getCRMData(contact.phone)?.company_name}
+            companyLogo={getCRMData(contact.phone ?? '')?.logo_url}
+            companyName={getCRMData(contact.phone ?? '')?.company_name}
             searchQuery={search}
           />
         ))}
@@ -176,10 +182,37 @@ export function ContactContentArea({
   }
 
   if (viewMode === 'kanban')
-    return <ContactKanbanView contacts={contacts} onContactClick={onContactClick} />;
+    return (
+      <ContactKanbanView
+        contacts={contacts.map((c) => ({
+          ...c,
+          id: c.id ?? '',
+          name: c.name ?? '',
+          phone: c.phone ?? '',
+        }))}
+        onContactClick={onContactClick}
+      />
+    );
   if (viewMode === 'map')
-    return <ContactMapView contacts={contacts} onContactClick={onContactClick} />;
-  if (viewMode === 'analytics') return <ContactAnalyticsDashboard contacts={contacts} />;
+    return (
+      <ContactMapView
+        contacts={contacts.map((c) => ({ ...c, id: c.id ?? '' }))}
+        onContactClick={onContactClick}
+      />
+    );
+  if (viewMode === 'analytics')
+    return (
+      <ContactAnalyticsDashboard
+        contacts={contacts.map((c) => ({
+          id: c.id ?? '',
+          name: c.name ?? '',
+          contact_type: c.contact_type,
+          company: c.company,
+          tags: c.tags,
+          created_at: c.created_at ?? '',
+        }))}
+      />
+    );
 
   return (
     <Card className="overflow-hidden border-border/30 bg-card shadow-sm">

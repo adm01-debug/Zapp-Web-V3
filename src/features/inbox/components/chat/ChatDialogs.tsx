@@ -4,20 +4,51 @@ import { ExternalProduct } from '@/hooks/useExternalApiManagement';
 import { ExternalProductCatalog } from '@/components/catalog/ExternalProductCatalog';
 import type { SearchResult } from '../useGlobalSearchData';
 
-const TransferDialog = lazy(() => import('../TransferDialog').then(m => ({ default: m.TransferDialog })));
-const ScheduleMessageDialog = lazy(() => import('../ScheduleMessageDialog').then(m => ({ default: m.ScheduleMessageDialog })));
-const CallDialog = lazy(() => import('@/components/calls/CallDialog').then(m => ({ default: m.CallDialog })));
-const GlobalSearch = lazy(() => import('../GlobalSearch').then(m => ({ default: m.GlobalSearch })));
-const InteractiveMessageBuilder = lazy(() => import('../InteractiveMessageBuilder').then(m => ({ default: m.InteractiveMessageBuilder })));
-const ForwardMessageDialog = lazy(() => import('../ForwardMessageDialog').then(m => ({ default: m.ForwardMessageDialog })));
-const LocationPicker = lazy(() => import('../LocationPicker').then(m => ({ default: m.LocationPicker })));
-const CloseConversationDialog = lazy(() => import('../CloseConversationDialog').then(m => ({ default: m.CloseConversationDialog })));
-const RealtimeTranscription = lazy(() => import('../RealtimeTranscription').then(m => ({ default: m.RealtimeTranscription })));
+const TransferDialog = lazy(() =>
+  import('../TransferDialog').then((m) => ({ default: m.TransferDialog }))
+);
+const ScheduleMessageDialog = lazy(() =>
+  import('../ScheduleMessageDialog').then((m) => ({ default: m.ScheduleMessageDialog }))
+);
+const CallDialog = lazy(() =>
+  import('@/components/calls/CallDialog').then((m) => ({ default: m.CallDialog }))
+);
+const GlobalSearch = lazy(() =>
+  import('../GlobalSearch').then((m) => ({ default: m.GlobalSearch }))
+);
+const InteractiveMessageBuilder = lazy(() =>
+  import('../InteractiveMessageBuilder').then((m) => ({ default: m.InteractiveMessageBuilder }))
+);
+const ForwardMessageDialog = lazy(() =>
+  import('../ForwardMessageDialog').then((m) => ({ default: m.ForwardMessageDialog }))
+);
+const LocationPicker = lazy(() =>
+  import('../LocationPicker').then((m) => ({ default: m.LocationPicker }))
+);
+const CloseConversationDialog = lazy(() =>
+  import('../CloseConversationDialog').then((m) => ({ default: m.CloseConversationDialog }))
+);
+const RealtimeTranscription = lazy(() =>
+  import('../RealtimeTranscription').then((m) => ({ default: m.RealtimeTranscription }))
+);
 
-type DialogKey = 'quickReplies' | 'slashCommands' | 'transferDialog' | 'scheduleDialog' |
-  'callDialog' | 'globalSearch' | 'chatSearch' | 'interactiveBuilder' | 'forwardDialog' |
-  'locationPicker' | 'aiAssistant' | 'catalogDirect' | 'whisper' | 'templatesWithVars' |
-  'realtimeTranscription' | 'closeDialog';
+type DialogKey =
+  | 'quickReplies'
+  | 'slashCommands'
+  | 'transferDialog'
+  | 'scheduleDialog'
+  | 'callDialog'
+  | 'globalSearch'
+  | 'chatSearch'
+  | 'interactiveBuilder'
+  | 'forwardDialog'
+  | 'locationPicker'
+  | 'aiAssistant'
+  | 'catalogDirect'
+  | 'whisper'
+  | 'templatesWithVars'
+  | 'realtimeTranscription'
+  | 'closeDialog';
 
 type DialogState = Record<DialogKey, boolean>;
 
@@ -41,30 +72,119 @@ interface ChatDialogsProps {
 
 /** Chat Dialogs component for the chat section. */
 export function ChatDialogs({
-  dialogs, openDialog, closeDialog, conversation, forwardMessage, callDirection,
-  contactId, onTransfer, onScheduleMessage, onSendInteractiveMessage,
-  onForwardToTargets, onSendLocation, onSendProduct, onSetInputValue,
+  dialogs,
+  openDialog,
+  closeDialog,
+  conversation,
+  forwardMessage,
+  callDirection,
+  contactId,
+  onTransfer,
+  onScheduleMessage,
+  onSendInteractiveMessage,
+  onForwardToTargets,
+  onSendLocation,
+  onSendProduct,
+  onSetInputValue,
   onSelectSearchResult,
 }: ChatDialogsProps) {
   return (
     <>
       <Suspense fallback={null}>
-        {dialogs.transferDialog && <TransferDialog open={dialogs.transferDialog} onOpenChange={(v) => v ? openDialog('transferDialog') : closeDialog('transferDialog')} onTransfer={onTransfer as (type: "agent" | "connection" | "queue", targetId: string, message?: string) => void} />}
-        {dialogs.scheduleDialog && <ScheduleMessageDialog open={dialogs.scheduleDialog} onOpenChange={(v) => v ? openDialog('scheduleDialog') : closeDialog('scheduleDialog')} onSchedule={onScheduleMessage} />}
-        {dialogs.callDialog && <CallDialog open={dialogs.callDialog} onOpenChange={(v) => v ? openDialog('callDialog') : closeDialog('callDialog')} contact={{ name: conversation.contact.name, phone: conversation.contact.phone, avatar: conversation.contact.avatar }} direction={callDirection} onEnd={() => closeDialog('callDialog')} />}
-        {dialogs.globalSearch && <GlobalSearch open={dialogs.globalSearch} onOpenChange={(v) => v ? openDialog('globalSearch') : closeDialog('globalSearch')} onSelectResult={(result) => { closeDialog('globalSearch'); onSelectSearchResult?.(result); }} />}
-        {dialogs.interactiveBuilder && <InteractiveMessageBuilder open={dialogs.interactiveBuilder} onOpenChange={(v) => v ? openDialog('interactiveBuilder') : closeDialog('interactiveBuilder')} onSend={onSendInteractiveMessage} />}
-        {dialogs.forwardDialog && <ForwardMessageDialog open={dialogs.forwardDialog} onOpenChange={(v) => v ? openDialog('forwardDialog') : closeDialog('forwardDialog')} message={forwardMessage} onForward={onForwardToTargets} />}
-        {dialogs.locationPicker && <LocationPicker open={dialogs.locationPicker} onOpenChange={(v) => v ? openDialog('locationPicker') : closeDialog('locationPicker')} onSend={onSendLocation} />}
-        {dialogs.closeDialog && <CloseConversationDialog open={dialogs.closeDialog} onOpenChange={(v) => v ? openDialog('closeDialog') : closeDialog('closeDialog')} contactId={contactId} />}
+        {dialogs.transferDialog && (
+          <TransferDialog
+            open={dialogs.transferDialog}
+            onOpenChange={(v) => (v ? openDialog('transferDialog') : closeDialog('transferDialog'))}
+            onTransfer={
+              onTransfer as (
+                type: 'agent' | 'connection' | 'queue',
+                targetId: string,
+                message?: string
+              ) => void
+            }
+          />
+        )}
+        {dialogs.scheduleDialog && (
+          <ScheduleMessageDialog
+            open={dialogs.scheduleDialog}
+            onOpenChange={(v) => (v ? openDialog('scheduleDialog') : closeDialog('scheduleDialog'))}
+            onSchedule={onScheduleMessage}
+          />
+        )}
+        {dialogs.callDialog && (
+          <CallDialog
+            open={dialogs.callDialog}
+            onOpenChange={(v) => (v ? openDialog('callDialog') : closeDialog('callDialog'))}
+            contact={{
+              name: conversation.contact.name ?? '',
+              phone: conversation.contact.phone ?? '',
+              avatar: conversation.contact.avatar ?? undefined,
+            }}
+            direction={callDirection}
+            onEnd={() => closeDialog('callDialog')}
+          />
+        )}
+        {dialogs.globalSearch && (
+          <GlobalSearch
+            open={dialogs.globalSearch}
+            onOpenChange={(v) => (v ? openDialog('globalSearch') : closeDialog('globalSearch'))}
+            onSelectResult={(result) => {
+              closeDialog('globalSearch');
+              onSelectSearchResult?.(result);
+            }}
+          />
+        )}
+        {dialogs.interactiveBuilder && (
+          <InteractiveMessageBuilder
+            open={dialogs.interactiveBuilder}
+            onOpenChange={(v) =>
+              v ? openDialog('interactiveBuilder') : closeDialog('interactiveBuilder')
+            }
+            onSend={onSendInteractiveMessage}
+          />
+        )}
+        {dialogs.forwardDialog && (
+          <ForwardMessageDialog
+            open={dialogs.forwardDialog}
+            onOpenChange={(v) => (v ? openDialog('forwardDialog') : closeDialog('forwardDialog'))}
+            message={forwardMessage}
+            onForward={onForwardToTargets}
+          />
+        )}
+        {dialogs.locationPicker && (
+          <LocationPicker
+            open={dialogs.locationPicker}
+            onOpenChange={(v) => (v ? openDialog('locationPicker') : closeDialog('locationPicker'))}
+            onSend={onSendLocation}
+          />
+        )}
+        {dialogs.closeDialog && (
+          <CloseConversationDialog
+            open={dialogs.closeDialog}
+            onOpenChange={(v) => (v ? openDialog('closeDialog') : closeDialog('closeDialog'))}
+            contactId={contactId}
+          />
+        )}
       </Suspense>
 
-      {dialogs.catalogDirect && <ExternalProductCatalog onSendProduct={onSendProduct} open={dialogs.catalogDirect} onOpenChange={(v) => v ? openDialog('catalogDirect') : closeDialog('catalogDirect')} />}
+      {dialogs.catalogDirect && (
+        <ExternalProductCatalog
+          onSendProduct={onSendProduct}
+          open={dialogs.catalogDirect}
+          onOpenChange={(v) => (v ? openDialog('catalogDirect') : closeDialog('catalogDirect'))}
+        />
+      )}
 
       {dialogs.realtimeTranscription && (
         <Suspense fallback={null}>
-          <div className="px-3 mb-2">
-            <RealtimeTranscription onTranscript={(text, isFinal) => { if (isFinal) onSetInputValue((prev: string) => prev + ' ' + text); }} onStatusChange={() => {}} className="w-full" />
+          <div className="mb-2 px-3">
+            <RealtimeTranscription
+              onTranscript={(text, isFinal) => {
+                if (isFinal) onSetInputValue((prev: string) => (prev ? prev + ' ' : '') + text);
+              }}
+              onStatusChange={() => {}}
+              className="w-full"
+            />
           </div>
         </Suspense>
       )}

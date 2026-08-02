@@ -106,7 +106,7 @@ export async function sendMessageToContact(
 
     const phone = contact?.phone?.replace(/\D/g, '');
     if (!phone) {
-      throw new Error('Contato sem núuero de telefone válido');
+      throw new Error('Contato sem número de telefone válido');
     }
 
     // The Evolution API routes every call by instance NAME, never by the internal

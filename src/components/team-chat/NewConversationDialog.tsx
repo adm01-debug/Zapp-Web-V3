@@ -37,11 +37,11 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
   const { data: teammates = [], isLoading: loadingTeammates } = useActiveTeamProfiles(
     open && !!profile && tab !== 'department',
     queryKeys.teamProfiles.forChat(),
-    profile?.id || '',
+    profile?.id || ''
   );
 
   const { data: departments = [], isLoading: loadingDepts } = useActiveDepartments(
-    open && !!profile && tab === 'department',
+    open && !!profile && tab === 'department'
   );
 
   const filteredTeammates = useMemo(() => {
@@ -92,9 +92,9 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
         payload.memberIds = selectedIds;
       }
 
-      const result = await createMutation.mutateAsync(
+      const result = (await createMutation.mutateAsync(
         payload as Parameters<typeof createMutation.mutateAsync>[0]
-      );
+      )) as { id: string };
       setSelectedIds([]);
       setSelectedDeptId(null);
       setGroupName('');
@@ -168,7 +168,8 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
                   filteredDepts.map((d) => {
                     const isSelected = selectedDeptId === d.id;
                     return (
-                      <button type="button"
+                      <button
+                        type="button"
                         key={d.id}
                         onClick={() => setSelectedDeptId(d.id)}
                         className={cn(
@@ -208,7 +209,8 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
                 filteredTeammates.map((t) => {
                   const isSelected = selectedIds.includes(t.id);
                   return (
-                    <button type="button"
+                    <button
+                      type="button"
                       key={t.id}
                       onClick={() => toggleMember(t.id)}
                       className={cn(

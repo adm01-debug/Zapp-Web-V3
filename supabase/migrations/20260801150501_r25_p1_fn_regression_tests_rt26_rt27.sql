@@ -16,11 +16,11 @@ AS $function$
 DECLARE
   v_start timestamptz; v_n int; v_r jsonb; v_txt text;
   v_pass boolean; v_b1 int; v_b2 int;
-  v_uses_zapp boolean; v_no_public boolean; v_score numeric;
+  v_uses_zapp boolean; v_no_public boolean; v_score numeric; v_score2 numeric;
 BEGIN
   -- RT01-RT24 mantidos intactos
   v_start:=clock_timestamp();
-  SELECT COUNT(*) INTO v_n FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='v' AND c.relname IN('zapp_audit_log','contact_audit_log','conversation_audit_logs','webhook_audit_log','team_messages','app_notifications','whatsapp_official_credentials') AND (c.reloptions::text LIKE '%security_invoker%');
+  SELECT COUNT(*) INTO v_n FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='v' AND c.relname IN('zapp_audit_log','contact_audit_log','conversation_audit_logs','webhook_audit_log','team_messages','app_notifications','whatsapp_official_credentials') AND EXISTS(SELECT 1 FROM pg_options_to_table(COALESCE(c.reloptions,ARRAY[]::text[])) WHERE option_name='security_invoker' AND option_value IN ('on','true'));
   RETURN QUERY SELECT 'RT01_bridge_views_security_invoker'::text,CASE WHEN v_n=7 THEN 'PASS' ELSE 'FAIL' END::text,v_n::text||'/7'::text,round(EXTRACT(MILLISECONDS FROM (clock_timestamp()-v_start))::numeric,1);
 
   v_start:=clock_timestamp();
@@ -119,14 +119,20 @@ BEGIN
   RETURN QUERY SELECT 'RT24_matviews_all_populated'::text,CASE WHEN v_n=0 THEN 'PASS' ELSE 'FAIL ('||v_n||' unpopulated)' END::text,'unpopulated_matviews='||v_n::text,round(EXTRACT(MILLISECONDS FROM (clock_timestamp()-v_start))::numeric,1);
 
   -- RT25: guardian heartbeat fresh (< 30 min em AMBAS as tabelas)
+  -- Cada tabela verificada de forma independente — GREATEST() mascarava tabela
+  -- obsoleta se a outra estivesse atualizada, ou retornava NULL silencioso
+  -- (GREATEST(NULL, ts) = ts em PostgreSQL) quando uma das tabelas está vazia.
   v_start:=clock_timestamp();
-  SELECT EXTRACT(EPOCH FROM (now() - GREATEST(
-    (SELECT max(heartbeat_at) FROM evo.evolution_guardian_heartbeat WHERE service_name='swarm-task-guardian'),
-    (SELECT max(heartbeat_at) FROM zapp.evolution_guardian_heartbeat WHERE service_name='swarm-task-guardian')
-  )))/60 INTO v_score;
+  SELECT EXTRACT(EPOCH FROM (now() - max(heartbeat_at)))/60 INTO v_score
+    FROM evo.evolution_guardian_heartbeat WHERE service_name='swarm-task-guardian';
+  SELECT EXTRACT(EPOCH FROM (now() - max(heartbeat_at)))/60 INTO v_score2
+    FROM zapp.evolution_guardian_heartbeat WHERE service_name='swarm-task-guardian';
+  v_score  := COALESCE(v_score,  9999);
+  v_score2 := COALESCE(v_score2, 9999);
   RETURN QUERY SELECT 'RT25_guardian_heartbeat_fresh'::text,
-    CASE WHEN v_score < 30 THEN 'PASS' ELSE 'FAIL (gap='||round(v_score::numeric,1)||'min)' END::text,
-    'gap_min='||round(COALESCE(v_score::numeric,9999),1)||' (threshold:30min)',
+    CASE WHEN v_score < 30 AND v_score2 < 30 THEN 'PASS'
+         ELSE 'FAIL (evo='||round(v_score::numeric,1)||'min zapp='||round(v_score2::numeric,1)||'min)' END::text,
+    'evo_gap='||round(v_score::numeric,1)||'min zapp_gap='||round(v_score2::numeric,1)||'min (threshold:30min)',
     round(EXTRACT(MILLISECONDS FROM (clock_timestamp()-v_start))::numeric,1);
 
   -- RT26 (R25 P1-7): nenhuma função de RLS inexecutável por authenticated

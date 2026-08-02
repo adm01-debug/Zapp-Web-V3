@@ -26,8 +26,8 @@ jobs:
 
           ENV_REQUIRED="supabase/functions/.env.required"
           if [ ! -f "$ENV_REQUIRED" ]; then
-            echo "::warning::Arquivo $ENV_REQUIRED nao encontrado — pulando verificacao"
-            exit 0
+            echo "::error::Arquivo $ENV_REQUIRED nao encontrado — adicionar supabase/functions/.env.required ao repositorio"
+            exit 1
           fi
 
           grep -rhoE "Deno\.env\.get\(['\"][A-Z0-9_]+['\"\]\)" supabase/functions/ \

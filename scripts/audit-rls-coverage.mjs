@@ -95,15 +95,21 @@ try {
   // arquivou 966 migrations que contêm o ENABLE ROW LEVEL SECURITY das
   // tabelas ativas (o banco real está correto; o gate sem archive dava
   // falso-positivo em 10 tabelas críticas).
-  const dirs = [MIGRATION_DIR, join(MIGRATION_DIR, 'archive')];
-  files = [];
-  for (const dir of dirs) {
-    files = files.concat(
-      readdirSync(dir)
-        .filter(f => TIMESTAMP_RE.test(f))
-        .sort()
-        .map(f => join(dir, f))
-    );
+  // archive/ é opcional: se não existir, skip silencioso.
+  files = readdirSync(MIGRATION_DIR)
+    .filter(f => TIMESTAMP_RE.test(f))
+    .sort()
+    .map(f => join(MIGRATION_DIR, f));
+
+  const archiveDir = join(MIGRATION_DIR, 'archive');
+  try {
+    const archiveFiles = readdirSync(archiveDir)
+      .filter(f => TIMESTAMP_RE.test(f))
+      .sort()
+      .map(f => join(archiveDir, f));
+    files = files.concat(archiveFiles);
+  } catch {
+    // archive/ não existe neste repo — ignorar silenciosamente
   }
 } catch {
   console.error(`Cannot read ${MIGRATION_DIR}`);

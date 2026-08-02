@@ -92,16 +92,19 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
   const query = useQuery<{ rows: FailedMessageRow[]; total: number; deniedReason: string | null }>({
     queryKey,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('rpc_list_failed_messages_cursor', {
-        p_status: status ? [status] : null,
-        p_instance: instance,
-        p_search: search,
-        p_from: effectiveFrom,
-        p_to: effectiveTo,
-        p_limit: pageSize,
-        p_cursor_id: currentPageCursor,
-        p_error_code: errorCode ?? null,
-      });
+      const { data, error } = await _rpc<Array<Record<string, unknown>>>(
+        'rpc_list_failed_messages_cursor',
+        {
+          p_status: status ? [status] : null,
+          p_instance: instance,
+          p_search: search,
+          p_from: effectiveFrom,
+          p_to: effectiveTo,
+          p_limit: pageSize,
+          p_cursor_id: currentPageCursor,
+          p_error_code: errorCode ?? null,
+        }
+      );
       if (error) {
         if (isRlsDeniedError(error)) {
           return { rows: [], total: 0, deniedReason: formatAdminError(error, 'a DLQ') };

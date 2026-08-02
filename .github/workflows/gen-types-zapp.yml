@@ -13,6 +13,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
+# ZAPP_META_URL é hardcoded (não é dado sensível — é a URL pública do Supabase self-hosted)
+# Apenas ZAPP_META_TOKEN precisa ser configurado como secret em Settings → Secrets → Actions
+env:
+  ZAPP_META_URL: https://supabase.atomicabr.com.br
+
 jobs:
   generate:
     runs-on: ubuntu-latest
@@ -26,27 +31,42 @@ jobs:
 
       - name: Generate types via postgres-meta API
         run: |
-          # Uses postgres-meta HTTP API instead of supabase gen types --db-url
-          # because the Supavisor transaction pooler blocks pg_dump.
-          # Requires ZAPP_META_URL and ZAPP_META_TOKEN secrets.
+          # Usa o endpoint /generators/typescript exposto via Kong
+          # Rota: /generators/typescript → http://meta:8080/generators/typescript
+          # Auth: service_role key (grupo admin no Kong ACL)
+          # Rota /pg/generators/typescript também funciona como fallback
 
-          if [ -z "${{ secrets.ZAPP_META_URL }}" ] || [ -z "${{ secrets.ZAPP_META_TOKEN }}" ]; then
-            echo "::warning::ZAPP_META_URL or ZAPP_META_TOKEN not configured — skipping type generation"
-            echo "Configure these secrets to enable automatic type generation."
+          if [ -z "${{ secrets.ZAPP_META_TOKEN }}" ]; then
+            echo "::warning::ZAPP_META_TOKEN não configurado — pulando geração de tipos"
+            echo "Configure o secret ZAPP_META_TOKEN em: Settings → Secrets and variables → Actions"
+            echo "Valor: service_role JWT do Supabase self-hosted"
             exit 0
           fi
 
+          TOKEN="${{ secrets.ZAPP_META_TOKEN }}"
+          BASE_URL="${ZAPP_META_URL}"
+
+          echo "Chamando ${BASE_URL}/generators/typescript..."
           curl -sS -o types.ts \
-            -H "apikey: ${{ secrets.ZAPP_META_TOKEN }}" \
-            -H "Authorization: Bearer ${{ secrets.ZAPP_META_TOKEN }}" \
-            "${{ secrets.ZAPP_META_URL }}/generators/typescript?included_schemas=public,zapp,evo&detect_one_to_one_relationships=true"
+            -H "apikey: ${TOKEN}" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            "${BASE_URL}/generators/typescript?included_schemas=public,zapp,evo&detect_one_to_one_relationships=true"
+
+          # Fallback para /pg/generators/typescript se a rota nova não estiver disponível
+          if [ ! -s types.ts ] || ! grep -q "export type Database" types.ts; then
+            echo "Tentando fallback /pg/generators/typescript..."
+            curl -sS -o types.ts \
+              -H "apikey: ${TOKEN}" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              "${BASE_URL}/pg/generators/typescript?included_schemas=public,zapp,evo&detect_one_to_one_relationships=true"
+          fi
 
           TARGET="src/integrations/supabase/types.ts"
           if [ -s types.ts ] && grep -q "export type Database" types.ts; then
             mv types.ts "$TARGET"
-            echo "✅ types.ts regenerated ($(wc -c < "$TARGET") bytes)"
+            echo "✅ types.ts regenerado ($(wc -c < "$TARGET") bytes)"
           else
-            echo "::warning::Generated types.ts is empty or invalid — keeping current version"
+            echo "::warning::types.ts gerado está vazio ou inválido — mantendo versão atual"
             rm -f types.ts
             exit 0
           fi
@@ -58,11 +78,12 @@ jobs:
           commit-message: 'chore(types): regenerate types.ts (schedule + postgres-meta API)'
           title: 'chore(types): regenerate Supabase types (zapp+evo+public)'
           body: |
-            Automated types regeneration via postgres-meta HTTP API.
+            Regeneração automática de tipos via postgres-meta HTTP API.
 
             - **Schemas:** public, zapp, evo
-            - **Source:** ${{ secrets.ZAPP_META_URL }}
+            - **Source:** ${{ env.ZAPP_META_URL }}
+            - **Rota:** /generators/typescript (Kong ACL: admin)
 
-            Review before merging.
+            Review antes de mergear.
           branch: chore/regen-types
           delete-branch: true

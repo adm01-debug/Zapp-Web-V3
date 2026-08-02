@@ -38,7 +38,7 @@ interface ChatHeaderProps {
   showAIAssistant: boolean;
   showDetails: boolean;
   voiceId: string;
-  speed: number;
+  speed?: number;
   onToggleAIAssistant: () => void;
   onToggleDetails: () => void;
   onStartCall: () => void;
@@ -46,7 +46,7 @@ interface ChatHeaderProps {
   onOpenTransfer: () => void;
   onOpenSchedule: () => void;
   onVoiceChange: (voiceId: string) => void;
-  onSpeedChange: (speed: number) => void;
+  onSpeedChange?: (speed: number) => void;
   onBack?: () => void;
   onCloseConversation?: () => void;
   onGenerateSummary?: (tool?: string) => void;
@@ -84,17 +84,17 @@ export const ChatHeader = memo(function ChatHeader({
   onOpenValidation,
 }: ChatHeaderProps) {
   const { data: crmData } = useExternalContact360(
-    isExternalConfigured ? conversation.contact.phone : undefined
+    isExternalConfigured ? (conversation.contact.phone ?? undefined) : undefined
   );
   const _crmCompany = crmData?.found ? crmData.company : null;
   const _crmCustomer = crmData?.found ? crmData.customer : null;
   const _crmRfm = crmData?.found ? crmData.rfm : null;
 
   const { intelligence: intel } = useContactIntelligence(
-    isExternalConfigured ? conversation.contact.phone : undefined
+    isExternalConfigured ? (conversation.contact.phone ?? undefined) : undefined
   );
   const _briefing = intel?.found ? intel.briefing : null;
-  const { avatarUrl } = useContactAvatar(conversation.contact.id, conversation.contact.avatar);
+  const { avatarUrl } = useContactAvatar(conversation.contact.remote_jid, conversation.contact.avatar);
   const { density, cycleDensity } = useDensity();
 
   return (
@@ -123,7 +123,7 @@ export const ChatHeader = memo(function ChatHeader({
           <Avatar className="h-[44px] w-[44px] border border-border/10 shadow-xl ring-2 ring-background transition-shadow group-hover:shadow-primary/20">
             <AvatarImage
               src={avatarUrl || undefined}
-              alt={conversation.contact.name}
+              alt={conversation.contact.name ?? undefined}
               referrerPolicy="no-referrer"
               className="h-full w-full object-cover"
               onError={(e) => {
@@ -131,7 +131,10 @@ export const ChatHeader = memo(function ChatHeader({
               }}
             />
             <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-[11px] font-black uppercase text-primary">
-              {(conversation.contact.name ?? '').split(' ').map((n: string) => n[0]).join('')}
+              {(conversation.contact.name ?? '')
+                .split(' ')
+                .map((n: string) => n[0])
+                .join('')}
             </AvatarFallback>
           </Avatar>
           <div className="absolute inset-0 rounded-full bg-primary/20 opacity-0 blur-md transition-opacity group-hover:opacity-100" />
@@ -220,7 +223,7 @@ export const ChatHeader = memo(function ChatHeader({
           </Tooltip>
         )}
 
-        <RealtimeCollaboration contactId={conversation.contact.id} className="mr-1" />
+        <RealtimeCollaboration contactId={conversation.contact.id ?? ''} className="mr-1" />
 
         {onOpenWhisper && (
           <Tooltip>

@@ -55,7 +55,7 @@ export function ChatHeaderMenu({
         </motion.div>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48 border-border/30 bg-card">
-        <DropdownMenuItem>
+        <DropdownMenuItem disabled>
           <Tag className="mr-2 h-4 w-4" />
           Adicionar tag
         </DropdownMenuItem>
@@ -80,11 +80,11 @@ export function ChatHeaderMenu({
           {failuresOnly ? 'Ocultar Falhas' : `Ver Falhas (${failuresCount || 0})`}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem disabled>
           <CheckCircle className="mr-2 h-4 w-4" />
           Marcar como resolvido
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem disabled>
           <Archive className="mr-2 h-4 w-4" />
           Arquivar
         </DropdownMenuItem>

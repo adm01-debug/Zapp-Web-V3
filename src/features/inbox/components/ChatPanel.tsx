@@ -171,7 +171,7 @@ export function ChatPanel({
   const { quickReplies: dbQuickReplies, incrementUseCount } = useQuickReplies();
   const { settings, updateSettings, saveSettings } = useUserSettings();
   const { editMessage } = useEvolutionApi();
-  const { scheduleMessage } = useScheduledMessages(conversation.contact.id);
+  const { scheduleMessage } = useScheduledMessages(conversation.contact.id ?? undefined);
   const { signatureEnabled, agentName, toggleSignature, applySignature } = useMessageSignature();
   const {
     instanceName,
@@ -180,7 +180,11 @@ export function ChatPanel({
     handleSendSticker,
     handleSendCustomEmoji,
     handleSendAudioMeme,
-  } = useChatMediaSending(conversation.contact.id, conversation.contact.phone, instanceNameProp);
+  } = useChatMediaSending(
+    conversation.contact.id ?? '',
+    conversation.contact.phone ?? '',
+    instanceNameProp
+  );
 
   const saveSettingsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debouncedSave = useCallback(() => {
@@ -223,9 +227,9 @@ export function ChatPanel({
   });
 
   const handlers = useChatPanelHandlers({
-    conversationId: conversation.id,
-    contactId: conversation.contact.id,
-    contactPhone: conversation.contact.phone,
+    conversationId: conversation.id ?? '',
+    contactId: conversation.contact.id ?? '',
+    contactPhone: conversation.contact.phone ?? '',
     instanceName,
     onSendMessage,
     editMessageApi: editMessage,
@@ -249,7 +253,7 @@ export function ChatPanel({
   });
 
   // Monitora atraso na entrega (SLA Delivery)
-  useSLADelivery({ contactId: conversation.contact.id, messages });
+  useSLADelivery({ contactId: conversation.contact.id ?? '', messages });
 
   const { bindScrollListener } = useChatAutoScroll({ messages, isContactTyping, messagesAreaRef });
   useEffect(() => {
@@ -310,10 +314,18 @@ export function ChatPanel({
   });
 
   // Stable refs for ChatMessagesArea to prevent re-renders on input change
-  const contactJid = useMemo(
-    () => (conversation.contact.phone ? `${conversation.contact.phone}@s.whatsapp.net` : ''),
-    [conversation.contact.phone]
-  );
+  const contactJid = useMemo(() => {
+    // Prefer the canonical remote_jid (present for groups, @lid, and broadcast JIDs
+    // where phone is null). Fall back to deriving from phone for legacy contacts.
+    const rj = conversation.contact.remote_jid;
+    if (rj) return rj;
+    const ph = conversation.contact.phone;
+    if (!ph) return '';
+    // Strategy B/C may have stored a full JID (e.g. 120363@g.us) in the phone field —
+    // appending @s.whatsapp.net would produce a malformed double-suffix JID.
+    if (ph.includes('@')) return ph;
+    return `${ph}@s.whatsapp.net`;
+  }, [conversation.contact.remote_jid, conversation.contact.phone]);
   const contactAvatar = conversation.contact.avatar || undefined;
   const handleScrollToMessage = useCallback(
     (id: string) => messagesAreaRef.current?.scrollToMessage(id),
@@ -321,12 +333,12 @@ export function ChatPanel({
   );
 
   const { transferConversation: handleTransfer } = useTransferConversation({
-    contactId: conversation.contact.id,
+    contactId: conversation.contact.id ?? '',
     whatsappConnectionId: whatsappConnectionId ?? undefined,
   });
 
   const handleScheduleMessage = useChatScheduleMessage({
-    contactId: conversation.contact.id,
+    contactId: conversation.contact.id ?? '',
     scheduleMessage,
     onDone: () => closeDialog('scheduleDialog'),
   });
@@ -375,8 +387,8 @@ export function ChatPanel({
 
         {activeTool === 'templates' && (
           <ChatTemplatesOverlay
-            contactName={conversation.contact.name}
-            contactCompany={conversation.contact.company}
+            contactName={conversation.contact.name ?? undefined}
+            contactCompany={conversation.contact.company ?? undefined}
             onClose={() => setActiveTool(null)}
             onUseTemplate={(content) => {
               handlers.setInputValue(content);
@@ -399,7 +411,7 @@ export function ChatPanel({
         />
 
         <TicketActionsBar
-          contactId={conversation.contact.id}
+          contactId={conversation.contact.id ?? ''}
           onOpenHistory={() => setHistoryOpen(true)}
         />
         <TicketHistorySheet
@@ -423,8 +435,8 @@ export function ChatPanel({
         />
 
         <ChatPanelOverlays
-          contactId={conversation.contact.id}
-          contactName={conversation.contact.name}
+          contactId={conversation.contact.id ?? ''}
+          contactName={conversation.contact.name ?? ''}
           showVisualValidation={dialogs.visualValidation}
           onCloseVisualValidation={() => closeDialog('visualValidation')}
           showWhisper={dialogs.whisper}
@@ -434,7 +446,7 @@ export function ChatPanel({
           ref={messagesAreaRef}
           messages={visibleMessages}
           isContactTyping={isContactTyping}
-          typingUserName={typingUsers[0]?.name || conversation.contact.name}
+          typingUserName={typingUsers[0]?.name || (conversation.contact.name ?? '')}
           ttsLoading={ttsLoading}
           ttsPlaying={ttsPlaying}
           ttsMessageId={ttsMessageId}
@@ -487,9 +499,9 @@ export function ChatPanel({
           editingMessage={handlers.editingMessage}
           isRecordingAudio={handlers.isRecordingAudio}
           showSlashCommands={dialogs.slashCommands}
-          contactId={conversation.contact.id}
-          contactPhone={conversation.contact.phone}
-          contactName={conversation.contact.name}
+          contactId={conversation.contact.id ?? ''}
+          contactPhone={conversation.contact.phone ?? ''}
+          contactName={conversation.contact.name ?? ''}
           instanceName={instanceName}
           messages={messages}
           quickReplies={dbQuickReplies}
@@ -572,7 +584,7 @@ export function ChatPanel({
           conversation={conversation}
           forwardMessage={handlers.forwardMessage}
           callDirection={callDirection}
-          contactId={conversation.contact.id}
+          contactId={conversation.contact.id ?? ''}
           onTransfer={handleTransfer}
           onScheduleMessage={handleScheduleMessage}
           onSendInteractiveMessage={handlers.handleSendInteractiveMessage}
@@ -596,8 +608,8 @@ export function ChatPanel({
         activeTool={activeTool}
         onSetActiveTool={handleSetActiveTool}
         messages={messages}
-        contactId={conversation.contact.id}
-        contactName={conversation.contact.name}
+        contactId={conversation.contact.id ?? ''}
+        contactName={conversation.contact.name ?? ''}
         onSelectSuggestion={(text) => handlers.setInputValue(text)}
       />
       <ChatMonitoringDialog

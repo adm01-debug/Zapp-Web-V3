@@ -142,7 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         log.error('[Auth] Failed to fetch roles for user:', userId, error);
         return;
       }
-      const roleNames = userRoles.map((r) => r.role as string);
+      const roleNames = userRoles.map((r) => r.role);
       setRoles(roleNames);
 
       const { data: userPermissions, error: permError } = await withTimeout(

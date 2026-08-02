@@ -136,8 +136,8 @@ export function RealtimeInboxView() {
     markAsRead: inboxMarkAsRead,
     setPendingContactId: inboxSetPendingContactId,
   } = inbox;
-  const inboxUseExternalDb = (inbox as unknown as { useExternalDb?: boolean })
-    .useExternalDb as boolean | undefined;
+  const inboxUseExternalDb = (inbox as unknown as { useExternalDb?: boolean }).useExternalDb as
+    boolean | undefined;
   const { setMainTab: filtersSetMainTab, setSubTab: filtersSetSubTab } = inboxFilters;
 
   useEffect(() => {
@@ -361,7 +361,7 @@ export function RealtimeInboxView() {
                       onBack={() => {
                         if (inbox.legacyConversation) {
                           inbox.setPipContact({
-                            name: inbox.legacyConversation.contact.name,
+                            name: inbox.legacyConversation.contact.name ?? '',
                             avatar: inbox.legacyConversation.contact.avatar,
                             lastMessage: inbox.legacyConversation.lastMessage?.content,
                             contactId: inbox.legacyConversation.id,

@@ -41,8 +41,15 @@ function countLayer(dir) {
 const current = Object.fromEntries(LAYERS.map((l) => [l, countLayer(l)]));
 
 if (UPDATE || !existsSync(BASELINE_PATH)) {
-  writeFileSync(BASELINE_PATH, JSON.stringify({ updatedAt: new Date().toISOString().slice(0, 10), calls: current }, null, 2) + '\n');
-  console.log('📌 Baseline data-layer gravado:', JSON.stringify(current));
+  // FIX: só grava se calls mudou — evita diff fantasma de updatedAt que aciona git push desnecessário
+  const existing = existsSync(BASELINE_PATH) ? JSON.parse(readFileSync(BASELINE_PATH, 'utf-8')).calls : null;
+  const hasChanged = !existing || JSON.stringify(existing) !== JSON.stringify(current);
+  if (hasChanged) {
+    writeFileSync(BASELINE_PATH, JSON.stringify({ updatedAt: new Date().toISOString().slice(0, 10), calls: current }, null, 2) + '\n');
+    console.log('📌 Baseline data-layer gravado:', JSON.stringify(current));
+  } else {
+    console.log('📌 Baseline já justo — valores inalterados, updatedAt preservado.');
+  }
   process.exit(0);
 }
 

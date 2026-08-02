@@ -57,7 +57,7 @@ jobs:
             fi
           done
           echo "Funcoes com resposta inesperada: $MISSING"
-          if [ "$MISSING" -gt 5 ]; then
+          if [ "$MISSING" -gt 0 ]; then
             echo "::error::Drift detectado: $MISSING funcoes nao respondem como esperado"
             exit 1
           fi

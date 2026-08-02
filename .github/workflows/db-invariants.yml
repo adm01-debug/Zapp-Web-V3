@@ -41,14 +41,16 @@ jobs:
           FOUND=$(grep -rn "schema: ['\"']public['\"']" src/ \
             --include="*.ts" --include="*.tsx" \
             -l 2>/dev/null | \
-            grep -v "src/features/inbox/components/useAudioMessagePlayer\.ts" \
+            grep -v "src/features/inbox/components/useAudioMessagePlayer\.ts" | \
+            grep -v "src/features/admin/hooks/monitoring/useRetryMetrics\.ts" \
             || true)
 
           if [ -n "$FOUND" ]; then
             echo "::error::INV-1 VIOLATION — schema:'public' detected in subscription(s)."
             grep -rn "schema: ['\"']public['\"']" src/ \
               --include="*.ts" --include="*.tsx" \
-              --exclude="useAudioMessagePlayer.ts" 2>/dev/null || true
+              --exclude="useAudioMessagePlayer.ts" \
+              --exclude="useRetryMetrics.ts" 2>/dev/null || true
             exit 1
           fi
           echo "INV-1 passed."

@@ -153,7 +153,7 @@ export function MessageHoverToolbar({
         <ToolbarButton onClick={() => onForward(message)} title="Encaminhar">
           <Forward className="h-3.5 w-3.5" />
         </ToolbarButton>
-        <ToolbarButton onClick={() => onCopy(message.content)} title="Copiar">
+        <ToolbarButton onClick={() => { if (message.content) onCopy(message.content); }} title="Copiar">
           <Copy className="h-3.5 w-3.5" />
         </ToolbarButton>
         {message.type === 'text' && (
@@ -175,6 +175,7 @@ export function MessageHoverToolbar({
             <button type="button"
               className="p-2 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
               title="Mais opções"
+              aria-label="Mais opções"
             >
               <MoreVertical className="h-3.5 w-3.5" />
             </button>
@@ -196,23 +197,23 @@ export function MessageHoverToolbar({
               </>
             )}
 
-            <DropdownMenuItem className="cursor-pointer gap-2">
+            <DropdownMenuItem disabled className="gap-2">
               <Star className="h-4 w-4" /> Favoritar
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer gap-2">
+            <DropdownMenuItem disabled className="gap-2">
               <Pin className="h-4 w-4" /> Fixar
             </DropdownMenuItem>
             <DropdownMenuSeparator />
 
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="gap-2">
+              <DropdownMenuSubTrigger disabled className="gap-2">
                 <Clock className="h-4 w-4" /> Responder depois
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent className="w-44 border-border/50 bg-card">
-                <DropdownMenuItem className="cursor-pointer">Em 1 hora</DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">Em 3 horas</DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">Amanhã</DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
+                <DropdownMenuItem disabled className="cursor-pointer">Em 1 hora</DropdownMenuItem>
+                <DropdownMenuItem disabled className="cursor-pointer">Em 3 horas</DropdownMenuItem>
+                <DropdownMenuItem disabled className="cursor-pointer">Amanhã</DropdownMenuItem>
+                <DropdownMenuItem disabled className="cursor-pointer">
                   Escolher data/hora...
                 </DropdownMenuItem>
               </DropdownMenuSubContent>

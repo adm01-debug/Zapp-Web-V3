@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/schema';
 import { isValidUUID } from '@/utils/uuid';
 
 export async function fetchConversationMemory(contactId: string) {
@@ -15,10 +16,10 @@ export async function saveConversationMemory(
   existingId: string | undefined,
   payload: {
     contact_id: string;
-    facts: unknown;
-    objections_handled: unknown;
-    promises_made: unknown;
-    pending_items: unknown;
+    facts: Json;
+    objections_handled: Json;
+    promises_made: Json;
+    pending_items: Json;
     commercial_summary: string | null;
     cumulative_summary: string | null;
     updated_by: string | null;

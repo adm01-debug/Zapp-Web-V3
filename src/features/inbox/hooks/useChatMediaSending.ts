@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { dbFrom } from '@/integrations/datasource/db';
 import { normalizeMediaUrl } from '@/utils/normalizeMediaUrl';
 import { toast } from 'sonner';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
@@ -60,13 +61,12 @@ export function useChatMediaSending(
       if (externalId) payload.external_id = externalId;
 
       try {
-        const { error } = await supabase.from('messages').update(payload).eq('id', messageId);
+        const { error } = await dbFrom('messages').update(payload).eq('id', messageId);
 
         if (error) {
           log.error(`[updateMessageStatus] First attempt failed for ${messageId}:`, error.message);
           // Retry once
-          const { error: retryError } = await supabase
-            .from('messages')
+          const { error: retryError } = await dbFrom('messages')
             .update(payload)
             .eq('id', messageId);
           if (retryError) {

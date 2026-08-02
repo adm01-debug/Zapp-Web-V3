@@ -67,7 +67,6 @@ const normalizeToast = (input: LegacyToastInput): { message: ReactNode; data: Ex
     data: {
       ...rest,
       description: title ? description : undefined,
-      richColors: variant === 'destructive' ? true : rest.richColors,
     },
   };
 };

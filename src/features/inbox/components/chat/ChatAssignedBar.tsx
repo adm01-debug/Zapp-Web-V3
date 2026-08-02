@@ -15,6 +15,7 @@ export function ChatAssignedBar({ conversation, onOpenTransfer }: ChatAssignedBa
     <AnimatePresence>
       {conversation.assignedTo && (
         <motion.div
+          key="assigned-bar"
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
@@ -25,7 +26,7 @@ export function ChatAssignedBar({ conversation, onOpenTransfer }: ChatAssignedBa
             <Avatar className="w-5 h-5">
               <AvatarImage src={conversation.assignedTo.avatar} alt={conversation.assignedTo.name} />
               <AvatarFallback className="text-[10px]">
-                {conversation.assignedTo.name[0]}
+                {conversation.assignedTo.name[0] ?? '?'}
               </AvatarFallback>
             </Avatar>
             <span className="font-medium">{conversation.assignedTo.name}</span>

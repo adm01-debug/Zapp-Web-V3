@@ -59,7 +59,19 @@ export function ContactPurchasesPanel({ contactId, profileId }: ContactPurchases
   const loadPurchases = useCallback(async () => {
     setLoading(true);
     const data = await fetchContactPurchases(contactId);
-    setPurchases(data);
+    setPurchases(
+      data.map((p) => ({
+        id: p.id,
+        title: p.title ?? '',
+        description: p.description,
+        amount: p.amount,
+        currency: p.currency,
+        status: p.status,
+        purchase_type: p.purchase_type,
+        purchased_at: p.purchased_at,
+        created_at: p.created_at ?? '',
+      }))
+    );
     setLoading(false);
   }, [contactId]);
 

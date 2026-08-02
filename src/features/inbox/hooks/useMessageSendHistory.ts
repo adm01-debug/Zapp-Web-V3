@@ -10,7 +10,7 @@
 import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { fromTable } from '@/lib/supabaseHelpers';
+import { safeFrom } from '@/integrations/supabase/safeClient';
 import {
   type AuditEntry,
   type FinalStatus,
@@ -66,7 +66,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
       if (!messageId) return { metric: null, auditEntries: [] };
 
       const idempotencyKey = `msg:${messageId}`;
-      const outboundQuery = fromTable('outbound_delivery_audit')
+      const outboundQuery = safeFrom('outbound_delivery_audit')
         .select(
           'id, event_type, status, latency_ms, instance_name, error_message, created_at, metadata'
         )
@@ -100,17 +100,18 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
 
       const outboundEntries: AuditEntry[] = (outboundAuditRes.data ?? []).map(
         (e: OutboundAuditRow) => ({
-        id: e.id,
-        action: `OUTBOUND_${(e.event_type ?? 'send').toUpperCase()}`,
-        createdAt: e.created_at,
-        details: {
-          status: e.status,
-          latency: e.latency_ms,
-          instance: e.instance_name,
-          error_message: e.error_message,
-          ...(e.metadata && typeof e.metadata === 'object' ? e.metadata : {}),
-        },
-      }));
+          id: e.id,
+          action: `OUTBOUND_${(e.event_type ?? 'send').toUpperCase()}`,
+          createdAt: e.created_at,
+          details: {
+            status: e.status,
+            latency: e.latency_ms,
+            instance: e.instance_name,
+            error_message: e.error_message,
+            ...(e.metadata && typeof e.metadata === 'object' ? e.metadata : {}),
+          },
+        })
+      );
 
       const combinedAudit = dedupeAuditEntries(
         [...auditEntries, ...outboundEntries].sort(
@@ -143,8 +144,8 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
 
       return {
         metric: {
-          id: row.id,
-          action: row.action,
+          id: row.id ?? messageId,
+          action: row.action ?? 'unknown',
           method: row.method ?? 'unknown',
           finalStatus,
           finalHttpStatus: row.final_http_status,

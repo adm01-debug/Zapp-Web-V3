@@ -2,14 +2,14 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Bold, Italic, Strikethrough, Code, List, ListOrdered, Type } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '@/components/ui/motion';
 
 interface RichTextToolbarProps {
   inputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>;
   inputValue: string;
   onInputChange: (value: string) => void;
   visible: boolean;
-  onToggle: () => void;
+  onToggle?: () => void;
 }
 
 type FormatType = 'bold' | 'italic' | 'strikethrough' | 'code' | 'list' | 'ordered-list';
@@ -84,6 +84,7 @@ export function RichTextToolbar({
     <AnimatePresence>
       {visible && (
         <motion.div
+          key="rich-text-toolbar"
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: 'auto', opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}

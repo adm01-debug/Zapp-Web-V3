@@ -4,7 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { queryKeys } from '@/services/api/queryKeys';
+import type { Json } from '@/integrations/supabase/types';
 import type { TeamConversation, TeamMember, TeamMessage } from './teamChatTypes';
+
+/** Type guard: JSON object (não primitivo/array) → shape compatível com Record<string, unknown>. */
+function isJsonObject(value: Json): value is { [key: string]: Json | undefined } {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
 /** Fetches the current agent's team conversations with member profiles and last-message previews, then subscribes to Realtime changes to keep the list current. */
 export function useTeamConversations() {
@@ -60,7 +66,7 @@ export function useTeamConversations() {
           conversation_id: string;
           content: string;
           sender_id: string;
-          created_at: string;
+          created_at: string | null;
         }
       >();
       for (const msg of recentMessages || []) {
@@ -84,7 +90,7 @@ export function useTeamConversations() {
       const unreadMap = new Map<string, number>(convIds.map((cid) => [cid, 0]));
       for (const msg of unreadMessages || []) {
         const lastRead = lastReadMap.get(msg.conversation_id);
-        if (!lastRead || msg.created_at > lastRead) {
+        if (!lastRead || !msg.created_at || msg.created_at > lastRead) {
           unreadMap.set(msg.conversation_id, (unreadMap.get(msg.conversation_id) ?? 0) + 1);
         }
       }
@@ -107,11 +113,14 @@ export function useTeamConversations() {
           name: displayName ?? 'Conversa',
           avatar_url:
             conv.type === 'direct' && !conv.avatar_url
-              ? members.find((m) => m.profile_id !== profile.id)?.profile?.avatar_url
+              ? (members.find((m) => m.profile_id !== profile.id)?.profile?.avatar_url ?? null)
               : conv.avatar_url,
           members,
           last_message: lastMsg as TeamMessage | null,
           unread_count: unreadMap.get(conv.id) || 0,
+          created_at: conv.created_at ?? new Date().toISOString(),
+          updated_at: conv.updated_at ?? new Date().toISOString(),
+          metadata: isJsonObject(conv.metadata) ? conv.metadata : null,
         };
       });
 

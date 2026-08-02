@@ -13,6 +13,7 @@ export type Contact = Pick<NonNullable<ContactRow>, 'id' | 'name' | 'phone' | 't
       | 'email'
       | 'contact_type'
       | 'whatsapp_connection_id'
+      | 'remote_jid'
     >
   > & {
     avatar?: string;

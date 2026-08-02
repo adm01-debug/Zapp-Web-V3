@@ -16,9 +16,7 @@ export function useAITagStats() {
   return useQuery({
     queryKey: queryKeys.aiFeatures.tagStats(),
     queryFn: async (): Promise<TagStat[]> => {
-      const { data } = await supabase
-        .from('ai_conversation_tags')
-        .select('tag_name, confidence');
+      const { data } = await supabase.from('ai_conversation_tags').select('tag_name, confidence');
       if (!data) return [];
 
       const tagMap = new Map<string, { count: number; avgConfidence: number }>();
@@ -52,6 +50,7 @@ export function useRetagRecentContacts(onSuccess: (count: number | undefined) =>
 
       let processed = 0;
       for (const contact of contacts) {
+        if (!contact.id) continue;
         try {
           await autoTag({ contactId: contact.id });
           processed++;

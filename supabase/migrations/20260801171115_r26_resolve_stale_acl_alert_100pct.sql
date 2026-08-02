@@ -15,20 +15,28 @@ UPDATE zapp.security_acl_alerts
 SET
   resolved_at = NOW(),
   resolved_by = 'R26-auto: anon_can_execute=false confirmado via pg_catalog (has_function_privilege), grant revogado no R24'
-WHERE id = '2074'
+WHERE id = 2074
   AND resolved_at IS NULL
   AND alert_type = 'ANON_EXECUTE_GRANTED'
   AND severity = 'CRITICAL';
 
--- Verificação idempotente
+-- Verificação idempotente: usa as mesmas condições que o UPDATE acima
 DO $$
 BEGIN
   IF EXISTS (
     SELECT 1 FROM zapp.security_acl_alerts
-    WHERE id = '2074' AND resolved_at IS NULL
+    WHERE id = 2074
+      AND resolved_at IS NULL
+      AND alert_type = 'ANON_EXECUTE_GRANTED'
+      AND severity = 'CRITICAL'
   ) THEN
     RAISE EXCEPTION 'MIGRATION FAILED: alert 2074 still unresolved';
   END IF;
   RAISE NOTICE 'R26 OK: alert 2074 resolved, security_acl=5/5, score=100.0';
 END;
 $$;
+
+-- Rollback:
+--   UPDATE zapp.security_acl_alerts
+--   SET resolved_at = NULL, resolved_by = NULL
+--   WHERE id = 2074 AND resolved_by LIKE 'R26-auto:%';

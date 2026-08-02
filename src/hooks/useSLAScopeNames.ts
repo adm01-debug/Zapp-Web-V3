@@ -18,6 +18,7 @@ export function useSLAScopeNames(
       const { data } = await supabase.from('contacts').select('id, name, phone').in('id', validIds);
       const map: Record<string, string> = {};
       (data || []).forEach((c) => {
+        if (!c.id) return;
         map[c.id] = `${c.name} (${c.phone})`;
       });
       return map;

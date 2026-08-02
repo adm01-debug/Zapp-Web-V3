@@ -16,7 +16,6 @@ import { Button } from '@/components/ui/button';
 import { getLogger } from '@/lib/logger';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { EmptyState } from '@/components/ui/empty-states';
-import { supabase } from '@/integrations/supabase/client';
 import { ChatWatermark } from './ChatWatermark';
 import { Message, InteractiveButton } from '@/types/chat';
 import { motion, AnimatePresence } from '@/components/ui/motion';
@@ -162,50 +161,6 @@ export const ChatMessagesArea = memo(
 
       const conversationId = messages[0]?.conversationId;
 
-      useEffect(() => {
-        if (!conversationId || !contactJid) return;
-        const channel = supabase
-          .channel(`chat-updates:${contactJid}`)
-          .on(
-            'postgres_changes',
-            {
-              event: 'UPDATE',
-              schema: 'evo',
-              table: 'evolution_messages',
-              filter: `remote_jid=eq.${contactJid}`,
-            },
-            () => {
-              void queryClient.invalidateQueries({
-                queryKey: queryKeys.messages.all(),
-              });
-            }
-          )
-          // BUG-25: mensagens apagadas no banco (Evolution) devem sumir da UI.
-          // REPLICA IDENTITY FULL na tabela garante payload.old.id no DELETE.
-          .on(
-            'postgres_changes',
-            {
-              event: 'DELETE',
-              schema: 'evo',
-              table: 'evolution_messages',
-              filter: `remote_jid=eq.${contactJid}`,
-            },
-            (payload) => {
-              const oldMsg = payload.old as { id?: string };
-              if (oldMsg?.id) {
-                void queryClient.invalidateQueries({
-                  queryKey: queryKeys.messages.all(),
-                });
-              }
-            }
-          )
-          .subscribe();
-        return () => {
-          channel.unsubscribe();
-          void supabase.removeChannel(channel);
-        };
-      }, [conversationId, contactJid, queryClient]);
-
       // Realtime de reacoes: 1 canal por conversa, invalida apenas IDs visiveis
       const messageIds = useMemo(() => messages.map((m) => m.id), [messages]);
       useConversationReactionsRealtime(conversationId, messageIds);
@@ -285,7 +240,7 @@ export const ChatMessagesArea = memo(
           if (onLoadOlder) {
             isFetchingOlderRef.current = true;
             prevScrollHeightRef.current = container.scrollHeight;
-            Promise.resolve(onLoadOlder())
+            void Promise.resolve(onLoadOlder())
               .finally(() => {
                 setTimeout(() => {
                   isFetchingOlderRef.current = false;
@@ -311,7 +266,8 @@ export const ChatMessagesArea = memo(
 
       const handleMessageDeleted = useCallback((id: string) => {
         log.info('Message deleted:', id);
-      }, []);
+        void queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() });
+      }, [queryClient]);
 
       const registerRef = useCallback((el: HTMLDivElement | null) => {
         if (!el) return;
@@ -319,9 +275,13 @@ export const ChatMessagesArea = memo(
         if (!messageId) return;
         const map = messageRefsRef.current;
         map.set(messageId, el);
-        // Auto-cleanup when element is removed from DOM (virtualizer unmount)
+        // Auto-cleanup when element is removed from DOM (virtualizer unmount).
+        // Disconnect is mandatory — without it observers accumulate across navigation.
         const observer = new MutationObserver(() => {
-          if (!document.contains(el)) map.delete(messageId);
+          if (!document.contains(el)) {
+            map.delete(messageId);
+            observer.disconnect();
+          }
         });
         const parent = el.parentElement;
         if (parent) observer.observe(parent, { childList: true });
@@ -347,7 +307,7 @@ export const ChatMessagesArea = memo(
               <EmptyState
                 icon={Clock}
                 title="Nenhuma mensagem ainda"
-                description="As mensagens aparecerao aqui quando a conversa comecar"
+                description="As mensagens aparecerão aqui quando a conversa começar"
                 illustration="messages"
                 size="sm"
               />
@@ -361,7 +321,7 @@ export const ChatMessagesArea = memo(
                   <Lock className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="mb-1 text-[14px] font-bold">Criptografia de Ponta a Ponta</h3>
-                <p className="text-[12px] text-muted-foreground">As mensagens sao protegidas.</p>
+                <p className="text-[12px] text-muted-foreground">As mensagens são protegidas.</p>
               </div>
             </div>
           )}
@@ -386,7 +346,7 @@ export const ChatMessagesArea = memo(
               };
               return (
                 <div
-                  key={message.id || virtualRow.index}
+                  key={message.id ?? virtualRow.index}
                   data-index={virtualRow.index}
                   ref={virtualizer.measureElement}
                   style={{
@@ -440,6 +400,7 @@ export const ChatMessagesArea = memo(
           <AnimatePresence>
             {showScrollBottom && (
               <motion.div
+                key="scroll-to-bottom"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}

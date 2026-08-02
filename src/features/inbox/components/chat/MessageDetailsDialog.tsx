@@ -91,7 +91,7 @@ export function MessageDetailsDialog({ messageId, open, onOpenChange }: MessageD
                 <TabsTrigger value="content">Conteúdo</TabsTrigger>
                 <TabsTrigger value="attempts">Tentativas</TabsTrigger>
                 <TabsTrigger value="payload">Payload</TabsTrigger>
-                <TabsTrigger value="raw">Raw Data</TabsTrigger>
+                <TabsTrigger value="raw">Dados Brutos</TabsTrigger>
               </TabsList>
 
               <TabsContent value="timeline" className="flex-1 overflow-auto mt-2 px-1">
@@ -134,7 +134,7 @@ export function MessageDetailsDialog({ messageId, open, onOpenChange }: MessageD
               <TabsContent value="raw" className="flex-1 overflow-auto mt-2">
                 <div className="flex justify-end mb-2">
                   {canCopyJson && (
-                    <Button size="sm" variant="ghost" onClick={() => copyJson('Raw Data', rawStr)} data-testid="copy-raw">
+                    <Button size="sm" variant="ghost" onClick={() => copyJson('Dados Brutos', rawStr)} data-testid="copy-raw">
                       <Copy className="w-3.5 h-3.5 mr-1" /> Copiar JSON
                     </Button>
                   )}
