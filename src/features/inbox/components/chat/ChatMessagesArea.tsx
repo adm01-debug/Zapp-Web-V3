@@ -16,7 +16,6 @@ import { Button } from '@/components/ui/button';
 import { getLogger } from '@/lib/logger';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { EmptyState } from '@/components/ui/empty-states';
-import { supabase } from '@/integrations/supabase/client';
 import { ChatWatermark } from './ChatWatermark';
 import { Message, InteractiveButton } from '@/types/chat';
 import { motion, AnimatePresence } from '@/components/ui/motion';
@@ -161,50 +160,6 @@ export const ChatMessagesArea = memo(
       }));
 
       const conversationId = messages[0]?.conversationId;
-
-      useEffect(() => {
-        if (!conversationId || !contactJid) return;
-        const channel = supabase
-          .channel(`chat-updates:${contactJid}`)
-          .on(
-            'postgres_changes',
-            {
-              event: 'UPDATE',
-              schema: 'evo',
-              table: 'evolution_messages',
-              filter: `remote_jid=eq.${contactJid}`,
-            },
-            () => {
-              void queryClient.invalidateQueries({
-                queryKey: queryKeys.messages.all(),
-              });
-            }
-          )
-          // BUG-25: mensagens apagadas no banco (Evolution) devem sumir da UI.
-          // REPLICA IDENTITY FULL na tabela garante payload.old.id no DELETE.
-          .on(
-            'postgres_changes',
-            {
-              event: 'DELETE',
-              schema: 'evo',
-              table: 'evolution_messages',
-              filter: `remote_jid=eq.${contactJid}`,
-            },
-            (payload) => {
-              const oldMsg = payload.old as { id?: string };
-              if (oldMsg?.id) {
-                void queryClient.invalidateQueries({
-                  queryKey: queryKeys.messages.all(),
-                });
-              }
-            }
-          )
-          .subscribe();
-        return () => {
-          channel.unsubscribe();
-          void supabase.removeChannel(channel);
-        };
-      }, [conversationId, contactJid, queryClient]);
 
       // Realtime de reacoes: 1 canal por conversa, invalida apenas IDs visiveis
       const messageIds = useMemo(() => messages.map((m) => m.id), [messages]);
