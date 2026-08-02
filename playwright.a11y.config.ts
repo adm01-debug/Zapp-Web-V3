@@ -21,7 +21,7 @@ import path from 'node:path';
  */
 
 const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:5173';
-const STORAGE_STATE = path.resolve(__dirname, 'e2e/.auth/user.json');
+const STORAGE_STATE = path.resolve(process.cwd(), 'e2e/.auth/user.json');
 const HAS_E2E_CREDENTIALS = Boolean(
   process.env.E2E_USER_EMAIL && process.env.E2E_USER_PASSWORD
 );
