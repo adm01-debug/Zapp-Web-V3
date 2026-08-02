@@ -169,9 +169,16 @@ export function useMessageQueue(
     try {
       localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queueToSave));
     } catch (e) {
-      // QuotaExceededError — broadcast so the listener below can surface the warning.
-      window.dispatchEvent(new CustomEvent('zapp:storage-quota-exceeded', { detail: { key: QUEUE_STORAGE_KEY } }));
-      log.warn('[useMessageQueue] localStorage quota exceeded — queue not persisted', e);
+      const isQuota =
+        e instanceof DOMException &&
+        (e.name === 'QuotaExceededError' || e.code === 22);
+      if (isQuota) {
+        // QuotaExceededError — broadcast so the listener below can surface the warning.
+        window.dispatchEvent(new CustomEvent('zapp:storage-quota-exceeded', { detail: { key: QUEUE_STORAGE_KEY } }));
+        log.warn('[useMessageQueue] localStorage quota exceeded — queue not persisted', e);
+      } else {
+        log.error('[useMessageQueue] localStorage.setItem failed unexpectedly', e);
+      }
     }
   }, [queue]);
 
