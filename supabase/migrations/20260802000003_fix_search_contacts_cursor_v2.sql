@@ -66,6 +66,9 @@ DECLARE
   v_pivot_ts     timestamptz;
   v_pivot_text   text;
 BEGIN
+  -- P2: clamp page_size — LIMIT NULL removes limit entirely → unbounded read
+  page_size := LEAST(COALESCE(page_size, 50), 1000);
+
   -- BUG-15: validate sort_direction — RAISE instead of silent fallback
   v_dir := UPPER(COALESCE(sort_direction, 'ASC'));
   IF v_dir NOT IN ('ASC', 'DESC') THEN
@@ -99,28 +102,29 @@ BEGIN
     IF v_sort_col = 'name' THEN
       SELECT c.name::text INTO v_pivot_text
         FROM zapp.contacts c WHERE c.id = cursor_id;
+      -- P1: must be WHERE, not AND — outer query FROM has no WHERE clause yet
       IF v_dir = 'ASC' THEN
-        v_cursor_where := format(' AND (b.name, b.id) > (%L::text, %L::uuid)', v_pivot_text, cursor_id);
+        v_cursor_where := format(' WHERE (b.name, b.id) > (%L::text, %L::uuid)', v_pivot_text, cursor_id);
       ELSE
-        v_cursor_where := format(' AND (b.name, b.id) < (%L::text, %L::uuid)', v_pivot_text, cursor_id);
+        v_cursor_where := format(' WHERE (b.name, b.id) < (%L::text, %L::uuid)', v_pivot_text, cursor_id);
       END IF;
 
     ELSIF v_sort_col = 'created_at' THEN
       SELECT c.created_at INTO v_pivot_ts
         FROM zapp.contacts c WHERE c.id = cursor_id;
       IF v_dir = 'ASC' THEN
-        v_cursor_where := format(' AND (b.created_at, b.id) > (%L::timestamptz, %L::uuid)', v_pivot_ts, cursor_id);
+        v_cursor_where := format(' WHERE (b.created_at, b.id) > (%L::timestamptz, %L::uuid)', v_pivot_ts, cursor_id);
       ELSE
-        v_cursor_where := format(' AND (b.created_at, b.id) < (%L::timestamptz, %L::uuid)', v_pivot_ts, cursor_id);
+        v_cursor_where := format(' WHERE (b.created_at, b.id) < (%L::timestamptz, %L::uuid)', v_pivot_ts, cursor_id);
       END IF;
 
     ELSIF v_sort_col = 'updated_at' THEN
       SELECT c.updated_at INTO v_pivot_ts
         FROM zapp.contacts c WHERE c.id = cursor_id;
       IF v_dir = 'ASC' THEN
-        v_cursor_where := format(' AND (b.updated_at, b.id) > (%L::timestamptz, %L::uuid)', v_pivot_ts, cursor_id);
+        v_cursor_where := format(' WHERE (b.updated_at, b.id) > (%L::timestamptz, %L::uuid)', v_pivot_ts, cursor_id);
       ELSE
-        v_cursor_where := format(' AND (b.updated_at, b.id) < (%L::timestamptz, %L::uuid)', v_pivot_ts, cursor_id);
+        v_cursor_where := format(' WHERE (b.updated_at, b.id) < (%L::timestamptz, %L::uuid)', v_pivot_ts, cursor_id);
       END IF;
     END IF;
   END IF;

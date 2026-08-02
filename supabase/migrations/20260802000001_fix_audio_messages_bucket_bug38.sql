@@ -55,12 +55,14 @@ END $$;
 -- 4. Authenticated INSERT stays locked (create if missing)
 DO $$
 BEGIN
+  -- Policy names are unique per table — no need to filter on cmd.
+  -- If cmd='ALL' on an existing policy, the AND cmd='INSERT' would cause a
+  -- false-negative here, then CREATE POLICY fails with "policy already exists".
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
     WHERE  schemaname = 'storage'
       AND  tablename  = 'objects'
       AND  policyname = 'auth_write_audio_msgs'
-      AND  cmd        = 'INSERT'
   ) THEN
     CREATE POLICY auth_write_audio_msgs ON storage.objects
       FOR INSERT TO authenticated

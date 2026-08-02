@@ -114,13 +114,14 @@ GRANT ALL  ON zapp.imap_smtp_accounts TO service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON zapp.imap_smtp_accounts TO authenticated;
 
 -- ── 10. whatsapp_official_credentials ────────────────────────────────────────
+-- P0: app_secret and access_token must NEVER reach authenticated users.
+-- Only edge functions (running as service_role) read these credentials.
 CREATE OR REPLACE VIEW zapp.whatsapp_official_credentials
   WITH (security_invoker = on)
 AS SELECT * FROM public.whatsapp_official_credentials;
 
-REVOKE ALL ON zapp.whatsapp_official_credentials FROM PUBLIC, anon;
-GRANT ALL    ON zapp.whatsapp_official_credentials TO service_role;
-GRANT SELECT ON zapp.whatsapp_official_credentials TO authenticated;
+REVOKE ALL ON zapp.whatsapp_official_credentials FROM PUBLIC, anon, authenticated;
+GRANT ALL  ON zapp.whatsapp_official_credentials TO service_role;
 
 -- ── 11. whatsapp_cloud_webhook_pings ─────────────────────────────────────────
 CREATE OR REPLACE VIEW zapp.whatsapp_cloud_webhook_pings
@@ -204,10 +205,26 @@ GRANT ALL  ON zapp.user_service_accounts TO service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON zapp.user_service_accounts TO authenticated;
 
 -- ── 20. messages_whatsapp ─────────────────────────────────────────────────────
-CREATE OR REPLACE VIEW zapp.messages_whatsapp
-  WITH (security_invoker = on)
-AS SELECT * FROM public.messages_whatsapp;
-
-REVOKE ALL ON zapp.messages_whatsapp FROM PUBLIC, anon;
-GRANT ALL  ON zapp.messages_whatsapp TO service_role;
-GRANT SELECT ON zapp.messages_whatsapp TO authenticated;
+-- P1: The source table public.messages_whatsapp may not exist on all envs
+-- (the only migration creating it is in archive/ and was never deployed).
+-- Wrap in existence check to prevent the migration from failing on envs where
+-- the table is absent, while still creating the view on envs where it exists.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public' AND c.relname = 'messages_whatsapp'
+      AND c.relkind IN ('r','p','f','v')
+  ) THEN
+    EXECUTE 'CREATE OR REPLACE VIEW zapp.messages_whatsapp
+               WITH (security_invoker = on)
+             AS SELECT * FROM public.messages_whatsapp';
+    EXECUTE 'REVOKE ALL ON zapp.messages_whatsapp FROM PUBLIC, anon';
+    EXECUTE 'GRANT ALL    ON zapp.messages_whatsapp TO service_role';
+    EXECUTE 'GRANT SELECT ON zapp.messages_whatsapp TO authenticated';
+    RAISE NOTICE 'Created zapp.messages_whatsapp view proxy.';
+  ELSE
+    RAISE NOTICE 'SKIP zapp.messages_whatsapp: public.messages_whatsapp does not exist on this env.';
+  END IF;
+END $$;
