@@ -14,13 +14,13 @@
 | 3 | Autenticação e sessão (21-30) | ✅ Concluído | 12 (F3-01 a F3-12) |
 | 4 | Inbox e mensageria (31-45) | ✅ Concluído | 24 (F4-01 a F4-24) |
 | 5 | Contatos e CRM (46-55) | ✅ Concluído | 30 (F5-01 a F5-30) |
-| 6 | Conexões WhatsApp (56-65) | ⏸ Pendente | — |
+| 6 | Conexões WhatsApp (56-65) | ✅ Concluído | 30 (F6-01 a F6-30) |
 | 7 | Admin e monitoramento (66-75) | ⏸ Pendente | — |
 | 8 | SLA/BPM (76-80) | ⏸ Pendente | — |
 | 9 | Resiliência e edge cases (81-90) | ⏸ Pendente | — |
 | 10 | Cross-browser / a11y / perf (91-100) | ⏸ Pendente | — |
 
-**Achados até aqui: 93 (14 Bloco 1 + 13 Bloco 2 + 12 Bloco 3 + 24 Bloco 4 + 30 Bloco 5).**
+**Achados até aqui: 123 (14 Bloco 1 + 13 Bloco 2 + 12 Bloco 3 + 24 Bloco 4 + 30 Bloco 5 + 30 Bloco 6).**
 
 ---
 
@@ -40,273 +40,257 @@ _(Detalhes registrados anteriormente.)_
 
 _(Detalhes registrados anteriormente. 24 achados F4-01 a F4-24 em `PLANO_IMPLEMENTACAO_100.md` Tema 8.)_
 
----
-
 ## Bloco 5 — Contatos e CRM (etapas 46-55)
 
+_(Detalhes registrados anteriormente. 30 achados F5-01 a F5-30 em `PLANO_IMPLEMENTACAO_100.md` Tema 11.)_
+
+---
+
+## Bloco 6 — Conexões WhatsApp (etapas 56-65)
+
 Arquivos auditados linha a linha:
-- `src/features/contacts/index.ts` (barrel, 411 B).
-- `src/features/contacts/hooks/useContactAssignment.ts` (1 437 B).
-- `src/features/contacts/hooks/useContactCustomFields.ts` (2 658 B).
-- `src/features/contacts/hooks/useContactEnrichedData.ts` (7 601 B).
-- `src/features/contacts/hooks/useContactIntelligence.ts` (3 823 B).
-- `src/features/contacts/hooks/useContactNotes.ts` (5 586 B).
-- `src/features/contacts/hooks/useContactStats.ts` (1 899 B).
-- `src/features/contacts/hooks/useContactTyping.ts` (6 514 B).
-- `src/features/contacts/hooks/useContactsSearch.ts` (9 478 B).
+- `src/features/connections/index.ts` (barrel).
+- `src/features/connections/hooks/useConnectionsManager.ts` (dispatcher central).
+- `src/features/connections/hooks/parts/useConnectionsState.ts` (estado local).
+- `src/features/connections/hooks/parts/useConnectionsActions.ts` (business logic).
+- `src/features/connections/hooks/parts/useConnectionsRealtime.ts` (subscribe).
+- `src/features/connections/services/whatsappConnectionService.ts` (3168 B, QR + normalize).
+- `src/features/connections/data-access/whatsappConnectionRepository.ts` (repo com columnMap).
+- `src/services/connections/connectionsRepository.ts` (4136 B, genericService).
+- `src/services/connections/connectionsService.ts` (2978 B, business rules).
+- `src/services/connections/useConnectionsQueries.ts` (2806 B, React Query hooks).
+- `src/services/connections/useConnectionsMutations.ts` (2091 B).
+- `src/services/connections/BridgeService.ts` (1515 B, external Supabase health).
+- `src/hooks/useEvolutionAutoSync.ts`, `src/hooks/useEvolutionAutoReconnect.ts`.
+- `src/hooks/useEvolutionApi.ts` + `src/hooks/useEvolutionApiManagement.ts` (create/connect/logout/delete).
+- `src/integrations/zappweb/evolutionClient.ts` (client HTTP).
+- `src/lib/evolutionInstance.ts` (evolutionInstanceName resolver).
+- 30 componentes em `src/components/connections/` (ConnectionsView 649 linhas, ConnectionCard 359, InstanceSettingsDialog 496, NumberReputationMonitor 160, QrCodeDialog 214, AddConnectionDialog 144, etc.).
+- Pages: `src/pages/admin/Connections.tsx`, `src/pages/admin/connections/{ConnectionsExternalDbTab,ConnectionsMcpTab,ConnectionsWebhooksTab,ConnectionsIntegrationsTab}.tsx`.
 
 Auditoria SQL profunda:
-- View `zapp.contacts` + 3 INSTEAD OF triggers (`fn_contacts_view_insert_handler`, `_update_handler`, `_delete_handler`).
-- Tabela `evo.evolution_contacts` (44 colunas, 20 índices).
-- Tabela `zapp.contact_intelligence` (15 colunas, 5 índices).
-- Tabela `zapp.contact_notes` (6 colunas, 4 índices, 3 RLS policies).
-- Tabela `zapp.tags` (11 colunas mistas) + `zapp.contact_tags` (4 colunas).
-- Tabela `zapp.empresas` (6 colunas — mínima).
-- RPCs auditadas: `bulk_auto_merge_duplicates`, `bulk_soft_delete_contacts`, `bulk_add_tag`, `add_contact_note`, `rpc_get_contact` (4 overloads), `merge_contacts`, `search_contacts_cursor`, `contacts_count_by_type`, `get_contact_intelligence_by_phone` (2 overloads), `fn_normalize_br_phone`, `fn_normalize_phone`, `get_normalized_phone`, `normalize_phone_for_unique`, `is_admin_or_supervisor` (2 overloads), `is_contact_visible_to_user`, `get_default_workspace_id`, `mask_cpf`.
+- Tabelas: `evo.evolution_instance_credentials` (17 col, TABLE, 1 row), `zapp.whatsapp_connections` (39 col, TABLE, 3 rows), `zapp.instance_registry` (22 rows), `zapp.qr_attempts` (TABLE, 5 rows), `evo.evolution_reconcile_jobs` (TABLE, 1663 rows), `evo.evolution_alerts` (TABLE), `zapp.instance_auth_events` (TABLE), `evo.evolution_ip_watch` (TABLE, 0 rows).
+- Views compat: `public.qr_attempts`, `public.evolution_reconcile_jobs`, `public.evolution_alerts`, `public.evolution_instance_credentials`, `public.instance_auth_events`, `zapp.evolution_reconcile_jobs`, `zapp.evolution_alerts`, `zapp.evolution_instance_credentials`, `zapp.evolution_instances`.
+- Funções auditadas: `zapp.fn_reconcile_dispatch`, `zapp.fn_reconcile_apply`, `zapp.fn_alert_wpp2_disconnection`, `zapp.fn_alert_connection_drift`, `zapp.fn_sync_instance_registry_status`, `zapp.fn_connection_drift_summary`, `zapp.fn_mark_qr_attempt_connected`, `zapp.cleanup_old_qr_attempts`, `zapp.fn_register_instance`, `zapp.fn_reprocess_instance_webhook_events`, `zapp.pause_instance`/`unpause_instance`/`is_instance_paused`, `zapp.rpc_instance_stats`/`_auth_event_summary`/`_auth_event_trend`, `zapp.rpc_resolve_instance_by_phone`/`_whatsapp_instance`, `zapp.get_connection_id_for_instance`, `zapp.get_connection_instance`, `evo.fn_bootstrap_wpp2_instance`, `evo.fn_burnin_disconnection_check`, `evo.fn_detect_401_bursts`, `evo.fn_detect_external_401_bursts`, `evo.fn_detect_instance_recreate`, `evo.fn_update_instance_health`, `zapp.fn_validate_whatsapp_connection_url`, `zapp.fn_clear_qr_on_connect`, `zapp.fn_wconn_updated_at`, `zapp.fn_log_whatsapp_connection_state_change`, `zapp.auto_pause_instance_on_auth_spike`, `zapp.cleanup_old_instance_auth_events`.
+- Crons auditados: 27 (`whatsapp_reconcile_dispatch`, `*/5`), 30 (`_apply`, `1-59/5`), 32 (`connection_drift_alert`, `4-59/5`), 34 (`evolution-pipeline-health-check-bateria10`), 35 (`evolution-jid-health-check-5min`), 65 (`purge_evolution_alerts`, `0 4 * * *`), 67 (`_reconcile_cleanup`, `17 3 * * *`), 68 (`_reconcile_reaper`, `*/3`), 88 (`archive-old-wpp2-messages`, `0 3 1 * *`), 96 (`sync-instance-registry-status`, `2-59/5`), 101 (`qr-attempts-expire-15min`, `*/15`), 104 (`wpp2_disconnection_watchdog`, `*/10 6-23`), 120 (`wpp2-session-expiry-watchdog`, `*/15`), 137 (`monthly-evo-audit`, `0 6 1 * *`), 138 (`ensure-evolution-backcompat-views`, `0 */6 * * *`), 158-173 (evo-* alerta chain), 182 (`evolution-pipeline-probe-15min`), 185 (`vacuum-instance-credentials-daily`), 189 (`evo_cleanup_expired_contact_ids`), 217 (`expire-whatsapp-media-1h`).
 
-### Base factual do banco (medida em 01/08/2026 22:55 UTC)
+### Base factual do banco (medida em 02/08/2026 01:25 UTC)
 
 | Métrica | Valor |
 |---|---|
-| `zapp.contacts` (view) total | 20 445 |
-| `evo.evolution_contacts` total (incl. deletados) | 20 446 |
-| `evo.evolution_contacts` soft-deleted | 1 |
-| `zapp.contact_intelligence` total | 20 445 (1:1 com contacts) |
-| `contact_intelligence` fresh 7d | **20 445 (100%)** — cron `refresh-health-score-cache` (148) opera OK |
-| `zapp.contact_notes` total | **0 rows** (feature dead em produção) |
-| Distribuição por instância | wpp2: 17 492 (85,5%); wpp_pink_test: 2 949; comercial_03: 2; outras: 2 (uma delas `instancia_fantasma_999` — data hygiene issue) |
-| `evo.evolution_contacts.lgpd_consent_at IS NOT NULL` | **0** |
-| `evo.evolution_contacts.lgpd_opt_out_at IS NOT NULL` | **0** |
-| `evo.evolution_contacts.lgpd_last_updated_at IS NOT NULL` | **0** |
-| `evo.evolution_contacts.merge_source_id IS NOT NULL` | **0** (merge nunca funcionou) |
-| `zapp.empresas` total | 51 688 |
-| Índices trgm em `evo.evolution_contacts` | `push_name`, `email` (nada em `full_name`, `first_name`, `last_name`, `nickname`, `company`, `phone_number`) |
-| Duplicatas identificadas (phone 15 dígitos+) | 5+ pares (formatos anômalos — provavelmente JIDs de outras plataformas) |
-| Funções de normalização de phone no banco | **4 divergentes** (`fn_normalize_br_phone`, `fn_normalize_phone`, `get_normalized_phone`, `normalize_phone_for_unique`) |
-| Funções de normalização de phone no frontend | +1 (`useContactIntelligence.cleanPhone`) |
-| Estratégia usada por `bulk_auto_merge_duplicates` | +1 hand-rolled inline (ignora todas as 5 acima) |
+| `evo.evolution_instance_credentials` total | **1** (só wpp2, health_status='unhealthy', online_instances=0) |
+| `zapp.whatsapp_connections` total | **3** (wpp2 connected/ok, wpp_pink_test disconnected/error, wppmkt disconnected/provisioned) |
+| `zapp.whatsapp_connections` com `created_by IS NULL` | **3 (100%)** — ownership perdida em todas |
+| `zapp.instance_registry` total | 22 (statuses: `archived, connected, not_provisioned`) |
+| Discrepância `whatsapp_connections` vs `evolution_instance_credentials` | 2 conexões órfãs (wppmkt, wpp_pink_test) sem credenciais |
+| **Estado divergente wpp2** | `whatsapp_connections.health='ok'` **vs** `evolution_instance_credentials.health='unhealthy'` |
+| Triggers em `zapp.whatsapp_connections` | **6** (4 são duplicatas em 2 pares divergentes: updated_at × 2, clear_qr × 2) |
+| RLS policies em `zapp.whatsapp_connections` | 4 (`auth_secure_123` com nome de teste, `wconn_insert_auth` permite orphan) |
+| RLS policies em `evo.evolution_instance_credentials` | 1 (`evo_creds_service_role_only` — só service_role) |
+| `zapp.qr_attempts` total | **5** (todos status=`expired`, 2 nas últimas 24h) |
+| `evo.evolution_reconcile_jobs` total | 1663 (1663 applied, **8 failed**, 12 last hour) |
+| `evo.evolution_reconcile_jobs` com `applied_at < dispatched_at - 1 day` | **373 (22%)** — timestamps corrompidos por reciclagem de request_id |
+| `evo.evolution_alerts` unresolved+unacked | **269 backlog** |
+| `wpp2_disconnection` alerts total (all-time) | 18 (17 unresolved, 1 acked = 94% backlog) |
+| `wpp2_disconnection` alerts últimas 10h | 10 (padrão: 1 alerta a cada ~1h) |
+| `zapp.warroom_alerts` últimos 7d | **1389** (863 info, 385 critical, 141 warning) — alert fatigue |
+| `evo.evolution_ip_watch` total | **0** — pipeline VPS→DB de detecção 401 morto |
+| `zapp.instance_auth_events` últimas 24h | 17 rows, TODAS com `event_type=NULL, http_status=NULL, success=false` |
+| Cron 96 `sync-instance-registry-status` execuções últimas 24h | 256/288 esperado (**11% de perda**) |
+| Cron 27, 30, 32, 68, 101, 104, 173 últimas 7d | 100% sucesso (mas F6-20 mostra que sucesso não implica detecção real) |
+| Múltiplas cópias de tabelas em schemas | qr_attempts (2×), reconcile_jobs (3×), alerts (3×), instance_credentials (3×), auth_events (2×) — **13 objetos, 5 nomes** |
+| Test coverage `src/features/connections/` + `src/services/connections/` | 2 test files para ~30 arquivos (0 tests em componentes) |
+| Pairing code (Etapa 58) | **0 hits em código** — feature 100% ausente |
 
-### Etapa 46 — Criar contato
+### Etapa 56 — Criar instância Evolution
 
-**Descoberta P0**: view `zapp.contacts` é **layer lossy sobre `evo.evolution_contacts`**. Trigger INSERT (`fn_contacts_view_insert_handler`) só propaga 23 dos 50 campos da view. Colunas HARDCODED como NULL/constante que não podem ser gravadas via INSERT:
-- `cpf` (não existe em `evo.evolution_contacts`) → **F5-06**
-- `address`, `city`, `state` → sem storage
-- `country = 'BR'::text` fixed
-- `is_blocked = false`, `is_favorite = false` fixed
-- `surname` = NULL fixed
-- `channel_type = 'whatsapp'` fixed, `channel = 'whatsapp'` fixed
-- `ai_priority = 'normal'`, `ai_sentiment = 'neutral'`, `risk_score = 0` fixed
-- `channel_connection_id = NULL`
-- `workspace_id = get_default_workspace_id()` (constante — sem tenant isolation, **F5-16**)
+**Descoberta P0**: `handleAddConnection` em `useConnectionsActions.ts` NUNCA chama `useEvolutionApi.createInstance()`. Só faz `safeClient.single('whatsapp_connections', q => q.insert({...}))` com 7 colunas (name, phone_number, instance_id, instance_name, status, is_default, api_type). Depois chama `handleShowQrCode` que dispara `whatsappConnectionService.requestQrCode(evoName)` — mas se a instância nunca foi criada no Evolution API, essa chamada retorna 404. **Fluxo de criação via UI está quebrado desde deploy** — as 3 rows atuais foram criadas por outro caminho (Evolution manager direto? seed migration?). → **F6-02** (P0).
 
-Sem função `validate_cpf` ou `validate_cnpj` no banco (só `mask_cpf`) — **F5-07**. Sem coluna `cnpj` em lugar nenhum. UI de criação de contato com campo CPF é feature sem persistência.
+**Descoberta P0**: `zapp.whatsapp_connections.api_url` e `.api_key` são `NOT NULL` sem default. INSERT do `handleAddConnection` faltaria essas colunas — deveria falhar. Que as 3 rows atuais existam prova que insere via outro caminho. → **F6-13** (P0).
 
-Trigger INSERT fabricado `remote_jid = NEW.phone || '@s.whatsapp.net'` quebra contatos de grupo (`@g.us`) — **F5-27**.
+**Descoberta P0**: RLS `wconn_insert_auth` policy WITH CHECK `(created_by IS NULL) OR (created_by = auth.uid())` permite orphan INSERTs. Combinado com F6-16 (100% das rows com `created_by=NULL`), sem ownership. → **F6-17** (P0).
 
-### Etapa 47 — Editar contato
+**Descoberta P0**: Trigger `trg_validate_whatsapp_connection_url` cai para hardcoded default `'https://evolution.atomicabr.com.br'` se vault estiver vazio — não fail-secure. Mensagem de erro do RAISE expõe URL esperada. → **F6-12**.
 
-Trigger UPDATE (`fn_contacts_view_update_handler`) só propaga **16 colunas** para `evo.evolution_contacts`: `full_name`, `phone_number`, `email`, `profile_picture_url`, `lead_status`, `assigned_to`, `queue_id`, `company`, `notes`, `tags`, `whatsapp_labels`, `lead_score`, `last_message_at`, `instance_name`, `raw_data`, `updated_at`.
+Policy `auth_secure_123` — nome de código de teste (`_123` suffix) em produção → **F6-18**.
 
-**Descartados silenciosamente** (34 campos, mesmo padrão do F4-18):
-- LGPD: `consent_status`, `lgpd_*` (não gravável via view)
-- Soft-delete: `deleted_at`, `deleted_by`, `deleted_reason`
-- Tenant: `workspace_id`
-- Categorização: `contact_type`, `ai_priority`, `ai_sentiment`, `channel_type`, `group_category`, `risk_score`, `lead_origin`
-- Perfil: `nickname`, `surname`, `first_name`, `last_name`, `role_title`, `is_blocked`, `is_favorite`, `cpf`, `address`, `city`, `state`, `country`
-- Métricas: `first_message_at`, `unread_count`, `total_purchases`, `last_seen_at`
+Múltiplas cópias de tabelas em schemas: `qr_attempts` (2), `reconcile_jobs` (3), `alerts` (3), `instance_credentials` (3), `auth_events` (2) — 13 objetos para 5 nomes distintos → **F6-30**.
 
-→ **F5-02** (P0).
+`handleAddConnection` valida só `name`, permite `phone_number` vazio → **F6-29**.
 
-Trigger de audit em `zapp.audit_logs` não foi encontrado ligado a `zapp.contacts` — plan mencionou "trigger de audit" mas depende de arquitetura do audit_logs, não de trigger específico. Não é achado direto.
+### Etapa 57 — QR code
 
-### Etapa 48 — Merge de duplicatas (`bulk_auto_merge_duplicates`)
+Cron `qr-attempts-expire-15min` (jobid 101) rodou 283x em 7d, mas `zapp.qr_attempts` tem só 5 rows total (todas expired, 2 nas últimas 24h). Cron opera em set trivialmente pequeno. `whatsappConnectionService.detectQrTtlMs` faz clamp entre 15s-300s (default 60s) — parses `count`, `qrcode.count`, `ttl`, `expires_in` — múltiplos fallbacks, resiliente.
 
-**Descoberta P0**: `zapp.merge_contacts()` **LEVANTA EXCEPTION `implementacao pendente (etapa 30)` com ERRCODE '0A000'**. Body inteiro:
-```sql
-IF NOT zapp.is_admin_or_supervisor() THEN
-  RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501';
-END IF;
-RAISE EXCEPTION 'merge_contacts: implementacao pendente (etapa 30)' USING ERRCODE = '0A000';
-```
+`whatsappConnectionService.logQrAttempt` é chamado a cada request — mas só 5 rows históricos sugerem que **fluxo de QR raramente é executado em produção** (wpp2 já está autenticado; wpp_pink_test/wppmkt sem uso ativo).
 
-`bulk_auto_merge_duplicates` chama `merge_contacts` em loop — cada chamada aborta a função inteira via exception (transaction rollback). `SELECT COUNT(*) FROM evo.evolution_contacts WHERE merge_source_id IS NOT NULL` retorna **0** — nunca houve merge bem-sucedido em produção. → **F5-04** (P0).
+### Etapa 58 — Pairing code
 
-Seleção do primário no `bulk_auto_merge_duplicates`: `ORDER BY total_messages DESC, created_at ASC`. Sem regra LGPD explícita — pode migrar `lgpd_opt_out_at` errado para o merged → **F5-18**.
+**Descoberta P0**: pairing code **100% AUSENTE** do código. Grep de `pairing|Pairing|PAIRING|pairing_code|pairingCode` em `src/**` retorna **1 hit** — apenas comentário JSDoc em `useEvolutionApiManagement.ts` linha 296 dizendo `"lifecycle operations: create, connect, reconnect, logout, restart, delete, and QR/pairing-code retrieval"`. Sem implementação. Banco tem 0 funções relacionadas. Feature promised no plano nunca foi implementada. → **F6-01** (P0).
 
-Estratégia de dedup usa **6ª normalização de phone** (`regexp_replace(phone_number, '\D', '', 'g')` hand-rolled inline), ignorando as 4 funções SQL de normalização e a 5ª do frontend → **F5-08** (P0).
+### Etapa 59 — Reconexão automática
 
-Duplicates snapshot revelou 5+ pares com phones de 15 dígitos (`194879879659641`, etc.) — formatos anômalos (talvez JIDs de outras plataformas misturados). `bulk_auto_merge_duplicates` inclui esses no dedup por default.
+Crons `whatsapp_reconcile_dispatch` (27, `*/5`), `_apply` (30, `1-59/5`), `_reaper` (68, `*/3`) — todos ativos, 100% sucesso em 7d (exceto _apply com 1 falha em 850, 0.12%).
 
-### Etapa 49 — Bulk soft-delete (`bulk_soft_delete_contacts`)
+**Descoberta P0**: `fn_reconcile_dispatch` chama `net.http_get('/instance/fetchInstances')` e faz `INSERT INTO evolution_reconcile_jobs (request_id) ON CONFLICT (request_id) DO UPDATE SET dispatched_at = now()`. `pg_net` recicla request_ids ao longo do tempo. Quando colide com job antigo, UPDATE só toca dispatched_at, preservando `applied_at` antigo. **373 rows (22%) com `applied_at < dispatched_at - 1 day`**. Sample: id=24041 tem `dispatched_at=2026-08-02 01:15` mas `applied_at=2026-07-28 03:31` (delta=-4d21h). → **F6-05**, **F6-21** (ambas P0).
 
-**Descoberta P0**: RPC executa `UPDATE zapp.contacts SET deleted_at=now(), deleted_by=auth.uid(), deleted_reason=p_reason`. Colunas `deleted_by` e `deleted_reason` **NÃO EXISTEM na view `zapp.contacts`** — Postgres rejeita statement no parse com `column "deleted_by" of relation "contacts" does not exist`. → **F5-05** (P0).
+Métrica de latência de reconcile completamente corrompida.
 
-Mesmo se colunas existissem, trigger UPDATE handler não propagaria `deleted_at` para `evo.evolution_contacts` (F5-02). E trigger DELETE handler faz **HARD DELETE**, não soft-delete → **F5-03** (P0). Requisito LGPD de "soft-delete undo 30d" é impossível de cumprir com arquitetura atual.
+`useEvolutionAutoReconnect` (frontend) com exponential backoff (2s→60s), MAX_CONSECUTIVE_RECONNECT_ATTEMPTS=20 (adicionado 2026-07-05 para evitar loop infinito), circuit breaker em 401/403. Bem estruturado.
 
-Cap de 500 contatos por chamada existe (bom): `IF array_length(p_contact_ids, 1) > 500 THEN RAISE`.
+### Etapa 60 — Disconnection alerts
 
-Filtro por workspace: `WHERE workspace_id = (SELECT workspace_id FROM zapp.profiles WHERE id = auth.uid())`. Como view.workspace_id é constante `get_default_workspace_id()`, se `zapp.profiles.workspace_id` do usuário divergir, RPC retorna 0 rows sem erro.
+**Descoberta P0**: `fn_alert_wpp2_disconnection` **NÃO é SECURITY DEFINER** (prosecdef=false). Todas as funções afins são SECDEF. → **F6-07**.
 
-### Etapa 50 — Bulk tag (`bulk_add_tag`)
+**Descoberta P0**: Função hardcoded para `WHERE instance_name = 'wpp2'`. Multi-instância impossível com esse pattern. Também `fn_bootstrap_wpp2_instance`, cron `wpp2_disconnection_watchdog` (104), cron `wpp2-session-expiry-watchdog` (120) — tudo hardcoded. → **F6-06** (P0).
 
-Verifica `is_admin_or_supervisor()`. INSERT em `zapp.tags` com `WHERE name = p_tag LIMIT 1` para reutilizar tag existente.
+**Descoberta P0**: cron `wpp2_disconnection_watchdog` (104) schedule `*/10 6-23 * * *` — **BUSINESS_HOURS_ONLY**. Gap de 7h (23:00→06:00) sem monitoramento. Disconnection às 03:00 gera alerta só às 06:10. → **F6-09** (P0).
 
-**Descoberta P0**: `zapp.tags.name` é UNIQUE **globalmente** (`uq_tags_name`), não por workspace. Se workspace A cria "VIP", workspace B tenta criar "VIP" — RPC pega o `tag_id` de A e associa contatos de B ao tag de A. Cross-workspace tag pollution → **F5-13** (P0).
+**Descoberta P0**: 17 de 18 alerts `wpp2_disconnection` all-time **nunca resolvidos** (`resolved_at IS NULL`). Últimas 10h: alerta a cada ~1h (08:00, 09:00, 10:00, 11:10, 12:10, 13:20, 14:20, 15:30, 16:30, 17:40). Anti-flood check `resolved_at IS NULL AND created_at > now() - 60 min` funciona (evita spam >1x/h), mas como resolved_at nunca é setado (sem trigger de auto-close quando instância volta), alertas pilham indefinidamente. **94% backlog**. → **F6-08** (P0).
 
-Sem cap em `array_length(p_contact_ids, 1)` (ao contrário de bulk_soft_delete). 100k UUIDs consome memória do worker → **F5-17**.
+**Descoberta P0**: `zapp.whatsapp_connections.wpp2.status='connected'`, `health_status='ok'` — MAS `evo.evolution_instance_credentials.wpp2.health_status='unhealthy'`, `online_instances=0`. **Duas fontes de verdade, conclusões opostas**. UI mostra "conectado" enquanto Evolution API está degradada. Os 17 alerts corroboram queda real, mas UI está mentindo. → **F6-03**, **F6-04** (ambas P0).
 
-Sem check de visibility por contato — admin pode tag contatos de qualquer workspace → **F5-17**.
+### Etapa 61 — Multi-instância
 
-Schema de `zapp.tags` mistura: `(id, name, color, description, created_by)` (canonical) + `(contact_id, tag_name, confidence, source)` (ML suggestions). Dupla responsabilidade — **F5-30**.
+**Descoberta P0**: `useEvolutionAutoSync` faz `.from('whatsapp_connections').select('instance_id, phone_number')` sem filtro por workspace/user. Se RLS estiver frouxa, retorna instâncias de outros tenants; INSERT de "missing" instances pode atribuir instância de tenant A ao workspace de user B. → **F6-27** (P0).
 
-### Etapa 51 — Contact intelligence
+`fn_alert_wpp2_disconnection` hardcoded (F6-06) já registrado. Todo conceito multi-instância é atualmente teórico — só 1 instância provisionada (wpp2 em `evolution_instance_credentials`).
 
-Tabela `zapp.contact_intelligence` (20 445 rows, 100% fresh nos últimos 7 dias). Cron `refresh-health-score-cache` (jobid 148) funciona.
+### Etapa 62 — Logout
 
-RPC `zapp.get_contact_intelligence_by_phone(p_phone text)` faz lógica sofisticada (guards: `unknown` sentinel, min 8 digits, normalização JID). **MAS lê APENAS `evo.evolution_messages_wpp2`** (hardcoded). 2 953 contatos em outras instâncias (wpp_pink_test etc.) recebem intelligence com `total_interactions=0`, sentiment `neutral` mesmo tendo histórico → **F5-19**.
+**Descoberta**: `useEvolutionApi.disconnectInstance(evoName)` chama edge function `evolution-api` action `disconnect`. Preserva `whatsapp_connections` row com `status='disconnected'`. Trigger `trg_clear_qr_connect` seta `disconnected_at = now()`. OK funcionalmente.
 
-Overload em `public.get_contact_intelligence_by_phone` (para `authenticated`) só valida membership em qualquer workspace, sem filtrar phone por workspace do caller.
+**Descoberta**: 6 triggers em `zapp.whatsapp_connections`; 4 duplicatas em 2 pares divergentes:
+- `update_whatsapp_connections_updated_at` + `trg_wconn_updated_at` (mesmo comportamento)
+- `clear_qr_on_connect_trigger` (só limpa qr_code) + `trg_clear_qr_connect` (limpa qr_code + qr_code_base64 + seta connected_at/last_connected_at/disconnected_at)
 
-Hook `useContactIntelligence.cleanPhone` (frontend): 5ª estratégia de normalização (`replace(/[^0-9]/g, '')`). Se user digita `(41)9988` vs `4199888`, keys diferentes na cache mesmo para mesmo contato → F5-08.
+→ **F6-11**.
 
-### Etapa 52 — Notes (`add_contact_note`)
+### Etapa 63 — Delete de instância
 
-**Descoberta P0**: RPC signature aceita `p_note_type text='general'` e `p_is_pinned boolean=false`. Body INSERT usa só `(contact_id, author_id, content)`. `zapp.contact_notes` tabela tem só 6 colunas — nenhuma delas é `note_type` ou `is_pinned`. **Signature mente** → **F5-09** (P0).
+**Descoberta**: `handleDelete` em `useConnectionsActions.ts` chama `deleteInstance(evoName).catch((e) => log.warn(...))` — **engole erro do Evolution API**. Se 500, delete no banco continua; instância fica órfã no Evolution manager consumindo recursos, potencialmente ainda recebendo webhooks. → **F6-28**.
 
-**Descoberta P0**: `useContactNotes.addNote` **BYPASSA a RPC** — faz `supabase.from('contact_notes').insert(...)` direto. Segurança depende só de RLS `contact_notes_insert` policy → **F5-10** (P0).
+Sem purge de R2 mencionado no plano — grep de `r2\|R2\|cascade` em code de handleDelete não retorna nada relacionado.
 
-**Descoberta P0**: `zapp.contact_notes` **0 rows** em produção (notes_7d=0, notes_30d=0, total=0). Feature 100% dead — ou UI nunca chama, ou RLS silencia todos os inserts → **F5-11** (P0).
+### Etapa 64 — Instance drift detection
 
-Hook N+1 query: SELECT notes → SELECT profiles.in(authorIds). Sem pagination — carrega todas as notas ao abrir contato. Sem UPDATE mutation (só add + delete) — versionamento impossível → **F5-25**.
+Cron `sync-instance-registry-status` (96, `2-59/5`) rodou 810x em 7d = ~48h esperado × 12/h = 576... na verdade `*/5min = 12/h × 24h × 7d = 2016 esperado`. **256 execuções em últimas 24h** de 288 esperado = 11% de perda. → **F6-10**.
 
-### Etapa 53 — Timeline
+`fn_sync_instance_registry_status` compara `zapp.instance_registry` com `zapp.whatsapp_connections` (não com `evo.evolution_instance_credentials`) — sync baseado em fonte errada (F6-04).
 
-Não coberto com profundidade neste bloco — depende da lógica de merge de `messages + calls + notes + tasks` em ordem cronológica. Se `contact_notes` está vazia (F5-11), timeline não mostra notas. Se `rpc_get_contact` (F5-28) não filtra opted-out, timeline vaza dados LGPD.
+`zapp.instance_registry` tem 22 rows (statuses: archived, connected, not_provisioned) mas só 3 têm entry em `whatsapp_connections` (14% provisionadas). → **F6-24**.
 
-### Etapa 54 — Empresa vinculada
+LEFT JOIN `whatsapp_connections wc LEFT JOIN evolution_instance_credentials eic USING (instance_name)` mostra 2 órfãs (wppmkt, wpp_pink_test sem credentials). → **F6-14**.
 
-**Descoberta**: `zapp.empresas` tem 51 688 rows mas schema mínimo (6 colunas: `id, created_at, nome, email jsonb, telefone, bitrix_empresa_id`). **Sem FK** entre `zapp.contacts.company` e `zapp.empresas.nome/id`. Coluna `company` em contacts é `text` livre. Plan requer "validar FK cascade em delete" — sem FK, cascade não existe → **F5-29**.
+`WPP Marketing` name diz "Cloud API Oficial" mas `api_type='evolution'` — inconsistência. → **F6-15**.
 
-`empresas.email` como `jsonb` é schema anti-pattern. Sem index em `nome`, `telefone`, `bitrix_empresa_id` — busca em 51k rows sempre full scan.
+### Etapa 65 — 401 burst
 
-### Etapa 55 — Contact search (`pg_trgm` fuzzy)
+**Descoberta P0**: `evo.evolution_ip_watch` = **0 rows total** — pipeline VPS→DB de detecção 401 documentado como quebrado no próprio código da função. → **F6-19** (P0).
 
-**Descoberta P0**: `search_contacts_cursor` NÃO usa pg_trgm. Faz `c.name ILIKE '%X%'`. Índices trgm existem em `evo.evolution_contacts.push_name` e `.email` — RPC busca em `zapp.contacts.name` que é `COALESCE(full_name, push_name, ...)`. Nenhum índice em `full_name`. Sequential scan em 20k+ rows → **F5-12** (P0).
+**Descoberta P0**: `fn_detect_401_bursts` (SECDEF) contém string literal explicando o próprio monitoring gap: `"BLIND: evolution_ip_watch=0 rows — VPS log pipeline (Traefik→DB) not active"`. Insere CHECKLIST de 7 passos dentro do `message` de alertas para operador. Antipattern — documentação misturada com telemetria; polui `warroom_alerts` sem oferecer detecção real. Cron 173 rodou 283x em 7d mas cada run é essencialmente no-op documentado. → **F6-20** (P0).
 
-Adicionalmente:
-- **F5-21**: CTE de COUNT em cada página (custo dobrado).
-- **F5-22**: sem normalização de phone na busca (`c.phone ILIKE '%<literal>%'` — busca formatada não casa com armazenado).
-- **F5-23**: só busca em `name`, `email`, `phone` — não em `company`, `job_title`, `nickname`, `cpf`.
-- **F5-24**: `useContactsSearch.pageIndexToCursor` sem deep-link support — URL `?p=5` retorna page 0.
+`zapp.instance_auth_events` últimas 24h: 17 rows, TODAS com `event_type=NULL, http_status=NULL, success=false`. Instrumentação do produtor quebrada — escreve shells sem dados. → **F6-25**.
 
-RPC `contacts_count_by_type` SECURITY DEFINER **sem filtro por workspace** — data leak agregado → **F5-20**.
+`zapp.warroom_alerts` últimos 7d: 1389 alertas (863 info + 385 critical + 141 warning) = 55 críticos/dia. Se ninguém age em >99%, sinal:ruído catastrófico. → **F6-22**.
 
-RPC `search_contacts_cursor` é **NOT SECURITY DEFINER** (usa RLS do rol chamador). Dinamicamente concatena SQL (`v_query := ... || v_where || ...`) com sanitização via CASE — potencial vetor de injection se novos sort_fields forem adicionados sem validação → risco médio, não achado separado.
+`evo.evolution_alerts` unresolved+unacked = 269. Nenhum triage sistemático. → **F6-23**.
 
-### Segurança RLS de `evo.evolution_contacts`
+### Análise de test coverage
 
-**Descobertas P0** durante auditoria RLS:
-- Policy `contacts_insert` tem `polcmd='a'` e **`polqual=NULL`** — sem `WITH CHECK`. Qualquer authenticated pode inserir contato com qualquer `assigned_to` → **F5-14** (P0).
-- Policy `contacts_select` permite `(assigned_to IS NULL)` sem filtro por workspace — cross-tenant leak de contatos não atribuídos → **F5-15** (P0).
-- `get_default_workspace_id()` retorna workspace mais antigo (`ORDER BY created_at LIMIT 1`) — toda coluna `workspace_id` de contacts é a mesma constante → **F5-16** (P0).
+`find src -path "*connection*" -name "*.test.*"` retorna 2 arquivos:
+- `src/hooks/connections/__tests__/useHubTabNavigation.test.tsx`
+- `src/features/connections/hooks/parts/__tests__/useConnectionsState.test.ts` (328 linhas)
 
-### LGPD compliance
-
-**Descoberta P0**: `evo.evolution_contacts` tem 8 colunas LGPD (`lgpd_consent_at`, `lgpd_opt_out_at`, `lgpd_deletion_requested_at`, `lgpd_marketing_consent`, `lgpd_data_sharing`, `lgpd_profiling`, `lgpd_consent_channel`, `lgpd_last_updated_at`). **Todas ZERO populadas em 20 445 rows**. Trigger UPDATE handler da view não propaga essas colunas — via UI, LGPD é impossível de registrar → **F5-26**.
-
-`rpc_get_contact` (4 overloads: `public` + `zapp`, cada uma com 2 assinaturas) retorna `deals`, `recent_messages`, `tasks` sem filtrar por `lgpd_opt_out_at IS NULL`. Contato opted-out ainda expõe dados → **F5-28** (LGPD violation).
+Zero tests em: `useConnectionsActions`, `useConnectionsRealtime`, `useConnectionsManager`, `whatsappConnectionService`, `whatsappConnectionRepository`, `BridgeService`, **30+ componentes** (ConnectionsView 649L, ConnectionCard 359L, InstanceSettingsDialog 496L). → **F6-26**.
 
 ---
 
-## Achados do Bloco 5 (30 itens registrados em `PLANO_IMPLEMENTACAO_100.md` Tema 11)
+## Achados do Bloco 6 (30 itens registrados em `PLANO_IMPLEMENTACAO_100.md` Tema 12)
 
-### View / triggers / soft-delete
+### Fluxo de criação — arquitetura quebrada
 
-- **F5-01** (P0) — view `zapp.contacts` descarta silenciosamente CPF, endereço, is_blocked/is_favorite e vários outros campos (13 colunas HARDCODED).
-- **F5-02** (P0) — trigger UPDATE dropa 34 campos (LGPD, soft-delete, workspace, AI, categorização).
-- **F5-03** (P0) — trigger DELETE = HARD DELETE (viola requisito LGPD soft-delete 30d).
-- **F5-27** — trigger INSERT assume individual (`@s.whatsapp.net`) — quebra suporte a grupos (`@g.us`).
+- **F6-01** (P0) — pairing code (Etapa 58) 100% ausente do código.
+- **F6-02** (P0) — `handleAddConnection` não chama Evolution `/instance/create`; só INSERT no banco.
+- **F6-13** (P0) — `api_url` e `api_key` NOT NULL sem default — INSERT via UI faltaria valores.
+- **F6-29** — `handleAddConnection` valida só `name` — permite phone vazio.
 
-### Merge, bulk actions, RPCs quebradas
+### Fontes de verdade divergentes
 
-- **F5-04** (P0) — `zapp.merge_contacts()` RAISE EXCEPTION `implementacao pendente (etapa 30)`.
-- **F5-05** (P0) — `bulk_soft_delete_contacts` referencia colunas `deleted_by`/`deleted_reason` inexistentes na view.
-- **F5-17** — `bulk_add_tag` sem cap + sem visibility check por contato.
-- **F5-18** — `bulk_auto_merge_duplicates` seleção de primário sem regra LGPD.
+- **F6-03** (P0) — estado wpp2 divergente entre `whatsapp_connections` (connected/ok) e `evolution_instance_credentials` (unhealthy/0 online).
+- **F6-04** (P0) — 2 fontes de verdade para instância sem canonical (3 se contarmos instance_registry).
+- **F6-14** — 2 órfãs em `whatsapp_connections` sem row em `evolution_instance_credentials`.
+- **F6-15** — "WPP Marketing (Cloud API Oficial)" com api_type='evolution'.
+- **F6-24** — `instance_registry` 22 rows, só 3 provisionadas (14%).
+- **F6-30** — 13 objetos em múltiplos schemas para 5 nomes distintos.
 
-### CPF/CNPJ
+### Reconciliação e telemetria corrompida
 
-- **F5-06** (P0) — sem coluna CPF em `evo.evolution_contacts`, sem CNPJ em lugar nenhum.
-- **F5-07** (P0) — sem `validate_cpf`/`validate_cnpj` no banco (só `mask_cpf`).
+- **F6-05** (P0) — `fn_reconcile_dispatch` reutiliza request_id → 373 rows (22%) com applied_at antes de dispatched_at.
+- **F6-21** (P0) — telemetria de latência de reconcile completamente corrompida.
+- **F6-10** — cron 96 (`sync-instance-registry-status`) perde 11% de execuções.
 
-### Normalização de telefone
+### Alertas quebrados / hardcoded
 
-- **F5-08** (P0) — 5 estratégias divergentes (4 SQL + 1 JS) + 6ª hand-rolled em `bulk_auto_merge_duplicates`.
+- **F6-06** (P0) — `fn_alert_wpp2_disconnection` hardcoded para 'wpp2' — não escala multi-instância.
+- **F6-07** — função NÃO é SECURITY DEFINER (inconsistente).
+- **F6-08** (P0) — 17/18 alerts `wpp2_disconnection` nunca resolvidos (94% backlog).
+- **F6-09** (P0) — cron 104 schedule `*/10 6-23` — 7h gap noturno.
 
-### Notes
+### Segurança/RLS
 
-- **F5-09** (P0) — `add_contact_note` descarta `p_note_type`/`p_is_pinned` (colunas não existem).
-- **F5-10** (P0) — `useContactNotes.addNote` bypassa a RPC — INSERT direto na tabela.
-- **F5-11** (P0) — `zapp.contact_notes` 0 rows em produção — feature 100% dead.
-- **F5-25** — hook com N+1 query + sem pagination + sem edit mutation.
+- **F6-12** — `fn_validate_whatsapp_connection_url` fallback hardcoded se vault vazio.
+- **F6-16** (P0) — `created_by=NULL` em 3/3 rows (ownership perdida).
+- **F6-17** (P0) — RLS `wconn_insert_auth` permite orphan INSERTs.
+- **F6-18** — policy `auth_secure_123` (nome de teste em produção).
+- **F6-27** (P0) — `useEvolutionAutoSync` sem filtro workspace/user (cross-tenant leak potencial).
 
-### Contact Intelligence
+### Detecção 401 morta
 
-- **F5-19** — `get_contact_intelligence_by_phone` lê SÓ `evo.evolution_messages_wpp2` (multi-instância bug — afeta 2 953 contatos).
+- **F6-19** (P0) — `evo.evolution_ip_watch` = 0 rows total, pipeline VPS→DB morto.
+- **F6-20** (P0) — `fn_detect_401_bursts` documenta próprio "monitoring gap" no comentário.
+- **F6-25** — `instance_auth_events` 17 rows com todos os campos essenciais NULL.
 
-### Search / listagem
+### Backlog / Alert fatigue
 
-- **F5-12** (P0) — `search_contacts_cursor` NÃO usa `pg_trgm` — full scan em ILIKE.
-- **F5-20** — `contacts_count_by_type` SECDEF sem filtro por workspace (agregado leak).
-- **F5-21** — `search_contacts_cursor` CTE COUNT em cada página (custo dobrado).
-- **F5-22** — sem normalização de phone na busca.
-- **F5-23** — busca só em name/email/phone (falta company, job_title, nickname, cpf).
-- **F5-24** — `pageIndexToCursor` sem deep-link support (`?p=5` renderiza page 0).
+- **F6-22** — 1389 alertas em 7d em `warroom_alerts` (55 críticos/dia).
+- **F6-23** — 269 unresolved em `evolution_alerts`.
 
-### Tags
+### Cleanup / higiene
 
-- **F5-13** (P0) — `zapp.tags.name` UNIQUE global — cross-workspace conflict.
-- **F5-30** — schema mistura AI suggestions com canonical tags.
-
-### RLS / tenant isolation
-
-- **F5-14** (P0) — `contacts_insert` policy tem `WITH CHECK NULL` — anyone insere.
-- **F5-15** (P0) — `contacts_select` expõe contatos `assigned_to IS NULL` cross-workspace.
-- **F5-16** (P0) — `get_default_workspace_id()` constante — sem tenant isolation.
-
-### LGPD
-
-- **F5-26** — 20 445 contatos, ZERO com `lgpd_consent_at`/`lgpd_opt_out_at` — compliance ausente.
-- **F5-28** — `rpc_get_contact` expõe deals/messages/tasks de contatos opted-out.
-
-### Modelagem
-
-- **F5-29** — sem FK/relação `zapp.contacts` ↔ `zapp.empresas` (etapa 54 unmeetable).
+- **F6-11** — 6 triggers, 4 duplicatas em 2 pares divergentes.
+- **F6-26** — test coverage: 2 test files para ~30 arquivos.
+- **F6-28** — `handleDelete` engole erro Evolution API.
 
 ---
 
 ## Retomada — próximo chat
 
-Onde parar de Bloco 5 e o que executar em seguida:
+Onde parar de Bloco 6 e o que executar em seguida:
 
-1. **Bloco 6 — Conexões WhatsApp (etapas 56-65):**
-   - Criar instância Evolution (POST `/instance/create`, `evo.evolution_instance_credentials`).
-   - QR code (expira 60s, cron `qr-attempts-expire-15min` 101), pairing code.
-   - Reconexão automática (crons `whatsapp_reconcile_dispatch` 27, `_apply` 30, `_reaper` 68).
-   - Disconnection alerts (`wpp2_disconnection_watchdog` 104, `whatsapp_connection_drift_alert` 32).
-   - Multi-instância, logout preserva credenciais, delete cascade em contatos importados.
-   - Instance drift detection (`sync-instance-registry-status` cron 96).
-   - 401 burst (`evo-detect-401-bursts` 173, `evo-401-glitchtip-feed` 161).
+1. **Bloco 7 — Admin e monitoramento (etapas 66-75):**
+   - Admin webhook overview (`AdminWebhookOverviewPage.tsx`) — cards com total/pending/failed/processed em 1h/24h/7d.
+   - Admin webhook events (`AdminWebhookEventsPage.tsx`) — busca por `remoteJid`, paginação virtual em 171k eventos.
+   - Admin webhook secret status (`AdminWebhookSecretStatusPage.tsx`) — validar assinatura HMAC, secret rotation.
+   - Admin failed messages (`AdminFailedMessagesPage.tsx`) — retry individual/em lote, root cause tag.
+   - Admin alert history (`AdminAlertHistoryPage.tsx`) — filtro por severidade, canal (Slack/e-mail/PagerDuty).
+   - Admin dispatch errors (`AdminDispatchErrorsHistoryPage.tsx`) — cross-ref com `evo.evolution_alerts`.
+   - Admin Evolution API logs (`AdminEvolutionApiLogsPage.tsx`) — filtro por status HTTP (foco 401/429/500).
+   - Admin realtime monitor (`AdminRealtimeMonitorPage.tsx`) — canais ativos, mensagens/s, lag WAL sender.
+   - Admin telemetria (`AdminTelemetriaPage.tsx`) — SLI/SLO, error budget.
+   - Admin search insights (`AdminSearchInsightsPage.tsx`) — termos mais buscados, zero-result queries.
 
-2. **Bloco 7-10:** roteiro completo em `PLANO_QA_ANALISE_100.md`.
+2. **Bloco 8-10:** roteiro completo em `PLANO_QA_ANALISE_100.md`.
 
-**Contexto crítico do Bloco 5 para o próximo chat:**
-- 17 achados P0 identificados — priorizar F5-04 (merge stub), F5-05 (RPC broken), F5-11 (notes dead), F5-16 (tenant isolation) na correção.
-- `evo.evolution_contacts` é a fonte-de-verdade real; `zapp.contacts` view é layer lossy que precisa ser reconstruída OU eliminada.
-- Multi-tenant em contatos **NÃO EXISTE** hoje (F5-14/15/16) — impacto arquitetural amplo se workspace_id for adicionado retroativamente.
-- LGPD compliance é **ausente** em produção (F5-26) — auditoria externa reprovaria hoje.
+**Contexto crítico do Bloco 6 para o próximo chat:**
+- 16 achados P0 identificados — priorizar F6-02 (add não cria instância), F6-03 (fontes divergentes), F6-05 (telemetria corrompida), F6-19 (detecção 401 morta), F6-27 (cross-tenant leak potencial) na correção.
+- `evo.evolution_instance_credentials` deveria ser fonte canonical mas cron sync usa `whatsapp_connections`; sistema de duas fontes com drift permanente.
+- Multi-instância é fantasia com fn_alert_wpp2_disconnection hardcoded, fn_bootstrap_wpp2_instance hardcoded, cron `wpp2_disconnection_watchdog` hardcoded — refactor amplo para escalar.
+- Pairing code (Etapa 58) é feature promised mas nunca implementada. Suporte só a QR.
+- 401 burst detection é **cegueira documentada**: pipeline VPS→DB morto (0 rows em evolution_ip_watch), função sabe disso e insere CHECKLIST no próprio alerta pedindo pra operador consertar. Detecção real depende de GlitchTip (que já funciona) ou reativação do pipeline.
+- Alert fatigue: 1389 alerts em 7d (185/dia), 94% backlog em wpp2_disconnection, 269 unresolved em evolution_alerts. Sinal:ruído colapsou.
 
-**Documentos ao final desta sessão (5 blocos concluídos):**
+**Documentos ao final desta sessão (6 blocos concluídos):**
 - `docs/audits/PLANO_QA_ANALISE_100.md` — roteiro (não alterado).
-- `docs/audits/PLANO_IMPLEMENTACAO_100.md` — 93 achados nos Temas 1-11.
+- `docs/audits/PLANO_IMPLEMENTACAO_100.md` — 123 achados nos Temas 1-12.
 - `docs/audits/RELATORIO_EXECUCAO_ANALISE.md` — este documento.
