@@ -77,7 +77,7 @@ BEGIN
   RETURN QUERY
   WITH filtered AS (
     SELECT d.*
-    FROM public.dispatch_error_logs d
+    FROM dispatch_error_logs d
     WHERE (p_from IS NULL OR d.occurred_at >= p_from)
       AND (p_to   IS NULL OR d.occurred_at <= p_to)
       AND (p_instance   IS NULL OR d.instance_name = p_instance)

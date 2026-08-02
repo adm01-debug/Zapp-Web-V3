@@ -273,7 +273,11 @@ CREATE POLICY auth_secure_212 ON zapp.inbox_custom_scopes FOR SELECT TO authenti
 -- ============================================================
 
 -- REVOKE de funcao sem uso (dispatch_error_stats — coluna acao corrompida no CSV)
-REVOKE EXECUTE ON FUNCTION zapp.rpc_dispatch_error_stats(p_hours integer) FROM authenticated;
+DO $$ BEGIN
+  REVOKE EXECUTE ON FUNCTION zapp.rpc_dispatch_error_stats(p_hours integer) FROM authenticated;
+EXCEPTION WHEN undefined_function THEN
+  RAISE NOTICE 'zapp.rpc_dispatch_error_stats(integer) não existe neste ambiente — REVOKE ignorado';
+END $$;
 
 -- profiles: DELETE table-level revogado (nunca deveria existir para authenticated)
 REVOKE DELETE ON zapp.profiles FROM authenticated;
