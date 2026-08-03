@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_infra_migrations_20260711_robustez_autovacuum_indexes_stack_sql", "label": "20260711_robustez_autovacuum_indexes_stack.sql", "file_type": "code", "source_file": "infra/migrations/20260711_robustez_autovacuum_indexes_stack.sql", "source_location": null}], "edges": []}

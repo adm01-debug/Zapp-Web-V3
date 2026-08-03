@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260801000001_p0_prevent_privilege_escalation_sql", "label": "20260801000001_p0_prevent_privilege_escalation.sql", "file_type": "code", "source_file": "supabase/migrations/20260801000001_p0_prevent_privilege_escalation.sql", "source_location": null}], "edges": []}

@@ -80,6 +80,9 @@ bun run preview
 
 ### 2. Deploy de Edge Functions
 
+> **Self-hosted**: requer `supabase/config.toml` com a URL do projeto ou `SUPABASE_ACCESS_TOKEN`.
+> O `--project-ref` NÃO é usado em self-hosted — a CLI resolve pelo config local.
+
 ```bash
 # Deploy de todas as funções (self-hosted)
 supabase functions deploy

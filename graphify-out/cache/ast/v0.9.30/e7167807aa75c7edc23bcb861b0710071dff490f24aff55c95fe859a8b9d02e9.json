@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_infra_migrations_20260711_autovacuum_hotfix_sql", "label": "20260711_autovacuum_hotfix.sql", "file_type": "code", "source_file": "infra/migrations/20260711_autovacuum_hotfix.sql", "source_location": null}], "edges": []}
