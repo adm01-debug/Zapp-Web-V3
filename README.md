@@ -325,7 +325,7 @@ O deploy é gerenciado automaticamente pelo **Lovable**:
 3. Migrations são aplicadas via ferramenta de migração
 
 ### URLs
-- **Produção**: https://pronto-talk-suite.lovable.app
+- **Produção**: Vercel (vercel.com)
 
 ---
 

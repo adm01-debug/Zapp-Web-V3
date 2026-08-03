@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ category: 'outros' }, 200, req);
     }
 
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY') || Deno.env.get('AI_GATEWAY_KEY') || requireEnv('LOVABLE_API_KEY');
+    const lovableApiKey = Deno.env.get('AI_GATEWAY_KEY') || Deno.env.get('LOVABLE_API_KEY') || requireEnv('AI_GATEWAY_KEY');
 
     const prompt = `Você é um classificador de áudios meme/sons engraçados para uma biblioteca de atendimento via WhatsApp. 
 Com base no nome do arquivo "${file_name || 'audio'}" e na URL "${audio_url}", classifique em EXATAMENTE UMA das categorias abaixo.

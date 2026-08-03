@@ -10,9 +10,9 @@ import { callLovableAI, callOpenAICompatible, callCustomWebhook, withRetry } fro
 import { requireUser } from "../_shared/auth.ts";
 import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts";
 
-/** Lovable AI gateway key — LOVABLE_API_KEY with AI_GATEWAY_KEY fallback (rename-safe). */
+/** AI gateway key — AI_GATEWAY_KEY with LOVABLE_API_KEY fallback (rename in progress). */
 function getLovableApiKey(): string {
-  return Deno.env.get('LOVABLE_API_KEY') || Deno.env.get('AI_GATEWAY_KEY') || requireEnv('LOVABLE_API_KEY');
+  return Deno.env.get('AI_GATEWAY_KEY') || Deno.env.get('LOVABLE_API_KEY') || requireEnv('AI_GATEWAY_KEY');
 }
 
 const AiToolFunctionSchema = z.object({ name: z.string().min(1).max(64), description: z.string().max(1000).optional(), parameters: z.record(z.unknown()).optional() });
