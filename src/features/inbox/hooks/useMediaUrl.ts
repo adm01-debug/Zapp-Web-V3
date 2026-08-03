@@ -44,6 +44,8 @@ interface UseMediaUrlOptions {
   forceRefreshNonce?: number;
   /** Override default 2-attempt cap (use 0 to disable retries entirely). */
   maxAttempts?: number;
+  /** Message type from WhatsApp — used to skip refresh for known-unsupported types. */
+  messageType?: string | null;
 }
 
 /** Reason category for a media load failure; used to show targeted fallback messages to the agent. */
@@ -132,6 +134,21 @@ function classifyError(raw: unknown): MediaError {
 
 const DEFAULT_MAX_ATTEMPTS = 2;
 
+/** WhatsApp message types that never produce valid base64 via the Evolution API. */
+const UNREFRESHABLE_MESSAGE_TYPES = new Set([
+  'sticker',
+  'ephemeral',
+  'ptv',         // view-once video
+  'viewOnce',
+  'vcard',
+  'contact',
+  'location',
+  'liveLocation',
+  'reaction',
+  'poll',
+  'pollUpdate',
+]);
+
 /** Auto-refreshes expired WhatsApp media URLs via Evolution `chat/getBase64`; deduplicates in-flight requests, caps retry attempts, and surfaces structured errors for fallback UI. */
 export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
   const {
@@ -141,6 +158,7 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
     enabled = true,
     forceRefreshNonce,
     maxAttempts = DEFAULT_MAX_ATTEMPTS,
+    messageType,
   } = opts;
   const [url, setUrl] = useState<string | null>(originalUrl ?? null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -162,6 +180,11 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
   const runRefresh = useCallback(async (): Promise<void> => {
     if (!enabled || !messageKey || !instanceName) return;
     if (inFlightRef.current) return inFlightRef.current;
+
+    // Skip refresh for message types known to return empty payload
+    if (messageType && UNREFRESHABLE_MESSAGE_TYPES.has(messageType)) {
+      return;
+    }
 
     const key = cacheKey(instanceName, messageKey);
     const cached = mediaCacheGet(key);
@@ -268,7 +291,7 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
     })();
     inFlightRef.current = job;
     return job;
-  }, [enabled, instanceName, messageKey, maxAttempts]);
+  }, [enabled, instanceName, messageKey, maxAttempts, messageType]);
 
   // Automatic onError trigger: respeita o cap de tentativas.
   const onError = useCallback(() => {

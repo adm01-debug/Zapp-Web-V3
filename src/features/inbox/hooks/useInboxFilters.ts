@@ -116,6 +116,7 @@ export function useInboxFilters({
     clearFilters: clearUrlFilters,
   } = useUrlFilters();
   const prevScopeRef = useRef(scope);
+  const securityEnforcedRef = useRef(false);
 
   // Security: Enforce permissions on scope and showAll
   useEffect(() => {
@@ -124,19 +125,35 @@ export function useInboxFilters({
     const canSeeDept = hasPermission('inbox.view_department');
     const canSeeAll = hasPermission('inbox.view_all');
 
+    // Only warn on FIRST enforcement, then track that we've enforced
+    if (!securityEnforcedRef.current) {
+      if (showAll && !canSeeAll) {
+        log.warn('[SECURITY] User attempted to show all departments without permission');
+      }
+      if (scope === 'department' && !canSeeDept && !canSeeAll) {
+        log.warn('[SECURITY] User attempted to view department scope without permission');
+      } else if (scope === 'all' && !canSeeAll) {
+        log.warn('[SECURITY] User attempted to view all scope without permission');
+      }
+      securityEnforcedRef.current = true;
+    }
+
+    // Always enforce (silently after first time)
     if (showAll && !canSeeAll) {
-      log.warn('[SECURITY] User attempted to show all departments without permission');
       setShowAll(false);
     }
 
     if (scope === 'department' && !canSeeDept && !canSeeAll) {
-      log.warn('[SECURITY] User attempted to view department scope without permission');
       setScope('mine');
     } else if (scope === 'all' && !canSeeAll) {
-      log.warn('[SECURITY] User attempted to view all scope without permission');
       setScope(canSeeDept ? 'department' : 'mine');
     }
-  }, [scope, showAll, hasPermission, permissionsLoading]);
+  }, [permissionsLoading, hasPermission]); // Removed scope/showAll from deps — they cause the loop
+
+  // Reset enforcement tracker when permissions change (e.g. role switch)
+  useEffect(() => {
+    securityEnforcedRef.current = false;
+  }, [hasPermission]);
 
   useEffect(() => {
     if (prevScopeRef.current !== scope) {

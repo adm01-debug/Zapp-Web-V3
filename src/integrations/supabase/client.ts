@@ -153,6 +153,13 @@ const SUPABASE_FETCH_TIMEOUT_MS = 12_000;
 const MAX_CONCURRENT = 6; // requests simultâneos (não-auth)
 const CONCURRENT_DRAIN_DELAY_MS = 80; // ms entre cada dreno da fila
 
+// Cooldown global de rate-limit — após um 429, pausa novas aquisições de
+// slot por RATE_LIMIT_COOLDOWN_MS e reduz a concorrência máxima para
+// MAX_CONCURRENT_DEGRADED, evitando a cascata de retries que piora o 429.
+let _rateLimitCooldownUntil = 0;
+const RATE_LIMIT_COOLDOWN_MS = 2000; // 2s global pause after 429
+const MAX_CONCURRENT_DEGRADED = 4; // reduced concurrency during cooldown
+
 let _inFlight = 0;
 let _queue: Array<() => void> = [];
 const _activeControllers = new Set<AbortController>();
@@ -168,14 +175,31 @@ if (typeof window !== 'undefined') {
   }, { once: true });
 }
 
+/** Concorrência máxima vigente: reduzida durante o cooldown de rate-limit. */
+function _getMaxConcurrent(): number {
+  return Date.now() < _rateLimitCooldownUntil ? MAX_CONCURRENT_DEGRADED : MAX_CONCURRENT;
+}
+
 function _acquireSlot(): Promise<void> {
-  if (_inFlight < MAX_CONCURRENT) {
-    _inFlight++;
-    return Promise.resolve();
+  const cooldownRemaining = _rateLimitCooldownUntil - Date.now();
+  if (cooldownRemaining > 0) {
+    // Espera o cooldown terminar antes de adquirir um slot.
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        _acquireSlotInternal(resolve);
+      }, cooldownRemaining + 50);
+    });
   }
-  return new Promise((resolve) => {
+  return new Promise((resolve) => _acquireSlotInternal(resolve));
+}
+
+function _acquireSlotInternal(resolve: () => void): void {
+  if (_inFlight < _getMaxConcurrent()) {
+    _inFlight++;
+    resolve();
+  } else {
     _queue.push(resolve);
-  });
+  }
 }
 
 function _releaseSlot(): void {
@@ -354,7 +378,14 @@ export const retryFetch: typeof fetch = (input, init) => {
   return withRetry(
     async () => {
       const response = await boundedFetch(input, init);
-      if (response.status === 429 || response.status >= 500) {
+      if (response.status === 429) {
+        // Rate-limit: ativa o cooldown global ANTES do retry para que as
+        // demais aquisições de slot esperem e não formem cascata de 429.
+        _rateLimitCooldownUntil = Date.now() + RATE_LIMIT_COOLDOWN_MS;
+        // Não consumimos o body: a resposta será descartada e refeita.
+        throw new RetryableHttpError(response.status);
+      }
+      if (response.status >= 500) {
         // Não consumimos o body: a resposta será descartada e refeita.
         throw new RetryableHttpError(response.status);
       }
