@@ -3,7 +3,7 @@
 //   - URL/key/instance lidos do Vault via fn_get_vault_secret
 //   - Hardcoded fallback REMOVIDO (era ponto de falha em sessões passadas)
 //   - Falha imediata se Vault não tem o secret (fail-fast)
-// Source: Fator X (tdprnylgyrogbbhgdoik) version 8 · 2026-04-26
+// Source: Evolution DB (self-hosted atomicabr) version 8 · 2026-04-26
 // SHA256: 0c585e2407ac428cb944756a2aeb6b1d1d0a6c535f14615e31a20f82d80f7a3e
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";

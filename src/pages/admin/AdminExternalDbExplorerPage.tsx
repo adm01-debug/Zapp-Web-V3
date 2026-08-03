@@ -2,7 +2,7 @@
  * AdminExternalDbExplorerPage — `/admin/external-db-explorer`
  *
  * Painel admin read-only para testar a conexão com o Postgres externo
- * (FATOR X — `tdprnylgyrogbbhgdoik`) via edge function `external-db-proxy`
+ * (Evolution DB — self-hosted `evo` schema) via edge function `external-db-proxy`
  * e explorar amostras das tabelas / RPCs do domínio `evolution_*`.
  *
  * Não escreve nada no banco. Não expõe credenciais. Toda chamada é
