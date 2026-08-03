@@ -118,7 +118,7 @@ export async function fetchRecentMessagesWindow(
 
 /**
  * F4-01: busca a próxima página da sidebar (mensagens MAIS ANTIGAS que o
- * cursor `beforeCreatedAt`) via external-db-proxy. Mesmas colunas slim e
+ * cursor `beforeCreatedAt`) via Supabase direto (schema `evo`). Mesmas colunas slim e
  * filtro de instância do `fetchRecentMessagesWindow`; sem fallback
  * multi-instância (o fallback só faz sentido quando a janela inicial vem
  * vazia — uma página de load-more vazia é o fim legítimo da lista).
