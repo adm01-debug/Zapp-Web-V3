@@ -156,7 +156,7 @@ export default function AdminWebhookSecretStatusPage() {
           <AlertTitle>Secret não configurado</AlertTitle>
           <AlertDescription>
             O <code>WEBHOOK_SECRET</code> não está definido. Webhooks são aceitos sem validação HMAC
-            (modo não-strict). Configure o secret nas variáveis de ambiente da Lovable Cloud para
+            (modo não-strict). Configure o secret nas variáveis de ambiente do Supabase para
             ativar a validação criptográfica.
           </AlertDescription>
         </Alert>

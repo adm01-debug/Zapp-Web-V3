@@ -7,7 +7,7 @@ import { ticketStore, type TicketState, type TicketStatus } from '@/lib/inbox/ti
 /**
  * Hook reativo para o estado de ticket de um contato. Lê do overlay
  * local (stub enquanto o Evolution DB não expõe RPCs próprias) e expõe ações
- * que escrevem nele + integram com o `ticket-router` (Lovable Cloud)
+ * que escrevem nele + integram com o `ticket-router` (app database)
  * para a atribuição automática sticky+round-robin.
  */
 export function useTicketStatus(contactId: string | null | undefined) {

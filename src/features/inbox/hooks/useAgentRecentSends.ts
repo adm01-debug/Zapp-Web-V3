@@ -23,7 +23,7 @@ const PER_AGENT_LIMIT = 5;
 
 /**
  * Lê os últimos envios rastreados pelo proxy Evolution (`/message/*`) e os
- * agrupa pelo agente dono da mensagem. Como Lovable Cloud (messages) e
+ * agrupa pelo agente dono da mensagem. Como app database (messages) e
  * `evolution_send_idempotency` vivem no mesmo backend (default supabase),
  * fazemos um lookup batch via `.in('id', [...])` sobre os IDs que aparecem
  * com o prefixo `msg:`. Linhas sem `agent_id` (envios automatizados) são

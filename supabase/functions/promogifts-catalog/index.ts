@@ -117,7 +117,7 @@ function buildMisconfigPayload(missing: string[]) {
     missing,
     required_secrets: REQUIRED_SECRETS,
     setup_instructions: {
-      step_1: "Abra Lovable Cloud → Connectors → Secrets (ou use o painel de Backend).",
+      step_1: "Abra o painel Supabase → Secrets (Settings → Secrets) ou use a CLI.",
       step_2: `Crie/atualize os secrets ausentes: ${missing.join(", ")}.`,
       step_3:
         "Use a URL do projeto Supabase do PromoGifts (https://<ref>.supabase.co) e a anon key do mesmo projeto.",

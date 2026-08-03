@@ -8,6 +8,8 @@
 **Destino:** supabase.atomicabr.com.br (VPS Atomica BR)
 **Estratégia:** delta — só cria/altera o que falta no VPS, **não dropa nada**
 
+> ⚠️ **HISTÓRICO — MIGRAÇÃO CONCLUÍDA**: Este pacote documenta a migração Lovable Cloud → self-hosted VPS, executada em 30/06/2026 (ver [../cutover/2026-06-30_RUNBOOK.md](../cutover/2026-06-30_RUNBOOK.md)). Mantido apenas como referência histórica — **não reaplicar**; o banco canônico é `supabase.atomicabr.com.br`.
+
 ---
 
 ## O que tem aqui

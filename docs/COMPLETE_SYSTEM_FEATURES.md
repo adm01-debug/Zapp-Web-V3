@@ -817,7 +817,7 @@
     "dates": "date-fns"
   },
   "backend": {
-    "platform": "Supabase (Lovable Cloud)",
+    "platform": "Supabase (Self-Hosted)",
     "database": "PostgreSQL",
     "auth": "Supabase Auth + RLS + RBAC",
     "realtime": "Supabase Realtime",
@@ -827,7 +827,7 @@
   "integrations": {
     "whatsapp": "Evolution API v2 (60+ endpoints)",
     "crm": "Bitrix24 (bidirecional)",
-    "ai": "Lovable AI Gateway (Gemini/GPT — sem API key)",
+    "ai": "Lovable AI Gateway (Gemini/GPT — via LOVABLE_API_KEY)",
     "voice": "ElevenLabs (TTS + Scribe)",
     "maps": "Mapbox GL JS"
   },

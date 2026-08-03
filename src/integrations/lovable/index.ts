@@ -1,5 +1,5 @@
 // FIX 2026-05-03: substituí @lovable.dev/cloud-auth-js (que redireciona pra
-// /~oauth/initiate, rota interna do Lovable Cloud inexistente em self-hosted)
+// /~oauth/initiate, rota interna de preview inexistente em self-hosted)
 // por chamada DIRETA ao Supabase Auth.
 import type { Provider } from "@supabase/supabase-js";
 import { supabase } from "../supabase/client";

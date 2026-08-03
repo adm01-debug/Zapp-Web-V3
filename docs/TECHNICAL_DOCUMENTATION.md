@@ -2,8 +2,9 @@
 
 > **⚠️ DOCUMENTO DESATUALIZADO (Dezembro 2024 — pré-migração)**
 > Os exemplos de código e DDL abaixo usam `schema: 'public'` e `CREATE TABLE public.*`,
-> que refletem a arquitetura Lovable Cloud original. No ambiente atual (Supabase Self-Hosted
-> em `supabase.atomicabr.com.br`), **todo o código deve usar `schema: 'zapp'`** e as tabelas
+> que refletem a arquitetura da plataforma original (Lovable Cloud, pré-migração). Após a
+> migração para o ambiente atual (Supabase Self-Hosted em `supabase.atomicabr.com.br`),
+> **todo o código deve usar `schema: 'zapp'`** e as tabelas
 > `evo.*` para mensagens WhatsApp. Consulte [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md) e
 > [ARCHITECTURE_AND_FLOW.md](ARCHITECTURE_AND_FLOW.md) para a arquitetura atual.
 
@@ -51,7 +52,7 @@
     "animations": "Framer Motion"
   },
   "backend": {
-    "platform": "Supabase (Lovable Cloud)",
+    "platform": "Supabase (Self-Hosted)",
     "database": "PostgreSQL",
     "auth": "Supabase Auth",
     "realtime": "Supabase Realtime",
@@ -3382,7 +3383,7 @@ export const auditTransfer = (contactId: string, fromAgent: string, toAgent: str
 ## 🔐 Variáveis de Ambiente Necessárias
 
 ```env
-# Supabase (automático via Lovable Cloud)
+# Supabase (Self-Hosted — URL e chave anon do ambiente supabase.atomicabr.com.br)
 VITE_SUPABASE_URL=
 VITE_SUPABASE_PUBLISHABLE_KEY=
 

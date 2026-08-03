@@ -5,7 +5,7 @@
  * breaker, retry/coalescing, telemetry), the client that routed queries through
  * the obsolete `external-db-proxy` edge function to the FATOR X external DB.
  *
- * The FATOR X external DB (Lovable Cloud) was discontinued; the app now talks to
+ * The FATOR X external DB was discontinued; the app now talks to
  * the self-hosted Supabase directly (branch fix/remove-fator-x-obsolete-edge-fns-v1).
  * The proxy client is slated for removal, so its unit tests are commented out for
  * history instead of being deleted. Remove this file together with

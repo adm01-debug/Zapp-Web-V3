@@ -55,7 +55,7 @@ export default function BridgeStatusPage() {
             <Activity className="h-6 w-6 text-primary" /> Status da Ponte (Bridge)
           </h1>
           <p className="text-sm text-muted-foreground">
-            Monitoramento em tempo real do fluxo entre Lovable Cloud e Self-Hosted.
+            Monitoramento em tempo real da infraestrutura Self-Hosted.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
