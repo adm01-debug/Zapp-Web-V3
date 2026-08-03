@@ -175,6 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .filter((n): n is string => typeof n === 'string');
       setPermissions(permNames);
     } catch (err: unknown) {
+      if ((err as Error)?.name === 'AbortError') return;
       log.error('[Auth] Failed to fetch roles/permissions for user:', userId, err);
     }
   }, []);

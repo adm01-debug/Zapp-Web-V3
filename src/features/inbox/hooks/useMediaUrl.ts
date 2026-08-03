@@ -242,7 +242,10 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
         setFailed(false);
       } catch (err) {
         const classified = classifyError(err);
-        log.warn(
+        // Empty media payload é esperado para certos tipos de mídia do WhatsApp
+        // (ex.: stickers animados, vídeos efêmeros) — não poluir o console.
+        const logLevel = classified.reason === 'unsupported' ? 'debug' : 'warn';
+        log[logLevel](
           `media refresh failed for ${key}: ${classified.reason} — ${classified.cause?.message}`
         );
         setError(classified);
