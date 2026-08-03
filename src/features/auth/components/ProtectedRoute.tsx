@@ -284,6 +284,16 @@ export function ProtectedRoute({
   // 'dev' always has access
   const isDev = hasRole('dev' as AppRole);
   if (isDev) {
+    // F3-02: registra bypass no log de auditoria com throttle por sessão
+    void supabase.rpc('log_security_event', {
+      p_event_type: 'dev_bypass_used',
+      p_resource: location.pathname,
+      p_action: 'route_access',
+      p_status: 'bypassed',
+      p_details: { roles },
+    }).then(({ error }) => {
+      if (error) log.warn('Failed to log dev bypass', { error: error.message });
+    });
     markTimeToMainScreen(location.pathname);
     return <>{children}</>;
   }
@@ -348,6 +358,7 @@ export function ProtectedRoute({
     return <Navigate to="/access-denied" state={{ from: location }} replace />;
   }
 
+  // F3-11: guard useRef — evita chamadas repetidas em re-renders
   markTimeToMainScreen(location.pathname);
   return <>{children}</>;
 }

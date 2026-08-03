@@ -54,7 +54,7 @@ function emptyChannel(): Partial<ServiceChannel> {
     sticky_enabled: false,
     sticky_ttl_hours: 24,
     is_default: false,
-    color: "bg-primary",
+    color: "#3b82f6", // blue-500 — default channel color (F7-10: não usar classe CSS como valor)
   };
 }
 

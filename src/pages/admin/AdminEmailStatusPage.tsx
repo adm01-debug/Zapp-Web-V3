@@ -18,6 +18,7 @@ import {
   History as HistoryIcon,
 } from 'lucide-react';
 import { useEmailHealthStatus } from './email/useEmailHealthStatus';
+import { useNavigate } from 'react-router-dom';
 
 const getStatusIcon = (status?: string) => {
   switch (status) {
@@ -47,6 +48,7 @@ const getStatusLabel = (status?: string) => {
 
 /** Admin dashboard page for monitoring email infrastructure health, failure logs, and triggering manual revalidation jobs. */
 export default function AdminEmailStatusPage() {
+  const navigate = useNavigate();
   const {
     accounts,
     health,
@@ -69,7 +71,7 @@ export default function AdminEmailStatusPage() {
         </div>
         <div className="flex gap-2">
           <Button
-            onClick={() => (window.location.hash = '#admin/email-audit')}
+            onClick={() => navigate('/admin/email-audit')}
             variant="outline"
             className="gap-2"
           >

@@ -23,6 +23,8 @@ export default function PerformanceDashboard() {
 
   useEffect(() => {
     const update = () => {
+      // F7-08: não atualiza métricas com a página em background
+      if (document.visibilityState === 'hidden') return;
       setMetrics(getWebVitalsReport());
       setLastLastUpdate(new Date());
     };
@@ -86,7 +88,7 @@ export default function PerformanceDashboard() {
                 </span>
               </div>
               <Progress
-                value={Math.min((m.value / (THRESHOLDS[m.name] || 4000)) * 100, 100)}
+                value={Math.min((m.value / (THRESHOLDS[m.name] ?? 4000)) * 100, 100)}
                 className="h-1.5"
                 // Custom indicator color handled via CSS if possible or just use default
               />
