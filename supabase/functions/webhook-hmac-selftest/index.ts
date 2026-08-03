@@ -25,6 +25,7 @@
 import * as hmacModule from '../_shared/hmac-validation.ts';
 import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { createZappAdminClient } from '../_shared/db-client.ts';
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * Adapter de validador HMAC
@@ -614,6 +615,30 @@ Deno.serve(async (req) => {
     },
   });
 
+  const summaryMessage = allPassed
+    ? `HMAC + replay protection OK: ${scenarios.length} cenários passaram (janela ${toleranceSec}s).`
+    : `Falha em ${failedScenarios.length}/${scenarios.length} cenários (1ª fase com erro: ${firstFailedPhase ?? 'desconhecida'}).`;
+
+  // ── Audit row — persisted so HmacAuditHistoryPanel shows history ──────────
+  try {
+    const db = createZappAdminClient();
+    await db.from('hmac_selftest_audit').insert({
+      instance,
+      ok: allPassed,
+      duration_ms: totalDuration,
+      error: failedScenarios[0]?.reason ?? null,
+      message: summaryMessage,
+      good_accepted: fresh.outcome === 'accept',
+      tampered_rejected: tampered.outcome === 'reject',
+    });
+  } catch (auditErr) {
+    structuredLog({
+      level: 'warn', fn: 'webhook-hmac-selftest', request_id: requestId,
+      phase: 'response', status: 'fail',
+      reason: auditErr instanceof Error ? auditErr.message : 'audit insert failed',
+    });
+  }
+
   return new Response(
     JSON.stringify({
       ok: allPassed,
@@ -641,9 +666,7 @@ Deno.serve(async (req) => {
         nonce: '<random>',
         issuedAt: new Date(now).toISOString(),
       },
-      message: allPassed
-        ? `HMAC + replay protection OK: ${scenarios.length} cenários passaram (janela ${toleranceSec}s).`
-        : `Falha em ${failedScenarios.length}/${scenarios.length} cenários (1ª fase com erro: ${firstFailedPhase ?? 'desconhecida'}).`,
+      message: summaryMessage,
     }),
     { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
   );
