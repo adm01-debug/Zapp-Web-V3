@@ -4,6 +4,7 @@ import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 interface FailurePayload {
   contact_id: string | null;
   attempted_event_type: string; // typically 'sla_alert'
+  event_type?: string; // override for the stored event_type (defaults to attempted_event_type + '_failure')
   error_code?: string | null;
   error_message?: string | null;
   error_details?: string | null;
@@ -87,7 +88,7 @@ Deno.serve(async (req) => {
     .from("conversation_events")
     .insert({
       contact_id: body.contact_id,
-      event_type: "sla_alert_failure",
+      event_type: body.event_type || `${body.attempted_event_type}_failure`,
       metadata,
       performed_by: performedBy,
     });
