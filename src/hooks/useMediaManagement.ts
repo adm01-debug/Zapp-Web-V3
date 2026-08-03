@@ -1,8 +1,8 @@
 // Consolidated Media & File Management Module (ETAPA 40)
 // Consolidates: usePersonalStickers, useCustomEmojis, useExportData, useImportData, useDownloadPermission
 import { useState, useCallback, useRef, useEffect } from 'react';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { callExtRpc } from '@/integrations/supabase/externalClient';
 import { log } from '@/lib/logger';
 import { useMountedRef } from '@/hooks/useMountedRef';
 
@@ -196,9 +196,13 @@ export function useDownloadPermissionManagement(resourceId?: string) {
 
     const checkPermission = async () => {
       try {
-        const { data, error: err } = await callExtRpc(supabase, 'check_download_permission', {
-          resource_id: resourceId,
-        });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error: err } = await (supabase as unknown as SupabaseClient<any>).rpc(
+          'check_download_permission',
+          {
+            resource_id: resourceId,
+          }
+        );
 
         if (cancelled) return;
         if (err) throw err;

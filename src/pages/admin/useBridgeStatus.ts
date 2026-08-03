@@ -10,7 +10,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { whatsapp } from '@/lib/whatsappAdapter';
 import { whatsappConnectionRepository } from '@/features/connections/data-access/whatsappConnectionRepository';
-import { getExternalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { useToast } from '@/hooks/use-toast';
 import { runEvolutionDiagnostics, type DiagnosticResult } from '@/lib/evolutionDiagnostics';
 
@@ -100,15 +99,9 @@ export function useBridgeStatus() {
       );
       if (mountedRef.current) setLovableDb(!internalError);
 
-      // 2. External DB (Evolution DB / Evolution)
-      let externalOk = false;
-      if (isExternalConfigured) {
-        const extSupabase = getExternalSupabase();
-        if (extSupabase) {
-          const { error: extError } = await extSupabase.from('contacts').select('id').limit(1);
-          externalOk = !extError;
-        }
-      }
+      // 2. External DB (Evolution DB) — consolidated single-DB: same self-hosted instance
+      const { error: extError } = await supabase.from('contacts').select('id').limit(1);
+      const externalOk = !extError;
       if (mountedRef.current) setExternalDb(externalOk);
 
       // 3. WhatsApp Transport

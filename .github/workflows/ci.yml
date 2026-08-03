@@ -37,12 +37,13 @@ jobs:
           fetch-depth: 0
 
       - name: Verify bun.lock is in sync with package.json
-        # bun.lock is generated inside Lovable's private registry environment,
-        # so `bun install --frozen-lockfile` always fails on CI (registry
-        # credentials unavailable).  Instead we enforce the invariant with a
-        # targeted git diff: only fail when dependency sections change without
-        # a corresponding bun.lock update.  Script/version/author edits do NOT
-        # affect the lockfile and must NOT trigger this check (false positive
+        # bun.lock pins some packages from a private GAR registry that is
+        # unavailable on CI, so `bun install --frozen-lockfile` always fails
+        # on CI (registry credentials unavailable).  Instead we enforce the
+        # invariant with a targeted git diff: only fail when dependency
+        # sections change without a corresponding bun.lock update.
+        # Script/version/author edits do NOT affect the lockfile and must NOT
+        # trigger this check (false positive
         # fixed 2026-07-16 after a scripts-only package.json edit blocked CI).
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then

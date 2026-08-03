@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
-import { updateRuntimeExternalConfig } from '@/integrations/supabase/externalClient';
 import { toast } from '@/hooks/use-toast';
 import { getLogger } from '@/lib/logger';
 
@@ -109,7 +108,6 @@ export function useConnections() {
       setDraftUrl(externalConn.config.url);
       setExternalKey(externalConn.config.anon_key);
       setDraftKey(externalConn.config.anon_key);
-      updateRuntimeExternalConfig(externalConn.config.url, externalConn.config.anon_key);
     }
   }, [connections]);
 
@@ -303,7 +301,6 @@ export function useConnections() {
       setExternalUrl(draftUrl);
       setExternalKey(draftKey);
       setEditOpen(false);
-      updateRuntimeExternalConfig(draftUrl, draftKey);
 
       toast({
         title: 'Credenciais salvas e validadas',

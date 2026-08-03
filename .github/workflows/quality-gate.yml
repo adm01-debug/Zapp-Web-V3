@@ -92,7 +92,7 @@ jobs:
           bunx tsc --noEmit -p tsconfig.app.json
           status=$?
           if [ "$status" -ne 0 ]; then
-            echo "::warning title=TypeScript (GAR registry mismatch)::TS errors are caused by CI falling back to public npm for @supabase/postgrest-js (Lovable private GAR is unavailable in GitHub Actions). Not a code regression."
+            echo "::warning title=TypeScript (GAR registry mismatch)::TS errors are caused by CI falling back to public npm for @supabase/postgrest-js (private GAR registry is unavailable in GitHub Actions). Not a code regression."
           fi
           exit 0
 

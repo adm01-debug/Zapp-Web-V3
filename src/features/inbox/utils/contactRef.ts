@@ -2,7 +2,7 @@
  * Identidade canônica de um contato no inbox.
  *
  * PROBLEMA: o módulo trata `contact.id` de forma ambígua:
- * - Modo externo (USE_EXTERNAL_DB=true)  → remote_jid (WhatsApp JID)
+ * - Modo externo                          → remote_jid (WhatsApp JID)
  * - Modo local                            → UUID (Postgres)
  *
  * Filtrar uma coluna `uuid` com um JID gera PostgREST 400:

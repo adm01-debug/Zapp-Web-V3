@@ -1,9 +1,11 @@
+> **Nota histórica**: Este documento refere-se ao banco 'FATOR X' (projeto Supabase `tdprnylgyrogbbhgdoik`), descomissionado em 2026-07-15. O termo foi mantido para rastreabilidade histórica.
+
 # 🔍 RELATÓRIO FINAL DE AUDITORIA — zapp-web-v3
 
 **Data:** 2026-08-03
 **Delegação:** `deleg_46358781` (15 workers: 14 auditores + 1 compilador)
 **Repositório:** `adm01-debug/zapp-web-v3` · branch `main` · HEAD final `881706c85`
-**Escopo:** Consolidação single-DB (remoção FATOR X / Lovable Cloud) — validação exaustiva de código, banco de produção, migrations, testes, build, segurança e documentação.
+**Escopo:** Consolidação single-DB (remoção Evolution DB / Lovable Cloud) — validação exaustiva de código, banco de produção, migrations, testes, build, segurança e documentação.
 **Método:** 14 workers paralelos especializados (DB via Supabase MCP contra produção PG 15.8, tsc, vitest, deno check, vite build, greps exaustivos, simulações determinísticas), seguidos deste compilador final.
 
 ---
@@ -40,7 +42,7 @@ Worker 5 (`deno check` em 11 edge functions modificadas): **9 PASS / 2 FAIL**.
 
 ### 1.2 Gaps de limpeza de baixa severidade (Worker 12 — Security)
 
-1. **`supabase/functions/.env.required` ainda declara** `EXTERNAL_SUPABASE_URL`, `EXTERNAL_SUPABASE_ANON_KEY`, `EXTERNAL_SUPABASE_SERVICE_ROLE_KEY` (linhas 12–14) — variáveis do banco externo extinto. (`FATOR_X_URL`/`FATOR_X_SERVICE_ROLE_KEY` já foram removidos pelo sweep do Worker 8.)
+1. **`supabase/functions/.env.required` ainda declara** `EXTERNAL_SUPABASE_URL`, `EXTERNAL_SUPABASE_ANON_KEY`, `EXTERNAL_SUPABASE_SERVICE_ROLE_KEY` (linhas 12–14) — variáveis do banco externo extinto. (`EVOLUTION_DB_URL`/`EVOLUTION_DB_SERVICE_ROLE_KEY` já foram removidos pelo sweep do Worker 8.)
 2. **`analyze-external-db` ainda deployada em produção** — responde **401** (auth-gated, seguro) em vez de 404; Kong bloqueia `external-db-bridge` (404) mas não essa rota. Deve ser removida da VPS ou adicionada à allowlist de bloqueio.
 
 ### 1.3 Gaps estruturais das migrations (Worker 9 — 520 simulações)
@@ -148,7 +150,7 @@ Ver seção 4 (Migration status) — GAP-01 a GAP-12. Destaques:
 | `LOVABLE_API_KEY` | ✅ intacta — exigida por `ai-proxy` (11 funções), não é referência de DB |
 | `externalClient` shim | ✅ não expõe service_role; shim de compatibilidade (~37 consumidores) |
 | CORS | ✅ não alargado |
-| Env removida (`FATOR_X_URL` etc.) | ✅ nenhuma edge function crasha sem ela; `.env.required` só mantém `EXTERNAL_SUPABASE_*` (gap limpeza) |
+| Env removida (`EVOLUTION_DB_URL` etc.) | ✅ nenhuma edge function crasha sem ela; `.env.required` só mantém `EXTERNAL_SUPABASE_*` (gap limpeza) |
 | RLS em tabelas-chave | ✅ ativa (não FORCE) em `system_docs`/`webhook_health_alerts`; SECURITY DEFINER owner `supabase_admin` (bypass OK) |
 | `system_docs` / `proxy_metrics` / `webhook_health_alerts` (FATOR) | ✅ 0 rows com referências deprecated |
 

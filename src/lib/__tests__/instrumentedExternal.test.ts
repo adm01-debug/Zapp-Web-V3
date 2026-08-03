@@ -15,10 +15,10 @@ const mockGenerateCid = vi.hoisted(() => vi.fn(() => 'test-cid-1'));
 const mockRecordQueryEvent = vi.hoisted(() => vi.fn());
 const mockClassifySeverity = vi.hoisted(() => vi.fn<(...args: unknown[]) => string>(() => 'ok'));
 const mockRpc = vi.hoisted(() => vi.fn());
-const mockGetExternal = vi.hoisted(() => vi.fn(() => ({ rpc: mockRpc })));
+const mockSupabase = vi.hoisted(() => ({ rpc: mockRpc }));
 
-vi.mock('@/integrations/supabase/externalClient', () => ({
-  getExternalSupabase: mockGetExternal,
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: mockSupabase,
 }));
 vi.mock('@/lib/clientTelemetry', () => ({
   recordQueryEvent: mockRecordQueryEvent,
@@ -57,7 +57,6 @@ function rpcErr(message: string) {
 // ── Setup ─────────────────────────────────────────────────────────────────────
 beforeEach(() => {
   vi.clearAllMocks();
-  mockGetExternal.mockReturnValue({ rpc: mockRpc });
   mockClassifySeverity.mockReturnValue('ok');
   mockGenerateCid.mockReturnValue('test-cid-1');
 });

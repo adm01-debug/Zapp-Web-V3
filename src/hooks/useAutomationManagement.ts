@@ -4,7 +4,6 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
-import { getExternalSupabase } from '@/integrations/supabase/externalClient';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/schema';
@@ -16,8 +15,6 @@ interface ExternalMessage {
   created_at: string;
   [key: string]: unknown;
 }
-
-const getClient = () => getExternalSupabase();
 
 /* ============ INTERFACES ============ */
 
@@ -167,10 +164,8 @@ export function useAutomations({
       const rules = rulesRef.current;
       if (!rules.length) return;
 
-      const client = getClient();
-      if (!client) return;
-
-      const { data: msgs, error } = await (client as unknown as SupabaseClient).rpc(
+      const client = supabase as unknown as SupabaseClient;
+      const { data: msgs, error } = await client.rpc(
         'rpc_list_messages',
         {
           p_remote_jid: remoteJid,
@@ -484,9 +479,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       const sugg = suggestions.find((s) => s.id === id);
       if (!sugg?.recommended_tag) return false;
       try {
-        const extClient = getClient();
-        if (!extClient) return false;
-        await (extClient as unknown as SupabaseClient).rpc('rpc_upsert_contact', {
+        await (supabase as unknown as SupabaseClient).rpc('rpc_upsert_contact', {
           // ignore-audit — ExtendedDatabase schema client cannot call unregistered RPCs; widening to bare SupabaseClient is intentional
           p_remote_jid: sugg.remote_jid,
           p_instance: sugg.instance_name,

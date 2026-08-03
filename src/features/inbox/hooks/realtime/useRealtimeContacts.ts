@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { queryKeys } from '@/services/api/queryKeys';
 import { useQueryClient } from '@tanstack/react-query';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import { externalSupabase } from '@/integrations/supabase/externalClient';
+import { supabase } from '@/integrations/supabase/client';
 import type { EvolutionContact } from '@/types/evolutionExternal';
 import { getLogger } from '@/lib/logger';
 import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
@@ -146,7 +146,7 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
     // desligado em produção.
     // Capture the client reference at effect setup time so cleanup always
     // calls removeChannel on the same instance that created the channel.
-    const client = externalSupabase;
+    const client = supabase;
     if (!enabled || !client) {
       setRealtimeContactsStatus('disconnected');
       return;

@@ -1,7 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Database, RefreshCw, Webhook } from 'lucide-react';
-import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { useBridgeHealth } from '@/hooks/connections/useBridgeHealth';
 import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 import { BridgeStatusBadge } from './bridge/BridgeStatusBadge';
@@ -46,7 +45,7 @@ export function BridgeSupabaseView() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            <BridgeStatusBadge status={status} isConfigured={isExternalConfigured} />
+            <BridgeStatusBadge status={status} isConfigured={true} />
             {checkedAt && (
               <span className="text-xs text-muted-foreground">
                 Última verificação: {checkedAt.toLocaleTimeString()}
@@ -64,7 +63,7 @@ export function BridgeSupabaseView() {
             <BridgeInfoRow label="Instância" value={DEFAULT_WHATSAPP_INSTANCE} />
             <BridgeInfoRow
               label="Auth"
-              value={isExternalConfigured ? 'Anon key configurada' : 'Faltando'}
+              value="Anon key configurada"
             />
           </div>
 

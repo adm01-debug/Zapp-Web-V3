@@ -1,7 +1,7 @@
 /**
  * evolutionFetchers — constants and raw fetch helpers for evolution_messages.
  */
-import { queryExternalProxy } from '@/lib/externalProxy';
+import { supabase } from '@/integrations/supabase/client';
 import type { EvolutionMessage } from '@/types/evolutionExternal';
 import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 import { getLogger } from '@/lib/logger';
@@ -77,17 +77,16 @@ export async function fetchRecentMessagesWindow(
   limit = SIDEBAR_LIMIT
 ): Promise<EvolutionMessage[]> {
   const since = new Date(Date.now() - daysBack * 86_400_000).toISOString();
-  const primary = await queryExternalProxy<EvolutionMessage>({
-    table: 'evolution_messages',
-    select: SLIM_MESSAGE_COLUMNS,
-    filters: [
-      { column: 'instance_name', operator: 'eq', value: DEFAULT_INSTANCE },
-      { column: 'created_at', operator: 'gte', value: since },
-    ],
-    order: { column: 'created_at', ascending: false },
-    limit,
-  });
-  if (primary.data.length > 0) return primary.data;
+  const primary = await supabase
+    .from('evolution_messages')
+    .select(SLIM_MESSAGE_COLUMNS)
+    .eq('instance_name', DEFAULT_INSTANCE)
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (primary.error) throw new Error(primary.error.message);
+  const primaryRows = (primary.data ?? []) as unknown as EvolutionMessage[];
+  if (primaryRows.length > 0) return primaryRows;
 
   // FALLBACK (defensivo): instância ativa não retornou mensagens nos últimos N dias.
   // Isso NÃO deveria acontecer em produção desde 2026-07-26 quando ACTIVE_WHATSAPP_INSTANCE
@@ -105,16 +104,16 @@ export async function fetchRecentMessagesWindow(
       { instance: DEFAULT_INSTANCE, daysBack, limit }
     );
   }
-  const fallback = await queryExternalProxy<EvolutionMessage>({
-    table: 'evolution_messages',
-    select: SLIM_MESSAGE_COLUMNS,
+  const fallback = await supabase
+    .from('evolution_messages')
+    .select(SLIM_MESSAGE_COLUMNS)
     // SEM filtro de instance_name: traz msgs de todas as instâncias configuradas.
     // Garante que uma reconexão ou nova instância não apague a sidebar do usuário.
-    filters: [{ column: 'created_at', operator: 'gte', value: since }],
-    order: { column: 'created_at', ascending: false },
-    limit,
-  });
-  return fallback.data;
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (fallback.error) throw new Error(fallback.error.message);
+  return (fallback.data ?? []) as unknown as EvolutionMessage[];
 }
 
 /**
@@ -128,17 +127,15 @@ export async function fetchSidebarMessagesPage(
   beforeCreatedAt: string,
   limit = SIDEBAR_LIMIT
 ): Promise<EvolutionMessage[]> {
-  const result = await queryExternalProxy<EvolutionMessage>({
-    table: 'evolution_messages',
-    select: SLIM_MESSAGE_COLUMNS,
-    filters: [
-      { column: 'instance_name', operator: 'eq', value: DEFAULT_INSTANCE },
-      { column: 'created_at', operator: 'lt', value: beforeCreatedAt },
-    ],
-    order: { column: 'created_at', ascending: false },
-    limit,
-  });
-  return result.data;
+  const result = await supabase
+    .from('evolution_messages')
+    .select(SLIM_MESSAGE_COLUMNS)
+    .eq('instance_name', DEFAULT_INSTANCE)
+    .lt('created_at', beforeCreatedAt)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (result.error) throw new Error(result.error.message);
+  return (result.data ?? []) as unknown as EvolutionMessage[];
 }
 
 /** fetch Messages By Jid function. */
@@ -152,22 +149,17 @@ export async function fetchMessagesByJid(
    *  mensagens vazias ao adicionar uma segunda instância ao sistema. */
   instanceName: string = DEFAULT_INSTANCE
 ): Promise<EvolutionMessage[]> {
-  const filters: { column: string; operator: string; value: unknown }[] = [
-    { column: 'remote_jid', operator: 'eq', value: remoteJid },
-    { column: 'instance_name', operator: 'eq', value: instanceName },
-  ];
-  if (beforeDate) {
-    filters.push({ column: 'created_at', operator: 'lt', value: beforeDate });
-  }
-  const result = await queryExternalProxy<EvolutionMessage>({
-    table: 'evolution_messages',
-    select: SLIM_MESSAGE_COLUMNS,
-    filters,
-    order: { column: 'created_at', ascending: false },
-    limit,
-    signal,
-  });
-  return result.data.slice().reverse();
+  let query = supabase
+    .from('evolution_messages')
+    .select(SLIM_MESSAGE_COLUMNS)
+    .eq('remote_jid', remoteJid)
+    .eq('instance_name', instanceName);
+  if (beforeDate) query = query.lt('created_at', beforeDate);
+  query = query.order('created_at', { ascending: false }).limit(limit);
+  if (signal) query = query.abortSignal(signal);
+  const result = await query;
+  if (result.error) throw new Error(result.error.message);
+  return ((result.data ?? []) as unknown as EvolutionMessage[]).slice().reverse();
 }
 
 /** fetch Messages After function. */
@@ -178,16 +170,14 @@ export async function fetchMessagesAfter(
   /** Instância WhatsApp do contato. Padrão: DEFAULT_INSTANCE (wpp2). */
   instanceName: string = DEFAULT_INSTANCE
 ): Promise<EvolutionMessage[]> {
-  const result = await queryExternalProxy<EvolutionMessage>({
-    table: 'evolution_messages',
-    select: SLIM_MESSAGE_COLUMNS,
-    filters: [
-      { column: 'remote_jid', operator: 'eq', value: remoteJid },
-      { column: 'instance_name', operator: 'eq', value: instanceName },
-      { column: 'created_at', operator: 'gt', value: afterDate },
-    ],
-    order: { column: 'created_at', ascending: true },
-    limit,
-  });
-  return result.data;
+  const result = await supabase
+    .from('evolution_messages')
+    .select(SLIM_MESSAGE_COLUMNS)
+    .eq('remote_jid', remoteJid)
+    .eq('instance_name', instanceName)
+    .gt('created_at', afterDate)
+    .order('created_at', { ascending: true })
+    .limit(limit);
+  if (result.error) throw new Error(result.error.message);
+  return (result.data ?? []) as unknown as EvolutionMessage[];
 }

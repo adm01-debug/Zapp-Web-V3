@@ -1,3 +1,5 @@
+> **Nota histórica**: Este documento refere-se ao banco 'FATOR X' (projeto Supabase `tdprnylgyrogbbhgdoik`), descomissionado em 2026-07-15. O termo foi mantido para rastreabilidade histórica.
+
 # AUDITORIA DA EXECUÇÃO — Blocos 1 e 2 do `PLANO_QA_ANALISE_100.md`
 
 > ## FOTO DE 2026-08-02 10:44 — leia com esta ressalva

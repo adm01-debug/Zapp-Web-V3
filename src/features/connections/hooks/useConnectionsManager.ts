@@ -3,7 +3,6 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useConnectionsManager');
 import { supabase } from '@/integrations/supabase/client';
-import { externalSupabase, callExtRpc } from '@/integrations/supabase/externalClient';
 import { toast } from '@/hooks/use-toast';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { whatsappConnectionRepository } from '../data-access/whatsappConnectionRepository';
@@ -305,13 +304,13 @@ export function useConnectionsManager() {
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        if (user && externalSupabase) {
-          await callExtRpc(externalSupabase, 'fn_safe_audit_log', {
+        if (user) {
+          await supabase.rpc('fn_safe_audit_log', {
             p_entity_type: 'whatsapp_connection',
             p_entity_id: connection.id,
             p_action: 'disconnect',
             p_performed_by: user.email,
-            p_details: { instance: evoName, source: 'manual_ui' },
+            p_metadata: { instance: evoName, source: 'manual_ui' },
           });
         }
       } catch (auditErr) {

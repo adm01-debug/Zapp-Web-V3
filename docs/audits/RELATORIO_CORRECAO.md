@@ -1,3 +1,5 @@
+> **Nota histórica**: Este documento refere-se ao banco 'FATOR X' (projeto Supabase `tdprnylgyrogbbhgdoik`), descomissionado em 2026-07-15. O termo foi mantido para rastreabilidade histórica.
+
 # Relatório de Correção — zapp-web-v3
 
 > Registro de execução do `PLANO_CORRECAO_20_ETAPAS.md`. Uma seção por etapa.
@@ -107,7 +109,7 @@ Fechado na mesma sessão. **9 arquivos de teste novos, 211 testes verdes:**
 | `WhatsAppConnectionStatus.test.tsx` | badge de status (loading / vazio / n/n) | 6 |
 | `connectionsService.test.ts` | validações e normalizações de negócio | 21 |
 | `connectionsRepository.test.ts` | delegações + queries diretas | 15 |
-| `BridgeService.test.ts` | probe do Supabase externo (Fator X) | 8 |
+| `BridgeService.test.ts` | probe do Supabase externo (Evolution DB) | 8 |
 | `useConnectionsMutations.test.ts` | fiação das chaves de invalidação | 7 |
 | `ConnectionsStats.test.tsx` | contagem 0 / 1 / N (empty, singular, plural) | 12 |
 

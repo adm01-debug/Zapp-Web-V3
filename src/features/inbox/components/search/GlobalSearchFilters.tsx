@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { isExternalConfigured } from '@/integrations/supabase/externalClient';
+import { isSupabaseConfigured } from '@/integrations/supabase/client';
 import type { ResultType, DateFilter, MediaTypeFilter } from '../useGlobalSearchData';
 
 interface GlobalSearchFiltersProps {
@@ -93,7 +93,7 @@ export function GlobalSearchFilters({
               >
                 <User className="h-3.5 w-3.5" /> Contatos
               </Toggle>
-              {isExternalConfigured && (
+              {isSupabaseConfigured && (
                 <Toggle
                   pressed={activeTypes.has('crm')}
                   onPressedChange={() => onToggleType('crm')}

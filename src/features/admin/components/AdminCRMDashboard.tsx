@@ -11,7 +11,6 @@ import {
   Building2, ShoppingCart, DollarSign, BarChart3, Package, Truck, Activity, ExternalLink,
 } from 'lucide-react';
 import { useExternalSelect } from '@/hooks/useExternalApiManagement';
-import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { useNavigate } from 'react-router-dom';
 import type { ExtCustomer, ExtCompanyRFMScore, ExtSale } from '@/types/externalDB';
 
@@ -189,17 +188,6 @@ function RecentSales() {
 /** Admin C R M Dashboard constant. */
 export const AdminCRMDashboard = memo(function AdminCRMDashboard() {
   const navigate = useNavigate();
-
-  if (!isExternalConfigured) {
-    return (
-      <Card className="max-w-md mx-auto mt-8">
-        <CardContent className="pt-6 text-center">
-          <Building2 className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">CRM externo não configurado.</p>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <div className="space-y-4">

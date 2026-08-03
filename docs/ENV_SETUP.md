@@ -1,6 +1,6 @@
 > **Schema**: O banco usa schema `zapp` (não `public`). Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
 >
-> **Consolidação (jul/2026)**: Supabase único self-hosted (`supabase.atomicabr.com.br`, schemas `zapp`/`evo`). As secrets `EXTERNAL_SUPABASE_*` (banco FATOR X) foram **removidas** — não configurar mais.
+> **Consolidação (jul/2026)**: Supabase único self-hosted (`supabase.atomicabr.com.br`, schemas `zapp`/`evo`). As secrets `EXTERNAL_SUPABASE_*` (banco Evolution) foram **removidas** — não configurar mais.
 
 # Configuração de variáveis de ambiente
 
@@ -58,7 +58,7 @@ Eles ficam disponíveis automaticamente em todas as edge functions via
 ## 2. Onde obter cada valor
 
 - **Self-Hosted (auth/tabelas):** painel do Supabase self-hosted (`supabase.atomicabr.com.br`).
-- **WhatsApp/CRM (`evolution_*`):** o mesmo Supabase self-hosted acima (schema `evo`) — desde a consolidação de jul/2026 o banco externo FATOR X foi descontinuado; não há mais secrets `EXTERNAL_SUPABASE_*`.
+- **WhatsApp/CRM (`evolution_*`):** o mesmo Supabase self-hosted acima (schema `evo`) — desde a consolidação de jul/2026 o banco externo Evolution foi descontinuado; não há mais secrets `EXTERNAL_SUPABASE_*`.
 - **Evolution API:** painel da sua instância Evolution (`/manager`).
 - **PromoGifts:** dashboard do projeto Supabase do PromoGifts (mesmo padrão URL +
   anon key). Sem isso, `/promogifts-catalog/health` retorna **503** com a lista

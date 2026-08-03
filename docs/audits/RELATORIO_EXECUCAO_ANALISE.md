@@ -1,3 +1,5 @@
+> **Nota histórica**: Este documento refere-se ao banco 'FATOR X' (projeto Supabase `tdprnylgyrogbbhgdoik`), descomissionado em 2026-07-15. O termo foi mantido para rastreabilidade histórica.
+
 # RELATÓRIO DE EXECUÇÃO DA ANÁLISE — `zapp-web-v3`
 
 > Documento vivo. Atualizado bloco a bloco conforme o `PLANO_QA_ANALISE_100.md` é executado.
@@ -239,8 +241,8 @@ Arquivos auditados linha a linha (24 páginas em `src/pages/admin/`, ~5800 linha
 - `AdminAutomationLogsPage.tsx` (325 L) — audit trail de automation rules, filtros por regra/status/jid/data.
 - `AdminSecurityLogsPage.tsx` (136 L) — tentativas negadas, mudanças de permissão.
 - `AdminFailedAuthMessagesPage.tsx` (217 L) — falhas login com bloqueio, filtro por data.
-- `AdminInboxSyncStatusPage.tsx` (312 L) — pipeline FATOR X ↔ Inbox, buckets 5min/1h/24h.
-- `AdminBridgeStatusPage.tsx` (168 L) — status Lovable ↔ FATOR X, incidents, auto-refresh.
+- `AdminInboxSyncStatusPage.tsx` (312 L) — pipeline Evolution DB ↔ Inbox, buckets 5min/1h/24h.
+- `AdminBridgeStatusPage.tsx` (168 L) — status Lovable ↔ Evolution DB, incidents, auto-refresh.
 - `AdminEmailStatusPage.tsx` (343 L) — saúde do email, falhas operacionais, request-id.
 - `AdminEmailAuditPage.tsx` (311 L) — auditoria de revalidação, paginação.
 - `AdminChannelsPage.tsx` (394 L) — canais de atendimento, sticky agent, routing modes.

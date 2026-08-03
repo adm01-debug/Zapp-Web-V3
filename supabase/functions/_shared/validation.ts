@@ -200,13 +200,18 @@ export class Logger {
   }
 }
 
+/**
+ * Origins exatos permitidos (CORS).
+ * - zapp.atomicabr.com.br e zappweb.app.br: domínios de produção (frontend self-hosted).
+ * - whats-your-line.lovable.app: URL publicada no Lovable ainda ativa (ver docs/INFRA.md §6,
+ *   gotrue URI allow list). Mantida para não quebrar CORS de quem acessa por esse domínio.
+ * - Previews do Lovable (id-preview--*.lovable.app / *.lovableproject.com) NÃO precisam de
+ *   entrada exata: já são cobertos pelos padrões genéricos em LOCAL_ORIGIN_PATTERNS abaixo.
+ */
 const EXACT_ALLOWED_ORIGINS = new Set([
   'https://zapp.atomicabr.com.br',
-  'https://pronto-talk-suite.lovable.app',
+  'https://zappweb.app.br',
   'https://whats-your-line.lovable.app',
-  'https://id-preview--22c0b518-7895-4f4f-9ea0-978457a2c37a.lovable.app',
-  'https://id-preview--1d419c34-35ac-4a71-96a5-146ca1b3ebf2.lovable.app',
-  'https://1d419c34-35ac-4a71-96a5-146ca1b3ebf2.lovableproject.com',
 ]);
 
 const LOCAL_ORIGIN_PATTERNS = [
@@ -248,7 +253,7 @@ const SECURITY_HEADERS: Record<string, string> = {
 /** Build CORS + security headers with origin validation */
 export function getCorsHeaders(req?: Request): Record<string, string> {
   const origin = req?.headers.get('origin') || '';
-  const allowedOrigin = isAllowedOrigin(origin) ? origin : 'https://pronto-talk-suite.lovable.app';
+  const allowedOrigin = isAllowedOrigin(origin) ? origin : 'https://zappweb.app.br';
   return {
     ...SECURITY_HEADERS,
     'Access-Control-Allow-Origin': allowedOrigin,

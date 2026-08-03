@@ -17,9 +17,6 @@ const RoutePermissionsPage = lazyWithRetry(() => import('@/pages/admin/RoutePerm
 const AdminInboxSyncStatusPage = lazyWithRetry(
   () => import('@/pages/admin/AdminInboxSyncStatusPage')
 );
-const AdminExternalDbExplorerPage = lazyWithRetry(
-  () => import('@/pages/admin/AdminExternalDbExplorerPage')
-);
 const SelfHostedHealthPage = lazyWithRetry(() => import('@/pages/admin/SelfHostedHealthPage'));
 const AdminEvoApiHealthPage = lazyWithRetry(() => import('@/pages/admin/AdminEvoApiHealthPage'));
 const ZappWebbDemoPage = lazyWithRetry(() => import('@/pages/admin/ZappWebbDemoPage'));
@@ -135,14 +132,6 @@ export function adminRoutes() {
         element={
           <ProtectedRoute requiredRoles={['admin', 'supervisor']}>
             <AdminInboxSyncStatusPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/external-db-explorer"
-        element={
-          <ProtectedRoute requiredRoles={['admin', 'dev']}>
-            <AdminExternalDbExplorerPage />
           </ProtectedRoute>
         }
       />

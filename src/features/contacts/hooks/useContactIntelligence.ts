@@ -6,7 +6,6 @@
  * best times, churn risk, DISC tips, and last interactions.
  */
 import { useQuery } from '@tanstack/react-query';
-import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { dbGet } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { getLogger } from '@/lib/logger';
@@ -120,7 +119,7 @@ export function useContactIntelligence(phone: string | undefined) {
       }
       return data as ContactIntelligenceData; // ignore-audit: narrows Supabase query result to local interface
     },
-    enabled: isExternalConfigured && !!cleanedPhone && cleanedPhone.length >= 8,
+    enabled: !!cleanedPhone && cleanedPhone.length >= 8,
     staleTime: 1000 * 60 * 15, // 15 min
     gcTime: 1000 * 60 * 30,
     retry: 1,
