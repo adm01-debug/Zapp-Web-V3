@@ -315,6 +315,7 @@ export default function HmacSelfTestPage() {
   );
 }
 
+/** Renders a compact KPI card with an icon, label, and numeric/text value for the HMAC self-test summary. */
 function KPI({
   icon, label, value, testid,
 }: { icon: React.ReactNode; label: string; value: string; testid?: string }) {

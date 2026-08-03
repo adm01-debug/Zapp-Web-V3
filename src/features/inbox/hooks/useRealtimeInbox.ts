@@ -32,6 +32,7 @@ const log = getLogger('useRealtimeInbox');
 // Feature flag: use external evolution DB (FATOR X) as data source.
 const USE_EXTERNAL_DB = true;
 
+/** Primary inbox hook — subscribes to Realtime conversation events and manages the selected contact state. */
 export function useRealtimeInbox() {
   const { profile } = useAuth();
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);

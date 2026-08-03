@@ -26,10 +26,12 @@ const SECURITY_PERMISSION_CHANGES_KEY = ['security-audit-logs-permission-changes
 const SECURITY_ADMIN_LOGINS_KEY = ['security-audit-logs-admin-logins-7d'] as const;
 const SECURITY_RLS_FAILURES_KEY = ['security-audit-logs-rls-failures-24h'] as const;
 
+/** Returns an ISO timestamp for `hours` hours in the past from now. */
 function cutoff(hours: number) {
   return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 }
 
+/** Hook that fetches security audit logs and aggregated metrics for the admin security panel. */
 export function useSecurityAuditLogs() {
   const queryClient = useQueryClient();
 

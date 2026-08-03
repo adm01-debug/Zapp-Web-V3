@@ -37,6 +37,7 @@ import { ChannelsTab } from '@/components/evoApiHealth/tabs/ChannelsTab';
 import { HistoryTab } from '@/components/evoApiHealth/tabs/HistoryTab';
 import { DrTab } from '@/components/evoApiHealth/tabs/DrTab';
 
+/** Maps a `PipelineReadiness` snapshot to a Badge variant: `destructive` if any status field is non-OK, otherwise `default`. */
 function deriveReadinessVariant(r?: PipelineReadiness): 'default' | 'destructive' {
   if (!r) return 'default';
   const bad = [r.tables_status, r.enums_status, r.fk_status, r.realtime_status, r.replica_full_status].some(

@@ -12,6 +12,7 @@ interface Props {
   onRunVerify: () => void;
 }
 
+/** Renders a colored Badge indicating webhook silence duration based on the timestamp of the last received event. */
 function SilenceBadge({ lastEventAt }: { lastEventAt: string | undefined | null }) {
   if (!lastEventAt) {
     return (

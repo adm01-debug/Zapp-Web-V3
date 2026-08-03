@@ -346,6 +346,7 @@ export const AdminProvidersPage = () => {
   );
 };
 
+/** Renders a compact stat card with a label, numeric value, and optional destructive color tone. */
 function Stat({
   label,
   value,

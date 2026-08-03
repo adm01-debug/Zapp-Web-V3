@@ -19,6 +19,7 @@ interface UseFailedAuthMessagesOptions {
   enabled?: boolean;
 }
 
+/** Hook that queries the `failed_auth_messages` table within an optional date range and exposes unlock/delete mutations. */
 export function useFailedAuthMessages({ from, to, enabled = true }: UseFailedAuthMessagesOptions) {
   const { toast } = useToast();
   const queryClient = useQueryClient();

@@ -46,6 +46,7 @@ const STATUS_BADGE: Record<ChannelStatus, { label: string; variant: "default" | 
   disabled: { label: "Desativado", variant: "destructive" },
 };
 
+/** Returns a default `ServiceChannel` partial for the "new channel" form. */
 function emptyChannel(): Partial<ServiceChannel> {
   return {
     name: "",
@@ -58,7 +59,7 @@ function emptyChannel(): Partial<ServiceChannel> {
   };
 }
 
-// F7-10: guard against Tailwind class names stored as color (e.g. "bg-primary").
+/** Converts a stored color value to a valid CSS color, falling back to `hsl(var(--primary))` for Tailwind class names. */
 function resolveColor(c?: string | null): string | undefined {
   if (!c) return undefined;
   if (c.startsWith('#') || c.startsWith('rgb') || c.startsWith('hsl') || c.startsWith('var(')) return c;

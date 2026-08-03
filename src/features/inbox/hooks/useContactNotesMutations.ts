@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { isValidUUID } from '@/utils/uuid';
 
+/** Looks up the surrogate `profiles.id` for a given auth `user_id` UUID. Returns null if not found. */
 export async function fetchProfileIdByUserId(userId: string) {
   const { data } = await supabase.from('profiles').select('id').eq('user_id', userId).maybeSingle();
   return data ?? null;

@@ -867,6 +867,7 @@ function useDepartmentsManagement() {
 
 // ─── Section 5: Roles ────────────────────────────────────────────────────────
 
+/** Hook that manages role CRUD (list, create, delete) for the admin roles panel. */
 function useRolesManagement() {
   const [rolesSearch, setRolesSearch] = useState('');
   const [showAddRoleDialog, setShowAddRoleDialog] = useState(false);
@@ -1028,6 +1029,7 @@ function useRolesManagement() {
 
 const PERMISSIONS_QUERY_KEY = ['admin-route-permissions'] as const;
 
+/** Hook that loads and saves route-level permissions for each admin path. */
 function useRoutePermissionsManagement() {
   const [savingPermPath, setSavingPermPath] = useState<string | null>(null);
   const { toast } = useToast();
@@ -1118,6 +1120,7 @@ function useRoutePermissionsManagement() {
 
 // ─── Section 7: Security ─────────────────────────────────────────────────────
 
+/** Hook that runs HMAC self-test audits for a given Evolution instance and exposes the result. */
 function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
   const [securityLoading, setSecurityLoading] = useState(false);
   const [securityResult, setSecurityResult] = useState<SelfTestResult | null>(null);

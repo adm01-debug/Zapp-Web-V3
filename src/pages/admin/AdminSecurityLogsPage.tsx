@@ -14,6 +14,7 @@ import { ptBR } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSecurityAuditLogs } from '@/hooks/useSecurityAuditLogs';
 
+/** Admin page that displays security audit logs and 4 real-time KPI cards (denied attempts, permission changes, admin logins, RLS failures). */
 export default function AdminSecurityLogsPage() {
   const { logs, loading, deniedCount24h, permissionChanges24h, adminLogins7d, rlsFailures24h } =
     useSecurityAuditLogs();

@@ -15,6 +15,7 @@ import {
   type DiagnosticResult,
 } from '@/lib/selfHostedDiagnostics';
 
+/** Renders a colored Badge for a diagnostic step status: ok, warn, or fail. */
 function statusBadge(status: DiagnosticResult['status']) {
   if (status === 'ok') {
     return (
