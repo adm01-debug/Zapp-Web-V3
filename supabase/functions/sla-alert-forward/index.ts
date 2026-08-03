@@ -18,11 +18,11 @@ import { checkRateLimit } from '../_shared/validation.ts';
 const PayloadSchema = z.object({
   contact_id: z.string().min(1),
   contact_name: z.string().min(1),
-  kind: z.enum(['first_response', 'resolution']),
+  kind: z.enum(['first_response', 'resolution', 'delivery_delay']),
   severity: z.enum(['warning', 'breached']),
   scope: z.enum(['current', 'queue', 'agent', 'none']),
-  rule_name: z.string().nullable(),
-  duration_ms: z.number().nullable(),
+  rule_name: z.string().nullable().optional(),
+  duration_ms: z.number().nullable().optional(),
   occurred_at: z.string().optional(),
 });
 
