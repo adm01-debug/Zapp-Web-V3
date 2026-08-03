@@ -135,7 +135,7 @@ export default tseslint.config(
                 "**/evolution-api/**/find-chats*"
               ],
               "message":
-                "Inbox lê do FATOR X via queryExternalProxy → external-db-proxy. Não consulte Evolution API para popular UI. Para envio, use externalMessageSender. Veja docs/INBOX_READ_CONTRACT.md"
+                "Inbox lê do Evolution DB (schema evo) via Supabase direto. Não consulte Evolution API para popular UI. Para envio, use externalMessageSender. Veja docs/INBOX_READ_CONTRACT.md"
             }
           ]
         }
