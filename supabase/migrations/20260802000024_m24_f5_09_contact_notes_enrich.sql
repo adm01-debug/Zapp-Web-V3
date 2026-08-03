@@ -130,7 +130,7 @@ BEGIN
   INSERT INTO zapp.contact_notes (
     contact_id, author_id, content, note_type, is_pinned
   ) VALUES (
-    p_contact_id, v_profile_id, p_content, v_norm_type, pg_catalog.coalesce(p_is_pinned, false)
+    p_contact_id, v_profile_id, p_content, v_norm_type, COALESCE(p_is_pinned, false)
   ) RETURNING id INTO v_id;
 
   RETURN pg_catalog.jsonb_build_object(
@@ -138,7 +138,7 @@ BEGIN
     'contact_id', p_contact_id,
     'author_id',  v_profile_id,
     'note_type',  v_norm_type,
-    'is_pinned',  pg_catalog.coalesce(p_is_pinned, false)
+    'is_pinned',  COALESCE(p_is_pinned, false)
   );
 END;
 $fn$;
@@ -228,8 +228,10 @@ COMMENT ON FUNCTION zapp.update_contact_note(uuid, text, text, boolean)
 REVOKE EXECUTE ON FUNCTION zapp.add_contact_note(uuid, text, text, boolean)    FROM PUBLIC, anon;
 REVOKE EXECUTE ON FUNCTION zapp.update_contact_note(uuid, text, text, boolean) FROM PUBLIC, anon;
 
-GRANT  EXECUTE ON FUNCTION zapp.add_contact_note(uuid, text, text, boolean)    TO authenticated, service_role;
-GRANT  EXECUTE ON FUNCTION zapp.update_contact_note(uuid, text, text, boolean) TO authenticated, service_role;
+-- service_role excluded: both functions require auth.uid() → zapp.profiles lookup.
+-- Service-role callers must use a dedicated RPC that accepts an explicit author_id.
+GRANT  EXECUTE ON FUNCTION zapp.add_contact_note(uuid, text, text, boolean)    TO authenticated;
+GRANT  EXECUTE ON FUNCTION zapp.update_contact_note(uuid, text, text, boolean) TO authenticated;
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -301,10 +303,10 @@ BEGIN
       JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
      WHERE n.nspname = 'zapp' AND p.proname = 'add_contact_note';
 
-    IF pg_catalog.position(v_body, 'note_type') = 0 THEN
+    IF position('note_type' IN v_body) = 0 THEN
       RAISE EXCEPTION '[M-24 VER] add_contact_note body does not reference note_type column';
     END IF;
-    IF pg_catalog.position(v_body, 'is_pinned') = 0 THEN
+    IF position('is_pinned' IN v_body) = 0 THEN
       RAISE EXCEPTION '[M-24 VER] add_contact_note body does not reference is_pinned column';
     END IF;
   END;

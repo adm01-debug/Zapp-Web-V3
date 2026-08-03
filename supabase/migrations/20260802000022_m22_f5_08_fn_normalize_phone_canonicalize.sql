@@ -48,7 +48,7 @@ DECLARE
   v_digits text;
 BEGIN
   v_digits := pg_catalog.regexp_replace(
-    pg_catalog.coalesce(p_phone, ''),
+    COALESCE(p_phone, ''),
     '[^0-9]', '', 'g'
   );
 

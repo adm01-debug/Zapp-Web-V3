@@ -75,12 +75,18 @@ BEGIN
       USING ERRCODE = 'P0001';
   END IF;
 
-  -- Lock both rows to prevent concurrent merges on the same contacts.
+  -- Lock both rows in deterministic UUID order to prevent deadlocks.
+  -- Two concurrent merges with swapped ids (A,B) and (B,A) would deadlock
+  -- if each locks its first arg then waits for the other. Acquiring in
+  -- LEAST/GREATEST order ensures both transactions try the same row first.
+  PERFORM id FROM evo.evolution_contacts WHERE id = LEAST(p_primary_id, p_secondary_id)    FOR UPDATE;
+  PERFORM id FROM evo.evolution_contacts WHERE id = GREATEST(p_primary_id, p_secondary_id) FOR UPDATE;
+
+  -- Rows are now locked; read data (deleted_at guard applied here).
   SELECT * INTO v_primary
     FROM evo.evolution_contacts
    WHERE id = p_primary_id
-     AND deleted_at IS NULL
-     FOR UPDATE;
+     AND deleted_at IS NULL;
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'primary contact % not found or already deleted', p_primary_id
@@ -90,8 +96,7 @@ BEGIN
   SELECT * INTO v_secondary
     FROM evo.evolution_contacts
    WHERE id = p_secondary_id
-     AND deleted_at IS NULL
-     FOR UPDATE;
+     AND deleted_at IS NULL;
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'secondary contact % not found or already deleted', p_secondary_id

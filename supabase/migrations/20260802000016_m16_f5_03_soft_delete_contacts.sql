@@ -161,17 +161,24 @@ BEGIN
   END IF;
 
   -- Remove any existing schedule for this job to allow safe re-run.
-  DELETE FROM cron.job WHERE jobname = 'hard-delete-expired-contacts';
+  BEGIN
+    PERFORM cron.unschedule('hard-delete-expired-contacts');
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
 
   -- Run daily at 03:00 UTC; limited batch of 10k per run to avoid long locks.
+  -- PostgreSQL does not support LIMIT on DELETE directly; use a subquery on id.
   PERFORM cron.schedule(
     'hard-delete-expired-contacts',
     '0 3 * * *',
     $$
     DELETE FROM evo.evolution_contacts
-     WHERE deleted_at IS NOT NULL
-       AND undo_expires_at < NOW()
-     LIMIT 10000;
+     WHERE id IN (
+       SELECT id FROM evo.evolution_contacts
+        WHERE deleted_at IS NOT NULL
+          AND undo_expires_at < NOW()
+        LIMIT 10000
+     );
     $$
   );
 
