@@ -99,7 +99,7 @@ jobs:
 
       - name: Upload artefato (HTML + log + json)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: seed-e2e-user-report
           path: reports/

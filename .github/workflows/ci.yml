@@ -142,7 +142,7 @@ jobs:
 
       - name: Publish schema status report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: schema-status-report
           path: reports/schema-status/
@@ -151,7 +151,7 @@ jobs:
 
       - name: Publish types:repair log
         if: always() && steps.schema_repair.outcome != 'skipped'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: types-repair-log
           path: reports/types-repair/
@@ -208,7 +208,7 @@ jobs:
         run: bun run test -- --coverage --reporter=verbose
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-report
@@ -260,7 +260,7 @@ jobs:
         run: bunx vite build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
@@ -304,7 +304,7 @@ jobs:
         run: bun run test:e2e:boot
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: playwright-report
@@ -337,7 +337,7 @@ jobs:
         run: bun run test:a11y
 
       - name: Upload a11y Playwright report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: playwright-report-a11y
