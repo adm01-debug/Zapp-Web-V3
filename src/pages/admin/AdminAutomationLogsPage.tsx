@@ -47,6 +47,11 @@ export default function AdminAutomationLogsPage() {
   };
   const { rows, rules, ruleNameById, loading, load } = useAutomationLogs(filters);
 
+  // Auto-go-back when current page becomes empty (e.g. after filter change race)
+  React.useEffect(() => {
+    if (!loading && rows.length === 0 && page > 0) setPage((p) => Math.max(0, p - 1));
+  }, [loading, rows.length, page]);
+
   return (
     <div className="container mx-auto max-w-7xl p-6">
       <div className="mb-4 flex items-center justify-between">
@@ -231,7 +236,10 @@ export default function AdminAutomationLogsPage() {
 
       <div className="mt-3 flex items-center justify-between">
         <span className="text-xs text-muted-foreground">
-          Página {page + 1} • {rows.length} registros
+          {rows.length > 0
+            ? `Registros ${page * PAGE_SIZE + 1}–${page * PAGE_SIZE + rows.length}`
+            : 'Sem registros'}{' '}
+          · pág. {page + 1}
         </span>
         <div className="flex gap-2">
           <Button
