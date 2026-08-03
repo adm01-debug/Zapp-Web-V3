@@ -11,7 +11,7 @@
  * cascata neste arquivo e em dezenas de hooks/componentes que dependem
  * dele. Portanto o `@ts-nocheck` aqui é *load-bearing*, não decorativo —
  * removê-lo exige regerar `types.ts` via Supabase type generation
- * apontando para a VPS (fora do ambiente Lovable Cloud).
+ * apontando para a VPS (fora do ambiente Lovable).
  */
 
 import type { Database as GeneratedDatabase } from './types';

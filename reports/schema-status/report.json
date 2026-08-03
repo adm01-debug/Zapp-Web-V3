@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-27T01:02:13.206Z",
+  "generated_at": "2026-08-03T16:51:41.418Z",
   "ci": {
     "run_id": null,
     "run_attempt": null,
@@ -21,17 +21,16 @@
       "evo"
     ],
     "local_only": true,
-    "meta_url_present": false,
-    "meta_token_present": false
+    "meta_url_present": true,
+    "meta_token_present": true
   },
   "local": {
     "status": "ok",
     "types_file_exists": true,
     "present_schemas": [
-      "__InternalSupabase",
+      "evo",
       "public",
-      "zapp",
-      "evo"
+      "zapp"
     ],
     "missing_schemas": [],
     "error": null

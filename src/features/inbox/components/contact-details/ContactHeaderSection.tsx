@@ -127,6 +127,9 @@ export function ContactHeaderSection({
   const getScoreColor = (s: number) =>
     s >= 80 ? 'hsl(var(--success))' : s >= 50 ? 'hsl(var(--warning))' : 'hsl(var(--destructive))';
 
+  const getScoreForeground = (s: number) =>
+    s >= 80 ? 'hsl(var(--success-foreground))' : s >= 50 ? 'hsl(var(--warning-foreground))' : 'hsl(var(--destructive-foreground))';
+
   if (isCompact) {
     return (
       <CompactContactHeader
@@ -201,7 +204,7 @@ export function ContactHeaderSection({
                 <TooltipTrigger asChild>
                   <div
                     className="absolute -bottom-1 -left-1 flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold ring-2 ring-background"
-                    style={{ backgroundColor: getScoreColor(engagementScore), color: 'white' }}
+                    style={{ backgroundColor: getScoreColor(engagementScore), color: getScoreForeground(engagementScore) }}
                   >
                     {engagementScore}
                   </div>

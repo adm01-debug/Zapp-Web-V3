@@ -4,10 +4,10 @@
  * These tests simulate the three failure scenarios and verify that the fallback
  * mechanisms behave correctly WITHOUT making real HTTP requests.
  *
- * @deprecated — FATOR X / external-db-proxy removal wave
+ * @deprecated — external-db-proxy removal wave (external DB consolidated)
  * These suites exercise the failure modes of the obsolete `external-db-proxy`
  * client (`src/lib/externalProxy.ts`): circuit breaker, retry/backoff, ghost
- * posts, and auth locks. The FATOR X external DB was discontinued and the app
+ * posts, and auth locks. The external Evolution DB was discontinued and the app
  * now talks to the self-hosted Supabase directly, so the proxy behavior these
  * tests simulate no longer exists in the target architecture. Kept for history;
  * delete together with `src/lib/externalProxy.ts` and its importers.
@@ -533,6 +533,6 @@ describe('Combined: Full Pipeline Failure then Recovery', () => {
 // ── Deprecated placeholder ───────────────────────────────────────────────────
 // The original suites are preserved commented-out above (see @deprecated header).
 // This placeholder keeps vitest from failing the file with "No test suite found".
-describe.skip('resilience simulation — deprecated (FATOR X removal)', () => {
+describe.skip('resilience simulation — deprecated (external DB path removal)', () => {
   it('original suites commented out; see header note', () => {});
 });

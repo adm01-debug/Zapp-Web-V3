@@ -120,7 +120,7 @@ export async function dbRpc<P extends object, R>(
   const correlationId = generateCorrelationId();
   // Telemetry source id — 'lovableCloud' é literal de identificação mantido de
   // propósito (dashboards de telemetria dependem dele); 'external' mapeia para
-  // 'selfHosted'. O app não roda mais em um Lovable Cloud separado.
+  // 'selfHosted'. O app não roda mais em um Lovable separado.
   const source = def.client === 'external' ? 'selfHosted' : 'lovableCloud';
 
   try {

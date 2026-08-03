@@ -25,7 +25,7 @@ function getExternalServiceClient() {
       cached = false;
       return null;
     }
-    cached = createClient(url, key, { auth: { persistSession: false }, db: { schema: "zapp" } });
+    cached = createClient(url, key, { auth: { persistSession: false }, db: { schema: "zapp" } } as any);
   }
   return cached === false ? null : cached;
 }

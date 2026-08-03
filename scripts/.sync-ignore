@@ -5,7 +5,7 @@
 # Relações (tabelas/views) e funções RPC listadas aqui são chamadas no frontend
 # mas NÃO vivem no schema principal do Supabase (supabase/migrations). Elas
 # pertencem a bancos EXTERNOS acessados por clients separados:
-#   - externalClient.ts  -> projeto "FATOR X" (Bitrix24 bridge)
+#   - externalClient.ts  -> projeto "Evolution DB" (Bitrix24 bridge)
 #   - zappweb/supabaseClient.ts -> instância "zappweb"
 #
 # Portanto NÃO são drift: é correto que não existam migration neste repo.
@@ -21,7 +21,7 @@
 # Uma entrada por linha. Linhas começando com # são comentários.
 # ---------------------------------------------------------------------------
 
-# --- Tabelas do banco EXTERNO (FATOR X / Bitrix24 bridge) ---
+# --- Tabelas do banco EXTERNO (Evolution DB / Bitrix24 bridge) ---
 companies
 interactions
 contact_emails
@@ -37,7 +37,7 @@ evolution_stage_mapping
 evolution_messages_wpp2
 evolution_conversations_wpp2
 
-# --- Funções RPC do banco EXTERNO (FATOR X) — chamadas via externalSupabase ---
+# --- Funções RPC do banco EXTERNO (Evolution DB) — chamadas via externalSupabase ---
 rpc_get_contact
 rpc_list_contacts
 rpc_list_conversations
@@ -129,14 +129,14 @@ my_function
 no_params_fn
 
 # ---------------------------------------------------------------------------
-# [B] Tabelas/views no frontend SEM CREATE em migrations (Lovable Cloud era)
+# [B] Tabelas/views no frontend SEM CREATE em migrations (era Lovable)
 # ---------------------------------------------------------------------------
 app_notifications
 information_schema_columns
 information_schema_tables
 
 # ---------------------------------------------------------------------------
-# [C] Funções ALTER-sem-CREATE — 80+ funções da era Lovable Cloud
+# [C] Funções ALTER-sem-CREATE — 80+ funções da era Lovable
 # Todas confirmadas em produção; stub-migrations planejadas (R17+)
 # ---------------------------------------------------------------------------
 adicionar_parcelas

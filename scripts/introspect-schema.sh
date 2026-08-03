@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =====================================================================
 # introspect-schema.sh — Reconstrói ALL_IN_ONE.sql via information_schema
-# + pg_catalog. Não usa pg_dump (indisponível no Lovable Cloud).
+# + pg_catalog. Não usa pg_dump (indisponível no Supabase Cloud gerenciado).
 #
 # Requer PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE no ambiente.
 # Saída padrão: supabase/migrations-snapshot/ALL_IN_ONE.sql

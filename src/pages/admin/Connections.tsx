@@ -172,7 +172,7 @@ export default function AdminConnectionsPage() {
     if (!error && data) {
       setConnections(data);
       const externalConn = data.find(
-        (c: SystemConnection) => c.provider === 'supabase_external' || c.name === 'FATOR X'
+        (c: SystemConnection) => c.provider === 'supabase_external' || c.name === 'Evolution DB'
       );
       if (externalConn?.config?.url && externalConn?.config?.anon_key) {
         setExternalUrl(externalConn.config.url);

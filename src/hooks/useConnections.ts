@@ -101,7 +101,7 @@ export function useConnections() {
   useEffect(() => {
     if (externalConnInitializedRef.current || connections.length === 0) return;
     const externalConn = connections.find(
-      (c) => c.provider === 'supabase_external' || c.name === 'FATOR X'
+      (c) => c.provider === 'supabase_external' || c.name === 'Evolution DB'
     );
     if (externalConn?.config?.url && externalConn?.config?.anon_key) {
       externalConnInitializedRef.current = true;

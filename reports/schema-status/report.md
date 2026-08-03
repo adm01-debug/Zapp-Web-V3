@@ -1,6 +1,6 @@
 # Schema Status Report — ✅ OK
 
-- **Gerado em:** 2026-07-27T01:02:13.206Z
+- **Gerado em:** 2026-08-03T16:51:41.418Z
 - **Requeridos:** `zapp, evo`
 
 ## Local (arquivo `types.ts`)
@@ -9,7 +9,7 @@
 |-------|-------|
 | Status | ✅ ok |
 | Arquivo existe | ✅ `src/integrations/supabase/types.ts` |
-| Schemas presentes | `__InternalSupabase`, `public`, `zapp`, `evo` |
+| Schemas presentes | `evo`, `public`, `zapp` |
 | Schemas ausentes | _(nenhum)_ |
 
 ## Remoto (`postgres-meta`)

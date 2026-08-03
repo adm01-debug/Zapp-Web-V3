@@ -1,5 +1,41 @@
 # 📜 Changelog — ZAPP WEB
 
+## [2.3.0] - 2026-08-03 — Consolidação Single-DB (FATOR X + Lovable Cloud)
+
+### Auditoria FATOR X (PR #732-#735)
+
+- **108 arquivos, −1.979 linhas**
+- Edge functions obsoletas removidas: external-db-bridge, analyze-external-db
+- Libs removidas: externalProxyBreaker.ts, externalProxyFetch.ts
+- externalProxy.ts: migrado de HTTP proxy → Supabase direto
+- useRealtimeInbox.ts: removido USE_EXTERNAL_DB (172 linhas de dead code)
+- Labels: 'FATOR X' → 'Evolution DB' em 71 arquivos
+- proxy.test.ts: reescrito para Supabase direto (21/21 passando)
+- DB: migration para fn_constraints_reference_pipeline (FATOR X → Evolution DB)
+
+### Auditoria Lovable Cloud (PR #736)
+
+- **39 arquivos, +147/−108 linhas**
+- UI labels: 'Lovable Cloud Proxy' → 'App Backend'
+- Docs: SELF-HOSTED-DATABASE-GUIDE reescrito para single-DB
+- ENV_SETUP, FUNCTIONALITIES, runbooks, TECHNICAL_DOCUMENTATION atualizados
+- DB: migration com wrapper ops.check_schema_parity()
+
+### Limpeza residual
+
+- eslint.config.js: comentário atualizado
+- Variáveis fatorX renomeadas → evoConn
+- scripts/check-fe-be-sync.sh: diretório fatorx-migrations removido
+- FATOR_X_URL e FATOR_X_SERVICE_ROLE_KEY eliminados
+
+### Segurança
+
+- external-db-proxy: auth mantida (requireUser)
+- LOVABLE_API_KEY preservado (gateway IA ativo)
+- CORS lovableproject.com preservado (preview environments)
+
+---
+
 ## [2.2.0] - 2026-07-31 — Lint Cleanup Total (0 erros / 0 warnings) + Design Tokens
 
 ### 🟢 Qualidade de Código

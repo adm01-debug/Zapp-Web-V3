@@ -1,12 +1,12 @@
 /**
- * ⚠️ COMMENTED OUT — FATOR X / external-db-proxy removal wave
+ * ⚠️ COMMENTED OUT — external-db-proxy removal wave (external DB consolidated)
  *
  * This file unit-tested `src/lib/externalProxy.ts` (queryExternalProxy, circuit
  * breaker, retry/coalescing, telemetry), the client that routed queries through
- * the obsolete `external-db-proxy` edge function to the FATOR X external DB.
+ * the obsolete `external-db-proxy` edge function to the external Evolution DB.
  *
- * The FATOR X external DB was discontinued; the app now talks to
- * the self-hosted Supabase directly (branch fix/remove-fator-x-obsolete-edge-fns-v1).
+ * The external Evolution DB was discontinued; the app now talks to
+ * the self-hosted Supabase directly.
  * The proxy client is slated for removal, so its unit tests are commented out for
  * history instead of being deleted. Remove this file together with
  * `src/lib/externalProxy.ts` and its remaining importers.
@@ -616,6 +616,6 @@ describe('config auth lock — session-wide', () => {
 // ── Deprecated placeholder ───────────────────────────────────────────────────
 // The original suites are preserved commented-out above (see header note).
 // This placeholder keeps vitest from failing the file with "No test suite found".
-describe.skip('externalProxy — deprecated (FATOR X removal)', () => {
+describe.skip('externalProxy — deprecated (external DB path removal)', () => {
   it('original suites commented out; see header note', () => {});
 });
