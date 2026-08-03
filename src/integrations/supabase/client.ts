@@ -364,8 +364,44 @@ function reportRealFailure(err: unknown): void {
     .catch(() => {});
 }
 
-/** Fetch customizado injetado no supabase-js: timeout (boundedFetch) + retry (F9-04). */
-export const retryFetch: typeof fetch = (input, init) => {
+/** Pool de concorrência para o backend Supabase self-hosted.
+ *
+ * SEM este limitador, o browser abre até 6 conexões simultâneas por domínio
+ * (HTTP/1.1). Na inbox com 5+ contatos visíveis, cada um dispara 2+ RPCs
+ * (get_contact_360_by_phone + rpc_list_messages_lite), totalizando 10+
+ * requisições simultâneas. As que excedem o limite ficam em fila no browser
+ * (até 4-6s de latência) enquanto o pool Supabase também pode saturar.
+ *
+ * O semáforo limita a 3 requisições simultâneas para o backend Supabase,
+ * garantindo que as demais aguardam em JS (com timeout curto) em vez de
+ * congestionar o pool TCP e o connection pool do Supavisor/Kong.
+ *
+ * Requisições de auth NUNCA passam pelo semáforo (já são bypass no retryFetch). */
+const SUPABASE_MAX_CONCURRENT = 3;
+let _supabaseInFlight = 0;
+const _supabaseQueue: Array<() => void> = [];
+
+function _acquireSupabaseSlot(): Promise<void> {
+  if (_supabaseInFlight < SUPABASE_MAX_CONCURRENT) {
+    _supabaseInFlight++;
+    return Promise.resolve();
+  }
+  return new Promise<void>((resolve) => {
+    _supabaseQueue.push(() => {
+      _supabaseInFlight++;
+      resolve();
+    });
+  });
+}
+
+function _releaseSupabaseSlot(): void {
+  _supabaseInFlight--;
+  const next = _supabaseQueue.shift();
+  if (next) next();
+}
+
+/** Fetch customizado injetado no supabase-js: timeout (boundedFetch) + retry (F9-04) + semáforo de concorrência. */
+export const retryFetch: typeof fetch = async (input, init) => {
   if (isAuthRequest(input) || hasStreamBody(init)) {
     // Auth requests nunca devem ser abortados por unmount do React
     // (StrictMode remount abortava o getSession e o supabase-js retentava em loop)
@@ -376,39 +412,46 @@ export const retryFetch: typeof fetch = (input, init) => {
     });
   }
 
-  return withRetry(
-    async () => {
-      const response = await boundedFetch(input, init);
-      if (response.status === 429) {
-        // Rate-limit: ativa o cooldown global ANTES do retry para que as
-        // demais aquisições de slot esperem e não formem cascata de 429.
-        _rateLimitCooldownUntil = Date.now() + RATE_LIMIT_COOLDOWN_MS;
-        // Não consumimos o body: a resposta será descartada e refeita.
-        throw new RetryableHttpError(response.status);
-      }
-      if (response.status >= 500) {
-        // Não consumimos o body: a resposta será descartada e refeita.
-        throw new RetryableHttpError(response.status);
-      }
-      return response;
-    },
-    {
-      maxRetries: SUPABASE_RETRY_MAX_RETRIES,
-      baseDelayMs: SUPABASE_RETRY_BASE_DELAY_MS,
-      maxDelayMs: SUPABASE_RETRY_MAX_DELAY_MS,
-      shouldRetry: shouldRetryFetchError,
-      onRetry: (err, attempt) => {
-        log.warn(
-          `[Supabase] Tentativa ${attempt}/${SUPABASE_RETRY_MAX_RETRIES} falhou ` +
-            `(${describeFetchError(err)}); retentando com backoff`
-        );
+  // Semáforo: adquire slot antes de disparar a requisição.
+  // Evita que 10+ RPCs simultâneas saturem o pool TCP e o Supavisor.
+  await _acquireSupabaseSlot();
+  try {
+    return await withRetry(
+      async () => {
+        const response = await boundedFetch(input, init);
+        if (response.status === 429) {
+          // Rate-limit: ativa o cooldown global ANTES do retry para que as
+          // demais aquisições de slot esperem e não formem cascata de 429.
+          _rateLimitCooldownUntil = Date.now() + RATE_LIMIT_COOLDOWN_MS;
+          // Não consumimos o body: a resposta será descartada e refeita.
+          throw new RetryableHttpError(response.status);
+        }
+        if (response.status >= 500) {
+          // Não consumimos o body: a resposta será descartada e refeita.
+          throw new RetryableHttpError(response.status);
+        }
+        return response;
       },
-    },
-  ).catch((err: unknown) => {
-    // Só acusa o monitor após esgotar as tentativas.
-    reportRealFailure(err);
-    throw err;
-  });
+      {
+        maxRetries: SUPABASE_RETRY_MAX_RETRIES,
+        baseDelayMs: SUPABASE_RETRY_BASE_DELAY_MS,
+        maxDelayMs: SUPABASE_RETRY_MAX_DELAY_MS,
+        shouldRetry: shouldRetryFetchError,
+        onRetry: (err, attempt) => {
+          log.warn(
+            `[Supabase] Tentativa ${attempt}/${SUPABASE_RETRY_MAX_RETRIES} falhou ` +
+              `(${describeFetchError(err)}); retentando com backoff`
+          );
+        },
+      },
+    ).catch((err: unknown) => {
+      // Só acusa o monitor após esgotar as tentativas.
+      reportRealFailure(err);
+      throw err;
+    });
+  } finally {
+    _releaseSupabaseSlot();
+  }
 };
 
 // ---------------------------------------------------------------------------
