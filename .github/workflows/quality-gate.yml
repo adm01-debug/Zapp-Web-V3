@@ -20,7 +20,7 @@ jobs:
       VITE_EXTERNAL_SUPABASE_URL: https://example.supabase.co
       VITE_EXTERNAL_SUPABASE_ANON_KEY: test-anon-key
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -30,7 +30,7 @@ jobs:
           bun-version: 1.3.14
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.bun/install/cache
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}

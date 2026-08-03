@@ -5,6 +5,15 @@
 // outra função exige Authorization: Bearer <JWT válido>.
 
 import * as jose from 'https://deno.land/x/jose@v4.14.4/index.ts'
+import { initSentry, captureException } from '../_shared/sentry.ts'
+
+// Inicializa Sentry UMA vez por container — cobre 100% das Edge Functions
+// sem precisar alterar cada uma individualmente
+let sentryReady = false
+try {
+  sentryReady = initSentry('edge-runtime-main')
+  if (sentryReady) console.error('[main] Sentry initialized for global error tracking')
+} catch (_) { /* noop — Sentry não deve derrubar o entrypoint */ }
 
 // Cold-start indicator — logs once per container lifecycle. Remove in production if verbose logging is undesired.
 
@@ -25,6 +34,7 @@ const PUBLIC_FNS = new Set<string>([
   'email-track-pixel',
   'email-track-link',
   'health-check',
+  'db-health-monitor',
   'status',
   'login-attempts',
   // cron/alert com segredo próprio (CRON_SECRET / *_SECRET)
@@ -139,6 +149,7 @@ Deno.serve(async (req: Request) => {
       }
     } catch (e) {
       console.error(e)
+      if (sentryReady) captureException(e, { functionName: 'edge-runtime-main', requestUrl: req.url })
       return new Response(JSON.stringify({ msg: 'Authorization failed' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
@@ -170,6 +181,7 @@ Deno.serve(async (req: Request) => {
     return await worker.fetch(req)
   } catch (e) {
     console.error('worker error:', e)
+    if (sentryReady) captureException(e, { functionName: service_name, requestUrl: req.url })
     return new Response(JSON.stringify({ msg: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

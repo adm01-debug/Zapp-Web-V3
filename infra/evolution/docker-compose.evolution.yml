@@ -121,7 +121,7 @@ services:
       - METRICS_AUTH_REQUIRED=true
       - METRICS_USER=prometheus
       - METRICS_ALLOWED_IPS=127.0.0.1,::1,10.0.0.0/8
-      - SENTRY_DSN=https://9c9c4f6b162143938bf5c5b20cf47837@erros.atomicabr.com.br/1
+      - SENTRY_DSN=https://4aac50926105fab9dea5a352266ff88b@o4511422295179264.ingest.de.sentry.io/4511422298325072
       - DATABASE_ENABLED=true
       - DATABASE_PROVIDER=postgresql
       - DATABASE_CONNECTION_CLIENT_NAME=evolution

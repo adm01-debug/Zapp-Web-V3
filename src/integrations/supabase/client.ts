@@ -159,9 +159,26 @@ const boundedFetch: typeof fetch = (input, init) => {
     }
   }
 
-  return fetch(input, { ...init, signal: controller.signal }).finally(() =>
-    clearTimeout(timeoutId),
-  );
+  return fetch(input, { ...init, signal: controller.signal })
+    .catch((err: unknown) => {
+      // Reporta APENAS falhas reais de conectividade: timeout do nosso
+      // AbortController (TimeoutError) ou erro de rede (TypeError).
+      // Aborts iniciados pelo caller (realtime, navegação) são ignorados
+      // para não acusar backend-down falsamente.
+      const isRealFailure =
+        (err instanceof Error && err.name === 'TimeoutError') ||
+        err instanceof TypeError;
+      if (isRealFailure) {
+        // Avisa o monitor de conectividade para marcar backend-down
+        // imediatamente (não espera o próximo heartbeat).
+        // Dynamic import evita ciclo de módulos (client → monitor → client).
+        void import('./connectivityMonitor')
+          .then((m) => m.reportSupabaseRequestFailure(err))
+          .catch(() => {});
+      }
+      throw err;
+    })
+    .finally(() => clearTimeout(timeoutId));
 };
 
 // ---------------------------------------------------------------------------
