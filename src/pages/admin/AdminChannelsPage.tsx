@@ -54,8 +54,15 @@ function emptyChannel(): Partial<ServiceChannel> {
     sticky_enabled: false,
     sticky_ttl_hours: 24,
     is_default: false,
-    color: "bg-primary",
+    color: "var(--primary)",
   };
+}
+
+// F7-10: guard against Tailwind class names stored as color (e.g. "bg-primary").
+function resolveColor(c?: string | null): string | undefined {
+  if (!c) return undefined;
+  if (c.startsWith('#') || c.startsWith('rgb') || c.startsWith('hsl') || c.startsWith('var(')) return c;
+  return 'var(--primary)';
 }
 
 /** Admin Channels Page. */
@@ -139,14 +146,15 @@ export default function AdminChannelsPage() {
           {filteredChannels.map((ch) => {
             const queue = queues.find((q) => q.id === ch.default_queue_id);
             const wpp = wppConns.find((w) => w.id === ch.whatsapp_connection_id);
-            const statusInfo = STATUS_BADGE[ch.status];
+            // F7-19: defensive fallback for unmapped statuses.
+            const statusInfo = STATUS_BADGE[ch.status] ?? { label: ch.status, variant: 'outline' as const };
             return (
               <Card key={ch.id}>
                 <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
                   <div className="flex items-center gap-3">
                     <span
                       className="w-9 h-9 rounded-full grid place-items-center text-foreground"
-                      style={{ backgroundColor: ch.color }}
+                      style={{ backgroundColor: resolveColor(ch.color) }}
                       aria-hidden
                     >
                       {channelIcon(ch.channel_type)}
@@ -340,7 +348,7 @@ export default function AdminChannelsPage() {
 
               <div>
                 <Label htmlFor="ch-color">Cor</Label>
-                <Input id="ch-color" type="color" value={editing.color ?? "bg-primary"} onChange={(e) => setEditing({ ...editing, color: e.target.value })} />
+                <Input id="ch-color" type="color" value={editing.color?.startsWith('#') ? editing.color : '#6366f1'} onChange={(e) => setEditing({ ...editing, color: e.target.value })} />
               </div>
               <div>
                 <Label htmlFor="ch-description">Descrição</Label>

@@ -109,8 +109,8 @@ export default function AdminInboxSyncStatusPage() {
             O cursor externo (<code className="">evolution_messages</code>) não recebe mensagens da
             instância <strong>{INSTANCE}</strong> há mais de{' '}
             <strong>{alertThresholdMin} min</strong>. Verifique o webhook em{' '}
-            <Link to="/admin/webhook-overview" className="underline">
-              Webhook Overview
+            <Link to="/admin/whatsapp-logs" className="underline">
+              WhatsApp Logs
             </Link>{' '}
             e o status da instância em{' '}
             <Link to="/admin/channels" className="underline">
