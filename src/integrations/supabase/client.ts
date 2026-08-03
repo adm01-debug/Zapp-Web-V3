@@ -263,7 +263,10 @@ function reportRealFailure(err: unknown): void {
 /** Fetch customizado injetado no supabase-js: timeout (boundedFetch) + retry (F9-04). */
 export const retryFetch: typeof fetch = (input, init) => {
   if (isAuthRequest(input) || hasStreamBody(init)) {
-    return boundedFetch(input, init).catch((err: unknown) => {
+    // Auth requests nunca devem ser abortados por unmount do React
+    // (StrictMode remount abortava o getSession e o supabase-js retentava em loop)
+    const { signal: _callerSignal, ...restInit } = init ?? {};
+    return boundedFetch(input, restInit as RequestInit).catch((err: unknown) => {
       reportRealFailure(err);
       throw err;
     });
