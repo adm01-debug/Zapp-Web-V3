@@ -1,7 +1,0 @@
--- Revoke from everyone
-REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC;
-REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM anon;
-
--- Grant to safe roles
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO service_role;

@@ -1,1 +1,0 @@
-ALTER TABLE public.sla_rules ADD COLUMN metadata jsonb DEFAULT '{}'::jsonb;
