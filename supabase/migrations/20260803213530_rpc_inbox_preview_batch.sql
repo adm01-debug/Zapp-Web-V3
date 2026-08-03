@@ -29,6 +29,6 @@ AS $$
         AND deleted_at IS NULL
       ORDER BY remote_jid, created_at DESC
     ) msg
-  ) sub
-  LIMIT p_limit;
+    LIMIT p_limit  -- limits number of JIDs returned, applied per-DISTINCT batch
+  ) sub;
 $$;

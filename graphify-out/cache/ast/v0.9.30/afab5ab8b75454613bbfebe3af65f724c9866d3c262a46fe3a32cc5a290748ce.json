@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260801185500_r27_security_workspace_isolation_rt28_31_sql", "label": "20260801185500_r27_security_workspace_isolation_rt28_31.sql", "file_type": "code", "source_file": "supabase/migrations/20260801185500_r27_security_workspace_isolation_rt28_31.sql", "source_location": null}], "edges": []}

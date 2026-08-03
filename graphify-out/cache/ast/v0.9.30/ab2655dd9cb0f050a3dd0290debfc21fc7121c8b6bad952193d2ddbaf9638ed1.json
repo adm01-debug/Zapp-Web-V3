@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_infra_migrations_20260711_security_revoke_anon_secdef_sql", "label": "20260711_security_revoke_anon_secdef.sql", "file_type": "code", "source_file": "infra/migrations/20260711_security_revoke_anon_secdef.sql", "source_location": null}], "edges": []}

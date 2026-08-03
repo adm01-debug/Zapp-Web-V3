@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Activity, Server, ShieldCheck, Zap, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { BridgeStatus } from '../useBridgeStatus';
+import type { BridgeStatus } from '@/hooks/useBridgeStatus';
 
 interface BridgeCoreServicesCardProps {
   lovableDb: boolean | null;

@@ -27,8 +27,11 @@ const log = getLogger('RealtimeMessages');
 // montagem) deram lugar a páginas de CONTACTS_PAGE_SIZE contatos (cursor
 // updated_at+id) e MESSAGES_PAGE_SIZE mensagens recentes (cursor
 // created_at+id), com load-more sob demanda via loadMoreConversations.
-const CONTACTS_PAGE_SIZE = 100;
-const MESSAGES_PAGE_SIZE = 100;
+// F4-18 (2026-08-03): CONTACTS_PAGE_SIZE 100→30 e MESSAGES_PAGE_SIZE 100→50
+// — carga inicial mais leve (menos payload por GET no inbox load); o scroll
+// infinito continua funcionando via loadMoreConversations com os cursors.
+const CONTACTS_PAGE_SIZE = 30;
+const MESSAGES_PAGE_SIZE = 50;
 const CONTACT_FETCH_CHUNK_SIZE = 200;
 
 /** Cursor de paginação de contatos: (updated_at, id) — ordem estável desc. */
@@ -167,6 +170,11 @@ export function useRealtimeMessages() {
   const hasMoreContactsRef = useRef(false);
   const hasMoreMessagesRef = useRef(false);
   const loadMoreInFlightRef = useRef(false);
+  // F4-18: dedupe de fetch inicial — se fetchConversations já está em curso
+  // (remount/StrictMode, refetch pós-send, fallback de visibilitychange),
+  // chamadas concorrentes são descartadas em vez de disparar outro par de
+  // GETs. O fetch em curso já resetou a paginação e popula o estado.
+  const fetchInFlightRef = useRef(false);
   const [hasMoreConversations, setHasMoreConversations] = useState(false);
   const [loadingMoreConversations, setLoadingMoreConversations] = useState(false);
 
@@ -476,6 +484,9 @@ export function useRealtimeMessages() {
   // todos os setState após await (isMountedRef).
   const fetchConversations = useCallback(async () => {
     if (!isMountedRef.current) return;
+    // F4-18: descarta fetch concorrente (já existe um em curso).
+    if (fetchInFlightRef.current) return;
+    fetchInFlightRef.current = true;
     setLoading(true);
     setError(null);
     // Reset do estado de paginação (refetch = recarrega do zero).
@@ -534,6 +545,7 @@ export function useRealtimeMessages() {
         setError(err instanceof Error ? err.message : 'Failed to fetch conversations');
       }
     } finally {
+      fetchInFlightRef.current = false;
       if (isMountedRef.current) setLoading(false);
     }
   }, [commitConversations, fetchContactsPage, fetchMessagesPage, hydrateMissingMessageContacts]);
@@ -746,40 +758,112 @@ export function useRealtimeMessages() {
     return response;
   };
 
-  const markAsRead = async (contactId: string) => {
-    // ── UUID guard ──────────────────────────────────────────────────────────
-    // messages.contact_id (and evo.evolution_messages.contact_id) are uuid
-    // columns. selectedContactId pode vir de deep-link como JID/telefone
-    // (ex.: "551146375517") em vez de UUID — passar isso ao .eq() do
-    // PostgREST causaria 400 "invalid input syntax for type uuid".
-    // Pular silenciosamente.
-    if (!isValidUUID(contactId)) {
-      log.warn(
-        '[markAsRead] contactId is not a valid UUID — skipping to prevent 400 (likely a WhatsApp JID)',
-        { contactId }
-      );
-      return;
+  // ── Batch markAsRead (2026-08-03) ────────────────────────────────────────
+  // Produção: 22 PATCH individuais em rajada no inbox load (1 por conversa
+  // selecionada, cada um retentado no 429 do Kong — ver logs
+  // www.zappweb.app.br-*.log: PATCH /rest/v1/messages?contact_id=eq.X&
+  // sender=eq.contact&is_read=eq.false). As chamadas agora são coalescidas
+  // num buffer e descarregadas em UMA chamada batch:
+  //   dbFrom('messages').update({is_read:true}).in('contact_id', ids)
+  //     .eq('sender','contact').eq('is_read',false)
+  // O update otimista (commitConversations) continua IMEDIATO por clique —
+  // só o PATCH é agrupado (flush após MARK_READ_FLUSH_MS de inatividade, ou
+  // no unmount em fire-and-forget para não perder writes).
+  const MARK_READ_FLUSH_MS = 250;
+  const pendingMarkReadRef = useRef<Set<string>>(new Set());
+  const markReadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushMarkAsRead = useCallback(async () => {
+    if (markReadTimerRef.current !== null) {
+      clearTimeout(markReadTimerRef.current);
+      markReadTimerRef.current = null;
     }
-    // ────────────────────────────────────────────────────────────────────────
+    const ids = Array.from(pendingMarkReadRef.current);
+    pendingMarkReadRef.current = new Set();
+    if (ids.length === 0) return;
 
     const { error } = await dbFrom('messages')
       .update({ is_read: true })
-      .eq('contact_id', contactId)
+      .in('contact_id', ids)
       .eq('sender', 'contact')
       .eq('is_read', false);
-    if (error) log.error('Error marking messages as read:', error);
+    if (error) log.error('Error marking messages as read (batch):', error);
 
     // Touch last_seen throttled global (máx. 1 PATCH a cada 2min, deduplicado entre instâncias)
     touchLastSeen();
+  }, []);
 
-    commitConversations((prev) =>
-      prev.map((c) =>
-        c.contact.id === contactId
-          ? { ...c, messages: c.messages.map((m) => ({ ...m, is_read: true })), unreadCount: 0 }
-          : c
-      )
-    );
-  };
+  const scheduleMarkAsReadFlush = useCallback(() => {
+    if (markReadTimerRef.current !== null) clearTimeout(markReadTimerRef.current);
+    markReadTimerRef.current = setTimeout(() => {
+      markReadTimerRef.current = null;
+      void flushMarkAsRead();
+    }, MARK_READ_FLUSH_MS);
+  }, [flushMarkAsRead]);
+
+  const applyOptimisticRead = useCallback(
+    (contactIds: string[]) => {
+      const idSet = new Set(contactIds);
+      commitConversations((prev) =>
+        prev.map((c) =>
+          idSet.has(c.contact.id)
+            ? { ...c, messages: c.messages.map((m) => ({ ...m, is_read: true })), unreadCount: 0 }
+            : c
+        )
+      );
+    },
+    [commitConversations]
+  );
+
+  const markAsRead = useCallback(
+    async (contactId: string) => {
+      // ── UUID guard ──────────────────────────────────────────────────────────
+      // messages.contact_id (e evo.evolution_messages.contact_id) são uuid
+      // columns. selectedContactId pode vir de deep-link como JID/telefone
+      // (ex.: "551146375517") em vez de UUID — passar isso ao .eq()/.in() do
+      // PostgREST causaria 400 "invalid input syntax for type uuid".
+      // Pular silenciosamente.
+      if (!isValidUUID(contactId)) {
+        log.warn(
+          '[markAsRead] contactId is not a valid UUID — skipping to prevent 400 (likely a WhatsApp JID)',
+          { contactId }
+        );
+        return;
+      }
+      // ────────────────────────────────────────────────────────────────────────
+
+      // Otimista imediato (mesma UX de antes, sem esperar o PATCH)
+      applyOptimisticRead([contactId]);
+      // PATCH coalescido: rajadas de seleção viram 1 chamada .in()
+      pendingMarkReadRef.current.add(contactId);
+      scheduleMarkAsReadFlush();
+    },
+    [applyOptimisticRead, scheduleMarkAsReadFlush]
+  );
+
+  /** Marca várias conversas como lidas em UM PATCH batch (.in('contact_id', ids)). */
+  const markManyAsRead = useCallback(
+    (contactIds: string[]) => {
+      const validIds = contactIds.filter(isValidUUID);
+      if (validIds.length === 0) return;
+      applyOptimisticRead(validIds);
+      for (const id of validIds) pendingMarkReadRef.current.add(id);
+      scheduleMarkAsReadFlush();
+    },
+    [applyOptimisticRead, scheduleMarkAsReadFlush]
+  );
+
+  // Flush pendente no unmount (fire-and-forget) — evita perder writes quando
+  // o usuário navega antes do debounce disparar.
+  useEffect(() => {
+    return () => {
+      if (markReadTimerRef.current !== null) {
+        clearTimeout(markReadTimerRef.current);
+        markReadTimerRef.current = null;
+      }
+      void flushMarkAsRead();
+    };
+  }, [flushMarkAsRead]);
 
   // Subscribe to bus to recompute conversationSendState
   useEffect(() => {
@@ -887,6 +971,7 @@ export function useRealtimeMessages() {
     error,
     sendMessage,
     markAsRead,
+    markManyAsRead,
     refetch: fetchConversations,
     // F4-01: paginação por cursor — load-more sob demanda para scroll
     // infinito da sidebar (páginas de CONTACTS_PAGE_SIZE/MESSAGES_PAGE_SIZE).

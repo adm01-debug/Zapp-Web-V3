@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { useBridgeStatus } from './useBridgeStatus';
+import { useBridgeStatus } from '@/hooks/useBridgeStatus';
 import { BridgeDiagnosticsDialog } from './bridge-status/BridgeDiagnosticsDialog';
 import { BridgeStatusBanner } from './bridge-status/BridgeStatusBanner';
 import { BridgeCoreServicesCard } from './bridge-status/BridgeCoreServicesCard';

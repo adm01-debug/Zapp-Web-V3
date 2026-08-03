@@ -385,6 +385,15 @@ const SUPABASE_MAX_CONCURRENT = 4;
 let _supabaseInFlight = 0;
 const _supabaseQueue: Array<{ resume: () => void; priority: 'normal' | 'high' }> = [];
 
+// Cleanup on page unload: evita memory leak por promises órfãs
+// e garante que a fila não cresça sem limite em SPAs com navegação rápida.
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    _supabaseQueue.length = 0;
+    _supabaseInFlight = 0;
+  }, { once: true });
+}
+
 function _acquireSupabaseSlot(opts?: { priority?: 'normal' | 'high' }): Promise<void> {
   const priority = opts?.priority ?? 'normal';
   if (_supabaseInFlight < SUPABASE_MAX_CONCURRENT) {
@@ -397,8 +406,16 @@ function _acquireSupabaseSlot(opts?: { priority?: 'normal' | 'high' }): Promise<
       priority,
     };
     if (priority === 'high') {
-      // Fura a fila: insere após o último high-priority (antes dos normal)
-      const lastHighIdx = _supabaseQueue.findLastIndex((e) => e.priority === 'high');
+      // Fura a fila: insere após o último high-priority (antes dos normal).
+      // Usa loop reverso manual em vez de findLastIndex() para compatibilidade
+      // com Safari < 15.4 / iOS < 15.4 (findLastIndex é ES2023).
+      let lastHighIdx = -1;
+      for (let i = _supabaseQueue.length - 1; i >= 0; i--) {
+        if (_supabaseQueue[i].priority === 'high') {
+          lastHighIdx = i;
+          break;
+        }
+      }
       if (lastHighIdx >= 0) {
         _supabaseQueue.splice(lastHighIdx + 1, 0, entry);
       } else {

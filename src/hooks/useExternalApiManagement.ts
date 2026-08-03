@@ -154,17 +154,22 @@ export function useExternalContact360BatchRef(phones: string[]) {
         return new Map();
       }
 
-      // Convert JSONB object to Map for O(1) lookups
+      // Convert batch response to Map for O(1) lookups.
+      // RPC returns: { results: [{phone, contact, found, conversation_id}, ...], count: N }
       const map = new Map<string, Contact360Data>();
-      if (data && typeof data === 'object') {
-        for (const [phone, info] of Object.entries(data as Record<string, unknown>)) {
-          map.set(phone, info as Contact360Data);
+      const batchData = data as { results?: Array<{ phone: string; contact: unknown; found: boolean; conversation_id?: string | null }>; count?: number } | null;
+      if (batchData?.results && Array.isArray(batchData.results)) {
+        for (const entry of batchData.results) {
+          if (!entry.found || !entry.contact) continue;
+          const phone = entry.phone;
+          const info = entry.contact as Contact360Data;
+          map.set(phone, info);
           // Also index by cleaned version (without country code)
           const clean = cleanPhone(phone);
-          if (clean !== phone) map.set(clean, info as Contact360Data);
+          if (clean !== phone) map.set(clean, info);
           // Also index with country code
           if (!phone.startsWith('55') && clean.length <= 11) {
-            map.set('55' + clean, info as Contact360Data);
+            map.set('55' + clean, info);
           }
         }
       }

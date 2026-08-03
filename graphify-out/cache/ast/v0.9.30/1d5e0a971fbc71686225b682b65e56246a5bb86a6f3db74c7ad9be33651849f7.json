@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260729190006_harden_secdef_artes_monitoring_sql", "label": "20260729190006_harden_secdef_artes_monitoring.sql", "file_type": "code", "source_file": "supabase/migrations/20260729190006_harden_secdef_artes_monitoring.sql", "source_location": null}], "edges": []}

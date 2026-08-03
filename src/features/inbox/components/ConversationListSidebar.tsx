@@ -1,9 +1,10 @@
-import { useCallback, useRef, useMemo, type RefObject } from 'react';
+import { useCallback, useRef, useMemo, useState, type RefObject } from 'react';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useDensity } from '@/hooks/useDensity';
 import { MobilePullToRefreshIndicator } from '@/components/mobile/MobilePullToRefresh';
 import { VirtualizedRealtimeList } from './VirtualizedRealtimeList';
+import { useExternalContact360Batch } from '@/hooks/useExternalContact360Batch';
 import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
 import { BulkActionsToolbar } from './BulkActionsToolbar';
 import { InboxFilters } from './InboxFilters';
@@ -71,6 +72,12 @@ export function ConversationListSidebar({
   const isMobile = useIsMobile();
   const { density } = useDensity();
   const contactSearchRef = useRef<HTMLInputElement>(null);
+
+  // Lazy-load contact360: o VirtualizedRealtimeList reporta apenas os phones
+  // das conversas DENTRO do viewport; o batch só é disparado para eles
+  // (e o resultado volta via getCRMData → enriquece company_name dos itens).
+  const [visiblePhones, setVisiblePhones] = useState<string[]>([]);
+  const { lookup } = useExternalContact360Batch(visiblePhones);
 
   const sortedFilteredIds = useMemo(
     () => inboxFilters.filteredConversations.map((c) => c.contact.id), // ignore-audit
@@ -482,6 +489,9 @@ export function ConversationListSidebar({
               onLoadMore={inbox.loadMoreConversations}
               hasMore={inbox.hasMoreConversations}
               loadingMore={inbox.loadingMoreConversations}
+              // Lazy-load contact360: só busca dados dos contatos no viewport.
+              onVisiblePhonesChange={setVisiblePhones}
+              getCRMData={lookup}
             />
           </ErrorBoundary>
         )}

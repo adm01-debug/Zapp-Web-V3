@@ -82,6 +82,7 @@ export function useRealtimeInbox() {
   const {
     sendMessage,
     markAsRead,
+    markManyAsRead,
     newMessageNotification,
     dismissNotification,
     setSelectedContact,
@@ -458,6 +459,7 @@ export function useRealtimeInbox() {
     loadingMoreConversations,
     setSelectedContact,
     markAsRead,
+    markManyAsRead,
     loadOlderMessages,
     cancelLoadOlderMessages,
     loadingOlderMessages,

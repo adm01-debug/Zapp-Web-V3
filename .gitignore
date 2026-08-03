@@ -255,4 +255,18 @@ graphify-out/ # Knowledge Graph
 .env*
 !supabase/functions/.env.required
 !supabase/functions/.deployignore
-__pycache__/\n*.pyc
+__pycache__/
+*.pyc
+
+# ====================
+# AGENTES AI / ECC TOOLS (gerados por bots — NUNCA versionar)
+# ====================
+# ECC Tools bot gerou 11 arquivos em 21/07/2026 (.agents/, .codex/, .claude/)
+# e foram removidos em 0873919e3 por serem código morto (score 0/7, info
+# incorreta, redundantes com CLAUDE.md e AGENTS.md versionados na raiz).
+# Claude Code (`claude /init`), Codex CLI (`codex`) e o ECC Tools podem
+# recriar essas pastas na raiz a qualquer momento — sem estas regras, um
+# `git add -A` acidental os reintroduziria (mesmo incidente do node_modules).
+.claude/
+.agents/
+.codex/

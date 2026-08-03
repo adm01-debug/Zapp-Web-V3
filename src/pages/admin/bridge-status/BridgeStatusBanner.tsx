@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { CheckCircle2, AlertTriangle, WifiOff, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { BridgeStatus } from '../useBridgeStatus';
+import type { BridgeStatus } from '@/hooks/useBridgeStatus';
 
 interface StatusConfig {
   color: string;
