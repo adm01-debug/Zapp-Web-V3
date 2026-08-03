@@ -9,7 +9,7 @@ import { BridgeInfoRow } from './bridge/BridgeInfoRow';
 import { BridgeStatCard } from './bridge/BridgeStatCard';
 
 /**
- * Painel da ponte Supabase ↔ Evolution API (FATOR X).
+ * Painel da ponte Supabase ↔ Evolution API (Self-Hosted).
  * Refatorado: lógica extraída para useBridgeHealth, subcomponentes modularizados.
  */
 export function BridgeSupabaseView() {
@@ -28,7 +28,7 @@ export function BridgeSupabaseView() {
               <div>
                 <CardTitle className="text-lg">Ponte Supabase ↔ Evolution API</CardTitle>
                 <CardDescription>
-                  Backend externo (FATOR X) que recebe webhooks da Evolution API e
+                  Backend self-hosted que recebe webhooks da Evolution API e
                   persiste todas as mensagens, contatos e conversas.
                 </CardDescription>
               </div>

@@ -57,7 +57,7 @@ export function EvolutionFallbackStatusCard() {
             <Badge variant={status.variant}>{status.label}</Badge>
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Telemetria de detecção de fallback FATOR X em find-chats, find-contacts e fetch-profile.
+            Telemetria de detecção de fallback Evolution DB em find-chats, find-contacts e fetch-profile.
           </p>
         </div>
         <div className="flex items-center gap-2">

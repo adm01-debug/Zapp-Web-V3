@@ -6,7 +6,7 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { getExternalSupabase } from '@/integrations/supabase/externalClient';
 import { toast } from '@/hooks/use-toast';
 
-// Lazy: getExternalSupabase() can return null when FATOR X env vars are absent.
+// Lazy: getExternalSupabase() can return null when self-hosted env vars are absent.
 // Resolve at call time so module import never crashes.
 const getClient = () => getExternalSupabase();
 
@@ -133,7 +133,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
   );
 
   /**
-   * Aplica a tag recomendada via FATOR X (rpc_upsert_contact). Mantém auditoria
+   * Aplica a tag recomendada via Evolution DB (rpc_upsert_contact). Mantém auditoria
    * em automation_executions.applied_tags. NÃO altera o status — o usuário ainda
    * decide aceitar/descartar a sugestão de texto separadamente.
    */

@@ -23,14 +23,14 @@ export async function withV237Fallback<T>(
     if (result && typeof result === 'object') {
       const wrapped = result as { error?: unknown; status?: number };
       if (isEndpointUnavailable(wrapped) || wrapped.error === 'not_found') {
-        logV237.warn(`[${label}] primary returned not-found payload; using FATOR X fallback`);
+        logV237.warn(`[${label}] primary returned not-found payload; using Evolution DB fallback`);
         return await fallback();
       }
     }
     return result;
   } catch (err) {
     if (isEndpointUnavailable(err)) {
-      logV237.warn(`[${label}] primary failed (${(err as Error)?.message}); falling back to FATOR X`);
+      logV237.warn(`[${label}] primary failed (${(err as Error)?.message}); falling back to Evolution DB`);
       return await fallback();
     }
     throw err;
@@ -39,7 +39,7 @@ export async function withV237Fallback<T>(
 
 function ensureExternal() {
   if (!isExternalConfigured || !externalSupabase) {
-    throw new Error('FATOR X external client is not configured');
+    throw new Error('Evolution DB client is not configured');
   }
   return externalSupabase;
 }

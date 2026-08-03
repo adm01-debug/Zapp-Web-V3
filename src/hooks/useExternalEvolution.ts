@@ -1,5 +1,5 @@
 /**
- * useExternalEvolution — Hooks for reading evolution_messages from external FATOR X DB
+ * useExternalEvolution — Hooks for reading evolution_messages from Evolution DB
  * Replaces the local DB reads for the Inbox when external DB is the source of truth.
  *
  * Pagination strategy (post-incremental refactor):
@@ -458,7 +458,7 @@ export function useExternalConversations(enabled = true) {
 
       if (jidsToFetch.length > 0) {
         try {
-          // Individual calls are safer as rpc_get_contacts (plural) is missing in FATOR X.
+          // Individual calls are safer as rpc_get_contacts (plural) is missing in Evolution DB.
           // We limit concurrent fetches to avoid overloading the proxy.
           const enrichments = await Promise.all(
             jidsToFetch.map((jid) =>

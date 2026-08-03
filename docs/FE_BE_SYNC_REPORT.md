@@ -1,6 +1,7 @@
 # Relatório de Sincronismo Frontend ↔ Backend (camada de banco)
 
 > **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+> **Consolidação (jul/2026)**: banco externo FATOR X descontinuado — dados de WhatsApp/CRM consolidados no schema `evo` do self-hosted único.
 
 
 > Auditoria focada em verificar se **toda chamada do frontend ao Supabase** (`rpc()` e `.from()`) tem uma **definição correspondente** em `supabase/migrations`. Complementa o `check-edge-function-sync.sh` (que cobre apenas Edge Functions).
@@ -18,10 +19,10 @@ A causa-raiz do mascaramento é sistêmica: casts como `(supabase as any).from(.
 
 ## Metodologia
 
-Cruzamento estático: extração de todos os `.rpc('x')` / `.from('y')` em `src/**/*.ts(x)` vs. todos os `CREATE FUNCTION|TABLE|VIEW|MATERIALIZED VIEW` em `supabase/migrations`, `supabase/fatorx-migrations` e `supabase/migrations-from-lovable`. Falsos-positivos foram eliminados manualmente em call-level:
+Cruzamento estático: extração de todos os `.rpc('x')` / `.from('y')` em `src/**/*.ts(x)` vs. todos os `CREATE FUNCTION|TABLE|VIEW|MATERIALIZED VIEW` em `supabase/migrations` e `supabase/migrations-from-lovable`. Falsos-positivos foram eliminados manualmente em call-level:
 
 - **Buckets de Storage** (`storage.from('bucket')`) — não são tabelas. Excluídos.
-- **Bancos externos** (`externalClient.ts` → FATOR X; `zappweb/supabaseClient.ts`) — relações/RPCs que legitimamente não têm migration neste repo. Listados em `scripts/.sync-ignore`.
+- **Bancos externos restantes** (catálogo PromoGifts etc.) — relações/RPCs que legitimamente não têm migration neste repo. Listados em `scripts/.sync-ignore`. (O domínio FATOR X/WhatsApp foi consolidado no Supabase self-hosted em jul/2026 — as tabelas `evolution_*` agora vivem no schema `evo` do próprio banco.)
 - **`CREATE OR REPLACE VIEW`** e views já existentes — contadas como definidas.
 
 ## [A] RPCs órfãs (22)
@@ -40,13 +41,15 @@ Outras: `fn_test_alert_channel`, `get_contact_conversations`, `get_contact_notes
 
 ## Confirmação (não é drift)
 
-Exonerados após verificação call-level: buckets de Storage (`avatars`, `stickers`, `audio-memes`, `audio-messages`, `custom-emojis`, `team-chat-files`, `whatsapp-media`, `chat-media`); relações/RPCs de FATOR X e zappweb (ver `.sync-ignore`); e views já definidas (`whatsapp_official_credentials_safe`, `sts_performance_metrics`, `sts_troubleshooting_report`).
+Exonerados após verificação call-level: buckets de Storage (`avatars`, `stickers`, `audio-memes`, `audio-messages`, `custom-emojis`, `team-chat-files`, `whatsapp-media`, `chat-media`); relações/RPCs externas remanescentes (ver `.sync-ignore`); e views já definidas (`whatsapp_official_credentials_safe`, `sts_performance_metrics`, `sts_troubleshooting_report`). (O domínio FATOR X foi consolidado no schema `evo` do self-hosted em jul/2026.)
 
 ---
 
 ## Anexo — Verificação ao vivo via MCP (2026-07-01)
 
 > Consulta aos bancos reais via MCP, **somente leitura** (introspecção). Nenhuma alteração foi feita em nenhum banco.
+>
+> **Resolução (jul/2026)**: a divergência multi-banco descrita abaixo foi resolvida pela consolidação — o Supabase self-hosted passou a conter as tabelas core (schemas `zapp`/`evo`) e o banco externo FATOR X foi descontinuado. Seção mantida como registro histórico.
 
 ### Achado crítico: divergência entre múltiplos bancos
 
@@ -66,7 +69,7 @@ Das 24 funções ausentes das migrations, **14 existem** no banco atual; **10 n�
 
 ## Pendências (requerem decisão/acesso do time)
 
-1. Confirmar o banco autoritativo e reconciliar migrations ↔ banco (dump necessário).
+1. ~~Confirmar o banco autoritativo e reconciliar migrations ↔ banco (dump necessário).~~ **Resolvido** pela consolidação de jul/2026 (Supabase self-hosted único).
 2. Implementar (ou remover do frontend) as 10 funções + 2 relações genuinamente ausentes.
 3. Corrigir a migration quebrada `20260506203453_*.sql`.
-4. Resolver a divergência de ambiente: o frontend aponta para um banco sem as tabelas core.
+4. ~~Resolver a divergência de ambiente: o frontend aponta para um banco sem as tabelas core.~~ **Resolvido** pela consolidação de jul/2026 (frontend e banco alinhados no self-hosted).

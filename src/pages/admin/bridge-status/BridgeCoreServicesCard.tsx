@@ -66,9 +66,9 @@ export function BridgeCoreServicesCard({
                 <Zap className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold">FATOR X Core (External DB)</p>
+                <p className="text-sm font-semibold">Evolution DB (Self-Hosted)</p>
                 <p className="text-xs text-muted-foreground">
-                  Postgres Externo &amp; Evolution Engine
+                  Postgres Self-Hosted &amp; Evolution Engine
                 </p>
               </div>
             </div>

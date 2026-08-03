@@ -1,4 +1,4 @@
-// audio-transcribe v2.2 (Self-Hosted, vault-aware) — migrado de Cloud Fator X
+// audio-transcribe v2.2 (Self-Hosted, vault-aware) — migrado de Cloud
 // v2.1: F6 security fix — SSRF guard in fetchAudioWithCap (isSafeAudioUrl)
 // v2.2: refactor — dependências migradas dos módulos -legacy para os canônicos
 //       (`auth.ts`, `validation.ts`, `vault.ts`). Sem mudança de comportamento:

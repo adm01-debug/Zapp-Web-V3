@@ -1,3 +1,5 @@
+> ⚠️ SUPERSEDED (2026-07-15): This ADR described the dual-Supabase architecture. The project now uses a single self-hosted Supabase (schema zapp/evo). See externalClient.ts shim.
+
 # ADR-006: Two-Backend Boundary & Communication
 
 > **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [../SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).

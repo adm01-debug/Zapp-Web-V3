@@ -1,6 +1,6 @@
 /**
  * Admin: Auditable log of evolution-webhook events.
- * Filters by event type, instance and date range. Reads from FATOR X
+ * Filters by event type, instance and date range. Reads from Evolution DB
  * `evolution_webhook_events` via external-db-proxy.
  */
 import {
@@ -207,7 +207,7 @@ export default function AdminWebhookEventsPage() {
       )}
 
       <p className="text-center text-xs text-muted-foreground">
-        Fonte: <code>evolution_webhook_events</code> (FATOR X) · Limite 200 registros por consulta ·
+        Fonte: <code>evolution_webhook_events</code> (Evolution DB) · Limite 200 registros por consulta ·
         Auto-refresh a cada 60s
       </p>
     </div>

@@ -1,7 +1,7 @@
 /**
  * Tests for BridgeService — F6-26 / Etapa 2.
  *
- * O `checkHealth` é o probe de conectividade com o Supabase externo (Fator X).
+ * O `checkHealth` é o probe de conectividade com o Supabase externo (Evolution DB).
  * Tem três desfechos que a UI trata de formas diferentes — offline por cliente
  * ausente, online-com-tabela-faltando e offline por erro real — e nenhum deles
  * estava coberto. O caso do 42P01 é o mais sutil: banco alcançável apesar do

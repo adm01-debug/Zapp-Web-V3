@@ -1,6 +1,6 @@
 /**
  * Normalizers for Evolution API responses that historically have inconsistent
- * shapes between v2.3.7 endpoints and the FATOR X RPC fallback.
+ * shapes between v2.3.7 endpoints and the Evolution DB RPC fallback.
  *
  * These helpers guarantee a deterministic return contract regardless of the
  * upstream payload shape (array, wrapped object, null, undefined, missing

@@ -80,9 +80,9 @@ A workspace `/workspace/repos/zapp-web-v3` é **compartilhada** entre processos/
 
 ---
 
-## 6. Backup das edge functions legadas (`_shared` Fator X)
+## 6. Backup das edge functions legadas (`_shared`)
 
-As funções legadas (`audio-transcribe`, `evolution-*`) usam `_shared/mod.ts` com re-exports próprios (`auth-legacy.ts`, `rate-limiter-legacy.ts`, `validation-legacy.ts`) que **vivem no volume de functions e no diretório `supabase/functions-legacy/`** deste repo. Um deploy que sobrescreva o `_shared/` quebra o boot delas.
+As funções legadas do domínio WhatsApp/CRM (`audio-transcribe`, `evolution-*`) usam `_shared/mod.ts` com re-exports próprios (`auth-legacy.ts`, `rate-limiter-legacy.ts`, `validation-legacy.ts`) que **vivem no volume de functions e no diretório `supabase/functions-legacy/`** deste repo. Um deploy que sobrescreva o `_shared/` quebra o boot delas. (Desde a consolidação de jul/2026 elas rodam no Supabase self-hosted único — o FATOR X cloud foi descontinuado e não há mais dependência de banco externo.)
 
 - Backup pós-fix preservado no host: `functions-postfix-20260703-2148.tar.gz` (em `/root/supabase/docker/volumes/`).
 - Arquivos versionados em: `supabase/functions-legacy/_shared/` (merged via PR #176, jul/2026).

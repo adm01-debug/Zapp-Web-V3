@@ -1,4 +1,6 @@
 > **Schema**: O banco usa schema `zapp` (não `public`). Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+>
+> **Consolidação (jul/2026)**: Supabase único self-hosted (`supabase.atomicabr.com.br`, schemas `zapp`/`evo`). As secrets `EXTERNAL_SUPABASE_*` (banco FATOR X) foram **removidas** — não configurar mais.
 
 # Configuração de variáveis de ambiente
 
@@ -39,7 +41,6 @@ Eles ficam disponíveis automaticamente em todas as edge functions via
 
 | Secret                                                              | Usado por                   | Descrição                    |
 | ------------------------------------------------------------------- | --------------------------- | ---------------------------- |
-| `EXTERNAL_SUPABASE_URL` / `EXTERNAL_SUPABASE_ANON_KEY`              | `external-db-proxy`, várias | Banco FATOR X.               |
 | `EVOLUTION_API_URL` / `EVOLUTION_API_KEY`                           | `evolution-*`               | Servidor Evolution API.      |
 | `EVOLUTION_WEBHOOK_SECRET[S]`                                       | `evolution-webhook`         | HMAC dos webhooks.           |
 | `PROMOGIFTS_SUPABASE_URL` / `PROMOGIFTS_SUPABASE_ANON_KEY`          | `promogifts-catalog`        | Catálogo de brindes externo. |
@@ -56,7 +57,7 @@ Eles ficam disponíveis automaticamente em todas as edge functions via
 ## 2. Onde obter cada valor
 
 - **Lovable Cloud (auth/tabelas locais):** painel do projeto → Cloud → Overview.
-- **FATOR X (`evolution_*`):** dashboard do Supabase self-hosted (URL e anon key).
+- **WhatsApp/CRM (`evolution_*`):** o mesmo Supabase self-hosted acima (schema `evo`) — desde a consolidação de jul/2026 o banco externo FATOR X foi descontinuado; não há mais secrets `EXTERNAL_SUPABASE_*`.
 - **Evolution API:** painel da sua instância Evolution (`/manager`).
 - **PromoGifts:** dashboard do projeto Supabase do PromoGifts (mesmo padrão URL +
   anon key). Sem isso, `/promogifts-catalog/health` retorna **503** com a lista
@@ -74,7 +75,6 @@ bun run dev
 
 # 2) Health checks rápidos
 curl https://<project-ref>.supabase.co/functions/v1/promogifts-catalog/health
-curl https://<project-ref>.supabase.co/functions/v1/external-db-proxy   # GET ping
 ```
 
 Resposta esperada do health do PromoGifts:
@@ -83,8 +83,8 @@ Resposta esperada do health do PromoGifts:
 { "status": "ok", "configured": true, "reachable": true, "duration_ms": 120 }
 ```
 
-Se vier `503` com `code: "EXTERNAL_DB_NOT_CONFIGURED"`, leia o campo
-`missing[]` — ele lista exatamente quais secrets faltam.
+Se vier `503` com `code: "EXTERNAL_DB_NOT_CONFIGURED"` (catálogo externo
+PromoGifts), leia o campo `missing[]` — ele lista exatamente quais secrets faltam.
 
 ---
 
@@ -100,8 +100,6 @@ definidos em **Settings → Secrets and variables → Actions** do repositório.
 | `VITE_SUPABASE_URL`                                        | build + Vitest          |
 | `VITE_SUPABASE_PUBLISHABLE_KEY`                            | build + Vitest          |
 | `VITE_SUPABASE_PROJECT_ID`                                 | build                   |
-| `VITE_EXTERNAL_SUPABASE_URL`                               | testes de integração    |
-| `VITE_EXTERNAL_SUPABASE_ANON_KEY`                          | testes de integração    |
 | `EVOLUTION_API_URL` / `EVOLUTION_API_KEY`                  | testes de edge function |
 | `PROMOGIFTS_SUPABASE_URL` / `PROMOGIFTS_SUPABASE_ANON_KEY` | testes do catálogo      |
 
@@ -129,7 +127,7 @@ Ou pela UI: repo → **Settings → Secrets and variables → Actions → New re
 
 | Sintoma                                                  | Causa provável                             | Ação                                                    |
 | -------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------- |
-| `Edge function returned 500: External DB not configured` | Secret faltando no Lovable Cloud           | Adicione em Connectors → Secrets. Sem redeploy manual.  |
+| `Edge function returned 500: External DB not configured` | Secret do catálogo externo (PromoGifts) faltando no Lovable Cloud | Adicione em Connectors → Secrets. Sem redeploy manual.  |
 | `503 EXTERNAL_DB_NOT_CONFIGURED`                         | Mesma causa, nova mensagem detalhada       | Veja `missing[]` na resposta.                           |
 | `502 EXTERNAL_DB_UNREACHABLE`                            | Secrets presentes mas URL/anon key errados | Confira URL (sem `/`) e anon key no painel do Supabase. |
 | Build do Vite ignora variáveis                           | Faltou prefixo `VITE_`                     | Apenas `VITE_*` chegam ao bundle.                       |

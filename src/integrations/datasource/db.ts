@@ -78,7 +78,7 @@ export function dbRemoveChannel(entity: LogicalEntity, channel: RealtimeChannel)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RPC layer — padrão para toda leitura/escrita em `evolution_*` (FATOR X).
+// RPC layer — padrão para toda leitura/escrita em `evolution_*` (Evolution DB).
 //
 // `dbFrom`/`dbChannel` acima continuam servindo entidades Lovable Cloud e
 // realtime. Para o domínio de WhatsApp/CRM use SEMPRE as RPCs:
@@ -118,7 +118,7 @@ export async function dbRpc<P extends object, R>(
   const merged = { ...(def.defaults ?? {}), ...params };
   const startedAt = performance.now();
   const correlationId = generateCorrelationId();
-  const source = def.client === 'external' ? 'externalSupabase' : 'lovableCloud';
+  const source = def.client === 'external' ? 'selfHosted' : 'lovableCloud';
 
   try {
     const { data, error } = await (client as unknown as DynamicRpcClient).rpc(

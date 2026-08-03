@@ -152,7 +152,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
       recordQueryEvent({
         operation: 'select',
-        source: isQueryFailure ? 'externalProxy' : 'lovableCloud',
+        source: isQueryFailure ? 'evolutionDB' : 'lovableCloud',
         target: isStackOverflow ? 'render:stack_overflow' : target,
         durationMs: 0,
         limit: null,

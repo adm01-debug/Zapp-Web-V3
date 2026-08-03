@@ -361,7 +361,7 @@ Todas as RPCs têm `GRANT EXECUTE TO anon, authenticated`.
 - NUNCA migre dados do self-hosted para o Lovable
 - NUNCA duplique RPCs no Supabase Lovable
 - NUNCA altere `externalClient.ts` sem autorização
-- NUNCA use o FATOR X cloud (tdprnylgyrogbbhgdoik) — foi descontinuado
+- NUNCA use o FATOR X cloud (tdprnylgyrogbbhgdoik) — foi consolidado no Supabase Self-Hosted único (`supabase.atomicabr.com.br`, schema `zapp`); o projeto agora usa um único banco
 
 ### Qual banco usar para cada feature:
 

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { safeClient } from "@/integrations/supabase/safeClient";
 
 /**
- * Estatísticas de telemetria de fallback FATOR X agregadas pela RPC
+ * Estatísticas de telemetria de fallback Evolution DB agregadas pela RPC
  * `rpc_evolution_fallback_stats`. Backed by `public.evolution_fallback_events`,
  * populado pela edge function `evolution-api` quando uma resposta v2.3.7
  * indica condição de fallback (404, payload vazio, etc.).

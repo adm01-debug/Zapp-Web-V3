@@ -203,12 +203,12 @@ describe('recordQueryEvent — bySeverity counters', () => {
 
 describe('recordQueryEvent — bySource counters', () => {
   it('counts events per source', () => {
-    recordQueryEvent(makeEvent({ source: 'externalProxy' }));
-    recordQueryEvent(makeEvent({ source: 'externalProxy' }));
-    recordQueryEvent(makeEvent({ source: 'externalSupabase' }));
+    recordQueryEvent(makeEvent({ source: 'evolutionDB' }));
+    recordQueryEvent(makeEvent({ source: 'evolutionDB' }));
+    recordQueryEvent(makeEvent({ source: 'selfHosted' }));
     const snap = getTelemetrySnapshot();
-    expect(snap.bySource['externalProxy']).toBe(2);
-    expect(snap.bySource['externalSupabase']).toBe(1);
+    expect(snap.bySource['evolutionDB']).toBe(2);
+    expect(snap.bySource['selfHosted']).toBe(1);
   });
 });
 
@@ -362,7 +362,7 @@ function makeEvent(
 ): Omit<QueryEvent, 'severity'> & { severity?: QueryEvent['severity'] } {
   return {
     operation: 'select',
-    source: 'externalProxy',
+    source: 'evolutionDB',
     target: 'messages',
     durationMs: 100,
     limit: null,

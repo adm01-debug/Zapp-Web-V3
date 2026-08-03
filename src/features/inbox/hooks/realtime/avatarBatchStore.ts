@@ -2,7 +2,7 @@
  * avatarBatchStore — Gerencia o carregamento e cache dos avatares do WhatsApp.
  *
  * Problema: Componentes de conversa e chat montam em paralelo e tentam resolver
- * a URL do avatar (`profile_picture_url`) individualmente via RPC no FATOR X.
+ * a URL do avatar (`profile_picture_url`) individualmente via RPC no Evolution DB.
  *
  * Solução:
  *  1. Coalesce: Agrupa JIDs solicitados em uma janela de 100ms.

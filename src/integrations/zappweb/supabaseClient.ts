@@ -1,7 +1,7 @@
 /**
  * Zap Webb — Supabase Client (LEITURA + Realtime)
  *
- * FATOR X v6.1: este módulo REEXPORTA o client principal autenticado
+ * v6.1: este módulo REEXPORTA o client principal autenticado
  * (`@/integrations/supabase/client`). Após a consolidação single-database,
  * manter um terceiro client `anon` aqui era inseguro E não-funcional:
  * o `anon` teve todos os grants revogados no domínio `evolution_*`

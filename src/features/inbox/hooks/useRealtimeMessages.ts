@@ -634,7 +634,7 @@ export function useRealtimeMessages() {
     logMessagesSubscribe('useRealtimeMessages', { event: 'UPDATE', table: dbTable('messages') });
     logMessagesSubscribe('useRealtimeMessages', { event: 'DELETE', table: dbTable('messages') });
 
-    // FATOR X v6.2: Realtime na TABELA-FONTE evo.evolution_messages (views public não emitem).
+    // Evolution DB v6.2: Realtime na TABELA-FONTE evo.evolution_messages (views public não emitem).
     // Adapter: a fonte usa from_me/deleted_at; o shape legado da view usa sender/is_deleted.
     const adaptEvoPayload = (
       p: RealtimePostgresChangesPayload<Record<string, unknown>>
@@ -749,12 +749,10 @@ export function useRealtimeMessages() {
   const markAsRead = async (contactId: string) => {
     // ── UUID guard ──────────────────────────────────────────────────────────
     // messages.contact_id (and evo.evolution_messages.contact_id) are uuid
-    // columns. When USE_EXTERNAL_DB=true the selectedContactId in
-    // useRealtimeInbox may be a WhatsApp JID / phone number (e.g. "551146375517")
-    // instead of a UUID. Passing it to PostgREST's .eq() on a uuid column
-    // causes 400 "invalid input syntax for type uuid".
-    // Skip silently — handleSelectConversation already calls evolution-api
-    // to mark messages read on the WhatsApp side when USE_EXTERNAL_DB=true.
+    // columns. selectedContactId pode vir de deep-link como JID/telefone
+    // (ex.: "551146375517") em vez de UUID — passar isso ao .eq() do
+    // PostgREST causaria 400 "invalid input syntax for type uuid".
+    // Pular silenciosamente.
     if (!isValidUUID(contactId)) {
       log.warn(
         '[markAsRead] contactId is not a valid UUID — skipping to prevent 400 (likely a WhatsApp JID)',
