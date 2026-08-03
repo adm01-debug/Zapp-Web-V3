@@ -171,17 +171,17 @@ export default function AdminConnectionsPage() {
 
     if (!error && data) {
       setConnections(data);
-      const fatorX = data.find(
+      const externalConn = data.find(
         (c: SystemConnection) => c.provider === 'supabase_external' || c.name === 'FATOR X'
       );
-      if (fatorX?.config?.url && fatorX?.config?.anon_key) {
-        setExternalUrl(fatorX.config.url);
-        setDraftUrl(fatorX.config.url);
-        setExternalKey(fatorX.config.anon_key);
-        setDraftKey(fatorX.config.anon_key);
+      if (externalConn?.config?.url && externalConn?.config?.anon_key) {
+        setExternalUrl(externalConn.config.url);
+        setDraftUrl(externalConn.config.url);
+        setExternalKey(externalConn.config.anon_key);
+        setDraftKey(externalConn.config.anon_key);
 
         // Sincroniza o cliente em tempo de execução
-        updateRuntimeExternalConfig(fatorX.config.url, fatorX.config.anon_key);
+        updateRuntimeExternalConfig(externalConn.config.url, externalConn.config.anon_key);
       }
     }
     setLoading(false);

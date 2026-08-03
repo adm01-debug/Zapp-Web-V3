@@ -4,7 +4,7 @@
 
 
 ## Visão Geral
-O projeto possui 40+ Edge Functions deployadas automaticamente pelo Lovable Cloud.
+O projeto possui 40+ Edge Functions deployadas no Supabase Self-Hosted (`supabase.atomicabr.com.br`) — o Lovable Cloud foi descontinuado na migração.
 
 ---
 
@@ -56,7 +56,6 @@ O projeto possui 40+ Edge Functions deployadas automaticamente pelo Lovable Clou
 | Função | Descrição |
 |--------|-----------|
 | `bitrix-api` | Integração com Bitrix24 CRM |
-| `external-db-bridge` | Bridge para banco de dados externo |
 | `sicoob-bridge` | Integração com sistema Sicoob |
 | `sicoob-bridge-reply` | Respostas via bridge Sicoob |
 | `promogifts-catalog` | Catálogo de produtos PromoGifts |

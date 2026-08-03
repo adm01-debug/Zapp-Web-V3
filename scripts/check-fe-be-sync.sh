@@ -21,7 +21,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 SRC_DIR="src"
-MIG_DIRS=(supabase/migrations supabase/fatorx-migrations supabase/migrations-from-lovable)
+MIG_DIRS=(supabase/migrations supabase/migrations-from-lovable)
 IGNORE_FILE="scripts/.sync-ignore"
 
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
