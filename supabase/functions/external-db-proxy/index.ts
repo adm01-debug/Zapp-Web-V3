@@ -1,6 +1,6 @@
 // external-db-proxy v1.8 (2026-07-04)
 // Proxy autorizado para consultas de tabelas operacionais.
-// Evolution/FATOR X usa o Supabase self-hosted atomicabr e o schema `evo`.
+// Evolution DB usa o Supabase self-hosted atomicabr e o schema `evo`.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { requireUser } from "../_shared/auth.ts";

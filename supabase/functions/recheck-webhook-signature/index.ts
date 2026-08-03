@@ -2,7 +2,7 @@
 // diagnóstico (válido / inválido + motivo). Não grava nada.
 //
 // Auth: exige Bearer JWT de usuário com role 'admin' (Lovable Cloud).
-// Lê o evento direto do FATOR X via service role do projeto externo.
+// Lê o evento direto do Evolution DB via service role do projeto self-hosted.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';

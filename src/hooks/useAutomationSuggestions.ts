@@ -6,7 +6,7 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { getExternalSupabase } from '@/integrations/supabase/externalClient';
 import { toast } from '@/hooks/use-toast';
 
-// Lazy: getExternalSupabase() can return null when FATOR X env vars are absent.
+// Lazy: getExternalSupabase() can return null when self-hosted env vars are absent.
 // Resolve at call time so module import never crashes.
 const getClient = () => getExternalSupabase();
 

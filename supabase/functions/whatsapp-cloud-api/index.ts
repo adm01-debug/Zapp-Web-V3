@@ -1,6 +1,6 @@
 // Edge Function: whatsapp-cloud-api
 // Mirrors the external surface of `evolution-api` (action, instanceName, number, text, ...)
-// but routes to Meta WhatsApp Cloud API (Graph). Persists outbound messages to FATOR X
+// but routes to Meta WhatsApp Cloud API (Graph). Persists outbound messages to Evolution DB
 // via rpc_insert_message so the Inbox UI sees them in the unified evolution_messages table.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";

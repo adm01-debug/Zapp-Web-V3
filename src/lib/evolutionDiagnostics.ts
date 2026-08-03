@@ -16,7 +16,7 @@ export async function runEvolutionDiagnostics(): Promise<DiagnosticResult[]> {
 
   // 1. Check if external Supabase is configured
   results.push({
-    step: 'Configuração do Banco Externo (FATOR X)',
+    step: 'Configuração do Banco Self-Hosted (Evolution DB)',
     status: isExternalConfigured ? 'ok' : 'fail',
     message: isExternalConfigured
       ? 'URL e Anon Key do seu Supabase externo estão configurados nos Secrets.'
@@ -43,7 +43,7 @@ export async function runEvolutionDiagnostics(): Promise<DiagnosticResult[]> {
       results.push({
         step: 'Evolution Proxy (Edge Function)',
         status: 'ok',
-        message: `Proxy respondendo em ${proxyLatency}ms. Comunicação Lovable -> FATOR X validada.`,
+        message: `Proxy respondendo em ${proxyLatency}ms. Comunicação Lovable -> Self-Hosted validada.`,
         details: proxyData,
       });
 
@@ -83,10 +83,10 @@ export async function runEvolutionDiagnostics(): Promise<DiagnosticResult[]> {
         // Connectivity probe against the external DB — a working query suffices
         const { error: extError } = await extSupabase.from('contacts').select('id').limit(1);
         results.push({
-          step: 'Database Direct (FATOR X)',
+          step: 'Database Direct (Self-Hosted)',
           status: extError ? 'fail' : 'ok',
           message: extError
-            ? `Erro ao acessar o Postgres do FATOR X: ${extError.message}`
+            ? `Erro ao acessar o Postgres self-hosted: ${extError.message}`
             : 'Conexão direta com o banco do seu Supabase externo está OK.',
           details: extError ? { message: extError.message, code: extError.code, hint: extError.hint } : null,
         });

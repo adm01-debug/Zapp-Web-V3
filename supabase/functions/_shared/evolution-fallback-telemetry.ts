@@ -1,8 +1,8 @@
 /**
- * Telemetria de fallback FATOR X — registra quando uma resposta da Evolution
+ * Telemetria de fallback Evolution DB — registra quando uma resposta da Evolution
  * API v2.3.7 indicaria a necessidade de acionar o fallback documentado em
  * `mem://integrations/evolution-api` (find-chats / find-contacts → RPC do
- * FATOR X; fetch-profile → /instance/fetchInstances).
+ * Evolution DB; fetch-profile → /instance/fetchInstances).
  *
  * O fallback funcional ainda NÃO está implementado nessas três actions — esta
  * infra serve como ponto de hook único para que, no momento da implementação,
@@ -71,7 +71,7 @@ const FALLBACK_TARGETS: Record<EvolutionFallbackAction, string> = {
 
 /**
  * Inspeciona o status HTTP + payload do upstream e decide se a resposta indica
- * uma situação onde o fallback FATOR X deveria ser disparado.
+ * uma situação onde o fallback Evolution DB deveria ser disparado.
  *
  * Retorna o motivo (`reason`) ou `null` quando a resposta foi bem sucedida.
  */

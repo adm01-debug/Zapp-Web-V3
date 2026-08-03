@@ -29,8 +29,8 @@ function toRealtimeMessage(optimistic: OptimisticMessage) {
 
 const log = getLogger('useRealtimeInbox');
 
-// Feature flag: use external DB (FATOR X — DESCONTINUADO).
-// Padrão FALSE: FATOR X não é mais usado. Só ativa se VITE_USE_EXTERNAL_DB='true' explicitamente.
+// Feature flag: use external DB (DESCONTINUADO — sempre FALSE).
+// Padrão FALSE: Evolution DB é acessado via client principal self-hosted.
 const USE_EXTERNAL_DB = import.meta.env.VITE_USE_EXTERNAL_DB === 'true';
 
 // F4-08: TTL + sweep do cache de avatares semeados. O Set antigo crescia sem

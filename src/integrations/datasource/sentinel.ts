@@ -1,5 +1,5 @@
 /**
- * Datasource Sentinel — telemetria de acesso ao domínio FATOR X.
+ * Datasource Sentinel — telemetria de acesso ao domínio Evolution DB.
  *
  * ARQUITETURA v6.1 (single-database): as RPCs `evolution_*` rodam no client
  * PRINCIPAL AUTENTICADO (SECURITY DEFINER; `anon` revogado no banco). Chamar

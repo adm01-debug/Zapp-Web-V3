@@ -172,7 +172,7 @@ export default function AdminConnectionsPage() {
     if (!error && data) {
       setConnections(data);
       const fatorX = data.find(
-        (c: SystemConnection) => c.provider === 'supabase_external' || c.name === 'FATOR X'
+        (c: SystemConnection) => c.provider === 'supabase_external' || c.name === 'Evolution DB'
       );
       if (fatorX?.config?.url && fatorX?.config?.anon_key) {
         setExternalUrl(fatorX.config.url);
@@ -251,7 +251,7 @@ export default function AdminConnectionsPage() {
     }
 
     const payload: SystemConnectionPayload = {
-      name: 'FATOR X',
+      name: 'Evolution DB',
       provider: 'supabase_external',
       config: { url: draftUrl, anon_key: draftKey },
       is_active: true,
@@ -259,7 +259,7 @@ export default function AdminConnectionsPage() {
 
     try {
       const existing: SystemConnection | undefined = connections.find(
-        (c: SystemConnection) => c.provider === 'supabase_external' || c.name === 'FATOR X'
+        (c: SystemConnection) => c.provider === 'supabase_external' || c.name === 'Evolution DB'
       );
       const insertPayload = currentUserId ? { ...payload, created_by: currentUserId } : payload;
 
@@ -300,7 +300,7 @@ export default function AdminConnectionsPage() {
           q
             .select('id, updated_at')
             .eq('provider', 'supabase_external')
-            .eq('name', 'FATOR X')
+            .eq('name', 'Evolution DB')
             .limit(1)
       );
       const verify = verifyRows?.[0] ?? null;

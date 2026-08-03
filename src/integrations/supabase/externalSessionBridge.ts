@@ -1,5 +1,5 @@
 /**
- * External Session Bridge — FATOR X (Dual-session hardening)
+ * External Session Bridge — Self-Hosted (Dual-session hardening)
  *
  * Pós-consolidação (2026-07-15): `externalSupabase === supabase` — o app usa
  * apenas um Supabase (self-hosted AtomicaBR, schema `zapp`). Este bridge é

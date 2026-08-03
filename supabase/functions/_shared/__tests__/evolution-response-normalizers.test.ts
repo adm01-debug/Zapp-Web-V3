@@ -2,7 +2,7 @@
  * Unit tests for the response normalizers shared by `find-chats`,
  * `find-contacts` and `fetch-profile`. The normalizers guarantee a
  * deterministic shape regardless of the upstream payload, so the primary
- * (Evolution v2.3.7) and the FATOR X RPC fallback both yield the same
+ * (Evolution v2.3.7) and the Evolution DB RPC fallback both yield the same
  * contract for the frontend (`[]` for lists, `null` for an absent profile).
  */
 

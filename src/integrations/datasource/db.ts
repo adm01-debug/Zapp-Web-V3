@@ -78,7 +78,7 @@ export function dbRemoveChannel(entity: LogicalEntity, channel: RealtimeChannel)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RPC layer — padrão para toda leitura/escrita em `evolution_*` (FATOR X).
+// RPC layer — padrão para toda leitura/escrita em `evolution_*` (Evolution DB).
 //
 // `dbFrom`/`dbChannel` acima continuam servindo entidades Lovable Cloud e
 // realtime. Para o domínio de WhatsApp/CRM use SEMPRE as RPCs:

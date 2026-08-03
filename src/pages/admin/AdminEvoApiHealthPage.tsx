@@ -62,7 +62,7 @@ export default function AdminEvoApiHealthPage() {
             Schema <code>evo_api</code> não está exposto no PostgREST
           </AlertTitle>
           <AlertDescription>
-            Para esta página funcionar, o admin do FATOR X precisa adicionar
+            Para esta página funcionar, o admin do sistema precisa adicionar
             <code className="mx-1">evo_api</code> em{' '}
             <strong>Settings → API → Exposed schemas</strong>
             (ou ajustar <code>db-schemas</code> em <code>postgrest</code>) e reiniciar o PostgREST.
@@ -75,7 +75,7 @@ export default function AdminEvoApiHealthPage() {
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
             <Server className="h-7 w-7 text-primary" />
-            Evolution API · FATOR X
+            Evolution API · Self-Hosted
           </h1>
           <p className="mt-1 text-muted-foreground">
             Saúde, alertas e integridade do schema{' '}

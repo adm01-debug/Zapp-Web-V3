@@ -13,7 +13,7 @@ interface ExternalMsg {
   message_type: string;
 }
 
-// Lazy: getExternalSupabase() can return null when FATOR X env vars are absent.
+// Lazy: getExternalSupabase() can return null when self-hosted env vars are absent.
 // Resolve at call time so module import never crashes the inbox.
 const getClient = () => getExternalSupabase();
 

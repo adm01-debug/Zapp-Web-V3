@@ -1,6 +1,6 @@
 /**
- * Catálogo estático de tabelas e RPCs disponíveis no FATOR X
- * (project: tdprnylgyrogbbhgdoik). Mantenha em sincronia com
+ * Catálogo estático de tabelas e RPCs disponíveis no Evolution DB
+ * (project: supabase.atomicabr.com.br). Mantenha em sincronia com
  * o `<project-knowledge>` quando novas RPCs forem criadas.
  */
 export interface CatalogTable {

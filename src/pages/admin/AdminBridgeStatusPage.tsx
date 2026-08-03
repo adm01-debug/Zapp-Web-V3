@@ -55,7 +55,7 @@ export default function BridgeStatusPage() {
             <Activity className="h-6 w-6 text-primary" /> Status da Ponte (Bridge)
           </h1>
           <p className="text-sm text-muted-foreground">
-            Monitoramento em tempo real do fluxo entre Lovable Cloud e FATOR X (Self-Hosted).
+            Monitoramento em tempo real do fluxo entre Lovable Cloud e Self-Hosted.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -165,10 +165,10 @@ export default function BridgeStatusPage() {
               <WifiOff className="h-4 w-4" />
               <AlertTitle>Guia de Recuperação da Bridge</AlertTitle>
               <AlertDescription className="space-y-2 text-xs">
-                <p>O fluxo entre Lovable e FATOR X está interrompido. Siga os passos:</p>
+                <p>O fluxo entre Lovable e Self-Hosted está interrompido. Siga os passos:</p>
                 <ul className="list-disc space-y-1 pl-5">
                   <li>Verifique se o seu servidor Evolution está com a porta 80/443 exposta.</li>
-                  <li>Teste o acesso ao seu Supabase Externo (FATOR X) via navegador.</li>
+                  <li>Teste o acesso ao seu Supabase Self-Hosted (Evolution DB) via navegador.</li>
                   <li>
                     Certifique-se de que a <code>apikey</code> global não foi alterada.
                   </li>
