@@ -34,6 +34,12 @@
 - LOVABLE_API_KEY preservado (gateway IA ativo)
 - CORS lovableproject.com preservado (preview environments)
 
+### Correções pós-auditoria
+
+- 3 testes quebrados por mock createLogger faltando (externalProxy, resilienceSimulation, v237Fallbacks)
+- 2 edge functions com deno check corrigido (evolution-sender, log-idempotency-miss)
+- 4 referências residuais FATOR X removidas (AdminExternalDbExplorer, catalog, connection-health-check, evolution-sender)
+
 ---
 
 ## [2.2.0] - 2026-07-31 — Lint Cleanup Total (0 erros / 0 warnings) + Design Tokens

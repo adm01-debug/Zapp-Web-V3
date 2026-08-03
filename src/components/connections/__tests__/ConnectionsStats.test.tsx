@@ -146,12 +146,12 @@ describe('<ConnectionsStats /> — sinalização visual de pendência', () => {
   it('usa a cor de alerta quando há conexão precisando de ação', () => {
     render(<ConnectionsStats connections={[makeConnection({ status: 'disconnected' })]} />);
     const value = within(card('Ações necessárias')).getByText('1');
-    expect(value.className).toContain('text-destructive-foreground');
+    expect(value.className).toContain('text-destructive');
   });
 
   it('não usa a cor de alerta quando está tudo conectado', () => {
     render(<ConnectionsStats connections={[makeConnection({ status: 'connected' })]} />);
     const value = within(card('Ações necessárias')).getByText('0');
-    expect(value.className).not.toContain('text-destructive-foreground');
+    expect(value.className).not.toContain('text-destructive');
   });
 });

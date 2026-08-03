@@ -9,6 +9,210 @@ export type Json =
 export type Database = {
   evo: {
     Tables: {
+      _backup_evolution_alerts_20260802: {
+        Row: {
+          acknowledged: boolean | null
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string | null
+          contact_id: string | null
+          created_at: string | null
+          description: string | null
+          escalated_at: string | null
+          id: string | null
+          message: string | null
+          notified_at: string | null
+          payload: Json | null
+          remote_jid: string | null
+          resolved: boolean | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string | null
+          title: string | null
+        }
+        Insert: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          escalated_at?: string | null
+          id?: string | null
+          message?: string | null
+          notified_at?: string | null
+          payload?: Json | null
+          remote_jid?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string | null
+          title?: string | null
+        }
+        Update: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          escalated_at?: string | null
+          id?: string | null
+          message?: string | null
+          notified_at?: string | null
+          payload?: Json | null
+          remote_jid?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string | null
+          title?: string | null
+        }
+        Relationships: []
+      }
+      _backup_evolution_contacts_20260802: {
+        Row: {
+          assigned_to: string | null
+          company: string | null
+          created_at: string | null
+          dedup_hash: string | null
+          deleted_at: string | null
+          deleted_reason: string | null
+          email: string | null
+          first_contact_at: string | null
+          first_name: string | null
+          full_name: string | null
+          id: string | null
+          instance_name: string | null
+          last_message_at: string | null
+          last_name: string | null
+          lead_score: number | null
+          lead_source: string | null
+          lead_status: string | null
+          lgpd_consent_at: string | null
+          lgpd_consent_channel: string | null
+          lgpd_data_sharing: boolean | null
+          lgpd_deletion_requested_at: string | null
+          lgpd_last_updated_at: string | null
+          lgpd_marketing_consent: boolean | null
+          lgpd_opt_out_at: string | null
+          lgpd_profiling: boolean | null
+          merge_source_id: string | null
+          message_count: number | null
+          nickname: string | null
+          notes: string | null
+          phone_number: string | null
+          pii_masked_at: string | null
+          profile_picture_url: string | null
+          push_name: string | null
+          queue_id: string | null
+          raw_data: Json | null
+          remote_jid: string | null
+          role_title: string | null
+          search_vector: unknown
+          tags: string[] | null
+          total_messages: number | null
+          total_purchases: number | null
+          updated_at: string | null
+          version: number | null
+          whatsapp_labels: string[] | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          company?: string | null
+          created_at?: string | null
+          dedup_hash?: string | null
+          deleted_at?: string | null
+          deleted_reason?: string | null
+          email?: string | null
+          first_contact_at?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          id?: string | null
+          instance_name?: string | null
+          last_message_at?: string | null
+          last_name?: string | null
+          lead_score?: number | null
+          lead_source?: string | null
+          lead_status?: string | null
+          lgpd_consent_at?: string | null
+          lgpd_consent_channel?: string | null
+          lgpd_data_sharing?: boolean | null
+          lgpd_deletion_requested_at?: string | null
+          lgpd_last_updated_at?: string | null
+          lgpd_marketing_consent?: boolean | null
+          lgpd_opt_out_at?: string | null
+          lgpd_profiling?: boolean | null
+          merge_source_id?: string | null
+          message_count?: number | null
+          nickname?: string | null
+          notes?: string | null
+          phone_number?: string | null
+          pii_masked_at?: string | null
+          profile_picture_url?: string | null
+          push_name?: string | null
+          queue_id?: string | null
+          raw_data?: Json | null
+          remote_jid?: string | null
+          role_title?: string | null
+          search_vector?: unknown
+          tags?: string[] | null
+          total_messages?: number | null
+          total_purchases?: number | null
+          updated_at?: string | null
+          version?: number | null
+          whatsapp_labels?: string[] | null
+        }
+        Update: {
+          assigned_to?: string | null
+          company?: string | null
+          created_at?: string | null
+          dedup_hash?: string | null
+          deleted_at?: string | null
+          deleted_reason?: string | null
+          email?: string | null
+          first_contact_at?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          id?: string | null
+          instance_name?: string | null
+          last_message_at?: string | null
+          last_name?: string | null
+          lead_score?: number | null
+          lead_source?: string | null
+          lead_status?: string | null
+          lgpd_consent_at?: string | null
+          lgpd_consent_channel?: string | null
+          lgpd_data_sharing?: boolean | null
+          lgpd_deletion_requested_at?: string | null
+          lgpd_last_updated_at?: string | null
+          lgpd_marketing_consent?: boolean | null
+          lgpd_opt_out_at?: string | null
+          lgpd_profiling?: boolean | null
+          merge_source_id?: string | null
+          message_count?: number | null
+          nickname?: string | null
+          notes?: string | null
+          phone_number?: string | null
+          pii_masked_at?: string | null
+          profile_picture_url?: string | null
+          push_name?: string | null
+          queue_id?: string | null
+          raw_data?: Json | null
+          remote_jid?: string | null
+          role_title?: string | null
+          search_vector?: unknown
+          tags?: string[] | null
+          total_messages?: number | null
+          total_purchases?: number | null
+          updated_at?: string | null
+          version?: number | null
+          whatsapp_labels?: string[] | null
+        }
+        Relationships: []
+      }
       _evolution_contacts_backup_20260801: {
         Row: {
           assigned_to: string | null
@@ -5054,6 +5258,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -5082,6 +5288,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -5104,6 +5312,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -5132,6 +5342,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -5154,6 +5366,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -5182,6 +5396,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -5215,6 +5431,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -5243,6 +5461,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -5265,6 +5485,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -5293,6 +5515,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -5315,6 +5539,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -5343,6 +5569,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -5368,6 +5596,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -5396,6 +5626,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -5418,6 +5650,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -5446,6 +5680,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -5468,6 +5704,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -5496,6 +5734,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -5521,6 +5761,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -5549,6 +5791,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -5571,6 +5815,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -5599,6 +5845,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -5621,6 +5869,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -5649,6 +5899,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -5674,6 +5926,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -5702,6 +5956,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -5724,6 +5980,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -5752,6 +6010,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -5774,6 +6034,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -5802,6 +6064,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -5827,6 +6091,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -5855,6 +6121,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -5877,6 +6145,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -5905,6 +6175,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -5927,6 +6199,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -5955,6 +6229,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -5980,6 +6256,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -6008,6 +6286,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -6030,6 +6310,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -6058,6 +6340,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -6080,6 +6364,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -6108,6 +6394,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -6133,6 +6421,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -6161,6 +6451,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -6183,6 +6475,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -6211,6 +6505,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -6233,6 +6529,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -6261,6 +6559,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -6286,6 +6586,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -6314,6 +6616,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -6336,6 +6640,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -6364,6 +6670,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -6386,6 +6694,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -6414,6 +6724,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -6439,6 +6751,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -6467,6 +6781,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -6489,6 +6805,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -6517,6 +6835,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -6539,6 +6859,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -6567,6 +6889,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -6592,6 +6916,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -6620,6 +6946,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -6642,6 +6970,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -6670,6 +7000,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -6692,6 +7024,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -6720,6 +7054,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -6745,6 +7081,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -6773,6 +7111,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -6795,6 +7135,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -6823,6 +7165,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -6845,6 +7189,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -6873,6 +7219,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -6898,6 +7246,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -6926,6 +7276,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -6948,6 +7300,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -6976,6 +7330,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -6998,6 +7354,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -7026,6 +7384,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -7051,6 +7411,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -7079,6 +7441,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -7101,6 +7465,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -7129,6 +7495,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -7151,6 +7519,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -7179,6 +7549,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -7204,6 +7576,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -7232,6 +7606,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -7254,6 +7630,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -7282,6 +7660,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -7304,6 +7684,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -7332,6 +7714,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -7357,6 +7741,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -7385,6 +7771,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -7407,6 +7795,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -7435,6 +7825,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -7457,6 +7849,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -7485,6 +7879,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -7510,6 +7906,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -7538,6 +7936,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -7560,6 +7960,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -7588,6 +7990,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -7610,6 +8014,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -7638,6 +8044,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -7663,6 +8071,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -7691,6 +8101,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -7713,6 +8125,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -7741,6 +8155,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -7763,6 +8179,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -7791,6 +8209,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -7816,6 +8236,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -7844,6 +8266,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -7866,6 +8290,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -7894,6 +8320,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -7916,6 +8344,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -7944,6 +8374,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -7969,6 +8401,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -7997,6 +8431,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -8019,6 +8455,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -8047,6 +8485,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -8069,6 +8509,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -8097,6 +8539,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -8122,6 +8566,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -8150,6 +8596,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -8172,6 +8620,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -8200,6 +8650,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -8222,6 +8674,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -8250,6 +8704,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -8275,6 +8731,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -8303,6 +8761,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -8325,6 +8785,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -8353,6 +8815,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -8375,6 +8839,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -8403,6 +8869,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -8428,6 +8896,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -8456,6 +8926,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -8478,6 +8950,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -8506,6 +8980,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -8528,6 +9004,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -8556,6 +9034,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -8581,6 +9061,8 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
@@ -8609,6 +9091,8 @@ export type Database = {
           raw_data: Json | null
           remote_jid: string
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -8631,6 +9115,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -8659,6 +9145,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -8681,6 +9169,8 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
@@ -8709,6 +9199,8 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -9260,7 +9752,13 @@ export type Database = {
           id: string
           instance_name: string | null
           notes: string | null
-          pipeline_status: Database["zapp"]["Enums"]["evolution_pipeline_status"]
+          pipeline_status:
+            | "healthy"
+            | "warning"
+            | "degraded_webhook"
+            | "degraded_sender"
+            | "critical_alerts"
+            | "critical"
           probe_latency_ms: number | null
           probe_status: string | null
           queue_failed_24h: number | null
@@ -9288,7 +9786,13 @@ export type Database = {
           id?: string
           instance_name?: string | null
           notes?: string | null
-          pipeline_status: Database["zapp"]["Enums"]["evolution_pipeline_status"]
+          pipeline_status:
+            | "healthy"
+            | "warning"
+            | "degraded_webhook"
+            | "degraded_sender"
+            | "critical_alerts"
+            | "critical"
           probe_latency_ms?: number | null
           probe_status?: string | null
           queue_failed_24h?: number | null
@@ -9316,7 +9820,13 @@ export type Database = {
           id?: string
           instance_name?: string | null
           notes?: string | null
-          pipeline_status?: Database["zapp"]["Enums"]["evolution_pipeline_status"]
+          pipeline_status?:
+            | "healthy"
+            | "warning"
+            | "degraded_webhook"
+            | "degraded_sender"
+            | "critical_alerts"
+            | "critical"
           probe_latency_ms?: number | null
           probe_status?: string | null
           queue_failed_24h?: number | null
@@ -10395,1110 +10905,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_webhook_events: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_artes: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_01: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_02: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_03: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_04: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_05: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_06: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_07: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_08: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_09: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_10: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_11: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_12: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_13: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_14: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_15: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_compras: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_default: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_financeiro: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_gravacao: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_logistica: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_marketing: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
       evolution_webhook_events_v2: {
         Row: {
           created_at: string
@@ -12417,54 +11823,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_webhook_events_wpp2: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_type: string | null
-          payload: Json
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_type?: string | null
-          payload?: Json
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"]
-        }
-        Relationships: []
-      }
       evolution_webhook_metrics: {
         Row: {
           avg_processing_time_ms: number | null
@@ -13206,7 +12564,13 @@ export type Database = {
           processed_at: string | null
           push_name: string | null
           remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
+          status:
+            | "pending"
+            | "success"
+            | "skipped"
+            | "failed"
+            | "dead_letter"
+            | null
         }
         Insert: {
           created_at?: string | null
@@ -13379,30 +12743,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      mv_daily_kpis: {
-        Row: {
-          cached_at: string | null
-          contacts_24h: number | null
-          contacts_30d: number | null
-          contacts_7d: number | null
-          contacts_total: number | null
-          conversations_open: number | null
-          conversations_unassigned: number | null
-          deals_pipeline: number | null
-          deals_pipeline_value: number | null
-          deals_won_this_month: number | null
-          dia_ref: string | null
-          messages_24h: number | null
-          messages_inbound_24h: number | null
-          messages_outbound_24h: number | null
-          messages_total: number | null
-          tasks_overdue: number | null
-          tasks_pending: number | null
-          webhook_errors_24h: number | null
-          webhook_events_1h: number | null
-        }
-        Relationships: []
       }
       mv_daily_metrics: {
         Row: {
@@ -14110,24 +13450,78 @@ export type Database = {
   }
   public: {
     Tables: {
-      _grant_backup_20260730: {
+      _ck_viol_audit: {
         Row: {
-          id: number
-          privilege_type: string | null
-          table_name: unknown
-          table_schema: unknown
+          conname: string | null
+          def: string | null
+          status: string | null
+          tbl: string | null
+          violations: number | null
         }
         Insert: {
-          id?: never
-          privilege_type?: string | null
-          table_name?: unknown
-          table_schema?: unknown
+          conname?: string | null
+          def?: string | null
+          status?: string | null
+          tbl?: string | null
+          violations?: number | null
         }
         Update: {
-          id?: never
-          privilege_type?: string | null
-          table_name?: unknown
-          table_schema?: unknown
+          conname?: string | null
+          def?: string | null
+          status?: string | null
+          tbl?: string | null
+          violations?: number | null
+        }
+        Relationships: []
+      }
+      _fk_orphan_audit: {
+        Row: {
+          child_rows_est: number | null
+          child_table: string | null
+          conname: string | null
+          fk_cols: string | null
+          orphans: number | null
+          parent_table: string | null
+          status: string | null
+        }
+        Insert: {
+          child_rows_est?: number | null
+          child_table?: string | null
+          conname?: string | null
+          fk_cols?: string | null
+          orphans?: number | null
+          parent_table?: string | null
+          status?: string | null
+        }
+        Update: {
+          child_rows_est?: number | null
+          child_table?: string | null
+          conname?: string | null
+          fk_cols?: string | null
+          orphans?: number | null
+          parent_table?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      _msg_shard_orphan_audit: {
+        Row: {
+          col: string | null
+          orphans: number | null
+          status: string | null
+          tbl: string | null
+        }
+        Insert: {
+          col?: string | null
+          orphans?: number | null
+          status?: string | null
+          tbl?: string | null
+        }
+        Update: {
+          col?: string | null
+          orphans?: number | null
+          status?: string | null
+          tbl?: string | null
         }
         Relationships: []
       }
@@ -14317,15 +13711,7 @@ export type Database = {
           went_offline_at?: string | null
           went_online_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "agent_presence_current_queue_id_fkey"
-            columns: ["current_queue_id"]
-            isOneToOne: false
-            referencedRelation: "queues"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       agent_skills: {
         Row: {
@@ -14424,15 +13810,7 @@ export type Database = {
           updated_at?: string | null
           xp?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "agent_stats_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       agent_templates: {
         Row: {
@@ -14482,7 +13860,7 @@ export type Database = {
           id: string | null
           input: Json | null
           latency_ms: number | null
-          level: Database["zapp"]["Enums"]["trace_level"] | null
+          level: "debug" | "info" | "warning" | "error" | "critical" | null
           metadata: Json | null
           output: Json | null
           session_id: string | null
@@ -14497,7 +13875,7 @@ export type Database = {
           id?: string | null
           input?: Json | null
           latency_ms?: number | null
-          level?: Database["zapp"]["Enums"]["trace_level"] | null
+          level?: "debug" | "info" | "warning" | "error" | "critical" | null
           metadata?: Json | null
           output?: Json | null
           session_id?: string | null
@@ -14512,7 +13890,7 @@ export type Database = {
           id?: string | null
           input?: Json | null
           latency_ms?: number | null
-          level?: Database["zapp"]["Enums"]["trace_level"] | null
+          level?: "debug" | "info" | "warning" | "error" | "critical" | null
           metadata?: Json | null
           output?: Json | null
           session_id?: string | null
@@ -14627,29 +14005,7 @@ export type Database = {
           granted_by?: string | null
           id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "agent_visibility_grants_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agent_visibility_grants_can_see_agent_id_fkey"
-            columns: ["can_see_agent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agent_visibility_grants_granted_by_fkey"
-            columns: ["granted_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       agents: {
         Row: {
@@ -14663,7 +14019,17 @@ export type Database = {
           name: string | null
           persona: string | null
           reasoning: string | null
-          status: Database["zapp"]["Enums"]["agent_status"] | null
+          status:
+            | "draft"
+            | "configured"
+            | "testing"
+            | "staging"
+            | "review"
+            | "production"
+            | "monitoring"
+            | "deprecated"
+            | "archived"
+            | null
           tags: string[] | null
           template_category: string | null
           updated_at: string | null
@@ -14682,7 +14048,17 @@ export type Database = {
           name?: string | null
           persona?: string | null
           reasoning?: string | null
-          status?: Database["zapp"]["Enums"]["agent_status"] | null
+          status?:
+            | "draft"
+            | "configured"
+            | "testing"
+            | "staging"
+            | "review"
+            | "production"
+            | "monitoring"
+            | "deprecated"
+            | "archived"
+            | null
           tags?: string[] | null
           template_category?: string | null
           updated_at?: string | null
@@ -14701,7 +14077,17 @@ export type Database = {
           name?: string | null
           persona?: string | null
           reasoning?: string | null
-          status?: Database["zapp"]["Enums"]["agent_status"] | null
+          status?:
+            | "draft"
+            | "configured"
+            | "testing"
+            | "staging"
+            | "review"
+            | "production"
+            | "monitoring"
+            | "deprecated"
+            | "archived"
+            | null
           tags?: string[] | null
           template_category?: string | null
           updated_at?: string | null
@@ -14736,22 +14122,7 @@ export type Database = {
           source?: string | null
           tag_name?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "ai_conversation_tags_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_conversation_tags_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       alert_channels: {
         Row: {
@@ -15069,15 +14440,7 @@ export type Database = {
           meme_id?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "audio_meme_favorites_meme_id_fkey"
-            columns: ["meme_id"]
-            isOneToOne: false
-            referencedRelation: "audio_memes"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       audio_memes: {
         Row: {
@@ -15266,15 +14629,7 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "auto_close_config_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       automation_executions: {
         Row: {
@@ -15358,29 +14713,7 @@ export type Database = {
           trigger_event?: string | null
           trigger_payload?: Json | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "automation_executions_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "automation_executions_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "automation_executions_rule_id_fkey"
-            columns: ["rule_id"]
-            isOneToOne: false
-            referencedRelation: "automation_rules"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       automation_rules: {
         Row: {
@@ -15440,22 +14773,7 @@ export type Database = {
           trigger_type?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "automation_rules_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "automation_rules_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments_safe"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       automations: {
         Row: {
@@ -15512,29 +14830,7 @@ export type Database = {
           trigger_type?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "automations_channel_id_fkey"
-            columns: ["channel_id"]
-            isOneToOne: false
-            referencedRelation: "service_channels"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "automations_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "automations_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments_safe"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       avatars: {
         Row: {
@@ -15756,7 +15052,21 @@ export type Database = {
         Row: {
           action_config: Json | null
           action_order: number | null
-          action_type: Database["zapp"]["Enums"]["bpm_action_type"] | null
+          action_type:
+            | "move_card"
+            | "set_field"
+            | "assign_user"
+            | "add_comment"
+            | "send_email"
+            | "send_notification"
+            | "create_card"
+            | "add_recurrence"
+            | "invoke_agent"
+            | "call_webhook"
+            | "call_mcp"
+            | "create_calendar_event"
+            | "update_register"
+            | null
           agent_id: string | null
           automation_id: string | null
           created_at: string | null
@@ -15767,7 +15077,21 @@ export type Database = {
         Insert: {
           action_config?: Json | null
           action_order?: number | null
-          action_type?: Database["zapp"]["Enums"]["bpm_action_type"] | null
+          action_type?:
+            | "move_card"
+            | "set_field"
+            | "assign_user"
+            | "add_comment"
+            | "send_email"
+            | "send_notification"
+            | "create_card"
+            | "add_recurrence"
+            | "invoke_agent"
+            | "call_webhook"
+            | "call_mcp"
+            | "create_calendar_event"
+            | "update_register"
+            | null
           agent_id?: string | null
           automation_id?: string | null
           created_at?: string | null
@@ -15778,7 +15102,21 @@ export type Database = {
         Update: {
           action_config?: Json | null
           action_order?: number | null
-          action_type?: Database["zapp"]["Enums"]["bpm_action_type"] | null
+          action_type?:
+            | "move_card"
+            | "set_field"
+            | "assign_user"
+            | "add_comment"
+            | "send_email"
+            | "send_notification"
+            | "create_card"
+            | "add_recurrence"
+            | "invoke_agent"
+            | "call_webhook"
+            | "call_mcp"
+            | "create_calendar_event"
+            | "update_register"
+            | null
           agent_id?: string | null
           automation_id?: string | null
           created_at?: string | null
@@ -15885,7 +15223,16 @@ export type Database = {
           last_executed_at: string | null
           name: string | null
           trigger_config: Json | null
-          trigger_type: Database["zapp"]["Enums"]["bpm_trigger_type"] | null
+          trigger_type:
+            | "card_created"
+            | "step_changed"
+            | "field_changed"
+            | "email_received"
+            | "condition_met"
+            | "schedule"
+            | "webhook_received"
+            | "manual"
+            | null
           updated_at: string | null
         }
         Insert: {
@@ -15900,7 +15247,16 @@ export type Database = {
           last_executed_at?: string | null
           name?: string | null
           trigger_config?: Json | null
-          trigger_type?: Database["zapp"]["Enums"]["bpm_trigger_type"] | null
+          trigger_type?:
+            | "card_created"
+            | "step_changed"
+            | "field_changed"
+            | "email_received"
+            | "condition_met"
+            | "schedule"
+            | "webhook_received"
+            | "manual"
+            | null
           updated_at?: string | null
         }
         Update: {
@@ -15915,7 +15271,16 @@ export type Database = {
           last_executed_at?: string | null
           name?: string | null
           trigger_config?: Json | null
-          trigger_type?: Database["zapp"]["Enums"]["bpm_trigger_type"] | null
+          trigger_type?:
+            | "card_created"
+            | "step_changed"
+            | "field_changed"
+            | "email_received"
+            | "condition_met"
+            | "schedule"
+            | "webhook_received"
+            | "manual"
+            | null
           updated_at?: string | null
         }
         Relationships: []
@@ -16285,7 +15650,7 @@ export type Database = {
           day_of_month: number | null
           day_of_week: number | null
           end_date: string | null
-          frequency: Database["zapp"]["Enums"]["bpm_recurrence_freq"] | null
+          frequency: "daily" | "weekly" | "monthly" | "yearly" | null
           id: string | null
           interval_value: number | null
           is_active: boolean | null
@@ -16303,7 +15668,7 @@ export type Database = {
           day_of_month?: number | null
           day_of_week?: number | null
           end_date?: string | null
-          frequency?: Database["zapp"]["Enums"]["bpm_recurrence_freq"] | null
+          frequency?: "daily" | "weekly" | "monthly" | "yearly" | null
           id?: string | null
           interval_value?: number | null
           is_active?: boolean | null
@@ -16321,7 +15686,7 @@ export type Database = {
           day_of_month?: number | null
           day_of_week?: number | null
           end_date?: string | null
-          frequency?: Database["zapp"]["Enums"]["bpm_recurrence_freq"] | null
+          frequency?: "daily" | "weekly" | "monthly" | "yearly" | null
           id?: string | null
           interval_value?: number | null
           is_active?: boolean | null
@@ -16447,7 +15812,7 @@ export type Database = {
           priority: number | null
           recurrence_config: Json | null
           search_vector: unknown
-          status: Database["zapp"]["Enums"]["bpm_card_status"] | null
+          status: "active" | "archived" | "completed" | "cancelled" | null
           title: string | null
           updated_at: string | null
           workspace_id: string | null
@@ -16468,7 +15833,7 @@ export type Database = {
           priority?: number | null
           recurrence_config?: Json | null
           search_vector?: unknown
-          status?: Database["zapp"]["Enums"]["bpm_card_status"] | null
+          status?: "active" | "archived" | "completed" | "cancelled" | null
           title?: string | null
           updated_at?: string | null
           workspace_id?: string | null
@@ -16489,7 +15854,7 @@ export type Database = {
           priority?: number | null
           recurrence_config?: Json | null
           search_vector?: unknown
-          status?: Database["zapp"]["Enums"]["bpm_card_status"] | null
+          status?: "active" | "archived" | "completed" | "cancelled" | null
           title?: string | null
           updated_at?: string | null
           workspace_id?: string | null
@@ -16747,7 +16112,13 @@ export type Database = {
           color: string | null
           created_at: string | null
           created_by: string | null
-          default_view: Database["zapp"]["Enums"]["bpm_view_type"] | null
+          default_view:
+            | "kanban"
+            | "list"
+            | "calendar"
+            | "timeline"
+            | "gantt"
+            | null
           deleted_at: string | null
           description: string | null
           icon: string | null
@@ -16762,7 +16133,13 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           created_by?: string | null
-          default_view?: Database["zapp"]["Enums"]["bpm_view_type"] | null
+          default_view?:
+            | "kanban"
+            | "list"
+            | "calendar"
+            | "timeline"
+            | "gantt"
+            | null
           deleted_at?: string | null
           description?: string | null
           icon?: string | null
@@ -16777,7 +16154,13 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           created_by?: string | null
-          default_view?: Database["zapp"]["Enums"]["bpm_view_type"] | null
+          default_view?:
+            | "kanban"
+            | "list"
+            | "calendar"
+            | "timeline"
+            | "gantt"
+            | null
           deleted_at?: string | null
           description?: string | null
           icon?: string | null
@@ -16800,7 +16183,33 @@ export type Database = {
           deleted_at: string | null
           field_hash: string | null
           field_order: number | null
-          field_type: Database["zapp"]["Enums"]["bpm_field_type"] | null
+          field_type:
+            | "TEXT_SHORT_FIELD"
+            | "TEXT_LONG_FIELD"
+            | "COMBO_BOX_FIELD"
+            | "DATE_PICKER_FIELD"
+            | "RADIO_BOX_FIELD"
+            | "CHECK_BOX_FIELD"
+            | "COMBO_BOX_USER_FIELD"
+            | "COMBO_BOX_REGISTER_FIELD"
+            | "COMBO_BOX_FLOW_FIELD"
+            | "CURRENCY_FIELD"
+            | "DUE_DATE_FIELD"
+            | "MAIL_FIELD"
+            | "PHONE_FIELD"
+            | "SWITCH_FIELD"
+            | "INPUT_LIST_FIELD"
+            | "NUMBER_FIELD"
+            | "DOC_FIELD"
+            | "INPUT_RICH_TEXT_FIELD"
+            | "LINK_FIELD"
+            | "FILE_FIELD"
+            | "RATING_FIELD"
+            | "COLOR_FIELD"
+            | "LOCATION_FIELD"
+            | "FORMULA_FIELD"
+            | "RELATION_FIELD"
+            | null
           form_id: string | null
           help_text: string | null
           id: string | null
@@ -16820,7 +16229,33 @@ export type Database = {
           deleted_at?: string | null
           field_hash?: string | null
           field_order?: number | null
-          field_type?: Database["zapp"]["Enums"]["bpm_field_type"] | null
+          field_type?:
+            | "TEXT_SHORT_FIELD"
+            | "TEXT_LONG_FIELD"
+            | "COMBO_BOX_FIELD"
+            | "DATE_PICKER_FIELD"
+            | "RADIO_BOX_FIELD"
+            | "CHECK_BOX_FIELD"
+            | "COMBO_BOX_USER_FIELD"
+            | "COMBO_BOX_REGISTER_FIELD"
+            | "COMBO_BOX_FLOW_FIELD"
+            | "CURRENCY_FIELD"
+            | "DUE_DATE_FIELD"
+            | "MAIL_FIELD"
+            | "PHONE_FIELD"
+            | "SWITCH_FIELD"
+            | "INPUT_LIST_FIELD"
+            | "NUMBER_FIELD"
+            | "DOC_FIELD"
+            | "INPUT_RICH_TEXT_FIELD"
+            | "LINK_FIELD"
+            | "FILE_FIELD"
+            | "RATING_FIELD"
+            | "COLOR_FIELD"
+            | "LOCATION_FIELD"
+            | "FORMULA_FIELD"
+            | "RELATION_FIELD"
+            | null
           form_id?: string | null
           help_text?: string | null
           id?: string | null
@@ -16840,7 +16275,33 @@ export type Database = {
           deleted_at?: string | null
           field_hash?: string | null
           field_order?: number | null
-          field_type?: Database["zapp"]["Enums"]["bpm_field_type"] | null
+          field_type?:
+            | "TEXT_SHORT_FIELD"
+            | "TEXT_LONG_FIELD"
+            | "COMBO_BOX_FIELD"
+            | "DATE_PICKER_FIELD"
+            | "RADIO_BOX_FIELD"
+            | "CHECK_BOX_FIELD"
+            | "COMBO_BOX_USER_FIELD"
+            | "COMBO_BOX_REGISTER_FIELD"
+            | "COMBO_BOX_FLOW_FIELD"
+            | "CURRENCY_FIELD"
+            | "DUE_DATE_FIELD"
+            | "MAIL_FIELD"
+            | "PHONE_FIELD"
+            | "SWITCH_FIELD"
+            | "INPUT_LIST_FIELD"
+            | "NUMBER_FIELD"
+            | "DOC_FIELD"
+            | "INPUT_RICH_TEXT_FIELD"
+            | "LINK_FIELD"
+            | "FILE_FIELD"
+            | "RATING_FIELD"
+            | "COLOR_FIELD"
+            | "LOCATION_FIELD"
+            | "FORMULA_FIELD"
+            | "RELATION_FIELD"
+            | null
           form_id?: string | null
           help_text?: string | null
           id?: string | null
@@ -17106,7 +16567,33 @@ export type Database = {
           deleted_at: string | null
           field_hash: string | null
           field_order: number | null
-          field_type: Database["zapp"]["Enums"]["bpm_field_type"] | null
+          field_type:
+            | "TEXT_SHORT_FIELD"
+            | "TEXT_LONG_FIELD"
+            | "COMBO_BOX_FIELD"
+            | "DATE_PICKER_FIELD"
+            | "RADIO_BOX_FIELD"
+            | "CHECK_BOX_FIELD"
+            | "COMBO_BOX_USER_FIELD"
+            | "COMBO_BOX_REGISTER_FIELD"
+            | "COMBO_BOX_FLOW_FIELD"
+            | "CURRENCY_FIELD"
+            | "DUE_DATE_FIELD"
+            | "MAIL_FIELD"
+            | "PHONE_FIELD"
+            | "SWITCH_FIELD"
+            | "INPUT_LIST_FIELD"
+            | "NUMBER_FIELD"
+            | "DOC_FIELD"
+            | "INPUT_RICH_TEXT_FIELD"
+            | "LINK_FIELD"
+            | "FILE_FIELD"
+            | "RATING_FIELD"
+            | "COLOR_FIELD"
+            | "LOCATION_FIELD"
+            | "FORMULA_FIELD"
+            | "RELATION_FIELD"
+            | null
           id: string | null
           is_required: boolean | null
           label: string | null
@@ -17119,7 +16606,33 @@ export type Database = {
           deleted_at?: string | null
           field_hash?: string | null
           field_order?: number | null
-          field_type?: Database["zapp"]["Enums"]["bpm_field_type"] | null
+          field_type?:
+            | "TEXT_SHORT_FIELD"
+            | "TEXT_LONG_FIELD"
+            | "COMBO_BOX_FIELD"
+            | "DATE_PICKER_FIELD"
+            | "RADIO_BOX_FIELD"
+            | "CHECK_BOX_FIELD"
+            | "COMBO_BOX_USER_FIELD"
+            | "COMBO_BOX_REGISTER_FIELD"
+            | "COMBO_BOX_FLOW_FIELD"
+            | "CURRENCY_FIELD"
+            | "DUE_DATE_FIELD"
+            | "MAIL_FIELD"
+            | "PHONE_FIELD"
+            | "SWITCH_FIELD"
+            | "INPUT_LIST_FIELD"
+            | "NUMBER_FIELD"
+            | "DOC_FIELD"
+            | "INPUT_RICH_TEXT_FIELD"
+            | "LINK_FIELD"
+            | "FILE_FIELD"
+            | "RATING_FIELD"
+            | "COLOR_FIELD"
+            | "LOCATION_FIELD"
+            | "FORMULA_FIELD"
+            | "RELATION_FIELD"
+            | null
           id?: string | null
           is_required?: boolean | null
           label?: string | null
@@ -17132,7 +16645,33 @@ export type Database = {
           deleted_at?: string | null
           field_hash?: string | null
           field_order?: number | null
-          field_type?: Database["zapp"]["Enums"]["bpm_field_type"] | null
+          field_type?:
+            | "TEXT_SHORT_FIELD"
+            | "TEXT_LONG_FIELD"
+            | "COMBO_BOX_FIELD"
+            | "DATE_PICKER_FIELD"
+            | "RADIO_BOX_FIELD"
+            | "CHECK_BOX_FIELD"
+            | "COMBO_BOX_USER_FIELD"
+            | "COMBO_BOX_REGISTER_FIELD"
+            | "COMBO_BOX_FLOW_FIELD"
+            | "CURRENCY_FIELD"
+            | "DUE_DATE_FIELD"
+            | "MAIL_FIELD"
+            | "PHONE_FIELD"
+            | "SWITCH_FIELD"
+            | "INPUT_LIST_FIELD"
+            | "NUMBER_FIELD"
+            | "DOC_FIELD"
+            | "INPUT_RICH_TEXT_FIELD"
+            | "LINK_FIELD"
+            | "FILE_FIELD"
+            | "RATING_FIELD"
+            | "COLOR_FIELD"
+            | "LOCATION_FIELD"
+            | "FORMULA_FIELD"
+            | "RELATION_FIELD"
+            | null
           id?: string | null
           is_required?: boolean | null
           label?: string | null
@@ -17257,7 +16796,13 @@ export type Database = {
           row_height: string | null
           sort_config: Json | null
           updated_at: string | null
-          view_type: Database["zapp"]["Enums"]["bpm_view_type"] | null
+          view_type:
+            | "kanban"
+            | "list"
+            | "calendar"
+            | "timeline"
+            | "gantt"
+            | null
           visible_columns: Json | null
         }
         Insert: {
@@ -17276,7 +16821,13 @@ export type Database = {
           row_height?: string | null
           sort_config?: Json | null
           updated_at?: string | null
-          view_type?: Database["zapp"]["Enums"]["bpm_view_type"] | null
+          view_type?:
+            | "kanban"
+            | "list"
+            | "calendar"
+            | "timeline"
+            | "gantt"
+            | null
           visible_columns?: Json | null
         }
         Update: {
@@ -17295,7 +16846,13 @@ export type Database = {
           row_height?: string | null
           sort_config?: Json | null
           updated_at?: string | null
-          view_type?: Database["zapp"]["Enums"]["bpm_view_type"] | null
+          view_type?:
+            | "kanban"
+            | "list"
+            | "calendar"
+            | "timeline"
+            | "gantt"
+            | null
           visible_columns?: Json | null
         }
         Relationships: []
@@ -17484,29 +17041,7 @@ export type Database = {
           status?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "calls_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "calls_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "calls_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       campaign_ab_variants: {
         Row: {
@@ -17548,15 +17083,7 @@ export type Database = {
           send_count?: number | null
           variant_name?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "campaign_ab_variants_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "campaigns"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       campaign_contacts: {
         Row: {
@@ -17589,29 +17116,7 @@ export type Database = {
           sent_at?: string | null
           status?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "campaign_contacts_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "campaigns"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "campaign_contacts_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "campaign_contacts_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       campaigns: {
         Row: {
@@ -17686,29 +17191,7 @@ export type Database = {
           updated_at?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "campaigns_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["connection_id"]
-          },
-          {
-            foreignKeyName: "campaigns_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["whatsapp_connection_id"]
-          },
-          {
-            foreignKeyName: "campaigns_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_connections"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       channel_connections: {
         Row: {
@@ -17759,29 +17242,7 @@ export type Database = {
           webhook_url?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "channel_connections_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["connection_id"]
-          },
-          {
-            foreignKeyName: "channel_connections_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["whatsapp_connection_id"]
-          },
-          {
-            foreignKeyName: "channel_connections_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_connections"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       channel_connections_safe: {
         Row: {
@@ -17823,29 +17284,7 @@ export type Database = {
           webhook_url?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "channel_connections_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["connection_id"]
-          },
-          {
-            foreignKeyName: "channel_connections_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["whatsapp_connection_id"]
-          },
-          {
-            foreignKeyName: "channel_connections_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_connections"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       channel_provider_routes: {
         Row: {
@@ -17884,64 +17323,7 @@ export type Database = {
           updated_at?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "channel_provider_routes_channel_connection_id_fkey"
-            columns: ["channel_connection_id"]
-            isOneToOne: false
-            referencedRelation: "channel_connections"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "channel_provider_routes_channel_connection_id_fkey"
-            columns: ["channel_connection_id"]
-            isOneToOne: false
-            referencedRelation: "channel_connections_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "channel_provider_routes_current_provider_id_fkey"
-            columns: ["current_provider_id"]
-            isOneToOne: false
-            referencedRelation: "provider_configs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "channel_provider_routes_fallback_provider_id_fkey"
-            columns: ["fallback_provider_id"]
-            isOneToOne: false
-            referencedRelation: "provider_configs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "channel_provider_routes_primary_provider_id_fkey"
-            columns: ["primary_provider_id"]
-            isOneToOne: false
-            referencedRelation: "provider_configs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "channel_provider_routes_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["connection_id"]
-          },
-          {
-            foreignKeyName: "channel_provider_routes_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["whatsapp_connection_id"]
-          },
-          {
-            foreignKeyName: "channel_provider_routes_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_connections"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       channel_queues: {
         Row: {
@@ -18010,29 +17392,7 @@ export type Database = {
           priority?: number | null
           queue_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "channel_routing_rules_channel_connection_id_fkey"
-            columns: ["channel_connection_id"]
-            isOneToOne: false
-            referencedRelation: "channel_connections"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "channel_routing_rules_channel_connection_id_fkey"
-            columns: ["channel_connection_id"]
-            isOneToOne: false
-            referencedRelation: "channel_connections_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "channel_routing_rules_queue_id_fkey"
-            columns: ["queue_id"]
-            isOneToOne: false
-            referencedRelation: "queues"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       chatbot_executions: {
         Row: {
@@ -18071,29 +17431,7 @@ export type Database = {
           status?: string | null
           variables?: Json | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "chatbot_executions_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "chatbot_executions_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "chatbot_executions_flow_id_fkey"
-            columns: ["flow_id"]
-            isOneToOne: false
-            referencedRelation: "chatbot_flows"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       chatbot_flows: {
         Row: {
@@ -18147,29 +17485,7 @@ export type Database = {
           variables?: Json | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "chatbot_flows_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["connection_id"]
-          },
-          {
-            foreignKeyName: "chatbot_flows_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["whatsapp_connection_id"]
-          },
-          {
-            foreignKeyName: "chatbot_flows_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_connections"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       chunks: {
         Row: {
@@ -18250,15 +17566,7 @@ export type Database = {
           priority?: number | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "client_wallet_rules_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       colaboradores: {
         Row: {
@@ -18528,29 +17836,7 @@ export type Database = {
           response_time_ms?: number | null
           status?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "connection_health_logs_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["connection_id"]
-          },
-          {
-            foreignKeyName: "connection_health_logs_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["whatsapp_connection_id"]
-          },
-          {
-            foreignKeyName: "connection_health_logs_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_connections"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       consent_records: {
         Row: {
@@ -18688,22 +17974,7 @@ export type Database = {
           id?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "contact_custom_fields_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_custom_fields_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       contact_export_log: {
         Row: {
@@ -18787,22 +18058,7 @@ export type Database = {
           total_messages: number | null
           updated_at: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "ci_contact_id_fk"
-            columns: ["contact_id"]
-            isOneToOne: true
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ci_contact_id_fk"
-            columns: ["contact_id"]
-            isOneToOne: true
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       contact_notes: {
         Row: {
@@ -18829,29 +18085,7 @@ export type Database = {
           id?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "contact_notes_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_notes_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_notes_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       contact_phones: {
         Row: {
@@ -18896,22 +18130,7 @@ export type Database = {
           phone_raw?: string | null
           verified_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "contact_phones_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_phones_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       contact_purchases: {
         Row: {
@@ -18959,29 +18178,7 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "contact_purchases_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_purchases_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_purchases_deal_id_fkey"
-            columns: ["deal_id"]
-            isOneToOne: false
-            referencedRelation: "sales_deals"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       contact_segments: {
         Row: {
@@ -19041,29 +18238,7 @@ export type Database = {
           id?: string | null
           tag_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "contact_tags_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_tags_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_tags_tag_id_fkey"
-            columns: ["tag_id"]
-            isOneToOne: false
-            referencedRelation: "tags"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       contacts: {
         Row: {
@@ -19312,29 +18487,7 @@ export type Database = {
           topics?: string[] | null
           urgency?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "conversation_analyses_analyzed_by_fkey"
-            columns: ["analyzed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_analyses_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_analyses_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       conversation_audit_logs: {
         Row: {
@@ -19385,15 +18538,7 @@ export type Database = {
           source?: string | null
           user_agent?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "conversation_audit_logs_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "conversation_pins"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       conversation_closures: {
         Row: {
@@ -19426,29 +18571,7 @@ export type Database = {
           notes?: string | null
           outcome?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "conversation_closures_closed_by_fkey"
-            columns: ["closed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_closures_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_closures_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       conversation_events: {
         Row: {
@@ -19499,57 +18622,7 @@ export type Database = {
           to_queue_id?: string | null
           trace_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "conversation_events_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_events_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_events_from_agent_id_fkey"
-            columns: ["from_agent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_events_from_queue_id_fkey"
-            columns: ["from_queue_id"]
-            isOneToOne: false
-            referencedRelation: "queues"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_events_performed_by_fkey"
-            columns: ["performed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_events_to_agent_id_fkey"
-            columns: ["to_agent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_events_to_queue_id_fkey"
-            columns: ["to_queue_id"]
-            isOneToOne: false
-            referencedRelation: "queues"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       conversation_memory: {
         Row: {
@@ -19591,29 +18664,7 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "conversation_memory_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: true
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_memory_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: true
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_memory_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       conversation_participants: {
         Row: {
@@ -19655,15 +18706,7 @@ export type Database = {
           role?: string | null
           thread_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "conversation_participants_thread_id_fkey"
-            columns: ["thread_id"]
-            isOneToOne: false
-            referencedRelation: "conversation_threads"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       conversation_pins: {
         Row: {
@@ -19726,29 +18769,7 @@ export type Database = {
           sla_configuration_id?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "conversation_sla_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_sla_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_sla_sla_configuration_id_fkey"
-            columns: ["sla_configuration_id"]
-            isOneToOne: false
-            referencedRelation: "sla_configurations"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       conversation_snoozes: {
         Row: {
@@ -19775,29 +18796,7 @@ export type Database = {
           snooze_until?: string | null
           snoozed_by?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "conversation_snoozes_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_snoozes_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_snoozes_snoozed_by_fkey"
-            columns: ["snoozed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       conversation_summaries: {
         Row: {
@@ -19869,29 +18868,7 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "conversation_tasks_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_tasks_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_tasks_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       conversation_threads: {
         Row: {
@@ -20056,22 +19033,7 @@ export type Database = {
           transfer_type?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "conversation_transfers_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_transfers_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       cookies_config: {
         Row: {
@@ -20392,15 +19354,7 @@ export type Database = {
           severity?: string | null
           threshold?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "crisis_room_alerts_acknowledged_by_fkey"
-            columns: ["acknowledged_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       cron_schedule_executions: {
         Row: {
@@ -20505,36 +19459,7 @@ export type Database = {
           updated_by?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "csat_auto_config_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "csat_auto_config_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["connection_id"]
-          },
-          {
-            foreignKeyName: "csat_auto_config_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["whatsapp_connection_id"]
-          },
-          {
-            foreignKeyName: "csat_auto_config_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_connections"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       csat_responses: {
         Row: {
@@ -20600,29 +19525,7 @@ export type Database = {
           id?: string | null
           rating?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "csat_surveys_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "csat_surveys_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "csat_surveys_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       custom_emojis: {
         Row: {
@@ -20772,22 +19675,7 @@ export type Database = {
           id?: string | null
           performed_by?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "deal_activities_deal_id_fkey"
-            columns: ["deal_id"]
-            isOneToOne: false
-            referencedRelation: "sales_deals"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "deal_activities_performed_by_fkey"
-            columns: ["performed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       department_invitations: {
         Row: {
@@ -20838,22 +19726,7 @@ export type Database = {
           used_at?: string | null
           used_by?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "department_invitations_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "department_invitations_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments_safe"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       departments: {
         Row: {
@@ -22887,22 +21760,7 @@ export type Database = {
           unread_count?: number | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       evolution_conversations_artes: {
         Row: {
@@ -26544,22 +25402,7 @@ export type Database = {
           template_name?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       evolution_messages_artes: {
         Row: {
@@ -30184,7 +29027,13 @@ export type Database = {
           instance_name: string | null
           notes: string | null
           pipeline_status:
-            Database["zapp"]["Enums"]["evolution_pipeline_status"] | null
+            | "healthy"
+            | "warning"
+            | "degraded_webhook"
+            | "degraded_sender"
+            | "critical_alerts"
+            | "critical"
+            | null
           probe_latency_ms: number | null
           probe_status: string | null
           queue_failed_24h: number | null
@@ -30213,7 +29062,13 @@ export type Database = {
           instance_name?: string | null
           notes?: string | null
           pipeline_status?:
-            Database["zapp"]["Enums"]["evolution_pipeline_status"] | null
+            | "healthy"
+            | "warning"
+            | "degraded_webhook"
+            | "degraded_sender"
+            | "critical_alerts"
+            | "critical"
+            | null
           probe_latency_ms?: number | null
           probe_status?: string | null
           queue_failed_24h?: number | null
@@ -30242,7 +29097,13 @@ export type Database = {
           instance_name?: string | null
           notes?: string | null
           pipeline_status?:
-            Database["zapp"]["Enums"]["evolution_pipeline_status"] | null
+            | "healthy"
+            | "warning"
+            | "degraded_webhook"
+            | "degraded_sender"
+            | "critical_alerts"
+            | "critical"
+            | null
           probe_latency_ms?: number | null
           probe_status?: string | null
           queue_failed_24h?: number | null
@@ -31008,15 +29869,7 @@ export type Database = {
           sent_to_whatsapp?: boolean | null
           status_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "evolution_status_reactions_status_id_fkey"
-            columns: ["status_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_whatsapp_status"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       evolution_tag_assignments: {
         Row: {
@@ -31312,1110 +30165,6 @@ export type Database = {
           retry_count?: number | null
           source_event_id?: string | null
           status?: string | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_artes: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_01: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_02: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_03: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_04: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_05: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_06: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_07: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_08: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_09: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_10: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_11: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_12: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_13: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_14: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_15: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_compras: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_default: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_financeiro: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_gravacao: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_logistica: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_marketing: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
         }
         Relationships: []
       }
@@ -33337,54 +31086,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_webhook_events_wpp2: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
       evolution_webhook_metrics: {
         Row: {
           avg_processing_time_ms: number | null
@@ -33470,22 +31171,7 @@ export type Database = {
           viewed_at?: string | null
           viewed_by_us?: boolean | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       extensions: {
         Row: {
@@ -33512,15 +31198,7 @@ export type Database = {
           type?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "extensions_tenant_external_id_fkey"
-            columns: ["tenant_external_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["external_id"]
-          },
-        ]
+        Relationships: []
       }
       failed_messages: {
         Row: {
@@ -33607,22 +31285,7 @@ export type Database = {
           id?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "favorite_contacts_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "favorite_contacts_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       feature_flags: {
         Row: {
@@ -33775,29 +31438,7 @@ export type Database = {
           started_at?: string | null
           status?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "followup_executions_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "followup_executions_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "followup_executions_sequence_id_fkey"
-            columns: ["sequence_id"]
-            isOneToOne: false
-            referencedRelation: "followup_sequences"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       followup_sequences: {
         Row: {
@@ -33830,29 +31471,7 @@ export type Database = {
           updated_at?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "followup_sequences_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["connection_id"]
-          },
-          {
-            foreignKeyName: "followup_sequences_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["whatsapp_connection_id"]
-          },
-          {
-            foreignKeyName: "followup_sequences_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_connections"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       followup_steps: {
         Row: {
@@ -33885,15 +31504,7 @@ export type Database = {
           sequence_id?: string | null
           step_order?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "followup_steps_sequence_id_fkey"
-            columns: ["sequence_id"]
-            isOneToOne: false
-            referencedRelation: "followup_sequences"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       forensic_snapshots: {
         Row: {
@@ -34424,15 +32035,7 @@ export type Database = {
           webhook_enabled?: boolean | null
           webhook_url?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "instance_registry_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       integration_profiles: {
         Row: {
@@ -34876,15 +32479,7 @@ export type Database = {
           rule_id?: string | null
           severity?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "media_quarantine_rule_id_fkey"
-            columns: ["rule_id"]
-            isOneToOne: false
-            referencedRelation: "media_security_config"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       media_scan_log: {
         Row: {
@@ -35175,29 +32770,7 @@ export type Database = {
           message_id?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "message_reactions_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "message_reactions_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "message_reactions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       message_templates: {
         Row: {
@@ -35292,22 +32865,7 @@ export type Database = {
           whatsapp_message_id: string | null
           whatsapp_timestamp: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       mfa_sessions: {
         Row: {
@@ -35346,30 +32904,6 @@ export type Database = {
         }
         Relationships: []
       }
-      mv_daily_kpis: {
-        Row: {
-          cached_at: string | null
-          contacts_24h: number | null
-          contacts_30d: number | null
-          contacts_7d: number | null
-          contacts_total: number | null
-          conversations_open: number | null
-          conversations_unassigned: number | null
-          deals_pipeline: number | null
-          deals_pipeline_value: number | null
-          deals_won_this_month: number | null
-          dia_ref: string | null
-          messages_24h: number | null
-          messages_inbound_24h: number | null
-          messages_outbound_24h: number | null
-          messages_total: number | null
-          tasks_overdue: number | null
-          tasks_pending: number | null
-          webhook_errors_24h: number | null
-          webhook_events_1h: number | null
-        }
-        Relationships: []
-      }
       mv_daily_metrics: {
         Row: {
           audios: number | null
@@ -35384,41 +32918,6 @@ export type Database = {
           unique_contacts: number | null
           unique_conversations: number | null
           videos: number | null
-        }
-        Relationships: []
-      }
-      mv_executive_dashboard: {
-        Row: {
-          alertas_criticos: number | null
-          alertas_warnings: number | null
-          cache_hit_pct: number | null
-          calculated_at: string | null
-          contatos_ativos_30d: number | null
-          contatos_ativos_7d: number | null
-          cron_jobs: number | null
-          db_size_mb: number | null
-          events_24h: number | null
-          expires_at: string | null
-          fks_sem_indice: number | null
-          funcs_vulneraveis: number | null
-          hardening_status: string | null
-          inbound_30d: number | null
-          msgs_24h: number | null
-          msgs_30d: number | null
-          msgs_7d: number | null
-          outbound_30d: number | null
-          score_bpm: number | null
-          status_overall: string | null
-          tabelas_sem_rls: number | null
-          taxa_resposta_pct: number | null
-          tempo_medio_resposta_min: number | null
-          total_contatos: number | null
-          total_conversas: number | null
-          total_indexes: number | null
-          total_mensagens: number | null
-          total_rls_policies: number | null
-          update_1h: number | null
-          upsert_1h: number | null
         }
         Relationships: []
       }
@@ -35994,29 +33493,7 @@ export type Database = {
           sticker_id?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "outbound_message_queue_audio_meme_id_fkey"
-            columns: ["audio_meme_id"]
-            isOneToOne: false
-            referencedRelation: "audio_memes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "outbound_message_queue_sticker_id_fkey"
-            columns: ["sticker_id"]
-            isOneToOne: false
-            referencedRelation: "mv_top_stickers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "outbound_message_queue_sticker_id_fkey"
-            columns: ["sticker_id"]
-            isOneToOne: false
-            referencedRelation: "stickers"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       outbox_events: {
         Row: {
@@ -36211,15 +33688,7 @@ export type Database = {
           token_hash?: string | null
           used_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "password_reset_tokens_request_id_fkey"
-            columns: ["request_id"]
-            isOneToOne: false
-            referencedRelation: "password_reset_requests"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       perfis_usuarios: {
         Row: {
@@ -36431,29 +33900,7 @@ export type Database = {
           pinned_by?: string | null
           position?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "pinned_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pinned_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pinned_conversations_pinned_by_fkey"
-            columns: ["pinned_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       processed_webhook_events: {
         Row: {
@@ -36663,22 +34110,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments_safe"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       provider_configs: {
         Row: {
@@ -36858,22 +34290,7 @@ export type Database = {
           provider_id?: string | null
           session_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "provider_session_logs_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "provider_configs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "provider_session_logs_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "provider_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       provider_sessions: {
         Row: {
@@ -36909,50 +34326,7 @@ export type Database = {
           status?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "provider_sessions_channel_connection_id_fkey"
-            columns: ["channel_connection_id"]
-            isOneToOne: false
-            referencedRelation: "channel_connections"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "provider_sessions_channel_connection_id_fkey"
-            columns: ["channel_connection_id"]
-            isOneToOne: false
-            referencedRelation: "channel_connections_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "provider_sessions_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "provider_configs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "provider_sessions_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["connection_id"]
-          },
-          {
-            foreignKeyName: "provider_sessions_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["whatsapp_connection_id"]
-          },
-          {
-            foreignKeyName: "provider_sessions_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_connections"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       proxy_alerts: {
         Row: {
@@ -37078,29 +34452,7 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "qr_attempts_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["connection_id"]
-          },
-          {
-            foreignKeyName: "qr_attempts_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["whatsapp_connection_id"]
-          },
-          {
-            foreignKeyName: "qr_attempts_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_connections"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       queue_goals: {
         Row: {
@@ -37211,22 +34563,7 @@ export type Database = {
           queue_id?: string | null
           role?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "queue_members_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "queue_members_queue_id_fkey"
-            columns: ["queue_id"]
-            isOneToOne: false
-            referencedRelation: "queues"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       queue_positions: {
         Row: {
@@ -37259,22 +34596,7 @@ export type Database = {
           position?: number | null
           queue_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "queue_positions_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "queue_positions_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       queue_routing_rules: {
         Row: {
@@ -37304,15 +34626,7 @@ export type Database = {
           queue_id?: string | null
           rule_type?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "queue_routing_rules_queue_id_fkey"
-            columns: ["queue_id"]
-            isOneToOne: false
-            referencedRelation: "queues"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       queue_skill_requirements: {
         Row: {
@@ -37438,29 +34752,7 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "queues_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "queues_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "queues_sla_policy_id_fkey"
-            columns: ["sla_policy_id"]
-            isOneToOne: false
-            referencedRelation: "sla_policies"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       quick_replies: {
         Row: {
@@ -37646,22 +34938,7 @@ export type Database = {
           status?: string | null
           triggered_by?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "reconnection_logs_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: false
-            referencedRelation: "channel_connections"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reconnection_logs_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: false
-            referencedRelation: "channel_connections_safe"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       reminders: {
         Row: {
@@ -37694,22 +34971,7 @@ export type Database = {
           remind_at?: string | null
           title?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "reminders_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reminders_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       reprocess_jobs: {
         Row: {
@@ -37829,15 +35091,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"] | null
           role_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "role_permissions_permission_id_fkey"
-            columns: ["permission_id"]
-            isOneToOne: false
-            referencedRelation: "permissions"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       roles: {
         Row: {
@@ -37996,36 +35250,7 @@ export type Database = {
           value?: number | null
           won_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "sales_deals_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sales_deals_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sales_deals_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sales_deals_stage_id_fkey"
-            columns: ["stage_id"]
-            isOneToOne: false
-            referencedRelation: "sales_pipeline_stages"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       sales_pipeline_stages: {
         Row: {
@@ -38211,43 +35436,7 @@ export type Database = {
           updated_at?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "scheduled_messages_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "scheduled_messages_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "scheduled_messages_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["connection_id"]
-          },
-          {
-            foreignKeyName: "scheduled_messages_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["whatsapp_connection_id"]
-          },
-          {
-            foreignKeyName: "scheduled_messages_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_connections"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       scheduled_report_configs: {
         Row: {
@@ -38514,15 +35703,7 @@ export type Database = {
           user_agent?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "security_audit_logs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
       security_events: {
         Row: {
@@ -38729,29 +35910,7 @@ export type Database = {
           sicoob_vendedor_id?: string | null
           zappweb_agent_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "sicoob_contact_mapping_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sicoob_contact_mapping_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sicoob_contact_mapping_zappweb_agent_id_fkey"
-            columns: ["zappweb_agent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       sicoob_reply_outbox: {
         Row: {
@@ -38949,15 +36108,7 @@ export type Database = {
           rule_id?: string | null
           threshold_type?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "sla_delivery_violations_resolved_by_fkey"
-            columns: ["resolved_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       sla_history: {
         Row: {
@@ -39002,22 +36153,7 @@ export type Database = {
           status?: string | null
           thread_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "sla_history_sla_config_id_fkey"
-            columns: ["sla_config_id"]
-            isOneToOne: false
-            referencedRelation: "sla_configurations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sla_history_thread_id_fkey"
-            columns: ["thread_id"]
-            isOneToOne: false
-            referencedRelation: "conversation_threads"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       sla_policies: {
         Row: {
@@ -39119,29 +36255,7 @@ export type Database = {
           resolution_minutes?: number | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "sla_rules_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sla_rules_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sla_rules_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       sla_violations: {
         Row: {
@@ -39183,15 +36297,7 @@ export type Database = {
           sla_policy_id?: string | null
           violation_type?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "sla_violations_sla_policy_id_fkey"
-            columns: ["sla_policy_id"]
-            isOneToOne: false
-            referencedRelation: "sla_policies"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       solicitacoes_vale: {
         Row: {
@@ -39287,22 +36393,7 @@ export type Database = {
           sticker_id?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "sticker_favorites_sticker_id_fkey"
-            columns: ["sticker_id"]
-            isOneToOne: false
-            referencedRelation: "mv_top_stickers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sticker_favorites_sticker_id_fkey"
-            columns: ["sticker_id"]
-            isOneToOne: false
-            referencedRelation: "stickers"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       stickers: {
         Row: {
@@ -39398,36 +36489,7 @@ export type Database = {
           last_assigned_at?: string | null
           queue_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "sticky_assignments_agent_profile_id_fkey"
-            columns: ["agent_profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sticky_assignments_channel_connection_id_fkey"
-            columns: ["channel_connection_id"]
-            isOneToOne: false
-            referencedRelation: "channel_connections"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sticky_assignments_channel_connection_id_fkey"
-            columns: ["channel_connection_id"]
-            isOneToOne: false
-            referencedRelation: "channel_connections_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sticky_assignments_queue_id_fkey"
-            columns: ["queue_id"]
-            isOneToOne: false
-            referencedRelation: "queues"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       storage_cleanup_logs: {
         Row: {
@@ -39997,15 +37059,7 @@ export type Database = {
           tag_name?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "tags_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       talkx_blacklist: {
         Row: {
@@ -40029,29 +37083,7 @@ export type Database = {
           id?: string | null
           reason?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "talkx_blacklist_blocked_by_fkey"
-            columns: ["blocked_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "talkx_blacklist_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: true
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "talkx_blacklist_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: true
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       talkx_campaigns: {
         Row: {
@@ -40126,29 +37158,7 @@ export type Database = {
           variables_config?: Json | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "talkx_campaigns_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["connection_id"]
-          },
-          {
-            foreignKeyName: "talkx_campaigns_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["whatsapp_connection_id"]
-          },
-          {
-            foreignKeyName: "talkx_campaigns_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_connections"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       talkx_recipients: {
         Row: {
@@ -40190,29 +37200,7 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "talkx_recipients_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "talkx_campaigns"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "talkx_recipients_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "talkx_recipients_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       task_queues: {
         Row: {
@@ -40266,22 +37254,7 @@ export type Database = {
           last_read_at?: string | null
           profile_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "team_conversation_members_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "team_conversations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "team_conversation_members_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       team_conversations: {
         Row: {
@@ -40317,29 +37290,7 @@ export type Database = {
           type?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "team_conversations_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "team_conversations_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "team_conversations_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments_safe"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       team_message_reactions: {
         Row: {
@@ -40393,22 +37344,7 @@ export type Database = {
           read_at?: string | null
           status?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "team_message_receipts_message_id_fkey"
-            columns: ["message_id"]
-            isOneToOne: false
-            referencedRelation: "team_messages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "team_message_receipts_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       team_messages: {
         Row: {
@@ -40453,29 +37389,7 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "team_messages_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "team_conversations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "team_messages_reply_to_id_fkey"
-            columns: ["reply_to_id"]
-            isOneToOne: false
-            referencedRelation: "team_messages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "team_messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       tenants: {
         Row: {
@@ -40613,22 +37527,7 @@ export type Database = {
           metadata?: Json | null
           transfer_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "transfer_comments_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transfer_comments_transfer_id_fkey"
-            columns: ["transfer_id"]
-            isOneToOne: false
-            referencedRelation: "conversation_transfers"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       transportadoras: {
         Row: {
@@ -40826,15 +37725,7 @@ export type Database = {
           user_id?: string | null
           workspace_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_roles_profiles_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
       user_service_accounts: {
         Row: {
@@ -40843,7 +37734,8 @@ export type Database = {
           id: string | null
           is_active: boolean | null
           service_type:
-            Database["public"]["Enums"]["service_account_type"] | null
+            | Database["public"]["Enums"]["service_account_type"]
+            | null
           updated_at: string | null
           user_id: string | null
         }
@@ -40853,7 +37745,8 @@ export type Database = {
           id?: string | null
           is_active?: boolean | null
           service_type?:
-            Database["public"]["Enums"]["service_account_type"] | null
+            | Database["public"]["Enums"]["service_account_type"]
+            | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -40863,7 +37756,8 @@ export type Database = {
           id?: string | null
           is_active?: boolean | null
           service_type?:
-            Database["public"]["Enums"]["service_account_type"] | null
+            | Database["public"]["Enums"]["service_account_type"]
+            | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -40906,15 +37800,7 @@ export type Database = {
           user_agent?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_sessions_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "user_devices"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_settings: {
         Row: {
@@ -41203,7 +38089,7 @@ export type Database = {
       }
       warroom_alerts: {
         Row: {
-          alert_type: Database["zapp"]["Enums"]["warroom_alert_type"] | null
+          alert_type: "info" | "warning" | "critical" | "sla_breach" | null
           created_at: string | null
           dismissed_by: string | null
           entity: string | null
@@ -41216,7 +38102,7 @@ export type Database = {
           title: string | null
         }
         Insert: {
-          alert_type?: Database["zapp"]["Enums"]["warroom_alert_type"] | null
+          alert_type?: "info" | "warning" | "critical" | "sla_breach" | null
           created_at?: string | null
           dismissed_by?: string | null
           entity?: string | null
@@ -41229,7 +38115,7 @@ export type Database = {
           title?: string | null
         }
         Update: {
-          alert_type?: Database["zapp"]["Enums"]["warroom_alert_type"] | null
+          alert_type?: "info" | "warning" | "critical" | "sla_breach" | null
           created_at?: string | null
           dismissed_by?: string | null
           entity?: string | null
@@ -41241,15 +38127,7 @@ export type Database = {
           source?: string | null
           title?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "warroom_alerts_dismissed_by_fkey"
-            columns: ["dismissed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       webauthn_challenges: {
         Row: {
@@ -41987,29 +38865,7 @@ export type Database = {
           verify_token?: string | null
           waba_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: true
-            referencedRelation: "messages"
-            referencedColumns: ["connection_id"]
-          },
-          {
-            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: true
-            referencedRelation: "messages"
-            referencedColumns: ["whatsapp_connection_id"]
-          },
-          {
-            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: true
-            referencedRelation: "whatsapp_connections"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       whatsapp_official_credentials_safe: {
         Row: {
@@ -42045,29 +38901,7 @@ export type Database = {
           updated_at?: string | null
           waba_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: true
-            referencedRelation: "messages"
-            referencedColumns: ["connection_id"]
-          },
-          {
-            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: true
-            referencedRelation: "messages"
-            referencedColumns: ["whatsapp_connection_id"]
-          },
-          {
-            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: true
-            referencedRelation: "whatsapp_connections"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       whatsapp_templates: {
         Row: {
@@ -42118,29 +38952,7 @@ export type Database = {
           variables?: string[] | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "whatsapp_templates_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["connection_id"]
-          },
-          {
-            foreignKeyName: "whatsapp_templates_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["whatsapp_connection_id"]
-          },
-          {
-            foreignKeyName: "whatsapp_templates_whatsapp_connection_id_fkey"
-            columns: ["whatsapp_connection_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_connections"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       whisper_files: {
         Row: {
@@ -42215,29 +39027,7 @@ export type Database = {
           target_agent_id?: string | null
           whisper_thread_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "whisper_messages_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "whisper_messages_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "whisper_messages_target_agent_id_fkey"
-            columns: ["target_agent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       workspace_members: {
         Row: {
@@ -42400,6 +39190,15 @@ export type Database = {
       }
       fn_apply_connection_update: { Args: { p_event: Json }; Returns: Json }
       generate_transfer_ticket: { Args: never; Returns: string }
+      get_companies_by_phones_batch: {
+        Args: { p_phones: string[] }
+        Returns: {
+          company: string
+          full_name: string
+          lead_status: string
+          phone_number: string
+        }[]
+      }
       get_contact_intelligence_by_phone: {
         Args: { p_phone: string }
         Returns: Json
@@ -42448,7 +39247,7 @@ export type Database = {
         | { Args: { p_contact_id: string }; Returns: Json }
         | {
             Args: { p_instance?: string; p_remote_jid: string }
-            Returns: Database["evo"]["Tables"]["evolution_contacts"]["Row"][]
+            Returns: Database["public"]["Views"]["evolution_contacts"]["Row"][]
             SetofOptions: {
               from: "*"
               to: "evolution_contacts"
@@ -42467,7 +39266,12 @@ export type Database = {
         | "custom_webhook"
         | "custom_agent"
       app_role:
-        "admin" | "manager" | "supervisor" | "agent" | "special_agent" | "dev"
+        | "admin"
+        | "manager"
+        | "supervisor"
+        | "agent"
+        | "special_agent"
+        | "dev"
       channel_type:
         | "whatsapp"
         | "instagram"
@@ -42530,6 +39334,30 @@ export type Database = {
         Update: {
           id?: number
           server_time?: string
+        }
+        Relationships: []
+      }
+      _backup_avatar_urls_20260803: {
+        Row: {
+          id: string | null
+          instance_name: string | null
+          profile_picture_url: string | null
+          remote_jid: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string | null
+          instance_name?: string | null
+          profile_picture_url?: string | null
+          remote_jid?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string | null
+          instance_name?: string | null
+          profile_picture_url?: string | null
+          remote_jid?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -46207,6 +43035,8 @@ export type Database = {
           content: string
           created_at: string | null
           id: string
+          is_pinned: boolean | null
+          note_type: string | null
           updated_at: string | null
         }
         Insert: {
@@ -46215,6 +43045,8 @@ export type Database = {
           content: string
           created_at?: string | null
           id?: string
+          is_pinned?: boolean | null
+          note_type?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -46223,6 +43055,8 @@ export type Database = {
           content?: string
           created_at?: string | null
           id?: string
+          is_pinned?: boolean | null
+          note_type?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -60705,50 +57539,7 @@ export type Database = {
           unread_count?: number | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_contact_360"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_contacts_with_legacy"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_deleted_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_top_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       cookies_health_dashboard: {
         Row: {
@@ -62883,50 +59674,7 @@ export type Database = {
           unread_count?: number | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_contact_360"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_contacts_with_legacy"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_deleted_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_top_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       evolution_conversations_artes: {
         Row: {
@@ -66640,50 +63388,7 @@ export type Database = {
           template_name?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_contact_360"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_contacts_with_legacy"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_deleted_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_top_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       evolution_messages_artes: {
         Row: {
@@ -70233,7 +66938,8 @@ export type Database = {
           gap_inbound_min: number | null
           id: string | null
           pipeline_status:
-            Database["zapp"]["Enums"]["evolution_pipeline_status"] | null
+            | Database["zapp"]["Enums"]["evolution_pipeline_status"]
+            | null
           queue_failed_24h: number | null
           queue_pending_now: number | null
           queue_sent_24h: number | null
@@ -70253,7 +66959,8 @@ export type Database = {
           gap_inbound_min?: number | null
           id?: string | null
           pipeline_status?:
-            Database["zapp"]["Enums"]["evolution_pipeline_status"] | null
+            | Database["zapp"]["Enums"]["evolution_pipeline_status"]
+            | null
           queue_failed_24h?: number | null
           queue_pending_now?: number | null
           queue_sent_24h?: number | null
@@ -70273,7 +66980,8 @@ export type Database = {
           gap_inbound_min?: number | null
           id?: string | null
           pipeline_status?:
-            Database["zapp"]["Enums"]["evolution_pipeline_status"] | null
+            | Database["zapp"]["Enums"]["evolution_pipeline_status"]
+            | null
           queue_failed_24h?: number | null
           queue_pending_now?: number | null
           queue_sent_24h?: number | null
@@ -71036,22 +67744,7 @@ export type Database = {
           sent_to_whatsapp?: boolean | null
           status_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "evolution_status_reactions_status_id_fkey"
-            columns: ["status_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_whatsapp_status"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_status_reactions_status_id_fkey"
-            columns: ["status_id"]
-            isOneToOne: false
-            referencedRelation: "v_whatsapp_status_feed"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       evolution_tag_assignments: {
         Row: {
@@ -71341,1110 +68034,6 @@ export type Database = {
           resolved_by?: string | null
           retry_count?: number | null
           status?: string | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_artes: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_01: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_02: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_03: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_04: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_05: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_06: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_07: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_08: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_09: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_10: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_11: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_12: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_13: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_14: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_comercial_15: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_compras: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_default: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_financeiro: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_gravacao: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_logistica: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_events_marketing: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
         }
         Relationships: []
       }
@@ -73366,54 +68955,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_webhook_events_wpp2: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_type: string | null
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          push_name: string | null
-          remote_jid: string | null
-          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_type?: string | null
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          status?: Database["zapp"]["Enums"]["webhook_event_status"] | null
-        }
-        Relationships: []
-      }
       evolution_webhook_metrics: {
         Row: {
           avg_processing_time_ms: number | null
@@ -73499,50 +69040,7 @@ export type Database = {
           viewed_at?: string | null
           viewed_by_us?: boolean | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_contact_360"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_contacts_with_legacy"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_deleted_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_top_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       gmail_accounts: {
         Row: {
@@ -74580,50 +70078,7 @@ export type Database = {
           whatsapp_message_id: string | null
           whatsapp_timestamp: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_contact_360"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_contacts_with_legacy"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_deleted_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_top_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       messages_whatsapp: {
         Row: {
@@ -74665,50 +70120,7 @@ export type Database = {
           remote_jid?: string | null
           status?: never
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_contact_360"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_contacts_with_legacy"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_deleted_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_top_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       meta_capi_events: {
         Row: {
@@ -74825,41 +70237,6 @@ export type Database = {
           instance_name: string | null
           status: string | null
           total_conversas: number | null
-        }
-        Relationships: []
-      }
-      mv_executive_dashboard: {
-        Row: {
-          alertas_criticos: number | null
-          alertas_warnings: number | null
-          cache_hit_pct: number | null
-          calculated_at: string | null
-          contatos_ativos_30d: number | null
-          contatos_ativos_7d: number | null
-          cron_jobs: number | null
-          db_size_mb: number | null
-          events_24h: number | null
-          expires_at: string | null
-          fks_sem_indice: number | null
-          funcs_vulneraveis: number | null
-          hardening_status: string | null
-          inbound_30d: number | null
-          msgs_24h: number | null
-          msgs_30d: number | null
-          msgs_7d: number | null
-          outbound_30d: number | null
-          score_bpm: number | null
-          status_overall: string | null
-          tabelas_sem_rls: number | null
-          taxa_resposta_pct: number | null
-          tempo_medio_resposta_min: number | null
-          total_contatos: number | null
-          total_conversas: number | null
-          total_indexes: number | null
-          total_mensagens: number | null
-          total_rls_policies: number | null
-          update_1h: number | null
-          upsert_1h: number | null
         }
         Relationships: []
       }
@@ -76732,50 +72109,7 @@ export type Database = {
           unread_count: number | null
           updated_at: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_contact_360"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_contacts_with_legacy"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_deleted_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_top_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       v_pending_notifications: {
         Row: {
@@ -77080,25 +72414,6 @@ export type Database = {
         }
         Relationships: []
       }
-      v_webhook_events_last_hour: {
-        Row: {
-          cnt: number | null
-          event_type: string | null
-          instance_name: string | null
-        }
-        Relationships: []
-      }
-      v_webhook_health: {
-        Row: {
-          events_1h: number | null
-          events_24h: number | null
-          health_status: string | null
-          last_event_at: string | null
-          processed_1h: number | null
-          unresponded: number | null
-        }
-        Relationships: []
-      }
       v_weekly_metrics: {
         Row: {
           deals_created: number | null
@@ -77303,16 +72618,6 @@ export type Database = {
           sent: number | null
           status_summary: string | null
           success_rate_pct: number | null
-        }
-        Relationships: []
-      }
-      vw_evolution_realtime_metrics: {
-        Row: {
-          events_last_hour: number | null
-          total_contacts: number | null
-          total_conversations: number | null
-          total_messages: number | null
-          unresolved_alerts: number | null
         }
         Relationships: []
       }
@@ -77549,50 +72854,7 @@ export type Database = {
           status: string | null
           storage_type: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_contact_360"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_contacts_with_legacy"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_deleted_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_evolution_messages_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_top_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       vw_system_health: {
         Row: {
@@ -78497,7 +73759,7 @@ export type Database = {
         | { Args: never; Returns: Record<string, unknown>[] }
       dblink_get_pkey: {
         Args: { "": string }
-        Returns: Database["public"]["CompositeTypes"]["dblink_pkey_results"][]
+        Returns: unknown[]
         SetofOptions: {
           from: "*"
           to: "dblink_pkey_results"
@@ -78690,7 +73952,10 @@ export type Database = {
         Args: { p_threshold_pct?: number }
         Returns: Json
       }
-      fn_alert_wpp2_disconnection: { Args: never; Returns: Json }
+      fn_alert_wpp2_disconnection: {
+        Args: { p_instance_name?: string }
+        Returns: Json
+      }
       fn_analyze_sentiment: {
         Args: { p_text: string }
         Returns: {
@@ -79618,7 +74883,7 @@ export type Database = {
       fn_score_v2_pipeline: { Args: never; Returns: Json }
       fn_search_contacts: {
         Args: { p_limit?: number; p_query: string }
-        Returns: Database["evo"]["Tables"]["evolution_contacts"]["Row"][]
+        Returns: Database["zapp"]["Views"]["evolution_contacts"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_contacts"
@@ -79914,7 +75179,7 @@ export type Database = {
       get_contact_360_by_phone: { Args: { p_phone: string }; Returns: Json }
       get_contact_conversations: {
         Args: { p_contact_id: string; p_limit?: number }
-        Returns: Database["evo"]["Tables"]["evolution_conversations"]["Row"][]
+        Returns: Database["zapp"]["Views"]["evolution_conversations"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_conversations"
@@ -80462,7 +75727,7 @@ export type Database = {
           p_new_stage: string
           p_performed_by?: string
         }
-        Returns: Database["evo"]["Tables"]["evolution_deals"]["Row"]
+        Returns: Database["zapp"]["Views"]["evolution_deals"]["Row"]
         SetofOptions: {
           from: "*"
           to: "evolution_deals"
@@ -80507,7 +75772,7 @@ export type Database = {
       }
       rpc_complete_task: {
         Args: { p_completed_by?: string; p_id: string; p_notes?: string }
-        Returns: Database["evo"]["Tables"]["evolution_tasks"]["Row"]
+        Returns: Database["zapp"]["Views"]["evolution_tasks"]["Row"]
         SetofOptions: {
           from: "*"
           to: "evolution_tasks"
@@ -80841,7 +76106,7 @@ export type Database = {
         | { Args: { p_contact_id: string }; Returns: Json }
         | {
             Args: { p_instance?: string; p_remote_jid: string }
-            Returns: Database["evo"]["Tables"]["evolution_contacts"]["Row"][]
+            Returns: Database["zapp"]["Views"]["evolution_contacts"]["Row"][]
             SetofOptions: {
               from: "*"
               to: "evolution_contacts"
@@ -80878,6 +76143,16 @@ export type Database = {
         Returns: Json
       }
       rpc_get_media_url: { Args: { p_message_id: string }; Returns: string }
+      rpc_get_message_details: {
+        Args: { p_message_id: string }
+        Returns: Database["zapp"]["Views"]["evolution_messages"]["Row"][]
+        SetofOptions: {
+          from: "*"
+          to: "evolution_messages"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       rpc_get_metrics_dashboard: { Args: never; Returns: Json }
       rpc_get_notifications: {
         Args: { p_include_read?: boolean; p_limit?: number }
@@ -80934,7 +76209,7 @@ export type Database = {
               p_message_type?: string
               p_remote_jid: string
             }
-            Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"]
+            Returns: Database["zapp"]["Views"]["evolution_messages"]["Row"]
             SetofOptions: {
               from: "*"
               to: "evolution_messages"
@@ -80952,7 +76227,7 @@ export type Database = {
               p_message_type: string
               p_remote_jid: string
             }
-            Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"]
+            Returns: Database["zapp"]["Views"]["evolution_messages"]["Row"]
             SetofOptions: {
               from: "*"
               to: "evolution_messages"
@@ -81025,7 +76300,7 @@ export type Database = {
           p_offset?: number
           p_performed_by?: string
         }
-        Returns: Database["evo"]["Tables"]["evolution_audit_log"]["Row"][]
+        Returns: Database["zapp"]["Views"]["evolution_audit_log"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_audit_log"
@@ -81040,7 +76315,7 @@ export type Database = {
           p_offset?: number
           p_status?: string
         }
-        Returns: Database["evo"]["Tables"]["evolution_broadcasts"]["Row"][]
+        Returns: Database["zapp"]["Views"]["evolution_broadcasts"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_broadcasts"
@@ -81050,7 +76325,7 @@ export type Database = {
       }
       rpc_list_calls: {
         Args: { p_instance?: string; p_limit?: number; p_remote_jid?: string }
-        Returns: Database["evo"]["Tables"]["evolution_calls"]["Row"][]
+        Returns: Database["zapp"]["Views"]["evolution_calls"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_calls"
@@ -81107,7 +76382,7 @@ export type Database = {
           p_offset?: number
           p_search?: string
         }
-        Returns: Database["evo"]["Tables"]["evolution_contacts"]["Row"][]
+        Returns: Database["zapp"]["Views"]["evolution_contacts"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_contacts"
@@ -81123,7 +76398,7 @@ export type Database = {
           p_offset?: number
           p_status?: string
         }
-        Returns: Database["evo"]["Tables"]["evolution_conversations"]["Row"][]
+        Returns: Database["zapp"]["Views"]["evolution_conversations"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_conversations"
@@ -81140,7 +76415,7 @@ export type Database = {
           p_offset?: number
           p_stage?: string
         }
-        Returns: Database["evo"]["Tables"]["evolution_deals"]["Row"][]
+        Returns: Database["zapp"]["Views"]["evolution_deals"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_deals"
@@ -81283,7 +76558,7 @@ export type Database = {
           p_offset?: number
           p_search?: string
         }
-        Returns: Database["evo"]["Tables"]["evolution_groups"]["Row"][]
+        Returns: Database["zapp"]["Views"]["evolution_groups"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_groups"
@@ -81299,7 +76574,7 @@ export type Database = {
           p_search?: string
           p_type?: string
         }
-        Returns: Database["evo"]["Tables"]["evolution_labels"]["Row"][]
+        Returns: Database["zapp"]["Views"]["evolution_labels"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_labels"
@@ -81314,7 +76589,7 @@ export type Database = {
           p_offset?: number
           p_remote_jid?: string
         }
-        Returns: Database["evo"]["Tables"]["evolution_media"]["Row"][]
+        Returns: Database["zapp"]["Views"]["evolution_media"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_media"
@@ -81329,7 +76604,7 @@ export type Database = {
           p_limit?: number
           p_status?: string
         }
-        Returns: Database["evo"]["Tables"]["evolution_message_templates"]["Row"][]
+        Returns: Database["zapp"]["Views"]["evolution_message_templates"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_message_templates"
@@ -81344,7 +76619,7 @@ export type Database = {
           p_limit?: number
           p_remote_jid: string
         }
-        Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"][]
+        Returns: Database["zapp"]["Views"]["evolution_messages"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_messages"
@@ -81363,7 +76638,7 @@ export type Database = {
           p_offset?: number
           p_search?: string
         }
-        Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"][]
+        Returns: Database["zapp"]["Views"]["evolution_messages"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_messages"
@@ -81379,7 +76654,7 @@ export type Database = {
           p_offset?: number
           p_remote_jid: string
         }
-        Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"][]
+        Returns: Database["zapp"]["Views"]["evolution_messages"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_messages"
@@ -81394,7 +76669,7 @@ export type Database = {
           p_limit?: number
           p_search?: string
         }
-        Returns: Database["evo"]["Tables"]["evolution_quick_replies"]["Row"][]
+        Returns: Database["zapp"]["Views"]["evolution_quick_replies"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_quick_replies"
@@ -81444,7 +76719,7 @@ export type Database = {
           p_limit?: number
           p_search?: string
         }
-        Returns: Database["evo"]["Tables"]["evolution_tags"]["Row"][]
+        Returns: Database["zapp"]["Views"]["evolution_tags"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_tags"
@@ -81463,7 +76738,7 @@ export type Database = {
           p_offset?: number
           p_status?: string
         }
-        Returns: Database["evo"]["Tables"]["evolution_tasks"]["Row"][]
+        Returns: Database["zapp"]["Views"]["evolution_tasks"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_tasks"
@@ -82100,7 +77375,7 @@ export type Database = {
               p_role_title?: string
               p_tags?: string[]
             }
-            Returns: Database["evo"]["Tables"]["evolution_contacts"]["Row"]
+            Returns: Database["zapp"]["Views"]["evolution_contacts"]["Row"]
             SetofOptions: {
               from: "*"
               to: "evolution_contacts"
@@ -82136,7 +77411,7 @@ export type Database = {
           p_title: string
           p_value?: number
         }
-        Returns: Database["evo"]["Tables"]["evolution_deals"]["Row"]
+        Returns: Database["zapp"]["Views"]["evolution_deals"]["Row"]
         SetofOptions: {
           from: "*"
           to: "evolution_deals"
@@ -82220,7 +77495,7 @@ export type Database = {
           p_task_type?: string
           p_title: string
         }
-        Returns: Database["evo"]["Tables"]["evolution_tasks"]["Row"]
+        Returns: Database["zapp"]["Views"]["evolution_tasks"]["Row"]
         SetofOptions: {
           from: "*"
           to: "evolution_tasks"
@@ -82429,6 +77704,8 @@ export type Database = {
         Args: { _permission_name: string; _user_id: string }
         Returns: boolean
       }
+      validate_cnpj: { Args: { p_cnpj: string }; Returns: boolean }
+      validate_cpf: { Args: { p_cpf: string }; Returns: boolean }
       validate_phone_numbers: {
         Args: { phone_numbers: Json }
         Returns: boolean
@@ -82472,9 +77749,18 @@ export type Database = {
         | "custom_webhook"
         | "custom_agent"
       app_role:
-        "admin" | "manager" | "supervisor" | "agent" | "special_agent" | "dev"
+        | "admin"
+        | "manager"
+        | "supervisor"
+        | "agent"
+        | "special_agent"
+        | "dev"
       automation_execution_status:
-        "pending" | "accepted" | "dismissed" | "executed" | "failed"
+        | "pending"
+        | "accepted"
+        | "dismissed"
+        | "executed"
+        | "failed"
       automation_trigger_type:
         | "first_response_pending"
         | "inactivity"
@@ -82557,7 +77843,11 @@ export type Database = {
       trace_level: "debug" | "info" | "warning" | "error" | "critical"
       warroom_alert_type: "info" | "warning" | "critical" | "sla_breach"
       webhook_event_status:
-        "pending" | "success" | "skipped" | "failed" | "dead_letter"
+        | "pending"
+        | "success"
+        | "skipped"
+        | "failed"
+        | "dead_letter"
     }
     CompositeTypes: {
       [_ in never]: never

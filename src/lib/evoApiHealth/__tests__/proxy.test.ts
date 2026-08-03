@@ -32,9 +32,24 @@ vi.stubGlobal('fetch', mockFetch);
 const FAKE_URL = 'http://localhost:54321/rest/v1/';
 const FAKE_HEADERS = { 'x-correlation-id': 'cid-test', authorization: 'Bearer test-anon-key' };
 
+interface MockQueryBuilder {
+  select: (_cols?: string) => MockQueryBuilder;
+  eq: () => MockQueryBuilder;
+  neq: () => MockQueryBuilder;
+  lt: () => MockQueryBuilder;
+  gt: () => MockQueryBuilder;
+  order: () => MockQueryBuilder;
+  limit: () => MockQueryBuilder;
+  offset: () => MockQueryBuilder;
+  update: (data: unknown) => MockQueryBuilder;
+  match: (q: unknown) => MockQueryBuilder;
+  _pending: Promise<Response> | undefined;
+  then: (resolve: (value: unknown) => void) => Promise<void>;
+}
+
 function bridgeFrom(table: string) {
-  const queryBuilder: any = {
-    select: (cols?: string) => queryBuilder,
+  const queryBuilder: MockQueryBuilder = {
+    select: (_cols?: string) => queryBuilder,
     eq: () => queryBuilder,
     neq: () => queryBuilder,
     lt: () => queryBuilder,
@@ -42,10 +57,10 @@ function bridgeFrom(table: string) {
     order: () => queryBuilder,
     limit: () => queryBuilder,
     offset: () => queryBuilder,
-    update: (data: any) => { queryBuilder._pending = mockFetch(`${FAKE_URL}${table}`, { method: 'PATCH', body: JSON.stringify(data), headers: FAKE_HEADERS }); return queryBuilder; },
-    match: (q: any) => { queryBuilder._pending = mockFetch(`${FAKE_URL}${table}`, { method: 'PATCH', body: JSON.stringify({ match: q }), headers: FAKE_HEADERS }); return queryBuilder; },
+    update: (data: unknown) => { queryBuilder._pending = mockFetch(`${FAKE_URL}${table}`, { method: 'PATCH', body: JSON.stringify(data), headers: FAKE_HEADERS }); return queryBuilder; },
+    match: (q: unknown) => { queryBuilder._pending = mockFetch(`${FAKE_URL}${table}`, { method: 'PATCH', body: JSON.stringify({ match: q }), headers: FAKE_HEADERS }); return queryBuilder; },
     _pending: undefined as Promise<Response> | undefined,
-    then: (resolve: Function) => {
+    then: (resolve: (value: unknown) => void) => {
       const promise = queryBuilder._pending ?? mockFetch(`${FAKE_URL}${table}`, { method: 'GET', body: undefined, headers: FAKE_HEADERS });
       return promise.then(async (res: Response) => {
         const text = await res.text();
@@ -71,7 +86,7 @@ vi.mock('@/integrations/supabase/client', () => ({
   SUPABASE_RESOLVED_ANON_KEY: 'test-anon-key',
   supabase: {
     auth: { getSession: mockGetSession },
-    rpc: (name: string, params?: any) => {
+    rpc: (name: string, params?: unknown) => {
       const promise = mockFetch(`${FAKE_URL}rpc/${name}`, { method: 'POST', body: JSON.stringify(params), headers: FAKE_HEADERS });
       return promise.then(async (res: Response) => {
         const text = await res.text();

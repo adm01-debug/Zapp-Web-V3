@@ -12,9 +12,9 @@
 //
 // Best-effort: any failure here is swallowed — never break the send path.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
-let cached: ReturnType<typeof createClient> | null | false = null;
+let cached: SupabaseClient<Record<string, unknown>, "zapp"> | null | false = null;
 
 function getExternalServiceClient() {
   if (cached === null) {
@@ -25,7 +25,7 @@ function getExternalServiceClient() {
       cached = false;
       return null;
     }
-    cached = createClient(url, key, { auth: { persistSession: false }, db: { schema: "zapp" } } as any);
+    cached = createClient<Record<string, unknown>, "zapp">(url, key, { auth: { persistSession: false }, db: { schema: "zapp" } });
   }
   return cached === false ? null : cached;
 }

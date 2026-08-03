@@ -27,6 +27,20 @@ vi.mock('@/lib/clientTelemetry', () => ({
 vi.mock('@/lib/correlationId', () => ({
   generateCorrelationId: mockGenerateCid,
 }));
+vi.mock('@/lib/logger', () => ({
+  getLogger: () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
+  createLogger: () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
+}));
 
 // ── Import SUT AFTER mocks ────────────────────────────────────────────────────
 import { timedRpc } from '../instrumentedExternal';
