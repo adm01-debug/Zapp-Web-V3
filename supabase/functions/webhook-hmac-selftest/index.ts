@@ -60,6 +60,7 @@ type ValidatorResult = {
 
 type ValidatorFn = (req: Request) => Promise<ValidatorResult>;
 
+/** Normalises a validator's return value to a consistent `ValidatorResult` shape, handling known aliases. */
 function normalizeResult(raw: unknown): ValidatorResult {
   if (raw == null || typeof raw !== 'object') {
     return { valid: false, signatureFound: false, error: 'validator returned non-object' };
@@ -77,6 +78,7 @@ function normalizeResult(raw: unknown): ValidatorResult {
   return { valid, signatureFound, error, payload };
 }
 
+/** Resolves a `ValidatorFn` from the shared HMAC module, trying six known export signatures in order. */
 function resolveValidator(secret: string, strict = false): ValidatorFn {
   const mod = hmacModule as unknown as Record<string, unknown>;
 
@@ -175,12 +177,14 @@ function resolveValidator(secret: string, strict = false): ValidatorFn {
 const DEFAULT_TOLERANCE_SECONDS = 300; // 5 minutos
 const MAX_TOLERANCE_SECONDS = 3600;    // 1 hora (cap defensivo)
 
+/** Converts an `ArrayBuffer` to a lowercase hex string. */
 function toHex(buf: ArrayBuffer): string {
   return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }
 
+/** Computes an HMAC-SHA256 digest of `payload` using `secret` and returns it as a hex string. */
 async function computeHmac(payload: string, secret: string): Promise<string> {
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -356,6 +360,7 @@ Deno.serve(async (req) => {
 
   // Helper: monta payload, assinatura e Request com várias opções de adulteração.
   // Retorna também a trilha de fases internas (build → sign → mutate → request).
+  /** Builds a signed synthetic webhook `Request`, optionally mutating the payload or omitting the signature header. */
   async function makeReq(opts: {
     issuedAt: Date;
     nonce: string;
@@ -419,7 +424,7 @@ Deno.serve(async (req) => {
     return { payload: finalPayload, req: r, sig, parsed: finalParsed, trail, failedPhase: null, failReason: null };
   }
 
-  // Helper: roda um cenário (HMAC + temporal) e produz relatório com trilha completa
+  /** Executes one self-test scenario end-to-end and returns a `ScenarioReport` with full phase trail. */
   async function runScenario(args: {
     name: string;
     description: string;

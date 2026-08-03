@@ -38,6 +38,7 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
   const [result, setResult] = useState<SelfTestResult | null>(null);
   const [includeNegative, setIncludeNegative] = useState(true);
 
+  /** Writes a HMAC self-test audit record to `hmac_selftest_audit` for the authenticated user. */
   async function logAudit(
     instanceName: string | null,
     payload: SelfTestResult,
@@ -134,6 +135,7 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
     }
   }
 
+  /** Invokes the `webhook-hmac-selftest` edge function and updates component state with the result. */
   async function run(opts?: { includeNegative?: boolean }) {
     const useNegative = opts?.includeNegative ?? includeNegative;
     setLoading(true);

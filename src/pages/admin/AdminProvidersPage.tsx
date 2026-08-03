@@ -54,6 +54,7 @@ const TYPE_LABEL: Record<ProviderType, string> = {
   custom: 'Custom HTTP',
 };
 
+/** Admin page for managing WhatsApp providers, monitoring status and viewing event logs. */
 export const AdminProvidersPage = () => {
   const {
     rows,

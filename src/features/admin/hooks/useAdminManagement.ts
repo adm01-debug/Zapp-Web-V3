@@ -1052,6 +1052,7 @@ function useRoutePermissionsManagement() {
     staleTime: 60_000,
   });
 
+  /** Persists an updated role list for an existing route permission row. */
   async function savePermissionRow(path: string, nextRoles: AppRole[]) {
     setSavingPermPath(path);
     const { error } = await supabase
@@ -1069,6 +1070,7 @@ function useRoutePermissionsManagement() {
     return true;
   }
 
+  /** Removes an existing route permission row and invalidates the local cache. */
   async function deletePermissionRow(path: string) {
     const { error } = await supabase.from('route_permissions').delete().eq('path', path);
     if (error) {
@@ -1081,6 +1083,7 @@ function useRoutePermissionsManagement() {
     return true;
   }
 
+  /** Inserts a new route permission row after validating the path format. */
   async function createPermissionRow(newPath: string, newRoles: AppRole[], newDesc: string) {
     const path = newPath.trim();
     if (!path.startsWith('/')) {

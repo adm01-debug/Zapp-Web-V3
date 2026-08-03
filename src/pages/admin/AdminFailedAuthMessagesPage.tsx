@@ -196,6 +196,7 @@ export default function AdminFailedAuthMessagesPage() {
   );
 }
 
+/** Controlled date-picker input with a label used by the auth messages filter form. */
 function DatePicker({
   label,
   value,
