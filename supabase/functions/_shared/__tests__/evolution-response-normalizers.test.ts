@@ -102,7 +102,7 @@ Deno.test("normalizeProfile: ausente/vazio → null", () => {
   assertEquals(normalizeProfile(null), null);
   assertEquals(normalizeProfile(undefined), null);
   assertEquals(normalizeProfile({}), null);
-  // só envelope `version` (proxy stamp) → null, nunca vaza marker como profile
+  // só envelope `version` (fallback stamp) → null, nunca vaza marker como profile
   assertEquals(normalizeProfile({ version: 1 }), null);
 });
 
