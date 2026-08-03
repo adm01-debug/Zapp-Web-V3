@@ -1190,7 +1190,7 @@ async function handleAutoTag(
 
     const { contactId, messages: inputMessages, requestId } = parsed.data;
     const validContactId = contactId && isValidUUID(contactId) ? contactId : null;
-    const LOVABLE_API_KEY = getLovableApiKey();
+    const apiKey = getLovableApiKey();
 
     let conversationMessages = inputMessages;
     if (!conversationMessages && validContactId) {
@@ -1245,7 +1245,7 @@ async function handleAutoTag(
           () => callAiWithTracking({
             functionName: 'ai-auto-tag',
             userId: ctx.userId,
-            apiKey: LOVABLE_API_KEY,
+            apiKey: apiKey,
             body: {
               model: "google/gemini-3-flash-preview",
               messages: [
@@ -1601,7 +1601,7 @@ async function handleConversationSummary(
 
     const { messages, contactName, contactId, requestId } = parsed.data;
     const validContactId = contactId && isValidUUID(contactId) ? contactId : null;
-    const LOVABLE_API_KEY = getLovableApiKey();
+    const apiKey = getLovableApiKey();
 
     if (!messages || messages.length === 0) {
       return {
@@ -1685,7 +1685,7 @@ Foque em:
           () => callAiWithTracking({
             functionName: 'ai-conversation-summary',
             userId: ctx.userId,
-            apiKey: LOVABLE_API_KEY,
+            apiKey: apiKey,
             body: {
               model: 'google/gemini-3-flash-preview',
               messages: [
@@ -2037,7 +2037,7 @@ async function handleEnhanceMessage(
     }
 
     const { message, tone, contactName, requestId } = parsed.data;
-    const LOVABLE_API_KEY = getLovableApiKey();
+    const apiKey = getLovableApiKey();
 
     const tonePrompts: Record<string, string> = {
       professional: "Reescreva a mensagem abaixo de forma mais profissional, clara e educada. Mantenha o mesmo significado mas use linguagem corporativa e polida.",
@@ -2070,7 +2070,7 @@ async function handleEnhanceMessage(
           () => callAiWithTracking({
             functionName: 'ai-enhance-message',
             userId: ctx.userId,
-            apiKey: LOVABLE_API_KEY,
+            apiKey: apiKey,
             body: {
               model: "google/gemini-3-flash-preview",
               messages: [
@@ -2243,7 +2243,7 @@ async function handleClassifyEmoji(
     }
 
     const { image_url, file_name, requestId } = parsed.data;
-    const LOVABLE_API_KEY = getLovableApiKey();
+    const apiKey = getLovableApiKey();
 
     if (!image_url) {
       return { success: false, error: "image_url is required", duration_ms: performance.now() - startTime };
@@ -2266,7 +2266,7 @@ async function handleClassifyEmoji(
           () => callAiWithTracking({
             functionName: 'ai-classify-emoji',
             userId: ctx.userId,
-            apiKey: LOVABLE_API_KEY,
+            apiKey: apiKey,
             body: {
               model: "google/gemini-3-flash-preview",
               messages: [
@@ -2457,7 +2457,7 @@ async function handleClassifySticker(
     }
 
     const { image_url, requestId } = parsed.data;
-    const LOVABLE_API_KEY = getLovableApiKey();
+    const apiKey = getLovableApiKey();
 
     if (!image_url) {
       return { success: false, error: "image_url is required", duration_ms: performance.now() - startTime };
@@ -2477,7 +2477,7 @@ async function handleClassifySticker(
           () => callAiWithTracking({
             functionName: 'ai-classify-sticker',
             userId: ctx.userId,
-            apiKey: LOVABLE_API_KEY,
+            apiKey: apiKey,
             body: {
               model: "google/gemini-3-flash-preview",
               messages: [
@@ -2931,7 +2931,7 @@ async function handleConversationAnalysis(
 
     const { messages, contactName, contactId, requestId } = parsed.data;
     const validContactId = contactId && isValidUUID(contactId) ? contactId : null;
-    const LOVABLE_API_KEY = getLovableApiKey();
+    const apiKey = getLovableApiKey();
 
     if (!messages || messages.length === 0) {
       return {
@@ -3015,7 +3015,7 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
           () => callAiWithTracking({
             functionName: 'ai-conversation-analysis',
             userId: ctx.userId,
-            apiKey: LOVABLE_API_KEY,
+            apiKey: apiKey,
             body: {
               model: 'google/gemini-3-flash-preview',
               messages: [
@@ -3354,7 +3354,7 @@ async function handleSuggestReply(
     }
 
     const { conversationHistory, contactName, contactId, context, requestId } = parsed.data;
-    const LOVABLE_API_KEY = getLovableApiKey();
+    const apiKey = getLovableApiKey();
     // C.36: Validate contactId upfront for consistent logging
     const validContactId = contactId && isValidUUID(contactId) ? contactId : null;
 
@@ -3483,7 +3483,7 @@ Responda APENAS em formato JSON com a seguinte estrutura:
           () => callAiWithTracking({
             functionName: 'ai-suggest-reply',
             userId: ctx.userId,
-            apiKey: LOVABLE_API_KEY,
+            apiKey: apiKey,
             body: {
               model: "google/gemini-3-flash-preview",
               messages: [
@@ -4037,7 +4037,7 @@ async function handleClassifyTickets(
     }
 
     const { limit } = parsed.data;
-    const LOVABLE_API_KEY = getLovableApiKey();
+    const apiKey = getLovableApiKey();
 
     // Fetch contacts without ai_tag classification (unclassified tickets)
     const { data: contacts, error: contactsError } = await supabase
@@ -4094,7 +4094,7 @@ Retorne APENAS o JSON array, sem markdown.`,
       const aiResult = await callAiWithTracking({
         functionName: 'ai-classify-tickets',
         userId: ctx.userId,
-        apiKey: LOVABLE_API_KEY,
+        apiKey: apiKey,
         body: aiBody,
       });
 
