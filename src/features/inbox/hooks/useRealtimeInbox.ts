@@ -29,9 +29,9 @@ function toRealtimeMessage(optimistic: OptimisticMessage) {
 
 const log = getLogger('useRealtimeInbox');
 
-// Feature flag: use external evolution DB (FATOR X) as data source.
-// NOTE: hardcoded true → configurável via VITE_USE_EXTERNAL_DB
-const USE_EXTERNAL_DB = import.meta.env.VITE_USE_EXTERNAL_DB !== 'false';
+// Feature flag: use external DB (FATOR X — DESCONTINUADO).
+// Padrão FALSE: FATOR X não é mais usado. Só ativa se VITE_USE_EXTERNAL_DB='true' explicitamente.
+const USE_EXTERNAL_DB = import.meta.env.VITE_USE_EXTERNAL_DB === 'true';
 
 // F4-08: TTL + sweep do cache de avatares semeados. O Set antigo crescia sem
 // limite (memory leak) e nunca re-seedeava avatares alterados. Cada entrada
