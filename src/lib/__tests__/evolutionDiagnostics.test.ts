@@ -59,9 +59,9 @@ describe('runEvolutionDiagnostics — step 1: external config', () => {
     expect(results[0].status).toBe('fail');
   });
 
-  it('step 1 name matches "Configuração do Banco Externo"', async () => {
+  it('step 1 name matches "Configuração do Banco Self-Hosted"', async () => {
     const results = await runEvolutionDiagnostics();
-    expect(results[0].step).toContain('Banco Externo');
+    expect(results[0].step).toContain('Self-Hosted');
   });
 });
 

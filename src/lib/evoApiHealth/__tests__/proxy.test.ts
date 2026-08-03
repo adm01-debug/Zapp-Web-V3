@@ -42,17 +42,15 @@ function bridgeFrom(table: string) {
     order: () => queryBuilder,
     limit: () => queryBuilder,
     offset: () => queryBuilder,
-    update: (data: any) => { mockFetch(`${FAKE_URL}${table}`, { method: 'PATCH', body: JSON.stringify(data), headers: FAKE_HEADERS }); return queryBuilder; },
-    match: (q: any) => { mockFetch(`${FAKE_URL}${table}`, { method: 'PATCH', body: JSON.stringify({ match: q }), headers: FAKE_HEADERS }); return queryBuilder; },
+    update: (data: any) => { queryBuilder._pending = mockFetch(`${FAKE_URL}${table}`, { method: 'PATCH', body: JSON.stringify(data), headers: FAKE_HEADERS }); return queryBuilder; },
+    match: (q: any) => { queryBuilder._pending = mockFetch(`${FAKE_URL}${table}`, { method: 'PATCH', body: JSON.stringify({ match: q }), headers: FAKE_HEADERS }); return queryBuilder; },
+    _pending: undefined as Promise<Response> | undefined,
     then: (resolve: Function) => {
-      mockFetch(`${FAKE_URL}${table}`, { method: 'GET', body: undefined, headers: FAKE_HEADERS });
-      return mockFetch().then((res: Response) => res.text()).then((text: string) => {
-        try { 
+      const promise = queryBuilder._pending ?? mockFetch(`${FAKE_URL}${table}`, { method: 'GET', body: undefined, headers: FAKE_HEADERS });
+      return promise.then((res: Response) => res.text()).then((text: string) => {
+        try {
           const parsed = JSON.parse(text);
-          // Map old HTTP proxy format { data, cid, rid } or { error: 'msg' } → Supabase format { data, error }
-          if (parsed.error) {
-            return resolve({ data: null, error: { message: parsed.error, code: '', details: '', hint: '' } });
-          }
+          if (parsed.error) return resolve({ data: null, error: { message: parsed.error, code: '', details: '', hint: '' } });
           return resolve({ data: parsed.data ?? parsed, error: null });
         }
         catch { return resolve({ data: null, error: { message: text, code: '', details: '', hint: '' } }); }
@@ -70,13 +68,11 @@ vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     auth: { getSession: mockGetSession },
     rpc: (name: string, params?: any) => {
-      mockFetch(`${FAKE_URL}rpc/${name}`, { method: 'POST', body: JSON.stringify(params), headers: FAKE_HEADERS });
-      return mockFetch().then((res: Response) => res.text()).then((text: string) => {
-        try { 
+      const promise = mockFetch(`${FAKE_URL}rpc/${name}`, { method: 'POST', body: JSON.stringify(params), headers: FAKE_HEADERS });
+      return promise.then((res: Response) => res.text()).then((text: string) => {
+        try {
           const parsed = JSON.parse(text);
-          if (parsed.error) {
-            return { data: null, error: { message: parsed.error, code: '', details: '', hint: '' } };
-          }
+          if (parsed.error) return { data: null, error: { message: parsed.error, code: '', details: '', hint: '' } };
           return { data: parsed.data ?? parsed, error: null };
         }
         catch { return { data: null, error: { message: text, code: '', details: '', hint: '' } }; }
