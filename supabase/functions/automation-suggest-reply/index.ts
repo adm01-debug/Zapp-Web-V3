@@ -244,7 +244,7 @@ Deno.serve(async (req) => {
   if (denied) return denied;
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY") || Deno.env.get("AI_GATEWAY_KEY");
+    const LOVABLE_API_KEY = Deno.env.get("AI_GATEWAY_KEY") || Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("Required environment variables missing");
 
     const rawBody = await req.json();

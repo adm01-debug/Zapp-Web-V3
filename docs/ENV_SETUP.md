@@ -48,7 +48,7 @@ Eles ficam disponíveis automaticamente em todas as edge functions via
 | `RESEND_API_KEY`                                                    | emails transacionais        | Provedor de email.           |
 | `SIP_PASSWORD`                                                      | `get-sip-password`          | VoIP/SIP.                    |
 | `ELEVENLABS_API_KEY`                                                | voz/transcrição             | Gerenciado como secret.      |
-| `LOVABLE_API_KEY` | `ai-proxy` e demais functions de IA | Gateway de IA (fallback). |
+| `AI_GATEWAY_KEY` (antes `LOVABLE_API_KEY`) | `ai-proxy` e demais functions de IA | Gateway de IA (renomeado em 08/2026). |
 
 > ✅ `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` são
 > injetados automaticamente — **não precisa configurar**.

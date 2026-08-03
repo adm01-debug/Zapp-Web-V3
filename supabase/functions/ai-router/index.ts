@@ -52,9 +52,9 @@ import {
 import { callAiWithTracking, extractTokenUsage } from "../_shared/ai-usage.ts";
 import { requireUser } from "../_shared/auth.ts";
 
-/** Lovable AI gateway key — LOVABLE_API_KEY with AI_GATEWAY_KEY fallback (rename-safe). */
+/** AI gateway key — AI_GATEWAY_KEY with LOVABLE_API_KEY fallback (rename in progress). */
 function getLovableApiKey(): string {
-  return Deno.env.get('LOVABLE_API_KEY') || Deno.env.get('AI_GATEWAY_KEY') || requireEnv('LOVABLE_API_KEY');
+  return Deno.env.get('AI_GATEWAY_KEY') || Deno.env.get('LOVABLE_API_KEY') || requireEnv('AI_GATEWAY_KEY');
 }
 
 // Action-specific timeouts (milliseconds)

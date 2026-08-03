@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
   if (authed instanceof Response) return authed;
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY') || Deno.env.get('AI_GATEWAY_KEY') || requireEnv('LOVABLE_API_KEY');
+    const LOVABLE_API_KEY = Deno.env.get('AI_GATEWAY_KEY') || Deno.env.get('LOVABLE_API_KEY') || requireEnv('AI_GATEWAY_KEY');
 
     const body = await req.json().catch(() => null);
     const parsed = TranscriptSchema.safeParse(body);
