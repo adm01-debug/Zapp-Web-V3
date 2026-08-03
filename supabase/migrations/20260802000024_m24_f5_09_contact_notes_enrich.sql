@@ -303,11 +303,8 @@ BEGIN
       JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
      WHERE n.nspname = 'zapp' AND p.proname = 'add_contact_note';
 
-    IF position('note_type' IN v_body) = 0 THEN
-      RAISE EXCEPTION '[M-24 VER] add_contact_note body does not reference note_type column';
-    END IF;
-    IF position('is_pinned' IN v_body) = 0 THEN
-      RAISE EXCEPTION '[M-24 VER] add_contact_note body does not reference is_pinned column';
+    IF position('content, note_type, is_pinned' IN v_body) = 0 THEN
+      RAISE EXCEPTION '[M-24 VER] add_contact_note INSERT does not include content, note_type, is_pinned columns';
     END IF;
   END;
 

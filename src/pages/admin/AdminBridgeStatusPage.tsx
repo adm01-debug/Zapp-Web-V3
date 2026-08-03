@@ -79,7 +79,7 @@ export default function BridgeStatusPage() {
 
           <div className="hidden border-l border-border/50 pl-3 text-right sm:block">
             <p className="text-[10px] font-bold uppercase text-muted-foreground">Última checagem</p>
-            <p className="font-mono text-xs">{lastCheck.toLocaleTimeString()}</p> // @technical
+            <p className="font-mono text-xs">{lastCheck.toLocaleTimeString()}</p>
           </div>
 
           <Button
@@ -118,12 +118,12 @@ export default function BridgeStatusPage() {
         <Card className="flex flex-col items-center justify-center space-y-2 p-4 text-center">
           <Zap className="h-5 w-5 text-warning" />
           <p className="text-[10px] font-bold uppercase text-muted-foreground">Latência Bridge</p>
-          <p className="text-2xl font-black">{lovableDb === true ? '42ms' : '--'}</p>
+          <p className="text-2xl font-black">--</p>
         </Card>
         <Card className="flex flex-col items-center justify-center space-y-2 p-4 text-center">
           <ShieldCheck className="h-5 w-5 text-success" />
           <p className="text-[10px] font-bold uppercase text-muted-foreground">Uptime 24h</p>
-          <p className="text-2xl font-black">99.9%</p>
+          <p className="text-2xl font-black">--</p>
         </Card>
       </div>
 

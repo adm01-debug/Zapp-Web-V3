@@ -8,12 +8,12 @@ import { Badge } from '@/components/ui/badge';
 /** Performance Dashboard. */
 export default function PerformanceDashboard() {
   const [metrics, setMetrics] = useState<WebVitalMetric[]>([]);
-  const [lastUpdate, setLastLastUpdate] = useState(new Date());
+  const [lastUpdate, setLastUpdate] = useState(new Date());
 
   useEffect(() => {
     const update = () => {
       setMetrics(getWebVitalsReport());
-      setLastLastUpdate(new Date());
+      setLastUpdate(new Date());
     };
     const interval = setInterval(update, 2000);
     update();
@@ -116,19 +116,19 @@ export default function PerformanceDashboard() {
           <div className="space-y-4">
             <div className="flex items-center justify-between text-sm">
               <span>Largest Contentful Paint (LCP)</span>
-              <span className="font-mono">&lt; 2500ms</span> // @technical
+              <span className="font-mono">&lt; 2500ms</span>
             </div>
             <Progress value={25} className="h-1" />
 
             <div className="flex items-center justify-between text-sm">
               <span>Cumulative Layout Shift (CLS)</span>
-              <span className="font-mono">&lt; 0.100</span> // @technical
+              <span className="font-mono">&lt; 0.100</span>
             </div>
             <Progress value={10} className="h-1" />
 
             <div className="flex items-center justify-between text-sm">
               <span>Bundle Size (Gzip)</span>
-              <span className="font-mono">&lt; 500KB</span> // @technical
+              <span className="font-mono">&lt; 500KB</span>
             </div>
             <Progress value={80} className="h-1" />
           </div>

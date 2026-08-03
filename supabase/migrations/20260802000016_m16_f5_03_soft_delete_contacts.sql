@@ -137,7 +137,7 @@ BEGIN
 
   -- Audit trail
   INSERT INTO zapp.audit_logs (
-    action, entity_type, entity_id, performed_by, details
+    action, entity_type, entity_id, user_id, details
   ) VALUES (
     'undo_soft_delete', 'contact', p_contact_id, auth.uid(),
     jsonb_build_object('restored_at', now())
@@ -161,10 +161,8 @@ BEGIN
   END IF;
 
   -- Remove any existing schedule for this job to allow safe re-run.
-  BEGIN
-    PERFORM cron.unschedule('hard-delete-expired-contacts');
-  EXCEPTION WHEN OTHERS THEN NULL;
-  END;
+  -- unschedule() is a no-op when the job doesn't exist — no exception handler needed.
+  PERFORM cron.unschedule('hard-delete-expired-contacts');
 
   -- Run daily at 03:00 UTC; limited batch of 10k per run to avoid long locks.
   -- PostgreSQL does not support LIMIT on DELETE directly; use a subquery on id.

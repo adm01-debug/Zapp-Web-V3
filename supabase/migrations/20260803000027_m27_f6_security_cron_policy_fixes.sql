@@ -162,9 +162,11 @@ BEGIN
 
   -- F6-09
   BEGIN
-    SELECT schedule INTO v_cron_schedule
-    FROM   cron.job WHERE jobname = 'wpp2_disconnection_watchdog';
-  EXCEPTION WHEN undefined_table THEN
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
+      SELECT schedule INTO v_cron_schedule
+      FROM   cron.job WHERE jobname = 'wpp2_disconnection_watchdog';
+    END IF;
+  EXCEPTION WHEN undefined_table OR invalid_schema_name THEN
     v_cron_schedule := NULL;
   END;
 
