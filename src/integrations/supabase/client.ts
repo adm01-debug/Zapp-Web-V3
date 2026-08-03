@@ -205,10 +205,11 @@ function _acquireSlotInternal(resolve: () => void): void {
 function _releaseSlot(): void {
   _inFlight--;
   // Drena UM item da fila por vez com atraso, para não recriar a rajada.
+  // NOTA: _acquireSlotInternal já incrementa _inFlight — NÃO incrementar aqui
+  // (double-count causava deadlock quando MAX_CONCURRENT era atingido).
   const next = _queue.shift();
   if (next) {
     setTimeout(() => {
-      _inFlight++;
       next();
     }, CONCURRENT_DRAIN_DELAY_MS);
   }
