@@ -52,7 +52,7 @@ jobs:
         run: bun run test
 
       - name: Production build
-        run: bunx vite build
+        run: bun run build
 
       - name: Measure build output
         run: |
