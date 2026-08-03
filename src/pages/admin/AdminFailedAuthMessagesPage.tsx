@@ -26,6 +26,7 @@ export default function AdminFailedAuthMessagesPage() {
   const [to, setTo] = useState<Date | undefined>(undefined);
 
   const { rows, loading, load } = useFailedAuthMessages({ from, to });
+  const dateError = from && to && from > to ? 'Data inicial não pode ser posterior à final.' : null;
 
   const stats = useMemo(() => {
     const total = rows.length;
@@ -60,6 +61,14 @@ export default function AdminFailedAuthMessagesPage() {
           Atualizar
         </Button>
       </header>
+
+      {dateError && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Intervalo inválido</AlertTitle>
+          <AlertDescription>{dateError}</AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>

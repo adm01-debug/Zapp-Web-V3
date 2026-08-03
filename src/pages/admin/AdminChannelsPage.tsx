@@ -139,7 +139,7 @@ export default function AdminChannelsPage() {
           {filteredChannels.map((ch) => {
             const queue = queues.find((q) => q.id === ch.default_queue_id);
             const wpp = wppConns.find((w) => w.id === ch.whatsapp_connection_id);
-            const statusInfo = STATUS_BADGE[ch.status];
+            const statusInfo = STATUS_BADGE[ch.status] ?? { label: ch.status || 'Desconhecido', variant: 'secondary' as const };
             return (
               <Card key={ch.id}>
                 <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">

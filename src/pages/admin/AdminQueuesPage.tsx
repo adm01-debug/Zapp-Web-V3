@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { useAdminQueues, type Queue, type DistAlgo } from '@/hooks/admin/useAdminQueues';
 import { QueueEditDialog } from './queues/QueueEditDialog';
 import { QueueCard } from './queues/QueueCard';
 import { QueueMembersDialog } from './queues/QueueMembersDialog';
 
-const NOT_IMPLEMENTED = 'Ação indisponível nesta versão. Em breve.';
+// F7-26: ações não implementadas usam no-op silencioso (console.debug em DEV)
+const NOOP = () => {
+  if (import.meta.env.DEV) console.debug('[AdminQueues] ação não implementada');
+};
 
 /** Admin Queues Page. */
 export default function AdminQueuesPage() {
@@ -31,7 +33,7 @@ export default function AdminQueuesPage() {
   const [newMemberId, setNewMemberId] = useState('');
   const [newChannelId, setNewChannelId] = useState('');
 
-  const notImplemented = () => toast.info(NOT_IMPLEMENTED);
+  const notImplemented = NOOP;
 
   return (
     <div className="container mx-auto space-y-6 p-6">
