@@ -92,14 +92,14 @@ export default function RoutePermissionsPage() {
                 <span>• Full System Access</span>
               </div>
               <div className="flex flex-col gap-1">
-                <span className="font-bold border-b pb-1 text-destructive-foreground">ADMIN</span>
+                <span className="font-bold border-b pb-1 text-destructive">ADMIN</span>
                 <span>• Gestão de Roles</span>
                 <span>• Permissões Rotas</span>
                 <span>• Config. Globais</span>
                 <span>• Stress Test</span>
               </div>
               <div className="flex flex-col gap-1">
-                <span className="font-bold border-b pb-1 text-warning-foreground">MANAGER</span>
+                <span className="font-bold border-b pb-1 text-warning">MANAGER</span>
                 <span>• Relatórios Avançados</span>
                 <span>• Gestão Equipes</span>
                 <span>• Dashboard SLA</span>
