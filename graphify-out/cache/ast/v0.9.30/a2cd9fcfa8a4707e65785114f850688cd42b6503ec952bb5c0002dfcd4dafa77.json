@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260801060001_buckets_privados_lgpd_sql", "label": "20260801060001_buckets_privados_lgpd.sql", "file_type": "code", "source_file": "supabase/migrations/20260801060001_buckets_privados_lgpd.sql", "source_location": null}], "edges": []}

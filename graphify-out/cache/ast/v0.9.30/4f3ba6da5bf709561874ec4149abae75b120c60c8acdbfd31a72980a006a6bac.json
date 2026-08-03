@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260802180000_etapa3_jwt_credentials_sql", "label": "20260802180000_etapa3_jwt_credentials.sql", "file_type": "code", "source_file": "supabase/migrations/20260802180000_etapa3_jwt_credentials.sql", "source_location": null}], "edges": []}

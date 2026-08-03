@@ -364,7 +364,7 @@ function reportRealFailure(err: unknown): void {
     .catch(() => {});
 }
 
-/** Pool de concorrência para o backend Supabase self-hosted.
+/** Pool de concorrência com PRIORIZAÇÃO para o backend Supabase self-hosted.
  *
  * SEM este limitador, o browser abre até 6 conexões simultâneas por domínio
  * (HTTP/1.1). Na inbox com 5+ contatos visíveis, cada um dispara 2+ RPCs
@@ -376,28 +376,61 @@ function reportRealFailure(err: unknown): void {
  * garantindo que as demais aguardam em JS (com timeout curto) em vez de
  * congestionar o pool TCP e o connection pool do Supavisor/Kong.
  *
+ * PRIORIZAÇÃO: _acquireSupabaseSlot() aceita opção `priority: 'high'`.
+ * Requisições high-priority (ex.: contato selecionado) furam a fila FIFO,
+ * garantindo que o usuário veja os dados do contato ativo primeiro.
+ *
  * Requisições de auth NUNCA passam pelo semáforo (já são bypass no retryFetch). */
 const SUPABASE_MAX_CONCURRENT = 4;
 let _supabaseInFlight = 0;
-const _supabaseQueue: Array<() => void> = [];
+const _supabaseQueue: Array<{ resume: () => void; priority: 'normal' | 'high' }> = [];
 
-function _acquireSupabaseSlot(): Promise<void> {
+// Cleanup on page unload: evita memory leak por promises órfãs
+// e garante que a fila não cresça sem limite em SPAs com navegação rápida.
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    _supabaseQueue.length = 0;
+    _supabaseInFlight = 0;
+  }, { once: true });
+}
+
+function _acquireSupabaseSlot(opts?: { priority?: 'normal' | 'high' }): Promise<void> {
+  const priority = opts?.priority ?? 'normal';
   if (_supabaseInFlight < SUPABASE_MAX_CONCURRENT) {
     _supabaseInFlight++;
     return Promise.resolve();
   }
   return new Promise<void>((resolve) => {
-    _supabaseQueue.push(() => {
-      _supabaseInFlight++;
-      resolve();
-    });
+    const entry = {
+      resume: () => { _supabaseInFlight++; resolve(); },
+      priority,
+    };
+    if (priority === 'high') {
+      // Fura a fila: insere após o último high-priority (antes dos normal).
+      // Usa loop reverso manual em vez de findLastIndex() para compatibilidade
+      // com Safari < 15.4 / iOS < 15.4 (findLastIndex é ES2023).
+      let lastHighIdx = -1;
+      for (let i = _supabaseQueue.length - 1; i >= 0; i--) {
+        if (_supabaseQueue[i].priority === 'high') {
+          lastHighIdx = i;
+          break;
+        }
+      }
+      if (lastHighIdx >= 0) {
+        _supabaseQueue.splice(lastHighIdx + 1, 0, entry);
+      } else {
+        _supabaseQueue.unshift(entry);
+      }
+    } else {
+      _supabaseQueue.push(entry);
+    }
   });
 }
 
 function _releaseSupabaseSlot(): void {
   _supabaseInFlight--;
   const next = _supabaseQueue.shift();
-  if (next) next();
+  if (next) next.resume();
 }
 
 /** Fetch customizado injetado no supabase-js: timeout (boundedFetch) + retry (F9-04) + semáforo de concorrência. */

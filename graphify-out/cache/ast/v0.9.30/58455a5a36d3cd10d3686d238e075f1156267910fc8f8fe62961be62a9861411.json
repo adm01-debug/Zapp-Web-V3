@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260802182500_etapa10_dblink_deadman_sql", "label": "20260802182500_etapa10_dblink_deadman.sql", "file_type": "code", "source_file": "supabase/migrations/20260802182500_etapa10_dblink_deadman.sql", "source_location": null}], "edges": []}

@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260801040004_rls_lote4_campanhas_sql", "label": "20260801040004_rls_lote4_campanhas.sql", "file_type": "code", "source_file": "supabase/migrations/20260801040004_rls_lote4_campanhas.sql", "source_location": null}], "edges": []}

@@ -4,7 +4,7 @@ import { CheckCircle2, AlertTriangle, History } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import type { SystemIncident, ActiveAlert } from '../useBridgeStatus';
+import type { SystemIncident, ActiveAlert } from '@/hooks/useBridgeStatus';
 
 interface BridgeSidebarPanelProps {
   incidents: SystemIncident[];

@@ -226,6 +226,8 @@ export interface SearchContactsAdvancedParams {
 interface GetContact360Params { p_phone: string; }
 interface GetContactIntelligenceParams { p_phone: string; }
 interface GetCompaniesByPhonesBatchParams { p_phones: string[]; }
+interface GetContacts360BatchParams { p_phones: string[]; }
+interface InboxPreviewBatchParams { p_remote_jids: string[]; p_instance?: string; p_limit?: number; }
 
 interface SyncInteractionParams {
   p_phone: string;
@@ -416,6 +418,11 @@ export const RPC = {
     // sem default — passe p_instance do contexto da conversa
   }),
 
+  inboxPreviewBatch: def<InboxPreviewBatchParams, unknown>({
+    name: 'rpc_inbox_preview_batch',
+    client: 'lovable',
+  }),
+
   listConversations: def<ListConversationsParams, EvolutionConversation[]>({
     name: 'rpc_list_conversations',
     client: 'lovable',
@@ -473,6 +480,11 @@ export const RPC = {
 
   getContact360ByPhone: def<GetContact360Params, unknown>({
     name: 'get_contact_360_by_phone',
+    client: 'lovable',
+  }),
+
+  getContacts360Batch: def<GetContacts360BatchParams, unknown>({
+    name: 'get_contacts_360_batch',
     client: 'lovable',
   }),
 

@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260803183000_drop_proxy_ecosystem_sql", "label": "20260803183000_drop_proxy_ecosystem.sql", "file_type": "code", "source_file": "supabase/migrations/20260803183000_drop_proxy_ecosystem.sql", "source_location": null}], "edges": []}
