@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useSecurityAuditLogs } from '@/hooks/useSecurityAuditLogs';
 
 export default function AdminSecurityLogsPage() {
-  const { logs, loading } = useSecurityAuditLogs();
+  const { logs, loading, deniedCount24h } = useSecurityAuditLogs();
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -58,7 +58,7 @@ export default function AdminSecurityLogsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {logs.filter((l) => l.status === 'denied').length}
+              {deniedCount24h}
             </div>
           </CardContent>
         </Card>

@@ -112,10 +112,39 @@ export function kindBadge(kind: string) {
 
 /** Empty State. */
 export function EmptyState({ mode, kind }: { mode: ModeFilter; kind: string }) {
+  const modeLabel = mode === 'official' ? 'oficial (Cloud API)' : mode === 'unofficial' ? 'não-oficial (Evolution)' : null;
+
+  if (kind === 'envios') {
+    return (
+      <div className="py-12 text-center space-y-2">
+        <p className="text-sm text-muted-foreground">
+          Nenhum envio encontrado{modeLabel ? ` no modo ${modeLabel}` : ''}.
+        </p>
+        <p className="text-xs text-muted-foreground/70 max-w-md mx-auto">
+          {mode !== 'official'
+            ? 'O log de envios (provider_message_log) é alimentado pelo middleware de roteamento de canais. Em implantações apenas com Evolution API, esse log pode estar vazio — consulte a aba "Erros" para logs de despacho via Evolution.'
+            : 'O log de envios é alimentado pelo middleware de roteamento da Cloud API. Verifique se a integração Meta está ativa nas Conexões.'}
+        </p>
+      </div>
+    );
+  }
+
+  if (kind === 'webhooks') {
+    return (
+      <div className="py-12 text-center space-y-2">
+        <p className="text-sm text-muted-foreground">
+          Nenhum webhook encontrado{modeLabel ? ` no modo ${modeLabel}` : ''}.
+        </p>
+        <p className="text-xs text-muted-foreground/70 max-w-md mx-auto">
+          Os pings de webhook (whatsapp_cloud_webhook_pings) são registrados apenas para conexões via Meta Cloud API (oficial). Em implantações Evolution-only este log permanece vazio.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="py-12 text-center text-sm text-muted-foreground">
-      Nenhum {kind} encontrado
-      {mode !== 'all' ? ` no modo ${mode === 'official' ? 'oficial' : 'não-oficial'}` : ''}.
+      Nenhum {kind} encontrado{modeLabel ? ` no modo ${modeLabel}` : ''}.
     </div>
   );
 }
