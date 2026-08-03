@@ -258,7 +258,7 @@ supabase/
 ├── functions/               # 123 Edge Functions (Deno)
 │   └── _shared/
 │       └── db-client.ts     # createZappAdminClient()
-└── migrations/              # 800+ migrações SQL
+└── migrations/              # 130 migrações SQL
 
 infra/                       # Infraestrutura
 ├── runbooks/                # Procedimentos operacionais

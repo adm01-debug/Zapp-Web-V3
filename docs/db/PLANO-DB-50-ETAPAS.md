@@ -32,7 +32,7 @@ Pretendido: `zapp` = app ZAPP Web · `evo` = Evolution API · `public` = neutro.
 3. `zapp` espelha o `evo` (254 views) e concentra lógica de pipeline Evolution em `zapp.fn_*`.
 4. Tabela real "perdida" no `public` (`_wal_slot_guard_events`) + 9 extensões em `public`.
 5. 91% dos índices nunca usados (1.987 de 2.176).
-6. Drift de migrations: 52 registradas × 944 arquivos; 4 versões malformadas.
+6. Drift de migrations: 88 registradas × 130 arquivos (limpos em 2026-08-03, de 944 para 130); 4 versões malformadas corrigidas.
 7. Fachada auto-mantida por cron `ensure-evolution-backcompat-views` (6/6h).
 
 ---

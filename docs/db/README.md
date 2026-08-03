@@ -17,7 +17,7 @@
 | [`FUNCTIONS.md`](./FUNCTIONS.md) | Panorama das ~1.400 funções (por schema, `SECURITY DEFINER`) |
 | [`RLS-POLICIES.md`](./RLS-POLICIES.md) | Cobertura de RLS e tabelas sem policy |
 | [`INDEXES.md`](./INDEXES.md) | Inventário de índices e política de criação/remoção |
-| [`MIGRATIONS.md`](./MIGRATIONS.md) | Como migrations funcionam aqui (52 aplicadas × 944 arquivos) |
+| [`MIGRATIONS.md`](./MIGRATIONS.md) | Como migrations funcionam aqui (88 aplicadas × 130 arquivos) |
 
 ## Docs relacionados (já existentes no repo)
 
