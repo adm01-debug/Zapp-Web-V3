@@ -629,7 +629,8 @@ describe('CENÁRIO REAL: 4 deploys em 23 minutos (padrão do log de produção)'
       expect(updateRequired()).toHaveLength(1);
 
       // Poll de 15min ainda vê buildC → ABORT de novo (2º global-quota)
-      await vi.advanceTimersByTimeAsync(2 * 60_000);
+      // (12.1min + 2.9min = 15min — poll do intervalo de 5min)
+      await vi.advanceTimersByTimeAsync(2.9 * 60_000);
       expect(replaceSpy).toHaveBeenCalledTimes(5);
       expect(updateRequired()).toHaveLength(2);
       expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('5');
