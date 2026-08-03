@@ -147,20 +147,24 @@ const boundedFetch: typeof fetch = (input, init) => {
     SUPABASE_FETCH_TIMEOUT_MS,
   );
 
-  const callerSignal = init?.signal ?? undefined;
-  if (callerSignal) {
-    if (callerSignal.aborted) {
-      controller.abort(callerSignal.reason);
-    } else {
-      callerSignal.addEventListener(
-        'abort',
-        () => controller.abort(callerSignal.reason),
-        { once: true },
-      );
-    }
-  }
+  // BUG FIX (2026-08-03): caller signal chaining causes AbortError retry
+  // storms with React StrictMode + postgrest-js internal retry.
+  //
+  // When React StrictMode double-mounts components, the first render's
+  // AbortController is cancelled. The caller's signal propagates into
+  // boundedFetch via init.signal, which triggers an AbortError in the
+  // fetch. postgrest-js then retries (internal maxRetries=2), each
+  // attempt immediately aborted again — exhausting retries with:
+  //   "All 2 retries exhausted AbortError: signal is aborted without reason"
+  //
+  // Fix: strip the caller signal — boundedFetch relies ONLY on its own
+  // 12s timeout AbortController. The signal chaining was an optimization
+  // to avoid stale state on unmount, but the cost (cascading AbortError
+  // storms that kill auth bootstrap, roles fetch, and profile fetch) is
+  // far worse than a 12s timeout on abandoned requests.
+  const { signal: _callerSignal, ...restInit } = init ?? {};
 
-  return fetch(input, { ...init, signal: controller.signal })
+  return fetch(input, { ...restInit, signal: controller.signal })
     .catch((err: unknown) => {
       // Reporta APENAS falhas reais de conectividade: timeout do nosso
       // AbortController (TimeoutError) ou erro de rede (TypeError).
