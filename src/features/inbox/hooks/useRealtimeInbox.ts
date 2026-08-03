@@ -122,6 +122,8 @@ export function useRealtimeInbox() {
   // and always at least once with initial=true so we can prove 0→N hydration.
   const convProbeRef = useRef<{ len: number; logged: boolean }>({ len: -1, logged: false });
   useEffect(() => {
+    // F4-09: probe é ferramenta de debug — não roda em produção.
+    if (!import.meta.env.DEV) return;
     const len = conversations?.length ?? 0;
     const prev = convProbeRef.current.len;
     if (len !== prev || !convProbeRef.current.logged) {
@@ -410,13 +412,19 @@ export function useRealtimeInbox() {
       setDeliveryAlert(null);
 
       if (USE_EXTERNAL_DB) {
-        void supabase.functions.invoke('evolution-api', {
-          body: {
-            action: 'read-messages',
-            instanceName: instanceName ?? DEFAULT_INSTANCE,
-            remoteJid: contactId,
-          },
-        });
+        // F4-06: fire-and-forget com .catch — falha de read-messages vira log
+        // (GlitchTip) em vez de unhandled rejection; UI não trava.
+        void supabase.functions
+          .invoke('evolution-api', {
+            body: {
+              action: 'read-messages',
+              instanceName: instanceName ?? DEFAULT_INSTANCE,
+              remoteJid: contactId,
+            },
+          })
+          .catch((err: unknown) => {
+            log.warn('[read-messages] failed', err);
+          });
       } else {
         markAsRead(contactId);
       }

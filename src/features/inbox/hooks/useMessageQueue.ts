@@ -415,7 +415,26 @@ export function useMessageQueue(
                   max_retries: config.maxRetries,
                   last_attempt_at: new Date().toISOString(),
                 })
-                .then(() => log.debug('Failed message persisted to zapp.failed_messages'))
+                // F4-14: .select() + tratamento estruturado — sem .select() o
+                // erro do PostgREST (ex.: RLS bloqueando o insert) era engolido
+                // e a falha ficava silenciosa (zapp.failed_messages vazia).
+                .select()
+                .then(
+                  ({
+                    error,
+                  }: {
+                    error: { message: string; code?: string | null } | null;
+                  }) => {
+                    if (error) {
+                      log.warn('[failed_messages] insert failed', {
+                        code: error.code ?? null,
+                        message: error.message,
+                      });
+                    } else {
+                      log.debug('Failed message persisted to zapp.failed_messages');
+                    }
+                  }
+                )
                 .catch((e: unknown) => log.warn('Failed to persist failed_message to DB', e));
             } else {
               log.info(`Scheduled retry for ${itemToProcess.id} in ${Math.round(delay / 1000)}s`);

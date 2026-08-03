@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { subscribeAllSendStatus, getSendStatus } from './sendStatusBus';
 import type { ConversationWithMessages } from './types';
 
@@ -14,33 +14,38 @@ export function useConversationSendState(conversations: ConversationWithMessages
     return unsub;
   }, []);
 
-  const conversationSendState: Record<string, ConversationSendState> = {};
-  for (const c of conversations) {
-    let state: ConversationSendState = 'idle';
-    const outbound = c.messages.filter((m) => m.sender === 'agent');
-    const anyRetrying = outbound.some((m) => {
-      const bus = getSendStatus(m.id);
-      return bus?.status === 'retrying';
-    });
-    if (anyRetrying) {
-      state = 'retrying';
-    } else {
-      const lastOutbound = outbound[outbound.length - 1];
-      if (lastOutbound) {
-        const bus = getSendStatus(lastOutbound.id);
-        const effective = bus?.status ?? lastOutbound.status;
-        if (
-          effective === 'failed' ||
-          effective === 'failed_auth' ||
-          effective === 'failed_retries'
-        ) {
-          state = 'failed';
+  // F4-04: useMemo com deps [conversations, sendStateTick] — evita O(n·m)
+  // (filter de outbound + getSendStatus por conversa) a cada render.
+  const conversationSendState = useMemo<Record<string, ConversationSendState>>(() => {
+    void sendStateTick; // tick do bus — invalida o memo quando um status muda
+    const stateMap: Record<string, ConversationSendState> = {};
+    for (const c of conversations) {
+      let state: ConversationSendState = 'idle';
+      const outbound = c.messages.filter((m) => m.sender === 'agent');
+      const anyRetrying = outbound.some((m) => {
+        const bus = getSendStatus(m.id);
+        return bus?.status === 'retrying';
+      });
+      if (anyRetrying) {
+        state = 'retrying';
+      } else {
+        const lastOutbound = outbound[outbound.length - 1];
+        if (lastOutbound) {
+          const bus = getSendStatus(lastOutbound.id);
+          const effective = bus?.status ?? lastOutbound.status;
+          if (
+            effective === 'failed' ||
+            effective === 'failed_auth' ||
+            effective === 'failed_retries'
+          ) {
+            state = 'failed';
+          }
         }
       }
+      stateMap[c.contact.id] = state;
     }
-    conversationSendState[c.contact.id] = state;
-  }
-  void sendStateTick;
+    return stateMap;
+  }, [conversations, sendStateTick]);
 
   return { conversationSendState };
 }
