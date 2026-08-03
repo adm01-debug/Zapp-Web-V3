@@ -1,1 +1,189 @@
-LyoqCiAqIFNoYXJlZCBBSSBVc2FnZSBMb2dnZXIgZm9yIEVkZ2UgRnVuY3Rpb25zLgogKiBMb2dzIHRva2VuIGNvbnN1bXB0aW9uIHBlciB1c2VyIHRvIGFpX3VzYWdlX2xvZ3MgdGFibGUuCiAqLwppbXBvcnQgeyBjcmVhdGVDbGllbnQsIFN1cGFiYXNlQ2xpZW50IH0gZnJvbSAiaHR0cHM6Ly9lc20uc2gvQHN1cGFiYXNlL3N1cGFiYXNlLWpzQDIuODcuMSI7CgppbnRlcmZhY2UgQWlVc2FnZUVudHJ5IHsKICBmdW5jdGlvbk5hbWU6IHN0cmluZzsKICB1c2VySWQ/OiBzdHJpbmcgfCBudWxsOwogIHByb2ZpbGVJZD86IHN0cmluZyB8IG51bGw7CiAgbW9kZWw/OiBzdHJpbmcgfCBudWxsOwogIGlucHV0VG9rZW5zPzogbnVtYmVyOwogIG91dHB1dFRva2Vucz86IG51bWJlcjsKICBkdXJhdGlvbk1zPzogbnVtYmVyOwogIHN0YXR1cz86IHN0cmluZzsKICBlcnJvck1lc3NhZ2U/OiBzdHJpbmcgfCBudWxsOwogIG1ldGFkYXRhPzogUmVjb3JkPHN0cmluZywgdW5rbm93bj47Cn0KCi8qKiBFeHRyYWN0IHRva2VuIGNvdW50cyBmcm9tIE9wZW5BSS1jb21wYXRpYmxlIHJlc3BvbnNlICovCmV4cG9ydCBmdW5jdGlvbiBleHRyYWN0VG9rZW5Vc2FnZShkYXRhOiBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPik6IHsKICBpbnB1dFRva2VuczogbnVtYmVyOwogIG91dHB1dFRva2VuczogbnVtYmVyOwogIG1vZGVsOiBzdHJpbmcgfCBudWxsOwp9IHsKICBjb25zdCB1c2FnZSA9IGRhdGE/LnVzYWdlIGFzIFJlY29yZDxzdHJpbmcsIHVua25vd24+IHwgdW5kZWZpbmVkOwogIHJldHVybiB7CiAgICBpbnB1dFRva2VuczogTnVtYmVyKHVzYWdlPy5wcm9tcHRfdG9rZW5zID8/IDApLAogICAgb3V0cHV0VG9rZW5zOiBOdW1iZXIodXNhZ2U/LmNvbXBsZXRpb25fdG9rZW5zID8/IDApLAogICAgbW9kZWw6IChkYXRhPy5tb2RlbCBhcyBzdHJpbmcpIHx8IG51bGwsCiAgfTsKfQoKLyoqIEV4dHJhY3QgdXNlciBJRCBmcm9tIEF1dGhvcml6YXRpb24gaGVhZGVyIChKV1QpICovCmV4cG9ydCBmdW5jdGlvbiBleHRyYWN0VXNlcklkRnJvbVJlcXVlc3QocmVxOiBSZXF1ZXN0KTogc3RyaW5nIHwgbnVsbCB7CiAgdHJ5IHsKICAgIGNvbnN0IGF1dGhIZWFkZXIgPSByZXEuaGVhZGVycy5nZXQoJ2F1dGhvcml6YXRpb24nKTsKICAgIGlmICghYXV0aEhlYWRlcikgcmV0dXJuIG51bGw7CiAgICBjb25zdCB0b2tlbiA9IGF1dGhIZWFkZXIucmVwbGFjZSgnQmVhcmVyICcsICcnKTsKICAgIC8vIERlY29kZSBKV1QgcGF5bG9hZCAobm8gdmVyaWZpY2F0aW9uIG5lZWRlZCwganVzdCBleHRyYWN0aW9uKQogICAgY29uc3QgcGFydHMgPSB0b2tlbi5zcGxpdCgnLicpOwogICAgaWYgKHBhcnRzLmxlbmd0aCA8IDIpIHJldHVybiBudWxsOwogICAgY29uc3QgcGF5bG9hZCA9IEpTT04ucGFyc2UoYXRvYihwYXJ0c1sxXS5yZXBsYWNlKC8tL2csICcrJykucmVwbGFjZSgvXy9nLCAnLycpKSk7CiAgICByZXR1cm4gcGF5bG9hZC5zdWIgfHwgbnVsbDsKICB9IGNhdGNoIHsKICAgIHJldHVybiBudWxsOwogIH0KfQoKLyoqIFJlc29sdmUgcHJvZmlsZV9pZCBmcm9tIHVzZXJfaWQgdmlhIHByb2ZpbGVzIHRhYmxlICovCmFzeW5jIGZ1bmN0aW9uIHJlc29sdmVQcm9maWxlSWQoCiAgc3VwYWJhc2U6IFN1cGFiYXNlQ2xpZW50LAogIHVzZXJJZDogc3RyaW5nIHwgbnVsbCB8IHVuZGVmaW5lZAopOiBQcm9taXNlPHN0cmluZyB8IG51bGw+IHsKICBpZiAoIXVzZXJJZCkgcmV0dXJuIG51bGw7CiAgdHJ5IHsKICAgIGNvbnN0IHsgZGF0YSB9ID0gYXdhaXQgc3VwYWJhc2UKICAgICAgLmZyb20oJ3Byb2ZpbGVzJykKICAgICAgLnNlbGVjdCgnaWQnKQogICAgICAuZXEoJ3VzZXJfaWQnLCB1c2VySWQpCiAgICAgIC5saW1pdCgxKQogICAgICAubWF5YmVTaW5nbGUoKTsKICAgIHJldHVybiAoZGF0YSBhcyBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPik/LmlkIGFzIHN0cmluZyB8fCBudWxsOwogIH0gY2F0Y2ggewogICAgcmV0dXJuIG51bGw7CiAgfQp9CgovKiogTG9nIEFJIHVzYWdlIHRvIGRhdGFiYXNlIChmaXJlLWFuZC1mb3JnZXQsIG5vbi1ibG9ja2luZykgKi8KZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIGxvZ0FpVXNhZ2UoZW50cnk6IEFpVXNhZ2VFbnRyeSk6IFByb21pc2U8dm9pZD4gewogIHRyeSB7CiAgICBjb25zdCBzdXBhYmFzZVVybCA9IChEZW5vLmVudi5nZXQoJ1NFTEZIT1NURURfU1VQQUJBU0VfVVJMJykgPz8gRGVuby5lbnYuZ2V0KCdTVVBBQkFTRV9VUkwnKSk7CiAgICBjb25zdCBzZXJ2aWNlUm9sZUtleSA9IChEZW5vLmVudi5nZXQoJ1NFTEZIT1NURURfU1VQQUJBU0VfU0VSVklDRV9ST0xFX0tFWScpID8/IERlbm8uZW52LmdldCgnU1VQQUJBU0VfU0VSVklDRV9ST0xFX0tFWScpKTsKICAgIGlmICghc3VwYWJhc2VVcmwgfHwgIXNlcnZpY2VSb2xlS2V5KSByZXR1cm47CgogICAgY29uc3Qgc3VwYWJhc2UgPSBjcmVhdGVDbGllbnQoc3VwYWJhc2VVcmwsIHNlcnZpY2VSb2xlS2V5LCB7IGRiOiB7IHNjaGVtYTogInphcHAiIH0sIGF1dGg6IHsgcGVyc2lzdFNlc3Npb246IGZhbHNlLCBhdXRvUmVmcmVzaFRva2VuOiBmYWxzZSB9IH0pOwoKICAgIC8vIEF1dG8tcmVzb2x2ZSBwcm9maWxlX2lkIGlmIG5vdCBwcm92aWRlZAogICAgY29uc3QgcHJvZmlsZUlkID0gZW50cnkucHJvZmlsZUlkIHx8IGF3YWl0IHJlc29sdmVQcm9maWxlSWQoc3VwYWJhc2UsIGVudHJ5LnVzZXJJZCk7CgogICAgYXdhaXQgc3VwYWJhc2UuZnJvbSgnYWlfdXNhZ2VfbG9ncycpLmluc2VydCh7CiAgICAgIHVzZXJfaWQ6IGVudHJ5LnVzZXJJZCB8fCBudWxsLAogICAgICBwcm9maWxlX2lkOiBwcm9maWxlSWQsCiAgICAgIGZ1bmN0aW9uX25hbWU6IGVudHJ5LmZ1bmN0aW9uTmFtZSwKICAgICAgbW9kZWw6IGVudHJ5Lm1vZGVsIHx8IG51bGwsCiAgICAgIGlucHV0X3Rva2VuczogZW50cnkuaW5wdXRUb2tlbnMgfHwgMCwKICAgICAgb3V0cHV0X3Rva2VuczogZW50cnkub3V0cHV0VG9rZW5zIHx8IDAsCiAgICAgIGR1cmF0aW9uX21zOiBlbnRyeS5kdXJhdGlvbk1zIHx8IG51bGwsCiAgICAgIHN0YXR1czogZW50cnkuc3RhdHVzIHx8ICdzdWNjZXNzJywKICAgICAgZXJyb3JfbWVzc2FnZTogZW50cnkuZXJyb3JNZXNzYWdlIHx8IG51bGwsCiAgICAgIG1ldGFkYXRhOiBlbnRyeS5tZXRhZGF0YSB8fCBudWxsLAogICAgfSk7CiAgfSBjYXRjaCAoZSkgewogICAgLy8gTmV2ZXIgdGhyb3cg4oCUIGxvZ2dpbmcgZmFpbHVyZXMgbXVzdCBub3QgYnJlYWsgdGhlIG1haW4gZmxvdwogICAgY29uc29sZS53YXJuKGBbYWktdXNhZ2VdIEZhaWxlZCB0byBsb2c6ICR7ZSBpbnN0YW5jZW9mIEVycm9yID8gZS5tZXNzYWdlIDogU3RyaW5nKGUpfWApOwogIH0KfQoKLyoqIENvbnZlbmllbmNlIHdyYXBwZXI6IGNhbGwgQUkgZ2F0ZXdheSBhbmQgbG9nIHVzYWdlIGF1dG9tYXRpY2FsbHkgKHdpdGggMzBzIHRpbWVvdXQpICovCmV4cG9ydCBhc3luYyBmdW5jdGlvbiBjYWxsQWlXaXRoVHJhY2tpbmcocGFyYW1zOiB7CiAgZnVuY3Rpb25OYW1lOiBzdHJpbmc7CiAgdXNlcklkPzogc3RyaW5nIHwgbnVsbDsKICBhcGlLZXk6IHN0cmluZzsKICBib2R5OiBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPjsKICB0aW1lb3V0TXM/OiBudW1iZXI7Cn0pOiBQcm9taXNlPHsgcmVzcG9uc2U6IFJlc3BvbnNlOyBkYXRhOiBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPiB8IG51bGw7IGR1cmF0aW9uTXM6IG51bWJlciB9PiB7CiAgY29uc3Qgc3RhcnRUaW1lID0gRGF0ZS5ub3coKTsKICBjb25zdCB0aW1lb3V0ID0gcGFyYW1zLnRpbWVvdXRNcyB8fCAzMF8wMDA7CgogIGNvbnN0IGNvbnRyb2xsZXIgPSBuZXcgQWJvcnRDb250cm9sbGVyKCk7CiAgY29uc3QgdGltZXIgPSBzZXRUaW1lb3V0KCgpID0+IGNvbnRyb2xsZXIuYWJvcnQoKSwgdGltZW91dCk7CgogIHRyeSB7CiAgICBjb25zdCBBSV9CQVNFX1VSTCA9IERlbm8uZW52LmdldCgiQUlfQkFTRV9VUkwiKSA/PyAiaHR0cHM6Ly9hcGkuZGVlcHNlZWsuY29tL3YxIjsKICAgIGNvbnN0IHJlc3BvbnNlID0gYXdhaXQgZmV0Y2goYCR7QUlfQkFTRV9VUkx9L2NoYXQvY29tcGxldGlvbnNgLCB7CiAgICAgIG1ldGhvZDogIlBPU1QiLAogICAgICBoZWFkZXJzOiB7CiAgICAgICAgQXV0aG9yaXphdGlvbjogYEJlYXJlciAke3BhcmFtcy5hcGlLZXl9YCwKICAgICAgICAiQ29udGVudC1UeXBlIjogImFwcGxpY2F0aW9uL2pzb24iLAogICAgICB9LAogICAgICBib2R5OiBKU09OLnN0cmluZ2lmeShwYXJhbXMuYm9keSksCiAgICAgIHNpZ25hbDogY29udHJvbGxlci5zaWduYWwsCiAgICB9KTsKCiAgICBjb25zdCBkdXJhdGlvbk1zID0gRGF0ZS5ub3coKSAtIHN0YXJ0VGltZTsKCiAgICBpZiAoIXJlc3BvbnNlLm9rKSB7CiAgICAgIGxvZ0FpVXNhZ2UoewogICAgICAgIGZ1bmN0aW9uTmFtZTogcGFyYW1zLmZ1bmN0aW9uTmFtZSwKICAgICAgICB1c2VySWQ6IHBhcmFtcy51c2VySWQsCiAgICAgICAgbW9kZWw6IHBhcmFtcy5ib2R5Lm1vZGVsIGFzIHN0cmluZyB8fCBudWxsLAogICAgICAgIGR1cmF0aW9uTXMsCiAgICAgICAgc3RhdHVzOiAnZXJyb3InLAogICAgICAgIGVycm9yTWVzc2FnZTogYEhUVFAgJHtyZXNwb25zZS5zdGF0dXN9YCwKICAgICAgfSk7CiAgICAgIHJldHVybiB7IHJlc3BvbnNlLCBkYXRhOiBudWxsLCBkdXJhdGlvbk1zIH07CiAgICB9CgogICAgLy8gQy4yMDogVmFsaWRhdGUgcmVzcG9uc2UgYm9keSBzaXplIGJlZm9yZSBwYXJzaW5nIHRvIHByZXZlbnQgbWVtb3J5IGV4aGF1c3Rpb24KICAgIGNvbnN0IGNvbnRlbnRMZW5ndGggPSByZXNwb25zZS5oZWFkZXJzLmdldCgnY29udGVudC1sZW5ndGgnKTsKICAgIGNvbnN0IE1BWF9SRVNQT05TRV9TSVpFID0gMTAgKiAxMDI0ICogMTAyNDsgLy8gMTBNQiBtYXggcmVzcG9uc2UKICAgIGlmIChjb250ZW50TGVuZ3RoKSB7CiAgICAgIGNvbnN0IHNpemUgPSBwYXJzZUludChjb250ZW50TGVuZ3RoLCAxMCk7CiAgICAgIGlmIChpc05hTihzaXplKSB8fCBzaXplID4gTUFYX1JFU1BPTlNFX1NJWkUpIHsKICAgICAgICBjb25zdCBlcnIgPSBgUmVzcG9uc2UgdG9vIGxhcmdlOiAke3NpemV9IGJ5dGVzIChtYXggJHtNQVhfUkVTUE9OU0VfU0laRX0pYDsKICAgICAgICBsb2dBaVVzYWdlKHsKICAgICAgICAgIGZ1bmN0aW9uTmFtZTogcGFyYW1zLmZ1bmN0aW9uTmFtZSwKICAgICAgICAgIHVzZXJJZDogcGFyYW1zLnVzZXJJZCwKICAgICAgICAgIG1vZGVsOiBwYXJhbXMuYm9keS5tb2RlbCBhcyBzdHJpbmcgfHwgbnVsbCwKICAgICAgICAgIGR1cmF0aW9uTXMsCiAgICAgICAgICBzdGF0dXM6ICdlcnJvcicsCiAgICAgICAgICBlcnJvck1lc3NhZ2U6IGVyciwKICAgICAgICB9KTsKICAgICAgICB0aHJvdyBuZXcgRXJyb3IoZXJyKTsKICAgICAgfQogICAgfQoKICAgIGNvbnN0IGRhdGEgPSBhd2FpdCByZXNwb25zZS5qc29uKCk7CiAgICBjb25zdCB7IGlucHV0VG9rZW5zLCBvdXRwdXRUb2tlbnMsIG1vZGVsIH0gPSBleHRyYWN0VG9rZW5Vc2FnZShkYXRhKTsKCiAgICAvLyBGaXJlLWFuZC1mb3JnZXQgbG9nZ2luZwogICAgbG9nQWlVc2FnZSh7CiAgICAgIGZ1bmN0aW9uTmFtZTogcGFyYW1zLmZ1bmN0aW9uTmFtZSwKICAgICAgdXNlcklkOiBwYXJhbXMudXNlcklkLAogICAgICBtb2RlbDogbW9kZWwgfHwgKHBhcmFtcy5ib2R5Lm1vZGVsIGFzIHN0cmluZykgfHwgbnVsbCwKICAgICAgaW5wdXRUb2tlbnMsCiAgICAgIG91dHB1dFRva2VucywKICAgICAgZHVyYXRpb25NcywKICAgICAgc3RhdHVzOiAnc3VjY2VzcycsCiAgICB9KTsKCiAgICByZXR1cm4geyByZXNwb25zZSwgZGF0YSwgZHVyYXRpb25NcyB9OwogIH0gY2F0Y2ggKGVycikgewogICAgY29uc3QgZHVyYXRpb25NcyA9IERhdGUubm93KCkgLSBzdGFydFRpbWU7CiAgICBjb25zdCBpc1RpbWVvdXQgPSBlcnIgaW5zdGFuY2VvZiBET01FeGNlcHRpb24gJiYgZXJyLm5hbWUgPT09ICdBYm9ydEVycm9yJzsKICAgIGxvZ0FpVXNhZ2UoewogICAgICBmdW5jdGlvbk5hbWU6IHBhcmFtcy5mdW5jdGlvbk5hbWUsCiAgICAgIHVzZXJJZDogcGFyYW1zLnVzZXJJZCwKICAgICAgbW9kZWw6IHBhcmFtcy5ib2R5Lm1vZGVsIGFzIHN0cmluZyB8fCBudWxsLAogICAgICBkdXJhdGlvbk1zLAogICAgICBzdGF0dXM6ICdlcnJvcicsCiAgICAgIGVycm9yTWVzc2FnZTogaXNUaW1lb3V0ID8gYFRpbWVvdXQgYWZ0ZXIgJHt0aW1lb3V0fW1zYCA6IChlcnIgaW5zdGFuY2VvZiBFcnJvciA/IGVyci5tZXNzYWdlIDogU3RyaW5nKGVycikpLAogICAgfSk7CiAgICAvLyBSZS10aHJvdyB3aXRoIGNsZWFyZXIgbWVzc2FnZSBmb3IgdGltZW91dHMKICAgIGlmIChpc1RpbWVvdXQpIHRocm93IG5ldyBFcnJvcihgQUkgcmVxdWVzdCB0aW1lZCBvdXQgYWZ0ZXIgJHt0aW1lb3V0fW1zYCk7CiAgICB0aHJvdyBlcnI7CiAgfSBmaW5hbGx5IHsKICAgIGNsZWFyVGltZW91dCh0aW1lcik7CiAgfQp9Cg==
+/**
+ * Shared AI Usage Logger for Edge Functions.
+ * Logs token consumption per user to ai_usage_logs table.
+ */
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
+
+interface AiUsageEntry {
+  functionName: string;
+  userId?: string | null;
+  profileId?: string | null;
+  model?: string | null;
+  inputTokens?: number;
+  outputTokens?: number;
+  durationMs?: number;
+  status?: string;
+  errorMessage?: string | null;
+  metadata?: Record<string, unknown>;
+}
+
+/** Extract token counts from OpenAI-compatible response */
+export function extractTokenUsage(data: Record<string, unknown>): {
+  inputTokens: number;
+  outputTokens: number;
+  model: string | null;
+} {
+  const usage = data?.usage as Record<string, unknown> | undefined;
+  return {
+    inputTokens: Number(usage?.prompt_tokens ?? 0),
+    outputTokens: Number(usage?.completion_tokens ?? 0),
+    model: (data?.model as string) || null,
+  };
+}
+
+/** Extract user ID from Authorization header (JWT) */
+export function extractUserIdFromRequest(req: Request): string | null {
+  try {
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) return null;
+    const token = authHeader.replace('Bearer ', '');
+    // Decode JWT payload (no verification needed, just extraction)
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload.sub || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Resolve profile_id from user_id via profiles table */
+async function resolveProfileId(
+  supabase: SupabaseClient,
+  userId: string | null | undefined
+): Promise<string | null> {
+  if (!userId) return null;
+  try {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', userId)
+      .limit(1)
+      .maybeSingle();
+    return (data as Record<string, unknown>)?.id as string || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Log AI usage to database (fire-and-forget, non-blocking) */
+export async function logAiUsage(entry: AiUsageEntry): Promise<void> {
+  try {
+    const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
+    const serviceRoleKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
+    if (!supabaseUrl || !serviceRoleKey) return;
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey, { db: { schema: "zapp" }, auth: { persistSession: false, autoRefreshToken: false } });
+
+    // Auto-resolve profile_id if not provided
+    const profileId = entry.profileId || await resolveProfileId(supabase, entry.userId);
+
+    await supabase.from('ai_usage_logs').insert({
+      user_id: entry.userId || null,
+      profile_id: profileId,
+      function_name: entry.functionName,
+      model: entry.model || null,
+      input_tokens: entry.inputTokens || 0,
+      output_tokens: entry.outputTokens || 0,
+      duration_ms: entry.durationMs || null,
+      status: entry.status || 'success',
+      error_message: entry.errorMessage || null,
+      metadata: entry.metadata || null,
+    });
+  } catch (e) {
+    // Never throw — logging failures must not break the main flow
+    console.warn(`[ai-usage] Failed to log: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+/** Convenience wrapper: call AI gateway and log usage automatically (with 30s timeout) */
+export async function callAiWithTracking(params: {
+  functionName: string;
+  userId?: string | null;
+  apiKey: string;
+  body: Record<string, unknown>;
+  timeoutMs?: number;
+}): Promise<{ response: Response; data: Record<string, unknown> | null; durationMs: number }> {
+  const startTime = Date.now();
+  const timeout = params.timeoutMs || 30_000;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${params.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(params.body),
+      signal: controller.signal,
+    });
+
+    const durationMs = Date.now() - startTime;
+
+    if (!response.ok) {
+      logAiUsage({
+        functionName: params.functionName,
+        userId: params.userId,
+        model: params.body.model as string || null,
+        durationMs,
+        status: 'error',
+        errorMessage: `HTTP ${response.status}`,
+      });
+      return { response, data: null, durationMs };
+    }
+
+    // C.20: Validate response body size before parsing to prevent memory exhaustion
+    const contentLength = response.headers.get('content-length');
+    const MAX_RESPONSE_SIZE = 10 * 1024 * 1024; // 10MB max response
+    if (contentLength) {
+      const size = parseInt(contentLength, 10);
+      if (isNaN(size) || size > MAX_RESPONSE_SIZE) {
+        const err = `Response too large: ${size} bytes (max ${MAX_RESPONSE_SIZE})`;
+        logAiUsage({
+          functionName: params.functionName,
+          userId: params.userId,
+          model: params.body.model as string || null,
+          durationMs,
+          status: 'error',
+          errorMessage: err,
+        });
+        throw new Error(err);
+      }
+    }
+
+    const data = await response.json();
+    const { inputTokens, outputTokens, model } = extractTokenUsage(data);
+
+    // Fire-and-forget logging
+    logAiUsage({
+      functionName: params.functionName,
+      userId: params.userId,
+      model: model || (params.body.model as string) || null,
+      inputTokens,
+      outputTokens,
+      durationMs,
+      status: 'success',
+    });
+
+    return { response, data, durationMs };
+  } catch (err) {
+    const durationMs = Date.now() - startTime;
+    const isTimeout = err instanceof DOMException && err.name === 'AbortError';
+    logAiUsage({
+      functionName: params.functionName,
+      userId: params.userId,
+      model: params.body.model as string || null,
+      durationMs,
+      status: 'error',
+      errorMessage: isTimeout ? `Timeout after ${timeout}ms` : (err instanceof Error ? err.message : String(err)),
+    });
+    // Re-throw with clearer message for timeouts
+    if (isTimeout) throw new Error(`AI request timed out after ${timeout}ms`);
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
