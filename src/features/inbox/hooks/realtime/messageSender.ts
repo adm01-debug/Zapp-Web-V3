@@ -271,10 +271,13 @@ export async function sendMessageToContact(
     }
 
     const externalId = extractEvolutionMessageId(apiResult);
+    // F4-19: extractEvolutionMessageId pode retornar null se a Evolution API
+    // responder 200 sem key.id. Marca como sent_unverified e agenda reconciliação.
+    const effectiveStatus = externalId ? 'sent' : 'sent_unverified';
     await dbFrom('messages')
       .update({
-        status: 'sent',
-        external_id: externalId,
+        status: effectiveStatus,
+        external_id: externalId ?? null,
         whatsapp_connection_id: resolvedConnectionId,
         retry_attempt: null,
         retry_total: null,

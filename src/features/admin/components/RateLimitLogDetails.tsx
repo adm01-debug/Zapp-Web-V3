@@ -211,15 +211,15 @@ export function RateLimitLogDetails({
               <div className="grid grid-cols-3 gap-3 text-xs">
                 <div>
                   <p className="text-muted-foreground">Navegador</p>
-                  <p className="font-mono">{ua.browser}</p> // @technical
+                  <p className="font-mono">{ua.browser}</p> {/* @technical */}
                 </div>
                 <div>
                   <p className="text-muted-foreground">SO</p>
-                  <p className="font-mono">{ua.os}</p> // @technical
+                  <p className="font-mono">{ua.os}</p> {/* @technical */}
                 </div>
                 <div>
                   <p className="text-muted-foreground">Dispositivo</p>
-                  <p className="font-mono">{ua.device}</p> // @technical
+                  <p className="font-mono">{ua.device}</p> {/* @technical */}
                 </div>
               </div>
               <div className="rounded-md bg-muted p-3">

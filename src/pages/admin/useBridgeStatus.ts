@@ -9,6 +9,7 @@ import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { whatsapp } from '@/lib/whatsappAdapter';
+import { whatsappConnectionRepository } from '@/features/connections/data-access/whatsappConnectionRepository';
 import { getExternalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { useToast } from '@/hooks/use-toast';
 import { runEvolutionDiagnostics, type DiagnosticResult } from '@/lib/evolutionDiagnostics';
@@ -50,7 +51,12 @@ export function useBridgeStatus() {
   const [whatsappTransport, setWhatsappTransport] = useState<string>('...');
   const [activeAlerts, setActiveAlerts] = useState<ActiveAlert[]>([]);
   const [incidents, setIncidents] = useState<SystemIncident[]>([]);
-  const [instanceCount] = useState<number>(0);
+  // Real instance count from Evolution API (via proxy). null = not measured yet/unavailable.
+  const [instanceCount, setInstanceCount] = useState<number | null>(null);
+  // Real round-trip latency of the health check (ms). null = unavailable.
+  const [latencyMs, setLatencyMs] = useState<number | null>(null);
+  // Real 24h uptime percentage from v_connection_uptime. null = unavailable.
+  const [uptimePct, setUptimePct] = useState<number | null>(null);
   const [recentTraffic, setRecentTraffic] = useState<{ count: number; last_at: string | null }>({
     count: 0,
     last_at: null,
@@ -135,6 +141,47 @@ export function useBridgeStatus() {
         if (mountedRef.current) setActiveAlerts([]);
       }
 
+      // 6. Real instance count from Evolution API (via proxy) — replaces hardcoded 0
+      try {
+        const { data: proxyData, error: proxyError } =
+          await whatsappConnectionRepository.callEvolutionApi({ action: 'list-instances' });
+        if (!proxyError) {
+          const instances = Array.isArray(proxyData)
+            ? proxyData
+            : (proxyData as Record<string, unknown>)?.instances;
+          if (Array.isArray(instances) && mountedRef.current) {
+            setInstanceCount(instances.length);
+          }
+        } else if (mountedRef.current) {
+          setInstanceCount(null);
+        }
+      } catch {
+        if (mountedRef.current) setInstanceCount(null);
+      }
+
+      // 7. Uptime 24h — real data from v_connection_uptime (no fabricated 99.9%)
+      try {
+        const { data: uptimeRows } = await safeClient.from<{ uptime_percentage: number | null }>(
+          'v_connection_uptime',
+          (q) => q.select('uptime_percentage').limit(100)
+        );
+        const percentages = (uptimeRows || [])
+          .map((r) => r.uptime_percentage)
+          .filter((v): v is number => typeof v === 'number' && v >= 0);
+        if (mountedRef.current) {
+          if (percentages.length > 0) {
+            // Normalize 0..1 ratios to 0..100 if the view reports them as fractions
+            const max = Math.max(...percentages);
+            const normalized = max <= 1 ? percentages.map((v) => v * 100) : percentages;
+            setUptimePct(normalized.reduce((a, b) => a + b, 0) / normalized.length);
+          } else {
+            setUptimePct(null);
+          }
+        }
+      } catch {
+        if (mountedRef.current) setUptimePct(null);
+      }
+
       if (!mountedRef.current) return;
 
       // Determine overall status
@@ -145,11 +192,14 @@ export function useBridgeStatus() {
       } else {
         setStatus('offline');
       }
+      // Real measured latency of the health-check round-trip (before the artificial min-wait)
+      setLatencyMs(Date.now() - startTime);
       setLastCheck(new Date());
     } catch (error: unknown) {
       if (!mountedRef.current) return;
       log.error('Health check failed', error);
       setStatus('offline');
+      setLatencyMs(null);
       toast({
         title: 'Erro na verificação',
         description:
@@ -265,6 +315,8 @@ export function useBridgeStatus() {
     activeAlerts,
     incidents,
     instanceCount,
+    latencyMs,
+    uptimePct,
     recentTraffic,
     diagResults,
     diagRunning,

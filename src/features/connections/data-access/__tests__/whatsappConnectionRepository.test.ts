@@ -138,14 +138,14 @@ describe('whatsappConnectionRepository.insertConnection', () => {
   it('invalida o cache mesmo quando o insert falha', async () => {
     const { chain } = makeChain({ data: null, error: { message: 'duplicate' } }, ['single']);
     safeFromMock.mockReturnValue(chain);
-    await whatsappConnectionRepository.insertConnection({ name: 'X' });
+    await whatsappConnectionRepository.insertConnection({ name: 'X' } as never);
     expect(invalidateCacheMock).toHaveBeenCalledTimes(1);
   });
 
   it('erro devolve normalized null e não chama normalizeConnection', async () => {
     const { chain } = makeChain({ data: null, error: { message: 'duplicate' } }, ['single']);
     safeFromMock.mockReturnValue(chain);
-    const out = await whatsappConnectionRepository.insertConnection({ name: 'X' });
+    const out = await whatsappConnectionRepository.insertConnection({ name: 'X' } as never);
     expect(out.normalized).toBeNull();
     expect(normalizeConnectionMock).not.toHaveBeenCalled();
   });
@@ -153,14 +153,14 @@ describe('whatsappConnectionRepository.insertConnection', () => {
   it('data null sem erro também devolve normalized null', async () => {
     const { chain } = makeChain({ data: null, error: null }, ['single']);
     safeFromMock.mockReturnValue(chain);
-    const out = await whatsappConnectionRepository.insertConnection({ name: 'X' });
+    const out = await whatsappConnectionRepository.insertConnection({ name: 'X' } as never);
     expect(out.normalized).toBeNull();
   });
 
   it('sucesso devolve normalized preenchido', async () => {
     const { chain, calls } = makeChain({ data: { id: 'novo' }, error: null }, ['single']);
     safeFromMock.mockReturnValue(chain);
-    const out = await whatsappConnectionRepository.insertConnection({ name: 'X' });
+    const out = await whatsappConnectionRepository.insertConnection({ name: 'X' } as never);
     expect(calls.find((c) => c.op === 'insert')?.args).toEqual([{ name: 'X' }]);
     expect(out.normalized).toEqual({ normalized: true, row: { id: 'novo' } });
   });

@@ -255,3 +255,4 @@ graphify-out/ # Knowledge Graph
 .env*
 !supabase/functions/.env.required
 !supabase/functions/.deployignore
+__pycache__/\n*.pyc

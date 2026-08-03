@@ -49,7 +49,7 @@ export function BridgeCoreServicesCard({
               <Badge variant={lovableDb ? 'default' : 'destructive'}>
                 {lovableDb ? 'ATIVO' : 'ERRO'}
               </Badge>
-              <p className="mt-1 font-mono text-[10px] opacity-60"> // @technical
+              <p className="mt-1 font-mono text-[10px] opacity-60"> {/* @technical */}
                 HB: {new Date().toLocaleTimeString()}
               </p>
             </div>
@@ -76,7 +76,7 @@ export function BridgeCoreServicesCard({
               <Badge variant={externalDb ? 'default' : 'warning'}>
                 {externalDb ? 'CONECTADO' : 'FALHA'}
               </Badge>
-              <p className="mt-1 font-mono text-[10px] opacity-60">Sync: OK</p> // @technical
+              <p className="mt-1 font-mono text-[10px] opacity-60">Sync: OK</p> {/* @technical */}
             </div>
           </div>
 

@@ -1,0 +1,225 @@
+/**
+ * Monitor singleton de conectividade com o backend Supabase.
+ *
+ * Detecta dois cenários distintos de perda de conectividade:
+ *  1. Browser offline        → `'offline'`       (eventos window online/offline)
+ *  2. Backend inacessível    → `'backend-down'`  (browser online, mas o servidor
+ *     Supabase não responde: rede bloqueada, VPS fora do ar, DNS/Kong/proxy down)
+ *
+ * O caso 2 NÃO é coberto por `navigator.onLine` e era o buraco do F19: o app
+ * ficava mudo quando o Supabase caía. O monitor faz um heartbeat periódico em
+ * `${SUPABASE_RESOLVED_URL}/auth/v1/health` com timeout curto e considera
+ * "alcançável" QUALQUER resposta HTTP (inclusive 401 sem apikey — Kong
+ * respondeu, logo a infraestrutura está de pé). Falha de rede/timeout/abort
+ * marca `'backend-down'` imediatamente.
+ *
+ * Arquitetura:
+ *  - Singleton com pub/sub — N componentes podem consumir o mesmo estado sem
+ *    multiplicar pings.
+ *  - Heartbeat inicia com o 1º subscriber e para com o último (não fica
+ *    pingando em página de login isolada).
+ *  - `reportSupabaseRequestFailure()` permite que o `boundedFetch` do client
+ *    acuse falha real de request e acelere a detecção (em vez de esperar o
+ *    próximo heartbeat).
+ *  - URL/chave resolvidas via dynamic import de `./client` para evitar ciclo
+ *    de módulos (client.ts → monitor → client.ts).
+ */
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('supabase-connectivity');
+
+export type SupabaseConnectivityStatus = 'online' | 'offline' | 'backend-down';
+
+export interface SupabaseConnectivityInfo {
+  lastCheckedAt: number | null;
+  latencyMs: number | null;
+}
+
+export type SupabaseConnectivityListener = (
+  status: SupabaseConnectivityStatus,
+  info: SupabaseConnectivityInfo
+) => void;
+
+const HEARTBEAT_INTERVAL_MS = 20_000;
+const PING_TIMEOUT_MS = 6_000;
+/** Debounce mínimo entre pings espontâneos (retry explícito ignora). */
+const MIN_PING_INTERVAL_MS = 2_000;
+
+let status: SupabaseConnectivityStatus = 'online';
+let lastCheckedAt: number | null = null;
+let latencyMs: number | null = null;
+let browserOnline = typeof navigator === 'undefined' ? true : navigator.onLine;
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+let listenerCount = 0;
+let pingInFlight = false;
+let lastPingAt = 0;
+const listeners = new Set<SupabaseConnectivityListener>();
+
+function notifyListeners(): void {
+  const info: SupabaseConnectivityInfo = { lastCheckedAt, latencyMs };
+  listeners.forEach((listener) => {
+    try {
+      listener(status, info);
+    } catch (err) {
+      log.warn('Listener de conectividade lançou erro', err);
+    }
+  });
+}
+
+function setStatus(next: SupabaseConnectivityStatus): void {
+  if (status === next) return;
+  status = next;
+  log.info(`[Supabase] Conectividade: ${status}`);
+  notifyListeners();
+}
+
+/** Status atual (leitura síncrona para estado inicial do hook). */
+export function getSupabaseConnectivityStatus(): SupabaseConnectivityStatus {
+  return status;
+}
+
+/** Última checagem (síncrona). */
+export function getSupabaseConnectivityInfo(): SupabaseConnectivityInfo {
+  return { lastCheckedAt, latencyMs };
+}
+
+/**
+ * Pinga o health endpoint do Supabase.
+ * @param force — ignora o debounce (usado em retry explícito do usuário).
+ * @returns true se o backend respondeu (qualquer status HTTP).
+ */
+export async function pingSupabaseBackend(force = false): Promise<boolean> {
+  const now = Date.now();
+  if (!force && now - lastPingAt < MIN_PING_INTERVAL_MS) {
+    return status === 'online';
+  }
+  if (pingInFlight) return status === 'online';
+  lastPingAt = now;
+  pingInFlight = true;
+
+  const started = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PING_TIMEOUT_MS);
+
+  try {
+    let url = 'https://supabase.atomicabr.com.br';
+    let anonKey = '';
+    try {
+      const mod = await import('./client');
+      url = mod.SUPABASE_RESOLVED_URL;
+      anonKey = mod.SUPABASE_RESOLVED_ANON_KEY;
+    } catch {
+      // fallback mantém o ping funcional mesmo se o client não carregar
+    }
+
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    if (anonKey) headers.apikey = anonKey;
+
+    await fetch(`${url}/auth/v1/health`, {
+      method: 'GET',
+      headers,
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+
+    // Qualquer resposta HTTP = backend alcançável. 401 sem apikey conta como
+    // alcançável: o Kong respondeu, a infraestrutura está de pé.
+    latencyMs = Date.now() - started;
+    lastCheckedAt = Date.now();
+    setStatus(browserOnline ? 'online' : 'offline');
+    return true;
+  } catch {
+    // Timeout, DNS falhou, conexão recusada, rede caiu → backend inacessível.
+    latencyMs = Date.now() - started;
+    lastCheckedAt = Date.now();
+    setStatus(browserOnline ? 'backend-down' : 'offline');
+    return false;
+  } finally {
+    clearTimeout(timer);
+    pingInFlight = false;
+  }
+}
+
+/**
+ * Acusação de falha real de request vinda do `boundedFetch` do client.
+ * Acelera a detecção: em vez de esperar o heartbeat (até 20s), marca
+ * `'backend-down'` na hora e agenda um re-ping para confirmar.
+ */
+export function reportSupabaseRequestFailure(_error?: unknown): void {
+  if (!browserOnline) {
+    setStatus('offline');
+    return;
+  }
+  if (status !== 'backend-down') {
+    setStatus('backend-down');
+  }
+  // Re-checagem imediata (sem debounce) para confirmar/desmentir a falha.
+  void pingSupabaseBackend(true).catch(() => {});
+}
+
+/** Retry explícito (botão "Tentar novamente" da UI). */
+export function retrySupabaseConnectivityCheck(): Promise<boolean> {
+  return pingSupabaseBackend(true);
+}
+
+function handleBrowserOffline(): void {
+  browserOnline = false;
+  setStatus('offline');
+}
+
+function handleBrowserOnline(): void {
+  browserOnline = true;
+  // Rede voltou — confirma se o backend também voltou antes de declarar online.
+  void pingSupabaseBackend(true).catch(() => {});
+}
+
+function startHeartbeat(): void {
+  if (heartbeatTimer) return;
+  if (typeof window !== 'undefined') {
+    window.addEventListener('offline', handleBrowserOffline);
+    window.addEventListener('online', handleBrowserOnline);
+  }
+  heartbeatTimer = setInterval(() => {
+    void pingSupabaseBackend().catch(() => {});
+  }, HEARTBEAT_INTERVAL_MS);
+}
+
+function stopHeartbeat(): void {
+  if (!heartbeatTimer) return;
+  clearInterval(heartbeatTimer);
+  heartbeatTimer = null;
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('offline', handleBrowserOffline);
+    window.removeEventListener('online', handleBrowserOnline);
+  }
+}
+
+/**
+ * Assina mudanças de conectividade. Inicia o heartbeat no 1º subscriber e
+ * para no último. Retorna unsubscribe.
+ */
+export function subscribeSupabaseConnectivity(
+  listener: SupabaseConnectivityListener
+): () => void {
+  listeners.add(listener);
+  listenerCount += 1;
+  if (listenerCount === 1) startHeartbeat();
+  return () => {
+    listeners.delete(listener);
+    listenerCount = Math.max(0, listenerCount - 1);
+    if (listenerCount === 0) stopHeartbeat();
+  };
+}
+
+/** Reset completo — apenas para testes (vitest). */
+export function __resetSupabaseConnectivityForTests(): void {
+  stopHeartbeat();
+  listeners.clear();
+  listenerCount = 0;
+  status = 'online';
+  lastCheckedAt = null;
+  latencyMs = null;
+  browserOnline = typeof navigator === 'undefined' ? true : navigator.onLine;
+  pingInFlight = false;
+  lastPingAt = 0;
+}

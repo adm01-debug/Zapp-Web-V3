@@ -424,7 +424,7 @@ export function useRealtimeMessages() {
 
     log.info('Subscribing to realtime', { source: 'dbTable' });
 
-    const channelName = `messages-realtime-${Math.random().toString(36).slice(2, 9)}`;
+    const channelName = 'messages-realtime'; // F4-03: nome determinístico — 1 channel estável por sessão (sem Math.random() no nome)
     logMessagesSubscribe('useRealtimeMessages', { event: 'INSERT', table: dbTable('messages') });
     logMessagesSubscribe('useRealtimeMessages', { event: 'UPDATE', table: dbTable('messages') });
     logMessagesSubscribe('useRealtimeMessages', { event: 'DELETE', table: dbTable('messages') });
@@ -584,35 +584,40 @@ export function useRealtimeMessages() {
     return unsub;
   }, []);
 
-  // Derive per-contact send state (transient bus + last DB status)
-  const conversationSendState: Record<string, ConversationSendState> = {};
-  for (const c of conversations) {
-    let state: ConversationSendState = 'idle';
-    const outbound = c.messages.filter((m) => m.sender === 'agent');
-    // Check bus for any retrying/sending in this conversation
-    const anyRetrying = outbound.some((m) => {
-      const bus = getSendStatus(m.id);
-      return bus?.status === 'retrying';
-    });
-    if (anyRetrying) {
-      state = 'retrying';
-    } else {
-      const lastOutbound = outbound[outbound.length - 1];
-      if (lastOutbound) {
-        const bus = getSendStatus(lastOutbound.id);
-        const effective = bus?.status ?? lastOutbound.status;
-        if (
-          effective === 'failed' ||
-          effective === 'failed_auth' ||
-          effective === 'failed_retries'
-        ) {
-          state = 'failed';
+  // Derive per-contact send state (transient bus + last DB status).
+  // F4-04: useMemo com deps [conversations, sendStateTick] — evita O(n·m)
+  // (filter de outbound + getSendStatus por conversa) a cada render.
+  const conversationSendState = useMemo<Record<string, ConversationSendState>>(() => {
+    void sendStateTick; // tick do bus — invalida o memo quando um status muda
+    const stateMap: Record<string, ConversationSendState> = {};
+    for (const c of conversations) {
+      let state: ConversationSendState = 'idle';
+      const outbound = c.messages.filter((m) => m.sender === 'agent');
+      // Check bus for any retrying/sending in this conversation
+      const anyRetrying = outbound.some((m) => {
+        const bus = getSendStatus(m.id);
+        return bus?.status === 'retrying';
+      });
+      if (anyRetrying) {
+        state = 'retrying';
+      } else {
+        const lastOutbound = outbound[outbound.length - 1];
+        if (lastOutbound) {
+          const bus = getSendStatus(lastOutbound.id);
+          const effective = bus?.status ?? lastOutbound.status;
+          if (
+            effective === 'failed' ||
+            effective === 'failed_auth' ||
+            effective === 'failed_retries'
+          ) {
+            state = 'failed';
+          }
         }
       }
+      stateMap[c.contact.id] = state;
     }
-    conversationSendState[c.contact.id] = state;
-  }
-  void sendStateTick; // ensure dep tracked
+    return stateMap;
+  }, [conversations, sendStateTick]);
 
   const filteredConversations = useMemo(() => {
     let filtered = [...conversations];

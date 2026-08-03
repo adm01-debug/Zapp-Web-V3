@@ -115,15 +115,31 @@ export function ProtectedRoute({
   useEffect(() => {
     if (authLoading || !user) return;
     let cancelled = false;
-    void supabase.auth.getSession().then(({ data, error }) => {
-      if (cancelled) return;
-      if (error || !data.session) {
-        log.warn('[ProtectedRoute] Stale session detected — forcing redirect to /auth');
-        void supabase.auth.signOut().then(() => {
-          window.location.replace('/auth');
-        });
-      }
-    });
+    void supabase.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error || !data.session) {
+          log.warn('[ProtectedRoute] Stale session detected — forcing redirect to /auth');
+          void supabase.auth
+            .signOut()
+            .catch(() => {
+              // Fallback: rede fora / GoTrue com erro — limpa a sessão local
+              // mesmo assim para o usuário não ficar preso numa sessão inválida.
+              try {
+                Object.keys(localStorage).forEach((k) => {
+                  if (k.startsWith('sb-') || k.startsWith('zapp')) localStorage.removeItem(k);
+                });
+                sessionStorage.clear();
+              } catch {
+                /* noop */
+              }
+            })
+            .finally(() => {
+              window.location.replace('/auth');
+            });
+        }
+      });
     return () => {
       cancelled = true;
     };
@@ -155,15 +171,15 @@ export function ProtectedRoute({
             {!isOffline && (
               <>
                 <dt>Backend:</dt>
-                <dd className="truncate font-mono">{backendUrl}</dd> // @technical
+                <dd className="truncate font-mono">{backendUrl}</dd> {/* @technical */}
                 <dt>Tempo de resposta:</dt>
-                <dd className="font-mono">{elapsedLabel}</dd> // @technical
+                <dd className="font-mono">{elapsedLabel}</dd> {/* @technical */}
               </>
             )}
             {isOffline && (
               <>
                 <dt>Status de rede:</dt>
-                <dd className="font-mono text-destructive">Offline</dd> // @technical
+                <dd className="font-mono text-destructive">Offline</dd> {/* @technical */}
               </>
             )}
           </dl>
@@ -268,6 +284,16 @@ export function ProtectedRoute({
   // 'dev' always has access
   const isDev = hasRole('dev' as AppRole);
   if (isDev) {
+    // F3-02: registra bypass no log de auditoria com throttle por sessão
+    void supabase.rpc('log_security_event', {
+      p_event_type: 'dev_bypass_used',
+      p_resource: location.pathname,
+      p_action: 'route_access',
+      p_status: 'bypassed',
+      p_details: { roles },
+    }).then(({ error }) => {
+      if (error) log.warn('Failed to log dev bypass', { error: error.message });
+    });
     markTimeToMainScreen(location.pathname);
     return <>{children}</>;
   }
@@ -332,6 +358,7 @@ export function ProtectedRoute({
     return <Navigate to="/access-denied" state={{ from: location }} replace />;
   }
 
+  // F3-11: guard useRef — evita chamadas repetidas em re-renders
   markTimeToMainScreen(location.pathname);
   return <>{children}</>;
 }

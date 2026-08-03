@@ -89,7 +89,7 @@ export default function AdminEvoApiHealthPage() {
           </Button>
           <Button onClick={() => runTests.mutate()} disabled={runTests.isPending}>
             <PlayCircle className="mr-2 h-4 w-4" />
-            {runTests.isPending ? 'Rodando 50 testes…' : 'Run test suite'}
+            {runTests.isPending ? 'Executando testes…' : 'Run test suite'}
           </Button>
         </div>
       </div>
@@ -97,20 +97,20 @@ export default function AdminEvoApiHealthPage() {
       {/* Readiness & Test Result Banners */}
       <div className="space-y-3">
         {readiness && (
-          <Alert variant={readiness.overall?.includes('🟢') ? 'default' : 'destructive'}>
+          <Alert variant={readiness.overall?.includes('🟢') || readiness.healthy ? 'default' : 'destructive'}>
             <Shield className="h-4 w-4" />
-            <AlertTitle>{readiness.overall}</AlertTitle>
+            <AlertTitle>{(readiness.overall?.includes('🟢') || readiness.healthy) ? '✅ Sistema saudável' : readiness.overall ?? '⚠️ Problemas detectados'}</AlertTitle>
             <AlertDescription>
-              {readiness.tables_count} tabelas · {readiness.fk_count} FKs ·{' '}
+              {readiness.overall ?? '—'} · {readiness.tables_count} tabelas · {readiness.fk_count} FKs ·{' '}
               {readiness.realtime_count} Realtime · {readiness.cron_jobs} cron jobs
             </AlertDescription>
           </Alert>
         )}
 
         {runTestsData && (
-          <Alert variant={runTestsData.overall?.includes('🟢') ? 'default' : 'destructive'}>
+          <Alert variant={runTestsData.overall?.includes('🟢') || runTestsData.healthy ? 'default' : 'destructive'}>
             <CheckCircle2 className="h-4 w-4" />
-            <AlertTitle>{runTestsData.overall}</AlertTitle>
+            <AlertTitle>{(runTestsData.overall?.includes('🟢') || runTestsData.healthy) ? '✅ Testes passando' : '⚠️ Falhas detectadas'}</AlertTitle>
             <AlertDescription>
               {runTestsData.passed}/{runTestsData.total_tests} testes passando (
               {runTestsData.pass_rate_pct}%)

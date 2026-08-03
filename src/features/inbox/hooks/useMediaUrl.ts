@@ -72,7 +72,20 @@ interface UseMediaUrlResult {
   refresh: () => Promise<void>;
 }
 
+// F4-20: Map com cap de 200 entradas (≈50 MB de data URLs) — evita leak.
+// LRU simples: remove a entrada mais antiga quando o limite é atingido.
+const MAX_CACHE_ENTRIES = 200;
 const refreshCache = new Map<string, string>();
+const cacheInsertionOrder: string[] = [];
+
+function cacheSet(key: string, value: string): void {
+  if (refreshCache.size >= MAX_CACHE_ENTRIES) {
+    const oldest = cacheInsertionOrder.shift();
+    if (oldest) refreshCache.delete(oldest);
+  }
+  refreshCache.set(key, value);
+  cacheInsertionOrder.push(key);
+}
 const toastedKeys = new Set<string>();
 
 function cacheKey(instance: string, key: MessageKey): string {
@@ -207,11 +220,15 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
         if (!payload?.base64) throw new Error('Empty media payload');
         const mime = payload.mimetype || 'application/octet-stream';
         const dataUrl = `data:${mime};base64,${payload.base64}`;
-        refreshCache.set(key, dataUrl);
+        cacheSet(key, dataUrl);
 
-        // Audit & Cache Persistence
+        // F4-21: Audit & Cache Persistence — usa hash do originalUrl como chave
+        // (buildFileHash(originalUrl) === buildFileHash(originalUrl) sempre),
+        // não do dataUrl (que muda a cada refresh).
         try {
-          const hash = await buildFileHash(dataUrl);
+          const hash = originalUrlRef.current
+            ? await buildFileHash(originalUrlRef.current)
+            : await buildFileHash(dataUrl);
           await safeClient.from('media_cache', (q) =>
             q.upsert(
               {
