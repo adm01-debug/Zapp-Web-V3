@@ -39,7 +39,6 @@
     "test:fuzz": "bun run scripts/fuzz-edge-functions.ts",
     "regen:trilha": "bun run scripts/regen-trilha-mensagens.ts",
     "check:trilha": "bun run scripts/regen-trilha-mensagens.ts --check",
-    "smoke:pre-deploy": "bash scripts/smoke-pre-deploy.sh",
     "perf:budget": "node scripts/check-performance-budget.mjs",
     "perf:budget:baseline": "node scripts/check-performance-budget.mjs --write-baseline",
     "check:domain": "bun run scripts/check-domain-boundaries.ts",
