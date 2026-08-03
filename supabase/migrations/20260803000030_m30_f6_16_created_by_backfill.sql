@@ -101,8 +101,11 @@ BEGIN
 
     NEW.api_url := v_vault_url;
   ELSIF (NEW.api_url IS NULL OR NEW.api_url = '') AND NEW.api_type = 'official' THEN
-    -- Cloud API connections do not use an Evolution API URL. Set sentinel to satisfy NOT NULL.
-    NEW.api_url := 'official';
+    -- Cloud API (Meta Business API / WhatsApp Official) connections use the Meta Graph API,
+    -- not an Evolution API URL. Store the actual Meta Cloud API base URL so that any
+    -- non-filtered code path building a URL from api_url produces a valid HTTPS address
+    -- instead of the nonsensical scheme 'https://official/…'.
+    NEW.api_url := 'https://graph.facebook.com/v21.0';
   END IF;
 
   -- ── created_by: auto-set from profiles.id when caller omits it ───────────

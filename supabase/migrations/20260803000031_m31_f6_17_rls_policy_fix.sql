@@ -97,13 +97,15 @@ BEGIN
     ELSE
       v_report := v_report || E'\n  [OK]   F6-17: policy WITH CHECK has no IS NULL escape hatch ✓';
 
-      -- Also verify the expression references the profiles table via user_id, confirming
-      -- the FK is resolved via the correct surrogate key path (not just uid() directly).
-      IF position('profiles' IN v_pol_check) = 0 OR position('user_id' IN v_pol_check) = 0 THEN
-        v_report := v_report || E'\n  [FAIL] F6-17: WITH CHECK does not reference profiles.user_id (got: ' || coalesce(v_pol_check,'<null>') || ')';
+      -- Verify the expression matches the expected structural pattern:
+      --   created_by = (SELECT p.id FROM [zapp.]profiles p WHERE p.user_id = auth.uid())
+      -- Using regex ensures we catch both the profiles table reference AND the user_id column
+      -- together in the correct relational context (not just independently present in the string).
+      IF v_pol_check !~* 'created_by[[:space:]]*=[[:space:]]*\([[:space:]]*select[[:space:]]+p\.id[[:space:]]+from[[:space:]]+(zapp\.)?profiles[[:space:]]+p[[:space:]]+where[[:space:]]+p\.user_id[[:space:]]*=[[:space:]]*auth\.uid' THEN
+        v_report := v_report || E'\n  [FAIL] F6-17: WITH CHECK does not match expected profiles.user_id pattern (got: ' || coalesce(v_pol_check,'<null>') || ')';
         v_ok := FALSE;
       ELSE
-        v_report := v_report || E'\n  [OK]   F6-17: WITH CHECK references profiles.user_id ✓';
+        v_report := v_report || E'\n  [OK]   F6-17: WITH CHECK matches profiles.user_id surrogate-key pattern ✓';
       END IF;
     END IF;
   END IF;

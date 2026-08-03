@@ -45,7 +45,36 @@ BEGIN
   ) INTO v_tbl_exists;
 
   IF NOT v_tbl_exists THEN
-    RAISE NOTICE 'M34 SKIP: evo.evolution_reconcile_jobs not found (relkind=r)';
+    -- Table absent on fresh DB / staging reset — create it so the CHECK constraint (STEP 3)
+    -- and subsequent backfill code always have a target. Mirrors the zapp schema from M26
+    -- but without cross-schema FK on instance_id (kept nullable UUID).
+    RAISE NOTICE 'M34: evo.evolution_reconcile_jobs not found — creating canonical table in evo schema';
+    CREATE TABLE IF NOT EXISTS evo.evolution_reconcile_jobs (
+      id             UUID        NOT NULL DEFAULT pg_catalog.gen_random_uuid() PRIMARY KEY,
+      request_id     BIGINT,
+      status         TEXT        NOT NULL DEFAULT 'pending'
+                                 CHECK (status IN ('pending', 'dispatched', 'done', 'failed')),
+      payload        JSONB,
+      dispatched_at  TIMESTAMPTZ,
+      applied_at     TIMESTAMPTZ,
+      error_detail   TEXT,
+      instance_id    UUID,
+      created_at     TIMESTAMPTZ NOT NULL DEFAULT pg_catalog.now(),
+      updated_at     TIMESTAMPTZ NOT NULL DEFAULT pg_catalog.now()
+    );
+    ALTER TABLE evo.evolution_reconcile_jobs ENABLE ROW LEVEL SECURITY;
+
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_catalog.pg_policies
+       WHERE schemaname = 'evo' AND tablename = 'evolution_reconcile_jobs'
+         AND policyname = 'svc_all_evo_reconcile_jobs'
+    ) THEN
+      CREATE POLICY svc_all_evo_reconcile_jobs ON evo.evolution_reconcile_jobs
+        FOR ALL TO service_role USING (TRUE) WITH CHECK (TRUE);
+    END IF;
+
+    -- Newly created table — no rows to backfill; skip the UPDATE below.
+    RAISE NOTICE 'M34: evo.evolution_reconcile_jobs created with RLS (no data to backfill)';
     RETURN;
   END IF;
 
@@ -244,7 +273,10 @@ BEGIN
       v_ok := FALSE;
     END IF;
   ELSE
-    v_report := v_report || E'\n  [WARN] F6-05/21 evo: table not found — skipped (empty environment)';
+    -- STEP 1 created the table if it was absent; reaching here means CREATE TABLE failed
+    -- (which would have raised an exception) — treat as hard failure for verification.
+    v_report := v_report || E'\n  [FAIL] F6-05/21 evo: table still not found after M34 ran — unexpected';
+    v_ok := FALSE;
   END IF;
 
   -- zapp.evolution_reconcile_jobs
