@@ -220,7 +220,7 @@ const makeTimeoutReason = (): unknown =>
     : Object.assign(new Error('Supabase request timed out'), { name: 'TimeoutError' });
 
 const boundedFetch: typeof fetch = async (input, init) => {
-  const requestUrl = getRequestUrl(input);
+  const _requestUrl = getRequestUrl(input);
 
   // Auth requests nunca passam pelo concurrency gate — precisam de
   // latência mínima para bootstrap rápido.
