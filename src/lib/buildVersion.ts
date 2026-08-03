@@ -26,6 +26,8 @@ const VERSION_URL = '/version.json';
 const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 min
 const RELOAD_STATE_KEY = 'zapp-build-reload-state';
 const SW_PURGE_FLAG = 'zapp-workbox-purged-once';
+const GLOBAL_RELOAD_COUNT_KEY = 'zapp-build-global-reload-count';
+const GLOBAL_RELOAD_FIRST_AT_KEY = 'zapp-build-global-reload-first-at';
 
 // Cota de reloads por alvo: até 2 hard reloads para o MESMO targetBuildId,
 // dentro de uma janela de 10min desde a primeira tentativa. Um deploy novo
@@ -33,6 +35,13 @@ const SW_PURGE_FLAG = 'zapp-workbox-purged-once';
 // mesma sessão deixariam o mismatch genuíno abortado para sempre.
 const MAX_RELOADS_PER_TARGET = 2;
 const RELOAD_WINDOW_MS = 10 * 60 * 1000;
+
+// Cota GLOBAL de reloads (qualquer target): no máximo 3 reloads em 15min.
+// Evita o cenário onde múltiplos deploys em sequência causam reloads em cascata
+// que matam requisições auth em voo (AbortError cascade) e sufocam o backend
+// com 429s (cada reload re-dispara 15+ queries simultâneas).
+const MAX_GLOBAL_RELOADS = 5;
+const GLOBAL_RELOAD_WINDOW_MS = 15 * 60 * 1000;
 
 interface ReloadState {
   targetBuildId: string;
@@ -114,9 +123,44 @@ function readReloadState(): ReloadState | null {
  * - Sem targetBuildId (ex.: purge de workbox stale): registro ISOLADO
  *   one-shot (`zapp-workbox-purged-once`) que não contamina a cota de mismatch.
  *
- * Retorna false quando a cota foi excedida (abort — sem purge, sem reload).
+ * AMBAS as cotas são limitadas por uma cota GLOBAL de sessionStorage:
+ * no máximo MAX_GLOBAL_RELOADS reloads em GLOBAL_RELOAD_WINDOW_MS,
+ * independente do target. Isto evita que múltiplos deploys em sequência
+ * casem reloads em cascata que matam requisições auth (AbortError) e
+ * sufocam o backend com 429s.
+ *
+ * Retorna false quando qualquer cota foi excedida (abort — sem purge, sem reload).
  */
 function acquireReloadQuota(targetBuildId?: string): boolean {
+  // ── Cota GLOBAL (qualquer target) ──────────────────────────────────
+  const now = Date.now();
+  try {
+    const globalFirstAtRaw = sessionStorage.getItem(GLOBAL_RELOAD_FIRST_AT_KEY);
+    const globalFirstAt = globalFirstAtRaw ? Number(globalFirstAtRaw) : 0;
+    const globalCountRaw = sessionStorage.getItem(GLOBAL_RELOAD_COUNT_KEY);
+    const globalCount = globalCountRaw ? Number(globalCountRaw) : 0;
+
+    if (globalFirstAt > 0 && now - globalFirstAt > GLOBAL_RELOAD_WINDOW_MS) {
+      // Janela expirada — zera contador global.
+      sessionStorage.setItem(GLOBAL_RELOAD_FIRST_AT_KEY, String(now));
+      sessionStorage.setItem(GLOBAL_RELOAD_COUNT_KEY, '0');
+    } else if (globalCount >= MAX_GLOBAL_RELOADS) {
+      log.error(
+        '[buildVersion] Global reload quota exhausted ' +
+          `(${globalCount}/${MAX_GLOBAL_RELOADS} in ${Math.round((now - globalFirstAt) / 1000)}s) — ` +
+          'aborting to avoid cascade.'
+      );
+      window.dispatchEvent(
+        new CustomEvent('zapp-update-required', {
+          detail: { current: CURRENT_BUILD_ID, remote: targetBuildId ?? 'unknown', reason: 'global-quota' },
+        }),
+      );
+      return false;
+    }
+  } catch {
+    /* storage full / disabled — proceed */
+  }
+
   if (!targetBuildId) {
     try {
       if (sessionStorage.getItem(SW_PURGE_FLAG) === '1') return false;
@@ -124,9 +168,10 @@ function acquireReloadQuota(targetBuildId?: string): boolean {
     } catch {
       /* storage full / disabled — reload anyway */
     }
+    _bumpGlobalReloadCount();
     return true;
   }
-  const now = Date.now();
+
   let state = readReloadState();
   if (
     !state ||
@@ -136,14 +181,34 @@ function acquireReloadQuota(targetBuildId?: string): boolean {
     // Primeira tentativa para este alvo (ou registro expirado) — zera contador.
     state = { targetBuildId, attempts: 0, firstAttemptAt: now };
   }
-  if (state.attempts >= MAX_RELOADS_PER_TARGET) return false;
+  if (state.attempts >= MAX_RELOADS_PER_TARGET) {
+    window.dispatchEvent(
+      new CustomEvent('zapp-update-required', {
+        detail: { current: CURRENT_BUILD_ID, remote: targetBuildId, reason: 'per-target-quota' },
+      }),
+    );
+    return false;
+  }
   state.attempts += 1;
   try {
     sessionStorage.setItem(RELOAD_STATE_KEY, JSON.stringify(state));
   } catch {
     /* storage full / disabled — reload anyway */
   }
+  _bumpGlobalReloadCount();
   return true;
+}
+
+/** Incrementa o contador global de reloads (sessionStorage). */
+function _bumpGlobalReloadCount(): void {
+  try {
+    const raw = sessionStorage.getItem(GLOBAL_RELOAD_COUNT_KEY);
+    const count = raw ? Number(raw) : 0;
+    sessionStorage.setItem(GLOBAL_RELOAD_COUNT_KEY, String(count + 1));
+    if (!sessionStorage.getItem(GLOBAL_RELOAD_FIRST_AT_KEY)) {
+      sessionStorage.setItem(GLOBAL_RELOAD_FIRST_AT_KEY, String(Date.now()));
+    }
+  } catch { /* noop */ }
 }
 
 /**
@@ -162,16 +227,11 @@ export async function forceBundleRefresh(
 ): Promise<void> {
   log.warn('[buildVersion] Forcing bundle refresh:', reason, { targetBuildId });
   if (!acquireReloadQuota(targetBuildId)) {
+    // acquireReloadQuota já disparou zapp-update-required com o reason
+    // apropriado (ex.: 'global-quota'). Não disparar duplicado aqui.
     log.error(
       '[buildVersion] Version mismatch persists after reload — aborting to avoid loop.',
       { targetBuildId },
-    );
-    window.dispatchEvent(
-      new CustomEvent('zapp-update-required', {
-        // 'unknown' quando não há alvo (ex.: purge de workbox) — o banner tipa
-        // remote como string e não deve renderizar "undefined" na UI.
-        detail: { current: CURRENT_BUILD_ID, remote: targetBuildId ?? 'unknown' },
-      }),
     );
     return;
   }
@@ -237,6 +297,8 @@ async function checkVersion(): Promise<void> {
         try {
           sessionStorage.removeItem(RELOAD_STATE_KEY);
           sessionStorage.removeItem(SW_PURGE_FLAG);
+          sessionStorage.removeItem(GLOBAL_RELOAD_COUNT_KEY);
+          sessionStorage.removeItem(GLOBAL_RELOAD_FIRST_AT_KEY);
         } catch { /* noop */ }
       }
       return;
@@ -283,25 +345,37 @@ export function startBuildVersionWatcher(): () => void {
   if (isSkippableEnv()) return () => undefined;
   started = true;
 
+  // Timestamp da inicialização para evitar checks prematuras no 1o minuto.
+  const watcherStartedAt = Date.now();
+  // Só permite check de versão após 30s do boot — dá tempo do auth bootstrap
+  // terminar (getSession, fetchProfile, fetchRoles). Evita que um reload
+  // mate requisições auth em voo → AbortError cascade.
+  const MIN_BOOT_DELAY_MS = 30_000;
+
+  const safeCheckVersion = () => {
+    if (Date.now() - watcherStartedAt < MIN_BOOT_DELAY_MS) return;
+    void checkVersion();
+  };
+
   // Kick off first check after the tab is idle so we don't fight first paint.
   const kickoff = window.setTimeout(() => {
     void detectAndPurgeStaleWorkboxSW();
-    void checkVersion();
-  }, 10_000);
+    safeCheckVersion();
+  }, MIN_BOOT_DELAY_MS);
 
-  intervalId = setInterval(() => { void checkVersion(); }, POLL_INTERVAL_MS);
+  intervalId = setInterval(() => { safeCheckVersion(); }, POLL_INTERVAL_MS);
 
   const onVisible = () => {
     if (document.visibilityState === 'visible') {
       void detectAndPurgeStaleWorkboxSW();
-      void checkVersion();
+      safeCheckVersion();
     }
   };
   document.addEventListener('visibilitychange', onVisible);
 
   const onFocus = () => {
     void detectAndPurgeStaleWorkboxSW();
-    void checkVersion();
+    safeCheckVersion();
   };
   window.addEventListener('focus', onFocus);
 
@@ -328,7 +402,11 @@ export const __TEST__ = {
   CURRENT_BUILD_ID,
   RELOAD_STATE_KEY,
   SW_PURGE_FLAG,
+  GLOBAL_RELOAD_COUNT_KEY,
+  GLOBAL_RELOAD_FIRST_AT_KEY,
   MAX_RELOADS_PER_TARGET,
+  MAX_GLOBAL_RELOADS,
   RELOAD_WINDOW_MS,
+  GLOBAL_RELOAD_WINDOW_MS,
   readReloadState,
 };

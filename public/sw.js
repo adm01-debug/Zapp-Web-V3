@@ -16,14 +16,25 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[ServiceWorker] Activate - purging ALL caches');
+  console.log('[ServiceWorker] Activate - purging stale Workbox caches');
   event.waitUntil((async () => {
     // Claim first, then purge — if the worker was already replaced before
     // this activate runs, claim() throws InvalidStateError. Guard silently.
     try { await self.clients.claim(); } catch (_e) { /* stale worker, ignore */ }
     try {
       const cacheKeys = await caches.keys();
-      await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+      // Only purge caches created by old Workbox versions or our own SW.
+      // NEVER purge browser HTTP cache or other legitimate caches —
+      // purging ALL caches on every activate defeats browser caching
+      // and forces full network reload on every deploy, contributing to
+      // 429 rate-limit cascades.
+      const staleKeys = cacheKeys.filter((k) =>
+        /^(workbox-|zapp-)/i.test(k)
+      );
+      if (staleKeys.length > 0) {
+        console.log('[ServiceWorker] Purging stale caches:', staleKeys);
+        await Promise.all(staleKeys.map((key) => caches.delete(key)));
+      }
     } catch (_e) { /* Cache Storage unavailable — non-fatal */ }
   })());
 });

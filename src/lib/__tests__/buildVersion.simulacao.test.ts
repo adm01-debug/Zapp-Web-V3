@@ -6,6 +6,7 @@
  *   targetBuildId dentro de uma janela de RELOAD_WINDOW_MS (10min);
  * - alvo diferente zera o contador;
  * - expiração do registro após 10min;
+ * - Cota GLOBAL: até MAX_GLOBAL_RELOADS reloads em GLOBAL_RELOAD_WINDOW_MS;
  * - purge de caches/SW APÓS a guarda (no abort nada é purgado);
  * - evento `zapp-update-required` no abort com detail { current, remote };
  * - checkVersion: content-type application/json vs text/html (SPA fallback),
@@ -122,20 +123,23 @@ describe('forceBundleRefresh — cota por alvo (simulação de reloads)', () => 
     );
   });
 
-  it('abort dispara zapp-update-required com detail { current, remote }', async () => {
+  it('abort dispara zapp-update-required com detail { current, remote, reason }', async () => {
     await forceBundleRefresh('mismatch', 'buildA');
     await forceBundleRefresh('mismatch', 'buildA');
     await forceBundleRefresh('mismatch', 'buildA'); // abort
 
     const calls = dispatchSpy.mock.calls;
     const event = calls[calls.length - 1]?.[0] as
-      | CustomEvent<{ current: string; remote: string }>
+      | CustomEvent<{ current: string; remote: string; reason: string }>
       | undefined;
     expect(event?.type).toBe('zapp-update-required');
-    expect(event?.detail).toEqual({
-      current: __TEST__.CURRENT_BUILD_ID,
-      remote: 'buildA',
-    });
+    expect(event?.detail).toEqual(
+      expect.objectContaining({
+        current: __TEST__.CURRENT_BUILD_ID,
+        remote: 'buildA',
+        reason: 'per-target-quota',
+      }),
+    );
   });
 
   it('no abort NÃO purga caches nem desregistra SWs (purge pós-guarda)', async () => {
@@ -218,6 +222,40 @@ describe('forceBundleRefresh — cota por alvo (simulação de reloads)', () => 
     );
   });
 
+  it('cota GLOBAL: 5 reloads em 15min são permitidos, 6º aborta mesmo com targets diferentes', async () => {
+    // 5 reloads com targets diferentes — permitidos (within global quota).
+    for (let i = 0; i < 5; i++) {
+      await forceBundleRefresh('mismatch', `build-${i}`);
+    }
+    expect(replaceSpy).toHaveBeenCalledTimes(5);
+
+    // 6º reload (target build-5) → cota global excedida → abort sem reload.
+    await forceBundleRefresh('mismatch', 'build-5');
+    expect(replaceSpy).toHaveBeenCalledTimes(5);
+    expect(dispatchSpy).toHaveBeenCalledTimes(1);
+
+    const calls = dispatchSpy.mock.calls;
+    const event = calls[calls.length - 1]?.[0] as
+      | CustomEvent<{ current: string; remote: string; reason: string }>
+      | undefined;
+    expect(event?.type).toBe('zapp-update-required');
+    expect(event?.detail?.reason).toBe('global-quota');
+  });
+
+  it('cota global expira após 15min → reloads voltam a ser permitidos', async () => {
+    for (let i = 0; i < 5; i++) {
+      await forceBundleRefresh('mismatch', `build-${i}`);
+    }
+    expect(replaceSpy).toHaveBeenCalledTimes(5);
+
+    // Avança além da janela global (15min + 1ms).
+    vi.advanceTimersByTime(__TEST__.GLOBAL_RELOAD_WINDOW_MS + 1);
+
+    // Contador zera — reload volta a ser permitido.
+    await forceBundleRefresh('mismatch', 'build-new');
+    expect(replaceSpy).toHaveBeenCalledTimes(6);
+  });
+
   it('getCurrentBuildId expõe o build id do bundle atual', () => {
     expect(getCurrentBuildId()).toBe(__TEST__.CURRENT_BUILD_ID);
     expect(typeof getCurrentBuildId()).toBe('string');
@@ -278,7 +316,7 @@ describe('checkVersion (via startBuildVersionWatcher + fake timers)', () => {
 
     const { stop } = startWatcherAndStop();
     try {
-      await vi.advanceTimersByTimeAsync(10_000); // kickoff (idle de 10s)
+      await vi.advanceTimersByTimeAsync(30_000); // kickoff (MIN_BOOT_DELAY_MS = 30s)
       expect(fetchMock).toHaveBeenCalledTimes(1);
       expect(String(fetchMock.mock.calls[0][0])).toMatch(/^\/version\.json\?ts=\d+$/);
       expect(replaceSpy).toHaveBeenCalledTimes(1);
@@ -302,7 +340,7 @@ describe('checkVersion (via startBuildVersionWatcher + fake timers)', () => {
 
     const { stop } = startWatcherAndStop();
     try {
-      await vi.advanceTimersByTimeAsync(10_000);
+      await vi.advanceTimersByTimeAsync(30_000);
       expect(replaceSpy).not.toHaveBeenCalled();
       expect(buildVersionLog().warn).toHaveBeenCalledWith(
         expect.stringContaining('non-JSON'),
@@ -322,15 +360,19 @@ describe('checkVersion (via startBuildVersionWatcher + fake timers)', () => {
       JSON.stringify({ targetBuildId: 'buildA', attempts: 2, firstAttemptAt: 1 }),
     );
     sessionStorage.setItem(__TEST__.SW_PURGE_FLAG, '1');
+    sessionStorage.setItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY, '3');
+    sessionStorage.setItem(__TEST__.GLOBAL_RELOAD_FIRST_AT_KEY, String(Date.now()));
 
     fetchMock.mockResolvedValue(jsonResponse({ buildId: __TEST__.CURRENT_BUILD_ID }));
 
     const { stop } = startWatcherAndStop();
     try {
-      await vi.advanceTimersByTimeAsync(10_000);
+      await vi.advanceTimersByTimeAsync(30_000);
       expect(replaceSpy).not.toHaveBeenCalled();
       expect(__TEST__.readReloadState()).toBeNull();
       expect(sessionStorage.getItem(__TEST__.SW_PURGE_FLAG)).toBeNull();
+      expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBeNull();
+      expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_FIRST_AT_KEY)).toBeNull();
     } finally {
       stop();
       vi.clearAllTimers();
@@ -342,7 +384,7 @@ describe('checkVersion (via startBuildVersionWatcher + fake timers)', () => {
 
     const { stop } = startWatcherAndStop();
     try {
-      await vi.advanceTimersByTimeAsync(10_000);
+      await vi.advanceTimersByTimeAsync(30_000);
       expect(replaceSpy).not.toHaveBeenCalled();
       expect(buildVersionLog().warn).toHaveBeenCalledWith(
         expect.stringContaining('redirect/SSO'),
@@ -358,7 +400,7 @@ describe('checkVersion (via startBuildVersionWatcher + fake timers)', () => {
 
     const { stop } = startWatcherAndStop();
     try {
-      await vi.advanceTimersByTimeAsync(10_000);
+      await vi.advanceTimersByTimeAsync(30_000);
       expect(replaceSpy).not.toHaveBeenCalled();
       expect(dispatchSpy).not.toHaveBeenCalled();
     } finally {
@@ -379,7 +421,7 @@ describe('checkVersion (via startBuildVersionWatcher + fake timers)', () => {
 
     const { stop } = startWatcherAndStop();
     try {
-      await vi.advanceTimersByTimeAsync(10_000);
+      await vi.advanceTimersByTimeAsync(30_000);
       expect(replaceSpy).not.toHaveBeenCalled();
       expect(dispatchSpy).not.toHaveBeenCalled();
     } finally {
@@ -393,7 +435,7 @@ describe('checkVersion (via startBuildVersionWatcher + fake timers)', () => {
 
     const { stop } = startWatcherAndStop();
     try {
-      await vi.advanceTimersByTimeAsync(10_000);
+      await vi.advanceTimersByTimeAsync(30_000);
       expect(replaceSpy).not.toHaveBeenCalled();
       expect(sessionStorage.getItem(__TEST__.RELOAD_STATE_KEY)).toBeNull();
     } finally {
@@ -407,12 +449,12 @@ describe('checkVersion (via startBuildVersionWatcher + fake timers)', () => {
     const stop2 = startBuildVersionWatcher(); // 2ª chamada → no-op (started já true)
     expect(stop2).toBeInstanceOf(Function);
 
-    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.advanceTimersByTimeAsync(30_000);
     expect(fetchMock).toHaveBeenCalledTimes(1); // apenas 1 kickoff
 
     stop1();
     vi.clearAllTimers();
-    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.advanceTimersByTimeAsync(30_000);
     expect(fetchMock).toHaveBeenCalledTimes(1); // sem novo kickoff após cleanup
   });
 });
