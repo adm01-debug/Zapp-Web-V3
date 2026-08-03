@@ -129,14 +129,14 @@ my_function
 no_params_fn
 
 # ---------------------------------------------------------------------------
-# [B] Tabelas/views no frontend SEM CREATE em migrations (era Lovable)
+# [B] Tabelas/views no frontend SEM CREATE em migrations (era legada pré-migração)
 # ---------------------------------------------------------------------------
 app_notifications
 information_schema_columns
 information_schema_tables
 
 # ---------------------------------------------------------------------------
-# [C] Funções ALTER-sem-CREATE — 80+ funções da era Lovable
+# [C] Funções ALTER-sem-CREATE — 80+ funções da era legada pré-migração
 # Todas confirmadas em produção; stub-migrations planejadas (R17+)
 # ---------------------------------------------------------------------------
 adicionar_parcelas

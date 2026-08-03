@@ -69,7 +69,7 @@ function classifyRenderFailure(error: Error): {
   return {
     isQueryFailure,
     severity,
-    target: isTimeout ? 'render:timeout' : isProxy ? 'externalProxy:render' : 'render:error',
+    target: isTimeout ? 'render:timeout' : isProxy ? 'timeout:render' : 'render:error',
   };
 }
 

@@ -172,7 +172,6 @@ export default tseslint.config(
       "src/features/inbox/hooks/realtime/externalSenderTypes.ts",
       "src/integrations/zappweb/evolutionClient.ts",
       "src/lib/whatsappAdapter.ts",
-      "src/pages/admin/external-db-explorer/catalog.ts",
       "src/**/__tests__/**",
       "src/**/*.test.{ts,tsx}",
       "src/**/*.spec.{ts,tsx}",

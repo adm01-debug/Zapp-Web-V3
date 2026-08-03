@@ -8,7 +8,7 @@
  * Estratégia:
  *  1. Requisita `/generators/typescript?included_schemas=public,zapp,evo`
  *     ao META_URL configurado (secret ZAPP_META_URL).
- *  2. Calcula sha256 do corpo (excluindo a "cauda Lovable" — helpers
+ *  2. Calcula sha256 do corpo (excluindo a "cauda legada" — helpers
  *     preservados por gen-types-zapp.mjs).
  *  3. Compara com o hash gravado em
  *     `src/integrations/supabase/.types-checksum` (commitado).

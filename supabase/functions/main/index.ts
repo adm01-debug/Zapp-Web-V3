@@ -57,9 +57,6 @@ const PUBLIC_FNS = new Set<string>([
   'sicoob-bridge-reply',
   'gmail-oauth',
   'public-api',
-  // scrape/health com bearer de segredo próprio (NÃO-JWT: PROXY_METRICS_TOKEN / HEALTH_TOKEN)
-  'proxy-metrics',
-  'proxy-health',
 ])
 
 // O segredo JWT pode vir direto de JWT_SECRET ou de um arquivo montado no container

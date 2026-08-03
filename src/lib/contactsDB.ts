@@ -106,7 +106,9 @@ export interface ContactEmail {
 function getClient(): SupabaseClient {
   // Pós-consolidação (2026-07-15): o app usa apenas o Supabase self-hosted
   // (schema zapp) via @/integrations/supabase/client — não há mais client externo.
-  return supabase;
+  // Cast para SupabaseClient sem generics preserva as queries dinâmicas (tipos
+  // manuais do schema zapp são parciais — ver types-manual.ts).
+  return supabase as unknown as SupabaseClient;
 }
 
 // ─── Contact CRUD ─────────────────────────────────────────────

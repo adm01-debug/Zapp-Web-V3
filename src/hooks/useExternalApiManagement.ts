@@ -276,7 +276,6 @@ import {
   CACHE_TTL,
   FAILURE_COOLDOWN_MS,
   safeParseTags,
-  type ContactEnrichmentData,
 } from './evolutionContactCache';
 import { buildExternalConversations } from '@/adapters/evolutionAdapter';
 import { OPTIMISTIC_PREFIX, applyReconciliation } from './evolutionReconcile';
