@@ -25,9 +25,6 @@ credentials.json
 service-account.json
 firebase-adminsdk*.json
 
-# MCP Configuration (contains credentials - NEVER version)
-.mcp.json
-!.mcp.json.example
 # Credenciais em texto plano (PT-BR e EN)
 *credencia*.txt
 *credential*.txt
@@ -46,6 +43,7 @@ firebase-adminsdk*.json
 # O arquivo .mcp.json contém URLs autenticadas com tokens embutidos.
 # NUNCA commitar. Usar .mcp.json.example como referência.
 .mcp.json
+!.mcp.json.example
 .mcp.json.bak
 .mcp.json.backup
 .mcp.local.json
@@ -127,7 +125,7 @@ playwright/.cache/
 # ====================
 .vscode/*
 !.vscode/extensions.json
-!.vscode/settings.json.example
+!.vscode/settings.json
 .idea/
 *.sublime-workspace
 *.sublime-project
