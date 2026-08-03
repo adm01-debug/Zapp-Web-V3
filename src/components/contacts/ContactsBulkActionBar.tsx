@@ -72,7 +72,7 @@ export function ContactsBulkActionBar({
             <Button
               variant="ghost"
               size="sm"
-              className="h-9 gap-2 px-3 text-destructive-foreground hover:bg-destructive/20"
+              className="h-9 gap-2 px-3 text-destructive hover:bg-destructive/20"
               onClick={() => {
                 const count = selectedIds.length;
                 toast.error(`Excluir ${count} contatos?`, {
