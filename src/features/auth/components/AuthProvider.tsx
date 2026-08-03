@@ -307,6 +307,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt
       );
       setBootstrapElapsedMs(elapsedMs);
+      // AbortError é esperado (StrictMode remount, navegação, timeout).
+      // O app continua com a sessão do cache. Não poluir o console.
+      if ((err as Error)?.name === 'AbortError') {
+        log.debug('[Auth] getSession abortado — sessão do cache mantida.');
+        return;
+      }
       // Não-fatal: já renderizámos a partir do cache. Apenas registamos.
       log.warn(
         `[Auth] Revalidação em background lenta (${elapsedMs}ms) — mantendo sessão do cache. URL=${SUPABASE_RESOLVED_URL}`,
