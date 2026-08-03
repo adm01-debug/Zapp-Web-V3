@@ -49,7 +49,7 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
       data: { session },
     } = await supabase.auth.getSession();
     if (!session) {
-      record('Auth Check', 'fail', 'Usuário não autenticado no Lovable Cloud.');
+      record('Auth Check', 'fail', 'Usuário não autenticado.');
       return diagnostics;
     }
     record('Auth Check', 'pass', { user: session.user.email });

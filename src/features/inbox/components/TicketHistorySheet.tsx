@@ -4,7 +4,7 @@
  * Funde duas fontes de verdade:
  *  1. Eventos locais do `ticketStore` (status_change, assign, transfer,
  *     unassign, auto_routed) — refletem mudanças feitas pela UI nova.
- *  2. `public.conversation_events` (Lovable Cloud) — eventos persistidos
+ *  2. `public.conversation_events` (app database) — eventos persistidos
  *     pelos triggers (`log_assignment_change`, `fn_log_sla_ack_event` etc).
  *
  * Quando a RPC Evolution DB estiver disponível, a fonte (1) será substituída

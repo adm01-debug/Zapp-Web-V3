@@ -1,6 +1,6 @@
 /**
  * Admin: Histórico de Alertas.
- * Reads `warroom_alerts` (Lovable Cloud) — already populated by the war-room
+ * Reads `warroom_alerts` (app database) — already populated by the war-room
  * monitoring pipeline (response delays, SLA breaches, connection drops, etc.).
  * Admin/supervisor only via existing RLS.
  */

@@ -1,7 +1,7 @@
 // Recomputa HMAC-SHA256 do payload de um evolution_webhook_events e devolve
 // diagnóstico (válido / inválido + motivo). Não grava nada.
 //
-// Auth: exige Bearer JWT de usuário com role 'admin' (Lovable Cloud).
+// Auth: exige Bearer JWT de usuário com role 'admin'.
 // Lê o evento direto do Evolution DB via service role do projeto self-hosted.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 

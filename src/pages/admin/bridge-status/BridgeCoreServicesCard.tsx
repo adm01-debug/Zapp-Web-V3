@@ -41,7 +41,7 @@ export function BridgeCoreServicesCard({
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold">Lovable Cloud Proxy</p>
+                <p className="text-sm font-semibold">App Backend</p>
                 <p className="text-xs text-muted-foreground">Encaminhamento de Webhooks e API</p>
               </div>
             </div>

@@ -3,14 +3,15 @@
  * types-manual.ts — Extensões manuais ao Database type gerado.
  *
  * DÉBITO TÉCNICO (mantido intencionalmente):
- * O `types.ts` gerado no ambiente Lovable Cloud contém APENAS o schema
+ * O `types.ts` gerado via Supabase type generation contém APENAS o schema
  * `public`. Os schemas `zapp` e `evo` da instância self-hosted (VPS
  * AtomicaBR) só aparecem depois de rodar `scripts/gen-types-zapp.mjs` com
  * `META_URL` e `META_TOKEN` apontando para a VPS. Sem esses schemas, o
  * remapeamento `GeneratedDatabase['zapp' | 'evo']` produz erros TS2339 em
  * cascata neste arquivo e em dezenas de hooks/componentes que dependem
  * dele. Portanto o `@ts-nocheck` aqui é *load-bearing*, não decorativo —
- * removê-lo exige regerar `types.ts` fora do sandbox Lovable Cloud.
+ * removê-lo exige regerar `types.ts` via Supabase type generation
+ * apontando para a VPS (fora do ambiente Lovable Cloud).
  */
 
 import type { Database as GeneratedDatabase } from './types';
@@ -19,7 +20,7 @@ import type { Database as GeneratedDatabase } from './types';
  * Manual Zapp Tables type definition.
  *
  * IMPORTANT: Keep as Record<never, never> when GeneratedDatabase['zapp']
- * does not exist in types.ts (Lovable Cloud generation). Adding entries
+ * does not exist in types.ts (Supabase type generation). Adding entries
  * here breaks MergeTables and causes cascade of 'never' type errors across
  * 20+ files. Use gen-types-zapp.mjs with VPS credentials to properly
  * generate the zapp schema in types.ts first.

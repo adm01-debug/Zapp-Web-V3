@@ -7,7 +7,7 @@
  * push notification flow via `useWarRoomAlerts`.
  *
  * Why poll instead of subscribe? `evolution_audit_log` lives on Evolution DB, which
- * does not share a Realtime channel with the Lovable Cloud where the alerts
+ * does not share a Realtime channel with the app database where the alerts
  * are stored. A 60s poll is acceptable: misses are a low-frequency signal and
  * the alert is hourly-bucketed.
  *

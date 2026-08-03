@@ -35,7 +35,7 @@ bun run dev
 
 ### Backend / Edge Functions (sem prefixo — só servidor)
 
-Configure como **secrets** no Lovable Cloud (Connectors → Secrets).
+Configure como **secrets** no Supabase.
 Eles ficam disponíveis automaticamente em todas as edge functions via
 `Deno.env.get(...)`.
 
@@ -47,16 +47,17 @@ Eles ficam disponíveis automaticamente em todas as edge functions via
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI` | `gmail-*`                   | OAuth Gmail.                 |
 | `RESEND_API_KEY`                                                    | emails transacionais        | Provedor de email.           |
 | `SIP_PASSWORD`                                                      | `get-sip-password`          | VoIP/SIP.                    |
-| `ELEVENLABS_API_KEY`                                                | voz/transcrição             | Gerenciado por Connector.    |
+| `ELEVENLABS_API_KEY`                                                | voz/transcrição             | Gerenciado como secret.      |
+| `LOVABLE_API_KEY` | `ai-proxy` e demais functions de IA | Gateway de IA (fallback). |
 
-> ✅ `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` e
-> `LOVABLE_API_KEY` são injetados automaticamente — **não precisa configurar**.
+> ✅ `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` são
+> injetados automaticamente — **não precisa configurar**.
 
 ---
 
 ## 2. Onde obter cada valor
 
-- **Lovable Cloud (auth/tabelas locais):** painel do projeto → Cloud → Overview.
+- **Self-Hosted (auth/tabelas):** painel do Supabase self-hosted (`supabase.atomicabr.com.br`).
 - **WhatsApp/CRM (`evolution_*`):** o mesmo Supabase self-hosted acima (schema `evo`) — desde a consolidação de jul/2026 o banco externo FATOR X foi descontinuado; não há mais secrets `EXTERNAL_SUPABASE_*`.
 - **Evolution API:** painel da sua instância Evolution (`/manager`).
 - **PromoGifts:** dashboard do projeto Supabase do PromoGifts (mesmo padrão URL +
@@ -127,7 +128,7 @@ Ou pela UI: repo → **Settings → Secrets and variables → Actions → New re
 
 | Sintoma                                                  | Causa provável                             | Ação                                                    |
 | -------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------- |
-| `Edge function returned 500: External DB not configured` | Secret do catálogo externo (PromoGifts) faltando no Lovable Cloud | Adicione em Connectors → Secrets. Sem redeploy manual.  |
+| `Edge function returned 500: External DB not configured` | Secret do catálogo externo (PromoGifts) faltando no Supabase | Adicione como secret no Supabase. Sem redeploy manual.  |
 | `503 EXTERNAL_DB_NOT_CONFIGURED`                         | Mesma causa, nova mensagem detalhada       | Veja `missing[]` na resposta.                           |
 | `502 EXTERNAL_DB_UNREACHABLE`                            | Secrets presentes mas URL/anon key errados | Confira URL (sem `/`) e anon key no painel do Supabase. |
 | Build do Vite ignora variáveis                           | Faltou prefixo `VITE_`                     | Apenas `VITE_*` chegam ao bundle.                       |
