@@ -228,6 +228,7 @@ export function useRealtimeInbox() {
     // ────────────────────────────────────────────────────────────────────────
 
     let cancelled = false;
+    /** Queries the unread whisper count for the current contact and updates state. */
     const fetchWhisperCount = async () => {
       const { count, error } = await supabase
         .from('whisper_messages')
@@ -384,6 +385,7 @@ export function useRealtimeInbox() {
     });
   }, [selectedMessages, selectedContactId, messageQueue]);
 
+  /** Selects a conversation, marks its messages as read, and clears any delivery alerts. */
   const handleSelectConversation = useCallback(
     (contactId: string) => {
       setSelectedContactId(contactId);
@@ -405,6 +407,7 @@ export function useRealtimeInbox() {
     [setSelectedContact, markAsRead, instanceName]
   );
 
+  /** Navigates to the conversation linked to the pending new-message notification and dismisses it. */
   const handleNotificationView = useCallback(() => {
     if (newMessageNotification) {
       handleSelectConversation(newMessageNotification.contactId);
@@ -412,6 +415,7 @@ export function useRealtimeInbox() {
     }
   }, [newMessageNotification, handleSelectConversation, dismissNotification]);
 
+  /** Toggles the notification sound on/off and syncs the preference to the realtime layer. */
   const toggleSound = useCallback(() => {
     setSoundOn((prev) => {
       const next = !prev;

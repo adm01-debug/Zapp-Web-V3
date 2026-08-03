@@ -29,11 +29,13 @@ export function useConnectionsActions(
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  /** Clears React Query caches for all connection-related queries. */
   const invalidateConnectionsCaches = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.connections.all() });
     void queryClient.invalidateQueries({ queryKey: queryKeys.talkx.waConnections() });
   }, [queryClient]);
 
+  /** Creates a new WhatsApp connection record and redirects to QR code flow for non-official connections. */
   const handleAddConnection = useCallback(async () => {
     if (!newConnection.name) {
       toast({ title: 'Nome é obrigatório', variant: 'destructive' });
@@ -127,6 +129,7 @@ export function useConnectionsActions(
     invalidateConnectionsCaches,
   ]);
 
+  /** Sets a specific connection as the workspace default, clearing the flag on all others. */
   const handleSetDefault = useCallback(
     async (id: string) => {
       try {
@@ -148,6 +151,7 @@ export function useConnectionsActions(
     [setConnections, toast, invalidateConnectionsCaches]
   );
 
+  /** Removes a WhatsApp connection from the Evolution API and deletes its database record. */
   const handleDelete = useCallback(
     async (connection: WhatsAppConnection) => {
       try {
