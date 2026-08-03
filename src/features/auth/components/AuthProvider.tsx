@@ -240,11 +240,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (runId !== bootstrapRunRef.current) return;
       setSession(cached);
       setUser(cached.user);
-      // profile/roles em background — guards internos evitam corrida com o
-      // refetch que o onAuthStateChange dispara em seguida.
-      void refreshAll(cached.user.id, { showLoading: false }).catch((err) => {
-        log.error('[Auth] Erro ao atualizar perfil/roles em background pós-hidratação:', err);
-      });
       setLoading(false);
       // Já temos sessão utilizável → o safety-net não deve marcar timeout.
       clearBootstrapSafetyNet();
@@ -299,6 +294,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       log.info(
         `[Auth] getSession OK em ${elapsedMs}ms — session=${result.data.session ? 'present' : 'null'}`
       );
+      // Sessão validada: busca profile/roles (adiado da hidratação).
+      if (result.data.session && cached?.user?.id) {
+        void refreshAll(cached.user.id, { showLoading: false }).catch((err) => {
+          log.debug('[Auth] Erro ao atualizar perfil/roles pós-getSession:', err);
+        });
+      }
       // Se o backend confirmar que NÃO há sessão (refresh token revogado/expirado),
       // o supabase-js emite SIGNED_OUT via onAuthStateChange e o app vai para /auth.
     } catch (err) {
