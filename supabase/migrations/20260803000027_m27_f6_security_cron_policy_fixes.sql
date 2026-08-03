@@ -3,6 +3,13 @@
 --      F6-18 (rename policy auth_secure_123 → descriptive name)
 -- Branch: claude/plan-implementation-review-bq8j14
 -- Date: 2026-08-03
+--
+-- Rollback notes:
+--   F6-07: ALTER FUNCTION zapp.fn_alert_wpp2_disconnection(...) SECURITY INVOKER RESET search_path;
+--          REVOKE EXECUTE ON FUNCTION ... FROM service_role; GRANT EXECUTE ON FUNCTION ... TO PUBLIC;
+--   F6-09: SELECT cron.alter_job(job_id => <id>, schedule => '*/10 6-23 * * *');
+--   F6-18: ALTER POLICY whatsapp_connections_agent_or_admin_read ON zapp.whatsapp_connections
+--          RENAME TO auth_secure_123;
 
 BEGIN;
 
@@ -44,6 +51,9 @@ BEGIN
     'ALTER FUNCTION %s SECURITY DEFINER SET search_path TO ''pg_catalog'', ''zapp'', ''evo'', ''public''',
     v_sig
   );
+  -- Remove implicit public-execute ACL that ALTER preserves; grant only to service_role
+  EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon', v_sig);
+  EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', v_sig);
 
   RAISE NOTICE 'F6-07 DONE: % is now SECURITY DEFINER with fixed search_path', v_sig;
 END;
@@ -60,23 +70,21 @@ $$;
 
 DO $$
 DECLARE
-  v_rows INT;
+  v_jobid    BIGINT;
+  v_schedule TEXT;
 BEGIN
-  UPDATE cron.job
-     SET schedule = '*/10 * * * *'
-   WHERE jobname  = 'wpp2_disconnection_watchdog'
-     AND schedule != '*/10 * * * *';
+  SELECT jobid, schedule
+    INTO v_jobid, v_schedule
+    FROM cron.job
+   WHERE jobname = 'wpp2_disconnection_watchdog';
 
-  GET DIAGNOSTICS v_rows = ROW_COUNT;
-
-  IF v_rows = 0 THEN
-    -- Either job not found or schedule already correct
-    IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'wpp2_disconnection_watchdog') THEN
-      RAISE NOTICE 'F6-09 SKIP: wpp2_disconnection_watchdog already on 24h schedule';
-    ELSE
-      RAISE NOTICE 'F6-09 SKIP: wpp2_disconnection_watchdog not found in cron.job';
-    END IF;
+  IF v_jobid IS NULL THEN
+    RAISE NOTICE 'F6-09 SKIP: wpp2_disconnection_watchdog not found in cron.job';
+  ELSIF v_schedule = '*/10 * * * *' THEN
+    RAISE NOTICE 'F6-09 SKIP: wpp2_disconnection_watchdog already on 24h schedule';
   ELSE
+    -- Use the official pg_cron API (never mutate cron.job directly)
+    PERFORM cron.alter_job(job_id => v_jobid, schedule => '*/10 * * * *');
     RAISE NOTICE 'F6-09 DONE: wpp2_disconnection_watchdog rescheduled to */10 * * * * (24h)';
   END IF;
 EXCEPTION WHEN undefined_table THEN
@@ -153,8 +161,12 @@ BEGIN
   END IF;
 
   -- F6-09
-  SELECT schedule INTO v_cron_schedule
-  FROM   cron.job WHERE jobname = 'wpp2_disconnection_watchdog';
+  BEGIN
+    SELECT schedule INTO v_cron_schedule
+    FROM   cron.job WHERE jobname = 'wpp2_disconnection_watchdog';
+  EXCEPTION WHEN undefined_table THEN
+    v_cron_schedule := NULL;
+  END;
 
   IF v_cron_schedule IS NULL THEN
     v_report := v_report || E'\n  [SKIP] F6-09: cron job not found';
