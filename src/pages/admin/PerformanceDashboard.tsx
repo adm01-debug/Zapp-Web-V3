@@ -5,6 +5,17 @@ import type { WebVitalMetric } from '@/lib/webVitals';
 import { Gauge, Zap, Layout, Timer, BarChart3, ShieldCheck } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+
+// F7-07: per-metric thresholds for accurate progress bars.
+const VITAL_THRESHOLDS: Record<string, number> = {
+  LCP: 2500,
+  FCP: 1800,
+  FID: 100,
+  INP: 200,
+  CLS: 0.1,
+  TTFB: 800,
+};
+
 /** Performance Dashboard. */
 export default function PerformanceDashboard() {
   const [metrics, setMetrics] = useState<WebVitalMetric[]>([]);
@@ -12,12 +23,24 @@ export default function PerformanceDashboard() {
 
   useEffect(() => {
     const update = () => {
+      // F7-08: skip updates while tab is hidden to avoid unnecessary 500 polls/hour.
+      if (document.hidden) return;
       setMetrics(getWebVitalsReport());
       setLastUpdate(new Date());
     };
-    const interval = setInterval(update, 2000);
+
+    // F7-08: refresh on visibility restore so data is never stale when tab regains focus.
+    const onVisible = () => {
+      if (!document.hidden) update();
+    };
+
+    const interval = setInterval(update, 5000);
+    document.addEventListener('visibilitychange', onVisible);
     update();
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, []);
 
   const getMetricIcon = (name: string) => {
@@ -75,9 +98,8 @@ export default function PerformanceDashboard() {
                 </span>
               </div>
               <Progress
-                value={Math.min((m.value / 4000) * 100, 100)}
+                value={Math.min((m.value / (VITAL_THRESHOLDS[m.name] ?? 4000)) * 100, 100)}
                 className="h-1.5"
-                // Custom indicator color handled via CSS if possible or just use default
               />
               <p className="mt-2 text-xs text-muted-foreground">
                 {m.name === 'LCP' &&
