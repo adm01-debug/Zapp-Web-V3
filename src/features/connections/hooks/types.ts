@@ -36,6 +36,8 @@ export interface QrCodeDialogState {
   connectionId: string;
   connectionName: string;
   qrCode: string | null;
+  /** F6-01: pairing code (alternativa ao QR) — preenchido quando o usuário opta por emparelhamento. */
+  pairingCode: string | null;
   status: 'loading' | 'pending' | 'connected' | 'error';
   errorMessage?: string;
   expiresAt: number | null;

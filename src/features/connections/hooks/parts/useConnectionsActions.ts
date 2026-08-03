@@ -54,13 +54,41 @@ export function useConnectionsActions(
     }
     const normalizedPhone = phoneValidation.normalized ?? newConnection.phone_number.trim();
 
+    // F6-15: nome/type divergentes — se o nome sugere Cloud API oficial, força
+    // api_type='official' para o registro nunca nascer com nome enganoso.
+    const resolvedApiType: WhatsAppApiType = /cloud\s*api|oficial|official/i.test(
+      newConnection.name
+    )
+      ? 'official'
+      : newConnection.api_type;
+
     setIsCreating(true);
-    const isOfficial = newConnection.api_type === 'official';
+    const isOfficial = resolvedApiType === 'official';
+    // F6-02: o nome da instância deve ser o mesmo que `evolutionInstanceName`
+    // resolve para roteamento (nome de exibição quando é um instance name válido,
+    // senão o slug) — evita criar instância órfã divergente do roteamento (G4).
+    const trimmedName = newConnection.name.trim();
+    const INSTANCE_NAME_RE = /^[a-zA-Z0-9_-]{1,128}$/;
     const instanceName = isOfficial
       ? `official_${Date.now().toString(36)}`
-      : whatsappConnectionService.generateInstanceName(newConnection.name);
+      : INSTANCE_NAME_RE.test(trimmedName)
+        ? trimmedName
+        : whatsappConnectionService.generateInstanceName(newConnection.name);
 
     try {
+      // F6-02: criar a instância na Evolution API ANTES do INSERT. Falha aqui
+      // aborta o fluxo — nenhum registro fantasma em whatsapp_connections.
+      let evolutionInstanceNameResolved = instanceName;
+      let evolutionInstanceUuid: string | null = null;
+      if (!isOfficial) {
+        const created = await whatsappConnectionService.createInstance(instanceName);
+        const createdInstance = (
+          created as { instance?: { instanceName?: string; instanceId?: string } } | null
+        )?.instance;
+        if (createdInstance?.instanceName) evolutionInstanceNameResolved = createdInstance.instanceName;
+        if (createdInstance?.instanceId) evolutionInstanceUuid = createdInstance.instanceId;
+      }
+
       const { data, error } = await safeClient.single<Record<string, unknown>>(
         'whatsapp_connections',
         (q) =>
@@ -68,11 +96,11 @@ export function useConnectionsActions(
             .insert({
               name: newConnection.name,
               phone_number: normalizedPhone,
-              instance_id: instanceName,
-              instance_name: instanceName,
+              instance_id: evolutionInstanceUuid ?? evolutionInstanceNameResolved,
+              instance_name: evolutionInstanceNameResolved,
               status: 'disconnected',
               is_default: connections.length === 0,
-              api_type: newConnection.api_type,
+              api_type: resolvedApiType,
             })
             .select()
       );
@@ -85,7 +113,7 @@ export function useConnectionsActions(
         title: 'Conexão criada!',
         description: isOfficial
           ? 'Configure as credenciais da API oficial (Meta) nas configurações da conexão.'
-          : 'Agora conecte escaneando o QR Code.',
+          : 'Agora conecte escaneando o QR Code ou usando o código de emparelhamento.',
       });
       setIsAddDialogOpen(false);
       setNewConnection({ name: '', phone_number: '', api_type: 'evolution' });

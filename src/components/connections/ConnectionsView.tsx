@@ -33,6 +33,8 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  Copy,
+  KeyRound,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -53,6 +55,14 @@ import { useConnectionsManager } from '@/features/connections';
 import type { WhatsAppConnection } from '@/features/connections/hooks/useConnectionsManager';
 import { useEvolutionAutoSync } from '@/hooks/useEvolutionAutoSync';
 import { useEvolutionAutoReconnect } from '@/hooks/useEvolutionAutoReconnect';
+
+/** F6-01: formata o pairing code em grupos de 4 (ex.: ABCD-EFGH-IJKL). */
+function formatPairingCode(code: string): string {
+  const clean = code.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  if (!clean) return code;
+  if (clean.length <= 4) return clean;
+  return clean.replace(/(.{4})/g, '$1-').replace(/-$/, '');
+}
 
 export function ConnectionsView() {
   const [search, setSearch] = useState('');
@@ -108,6 +118,7 @@ export function ConnectionsView() {
     setSyncingHistory,
     evolutionLoading,
     handleShowQrCode,
+    handleRequestPairingCode,
     handleRefreshQrCode,
     handleCopyId,
     handleDisconnect,
@@ -142,6 +153,23 @@ export function ConnectionsView() {
     instanceName: '',
     connectionName: '',
   });
+
+  // F6-01: alternância QR ⇄ pairing code no dialog de conexão.
+  const handlePairingCodeClick = () => {
+    const conn = connections.find((c) => c.id === qrCodeDialog.connectionId);
+    if (conn) void handleRequestPairingCode(conn);
+  };
+  const handleBackToQr = () => {
+    const conn = connections.find((c) => c.id === qrCodeDialog.connectionId);
+    if (conn) void handleShowQrCode(conn);
+  };
+  const handleCopyPairingCode = () => {
+    if (!qrCodeDialog.pairingCode) return;
+    navigator.clipboard
+      .writeText(qrCodeDialog.pairingCode)
+      .then(() => toast({ title: 'Código copiado!' }))
+      .catch(() => toast({ title: 'Não foi possível copiar', variant: 'destructive' }));
+  };
 
   // Deep-link: ?qr=<instance_id> auto-opens the QR dialog for that instance.
   const deepLinkHandledRef = useRef(false);
@@ -360,6 +388,36 @@ export function ConnectionsView() {
                 />
               </motion.div>
             )}
+            {qrCodeDialog.status === 'pending' && qrCodeDialog.pairingCode && (
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="mx-auto flex h-64 w-64 flex-col items-center justify-center gap-3 rounded-xl bg-muted p-4 text-center"
+                data-testid="pairing-code-container"
+              >
+                <KeyRound className="h-8 w-8 text-primary" />
+                <p className="text-sm font-medium">Digite este código no WhatsApp:</p>
+                <div
+                  className="w-full rounded-lg bg-background px-3 py-4 font-mono text-xl font-bold tracking-[0.25em] text-foreground"
+                  data-testid="pairing-code-value"
+                >
+                  {formatPairingCode(qrCodeDialog.pairingCode)}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  WhatsApp → Aparelhos conectados → Conectar aparelho → Conectar com número de
+                  telefone
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyPairingCode}
+                  className="gap-1"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  Copiar código
+                </Button>
+              </motion.div>
+            )}
             {qrCodeDialog.status === 'connected' && (
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
@@ -380,7 +438,7 @@ export function ConnectionsView() {
                 <p className="text-center text-sm text-destructive">{qrCodeDialog.errorMessage}</p>
               </motion.div>
             )}
-            {qrCodeDialog.status === 'pending' && (
+            {qrCodeDialog.status === 'pending' && !qrCodeDialog.pairingCode && (
               <>
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <p>
@@ -424,12 +482,38 @@ export function ConnectionsView() {
             {(qrCodeDialog.status === 'pending' ||
               qrCodeDialog.status === 'error' ||
               qrCodeDialog.status === 'loading') && (
-              <RefreshQrButton
-                onRefresh={handleRefreshQrCode}
-                loading={evolutionLoading || qrCodeDialog.status === 'loading'}
-                status={qrCodeDialog.status}
-                label={qrCodeDialog.status === 'pending' ? 'Gerar novo QR' : 'Gerar novo código'}
-              />
+              <div className="flex flex-col items-center justify-center gap-2">
+                {qrCodeDialog.pairingCode ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleBackToQr}
+                    className="gap-1"
+                    data-testid="pairing-back-to-qr"
+                  >
+                    <QrCode className="h-3.5 w-3.5" />
+                    Usar QR Code
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePairingCodeClick}
+                    disabled={evolutionLoading || qrCodeDialog.status === 'loading'}
+                    className="gap-1"
+                    data-testid="pairing-code-toggle"
+                  >
+                    <KeyRound className="h-3.5 w-3.5" />
+                    Usar código de emparelhamento
+                  </Button>
+                )}
+                <RefreshQrButton
+                  onRefresh={handleRefreshQrCode}
+                  loading={evolutionLoading || qrCodeDialog.status === 'loading'}
+                  status={qrCodeDialog.status}
+                  label={qrCodeDialog.status === 'pending' ? 'Gerar novo QR' : 'Gerar novo código'}
+                />
+              </div>
             )}
             {qrCodeDialog.status === 'connected' && <Button onClick={closeQrDialog}>Fechar</Button>}
 

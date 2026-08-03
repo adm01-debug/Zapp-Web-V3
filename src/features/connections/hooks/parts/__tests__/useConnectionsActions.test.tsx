@@ -55,6 +55,7 @@ const {
   toastSpy,
   invalidateQueriesSpy,
   generateInstanceNameMock,
+  createInstanceMock,
   evolutionInstanceNameMock,
   singleSpy,
   fromSpy,
@@ -62,6 +63,7 @@ const {
   toastSpy: vi.fn(),
   invalidateQueriesSpy: vi.fn(),
   generateInstanceNameMock: vi.fn((name: string) => `gen_${name}`),
+  createInstanceMock: vi.fn(),
   evolutionInstanceNameMock: vi.fn(),
   singleSpy: vi.fn(),
   fromSpy: vi.fn(),
@@ -88,7 +90,10 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 vi.mock('../../../services/whatsappConnectionService', () => ({
-  whatsappConnectionService: { generateInstanceName: generateInstanceNameMock },
+  whatsappConnectionService: {
+    generateInstanceName: generateInstanceNameMock,
+    createInstance: createInstanceMock,
+  },
 }));
 
 vi.mock('@/lib/evolutionInstance', () => ({
@@ -122,7 +127,6 @@ vi.mock('@/integrations/supabase/safeClient', () => ({
 }));
 
 import { useConnectionsActions } from '../useConnectionsActions';
-import { whatsappConnectionService } from '../../../services/whatsappConnectionService';
 
 // ── harness ───────────────────────────────────────────────────────────────────
 function makeConnection(over: Partial<WhatsAppConnection> = {}): WhatsAppConnection {
@@ -195,6 +199,15 @@ beforeEach(() => {
   vi.clearAllMocks();
   recorded = [];
   generateInstanceNameMock.mockImplementation((name: string) => `gen_${name}`);
+  createInstanceMock.mockImplementation((instanceName: string) =>
+    Promise.resolve({
+      instance: {
+        instanceName,
+        instanceId: '22222222-2222-4222-8222-222222222222',
+        status: 'created',
+      },
+    })
+  );
   evolutionInstanceNameMock.mockReturnValue('suporte_123456');
   singleSpy.mockImplementation((_t: string, qb: (b: unknown) => unknown) => {
     runQueryBuilder(qb);
@@ -277,15 +290,97 @@ describe('useConnectionsActions — handleAddConnection', () => {
     expect(insert.is_default).toBe(false);
   });
 
-  it('usa generateInstanceName no fluxo evolution', async () => {
+  it('F6-02: chama createInstance na Evolution ANTES do INSERT no fluxo evolution', async () => {
     const { result } = setup();
     await act(async () => {
       await result.current.handleAddConnection();
     });
-    expect(whatsappConnectionService.generateInstanceName).toHaveBeenCalledWith('Vendas');
+    // Nome "Vendas" é um instance name válido — a instância é criada com o
+    // próprio nome de exibição (mesmo nome que o roteamento resolve).
+    expect(createInstanceMock).toHaveBeenCalledTimes(1);
+    expect(createInstanceMock).toHaveBeenCalledWith('Vendas');
+    const insertCallIndex = recorded.findIndex((r) => r.op === 'insert');
+    expect(insertCallIndex).toBeGreaterThanOrEqual(0);
+    // createInstance é resolvido (await) antes do builder do INSERT rodar.
+    expect(createInstanceMock.mock.invocationCallOrder[0]).toBeLessThan(
+      singleSpy.mock.invocationCallOrder[0]
+    );
+  });
+
+  it('F6-02: grava instanceName/instanceId retornados pela Evolution no INSERT', async () => {
+    const { result } = setup();
+    await act(async () => {
+      await result.current.handleAddConnection();
+    });
     const insert = findRecorded('insert')?.arg as Record<string, unknown>;
-    expect(insert.instance_name).toBe('gen_Vendas');
-    expect(insert.instance_id).toBe('gen_Vendas');
+    expect(insert.instance_name).toBe('Vendas');
+    expect(insert.instance_id).toBe('22222222-2222-4222-8222-222222222222');
+  });
+
+  it('F6-02 rollback: falha do createInstance NÃO insere no banco e mostra erro', async () => {
+    createInstanceMock.mockRejectedValue(new Error('Evolution API 500'));
+    const { result, h } = setup();
+    await act(async () => {
+      await result.current.handleAddConnection();
+    });
+    expect(recorded.some((r) => r.op === 'insert')).toBe(false);
+    expect(h.setConnections).not.toHaveBeenCalled();
+    expect(h.setIsAddDialogOpen).not.toHaveBeenCalled();
+    expect(toastSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Erro ao criar conexão', variant: 'destructive' })
+    );
+    expect(h.setIsCreating).toHaveBeenLastCalledWith(false);
+  });
+
+  it('NÃO chama createInstance no fluxo official', async () => {
+    const { result } = setup({
+      newConnection: { name: 'Meta', phone_number: '5511988887777', api_type: 'official' },
+    });
+    await act(async () => {
+      await result.current.handleAddConnection();
+    });
+    expect(createInstanceMock).not.toHaveBeenCalled();
+  });
+
+  it('usa slug (generateInstanceName) quando o nome não é um instance name válido', async () => {
+    const { result } = setup({
+      newConnection: { name: 'Vendas SAC', phone_number: '5511988887777', api_type: 'evolution' },
+    });
+    await act(async () => {
+      await result.current.handleAddConnection();
+    });
+    expect(generateInstanceNameMock).toHaveBeenCalledWith('Vendas SAC');
+    expect(createInstanceMock).toHaveBeenCalledWith('gen_Vendas SAC');
+    const insert = findRecorded('insert')?.arg as Record<string, unknown>;
+    expect(insert.instance_name).toBe('gen_Vendas SAC');
+  });
+
+  it('F6-15: força api_type official quando o nome sugere Cloud API/Oficial', async () => {
+    const { result } = setup({
+      newConnection: {
+        name: 'WPP Marketing (Cloud API Oficial)',
+        phone_number: '5511988887777',
+        api_type: 'evolution',
+      },
+    });
+    await act(async () => {
+      await result.current.handleAddConnection();
+    });
+    const insert = findRecorded('insert')?.arg as Record<string, unknown>;
+    expect(insert.api_type).toBe('official');
+    // Fluxo official: sem instância Evolution e sem QR.
+    expect(createInstanceMock).not.toHaveBeenCalled();
+    expect(result.current.handleAddConnection).toBeDefined();
+  });
+
+  it('mantém api_type evolution para nomes comuns (sem forçar official)', async () => {
+    const { result } = setup();
+    await act(async () => {
+      await result.current.handleAddConnection();
+    });
+    const insert = findRecorded('insert')?.arg as Record<string, unknown>;
+    expect(insert.api_type).toBe('evolution');
+    expect(createInstanceMock).toHaveBeenCalledTimes(1);
   });
 
   it('usa prefixo official_ no fluxo official, sem chamar generateInstanceName', async () => {
@@ -295,7 +390,7 @@ describe('useConnectionsActions — handleAddConnection', () => {
     await act(async () => {
       await result.current.handleAddConnection();
     });
-    expect(whatsappConnectionService.generateInstanceName).not.toHaveBeenCalled();
+    expect(generateInstanceNameMock).not.toHaveBeenCalled();
     const insert = findRecorded('insert')?.arg as Record<string, unknown>;
     expect(String(insert.instance_name)).toMatch(/^official_/);
   });

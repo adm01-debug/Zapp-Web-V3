@@ -34,11 +34,21 @@ export async function sendMessageToContact(
   mediaPayload?: string,
   opts: { optimisticId?: string; conversationId?: string } = {}
 ): Promise<SendMessageResult> {
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('user_id', (await supabase.auth.getUser()).data.user?.id ?? '')
-    .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
+  // F4-15: agrupa round-trips — profile + contacts são independentes e são
+  // buscados em PARALELO (antes: 2 awaits sequenciais no caminho feliz; o
+  // lookup de contato ficava depois do insert e do audit). Semântica
+  // preservada: `profile?.id` e `contact?.phone` seguem iguais.
+  const [{ data: profile }, { data: contact }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id ?? '')
+      .maybeSingle(), // ✅ fix: maybeSingle evita PGRST116;
+    dbFrom('contacts')
+      .select('phone, whatsapp_connection_id')
+      .eq('id', contactId)
+      .maybeSingle(), // ✅ fix: maybeSingle evita PGRST116;
+  ]);
 
   const { data, error } = await dbFrom('messages')
     .insert({
@@ -67,21 +77,23 @@ export async function sendMessageToContact(
 
   try {
     if (opts.conversationId) {
-      await safeClient.from('audit_logs', (q) =>
-        q.insert({
-          entity_type: 'conversation',
-          entity_id: opts.conversationId,
-          action: 'send_attempt',
-          details: { status: 'starting', messageType, hasMedia: !!(mediaUrl || mediaPayload) },
-        })
-      );
+      // F4-15: audit de send_attempt é telemetria não-crítica — dispara em
+      // fire-and-forget com catch (padrão F4-17) e NÃO bloqueia o caminho de
+      // envio (antes era um await sequencial no caminho feliz).
+      safeClient
+        .from('audit_logs', (q) =>
+          q.insert({
+            entity_type: 'conversation',
+            entity_id: opts.conversationId,
+            action: 'send_attempt',
+            details: { status: 'starting', messageType, hasMedia: !!(mediaUrl || mediaPayload) },
+          })
+        )
+        .then(() => null)
+        .catch((e: unknown) => log.warn('Failed to write send_attempt audit log', e));
     }
 
-    const { data: contact } = await dbFrom('contacts')
-      .select('phone, whatsapp_connection_id')
-      .eq('id', contactId)
-      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
-
+    // F4-15: `contact` já veio do Promise.all inicial (paralelo com profiles).
     const { resolvedConnectionId, connection } = await resolveConnection(
       contact?.whatsapp_connection_id ?? null
     );
@@ -274,28 +286,35 @@ export async function sendMessageToContact(
     // F4-19: extractEvolutionMessageId pode retornar null se a Evolution API
     // responder 200 sem key.id. Marca como sent_unverified e agenda reconciliação.
     const effectiveStatus = externalId ? 'sent' : 'sent_unverified';
-    await dbFrom('messages')
-      .update({
-        status: effectiveStatus,
-        external_id: externalId ?? null,
-        whatsapp_connection_id: resolvedConnectionId,
-        retry_attempt: null,
-        retry_total: null,
-      })
-      .eq('id', data.id);
+    // F4-15: finalize (update de status) + audit 'delivered' são
+    // independentes — rodam em PARALELO (antes: 2 awaits sequenciais).
+    // O audit tolera falha (telemetria não-crítica, padrão F4-17).
+    await Promise.all([
+      dbFrom('messages')
+        .update({
+          status: effectiveStatus,
+          external_id: externalId ?? null,
+          whatsapp_connection_id: resolvedConnectionId,
+          retry_attempt: null,
+          retry_total: null,
+        })
+        .eq('id', data.id),
+      opts.conversationId
+        ? safeClient
+            .from('audit_logs', (q) =>
+              q.insert({
+                entity_type: 'conversation',
+                entity_id: opts.conversationId,
+                action: 'delivered',
+                details: { status: 'success', externalId },
+              })
+            )
+            .then(() => null)
+            .catch((e: unknown) => log.warn('Failed to write delivered audit log', e))
+        : Promise.resolve(null),
+    ]);
     const finalSid = opts.optimisticId || data.id;
     emitSendStatus(finalSid, { status: 'sent' }, { contactId, source: 'messageSender' });
-
-    if (opts.conversationId) {
-      await safeClient.from('audit_logs', (q) =>
-        q.insert({
-          entity_type: 'conversation',
-          entity_id: opts.conversationId,
-          action: 'delivered',
-          details: { status: 'success', externalId },
-        })
-      );
-    }
   } catch (evolutionError) {
     log.error('Error sending via Evolution API:', evolutionError);
     const auth = classifyAuthError(evolutionError);

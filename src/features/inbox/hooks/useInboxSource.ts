@@ -21,6 +21,15 @@ export function useInboxSource(useExternalDb: boolean, selectedContactId: string
       }
     : localRealtime.refetch;
 
+  // F4-01: paginação por cursor (path local) — exposto para o scroll
+  // infinito da sidebar. O path externo (FATOR X) já pagina via
+  // SIDEBAR_LIMIT/fetchRecentMessagesWindow e não usa estes callbacks.
+  const loadMoreConversations = useExternalDb ? undefined : localRealtime.loadMoreConversations;
+  const hasMoreConversations = useExternalDb ? false : localRealtime.hasMoreConversations;
+  const loadingMoreConversations = useExternalDb
+    ? false
+    : localRealtime.loadingMoreConversations;
+
   // Search and Filter controls (always from localRealtime for UI consistency)
   const { search, setSearch, statusFilter, setStatusFilter, sortBy, setSortBy } = localRealtime;
 
@@ -95,5 +104,9 @@ export function useInboxSource(useExternalDb: boolean, selectedContactId: string
     selectedConversationInstance,
     // Original realtime hooks for notifications etc
     localRealtime,
+    // F4-01: paginação por cursor (path local) — load-more para scroll infinito.
+    loadMoreConversations,
+    hasMoreConversations,
+    loadingMoreConversations,
   };
 }

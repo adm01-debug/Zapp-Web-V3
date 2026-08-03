@@ -28,6 +28,8 @@ export interface PipelineReadiness {
   index_count: number; trigger_count: number;
   cron_jobs: number; aux_tables_count: number;
   overall: string;
+  /** Optional boolean convenience flag returned by the RPC; consumed by AdminEvoApiHealthPage. */
+  healthy?: boolean;
 }
 
 /** Dashboard Response. */
@@ -98,4 +100,6 @@ export interface TestSuiteResult {
   failed: number;
   pass_rate_pct: number;
   overall: string;
+  /** Optional boolean convenience flag returned by the RPC; consumed by AdminEvoApiHealthPage. */
+  healthy?: boolean;
 }

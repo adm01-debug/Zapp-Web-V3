@@ -79,6 +79,7 @@ function makeDialog(over: Partial<QrCodeDialogState> = {}): QrCodeDialogState {
     qrCode: null,
     status: 'loading',
     expiresAt: null,
+    pairingCode: null,
     attemptId: null,
     ttlSeconds: null,
     ttlSource: null,

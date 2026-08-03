@@ -890,6 +890,11 @@ export function useRealtimeMessages() {
     sendMessage,
     markAsRead,
     refetch: fetchConversations,
+    // F4-01: paginação por cursor — load-more sob demanda para scroll
+    // infinito da sidebar (páginas de CONTACTS_PAGE_SIZE/MESSAGES_PAGE_SIZE).
+    hasMoreConversations,
+    loadingMoreConversations,
+    loadMoreConversations,
     newMessageNotification,
     dismissNotification,
     setSelectedContact,

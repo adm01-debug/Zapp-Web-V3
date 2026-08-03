@@ -84,5 +84,84 @@ export const whatsappConnectionService = {
       log.error(`Critical failure requesting QR for ${instanceId}:`, err);
       throw err;
     }
+  },
+
+  /**
+   * F6-02: cria a instância na Evolution API (`POST /instance/create`) ANTES do
+   * INSERT em `whatsapp_connections`. O retorno carrega o nome canônico e o UUID
+   * interno (`data.instance.{instanceName,instanceId}`) que devem ser gravados no
+   * banco. Falha aqui NÃO deve criar registro fantasma.
+   */
+  async createInstance(
+    instanceName: string,
+    options?: { integration?: 'WHATSAPP-BAILEYS' | 'WHATSAPP-BUSINESS-CLOUD'; qrcode?: boolean }
+  ) {
+    if (!instanceName) throw new Error('Nome da instância é obrigatório');
+
+    try {
+      log.info(`Creating instance ${instanceName} on Evolution API`);
+      const { data, error } = await whatsappConnectionRepository.callEvolutionApi({
+        action: 'create-instance',
+        instanceName,
+        integration: options?.integration ?? 'WHATSAPP-BAILEYS',
+        qrcode: options?.qrcode ?? true,
+      });
+
+      if (error) {
+        log.error(`API error creating instance ${instanceName}:`, error);
+        throw new Error(error.message || 'Erro ao criar instância na API Evolution');
+      }
+
+      if (data?.error === true) {
+        log.error(`Evolution API returned error creating ${instanceName}:`, data);
+        throw new Error(
+          data.message || 'A API do Evolution retornou um erro ao criar a instância'
+        );
+      }
+
+      log.info(`Instance ${instanceName} created successfully`);
+      return data;
+    } catch (err) {
+      log.error(`Critical failure creating instance ${instanceName}:`, err);
+      throw err;
+    }
+  },
+
+  /**
+   * F6-01: gera o pairing code (`GET /instance/connect/<instance>?number=<phone>`)
+   * como alternativa ao QR Code. Retorna o payload cru — o código fica em
+   * `code`/`pairingCode` e deve ser exibido no formato `XXXX-XXXX`.
+   */
+  async requestPairingCode(instanceName: string, number: string) {
+    if (!instanceName) throw new Error('Nome da instância é obrigatório');
+    if (!number) throw new Error('Número do WhatsApp é obrigatório');
+
+    try {
+      log.info(`Requesting pairing code for instance ${instanceName}`);
+      const { data, error } = await whatsappConnectionRepository.callEvolutionApi({
+        action: 'pairing-code',
+        instanceName,
+        number,
+      });
+
+      if (error) {
+        log.error(`API error requesting pairing code for ${instanceName}:`, error);
+        throw new Error(error.message || 'Erro ao gerar código de emparelhamento na API');
+      }
+
+      if (data?.error === true) {
+        log.error(`Evolution API returned error requesting pairing code for ${instanceName}:`, data);
+        throw new Error(
+          data.message ||
+            'A API do Evolution retornou um erro ao gerar o código de emparelhamento'
+        );
+      }
+
+      log.info(`Pairing code successfully received for ${instanceName}`);
+      return data;
+    } catch (err) {
+      log.error(`Critical failure requesting pairing code for ${instanceName}:`, err);
+      throw err;
+    }
   }
 };

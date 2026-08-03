@@ -6,6 +6,7 @@ import { QueueMembersDialog } from './queues/QueueMembersDialog';
 
 // F7-26: ações não implementadas usam no-op silencioso (console.debug em DEV)
 const NOOP = () => {
+  // eslint-disable-next-line no-console -- debug intencional, DEV-only
   if (import.meta.env.DEV) console.debug('[AdminQueues] ação não implementada');
 };
 
