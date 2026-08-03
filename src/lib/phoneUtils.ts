@@ -98,6 +98,11 @@ export function validatePhone(phone: unknown): PhoneValidationDetailed {
   const isInternational = startsWithPlus ? !raw.startsWith('+55') : (digitsOnly.length > 11 && !digitsOnly.startsWith('55'));
 
   if (isInternational) {
+    // Cubic P2: reject international numbers that are clearly too short (e.g. '+1' alone).
+    // ITU-T E.164 minimum is 3 digits; we require ≥7 to catch any real-world number.
+    if (digitsOnly.length < 7) {
+      return { valid: false, error: 'Número internacional muito curto (mínimo 7 dígitos).' };
+    }
     return {
       valid: true,
       normalized: startsWithPlus ? raw.replace(/[^\d+]/g, '') : digitsOnly,

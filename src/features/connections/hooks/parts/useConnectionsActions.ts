@@ -161,15 +161,16 @@ export function useConnectionsActions(
             // continue cleaning up the DB row); any other failure means the instance is
             // still live in Evolution and we must NOT delete the DB row, or we leave an
             // orphan that keeps receiving webhooks with no handler.
+            //
+            // Cubic P1: a routing/function-not-found 404 is indistinguishable from an
+            // instance-not-found 404 by status code alone — verify the error message
+            // mentions the specific instance name before treating it as safe-to-continue.
             const status = (evoError as { apiStatus?: number }).apiStatus;
-            if (status !== 404) {
-              const msg = evoError instanceof Error ? evoError.message : String(evoError);
+            const errMsg = evoError instanceof Error ? evoError.message : String(evoError);
+            const isInstanceGone = status === 404 && errMsg.includes(evoName);
+            if (!isInstanceGone) {
               log.error('Evolution API delete failed — aborting DB cleanup:', evoError);
-              toast({
-                title: 'Erro ao excluir instância no Evolution',
-                description: msg,
-                variant: 'destructive',
-              });
+              // deleteInstance already shows its own error toast before rethrowing; no second toast here.
               return;
             }
             log.info('Evolution instance already absent (404) — continuing DB cleanup:', evoName);

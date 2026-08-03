@@ -491,13 +491,21 @@ BEGIN
   GET DIAGNOSTICS v_dup_count = ROW_COUNT;
   RAISE NOTICE 'M49 STEP 7: % duplicate instance_credentials rows backed up', v_dup_count;
 
-  -- Remove duplicates: keep the row with the smallest id
+  -- Remove duplicates: keep the row with highest business priority
+  -- (active > has credentials > healthy status > most recently updated)
   EXECUTE '
     DELETE FROM evo.evolution_instance_credentials
      WHERE id IN (
        SELECT id FROM (
          SELECT id,
-                ROW_NUMBER() OVER (PARTITION BY instance_name ORDER BY id) AS rn
+                ROW_NUMBER() OVER (
+                  PARTITION BY instance_name
+                  ORDER BY
+                    CASE WHEN is_active THEN 0 ELSE 1 END,
+                    CASE WHEN api_key IS NOT NULL AND api_key != '''' THEN 0 ELSE 1 END,
+                    CASE health_status WHEN ''healthy'' THEN 0 WHEN ''degraded'' THEN 1 ELSE 2 END,
+                    updated_at DESC NULLS LAST
+                ) AS rn
            FROM evo.evolution_instance_credentials
           WHERE instance_name IS NOT NULL
        ) ranked
@@ -705,8 +713,10 @@ BEGIN
         NOT VALID
     ';
     RAISE NOTICE 'M49 STEP 9: CHECK constraint ck_reconcile_applied_after_dispatched added NOT VALID ✓';
-  EXCEPTION WHEN duplicate_object OR others THEN
-    RAISE NOTICE 'M49 STEP 9: CHECK constraint already exists or add error: %', SQLERRM;
+  EXCEPTION WHEN duplicate_object THEN
+    RAISE NOTICE 'M49 STEP 9: CHECK constraint ck_reconcile_applied_after_dispatched already exists ✓';
+  WHEN others THEN
+    RAISE;
   END;
 
   -- e) Validate (fail-safe: log notice on failure, do not abort migration)
