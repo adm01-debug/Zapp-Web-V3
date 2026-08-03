@@ -258,7 +258,7 @@ jobs:
         run: bun install
 
       - name: Build for production
-        run: bunx vite build
+        run: bun run build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
