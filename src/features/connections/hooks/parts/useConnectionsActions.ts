@@ -39,9 +39,12 @@ export function useConnectionsActions(
       return;
     }
 
-    // F6-15: auto-correct api_type when name signals Meta Cloud API
+    // F6-15: auto-correct api_type when name signals Meta Cloud API.
+    // "não oficial" / "nao oficial" must NOT trigger the correction.
     const nameSignalsCloudApi =
-      /cloud api|oficial/i.test(newConnection.name);
+      /cloud api/i.test(newConnection.name) ||
+      (/\boficial\b/i.test(newConnection.name) &&
+        !/\b(?:não|nao)[-\s]+oficial\b/i.test(newConnection.name));
     const correctedApiType: WhatsAppApiType =
       nameSignalsCloudApi && newConnection.api_type !== 'official'
         ? 'official'
