@@ -99,7 +99,7 @@ export function buildCSPHeader(options: {
       "'self'",
       "'unsafe-inline'", // TailwindCSS uses inline styles
     ],
-    'img-src': ["'self'", 'data:', 'blob:', 'https://supabase.atomicabr.com.br', 'https://allrjhkpuscmgbsnmjlv.supabase.co', 'https://zapp-media-proxy.adm01.workers.dev'],
+    'img-src': ["'self'", 'data:', 'blob:', 'https://supabase.atomicabr.com.br', 'https://zapp-media-proxy.adm01.workers.dev'],
     'font-src': ["'self'"],
     'connect-src': [
       "'self'",

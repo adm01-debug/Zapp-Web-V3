@@ -458,3 +458,333 @@ describe('checkVersion (via startBuildVersionWatcher + fake timers)', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1); // sem novo kickoff após cleanup
   });
 });
+
+// ── Simulações exaustivas (stress / race / cenário real / boot delay / limpeza) ──
+
+describe('STRESS: cota GLOBAL sob 100 reloads em loop rápido (fake timers)', () => {
+  it('100 forceBundleRefresh seguidos — 5 primeiros recarregam, 95 aborts com global-quota', async () => {
+    // Targets diferentes a cada chamada → cota por-alvo nunca bloqueia; só a
+    // cota GLOBAL (5/15min) pode parar o loop.
+    for (let i = 0; i < 100; i++) {
+      await forceBundleRefresh('mismatch', `build-${i}`);
+    }
+
+    // Exatamente 5 reloads permitidos...
+    expect(replaceSpy).toHaveBeenCalledTimes(5);
+
+    // ...e 95 aborts, TODOS com reason 'global-quota'.
+    expect(dispatchSpy).toHaveBeenCalledTimes(95);
+    const reasons = dispatchSpy.mock.calls.map(
+      (call) => (call[0] as CustomEvent<{ reason: string }>).detail.reason,
+    );
+    expect(reasons.every((reason) => reason === 'global-quota')).toBe(true);
+
+    // Contador global congelado em 5 — aborts NÃO incrementam.
+    expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('5');
+    expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_FIRST_AT_KEY)).not.toBeNull();
+
+    // Aborts não purgam caches/SW (purge é pós-guarda).
+    expect(cachesMock.keys).toHaveBeenCalledTimes(5);
+    expect(getRegistrationsMock).toHaveBeenCalledTimes(5);
+
+    // Estado por-alvo permanece no ÚLTIMO alvo permitido (build-4).
+    expect(__TEST__.readReloadState()).toEqual(
+      expect.objectContaining({ targetBuildId: 'build-4', attempts: 1 }),
+    );
+  });
+
+  it('stress com alvo ÚNICO: per-target (2) e global (5) atuam em conjunto', async () => {
+    for (let i = 0; i < 100; i++) {
+      await forceBundleRefresh('mismatch', 'buildA');
+    }
+
+    // 1º e 2º: permitidos (per-target 1/2 e 2/2). 3º: per-target-quota.
+    // 4º e 5º: per-target já estourou → abort; nenhum chega a consumir global.
+    expect(replaceSpy).toHaveBeenCalledTimes(2);
+    expect(dispatchSpy).toHaveBeenCalledTimes(98);
+    expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('2');
+    expect(__TEST__.readReloadState()).toEqual(
+      expect.objectContaining({ targetBuildId: 'buildA', attempts: 2 }),
+    );
+  });
+});
+
+describe('RACE: dois checkVersion simultâneos (kickoff + visibilitychange)', () => {
+  // GAP CONHECIDO: buildVersion.ts NÃO tem dedup in-flight — `safeCheckVersion`
+  // pode entrar duas vezes no mesmo tick e as DUAS chamadas passam pela cota
+  // por-alvo (que permite 2 reloads). Este teste documenta o comportamento
+  // DESEJADO (1 reload); o teste seguinte documenta o comportamento REAL
+  // (2 reloads, dentro da cota, sem abort). Usamos mockImplementation com um
+  // Response NOVO por chamada — mockResolvedValue compartilharia o MESMO body,
+  // e o 2º res.json() lançaria "body already consumed" (silenciado pelo catch),
+  // mascarando a race.
+  it('kickoff + visibilitychange no mesmo tick → apenas 1 forceBundleRefresh', async () => {
+    fetchMock.mockImplementation(() =>
+      Promise.resolve(jsonResponse({ buildId: 'buildB' })),
+    );
+
+    const { stop } = startWatcherAndStop();
+    try {
+      // t=30s: o timer de kickoff dispara checkVersion#1; no MESMO tick o
+      // visibilitychange dispara checkVersion#2 — race de verdade.
+      await vi.advanceTimersByTimeAsync(30_000);
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(fetchMock).toHaveBeenCalledTimes(2); // dois checks rodaram
+      expect(replaceSpy).toHaveBeenCalledTimes(1); // mas só 1 reload
+      expect(dispatchSpy).not.toHaveBeenCalled(); // e nenhum abort
+    } finally {
+      stop();
+      vi.clearAllTimers();
+    }
+  });
+
+  it('comportamento REAL: 2 checks simultâneos ficam DENTRO da cota (2 reloads, sem abort)', async () => {
+    fetchMock.mockImplementation(() =>
+      Promise.resolve(jsonResponse({ buildId: 'buildB' })),
+    );
+
+    const { stop } = startWatcherAndStop();
+    try {
+      await vi.advanceTimersByTimeAsync(30_000);
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(0);
+
+      // Ambos passam pela cota por-alvo (max 2) → 2 reloads, 0 aborts.
+      expect(replaceSpy).toHaveBeenCalledTimes(2);
+      expect(dispatchSpy).not.toHaveBeenCalled();
+      expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('2');
+      expect(__TEST__.readReloadState()).toEqual(
+        expect.objectContaining({ targetBuildId: 'buildB', attempts: 2 }),
+      );
+
+      // Um 3º check (poll de 5min) já encontra a cota por-alvo esgotada → abort,
+      // provando que a race não vira loop infinito.
+      await vi.advanceTimersByTimeAsync(5 * 60_000);
+      expect(replaceSpy).toHaveBeenCalledTimes(2);
+      const event = dispatchSpy.mock.calls[0]?.[0] as
+        | CustomEvent<{ reason: string }>
+        | undefined;
+      expect(event?.type).toBe('zapp-update-required');
+      expect(event?.detail?.reason).toBe('per-target-quota');
+    } finally {
+      stop();
+      vi.clearAllTimers();
+    }
+  });
+});
+
+describe('CENÁRIO REAL: 4 deploys em 23 minutos (padrão do log de produção)', () => {
+  it('rajada de deploys com checks extras (focus/visibility) → cota global corta o loop', async () => {
+    // Deploys: buildA em t=0, buildB em t=6min, buildC em t=12min, buildD em t=20min.
+    // O watcher checa em: kickoff 30s, polls 5/10/15/20min + focus/visibilitychange
+    // disparados pelo usuário — o mesmo padrão que causou a cascata em produção.
+    let liveBuildId = 'buildA';
+    fetchMock.mockImplementation(() =>
+      Promise.resolve(jsonResponse({ buildId: liveBuildId })),
+    );
+
+    const { stop } = startWatcherAndStop();
+    try {
+      // Filtra APENAS os eventos reais de abort — os window.dispatchEvent
+      // manuais deste teste (evento 'focus') também passam pelo spy.
+      const updateRequired = () =>
+        dispatchSpy.mock.calls.filter(
+          (call) => (call[0] as Event).type === 'zapp-update-required',
+        );
+
+      // ── Deploy 1 (buildA) ── kickoff em 30s → reload #1 (global 1/5)
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(replaceSpy).toHaveBeenCalledTimes(1);
+      expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('1');
+
+      // Poll de 5min ainda vê buildA → reload #2 (per-target A 2/2, global 2/5)
+      await vi.advanceTimersByTimeAsync(4.5 * 60_000);
+      expect(replaceSpy).toHaveBeenCalledTimes(2);
+
+      // ── Deploy 2 (buildB, t=6min) ── focus do usuário em 6.2min → reload #3
+      liveBuildId = 'buildB';
+      await vi.advanceTimersByTimeAsync(1.2 * 60_000);
+      window.dispatchEvent(new Event('focus'));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(replaceSpy).toHaveBeenCalledTimes(3);
+
+      // Poll de 10min vê buildB → reload #4 (B 2/2, global 4/5)
+      await vi.advanceTimersByTimeAsync(3.8 * 60_000);
+      expect(replaceSpy).toHaveBeenCalledTimes(4);
+
+      // ── Deploy 3 (buildC, t=12min) ── visibilitychange em 12.1min → reload #5
+      // (global chega a 5/5 — último reload permitido na janela de 15min)
+      liveBuildId = 'buildC';
+      await vi.advanceTimersByTimeAsync(2.1 * 60_000);
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(replaceSpy).toHaveBeenCalledTimes(5);
+
+      // Focus em 12.1min → checkVersion vê buildC → cota global esgotada → ABORT
+      window.dispatchEvent(new Event('focus'));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(replaceSpy).toHaveBeenCalledTimes(5); // loop PREVENIDO
+      expect(updateRequired()).toHaveLength(1);
+
+      // Poll de 15min ainda vê buildC → ABORT de novo (2º global-quota)
+      await vi.advanceTimersByTimeAsync(2 * 60_000);
+      expect(replaceSpy).toHaveBeenCalledTimes(5);
+      expect(updateRequired()).toHaveLength(2);
+      expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('5');
+
+      // ── Deploy 4 (buildD, t=20min) ── poll de 20min: janela global expirada
+      // (19.5min > 15min) → contador zera → reload #6 permitido
+      liveBuildId = 'buildD';
+      await vi.advanceTimersByTimeAsync(5 * 60_000);
+      expect(replaceSpy).toHaveBeenCalledTimes(6);
+      expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('1');
+
+      // Fim da simulação em t=23min (próximo poll só em 25min).
+      await vi.advanceTimersByTimeAsync(3 * 60_000);
+      expect(replaceSpy).toHaveBeenCalledTimes(6);
+
+      // Resultado: 8 checks de versão → apenas 6 reloads (2 aborts global-quota).
+      // Sem a cota global seriam 8 reloads — a cascata auth/429 é evitada.
+      const reasons = updateRequired().map(
+        (call) => (call[0] as CustomEvent<{ reason: string }>).detail.reason,
+      );
+      expect(reasons).toEqual(['global-quota', 'global-quota']);
+      expect(__TEST__.readReloadState()).toEqual(
+        expect.objectContaining({ targetBuildId: 'buildD', attempts: 1 }),
+      );
+    } finally {
+      stop();
+      vi.clearAllTimers();
+    }
+  });
+});
+
+describe('MIN_BOOT_DELAY_MS (30s) — guarda de boot', () => {
+  it('visibilitychange/focus antes de 30s NÃO disparam checkVersion; após 30s disparam', async () => {
+    // Response NOVO por chamada (mockResolvedValue compartilharia o body e o
+    // 2º res.json() lançaria "body already consumed", mascarando os checks).
+    fetchMock.mockImplementation(() =>
+      Promise.resolve(jsonResponse({ buildId: __TEST__.CURRENT_BUILD_ID })),
+    );
+
+    const { stop } = startWatcherAndStop();
+    try {
+      // t=0: foco/visibilidade imediatos → bloqueados pelo boot delay.
+      window.dispatchEvent(new Event('focus'));
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      // t=29.999s: ainda dentro da janela de 30s → nada.
+      await vi.advanceTimersByTimeAsync(29_999);
+      window.dispatchEvent(new Event('focus'));
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      // t=30s: o kickoff (timer) finalmente roda → 1º check.
+      await vi.advanceTimersByTimeAsync(1);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      // Após 30s, focus e visibilitychange passam a disparar checkVersion.
+      window.dispatchEvent(new Event('focus'));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+
+      // Build id bate → nenhum reload.
+      expect(replaceSpy).not.toHaveBeenCalled();
+    } finally {
+      stop();
+      vi.clearAllTimers();
+    }
+  });
+});
+
+describe('Limpeza das chaves GLOBAIS no caminho de versão MATCH', () => {
+  it('version.json com buildId == atual remove GLOBAL_RELOAD_COUNT_KEY e GLOBAL_RELOAD_FIRST_AT_KEY', async () => {
+    // Sessão antiga com todas as flags de guarda setadas (cenário pós-loop).
+    sessionStorage.setItem(
+      __TEST__.RELOAD_STATE_KEY,
+      JSON.stringify({ targetBuildId: 'buildA', attempts: 2, firstAttemptAt: 1 }),
+    );
+    sessionStorage.setItem(__TEST__.SW_PURGE_FLAG, '1');
+    sessionStorage.setItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY, '5');
+    sessionStorage.setItem(__TEST__.GLOBAL_RELOAD_FIRST_AT_KEY, String(Date.now()));
+
+    fetchMock.mockResolvedValue(jsonResponse({ buildId: __TEST__.CURRENT_BUILD_ID }));
+
+    const { stop } = startWatcherAndStop();
+    try {
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBeNull();
+      expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_FIRST_AT_KEY)).toBeNull();
+      expect(sessionStorage.getItem(__TEST__.RELOAD_STATE_KEY)).toBeNull();
+      expect(sessionStorage.getItem(__TEST__.SW_PURGE_FLAG)).toBeNull();
+      expect(replaceSpy).not.toHaveBeenCalled();
+    } finally {
+      stop();
+      vi.clearAllTimers();
+    }
+  });
+
+  it('versão DIFERENTE NÃO limpa as chaves globais — elas persistem para a guarda', async () => {
+    const seededFirstAt = String(Date.now());
+    sessionStorage.setItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY, '4');
+    sessionStorage.setItem(__TEST__.GLOBAL_RELOAD_FIRST_AT_KEY, seededFirstAt);
+
+    fetchMock.mockResolvedValue(jsonResponse({ buildId: 'buildX' }));
+
+    const { stop } = startWatcherAndStop();
+    try {
+      await vi.advanceTimersByTimeAsync(30_000);
+
+      // 4/5 já consumidos → este reload é o 5º (permitido) e incrementa para 5.
+      expect(replaceSpy).toHaveBeenCalledTimes(1);
+      expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('5');
+      // Primeira tentativa da janela NÃO é sobrescrita — firstAt original mantido.
+      expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_FIRST_AT_KEY)).toBe(
+        seededFirstAt,
+      );
+    } finally {
+      stop();
+      vi.clearAllTimers();
+    }
+  });
+});
+
+describe('SEM targetBuildId (workbox purge) — consumo da cota GLOBAL', () => {
+  it('reloads one-shot incrementam o contador global e estouram a cota como qualquer outro', async () => {
+    // 2 purges one-shot (flag SW_PURGE_FLAG limpo manualmente entre eles,
+    // como aconteceria após um version match).
+    await forceBundleRefresh('stale-workbox-cache');
+    expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('1');
+    sessionStorage.removeItem(__TEST__.SW_PURGE_FLAG);
+    await forceBundleRefresh('stale-workbox-cache');
+    expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('2');
+
+    // +3 reloads de mismatch (targets diferentes) → total 5/5.
+    await forceBundleRefresh('mismatch', 'buildA');
+    await forceBundleRefresh('mismatch', 'buildB');
+    await forceBundleRefresh('mismatch', 'buildC');
+    expect(replaceSpy).toHaveBeenCalledTimes(5);
+    expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('5');
+
+    // 6ª tentativa — mesmo que fosse outro one-shot — → global-quota.
+    sessionStorage.removeItem(__TEST__.SW_PURGE_FLAG);
+    await forceBundleRefresh('stale-workbox-cache');
+    expect(replaceSpy).toHaveBeenCalledTimes(5);
+    const event = dispatchSpy.mock.calls[0]?.[0] as
+      | CustomEvent<{ reason: string; remote: string }>
+      | undefined;
+    expect(event?.type).toBe('zapp-update-required');
+    expect(event?.detail?.reason).toBe('global-quota');
+    expect(event?.detail?.remote).toBe('unknown'); // sem target → 'unknown'
+    expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('5');
+  });
+});
