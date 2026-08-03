@@ -9,7 +9,7 @@
  *      (unreadCount > 0 e status != 'resolved').
  *
  * Estratégia hermética:
- *   - Intercepta o edge function `external-db-proxy` e devolve 2 mensagens
+ *   - Intercepta o edge function (obsoleto: substituído por Supabase direto) e devolve 2 mensagens
  *     Evolution sintéticas (uma por remote_jid), ambas com direction='inbound'
  *     e sem `assigned_to`.
  *   - Injeta uma sessão Supabase fake em localStorage para passar o

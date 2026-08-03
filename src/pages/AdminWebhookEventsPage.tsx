@@ -1,7 +1,7 @@
 /**
  * Admin: Auditable log of evolution-webhook events.
  * Filters by event type, instance and date range. Reads from Evolution DB
- * `evolution_webhook_events` via external-db-proxy.
+ * `evolution_webhook_events` via Supabase direto (schema `evo`).
  */
 import {
   Webhook,

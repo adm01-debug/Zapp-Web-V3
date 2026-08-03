@@ -12,7 +12,7 @@
  *
  * O baseline é congelado por causa do mismatch entre o
  * `@supabase/postgrest-js` publicado no Google Artifact Registry privado
- * (usado pelo ambiente Lovable) e a versão pública que o CI do GitHub
+ * (usado pelo ambiente de build original) e a versão pública que o CI do GitHub
  * Actions consegue baixar — não é regressão de código do projeto.
  */
 import { spawnSync } from 'node:child_process';
@@ -25,7 +25,7 @@ const BASELINE_PATH = join(__dirname, 'tsc-error-baseline.json');
 const UPDATE = process.argv.includes('--update');
 
 function runTsc() {
-  // Preferimos tsgo (bundle interno do Lovable) quando disponível;
+  // Preferimos tsgo (bundle interno do ambiente de build original) quando disponível;
   // caímos para tsc padrão em ambientes que não têm.
   const candidates = [
     ['bunx', ['tsgo', '--noEmit', '-p', 'tsconfig.app.json']],

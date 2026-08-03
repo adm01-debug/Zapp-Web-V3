@@ -5,10 +5,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock RPC and direct table calls used by the updated hooks.
 // useExternalEmpresas / useExternalCargos call:
-//   - getExternalSupabase().from('salespeople')  → externalClient mock
-//   - dbRpc(RPC.searchContactsAdvanced, ...)     → datasource/db mock (routes to 'lovable' client)
+//   - supabase.from('salespeople') (client.ts direct pattern)  → client mock
+//   - dbRpc(RPC.searchContactsAdvanced, ...)                   → datasource/db mock
 const mockDbRpc = vi.hoisted(() => vi.fn()); // intercepts dbRpc calls (search_contacts_advanced etc.)
-const mockFrom = vi.hoisted(() => vi.fn()); // tracks getExternalSupabase().from() calls
+const mockFrom = vi.hoisted(() => vi.fn()); // tracks supabase.from() calls
 
 vi.mock('@/integrations/datasource/db', () => ({
   dbRpc: (...a: unknown[]) => {
@@ -18,7 +18,7 @@ vi.mock('@/integrations/datasource/db', () => ({
   },
 }));
 
-vi.mock('@/integrations/supabase/externalClient', () => {
+vi.mock('@/integrations/supabase/client', () => {
   const _mockFrom = (table: string) => {
     (globalThis as unknown as Record<string, (t: string) => void>).__extMockFrom(table);
     return {
@@ -44,11 +44,8 @@ vi.mock('@/integrations/supabase/externalClient', () => {
       })),
     };
   };
-  const client = { from: _mockFrom };
   return {
-    externalSupabase: client,
-    getExternalSupabase: () => client,
-    isExternalConfigured: true,
+    supabase: { from: _mockFrom },
   };
 });
 
@@ -56,7 +53,11 @@ vi.mock('@/integrations/supabase/externalClient', () => {
 (globalThis as Record<string, unknown>).__mockDbRpc = mockDbRpc;
 (globalThis as Record<string, unknown>).__extMockFrom = mockFrom;
 
-vi.mock('@/lib/logger');
+vi.mock('@/lib/logger', () => ({
+  getLogger: () => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() }),
+  createLogger: () => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() }),
+  log: { warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() },
+}));
 
 import { useExternalEmpresas, useExternalCargos } from '@/hooks/useExternalApiManagement';
 

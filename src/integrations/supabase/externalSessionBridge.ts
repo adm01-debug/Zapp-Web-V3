@@ -15,7 +15,6 @@
  * FIX 2026-07-16 (a): return type `void` → `() => void` para permitir capturar
  *   e invocar a função de cleanup da subscription onAuthStateChange.
  */
-import { supabase } from './client';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('externalSessionBridge');

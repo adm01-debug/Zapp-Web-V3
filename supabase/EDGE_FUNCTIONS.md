@@ -29,10 +29,10 @@ npm install -g supabase
 supabase start
 
 # Deploy de uma função
-supabase functions deploy external-db-proxy
+supabase functions deploy <nome-da-funcao>
 
 # Testar localmente
-supabase functions serve external-db-proxy
+supabase functions serve <nome-da-funcao>
 ```
 
 ## Variáveis de ambiente para Edge Functions

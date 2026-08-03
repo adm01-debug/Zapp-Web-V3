@@ -1,8 +1,8 @@
 // ExternalDbProxyClient — acesso direto ao Supabase (schema `zapp`).
 //
 // Pós-consolidação da arquitetura (único backend: Supabase self-hosted
-// atomicabr; edge function external-db-proxy e schema legado `evo_api`
-// eliminados), este cliente fala diretamente com o Supabase client
+// atomicabr; edge function legada e schema `evo_api` eliminados),
+// este cliente fala diretamente com o Supabase client
 // (`@/integrations/supabase/client`, pinado em `db.schema = 'zapp'`) em vez
 // de fazer chamadas HTTP ao edge function.
 //
@@ -61,7 +61,7 @@ const _dynamicClient = supabase as unknown as DynamicSupabaseClient;
 // ignore-audit: dynamic RPC names are not in the generated union
 const _rpcClient = supabase as unknown as DynamicRpcClient;
 
-// Operadores aceitos no dispatch dinâmico (mesma allowlist do external-db-proxy).
+// Operadores aceitos no dispatch dinâmico (allowlist Supabase RLS).
 const FILTER_OPERATORS = new Set([
   'eq',
   'neq',
