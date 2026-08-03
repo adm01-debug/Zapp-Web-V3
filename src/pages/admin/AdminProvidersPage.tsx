@@ -103,7 +103,7 @@ export const AdminProvidersPage = () => {
           <h1 className="text-2xl font-bold">Provedores & Fallback</h1>
           <p className="text-sm text-muted-foreground">
             Configure provedores (Evolution / WPPConnect / Baileys), monitore status e veja logs por
-            sessão. Health-check automático a cada 2 minutos.
+            sessão. Use "Health-check agora" para verificação imediata.
           </p>
         </div>
         <div className="flex gap-2">
