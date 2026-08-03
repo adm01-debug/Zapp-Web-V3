@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260801040003_rls_lote3_time_usuario_sql", "label": "20260801040003_rls_lote3_time_usuario.sql", "file_type": "code", "source_file": "supabase/migrations/20260801040003_rls_lote3_time_usuario.sql", "source_location": null}], "edges": []}

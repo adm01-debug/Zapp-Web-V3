@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_snapshot_03_storage_buckets_sql", "label": "03_storage_buckets.sql", "file_type": "code", "source_file": "supabase/migrations-snapshot/03_storage_buckets.sql", "source_location": null}], "edges": []}

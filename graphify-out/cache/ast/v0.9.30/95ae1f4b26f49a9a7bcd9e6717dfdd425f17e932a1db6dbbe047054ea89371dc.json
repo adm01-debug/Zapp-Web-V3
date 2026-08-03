@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260728130001_revoke_anon_usage_financeiro_artes_sql", "label": "20260728130001_revoke_anon_usage_financeiro_artes.sql", "file_type": "code", "source_file": "supabase/migrations/20260728130001_revoke_anon_usage_financeiro_artes.sql", "source_location": null}], "edges": []}

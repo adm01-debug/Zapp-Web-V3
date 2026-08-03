@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260801140000_rls_gaps_validador_exaustivo_sql", "label": "20260801140000_rls_gaps_validador_exaustivo.sql", "file_type": "code", "source_file": "supabase/migrations/20260801140000_rls_gaps_validador_exaustivo.sql", "source_location": null}], "edges": []}

@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260802202000_etapa11_drop_legacy_webhook_tables_sql", "label": "20260802202000_etapa11_drop_legacy_webhook_tables.sql", "file_type": "code", "source_file": "supabase/migrations/20260802202000_etapa11_drop_legacy_webhook_tables.sql", "source_location": null}], "edges": []}

@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260727200001_idx_evolution_contacts_instance_phone_sql", "label": "20260727200001_idx_evolution_contacts_instance_phone.sql", "file_type": "code", "source_file": "supabase/migrations/20260727200001_idx_evolution_contacts_instance_phone.sql", "source_location": null}], "edges": []}
