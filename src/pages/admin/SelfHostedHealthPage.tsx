@@ -4,7 +4,7 @@
  * Painel de diagnóstico que valida a anon key do Supabase self-hosted,
  * a leitura via cliente Supabase e a conectividade ao MCP self-hosted.
  */
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -44,6 +44,12 @@ export default function SelfHostedHealthPage() {
   const [ranAt, setRanAt] = useState<Date | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
   const runIdRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      runIdRef.current += 1;
+    };
+  }, []);
 
   const run = async () => {
     const myRunId = ++runIdRef.current;
