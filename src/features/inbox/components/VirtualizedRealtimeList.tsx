@@ -1,5 +1,6 @@
-import { useRef, useMemo, memo, useCallback } from 'react';
+import { useRef, useMemo, memo, useCallback, useEffect, useState } from 'react';
 import { useVirtualizer, type VirtualItem } from '@tanstack/react-virtual';
+import { Loader2 } from 'lucide-react';
 
 import { ConversationWithMessages } from '@/features/inbox';
 import { useDensity } from '@/hooks/useDensity';
@@ -26,6 +27,12 @@ interface VirtualizedRealtimeListProps {
   onArchive?: (contactId: string) => void;
   onPin?: (contactId: string) => void;
   pinnedIds?: Set<string>;
+  /** F4-01: scroll infinito — chamado quando o sentinel do fim da lista entra na viewport. */
+  onLoadMore?: () => void;
+  /** F4-01: se ainda existem páginas de conversas para carregar. */
+  hasMore?: boolean;
+  /** F4-01: se um load-more está em andamento. */
+  loadingMore?: boolean;
 }
 
 const ITEM_HEIGHT_NORMAL = 96; // Comfortable mode with breathing room
@@ -125,10 +132,15 @@ export function VirtualizedRealtimeList({
   onArchive: _onArchive,
   onPin: _onPin,
   pinnedIds = EMPTY_SET,
+  onLoadMore,
+  hasMore = false,
+  loadingMore = false,
 }: VirtualizedRealtimeListProps) {
   const { density } = useDensity();
   const isCompact = density === 'compact' || density === 'dense';
   const parentRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [sentinelVisible, setSentinelVisible] = useState(false);
 
   const safeConversations = useMemo(() => {
     const hasReal = Array.isArray(conversations) && conversations.length > 0;
@@ -165,6 +177,31 @@ export function VirtualizedRealtimeList({
     overscan: 5,
   });
 
+  // F4-01: scroll infinito — IntersectionObserver no sentinel do fim da lista.
+  // Quando o sentinel entra na viewport (com folga de 400px) e ainda há
+  // páginas, dispara onLoadMore. O estado sentinelVisible + o guard de
+  // loadingMore evitam disparos repetidos enquanto o fetch está em curso.
+  useEffect(() => {
+    const el = sentinelRef.current;
+    const root = parentRef.current;
+    if (!el || !root || !onLoadMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        setSentinelVisible(entries.some((e) => e.isIntersecting));
+      },
+      { root, rootMargin: '400px 0px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [onLoadMore]);
+
+  useEffect(() => {
+    if (sentinelVisible && hasMore && !loadingMore && onLoadMore) {
+      onLoadMore();
+    }
+  }, [sentinelVisible, hasMore, loadingMore, onLoadMore]);
+
   if (sortedConversations.length === 0) {
     return null;
   }
@@ -198,6 +235,14 @@ export function VirtualizedRealtimeList({
           );
         })}
       </div>
+      {/* F4-01: sentinel do scroll infinito — observado pelo IntersectionObserver acima. */}
+      <div ref={sentinelRef} className="h-px w-full" aria-hidden="true" />
+      {loadingMore && (
+        <div className="flex items-center justify-center gap-2 py-3 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+          Carregando mais conversas…
+        </div>
+      )}
     </div>
   );
 }

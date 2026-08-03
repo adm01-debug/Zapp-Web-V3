@@ -117,6 +117,30 @@ export async function fetchRecentMessagesWindow(
   return fallback.data;
 }
 
+/**
+ * F4-01: busca a próxima página da sidebar (mensagens MAIS ANTIGAS que o
+ * cursor `beforeCreatedAt`) via external-db-proxy. Mesmas colunas slim e
+ * filtro de instância do `fetchRecentMessagesWindow`; sem fallback
+ * multi-instância (o fallback só faz sentido quando a janela inicial vem
+ * vazia — uma página de load-more vazia é o fim legítimo da lista).
+ */
+export async function fetchSidebarMessagesPage(
+  beforeCreatedAt: string,
+  limit = SIDEBAR_LIMIT
+): Promise<EvolutionMessage[]> {
+  const result = await queryExternalProxy<EvolutionMessage>({
+    table: 'evolution_messages',
+    select: SLIM_MESSAGE_COLUMNS,
+    filters: [
+      { column: 'instance_name', operator: 'eq', value: DEFAULT_INSTANCE },
+      { column: 'created_at', operator: 'lt', value: beforeCreatedAt },
+    ],
+    order: { column: 'created_at', ascending: false },
+    limit,
+  });
+  return result.data;
+}
+
 /** fetch Messages By Jid function. */
 export async function fetchMessagesByJid(
   remoteJid: string,

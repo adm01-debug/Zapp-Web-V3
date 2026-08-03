@@ -65,19 +65,26 @@ export function StsCommercialDashboard() {
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.length > 0
-                ? (
+            {stats.length > 0 ? (
+              <>
+                <div className="text-2xl font-bold">
+                  {(
                     100 -
                     stats.reduce((acc, s) => acc + (s.error_rate || 0), 0) / stats.length
-                  ).toFixed(1)
-                : '100'}
-              %
-            </div>
-            <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3 text-success-foreground" />
-              Estável em relação à última hora
-            </p>
+                  ).toFixed(1)}
+                  %
+                </div>
+                <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                  <TrendingUp className="h-3 w-3 text-success-foreground" />
+                  Média do período consultado
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-muted-foreground">—</div>
+                <p className="mt-1 text-xs text-muted-foreground">dados indisponíveis</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -87,12 +94,21 @@ export function StsCommercialDashboard() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.length > 0 ? (stats[0].p95_ms / 1000).toFixed(2) : '1.5'}s
-            </div>
-            <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-              Tempo médio de resposta ElevenLabs
-            </p>
+            {stats.length > 0 ? (
+              <>
+                <div className="text-2xl font-bold">
+                  {(stats[0].p95_ms / 1000).toFixed(2)}s
+                </div>
+                <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                  Tempo médio de resposta ElevenLabs
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-muted-foreground">—</div>
+                <p className="mt-1 text-xs text-muted-foreground">dados indisponíveis</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -102,12 +118,21 @@ export function StsCommercialDashboard() {
             <AlertTriangle className="h-4 w-4 text-warning-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.reduce((acc, s) => acc + (s.total_errors || 0), 0)}
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {stats.filter((s) => s.error_rate > 10).length} presets com instabilidade
-            </p>
+            {stats.length > 0 ? (
+              <>
+                <div className="text-2xl font-bold">
+                  {stats.reduce((acc, s) => acc + (s.total_errors || 0), 0)}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {stats.filter((s) => s.error_rate > 10).length} presets com instabilidade
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-muted-foreground">—</div>
+                <p className="mt-1 text-xs text-muted-foreground">dados indisponíveis</p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -173,6 +198,13 @@ export function StsCommercialDashboard() {
                   </TableCell>
                 </TableRow>
               ))}
+              {stats.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                    Nenhum dado disponível — sem registros de telemetria STS no período.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

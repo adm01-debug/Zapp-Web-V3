@@ -222,6 +222,36 @@ export function useMessageQueue(
     }
   }, [queue]);
 
+  // F4-12: beforeunload + pagehide — garante que sends em voo ('sending')
+  // sejam persistidos como 'pending' ANTES do unload/bfcache. Sem isso, um
+  // estado 'sending' preso no localStorage poderia ser restaurado de forma
+  // inconsistente e disparar cascade de sends paralelos no próximo load
+  // (o restore já normaliza 'sending'→'pending', mas aqui garantimos a ordem:
+  // o que está no storage ao fechar já é 'pending'). Usa queueRef.current
+  // (espelho síncrono) para nunca ler estado defasado do closure.
+  useEffect(() => {
+    const persistBeforeUnload = () => {
+      try {
+        const queueToSave = queueRef.current.map((item) => ({
+          ...item,
+          status: item.status === 'sending' ? ('pending' as const) : item.status,
+          attachments: undefined, // Não serializável
+        }));
+        localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queueToSave));
+      } catch (e) {
+        log.warn('Failed to persist message queue on beforeunload', e);
+      }
+    };
+    window.addEventListener('beforeunload', persistBeforeUnload);
+    // pagehide cobre bfcache (beforeunload não dispara em restauração de
+    // cache), mantendo o storage consistente nos dois caminhos.
+    window.addEventListener('pagehide', persistBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', persistBeforeUnload);
+      window.removeEventListener('pagehide', persistBeforeUnload);
+    };
+  }, []);
+
   // Espelho síncrono da fila: permite notificar onProgress sem efeitos
   // colaterais dentro de updaters de setState.
   useEffect(() => {

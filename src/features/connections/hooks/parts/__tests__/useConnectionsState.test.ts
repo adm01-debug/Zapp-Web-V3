@@ -211,6 +211,7 @@ describe('useConnectionsState — state setters', () => {
         qrCode: null,
         status: 'loading',
         expiresAt: null,
+        pairingCode: null,
         attemptId: null,
         ttlSeconds: null,
         ttlSource: null,

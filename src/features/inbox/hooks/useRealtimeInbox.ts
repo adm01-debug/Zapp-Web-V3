@@ -40,6 +40,11 @@ const USE_EXTERNAL_DB = import.meta.env.VITE_USE_EXTERNAL_DB !== 'false';
 const AVATAR_SEED_TTL_MS = 30 * 60 * 1000; // 30min
 const AVATAR_SEED_SWEEP_MS = 5 * 60 * 1000; // 5min
 
+// F4-07: cap do Set de entregas já reconciliadas (padrão F4-10) — com
+// evicção da entrada mais antiga, o Set não cresce sem limite em conversas
+// com muitos envios.
+const RECONCILED_MAX_ENTRIES = 1000;
+
 export function useRealtimeInbox() {
   const { profile } = useAuth();
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
@@ -86,6 +91,9 @@ export function useRealtimeInbox() {
     addExternalMessage,
     selectedConversationInstance,
     localRealtime,
+    loadMoreConversations,
+    hasMoreConversations,
+    loadingMoreConversations,
   } = source;
 
   const {
@@ -385,24 +393,44 @@ export function useRealtimeInbox() {
   });
 
   // Reconcile message queue with incoming messages — must be after messageQueue is initialized
+  // F4-07: reconciliação COMPLETA. Antes: `selectedMessages.slice(-10)` — um
+  // burst de >10 entregas deixava itens da fila sem confirmação. Agora varre
+  // TODAS as mensagens da conversa e usa um Set de chaves já reconciliadas
+  // (com cap, padrão F4-10) para não reprocessar a mesma entrega a cada
+  // mudança de selectedMessages. O Set é resetado ao trocar de contato.
+  const reconciledDeliveriesRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    reconciledDeliveriesRef.current = new Set();
+  }, [selectedContactId]);
+
   useEffect(() => {
     if (!selectedMessages || selectedMessages.length === 0 || !selectedContactId) return;
-    const recent = selectedMessages.slice(-10);
-    recent.forEach((msg) => {
-      if (msg.external_id && (msg.sender === 'agent' || msg.sender === 'bot')) {
-        const status =
-          msg.status === 'failed' || msg.status === 'failed_auth' || msg.status === 'failed_retries'
-            ? 'failed'
-            : 'confirmed';
-        messageQueue.reconcileWithDelivery(selectedContactId, msg.external_id, status);
-      } else if (msg.content && msg.sender === 'bot') {
-        messageQueue.reconcileWithDelivery(
-          selectedContactId,
-          msg.content,
-          msg.status === 'failed' ? 'failed' : 'confirmed'
-        );
+    const processed = reconciledDeliveriesRef.current;
+    for (const msg of selectedMessages) {
+      if (msg.sender !== 'agent' && msg.sender !== 'bot') continue;
+      const status =
+        msg.status === 'failed' || msg.status === 'failed_auth' || msg.status === 'failed_retries'
+          ? 'failed'
+          : 'confirmed';
+
+      // Chave de dedupe: external_id quando existir; fallback content (bot sem external_id).
+      const key = msg.external_id
+        ? `${selectedContactId}:${msg.external_id}`
+        : msg.content && msg.sender === 'bot'
+          ? `${selectedContactId}:content:${msg.content}`
+          : null;
+      if (!key) continue;
+      if (processed.has(key)) continue;
+
+      // F4-10-style cap: evicta a entrada mais antiga (Set preserva ordem de inserção).
+      if (processed.size >= RECONCILED_MAX_ENTRIES) {
+        const oldest = processed.values().next().value;
+        if (oldest !== undefined) processed.delete(oldest);
       }
-    });
+      processed.add(key);
+
+      messageQueue.reconcileWithDelivery(selectedContactId, msg.external_id ?? msg.content, status);
+    }
   }, [selectedMessages, selectedContactId, messageQueue]);
 
   const handleSelectConversation = useCallback(
@@ -534,6 +562,10 @@ export function useRealtimeInbox() {
       [selectedContactId, messageQueue]
     ),
     refetch,
+    // F4-01: paginação por cursor (path local) — scroll infinito da sidebar.
+    loadMoreConversations,
+    hasMoreConversations,
+    loadingMoreConversations,
     setSelectedContact,
     markAsRead,
     loadOlderMessages,

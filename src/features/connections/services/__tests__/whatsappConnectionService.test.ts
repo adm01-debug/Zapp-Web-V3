@@ -260,6 +260,148 @@ describe('whatsappConnectionService.requestQrCode', () => {
   });
 });
 
+// ── createInstance (F6-02) ────────────────────────────────────────────────────
+describe('whatsappConnectionService.createInstance', () => {
+  it('instanceName vazio lança antes de qualquer chamada', async () => {
+    await expect(whatsappConnectionService.createInstance('')).rejects.toThrow(
+      'Nome da instância é obrigatório'
+    );
+    expect(callEvolutionApiMock).not.toHaveBeenCalled();
+  });
+
+  it('chama a Evolution com action create-instance e defaults Baileys/qrcode', async () => {
+    callEvolutionApiMock.mockResolvedValue({
+      data: { instance: { instanceName: 'Vendas', status: 'created' } },
+      error: null,
+    });
+    await whatsappConnectionService.createInstance('Vendas');
+    expect(callEvolutionApiMock).toHaveBeenCalledWith({
+      action: 'create-instance',
+      instanceName: 'Vendas',
+      integration: 'WHATSAPP-BAILEYS',
+      qrcode: true,
+    });
+  });
+
+  it('aceita integration/qrcode customizados', async () => {
+    callEvolutionApiMock.mockResolvedValue({ data: { instance: {} }, error: null });
+    await whatsappConnectionService.createInstance('Meta', {
+      integration: 'WHATSAPP-BUSINESS-CLOUD',
+      qrcode: false,
+    });
+    expect(callEvolutionApiMock).toHaveBeenCalledWith({
+      action: 'create-instance',
+      instanceName: 'Meta',
+      integration: 'WHATSAPP-BUSINESS-CLOUD',
+      qrcode: false,
+    });
+  });
+
+  it('erro do transporte vira Error com a mensagem da API', async () => {
+    callEvolutionApiMock.mockResolvedValue({
+      data: null,
+      error: { message: 'instance already exists' },
+    });
+    await expect(whatsappConnectionService.createInstance('Vendas')).rejects.toThrow(
+      'instance already exists'
+    );
+  });
+
+  it('erro do transporte sem message usa mensagem padrão', async () => {
+    callEvolutionApiMock.mockResolvedValue({ data: null, error: {} });
+    await expect(whatsappConnectionService.createInstance('Vendas')).rejects.toThrow(
+      'Erro ao criar instância na API Evolution'
+    );
+  });
+
+  it('erro no corpo (data.error === true) lança mesmo com HTTP 200', async () => {
+    callEvolutionApiMock.mockResolvedValue({
+      data: { error: true, message: 'integration not allowed' },
+      error: null,
+    });
+    await expect(whatsappConnectionService.createInstance('Vendas')).rejects.toThrow(
+      'integration not allowed'
+    );
+  });
+
+  it('sucesso devolve o payload cru (com instance.instanceId p/ o INSERT)', async () => {
+    callEvolutionApiMock.mockResolvedValue({
+      data: {
+        instance: {
+          instanceName: 'Vendas',
+          instanceId: '22222222-2222-4222-8222-222222222222',
+          status: 'created',
+        },
+      },
+      error: null,
+    });
+    await expect(whatsappConnectionService.createInstance('Vendas')).resolves.toEqual({
+      instance: {
+        instanceName: 'Vendas',
+        instanceId: '22222222-2222-4222-8222-222222222222',
+        status: 'created',
+      },
+    });
+  });
+});
+
+// ── requestPairingCode (F6-01) ────────────────────────────────────────────────
+describe('whatsappConnectionService.requestPairingCode', () => {
+  it('instanceName vazio lança antes de qualquer chamada', async () => {
+    await expect(whatsappConnectionService.requestPairingCode('', '5511999999999')).rejects.toThrow(
+      'Nome da instância é obrigatório'
+    );
+    expect(callEvolutionApiMock).not.toHaveBeenCalled();
+  });
+
+  it('número vazio lança antes de qualquer chamada', async () => {
+    await expect(whatsappConnectionService.requestPairingCode('Vendas', '')).rejects.toThrow(
+      'Número do WhatsApp é obrigatório'
+    );
+    expect(callEvolutionApiMock).not.toHaveBeenCalled();
+  });
+
+  it('chama a Evolution com action pairing-code, instanceName e number', async () => {
+    callEvolutionApiMock.mockResolvedValue({ data: { code: 'ABCD-EFGH' }, error: null });
+    await whatsappConnectionService.requestPairingCode('Vendas', '5511999999999');
+    expect(callEvolutionApiMock).toHaveBeenCalledWith({
+      action: 'pairing-code',
+      instanceName: 'Vendas',
+      number: '5511999999999',
+    });
+  });
+
+  it('erro do transporte vira Error com a mensagem da API', async () => {
+    callEvolutionApiMock.mockResolvedValue({
+      data: null,
+      error: { message: 'number not linked' },
+    });
+    await expect(
+      whatsappConnectionService.requestPairingCode('Vendas', '5511999999999')
+    ).rejects.toThrow('number not linked');
+  });
+
+  it('erro no corpo (data.error === true) lança', async () => {
+    callEvolutionApiMock.mockResolvedValue({
+      data: { error: true, message: 'instance already connected' },
+      error: null,
+    });
+    await expect(
+      whatsappConnectionService.requestPairingCode('Vendas', '5511999999999')
+    ).rejects.toThrow('instance already connected');
+  });
+
+  it('sucesso devolve o payload cru com o pairing code', async () => {
+    callEvolutionApiMock.mockResolvedValue({
+      data: { code: 'ABCD-EFGH-IJKL', pairingCode: 'ABCD-EFGH-IJKL' },
+      error: null,
+    });
+    await expect(
+      whatsappConnectionService.requestPairingCode('Vendas', '5511999999999')
+    ).resolves.toEqual({ code: 'ABCD-EFGH-IJKL', pairingCode: 'ABCD-EFGH-IJKL' });
+  });
+});
+
 // ── logQrAttempt ──────────────────────────────────────────────────────────────
 describe('whatsappConnectionService.logQrAttempt', () => {
   it('propaga o id do usuário autenticado em requested_by', async () => {

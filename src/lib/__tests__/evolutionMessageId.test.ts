@@ -147,4 +147,40 @@ describe('extractEvolutionMessageId', () => {
     };
     expect(extractEvolutionMessageId(payload)).toBe(ID);
   });
+
+  // ── F4-19: null/absent key handling ──────────────────────────────────────
+  it('returns null for { key: null }', () => {
+    expect(extractEvolutionMessageId({ key: null })).toBeNull();
+  });
+
+  it('returns null for { key: { id: null } }', () => {
+    expect(extractEvolutionMessageId({ key: { id: null } })).toBeNull();
+  });
+
+  it('returns null for nested null containers', () => {
+    expect(extractEvolutionMessageId({ message: null })).toBeNull();
+    expect(extractEvolutionMessageId({ response: { key: null } })).toBeNull();
+    expect(extractEvolutionMessageId({ data: { message: null } })).toBeNull();
+  });
+
+  it('returns null for a response with only null fields', () => {
+    expect(extractEvolutionMessageId({ key: null, messageId: null, id: null })).toBeNull();
+  });
+
+  // ── F4-19: key as raw string (old builds / error envelopes) ──────────────
+  it('extracts from key as a raw string', () => {
+    expect(extractEvolutionMessageId({ key: ID })).toBe(ID);
+  });
+
+  it('extracts from nested key as a raw string', () => {
+    expect(extractEvolutionMessageId({ message: { key: ID } })).toBe(ID);
+    expect(extractEvolutionMessageId({ response: { key: ID } })).toBe(ID);
+    expect(extractEvolutionMessageId({ data: { key: ID } })).toBe(ID);
+    expect(extractEvolutionMessageId({ message: { message: { key: ID } } })).toBe(ID);
+  });
+
+  it('prefers key.id over raw string key when both are present', () => {
+    const response = { key: { id: 'KEY_ID' }, messageId: 'MSG_ID' };
+    expect(extractEvolutionMessageId(response)).toBe('KEY_ID');
+  });
 });

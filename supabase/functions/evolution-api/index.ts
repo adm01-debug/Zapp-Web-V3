@@ -138,6 +138,52 @@ Deno.serve(async (req) => {
       if (!instance) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 400, message: 'instanceName is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       return await proxy(`/chat/getBase64FromMediaMessage/${instance}`, 'POST', { message });
     }
+    // ── Instance lifecycle (F6-02 / F6-01) ────────────────────────────────────
+    // F6-02: criação explícita de instância ANTES do INSERT em whatsapp_connections.
+    if (action === 'create-instance') {
+      if (!instance) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 400, code: 'MISSING_INSTANCE', message: 'instanceName é obrigatório' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return await proxy(`/instance/create`, 'POST', body);
+    }
+    // F6-01: pairing code via `GET /instance/connect/<instance>?number=<phone>`.
+    if (action === 'pairing-code') {
+      if (!instance) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 400, code: 'MISSING_INSTANCE', message: 'instanceName é obrigatório' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const rawNumber = String(safeGetAny(body, 'number', isMultipart) ?? '').replace(/\D/g, '');
+      if (!rawNumber) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 400, code: 'MISSING_NUMBER', message: 'number (telefone) é obrigatório para pairing code' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return await proxy(`/instance/connect/${instance}?number=${rawNumber}`, 'GET');
+    }
+    // QR Code: GET /instance/connect/<instance>, com auto-create em 404 "does not exist"
+    // (comportamento do prod-snapshot) e envelope estruturado para 401/403.
+    if (action === 'connect') {
+      if (!instance) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 400, code: 'MISSING_INSTANCE', message: 'instanceName é obrigatório' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (instanceLooksLikeUuid(instance)) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 400, code: 'INSTANCE_NAME_IS_UUID', message: 'Connect deve usar o NOME da instância, não o UUID (evita instância fantasma).' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const buildAuthError = (upstreamStatus: number, actionName: string) => new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: upstreamStatus, code: 'EVOLUTION_AUTH_ERROR', action: actionName, message: `Evolution API rejeitou a autenticação (${actionName}). Verifique EVOLUTION_API_URL e EVOLUTION_API_KEY.` }), { status: upstreamStatus, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const doConnect = async () => {
+        const response = await fetch(`${evolutionApiUrl}/instance/connect/${instance}`, { method: 'GET', headers: { apikey: evolutionApiKey } });
+        const data = await response.json().catch(() => null);
+        return { response, data };
+      };
+      let { response, data } = await doConnect();
+      if (response.status === 401 || response.status === 403) {
+        void recordAuthFailureAndMaybePause(supabase, instance, response.status === 401 ? 'auth_401' : 'auth_403', 'evolution-api', { http_status: response.status });
+        return buildAuthError(response.status, 'connect');
+      }
+      if (response.status === 404 && /does not exist|not found/i.test(JSON.stringify(data ?? {}))) {
+        const createRes = await fetch(`${evolutionApiUrl}/instance/create`, {
+          method: 'POST',
+          headers: { apikey: evolutionApiKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ instanceName: instance, integration: 'WHATSAPP-BAILEYS', qrcode: true }),
+        });
+        if (createRes.status === 401 || createRes.status === 403) return buildAuthError(createRes.status, 'create-instance');
+        if (!createRes.ok) {
+          const createData = await createRes.json().catch(() => ({}));
+          return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: createRes.status, message: (createData as { message?: string }).message || 'Falha ao criar a instância na Evolution API' }), { status: createRes.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        ({ response, data } = await doConnect());
+        if (response.status === 401 || response.status === 403) return buildAuthError(response.status, 'connect');
+        if (!response.ok) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: response.status, message: 'Falha ao conectar após criar a instância' }), { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, data }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
     return new Response(JSON.stringify({ error: 'Unknown action', action }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error: unknown) {
     const log = new Logger('evolution-api', req);

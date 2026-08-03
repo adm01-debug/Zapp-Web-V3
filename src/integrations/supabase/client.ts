@@ -3,6 +3,7 @@ import type { Database } from './types';
 import type { ExtendedDatabase } from './types-manual';
 import { getLogger } from '@/lib/logger';
 import { cookieStorage } from './cookieStorage';
+import { withRetry } from '@/lib/retry';
 
 const log = getLogger('supabase-client');
 
@@ -181,6 +182,122 @@ const boundedFetch: typeof fetch = (input, init) => {
 };
 
 // ---------------------------------------------------------------------------
+// Retry policy (F9-04) — o cliente supabase-js era criado sem qualquer retry:
+// uma falha de rede transitória (`TypeError: Failed to fetch`), timeout ou um
+// 5xx/429 do backend virava erro imediato no componente. Este wrapper envolve
+// o boundedFetch em `withRetry` (src/lib/retry.ts):
+//
+//   - 3 tentativas no total (1 inicial + 2 retentativas), backoff exponencial
+//     ~300ms/600ms (+ jitter ≤500ms, cap 900ms) — suficiente para absorver
+//     blips sem mascarar indisponibilidade real nem estourar o SLA de UI;
+//   - retenta APENAS falhas transitórias: erro de rede (TypeError), timeout
+//     (TimeoutError) e HTTP 429/5xx. Nunca 4xx de negócio (400/401/403/404…);
+//   - aborts do caller (navegação, realtime, unmount) NUNCA são retentados;
+//   - chamadas de auth (/auth/v1/) passam direto: já cobertas pelo timeout do
+//     boundedFetch e pelo single-flight do autoRefreshToken — retry aqui
+//     criaria dupla temporização e re-execução de refresh token (F9-04 ação 3);
+//   - bodies em stream (ReadableStream) passam direto — não podem ser refeitos;
+//   - o monitor de conectividade só é acusado APÓS esgotar as tentativas: uma
+//     falha que recuperou no retry não marca backend-down (evita falso positivo).
+// ---------------------------------------------------------------------------
+const SUPABASE_RETRY_MAX_RETRIES = 2; // 2 retentativas → 3 tentativas totais
+const SUPABASE_RETRY_BASE_DELAY_MS = 300;
+const SUPABASE_RETRY_MAX_DELAY_MS = 900;
+
+/** Erro sintético para status HTTP retentáveis (429/5xx) — o fetch resolve, não rejeita. */
+class RetryableHttpError extends Error {
+  readonly status: number;
+  constructor(status: number) {
+    super(`Supabase request failed with HTTP ${status}`);
+    this.name = 'RetryableHttpError';
+    this.status = status;
+  }
+}
+
+const describeFetchError = (err: unknown): string =>
+  err instanceof RetryableHttpError
+    ? `HTTP ${err.status}`
+    : err instanceof Error
+      ? err.message
+      : String(err);
+
+const isAbortError = (err: unknown): boolean =>
+  err instanceof Error && err.name === 'AbortError';
+
+const getRequestUrl = (input: RequestInfo | URL): string => {
+  if (typeof input === 'string') return input;
+  if (input instanceof URL) return input.href;
+  return input.url;
+};
+
+/** Chamadas de auth do supabase-js (bootstrap, refresh token) — fora do retry. */
+const isAuthRequest = (input: RequestInfo | URL): boolean =>
+  getRequestUrl(input).includes('/auth/v1/');
+
+/** Streams de body não podem ser reenviados — fora do retry. */
+const hasStreamBody = (init?: RequestInit): boolean =>
+  typeof ReadableStream !== 'undefined' && init?.body instanceof ReadableStream;
+
+/** Política F9-04: só falhas transitórias são retentadas. */
+const shouldRetryFetchError = (err: unknown): boolean => {
+  if (isAbortError(err)) return false; // abort do caller nunca é retentado
+  if (err instanceof TypeError) return true; // falha de rede
+  if (err instanceof Error && err.name === 'TimeoutError') return true;
+  if (err instanceof RetryableHttpError) return err.status === 429 || err.status >= 500;
+  return false;
+};
+
+/** Reporta ao monitor de conectividade apenas falhas reais (rede/timeout), nunca aborts. */
+function reportRealFailure(err: unknown): void {
+  const isRealFailure =
+    (err instanceof Error && err.name === 'TimeoutError') || err instanceof TypeError;
+  if (!isRealFailure) return;
+  // Avisa o monitor de conectividade para marcar backend-down imediatamente
+  // (não espera o próximo heartbeat). Dynamic import evita ciclo de módulos
+  // (client → monitor → client).
+  void import('./connectivityMonitor')
+    .then((m) => m.reportSupabaseRequestFailure(err))
+    .catch(() => {});
+}
+
+/** Fetch customizado injetado no supabase-js: timeout (boundedFetch) + retry (F9-04). */
+export const retryFetch: typeof fetch = (input, init) => {
+  if (isAuthRequest(input) || hasStreamBody(init)) {
+    return boundedFetch(input, init).catch((err: unknown) => {
+      reportRealFailure(err);
+      throw err;
+    });
+  }
+
+  return withRetry(
+    async () => {
+      const response = await boundedFetch(input, init);
+      if (response.status === 429 || response.status >= 500) {
+        // Não consumimos o body: a resposta será descartada e refeita.
+        throw new RetryableHttpError(response.status);
+      }
+      return response;
+    },
+    {
+      maxRetries: SUPABASE_RETRY_MAX_RETRIES,
+      baseDelayMs: SUPABASE_RETRY_BASE_DELAY_MS,
+      maxDelayMs: SUPABASE_RETRY_MAX_DELAY_MS,
+      shouldRetry: shouldRetryFetchError,
+      onRetry: (err, attempt) => {
+        log.warn(
+          `[Supabase] Tentativa ${attempt}/${SUPABASE_RETRY_MAX_RETRIES} falhou ` +
+            `(${describeFetchError(err)}); retentando com backoff`
+        );
+      },
+    },
+  ).catch((err: unknown) => {
+    // Só acusa o monitor após esgotar as tentativas.
+    reportRealFailure(err);
+    throw err;
+  });
+};
+
+// ---------------------------------------------------------------------------
 // ZAPP Web client — schema 'zapp' (schema canônico de todas as tabelas)
 // ---------------------------------------------------------------------------
 /** supabase. */
@@ -196,7 +313,7 @@ export const supabase = createClient<ExtendedDatabase, 'zapp'>(supabaseUrl, supa
     flowType: 'pkce',
   },
   global: {
-    fetch: boundedFetch,
+    fetch: retryFetch,
   },
   realtime: {
     reconnectAfterMs: realtimeReconnectAfterMs,

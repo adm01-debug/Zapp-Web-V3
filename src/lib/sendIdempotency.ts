@@ -44,14 +44,18 @@ export interface SendFingerprint {
    * Time bucket size in milliseconds. Two sends with identical content within
    * the same bucket collapse to the same key; in different buckets they get
    * different keys (so an agent can intentionally re-send the same text 10
-   * minutes later and have it actually go through). Default: 5 minutes.
+   * minutes later and have it actually go through). Default: 1 minute.
    */
   bucketMs?: number;
   /** Now() override for tests. */
   now?: number;
 }
 
-const DEFAULT_BUCKET_MS = 5 * 60 * 1000;
+// F4-16: bucket de 5min colidia com reenvios legítimos (2 mensagens iguais
+// separadas por até 5min eram deduplicadas pelo Evolution). 1min mantém a
+// proteção contra double-send de retries/resends quase simultâneos sem
+// engolir envios intencionais.
+const DEFAULT_BUCKET_MS = 1 * 60 * 1000;
 
 /**
  * SHA-256 → hex (first 32 chars) for compact, log-safe fingerprinting.

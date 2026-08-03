@@ -22,6 +22,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { getLogger } from '@/lib/logger';
 import { buildFileHash } from '@/lib/crypto';
+// F4-20: cache LRU com maxSize (50 MB de bytes) + cap de 200 entradas.
+// Data URLs base64 são ASCII → length ≈ bytes. Módulo puro em mediaRefreshCache.
+import { mediaCacheGet, mediaCacheSet } from './mediaRefreshCache';
 
 const log = getLogger('useMediaUrl');
 
@@ -72,20 +75,6 @@ interface UseMediaUrlResult {
   refresh: () => Promise<void>;
 }
 
-// F4-20: Map com cap de 200 entradas (≈50 MB de data URLs) — evita leak.
-// LRU simples: remove a entrada mais antiga quando o limite é atingido.
-const MAX_CACHE_ENTRIES = 200;
-const refreshCache = new Map<string, string>();
-const cacheInsertionOrder: string[] = [];
-
-function cacheSet(key: string, value: string): void {
-  if (refreshCache.size >= MAX_CACHE_ENTRIES) {
-    const oldest = cacheInsertionOrder.shift();
-    if (oldest) refreshCache.delete(oldest);
-  }
-  refreshCache.set(key, value);
-  cacheInsertionOrder.push(key);
-}
 const toastedKeys = new Set<string>();
 
 function cacheKey(instance: string, key: MessageKey): string {
@@ -175,7 +164,7 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
     if (inFlightRef.current) return inFlightRef.current;
 
     const key = cacheKey(instanceName, messageKey);
-    const cached = refreshCache.get(key);
+    const cached = mediaCacheGet(key);
     if (cached) {
       setUrl(cached);
       setError(null);
@@ -220,26 +209,30 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
         if (!payload?.base64) throw new Error('Empty media payload');
         const mime = payload.mimetype || 'application/octet-stream';
         const dataUrl = `data:${mime};base64,${payload.base64}`;
-        cacheSet(key, dataUrl);
+        mediaCacheSet(key, dataUrl);
 
-        // F4-21: Audit & Cache Persistence — usa hash do originalUrl como chave
-        // (buildFileHash(originalUrl) === buildFileHash(originalUrl) sempre),
-        // não do dataUrl (que muda a cada refresh).
+        // F4-21: chave unificada — SEMPRE buildFileHash(originalUrl) como
+        // identidade da mídia. O fallback antigo para buildFileHash(dataUrl)
+        // gerava chave DIFERENTE a cada refresh (dataUrl muda) → media_cache
+        // nunca dava hit. Sem originalUrl não há identidade estável → não
+        // persiste (evita linhas órfãs com chave volátil).
         try {
           const hash = originalUrlRef.current
             ? await buildFileHash(originalUrlRef.current)
-            : await buildFileHash(dataUrl);
-          await safeClient.from('media_cache', (q) =>
-            q.upsert(
-              {
-                file_hash: hash,
-                storage_path: dataUrl,
-                mime_type: mime,
-                size: Math.round((payload.base64 ?? '').length * 0.75),
-              },
-              { onConflict: 'file_hash' }
-            )
-          );
+            : null;
+          if (hash) {
+            await safeClient.from('media_cache', (q) =>
+              q.upsert(
+                {
+                  file_hash: hash,
+                  storage_path: dataUrl,
+                  mime_type: mime,
+                  size: Math.round((payload.base64 ?? '').length * 0.75),
+                },
+                { onConflict: 'file_hash' }
+              )
+            );
+          }
         } catch (e) {
           log.warn('Failed to persist media cache', e);
         }

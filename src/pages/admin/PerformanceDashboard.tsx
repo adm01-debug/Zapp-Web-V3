@@ -131,19 +131,19 @@ export default function PerformanceDashboard() {
               <span>Largest Contentful Paint (LCP)</span>
               <span className="font-mono">&lt; 2500ms</span> {/* @technical */}
             </div>
-            <Progress value={25} className="h-1" />
 
             <div className="flex items-center justify-between text-sm">
               <span>Cumulative Layout Shift (CLS)</span>
               <span className="font-mono">&lt; 0.100</span> {/* @technical */}
             </div>
-            <Progress value={10} className="h-1" />
 
             <div className="flex items-center justify-between text-sm">
               <span>Bundle Size (Gzip)</span>
               <span className="font-mono">&lt; 500KB</span> {/* @technical */}
             </div>
-            <Progress value={80} className="h-1" />
+            <p className="text-xs text-muted-foreground">
+              Limites estáticos do pipeline — sem medição em tempo real neste painel.
+            </p>
           </div>
         </CardContent>
       </Card>
