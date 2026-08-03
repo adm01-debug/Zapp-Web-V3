@@ -170,7 +170,7 @@ export default function AdminEvoApiHealthPage() {
         )}
 
         {runTestsData && (
-          <Alert variant={deriveReadinessVariant(runTestsData as unknown as PipelineReadiness)}>
+          <Alert variant={runTestsData.failed > 0 ? 'destructive' : 'default'}>
             <CheckCircle2 className="h-4 w-4" />
             <AlertTitle>{runTestsData.overall}</AlertTitle>
             <AlertDescription>
