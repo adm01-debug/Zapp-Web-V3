@@ -159,7 +159,7 @@ export function AdminWhatsAppWebhookVerifyCard({ verify, verifyLoading, onRunVer
                 <ul className="mt-2 max-h-48 space-y-1.5 overflow-y-auto">
                   {verify.delivery.recent.map((p) => (
                     <li
-                      key={`${p.kind}-${p.created_at}`}
+                      key={p.id ?? `${p.kind}-${p.created_at}`}
                       className="flex items-center justify-between gap-2 text-[11px]"
                     >
                       <span className="flex items-center gap-2">

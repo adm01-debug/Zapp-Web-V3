@@ -619,25 +619,9 @@ Deno.serve(async (req) => {
     ? `HMAC + replay protection OK: ${scenarios.length} cenários passaram (janela ${toleranceSec}s).`
     : `Falha em ${failedScenarios.length}/${scenarios.length} cenários (1ª fase com erro: ${firstFailedPhase ?? 'desconhecida'}).`;
 
-  // ── Audit row — persisted so HmacAuditHistoryPanel shows history ──────────
-  try {
-    const db = createZappAdminClient();
-    await db.from('hmac_selftest_audit').insert({
-      instance,
-      ok: allPassed,
-      duration_ms: totalDuration,
-      error: failedScenarios[0]?.reason ?? null,
-      message: summaryMessage,
-      good_accepted: fresh.outcome === 'accept',
-      tampered_rejected: tampered.outcome === 'reject',
-    });
-  } catch (auditErr) {
-    structuredLog({
-      level: 'warn', fn: 'webhook-hmac-selftest', request_id: requestId,
-      phase: 'response', status: 'fail',
-      reason: auditErr instanceof Error ? auditErr.message : 'audit insert failed',
-    });
-  }
+  // Audit row is written client-side (HmacSelfTestButton / useAdminManagement)
+  // so that executed_by (auth uid) can be captured. Edge function intentionally
+  // does NOT write a second row here to avoid duplicates.
 
   return new Response(
     JSON.stringify({

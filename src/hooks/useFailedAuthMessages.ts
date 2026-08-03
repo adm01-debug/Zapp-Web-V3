@@ -16,9 +16,10 @@ export interface FailedAuthRow {
 interface UseFailedAuthMessagesOptions {
   from: Date | undefined;
   to: Date | undefined;
+  enabled?: boolean;
 }
 
-export function useFailedAuthMessages({ from, to }: UseFailedAuthMessagesOptions) {
+export function useFailedAuthMessages({ from, to, enabled = true }: UseFailedAuthMessagesOptions) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const key = ['failed-auth', from?.toISOString() ?? null, to?.toISOString() ?? null] as const;
@@ -51,6 +52,7 @@ export function useFailedAuthMessages({ from, to }: UseFailedAuthMessagesOptions
       return (data ?? []) as FailedAuthRow[];
     },
     staleTime: 30_000,
+    enabled,
   });
 
   return { rows, loading, load: () => queryClient.invalidateQueries({ queryKey: key }) };

@@ -69,6 +69,7 @@ export function useSecurityAuditLogs() {
       return count ?? 0;
     },
     staleTime: 60_000,
+    refetchInterval: 60_000,
   });
 
   useEffect(() => {
@@ -77,9 +78,11 @@ export function useSecurityAuditLogs() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'zapp', table: 'security_audit_logs' },
-        () => {
+        (payload) => {
           void queryClient.invalidateQueries({ queryKey: SECURITY_LOGS_KEY });
-          void queryClient.invalidateQueries({ queryKey: SECURITY_DENIED_24H_KEY });
+          if ((payload.new as AuditLog)?.status === 'denied') {
+            void queryClient.invalidateQueries({ queryKey: SECURITY_DENIED_24H_KEY });
+          }
         }
       )
       .subscribe();

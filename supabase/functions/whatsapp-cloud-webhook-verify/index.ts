@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
 
   const { data: pings } = await adminClient
     .from("whatsapp_cloud_webhook_pings")
-    .select("kind, meta, created_at")
+    .select("id, kind, meta, created_at")
     .gte("created_at", since24h)
     .order("created_at", { ascending: false })
     .limit(50);

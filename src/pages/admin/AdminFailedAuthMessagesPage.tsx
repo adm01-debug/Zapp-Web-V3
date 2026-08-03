@@ -30,7 +30,11 @@ export default function AdminFailedAuthMessagesPage() {
   const normalizedFrom = from && !dateRangeError ? startOfDay(from) : undefined;
   const normalizedTo = to && !dateRangeError ? endOfDay(to) : undefined;
 
-  const { rows, loading, load } = useFailedAuthMessages({ from: normalizedFrom, to: normalizedTo });
+  const { rows, loading, load } = useFailedAuthMessages({
+    from: normalizedFrom,
+    to: normalizedTo,
+    enabled: !dateRangeError,
+  });
 
   const stats = useMemo(() => {
     const total = rows.length;

@@ -166,8 +166,8 @@ export function useConnectionsActions(
             // instance-not-found 404 by status code alone — verify the error message
             // mentions the specific instance name before treating it as safe-to-continue.
             const status = (evoError as { apiStatus?: number }).apiStatus;
-            const errMsg = evoError instanceof Error ? evoError.message : String(evoError);
-            const isInstanceGone = status === 404 && errMsg.includes(evoName);
+            // Any 404 means the instance is gone from the Evolution API — proceed with DB cleanup.
+            const isInstanceGone = status === 404;
             if (!isInstanceGone) {
               log.error('Evolution API delete failed — aborting DB cleanup:', evoError);
               // deleteInstance already shows its own error toast before rethrowing; no second toast here.

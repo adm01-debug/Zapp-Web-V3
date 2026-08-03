@@ -43,24 +43,23 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
     payload: SelfTestResult,
     fallbackDurationMs: number
   ) {
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      const uid = userData.user?.id;
-      if (!uid) return;
-      await safeClient.from('hmac_selftest_audit', (q) =>
-        q.insert({
-          instance: instanceName,
-          ok: !!payload.ok,
-          duration_ms: payload.duration_ms ?? fallbackDurationMs,
-          error: payload.error ?? null,
-          message: payload.message ?? null,
-          good_accepted: payload.good?.accepted ?? null,
-          tampered_rejected: payload.tampered ? !payload.tampered.accepted : null,
-          executed_by: uid,
-        })
-      );
-    } catch (err) {
-      log.warn('Failed to write audit record', err);
+    const { data: userData } = await supabase.auth.getUser();
+    const uid = userData.user?.id;
+    if (!uid) return;
+    const { error: auditErr } = await safeClient.from('hmac_selftest_audit', (q) =>
+      q.insert({
+        instance: instanceName,
+        ok: !!payload.ok,
+        duration_ms: payload.duration_ms ?? fallbackDurationMs,
+        error: payload.error ?? null,
+        message: payload.message ?? null,
+        good_accepted: payload.good?.accepted ?? null,
+        tampered_rejected: payload.tampered ? !payload.tampered.accepted : null,
+        executed_by: uid,
+      })
+    );
+    if (auditErr) {
+      log.warn('Failed to write audit record', auditErr);
     }
   }
 

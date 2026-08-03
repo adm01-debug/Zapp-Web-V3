@@ -121,9 +121,11 @@ export function EmptyState({ mode, kind }: { mode: ModeFilter; kind: string }) {
           Nenhum envio encontrado{modeLabel ? ` no modo ${modeLabel}` : ''}.
         </p>
         <p className="text-xs text-muted-foreground/70 max-w-md mx-auto">
-          {mode !== 'official'
+          {mode === 'unofficial'
             ? 'O log de envios (provider_message_log) é alimentado pelo middleware de roteamento de canais. Em implantações apenas com Evolution API, esse log pode estar vazio — consulte a aba "Erros" para logs de despacho via Evolution.'
-            : 'O log de envios é alimentado pelo middleware de roteamento da Cloud API. Verifique se a integração Meta está ativa nas Conexões.'}
+            : mode === 'official'
+              ? 'O log de envios é alimentado pelo middleware de roteamento da Cloud API. Verifique se a integração Meta está ativa nas Conexões.'
+              : 'Verifique as integrações ativas nas Conexões para identificar o canal em uso.'}
         </p>
       </div>
     );

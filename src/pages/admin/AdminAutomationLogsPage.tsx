@@ -45,12 +45,14 @@ export default function AdminAutomationLogsPage() {
     filterTo,
     page,
   };
-  const { rows, rules, ruleNameById, loading, load } = useAutomationLogs(filters);
+  const { rows, rules, ruleNameById, loading, isFetching, isError, load } = useAutomationLogs(filters);
 
   // Auto-go-back when current page becomes empty (e.g. after filter change race)
+  // Guard: skip while fetching or on error to avoid false rewinds
   React.useEffect(() => {
-    if (!loading && rows.length === 0 && page > 0) setPage((p) => Math.max(0, p - 1));
-  }, [loading, rows.length, page]);
+    if (!loading && !isFetching && !isError && rows.length === 0 && page > 0)
+      setPage((p) => Math.max(0, p - 1));
+  }, [loading, isFetching, isError, rows.length, page]);
 
   return (
     <div className="container mx-auto max-w-7xl p-6">

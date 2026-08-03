@@ -54,7 +54,7 @@ function emptyChannel(): Partial<ServiceChannel> {
     sticky_enabled: false,
     sticky_ttl_hours: 24,
     is_default: false,
-    color: "var(--primary)",
+    color: "hsl(var(--primary))",
   };
 }
 
@@ -62,7 +62,7 @@ function emptyChannel(): Partial<ServiceChannel> {
 function resolveColor(c?: string | null): string | undefined {
   if (!c) return undefined;
   if (c.startsWith('#') || c.startsWith('rgb') || c.startsWith('hsl') || c.startsWith('var(')) return c;
-  return 'var(--primary)';
+  return 'hsl(var(--primary))';
 }
 
 /** Admin Channels Page. */
