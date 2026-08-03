@@ -103,13 +103,16 @@ describe('useServiceWorker', () => {
   });
 
   it('does not purge when SW already controls the page', async () => {
-    // Simula SW ja controlando a pagina.
-    const origController = navigator.serviceWorker.controller;
+    // Simula SW ja controlando a pagina — usa o mesmo mock do beforeEach
+    // mas com controller preenchido. Importante: NAO usa spread porque
+    // Object.defineProperty pode criar propriedades nao-enumeraveis.
     Object.defineProperty(navigator, 'serviceWorker', {
       value: {
-        ...navigator.serviceWorker,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test mock needs partial ServiceWorker type
-        controller: { scriptURL: '/sw.js' } as any,
+        register: vi.fn().mockResolvedValue(mockRegistration),
+        controller: { scriptURL: '/sw.js' } as ServiceWorker,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        getRegistrations: vi.fn().mockResolvedValue([{ unregister: mockUnregister }]),
       },
       writable: true,
       configurable: true,
@@ -118,7 +121,7 @@ describe('useServiceWorker', () => {
     localStorage.clear();
 
     const { useServiceWorker } = await import('@/hooks/useServiceWorker');
-    renderHook(() => useServiceWorker());
+    const { unmount } = renderHook(() => useServiceWorker());
 
     await vi.advanceTimersByTimeAsync(0);
 
@@ -126,12 +129,8 @@ describe('useServiceWorker', () => {
     expect(navigator.serviceWorker.getRegistrations).not.toHaveBeenCalled();
     expect(caches.delete).not.toHaveBeenCalled();
 
-    // Restaura
-    Object.defineProperty(navigator, 'serviceWorker', {
-      value: { controller: origController } as Partial<ServiceWorkerContainer>,
-      writable: true,
-      configurable: true,
-    });
+    // Cleanup explicito para evitar erro de removeEventListener no unmount.
+    unmount();
   });
 
   it('does not crash when serviceWorker is unavailable', async () => {
