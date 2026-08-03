@@ -88,14 +88,28 @@ cohesion = score_all(G, communities)
 gods = god_nodes(G)
 labels = {cid: f'Community {cid}' for cid in communities}
 
-# Export
-to_json(G, communities, '$GRAPH_DIR/graph.json')
+# Export (atômico com validação para evitar corrupção por crash/SIGSEGV)
+tmp_json = '$GRAPH_DIR/.graph.json.tmp'
+to_json(G, communities, tmp_json)
+# Valida que o JSON gerado é íntegro
+import json as _j
+_j.loads(Path(tmp_json).read_text(encoding='utf-8'))
+# Renomeio atômico (Windows: remove destino primeiro)
+_target = Path('$GRAPH_DIR/graph.json')
+if _target.exists():
+    _target.unlink()
+Path(tmp_json).rename(_target)
 
 # Report
 tokens = {'input': 0, 'output': 0}
 surprises = surprising_connections(G, communities)
 report = generate(G, communities, cohesion, labels, gods, surprises, detection, tokens, '.')
-Path('$GRAPH_DIR/GRAPH_REPORT.md').write_text(report, encoding='utf-8')
+tmp_report = '$GRAPH_DIR/.GRAPH_REPORT.tmp'
+Path(tmp_report).write_text(report, encoding='utf-8')
+_target_r = Path('$GRAPH_DIR/GRAPH_REPORT.md')
+if _target_r.exists():
+    _target_r.unlink()
+Path(tmp_report).rename(_target_r)
 
 print(f'  ✅ {G.number_of_nodes()} nodes, {G.number_of_edges()} edges, {len(communities)} communities')
 print(f'  🏆 Top god: {gods[0][\"label\"]} ({gods[0][\"degree\"]}°)')
