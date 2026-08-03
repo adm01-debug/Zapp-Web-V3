@@ -57,11 +57,25 @@ let workboxChecked = false;
  * Detect Workbox precache entries in CacheStorage (fonte confiavel — nao depende
  * do conteudo servido de /sw.js, que pode vir de cache de CDN). Se detectado,
  * purga tudo e forca reload uma unica vez.
+ *
+ * SO EXECUTA se o SW nao foi gerenciado por useServiceWorker nesta sessao
+ * (flag CACHE_RESET_FLAG) e se o buildVersion nao ja fez purge (SW_PURGE_FLAG).
+ * Sem essa coordenacao, cada sistema dispara seu proprio reload, criando
+ * uma cascata que mata requisicoes auth e sufoca o backend.
  */
 async function detectAndPurgeStaleWorkboxSW(): Promise<void> {
   if (workboxChecked) return;
   workboxChecked = true;
   try {
+    // Se useServiceWorker ja gerenciou o SW nesta sessao, os caches
+    // workbox sao legitimos (criados pelo SW atual) — nao purgar.
+    try {
+      if (sessionStorage.getItem('sw-cache-reset-done') === '1') return;
+    } catch { /* noop */ }
+    // Se buildVersion ja fez purge uma vez, nao repetir.
+    try {
+      if (sessionStorage.getItem(SW_PURGE_FLAG) === '1') return;
+    } catch { /* noop */ }
     if (typeof caches === 'undefined') return;
     const keys = await caches.keys();
     const hasWorkbox = keys.some((k) => /^workbox-(precache|runtime)/i.test(k));
