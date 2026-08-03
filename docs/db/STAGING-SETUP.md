@@ -6,7 +6,7 @@
 
 ## Por que staging é obrigatório aqui
 
-O banco de produção tem **52 migrations registradas** mas **944 arquivos** no repositório — ou seja, o banco foi construído por DDL direto, fora do fluxo de migrations. Reaplicar os 944 arquivos num banco vazio **não** reproduz o estado de produção. O ambiente de staging deve ser criado a partir do **baseline.sql** (etapa 2), não dos arquivos individuais.
+O banco de produção tem **88 migrations registradas** em `supabase_migrations.schema_migrations` e **130 arquivos** no diretório `supabase/migrations/`. O banco foi migrado do Supabase Cloud (Lovable) para self-hosted via dump/restore em 2026-07-16, com migrations incrementais aplicadas desde então. Reaplicar os 130 arquivos num banco vazio **não** reproduz o estado de produção (schema é incremental). O ambiente de staging deve ser criado a partir do **baseline.sql** (etapa 2), não dos arquivos individuais.
 
 ---
 

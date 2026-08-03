@@ -23,7 +23,7 @@
 --   financeiro (16 tables), vendas (13), email_app (33), ai (31),
 --   bpm (41), ops (20), archive (25), artes (2), logistica (3)
 --
--- Migrations ativas (129 arquivos após limpeza 2026-08-03):
+-- Migrations ativas (130 arquivos após limpeza 2026-08-03):
 --   - 16/07/2026: schema hardening v1-v6, fix public→zapp, RLS hardening
 --   - 17/07/2026: fix DLQ RPCs, missing functions, schema hardening v4-v6
 --   - 20/07/2026: fix settings realtime publication
@@ -71,5 +71,5 @@
 
 DO $$
 BEGIN
-  RAISE NOTICE 'Baseline 2026-08-03: schema documentado em 129 migrations ativas (88 registradas em supabase_migrations).';
+  RAISE NOTICE 'Baseline 2026-08-03: schema documentado em 130 migrations ativas (88 registradas em supabase_migrations).';
 END $$;
