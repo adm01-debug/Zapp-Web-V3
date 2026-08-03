@@ -22,17 +22,67 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Tests that depend on anon-key behaviour therefore check for `''` (the actual
 // empty fallback) rather than a fake value.
 
-// ── Mock supabase auth ─────────────────────────────────────────────────────────
+// ── Mock supabase ────────────────────────────────────────────────────────────────
 const mockGetSession = vi.hoisted(() => vi.fn());
+const mockFetch = vi.hoisted(() => vi.fn());
+vi.stubGlobal('fetch', mockFetch);
+
+// Bridge: supabase client → fetch (so existing test assertions on mockFetch work)
+// Passes fake URL+init to mockFetch so mock.calls assertions remain valid
+const FAKE_URL = 'http://localhost:54321/rest/v1/';
+const FAKE_HEADERS = { 'x-correlation-id': 'cid-test', authorization: 'Bearer test-anon-key' };
+
+function bridgeFrom(table: string) {
+  const queryBuilder: any = {
+    select: (cols?: string) => queryBuilder,
+    eq: () => queryBuilder,
+    neq: () => queryBuilder,
+    lt: () => queryBuilder,
+    gt: () => queryBuilder,
+    order: () => queryBuilder,
+    limit: () => queryBuilder,
+    offset: () => queryBuilder,
+    update: (data: any) => { mockFetch(`${FAKE_URL}${table}`, { method: 'PATCH', body: JSON.stringify(data), headers: FAKE_HEADERS }); return queryBuilder; },
+    match: (q: any) => { mockFetch(`${FAKE_URL}${table}`, { method: 'PATCH', body: JSON.stringify({ match: q }), headers: FAKE_HEADERS }); return queryBuilder; },
+    then: (resolve: Function) => {
+      mockFetch(`${FAKE_URL}${table}`, { method: 'GET', body: undefined, headers: FAKE_HEADERS });
+      return mockFetch().then((res: Response) => res.text()).then((text: string) => {
+        try { 
+          const parsed = JSON.parse(text);
+          // Map old HTTP proxy format { data, cid, rid } or { error: 'msg' } → Supabase format { data, error }
+          if (parsed.error) {
+            return resolve({ data: null, error: { message: parsed.error, code: '', details: '', hint: '' } });
+          }
+          return resolve({ data: parsed.data ?? parsed, error: null });
+        }
+        catch { return resolve({ data: null, error: { message: text, code: '', details: '', hint: '' } }); }
+      });
+    },
+  };
+  Object.setPrototypeOf(queryBuilder, Promise.prototype);
+  return queryBuilder;
+}
 
 vi.mock('@/integrations/supabase/client', () => ({
   isSupabaseConfigured: true,
   SUPABASE_RESOLVED_URL: 'http://localhost:54321',
   SUPABASE_RESOLVED_ANON_KEY: 'test-anon-key',
   supabase: {
-    auth: {
-      getSession: mockGetSession,
+    auth: { getSession: mockGetSession },
+    rpc: (name: string, params?: any) => {
+      mockFetch(`${FAKE_URL}rpc/${name}`, { method: 'POST', body: JSON.stringify(params), headers: FAKE_HEADERS });
+      return mockFetch().then((res: Response) => res.text()).then((text: string) => {
+        try { 
+          const parsed = JSON.parse(text);
+          if (parsed.error) {
+            return { data: null, error: { message: parsed.error, code: '', details: '', hint: '' } };
+          }
+          return { data: parsed.data ?? parsed, error: null };
+        }
+        catch { return { data: null, error: { message: text, code: '', details: '', hint: '' } }; }
+      });
     },
+    from: bridgeFrom,
   },
 }));
 
@@ -47,9 +97,6 @@ vi.mock('@/lib/logger', () => ({
   getLogger: () => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn() }),
 }));
 
-// ── Global fetch mock ──────────────────────────────────────────────────────────
-const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
 
 // Import AFTER mocks are in place
 import { evoApi } from '../proxy';
