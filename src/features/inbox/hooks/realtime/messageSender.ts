@@ -156,7 +156,7 @@ export async function sendMessageToContact(
     }
 
     // Stable idempotency key per logical message. We prefer a content-aware
-    // fingerprint (contact + type + content + media + 5min bucket) so that:
+    // fingerprint (contact + type + content + media + 1min bucket) so that:
     //   - Automatic retries of THIS row converge (same fingerprint, same row).
     //   - Manual "Reenviar" clicks create a new row but produce the SAME key,
     //     letting Evolution dedupe on its side and preventing the recipient

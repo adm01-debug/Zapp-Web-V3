@@ -8,6 +8,7 @@ import {
   normalizeMessage,
   buildConversation,
   dedupeContacts,
+  dedupeMessages,
   buildConversations,
   getUniqueMessageContactIds,
   chunkArray,
@@ -21,9 +22,26 @@ import { isValidUUID } from '@/utils/uuid';
 export type { MessageBatcherStatus } from './realtime/useMessageUpdateBatcher';
 
 const log = getLogger('RealtimeMessages');
-const SEEDED_CONTACT_LIMIT = 500;
-const RECENT_MESSAGES_LIMIT = 1000;
+// F4-01: paginação por cursor — os limites fixos SEEDED_CONTACT_LIMIT=500 /
+// RECENT_MESSAGES_LIMIT=1000 (que carregavam o inbox inteiro a cada
+// montagem) deram lugar a páginas de CONTACTS_PAGE_SIZE contatos (cursor
+// updated_at+id) e MESSAGES_PAGE_SIZE mensagens recentes (cursor
+// created_at+id), com load-more sob demanda via loadMoreConversations.
+const CONTACTS_PAGE_SIZE = 100;
+const MESSAGES_PAGE_SIZE = 100;
 const CONTACT_FETCH_CHUNK_SIZE = 200;
+
+/** Cursor de paginação de contatos: (updated_at, id) — ordem estável desc. */
+interface ContactPageCursor {
+  updatedAt: string;
+  id: string;
+}
+
+/** Cursor de paginação de mensagens: (created_at, id) — ordem estável desc. */
+interface MessagePageCursor {
+  createdAt: string;
+  id: string;
+}
 /**
  * Janela de debounce (ms) para agregar múltiplas chamadas simultâneas de
  * hydrateConversationForMessage. Em rajadas de mensagens (campanhas, bots),
@@ -127,6 +145,31 @@ export function useRealtimeMessages() {
 
   const conversationsRef = useRef<ConversationWithMessages[]>([]);
 
+  // F4-02: guard de mount — fetchConversations/refetch são async e podem
+  // resolver depois do unmount (navegação de rota durante o fetch inicial).
+  // Nenhum setState roda com isMountedRef.current === false.
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // F4-01: estado de paginação por cursor. Os arrays acumulados alimentam o
+  // merge incremental em buildConversations a cada load-more; os cursors
+  // (updated_at+id / created_at+id) apontam para a última linha da página
+  // anterior e os flags hasMore*Ref indicam se ainda há páginas.
+  const loadedContactsRef = useRef<ConversationContact[]>([]);
+  const loadedMessagesRef = useRef<RealtimeMessage[]>([]);
+  const contactsCursorRef = useRef<ContactPageCursor | null>(null);
+  const messagesCursorRef = useRef<MessagePageCursor | null>(null);
+  const hasMoreContactsRef = useRef(false);
+  const hasMoreMessagesRef = useRef(false);
+  const loadMoreInFlightRef = useRef(false);
+  const [hasMoreConversations, setHasMoreConversations] = useState(false);
+  const [loadingMoreConversations, setLoadingMoreConversations] = useState(false);
+
   const {
     newMessageNotification,
     notifyAboutIncomingMessage,
@@ -168,6 +211,67 @@ export function useRealtimeMessages() {
     }
     return dedupeContacts(fetchedContacts);
   }, []);
+
+  // ── F4-01: páginas por cursor ────────────────────────────────────────────
+  // Contatos: página de CONTACTS_PAGE_SIZE ordenada por (updated_at desc,
+  // id desc) com cursor composto `updated_at + id` (tie-break estável para
+  // timestamps idênticos). Mensagens: página de MESSAGES_PAGE_SIZE ordenada
+  // por (created_at desc, id desc) com cursor composto `created_at + id`.
+  // O filtro usa or() para "antes do cursor OU (igual ao cursor com id menor)".
+  const fetchContactsPage = useCallback(async (cursor: ContactPageCursor | null) => {
+    let query = dbFrom('contacts')
+      .select('*')
+      .order('updated_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(CONTACTS_PAGE_SIZE);
+    if (cursor) {
+      query = query.or(
+        `and(updated_at.lt.${cursor.updatedAt}),and(updated_at.eq.${cursor.updatedAt},id.lt.${cursor.id})`
+      );
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []) as ConversationContact[];
+  }, []);
+
+  const fetchMessagesPage = useCallback(async (cursor: MessagePageCursor | null) => {
+    let query = dbFrom('messages')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(MESSAGES_PAGE_SIZE);
+    if (cursor) {
+      query = query.or(
+        `and(created_at.lt.${cursor.createdAt}),and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`
+      );
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    return ((data ?? []) as RealtimeMessage[]).map(normalizeMessage);
+  }, []);
+
+  const cursorFromContact = (c: ConversationContact): ContactPageCursor => ({
+    updatedAt: c.updated_at,
+    id: c.id,
+  });
+
+  const cursorFromMessage = (m: RealtimeMessage): MessagePageCursor => ({
+    createdAt: m.created_at,
+    id: m.id,
+  });
+
+  /** Hidrata contatos que apareceram em mensagens mas não estão na página atual de contatos. */
+  const hydrateMissingMessageContacts = useCallback(
+    async (messages: RealtimeMessage[], loadedContacts: ConversationContact[]) => {
+      const loadedIds = new Set(loadedContacts.map((c) => c.id));
+      const missingContactIds = getUniqueMessageContactIds(messages).filter(
+        (id) => !loadedIds.has(id)
+      );
+      if (missingContactIds.length === 0) return [] as ConversationContact[];
+      return fetchContactsByIds(missingContactIds);
+    },
+    [fetchContactsByIds]
+  );
 
   /**
    * Micro-buffer de 50ms para hydrateConversationForMessage.
@@ -366,44 +470,145 @@ export function useRealtimeMessages() {
     [commitConversations]
   );
 
+  // F4-01: fetch inicial com cursor — página 1 de contatos (updated_at+id) e
+  // de mensagens recentes (created_at+id) em PARALELO (antes: 500 contatos +
+  // 1000 mensagens em 2 round-trips sequenciais). F4-02: guard de mount em
+  // todos os setState após await (isMountedRef).
   const fetchConversations = useCallback(async () => {
+    if (!isMountedRef.current) return;
+    setLoading(true);
+    setError(null);
+    // Reset do estado de paginação (refetch = recarrega do zero).
+    loadedContactsRef.current = [];
+    loadedMessagesRef.current = [];
+    contactsCursorRef.current = null;
+    messagesCursorRef.current = null;
+    hasMoreContactsRef.current = false;
+    hasMoreMessagesRef.current = false;
+    setHasMoreConversations(false);
+
     try {
-      setLoading(true);
-      setError(null);
+      const [contactsPage, messagesPage] = await Promise.all([
+        fetchContactsPage(null),
+        fetchMessagesPage(null),
+      ]);
+      if (!isMountedRef.current) return;
 
-      const { data: seededContacts, error: contactsError } = await dbFrom('contacts')
-        .select('*')
-        .order('updated_at', { ascending: false })
-        .limit(SEEDED_CONTACT_LIMIT);
+      const normalizedMessages = messagesPage;
+      loadedContactsRef.current = dedupeContacts(contactsPage);
+      loadedMessagesRef.current = dedupeMessages(normalizedMessages);
 
-      if (contactsError) throw contactsError;
+      contactsCursorRef.current =
+        contactsPage.length === CONTACTS_PAGE_SIZE
+          ? cursorFromContact(contactsPage[contactsPage.length - 1])
+          : null;
+      messagesCursorRef.current =
+        normalizedMessages.length === MESSAGES_PAGE_SIZE
+          ? cursorFromMessage(normalizedMessages[normalizedMessages.length - 1])
+          : null;
+      hasMoreContactsRef.current = contactsCursorRef.current !== null;
+      hasMoreMessagesRef.current = messagesCursorRef.current !== null;
+      setHasMoreConversations(hasMoreContactsRef.current || hasMoreMessagesRef.current);
 
-      const { data: recentMessages, error: messagesError } = await dbFrom('messages')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(RECENT_MESSAGES_LIMIT);
-
-      if (messagesError) throw messagesError;
-
-      const normalizedMessages = ((recentMessages ?? []) as RealtimeMessage[]).map(
-        normalizeMessage
+      const messageContacts = await hydrateMissingMessageContacts(
+        normalizedMessages,
+        loadedContactsRef.current
       );
-      const seededContactRows = (seededContacts ?? []) as ConversationContact[];
-      const seededContactIds = new Set(seededContactRows.map((c) => c.id));
-      const missingContactIds = getUniqueMessageContactIds(normalizedMessages).filter(
-        (id) => !seededContactIds.has(id)
-      );
-      const messageContacts = await fetchContactsByIds(missingContactIds);
+      if (!isMountedRef.current) return;
+      if (messageContacts.length > 0) {
+        loadedContactsRef.current = dedupeContacts([
+          ...loadedContactsRef.current,
+          ...messageContacts,
+        ]);
+      }
+
       commitConversations(
-        buildConversations([...seededContactRows, ...messageContacts], normalizedMessages)
+        buildConversations(
+          [...contactsPage, ...messageContacts],
+          normalizedMessages
+        )
       );
     } catch (err) {
       log.error('Error fetching conversations:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch conversations');
+      if (isMountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch conversations');
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
     }
-  }, [commitConversations, fetchContactsByIds]);
+  }, [commitConversations, fetchContactsPage, fetchMessagesPage, hydrateMissingMessageContacts]);
+
+  // F4-01: load-more sob demanda (scroll infinito da sidebar) — busca as
+  // próximas páginas a partir dos cursors e faz o merge incremental com o
+  // estado acumulado, sem re-buscar as páginas anteriores.
+  const loadMoreConversations = useCallback(async () => {
+    if (loadMoreInFlightRef.current) return;
+    if (!hasMoreContactsRef.current && !hasMoreMessagesRef.current) return;
+    if (!isMountedRef.current) return;
+
+    loadMoreInFlightRef.current = true;
+    setLoadingMoreConversations(true);
+    try {
+      const [contactsPage, messagesPage] = await Promise.all([
+        hasMoreContactsRef.current ? fetchContactsPage(contactsCursorRef.current) : Promise.resolve([] as ConversationContact[]),
+        hasMoreMessagesRef.current ? fetchMessagesPage(messagesCursorRef.current) : Promise.resolve([] as RealtimeMessage[]),
+      ]);
+      if (!isMountedRef.current) return;
+
+      if (contactsPage.length > 0) {
+        loadedContactsRef.current = dedupeContacts([
+          ...loadedContactsRef.current,
+          ...contactsPage,
+        ]);
+        contactsCursorRef.current =
+          contactsPage.length === CONTACTS_PAGE_SIZE
+            ? cursorFromContact(contactsPage[contactsPage.length - 1])
+            : null;
+      } else {
+        contactsCursorRef.current = null;
+      }
+      hasMoreContactsRef.current = contactsCursorRef.current !== null;
+
+      if (messagesPage.length > 0) {
+        loadedMessagesRef.current = dedupeMessages([
+          ...loadedMessagesRef.current,
+          ...messagesPage,
+        ]);
+        messagesCursorRef.current =
+          messagesPage.length === MESSAGES_PAGE_SIZE
+            ? cursorFromMessage(messagesPage[messagesPage.length - 1])
+            : null;
+      } else {
+        messagesCursorRef.current = null;
+      }
+      hasMoreMessagesRef.current = messagesCursorRef.current !== null;
+      setHasMoreConversations(hasMoreContactsRef.current || hasMoreMessagesRef.current);
+
+      const messageContacts = await hydrateMissingMessageContacts(
+        messagesPage,
+        loadedContactsRef.current
+      );
+      if (!isMountedRef.current) return;
+      if (messageContacts.length > 0) {
+        loadedContactsRef.current = dedupeContacts([
+          ...loadedContactsRef.current,
+          ...messageContacts,
+        ]);
+      }
+
+      commitConversations(
+        buildConversations(loadedContactsRef.current, loadedMessagesRef.current)
+      );
+    } catch (err) {
+      log.error('Error loading more conversations:', err);
+      if (isMountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Failed to load more conversations');
+      }
+    } finally {
+      loadMoreInFlightRef.current = false;
+      if (isMountedRef.current) setLoadingMoreConversations(false);
+    }
+  }, [commitConversations, fetchContactsPage, fetchMessagesPage, hydrateMissingMessageContacts]);
 
   // ─── HANDLER REFS ──────────────────────────────────────────────────────────
   // Store event handlers in refs so the realtime subscription useEffect only
