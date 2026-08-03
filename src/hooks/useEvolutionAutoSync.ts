@@ -17,7 +17,13 @@ export function useEvolutionAutoSync(onSynced?: () => void) {
 
   const syncAll = async () => {
     try {
-      // 1. Get existing connections from Supabase
+      // F6-27: Stamp created_by so RLS can scope by auth user.
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const userId = user?.id ?? null;
+
+      // 1. Get existing connections from Supabase (RLS-filtered by auth user)
       const { data: existing, error } = await supabase
         .from('whatsapp_connections')
         .select('instance_id, phone_number');
@@ -82,6 +88,8 @@ export function useEvolutionAutoSync(onSynced?: () => void) {
             status,
             is_default: false,
             api_type: 'evolution',
+            // F6-27: explicit created_by so RLS correctly scopes the row per user.
+            created_by: userId,
           })
         );
 

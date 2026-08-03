@@ -7,6 +7,7 @@ import { whatsappConnectionService } from '../../services/whatsappConnectionServ
 import { getLogger } from '@/lib/logger';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
 import { queryKeys } from '@/services/api/queryKeys';
+import { validatePhone } from '@/lib/phoneUtils';
 import type { WhatsAppApiType, WhatsAppConnection } from '../types';
 
 const log = getLogger('useConnectionsActions');
@@ -55,6 +56,19 @@ export function useConnectionsActions(
         description:
           'O nome indica Meta Cloud API (Oficial) — api_type foi ajustado para "official".',
       });
+    }
+
+    // F6-29: require a valid phone number for Evolution (non-official) connections.
+    if (correctedApiType !== 'official') {
+      const phoneResult = validatePhone(newConnection.phone_number);
+      if (!phoneResult.valid) {
+        toast({
+          title: 'Número de telefone inválido',
+          description: phoneResult.error ?? 'Informe um número de telefone válido com DDD.',
+          variant: 'destructive',
+        });
+        return;
+      }
     }
 
     setIsCreating(true);
@@ -140,9 +154,26 @@ export function useConnectionsActions(
         // Evolution roteia por nome de instância — o UUID (instance_id) gera 404.
         const evoName = evolutionInstanceName(connection);
         if (evoName) {
-          await deleteInstance(evoName).catch((e) =>
-            log.warn('Failed to delete evolution instance:', e)
-          );
+          try {
+            await deleteInstance(evoName);
+          } catch (evoError: unknown) {
+            // F6-28: differentiate Evolution API errors — 404 means already gone (safe to
+            // continue cleaning up the DB row); any other failure means the instance is
+            // still live in Evolution and we must NOT delete the DB row, or we leave an
+            // orphan that keeps receiving webhooks with no handler.
+            const status = (evoError as { apiStatus?: number }).apiStatus;
+            if (status !== 404) {
+              const msg = evoError instanceof Error ? evoError.message : String(evoError);
+              log.error('Evolution API delete failed — aborting DB cleanup:', evoError);
+              toast({
+                title: 'Erro ao excluir instância no Evolution',
+                description: msg,
+                variant: 'destructive',
+              });
+              return;
+            }
+            log.info('Evolution instance already absent (404) — continuing DB cleanup:', evoName);
+          }
         }
         const { error } = await safeClient.from('whatsapp_connections', (q) =>
           q.delete().eq('id', connection.id)
