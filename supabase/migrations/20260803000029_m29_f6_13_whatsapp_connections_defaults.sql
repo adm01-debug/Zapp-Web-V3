@@ -60,6 +60,10 @@ BEGIN
     END IF;
 
     NEW.api_url := v_vault_url;
+  ELSIF (NEW.api_url IS NULL OR NEW.api_url = '') AND NEW.api_type = 'official' THEN
+    -- Cloud API (Meta Business API) connections do not use an Evolution API URL.
+    -- Set a sentinel so the NOT NULL constraint on api_url is satisfied.
+    NEW.api_url := 'official';
   END IF;
 
   -- api_key intentionally left NULL here — populated after Evolution

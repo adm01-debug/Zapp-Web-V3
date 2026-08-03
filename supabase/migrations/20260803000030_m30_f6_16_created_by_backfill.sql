@@ -78,7 +78,9 @@ DECLARE
   v_profile_id UUID;
 BEGIN
   -- ── api_url: auto-populate from vault when not provided ──────────────────
-  IF NEW.api_url IS NULL OR NEW.api_url = '' THEN
+  -- Exempt 'official' api_type (WhatsApp Cloud API / Meta Business API) — those
+  -- connections authenticate via Meta's infrastructure, not via an Evolution API URL.
+  IF (NEW.api_url IS NULL OR NEW.api_url = '') AND NEW.api_type IS DISTINCT FROM 'official' THEN
     BEGIN
       SELECT decrypted_secret
         INTO v_vault_url
@@ -92,11 +94,15 @@ BEGIN
     IF v_vault_url IS NULL OR v_vault_url = '' THEN
       RAISE EXCEPTION
         'whatsapp_connections: api_url not provided and vault secret ''evolution_api_url'' is not set. '
-        'Configure the secret before creating connections.'
+        'Configure the secret before creating connections. (For official/Cloud API connections, '
+        'pass api_type = ''official'' to bypass this check.)'
         USING ERRCODE = 'P0001';
     END IF;
 
     NEW.api_url := v_vault_url;
+  ELSIF (NEW.api_url IS NULL OR NEW.api_url = '') AND NEW.api_type = 'official' THEN
+    -- Cloud API connections do not use an Evolution API URL. Set sentinel to satisfy NOT NULL.
+    NEW.api_url := 'official';
   END IF;
 
   -- ── created_by: auto-set from profiles.id when caller omits it ───────────

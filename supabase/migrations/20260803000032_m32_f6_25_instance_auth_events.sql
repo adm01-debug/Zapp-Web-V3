@@ -82,16 +82,13 @@ BEGIN
     );
     RAISE NOTICE 'M32 ADDED: event_type TEXT NOT NULL DEFAULT ''auth.failure'' in schema %', v_phys_schema;
   ELSE
-    -- Idempotent path: column exists — still enforce the same DEFAULT + NOT NULL contract
+    -- Idempotent path: column exists — enforce DEFAULT only here.
+    -- NOT NULL is deferred to STEP 2.5 (after STEP 2 backfills existing NULLs).
     EXECUTE format(
       'ALTER TABLE %I.instance_auth_events ALTER COLUMN event_type SET DEFAULT ''auth.failure''',
       v_phys_schema
     );
-    EXECUTE format(
-      'ALTER TABLE %I.instance_auth_events ALTER COLUMN event_type SET NOT NULL',
-      v_phys_schema
-    );
-    RAISE NOTICE 'M32 SKIP: event_type column already exists (DEFAULT + NOT NULL enforced)';
+    RAISE NOTICE 'M32 SKIP: event_type column already exists (DEFAULT enforced; NOT NULL after backfill)';
   END IF;
 
   IF NOT v_has_success THEN
@@ -101,16 +98,13 @@ BEGIN
     );
     RAISE NOTICE 'M32 ADDED: success BOOLEAN NOT NULL DEFAULT false in schema %', v_phys_schema;
   ELSE
-    -- Idempotent path: column exists — still enforce the same DEFAULT + NOT NULL contract
+    -- Idempotent path: column exists — enforce DEFAULT only here.
+    -- NOT NULL is deferred to STEP 2.5 (after STEP 2 backfills existing NULLs).
     EXECUTE format(
       'ALTER TABLE %I.instance_auth_events ALTER COLUMN success SET DEFAULT false',
       v_phys_schema
     );
-    EXECUTE format(
-      'ALTER TABLE %I.instance_auth_events ALTER COLUMN success SET NOT NULL',
-      v_phys_schema
-    );
-    RAISE NOTICE 'M32 SKIP: success column already exists (DEFAULT + NOT NULL enforced)';
+    RAISE NOTICE 'M32 SKIP: success column already exists (DEFAULT enforced; NOT NULL after backfill)';
   END IF;
 END;
 $$;
@@ -174,6 +168,43 @@ BEGIN
       RAISE NOTICE 'M32 Backfill success: updated % rows to false', v_updated;
     END IF;
   END IF;
+END;
+$$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- STEP 2.5 — Enforce NOT NULL after backfill
+-- When the columns already existed (STEP 1 ELSE path), NOT NULL was deferred
+-- here so it runs only after STEP 2 has cleared all pre-existing NULLs.
+-- For the ADD COLUMN path (STEP 1 IF branch), the columns are already NOT NULL.
+-- ─────────────────────────────────────────────────────────────────────────────
+DO $$
+DECLARE
+  v_phys_schema TEXT;
+BEGIN
+  SELECT n.nspname
+    INTO v_phys_schema
+    FROM pg_catalog.pg_class c
+    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+   WHERE c.relname = 'instance_auth_events'
+     AND c.relkind = 'r'
+     AND n.nspname IN ('public', 'zapp')
+   ORDER BY (CASE WHEN n.nspname = 'public' THEN 1 ELSE 2 END)
+   LIMIT 1;
+
+  IF v_phys_schema IS NULL THEN
+    RAISE NOTICE 'M32 SKIP NOT NULL 2.5: table not found';
+    RETURN;
+  END IF;
+
+  EXECUTE format(
+    'ALTER TABLE %I.instance_auth_events ALTER COLUMN event_type SET NOT NULL',
+    v_phys_schema
+  );
+  EXECUTE format(
+    'ALTER TABLE %I.instance_auth_events ALTER COLUMN success SET NOT NULL',
+    v_phys_schema
+  );
+  RAISE NOTICE 'M32 NOT NULL 2.5: enforced on event_type and success (post-backfill) ✓';
 END;
 $$;
 

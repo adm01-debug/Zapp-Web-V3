@@ -96,6 +96,15 @@ BEGIN
       v_ok := FALSE;
     ELSE
       v_report := v_report || E'\n  [OK]   F6-17: policy WITH CHECK has no IS NULL escape hatch ✓';
+
+      -- Also verify the expression references the profiles table via user_id, confirming
+      -- the FK is resolved via the correct surrogate key path (not just uid() directly).
+      IF position('profiles' IN v_pol_check) = 0 OR position('user_id' IN v_pol_check) = 0 THEN
+        v_report := v_report || E'\n  [FAIL] F6-17: WITH CHECK does not reference profiles.user_id (got: ' || coalesce(v_pol_check,'<null>') || ')';
+        v_ok := FALSE;
+      ELSE
+        v_report := v_report || E'\n  [OK]   F6-17: WITH CHECK references profiles.user_id ✓';
+      END IF;
     END IF;
   END IF;
 
