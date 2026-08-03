@@ -135,13 +135,77 @@ const realtimeReconnectAfterMs = (tries: number): number =>
 // ---------------------------------------------------------------------------
 const SUPABASE_FETCH_TIMEOUT_MS = 12_000;
 
+// ---------------------------------------------------------------------------
+// Concurrency gate — evita rajadas de >6 requests simultâneos que sufocam
+// o backend self-hosted com 429 (Too Many Requests).
+//
+// Contexto: ao clicar num contato, 15+ hooks React disparam queries Supabase
+// em paralelo no mesmo microtask. Sem gate, o backend recebe 15+ requests
+// simultâneos → rate-limit (429) → retry → mais pressão → cascata de falhas.
+//
+// Estratégia: token bucket simples — até MAX_CONCURRENT requests em voo;
+// excedente espera em fila com dreno serial (1 por vez). Requests de auth
+// (/auth/v1/) nunca são enfileirados (precisam de latência mínima).
+//
+// Cleanup: beforeunload aborta todos os controllers pendentes para evitar
+// memory leak por fetches órfãos em SPAs com navegação rápida.
+// ---------------------------------------------------------------------------
+const MAX_CONCURRENT = 6; // requests simultâneos (não-auth)
+const CONCURRENT_DRAIN_DELAY_MS = 80; // ms entre cada dreno da fila
+
+let _inFlight = 0;
+let _queue: Array<() => void> = [];
+const _activeControllers = new Set<AbortController>();
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    for (const ctrl of _activeControllers) {
+      try { ctrl.abort(new DOMException('Page unload', 'AbortError')); } catch {}
+    }
+    _activeControllers.clear();
+    _queue = [];
+    _inFlight = 0;
+  }, { once: true });
+}
+
+function _acquireSlot(): Promise<void> {
+  if (_inFlight < MAX_CONCURRENT) {
+    _inFlight++;
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    _queue.push(resolve);
+  });
+}
+
+function _releaseSlot(): void {
+  _inFlight--;
+  // Drena UM item da fila por vez com atraso, para não recriar a rajada.
+  const next = _queue.shift();
+  if (next) {
+    setTimeout(() => {
+      _inFlight++;
+      next();
+    }, CONCURRENT_DRAIN_DELAY_MS);
+  }
+}
+
 const makeTimeoutReason = (): unknown =>
   typeof DOMException !== 'undefined'
     ? new DOMException('Supabase request timed out', 'TimeoutError')
     : Object.assign(new Error('Supabase request timed out'), { name: 'TimeoutError' });
 
-const boundedFetch: typeof fetch = (input, init) => {
+const boundedFetch: typeof fetch = async (input, init) => {
+  const requestUrl = getRequestUrl(input);
+
+  // Auth requests nunca passam pelo concurrency gate — precisam de
+  // latência mínima para bootstrap rápido.
+  if (!isAuthRequest(input)) {
+    await _acquireSlot();
+  }
+
   const controller = new AbortController();
+  _activeControllers.add(controller);
   const timeoutId = setTimeout(
     () => controller.abort(makeTimeoutReason()),
     SUPABASE_FETCH_TIMEOUT_MS,
@@ -164,7 +228,13 @@ const boundedFetch: typeof fetch = (input, init) => {
   // far worse than a 12s timeout on abandoned requests.
   const { signal: _callerSignal, ...restInit } = init ?? {};
 
+  // Track slot release on all exit paths (success, error, timeout).
+  const release = () => {
+    if (!isAuthRequest(input)) _releaseSlot();
+  };
+
   return fetch(input, { ...restInit, signal: controller.signal })
+    .then((res) => { release(); return res; })
     .catch((err: unknown) => {
       // Reporta APENAS falhas reais de conectividade: timeout do nosso
       // AbortController (TimeoutError) ou erro de rede (TypeError).
@@ -181,9 +251,13 @@ const boundedFetch: typeof fetch = (input, init) => {
           .then((m) => m.reportSupabaseRequestFailure(err))
           .catch(() => {});
       }
+      release();
       throw err;
     })
-    .finally(() => clearTimeout(timeoutId));
+    .finally(() => {
+      clearTimeout(timeoutId);
+      _activeControllers.delete(controller);
+    });
 };
 
 // ---------------------------------------------------------------------------

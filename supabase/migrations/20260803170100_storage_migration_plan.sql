@@ -1,0 +1,65 @@
+-- ============================================================================
+-- Storage Migration Plan: Lovable Cloud → Self-Hosted (AtomicaBR)
+-- ============================================================================
+-- Status: PENDENTE (CSP band-aid ativo como solução temporária)
+-- Data: 2026-08-03
+-- Contexto: PR #738 + commits subsequentes
+--
+-- PROBLEMA:
+--   1066 contatos em evo.evolution_contacts referenciam avatares no storage
+--   do Supabase Lovable Cloud (allrjhkpuscmgbsnmjlv.supabase.co).
+--   O storage self-hosted (supabase.atomicabr.com.br) tem 1353 avatares,
+--   mas NENHUM corresponde aos 1066 URLs antigos (nomes de arquivo diferentes).
+--   O projeto Lovable pode ser desligado a qualquer momento.
+--
+-- SOLUÇÃO ATUAL (band-aid):
+--   CSP img-src permite ambos os domínios. Avatares carregam do Lovable.
+--   Backup em zapp._backup_avatar_urls_20260803 (1066 linhas).
+--
+-- PLANO DE MIGRAÇÃO (quando viável):
+--   1. Tentar baixar avatares do Lovable Cloud (pode estar offline)
+--   2. Upload para bucket 'avatars' no self-hosted
+--   3. UPDATE em evo.evolution_contacts (SUBSTITUIR domínio)
+--   4. Verificar count(*) = 1066 com novo domínio
+--   5. Remover allrjhkpuscmgbsnmjlv.supabase.co do CSP (nginx + vercel + cspNonce)
+--   6. Dropar tabela de backup (zapp._backup_avatar_urls_20260803)
+-- ============================================================================
+
+-- PASSO 3: Migration SQL (NÃO EXECUTAR sem storage migration física!)
+-- ATENÇÃO: 34 triggers disparam por linha. Fazer em lotes de 100 com delay.
+
+-- Lote 1 de ~11 (100 por lote)
+-- UPDATE evo.evolution_contacts
+-- SET profile_picture_url = replace(profile_picture_url,
+--   'https://allrjhkpuscmgbsnmjlv.supabase.co',
+--   'https://supabase.atomicabr.com.br')
+-- WHERE id IN (
+--   SELECT id FROM evo.evolution_contacts
+--   WHERE profile_picture_url LIKE '%allrjhkpuscmgbsnmjlv%'
+--   LIMIT 100
+-- );
+
+-- PASSO 4: Verificação pós-migração
+-- SELECT
+--   count(*) FILTER (WHERE profile_picture_url LIKE '%allrjhkpuscmgbsnmjlv%') AS old_remaining,
+--   count(*) FILTER (WHERE profile_picture_url LIKE '%supabase.atomicabr.com.br%') AS new_migrated
+-- FROM evo.evolution_contacts;
+
+-- PASSO 6: Cleanup
+-- DROP TABLE IF EXISTS zapp._backup_avatar_urls_20260803;
+
+-- ============================================================================
+-- MONITORING: Query para detectar se Lovable storage caiu
+-- ============================================================================
+-- SELECT count(*) as contacts_at_risk
+-- FROM evo.evolution_contacts
+-- WHERE profile_picture_url LIKE '%allrjhkpuscmgbsnmjlv%';
+-- -- Se > 0 após migration: rollback ou investigar
+
+-- ============================================================================
+-- ROLLBACK (se necessário):
+-- ============================================================================
+-- UPDATE evo.evolution_contacts ec
+-- SET profile_picture_url = bk.profile_picture_url
+-- FROM zapp._backup_avatar_urls_20260803 bk
+-- WHERE ec.id = bk.id;
