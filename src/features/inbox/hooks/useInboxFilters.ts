@@ -148,7 +148,7 @@ export function useInboxFilters({
     } else if (scope === 'all' && !canSeeAll) {
       setScope(canSeeDept ? 'department' : 'mine');
     }
-  }, [permissionsLoading, hasPermission]); // Removed scope/showAll from deps — they cause the loop
+  }, [permissionsLoading, hasPermission, scope, showAll]); // scope/showAll needed for enforcement; ref prevents warn spam
 
   // Reset enforcement tracker when permissions change (e.g. role switch)
   useEffect(() => {
