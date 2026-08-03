@@ -41,43 +41,61 @@ DROP POLICY IF EXISTS wconn_insert_auth ON zapp.whatsapp_connections;
 -- `created_by = auth.uid()` evaluates to (created_by = NULL) which is always
 -- FALSE in SQL, so the INSERT is rejected — no explicit uid() IS NOT NULL check needed.
 -- ─────────────────────────────────────────────────────────────────────────────
+-- `created_by` FK references profiles.id (surrogate UUID), NOT auth.uid()
+-- (which returns the auth UUID stored in profiles.user_id). We resolve
+-- via a subquery so the comparison is type-compatible with the FK target.
 CREATE POLICY wconn_insert_auth
   ON zapp.whatsapp_connections
   FOR INSERT
   TO authenticated
-  WITH CHECK (created_by = auth.uid());
+  WITH CHECK (created_by = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid()));
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- VERIFICATION
 -- ─────────────────────────────────────────────────────────────────────────────
 DO $$
 DECLARE
-  v_pol_qual   TEXT;
-  v_ok         BOOLEAN := TRUE;
-  v_report     TEXT    := '';
+  v_pol_exists  BOOLEAN;
+  v_pol_check   TEXT;
+  v_ok          BOOLEAN := TRUE;
+  v_report      TEXT    := '';
 BEGIN
-  -- Policy must exist with the new definition (no IS NULL clause)
-  SELECT pc.qual
-    INTO v_pol_qual
-    FROM pg_catalog.pg_policy pc
-    JOIN pg_catalog.pg_class  cl ON cl.oid = pc.polrelid
-    JOIN pg_catalog.pg_namespace n ON n.oid = cl.relnamespace
-   WHERE n.nspname = 'zapp'
-     AND cl.relname = 'whatsapp_connections'
-     AND pc.polname = 'wconn_insert_auth';
+  -- For INSERT-only policies, pg_policy.qual (the USING expression) is always NULL.
+  -- The WITH CHECK expression lives in pg_policy.polwithcheck. Check existence first,
+  -- then read polwithcheck separately to avoid a false "NOT FOUND" when qual IS NULL.
 
-  IF v_pol_qual IS NULL THEN
+  SELECT EXISTS (
+    SELECT 1
+      FROM pg_catalog.pg_policy pc
+      JOIN pg_catalog.pg_class  cl ON cl.oid = pc.polrelid
+      JOIN pg_catalog.pg_namespace n ON n.oid = cl.relnamespace
+     WHERE n.nspname = 'zapp'
+       AND cl.relname = 'whatsapp_connections'
+       AND pc.polname = 'wconn_insert_auth'
+  ) INTO v_pol_exists;
+
+  IF NOT v_pol_exists THEN
     v_report := v_report || E'\n  [FAIL] F6-17: wconn_insert_auth policy NOT FOUND';
     v_ok := FALSE;
   ELSE
     v_report := v_report || E'\n  [OK]   F6-17: wconn_insert_auth policy exists ✓';
 
-    -- Confirm the policy qual does NOT contain 'IS NULL' (the old escape hatch)
-    IF position('IS NULL' IN upper(v_pol_qual)) > 0 THEN
-      v_report := v_report || E'\n  [FAIL] F6-17: policy qual still contains IS NULL escape hatch!';
+    -- Read the WITH CHECK expression (polwithcheck), not qual (which is NULL for INSERT policies)
+    SELECT pg_catalog.pg_get_expr(pc.polwithcheck, pc.polrelid)
+      INTO v_pol_check
+      FROM pg_catalog.pg_policy pc
+      JOIN pg_catalog.pg_class  cl ON cl.oid = pc.polrelid
+      JOIN pg_catalog.pg_namespace n ON n.oid = cl.relnamespace
+     WHERE n.nspname = 'zapp'
+       AND cl.relname = 'whatsapp_connections'
+       AND pc.polname = 'wconn_insert_auth';
+
+    -- Confirm the WITH CHECK expression does NOT contain 'IS NULL' (old escape hatch)
+    IF v_pol_check IS NULL OR position('IS NULL' IN upper(v_pol_check)) > 0 THEN
+      v_report := v_report || E'\n  [FAIL] F6-17: policy WITH CHECK still contains IS NULL escape hatch! (got: ' || coalesce(v_pol_check,'<null>') || ')';
       v_ok := FALSE;
     ELSE
-      v_report := v_report || E'\n  [OK]   F6-17: policy qual has no IS NULL escape hatch ✓';
+      v_report := v_report || E'\n  [OK]   F6-17: policy WITH CHECK has no IS NULL escape hatch ✓';
     END IF;
   END IF;
 

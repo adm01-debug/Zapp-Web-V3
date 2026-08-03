@@ -37,7 +37,10 @@ DECLARE
   v_vault_url TEXT;
 BEGIN
   -- Auto-populate api_url only when not explicitly provided by caller.
-  IF NEW.api_url IS NULL OR NEW.api_url = '' THEN
+  -- Exempt 'official' api_type (WhatsApp Cloud API / Meta Business API) — those
+  -- connections authenticate via Meta's infrastructure, not via an Evolution API URL,
+  -- so the evolution_api_url vault secret is irrelevant and must not block the INSERT.
+  IF (NEW.api_url IS NULL OR NEW.api_url = '') AND NEW.api_type IS DISTINCT FROM 'official' THEN
     BEGIN
       SELECT decrypted_secret
         INTO v_vault_url
@@ -51,7 +54,8 @@ BEGIN
     IF v_vault_url IS NULL OR v_vault_url = '' THEN
       RAISE EXCEPTION
         'whatsapp_connections: api_url not provided and vault secret ''evolution_api_url'' is not set. '
-        'Configure the secret before creating connections.'
+        'Configure the secret before creating connections. (For official/Cloud API connections, '
+        'pass api_type = ''official'' to bypass this check.)'
         USING ERRCODE = 'P0001';
     END IF;
 

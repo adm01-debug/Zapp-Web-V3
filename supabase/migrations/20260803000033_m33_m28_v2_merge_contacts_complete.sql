@@ -226,19 +226,29 @@ BEGIN
   END IF;
 
   -- ── Merge primary contact fields with full secondary fallbacks ───────────────
+  -- COALESCE: primary value wins; secondary fills any NULL fields.
   UPDATE evo.evolution_contacts
      SET push_name       = COALESCE(v_primary.push_name,       v_secondary.push_name),
          profile_pic_url = COALESCE(v_primary.profile_pic_url, v_secondary.profile_pic_url),
+         full_name       = COALESCE(v_primary.full_name,       v_secondary.full_name),
+         phone_number    = COALESCE(v_primary.phone_number,    v_secondary.phone_number),
+         email           = COALESCE(v_primary.email,           v_secondary.email),
+         company         = COALESCE(v_primary.company,         v_secondary.company),
+         lead_status     = COALESCE(v_primary.lead_status,     v_secondary.lead_status),
          lgpd_consent_at = v_merged_consent,
          lgpd_opt_out_at = v_merged_opt_out,
          updated_at      = now()
    WHERE id = p_primary_id;
 
-  -- ── Set merge traceability on primary ────────────────────────────────────────
+  -- ── Set merge traceability on SECONDARY (not primary) ────────────────────────
+  -- secondary.merge_source_id = primary_id: records which contact the secondary was
+  -- merged INTO. Primary keeps merge_source_id = NULL so it remains eligible for
+  -- future auto-merge rounds. Setting it on primary (pointing to secondary) would
+  -- be backwards and would incorrectly exclude the primary from future merges.
   BEGIN
     UPDATE evo.evolution_contacts
-       SET merge_source_id = p_secondary_id
-     WHERE id = p_primary_id;
+       SET merge_source_id = p_primary_id
+     WHERE id = p_secondary_id;
   EXCEPTION WHEN undefined_column THEN
     NULL; -- merge_source_id column may not exist in all environments
   END;
@@ -260,7 +270,7 @@ BEGIN
   -- Tasks (conditional — table may not exist in all environments)
   BEGIN
     EXECUTE
-      'UPDATE zapp.tasks SET contact_id = $1 WHERE contact_id = $2'
+      'UPDATE evo.evolution_tasks SET contact_id = $1 WHERE contact_id = $2'
       USING p_primary_id, p_secondary_id;
     GET DIAGNOSTICS v_tasks_relinked = ROW_COUNT;
   EXCEPTION WHEN undefined_table OR undefined_column THEN
@@ -270,7 +280,7 @@ BEGIN
   -- Sales deals (conditional)
   BEGIN
     EXECUTE
-      'UPDATE zapp.sales_deals SET contact_id = $1 WHERE contact_id = $2'
+      'UPDATE evo.evolution_deals SET contact_id = $1 WHERE contact_id = $2'
       USING p_primary_id, p_secondary_id;
     GET DIAGNOSTICS v_deals_relinked = ROW_COUNT;
   EXCEPTION WHEN undefined_table OR undefined_column THEN
@@ -278,7 +288,17 @@ BEGIN
   END;
 
   -- Contact tags (conditional)
+  -- Must DELETE duplicate tags before UPDATE to avoid UNIQUE(contact_id, tag_id) violation.
+  -- If primary already has tag X and secondary also has tag X, the UPDATE would produce two
+  -- rows with (primary_id, X) which violates the unique constraint. Delete the secondary's
+  -- duplicate entries first, then re-home the remaining non-duplicate tags.
   BEGIN
+    EXECUTE
+      'DELETE FROM zapp.contact_tags
+        WHERE contact_id = $2
+          AND tag_id IN (SELECT tag_id FROM zapp.contact_tags WHERE contact_id = $1)'
+      USING p_primary_id, p_secondary_id;
+
     EXECUTE
       'UPDATE zapp.contact_tags SET contact_id = $1 WHERE contact_id = $2'
       USING p_primary_id, p_secondary_id;
@@ -333,10 +353,13 @@ GRANT  EXECUTE ON FUNCTION zapp.merge_contacts(uuid, uuid, boolean) TO authentic
 -- Callers passing a jsonb third argument (e.g. '{"dry_run":true}') are forwarded
 -- to the canonical boolean overload.
 
+-- No DEFAULT on p_options: having DEFAULT on BOTH the boolean and jsonb overloads'
+-- third parameter makes 2-argument calls ambiguous (PostgreSQL cannot resolve which
+-- overload to use). Without DEFAULT here, 2-arg calls resolve to the boolean overload.
 CREATE FUNCTION zapp.merge_contacts(
   p_primary_id   uuid,
   p_secondary_id uuid,
-  p_options      jsonb DEFAULT '{}'::jsonb
+  p_options      jsonb
 )
  RETURNS jsonb
  LANGUAGE plpgsql

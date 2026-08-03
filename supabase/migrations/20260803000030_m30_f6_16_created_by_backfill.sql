@@ -32,7 +32,9 @@ DECLARE
   v_owner_uid UUID;
   v_updated   INTEGER;
 BEGIN
-  SELECT user_id
+  -- FK `created_by` references profiles.id (surrogate UUID), NOT profiles.user_id (auth UUID).
+  -- We select `id` here so the FK value is compatible.
+  SELECT id
     INTO v_owner_uid
     FROM zapp.profiles
    WHERE user_id IS NOT NULL
@@ -72,7 +74,8 @@ CREATE OR REPLACE FUNCTION zapp.fn_whatsapp_connections_auto_populate()
  SET search_path TO 'pg_catalog', 'zapp', 'vault', 'public'
 AS $fn$
 DECLARE
-  v_vault_url TEXT;
+  v_vault_url  TEXT;
+  v_profile_id UUID;
 BEGIN
   -- ── api_url: auto-populate from vault when not provided ──────────────────
   IF NEW.api_url IS NULL OR NEW.api_url = '' THEN
@@ -96,11 +99,17 @@ BEGIN
     NEW.api_url := v_vault_url;
   END IF;
 
-  -- ── created_by: auto-set from auth.uid() when caller omits it ─────────────
-  -- auth.uid() returns NULL for service_role / cron callers — acceptable;
-  -- authenticated UI sessions always have a valid uid().
+  -- ── created_by: auto-set from profiles.id when caller omits it ───────────
+  -- FK `created_by` references profiles.id (surrogate UUID), NOT auth.uid()
+  -- (which is an auth UUID stored in profiles.user_id). We resolve via the
+  -- profiles table. Returns NULL for service_role/cron callers without an
+  -- auth context — that is acceptable per the design note in this migration.
   IF NEW.created_by IS NULL THEN
-    NEW.created_by := auth.uid();
+    SELECT id INTO v_profile_id
+      FROM zapp.profiles
+     WHERE user_id = auth.uid()
+     LIMIT 1;
+    NEW.created_by := v_profile_id;
   END IF;
 
   -- api_key intentionally left NULL here — populated after Evolution

@@ -11,11 +11,13 @@
 --   — it never sets event_type or success. These columns exist in the schema but receive no data.
 --
 -- Fix (DB side):
---   1. Add event_type TEXT and success BOOLEAN columns IF NOT EXISTS (idempotent).
---   2. Backfill existing NULL rows: event_type = 'auth.failure', success = false
---      (all existing rows are failure events — the producer is exclusively for failures).
---   3. Set DEFAULT values so future inserts that still omit these fields get sensible defaults.
---   4. Add CHECK constraint on event_type (allowed values match RPC filter expectations).
+--   1. Detect the physical table location once (public or zapp) and propagate.
+--   2. Add event_type TEXT and success BOOLEAN columns IF NOT EXISTS (idempotent).
+--      For idempotent path (column already exists): also enforce DEFAULT + NOT NULL.
+--   3. Backfill existing NULL rows: event_type = 'auth.failure', success = false.
+--   4. Add CHECK constraint on event_type (allowed values).
+--   5. If physical table is in public, recreate the zapp.instance_auth_events VIEW
+--      (CREATE OR REPLACE VIEW does NOT expose newly-added base-table columns automatically).
 --
 -- Fix (TypeScript side):
 --   The producer in _shared/instance-pause.ts is patched to include event_type and success
@@ -29,68 +31,86 @@
 BEGIN;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- STEP 1 — Add missing columns to the physical table
--- The physical table lives in public.instance_auth_events.
+-- STEP 1 — Detect physical table schema and add missing columns
+-- The physical table lives in public.instance_auth_events (or possibly zapp).
 -- zapp.instance_auth_events is a VIEW proxy (WITH security_invoker=on) pointing to it.
--- We alter the physical table so the VIEW picks up the new columns automatically.
+-- We ALTER the physical table so the VIEW picks up the new columns after step 5.
 -- ─────────────────────────────────────────────────────────────────────────────
 DO $$
 DECLARE
+  v_phys_schema    TEXT;
   v_has_event_type BOOLEAN;
   v_has_success    BOOLEAN;
-  v_has_tbl        BOOLEAN;
 BEGIN
-  -- Detect whether the physical table exists (it may live in public or zapp)
-  SELECT EXISTS (
-    SELECT 1 FROM pg_catalog.pg_class c
+  -- Detect the physical table (relkind='r') — check public first, then zapp
+  SELECT n.nspname
+    INTO v_phys_schema
+    FROM pg_catalog.pg_class c
     JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-    WHERE n.nspname = 'public' AND c.relname = 'instance_auth_events' AND c.relkind = 'r'
-  ) INTO v_has_tbl;
+   WHERE c.relname = 'instance_auth_events'
+     AND c.relkind = 'r'  -- regular table only (excludes views, partitions, etc.)
+     AND n.nspname IN ('public', 'zapp')
+   ORDER BY (CASE WHEN n.nspname = 'public' THEN 1 ELSE 2 END)
+   LIMIT 1;
 
-  IF NOT v_has_tbl THEN
-    -- Try zapp schema as fallback
-    SELECT EXISTS (
-      SELECT 1 FROM pg_catalog.pg_class c
-      JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-      WHERE n.nspname = 'zapp' AND c.relname = 'instance_auth_events' AND c.relkind = 'r'
-    ) INTO v_has_tbl;
-
-    IF NOT v_has_tbl THEN
-      RAISE NOTICE 'M32 SKIP: instance_auth_events physical table not found in public or zapp';
-      RETURN;
-    END IF;
+  IF v_phys_schema IS NULL THEN
+    RAISE NOTICE 'M32 SKIP: instance_auth_events physical table not found in public or zapp — nothing to do';
+    RETURN;
   END IF;
 
-  -- Check existing columns
+  RAISE NOTICE 'M32: physical table found in schema %', v_phys_schema;
+
+  -- Check which columns already exist in the physical table
   SELECT EXISTS (
     SELECT 1 FROM information_schema.columns
-     WHERE table_schema IN ('public', 'zapp')
-       AND table_name = 'instance_auth_events'
-       AND column_name = 'event_type'
+     WHERE table_schema = v_phys_schema
+       AND table_name   = 'instance_auth_events'
+       AND column_name  = 'event_type'
   ) INTO v_has_event_type;
 
   SELECT EXISTS (
     SELECT 1 FROM information_schema.columns
-     WHERE table_schema IN ('public', 'zapp')
-       AND table_name = 'instance_auth_events'
-       AND column_name = 'success'
+     WHERE table_schema = v_phys_schema
+       AND table_name   = 'instance_auth_events'
+       AND column_name  = 'success'
   ) INTO v_has_success;
 
   IF NOT v_has_event_type THEN
-    -- Add with a DEFAULT so existing rows and future omitted inserts still work
-    ALTER TABLE public.instance_auth_events
-      ADD COLUMN event_type TEXT NOT NULL DEFAULT 'auth.failure';
-    RAISE NOTICE 'M32 ADDED: event_type TEXT NOT NULL DEFAULT ''auth.failure''';
+    EXECUTE format(
+      'ALTER TABLE %I.instance_auth_events ADD COLUMN event_type TEXT NOT NULL DEFAULT ''auth.failure''',
+      v_phys_schema
+    );
+    RAISE NOTICE 'M32 ADDED: event_type TEXT NOT NULL DEFAULT ''auth.failure'' in schema %', v_phys_schema;
   ELSE
-    RAISE NOTICE 'M32 SKIP: event_type column already exists';
+    -- Idempotent path: column exists — still enforce the same DEFAULT + NOT NULL contract
+    EXECUTE format(
+      'ALTER TABLE %I.instance_auth_events ALTER COLUMN event_type SET DEFAULT ''auth.failure''',
+      v_phys_schema
+    );
+    EXECUTE format(
+      'ALTER TABLE %I.instance_auth_events ALTER COLUMN event_type SET NOT NULL',
+      v_phys_schema
+    );
+    RAISE NOTICE 'M32 SKIP: event_type column already exists (DEFAULT + NOT NULL enforced)';
   END IF;
 
   IF NOT v_has_success THEN
-    ALTER TABLE public.instance_auth_events
-      ADD COLUMN success BOOLEAN NOT NULL DEFAULT false;
-    RAISE NOTICE 'M32 ADDED: success BOOLEAN NOT NULL DEFAULT false';
+    EXECUTE format(
+      'ALTER TABLE %I.instance_auth_events ADD COLUMN success BOOLEAN NOT NULL DEFAULT false',
+      v_phys_schema
+    );
+    RAISE NOTICE 'M32 ADDED: success BOOLEAN NOT NULL DEFAULT false in schema %', v_phys_schema;
   ELSE
-    RAISE NOTICE 'M32 SKIP: success column already exists';
+    -- Idempotent path: column exists — still enforce the same DEFAULT + NOT NULL contract
+    EXECUTE format(
+      'ALTER TABLE %I.instance_auth_events ALTER COLUMN success SET DEFAULT false',
+      v_phys_schema
+    );
+    EXECUTE format(
+      'ALTER TABLE %I.instance_auth_events ALTER COLUMN success SET NOT NULL',
+      v_phys_schema
+    );
+    RAISE NOTICE 'M32 SKIP: success column already exists (DEFAULT + NOT NULL enforced)';
   END IF;
 END;
 $$;
@@ -103,19 +123,36 @@ $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 DO $$
 DECLARE
-  v_updated INTEGER;
+  v_phys_schema TEXT;
+  v_updated     INTEGER;
 BEGIN
-  -- Only run if the column exists (in case STEP 1 was a no-op because it already existed
-  -- with non-null values). Backfill only rows where event_type is still NULL.
+  SELECT n.nspname
+    INTO v_phys_schema
+    FROM pg_catalog.pg_class c
+    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+   WHERE c.relname = 'instance_auth_events'
+     AND c.relkind = 'r'
+     AND n.nspname IN ('public', 'zapp')
+   ORDER BY (CASE WHEN n.nspname = 'public' THEN 1 ELSE 2 END)
+   LIMIT 1;
+
+  IF v_phys_schema IS NULL THEN
+    RAISE NOTICE 'M32 SKIP backfill: table not found';
+    RETURN;
+  END IF;
+
+  -- Only backfill rows where event_type is still NULL (the column may have a DEFAULT now,
+  -- but historical rows inserted before this migration will have NULL).
   IF EXISTS (
     SELECT 1 FROM information_schema.columns
-     WHERE table_schema IN ('public', 'zapp')
-       AND table_name = 'instance_auth_events'
-       AND column_name = 'event_type'
+     WHERE table_schema = v_phys_schema
+       AND table_name   = 'instance_auth_events'
+       AND column_name  = 'event_type'
   ) THEN
-    UPDATE public.instance_auth_events
-       SET event_type = 'auth.failure'
-     WHERE event_type IS NULL;
+    EXECUTE format(
+      'UPDATE %I.instance_auth_events SET event_type = ''auth.failure'' WHERE event_type IS NULL',
+      v_phys_schema
+    );
     GET DIAGNOSTICS v_updated = ROW_COUNT;
     IF v_updated > 0 THEN
       RAISE NOTICE 'M32 Backfill event_type: updated % rows to ''auth.failure''', v_updated;
@@ -124,13 +161,14 @@ BEGIN
 
   IF EXISTS (
     SELECT 1 FROM information_schema.columns
-     WHERE table_schema IN ('public', 'zapp')
-       AND table_name = 'instance_auth_events'
-       AND column_name = 'success'
+     WHERE table_schema = v_phys_schema
+       AND table_name   = 'instance_auth_events'
+       AND column_name  = 'success'
   ) THEN
-    UPDATE public.instance_auth_events
-       SET success = false
-     WHERE success IS NULL;
+    EXECUTE format(
+      'UPDATE %I.instance_auth_events SET success = false WHERE success IS NULL',
+      v_phys_schema
+    );
     GET DIAGNOSTICS v_updated = ROW_COUNT;
     IF v_updated > 0 THEN
       RAISE NOTICE 'M32 Backfill success: updated % rows to false', v_updated;
@@ -144,22 +182,79 @@ $$;
 -- Allowed values mirror what the RPC trend functions filter on.
 -- ─────────────────────────────────────────────────────────────────────────────
 DO $$
+DECLARE
+  v_phys_schema TEXT;
 BEGIN
+  SELECT n.nspname
+    INTO v_phys_schema
+    FROM pg_catalog.pg_class c
+    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+   WHERE c.relname = 'instance_auth_events'
+     AND c.relkind = 'r'
+     AND n.nspname IN ('public', 'zapp')
+   ORDER BY (CASE WHEN n.nspname = 'public' THEN 1 ELSE 2 END)
+   LIMIT 1;
+
+  IF v_phys_schema IS NULL THEN
+    RAISE NOTICE 'M32 SKIP constraint: table not found';
+    RETURN;
+  END IF;
+
   IF NOT EXISTS (
-    SELECT 1 FROM pg_catalog.pg_constraint c
-    JOIN pg_catalog.pg_class cl ON cl.oid = c.conrelid
+    SELECT 1 FROM pg_catalog.pg_constraint ct
+    JOIN pg_catalog.pg_class cl ON cl.oid = ct.conrelid
     JOIN pg_catalog.pg_namespace n ON n.oid = cl.relnamespace
-    WHERE n.nspname = 'public'
+    WHERE n.nspname = v_phys_schema
       AND cl.relname = 'instance_auth_events'
-      AND c.contype = 'c'
-      AND c.conname = 'chk_iae_event_type_values'
+      AND ct.contype = 'c'
+      AND ct.conname = 'chk_iae_event_type_values'
   ) THEN
-    ALTER TABLE public.instance_auth_events
-      ADD CONSTRAINT chk_iae_event_type_values
-        CHECK (event_type IN ('auth.success', 'auth.failure', 'auth.warning'));
-    RAISE NOTICE 'M32 CONSTRAINT: chk_iae_event_type_values added';
+    EXECUTE format(
+      $q$ALTER TABLE %I.instance_auth_events
+           ADD CONSTRAINT chk_iae_event_type_values
+             CHECK (event_type IN ('auth.success', 'auth.failure', 'auth.warning'))$q$,
+      v_phys_schema
+    );
+    RAISE NOTICE 'M32 CONSTRAINT: chk_iae_event_type_values added on %.instance_auth_events', v_phys_schema;
   ELSE
     RAISE NOTICE 'M32 SKIP: chk_iae_event_type_values already exists';
+  END IF;
+END;
+$$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- STEP 4 — Recreate the VIEW in zapp schema if physical table is in public
+-- Adding columns to the base table does NOT automatically expose them through
+-- an existing CREATE VIEW statement. We must CREATE OR REPLACE VIEW to pick up
+-- the new columns via the SELECT * expansion.
+-- ─────────────────────────────────────────────────────────────────────────────
+DO $$
+DECLARE
+  v_phys_schema TEXT;
+BEGIN
+  SELECT n.nspname
+    INTO v_phys_schema
+    FROM pg_catalog.pg_class c
+    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+   WHERE c.relname = 'instance_auth_events'
+     AND c.relkind = 'r'
+     AND n.nspname IN ('public', 'zapp')
+   ORDER BY (CASE WHEN n.nspname = 'public' THEN 1 ELSE 2 END)
+   LIMIT 1;
+
+  -- Only recreate the view when the physical table is NOT already in zapp.
+  -- If the table is in zapp directly, `zapp.instance_auth_events` IS the table
+  -- and there is no proxy VIEW to refresh.
+  IF v_phys_schema IS NOT NULL AND v_phys_schema != 'zapp' THEN
+    -- Recreate with security_invoker=on so the caller's RLS policies apply
+    EXECUTE $view$
+      CREATE OR REPLACE VIEW zapp.instance_auth_events
+        WITH (security_invoker = on) AS
+        SELECT * FROM public.instance_auth_events
+    $view$;
+    RAISE NOTICE 'M32 VIEW: zapp.instance_auth_events recreated to expose new columns (source: public)';
+  ELSE
+    RAISE NOTICE 'M32 VIEW SKIP: physical table is in zapp — no proxy view to refresh';
   END IF;
 END;
 $$;
@@ -169,6 +264,7 @@ $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 DO $$
 DECLARE
+  v_phys_schema    TEXT;
   v_has_event_type BOOLEAN;
   v_has_success    BOOLEAN;
   v_null_et        INTEGER;
@@ -176,26 +272,45 @@ DECLARE
   v_ok             BOOLEAN := TRUE;
   v_report         TEXT    := '';
 BEGIN
+  SELECT n.nspname
+    INTO v_phys_schema
+    FROM pg_catalog.pg_class c
+    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+   WHERE c.relname = 'instance_auth_events'
+     AND c.relkind = 'r'
+     AND n.nspname IN ('public', 'zapp')
+   ORDER BY (CASE WHEN n.nspname = 'public' THEN 1 ELSE 2 END)
+   LIMIT 1;
+
+  IF v_phys_schema IS NULL THEN
+    v_report := v_report || E'\n  [WARN] F6-25: physical table not found — skipping verification (empty DB)';
+    RAISE NOTICE E'M32 Verification:%', v_report;
+    RETURN;
+  END IF;
+
+  v_report := v_report || E'\n  [OK]   F6-25: physical table found in schema: ' || v_phys_schema;
+
   SELECT EXISTS (
     SELECT 1 FROM information_schema.columns
-     WHERE table_schema IN ('public', 'zapp')
-       AND table_name = 'instance_auth_events'
-       AND column_name = 'event_type'
+     WHERE table_schema = v_phys_schema
+       AND table_name   = 'instance_auth_events'
+       AND column_name  = 'event_type'
   ) INTO v_has_event_type;
 
   SELECT EXISTS (
     SELECT 1 FROM information_schema.columns
-     WHERE table_schema IN ('public', 'zapp')
-       AND table_name = 'instance_auth_events'
-       AND column_name = 'success'
+     WHERE table_schema = v_phys_schema
+       AND table_name   = 'instance_auth_events'
+       AND column_name  = 'success'
   ) INTO v_has_success;
 
   IF v_has_event_type THEN
     v_report := v_report || E'\n  [OK]   F6-25: event_type column exists ✓';
 
-    SELECT COUNT(*) INTO v_null_et
-      FROM public.instance_auth_events
-     WHERE event_type IS NULL;
+    EXECUTE format(
+      'SELECT COUNT(*) FROM %I.instance_auth_events WHERE event_type IS NULL',
+      v_phys_schema
+    ) INTO v_null_et;
 
     IF v_null_et = 0 THEN
       v_report := v_report || E'\n  [OK]   F6-25: 0 rows with event_type IS NULL ✓';
@@ -211,9 +326,10 @@ BEGIN
   IF v_has_success THEN
     v_report := v_report || E'\n  [OK]   F6-25: success column exists ✓';
 
-    SELECT COUNT(*) INTO v_null_suc
-      FROM public.instance_auth_events
-     WHERE success IS NULL;
+    EXECUTE format(
+      'SELECT COUNT(*) FROM %I.instance_auth_events WHERE success IS NULL',
+      v_phys_schema
+    ) INTO v_null_suc;
 
     IF v_null_suc = 0 THEN
       v_report := v_report || E'\n  [OK]   F6-25: 0 rows with success IS NULL ✓';
