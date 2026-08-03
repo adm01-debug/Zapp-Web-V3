@@ -109,6 +109,9 @@ out/
 .vite/
 *.tsbuildinfo
 
+# Deno+Vite shadow cache (regenerado por bun install, causa crash do esbuild no Windows)
+node_modules/.deno/
+
 # ====================
 # TESTES
 # ====================
