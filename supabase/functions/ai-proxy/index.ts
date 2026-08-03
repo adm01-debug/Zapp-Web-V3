@@ -10,6 +10,11 @@ import { callLovableAI, callOpenAICompatible, callCustomWebhook, withRetry } fro
 import { requireUser } from "../_shared/auth.ts";
 import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts";
 
+/** Lovable AI gateway key — LOVABLE_API_KEY with AI_GATEWAY_KEY fallback (rename-safe). */
+function getLovableApiKey(): string {
+  return Deno.env.get('LOVABLE_API_KEY') || Deno.env.get('AI_GATEWAY_KEY') || requireEnv('LOVABLE_API_KEY');
+}
+
 const AiToolFunctionSchema = z.object({ name: z.string().min(1).max(64), description: z.string().max(1000).optional(), parameters: z.record(z.unknown()).optional() });
 const AiToolSchema = z.object({ type: z.literal('function'), function: AiToolFunctionSchema });
 const AiToolChoiceSchema = z.union([z.enum(['none', 'auto', 'required']), z.object({ type: z.literal('function'), function: z.object({ name: z.string().min(1).max(64) }) })]);
@@ -33,7 +38,7 @@ function injectSystemPrompt(messages: Array<{ role: string; content: string }>, 
 
 function dispatchProvider(providerType: string, provider: AiProvider | null, finalMessages: Array<{ role: string; content: string }>, tools: unknown, toolChoice: unknown, stream: boolean, clientModel?: string): () => Promise<Response> {
   switch (providerType) {
-    case 'lovable_ai': { const apiKey = requireEnv("LOVABLE_API_KEY"); return () => callLovableAI({ messages: finalMessages, apiKey, model: clientModel || provider?.model || undefined, tools, toolChoice, stream }); }
+    case 'lovable_ai': { const apiKey = getLovableApiKey(); return () => callLovableAI({ messages: finalMessages, apiKey, model: clientModel || provider?.model || undefined, tools, toolChoice, stream }); }
     case 'openai_compatible': case 'google_gemini': {
       if (!provider?.api_endpoint) throw new Error("Endpoint da API n\u00e3o configurado para este provedor.");
       const secretName = provider.api_key_secret_name;
@@ -47,7 +52,7 @@ function dispatchProvider(providerType: string, provider: AiProvider | null, fin
       const apiKey2 = secretName2 ? Deno.env.get(secretName2) : undefined;
       return () => callCustomWebhook({ endpoint: provider.api_endpoint!, apiKey: apiKey2, messages: finalMessages, config: provider.config || {} });
     }
-    default: { const apiKey = requireEnv("LOVABLE_API_KEY"); return () => callLovableAI({ messages: finalMessages, apiKey, tools, toolChoice, stream }); }
+    default: { const apiKey = getLovableApiKey(); return () => callLovableAI({ messages: finalMessages, apiKey, tools, toolChoice, stream }); }
   }
 }
 
@@ -84,7 +89,7 @@ Deno.serve(async (req) => {
     } catch (dispatchErr) {
       if (providerType !== 'lovable_ai') {
         log.warn("Provider dispatch failed, falling back to Lovable AI", { provider: providerName, error: dispatchErr instanceof Error ? dispatchErr.message : String(dispatchErr) });
-        const fallbackKey = requireEnv("LOVABLE_API_KEY");
+        const fallbackKey = getLovableApiKey();
         response = await callLovableAI({ messages: finalMessages, apiKey: fallbackKey, tools, toolChoice: tool_choice, stream });
         usedFallback = true;
       } else { throw dispatchErr; }
@@ -95,7 +100,7 @@ Deno.serve(async (req) => {
       log.warn("Provider returned error, falling back to Lovable AI", { status: response.status, provider: providerName, error: errText.slice(0, 200) });
       if (response.status === 429) return errorResponse("Limite de requisi\u00e7\u00f5es excedido. Tente novamente.", 429, req);
       if (response.status === 402) return errorResponse("Cr\u00e9ditos insuficientes. Adicione cr\u00e9ditos.", 402, req);
-      const fallbackKey = requireEnv("LOVABLE_API_KEY");
+      const fallbackKey = getLovableApiKey();
       response = await callLovableAI({ messages: finalMessages, apiKey: fallbackKey, tools, toolChoice: tool_choice, stream });
       usedFallback = true;
       logAiUsage({ functionName: 'ai-proxy', userId, model: provider?.model || null, durationMs, status: 'fallback', errorMessage: `${providerName}: HTTP error \u2192 fallback Lovable AI`, metadata: { provider_id: provider?.id, provider_type: providerType, fallback: true } });
