@@ -10,7 +10,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
-    "typecheck": "bun run types:check && tsc --noEmit -p tsconfig.app.json",
+    "typecheck": "bash scripts/typecheck.sh",
     "types:gen": "bash scripts/validate-supabase-types.sh",
     "types:check": "bash scripts/validate-supabase-types.sh --check --summary",
     "gen:types:zapp": "node scripts/gen-types-zapp.mjs",
