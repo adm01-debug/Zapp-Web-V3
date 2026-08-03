@@ -16,7 +16,7 @@ jobs:
     env:
       GH_PUSH_TOKEN: ${{ secrets.GH_TOKEN_ACTIONS }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.GH_TOKEN_ACTIONS || secrets.GITHUB_TOKEN }}
       - name: Tighten baseline (down-only nos escopos hard)
