@@ -39,8 +39,23 @@ export function useConnectionsActions(
       return;
     }
 
+    // F6-15: auto-correct api_type when name signals Meta Cloud API
+    const nameSignalsCloudApi =
+      /cloud api|oficial/i.test(newConnection.name);
+    const correctedApiType: WhatsAppApiType =
+      nameSignalsCloudApi && newConnection.api_type !== 'official'
+        ? 'official'
+        : newConnection.api_type;
+    if (nameSignalsCloudApi && newConnection.api_type !== 'official') {
+      toast({
+        title: 'Tipo corrigido automaticamente',
+        description:
+          'O nome indica Meta Cloud API (Oficial) — api_type foi ajustado para "official".',
+      });
+    }
+
     setIsCreating(true);
-    const isOfficial = newConnection.api_type === 'official';
+    const isOfficial = correctedApiType === 'official';
     const instanceName = isOfficial
       ? `official_${Date.now().toString(36)}`
       : whatsappConnectionService.generateInstanceName(newConnection.name);
@@ -57,7 +72,7 @@ export function useConnectionsActions(
               instance_name: instanceName,
               status: 'disconnected',
               is_default: connections.length === 0,
-              api_type: newConnection.api_type,
+              api_type: correctedApiType,
             })
             .select()
       );
