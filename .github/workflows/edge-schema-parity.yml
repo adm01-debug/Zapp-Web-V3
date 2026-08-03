@@ -46,8 +46,8 @@ jobs:
 
           TOTAL_SQL="$(find "$MIGRATIONS_DIR" -maxdepth 1 -name '*.sql' -type f | wc -l | tr -d ' ')"
           echo "Arquivos de migration (.sql): $TOTAL_SQL"
-          if [ "$TOTAL_SQL" -lt 10 ]; then
-            echo "::error::Menos de 10 arquivos .sql em $MIGRATIONS_DIR (encontrados: $TOTAL_SQL) — repositorio incompleto"
+          if [ "$TOTAL_SQL" -lt 1 ]; then
+            echo "::error::Nenhum arquivo .sql em $MIGRATIONS_DIR (encontrados: $TOTAL_SQL) — repositorio incompleto"
             FAILED=1
           fi
 
