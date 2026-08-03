@@ -372,12 +372,12 @@ function reportRealFailure(err: unknown): void {
  * requisições simultâneas. As que excedem o limite ficam em fila no browser
  * (até 4-6s de latência) enquanto o pool Supabase também pode saturar.
  *
- * O semáforo limita a 3 requisições simultâneas para o backend Supabase,
+ * O semáforo limita a 4 requisições simultâneas para o backend Supabase,
  * garantindo que as demais aguardam em JS (com timeout curto) em vez de
  * congestionar o pool TCP e o connection pool do Supavisor/Kong.
  *
  * Requisições de auth NUNCA passam pelo semáforo (já são bypass no retryFetch). */
-const SUPABASE_MAX_CONCURRENT = 3;
+const SUPABASE_MAX_CONCURRENT = 4;
 let _supabaseInFlight = 0;
 const _supabaseQueue: Array<() => void> = [];
 
