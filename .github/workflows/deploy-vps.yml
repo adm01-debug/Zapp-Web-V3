@@ -31,7 +31,7 @@ jobs:
     outputs:
       image: ${{ steps.meta.outputs.image }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: 🛡️ Preflight Secrets Validation
         env:

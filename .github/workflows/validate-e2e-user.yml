@@ -19,7 +19,7 @@ jobs:
     name: Validar permissões CRM do E2E_USER_EMAIL
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Configurar SSH
         run: |

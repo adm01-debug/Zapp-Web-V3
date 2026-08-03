@@ -24,7 +24,7 @@ jobs:
       META_TOKEN: ${{ secrets.ZAPP_META_TOKEN }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
