@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useFallbackContact } from '../useFallbackContact';
 
-// ── Mock supabase client ──────────────────────────────────────────────────────
+// ── Mock supabase client (direct pattern — no externalProxy) ────────────────
 
 const mockMaybeSingle = vi.fn();
 const mockLimit = vi.fn(() => ({ maybeSingle: mockMaybeSingle }));
@@ -18,16 +18,13 @@ const mockOrder = vi.fn(() => ({ limit: mockLimit }));
 const mockEq = vi.fn(() => ({ maybeSingle: mockMaybeSingle, order: mockOrder }));
 const mockSelect = vi.fn(() => ({ eq: mockEq }));
 const mockFrom = vi.fn((..._args: unknown[]): unknown => ({ select: mockSelect }));
-const mockQueryExternalProxy = vi.fn();
+const mockRpc = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: (...args: unknown[]) => mockFrom(...args),
+    rpc: (...args: unknown[]) => mockRpc(...args),
   },
-}));
-
-vi.mock('@/lib/externalProxy', () => ({
-  queryExternalProxy: (...args: unknown[]) => mockQueryExternalProxy(...args),
 }));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -109,8 +106,8 @@ describe('useFallbackContact — bare phone input', () => {
 });
 
 describe('useFallbackContact — external mode synthetic fallback', () => {
-  it('builds a synthetic contact when local lookups and proxy fail (JID)', async () => {
-    mockQueryExternalProxy.mockRejectedValue(new Error('proxy down'));
+  it('builds a synthetic contact when local lookups and the Evolution DB RPC fail (JID)', async () => {
+    mockRpc.mockRejectedValue(new Error('rpc down'));
     mockMaybeSingle
       .mockResolvedValueOnce({ data: null, error: null }) // contacts por phone
       .mockResolvedValueOnce({ data: null, error: null }); // evolution_contacts
@@ -121,8 +118,9 @@ describe('useFallbackContact — external mode synthetic fallback', () => {
       expect(result.current?.contact.id).toBe(MOCK_JID);
       expect(result.current?.contact.remote_jid).toBe(MOCK_JID);
     });
-    expect(mockQueryExternalProxy).toHaveBeenCalledWith(
-      expect.objectContaining({ rpc: 'rpc_get_contact' })
+    expect(mockRpc).toHaveBeenCalledWith(
+      'rpc_get_contact',
+      expect.objectContaining({ p_remote_jid: MOCK_JID })
     );
   });
 });

@@ -8,9 +8,11 @@ A plataforma é construída sobre uma arquitetura moderna e escalável, utilizan
 
 - **Frontend:** React + TypeScript + Vite + Tailwind CSS + Shadcn UI.
 - **Backend (BaaS):** Supabase Self-Hosted (`supabase.atomicabr.com.br`) — PostgreSQL, Auth, Realtime, Edge Functions, Storage.
-- **Integrações Externas:** Evolution API (WhatsApp), External DB Bridge.
+- **Integrações Externas:** Evolution API (WhatsApp).
 
 > **⚠️ Schema obrigatório**: Todo acesso ao banco usa `schema: 'zapp'` (315 tabelas). Mensagens WhatsApp ficam em `schema: 'evo'` (193 tabelas). O schema `public` tem **zero tabelas** — não usar. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+>
+> **Consolidação (jul/2026)**: A plataforma opera com um **único** Supabase Self-Hosted (`supabase.atomicabr.com.br`). O banco externo "FATOR X" (cloud `tdprnylgyrogbbhgdoik`) foi **descontinuado** e o domínio WhatsApp/CRM (tabelas `evolution_*`) foi consolidado no schema `evo` do self-hosted. Não há mais ponte para banco externo.
 
 ### Camadas de Responsabilidade
 
@@ -65,39 +67,13 @@ sequenceDiagram
   /lib            # Utilitários (utils.ts, supabase.ts)
 /supabase
   /functions      # Edge Functions (Deno/TypeScript)
-    - external-db-bridge      # Ponte para bancos externos
     - auth-email-hook         # Customização de e-mails
   /migrations     # Histórico de alterações no banco de dados
 ```
 
 ---
 
-## 4. Contratos da Edge Function: `external-db-bridge`
-
-Esta função atua como um gateway seguro para operações de leitura e escrita em bancos de dados externos ou tabelas protegidas.
-
-### Endpoint: `/external-db-bridge`
-**Método:** `POST`
-
-#### Request Body
-```json
-{
-  "action": "query|insert|update",
-  "table": "string",
-  "payload": "object",
-  "idempotencyKey": "uuid (opcional)"
-}
-```
-
-#### Erros Padronizados
-- `401 Unauthorized`: Token JWT inválido ou expirado.
-- `403 Forbidden`: RLS impediu a operação para o usuário atual.
-- `422 Unprocessable Entity`: Payload fora do schema esperado.
-- `429 Too Many Requests`: Rate limit atingido.
-
----
-
-## 5. Diretrizes para Desenvolvedores
+## 4. Diretrizes para Desenvolvedores
 
 1.  **Idempotência**: Sempre envie um `client_id` ou `Idempotency-Key` em operações de escrita para evitar duplicidade em casos de retry de rede.
 2.  **Segurança**: Nunca ignore o RLS. Se precisar de permissões elevadas, use o `service_role` exclusivamente dentro de Edge Functions monitoradas.

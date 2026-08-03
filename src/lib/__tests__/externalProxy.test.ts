@@ -1,6 +1,19 @@
+/**
+ * ⚠️ COMMENTED OUT — FATOR X / external-db-proxy removal wave
+ *
+ * This file unit-tested `src/lib/externalProxy.ts` (queryExternalProxy, circuit
+ * breaker, retry/coalescing, telemetry), the client that routed queries through
+ * the obsolete `external-db-proxy` edge function to the FATOR X external DB.
+ *
+ * The FATOR X external DB (Lovable Cloud) was discontinued; the app now talks to
+ * the self-hosted Supabase directly (branch fix/remove-fator-x-obsolete-edge-fns-v1).
+ * The proxy client is slated for removal, so its unit tests are commented out for
+ * history instead of being deleted. Remove this file together with
+ * `src/lib/externalProxy.ts` and its remaining importers.
+ */
+/*
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { queryExternalProxy, __testing } from '../externalProxy';
-import { isServerHealthError } from '../externalProxyFetch';
 import { recordQueryEvent, recordRetryOutcome } from '@/lib/clientTelemetry';
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
@@ -24,6 +37,12 @@ vi.mock('@/lib/clientTelemetry', () => ({
 
 vi.mock('@/lib/logger', () => ({
   getLogger: () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
+  createLogger: () => ({
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
@@ -159,7 +178,7 @@ describe('queryExternalProxy — happy path', () => {
     await queryExternalProxy({ table: 'contacts' });
     expect(recordQueryEvent).toHaveBeenCalledOnce();
     expect(recordQueryEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ source: 'externalProxy', target: 'contacts' }),
+      expect.objectContaining({ source: 'evolutionDB', target: 'contacts' }),
     );
   });
 
@@ -489,38 +508,6 @@ describe('health circuit breaker — backend degradado (5xx / pool)', () => {
   });
 });
 
-// ── isServerHealthError classification ────────────────────────────────────────
-
-describe('isServerHealthError — classificação', () => {
-  it('classifica 5xx como health error', () => {
-    expect(isServerHealthError({ name: 'FunctionsHttpError', message: 'HTTP 500', status: 500 })).toBe(true);
-    expect(isServerHealthError({ name: 'FunctionsHttpError', message: 'HTTP 503', status: 503 })).toBe(true);
-  });
-
-  it('classifica mensagens de pool/database como health error mesmo com 400', () => {
-    expect(
-      isServerHealthError({
-        name: 'FunctionsHttpError',
-        message: 'Timed out acquiring connection from connection pool.',
-        status: 500,
-      })
-    ).toBe(true);
-    expect(
-      isServerHealthError({
-        name: 'FunctionsHttpError',
-        message: 'Database connection error. Retrying the connection.',
-        status: 400,
-      })
-    ).toBe(true);
-  });
-
-  it('NÃO classifica 400 genérico nem 401/403 como health error', () => {
-    expect(isServerHealthError({ name: 'FunctionsHttpError', message: 'Bad Request', status: 400 })).toBe(false);
-    expect(isServerHealthError({ name: 'FunctionsHttpError', message: 'Unauthorized', status: 401 })).toBe(false);
-    expect(isServerHealthError({ name: 'FunctionsHttpError', message: 'Forbidden', status: 403 })).toBe(false);
-  });
-});
-
 // ── telemetria única por falha ────────────────────────────────────────────────
 
 describe('queryExternalProxy — telemetria sem duplicação', () => {
@@ -624,3 +611,4 @@ describe('config auth lock — session-wide', () => {
     await expect(queryExternalProxy({ table: 'any' })).resolves.toBeDefined();
   });
 });
+*/

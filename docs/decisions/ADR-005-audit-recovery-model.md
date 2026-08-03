@@ -1,4 +1,6 @@
-# ADR-005: Audit & Recovery Model (FATOR X)
+> ⚠️ SUPERSEDED (2026-07-15): This ADR described the dual-Supabase architecture. The project now uses a single self-hosted Supabase (schema zapp/evo). See externalClient.ts shim.
+
+# ADR-005: Audit & Recovery Model
 
 ## Status: Implementado
 ## Data: 2026-07-24 (consolidado da Onda 2 e Onda 3)

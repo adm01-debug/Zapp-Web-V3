@@ -18,10 +18,11 @@
 - **Ação**: Verificar se `LOVABLE_API_KEY` ou secrets de auth foram alterados.
 - **Rollback**: Reverter última migration de auth se aplicável.
 
-### 3. FATOR X Lento
+### 3. WhatsApp/CRM Lento (schema `evo`)
 - **Verificação**: Rodar `fn_zapp_web_smoke_test_v2()`.
-- **Ação**: Verificar `pg_stat_activity` para queries travadas.
-- **Escalação**: Contactar suporte do banco externo se latência persistir > 2s.
+- **Ação**: Verificar `pg_stat_activity` para queries travadas (container `supabase_db`).
+- **Escalação**: Contactar @dev-ops (infra self-hosted) se latência persistir > 2s.
+- **Nota**: Desde a consolidação de jul/2026 não existe banco externo "FATOR X" — mensagens, contatos e conversas vivem no schema `evo` do Supabase self-hosted único (`supabase.atomicabr.com.br`).
 
 ### 4. Áudio (.ogg/.webm) não toca — HTTP 400 na URL de áudio (BUG-38)
 **Sintoma:** Console mostra `Audio error: <uuid>` + requests com status 400 para `/storage/v1/object/public/audio-messages/`.

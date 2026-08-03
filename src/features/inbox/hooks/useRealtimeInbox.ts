@@ -15,23 +15,8 @@ import { useInboxHeartbeat } from './useInboxHeartbeat';
 import { useInboxDeepLinks } from './useInboxDeepLinks';
 import { useInboxSource } from './useInboxSource';
 import { useFallbackContact } from './useFallbackContact';
-import { DEFAULT_INSTANCE } from '@/hooks/evolutionFetchers';
-import type { OptimisticMessage, SendExternalResult } from './realtime/externalSenderTypes';
-
-type AddExternalMessageArg = Parameters<
-  NonNullable<ReturnType<typeof useInboxSource>['addExternalMessage']>
->[0];
-
-/** Converte a bolha otimista (status como string livre) no formato RealtimeMessage esperado pelo store. */
-function toRealtimeMessage(optimistic: OptimisticMessage) {
-  return optimistic as unknown as AddExternalMessageArg;
-}
 
 const log = getLogger('useRealtimeInbox');
-
-// Feature flag: use external DB (DESCONTINUADO — sempre FALSE).
-// Padrão FALSE: Evolution DB é acessado via client principal self-hosted.
-const USE_EXTERNAL_DB = import.meta.env.VITE_USE_EXTERNAL_DB === 'true';
 
 // F4-08: TTL + sweep do cache de avatares semeados. O Set antigo crescia sem
 // limite (memory leak) e nunca re-seedeava avatares alterados. Cada entrada
@@ -66,10 +51,9 @@ export function useRealtimeInbox() {
     message?: string;
   } | null>(null);
   const [whisperCount, setWhisperCount] = useState(0);
-  const postSendTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  // 1. Data Source (Local or External)
-  const source = useInboxSource(USE_EXTERNAL_DB, selectedContactId);
+  // 1. Data Source (Local)
+  const source = useInboxSource(selectedContactId);
   const {
     conversations,
     loading,
@@ -88,7 +72,6 @@ export function useRealtimeInbox() {
     cancelLoadOlderMessages,
     loadingOlderMessages,
     hasMoreMessages,
-    addExternalMessage,
     selectedConversationInstance,
     localRealtime,
     loadMoreConversations,
@@ -109,15 +92,7 @@ export function useRealtimeInbox() {
   const { isOnline } = useInboxHeartbeat(profile?.id);
 
   // 3. Deep Links
-  useInboxDeepLinks({ setPendingContactId, setPendingMessageId, useExternalDb: USE_EXTERNAL_DB });
-
-  // Cleanup post-send refetch timer on unmount
-  useEffect(
-    () => () => {
-      clearTimeout(postSendTimerRef.current);
-    },
-    []
-  );
+  useInboxDeepLinks({ setPendingContactId, setPendingMessageId });
 
   // 4. Offline Cache
   const { conversations: cachedConversations, usingCache } = useOfflineCache(
@@ -125,9 +100,9 @@ export function useRealtimeInbox() {
     loading
   );
 
-  // 🔬 Probe: log transitions in the conversations array coming from the data source
-  // (external Evolution DB when USE_EXTERNAL_DB=true). Emits on every length change,
-  // and always at least once with initial=true so we can prove 0→N hydration.
+  // 🔬 Probe: log transitions in the conversations array coming from the data source.
+  // Emits on every length change, and always at least once with initial=true so we
+  // can prove 0→N hydration.
   const convProbeRef = useRef<{ len: number; logged: boolean }>({ len: -1, logged: false });
   useEffect(() => {
     // F4-09: probe é ferramenta de debug — não roda em produção.
@@ -137,7 +112,7 @@ export function useRealtimeInbox() {
     if (len !== prev || !convProbeRef.current.logged) {
       convProbeRef.current = { len, logged: true };
       log.info('[probe] conversations state', {
-        source: USE_EXTERNAL_DB ? 'external' : 'local',
+        source: 'local',
         length: len,
         prevLength: prev,
         loading,
@@ -208,7 +183,7 @@ export function useRealtimeInbox() {
   const resolvedSelectedConversation = useFallbackContact(
     selectedContactId,
     selectedConversation,
-    USE_EXTERNAL_DB
+    false
   );
 
   // ── Resolved instance name ──────────────────────────────────────────────
@@ -240,10 +215,10 @@ export function useRealtimeInbox() {
     }
 
     // ── UUID guard ──────────────────────────────────────────────────────────
-    // whisper_messages.contact_id is a uuid column. When USE_EXTERNAL_DB=true,
-    // selectedContactId may be a WhatsApp JID / phone number (e.g. "551146375517")
-    // instead of a UUID. PostgREST returns 400 "invalid input syntax for type uuid"
-    // when a non-UUID string is used as a filter on a uuid column.
+    // whisper_messages.contact_id is a uuid column. selectedContactId may be a
+    // WhatsApp JID / phone number (e.g. "551146375517") instead of a UUID (deep
+    // links). PostgREST returns 400 "invalid input syntax for type uuid" when a
+    // non-UUID string is used as a filter on a uuid column.
     // Skip both the count query and the realtime subscription in that case.
 
     if (!isUuidRef(resolveContactRef(selectedContactId))) {
@@ -295,90 +270,18 @@ export function useRealtimeInbox() {
     const { contactId, content, attachments } = item;
 
     // Auto-assign on reply (only valid for local team_conversations; evolution_contacts has no routing_status)
-    if (!USE_EXTERNAL_DB) {
-      try {
-        const { data: conv } = await dbFrom('team_conversations')
-          .select('id, routing_status')
-          .eq('id', contactId)
-          .maybeSingle();
-        if (conv && conv.routing_status === 'pending') {
-          await dbFrom('team_conversations')
-            .update({ routing_status: 'assigned' })
-            .eq('id', contactId);
-        }
-      } catch (err) {
-        log.error('Error auto-assigning on reply:', err);
+    try {
+      const { data: conv } = await dbFrom('team_conversations')
+        .select('id, routing_status')
+        .eq('id', contactId)
+        .maybeSingle();
+      if (conv && conv.routing_status === 'pending') {
+        await dbFrom('team_conversations')
+          .update({ routing_status: 'assigned' })
+          .eq('id', contactId);
       }
-    }
-
-    if (USE_EXTERNAL_DB) {
-      const { sendExternalText, sendExternalMedia, sendExternalAudio } = await import('..');
-      const currentAvatar = resolvedSelectedConversation?.contact.avatar_url;
-
-      try {
-        if (item.type === 'audio' && attachments?.[0]) {
-          const { optimistic } = await sendExternalAudio(contactId, attachments[0], {
-            contactAvatar: currentAvatar,
-            isPtt: !attachments[0].name.endsWith('.mp3'),
-            conversationInstance: resolvedSelectedConversation?.contact?.instance_name ?? undefined,
-            onProgress: (p) => {
-              messageQueue.updateProgress(item.id, p);
-            },
-          });
-          if (optimistic.external_id) item.externalId = optimistic.external_id;
-          addExternalMessage?.(toRealtimeMessage(optimistic));
-        } else if (attachments && attachments.length > 0) {
-          // Send all attachments, track successes. Only add optimistic bubbles
-          // if ALL succeed — prevents phantom messages when one file fails.
-          const results: SendExternalResult[] = [];
-          let multiSendFailed = false;
-          for (let i = 0; i < attachments.length; i++) {
-            if (multiSendFailed) break;
-            const file = attachments[i];
-            try {
-              const { optimistic } = await sendExternalMedia(contactId, file, {
-                contactAvatar: currentAvatar,
-                caption: i === 0 ? content : undefined,
-                onProgress: (p) => {
-                  const total = (i / attachments.length) * 100 + p / attachments.length;
-                  messageQueue.updateProgress(item.id, total);
-                },
-              });
-              results.push({ optimistic, externalId: optimistic.external_id });
-            } catch {
-              multiSendFailed = true;
-            }
-          }
-          if (!multiSendFailed) {
-            for (const r of results) {
-              if (r.externalId) item.externalId = r.externalId;
-              addExternalMessage?.(toRealtimeMessage(r.optimistic));
-            }
-          } else {
-            // Remove the queue item so the user can retry
-            messageQueue.removeFromQueue(item.id);
-          }
-        } else {
-          const { optimistic } = await sendExternalText(contactId, content, {
-            contactAvatar: currentAvatar,
-            onProgress: (p) => {
-              messageQueue.updateProgress(item.id, p);
-            },
-          });
-          if (optimistic.external_id) item.externalId = optimistic.external_id;
-          addExternalMessage?.(toRealtimeMessage(optimistic));
-        }
-      } catch (err) {
-        log.error('Failed to send external message/media:', err);
-        throw err;
-      }
-
-      clearTimeout(postSendTimerRef.current);
-      postSendTimerRef.current = setTimeout(() => {
-        void refetchSelectedMessages();
-        void refetch();
-      }, 1500);
-      return;
+    } catch (err) {
+      log.error('Error auto-assigning on reply:', err);
     }
 
     // Local send
@@ -407,7 +310,10 @@ export function useRealtimeInbox() {
     if (!selectedMessages || selectedMessages.length === 0 || !selectedContactId) return;
     const processed = reconciledDeliveriesRef.current;
     for (const msg of selectedMessages) {
-      if (msg.sender !== 'agent' && msg.sender !== 'bot') continue;
+      // sender é 'contact' | 'agent' no tipo Message, mas o banco também
+      // armazena 'bot' — widen local para preservar o tratamento de bots.
+      const sender = msg.sender as string;
+      if (sender !== 'agent' && sender !== 'bot') continue;
       const status =
         msg.status === 'failed' || msg.status === 'failed_auth' || msg.status === 'failed_retries'
           ? 'failed'
@@ -416,7 +322,7 @@ export function useRealtimeInbox() {
       // Chave de dedupe: external_id quando existir; fallback content (bot sem external_id).
       const key = msg.external_id
         ? `${selectedContactId}:${msg.external_id}`
-        : msg.content && msg.sender === 'bot'
+        : msg.content && sender === 'bot'
           ? `${selectedContactId}:content:${msg.content}`
           : null;
       if (!key) continue;
@@ -439,25 +345,9 @@ export function useRealtimeInbox() {
       setSelectedContact(contactId);
       setDeliveryAlert(null);
 
-      if (USE_EXTERNAL_DB) {
-        // F4-06: fire-and-forget com .catch — falha de read-messages vira log
-        // (GlitchTip) em vez de unhandled rejection; UI não trava.
-        void supabase.functions
-          .invoke('evolution-api', {
-            body: {
-              action: 'read-messages',
-              instanceName: instanceName ?? DEFAULT_INSTANCE,
-              remoteJid: contactId,
-            },
-          })
-          .catch((err: unknown) => {
-            log.warn('[read-messages] failed', err);
-          });
-      } else {
-        markAsRead(contactId);
-      }
+      markAsRead(contactId);
     },
-    [setSelectedContact, markAsRead, instanceName]
+    [setSelectedContact, markAsRead]
   );
 
   const handleNotificationView = useCallback(() => {
@@ -574,7 +464,7 @@ export function useRealtimeInbox() {
     hasMoreMessages,
     whisperCount,
     instanceName,
-    batcherStatus: USE_EXTERNAL_DB ? null : localRealtime.batcherStatus,
+    batcherStatus: localRealtime.batcherStatus,
     deliveryAlert,
     messageQueue,
   };

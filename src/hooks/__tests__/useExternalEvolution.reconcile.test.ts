@@ -27,7 +27,6 @@ vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn(),
   useQueryClient: vi.fn(() => ({ invalidateQueries: vi.fn() })),
 }));
-vi.mock('@/lib/externalProxy', () => ({ queryExternalProxy: vi.fn() }));
 vi.mock('@/adapters/evolutionAdapter', () => ({
   buildExternalConversations: vi.fn(),
   evolutionToRealtimeMessage: vi.fn(),

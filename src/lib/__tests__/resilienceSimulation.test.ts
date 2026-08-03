@@ -3,7 +3,16 @@
  *
  * These tests simulate the three failure scenarios and verify that the fallback
  * mechanisms behave correctly WITHOUT making real HTTP requests.
+ *
+ * @deprecated — FATOR X / external-db-proxy removal wave
+ * These suites exercise the failure modes of the obsolete `external-db-proxy`
+ * client (`src/lib/externalProxy.ts`): circuit breaker, retry/backoff, ghost
+ * posts, and auth locks. The FATOR X external DB was discontinued and the app
+ * now talks to the self-hosted Supabase directly, so the proxy behavior these
+ * tests simulate no longer exists in the target architecture. Kept for history;
+ * delete together with `src/lib/externalProxy.ts` and its importers.
  */
+/*
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // ── Shared mocks ────────────────────────────────────────────
@@ -32,6 +41,12 @@ vi.mock('@/lib/clientTelemetry', () => ({
 
 vi.mock('@/lib/logger', () => ({
   getLogger: () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
+  createLogger: () => ({
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
@@ -108,7 +123,7 @@ describe('Scenario 1: Evolution API Down', () => {
 
     // Telemetry recorded for successful query
     expect(mockRecordQueryEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ source: 'externalProxy', target: 'evolution_messages' })
+      expect.objectContaining({ source: 'evolutionDB', target: 'evolution_messages' })
     );
 
     __testing!.clearInvokeOverride();
@@ -513,3 +528,4 @@ describe('Combined: Full Pipeline Failure then Recovery', () => {
     __testing!.clearInvokeOverride();
   });
 });
+*/

@@ -1,7 +1,7 @@
 /**
  * Correlation ID utility for tracing client → edge → DB calls.
  *
- * Each external call (externalProxy or externalSupabase RPC) is tagged with
+ * Each external call (evolutionDB or selfHosted RPC) is tagged with
  * a short, unique ID that is:
  *   - included in the structured log line
  *   - attached to the recorded telemetry event (visible in the panel)

@@ -2,14 +2,14 @@
  * useExternalApiManagement
  *
  * Consolidated module for external CRM database integration.
- * Combines 9 previously separate external API hooks into one unified module.
+ * Combines 11 previously separate external API hooks (12 exports) into one unified module.
  *
  * Sections:
  *   1. Contact 360° Data (useExternalContact360, useExternalContact360Batch)
  *   2. Contact Metadata (useExternalCargos, useExternalEmpresas)
- *   3. Evolution/Conversations (useExternalConversations, useExternalMessages)
- *   4. Catalog & Products (useExternalCatalog)
- *   5. Generic External DB (useExternalSelect, useExternalRPC, useExternalTableBrowser, useExternalMutation)
+ *   3. Evolution/Conversations & Messages (useExternalConversations, useExternalMessages)
+ *   4. Catalog & Products (useExternalCatalog, withSafeVariants)
+ *   5. Generic External DB Operations (useExternalSelect, useExternalRPC, useExternalTableBrowser, useExternalMutation)
  */
 
 // ╔══════════════════════════════════════════════════════════════════════════════════

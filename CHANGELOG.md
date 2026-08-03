@@ -127,3 +127,13 @@
 ### Corrigido
 - Importação ausente de `web-vitals`.
 - Tipagem inconsistente em formulários de catálogo e auth.
+
+---
+
+## ⚠️ Nota Histórica — Consolidação do Backend (Julho de 2026)
+
+> Esta seção **não é uma nova versão**: é uma nota para contextualizar entradas históricas deste changelog (ex.: o fix de circuit breaker da [2.2.0], que citava `externalProxy.ts` e `external-db-proxy`).
+
+- A arquitetura de **backend duplo** (Supabase principal + banco externo "FATOR X", acessado via `externalProxy.ts` → `external-db-proxy` / `external-db-bridge`) foi **descontinuada e consolidada** em um único Supabase self-hosted (schemas `zapp`/`evo`).
+- `USE_EXTERNAL_DB` agora é `false`; as Edge Functions `external-db-bridge` e `analyze-external-db` foram removidas (541 linhas de código morto); as env vars `FATOR_X_URL`/`FATOR_X_SERVICE_ROLE_KEY` foram eliminadas; todas as menções a "FATOR X" foram removidas do código-fonte.
+- As entradas históricas sobre os circuit breakers do `externalProxy` permanecem como registro do incidente, mas **não refletem mais a arquitetura atual**.

@@ -1,6 +1,7 @@
-// external-db-proxy v1.8 (2026-07-04)
-// Proxy autorizado para consultas de tabelas operacionais.
-// Evolution DB usa o Supabase self-hosted atomicabr e o schema `evo`.
+// external-db-proxy v1.11 (2026-08-03)
+// Proxy autorizado para consultas de tabelas operacionais (schemas public/evo).
+// Pós-consolidação: único backend é o Supabase self-hosted atomicabr.
+// Env: SELFHOSTED_SUPABASE_URL + SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { requireUser } from "../_shared/auth.ts";
@@ -42,14 +43,6 @@ function pickEnv(name: string): string | undefined {
   const value = Deno.env.get(name)?.trim();
   if (!value || PLACEHOLDER_RE.test(value)) return undefined;
   return value;
-}
-
-function pickEnvWithSource(names: string[]): { value?: string; source?: string } {
-  for (const name of names) {
-    const v = pickEnv(name);
-    if (v) return { value: v, source: name };
-  }
-  return {};
 }
 
 function pickUrlWithSource(names: string[]): { value?: string; source?: string } {
@@ -95,19 +88,15 @@ function pickServiceRoleKeyWithSource(names: string[]): { value?: string; source
   return { rejected };
 }
 
-const URL_PICK = pickUrlWithSource(["SELFHOSTED_SUPABASE_URL", "EXTERNAL_SUPABASE_URL"]);
-const KEY_PICK = pickServiceRoleKeyWithSource([
-  "SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY",
-  "EXTERNAL_SUPABASE_SERVICE_ROLE_KEY",
-]);
+const URL_PICK = pickUrlWithSource(["SELFHOSTED_SUPABASE_URL"]);
+const KEY_PICK = pickServiceRoleKeyWithSource(["SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY"]);
 
-const EXTERNAL_URL = URL_PICK.value;
-const EXTERNAL_KEY = KEY_PICK.value;
+const TARGET_URL = URL_PICK.value ?? "";
+const TARGET_KEY = KEY_PICK.value ?? "";
 const URL_SOURCE = URL_PICK.source ?? "none";
 const KEY_SOURCE = KEY_PICK.source ?? "none";
-const ENV_SET = URL_SOURCE.startsWith("SELFHOSTED_") || KEY_SOURCE.startsWith("SELFHOSTED_") ? "SELFHOSTED_*" : URL_SOURCE.startsWith("EXTERNAL_") || KEY_SOURCE.startsWith("EXTERNAL_") ? "EXTERNAL_*" : "unknown";
 
-const KEY_PAYLOAD = EXTERNAL_KEY ? decodeJwtPayload(EXTERNAL_KEY) : null;
+const KEY_PAYLOAD = TARGET_KEY ? decodeJwtPayload(TARGET_KEY) : null;
 const KEY_ROLE = (KEY_PAYLOAD?.role as string) ?? "unknown";
 const KEY_ISS = (KEY_PAYLOAD?.iss as string) ?? "unknown";
 const KEY_REF = (KEY_PAYLOAD?.ref as string) ?? "unknown";
@@ -115,8 +104,7 @@ const KEY_REF = (KEY_PAYLOAD?.ref as string) ?? "unknown";
 console.log("[external-db-proxy] env resolved", {
   url_source: URL_SOURCE,
   key_source: KEY_SOURCE,
-  env_set: ENV_SET,
-  target_url: EXTERNAL_URL,
+  target_url: TARGET_URL,
   key_role: KEY_ROLE,
   key_iss: KEY_ISS,
   key_ref: KEY_REF,
@@ -126,19 +114,17 @@ if (KEY_PICK.rejected?.length) {
   console.warn("[external-db-proxy] WARN: chaves rejeitadas por não serem service_role", { rejected: KEY_PICK.rejected });
 }
 
-const TARGET_URL = EXTERNAL_URL ?? "";
-const TARGET_KEY = EXTERNAL_KEY ?? "";
-const targetName = "self-hosted-external";
+const targetName = "self-hosted";
 
 let supabase: DynamicSupabaseClient | null = null;
 let bootError: string | null = null;
 
 try {
-  if (!EXTERNAL_URL) {
-    throw new Error("SELFHOSTED_SUPABASE_URL/EXTERNAL_SUPABASE_URL ausente ou inválida — configure a URL do backend self-hosted.");
+  if (!TARGET_URL) {
+    throw new Error("SELFHOSTED_SUPABASE_URL ausente ou inválida — configure a URL do backend self-hosted.");
   }
-  if (!EXTERNAL_KEY) {
-    throw new Error("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY/EXTERNAL_SUPABASE_SERVICE_ROLE_KEY ausente ou inválida — configure uma chave service_role válida do self-hosted.");
+  if (!TARGET_KEY) {
+    throw new Error("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY ausente ou inválida — configure uma chave service_role válida do self-hosted.");
   }
   supabase = createZappAdminClient() as DynamicSupabaseClient;
 } catch (error) {
@@ -219,7 +205,8 @@ const SCHEMA_TABLE_WHITELIST: Record<string, string[]> = {
 // escalonamento de privilégio. Esta lista é a união do catálogo canônico
 // (src/integrations/datasource/rpcCatalog.ts) com os RPCs efetivamente
 // chamados no frontend. Ao adicionar um RPC novo, inclua-o aqui também.
-// Auditoria 2026-07-12.
+// Auditoria 2026-08-03 (pós-consolidação): nenhum RPC do allowlist foi
+// deprecado/dropado nas migrations — lista mantida integralmente.
 const ALLOWED_RPCS = new Set<string>([
   'add_contact_note', 'bulk_add_tag', 'bulk_auto_merge_duplicates',
   'bulk_soft_delete_contacts', 'bulk_update_lead_status', 'contacts_count_by_type',
@@ -371,7 +358,7 @@ async function handleRequest(req: Request, _t0: number): Promise<Response> {
         ? (callerPayload.exp as number) - Math.floor(Date.now() / 1000)
         : null,
       // Which backend the fast-path in requireUser will TRY first.
-      expected_backend: (callerPayload?.iss as string) === `${EXTERNAL_URL}/auth/v1`
+      expected_backend: (callerPayload?.iss as string) === `${TARGET_URL}/auth/v1`
         ? "self-hosted"
         : "cloud-or-fallback",
     };
@@ -392,7 +379,7 @@ async function handleRequest(req: Request, _t0: number): Promise<Response> {
           ? "JWT ausente ou malformado — cliente não enviou Authorization Bearer válido."
           : callerInfo.expected_backend === "self-hosted"
             ? `Token emitido por ${callerInfo.token_iss} — confirme que SELFHOSTED_SUPABASE_ANON_KEY corresponde ao JWT_SECRET desse issuer.`
-            : `Token iss=${callerInfo.token_iss} não bate com EXTERNAL_URL=${EXTERNAL_URL}/auth/v1 — confira SUPABASE_URL/SUPABASE_ANON_KEY do projeto cloud emissor.`,
+            : `Token iss=${callerInfo.token_iss} não bate com o issuer do self-hosted (${TARGET_URL}/auth/v1) — confira SELFHOSTED_SUPABASE_ANON_KEY/JWT_SECRET do self-hosted.`,
       });
       observeMs("proxy_request_duration_ms", Date.now() - _t0, { outcome: "auth_reject" });
       return authed;
@@ -407,7 +394,7 @@ async function handleRequest(req: Request, _t0: number): Promise<Response> {
   if (bootError || !supabase) {
     return jsonResponse(req, {
       error: `external-db-proxy não configurado: ${bootError ?? "sem cliente"}`,
-      hint: "Configure SELFHOSTED_SUPABASE_URL e SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY (ou aliases EXTERNAL_*) no runtime das Edge Functions.",
+      hint: "Configure SELFHOSTED_SUPABASE_URL e SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY no runtime das Edge Functions.",
       data: [],
       count: 0,
     }, 503);
@@ -442,7 +429,7 @@ async function handleRequest(req: Request, _t0: number): Promise<Response> {
       return jsonResponse(req, {
         ok: allOk,
         fn: "external-db-proxy",
-        version: "1.10-issuer-fastpath",
+        version: "1.11-selfhosted-only",
         target: targetName,
         checks,
         hint: allOk ? undefined : "Se missing_table=true, aplique a migration no self-hosted e exponha o schema 'evo' em config.toml → [api].schemas.",
@@ -450,7 +437,7 @@ async function handleRequest(req: Request, _t0: number): Promise<Response> {
         ts: Date.now(),
       }, allOk ? 200 : 503);
     }
-    return jsonResponse(req, { ok: true, fn: "external-db-proxy", version: "1.10-issuer-fastpath", target: targetName, ts: Date.now() }, 200);
+    return jsonResponse(req, { ok: true, fn: "external-db-proxy", version: "1.11-selfhosted-only", target: targetName, ts: Date.now() }, 200);
   }
 
   if (req.method !== "POST") {
@@ -568,7 +555,7 @@ async function handleRequest(req: Request, _t0: number): Promise<Response> {
       if (isUnauthorized) {
         console.error('[external-db-proxy] AUTH MISMATCH — service_role key não é aceita pelo self-hosted', {
           schema, table, cid,
-          target_url: EXTERNAL_URL,
+          target_url: TARGET_URL,
           key_source: KEY_SOURCE,
           key_role: KEY_ROLE,
           key_iss: KEY_ISS,

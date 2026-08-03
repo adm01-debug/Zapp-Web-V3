@@ -160,8 +160,8 @@ export const queryKeys = {
       suppliers: () => ['external-catalog', 'suppliers'] as const,
       product: (id: string) => ['external-catalog', 'product', id] as const,
     },
-    db: (table: string, params?: unknown) => ['external-db', table, params] as const,
-    rpc: (rpc: string, params?: unknown) => ['external-db', 'rpc', rpc, params] as const,
+    db: (table: string, params?: unknown) => ['evolution-db', table, params] as const,
+    rpc: (rpc: string, params?: unknown) => ['evolution-db', 'rpc', rpc, params] as const,
   },
 
   // Dashboard
