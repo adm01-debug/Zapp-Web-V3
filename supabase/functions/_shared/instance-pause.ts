@@ -87,6 +87,8 @@ export function recordAuthFailureAndMaybePause(
       instance_name: instance,
       reason,
       source,
+      event_type: reason === 'invalid_signature' ? 'signature_failure' : 'auth_failure',
+      success: false,
       http_status: detail?.http_status ?? (reason === 'auth_401' ? 401 : reason === 'auth_403' ? 403 : null),
       detail: detail?.message ?? null,
     }) as unknown as Promise<unknown>,
