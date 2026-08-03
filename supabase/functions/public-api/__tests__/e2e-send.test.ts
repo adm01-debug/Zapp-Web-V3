@@ -1,7 +1,7 @@
 /**
  * End-to-end integration test for `public-api`.
  *
- * Mocks the Evolution API + Lovable Cloud REST so we can drive the real
+ * Mocks the Evolution API + Supabase REST so we can drive the real
  * handler from a synthetic Request and assert that:
  *   1. The function returns HTTP 200 with `success: true` and the same
  *      requestId that came in via `x-request-id`.

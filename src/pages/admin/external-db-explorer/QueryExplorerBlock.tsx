@@ -155,7 +155,7 @@ export const QueryExplorerBlock = forwardRef<QueryExplorerHandle>(function Query
     const a = document.createElement('a');
     const target = mode === 'select' ? table : rpcName;
     a.href = url;
-    a.download = `fatorx-${target}-${Date.now()}.json`;
+    a.download = `external-db-${target}-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };

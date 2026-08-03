@@ -83,7 +83,7 @@ export function useConnections() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const fatorXInitializedRef = useRef(false);
+  const externalConnInitializedRef = useRef(false);
 
   const { data: connections = [], refetch: refetchConnections } = useQuery({
     queryKey: CONNECTIONS_KEY,
@@ -97,19 +97,19 @@ export function useConnections() {
     staleTime: 30_000,
   });
 
-  // Apply fatorX config once on initial load
+  // Apply externalConn config once on initial load
   useEffect(() => {
-    if (fatorXInitializedRef.current || connections.length === 0) return;
-    const fatorX = connections.find(
-      (c) => c.provider === 'supabase_external' || c.name === 'Evolution DB'
+    if (externalConnInitializedRef.current || connections.length === 0) return;
+    const externalConn = connections.find(
+      (c) => c.provider === 'supabase_external' || c.name === 'FATOR X'
     );
-    if (fatorX?.config?.url && fatorX?.config?.anon_key) {
-      fatorXInitializedRef.current = true;
-      setExternalUrl(fatorX.config.url);
-      setDraftUrl(fatorX.config.url);
-      setExternalKey(fatorX.config.anon_key);
-      setDraftKey(fatorX.config.anon_key);
-      updateRuntimeExternalConfig(fatorX.config.url, fatorX.config.anon_key);
+    if (externalConn?.config?.url && externalConn?.config?.anon_key) {
+      externalConnInitializedRef.current = true;
+      setExternalUrl(externalConn.config.url);
+      setDraftUrl(externalConn.config.url);
+      setExternalKey(externalConn.config.anon_key);
+      setDraftKey(externalConn.config.anon_key);
+      updateRuntimeExternalConfig(externalConn.config.url, externalConn.config.anon_key);
     }
   }, [connections]);
 

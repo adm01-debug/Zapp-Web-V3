@@ -4,7 +4,7 @@
 
 
 ## Visão Geral
-O projeto possui 40+ Edge Functions deployadas automaticamente pelo Lovable Cloud.
+O projeto possui 40+ Edge Functions deployadas no Supabase Self-Hosted (`supabase.atomicabr.com.br`) — o Lovable Cloud foi descontinuado na migração.
 
 ---
 
