@@ -186,7 +186,7 @@ export default function AdminWebhookOverviewPage() {
       )}
 
       <p className="text-center text-xs text-muted-foreground">
-        Fonte: <code>evolution_webhook_events</code> (FATOR X) · Limite {HARD_LIMIT} registros ·
+        Fonte: <code>evolution_webhook_events</code> (Evolution DB) · Limite {HARD_LIMIT} registros ·
         Auto-refresh 60s
       </p>
     </div>

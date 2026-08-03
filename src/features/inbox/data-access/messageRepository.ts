@@ -57,7 +57,7 @@ export const messageRepository = {
   },
 
   /**
-   * Lista mensagens via RPC SECURITY DEFINER (caminho recomendado para FATOR X).
+   * Lista mensagens via RPC SECURITY DEFINER (caminho recomendado para Evolution DB).
    * Use em vez de `fetchMessagesByContact` quando tiver o `remote_jid` —
    * bypassa RLS e respeita a regra do projeto (toda leitura de evolution_* via RPC).
    */
@@ -100,7 +100,7 @@ export const messageRepository = {
         } as RealtimePostgresChangesPayload<Message>);
       };
 
-    // FATOR X v6.1: Realtime deve apontar para a TABELA-FONTE (evo.evolution_messages).
+    // Evolution DB v6.1: Realtime deve apontar para a TABELA-FONTE (evo.evolution_messages).
     // A view `messages` (zapp) não emite Realtime — usar tabela-fonte evo.evolution_messages.
     const channel = dbChannel('messages', `messages:${contactId}`)
       .on(

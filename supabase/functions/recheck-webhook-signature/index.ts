@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 3. Secret + FATOR X creds
+    // 3. Secret + Evolution DB creds
     const secret =
       Deno.env.get('EVOLUTION_WEBHOOK_SECRET') || Deno.env.get('WEBHOOK_SECRET') || '';
     const extUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));

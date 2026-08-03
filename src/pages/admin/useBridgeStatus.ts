@@ -100,7 +100,7 @@ export function useBridgeStatus() {
       );
       if (mountedRef.current) setLovableDb(!internalError);
 
-      // 2. External DB (FATOR X / Evolution)
+      // 2. External DB (Evolution DB / Evolution)
       let externalOk = false;
       if (isExternalConfigured) {
         const extSupabase = getExternalSupabase();

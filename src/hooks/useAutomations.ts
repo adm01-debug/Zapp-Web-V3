@@ -100,7 +100,7 @@ export function useAutomations({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const typedClient = client as SupabaseClient<any>;
 
-      // Pega últimas 10 msgs do FATOR X
+      // Pega últimas 10 msgs do Evolution DB
       const { data: msgs, error } = await typedClient.rpc('rpc_list_messages', {
         p_remote_jid: remoteJid,
         p_instance: instanceName,

@@ -4,7 +4,7 @@
  *
  * Camada local que mantém status (`open` | `in_progress` | `resolved`) e
  * histórico de eventos do atendimento, por `contact_id`. É um *stub*
- * persistido em `localStorage` enquanto o operador FATOR X não publica as
+ * persistido em `localStorage` enquanto o operador Evolution DB não publica as
  * RPCs equivalentes (`rpc_update_conversation_status`,
  * `rpc_assign_conversation`).
  *

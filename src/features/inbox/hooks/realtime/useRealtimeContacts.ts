@@ -124,7 +124,7 @@ function extractRow(
 }
 
 /**
- * Subscribes to evolution_contacts changes on FATOR X and updates
+ * Subscribes to evolution_contacts changes on Evolution DB and updates
  * React Query caches in real time. Batched to 100ms to coalesce bursts.
  *
  * - Only listens (never SELECTs evolution_contacts directly).
@@ -140,7 +140,7 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
   const discardedCountRef = useRef(0);
 
   useEffect(() => {
-    // FATOR X v6.2: externalSupabase nunca é null (fallback para o client
+    // Evolution DB v6.2: externalSupabase nunca é null (fallback para o client
     // principal autenticado quando VITE_EXTERNAL_* ausentes). O gate por
     // isExternalConfigured deixava o realtime de contatos permanentemente
     // desligado em produção.

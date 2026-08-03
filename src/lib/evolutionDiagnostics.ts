@@ -93,7 +93,7 @@ export async function runEvolutionDiagnostics(): Promise<DiagnosticResult[]> {
       }
     } catch (err: unknown) {
       results.push({
-        step: 'Database Direct (FATOR X)',
+        step: 'Database Direct (Evolution DB)',
         status: 'fail',
         message: `Falha na conexão com banco de dados: ${err instanceof Error ? err.message : String(err)}`,
       });

@@ -1,5 +1,5 @@
 /**
- * sendExternalAudio — envia PTT (push-to-talk) no modo FATOR X.
+ * sendExternalAudio — envia PTT (push-to-talk) no modo Evolution DB.
  *
  * Fluxo:
  *  1. Upload do blob via FormData para a Edge Function `evolution-api`.

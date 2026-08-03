@@ -4,7 +4,7 @@
  * Cobertura:
  *  1. Abre a primeira conversa do inbox unificado.
  *  2. Mocka o RPC `rpc_list_messages_lite` (e o legacy `rpc_list_messages`)
- *     do FATOR X para devolver, depois de "armado", uma mensagem nova
+ *     do Evolution DB para devolver, depois de "armado", uma mensagem nova
  *     adicional com texto único `e2e-incoming-<runId>`.
  *  3. Re-dispara o fetch (re-clicando na conversa) e valida que a mensagem
  *     aparece DENTRO do `role="log"` da conversa selecionada.
@@ -58,7 +58,7 @@ interface MockState {
 }
 
 /**
- * Intercepta as chamadas de listagem de mensagens do FATOR X.
+ * Intercepta as chamadas de listagem de mensagens do Evolution DB.
  *
  *  - Se ainda não conhecemos o `targetJid`, capturamos da primeira chamada.
  *  - Para `targetJid`: devolve baseMessages; quando armado, devolve

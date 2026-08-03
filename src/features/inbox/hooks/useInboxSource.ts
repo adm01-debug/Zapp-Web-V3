@@ -8,7 +8,7 @@ import type { LoadOlderCallback, CancelLoadOlderCallback } from '../components/c
 export function useInboxSource(useExternalDb: boolean, selectedContactId: string | null) {
   // Local DB source
   const localRealtime = useRealtimeMessages();
-  // External DB source (FATOR X)
+  // External DB source (Evolution DB)
   const externalData = useExternalConversations(useExternalDb);
 
   // Selected conversation data
@@ -23,7 +23,7 @@ export function useInboxSource(useExternalDb: boolean, selectedContactId: string
 
   // F4-01: paginação por cursor — exposto para o scroll infinito da sidebar.
   // Path local: páginas de CONTACTS_PAGE_SIZE/MESSAGES_PAGE_SIZE com cursor
-  // (updated_at+id / created_at+id). Path externo (FATOR X): páginas de
+  // (updated_at+id / created_at+id). Path externo (Evolution DB): páginas de
   // SIDEBAR_LIMIT mensagens com cursor created_at (fetchSidebarMessagesPage).
   const loadMoreConversations = useExternalDb
     ? externalData.loadMoreConversations

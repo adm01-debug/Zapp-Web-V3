@@ -68,7 +68,7 @@ export function HealthCheckBlock() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="flex items-center gap-2 text-base">
-          <Activity className="h-4 w-4" /> Health check (FATOR X via proxy)
+          <Activity className="h-4 w-4" /> Health check (Evolution DB via proxy)
         </CardTitle>
         <Button onClick={runPings} disabled={state.loading} size="sm">
           {state.loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar conexão'}

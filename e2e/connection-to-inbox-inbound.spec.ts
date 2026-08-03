@@ -6,7 +6,7 @@
  * explicitamente com um card de conexão (clique no <h3> do nome) antes
  * de ir ao inbox, exercitando o gesto "abri uma conexão criada".
  *
- * Hermético: nenhum efeito real em produção. Webhooks e RPCs do FATOR X
+ * Hermético: nenhum efeito real em produção. Webhooks e RPCs do Evolution DB
  * são interceptados via `page.route`.
  */
 import { test, expect } from "./fixtures/auth";

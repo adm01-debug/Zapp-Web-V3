@@ -59,7 +59,7 @@ export function useContactsCRUD() {
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Abre o Inbox no contato selecionado. No modo FATOR X (USE_EXTERNAL_DB),
+  // Abre o Inbox no contato selecionado. No modo Evolution DB (USE_EXTERNAL_DB),
   // o Inbox identifica conversas pelo `remote_jid` — não pelo UUID local.
   // Por isso passamos o `phone` (resolvido na lista carregada) para o helper
   // central `openContactInChat`, que monta o JID e cuida do handshake.

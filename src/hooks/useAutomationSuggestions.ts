@@ -133,7 +133,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
   );
 
   /**
-   * Aplica a tag recomendada via FATOR X (rpc_upsert_contact). Mantém auditoria
+   * Aplica a tag recomendada via Evolution DB (rpc_upsert_contact). Mantém auditoria
    * em automation_executions.applied_tags. NÃO altera o status — o usuário ainda
    * decide aceitar/descartar a sugestão de texto separadamente.
    */

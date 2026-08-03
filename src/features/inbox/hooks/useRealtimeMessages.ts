@@ -634,7 +634,7 @@ export function useRealtimeMessages() {
     logMessagesSubscribe('useRealtimeMessages', { event: 'UPDATE', table: dbTable('messages') });
     logMessagesSubscribe('useRealtimeMessages', { event: 'DELETE', table: dbTable('messages') });
 
-    // FATOR X v6.2: Realtime na TABELA-FONTE evo.evolution_messages (views public não emitem).
+    // Evolution DB v6.2: Realtime na TABELA-FONTE evo.evolution_messages (views public não emitem).
     // Adapter: a fonte usa from_me/deleted_at; o shape legado da view usa sender/is_deleted.
     const adaptEvoPayload = (
       p: RealtimePostgresChangesPayload<Record<string, unknown>>

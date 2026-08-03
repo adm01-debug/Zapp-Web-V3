@@ -351,7 +351,7 @@ function applyCachedEnrichment(conversations: ConversationWithMessages[]): void 
 
 /** Fetches Evolution API conversations with contact enrichment from external database. */
 export function useExternalConversations(enabled = true) {
-  // F4-01: paginação por cursor (path externo FATOR X). O react-query mantém a
+  // F4-01: paginação por cursor (path externo Evolution DB). O react-query mantém a
   // JANELA inicial (SIDEBAR_LIMIT mensagens mais recentes) e o load-more
   // acumula páginas mais antigas em olderMessagesRef (cursor = created_at da
   // mensagem mais antiga já carregada). O merge final deduplica por contato.

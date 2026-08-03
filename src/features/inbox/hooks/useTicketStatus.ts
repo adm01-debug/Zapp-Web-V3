@@ -6,7 +6,7 @@ import { ticketStore, type TicketState, type TicketStatus } from '@/lib/inbox/ti
 
 /**
  * Hook reativo para o estado de ticket de um contato. Lê do overlay
- * local (stub enquanto o FATOR X não expõe RPCs próprias) e expõe ações
+ * local (stub enquanto o Evolution DB não expõe RPCs próprias) e expõe ações
  * que escrevem nele + integram com o `ticket-router` (Lovable Cloud)
  * para a atribuição automática sticky+round-robin.
  */
@@ -48,7 +48,7 @@ export function useTicketStatus(contactId: string | null | undefined) {
 
   /**
    * Chama o edge `ticket-router` (sticky + round-robin) e aplica o
-   * agente resolvido no overlay. Quando a RPC FATOR X estiver pronta,
+   * agente resolvido no overlay. Quando a RPC Evolution DB estiver pronta,
    * basta trocar o `apply: true` para persistir do lado de lá também.
    */
   const atribuirAuto = useCallback(async () => {

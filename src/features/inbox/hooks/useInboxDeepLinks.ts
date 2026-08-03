@@ -57,7 +57,7 @@ export function useInboxDeepLinks({
     // 2) Handle legacy global window pending contact (from non-React code or older logic)
     if (appWindow.__pendingOpenContactId) {
       const pending = appWindow.__pendingOpenContactId;
-      // In external mode (FATOR X) the Inbox identifies contacts by `remote_jid`.
+      // In external mode (Evolution DB) the Inbox identifies contacts by `remote_jid`.
       // Um handshake chega em 3 formatos: (a) JID completo, (b) UUID legado ou
       // (c) telefone puro. Apenas (b) e inservivel. Antes, (c) tambem era
       // descartado -- por isso o deep-link com '556191039392' nunca abria a
@@ -72,7 +72,7 @@ export function useInboxDeepLinks({
     }
 
     // 3) Custom events
-    // FIX B2: em external mode (FATOR X), a Inbox indexa por remote_jid; priorizar
+    // FIX B2: em external mode (Evolution DB), a Inbox indexa por remote_jid; priorizar
     // o JID quando disponível para evitar que o UUID sobrescreva o handshake correto.
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as
