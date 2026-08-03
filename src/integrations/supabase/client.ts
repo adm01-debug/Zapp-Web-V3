@@ -167,7 +167,7 @@ const _activeControllers = new Set<AbortController>();
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', () => {
     for (const ctrl of _activeControllers) {
-      try { ctrl.abort(new DOMException('Page unload', 'AbortError')); } catch {}
+      try { ctrl.abort(new DOMException('Page unload', 'AbortError')); } catch { /* abort errors expected during page unload */ }
     }
     _activeControllers.clear();
     _queue = [];
