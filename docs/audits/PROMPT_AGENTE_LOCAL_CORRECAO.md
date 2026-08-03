@@ -100,7 +100,7 @@ A tabela acima define os **8 papéis funcionais** que esta missão exige. Ela **
 
 **Primeira ação da sessão, antes de qualquer etapa:**
 
-1. **Inventarie o pool.** Liste os subagentes disponíveis (`.claude/agents/`, `~/.claude/agents/`, ou o comando equivalente da sua instalação). Leia a descrição de cada um.
+1. **Inventarie o pool.** Liste os subagentes disponíveis (`~/.claude/agents/` ou o comando equivalente da sua instalação). Leia a descrição de cada um.
 2. **Mapeie pool → papel.** Para cada um dos 8 papéis, escolha o agente instalado que melhor corresponde. Um papel pode virar vários agentes (ex.: `db-schema` pode se decompor em um de RLS, um de funções/triggers e um de views). Vários papéis podem cair no mesmo agente. **O que não pode é papel sem dono.**
 3. **Registre o mapa** em `RELATORIO_CORRECAO.md`, numa tabela `Papel | Agente instalado | Etapas`. Se algum papel não tiver agente correspondente, diga qual e assuma você mesmo — mas registre a lacuna.
 4. **Não use agente por existir.** 50 disponíveis não significa 50 acionados. Cada subagente custa contexto e cria superfície de conflito. Acione o mínimo que cobre a etapa.
