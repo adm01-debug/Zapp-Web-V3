@@ -152,6 +152,7 @@ export const queryKeys = {
   external: {
     contact360: (phone: string) => ['external-contact-360', phone] as const,
     contact360Batch: (key: string) => ['external-contact-360-batch', key] as const,
+    contact360BatchRef: (key: string) => ['external-contact-360-batch-ref', key] as const,
     cargos: () => ['external-cargos'] as const,
     empresas: () => ['external-empresas'] as const,
     catalog: {

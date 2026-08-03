@@ -488,13 +488,22 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
         }
       }
 
+      // Skip HEAD check for URLs that can't be validated this way:
+      // - data:/blob: URLs are local and always valid
+      // - signed storage URLs already refreshed above — HEAD on stale URL is redundant
+      // - non-http URLs have no meaningful HEAD response
       let urlExpired = false;
-      try {
-        const resp = await fetch(url, { method: 'HEAD', mode: 'cors' });
-        if (resp.ok) return url;
-        if (resp.status === 410 || resp.status === 403 || resp.status === 404) urlExpired = true;
-      } catch (err) {
-        logLib.error('Unexpected error in useAudioPlayer:', err);
+      const isHeadable = /^https?:/.test(url) && !url.includes('/storage/v1/');
+      if (isHeadable) {
+        try {
+          const resp = await fetch(url, { method: 'HEAD', mode: 'cors' });
+          if (resp.ok) return url;
+          if (resp.status === 410 || resp.status === 403 || resp.status === 404) urlExpired = true;
+        } catch {
+          // CORS/network failures on HEAD are expected for external URLs —
+          // the browser still shows "Falha ao carregar" in console but this is normal.
+          // Fall through to storage fallback instead of logging noise.
+        }
       }
 
       try {

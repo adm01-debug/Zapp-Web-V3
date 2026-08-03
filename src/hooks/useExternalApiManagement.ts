@@ -5,7 +5,7 @@
  * Combines 11 previously separate external API hooks (12 exports) into one unified module.
  *
  * Sections:
- *   1. Contact 360° Data (useExternalContact360, useExternalContact360Batch)
+ *   1. Contact 360° Data (useExternalContact360, useExternalContact360Batch, useExternalContact360BatchRef)
  *   2. Contact Metadata (useExternalCargos, useExternalEmpresas)
  *   3. Evolution/Conversations & Messages (useExternalConversations, useExternalMessages)
  *   4. Catalog & Products (useExternalCatalog, withSafeVariants)
@@ -127,6 +127,55 @@ export function useExternalContact360Batch(phones: string[]) {
     isLoading: query.isLoading,
     isConfigured: true,
   };
+}
+
+/**
+ * Fetches full 360-degree contact data (Contact360Data) for multiple phones with a
+ * single batch RPC call (get_contacts_360_batch). Returns a Map<phone, Contact360Data>
+ * for O(1) lookups, indexed by cleaned phone, with/without country code.
+ */
+export function useExternalContact360BatchRef(phones: string[]) {
+  // Deduplicate and clean phones
+  const cleanedPhones = [...new Set(phones.map(cleanPhone).filter((p) => p.length >= 8))];
+  // Create a stable key from sorted phones
+  const batchPhoneKey = cleanedPhones.sort().join(',');
+
+  return useQuery<Map<string, Contact360Data>>({
+    queryKey: queryKeys.external.contact360BatchRef(batchPhoneKey),
+    queryFn: async () => {
+      if (cleanedPhones.length === 0) return new Map();
+
+      const { data, error } = await dbRpc(RPC.getContacts360Batch, {
+        p_phones: cleanedPhones,
+      });
+
+      if (error) {
+        log.error('Error fetching external 360 batch:', error);
+        return new Map();
+      }
+
+      // Convert JSONB object to Map for O(1) lookups
+      const map = new Map<string, Contact360Data>();
+      if (data && typeof data === 'object') {
+        for (const [phone, info] of Object.entries(data as Record<string, unknown>)) {
+          map.set(phone, info as Contact360Data);
+          // Also index by cleaned version (without country code)
+          const clean = cleanPhone(phone);
+          if (clean !== phone) map.set(clean, info as Contact360Data);
+          // Also index with country code
+          if (!phone.startsWith('55') && clean.length <= 11) {
+            map.set('55' + clean, info as Contact360Data);
+          }
+        }
+      }
+
+      return map;
+    },
+    enabled: cleanedPhones.length > 0,
+    staleTime: 1000 * 60 * 10, // 10 min cache
+    gcTime: 1000 * 60 * 30, // 30 min gc
+    retry: tanstackRetry, // fix: era retry:1 numerico que sobrescrevia o QueryClient global
+  });
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════════════
