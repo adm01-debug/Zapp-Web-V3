@@ -477,6 +477,11 @@ export function ConversationListSidebar({
               selectionMode={bulkActions.selectionMode}
               selectedIds={bulkActions.selectedIds}
               onToggleSelection={bulkActions.toggleSelection}
+              // F4-01: scroll infinito da sidebar — load-more por cursor
+              // (path local: contatos/mensagens; path externo: mensagens).
+              onLoadMore={inbox.loadMoreConversations}
+              hasMore={inbox.hasMoreConversations}
+              loadingMore={inbox.loadingMoreConversations}
             />
           </ErrorBoundary>
         )}

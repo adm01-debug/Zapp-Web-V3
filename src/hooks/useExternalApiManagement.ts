@@ -252,12 +252,12 @@ export function useExternalEmpresas() {
 // SECTION 3: Evolution/Conversations & Messages
 // ╚══════════════════════════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { useQueryClient } from '@tanstack/react-query';
 import { evolutionToRealtimeMessage, jidToPhone } from '@/adapters/evolutionAdapter';
 import type { EvolutionMessage } from '@/types/evolutionExternal';
-import type { RealtimeMessage } from '@/features/inbox';
+import type { RealtimeMessage, ConversationWithMessages } from '@/features/inbox';
 import { getLogger } from '@/lib/logger';
 import { dedupedFetch, subscribeDedupe } from '@/lib/realtime/crossTabDedupe';
 import {
@@ -268,6 +268,7 @@ import {
   USE_MOCKS,
   CONVERSATION_PAGE_SIZE,
   fetchRecentMessagesWindow,
+  fetchSidebarMessagesPage,
   fetchMessagesByJid,
   fetchMessagesAfter,
 } from './evolutionFetchers';
@@ -307,8 +308,61 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
+/** Deduplica mensagens Evolution por id, preservando a ordem (mais recentes primeiro). */
+function dedupeEvolutionMessages(messages: EvolutionMessage[]): EvolutionMessage[] {
+  const seen = new Set<string>();
+  const out: EvolutionMessage[] = [];
+  for (const m of messages) {
+    if (seen.has(m.id)) continue;
+    seen.add(m.id);
+    out.push(m);
+  }
+  return out;
+}
+
+/** Aplica o enriquecimento do contactEnrichmentCache (tags, company, nome) a uma lista de conversas. */
+function applyCachedEnrichment(conversations: ConversationWithMessages[]): void {
+  conversations.forEach((conv) => {
+    const cached = contactEnrichmentCache.get(conv.contact.id);
+    if (cached?.data) {
+      const extra = cached.data;
+      if (extra.tags)
+        conv.contact.tags = Array.isArray(extra.tags)
+          ? (extra.tags as string[])
+          : typeof extra.tags === 'string'
+            ? safeParseTags(extra.tags)
+            : [];
+      if (extra.company) conv.contact.company = extra.company;
+      if (extra.ai_sentiment) conv.contact.ai_sentiment = extra.ai_sentiment;
+
+      const currentName = conv.contact.name;
+      const isGeneric =
+        !currentName || currentName === conv.contact.phone || currentName === conv.contact.id;
+      if (isGeneric) {
+        const newName = extra.name || extra.push_name;
+        if (newName && newName !== 'Você') {
+          conv.contact.name = newName;
+          conv.contact.nickname = newName;
+        }
+      }
+    }
+  });
+}
+
 /** Fetches Evolution API conversations with contact enrichment from external database. */
 export function useExternalConversations(enabled = true) {
+  // F4-01: paginação por cursor (path externo FATOR X). O react-query mantém a
+  // JANELA inicial (SIDEBAR_LIMIT mensagens mais recentes) e o load-more
+  // acumula páginas mais antigas em olderMessagesRef (cursor = created_at da
+  // mensagem mais antiga já carregada). O merge final deduplica por contato.
+  const windowMessagesRef = useRef<EvolutionMessage[]>([]);
+  const olderMessagesRef = useRef<EvolutionMessage[]>([]);
+  const [olderMessages, setOlderMessages] = useState<EvolutionMessage[]>([]);
+  const hasMoreRef = useRef(false);
+  const loadMoreInFlightRef = useRef(false);
+  const [hasMoreConversations, setHasMoreConversations] = useState(false);
+  const [loadingMoreConversations, setLoadingMoreConversations] = useState(false);
+
   const query = useQuery({
     queryKey: queryKeys.evolutionConversations.sidebar(
       SIDEBAR_DAYS_BACK,
@@ -327,6 +381,15 @@ export function useExternalConversations(enabled = true) {
         () => fetchRecentMessagesWindow(),
         { lockTtl: 8_000, resultTtl: POLL_INTERVAL - 500, waitTimeout: 6_000 }
       );
+
+      windowMessagesRef.current = messages;
+      // F4-01: janela cheia ⇒ pode haver página mais antiga. Mas se o load-more
+      // já acumulou páginas antigas, não zera o flag (a última página antiga
+      // pode ter vindo cheia) — o loadMoreConversations atualiza hasMoreRef
+      // por conta própria ao buscar.
+      if (olderMessagesRef.current.length === 0) {
+        hasMoreRef.current = messages.length === SIDEBAR_LIMIT;
+      }
 
       const conversations = buildExternalConversations(messages);
 
@@ -379,31 +442,7 @@ export function useExternalConversations(enabled = true) {
       }
 
       // Apply enrichment from cache to all conversations.
-      conversations.forEach((conv) => {
-        const cached = contactEnrichmentCache.get(conv.contact.id);
-        if (cached?.data) {
-          const extra = cached.data;
-          if (extra.tags)
-            conv.contact.tags = Array.isArray(extra.tags)
-              ? (extra.tags as string[])
-              : typeof extra.tags === 'string'
-                ? safeParseTags(extra.tags)
-                : [];
-          if (extra.company) conv.contact.company = extra.company;
-          if (extra.ai_sentiment) conv.contact.ai_sentiment = extra.ai_sentiment;
-
-          const currentName = conv.contact.name;
-          const isGeneric =
-            !currentName || currentName === conv.contact.phone || currentName === conv.contact.id;
-          if (isGeneric) {
-            const newName = extra.name || extra.push_name;
-            if (newName && newName !== 'Você') {
-              conv.contact.name = newName;
-              conv.contact.nickname = newName;
-            }
-          }
-        }
-      });
+      applyCachedEnrichment(conversations);
 
       return conversations;
     },
@@ -414,9 +453,83 @@ export function useExternalConversations(enabled = true) {
     refetchOnReconnect: false,
   });
 
+  // Sincroniza o flag de "há mais páginas" a cada poll (query.data novo).
+  useEffect(() => {
+    setHasMoreConversations(hasMoreRef.current);
+  }, [query.data]);
+
+  // F4-01: load-more sob demanda (scroll infinito da sidebar, path externo).
+  // Busca a próxima página de mensagens ANTES do cursor (created_at da
+  // mensagem mais antiga carregada), acumula em olderMessagesRef e re-deriva
+  // as conversas — sem re-buscar as páginas anteriores.
+  const loadMoreConversations = useCallback(async () => {
+    if (loadMoreInFlightRef.current) return;
+    if (!hasMoreRef.current) return;
+    loadMoreInFlightRef.current = true;
+    setLoadingMoreConversations(true);
+    try {
+      // Cursor = created_at mais antigo entre janela inicial + páginas antigas.
+      const allLoaded = [...windowMessagesRef.current, ...olderMessagesRef.current];
+      let cursor: string | null = null;
+      for (const m of allLoaded) {
+        if (!cursor || m.created_at < cursor) cursor = m.created_at;
+      }
+      if (!cursor) {
+        hasMoreRef.current = false;
+        setHasMoreConversations(false);
+        return;
+      }
+
+      const page = await dedupedFetch(
+        `inbox:sidebar:more:${cursor}`,
+        () => fetchSidebarMessagesPage(cursor as string, SIDEBAR_LIMIT),
+        { lockTtl: 8_000, resultTtl: POLL_INTERVAL - 500, waitTimeout: 6_000 }
+      );
+
+      if (page.length === 0) {
+        hasMoreRef.current = false;
+        setHasMoreConversations(false);
+        return;
+      }
+
+      const merged = dedupeEvolutionMessages([...olderMessagesRef.current, ...page]);
+      olderMessagesRef.current = merged;
+      setOlderMessages(merged);
+      hasMoreRef.current = page.length === SIDEBAR_LIMIT;
+      setHasMoreConversations(hasMoreRef.current);
+    } catch (err) {
+      logConversations.warn('Failed to load more conversations', err);
+    } finally {
+      loadMoreInFlightRef.current = false;
+      setLoadingMoreConversations(false);
+    }
+  }, []);
+
+  // F4-01: merge janela inicial (query.data, sempre fresca) + páginas antigas
+  // acumuladas. Deduplica por contato e mantém a versão com lastMessage mais
+  // recente (a janela ganha; páginas antigas só acrescentam contatos novos).
+  const conversations = useMemo(() => {
+    const firstPage = query.data || [];
+    if (olderMessages.length === 0) return firstPage;
+    const olderConvs = buildExternalConversations(olderMessages);
+    applyCachedEnrichment(olderConvs);
+    const map = new Map<string, ConversationWithMessages>();
+    for (const c of [...firstPage, ...olderConvs]) {
+      const existing = map.get(c.contact.id);
+      if (!existing) {
+        map.set(c.contact.id, c);
+        continue;
+      }
+      const aTime = existing.lastMessage?.created_at ?? existing.contact.updated_at;
+      const bTime = c.lastMessage?.created_at ?? c.contact.updated_at;
+      if (bTime > aTime) map.set(c.contact.id, c);
+    }
+    return Array.from(map.values());
+  }, [query.data, olderMessages]);
+
   return {
-    conversations: query.data || [],
-    allConversations: query.data || [],
+    conversations,
+    allConversations: conversations,
     loading: query.isLoading,
     error: query.error?.message || null,
     refetch: query.refetch,
@@ -426,6 +539,11 @@ export function useExternalConversations(enabled = true) {
     setStatusFilter: () => {},
     sortBy: 'lastMessage',
     setSortBy: () => {},
+    // F4-01: paginação por cursor (path externo) — load-more para scroll
+    // infinito da sidebar.
+    loadMoreConversations,
+    hasMoreConversations,
+    loadingMoreConversations,
   };
 }
 

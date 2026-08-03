@@ -23,6 +23,149 @@ const lastInstabilityToastByContact = new Map<string, number>();
 
 const log = getLogger('MessageSender');
 
+// ── F4-15: caches de leitura para eliminar round-trips repetidos ────────────
+// Antes, cada envio fazia 8 queries no caminho feliz (getUser + profiles +
+// contacts + insert + audit send_attempt + connections + update + audit
+// delivered). Com getSession() (local, sem rede) + cache de profile (agente
+// estável na sessão) + cache de contact (phone/connection mudam raramente,
+// TTL 30s no padrão whatsappConnectionsCache) + audit em lote, o caminho
+// feliz cai para ~3 queries por mensagem.
+const PROFILE_CACHE_TTL_MS = 5 * 60 * 1000; // 5min — agent_id não muda na sessão
+const CONTACT_CACHE_TTL_MS = 30 * 1000; // 30s — phone/connection mudam raramente
+
+const profileCache = new Map<string, { id: string | null; expiresAt: number }>();
+const profileInflight = new Map<string, Promise<string | null>>();
+const contactCache = new Map<
+  string,
+  { phone: string | null; whatsapp_connection_id: string | null; expiresAt: number }
+>();
+const contactInflight = new Map<
+  string,
+  Promise<{ phone: string | null; whatsapp_connection_id: string | null } | null>
+>();
+
+/** Busca profile.id com cache TTL + in-flight dedup (coalesce rajadas). */
+async function getCachedProfileId(userId: string): Promise<string | null> {
+  const cached = profileCache.get(userId);
+  if (cached && cached.expiresAt > Date.now()) return cached.id;
+  const inflight = profileInflight.get(userId);
+  if (inflight) return inflight;
+  const promise = (async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116
+    // Só popula o cache em sucesso — erro transitório não vira cache negativo.
+    if (!error) {
+      const id = ((data as { id?: string } | null)?.id ?? null) as string | null;
+      profileCache.set(userId, { id, expiresAt: Date.now() + PROFILE_CACHE_TTL_MS });
+      return id;
+    }
+    return null;
+  })().finally(() => profileInflight.delete(userId));
+  profileInflight.set(userId, promise);
+  return promise;
+}
+
+/** Busca phone/whatsapp_connection_id do contato com cache TTL + in-flight dedup. */
+async function getCachedContact(
+  contactId: string
+): Promise<{ phone: string | null; whatsapp_connection_id: string | null } | null> {
+  const cached = contactCache.get(contactId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return { phone: cached.phone, whatsapp_connection_id: cached.whatsapp_connection_id };
+  }
+  const inflight = contactInflight.get(contactId);
+  if (inflight) return inflight;
+  const promise = (async () => {
+    const { data, error } = await dbFrom('contacts')
+      .select('phone, whatsapp_connection_id')
+      .eq('id', contactId)
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116
+    // Só popula o cache em sucesso — erro transitório não vira cache negativo.
+    if (error) return null;
+    const row = (data ?? null) as {
+      phone: string | null;
+      whatsapp_connection_id: string | null;
+    } | null;
+    contactCache.set(contactId, {
+      phone: row?.phone ?? null,
+      whatsapp_connection_id: row?.whatsapp_connection_id ?? null,
+      expiresAt: Date.now() + CONTACT_CACHE_TTL_MS,
+    });
+    return row;
+  })().finally(() => contactInflight.delete(contactId));
+  contactInflight.set(contactId, promise);
+  return promise;
+}
+
+// ── F4-15: batcher de audit_logs ────────────────────────────────────────────
+// Antes, cada envio gravava 2 inserts de audit_logs separados (send_attempt +
+// delivered) — 2 round-trips por mensagem. Com o batcher, os rows são
+// acumulados num buffer e descarregados em UM insert multi-row (flush por
+// debounce de AUDIT_FLUSH_MS ou ao atingir AUDIT_BATCH_MAX). Em rajadas de
+// envios concorrentes (fila com MAX_CONCURRENT_SENDS), N envios viram ~1
+// insert de audit. Telemetria não-crítica (padrão F4-17): falha de flush é
+// logada e descartada, nunca bloqueia o envio.
+interface AuditRow {
+  entity_type: string;
+  entity_id?: string;
+  action: string;
+  details?: Record<string, unknown>;
+}
+
+const AUDIT_FLUSH_MS = 100;
+const AUDIT_BATCH_MAX = 25;
+const auditBuffer: AuditRow[] = [];
+let auditFlushTimer: ReturnType<typeof setTimeout> | null = null;
+let auditFlushInFlight: Promise<void> | null = null;
+
+function scheduleAuditFlush(): void {
+  if (auditFlushTimer !== null || auditFlushInFlight !== null) return;
+  auditFlushTimer = setTimeout(() => {
+    auditFlushTimer = null;
+    void flushAuditBatch();
+  }, AUDIT_FLUSH_MS);
+}
+
+/** Enfileira um row de audit_logs (fire-and-forget; flush em lote). */
+function enqueueAudit(row: AuditRow): void {
+  auditBuffer.push(row);
+  if (auditBuffer.length >= AUDIT_BATCH_MAX) {
+    if (auditFlushTimer !== null) {
+      clearTimeout(auditFlushTimer);
+      auditFlushTimer = null;
+    }
+    void flushAuditBatch();
+  } else {
+    scheduleAuditFlush();
+  }
+}
+
+/** Descarrega o buffer em UM insert multi-row. Nunca lança. */
+async function flushAuditBatch(): Promise<void> {
+  if (auditFlushInFlight) {
+    // Aguarda o flush em curso; o buffer residual é tratado por ele ou pelo
+    // próximo scheduleAuditFlush.
+    await auditFlushInFlight;
+    return;
+  }
+  if (auditBuffer.length === 0) return;
+  const rows = auditBuffer.splice(0, AUDIT_BATCH_MAX);
+  auditFlushInFlight = (async () => {
+    try {
+      await safeClient.from('audit_logs', (q) => q.insert(rows));
+    } catch (e) {
+      log.warn('Failed to write batched audit logs', e);
+    } finally {
+      auditFlushInFlight = null;
+      if (auditBuffer.length > 0) scheduleAuditFlush();
+    }
+  })();
+  await auditFlushInFlight;
+}
+
 /**
  * Sends a message: saves to DB, dispatches via Evolution API, updates status.
  */
@@ -34,26 +177,24 @@ export async function sendMessageToContact(
   mediaPayload?: string,
   opts: { optimisticId?: string; conversationId?: string } = {}
 ): Promise<SendMessageResult> {
-  // F4-15: agrupa round-trips — profile + contacts são independentes e são
-  // buscados em PARALELO (antes: 2 awaits sequenciais no caminho feliz; o
-  // lookup de contato ficava depois do insert e do audit). Semântica
-  // preservada: `profile?.id` e `contact?.phone` seguem iguais.
-  const [{ data: profile }, { data: contact }] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('id')
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id ?? '')
-      .maybeSingle(), // ✅ fix: maybeSingle evita PGRST116;
-    dbFrom('contacts')
-      .select('phone, whatsapp_connection_id')
-      .eq('id', contactId)
-      .maybeSingle(), // ✅ fix: maybeSingle evita PGRST116;
+  // F4-15: agrupa round-trips — getSession() é LOCAL (sem rede; getUser()
+  // fazia 1 round-trip ao /auth/v1/user a cada envio) e profile + contact
+  // vêm de caches TTL com in-flight dedup (0 queries no caminho feliz com
+  // cache quente). Semântica preservada: `profile?.id` e `contact?.phone`
+  // seguem iguais.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const userId = session?.user?.id ?? '';
+  const [profileId, contact] = await Promise.all([
+    userId ? getCachedProfileId(userId) : Promise.resolve(null),
+    getCachedContact(contactId),
   ]);
 
   const { data, error } = await dbFrom('messages')
     .insert({
       contact_id: contactId,
-      agent_id: profile?.id,
+      agent_id: profileId,
       content,
       sender: 'agent',
       message_type: messageType,
@@ -77,20 +218,14 @@ export async function sendMessageToContact(
 
   try {
     if (opts.conversationId) {
-      // F4-15: audit de send_attempt é telemetria não-crítica — dispara em
-      // fire-and-forget com catch (padrão F4-17) e NÃO bloqueia o caminho de
-      // envio (antes era um await sequencial no caminho feliz).
-      safeClient
-        .from('audit_logs', (q) =>
-          q.insert({
-            entity_type: 'conversation',
-            entity_id: opts.conversationId,
-            action: 'send_attempt',
-            details: { status: 'starting', messageType, hasMedia: !!(mediaUrl || mediaPayload) },
-          })
-        )
-        .then(() => null)
-        .catch((e: unknown) => log.warn('Failed to write send_attempt audit log', e));
+      // F4-15: audit de send_attempt entra no batcher (fire-and-forget,
+      // flush em lote multi-row) — não bloqueia o caminho de envio.
+      enqueueAudit({
+        entity_type: 'conversation',
+        entity_id: opts.conversationId,
+        action: 'send_attempt',
+        details: { status: 'starting', messageType, hasMedia: !!(mediaUrl || mediaPayload) },
+      });
     }
 
     // F4-15: `contact` já veio do Promise.all inicial (paralelo com profiles).
@@ -104,14 +239,15 @@ export async function sendMessageToContact(
         .update({ status: 'failed', error_reason: 'Nenhuma conexão WhatsApp ativa disponível' })
         .eq('id', data.id);
 
-      await safeClient.from('audit_logs', (q) =>
-        q.insert({
-          entity_type: 'conversation',
-          entity_id: opts.conversationId,
-          action: 'failed',
-          details: { status: 'error', error_message: 'Nenhuma conexão WhatsApp ativa disponível' },
-        })
-      );
+      // F4-15: audit via batcher + flush explícito (erro é caminho raro —
+      // garante a gravação antes do throw sem custo no caminho feliz).
+      enqueueAudit({
+        entity_type: 'conversation',
+        entity_id: opts.conversationId,
+        action: 'failed',
+        details: { status: 'error', error_message: 'Nenhuma conexão WhatsApp ativa disponível' },
+      });
+      await flushAuditBatch();
 
       throw new Error('Nenhuma conexão WhatsApp ativa disponível');
     }
@@ -135,18 +271,18 @@ export async function sendMessageToContact(
       await dbFrom('messages')
         .update({ status: 'failed', error_reason: 'Conexão WhatsApp sem nome de instância válido' })
         .eq('id', data.id);
-      await safeClient.from('audit_logs', (q) =>
-        q.insert({
-          entity_type: 'conversation',
-          entity_id: opts.conversationId,
-          action: 'failed',
-          details: {
-            status: 'error',
-            error_message:
-              'Conexão WhatsApp sem nome de instância válido (instance_id parece ser um UUID)',
-          },
-        })
-      );
+      // F4-15: audit via batcher + flush explícito (caminho de erro raro).
+      enqueueAudit({
+        entity_type: 'conversation',
+        entity_id: opts.conversationId,
+        action: 'failed',
+        details: {
+          status: 'error',
+          error_message:
+            'Conexão WhatsApp sem nome de instância válido (instance_id parece ser um UUID)',
+        },
+      });
+      await flushAuditBatch();
       throw new Error('Conexão WhatsApp sem nome de instância válido');
     }
 
@@ -202,17 +338,13 @@ export async function sendMessageToContact(
             { contactId, source: 'messageSender' }
           );
 
-          safeClient
-            .from('audit_logs', (q) =>
-              q.insert({
-                entity_type: 'conversation',
-                entity_id: opts.conversationId,
-                action: 'send_attempt',
-                details: { status: 'retrying', attempt_number: attempt, totalRetries: total },
-              })
-            )
-            .then(() => null)
-            .catch((e: unknown) => log.warn('Failed to write retry audit log', e));
+          // F4-15: audit via batcher (fire-and-forget, flush em lote).
+          enqueueAudit({
+            entity_type: 'conversation',
+            entity_id: opts.conversationId,
+            action: 'send_attempt',
+            details: { status: 'retrying', attempt_number: attempt, totalRetries: total },
+          });
 
           // Persist counters so the "2/3" indicator survives a page reload.
           // DB-side triggers normalize 'retrying' -> 'pending' via CHECK constraint protection
@@ -287,8 +419,9 @@ export async function sendMessageToContact(
     // responder 200 sem key.id. Marca como sent_unverified e agenda reconciliação.
     const effectiveStatus = externalId ? 'sent' : 'sent_unverified';
     // F4-15: finalize (update de status) + audit 'delivered' são
-    // independentes — rodam em PARALELO (antes: 2 awaits sequenciais).
-    // O audit tolera falha (telemetria não-crítica, padrão F4-17).
+    // independentes — rodam em PARALELO (antes: 2 awaits sequenciais). O
+    // audit vai pelo batcher com flush explícito (1 insert multi-row para
+    // N envios concorrentes; tolera falha — telemetria não-crítica, F4-17).
     await Promise.all([
       dbFrom('messages')
         .update({
@@ -300,17 +433,13 @@ export async function sendMessageToContact(
         })
         .eq('id', data.id),
       opts.conversationId
-        ? safeClient
-            .from('audit_logs', (q) =>
-              q.insert({
-                entity_type: 'conversation',
-                entity_id: opts.conversationId,
-                action: 'delivered',
-                details: { status: 'success', externalId },
-              })
-            )
-            .then(() => null)
-            .catch((e: unknown) => log.warn('Failed to write delivered audit log', e))
+        ? (enqueueAudit({
+            entity_type: 'conversation',
+            entity_id: opts.conversationId,
+            action: 'delivered',
+            details: { status: 'success', externalId },
+          }),
+          flushAuditBatch())
         : Promise.resolve(null),
     ]);
     const finalSid = opts.optimisticId || data.id;
@@ -353,19 +482,20 @@ export async function sendMessageToContact(
       );
     }
 
-    await safeClient.from('audit_logs', (q) =>
-      q.insert({
-        entity_type: 'conversation',
-        entity_id: opts.conversationId,
-        action: 'failed',
-        details: {
-          status: 'error',
-          error_message: reason,
-          authError: auth.isAuth,
-          errorCode: auth.code,
-        },
-      })
-    );
+    // F4-15: audit de falha via batcher + flush explícito (caminho raro;
+    // garante a gravação antes do throw sem custo no caminho feliz).
+    enqueueAudit({
+      entity_type: 'conversation',
+      entity_id: opts.conversationId,
+      action: 'failed',
+      details: {
+        status: 'error',
+        error_message: reason,
+        authError: auth.isAuth,
+        errorCode: auth.code,
+      },
+    });
+    await flushAuditBatch();
     throw evolutionError;
   }
 

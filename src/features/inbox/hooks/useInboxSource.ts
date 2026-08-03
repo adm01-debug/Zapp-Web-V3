@@ -21,13 +21,18 @@ export function useInboxSource(useExternalDb: boolean, selectedContactId: string
       }
     : localRealtime.refetch;
 
-  // F4-01: paginação por cursor (path local) — exposto para o scroll
-  // infinito da sidebar. O path externo (FATOR X) já pagina via
-  // SIDEBAR_LIMIT/fetchRecentMessagesWindow e não usa estes callbacks.
-  const loadMoreConversations = useExternalDb ? undefined : localRealtime.loadMoreConversations;
-  const hasMoreConversations = useExternalDb ? false : localRealtime.hasMoreConversations;
+  // F4-01: paginação por cursor — exposto para o scroll infinito da sidebar.
+  // Path local: páginas de CONTACTS_PAGE_SIZE/MESSAGES_PAGE_SIZE com cursor
+  // (updated_at+id / created_at+id). Path externo (FATOR X): páginas de
+  // SIDEBAR_LIMIT mensagens com cursor created_at (fetchSidebarMessagesPage).
+  const loadMoreConversations = useExternalDb
+    ? externalData.loadMoreConversations
+    : localRealtime.loadMoreConversations;
+  const hasMoreConversations = useExternalDb
+    ? (externalData.hasMoreConversations ?? false)
+    : localRealtime.hasMoreConversations;
   const loadingMoreConversations = useExternalDb
-    ? false
+    ? (externalData.loadingMoreConversations ?? false)
     : localRealtime.loadingMoreConversations;
 
   // Search and Filter controls (always from localRealtime for UI consistency)
@@ -104,7 +109,7 @@ export function useInboxSource(useExternalDb: boolean, selectedContactId: string
     selectedConversationInstance,
     // Original realtime hooks for notifications etc
     localRealtime,
-    // F4-01: paginação por cursor (path local) — load-more para scroll infinito.
+    // F4-01: paginação por cursor — load-more para scroll infinito (local + externo).
     loadMoreConversations,
     hasMoreConversations,
     loadingMoreConversations,
