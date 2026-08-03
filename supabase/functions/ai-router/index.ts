@@ -52,6 +52,11 @@ import {
 import { callAiWithTracking, extractTokenUsage } from "../_shared/ai-usage.ts";
 import { requireUser } from "../_shared/auth.ts";
 
+/** Lovable AI gateway key — LOVABLE_API_KEY with AI_GATEWAY_KEY fallback (rename-safe). */
+function getLovableApiKey(): string {
+  return Deno.env.get('LOVABLE_API_KEY') || Deno.env.get('AI_GATEWAY_KEY') || requireEnv('LOVABLE_API_KEY');
+}
+
 // Action-specific timeouts (milliseconds)
 const ACTION_TIMEOUTS: Record<string, number> = {
   auto_tag: 30_000,
@@ -1185,7 +1190,7 @@ async function handleAutoTag(
 
     const { contactId, messages: inputMessages, requestId } = parsed.data;
     const validContactId = contactId && isValidUUID(contactId) ? contactId : null;
-    const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
+    const LOVABLE_API_KEY = getLovableApiKey();
 
     let conversationMessages = inputMessages;
     if (!conversationMessages && validContactId) {
@@ -1596,7 +1601,7 @@ async function handleConversationSummary(
 
     const { messages, contactName, contactId, requestId } = parsed.data;
     const validContactId = contactId && isValidUUID(contactId) ? contactId : null;
-    const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
+    const LOVABLE_API_KEY = getLovableApiKey();
 
     if (!messages || messages.length === 0) {
       return {
@@ -2032,7 +2037,7 @@ async function handleEnhanceMessage(
     }
 
     const { message, tone, contactName, requestId } = parsed.data;
-    const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
+    const LOVABLE_API_KEY = getLovableApiKey();
 
     const tonePrompts: Record<string, string> = {
       professional: "Reescreva a mensagem abaixo de forma mais profissional, clara e educada. Mantenha o mesmo significado mas use linguagem corporativa e polida.",
@@ -2238,7 +2243,7 @@ async function handleClassifyEmoji(
     }
 
     const { image_url, file_name, requestId } = parsed.data;
-    const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
+    const LOVABLE_API_KEY = getLovableApiKey();
 
     if (!image_url) {
       return { success: false, error: "image_url is required", duration_ms: performance.now() - startTime };
@@ -2452,7 +2457,7 @@ async function handleClassifySticker(
     }
 
     const { image_url, requestId } = parsed.data;
-    const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
+    const LOVABLE_API_KEY = getLovableApiKey();
 
     if (!image_url) {
       return { success: false, error: "image_url is required", duration_ms: performance.now() - startTime };
@@ -2926,7 +2931,7 @@ async function handleConversationAnalysis(
 
     const { messages, contactName, contactId, requestId } = parsed.data;
     const validContactId = contactId && isValidUUID(contactId) ? contactId : null;
-    const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
+    const LOVABLE_API_KEY = getLovableApiKey();
 
     if (!messages || messages.length === 0) {
       return {
@@ -3349,7 +3354,7 @@ async function handleSuggestReply(
     }
 
     const { conversationHistory, contactName, contactId, context, requestId } = parsed.data;
-    const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
+    const LOVABLE_API_KEY = getLovableApiKey();
     // C.36: Validate contactId upfront for consistent logging
     const validContactId = contactId && isValidUUID(contactId) ? contactId : null;
 
@@ -4032,7 +4037,7 @@ async function handleClassifyTickets(
     }
 
     const { limit } = parsed.data;
-    const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
+    const LOVABLE_API_KEY = getLovableApiKey();
 
     // Fetch contacts without ai_tag classification (unclassified tickets)
     const { data: contacts, error: contactsError } = await supabase

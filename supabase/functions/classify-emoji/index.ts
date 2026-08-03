@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ category: 'outros' }, 200, req);
     }
 
-    const lovableApiKey = requireEnv('LOVABLE_API_KEY');
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY') || Deno.env.get('AI_GATEWAY_KEY') || requireEnv('LOVABLE_API_KEY');
 
     const prompt = `Você é um classificador de emojis/emoticons customizados para uma plataforma de atendimento via WhatsApp.
 Analise a imagem e o nome do arquivo "${file_name || 'emoji'}" para classificar em EXATAMENTE UMA das categorias abaixo.
