@@ -1,3 +1,5 @@
+> **Nota histórica**: Este documento refere-se ao banco 'FATOR X' (projeto Supabase `tdprnylgyrogbbhgdoik`), descomissionado em 2026-07-15. O termo foi mantido para rastreabilidade histórica.
+
 # DB Migration 500-Failure Simulation — 2026-08-03
 
 **Scope:** `supabase/migrations/20260803_deprecate_lovable_parity_functions.sql` (M1) e `supabase/migrations/20260803_fix_fator_x_db_references.sql` (M2).

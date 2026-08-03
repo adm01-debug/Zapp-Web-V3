@@ -17,10 +17,9 @@
 // ╚══════════════════════════════════════════════════════════════════════════════════
 
 import { useQuery } from '@tanstack/react-query';
-import { isExternalConfigured, getExternalSupabase } from '@/integrations/supabase/externalClient';
 
 // ignore-audit — nomes de tabela dinâmicos exigem cliente não tipado
-const getDynamicClient = () => getExternalSupabase() as unknown as SupabaseClient;
+const getDynamicClient = () => supabase as unknown as SupabaseClient;
 import { dbGet, dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { Contact360Data } from '@/types/contact360';
@@ -65,7 +64,7 @@ export function useExternalContact360(phone: string | undefined) {
 
       return data as Contact360Data; // ignore-audit: narrows Supabase query result to local interface
     },
-    enabled: isExternalConfigured && !!cleanedPhone && cleanedPhone.length >= 8,
+    enabled: !!cleanedPhone && cleanedPhone.length >= 8,
     staleTime: 1000 * 60 * 10, // 10 min cache
     gcTime: 1000 * 60 * 30, // 30 min gc
     retry: tanstackRetry, // fix: era retry:1 numerico que sobrescrevia o QueryClient global
@@ -110,7 +109,7 @@ export function useExternalContact360Batch(phones: string[]) {
 
       return map;
     },
-    enabled: isExternalConfigured && cleanedPhones.length > 0,
+    enabled: cleanedPhones.length > 0,
     staleTime: 1000 * 60 * 10, // 10 min cache
     gcTime: 1000 * 60 * 30,
   });
@@ -126,7 +125,7 @@ export function useExternalContact360Batch(phones: string[]) {
     batchData: query.data || new Map<string, CRMBatchResult>(),
     lookup,
     isLoading: query.isLoading,
-    isConfigured: isExternalConfigured,
+    isConfigured: true,
   };
 }
 
@@ -186,7 +185,7 @@ export function useExternalCargos() {
       log.info(`[useExternalCargos] Loaded ${unique.length} unique cargos`);
       return unique;
     },
-    enabled: isExternalConfigured,
+    enabled: true,
     staleTime: 1000 * 60 * 30,
     gcTime: 1000 * 60 * 60,
   });
@@ -242,7 +241,7 @@ export function useExternalEmpresas() {
       log.info(`[useExternalEmpresas] Loaded ${unique.length} unique companies via RPC`);
       return unique;
     },
-    enabled: isExternalConfigured,
+    enabled: true,
     staleTime: 1000 * 60 * 30,
     gcTime: 1000 * 60 * 60,
   });
@@ -280,7 +279,6 @@ import {
   type ContactEnrichmentData,
 } from './evolutionContactCache';
 import { buildExternalConversations } from '@/adapters/evolutionAdapter';
-import { queryExternalProxy } from '@/lib/externalProxy';
 import { OPTIMISTIC_PREFIX, applyReconciliation } from './evolutionReconcile';
 
 const logConversations = getLogger('useExternalConversations');
@@ -417,12 +415,13 @@ export function useExternalConversations(enabled = true) {
             ENRICHMENT_CONCURRENCY,
             async (jid) => {
               try {
-                const res = await queryExternalProxy<ContactEnrichmentData>({
-                  action: 'rpc',
-                  rpc: 'rpc_get_contact',
-                  params: { p_remote_jid: jid, p_instance: DEFAULT_INSTANCE },
+                const { data, error } = await getDynamicClient().rpc('rpc_get_contact', {
+                  p_remote_jid: jid,
+                  p_instance: DEFAULT_INSTANCE,
                 });
-                return { jid, res, failed: false as const };
+                if (error) throw new Error(error.message);
+                const rows = data == null ? [] : Array.isArray(data) ? data : [data];
+                return { jid, res: { data: rows }, failed: false as const };
               } catch {
                 contactEnrichmentCache.set(jid, { data: null, timestamp: now, failedAt: now });
                 return { jid, res: null, failed: true as const };
@@ -1142,7 +1141,7 @@ export function useExternalSelect<T = Record<string, unknown>>(options: UseExter
         offset,
         countMode,
       }),
-    enabled: enabled && isExternalConfigured,
+    enabled,
     staleTime,
     gcTime: staleTime * 2,
   });
@@ -1175,7 +1174,7 @@ export function useExternalRPC<T = unknown>(options: UseExternalRPCOptions) {
         },
       };
     },
-    enabled: (options.enabled ?? true) && isExternalConfigured,
+    enabled: options.enabled ?? true,
     staleTime: options.staleTime ?? 10 * 60 * 1000,
   });
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { externalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
 import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
@@ -29,8 +29,7 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
   }, []);
 
   useEffect(() => {
-    if (!isExternalConfigured || !externalSupabase || !profile?.id) return;
-    const supabase = externalSupabase;
+    if (!profile?.id) return;
 
     const topic = `incoming-calls:${instance}`;
     const channel = supabase
@@ -111,7 +110,7 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
       .subscribe();
 
     return () => {
-      externalSupabase.removeChannel(channel);
+      supabase.removeChannel(channel);
     };
   }, [profile?.id, instance]);
 

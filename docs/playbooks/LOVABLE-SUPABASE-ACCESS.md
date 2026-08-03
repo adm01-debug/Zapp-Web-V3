@@ -18,7 +18,7 @@
 - Credenciais ficam no **código-fonte** (repo GitHub): `.env.example`, `supabase/config.toml`, testes com `eyJ*`
 - A Lovable **regenera** `client.ts` a cada build — editar via GitHub é inútil
 - Tela branca = integração Supabase desconectada no painel Lovable
-- O ZAPP Web usa **um único** Supabase Self-Hosted: `supabase.atomicabr.com.br` (schemas `zapp`/`evo`). O FATOR X cloud (`tdprnylgyrogbbhgdoik`) foi **descontinuado em jul/2026** (dados consolidados no self-hosted)
+- O ZAPP Web usa **um único** Supabase Self-Hosted: `supabase.atomicabr.com.br` (schemas `zapp`/`evo`). O Evolution DB cloud (`tdprnylgyrogbbhgdoik`) foi **descontinuado em jul/2026** (dados consolidados no self-hosted)
 
 ---
 
@@ -42,7 +42,7 @@
 | Projeto | Ref | Anon Key | Acesso PAT |
 |---|---|---|---|
 | ZAPP Web (Lovable) | allrjhkpuscmgbsnmjlv | eyJ...HA74 (do test file) | ❌ |
-| FATOR X — ⚠️ descontinuado (jul/2026) | tdprnylgyrogbbhgdoik | eyJ...PZMSI | — |
+| Evolution DB — ⚠️ descontinuado (jul/2026) | tdprnylgyrogbbhgdoik | eyJ...PZMSI | — |
 | time_promo | hncgwjbzdajfdztqgefe | via PAT | ✅ |
 | bancodadosclientes | pgxfvjmuubtbowutlide | via PAT | ✅ |
 | supabase-fuchsia-kite | doufsxqlfjyuvxuezpln | via PAT | ✅ |
@@ -54,7 +54,7 @@
 1. **NUNCA editar `src/integrations/supabase/client.ts`** — Lovable regenera
 2. **Tela branca → problema no painel Lovable**, não no código
 3. **Headless browsers mostram branco mesmo quando app funciona** — testar no browser real
-4. **ZAPP Web usa 1 Supabase** (desde jul/2026) — tudo no self-hosted `supabase.atomicabr.com.br` (schemas `zapp`/`evo`); FATOR X cloud descontinuado
+4. **ZAPP Web usa 1 Supabase** (desde jul/2026) — tudo no self-hosted `supabase.atomicabr.com.br` (schemas `zapp`/`evo`); Evolution DB cloud descontinuado
 5. **`VITE_SUPABASE_PUBLISHABLE_KEY` ≠ `VITE_SUPABASE_ANON_KEY`** — Lovable usa nome diferente
 
 *Playbook completo em /workspace/notes/playbooks/ na VPS*

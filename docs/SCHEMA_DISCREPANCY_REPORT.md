@@ -1,7 +1,7 @@
 # Relatório de Discrepâncias — Schemas Zod × types.ts × Código
 
 > **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
-> **Consolidação (jul/2026)**: banco externo FATOR X descontinuado — dados de WhatsApp/CRM consolidados no schema `evo` do self-hosted único (`salespeople` migrou para o schema `vendas`).
+> **Consolidação (jul/2026)**: banco externo Evolution descontinuado — dados de WhatsApp/CRM consolidados no schema `evo` do self-hosted único (`salespeople` migrou para o schema `vendas`).
 
 _Gerado em 2026-07-08 · base: banco Lovable Cloud (146 tabelas + 6 views)._
 
@@ -25,7 +25,7 @@ _Gerado em 2026-07-08 · base: banco Lovable Cloud (146 tabelas + 6 views)._
 
 | # refs | Tabela                          | Categoria                       | Ação recomendada |
 |-------:|---------------------------------|---------------------------------|------------------|
-| 19     | `evolution_messages`            | Consolidada (schema `evo`)      | Existe no Supabase self-hosted único desde jul/2026 (antes: "DB externo Fator X"). Sem ação. |
+| 19     | `evolution_messages`            | Consolidada (schema `evo`)      | Existe no Supabase self-hosted único desde jul/2026 (antes: "DB externo Evolution"). Sem ação. |
 | 7      | `evolution_contacts`            | Consolidada (schema `evo`) / uso a migrar | Existe no self-hosted único desde jul/2026; migrar `useChatMediaSending.ts` para `contacts` (chave: `phone`) se aplicável. |
 | 4      | `automation_executions`         | Nunca criada                    | Criar migration OU remover UI de logs. |
 | 4      | `contact_emails`                | Normalizada mas não migrada     | Usar `contacts.email` (coluna existente). |
@@ -119,4 +119,4 @@ comm -23 /tmp/used.txt /tmp/db.txt  # tabelas fantasma
 
 **Adiado (não removido nesta sessão):**
 
-- `salespeople` — vivia no **DB externo Fator X** (`getExternalSupabase`); com a consolidação de jul/2026 foi migrada para o schema `vendas` do Supabase self-hosted único. Ainda em uso ativo via `useExternalCargos` + aba CRM 360 “Vendedores”. Ajustar as referências de `getExternalSupabase` para o cliente único; permanece no relatório como referência.
+- `salespeople` — vivia no **DB externo Evolution** (`getExternalSupabase`); com a consolidação de jul/2026 foi migrada para o schema `vendas` do Supabase self-hosted único. Ainda em uso ativo via `useExternalCargos` + aba CRM 360 “Vendedores”. Ajustar as referências de `getExternalSupabase` para o cliente único; permanece no relatório como referência.

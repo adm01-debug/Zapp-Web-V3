@@ -1,7 +1,7 @@
 /**
  * externalMessageSender — envio de mensagens no modo Evolution DB.
  *
- * O Inbox em modo `USE_EXTERNAL_DB=true` exibe conversas vindas de
+ * O Inbox em modo externo exibe conversas vindas de
  * `evolution_messages`. Esta função envia via Edge Function `evolution-api`
  * (mesmo proxy usado pelo sender legado) e devolve uma "bolha otimista" no
  * formato esperado pelo `useExternalMessages.addMessage` — o webhook

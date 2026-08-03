@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { EnrichedContactData } from '@/hooks/useContactEnrichedData';
 import { ImagePreview } from '../ImagePreview';
 import { useExternalContact360 } from '@/hooks/useExternalApiManagement';
-import { isExternalConfigured } from '@/integrations/supabase/externalClient';
+import { isSupabaseConfigured } from '@/integrations/supabase/client';
 import type { Conversation } from '@/types/chat';
 import { CompactContactHeader } from './CompactContactHeader';
 import { ContactActionButtons } from './ContactActionButtons';
@@ -100,7 +100,7 @@ export function ContactHeaderSection({
   const [showCallDialog, setShowCallDialog] = useState(false);
   const [showAvatarPreview, setShowAvatarPreview] = useState(false);
 
-  const { data: crmData } = useExternalContact360(isExternalConfigured ? contact.phone : undefined);
+  const { data: crmData } = useExternalContact360(isSupabaseConfigured ? contact.phone : undefined);
   const crmContact = crmData?.found ? crmData.contact : null;
   const crmCompany = crmData?.found ? crmData.company : null;
   const isVip = crmContact ? crmContact.relationship_score >= 70 : false;

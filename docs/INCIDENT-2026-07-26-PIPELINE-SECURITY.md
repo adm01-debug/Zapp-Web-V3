@@ -122,7 +122,7 @@ O codebase frontend está muito mais avançado do que descrito no plano original
 | Busca global de 100 msgs | ✅ `useMessages` usa `getAllMessagesForContact` por conversa |
 | anon sem USAGE no schema evo | ✅ `anon` TEM USAGE em evo (confirmado) |
 
-### 5.2 Arquitetura do datasource (Fator X)
+### 5.2 Arquitetura do datasource (Evolution DB)
 
 ```
                     ┌─────────────────────────────┐

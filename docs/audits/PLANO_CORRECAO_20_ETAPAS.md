@@ -1,3 +1,5 @@
+> **Nota histórica**: Este documento refere-se ao banco 'FATOR X' (projeto Supabase `tdprnylgyrogbbhgdoik`), descomissionado em 2026-07-15. O termo foi mantido para rastreabilidade histórica.
+
 # Plano de Correção — 20 Etapas
 
 **Base:** `PLANO_IMPLEMENTACAO_100.md` (200 achados, Temas 1-16) · **Criado:** 2026-08-02

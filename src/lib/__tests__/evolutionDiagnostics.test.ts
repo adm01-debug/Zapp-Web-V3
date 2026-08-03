@@ -2,27 +2,25 @@
  * Tests for runEvolutionDiagnostics() in evolutionDiagnostics.ts.
  *
  * Verifies:
- * - Step 1 (external config): ok when isExternalConfigured=true, fail otherwise
+ * - Step 1 (external config): always ok (consolidated single-DB client)
  * - Step 2 (proxy): ok when callEvolutionApi succeeds, fail when proxyError present,
  *   fail when callEvolutionApi throws
  * - Step 3 (API key): ok with instances array, warn with unexpected format
- * - Step 4 (direct DB): only runs when isExternalConfigured=true; ok/fail
- * - Step 4 catch: fail result when extSupabase.from() throws
+ * - Step 4 (direct DB): always runs against the main supabase client; ok/fail
+ * - Step 4 catch: fail result when supabase.from() throws
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ── Hoisted mocks ─────────────────────────────────────────────────────────────
 const mockCallEvolutionApi = vi.hoisted(() => vi.fn());
-const mockGetExternal = vi.hoisted(() => vi.fn());
-const mockIsExternal = vi.hoisted(() => ({ value: true }));
+const mockSupabaseFrom = vi.hoisted(() => vi.fn());
 
 vi.mock('@/features/connections/data-access/whatsappConnectionRepository', () => ({
   whatsappConnectionRepository: { callEvolutionApi: mockCallEvolutionApi },
 }));
 
-vi.mock('@/integrations/supabase/externalClient', () => ({
-  get isExternalConfigured() { return mockIsExternal.value; },
-  getExternalSupabase: mockGetExternal,
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: { from: mockSupabaseFrom },
 }));
 
 // ── Import SUT AFTER mocks ────────────────────────────────────────────────────
@@ -34,29 +32,21 @@ function makeDbChain(result: { error: unknown }) {
     select: () => chain,
     limit: () => Promise.resolve(result),
   };
-  return { from: () => chain };
+  return chain;
 }
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 beforeEach(() => {
   vi.clearAllMocks();
-  mockIsExternal.value = true;
   mockCallEvolutionApi.mockResolvedValue({ data: [], error: null });
-  mockGetExternal.mockReturnValue(makeDbChain({ error: null }));
+  mockSupabaseFrom.mockReturnValue(makeDbChain({ error: null }));
 });
 
 // ── Step 1: external config ───────────────────────────────────────────────────
 describe('runEvolutionDiagnostics — step 1: external config', () => {
-  it('has step 1 status "ok" when isExternalConfigured is true', async () => {
-    mockIsExternal.value = true;
+  it('has step 1 status "ok" (cliente único consolidado)', async () => {
     const results = await runEvolutionDiagnostics();
     expect(results[0].status).toBe('ok');
-  });
-
-  it('has step 1 status "fail" when isExternalConfigured is false', async () => {
-    mockIsExternal.value = false;
-    const results = await runEvolutionDiagnostics();
-    expect(results[0].status).toBe('fail');
   });
 
   it('step 1 name matches "Configuração do Banco Self-Hosted"', async () => {
@@ -162,43 +152,29 @@ describe('runEvolutionDiagnostics — step 3: API key permissions', () => {
 
 // ── Step 4: direct DB ─────────────────────────────────────────────────────────
 describe('runEvolutionDiagnostics — step 4: direct database connection', () => {
-  it('status "ok" when extSupabase query succeeds', async () => {
-    mockIsExternal.value = true;
-    mockGetExternal.mockReturnValue(makeDbChain({ error: null }));
+  it('status "ok" when supabase query succeeds', async () => {
+    mockSupabaseFrom.mockReturnValue(makeDbChain({ error: null }));
     const results = await runEvolutionDiagnostics();
     const step4 = results.find(r => r.step.includes('Database Direct'));
     expect(step4?.status).toBe('ok');
   });
 
-  it('status "fail" when extSupabase query returns error', async () => {
-    mockIsExternal.value = true;
-    mockGetExternal.mockReturnValue(makeDbChain({ error: { message: 'permission denied' } }));
+  it('status "fail" when supabase query returns error', async () => {
+    mockSupabaseFrom.mockReturnValue(makeDbChain({ error: { message: 'permission denied' } }));
     const results = await runEvolutionDiagnostics();
     const step4 = results.find(r => r.step.includes('Database Direct'));
     expect(step4?.status).toBe('fail');
     expect(step4?.message).toContain('permission denied');
   });
 
-  it('step 4 is skipped when isExternalConfigured is false', async () => {
-    mockIsExternal.value = false;
-    const results = await runEvolutionDiagnostics();
-    const step4 = results.find(r => r.step.includes('Database Direct'));
-    expect(step4).toBeUndefined();
+  it('queries the consolidated supabase client (schema zapp)', async () => {
+    mockSupabaseFrom.mockReturnValue(makeDbChain({ error: null }));
+    await runEvolutionDiagnostics();
+    expect(mockSupabaseFrom).toHaveBeenCalledWith('contacts');
   });
 
-  it('step 4 is skipped when getExternalSupabase returns null', async () => {
-    mockIsExternal.value = true;
-    mockGetExternal.mockReturnValue(null);
-    const results = await runEvolutionDiagnostics();
-    const step4 = results.find(r => r.step.includes('Database Direct'));
-    expect(step4).toBeUndefined();
-  });
-
-  it('status "fail" when extSupabase.from() throws', async () => {
-    mockIsExternal.value = true;
-    mockGetExternal.mockReturnValue({
-      from: () => { throw new Error('client crashed'); },
-    });
+  it('status "fail" when supabase.from() throws', async () => {
+    mockSupabaseFrom.mockImplementation(() => { throw new Error('client crashed'); });
     const results = await runEvolutionDiagnostics();
     const step4 = results.find(r => r.step.includes('Database Direct'));
     expect(step4?.status).toBe('fail');

@@ -2,11 +2,13 @@
  * contactsDB.ts — Bridge layer for contact operations on the self-hosted Supabase
  *
  * ARCHITECTURE:
- * - Contacts live in the self-hosted Supabase (schema zapp, via VITE_EXTERNAL_SUPABASE_*)
- * - Previously referenced external managed Supabase (GESTÃO DE CLIENTES)
+ * - Contacts live in the self-hosted Supabase (schema zapp) via
+ *   @/integrations/supabase/client (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY)
+ * - Pós-consolidação (2026-07-15): não existe mais "external Supabase" separado —
+ *   o shim externalClient era apenas um alias do cliente principal
  * - This module provides typed CRUD helpers that use the consolidated self-hosted database
  *
- * Tables on External DB:
+ * Tables:
  *   contacts (49 cols), contact_notes, contact_phones, contact_emails,
  *   contact_addresses, contact_social_media, contact_preferences,
  *   contact_relatives, contact_cadence, contact_time_analysis
@@ -16,7 +18,7 @@
  *   const contact = await contactsDB.getById(id);
  *   await contactsDB.update(id, { first_name: 'João' });
  */
-import { getExternalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
+import { supabase } from '@/integrations/supabase/client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { isValidUUID } from '@/utils/uuid';
@@ -100,24 +102,18 @@ export interface ContactEmail {
   created_at: string;
 }
 
-// ─── Client getter with safety ────────────────────────────────
+// ─── Client getter — consolidated single-DB ───────────────────
 function getClient(): SupabaseClient {
-  const client = getExternalSupabase();
-  if (!client) {
-    throw new Error(
-      '[contactsDB] External Supabase not configured. ' +
-        'Set VITE_EXTERNAL_SUPABASE_URL and VITE_EXTERNAL_SUPABASE_ANON_KEY. ' +
-        'Contacts are served via the self-hosted Supabase instance (schema zapp).'
-    );
-  }
-  return client;
+  // Pós-consolidação (2026-07-15): o app usa apenas o Supabase self-hosted
+  // (schema zapp) via @/integrations/supabase/client — não há mais client externo.
+  return supabase;
 }
 
 // ─── Contact CRUD ─────────────────────────────────────────────
 export const contactsDB = {
-  /** Check if external DB is configured */
+  /** Check if external DB is configured — sempre true (cliente único self-hosted) */
   get isConfigured() {
-    return isExternalConfigured;
+    return true;
   },
 
   /** Get contact by ID */

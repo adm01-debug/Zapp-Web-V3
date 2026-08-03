@@ -53,7 +53,7 @@ function classifyRenderFailure(error: Error): {
   const isTimeout =
     error?.name === 'TimeoutError' ||
     /timeout|timed out|statement timeout|canceling statement|proxy_timeout/.test(msg);
-  const isProxy = /external db proxy|external-db-proxy|query timed out|external_proxy/.test(msg);
+  const isProxy = /query timed out/.test(msg);
   const isAbort = error?.name === 'AbortError' || /aborted/.test(msg);
   // Tightened: specific DB/network patterns only.
   const isQueryPattern =

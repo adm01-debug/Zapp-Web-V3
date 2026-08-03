@@ -6,7 +6,7 @@
 ## Data: 2026-07-24 (consolidado da Onda 2 e Onda 3)
 
 ## Contexto
-O sistema FATOR X lida com fluxos críticos de WhatsApp e CRM. Falhas na sincronização ou deleções acidentais precisam de um rastro de auditoria robusto e mecanismos de recuperação.
+O sistema Evolution DB lida com fluxos críticos de WhatsApp e CRM. Falhas na sincronização ou deleções acidentais precisam de um rastro de auditoria robusto e mecanismos de recuperação.
 
 ## Decisões (Consolidadas)
 

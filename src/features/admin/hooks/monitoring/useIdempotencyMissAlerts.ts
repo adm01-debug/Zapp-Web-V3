@@ -17,7 +17,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { queryExternalProxy } from '@/lib/externalProxy';
 import { useUserRole } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
 import { queryKeys } from '@/services/api/queryKeys';
@@ -133,17 +132,15 @@ export function useIdempotencyMissAlerts(opts: UseIdempotencyMissAlertsOptions =
     staleTime: POLL_INTERVAL_MS / 2,
     queryFn: async (): Promise<AuditLogRow[]> => {
       const since = new Date(Date.now() - ONE_HOUR_MS).toISOString();
-      const result = await queryExternalProxy<AuditLogRow>({
-        table: 'evolution_audit_log',
-        select: 'id, action, metadata, created_at',
-        filters: [
-          { column: 'action', operator: 'eq', value: 'idempotency_miss' },
-          { column: 'created_at', operator: 'gte', value: since },
-        ],
-        order: { column: 'created_at', ascending: false },
-        limit: 1000,
-      });
-      return result.data ?? [];
+      const { data, error } = await supabase
+        .from('evolution_audit_log')
+        .select('id, action, metadata, created_at')
+        .eq('action', 'idempotency_miss')
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(1000);
+      if (error) throw new Error(error.message);
+      return (data ?? []) as unknown as AuditLogRow[]; // ignore-audit: view Row fields are nullable in generated types; runtime rows match AuditLogRow
     },
   });
 

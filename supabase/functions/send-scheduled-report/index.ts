@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
             method: "POST",
             headers: { Authorization: `Bearer ${resendApiKey}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-              from: "reports@noreply.lovable.app", to: recipient,
+              from: "reports@zappweb.app.br", to: recipient,
               subject: `📊 ${reportData.title} - ${reportData.period}`, html: emailHtml,
             }),
             signal: AbortSignal.timeout(15_000),

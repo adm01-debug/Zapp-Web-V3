@@ -1,9 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { log } from '@/lib/logger';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { sanitizePostgrestFilter } from '@/lib/sanitize';
-import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
 import { subDays, subMonths, startOfDay } from 'date-fns';
@@ -287,7 +286,7 @@ export function useGlobalSearchData(open: boolean) {
           }
         }
 
-        if (types.has('crm') && isExternalConfigured && cleanQuery.length >= 3) {
+        if (types.has('crm') && isSupabaseConfigured && cleanQuery.length >= 3) {
           try {
             const { data: crmDataRaw } = await dbRpc(RPC.searchContactsAdvanced, {
               p_search: cleanQuery,

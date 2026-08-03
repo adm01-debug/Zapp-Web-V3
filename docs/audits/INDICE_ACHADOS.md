@@ -1,3 +1,5 @@
+> **Nota histórica**: Este documento refere-se ao banco 'FATOR X' (projeto Supabase `tdprnylgyrogbbhgdoik`), descomissionado em 2026-07-15. O termo foi mantido para rastreabilidade histórica.
+
 # INDICE DE ACHADOS — leia isto antes de abrir o plano
 
 > **Arquivo derivado. Nao edite a mao.** Regenere com `node scripts/gerar-indice-achados.mjs`

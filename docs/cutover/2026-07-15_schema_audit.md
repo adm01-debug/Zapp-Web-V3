@@ -1,3 +1,5 @@
+> **Nota histórica**: Este documento refere-se ao banco 'FATOR X' (projeto Supabase `tdprnylgyrogbbhgdoik`), descomissionado em 2026-07-15. O termo foi mantido para rastreabilidade histórica.
+
 # Auditoria de BD/Schema — 2026-07-15
 
 **Instância única**: `https://supabase.atomicabr.com.br` (Self-Hosted, VPS AtomicaBR)
@@ -12,7 +14,7 @@
 
 ## 2. Cliente externo (legado)
 
-`src/integrations/supabase/externalClient.ts` já delega para o `supabase` principal quando `VITE_EXTERNAL_SUPABASE_*` não está definido (single-database FATOR X v6.1). Nesta auditoria foi transformado em **shim puro**:
+`src/integrations/supabase/externalClient.ts` já delega para o `supabase` principal quando `VITE_EXTERNAL_SUPABASE_*` não está definido (single-database Evolution DB v6.1). Nesta auditoria foi transformado em **shim puro**:
 
 - `getExternalSupabase() → supabase`
 - `isExternalConfigured = true` sempre

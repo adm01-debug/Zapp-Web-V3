@@ -5,8 +5,13 @@ import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
-import { callExtRpc } from '@/integrations/supabase/externalClient';
 import { log } from '@/lib/logger';
+
+// ignore-audit — RPCs administrativas sem entrada no typegen (zapp): cast estrutural p/ chamadas diretas
+const dynamicRpc = supabase.rpc as unknown as (
+  fn: string,
+  args: Record<string, unknown>
+) => Promise<{ data: unknown; error: { message: string } | null }>;
 
 interface SearchResult {
   id: string;
@@ -215,7 +220,7 @@ export function useSearchInsightsManagement(timeWindow: number = 7) {
   const { data: insights = null, isLoading: loading } = useQuery({
     queryKey: ['search-insights', timeWindow] as const,
     queryFn: async () => {
-      const { data, error: err } = await callExtRpc(supabase, 'get_search_insights', {
+      const { data, error: err } = await dynamicRpc('get_search_insights', {
         days: timeWindow,
       });
       if (err) {
@@ -235,7 +240,7 @@ export function useChatSearchManagement(chatId: string, query: string) {
   const { data: results = [], isLoading: loading } = useQuery({
     queryKey: ['chat-search', chatId, query] as const,
     queryFn: async () => {
-      const { data, error: err } = await callExtRpc(supabase, 'search_chat_messages', {
+      const { data, error: err } = await dynamicRpc('search_chat_messages', {
         chat_id: chatId,
         search_query: query,
       });

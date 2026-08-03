@@ -1,7 +1,12 @@
 import { getLogger } from '@/lib/logger';
-import { externalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 const logV237 = getLogger('EvolutionV237');
+
+/** Untyped client: RPCs (rpc_list_*) são registradas fora do schema tipado; widening intencional. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as unknown as SupabaseClient<any>;
 
 /** Hook: is Endpoint Unavailable. */
 export function isEndpointUnavailable(err: unknown): boolean {
@@ -37,30 +42,9 @@ export async function withV237Fallback<T>(
   }
 }
 
-function ensureExternal() {
-  if (!isExternalConfigured || !externalSupabase) {
-    throw new Error('Evolution DB client is not configured');
-  }
-  return externalSupabase;
-}
-
-function callExternalRpc(
-  client: ReturnType<typeof ensureExternal>,
-  fn: string,
-  args: Record<string, unknown>
-) {
-  return (client as unknown as {
-    rpc: (
-      name: string,
-      params?: Record<string, unknown>
-    ) => Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
-  }).rpc(fn, args);
-}
-
 /** Hook: fallback Find Chats. */
 export async function fallbackFindChats(instanceName: string, limit = 200): Promise<unknown[]> {
-  const client = ensureExternal();
-  const { data, error } = await callExternalRpc(client, 'rpc_list_conversations', {
+  const { data, error } = await db.rpc('rpc_list_conversations', {
     p_instance: instanceName,
     p_status: null,
     p_assigned_to: null,
@@ -72,8 +56,7 @@ export async function fallbackFindChats(instanceName: string, limit = 200): Prom
 
 /** Hook: fallback Find Contacts. */
 export async function fallbackFindContacts(instanceName: string, limit = 500): Promise<unknown[]> {
-  const client = ensureExternal();
-  const { data, error } = await callExternalRpc(client, 'rpc_list_contacts', {
+  const { data, error } = await db.rpc('rpc_list_contacts', {
     p_instance: instanceName,
     p_lead_status: null,
     p_assigned_to: null,
@@ -90,8 +73,7 @@ export async function fallbackFetchProfile(
   remoteJid: string,
   instanceName: string
 ): Promise<unknown | null> {
-  const client = ensureExternal();
-  const { data, error } = await callExternalRpc(client, 'rpc_get_contact', {
+  const { data, error } = await db.rpc('rpc_get_contact', {
     p_remote_jid: remoteJid,
     p_instance: instanceName,
   });

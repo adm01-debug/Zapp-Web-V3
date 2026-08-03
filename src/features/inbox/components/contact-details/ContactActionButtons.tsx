@@ -20,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { isExternalConfigured } from '@/integrations/supabase/externalClient';
+import { isSupabaseConfigured } from '@/integrations/supabase/client';
 import { CRMSyncButton } from '../CRMAutoSync';
 import type { Conversation } from '@/types/chat';
 
@@ -112,7 +112,7 @@ export function ContactActionButtons({
           <TooltipContent side="top">{contact.email ? 'Abrir email' : 'Sem email'}</TooltipContent>
         </Tooltip>
 
-        {isExternalConfigured && conversation && <CRMSyncButton conversation={conversation} />}
+        {isSupabaseConfigured && conversation && <CRMSyncButton conversation={conversation} />}
 
         {hasExpandedSections && onCollapseAll && (
           <Tooltip>

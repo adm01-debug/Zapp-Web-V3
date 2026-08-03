@@ -44,7 +44,6 @@ import { Section, sectionVariants } from './ContactAccordionSection';
 import { ContactTagsContent } from './ContactTagsContent';
 import { SharedMediaAccordionItem } from './SharedMediaAccordionItem';
 
-import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { log } from '@/lib/logger';
 import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 import type {
@@ -160,30 +159,28 @@ export function ContactAccordionSections({
         </SectionErrorBoundary>
       </Section>
 
-      {isExternalConfigured && (
-        <div key="external-sections">
-          <Section
-            index={2}
-            value="crm-360"
-            icon={<Sparkles className="h-3.5 w-3.5 text-primary" />}
-            label="CRM 360°"
-          >
-            <SectionErrorBoundary sectionName="CRM 360°">
-              <ExternalContact360Panel phone={contact.phone ?? ''} />
-            </SectionErrorBoundary>
-          </Section>
-          <Section
-            index={2.5}
-            value="intelligence"
-            icon={<Brain className="h-3.5 w-3.5 text-primary" />}
-            label="Inteligência Comercial"
-          >
-            <SectionErrorBoundary sectionName="Inteligência Comercial">
-              <ContactIntelligencePanel phone={contact.phone ?? ''} />
-            </SectionErrorBoundary>
-          </Section>
-        </div>
-      )}
+      <div key="external-sections">
+        <Section
+          index={2}
+          value="crm-360"
+          icon={<Sparkles className="h-3.5 w-3.5 text-primary" />}
+          label="CRM 360°"
+        >
+          <SectionErrorBoundary sectionName="CRM 360°">
+            <ExternalContact360Panel phone={contact.phone ?? ''} />
+          </SectionErrorBoundary>
+        </Section>
+        <Section
+          index={2.5}
+          value="intelligence"
+          icon={<Brain className="h-3.5 w-3.5 text-primary" />}
+          label="Inteligência Comercial"
+        >
+          <SectionErrorBoundary sectionName="Inteligência Comercial">
+            <ContactIntelligencePanel phone={contact.phone ?? ''} />
+          </SectionErrorBoundary>
+        </Section>
+      </div>
 
       <Section
         index={3}

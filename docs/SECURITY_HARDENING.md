@@ -51,6 +51,16 @@ add_header Content-Security-Policy "
 " always;
 ```
 
+> **⚠️ BAND-AID TEMPORÁRIO (CSP ativo — `nginx.conf` e `vercel.json`):**
+> O domínio `allrjhkpuscmgbsnmjlv.supabase.co` (projeto Supabase Lovable antigo,
+> pré-migração self-hosted) permanece no `img-src` do CSP **de propósito**:
+> 1066 contatos ainda referenciam avatares nesse storage (~1370 objetos no
+> bucket `avatars`). O domínio é gerenciado pelo Supabase (confiável), mas deve
+> ser **removido do `img-src` nos DOIS arquivos** assim que os avatares forem
+> migrados para `supabase.atomicabr.com.br` (storage migration pendente).
+> NÃO remover antes — avatares quebrariam. O `vercel.json` não aceita
+> comentários (Vercel rejeita JSONC), por isso o band-aid está documentado aqui.
+
 ### CORS Config
 ```typescript
 // ✅ Whitelist explícita

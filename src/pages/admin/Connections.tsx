@@ -25,7 +25,6 @@ import {
   Activity,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { updateRuntimeExternalConfig } from '@/integrations/supabase/externalClient';
 import { MCP_SERVER_URL } from '@/pages/admin/useConnections';
 import { safeClient, safeFrom } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
@@ -179,9 +178,6 @@ export default function AdminConnectionsPage() {
         setDraftUrl(externalConn.config.url);
         setExternalKey(externalConn.config.anon_key);
         setDraftKey(externalConn.config.anon_key);
-
-        // Sincroniza o cliente em tempo de execução
-        updateRuntimeExternalConfig(externalConn.config.url, externalConn.config.anon_key);
       }
     }
     setLoading(false);
@@ -316,12 +312,12 @@ export default function AdminConnectionsPage() {
       setExternalKey(draftKey);
       setEditOpen(false);
 
-      // Atualiza o cliente em tempo de execução imediatamente
-      updateRuntimeExternalConfig(draftUrl, draftKey);
+      // updateRuntimeExternalConfig() removido — no-op desde a consolidação
+      // single-DB (2026-07-15): o app usa apenas o Supabase self-hosted (schema zapp).
 
       toast({
         title: 'Credenciais salvas e validadas',
-        description: `Configuração atualizada via runtime. Redirecionando para Status da Ponte...`,
+        description: `Configuração salva. Redirecionando para Status da Ponte...`,
       });
 
       if (redirectTimerRef.current !== null) clearTimeout(redirectTimerRef.current);

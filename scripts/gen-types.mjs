@@ -96,7 +96,7 @@ let out = L.join('\n');
 out = out.replace(/keyof DefaultSchema\["Tables"\]\s*$/gm, 'keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])')
          .replace(/DefaultSchema\["Tables"\]\[(TableName|DefaultSchemaTableNameOrOptions)\] extends \{\s*\n(\s*)Insert: infer I/g, '(DefaultSchema["Tables"] & DefaultSchema["Views"])[$1] extends {\n$2Insert: infer I')
          .replace(/DefaultSchema\["Tables"\]\[(TableName|DefaultSchemaTableNameOrOptions)\] extends \{\s*\n(\s*)Update: infer U/g, '(DefaultSchema["Tables"] & DefaultSchema["Views"])[$1] extends {\n$2Update: infer U');
-// Preservar cauda do Lovable (DatabaseWithoutInternals + helpers ~252L)
+// Preservar cauda legada (DatabaseWithoutInternals + helpers ~252L)
 // O gen-types.mjs só gera o bloco 'export type Database = {}' principal.
 // A cauda começa logo após o fechamento do Database e contém tipos auxiliares.
 {
@@ -116,9 +116,9 @@ out = out.replace(/keyof DefaultSchema\["Tables"\]\s*$/gm, 'keyof (DefaultSchema
   } catch {}
   if (existingTail && existingTail.includes('DatabaseWithoutInternals')) {
     out = out.trimEnd() + '\n' + existingTail;
-    console.log('✅ Cauda Lovable preservada (' + existingTail.split('\n').length + 'L)');
+    console.log('✅ Cauda legada preservada (' + existingTail.split('\n').length + 'L)');
   } else {
-    console.warn('⚠️ Cauda Lovable não encontrada — tipos auxiliares podem ficar ausentes');
+    console.warn('⚠️ Cauda legada não encontrada — tipos auxiliares podem ficar ausentes');
   }
 }
 writeFileSync('src/integrations/supabase/types.ts', out);

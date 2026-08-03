@@ -2,7 +2,6 @@ import { useEffect, useRef, useCallback } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
-import { getExternalSupabase } from '@/integrations/supabase/externalClient';
 import { log } from '@/lib/logger';
 import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 
@@ -12,10 +11,6 @@ interface ExternalMsg {
   message_timestamp: string;
   message_type: string;
 }
-
-// Lazy: getExternalSupabase() can return null when self-hosted env vars are absent.
-// Resolve at call time so module import never crashes the inbox.
-const getClient = () => getExternalSupabase();
 
 /**
  * Hook que avalia regras de automação contra a conversa ativa.
@@ -95,10 +90,8 @@ export function useAutomations({
       const rules = rulesRef.current;
       if (!rules.length) return;
 
-      const client = getClient();
-      if (!client) return;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const typedClient = client as SupabaseClient<any>;
+      const typedClient = supabase as unknown as SupabaseClient<any>;
 
       // Pega últimas 10 msgs do Evolution DB
       const { data: msgs, error } = await typedClient.rpc('rpc_list_messages', {

@@ -1,5 +1,5 @@
 -- ══════════════════════════════════════════════════════════════
--- check_schema_drift.sql · GUARD DE DRIFT Lovable -> canônico (compacto)
+-- check_schema_drift.sql · GUARD DE DRIFT legado migrado -> canônico (compacto)
 -- Uso: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/check_schema_drift.sql
 -- Falha (RAISE) se alguma das 146 tabelas esperadas OU colunas críticas sumir.
 -- ══════════════════════════════════════════════════════════════

@@ -6,7 +6,7 @@
  * Each call generates a correlationId so the structured log line and the
  * telemetry panel row can be matched 1:1 with the underlying request.
  */
-import { getExternalSupabase } from '@/integrations/supabase/externalClient';
+import { supabase } from '@/integrations/supabase/client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { recordQueryEvent, classifySeverity } from '@/lib/clientTelemetry';
 import { generateCorrelationId } from '@/lib/correlationId';
@@ -33,7 +33,7 @@ export async function timedRpc<T = unknown>(
   const offset = typeof params.p_offset === 'number' ? params.p_offset : null;
 
   try {
-    const client = getExternalSupabase() as unknown as SupabaseClient; // ignore-audit — external Supabase returns typed client; erasing generic arg is intentional for dynamic RPC calls
+    const client = supabase as unknown as SupabaseClient; // ignore-audit — client principal tipado; erasing generic arg is intentional for dynamic RPC calls
     const { data, error } = await client.rpc(rpcName, params);
     const durationMs = Math.round(performance.now() - startedAt);
     const recordCount = Array.isArray(data) ? data.length : null;

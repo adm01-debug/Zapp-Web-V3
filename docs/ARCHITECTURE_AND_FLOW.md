@@ -12,7 +12,7 @@ A plataforma é construída sobre uma arquitetura moderna e escalável, utilizan
 
 > **⚠️ Schema obrigatório**: Todo acesso ao banco usa `schema: 'zapp'` (315 tabelas). Mensagens WhatsApp ficam em `schema: 'evo'` (193 tabelas). O schema `public` tem **zero tabelas** — não usar. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
 >
-> **Consolidação (jul/2026)**: A plataforma opera com um **único** Supabase Self-Hosted (`supabase.atomicabr.com.br`). O banco externo "FATOR X" (cloud `tdprnylgyrogbbhgdoik`) foi **descontinuado** e o domínio WhatsApp/CRM (tabelas `evolution_*`) foi consolidado no schema `evo` do self-hosted. Não há mais ponte para banco externo.
+> **Consolidação (jul/2026)**: A plataforma opera com um **único** Supabase Self-Hosted (`supabase.atomicabr.com.br`). O banco externo "Evolution DB" (cloud `tdprnylgyrogbbhgdoik`) foi **descontinuado** e o domínio WhatsApp/CRM (tabelas `evolution_*`) foi consolidado no schema `evo` do self-hosted. Não há mais ponte para banco externo.
 
 ### Camadas de Responsabilidade
 

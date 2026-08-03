@@ -12,7 +12,7 @@
 > A arquitetura de DOIS bancos foi eliminada: o Supabase Cloud do Lovable (`allrjhkpuscmgbsnmjlv.supabase.co`)
 > foi **descontinuado** — seus dados de aplicação (auth, profiles, whatsapp_connections, user_settings)
 > foram consolidados no schema `zapp` do self-hosted, e o domínio WhatsApp/CRM (tabelas `evolution_*`)
-> no schema `evo`. Não há mais ponte para banco externo (Lovable Cloud ou FATOR X).
+> no schema `evo`. Não há mais ponte para banco externo (Lovable Cloud ou Evolution DB).
 > Schema principal: `zapp`. Veja [../SCHEMA_REFERENCE.md](../SCHEMA_REFERENCE.md).
 
 ## 1. Arquitetura de Dados
@@ -383,7 +383,7 @@ Todas as RPCs têm `GRANT EXECUTE TO anon, authenticated`.
 - NUNCA migre dados entre bancos — não existe outro banco para onde migrar
 - NUNCA duplique RPCs — as 47 do self-hosted são canônicas
 - NUNCA altere `externalClient.ts` sem autorização (é shim de compatibilidade)
-- NUNCA use o FATOR X cloud (`tdprnylgyrogbbhgdoik`) nem o Lovable cloud (`allrjhkpuscmgbsnmjlv.supabase.co`) — descontinuados na consolidação de 2026-07-15; o projeto usa um único banco
+- NUNCA use o Evolution DB cloud (`tdprnylgyrogbbhgdoik`) nem o Lovable cloud (`allrjhkpuscmgbsnmjlv.supabase.co`) — descontinuados na consolidação de 2026-07-15; o projeto usa um único banco
 
 ### Qual schema/client usar para cada feature:
 
