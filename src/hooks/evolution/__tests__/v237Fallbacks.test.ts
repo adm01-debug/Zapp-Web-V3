@@ -23,6 +23,8 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 vi.mock('@/lib/logger', () => ({
   getLogger: () => ({ warn: vi.fn(), debug: vi.fn(), error: vi.fn(), info: vi.fn() }),
+  // externalClient shim calls createLogger at module scope — provide it too
+  createLogger: () => ({ warn: vi.fn(), debug: vi.fn(), error: vi.fn(), info: vi.fn() }),
 }));
 
 // ── Import SUT AFTER mocks ────────────────────────────────────────────────────

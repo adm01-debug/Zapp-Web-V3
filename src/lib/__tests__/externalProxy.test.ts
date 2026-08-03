@@ -612,3 +612,10 @@ describe('config auth lock — session-wide', () => {
   });
 });
 */
+
+// ── Deprecated placeholder ───────────────────────────────────────────────────
+// The original suites are preserved commented-out above (see header note).
+// This placeholder keeps vitest from failing the file with "No test suite found".
+describe.skip('externalProxy — deprecated (FATOR X removal)', () => {
+  it('original suites commented out; see header note', () => {});
+});

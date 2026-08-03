@@ -529,3 +529,10 @@ describe('Combined: Full Pipeline Failure then Recovery', () => {
   });
 });
 */
+
+// ── Deprecated placeholder ───────────────────────────────────────────────────
+// The original suites are preserved commented-out above (see @deprecated header).
+// This placeholder keeps vitest from failing the file with "No test suite found".
+describe.skip('resilience simulation — deprecated (FATOR X removal)', () => {
+  it('original suites commented out; see header note', () => {});
+});
