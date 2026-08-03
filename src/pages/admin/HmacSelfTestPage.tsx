@@ -6,7 +6,7 @@
  * mesma edge function `webhook-hmac-selftest` consumida pelo botão da tela de
  * status.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useHmacSelfTest, type Phase } from '@/hooks/admin/useHmacSelfTest';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -46,11 +46,19 @@ export default function HmacSelfTestPage() {
   const [includeNegative, setIncludeNegative] = useState(initialNeg);
   const { loading, result, lastRunAt, run } = useHmacSelfTest(instance, includeNegative);
 
-  // Roda automaticamente ao carregar e quando params mudam (via URL)
+  // F7-21: hold latest run in a ref so the effect tracks only real params,
+  // not the function reference (avoids infinite loop when deps chain is unstable).
+  const runRef = useRef(run);
+  runRef.current = run;
+
   useEffect(() => {
     document.title = 'HMAC Self-test — Status';
-    void run();
-  }, [run]);
+  }, []);
+
+  // Roda automaticamente ao carregar e quando params mudam (via URL).
+  useEffect(() => {
+    void runRef.current();
+  }, [instance, includeNegative]);
 
   // Sincroniza filtros com a URL (deep-link compartilhável)
   useEffect(() => {

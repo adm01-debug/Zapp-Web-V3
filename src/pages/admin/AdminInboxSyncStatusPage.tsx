@@ -222,7 +222,7 @@ export default function AdminInboxSyncStatusPage() {
                     className="h-7 px-2"
                     aria-label={`Abrir conversa com ${c.remote_jid}`}
                   >
-                    <Link to={`/?contact=${encodeURIComponent(c.remote_jid)}`}>
+                    <Link to={`/inbox?jid=${encodeURIComponent(c.remote_jid.split('@')[0])}`}>
                       <ExternalLink className="h-3.5 w-3.5" />
                     </Link>
                   </Button>

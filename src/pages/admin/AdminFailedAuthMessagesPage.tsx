@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { format } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CalendarIcon, ShieldAlert, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,12 @@ export default function AdminFailedAuthMessagesPage() {
   const [from, setFrom] = useState<Date | undefined>(undefined);
   const [to, setTo] = useState<Date | undefined>(undefined);
 
-  const { rows, loading, load } = useFailedAuthMessages({ from, to });
+  const dateRangeError = from && to && from > to;
+
+  const normalizedFrom = from && !dateRangeError ? startOfDay(from) : undefined;
+  const normalizedTo = to && !dateRangeError ? endOfDay(to) : undefined;
+
+  const { rows, loading, load } = useFailedAuthMessages({ from: normalizedFrom, to: normalizedTo });
 
   const stats = useMemo(() => {
     const total = rows.length;
@@ -100,6 +105,16 @@ export default function AdminFailedAuthMessagesPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {dateRangeError && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Intervalo inválido</AlertTitle>
+          <AlertDescription>
+            A data "De" não pode ser posterior à data "Até". Corrija o filtro para continuar.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {rows.length > 0 && (
         <Alert variant="destructive" className="border-destructive/40 bg-destructive/5">
