@@ -1,0 +1,819 @@
+{
+  "total_scenarios": 41,
+  "by_severity": {
+    "CRITICO": 13,
+    "ALTO": 10,
+    "MEDIO": 10,
+    "BAIXO": 8
+  },
+  "top_20": [
+    {
+      "id": "S0011",
+      "risk": 4.0,
+      "title": "DB: URL nova aponta para arquivo inexistente"
+    },
+    {
+      "id": "S0013",
+      "risk": 4.0,
+      "title": "DB: zapp.contacts \u00e9 VIEW, nao TABLE"
+    },
+    {
+      "id": "S0001",
+      "risk": 2.8,
+      "title": "Storage: download do Lovable falha (rate-limit)"
+    },
+    {
+      "id": "S0002",
+      "risk": 2.8,
+      "title": "Storage: upload para self-hosted falha (timeout)"
+    },
+    {
+      "id": "S0008",
+      "risk": 2.8,
+      "title": "Storage: MCP timeout em batch grande"
+    },
+    {
+      "id": "S0009",
+      "risk": 2.8,
+      "title": "DB: UPDATE em 1066 linhas causa lock"
+    },
+    {
+      "id": "S0036",
+      "risk": 2.8,
+      "title": "Rollback: sem script de reversao"
+    },
+    {
+      "id": "S0007",
+      "risk": 2.1,
+      "title": "Storage: download 404 (arquivo deletado do Lovable)"
+    },
+    {
+      "id": "S0014",
+      "risk": 2.1,
+      "title": "DB: evoluction_contacts tem 28 indices \u2014 UPDATE lento"
+    },
+    {
+      "id": "S0015",
+      "risk": 2.1,
+      "title": "DB: dispara triggers ON UPDATE em evolution_contacts"
+    },
+    {
+      "id": "S0030",
+      "risk": 2.1,
+      "title": "SECDEF: search_path nao fixo em RPCs expostas"
+    },
+    {
+      "id": "S0038",
+      "risk": 2.1,
+      "title": "Perf: UPDATE 2132 linhas com 28 indices = lento"
+    },
+    {
+      "id": "S0010",
+      "risk": 1.6,
+      "title": "DB: UPDATE parcial (500/1066) por crash"
+    },
+    {
+      "id": "S0012",
+      "risk": 1.6,
+      "title": "DB: rollback do UPDATE necessario mas sem backup"
+    },
+    {
+      "id": "S0017",
+      "risk": 1.6,
+      "title": "CSP: remover dominio antigo antes da migracao completar"
+    },
+    {
+      "id": "S0020",
+      "risk": 1.6,
+      "title": "Integridade: count() apos UPDATE != 1066"
+    },
+    {
+      "id": "S0026",
+      "risk": 1.6,
+      "title": "RLS: anon pode ler avatar_url?"
+    },
+    {
+      "id": "S0029",
+      "risk": 1.6,
+      "title": "SECDEF: 182 RPCs \u2014 algum acessa avatar_url sem auth?"
+    },
+    {
+      "id": "S0019",
+      "risk": 1.4,
+      "title": "CSP: vercel.json deploy antes do nginx.conf"
+    },
+    {
+      "id": "S0034",
+      "risk": 1.4,
+      "title": "Types: types.ts desatualizado pos-migracao"
+    }
+  ],
+  "gaps": [
+    {
+      "id": "GAP-01",
+      "severity": "CRITICO",
+      "title": "zapp.contacts \u00e9 VIEW \u2014 UPDATE direto imposs\u00edvel",
+      "detail": "0 constraints, 0 indexes = VIEW. Migra\u00e7\u00e3o deve ser na tabela base (evo.evolution_contacts). UPDATE em view pode ser rejeitado ou afetar tabela errada.",
+      "fix": "Identificar tabela base da view zapp.contacts e fazer UPDATE l\u00e1. Manter VIEW como est\u00e1."
+    },
+    {
+      "id": "GAP-02",
+      "severity": "CRITICO",
+      "title": "1353 avatars no self-hosted vs 2132 URLs antigas \u2014 ~779 \u00f3rf\u00e3os",
+      "detail": "Storage self-hosted tem 1353 objetos. Existem 2132 URLs antigas. Possivelmente 779 avatars nunca foram migrados e precisam ser baixados do Lovable.",
+      "fix": "Baixar do Lovable APENAS os que faltam. Verificar quais URLs antigas correspondem a arquivos existentes no Lovable (podem ter sido deletados)."
+    },
+    {
+      "id": "GAP-03",
+      "severity": "ALTO",
+      "title": "Sem backup pre-migracao \u2014 risco de perda de dados",
+      "detail": "Nenhum snapshot ou pg_dump foi feito antes do UPDATE. Rollback manual teria que restaurar URLs antigas manualmente.",
+      "fix": "Criar tabela de backup: CREATE TABLE zapp._backup_avatar_urls_20260803 AS SELECT id, avatar_url FROM evo.evolution_contacts WHERE profile_picture_url LIKE '%allrjhkpuscmgbsnmjlv%'"
+    },
+    {
+      "id": "GAP-04",
+      "severity": "ALTO",
+      "title": "28 \u00edndices em evolution_contacts \u2014 UPDATE em massa ser\u00e1 lento",
+      "detail": "Cada UPDATE dispara manuten\u00e7\u00e3o de 28 \u00edndices. 1066\u00d728 = ~30K opera\u00e7\u00f5es de \u00edndice. Pode levar minutos.",
+      "fix": "Fazer UPDATE em lotes de 100 com delay entre lotes. Ou desabilitar \u00edndices n\u00e3o-cr\u00edticos durante migra\u00e7\u00e3o."
+    },
+    {
+      "id": "GAP-05",
+      "severity": "ALTO",
+      "title": "Triggers ON UPDATE em evolution_contacts podem propagar mudan\u00e7a",
+      "detail": "Se existirem triggers que disparam em UPDATE de profile_picture_url, a migra\u00e7\u00e3o pode causar efeitos colaterais (notifica\u00e7\u00f5es, webhooks, sync).",
+      "fix": "Verificar triggers na tabela antes do UPDATE. Listar com: SELECT trigger_name, event_manipulation FROM information_schema.triggers WHERE event_object_table = 'evolution_contacts' AND event_object_schema = 'evo'"
+    },
+    {
+      "id": "GAP-06",
+      "severity": "MEDIO",
+      "title": "CSP band-aid deve ser removido AP\u00d3S migra\u00e7\u00e3o completa",
+      "detail": "PR #738 adicionou allrjhkpuscmgbsnmjlv.supabase.co ao CSP. Ap\u00f3s migra\u00e7\u00e3o, remover para evitar depend\u00eancia do projeto Lovable.",
+      "fix": "S\u00f3 remover do CSP quando: (1) storage migration completa, (2) DB migration completa, (3) 0 URLs antigas no banco, (4) avatares carregam do self-hosted."
+    },
+    {
+      "id": "GAP-07",
+      "severity": "MEDIO",
+      "title": "182 SECURITY DEFINER RPCs \u2014 auditoria necess\u00e1ria",
+      "detail": "RPCs SECURITY DEFINER podem bypass RLS. Alguma pode expor dados de contatos sem auth adequada.",
+      "fix": "Auditar RPCs que acessam evolution_contacts ou zapp.contacts. Verificar search_path e auth.uid()."
+    },
+    {
+      "id": "GAP-08",
+      "severity": "MEDIO",
+      "title": "750 \u00edndices n\u00e3o usados (idx_scan=0) \u2014 falso positivo?",
+      "detail": "\u00cdndices GIN/trigram podem ter idx_scan=0 mas serem usados por busca textual. N\u00e3o remover sem verifica\u00e7\u00e3o.",
+      "fix": "Classificar \u00edndices por tipo. Remover apenas B-tree idx_scan=0 que N\u00c3O s\u00e3o FK/UNIQUE/PK."
+    },
+    {
+      "id": "GAP-09",
+      "severity": "MEDIO",
+      "title": "CSP do nginx.conf e vercel.json divergentes",
+      "detail": "nginx.conf n\u00e3o tem googleusercontent/fbcdn/youtube no img-src. Vercel tem. Inconsist\u00eancia pode causar erros diferentes em ambientes.",
+      "fix": "Alinhar CSP entre nginx.conf e vercel.json."
+    },
+    {
+      "id": "GAP-10",
+      "severity": "BAIXO",
+      "title": "types.ts potencialmente desatualizado",
+      "detail": "Com 321 tabelas em zapp + 1055 fun\u00e7\u00f5es, types.ts pode n\u00e3o refletir schema atual.",
+      "fix": "Regenerar types.ts via Supabase MCP. Comparar com vers\u00e3o atual."
+    }
+  ],
+  "ground_truth": {
+    "storage_buckets": 13,
+    "old_avatar_urls_zapp_contacts": 1066,
+    "old_avatar_urls_evo_contacts": 1066,
+    "total_zapp_contacts": 20489,
+    "total_evo_contacts": 20491,
+    "avatars_in_selfhosted_storage": 1353,
+    "old_urls_total": 2132,
+    "zapp_tables": 321,
+    "evo_tables": 172,
+    "zapp_functions": 1055,
+    "rls_policies": 990,
+    "security_definer_rpcs": 182,
+    "unused_indexes": 750,
+    "supabase_co_refs_in_db_code": 0,
+    "evo_contacts_indexes": 28,
+    "db_size_mb": 1706,
+    "active_connections": 2
+  },
+  "all_scenarios": [
+    {
+      "id": "S0011",
+      "domain": "D2_DB_URL_Migration",
+      "title": "DB: URL nova aponta para arquivo inexistente",
+      "severity": "CRITICO",
+      "likelihood": "CERTA",
+      "risk_score": 4.0,
+      "category": "apply_changes",
+      "description": "nem todo avatar do Lovable existe no self-hosted",
+      "axes": [
+        "network=post",
+        "retry=pre",
+        "concurrency=pre"
+      ]
+    },
+    {
+      "id": "S0013",
+      "domain": "D2_DB_URL_Migration",
+      "title": "DB: zapp.contacts \u00e9 VIEW, nao TABLE",
+      "severity": "CRITICO",
+      "likelihood": "CERTA",
+      "risk_score": 4.0,
+      "category": "view_queries",
+      "description": "UPDATE em view pode nao funcionar ou afetar tabela errada",
+      "axes": [
+        "disk=post",
+        "runner=during",
+        "data=pre"
+      ]
+    },
+    {
+      "id": "S0001",
+      "domain": "D1_StorageMigration",
+      "title": "Storage: download do Lovable falha (rate-limit)",
+      "severity": "CRITICO",
+      "likelihood": "PROVAVEL",
+      "risk_score": 2.8,
+      "category": "network_failure",
+      "description": "1066 arquivos, Supabase Cloud rate-limita downloads em massa",
+      "axes": [
+        "concurrency=during",
+        "timing=pre",
+        "network=pre"
+      ]
+    },
+    {
+      "id": "S0002",
+      "domain": "D1_StorageMigration",
+      "title": "Storage: upload para self-hosted falha (timeout)",
+      "severity": "CRITICO",
+      "likelihood": "PROVAVEL",
+      "risk_score": 2.8,
+      "category": "timeout",
+      "description": "arquivos grandes (>1MB) podem exceder timeout do MCP",
+      "axes": [
+        "runner=post",
+        "network=post",
+        "timing=post"
+      ]
+    },
+    {
+      "id": "S0008",
+      "domain": "D1_StorageMigration",
+      "title": "Storage: MCP timeout em batch grande",
+      "severity": "CRITICO",
+      "likelihood": "PROVAVEL",
+      "risk_score": 2.8,
+      "category": "timeout",
+      "description": "2132 URLs para processar",
+      "axes": [
+        "concurrency=pre",
+        "timing=during",
+        "data=during"
+      ]
+    },
+    {
+      "id": "S0009",
+      "domain": "D2_DB_URL_Migration",
+      "title": "DB: UPDATE em 1066 linhas causa lock",
+      "severity": "CRITICO",
+      "likelihood": "PROVAVEL",
+      "risk_score": 2.8,
+      "category": "concurrency",
+      "description": "UPDATE sem WHERE indexado pode travar tabela",
+      "axes": [
+        "retry=post",
+        "disk=during",
+        "timing=post"
+      ]
+    },
+    {
+      "id": "S0036",
+      "domain": "D13_Rollback_Strategy",
+      "title": "Rollback: sem script de reversao",
+      "severity": "CRITICO",
+      "likelihood": "PROVAVEL",
+      "risk_score": 2.8,
+      "category": "rollback",
+      "description": "UPDATE sem backup = sem volta",
+      "axes": [
+        "retry=post",
+        "data=during",
+        "network=during"
+      ]
+    },
+    {
+      "id": "S0007",
+      "domain": "D1_StorageMigration",
+      "title": "Storage: download 404 (arquivo deletado do Lovable)",
+      "severity": "ALTO",
+      "likelihood": "PROVAVEL",
+      "risk_score": 2.1,
+      "category": "legacy_data_rows",
+      "description": "contas deletadas = avatares podem ter sido removidos",
+      "axes": [
+        "disk=pre",
+        "runner=pre",
+        "encoding=during"
+      ]
+    },
+    {
+      "id": "S0014",
+      "domain": "D2_DB_URL_Migration",
+      "title": "DB: evoluction_contacts tem 28 indices \u2014 UPDATE lento",
+      "severity": "ALTO",
+      "likelihood": "PROVAVEL",
+      "risk_score": 2.1,
+      "category": "apply_changes",
+      "description": "cada UPDATE dispara manutencao de 28 indices",
+      "axes": [
+        "network=post",
+        "runner=during",
+        "concurrency=post"
+      ]
+    },
+    {
+      "id": "S0015",
+      "domain": "D2_DB_URL_Migration",
+      "title": "DB: dispara triggers ON UPDATE em evolution_contacts",
+      "severity": "ALTO",
+      "likelihood": "PROVAVEL",
+      "risk_score": 2.1,
+      "category": "cron_vs_wrapper_coupling",
+      "description": "triggers podem propagar mudanca indesejada",
+      "axes": [
+        "concurrency=pre",
+        "retry=post",
+        "network=post"
+      ]
+    },
+    {
+      "id": "S0030",
+      "domain": "D8_SECDEF_RPC_Audit",
+      "title": "SECDEF: search_path nao fixo em RPCs expostas",
+      "severity": "ALTO",
+      "likelihood": "PROVAVEL",
+      "risk_score": 2.1,
+      "category": "permissions",
+      "description": "injection via search_path",
+      "axes": [
+        "runner=post",
+        "encoding=post",
+        "concurrency=pre"
+      ]
+    },
+    {
+      "id": "S0038",
+      "domain": "D14_Performance_Impact",
+      "title": "Perf: UPDATE 2132 linhas com 28 indices = lento",
+      "severity": "ALTO",
+      "likelihood": "PROVAVEL",
+      "risk_score": 2.1,
+      "category": "apply_changes",
+      "description": "cada UPDATE atualiza 28 indices",
+      "axes": [
+        "timing=pre",
+        "retry=post",
+        "disk=pre"
+      ]
+    },
+    {
+      "id": "S0010",
+      "domain": "D2_DB_URL_Migration",
+      "title": "DB: UPDATE parcial (500/1066) por crash",
+      "severity": "CRITICO",
+      "likelihood": "POSSIVEL",
+      "risk_score": 1.6,
+      "category": "partial_completion",
+      "description": "transacao implicita do MCP",
+      "axes": [
+        "concurrency=post",
+        "data=during",
+        "timing=post"
+      ]
+    },
+    {
+      "id": "S0012",
+      "domain": "D2_DB_URL_Migration",
+      "title": "DB: rollback do UPDATE necessario mas sem backup",
+      "severity": "CRITICO",
+      "likelihood": "POSSIVEL",
+      "risk_score": 1.6,
+      "category": "rollback",
+      "description": "sem snapshot pre-migracao",
+      "axes": [
+        "data=pre",
+        "disk=pre",
+        "runner=pre"
+      ]
+    },
+    {
+      "id": "S0017",
+      "domain": "D3_CSP_Cleanup",
+      "title": "CSP: remover dominio antigo antes da migracao completar",
+      "severity": "CRITICO",
+      "likelihood": "POSSIVEL",
+      "risk_score": 1.6,
+      "category": "apply_changes",
+      "description": "PR de CSP cleanup mergeado antes do storage migration",
+      "axes": [
+        "data=pre",
+        "network=pre",
+        "runner=pre"
+      ]
+    },
+    {
+      "id": "S0020",
+      "domain": "D4_DataIntegrity",
+      "title": "Integridade: count() apos UPDATE != 1066",
+      "severity": "CRITICO",
+      "likelihood": "POSSIVEL",
+      "risk_score": 1.6,
+      "category": "apply_changes",
+      "description": "migracao parcial ou linhas afetadas erradas",
+      "axes": [
+        "encoding=pre",
+        "concurrency=pre",
+        "runner=post"
+      ]
+    },
+    {
+      "id": "S0026",
+      "domain": "D6_RLS_Audit",
+      "title": "RLS: anon pode ler avatar_url?",
+      "severity": "CRITICO",
+      "likelihood": "POSSIVEL",
+      "risk_score": 1.6,
+      "category": "permissions",
+      "description": "avatar_url pode conter token ou URL privada",
+      "axes": [
+        "concurrency=during",
+        "network=post",
+        "retry=during"
+      ]
+    },
+    {
+      "id": "S0029",
+      "domain": "D8_SECDEF_RPC_Audit",
+      "title": "SECDEF: 182 RPCs \u2014 algum acessa avatar_url sem auth?",
+      "severity": "CRITICO",
+      "likelihood": "POSSIVEL",
+      "risk_score": 1.6,
+      "category": "permissions",
+      "description": "SECURITY DEFINER pode bypass RLS",
+      "axes": [
+        "retry=post",
+        "disk=post",
+        "network=pre"
+      ]
+    },
+    {
+      "id": "S0019",
+      "domain": "D3_CSP_Cleanup",
+      "title": "CSP: vercel.json deploy antes do nginx.conf",
+      "severity": "MEDIO",
+      "likelihood": "PROVAVEL",
+      "risk_score": 1.4,
+      "category": "pipeline_mid_migration",
+      "description": "deploy Vercel \u00e9 imediato, nginx precisa de restart manual",
+      "axes": [
+        "network=during",
+        "concurrency=during",
+        "encoding=post"
+      ]
+    },
+    {
+      "id": "S0034",
+      "domain": "D11_Types_Regeneration",
+      "title": "Types: types.ts desatualizado pos-migracao",
+      "severity": "MEDIO",
+      "likelihood": "PROVAVEL",
+      "risk_score": 1.4,
+      "category": "apply_changes",
+      "description": "nova coluna ou view nao tipada",
+      "axes": [
+        "encoding=during",
+        "retry=post",
+        "concurrency=post"
+      ]
+    },
+    {
+      "id": "S0035",
+      "domain": "D12_Monitoring_Alerting",
+      "title": "Monitor: sem alerta para falha de carregamento de avatar",
+      "severity": "MEDIO",
+      "likelihood": "PROVAVEL",
+      "risk_score": 1.4,
+      "category": "cron_vs_wrapper_coupling",
+      "description": "usuario nao sabe que avatar quebrou",
+      "axes": [
+        "disk=post",
+        "concurrency=post",
+        "retry=pre"
+      ]
+    },
+    {
+      "id": "S0039",
+      "domain": "D14_Performance_Impact",
+      "title": "Perf: VACUUM necessario pos-UPDATE",
+      "severity": "MEDIO",
+      "likelihood": "PROVAVEL",
+      "risk_score": 1.4,
+      "category": "apply_changes",
+      "description": "dead tuples apos UPDATE em massa",
+      "axes": [
+        "timing=post",
+        "encoding=pre",
+        "network=pre"
+      ]
+    },
+    {
+      "id": "S0003",
+      "domain": "D1_StorageMigration",
+      "title": "Storage: arquivo corrompido durante transferencia",
+      "severity": "ALTO",
+      "likelihood": "POSSIVEL",
+      "risk_score": 1.2,
+      "category": "encoding_issues",
+      "description": "binario JPEG pode ser truncado",
+      "axes": [
+        "concurrency=pre",
+        "retry=pre",
+        "data=pre"
+      ]
+    },
+    {
+      "id": "S0018",
+      "domain": "D3_CSP_Cleanup",
+      "title": "CSP: nginx reload falha apos update",
+      "severity": "ALTO",
+      "likelihood": "POSSIVEL",
+      "risk_score": 1.2,
+      "category": "pipeline_mid_migration",
+      "description": "config invalida derruba CSP inteiro",
+      "axes": [
+        "network=pre",
+        "data=pre",
+        "runner=post"
+      ]
+    },
+    {
+      "id": "S0024",
+      "domain": "D5_FK_Constraint_Validation",
+      "title": "FK: evolution_contacts referenciado por outras tabelas",
+      "severity": "ALTO",
+      "likelihood": "POSSIVEL",
+      "risk_score": 1.2,
+      "category": "apply_changes",
+      "description": "28 indices sugerem uso intenso",
+      "axes": [
+        "disk=during",
+        "retry=during",
+        "timing=post"
+      ]
+    },
+    {
+      "id": "S0025",
+      "domain": "D6_RLS_Audit",
+      "title": "RLS: 990 policies \u2014 auditar contacts/evolution_contacts",
+      "severity": "ALTO",
+      "likelihood": "POSSIVEL",
+      "risk_score": 1.2,
+      "category": "permissions",
+      "description": "migracao pode expor dados via RLS mal configurada",
+      "axes": [
+        "encoding=post",
+        "retry=pre",
+        "runner=post"
+      ]
+    },
+    {
+      "id": "S0032",
+      "domain": "D9_Residual_Lovable_Refs",
+      "title": "Residuos: .env com URL antiga",
+      "severity": "ALTO",
+      "likelihood": "POSSIVEL",
+      "risk_score": 1.2,
+      "category": "legacy_data_rows",
+      "description": "VITE_SUPABASE_URL pode apontar para Lovable",
+      "axes": [
+        "data=post",
+        "timing=pre",
+        "concurrency=pre"
+      ]
+    },
+    {
+      "id": "S0023",
+      "domain": "D5_FK_Constraint_Validation",
+      "title": "FK: zapp.contacts \u00e9 VIEW \u2014 sem constraints diretas",
+      "severity": "BAIXO",
+      "likelihood": "CERTA",
+      "risk_score": 1.0,
+      "category": "view_queries",
+      "description": "confirmado: 0 constraints na view",
+      "axes": [
+        "timing=pre",
+        "disk=post",
+        "encoding=pre"
+      ]
+    },
+    {
+      "id": "S0031",
+      "domain": "D9_Residual_Lovable_Refs",
+      "title": "Residuos: 0 refs no DB code \u2014 verificar codigo TS",
+      "severity": "BAIXO",
+      "likelihood": "CERTA",
+      "risk_score": 1.0,
+      "category": "legacy_doc_rows",
+      "description": "DB code limpo, mas TS pode ter refs",
+      "axes": [
+        "network=pre",
+        "data=during",
+        "timing=during"
+      ]
+    },
+    {
+      "id": "S0037",
+      "domain": "D13_Rollback_Strategy",
+      "title": "Rollback: backup via pg_dump antes do UPDATE",
+      "severity": "BAIXO",
+      "likelihood": "CERTA",
+      "risk_score": 1.0,
+      "category": "rollback",
+      "description": "sempre fazer backup",
+      "axes": [
+        "encoding=pre",
+        "timing=pre",
+        "concurrency=during"
+      ]
+    },
+    {
+      "id": "S0004",
+      "domain": "D1_StorageMigration",
+      "title": "Storage: nome de arquivo com caracteres especiais",
+      "severity": "MEDIO",
+      "likelihood": "POSSIVEL",
+      "risk_score": 0.8,
+      "category": "encoding_issues",
+      "description": "nomes com +, espa\u00e7os, unicode",
+      "axes": [
+        "data=post",
+        "concurrency=pre",
+        "retry=post"
+      ]
+    },
+    {
+      "id": "S0006",
+      "domain": "D1_StorageMigration",
+      "title": "Storage: quota excedida no self-hosted",
+      "severity": "MEDIO",
+      "likelihood": "POSSIVEL",
+      "risk_score": 0.8,
+      "category": "disk_full",
+      "description": "DB 1.7GB, storage adicional pode lotar",
+      "axes": [
+        "data=during",
+        "encoding=pre",
+        "retry=pre"
+      ]
+    },
+    {
+      "id": "S0021",
+      "domain": "D4_DataIntegrity",
+      "title": "Integridade: URLs com path diferente do esperado",
+      "severity": "MEDIO",
+      "likelihood": "POSSIVEL",
+      "risk_score": 0.8,
+      "category": "legacy_data_rows",
+      "description": "nem toda URL segue o padrao /storage/v1/object/public/avatars/",
+      "axes": [
+        "retry=during",
+        "network=post",
+        "encoding=during"
+      ]
+    },
+    {
+      "id": "S0027",
+      "domain": "D7_Index_Usage",
+      "title": "Indices: 750 unused \u2014 limpeza segura?",
+      "severity": "MEDIO",
+      "likelihood": "POSSIVEL",
+      "risk_score": 0.8,
+      "category": "apply_changes",
+      "description": "idx_scan=0 pode ser falso negativo em GIN/trigram",
+      "axes": [
+        "concurrency=pre",
+        "runner=during",
+        "data=pre"
+      ]
+    },
+    {
+      "id": "S0033",
+      "domain": "D10_Edge_Function_Refs",
+      "title": "Edge: 120+ edge functions \u2014 alguma referencia Lovable?",
+      "severity": "MEDIO",
+      "likelihood": "POSSIVEL",
+      "risk_score": 0.8,
+      "category": "legacy_data_rows",
+      "description": "edge functions podem ter URL hardcoded",
+      "axes": [
+        "encoding=post",
+        "disk=pre",
+        "timing=pre"
+      ]
+    },
+    {
+      "id": "S0041",
+      "domain": "D15_Documentation",
+      "title": "Docs: ADR para decisao de manter CSP band-aid vs migrar",
+      "severity": "MEDIO",
+      "likelihood": "POSSIVEL",
+      "risk_score": 0.8,
+      "category": "legacy_doc_rows",
+      "description": "decisao arquitetural nao documentada",
+      "axes": [
+        "retry=pre",
+        "network=post",
+        "data=pre"
+      ]
+    },
+    {
+      "id": "S0040",
+      "domain": "D15_Documentation",
+      "title": "Docs: CHANGELOG sem entrada da migracao",
+      "severity": "BAIXO",
+      "likelihood": "PROVAVEL",
+      "risk_score": 0.7,
+      "category": "legacy_doc_rows",
+      "description": "documentar sempre",
+      "axes": [
+        "concurrency=pre",
+        "timing=post",
+        "runner=pre"
+      ]
+    },
+    {
+      "id": "S0005",
+      "domain": "D1_StorageMigration",
+      "title": "Storage: bucket 'avatars' nao existe no self-hosted",
+      "severity": "BAIXO",
+      "likelihood": "IMPROVAVEL",
+      "risk_score": 0.1,
+      "category": "permissions",
+      "description": "bucket ja existe com 1353 objetos",
+      "axes": [
+        "data=post",
+        "network=post",
+        "disk=during"
+      ]
+    },
+    {
+      "id": "S0016",
+      "domain": "D2_DB_URL_Migration",
+      "title": "DB: 2 conexoes ativas \u2014 UPDATE serial \u00e9 seguro",
+      "severity": "BAIXO",
+      "likelihood": "IMPROVAVEL",
+      "risk_score": 0.1,
+      "category": "concurrency",
+      "description": "baixa concorrencia reduz risco de deadlock",
+      "axes": [
+        "data=during",
+        "concurrency=during",
+        "encoding=post"
+      ]
+    },
+    {
+      "id": "S0022",
+      "domain": "D4_DataIntegrity",
+      "title": "Integridade: avatar_url nulo ou vazio",
+      "severity": "BAIXO",
+      "likelihood": "IMPROVAVEL",
+      "risk_score": 0.1,
+      "category": "legacy_data_rows",
+      "description": "WHERE filtra nulos",
+      "axes": [
+        "network=post",
+        "concurrency=during",
+        "disk=pre"
+      ]
+    },
+    {
+      "id": "S0028",
+      "domain": "D7_Index_Usage",
+      "title": "Indices: 28 em evolution_contacts \u2014 todos necessarios?",
+      "severity": "BAIXO",
+      "likelihood": "IMPROVAVEL",
+      "risk_score": 0.1,
+      "category": "apply_changes",
+      "description": "tabela com 20K linhas, 28 indices parece excessivo",
+      "axes": [
+        "retry=post",
+        "encoding=pre",
+        "concurrency=post"
+      ]
+    }
+  ]
+}

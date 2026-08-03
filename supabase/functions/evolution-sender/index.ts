@@ -95,7 +95,10 @@ async function callEvolution(endpoint: string, body: Record<string, any>, instan
       }
     } catch { /* manter success se 2xx */ }
     const key = result.key;
-    const messageId = (typeof key === 'object' && key !== null && !Array.isArray(key) && typeof key.id === 'string' ? key.id : null)
+    const keyObj = typeof key === 'object' && key !== null && !Array.isArray(key)
+      ? (key as Record<string, unknown>)
+      : null;
+    const messageId = (keyObj && typeof keyObj.id === 'string' ? keyObj.id : null)
       || (typeof result.messageId === 'string' ? result.messageId : null)
       || (typeof result.id === 'string' ? result.id : null);
     return {
