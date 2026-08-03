@@ -244,16 +244,6 @@ export function useSLAAlerts(params: SLAAlertParams) {
           toast.warning(title, { description, duration: 6_000, action });
         }
 
-        // Audit (best-effort, fire-and-forget). Also serves as the persistent dedupe record.
-        // If the insert fails (typically RLS/permission), forward the failure to a service-role
-        // edge function so we still capture diagnostic info in `conversation_events`.
-        const auditMetadata = {
-          kind,
-          severity,
-          scope: scope,
-          rule_name: ruleName,
-          duration_ms: durationMs,
-        };
         // Audit trail via Edge Function (service role) — evita RLS/403 do frontend
         try {
           const { error: fnError } = await supabase.functions.invoke('sla-alert-log-failure', {

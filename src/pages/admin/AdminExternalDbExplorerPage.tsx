@@ -1,7 +1,8 @@
 /**
  * AdminExternalDbExplorerPage — `/admin/external-db-explorer`
  *
- * Read-only explorer for the Evolution DB (self-hosted `evo` schema)
+ * Painel admin read-only para testar a conexão com o Postgres externo
+ * (Evolution DB — self-hosted `evo` schema) via edge function `external-db-proxy`
  * e explorar amostras das tabelas / RPCs do domínio `evolution_*`.
  *
  * Não escreve nada no banco. Não expõe credenciais. Toda chamada é
@@ -30,7 +31,7 @@ export default function AdminExternalDbExplorerPage() {
       <header className="flex items-center justify-between gap-2 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Database className="h-6 w-6" /> Explorador Evolution DB
+            <Database className="h-6 w-6" /> Explorador FATOR X
           </h1>
           <p className="text-sm text-muted-foreground">
             Testa conexão e consulta amostras do Postgres externo via{' '}

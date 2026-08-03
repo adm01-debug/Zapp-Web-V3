@@ -8,7 +8,7 @@ import { createZappAdminClient } from "../_shared/db-client.ts";
  *
  * Layer 1 — Socket: GET /instance/connectionState/{instance} → state
  * Layer 2 — Identidade: GET /instance/fetchInstances?instanceName={instance} → owner JID
- * Layer 3 — Atividade: última mensagem no Evolution DB (evolution_messages) por instance_name
+ * Layer 3 — Atividade: última mensagem no FATOR X (evolution_messages) por instance_name
  *
  * Mapeamento (state, ownerJid, lastActivityAge):
  *  open + owner ausente              → degraded · phantom_session   · status=disconnected
@@ -199,7 +199,7 @@ Deno.serve(async (req) => {
     const supabase = createZappAdminClient();
     const baseUrl = evolutionUrl.replace(/\/+$/, '');
 
-    // External DB (opcional — se faltar, layer 3 é skipped graciosamente)
+    // Evolution DB (opcional — se faltar, layer 3 é skipped graciosamente)
     const externalUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
     const externalKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'))
                      ?? (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));

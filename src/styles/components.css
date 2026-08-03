@@ -159,10 +159,10 @@
   /* ===== SONNER WCAG AA — Override rich-colors on child elements =====
      richColors:true applies color:var(--title-color) directly to [data-title]/[data-description].
      Parent !important cannot override directly-applied child color (CSS cascade law).
-     Pure white (#fff) on destructive bg (#c5494a) gives 4.75:1 — passes 4.5:1 minimum. */
+     White foreground on destructive bg gives 4.75:1 — passes 4.5:1 minimum. */
   [data-sonner-toast][data-type="error"] [data-title],
   [data-sonner-toast][data-type="error"] [data-description] {
-    color: #ffffff !important;
+    color: hsl(var(--destructive-foreground)) !important;
     opacity: 1 !important;
   }
 
