@@ -653,6 +653,99 @@ function useAdminQueuesManagement() {
     return true;
   };
 
+  const toggleQueuePause = async (queue: Queue): Promise<void> => {
+    const newStatus: Queue['status'] = queue.status === 'paused' ? 'active' : 'paused';
+    const { error } = await supabase
+      .from('queues')
+      .update({ status: newStatus })
+      .eq('id', queue.id);
+    if (error) {
+      toast({ title: 'Erro ao alterar estado da fila', variant: 'destructive' });
+      return;
+    }
+    toast({ title: newStatus === 'paused' ? 'Fila pausada' : 'Fila retomada' });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
+  };
+
+  const addQueueMember = async (queueId: string, profileId: string): Promise<void> => {
+    if (!profileId) return;
+    const { error } = await supabase
+      .from('queue_members')
+      .insert({ queue_id: queueId, profile_id: profileId });
+    if (error) {
+      toast({ title: 'Erro ao adicionar membro', variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Membro adicionado' });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
+  };
+
+  const removeQueueMember = async (memberId: string): Promise<void> => {
+    const { error } = await supabase.from('queue_members').delete().eq('id', memberId);
+    if (error) {
+      toast({ title: 'Erro ao remover membro', variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Membro removido' });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
+  };
+
+  const linkQueueChannel = async (queueId: string, channelId: string): Promise<void> => {
+    if (!channelId) return;
+    const { error } = await supabase
+      .from('channel_queues')
+      .insert({ queue_id: queueId, channel_id: channelId, is_active: true, priority: 0 });
+    if (error) {
+      toast({ title: 'Erro ao vincular canal', variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Canal vinculado' });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
+  };
+
+  const unlinkQueueChannel = async (queueId: string, channelId: string): Promise<void> => {
+    const { error } = await supabase
+      .from('channel_queues')
+      .delete()
+      .eq('queue_id', queueId)
+      .eq('channel_id', channelId);
+    if (error) {
+      toast({ title: 'Erro ao desvincular canal', variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Canal desvinculado' });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
+  };
+
+  const addQueueSkill = async (
+    queueId: string,
+    skillName: string,
+    minLevel: number
+  ): Promise<void> => {
+    if (!skillName.trim()) return;
+    const { error } = await safeFrom('queue_skill_requirements').insert({
+      queue_id: queueId,
+      skill_name: skillName.trim(),
+      min_level: minLevel,
+    });
+    if (error) {
+      toast({ title: 'Erro ao adicionar skill', variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Skill adicionada' });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
+  };
+
+  const removeQueueSkill = async (skillId: string): Promise<void> => {
+    const { error } = await safeFrom('queue_skill_requirements').delete().eq('id', skillId);
+    if (error) {
+      toast({ title: 'Erro ao remover skill', variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Skill removida' });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
+  };
+
   return {
     queues,
     queueMembers,
@@ -665,6 +758,13 @@ function useAdminQueuesManagement() {
     loadQueues,
     saveQueue,
     removeQueue,
+    toggleQueuePause,
+    addQueueMember,
+    removeQueueMember,
+    linkQueueChannel,
+    unlinkQueueChannel,
+    addQueueSkill,
+    removeQueueSkill,
   };
 }
 
@@ -1232,6 +1332,13 @@ export function useAdminManagement(options?: {
     loadQueues: queues.loadQueues,
     saveQueue: queues.saveQueue,
     removeQueue: queues.removeQueue,
+    toggleQueuePause: queues.toggleQueuePause,
+    addQueueMember: queues.addQueueMember,
+    removeQueueMember: queues.removeQueueMember,
+    linkQueueChannel: queues.linkQueueChannel,
+    unlinkQueueChannel: queues.unlinkQueueChannel,
+    addQueueSkill: queues.addQueueSkill,
+    removeQueueSkill: queues.removeQueueSkill,
 
     // Departments
     departments: departments.departments,

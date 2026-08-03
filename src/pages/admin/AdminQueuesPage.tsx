@@ -1,11 +1,8 @@
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { useAdminQueues, type Queue, type DistAlgo } from '@/hooks/admin/useAdminQueues';
 import { QueueEditDialog } from './queues/QueueEditDialog';
 import { QueueCard } from './queues/QueueCard';
 import { QueueMembersDialog } from './queues/QueueMembersDialog';
-
-const NOT_IMPLEMENTED = 'Ação indisponível nesta versão. Em breve.';
 
 /** Admin Queues Page. */
 export default function AdminQueuesPage() {
@@ -20,6 +17,13 @@ export default function AdminQueuesPage() {
     loading,
     save,
     remove,
+    togglePause,
+    addMember,
+    removeMember,
+    linkChannel,
+    unlinkChannel,
+    addSkill,
+    removeSkill,
   } = useAdminQueues();
 
   const [editing, setEditing] = useState<Partial<Queue> | null>(null);
@@ -30,8 +34,6 @@ export default function AdminQueuesPage() {
   });
   const [newMemberId, setNewMemberId] = useState('');
   const [newChannelId, setNewChannelId] = useState('');
-
-  const notImplemented = () => toast.info(NOT_IMPLEMENTED);
 
   return (
     <div className="container mx-auto space-y-6 p-6">
@@ -79,7 +81,7 @@ export default function AdminQueuesPage() {
               skills={skills}
               channelQueues={channelQueues}
               channels={channels}
-              onTogglePause={notImplemented}
+              onTogglePause={(queue) => void togglePause(queue)}
               onEdit={setEditing}
               onRemove={(id) => void remove(id)}
               onMembers={setMemberDialog}
@@ -105,12 +107,23 @@ export default function AdminQueuesPage() {
         newSkill={newSkill}
         setNewSkill={setNewSkill}
         onClose={() => setMemberDialog(null)}
-        onAddMember={notImplemented}
-        onRemoveMember={notImplemented}
-        onLinkChannel={notImplemented}
-        onUnlinkChannel={notImplemented}
-        onAddSkill={notImplemented}
-        onRemoveSkill={notImplemented}
+        onAddMember={() => {
+          if (memberDialog) void addMember(memberDialog.id, newMemberId).then(() => setNewMemberId(''));
+        }}
+        onRemoveMember={(id) => void removeMember(id)}
+        onLinkChannel={() => {
+          if (memberDialog) void linkChannel(memberDialog.id, newChannelId).then(() => setNewChannelId(''));
+        }}
+        onUnlinkChannel={(channelId) => {
+          if (memberDialog) void unlinkChannel(memberDialog.id, channelId);
+        }}
+        onAddSkill={() => {
+          if (memberDialog)
+            void addSkill(memberDialog.id, newSkill.name, newSkill.level).then(() =>
+              setNewSkill({ name: '', level: 1 })
+            );
+        }}
+        onRemoveSkill={(id) => void removeSkill(id)}
       />
     </div>
   );
