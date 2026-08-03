@@ -10,11 +10,11 @@ Este documento descreve os procedimentos operacionais para deploy, monitoramento
 
 ## 1. Deploy
 
-### 1.1 Deploy via Lovable
-O deploy é automático via Lovable. Basta clicar em **Publish** no painel Lovable.
+### 1.1 Deploy (produção)
+O deploy é feito via GitHub Actions (`deploy-vps.yml`): build da imagem Docker → push para GHCR → deploy via Portainer API no VPS (Docker Swarm + Traefik). Deploy manual alternativo via Portainer (ver [DEPLOY_PRODUCAO.md](../DEPLOY_PRODUCAO.md)).
 
-- **URL de Preview**: `https://id-preview--1d419c34-35ac-4a71-96a5-146ca1b3ebf2.lovable.app`
-- **URL de Produção**: `https://pronto-talk-suite.lovable.app`
+- **URL de Preview**: `https://zapp-web-v3.vercel.app` (status: https://vercel.com/juca1/zapp-web-v3/deployments)
+- **URL de Produção**: `https://zapp.atomicabr.com.br`
 
 ### 1.2 Checklist Pré-Deploy
 - [ ] Todos os testes passam (`vitest run`)
@@ -46,7 +46,7 @@ Métricas coletadas automaticamente via `src/lib/web-vitals.ts`:
 - **CLS** < 0.1
 
 ### 2.2 Logs de Edge Functions
-Acessíveis via Lovable Cloud → Backend → Logs.
+Acessíveis via Portainer na VPS (containers `supabase_edge-*`) ou `docker service logs` no VPS.
 
 ### 2.3 Banco de Dados
 - Audit logs: tabela `audit_logs`
@@ -58,7 +58,7 @@ Acessíveis via Lovable Cloud → Backend → Logs.
 ## 3. Resposta a Incidentes
 
 ### 3.1 App não carrega
-1. Verificar status do Lovable Cloud
+1. Verificar status da infra no Portainer/VPS (`docker service ls` — serviços `zapp-web`, `supabase_*`, `traefik`)
 2. Checar logs do dev server
 3. Verificar se as variáveis de ambiente estão configuradas
 4. Limpar cache do navegador e tentar novamente
@@ -96,5 +96,5 @@ Acessíveis via Lovable Cloud → Backend → Logs.
 ---
 
 ## 4. Contatos e Escalação
-- **Lovable Cloud**: Suporte via interface Lovable
+- **Infra (VPS/Portainer/Supabase self-hosted)**: @dev-ops — ver [DEPLOY_PRODUCAO.md](../DEPLOY_PRODUCAO.md)
 - **Evolution API**: Documentação em evolution-api.com

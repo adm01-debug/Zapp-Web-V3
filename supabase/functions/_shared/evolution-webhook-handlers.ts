@@ -291,7 +291,7 @@ export async function handlePresenceUpdate(supabase: SupabaseClient, instance: s
       ch1.unsubscribe();
     }
 
-    // Legacy (Lovable Cloud contact.id) — mantém compat durante migração.
+    // Legacy (contact.id) — mantém compat durante migração.
     // Não se aplica a grupos (não há contato 1:1).
     if (!isGroup) {
       const phone = normalizePhone(jid);

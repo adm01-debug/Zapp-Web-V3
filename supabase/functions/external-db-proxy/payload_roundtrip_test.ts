@@ -2,7 +2,7 @@
  * Defesa em profundidade — formato de payload do external-db-proxy.
  *
  * Cenário: caso o useMessageStatus seja migrado futuramente para usar a
- * external-db-proxy (em vez do client supabase direto da Lovable Cloud),
+ * external-db-proxy (em vez do client supabase direto do self-hosted),
  * é crítico que os campos `error_code` e `error_reason` da tabela
  * `messages` sobrevivam ao roundtrip JSON pelo proxy sem perda.
  *

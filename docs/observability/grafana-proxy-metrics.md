@@ -8,7 +8,7 @@ Dashboard pronto para importar: [`grafana-proxy-metrics-dashboard.json`](./grafa
 ## 1. Pré-requisitos
 
 - Edge function `proxy-metrics` deployada (expõe formato Prometheus em `/functions/v1/proxy-metrics`).
-- Secret `PROXY_METRICS_TOKEN` configurada no Lovable Cloud.
+- Secret `PROXY_METRICS_TOKEN` configurada no Supabase.
 - Prometheus com alcance ao endpoint público da Edge Function.
 
 ## 2. Scrape config (Prometheus)

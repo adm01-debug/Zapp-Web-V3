@@ -78,7 +78,7 @@ async function resolveLocalContactId(identifier: string): Promise<string | null>
 
 /** use Contact Enriched Data function. */
 export function useContactEnrichedData(contactId: string) {
-  // Step 1 — resolve the Evolution DB identifier into a local Lovable Cloud UUID.
+  // Step 1 — resolve the Evolution DB identifier into a local contact UUID.
   // Without this, JIDs were being passed straight into UUID columns, triggering 22P02 errors.
   const { data: localId } = useQuery({
     queryKey: queryKeys.contactDetails.localId(contactId),

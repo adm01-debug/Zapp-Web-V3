@@ -69,7 +69,7 @@ export async function runEvolutionDiagnostics(): Promise<DiagnosticResult[]> {
     }
   } catch (err: unknown) {
     results.push({
-      step: 'Conectividade Lovable Cloud',
+      step: 'Conectividade Self-Hosted',
       status: 'fail',
       message: `Erro crítico ao tentar usar a Edge Function: ${err instanceof Error ? err.message : String(err)}`,
     });

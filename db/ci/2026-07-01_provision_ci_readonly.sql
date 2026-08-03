@@ -1,6 +1,6 @@
 -- =====================================================================
 -- Provisiona role `ci_readonly` para o job de diff de schema no CI.
--- Aplicar APENAS em Supabase SELF-HOSTED (não roda em Lovable Cloud).
+-- Aplicar APENAS em Supabase SELF-HOSTED (não roda em cloud).
 --
 -- Uso:
 --   psql "$ADMIN_DB_URL" -v ci_password="'TROQUE_ME_FORTE'" \

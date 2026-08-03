@@ -20,7 +20,7 @@ const log = getLogger('useAlertManagement');
 
 // Escape hatch localizado: as tabelas `webhook_health_checks` e
 // `sentiment_alerts` vivem no schema `zapp` da VPS self-hosted, mas ainda não
-// estão nos types gerados pela Lovable Cloud. Também usamos aqui para colunas
+// estão nos tipos gerados pelo Supabase. Também usamos aqui para colunas
 // de `warroom_alerts`/`conversation_sla` que ainda divergem do types.ts local.
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 // TYPE DEFINITIONS

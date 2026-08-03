@@ -18,7 +18,8 @@ export type { Database, ExtendedDatabase };
 // The anon key MUST come from VITE_SUPABASE_ANON_KEY or
 // VITE_SUPABASE_PUBLISHABLE_KEY environment variables.
 // DO NOT add a hardcoded key here — use GitHub Secrets / Vercel env vars.
-// DO NOT replace with a Lovable Cloud project: the real data lives here.
+// DO NOT point VITE_SUPABASE_URL at a Lovable Cloud project: the real data
+// lives in this self-hosted instance (production data is authoritative).
 // ---------------------------------------------------------------------------
 const SELF_HOSTED_URL = 'https://supabase.atomicabr.com.br';
 
@@ -96,9 +97,9 @@ if (!isSupabaseConfigured) {
 } else {
   if (isLovableCloudUrl) {
     log.info(
-      `[Supabase] VITE_SUPABASE_URL aponta para Lovable Cloud (${envUrl}) — IGNORADO. ` +
+      `[Supabase] VITE_SUPABASE_URL aponta para um projeto Supabase Cloud (.supabase.co: ${envUrl}) — IGNORADO. ` +
         `Usando self-hosted: ${SELF_HOSTED_URL}. ` +
-        `Corrija .env para evitar confusao.`
+        `Corrija o .env para apontar para a instância self-hosted.`
     );
   } else if (!isValidSupabaseUrl(envUrl) || !isValidSupabaseKey(envKey)) {
     log.info(
