@@ -1145,8 +1145,8 @@ describe('Security Gaps Audit', () => {
     expect(hasAuthCheck).toBe(true);
   });
 
-  it('edge function is read-only (no insert/update/delete on external DB)', () => {
-    // The edge function only uses .select() on the external DB
+  it('edge function is read-only (no insert/update/delete on the external catalog DB)', () => {
+    // The edge function only uses .select() on the external catalog DB (PromoGifts)
     // No .insert(), .update(), or .delete() calls
     const isReadOnly = true;
     expect(isReadOnly).toBe(true);
@@ -1175,13 +1175,13 @@ describe('Security Gaps Audit', () => {
 
   it('no rate limiting on edge function', () => {
     // FINDING: No rate limiting implementation in the edge function
-    // An attacker with a valid token could flood the external DB with requests
+    // An attacker with a valid token could flood the external catalog DB with requests
     const hasRateLimit = false;
     expect(hasRateLimit).toBe(false);
     // RECOMMENDATION: Add rate limiting per user_id
   });
 
-  it('anon key of external DB is used (limited permissions)', () => {
+  it('anon key of the external catalog DB is used (limited permissions)', () => {
     // The edge function uses PROMOGIFTS_SUPABASE_ANON_KEY, not service_role
     // This is correct for read-only access with RLS protection
     const usesAnonKey = true;
