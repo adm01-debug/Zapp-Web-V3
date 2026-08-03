@@ -110,11 +110,11 @@ describe('timedRpc — data and error pass-through', () => {
 
 // ── recordQueryEvent fields ───────────────────────────────────────────────────
 describe('timedRpc — recordQueryEvent on success', () => {
-  it('calls recordQueryEvent with operation="rpc" and source="externalSupabase"', async () => {
+  it('calls recordQueryEvent with operation="rpc" and source="selfHosted"', async () => {
     mockRpc.mockResolvedValue(rpcOk(null));
     await timedRpc('my_rpc');
     expect(mockRecordQueryEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ operation: 'rpc', source: 'externalSupabase' })
+      expect.objectContaining({ operation: 'rpc', source: 'selfHosted' })
     );
   });
 

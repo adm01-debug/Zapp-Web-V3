@@ -1,5 +1,5 @@
 /**
- * RPC Catalog — fonte única e tipada das RPCs do FATOR X.
+ * RPC Catalog — fonte única e tipada das RPCs do Evolution DB.
  *
  * Toda leitura/escrita do domínio WhatsApp/CRM (`evolution_*`) deve passar
  * por uma RPC SECURITY DEFINER no self-hosted. Este catálogo amarra cada RPC

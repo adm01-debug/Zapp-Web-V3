@@ -1,90 +1,42 @@
-import { useMemo } from 'react';
 import { useRealtimeMessages } from './useRealtimeMessages';
-import { useExternalConversations, useExternalMessages } from '@/hooks/useExternalApiManagement';
 import { useMessages } from './useMessages';
 import type { LoadOlderCallback, CancelLoadOlderCallback } from '../components/chat/loadOlderTypes';
 
-/** Multiplexes between the local Realtime data source and the external FATOR-X evolution DB, returning a unified conversation/message interface and pagination callbacks. */
-export function useInboxSource(useExternalDb: boolean, selectedContactId: string | null) {
-  // Local DB source
+/** Fonte de dados local (Realtime via client principal self-hosted) — interface unificada de conversas/mensagens e callbacks de paginação. */
+export function useInboxSource(selectedContactId: string | null) {
+  // Local DB source (Evolution DB via client principal)
   const localRealtime = useRealtimeMessages();
-  // External DB source (FATOR X)
-  const externalData = useExternalConversations(useExternalDb);
 
   // Selected conversation data
-  const conversations = useExternalDb ? externalData.conversations : localRealtime.conversations;
-  const loading = useExternalDb ? externalData.loading : localRealtime.loading;
-  const error = useExternalDb ? externalData.error : localRealtime.error;
-  const refetch = useExternalDb
-    ? () => {
-        externalData.refetch();
-      }
-    : localRealtime.refetch;
+  const conversations = localRealtime.conversations;
+  const loading = localRealtime.loading;
+  const error = localRealtime.error;
+  const refetch = localRealtime.refetch;
 
   // F4-01: paginação por cursor — exposto para o scroll infinito da sidebar.
-  // Path local: páginas de CONTACTS_PAGE_SIZE/MESSAGES_PAGE_SIZE com cursor
-  // (updated_at+id / created_at+id). Path externo (FATOR X): páginas de
-  // SIDEBAR_LIMIT mensagens com cursor created_at (fetchSidebarMessagesPage).
-  const loadMoreConversations = useExternalDb
-    ? externalData.loadMoreConversations
-    : localRealtime.loadMoreConversations;
-  const hasMoreConversations = useExternalDb
-    ? (externalData.hasMoreConversations ?? false)
-    : localRealtime.hasMoreConversations;
-  const loadingMoreConversations = useExternalDb
-    ? (externalData.loadingMoreConversations ?? false)
-    : localRealtime.loadingMoreConversations;
+  // Páginas de CONTACTS_PAGE_SIZE/MESSAGES_PAGE_SIZE com cursor
+  // (updated_at+id / created_at+id).
+  const loadMoreConversations = localRealtime.loadMoreConversations;
+  const hasMoreConversations = localRealtime.hasMoreConversations;
+  const loadingMoreConversations = localRealtime.loadingMoreConversations;
 
-  // Search and Filter controls (always from localRealtime for UI consistency)
+  // Search and Filter controls (sempre do localRealtime para consistência da UI)
   const { search, setSearch, statusFilter, setStatusFilter, sortBy, setSortBy } = localRealtime;
 
-  // Deriva a instancia WhatsApp da conversa selecionada.
-  // Isso garante que ao adicionar uma segunda instancia (ex.: wpp3), o hook de
-  // mensagens busque na particao correta em vez de filtrar sempre por DEFAULT_INSTANCE.
-  const selectedConversationInstance = useMemo(() => {
-    if (!useExternalDb || !selectedContactId) return undefined;
-    const found = conversations.find(
-      (c) =>
-        c.contact.id === selectedContactId ||
-        (c.contact.remote_jid != null && c.contact.remote_jid === selectedContactId)
-    );
-    return found?.contact.instance_name ?? undefined;
-  }, [useExternalDb, selectedContactId, conversations]);
-
-  // Messages for selected contact
-  const externalMsgs = useExternalMessages(
-    useExternalDb ? selectedContactId : null,
-    selectedConversationInstance
-  );
+  // Messages for selected contact (local DB)
   const localMsgs = useMessages({
-    contactId: useExternalDb ? null : selectedContactId,
-    enabled: !useExternalDb && Boolean(selectedContactId),
+    contactId: selectedContactId,
+    enabled: Boolean(selectedContactId),
   });
 
-  const selectedMessages = useExternalDb ? externalMsgs.messages : localMsgs.messages;
-  const selectedMessagesLoading = useExternalDb ? externalMsgs.loading : localMsgs.loading;
-  const refetchSelectedMessages = useExternalDb ? externalMsgs.refetch : localMsgs.refetch;
+  const selectedMessages = localMsgs.messages;
+  const selectedMessagesLoading = localMsgs.loading;
+  const refetchSelectedMessages = localMsgs.refetch;
 
-  // Pagination for older messages
-  const loadOlderMessages = useMemo<LoadOlderCallback | undefined>(
-    () =>
-      useExternalDb
-        ? () => {
-            void externalMsgs.loadOlder();
-          }
-        : undefined,
-    [useExternalDb, externalMsgs]
-  );
-
-  const cancelLoadOlderMessages = useMemo<CancelLoadOlderCallback | undefined>(
-    () =>
-      useExternalDb
-        ? () => {
-            externalMsgs.cancelLoadOlder();
-          }
-        : undefined,
-    [useExternalDb, externalMsgs]
-  );
+  // Pagination for older messages — o path local não expõe loadOlder
+  // (a paginação de histórico roda dentro de useMessages/components de chat).
+  const loadOlderMessages: LoadOlderCallback | undefined = undefined;
+  const cancelLoadOlderMessages: CancelLoadOlderCallback | undefined = undefined;
 
   return {
     conversations,
@@ -102,14 +54,14 @@ export function useInboxSource(useExternalDb: boolean, selectedContactId: string
     refetchSelectedMessages,
     loadOlderMessages,
     cancelLoadOlderMessages,
-    loadingOlderMessages: useExternalDb ? externalMsgs.loadingOlder : false,
-    hasMoreMessages: useExternalDb ? externalMsgs.hasMore : false,
-    addExternalMessage: useExternalDb ? externalMsgs.addMessage : undefined,
-    // WhatsApp instance da conversa selecionada (para edição, mídia, automações)
-    selectedConversationInstance,
+    loadingOlderMessages: false,
+    hasMoreMessages: false,
+    addExternalMessage: undefined,
+    // WhatsApp instance da conversa selecionada — path local não usa instância externa.
+    selectedConversationInstance: undefined,
     // Original realtime hooks for notifications etc
     localRealtime,
-    // F4-01: paginação por cursor — load-more para scroll infinito (local + externo).
+    // F4-01: paginação por cursor — load-more para scroll infinito
     loadMoreConversations,
     hasMoreConversations,
     loadingMoreConversations,

@@ -2,7 +2,7 @@
 // - GET: Meta verification handshake (hub.mode=subscribe + hub.verify_token + hub.challenge)
 // - POST: valida assinatura X-Hub-Signature-256 (HMAC-SHA256 com WHATSAPP_CLOUD_APP_SECRET),
 //         filtra eventos suportados (messages/statuses), aplica idempotência por message.id
-//         e persiste em FATOR X via rpc_insert_message.
+//         e persiste no Evolution DB via rpc_insert_message.
 //
 // Este endpoint é exclusivo do MODO OFICIAL. O modo NÃO-OFICIAL (Evolution API) é
 // servido por `evolution-webhook` com validação HMAC própria (x-evolution-signature).

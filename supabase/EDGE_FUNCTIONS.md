@@ -11,12 +11,9 @@ Não é um indicativo de que o projeto usa Deno para o frontend — o frontend
 
 ## Estrutura das Edge Functions
 
-```
-supabase/
+```\nsupabase/
   functions/
-    external-db-proxy/   # Proxy para queries no banco self-hosted
-      index.ts
-    ...outros...
+    ...                  # ~120 edge functions no diretório
   config.toml            # Config do projeto Supabase local
   migrations/            # Migrations SQL
 deno.json                # Config do Deno CLI (requerido pelo Supabase CLI)

@@ -7,7 +7,7 @@
 //
 // Optional shared secret for HMAC-SHA256 signing of the body, sent via the
 // `X-Lovable-Signature: sha256=<hex>` header. Set as the edge function secret
-// `SLA_ALERT_WEBHOOK_SECRET` in Lovable Cloud (no code changes needed).
+// `SLA_ALERT_WEBHOOK_SECRET` in Supabase (no code changes needed).
 
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { z } from 'https://esm.sh/zod@3.23.8';

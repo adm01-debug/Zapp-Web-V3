@@ -246,7 +246,7 @@ export function useConnections() {
     }
 
     const payload: SystemConnectionPayload = {
-      name: 'FATOR X',
+      name: 'Evolution DB',
       provider: 'supabase_external',
       config: { url: draftUrl, anon_key: draftKey },
       is_active: true,
@@ -254,7 +254,7 @@ export function useConnections() {
 
     try {
       const existing = connections.find(
-        (c) => c.provider === 'supabase_external' || c.name === 'FATOR X'
+        (c) => c.provider === 'supabase_external' || c.name === 'Evolution DB'
       );
       const insertPayload = currentUserId ? { ...payload, created_by: currentUserId } : payload;
 
@@ -290,7 +290,7 @@ export function useConnections() {
         id: string;
         updated_at: string | null;
       }>('system_connections', (q) =>
-        q.select('id, updated_at').eq('provider', 'supabase_external').eq('name', 'FATOR X')
+        q.select('id, updated_at').eq('provider', 'supabase_external').eq('name', 'Evolution DB')
       );
 
       if (verifyError || !verify) {

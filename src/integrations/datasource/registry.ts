@@ -21,7 +21,7 @@
  *      → realtime (postgres_changes) em qualquer entidade, inclusive evolution_*
  *
  *  - `dbRpc` / `dbList` / `dbGet` / `dbInsert` (db.ts + rpcCatalog.ts)
- *      → TODA leitura/escrita de domínio em FATOR X (contacts, messages,
+ *      → TODA leitura/escrita de domínio em Evolution DB (contacts, messages,
  *        conversations, calls, audit_log). RLS bloqueia SELECT direto, então
  *        a única forma correta é via RPC SECURITY DEFINER.
  */

@@ -1,6 +1,6 @@
 /**
  * useMessageDetails — on-demand hydration of a single full message row
- * from FATOR X (`rpc_get_message_details`).
+ * from Evolution DB (`rpc_get_message_details`).
  *
  * The list view uses `EvolutionMessageLite` (no payload/raw_data) for
  * performance. When the user opens the "Detalhes do envio" dialog we fetch

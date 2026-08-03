@@ -48,7 +48,7 @@ function jidToPhone(value: string): string | null {
 /**
  * Resolves the local `zapp.contacts.id` (UUID) for a given identifier that may be either:
  *   - a real UUID (returned as-is)
- *   - a WhatsApp JID coming from FATOR X (looked up by phone)
+ *   - a WhatsApp JID coming from Evolution DB (looked up by phone)
  * Returns `null` when no local contact exists — callers must skip enriched queries in that case.
  *
  * DRY FIX: uses isValidUUID from @/utils/uuid instead of an inline UUID_REGEX.
@@ -78,7 +78,7 @@ async function resolveLocalContactId(identifier: string): Promise<string | null>
 
 /** use Contact Enriched Data function. */
 export function useContactEnrichedData(contactId: string) {
-  // Step 1 — resolve the FATOR X identifier into a local Lovable Cloud UUID.
+  // Step 1 — resolve the Evolution DB identifier into a local contact UUID.
   // Without this, JIDs were being passed straight into UUID columns, triggering 22P02 errors.
   const { data: localId } = useQuery({
     queryKey: queryKeys.contactDetails.localId(contactId),

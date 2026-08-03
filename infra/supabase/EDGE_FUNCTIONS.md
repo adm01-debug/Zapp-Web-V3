@@ -41,7 +41,7 @@
 - public-api, mcp-server, webauthn
 - health-check, status, main, hello
 - sicoob-bridge, sicoob-bridge-reply
-- bitrix-api, external-db-bridge
+- bitrix-api
 - secure-upload, file-security-scanner
 - e2e-fixtures, e2e-webhook-fixture (❌ removidas 2026-08-01 — Fase E4/E32; ver docs/edge/relatorio-e4-2026-08-01.md)
 - +30 outras funções

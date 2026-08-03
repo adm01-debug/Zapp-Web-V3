@@ -72,7 +72,7 @@ export default defineConfig({
       'src/lib/__tests__/queryTimeout.test.ts',
       'src/lib/__tests__/sanitize-extra.test.ts',
       'src/shared/__tests__/validation.test.ts',
-      // NEEDS-ENV — depende de VITE_EXTERNAL_SUPABASE_URL/ANON_KEY.
+      // NEEDS-ENV — requer VITE_EXTERNAL_SUPABASE_URL/ANON_KEY (Supabase self-hosted).
       // Rodados separadamente via script de integração.
       'src/lib/__tests__/contactsDB.test.ts',
     ],

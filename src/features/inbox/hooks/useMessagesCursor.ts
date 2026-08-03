@@ -1,5 +1,5 @@
 /**
- * useMessagesCursor — paginacao incremental de mensagens (FATOR X)
+ * useMessagesCursor — paginacao incremental de mensagens (Evolution DB)
  *
  * Substitui o "fetch loop ate o fim" do `useMessages` por carregamento
  * cursor-based. A primeira pagina traz `pageSize` mensagens mais recentes;
@@ -223,7 +223,7 @@ export function useMessagesCursor({
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'evo', // FATOR X v6.2: tabela-fonte evo.evolution_messages
+          schema: 'evo', // Evolution DB v6.2: tabela-fonte evo.evolution_messages
           table: 'evolution_messages',
           // v6.2: postgres_changes aceita UM filtro; instance é implícita pelo jid.
           filter: `remote_jid=eq.${remoteJid}`,
@@ -249,7 +249,7 @@ export function useMessagesCursor({
         'postgres_changes',
         {
           event: 'UPDATE',
-          schema: 'evo', // FATOR X v6.2: tabela-fonte evo.evolution_messages
+          schema: 'evo', // Evolution DB v6.2: tabela-fonte evo.evolution_messages
           table: 'evolution_messages',
           // v6.2: postgres_changes aceita UM filtro; instance é implícita pelo jid.
           filter: `remote_jid=eq.${remoteJid}`,
@@ -269,7 +269,7 @@ export function useMessagesCursor({
         'postgres_changes',
         {
           event: 'DELETE',
-          schema: 'evo', // FATOR X v6.2: tabela-fonte evo.evolution_messages
+          schema: 'evo', // Evolution DB v6.2: tabela-fonte evo.evolution_messages
           table: 'evolution_messages',
           // v6.2: postgres_changes aceita UM filtro; instance é implícita pelo jid.
           filter: `remote_jid=eq.${remoteJid}`,

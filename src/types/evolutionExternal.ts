@@ -1,5 +1,5 @@
 /**
- * Types for evolution_* tables in the external FATOR X database
+ * Types for evolution_* tables in the external Evolution DB database
  */
 
 // ─── evolution_messages ───────────────────────────────────────

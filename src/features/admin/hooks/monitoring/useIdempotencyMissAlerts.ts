@@ -1,13 +1,13 @@
 /**
  * useIdempotencyMissAlerts — admin-only watchdog for the Evolution send cache.
  *
- * Polls FATOR X `evolution_audit_log` for `idempotency_miss` rows in the last
+ * Polls Evolution DB `evolution_audit_log` for `idempotency_miss` rows in the last
  * hour, groups them by `instance_name`, and raises a `warroom_alerts` row when
  * any instance crosses the configured threshold. Reuses the existing siren /
  * push notification flow via `useWarRoomAlerts`.
  *
- * Why poll instead of subscribe? `evolution_audit_log` lives on FATOR X, which
- * does not share a Realtime channel with the Lovable Cloud where the alerts
+ * Why poll instead of subscribe? `evolution_audit_log` lives on Evolution DB, which
+ * does not share a Realtime channel with the app database where the alerts
  * are stored. A 60s poll is acceptable: misses are a low-frequency signal and
  * the alert is hourly-bucketed.
  *

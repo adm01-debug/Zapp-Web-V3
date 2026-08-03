@@ -5,7 +5,7 @@ const log = getLogger('BridgeService');
 import { HealthRow, BridgeStatus } from '@/components/connections/types';
 
 /**
- * Serviço para lidar com a comunicação com o Supabase Externo (Fator X).
+ * Serviço para lidar com a comunicação com o Supabase Externo (Evolution DB).
  */
 export class BridgeService {
   static async checkHealth(): Promise<{ health: HealthRow | null; error: string | null; status: BridgeStatus }> {

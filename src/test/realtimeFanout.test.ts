@@ -76,7 +76,7 @@ function walk(dir: string, acc: string[] = []): string[] {
 
 // Aceita literal `table: 'messages'|'evolution_messages'` e helper `table: dbTable(...)`,
 // independentemente de o channel vir de `supabase.channel(...)` ou `dbChannel(...)`.
-// 'evolution_messages' é o nome da tabela no schema 'evo' (FATOR X v6.2).
+// 'evolution_messages' é o nome da tabela no schema 'evo' (Evolution DB v6.2).
 const MESSAGES_CHANNEL_RE =
   /(?:supabase\s*\.channel|dbChannel)\([\s\S]*?table:\s*(?:dbTable\(\s*)?['"](?:messages|evolution_messages)['"]/;
 

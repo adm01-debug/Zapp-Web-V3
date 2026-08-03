@@ -1,4 +1,4 @@
-// Logs an `idempotency_miss` row into FATOR X `evolution_audit_log`.
+// Logs an `idempotency_miss` row into Evolution DB `evolution_audit_log`.
 //
 // Triggered by `proxyToEvolution` when a /message/* POST carries a valid
 // idempotency key but the server-side cache (`evolution_send_idempotency`)

@@ -281,7 +281,7 @@ export async function handlePresenceUpdate(supabase: SupabaseClient, instance: s
       basePayload.participant = typingParticipant;
     }
 
-    // Novo (FATOR X): canal por remote_jid — chave estável compartilhada entre webhook → preview → chat aberto
+    // Self-hosted: canal por remote_jid — chave estável compartilhada entre webhook → preview → chat aberto
     const ch1 = supabase.channel(`typing:${jid}`);
     try {
       await ch1.send({ type: 'broadcast', event: 'contact_typing', payload: basePayload });
@@ -291,7 +291,7 @@ export async function handlePresenceUpdate(supabase: SupabaseClient, instance: s
       ch1.unsubscribe();
     }
 
-    // Legacy (Lovable Cloud contact.id) — mantém compat durante migração.
+    // Legacy (contact.id) — mantém compat durante migração.
     // Não se aplica a grupos (não há contato 1:1).
     if (!isGroup) {
       const phone = normalizePhone(jid);
@@ -447,7 +447,7 @@ export async function handleCallEvent(supabase: SupabaseClient, instance: string
     }
   }
 
-  // Emit realtime broadcast on FATOR X bus for sub-100ms incoming-call alert.
+  // Emit realtime broadcast on Evolution DB bus for sub-100ms incoming-call alert.
   // Payload is minimal (no PII besides JID); client resolves name/avatar via rpc_get_contact.
   try {
     const externalUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));

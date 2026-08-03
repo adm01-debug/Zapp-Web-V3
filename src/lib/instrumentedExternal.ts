@@ -41,7 +41,7 @@ export async function timedRpc<T = unknown>(
 
     recordQueryEvent({
       operation: 'rpc',
-      source: 'externalSupabase',
+      source: 'selfHosted',
       target: rpcName,
       durationMs,
       limit,
@@ -65,7 +65,7 @@ export async function timedRpc<T = unknown>(
 
     recordQueryEvent({
       operation: 'rpc',
-      source: 'externalSupabase',
+      source: 'selfHosted',
       target: rpcName,
       durationMs,
       limit,

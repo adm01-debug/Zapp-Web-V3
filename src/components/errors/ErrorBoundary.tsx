@@ -152,7 +152,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
       recordQueryEvent({
         operation: 'select',
-        source: isQueryFailure ? 'externalProxy' : 'lovableCloud',
+        // Keep 'lovableCloud' — legacy telemetry id for dashboards; render
+        // failures from the app's own backend still report under it.
+        source: isQueryFailure ? 'evolutionDB' : 'lovableCloud',
         target: isStackOverflow ? 'render:stack_overflow' : target,
         durationMs: 0,
         limit: null,
