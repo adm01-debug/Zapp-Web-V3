@@ -615,7 +615,7 @@ export function ConnectionsView() {
             value: connections.filter((c) => c.status !== 'connected').length,
             color:
               connections.filter((c) => c.status !== 'connected').length > 0
-                ? 'text-destructive-foreground'
+                ? 'text-destructive'
                 : 'text-primary',
             sub:
               connections.filter((c) => c.status !== 'connected').length > 0

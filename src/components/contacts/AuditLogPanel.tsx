@@ -171,7 +171,7 @@ export const AuditLogPanel: React.FC<{ contactId: string; maxEntries?: number }>
                   {e.old_values !== null && (
                     <div className="flex gap-2">
                       <span className="w-12 shrink-0 text-muted-foreground">Antes:</span>
-                      <span className="truncate text-destructive-foreground line-through">
+                      <span className="truncate text-destructive line-through">
                         {sanitizeText(JSON.stringify(e.old_values))}
                       </span>
                     </div>

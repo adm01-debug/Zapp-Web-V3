@@ -34,7 +34,7 @@ function latencyTier(ms?: number | null): { label: string; tone: string } | null
     return { label: `${ms}ms`, tone: 'text-warning-foreground bg-warning/10 border-warning/30' };
   return {
     label: `${ms}ms`,
-    tone: 'text-destructive-foreground bg-destructive/10 border-destructive/30',
+    tone: 'text-destructive bg-destructive/10 border-destructive/30',
   };
 }
 

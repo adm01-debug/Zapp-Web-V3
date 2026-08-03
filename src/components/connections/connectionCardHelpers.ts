@@ -13,13 +13,13 @@ export const statusConfig: Record<
   },
   disconnected: {
     label: 'Desconectado',
-    color: 'text-destructive-foreground',
+    color: 'text-destructive',
     icon: WifiOff,
     bgClass: 'bg-destructive/10 border-destructive/20',
   },
   disconnecting: {
     label: 'Desconectando...',
-    color: 'text-destructive-foreground',
+    color: 'text-destructive',
     icon: Loader2,
     bgClass: 'bg-destructive/10 border-destructive/20 animate-pulse',
   },

@@ -33,7 +33,7 @@ export function ConnectionsStats({ connections }: ConnectionsStatsProps) {
     {
       label: 'Ações necessárias',
       value: needsAction,
-      color: needsAction > 0 ? 'text-destructive-foreground' : 'text-primary',
+      color: needsAction > 0 ? 'text-destructive' : 'text-primary',
       sub: needsAction > 0 ? 'Precisam reconectar' : 'Tudo funcionando ✔',
     },
   ];
