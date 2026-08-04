@@ -86,8 +86,10 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       is_default: true,
     }));
   }
-  // contacts lookup — return existing so we skip insert
-  if (url.includes("/rest/v1/contacts") && method === "GET") {
+  // contacts lookup — return existing so we skip insert.
+  // Handler was updated (BUG-D fix) from zapp.contacts to evolution_contacts;
+  // match both so the mock stays forward-compatible.
+  if ((url.includes("/rest/v1/evolution_contacts") || url.includes("/rest/v1/contacts")) && method === "GET") {
     return jsonRes(wrap({ id: "contact-1" }));
   }
   // messages insert
