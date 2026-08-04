@@ -50,13 +50,38 @@ export function NextBestActionEngine({ contactId, contactName }: NextBestActionP
       }
       const suggestedActions: NextAction[] = [];
       try {
-        const { data: lastMsg } = await supabase
-          .from('messages')
-          .select('created_at, sender')
-          .eq('contact_id', contactId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        // PERF 2026-08-04: 4 queries sequenciais → Promise.all paralelo
+        // tasks: usa rpc_get_contact_summary_batch (elimina HEAD individual)
+        const [lastMsgResult, summaryResult, slaResult, memoryResult] = await Promise.all([
+          supabase
+            .from('messages')
+            .select('created_at, sender')
+            .eq('contact_id', contactId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (supabase as any).rpc('rpc_get_contact_summary_batch', {
+            p_contact_ids: [contactId],
+          }),
+          supabase
+            .from('conversation_sla')
+            .select('first_response_breached, resolution_breached')
+            .eq('contact_id', contactId)
+            .maybeSingle(),
+          supabase
+            .from('conversation_memory')
+            .select('pending_items, promises_made')
+            .eq('contact_id', contactId)
+            .maybeSingle(),
+        ]);
+
+        const lastMsg = lastMsgResult.data;
+        const summaryRow = Array.isArray(summaryResult.data) && summaryResult.data.length > 0
+          ? (summaryResult.data[0] as { pending_tasks: number; unread_whispers: number })
+          : null;
+        const slaData = slaResult.data;
+        const memory = memoryResult.data;
 
         if (lastMsg) {
           const hoursSinceLastMsg =
@@ -83,13 +108,8 @@ export function NextBestActionEngine({ contactId, contactName }: NextBestActionP
           }
         }
 
-        const { count: pendingTasks } = await supabase
-          .from('conversation_tasks')
-          .select('id', { count: 'exact', head: true })
-          .eq('contact_id', contactId)
-          .eq('status', 'pending');
-
-        if (pendingTasks && pendingTasks > 0) {
+        const pendingTasks = summaryRow?.pending_tasks ?? 0;
+        if (pendingTasks > 0) {
           suggestedActions.push({
             type: 'complete_tasks',
             label: `Completar ${pendingTasks} tarefa(s)`,
@@ -98,12 +118,6 @@ export function NextBestActionEngine({ contactId, contactName }: NextBestActionP
             icon: CheckCircle2,
           });
         }
-
-        const { data: slaData } = await supabase
-          .from('conversation_sla')
-          .select('first_response_breached, resolution_breached')
-          .eq('contact_id', contactId)
-          .maybeSingle();
 
         if (slaData?.first_response_breached || slaData?.resolution_breached) {
           suggestedActions.push({
@@ -114,12 +128,6 @@ export function NextBestActionEngine({ contactId, contactName }: NextBestActionP
             icon: AlertTriangle,
           });
         }
-
-        const { data: memory } = await supabase
-          .from('conversation_memory')
-          .select('pending_items, promises_made')
-          .eq('contact_id', contactId)
-          .maybeSingle();
 
         if (memory) {
           const pending = Array.isArray(memory.pending_items) ? memory.pending_items : [];
