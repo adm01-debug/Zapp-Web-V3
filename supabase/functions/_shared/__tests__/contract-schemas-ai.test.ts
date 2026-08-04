@@ -320,7 +320,9 @@ const MATRICES: Matrix[] = [
     valid: [
       { audio: "aGVsbG8=" },
       { audio: "aGVsbG8=", languageCode: "pt" },
-      // LIMITE MAX: audio 1.000.000 chars (boundary superior exercitado com valor inválido > max) (≈30MB base64, contrato useAudioRecorder); languageCode 20
+      // Valor grande bem ABAIXO do max real (40.000.000 chars — schemas.ts:395).
+      // O max não é exercitado propositalmente (anti data-bomba: alocar 40MB
+      // em teste é desnecessário). Caso válido, sem boundary inventado.
       { audio: "a".repeat(1_000_001), languageCode: "x".repeat(20) },
     ],
     invalid: [
