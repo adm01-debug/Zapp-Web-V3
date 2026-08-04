@@ -1,0 +1,3346 @@
+{
+ "fase": 1,
+ "documento": "01_runtime",
+ "gerado_em": "2026-08-04T15:16:39",
+ "endpoints": [
+  {
+   "id": 1,
+   "name": "primary",
+   "type": 2,
+   "url": "tcp://tasks.agent:9001",
+   "status": "up",
+   "snapshot": {
+    "containers": 95,
+    "running": 84,
+    "stacks": 69,
+    "volumes": 38,
+    "images": 60
+   }
+  }
+ ],
+ "docker_info": {
+  "id": "9db27c03-e777-44cf-bbc5-6c82fc3714e1",
+  "hostname": "AtomicaBR",
+  "server_version": "28.1.1",
+  "os": "Ubuntu 20.04.6 LTS",
+  "kernel": "5.4.0-216-generic",
+  "arch": "x86_64",
+  "ncpu": 12,
+  "mem_total_bytes": 25202905088,
+  "containers": 96,
+  "running": 84,
+  "paused": 0,
+  "stopped": 12,
+  "images": 62,
+  "storage_driver": "overlay2",
+  "cgroup": "v1/systemd",
+  "system_time": "2026-08-04T15:12:19-03:00"
+ },
+ "swarm": {
+  "id": "ypqv6itnmp6vnxz4xdkk4dpod",
+  "nodes": 1,
+  "managers": 1,
+  "node_id": "bsihx70cz2r0fxxg2e29t8ipe",
+  "node_addr": "209.142.67.51",
+  "created": "2024-12-07T01:35:49Z",
+  "task_history_retention": 1,
+  "autolock": false
+ },
+ "stacks": [
+  {
+   "id": 19,
+   "name": "minio",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2024-12-10",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 20,
+   "name": "postgres",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2024-12-10",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 23,
+   "name": "redis",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2024-12-10",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 24,
+   "name": "n8n",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2024-12-10",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 25,
+   "name": "evolution",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2024-12-10",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 35,
+   "name": "supabase",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2024-12-11",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 37,
+   "name": "metabase",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2025-05-12",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 39,
+   "name": "gotenberg",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2025-11-24",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 40,
+   "name": "gmaps",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-03-26",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 41,
+   "name": "glitchtip",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-04-04",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 68,
+   "name": "portainer-mcp-v2",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-04-20",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 84,
+   "name": "postgres-backup-weekly",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-04-22",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 85,
+   "name": "postgres-backup-monthly",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-04-22",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 93,
+   "name": "restore-validate",
+   "type": 2,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-04-22",
+   "updated": "-"
+  },
+  {
+   "id": 109,
+   "name": "watchdog-baileys",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-04-29",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 111,
+   "name": "rabbitmq",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-04-29",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 112,
+   "name": "postgres-backup-daily",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-04-29",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 113,
+   "name": "evolution-rabbit-consumer",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-04-29",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 116,
+   "name": "baileys-backup",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-04-30",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 117,
+   "name": "dlq-inspector",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-04-30",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 118,
+   "name": "wa-version-monitor",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-04-30",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 119,
+   "name": "baileys-error-monitor",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-04-30",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 120,
+   "name": "swarm-task-guardian",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-05-01",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 122,
+   "name": "claude-code",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-05-02",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 124,
+   "name": "supabase-backup",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-05-03",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 125,
+   "name": "promo-gifts-web",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-05-04",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 126,
+   "name": "evolution-db-purge",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-05-04",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 128,
+   "name": "supabase-db-mcp",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-05-05",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 130,
+   "name": "clamav",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-05-09",
+   "updated": "-"
+  },
+  {
+   "id": 131,
+   "name": "painel-cotacoes",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-05-12",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 139,
+   "name": "fechamento-artes",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-05-22",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 140,
+   "name": "painel-financeiro",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-05-27",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 143,
+   "name": "supabase-artes-mcp",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-06-08",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 146,
+   "name": "openclaw",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-06-10",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 150,
+   "name": "docuseal",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-06-12",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 151,
+   "name": "typebot",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-06-12",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 152,
+   "name": "openwebui",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-06-12",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 154,
+   "name": "crowdsec",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-06-12",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 156,
+   "name": "watchtower",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-06-12",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 157,
+   "name": "zapp-web-prod",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-06-12",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 164,
+   "name": "schema-drift-guard",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-01",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 165,
+   "name": "zapp-health-guard",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-02",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 166,
+   "name": "infra-boot-guard",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-03",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 167,
+   "name": "host-disk-guard",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-06",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 168,
+   "name": "sysctl-quic-fix",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-07",
+   "updated": "-"
+  },
+  {
+   "id": 169,
+   "name": "painel-compras",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-09",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 170,
+   "name": "watchdog-canary",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-10",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 171,
+   "name": "vscode-mcp",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-14",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 172,
+   "name": "traefik-log-rotate",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-15",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 173,
+   "name": "wal-slot-guard",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-16",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 175,
+   "name": "supabase-config-backup",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-16",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 176,
+   "name": "openclaw-brain-guard",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-17",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 177,
+   "name": "openclaw-edge-guard",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-17",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 178,
+   "name": "openclaw-backup",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-17",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 179,
+   "name": "openclaw-backup-guard",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-17",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 182,
+   "name": "deptopessoal",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-21",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 183,
+   "name": "supabase-pttz-mcp",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-21",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 185,
+   "name": "hermes-guard",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-22",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 187,
+   "name": "hermes-backup",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-22",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 188,
+   "name": "hermes",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-22",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 195,
+   "name": "mcp-health-monitor",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-26",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 196,
+   "name": "traefik-cert-backup",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-26",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 197,
+   "name": "traefik-cert-guard",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-26",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 198,
+   "name": "portainer-state-backup",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-26",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 199,
+   "name": "docker-housekeeping",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-07-26",
+   "updated": "2026-08-04"
+  },
+  {
+   "id": 201,
+   "name": "disk-metrics-collector",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-08-01",
+   "updated": "-"
+  },
+  {
+   "id": 207,
+   "name": "disk-actioner",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-08-01",
+   "updated": "-"
+  },
+  {
+   "id": 208,
+   "name": "disk-deep-clean",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-08-01",
+   "updated": "-"
+  },
+  {
+   "id": 210,
+   "name": "github-actions-runner",
+   "type": 1,
+   "entrypoint": "docker-compose.yml",
+   "created": "2026-08-01",
+   "updated": "2026-08-01"
+  }
+ ],
+ "stacks_total_snapshot": 69,
+ "services_resumo": {
+  "total_services_listados": 90,
+  "replicated_x1": 89,
+  "global": 1,
+  "supabase_services": [
+   "db",
+   "rest",
+   "auth",
+   "kong",
+   "functions",
+   "meta",
+   "storage",
+   "realtime",
+   "analytics",
+   "vector",
+   "supavisor",
+   "imgproxy",
+   "studio"
+  ]
+ },
+ "containers": [
+  {
+   "name": "baileys-backup_baileys-backup.1.ta8of8rqaqw678g169goj9gou",
+   "image": "node:20-alpine",
+   "image_sha": "node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "baileys-backup_baileys-backup",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "baileys-error-monitor_baileys-error-monitor.1.tg6jni0u15ncju7tos5biaggd",
+   "image": "alpine:3.19",
+   "image_sha": "alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "baileys-error-monitor_baileys-error-monitor",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/run/docker.sock",
+     "dst": "/var/run/docker.sock",
+     "type": "bind",
+     "rw": false
+    }
+   ]
+  },
+  {
+   "name": "clamav_clamav.1.98z1efl4f2rkuu1gqu8egc02n",
+   "image": "clamav/clamav:1.4",
+   "image_sha": "clamav/clamav:1.4@sha256:383f77291d9e3f8d2fc72da805d37895dfbe86844dc91c3520d5ff194922292d",
+   "state": "exited",
+   "status": "Exited (143) 3 hours ago",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "clamav_clamav",
+   "networks": [
+    "AtomicaBRNet",
+    "clamav_default"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/clamav_clamav_db/_data",
+     "dst": "/var/lib/clamav",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "clamav_clamav.1.bhinyios0cx1az37i3wk2vs2z",
+   "image": "clamav/clamav:1.4",
+   "image_sha": "clamav/clamav:1.4@sha256:383f77291d9e3f8d2fc72da805d37895dfbe86844dc91c3520d5ff194922292d",
+   "state": "running",
+   "status": "Up 3 hours (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "clamav_clamav",
+   "networks": [
+    "AtomicaBRNet",
+    "clamav_default"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/clamav_clamav_db/_data",
+     "dst": "/var/lib/clamav",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "clamav_clamav.1.jwvqgvauallkgm648g4ostikb",
+   "image": "clamav/clamav:1.4",
+   "image_sha": "clamav/clamav:1.4@sha256:383f77291d9e3f8d2fc72da805d37895dfbe86844dc91c3520d5ff194922292d",
+   "state": "exited",
+   "status": "Exited (143) 2 days ago",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "clamav_clamav",
+   "networks": [
+    "AtomicaBRNet",
+    "clamav_default"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/clamav_clamav_db/_data",
+     "dst": "/var/lib/clamav",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "clamav_clamav.1.pbqt2isbgh9haah2lhu544m1f",
+   "image": "clamav/clamav:1.4",
+   "image_sha": "clamav/clamav:1.4@sha256:383f77291d9e3f8d2fc72da805d37895dfbe86844dc91c3520d5ff194922292d",
+   "state": "exited",
+   "status": "Exited (143) 27 hours ago",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "clamav_clamav",
+   "networks": [
+    "AtomicaBRNet",
+    "clamav_default"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/clamav_clamav_db/_data",
+     "dst": "/var/lib/clamav",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "claude-code_claude-code.1.0lc13anywcua6pedhmhwfpmj3",
+   "image": "node:20-bookworm-slim",
+   "image_sha": "node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "claude-code_claude-code",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/claude-code_workspace/_data",
+     "dst": "/workspace",
+     "type": "volume",
+     "rw": true
+    },
+    {
+     "src": "/var/lib/docker/volumes/claude-code_claude_home/_data",
+     "dst": "/root/.claude",
+     "type": "volume",
+     "rw": true
+    },
+    {
+     "src": "/var/lib/docker/volumes/claude-code_claude_npm/_data",
+     "dst": "/usr/local/lib/node_modules",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "crowdsec_crowdsec-bouncer.1.uj43c2ycs57gje0na8uctqmwz",
+   "image": "fbonalair/traefik-crowdsec-bouncer:latest",
+   "image_sha": "fbonalair/traefik-crowdsec-bouncer:latest@sha256:e3e8f33923d2871069de08dd2931a9eb6c6760f76d6b9e3229d3b9c84211dd94",
+   "state": "running",
+   "status": "Up 3 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "crowdsec_crowdsec-bouncer",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "crowdsec_crowdsec.1.no1mvoar5mvmgi7hlgvbthwl1",
+   "image": "crowdsecurity/crowdsec:latest",
+   "image_sha": "crowdsecurity/crowdsec:latest@sha256:2f527c9bb8b367120eb08b82890aa912ce96bfa1ada93dda0721700e4b4e0dde",
+   "state": "running",
+   "status": "Up 4 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "crowdsec_crowdsec",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/crowdsec_crowdsec_config/_data",
+     "dst": "/etc/crowdsec",
+     "type": "volume",
+     "rw": true
+    },
+    {
+     "src": "/var/lib/docker/volumes/crowdsec_crowdsec_data/_data",
+     "dst": "/var/lib/crowdsec/data",
+     "type": "volume",
+     "rw": true
+    },
+    {
+     "src": "/var/log",
+     "dst": "/var/log/host",
+     "type": "bind",
+     "rw": false
+    },
+    {
+     "src": "/var/lib/docker/volumes/traefik_traefik_logs/_data",
+     "dst": "/var/log/traefik",
+     "type": "volume",
+     "rw": false
+    }
+   ]
+  },
+  {
+   "name": "disk-actioner_actioner.1.m3mlc7m9eefjeyu80mkferd34",
+   "image": "docker:28-cli",
+   "image_sha": "docker:28-cli@sha256:625d9431a9f54c5a2bc90f24f0e1c3d55b1349fd857dd85035f98c2c9acbdd4d",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "disk-actioner_actioner",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/run/docker.sock",
+     "dst": "/var/run/docker.sock",
+     "type": "bind",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "disk-deep-clean_deep-clean.1.pa4fw1nry6yj3z303vs9bo6e0",
+   "image": "alpine:3.19",
+   "image_sha": "alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "disk-deep-clean_deep-clean",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/",
+     "dst": "/hostfs",
+     "type": "bind",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "disk-metrics-collector_collector.1.n47v5291sq3dzhjwx9yucwnn4",
+   "image": "postgres:15-alpine",
+   "image_sha": "postgres:15-alpine@sha256:3d0f7584ed7d04e27fa050d6683a74746608faf21f202be78460d679cc56461f",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "disk-metrics-collector_collector",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/",
+     "dst": "/hostfs",
+     "type": "bind",
+     "rw": false
+    },
+    {
+     "src": "315b2842ce3047b6399e4ebcf75417b95398d7dbc29029a5fa1488683e55adf4",
+     "dst": "/var/lib/postgresql/data",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "dlq-inspector_dlq-inspector.1.i82huolpr25g8x7l5l4q8lbs6",
+   "image": "python:3.12-alpine",
+   "image_sha": "python:3.12-alpine@sha256:236173eb74001afe2f60862de935b74fcbd00adfca247b2c27051a70a6a39a2d",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "dlq-inspector_dlq-inspector",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "docker-housekeeping_cleanup.1.w3wzxdcytmos81c3ly2j4mvui",
+   "image": "docker:28-cli",
+   "image_sha": "docker:28-cli@sha256:625d9431a9f54c5a2bc90f24f0e1c3d55b1349fd857dd85035f98c2c9acbdd4d",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "docker-housekeeping_cleanup",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/run/docker.sock",
+     "dst": "/var/run/docker.sock",
+     "type": "bind",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "docuseal_docuseal.1.8vycuh80wefcx9357fcnrwba3",
+   "image": "docuseal/docuseal:latest",
+   "image_sha": "docuseal/docuseal:latest@sha256:4d029dd71693924fe4c03e4caf01428b9c967cb10708ceab993aa6dfb556e9b0",
+   "state": "running",
+   "status": "Up 8 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "docuseal_docuseal",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/docuseal_docuseal_data/_data",
+     "dst": "/data",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "evolution-db-purge_purge.1.ybvq92glox1wxr8lu5lz0yhlt",
+   "image": "postgres:14-alpine",
+   "image_sha": "postgres:14-alpine@sha256:bc06a4b2c6e50e3a9b7638fe7d3064d4497c89b3ce5e45a0bbc1124af6958adf",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "evolution-db-purge_purge",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "efe787b09cc8d41698365bd3c32ff01caec352dfbb3bb27e3e2d7bead548e346",
+     "dst": "/var/lib/postgresql/data",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "evolution-rabbit-consumer_consumer.1.qibi0pfasc2emnhgxzio3eqxm",
+   "image": "consumer-prebuilt:v2",
+   "image_sha": "consumer-prebuilt:v2",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "evolution-rabbit-consumer_consumer",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "evolution_evolution.1.l2g4vmsa9wm3u00ke3gmm3mlx",
+   "image": "evoapicloud/evolution-api",
+   "image_sha": "evoapicloud/evolution-api@sha256:6b195676b09abbbd8ac9372cd961674dea2587f23dc9bc1d1e6a595372556fb1",
+   "state": "running",
+   "status": "Up 2 hours (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "evolution_evolution",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/evolution_instances/_data",
+     "dst": "/evolution/instances",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "fechamento-artes_web.1.0omnnfekagzb09ykol5l2im08",
+   "image": "ghcr.io/tipromo/fechamento-artes:latest",
+   "image_sha": "ghcr.io/tipromo/fechamento-artes:latest@sha256:3061174e1b3077ad2fadbfb65042d4e70240e5e57c0fd5f08860a3c3e57e49f9",
+   "state": "running",
+   "status": "Up 8 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "fechamento-artes_web",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "github-actions-runner_runner.1.pkkjs666t9y3r6sej3ctwa2hk",
+   "image": "myoung34/github-runner:latest",
+   "image_sha": "myoung34/github-runner:latest@sha256:675190ecb220f8688017f779b09fdd2cffda0396c9c9325576b65558fa40787a",
+   "state": "exited",
+   "status": "Exited (1) 2 days ago",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "github-actions-runner_runner",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/github-actions-runner_runner-work/_data",
+     "dst": "/tmp/runner",
+     "type": "volume",
+     "rw": true
+    },
+    {
+     "src": "/var/run/docker.sock",
+     "dst": "/var/run/docker.sock",
+     "type": "bind",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "github-actions-runner_runner.1.q7jvjhhc3q4m1y2kq2f1vtvdk",
+   "image": "myoung34/github-runner:latest",
+   "image_sha": "myoung34/github-runner:latest@sha256:675190ecb220f8688017f779b09fdd2cffda0396c9c9325576b65558fa40787a",
+   "state": "exited",
+   "status": "Exited (1) 2 days ago",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "github-actions-runner_runner",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/github-actions-runner_runner-work/_data",
+     "dst": "/tmp/runner",
+     "type": "volume",
+     "rw": true
+    },
+    {
+     "src": "/var/run/docker.sock",
+     "dst": "/var/run/docker.sock",
+     "type": "bind",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "github-actions-runner_runner.1.tiuagsndkssngkfmz6h4yaclb",
+   "image": "myoung34/github-runner:latest",
+   "image_sha": "myoung34/github-runner:latest@sha256:675190ecb220f8688017f779b09fdd2cffda0396c9c9325576b65558fa40787a",
+   "state": "exited",
+   "status": "Exited (1) 2 days ago",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "github-actions-runner_runner",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/github-actions-runner_runner-work/_data",
+     "dst": "/tmp/runner",
+     "type": "volume",
+     "rw": true
+    },
+    {
+     "src": "/var/run/docker.sock",
+     "dst": "/var/run/docker.sock",
+     "type": "bind",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "github-actions-runner_runner.1.vrwwleq3xftka74qmgf4l3ltm",
+   "image": "myoung34/github-runner:latest",
+   "image_sha": "myoung34/github-runner:latest@sha256:675190ecb220f8688017f779b09fdd2cffda0396c9c9325576b65558fa40787a",
+   "state": "exited",
+   "status": "Exited (0) 35 hours ago",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "github-actions-runner_runner",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/run/docker.sock",
+     "dst": "/var/run/docker.sock",
+     "type": "bind",
+     "rw": true
+    },
+    {
+     "src": "/var/lib/docker/volumes/github-actions-runner_runner-work/_data",
+     "dst": "/tmp/runner",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "github-actions-runner_runner.1.yue7jhur78he8oo748bxdknve",
+   "image": "myoung34/github-runner:latest",
+   "image_sha": "myoung34/github-runner:latest@sha256:675190ecb220f8688017f779b09fdd2cffda0396c9c9325576b65558fa40787a",
+   "state": "exited",
+   "status": "Exited (1) 2 days ago",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "github-actions-runner_runner",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/github-actions-runner_runner-work/_data",
+     "dst": "/tmp/runner",
+     "type": "volume",
+     "rw": true
+    },
+    {
+     "src": "/var/run/docker.sock",
+     "dst": "/var/run/docker.sock",
+     "type": "bind",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "github-actions-runner_runner.1.z8o7xozrpchrevwr8ir6dxnk8",
+   "image": "myoung34/github-runner:latest",
+   "image_sha": "myoung34/github-runner:latest@sha256:675190ecb220f8688017f779b09fdd2cffda0396c9c9325576b65558fa40787a",
+   "state": "exited",
+   "status": "Exited (1) 2 days ago",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "github-actions-runner_runner",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/github-actions-runner_runner-work/_data",
+     "dst": "/tmp/runner",
+     "type": "volume",
+     "rw": true
+    },
+    {
+     "src": "/var/run/docker.sock",
+     "dst": "/var/run/docker.sock",
+     "type": "bind",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "glitchtip_glitchtip-db.1.e5nht40wrhqab2q3gia2tyf05",
+   "image": "postgres:16-alpine",
+   "image_sha": "postgres:16-alpine@sha256:20edbde7749f822887a1a022ad526fde0a47d6b2be9a8364433605cf65099416",
+   "state": "running",
+   "status": "Up 3 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "glitchtip_glitchtip-db",
+   "networks": [
+    "AtomicaBRNet",
+    "glitchtip_glitchtip-net"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/glitchtip_glitchtip-pg-data/_data",
+     "dst": "/var/lib/postgresql/data",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "glitchtip_glitchtip-valkey.1.tq4oi7y8oi5yeualfbgqdemn6",
+   "image": "valkey/valkey:8-alpine",
+   "image_sha": "valkey/valkey:8-alpine",
+   "state": "running",
+   "status": "Up 4 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "glitchtip_glitchtip-valkey",
+   "networks": [
+    "glitchtip_glitchtip-net"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "glitchtip_glitchtip-web.1.ljkkf3n98z4ffk9e9llyjxu2x",
+   "image": "glitchtip/glitchtip:latest",
+   "image_sha": "glitchtip/glitchtip:latest@sha256:08e80bb7808254328433c34ff43f992402a7399170d459c1228a094893b69ef6",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "glitchtip_glitchtip-web",
+   "networks": [
+    "AtomicaBRNet",
+    "glitchtip_glitchtip-net"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/glitchtip_glitchtip-uploads/_data",
+     "dst": "/code/uploads",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "glitchtip_glitchtip-worker.1.9oosvd60smliguliy2qi31ks1",
+   "image": "glitchtip/glitchtip:latest",
+   "image_sha": "glitchtip/glitchtip:latest@sha256:08e80bb7808254328433c34ff43f992402a7399170d459c1228a094893b69ef6",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "glitchtip_glitchtip-worker",
+   "networks": [
+    "AtomicaBRNet",
+    "glitchtip_glitchtip-net"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/glitchtip_glitchtip-uploads/_data",
+     "dst": "/code/uploads",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "gmaps_scraper.1.0ci0ybokctvincct0vtk3694f",
+   "image": "gosom/google-maps-scraper:latest-rod",
+   "image_sha": "gosom/google-maps-scraper:latest-rod@sha256:21aa6e7bf790fc567e4d2262feeffa1a20fb8c6557dfa48707312e104df0df37",
+   "state": "running",
+   "status": "Up 8 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "gmaps_scraper",
+   "networks": [
+    "AtomicaBRNet",
+    "ingress"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/gmaps_gmaps_data/_data",
+     "dst": "/gmapsdata",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "gotenberg_gotenberg.1.lc1iaq5ewgckt56mj6r1ea7hr",
+   "image": "gotenberg/gotenberg:8",
+   "image_sha": "gotenberg/gotenberg:8@sha256:e304e45acee3c400f8ef76afa195c76b1d0eaf0ab6fe9651e305067ab6a1560c",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "gotenberg_gotenberg",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "hermes-backup_backup.1.podce8pqfklp924ozdv6y4mjj",
+   "image": "alpine:3.19",
+   "image_sha": "alpine:3.19",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "hermes-backup_backup",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/hermes_hermes_data/_data",
+     "dst": "/opt/hermes-data",
+     "type": "volume",
+     "rw": false
+    },
+    {
+     "src": "/var/lib/docker/volumes/hermes-backup_hermes_backup_data/_data",
+     "dst": "/backups",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "hermes-guard_guard.1.srezkfox635brso5gkmt8j3gp",
+   "image": "alpine:3.19",
+   "image_sha": "alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "hermes-guard_guard",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/hermes_hermes_data/_data",
+     "dst": "/opt/hermes-data",
+     "type": "volume",
+     "rw": false
+    }
+   ]
+  },
+  {
+   "name": "host-disk-guard_disk-guard.1.mfic1wzna8jvtm7shkggt77ri",
+   "image": "postgres:15-alpine",
+   "image_sha": "postgres:15-alpine@sha256:cd17e2ac98240fce1541ad2a803b34009b4eea5aec8a832363cdc7eca62e722e",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "host-disk-guard_disk-guard",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/",
+     "dst": "/hostfs",
+     "type": "bind",
+     "rw": false
+    },
+    {
+     "src": "3f1f4e44ccd19143e80f42cd934f74c48bf67b2d10e57357a51e110d5e4ebe62",
+     "dst": "/var/lib/postgresql/data",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "infra-boot-guard_boot-guard.1.ir1t2g35be4mvjyojku3tdwtr",
+   "image": "alpine:3.19",
+   "image_sha": "alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "infra-boot-guard_boot-guard",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/run/docker.sock",
+     "dst": "/var/run/docker.sock",
+     "type": "bind",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "kong-rl-test",
+   "image": "kong:3.9.3",
+   "image_sha": "kong:3.9.3",
+   "state": "exited",
+   "status": "Exited (1) 30 hours ago",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "",
+   "networks": [
+    "bridge"
+   ],
+   "mounts": [
+    {
+     "src": "/tmp/kong-rl-test.yml",
+     "dst": "/tmp/kong.yml",
+     "type": "bind",
+     "rw": false
+    }
+   ]
+  },
+  {
+   "name": "mcp-health-monitor_mcp-health-monitor.1.ltqsyatzhir3mcy5gaz769mmy",
+   "image": "alpine:3.19",
+   "image_sha": "alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "mcp-health-monitor_mcp-health-monitor",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "metabase_metabase.1.yz07ayle80op552wnwx8ou0y3",
+   "image": "metabase/metabase:v0.54.6",
+   "image_sha": "metabase/metabase:v0.54.6",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "metabase_metabase",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/metabase_metabase_data/_data",
+     "dst": "/metabase-data",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "minio_minio.1.yoeulgy46kts34yd11lgv2aj3",
+   "image": "quay.io/minio/minio:latest",
+   "image_sha": "quay.io/minio/minio:latest@sha256:ac591851803a79aee64bc37f66d77c56b0a4b6e12d9e5356380f4105510f2332",
+   "state": "running",
+   "status": "Up 3 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "minio_minio",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/minio_data/_data",
+     "dst": "/data",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "n8n_n8n_editor.1.io8ty3i4spy5n5pu70fynxdnx",
+   "image": "n8nio/n8n:2.25.7",
+   "image_sha": "n8nio/n8n:2.25.7@sha256:761374d4eb841b0a22771d6bd68f0e8d827b4979ae4e490045517b13fc1259dd",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "n8n_n8n_editor",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "n8n_n8n_webhook.1.ypx8ul3c0wgn5vbszsjjkakuy",
+   "image": "n8nio/n8n:2.25.7",
+   "image_sha": "n8nio/n8n:2.25.7@sha256:761374d4eb841b0a22771d6bd68f0e8d827b4979ae4e490045517b13fc1259dd",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "n8n_n8n_webhook",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "n8n_n8n_worker.1.ei57cgms97ua132vddtg3uo6h",
+   "image": "n8nio/n8n:2.25.7",
+   "image_sha": "n8nio/n8n:2.25.7@sha256:761374d4eb841b0a22771d6bd68f0e8d827b4979ae4e490045517b13fc1259dd",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "n8n_n8n_worker",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "openclaw-backup-guard_guard.1.2gtn6onsrn9vjb1gv2k39exd1",
+   "image": "alpine:3.19",
+   "image_sha": "alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "openclaw-backup-guard_guard",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/openclaw-backup_backup_data/_data",
+     "dst": "/backups",
+     "type": "volume",
+     "rw": false
+    }
+   ]
+  },
+  {
+   "name": "openclaw-backup_backup.1.eqdv50dhcgdc6z594ub4qnky7",
+   "image": "ghcr.io/openclaw/openclaw:2026.7.1",
+   "image_sha": "ghcr.io/openclaw/openclaw:2026.7.1@sha256:6a31d44b2944e7adcd2b582bf6fb463111264ebca97a0201795b799135bd102c",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "openclaw-backup_backup",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/openclaw_openclaw_data/_data",
+     "dst": "/home/node/.openclaw",
+     "type": "volume",
+     "rw": true
+    },
+    {
+     "src": "/var/lib/docker/volumes/openclaw-backup_backup_data/_data",
+     "dst": "/backups",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "openclaw-brain-guard_guard.1.3rovdgwu38elf79kbtcf8etnv",
+   "image": "alpine:3.19",
+   "image_sha": "alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1",
+   "state": "running",
+   "status": "Up 8 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "openclaw-brain-guard_guard",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/openclaw_openclaw_data/_data",
+     "dst": "/data/openclaw",
+     "type": "volume",
+     "rw": false
+    }
+   ]
+  },
+  {
+   "name": "openclaw-edge-guard_guard.1.6mek2u7ek4jacq8a2eo6d5wqr",
+   "image": "alpine:3.19",
+   "image_sha": "alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1",
+   "state": "created",
+   "status": "Created",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "openclaw-edge-guard_guard",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "openclaw_openclaw.1.0k3lmwoe4ixyfcsgx54ys85jf",
+   "image": "ghcr.io/openclaw/openclaw:2026.7.1",
+   "image_sha": "ghcr.io/openclaw/openclaw:2026.7.1@sha256:6a31d44b2944e7adcd2b582bf6fb463111264ebca97a0201795b799135bd102c",
+   "state": "running",
+   "status": "Up 8 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "openclaw_openclaw",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/openclaw_openclaw_auth/_data",
+     "dst": "/home/node/.config/openclaw",
+     "type": "volume",
+     "rw": true
+    },
+    {
+     "src": "/var/lib/docker/volumes/openclaw_openclaw_data/_data",
+     "dst": "/home/node/.openclaw",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "openwebui_ollama.1.qlw6atacvfvkrkq5ne2pbcg4w",
+   "image": "ollama/ollama:latest",
+   "image_sha": "ollama/ollama:latest@sha256:46399ef084d97b381955b5dc585c5d836dbe7ed3f79f170d1c04660fed511e3a",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "openwebui_ollama",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/openwebui_ollama-data/_data",
+     "dst": "/root/.ollama",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "openwebui_open-webui.1.vd8rvt34jjd2zj8nq1jv51s2z",
+   "image": "ghcr.io/open-webui/open-webui:main",
+   "image_sha": "ghcr.io/open-webui/open-webui:main@sha256:7f1b0a1a50cfbac23da3b16f96bc968fd757b26dc9e54e93813d61768ea9184e",
+   "state": "running",
+   "status": "Up 3 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "openwebui_open-webui",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/openwebui_open-webui-data/_data",
+     "dst": "/app/backend/data",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "painel-compras_web.1.9c00dmbde6pcouoetmujsr35z",
+   "image": "ghcr.io/tipromo/painel-compras:latest",
+   "image_sha": "ghcr.io/tipromo/painel-compras:latest@sha256:4ba2aef959824563731aa4fa40f1b5ea450939078e48ad57ae36383d3425d37d",
+   "state": "running",
+   "status": "Up 8 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "painel-compras_web",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "painel-cotacoes_web.1.sf86mykxsphnganyagcuqijb1",
+   "image": "ghcr.io/tipromo/painel-cotacoes:latest",
+   "image_sha": "ghcr.io/tipromo/painel-cotacoes:latest@sha256:f4c36ea4ed6f67d2f51cd956dd4f1080e0992ba48313ab9bc8baac4ae590cde6",
+   "state": "running",
+   "status": "Up 3 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "painel-cotacoes_web",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "painel-financeiro_web.1.b1zpd7qq6k8lk2bf88hloim33",
+   "image": "ghcr.io/tipromo/painel-financeiro:latest",
+   "image_sha": "ghcr.io/tipromo/painel-financeiro:latest@sha256:be67ad7e6d3c7c5d9c8a5b067ad6d9d56b04db92fe1c911096fb5178fc8bfd09",
+   "state": "running",
+   "status": "Up 4 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "painel-financeiro_web",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "portainer-mcp-v2_portainer-mcp.1.x0e2xqroh5oa8bq1xc6tkcbve",
+   "image": "ghcr.io/adm01-debug/portainer-mcp-server:sha-8aa09f6",
+   "image_sha": "ghcr.io/adm01-debug/portainer-mcp-server:sha-8aa09f6@sha256:b076a82695b2599c585a36b2add7e76f3bc464c7a4f3c3ce654c3ac855b3f01e",
+   "state": "running",
+   "status": "Up 4 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "portainer-mcp-v2_portainer-mcp",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "portainer-state-backup_backup.1.pamwuv8aebquq3tfmab0hk2hh",
+   "image": "alpine:3.19",
+   "image_sha": "alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "portainer-state-backup_backup",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "portainer_agent.bsihx70cz2r0fxxg2e29t8ipe.q8ku7wrb37h3ro7x7ttzuloec",
+   "image": "portainer/agent:2.39.5",
+   "image_sha": "portainer/agent:2.39.5@sha256:43c8bc9bafde891ddd0fc3dcc61ac6e1887e7e2027baa76ce402bc014037fba6",
+   "state": "running",
+   "status": "Up 8 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "portainer_agent",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes",
+     "dst": "/var/lib/docker/volumes",
+     "type": "bind",
+     "rw": true
+    },
+    {
+     "src": "/var/run/docker.sock",
+     "dst": "/var/run/docker.sock",
+     "type": "bind",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "portainer_portainer.1.vddauc0fmo5sw5jo9lxj8a9fv",
+   "image": "portainer/portainer-ce:2.39.5",
+   "image_sha": "portainer/portainer-ce:2.39.5@sha256:f6bc23d1695530a609563fd65c180aaafec0fc02e019d5fc63d16b6fbe83addd",
+   "state": "running",
+   "status": "Up 8 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "portainer_portainer",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/run/docker.sock",
+     "dst": "/var/run/docker.sock",
+     "type": "bind",
+     "rw": true
+    },
+    {
+     "src": "/var/lib/docker/volumes/portainer_data/_data",
+     "dst": "/data",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "postgres-backup-daily_backup-daily.1.t4fo3we6r2u4duozk46i5ypmr",
+   "image": "eeshugerman/postgres-backup-s3:14",
+   "image_sha": "eeshugerman/postgres-backup-s3:14@sha256:7b55ef98f0a59ea6d0065b70d5be62b4bd2e1cfeec88e8e84493b6ca85dc5a23",
+   "state": "running",
+   "status": "Up 8 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "postgres-backup-daily_backup-daily",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "postgres-backup-monthly_backup-monthly.1.qp62i7669m2gg6khlzyib743i",
+   "image": "eeshugerman/postgres-backup-s3:14",
+   "image_sha": "eeshugerman/postgres-backup-s3:14@sha256:7b55ef98f0a59ea6d0065b70d5be62b4bd2e1cfeec88e8e84493b6ca85dc5a23",
+   "state": "running",
+   "status": "Up 8 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "postgres-backup-monthly_backup-monthly",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "postgres-backup-weekly_backup-weekly.1.1yf0drkoe2dpjaqqyeilipahl",
+   "image": "eeshugerman/postgres-backup-s3:14",
+   "image_sha": "eeshugerman/postgres-backup-s3:14@sha256:7b55ef98f0a59ea6d0065b70d5be62b4bd2e1cfeec88e8e84493b6ca85dc5a23",
+   "state": "running",
+   "status": "Up 8 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "postgres-backup-weekly_backup-weekly",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "postgres_postgres.1.oygu2lxzl3rya1ah94jcropkt",
+   "image": "postgres:14",
+   "image_sha": "postgres:14@sha256:ae46a8452f2c137766c9d4a62f4fe60166355ff8b00512e6c48692dbf1eed3d5",
+   "state": "running",
+   "status": "Up 8 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "postgres_postgres",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": null,
+     "dst": "/dev/shm",
+     "type": "tmpfs",
+     "rw": true
+    },
+    {
+     "src": "/var/lib/docker/volumes/postgres_data/_data",
+     "dst": "/var/lib/postgresql/data",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "promo-gifts-web_web.1.l00sxfs23ynb06umkw698w8l4",
+   "image": "nginx:alpine",
+   "image_sha": "nginx:alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de",
+   "state": "running",
+   "status": "Up 4 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "promo-gifts-web_web",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/claude-code_workspace/_data",
+     "dst": "/workspace",
+     "type": "volume",
+     "rw": false
+    }
+   ]
+  },
+  {
+   "name": "rabbitmq_rabbitmq.1.kxrjiwf4m2fcalq5mw2b4d88r",
+   "image": "rabbitmq:3.13-management-alpine",
+   "image_sha": "rabbitmq:3.13-management-alpine@sha256:606d8c0d6b3c18d1da9afc53bc7cdb2a8d5486df91b5a9830e9e07626c9ae281",
+   "state": "running",
+   "status": "Up 8 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "rabbitmq_rabbitmq",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/rabbitmq_data/_data",
+     "dst": "/var/lib/rabbitmq",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "redis_redis.1.4jeaefbz011n1romctar47dvl",
+   "image": "redis:8.2-alpine",
+   "image_sha": "redis:8.2-alpine@sha256:a7859ed111db3c1f5404a973a4747505d559fb5ca32d37e447afc0ef845a2103",
+   "state": "running",
+   "status": "Up 3 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "redis_redis",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/redis_data/_data",
+     "dst": "/data",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "schema-drift-guard_guard.1.zvc3hiufcgljeme3k18scmmqw",
+   "image": "postgres:15-alpine",
+   "image_sha": "postgres:15-alpine@sha256:cd17e2ac98240fce1541ad2a803b34009b4eea5aec8a832363cdc7eca62e722e",
+   "state": "running",
+   "status": "Up 8 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "schema-drift-guard_guard",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "a405eaf54cd7e9b3af3d40db20648a9a34b9669b2f17b58df28b0577c77b6801",
+     "dst": "/var/lib/postgresql/data",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "supabase-artes-mcp_supabase-artes-mcp.1.nmbfl1bg9l5tq3tu1qrq5g1x3",
+   "image": "node:20-alpine",
+   "image_sha": "node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293",
+   "state": "running",
+   "status": "Up 3 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "supabase-artes-mcp_supabase-artes-mcp",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/claude-code_workspace/_data",
+     "dst": "/workspace",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "supabase-backup_backup.1.oabjnke91m8kh2876vy0y3yg4",
+   "image": "postgres:15-alpine",
+   "image_sha": "postgres:15-alpine@sha256:09e4f20b14ddb3dfe3a0c825b206032aaf8f28300ba2070c0b60fc1c10c6abc7",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "supabase-backup_backup",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/supabase-backup_backup_data/_data",
+     "dst": "/backups",
+     "type": "volume",
+     "rw": true
+    },
+    {
+     "src": "c15a809d91c4ac1330e4d48238e697264d74257fe3233a0e5f3818b927780539",
+     "dst": "/var/lib/postgresql/data",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "supabase-config-backup_config-backup.1.htje5i8jw3pps65b6d2gse2ip",
+   "image": "alpine:3.19",
+   "image_sha": "alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1",
+   "state": "running",
+   "status": "Up 8 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "supabase-config-backup_config-backup",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/supabase_db_config/_data",
+     "dst": "/src",
+     "type": "volume",
+     "rw": false
+    }
+   ]
+  },
+  {
+   "name": "supabase-db-mcp_supabase-db-mcp.1.keendsl0ykni2bzq9w7dpv671",
+   "image": "node:20-alpine",
+   "image_sha": "node:20-alpine",
+   "state": "running",
+   "status": "Up 3 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "supabase-db-mcp_supabase-db-mcp",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/claude-code_workspace/_data",
+     "dst": "/workspace",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "supabase-pttz-mcp_supabase-pttz-mcp.1.t5w7dht4ralhpbfopryek0hqp",
+   "image": "node:22-alpine",
+   "image_sha": "node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2",
+   "state": "running",
+   "status": "Up 3 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "supabase-pttz-mcp_supabase-pttz-mcp",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/claude-code_workspace/_data",
+     "dst": "/workspace",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "supabase_analytics.1.3vziba5lrtu1kvwjgv1wapy5q",
+   "image": "supabase/logflare:1.43.1",
+   "image_sha": "supabase/logflare:1.43.1",
+   "state": "running",
+   "status": "Up 7 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "supabase_analytics",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "supabase_auth.1.pjyi3fkhkt6ow79l1m3up4gud",
+   "image": "supabase/gotrue:v2.189.0",
+   "image_sha": "supabase/gotrue:v2.189.0",
+   "state": "running",
+   "status": "Up 7 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "supabase_auth",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "supabase_db.1.k4nbk3pz2rqro2knyu6ic86vx",
+   "image": "supabase/postgres:15.8.1.085",
+   "image_sha": "supabase/postgres:15.8.1.085@sha256:af083ef64d0408c8f098ee6f5c364a59b26f36fbc0f3a334a62c5c1d57362e9b",
+   "state": "running",
+   "status": "Up 4 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "supabase_db",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/root/supabase/docker/volumes/db/jwt.sql",
+     "dst": "/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql",
+     "type": "bind",
+     "rw": true
+    },
+    {
+     "src": "/root/supabase/docker/volumes/db/pooler.sql",
+     "dst": "/docker-entrypoint-initdb.d/migrations/99-pooler.sql",
+     "type": "bind",
+     "rw": true
+    },
+    {
+     "src": "/root/supabase/docker/volumes/db/realtime.sql",
+     "dst": "/docker-entrypoint-initdb.d/migrations/99-realtime.sql",
+     "type": "bind",
+     "rw": true
+    },
+    {
+     "src": "/var/lib/docker/volumes/supabase_db_config/_data",
+     "dst": "/etc/postgresql-custom",
+     "type": "volume",
+     "rw": true
+    },
+    {
+     "src": "/root/supabase/docker/volumes/db/webhooks.sql",
+     "dst": "/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql",
+     "type": "bind",
+     "rw": true
+    },
+    {
+     "src": "/root/supabase/docker/volumes/db/roles.sql",
+     "dst": "/docker-entrypoint-initdb.d/init-scripts/99-roles.sql",
+     "type": "bind",
+     "rw": true
+    },
+    {
+     "src": "/root/supabase/docker/volumes/db/_supabase.sql",
+     "dst": "/docker-entrypoint-initdb.d/migrations/97-_supabase.sql",
+     "type": "bind",
+     "rw": true
+    },
+    {
+     "src": "/root/supabase/docker/volumes/db/logs.sql",
+     "dst": "/docker-entrypoint-initdb.d/migrations/99-logs.sql",
+     "type": "bind",
+     "rw": true
+    },
+    {
+     "src": "/root/supabase/docker/volumes/db/data",
+     "dst": "/var/lib/postgresql/data",
+     "type": "bind",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "supabase_functions.1.nxe8laoy7kt4wvppa39kyissx",
+   "image": "supabase/edge-runtime:v1.74.0",
+   "image_sha": "supabase/edge-runtime:v1.74.0",
+   "state": "running",
+   "status": "Up 4 hours",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "supabase_functions",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/root/supabase/docker/volumes/functions",
+     "dst": "/home/deno/functions",
+     "type": "bind",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "supabase_imgproxy.1.yiru57vktb02njcumvi6n4sx0",
+   "image": "darthsim/imgproxy:v3.30.1",
+   "image_sha": "darthsim/imgproxy:v3.30.1@sha256:3b709e4a0e5e8e0e959b556b7031229202b4b8e7e7d955c517ea7abed68ee34d",
+   "state": "running",
+   "status": "Up 8 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "supabase_imgproxy",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/root/supabase/docker/volumes/storage",
+     "dst": "/var/lib/storage",
+     "type": "bind",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "supabase_kong.1.zu6efhsk9y0kbztyplllkzmv1",
+   "image": "kong:3.9.3",
+   "image_sha": "kong:3.9.3@sha256:62721edc9669e2a96fe9d188ab8950b9105e69abb033129624a72d3e10da6777",
+   "state": "running",
+   "status": "Up 28 hours (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "supabase_kong",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/root/supabase/docker/volumes/api/kong.yml",
+     "dst": "/home/kong/temp.yml",
+     "type": "bind",
+     "rw": false
+    }
+   ]
+  },
+  {
+   "name": "supabase_meta.1.zkj6618rr0u2mlbv2oevu510x",
+   "image": "supabase/postgres-meta:v0.96.6",
+   "image_sha": "supabase/postgres-meta:v0.96.6",
+   "state": "running",
+   "status": "Up 2 hours (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "supabase_meta",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "supabase_realtime.1.u817a4u14dd4unwhhyz9dbag6",
+   "image": "supabase/realtime:v2.102.3",
+   "image_sha": "supabase/realtime:v2.102.3",
+   "state": "running",
+   "status": "Up 4 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "supabase_realtime",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "supabase_rest.1.o7ey5u062yjypbmf1ewvutxah",
+   "image": "postgrest/postgrest:v14.12",
+   "image_sha": "postgrest/postgrest:v14.12",
+   "state": "running",
+   "status": "Up 45 hours",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "supabase_rest",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "supabase_storage.1.4nrhdjhxn009ei3uuz41vkfpc",
+   "image": "supabase/storage-api:v1.60.4",
+   "image_sha": "supabase/storage-api:v1.60.4",
+   "state": "running",
+   "status": "Up 7 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "supabase_storage",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/root/supabase/docker/volumes/storage",
+     "dst": "/var/lib/storage",
+     "type": "bind",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "supabase_studio.1.xhmgi0qfbyfbcjauj7un6u1jx",
+   "image": "supabase/studio:2026.06.29-sha-20290c7",
+   "image_sha": "supabase/studio:2026.06.29-sha-20290c7",
+   "state": "running",
+   "status": "Up 3 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "supabase_studio",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/root/supabase/docker/volumes/functions",
+     "dst": "/home/deno/functions",
+     "type": "bind",
+     "rw": false
+    },
+    {
+     "src": "/root/supabase/docker/volumes/snippets",
+     "dst": "/home/deno/snippets",
+     "type": "bind",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "supabase_supavisor.1.myjdc6d9bybv5uhwrl7gth2au",
+   "image": "supabase/supavisor:2.9.5",
+   "image_sha": "supabase/supavisor:2.9.5",
+   "state": "running",
+   "status": "Up 7 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "supabase_supavisor",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/root/supabase/docker/volumes/pooler/pooler.exs",
+     "dst": "/etc/pooler/pooler.exs",
+     "type": "bind",
+     "rw": false
+    }
+   ]
+  },
+  {
+   "name": "supabase_vector.1.zbfe1piceyz4wq4kvihovc9kt",
+   "image": "timberio/vector:0.53.0-alpine",
+   "image_sha": "timberio/vector:0.53.0-alpine@sha256:ca92d617e905953c3f852e7e88061f7039460e733522e3f0c21bc6ae946b2558",
+   "state": "running",
+   "status": "Up 8 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "supabase_vector",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/root/supabase/docker/volumes/logs/vector.yml",
+     "dst": "/etc/vector/vector.yml",
+     "type": "bind",
+     "rw": false
+    },
+    {
+     "src": "/var/run/docker.sock",
+     "dst": "/var/run/docker.sock",
+     "type": "bind",
+     "rw": false
+    }
+   ]
+  },
+  {
+   "name": "swarm-task-guardian_swarm-task-guardian.1.dwm5rimhu2p408a03i5krd2yl",
+   "image": "alpine:3.19",
+   "image_sha": "alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "swarm-task-guardian_swarm-task-guardian",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/run/docker.sock",
+     "dst": "/var/run/docker.sock",
+     "type": "bind",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "traefik-cert-backup_backup.1.zwv6hs2d8mj4appxub0g5fmvi",
+   "image": "alpine:3.19",
+   "image_sha": "alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "traefik-cert-backup_backup",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/volume_swarm_certificates/_data",
+     "dst": "/certs",
+     "type": "volume",
+     "rw": false
+    }
+   ]
+  },
+  {
+   "name": "traefik-cert-guard_guard.1.jckvksmdr5jn62xk3x5mkt8p5",
+   "image": "alpine:3.19",
+   "image_sha": "alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "traefik-cert-guard_guard",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/volume_swarm_certificates/_data",
+     "dst": "/certs",
+     "type": "volume",
+     "rw": false
+    }
+   ]
+  },
+  {
+   "name": "traefik-log-rotate_log-rotate.1.rn3zss1y48u53gddlzwrnzhwo",
+   "image": "alpine:3.19",
+   "image_sha": "alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "traefik-log-rotate_log-rotate",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/traefik_traefik_logs/_data",
+     "dst": "/logs",
+     "type": "volume",
+     "rw": true
+    },
+    {
+     "src": "/var/run/docker.sock",
+     "dst": "/var/run/docker.sock",
+     "type": "bind",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "traefik_traefik.1.mtnoecgbphcmukmxd2g7b15ek",
+   "image": "traefik:v2.11.2",
+   "image_sha": "traefik:v2.11.2@sha256:c6f6001dd1fc09fb0ae47ad2198102c40a8d9586c02d6040d561fd4fb7e91f45",
+   "state": "running",
+   "status": "Up 8 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "traefik_traefik",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/volume_swarm_certificates/_data",
+     "dst": "/etc/traefik/letsencrypt",
+     "type": "volume",
+     "rw": true
+    },
+    {
+     "src": "/var/lib/docker/volumes/traefik_traefik_logs/_data",
+     "dst": "/var/log/traefik",
+     "type": "volume",
+     "rw": true
+    },
+    {
+     "src": "/var/run/docker.sock",
+     "dst": "/var/run/docker.sock",
+     "type": "bind",
+     "rw": false
+    }
+   ]
+  },
+  {
+   "name": "typebot_typebot-viewer.1.6117fdq7xgli614mdi8mf6k7x",
+   "image": "baptistearno/typebot-viewer:latest",
+   "image_sha": "baptistearno/typebot-viewer:latest@sha256:ddc3cc82e0135bea18bc49110c18f6c6ea4931876bd0207ae0943490cf2f6799",
+   "state": "running",
+   "status": "Up 8 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "typebot_typebot-viewer",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "vscode-mcp_code-server.1.udsj03y3o06w6c6cay6hjiow9",
+   "image": "lscr.io/linuxserver/code-server:latest",
+   "image_sha": "lscr.io/linuxserver/code-server:latest@sha256:dfc5e74083f43f3cb217fedfead149f32b319ee663744351c001bdc5e4245441",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "vscode-mcp_code-server",
+   "networks": [
+    "AtomicaBRNet",
+    "vscode-mcp_internal"
+   ],
+   "mounts": [
+    {
+     "src": "/var/lib/docker/volumes/vscode-mcp_workspace/_data",
+     "dst": "/workspace",
+     "type": "volume",
+     "rw": true
+    },
+    {
+     "src": "/var/lib/docker/volumes/vscode-mcp_code-server-config/_data",
+     "dst": "/config",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "wa-version-monitor_wa-version-monitor.1.vuld5eooqtor1f9wl56h829hv",
+   "image": "alpine:3.19",
+   "image_sha": "alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "wa-version-monitor_wa-version-monitor",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  },
+  {
+   "name": "wal-slot-guard_guard.1.ktc1zzasa9vxwua4nq4xipcak",
+   "image": "postgres:15-alpine",
+   "image_sha": "postgres:15-alpine@sha256:3d0f7584ed7d04e27fa050d6683a74746608faf21f202be78460d679cc56461f",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "wal-slot-guard_guard",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "2f5a05f44679add3e1b14bc4176e7c2e030f704e66e45e1398fc949090e283ce",
+     "dst": "/var/lib/postgresql/data",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "watchdog-baileys_watchdog.1.ln25pbnughlxahbuxe46ox5d4",
+   "image": "alpine:3.19",
+   "image_sha": "alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1",
+   "state": "running",
+   "status": "Up 3 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "watchdog-baileys_watchdog",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/run/docker.sock",
+     "dst": "/var/run/docker.sock",
+     "type": "bind",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "watchdog-canary_canary.1.7hqwoji0lhnluh74wvmy212ch",
+   "image": "alpine:3.19",
+   "image_sha": "alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1",
+   "state": "running",
+   "status": "Up 8 days",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "watchdog-canary_canary",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/run/docker.sock",
+     "dst": "/var/run/docker.sock",
+     "type": "bind",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "watchtower_watchtower.1.qw8b5qlygtlfc5wvqg77hrwk6",
+   "image": "containrrr/watchtower:latest",
+   "image_sha": "containrrr/watchtower:latest",
+   "state": "running",
+   "status": "Up 3 days (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "watchtower_watchtower",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "/var/run/docker.sock",
+     "dst": "/var/run/docker.sock",
+     "type": "bind",
+     "rw": false
+    }
+   ]
+  },
+  {
+   "name": "zapp-health-guard_guard.1.xsayv7gdqismpte8kniykpgpq",
+   "image": "postgres:15-alpine",
+   "image_sha": "postgres:15-alpine@sha256:cd17e2ac98240fce1541ad2a803b34009b4eea5aec8a832363cdc7eca62e722e",
+   "state": "created",
+   "status": "Created",
+   "health": "-",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "zapp-health-guard_guard",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": [
+    {
+     "src": "42f9a0f1977510cde65f65e2b62652c525c066a3dce19d4b06e719d3b6d79753",
+     "dst": "/var/lib/postgresql/data",
+     "type": "volume",
+     "rw": true
+    }
+   ]
+  },
+  {
+   "name": "zapp-web-prod_web.1.w52czlqkss94fbzhdfzui7zij",
+   "image": "ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-a1d01703d1ce",
+   "image_sha": "ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-a1d01703d1ce@sha256:42e35536e65bd79447cef91697847248e923bf2fb09c5577bea28765e24d39ba",
+   "state": "running",
+   "status": "Up 35 minutes (healthy)",
+   "health": "healthy",
+   "exit_code": null,
+   "restart_count": 0,
+   "service": "zapp-web-prod_web",
+   "networks": [
+    "AtomicaBRNet"
+   ],
+   "mounts": []
+  }
+ ],
+ "containers_detalhados": {
+  "supabase_db": {
+   "ip": "10.0.1.44",
+   "health": "healthy",
+   "restart": 0,
+   "limits": "mem: 0 (ilimitado), cpu: 0",
+   "mounts": "binds /root/supabase/docker/volumes/db/*.sql (init) + /root/supabase/docker/volumes/db/data -> /var/lib/postgresql/data + volume supabase_db_config -> /etc/postgresql-custom",
+   "image": "supabase/postgres:15.8.1.085@sha256:af083e...",
+   "cmd": "postgres -c config_file=/etc/postgresql/postgresql.conf"
+  },
+  "supabase_rest": {
+   "ip": "10.0.1.131",
+   "health": "- (sem healthcheck)",
+   "restart": 0,
+   "limits": "-",
+   "mounts": "nenhum",
+   "image": "postgrest/postgrest:v14.12",
+   "cmd": "postgrest"
+  },
+  "supabase_auth": {
+   "ip": "10.0.1.241",
+   "health": "- (sem healthcheck)",
+   "restart": 0,
+   "limits": "-",
+   "mounts": "nenhum",
+   "image": "supabase/gotrue:v2.189.0",
+   "cmd": "auth (secrets via /run/secrets)"
+  },
+  "supabase_kong": {
+   "ip": "10.0.1.18",
+   "health": "healthy",
+   "restart": 0,
+   "limits": "-",
+   "mounts": "bind /root/supabase/docker/volumes/api/kong.yml -> /home/kong/temp.yml:ro",
+   "image": "kong:3.9.3@sha256:62721e... (compose declara 3.9.1)",
+   "cmd": "kong docker-start (kong.yml gerado com secrets via eval)"
+  },
+  "supabase_functions": {
+   "ip": "10.0.1.210",
+   "health": "- (sem healthcheck)",
+   "restart": 0,
+   "limits": "mem 1536M, cpu 1.0",
+   "mounts": "bind /root/supabase/docker/volumes/functions -> /home/deno/functions",
+   "image": "supabase/edge-runtime:v1.74.0",
+   "cmd": "edge-runtime start --main-service /home/deno/functions/main # secrets-v1"
+  },
+  "supabase_meta": {
+   "ip": "10.0.1.37",
+   "health": "healthy",
+   "restart": 0,
+   "limits": "mem 512M, cpu 0.5",
+   "mounts": "nenhum",
+   "image": "supabase/postgres-meta:v0.96.6",
+   "cmd": "node dist/server/server.js"
+  },
+  "supabase_storage": {
+   "ip": "10.0.1.246",
+   "health": "- (sem healthcheck)",
+   "restart": 0,
+   "limits": "-",
+   "mounts": "bind /root/supabase/docker/volumes/storage -> /var/lib/storage",
+   "image": "supabase/storage-api:v1.60.4",
+   "cmd": "node dist/start/server.js"
+  },
+  "supabase_realtime": {
+   "ip": "10.0.1.56",
+   "health": "- (sem healthcheck)",
+   "restart": 0,
+   "limits": "-",
+   "mounts": "nenhum",
+   "image": "supabase/realtime:v2.102.3",
+   "cmd": "/app/run.sh /app/bin/server (tini)"
+  },
+  "supabase_analytics": {
+   "ip": "10.0.1.252",
+   "health": "- (sem healthcheck)",
+   "restart": 0,
+   "limits": "-",
+   "mounts": "nenhum",
+   "image": "supabase/logflare:1.43.1",
+   "cmd": "sh run.sh"
+  },
+  "supabase_vector": {
+   "ip": "10.0.1.70",
+   "health": "- (sem healthcheck)",
+   "restart": 0,
+   "limits": "-",
+   "mounts": "binds /root/supabase/docker/volumes/logs/vector.yml:ro + /var/run/docker.sock:ro",
+   "image": "timberio/vector:0.53.0-alpine",
+   "cmd": "vector --config etc/vector/vector.yml"
+  },
+  "supabase_supavisor": {
+   "ip": "10.0.1.240",
+   "health": "- (sem healthcheck)",
+   "restart": 0,
+   "limits": "-",
+   "mounts": "bind /root/supabase/docker/volumes/pooler/pooler.exs:ro",
+   "image": "supabase/supavisor:2.9.5",
+   "cmd": "migrate + supavisor eval pooler.exs + server"
+  },
+  "supabase_imgproxy": {
+   "ip": "10.0.1.129",
+   "health": "- (sem healthcheck)",
+   "restart": 0,
+   "limits": "-",
+   "mounts": "bind /root/supabase/docker/volumes/storage -> /var/lib/storage",
+   "image": "darthsim/imgproxy:v3.30.1@sha256:3b709e...",
+   "cmd": "imgproxy"
+  },
+  "supabase_studio": {
+   "ip": "10.0.1.105",
+   "health": "healthy",
+   "restart": 0,
+   "limits": "mem 1536M, cpu 0.5",
+   "mounts": "binds functions:ro + snippets",
+   "image": "supabase/studio:2026.06.29-sha-20290c7",
+   "cmd": "node apps/studio/server.js"
+  },
+  "zapp-web-prod_web": {
+   "ip": "10.0.1.253",
+   "health": "healthy",
+   "restart": 0,
+   "limits": "mem 256M, cpu 0.5",
+   "mounts": "nenhum",
+   "image": "ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-b58d2575f778@sha256:f6cec909...",
+   "cmd": "nginx -g daemon off;"
+  },
+  "schema-drift-guard_guard": {
+   "ip": "10.0.1.168",
+   "health": "- (sem healthcheck)",
+   "restart": 0,
+   "limits": "mem 128M",
+   "mounts": "volume anonimo a405eaf5... -> /var/lib/postgresql/data",
+   "image": "postgres:15-alpine@sha256:cd17e2...",
+   "cmd": "loop psql check_schema_drift a cada 24h"
+  },
+  "supabase-config-backup_config-backup": {
+   "ip": "10.0.1.115",
+   "health": "- (sem healthcheck)",
+   "restart": 0,
+   "limits": "mem 64M",
+   "mounts": "volume supabase_db_config -> /src:ro",
+   "image": "alpine:3.19@sha256:6baf43...",
+   "cmd": "/backup.sh (intervalo 86400s -> R2)"
+  },
+  "mcp-health-monitor_mcp-health-monitor": {
+   "ip": "10.0.1.148",
+   "health": "- (sem healthcheck)",
+   "restart": 0,
+   "limits": "mem 96M, cpu 0.15",
+   "mounts": "nenhum",
+   "image": "alpine:3.19@sha256:6baf43...",
+   "cmd": "loop healthcheck 10 alvos, poll 120s"
+  }
+ },
+ "env_names_por_container": {
+  "supabase_db": [
+   "JWT_EXP",
+   "JWT_SECRET [redigido:b6177a99676f]",
+   "PGDATABASE",
+   "PGPORT",
+   "POSTGRES_DB",
+   "POSTGRES_HOST",
+   "POSTGRES_PASSWORD_FILE=/run/secrets/supabase_db_password_v1",
+   "POSTGRES_PORT",
+   "POSTGRES_USER",
+   "PATH",
+   "PGDATA",
+   "LANG",
+   "LANGUAGE",
+   "LC_ALL",
+   "LC_CTYPE",
+   "LC_COLLATE",
+   "LOCALE_ARCHIVE"
+  ],
+  "supabase_rest": [
+   "PGRST_APP_SETTINGS_JWT_EXP",
+   "PGRST_APP_SETTINGS_JWT_SECRET [redigido:b6177a99676f]",
+   "PGRST_DB_ANON_ROLE=anon",
+   "PGRST_DB_SCHEMAS=public,zapp,storage,graphql_public,artes,vendas,financeiro",
+   "PGRST_DB_URI [redigido:b0e6e79fbc9d (senha authenticator embutida)]",
+   "PGRST_DB_USE_LEGACY_GUCS",
+   "PGRST_JWT_SECRET [redigido:b6177a99676f]"
+  ],
+  "supabase_auth": [
+   "API_EXTERNAL_URL",
+   "GOTRUE_API_HOST",
+   "GOTRUE_API_PORT",
+   "GOTRUE_DB_DRIVER",
+   "GOTRUE_DISABLE_SIGNUP",
+   "GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED",
+   "GOTRUE_EXTERNAL_EMAIL_ENABLED",
+   "GOTRUE_EXTERNAL_PHONE_ENABLED",
+   "GOTRUE_JWT_ADMIN_ROLES",
+   "GOTRUE_JWT_AUD",
+   "GOTRUE_JWT_EXP",
+   "GOTRUE_JWT_ISSUER",
+   "GOTRUE_MAILER_AUTOCONFIRM",
+   "GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED",
+   "GOTRUE_MAILER_URLPATHS_CONFIRMATION",
+   "GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE",
+   "GOTRUE_MAILER_URLPATHS_INVITE",
+   "GOTRUE_MAILER_URLPATHS_RECOVERY",
+   "GOTRUE_SECURITY_REFRESH_TOKEN_REUSE_INTERVAL",
+   "GOTRUE_SECURITY_REFRESH_TOKEN_ROTATION_ENABLED",
+   "GOTRUE_SESSIONS_MAX_USER_SESSIONS",
+   "GOTRUE_SITE_URL",
+   "GOTRUE_SMS_AUTOCONFIRM",
+   "GOTRUE_SMTP_ADMIN_EMAIL",
+   "GOTRUE_SMTP_HOST",
+   "GOTRUE_SMTP_PORT",
+   "GOTRUE_SMTP_SENDER_NAME",
+   "GOTRUE_SMTP_USER",
+   "GOTRUE_URI_ALLOW_LIST",
+   "GOTRUE_DB_MIGRATIONS_PATH",
+   "PATH",
+   "(cmd) GOTRUE_DB_DATABASE_URL/GOTRUE_JWT_SECRET/GOTRUE_SMTP_PASS via secrets supabase_db_password_v1/supabase_jwt_secret_v1/gmail_smtp_password_v1"
+  ],
+  "supabase_kong": [
+   "KONG_DATABASE=off",
+   "KONG_DECLARATIVE_CONFIG=/tmp/kong.yml",
+   "KONG_DNS_ORDER",
+   "KONG_PLUGINS (runtime inclui rate-limiting; compose NAO)",
+   "SUPABASE_ANON_KEY [redigido:4a1e6ff19f60]",
+   "DASHBOARD_USERNAME=AtomicaBR",
+   "KONG_NGINX_PROXY_PROXY_BUFFERS",
+   "KONG_NGINX_PROXY_PROXY_BUFFER_SIZE",
+   "ASSET=ce",
+   "KONG_VERSION=3.9.3",
+   "PATH",
+   "(cmd) JWT_SECRET/SUPABASE_SERVICE_KEY/DASHBOARD_PASSWORD via secrets supabase_jwt_secret_v1/supabase_service_key_v1/kong_dashboard_password_v1"
+  ],
+  "supabase_functions": [
+   "AI_BASE_URL",
+   "AI_ROUTER_URL",
+   "EVOLUTION_API_URL",
+   "PROMOGIFTS_SUPABASE_ANON_KEY [redigido:19f82dd74c4c]",
+   "PROMOGIFTS_SUPABASE_URL",
+   "SENTRY_DSN [redigido:74b4df7f7cc1]",
+   "SUPABASE_ANON_KEY [redigido:4a1e6ff19f60]",
+   "SUPABASE_URL=http://kong:8000",
+   "VERIFY_JWT=true",
+   "PATH",
+   "(cmd) JWT_SECRET/DB_PASS/SUPABASE_SERVICE_ROLE_KEY/EVOLUTION_WEBHOOK_SECRETS/SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY/DEEPSEEK_API_KEY/EVOLUTION_API_KEY via secrets supabase_jwt_secret_v1/supabase_db_password_v1/supabase_service_key_v1/supabase_evolution_webhook_secret_v1/deepseek_api_key_v2/evolution_api_key_v4_20260704"
+  ],
+  "supabase_meta": [
+   "CRYPTO_KEY [redigido:52d4e8f5436d]",
+   "NODE_OPTIONS",
+   "PG_META_CRYPTO_KEY [redigido:52d4e8f5436d]",
+   "PG_META_DB_HOST=db",
+   "PG_META_DB_NAME=postgres",
+   "PG_META_DB_PORT=5432",
+   "PG_META_DB_USER=postgres",
+   "PG_META_PORT=8080",
+   "PATH",
+   "NODE_VERSION",
+   "YARN_VERSION",
+   "(cmd) PG_META_DB_PASSWORD via secret supabase_db_password_v1"
+  ],
+  "supabase_storage": [
+   "ANON_KEY [redigido:4a1e6ff19f60]",
+   "ENABLE_IMAGE_TRANSFORMATION",
+   "FILE_SIZE_LIMIT=52428800",
+   "FILE_STORAGE_BACKEND_PATH=/var/lib/storage",
+   "IMGPROXY_URL=http://imgproxy:5001",
+   "POSTGREST_URL=http://rest:3000",
+   "REGION=eu-south",
+   "STORAGE_BACKEND=file",
+   "TENANT_ID=stub",
+   "PATH",
+   "NODE_VERSION",
+   "YARN_VERSION",
+   "VERSION=1.60.4",
+   "(cmd) DATABASE_URL/PGRST_JWT_SECRET/SERVICE_KEY via secrets supabase_db_password_v1/supabase_jwt_secret_v1/supabase_service_key_v1"
+  ],
+  "supabase_realtime": [
+   "APP_NAME",
+   "DB_AFTER_CONNECT_QUERY",
+   "DB_ENC_KEY (default supabaserealtime)",
+   "DB_HOST=db",
+   "DB_NAME",
+   "DB_PORT",
+   "DB_USER",
+   "DNS_NODES",
+   "ERL_AFLAGS",
+   "METRICS_JWT_SECRET [redigido:b6177a99676f]",
+   "PORT=4000",
+   "RLIMIT_NOFILE",
+   "SECRET_KEY_BASE [redigido:0c58af4fa45a]",
+   "SEED_SELF_HOST",
+   "PATH",
+   "SLOT_NAME_SUFFIX",
+   "LANG",
+   "LANGUAGE",
+   "LC_ALL",
+   "MIX_ENV",
+   "ECTO_IPV6",
+   "(cmd) DB_PASSWORD/API_JWT_SECRET via secrets supabase_db_password_v1/supabase_jwt_secret_v1"
+  ],
+  "supabase_analytics": [
+   "DB_DATABASE=_supabase",
+   "DB_HOSTNAME=db",
+   "DB_PORT",
+   "DB_SCHEMA=_analytics",
+   "DB_USERNAME=supabase_admin",
+   "LOGFLARE_API_KEY [redigido:bd16beb552ef]",
+   "LOGFLARE_FEATURE_FLAG_OVERRIDE",
+   "LOGFLARE_MIN_CLUSTER_SIZE",
+   "LOGFLARE_NODE_HOST",
+   "LOGFLARE_SINGLE_TENANT",
+   "LOGFLARE_SUPABASE_MODE",
+   "POSTGRES_BACKEND_SCHEMA",
+   "PATH",
+   "LANG",
+   "LANGUAGE",
+   "LC_ALL",
+   "(cmd) POSTGRES_BACKEND_URL via secret supabase_db_password_v1"
+  ],
+  "supabase_vector": [
+   "LOGFLARE_API_KEY [redigido:bd16beb552ef]",
+   "PATH"
+  ],
+  "supabase_supavisor": [
+   "CLUSTER_POSTGRES",
+   "ERL_AFLAGS",
+   "POOLER_DEFAULT_POOL_SIZE=20",
+   "POOLER_MAX_CLIENT_CONN=100",
+   "POOLER_POOL_MODE=transaction",
+   "POOLER_TENANT_ID=1",
+   "PORT=4000",
+   "POSTGRES_DB",
+   "POSTGRES_HOST=db",
+   "POSTGRES_PORT",
+   "REGION=local",
+   "SECRET_KEY_BASE [redigido:0c58af4fa45a]",
+   "VAULT_ENC_KEY (default 'your-encryption-key-32-chars-min')",
+   "PATH",
+   "LANG",
+   "LANGUAGE",
+   "LC_ALL",
+   "MIX_ENV",
+   "RLIMIT_NOFILE",
+   "ECTO_IPV6",
+   "(cmd) POSTGRES_PASSWORD/DATABASE_URL/API_JWT_SECRET via secrets supabase_db_password_v1/supabase_jwt_secret_v1"
+  ],
+  "supabase_imgproxy": [
+   "IMGPROXY_BIND=:5001",
+   "IMGPROXY_ENABLE_WEBP_DETECTION",
+   "IMGPROXY_LOCAL_FILESYSTEM_ROOT=/",
+   "IMGPROXY_USE_ETAG",
+   "PATH",
+   "VIPS_WARNING",
+   "MALLOC_ARENA_MAX",
+   "FONTCONFIG_PATH",
+   "IMGPROXY_MALLOC",
+   "AWS_LWA_READINESS_CHECK_PATH",
+   "AWS_LWA_INVOKE_MODE",
+   "AWS_LWA_ASYNC_INIT",
+   "VIPS_VECTOR"
+  ],
+  "supabase_studio": [
+   "AUTH_JWT_SECRET [redigido:b6177a99676f]",
+   "DEFAULT_ORGANIZATION_NAME",
+   "DEFAULT_PROJECT_NAME",
+   "EDGE_FUNCTIONS_MANAGEMENT_FOLDER",
+   "ENABLED_FEATURES_LOGS_ALL",
+   "HOSTNAME",
+   "LOGFLARE_API_KEY [redigido:bd16beb552ef]",
+   "LOGFLARE_URL",
+   "NEXT_ANALYTICS_BACKEND_PROVIDER",
+   "NEXT_PUBLIC_ENABLE_LOGS",
+   "PGRST_DB_EXTRA_SEARCH_PATH",
+   "PGRST_DB_MAX_ROWS",
+   "PGRST_DB_SCHEMAS",
+   "PG_META_CRYPTO_KEY [redigido:52d4e8f5436d]",
+   "POSTGRES_PASSWORD [redigido:b0e6e79fbc9d]",
+   "SNIPPETS_MANAGEMENT_FOLDER",
+   "STUDIO_PG_META_URL",
+   "SUPABASE_ANON_KEY [redigido:4a1e6ff19f60]",
+   "SUPABASE_PUBLIC_URL",
+   "SUPABASE_PUBLISHABLE_KEY [redigido:4a1e6ff19f60]",
+   "SUPABASE_SECRET_KEY [redigido:05300a2ae8d4]",
+   "SUPABASE_SERVICE_KEY [redigido:05300a2ae8d4]",
+   "SUPABASE_URL",
+   "PATH",
+   "NODE_VERSION",
+   "YARN_VERSION",
+   "PNPM_HOME"
+  ],
+  "zapp-web-prod_web": [
+   "PATH",
+   "NGINX_VERSION",
+   "PKG_RELEASE",
+   "DYNPKG_RELEASE",
+   "NJS_VERSION",
+   "NJS_RELEASE",
+   "ACME_VERSION (env do app embutido na imagem; nenhuma var de app no runtime)"
+  ],
+  "schema-drift-guard_guard": [
+   "TZ",
+   "PATH",
+   "GOSU_VERSION",
+   "LANG",
+   "PG_MAJOR",
+   "PG_VERSION",
+   "PG_SHA256",
+   "DOCKER_PG_LLVM_DEPS",
+   "PGDATA",
+   "(cmd) PGPASSWORD via secret supabase_db_password_v1; loop psql ops.check_schema_drift(false) a cada 86400s"
+  ],
+  "supabase-config-backup_config-backup": [
+   "INTERVAL=86400",
+   "R2_BUCKET",
+   "R2_ENDPOINT (R2 Cloudflare)",
+   "R2_PREFIX=backups/supabase-db/config",
+   "R2_RETENTION=30d",
+   "SRC=/src",
+   "TZ",
+   "PATH (creds R2 nao expostas em env - embutidas no script/imagem)"
+  ],
+  "mcp-health-monitor_mcp-health-monitor": [
+   "ALERT_WEBHOOK_URL [redigido]",
+   "EVO_DEST",
+   "EVO_INSTANCE=wpp2",
+   "EVO_KEY_FILE=/run/secrets/evolution_api_key_v4_20260704",
+   "EVO_THROTTLE_MIN",
+   "EVO_URL=http://evolution:8080",
+   "FAIL_THRESHOLD=2",
+   "HTTP_TIMEOUT_SEC=15",
+   "PG_DB=evolution",
+   "PG_HOST=postgres",
+   "PG_PASS_FILE=/run/secrets/postgres_superadmin_password_v1",
+   "PG_USER=postgres",
+   "POLL_INTERVAL_SEC=120",
+   "REMINDER_EVERY=30",
+   "TARGETS (10 alvos: portainer-mcp/supabase-mcp/supabase-pttz-mcp/supabase-artes-mcp/portainer-core/n8n/redis/traefik-cert-backup/traefik-ping)",
+   "TZ",
+   "PATH"
+  ]
+ },
+ "fingerprints_segredos": {
+  "JWT_SECRET (supabase)": "b6177a99676f",
+  "POSTGRES_PASSWORD / senha authenticator (PGRST_DB_URI)": "b0e6e79fbc9d",
+  "SUPABASE_ANON_KEY": "4a1e6ff19f60",
+  "SUPABASE_SERVICE_KEY / SECRET_KEY": "05300a2ae8d4",
+  "CRYPTO_KEY / PG_META_CRYPTO_KEY (meta+studio)": "52d4e8f5436d",
+  "SECRET_KEY_BASE (realtime+supavisor)": "0c58af4fa45a",
+  "LOGFLARE_API_KEY (analytics+vector+studio)": "bd16beb552ef",
+  "PROMOGIFTS_SUPABASE_ANON_KEY (functions)": "19f82dd74c4c",
+  "EVOLUTION_API_KEY (compose antigo)": "94ffabbaf641",
+  "DEEPSEEK_API_KEY (compose antigo)": "206566d603b4",
+  "SENTRY_DSN (functions)": "74b4df7f7cc1"
+ },
+ "volumes": {
+  "named": [
+   "evolution_instances (2024-12-10)",
+   "volume_swarm_certificates (2024-12-06)",
+   "portainer_data (2024-12-06)",
+   "redis_data (2024-12-10)",
+   "postgres_data (2024-12-10)",
+   "minio_data (2024-12-10)",
+   "supabase_db_config (2024-12-11)",
+   "traefik_traefik_logs (2026-07-15)",
+   "hermes_hermes_data (2026-07-21)",
+   "rabbitmq_data (2026-04-23)",
+   "supabase-backup_backup_data (2026-04-30)",
+   "clamav_clamav_db (2026-08-01)",
+   "openclaw_openclaw_auth/data (2026-06-10)",
+   "vscode-mcp_code-server-config/workspace (2026-07-14)",
+   "docuseal_docuseal_data (2026-04-14)",
+   "glitchtip_glitchtip-pg-data/uploads (2026-04-04)",
+   "crowdsec_crowdsec_config/data (2026-06-12)",
+   "metabase_metabase_data (2026-07-31)",
+   "gmaps_gmaps_data (2026-03-26)",
+   "openwebui_ollama-data/open-webui-data (2026-04-14)",
+   "claude-code_workspace/claude_npm/claude_home (2026-04-28)",
+   "github-actions-runner_runner-work (2026-08-01)",
+   "hermes-backup_hermes_backup_data (2026-07-21)",
+   "openclaw-backup_backup_data (2026-07-16)"
+  ],
+  "anonymous": [
+   "3f1f4e44...",
+   "efe787b0...",
+   "315b2842...",
+   "c15a809d...",
+   "2f5a05f4...",
+   "831945ca...",
+   "a405eaf5... (schema-drift-guard pgdata)",
+   "(+2)"
+  ],
+  "total_snapshot": 38
+ },
+ "networks": [
+  {
+   "name": "AtomicaBRNet",
+   "driver": "overlay swarm",
+   "subnet": "10.0.1.0/24",
+   "id": "40h0f38co6ow3kq3v80u0d5ke",
+   "nota": "rede de TODOS os containers do stack supabase + zapp-web + auxiliares"
+  },
+  {
+   "name": "ingress",
+   "driver": "overlay swarm (ingress)",
+   "subnet": "10.0.0.0/24",
+   "id": "en00xzpxshiiqwmopgsahmtuh",
+   "nota": "routing mesh"
+  },
+  {
+   "name": "clamav_default",
+   "driver": "overlay swarm",
+   "subnet": "10.0.2.0/24",
+   "id": "qslgl7j30zapr40ktpn62qe8r",
+   "nota": "stack clamav"
+  },
+  {
+   "name": "glitchtip_glitchtip-net",
+   "driver": "overlay swarm",
+   "subnet": "10.0.3.0/24",
+   "id": "rsrum650rmzrkxrx2ek5cufp1",
+   "nota": "stack glitchtip"
+  },
+  {
+   "name": "vscode-mcp_internal",
+   "driver": "overlay swarm",
+   "subnet": "10.0.4.0/24",
+   "id": "zn9djo333e6v83plswvhiok0s",
+   "nota": "stack vscode-mcp"
+  },
+  {
+   "name": "bridge/host/none/docker_gwbridge",
+   "driver": "local",
+   "subnet": "-",
+   "id": "-",
+   "nota": "redes default do engine"
+  }
+ ],
+ "estado_ruim": [
+  {
+   "container": "github-actions-runner_runner",
+   "estado": "SERVICO SEM REPLICA ATIVA",
+   "evidencia": "6 tasks exited (Exit 1 x5, Exit 0 x1; ultima 35h atras) e NENHUMA running; list_services deseja replicas=1; imagem myoung34/github-runner:latest"
+  },
+  {
+   "container": "openclaw-edge-guard_guard",
+   "estado": "created (task nunca inicia)",
+   "evidencia": "task 6mek2u7e... e depois ewx0iy8c... - churn de tasks 'Created' entre duas listagens (~15min); servico deseja 1 replica"
+  },
+  {
+   "container": "zapp-health-guard_guard",
+   "estado": "created (task nunca inicia)",
+   "evidencia": "task xsayv7gd... e depois jiptcmm4... - churn de tasks 'Created'; servico deseja 1 replica"
+  },
+  {
+   "container": "clamav_clamav",
+   "estado": "exited (historico de rollover)",
+   "evidencia": "3 tasks antigas Exited (143): 3h/27h/2d atras; task atual running healthy"
+  },
+  {
+   "container": "kong-rl-test",
+   "estado": "exited (1) 31h",
+   "evidencia": "container standalone (sem label de stack), imagem kong:3.9.3 - sobra de teste de rate-limit (plugin rate-limiting adicionado ao runtime do kong)"
+  }
+ ],
+ "diffs_stack_x_runtime": [
+  "D1 kong: compose do stack supabase declara kong:3.9.1 e KONG_PLUGINS sem rate-limiting; runtime roda kong:3.9.3@sha256:62721e... com KONG_PLUGINS incluindo rate-limiting (service update 2026-08-03T14:14Z, versao 13049940) -> stack file desatualizado vs runtime.",
+  "D2 functions: compose ainda contem EVOLUTION_API_KEY e DEEPSEEK_API_KEY em texto plano no environment (valores antigos, fps 94ffabbaf641/206566d603b4); runtime usa secrets evolution_api_key_v4_20260704 e deepseek_api_key_v2 via command (# secrets-v1) -> compose com segredos orfaos/antigos.",
+  "D3 zapp-web-prod: durante a auditoria o servico fez rollover de imagem (a1d01703d1ce -> b58d2575f778); estado final bate com o stack file (b58d2575f778@sha256:f6cec909...), healthcheck /healthz healthy.",
+  "D4 Segredos: compose declara 6 secrets externos; runtime do stack usa os 6 + deepseek_api_key_v2 + evolution_api_key_v4_20260704 (functions) -> secrets adicionais nao declarados no compose.",
+  "D5 Volumes: compose declara apenas supabase_db_config (external) - confere. Dados do db (/root/supabase/docker/volumes/db/data), storage e functions sao BIND MOUNTS do host, nao named volumes gerenciados.",
+  "D6 rest: PGRST_DB_URI com senha do authenticator em texto plano no env do container E no compose (mesmo valor, fp b0e6e79fbc9d) - exposicao em claro no runtime.",
+  "D7 meta/studio: CRYPTO_KEY/PG_META_CRYPTO_KEY iguais (fp 52d4e8f5436d) entre compose e runtime - consistente, porem chave de criptografia estatica em claro.",
+  "D8 Todos os 13 servicos declarados no compose do supabase estao presentes como containers running (sem servico faltante).",
+  "D9 Nenhum servico do stack supabase em crash; o cenario historico 'supabase_meta Exited 137' NAO esta presente hoje - meta running healthy (recriado 2026-08-04T16:29Z)."
+ ],
+ "resumo_saude": {
+  "total_containers": 96,
+  "running": 84,
+  "exited": 10,
+  "created": 2,
+  "supabase_stack": {
+   "declarados": 13,
+   "running": 13
+  },
+  "healthchecks_ok": [
+   "supabase_db",
+   "supabase_kong",
+   "supabase_meta",
+   "supabase_studio",
+   "zapp-web-prod_web"
+  ]
+ }
+}
