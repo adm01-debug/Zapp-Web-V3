@@ -9,6 +9,7 @@ import { ConversationItem } from './conversation-list/ConversationItem';
 import type { ConversationItemData } from './conversation-list/conversationItemShared';
 import { ConversationContextMenu } from './ConversationContextMenu';
 import { useDensity } from '@/hooks/useDensity';
+import { useConversationActions } from '@/hooks/useConversationManagement';
 
 import { Search, Filter } from 'lucide-react';
 
@@ -62,6 +63,9 @@ export function ConversationList({
   const parentRef = useRef<HTMLDivElement>(null);
   const { density } = useDensity();
   const isCompactMode = density === 'compact' || density === 'dense';
+  // INBOX-07: handler real de snooze (upsert em conversation_snoozes) —
+  // antes o menu Adiar renderizava sem onSnooze e os cliques eram mortos.
+  const { snoozeConversation } = useConversationActions();
 
   const virtualizer = useVirtualizer({
     count: conversations.length,
@@ -255,6 +259,7 @@ export function ConversationList({
                     conversationId={conversation.id}
                     contactName={conversation.contact.name ?? ''}
                     isMuted={conversation.is_muted}
+                    onSnooze={snoozeConversation}
                   >
                     <ConversationItem
                       conversation={itemData}

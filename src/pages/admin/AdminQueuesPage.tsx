@@ -4,11 +4,11 @@ import { QueueEditDialog } from './queues/QueueEditDialog';
 import { QueueCard } from './queues/QueueCard';
 import { QueueMembersDialog } from './queues/QueueMembersDialog';
 
-// F7-26: ações não implementadas usam no-op silencioso (console.debug em DEV)
-const NOOP = () => {
-  // eslint-disable-next-line no-console -- debug intencional, DEV-only
-  if (import.meta.env.DEV) console.debug('[AdminQueues] ação não implementada');
-};
+// FILAS-04: routing rules de fila (zapp.queue_routing_rules) ainda não têm
+// consumidor front/edge — a feature só existe no nível canal
+// (ChannelRoutingRules/useChannelRoutingRules → channel_routing_rules).
+// TODO: criar seção "Regras de Roteamento" por fila aqui na AdminQueuesPage
+// quando existir consumidor (edge/backend) para queue_routing_rules.
 
 /** Admin Queues Page. */
 export default function AdminQueuesPage() {
@@ -23,6 +23,13 @@ export default function AdminQueuesPage() {
     loading,
     save,
     remove,
+    toggleQueuePause,
+    addQueueMember,
+    removeQueueMember,
+    linkChannelToQueue,
+    unlinkChannelFromQueue,
+    addQueueSkill,
+    removeQueueSkill,
   } = useAdminQueues();
 
   const [editing, setEditing] = useState<Partial<Queue> | null>(null);
@@ -33,8 +40,6 @@ export default function AdminQueuesPage() {
   });
   const [newMemberId, setNewMemberId] = useState('');
   const [newChannelId, setNewChannelId] = useState('');
-
-  const notImplemented = NOOP;
 
   return (
     <div className="container mx-auto space-y-6 p-6">
@@ -82,7 +87,7 @@ export default function AdminQueuesPage() {
               skills={skills}
               channelQueues={channelQueues}
               channels={channels}
-              onTogglePause={notImplemented}
+              onTogglePause={(q) => void toggleQueuePause(q)}
               onEdit={setEditing}
               onRemove={(id) => void remove(id)}
               onMembers={setMemberDialog}
@@ -108,12 +113,34 @@ export default function AdminQueuesPage() {
         newSkill={newSkill}
         setNewSkill={setNewSkill}
         onClose={() => setMemberDialog(null)}
-        onAddMember={notImplemented}
-        onRemoveMember={notImplemented}
-        onLinkChannel={notImplemented}
-        onUnlinkChannel={notImplemented}
-        onAddSkill={notImplemented}
-        onRemoveSkill={notImplemented}
+        onAddMember={() => {
+          if (memberDialog) {
+            void addQueueMember(memberDialog.id, newMemberId).then((ok) => {
+              if (ok) setNewMemberId('');
+            });
+          }
+        }}
+        onRemoveMember={(id) => void removeQueueMember(id)}
+        onLinkChannel={() => {
+          if (memberDialog) {
+            void linkChannelToQueue(memberDialog.id, newChannelId).then((ok) => {
+              if (ok) setNewChannelId('');
+            });
+          }
+        }}
+        onUnlinkChannel={(channelId) => {
+          if (memberDialog) void unlinkChannelFromQueue(memberDialog.id, channelId);
+        }}
+        onAddSkill={() => {
+          if (memberDialog) {
+            void addQueueSkill(memberDialog.id, newSkill.name.trim(), newSkill.level).then(
+              (ok) => {
+                if (ok) setNewSkill({ name: '', level: 1 });
+              }
+            );
+          }
+        }}
+        onRemoveSkill={(id) => void removeQueueSkill(id)}
       />
     </div>
   );

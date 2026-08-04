@@ -9,6 +9,7 @@ import { MOCK_CONVERSATIONS } from './conversation-list/__mocks__/mockConversati
 import { ConversationItem as SharedConversationItem } from './conversation-list/ConversationItem';
 import type { ConversationItemData } from './conversation-list/conversationItemShared';
 import { ConversationContextMenu } from './ConversationContextMenu';
+import { useConversationActions } from '@/hooks/useConversationManagement';
 
 // Mocks: estritamente opt-in (localStorage mockConversations='1') e apenas em
 // DEV. Nunca usamos demo-fallback em produção: um inbox legitimamente vazio
@@ -110,6 +111,7 @@ const VirtualizedItem = memo(
     onMarkAsRead,
     onToggleArchive,
     onPin,
+    onSnooze,
     getCRMData,
   }: {
     virtualRow: VirtualItem;
@@ -123,6 +125,7 @@ const VirtualizedItem = memo(
     onMarkAsRead?: (contactId: string) => void;
     onToggleArchive?: (contactId: string, isArchived: boolean) => void;
     onPin?: (contactId: string) => void;
+    onSnooze?: (contactId: string, duration: string) => void;
     getCRMData?: (phone: string) => CRMBatchResult | undefined;
   }) => {
     const contactId = conversation.contact.id;
@@ -172,6 +175,7 @@ const VirtualizedItem = memo(
             onMarkAsRead={onMarkAsRead}
             onPin={onPin ? () => onPin(contactId) : undefined}
             onUnpin={onPin ? () => onPin(contactId) : undefined}
+            onSnooze={onSnooze}
           >
             {item}
           </ConversationContextMenu>
@@ -205,6 +209,9 @@ export function VirtualizedRealtimeList({
   const parentRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [sentinelVisible, setSentinelVisible] = useState(false);
+  // INBOX-07: handler real de snooze (upsert em conversation_snoozes) —
+  // antes o menu Adiar da lista renderizava sem onSnooze (cliques mortos).
+  const { snoozeConversation } = useConversationActions();
 
   const safeConversations = useMemo(() => {
     const hasReal = Array.isArray(conversations) && conversations.length > 0;
@@ -326,6 +333,7 @@ export function VirtualizedRealtimeList({
               onMarkAsRead={onMarkAsRead}
               onToggleArchive={onToggleArchive}
               onPin={_onPin}
+              onSnooze={snoozeConversation}
               getCRMData={getCRMData}
             />
           );

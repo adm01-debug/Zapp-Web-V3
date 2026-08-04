@@ -30,5 +30,12 @@ export function useAdminQueues() {
     load: admin.loadQueues,
     save: admin.saveQueue,
     remove: admin.removeQueue,
+    toggleQueuePause: admin.toggleQueuePause,
+    addQueueMember: admin.addQueueMember,
+    removeQueueMember: admin.removeQueueMember,
+    linkChannelToQueue: admin.linkChannelToQueue,
+    unlinkChannelFromQueue: admin.unlinkChannelFromQueue,
+    addQueueSkill: admin.addQueueSkill,
+    removeQueueSkill: admin.removeQueueSkill,
   };
 }

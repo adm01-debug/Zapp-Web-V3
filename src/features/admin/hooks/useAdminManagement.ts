@@ -653,6 +653,110 @@ function useAdminQueuesManagement() {
     return true;
   };
 
+  // ─── FILAS-04: ações de membros, canais e skills (eram no-op na página) ───
+
+  const toggleQueuePause = async (queue: Queue): Promise<boolean> => {
+    const paused = queue.status === 'paused';
+    const { error } = await supabase
+      .from('queues')
+      .update({
+        status: paused ? 'active' : 'paused',
+        paused_reason: paused ? null : 'Pausada manualmente em /admin/queues',
+      })
+      .eq('id', queue.id);
+    if (error) {
+      toast({ title: 'Erro ao alterar status da fila', variant: 'destructive' });
+      return false;
+    }
+    toast({ title: paused ? 'Fila retomada' : 'Fila pausada' });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
+    return true;
+  };
+
+  const addQueueMember = async (queueId: string, profileId: string): Promise<boolean> => {
+    const { error } = await supabase
+      .from('queue_members')
+      .insert({ queue_id: queueId, profile_id: profileId, is_active: true });
+    if (error) {
+      toast({ title: 'Erro ao adicionar membro', variant: 'destructive' });
+      return false;
+    }
+    toast({ title: 'Membro adicionado à fila' });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
+    return true;
+  };
+
+  const removeQueueMember = async (memberId: string): Promise<boolean> => {
+    const { error } = await supabase.from('queue_members').delete().eq('id', memberId);
+    if (error) {
+      toast({ title: 'Erro ao remover membro', variant: 'destructive' });
+      return false;
+    }
+    toast({ title: 'Membro removido da fila' });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
+    return true;
+  };
+
+  const linkChannelToQueue = async (queueId: string, channelId: string): Promise<boolean> => {
+    const { error } = await safeFrom('channel_queues').insert({
+      queue_id: queueId,
+      channel_id: channelId,
+      priority: 0,
+      is_active: true,
+    });
+    if (error) {
+      toast({ title: 'Erro ao vincular canal', variant: 'destructive' });
+      return false;
+    }
+    toast({ title: 'Canal vinculado à fila' });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
+    return true;
+  };
+
+  const unlinkChannelFromQueue = async (queueId: string, channelId: string): Promise<boolean> => {
+    const { error } = await safeFrom('channel_queues')
+      .delete()
+      .eq('queue_id', queueId)
+      .eq('channel_id', channelId);
+    if (error) {
+      toast({ title: 'Erro ao desvincular canal', variant: 'destructive' });
+      return false;
+    }
+    toast({ title: 'Canal desvinculado da fila' });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
+    return true;
+  };
+
+  const addQueueSkill = async (
+    queueId: string,
+    skillName: string,
+    minLevel: number
+  ): Promise<boolean> => {
+    const { error } = await safeFrom('queue_skill_requirements').insert({
+      queue_id: queueId,
+      skill_name: skillName,
+      min_level: minLevel,
+    });
+    if (error) {
+      toast({ title: 'Erro ao adicionar skill', variant: 'destructive' });
+      return false;
+    }
+    toast({ title: 'Skill adicionada à fila' });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
+    return true;
+  };
+
+  const removeQueueSkill = async (id: string): Promise<boolean> => {
+    const { error } = await safeFrom('queue_skill_requirements').delete().eq('id', id);
+    if (error) {
+      toast({ title: 'Erro ao remover skill', variant: 'destructive' });
+      return false;
+    }
+    toast({ title: 'Skill removida da fila' });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
+    return true;
+  };
+
   return {
     queues,
     queueMembers,
@@ -665,6 +769,13 @@ function useAdminQueuesManagement() {
     loadQueues,
     saveQueue,
     removeQueue,
+    toggleQueuePause,
+    addQueueMember,
+    removeQueueMember,
+    linkChannelToQueue,
+    unlinkChannelFromQueue,
+    addQueueSkill,
+    removeQueueSkill,
   };
 }
 
@@ -1232,6 +1343,13 @@ export function useAdminManagement(options?: {
     loadQueues: queues.loadQueues,
     saveQueue: queues.saveQueue,
     removeQueue: queues.removeQueue,
+    toggleQueuePause: queues.toggleQueuePause,
+    addQueueMember: queues.addQueueMember,
+    removeQueueMember: queues.removeQueueMember,
+    linkChannelToQueue: queues.linkChannelToQueue,
+    unlinkChannelFromQueue: queues.unlinkChannelFromQueue,
+    addQueueSkill: queues.addQueueSkill,
+    removeQueueSkill: queues.removeQueueSkill,
 
     // Departments
     departments: departments.departments,
