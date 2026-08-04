@@ -109,7 +109,12 @@ Deno.serve(async (req) => {
     if (action === 'send-contact') return await proxy(`/message/sendContact/${instance}`, 'POST', body);
     if (action === 'send-reaction') return await proxy(`/message/sendReaction/${instance}`, 'POST', body);
     if (action === 'send-poll') return await proxy(`/message/sendPoll/${instance}`, 'POST', body);
-    if (action === 'send-sticker') return await proxy(`/message/sendSticker/${instance}`, 'POST', body);
+    if (action === 'send-sticker') {
+      const jb = ensureBodyIsRecord(body);
+      const rawStickerUrl = safeGet(body, 'sticker', isMultipart);
+      const resolvedStickerUrl = rawStickerUrl ? await resolvePrivateBucketUrl(supabase, rawStickerUrl) : undefined;
+      return await proxy(`/message/sendSticker/${instance}`, 'POST', resolvedStickerUrl ? { ...jb, sticker: resolvedStickerUrl } : jb);
+    }
     if (action === 'send-list') return await proxy(`/message/sendList/${instance}`, 'POST', body);
     if (action === 'send-buttons') return await proxy(`/message/sendButtons/${instance}`, 'POST', body);
     if (action === 'send-status') return await proxy(`/message/sendStatus/${instance}`, 'POST', body);

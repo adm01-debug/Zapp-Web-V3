@@ -14,9 +14,9 @@ import { ConnectionHealthCheckV1Schema } from "../_shared/contract-schemas.ts";
  *
  * Mapeamento (state, ownerJid, lastActivityAge):
  *  open + owner ausente              → degraded · phantom_session   · status=disconnected
- *  open + owner ok + > 6h            → disconnected · stale_session  · status=disconnected
- *  open + owner ok + 30min..6h       → degraded · webhook_silent    · status=connected
- *  open + owner ok + < 30min         → healthy                       · status=connected
+ *  open + owner ok + > 6h             → disconnected · stale_session  · status=disconnected
+ *  open + owner ok + 30min..6h       → degraded     · webhook_silent · status=connected
+ *  open + owner ok + < 30min         → healthy                        · status=connected
  *  close                             → disconnected · socket_closed  · status=disconnected
  *  HTTP error                        → error                         · status=disconnected
  *  timeout                           → timeout                       · status=disconnected
@@ -31,11 +31,8 @@ interface FetchInstanceShape {
   connectionStatus?: string;
 }
 
-// Sem mensagens há 6h ainda é normal (noite/fds). Só virou degraded depois de 2h e
-// só vira "stale" (suspeito) depois de 24h — e mesmo assim NUNCA marca como disconnected
-// se o socket está aberto e o owner está pareado.
-const ACTIVITY_DEGRADED_MS = 2 * 60 * 60 * 1000;     // 2h sem evento → silent (warn)
-const ACTIVITY_STALE_MS    = 24 * 60 * 60 * 1000;    // 24h sem evento → stale (warn, não erro)
+const ACTIVITY_DEGRADED_MS = 30 * 60 * 1000;          // 30min sem evento → webhook_silent (degraded)
+const ACTIVITY_STALE_MS    = 6 * 60 * 60 * 1000;     // 6h sem evento → stale_session (disconnected)
 
 async function fetchOwnerJid(baseUrl: string, key: string, instanceName: string, log: Logger): Promise<string | null> {
   try {
@@ -112,9 +109,7 @@ function evaluateHealth(a: EvalArgs): EvalResult {
   if (a.lastActivityAt) {
     const age = a.now.getTime() - a.lastActivityAt.getTime();
     if (age > ACTIVITY_STALE_MS) {
-      // Socket aberto + owner ok há 24h sem mensagens é apenas um aviso,
-      // não um erro. A conexão continua "connected" no DB.
-      return { healthStatus: 'degraded', dbStatus: 'connected', reason: 'stale_session' };
+      return { healthStatus: 'disconnected', dbStatus: 'disconnected', reason: 'stale_session' };
     }
     if (age > ACTIVITY_DEGRADED_MS) {
       return { healthStatus: 'degraded', dbStatus: 'connected', reason: 'webhook_silent' };
