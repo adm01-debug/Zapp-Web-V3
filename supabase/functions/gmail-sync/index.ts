@@ -1,6 +1,8 @@
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireUser } from '../_shared/auth.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { GmailSyncV1Schema } from '../_shared/contract-schemas.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
@@ -62,18 +64,13 @@ Deno.serve(async (req) => {
 
     const supabase = createZappAdminClient();
 
-    let rawBody: unknown;
-    try {
-      rawBody = await req.json();
-    } catch {
-      return json({ error: 'Invalid JSON' }, 400);
-    }
-
-    if (typeof rawBody !== 'object' || rawBody === null || Array.isArray(rawBody)) {
-      return json({ error: 'Request body must be an object' }, 400);
-    }
-
-    const body = rawBody as Record<string, unknown>;
+    // Contrato gmail-sync@v1 (estrito): accountId obrigatório + action enum fechado.
+    const rawBody = await req.json().catch(() => null);
+    const parsed = parseOrReject('gmail-sync', { v1: GmailSyncV1Schema }, req, rawBody, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, unknown>;
     const action = typeof body.action === 'string' ? body.action : 'listThreads';
     const accountId = typeof body.accountId === 'string' ? body.accountId : '';
 

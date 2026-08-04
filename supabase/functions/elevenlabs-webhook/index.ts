@@ -2,7 +2,7 @@ import { handleCors, errorResponse, jsonResponse, Logger } from "../_shared/vali
 import { timingSafeStringEqual } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
-import { ElevenLabsWebhookV1Schema } from "../_shared/contract-schemas.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -22,8 +22,9 @@ Deno.serve(async (req) => {
 
   try {
     const raw = await req.json().catch(() => null);
-    // Contrato elevenlabs-webhook@v1: envelope 422 único em payload inválido.
-    const parsed = parseOrReject('elevenlabs-webhook', { v1: ElevenLabsWebhookV1Schema }, req, raw, {
+    // Contrato elevenlabs-webhook@v1 (registrado no CONTRACT_SCHEMAS):
+    // envelope 422 único em payload inválido.
+    const parsed = parseOrReject('elevenlabs-webhook', CONTRACT_SCHEMAS['elevenlabs-webhook'], req, raw, {
       requestId: log.getRequestId?.() ?? undefined,
     });
     if (!parsed.ok) return parsed.response;

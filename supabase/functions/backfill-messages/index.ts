@@ -1,6 +1,8 @@
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { BackfillMessagesV1Schema } from '../_shared/contract-schemas.ts';
 
 /**
  * backfill-messages — Backfill histórico de mensagens da Evolution API para o banco.
@@ -71,7 +73,12 @@ Deno.serve(async (req) => {
   if (authErr) return authErr;
   if (req.method !== 'POST') return new Response(JSON.stringify({ error: 'method_not_allowed' }), { status: 405, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
   const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
-  const body = await req.json().catch(() => ({}));
+  // Contrato backfill-messages@v1 (estrito): todos os campos opcionais (env vars têm precedência).
+  const parsed = parseOrReject('backfill-messages', { v1: BackfillMessagesV1Schema }, req, await req.json().catch(() => ({})), {
+    extraHeaders: getCorsHeaders(req),
+  });
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data as Record<string, unknown>;
   const instanceName = INSTANCE || (body.instance_name as string) || (body.instance as string);
   const connectionId = CONNECTION_ID || (body.connection_id as string);
   if (!instanceName) return json({ error: 'missing_instance_name', hint: 'Set BACKFILL_INSTANCE_NAME env var or pass instance_name in body' }, 400);

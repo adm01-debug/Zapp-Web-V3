@@ -3,6 +3,8 @@ import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { requireUser } from '../_shared/auth.ts';
 import { checkRateLimit, isValidUUID } from '../_shared/validation.ts';
 import { timingSafeStringEqual } from '../_shared/auth.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { GmailOauthV1Schema } from '../_shared/contract-schemas.ts';
 
 /**
  * Signs an OAuth state token binding it to userId.
@@ -67,7 +69,13 @@ Deno.serve(async (req) => {
       return new Response(`<script>\n          window.opener?.postMessage({type:'gmail-oauth-code',code:${safeJsonForScript(code)},state:${safeJsonForScript(state)}},'*');\n          window.close();\n        </script>`, { headers: { 'Content-Type': 'text/html' } });
     }
 
-    const body = await req.json().catch(() => ({}));
+    // Contrato gmail-oauth@v1 (estrito): action enum fechado (aliases kebab aceitos).
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('gmail-oauth', { v1: GmailOauthV1Schema }, req, raw, {
+      extraHeaders: jsonHeaders,
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, unknown>;
     const rawAction = body.action as string | undefined;
     const actionMap: Record<string, string> = { 'get-auth-url': 'getAuthUrl', 'exchange-code': 'exchangeCode', 'refresh-token': 'refresh', 'disconnect': 'revoke', 'list-accounts': 'listAccounts' };
     const action = rawAction && actionMap[rawAction] ? actionMap[rawAction] : rawAction;

@@ -9,11 +9,19 @@
 // para que o handler suba em milissegundos e nunca falhe.
 
 import { corsHeaders } from '../_shared/validation.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { StatusV1Schema } from '../_shared/contract-schemas.ts';
 
-Deno.serve((req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
+
+  // Contrato status@v1 (estrito): probe GET sem body → {} aceito.
+  const parsed = parseOrReject('status', { v1: StatusV1Schema }, req, await req.json().catch(() => ({})), {
+    extraHeaders: corsHeaders,
+  });
+  if (!parsed.ok) return parsed.response;
 
   return new Response(
     JSON.stringify({

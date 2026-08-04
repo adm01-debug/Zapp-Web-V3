@@ -6,6 +6,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { authorizeRoles, errorResponse, jsonResponse, checkRateLimit } from "../_shared/validation.ts";
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
@@ -114,6 +116,15 @@ Deno.serve(async (req) => {
 
     let body: Record<string, unknown> = {};
     try { body = await req.json(); } catch { body = {}; }
+
+    // Contrato whatsapp-cloud-api@v1: action + aliases por rota (todos
+    // opcionais — roteado no handler). JSON inválido segue com {} (compat);
+    // JSON válido fora do contrato → envelope 422 único.
+    const parsed = parseOrReject('whatsapp-cloud-api', CONTRACT_SCHEMAS['whatsapp-cloud-api'], req, body, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    body = parsed.data as Record<string, unknown>;
 
 
   const action = String(body.action ?? '');

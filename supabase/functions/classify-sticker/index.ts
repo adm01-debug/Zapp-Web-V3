@@ -1,6 +1,7 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit } from "../_shared/validation.ts";
-import { ClassifyStickerSchema, parseBody } from "../_shared/schemas.ts";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getCorsHeaders } from "../_shared/validation.ts";
 import { requireUser, requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { parseRequestOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 const STICKER_CATEGORIES = [
   'comemoração', 'riso', 'chorando', 'amor', 'raiva',

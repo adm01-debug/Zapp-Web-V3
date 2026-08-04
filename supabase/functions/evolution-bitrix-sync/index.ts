@@ -2,6 +2,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { getSecret } from "../_shared/vault.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { EvolutionBitrixSyncV1Schema } from "../_shared/contract-schemas.ts";
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { createZappAdminClient } from '../_shared/db-client.ts';
 const supabase = createZappAdminClient();
@@ -96,6 +98,12 @@ Deno.serve(async (req: Request) => {
   const bitrixUrl = await getBitrixUrl();
   if (!bitrixUrl) return new Response(JSON.stringify({ error: "Bitrix24 não configurado" }), { status: 503, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
   try {
+    // Contrato evolution-bitrix-sync@v1 (estrito): cron sem body → {} aceito.
+    const parsed = parseOrReject('evolution-bitrix-sync', { v1: EvolutionBitrixSyncV1Schema }, req, await req.json().catch(() => ({})), {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+
     const start = Date.now();
     const result = await processQueue();
     await supabase.from("evolution_performance_metrics").insert({ metric_date: new Date().toISOString().slice(0, 10), metric_type: "bitrix_sync", metric_value: result.processed, metadata: { ...result, duration_ms: Date.now() - start } }).then(() => {}, (e) => console.error("[evolution-bitrix-sync] metrics insert failed:", e));
