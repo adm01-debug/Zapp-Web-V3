@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       _backup_evolution_alerts_20260802: {
         Row: {
+          _pk: number
           acknowledged: boolean | null
           acknowledged_at: string | null
           acknowledged_by: string | null
@@ -31,6 +32,7 @@ export type Database = {
           title: string | null
         }
         Insert: {
+          _pk?: number
           acknowledged?: boolean | null
           acknowledged_at?: string | null
           acknowledged_by?: string | null
@@ -51,6 +53,7 @@ export type Database = {
           title?: string | null
         }
         Update: {
+          _pk?: number
           acknowledged?: boolean | null
           acknowledged_at?: string | null
           acknowledged_by?: string | null
@@ -74,6 +77,7 @@ export type Database = {
       }
       _backup_evolution_contacts_20260802: {
         Row: {
+          _pk: number
           assigned_to: string | null
           company: string | null
           created_at: string | null
@@ -120,6 +124,7 @@ export type Database = {
           whatsapp_labels: string[] | null
         }
         Insert: {
+          _pk?: number
           assigned_to?: string | null
           company?: string | null
           created_at?: string | null
@@ -166,6 +171,7 @@ export type Database = {
           whatsapp_labels?: string[] | null
         }
         Update: {
+          _pk?: number
           assigned_to?: string | null
           company?: string | null
           created_at?: string | null
@@ -9752,13 +9758,7 @@ export type Database = {
           id: string
           instance_name: string | null
           notes: string | null
-          pipeline_status:
-            | "healthy"
-            | "warning"
-            | "degraded_webhook"
-            | "degraded_sender"
-            | "critical_alerts"
-            | "critical"
+          pipeline_status: Database["zapp"]["Enums"]["evolution_pipeline_status"]
           probe_latency_ms: number | null
           probe_status: string | null
           queue_failed_24h: number | null
@@ -9786,13 +9786,7 @@ export type Database = {
           id?: string
           instance_name?: string | null
           notes?: string | null
-          pipeline_status:
-            | "healthy"
-            | "warning"
-            | "degraded_webhook"
-            | "degraded_sender"
-            | "critical_alerts"
-            | "critical"
+          pipeline_status: Database["zapp"]["Enums"]["evolution_pipeline_status"]
           probe_latency_ms?: number | null
           probe_status?: string | null
           queue_failed_24h?: number | null
@@ -9820,13 +9814,7 @@ export type Database = {
           id?: string
           instance_name?: string | null
           notes?: string | null
-          pipeline_status?:
-            | "healthy"
-            | "warning"
-            | "degraded_webhook"
-            | "degraded_sender"
-            | "critical_alerts"
-            | "critical"
+          pipeline_status?: Database["zapp"]["Enums"]["evolution_pipeline_status"]
           probe_latency_ms?: number | null
           probe_status?: string | null
           queue_failed_24h?: number | null
@@ -12564,13 +12552,7 @@ export type Database = {
           processed_at: string | null
           push_name: string | null
           remote_jid: string | null
-          status:
-            | "pending"
-            | "success"
-            | "skipped"
-            | "failed"
-            | "dead_letter"
-            | null
+          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
         }
         Insert: {
           created_at?: string | null
@@ -13452,6 +13434,7 @@ export type Database = {
     Tables: {
       _ck_viol_audit: {
         Row: {
+          _pk: number
           conname: string | null
           def: string | null
           status: string | null
@@ -13459,6 +13442,7 @@ export type Database = {
           violations: number | null
         }
         Insert: {
+          _pk?: number
           conname?: string | null
           def?: string | null
           status?: string | null
@@ -13466,6 +13450,7 @@ export type Database = {
           violations?: number | null
         }
         Update: {
+          _pk?: number
           conname?: string | null
           def?: string | null
           status?: string | null
@@ -13476,6 +13461,7 @@ export type Database = {
       }
       _fk_orphan_audit: {
         Row: {
+          _pk: number
           child_rows_est: number | null
           child_table: string | null
           conname: string | null
@@ -13485,6 +13471,7 @@ export type Database = {
           status: string | null
         }
         Insert: {
+          _pk?: number
           child_rows_est?: number | null
           child_table?: string | null
           conname?: string | null
@@ -13494,6 +13481,7 @@ export type Database = {
           status?: string | null
         }
         Update: {
+          _pk?: number
           child_rows_est?: number | null
           child_table?: string | null
           conname?: string | null
@@ -13506,18 +13494,21 @@ export type Database = {
       }
       _msg_shard_orphan_audit: {
         Row: {
+          _pk: number
           col: string | null
           orphans: number | null
           status: string | null
           tbl: string | null
         }
         Insert: {
+          _pk?: number
           col?: string | null
           orphans?: number | null
           status?: string | null
           tbl?: string | null
         }
         Update: {
+          _pk?: number
           col?: string | null
           orphans?: number | null
           status?: string | null
@@ -13711,7 +13702,15 @@ export type Database = {
           went_offline_at?: string | null
           went_online_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "agent_presence_current_queue_id_fkey"
+            columns: ["current_queue_id"]
+            isOneToOne: false
+            referencedRelation: "queues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       agent_skills: {
         Row: {
@@ -13810,7 +13809,15 @@ export type Database = {
           updated_at?: string | null
           xp?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "agent_stats_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       agent_templates: {
         Row: {
@@ -13860,7 +13867,7 @@ export type Database = {
           id: string | null
           input: Json | null
           latency_ms: number | null
-          level: "debug" | "info" | "warning" | "error" | "critical" | null
+          level: Database["zapp"]["Enums"]["trace_level"] | null
           metadata: Json | null
           output: Json | null
           session_id: string | null
@@ -13875,7 +13882,7 @@ export type Database = {
           id?: string | null
           input?: Json | null
           latency_ms?: number | null
-          level?: "debug" | "info" | "warning" | "error" | "critical" | null
+          level?: Database["zapp"]["Enums"]["trace_level"] | null
           metadata?: Json | null
           output?: Json | null
           session_id?: string | null
@@ -13890,7 +13897,7 @@ export type Database = {
           id?: string | null
           input?: Json | null
           latency_ms?: number | null
-          level?: "debug" | "info" | "warning" | "error" | "critical" | null
+          level?: Database["zapp"]["Enums"]["trace_level"] | null
           metadata?: Json | null
           output?: Json | null
           session_id?: string | null
@@ -14005,7 +14012,29 @@ export type Database = {
           granted_by?: string | null
           id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "agent_visibility_grants_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_visibility_grants_can_see_agent_id_fkey"
+            columns: ["can_see_agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_visibility_grants_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       agents: {
         Row: {
@@ -14019,17 +14048,7 @@ export type Database = {
           name: string | null
           persona: string | null
           reasoning: string | null
-          status:
-            | "draft"
-            | "configured"
-            | "testing"
-            | "staging"
-            | "review"
-            | "production"
-            | "monitoring"
-            | "deprecated"
-            | "archived"
-            | null
+          status: Database["zapp"]["Enums"]["agent_status"] | null
           tags: string[] | null
           template_category: string | null
           updated_at: string | null
@@ -14048,17 +14067,7 @@ export type Database = {
           name?: string | null
           persona?: string | null
           reasoning?: string | null
-          status?:
-            | "draft"
-            | "configured"
-            | "testing"
-            | "staging"
-            | "review"
-            | "production"
-            | "monitoring"
-            | "deprecated"
-            | "archived"
-            | null
+          status?: Database["zapp"]["Enums"]["agent_status"] | null
           tags?: string[] | null
           template_category?: string | null
           updated_at?: string | null
@@ -14077,17 +14086,7 @@ export type Database = {
           name?: string | null
           persona?: string | null
           reasoning?: string | null
-          status?:
-            | "draft"
-            | "configured"
-            | "testing"
-            | "staging"
-            | "review"
-            | "production"
-            | "monitoring"
-            | "deprecated"
-            | "archived"
-            | null
+          status?: Database["zapp"]["Enums"]["agent_status"] | null
           tags?: string[] | null
           template_category?: string | null
           updated_at?: string | null
@@ -14122,7 +14121,22 @@ export type Database = {
           source?: string | null
           tag_name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversation_tags_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_conversation_tags_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       alert_channels: {
         Row: {
@@ -14440,7 +14454,15 @@ export type Database = {
           meme_id?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "audio_meme_favorites_meme_id_fkey"
+            columns: ["meme_id"]
+            isOneToOne: false
+            referencedRelation: "audio_memes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       audio_memes: {
         Row: {
@@ -14629,7 +14651,15 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "auto_close_config_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       automation_executions: {
         Row: {
@@ -14713,7 +14743,29 @@ export type Database = {
           trigger_event?: string | null
           trigger_payload?: Json | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "automation_executions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_executions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_executions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       automation_rules: {
         Row: {
@@ -14773,7 +14825,22 @@ export type Database = {
           trigger_type?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "automation_rules_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_rules_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       automations: {
         Row: {
@@ -14830,7 +14897,29 @@ export type Database = {
           trigger_type?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "automations_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "service_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       avatars: {
         Row: {
@@ -15052,21 +15141,7 @@ export type Database = {
         Row: {
           action_config: Json | null
           action_order: number | null
-          action_type:
-            | "move_card"
-            | "set_field"
-            | "assign_user"
-            | "add_comment"
-            | "send_email"
-            | "send_notification"
-            | "create_card"
-            | "add_recurrence"
-            | "invoke_agent"
-            | "call_webhook"
-            | "call_mcp"
-            | "create_calendar_event"
-            | "update_register"
-            | null
+          action_type: Database["zapp"]["Enums"]["bpm_action_type"] | null
           agent_id: string | null
           automation_id: string | null
           created_at: string | null
@@ -15077,21 +15152,7 @@ export type Database = {
         Insert: {
           action_config?: Json | null
           action_order?: number | null
-          action_type?:
-            | "move_card"
-            | "set_field"
-            | "assign_user"
-            | "add_comment"
-            | "send_email"
-            | "send_notification"
-            | "create_card"
-            | "add_recurrence"
-            | "invoke_agent"
-            | "call_webhook"
-            | "call_mcp"
-            | "create_calendar_event"
-            | "update_register"
-            | null
+          action_type?: Database["zapp"]["Enums"]["bpm_action_type"] | null
           agent_id?: string | null
           automation_id?: string | null
           created_at?: string | null
@@ -15102,21 +15163,7 @@ export type Database = {
         Update: {
           action_config?: Json | null
           action_order?: number | null
-          action_type?:
-            | "move_card"
-            | "set_field"
-            | "assign_user"
-            | "add_comment"
-            | "send_email"
-            | "send_notification"
-            | "create_card"
-            | "add_recurrence"
-            | "invoke_agent"
-            | "call_webhook"
-            | "call_mcp"
-            | "create_calendar_event"
-            | "update_register"
-            | null
+          action_type?: Database["zapp"]["Enums"]["bpm_action_type"] | null
           agent_id?: string | null
           automation_id?: string | null
           created_at?: string | null
@@ -15223,16 +15270,7 @@ export type Database = {
           last_executed_at: string | null
           name: string | null
           trigger_config: Json | null
-          trigger_type:
-            | "card_created"
-            | "step_changed"
-            | "field_changed"
-            | "email_received"
-            | "condition_met"
-            | "schedule"
-            | "webhook_received"
-            | "manual"
-            | null
+          trigger_type: Database["zapp"]["Enums"]["bpm_trigger_type"] | null
           updated_at: string | null
         }
         Insert: {
@@ -15247,16 +15285,7 @@ export type Database = {
           last_executed_at?: string | null
           name?: string | null
           trigger_config?: Json | null
-          trigger_type?:
-            | "card_created"
-            | "step_changed"
-            | "field_changed"
-            | "email_received"
-            | "condition_met"
-            | "schedule"
-            | "webhook_received"
-            | "manual"
-            | null
+          trigger_type?: Database["zapp"]["Enums"]["bpm_trigger_type"] | null
           updated_at?: string | null
         }
         Update: {
@@ -15271,16 +15300,7 @@ export type Database = {
           last_executed_at?: string | null
           name?: string | null
           trigger_config?: Json | null
-          trigger_type?:
-            | "card_created"
-            | "step_changed"
-            | "field_changed"
-            | "email_received"
-            | "condition_met"
-            | "schedule"
-            | "webhook_received"
-            | "manual"
-            | null
+          trigger_type?: Database["zapp"]["Enums"]["bpm_trigger_type"] | null
           updated_at?: string | null
         }
         Relationships: []
@@ -15650,7 +15670,7 @@ export type Database = {
           day_of_month: number | null
           day_of_week: number | null
           end_date: string | null
-          frequency: "daily" | "weekly" | "monthly" | "yearly" | null
+          frequency: Database["zapp"]["Enums"]["bpm_recurrence_freq"] | null
           id: string | null
           interval_value: number | null
           is_active: boolean | null
@@ -15668,7 +15688,7 @@ export type Database = {
           day_of_month?: number | null
           day_of_week?: number | null
           end_date?: string | null
-          frequency?: "daily" | "weekly" | "monthly" | "yearly" | null
+          frequency?: Database["zapp"]["Enums"]["bpm_recurrence_freq"] | null
           id?: string | null
           interval_value?: number | null
           is_active?: boolean | null
@@ -15686,7 +15706,7 @@ export type Database = {
           day_of_month?: number | null
           day_of_week?: number | null
           end_date?: string | null
-          frequency?: "daily" | "weekly" | "monthly" | "yearly" | null
+          frequency?: Database["zapp"]["Enums"]["bpm_recurrence_freq"] | null
           id?: string | null
           interval_value?: number | null
           is_active?: boolean | null
@@ -15812,7 +15832,7 @@ export type Database = {
           priority: number | null
           recurrence_config: Json | null
           search_vector: unknown
-          status: "active" | "archived" | "completed" | "cancelled" | null
+          status: Database["zapp"]["Enums"]["bpm_card_status"] | null
           title: string | null
           updated_at: string | null
           workspace_id: string | null
@@ -15833,7 +15853,7 @@ export type Database = {
           priority?: number | null
           recurrence_config?: Json | null
           search_vector?: unknown
-          status?: "active" | "archived" | "completed" | "cancelled" | null
+          status?: Database["zapp"]["Enums"]["bpm_card_status"] | null
           title?: string | null
           updated_at?: string | null
           workspace_id?: string | null
@@ -15854,7 +15874,7 @@ export type Database = {
           priority?: number | null
           recurrence_config?: Json | null
           search_vector?: unknown
-          status?: "active" | "archived" | "completed" | "cancelled" | null
+          status?: Database["zapp"]["Enums"]["bpm_card_status"] | null
           title?: string | null
           updated_at?: string | null
           workspace_id?: string | null
@@ -16112,13 +16132,7 @@ export type Database = {
           color: string | null
           created_at: string | null
           created_by: string | null
-          default_view:
-            | "kanban"
-            | "list"
-            | "calendar"
-            | "timeline"
-            | "gantt"
-            | null
+          default_view: Database["zapp"]["Enums"]["bpm_view_type"] | null
           deleted_at: string | null
           description: string | null
           icon: string | null
@@ -16133,13 +16147,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           created_by?: string | null
-          default_view?:
-            | "kanban"
-            | "list"
-            | "calendar"
-            | "timeline"
-            | "gantt"
-            | null
+          default_view?: Database["zapp"]["Enums"]["bpm_view_type"] | null
           deleted_at?: string | null
           description?: string | null
           icon?: string | null
@@ -16154,13 +16162,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           created_by?: string | null
-          default_view?:
-            | "kanban"
-            | "list"
-            | "calendar"
-            | "timeline"
-            | "gantt"
-            | null
+          default_view?: Database["zapp"]["Enums"]["bpm_view_type"] | null
           deleted_at?: string | null
           description?: string | null
           icon?: string | null
@@ -16183,33 +16185,7 @@ export type Database = {
           deleted_at: string | null
           field_hash: string | null
           field_order: number | null
-          field_type:
-            | "TEXT_SHORT_FIELD"
-            | "TEXT_LONG_FIELD"
-            | "COMBO_BOX_FIELD"
-            | "DATE_PICKER_FIELD"
-            | "RADIO_BOX_FIELD"
-            | "CHECK_BOX_FIELD"
-            | "COMBO_BOX_USER_FIELD"
-            | "COMBO_BOX_REGISTER_FIELD"
-            | "COMBO_BOX_FLOW_FIELD"
-            | "CURRENCY_FIELD"
-            | "DUE_DATE_FIELD"
-            | "MAIL_FIELD"
-            | "PHONE_FIELD"
-            | "SWITCH_FIELD"
-            | "INPUT_LIST_FIELD"
-            | "NUMBER_FIELD"
-            | "DOC_FIELD"
-            | "INPUT_RICH_TEXT_FIELD"
-            | "LINK_FIELD"
-            | "FILE_FIELD"
-            | "RATING_FIELD"
-            | "COLOR_FIELD"
-            | "LOCATION_FIELD"
-            | "FORMULA_FIELD"
-            | "RELATION_FIELD"
-            | null
+          field_type: Database["zapp"]["Enums"]["bpm_field_type"] | null
           form_id: string | null
           help_text: string | null
           id: string | null
@@ -16229,33 +16205,7 @@ export type Database = {
           deleted_at?: string | null
           field_hash?: string | null
           field_order?: number | null
-          field_type?:
-            | "TEXT_SHORT_FIELD"
-            | "TEXT_LONG_FIELD"
-            | "COMBO_BOX_FIELD"
-            | "DATE_PICKER_FIELD"
-            | "RADIO_BOX_FIELD"
-            | "CHECK_BOX_FIELD"
-            | "COMBO_BOX_USER_FIELD"
-            | "COMBO_BOX_REGISTER_FIELD"
-            | "COMBO_BOX_FLOW_FIELD"
-            | "CURRENCY_FIELD"
-            | "DUE_DATE_FIELD"
-            | "MAIL_FIELD"
-            | "PHONE_FIELD"
-            | "SWITCH_FIELD"
-            | "INPUT_LIST_FIELD"
-            | "NUMBER_FIELD"
-            | "DOC_FIELD"
-            | "INPUT_RICH_TEXT_FIELD"
-            | "LINK_FIELD"
-            | "FILE_FIELD"
-            | "RATING_FIELD"
-            | "COLOR_FIELD"
-            | "LOCATION_FIELD"
-            | "FORMULA_FIELD"
-            | "RELATION_FIELD"
-            | null
+          field_type?: Database["zapp"]["Enums"]["bpm_field_type"] | null
           form_id?: string | null
           help_text?: string | null
           id?: string | null
@@ -16275,33 +16225,7 @@ export type Database = {
           deleted_at?: string | null
           field_hash?: string | null
           field_order?: number | null
-          field_type?:
-            | "TEXT_SHORT_FIELD"
-            | "TEXT_LONG_FIELD"
-            | "COMBO_BOX_FIELD"
-            | "DATE_PICKER_FIELD"
-            | "RADIO_BOX_FIELD"
-            | "CHECK_BOX_FIELD"
-            | "COMBO_BOX_USER_FIELD"
-            | "COMBO_BOX_REGISTER_FIELD"
-            | "COMBO_BOX_FLOW_FIELD"
-            | "CURRENCY_FIELD"
-            | "DUE_DATE_FIELD"
-            | "MAIL_FIELD"
-            | "PHONE_FIELD"
-            | "SWITCH_FIELD"
-            | "INPUT_LIST_FIELD"
-            | "NUMBER_FIELD"
-            | "DOC_FIELD"
-            | "INPUT_RICH_TEXT_FIELD"
-            | "LINK_FIELD"
-            | "FILE_FIELD"
-            | "RATING_FIELD"
-            | "COLOR_FIELD"
-            | "LOCATION_FIELD"
-            | "FORMULA_FIELD"
-            | "RELATION_FIELD"
-            | null
+          field_type?: Database["zapp"]["Enums"]["bpm_field_type"] | null
           form_id?: string | null
           help_text?: string | null
           id?: string | null
@@ -16567,33 +16491,7 @@ export type Database = {
           deleted_at: string | null
           field_hash: string | null
           field_order: number | null
-          field_type:
-            | "TEXT_SHORT_FIELD"
-            | "TEXT_LONG_FIELD"
-            | "COMBO_BOX_FIELD"
-            | "DATE_PICKER_FIELD"
-            | "RADIO_BOX_FIELD"
-            | "CHECK_BOX_FIELD"
-            | "COMBO_BOX_USER_FIELD"
-            | "COMBO_BOX_REGISTER_FIELD"
-            | "COMBO_BOX_FLOW_FIELD"
-            | "CURRENCY_FIELD"
-            | "DUE_DATE_FIELD"
-            | "MAIL_FIELD"
-            | "PHONE_FIELD"
-            | "SWITCH_FIELD"
-            | "INPUT_LIST_FIELD"
-            | "NUMBER_FIELD"
-            | "DOC_FIELD"
-            | "INPUT_RICH_TEXT_FIELD"
-            | "LINK_FIELD"
-            | "FILE_FIELD"
-            | "RATING_FIELD"
-            | "COLOR_FIELD"
-            | "LOCATION_FIELD"
-            | "FORMULA_FIELD"
-            | "RELATION_FIELD"
-            | null
+          field_type: Database["zapp"]["Enums"]["bpm_field_type"] | null
           id: string | null
           is_required: boolean | null
           label: string | null
@@ -16606,33 +16504,7 @@ export type Database = {
           deleted_at?: string | null
           field_hash?: string | null
           field_order?: number | null
-          field_type?:
-            | "TEXT_SHORT_FIELD"
-            | "TEXT_LONG_FIELD"
-            | "COMBO_BOX_FIELD"
-            | "DATE_PICKER_FIELD"
-            | "RADIO_BOX_FIELD"
-            | "CHECK_BOX_FIELD"
-            | "COMBO_BOX_USER_FIELD"
-            | "COMBO_BOX_REGISTER_FIELD"
-            | "COMBO_BOX_FLOW_FIELD"
-            | "CURRENCY_FIELD"
-            | "DUE_DATE_FIELD"
-            | "MAIL_FIELD"
-            | "PHONE_FIELD"
-            | "SWITCH_FIELD"
-            | "INPUT_LIST_FIELD"
-            | "NUMBER_FIELD"
-            | "DOC_FIELD"
-            | "INPUT_RICH_TEXT_FIELD"
-            | "LINK_FIELD"
-            | "FILE_FIELD"
-            | "RATING_FIELD"
-            | "COLOR_FIELD"
-            | "LOCATION_FIELD"
-            | "FORMULA_FIELD"
-            | "RELATION_FIELD"
-            | null
+          field_type?: Database["zapp"]["Enums"]["bpm_field_type"] | null
           id?: string | null
           is_required?: boolean | null
           label?: string | null
@@ -16645,33 +16517,7 @@ export type Database = {
           deleted_at?: string | null
           field_hash?: string | null
           field_order?: number | null
-          field_type?:
-            | "TEXT_SHORT_FIELD"
-            | "TEXT_LONG_FIELD"
-            | "COMBO_BOX_FIELD"
-            | "DATE_PICKER_FIELD"
-            | "RADIO_BOX_FIELD"
-            | "CHECK_BOX_FIELD"
-            | "COMBO_BOX_USER_FIELD"
-            | "COMBO_BOX_REGISTER_FIELD"
-            | "COMBO_BOX_FLOW_FIELD"
-            | "CURRENCY_FIELD"
-            | "DUE_DATE_FIELD"
-            | "MAIL_FIELD"
-            | "PHONE_FIELD"
-            | "SWITCH_FIELD"
-            | "INPUT_LIST_FIELD"
-            | "NUMBER_FIELD"
-            | "DOC_FIELD"
-            | "INPUT_RICH_TEXT_FIELD"
-            | "LINK_FIELD"
-            | "FILE_FIELD"
-            | "RATING_FIELD"
-            | "COLOR_FIELD"
-            | "LOCATION_FIELD"
-            | "FORMULA_FIELD"
-            | "RELATION_FIELD"
-            | null
+          field_type?: Database["zapp"]["Enums"]["bpm_field_type"] | null
           id?: string | null
           is_required?: boolean | null
           label?: string | null
@@ -16796,13 +16642,7 @@ export type Database = {
           row_height: string | null
           sort_config: Json | null
           updated_at: string | null
-          view_type:
-            | "kanban"
-            | "list"
-            | "calendar"
-            | "timeline"
-            | "gantt"
-            | null
+          view_type: Database["zapp"]["Enums"]["bpm_view_type"] | null
           visible_columns: Json | null
         }
         Insert: {
@@ -16821,13 +16661,7 @@ export type Database = {
           row_height?: string | null
           sort_config?: Json | null
           updated_at?: string | null
-          view_type?:
-            | "kanban"
-            | "list"
-            | "calendar"
-            | "timeline"
-            | "gantt"
-            | null
+          view_type?: Database["zapp"]["Enums"]["bpm_view_type"] | null
           visible_columns?: Json | null
         }
         Update: {
@@ -16846,13 +16680,7 @@ export type Database = {
           row_height?: string | null
           sort_config?: Json | null
           updated_at?: string | null
-          view_type?:
-            | "kanban"
-            | "list"
-            | "calendar"
-            | "timeline"
-            | "gantt"
-            | null
+          view_type?: Database["zapp"]["Enums"]["bpm_view_type"] | null
           visible_columns?: Json | null
         }
         Relationships: []
@@ -17041,7 +16869,29 @@ export type Database = {
           status?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "calls_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calls_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calls_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       campaign_ab_variants: {
         Row: {
@@ -17083,7 +16933,15 @@ export type Database = {
           send_count?: number | null
           variant_name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "campaign_ab_variants_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       campaign_contacts: {
         Row: {
@@ -17116,7 +16974,29 @@ export type Database = {
           sent_at?: string | null
           status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "campaign_contacts_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_contacts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_contacts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       campaigns: {
         Row: {
@@ -17191,7 +17071,29 @@ export type Database = {
           updated_at?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "campaigns_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "campaigns_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       channel_connections: {
         Row: {
@@ -17242,7 +17144,29 @@ export type Database = {
           webhook_url?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "channel_connections_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "channel_connections_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "channel_connections_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       channel_connections_safe: {
         Row: {
@@ -17284,7 +17208,29 @@ export type Database = {
           webhook_url?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "channel_connections_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "channel_connections_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "channel_connections_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       channel_provider_routes: {
         Row: {
@@ -17323,7 +17269,64 @@ export type Database = {
           updated_at?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "channel_provider_routes_channel_connection_id_fkey"
+            columns: ["channel_connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_provider_routes_channel_connection_id_fkey"
+            columns: ["channel_connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_provider_routes_current_provider_id_fkey"
+            columns: ["current_provider_id"]
+            isOneToOne: false
+            referencedRelation: "provider_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_provider_routes_fallback_provider_id_fkey"
+            columns: ["fallback_provider_id"]
+            isOneToOne: false
+            referencedRelation: "provider_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_provider_routes_primary_provider_id_fkey"
+            columns: ["primary_provider_id"]
+            isOneToOne: false
+            referencedRelation: "provider_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_provider_routes_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "channel_provider_routes_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "channel_provider_routes_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       channel_queues: {
         Row: {
@@ -17392,7 +17395,29 @@ export type Database = {
           priority?: number | null
           queue_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "channel_routing_rules_channel_connection_id_fkey"
+            columns: ["channel_connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_routing_rules_channel_connection_id_fkey"
+            columns: ["channel_connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_routing_rules_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "queues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chatbot_executions: {
         Row: {
@@ -17431,7 +17456,29 @@ export type Database = {
           status?: string | null
           variables?: Json | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "chatbot_executions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chatbot_executions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chatbot_executions_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "chatbot_flows"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chatbot_flows: {
         Row: {
@@ -17485,7 +17532,29 @@ export type Database = {
           variables?: Json | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "chatbot_flows_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "chatbot_flows_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "chatbot_flows_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chunks: {
         Row: {
@@ -17566,7 +17635,15 @@ export type Database = {
           priority?: number | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "client_wallet_rules_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       colaboradores: {
         Row: {
@@ -17836,7 +17913,29 @@ export type Database = {
           response_time_ms?: number | null
           status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "connection_health_logs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "connection_health_logs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "connection_health_logs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       consent_records: {
         Row: {
@@ -17974,7 +18073,22 @@ export type Database = {
           id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contact_custom_fields_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_custom_fields_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contact_export_log: {
         Row: {
@@ -18058,7 +18172,22 @@ export type Database = {
           total_messages: number | null
           updated_at: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ci_contact_id_fk"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ci_contact_id_fk"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contact_notes: {
         Row: {
@@ -18085,7 +18214,29 @@ export type Database = {
           id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contact_notes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contact_phones: {
         Row: {
@@ -18130,7 +18281,22 @@ export type Database = {
           phone_raw?: string | null
           verified_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contact_phones_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_phones_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contact_purchases: {
         Row: {
@@ -18178,7 +18344,29 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contact_purchases_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_purchases_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_purchases_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "sales_deals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contact_segments: {
         Row: {
@@ -18238,7 +18426,29 @@ export type Database = {
           id?: string | null
           tag_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contact_tags_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_tags_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contacts: {
         Row: {
@@ -18487,7 +18697,29 @@ export type Database = {
           topics?: string[] | null
           urgency?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversation_analyses_analyzed_by_fkey"
+            columns: ["analyzed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_analyses_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_analyses_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_audit_logs: {
         Row: {
@@ -18538,7 +18770,15 @@ export type Database = {
           source?: string | null
           user_agent?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversation_audit_logs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_pins"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_closures: {
         Row: {
@@ -18571,7 +18811,29 @@ export type Database = {
           notes?: string | null
           outcome?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversation_closures_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_closures_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_closures_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_events: {
         Row: {
@@ -18622,7 +18884,57 @@ export type Database = {
           to_queue_id?: string | null
           trace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversation_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_events_from_agent_id_fkey"
+            columns: ["from_agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_events_from_queue_id_fkey"
+            columns: ["from_queue_id"]
+            isOneToOne: false
+            referencedRelation: "queues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_events_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_events_to_agent_id_fkey"
+            columns: ["to_agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_events_to_queue_id_fkey"
+            columns: ["to_queue_id"]
+            isOneToOne: false
+            referencedRelation: "queues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_memory: {
         Row: {
@@ -18664,7 +18976,29 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversation_memory_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_memory_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_memory_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_participants: {
         Row: {
@@ -18706,7 +19040,15 @@ export type Database = {
           role?: string | null
           thread_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversation_participants_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_threads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_pins: {
         Row: {
@@ -18769,7 +19111,29 @@ export type Database = {
           sla_configuration_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversation_sla_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_sla_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_sla_sla_configuration_id_fkey"
+            columns: ["sla_configuration_id"]
+            isOneToOne: false
+            referencedRelation: "sla_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_snoozes: {
         Row: {
@@ -18796,7 +19160,29 @@ export type Database = {
           snooze_until?: string | null
           snoozed_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversation_snoozes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_snoozes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_snoozes_snoozed_by_fkey"
+            columns: ["snoozed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_summaries: {
         Row: {
@@ -18868,7 +19254,29 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversation_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_tasks_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_tasks_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_threads: {
         Row: {
@@ -19033,7 +19441,22 @@ export type Database = {
           transfer_type?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversation_transfers_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_transfers_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cookies_config: {
         Row: {
@@ -19354,7 +19777,15 @@ export type Database = {
           severity?: string | null
           threshold?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "crisis_room_alerts_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cron_schedule_executions: {
         Row: {
@@ -19459,7 +19890,36 @@ export type Database = {
           updated_by?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "csat_auto_config_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "csat_auto_config_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "csat_auto_config_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "csat_auto_config_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       csat_responses: {
         Row: {
@@ -19525,7 +19985,29 @@ export type Database = {
           id?: string | null
           rating?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "csat_surveys_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "csat_surveys_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "csat_surveys_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       custom_emojis: {
         Row: {
@@ -19675,7 +20157,22 @@ export type Database = {
           id?: string | null
           performed_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "deal_activities_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "sales_deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_activities_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       department_invitations: {
         Row: {
@@ -19726,7 +20223,22 @@ export type Database = {
           used_at?: string | null
           used_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "department_invitations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_invitations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       departments: {
         Row: {
@@ -21760,7 +22272,22 @@ export type Database = {
           unread_count?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evolution_conversations_artes: {
         Row: {
@@ -25402,7 +25929,22 @@ export type Database = {
           template_name?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evolution_messages_artes: {
         Row: {
@@ -29027,12 +29569,7 @@ export type Database = {
           instance_name: string | null
           notes: string | null
           pipeline_status:
-            | "healthy"
-            | "warning"
-            | "degraded_webhook"
-            | "degraded_sender"
-            | "critical_alerts"
-            | "critical"
+            | Database["zapp"]["Enums"]["evolution_pipeline_status"]
             | null
           probe_latency_ms: number | null
           probe_status: string | null
@@ -29062,12 +29599,7 @@ export type Database = {
           instance_name?: string | null
           notes?: string | null
           pipeline_status?:
-            | "healthy"
-            | "warning"
-            | "degraded_webhook"
-            | "degraded_sender"
-            | "critical_alerts"
-            | "critical"
+            | Database["zapp"]["Enums"]["evolution_pipeline_status"]
             | null
           probe_latency_ms?: number | null
           probe_status?: string | null
@@ -29097,12 +29629,7 @@ export type Database = {
           instance_name?: string | null
           notes?: string | null
           pipeline_status?:
-            | "healthy"
-            | "warning"
-            | "degraded_webhook"
-            | "degraded_sender"
-            | "critical_alerts"
-            | "critical"
+            | Database["zapp"]["Enums"]["evolution_pipeline_status"]
             | null
           probe_latency_ms?: number | null
           probe_status?: string | null
@@ -29869,7 +30396,15 @@ export type Database = {
           sent_to_whatsapp?: boolean | null
           status_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "evolution_status_reactions_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_whatsapp_status"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evolution_tag_assignments: {
         Row: {
@@ -31171,7 +31706,22 @@ export type Database = {
           viewed_at?: string | null
           viewed_by_us?: boolean | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       extensions: {
         Row: {
@@ -31198,7 +31748,15 @@ export type Database = {
           type?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "extensions_tenant_external_id_fkey"
+            columns: ["tenant_external_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["external_id"]
+          },
+        ]
       }
       failed_messages: {
         Row: {
@@ -31285,7 +31843,22 @@ export type Database = {
           id?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "favorite_contacts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "favorite_contacts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feature_flags: {
         Row: {
@@ -31438,7 +32011,29 @@ export type Database = {
           started_at?: string | null
           status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "followup_executions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_executions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_executions_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "followup_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       followup_sequences: {
         Row: {
@@ -31471,7 +32066,29 @@ export type Database = {
           updated_at?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "followup_sequences_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "followup_sequences_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "followup_sequences_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       followup_steps: {
         Row: {
@@ -31504,7 +32121,15 @@ export type Database = {
           sequence_id?: string | null
           step_order?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "followup_steps_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "followup_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       forensic_snapshots: {
         Row: {
@@ -32035,7 +32660,15 @@ export type Database = {
           webhook_enabled?: boolean | null
           webhook_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "instance_registry_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       integration_profiles: {
         Row: {
@@ -32479,7 +33112,15 @@ export type Database = {
           rule_id?: string | null
           severity?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "media_quarantine_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "media_security_config"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       media_scan_log: {
         Row: {
@@ -32770,7 +33411,29 @@ export type Database = {
           message_id?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "message_reactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_reactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       message_templates: {
         Row: {
@@ -32865,7 +33528,22 @@ export type Database = {
           whatsapp_message_id: string | null
           whatsapp_timestamp: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mfa_sessions: {
         Row: {
@@ -33493,7 +34171,29 @@ export type Database = {
           sticker_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "outbound_message_queue_audio_meme_id_fkey"
+            columns: ["audio_meme_id"]
+            isOneToOne: false
+            referencedRelation: "audio_memes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outbound_message_queue_sticker_id_fkey"
+            columns: ["sticker_id"]
+            isOneToOne: false
+            referencedRelation: "mv_top_stickers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outbound_message_queue_sticker_id_fkey"
+            columns: ["sticker_id"]
+            isOneToOne: false
+            referencedRelation: "stickers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       outbox_events: {
         Row: {
@@ -33688,7 +34388,15 @@ export type Database = {
           token_hash?: string | null
           used_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "password_reset_tokens_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "password_reset_requests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       perfis_usuarios: {
         Row: {
@@ -33900,7 +34608,29 @@ export type Database = {
           pinned_by?: string | null
           position?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pinned_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pinned_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pinned_conversations_pinned_by_fkey"
+            columns: ["pinned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       processed_webhook_events: {
         Row: {
@@ -34110,7 +34840,22 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       provider_configs: {
         Row: {
@@ -34290,7 +35035,22 @@ export type Database = {
           provider_id?: string | null
           session_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "provider_session_logs_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "provider_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_session_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "provider_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       provider_sessions: {
         Row: {
@@ -34326,85 +35086,50 @@ export type Database = {
           status?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
-      }
-      proxy_alerts: {
-        Row: {
-          alert_type: string | null
-          created_at: string | null
-          id: string | null
-          investigated_by: string | null
-          is_resolved: boolean | null
-          kind: string | null
-          message: string | null
-          proxy_id: string | null
-          response_id: string | null
-          severity: string | null
-          ts: string | null
-        }
-        Insert: {
-          alert_type?: string | null
-          created_at?: string | null
-          id?: string | null
-          investigated_by?: string | null
-          is_resolved?: boolean | null
-          kind?: string | null
-          message?: string | null
-          proxy_id?: string | null
-          response_id?: string | null
-          severity?: string | null
-          ts?: string | null
-        }
-        Update: {
-          alert_type?: string | null
-          created_at?: string | null
-          id?: string | null
-          investigated_by?: string | null
-          is_resolved?: boolean | null
-          kind?: string | null
-          message?: string | null
-          proxy_id?: string | null
-          response_id?: string | null
-          severity?: string | null
-          ts?: string | null
-        }
-        Relationships: []
-      }
-      proxy_metrics: {
-        Row: {
-          avg_latency_ms: number | null
-          id: string | null
-          proxy_id: string | null
-          recorded_at: string | null
-          requests_blocked: number | null
-          requests_total: number | null
-          status: string | null
-          target: string | null
-          ts: string | null
-        }
-        Insert: {
-          avg_latency_ms?: number | null
-          id?: string | null
-          proxy_id?: string | null
-          recorded_at?: string | null
-          requests_blocked?: number | null
-          requests_total?: number | null
-          status?: string | null
-          target?: string | null
-          ts?: string | null
-        }
-        Update: {
-          avg_latency_ms?: number | null
-          id?: string | null
-          proxy_id?: string | null
-          recorded_at?: string | null
-          requests_blocked?: number | null
-          requests_total?: number | null
-          status?: string | null
-          target?: string | null
-          ts?: string | null
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "provider_sessions_channel_connection_id_fkey"
+            columns: ["channel_connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_sessions_channel_connection_id_fkey"
+            columns: ["channel_connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_sessions_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "provider_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_sessions_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "provider_sessions_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "provider_sessions_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       qr_attempts: {
         Row: {
@@ -34452,7 +35177,29 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "qr_attempts_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "qr_attempts_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "qr_attempts_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       queue_goals: {
         Row: {
@@ -34563,7 +35310,22 @@ export type Database = {
           queue_id?: string | null
           role?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "queue_members_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "queue_members_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "queues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       queue_positions: {
         Row: {
@@ -34596,7 +35358,22 @@ export type Database = {
           position?: number | null
           queue_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "queue_positions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "queue_positions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       queue_routing_rules: {
         Row: {
@@ -34626,7 +35403,15 @@ export type Database = {
           queue_id?: string | null
           rule_type?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "queue_routing_rules_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "queues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       queue_skill_requirements: {
         Row: {
@@ -34752,7 +35537,29 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "queues_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "queues_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "queues_sla_policy_id_fkey"
+            columns: ["sla_policy_id"]
+            isOneToOne: false
+            referencedRelation: "sla_policies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quick_replies: {
         Row: {
@@ -34938,7 +35745,22 @@ export type Database = {
           status?: string | null
           triggered_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "reconnection_logs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reconnection_logs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reminders: {
         Row: {
@@ -34971,7 +35793,22 @@ export type Database = {
           remind_at?: string | null
           title?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "reminders_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reprocess_jobs: {
         Row: {
@@ -35091,7 +35928,15 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"] | null
           role_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       roles: {
         Row: {
@@ -35250,7 +36095,36 @@ export type Database = {
           value?: number | null
           won_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sales_deals_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_deals_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_deals_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_deals_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "sales_pipeline_stages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sales_pipeline_stages: {
         Row: {
@@ -35436,7 +36310,43 @@ export type Database = {
           updated_at?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_messages_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_messages_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_messages_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "scheduled_messages_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "scheduled_messages_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scheduled_report_configs: {
         Row: {
@@ -35703,7 +36613,15 @@ export type Database = {
           user_agent?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "security_audit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       security_events: {
         Row: {
@@ -35910,7 +36828,29 @@ export type Database = {
           sicoob_vendedor_id?: string | null
           zappweb_agent_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sicoob_contact_mapping_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sicoob_contact_mapping_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sicoob_contact_mapping_zappweb_agent_id_fkey"
+            columns: ["zappweb_agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sicoob_reply_outbox: {
         Row: {
@@ -36108,7 +37048,15 @@ export type Database = {
           rule_id?: string | null
           threshold_type?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sla_delivery_violations_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sla_history: {
         Row: {
@@ -36153,7 +37101,22 @@ export type Database = {
           status?: string | null
           thread_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sla_history_sla_config_id_fkey"
+            columns: ["sla_config_id"]
+            isOneToOne: false
+            referencedRelation: "sla_configurations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sla_history_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_threads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sla_policies: {
         Row: {
@@ -36255,7 +37218,29 @@ export type Database = {
           resolution_minutes?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sla_rules_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sla_rules_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sla_rules_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sla_violations: {
         Row: {
@@ -36297,7 +37282,15 @@ export type Database = {
           sla_policy_id?: string | null
           violation_type?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sla_violations_sla_policy_id_fkey"
+            columns: ["sla_policy_id"]
+            isOneToOne: false
+            referencedRelation: "sla_policies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       solicitacoes_vale: {
         Row: {
@@ -36393,7 +37386,22 @@ export type Database = {
           sticker_id?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sticker_favorites_sticker_id_fkey"
+            columns: ["sticker_id"]
+            isOneToOne: false
+            referencedRelation: "mv_top_stickers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sticker_favorites_sticker_id_fkey"
+            columns: ["sticker_id"]
+            isOneToOne: false
+            referencedRelation: "stickers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stickers: {
         Row: {
@@ -36489,7 +37497,36 @@ export type Database = {
           last_assigned_at?: string | null
           queue_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sticky_assignments_agent_profile_id_fkey"
+            columns: ["agent_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sticky_assignments_channel_connection_id_fkey"
+            columns: ["channel_connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sticky_assignments_channel_connection_id_fkey"
+            columns: ["channel_connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sticky_assignments_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "queues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       storage_cleanup_logs: {
         Row: {
@@ -37059,7 +38096,15 @@ export type Database = {
           tag_name?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tags_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       talkx_blacklist: {
         Row: {
@@ -37083,7 +38128,29 @@ export type Database = {
           id?: string | null
           reason?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "talkx_blacklist_blocked_by_fkey"
+            columns: ["blocked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talkx_blacklist_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talkx_blacklist_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       talkx_campaigns: {
         Row: {
@@ -37158,7 +38225,29 @@ export type Database = {
           variables_config?: Json | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "talkx_campaigns_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "talkx_campaigns_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "talkx_campaigns_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       talkx_recipients: {
         Row: {
@@ -37200,7 +38289,29 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "talkx_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "talkx_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talkx_recipients_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talkx_recipients_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       task_queues: {
         Row: {
@@ -37254,7 +38365,22 @@ export type Database = {
           last_read_at?: string | null
           profile_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "team_conversation_members_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "team_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_conversation_members_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_conversations: {
         Row: {
@@ -37290,7 +38416,29 @@ export type Database = {
           type?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "team_conversations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_conversations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_conversations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_message_reactions: {
         Row: {
@@ -37344,7 +38492,22 @@ export type Database = {
           read_at?: string | null
           status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "team_message_receipts_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "team_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_message_receipts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_messages: {
         Row: {
@@ -37389,7 +38552,29 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "team_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "team_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "team_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tenants: {
         Row: {
@@ -37527,7 +38712,22 @@ export type Database = {
           metadata?: Json | null
           transfer_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "transfer_comments_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfer_comments_transfer_id_fkey"
+            columns: ["transfer_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_transfers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transportadoras: {
         Row: {
@@ -37725,7 +38925,15 @@ export type Database = {
           user_id?: string | null
           workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       user_service_accounts: {
         Row: {
@@ -37800,7 +39008,15 @@ export type Database = {
           user_agent?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_sessions_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "user_devices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_settings: {
         Row: {
@@ -38089,7 +39305,7 @@ export type Database = {
       }
       warroom_alerts: {
         Row: {
-          alert_type: "info" | "warning" | "critical" | "sla_breach" | null
+          alert_type: Database["zapp"]["Enums"]["warroom_alert_type"] | null
           created_at: string | null
           dismissed_by: string | null
           entity: string | null
@@ -38102,7 +39318,7 @@ export type Database = {
           title: string | null
         }
         Insert: {
-          alert_type?: "info" | "warning" | "critical" | "sla_breach" | null
+          alert_type?: Database["zapp"]["Enums"]["warroom_alert_type"] | null
           created_at?: string | null
           dismissed_by?: string | null
           entity?: string | null
@@ -38115,7 +39331,7 @@ export type Database = {
           title?: string | null
         }
         Update: {
-          alert_type?: "info" | "warning" | "critical" | "sla_breach" | null
+          alert_type?: Database["zapp"]["Enums"]["warroom_alert_type"] | null
           created_at?: string | null
           dismissed_by?: string | null
           entity?: string | null
@@ -38127,7 +39343,15 @@ export type Database = {
           source?: string | null
           title?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "warroom_alerts_dismissed_by_fkey"
+            columns: ["dismissed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       webauthn_challenges: {
         Row: {
@@ -38865,7 +40089,29 @@ export type Database = {
           verify_token?: string | null
           waba_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       whatsapp_official_credentials_safe: {
         Row: {
@@ -38901,7 +40147,29 @@ export type Database = {
           updated_at?: string | null
           waba_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       whatsapp_templates: {
         Row: {
@@ -38952,7 +40220,29 @@ export type Database = {
           variables?: string[] | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_templates_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_templates_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_templates_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       whisper_files: {
         Row: {
@@ -39027,7 +40317,29 @@ export type Database = {
           target_agent_id?: string | null
           whisper_thread_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "whisper_messages_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whisper_messages_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whisper_messages_target_agent_id_fkey"
+            columns: ["target_agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workspace_members: {
         Row: {
@@ -39247,7 +40559,7 @@ export type Database = {
         | { Args: { p_contact_id: string }; Returns: Json }
         | {
             Args: { p_instance?: string; p_remote_jid: string }
-            Returns: Database["public"]["Views"]["evolution_contacts"]["Row"][]
+            Returns: Database["evo"]["Tables"]["evolution_contacts"]["Row"][]
             SetofOptions: {
               from: "*"
               to: "evolution_contacts"
@@ -39339,6 +40651,7 @@ export type Database = {
       }
       _backup_avatar_urls_20260803: {
         Row: {
+          _pk: number
           id: string | null
           instance_name: string | null
           profile_picture_url: string | null
@@ -39346,6 +40659,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          _pk?: number
           id?: string | null
           instance_name?: string | null
           profile_picture_url?: string | null
@@ -39353,6 +40667,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          _pk?: number
           id?: string | null
           instance_name?: string | null
           profile_picture_url?: string | null
@@ -40500,6 +41815,74 @@ export type Database = {
           id?: string
         }
         Relationships: []
+      }
+      analytics_events: {
+        Row: {
+          action: string
+          category: string
+          created_at: string
+          id: string
+          label: string | null
+          metadata: Json | null
+          timestamp: string
+          user_id: string | null
+          value: number | null
+          workspace_id: string | null
+        }
+        Insert: {
+          action: string
+          category: string
+          created_at?: string
+          id?: string
+          label?: string | null
+          metadata?: Json | null
+          timestamp?: string
+          user_id?: string | null
+          value?: number | null
+          workspace_id?: string | null
+        }
+        Update: {
+          action?: string
+          category?: string
+          created_at?: string
+          id?: string
+          label?: string | null
+          metadata?: Json | null
+          timestamp?: string
+          user_id?: string | null
+          value?: number | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "analytics_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "analytics_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_rls_impact_preview"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "analytics_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       api_circuit_breaker: {
         Row: {
@@ -49346,84 +50729,6 @@ export type Database = {
           },
         ]
       }
-      proxy_alerts: {
-        Row: {
-          alert_type: string
-          created_at: string | null
-          id: string
-          investigated_by: string | null
-          is_resolved: boolean | null
-          kind: string | null
-          message: string | null
-          proxy_id: string | null
-          response_id: string | null
-          severity: string | null
-          ts: string | null
-        }
-        Insert: {
-          alert_type: string
-          created_at?: string | null
-          id?: string
-          investigated_by?: string | null
-          is_resolved?: boolean | null
-          kind?: string | null
-          message?: string | null
-          proxy_id?: string | null
-          response_id?: string | null
-          severity?: string | null
-          ts?: string | null
-        }
-        Update: {
-          alert_type?: string
-          created_at?: string | null
-          id?: string
-          investigated_by?: string | null
-          is_resolved?: boolean | null
-          kind?: string | null
-          message?: string | null
-          proxy_id?: string | null
-          response_id?: string | null
-          severity?: string | null
-          ts?: string | null
-        }
-        Relationships: []
-      }
-      proxy_metrics: {
-        Row: {
-          avg_latency_ms: number | null
-          id: string
-          proxy_id: string | null
-          recorded_at: string | null
-          requests_blocked: number | null
-          requests_total: number | null
-          status: string | null
-          target: string | null
-          ts: string | null
-        }
-        Insert: {
-          avg_latency_ms?: number | null
-          id?: string
-          proxy_id?: string | null
-          recorded_at?: string | null
-          requests_blocked?: number | null
-          requests_total?: number | null
-          status?: string | null
-          target?: string | null
-          ts?: string | null
-        }
-        Update: {
-          avg_latency_ms?: number | null
-          id?: string
-          proxy_id?: string | null
-          recorded_at?: string | null
-          requests_blocked?: number | null
-          requests_total?: number | null
-          status?: string | null
-          target?: string | null
-          ts?: string | null
-        }
-        Relationships: []
-      }
       qr_attempts: {
         Row: {
           connected_at: string | null
@@ -57539,7 +58844,50 @@ export type Database = {
           unread_count?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cookies_health_dashboard: {
         Row: {
@@ -59674,7 +61022,50 @@ export type Database = {
           unread_count?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evolution_conversations_artes: {
         Row: {
@@ -63388,7 +64779,50 @@ export type Database = {
           template_name?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evolution_messages_artes: {
         Row: {
@@ -67744,7 +69178,22 @@ export type Database = {
           sent_to_whatsapp?: boolean | null
           status_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "evolution_status_reactions_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_whatsapp_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_status_reactions_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "v_whatsapp_status_feed"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evolution_tag_assignments: {
         Row: {
@@ -69040,7 +70489,50 @@ export type Database = {
           viewed_at?: string | null
           viewed_by_us?: boolean | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       gmail_accounts: {
         Row: {
@@ -70078,7 +71570,50 @@ export type Database = {
           whatsapp_message_id: string | null
           whatsapp_timestamp: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       messages_whatsapp: {
         Row: {
@@ -70120,7 +71655,50 @@ export type Database = {
           remote_jid?: string | null
           status?: never
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       meta_capi_events: {
         Row: {
@@ -72109,7 +73687,50 @@ export type Database = {
           unread_count: number | null
           updated_at: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       v_pending_notifications: {
         Row: {
@@ -72854,7 +74475,50 @@ export type Database = {
           status: string | null
           storage_type: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vw_system_health: {
         Row: {
@@ -73669,6 +75333,10 @@ export type Database = {
         Args: { _contact_id: string; _user_id: string }
         Returns: boolean
       }
+      check_download_permission: {
+        Args: { p_resource_id: string }
+        Returns: boolean
+      }
       check_user_permission: {
         Args: { p_permission_name: string }
         Returns: boolean
@@ -73717,7 +75385,6 @@ export type Database = {
       cleanup_old_failed_messages: { Args: never; Returns: undefined }
       cleanup_old_instance_auth_events: { Args: never; Returns: number }
       cleanup_old_qr_attempts: { Args: never; Returns: undefined }
-      cleanup_proxy_metrics: { Args: never; Returns: undefined }
       cleanup_wa_cloud_pings: { Args: never; Returns: undefined }
       cleanup_webhook_event_dedup: { Args: never; Returns: number }
       clear_login_attempts: { Args: { p_email: string }; Returns: undefined }
@@ -73759,7 +75426,7 @@ export type Database = {
         | { Args: never; Returns: Record<string, unknown>[] }
       dblink_get_pkey: {
         Args: { "": string }
-        Returns: unknown[]
+        Returns: Database["public"]["CompositeTypes"]["dblink_pkey_results"][]
         SetofOptions: {
           from: "*"
           to: "dblink_pkey_results"
@@ -74235,6 +75902,10 @@ export type Database = {
       fn_cookie_probe_cycle: { Args: never; Returns: Json }
       fn_cookie_probe_dispatch: { Args: never; Returns: Json }
       fn_cookie_real_probe: { Args: never; Returns: Json }
+      fn_count_total_rows: {
+        Args: { p_schema: string; p_table: string }
+        Returns: number
+      }
       fn_create_notification: {
         Args: {
           p_contact_id?: string
@@ -74311,6 +75982,10 @@ export type Database = {
       fn_dlq_stats: { Args: never; Returns: Json }
       fn_dlq_verify_retries: { Args: never; Returns: Json }
       fn_drop_logflare_slot: { Args: never; Returns: string }
+      fn_edge_delete_evolution_credentials: {
+        Args: { p_id: string }
+        Returns: boolean
+      }
       fn_edge_get_evolution_credentials: {
         Args: { p_instance?: string }
         Returns: {
@@ -74321,6 +75996,17 @@ export type Database = {
           is_active: boolean
           last_health_check: string
         }[]
+      }
+      fn_edge_upsert_evolution_credentials: {
+        Args: {
+          p_api_key: string
+          p_api_url: string
+          p_department: string
+          p_display_name: string
+          p_instance_name: string
+          p_is_active: boolean
+        }
+        Returns: Json
       }
       fn_escalate_critical_alerts: { Args: never; Returns: Json }
       fn_evolution_audit_score: { Args: never; Returns: Json }
@@ -74883,7 +76569,7 @@ export type Database = {
       fn_score_v2_pipeline: { Args: never; Returns: Json }
       fn_search_contacts: {
         Args: { p_limit?: number; p_query: string }
-        Returns: Database["zapp"]["Views"]["evolution_contacts"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_contacts"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_contacts"
@@ -75121,6 +76807,14 @@ export type Database = {
       fn_zapp_web_system_health: { Args: never; Returns: Json }
       generate_transfer_ticket: { Args: never; Returns: string }
       get_active_encryption_key: { Args: never; Returns: string }
+      get_analytics_summary: {
+        Args: {
+          p_from_timestamp?: string
+          p_to_timestamp?: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       get_avatars_by_jids_batch: {
         Args: { p_jids: string[] }
         Returns: {
@@ -75176,10 +76870,13 @@ export type Database = {
         Args: { _connection_id: string }
         Returns: string
       }
-      get_contact_360_by_phone: { Args: { p_phone: string }; Returns: Json }
+      get_contact_360_by_phone: {
+        Args: { p_instance?: string; p_phone: string }
+        Returns: Json
+      }
       get_contact_conversations: {
         Args: { p_contact_id: string; p_limit?: number }
-        Returns: Database["zapp"]["Views"]["evolution_conversations"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_conversations"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_conversations"
@@ -75202,6 +76899,7 @@ export type Database = {
         }[]
       }
       get_contact_stats: { Args: { p_instance_name: string }; Returns: Json }
+      get_contacts_360_batch: { Args: { p_phones: string[] }; Returns: Json }
       get_contacts_via_cte_safe: {
         Args: { p_search_field: string; p_search_value: string }
         Returns: {
@@ -75570,23 +77268,6 @@ export type Database = {
             }
             Returns: boolean
           }
-        | {
-            Args: {
-              p_action: string
-              p_department_id: string
-              p_profile_id: string
-            }
-            Returns: boolean
-          }
-        | {
-            Args: {
-              _admin_user_id?: string
-              p_action: string
-              p_department_id: string
-              p_profile_id: string
-            }
-            Returns: boolean
-          }
       mark_follow_up_done: {
         Args: { p_message_id: string }
         Returns: undefined
@@ -75685,6 +77366,7 @@ export type Database = {
         Args: { p_contact_id: string; p_reason?: string }
         Returns: Json
       }
+      rpc_app_bootstrap: { Args: never; Returns: Json }
       rpc_associate_label: {
         Args: {
           p_action?: string
@@ -75727,7 +77409,7 @@ export type Database = {
           p_new_stage: string
           p_performed_by?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_deals"]["Row"]
+        Returns: Database["evo"]["Tables"]["evolution_deals"]["Row"]
         SetofOptions: {
           from: "*"
           to: "evolution_deals"
@@ -75772,7 +77454,7 @@ export type Database = {
       }
       rpc_complete_task: {
         Args: { p_completed_by?: string; p_id: string; p_notes?: string }
-        Returns: Database["zapp"]["Views"]["evolution_tasks"]["Row"]
+        Returns: Database["evo"]["Tables"]["evolution_tasks"]["Row"]
         SetofOptions: {
           from: "*"
           to: "evolution_tasks"
@@ -75816,6 +77498,15 @@ export type Database = {
       }
       rpc_dashboard_home: {
         Args: { p_assigned_to?: string; p_instance?: string }
+        Returns: Json
+      }
+      rpc_dashboard_init: {
+        Args: {
+          p_agent_id: string
+          p_date_from: string
+          p_date_to: string
+          p_queue_id: string
+        }
         Returns: Json
       }
       rpc_delete_contact: {
@@ -75862,14 +77553,6 @@ export type Database = {
         }
       }
       rpc_dispatch_error_stats: { Args: { p_hours?: number }; Returns: Json }
-      rpc_get_contact_summary_batch: {
-        Args: { p_contact_ids: string[] }
-        Returns: Json
-      }
-      rpc_get_reactions_batch: {
-        Args: { p_message_ids: string[] }
-        Returns: Json
-      }
       rpc_dlq_abandon: {
         Args: { p_id: string; p_reason?: string }
         Returns: boolean
@@ -76114,7 +77797,7 @@ export type Database = {
         | { Args: { p_contact_id: string }; Returns: Json }
         | {
             Args: { p_instance?: string; p_remote_jid: string }
-            Returns: Database["zapp"]["Views"]["evolution_contacts"]["Row"][]
+            Returns: Database["evo"]["Tables"]["evolution_contacts"]["Row"][]
             SetofOptions: {
               from: "*"
               to: "evolution_contacts"
@@ -76122,6 +77805,14 @@ export type Database = {
               isSetofReturn: true
             }
           }
+      rpc_get_contact_summary_batch: {
+        Args: { p_contact_ids: string[] }
+        Returns: {
+          contact_id: string
+          pending_tasks: number
+          unread_whispers: number
+        }[]
+      }
       rpc_get_conversation_media: {
         Args: {
           p_limit?: number
@@ -76153,7 +77844,7 @@ export type Database = {
       rpc_get_media_url: { Args: { p_message_id: string }; Returns: string }
       rpc_get_message_details: {
         Args: { p_message_id: string }
-        Returns: Database["zapp"]["Views"]["evolution_messages"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_messages"
@@ -76181,6 +77872,29 @@ export type Database = {
         Args: { p_instance_name?: string }
         Returns: Json
       }
+      rpc_get_pipeline_health_v2: {
+        Args: { p_instance_name?: string }
+        Returns: {
+          checked_at: string
+          failed_messages_24h: number
+          instance_name: string
+          oldest_pending_minutes: number
+          pending_messages: number
+          stuck_messages_30m: number
+          stuck_messages_5m: number
+        }[]
+      }
+      rpc_get_reactions_batch: {
+        Args: { p_message_ids: string[] }
+        Returns: {
+          contact_id: string
+          created_at: string
+          emoji: string
+          id: string
+          message_id: string
+          user_id: string
+        }[]
+      }
       rpc_get_whatsapp_mode: { Args: never; Returns: string }
       rpc_global_search: {
         Args: { p_instance?: string; p_limit?: number; p_query: string }
@@ -76202,6 +77916,10 @@ export type Database = {
         }
         Returns: Json
       }
+      rpc_inbox_preview_batch: {
+        Args: { p_instance?: string; p_limit?: number; p_remote_jids: string[] }
+        Returns: Json
+      }
       rpc_increment_sticker_use: {
         Args: { sticker_id: string }
         Returns: undefined
@@ -76217,7 +77935,7 @@ export type Database = {
               p_message_type?: string
               p_remote_jid: string
             }
-            Returns: Database["zapp"]["Views"]["evolution_messages"]["Row"]
+            Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"]
             SetofOptions: {
               from: "*"
               to: "evolution_messages"
@@ -76235,7 +77953,7 @@ export type Database = {
               p_message_type: string
               p_remote_jid: string
             }
-            Returns: Database["zapp"]["Views"]["evolution_messages"]["Row"]
+            Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"]
             SetofOptions: {
               from: "*"
               to: "evolution_messages"
@@ -76308,7 +78026,7 @@ export type Database = {
           p_offset?: number
           p_performed_by?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_audit_log"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_audit_log"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_audit_log"
@@ -76323,7 +78041,7 @@ export type Database = {
           p_offset?: number
           p_status?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_broadcasts"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_broadcasts"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_broadcasts"
@@ -76333,7 +78051,7 @@ export type Database = {
       }
       rpc_list_calls: {
         Args: { p_instance?: string; p_limit?: number; p_remote_jid?: string }
-        Returns: Database["zapp"]["Views"]["evolution_calls"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_calls"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_calls"
@@ -76390,7 +78108,7 @@ export type Database = {
           p_offset?: number
           p_search?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_contacts"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_contacts"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_contacts"
@@ -76406,7 +78124,7 @@ export type Database = {
           p_offset?: number
           p_status?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_conversations"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_conversations"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_conversations"
@@ -76423,7 +78141,7 @@ export type Database = {
           p_offset?: number
           p_stage?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_deals"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_deals"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_deals"
@@ -76566,7 +78284,7 @@ export type Database = {
           p_offset?: number
           p_search?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_groups"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_groups"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_groups"
@@ -76582,7 +78300,7 @@ export type Database = {
           p_search?: string
           p_type?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_labels"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_labels"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_labels"
@@ -76597,7 +78315,7 @@ export type Database = {
           p_offset?: number
           p_remote_jid?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_media"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_media"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_media"
@@ -76612,7 +78330,7 @@ export type Database = {
           p_limit?: number
           p_status?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_message_templates"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_message_templates"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_message_templates"
@@ -76627,7 +78345,7 @@ export type Database = {
           p_limit?: number
           p_remote_jid: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_messages"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_messages"
@@ -76646,7 +78364,7 @@ export type Database = {
           p_offset?: number
           p_search?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_messages"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_messages"
@@ -76662,7 +78380,7 @@ export type Database = {
           p_offset?: number
           p_remote_jid: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_messages"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_messages"
@@ -76677,7 +78395,7 @@ export type Database = {
           p_limit?: number
           p_search?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_quick_replies"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_quick_replies"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_quick_replies"
@@ -76727,7 +78445,7 @@ export type Database = {
           p_limit?: number
           p_search?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_tags"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_tags"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_tags"
@@ -76746,7 +78464,7 @@ export type Database = {
           p_offset?: number
           p_status?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_tasks"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_tasks"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_tasks"
@@ -77236,6 +78954,8 @@ export type Database = {
         }
         Returns: undefined
       }
+      rpc_schema_columns: { Args: { p_schema?: string }; Returns: Json }
+      rpc_schema_tables: { Args: { p_schema?: string }; Returns: Json }
       rpc_search_audio_memes: {
         Args: { p_category?: string; p_limit?: number; p_search: string }
         Returns: Json
@@ -77383,7 +79103,7 @@ export type Database = {
               p_role_title?: string
               p_tags?: string[]
             }
-            Returns: Database["zapp"]["Views"]["evolution_contacts"]["Row"]
+            Returns: Database["evo"]["Tables"]["evolution_contacts"]["Row"]
             SetofOptions: {
               from: "*"
               to: "evolution_contacts"
@@ -77419,7 +79139,7 @@ export type Database = {
           p_title: string
           p_value?: number
         }
-        Returns: Database["zapp"]["Views"]["evolution_deals"]["Row"]
+        Returns: Database["evo"]["Tables"]["evolution_deals"]["Row"]
         SetofOptions: {
           from: "*"
           to: "evolution_deals"
@@ -77503,7 +79223,7 @@ export type Database = {
           p_task_type?: string
           p_title: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_tasks"]["Row"]
+        Returns: Database["evo"]["Tables"]["evolution_tasks"]["Row"]
         SetofOptions: {
           from: "*"
           to: "evolution_tasks"
