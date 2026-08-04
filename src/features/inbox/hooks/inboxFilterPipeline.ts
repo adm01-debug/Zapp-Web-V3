@@ -117,6 +117,8 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
 
   const hasMineAssignments = conversations.some((c) => {
     if (!c?.contact?.id) return false;
+    if (!archivedTab && c.isArchived === true) return false;
+    if (archivedTab && c.isArchived !== true) return false;
     return assignedOf(c.contact.id, c.contact.assigned_to) === profileId;
   });
 

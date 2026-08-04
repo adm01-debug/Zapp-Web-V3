@@ -199,6 +199,7 @@ BEGIN
     JOIN pg_namespace n ON n.oid = c.relnamespace
     WHERE n.nspname = 'evo'
       AND c.relkind IN ('r', 'p')
+      AND NOT c.relispartition
       AND NOT c.relrowsecurity
       AND EXISTS (
         SELECT 1 FROM pg_policies p

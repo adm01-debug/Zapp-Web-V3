@@ -56,7 +56,7 @@ export interface ContractErrorResponse {
   error: true;
   code: ContractErrorCodeValue;
   message: string;
-  contract: string;
+  contract?: string;
   requestId?: string;
   details: Array<{ path: string; message: string }>;
 }
@@ -67,8 +67,7 @@ export function isContractErrorResponse(value: unknown): value is ContractErrorR
   const v = value as Record<string, unknown>;
   return v.error === true
     && typeof v.code === 'string'
-    && typeof v.message === 'string'
-    && typeof v.contract === 'string';
+    && typeof v.message === 'string';
 }
 
 // ─────────────────────────────────────────────
