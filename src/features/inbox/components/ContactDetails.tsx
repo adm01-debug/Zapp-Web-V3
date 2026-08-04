@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { undoToast } from '@/lib/undoToast';
 import { KnowledgeBaseSearchPanel } from './KnowledgeBaseSearchPanel';
 import { AnalysisBadges } from './AnalysisBadges';
+import { useArchiveConversationActions } from '../hooks/useArchiveConversationActions';
 
 const ACCORDION_STORAGE_KEY = 'contact-details-accordion-state';
 
@@ -66,6 +67,12 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
     refetchSLA,
   } = useContactEnrichedData(contact.id ?? '');
   const { profileId } = useConversationActions();
+  // Ação REAL de arquivar: soft-delete canônico do contato (deleted_at +
+  // deleted_reason='archived'). Toasts de sucesso/erro vêm do hook de mutação
+  // (useArchiveContact) e a lista da inbox é atualizada pela invalidação de
+  // queryKeys.contacts (lists/details) — sem onDone pois ContactDetails não
+  // recebe callback de refetch da lista (props: conversation + onClose apenas).
+  const { archive: archiveConversation } = useArchiveConversationActions();
   const panelRef = useRef<HTMLDivElement>(null);
   const [accordionValue, setAccordionValue] = useState<string[]>(getStoredAccordionState);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -112,15 +119,15 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
           },
         });
         break;
-      case 'archive':
-        undoToast({
-          message: `${contact.name} arquivado`,
-          icon: '📦',
-          onUndo: () => {
-            toast.info('Contato restaurado');
-          },
-        });
+      case 'archive': {
+        // Ação REAL (não é mais undoToast fake): arquiva o contato via
+        // useArchiveContact → contactsService.archive (soft-delete).
+        const contactId = contact.id;
+        if (contactId) {
+          void archiveConversation(contactId);
+        }
         break;
+      }
       case 'block':
         undoToast({
           message: `${contact.name} bloqueado`,

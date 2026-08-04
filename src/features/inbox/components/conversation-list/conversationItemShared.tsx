@@ -58,6 +58,13 @@ export interface ConversationItemData {
   tags?: string[] | null;
   connection_type?: string | null;
   priority?: string | null;
+  /**
+   * Contrato com a inbox: `true` quando a conversa está arquivada
+   * (contato soft-deletado com deleted_reason='archived').
+   * Quem monta o ConversationItemData (ex.: ConversationList) preenche a
+   * partir de `ConversationWithMessages.isArchived` / `contact.deleted_at`.
+   */
+  isArchived?: boolean;
 }
 
 /** Conversation Item Props component for the conversation list section. */

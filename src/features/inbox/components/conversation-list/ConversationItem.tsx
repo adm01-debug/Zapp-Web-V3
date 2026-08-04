@@ -21,6 +21,7 @@ import {
   Mail,
   Phone,
   Pin,
+  Archive,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { RetryFailureBadge } from './RetryFailureBadge';
@@ -69,6 +70,7 @@ interface ConversationLike {
   queue?: { id: string; name?: string } | null;
   tags?: string[] | null;
   connection_type?: string | null;
+  isArchived?: boolean;
 }
 
 
@@ -356,6 +358,15 @@ export const ConversationItem = memo(function ConversationItem({
                         )}
                       >
                         {primaryLabel}
+                        {conversation.isArchived && (
+                          <Archive
+                            className={cn(
+                              'ml-1 inline h-3.5 w-3.5 flex-shrink-0 align-text-bottom',
+                              isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground/70'
+                            )}
+                            aria-label="Arquivado"
+                          />
+                        )}
                         {companyName && (
                           <span
                             className={cn(
@@ -591,6 +602,15 @@ export const ConversationItem = memo(function ConversationItem({
                         )}
                       >
                         {primaryLabel}
+                        {conversation.isArchived && (
+                          <Archive
+                            className={cn(
+                              'ml-1 inline h-3.5 w-3.5 flex-shrink-0 align-text-bottom',
+                              isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground/70'
+                            )}
+                            aria-label="Arquivado"
+                          />
+                        )}
                         {companyName && (
                           <span
                             className={cn(

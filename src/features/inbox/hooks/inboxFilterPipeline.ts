@@ -52,6 +52,13 @@ export interface ApplyInboxFiltersOptions {
    * by an empty/deshydrated local permission payload during boot.
    */
   enforceChannelPermissions?: boolean;
+  /**
+   * Archived tab gate. When true, only conversations with `isArchived === true`
+   * are returned (search still applies; statusFilter/mainTab/subTab/scope/agent/
+   * queue/tags/failure filters are IGNORED for consistency with WhatsApp).
+   * When false (default), archived conversations are excluded from every filter.
+   */
+  archivedTab?: boolean;
 }
 
 /** Pure function that applies all active inbox filters (tab, scope, search, agent, queue, tags, failure category, date, contact type) and returns the filtered conversation list. */
@@ -80,6 +87,7 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
     hasPermission,
     permissionsLoading = false,
     enforceChannelPermissions = true,
+    archivedTab = false,
   } = opts;
 
   const shouldFilterChannels = !permissionsLoading && enforceChannelPermissions;
@@ -131,7 +139,16 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
     });
   }
 
+  // 0.5 Archived tab gate: aba Arquivados mostra SOMENTE arquivadas (mantendo
+  // busca); fora dela, conversas arquivadas são excluídas de todos os filtros.
+  if (archivedTab) {
+    result = result.filter((c) => c.isArchived === true);
+  } else {
+    result = result.filter((c) => c.isArchived !== true);
+  }
+
   // 1. Tab / Status filtering
+  if (!archivedTab) {
   if (effectiveSearch.length === 0) {
     if (mainTab === 'open') {
       result = result.filter((c) => {
@@ -201,6 +218,7 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
       result = result.filter((c) => c.unreadCount > 0 && statusOf(c.contact.id) !== 'resolved');
     }
   }
+  } // !archivedTab — aba Arquivados ignora tab/status (mantém apenas search)
 
   // 2. Search
   if (effectiveSearch) {
@@ -223,6 +241,7 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
   }
 
   // 3. Status array filter
+  if (!archivedTab) {
   if (filters.status.length > 0) {
     result = result.filter((c) => {
       const hasUnread = c.unreadCount > 0;
@@ -290,6 +309,7 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
       });
     });
   }
+  } // !archivedTab — aba Arquivados ignora status/tags/agent/date/type/failure
 
   // 9. Sort
   return [...result].sort((a, b) => {
@@ -330,16 +350,19 @@ function countUnique(conversations: ConversationWithMessages[]): number {
  * "Não lidas" ignores subTab (same as the visible list under mainTab='unread').
  */
 export function computeInboxTabCounts(opts: ApplyInboxFiltersOptions): InboxTabCounts {
-  const attending = applyInboxFilters({ ...opts, mainTab: 'open', subTab: 'attending' });
-  const waiting = applyInboxFilters({ ...opts, mainTab: 'open', subTab: 'waiting' });
-  const openForCurrentSubTab = opts.subTab === 'attending' ? attending : waiting;
+  // As contagens das abas normais SEMPRE ignoram o gate de arquivado
+  // (quando o usuário está na aba Arquivados, os contadores continuam normais).
+  const normalOpts: ApplyInboxFiltersOptions = { ...opts, archivedTab: false };
+  const attending = applyInboxFilters({ ...normalOpts, mainTab: 'open', subTab: 'attending' });
+  const waiting = applyInboxFilters({ ...normalOpts, mainTab: 'open', subTab: 'waiting' });
+  const openForCurrentSubTab = normalOpts.subTab === 'attending' ? attending : waiting;
 
   return {
     open: countUnique(openForCurrentSubTab),
     attending: countUnique(attending),
     waiting: countUnique(waiting),
-    resolved: countUnique(applyInboxFilters({ ...opts, mainTab: 'resolved' })),
-    unread: countUnique(applyInboxFilters({ ...opts, mainTab: 'unread' })),
+    resolved: countUnique(applyInboxFilters({ ...normalOpts, mainTab: 'resolved' })),
+    unread: countUnique(applyInboxFilters({ ...normalOpts, mainTab: 'unread' })),
   };
 }
 

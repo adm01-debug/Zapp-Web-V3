@@ -79,6 +79,7 @@ function buildConversation(
     messages: [lastMessage],
     unreadCount,
     lastMessage,
+    isArchived: false,
   };
 }
 

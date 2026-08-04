@@ -87,6 +87,10 @@ function toConversationItemData(
     assignedTo: conversation.contact.assigned_to,
     tags: conversation.contact.tags,
     priority: 'medium',
+    // Contrato com realtimeUtils.buildConversation (outro worker): `isArchived`
+    // chega no ConversationWithMessages derivado de contact.deleted_at.
+    // Cast temporário — o tipo upstream ainda não expõe o campo neste checkout.
+    isArchived: Boolean((conversation as { isArchived?: boolean }).isArchived),
   };
 }
 
