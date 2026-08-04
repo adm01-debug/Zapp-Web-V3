@@ -1,43 +1,49 @@
+import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 
+// Simulating a webhook handler validation logic
 const validateWebhookPayload = (payload: unknown): boolean => {
-  if (!payload || typeof payload !== "object") return false;
+  if (!payload || typeof payload !== 'object') return false;
   const p = payload as Record<string, unknown>;
-  if (!p.id || typeof p.id !== "string") return false;
-  const uuidParts = p.id.split("-");
+  if (!p.id || typeof p.id !== 'string') return false;
+  // Use the most basic UUID format check (hex-hex-hex-hex-hex)
+  const uuidParts = p.id.split('-');
   if (uuidParts.length !== 5) return false;
-  if (
-    uuidParts[0].length !== 8 ||
-    uuidParts[1].length !== 4 ||
-    uuidParts[2].length !== 4 ||
-    uuidParts[3].length !== 4 ||
-    uuidParts[4].length !== 12
-  ) return false;
+  if (uuidParts[0].length !== 8 || uuidParts[1].length !== 4 || uuidParts[2].length !== 4 || uuidParts[3].length !== 4 || uuidParts[4].length !== 12) return false;
+
   const isHex = (h: string) => /^[0-9a-f]+$/i.test(h);
   return uuidParts.every(isHex);
 };
 
-Deno.test("Webhook Fuzzing: should handle thousands of random payloads without crashing", () => {
-  fc.assert(
-    fc.property(fc.anything(), (payload) => {
-      try {
-        validateWebhookPayload(payload);
-        return true;
-      } catch {
-        return false;
-      }
-    }),
-    { numRuns: 1000 },
-  );
-});
+describe('Webhook Fuzzing', () => {
+  it('should handle thousands of random payloads without crashing', () => {
+    fc.assert(
+      fc.property(fc.anything(), (payload) => {
+        try {
+          validateWebhookPayload(payload);
+          return true;
+        } catch {
+          return false;
+        }
+      }),
+      { numRuns: 1000 }
+    );
+  });
 
-Deno.test("Webhook Fuzzing: should validate all forms of generated UUIDs", () => {
-  fc.assert(
-    fc.property(fc.uuid(), (id) => {
-      const isValid = validateWebhookPayload({ id });
-      if (!isValid) return false;
-      return isValid;
-    }),
-    { numRuns: 100 },
-  );
+  it('should validate all forms of generated UUIDs', () => {
+    fc.assert(
+      fc.property(fc.uuid(), (id) => {
+        const isValid = validateWebhookPayload({ id });
+        return isValid;
+      }),
+      { numRuns: 100 }
+    );
+  });
+
+  it('expect: payloads válidos são aceitos e inválidos rejeitados', () => {
+    expect(validateWebhookPayload({ id: '123e4567-e89b-12d3-a456-426614174000' })).toBe(true);
+    expect(validateWebhookPayload({ id: 'not-a-uuid' })).toBe(false);
+    expect(validateWebhookPayload(null)).toBe(false);
+    expect(validateWebhookPayload({})).toBe(false);
+  });
 });
