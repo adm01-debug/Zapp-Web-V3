@@ -9,6 +9,8 @@
 
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createZappAdminClient } from '../_shared/db-client.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { HealthV1Schema } from '../_shared/contract-schemas.ts';
 
 interface CheckResult {
   name: string;
@@ -77,6 +79,12 @@ const HEALTH_SECRET = Deno.env.get('HEALTH_SECRET') ?? '';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  // Contrato health@v1 (estrito): probe GET sem body → {} aceito.
+  const parsed = parseOrReject('health', { v1: HealthV1Schema }, req, await req.json().catch(() => ({})), {
+    extraHeaders: corsHeaders,
+  });
+  if (!parsed.ok) return parsed.response;
 
   const url = new URL(req.url);
   const probe = url.searchParams.get('probe');

@@ -2,6 +2,8 @@ import { requireUser } from '../_shared/auth.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { createZappAdminClient } from '../_shared/db-client.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { EmailImapBridgeV1Schema } from '../_shared/contract-schemas.ts';
 /**
  * email-imap-bridge — Suporte a provedores IMAP/SMTP genéricos (Outlook, Yahoo, etc.)
  *
@@ -77,18 +79,14 @@ Deno.serve(async (req) => {
 
     const supabase = createZappAdminClient();
 
-    let bodyRaw: unknown;
-    try {
-      bodyRaw = await req.json();
-    } catch {
-      bodyRaw = {};
-    }
+    // Contrato email-imap-bridge@v1 (estrito): action enum fechado + config tipada.
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('email-imap-bridge', { v1: EmailImapBridgeV1Schema }, req, raw, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
 
-    if (!bodyRaw || typeof bodyRaw !== 'object' || Array.isArray(bodyRaw)) {
-      bodyRaw = {};
-    }
-
-    const body = bodyRaw as Record<string, unknown>;
+    const body = parsed.data as Record<string, unknown>;
     const action = typeof body.action === 'string' ? body.action : '';
 
     // ── getProviderConfig — retorna configuração pré-definida ─────────────

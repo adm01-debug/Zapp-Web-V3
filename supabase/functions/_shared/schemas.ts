@@ -102,7 +102,7 @@ export const ClassifyStickerSchema = z.object({
  * Shared conversation-message shape reused by AI schemas.
  * Kept permissive on optional metadata; bounds content length as a DoS guard.
  */
-const messageItemSchema = z.object({
+export const messageItemSchema = z.object({
   role: z.enum(['user', 'assistant', 'system', 'agent', 'client']),
   content: z.string().max(10000),
   sender: z.string().max(200).optional(),
@@ -155,6 +155,9 @@ export const ChatbotL1Schema = z.object({
   message: z.string().min(1).max(10000),
   connectionId: z.string().max(200).optional().nullable(),
 });
+
+/** chatbot-l1@v1 — contrato estrito para o handler chatbot-l1. */
+export const ChatbotL1V1Schema = ChatbotL1Schema.strict();
 
 /** classify-audio-meme */
 export const ClassifyAudioMemeSchema = z.object({
@@ -282,3 +285,196 @@ export function parseBody<T>(schema: z.ZodSchema<T>, body: unknown) {
   }
   return { success: true, data: result.data };
 }
+
+/** voice-copilot-action@v1 — registro de contrato (schema em contract-schemas.ts). */
+export const VoiceCopilotActionV1Schema = z.object({
+  action: z.string().min(1, "action é obrigatória").max(100),
+  params: z.record(z.unknown()).nullish(),
+}).passthrough();
+
+// ─── Contratos V1 (estritos) — endpoints internos AI/ML ──────────────────────
+//
+// Derivados do CONSUMO REAL nos index.ts de cada edge function + validação dos
+// handlers do ai-router (parseBody com os schemas compartilhados acima).
+// Todos usam .strict(): endpoints internos rejeitam campos extras com 422.
+// Registrados em CONTRACT_SCHEMAS (contract-schemas.ts) e consumidos via
+// parseOrReject/parseRequestOrReject (contract-kit.ts).
+
+/** requestId aceito pelo ai-router: truncado em 100 chars (C.35), formato alfanumérico. */
+const RouterRequestIdSchema = z.string().max(100).optional();
+
+/**
+ * ai-suggest-reply@v1 — contrato estrito do payload da ação suggest_reply
+ * (mesmos campos do AiSuggestReplySchema validado no handler do ai-router).
+ */
+export const AiSuggestReplyV1Schema = AiSuggestReplySchema.strict();
+
+/**
+ * ai-conversation-summary@v1 — payload da ação conversation_summary.
+ * requestId adicional: o ai-router lê body.requestId no topo (idempotência).
+ */
+export const AiConversationSummaryV1Schema = AiConversationSummarySchema
+  .extend({ requestId: RouterRequestIdSchema })
+  .strict();
+
+/**
+ * ai-conversation-analysis@v1 — payload da ação conversation_analysis.
+ */
+export const AiConversationAnalysisV1Schema = AiConversationAnalysisSchema
+  .extend({ requestId: RouterRequestIdSchema })
+  .strict();
+
+/**
+ * ai-enhance-message@v1 — payload da ação enhance_message.
+ */
+export const AiEnhanceMessageV1Schema = AiEnhanceMessageSchema
+  .extend({ requestId: RouterRequestIdSchema })
+  .strict();
+
+/**
+ * ai-churn-analysis@v1 — payload da ação churn_analysis (contactIds UUID 1..100).
+ */
+export const AiChurnAnalysisV1Schema = AiChurnAnalysisSchema
+  .extend({ requestId: RouterRequestIdSchema })
+  .strict();
+
+/**
+ * ai-transcribe-audio@v1 — payload da ação transcribe_audio.
+ * audioUrl restrito a HTTPS público (SSRF guard, C.15).
+ */
+export const AiTranscribeAudioV1Schema = TranscribeAudioSchema
+  .extend({ requestId: RouterRequestIdSchema })
+  .strict();
+
+/** classify-emoji@v1 — index.ts consome image_url + file_name; {} → categoria 'outros'. */
+export const ClassifyEmojiV1Schema = ClassifyEmojiSchema
+  .extend({ requestId: RouterRequestIdSchema })
+  .strict();
+
+/** classify-sticker@v1 — index.ts consome image_url; {} → categoria 'outros'. */
+export const ClassifyStickerV1Schema = ClassifyStickerSchema
+  .extend({ requestId: RouterRequestIdSchema })
+  .strict();
+
+/** classify-audio-meme@v1 — index.ts consome audio_url + file_name. */
+export const ClassifyAudioMemeV1Schema = ClassifyAudioMemeSchema
+  .extend({ requestId: RouterRequestIdSchema })
+  .strict();
+
+/**
+ * sentiment-alert@v1 — chamado por analyze-conversation / trigger realtime
+ * com service role. index.ts consome: contactId, contactName, sentimentScore,
+ * previousScore, analysisId, threshold, consecutiveRequired.
+ */
+export const SentimentAlertV1Schema = SentimentAlertSchema.strict();
+
+/** voice-agent@v1 — espelho do TranscriptSchema inline no index.ts (min 1 / max 2000). */
+export const VoiceAgentV1Schema = z.object({
+  transcript: z.string().min(1).max(2000),
+}).strict();
+
+/**
+ * voice-changer@v1 — rota JSON (fila/queue). index.ts consome task_id e
+ * authorized. Rota multipart/form-data (áudio) não passa por contrato JSON.
+ */
+export const VoiceChangerV1Schema = z.object({
+  task_id: z.string().min(1).max(100).optional(),
+  authorized: z.boolean().optional(),
+}).strict();
+
+/**
+ * speech-to-text@v1 — index.ts consome audio (base64 inline, ≤25MB ≈ 35M chars
+ * em base64) e languageCode (default 'pt'). Contrato: src/hooks/useAudioRecorder.ts.
+ */
+export const SpeechToTextV1Schema = z.object({
+  audio: z.string().min(1).max(40_000_000),
+  languageCode: z.string().max(20).optional(),
+}).strict();
+
+/**
+ * automation-suggest-reply@v1 — engine de automação envia executionId/ruleId
+ * (UUIDs validados via isValidUUID no index.ts) + recentMessages/contactName/skipAi.
+ * remoteJid é enviado pelos callers (useAutomationManagement/useAutomations) e
+ * declarado na interface Body do index.ts.
+ */
+export const AutomationSuggestReplyV1Schema = z.object({
+  executionId: z.string().uuid({ message: "executionId deve ser UUID" }),
+  ruleId: z.string().uuid({ message: "ruleId deve ser UUID" }),
+  remoteJid: z.string().max(100).optional(),
+  recentMessages: z.array(z.object({
+    from_me: z.boolean().optional(),
+    content: z.string().max(2000),
+  })).max(8).optional(),
+  contactName: z.string().max(200).optional(),
+  skipAi: z.boolean().optional(),
+}).strict();
+
+/** Tool/function call shapes do ai-proxy (espelho do inline AiProxySchema do index.ts). */
+const AiProxyToolFunctionSchema = z.object({
+  name: z.string().min(1).max(64),
+  description: z.string().max(1000).optional(),
+  parameters: z.record(z.unknown()).optional(),
+});
+const AiProxyToolSchema = z.object({
+  type: z.literal('function'),
+  function: AiProxyToolFunctionSchema,
+});
+const AiProxyToolChoiceSchema = z.union([
+  z.enum(['none', 'auto', 'required']),
+  z.object({ type: z.literal('function'), function: z.object({ name: z.string().min(1).max(64) }) }),
+]);
+
+/**
+ * ai-proxy@v1 — index.ts consome messages, model, use_for, provider_id, tools,
+ * tool_choice e stream (mesmos campos do AiProxySchema inline original).
+ */
+export const AiProxyV1Schema = z.object({
+  messages: z.array(z.object({
+    role: z.string().max(50),
+    content: z.string().max(50000),
+  })).min(1).max(100),
+  model: z.string().max(100).optional(),
+  use_for: z.enum(['copilot', 'analysis', 'summary', 'tagging', 'auto_reply']).default('copilot'),
+  provider_id: z.string().uuid().optional(),
+  tools: z.array(AiProxyToolSchema).max(128).optional(),
+  tool_choice: AiProxyToolChoiceSchema.optional(),
+  stream: z.boolean().optional().default(false),
+}).strict();
+
+/**
+ * ai-router@v1 — contrato do router unificado. Discriminated union por action
+ * (10 ações conhecidas, ACTION_TIMEOUTS no index.ts). Cada variante espelha o
+ * schema validado pelo handler correspondente (parseBody no index.ts) + action
+ * literal + requestId (lido no topo para idempotência, C.35). Estrito por
+ * variante: campos fora do contrato da ação → 422 contract_violation.
+ */
+export const AiRouterV1Schema = z.discriminatedUnion('action', [
+  // auto_tag — AiAutoTagSchema (contactId + messages obrigatórios, requestId obrigatório)
+  z.object({ action: z.literal('auto_tag') }).merge(AiAutoTagSchema).strict(),
+  // conversation_summary — AiConversationSummarySchema
+  z.object({ action: z.literal('conversation_summary'), requestId: RouterRequestIdSchema })
+    .merge(AiConversationSummarySchema).strict(),
+  // enhance_message — AiEnhanceMessageSchema
+  z.object({ action: z.literal('enhance_message'), requestId: RouterRequestIdSchema })
+    .merge(AiEnhanceMessageSchema).strict(),
+  // classify_emoji — ClassifyEmojiSchema ({} → 'outros')
+  z.object({ action: z.literal('classify_emoji'), requestId: RouterRequestIdSchema })
+    .merge(ClassifyEmojiSchema).strict(),
+  // classify_sticker — ClassifyStickerSchema ({} → 'outros')
+  z.object({ action: z.literal('classify_sticker'), requestId: RouterRequestIdSchema })
+    .merge(ClassifyStickerSchema).strict(),
+  // churn_analysis — AiChurnAnalysisSchema (contactIds 1..100 UUID)
+  z.object({ action: z.literal('churn_analysis'), requestId: RouterRequestIdSchema })
+    .merge(AiChurnAnalysisSchema).strict(),
+  // conversation_analysis — AiConversationAnalysisSchema
+  z.object({ action: z.literal('conversation_analysis'), requestId: RouterRequestIdSchema })
+    .merge(AiConversationAnalysisSchema).strict(),
+  // suggest_reply — AiSuggestReplySchema (conversationHistory + requestId obrigatórios)
+  z.object({ action: z.literal('suggest_reply') }).merge(AiSuggestReplySchema).strict(),
+  // transcribe_audio — TranscribeAudioSchema (audioUrl SSRF-guard)
+  z.object({ action: z.literal('transcribe_audio'), requestId: RouterRequestIdSchema })
+    .merge(TranscribeAudioSchema).strict(),
+  // classify_tickets — AiClassifyTicketsSchema (limit default 50)
+  z.object({ action: z.literal('classify_tickets'), requestId: RouterRequestIdSchema })
+    .merge(AiClassifyTicketsSchema).strict(),
+]);

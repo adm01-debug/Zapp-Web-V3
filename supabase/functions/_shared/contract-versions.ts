@@ -23,10 +23,10 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   // Webhooks externos
   "evolution-webhook":            { current: "v2", supported: ["v1", "v2"], sunset: { v1: "2027-01-01" } },
   "whatsapp-webhook":             { current: "v1", supported: ["v1"] },
-  "whatsapp-cloud-webhook":       { current: "v1", supported: ["v1", "v2"] },
+  "whatsapp-cloud-webhook":       { current: "v2", supported: ["v1", "v2"], sunset: { v1: "2027-06-01" } },
   "whatsapp-cloud-webhook-verify":{ current: "v1", supported: ["v1"] },
-  "gmail-webhook":                { current: "v1", supported: ["v1"] },
-  "elevenlabs-webhook":           { current: "v1", supported: ["v1"] },
+  "gmail-webhook":                { current: "v2", supported: ["v1", "v2"], sunset: { v1: "2027-06-01" } },
+  "elevenlabs-webhook":           { current: "v2", supported: ["v1", "v2"], sunset: { v1: "2027-06-01" } },
   "sicoob-bridge":                { current: "v1", supported: ["v1"] },
   "sicoob-bridge-reply":          { current: "v1", supported: ["v1"] },
   "bitrix-api":                   { current: "v1", supported: ["v1"] },
@@ -40,6 +40,13 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "gmail-sync":                   { current: "v1", supported: ["v1"] },
   "webhook-diagnostic":           { current: "v1", supported: ["v1"] },
   "webhook-hmac-selftest":        { current: "v1", supported: ["v1"] },
+  "webhook-secret-status":        { current: "v1", supported: ["v1"] },
+  "whatsapp-cloud-secrets-status":{ current: "v1", supported: ["v1"] },
+  "whatsapp-cloud-api":           { current: "v1", supported: ["v1"] },
+  "gmail-token-refresh":          { current: "v1", supported: ["v1"] },
+  "gmail-health":                 { current: "v1", supported: ["v1"] },
+  "email-track-link":             { current: "v1", supported: ["v1"] },
+  "email-track-pixel":            { current: "v1", supported: ["v1"] },
 
   // Envio
   "evolution-sender":             { current: "v1", supported: ["v1"] },
@@ -71,6 +78,30 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "approve-password-reset":       { current: "v1", supported: ["v1"] },
   "detect-new-device":            { current: "v1", supported: ["v1"] },
   "webauthn":                     { current: "v1", supported: ["v1"] },
+
+  // Business / infra (v1)
+  "gmail-oauth":                  { current: "v1", supported: ["v1"] },
+  "email-imap-bridge":            { current: "v1", supported: ["v1"] },
+  "evolution-api":                { current: "v1", supported: ["v1"] },
+  "evolution-health":             { current: "v1", supported: ["v1"] },
+  "evolution-credentials":        { current: "v1", supported: ["v1"] },
+  "evolution-templates":          { current: "v1", supported: ["v1"] },
+  "evolution-sentiment":          { current: "v1", supported: ["v1"] },
+  "evolution-retry-metrics":      { current: "v1", supported: ["v1"] },
+  "evolution-followup":           { current: "v1", supported: ["v1"] },
+  "evolution-chatbot":            { current: "v1", supported: ["v1"] },
+  "evolution-bitrix-sync":        { current: "v1", supported: ["v1"] },
+  "db-health-monitor":            { current: "v1", supported: ["v1"] },
+  "connection-health-check":      { current: "v1", supported: ["v1"] },
+  "health-check":                 { current: "v1", supported: ["v1"] },
+  "health":                       { current: "v1", supported: ["v1"] },
+  "status":                       { current: "v1", supported: ["v1"] },
+  "metrics":                      { current: "v1", supported: ["v1"] },
+  "send-scheduled-report":        { current: "v1", supported: ["v1"] },
+  "auto-escalate-sla":            { current: "v1", supported: ["v1"] },
+  "auto-close-conversations":     { current: "v1", supported: ["v1"] },
+  "backfill-messages":            { current: "v1", supported: ["v1"] },
+  "elevenlabs-voice":             { current: "v1", supported: ["v1"] },
 };
 
 /** Retorna a label canônica usada no envelope de erro (`<contract>@<version>`). */

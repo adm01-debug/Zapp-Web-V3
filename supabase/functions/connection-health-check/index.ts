@@ -2,6 +2,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getCorsHeaders, requireEnv } from "../_shared/validation.ts";
 import { requireAdminOrSupervisor, timingSafeStringEqual } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { ConnectionHealthCheckV1Schema } from "../_shared/contract-schemas.ts";
 
 /**
  * 3-layer health check para conexões Evolution.
@@ -204,15 +206,18 @@ Deno.serve(async (req) => {
     const externalKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'))
                      ?? (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
 
-    // Allow targeting a single instance (manual "Verificar agora" do card)
+    // Allow targeting a single instance (manual "Verificar agora" do card).
+    // Contrato connection-health-check@v1 (estrito): GET sem body → {} aceito; POST { instanceName? }.
+    const parsed = parseOrReject('connection-health-check', { v1: ConnectionHealthCheckV1Schema }, req, await req.json().catch(() => ({})), {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
     let onlyInstance: string | null = null;
     if (req.method === 'POST') {
-      try {
-        const body = await req.json();
-        if (body && typeof body.instanceName === 'string' && body.instanceName.length > 0) {
-          onlyInstance = body.instanceName;
-        }
-      } catch { /* sem body, ok */ }
+      const body = parsed.data as Record<string, unknown>;
+      if (typeof body.instanceName === 'string' && body.instanceName.length > 0) {
+        onlyInstance = body.instanceName;
+      }
     }
 
     let query = supabase
