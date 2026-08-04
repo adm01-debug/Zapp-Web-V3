@@ -1,12 +1,32 @@
 -- ═══════════════════════════════════════════════════════════════════════════════
 -- CANONICAL SCHEMA MIGRATION — ZAPP-WEB v3
--- Generated: 2026-08-04 | Squash de 130 migrations → 1 arquivo canônico
+-- Generated: 2026-08-04 | Squash de 133 migrations → 1 arquivo canônico
 --
 -- Schemas: zapp(320 tables, 404 views), evo(172 tables), public(4 tables, 532 views)
--- Funções: 1056+ em zapp, 88 migrations registradas
--- Linhas: 15,845+ | Ordem: cronológica (2026-07-16 → 2026-08-03)
+-- Funções: 1056+ em zapp, 88 migrations + 1 canônica (20260804000000)
+-- Linhas: 16,352 | Ordem: cronológica (2026-07-16 → 2026-08-04)
 --
 -- Cada seção preserva sua própria transactionalidade (BEGIN/COMMIT).
+--
+-- ┌───────────────────────────────────────────────────────────────────────────┐
+-- │ DEPLOY NOTE — BANCO NOVO / STAGING / CLONE                             │
+-- │                                                                         │
+-- │ Este arquivo é o Único migration do repositório (squash canônico).     │
+-- │ Após aplicar manualmente num banco novo, registrar como aplicado:      │
+-- │                                                                         │
+-- │   INSERT INTO supabase_migrations.schema_migrations                    │
+-- │     (version, name, statements, applied_at)                            │
+-- │   VALUES                                                                │
+-- │     ('20260804000000','canonical_schema_squash_133_migrations',133,NOW())│
+-- │   ON CONFLICT (version) DO NOTHING;                                    │
+-- │                                                                         │
+-- │ Pré-requisito: executar supabase/ci/pg-bootstrap.sql antes deste       │
+-- │ arquivo em ambiente vanilla PostgreSQL (sem stack Supabase completa).  │
+-- │                                                                         │
+-- │ Produção (AtomicaBR self-hosted): aplicado em 2026-08-04.            │
+-- │ supabase_migrations: versão 20260804000000 registrada ✓              │
+-- └───────────────────────────────────────────────────────────────────────────┘
+--
 -- Operações são idempotentes: CREATE OR REPLACE, IF NOT EXISTS, DO blocks.
 -- ═══════════════════════════════════════════════════════════════════════════════
 
