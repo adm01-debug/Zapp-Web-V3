@@ -161,6 +161,68 @@ REVOKE UPDATE, DELETE ON zapp.hmac_selftest_audit   FROM authenticated;
 REVOKE UPDATE, DELETE ON zapp.instance_auth_events  FROM authenticated;
 
 -- ─────────────────────────────────────────────────────────────────────────────
+-- 6. fn_retry_stuck_messages — anti-double-processing (achado A3, corrida:
+--    300/300 mensagens processadas 2+ vezes em execuções concorrentes).
+--    Adiciona FOR UPDATE SKIP LOCKED no cursor.
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION zapp.fn_retry_stuck_messages()
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'pg_catalog', 'zapp', 'evo', 'public'
+AS $function$
+DECLARE
+  v_count   INTEGER := 0;
+  r         RECORD;
+  v_has_enq BOOLEAN;
+BEGIN
+  SELECT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_proc p
+    JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+   WHERE n.nspname = 'zapp' AND p.proname = 'fn_enqueue_message_dispatch'
+  ) INTO v_has_enq;
+
+  FOR r IN
+    SELECT id, instance_name, remote_jid,
+           COALESCE(retry_attempt, 0) AS attempt
+      FROM evo.evolution_messages
+     WHERE status        = 'pending'
+       AND updated_at    < NOW() - INTERVAL '10 minutes'
+       AND (retry_attempt IS NULL OR retry_attempt < 3)
+     ORDER BY updated_at
+     LIMIT 100
+     FOR UPDATE SKIP LOCKED  -- anti-double-processing: execuções concorrentes
+                             -- do cron pulam linhas já bloqueadas (achado A3)
+  LOOP
+    BEGIN
+      UPDATE evo.evolution_messages
+         SET retry_attempt = r.attempt + 1,
+             updated_at    = NOW(),
+             status        = CASE
+                               WHEN v_has_enq THEN 'pending'
+                               ELSE 'queued'
+                             END
+       WHERE id = r.id;
+
+      IF v_has_enq THEN
+        PERFORM zapp.fn_enqueue_message_dispatch(r.id, r.instance_name);
+      END IF;
+
+      v_count := v_count + 1;
+
+    EXCEPTION WHEN OTHERS THEN
+      RAISE WARNING '[fn_retry_stuck_messages] failed to retry message id=%: %', r.id, SQLERRM;
+    END;
+  END LOOP;
+
+  RETURN v_count;
+END;
+$function$;
+
+REVOKE EXECUTE ON FUNCTION zapp.fn_retry_stuck_messages() FROM PUBLIC, anon;
+GRANT  EXECUTE ON FUNCTION zapp.fn_retry_stuck_messages() TO service_role;
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- VERIFICATION
 -- ─────────────────────────────────────────────────────────────────────────────
 DO $$
