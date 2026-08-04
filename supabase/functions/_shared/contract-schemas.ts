@@ -674,8 +674,11 @@ export const ApprovePasswordResetV1Schema = z.object({
   decision: z.string().optional(),
 }).passthrough();
 
-/** auth-email-hook@v1 — hook interno do Supabase Auth. Schema de registro. */
-export const AuthEmailHookV1Schema = z.object({}).passthrough();
+/**
+ * @deprecated Edge auth-email-hook REMOVIDA do repo (commit 78fa7d7be, "zumbi sem index.ts").
+ * Registro morto removido em 2026-08-04 — o schema placeholder permissivo
+ * (z.object vazio) derrubava o gate contract-registry-integrity (Invariante 9).
+ */
 
  /** detect-new-device@v1 — schema em _shared/schemas.ts (DetectNewDeviceSchema). Schema de registro. */
  // DetectNewDeviceV1Schema defined below as local alias
@@ -887,7 +890,6 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "sicoob-bridge":                 { v1: SicoobBridgeV1Schema },
   "sicoob-bridge-reply":           { v1: SicoobBridgeReplyV1Schema },
   "bitrix-api":                    { v1: BitrixApiV1Schema },
-  "auth-email-hook":               { v1: AuthEmailHookV1Schema },
   "whatsapp-cloud-send":           { v1: WhatsappCloudSendV1Schema },
   "public-api":                    { v1: PublicApiV1Schema },
   "ai-proxy":                      { v1: AiProxyV1Schema },

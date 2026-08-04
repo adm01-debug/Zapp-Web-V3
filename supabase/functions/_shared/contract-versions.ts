@@ -81,7 +81,6 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "approve-password-reset":       { current: "v1", supported: ["v1"] },
   "detect-new-device":            { current: "v1", supported: ["v1"] },
   "webauthn":                     { current: "v1", supported: ["v1"] },
-  "auth-email-hook":              { current: "v1", supported: ["v1"] },
 
   // Business / infra (v1)
   "gmail-oauth":                  { current: "v1", supported: ["v1"] },
