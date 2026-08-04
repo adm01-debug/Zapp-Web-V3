@@ -69,7 +69,7 @@ CREATE POLICY feature_flags_authenticated_select
   TO authenticated
   USING (true);
 
-RAISE NOTICE 'C-1: feature_flags SELECT policy created for authenticated';
+DO $ BEGIN RAISE NOTICE 'C-1: feature_flags SELECT policy created for authenticated'; END $;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- FIX H-1 (HIGH): team_messages INSERT WITH CHECK — dual-UUID pattern
@@ -114,7 +114,7 @@ CREATE POLICY team_messages_insert_v2
     )
   );
 
-RAISE NOTICE 'H-1: team_messages INSERT policy updated with dual-UUID WITH CHECK';
+DO $ BEGIN RAISE NOTICE 'H-1: team_messages INSERT policy updated with dual-UUID WITH CHECK'; END $;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- FIX H-2 (HIGH): ai schema tables — INSERT/UPDATE/DELETE for admin/supervisor

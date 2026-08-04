@@ -88,6 +88,10 @@ BEGIN
   END;
 
   BEGIN
+    ALTER TABLE zapp.whatsapp_connections DROP CONSTRAINT IF EXISTS whatsapp_connections_health_status_check;
+  EXCEPTION WHEN OTHERS THEN NULL; END;
+
+  BEGIN
     ALTER TABLE zapp.whatsapp_connections DROP CONSTRAINT IF EXISTS health_status_check_v2;
   EXCEPTION WHEN OTHERS THEN NULL; END;
 

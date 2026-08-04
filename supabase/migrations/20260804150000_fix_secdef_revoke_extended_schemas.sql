@@ -143,11 +143,11 @@ BEGIN
       BEGIN
         IF r.prokind = 'p' THEN
           -- Stored procedure
-          EXECUTE format('REVOKE EXECUTE ON PROCEDURE %I.%I(%s) FROM authenticated',
+          EXECUTE format('REVOKE EXECUTE ON PROCEDURE %I.%I(%s) FROM authenticated, PUBLIC',
                          r.nspname, r.proname, r.args);
         ELSE
           -- Regular function or aggregate
-          EXECUTE format('REVOKE EXECUTE ON FUNCTION %I.%I(%s) FROM authenticated',
+          EXECUTE format('REVOKE EXECUTE ON FUNCTION %I.%I(%s) FROM authenticated, PUBLIC',
                          r.nspname, r.proname, r.args);
         END IF;
         v_schema_count := v_schema_count + 1;
@@ -186,18 +186,29 @@ BEGIN
       CONTINUE;
     END IF;
     BEGIN
-      -- Future functions in this schema: anon gets no EXECUTE by default
+      -- Future routines (functions + procedures) in this schema: anon gets no EXECUTE by default
+      -- ON ROUTINES covers both functions and stored procedures (ON FUNCTIONS misses procedures)
       EXECUTE format(
         'ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA %I
-         REVOKE EXECUTE ON FUNCTIONS FROM anon, PUBLIC',
+         REVOKE EXECUTE ON ROUTINES FROM anon, PUBLIC',
         s
       );
-      -- Future functions: authenticated and service_role get EXECUTE by default
-      -- (they must still be individually revoked for SECURITY DEFINER functions
+      EXECUTE format(
+        'ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA %I
+         REVOKE EXECUTE ON ROUTINES FROM anon, PUBLIC',
+        s
+      );
+      -- Future routines: authenticated and service_role get EXECUTE by default
+      -- (they must still be individually revoked for SECURITY DEFINER routines
       --  via the triagem pattern — this just ensures grant-baseline is correct)
       EXECUTE format(
         'ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA %I
-         GRANT EXECUTE ON FUNCTIONS TO authenticated, service_role',
+         GRANT EXECUTE ON ROUTINES TO authenticated, service_role',
+        s
+      );
+      EXECUTE format(
+        'ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA %I
+         GRANT EXECUTE ON ROUTINES TO authenticated, service_role',
         s
       );
     EXCEPTION WHEN OTHERS THEN
