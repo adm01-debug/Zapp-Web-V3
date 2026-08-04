@@ -64,7 +64,7 @@ describe('useOnboardingChecklist', () => {
           }),
         };
       }
-      if (table === 'message_templates') {
+      if (table === 'quick_replies') {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({

@@ -12,11 +12,18 @@ import { log } from '@/lib/logger';
 /** Two Factor Auth. */
 export default function TwoFactorAuth() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { getAssuranceLevel, fetchFactors } = useMFA();
   const [needsVerification, setNeedsVerification] = useState(false);
 
   useEffect(() => {
+    // Aguarda o bootstrap de sessão antes de decidir (evita bounce falso para /auth).
+    if (loading) return;
+    if (!user) {
+      navigate('/auth', { replace: true });
+      return;
+    }
+
     let cancelled = false;
     const checkMFAStatus = async () => {
       await fetchFactors();
@@ -28,20 +35,22 @@ export default function TwoFactorAuth() {
         // If user has MFA setup but hasn't verified this session
         if (assurance.currentLevel === 'aal1' && assurance.nextLevel === 'aal2') {
           setNeedsVerification(true);
-        } else if (assurance.currentLevel === 'aal2') {
-          // Already verified, redirect to home
-          navigate('/');
+        } else {
+          // Already verified (aal2) OR no MFA configured (aal1→aal1):
+          // nothing to verify — go to home instead of spinning forever.
+          navigate('/', { replace: true });
         }
+      } else {
+        // Falha ao obter assurance level — não bloquear o usuário.
+        navigate('/', { replace: true });
       }
     };
 
-    if (user) {
-      void checkMFAStatus();
-    }
+    void checkMFAStatus();
     return () => {
       cancelled = true;
     };
-  }, [user, navigate, getAssuranceLevel, fetchFactors]);
+  }, [user, loading, navigate, getAssuranceLevel, fetchFactors]);
 
   if (!needsVerification) {
     return (

@@ -38,7 +38,7 @@ export interface ChatbotFlow {
   name: string;
   description: string | null;
   is_active: boolean;
-  trigger_type: 'keyword' | 'first_message' | 'menu' | 'webhook' | 'schedule';
+  trigger_type: 'keyword' | 'first_message' | 'menu' | 'webhook' | 'schedule' | 'ai_l1';
   trigger_value: string | null;
   nodes: ChatbotNode[];
   edges: ChatbotEdge[];

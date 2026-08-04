@@ -172,6 +172,10 @@ Deno.serve(async (req) => {
     if (action === 'update-profile-status') return await proxy(`/profile/updateProfileStatus/${instance}`, 'PUT', body);
     if (action === 'find-labels') return await proxy(`/label/findLabels/${instance}`, 'GET');
     if (action === 'handle-label') return await proxy(`/label/handleLabel/${instance}`, 'POST', body);
+    // CONTATOS-16: rota documentada no evolution-api-mapping.md (update-block-status →
+    // POST /chat/updateBlockStatus/{instance}) mas ausente do router — consumida por
+    // useEvolutionApiManagement.updateBlockStatus → BlockContactDialog.
+    if (action === 'update-block-status') return await proxy(`/chat/updateBlockStatus/${instance}`, 'POST', body);
     if (action === 'set-settings') return await proxy(`/settings/set/${instance}`, 'POST', body);
     if (action === 'get-settings') return await proxy(`/settings/find/${instance}`, 'GET');
     if (action === 'set-webhook') return await proxy(`/webhook/set/${instance}`, 'POST', body);

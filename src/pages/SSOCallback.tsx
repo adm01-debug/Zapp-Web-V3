@@ -26,6 +26,21 @@ export default function SSOCallback() {
   useEffect(() => {
     const addTimer = (t: ReturnType<typeof setTimeout>) => { timersRef.current.push(t); };
 
+    // SEGURANCA-01: pós-SSO o usuário com 2FA verificado mas sem challenge na
+    // sessão (aal1 → aal2) vai para /2fa em vez de pular direto para '/'.
+    const redirectAfterAuth = async () => {
+      try {
+        const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (!error && data?.currentLevel === 'aal1' && data?.nextLevel === 'aal2') {
+          navigate('/2fa', { replace: true });
+          return;
+        }
+      } catch {
+        // Falha na checagem — segue o fluxo normal.
+      }
+      navigate('/', { replace: true });
+    };
+
     const handleCallback = async () => {
       try {
         // Subscribe to auth state changes unconditionally — not gated by any condition
@@ -35,7 +50,7 @@ export default function SSOCallback() {
           if (event === 'SIGNED_IN' && session) {
             setStatus('success');
             toast.success('Login realizado com sucesso!');
-            addTimer(setTimeout(() => navigate('/'), 1500));
+            addTimer(setTimeout(() => { void redirectAfterAuth(); }, 1500));
           } else if (event === 'SIGNED_OUT') {
             setStatus('error');
             setErrorMessage('Sessão não encontrada');
@@ -63,7 +78,7 @@ export default function SSOCallback() {
         if (data.session) {
           setStatus('success');
           toast.success('Login realizado com sucesso!');
-          addTimer(setTimeout(() => { navigate('/'); }, 1500));
+          addTimer(setTimeout(() => { void redirectAfterAuth(); }, 1500));
         } else {
           // No session yet; auth subscription above will handle SIGNED_IN event.
           addTimer(setTimeout(() => {

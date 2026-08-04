@@ -8,7 +8,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useQuickReplies');
 
-/** Database row from the `message_templates` table; used for quick-reply lookup, search, and CRUD operations. */
+/** Database row from the `quick_replies` view (zapp.quick_replies); used for quick-reply lookup, search, and CRUD operations. */
 export interface QuickReplyTemplate {
   id: string;
   title: string;
@@ -16,8 +16,9 @@ export interface QuickReplyTemplate {
   shortcut: string | null;
   category: string | null;
   is_global: boolean | null;
+  is_active: boolean | null;
   use_count: number | null;
-  user_id: string;
+  owner_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -58,9 +59,9 @@ export function useQuickReplies() {
       if (!user?.id) return [];
 
       const { data, error } = await supabase
-        .from('message_templates')
+        .from('quick_replies')
         .select('*')
-        .or(`user_id.eq.${user.id},is_global.eq.true`)
+        .or(`owner_id.eq.${user.id},is_global.eq.true`)
         .order('use_count', { ascending: false });
 
       if (error) throw error;
@@ -138,14 +139,15 @@ export function useQuickReplies() {
       if (!user?.id) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
-        .from('message_templates')
+        .from('quick_replies')
         .insert({
           title: input.title,
           content: input.content,
-          shortcut: input.shortcut || null,
+          shortcut: input.shortcut || '',
           category: input.category || 'geral',
           is_global: input.is_global || false,
-          user_id: user.id,
+          is_active: true,
+          owner_id: user.id,
           use_count: 0,
         })
         .select()
@@ -168,7 +170,7 @@ export function useQuickReplies() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...input }: { id: string } & Partial<CreateTemplateInput>) => {
       const { data, error } = await supabase
-        .from('message_templates')
+        .from('quick_replies')
         .update({
           title: input.title,
           content: input.content,
@@ -197,7 +199,7 @@ export function useQuickReplies() {
   // Delete template mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('message_templates').delete().eq('id', id);
+      const { error } = await supabase.from('quick_replies').delete().eq('id', id);
 
       if (error) throw error;
 
@@ -222,7 +224,7 @@ export function useQuickReplies() {
       if (!template) return;
 
       await supabase
-        .from('message_templates')
+        .from('quick_replies')
         .update({ use_count: (template.use_count || 0) + 1 })
         .eq('id', templateId);
 

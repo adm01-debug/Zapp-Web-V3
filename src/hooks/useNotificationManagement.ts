@@ -1,5 +1,14 @@
 // Consolidated Notification & Alerts Management Module (ETAPA 38)
 // Consolidates: usePushNotifications, useNotificationSettings, useTeamChatNotifications, useSecurityPushNotifications, useGoalNotifications, useTranscriptionNotifications
+//
+// TODO DASHBOARD-08 (canais/templates de notificação — sem UI nem executor):
+//   As tabelas zapp.notification_channels_config (id, channel_name, enabled,
+//   min_severity, config) e zapp.notification_templates (name, channel, subject,
+//   body_template, variables, is_active) existem no banco (tipadas em types.ts)
+//   mas NENHUM código as lê/escreve: sem UI de administração, sem edge function
+//   consumidora. Decisão pendente: definir executor (edge que roteie alertas por
+//   canal configurado) antes de construir UI. Não criar UI órfã até o executor
+//   existir.
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';

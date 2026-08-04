@@ -1,5 +1,6 @@
 import { NPSDashboard } from '@/components/nps/NPSDashboard';
 import { FollowUpSequences } from '@/components/settings/FollowUpSequences';
+import { EmailSignaturesSettings } from '@/components/settings/EmailSignaturesSettings';
 import { QuickRepliesManager } from '@/features/inbox';
 import { StickerManager } from '@/features/inbox';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -8,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Clock, MessageSquare, Bell, Palette, Save, RefreshCw, Loader2,
   Keyboard, Volume2, ArrowRight, Package, Globe, TrendingUp, Settings,
-  Tags, MessageSquareHeart, Bot, Brain, Users, ShieldAlert
+  Tags, MessageSquareHeart, Bot, Brain, Users, ShieldAlert, Mail
 } from 'lucide-react';
 import { AIAutoTagsConfig } from '@/components/settings/AIAutoTagsConfig';
 import { AIProvidersManager } from '@/components/settings/AIProvidersManager';
@@ -113,6 +114,7 @@ export function SettingsView() {
               <TabsTrigger value="chatbot-l1" className="gap-2 whitespace-nowrap"><Bot className="w-4 h-4" />Chatbot L1</TabsTrigger>
               <TabsTrigger value="routing" className="gap-2 whitespace-nowrap"><Users className="w-4 h-4" />Roteamento</TabsTrigger>
               <TabsTrigger value="sla" className="gap-2 whitespace-nowrap"><ShieldAlert className="w-4 h-4" />SLA</TabsTrigger>
+              <TabsTrigger value="email" className="gap-2 whitespace-nowrap"><Mail className="w-4 h-4" />E-mail</TabsTrigger>
               <TabsTrigger value="ai-providers" className="gap-2 whitespace-nowrap"><Brain className="w-4 h-4" />Gestão IA</TabsTrigger>
             </TabsList>
           </div>
@@ -204,6 +206,10 @@ export function SettingsView() {
 
         <TabsContent value="ai-providers">
           <AIProvidersManager />
+        </TabsContent>
+
+        <TabsContent value="email">
+          <EmailSignaturesSettings />
         </TabsContent>
       </Tabs>
       )}

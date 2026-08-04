@@ -19,6 +19,7 @@ import { type EmailMessage } from './gmail/gmailTypes';
 import { GMAIL_MOCKS } from './gmail/gmailMocks';
 import { emailSaveDraft, emailDeleteDraft, emailListThreads } from './gmail/gmailApi';
 import { getLogger } from '@/lib/logger';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import {
   EmailAccount,
   EmailTokenInfo,
@@ -112,6 +113,37 @@ const mapBaseThreadRow = (row: Record<string, unknown>): EmailThread =>
 /** Returns a shallow copy of o with all undefined values removed, used when merging partial realtime updates. */
 const definedOnly = <T extends object>(o: T): Partial<T> =>
   Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
+
+/**
+ * Mapeia uma linha da tabela gmail_messages (escrita por gmail-sync) para o
+ * EmailMessage da UI. gmail-sync persiste body_html/body_plain completos —
+ * não há ação fetchMessageBody na edge (enum fechado: listThreads/syncFull/
+ * syncLabels); o corpo já vem no registro.
+ */
+const mapGmailMessageRow = (row: Record<string, unknown>): EmailMessage => ({
+  id: (row.id as string) ?? (row.message_id as string),
+  thread_id: (row.thread_id_ref as string) ?? '',
+  email_msg_id: (row.message_id as string) ?? '',
+  message_id: row.message_id as string,
+  from_email: row.from_email as string | null,
+  from_name: row.from_name as string | null,
+  to_emails: (row.to_emails as string[] | null) ?? [],
+  cc_emails: (row.cc_emails as string[] | null) ?? [],
+  subject: row.subject as string | null,
+  snippet: row.snippet as string | null,
+  body_html: row.body_html as string | null,
+  body_text: (row.body_plain as string | null) ?? null,
+  body_plain: row.body_plain as string | null,
+  is_read: (row.is_read ?? false) as boolean,
+  is_sent: (row.is_sent ?? false) as boolean,
+  date: (row.internal_date as string | null) ?? null,
+  internal_date: row.internal_date as string | null,
+  has_attachments: (row.has_attachments ?? false) as boolean,
+  in_reply_to: null,
+  references: null,
+  label_ids: (row.label_ids as string[] | undefined) ?? [],
+  created_at: (row.created_at as string) ?? '',
+});
 
 interface SLAConfig {
   threshold_minutes: number;
@@ -360,26 +392,54 @@ export function useEmail() {
     [activeAccountId]
   );
 
-  const loadMessages = useCallback(async (threadId: string) => {
-    if (isMockId(threadId)) {
-      setMessages(GMAIL_MOCKS.messages.filter((m) => m.thread_id === threadId));
+  const loadMessages = useCallback(async (thread: EmailThread | null) => {
+    if (!thread || isMockId(thread.id)) {
+      setMessages(
+        thread && isMockId(thread.id)
+          ? GMAIL_MOCKS.messages.filter((m) => m.thread_id === thread.id)
+          : []
+      );
       return;
     }
     setIsLoadingMessages(true);
-    const { data, error: dbErr } = await safeClient.from('email_messages', (q) =>
-      q.select('*').eq('thread_id', threadId).order('date', { ascending: true })
+
+    // Contrato real (gmail-sync@v1): a edge grava gmail_threads/gmail_messages.
+    // A view email_messages NÃO é alimentada por gmail-sync — ler dela retorna
+    // sempre vazio. Resolve o id da thread em gmail_threads (thread_id do Gmail)
+    // e lê o corpo completo já persistido em gmail_messages.
+    const gmailThreadId = thread.thread_id || thread.email_thread_id || thread.id;
+    const accountId = thread.account_id ?? '';
+
+    const { data: gmailThread } = await safeClient.from('gmail_threads', (q) =>
+      q
+        .select('id')
+        .eq('account_id', accountId)
+        .eq('thread_id', gmailThreadId)
+        .maybeSingle()
+    );
+    const refId =
+      gmailThread && typeof gmailThread === 'object' && 'id' in gmailThread
+        ? String((gmailThread as { id: unknown }).id)
+        : thread.id;
+
+    const { data, error: dbErr } = await safeClient.from('gmail_messages', (q) =>
+      q.select('*').eq('thread_id_ref', refId).order('internal_date', { ascending: true })
     );
 
     if (!mountedRef.current) return;
 
     if (dbErr) {
       if (dbErr.message.includes('disponível') || dbErr.message.includes('not found')) {
-        setMessages(GMAIL_MOCKS.messages.filter((m) => m.thread_id === threadId));
+        setMessages(GMAIL_MOCKS.messages.filter((m) => m.thread_id === thread.id));
       } else {
         log.error('Email messages load error', dbErr);
       }
     } else {
-      setMessages(Array.isArray(data) ? (data as EmailMessage[]) : []);
+      setMessages(
+        (Array.isArray(data) ? data : []).map((row) =>
+          mapGmailMessageRow(row as Record<string, unknown>)
+        )
+      );
     }
     setIsLoadingMessages(false);
   }, []);
@@ -388,7 +448,7 @@ export function useEmail() {
     async (thread: EmailThread | null) => {
       setSelectedThread(thread);
       if (thread) {
-        await loadMessages(thread.id);
+        await loadMessages(thread);
       } else {
         setMessages([]);
       }
@@ -411,7 +471,9 @@ export function useEmail() {
       setError(null);
       try {
         const { data, error: fnErr } = await supabase.functions.invoke('gmail-sync', {
-          body: { action: 'syncInbox', accountId: id, maxResults: 100 },
+          // Contrato gmail-sync@v1: não existe action 'syncInbox' (enum:
+          // listThreads/syncFull/syncLabels) — syncFull persiste mensagens.
+          body: { action: 'syncFull', accountId: id, labelIds: ['INBOX'], maxResults: 100 },
         });
 
         if (fnErr) throw new Error('Falha ao sincronizar Email');
@@ -459,10 +521,12 @@ export function useEmail() {
 
       try {
         const { data, error: fnErr } = await supabase.functions.invoke('gmail-webhook', {
-          body: { action: 'renewWatch', accountId: id },
+          // Contrato gmail-webhook@v1: a ação é 'registerWatch' (não existe
+          // 'renewWatch' — action desconhecida cai no branch de push e no-ops).
+          body: { action: 'registerWatch', accountId: id },
         });
 
-        if (!fnErr && data?.success) {
+        if (!fnErr && data?.ok) {
           await checkTokenStatus();
         }
       } catch {
@@ -492,10 +556,12 @@ export function useEmail() {
             cc: params.cc ? (Array.isArray(params.cc) ? params.cc : [params.cc]) : undefined,
             bcc: params.bcc ? (Array.isArray(params.bcc) ? params.bcc : [params.bcc]) : undefined,
             subject: params.subject,
-            body: params.bodyHtml,
+            // Contrato gmail-send@v1: o corpo vai em bodyHtml (a edge ignora
+            // o campo `body` e o flag addSignature — assinatura é responsabilidade
+            // do front, ver EmailChatReplyBar EMAIL-05).
+            bodyHtml: params.bodyHtml,
             threadId: params.threadId,
             inReplyTo: params.inReplyTo,
-            addSignature: params.signature !== false,
           },
         });
 
@@ -674,7 +740,9 @@ export function useEmail() {
         const { data: exchangeData, error: exchangeErr } = await supabase.functions.invoke(
           'gmail-oauth',
           {
-            body: { action: 'exchangeCode', code, userId: user.id },
+            // gmail-oauth@v1: exchangeCode exige o state HMAC devolvido pelo
+            // getAuthUrl e ecoado no postMessage do popup (senão → 403).
+            body: { action: 'exchangeCode', code, userId: user.id, state: expectedState },
           }
         );
 
@@ -943,38 +1011,37 @@ export function useEmailSearch(accountId: string | null) {
     async (q: string): Promise<EmailSearchResult[]> => {
       if (!accountId) return [];
 
-      const ftsQuery = q.trim();
+      // EMAIL-14: subject/snippet na view email_threads são text (não tsvector) —
+      // .textSearch() quebrava com 400. Busca LIKE (ilike) com escape do
+      // sanitizePostgrestFilter (padrão do projeto).
+      const like = `%${sanitizePostgrestFilter(q.trim())}%`;
 
       const { data, error: dbErr } = await safeClient.from<Record<string, unknown>>(
         'email_threads',
-        (q) =>
-          q
-            .select(
-              'id, thread_id, subject, snippet, last_message_at, unread_count, email_messages!inner ( from_email, from_name )'
-            )
+        (query) =>
+          query
+            .select('id, thread_id, subject, snippet, last_message_at, unread_count')
             .eq('account_id', accountId)
-            .textSearch('subject', ftsQuery, { config: 'portuguese', type: 'websearch' })
+            .or(`subject.ilike.${like},snippet.ilike.${like}`)
             .order('last_message_at', { ascending: false })
             .limit(20)
       );
 
       if (dbErr) return [];
 
-      return (data ?? []).map((row: Record<string, unknown>) => {
-        const msgs = Array.isArray(row.email_messages) ? row.email_messages : [];
-        const first = (msgs[0] ?? {}) as Record<string, unknown>;
-        return {
-          id: row.id as string,
-          thread_id: row.thread_id as string,
-          subject: (row.subject as string) ?? '(sem assunto)',
-          snippet: (row.snippet as string) ?? '',
-          from_email: (first.from_email as string) ?? '',
-          from_name: (first.from_name as string | null) ?? null,
-          last_message_at: row.last_message_at as string | null,
-          unread_count: (row.unread_count as number) ?? 0,
-          source: 'local' as const,
-        };
-      });
+      return (data ?? []).map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        thread_id: row.thread_id as string,
+        subject: (row.subject as string) ?? '(sem assunto)',
+        snippet: (row.snippet as string) ?? '',
+        // A view email_threads não expõe from_email/from_name (a versão antiga
+        // dependia de um join !inner em email_messages sem FK definida — 400).
+        from_email: '',
+        from_name: null,
+        last_message_at: row.last_message_at as string | null,
+        unread_count: (row.unread_count as number) ?? 0,
+        source: 'local' as const,
+      }));
     },
     [accountId]
   );

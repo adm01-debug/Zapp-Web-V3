@@ -36,6 +36,7 @@ const AdminBridgeStatusPage = lazyWithRetry(() => import('@/pages/admin/AdminBri
 const AdminConnectionsPage = lazyWithRetry(() => import('@/pages/admin/Connections'));
 const PerformanceDashboard = lazyWithRetry(() => import('@/pages/admin/PerformanceDashboard'));
 const AdminSecurityLogsPage = lazyWithRetry(() => import('@/pages/admin/AdminSecurityLogsPage'));
+const AdminACLAlertsPage = lazyWithRetry(() => import('@/pages/admin/AdminACLAlertsPage'));
 
 /**
  * Returns a React fragment of /admin/* Route elements.
@@ -172,6 +173,14 @@ export function adminRoutes() {
         element={
           <ProtectedRoute requiredRoles={['admin', 'dev']}>
             <AdminSecurityLogsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/acl-alerts"
+        element={
+          <ProtectedRoute requiredRoles={['admin', 'dev']}>
+            <AdminACLAlertsPage />
           </ProtectedRoute>
         }
       />

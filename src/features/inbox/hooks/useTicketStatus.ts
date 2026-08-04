@@ -47,15 +47,15 @@ export function useTicketStatus(contactId: string | null | undefined) {
   }, [contactId, performedBy]);
 
   /**
-   * Chama o edge `ticket-router` (sticky + round-robin) e aplica o
-   * agente resolvido no overlay. Quando a RPC Evolution DB estiver pronta,
-   * basta trocar o `apply: true` para persistir do lado de lá também.
+   * Chama o edge `ticket-router` (sticky + round-robin) com `apply: true`,
+   * que persiste de verdade `contacts.assigned_to`/`queue_id` + sticky no
+   * banco. O overlay local é atualizado apenas para refletir na UI na hora.
    */
   const atribuirAuto = useCallback(async () => {
     if (!contactId) return;
     try {
       const { data, error } = await supabase.functions.invoke('ticket-router', {
-        body: { contact_id: contactId, apply: false },
+        body: { contact_id: contactId, apply: true },
       });
       if (error) throw error;
       const payload = data as { agent_profile_id?: string | null; queue_id?: string | null; strategy?: string } | null;

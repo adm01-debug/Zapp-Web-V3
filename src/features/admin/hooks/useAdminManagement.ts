@@ -330,7 +330,7 @@ function useAdminAutomationsManagement() {
       return withRetry(
         async () => {
           const [rulesRes, chsRes, depsRes] = await Promise.all([
-            supabase.from('automations').select('*').order('name', { ascending: true }),
+            supabase.from('automation_rules').select('*').order('name', { ascending: true }),
             supabase.from('channel_connections').select('id,name').order('name'),
             supabase.from('departments').select('id,name').order('name'),
           ]);
@@ -381,8 +381,8 @@ function useAdminAutomationsManagement() {
       department_id: editing.department_id || null,
     };
     const op = editing.id
-      ? supabase.from('automations').update(payload).eq('id', editing.id)
-      : supabase.from('automations').insert(payload);
+      ? supabase.from('automation_rules').update(payload).eq('id', editing.id)
+      : supabase.from('automation_rules').insert(payload);
     const { error } = await op;
     if (error) {
       toast.error('Erro ao salvar regra');
@@ -394,7 +394,7 @@ function useAdminAutomationsManagement() {
   };
 
   const removeAutomation = async (id: string) => {
-    const { error } = await supabase.from('automations').delete().eq('id', id);
+    const { error } = await supabase.from('automation_rules').delete().eq('id', id);
     if (error) {
       toast.error('Erro ao remover');
       return;
@@ -404,7 +404,7 @@ function useAdminAutomationsManagement() {
 
   const toggleAutomationActive = async (r: Rule) => {
     const { error } = await supabase
-      .from('automations')
+      .from('automation_rules')
       .update({ is_active: !r.is_active })
       .eq('id', r.id);
     if (error) {
@@ -417,7 +417,7 @@ function useAdminAutomationsManagement() {
   const adjustAutomationPriority = async (r: Rule, delta: number) => {
     const newPriority = Math.min(999, Math.max(1, (r.priority ?? 100) + delta));
     const { error } = await supabase
-      .from('automations')
+      .from('automation_rules')
       .update({ priority: newPriority })
       .eq('id', r.id);
     if (error) {

@@ -1,5 +1,12 @@
 /**
  * CompanyFormDialog — Modal for creating/editing companies in the external CRM DB
+ *
+ * CONTATOS-14 (vínculo com empresa): DECISÃO — a tabela local zapp.companies existe
+ * no schema (7 colunas, sem consumers: nenhum .from('companies') no frontend, sem
+ * RLS/grants garantidos) e está órfã; NÃO será exposta nesta iteração. O CRM externo
+ * é a fonte de verdade de empresas (escrita via useExternalMutation → edge externo;
+ * leitura via useExternalContact360/CRM360ExplorerView). Expor a tabela local
+ * exigiria migration (RLS/grants) + sync — fora do escopo do backlog 59.
  */
 import { useState, useEffect } from 'react';
 import {

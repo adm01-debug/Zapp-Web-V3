@@ -68,7 +68,21 @@ export function LGPDComplianceView() {
     if (!user) return;
     setIsDeleting(true);
     try {
-      // Create a deletion request (admin reviews)
+      // SEGURANCA-10: cria o pedido real em data_deletion_requests (antes só
+      // logava no audit trail, sem registro processável pelo admin).
+      const { error: insertError } = await supabase.from('data_deletion_requests').insert({
+        user_id: user.id,
+        reason: 'right_to_be_forgotten',
+        status: 'pending',
+        metadata: {
+          type: 'right_to_be_forgotten',
+          email: user.email,
+          requested_at: new Date().toISOString(),
+        },
+      });
+      if (insertError) throw insertError;
+
+      // Mantém o audit trail (rastreabilidade LGPD)
       await supabase.rpc('log_audit_event', {
         p_action: 'gdpr_deletion_request',
         p_entity_type: 'user',

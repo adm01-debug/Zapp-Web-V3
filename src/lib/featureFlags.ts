@@ -4,7 +4,13 @@
  * Supports:
  * 1. Simple boolean toggles.
  * 2. Percentage-based rollout (value: 0-100).
- * 3. Targeting specific agent IDs.
+ * 3. Targeting specific agent IDs / roles.
+ *
+ * Fonte canônica (SEGURANCA-14): zapp.feature_flags (RLS authenticated SELECT
+ * USING(true) desde 20260804160000; anon vê apenas is_public=true — nenhuma
+ * flag pública hoje). Fallback legado: app_settings com chaves `feature_%`
+ * (única fonte legível no período em que feature_flags era restrita a anon,
+ * cf. migration 20260801040006).
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -34,6 +40,18 @@ interface FeatureConfig {
   percentage?: number; // 0-100
   segments?: string[]; // user IDs or tenant IDs
   killSwitch?: boolean;
+  /** Roles permitidos (coluna allowed_roles de zapp.feature_flags). */
+  roles?: string[];
+  /** User IDs bloqueados (coluna blocked_user_ids). */
+  blockedUsers?: string[];
+  /** Expiração (coluna expires_at). */
+  expiresAt?: string;
+}
+
+export interface FeatureFlagContext {
+  userId?: string;
+  tenantId?: string;
+  roles?: string[];
 }
 
 const DEFAULTS: Record<FeatureFlag, FeatureConfig> = {
@@ -61,12 +79,35 @@ let flagCache: Record<string, FeatureConfig> | null = null;
 /** is Feature Enabled function. */
 export function isFeatureEnabled(
   flag: FeatureFlag,
-  context?: { userId?: string; tenantId?: string }
+  context?: FeatureFlagContext
 ): boolean {
   const config = flagCache?.[flag] || DEFAULTS[flag];
 
   if (config.killSwitch) return false;
   if (!config.enabled) return false;
+
+  // Expiração (zapp.feature_flags.expires_at)
+  if (config.expiresAt && Date.parse(config.expiresAt) <= Date.now()) return false;
+
+  // Bloqueio explícito de usuário (zapp.feature_flags.blocked_user_ids)
+  if (
+    config.blockedUsers &&
+    config.blockedUsers.length > 0 &&
+    context?.userId &&
+    config.blockedUsers.includes(context.userId)
+  ) {
+    return false;
+  }
+
+  // Restrição por role (zapp.feature_flags.allowed_roles)
+  if (config.roles && config.roles.length > 0) {
+    if (
+      !context?.roles ||
+      !context.roles.some((r) => config.roles?.includes(r))
+    ) {
+      return false;
+    }
+  }
 
   // Segment-based check
   if (config.segments && config.segments.length > 0) {
@@ -92,17 +133,57 @@ export function isFeatureEnabled(
 /** load Feature Flags function. */
 export async function loadFeatureFlags(): Promise<void> {
   try {
-    const { data, error } = await supabase
+    const flags: Record<string, FeatureConfig> = { ...DEFAULTS };
+    let loaded = 0;
+
+    // ── Fonte canônica: zapp.feature_flags ─────────────────────────────────
+    // Colunas: key, enabled, allowed_roles, allowed_user_ids, blocked_user_ids,
+    // rollout_percentage, expires_at, metadata.
+    const { data: rows, error } = await supabase
+      .from('feature_flags')
+      .select(
+        'key, enabled, allowed_roles, allowed_user_ids, blocked_user_ids, rollout_percentage, expires_at, metadata'
+      );
+
+    if (error) {
+      // anon (pré-login) sem permissão ou tabela indisponível: cai no fallback.
+      log.warn('[FeatureFlags] zapp.feature_flags indisponível, tentando app_settings', error);
+    } else if (rows) {
+      for (const row of rows) {
+        const flagName = row.key as FeatureFlag;
+        if (!row.key || !(flagName in DEFAULTS)) continue;
+        const meta = (row.metadata ?? {}) as Record<string, unknown>;
+        flags[flagName] = {
+          ...flags[flagName],
+          enabled: row.enabled ?? flags[flagName].enabled,
+          percentage: row.rollout_percentage ?? flags[flagName].percentage,
+          segments: row.allowed_user_ids ?? flags[flagName].segments,
+          roles: row.allowed_roles ?? flags[flagName].roles,
+          blockedUsers: row.blocked_user_ids ?? flags[flagName].blockedUsers,
+          expiresAt: row.expires_at ?? flags[flagName].expiresAt,
+          killSwitch:
+            typeof meta.killSwitch === 'boolean'
+              ? meta.killSwitch
+              : flags[flagName].killSwitch,
+        };
+        loaded += 1;
+      }
+    }
+
+    // ── Fallback legado: app_settings (chaves feature_%) ───────────────────
+    // Mantido para ambientes onde feature_flags não foi populada. Merge —
+    // feature_flags (canônica) vence quando ambas existirem.
+    const { data: settingsData, error: settingsError } = await supabase
       .from('app_settings')
       .select('key, value')
       .like('key', 'feature_%');
 
-    if (error) throw error;
-
-    const flags: Record<string, FeatureConfig> = { ...DEFAULTS };
-    if (data) {
-      for (const row of data) {
+    if (settingsError) {
+      log.warn('[FeatureFlags] app_settings indisponível', settingsError);
+    } else if (settingsData) {
+      for (const row of settingsData) {
         const flagName = row.key.replace('feature_', '') as FeatureFlag;
+        if (!(flagName in DEFAULTS)) continue;
         try {
           // Parse value if it's JSON string, or use as boolean if it's simple
           const parsed = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
@@ -123,7 +204,7 @@ export async function loadFeatureFlags(): Promise<void> {
     }
 
     flagCache = flags;
-    log.info('[FeatureFlags] Sync complete', Object.keys(flags).length, 'flags active');
+    log.info('[FeatureFlags] Sync complete', Object.keys(flags).length, 'flags active', loaded, 'from feature_flags');
   } catch (err) {
     log.warn('[FeatureFlags] Load failed, using safety defaults', err);
   }
