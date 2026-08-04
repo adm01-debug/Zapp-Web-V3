@@ -24,7 +24,7 @@ SRC_DIR="src"
 # Fonte da verdade das definições: migrations ativas + snapshot do schema
 # (migrations-from-lovable/ foi removido na limpeza de 2026-08-03; o snapshot
 #  pg_dump consolidado ficou como referência canônica das definições base).
-MIG_DIRS=(supabase/migrations supabase/migrations-snapshot)
+MIG_DIRS=(supabase/migrations)
 IGNORE_FILE="scripts/.sync-ignore"
 
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
