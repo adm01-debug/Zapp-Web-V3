@@ -1,4 +1,4 @@
-import fc from "npm:fast-check@^4.7.0";
+import fc from 'fast-check';
 
 const validateWebhookPayload = (payload: unknown): boolean => {
   if (!payload || typeof payload !== "object") return false;
