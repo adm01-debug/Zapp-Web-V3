@@ -130,3 +130,47 @@ Deno.test("Registry Integrity: isDeprecatedVersion comportamento", () => {
   // Contrato inexistente
   assertEquals(isDeprecatedVersion("nao-existe", "v1"), false);
 });
+
+// ─── Invariante 7: NENHUM CONTRACT_SCHEMAS['x'] referenciado em index.ts pode
+//     apontar para chave ausente (incidente P0 2026-08-04: ai-churn-analysis e
+//     classify-emoji chamavam o gate com chave undefined → TypeError → 502/500).
+
+const EDGE_ROOT = new URL("../../", import.meta.url);
+
+function walkDir(dir: URL): string[] {
+  const out: string[] = [];
+  for (const entry of Deno.readDirSync(dir)) {
+    if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
+    const p = new URL(entry.name + "/", dir);
+    if (entry.isDirectory) {
+      out.push(...walkDir(p));
+    } else if (entry.name === "index.ts") {
+      out.push(new URL("index.ts", p).pathname);
+    }
+  }
+  return out;
+}
+
+Deno.test("Registry Integrity: toda referência CONTRACT_SCHEMAS['x'] no código existe no registro", () => {
+  const registered = new Set(Object.keys(CONTRACT_SCHEMAS));
+  const missing = new Set<string>();
+  let checked = 0;
+
+  for (const filePath of walkDir(EDGE_ROOT)) {
+    const src = Deno.readTextFileSync(filePath);
+    const refs = src.matchAll(/CONTRACT_SCHEMAS\s*\[\s*['"]([a-z0-9-]+)['"]\s*\]/g);
+    for (const m of refs) {
+      checked++;
+      if (!registered.has(m[1])) missing.add(`${m[1]} (${filePath.split("/").slice(-3).join("/")})`);
+    }
+  }
+
+  assertEquals(
+    [...missing].sort(),
+    [],
+    `Referências a contratos NÃO registrados em CONTRACT_SCHEMAS (${checked} refs verificadas):\n` +
+    `Cada contrato usado no gate precisa de entrada em CONTRACT_SCHEMAS (contract-schemas.ts) ` +
+    `e CONTRACTS (contract-versions.ts).`
+  );
+  assert(checked > 0, "nenhuma referência CONTRACT_SCHEMAS encontrada — verificar scanner");
+});

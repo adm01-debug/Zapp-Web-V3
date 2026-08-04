@@ -64,6 +64,9 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "ai-conversation-analysis":     { current: "v1", supported: ["v1"] },
   "ai-conversation-summary":      { current: "v1", supported: ["v1"] },
   "ai-auto-tag":                  { current: "v1", supported: ["v1"] },
+  "ai-churn-analysis":            { current: "v1", supported: ["v1"] },
+  "classify-emoji":               { current: "v1", supported: ["v1"] },
+  "classify-sticker":             { current: "v1", supported: ["v1"] },
 
   // ElevenLabs
   "elevenlabs-tts":               { current: "v1", supported: ["v1"] },

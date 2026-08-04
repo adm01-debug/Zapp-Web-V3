@@ -31,6 +31,9 @@ import {
   AiSuggestReplySchema,
   AiConversationSummarySchema,
   DetectNewDeviceSchema,
+  AiChurnAnalysisV1Schema,
+  ClassifyEmojiV1Schema,
+  ClassifyStickerV1Schema,
 } from "./schemas.ts";
 import type { SchemaMap } from "./contract-kit.ts";
 
@@ -573,6 +576,9 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "ai-conversation-analysis":      { v1: AiConversationAnalysisV1Schema },
   "ai-conversation-summary":       { v1: AiConversationSummaryV1Schema },
   "ai-auto-tag":                   { v1: AiAutoTagV1Schema },
+  "ai-churn-analysis":             { v1: AiChurnAnalysisV1Schema },
+  "classify-emoji":                { v1: ClassifyEmojiV1Schema },
+  "classify-sticker":              { v1: ClassifyStickerV1Schema },
   "elevenlabs-tts-stream":         { v1: ElevenLabsTtsStreamV1Schema },
   "elevenlabs-sfx":                { v1: ElevenLabsSfxV1Schema },
   "elevenlabs-dialogue":           { v1: ElevenLabsDialogueV1Schema },
