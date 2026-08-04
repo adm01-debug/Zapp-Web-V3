@@ -1,5 +1,14 @@
 # Migration Baseline Squash Plan
 
+## ✅ CONCLUÍDO (2026-08-04) — Remoção de `infra/migrations/`
+
+A parte referente a `infra/migrations/` deste plano foi **concluída por deleção** no **PR #767**:
+
+- O diretório `infra/migrations/` foi **removido** (8 `.sql` + 3 `.md` + demais artefatos de infra deletados).
+- O DDL está coberto pelo canônico **`supabase/migrations/20260804000000_canonical_schema.sql`**.
+- Não há mais migrations fora do controle do Supabase CLI.
+- As seções abaixo permanecem como registro histórico do plano de squash das migrations de `supabase/migrations/`.
+
 ## Situação Atual
 
 | Métrica | Valor |
@@ -9,7 +18,7 @@
 | Arquivos 2025 (todos aplicados em produção) | 42 |
 | Arquivos 2026 (maioria aplicados em produção) | 895 |
 | Tamanho total | 6,1 MB |
-| Arquivos em `infra/migrations/` (aplicados direto, fora do CLI) | 11 |
+| Arquivos em `infra/migrations/` (aplicados direto, fora do CLI) | ~~11~~ → **0** (deletado 2026-08-04, PR #767) |
 
 Com 945 arquivos, `supabase db reset` em staging/dev demora 15+ minutos e é
 propenso a falhas por dependências circulares entre migrations antigas.
@@ -128,8 +137,9 @@ bun run smoke:pre-deploy
 
 ## Migrations em `infra/migrations/` (Não Rastreadas)
 
-Os 11 arquivos em `infra/migrations/` foram aplicados diretamente via psql
-(fora do controle do Supabase CLI). Eles cobrem:
+> **✅ Resolvido (2026-08-04, PR #767):** o diretório `infra/migrations/` foi **removido**.
+> Os 11 arquivos haviam sido aplicados diretamente via psql
+> (fora do controle do Supabase CLI). Eles cobriam:
 
 - `20260711_audit_cleanup.sql` — limpeza de logs antigos
 - `20260711_autovacuum_hotfix.sql` — parâmetros de autovacuum
@@ -137,7 +147,11 @@ Os 11 arquivos em `infra/migrations/` foram aplicados diretamente via psql
 - `20260711_v3_gin_indexes_rpc_fix.sql` — índices GIN
 - etc.
 
-**Ação para E28:** Ver `docs/MIGRATION-UNIFICATION-PLAN.md`.
+**Status:** todos os arquivos foram **deletados** — o DDL já aplicado em produção está
+coberto pelo canônico `supabase/migrations/20260804000000_canonical_schema.sql`.
+Não há mais migrations fora do controle do Supabase CLI.
+
+**Ação para E28:** Ver `docs/MIGRATION-UNIFICATION-PLAN.md` (marcado ✅ CONCLUÍDO).
 
 ## Riscos
 
@@ -153,6 +167,7 @@ Os 11 arquivos em `infra/migrations/` foram aplicados diretamente via psql
 | Fase | Status |
 |------|--------|
 | Documentação do plano | ✅ Pronto |
+| Remoção de `infra/migrations/` (PR #767) | ✅ Concluído 2026-08-04 |
 | Verificação de pré-condições (DBA) | ⏳ Pendente autorização |
 | Baseline snapshot | ⏳ Pendente acesso ao DB de produção |
 | Arquivamento de migrations | ⏳ Pendente staging disponível |
