@@ -31,7 +31,18 @@ export function useEmailSignature(accountId: string | null) {
         q.select('*').eq('account_id', accountId).order('is_default', { ascending: false })
       );
       if (error) throw error;
-      return data ?? [];
+      // Normaliza colunas reais da tabela (content_html/content) para o shape
+      // da UI (html_content) — o schema DB não tem coluna html_content.
+      return (data ?? []).map((row) => {
+        const raw = row as EmailSignature & {
+          content_html?: string | null;
+          content?: string | null;
+        };
+        return {
+          ...raw,
+          html_content: raw.html_content ?? raw.content_html ?? raw.content ?? '',
+        };
+      });
     },
     enabled: !!accountId,
     staleTime: 30_000,
@@ -46,7 +57,9 @@ export function useEmailSignature(accountId: string | null) {
           q
             .update({
               name: sig.name,
-              html_content: sig.html_content,
+              // Colunas reais do schema: content_html (com fallback em content).
+              content_html: sig.html_content,
+              content: sig.html_content,
               is_default: sig.is_default ?? false,
             })
             .eq('id', sig.id ?? '')
@@ -60,7 +73,8 @@ export function useEmailSignature(accountId: string | null) {
           q.insert({
             account_id: accountId,
             name: sig.name,
-            html_content: sig.html_content,
+            content_html: sig.html_content,
+            content: sig.html_content,
             is_default: sig.is_default ?? false,
           })
         );

@@ -30,7 +30,12 @@ export interface EmailApiResponse<T> {
 // ── Funções de API (via Edge Functions) ─────────────────────────────────────
 
 /**
- * Busca o conteúdo completo de uma mensagem (body_html + attachments)
+ * Busca o conteúdo completo de uma mensagem (body_html + body_plain).
+ *
+ * gmail-sync@v1 NÃO possui action fetchMessageBody (enum fechado:
+ * listThreads/syncFull/syncLabels — qualquer outra action → 400). O corpo
+ * completo já é persistido por syncFull na tabela gmail_messages, então a
+ * leitura é direto no banco (mesma fonte que gmail-sync grava).
  */
 export async function fetchMessageBody(
   accountId: string,
@@ -38,30 +43,70 @@ export async function fetchMessageBody(
 ): Promise<
   EmailApiResponse<{ bodyHtml: string; bodyText: string; attachments: EmailAttachment[] }>
 > {
-  const { data, error } = await supabase.functions.invoke('gmail-sync', {
-    body: { action: 'fetchMessageBody', accountId, messageId: emailMessageId },
-  });
+  try {
+    const { data, error } = await supabase
+      .from('gmail_messages')
+      .select('body_html, body_plain')
+      .eq('message_id', emailMessageId)
+      .eq('account_id', accountId)
+      .maybeSingle();
 
-  if (error)
-    return { data: null, error: { code: 500, message: error.message, status: 'INTERNAL' } };
-  return { data, error: null };
+    if (error)
+      return { data: null, error: { code: 500, message: error.message, status: 'INTERNAL' } };
+    if (!data)
+      return {
+        data: null,
+        error: { code: 404, message: 'Mensagem não encontrada', status: 'NOT_FOUND' },
+      };
+
+    const row = data as unknown as { body_html?: string | null; body_plain?: string | null };
+    return {
+      data: {
+        bodyHtml: row.body_html ?? '',
+        bodyText: row.body_plain ?? '',
+        // gmail-sync não persiste o payload dos anexos (apenas has_attachments).
+        attachments: [],
+      },
+      error: null,
+    };
+  } catch (err) {
+    return {
+      data: null,
+      error: {
+        code: 500,
+        message: err instanceof Error ? err.message : String(err),
+        status: 'INTERNAL',
+      },
+    };
+  }
 }
 
 /**
- * Baixa um anexo Email
+ * Baixa um anexo Email.
+ *
+ * TODO(EMAIL-04): gmail-sync não persiste o payload dos anexos (só o flag
+ * has_attachments), e não existe action downloadAttachment na edge (400).
+ * Para baixar de verdade seria preciso adicionar a action na edge chamando
+ * GET /gmail/v1/users/me/messages/{id}/attachments/{attachmentId} — fora do
+ * escopo desta rodada. Retorna erro estruturado em vez de 400 silencioso.
  */
 export async function downloadAttachment(
   accountId: string,
   messageId: string,
   attachmentId: string
 ): Promise<EmailApiResponse<{ data: string; mimeType: string; size: number }>> {
-  const { data, error } = await supabase.functions.invoke('gmail-sync', {
-    body: { action: 'downloadAttachment', accountId, messageId, attachmentId },
-  });
-
-  if (error)
-    return { data: null, error: { code: 500, message: error.message, status: 'INTERNAL' } };
-  return { data, error: null };
+  void accountId;
+  void messageId;
+  void attachmentId;
+  return {
+    data: null,
+    error: {
+      code: 501,
+      message:
+        'Download de anexos não suportado: gmail-sync não persiste payload de anexos (TODO EMAIL-04)',
+      status: 'NOT_IMPLEMENTED',
+    },
+  };
 }
 
 /**
@@ -122,18 +167,24 @@ export async function modifyThreadLabels(
 }
 
 /**
- * Atualiza o Pub/Sub watch de uma conta Email
+ * Atualiza o Pub/Sub watch de uma conta Email.
+ * Contrato gmail-webhook@v1: action é 'registerWatch' (não existe 'renewWatch')
+ * e a resposta é { ok, historyId, expiresAt }.
  */
 export async function renewEmailWatch(
   accountId: string
 ): Promise<EmailApiResponse<{ expiresAt: string; historyId: string }>> {
   const { data, error } = await supabase.functions.invoke('gmail-webhook', {
-    body: { action: 'renewWatch', accountId },
+    body: { action: 'registerWatch', accountId },
   });
 
   if (error)
     return { data: null, error: { code: 500, message: error.message, status: 'INTERNAL' } };
-  return { data, error: null };
+  const raw = (data ?? {}) as { expiresAt?: string | null; historyId?: string | null };
+  return {
+    data: { expiresAt: raw.expiresAt ?? '', historyId: raw.historyId ?? '' },
+    error: null,
+  };
 }
 
 /**
@@ -390,13 +441,13 @@ interface TrashMessageParams {
 
 /**
  * Move uma mensagem específica para a lixeira.
- * Edge function: email-send action=trashMessage
+ * Edge function: gmail-send action=trash (NÃO 'trashMessage' — enum fechado).
  */
 export async function emailTrashMessage(
   params: TrashMessageParams
 ): Promise<EmailApiResponse<void>> {
   const { data, error } = await supabase.functions.invoke('gmail-send', {
-    body: { action: 'trashMessage', ...params },
+    body: { action: 'trash', ...params },
   });
   if (error)
     return { data: null, error: { code: 500, message: error.message, status: 'INTERNAL' } };

@@ -7,6 +7,13 @@ import { EmailImapBridgeV1Schema } from '../_shared/contract-schemas.ts';
 /**
  * email-imap-bridge — Suporte a provedores IMAP/SMTP genéricos (Outlook, Yahoo, etc.)
  *
+ * TODO(EMAIL-02): NÃO implementado de verdade — Edge Functions são HTTP-only
+ * (sem TCP), então IMAP/SMTP real (fetchInbox/sendMessage) é INVIÁVEL aqui.
+ * Estado atual: apenas getProviderConfig/saveCredentials/testConnection
+ * (validação de formato) /listProviders. Para suporte real, integrar um
+ * broker externo (Nylas, EmailEngine, MailSlurp) — sem UI hoje.
+ * Não construir UI/worker até a decisão de broker.
+ *
  * Ações suportadas:
  * - test: Testa credenciais IMAP/SMTP
  * - fetchInbox: Busca emails via IMAP (simulado via Edge Function)

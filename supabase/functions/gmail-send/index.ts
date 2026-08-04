@@ -1,3 +1,12 @@
+/**
+ * gmail-send — Envio Gmail (send/markRead/trash/modifyLabels/drafts)
+ *
+ * TODO(EMAIL-11): Tracking de clique NÃO implementado — reescrever links do
+ * bodyHtml para email-track-link?l={link_id} exige parser de HTML + registro
+ * por link (email_tracked_links) + idempotência + opt-out. Mudança complexa,
+ * fica para iteração dedicada. O pixel de abertura (EMAIL-10) já é injetado
+ * no action send (configurável via EMAIL_TRACKING_ENABLED / SUPABASE_URL).
+ */
 import { requireUser } from '../_shared/auth.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
@@ -48,7 +57,7 @@ Deno.serve(async (req) => {
     // Verify the authenticated user owns this gmail_accounts row before proceeding.
     const { data: accountCheck } = await supabase
       .from('gmail_accounts')
-      .select('id')
+      .select('id, email')
       .eq('id', accountId)
       .eq('user_id', authed.user.id)
       .maybeSingle();
@@ -72,6 +81,23 @@ Deno.serve(async (req) => {
       const bodyPlain = typeof body.bodyPlain === 'string' ? body.bodyPlain : '';
       const threadId = typeof body.threadId === 'string' ? body.threadId : '';
 
+      // ── EMAIL-10: tracking pixel ─────────────────────────────────────
+      // Configurável (não hardcoded): URL pública derivada de
+      // SELFHOSTED_SUPABASE_URL/SUPABASE_URL (mesmo padrão do gmail-oauth) e
+      // flag EMAIL_TRACKING_ENABLED='false' desliga. Gera um tracking_id por
+      // envio e injeta <img> 1x1 no HTML; a abertura é registrada pela edge
+      // email-track-pixel (GET ?t=) via rpc_email_register_open.
+      const trackingEnabled = Deno.env.get('EMAIL_TRACKING_ENABLED') !== 'false';
+      const publicBaseUrl =
+        Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
+      let trackingId: string | null = null;
+      let bodyHtmlOut = bodyHtml;
+      if (trackingEnabled && publicBaseUrl) {
+        trackingId = crypto.randomUUID();
+        const pixelUrl = `${publicBaseUrl}/functions/v1/email-track-pixel?t=${trackingId}`;
+        bodyHtmlOut = `${bodyHtml}\n<br/>\n<img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" />`;
+      }
+
       const ccVal = body.cc;
       const ccArray = Array.isArray(ccVal) ? ccVal : [];
       const ccValid = ccArray.every(c => typeof c === 'string');
@@ -85,7 +111,7 @@ Deno.serve(async (req) => {
       const attachmentsVal = body.attachments;
       const attachmentsArray = Array.isArray(attachmentsVal) ? attachmentsVal : [];
 
-      const rawEmail = buildMime({ to: toArray, cc: ccArray, bcc: bccArray, subject, bodyHtml, bodyPlain, attachments: attachmentsArray, threadId });
+      const rawEmail = buildMime({ to: toArray, cc: ccArray, bcc: bccArray, subject, bodyHtml: bodyHtmlOut, bodyPlain, attachments: attachmentsArray, threadId });
 
       const sendRes = await fetch(`${GMAIL_API}/messages/send`, {
         method: 'POST',
@@ -120,6 +146,28 @@ Deno.serve(async (req) => {
 
       const messageId = typeof sendDataObj.id === 'string' ? sendDataObj.id : '';
       const responseThreadId = typeof sendDataObj.threadId === 'string' ? sendDataObj.threadId : '';
+
+      // Persiste registro de tracking (EMAIL-10) — best-effort, nunca falha o envio.
+      if (trackingId) {
+        try {
+          await supabase.from('email_tracked_messages').upsert({
+            tracking_id:       trackingId,
+            account_id:        accountId,
+            user_id:           userId,
+            sender_email:      typeof accountCheck?.email === 'string' ? accountCheck.email : null,
+            recipient_email:   toArray[0] ?? null,
+            subject,
+            thread_id:         responseThreadId || threadId || null,
+            gmail_message_id:  messageId || null,
+            has_tracking_pixel: true,
+            provider:          'gmail',
+            open_count:        0,
+            click_count:       0,
+          }, { onConflict: 'tracking_id' });
+        } catch (trackErr) {
+          console.error('[gmail-send] tracking record upsert failed (best-effort)', trackErr instanceof Error ? trackErr.message : String(trackErr));
+        }
+      }
 
       // Persiste mensagem enviada no Supabase
       if (messageId && threadId) {
