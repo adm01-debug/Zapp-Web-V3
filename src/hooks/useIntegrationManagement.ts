@@ -47,21 +47,65 @@ export function useEvolutionApiManagement() {
   return { isConnected, instances, loading };
 }
 
-/** Handles Gmail OAuth authentication flow and token management. */
+/** Handles Gmail OAuth authentication flow and token management via the gmail-oauth Edge Function. */
 export function useGmailOAuthFlowManagement() {
-  const [isAuthenticated, _setIsAuthenticated] = useState(false);
-  const [loading, _setLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const initiateOAuth = useCallback(async () => {
-    // GAP-2: initiate_gmail_oauth RPC not yet deployed to DB
-    toast.error('Integração Gmail não disponível no momento. Entre em contato com o suporte.');
-    log.warn('initiateOAuth called but initiate_gmail_oauth RPC is not deployed');
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('gmail-oauth', {
+        body: { action: 'get-auth-url' },
+      });
+      if (error || !data?.url) {
+        toast.error('Não foi possível iniciar a autenticação Gmail. Tente novamente.');
+        log.error('gmail-oauth get-auth-url failed', { error });
+        return;
+      }
+
+      const popup = window.open(data.url, 'gmail-oauth', 'width=520,height=640,scrollbars=yes');
+      if (!popup) {
+        toast.error('Popup bloqueado pelo navegador. Permita popups para este site e tente novamente.');
+        return;
+      }
+
+      const handleMessage = async (event: MessageEvent) => {
+        if (event.data?.type !== 'gmail-oauth-code') return;
+        window.removeEventListener('message', handleMessage);
+
+        const { code, state } = event.data as { code: string; state: string };
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          toast.error('Sessão expirada. Faça login novamente.');
+          return;
+        }
+
+        const { data: exchangeData, error: exchangeError } = await supabase.functions.invoke('gmail-oauth', {
+          body: { action: 'exchange-code', code, userId: user.id, state },
+        });
+
+        if (exchangeError || !exchangeData?.success) {
+          toast.error('Falha ao conectar Gmail. Tente novamente.');
+          log.error('gmail-oauth exchange-code failed', { error: exchangeError });
+          return;
+        }
+
+        setIsAuthenticated(true);
+        toast.success(`Gmail conectado: ${exchangeData.email}`);
+      };
+
+      window.addEventListener('message', handleMessage);
+    } catch (err) {
+      toast.error('Erro ao conectar Gmail. Tente novamente.');
+      log.error('gmail-oauth initiateOAuth error', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const handleCallback = useCallback(async (_code: string) => {
-    // GAP-2: complete_gmail_oauth RPC not yet deployed to DB
-    toast.error('Integração Gmail não disponível no momento. Entre em contato com o suporte.');
-    log.warn('handleCallback called but complete_gmail_oauth RPC is not deployed');
+    log.warn('handleCallback is a no-op — OAuth code is handled via postMessage in initiateOAuth');
   }, []);
 
   return { isAuthenticated, loading, initiateOAuth, handleCallback };

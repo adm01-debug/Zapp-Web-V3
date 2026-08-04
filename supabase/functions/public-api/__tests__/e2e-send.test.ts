@@ -17,6 +17,7 @@ import {
   assertEquals,
   assertExists,
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { _resetRateLimitForTests } from "../../_shared/validation.ts";
 
 // ─── Env stubs (must be set before importing index.ts) ────────────────────
 Deno.env.set("SUPABASE_URL", "https://stub.supabase.co");
@@ -86,16 +87,22 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       is_default: true,
     }));
   }
-  // contacts lookup — return existing so we skip insert
-  if (url.includes("/rest/v1/contacts") && method === "GET") {
+  // contacts lookup — return existing so we skip insert.
+  // Handler was updated (BUG-D fix) from zapp.contacts to evolution_contacts;
+  // match both so the mock stays forward-compatible.
+  if ((url.includes("/rest/v1/evolution_contacts") || url.includes("/rest/v1/contacts")) && method === "GET") {
     return jsonRes(wrap({ id: "contact-1" }));
   }
+  // evolution_contacts insert (new contact creation branch)
+  if ((url.includes("/rest/v1/evolution_contacts") || url.includes("/rest/v1/contacts")) && method === "POST") {
+    return jsonRes(wrap({ id: "contact-new-1" }));
+  }
   // messages insert
-  if (url.includes("/rest/v1/messages") && method === "POST") {
+  if (/\/rest\/v1\/messages(\?|$)/.test(url) && method === "POST") {
     return jsonRes(wrap({ id: "msg-1", status: "sending" }));
   }
   // messages update (PATCH)
-  if (url.includes("/rest/v1/messages") && method === "PATCH") {
+  if (/\/rest\/v1\/messages(\?|$)/.test(url) && method === "PATCH") {
     return jsonRes(wrap({ id: "msg-1", ...(body as Record<string, unknown>) }));
   }
   // Evolution send — covers both the legacy direct path and the new
@@ -135,6 +142,7 @@ function reset() {
     ok: true,
     body: { key: { id: "WAMSG_FROM_EVOLUTION_123" }, status: "PENDING" },
   };
+  _resetRateLimitForTests();
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────
@@ -157,7 +165,7 @@ Deno.test({
     assertEquals(json.messageId, "msg-1");
     assertEquals(json.requestId, "trace-abc-123");
 
-    const patches = calls.filter(c => c.method === "PATCH" && c.url.includes("/rest/v1/messages"));
+    const patches = calls.filter(c => c.method === "PATCH" && /\/rest\/v1\/messages(\?|$)/.test(c.url));
     assert(patches.length >= 1, `expected at least one messages PATCH, got ${patches.length}`);
     const sentPatch = patches.find(p => (p.body as Record<string, unknown>)?.status === "sent");
     assertExists(sentPatch, "expected a PATCH setting status='sent'");
@@ -170,7 +178,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "public-api: failure — Evolution non-OK envelope does NOT mark message as 'sent', HTTP stays 200",
+  name: "public-api: failure — Evolution non-OK envelope does NOT mark message as 'sent', marks 'failed', HTTP stays 200",
   sanitizeOps: false,
   sanitizeResources: false,
   fn: async () => {
@@ -189,10 +197,18 @@ Deno.test({
     assertEquals(res.status, 200);
     const sentPatch = calls.find(c =>
       c.method === "PATCH" &&
-      c.url.includes("/rest/v1/messages") &&
+      /\/rest\/v1\/messages(\?|$)/.test(c.url) &&
       (c.body as Record<string, unknown>)?.status === "sent"
     );
     assertEquals(sentPatch, undefined, "must NOT mark message 'sent' when Evolution envelope has no key.id");
+
+    // Must mark 'failed' (the invokeError branch runs the failed update)
+    const failedPatch = calls.find(c =>
+      c.method === "PATCH" &&
+      /\/rest\/v1\/messages(\?|$)/.test(c.url) &&
+      (c.body as Record<string, unknown>)?.status === "failed"
+    );
+    assertExists(failedPatch, "must PATCH messages to status='failed' when Evolution invoke returns an error");
   },
 });
 
@@ -209,6 +225,184 @@ Deno.test({
     });
     const res = await handler(req);
     assertEquals(res.status, 401);
+  },
+});
+
+Deno.test({
+  name: "public-api: wrong x-api-key returns 403",
+  sanitizeOps: false,
+  sanitizeResources: false,
+  fn: async () => {
+    reset();
+    const res = await handler(makeReq(
+      { action: "send", number: "5511999990000", message: "Hi" },
+      { "x-api-key": "wrong-token" }
+    ));
+    assertEquals(res.status, 403);
+  },
+});
+
+Deno.test({
+  name: "public-api: unknown action returns 400",
+  sanitizeOps: false,
+  sanitizeResources: false,
+  fn: async () => {
+    reset();
+    const res = await handler(makeReq({ action: "delete", number: "5511999990000", message: "Hi" }));
+    assertEquals(res.status, 400);
+    const json = await res.json();
+    assert((json.error as string).includes("Unknown action"));
+  },
+});
+
+Deno.test({
+  name: "public-api: invalid JSON body returns 400",
+  sanitizeOps: false,
+  sanitizeResources: false,
+  fn: async () => {
+    reset();
+    const req = new Request("https://stub/public-api", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": "valid-token" },
+      body: "{ not json !!!",
+    });
+    const res = await handler(req);
+    assertEquals(res.status, 400);
+  },
+});
+
+Deno.test({
+  name: "public-api: invoke throws (network error) — message marked 'failed', returns 200",
+  sanitizeOps: false,
+  sanitizeResources: false,
+  fn: async () => {
+    reset();
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
+      if (url.includes("/functions/v1/evolution-api")) {
+        throw new TypeError("network failure");
+      }
+      return origFetch(input, init);
+    };
+    try {
+      const res = await handler(makeReq({ action: "send", number: "5511999990000", message: "Hi" }));
+      assertEquals(res.status, 200, "handler must return 200 even when invoke throws");
+      const failedPatch = calls.find(c =>
+        c.method === "PATCH" &&
+        /\/rest\/v1\/messages(\?|$)/.test(c.url) &&
+        (c.body as Record<string, unknown>)?.status === "failed"
+      );
+      assertExists(failedPatch, "must PATCH messages to status='failed' when invoke throws");
+      const sentPatch = calls.find(c =>
+        c.method === "PATCH" &&
+        /\/rest\/v1\/messages(\?|$)/.test(c.url) &&
+        (c.body as Record<string, unknown>)?.status === "sent"
+      );
+      assertEquals(sentPatch, undefined, "must NOT mark 'sent' when invoke throws");
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  },
+});
+
+Deno.test({
+  name: "public-api: no active WhatsApp connection returns 404",
+  sanitizeOps: false,
+  sanitizeResources: false,
+  fn: async () => {
+    reset();
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
+      if (url.includes("/rest/v1/whatsapp_connections")) {
+        // PostgREST .single() with no row → 406 with JSON null
+        return new Response("null", { status: 406, headers: { "content-type": "application/json" } });
+      }
+      return origFetch(input, init);
+    };
+    try {
+      const res = await handler(makeReq({ action: "send", number: "5511999990000", message: "Hi" }));
+      assertEquals(res.status, 404);
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  },
+});
+
+Deno.test({
+  name: "public-api: explicit connectionId — queries by id, not is_default",
+  sanitizeOps: false,
+  sanitizeResources: false,
+  fn: async () => {
+    reset();
+    const validUUID = "00000000-0000-4000-a000-000000000001";
+    const res = await handler(makeReq({
+      action: "send",
+      number: "5511999990000",
+      message: "Hi",
+      connectionId: validUUID,
+    }));
+    assertEquals(res.status, 200);
+    const connCall = calls.find(c => c.url.includes("/rest/v1/whatsapp_connections"));
+    assertExists(connCall, "must query whatsapp_connections");
+    assert(connCall!.url.includes(validUUID), "must query by connectionId UUID");
+  },
+});
+
+Deno.test({
+  name: "public-api: creates new contact when not found, uses new contact in message",
+  sanitizeOps: false,
+  sanitizeResources: false,
+  fn: async () => {
+    reset();
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
+      const method = (init?.method ?? "GET").toUpperCase();
+      // Return no contact for GET so insert branch runs
+      if ((url.includes("/rest/v1/evolution_contacts") || url.includes("/rest/v1/contacts")) && method === "GET") {
+        const single = wantsSingle(init);
+        // maybeSingle() with no rows: null body, 200 for PGRST
+        return new Response(single ? "null" : "[]", {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return origFetch(input, init);
+    };
+    try {
+      const res = await handler(makeReq({ action: "send", number: "5511999990000", message: "Hi" }));
+      assertEquals(res.status, 200);
+      const json = await res.json();
+      assertEquals(json.success, true);
+      const contactInsert = calls.find(c =>
+        c.method === "POST" &&
+        (c.url.includes("/rest/v1/evolution_contacts") || c.url.includes("/rest/v1/contacts"))
+      );
+      assertExists(contactInsert, "expected POST to evolution_contacts to create contact");
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  },
+});
+
+Deno.test({
+  name: "public-api: success — extracts external_id from alternate Evolution shape (messageId field)",
+  sanitizeOps: false,
+  sanitizeResources: false,
+  fn: async () => {
+    reset();
+    evolutionResponse = { ok: true, body: { messageId: "WAMSG_ALT_FORMAT_456" } };
+    const res = await handler(makeReq({ action: "send", number: "5511999990000", message: "Hello" }));
+    assertEquals(res.status, 200);
+    const sentPatch = calls.find(c =>
+      c.method === "PATCH" &&
+      /\/rest\/v1\/messages(\?|$)/.test(c.url) &&
+      (c.body as Record<string, unknown>)?.status === "sent"
+    );
+    assertExists(sentPatch, "must find PATCH with status=sent for alternate Evolution response shape");
+    assertEquals((sentPatch!.body as Record<string, unknown>).external_id, "WAMSG_ALT_FORMAT_456");
   },
 });
 

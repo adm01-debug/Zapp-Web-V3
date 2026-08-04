@@ -348,9 +348,10 @@ export const EvolutionBitrixSyncV1Schema = EmptyStrictV1Schema;
 /** db-health-monitor@v1 — cron de health check; sem body. */
 export const DbHealthMonitorV1Schema = EmptyStrictV1Schema;
 
-/** connection-health-check@v1 — GET (todas) ou POST { instanceName? } (verificar agora). */
+/** connection-health-check@v1 — GET (todas) ou POST { instanceName?, connectionId? } (verificar agora). */
 export const ConnectionHealthCheckV1Schema = z.object({
   instanceName: z.string().min(1).max(100).optional(),
+  connectionId: z.string().uuid().optional(),
 }).strict();
 
 /** health-check@v1 — probe GET; sem body. */
@@ -388,6 +389,24 @@ export const BackfillMessagesV1Schema = z.object({
   limit: z.number().int().min(1).max(500).optional(),
   dryRun: z.boolean().optional(),
 }).strict();
+
+/**
+ * audio-transcribe@v1 — POST autenticado (requireUser + rate limit 5/min).
+ * Espelho fiel do TranscribeInput inline v2.2 (migrado do Cloud Fator X):
+ * { action?, audio_base64?, audio_url?, language?, format? } com refine
+ * exigindo audio_base64 OU audio_url. v2.3 versionado no repo (2026-08-04).
+ * NOTA: NÃO usar .strict() — o v2.2 original era permissivo a campos extras
+ * e o handler lê apenas os campos conhecidos.
+ */
+export const AudioTranscribeV1Schema = z.object({
+  action: z.enum(['transcribe', 'translate']).default('transcribe'),
+  audio_base64: z.string().min(100).optional(),
+  audio_url: z.string().url().optional(),
+  language: z.string().min(2).max(5).default('pt'),
+  format: z.enum(['text', 'srt', 'vtt', 'json']).default('text'),
+}).refine(d => d.audio_base64 || d.audio_url, {
+  message: 'Either audio_base64 or audio_url is required',
+});
 
 /** Ajustes de voz (elevenlabs-voice textToSpeech) — valores numéricos em [0,1]. */
 const ElevenLabsVoiceSettingsV1Schema = z.object({
@@ -655,6 +674,9 @@ export const ApprovePasswordResetV1Schema = z.object({
   decision: z.string().optional(),
 }).passthrough();
 
+/** auth-email-hook@v1 — hook interno do Supabase Auth. Schema de registro. */
+export const AuthEmailHookV1Schema = z.object({}).passthrough();
+
  /** detect-new-device@v1 — schema em _shared/schemas.ts (DetectNewDeviceSchema). Schema de registro. */
  // DetectNewDeviceV1Schema defined below as local alias
 
@@ -699,7 +721,19 @@ export const EvolutionApiV1Schema = z.object({
 
  // ─── Alias local para schema importado de schemas.ts ────────────────────────
  /** ai-suggest-reply@v1 — alias de AiSuggestReplySchema. */
- export const AiSuggestReplyV1Schema = AiSuggestReplySchema;
+ const _conversationItemSchema = z.object({
+  role: z.enum(['user', 'assistant', 'system', 'agent', 'client']),
+  content: z.string().max(10000),
+});
+/** ai-suggest-reply@v1 — gateway schema; aceita 'messages' como alias de
+ *  'conversationHistory' (campo que o inbox envia) e requestId opcional. */
+export const AiSuggestReplyV1Schema = AiSuggestReplySchema
+  .omit({ conversationHistory: true, requestId: true })
+  .extend({
+    conversationHistory: _conversationItemSchema.array().min(1).max(50).optional(),
+    messages: _conversationItemSchema.array().min(1).max(50).optional(),
+    requestId: z.string().max(256).optional(),
+  });
  /** ai-conversation-summary@v1 — alias de AiConversationSummarySchema. */
  export const AiConversationSummaryV1Schema = AiConversationSummarySchema;
 
@@ -853,19 +887,21 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "sicoob-bridge":                 { v1: SicoobBridgeV1Schema },
   "sicoob-bridge-reply":           { v1: SicoobBridgeReplyV1Schema },
   "bitrix-api":                    { v1: BitrixApiV1Schema },
+  "auth-email-hook":               { v1: AuthEmailHookV1Schema },
   "whatsapp-cloud-send":           { v1: WhatsappCloudSendV1Schema },
   "public-api":                    { v1: PublicApiV1Schema },
   "ai-proxy":                      { v1: AiProxyV1Schema },
   "ai-suggest-reply":              { v1: AiSuggestReplyV1Schema },
   "ai-enhance-message":            { v1: AiEnhanceMessageV1Schema },
   "ai-transcribe-audio":           { v1: AiTranscribeAudioV1Schema },
+  "audio-transcribe":              { v1: AudioTranscribeV1Schema },
   "ai-conversation-analysis":      { v1: AiConversationAnalysisV1Schema },
   "ai-conversation-summary":       { v1: AiConversationSummaryV1Schema },
-  "ai-auto-tag":                   { v1: AiAutoTagV1Schema },
   "ai-churn-analysis":             { v1: AiChurnAnalysisV1Schema },
+  "ai-auto-tag":                   { v1: AiAutoTagV1Schema },
+  "elevenlabs-tts-stream":         { v1: ElevenLabsTtsStreamV1Schema },
   "classify-emoji":                { v1: ClassifyEmojiV1Schema },
   "classify-sticker":              { v1: ClassifyStickerV1Schema },
-  "elevenlabs-tts-stream":         { v1: ElevenLabsTtsStreamV1Schema },
   "elevenlabs-sfx":                { v1: ElevenLabsSfxV1Schema },
   "elevenlabs-dialogue":           { v1: ElevenLabsDialogueV1Schema },
   "elevenlabs-voice-design":       { v1: ElevenLabsVoiceDesignV1Schema },
@@ -921,7 +957,6 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "virustotal-test":  { v1: InfraSchemas.VirustotalTestV1Schema },
   "voice-agent":  { v1: AISchemas.VoiceAgentV1Schema },
   "voice-changer":  { v1: InfraSchemas.VoiceChangerMultipartV1Schema },
-
 };
 
 // ─── Re-exports de edge-contract-schemas (ponto de import unificado) ─────────
