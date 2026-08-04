@@ -48,7 +48,14 @@ interface ConsumerDef {
 // A função messagesRepository.subscribeToMessages foi removida por ser dead code com subscription inválida.
 // Se um novo consumidor assinar evolution_messages via postgres_changes e for relevante para este diagrama,
 // adicione-o aqui com o caminho correto.
-const CONSUMERS: ConsumerDef[] = [];
+const CONSUMERS: ConsumerDef[] = [
+  {
+    id: "UMC",
+    label: "useMessagesCursor",
+    path: "src/features/inbox/hooks/useMessagesCursor.ts",
+    description: "Cursor de paginação do inbox — replica INSERT/UPDATE/DELETE de evolution_messages na página ativa",
+  },
+];
 
 // Outros nós (não consumem 'messages' mas têm click links)
 const EXTRA_CLICKS: { id: string; path: string }[] = [
