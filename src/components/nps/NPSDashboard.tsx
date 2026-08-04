@@ -6,6 +6,23 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, Minus, Users, ThumbsUp, ThumbsDown, Meh, BarChart3 } from 'lucide-react';
 
+/**
+ * TODO CAMPANHAS-14 (NPS agendado): o edge `nps-scheduler` está deployado e funcional
+ * (supabase/functions/nps-scheduler) mas NÃO possui trigger: sem pg_cron, sem invoke no front.
+ *
+ * POR QUE NÃO HÁ BOTÃO "DISPARAR AGORA" AQUI: `nps-scheduler` exige
+ * `requireServiceRoleOrCron` (service-role bearer OU header `x-cron-secret` — ver
+ * supabase/functions/_shared/auth.ts). Um `supabase.functions.invoke('nps-scheduler')`
+ * do frontend envia o JWT do usuário (anon key) → 401 garantido.
+ *
+ * ONDE O TRIGGER DEVE ENTRAR (fora do escopo desta branch — exige migration/edge):
+ *  1. pg_cron diário chamando o edge com header `x-cron-secret` (recomendado), OU
+ *  2. um edge wrapper `nps-trigger` com `requireAdminOrSupervisor` que invoque
+ *     internamente a mesma lógica (ou chame nps-scheduler com o service-role),
+ *     e aí sim um botão "Disparar agora" aqui no dashboard chamaria o wrapper.
+ * Contrato aceito: POST {} (v1). Ver CONTRACT_SCHEMAS['nps-scheduler'].
+ */
+
 function ScoreGauge({ score }: { score: number }) {
   const color = score >= 50 ? 'text-success' : score >= 0 ? 'text-warning' : 'text-destructive';
   const bg = score >= 50 ? 'bg-success/10' : score >= 0 ? 'bg-warning/10' : 'bg-destructive/10';

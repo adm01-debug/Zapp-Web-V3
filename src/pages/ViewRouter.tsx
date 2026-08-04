@@ -145,6 +145,7 @@ const VIEW_MAP: Record<string, React.LazyExoticComponent<React.ComponentType<any
   'email-audit': Views.AdminEmailAuditPage,
   'sla-history': Views.SLAHistory,
   'admin-connections': Views.AdminConnectionsPage,
+  'instance-pauses': Views.AdminInstancePausesPage,
   bridge: Views.ConnectionsIntegrationsHub,
 };
 
