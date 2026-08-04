@@ -85,6 +85,7 @@ export function useWhatsAppTemplates() {
   const [previewTemplate, setPreviewTemplate] = useState<WhatsAppTemplate | null>(null);
   const [previewVariables, setPreviewVariables] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const { data: templates = [], isLoading: loading } = useQuery({
     queryKey: TEMPLATES_KEY,
@@ -179,6 +180,76 @@ export function useWhatsAppTemplates() {
     setIsDialogOpen(true);
   }, []);
 
+  /**
+   * WHATSAPP-05 — conecta a UI à edge `evolution-templates` (contrato real v1):
+   * GET lista templates ativos de `evolution_message_templates` e responde
+   * { success, templates[] }; POST roteia { action: send|preview }. Aqui o GET
+   * sincroniza os templates do WhatsApp/Evolution e persiste em
+   * `whatsapp_templates` (merge por nome — sem unique constraint na tabela).
+   * NOTA: a edge exige service-role/cron (requireServiceRoleOrCron); invocada
+   * do browser com anon key retorna 401 — o fallback mantém a UI local intacta
+   * e reporta via toast/log. Se a edge for relaxada para requireUser (padrão
+   * de instance-pause-control), a sincronização passa a funcionar sem mudança.
+   */
+  const syncFromEvolution = useCallback(async (): Promise<number> => {
+    setIsSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('evolution-templates', { method: 'GET' });
+      if (error) throw error;
+      const result = data as {
+        success?: boolean;
+        templates?: Array<Record<string, unknown>>;
+        error?: string;
+      };
+      if (!result?.success || !Array.isArray(result.templates)) {
+        throw new Error(result?.error ?? 'Resposta inesperada da edge evolution-templates');
+      }
+      const rows = result.templates
+        .map((t) => ({
+          name: String(t.name ?? '').trim().toLowerCase().replace(/\s+/g, '_'),
+          category: typeof t.category === 'string' && t.category ? t.category : 'utility',
+          language: typeof t.language === 'string' && t.language ? t.language : 'pt_BR',
+          content: String(t.content ?? ''),
+          header_text: typeof t.header_content === 'string' ? t.header_content : null,
+          footer_text: typeof t.footer_text === 'string' ? t.footer_text : null,
+          status: (typeof t.approval_status === 'string' ? t.approval_status : 'draft').toLowerCase(),
+          variables: extractVariables(String(t.content ?? '')),
+          buttons: [],
+          created_by: user?.id ?? null,
+        }))
+        .filter((r) => r.name && r.content);
+      if (rows.length === 0) {
+        toast.info('Nenhum template ativo encontrado na Evolution');
+        return 0;
+      }
+      let created = 0;
+      let updated = 0;
+      for (const row of rows) {
+        const { data: existing } = await supabase
+          .from('whatsapp_templates')
+          .select('id')
+          .eq('name', row.name)
+          .maybeSingle();
+        if (existing?.id) {
+          const { error } = await supabase.from('whatsapp_templates').update(row).eq('id', existing.id);
+          if (!error) updated += 1;
+        } else {
+          const { error } = await supabase.from('whatsapp_templates').insert(row);
+          if (!error) created += 1;
+        }
+      }
+      void queryClient.invalidateQueries({ queryKey: TEMPLATES_KEY });
+      toast.success(`Sincronizado com Evolution: ${created} criado(s), ${updated} atualizado(s)`);
+      return created + updated;
+    } catch (err) {
+      log.error('syncFromEvolution — erro ao sincronizar via edge evolution-templates:', err);
+      toast.error('Não foi possível sincronizar templates com a Evolution');
+      return 0;
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [user, queryClient]);
+
   const handlePreview = useCallback((template: WhatsAppTemplate) => {
     setPreviewTemplate(template);
     const vars: Record<string, string> = {};
@@ -237,6 +308,8 @@ export function useWhatsAppTemplates() {
     previewVariables,
     setPreviewVariables,
     isSaving,
+    isSyncing,
+    syncFromEvolution,
     handleContentChange,
     handleSave,
     handleDelete,
