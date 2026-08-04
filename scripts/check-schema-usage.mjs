@@ -52,6 +52,10 @@ const HAS_SCHEMA_METHOD = /\.schema\(\s*['"](zapp|evo|email_app|financeiro|venda
 for (const f of files) {
   const isTest = TEST_RE.test(f);
   const src = readFileSync(f, 'utf8');
+  // Normaliza separadores p/ '/' — no Windows relative() devolve '\\' e
+  // f.startsWith('src/') falharia silenciosamente (guardrail nunca acusava).
+  const rel = relative('.', f).replace(/\\/g, '/');
+  const isSrcFile = rel.startsWith('src/');
 
   // 1. schema('public')
   if (/\.schema\(\s*['"]public['"]\s*\)/.test(src)) {
@@ -73,7 +77,7 @@ for (const f of files) {
   }
 
   // 3. supabase.co hardcoded em código-fonte (src/ e supabase/functions/ apenas).
-  const isSourceFile = f.startsWith('src/') || f.startsWith('supabase/functions/');
+  const isSourceFile = rel.startsWith('src/') || rel.startsWith('supabase/functions/');
   if (!isTest && isSourceFile && /https?:\/\/[a-z0-9-]+\.supabase\.co/i.test(src)) {
     violations.cloudUrl.push(relative('.', f));
   }
@@ -81,7 +85,7 @@ for (const f of files) {
   // 4. .schema('evo').from('evolution_messages'|'evolution_conversations') no frontend
   const evoRootDirectAccessRe =
     /\.schema\s*\(\s*['"]evo['"]\s*\)\s*\.from\s*\(\s*['"](evolution_messages|evolution_conversations)['"]\s*\)/;
-  if (!isTest && f.startsWith('src/') && evoRootDirectAccessRe.test(src)) {
+  if (!isTest && isSrcFile && evoRootDirectAccessRe.test(src)) {
     violations.evoUnprefixed.push(relative('.', f));
   }
 
@@ -96,7 +100,7 @@ for (const f of files) {
   const evoOnlyTableRe =
     /\.from\(\s*['"](evolution_instance_credentials|evolution_health_logs)['"]\s*\)/;
   const hasEvoSchema = /\.schema\(\s*['"]evo['"]\s*\)/.test(src);
-  if (!isTest && f.startsWith('src/') && evoOnlyTableRe.test(src) && hasEvoSchema) {
+  if (!isTest && isSrcFile && evoOnlyTableRe.test(src) && hasEvoSchema) {
     violations.evoSchemaRequired.push(relative('.', f));
   }
 

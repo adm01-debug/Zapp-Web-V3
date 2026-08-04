@@ -10,7 +10,8 @@
  *   service_role e grava na tabela física em 'evo' (service_role only via RLS).
  * - HEALTH LOGS: zapp.evolution_health_logs é VIEW auto-updatable; INSERT via client
  *   autenticado funciona (policies na base em evo p/ role public).
- * - O schema 'evo' NÃO está no PGRST_DB_SCHEMAS — qualquer .schema('evo') falha com
+ * - O schema 'evo' NÃO está no PGRST_DB_SCHEMAS — qualquer override de schema
+ *   apontando para 'evo' falha com PGRST106 (guardrail check-schema-usage).
  *   PGRST106. Nunca usar evo a partir do client.
  */
 import { useState, useEffect, useCallback } from 'react';
