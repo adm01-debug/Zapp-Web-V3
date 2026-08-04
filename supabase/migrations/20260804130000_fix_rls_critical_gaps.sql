@@ -11,9 +11,13 @@
 --
 -- A-1: zapp.team_messages had only a SELECT policy. With RLS enabled (20260804120000),
 --      INSERT/UPDATE/DELETE would block all authenticated users — team chat broken.
+--      UPDATE policy is relaxed so any conversation member (not just sender) can update
+--      rows — this is required for read receipts and message status updates.
 --
 -- A-2: zapp.talkx_campaigns had only a SELECT policy. Campaign managers could not
 --      create/edit/delete campaigns after RLS enablement.
+--      UPDATE policy accepts either auth.uid() OR profiles.id in created_by to
+--      handle both legacy and current INSERT patterns.
 --
 -- A-3: zapp.user_roles had no DELETE policy. Role revocation would fail at
 --      useAdminManagement.ts:873 with RLS enabled.
@@ -22,8 +26,32 @@
 --      user to DELETE queues. Fix: downgrade to FOR SELECT only (queues_admin_write
 --      already restricts writes to admin/supervisor).
 --
+-- A-5: whatsapp_connections_health_status_check constraint did not include 'disconnected'
+--      or 'timeout', but connection-health-check edge function writes both values.
+--      Expands the constraint to allow all values the edge function can produce.
+--
+-- A-6: Multiple zapp/evo functions were executable by anon role (no REVOKE FROM PUBLIC
+--      after bulk REVOKE at line 8076 of canonical schema; no ALTER DEFAULT PRIVILEGES
+--      for zapp/evo functions). Bulk REVOKE DO block clears all remaining anon access.
+--
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Rollback (reverse order, run manually in case of emergency):
+--
+--   -- Restore A-6: no structural rollback — GRANT would need to be explicit per function
+--
+--   -- Restore A-5: revert to original constraint values (removes disconnected/timeout)
+--   ALTER TABLE zapp.whatsapp_connections
+--     DROP CONSTRAINT IF EXISTS whatsapp_connections_health_status_check;
+--   ALTER TABLE zapp.whatsapp_connections
+--     ADD CONSTRAINT whatsapp_connections_health_status_check
+--     CHECK (
+--       health_status IS NULL OR
+--       health_status = ANY (ARRAY[
+--         'healthy'::text, 'ok'::text, 'provisioned'::text,
+--         'degraded'::text, 'error'::text, 'unknown'::text,
+--         'down'::text, 'offline'::text
+--       ])
+--     );
 --
 --   -- Restore A-4: re-allow all authenticated operations on queues
 --   DROP POLICY IF EXISTS auth_secure_134 ON zapp.queues;
@@ -68,7 +96,11 @@ CREATE POLICY voice_conversion_queue_authenticated ON public.voice_conversion_qu
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- A-1: zapp.team_messages — INSERT, UPDATE, DELETE policies
---      sender_id owns their messages; admin/supervisor can write any.
+--      INSERT: sender must be a conversation member (or admin/supervisor).
+--      UPDATE: any conversation member can update (covers read receipts, status
+--        changes, etc.) — NOT restricted to sender only, since non-senders need
+--        to mark messages as read.
+--      DELETE: only the original sender or admin/supervisor.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 DROP POLICY IF EXISTS team_messages_insert ON zapp.team_messages;
@@ -84,17 +116,15 @@ CREATE POLICY team_messages_insert ON zapp.team_messages FOR INSERT TO authentic
 DROP POLICY IF EXISTS team_messages_update ON zapp.team_messages;
 CREATE POLICY team_messages_update ON zapp.team_messages FOR UPDATE TO authenticated
   USING (
-    (sender_id = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid())
-     AND EXISTS (SELECT 1 FROM zapp.team_conversation_members tcm
-                 JOIN zapp.profiles p2 ON p2.id = tcm.profile_id
-                 WHERE tcm.conversation_id = team_messages.conversation_id AND p2.user_id = auth.uid()))
+    EXISTS (SELECT 1 FROM zapp.team_conversation_members tcm
+            JOIN zapp.profiles p2 ON p2.id = tcm.profile_id
+            WHERE tcm.conversation_id = team_messages.conversation_id AND p2.user_id = auth.uid())
     OR zapp.is_admin_or_supervisor(auth.uid())
   )
   WITH CHECK (
-    (sender_id = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid())
-     AND EXISTS (SELECT 1 FROM zapp.team_conversation_members tcm
-                 JOIN zapp.profiles p2 ON p2.id = tcm.profile_id
-                 WHERE tcm.conversation_id = conversation_id AND p2.user_id = auth.uid()))
+    EXISTS (SELECT 1 FROM zapp.team_conversation_members tcm
+            JOIN zapp.profiles p2 ON p2.id = tcm.profile_id
+            WHERE tcm.conversation_id = conversation_id AND p2.user_id = auth.uid())
     OR zapp.is_admin_or_supervisor(auth.uid())
   );
 
@@ -103,7 +133,9 @@ CREATE POLICY team_messages_delete ON zapp.team_messages FOR DELETE TO authentic
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- A-2: zapp.talkx_campaigns — INSERT, UPDATE, DELETE policies (admin/supervisor only)
---      Mirrors the campaigns_admin_write pattern for the TalkX campaign module.
+--      UPDATE accepts created_by = auth.uid() OR created_by = profiles.id so that
+--      both legacy (uuid FK to profiles) and current (auth.uid direct) insert
+--      patterns allow the owner to edit their own campaigns.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 DROP POLICY IF EXISTS talkx_campaigns_insert ON zapp.talkx_campaigns;
@@ -111,8 +143,16 @@ CREATE POLICY talkx_campaigns_insert ON zapp.talkx_campaigns FOR INSERT TO authe
 
 DROP POLICY IF EXISTS talkx_campaigns_update ON zapp.talkx_campaigns;
 CREATE POLICY talkx_campaigns_update ON zapp.talkx_campaigns FOR UPDATE TO authenticated
-  USING (created_by = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()))
-  WITH CHECK (created_by = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+  USING (
+    created_by = auth.uid()
+    OR created_by = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid())
+    OR zapp.is_admin_or_supervisor(auth.uid())
+  )
+  WITH CHECK (
+    created_by = auth.uid()
+    OR created_by = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid())
+    OR zapp.is_admin_or_supervisor(auth.uid())
+  );
 
 DROP POLICY IF EXISTS talkx_campaigns_delete ON zapp.talkx_campaigns;
 CREATE POLICY talkx_campaigns_delete ON zapp.talkx_campaigns FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor(auth.uid()));
@@ -132,6 +172,67 @@ CREATE POLICY user_roles_admin_delete ON zapp.user_roles FOR DELETE TO authentic
 
 DROP POLICY IF EXISTS auth_secure_134 ON zapp.queues;
 CREATE POLICY auth_secure_134 ON zapp.queues FOR SELECT TO authenticated USING (true);
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- A-5: zapp.whatsapp_connections — expand health_status CHECK constraint
+--      connection-health-check edge function writes 'disconnected' (stale_session,
+--      socket_closed) and 'timeout' — both absent from the original constraint,
+--      causing CHECK violations on health updates.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+ALTER TABLE zapp.whatsapp_connections
+  DROP CONSTRAINT IF EXISTS whatsapp_connections_health_status_check;
+
+ALTER TABLE zapp.whatsapp_connections
+  ADD CONSTRAINT whatsapp_connections_health_status_check
+  CHECK (
+    health_status IS NULL OR
+    health_status = ANY (ARRAY[
+      'healthy'::text, 'ok'::text, 'provisioned'::text,
+      'degraded'::text, 'error'::text, 'unknown'::text,
+      'down'::text, 'offline'::text, 'disconnected'::text, 'timeout'::text
+    ])
+  );
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- A-6: Revoke anon/PUBLIC EXECUTE from all functions in zapp and evo schemas
+--      The canonical schema (20260804000000) bulk-REVOKEs at line 8076, but functions
+--      defined after that point inherit PUBLIC EXECUTE (no ALTER DEFAULT PRIVILEGES
+--      for zapp/evo FUNCTIONS exists in the canonical schema). This DO block closes
+--      all remaining gaps with the same pattern as the canonical bulk REVOKE.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+DO $fix_anon_exec$
+DECLARE
+  r record;
+BEGIN
+  FOR r IN
+    SELECT n.nspname, p.proname,
+           pg_get_function_identity_arguments(p.oid) AS args,
+           p.prokind
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname IN ('zapp', 'evo')
+      AND has_function_privilege('anon', p.oid, 'EXECUTE')
+  LOOP
+    BEGIN
+      IF r.prokind = 'p' THEN
+        EXECUTE format(
+          'REVOKE EXECUTE ON PROCEDURE %I.%I(%s) FROM anon, PUBLIC',
+          r.nspname, r.proname, r.args
+        );
+      ELSE
+        EXECUTE format(
+          'REVOKE EXECUTE ON FUNCTION %I.%I(%s) FROM anon, PUBLIC',
+          r.nspname, r.proname, r.args
+        );
+      END IF;
+    EXCEPTION WHEN OTHERS THEN
+      NULL;
+    END;
+  END LOOP;
+END;
+$fix_anon_exec$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Cosmetic: re-declare warroom_alerts policy as single-line so the static CI
