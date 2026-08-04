@@ -296,7 +296,7 @@ CREATE OR REPLACE FUNCTION zapp.fn_messages_view_insert_handler()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO 'public', 'evo', 'zapp', 'monitoring'
+SET search_path TO 'evo', 'zapp', 'monitoring', 'pg_catalog'
 AS $function$
 DECLARE
   v_db_direction text;
@@ -3206,7 +3206,7 @@ RETURNS TABLE(
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO 'zapp', 'public'
+SET search_path TO 'zapp', 'pg_catalog'
 AS $$
 BEGIN
   IF NOT (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'supervisor')) THEN
@@ -6021,7 +6021,7 @@ END $$;
 --      applied globally to ALL sessions including pg_cron workers.
 --      Fix: reset the global setting; apply only to the `authenticated` role.
 --
--- H-2: Seven SECURITY DEFINER stubs have SET search_path = zapp, public
+-- H-2: Seven SECURITY DEFINER stubs have SET search_path = zapp, pg_catalog
 --      (in 20260717000002). The `public` entry is a security risk: a superuser
 --      or attacker who creates a function/table in public can shadow zapp
 --      objects and escalate privileges.
@@ -7417,7 +7417,7 @@ CREATE OR REPLACE FUNCTION zapp.get_analytics_summary(
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = zapp, public
+SET search_path = zapp, pg_catalog
 STABLE
 AS $$
 DECLARE
@@ -7497,11 +7497,16 @@ CREATE OR REPLACE FUNCTION zapp.fn_evolution_status_unknown(p_instance_name text
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = zapp, public
+SET search_path = zapp, pg_catalog
 AS $fn$
 DECLARE
   v_status text := 'unknown';
 BEGIN
+  -- H1 fix: auth guard — only admins/supervisors can force status to unknown
+  IF NOT zapp.is_admin_or_supervisor(auth.uid()) THEN
+    RAISE EXCEPTION 'Access denied: admin or supervisor role required';
+  END IF;
+
   BEGIN
     UPDATE zapp.whatsapp_connections
        SET status = 'unknown', updated_at = now()
@@ -7576,7 +7581,7 @@ CREATE OR REPLACE FUNCTION zapp.fn_refresh_role_permissions_mv()
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = zapp, public
+SET search_path = zapp, pg_catalog
 AS $fn$
 BEGIN
   REFRESH MATERIALIZED VIEW CONCURRENTLY zapp.mv_role_permissions_full;
@@ -7593,7 +7598,7 @@ CREATE OR REPLACE FUNCTION zapp.trg_fn_refresh_role_permissions_mv()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = zapp, public
+SET search_path = zapp, pg_catalog
 AS $fn$
 BEGIN
   PERFORM zapp.fn_refresh_role_permissions_mv();
@@ -9038,7 +9043,7 @@ CREATE OR REPLACE FUNCTION public.rpc_app_bootstrap()
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO 'public', 'zapp', 'pg_catalog'
+SET search_path TO 'zapp', 'pg_catalog'
 AS $$
 DECLARE
   v_user_id     uuid;
@@ -9143,7 +9148,7 @@ CREATE OR REPLACE FUNCTION public.rpc_dashboard_init(
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO 'public', 'zapp', 'pg_catalog'
+SET search_path TO 'zapp', 'pg_catalog'
 AS $$
 DECLARE
   v_user_id       uuid;
@@ -12255,7 +12260,7 @@ DROP FUNCTION IF EXISTS zapp.add_contact_note(uuid, text, text, boolean);
 CREATE FUNCTION zapp.add_contact_note(
   p_contact_id uuid, p_content text, p_note_type text DEFAULT 'general'::text, p_is_pinned boolean DEFAULT false
 ) RETURNS jsonb
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = zapp, public
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = zapp, pg_catalog
 AS $$
 DECLARE v_profile_id uuid; v_id uuid;
 BEGIN
@@ -12274,7 +12279,7 @@ GRANT EXECUTE ON FUNCTION zapp.add_contact_note(uuid, text, text, boolean) TO au
 -- 1.3 bulk_add_tag (admin-only)
 DROP FUNCTION IF EXISTS zapp.bulk_add_tag(uuid[], text);
 CREATE FUNCTION zapp.bulk_add_tag(p_contact_ids uuid[], p_tag text) RETURNS jsonb
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = zapp, public
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = zapp, pg_catalog
 AS $$
 DECLARE v_tag_id uuid; v_added integer := 0;
 BEGIN
@@ -13021,7 +13026,7 @@ CREATE OR REPLACE FUNCTION public.fn_reconcile_apply()
  RETURNS TABLE(request_id bigint, instance_name text, action text, old_status text, new_status text)
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public', 'evo'
+ SET search_path TO 'evo', 'pg_catalog'
 AS $function$
 DECLARE
   v_job record; v_content text; v_body jsonb; v_http int; v_inst jsonb;
@@ -13431,7 +13436,7 @@ GRANT EXECUTE ON FUNCTION zapp.get_companies_by_phones_batch(TEXT[]) TO service_
 CREATE OR REPLACE FUNCTION zapp.fn_system_health_score()
  RETURNS jsonb
  LANGUAGE plpgsql
- SET search_path TO 'public', 'evo', 'zapp', 'ops', 'cron', 'pg_catalog'
+ SET search_path TO 'evo', 'pg_catalog', 'zapp', 'ops', 'cron', 'pg_catalog'
 AS $function$
 DECLARE
   v_score numeric:=0; v_max numeric:=0; v_bd jsonb:='{}';
@@ -14786,7 +14791,7 @@ CREATE OR REPLACE FUNCTION zapp.add_contact_note(
   p_contact_id uuid, p_content text,
   p_note_type text DEFAULT 'general'::text, p_is_pinned boolean DEFAULT false
 ) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
-SET search_path TO 'zapp', 'public'
+SET search_path TO 'zapp', 'pg_catalog'
 AS $$
 DECLARE v_profile_id uuid; v_id uuid;
 BEGIN
@@ -14875,7 +14880,7 @@ CREATE OR REPLACE FUNCTION zapp.merge_contacts(
   p_secondary_id uuid,
   p_merged_fields jsonb DEFAULT '{}'::jsonb
 ) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
-SET search_path TO 'zapp', 'evo', 'public'
+SET search_path TO 'zapp', 'evo', 'pg_catalog'
 AS $$
 DECLARE
   v_primary evo.evolution_contacts%ROWTYPE;
@@ -16008,6 +16013,11 @@ BEGIN
 END;
 $function$;
 
+-- Re-grant EXECUTE to authenticated (was revoked by R28e at line 13199;
+-- production has this grant — confirmed 2026-08-03 via pg_proc.proacl)
+GRANT EXECUTE ON FUNCTION zapp.get_contact_intelligence_by_phone(text) TO authenticated;
+
+
 
 -- ═══════════════════════════════════════════════════════════════════════
 -- SECTION: 20260803_sprint1_security_functions.sql
@@ -16291,6 +16301,35 @@ BEGIN
     RETURN FOUND;
 END;
 $function$;
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- SECTION: 20260804_fix_h5_grant_drift.sql
+-- ═══════════════════════════════════════════════════════════════════════
+
+-- H5: Grant drift fix — canonical was missing fn_complete_transfer(uuid)
+-- overload and EXECUTE grants for both overloads.
+-- Production has 2 overloads × 2 grantees (authenticated + service_role).
+
+CREATE OR REPLACE FUNCTION zapp.fn_complete_transfer(p_transfer_id uuid)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'zapp'
+AS $function$
+BEGIN
+    UPDATE zapp.conversation_transfers
+    SET status = 'completed', completed_at = NOW()
+    WHERE id = p_transfer_id AND status = 'accepted';
+    RETURN FOUND;
+END;
+$function$;
+
+-- Grants matching production state (2026-08-03)
+GRANT EXECUTE ON FUNCTION zapp.fn_complete_transfer(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION zapp.fn_complete_transfer(uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION zapp.fn_complete_transfer(uuid, text, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION zapp.fn_complete_transfer(uuid, text, text) TO service_role;
+
 -- ═══════════════════════════════════════════════════════════════════════
 
 -- R29f: Re-grant EXECUTE on zapp.get_companies_by_phones_batch to authenticated
