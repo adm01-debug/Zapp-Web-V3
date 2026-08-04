@@ -48,7 +48,7 @@ export function useContactSummaryBatch(contactIds: string[]) {
         return [];
       }
 
-      return (data ?? []) as ContactSummary[];
+      return (data ?? []) as unknown as ContactSummary[];
     },
     enabled: stableIds.length > 0,
     staleTime: 30_000,   // 30s — suficiente para a lista ficar estável

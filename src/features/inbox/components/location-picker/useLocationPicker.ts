@@ -5,7 +5,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useLocationPicker');
 import { toast } from '@/hooks/use-toast';
-import type mapboxgl from 'mapbox-gl';
+import mapboxgl from 'mapbox-gl';
 import { loadMapbox } from '@/lib/mapbox-loader';
 
 interface SelectedLocation {

@@ -88,6 +88,7 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "evolution-api":                { current: "v1", supported: ["v1"] },
   "evolution-health":             { current: "v1", supported: ["v1"] },
   "evolution-credentials":        { current: "v1", supported: ["v1"] },
+  "evolution-credentials-write":   { current: "v1", supported: ["v1"] },
   "evolution-templates":          { current: "v1", supported: ["v1"] },
   "evolution-sentiment":          { current: "v1", supported: ["v1"] },
   "evolution-retry-metrics":      { current: "v1", supported: ["v1"] },
