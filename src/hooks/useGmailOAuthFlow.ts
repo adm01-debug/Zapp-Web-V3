@@ -235,7 +235,9 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
               return;
             }
             const { data: result, error: exErr } = await supabase.functions.invoke('gmail-oauth', {
-              body: { action: 'exchangeCode', code: msg.code, userId: user.id },
+              // gmail-oauth@v1: exchangeCode exige o state HMAC devolvido pelo
+              // getAuthUrl e ecoado no postMessage do popup (senão → 403).
+              body: { action: 'exchangeCode', code: msg.code, userId: user.id, state: msg.state },
             });
             if (exErr || result?.error) {
               toast.error('Não foi possível concluir a conexão Email', {

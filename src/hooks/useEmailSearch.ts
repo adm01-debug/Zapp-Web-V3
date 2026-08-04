@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailListThreads } from './gmail/gmailApi';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
 
 export interface EmailSearchResult {
   id: string;
@@ -39,39 +40,37 @@ export function useEmailSearch(accountId: string | null) {
     async (q: string): Promise<EmailSearchResult[]> => {
       if (!accountId) return [];
 
-      // Normaliza para FTS websearch
-      const ftsQuery = q.trim();
+      // EMAIL-14: subject/snippet na view email_threads são text (não tsvector) —
+      // .textSearch() quebrava com 400. Busca LIKE (ilike) com escape do
+      // sanitizePostgrestFilter (padrão do projeto, ex. useTeamMessages).
+      const like = `%${sanitizePostgrestFilter(q.trim())}%`;
 
       const { data, error: dbErr } = await safeClient.from<Record<string, unknown>>(
         'email_threads',
-        (q) =>
-          q
-            .select(
-              'id, thread_id, subject, snippet, last_message_at, unread_count, email_messages!inner ( from_email, from_name )'
-            )
+        (query) =>
+          query
+            .select('id, thread_id, subject, snippet, last_message_at, unread_count')
             .eq('account_id', accountId)
-            .textSearch('subject', ftsQuery, { config: 'portuguese', type: 'websearch' })
+            .or(`subject.ilike.${like},snippet.ilike.${like}`)
             .order('last_message_at', { ascending: false })
             .limit(20)
       );
 
       if (dbErr) return [];
 
-      return (data ?? []).map((row: Record<string, unknown>) => {
-        const msgs = Array.isArray(row.email_messages) ? row.email_messages : [];
-        const first = (msgs[0] ?? {}) as Record<string, unknown>;
-        return {
-          id: row.id as string,
-          thread_id: row.thread_id as string,
-          subject: (row.subject as string) ?? '(sem assunto)',
-          snippet: (row.snippet as string) ?? '',
-          from_email: (first.from_email as string) ?? '',
-          from_name: (first.from_name as string | null) ?? null,
-          last_message_at: row.last_message_at as string | null,
-          unread_count: (row.unread_count as number) ?? 0,
-          source: 'local' as const,
-        };
-      });
+      return (data ?? []).map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        thread_id: row.thread_id as string,
+        subject: (row.subject as string) ?? '(sem assunto)',
+        snippet: (row.snippet as string) ?? '',
+        // A view email_threads não expõe from_email/from_name (a versão antiga
+        // dependia de um join !inner em email_messages sem FK definida — 400).
+        from_email: '',
+        from_name: null,
+        last_message_at: row.last_message_at as string | null,
+        unread_count: (row.unread_count as number) ?? 0,
+        source: 'local' as const,
+      }));
     },
     [accountId]
   );

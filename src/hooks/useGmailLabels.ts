@@ -2,7 +2,6 @@ import { useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
-import { emailMappers } from '@/utils/emailMappers';
 import { EmailLabelInfo as EmailLabel } from '@/types/gmail';
 import { getLogger } from '@/lib/logger';
 
@@ -31,14 +30,30 @@ export function useEmailLabels(accountId: string | null) {
     queryKey: key,
     queryFn: async () => {
       if (!accountId) return [];
+      // A view email_labels (zapp) expõe as colunas gmail_account_id /
+      // gmail_label_id / label_type — espelho de gmail_labels, que é a tabela
+      // que a edge gmail-sync (action syncLabels) realmente grava. A query
+      // antiga usava account_id/email_label_id/type → erro 400 de coluna.
       const { data, error: dbErr } = await safeClient.from('email_labels', (q) =>
-        q.select('*').eq('account_id', accountId).order('name', { ascending: true })
+        q.select('*').eq('gmail_account_id', accountId).order('name', { ascending: true })
       );
       if (dbErr) {
         log.warn('Email labels load error', dbErr.message);
         throw new Error('Não foi possível carregar as pastas do Email.');
       }
-      return emailMappers.labels((Array.isArray(data) ? data : []) as Parameters<typeof emailMappers.labels>[0]);
+      return (Array.isArray(data) ? data : []).map((rowRaw) => {
+        const row = rowRaw as Record<string, unknown>;
+        return {
+          id: (row.id as string) ?? (row.gmail_label_id as string),
+          account_id: row.gmail_account_id as string,
+          email_label_id: (row.gmail_label_id as string) ?? (row.id as string),
+          name: (row.name as string) ?? '',
+          type: row.label_type === 'system' ? 'system' : 'user',
+          color: row.color as string | null | undefined,
+          thread_count: (row.message_count as number | null) ?? undefined,
+          unread_count: (row.unread_count as number | null) ?? undefined,
+        } as EmailLabel;
+      });
     },
     enabled: !!accountId,
     staleTime: 30_000,
@@ -57,7 +72,9 @@ export function useEmailLabels(accountId: string | null) {
       const { data, error: fnErr } = await supabase.functions.invoke('gmail-sync', {
         body: { action: 'syncLabels', accountId },
       });
-      if (!fnErr && data?.success) {
+      // gmail-sync syncLabels responde { synced } (não { success }) — o check
+      // antigo (data?.success) nunca invalidava a query após sincronizar.
+      if (!fnErr && data && typeof data === 'object' && 'synced' in data) {
         await queryClient.invalidateQueries({ queryKey: key });
       }
     } catch {

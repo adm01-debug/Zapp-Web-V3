@@ -127,18 +127,25 @@ export function EmailChatReplyBar({
         .map((s) => s.trim())
         .filter(Boolean);
 
+      // EMAIL-05: a edge gmail-send NÃO anexa assinatura (ignora campo
+      // signature) — o front inclui o HTML da assinatura selecionada no
+      // bodyHtml antes de enviar, no padrão da edge (campo bodyHtml).
+      const signatureHtml = selectedSignature?.html_content ?? null;
+      const finalBodyHtml = signatureHtml
+        ? `${bodyHtml}\n<br/>\n${signatureHtml}`
+        : bodyHtml;
+
       await emailSendMessage({
         accountId,
         to: toList,
         cc: ccList,
         bcc: bccList,
         subject: subject.startsWith('Re:') ? subject : `Re: ${subject}`,
-        bodyHtml,
+        bodyHtml: finalBodyHtml,
         bodyPlain: plainText,
         threadId: threadEmailId,
         attachments: processedAttachments,
-        signature: true,
-      } as Parameters<typeof emailSendMessage>[0] & { signature?: boolean });
+      });
 
       // Registra resposta no SLA
       markReplied(threadEmailId);
@@ -357,6 +364,11 @@ export function EmailChatReplyBar({
             />
 
             {/* Template picker */}
+            {/* TODO(EMAIL-09): a tabela email_templates (subject+body+category)
+                não tem UI de gestão própria — o MessageTemplates abaixo é de
+                escopo WhatsApp (message_templates). Não construir do zero nesta
+                rodada; reutilizar o padrão de MessageTemplates quando houver UI
+                de templates de e-mail. */}
             <MessageTemplates
               onSelectTemplate={(content) => {
                 const el = DOMPurify.sanitize(bodyHtml, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
