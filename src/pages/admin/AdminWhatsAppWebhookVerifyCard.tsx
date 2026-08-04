@@ -1,8 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, AlertTriangle, CheckCircle2, XCircle, RefreshCw, Activity } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { Loader2, AlertTriangle, CheckCircle2, XCircle, RefreshCw, Activity, WifiOff } from 'lucide-react';
+import { formatDistanceToNow, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { VerifyResult } from './adminWhatsAppModeTypes';
 
@@ -10,6 +10,26 @@ interface Props {
   verify: VerifyResult | null;
   verifyLoading: boolean;
   onRunVerify: () => void;
+}
+
+/** Renders a colored Badge indicating webhook silence duration based on the timestamp of the last received event. */
+function SilenceBadge({ lastEventAt }: { lastEventAt: string | undefined | null }) {
+  if (!lastEventAt) {
+    return (
+      <Badge variant="destructive" className="flex items-center gap-1">
+        <WifiOff className="h-3 w-3" />
+        Sem tráfego registrado
+      </Badge>
+    );
+  }
+  const days = differenceInDays(new Date(), new Date(lastEventAt));
+  if (days < 1) return null;
+  return (
+    <Badge variant={days >= 7 ? 'destructive' : 'secondary'} className="flex items-center gap-1">
+      <WifiOff className="h-3 w-3" />
+      Silêncio há {days} {days === 1 ? 'dia' : 'dias'}
+    </Badge>
+  );
 }
 
 /** Admin Whats App Webhook Verify Card. */
@@ -120,6 +140,7 @@ export function AdminWhatsAppWebhookVerifyCard({ verify, verifyLoading, onRunVer
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
+                  <SilenceBadge lastEventAt={verify.delivery.lastEventAt} />
                   <Badge variant="outline" className="text-[10px]">
                     eventos: {verify.delivery.counts24h.event}
                   </Badge>
@@ -159,7 +180,7 @@ export function AdminWhatsAppWebhookVerifyCard({ verify, verifyLoading, onRunVer
                 <ul className="mt-2 max-h-48 space-y-1.5 overflow-y-auto">
                   {verify.delivery.recent.map((p) => (
                     <li
-                      key={`${p.kind}-${p.created_at}`}
+                      key={p.id ?? `${p.kind}-${p.created_at}`}
                       className="flex items-center justify-between gap-2 text-[11px]"
                     >
                       <span className="flex items-center gap-2">

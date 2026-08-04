@@ -34,7 +34,7 @@ export function useAutomationLogs(filters: AutomationLogsFilters) {
   ] as const;
   const rulesKey = ['automation-rules'] as const;
 
-  const { data: rows = [], isLoading: loading } = useQuery({
+  const { data: rows = [], isLoading: loading, isFetching, isError } = useQuery({
     queryKey: logsKey,
     queryFn: async () => {
       const { data, error } = await safeClient.from<ExecutionRow>('automation_executions', (q) => {
@@ -125,5 +125,5 @@ export function useAutomationLogs(filters: AutomationLogsFilters) {
     [queryClient, page, filterRule, filterStatus, filterJid, filterFrom, filterTo]
   );
 
-  return { rows, rules, ruleNameById, loading, load };
+  return { rows, rules, ruleNameById, loading, isFetching, isError, load };
 }

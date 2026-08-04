@@ -81,7 +81,7 @@ export default function BridgeStatusPage() {
 
           <div className="hidden border-l border-border/50 pl-3 text-right sm:block">
             <p className="text-[10px] font-bold uppercase text-muted-foreground">Última checagem</p>
-            <p className="font-mono text-xs">{lastCheck.toLocaleTimeString()}</p> {/* @technical */}
+            <p className="font-mono text-xs">{lastCheck.toLocaleTimeString()}</p>
           </div>
 
           <Button

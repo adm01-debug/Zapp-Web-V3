@@ -30,6 +30,7 @@ const AVATAR_SEED_SWEEP_MS = 5 * 60 * 1000; // 5min
 // com muitos envios.
 const RECONCILED_MAX_ENTRIES = 1000;
 
+/** Primary inbox hook — subscribes to Realtime conversation events and manages the selected contact state. */
 export function useRealtimeInbox() {
   const { profile } = useAuth();
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
@@ -233,6 +234,7 @@ export function useRealtimeInbox() {
     // ────────────────────────────────────────────────────────────────────────
 
     let cancelled = false;
+    /** Queries the unread whisper count for the current contact and updates state. */
     const fetchWhisperCount = async () => {
       const { count, error } = await supabase
         .from('whisper_messages')
@@ -340,6 +342,7 @@ export function useRealtimeInbox() {
     }
   }, [selectedMessages, selectedContactId, messageQueue]);
 
+  /** Selects a conversation, marks its messages as read, and clears any delivery alerts. */
   const handleSelectConversation = useCallback(
     (contactId: string) => {
       setSelectedContactId(contactId);
@@ -351,6 +354,7 @@ export function useRealtimeInbox() {
     [setSelectedContact, markAsRead]
   );
 
+  /** Navigates to the conversation linked to the pending new-message notification and dismisses it. */
   const handleNotificationView = useCallback(() => {
     if (newMessageNotification) {
       handleSelectConversation(newMessageNotification.contactId);
@@ -358,6 +362,7 @@ export function useRealtimeInbox() {
     }
   }, [newMessageNotification, handleSelectConversation, dismissNotification]);
 
+  /** Toggles the notification sound on/off and syncs the preference to the realtime layer. */
   const toggleSound = useCallback(() => {
     setSoundOn((prev) => {
       const next = !prev;
