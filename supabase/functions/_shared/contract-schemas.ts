@@ -440,9 +440,6 @@ export const ElevenLabsTtsV1Schema = z.object({
  // Registrá-los aqui fecha o gap CONTRACTS ↔ CONTRACT_SCHEMAS e habilita
  // os guard-rails de CI (contract-registry-integrity.test.ts).
 
- /** whatsapp-webhook@v1 — schema REAL em webhook-schemas.ts (re-exportado acima);
-  *  espelha o Zod que o index.ts usa. Contrato estrito: payload fora do schema
-  *  é rejeitado pelo endpoint (200 + warning, sem retry). */
 
  /**
   * sicoob-bridge@v1 — schema REAL (espelha SicoobBridgeNewMessageSchema/
@@ -707,31 +704,6 @@ export const EvolutionApiV1Schema = z.object({
  export const AiSuggestReplyV1Schema = AiSuggestReplySchema;
  /** ai-conversation-summary@v1 — alias de AiConversationSummarySchema. */
  export const AiConversationSummaryV1Schema = AiConversationSummarySchema;
- /** detect-new-device@v1 — alias de DetectNewDeviceSchema. */
- export const DetectNewDeviceV1Schema = DetectNewDeviceSchema;
-
- // ─── Registro central: contrato → { versão → schema } ───────────────────────
-
-// ─── Derivados do consumo real (Onda 1 2026-08-04) ─────────────────────
-/**
- * Contract Schemas — Integrações externas (14 edge functions).
- *
- * Registro dedicado às funções de integração externa do zapp-web-v3.
- *
- * Origem de cada schema (nada foi inventado):
- *  - 12 schemas JÁ EXISTEM no registro central `contract-schemas.ts` e são
- *    RE-EXPORTADOS daqui (import + export) — NUNCA duplicados. Quando o
- *    registro central evoluir (placeholder → schema real), este arquivo
- *    reflete a mudança automaticamente.
- *  - outlook-oauth e promogifts-catalog NÃO tinham registro prévio: os
- *    schemas abaixo foram DERIVADOS do consumo REAL do body no index.ts de
- *    cada função (comentário de origem em cada bloco).
- *
- * Convenção de permissividade (idêntica à do registro central):
- *  - Externos/API pública (provedor envia o payload): `.passthrough()` —
- *    nunca derrubar ingestão por campo novo do provedor.
- *  - Endpoints internos (UI/cron/JWT chama): `.strict()` — falhar cedo.
- */
 
 
 // ─── Re-exportados do registro central (contract-schemas.ts) ────────────────
@@ -743,14 +715,12 @@ export const EvolutionApiV1Schema = z.object({
  * create_lead_from_conversation], entityType?, entityId?, data?, filters? }.
  * Externo (origin do portal Bitrix validado) → permissivo no registro.
  */
-// exportado acima: BitrixApiV1Schema
 
 /**
  * contacts-import@v1 — re-exportado. Consumo real no index.ts:
  * { rows: array de objetos (1..50.000 no handler), workspace_id? (default
  * 'wpp2') }. Schema do registro caps rows em 10.000 e é permissivo.
  */
-// exportado acima: ContactsImportV1Schema
 
 /**
  * create-user@v1 — re-exportado. Consumo real no index.ts (bodySchema
@@ -758,7 +728,6 @@ export const EvolutionApiV1Schema = z.object({
  * avatar_url?, role?, gmail_email?, google_services?, dropbox_email? }.
  * Registro mantém schema de registro permissivo (validação real no index).
  */
-// exportado acima: CreateUserV1Schema
 
 /**
  * evolution-api@v1 — re-exportado. Consumo real no index.ts: proxy roteado
@@ -766,7 +735,6 @@ export const EvolutionApiV1Schema = z.object({
  * remoteJid|chat, readMessages, key, message etc. (multipart ou JSON).
  * Registro permissivo — schema real vive no endpoint.
  */
-// exportado acima: EvolutionApiV1Schema
 
 /**
  * evolution-sync@v1 — re-exportado. Consumo real no index.ts: { action
@@ -774,7 +742,6 @@ export const EvolutionApiV1Schema = z.object({
  * contactPhone, webhookUrl, messagesPerContact } — passthrough cobre os
  * campos não listados no schema do registro.
  */
-// exportado acima: EvolutionSyncV1Schema
 
 /**
  * gmail-send@v1 — re-exportado. Consumo real no index.ts: roteado por
@@ -782,7 +749,6 @@ export const EvolutionApiV1Schema = z.object({
  * bodyHtml, bodyPlain, threadId, messageId, messageIds, read,
  * addLabelIds/removeLabelIds, attachments. Registro permissivo.
  */
-// exportado acima: GmailSendV1Schema
 
 /**
  * instance-pause-control@v1 — re-exportado. Consumo real no index.ts:
@@ -790,14 +756,12 @@ export const EvolutionApiV1Schema = z.object({
  * mark_investigated, status}; campos limit, instance, minutes, reason,
  * since_minutes, pause_id, notes — passthrough cobre os não listados.
  */
-// exportado acima: InstancePauseControlV1Schema
 
 /**
  * public-api@v1 — re-exportado. Consumo real no index.ts:
  * publicApiSendSchema (criticalPayloadSchemas.ts): { action: 'send',
  * number, message, connectionId? }. API pública (x-api-key) → permissivo.
  */
-// exportado acima: PublicApiV1Schema
 
 /**
  * sicoob-bridge@v1 — re-exportado. Consumo real no index.ts: roteado por
@@ -807,7 +771,6 @@ export const EvolutionApiV1Schema = z.object({
  * singular_id, content, vendedor_user_id, created_at, sender_id,
  * external_ids. Webhook externo (SICOOB_BRIDGE_SECRET) → permissivo.
  */
-// exportado acima: SicoobBridgeV1Schema
 
 /**
  * sicoob-bridge-reply@v1 — re-exportado. Consumo real no index.ts:
@@ -815,7 +778,6 @@ export const EvolutionApiV1Schema = z.object({
  * message_id, created_at?, agent_id? }. Ponte externa (dual-mode
  * JWT/service-role) → permissivo.
  */
-// exportado acima: SicoobBridgeReplyV1Schema
 
 /**
  * whatsapp-cloud-send@v1 — re-exportado. Consumo real no index.ts
@@ -825,7 +787,6 @@ export const EvolutionApiV1Schema = z.object({
  * longitude?, name?, address?, contacts?, messageIds? }. Externo (Meta
  * Cloud API) → permissivo.
  */
-// exportado acima: WhatsappCloudSendV1Schema
 
 /**
  * whatsapp-webhook@v1 — re-exportado de webhook-schemas.ts (fonte canônica;
@@ -833,7 +794,6 @@ export const EvolutionApiV1Schema = z.object({
  * Meta: entry[] → changes[] → value{statuses?, messages?}. Webhook externo
  * → permissivo.
  */
-// exportado acima: WhatsappWebhookV1Schema
 
 export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   // Webhooks externos
@@ -914,7 +874,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "elevenlabs-voice-design":       { v1: ElevenLabsVoiceDesignV1Schema },
   "create-user":                   { v1: CreateUserV1Schema },
   "approve-password-reset":        { v1: ApprovePasswordResetV1Schema },
-  "detect-new-device":             { v1: DetectNewDeviceV1Schema },
+  "detect-new-device":             { v1: AISchemas.DetectNewDeviceV1Schema },
   "webauthn":                      { v1: WebauthnV1Schema },
   "evolution-api":                 { v1: EvolutionApiV1Schema },
 

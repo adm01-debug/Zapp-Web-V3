@@ -332,71 +332,9 @@ export const VirustotalTestV1Schema = z.object({
   apiKey: z.string().min(1).max(500),
 }).strict();
 
-/**
- * promogifts-catalog@v1 — POST autenticado. index.ts (ActionSchema):
- * action (enum obrigatório) + params (record opcional, default {}; validado
- * por sub-schema por ação: ListProductsSchema/GetProductSchema).
- * { action: "health" } é interceptado antes do schema (health probe).
- */
-export const PromogiftsCatalogV1Schema = z.object({
-  action: z.enum(["list_products", "get_product", "list_categories", "list_suppliers"]),
-  params: z.record(z.string(), z.unknown()).optional().default({}),
-}).strict();
+// (PromogiftsCatalogV1Schema removido daqui na consolidação — a versão
+// canônica é a discriminatedUnion com health em contract-schemas-integrations.ts,
+// re-exportada por contract-schemas.ts. Definição duplicada = risco de drift.)
 
-// ─── Registro ────────────────────────────────────────────────────────────────
-
-/**
- * Registro de schemas V1 por Edge Function de infraestrutura.
- * Chave = nome do diretório da função; valor = { v1: Schema } (SchemaMap).
- */
-export const CONTRACT_SCHEMAS_INFRA: Record<string, SchemaMap> = {
-  // GET/cron sem body
-  "batch-fetch-avatars":       { v1: BatchFetchAvatarsV1Schema },
-  "cleanup-rate-limit-logs":   { v1: CleanupRateLimitLogsV1Schema },
-  "cleanup-storage-orphans":   { v1: CleanupStorageOrphansV1Schema },
-  "elevenlabs-agent-token":    { v1: ElevenlabsAgentTokenV1Schema },
-  "elevenlabs-scribe-token":   { v1: ElevenlabsScribeTokenV1Schema },
-  "get-mapbox-token":          { v1: GetMapboxTokenV1Schema },
-  "get-sip-password":          { v1: GetSipPasswordV1Schema },
-  "lgpd-scheduled-jobs":       { v1: LgpdScheduledJobsV1Schema },
-  "main":                      { v1: MainV1Schema },
-  "mcp":                       { v1: McpV1Schema },
-  "migrate-media-storage":     { v1: MigrateMediaStorageV1Schema },
-  "nps-scheduler":             { v1: NpsSchedulerV1Schema },
-  "provider-healthcheck":      { v1: ProviderHealthcheckV1Schema },
-  "seed-teams-users":          { v1: SeedTeamsUsersV1Schema },
-  "sicoob-outbox-consumer":    { v1: SicoobOutboxConsumerV1Schema },
-  "talkx-scheduler":           { v1: TalkxSchedulerV1Schema },
-  "reprocess-failed-messages": { v1: ReprocessFailedMessagesV1Schema },
-
-  // Infra com body
-  "client-observability":      { v1: ClientObservabilityV1Schema },
-  "connection-test":           { v1: ConnectionTestV1Schema },
-  "contact-media":             { v1: ContactMediaV1Schema },
-  "fetch-whatsapp-avatar":     { v1: FetchWhatsappAvatarV1Schema },
-  "login-attempts":            { v1: LoginAttemptsV1Schema },
-  "mcp-server":                { v1: McpServerV1Schema },
-  "provider-router":           { v1: ProviderRouterV1Schema },
-  "queue-rebalance":           { v1: QueueRebalanceV1Schema },
-  "recover-corrupted-audios":  { v1: RecoverCorruptedAudiosV1Schema },
-  "send-rate-limit-alert":     { v1: SendRateLimitAlertV1Schema },
-  "sla-alert-forward":         { v1: SlaAlertForwardV1Schema },
-  "sla-alert-log-failure":     { v1: SlaAlertLogFailureV1Schema },
-  "talkx-add-recipients":      { v1: TalkxAddRecipientsV1Schema },
-  "talkx-control":             { v1: TalkxControlV1Schema },
-  "ticket-router":             { v1: TicketRouterV1Schema },
-  "virustotal-test":           { v1: VirustotalTestV1Schema },
-  "promogifts-catalog":        { v1: PromogiftsCatalogV1Schema },
-
-  // Multipart
-  "file-security-scanner":     { v1: FileSecurityScannerV1Schema },
-  "secure-upload":             { v1: SecureUploadV1Schema },
-  "voice-changer":             { v1: VoiceChangerMultipartV1Schema },
-};
-
-/**
- * Aliases de compatibilidade com a orquestração (grafias variantes do nome do
- * registro usadas no plano de consolidação). Mesma referência — sem duplicação.
- */
-export const CONTRAI_SCHEMAS_INFRA = CONTRACT_SCHEMAS_INFRA;
-export const CONTRAAI_SCHEMAS_INFRA = CONTRACT_SCHEMAS_INFRA;
+// (Registro local removido na consolidação — o registro canônico vive em
+// contract-schemas.ts via namespace InfraSchemas.*)

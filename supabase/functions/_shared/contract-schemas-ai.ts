@@ -112,18 +112,3 @@ export const DetectNewDeviceV1Schema = DetectNewDeviceSchema.strict();
 // ─── Registro local: função → { v1: Schema } (13 funções AI/voz) ─────────────
 
 /** Registro das 13 edge functions AI/voz: 'nome-da-funcao' -> { v1: Schema }. */
-export const CONTRAI_SCHEMAS_AI: Record<string, SchemaMap> = {
-  "ai-auto-tag":              { v1: AiAutoTagV1Schema },
-  "ai-classify-tickets":      { v1: AiClassifyTicketsV1Schema },
-  "ai-proxy":                 { v1: AiProxyV1Schema },
-  "ai-router":                { v1: AiRouterV1Schema },
-  "automation-suggest-reply": { v1: AutomationSuggestReplyV1Schema },
-  "chatbot-l1":               { v1: ChatbotL1V1Schema },
-  "classify-audio-meme":      { v1: ClassifyAudioMemeV1Schema },
-  "detect-new-device":        { v1: DetectNewDeviceV1Schema },
-  "sentiment-alert":          { v1: SentimentAlertV1Schema },
-  "speech-to-text":           { v1: SpeechToTextV1Schema },
-  "voice-agent":              { v1: VoiceAgentV1Schema },
-  "voice-changer":            { v1: VoiceChangerV1Schema },
-  "voice-copilot-action":     { v1: VoiceCopilotActionV1Schema },
-};

@@ -152,7 +152,3 @@ export const PromogiftsCatalogV1Schema = z.discriminatedUnion("action", [
 /** nome da edge function → { versão → schema } (mesmo formato do CONTRACT_SCHEMAS). */
 
 /** Registro local dos schemas derivados (o registro canônico vive em contract-schemas.ts). */
-export const CONTRACT_SCHEMAS_INTEGRATIONS: Record<string, SchemaMap> = {
-  "outlook-oauth":      { v1: OutlookOauthV1Schema },
-  "promogifts-catalog": { v1: PromogiftsCatalogV1Schema },
-};
