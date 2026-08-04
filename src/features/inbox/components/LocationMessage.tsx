@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { LocationMessage as LocationMessageType } from '@/types/chat';
 import { supabase } from '@/integrations/supabase/client';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import type mapboxgl from 'mapbox-gl';
+import { loadMapbox } from '@/lib/mapbox-loader';
 
 interface LocationMessageDisplayProps {
   location: LocationMessageType;
@@ -41,47 +41,55 @@ export function LocationMessageDisplay({ location, isSent }: LocationMessageDisp
 
   useEffect(() => {
     if (!mapContainer.current || !mapboxToken) return;
+    let cancelled = false;
 
-    mapboxgl.accessToken = mapboxToken;
+    (async () => {
+      const { default: mapboxgl } = await loadMapbox();
+      if (cancelled || !mapContainer.current) return;
 
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: [location.longitude, location.latitude],
-      zoom: 15,
-      interactive: false,
-    });
+      mapboxgl.accessToken = mapboxToken;
 
-    // Add marker — build via DOM API instead of innerHTML to avoid unsafe string interpolation
-    const el = document.createElement('div');
-    el.className = 'location-marker';
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [location.longitude, location.latitude],
+        zoom: 15,
+        interactive: false,
+      });
 
-    const inner = document.createElement('div');
-    inner.className = `w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-lg${location.isLive ? ' animate-pulse ring-4 ring-primary/30' : ''}`;
+      // Add marker — build via DOM API instead of innerHTML to avoid unsafe string interpolation
+      const el = document.createElement('div');
+      el.className = 'location-marker';
 
-    const svgNS = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(svgNS, 'svg');
-    svg.setAttribute('class', 'w-4 h-4 text-primary-foreground');
-    svg.setAttribute('fill', 'currentColor');
-    svg.setAttribute('viewBox', '0 0 24 24');
+      const inner = document.createElement('div');
+      inner.className = `w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-lg${location.isLive ? ' animate-pulse ring-4 ring-primary/30' : ''}`;
 
-    const path = document.createElementNS(svgNS, 'path');
-    path.setAttribute('d', 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z');
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(svgNS, 'svg');
+      svg.setAttribute('class', 'w-4 h-4 text-primary-foreground');
+      svg.setAttribute('fill', 'currentColor');
+      svg.setAttribute('viewBox', '0 0 24 24');
 
-    svg.appendChild(path);
-    inner.appendChild(svg);
-    el.appendChild(inner);
+      const path = document.createElementNS(svgNS, 'path');
+      path.setAttribute('d', 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z');
 
-    marker.current = new mapboxgl.Marker(el)
-      .setLngLat([location.longitude, location.latitude])
-      .addTo(map.current);
+      svg.appendChild(path);
+      inner.appendChild(svg);
+      el.appendChild(inner);
 
-    map.current.on('load', () => {
-      setIsMapLoaded(true);
-    });
+      marker.current = new mapboxgl.Marker(el)
+        .setLngLat([location.longitude, location.latitude])
+        .addTo(map.current);
+
+      map.current.on('load', () => {
+        if (!cancelled) setIsMapLoaded(true);
+      });
+    })();
 
     return () => {
+      cancelled = true;
       map.current?.remove();
+      map.current = null;
     };
   }, [mapboxToken, location.latitude, location.longitude, location.isLive]);
 

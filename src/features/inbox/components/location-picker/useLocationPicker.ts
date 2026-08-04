@@ -5,7 +5,8 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useLocationPicker');
 import { toast } from '@/hooks/use-toast';
-import mapboxgl from 'mapbox-gl';
+import type mapboxgl from 'mapbox-gl';
+import { loadMapbox } from '@/lib/mapbox-loader';
 
 interface SelectedLocation {
   lat: number;
@@ -92,21 +93,27 @@ export function useLocationPicker(open: boolean, activeTab: 'map' | 'current') {
 
   useEffect(() => {
     if (!mapContainer.current || !mapboxToken || !open || activeTab !== 'map') return;
-    mapboxgl.accessToken = mapboxToken;
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: [-46.6333, -23.5505],
-      zoom: 12,
-    });
-    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
-    map.current.on('load', () => setIsMapLoaded(true));
-    map.current.on('click', async (e) => {
-      const { lng, lat } = e.lngLat;
-      updateMarker(lng, lat);
-      await reverseGeocode(lng, lat);
-    });
+    let cancelled = false;
+    (async () => {
+      const { default: mapboxgl } = await loadMapbox();
+      if (cancelled || !mapContainer.current) return;
+      mapboxgl.accessToken = mapboxToken;
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [-46.6333, -23.5505],
+        zoom: 12,
+      });
+      map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      map.current.on('load', () => setIsMapLoaded(true));
+      map.current.on('click', async (e) => {
+        const { lng, lat } = e.lngLat;
+        updateMarker(lng, lat);
+        await reverseGeocode(lng, lat);
+      });
+    })();
     return () => {
+      cancelled = true;
       map.current?.remove();
       map.current = null;
       setIsMapLoaded(false);
