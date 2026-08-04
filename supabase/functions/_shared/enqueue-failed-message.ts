@@ -6,7 +6,7 @@
 // - Só registra erros transitórios: 5xx, 429, timeout, network_error.
 // - Erros permanentes (400/401/403/404/422) NÃO entram na fila.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { buildIdempotencyKey, classifyRetryReason, computeBackoffMsByReason } from './dlq-backoff.ts';
 
 /** enqueue-failed-message utilities and exports. */
@@ -24,14 +24,16 @@ export interface EnqueueFailedMessageInput {
 const PERMANENT_STATUSES = new Set([400, 401, 403, 404, 422]);
 const MAX_RETRIES = 5;
 
-let cached: ReturnType<typeof createClient> | null = null;
+// deno-lint-ignore no-explicit-any
+let cached: SupabaseClient<any, "zapp"> | null = null;
 
 function getServiceClient() {
   if (cached) return cached;
   const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? Deno.env.get('VITE_SUPABASE_URL');
   const key = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
   if (!url || !key) return null;
-  cached = createClient(url, key, { auth: { persistSession: false }, db: { schema: "zapp" } });
+  // deno-lint-ignore no-explicit-any
+  cached = createClient<any, "zapp">(url, key, { auth: { persistSession: false }, db: { schema: "zapp" } });
   return cached;
 }
 
