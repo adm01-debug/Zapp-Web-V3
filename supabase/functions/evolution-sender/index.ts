@@ -10,6 +10,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { createZappAdminClient } from '../_shared/db-client.ts';
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { EvolutionSenderV1Schema } from "../_shared/contract-schemas.ts";
 const BATCH_SIZE = 10;
 const SEND_DELAY_MS = 600;
 
@@ -339,6 +341,12 @@ Deno.serve(async (request: Request) => {
   if (authErr) return authErr;
 
   try {
+    // Contrato evolution-sender@v1 (estrito): cron sem body → {} aceito.
+    const parsed = parseOrReject('evolution-sender', { v1: EvolutionSenderV1Schema }, request, await request.json().catch(() => ({})), {
+      extraHeaders: getCorsHeaders(request),
+    });
+    if (!parsed.ok) return parsed.response;
+
     console.log(`[${new Date().toISOString()}] evolution-sender v6 fired`);
     const result = await processQueue();
     await supabase.from("evolution_performance_metrics").insert({

@@ -145,6 +145,8 @@ jobs:
         continue-on-error: true
 
       - name: Install Playwright Browsers
+        # playwright.config.ts define 3 projetos (chromium, firefox, webkit) —
+        # instalar só chromium quebra firefox/webkit no runner (E2E boot suite).
         run: bunx playwright install --with-deps
 
       - name: E2E Tests (boot suite — src/tests/e2e, 13 specs)

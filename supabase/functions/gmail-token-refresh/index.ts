@@ -1,6 +1,8 @@
 import { createZappAdminClient, createZappClient } from '../_shared/db-client.ts';
 import { requireServiceRoleOrCron, requireUser } from '../_shared/auth.ts';
 import { checkRateLimit, isValidUUID } from '../_shared/validation.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 /**
@@ -72,6 +74,12 @@ Deno.serve(async (req) => {
   // Parse body early so we can route auth by action
   let body: Record<string, unknown> = {};
   try { body = await req.json(); } catch { /* body not required */ }
+  // Contrato gmail-token-refresh@v1: action (default 'refreshAll') e
+  // accountId (refreshSingle). Corpo opcional — cron chama sem body.
+  const parsed = parseOrReject('gmail-token-refresh', CONTRACT_SCHEMAS['gmail-token-refresh'], req, body, {
+    extraHeaders: getCorsHeaders(req),
+  });
+  if (!parsed.ok) return parsed.response;
   const { action = 'refreshAll' } = body as { action?: string };
 
   // refreshSingle: accept user JWT (RLS-scoped via callerClient) OR service-role/cron

@@ -1,6 +1,7 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders, checkRateLimit, getClientIP } from "../_shared/validation.ts";
-import { ElevenLabsTTSSchema, parseBody } from "../_shared/schemas.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { ElevenLabsTtsV1Schema } from "../_shared/contract-schemas.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -16,10 +17,16 @@ Deno.serve(async (req) => {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
 
-    const parsed = parseBody(ElevenLabsTTSSchema, await req.json());
-    if (!parsed.success) return errorResponse(parsed.error, 400, req);
+    // Contrato elevenlabs-tts@v1 (estrito): text obrigatório (422 unificado).
+    const parsed = parseOrReject('elevenlabs-tts', { v1: ElevenLabsTtsV1Schema }, req, await req.json().catch(() => null), {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
 
-    const { text, voiceId, modelId, languageCode, applyTextNormalization } = parsed.data;
+    const { text, voiceId, modelId, languageCode, applyTextNormalization } = parsed.data as {
+      text: string; voiceId?: string | null; modelId?: string | null;
+      languageCode?: string | null; applyTextNormalization?: string | null;
+    };
     const ELEVENLABS_API_KEY = requireEnv("ELEVENLABS_API_KEY");
 
     const selectedVoiceId = voiceId || 'TY3h8ANhQUsJaa0Bga5F';

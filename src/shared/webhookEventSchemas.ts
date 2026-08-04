@@ -4,10 +4,71 @@ import { z } from 'zod';
 // Contract error types
 // ─────────────────────────────────────────────
 
-/** Typed error codes used by safeParseEvent to distinguish payload vs envelope validation failures. */
+/**
+ * Typed error codes used by safeParseEvent and aligned with the backend contract-kit.ts.
+ *
+ * Backend codes (contract-kit.ts): `invalid_json`, `contract_violation`, `unsupported_contract_version`
+ * Frontend codes (local validation): `INVALID_PAYLOAD`, `INVALID_EVENT_SHAPE`
+ *
+ * All codes are valid in both directions — the frontend must handle backend error responses
+ * and the backend may propagate frontend-originated codes.
+ */
 export enum ContractErrorCode {
+  // Backend-aligned codes (from contract-kit.ts)
+  INVALID_JSON = 'invalid_json',
+  CONTRACT_VIOLATION = 'contract_violation',
+  UNSUPPORTED_CONTRACT_VERSION = 'unsupported_contract_version',
+
+  // Frontend-local codes (local schema validation)
   INVALID_PAYLOAD = 'INVALID_PAYLOAD',
   INVALID_EVENT_SHAPE = 'INVALID_EVENT_SHAPE',
+}
+
+/** All known error codes — union type for exhaustive checking. */
+export type ContractErrorCodeValue =
+  | 'invalid_json'
+  | 'contract_violation'
+  | 'unsupported_contract_version'
+  | 'INVALID_PAYLOAD'
+  | 'INVALID_EVENT_SHAPE';
+
+// ─────────────────────────────────────────────
+// Contract error response (aligned with backend contract-kit.ts ContractErrorBody)
+// ─────────────────────────────────────────────
+
+/**
+ * Typed representation of a backend 422 contract error response.
+ * Mirrors the ContractErrorBody type in supabase/functions/_shared/contract-kit.ts.
+ *
+ * @example
+ * ```json
+ * {
+ *   "error": true,
+ *   "code": "contract_violation",
+ *   "message": "Payload não satisfaz o contrato send-email@v1.",
+ *   "contract": "send-email@v1",
+ *   "requestId": "req_abc123",
+ *   "details": [{ "path": "to", "message": "e-mail inválido" }]
+ * }
+ * ```
+ */
+export interface ContractErrorResponse {
+  error: true;
+  code: ContractErrorCodeValue;
+  message: string;
+  contract: string;
+  requestId?: string;
+  details: Array<{ path: string; message: string }>;
+}
+
+/** Type guard: returns true if a value matches the ContractErrorResponse shape. */
+export function isContractErrorResponse(value: unknown): value is ContractErrorResponse {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as Record<string, unknown>;
+  return v.error === true
+    && typeof v.code === 'string'
+    && typeof v.message === 'string'
+    && typeof v.contract === 'string';
 }
 
 // ─────────────────────────────────────────────

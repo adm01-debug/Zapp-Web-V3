@@ -3,6 +3,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { getSecret } from "../_shared/vault.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { EvolutionSentimentV1Schema } from "../_shared/contract-schemas.ts";
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const supabase = createZappAdminClient();
@@ -139,7 +141,12 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ success: true, metrics: { period_days: days, total_analyzed: data.length, sentiment_distribution: sd, avg_score: Math.round((ts / data.length) * 100) / 100, urgency_distribution: ud, intent_distribution: id, health_score: Math.round((sd.positive / data.length) * 100) } }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
     }
     if (req.method === "POST") {
-      const body = await req.json().catch(() => ({}));
+      // Contrato evolution-sentiment@v1 (estrito): text obrigatório + action opcional.
+      const parsed = parseOrReject('evolution-sentiment', { v1: EvolutionSentimentV1Schema }, req, await req.json().catch(() => (null)), {
+        extraHeaders: getCorsHeaders(req),
+      });
+      if (!parsed.ok) return parsed.response;
+      const body = parsed.data as Record<string, unknown>;
       if (body.action === "analyze" || !body.action) {
         const { text, remote_jid, message_id, instance_name } = body;
         // Validate text is a non-empty string — .slice() on a non-string crashes at runtime

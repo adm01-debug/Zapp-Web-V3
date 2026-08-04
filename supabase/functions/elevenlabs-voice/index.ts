@@ -13,8 +13,11 @@ import {
   getClientIP,
   requireEnv,
   Logger,
+  getCorsHeaders,
 } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { ElevenLabsVoiceV1Schema } from "../_shared/contract-schemas.ts";
 
 /** Codifica ArrayBuffer em base64 em chunks (evita estouro de call stack). */
 function bufferToBase64(buf: ArrayBuffer): string {
@@ -40,8 +43,13 @@ Deno.serve(async (req) => {
     const rl = checkRateLimit(`voice:${ip}`, 20, 60_000);
     if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);
 
-    const body = await req.json().catch(() => null);
-    const action: string = body?.action ?? "listVoices";
+    // Contrato elevenlabs-voice@v1 (estrito): action enum + text/voiceId obrigatórios no textToSpeech.
+    const parsed = parseOrReject('elevenlabs-voice', { v1: ElevenLabsVoiceV1Schema }, req, await req.json().catch(() => null), {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, unknown>;
+    const action: string = typeof body.action === 'string' ? body.action : 'listVoices';
     const ELEVENLABS_API_KEY = requireEnv("ELEVENLABS_API_KEY");
 
     if (action === "listVoices") {

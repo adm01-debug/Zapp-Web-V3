@@ -2,6 +2,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { EvolutionFollowupV1Schema } from "../_shared/contract-schemas.ts";
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const supabase = createZappAdminClient();
@@ -101,6 +103,12 @@ Deno.serve(async (req: Request) => {
   if (authErr) return authErr;
 
   try {
+    // Contrato evolution-followup@v1 (estrito): cron sem body → {} aceito.
+    const parsed = parseOrReject('evolution-followup', { v1: EvolutionFollowupV1Schema }, req, await req.json().catch(() => ({})), {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+
     const start = Date.now();
     const result = await processFollowUps();
     await supabase.from("evolution_performance_metrics").insert({ metric_date: new Date().toISOString().slice(0, 10), metric_type: "followup_processing", metric_value: result.processed, metadata: { ...result, duration_ms: Date.now() - start } }).then(() => {}, (e) => console.error("[evolution-followup] metrics insert failed:", e));
