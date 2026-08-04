@@ -118,12 +118,17 @@ export function useInboxFilters({
   const prevScopeRef = useRef(scope);
   const securityEnforcedRef = useRef(false);
 
+  // FIX 2026-08-03 (Gap 5): evitar loop de security warnings.
+  // Problema: hasPermission é useCallback([userPermissions]). Se userPermissions for
+  // recriado a cada render, hasPermission muda → reset effect dispara → main effect
+  // dispara novamente → warnings repetidos.
+  // Solução: usar valores booleanos estáveis como deps (não a função) + memoizá-los.
+  const canSeeDept = hasPermission('inbox.view_department');
+  const canSeeAll  = hasPermission('inbox.view_all');
+
   // Security: Enforce permissions on scope and showAll
   useEffect(() => {
     if (permissionsLoading) return;
-
-    const canSeeDept = hasPermission('inbox.view_department');
-    const canSeeAll = hasPermission('inbox.view_all');
 
     // Only warn on FIRST enforcement, then track that we've enforced
     if (!securityEnforcedRef.current) {
@@ -148,12 +153,13 @@ export function useInboxFilters({
     } else if (scope === 'all' && !canSeeAll) {
       setScope(canSeeDept ? 'department' : 'mine');
     }
-  }, [permissionsLoading, hasPermission, scope, showAll]); // scope/showAll needed for enforcement; ref prevents warn spam
+  // Usar booleans como deps (não a fn hasPermission) para evitar loop de re-execução
+  }, [permissionsLoading, canSeeDept, canSeeAll, scope, showAll]);
 
-  // Reset enforcement tracker when permissions change (e.g. role switch)
+  // Reset enforcement tracker quando permissões realmente mudam (e.g. role switch)
   useEffect(() => {
     securityEnforcedRef.current = false;
-  }, [hasPermission]);
+  }, [canSeeDept, canSeeAll]);
 
   useEffect(() => {
     if (prevScopeRef.current !== scope) {

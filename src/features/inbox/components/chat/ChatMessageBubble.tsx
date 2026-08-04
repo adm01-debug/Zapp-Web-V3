@@ -95,7 +95,15 @@ export function ChatMessageBubble({
   const isSent = message.sender === 'agent';
   const mediaRefreshKey =
     instanceName && contactJid && message.external_id
-      ? { instanceName, remoteJid: contactJid, fromMe: isSent, id: message.external_id }
+      ? {
+          instanceName,
+          remoteJid: contactJid,
+          fromMe: isSent,
+          id: message.external_id,
+          // FIX 2026-08-03 (Gap 4): propagar tipo para skip-list de mídia
+          // Evita 23+ tentativas desnecessárias de refresh em stickers/ephemeral
+          messageType: message.message_type ?? message.type ?? null,
+        }
       : undefined;
 
   const isMobile = useIsMobile();

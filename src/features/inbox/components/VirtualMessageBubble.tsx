@@ -51,7 +51,14 @@ export const MessageBubble = memo(({
   const { avatarUrl } = useContactAvatar(message.conversationId, message.contactAvatar || contactAvatar);
   
   const mediaRefreshKey = (instanceName && contactJid && message.external_id)
-    ? { instanceName, remoteJid: contactJid, fromMe: isSent, id: message.external_id }
+    ? {
+        instanceName,
+        remoteJid: contactJid,
+        fromMe: isSent,
+        id: message.external_id,
+        // FIX 2026-08-03 (Gap 4): skip-list para tipos de mídia não-recarregáveis
+        messageType: message.type ?? null,
+      }
     : undefined;
 
   useEffect(() => {
