@@ -32,11 +32,21 @@ const tableData: Record<string, unknown[]> = {
   queues: mockQueuesData.queues,
   queue_members: mockQueuesData.members,
   contacts: [{ assigned_to: 'p1' }, { assigned_to: 'p1' }],
+  agent_presence: [],
+};
+
+// Cadeia realtime: channel().on(...).subscribe() + removeChannel
+const channelChain = {
+  on: vi.fn(() => channelChain),
+  subscribe: vi.fn(() => channelChain),
+  unsubscribe: vi.fn(() => channelChain),
 };
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: vi.fn().mockImplementation((table: string) => makeChain(tableData[table] ?? [])),
+    channel: vi.fn(() => channelChain),
+    removeChannel: vi.fn(),
   },
 }));
 
