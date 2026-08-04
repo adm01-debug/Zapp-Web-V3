@@ -228,8 +228,24 @@ export function parseOrReject<T = unknown>(
 
   for (const v of candidates) {
     const schema = schemas[v];
-    if (!schema) continue;
-    const result = schema.safeParse(body);
+    // Hardening (fuzz 2026-08-04): o valor pode não ser ZodType real (ex.:
+    // corrupção de registro ou uso errado da API com objeto cru). Sem esta
+    // guarda, schema.safeParse lança TypeError → 500 em produção.
+    if (!schema || typeof (schema as { safeParse?: unknown }).safeParse !== "function") continue;
+    let result: ReturnType<z.ZodTypeAny["safeParse"]>;
+    try {
+      result = schema.safeParse(body);
+    } catch (err) {
+      // Hardening (fuzz 2026-08-04): schema com superRefine/z.custom que lança
+      // NUNCA pode virar 500 — vira contract_violation com o erro em details.
+      const eb = buildContractErrorBody(
+        contractName, v, "contract_violation",
+        `Payload não satisfaz o contrato ${contractLabel(contractName, v)} (schema lançou).`,
+        [{ path: "root", message: err instanceof Error ? err.message : String(err) }],
+        opts.requestId,
+      );
+      return { ok: false, response: errorResponse422(eb, extra), body: eb };
+    }
     if (result.success) {
       const deprecated = isDeprecatedVersion(contractName, v);
       return {
