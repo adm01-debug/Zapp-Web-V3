@@ -34,6 +34,7 @@ function makeHandlers() {
     onAddNote: vi.fn().mockResolvedValue(undefined),
     onAddTag: vi.fn().mockResolvedValue(undefined),
     onTransferDialog: vi.fn(),
+    onArchive: vi.fn().mockResolvedValue(undefined),
   };
   const { result } = renderHook(() =>
     useInputHandlers({
@@ -205,20 +206,40 @@ describe('BUG-03 — /star, /note, /tag, /assign, /remind', () => {
   });
 });
 
-describe('BUG-03 — /archive e /priority sao honestos (sem destino real)', () => {
-  it('/archive NAO chama callback e mostra toast informativo', async () => {
+describe('BUG-03 — /archive chama o callback real (PR PR 773)', () => {
+  it('/archive chama onArchive e confirma com toast de sucesso', async () => {
     const { result, callbacks } = makeHandlers();
     await act(async () => {
       result.current.handleSlashCommand({ id: 'archive' });
     });
+    expect(callbacks.onArchive).toHaveBeenCalledTimes(1);
     expect(callbacks.onResolveConversation).not.toHaveBeenCalled();
     expect(callbacks.onStarToggle).not.toHaveBeenCalled();
     expect(mockToast).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: 'Arquivar Conversa',
-        description: 'Arquivo nao disponivel nesta versao.',
+        title: 'Conversa Arquivada',
       })
     );
+  });
+
+  it('/archive sem callback não exibe sucesso inventado (run no-op)', async () => {
+    const { result } = renderHook(() =>
+      useInputHandlers({
+        setInputValue: vi.fn(),
+        setIsWhisper: vi.fn(),
+        openDialog: vi.fn(),
+        closeDialog: vi.fn(),
+        handleTypingStart: vi.fn(),
+        handleTypingStop: vi.fn(),
+        handleSend: vi.fn(),
+        handleSetActiveTool: vi.fn(),
+      })
+    );
+    await act(async () => {
+      result.current.handleSlashCommand({ id: 'archive' });
+    });
+    // Sem callback configurado, NÃO exibe sucesso inventado (contrato run()).
+    expect(mockToast).not.toHaveBeenCalled();
   });
 
   it('/priority NAO chama callback e mostra toast informativo', async () => {

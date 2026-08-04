@@ -75862,6 +75862,14 @@ export type Database = {
         }
       }
       rpc_dispatch_error_stats: { Args: { p_hours?: number }; Returns: Json }
+      rpc_get_contact_summary_batch: {
+        Args: { p_contact_ids: string[] }
+        Returns: Json
+      }
+      rpc_get_reactions_batch: {
+        Args: { p_message_ids: string[] }
+        Returns: Json
+      }
       rpc_dlq_abandon: {
         Args: { p_id: string; p_reason?: string }
         Returns: boolean

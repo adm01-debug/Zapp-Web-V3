@@ -60,8 +60,7 @@ export function NextBestActionEngine({ contactId, contactName }: NextBestActionP
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle(),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (supabase as any).rpc('rpc_get_contact_summary_batch', {
+          supabase.rpc('rpc_get_contact_summary_batch', {
             p_contact_ids: [contactId],
           }),
           supabase

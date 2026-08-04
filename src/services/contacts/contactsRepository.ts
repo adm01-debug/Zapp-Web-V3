@@ -130,11 +130,16 @@ export const contactsRepository = {
 
   /**
    * Archive a contact (soft delete via deleted_at)
+   *
+   * ATENÇÃO (2026-08-04): a view `contacts` (public/zapp) expõe APENAS
+   * `deleted_at` — `deleted_reason`/`deleted_by` NÃO existem nas views
+   * (comprovado via information_schema em produção). Update com coluna
+   * inexistente falha com erro 400 no PostgREST. Soft-delete é marcado
+   * exclusivamente por `deleted_at`.
    */
   archive: async (id: string): Promise<Contact> => {
     return baseContactsService.update(id, {
       deleted_at: new Date().toISOString(),
-      deleted_reason: 'archived',
     });
   },
 
@@ -144,8 +149,6 @@ export const contactsRepository = {
   restore: async (id: string): Promise<Contact> => {
     return baseContactsService.update(id, {
       deleted_at: null,
-      deleted_by: null,
-      deleted_reason: null,
     });
   },
 
@@ -166,12 +169,13 @@ export const contactsRepository = {
 
   /**
    * Bulk archive contacts (soft delete)
+   * Só `deleted_at` (a view contacts não expõe deleted_reason/deleted_by).
    */
   updateStatusBulk: async (ids: string[], status: 'active' | 'archived'): Promise<Contact[]> => {
     const patch =
       status === 'archived'
-        ? { deleted_at: new Date().toISOString(), deleted_reason: 'archived' }
-        : { deleted_at: null, deleted_by: null, deleted_reason: null };
+        ? { deleted_at: new Date().toISOString() }
+        : { deleted_at: null };
     return baseContactsService.updateMany({ id: ids }, patch as Partial<Contact>);
   },
 
