@@ -31,6 +31,32 @@ import type { Database as GeneratedDatabase } from './types';
 export type ManualZappTables = Record<never, never>;
 
 /**
+ * Manual Zapp Functions — RPCs da migration F-06 (rpc_schema_tables /
+ * rpc_schema_columns, SECURITY DEFINER com whitelist zapp/evo/public).
+ *
+ * INTERINO: estas assinaturas entram em types.ts automaticamente quando
+ * gen-types-zapp.mjs rodar com META_URL/META_TOKEN apontando para a VPS.
+ * Até lá, ficam aqui para o frontend chamar os RPCs sem cast `as never`.
+ * Se a assinatura gerada divergir, a entrada manual VENCE (MergeFunctions
+ * prioriza Extra) — manter em sincronia com a migration F-06.
+ */
+export type ManualZappFunctions = {
+  rpc_schema_tables: {
+    Args: { p_schema?: string };
+    Returns: { table_name: string; table_type: string }[];
+  };
+  rpc_schema_columns: {
+    Args: { p_schema?: string };
+    Returns: {
+      table_name: string;
+      column_name: string;
+      data_type: string;
+      is_nullable: string;
+    }[];
+  };
+};
+
+/**
  * ContactIntelligenceRow — espelho EXATO de zapp.contact_intelligence,
  * verificado via information_schema em 2026-07-31 (15 colunas reais).
  *
@@ -146,6 +172,14 @@ type MergeTables<Base, Extra> = {
       : never;
 };
 
+type MergeFunctions<Base, Extra> = {
+  [K in keyof Base | keyof Extra]: K extends keyof Extra
+    ? Extra[K]
+    : K extends keyof Base
+      ? Base[K]
+      : never;
+};
+
 type GeneratedZappSchema = GeneratedDatabase['zapp'];
 
 /** Extended Database type alias. */
@@ -154,7 +188,7 @@ export type ExtendedDatabase = {
   zapp: {
     Tables: MergeTables<GeneratedZappSchema['Tables'], ManualZappTables>;
     Views: GeneratedZappSchema['Views'];
-    Functions: GeneratedZappSchema['Functions'];
+    Functions: MergeFunctions<GeneratedZappSchema['Functions'], ManualZappFunctions>;
     Enums: GeneratedZappSchema['Enums'];
     CompositeTypes: GeneratedZappSchema['CompositeTypes'];
   };

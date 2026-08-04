@@ -196,4 +196,39 @@ export default tseslint.config(
       ],
     },
   },
+  // SCHEMA CONTRACT GUARDS — o front só acessa views/tabelas do schema 'zapp'
+  // (client com db.schema='zapp'). Acessos diretos a schemas físicos ('evo' /
+  // 'email_app') ou ao 'public' quebram o contrato single-DB e devem ser
+  // substituídos por views em zapp.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: [
+      "src/integrations/supabase/types.ts",
+      "src/integrations/supabase/types-manual.ts",
+      "src/integrations/supabase/client.ts",
+      "src/**/__tests__/**",
+      "src/**/*.test.{ts,tsx}",
+      "src/**/*.spec.{ts,tsx}",
+      "scripts/**",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          // .schema('evo') / .schema('email_app') — usar views zapp.
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.property.name='schema'][arguments.0.value=/^(evo|email_app)$/]",
+          message:
+            "Não usar .schema('evo'|'email_app') no front — usar views zapp (contrato single-DB).",
+        },
+        {
+          // schema:'public' em objetos (ex.: postgres_changes) — views não
+          // emitem WAL, mas o contrato de leitura é sempre zapp.
+          selector: "Property[key.name='schema'][value.value='public']",
+          message:
+            "Não usar schema:'public' no front — usar views zapp (contrato single-DB).",
+        },
+      ],
+    },
+  },
 );

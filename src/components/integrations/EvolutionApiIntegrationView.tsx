@@ -119,7 +119,7 @@ export function EvolutionApiIntegrationView() {
                               setFormData({
                                 instance_name: creds.instance_name,
                                 api_url: creds.api_url,
-                                api_key: creds.api_key,
+                                api_key: creds.api_key ?? '', // view zapp não expõe api_key; usuário re-insere para editar/testar
                                 show_key: false,
                                 is_editing: creds.id
                               });

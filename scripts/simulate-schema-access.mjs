@@ -62,30 +62,31 @@ for (const t of zappTables) {
 // -- Categoria 2: evo reads ---------------------------------------
 // ONLY tables that exist EXCLUSIVELY in the evo schema (partitions, no zapp VIEW proxy).
 // Tables that have VIEW proxies in zapp (evolution_contacts, evolution_media,
-// evolution_whatsapp_status, evolution_messages, evolution_conversations) must be accessed
-// via the default zapp client — NOT via .schema('evo') — to avoid PGRST205.
+// evolution_whatsapp_status, evolution_messages, evolution_conversations,
+// evolution_messages_wpp2, evolution_conversations_wpp2) must be accessed
+// via the default zapp client — NOT via .schema('evo') — to avoid PGRST205/PGRST106.
 // See CLAUDE.md rule #2.
-const evoTables = [
+const zappViewTables = [
   'evolution_messages_wpp2',
   'evolution_conversations_wpp2',
 ];
-for (const t of evoTables) {
+for (const t of zappViewTables) {
   let ok = true;
   let detail = '';
   for (const f of files) {
     const src = readFileSync(f, 'utf8');
-    const re = new RegExp(`\\.from\\(['"\`]${t}['"\`]\\)`, 'g');
+    const re = new RegExp(`\\.from\\(['"` + '`' + `]${t}['"` + '`' + `]\\)`, 'g');
     const matches = [...src.matchAll(re)];
     for (const m of matches) {
       // Buscar `.schema('evo')` nas ~200 chars antes do match.
       const before = src.slice(Math.max(0, m.index - 200), m.index);
-      if (!/schema\(['"`]evo['"`]\)/.test(before)) {
+      if (/schema\(['"`]evo['"`]\)/.test(before)) {
         ok = false;
-        detail = `${f.replace(ROOT + '/', '')}: falta .schema('evo') antes de .from('${t}')`;
+        detail = `${f.replace(ROOT + '/', '')}: .schema('evo') antes de .from('${t}') — view zapp disponível (PGRST106)`;
       }
     }
   }
-  record('evo-read', `evo.${t}`, ok, detail);
+  record('zapp-view-read', `zapp.${t}`, ok, detail);
 }
 
 // -- Categoria 3: Realtime ----------------------------------------

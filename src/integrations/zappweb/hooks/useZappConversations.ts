@@ -27,7 +27,6 @@ export function useZappConversations(opts: Options = {}) {
   const fetchAll = useCallback(async () => {
     try {
       const { data, error: err } = await zappSupabase
-        .schema('evo')
         .from('evolution_conversations_wpp2')
         .select(
           `id, remote_jid, contact_id, status, unread_count, last_message_content,
@@ -76,7 +75,6 @@ export function useZappConversations(opts: Options = {}) {
 
   const markAsRead = useCallback(async (conversationId: string) => {
     await zappSupabase
-      .schema('evo')
       .from('evolution_conversations_wpp2')
       .update({ unread_count: 0 })
       .eq('id', conversationId);
