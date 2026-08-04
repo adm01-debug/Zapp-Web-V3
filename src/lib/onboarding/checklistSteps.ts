@@ -83,9 +83,9 @@ export const CHECKLIST_STEPS: ChecklistStep[] = [
       } = await supabase.auth.getUser();
       if (!user) return false;
       const { data } = await supabase
-        .from('message_templates')
+        .from('quick_replies')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('owner_id', user.id)
         .limit(1);
       return (data?.length || 0) > 0;
     },

@@ -10,9 +10,12 @@ interface BusinessHoursBadgeProps {
 
 /** Business Hours Badge component. */
 export function BusinessHoursBadge({ connectionId, className }: BusinessHoursBadgeProps) {
-  const { data: isOpen } = useBusinessHoursCheck(connectionId);
+  const { data: isOpen, isError, isLoading } = useBusinessHoursCheck(connectionId);
 
-  if (isOpen === null || isOpen === undefined) return null;
+  // Estado indeterminado (RPC falhou / ainda carregando): não exibe "Aberto" nem
+  // "Fechado" — neutro. O erro do RPC não é mais engolido (a query fica em isError
+  // e é logada), então a quebra do is_within_business_hours fica rastreável.
+  if (isError || isLoading || isOpen === null || isOpen === undefined) return null;
 
   return (
     <Tooltip>

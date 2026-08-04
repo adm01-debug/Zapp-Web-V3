@@ -48,7 +48,7 @@ export function AutomationsManager() {
       actions: automation.actions,
       is_active: false,
       created_by: user?.id,
-    } as Omit<AutomationRow, 'id' | 'created_at' | 'updated_at' | 'trigger_count' | 'last_triggered_at'>);
+    } as Omit<AutomationRow, 'id' | 'created_at' | 'updated_at' | 'execution_count' | 'last_executed_at'>);
   };
 
   if (isLoading) {

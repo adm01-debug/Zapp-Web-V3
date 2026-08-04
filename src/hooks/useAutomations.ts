@@ -62,7 +62,7 @@ export function useAutomations({
     const load = async () => {
       try {
         const { data, error } = await supabase
-          .from('automations')
+          .from('automation_rules')
           .select('id,name,trigger_type,trigger_config,actions,is_active')
           .eq('is_active', true)
           .order('name', { ascending: true });
