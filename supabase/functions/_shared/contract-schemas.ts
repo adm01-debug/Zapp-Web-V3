@@ -855,7 +855,6 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "sicoob-bridge":                 { v1: SicoobBridgeV1Schema },
   "sicoob-bridge-reply":           { v1: SicoobBridgeReplyV1Schema },
   "bitrix-api":                    { v1: BitrixApiV1Schema },
-  "auth-email-hook":               { v1: AuthEmailHookV1Schema },
   "whatsapp-cloud-send":           { v1: WhatsappCloudSendV1Schema },
   "public-api":                    { v1: PublicApiV1Schema },
   "ai-proxy":                      { v1: AiProxyV1Schema },

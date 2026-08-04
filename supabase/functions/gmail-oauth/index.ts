@@ -69,6 +69,12 @@ Deno.serve(async (req) => {
       return new Response(`<script>\n          window.opener?.postMessage({type:'gmail-oauth-code',code:${safeJsonForScript(code)},state:${safeJsonForScript(state)}},'*');\n          window.close();\n        </script>`, { headers: { 'Content-Type': 'text/html' } });
     }
 
+    // Auth ANTES do gate (validação Claude O2: não vazar metadado de contrato
+    // para chamador não autenticado). Todas as actions exigem JWT.
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+    const authenticatedUserId = authed.user.id;
+
     // Contrato gmail-oauth@v1 (estrito): action enum fechado (aliases kebab aceitos).
     const raw = await req.json().catch(() => null);
     const parsed = parseOrReject('gmail-oauth', { v1: GmailOauthV1Schema }, req, raw, {
@@ -79,11 +85,6 @@ Deno.serve(async (req) => {
     const rawAction = body.action as string | undefined;
     const actionMap: Record<string, string> = { 'get-auth-url': 'getAuthUrl', 'exchange-code': 'exchangeCode', 'refresh-token': 'refresh', 'disconnect': 'revoke', 'list-accounts': 'listAccounts' };
     const action = rawAction && actionMap[rawAction] ? actionMap[rawAction] : rawAction;
-
-    // All actions (including getAuthUrl) require a valid Supabase JWT
-    const authed = await requireUser(req);
-    if (authed instanceof Response) return authed;
-    const authenticatedUserId = authed.user.id;
 
     const rl = checkRateLimit(`gmail-oauth:${authenticatedUserId}`, 20, 60_000);
     if (!rl.allowed) return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), { status: 429, headers: jsonHeaders });
@@ -96,7 +97,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'exchangeCode') {
-      const { code, userId, state } = body;
+      const { code, userId, state } = body as Record<string, any>;
       if (!code || !userId) return new Response(JSON.stringify({ error: 'code e userId obrigat\u00f3rios' }), { status: 400, headers: jsonHeaders });
       // Prevent token hijacking: caller may only bind the OAuth code to their own account
       if (userId !== authenticatedUserId) return new Response(JSON.stringify({ error: 'Forbidden: userId does not match authenticated user' }), { status: 403, headers: jsonHeaders });

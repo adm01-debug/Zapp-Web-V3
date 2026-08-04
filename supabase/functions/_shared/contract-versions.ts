@@ -30,7 +30,6 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "sicoob-bridge":                { current: "v1", supported: ["v1"] },
   "sicoob-bridge-reply":          { current: "v1", supported: ["v1"] },
   "bitrix-api":                   { current: "v1", supported: ["v1"] },
-  "auth-email-hook":              { current: "v1", supported: ["v1"] },
   "recheck-webhook-signature":    { current: "v1", supported: ["v1"] },
   "reprocess-failed-messages":    { current: "v1", supported: ["v1"] },
   "instance-pause-control":       { current: "v1", supported: ["v1"] },

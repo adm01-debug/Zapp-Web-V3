@@ -10,11 +10,8 @@
  *  2. Schemas NOVOS (`.strict()`) para as funções SEM V1 homônimo em schemas.ts
  *     (ai-auto-tag, ai-classify-tickets, detect-new-device) — derivados do
  *     CONSUMO REAL no index.ts de cada função / validação do ai-router.
- *  3. Registro local `CONTRAI_SCHEMAS_AI: Record<string, SchemaMap>` mapeando
- *     'nome-da-funcao' -> { v1: Schema } para as 13 funções.
  *
- * NOTA: `contract-schemas.ts` (registro principal) NÃO foi editado — este
- * arquivo é o registro AI dedicado, consumido pelo integrador do batch.
+ * NOTA: o registro canônico vive em contract-schemas.ts (namespace AISchemas.*).
  */
 import { z } from "https://esm.sh/zod@3.23.8";
 import type { SchemaMap } from "./contract-kit.ts";
