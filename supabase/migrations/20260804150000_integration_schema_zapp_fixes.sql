@@ -183,37 +183,46 @@ BEGIN
   END IF;
 
   BEGIN
-    INSERT INTO zapp.evolution_audit_log (
-      action, entity_type, entity_id,
-      performed_by, performed_by_type,
-      old_values, new_values, metadata
-    )
-    VALUES (
-      p_action, p_entity_type, p_entity_id,
-      p_performed_by, p_performed_by_type,
-      p_old, p_new, v_meta
-    )
-    RETURNING id INTO v_id;
+    BEGIN
+      INSERT INTO zapp.evolution_audit_log (
+        action, entity_type, entity_id,
+        performed_by, performed_by_type,
+        old_values, new_values, metadata
+      )
+      VALUES (
+        p_action, p_entity_type, p_entity_id,
+        p_performed_by, p_performed_by_type,
+        p_old, p_new, v_meta
+      )
+      RETURNING id INTO v_id;
 
-    RETURN v_id;
+      RETURN v_id;
 
-  EXCEPTION WHEN check_violation THEN
-    -- Ação fora do vocabulário permitido (CHECK constraint) → fallback com
-    -- action_not_in_vocabulary, preservando o contexto no metadata.
-    INSERT INTO zapp.evolution_audit_log (
-      action, entity_type, entity_id,
-      performed_by, performed_by_type,
-      old_values, new_values, metadata
-    )
-    VALUES (
-      'action_not_in_vocabulary', p_entity_type, p_entity_id,
-      p_performed_by, p_performed_by_type,
-      p_old, p_new,
-      v_meta || jsonb_build_object('original_action', p_action)
-    )
-    RETURNING id INTO v_id;
+    EXCEPTION WHEN check_violation THEN
+      BEGIN
+        -- Ação fora do vocabulário permitido (CHECK constraint) → fallback com
+        -- action_not_in_vocabulary, preservando o contexto no metadata.
+        INSERT INTO zapp.evolution_audit_log (
+          action, entity_type, entity_id,
+          performed_by, performed_by_type,
+          old_values, new_values, metadata
+        )
+        VALUES (
+          'action_not_in_vocabulary', p_entity_type, p_entity_id,
+          p_performed_by, p_performed_by_type,
+          p_old, p_new,
+          v_meta || jsonb_build_object('original_action', p_action)
+        )
+        RETURNING id INTO v_id;
 
-    RETURN v_id;
+        RETURN v_id;
+      EXCEPTION WHEN OTHERS THEN
+        -- Robustez (preservado da versão original): qualquer erro no INSERT
+        -- não derruba o chamador (log é best-effort).
+        RAISE WARNING 'fn_safe_audit_log falhou: %', SQLERRM;
+        RETURN NULL;
+      END;
+    END;
   END;
 END;
 $$;

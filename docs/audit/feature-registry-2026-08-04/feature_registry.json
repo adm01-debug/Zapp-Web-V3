@@ -1,0 +1,2961 @@
+{
+  "gerado_em": "2026-08-04T14:18:18",
+  "data_auditoria": "2026-08-04",
+  "total": 155,
+  "recursos": [
+    {
+      "id": "AUTOMACOES-10",
+      "dominio": "AUTOMACOES/CHATBOT/FOLLOW-UP",
+      "recurso": "Lembretes",
+      "descricao": "Lembretes por contato com dismiss",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela"
+      ],
+      "status": "Full",
+      "confianca": "media",
+      "evidencias": "src/features/inbox/components/contact-details/ContactAccordionSections.tsx:226 (RemindersPanel) + src/features/inbox/hooks/useRemindersData.ts:7/26 (CRUD reminders) + zapp.reminders + policies reminders_own/reminders_admin (20260724000045:782)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "4 camadas ok; 0 linhas (feature sob demanda do usuário)."
+    },
+    {
+      "id": "AUTOMACOES-11",
+      "dominio": "AUTOMACOES/CHATBOT/FOLLOW-UP",
+      "recurso": "Playbooks",
+      "descricao": "Playbooks operacionais com CRUD no Admin",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela"
+      ],
+      "status": "Full",
+      "confianca": "media",
+      "evidencias": "src/features/admin/components/AdminView.tsx:128/316 (tab Playbooks) + src/features/admin/hooks/usePlaybooksData.ts:6/22 (CRUD playbooks) + zapp.playbooks (20260724000044:487, policies + grants authenticated)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "4 camadas ok; sem dados ainda."
+    },
+    {
+      "id": "CAMPANHAS-10",
+      "dominio": "CAMPANHAS/TALKX/AGENDADAS",
+      "recurso": "Template de mensagem",
+      "descricao": "Templates/quick-replies de mensagem no inbox (picker no composer) com CRUD completo.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela/view"
+      ],
+      "status": "Full",
+      "confianca": "media",
+      "evidencias": "src/features/inbox/components/chat/ChatInputToolbars.tsx:344 (<MessageTemplates/>) + ChatTemplatesOverlay.tsx:34 (<TemplatesWithVariables/>) + src/features/inbox/hooks/useMessageTemplates.ts:41,65,92,115,130 (CRUD zapp.message_templates) + zapp.message_templates (db_tabelas_zapp.txt message|message_templates:r) — sem RLS (acessível), fio .from('message_templates') casa com objeto real",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Único recurso do domínio com ciclo completo (UI acessível + hook + tabela sem bloqueio). 0 linhas no db_uso — recurso disponível mas sem dados. Nota: evo.evolution_message_templates (usado pelo evolution-followup) segue 0 linhas e sem UI."
+    },
+    {
+      "id": "CONTATOS-01",
+      "dominio": "CONTATOS/CRM",
+      "recurso": "Lista de contatos + busca/filtros/paginação",
+      "descricao": "Grid/lista/tabela de contatos com busca cursor-based, tabs por tipo, filtros (empresa, cargo, tag, data) e contagem por tipo.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "RPC",
+        "tabela/view",
+        "teste"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/contacts/hooks/useContactsSearch.ts:174 (rpc search_contacts_cursor) + :225 (contacts_count_by_type) + src/pages/ViewRouter.tsx:80 (rota contacts -> ContactsRichView) + zapp.contacts view -> zapp.contatos (3236 linhas, db_uso) + supabase/migrations/20260802000003_fix_search_contacts_cursor_v2.sql:179 (GRANT EXECUTE authenticated)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "search_contacts_cursor definida em canonical_schema.sql:4911/14134; contacts_count_by_type em archive/20260502_create_rpc_functions.sql:4 e zapp em archive/20260724000033:168. Cliente Supabase schema 'zapp' (client.ts:545)."
+    },
+    {
+      "id": "CONTATOS-02",
+      "dominio": "CONTATOS/CRM",
+      "recurso": "Detalhe do contato (quick view, edição, audit LGPD)",
+      "descricao": "Painel lateral do contato no inbox: dados, canais, audit log LGPD e diálogo de edição.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela/view",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/components/contacts/ContactQuickView.tsx (render em ContactsRichView.tsx:289) + src/features/inbox/components/contact-details/EditContactDialog.tsx:294 (AuditLogPanel -> safeClient.from('contact_audit_log') em AuditLogPanel.tsx:75) + zapp.contacts view -> zapp.contatos; zapp.contact_audit_log na publication 68 (db_realtime.txt) + from_calls_front.txt (contacts, contact_phones, contact_emails)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "contact_audit_log com 0 linhas (db_uso) — só popula via triggers/escritas; subscription realtime de contatos NÃO é consumida no front (realtime_channels_front.txt só tem evolution_retry_metrics_realtime)."
+    },
+    {
+      "id": "CONTATOS-03",
+      "dominio": "CONTATOS/CRM",
+      "recurso": "Criar/editar contato (com optimistic locking)",
+      "descricao": "Form V3 de criação/edição com update versionado (conflito detectado) e fallback de força bruta.",
+      "camadas": [
+        "UI",
+        "hook",
+        "RPC",
+        "tabela/view"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/components/contacts/useContactFormV3.ts:163 (dbRpc update_contact_versioned) + :183/:186 (update/insert via zapp.contacts view) + supabase/migrations/archive/20260501_contacts_optimistic_locking.sql:31 (função) + archive/20260502_contacts_schema_finalization.sql:129 (GRANT EXECUTE authenticated) + UI: ContactDialogs.tsx:75/91 (ContactFormV3) render em ContactsRichView.tsx:267",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Insert/update via view security_invoker zapp.contacts (migration 20260801185259_r29_grant_execute_security_invoker_views.sql)."
+    },
+    {
+      "id": "CONTATOS-05",
+      "dominio": "CONTATOS/CRM",
+      "recurso": "Notas do contato",
+      "descricao": "Notas privadas por contato com autor (profiles), CRUD completo e invalidação de queries.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela/view",
+        "teste"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/contacts/hooks/useContactNotes.ts:63/115/148 (.from('contact_notes') select/insert/delete) + UI: src/features/inbox/components/PrivateNotes.tsx e InternalNotesPanel.tsx + zapp.contact_notes (db_tabelas_zapp; 1 linha em db_uso) + testes em __tests__/useContactNotes.test.tsx",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Apenas 1 registro em produção (db_uso) — feature funcional mas pouco utilizada."
+    },
+    {
+      "id": "CONTATOS-06",
+      "dominio": "CONTATOS/CRM",
+      "recurso": "Tags/etiquetas",
+      "descricao": "CRUD de tags + atribuição/remoção por contato (contact_tags) e contagem por tag.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela/view"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/hooks/useTags.ts:37/46/142/186/201 (.from('tags') e .from('contact_tags')) + UI: ContactQuickView.tsx:199 (seção Etiquetas) + ContactsBulkActionBar.tsx (etiquetar em lote) + zapp.tags e zapp.contact_tags (db_tabelas_zapp.txt) + from_calls_front.txt (tags, contact_tags)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "zapp.tags e zapp.contact_tags com 0 linhas em db_uso (tabelas vazias em produção)."
+    },
+    {
+      "id": "CONTATOS-08",
+      "dominio": "CONTATOS/CRM",
+      "recurso": "Compras do contato",
+      "descricao": "Histórico de compras por contato (título, valor, tipo) com criação via UI.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela/view"
+      ],
+      "status": "Full",
+      "confianca": "media",
+      "evidencias": "src/features/inbox/hooks/useContactPurchasesData.ts:9/23 (.from('contact_purchases') select/insert) + UI: src/features/inbox/components/ContactPurchasesPanel.tsx + zapp.contact_purchases (db_tabelas_zapp.txt; 0 linhas em db_uso) + from_calls_front.txt (contact_purchases)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Tabela com 0 registros em produção; painel existe no detalhe do contato."
+    },
+    {
+      "id": "CONTATOS-09",
+      "dominio": "CONTATOS/CRM",
+      "recurso": "Intelligence / enriquecimento do contato",
+      "descricao": "Painel de inteligência (briefing, sentiment, engagement, churn, DISC) + enriquecimento via RPC.",
+      "camadas": [
+        "UI",
+        "hook",
+        "RPC",
+        "tabela/view"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/hooks/useCRMManagement.ts:248 (rpc enrich_contact) + src/hooks/useContactIntelligence.ts:294 (.from('contact_intelligence')) + UI: ContactIntelligencePanel.tsx:255 + ChatHeader.tsx + zapp.contact_intelligence (20541 linhas em db_uso!) + GRANTs: 20260724000005:176 / canonical:6213 (enrich_contact) e canonical:16041 (get_contact_intelligence_by_phone) + funções em canonical_schema.sql:6186/15556",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Único recurso do domínio com dados massivos em produção (20.5k linhas). Dois hooks homônimos (features/contacts e hooks/) — risco de divergência."
+    },
+    {
+      "id": "CONTATOS-10",
+      "dominio": "CONTATOS/CRM",
+      "recurso": "Favoritos",
+      "descricao": "Favoritar/desfavoritar contato por usuário (favorite_contacts) com estado na lista de conversas.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela/view"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/hooks/useConversationManagement.ts:64 (loadFavorites) + :148 (favoriteContact) + :165 (unfavoriteContact), todos .from('favorite_contacts') + zapp.favorite_contacts (db_tabelas_zapp.txt) + from_calls_front.txt (favorite_contacts)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "0 linhas em db_uso (nenhum favorito registrado em produção)."
+    },
+    {
+      "id": "CONTATOS-11",
+      "dominio": "CONTATOS/CRM",
+      "recurso": "Importação em massa (CSV)",
+      "descricao": "Importação CSV com template, validação (máx 50k linhas) e resultado inserted/updated/skipped via edge function.",
+      "camadas": [
+        "UI",
+        "edge",
+        "tabela/view"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/components/contacts/ContactImportDialog.tsx:147 (supabase.functions.invoke('contacts-import')) render em ContactsRichView.tsx:282 + edge contacts-import DEPLOYADA (edges_deployadas.txt) + zapp.contatos 3236 linhas (db_uso)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Edge grava em zapp.contatos; CSV com nome/telefone/email/empresa/tags/notas."
+    },
+    {
+      "id": "CONTATOS-13",
+      "dominio": "CONTATOS/CRM",
+      "recurso": "Fusão/merge + detecção de duplicados",
+      "descricao": "Detecção de duplicados, merge manual com resolução de conflito e auto-merge em lote.",
+      "camadas": [
+        "UI",
+        "hook",
+        "RPC",
+        "tabela/view",
+        "teste"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/components/contacts/DuplicateContactsPanel.tsx:62/63/96/142 (find_duplicate_contacts, get_duplicate_report, merge_contacts, bulk_auto_merge_duplicates) + ContactMergeDialog.tsx:266/291 (update zapp.contacts + soft-delete) + funções em canonical_schema.sql:12324/12341/13342 com GRANT EXECUTE authenticated (canonical:12337/12351, 20260802000002:40) + UI render em ContactContentArea.tsx:82 + teste useCRMManagement.simulacao.test.tsx",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "n-a",
+      "obs": "Merge via ContactMergeDialog reatribui conversations/messages e faz soft-delete (deleted_at/deleted_reason) — sem hard delete (LGPD)."
+    },
+    {
+      "id": "CONTATOS-15",
+      "dominio": "CONTATOS/CRM",
+      "recurso": "Avatar do contato",
+      "descricao": "Foto do contato (avatar_url) exibida nos cards; sincronização em lote com WhatsApp via edge functions.",
+      "camadas": [
+        "UI",
+        "edge",
+        "tabela/view"
+      ],
+      "status": "Full",
+      "confianca": "media",
+      "evidencias": "src/components/contacts/ContactCard.tsx (avatar_url) + src/features/inbox/hooks/useNewConversation.ts:144/196 e useInboxBulkActions.ts:140 (invoke 'batch-fetch-avatars') + edges batch-fetch-avatars e fetch-whatsapp-avatar DEPLOYADAS (edges_deployadas.txt) + zapp.contatos.avatar_url",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "batch-fetch-avatars invocada em pontos do inbox (nova conversa, ações em lote); contatos sem avatar usam fallback (CompanyLogo/initials)."
+    },
+    {
+      "id": "DASHBOARD-01",
+      "dominio": "DASHBOARDS/NOTIFICACOES/INTEGRACOES",
+      "recurso": "Dashboard principal (visão geral)",
+      "descricao": "Visão geral com estatísticas de agentes, contatos e filas na rota /dashboard",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela/view"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/pages/ViewRouter.tsx:76 (dashboard: Views.DashboardView) + src/components/dashboard/DashboardView.tsx:58 (useDashboardData) + src/hooks/useDashboardData.ts:55,76,92 (.from('profiles'/'contacts'/'queues')) + zapp.profiles/zapp.contacts/zapp.queues (físicas, RLS) + db_uso: zapp.contatos=3236",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "DashboardView renderizado via IndexContentConnected (src/pages/Index.tsx:32). Widgets com persistência em localStorage (useDashboardVisualizationManagement.ts:392)."
+    },
+    {
+      "id": "DASHBOARD-02",
+      "dominio": "DASHBOARDS/NOTIFICACOES/INTEGRACOES",
+      "recurso": "Métricas de atendimento em tempo real (leaderboard/XP)",
+      "descricao": "Leaderboard de agentes com XP e atualizações via Realtime em zapp.agent_stats",
+      "camadas": [
+        "UI",
+        "hook",
+        "realtime",
+        "tabela/view"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/dashboard/hooks/useDashboardVisualizationManagement.ts:687 (.from('agent_stats')), :738-740 (channel 'leaderboard-updates' postgres_changes zapp.agent_stats) + zapp.agent_stats FÍSICA na publication supabase_realtime (db_realtime.txt:22) + db_uso: zapp.agent_stats=19",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "RealtimeDashboard (src/hooks/useRealtimeManagement.ts:27-31) também subscreve zapp.app_notifications. Realtime válido: agent_stats é tabela física publicada."
+    },
+    {
+      "id": "DASHBOARD-06",
+      "dominio": "DASHBOARDS/NOTIFICACOES/INTEGRACOES",
+      "recurso": "Metas (goals) e configuração de alvos",
+      "descricao": "Metas diárias/semanais/mensais por agente com metas customizadas",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela/view",
+        "teste"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/components/dashboard/DashboardView.tsx:275 (GoalsDashboard) + src/components/dashboard/GoalsConfigDialog.tsx:74 + src/features/dashboard/hooks/useDashboardVisualizationManagement.ts:573-575 (.from('goals_configurations').eq('profile_id')) + src/hooks/useGoalsConfig.ts:66-67 (upsert onConflict profile_id,goal_type) + zapp.goals_configurations (db_tabelas_zapp.txt:78) + teste useGoalsDashboard.colors.test.ts",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Fio completo; tabela vazia (0 linhas em db_uso) — metas usam DEFAULT_GOALS até o agente configurar. Realtime goals: canal notifications:goals redirecionado p/ app_notifications (useNotificationManagement.ts:432-436)."
+    },
+    {
+      "id": "DASHBOARD-09",
+      "dominio": "DASHBOARDS/NOTIFICACOES/INTEGRACOES",
+      "recurso": "Stickers (picker, upload e biblioteca)",
+      "descricao": "Picker de figurinhas no chat com upload, categorias e favoritos",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela/view",
+        "storage",
+        "cron"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/inbox/components/StickerPicker.tsx + src/hooks/sticker-picker/useStickerPicker.ts:86,155,239,347 (.from('stickers') CRUD + storage 'stickers') + zapp.stickers=873 / zapp.sticker_categories=29 (db_uso.txt) + zapp.mv_top_stickers=100 + cron refresh-top-stickers (db_crons.txt:7)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "PersonalStickers (src/hooks/usePersonalStickers.ts:51,88) usa tabela 'stickers' + bucket 'stickers'. Biblioteca de mídia em Settings (MediaLibraryAdmin.tsx:36)."
+    },
+    {
+      "id": "DASHBOARD-10",
+      "dominio": "DASHBOARDS/NOTIFICACOES/INTEGRACOES",
+      "recurso": "Emojis customizados",
+      "descricao": "Emojis personalizados com upload no chat e biblioteca",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela/view",
+        "storage"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/inbox/components/CustomEmojiPicker.tsx:11,118 (useCustomEmojis) + src/features/emojis/hooks/useCustomEmojis.ts:50,128,164,237 (.from('custom_emojis') CRUD + storage) + zapp.custom_emojis (db_tabelas_zapp.txt:46, física) + from_calls_front.txt:53 (custom_emojis)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Fio completo; tabela com 0 linhas (nenhum emoji customizado criado ainda). edge classify-emoji deployada (edges_deployadas.txt) usada p/ auto-tag no upload (teste MediaLibraryAdmin.test.tsx:1149)."
+    },
+    {
+      "id": "DASHBOARD-11",
+      "dominio": "DASHBOARDS/NOTIFICACOES/INTEGRACOES",
+      "recurso": "Memes de áudio",
+      "descricao": "Catálogo de áudios meme com favoritos, contagem de uso e classificação",
+      "camadas": [
+        "UI",
+        "hook",
+        "RPC",
+        "tabela/view",
+        "realtime",
+        "edge",
+        "teste"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/inbox/components/chat/ChatInputToolbars.tsx:147 + src/components/team-chat/TeamChatInputArea.tsx:119 (AudioMemePicker) + src/hooks/useAudioManagement.ts:122-135 (RPC fn_list_audio_memes_for_user + fallback .from('audio_memes')), :152/:164 (channels audio-memes-catalog/favorites em zapp.audio_memes e zapp.audio_meme_favorites — ambas na publication db_realtime.txt:24-25), :331 (fn_increment_meme_use), :355 (fn_toggle_user_meme_favorite) + zapp.audio_memes=20, audio_meme_categories=12 (db_uso) + edge classify-audio-meme invoke (useAudioManagement.ts:258, AIGenerateDialog.tsx:80)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "RPCs fn_increment_meme_use/fn_toggle_user_meme_favorite presentes em rpc_calls_front.txt. Realtime em tabelas físicas publicadas — fio íntegro."
+    },
+    {
+      "id": "DASHBOARD-12",
+      "dominio": "DASHBOARDS/NOTIFICACOES/INTEGRACOES",
+      "recurso": "Avatares (upload e galeria)",
+      "descricao": "Upload de avatar do perfil em storage + tabela de avatares admin",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela/view",
+        "storage",
+        "edge"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/components/settings/AvatarUpload.tsx:39-48 (storage 'avatars' + updateProfileAvatarUrl→profiles.avatar_url) + src/hooks/useProfileAvatarMutations.ts:8 + zapp.avatars (db_tabelas_zapp.txt:18, física) lida em useAdminData.ts:214,282 + edge batch-fetch-avatars DEPLOYADA e invocada 3x (invoke_calls_front.txt:11)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Tabela zapp.avatars vazia; _backup_avatar_urls_20260803=1066 (db_uso) sugere dump/migração recente. Fluxo ativo principal é storage+bucket + profiles.avatar_url."
+    },
+    {
+      "id": "DASHBOARD-14",
+      "dominio": "DASHBOARDS/NOTIFICACOES/INTEGRACOES",
+      "recurso": "Integração Bitrix24 (CRM)",
+      "descricao": "Sincronização de leads/contatos/negócios com Bitrix24 via edge bitrix-api",
+      "camadas": [
+        "UI",
+        "hook",
+        "edge",
+        "tabela/view"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/components/integrations/BitrixIntegrationView.tsx:18,30 (useBitrixApi + invoke bitrix-api) + IntegrationsHub.tsx:9 (rota connections/integrations ViewRouter.tsx:82,96) + src/hooks/useBitrixApi.ts:12 (functions.invoke('bitrix-api')) + edge bitrix-api DEPLOYADA (edges_deployadas.txt) + evo.evolution_bitrix_field_mapping=11 linhas (db_uso.txt) + edge evolution-bitrix-sync deployada",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "bitrix-api na allowlist de cron/alert do router (main/index.ts). Depende de credenciais externas Bitrix24 (fora do escopo do repo)."
+    },
+    {
+      "id": "DASHBOARD-15",
+      "dominio": "DASHBOARDS/NOTIFICACOES/INTEGRACOES",
+      "recurso": "Catálogo de produtos / PromoGifts",
+      "descricao": "Catálogo externo PromoGifts com busca/filtros e envio de produto no chat",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "edge",
+        "teste"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/pages/ViewRouter.tsx:85 (catalog: Views.ProductManagement) + src/components/catalog/ExternalProductManagement.tsx + src/hooks/useExternalApiManagement.ts:989 (invoke('promogifts-catalog')) + edge promogifts-catalog DEPLOYADA (edges_deployadas.txt) + envio via evolution-api em src/features/business-logic/hooks/useBusinessLogicManagement.ts:258-307 + testes src/hooks/__tests__/useExternalCatalog.test.ts:256,635",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "n-a",
+      "obs": "Dados vivem na API externa PromoGifts (sem tabela local); catálogo é bridge edge. Rota /catalog ativa."
+    },
+    {
+      "id": "FILAS-01",
+      "dominio": "FILAS/SLA/AGENTES",
+      "recurso": "Filas CRUD",
+      "descricao": "Criar, listar, atualizar e excluir filas de atendimento.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/components/layout/sidebarNavConfig.ts:81 (nav 'Filas') -> src/pages/ViewRouter.tsx:79 (queues: QueuesView) + src/hooks/useQueues.ts:76,185,196 (from('queues') select/insert/delete) + realtime zapp.queues (useQueues.ts:140) + zapp.queues (db_tabelas_zapp.txt, RLS ok) + rotas /queue/:id e /queues/comparison (AppRoutes.tsx:112,120)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Tabela zapp.queues com 0 linhas em producao (db_uso.txt nao a lista) - dominio provisionado mas sem dados reais."
+    },
+    {
+      "id": "FILAS-02",
+      "dominio": "FILAS/SLA/AGENTES",
+      "recurso": "Membros de fila",
+      "descricao": "Adicionar/remover agentes como membros de uma fila e listar membros com perfil.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/hooks/useQueues.ts:78-79 (from('queue_members') select com join profiles) + :202-215 (insert/delete queue_members) + realtime zapp.queue_members (useQueues.ts:141) + zapp.queue_members em db_realtime.txt + consumido por TransferDialog (src/features/inbox/components/TransferDialog.tsx:39) e agentRepository (src/features/admin/data-access/agentRepository.ts:46)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "0 linhas em producao."
+    },
+    {
+      "id": "FILAS-03",
+      "dominio": "FILAS/SLA/AGENTES",
+      "recurso": "Posicao na fila",
+      "descricao": "Contagem de contatos esperando por fila (waiting_count) e notificacao de posicao.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/hooks/useQueues.ts:80,114-125 (from('queue_positions') -> waiting_count) + realtime zapp.queue_positions (useQueues.ts:142) + zapp.queue_positions em db_realtime.txt + QueuePositionNotifier (src/features/inbox/components/QueuePositionNotifier.tsx:21,32) + datasource registry registra queue_positions (src/integrations/datasource/registry.ts:81)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Tabela zapp.queue_items (0 uso em src/functions) e alternativa morta; posicao real vem de queue_positions. 0 linhas."
+    },
+    {
+      "id": "FILAS-05",
+      "dominio": "FILAS/SLA/AGENTES",
+      "recurso": "Requisitos de skill / skills de agente",
+      "descricao": "Skills de agentes e requisitos de skill por fila para roteamento baseado em skill.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "UI src/components/settings/SkillBasedRoutingSettings.tsx (renderizado em SettingsView) + src/components/queues/QueueSlaPanel.tsx:62 (safeFrom('queue_skill_requirements').select('skill_name')) + src/hooks/settings/useSkillBasedRouting.ts:65,79,102,143 (CRUD agent_skills + queue_skill_requirements) + src/features/admin/hooks/useAdminManagement.ts:596 + zapp.agent_skills / zapp.queue_skill_requirements (db_tabelas_zapp.txt)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "0 linhas nas duas tabelas."
+    },
+    {
+      "id": "FILAS-06",
+      "dominio": "FILAS/SLA/AGENTES",
+      "recurso": "Metas/objetivos de fila",
+      "descricao": "Definir metas por fila (espera, tempo, atribuicao, msgs) e alertas de atingimento.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "media",
+      "evidencias": "UI QueueGoalsDialog + QueueAlertsDisplay (src/components/queues/QueuesView.tsx:185,240) + src/hooks/useQueueGoals.ts:40 (safeFrom('queue_goals').upsert) + useQueueGoalsManagement (src/hooks/useQueueManagement.ts:241,259) + useGoalNotifications (src/hooks/useGoalNotifications.ts:37, poll 5min + toasts) + realtime zapp.queue_goals (db_realtime.txt) + goals_configurations lido em src/features/dashboard/hooks/useDashboardVisualizationManagement.ts:573",
+      "o_que_falta": "",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "useGoalNotifications checa so a PRESENCA do limite (value: null em todos os checks, useGoalNotifications.ts:45-52) - alertas podem disparar sem medir valor real. 0 linhas em queue_goals."
+    },
+    {
+      "id": "FILAS-07",
+      "dominio": "FILAS/SLA/AGENTES",
+      "recurso": "SLA policies/regras/configuracoes CRUD",
+      "descricao": "Configuracoes de SLA, regras de aplicacao e politicas por escopo.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "Rota /sla (AppRoutes.tsx:128) -> SLADashboard -> SLAConfigurationManager + SLARulesManager (src/components/queues/SLADashboard.tsx:2-3) + useSLAConfigurations (src/features/sla/hooks/useSLAConfigurations.ts:51,63,74,98,122 CRUD sla_configurations) + useSLARules (src/features/sla/hooks/useSLARules.ts:59,96,123,137,162 CRUD sla_rules) + useApplicableSLA (useApplicableSLA.ts:69,89) + zapp.sla_configurations / zapp.sla_rules (db_tabelas_zapp.txt)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "zapp.sla_policies e ORFA: so RLS SELECT admin (canonical_schema.sql:12469), zero uso em src/functions. 0 linhas em sla_configurations/sla_rules."
+    },
+    {
+      "id": "FILAS-08",
+      "dominio": "FILAS/SLA/AGENTES",
+      "recurso": "Status SLA da conversa (conversation_sla)",
+      "descricao": "Metricas de SLA por conversa: primeira resposta, resolucao, status em risco/violado.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "SLADashboard (route /sla) -> useSLAMetrics (src/features/sla/hooks/useSLAMetrics.ts:68 safeClient.from('conversation_sla')) + useSLAHistory features (useSLAHistory.ts:73) + realtime UPDATE zapp.conversation_sla no canal sla-breaches (src/features/sla/hooks/useSLANotifications.ts:81-88) + zapp.conversation_sla em db_realtime.txt + SLAMetricCards/SLAAgentTable (SLADashboard.tsx:19-20)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "conversation_sla ausente de db_uso.txt (0 linhas) - dashboards de SLA renderizam vazios em producao."
+    },
+    {
+      "id": "FILAS-09",
+      "dominio": "FILAS/SLA/AGENTES",
+      "recurso": "Violacoes SLA (delivery)",
+      "descricao": "Registro e resolucao de violacoes de SLA de entrega/leitura.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "SLADeliveryHistoryDashboard (src/pages/SLAHistory.tsx:3; src/features/sla/components/SLADeliveryHistoryDashboard.tsx:51,69 read/resolve sla_delivery_violations) + useSLADelivery (src/features/inbox/components/chat/hooks/useSLADelivery.ts:17 sla_delivery_rules) + SLADeliveryConfigSection (src/features/inbox/components/contact-details/SLADeliveryConfigSection.tsx:40,69,74 CRUD sla_delivery_rules) + zapp.sla_delivery_rules / zapp.sla_delivery_violations (db_tabelas_zapp.txt)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "UNICAS tabelas do dominio com dados reais: sla_delivery_rules=2, sla_delivery_violations=2 (db_uso.txt). zapp.sla_violations (generica) e ORFA: zero uso em src/functions."
+    },
+    {
+      "id": "FILAS-10",
+      "dominio": "FILAS/SLA/AGENTES",
+      "recurso": "Historico SLA",
+      "descricao": "Historico de SLA por periodo e historico de alertas com resolucao.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "Rota /sla/history (AppRoutes.tsx:136) -> SLAHistoryDashboard (src/features/sla/components/SLAHistoryDashboard.tsx) + rota /sla/alerts (AppRoutes.tsx:152) -> SLAAlertHistory page -> useSLAAlertHistory (src/features/sla/hooks/useSLAAlertHistory.ts:96 read sla_history + :97 resolve) + zapp.sla_history (db_tabelas_zapp.txt)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "sla_history com 0 linhas; historico de SLA em conversa deriva de conversation_sla (tambem 0)."
+    },
+    {
+      "id": "FILAS-11",
+      "dominio": "FILAS/SLA/AGENTES",
+      "recurso": "Alertas SLA",
+      "descricao": "Alertas in-app de SLA em risco/violado com dedupe 3 camadas, preferencias e encaminhamento externo.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "edge",
+        "tabela",
+        "realtime",
+        "teste"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "useSLAAlerts (src/features/sla/hooks/useSLAAlerts.ts:142,249,274 - invoke sla-alert-log-failure + sla-alert-forward) + edges deployados (edges_deployadas.txt: sla-alert-forward, sla-alert-log-failure, auto-escalate-sla) + SLAAlertPreferences page (src/pages/SLAAlertPreferences.tsx:87 -> useSLAAlertPreferences sla_alert_preferences) + SLAAlertHistory page (SLAAlertHistory.tsx:103) + realtime sla-breaches (useSLANotifications.ts:81) + testes (src/features/sla/hooks/__tests__/useSLANotifications.test.tsx, useSLACalculation.test.ts)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Cron de auto-escalate (warroom-alert-resolver-1min -> /functions/v1/auto-escalate-sla) e programado no canonical_schema.sql:247-254 mas AUSENTE dos 146 jobs live (db_crons.txt) - automacao de escalada nao roda."
+    },
+    {
+      "id": "FILAS-15",
+      "dominio": "FILAS/SLA/AGENTES",
+      "recurso": "Visibilidade de agentes (RBAC)",
+      "descricao": "Conceder/revogar visibilidade de agentes entre usuarios e filtrar por visibilidade.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "RPC",
+        "tabela"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "VisibilityGrantsManager (src/features/admin/components/VisibilityGrantsManager.tsx:57,114,137 CRUD agent_visibility_grants; renderizado em AdminView + RolesPage) + useVisibleAgents (src/features/admin/hooks/useVisibleAgents.ts:17 rpc get_visible_agent_ids; grant em archive/20260724000033:204) + zapp.agent_visibility_grants (db_tabelas_zapp.txt) + get_visible_agent_ids em rpc_calls_front.txt",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "0 linhas em agent_visibility_grants."
+    },
+    {
+      "id": "FILAS-16",
+      "dominio": "FILAS/SLA/AGENTES",
+      "recurso": "Departamentos e convites",
+      "descricao": "CRUD de departamentos e convites de membros para departamentos.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "Rota /admin/departments (src/components/routing/AdminRoutes.tsx:58) + useDepartmentsManagement (src/features/admin/hooks/useAdminManagement.ts:335,686,722,744 CRUD departments) + useActiveDepartments em team-chat (NewConversationDialog.tsx:43, TransferConversationDialog.tsx:34) + useDepartmentManagement (src/hooks/team-chat/useDepartmentManagement.ts:122,142,166 CRUD department_invitations) + zapp.departments / zapp.department_invitations (db_tabelas_zapp.txt)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "0 linhas nas duas tabelas. departments tambem na allowlist do external-db-proxy (external-db-proxy/index.ts:184)."
+    },
+    {
+      "id": "IA-01",
+      "dominio": "IA/VOZ/AUDIO",
+      "recurso": "Sugestão de resposta AI",
+      "descricao": "Sugere respostas contextualizadas para o agente dentro do chat.",
+      "camadas": [
+        "UI",
+        "hook",
+        "edge"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/inbox/components/AISuggestions.tsx:54 (invoke ai-suggest-reply) + ChatInputToolbars.tsx:334 (render) + edge:ai-suggest-reply deployada (forward ai-router; supabase/functions/ai-suggest-reply/index.ts:19 contrato v1) + edge:ai-router deployada",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "n-a",
+      "obs": "Caminho alternativo automation-suggest-reply usado por automações (useAutomations.ts:267). Resposta via LLM (ai-router), sem tabela própria."
+    },
+    {
+      "id": "IA-02",
+      "dominio": "IA/VOZ/AUDIO",
+      "recurso": "Análise de churn",
+      "descricao": "Dashboard de previsão de risco de churn por contato com análise via IA.",
+      "camadas": [
+        "UI",
+        "rota",
+        "edge",
+        "tabela"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "sidebarNavConfig.ts:93 (rota 'churn') + ViewRouter.tsx:112 + src/components/ai/ChurnPredictionDashboard.tsx:133 (invoke ai-churn-analysis) + edge:ai-churn-analysis deployada (forward action churn_analysis) + zapp.contact_intelligence=20541 linhas (db_uso)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Estimativa local lê contacts/contact_intelligence; escrita via ai-router (update contacts)."
+    },
+    {
+      "id": "IA-03",
+      "dominio": "IA/VOZ/AUDIO",
+      "recurso": "Classificação de tickets",
+      "descricao": "Classifica conversas/tickets em categorias via IA.",
+      "camadas": [
+        "UI",
+        "rota",
+        "edge",
+        "tabela"
+      ],
+      "status": "Full",
+      "confianca": "media",
+      "evidencias": "sidebarNavConfig.ts:94 (rota 'ticket-classifier') + ViewRouter.tsx:113 + src/components/ai/AutoTicketClassifier.tsx:139 (invoke ai-classify-tickets) + :87 (lê ai_conversation_tags) + edge:ai-classify-tickets deployada (forward classify_tickets)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "zapp.ai_conversation_tags com 0 linhas (ausente do db_uso) — sem dados reais persistidos ainda."
+    },
+    {
+      "id": "IA-04",
+      "dominio": "IA/VOZ/AUDIO",
+      "recurso": "Transcrição de áudio",
+      "descricao": "Transcreve áudios de mensagens (Whisper) e gravações do gravador de voz.",
+      "camadas": [
+        "UI",
+        "hook",
+        "edge",
+        "tabela",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/inbox/components/useAudioMessagePlayer.ts:148 (invoke ai-transcribe-audio) + useAudioRecorder.ts:188 e useAudioManagement.ts:945 (invoke speech-to-text) + edges ai-transcribe-audio/speech-to-text/audio-transcribe deployadas + zapp.whisper_files=2 linhas + realtime zapp.whisper_messages (db_realtime) + WhisperMode.tsx:56 (lê/insere whisper_messages)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Uso mínimo (whisper_files=2). edge audio-transcribe (whisper direto) sem caller no front — candidata a remoção."
+    },
+    {
+      "id": "IA-05",
+      "dominio": "IA/VOZ/AUDIO",
+      "recurso": "Análise de sentimento",
+      "descricao": "Dashboard de sentimento, alertas em tempo real e aba de sentimento na análise de conversa.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "edge",
+        "tabela",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "sidebarNavConfig.ts:104 (rota 'sentiment') + SentimentAlertsDashboard.tsx:15 (useSentimentData lê conversation_analyses em useSentimentData.ts:82) + useSentimentAlerts.ts:25 (invoke sentiment-alert) + edge:sentiment-alert deployada + realtime sentiment-alerts-realtime -> zapp.sentiment_alerts (useRealtimeSentimentAlerts.ts:13 + db_realtime) + SentimentTab (ai-tools)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "zapp.sentiment_alerts e conversation_analyses com 0 linhas. edge evolution-sentiment deployada porém SEM caller no repo (evo.evolution_sentiment_analysis 0 linhas apesar de estar na publication 68) — caminho evo órfão."
+    },
+    {
+      "id": "IA-06",
+      "dominio": "IA/VOZ/AUDIO",
+      "recurso": "Enhance de mensagem",
+      "descricao": "Melhora/reescreve a mensagem do agente com tom selecionado.",
+      "camadas": [
+        "UI",
+        "hook",
+        "edge"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/inbox/components/chat/AIEnhanceButton.tsx:54 + AIRewriteButton.tsx:44 (invoke ai-enhance-message) + ChatInputToolbars.tsx:141 / ChatInputArea.tsx:842 (render) + edge:ai-enhance-message deployada (forward enhance_message)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "n-a",
+      "obs": "Sem tabela própria (resposta LLM inline)."
+    },
+    {
+      "id": "IA-08",
+      "dominio": "IA/VOZ/AUDIO",
+      "recurso": "Auto-tag de conversas (IA)",
+      "descricao": "Gera/lista tags automáticas por IA para contatos e exibe estatísticas.",
+      "camadas": [
+        "UI",
+        "hook",
+        "edge",
+        "tabela"
+      ],
+      "status": "Full",
+      "confianca": "media",
+      "evidencias": "src/components/settings/AIAutoTagsConfig.tsx:1 (useAITagStats/useRetagRecentContacts) + SettingsView.tsx:186 (render) + useAIAutoTags.ts:19 (lê ai_conversation_tags) + :55 autoTag -> ai-router.ts:130 -> invoke ai-router (ai-router.ts:94) + edge:ai-auto-tag deployada (forward ai-router auto_tag)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "ai_conversation_tags com 0 linhas; escrita depende do ai-router (auto_tag) — sem dados reais."
+    },
+    {
+      "id": "IA-09",
+      "dominio": "IA/VOZ/AUDIO",
+      "recurso": "Memes de áudio",
+      "descricao": "Biblioteca de memes de áudio com upload, classificação por IA e envio no chat.",
+      "camadas": [
+        "UI",
+        "hook",
+        "RPC",
+        "tabela",
+        "realtime",
+        "edge",
+        "storage"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "AudioMemePicker.tsx (ChatInputToolbars.tsx:147) + useAudioManagement.ts:258 (invoke classify-audio-meme), :331 (RPC fn_increment_meme_use), :227 (storage audio-memes) + zapp.audio_memes=20 linhas + realtime audio-memes-catalog (useAudioManagement.ts:152) + buckets audio-memes/audio-messages (storage_buckets_front) + edge:classify-audio-meme e elevenlabs-sfx (AIGenerateDialog.tsx:45,80) deployadas",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Geração de SFX por IA via elevenlabs-sfx no MediaAdminPanel.tsx:125."
+    },
+    {
+      "id": "IA-10",
+      "dominio": "IA/VOZ/AUDIO",
+      "recurso": "Categorias de meme",
+      "descricao": "Categorias de áudio-meme para organização e classificação IA.",
+      "camadas": [
+        "UI",
+        "tabela"
+      ],
+      "status": "Full",
+      "confianca": "media",
+      "evidencias": "AudioMemeCategorySelector.tsx renderizado em AudioMemePicker.tsx:282 e AudioMemeUploadPreview.tsx:44 + zapp.audio_meme_categories=12 linhas (db_uso) + classificação IA retorna category (useAudioManagement.ts:258-268)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Sem CRUD dedicado de categorias — só seleção na UI."
+    },
+    {
+      "id": "IA-11",
+      "dominio": "IA/VOZ/AUDIO",
+      "recurso": "Favoritos de meme",
+      "descricao": "Favoritar áudio-memes com toggle por usuário e atualização em tempo real.",
+      "camadas": [
+        "UI",
+        "RPC",
+        "tabela",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "media",
+      "evidencias": "useAudioManagement.ts:355 (RPC fn_toggle_user_meme_favorite, presente em rpc_calls_front) + zapp.audio_meme_favorites=1 linha + realtime audio-memes-favorites (useAudioManagement.ts:167 + realtime_channels_front)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Uso mínimo (1 linha). UI de favorito dentro do AudioMemePicker."
+    },
+    {
+      "id": "IA-12",
+      "dominio": "IA/VOZ/AUDIO",
+      "recurso": "Chamada de voz/VoIP",
+      "descricao": "Painel VoIP, alerta de chamada recebida e histórico de chamadas.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "edge",
+        "tabela",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "sidebarNavConfig.ts:115 (rota 'voip') + VoIPPanel.tsx:81 (invoke get-sip-password, edge deployada) + useIncomingCallListener.ts:27-33 (channel incoming-calls -> INSERT zapp.calls, publicada em db_realtime) + zapp.calls=31 linhas + useCallsHistory.ts:24 (lê calls)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "evo.evolution_calls=20 linhas é caminho Evolution paralelo (não usado pelo painel)."
+    },
+    {
+      "id": "IA-13",
+      "dominio": "IA/VOZ/AUDIO",
+      "recurso": "Voice changer",
+      "descricao": "Converte áudio com preset de voz (clone ou padrão) com fila e progresso realtime.",
+      "camadas": [
+        "UI",
+        "hook",
+        "RPC",
+        "tabela",
+        "realtime",
+        "edge"
+      ],
+      "status": "Full",
+      "confianca": "media",
+      "evidencias": "VoiceChanger.tsx:122 (insert voice_conversion_queue), :159 (POST edge voice-changer, deployada), :193 (RPC record_voice_telemetry) + AudioMessagePlayer.tsx:234 / AudioRecorder.tsx:350 (render) + VoiceChangerPicker.tsx:146 + useAudioMessagePlayer.ts:87-96 (channel voice-conversion-{id} -> zapp.voice_conversion_queue, na publication)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "voice_conversion_queue com 0 linhas (ausente do db_uso). Comentário em useAudioMessagePlayer.ts:92 diz que a tabela física é public e zapp é VIEW — conferir se subscription realtime casa (publication lista zapp.voice_conversion_queue)."
+    },
+    {
+      "id": "IA-16",
+      "dominio": "IA/VOZ/AUDIO",
+      "recurso": "Classificação de emoji/sticker",
+      "descricao": "Classifica automaticamente stickers e emojis por categoria no upload/biblioteca.",
+      "camadas": [
+        "UI",
+        "hook",
+        "edge",
+        "tabela"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "useStickerPicker.ts:178 (invoke classify-sticker) + useMediaLibraryManagement.ts:231,474 (classify-emoji/classify-sticker) + edges classify-emoji e classify-sticker deployadas + zapp.stickers=873, sticker_categories=29 linhas (db_uso)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Resultado da IA aplicado client-side na categoria do upload."
+    },
+    {
+      "id": "INBOX-01",
+      "dominio": "INBOX/CONVERSAS/MENSAGENS",
+      "recurso": "Listar conversas (sidebar)",
+      "descricao": "Sidebar da inbox com conversas por contato, último preview, unread, paginação por cursor e atualização em tempo real.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela/view",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/inbox/hooks/useRealtimeMessages.ts:234 (dbFrom('contacts') cursor paging), :250 (dbFrom('messages')), :670-719 (realtime schema 'evo' table 'evolution_messages' INSERT/UPDATE/DELETE) + src/pages/ViewRouter.tsx:75 (rota 'inbox' -> RealtimeInboxView) + zapp.messages/zapp.contacts (views security_invoker, archive/20260727200000_perf_security_media_fixes.sql:21) + evo.evolution_conversations_wpp2=12839 / evo.evolution_messages_wpp2=62594 linhas",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Fio íntegro: leitura via views zapp (RLS security_invoker), realtime na tabela física evo.evolution_messages (na publication 68). RPC rpc_list_conversations existe como fallback (src/hooks/evolution/v237Fallbacks.ts:47) mas não é o caminho principal."
+    },
+    {
+      "id": "INBOX-02",
+      "dominio": "INBOX/CONVERSAS/MENSAGENS",
+      "recurso": "Abrir conversa (carregar histórico + realtime)",
+      "descricao": "Ao selecionar contato, carrega mensagens (view zapp.messages) + whispers e assina INSERT/UPDATE/DELETE em evo.evolution_messages.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela/view",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/inbox/services/messageService.ts:28-42 (getAllMessagesForContact -> fetchMessagesByContact) + src/features/inbox/data-access/messageRepository.ts:37-44 (dbFrom('messages').select().eq('contact_id')) e :103-118 (subscription schema 'evo' table 'evolution_messages' filter contact_id) + zapp.messages view + evo.evolution_messages (62594 linhas)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Normaliza payload evo (from_me/deleted_at) para shape legado (sender/is_deleted) em useRealtimeMessages.ts:655-669. Deep links + fallback contact (useFallbackContact) cobrem contato fora da página."
+    },
+    {
+      "id": "INBOX-03",
+      "dominio": "INBOX/CONVERSAS/MENSAGENS",
+      "recurso": "Enviar mensagem (texto e mídia)",
+      "descricao": "Envio de texto, imagem, áudio, vídeo, documento e localização via edge evolution-api com retry, idempotência e DLQ.",
+      "camadas": [
+        "UI",
+        "hook",
+        "edge",
+        "tabela/view",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/inbox/hooks/realtime/messageSender.ts:141 (supabase.functions.invoke('evolution-api/<action>')), :289-327 (retry loop) + messageSenderHelpers.ts:83-157 (send-media/send-audio/send-text/send-location) + externalAudioSender.ts:106 (evolution-api) + edge evolution-api DEPLOYADA + zapp.messages view com 6 INSTEAD OF triggers (archive/20260727200000:21, 20260716_fix_messages_insert_trigger_return_id.sql) -> evo.evolution_messages (62594)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Escrita na view zapp.messages via triggers INSTEAD OF grava na partição física evo; realtime devolve o evento para a UI (loop fechado). Suporta whatsapp-cloud-api como rota alternativa (messageSender.ts:124-126)."
+    },
+    {
+      "id": "INBOX-04",
+      "dominio": "INBOX/CONVERSAS/MENSAGENS",
+      "recurso": "Reações em mensagem",
+      "descricao": "Adicionar/remover emoji em mensagem com espelho para WhatsApp via Evolution API, batch load e realtime.",
+      "camadas": [
+        "UI",
+        "hook",
+        "RPC",
+        "tabela",
+        "realtime",
+        "edge"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/inbox/hooks/reactions/useReactionMutations.ts:85 (upsert zapp.message_reactions onConflict), :171 (delete), :120-130 (sendReaction via evolution-api) + useMessageReactions.ts:27-33 (realtime schema 'zapp' table 'message_reactions') + usePreloadConversationReactions.ts:37 (rpc_get_reactions_batch em rpc_calls_front.txt) + zapp.message_reactions=424 linhas (na publication)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "evo.evolution_reactions (32 linhas) também está na publication mas o app usa zapp.message_reactions — espelho WhatsApp via edge evolution-api."
+    },
+    {
+      "id": "INBOX-05",
+      "dominio": "INBOX/CONVERSAS/MENSAGENS",
+      "recurso": "Encaminhar mensagem",
+      "descricao": "Encaminha mensagem para múltiplos contatos/grupos reenviando via edge evolution-api.",
+      "camadas": [
+        "UI",
+        "hook",
+        "edge"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/hooks/useForwardMessage.ts:46 (dbFrom('contacts')), :61 (whatsapp_groups) + src/features/inbox/components/chat/useMessageReactionHandlers.ts:53-73 (sendMessageToContact para cada target -> evolution-api) + ForwardMessageDialog.tsx:50 + edge evolution-api deployada",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Implementado como reenvio (prefixo '➡️ Encaminhada'). Tabela zapp.forwarded_messages é ORFÃ: existe no DB mas nenhum código a escreve (0 uso)."
+    },
+    {
+      "id": "INBOX-06",
+      "dominio": "INBOX/CONVERSAS/MENSAGENS",
+      "recurso": "Fixar conversa (pinned)",
+      "descricao": "Fixar/desafixar conversa por agente com persistência em zapp.pinned_conversations.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/hooks/useConversationManagement.ts:105-123 (insert/delete pinned_conversations) + src/features/inbox/components/chat/useChatPanelHandlers.ts:463-479 (toggle pin) + src/features/inbox/components/ConversationContextMenu.tsx (item fixar) + zapp.pinned_conversations (types.ts:33881, física)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Tabela não listada em db_uso (sem linhas relevantes). Realtime não é necessário (estado lido no mount via loadPinned)."
+    },
+    {
+      "id": "INBOX-10",
+      "dominio": "INBOX/CONVERSAS/MENSAGENS",
+      "recurso": "Notas internas (whisper)",
+      "descricao": "Nota interna por conversa (modo whisper) com contador de não-lidas e realtime.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/inbox/hooks/useWhisperMessagesMutation.ts:9 (insert whisper_messages) + src/features/inbox/hooks/useRealtimeInbox.ts:238-242 (count não-lidas), :248-262 (realtime schema 'zapp' table 'whisper_messages') + useMessages/messageService busca whispers + toggle isWhisper em ChatPanel (useChatPanelHandlers.ts:615-616) + zapp.whisper_messages=2 linhas, na publication",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Volume baixo (2 linhas) mas fio completo. zapp.contact_notes (1 linha) tem RPCs get_contact_notes/add_contact_note definidas em rpcCatalog.ts:531-537 porém sem uso no front — caminho alternativo órfão."
+    },
+    {
+      "id": "INBOX-11",
+      "dominio": "INBOX/CONVERSAS/MENSAGENS",
+      "recurso": "Tags em conversa",
+      "descricao": "Criar/gerenciar tags, vincular a contatos, filtrar inbox por tag e auto-tag via IA.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela",
+        "edge"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/hooks/useTags.ts:37-45 (tags + contact_tags select), :110-224 (create/delete/vinculação) + src/features/inbox/components/chat/useChatPanelHandlers.ts:516-537 (slash /tag -> tags + contact_tags) + src/features/inbox/hooks/useInboxDataQueries.ts:45 (map contato->tags) + src/features/inbox/hooks/useInboxFilters.ts:309 + useAIAutoTags.ts:19 (ai_conversation_tags) + zapp.tags/zapp.contact_tags/zapp.ai_conversation_tags + edge ai-auto-tag DEPLOYADA",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Tags/contact_tags não listadas em db_uso (sem linhas relevantes). RPC bulk_add_tag existe no DB (types.ts:73642) mas não é chamada pelo front."
+    },
+    {
+      "id": "INBOX-13",
+      "dominio": "INBOX/CONVERSAS/MENSAGENS",
+      "recurso": "Busca de conversas",
+      "descricao": "Busca global (contatos/tags/CRM 360) e busca in-chat com highlight.",
+      "camadas": [
+        "UI",
+        "hook",
+        "RPC",
+        "tabela"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/inbox/components/RealtimeInboxView.tsx:33-34 (GlobalSearch lazy) + src/features/inbox/components/useGlobalSearchData.ts:291 (dbRpc search_contacts_advanced), :108 (tags) + src/features/inbox/hooks/useChatSearch.ts:55-182 (busca in-chat) + RPC search_contacts_advanced em types.ts (objeto DB existe) + zapp.tags",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "search_contacts_advanced não aparece em rpc_calls_front.txt (pack possivelmente incompleto), mas está no rpcCatalog e no types.ts gerado do DB."
+    },
+    {
+      "id": "INBOX-14",
+      "dominio": "INBOX/CONVERSAS/MENSAGENS",
+      "recurso": "Filtros salvos (presets)",
+      "descricao": "Presets de filtro da inbox persistidos por usuário em saved_filters com sync entre dispositivos.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/inbox/hooks/useInboxFilters.ts:594-600 (presets + sync inicial), :28-42 (imports) + src/features/inbox/hooks/inboxPresetsSync.ts:73 (safeFrom('saved_filters').select), :99-116 (upsert/delete remoto) + zapp.saved_filters (types.ts:35327)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Tabela sem linhas em db_uso (pouco usado), mas fio completo (localStorage + backend)."
+    },
+    {
+      "id": "INBOX-16",
+      "dominio": "INBOX/CONVERSAS/MENSAGENS",
+      "recurso": "Team chat (equipe)",
+      "descricao": "Chat interno de equipe com conversas, membros, mensagens, reações e realtime.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/inbox/hooks/team-chat/useTeamConversations.ts:27-84 (team_conversations/team_conversation_members/team_messages), :136-153 (realtime schema 'zapp' team_messages + team_conversations) + useTeamMessages.ts:71-105 + useTeamChatMutations.ts:34-191 (CRUD) + rota 'team-chat' (ViewRouter.tsx:125 -> TeamChatView lazyViews.ts:109) + canais team-chat-updates e notifications:team-chat (realtime_channels_front.txt) + zapp.team_messages/team_conversations/team_conversation_members/team_message_reactions físicas na publication; team_conversations=2, team_conversation_members=4, team_message_reactions=1",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Uso real porém baixo volume; team_messages sem linhas em db_uso (chat em uso incipiente)."
+    },
+    {
+      "id": "SEGURANCA-02",
+      "dominio": "SEGURANCA/COMPLIANCE/ADMIN",
+      "recurso": "Passkeys/WebAuthn",
+      "descricao": "Autenticação por passkey com 4 fluxos na edge webauthn",
+      "camadas": [
+        "UI",
+        "hook",
+        "edge",
+        "tabela"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "edge webauthn (4 fluxos, edges_deployadas) + zapp.passkey_credentials + zapp.webauthn_challenges",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Fio completo; sem linhas ainda."
+    },
+    {
+      "id": "SEGURANCA-03",
+      "dominio": "SEGURANCA/COMPLIANCE/ADMIN",
+      "recurso": "Detecção de novo dispositivo",
+      "descricao": "Alerta ao logar de dispositivo desconhecido",
+      "camadas": [
+        "hook",
+        "edge",
+        "tabela"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "edge detect-new-device + zapp.user_devices + zapp.user_sessions",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Fio completo."
+    },
+    {
+      "id": "SEGURANCA-06",
+      "dominio": "SEGURANCA/COMPLIANCE/ADMIN",
+      "recurso": "Rate limiting",
+      "descricao": "Limites por RPC e webhook com logs",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela",
+        "RPC",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "fn_rate_limit_check (canonical:8123) + zapp.rate_limit_configs + zapp.rate_limit_logs + zapp.rpc_rate_limits=3 + channel rate-limit-logs na publication",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Fio completo com dados."
+    },
+    {
+      "id": "SEGURANCA-07",
+      "dominio": "SEGURANCA/COMPLIANCE/ADMIN",
+      "recurso": "Audit log",
+      "descricao": "Trilha de auditoria com realtime",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela",
+        "RPC",
+        "realtime",
+        "cron"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "zapp.audit_logs=7646 + zapp.security_audit_logs + canais audit + 4 crons de segurança (db_crons)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Em produção."
+    },
+    {
+      "id": "SEGURANCA-08",
+      "dominio": "SEGURANCA/COMPLIANCE/ADMIN",
+      "recurso": "Alertas de segurança",
+      "descricao": "Alertas com canal realtime e edge de notificação",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela",
+        "edge",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "channel security-alerts físico + zapp.security_alerts + zapp.security_events + edge send-rate-limit-alert",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Fio completo."
+    },
+    {
+      "id": "SEGURANCA-11",
+      "dominio": "SEGURANCA/COMPLIANCE/ADMIN",
+      "recurso": "Roles/permissões",
+      "descricao": "RBAC: has_role, is_admin_or_supervisor, route_permissions",
+      "camadas": [
+        "UI",
+        "hook",
+        "RPC",
+        "tabela"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "has_role/is_admin_or_supervisor GRANTed + user_has_permission + zapp.permissions=7 + zapp.user_roles=17 + ProtectedRoute→route_permissions",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Em produção."
+    },
+    {
+      "id": "SEGURANCA-12",
+      "dominio": "SEGURANCA/COMPLIANCE/ADMIN",
+      "recurso": "Gestão de usuários/departamentos",
+      "descricao": "Criação de usuário, roles e departamentos",
+      "camadas": [
+        "UI",
+        "hook",
+        "edge",
+        "tabela"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "edge create-user (fetch autenticado) + zapp.user_roles.upsert + zapp.departments CRUD",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Fio completo (departamentos merged)."
+    },
+    {
+      "id": "SEGURANCA-13",
+      "dominio": "SEGURANCA/COMPLIANCE/ADMIN",
+      "recurso": "Workspace settings + onboarding",
+      "descricao": "Configurações do workspace com realtime e onboarding",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "settingsRepository com realtime em zapp.workspace_settings (física, na publication) + zapp.onboarding_steps + zapp.user_settings",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Onboarding merged neste recurso."
+    },
+    {
+      "id": "SEGURANCA-15",
+      "dominio": "SEGURANCA/COMPLIANCE/ADMIN",
+      "recurso": "Webhook secret / assinatura HMAC",
+      "descricao": "Validação e selftest de assinatura de webhooks",
+      "camadas": [
+        "hook",
+        "edge",
+        "tabela",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "edges webhook-secret-status + webhook-hmac-selftest + zapp.hmac_selftest_audit (realtime físico, na publication)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Fio completo."
+    },
+    {
+      "id": "SEGURANCA-16",
+      "dominio": "SEGURANCA/COMPLIANCE/ADMIN",
+      "recurso": "Escaneamento de mídia (ClamAV)",
+      "descricao": "Scan de arquivos por ClamAV com quarentena",
+      "camadas": [
+        "hook",
+        "edge",
+        "tabela",
+        "cron"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "edges secure-upload + virustotal-test + zapp.media_scan_log=11314 + zapp.media_quarantine>0 + cron scan-media-security",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Em produção."
+    },
+    {
+      "id": "WHATSAPP-01",
+      "dominio": "EVOLUTION/WHATSAPP",
+      "recurso": "Gestão de instâncias (listar, conectar QR/pairing code)",
+      "descricao": "Lista conexões WhatsApp, gera QR code / pairing code e acompanha status de conexão por instância Evolution.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "service",
+        "edge",
+        "tabela",
+        "realtime",
+        "teste"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/connections/hooks/useConnectionsManager.ts:52 (generateQr), :158 (pairing) + src/features/connections/services/whatsappConnectionService.ts:61 (requestQrCode via invoke evolution-api) + whatsappConnectionRepository.ts:83 (qr_attempts) :91 (invoke evolution-api) + zapp.whatsapp_connections (3, realtime db_realtime.txt) + zapp.qr_attempts (5, realtime) + useConnectionsRealtime.ts:53 (sub zapp.whatsapp_connections) + QrAttemptsPanel.tsx:103 (channel qr-attempts-admin) + edge:evolution-api (deployada) + testes: whatsappConnectionService.test.ts, useConnectionsActions.test.tsx",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Conexão via view compat zapp.evolution_instances (security_invoker) para listar; evo.evolution_instances NÃO existe (PGRST205 documentado em src/hooks/useIntegrationManagement.ts:27-28). QR usa API Evolution real; 5 qr_attempts registrados."
+    },
+    {
+      "id": "WHATSAPP-02",
+      "dominio": "EVOLUTION/WHATSAPP",
+      "recurso": "Webhook Evolution (recepção + diagnóstico HMAC/secret)",
+      "descricao": "Recebe webhooks da Evolution (HMAC), grava eventos processados e expõe dashboards admin + ferramentas de diagnóstico de assinatura.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "edge",
+        "tabela",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "edge:evolution-webhook (deployada; auditoria-edge-functions.md: logs ativos chats.update wpp2, HMAC ok) + zapp.webhook_events_processed=102080 + zapp.webhook_audit_log=101875 + evo.evolution_webhook_events_v2_2026_07=46179 + src/pages/admin-webhook-overview/useWebhookOverview.ts:45 (queryExternalProxy evolution_webhook_events) + ViewRouter.tsx:120 ('webhook-events'), :123 ('webhook-overview'), :137 ('webhook-secret') + src/lib/recheckWebhookSignature.ts:22 (invoke recheck-webhook-signature) + AdminWebhookSecretStatusPage + HmacSelfTestButton.tsx:244",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Fio completo: Evolution → edge evolution-webhook → evo.evolution_webhook_events (particionado) → dashboards via external proxy. 102k eventos processados = tráfego real."
+    },
+    {
+      "id": "WHATSAPP-03",
+      "dominio": "EVOLUTION/WHATSAPP",
+      "recurso": "Sincronização e reconciliação de mensagens/contatos",
+      "descricao": "Sincroniza mensagens, conversas e contatos da Evolution para o banco evo e reconcilia conexões periodicamente.",
+      "camadas": [
+        "UI",
+        "hook",
+        "edge",
+        "cron",
+        "tabela",
+        "teste"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "edge:evolution-sync (deployada; invocada em src/components/connections/ConnectionsView.tsx:198 sync-all-messages) + crons: evo-sync-messages-to-v2 (*/5), whatsapp_reconcile_dispatch (*/5), whatsapp_reconcile_apply, whatsapp_reconcile_reaper, whatsapp_reconcile_cleanup (db_crons.txt) + evo.evolution_messages_wpp2=62594 + evo.evolution_conversations_wpp2=12839 + evo.evolution_contacts=20543 + evo.evolution_reconcile_jobs=1248 + leitura com .schema('evo') em src/integrations/zappweb/hooks/useZappMessages.ts:32 e useZappConversations.ts:30/79",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Leituras novas (zappweb hooks) usam .schema('evo') correto; leituras legadas usam views compat zapp (ver WHATSAPP-03 achado: useExternalEvolution.ts:334 etc. sem .schema())."
+    },
+    {
+      "id": "WHATSAPP-04",
+      "dominio": "EVOLUTION/WHATSAPP",
+      "recurso": "Envio de mensagens (texto/mídia/áudio com retry)",
+      "descricao": "Envia mensagens pelo proxy evolution-api (e whatsapp-cloud-api no modo oficial) com idempotência, retry e fila.",
+      "camadas": [
+        "UI",
+        "hook",
+        "edge",
+        "tabela",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/inbox/hooks/useNewConversation.ts:190 (invoke evolution-api) + useChatMediaSending.ts:253/264/333 + src/hooks/useEvolutionApiManagement.ts:208-211 (evolution-api/<action> com Idempotency-Key) + src/lib/evolutionSendRetry.ts:125 + src/lib/sendFunctionRouter.ts:58 (routing oficial/evolution) + edge:evolution-sender (200, 'v6. Enfileiramento/envio' — auditoria-edge-functions.md) + zapp.outbound_message_queue (realtime db_realtime.txt) + zapp.provider_message_log (lido em src/hooks/useWhatsAppLogs.ts:26) + InboxPage rota /inbox (AppRoutes.tsx:104)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Envio real comprovado por evo.evolution_messages_wpp2 (62k) e webhook_events_processed (102k). zapp.provider_message_log e outbound_message_queue sem linhas no db_uso (logs de envio vazios — possível gap de observabilidade)."
+    },
+    {
+      "id": "WHATSAPP-07",
+      "dominio": "EVOLUTION/WHATSAPP",
+      "recurso": "Grupos WhatsApp",
+      "descricao": "Lista, cria e gerencia grupos com dados sincronizados do WhatsApp.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela",
+        "edge"
+      ],
+      "status": "Full",
+      "confianca": "media",
+      "evidencias": "src/hooks/groups/actions.ts:90/129/157/226 (CRUD zapp.whatsapp_groups) + src/hooks/useGroupsManager.ts:29 + src/components/groups/GroupsView.tsx + ViewRouter.tsx:81 ('groups') + zapp.whatsapp_groups=30 + src/hooks/useForwardMessage.ts:61 + ações de grupo via proxy evolution-api (useEvolutionApiManagement)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Dupla fonte: evo.evolution_groups (25, física) vs zapp.whatsapp_groups (30, tabela do app usada pela UI) — sem realtime de grupos na publication (db_realtime.txt não lista evolution_groups); view compat zapp.evolution_groups existe (types.ts)."
+    },
+    {
+      "id": "WHATSAPP-08",
+      "dominio": "EVOLUTION/WHATSAPP",
+      "recurso": "Status/stories WhatsApp",
+      "descricao": "Exibe stories/status de contatos e presença via Evolution API, com storage físico em evo.",
+      "camadas": [
+        "UI",
+        "hook",
+        "service",
+        "edge",
+        "tabela",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/inbox/components/contact-details/WhatsAppStatusSection.tsx + useWhatsAppStatus.ts:26 + whatsappStatusRepository.ts:84 (invoke evolution-api/find-status-messages), :91 (send-chat-presence) + evo.evolution_whatsapp_status=14789 (realtime db_realtime.txt) + edge:evolution-api (deployada) + SendStatusBusDebug.tsx (rota debug DebugRoutes.tsx:24)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Leitura sob demanda via edge; evo.evolution_whatsapp_status na publication mas front não assina (sem fio quebrado, apenas caminho alternativo)."
+    },
+    {
+      "id": "WHATSAPP-09",
+      "dominio": "EVOLUTION/WHATSAPP",
+      "recurso": "Reações em mensagens",
+      "descricao": "Adiciona/remove reações emoji com espelhamento para o WhatsApp via Evolution API e realtime na tabela do app.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela",
+        "realtime",
+        "edge"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/features/inbox/hooks/useMessageReactions.ts:27-33 (sub realtime zapp.message_reactions), :76 + useReactionMutations.ts:84/170 (zapp.message_reactions), :106 (mirror via Evolution API) + zapp.message_reactions=424 (publication db_realtime.txt:40) + evo.evolution_reactions=32 (realtime) + MessageReactions.tsx",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Reações do app em zapp.message_reactions + reações WA físicas em evo.evolution_reactions; espelhamento via send-reaction no proxy evolution-api (useEvolutionApiManagement.ts:487-492)."
+    },
+    {
+      "id": "WHATSAPP-11",
+      "dominio": "EVOLUTION/WHATSAPP",
+      "recurso": "Health check de instância/conexão",
+      "descricao": "Monitora saúde das instâncias: health checks, watchdog de desconexão, jid health e logs de conexão.",
+      "camadas": [
+        "UI",
+        "hook",
+        "edge",
+        "cron",
+        "tabela",
+        "realtime"
+      ],
+      "status": "Full",
+      "confianca": "media",
+      "evidencias": "src/components/connections/useConnectionCardActions.ts:33/66 (invoke connection-health-check) + useEvolutionAutoReconnect.ts:166 + crons: evo-instance-health-check (*/10), evolution-jid-health-check-5min, wpp2_disconnection_watchdog, evolution-pipeline-health-check-bateria10 (db_crons.txt) + zapp.connection_health_logs=49 (realtime) + evo.evolution_pipeline_health_log=4703 + evo.evolution_health_logs=1 + evo.evolution_connection_history=6635 + edge:connection-health-check (200, '2 instâncias monitoradas')",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "edge evolution-health reporta DEGRADED ('webhook não configurado, database disconnected' — auditoria 30/07) enquanto o front usa connection-health-check (saudável). Dupla fonte de health com uma delas degradada."
+    },
+    {
+      "id": "WHATSAPP-13",
+      "dominio": "EVOLUTION/WHATSAPP",
+      "recurso": "Credenciais seguras de instância (Vault)",
+      "descricao": "Resolve api_key em runtime via edge JWT-gated + Vault, com CRUD de credenciais no schema evo e rotação.",
+      "camadas": [
+        "UI",
+        "hook",
+        "edge",
+        "tabela",
+        "cron"
+      ],
+      "status": "Full",
+      "confianca": "alta",
+      "evidencias": "src/integrations/zappweb/evolutionClient.ts:88 (fetch evolution-credentials com JWT, header X-Evolution-Key, cache 55s + bust 401/403) + src/features/integrations/hooks/useEvolutionApiIntegration.ts:14 (client .schema('evo')), :63/:220/:243 (CRUD evolution_instance_credentials) + evo.evolution_instance_credentials=1 + cron vacuum-instance-credentials-daily (db_crons.txt) + edge:evolution-credentials (deployada)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Secret nunca embute no bundle (override VITE_EVOLUTION_API_KEY opcional). Único recurso do domínio que usa .schema('evo') para escrita (além dos zappweb hooks de leitura)."
+    },
+    {
+      "id": "WHATSAPP-15",
+      "dominio": "EVOLUTION/WHATSAPP",
+      "recurso": "Avatares de contatos WhatsApp",
+      "descricao": "Busca avatares/fotos de perfil dos contatos em massa e individualmente.",
+      "camadas": [
+        "hook",
+        "edge",
+        "UI"
+      ],
+      "status": "Full",
+      "confianca": "media",
+      "evidencias": "src/features/inbox/hooks/useNewConversation.ts:144/196 (invoke batch-fetch-avatars) + useInboxBulkActions.ts:140 + edge:batch-fetch-avatars (deployada) + edge:fetch-whatsapp-avatar (deployada) + zapp._backup_avatar_urls_20260803=1066 (backup de URLs de avatar) + useProfileAvatarMutations.ts:8 (profiles.avatar_url)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Front invoca batch-fetch-avatars; fetch-whatsapp-avatar (individual) nunca invocado diretamente (0 matches em src/) — possivelmente chamado internamente pela batch."
+    },
+    {
+      "id": "WHATSAPP-16",
+      "dominio": "EVOLUTION/WHATSAPP",
+      "recurso": "Senha SIP (chamadas VoIP)",
+      "descricao": "Obtém senha SIP para autenticação de chamadas VoIP vinculadas à instância WhatsApp.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "edge"
+      ],
+      "status": "Full",
+      "confianca": "media",
+      "evidencias": "src/components/calls/VoIPPanel.tsx:81 (invoke get-sip-password) + ViewRouter.tsx ('voip': VoIPPanel) + edge:get-sip-password (deployada)",
+      "o_que_falta": "",
+      "esforco": "P",
+      "em_uso": "n-a",
+      "obs": "Infra de chamadas; edge ativa e invocada pelo painel VoIP."
+    },
+    {
+      "id": "AUTOMACOES-01",
+      "dominio": "AUTOMACOES/CHATBOT/FOLLOW-UP",
+      "recurso": "Regras de automação (CRUD)",
+      "descricao": "CRUD de automações/regras com gatilhos e ações",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "src/components/routing/AdminRoutes.tsx:198 (/admin/automations) + src/pages/ViewRouter.tsx:95 (AutomationsManager) + src/features/admin/hooks/useAdminManagement.ts:333 (from('automations')) + zapp.automations + zapp.automation_rules",
+      "o_que_falta": "RLS de zapp.automations não localizada nas migrations ativas; 0 linhas no DB; duplicidade automations vs automation_rules",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Políticas só em public.automations arquivadas (20260318); edge automation-suggest-reply lê automation_rules."
+    },
+    {
+      "id": "AUTOMACOES-02",
+      "dominio": "AUTOMACOES/CHATBOT/FOLLOW-UP",
+      "recurso": "Execuções de automação + sugestão IA",
+      "descricao": "Registro de execuções, sugestão de resposta por IA e auto-envio",
+      "camadas": [
+        "hook",
+        "RPC",
+        "tabela",
+        "edge",
+        "realtime",
+        "cron"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "src/hooks/useAutomations.ts:260 (invoke automation-suggest-reply) + :234 (automation_executions) + zapp.rpc_register_automation_execution/rpc_record_automation_error (20260724000029, GRANT authenticated) + edge automation-suggest-reply + realtime zapp.automation_executions (db_realtime) + src/hooks/useAutomationLogs.ts:86 (subscription zapp.automation_executions)",
+      "o_que_falta": "Depende de AUTOMACOES-01 populado (0 regras → 0 execuções); logs admin /admin/automations/logs ok mas vazios",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Realtime publication OK; rpc_register_automation_execution presente."
+    },
+    {
+      "id": "AUTOMACOES-03",
+      "dominio": "AUTOMACOES/CHATBOT/FOLLOW-UP",
+      "recurso": "Chatbot flow builder",
+      "descricao": "Editor visual de flows com gatilhos keyword/menu/webhook/schedule",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela",
+        "edge"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "src/components/chatbot/ChatbotFlowsView.tsx:57 + src/pages/ViewRouter.tsx:94 (chatbot) + src/hooks/useChatbotFlows.ts (8x from('chatbot_flows')) + zapp.chatbot_flows + edge chatbot-l1 (index.ts:40 lê chatbot_flows ai_l1)",
+      "o_que_falta": "0 linhas; edge evolution-chatbot responde via evolution_chatbot_responses sem vincular a chatbot_flows; sem produtor de chatbot_executions",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Rotas sidebar automationNav chatbot/automations presentes (sidebarNavConfig.ts:89)."
+    },
+    {
+      "id": "AUTOMACOES-04",
+      "dominio": "AUTOMACOES/CHATBOT/FOLLOW-UP",
+      "recurso": "Painel de execuções de chatbot",
+      "descricao": "Dashboard de execuções dos flows",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela"
+      ],
+      "status": "Partial",
+      "confianca": "baixa",
+      "evidencias": "src/components/chatbot/ChatbotExecutionsDashboard.tsx:60 (safeClient from('chatbot_executions')) montado em ChatbotFlowsView + zapp.chatbot_executions",
+      "o_que_falta": "RLS/grants de zapp.chatbot_executions não verificados; nenhum produtor grava nela (evolution-chatbot grava em evo.evolution_chatbot_responses)",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Dashboard sempre vazio sem produtor."
+    },
+    {
+      "id": "AUTOMACOES-05",
+      "dominio": "AUTOMACOES/CHATBOT/FOLLOW-UP",
+      "recurso": "Quick replies",
+      "descricao": "Respostas rápidas por atalho",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/features/inbox/components/QuickRepliesManager.tsx:9 (useQuickReplies) + src/features/inbox/hooks/useQuickReplies.ts:61/141 (from('message_templates')) + zapp.message_templates",
+      "o_que_falta": "Front usa message_templates; zapp.quick_replies órfã; evo.evolution_quick_replies=13 sem consumo — 3 tabelas p/ 1 feature",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Fio quebrado por duplicidade (uso real apenas em evo, não lido pelo app)."
+    },
+    {
+      "id": "AUTOMACOES-06",
+      "dominio": "AUTOMACOES/CHATBOT/FOLLOW-UP",
+      "recurso": "Mensagem de ausência",
+      "descricao": "Mensagem automática fora do horário",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "src/components/connections/BusinessHoursDialog.tsx:19 + src/hooks/useBusinessHoursManagement.ts:86/118 (from('away_messages')) + zapp.away_messages + policies away_messages_select_all/admin_write (20260724000044:399)",
+      "o_que_falta": "Nenhum edge/consumer lê away_messages em runtime (grep em supabase/functions só achou external-db-proxy allowlist) — sem enforcement",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "CRUD íntegro; lado runtime ausente."
+    },
+    {
+      "id": "AUTOMACOES-07",
+      "dominio": "AUTOMACOES/CHATBOT/FOLLOW-UP",
+      "recurso": "Auto-close de conversas",
+      "descricao": "Fechamento automático de conversas inativas",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela",
+        "edge"
+      ],
+      "status": "Partial",
+      "confianca": "baixa",
+      "evidencias": "src/components/settings/AutoCloseSettings.tsx:9 (useAutoCloseConversations) + src/hooks/useAutomationManagement.ts:522/541 (auto_close_config) + zapp.auto_close_config + edge auto-close-conversations (edges_deployadas)",
+      "o_que_falta": "Sem cron/agendador no db_crons; edge referencia contacts/messages sem schema confirmado (auto-close index.ts:45,65); ações não evidenciadas",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Edge deployado, mas scheduling/contrato não rastreável."
+    },
+    {
+      "id": "AUTOMACOES-08",
+      "dominio": "AUTOMACOES/CHATBOT/FOLLOW-UP",
+      "recurso": "Business hours",
+      "descricao": "Horário comercial por conexão + flag em settings",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela",
+        "RPC"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "src/components/connections/BusinessHoursDialog.tsx:51 + src/hooks/useBusinessHoursManagement.ts:63/104 (business_hours) + :182 (rpc is_within_business_hours) + zapp.business_hours (20260724000043:67, policies)",
+      "o_que_falta": "public.is_within_business_hours (search_path=public) consulta business_hours movida p/ zapp → RPC provavelmente falha; front engole erro → trata como aberto; sem enforcer",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Fio quebrado pós-migração; wrapper zapp.is_within_business_hours delega ao public."
+    },
+    {
+      "id": "AUTOMACOES-09",
+      "dominio": "AUTOMACOES/CHATBOT/FOLLOW-UP",
+      "recurso": "Follow-up sequences",
+      "descricao": "Sequências de follow-up com steps e histórico de execuções",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela",
+        "cron"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "src/components/settings/SettingsView.tsx:108/171 (tab Follow-up) + src/hooks/followup/useFollowUpSequences.ts:38/50/56 (followup_sequences+followup_steps) + FollowUpExecutionsHistory.tsx:27 (followup_executions) + cron process_pending_followups|*/5 (db_crons)",
+      "o_que_falta": "Cron sem fonte no repo (sem edge nem SQL fn); followup_executions 0 linhas; engine de execução não rastreável; edge evolution-followup atua apenas em evo.evolution_followups",
+      "esforco": "G",
+      "em_uso": "nao",
+      "obs": "CRUD íntegro (RLS em 20260724000044:1013 e 20260724000043:239); motor de envio quebrado/inexistente."
+    },
+    {
+      "id": "AUTOMACOES-12",
+      "dominio": "AUTOMACOES/CHATBOT/FOLLOW-UP",
+      "recurso": "Agendamentos cron customizados",
+      "descricao": "Agenda própria via cron_schedules/task_queues/batch_jobs",
+      "camadas": [
+        "tabela"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "zapp.cron_schedules + zapp.cron_schedule_executions + zapp.task_queues + zapp.batch_jobs (db_tabelas_zapp.txt)",
+      "o_que_falta": "Zero UI/hook no front (grep em src não achou consumidores); backend sem produtor evidenciado",
+      "esforco": "G",
+      "em_uso": "nao",
+      "obs": "Backend-only (tabelas físicas r); nenhuma camada funcional de app."
+    },
+    {
+      "id": "CAMPANHAS-01",
+      "dominio": "CAMPANHAS/TALKX/AGENDADAS",
+      "recurso": "Criar/gerenciar campanha clássica",
+      "descricao": "CRUD de campanhas clássicas via CampaignsView (rota 'campaigns' no menu primário).",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela/view",
+        "teste"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/components/layout/sidebarNavConfig.ts:69 (Campanhas) + src/pages/ViewRouter.tsx:93 + src/components/campaigns/CampaignsView.tsx:63 (useCampaigns) + src/hooks/useCampaigns.ts:38,50,67,84 + zapp.campaigns + testes src/hooks/__tests__/useCampaigns.test.tsx, src/components/campaigns/__tests__/CampaignsView.test.tsx",
+      "o_que_falta": "Motor de disparo: nenhum edge/cron envia campanhas clássicas (TalkX tem os edges, clássica não). RLS: canonical_schema só cria policies SELECT + INSERT admin (20260801040004) — UPDATE/DELETE do hook quebram se RLS for habilitada. Tabela 0 linhas (db_uso.txt não lista zapp.campaigns).",
+      "esforco": "G",
+      "em_uso": "nao",
+      "obs": "Campanha clássica é cadastro morto: cria, lista e deleta, mas não há caminho de envio. Depende de talkx-send ou novo dispatcher para ser Full."
+    },
+    {
+      "id": "CAMPANHAS-02",
+      "dominio": "CAMPANHAS/TALKX/AGENDADAS",
+      "recurso": "Teste A/B de campanha (variantes)",
+      "descricao": "CRUD de variantes A/B por campanha, UI dentro de CampaignsView.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela/view"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "src/components/campaigns/CampaignsView.tsx:324 (<CampaignABTesting>) + src/hooks/campaigns/useCampaignABTesting.ts (re-export) + src/features/business-logic/hooks/useBusinessLogicManagement.ts:80,101,115,125,133 (CRUD campaign_ab_variants) + zapp.campaign_ab_variants",
+      "o_que_falta": "Sem engine estatístico nem integração com disparo: variante é só dado. Policy campaign_ab_select é SELECT-only (20260801040004:35) — writes do hook dependem de RLS desligada. Tabela 0 linhas.",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Hook consolidado via useBusinessLogicManagement (ETAPA 25). Sem teste dedicado encontrado."
+    },
+    {
+      "id": "CAMPANHAS-03",
+      "dominio": "CAMPANHAS/TALKX/AGENDADAS",
+      "recurso": "Lista de destinatários de campanha",
+      "descricao": "Adição de contatos a campanha via RPC add_contacts_to_campaign (admin/supervisor).",
+      "camadas": [
+        "UI",
+        "hook",
+        "RPC",
+        "tabela/view"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/hooks/useCampaigns.ts:102 (supabase.rpc('add_contacts_to_campaign')) + rpc_calls_front.txt (add_contacts_to_campaign) + supabase/migrations/archive/20260721000004_melhoria4_add_contacts_to_campaign_zapp.sql:66-105 (SECURITY DEFINER, search_path fixo, GRANT EXECUTE authenticated, guarda is_admin_or_supervisor, ON CONFLICT idempotente) + zapp.campaign_contacts",
+      "o_que_falta": "RPC íntegro e funcional, mas fluxo sem disparo e 0 linhas na tabela (db_uso.txt não lista campaign_contacts). Acesso gated por admin/supervisor (não é erro).",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Único RPC do domínio chamado pelo front; wire casa com objeto real."
+    },
+    {
+      "id": "CAMPANHAS-04",
+      "dominio": "CAMPANHAS/TALKX/AGENDADAS",
+      "recurso": "Campanha TalkX (broadcast)",
+      "descricao": "Suite TalkX: criar/listar/editar campanhas broadcast com destinatários e agendamento.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela/view",
+        "realtime"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/pages/ViewRouter.tsx:135 (talkx) + src/pages/lazyViews.ts:127 + src/components/talkx/TalkXView.tsx + src/hooks/useTalkX.ts:19-120 (CRUD talkx_campaigns) + zapp.talkx_campaigns + realtime zapp.talkx_campaigns/talkx_recipients (db_realtime.txt) + channel 'talkx-realtime' (TalkXView.tsx:93, realtime_channels_front.txt)",
+      "o_que_falta": "2 fios quebrados: (1) view 'talkx' registrada no ViewRouter mas NENHUM nav/trigger navega para ela (grep 'talkx' em sidebarNavConfig/App/layout = zero) — UI inacessível; (2) RLS ENABLED em talkx_campaigns/talkx_recipients (20260804120000:15-16) com policies apenas SELECT (20260801040004:38-42) — INSERT/UPDATE/DELETE de useTalkX.ts:49,83,118 são negados. Tabela 0 linhas.",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Testes existem (TalkX.test.tsx, campaignEditorUtils.test.ts) mas a tela não é alcançável pelo shell do app."
+    },
+    {
+      "id": "CAMPANHAS-05",
+      "dominio": "CAMPANHAS/TALKX/AGENDADAS",
+      "recurso": "Disparo manual TalkX (start/pause/cancel)",
+      "descricao": "Controle de envio via edges talkx-control + talkx-send (Evolution API).",
+      "camadas": [
+        "edge",
+        "hook",
+        "tabela/view"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "edges talkx-control/talkx-send deployadas (edges_deployadas.txt) + src/hooks/useTalkX.ts:155,172,189 (invoke talkx-control) + invoke_calls_front.txt (talkx-control) + supabase/functions/talkx-control/index.ts:113-133 (service role, dispatch fire-and-forget p/ talkx-send) + supabase/functions/talkx-send/index.ts:164-165,182-416 (EVOLUTION_API_URL/KEY, atualiza talkx_campaigns/talkx_recipients, consulta talkx_blacklist:221)",
+      "o_que_falta": "Engine funcional (service role bypassa RLS), mas único trigger é useTalkX dentro de TalkXView — UI inacessível (ver CAMPANHAS-04). Sem teste de integração evidenciado; tabelas 0 linhas.",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "talkx-send depende de env EVOLUTION_API_URL/EVOLUTION_API_KEY (self-hosted ok). Envio real nunca exercitado em produção (sem campanhas)."
+    },
+    {
+      "id": "CAMPANHAS-06",
+      "dominio": "CAMPANHAS/TALKX/AGENDADAS",
+      "recurso": "Disparo agendado TalkX (scheduled_at)",
+      "descricao": "Edge talkx-scheduler dispara talkx-send para campanhas com scheduled_at vencido.",
+      "camadas": [
+        "edge",
+        "tabela/view"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "edge talkx-scheduler deployada (edges_deployadas.txt) + supabase/functions/talkx-scheduler/index.ts:19-96 (lê talkx_campaigns scheduled_at, chama talkx-send) + supabase/functions/main/index.ts:51 (rota registrada) + zapp.talkx_campaigns",
+      "o_que_falta": "NENHUM trigger: db_crons.txt (146 jobs pg_cron) não tem job talkx/scheduler e invoke_calls_front.txt não invoca talkx-scheduler — o agendamento nunca roda sozinho. Precisa de cron HTTP ou gatilho externo.",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Edge pronta para cron (G4: aceita body vazio), mas o cron não existe no pg_cron."
+    },
+    {
+      "id": "CAMPANHAS-07",
+      "dominio": "CAMPANHAS/TALKX/AGENDADAS",
+      "recurso": "Monitoramento ao vivo TalkX",
+      "descricao": "Live monitor com realtime (postgres_changes) + polling 15s do progresso da campanha.",
+      "camadas": [
+        "UI",
+        "hook",
+        "realtime",
+        "tabela/view"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/components/talkx/TalkXLiveMonitor.tsx:44-73 (channel talkx-monitor-<id>, postgres_changes em talkx_campaigns/talkx_recipients) + src/hooks/useTalkXCampaignLive.ts:13-24 (polling 15s) + db_realtime.txt (publication 68: zapp.talkx_campaigns, zapp.talkx_recipients — tabelas FÍSICAS) + TalkXView.tsx:93 (channel 'talkx-realtime')",
+      "o_que_falta": "Fio realtime ÍNTEGRO (publication cobre as duas tabelas físicas), mas UI montada dentro de TalkXView — inacessível (ver CAMPANHAS-04).",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Único recurso do domínio com realtime de ponta a ponta correto (channel + publication + tabelas físicas)."
+    },
+    {
+      "id": "CAMPANHAS-08",
+      "dominio": "CAMPANHAS/TALKX/AGENDADAS",
+      "recurso": "Follow-up automático",
+      "descricao": "Sequências de follow-up configuráveis + processamento a cada 5min.",
+      "camadas": [
+        "UI",
+        "hook",
+        "cron",
+        "edge",
+        "tabela/view"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "src/components/settings/SettingsView.tsx:171 (<FollowUpSequences/>) + src/components/settings/FollowUpSequences.tsx + src/hooks/followup/useFollowUpSequences.ts:37,49,56,75,91 (CRUD zapp.followup_sequences/followup_steps) + cron process_pending_followups */5 (db_crons.txt:18) + edge evolution-followup deployada (edges_deployadas.txt) + supabase/functions/evolution-followup/index.ts:42-85 (processa evo.evolution_followups, lê evo.evolution_message_templates, insere evo.evolution_message_queue)",
+      "o_que_falta": "Fio fragmentado: UI grava zapp.followup_sequences/steps, mas o edge processa evo.evolution_followups (0 linhas em db_uso) e evo.evolution_message_templates (0 linhas); a ponte UI→processador (quem popula evolution_followups a partir das sequences?) não é evidenciada em migrations/functions. evolution_followup_rules tem 4 linhas mas não é referenciada por código (só types.ts e catalog.ts).",
+      "esforco": "G",
+      "em_uso": "sim",
+      "obs": "evo.evolution_followup_rules=4 linhas (db_uso) indica configuração real de follow-up no Evo, mas o fluxo zapp.followup_sequences → evo.evolution_followups não está no repo."
+    },
+    {
+      "id": "CAMPANHAS-09",
+      "dominio": "CAMPANHAS/TALKX/AGENDADAS",
+      "recurso": "Mensagem agendada (chat)",
+      "descricao": "Agendar envio de mensagem a partir do ChatPanel e do calendário de agendamentos.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela/view"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/features/inbox/components/ChatPanel.tsx (useScheduledMessages) + src/components/schedule/ScheduleCalendarView.tsx + rota 'schedule' (sidebarNavConfig.ts:89 'Agendamentos') + src/hooks/useScheduledMessages.ts:36,73,105 (CRUD zapp.scheduled_messages) + zapp.scheduled_messages + policy scheduled_messages_select (20260801040004:45)",
+      "o_que_falta": "DISPARADOR INEXISTENTE: nenhuma edge (grep scheduled_messages em supabase/functions = vazio) nem cron processa scheduled_messages — a mensagem agendada é criada e nunca enviada. Tabela 0 linhas. Teste existe (useScheduledMessages.test.tsx) mas o ciclo não fecha.",
+      "esforco": "G",
+      "em_uso": "nao",
+      "obs": "Maior furo do domínio: UI promete envio agendado, backend só armazena. Sem dispatcher (edge/cron) o recurso não pode ser Full."
+    },
+    {
+      "id": "CAMPANHAS-11",
+      "dominio": "CAMPANHAS/TALKX/AGENDADAS",
+      "recurso": "Relatório agendado",
+      "descricao": "Configuração de relatórios agendados no Dashboard + edge de envio.",
+      "camadas": [
+        "UI",
+        "hook",
+        "edge",
+        "tabela/view"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/components/dashboard/DashboardView.tsx (ScheduledReportsManager) + src/components/dashboard/ScheduledReportsManager.tsx + src/hooks/useScheduledReports.ts:15,35,56,70 (CRUD zapp.scheduled_report_configs) + edge send-scheduled-report deployada (edges_deployadas.txt) + supabase/functions/send-scheduled-report/index.ts:20-21 + zapp.scheduled_report_configs/zapp.scheduled_reports + policies SELECT (20260801040004:48-51)",
+      "o_que_falta": "Edge ÓRFÃ: invoke_calls_front.txt só lista talkx-add-recipients e talkx-control (send-scheduled-report NUNCA invocado do front) e db_crons.txt não tem job para ela — relatório agendado nunca é enviado. Tabelas 0 linhas.",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Contrato estrito G4 implementado (reportId obrigatório, 422 unificado), mas sem trigger."
+    },
+    {
+      "id": "CAMPANHAS-12",
+      "dominio": "CAMPANHAS/TALKX/AGENDADAS",
+      "recurso": "Blacklist TalkX",
+      "descricao": "Lista de contatos bloqueados de campanhas; consultada no envio real.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela/view",
+        "edge"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/components/talkx/TalkXBlacklist.tsx + src/hooks/useTalkXBlacklist.ts:82,98 (insert/delete zapp.talkx_blacklist via fromTable) + zapp.talkx_blacklist + INTEGRAÇÃO REAL: supabase/functions/talkx-send/index.ts:221 (select talkx_blacklist antes de enviar) + policy talkx_blacklist_select (20260801040004:43)",
+      "o_que_falta": "UI montada dentro de TalkXView — inacessível (ver CAMPANHAS-04). RLS off na tabela hoje (writes funcionam), mas política SELECT-only é risco latente. Tabela 0 linhas.",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "A blacklist é o único conceito do domínio efetivamente consumido por um edge de envio (talkx-send)."
+    },
+    {
+      "id": "CAMPANHAS-13",
+      "dominio": "CAMPANHAS/TALKX/AGENDADAS",
+      "recurso": "Orçamento marketing WhatsApp",
+      "descricao": "Cron diário de controle de orçamento de marketing WA.",
+      "camadas": [
+        "cron"
+      ],
+      "status": "Partial",
+      "confianca": "baixa",
+      "evidencias": "cron daily-wa-marketing-budget|0 12 * * * (db_crons.txt:64)",
+      "o_que_falta": "Sem UI, sem função visível em migrations (grep 'marketing' no canonical só acha índices mortos), sem referência em src/ ou supabase/functions. Comando do cron não é evidenciável (db_crons só tem nome|schedule). zapp.budgets existe mas nada no repo a conecta.",
+      "esforco": "M",
+      "em_uso": "n-a",
+      "obs": "Classificado Partial pela existência real do cron (camada funcional), mas confiança baixa: não é possível verificar o que o job executa nem se há tabela-alvo."
+    },
+    {
+      "id": "CAMPANHAS-14",
+      "dominio": "CAMPANHAS/TALKX/AGENDADAS",
+      "recurso": "NPS agendado (scheduler)",
+      "descricao": "Edge que agenda/envia convites NPS para contatos elegíveis.",
+      "camadas": [
+        "edge",
+        "tabela/view"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "edge nps-scheduler deployada (edges_deployadas.txt) + supabase/functions/nps-scheduler/index.ts:23-24,47-131 (lê contacts, nps_invitations, whatsapp_connections; insere nps_invitations/failed_messages) + supabase/functions/main/index.ts:49 (rota registrada)",
+      "o_que_falta": "Sem trigger: sem cron pg_cron (db_crons.txt não lista nps) e sem invoke do front (invoke_calls_front.txt não lista nps-scheduler). UI NPS (nav 'nps' → NPSDashboard) existe mas não invoca o scheduler. Tabelas 0 linhas (nps_invitations ausente do db_uso).",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Dashboard NPS é outro domínio; aqui classifica-se apenas o scheduler, que está órfão."
+    },
+    {
+      "id": "CONTATOS-04",
+      "dominio": "CONTATOS/CRM",
+      "recurso": "Campos customizados",
+      "descricao": "CRUD de campos customizados (field_name/field_value) por contato via tabela contact_custom_fields.",
+      "camadas": [
+        "hook",
+        "tabela/view"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "src/features/contacts/hooks/useContactCustomFields.ts:30/48/67 (.from('contact_custom_fields') select/upsert/delete) + src/hooks/useCRMManagement.ts:337 (useContactCustomFieldsManagement) + zapp.contact_custom_fields (db_tabelas_zapp.txt; 0 linhas em db_uso) + from_calls_front.txt (contact_custom_fields)",
+      "o_que_falta": "NENHUM componente UI renderiza campos customizados (grep useContactCustomFields em *.tsx sem consumidor fora dos hooks/index.ts) — hook e tabela existem, mas feature invisível na UI; tabela com 0 linhas.",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Dois hooks paralelos (features/contacts e hooks/) nunca convergidos; sem painel de edição no form do contato."
+    },
+    {
+      "id": "CONTATOS-07",
+      "dominio": "CONTATOS/CRM",
+      "recurso": "Segmentos",
+      "descricao": "Segmentação de contatos (tabela contact_segments) — sem código frontend.",
+      "camadas": [
+        "tabela/view"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "zapp.contact_segments (db_tabelas_zapp.txt; 0 linhas em db_uso) + grep 'contact_segments' em src/ SEM NENHUM resultado fora de types/registries",
+      "o_que_falta": "Zero código frontend (sem hook, sem RPC, sem UI). Único 'segmento' visível é RFM vindo de CRM externo (ExternalContact360Panel.tsx:66, useExternalContact360) — não usa contact_segments.",
+      "esforco": "G",
+      "em_uso": "nao",
+      "obs": "Tabela órfã criada no schema zapp sem consumidor; recurso só existe como camada de dados."
+    },
+    {
+      "id": "CONTATOS-12",
+      "dominio": "CONTATOS/CRM",
+      "recurso": "Exportação (CSV)",
+      "descricao": "Botão Exportar na barra de ações em lote — gera CSV client-side da lista filtrada atual.",
+      "camadas": [
+        "UI"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/components/contacts/ContactsBulkActionBar.tsx:66 (botão Exportar -> onExportCSV) + src/components/contacts/ContactsRichView.tsx:257 (onExportCSV={() => state.handleExportCSV()})",
+      "o_que_falta": "Export puramente client-side (download do que já está na tela): sem RPC/edge de export, sem escrita em zapp.contact_export_log (0 linhas, sem uso em src), sem seleção de campos/escopo completo.",
+      "esforco": "M",
+      "em_uso": "n-a",
+      "obs": "zapp.contact_export_log existe no schema (db_tabelas_zapp.txt) mas nenhum código front/back a utiliza."
+    },
+    {
+      "id": "CONTATOS-14",
+      "dominio": "CONTATOS/CRM",
+      "recurso": "Vínculo com empresa",
+      "descricao": "Empresa do contato: campo text company no contato; tabela dedicada companies com CRUD via CRM externo.",
+      "camadas": [
+        "tabela/view"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "zapp.companies (4 linhas em db_uso) + from_calls_front.txt (companies) + src/components/crm360/CompanyFormDialog.tsx:45 (useExternalMutation — escreve em API externa, NÃO em zapp.companies) + CompanyLogo.tsx:54 (render-only, sem DB)",
+      "o_que_falta": "Nenhum .from('companies') no src (tabela órfã com 4 linhas); vínculo real no app é só o campo texto company do contato (form/merge/filtros); CRUD de empresa real vai para CRM externo via useExternalApiManagement.",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Divergência: from_calls_front.txt lista 'companies' mas grep no src não encontra chamada direta — provável chamada via datasource/external."
+    },
+    {
+      "id": "CONTATOS-16",
+      "dominio": "CONTATOS/CRM",
+      "recurso": "Bloqueio de contato (WhatsApp)",
+      "descricao": "Bloquear/desbloquear contato via API da Evolution (update-block-status).",
+      "camadas": [
+        "hook",
+        "edge",
+        "doc"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "src/hooks/useEvolutionApiManagement.ts:1514-1517 (updateBlockStatus -> invoke edge 'evolution-api' endpoint 'update-block-status') + edge evolution-api DEPLOYADA (edges_deployadas.txt) + docs/architecture/evolution-api-mapping.md:177 (mapeia update-block-status -> BlockContactDialog)",
+      "o_que_falta": "SEM UI: componente BlockContactDialog documentado no mapping NÃO existe em src/ (grep sem resultado); updateBlockStatus não é consumido por nenhum componente tsx — hook orfão.",
+      "esforco": "M",
+      "em_uso": "n-a",
+      "obs": "Backend (edge evolution-api /chat/updateBlockStatus) funcional, mas recurso inacessível ao usuário."
+    },
+    {
+      "id": "DASHBOARD-03",
+      "dominio": "DASHBOARDS/NOTIFICACOES/INTEGRACOES",
+      "recurso": "KPIs diários (mv_daily_metrics)",
+      "descricao": "Snapshots diários de KPIs mantidos por cron em evo.mv_daily_metrics",
+      "camadas": [
+        "cron",
+        "tabela/view"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "db_crons.txt:4 (refresh-daily-metrics 0 */1 * * *) + db_crons.txt:147 (refresh_mv_daily_kpis) + evo.mv_daily_metrics=33 linhas (db_uso.txt) + NENHUM .from('mv_daily_metrics') no front (grep src/ só acha evo.evolution_daily_metrics em external-db-explorer/catalog.ts:53)",
+      "o_que_falta": "UI/hook consumindo mv_daily_metrics — nenhum painel lê os KPIs",
+      "esforco": "M",
+      "em_uso": "sim",
+      "obs": "Pipeline de dados completo (cron + matview com dados), mas backend-only: sem camada de apresentação."
+    },
+    {
+      "id": "DASHBOARD-04",
+      "dominio": "DASHBOARDS/NOTIFICACOES/INTEGRACOES",
+      "recurso": "NPS (pesquisas e score)",
+      "descricao": "Coleta manual de respostas NPS com painel em /nps e edge nps-scheduler para campanhas",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela/view",
+        "edge"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/pages/ViewRouter.tsx:124 (nps: Views.NPSDashboard) + src/components/settings/SettingsView.tsx:182 + src/hooks/useNPSSurveys.ts:39,66 (.from('nps_surveys') select/insert) + public.nps_surveys com RLS (migrations/archive/20260402110555:3,14,18) + edge nps-scheduler DEPLOYADA (edges_deployadas.txt) mas SEM job pg_cron (db_crons.txt não contém nps) e sem invoke no front",
+      "o_que_falta": "Trigger do nps-scheduler (sem cron, sem invoke) — automação de campanhas nunca dispara; tabela com 0 linhas",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Fluxo manual (registro via UI) funciona; o scheduler exige service-role/cron-secret (supabase/functions/nps-scheduler/index.ts:4) e ninguém o chama."
+    },
+    {
+      "id": "DASHBOARD-05",
+      "dominio": "DASHBOARDS/NOTIFICACOES/INTEGRACOES",
+      "recurso": "CSAT (satisfação e auto-config)",
+      "descricao": "Painel CSAT no dashboard e configuração automática em Settings",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela/view",
+        "teste"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/components/dashboard/DashboardView.tsx:282-283 (CSATDashboard) + src/components/settings/SettingsView.tsx:190 (CSATAutoConfig) + src/hooks/useCSAT.ts:60,98 (.from('csat_surveys')) + src/hooks/useCSATAutoConfig.ts:24,63,68 (.from('csat_auto_config')) + zapp.csat_surveys/zapp.csat_responses/zapp.csat_auto_config (db_tabelas_zapp.txt:45) + teste src/hooks/__tests__/useCSAT.test.tsx",
+      "o_que_falta": "Coleta automática: NENHUM edge/webhook escreve csat_surveys (grep supabase/functions vazio) e csat_auto_config não é consumido por backend; tabelas com 0 linhas",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "4 camadas existem e o fio UI→tabela é íntegro, mas o recurso 'CSAT automático' (auto_config) não tem executor — vira só registro manual."
+    },
+    {
+      "id": "DASHBOARD-07",
+      "dominio": "DASHBOARDS/NOTIFICACOES/INTEGRACOES",
+      "recurso": "Notificações in-app e canais (app_notifications + canais/templates)",
+      "descricao": "Notificações em tempo real via zapp.app_notifications (13.6k linhas) + tabelas de canais/templates sem consumidor",
+      "camadas": [
+        "UI",
+        "hook",
+        "realtime",
+        "tabela/view"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/hooks/useNotificationManagement.ts:353-377 (channel notifications:team-chat + .from('app_notifications') markAsRead), :401-449 (security/goals) + zapp.app_notifications na publication (db_realtime.txt:23) + db_uso: app_notifications=13679 + zapp.notification_channels_config/zapp.notification_templates (db_tabelas_zapp.txt:95) com RLS admin-only (20260801210000_rls_consolidated_production_sync.sql:131) e ZERO consumidores (grep front+functions vazio) + testes useNotificationSettings.test.tsx/useTranscriptionNotifications.test.ts",
+      "o_que_falta": "Badge de não-lidas: IndexContentConnected.tsx:94 passa unreadNotifications={0} hardcoded (rpc_app_bootstrap retorna unread_notifications mas é ignorado). Canais/templates (DASHBOARD-08) sem UI nem executor",
+      "esforco": "M",
+      "em_uso": "sim",
+      "obs": "Realtime e marcação de leitura funcionam; o contador inicial do AppShell (inboxBadge, AppShell.tsx:141) está quebrado. notification_channels_config/notification_templates são objetos backend órfãos."
+    },
+    {
+      "id": "DASHBOARD-08",
+      "dominio": "DASHBOARDS/NOTIFICACOES/INTEGRACOES",
+      "recurso": "Notificações por canal (channels/templates)",
+      "descricao": "Configuração de canais de notificação e templates de mensagem",
+      "camadas": [
+        "tabela/view"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "zapp.notification_channels_config + zapp.notification_templates (db_tabelas_zapp.txt:95) + RLS admin (20260801210000_rls_consolidated_production_sync.sql:130-131) + SEM nenhuma referência em src/ (grep front vazio) nem supabase/functions/ (grep vazio); 0 linhas (db_uso sem entrada)",
+      "o_que_falta": "UI, hook e executor — nada lê/escreve as tabelas",
+      "esforco": "G",
+      "em_uso": "nao",
+      "obs": "Backend-only: tabelas físicas com RLS admin, sem nenhum consumidor fim-a-fim. Não há nem menção textual em docs (featuresSectionsData.ts)."
+    },
+    {
+      "id": "DASHBOARD-13",
+      "dominio": "DASHBOARDS/NOTIFICACOES/INTEGRACOES",
+      "recurso": "Integração Sicoob (bridge e outbox)",
+      "descricao": "Mapeamento de contatos Sicoob e fila de respostas com edges bridge",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela/view",
+        "edge"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/pages/ViewRouter.tsx:131 ('sicoob-bridge': admin) + src/features/admin/components/SicoobBridgeDashboard.tsx:48 (.from('sicoob_contact_mapping')) + zapp.sicoob_contact_mapping/zapp.sicoob_reply_outbox (db_tabelas_zapp.txt:136) + edges sicoob-bridge/sicoob-bridge-reply/sicoob-outbox-consumer DEPLOYADAS (edges_deployadas.txt) + sicoob-outbox-consumer/index.ts:2 declara 'Invocado por pg_cron a cada 1 min' MAS db_crons.txt NÃO contém job sicoob",
+      "o_que_falta": "pg_cron para sicoob-outbox-consumer (fio quebrado: consumidor nunca roda); tabelas com 0 linhas; dashboard só exibe URLs dos endpoints (SicoobBridgeDashboard.tsx:162-173)",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Rota gated por ['admin'] (ViewRouter.tsx:33). Outbox consumer precisa de RPC sicoob_outbox_claim (sicoob-outbox-consumer/index.ts:68) e de job cron inexistente."
+    },
+    {
+      "id": "DASHBOARD-16",
+      "dominio": "DASHBOARDS/NOTIFICACOES/INTEGRACOES",
+      "recurso": "Relatórios agendados",
+      "descricao": "Agendamento de relatórios periódicos enviados por e-mail",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela/view",
+        "edge"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/components/dashboard/DashboardView.tsx:308 (ScheduledReportsManager) + src/hooks/useScheduledReports.ts:15,35,56,70 (CRUD em 'scheduled_report_configs') + zapp.scheduled_report_configs/zapp.scheduled_reports (db_tabelas_zapp.txt:129) + edge send-scheduled-report DEPLOYADA MAS lê OUTRA tabela: supabase/functions/send-scheduled-report/index.ts:29,185 (.from('scheduled_reports')) e NENHUM cron/invoke chama a edge (db_crons.txt sem send-scheduled-report; invoke_calls_front.txt sem ela)",
+      "o_que_falta": "Fio quebrado crítico: front grava scheduled_report_configs, edge lê scheduled_reports (tabela diferente) → relatório nunca enviado; edge sem trigger (sem cron, sem invoke)",
+      "esforco": "G",
+      "em_uso": "nao",
+      "obs": "Duas tabelas gêmeas criadas em 2026-03-15 e 2026-03-18 (migrations archive) — divergência nunca reconciliada; 0 linhas em ambas."
+    },
+    {
+      "id": "DASHBOARD-17",
+      "dominio": "DASHBOARDS/NOTIFICACOES/INTEGRACOES",
+      "recurso": "Health score e observabilidade (client-observability)",
+      "descricao": "Score de saúde do sistema via cron + ingestão de web vitals via edge",
+      "camadas": [
+        "cron",
+        "tabela/view",
+        "edge",
+        "hook"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "db_crons.txt:23 (system-health-score), :81 (refresh-health-score-cache) + zapp.fn_health_score_cache=1 / fn_health_score_history=2158 (db_uso.txt, em uso) + zapp.fn_system_health_score (canonical_schema.sql:11438) + client-observability: src/lib/webVitals.ts:44,98 (invoke) + edge DEPLOYADA + incidentes: useBridgeStatus.ts:216,242-245 (.from('system_health_incidents') + channel 'health-incidents' em zapp.system_health_incidents — física na publication db_realtime.txt:56) + edges metrics/health/status deployadas (infra)",
+      "o_que_falta": "NENHUM painel de health score no front (grep 'healthScore' em src/ só acha number_reputation.health_score) — score fica só no banco; edges metrics/health/status não invocadas pelo front (invoke_calls_front.txt)",
+      "esforco": "M",
+      "em_uso": "sim",
+      "obs": "Parte observável tem UI (incidentes via AdminBridgeStatusPage + realtime); o score em si é backend-only. client-observability é Full como fio front→edge, mas sem destino visível no app."
+    },
+    {
+      "id": "DASHBOARD-18",
+      "dominio": "DASHBOARDS/NOTIFICACOES/INTEGRACOES",
+      "recurso": "Media pipeline (download queue, scan e cache)",
+      "descricao": "Pipeline de mídia: fila de download, scan de segurança, cache de URLs",
+      "camadas": [
+        "cron",
+        "tabela/view",
+        "edge",
+        "hook"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "zapp.media_download_queue=9580, zapp.media_scan_log=11314, zapp.media_cache=227 (db_uso, em uso) + crons retry-stuck-media-queue/expire-old-media-queue/scan-media-security/media_pipeline_health_check/purge-media-queue-and-scan-log (db_crons.txt:5-6,16,40,127) + front: src/features/inbox/hooks/useMediaUrl.ts:202-251 (.from('media_cache') + invoke evolution-api) + MediaMigrationTool.tsx:29 (invoke migrate-media-storage, edge DEPLOYADA) + rota 'media-migration' (ViewRouter)",
+      "o_que_falta": "UI de monitoramento da fila/scan: nenhum painel lê media_download_queue/media_scan_log (grep src/ só acha media_cache) — operação 100% cron/backend",
+      "esforco": "M",
+      "em_uso": "sim",
+      "obs": "Pipeline saudável e com dados reais; cache consumido pelo chat (useMediaUrl). Falta visibilidade/controle no app (admin)."
+    },
+    {
+      "id": "EMAIL-01",
+      "dominio": "E-MAIL",
+      "recurso": "Conectar conta Gmail (OAuth)",
+      "descricao": "Fluxo OAuth2 Google para vincular conta Gmail ao app (popup, exchangeCode, revoke).",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "edge",
+        "tabela",
+        "realtime",
+        "teste"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/components/gmail/GmailInboxView.tsx:108-111 (botão Conectar) + src/hooks/useEmailManagement.ts:613-625 (startOAuth usa data.url OK) + src/hooks/useEmail.ts:479-489 (usa data.authUrl — edge retorna {url,state}) + src/hooks/useGmailOAuthFlow.ts:184-192 (data.url OK) + edge:gmail-oauth (deployada; getAuthUrl index.ts:93-97 retorna {url,state}; exchangeCode :99-116 upsert gmail_accounts; revoke :139) + email_app.gmail_accounts=5 linhas (db_uso.txt) + gmail-tests.test.ts deployado como edge (anomalia, edges_deployadas.txt)",
+      "o_que_falta": "EmailChatInbox (rota email-chat, useEmail.ts) espera data.authUrl mas edge devolve data.url → popup nunca abre nessa UI; action 'refreshToken' inexistente (gmail-oauth só aceita getAuthUrl/exchangeCode/refresh/revoke, index.ts:86,152) → refresh manual falha nas duas UIs",
+      "esforco": "M",
+      "em_uso": "sim",
+      "obs": "5 contas reais conectadas (gmail_accounts=5) — OAuth principal funciona (useEmailManagement/useGmailOAuthFlow). Duplicação de 3 hooks OAuth com contratos divergentes (useEmail.ts quebrado)."
+    },
+    {
+      "id": "EMAIL-02",
+      "dominio": "E-MAIL",
+      "recurso": "Conectar conta IMAP/SMTP (não-Gmail)",
+      "descricao": "Suporte a provedores IMAP/SMTP genéricos (Outlook, Yahoo) via edge email-imap-bridge.",
+      "camadas": [
+        "edge",
+        "tabela"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "supabase/functions/email-imap-bridge/index.ts:7-20 (deployada; 'NOTA: requer worker externo com acesso TCP... use Nylas/EmailEngine') + contract-schemas.ts:292 (enum getProviderConfig/saveCredentials/testConnection/listProviders) + email_app.imap_smtp_accounts (20260502_create_missing_tables.sql:1687 public.imap_smtp_accounts) + 0 linhas (db_uso.txt) + NENHUMA referência em src/ (grep email-imap-bridge src/ vazio)",
+      "o_que_falta": "Sem UI, sem hook, sem chamada frontend (invoke_calls_front.txt não lista email-imap-bridge); implementação auto-declarada como simulação (HTTP-only, sem TCP); tabela imap_smtp_accounts vazia",
+      "esforco": "G",
+      "em_uso": "nao",
+      "obs": "outlook-oauth (638 linhas) também deployada sem uso frontend. docs/arquitetura/edge-auth.md:62-63 lista email-track-* como webhooks externos. Foundation apenas."
+    },
+    {
+      "id": "EMAIL-03",
+      "dominio": "E-MAIL",
+      "recurso": "Listar threads do inbox",
+      "descricao": "Listagem paginada de threads com filtro de label, star, unread, SLA e realtime.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "RPC",
+        "tabela/view",
+        "realtime"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/components/gmail/GmailInboxView.tsx:205-307 (lista+star+archive) + src/hooks/useEmailManagement.ts:323-361 loadThreads → safeClient.rpc('rpc_email_search_threads') + public.rpc_email_search_threads (20260702_email_rpc_hardening.sql:16, SECURITY DEFINER, clamp p_limit 0..200) + zapp.email_threads VIEW (20260724000042:102-113) + realtime email_app.email_threads publicado (db_realtime.txt) + subscription useEmailManagement.ts:720-752 (filter gmail_account_id) + rpc_calls_front.txt (rpc_email_search_threads, rpc_email_star_thread, rpc_email_archive_thread, rpc_email_mark_thread_read, rpc_email_assign_thread todos com GRANT authenticated em 20260506182656/20260702/20260711_400000:76)",
+      "o_que_falta": "Store vazia: email_app.email_threads=0 linhas (db_uso.txt) — edges de sync escrevem em gmail_threads (gmail-sync/index.ts:192-204), store paralela nunca lida pelo RPC; syncInbox (useEmailManagement.ts:413-415) é rejeitado pelo contrato gmail-sync@v1 (enum listThreads/syncFull/syncLabels, contract-schemas.ts:252)",
+      "esforco": "G",
+      "em_uso": "nao",
+      "obs": "FIOS QUEBRADOS: (a) gmail_* vs email_* são tabelas físicas distintas em email_app (30 tabelas) — nada migra dados entre elas; (b) action 'syncInbox' não existe no contrato gmail-sync. RPCs de thread OK e com grant."
+    },
+    {
+      "id": "EMAIL-04",
+      "dominio": "E-MAIL",
+      "recurso": "Ler mensagens de uma thread",
+      "descricao": "Carregar mensagens (body, anexos) de uma thread selecionada.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela/view",
+        "edge"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/components/email/EmailChatThread.tsx + EmailChatBubble.tsx (render) + src/hooks/useEmail.ts:213-235 loadMessages safeClient.from('email_messages').eq('thread_id',...) + zapp.email_messages VIEW (20260724000042:77-88, GRANT authenticated) + src/hooks/gmail/gmailApi.ts:35-48 fetchMessageBody (invoca gmail-sync action 'fetchMessageBody')",
+      "o_que_falta": "email_app.email_messages=0 linhas (db_uso.txt) — edges gravam gmail_messages (gmail-sync/index.ts:606, gmail-webhook:395, gmail-send:132); action 'fetchMessageBody'/'downloadAttachment' NÃO existem no gmail-sync (enum fechado contract-schemas.ts:252 → 400 do contrato antes do handler)",
+      "esforco": "G",
+      "em_uso": "nao",
+      "obs": "Mesma cisão gmail_*/email_* do EMAIL-03. EmailAttachmentPreview.tsx existe mas downloadAttachment nunca é acionado no thread."
+    },
+    {
+      "id": "EMAIL-05",
+      "dominio": "E-MAIL",
+      "recurso": "Enviar e-mail (novo/reply, CC/BCC, anexos)",
+      "descricao": "Envio via Gmail API com reply em thread, anexos base64 e CC/BCC.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "edge",
+        "tabela"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/components/email/EmailChatReplyBar.tsx:102-162 handleSend → emailSendMessage (gmailApi.ts:374-383) + edge:gmail-send action 'send' (gmail-send/index.ts:61-120, buildMime + POST /messages/send, ownership check :49-55) + edge:send-email usada por src/components/agents/InviteAgentDialog.tsx:45 (convite por email — wire real) + invoke_calls_front.txt (gmail-send, send-email)",
+      "o_que_falta": "Assinatura NUNCA anexada ao body (EmailChatReplyBar.tsx:130-141 envia só bodyHtml; gmail-send ignora campo signature); gmail_messages=0 linhas (nenhum envio persistido em prod); envio depende de token válido e refresh de token está quebrado (EMAIL-12)",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Fluxo principal tecnicamente íntegro (UI→hook→edge→Gmail API), mas sem evidência de uso real e com gaps de assinatura. Desempate conservador → Partial."
+    },
+    {
+      "id": "EMAIL-06",
+      "dominio": "E-MAIL",
+      "recurso": "Rascunhos (auto-save)",
+      "descricao": "Auto-save de rascunho a cada 30s com persistência local + Gmail Drafts.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela/view",
+        "edge"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/components/email/EmailChatReplyBar.tsx:55 (useEmailDraft auto-save) + src/hooks/useEmailDraft.ts:50-56 insert/update em zapp.email_drafts (view 20260724000042:127-138) + :58-66 emailSaveDraft → gmailApi.ts:420-432 createDraft/updateDraft (gmail-send action 'createDraft'/'updateDraft') + testes src/hooks/useEmailDraft.test.ts",
+      "o_que_falta": "gmail-send NÃO implementa 'createDraft'/'updateDraft' — handler só tem saveDraft/deleteDraft (gmail-send/index.ts:263,327; fallback :343 'Ação desconhecida' → 400) → draft do Gmail sempre falha; só o row local persiste; email_drafts=0 linhas",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Fix trivial: alinhar action names (createDraft/updateDraft → saveDraft com draftId) ou adicionar aliases no handler."
+    },
+    {
+      "id": "EMAIL-07",
+      "dominio": "E-MAIL",
+      "recurso": "Labels (sistema + personalizadas)",
+      "descricao": "Sidebar de labels do Gmail com sync a partir da API.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela/view",
+        "edge"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/components/gmail/GmailLabelSidebar.tsx:73-165 (INBOX/STARRED/SENT... + botão 'Sincronizar labels' :151-160) + src/hooks/useGmailLabels.ts:34-36 lê zapp.email_labels + :57-59 syncLabels → gmail-sync 'syncLabels' (implementado gmail-sync/index.ts:283-332, upsert gmail_labels :321-326) + zapp.email_labels VIEW (20260724000042:152-163)",
+      "o_que_falta": "syncLabels grava email_app.gmail_labels, mas a UI lê email_app.email_labels — store mismatch (mesma cisão EMAIL-03); action 'listLabels' do gmailApi.ts:147-154 não existe no contrato gmail-sync; 0 linhas nas duas tabelas",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "System labels são hardcoded (SYSTEM_LABELS useGmailLabels.ts:15-23) — funcionam sem DB; labels customizadas nunca chegam."
+    },
+    {
+      "id": "EMAIL-08",
+      "dominio": "E-MAIL",
+      "recurso": "Assinaturas de e-mail",
+      "descricao": "Assinatura padrão por conta, preview no editor de resposta.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela/view"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/components/email/EmailChatReplyBar.tsx:54-65 (preview + seleção da default) + src/hooks/email/useEmailSignature.ts:30-38 CRUD em zapp.email_signatures + zapp.email_signatures VIEW (20260724000042:177-188, GRANT authenticated)",
+      "o_que_falta": "Sem tela de gestão: save/remove/setDefault (useEmailSignature.ts:40-109) não são chamados por NENHUMA UI (grep src/components); email_signatures=0 linhas; assinatura não entra no corpo do envio (EMAIL-05)",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Hook completo (CRUD + default) existe; falta UI de configuração e anexação no send."
+    },
+    {
+      "id": "EMAIL-09",
+      "dominio": "E-MAIL",
+      "recurso": "Templates de e-mail",
+      "descricao": "Reutilizar templates de e-mail no editor (como MessageTemplates do WhatsApp).",
+      "camadas": [
+        "tabela/view"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "email_app.email_templates / zapp.email_templates (src/integrations/supabase/types.ts:58048) + public.email_templates (20260502_create_missing_tables.sql:1609) + 0 linhas (db_uso.txt)",
+      "o_que_falta": "ZERO referências em src/ (grep email_templates src/ vazio fora de types.ts) — sem UI, sem hook, sem RPC; MessageTemplates.tsx (features/inbox) é de WhatsApp (message_templates), não de e-mail",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Backend-only: tabela física + view zapp exposta, nada consome."
+    },
+    {
+      "id": "EMAIL-10",
+      "dominio": "E-MAIL",
+      "recurso": "Tracking de abertura (pixel)",
+      "descricao": "Pixel 1x1 que registra abertura de e-mail (IP, UA, self-open) em email_tracking_events.",
+      "camadas": [
+        "edge",
+        "RPC",
+        "tabela",
+        "cron",
+        "realtime"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "edge:email-track-pixel (deployada; index.ts:74-133 GET com GIF 1x1, rpc_email_register_open :114, anti-cache, detecção bot) + public.rpc_email_register_open (20260725000001_create_zapp_views_for_missing_edge_function_tables_batch2.sql) + rpc_email_tracking_stats (20260704160000:123, GRANT :192) + email_tracking_events/email_tracked_messages (types.ts:58204,58282) + cron email_tracking_cleanup_weekly (db_crons.txt:9) → ops.fn_email_tracking_cleanup (20260727300013:32) + email_app.email_tracking_events na publication (db_realtime.txt)",
+      "o_que_falta": "Nenhuma UI/frontend (invoke_calls_front.txt não lista; grep src/ vazio); gmail-send NÃO injeta pixel em mensagens enviadas (buildMime gmail-send/index.ts:434+ sem tracking_id) → feature inutilizável fim-a-fim; email_tracked_messages/email_tracking_events=0 linhas",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Backend 100% pronto (edge+RPC+cron+realtime). Falta orquestração: gerar tracking_id no send, embeber pixel e UI de relatório (rpc_email_tracking_stats/rpc_email_tracking_daily_series já existem)."
+    },
+    {
+      "id": "EMAIL-11",
+      "dominio": "E-MAIL",
+      "recurso": "Tracking de clique (links)",
+      "descricao": "Rewrite de links com redirect via edge que registra clique em email_link_click_events.",
+      "camadas": [
+        "edge",
+        "RPC",
+        "tabela"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "edge:email-track-link (deployada; index.ts:64 rpc_email_register_click) + email_link_click_events (types.ts) + 0 linhas (db_uso.txt)",
+      "o_que_falta": "Sem UI/frontend; nenhum link é reescrito no envio (gmail-send não processa links); tabelas vazias; sem testes",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Mesmo padrão do pixel: edge real, orquestração ausente."
+    },
+    {
+      "id": "EMAIL-12",
+      "dominio": "E-MAIL",
+      "recurso": "Revalidação de credencial / refresh de token",
+      "descricao": "Refresh automático/manual de OAuth token e jobs de revalidação do schema.",
+      "camadas": [
+        "UI",
+        "hook",
+        "edge",
+        "RPC",
+        "tabela",
+        "realtime"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "UI aviso 'Token expirado' (GmailInboxView.tsx:141-146) + AdminEmailStatusPage.tsx:81-84 'Forçar Revalidação' + src/hooks/useGmailOAuthFlow.ts:104-146 refreshNow/checkAndRefresh (auto 5min) + edge:gmail-token-refresh (index.ts:85-97 default action='refreshAll' exige service-role/cron; refreshSingle :113 com JWT) + edge:gmail-oauth action 'refresh' (:118-137) + gmail_revalidation_jobs=5 linhas (db_uso.txt) + rpc_check_and_trigger_gmail_revalidation (20260502191743)",
+      "o_que_falta": "FIOS QUEBRADOS: (a) emailRefreshToken (gmailApi.ts:220-230) invoca gmail-token-refresh SEM action → default refreshAll → requireServiceRoleOrCron rejeita JWT de usuário → 401 (gmail-token-refresh/index.ts:85-97); (b) useEmail.refreshToken envia action 'refreshToken' → gmail-oauth responde 400 'Ação desconhecida' (:152); (c) AdminEmailStatusPage POST em /functions/v1/email-health (useEmailHealthStatus.ts:173) — edge INEXISTENTE (só gmail-health deployada) → 404",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Jobs de revalidação rodam (5 jobs) e cron security_acl_email_check a cada 30min (db_crons.txt:67). Fix: trocar para action 'refreshSingle' + renomear endpoint email-health→gmail-health."
+    },
+    {
+      "id": "EMAIL-13",
+      "dominio": "E-MAIL",
+      "recurso": "Health check do e-mail (admin)",
+      "descricao": "Painel admin de status do schema email: contas ativas, falhas por requestId, revalidação, auditoria de jobs.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "RPC",
+        "edge",
+        "tabela",
+        "realtime"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/pages/admin/AdminEmailStatusPage.tsx (rota /admin/email-status, AdminRoutes.tsx:219) + AdminEmailAuditPage.tsx (AdminRoutes.tsx:227) + src/components/gmail/GmailStatusPanel.tsx (DiagnosticsView.tsx:20) + EmailWebhookMonitor (features/admin, get_own_email_accounts :34) + src/hooks/useGmailHealth.ts:19 → emailHealthService.getHealthStatus → rpc_get_email_health_summary (emailHealthRepository.ts:11; 20260704160000:13 + GRANT :41) + edge:gmail-health (deployada; auto_check :31 rpc_check_and_trigger_gmail_revalidation, revalidate :42, lê gmail_health_summary/gmail_health_logs) + DADOS REAIS: gmail_health_logs=55, gmail_revalidation_jobs=5, zapp.email_health_logs=85, zapp.email_health_summary=1 (db_uso.txt)",
+      "o_que_falta": "FIOS QUEBRADOS: (a) fetch primário GET /functions/v1/email-health (useEmailHealthStatus.ts:57-65) → edge inexistente → 404 e fallback silencioso p/ rpc_get_email_health_summary (funciona); (b) realtime subscribe em email_app.email_health_summary + email_app.email_revalidation_jobs (useEmailHealthStatus.ts:120-160) — NÃO publicados (publication tem zapp.email_health_summary e zapp.email_revalidation_jobs, db_realtime.txt) → painel nunca atualiza via WAL",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "Único recurso do domínio com dados reais em produção. Fallback RPC funciona; corrigir nome da edge e schema do realtime fecha o fio."
+    },
+    {
+      "id": "EMAIL-14",
+      "dominio": "E-MAIL",
+      "recurso": "Buscar e-mails",
+      "descricao": "Busca local (FTS no banco) + remota (API Gmail) com debounce e dedupe.",
+      "camadas": [
+        "UI",
+        "hook",
+        "RPC",
+        "tabela/view",
+        "edge"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "src/components/email/EmailSearchBar.tsx:19 (EmailChatInbox.tsx:107) + src/hooks/useEmailSearch.ts:45-56 local safeClient.from('email_threads').textSearch('subject', ...) + :84-85 remote emailListThreads → gmail-sync 'listThreads' (implementado gmail-sync/index.ts:92-221, upsert em gmail_threads) + rpc_email_search_threads p_query ILIKE subject/snippet (20260702_email_rpc_hardening.sql:16) + rpc_log_search_event/rpc_record_search_click (rpc_calls_front.txt)",
+      "o_que_falta": "textSearch('subject') exige coluna tsvector — subject é text na view zapp.email_threads (SELECT * de email_app.email_threads, 20260724000042:102) → risco de erro PostgREST 42883/22P02 (confiança baixa, não verificado no live); store vazia (0 linhas) → busca local nunca retorna nada; busca remota grava em gmail_threads (store morta do ponto de vista da UI)",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Busca local por ILIKE via rpc_email_search_threads (p_query) funcionaria se houvesse dados; o caminho .textSearch() é suspeito."
+    },
+    {
+      "id": "FILAS-04",
+      "dominio": "FILAS/SLA/AGENTES",
+      "recurso": "Routing rules (fila/canal)",
+      "descricao": "Regras de roteamento de contatos para filas/canais.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "Canal: UI OmnichannelManager->ChannelRoutingRules (src/components/omnichannel/ChannelRoutingRules.tsx:10) + useChannelRoutingRules->useChannelRoutingRulesManagement (src/hooks/omnichannel/useOmnichannelManagement.ts:147,175 safeClient.from('channel_routing_rules')) + zapp.channel_routing_rules (db_tabelas_zapp.txt). Fila: zapp.queue_routing_rules existe (db_tabelas_zapp.txt) mas ZERO referencias em src/ e supabase/functions/ (grep verificado)",
+      "o_que_falta": "Tabela zapp.queue_routing_rules (routing rules de FILA) sem nenhum consumidor front/edge; feature vive apenas no nivel canal.",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Ambas as tabelas com 0 linhas. queue_routing_rules e orfã - ou conectar ao queue-rebalance/roteador ou remover."
+    },
+    {
+      "id": "FILAS-12",
+      "dominio": "FILAS/SLA/AGENTES",
+      "recurso": "Presenca do agente",
+      "descricao": "Status online/away/offline do agente e performance (chats ativos).",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela",
+        "cron",
+        "realtime"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "UI AgentPerformancePanel (src/components/dashboard/AgentPerformancePanel.tsx) + useAgentPerformanceRanking (src/hooks/useAgentPerformanceRanking.ts:44 agent_stats) + useAgents/agentService (src/features/admin/services/agentService.ts:17-26 - status por HEURISTICA de profiles.updated_at, nao por agent_presence) + zapp.agent_stats=19 linhas (db_uso.txt) + cron auto-offline-agents live (db_crons.txt) + realtime zapp.agent_presence publicada (db_realtime.txt) SEM consumidor front",
+      "o_que_falta": "zapp.agent_presence (realtime publicada) sem nenhum subscriber em src/ (grep verificou zero); zapp.agents sem uso; definicao do cron auto-offline-agents fora do repo (drift).",
+      "esforco": "M",
+      "em_uso": "sim",
+      "obs": "agent_stats tem 19 linhas reais (gamificacao/ranking usam); presenca em tempo real e ignorada pela UI - status e estimado por lastActivity."
+    },
+    {
+      "id": "FILAS-13",
+      "dominio": "FILAS/SLA/AGENTES",
+      "recurso": "Atribuicao automatica / rebalanceamento",
+      "descricao": "Rebalancear contatos entre agentes por sobrecarga/ausencia e rebalanceamento automatico.",
+      "camadas": [
+        "UI",
+        "hook",
+        "RPC",
+        "edge",
+        "cron"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "Manual OK: QueueSlaPanel botao rebalance -> rpc_queue_rebalance_candidates (src/hooks/useQueueManagement.ts:376; definida+grant em archive/20260724000038:174,192) + reassign_absent/overloaded_agents (useAgentReassignment.ts:24,43; grants em archive/20260724000034:26,48) + UI AgentReassignmentPanel (src/features/inbox/components/AgentReassignmentPanel.tsx, renderizado em WarRoomDashboard). Automatico QUEBRADO: edge queue-rebalance deployado (edges_deployadas.txt) + cron queue-rebalance-every-5min programado (canonical_schema.sql:178-198) mas AUSENTE dos 146 jobs live (db_crons.txt)",
+      "o_que_falta": "Cron queue-rebalance-every-5min nao existe em producao (snapshot 2026-08-04) - rebalanceamento automatico via edge nao dispara; so o botao manual (RPC) funciona.",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "fn_resolve_agent_for_routing (backend, usa sticky_assignments) existe em migrations archive. Todas as tabelas queue_* com 0 linhas."
+    },
+    {
+      "id": "FILAS-14",
+      "dominio": "FILAS/SLA/AGENTES",
+      "recurso": "Transferencia com comentario",
+      "descricao": "Transferir conversa para agente/fila registrando comentario e historico.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela",
+        "realtime",
+        "RPC"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "UI TransferDialog (src/features/inbox/components/TransferDialog.tsx:29,59) + useTransferConversation (src/features/inbox/hooks/useTransferConversation.ts:50,64 - atualiza contacts.assigned_to/queue_id e insere mensagem em messages; NUNCA toca conversation_transfers/transfer_comments) + admin OpsTransfersTab -> useTransfersPaginated -> rpc_list_transfers_paginated (src/features/admin/hooks/monitoring/useTransfersPaginated.ts:55; definido archive/20260724000049) le zapp.conversation_transfers + realtime zapp.conversation_transfers e zapp.transfer_comments publicados (db_realtime.txt) SEM consumidor",
+      "o_que_falta": "Fluxo de transferencia nao escreve em conversation_transfers nem transfer_comments - o historico pago (rpc_list_transfers_paginated/OpsTransfersTab) le tabelas que nunca recebem INSERT; realtime nas 2 tabelas e morto.",
+      "esforco": "G",
+      "em_uso": "nao",
+      "obs": "FIO QUEBRADO: escritor (useTransferConversation) e leitor (OpsTransfersTab) divergem. fn_complete_transfer (uuid,text,text) existe com grant (canonical_schema.sql:16356) mas nao e chamada pelo front."
+    },
+    {
+      "id": "IA-07",
+      "dominio": "IA/VOZ/AUDIO",
+      "recurso": "Resumo de conversa",
+      "descricao": "Resumo automático da conversa com TTS de leitura.",
+      "camadas": [
+        "UI",
+        "edge",
+        "tabela"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "SummaryTab em AIConversationAssistant (ChatToolPanels.tsx:55) via edge ai-conversation-analysis (AIConversationAssistant.tsx:106, retorna summary) + edge:ai-conversation-summary deployada MAS sem invoke no front (só labels em useAIUsageDashboard.ts:41,51 e docs featuresSectionsData.ts:358) + zapp.conversation_summaries só em types.ts (sem uso)",
+      "o_que_falta": "Edge dedicada ai-conversation-summary órfã (nunca invocada); tabela conversation_summaries sem leitura/escrita no front; resumo só chega como subproduto da análise.",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "conversation_analyses (0 linhas) é a persistência real da análise+resumo."
+    },
+    {
+      "id": "IA-14",
+      "dominio": "IA/VOZ/AUDIO",
+      "recurso": "Agente de voz",
+      "descricao": "Agente que interpreta transcrição de voz e devolve ação/resposta.",
+      "camadas": [
+        "UI",
+        "edge"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "edge:voice-agent deployada + src/features/inbox/hooks/voice/processTranscript.ts:13 (POST /functions/v1/voice-agent) MAS processVoiceTranscript SEM nenhum caller em produção (grep só acha definição/export) + VoiceSearchOverlayConnected.tsx (AppShell.tsx:21) usa useVoiceAgent = estado local (Web Speech API), sem chamada backend",
+      "o_que_falta": "Fio quebrado: edge voice-agent existe mas nunca é invocada pela UI; overlay de voz usa apenas SpeechRecognition local.",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "processVoiceTranscript exportado mas órfão (código morto)."
+    },
+    {
+      "id": "IA-15",
+      "dominio": "IA/VOZ/AUDIO",
+      "recurso": "Copiloto de voz",
+      "descricao": "Comandos de voz para navegação/ações no app.",
+      "camadas": [
+        "UI"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "useVoiceActionHandler.ts (AppShell.tsx:80) — handler LOCAL (só seta lastAction, sem backend) + edge:voice-copilot-action deployada MAS zero referências em src/ (grep vazio) + logVoiceCommand.ts:27 grava voice_command_logs via REST cru, porém sem callers (código morto)",
+      "o_que_falta": "Edge voice-copilot-action órfã (nunca invocada); handler é stub local; escrita em voice_command_logs morta.",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "voice_command_logs com 0 linhas."
+    },
+    {
+      "id": "INBOX-07",
+      "dominio": "INBOX/CONVERSAS/MENSAGENS",
+      "recurso": "Snooze conversa",
+      "descricao": "Adiar conversa (1h/3h/amanhã/próxima semana) persistindo em conversation_snoozes.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "src/features/inbox/components/ConversationContextMenu.tsx:208-234 (menu Snooze 1h/3h/tomorrow/nextweek) + src/hooks/useConversationManagement.ts:78-81 (loadSnoozed) e :205 (upsert) + src/features/inbox/components/chat/useChatPanelHandlers.ts:442-453 (slash /snooze insere conversation_snoozes) + zapp.conversation_snoozes (types.ts:18774)",
+      "o_que_falta": "ConversationList.tsx:254 renderiza ConversationContextMenu SEM passar onSnooze -> itens do menu de snooze são cliques mortos na lista principal; só o slash /snooze escreve. Nada lê conversation_snoozes para filtrar/ocultar conversas adiadas (loadSnoozed carrega IDs mas nenhum componente consome).",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "Fio quebrado parcial: escrita OK via slash, UI de menu desconectada e sem efeito na lista."
+    },
+    {
+      "id": "INBOX-08",
+      "dominio": "INBOX/CONVERSAS/MENSAGENS",
+      "recurso": "Fechar conversa",
+      "descricao": "Encerrar conversa registrando motivo em conversation_closures e arquivando o contato (soft-delete).",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela",
+        "edge"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "src/features/inbox/components/CloseConversationDialog.tsx:87-91 (insert conversation_closures com close_reason) + src/features/inbox/hooks/useArchiveConversationActions.ts:17-25 (useArchiveContact -> contacts.deleted_at) + edge auto-close-conversations DEPLOYADA",
+      "o_que_falta": "Status 'resolved' do ticket é só overlay localStorage (ticketStore.ts:19; useTicketStatus.ts:29-32 setStatus) — não persiste; o status da conversa em evo.evolution_conversations ('aberta'/'arquivada') nunca é alterado pela UI; edge auto-close-conversations não é invocada pelo front (fora de invoke_calls_front.txt) nem por cron; conversation_closures sem linhas em db_uso.",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Arquivar contato funciona (soft-delete via view), mas o 'fechamento' canônico (status da conversa + closures) não tem fio completo."
+    },
+    {
+      "id": "INBOX-09",
+      "dominio": "INBOX/CONVERSAS/MENSAGENS",
+      "recurso": "CSAT pós-conversa",
+      "descricao": "Pesquisas de satisfação: CRUD de surveys, dashboard e auto-config por conexão.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela",
+        "edge"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "src/hooks/useCSAT.ts:60-61 (select csat_surveys), :98 (insert) + src/hooks/useCSATAutoConfig.ts:24,63-68 (csat_auto_config CRUD) + src/components/csat/CSATDashboard.tsx renderizado em src/components/dashboard/DashboardView.tsx + edge nps-scheduler DEPLOYADA + zapp.csat_surveys/csat_auto_config (types.ts:19500)",
+      "o_que_falta": "zapp.csat_responses nunca é escrita pelo front (só types.ts) — coleta de respostas pós-conversa não conectada; edge nps-scheduler deployada mas sem invocador (não está em invoke_calls_front.txt nem em db_crons.txt); sem envio de pesquisa ao cliente.",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Dashboard e configuração existem; o loop de coleta de resposta (nps/csat_responses) está morto."
+    },
+    {
+      "id": "INBOX-12",
+      "dominio": "INBOX/CONVERSAS/MENSAGENS",
+      "recurso": "Atribuir / transferir conversa",
+      "descricao": "Transferir conversa para agente ou fila (persistente) e atribuição automática sticky/round-robin.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela/view",
+        "edge"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "src/features/inbox/hooks/useTransferConversation.ts:50 (update contacts.assigned_to/queue_id), :64-72 (insert mensagem de sistema) + ChatPanel.tsx:341 (handleTransfer) + TransferDialog + src/features/inbox/hooks/useTicketStatus.ts:54-59 (invoke edge ticket-router com apply:false) + src/lib/inbox/ticketStore.ts:19 (overlay localStorage) + edge ticket-router DEPLOYADA",
+      "o_que_falta": "Transferência manual persiste em contacts.assigned_to (fio OK), mas zapp.conversation_transfers (na publication!) e zapp.transfer_comments NUNCA são escritas pelo front (0 uso, só types.ts/webhook schemas); atribuição automática (ticket-router) roda com apply:false -> resultado só em overlay localStorage, não persiste; rpc_list_transfers_paginated só usada em admin (src/features/admin/hooks/monitoring/useTransfersPaginated.ts:55).",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Fios quebrados: auditoria canônica de transferência órfã + auto-atribuição não persistida."
+    },
+    {
+      "id": "INBOX-15",
+      "dominio": "INBOX/CONVERSAS/MENSAGENS",
+      "recurso": "Mensagens agendadas",
+      "descricao": "Agendar envio futuro por contato com calendário, listagem e cancelamento.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "src/hooks/useScheduledMessages.ts:73-84 (insert scheduled_messages), :103-107 (cancel) + rota 'schedule' -> ScheduleCalendarView (src/pages/ViewRouter.tsx:108, src/pages/lazyViews.ts:71) + ChatPanel.tsx (agendamento) + zapp.scheduled_messages (types.ts:35393)",
+      "o_que_falta": "NENHUM worker envia as mensagens: db_crons.txt (146 jobs) não tem cron de scheduled_messages, nenhuma edge é invocada para disparo (invoke_calls_front.txt não lista), e evo.evolution_scheduled_messages (types.ts:10150) não é usada. scheduled_messages sem linhas em db_uso.",
+      "esforco": "G",
+      "em_uso": "nao",
+      "obs": "Fio quebrado crítico: agendamento persiste mas nunca dispara — falta worker (cron ou edge)."
+    },
+    {
+      "id": "SEGURANCA-01",
+      "dominio": "SEGURANCA/COMPLIANCE/ADMIN",
+      "recurso": "Login com 2FA",
+      "descricao": "MFA TOTP: enroll/verify/unenroll e challenge no login",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/features/auth/hooks/useMFA.ts:34-114 (supabase.auth.mfa.*) + src/components/routing/AppRoutes.tsx:78 (/2fa) + zapp.mfa_sessions",
+      "o_que_falta": "Nenhum navigate('/2fa') no codebase; login (Auth.tsx/useAuthForm) não trata challenge MFA obrigatório — só enrollment; mfa_sessions 0 linhas",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Implementação real, fluxo de login incompleto."
+    },
+    {
+      "id": "SEGURANCA-04",
+      "dominio": "SEGURANCA/COMPLIANCE/ADMIN",
+      "recurso": "Bloqueio de IP / whitelist",
+      "descricao": "CRUD de IPs bloqueados e whitelist",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela",
+        "edge"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "useBlockedIPs/useBlockedIPMutations → zapp.blocked_ips + useIPWhitelist → zapp.ip_whitelist + RLS blocked_ips_admin_select (20260801000002:18) + edge send-rate-limit-alert insere em blocked_ips",
+      "o_que_falta": "Enforcement: login-attempts e demais edges nunca consultam blocked_ips; whitelist sem uso",
+      "esforco": "G",
+      "em_uso": "nao",
+      "obs": "Dados+CRUD ok, sem bloqueio efetivo no login."
+    },
+    {
+      "id": "SEGURANCA-05",
+      "dominio": "SEGURANCA/COMPLIANCE/ADMIN",
+      "recurso": "Geo-blocking",
+      "descricao": "Bloqueio por país (settings + listas)",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "useGeoBlocking → zapp.geo_blocking_settings + zapp.allowed_countries + zapp.blocked_countries",
+      "o_que_falta": "Nenhuma edge verifica país no login; 0 linhas",
+      "esforco": "G",
+      "em_uso": "nao",
+      "obs": "UI/CRUD ok, sem enforcement."
+    },
+    {
+      "id": "SEGURANCA-09",
+      "dominio": "SEGURANCA/COMPLIANCE/ADMIN",
+      "recurso": "ACL de e-mail",
+      "descricao": "Alertas de ACL de contas de e-mail por cron",
+      "camadas": [
+        "tabela",
+        "cron"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "cron security_acl_email_check (db_crons:67) + zapp.security_acl_alerts=2189 linhas + migrations RPC ACL (20260709→20260801)",
+      "o_que_falta": "Zero referências no front — alerta cego, sem UI",
+      "esforco": "M",
+      "em_uso": "sim",
+      "obs": "2189 alertas gerados sem consumidor."
+    },
+    {
+      "id": "SEGURANCA-10",
+      "dominio": "SEGURANCA/COMPLIANCE/ADMIN",
+      "recurso": "LGPD (consentimento, export, deleção)",
+      "descricao": "UI de compliance, export de dados e solicitação de deleção",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "RPC",
+        "edge"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "LGPDComplianceView + rota privacy + RPCs log_audit_event reais + edge lgpd-scheduled-jobs deployado",
+      "o_que_falta": "Export bloqueado por policy (toast); deleção só loga gdpr_deletion_request — não insere em zapp.data_deletion_requests (0 linhas); RPCs get/grant/revoke_lgpd_consent só no rpcCatalog, sem consumidor",
+      "esforco": "G",
+      "em_uso": "nao",
+      "obs": "Deleção fictícia (só audit)."
+    },
+    {
+      "id": "SEGURANCA-14",
+      "dominio": "SEGURANCA/COMPLIANCE/ADMIN",
+      "recurso": "Feature flags / kill switches",
+      "descricao": "Flags de feature e kill switches",
+      "camadas": [
+        "hook",
+        "tabela"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/lib/featureFlags.ts:93-130 lê app_settings (like feature_%) e nunca zapp.feature_flags (6 linhas, na publication) + migration 20260801040006 confirma 'front não consome feature_flags' + zapp.system_kill_switches=1 linha",
+      "o_que_falta": "loadFeatureFlags() nunca é chamado (flagCache sempre null → defaults); system_kill_switches sem consumidor; kill-switch do SwDebugWidget é debug de SW, não a tabela",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Flags vivem de defaults hardcoded."
+    },
+    {
+      "id": "WHATSAPP-05",
+      "dominio": "EVOLUTION/WHATSAPP",
+      "recurso": "Templates WhatsApp (HSM)",
+      "descricao": "Gerencia templates de mensagem (HSM) com UI de catálogo e edge de templates.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "tabela",
+        "edge"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/hooks/useWhatsAppTemplates.ts:93/136/142/160 (CRUD zapp.whatsapp_templates) + src/components/catalog/WhatsAppTemplatesManager.tsx + ViewRouter.tsx:110 ('wa-templates') + zapp.whatsapp_templates (0 linhas — ausente no db_uso.txt) + edge:evolution-templates (200, '0 templates' — auditoria-edge-functions.md)",
+      "o_que_falta": "Sem dados (0 templates em zapp.whatsapp_templates); edge evolution-templates nunca é invocada pelo front (0 matches em src/); UI e edge são mundos desconectados.",
+      "esforco": "P",
+      "em_uso": "nao",
+      "obs": "UI funcional (CRUD na tabela), mas recurso ocioso: nenhum template cadastrado e edge órfã."
+    },
+    {
+      "id": "WHATSAPP-06",
+      "dominio": "EVOLUTION/WHATSAPP",
+      "recurso": "Cloud API Meta (modo oficial WhatsApp Business)",
+      "descricao": "Modo oficial via Graph API: switch de modo, credenciais, webhook Meta, envio e verificação de secrets.",
+      "camadas": [
+        "UI",
+        "rota",
+        "hook",
+        "edge",
+        "RPC",
+        "tabela",
+        "realtime"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/pages/admin/useAdminWhatsAppMode.ts:35 (whatsapp-cloud-secrets-status), :52 (whatsapp-cloud-webhook-verify), :76 (rpc rpc_set_whatsapp_mode) + src/components/connections/OfficialApiConfigDialog.tsx:161 (whatsapp-cloud-api) + src/lib/whatsappAdapter.ts:76 (whatsapp-cloud-send) + whatsappAdapterTransport.ts:44 + AdminRoutes.tsx:203/211 (/admin/whatsapp-mode, /admin/whatsapp-logs) + zapp.whatsapp_cloud_webhook_pings=173 + zapp.whatsapp_official_credentials (0 linhas) + edge:whatsapp-webhook ❌500 'Configuration error' (auditoria-edge-functions.md)",
+      "o_que_falta": "Sem credencial oficial ativa (whatsapp_official_credentials=0; 3 conexões em modo evolution); legacy whatsapp-webhook com 500; whatsapp-cloud-send só POST (405 em GET, esperado). Infra pronta, sem uso produtivo.",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "173 pings de webhook (handshakes Meta registrados) provam que o endpoint recebe tráfego, mas envio oficial sem dados; RPC rpc_set_whatsapp_mode no rpc_calls_front.txt."
+    },
+    {
+      "id": "WHATSAPP-10",
+      "dominio": "EVOLUTION/WHATSAPP",
+      "recurso": "Follow-up automático de conversas",
+      "descricao": "Sequências de follow-up com atraso por passo, executadas por edge/cron.",
+      "camadas": [
+        "UI",
+        "hook",
+        "tabela",
+        "edge"
+      ],
+      "status": "Partial",
+      "confianca": "media",
+      "evidencias": "src/hooks/followup/useFollowUpSequences.ts:36-39 (CRUD zapp.followup_sequences/followup_steps) + src/components/settings/FollowUpSequences.tsx + FollowUpExecutionsHistory.tsx (SettingsView) + zapp.followup_sequences (0 linhas) + edge:evolution-followup (200 v3, saudável — auditoria-edge-functions.md) + evo.evolution_followup_rules=4",
+      "o_que_falta": "UI gerencia sequências locais (0 linhas) enquanto a edge evolution-followup lê evo.evolution_followup_rules — nunca invocada pelo front (0 matches em src/); dois mundos desconectados e sem dados no app.",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "Colunas follow_up_at/follow_up_done existem nas mensagens (useExternalEvolution.ts:312), mas fluxo ponta-a-ponta não demonstrado."
+    },
+    {
+      "id": "WHATSAPP-12",
+      "dominio": "EVOLUTION/WHATSAPP",
+      "recurso": "Bloqueio/pausa de instância",
+      "descricao": "Pausa/despausa instâncias problemáticas e audita eventos de autenticação.",
+      "camadas": [
+        "UI",
+        "hook",
+        "edge",
+        "tabela",
+        "teste"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "src/pages/AdminInstancePausesPage.tsx:27 (invoke instance-pause-control: list/pause/unpause/history) + edge:instance-pause-control (deployada) + zapp.instance_processing_pauses=6 + zapp.instance_auth_events=2509 + src/pages/lazyViews.ts:133 (export órfão) + sidebarNavConfig.ts:155 (id 'instance-pauses')",
+      "o_que_falta": "UI ÓRFÃ: AdminInstancePausesPage exportada em lazyViews.ts:133 mas AUSENTE do VIEW_MAP (src/pages/ViewRouter.tsx) — nenhuma referência em ViewRouter/AdminRoutes; o item de sidebar 'instance-pauses' não renderiza componente. Edge e dados ok, página inalcançável.",
+      "esforco": "P",
+      "em_uso": "sim",
+      "obs": "6 pausas registradas = mecanismo já atuou em produção; falta apenas rotear a página (fio de 1 linha)."
+    },
+    {
+      "id": "WHATSAPP-14",
+      "dominio": "EVOLUTION/WHATSAPP",
+      "recurso": "Automações auxiliares Evolution (chatbot, sentiment, bitrix-sync)",
+      "descricao": "Edges de automação sobre os dados do WhatsApp: chatbot, análise de sentimento e sync Bitrix24.",
+      "camadas": [
+        "edge",
+        "tabela",
+        "UI"
+      ],
+      "status": "Partial",
+      "confianca": "alta",
+      "evidencias": "edge:evolution-chatbot ❌500 'Unexpected end of JSON input' + evolution-sentiment ❌404 'Endpoint não encontrado' + evolution-bitrix-sync ❌503 'BITRIX_WEBHOOK_URL ausente' (docs/audits/history/auditoria-edge-functions.md:51-53) + evo.evolution_chatbot_responses=3 + evo.evolution_bitrix_field_mapping=11 + NENHUMA invocação no front (0 matches) + alternativas app: ChatbotFlowsView (ViewRouter 'chatbot'), SentimentAlertsDashboard (view 'sentiment'), useBitrixApiManagement.ts:79",
+      "o_que_falta": "As 3 edges estão deployadas porém quebradas (500/404/503) e sem qualquer consumidor no front; o app tem implementações próprias (zapp.chatbot_flows 0 linhas, ai_sentiment em contact_intelligence) que não usam essas edges.",
+      "esforco": "M",
+      "em_uso": "nao",
+      "obs": "evo.evolution_sentiment_analysis e evolution_realtime_events na publication, mas sem produtor ativo evidenciado; chatbot do app usa tabelas próprias (zapp.chatbot_flows/executions — types.ts)."
+    },
+    {
+      "id": "AUTOMACOES-13",
+      "dominio": "AUTOMACOES/CHATBOT/FOLLOW-UP",
+      "recurso": "Feriados",
+      "descricao": "Calendário de feriados para business hours",
+      "camadas": [
+        "tabela"
+      ],
+      "status": "Suggested",
+      "confianca": "alta",
+      "evidencias": "evo.evolution_holidays=11 (db_uso) + menção textual em supabase/migrations/20260804000000_canonical_schema.sql:6975 (lista evolution_holidays como user-configurable)",
+      "o_que_falta": "Nenhuma UI/hook/edge no repo (grep 'holiday' em src só achou types.ts)",
+      "esforco": "M",
+      "em_uso": "sim",
+      "obs": "Só evidência textual + tabela evo com dados; sem camada de app."
+    }
+  ],
+  "erros_consolidacao": []
+}

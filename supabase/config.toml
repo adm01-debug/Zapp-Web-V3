@@ -19,6 +19,9 @@ verify_jwt = true
 [functions.ai-transcribe-audio]
 verify_jwt = true
 
+[functions.audio-transcribe]
+verify_jwt = true
+
 [functions.get-mapbox-token]
 verify_jwt = true
 

@@ -97,18 +97,18 @@ Deno.test("Contract: VoiceAgent — transcript tipo errado (array) deve falhar",
   assertEquals(result.success, false);
 });
 
-// ─── Ancoragem na fonte (o schema real é inline no index.ts) ────────────────
+// ─── Ancoragem na fonte (contrato canônico em _shared/schemas.ts + parseOrReject) ───
 
-Deno.test("Contract: VoiceAgent — index.ts declara TranscriptSchema com min(1)/max(2000)/trim", () => {
-  assertMatch(SOURCE, /const TranscriptSchema = z\.object\(\{/);
-  assertMatch(SOURCE, /transcript: z\.string\(\)\.min\(1\)\.max\(2000\)\.transform\(s => s\.trim\(\)\)/);
+Deno.test("Contract: VoiceAgent — CONTRACT_SCHEMAS registra VoiceAgentV1Schema (min(1)/max(2000) strict)", () => {
+  assertMatch(SOURCE, /parseOrReject\('voice-agent', CONTRACT_SCHEMAS\['voice-agent'\], req, body/);
+  assertMatch(SOURCE, /if \(!parsed\.ok\) return parsed\.response/);
 });
 
-Deno.test("Contract: VoiceAgent — index.ts valida via TranscriptSchema.safeParse", () => {
-  assertMatch(SOURCE, /TranscriptSchema\.safeParse\(body\)/);
-  assertMatch(SOURCE, /parsed\.error\.flatten\(\)\.fieldErrors/);
+Deno.test("Contract: VoiceAgent — index.ts valida via parseOrReject (envelope 422 unificado)", () => {
+  assertMatch(SOURCE, /const parsed = parseOrReject/);
+  assertMatch(SOURCE, /parsed\.data as Record<string, any>/);
 });
 
-Deno.test("Contract: VoiceAgent — falha de validação responde 400", () => {
-  assertMatch(SOURCE, /errorResponse\(JSON\.stringify\(parsed\.error\.flatten\(\)\.fieldErrors\), 400, req\)/);
+Deno.test("Contract: VoiceAgent — falha de validação responde via envelope do contrato (422)", () => {
+  assertMatch(SOURCE, /Gate de contrato \(VoiceAgentV1Schema estrito\) — envelope 422 unificado/);
 });
