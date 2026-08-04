@@ -9890,63 +9890,82 @@ BEGIN;
 
 -- audit_logs: admin/dev SELECT + próprio usuário
 DROP POLICY IF EXISTS auth_full_access ON zapp.audit_logs;
+DROP POLICY IF EXISTS "audit_logs_admin_select" ON zapp.audit_logs;
 CREATE POLICY audit_logs_admin_select ON zapp.audit_logs FOR SELECT TO authenticated
   USING (zapp.has_role(auth.uid(),'admin') OR zapp.has_role(auth.uid(),'dev'));
+DROP POLICY IF EXISTS "audit_logs_self_select" ON zapp.audit_logs;
 CREATE POLICY audit_logs_self_select ON zapp.audit_logs FOR SELECT TO authenticated
   USING (user_id = auth.uid());
 
 -- blocked_ips / ip_whitelist: somente admin/dev
 DROP POLICY IF EXISTS auth_full_access ON zapp.blocked_ips;
+DROP POLICY IF EXISTS "blocked_ips_admin_select" ON zapp.blocked_ips;
 CREATE POLICY blocked_ips_admin_select ON zapp.blocked_ips FOR SELECT TO authenticated
   USING (zapp.has_role(auth.uid(),'admin') OR zapp.has_role(auth.uid(),'dev'));
 DROP POLICY IF EXISTS auth_full_access ON zapp.ip_whitelist;
+DROP POLICY IF EXISTS "ip_whitelist_admin_select" ON zapp.ip_whitelist;
 CREATE POLICY ip_whitelist_admin_select ON zapp.ip_whitelist FOR SELECT TO authenticated
   USING (zapp.has_role(auth.uid(),'admin') OR zapp.has_role(auth.uid(),'dev'));
 
 -- login_attempts / query_telemetry: somente admin/dev
 DROP POLICY IF EXISTS auth_rls ON zapp.login_attempts;
+DROP POLICY IF EXISTS "login_attempts_admin_select" ON zapp.login_attempts;
 CREATE POLICY login_attempts_admin_select ON zapp.login_attempts FOR SELECT TO authenticated
   USING (zapp.has_role(auth.uid(),'admin') OR zapp.has_role(auth.uid(),'dev'));
 DROP POLICY IF EXISTS auth_rls ON zapp.query_telemetry;
+DROP POLICY IF EXISTS "query_telemetry_admin_select" ON zapp.query_telemetry;
 CREATE POLICY query_telemetry_admin_select ON zapp.query_telemetry FOR SELECT TO authenticated
   USING (zapp.has_role(auth.uid(),'admin') OR zapp.has_role(auth.uid(),'dev'));
 
 -- rate_limit_configs / rate_limit_logs: admin/dev (+ próprio usuário em logs)
 DROP POLICY IF EXISTS auth_full_access ON zapp.rate_limit_configs;
+DROP POLICY IF EXISTS "rate_limit_configs_admin_select" ON zapp.rate_limit_configs;
 CREATE POLICY rate_limit_configs_admin_select ON zapp.rate_limit_configs FOR SELECT TO authenticated
   USING (zapp.has_role(auth.uid(),'admin') OR zapp.has_role(auth.uid(),'dev'));
 DROP POLICY IF EXISTS auth_full_access ON zapp.rate_limit_logs;
+DROP POLICY IF EXISTS "rate_limit_logs_admin_select" ON zapp.rate_limit_logs;
 CREATE POLICY rate_limit_logs_admin_select ON zapp.rate_limit_logs FOR SELECT TO authenticated
   USING (zapp.has_role(auth.uid(),'admin') OR zapp.has_role(auth.uid(),'dev'));
+DROP POLICY IF EXISTS "rate_limit_logs_self_select" ON zapp.rate_limit_logs;
 CREATE POLICY rate_limit_logs_self_select ON zapp.rate_limit_logs FOR SELECT TO authenticated
   USING (user_id = auth.uid());
 
 -- security_alerts: admin/dev + próprio usuário
 DROP POLICY IF EXISTS auth_full_access ON zapp.security_alerts;
+DROP POLICY IF EXISTS "security_alerts_admin_select" ON zapp.security_alerts;
 CREATE POLICY security_alerts_admin_select ON zapp.security_alerts FOR SELECT TO authenticated
   USING (zapp.has_role(auth.uid(),'admin') OR zapp.has_role(auth.uid(),'dev'));
+DROP POLICY IF EXISTS "security_alerts_self_select" ON zapp.security_alerts;
 CREATE POLICY security_alerts_self_select ON zapp.security_alerts FOR SELECT TO authenticated
   USING (user_id = auth.uid());
 
 -- user_devices: dono (SELECT/INSERT/UPDATE) + admin/dev SELECT
 DROP POLICY IF EXISTS auth_full_access ON zapp.user_devices;
+DROP POLICY IF EXISTS "user_devices_self" ON zapp.user_devices;
 CREATE POLICY user_devices_self ON zapp.user_devices FOR SELECT TO authenticated
   USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "user_devices_admin_select" ON zapp.user_devices;
 CREATE POLICY user_devices_admin_select ON zapp.user_devices FOR SELECT TO authenticated
   USING (zapp.has_role(auth.uid(),'admin') OR zapp.has_role(auth.uid(),'dev'));
+DROP POLICY IF EXISTS "user_devices_self_insert" ON zapp.user_devices;
 CREATE POLICY user_devices_self_insert ON zapp.user_devices FOR INSERT TO authenticated
   WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS "user_devices_self_update" ON zapp.user_devices;
 CREATE POLICY user_devices_self_update ON zapp.user_devices FOR UPDATE TO authenticated
   USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 -- user_sessions: dono (SELECT/INSERT/UPDATE) + admin/dev SELECT
 DROP POLICY IF EXISTS auth_full_access ON zapp.user_sessions;
+DROP POLICY IF EXISTS "user_sessions_self" ON zapp.user_sessions;
 CREATE POLICY user_sessions_self ON zapp.user_sessions FOR SELECT TO authenticated
   USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "user_sessions_admin_select" ON zapp.user_sessions;
 CREATE POLICY user_sessions_admin_select ON zapp.user_sessions FOR SELECT TO authenticated
   USING (zapp.has_role(auth.uid(),'admin') OR zapp.has_role(auth.uid(),'dev'));
+DROP POLICY IF EXISTS "user_sessions_self_insert" ON zapp.user_sessions;
 CREATE POLICY user_sessions_self_insert ON zapp.user_sessions FOR INSERT TO authenticated
   WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS "user_sessions_self_update" ON zapp.user_sessions;
 CREATE POLICY user_sessions_self_update ON zapp.user_sessions FOR UPDATE TO authenticated
   USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
@@ -9972,7 +9991,7 @@ COMMIT;
 -- Aplicado em produção: 2026-08-01
 -- Backup: zapp._warroom_alerts_backup_20260801 (4.351 linhas)
 -- Rollback:
---   DROP VIEW public.warroom_alerts;
+--   DROP VIEW IF EXISTS public.warroom_alerts;
 --   ALTER TABLE zapp.warroom_alerts ALTER COLUMN alert_type TYPE text USING alert_type::text;
 --   ALTER TABLE zapp.warroom_alerts ADD CONSTRAINT chk_warroom_alert_type
 --     CHECK (alert_type = ANY (ARRAY['info','warning','critical','sla_breach']));
@@ -9982,7 +10001,7 @@ COMMIT;
 BEGIN;
 
 -- 1. Remover view dependente (recreate ao final)
-DROP VIEW public.warroom_alerts;
+DROP VIEW IF EXISTS public.warroom_alerts;
 
 -- 2. Backup da tabela
 CREATE TABLE IF NOT EXISTS zapp._warroom_alerts_backup_20260801 AS SELECT * FROM zapp.warroom_alerts;
@@ -10162,7 +10181,7 @@ SELECT merged_id, survivor_id, now(), now() + interval '90 days', 'dedup_2026080
 FROM zapp._contact_merge_map_20260801;
 
 -- 5. Deletar merged (nenhum dependente aponta mais — FKs satisfeitas)
-DELETE FROM evo.evolution_contacts c USING zapp._contact_merge_map_20260801 m WHERE c.id = m.merged_id;
+DELETE FROM evo.evolution_contacts c USING zapp._contact_merge_map_20260801 m WHERE c.id = m.merged_id AND EXISTS (SELECT 1 FROM zapp._contact_merge_map_20260801 LIMIT 1);
 
 COMMIT;
 
@@ -10213,32 +10232,43 @@ DROP POLICY IF EXISTS authenticated_read_only ON zapp.transfer_comments;
 DROP POLICY IF EXISTS auth_full_access ON zapp.conversation_snoozes;
 DROP POLICY IF EXISTS auth_full_access ON zapp.whisper_messages;
 
+DROP POLICY IF EXISTS "conv_analyses_select" ON zapp.conversation_analyses;
 CREATE POLICY conv_analyses_select ON zapp.conversation_analyses FOR SELECT TO authenticated
   USING (zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "conv_closures_select" ON zapp.conversation_closures;
 CREATE POLICY conv_closures_select ON zapp.conversation_closures FOR SELECT TO authenticated
   USING (zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "conv_events_select" ON zapp.conversation_events;
 CREATE POLICY conv_events_select ON zapp.conversation_events FOR SELECT TO authenticated
   USING (zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "conv_memory_select" ON zapp.conversation_memory;
 CREATE POLICY conv_memory_select ON zapp.conversation_memory FOR SELECT TO authenticated
   USING (zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "conv_sla_select" ON zapp.conversation_sla;
 CREATE POLICY conv_sla_select ON zapp.conversation_sla FOR SELECT TO authenticated
   USING (zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "conv_snoozes_select" ON zapp.conversation_snoozes;
 CREATE POLICY conv_snoozes_select ON zapp.conversation_snoozes FOR SELECT TO authenticated
   USING (zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "conv_tasks_select" ON zapp.conversation_tasks;
 CREATE POLICY conv_tasks_select ON zapp.conversation_tasks FOR SELECT TO authenticated
   USING (zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid())
          OR assigned_to = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid()));
+DROP POLICY IF EXISTS "conv_tasks_update" ON zapp.conversation_tasks;
 CREATE POLICY conv_tasks_update ON zapp.conversation_tasks FOR UPDATE TO authenticated
   USING (assigned_to = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()))
   WITH CHECK (assigned_to = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "conv_transfers_select" ON zapp.conversation_transfers;
 CREATE POLICY conv_transfers_select ON zapp.conversation_transfers FOR SELECT TO authenticated
   USING (zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "transfer_comments_select" ON zapp.transfer_comments;
 CREATE POLICY transfer_comments_select ON zapp.transfer_comments FOR SELECT TO authenticated
   USING (zapp.is_admin_or_supervisor(auth.uid())
          OR EXISTS (SELECT 1 FROM zapp.conversation_transfers ct
                     WHERE ct.id = transfer_comments.transfer_id
                       AND zapp.is_contact_visible_to_user(ct.contact_id, auth.uid()))
          OR agent_id = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid()));
+DROP POLICY IF EXISTS "whisper_messages_select" ON zapp.whisper_messages;
 CREATE POLICY whisper_messages_select ON zapp.whisper_messages FOR SELECT TO authenticated
   USING (zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
 
@@ -10264,24 +10294,34 @@ DROP POLICY IF EXISTS auth_full_access ON zapp.favorite_contacts;
 DROP POLICY IF EXISTS auth_full_access ON zapp.pinned_conversations;
 DROP POLICY IF EXISTS auth_full_access ON zapp.sicoob_contact_mapping;
 
+DROP POLICY IF EXISTS "contact_fields_select" ON zapp.contact_custom_fields;
 CREATE POLICY contact_fields_select ON zapp.contact_custom_fields FOR SELECT TO authenticated
   USING (zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "contact_notes_select" ON zapp.contact_notes;
 CREATE POLICY contact_notes_select ON zapp.contact_notes FOR SELECT TO authenticated
   USING (zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "contact_notes_insert" ON zapp.contact_notes;
 CREATE POLICY contact_notes_insert ON zapp.contact_notes FOR INSERT TO authenticated
   WITH CHECK (zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "contact_purchases_select" ON zapp.contact_purchases;
 CREATE POLICY contact_purchases_select ON zapp.contact_purchases FOR SELECT TO authenticated
   USING (zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "contact_tags_select" ON zapp.contact_tags;
 CREATE POLICY contact_tags_select ON zapp.contact_tags FOR SELECT TO authenticated
   USING (zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "favorite_contacts_select" ON zapp.favorite_contacts;
 CREATE POLICY favorite_contacts_select ON zapp.favorite_contacts FOR SELECT TO authenticated
   USING (user_id = auth.uid() OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "favorite_contacts_insert" ON zapp.favorite_contacts;
 CREATE POLICY favorite_contacts_insert ON zapp.favorite_contacts FOR INSERT TO authenticated
   WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS "favorite_contacts_delete" ON zapp.favorite_contacts;
 CREATE POLICY favorite_contacts_delete ON zapp.favorite_contacts FOR DELETE TO authenticated
   USING (user_id = auth.uid() OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "pinned_conversations_select" ON zapp.pinned_conversations;
 CREATE POLICY pinned_conversations_select ON zapp.pinned_conversations FOR SELECT TO authenticated
   USING (zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "sicoob_mapping_select" ON zapp.sicoob_contact_mapping;
 CREATE POLICY sicoob_mapping_select ON zapp.sicoob_contact_mapping FOR SELECT TO authenticated
   USING (zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
 
@@ -10321,33 +10361,44 @@ DROP POLICY IF EXISTS team_members_select ON zapp.team_conversation_members;
 DROP POLICY IF EXISTS team_messages_select ON zapp.team_messages;
 DROP POLICY IF EXISTS team_receipts_select ON zapp.team_message_receipts;
 
+DROP POLICY IF EXISTS "user_settings_select" ON zapp.user_settings;
 CREATE POLICY user_settings_select ON zapp.user_settings FOR SELECT TO authenticated
   USING (user_id = auth.uid() OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "user_settings_write" ON zapp.user_settings;
 CREATE POLICY user_settings_write ON zapp.user_settings FOR ALL TO authenticated
   USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS "saved_filters_select" ON zapp.saved_filters;
 CREATE POLICY saved_filters_select ON zapp.saved_filters FOR SELECT TO authenticated
   USING (user_id = auth.uid() OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "saved_filters_write" ON zapp.saved_filters;
 CREATE POLICY saved_filters_write ON zapp.saved_filters FOR ALL TO authenticated
   USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS "notifications_select" ON zapp.notifications;
 CREATE POLICY notifications_select ON zapp.notifications FOR SELECT TO authenticated
   USING (user_id = auth.uid() OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "user_roles_select" ON zapp.user_roles;
 CREATE POLICY user_roles_select ON zapp.user_roles FOR SELECT TO authenticated
   USING (user_id = auth.uid() OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "user_roles_admin_write" ON zapp.user_roles;
 CREATE POLICY user_roles_admin_write ON zapp.user_roles FOR INSERT TO authenticated
   WITH CHECK (zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "team_conversations_select" ON zapp.team_conversations;
 CREATE POLICY team_conversations_select ON zapp.team_conversations FOR SELECT TO authenticated
   USING (zapp.is_admin_or_supervisor(auth.uid())
          OR EXISTS (SELECT 1 FROM zapp.team_conversation_members tcm
                     JOIN zapp.profiles p ON p.id = tcm.profile_id
                     WHERE tcm.conversation_id = team_conversations.id AND p.user_id = auth.uid()));
+DROP POLICY IF EXISTS "team_members_select" ON zapp.team_conversation_members;
 CREATE POLICY team_members_select ON zapp.team_conversation_members FOR SELECT TO authenticated
   USING (profile_id = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "team_messages_select" ON zapp.team_messages;
 CREATE POLICY team_messages_select ON zapp.team_messages FOR SELECT TO authenticated
   USING (zapp.is_admin_or_supervisor(auth.uid())
          OR EXISTS (SELECT 1 FROM zapp.team_conversation_members tcm
                     JOIN zapp.profiles p ON p.id = tcm.profile_id
                     WHERE tcm.conversation_id = team_messages.conversation_id AND p.user_id = auth.uid())
          OR sender_id = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid()));
+DROP POLICY IF EXISTS "team_receipts_select" ON zapp.team_message_receipts;
 CREATE POLICY team_receipts_select ON zapp.team_message_receipts FOR SELECT TO authenticated
   USING (profile_id = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
 
@@ -10385,28 +10436,38 @@ DROP POLICY IF EXISTS scheduled_messages_select ON zapp.scheduled_messages;
 DROP POLICY IF EXISTS scheduled_reports_select ON zapp.scheduled_reports;
 DROP POLICY IF EXISTS scheduled_report_configs_select ON zapp.scheduled_report_configs;
 
+DROP POLICY IF EXISTS "campaigns_select" ON zapp.campaigns;
 CREATE POLICY campaigns_select ON zapp.campaigns FOR SELECT TO authenticated
   USING (created_by = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "campaigns_admin_write" ON zapp.campaigns;
 CREATE POLICY campaigns_admin_write ON zapp.campaigns FOR INSERT TO authenticated
   WITH CHECK (zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "campaign_contacts_select" ON zapp.campaign_contacts;
 CREATE POLICY campaign_contacts_select ON zapp.campaign_contacts FOR SELECT TO authenticated
   USING (zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid())
          OR EXISTS (SELECT 1 FROM zapp.campaigns c WHERE c.id = campaign_contacts.campaign_id AND c.created_by = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid())));
+DROP POLICY IF EXISTS "campaign_ab_select" ON zapp.campaign_ab_variants;
 CREATE POLICY campaign_ab_select ON zapp.campaign_ab_variants FOR SELECT TO authenticated
   USING (EXISTS (SELECT 1 FROM zapp.campaigns c WHERE c.id = campaign_ab_variants.campaign_id
                  AND (c.created_by = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()))));
+DROP POLICY IF EXISTS "talkx_campaigns_select" ON zapp.talkx_campaigns;
 CREATE POLICY talkx_campaigns_select ON zapp.talkx_campaigns FOR SELECT TO authenticated
   USING (created_by = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "talkx_recipients_select" ON zapp.talkx_recipients;
 CREATE POLICY talkx_recipients_select ON zapp.talkx_recipients FOR SELECT TO authenticated
   USING (zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid())
          OR EXISTS (SELECT 1 FROM zapp.talkx_campaigns tc WHERE tc.id = talkx_recipients.campaign_id AND tc.created_by = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid())));
+DROP POLICY IF EXISTS "talkx_blacklist_select" ON zapp.talkx_blacklist;
 CREATE POLICY talkx_blacklist_select ON zapp.talkx_blacklist FOR SELECT TO authenticated
   USING (zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "scheduled_messages_select" ON zapp.scheduled_messages;
 CREATE POLICY scheduled_messages_select ON zapp.scheduled_messages FOR SELECT TO authenticated
   USING (created_by = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid())
          OR zapp.is_contact_visible_to_user(contact_id, auth.uid()));
+DROP POLICY IF EXISTS "scheduled_reports_select" ON zapp.scheduled_reports;
 CREATE POLICY scheduled_reports_select ON zapp.scheduled_reports FOR SELECT TO authenticated
   USING (created_by = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "scheduled_report_configs_select" ON zapp.scheduled_report_configs;
 CREATE POLICY scheduled_report_configs_select ON zapp.scheduled_report_configs FOR SELECT TO authenticated
   USING (created_by = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
 
@@ -10446,30 +10507,47 @@ DROP POLICY IF EXISTS sla_rules_select ON zapp.sla_rules;
 DROP POLICY IF EXISTS global_settings_select ON zapp.global_settings;
 DROP POLICY IF EXISTS global_settings_admin_write ON zapp.global_settings;
 
+DROP POLICY IF EXISTS "queues_select" ON zapp.queues;
 CREATE POLICY queues_select ON zapp.queues FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "queues_admin_write" ON zapp.queues;
 CREATE POLICY queues_admin_write ON zapp.queues FOR ALL TO authenticated
   USING (zapp.is_admin_or_supervisor(auth.uid())) WITH CHECK (zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "queue_members_select" ON zapp.queue_members;
 CREATE POLICY queue_members_select ON zapp.queue_members FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "queue_members_admin_write" ON zapp.queue_members;
 CREATE POLICY queue_members_admin_write ON zapp.queue_members FOR ALL TO authenticated
   USING (zapp.is_admin_or_supervisor(auth.uid())) WITH CHECK (zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "queue_goals_select" ON zapp.queue_goals;
 CREATE POLICY queue_goals_select ON zapp.queue_goals FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "queue_goals_admin_write" ON zapp.queue_goals;
 CREATE POLICY queue_goals_admin_write ON zapp.queue_goals FOR ALL TO authenticated
   USING (zapp.is_admin_or_supervisor(auth.uid())) WITH CHECK (zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "queue_positions_select" ON zapp.queue_positions;
 CREATE POLICY queue_positions_select ON zapp.queue_positions FOR SELECT TO authenticated
   USING (zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "whatsapp_connections_select" ON zapp.whatsapp_connections;
 CREATE POLICY whatsapp_connections_select ON zapp.whatsapp_connections FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "whatsapp_connections_admin_write" ON zapp.whatsapp_connections;
 CREATE POLICY whatsapp_connections_admin_write ON zapp.whatsapp_connections FOR ALL TO authenticated
   USING (zapp.is_admin_or_supervisor(auth.uid())) WITH CHECK (zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "departments_select" ON zapp.departments;
 CREATE POLICY departments_select ON zapp.departments FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "departments_admin_write" ON zapp.departments;
 CREATE POLICY departments_admin_write ON zapp.departments FOR ALL TO authenticated
   USING (zapp.is_admin_or_supervisor(auth.uid())) WITH CHECK (zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "department_invitations_select" ON zapp.department_invitations;
 CREATE POLICY department_invitations_select ON zapp.department_invitations FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "department_invitations_admin_write" ON zapp.department_invitations;
 CREATE POLICY department_invitations_admin_write ON zapp.department_invitations FOR ALL TO authenticated
   USING (zapp.is_admin_or_supervisor(auth.uid())) WITH CHECK (zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "sla_rules_select" ON zapp.sla_rules;
 CREATE POLICY sla_rules_select ON zapp.sla_rules FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "sla_rules_admin_write" ON zapp.sla_rules;
 CREATE POLICY sla_rules_admin_write ON zapp.sla_rules FOR ALL TO authenticated
   USING (zapp.is_admin_or_supervisor(auth.uid())) WITH CHECK (zapp.is_admin_or_supervisor(auth.uid()));
+DROP POLICY IF EXISTS "global_settings_select" ON zapp.global_settings;
 CREATE POLICY global_settings_select ON zapp.global_settings FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "global_settings_admin_write" ON zapp.global_settings;
 CREATE POLICY global_settings_admin_write ON zapp.global_settings FOR ALL TO authenticated
   USING (zapp.is_admin_or_supervisor(auth.uid())) WITH CHECK (zapp.is_admin_or_supervisor(auth.uid()));
 
@@ -10494,6 +10572,7 @@ ALTER TABLE zapp.feature_flags ADD COLUMN IF NOT EXISTS is_public boolean NOT NU
 
 DROP POLICY IF EXISTS "Anon can read flags" ON zapp.feature_flags;
 
+DROP POLICY IF EXISTS "feature_flags_anon_public" ON zapp.feature_flags;
 CREATE POLICY feature_flags_anon_public ON zapp.feature_flags FOR SELECT TO anon USING (is_public);
 
 COMMIT;
@@ -10757,6 +10836,7 @@ COMMIT;
 -- (base da view zapp.meta_capi_events; eventos com contact_id)
 -- ============================================================
 DROP POLICY IF EXISTS "auth_full_access" ON email_app.meta_capi_events;
+DROP POLICY IF EXISTS "auth_secure_133" ON email_app.meta_capi_events;
 CREATE POLICY auth_secure_133 ON email_app.meta_capi_events FOR ALL TO authenticated
   USING ((contact_id IS NULL OR zapp.is_contact_visible_to_user(contact_id, auth.uid())) OR zapp.is_admin_or_supervisor())
   WITH CHECK (zapp.is_admin_or_supervisor());
@@ -10776,6 +10856,7 @@ DROP POLICY IF EXISTS "stickers_select_all" ON zapp.stickers;
 -- ============================================================
 DROP POLICY IF EXISTS "authenticated_write_queues" ON zapp.queues;
 DROP POLICY IF EXISTS "q_modify" ON zapp.queues;
+DROP POLICY IF EXISTS "auth_secure_134" ON zapp.queues;
 CREATE POLICY auth_secure_134 ON zapp.queues FOR ALL TO authenticated
   USING (true)
   WITH CHECK (zapp.is_admin_or_supervisor());
@@ -10790,6 +10871,7 @@ DROP POLICY IF EXISTS "Authenticated read sessions" ON zapp.provider_sessions;
 -- Novo: user_id próprio OR admin OR visíveis (get_visible_agent_ids); DELETE revogado
 -- ============================================================
 DROP POLICY IF EXISTS "authenticated_read_profiles" ON zapp.profiles;
+DROP POLICY IF EXISTS "auth_secure_135" ON zapp.profiles;
 CREATE POLICY auth_secure_135 ON zapp.profiles FOR SELECT TO authenticated
   USING (user_id = auth.uid() OR zapp.is_admin_or_supervisor()
          OR user_id IN (SELECT zapp.get_visible_agent_ids(auth.uid())));
@@ -10807,6 +10889,7 @@ CREATE POLICY auth_secure_123 ON zapp.whatsapp_connections FOR SELECT TO authent
 -- GAP 8: zapp.sessions — auth_access ALL true (sessões de todos); sem uso no front
 -- ============================================================
 DROP POLICY IF EXISTS "auth_access" ON zapp.sessions;
+DROP POLICY IF EXISTS "auth_secure_136" ON zapp.sessions;
 CREATE POLICY auth_secure_136 ON zapp.sessions FOR SELECT TO authenticated
   USING (user_id = auth.uid() OR zapp.is_admin_or_supervisor());
 
@@ -10814,6 +10897,7 @@ CREATE POLICY auth_secure_136 ON zapp.sessions FOR SELECT TO authenticated
 -- GAP 9: zapp.webhook_endpoints — auth_access ALL true; sem uso no front
 -- ============================================================
 DROP POLICY IF EXISTS "auth_access" ON zapp.webhook_endpoints;
+DROP POLICY IF EXISTS "auth_secure_137" ON zapp.webhook_endpoints;
 CREATE POLICY auth_secure_137 ON zapp.webhook_endpoints FOR SELECT TO authenticated
   USING (zapp.is_admin_or_supervisor());
 
@@ -10822,36 +10906,44 @@ CREATE POLICY auth_secure_137 ON zapp.webhook_endpoints FOR SELECT TO authentica
 -- message_queue, forensic_snapshots, queue_items
 -- ============================================================
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.webhook_events;
+DROP POLICY IF EXISTS "auth_secure_138" ON zapp.webhook_events;
 CREATE POLICY auth_secure_138 ON zapp.webhook_events FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.dead_letter_queue;
+DROP POLICY IF EXISTS "auth_secure_139" ON zapp.dead_letter_queue;
 CREATE POLICY auth_secure_139 ON zapp.dead_letter_queue FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 
 DROP POLICY IF EXISTS "auth_rw" ON zapp.message_queue;
+DROP POLICY IF EXISTS "auth_secure_140" ON zapp.message_queue;
 CREATE POLICY auth_secure_140 ON zapp.message_queue FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.forensic_snapshots;
+DROP POLICY IF EXISTS "auth_secure_141" ON zapp.forensic_snapshots;
 CREATE POLICY auth_secure_141 ON zapp.forensic_snapshots FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.queue_items;
+DROP POLICY IF EXISTS "auth_secure_142" ON zapp.queue_items;
 CREATE POLICY auth_secure_142 ON zapp.queue_items FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 
 -- ============================================================
 -- GAP 15: zapp.search_insights — search_term bruto; página admin sem guard no hook
 -- ============================================================
 DROP POLICY IF EXISTS "auth_select_search_insights" ON zapp.search_insights;
+DROP POLICY IF EXISTS "auth_secure_143" ON zapp.search_insights;
 CREATE POLICY auth_secure_143 ON zapp.search_insights FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 
 -- ============================================================
 -- GAP 16: zapp.colaboradores — chave_pix (dado financeiro) legível por todos
 -- ============================================================
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.colaboradores;
+DROP POLICY IF EXISTS "auth_secure_144" ON zapp.colaboradores;
 CREATE POLICY auth_secure_144 ON zapp.colaboradores FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 
 -- ============================================================
 -- GAP 17: zapp.empresas — leitura ampla (escrita já tinha guard admin/supervisor)
 -- ============================================================
 DROP POLICY IF EXISTS "empresas_select" ON zapp.empresas;
+DROP POLICY IF EXISTS "auth_secure_145" ON zapp.empresas;
 CREATE POLICY auth_secure_145 ON zapp.empresas FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 
 -- ============================================================
@@ -11737,11 +11829,16 @@ END $$;
 -- O runid 583822 falhou porque whatsapp_connections_health_status_check rejeitava 'down'
 -- Esse bug foi corrigido -- manter a linha polui o cron_health por 1h desnecessariamente
 -- Esta operacao e equivalente a limpar log de erro de bug ja resolvido
-
-DELETE FROM cron.job_run_details
-WHERE runid = 583822
-  AND status = 'failed'
-  AND return_message LIKE '%whatsapp_connections_health_status_check%';
+-- Guard: só remove se o registro existir (idempotente)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM cron.job_run_details WHERE runid = 583822 AND status = 'failed') THEN
+    DELETE FROM cron.job_run_details
+    WHERE runid = 583822
+      AND status = 'failed'
+      AND return_message LIKE '%whatsapp_connections_health_status_check%';
+  END IF;
+END $$;
 
 -- Verificar
 DO $$
@@ -12231,156 +12328,223 @@ GRANT EXECUTE ON FUNCTION zapp.merge_contacts(uuid, uuid, jsonb) TO authenticate
 
 -- Credenciais / segredos (admin-only)
 DROP POLICY IF EXISTS "auth_full_access" ON ai.hf_config;
+DROP POLICY IF EXISTS "auth_secure_146" ON ai.hf_config;
 CREATE POLICY auth_secure_146 ON ai.hf_config FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON ai.mcp_servers;
+DROP POLICY IF EXISTS "auth_secure_147" ON ai.mcp_servers;
 CREATE POLICY auth_secure_147 ON ai.mcp_servers FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON ai.tool_integrations;
+DROP POLICY IF EXISTS "auth_secure_148" ON ai.tool_integrations;
 CREATE POLICY auth_secure_148 ON ai.tool_integrations FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.deploy_connections;
+DROP POLICY IF EXISTS "auth_secure_149" ON zapp.deploy_connections;
 CREATE POLICY auth_secure_149 ON zapp.deploy_connections FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "service_role_all" ON zapp.n8n_variables;
+DROP POLICY IF EXISTS "auth_secure_150" ON zapp.n8n_variables;
 CREATE POLICY auth_secure_150 ON zapp.n8n_variables FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_access" ON zapp.alert_channels;
+DROP POLICY IF EXISTS "auth_secure_151" ON zapp.alert_channels;
 CREATE POLICY auth_secure_151 ON zapp.alert_channels FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.notification_channels_config;
+DROP POLICY IF EXISTS "auth_secure_152" ON zapp.notification_channels_config;
 CREATE POLICY auth_secure_152 ON zapp.notification_channels_config FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_rw" ON zapp.integration_profiles;
+DROP POLICY IF EXISTS "auth_secure_153" ON zapp.integration_profiles;
 CREATE POLICY auth_secure_153 ON zapp.integration_profiles FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 
 -- PII / financeiro (admin-only)
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.consent_records;
+DROP POLICY IF EXISTS "auth_secure_154" ON zapp.consent_records;
 CREATE POLICY auth_secure_154 ON zapp.consent_records FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.solicitacoes_vale;
+DROP POLICY IF EXISTS "auth_secure_155" ON zapp.solicitacoes_vale;
 CREATE POLICY auth_secure_155 ON zapp.solicitacoes_vale FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.budgets;
+DROP POLICY IF EXISTS "auth_secure_156" ON zapp.budgets;
 CREATE POLICY auth_secure_156 ON zapp.budgets FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 
 -- Agentes / estado / conteudo (admin-only)
 DROP POLICY IF EXISTS "auth_agents_access" ON zapp.agents;
+DROP POLICY IF EXISTS "auth_secure_157" ON zapp.agents;
 CREATE POLICY auth_secure_157 ON zapp.agents FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_access" ON zapp.agent_memories;
+DROP POLICY IF EXISTS "auth_secure_158" ON zapp.agent_memories;
 CREATE POLICY auth_secure_158 ON zapp.agent_memories FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.agent_traces;
+DROP POLICY IF EXISTS "auth_secure_159" ON zapp.agent_traces;
 CREATE POLICY auth_secure_159 ON zapp.agent_traces FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.agent_usage;
+DROP POLICY IF EXISTS "auth_secure_160" ON zapp.agent_usage;
 CREATE POLICY auth_secure_160 ON zapp.agent_usage FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.agent_versions;
+DROP POLICY IF EXISTS "auth_secure_161" ON zapp.agent_versions;
 CREATE POLICY auth_secure_161 ON zapp.agent_versions FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.agent_permissions;
+DROP POLICY IF EXISTS "auth_secure_162" ON zapp.agent_permissions;
 CREATE POLICY auth_secure_162 ON zapp.agent_permissions FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.agent_templates;
+DROP POLICY IF EXISTS "auth_secure_163" ON zapp.agent_templates;
 CREATE POLICY auth_secure_163 ON zapp.agent_templates FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.agent_installed_skills;
+DROP POLICY IF EXISTS "auth_secure_164" ON zapp.agent_installed_skills;
 CREATE POLICY auth_secure_164 ON zapp.agent_installed_skills FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_access" ON zapp.documents;
+DROP POLICY IF EXISTS "auth_secure_165" ON zapp.documents;
 CREATE POLICY auth_secure_165 ON zapp.documents FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.companies;
+DROP POLICY IF EXISTS "auth_secure_166" ON zapp.companies;
 CREATE POLICY auth_secure_166 ON zapp.companies FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.conversation_summaries;
+DROP POLICY IF EXISTS "auth_secure_167" ON zapp.conversation_summaries;
 CREATE POLICY auth_secure_167 ON zapp.conversation_summaries FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON evo.evolution_campaigns;
+DROP POLICY IF EXISTS "auth_secure_168" ON evo.evolution_campaigns;
 CREATE POLICY auth_secure_168 ON evo.evolution_campaigns FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_rw" ON zapp.outbox_events;
+DROP POLICY IF EXISTS "auth_secure_169" ON zapp.outbox_events;
 CREATE POLICY auth_secure_169 ON zapp.outbox_events FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_rw" ON zapp.sticky_assignments;
+DROP POLICY IF EXISTS "auth_secure_170" ON zapp.sticky_assignments;
 CREATE POLICY auth_secure_170 ON zapp.sticky_assignments FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.roles;
+DROP POLICY IF EXISTS "auth_secure_171" ON zapp.roles;
 CREATE POLICY auth_secure_171 ON zapp.roles FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.system_settings;
+DROP POLICY IF EXISTS "auth_secure_172" ON zapp.system_settings;
 CREATE POLICY auth_secure_172 ON zapp.system_settings FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.tenants;
+DROP POLICY IF EXISTS "auth_secure_173" ON zapp.tenants;
 CREATE POLICY auth_secure_173 ON zapp.tenants FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_access" ON zapp.security_events;
+DROP POLICY IF EXISTS "auth_secure_174" ON zapp.security_events;
 CREATE POLICY auth_secure_174 ON zapp.security_events FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 
 -- RBAC: permissions (leitura ampla mantida, escrita admin)
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.permissions;
+DROP POLICY IF EXISTS "auth_secure_175" ON zapp.permissions;
 CREATE POLICY auth_secure_175 ON zapp.permissions FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "auth_secure_176" ON zapp.permissions;
 CREATE POLICY auth_secure_176 ON zapp.permissions FOR ALL TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 
 -- Infra / admin (admin-only)
 DROP POLICY IF EXISTS "outbound_update" ON zapp.outbound_message_queue;
 DROP POLICY IF EXISTS "outbound_select" ON zapp.outbound_message_queue;
+DROP POLICY IF EXISTS "auth_secure_177" ON zapp.outbound_message_queue;
 CREATE POLICY auth_secure_177 ON zapp.outbound_message_queue FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "qr_modify" ON zapp.queue_routing_rules;
 DROP POLICY IF EXISTS "qr_select" ON zapp.queue_routing_rules;
+DROP POLICY IF EXISTS "auth_secure_178" ON zapp.queue_routing_rules;
 CREATE POLICY auth_secure_178 ON zapp.queue_routing_rules FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "sla_pol_modify" ON zapp.sla_policies;
 DROP POLICY IF EXISTS "sla_pol_select" ON zapp.sla_policies;
+DROP POLICY IF EXISTS "auth_secure_179" ON zapp.sla_policies;
 CREATE POLICY auth_secure_179 ON zapp.sla_policies FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_rw" ON zapp.webhook_audit_log;
 DROP POLICY IF EXISTS "authenticated can read webhook_audit_log" ON zapp.webhook_audit_log;
+DROP POLICY IF EXISTS "auth_secure_180" ON zapp.webhook_audit_log;
 CREATE POLICY auth_secure_180 ON zapp.webhook_audit_log FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_rw" ON zapp.webhook_event_dedup;
+DROP POLICY IF EXISTS "auth_secure_181" ON zapp.webhook_event_dedup;
 CREATE POLICY auth_secure_181 ON zapp.webhook_event_dedup FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_rw" ON zapp.webhook_events_processed;
+DROP POLICY IF EXISTS "auth_secure_182" ON zapp.webhook_events_processed;
 CREATE POLICY auth_secure_182 ON zapp.webhook_events_processed FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_rw" ON zapp.webhook_rate_limits;
+DROP POLICY IF EXISTS "auth_secure_183" ON zapp.webhook_rate_limits;
 CREATE POLICY auth_secure_183 ON zapp.webhook_rate_limits FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_rw" ON zapp.scheduled_job_log;
+DROP POLICY IF EXISTS "auth_secure_184" ON zapp.scheduled_job_log;
 CREATE POLICY auth_secure_184 ON zapp.scheduled_job_log FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_rw" ON zapp.reprocess_jobs;
+DROP POLICY IF EXISTS "auth_secure_185" ON zapp.reprocess_jobs;
 CREATE POLICY auth_secure_185 ON zapp.reprocess_jobs FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_rw" ON zapp.proxy_alerts;
+DROP POLICY IF EXISTS "auth_secure_186" ON zapp.proxy_alerts;
 CREATE POLICY auth_secure_186 ON zapp.proxy_alerts FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_rw" ON zapp.proxy_metrics;
+DROP POLICY IF EXISTS "auth_secure_187" ON zapp.proxy_metrics;
 CREATE POLICY auth_secure_187 ON zapp.proxy_metrics FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_rw" ON zapp.media_storage_config;
+DROP POLICY IF EXISTS "auth_secure_188" ON zapp.media_storage_config;
 CREATE POLICY auth_secure_188 ON zapp.media_storage_config FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_rw" ON zapp.contact_export_log;
+DROP POLICY IF EXISTS "auth_secure_189" ON zapp.contact_export_log;
 CREATE POLICY auth_secure_189 ON zapp.contact_export_log FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "segments_auth_all" ON zapp.contact_segments;
+DROP POLICY IF EXISTS "auth_secure_190" ON zapp.contact_segments;
 CREATE POLICY auth_secure_190 ON zapp.contact_segments FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.conversation_pins;
+DROP POLICY IF EXISTS "auth_secure_191" ON zapp.conversation_pins;
 CREATE POLICY auth_secure_191 ON zapp.conversation_pins FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 
 DROP POLICY IF EXISTS "auth_access" ON zapp.batch_jobs;
+DROP POLICY IF EXISTS "auth_secure_192" ON zapp.batch_jobs;
 CREATE POLICY auth_secure_192 ON zapp.batch_jobs FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.chunks;
+DROP POLICY IF EXISTS "auth_secure_193" ON zapp.chunks;
 CREATE POLICY auth_secure_193 ON zapp.chunks FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.collections;
+DROP POLICY IF EXISTS "auth_secure_194" ON zapp.collections;
 CREATE POLICY auth_secure_194 ON zapp.collections FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.embedding_configs;
+DROP POLICY IF EXISTS "auth_secure_195" ON zapp.embedding_configs;
 CREATE POLICY auth_secure_195 ON zapp.embedding_configs FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.environments;
+DROP POLICY IF EXISTS "auth_secure_196" ON zapp.environments;
 CREATE POLICY auth_secure_196 ON zapp.environments FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "extensions_auth_all" ON zapp.extensions;
+DROP POLICY IF EXISTS "auth_secure_197" ON zapp.extensions;
 CREATE POLICY auth_secure_197 ON zapp.extensions FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.finetune_jobs;
+DROP POLICY IF EXISTS "auth_secure_198" ON zapp.finetune_jobs;
 CREATE POLICY auth_secure_198 ON zapp.finetune_jobs FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.stress_test_runs;
+DROP POLICY IF EXISTS "auth_secure_199" ON zapp.stress_test_runs;
 CREATE POLICY auth_secure_199 ON zapp.stress_test_runs FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.supabase_projects;
+DROP POLICY IF EXISTS "auth_secure_200" ON zapp.supabase_projects;
 CREATE POLICY auth_secure_200 ON zapp.supabase_projects FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.task_queues;
+DROP POLICY IF EXISTS "auth_secure_201" ON zapp.task_queues;
 CREATE POLICY auth_secure_201 ON zapp.task_queues FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.test_cases;
+DROP POLICY IF EXISTS "auth_secure_202" ON zapp.test_cases;
 CREATE POLICY auth_secure_202 ON zapp.test_cases FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.constraint_changelog;
+DROP POLICY IF EXISTS "auth_secure_203" ON zapp.constraint_changelog;
 CREATE POLICY auth_secure_203 ON zapp.constraint_changelog FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.engineering_principles;
+DROP POLICY IF EXISTS "auth_secure_204" ON zapp.engineering_principles;
 CREATE POLICY auth_secure_204 ON zapp.engineering_principles FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.evaluation_datasets;
+DROP POLICY IF EXISTS "auth_secure_205" ON zapp.evaluation_datasets;
 CREATE POLICY auth_secure_205 ON zapp.evaluation_datasets FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.evaluation_runs;
+DROP POLICY IF EXISTS "auth_secure_206" ON zapp.evaluation_runs;
 CREATE POLICY auth_secure_206 ON zapp.evaluation_runs FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.audit_log_tables;
+DROP POLICY IF EXISTS "auth_secure_207" ON zapp.audit_log_tables;
 CREATE POLICY auth_secure_207 ON zapp.audit_log_tables FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.audit_results;
+DROP POLICY IF EXISTS "auth_secure_208" ON zapp.audit_results;
 CREATE POLICY auth_secure_208 ON zapp.audit_results FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.cron_schedules;
+DROP POLICY IF EXISTS "auth_secure_209" ON zapp.cron_schedules;
 CREATE POLICY auth_secure_209 ON zapp.cron_schedules FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.cron_schedule_executions;
+DROP POLICY IF EXISTS "auth_secure_210" ON zapp.cron_schedule_executions;
 CREATE POLICY auth_secure_210 ON zapp.cron_schedule_executions FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 
 -- Avatars: leitura/escrita propria + admin
 DROP POLICY IF EXISTS "auth_full_access" ON zapp.avatars;
+DROP POLICY IF EXISTS "auth_secure_211" ON zapp.avatars;
 CREATE POLICY auth_secure_211 ON zapp.avatars FOR ALL TO authenticated
   USING (user_id = auth.uid() OR zapp.is_admin_or_supervisor())
   WITH CHECK (user_id = auth.uid() OR zapp.is_admin_or_supervisor());
 
 -- Inbox custom scopes: leitura ampla mantida
 DROP POLICY IF EXISTS "Custom scopes are viewable by everyone" ON zapp.inbox_custom_scopes;
+DROP POLICY IF EXISTS "auth_secure_212" ON zapp.inbox_custom_scopes;
 CREATE POLICY auth_secure_212 ON zapp.inbox_custom_scopes FOR SELECT TO authenticated USING (true);
 
 -- ============================================================
@@ -14498,8 +14662,16 @@ REVOKE EXECUTE ON FUNCTION public.fn_messages_bridge_update() FROM authenticated
 
 -- Passo 1: Backup e purge de alertas resolvidos >7 dias (998 rows)
 -- Backup já criado: evo._backup_evolution_alerts_20260802 (998 rows)
-DELETE FROM evo.evolution_alerts
-WHERE resolved = true AND created_at < NOW() - INTERVAL '7 days';
+-- Guard: só executa se houver alertas (idempotente)
+DO $$
+DECLARE v_cnt int;
+BEGIN
+  SELECT count(*) INTO v_cnt FROM evo.evolution_alerts WHERE resolved = true AND created_at < NOW() - INTERVAL '7 days';
+  IF v_cnt > 0 THEN
+    DELETE FROM evo.evolution_alerts
+    WHERE resolved = true AND created_at < NOW() - INTERVAL '7 days';
+  END IF;
+END $$;
 
 -- Passo 2: Cron de retenção — limpa alertas resolvidos diariamente
 -- Mantém 30 dias de histórico, remove o resto
@@ -14873,8 +15045,17 @@ DROP TABLE IF EXISTS evo.evolution_webhook_events_marketing CASCADE;
 
 -- F6-05: 407 reconcile_jobs com telemetria corrompida (applied_at < dispatched_at)
 -- 24.7% dos registros com timestamp inconsistente
-DELETE FROM evo.evolution_reconcile_jobs
-WHERE applied_at < dispatched_at - INTERVAL '1 day' AND applied_at IS NOT NULL;
+-- Guard: só executa se houver registros corrompidos (idempotente)
+DO $$
+DECLARE v_cnt int;
+BEGIN
+  SELECT count(*) INTO v_cnt FROM evo.evolution_reconcile_jobs
+  WHERE applied_at < dispatched_at - INTERVAL '1 day' AND applied_at IS NOT NULL;
+  IF v_cnt > 0 THEN
+    DELETE FROM evo.evolution_reconcile_jobs
+    WHERE applied_at < dispatched_at - INTERVAL '1 day' AND applied_at IS NOT NULL;
+  END IF;
+END $$;
 -- 407 rows removidas
 
 -- F6-03: 2 conexões órfãs (wppmkt, wpp_pink_test) sem entry em evolution_instance_credentials
@@ -14978,6 +15159,27 @@ $function$;
 
 -- Remove o overload antigo (sem args, hardcoded 'wpp2'). Idempotente para fresh DB.
 DROP FUNCTION IF EXISTS zapp.fn_alert_wpp2_disconnection();
+
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- SECTION: 20260803000000_f4-18_evolution_messages_retry_columns.sql
+-- ═══════════════════════════════════════════════════════════════════════
+
+-- F4-18: Adiciona colunas de retry/erro em evo.evolution_messages
+-- O messageSender.ts escreve error_code, error_reason, retry_attempt, retry_total
+-- mas a tabela não tinha essas colunas → writeback silenciosamente perdido.
+-- Colunas são nullable (sem default) para não impactar rows existentes.
+-- Rollback: R-DDL (ALTER TABLE ... DROP COLUMN)
+
+ALTER TABLE evo.evolution_messages
+  ADD COLUMN IF NOT EXISTS error_code text,
+  ADD COLUMN IF NOT EXISTS error_reason text,
+  ADD COLUMN IF NOT EXISTS retry_attempt integer,
+  ADD COLUMN IF NOT EXISTS retry_total integer;
+
+-- Atualiza a view zapp.messages para expor as novas colunas
+-- (a view é um pass-through simples; as colunas novas aparecem automaticamente
+--  se a view usar SELECT * ou listar explicitamente — verificar no banco)
 
 
 -- ═══════════════════════════════════════════════════════════════════════
@@ -15314,27 +15516,6 @@ UNION ALL
   END IF;
 END
 $do$;
-
-
--- ═══════════════════════════════════════════════════════════════════════
--- SECTION: 20260803000000_f4-18_evolution_messages_retry_columns.sql
--- ═══════════════════════════════════════════════════════════════════════
-
--- F4-18: Adiciona colunas de retry/erro em evo.evolution_messages
--- O messageSender.ts escreve error_code, error_reason, retry_attempt, retry_total
--- mas a tabela não tinha essas colunas → writeback silenciosamente perdido.
--- Colunas são nullable (sem default) para não impactar rows existentes.
--- Rollback: R-DDL (ALTER TABLE ... DROP COLUMN)
-
-ALTER TABLE evo.evolution_messages
-  ADD COLUMN IF NOT EXISTS error_code text,
-  ADD COLUMN IF NOT EXISTS error_reason text,
-  ADD COLUMN IF NOT EXISTS retry_attempt integer,
-  ADD COLUMN IF NOT EXISTS retry_total integer;
-
--- Atualiza a view zapp.messages para expor as novas colunas
--- (a view é um pass-through simples; as colunas novas aparecem automaticamente
---  se a view usar SELECT * ou listar explicitamente — verificar no banco)
 
 
 -- ═══════════════════════════════════════════════════════════════════════
