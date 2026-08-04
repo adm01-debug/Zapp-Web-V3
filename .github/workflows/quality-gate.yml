@@ -145,7 +145,7 @@ jobs:
         continue-on-error: true
 
       - name: Install Playwright Browsers
-        run: bunx playwright install chromium --with-deps
+        run: bunx playwright install --with-deps
 
       - name: E2E Tests (boot suite — src/tests/e2e, 13 specs)
         run: npm run test:e2e:boot
