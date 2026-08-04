@@ -33,7 +33,6 @@ export default function AdminFailedAuthMessagesPage() {
   const { rows, loading, load } = useFailedAuthMessages({
     from: normalizedFrom,
     to: normalizedTo,
-    enabled: !dateRangeError,
   });
 
   const stats = useMemo(() => {
@@ -70,11 +69,11 @@ export default function AdminFailedAuthMessagesPage() {
         </Button>
       </header>
 
-      {dateError && (
+      {dateRangeError && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Intervalo inválido</AlertTitle>
-          <AlertDescription>{dateError}</AlertDescription>
+          <AlertDescription>Data inicial maior que a data final.</AlertDescription>
         </Alert>
       )}
 
