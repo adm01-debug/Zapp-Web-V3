@@ -32,10 +32,12 @@ export function usePreloadConversationReactions(messageIds: string[]): void {
 
     void (async () => {
       try {
-        const { data, error } = await supabase
-          .from('message_reactions')
-          .select('*')
-          .in('message_id', messageIds);
+        // rpc_get_reactions_batch: busca reações de múltiplas mensagens em 1 call
+        // com RLS aplicado no servidor (FIX-2026-08-04: substituiu N×GET individuais)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error } = await (supabase as any).rpc('rpc_get_reactions_batch', {
+          p_message_ids: messageIds,
+        });
 
         if (cancelled) return;
         if (error) {

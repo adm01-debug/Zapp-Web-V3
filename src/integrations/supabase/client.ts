@@ -387,16 +387,21 @@ function reportRealFailure(err: unknown): void {
  * requisições simultâneas. As que excedem o limite ficam em fila no browser
  * (até 4-6s de latência) enquanto o pool Supabase também pode saturar.
  *
- * O semáforo limita a 4 requisições simultâneas para o backend Supabase,
+ * O semáforo limita a 8 requisições simultâneas para o backend Supabase,
  * garantindo que as demais aguardam em JS (com timeout curto) em vez de
  * congestionar o pool TCP e o connection pool do Supavisor/Kong.
+ *
+ * HISTÓRICO: Era 4. Aumentado para 8 em 2026-08-04 após análise de log que
+ * mostrou semáforo saturado (inFlight:4, queueLength:2) atrasando getProfile
+ * em 5+ segundos. Com as correções de N+1 (batch reactions + contact summary),
+ * o número de requests concorrentes caiu, então 8 é seguro sem saturar o pool.
  *
  * PRIORIZAÇÃO: _acquireSupabaseSlot() aceita opção `priority: 'high'`.
  * Requisições high-priority (ex.: contato selecionado) furam a fila FIFO,
  * garantindo que o usuário veja os dados do contato ativo primeiro.
  *
  * Requisições de auth NUNCA passam pelo semáforo (já são bypass no retryFetch). */
-const SUPABASE_MAX_CONCURRENT = 4;
+const SUPABASE_MAX_CONCURRENT = 8; // 2026-08-04: 4→8 (semáforo saturado em prod)
 let _supabaseInFlight = 0;
 const _supabaseQueue: Array<{ resume: () => void; priority: 'normal' | 'high' }> = [];
 

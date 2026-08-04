@@ -489,7 +489,7 @@ export function ChatPanel({
         />
 
         <AutomationSuggestionsBar
-          remoteJid={conversation.contact.id}
+          contactId={conversation.contact.id}
           onUseSuggestion={(t) => handlers.setInputValue(t)}
         />
 

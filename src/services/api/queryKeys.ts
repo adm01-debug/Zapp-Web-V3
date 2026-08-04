@@ -618,6 +618,12 @@ export const queryKeys = {
     forEntity: (entityType: string, entityId: string) =>
       ['versions', entityType, entityId] as const,
   },
+  // Contact Summary Batch (BUG-FIX 2026-08-04: elimina N+1 HEAD requests)
+  contactSummaryBatch: {
+    batch: (contactIds: readonly string[]) =>
+      ['contact-summary-batch', ...contactIds.slice().sort()] as const,
+  },
+
 };
 
 /**
