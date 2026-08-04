@@ -14,9 +14,11 @@
  * Isso fecha o gap onde 43 contratos estavam registrados mas só 14 tinham schema.
  */
 
-import { assert, assertEquals, assertExists } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assert } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { fromFileUrl } from "https://deno.land/std@0.168.0/path/mod.ts";
 import { CONTRACTS, isDeprecatedVersion } from "../contract-versions.ts";
 import { CONTRACT_SCHEMAS } from "../contract-schemas.ts";
+import { EdgeFunctionContractSchemas } from "../edge-contract-schemas.ts";
 
 // ─── Invariante 1: TODO contrato registrado tem schema ─────────────────────
 
@@ -137,6 +139,13 @@ Deno.test("Registry Integrity: isDeprecatedVersion comportamento", () => {
 
 const EDGE_ROOT = new URL("../../", import.meta.url);
 
+function stripComments(src: string): string {
+  // Remove comentários // e /* */ para o regex não casar texto morto
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|[^:"'])\/\/[^\n]*/g, "$1");
+}
+
 function walkDir(dir: URL): string[] {
   const out: string[] = [];
   for (const entry of Deno.readDirSync(dir)) {
@@ -144,8 +153,8 @@ function walkDir(dir: URL): string[] {
     const p = new URL(entry.name + "/", dir);
     if (entry.isDirectory) {
       out.push(...walkDir(p));
-    } else if (entry.name === "index.ts") {
-      out.push(Deno.realPathSync(p)); // realPath resolve /C:/... para caminho nativo Windows
+    } else if (entry.name.endsWith(".ts") && !entry.name.endsWith(".test.ts")) {
+      out.push(fromFileUrl(new URL(entry.name, dir)));
     }
   }
   return out;
@@ -157,11 +166,11 @@ Deno.test("Registry Integrity: toda referência CONTRACT_SCHEMAS['x'] no código
   let checked = 0;
 
   for (const filePath of walkDir(EDGE_ROOT)) {
-    const src = Deno.readTextFileSync(filePath);
+    const src = stripComments(Deno.readTextFileSync(filePath));
     const refs = src.matchAll(/CONTRACT_SCHEMAS\s*\[\s*['"]([a-z0-9-]+)['"]\s*\]/g);
     for (const m of refs) {
       checked++;
-      if (!registered.has(m[1])) missing.add(`${m[1]} (${filePath.split("/").slice(-3).join("/")})`);
+      if (!registered.has(m[1])) missing.add(`${m[1]} (${filePath.split(/[\\/]/).slice(-3).join("/")})`);
     }
   }
 
@@ -173,4 +182,22 @@ Deno.test("Registry Integrity: toda referência CONTRACT_SCHEMAS['x'] no código
     `e CONTRACTS (contract-versions.ts).`
   );
   assert(checked > 0, "nenhuma referência CONTRACT_SCHEMAS encontrada — verificar scanner");
+});
+
+// ─── Invariante 8 (causa-raiz do P0): os DOIS registros devem estar sincronizados.
+//     EdgeFunctionContractSchemas (edge-contract-schemas.ts) é o registro
+//     "oficial" de funções; CONTRACT_SCHEMAS é o que o gate lê em RUNTIME.
+//     Drift entre eles = a mesma classe de incidente (função quebrada em prod).
+
+Deno.test("Registry Integrity: EdgeFunctionContractSchemas ⊆ CONTRACT_SCHEMAS (sem drift)", () => {
+  const edgeNames = new Set(Object.keys(EdgeFunctionContractSchemas));
+  const schemaNames = new Set(Object.keys(CONTRACT_SCHEMAS));
+  const drift = [...edgeNames].filter((n) => !schemaNames.has(n)).sort();
+  assertEquals(
+    drift,
+    [],
+    `Drift de registro: ${drift.length} funções em EdgeFunctionContractSchemas sem entrada em CONTRACT_SCHEMAS ` +
+    `(o gate lê CONTRACT_SCHEMAS em runtime — função registrada só no edge registry quebra em produção com 422).`
+  );
+  assert(edgeNames.size > 0, "EdgeFunctionContractSchemas vazio — verificar scanner");
 });
