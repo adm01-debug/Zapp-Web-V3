@@ -243,20 +243,18 @@ Deno.test({
 });
 
 Deno.test({
-  name: "public-api: unknown action returns 400",
+  name: "public-api: unknown action returns 422 (contrato zod rejeita antes do handler)",
   sanitizeOps: false,
   sanitizeResources: false,
   fn: async () => {
     reset();
     const res = await handler(makeReq({ action: "delete", number: "5511999990000", message: "Hi" }));
-    assertEquals(res.status, 400);
-    const json = await res.json();
-    assert((json.error as string).includes("Unknown action"));
+    assertEquals(res.status, 422);
   },
 });
 
 Deno.test({
-  name: "public-api: invalid JSON body returns 400",
+  name: "public-api: invalid JSON body returns 422 (contrato zod rejeita antes do handler)",
   sanitizeOps: false,
   sanitizeResources: false,
   fn: async () => {
@@ -267,7 +265,7 @@ Deno.test({
       body: "{ not json !!!",
     });
     const res = await handler(req);
-    assertEquals(res.status, 400);
+    assertEquals(res.status, 422);
   },
 });
 
