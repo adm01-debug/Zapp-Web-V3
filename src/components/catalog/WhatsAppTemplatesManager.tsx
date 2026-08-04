@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Edit2, Trash2, Copy, Eye, Search, FileText, Send, CheckCircle2, Clock, XCircle, Loader2, Variable } from 'lucide-react';
+import { Plus, Edit2, Trash2, Copy, Eye, Search, FileText, Send, CheckCircle2, Clock, XCircle, Loader2, Variable, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
@@ -28,6 +28,7 @@ export function WhatsAppTemplatesManager() {
     editingTemplate, setEditingTemplate, previewTemplate, previewVariables, setPreviewVariables,
     isSaving, handleContentChange, handleSave, handleDelete, handleDuplicate,
     handlePreview, renderPreviewContent, openNew, openEdit,
+    isSyncing, syncFromEvolution,
   } = useWhatsAppTemplates();
 
   return (
@@ -37,7 +38,13 @@ export function WhatsAppTemplatesManager() {
           <h2 className="text-lg md:text-xl font-bold text-foreground">Templates WhatsApp</h2>
           <p className="text-xs md:text-sm text-muted-foreground">Gerencie templates oficiais aprovados pelo WhatsApp Business API</p>
         </div>
-        <Button onClick={openNew} className="gap-2 bg-primary hover:bg-primary/90 w-full sm:w-auto"><Plus className="w-4 h-4" />Novo Template</Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={() => void syncFromEvolution()} disabled={isSyncing} className="gap-2 w-full sm:w-auto">
+            {isSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            Sincronizar Evolution
+          </Button>
+          <Button onClick={openNew} className="gap-2 bg-primary hover:bg-primary/90 w-full sm:w-auto"><Plus className="w-4 h-4" />Novo Template</Button>
+        </div>
       </div>
 
       <div className="flex gap-3 flex-wrap">
