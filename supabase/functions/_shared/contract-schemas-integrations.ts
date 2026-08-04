@@ -11,7 +11,6 @@
  *  - Endpoints internos (UI/cron/JWT chama): `.strict()` — falhar cedo.
  */
 import { z } from "https://esm.sh/zod@3.23.8";
-import type { SchemaMap } from "./contract-kit.ts";
 
 /**
  * outlook-oauth@v1 — DERIVADO do index.ts (641 linhas). Endpoint INTERNO
@@ -147,8 +146,3 @@ export const PromogiftsCatalogV1Schema = z.discriminatedUnion("action", [
     params: z.record(z.unknown()).optional(), // handler ignora params nesta rota
   }).strict(),
 ]);
-
-// ─── Registro das 14 integrações externas ────────────────────────────────────
-/** nome da edge function → { versão → schema } (mesmo formato do CONTRACT_SCHEMAS). */
-
-/** Registro local dos schemas derivados (o registro canônico vive em contract-schemas.ts). */

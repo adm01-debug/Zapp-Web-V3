@@ -297,12 +297,6 @@ export function parseBody<T>(schema: z.ZodSchema<T>, body: unknown) {
   return { success: true, data: result.data };
 }
 
-/** voice-copilot-action@v1 — registro de contrato (schema em contract-schemas.ts). */
-export const VoiceCopilotActionV1Schema = z.object({
-  action: z.string().min(1, "action é obrigatória").max(100),
-  params: z.record(z.unknown()).nullish(),
-}).passthrough();
-
 // ─── Contratos V1 (estritos) — endpoints internos AI/ML ──────────────────────
 //
 // Derivados do CONSUMO REAL nos index.ts de cada edge function + validação dos

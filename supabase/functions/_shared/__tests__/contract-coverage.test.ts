@@ -20,9 +20,15 @@ import { fromFileUrl } from "https://deno.land/std@0.168.0/path/mod.ts";
 
 const FUNCTIONS_ROOT = new URL("../../", import.meta.url);
 
-// ─── Allowlist: funções que leem body SEM gate (justificativa obrigatória) ──
+// ─── Allowlist: funções que leem body SEM gate EFETIVO (justificativa obrigatória) ──
 const ALLOWLIST: Record<string, string> = {
-  // "e2e-webhook-fixture": "fixture de teste — não é função real de produção",
+  // main/mcp: gate no-op documentado — o proxy NÃO pode consumir o stream do
+  // body (quebraria o worker.fetch para a função alvo). O gate roda apenas
+  // quando req.body === null (GET/cron/health) e nesse caso {} sempre passa
+  // contra EmptyStrict — zero validação efetiva, contado como exceção, não
+  // cobertura (validação Claude C3 2026-08-04).
+  "main": "proxy — não pode consumir stream; gate só para req sem body (no-op)",
+  "mcp": "proxy JSON-RPC — não pode consumir stream; gate só para req sem body (no-op)",
 };
 
 function walkDir(dir: URL): string[] {

@@ -212,7 +212,6 @@ const PLACEHOLDER_ALLOWLIST = new Set([
   "email-track-link", "email-track-pixel",
   "webhook-secret-status", "whatsapp-cloud-secrets-status",
   "whatsapp-cloud-webhook-verify", "gmail-health",
-  "auth-email-hook", // (removido do registro — mantido aqui para histórico)
 ]);
 
 Deno.test("Registry Integrity: nenhum schema placeholder (z.object vazio) fora da allowlist", async () => {

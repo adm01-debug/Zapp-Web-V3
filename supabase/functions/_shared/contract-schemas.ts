@@ -497,8 +497,6 @@ export const SicoobBridgeReplyV1Schema = z.object({
    filters: z.record(z.unknown()).optional(),
  }).passthrough();
 
- /** auth-email-hook@v1 — hook interno do Supabase Auth. Schema de registro. */
- export const AuthEmailHookV1Schema = z.object({}).passthrough();
 
  /**
   * whatsapp-cloud-send@v1 — schema REAL (espelha o antigo SendSchema local,

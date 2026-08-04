@@ -14,7 +14,6 @@
  * NOTA: o registro canônico vive em contract-schemas.ts (namespace AISchemas.*).
  */
 import { z } from "https://esm.sh/zod@3.23.8";
-import type { SchemaMap } from "./contract-kit.ts";
 import {
   // Re-exports V1 (homônimos estritos já existentes em schemas.ts)
   AiProxyV1Schema,
@@ -29,9 +28,7 @@ import {
   ClassifyStickerV1Schema,
   SentimentAlertV1Schema,
   VoiceChangerV1Schema,
-  VoiceCopilotActionV1Schema,
   // Bases não-V1 usadas para derivar os schemas V1 novos (consumo real)
-  AiAutoTagSchema,
   AiClassifyTicketsSchema,
   DetectNewDeviceSchema,
 } from "./schemas.ts";
@@ -65,22 +62,9 @@ export { SentimentAlertV1Schema };
 /** voice-changer@v1 — re-export de schemas.ts:380 (strict; rota JSON da fila/queue — multipart não passa por contrato JSON). */
 export { VoiceChangerV1Schema };
 /** voice-copilot-action@v1 — re-export de schemas.ts:290 (action + params nullish). */
-export { VoiceCopilotActionV1Schema };
 
 // ─── Schemas NOVOS (sem V1 homônimo em schemas.ts) — derivados do consumo real ─
 
-/**
- * ai-auto-tag@v1 — schema estrito.
- *
- * DERIVADO DO CONSUMO REAL: o index.ts de ai-auto-tag é um proxy que repassa o
- * body intacto ao ai-router adicionando `action: "auto_tag"` (index.ts:47). O
- * validador real é o handler do ai-router, que faz `parseBody(AiAutoTagSchema,
- * body)` (ai-router/index.ts:1186) e consome `contactId`, `messages` e
- * `requestId` (destructuring em ai-router/index.ts:1191). Mesma forma da
- * variante `auto_tag` de AiRouterV1Schema (schemas.ts:453), sem o literal
- * `action` (injetado pelo proxy).
- */
-export const AiAutoTagV1Schema = AiAutoTagSchema.strict();
 
 /**
  * ai-classify-tickets@v1 — schema estrito.
@@ -105,7 +89,3 @@ export const AiClassifyTicketsV1Schema = AiClassifyTicketsSchema
  * em index.ts:29) — os 4 campos são obrigatórios, sem defaults.
  */
 export const DetectNewDeviceV1Schema = DetectNewDeviceSchema.strict();
-
-// ─── Registro local: função → { v1: Schema } (13 funções AI/voz) ─────────────
-
-/** Registro das 13 edge functions AI/voz: 'nome-da-funcao' -> { v1: Schema }. */

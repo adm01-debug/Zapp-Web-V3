@@ -16,7 +16,6 @@
  */
 import { z } from "https://esm.sh/zod@3.23.8";
 import { RateLimitAlertSchema } from "./schemas.ts";
-import type { SchemaMap } from "./contract-kit.ts";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -32,7 +31,6 @@ export const EmptyStrictV1Schema = z.object({}).strict();
  * ou campos opcionais de agendamento; o contrato base aceita `{}` e rejeita
  * campos desconhecidos (estrito). Usado pelas funções de scheduler.
  */
-export const CronOptionsV1Schema = z.object({}).strict();
 
 // ─── GET/cron sem body (EmptyStrictV1Schema) ─────────────────────────────────
 // Nenhuma destas lê `await req.json()` no index.ts (verificado por grep).
@@ -91,7 +89,9 @@ export const TalkxSchedulerV1Schema = EmptyStrictV1Schema;
  * NOTA: contract-schemas.ts já registra este nome com { limit?, dryRun? }
  * (derivado de comentário, não do código) — o consumo real é vazio.
  */
-export const ReprocessFailedMessagesV1Schema = EmptyStrictV1Schema;
+// (ReprocessFailedMessagesV1Schema removido daqui — o canônico é o real
+// {limit?, dryRun?}.strict() em contract-schemas.ts:103. EmptyStrict aqui
+// era definição morta e conflitava; validação Claude C4 2026-08-04.)
 
 // ─── Observabilidade ─────────────────────────────────────────────────────────
 
@@ -287,10 +287,13 @@ export const RecoverCorruptedAudiosV1Schema = z.object({
 /**
  * mcp-server@v1 — POST interno (requireUser). index.ts consome apenas
  * `body.method` (comparado a "list_tools"); demais campos não são lidos.
+ * PERMISSIVO: endpoint publicado como servidor MCP HTTP (JSON-RPC 2.0 —
+ * envelopes reais têm `jsonrpc`, `id`, `params`). `.strict()` rejeitaria
+ * todo request legítimo com 422 (validação Claude, B1 2026-08-04).
  */
 export const McpServerV1Schema = z.object({
   method: z.string().max(100).optional(),
-}).strict();
+}).passthrough();
 
 /**
  * talkx-add-recipients@v1 — POST interno (requireUser). index.ts

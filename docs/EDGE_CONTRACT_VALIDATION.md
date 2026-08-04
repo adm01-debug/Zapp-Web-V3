@@ -81,22 +81,28 @@ Todo contrato precisa de entrada em **AMBOS**:
 
 | Teste | Garante |
 |---|---|
-| `contract-registry-integrity.test.ts` | Invariantes 1-8: registro consistente, sem drift entre registros, sem refs a chaves ausentes |
+| `contract-registry-integrity.test.ts` | Invariantes 1-9: registro consistente, sem drift, sem refs a chaves ausentes, anti-placeholder |
 | `contract-coverage.test.ts` | Toda função que lê body tem gate (ou allowlist justificada) |
 | `contract-cross-endpoint.test.ts` | Envelope idêntico em TODOS os contratos |
 | `contract-matrix.test.ts` | T3/T4/T8/T15 (body ausente, não-JSON, versão inválida, CORS) |
 | `unified-error-format.test.ts` | Envelope 422 único em todas as funções |
 | `contract-gate-undefined-schema.test.ts` | Gate NUNCA lança com schema ausente (regressão P0) |
+| `contract-schemas-ai/integrations/infra.test.ts` | Casos válidos/inválidos (≥3-5 por schema) dos 45 schemas novos |
+| `contract-versioning.test.ts` | Retrocompat v1/v2 dos 4 webhooks + sunset + v9 |
 
 ## Regra anti-placeholder
 
 `z.object({}).passthrough()` é PROIBIDO como schema de função (falsa cobertura —
-aceita qualquer payload). Exceções legítimas (GET sem body, status/health)
-devem usar `EmptyStrictV1Schema` (aceita só `{}`) e estar comentadas.
+aceita qualquer payload) e a Invariante 9 quebra o CI se um surgir. Exceções
+legítimas (GET sem body, status/health) devem usar `EmptyStrictV1Schema`
+(aceita só `{}`). 6 contratos GET legítimos estão na allowlist explícita
+(`PLACEHOLDER_ALLOWLIST` em contract-registry-integrity.test.ts): email-track-link,
+email-track-pixel, webhook-secret-status, whatsapp-cloud-secrets-status,
+whatsapp-cloud-webhook-verify, gmail-health.
 
 ## Estado (2026-08-04)
 
-- 118 edge functions, **117 com gate** + voice-agent integrado = **118/118**
+- 118 edge functions, **116 com gate efetivo** + 2 exceções documentadas (main/mcp — proxies que não podem consumir o stream) + voice-agent = **118/118**
 - 118 contratos em `CONTRACT_SCHEMAS` + `CONTRACTS`
 - 4 webhooks com V2 + sunset: evolution, whatsapp-cloud, gmail, elevenlabs
-- 1400+ testes de contrato verdes
+- 1800+ testes de contrato verdes (1829 em 2026-08-04)

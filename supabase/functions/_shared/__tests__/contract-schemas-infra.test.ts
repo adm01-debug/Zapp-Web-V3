@@ -47,7 +47,6 @@ const EMPTY_STRICT_NAMES = [
   "migrate-media-storage",
   "nps-scheduler",
   "provider-healthcheck",
-  "reprocess-failed-messages",
   "seed-teams-users",
   "sicoob-outbox-consumer",
   "talkx-scheduler",
@@ -67,6 +66,8 @@ for (const name of EMPTY_STRICT_NAMES) {
     if (!r.success) {
       const paths = r.error.issues.map((it) => it.path.join("."));
       assert(
+        // zod 3.23.8 reporta unrecognized_keys com path "" (raiz) — verificado
+        // com probe executável; aceitar o path raiz também cobre isso.
         paths.some((p) => p === "qualquer" || p === ""),
         `esperava issue em 'qualquer', obtido: ${paths.join(" | ")}`,
       );
@@ -76,6 +77,21 @@ for (const name of EMPTY_STRICT_NAMES) {
 
 // ─── (B) Com body — payloads conforme consumo real documentado ───────────────
 const MATRICES: Matrix[] = [
+{
+    name: "reprocess-failed-messages",
+    schema: CONTRACT_SCHEMAS["reprocess-failed-messages"].v1!,
+    valid: [
+      {},
+      { limit: 25 },
+      { dryRun: true },
+      { limit: 1, dryRun: false },
+    ],
+    invalid: [
+      { label: "limit fora do range", payload: { limit: 26 }, expectPath: "limit" },
+      { label: "limit tipo errado", payload: { limit: "dez" }, expectPath: "limit" },
+    ],
+  },
+
   {
     name: "client-observability@v1 (estrito — metrics[] min 1)",
     schema: V1("client-observability"),
@@ -164,15 +180,17 @@ const MATRICES: Matrix[] = [
     ],
   },
   {
-    name: "mcp-server@v1 (estrito — method opcional)",
+    name: "mcp-server@v1 (permissivo — protocolo JSON-RPC)",
     schema: V1("mcp-server"),
     valid: [
       {},
       { method: "list_tools" },
+      // Envelope JSON-RPC 2.0 real — PERMISSIVO por design (B1 2026-08-04:
+      // .strict() rejeitaria todo request legítimo do protocolo MCP).
+      { jsonrpc: "2.0", id: 1, method: "list_tools", params: {} },
     ],
     invalid: [
       { label: "method com tipo errado", payload: { method: 123 }, expectPath: "method" },
-      { label: "campo extra (strict)", payload: { params: {} } },
     ],
   },
   {
@@ -339,7 +357,7 @@ for (const m of MATRICES) {
       if (!r.success && c.expectPath) {
         const paths = r.error.issues.map((it) => it.path.join("."));
         assert(
-          paths.some((p) => p === c.expectPath || p.startsWith(c.expectPath + ".") || p === ""),
+          paths.some((p) => p === c.expectPath || p.startsWith(c.expectPath + ".")),
           `esperava issue em '${c.expectPath}', obtido: ${paths.join(" | ")}`,
         );
       }
@@ -406,7 +424,7 @@ for (const m of MULTIPART_MATRICES) {
       if (!r.success && c.expectPath) {
         const paths = r.error.issues.map((it) => it.path.join("."));
         assert(
-          paths.some((p) => p === c.expectPath || p.startsWith(c.expectPath + ".") || p === ""),
+          paths.some((p) => p === c.expectPath || p.startsWith(c.expectPath + ".")),
           `esperava issue em '${c.expectPath}', obtido: ${paths.join(" | ")}`,
         );
       }

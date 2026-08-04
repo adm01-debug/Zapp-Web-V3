@@ -20,7 +20,6 @@ import {
   SentimentAlertV1Schema,
   VoiceAgentV1Schema,
   VoiceChangerV1Schema,
-  VoiceCopilotActionV1Schema,
   ChatbotL1V1Schema,
   AutomationSuggestReplyV1Schema,
   SpeechToTextV1Schema,
@@ -219,6 +218,22 @@ export const ContractLifecycles: Record<string, ContractLifecycle> = {
       v1: { sunset: '2027-06-01', replacement: 'v2' },
     },
   },
+  // Alinhados com CONTRACTS (validação Claude C1 2026-08-04) — os 4 webhooks
+  // V2 precisam de lifecycle idêntico ao registro canônico.
+  'gmail-webhook': {
+    current: 'v2',
+    supported: ['v1', 'v2'],
+    deprecated: {
+      v1: { sunset: '2027-06-01', replacement: 'v2' },
+    },
+  },
+  'elevenlabs-webhook': {
+    current: 'v2',
+    supported: ['v1', 'v2'],
+    deprecated: {
+      v1: { sunset: '2027-06-01', replacement: 'v2' },
+    },
+  },
 };
 
 const specificEdgeFunctionSchemas: Partial<
@@ -239,7 +254,6 @@ const specificEdgeFunctionSchemas: Partial<
   'sentiment-alert': { v1: SentimentAlertV1Schema },
   'voice-agent': { v1: VoiceAgentV1Schema },
   'voice-changer': { v1: VoiceChangerV1Schema },
-  'voice-copilot-action': { v1: VoiceCopilotActionV1Schema },
   'chatbot-l1': { v1: ChatbotL1V1Schema },
   'automation-suggest-reply': { v1: AutomationSuggestReplyV1Schema },
   'speech-to-text': { v1: SpeechToTextV1Schema },

@@ -15,7 +15,7 @@
 import { assertEquals, assertExists } from "https://deno.land/std@0.168.0/testing/asserts.ts";
 import { parseOrReject } from "../contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../contract-schemas.ts";
-import { CONTRACTS } from "../contract-versions.ts";
+import { CONTRACTS, isDeprecatedVersion } from "../contract-versions.ts";
 
 Deno.test("Versioning: V1 payload aceito quando V2 é current", () => {
   const v1Payload = { event: "messages.upsert", instance: "inst_1", data: { id: "1" } };
@@ -177,9 +177,13 @@ for (const { name, v2, v1 } of WEBHOOK_FIXTURES) {
     assertEquals(result.ok, true);
     if (result.ok) {
       assertEquals(result.version, "v1");
-      assertEquals(result.deprecated, true);
-      assertEquals(result.headers["x-contract-deprecated"], "true");
-      assertEquals(result.headers["sunset"], sunsetV1);
+      // Data-bomba guard (validação Claude B3): NUNCA assertar `true` literal —
+      // viraria false quando o sunset passar. Comparar com isDeprecatedVersion.
+      assertEquals(result.deprecated, isDeprecatedVersion(name, "v1"));
+      assertEquals(result.headers["x-contract-deprecated"], isDeprecatedVersion(name, "v1") ? "true" : undefined);
+      if (isDeprecatedVersion(name, "v1")) {
+        assertEquals(result.headers["sunset"], sunsetV1);
+      }
     }
   });
 

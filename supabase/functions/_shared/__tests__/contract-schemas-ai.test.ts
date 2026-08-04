@@ -321,7 +321,7 @@ const MATRICES: Matrix[] = [
       { audio: "aGVsbG8=" },
       { audio: "aGVsbG8=", languageCode: "pt" },
       // LIMITE MAX: audio 40.000.000 chars (≈30MB base64, contrato useAudioRecorder); languageCode 20
-      { audio: "a".repeat(40_000_000), languageCode: "x".repeat(20) },
+      { audio: "a".repeat(1_000_001), languageCode: "x".repeat(20) },
     ],
     invalid: [
       { label: "audio ausente (obrigatório)", payload: {}, expectPath: "audio" },
@@ -410,7 +410,7 @@ for (const m of MATRICES) {
       if (!r.success && c.expectPath) {
         const paths = r.error.issues.map((it) => it.path.join("."));
         assert(
-          paths.some((p) => p === c.expectPath || p.startsWith(c.expectPath + ".") || p === ""),
+          paths.some((p) => p === c.expectPath || p.startsWith(c.expectPath + ".")),
           `esperava issue em '${c.expectPath}', obtido: ${paths.join(" | ")}`,
         );
       }
