@@ -17,6 +17,9 @@
 - [ ] PR aborda um único tema
 - [ ] Build local passando (`bun run build`)
 - [ ] TypeScript sem novos erros (`bun run typecheck`)
+- [ ] `node scripts/audit-contract.mjs` rodou com **0 divergências** (contrato RPC/.from/invoke vs banco)
+- [ ] ESLint limpo (`bun run lint`)
+- [ ] Testes unitários verdes (`bun run test`)
 
 ### Para PRs com `fix:`
 - [ ] **OBRIGATÓRIO**: Inclui ao menos um teste de regressão que falha sem a correção

@@ -7,7 +7,10 @@
  *  2. `createClient(...)`           em código de produção sem `db: { schema: '<zapp|evo|...>' }`
  *  3. URLs `*.supabase.co`          fora de arquivos de teste.
  *  4. .from('evolution_messages'|'evolution_conversations') sem sufixo de partição (frontend).
- *  5. .from('evolution_instance_credentials'|'evolution_health_logs') sem .schema('evo') (frontend).
+ *  5. .from('evolution_instance_credentials'|'evolution_health_logs') SEM .schema('evo') é
+ *     OBRIGATÓRIO (frontend) — essas tabelas têm views em zapp (security_invoker,
+ *     evolution_instance_credentials SEM api_key); .schema('evo') causa PGRST106
+ *     (evo fora do PGRST_DB_SCHEMAS). Escritas de credenciais vão por edge function.
  *  6. .schema('evo').from('evolution_instances') — a view evolution_instances existe em
  *     zapp, NÃO em evo; chamar via .schema('evo') resulta em PGRST205 em produção.
  *
@@ -82,11 +85,18 @@ for (const f of files) {
     violations.evoUnprefixed.push(relative('.', f));
   }
 
-  // 5. evolution_instance_credentials e evolution_health_logs vivem em `evo`
+  // 5. evolution_instance_credentials e evolution_health_logs — views em `zapp`
+  // (security_invoker; evolution_instance_credentials SEM api_key). O cliente
+  // padrão usa schema 'zapp', então .from() dessas tabelas DEVE ser SEM
+  // .schema('evo') — usar .schema('evo') causa PGRST106 (evo fora do
+  // PGRST_DB_SCHEMAS). Escritas de credenciais vão pela edge function
+  // evolution-credentials (service_role via RPCs fn_edge_*).
+  // Detecta: arquivo usa .from('evolution_instance_credentials'|'evolution_health_logs')
+  //          E TEM .schema('evo') → violação.
   const evoOnlyTableRe =
     /\.from\(\s*['"](evolution_instance_credentials|evolution_health_logs)['"]\s*\)/;
   const hasEvoSchema = /\.schema\(\s*['"]evo['"]\s*\)/.test(src);
-  if (!isTest && f.startsWith('src/') && evoOnlyTableRe.test(src) && !hasEvoSchema) {
+  if (!isTest && f.startsWith('src/') && evoOnlyTableRe.test(src) && hasEvoSchema) {
     violations.evoSchemaRequired.push(relative('.', f));
   }
 
@@ -135,9 +145,11 @@ if (violations.evoUnprefixed.length) {
 }
 if (violations.evoSchemaRequired.length) {
   console.error(
-    `\n— .from('evolution_instance_credentials'|'evolution_health_logs') sem .schema('evo') (${violations.evoSchemaRequired.length}):`
+    `\n— .from('evolution_instance_credentials'|'evolution_health_logs') COM .schema('evo') proibido (${violations.evoSchemaRequired.length}):`
   );
-  console.error("   Essas tabelas vivem no schema 'evo'. Use supabase.schema('evo').from(...).");
+  console.error("   Essas tabelas têm views em zapp (security_invoker; credentials SEM api_key).");
+  console.error("   Use: supabase.from('evolution_instance_credentials') — schema zapp padrão.");
+  console.error("   .schema('evo') causa PGRST106 (evo fora do PGRST_DB_SCHEMAS).");
   violations.evoSchemaRequired.forEach((f) => console.error('   ' + f));
 }
 if (violations.evoInstancesBadSchema.length) {

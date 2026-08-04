@@ -1,24 +1,29 @@
 /**
- * useEvolutionApiIntegration — Wave 3 (2026-07-06)
+ * useEvolutionApiIntegration — Wave 3 (2026-07-06) / rewrite 2026-08-04
  * Camada de dados extraída de EvolutionApiIntegrationView (componente ficou 100% UI).
  * Semântica preservada: Promise.all no fetch, auto-teste antes do save, logs de health.
+ *
+ * ARQUITETURA DE DADOS (rewrite):
+ * - LEITURA: zapp.evolution_instance_credentials é uma VIEW auto-updatable no schema
+ *   'zapp' (security_invoker=on) que OMITE api_key por segurança — usar supabase direto.
+ * - ESCRITA: edge function 'evolution-credentials' (POST actions save/delete) roda com
+ *   service_role e grava na tabela física em 'evo' (service_role only via RLS).
+ * - HEALTH LOGS: zapp.evolution_health_logs é VIEW auto-updatable; INSERT via client
+ *   autenticado funciona (policies na base em evo p/ role public).
+ * - O schema 'evo' NÃO está no PGRST_DB_SCHEMAS — qualquer .schema('evo') falha com
+ *   PGRST106. Nunca usar evo a partir do client.
  */
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import type { SupabaseClient } from '@supabase/supabase-js';
-
-// evolution_instance_credentials reside no schema 'evo' (física, service_role only).
-// evolution_health_logs foi movida para schema 'zapp' (migration 20260724000044) — usar supabase diretamente.
-// (schema 'evo' fora do tipo gerado do client 'zapp'; widening controlado para SupabaseClient genérico)
-const evo = (supabase as unknown as SupabaseClient).schema('evo');
 
 /** Evolution Instance Credential interface definition. */
 export interface EvolutionInstanceCredential {
   id: string;
   instance_name: string;
   api_url: string;
-  api_key: string;
+  /** Opcional: a view zapp NÃO expõe api_key (segurança); só vem preenchida do form, nunca da listagem. */
+  api_key?: string;
   is_active: boolean;
   health_status: 'healthy' | 'unhealthy' | 'error' | 'unknown';
   last_health_check: string | null;
@@ -60,7 +65,8 @@ export function useEvolutionApiIntegration() {
     setLoading(true);
     try {
       const [credsRes, logsRes] = await Promise.all([
-        evo.from('evolution_instance_credentials').select('*').order('instance_name'),
+        // View zapp (sem api_key por segurança) — evo não está no PGRST_DB_SCHEMAS
+        supabase.from('evolution_instance_credentials').select('*').order('instance_name'),
         supabase
           .from('evolution_health_logs')
           .select('*')
@@ -94,7 +100,12 @@ export function useEvolutionApiIntegration() {
 
   const handleTestConnection = async (creds: Partial<EvolutionInstanceCredential>) => {
     if (!creds.api_url || !creds.api_key) {
-      toast.error('URL e Chave de API são obrigatórias para o teste');
+      // Credenciais salvas vêm da view zapp, que omite api_key — sem a chave não há teste possível.
+      if (creds.id) {
+        toast.error('Informe a chave da API para testar');
+      } else {
+        toast.error('URL e Chave de API são obrigatórias para o teste');
+      }
       return false;
     }
 
@@ -135,7 +146,7 @@ export function useEvolutionApiIntegration() {
         toast.error(`Falha no teste: ${errorMsg}`);
       }
 
-      // Log the health check in the database
+      // Log the health check in the database (view zapp, INSERT autenticado)
       if (creds.instance_name) {
         await supabase.from('evolution_health_logs').insert({
           instance_name: creds.instance_name,
@@ -146,17 +157,8 @@ export function useEvolutionApiIntegration() {
           total_instances: totalCount,
         });
 
-        // Update credential status (only when an existing credential has an id)
-        if (creds.id) {
-          await evo
-            .from('evolution_instance_credentials')
-            .update({
-              health_status: isSuccess ? 'healthy' : 'unhealthy',
-              last_health_check: new Date().toISOString(),
-            })
-            .eq('id', creds.id);
-        }
-
+        // health_status/last_health_check NÃO são atualizados aqui: a view omite api_key
+        // e o update via evo falhava (PGRST106). A edge fn save não aceita health fields.
         fetchData();
       }
 
@@ -200,27 +202,23 @@ export function useEvolutionApiIntegration() {
       toast.warning('Atenção: O teste de conexão falhou, mas as credenciais serão salvas.');
     }
 
-    const payload = {
-      instance_name: formData.instance_name,
-      api_url: normalizedUrl,
-      api_key: formData.api_key,
-      health_status: isTestOk ? 'healthy' : 'unhealthy',
-      last_health_check: new Date().toISOString(),
-    };
-
     try {
-      if (formData.is_editing) {
-        const { error } = await evo
-          .from('evolution_instance_credentials')
-          .update(payload)
-          .eq('id', formData.is_editing);
-        if (error) throw error;
-        toast.success('Configurações atualizadas');
-      } else {
-        const { error } = await evo.from('evolution_instance_credentials').insert(payload);
-        if (error) throw error;
-        toast.success('Novas credenciais salvas');
-      }
+      // Escrita via edge function (service_role) — a física está em evo; a view zapp não aceita api_key.
+      const { data, error } = await supabase.functions.invoke('evolution-credentials', {
+        method: 'POST',
+        body: {
+          action: 'save',
+          instance_name: formData.instance_name,
+          api_url: normalizedUrl,
+          api_key: formData.api_key,
+          is_active: true,
+        },
+      });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error ?? 'Falha ao salvar');
+
+      // A edge fn faz upsert por instance_name — is_editing (update por id) é ignorado.
+      toast.success(formData.is_editing ? 'Configurações atualizadas' : 'Novas credenciais salvas');
 
       setFormData({
         instance_name: '',
@@ -240,8 +238,12 @@ export function useEvolutionApiIntegration() {
       return;
 
     try {
-      const { error } = await evo.from('evolution_instance_credentials').delete().eq('id', id);
+      const { data, error } = await supabase.functions.invoke('evolution-credentials', {
+        method: 'POST',
+        body: { action: 'delete', id },
+      });
       if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error ?? 'Falha ao excluir');
       toast.success('Credenciais excluídas');
       fetchData();
     } catch (err: unknown) {

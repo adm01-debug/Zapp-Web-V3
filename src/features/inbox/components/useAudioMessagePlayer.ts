@@ -89,10 +89,10 @@ export function useAudioMessagePlayer({
         'postgres_changes',
         {
           event: '*',
-          // voice_conversion_queue is physical in public schema (added to supabase_realtime
-          // publication by migration 20260724000024). zapp.voice_conversion_queue is a VIEW
-          // proxy created by migration 20260724000050 — VIEWs never emit WAL events.
-          schema: 'public',
+          // voice_conversion_queue é TABELA FÍSICA em zapp (na publicação supabase_realtime).
+          // public.voice_conversion_queue é a VIEW proxy — views não emitem WAL; por isso a
+          // subscription é no schema zapp.
+          schema: 'zapp',
           table: 'voice_conversion_queue',
           filter: `message_id=eq.${messageId}`,
         },

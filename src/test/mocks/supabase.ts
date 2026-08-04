@@ -66,11 +66,22 @@ export function createMockSupabase(overrides: Overrides = {}) {
     subscribe: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
   });
 
+  // `.schema(...)` é um anti-pattern pós-consolidação (PGRST_DB_SCHEMAS não
+  // expõe `evo`/`vault`). O spy existe para os testes ASSERTAREM que nunca é
+  // chamado. Se algum código chamar, a chain devolve um builder vazio (o
+  // teste que o permite precisa mockar explicitamente).
+  const mockSchema = vi.fn().mockReturnValue({ from: vi.fn().mockReturnValue(createQueryBuilder()) });
+
   return {
     auth: mockAuth,
     from: mockFrom,
     rpc: mockRpc,
     channel: mockChannel,
+    removeChannel: vi.fn(),
+    schema: mockSchema,
+    functions: {
+      invoke: vi.fn().mockResolvedValue({ data: null, error: null }),
+    },
   };
 }
 

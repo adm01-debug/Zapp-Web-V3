@@ -11,7 +11,7 @@ import type {
 /**
  * useDashboardDataBatch — single RPC call replacing 3 individual queries.
  *
- * Calls public.rpc_dashboard_init() which returns:
+ * Calls zapp.rpc_dashboard_init() (wrapper SECURITY DEFINER → public.rpc_dashboard_init) which returns:
  *   - agents: { online, total }
  *   - contacts: array filtered by date range (LIMIT 1000 safety valve)
  *   - queues: with total_members, online_members, waiting_count

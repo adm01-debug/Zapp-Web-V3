@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 /**
  * useAppBootstrap — single RPC call replacing 6+ individual queries on page load.
  *
- * Calls public.rpc_app_bootstrap() which fetches:
+ * Calls zapp.rpc_app_bootstrap() (wrapper SECURITY DEFINER → public.rpc_app_bootstrap) which fetches:
  *   profiles, user_roles, permissions, role_permissions,
  *   global_settings, departments, unread notification count.
  *

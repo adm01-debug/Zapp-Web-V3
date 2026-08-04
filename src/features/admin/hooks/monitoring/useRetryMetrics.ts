@@ -124,7 +124,10 @@ export function useRetryMetrics(filters: RetryMetricsFilters = {}) {
       .channel('evolution_retry_metrics_realtime')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'evolution_retry_metrics' },
+        // Tabela física é evo.evolution_retry_metrics (na publicação supabase_realtime,
+        // RLS com policy SELECT p/ authenticated). zapp/public só têm VIEW — views não
+        // emitem WAL, então a subscription precisa do schema evo.
+        { event: 'INSERT', schema: 'evo', table: 'evolution_retry_metrics' },
         () => {
           void queryClient.invalidateQueries({
             queryKey: queryKeys.adminOps.evolutionRetryMetrics(),

@@ -35,11 +35,111 @@ import { EvolutionCredentialsV1Schema } from '../_shared/contract-schemas.ts';
 
 const INSTANCE = 'wpp2';
 
+/** UUID canônico (v1-v8) — validação simples do id em action 'delete'. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * POST — CRUD de credenciais (actions 'save' | 'delete').
+ *
+ * A tabela física vive em evo.evolution_instance_credentials, que NÃO está no
+ * PGRST_DB_SCHEMAS (fechada por segurança). Por isso a escrita NÃO usa
+ * PostgREST direto (.schema('evo') seria 404/403) — passa por RPC SECURITY
+ * DEFINER, mesmo padrão do GET (fn_edge_get_evolution_credentials).
+ *
+ * RPCs ASSUMIDAS (criadas pela migration 20260804150000 em zapp — o admin
+ * client usa db.schema='zapp' — SECURITY DEFINER, EXECUTE só service_role,
+ * search_path=''):
+ *   - fn_edge_upsert_evolution_credentials(
+ *       p_instance_name text, p_api_url text, p_api_key text,
+ *       p_display_name text, p_department text, p_is_active boolean
+ *     ) RETURNS jsonb  -- upsert ON CONFLICT (instance_name), retorna {"id": ...}
+ *   - fn_edge_delete_evolution_credentials(p_id uuid) RETURNS boolean
+ *
+ * SEGURANÇA: nunca ecoa nem loga api_key; mesma role gate do GET
+ * (admin/supervisor); rate limit próprio menor (10/60s).
+ */
+async function handleWrite(req: Request): Promise<Response> {
+  const cors = getCorsHeaders(req);
+  const json = (status: number, payload: unknown) =>
+    new Response(JSON.stringify(payload), {
+      status,
+      headers: { ...cors, 'Content-Type': 'application/json' },
+    });
+
+  // Body opcional/leniente: JSON inválido → {} e validação de action responde 400.
+  const body: Record<string, unknown> = await req.json().catch(() => ({}));
+
+  // Mesmo gate do GET: apenas admin/supervisor (403 antes de tocar no banco).
+  const authed = await requireAdminOrSupervisor(req);
+  if (authed instanceof Response) return authed;
+
+  const rl = checkRateLimit(`evolution-credentials-write:${authed.user.id}`, 10, 60_000);
+  if (!rl.allowed) return json(429, { ok: false, error: 'Rate limit exceeded' });
+
+  const action = body.action;
+  const admin = createZappAdminClient();
+
+  if (action === 'save') {
+    const instance_name = typeof body.instance_name === 'string' ? body.instance_name.trim() : '';
+    const api_url = typeof body.api_url === 'string' ? body.api_url.trim() : '';
+    const api_key = typeof body.api_key === 'string' ? body.api_key.trim() : '';
+    const display_name = typeof body.display_name === 'string' ? body.display_name.trim() : null;
+    const department = typeof body.department === 'string' ? body.department.trim() : null;
+    const is_active = typeof body.is_active === 'boolean' ? body.is_active : true;
+
+    if (!instance_name) return json(400, { ok: false, error: 'instance_name is required' });
+    if (!/^https?:\/\//i.test(api_url)) return json(400, { ok: false, error: 'api_url must be a valid http(s) URL' });
+    if (!api_key) return json(400, { ok: false, error: 'api_key is required' });
+
+    const { data, error } = await admin.rpc('fn_edge_upsert_evolution_credentials', {
+      p_instance_name: instance_name,
+      p_api_url: api_url,
+      p_api_key: api_key,
+      p_display_name: display_name,
+      p_department: department,
+      p_is_active: is_active,
+    });
+
+    if (error) {
+      // Nunca logar a api_key; a mensagem de erro RPC é segura (permission/config).
+      console.error('[evolution-credentials] upsert RPC falhou:', error.message);
+      return json(500, { ok: false, error: 'Failed to save credential' });
+    }
+
+    // RPC RETURNS jsonb → PostgREST devolve o objeto parseado (ex.: { id })
+    const id = data && typeof data === 'object' ? (data as { id?: unknown }).id : null;
+    return json(200, { ok: true, id: typeof id === 'string' ? id : null });
+  }
+
+  if (action === 'delete') {
+    const id = typeof body.id === 'string' ? body.id.trim() : '';
+    if (!UUID_RE.test(id)) return json(400, { ok: false, error: 'invalid id' });
+
+    const { data, error } = await admin.rpc('fn_edge_delete_evolution_credentials', { p_id: id });
+
+    if (error) {
+      console.error('[evolution-credentials] delete RPC falhou:', error.message);
+      return json(500, { ok: false, error: 'Failed to delete credential' });
+    }
+
+    return json(200, { ok: true, deleted: data === true });
+  }
+
+  return json(400, { ok: false, error: 'unknown action' });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return handleCorsPreflight(req);
 
+  if (req.method === 'POST') {
+    return handleWrite(req);
+  }
+
   if (req.method !== 'GET') {
-    return new Response('Method Not Allowed', { status: 405 });
+    return new Response(
+      JSON.stringify({ error: 'Method Not Allowed' }),
+      { status: 405, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+    );
   }
 
   // Contrato evolution-credentials@v1 (estrito): GET sem body → {} aceito.
