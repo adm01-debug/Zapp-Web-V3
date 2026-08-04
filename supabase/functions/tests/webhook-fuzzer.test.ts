@@ -1,4 +1,3 @@
-import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import fc from "npm:fast-check@^4.7.0";
 
 const validateWebhookPayload = (payload: unknown): boolean => {
