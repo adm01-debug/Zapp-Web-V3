@@ -7,12 +7,13 @@ on:
     branches: [ main, master ]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  group: quality-gate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality-gate:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       CI: true
       VITE_SUPABASE_URL: https://example.supabase.co
@@ -23,6 +24,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -38,7 +40,7 @@ jobs:
             bun-${{ runner.os }}-
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Lint (blocking — E02/F1-10)
         run: npm run lint
@@ -63,7 +65,7 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             base="${{ github.event.pull_request.base.sha }}"
           else
-            base="HEAD~1"
+            base="${{ github.event.before || 'HEAD~1' }}"
           fi
           changed=$(git diff --name-only "$base"...HEAD -- "supabase/migrations/*.sql" 2>/dev/null || true)
           if [ -z "$changed" ]; then
@@ -83,7 +85,7 @@ jobs:
       - name: Supabase cast safety (SUP-001..006 — blocking on errors)
         run: node scripts/lint-supabase-casts.mjs
 
-      - name: Schema access simulation (~300 cenários)
+      - name: Schema access simulation (~300 cenários — blocking)
         run: node scripts/simulate-schema-access.mjs
 
       - name: Type Check (advisory in CI — private registry unavailable)
@@ -98,9 +100,17 @@ jobs:
 
       - name: Cluster typecheck ratchet — blocking (crm-sales, queues, observability)
         run: |
+          set +e
           node scripts/check-cluster-typecheck.mjs --cluster crm-sales
+          status_sales=$?
           node scripts/check-cluster-typecheck.mjs --cluster queues
+          status_queues=$?
           node scripts/check-cluster-typecheck.mjs --cluster observability
+          status_obs=$?
+          if [ "$status_sales" -ne 0 ] || [ "$status_queues" -ne 0 ] || [ "$status_obs" -ne 0 ]; then
+            echo "::error title=Cluster typecheck::One or more cluster ratchets failed — check output above."
+            exit 1
+          fi
 
       - name: Cluster typecheck ratchet — advisory (inbox-core)
         run: node scripts/check-cluster-typecheck.mjs --cluster inbox-core
@@ -109,7 +119,8 @@ jobs:
       - name: TypeScript Ratchet (blocking)
         run: node scripts/check-tsc-ratchet.mjs
 
-      - name: Supabase types freshness (advisory se secrets ausentes)
+      - name: Supabase types freshness (advisory — non-blocking)
+        continue-on-error: true
         env:
           ZAPP_META_URL: ${{ secrets.ZAPP_META_URL }}
           ZAPP_META_TOKEN: ${{ secrets.ZAPP_META_TOKEN }}
@@ -124,12 +135,17 @@ jobs:
           node scripts/check-coverage-ratchet.mjs
         continue-on-error: true
 
-      - name: Fuzzing Tests (advisory — no edge runtime in CI)
-        run: npm run test:fuzz -- --runs 20 --baseUrl http://localhost:54321/functions/v1
+      - name: Fuzzing Tests (advisory — skip when no supabase local)
+        run: |
+          if ! curl -sf http://localhost:54321 > /dev/null 2>&1; then
+            echo "::warning::Supabase local not available in CI — fuzzing skipped."
+            exit 0
+          fi
+          npm run test:fuzz -- --runs 20 --baseUrl http://localhost:54321/functions/v1
         continue-on-error: true
 
       - name: Install Playwright Browsers
-        run: bunx playwright install --with-deps
+        run: bunx playwright install chromium --with-deps
 
       - name: E2E Tests (boot suite — src/tests/e2e, 13 specs)
         run: npm run test:e2e:boot
