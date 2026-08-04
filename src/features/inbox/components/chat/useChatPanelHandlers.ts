@@ -38,6 +38,8 @@ interface UseChatPanelHandlersOptions {
   openDialog: (key: DialogKey) => void;
   closeDialog: (key: DialogKey) => void;
   handleSetActiveTool: (tool: ActiveTool) => void;
+  /** Ação real de arquivar a conversa ativa (PR PR 773) — chamada pelo /archive. */
+  onArchive?: () => void | Promise<void>;
 }
 
 /** use Chat Panel Handlers component for the chat section. */
@@ -540,6 +542,16 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     openDialog('transferDialog');
   }, [openDialog]);
 
+  // /archive real (PR PR 773): arquiva a conversa atual via soft-delete.
+  // O callback vem do ChatPanel (useArchiveConversationActions) e valida o
+  // contato — o try/catch do useInputHandlers cuida do toast de erro.
+  const onArchiveChat = useCallback(async () => {
+    if (!contactId || !isValidUUID(contactId)) {
+      throw new Error('Nao foi possivel arquivar: contato invalido.');
+    }
+    await opts.onArchive?.();
+  }, [contactId, opts]);
+
   const { handleInputChange, handleKeyDown, handleSlashCommand } = useInputHandlers({
     setInputValue,
     setIsWhisper,
@@ -556,6 +568,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     onAddNote,
     onAddTag,
     onTransferDialog,
+    onArchive: onArchiveChat,
   });
 
   const {

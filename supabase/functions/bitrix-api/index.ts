@@ -1,19 +1,8 @@
 import { createZappAdminClient } from '../_shared/db-client.ts';
-import { z } from "https://esm.sh/zod@3.23.8";
 import { handleCors, errorResponse, jsonResponse, Logger, getCorsHeaders, validateBitrixOrigin, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
-
-const BitrixBodySchema = z.object({
-  action: z.enum([
-    'list', 'get', 'create', 'update', 'delete',
-    'register_call', 'finish_call', 'attach_record',
-    'sync_contacts', 'push_contact', 'create_lead_from_conversation',
-  ]),
-  entityType: z.enum(['lead', 'contact', 'deal', 'activity', 'call']).optional(),
-  entityId: z.string().max(100).optional(),
-  data: z.record(z.unknown()).optional(),
-  filters: z.record(z.unknown()).optional(),
-});
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -57,18 +46,10 @@ Deno.serve(async (req) => {
     }
 
     const raw = await req.json().catch(() => null);
-    if (!raw) return errorResponse('Invalid JSON body', 400, req);
+    const parsed = parseOrReject('bitrix-api', CONTRACT_SCHEMAS['bitrix-api'], req, raw, { extraHeaders: getCorsHeaders(req) });
+    if (!parsed.ok) return parsed.response;
 
-    const parsed = BitrixBodySchema.safeParse(raw);
-    if (!parsed.success) {
-      const errors = parsed.error.flatten();
-      const msg = Object.entries(errors.fieldErrors)
-        .map(([k, v]) => `${k}: ${(v as string[]).join(', ')}`)
-        .join('; ');
-      return errorResponse(msg || 'Validation error', 400, req);
-    }
-
-    const { action, entityType, entityId, data, filters } = parsed.data;
+    const { action, entityType, entityId, data, filters } = parsed.data as Record<string, any>;
     log.info(`action=${action} entityType=${entityType || 'none'}`);
 
     let endpoint = '';

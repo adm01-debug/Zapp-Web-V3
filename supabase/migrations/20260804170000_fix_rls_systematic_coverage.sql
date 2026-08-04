@@ -95,18 +95,15 @@ BEGIN
     ALTER TABLE zapp.whatsapp_connections DROP CONSTRAINT IF EXISTS health_status_check_v2;
   EXCEPTION WHEN OTHERS THEN NULL; END;
 
-  -- Recreate with full value set
-  BEGIN
-    ALTER TABLE zapp.whatsapp_connections ADD CONSTRAINT health_status_check_v2
-      CHECK (health_status IN (
-        'connected', 'disconnected', 'connecting', 'qr_code', 'timeout',
-        'error', 'unknown', 'syncing', 'authenticated', 'logged_out'
-      ));
-    RAISE NOTICE 'SIDE-01: health_status_check_v2 constraint created with 10 values';
-  EXCEPTION WHEN OTHERS THEN
-    RAISE WARNING 'SIDE-01: Could not create health_status_check_v2: % (SQLSTATE: %)',
-                  SQLERRM, SQLSTATE;
-  END;
+  -- Recreate with full consolidated value set (union of all values ever written)
+  ALTER TABLE zapp.whatsapp_connections ADD CONSTRAINT health_status_check_v2
+    CHECK (health_status IS NULL OR health_status = ANY (ARRAY[
+      'connected'::text, 'disconnected'::text, 'connecting'::text, 'qr_code'::text, 'timeout'::text,
+      'error'::text, 'unknown'::text, 'syncing'::text, 'authenticated'::text, 'logged_out'::text,
+      'healthy'::text, 'ok'::text, 'provisioned'::text, 'degraded'::text,
+      'down'::text, 'offline'::text
+    ]));
+  RAISE NOTICE 'SIDE-01: health_status_check_v2 constraint created with 16 consolidated values';
 END;
 $fix_health_constraint$;
 

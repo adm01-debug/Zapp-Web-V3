@@ -14,6 +14,8 @@ import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { requireUser } from '../_shared/auth.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
 const PayloadSchema = z.object({
   contact_id: z.string().min(1),
@@ -61,14 +63,12 @@ Deno.serve(async (req) => {
     if (!rl.allowed) return jsonResponse(req, { error: 'Rate limit exceeded' }, 429);
 
     // 2. Validate payload.
-    const json = await req.json().catch(() => null);
-    const parsed = PayloadSchema.safeParse(json);
-    if (!parsed.success) {
-      return jsonResponse(req, { error: parsed.error.flatten().fieldErrors }, 400);
-    }
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('sla-alert-forward', CONTRACT_SCHEMAS['sla-alert-forward'], req, raw, { extraHeaders: getCorsHeaders(req) });
+    if (!parsed.ok) return parsed.response;
     const payload: AlertPayload = {
-      ...parsed.data,
-      occurred_at: parsed.data.occurred_at ?? new Date().toISOString(),
+      ...(parsed.data as AlertPayload),
+      occurred_at: (parsed.data as AlertPayload).occurred_at ?? new Date().toISOString(),
     };
 
     // 3. Read webhook config (service-role, since global_settings is admin-only).

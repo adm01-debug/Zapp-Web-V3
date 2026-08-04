@@ -201,7 +201,9 @@ ALTER TABLE zapp.whatsapp_connections
     health_status = ANY (ARRAY[
       'healthy'::text, 'ok'::text, 'provisioned'::text,
       'degraded'::text, 'error'::text, 'unknown'::text,
-      'down'::text, 'offline'::text, 'disconnected'::text, 'timeout'::text
+      'down'::text, 'offline'::text, 'disconnected'::text, 'timeout'::text,
+      'connected'::text, 'connecting'::text, 'qr_code'::text,
+      'syncing'::text, 'authenticated'::text, 'logged_out'::text
     ])
   );
 

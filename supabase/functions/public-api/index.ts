@@ -1,11 +1,9 @@
-import { z } from "https://esm.sh/zod@3.23.8";
-import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getClientIP, contractErrorResponse } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getClientIP, getCorsHeaders } from "../_shared/validation.ts";
 import { timingSafeStringEqual } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { extractEvolutionMessageId } from "../_shared/evolution-message-id.ts";
-import { createCriticalPayloadSchemas, mapValidationIssuesToContractError } from "../_shared/criticalPayloadSchemas.ts";
-
-const { publicApiSendSchema } = createCriticalPayloadSchemas(z);
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -33,18 +31,15 @@ Deno.serve(async (req) => {
     if (req.method !== 'POST') return errorResponse('Method not allowed', 405, req);
 
     const raw = await req.json().catch(() => null);
-    if (!raw) return errorResponse('Invalid JSON body', 400, req);
+    const parsed = parseOrReject('public-api', CONTRACT_SCHEMAS['public-api'], req, raw, { extraHeaders: getCorsHeaders(req) });
+    if (!parsed.ok) return parsed.response;
 
-    const { action } = raw as { action?: string };
+    const body = parsed.data as Record<string, any>;
+    const { action } = body;
+    // Defense-in-depth: o gate já valida action === 'send' (literal no contrato).
     if (action !== 'send') return errorResponse('Unknown action. Supported: send', 400, req);
 
-    const parsed = publicApiSendSchema.safeParse(raw);
-    if (!parsed.success) {
-      const mapped = mapValidationIssuesToContractError(parsed.error.issues);
-      return contractErrorResponse(mapped.code, mapped.message, parsed.error.issues, requestId, req);
-    }
-
-    const { number, message, connectionId } = parsed.data;
+    const { number, message, connectionId } = body;
     const phone = number.replace(/\D/g, '');
 
     let connection;

@@ -1,5 +1,6 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders, checkRateLimit } from "../_shared/validation.ts";
-import { ElevenLabsDialogueSchema, parseBody } from "../_shared/schemas.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import { requireUser } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
@@ -15,10 +16,20 @@ Deno.serve(async (req) => {
     const rl = checkRateLimit(`elevenlabs-dialogue:${authed.user.id}`, 10, 60_000);
     if (!rl.allowed) return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
 
-    const parsed = parseBody(ElevenLabsDialogueSchema, await req.json());
-    if (!parsed.success) return errorResponse(parsed.error, 400, req);
+    // Contrato elevenlabs-dialogue@v1 — validação unificada 422 (parseOrReject).
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('elevenlabs-dialogue', CONTRACT_SCHEMAS['elevenlabs-dialogue'], req, raw, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
 
-    const { script, languageCode } = parsed.data;
+    // Guarda de compatibilidade: schema registrado é permissivo (placeholder);
+    // preserva o 400 do antigo parseBody(ElevenLabsDialogueSchema).
+    const { script, languageCode } = body;
+    if (!Array.isArray(script) || script.length === 0 || script.length > 100) {
+      return errorResponse('script: Required (array 1..100)', 400, req);
+    }
     const ELEVENLABS_API_KEY = requireEnv("ELEVENLABS_API_KEY");
 
     log.info(`Generating dialogue with ${script.length} lines`);

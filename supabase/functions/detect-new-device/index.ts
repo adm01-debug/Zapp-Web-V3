@@ -1,6 +1,8 @@
 import { handleCors, errorResponse, jsonResponse, Logger, getClientIP, checkRateLimit } from "../_shared/validation.ts";
-import { DetectNewDeviceSchema, parseBody } from "../_shared/schemas.ts";
 import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -23,10 +25,15 @@ Deno.serve(async (req) => {
 
     log.info("User authenticated", { userId: user.id });
 
-    const parsed = parseBody(DetectNewDeviceSchema, await req.json());
-    if (!parsed.success) return errorResponse(parsed.error, 400, req);
+    // Contrato detect-new-device@v1 — validação unificada 422 (parseOrReject).
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('detect-new-device', CONTRACT_SCHEMAS['detect-new-device'], req, raw, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
 
-    const { device_fingerprint, browser, os, device_name } = parsed.data;
+    const { device_fingerprint, browser, os, device_name } = body;
     const clientIp = getClientIP(req);
 
     const supabaseAdmin = createZappAdminClient();

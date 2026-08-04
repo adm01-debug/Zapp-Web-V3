@@ -14,6 +14,8 @@ import { requireUser } from '../_shared/auth.ts';
 import { createZappClient } from '../_shared/db-client.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 function json(req: Request, data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -45,8 +47,12 @@ Deno.serve(async (req) => {
 
   const supabase = createZappClient(req);
 
-  let body: Record<string, unknown> = {};
-  try { body = await req.json(); } catch { /* ignore */ }
+  const raw = await req.json().catch(() => null);
+  const parsed = parseOrReject("instance-pause-control", CONTRACT_SCHEMAS["instance-pause-control"], req, raw, {
+    extraHeaders: getCorsHeaders(req),
+  });
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data as Record<string, any>;
   const action = String(body.action ?? '');
 
   try {

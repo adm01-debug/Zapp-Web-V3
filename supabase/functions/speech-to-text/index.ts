@@ -14,13 +14,16 @@ import {
   getClientIP,
   requireEnv,
   Logger,
+  getCorsHeaders,
 } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
 
 /** Decodifica base64 (com ou sem prefixo data:) em bytes, em chunks seguros. */
-function base64ToBytes(b64: string): Uint8Array {
+function base64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
   const comma = b64.indexOf(",");
   const clean = b64.startsWith("data:") && comma !== -1 ? b64.slice(comma + 1) : b64;
   const binary = atob(clean);
@@ -43,7 +46,10 @@ Deno.serve(async (req) => {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
 
-    const body = await req.json().catch(() => null);
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('speech-to-text', CONTRACT_SCHEMAS['speech-to-text'], req, raw, { extraHeaders: getCorsHeaders(req) });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
     if (!body || typeof body.audio !== "string" || body.audio.length === 0) {
       return errorResponse("Campo 'audio' (base64) é obrigatório.", 400, req);
     }

@@ -1,6 +1,8 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getCorsHeaders } from "../_shared/validation.ts";
 import { ElevenLabsVoiceDesignPreviewSchema, ElevenLabsVoiceDesignCreateSchema, parseBody } from "../_shared/schemas.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -16,14 +18,17 @@ Deno.serve(async (req) => {
     if (!rl.allowed) return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
 
     const ELEVENLABS_API_KEY = requireEnv('ELEVENLABS_API_KEY');
-    const body = await req.json();
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('elevenlabs-voice-design', CONTRACT_SCHEMAS['elevenlabs-voice-design'], req, raw, { extraHeaders: getCorsHeaders(req) });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
     const action = body.action || 'preview';
 
     if (action === 'preview') {
       const parsed = parseBody(ElevenLabsVoiceDesignPreviewSchema, body);
-      if (!parsed.success) return errorResponse(parsed.error, 400, req);
+      if (!parsed.success) return errorResponse(parsed.error!, 400, req);
 
-      const { description, text } = parsed.data;
+      const { description, text } = parsed.data!;
       const previewText = text || 'Olá, esta é uma prévia da minha voz. Como posso te ajudar hoje?';
 
       log.info("Generating voice preview", { descLen: description.length });
@@ -48,9 +53,9 @@ Deno.serve(async (req) => {
 
     if (action === 'create') {
       const parsed = parseBody(ElevenLabsVoiceDesignCreateSchema, body);
-      if (!parsed.success) return errorResponse(parsed.error, 400, req);
+      if (!parsed.success) return errorResponse(parsed.error!, 400, req);
 
-      const { voice_name, voice_description, generated_voice_id, labels } = parsed.data;
+      const { voice_name, voice_description, generated_voice_id, labels } = parsed.data!;
 
       log.info("Creating voice", { voice_name });
 

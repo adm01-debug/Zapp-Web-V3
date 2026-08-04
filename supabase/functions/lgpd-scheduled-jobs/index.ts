@@ -1,9 +1,18 @@
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireServiceRoleOrCron } from '../_shared/validation.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 Deno.serve(async (req: Request) => {
   const authError = requireServiceRoleOrCron(req);
   if (authError) return authError;
+
+  // Contrato lgpd-scheduled-jobs@v1 (G4): cron/GET sem body → {} aceito.
+  const parsed = parseOrReject('lgpd-scheduled-jobs', CONTRACT_SCHEMAS['lgpd-scheduled-jobs'], req, await req.json().catch(() => ({})), {
+    extraHeaders: getCorsHeaders(req),
+  });
+  if (!parsed.ok) return parsed.response;
 
   const db = createZappAdminClient();
 

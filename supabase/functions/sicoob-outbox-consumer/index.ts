@@ -3,6 +3,8 @@
 import { getCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 const MAX_BATCH = 25;
 const MAX_ATTEMPTS = 6; // ~1+2+4+8+16+32 min de backoff
@@ -46,6 +48,12 @@ Deno.serve(async (req) => {
 
   const authErr = requireServiceRoleOrCron(req);
   if (authErr) return authErr;
+
+  // Contrato sicoob-outbox-consumer@v1 (G4): cron sem body → {} aceito.
+  const parsed = parseOrReject('sicoob-outbox-consumer', CONTRACT_SCHEMAS['sicoob-outbox-consumer'], req, await req.json().catch(() => ({})), {
+    extraHeaders: getCorsHeaders(req),
+  });
+  if (!parsed.ok) return parsed.response;
 
   try {
     const sicoobGiftsUrl = Deno.env.get("SICOOB_GIFTS_URL");

@@ -18,6 +18,7 @@ interface UseInputHandlersOptions {
   onResolveConversation?: () => void | Promise<void>;
   onSnooze?: (until: string) => void | Promise<void>;
   onStarToggle?: () => void | Promise<void>;
+  onArchive?: () => void | Promise<void>;
   onRemind?: (at: string, title?: string) => void | Promise<void>;
   onAddNote?: (content: string) => void | Promise<void>;
   onAddTag?: (name: string) => void | Promise<void>;
@@ -62,6 +63,7 @@ export function useInputHandlers({
   onResolveConversation,
   onSnooze,
   onStarToggle,
+  onArchive,
   onRemind,
   onAddNote,
   onAddTag,
@@ -198,7 +200,11 @@ export function useInputHandlers({
           );
           break;
         case 'archive':
-          toast({ title: 'Arquivar Conversa', description: 'Arquivo nao disponivel nesta versao.' });
+          void run(
+            onArchive,
+            'Conversa Arquivada',
+            'A conversa foi movida para Arquivadas.'
+          );
           break;
         case 'remind': {
           const at = slashSnoozeToIso(subCommand);
@@ -254,6 +260,7 @@ export function useInputHandlers({
       onResolveConversation,
       onSnooze,
       onStarToggle,
+      onArchive,
       onRemind,
       onAddNote,
       onAddTag,

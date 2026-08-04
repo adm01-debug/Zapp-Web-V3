@@ -49,6 +49,17 @@
  *     - duplicate contacts: last entry for the same id is used
  *     - sort: newer lastMessage.created_at appears first
  *     - sort fallback: contact with no messages uses contact.created_at
+ *   buildConversation (isArchived — PR PR 773)
+ *     - deleted_at null → isArchived=false
+ *     - deleted_at ausente (undefined) → isArchived=false (Boolean(undefined))
+ *     - deleted_at ISO string → isArchived=true
+ *     - deleted_at '' → isArchived=false (Boolean('') = false)
+ *     - isArchived sempre boolean estrito
+ *     - messages/unreadCount/lastMessage não são afetados pela flag
+ *     - regressão: arquivado + mensagem nova → isArchived continua true
+ *     - buildConversations: mix ativo/arquivado → flag correta por item
+ *     - buildConversations: ordenação intacta (flag não altera sort)
+ *     - buildConversations: dedupe de contatos → flag segue a última entrada
  */
 import { describe, it, expect } from 'vitest';
 import {
@@ -56,6 +67,7 @@ import {
   dedupeContacts,
   getUniqueMessageContactIds,
   chunkArray,
+  buildConversation,
   buildConversations,
 } from '../realtimeUtils';
 import type { RealtimeMessage, ConversationContact } from '@/features/inbox';
@@ -281,6 +293,62 @@ describe('chunkArray — fixed-size partitioning', () => {
   });
 });
 
+// ── buildConversation — isArchived ────────────────────────────────────────
+
+describe('buildConversation — isArchived derivado de contact.deleted_at (PR PR 773)', () => {
+  it('deleted_at null → isArchived=false', () => {
+    const conv = buildConversation(contact({ id: 'c1', deleted_at: null }), []);
+    expect(conv.isArchived).toBe(false);
+  });
+
+  it('deleted_at ausente (undefined) → isArchived=false', () => {
+    const c = contact({ id: 'c1' }); // fixture não define deleted_at
+    expect(c.deleted_at).toBeUndefined();
+    expect(buildConversation(c, []).isArchived).toBe(false);
+  });
+
+  it('deleted_at ISO string → isArchived=true', () => {
+    const conv = buildConversation(contact({ id: 'c1', deleted_at: '2025-07-01T10:30:00.000Z' }), []);
+    expect(conv.isArchived).toBe(true);
+  });
+
+  it('deleted_at string vazia → isArchived=false (Boolean("") === false)', () => {
+    const conv = buildConversation(contact({ id: 'c1', deleted_at: '' }), []);
+    expect(conv.isArchived).toBe(false);
+  });
+
+  it('isArchived é sempre boolean estrito (true/false), nunca truthy/falsy', () => {
+    expect(buildConversation(contact({ id: 'c1', deleted_at: '2025-07-01T00:00:00.000Z' }), []).isArchived).toBe(true);
+    expect(buildConversation(contact({ id: 'c1', deleted_at: null }), []).isArchived).toBe(false);
+  });
+
+  it('não afeta messages/unreadCount/lastMessage (ordenação e dedupe intactos)', () => {
+    const c = contact({ id: 'c1', deleted_at: '2025-07-01T00:00:00.000Z' });
+    const m1 = msg({ id: 'm1', contact_id: 'c1', sender: 'contact', is_read: false, created_at: '2025-01-01T00:00:00.000Z' });
+    const m2 = msg({ id: 'm2', contact_id: 'c1', sender: 'contact', is_read: true, created_at: '2025-01-02T00:00:00.000Z' });
+    const conv = buildConversation(c, [m2, m1]); // entrada fora de ordem
+    expect(conv.isArchived).toBe(true);
+    expect(conv.messages.map((m) => m.id)).toEqual(['m1', 'm2']);
+    expect(conv.unreadCount).toBe(1);
+    expect(conv.lastMessage?.id).toBe('m2');
+  });
+
+  it('REGRESSÃO PR PR 773: arquivado que recebe mensagem nova continua isArchived=true (flag vem do contato, não da mensagem)', () => {
+    const archived = contact({ id: 'c1', deleted_at: '2025-06-01T00:00:00.000Z' });
+    const incoming = msg({ id: 'm-new', contact_id: 'c1', sender: 'contact', is_read: false, created_at: '2025-07-02T00:00:00.000Z' });
+    const conv = buildConversation(archived, [incoming]);
+    expect(conv.isArchived).toBe(true);
+    expect(conv.messages).toHaveLength(1);
+    expect(conv.lastMessage?.id).toBe('m-new');
+    expect(conv.unreadCount).toBe(1);
+  });
+
+  it('preserva contact.deleted_at no objeto de saída (passthrough)', () => {
+    const c = contact({ id: 'c1', deleted_at: '2025-06-01T00:00:00.000Z' });
+    expect(buildConversation(c, []).contact.deleted_at).toBe('2025-06-01T00:00:00.000Z');
+  });
+});
+
 // ── buildConversations ─────────────────────────────────────────────────────
 
 describe('buildConversations — full pipeline', () => {
@@ -350,5 +418,52 @@ describe('buildConversations — full pipeline', () => {
     const conv2 = result.find((r) => r.contact.id === 'c2')!;
     expect(conv1.messages).toHaveLength(2);
     expect(conv2.messages).toHaveLength(1);
+  });
+
+  it('isArchived por item: mix de contatos ativos, arquivados e sem campo', () => {
+    const active   = contact({ id: 'c1', deleted_at: null });
+    const archived = contact({ id: 'c2', deleted_at: '2025-06-01T00:00:00.000Z' });
+    const noField  = contact({ id: 'c3' }); // deleted_at ausente
+    const result = buildConversations([active, archived, noField], []);
+    expect(Object.fromEntries(result.map((r) => [r.contact.id, r.isArchived]))).toEqual({
+      c1: false,
+      c2: true,
+      c3: false,
+    });
+  });
+
+  it('ordenação intacta com mix arquivado/ativo: a flag não altera o sort', () => {
+    const active   = contact({ id: 'c1', created_at: '2025-01-01T00:00:00.000Z', deleted_at: null });
+    const archived = contact({ id: 'c2', created_at: '2025-01-01T00:00:00.000Z', deleted_at: '2025-06-01T00:00:00.000Z' });
+    const result = buildConversations([active, archived], [
+      msg({ id: 'm1', contact_id: 'c1', created_at: '2025-01-01T00:00:00.000Z' }),
+      msg({ id: 'm2', contact_id: 'c2', created_at: '2025-07-01T00:00:00.000Z' }), // mais recente → arquivado primeiro
+    ]);
+    expect(result.map((r) => r.contact.id)).toEqual(['c2', 'c1']);
+    expect(result[0].isArchived).toBe(true);
+    expect(result[1].isArchived).toBe(false);
+  });
+
+  it('dedupe de contatos: isArchived segue a última entrada (last-writer-wins em deleted_at)', () => {
+    const ativoDepoisArquivado = [
+      contact({ id: 'c1', name: 'A', deleted_at: null }),
+      contact({ id: 'c1', name: 'A', deleted_at: '2025-06-01T00:00:00.000Z' }),
+    ];
+    expect(buildConversations(ativoDepoisArquivado, [])[0].isArchived).toBe(true);
+
+    const arquivadoDepoisRestaurado = [
+      contact({ id: 'c1', name: 'A', deleted_at: '2025-06-01T00:00:00.000Z' }),
+      contact({ id: 'c1', name: 'A', deleted_at: null }),
+    ];
+    expect(buildConversations(arquivadoDepoisRestaurado, [])[0].isArchived).toBe(false);
+  });
+
+  it('unreadCount/lastMessage normais em conversa arquivada (flag não interfere)', () => {
+    const archived = contact({ id: 'c1', deleted_at: '2025-06-01T00:00:00.000Z' });
+    const unread = msg({ id: 'm1', contact_id: 'c1', sender: 'contact', is_read: false, created_at: '2025-07-01T00:00:00.000Z' });
+    const result = buildConversations([archived], [unread]);
+    expect(result[0].isArchived).toBe(true);
+    expect(result[0].unreadCount).toBe(1);
+    expect(result[0].lastMessage?.id).toBe('m1');
   });
 });

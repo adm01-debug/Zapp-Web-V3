@@ -122,13 +122,25 @@ export function ConversationListSidebar({
   const onSearchFocus = useCallback(() => contactSearchRef.current?.focus(), []);
   const { refetch: inboxRefetch } = inbox;
   // Ações reais de arquivar/desarquivar (soft-delete do contato + refetch da inbox).
-  const { archive } = useArchiveConversationActions(inboxRefetch);
+  const { archive, restore } = useArchiveConversationActions(inboxRefetch);
   const onArchive = useCallback(
     (contactId?: string) => {
       const targetId = contactId ?? inbox.selectedContactId;
-      if (targetId) void archive(targetId);
+      if (targetId) void archive(targetId).catch(() => undefined);
     },
     [archive, inbox.selectedContactId]
+  );
+  // Toggle para o menu de contexto da lista ativa: arquiva se não arquivada,
+  // desarquiva se já estiver (PR PR 773).
+  const onToggleArchive = useCallback(
+    (contactId: string, isArchived: boolean) => {
+      if (isArchived) {
+        void restore(contactId).catch(() => undefined);
+      } else {
+        void archive(contactId).catch(() => undefined);
+      }
+    },
+    [archive, restore]
   );
   const onTransfer = useCallback(() => {
     if (inbox.selectedContactId) {
@@ -148,18 +160,19 @@ export function ConversationListSidebar({
   const [filter, setFilter] = useState<'all' | 'open' | 'pending' | 'waiting' | 'archived'>(
     inboxFilters.archivedTab ? 'archived' : 'all'
   );
+  const { setArchivedTab: setArchivedTabFilter, archivedTab: archivedTabFlag } = inboxFilters;
   useEffect(() => {
-    inboxFilters.setArchivedTab(filter === 'archived');
-  }, [filter, inboxFilters.setArchivedTab]);
+    setArchivedTabFilter(filter === 'archived');
+  }, [filter, setArchivedTabFilter]);
   // Sync reverso: reset externo (ex.: "Limpar filtros" → setArchivedTab(false))
   // reflete no controle visual de aba.
   useEffect(() => {
     setFilter((current) => {
       const isShowingArchived = current === 'archived';
-      if (isShowingArchived === inboxFilters.archivedTab) return current;
-      return inboxFilters.archivedTab ? 'archived' : 'all';
+      if (isShowingArchived === archivedTabFlag) return current;
+      return archivedTabFlag ? 'archived' : 'all';
     });
-  }, [inboxFilters.archivedTab]);
+  }, [archivedTabFlag]);
 
   useInboxShortcuts({
     onSearchFocus,
@@ -551,6 +564,7 @@ export function ConversationListSidebar({
               selectionMode={bulkActions.selectionMode}
               selectedIds={bulkActions.selectedIds}
               onToggleSelection={bulkActions.toggleSelection}
+              onToggleArchive={onToggleArchive}
               // F4-01: scroll infinito da sidebar — load-more por cursor
               // (path local: contatos/mensagens; path externo: mensagens).
               onLoadMore={inbox.loadMoreConversations}

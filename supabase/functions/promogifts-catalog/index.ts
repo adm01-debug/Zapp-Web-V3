@@ -7,6 +7,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { createZappClient } from '../_shared/db-client.ts';
 import { z } from "https://esm.sh/zod@3.23.8";
 import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 const jsonRes = (body: unknown, status = 200, req?: Request) =>
   new Response(JSON.stringify(body), {
@@ -243,11 +245,9 @@ Deno.serve(async (req) => {
     }
     const extClient = createClient(extUrl, extKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
-    const bodyParse = ActionSchema.safeParse(rawBody);
-    if (!bodyParse.success) {
-      return jsonRes({ error: "Invalid request", details: bodyParse.error.flatten().fieldErrors }, 400, req);
-    }
-    const { action, params } = bodyParse.data;
+    const parsed = parseOrReject('promogifts-catalog', CONTRACT_SCHEMAS['promogifts-catalog'], req, rawBody, { extraHeaders: getCorsHeaders(req) });
+    if (!parsed.ok) return parsed.response;
+    const { action, params } = parsed.data as { action: string; params?: Record<string, unknown> };
     const startTime = performance.now();
 
     if (action === "list_products") {

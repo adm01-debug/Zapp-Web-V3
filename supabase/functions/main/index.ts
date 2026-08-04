@@ -6,6 +6,9 @@
 
 import * as jose from 'https://deno.land/x/jose@v4.14.4/index.ts'
 import { initSentry, captureException } from '../_shared/sentry.ts'
+import { parseOrReject } from '../_shared/contract-kit.ts'
+import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts'
+import { getCorsHeaders } from '../_shared/cors.ts'
 
 // Inicializa Sentry UMA vez por container — cobre 100% das Edge Functions
 // sem precisar alterar cada uma individualmente
@@ -152,6 +155,17 @@ Deno.serve(async (req: Request) => {
         headers: { 'Content-Type': 'application/json' },
       })
     }
+  }
+
+  // Contrato main@v1 (G4): gate apenas para requisições sem body (GET/cron/health).
+  // Requisições COM body (POST/PUT webhooks e RPCs) são roteadas intactas para a
+  // função alvo, que valida o próprio contrato — ler o body aqui quebraria o
+  // encaminhamento (stream consumido antes do worker.fetch).
+  if (req.body === null) {
+    const parsed = parseOrReject('main', CONTRACT_SCHEMAS['main'], req, await req.json().catch(() => ({})), {
+      extraHeaders: getCorsHeaders(req),
+    })
+    if (!parsed.ok) return parsed.response
   }
 
   const servicePath = `/home/deno/functions/${service_name}`

@@ -1,6 +1,8 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit } from "../_shared/validation.ts";
-import { ClassifyAudioMemeSchema, parseBody } from "../_shared/schemas.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import { requireUser, requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const AUDIO_CATEGORIES = [
   'risada', 'aplausos', 'suspense', 'vitória', 'falha',
@@ -30,10 +32,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const parsed = parseBody(ClassifyAudioMemeSchema, await req.json());
-    if (!parsed.success) return errorResponse(parsed.error, 400, req);
+    // Contrato classify-audio-meme@v1 (estrito) — validação unificada 422 (parseOrReject).
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('classify-audio-meme', CONTRACT_SCHEMAS['classify-audio-meme'], req, raw, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
 
-    const { audio_url, file_name } = parsed.data;
+    const { audio_url, file_name } = body;
 
     if (!audio_url && !file_name) {
       log.warn("Empty input, defaulting to outros");

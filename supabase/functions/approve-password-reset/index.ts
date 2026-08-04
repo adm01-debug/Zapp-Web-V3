@@ -62,7 +62,9 @@
 import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
-import { ApprovePasswordResetSchema, parseBody } from "../_shared/schemas.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -79,10 +81,20 @@ Deno.serve(async (req) => {
     if (authed instanceof Response) return authed;
     const userId = authed.user.id;
 
-    const parsed = parseBody(ApprovePasswordResetSchema, await req.json());
-    if (!parsed.success) return errorResponse(parsed.error, 400, req);
+    // Contrato approve-password-reset@v1 — validação unificada 422 (parseOrReject).
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('approve-password-reset', CONTRACT_SCHEMAS['approve-password-reset'], req, raw, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
 
-    const { requestId, action, rejectionReason } = parsed.data;
+    // Guarda de compatibilidade: schema registrado é permissivo (placeholder);
+    // preserva o 400 do antigo parseBody(ApprovePasswordResetSchema).
+    const { requestId, action, rejectionReason } = body;
+    if (typeof requestId !== 'string' || requestId.length === 0 || (action !== 'approve' && action !== 'reject')) {
+      return errorResponse('requestId: Required, action: Required (approve|reject)', 400, req);
+    }
     const supabaseAdmin = createZappAdminClient();
 
     log.info(`Processing ${action} for request ${requestId}`);

@@ -3,6 +3,8 @@
  */
 
 import { handleCors, errorResponse, getCorsHeaders } from "../_shared/validation.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -12,7 +14,12 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("authorization");
     if (!authHeader) return errorResponse("Unauthorized", 401, req);
 
-    const body = await req.json();
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject("ai-classify-tickets", CONTRACT_SCHEMAS["ai-classify-tickets"], req, raw, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
     const aiRouterUrl = Deno.env.get("AI_ROUTER_URL");
     if (!aiRouterUrl) return errorResponse("AI_ROUTER_URL not configured", 503, req);
     const res = await fetch(aiRouterUrl, {

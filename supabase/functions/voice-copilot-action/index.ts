@@ -1,6 +1,8 @@
-import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getCorsHeaders } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -13,7 +15,10 @@ Deno.serve(async (req) => {
     if (authed instanceof Response) return authed;
     const rl = checkRateLimit(`voice-copilot-action:${authed.user.id}`, 30, 60_000);
     if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
-    const { action, params } = await req.json();
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('voice-copilot-action', CONTRACT_SCHEMAS['voice-copilot-action'], req, raw, { extraHeaders: getCorsHeaders(req) });
+    if (!parsed.ok) return parsed.response;
+    const { action, params } = parsed.data as Record<string, any>;
     
     const supabase = createZappAdminClient();
     // Caller-scoped client enforces RLS — used for user-data reads (contacts, analyses)

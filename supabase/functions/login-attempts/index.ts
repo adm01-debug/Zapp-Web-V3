@@ -2,11 +2,14 @@ import {
   checkRateLimit,
   errorResponse,
   getClientIP,
+  getCorsHeaders,
   handleCors,
   jsonResponse,
   sanitizeString,
 } from "../_shared/validation.ts";
 import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 type LoginAttemptAction = "check" | "record_failed" | "clear";
 
@@ -71,7 +74,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const body = (await req.json()) as LoginAttemptRequest;
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject("login-attempts", CONTRACT_SCHEMAS["login-attempts"], req, raw, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as LoginAttemptRequest;
     const action = body.action;
     const email = normalizeEmail(body.email);
 
