@@ -31,7 +31,7 @@ import { requireAdminOrSupervisor } from '../_shared/auth.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
-import { EvolutionCredentialsV1Schema } from '../_shared/contract-schemas.ts';
+import { EvolutionCredentialsV1Schema, CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
 const INSTANCE = 'wpp2';
 
@@ -66,8 +66,16 @@ async function handleWrite(req: Request): Promise<Response> {
       headers: { ...cors, 'Content-Type': 'application/json' },
     });
 
-  // Body opcional/leniente: JSON inválido → {} e validação de action responde 400.
-  const body: Record<string, unknown> = await req.json().catch(() => ({}));
+  // Contrato evolution-credentials-write@v1 (discriminatedUnion por action):
+  // save exige instance_name/api_url/api_key; delete exige id UUID.
+  // Correção 2026-08-04: o POST lia req.json() sem gate — envelope 422
+  // unificado para payloads inválidos (antes: 400 ad-hoc no handler).
+  const raw = await req.json().catch(() => null);
+  const parsed = parseOrReject('evolution-credentials-write', CONTRACT_SCHEMAS['evolution-credentials-write'], req, raw, {
+    extraHeaders: cors,
+  });
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data as Record<string, any>;
 
   // Mesmo gate do GET: apenas admin/supervisor (403 antes de tocar no banco).
   const authed = await requireAdminOrSupervisor(req);

@@ -307,6 +307,34 @@ export const EvolutionHealthV1Schema = EmptyStrictV1Schema;
 export const EvolutionCredentialsV1Schema = EmptyStrictV1Schema;
 
 /**
+ * evolution-credentials-write@v1 — POST CRUD (actions 'save' | 'delete').
+ * Roteado por action via discriminatedUnion (padrão SicoobBridgeV1Schema).
+ * Admin/supervisor + rate limit 10/60s no handler. Alinhado ao consumo REAL
+ * do handleWrite (v2, 2026-07-06): save exige instance_name/api_url/api_key
+ * (display_name/department opcionais, is_active default true); delete exige
+ * id UUID. PASSTHROUGH: o handler lê só os campos conhecidos e valida
+ * individualmente (api_url http(s), UUID_RE) — contrato garante os tipos
+ * base, handler garante as regras de negócio. Correção 2026-08-04: o POST
+ * lia req.json() sem gate (gap de cobertura — contract-coverage só via
+ * presença de parseOrReject no GET).
+ */
+export const EvolutionCredentialsWriteV1Schema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("save"),
+    instance_name: z.string().min(1).max(100),
+    api_url: z.string().min(1).max(500),
+    api_key: z.string().min(1).max(500),
+    display_name: z.string().max(200).optional().nullable(),
+    department: z.string().max(200).optional().nullable(),
+    is_active: z.boolean().optional(),
+  }).passthrough(),
+  z.object({
+    action: z.literal("delete"),
+    id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, "invalid uuid"),
+  }).passthrough(),
+]);
+
+/**
  * evolution-templates@v1 — POST { action: send|preview, template_name,
  * remote_jid?, variables? }; action default 'send' no handler.
  */
@@ -865,6 +893,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "evolution-sender":              { v1: EvolutionSenderV1Schema },
   "evolution-health":              { v1: EvolutionHealthV1Schema },
   "evolution-credentials":         { v1: EvolutionCredentialsV1Schema },
+  "evolution-credentials-write":   { v1: EvolutionCredentialsWriteV1Schema },
   "evolution-templates":           { v1: EvolutionTemplatesV1Schema },
   "evolution-sentiment":           { v1: EvolutionSentimentV1Schema },
   "evolution-retry-metrics":       { v1: EvolutionRetryMetricsV1Schema },
