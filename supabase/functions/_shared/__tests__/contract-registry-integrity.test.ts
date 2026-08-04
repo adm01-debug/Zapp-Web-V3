@@ -15,6 +15,7 @@
  */
 
 import { assertEquals, assert } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { z } from "https://esm.sh/zod@3.23.8";
 import { fromFileUrl } from "https://deno.land/std@0.168.0/path/mod.ts";
 import { CONTRACTS, isDeprecatedVersion } from "../contract-versions.ts";
 import { CONTRACT_SCHEMAS } from "../contract-schemas.ts";
@@ -200,4 +201,37 @@ Deno.test("Registry Integrity: EdgeFunctionContractSchemas ⊆ CONTRACT_SCHEMAS 
     `(o gate lê CONTRACT_SCHEMAS em runtime — função registrada só no edge registry quebra em produção com 422).`
   );
   assert(edgeNames.size > 0, "EdgeFunctionContractSchemas vazio — verificar scanner");
+});
+
+// ─── Invariante 9 (anti-placeholder): nenhum schema registrado pode aceitar
+//     QUALQUER payload ({}) e {__x:1} ao mesmo tempo, salvo allowlist explícita.
+//     Placeholders `z.object({}).passthrough()` dão falsa cobertura (gap do PR #774).
+
+const PLACEHOLDER_ALLOWLIST = new Set([
+  // GET/sem body legítimos (contrato por query param, nunca derrubam ingestão)
+  "email-track-link", "email-track-pixel",
+  "webhook-secret-status", "whatsapp-cloud-secrets-status",
+  "whatsapp-cloud-webhook-verify", "gmail-health",
+  "auth-email-hook", // (removido do registro — mantido aqui para histórico)
+]);
+
+Deno.test("Registry Integrity: nenhum schema placeholder (z.object vazio) fora da allowlist", async () => {
+  const violations: string[] = [];
+  for (const [name, versions] of Object.entries(CONTRACT_SCHEMAS)) {
+    if (PLACEHOLDER_ALLOWLIST.has(name)) continue;
+    for (const [version, schema] of Object.entries(versions)) {
+      if (!schema) continue; // versão sem schema — coberto pela Invariante 4
+      // Placeholder REAL = z.object vazio PERMISSIVO: shape vazio E aceita
+      // payload arbitrário. EmptyStrict (z.object({}).strict()) também tem
+      // shape vazio mas REJEITA {__x:1} — é legítimo (GET/cron sem body).
+      const shape = (schema as z.ZodObject<any>).shape;
+      if (shape && Object.keys(shape).length === 0) {
+        const acceptsExtra = schema.safeParse({ __x: 1 }).success;
+        if (acceptsExtra) {
+          violations.push(`${name}@${version}: z.object vazio PERMISSIVO — placeholder sem validação real`);
+        }
+      }
+    }
+  }
+  assertEquals(violations, [], `Placeholders em CONTRACT_SCHEMAS (${violations.length}):\n` + violations.join("\n"));
 });

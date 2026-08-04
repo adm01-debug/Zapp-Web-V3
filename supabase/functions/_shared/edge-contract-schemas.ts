@@ -215,7 +215,8 @@ export const ContractLifecycles: Record<string, ContractLifecycle> = {
     current: 'v2',
     supported: ['v1', 'v2'],
     deprecated: {
-      v1: { sunset: '2027-01-01', replacement: 'v2' },
+      // Alinhado com CONTRACTS (contract-versions.ts:26) — 2027-06-01.
+      v1: { sunset: '2027-06-01', replacement: 'v2' },
     },
   },
 };
@@ -257,6 +258,17 @@ const specificEdgeFunctionSchemas: Partial<
   ...WebhookContractSchemas,
 };
 
+/**
+ * Registro paralelo LEGADO (espelho): EdgeFunctionContractSchemas.
+ *
+ * Consolidação 2026-08-04 (onda 4): este registro NÃO é a fonte que o gate
+ * lê em runtime — `parseOrReject` usa `CONTRACT_SCHEMAS` (contract-schemas.ts).
+ * O drift entre os dois foi a causa-raiz do incidente P0 (ai-churn-analysis/
+ * classify-emoji registrados aqui mas não no canônico) e está travado pelo
+ * Invariante 8 (`EdgeFunctionContractSchemas ⊆ CONTRACT_SCHEMAS`) em
+ * contract-registry-integrity.test.ts. Mantido apenas para compatibilidade de
+ * chamadores legados (parseContractRequest) e testes.
+ */
 export const EdgeFunctionContractSchemas: Record<string, ContractVersionMap> = Object.fromEntries(
   EDGE_FUNCTION_NAMES.map((name) => [
     name,
@@ -321,6 +333,12 @@ function inferContractVersion(name: string, payload: unknown, explicitVersion?: 
  * Handlers should call this once at the HTTP boundary and return
  * `result.response` whenever `success === false`. All schema failures use the
  * same 422 payload shape: `{ error, code, message, requestId, fields, details }`.
+ */
+/**
+ * @deprecated — use `parseOrReject` de contract-kit.ts (envelope 422 único com
+ * `contract` e `details`). Este gate legado usa `contractErrorResponse`
+ * (envelope antigo com `fields[]`, sem `contract`). 0 chamadores em produção.
+ * Mantido para compatibilidade de testes legados (edge-contract-schemas.test.ts).
  */
 export async function parseContractRequest<T = unknown>(
   req: Request,
