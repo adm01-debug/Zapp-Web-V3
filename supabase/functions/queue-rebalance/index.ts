@@ -6,6 +6,8 @@
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 interface BulkRequest {
   limit?: number;
@@ -49,17 +51,10 @@ Deno.serve(async (req) => {
     });
   }
 
-  let body: BulkRequest = {};
-  try {
-    if (req.headers.get("content-length") !== "0") {
-      const raw = await req.json();
-      if (typeof raw === 'object' && raw !== null && !Array.isArray(raw)) {
-        body = raw as Record<string, unknown>;
-      }
-    }
-  } catch {
-    body = {};
-  }
+  const raw = await req.json().catch(() => ({}));
+  const parsed = parseOrReject('queue-rebalance', CONTRACT_SCHEMAS['queue-rebalance'], req, raw, { extraHeaders: getCorsHeaders(req) });
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data as Record<string, unknown>;
 
   const bodyLimit = typeof body.limit === 'number' ? body.limit : 50;
   const limit = Math.min(Math.max(bodyLimit, 1), 200);
@@ -88,7 +83,7 @@ Deno.serve(async (req) => {
   const now = Date.now();
   const candidatesArray = Array.isArray(candidates) ? candidates : [];
   const filtered = candidatesArray
-    .filter((c): c is Record<string, unknown> => typeof c === 'object' && c !== null && !Array.isArray(c))
+    .filter((c) => typeof c === 'object' && c !== null && !Array.isArray(c))
     .filter(c => {
       const queues = typeof c.queues === 'object' && c.queues !== null && !Array.isArray(c.queues)
         ? (c.queues as Record<string, unknown>)
@@ -96,7 +91,7 @@ Deno.serve(async (req) => {
       return queues && queues.is_active === true && queues.auto_rebalance_enabled === true;
     })
     .map((c): FilteredCandidate => {
-      const queues = (c.queues as Record<string, unknown>) || {};
+      const queues = (c.queues as unknown as Record<string, unknown>) || {};
       const createdAt = typeof c.created_at === 'string' ? c.created_at : '';
       const maxWaitMinutes = typeof queues.max_wait_time_minutes === 'number' ? queues.max_wait_time_minutes : 0;
       const waitingMin = (now - (createdAt ? new Date(createdAt).getTime() : now)) / 60000;

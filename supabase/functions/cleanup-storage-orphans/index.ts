@@ -1,6 +1,9 @@
 import { handleCors, errorResponse, jsonResponse, Logger } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -8,6 +11,12 @@ Deno.serve(async (req) => {
 
   const denied = requireServiceRoleOrCron(req);
   if (denied) return denied;
+
+  // Contrato cleanup-storage-orphans@v1 (G4): cron/GET sem body → {} aceito.
+  const parsed = parseOrReject('cleanup-storage-orphans', CONTRACT_SCHEMAS['cleanup-storage-orphans'], req, await req.json().catch(() => ({})), {
+    extraHeaders: getCorsHeaders(req),
+  });
+  if (!parsed.ok) return parsed.response;
 
   const log = new Logger("cleanup-storage-orphans");
   const supabase = createZappAdminClient();

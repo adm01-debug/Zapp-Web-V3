@@ -1,6 +1,8 @@
 import { handleCors, errorResponse, jsonResponse, Logger, getCorsHeaders, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 type VitalName = 'LCP' | 'FID' | 'CLS' | 'INP' | 'TTFB';
 
@@ -39,7 +41,12 @@ Deno.serve(async (req) => {
       return errorResponse('Method not allowed', 405, req);
     }
 
-    const body = await req.json();
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject("client-observability", CONTRACT_SCHEMAS["client-observability"], req, raw, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
     const events: VitalPayload[] = Array.isArray(body?.metrics) ? body.metrics : [];
 
     if (events.length === 0) {

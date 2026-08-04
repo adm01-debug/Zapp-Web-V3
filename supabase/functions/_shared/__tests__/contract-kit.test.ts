@@ -24,10 +24,12 @@ import {
 } from "../contract-kit.ts";
 import {
   CONTRACT_SCHEMAS,
-  EvolutionWebhookV1Schema,
-  EvolutionWebhookV2Schema,
   TalkxSendV1Schema,
 } from "../contract-schemas.ts";
+import {
+  EvolutionWebhookV1Schema,
+  EvolutionWebhookV2Schema,
+} from "../webhook-schemas.ts";
 import { CONTRACTS } from "../contract-versions.ts";
 
 const EVOLUTION = { v1: EvolutionWebhookV1Schema, v2: EvolutionWebhookV2Schema };

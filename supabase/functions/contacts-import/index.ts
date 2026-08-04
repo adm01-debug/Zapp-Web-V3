@@ -7,6 +7,8 @@
 import { createZappAdminClient, createZappClient } from '../_shared/db-client.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
 const VALID_DDDS = new Set([11,12,13,14,15,16,17,18,19,21,22,24,27,28,31,32,33,34,35,37,38,41,42,43,44,45,46,47,48,49,51,53,54,55,61,62,63,64,65,66,67,68,69,71,73,74,75,77,79,81,82,83,84,85,86,87,88,89,91,92,93,94,95,96,97,98,99]);
 
@@ -44,7 +46,12 @@ Deno.serve(async (req) => {
     const rl = checkRateLimit(`contacts-import:${user.id}`, 5, 60_000);
     if (!rl.allowed) return new Response(JSON.stringify({ error: 'Rate limit exceeded. Tente novamente em instantes.' }), { status: 429, headers: JSON_CORS });
 
-    const body = await req.json();
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject("contacts-import", CONTRACT_SCHEMAS["contacts-import"], req, raw, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
     const rows = body.rows;
     const rawInstanceName = body.workspace_id ?? 'wpp2';
 

@@ -6,38 +6,26 @@ import {
 } from "../../_shared/test-helpers.ts";
 
 const SOURCE = await readSourceFrom(import.meta.url, "../index.ts");
-// Schema constraints live in the shared helper (refactored from inline).
-const SCHEMA_SOURCE = await readSourceFrom(
-  import.meta.url,
-  "../../_shared/criticalPayloadSchemas.ts",
-);
+// Validação de contrato agora vive no registro central (CONTRACT_SCHEMAS);
+// o index.ts usa o gate parseOrReject. Âncoras de schema apontam para lá.
+const REGISTRY_SOURCE = await readSourceFrom(import.meta.url, "../../_shared/contract-schemas.ts");
 
 // ---------------------------------------------------------------------------
 // 1. Input validation contract (Zod schema)
 // ---------------------------------------------------------------------------
 
 Deno.test("SendActionSchema validates required fields via Zod", () => {
-  // Schema is defined in _shared/criticalPayloadSchemas.ts (publicApiSendSchema).
-  // number uses normalizedPhoneSchema = z.string().min(6, ...).
-  // message uses messageTextSchema = z.string().trim().min(1, ...).
-  assert(
-    SCHEMA_SOURCE.includes(".min(6,"),
-    "phone number schema must enforce .min(6, ...) constraint",
-  );
-  assert(
-    SCHEMA_SOURCE.includes(".min(1,"),
-    "message schema must enforce .min(1, ...) constraint",
-  );
-  // index.ts must wire up the schema from the shared helper.
+  // number: min(6), message: min(1) — enforced statically in PublicApiV1Schema
+  // (contrato 'public-api' do registro central, usado pelo gate).
   assertMatch(
-    SOURCE,
-    /createCriticalPayloadSchemas/,
-    "index.ts must delegate to createCriticalPayloadSchemas()",
+    REGISTRY_SOURCE,
+    /number:\s*z\.string\(\)\s*\.min\(6,/,
+    "number must be required (z.string().min(6, ...))",
   );
   assertMatch(
-    SOURCE,
-    /publicApiSendSchema/,
-    "index.ts must use publicApiSendSchema for validation",
+    REGISTRY_SOURCE,
+    /message:\s*z\.string\(\)\s*\.min\(1,/,
+    "message must be required (z.string().min(1, ...))",
   );
 });
 

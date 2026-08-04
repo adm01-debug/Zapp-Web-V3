@@ -3,6 +3,9 @@ import { requireServiceRoleOrCron, requireUser } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { isSafeMediaCdnUrl } from "../_shared/evolution-media.ts";
 import { getStoragePublicUrl } from "../_shared/storage-url.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -13,6 +16,12 @@ Deno.serve(async (req) => {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
   }
+
+  // Contrato batch-fetch-avatars@v1 (G4): cron/GET sem body → {} aceito.
+  const parsed = parseOrReject('batch-fetch-avatars', CONTRACT_SCHEMAS['batch-fetch-avatars'], req, await req.json().catch(() => ({})), {
+    extraHeaders: getCorsHeaders(req),
+  });
+  if (!parsed.ok) return parsed.response;
 
   const log = new Logger("batch-fetch-avatars");
 

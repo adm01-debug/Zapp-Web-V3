@@ -13,6 +13,8 @@
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 type CampaignAction = "start" | "pause" | "cancel";
 
@@ -34,11 +36,10 @@ Deno.serve(async (req) => {
 
   try {
     const raw = await req.json().catch(() => null);
-    if (!raw || typeof raw !== 'object') {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), { status: 400, headers });
-    }
+    const parsed = parseOrReject('talkx-control', CONTRACT_SCHEMAS['talkx-control'], req, raw, { extraHeaders: getCorsHeaders(req) });
+    if (!parsed.ok) return parsed.response;
 
-    const { action, campaignId } = raw as { action?: unknown; campaignId?: unknown };
+    const { action, campaignId } = parsed.data as { action?: unknown; campaignId?: unknown };
 
     if (typeof campaignId !== 'string' || !campaignId) {
       return new Response(JSON.stringify({ error: "campaignId is required" }), { status: 400, headers });
@@ -137,7 +138,7 @@ Deno.serve(async (req) => {
 
         // Register the background task so the Edge Runtime doesn't kill it on return.
         if (typeof (globalThis as Record<string, unknown>).EdgeRuntime !== "undefined") {
-          (globalThis as Record<string, { waitUntil: (p: Promise<unknown>) => void }>).EdgeRuntime
+          (globalThis as unknown as Record<string, { waitUntil: (p: Promise<unknown>) => void }>).EdgeRuntime
             .waitUntil(sendTask as Promise<unknown>);
         }
       } else {

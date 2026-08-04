@@ -1,10 +1,7 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
-import { z } from "https://esm.sh/zod@3.23.8";
-
-const TranscriptSchema = z.object({
-  transcript: z.string().min(1).max(2000).transform(s => s.trim()),
-});
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 const VALID_ACTIONS = new Set(['search', 'filter', 'navigate', 'sort', 'clear', 'answer']);
 const VALID_ROUTES = new Set([
@@ -100,14 +97,16 @@ Deno.serve(async (req) => {
   try {
     const LOVABLE_API_KEY = Deno.env.get('AI_GATEWAY_KEY') || Deno.env.get('LOVABLE_API_KEY') || requireEnv('AI_GATEWAY_KEY');
 
+    // Gate de contrato (VoiceAgentV1Schema estrito) — envelope 422 unificado.
     const body = await req.json().catch(() => null);
-    const parsed = TranscriptSchema.safeParse(body);
-    if (!parsed.success) {
-      return errorResponse(JSON.stringify(parsed.error.flatten().fieldErrors), 400, req);
-    }
+    const parsed = parseOrReject('voice-agent', CONTRACT_SCHEMAS['voice-agent'], req, body, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
 
-    const { transcript } = parsed.data;
-    log.info("Processing voice command", { transcript: transcript.substring(0, 100) });
+    const { transcript } = parsed.data as Record<string, any>;
+    const trimmed = typeof transcript === 'string' ? transcript.trim() : '';
+    log.info("Processing voice command", { transcript: trimmed.substring(0, 100) });
 
     // Timeout for AI gateway call
     const aiController = new AbortController();
@@ -125,7 +124,7 @@ Deno.serve(async (req) => {
           model: 'google/gemini-3-flash-preview',
           messages: [
             { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: transcript },
+            { role: 'user', content: trimmed },
           ],
           tools: [{
             type: 'function',

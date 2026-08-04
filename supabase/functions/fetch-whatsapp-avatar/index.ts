@@ -12,10 +12,13 @@ import {
   jsonResponse,
   checkRateLimit,
   getClientIP,
+  getCorsHeaders,
 } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getStoragePublicUrl } from "../_shared/storage-url.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 const ALLOWED_AVATAR_ORIGINS = new Set([
   "mmg.whatsapp.net",
@@ -59,7 +62,12 @@ Deno.serve(withHandler("fetch-whatsapp-avatar", async (req, log) => {
   const rl = checkRateLimit(`avatar:${ip}`, 30, 60_000);
   if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);
 
-  const body = await req.json().catch(() => null);
+  const raw = await req.json().catch(() => null);
+  const parsed = parseOrReject("fetch-whatsapp-avatar", CONTRACT_SCHEMAS["fetch-whatsapp-avatar"], req, raw, {
+    extraHeaders: getCorsHeaders(req),
+  });
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data as Record<string, any>;
   const phoneRaw = body?.phone;
   if (!phoneRaw || typeof phoneRaw !== "string") {
     return errorResponse("Campo 'phone' é obrigatório.", 400, req);

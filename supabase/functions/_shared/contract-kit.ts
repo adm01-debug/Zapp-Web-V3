@@ -175,9 +175,24 @@ export function parseOrReject<T = unknown>(
   opts: ParseOptions = {},
 ): ParseResult<T> {
   const spec = CONTRACTS[contractName];
-  const supported = spec?.supported ?? Object.keys(schemas);
+  const supported = spec?.supported ?? Object.keys(schemas ?? {});
   const current = spec?.current ?? supported[supported.length - 1] ?? "v1";
   const extra = opts.extraHeaders ?? {};
+
+  // Guarda anti-crash: schema ausente (chave não registrada em CONTRACT_SCHEMAS)
+  // NUNCA pode lançar — vira 422 contract_violation com envelope canônico.
+  // (Incidente P0 2026-08-04: ai-churn-analysis/classify-emoji chamavam o gate
+  // com CONTRACT_SCHEMAS['<nome>'] undefined → Object.keys(undefined) → TypeError
+  // → 502/500 em TODA requisição.)
+  if (!schemas || typeof schemas !== "object" || Object.keys(schemas).length === 0) {
+    const eb = buildContractErrorBody(
+      contractName, current, "contract_violation",
+      `Contrato '${contractName}' não possui schema registrado em CONTRACT_SCHEMAS.`,
+      [{ path: "root", message: "schema do contrato ausente (registro incompleto)" }],
+      opts.requestId,
+    );
+    return { ok: false, response: errorResponse422(eb, extra), body: eb };
+  }
 
   // 1) Body precisa ser JSON estruturado (objeto ou array). null/undefined/primitivo → invalid_json.
   const isStructured = body !== null && typeof body === "object";

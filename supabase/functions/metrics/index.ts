@@ -146,11 +146,8 @@ Deno.serve(async (req) => {
   if (req.method !== "GET") {
     return new Response("Method not allowed", { status: 405, headers: getCorsHeaders(req) });
   }
-  // Contrato metrics@v1 (estrito): scrape GET sem body → {} aceito.
-  const parsed = parseOrReject('metrics', { v1: MetricsV1Schema }, req, await req.json().catch(() => ({})), {
-    extraHeaders: getCorsHeaders(req),
-  });
-  if (!parsed.ok) return parsed.response;
+  // Auth ANTES do gate (validação Claude O2): endpoint de métricas exige
+  // token de scrape OU service-role/cron — não vazar metadado de contrato.
   if (SCRAPE_TOKEN) {
     const provided = req.headers.get("x-metrics-token") ?? new URL(req.url).searchParams.get("token") ?? "";
     if (!timingSafeStringEqual(provided, SCRAPE_TOKEN)) {
@@ -161,6 +158,11 @@ Deno.serve(async (req) => {
     const denied = requireServiceRoleOrCron(req);
     if (denied) return denied;
   }
+  // Contrato metrics@v1 (estrito): scrape GET sem body → {} aceito.
+  const parsed = parseOrReject('metrics', { v1: MetricsV1Schema }, req, await req.json().catch(() => ({})), {
+    extraHeaders: getCorsHeaders(req),
+  });
+  if (!parsed.ok) return parsed.response;
   try {
     const body = fmt(await collect());
     return new Response(body, {

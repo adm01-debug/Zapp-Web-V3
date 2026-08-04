@@ -101,9 +101,17 @@ export const ClassifyStickerSchema = z.object({
 /**
  * Shared conversation-message shape reused by AI schemas.
  * Kept permissive on optional metadata; bounds content length as a DoS guard.
+ *
+ * REALIDADE DE PRODUÇÃO (2026-08-04, fix pós-validação Claude): o front
+ * (AIConversationAssistant.tsx) envia messages com `sender: 'contact'|'agent'`
+ * — NUNCA `role`. O handler do ai-router também consome `msg.sender`
+ * (conversationText). `role` foi exigido erroneamente pelo PR #774 (spec
+ * inventada) e derrubava o painel de análise com 422. Agora role é OPCIONAL:
+ * quem manda role (auto-tag, summary) continua aceito; quem manda sender
+ * (conversation-analysis) também.
  */
 export const messageItemSchema = z.object({
-  role: z.enum(['user', 'assistant', 'system', 'agent', 'client']),
+  role: z.enum(['user', 'assistant', 'system', 'agent', 'client']).optional(),
   content: z.string().max(10000),
   sender: z.string().max(200).optional(),
   timestamp: z.string().max(50).optional(),
@@ -131,6 +139,9 @@ export const AiConversationAnalysisSchema = z.object({
   contactId: z.string().uuid().optional().nullable(),
   contactName: z.string().max(200).optional().nullable(),
   messages: z.array(messageItemSchema).min(1).max(200),
+  // REALIDADE DE PRODUÇÃO (2026-08-04): AIConversationAssistant.tsx envia
+  // periodDays (getPeriodDays(analysisPeriod)) — obrigatório aceitar sob .strict().
+  periodDays: z.number().min(1).max(365).optional().nullable(),
 });
 
 /** ai-enhance-message */
@@ -285,12 +296,6 @@ export function parseBody<T>(schema: z.ZodSchema<T>, body: unknown) {
   }
   return { success: true, data: result.data };
 }
-
-/** voice-copilot-action@v1 — registro de contrato (schema em contract-schemas.ts). */
-export const VoiceCopilotActionV1Schema = z.object({
-  action: z.string().min(1, "action é obrigatória").max(100),
-  params: z.record(z.unknown()).nullish(),
-}).passthrough();
 
 // ─── Contratos V1 (estritos) — endpoints internos AI/ML ──────────────────────
 //
