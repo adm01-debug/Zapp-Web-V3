@@ -102,7 +102,7 @@ whatsapp-cloud-webhook-verify, gmail-health.
 
 ## Estado (2026-08-04)
 
-- 118 edge functions, **116 com gate efetivo** + 2 exceções documentadas (main/mcp — proxies que não podem consumir o stream) + voice-agent = **118/118**
+- 118 edge functions: **116 com gate efetivo** + 2 exceções documentadas (main/mcp — proxies que não podem consumir o stream) = **118/118**
 - 118 contratos em `CONTRACT_SCHEMAS` + `CONTRACTS`
 - 4 webhooks com V2 + sunset: evolution, whatsapp-cloud, gmail, elevenlabs
 - 1800+ testes de contrato verdes (1829 em 2026-08-04)

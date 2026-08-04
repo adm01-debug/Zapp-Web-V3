@@ -61,7 +61,8 @@ export { ClassifyStickerV1Schema };
 export { SentimentAlertV1Schema };
 /** voice-changer@v1 — re-export de schemas.ts:380 (strict; rota JSON da fila/queue — multipart não passa por contrato JSON). */
 export { VoiceChangerV1Schema };
-/** voice-copilot-action@v1 — re-export de schemas.ts:290 (action + params nullish). */
+// (voice-copilot-action: canônico vive em contract-schemas.ts — re-export
+// removido na consolidação para eliminar duplicação; validação Claude 2026-08-04.)
 
 // ─── Schemas NOVOS (sem V1 homônimo em schemas.ts) — derivados do consumo real ─
 

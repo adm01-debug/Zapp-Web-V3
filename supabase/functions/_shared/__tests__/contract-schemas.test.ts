@@ -217,7 +217,7 @@ for (const m of MATRICES) {
       if (!r.success && c.expectPath) {
         const paths = r.error.issues.map((it) => it.path.join("."));
         assert(
-          paths.some((p) => p === c.expectPath || p.startsWith(c.expectPath + ".") || p === ""),
+          paths.some((p) => p === c.expectPath || p.startsWith(c.expectPath + ".")),
           `esperava issue em '${c.expectPath}', obtido: ${paths.join(" | ")}`,
         );
       }

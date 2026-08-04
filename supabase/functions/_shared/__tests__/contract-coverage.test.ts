@@ -62,12 +62,15 @@ Deno.test("cobertura: toda função que lê body invoca o gate de contrato (ou e
     if (!readsBody) continue;
 
     total++;
+    // Allowlist tem precedência SOBRE hasGate: main/mcp têm parseOrReject no
+    // fonte (import + chamada no branch req.body===null) mas são no-op — não
+    // podem contar como cobertura efetiva (validação Claude C3, 2ª rodada).
+    if (ALLOWLIST[fnName]) continue;
     const hasGate = /parseOrReject\(|parseRequestOrReject\(/.test(src);
     if (hasGate) {
       withGate++;
       continue;
     }
-    if (ALLOWLIST[fnName]) continue;
     violations.push(
       `${fnName}/index.ts lê body mas NÃO invoca parseOrReject. ` +
       `Adicione o gate de contrato (parseOrReject com CONTRACT_SCHEMAS['${fnName}']) ` +

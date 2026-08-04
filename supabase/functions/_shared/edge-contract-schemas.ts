@@ -3,6 +3,10 @@ import {
   EvolutionWebhookV1Schema,
   EvolutionWebhookV2Schema,
   MetaWebhookPayloadSchema,
+  GmailWebhookV1Schema,
+  GmailWebhookV2Schema,
+  ElevenLabsWebhookV1Schema,
+  ElevenLabsWebhookV2Schema,
 } from './webhook-schemas.ts';
 import { contractErrorResponse } from './validation.ts';
 import {
@@ -187,8 +191,16 @@ export const WebhookContractSchemas = {
     }),
   },
   'whatsapp-webhook': { v1: NonEmptyObjectSchema },
-  'gmail-webhook': { v1: NonEmptyObjectSchema },
-  'elevenlabs-webhook': { v1: NonEmptyObjectSchema },
+  // v1+v2 reais (alinhado com ContractLifecycles — validação Claude C1, 2ª rodada:
+  // lifecycle diz current v2; sem o schema v2 o caminho legado devolvia undefined).
+  'gmail-webhook': {
+    v1: GmailWebhookV1Schema,
+    v2: GmailWebhookV2Schema,
+  },
+  'elevenlabs-webhook': {
+    v1: ElevenLabsWebhookV1Schema,
+    v2: ElevenLabsWebhookV2Schema,
+  },
   'e2e-webhook-fixture': { v1: NonEmptyObjectSchema },
   'webhook-diagnostic': { v1: NonEmptyObjectSchema },
   'webhook-hmac-selftest': { v1: NonEmptyObjectSchema },
