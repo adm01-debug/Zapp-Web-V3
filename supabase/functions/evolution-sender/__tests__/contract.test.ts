@@ -121,7 +121,7 @@ Deno.test("evolution-sender@v1: versão não suportada → unsupported_contract_
   );
 });
 
-Deno.test("evolution-sender@v1: contrato registrado em CONTRACTS como v1", () => {
+Deno.test("evolution-sender@v1: contrato registrado em CONTRACTS como v1", async () => {
   // O contrato existe no registro de versões (contract-versions.ts) e o
   // endpoint usa parseOrReject com o schema registrado — sem isso o worker
   // não tem gate de contrato.
