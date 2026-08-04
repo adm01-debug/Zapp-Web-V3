@@ -417,6 +417,12 @@ export function checkRateLimit(
   return { allowed: entry.count <= maxRequests, remaining };
 }
 
+/** Test-only: clear the rate-limit map (for unit tests with synthetic requests). */
+export function _resetRateLimitForTests(): void {
+  rateLimitMap.clear();
+  lastCleanup = Date.now();
+}
+
 /** Extract and normalize client IP from request for rate limiting (C.14: IPv6 support) */
 export function getClientIP(req: Request): string {
   // Prefer x-real-ip (set by Supabase's infrastructure proxy, not client-controllable).

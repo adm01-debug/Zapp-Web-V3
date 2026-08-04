@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     extraHeaders: getCorsHeaders(req),
   });
   if (!parsed.ok) return parsed.response;
-  const { action = 'refreshAll' } = body as { action?: string };
+  const { action = 'refreshAll' } = parsed.data as { action?: string };
 
   // refreshSingle: accept user JWT (RLS-scoped via callerClient) OR service-role/cron
   // all other actions: service-role/cron only
