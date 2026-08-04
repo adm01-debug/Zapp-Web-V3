@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Clock, MessageSquare, Bell, Palette, Save, RefreshCw, Loader2,
   Keyboard, Volume2, ArrowRight, Package, Globe, TrendingUp, Settings,
-  Tags, MessageSquareHeart, Bot, Brain, Users, ShieldAlert, Mail
+  Tags, MessageSquareHeart, Bot, Brain, Users, ShieldAlert, Mail, Wallet
 } from 'lucide-react';
 import { AIAutoTagsConfig } from '@/components/settings/AIAutoTagsConfig';
 import { AIProvidersManager } from '@/components/settings/AIProvidersManager';
@@ -29,6 +29,7 @@ import { MessagesSettings } from '@/components/settings/MessagesSettings';
 import { AutomationSettings } from '@/components/settings/AutomationSettings';
 import { AppearanceSettings } from '@/components/settings/AppearanceSettings';
 import { SLASettings } from '@/components/settings/SLASettings';
+import { MarketingBudgets } from '@/components/settings/MarketingBudgets';
 import { PageTemplate } from '@/components/layout/PageTemplate';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { useOnboarding } from '@/hooks/useOnboarding';
@@ -116,6 +117,7 @@ export function SettingsView() {
               <TabsTrigger value="sla" className="gap-2 whitespace-nowrap"><ShieldAlert className="w-4 h-4" />SLA</TabsTrigger>
               <TabsTrigger value="email" className="gap-2 whitespace-nowrap"><Mail className="w-4 h-4" />E-mail</TabsTrigger>
               <TabsTrigger value="ai-providers" className="gap-2 whitespace-nowrap"><Brain className="w-4 h-4" />Gestão IA</TabsTrigger>
+              <TabsTrigger value="budgets" className="gap-2 whitespace-nowrap"><Wallet className="w-4 h-4" />Orçamento</TabsTrigger>
             </TabsList>
           </div>
           {/* Fade edges — left and right */}
@@ -210,6 +212,10 @@ export function SettingsView() {
 
         <TabsContent value="email">
           <EmailSignaturesSettings />
+        </TabsContent>
+
+        <TabsContent value="budgets">
+          <MarketingBudgets />
         </TabsContent>
       </Tabs>
       )}

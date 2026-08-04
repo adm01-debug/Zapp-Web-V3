@@ -1,3 +1,15 @@
+/**
+ * NOTA (CAMPANHAS-09): mensagem agendada — DISPARADOR INEXISTENTE (verificado 2026-08-04).
+ *  - useScheduledMessages (agendar/cancelar/listar) e ScheduleCalendarView estão ÍNTEGROS —
+ *    nenhuma alteração feita aqui.
+ *  - PORÉM: nenhum edge/cron do repo lê zapp.scheduled_messages (grep em supabase/functions =
+ *    0 ocorrências; cron de processamento NÃO existe nas migrations). Mensagens agendadas
+ *    NUNCA são disparadas. Sinalizado ao maestro: criar edge/cron (padrão do banco:
+ *    cron → zapp.fn_*, nunca edge HTTP direto).
+ *  - RLS zapp.scheduled_messages (canonical 20260804000000): SÓ `scheduled_messages_select`
+ *    (SELECT). Policies INSERT/UPDATE FALTAM → scheduleMutation (insert) e cancelMutation
+ *    (update) falham com 403. Sinalizado ao maestro: criar policies INSERT/UPDATE.
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';

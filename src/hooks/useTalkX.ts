@@ -1,3 +1,14 @@
+/**
+ * NOTA (CAMPANHAS-06): disparo agendado TalkX — cadeia completa NO REPO (verificado 2026-08-04).
+ *  - UI: status 'scheduled' + scheduled_at persistidos via create/update (useTalkX + TalkXView).
+ *  - Edge `talkx-scheduler`: existe e processa talkx_campaigns com status='scheduled' e
+ *    scheduled_at<=now (claim atômico scheduled→processing, chama talkx-send).
+ *  - Cron pg_cron: `talkx-scheduler-check` (* * * * *) REGISTRADO na canonical
+ *    20260804000000_canonical_schema.sql (chama /functions/v1/talkx-scheduler via http_post).
+ *    Padrão do banco respeitado (cron → edge interno, sem HTTP direto do front).
+ *  - Sinalizado ao maestro: confirmar aplicação em produção (cron.job presente no DB real);
+ *    sem acesso a banco via este repo, a evidência é só a migration.
+ */
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
