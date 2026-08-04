@@ -17,7 +17,7 @@ export function useEvolutionAutoSync(onSynced?: () => void) {
 
   const syncAll = async () => {
     try {
-      // 1. Get existing connections from Supabase
+      // 1. Get existing connections from Supabase (RLS-filtered by auth user)
       const { data: existing, error } = await supabase
         .from('whatsapp_connections')
         .select('instance_id, phone_number');
@@ -82,6 +82,7 @@ export function useEvolutionAutoSync(onSynced?: () => void) {
             status,
             is_default: false,
             api_type: 'evolution',
+            // trg_a_wconn_auto_populate (BEFORE INSERT) maps auth.uid() → profiles.id for created_by.
           })
         );
 

@@ -46,6 +46,7 @@ const STATUS_BADGE: Record<ChannelStatus, { label: string; variant: "default" | 
   disabled: { label: "Desativado", variant: "destructive" },
 };
 
+/** Returns a default `ServiceChannel` partial for the "new channel" form. */
 function emptyChannel(): Partial<ServiceChannel> {
   return {
     name: "",
@@ -56,6 +57,13 @@ function emptyChannel(): Partial<ServiceChannel> {
     is_default: false,
     color: "#3b82f6", // blue-500 — default channel color (F7-10: não usar classe CSS como valor)
   };
+}
+
+/** Converts a stored color value to a valid CSS color, falling back to `hsl(var(--primary))` for Tailwind class names. */
+function resolveColor(c?: string | null): string | undefined {
+  if (!c) return undefined;
+  if (c.startsWith('#') || c.startsWith('rgb') || c.startsWith('hsl') || c.startsWith('var(')) return c;
+  return 'hsl(var(--primary))';
 }
 
 /** Admin Channels Page. */
@@ -146,7 +154,7 @@ export default function AdminChannelsPage() {
                   <div className="flex items-center gap-3">
                     <span
                       className="w-9 h-9 rounded-full grid place-items-center text-foreground"
-                      style={{ backgroundColor: ch.color }}
+                      style={{ backgroundColor: resolveColor(ch.color) }}
                       aria-hidden
                     >
                       {channelIcon(ch.channel_type)}
@@ -340,7 +348,7 @@ export default function AdminChannelsPage() {
 
               <div>
                 <Label htmlFor="ch-color">Cor</Label>
-                <Input id="ch-color" type="color" value={editing.color ?? "bg-primary"} onChange={(e) => setEditing({ ...editing, color: e.target.value })} />
+                <Input id="ch-color" type="color" value={editing.color?.startsWith('#') ? editing.color : '#6366f1'} onChange={(e) => setEditing({ ...editing, color: e.target.value })} />
               </div>
               <div>
                 <Label htmlFor="ch-description">Descrição</Label>

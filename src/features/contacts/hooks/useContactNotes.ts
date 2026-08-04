@@ -24,6 +24,10 @@ export interface ContactNote {
   content: string;
   created_at: string;
   updated_at: string;
+  /** Category of note (general | call | email | meeting | task | internal). Added in M24. */
+  note_type: string;
+  /** When true the note appears pinned at the top. Added in M24. */
+  is_pinned: boolean;
   /** Sempre presente. Quando o autor não é encontrado, retorna um autor placeholder com id === author_id. */
   author: ContactNoteAuthor;
 }
@@ -33,7 +37,7 @@ export function useContactNotes(contactId: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Get current user's profile
+  // Get current user's profile (kept for currentProfileId return value)
   const { data: profile } = useQuery({
     queryKey: queryKeys.userProfile.meById(user?.id),
     queryFn: async () => {
@@ -68,10 +72,13 @@ export function useContactNotes(contactId: string) {
           author_id,
           content,
           created_at,
-          updated_at
+          updated_at,
+          note_type,
+          is_pinned
         `
         )
         .eq('contact_id', contactId)
+        .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -91,36 +98,46 @@ export function useContactNotes(contactId: string) {
         ])
       );
 
-      return (data || []).map<ContactNote>((note) => ({
-        ...note,
-        created_at: note.created_at ?? '',
-        updated_at: note.updated_at ?? '',
-        author: authorsMap.get(note.author_id) ?? {
-          id: note.author_id,
-          name: null,
-          avatar_url: null,
-        },
-      }));
+      return (data || []).map<ContactNote>((note) => {
+        const raw = note as Record<string, unknown>;
+        return {
+          id: raw.id as string,
+          contact_id: raw.contact_id as string,
+          author_id: raw.author_id as string,
+          content: raw.content as string,
+          created_at: (raw.created_at as string) ?? '',
+          updated_at: (raw.updated_at as string) ?? '',
+          note_type: (raw.note_type as string) ?? 'general',
+          is_pinned: (raw.is_pinned as boolean) ?? false,
+          author: authorsMap.get(raw.author_id as string) ?? {
+            id: raw.author_id as string,
+            name: null,
+            avatar_url: null,
+          },
+        };
+      });
     },
     enabled: !!contactId && isValidUUID(contactId),
     staleTime: 60_000,
   });
 
-  // Add note mutation
+  // Add note mutation — uses add_contact_note RPC (resolves author_id server-side via auth.uid())
   const addNoteMutation = useMutation({
-    mutationFn: async (content: string) => {
-      if (!profile?.id) throw new Error('Perfil não encontrado');
-
-      const { data, error } = await supabase
-        .from('contact_notes')
-        .insert({
-          contact_id: contactId,
-          author_id: profile.id,
-          content,
-        })
-        .select()
-        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
-
+    mutationFn: async ({
+      content,
+      noteType = 'general',
+      isPinned = false,
+    }: {
+      content: string;
+      noteType?: string;
+      isPinned?: boolean;
+    }) => {
+      const { data, error } = await (supabase as any).rpc('add_contact_note', {
+        p_contact_id: contactId,
+        p_content: content,
+        p_note_type: noteType,
+        p_is_pinned: isPinned,
+      });
       if (error) throw error;
       return data;
     },
@@ -142,11 +159,50 @@ export function useContactNotes(contactId: string) {
     },
   });
 
+  // Update note mutation — uses update_contact_note RPC (ownership guard enforced server-side)
+  const updateNoteMutation = useMutation({
+    mutationFn: async ({
+      noteId,
+      content,
+      noteType,
+      isPinned,
+    }: {
+      noteId: string;
+      content?: string;
+      noteType?: string;
+      isPinned?: boolean;
+    }) => {
+      const { data, error } = await (supabase as any).rpc('update_contact_note', {
+        p_note_id: noteId,
+        p_content: content ?? null,
+        p_note_type: noteType ?? null,
+        p_is_pinned: isPinned ?? null,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.notes(contactId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.internalNotes.contact(contactId) });
+      toast({
+        title: 'Nota atualizada',
+        description: 'A nota foi atualizada com sucesso.',
+      });
+    },
+    onError: (error) => {
+      log.error('Error updating note:', error);
+      toast({
+        title: 'Erro ao atualizar nota',
+        description: 'Não foi possível atualizar a nota.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   // Delete note mutation
   const deleteNoteMutation = useMutation({
     mutationFn: async (noteId: string) => {
       const { error } = await supabase.from('contact_notes').delete().eq('id', noteId);
-
       if (error) throw error;
     },
     onSuccess: () => {
@@ -168,10 +224,17 @@ export function useContactNotes(contactId: string) {
   });
 
   const addNote = useCallback(
-    (content: string) => {
-      return addNoteMutation.mutateAsync(content);
+    (content: string, noteType?: string, isPinned?: boolean) => {
+      return addNoteMutation.mutateAsync({ content, noteType, isPinned });
     },
     [addNoteMutation]
+  );
+
+  const updateNote = useCallback(
+    (noteId: string, content?: string, noteType?: string, isPinned?: boolean) => {
+      return updateNoteMutation.mutateAsync({ noteId, content, noteType, isPinned });
+    },
+    [updateNoteMutation]
   );
 
   const deleteNote = useCallback(
@@ -187,8 +250,10 @@ export function useContactNotes(contactId: string) {
     error,
     refetch,
     addNote,
+    updateNote,
     deleteNote,
     isAdding: addNoteMutation.isPending,
+    isUpdating: updateNoteMutation.isPending,
     isDeleting: deleteNoteMutation.isPending,
     currentProfileId: (profile?.id ?? null) as string | null,
   };

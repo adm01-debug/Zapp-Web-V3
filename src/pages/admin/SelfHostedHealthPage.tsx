@@ -4,7 +4,7 @@
  * Painel de diagnóstico que valida a anon key do Supabase self-hosted,
  * a leitura via cliente Supabase e a conectividade ao MCP self-hosted.
  */
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ import {
   type DiagnosticResult,
 } from '@/lib/selfHostedDiagnostics';
 
+/** Renders a colored Badge for a diagnostic step status: ok, warn, or fail. */
 function statusBadge(status: DiagnosticResult['status']) {
   if (status === 'ok') {
     return (
@@ -42,23 +43,31 @@ export default function SelfHostedHealthPage() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<DiagnosticResult[]>([]);
   const [ranAt, setRanAt] = useState<Date | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
+  const runIdRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      runIdRef.current += 1;
+    };
+  }, []);
 
   const run = async () => {
-    // F7-31: cancela diagnóstico anterior se re-clicado
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
+    const myRunId = ++runIdRef.current;
     setLoading(true);
+    setResults([]);
+    setRunError(null);
     try {
       const r = await runSelfHostedDiagnostics();
-      if (controller.signal.aborted) return;
+      if (runIdRef.current !== myRunId) return;
       setResults(r);
       setRanAt(new Date());
+    } catch (err) {
+      if (runIdRef.current !== myRunId) return;
+      setRunError(err instanceof Error ? err.message : String(err));
     } finally {
-      if (abortRef.current === controller) abortRef.current = null;
-      setLoading(false);
+      if (runIdRef.current === myRunId) setLoading(false);
+      if (runIdRef.current === myRunId) setLoading(false);
     }
   };
 
@@ -93,7 +102,15 @@ export default function SelfHostedHealthPage() {
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-          {results.length === 0 && !loading && (
+          {runError && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Erro ao executar diagnóstico</AlertTitle>
+              <AlertDescription>{runError}</AlertDescription>
+            </Alert>
+          )}
+
+          {results.length === 0 && !loading && !runError && (
             <p className="text-sm text-muted-foreground">
               Clique em <strong>Testar agora</strong> para disparar 5 probes em paralelo.
             </p>

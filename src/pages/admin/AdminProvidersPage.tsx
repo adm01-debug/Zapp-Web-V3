@@ -54,6 +54,7 @@ const TYPE_LABEL: Record<ProviderType, string> = {
   custom: 'Custom HTTP',
 };
 
+/** Admin page for managing WhatsApp providers, monitoring status and viewing event logs. */
 export const AdminProvidersPage = () => {
   const {
     rows,
@@ -103,7 +104,7 @@ export const AdminProvidersPage = () => {
           <h1 className="text-2xl font-bold">Provedores & Fallback</h1>
           <p className="text-sm text-muted-foreground">
             Configure provedores (Evolution / WPPConnect / Baileys), monitore status e veja logs por
-            sessão. Health-check automático a cada 2 minutos.
+            sessão. Use "Health-check agora" para verificação imediata.
           </p>
         </div>
         <div className="flex gap-2">
@@ -346,6 +347,7 @@ export const AdminProvidersPage = () => {
   );
 };
 
+/** Renders a compact stat card with a label, numeric value, and optional destructive color tone. */
 function Stat({
   label,
   value,

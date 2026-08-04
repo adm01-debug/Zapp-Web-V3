@@ -17,8 +17,8 @@ import {
   Filter,
   History as HistoryIcon,
 } from 'lucide-react';
-import { useEmailHealthStatus } from './email/useEmailHealthStatus';
 import { useNavigate } from 'react-router-dom';
+import { useEmailHealthStatus } from './email/useEmailHealthStatus';
 
 const getStatusIcon = (status?: string) => {
   switch (status) {

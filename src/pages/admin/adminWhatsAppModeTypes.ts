@@ -1,5 +1,6 @@
 /** Ping Row. */
 export interface PingRow {
+  id?: string;
   kind: string;
   meta: Record<string, unknown>;
   created_at: string;

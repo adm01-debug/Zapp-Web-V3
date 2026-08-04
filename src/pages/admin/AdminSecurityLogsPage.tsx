@@ -8,14 +8,16 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Shield, AlertTriangle } from 'lucide-react';
+import { Shield, AlertTriangle, Key, UserCheck, ShieldAlert } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSecurityAuditLogs } from '@/hooks/useSecurityAuditLogs';
 
+/** Admin page that displays security audit logs and 4 real-time KPI cards (denied attempts, permission changes, admin logins, RLS failures). */
 export default function AdminSecurityLogsPage() {
-  const { logs, loading } = useSecurityAuditLogs();
+  const { logs, loading, deniedCount24h, permissionChanges24h, adminLogins7d, rlsFailures24h } =
+    useSecurityAuditLogs();
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -58,11 +60,37 @@ export default function AdminSecurityLogsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {logs.filter((l) => l.status === 'denied').length}
+              {deniedCount24h}
             </div>
           </CardContent>
         </Card>
-        {/* Adicionar mais cards conforme necessário */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Mudanças de Permissão (24h)</CardTitle>
+            <Key className="h-4 w-4 text-warning" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{permissionChanges24h}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Logins de Admin (7d)</CardTitle>
+            <UserCheck className="h-4 w-4 text-success" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{adminLogins7d}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Falhas de RLS (24h)</CardTitle>
+            <ShieldAlert className="h-4 w-4 text-destructive" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{rlsFailures24h}</div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>

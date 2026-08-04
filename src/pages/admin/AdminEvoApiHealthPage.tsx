@@ -1,11 +1,24 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { queryKeys } from '@/services/api/queryKeys';
 import { useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
 import { AlertCircle, CheckCircle2, PlayCircle, RefreshCw, Server, Shield } from 'lucide-react';
+import type { PipelineReadiness } from '@/lib/evoApiHealth/types';
 import {
   useEvoApiDashboard,
   useActiveAlerts,
@@ -24,6 +37,17 @@ import { ChannelsTab } from '@/components/evoApiHealth/tabs/ChannelsTab';
 import { HistoryTab } from '@/components/evoApiHealth/tabs/HistoryTab';
 import { DrTab } from '@/components/evoApiHealth/tabs/DrTab';
 
+/** Maps a `PipelineReadiness` snapshot to a Badge variant: `destructive` if any status field is non-OK, otherwise `default`. */
+function deriveReadinessVariant(r?: PipelineReadiness): 'default' | 'destructive' {
+  if (!r) return 'default';
+  const bad = [r.tables_status, r.enums_status, r.fk_status, r.realtime_status, r.replica_full_status].some(
+    (s) => s && !s.toLowerCase().includes('ok') && !s.includes('🟢')
+  );
+  return bad ? 'destructive' : 'default';
+}
+
+const RATE_LIMIT_MS = 5 * 60 * 1000;
+
 /** Admin Evo Api Health Page. */
 export default function AdminEvoApiHealthPage() {
   const qc = useQueryClient();
@@ -36,6 +60,9 @@ export default function AdminEvoApiHealthPage() {
   const runbook = useDrRunbook();
   const drHealth = useDrHealth();
   const runTests = useRunTestSuite();
+  const { toast } = useToast();
+  const lastRunRef = useRef<number>(0);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   // Memoized values to prevent unnecessary re-renders of the large layout
   const { schemaUnavailable, dashboardData, alertsData, runTestsData, readiness } = useMemo(
@@ -87,17 +114,53 @@ export default function AdminEvoApiHealthPage() {
             <RefreshCw className={`mr-2 h-4 w-4 ${dash.isFetching ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
-          <Button onClick={() => runTests.mutate()} disabled={runTests.isPending}>
-            <PlayCircle className="mr-2 h-4 w-4" />
-            {runTests.isPending ? 'Executando testes…' : 'Run test suite'}
-          </Button>
+          <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <AlertDialogTrigger asChild>
+              <Button disabled={runTests.isPending}>
+                <PlayCircle className="mr-2 h-4 w-4" />
+                {runTests.isPending
+                  ? `Rodando ${runTestsData?.total_tests ?? 50} testes…`
+                  : 'Run test suite'}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmar execução da suite de testes?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Isso executa até {runTestsData?.total_tests ?? 50} testes contra o banco de
+                  produção. Limite: 1 execução a cada 5 minutos.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    const now = Date.now();
+                    if (now - lastRunRef.current < RATE_LIMIT_MS) {
+                      const remaining = Math.ceil((RATE_LIMIT_MS - (now - lastRunRef.current)) / 1000);
+                      toast({
+                        title: 'Aguarde antes de repetir',
+                        description: `Próxima execução disponível em ${remaining}s.`,
+                        variant: 'destructive',
+                      });
+                      return;
+                    }
+                    lastRunRef.current = now;
+                    runTests.mutate();
+                  }}
+                >
+                  Executar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
       {/* Readiness & Test Result Banners */}
       <div className="space-y-3">
         {readiness && (
-          <Alert variant={readiness.overall?.includes('🟢') || readiness.healthy ? 'default' : 'destructive'}>
+          <Alert variant={deriveReadinessVariant(readiness)}>
             <Shield className="h-4 w-4" />
             <AlertTitle>{(readiness.overall?.includes('🟢') || readiness.healthy) ? '✅ Sistema saudável' : readiness.overall ?? '⚠️ Problemas detectados'}</AlertTitle>
             <AlertDescription>
@@ -108,7 +171,7 @@ export default function AdminEvoApiHealthPage() {
         )}
 
         {runTestsData && (
-          <Alert variant={runTestsData.overall?.includes('🟢') || runTestsData.healthy ? 'default' : 'destructive'}>
+          <Alert variant={runTestsData.failed > 0 ? 'destructive' : 'default'}>
             <CheckCircle2 className="h-4 w-4" />
             <AlertTitle>{(runTestsData.overall?.includes('🟢') || runTestsData.healthy) ? '✅ Testes passando' : '⚠️ Falhas detectadas'}</AlertTitle>
             <AlertDescription>

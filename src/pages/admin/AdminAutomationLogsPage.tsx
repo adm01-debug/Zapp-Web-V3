@@ -34,7 +34,7 @@ export default function AdminAutomationLogsPage() {
   const [filterJid, setFilterJid] = useState('');
   const [filterFrom, setFilterFrom] = useState<string>('');
   const [filterTo, setFilterTo] = useState<string>('');
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(1);
   const [detail, setDetail] = useState<ExecutionRow | null>(null);
 
   const filters: AutomationLogsFilters = {
@@ -43,9 +43,16 @@ export default function AdminAutomationLogsPage() {
     filterJid,
     filterFrom,
     filterTo,
-    page,
+    page: page - 1,
   };
-  const { rows, rules, ruleNameById, loading, load } = useAutomationLogs(filters);
+  const { rows, rules, ruleNameById, loading, isFetching, isError, load } = useAutomationLogs(filters);
+
+  // Auto-go-back when current page becomes empty (e.g. after filter change race)
+  // Guard: skip while fetching or on error to avoid false rewinds
+  React.useEffect(() => {
+    if (!loading && !isFetching && !isError && rows.length === 0 && page > 1)
+      setPage((p) => Math.max(1, p - 1));
+  }, [loading, isFetching, isError, rows.length, page]);
 
   return (
     <div className="container mx-auto max-w-7xl p-6">
@@ -76,7 +83,7 @@ export default function AdminAutomationLogsPage() {
           <Select
             value={filterRule}
             onValueChange={(v) => {
-              setPage(0);
+              setPage(1);
               setFilterRule(v);
             }}
           >
@@ -98,7 +105,7 @@ export default function AdminAutomationLogsPage() {
           <Select
             value={filterStatus}
             onValueChange={(v) => {
-              setPage(0);
+              setPage(1);
               setFilterStatus(v);
             }}
           >
@@ -120,7 +127,7 @@ export default function AdminAutomationLogsPage() {
           <Input
             value={filterJid}
             onChange={(e) => {
-              setPage(0);
+              setPage(1);
               setFilterJid(e.target.value);
             }}
             placeholder="55..."
@@ -132,7 +139,7 @@ export default function AdminAutomationLogsPage() {
             type="date"
             value={filterFrom}
             onChange={(e) => {
-              setPage(0);
+              setPage(1);
               setFilterFrom(e.target.value);
             }}
           />
@@ -143,7 +150,7 @@ export default function AdminAutomationLogsPage() {
             type="date"
             value={filterTo}
             onChange={(e) => {
-              setPage(0);
+              setPage(1);
               setFilterTo(e.target.value);
             }}
           />
@@ -231,14 +238,17 @@ export default function AdminAutomationLogsPage() {
 
       <div className="mt-3 flex items-center justify-between">
         <span className="text-xs text-muted-foreground">
-          Página {page + 1} • {rows.length} registros
+          {rows.length > 0
+            ? `Registros ${(page - 1) * PAGE_SIZE + 1}–${(page - 1) * PAGE_SIZE + rows.length}`
+            : 'Sem registros'}{' '}
+          · Página {page}
         </span>
         <div className="flex gap-2">
           <Button
             size="sm"
             variant="outline"
-            disabled={page === 0}
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
             Anterior
           </Button>

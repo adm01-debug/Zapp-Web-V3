@@ -213,29 +213,47 @@ export function useMessageQueue(
       ...item,
       attachments: undefined, // Não serializável
     }));
-    // F4-11: setItem pode lançar (QuotaExceededError / SecurityError) — falha
-    // de persistência não pode quebrar o envio de mensagens.
     try {
       localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queueToSave));
     } catch (e) {
-      log.warn('Failed to persist message queue to localStorage', e);
+      const isQuota =
+        e instanceof DOMException &&
+        (e.name === 'QuotaExceededError' || e.code === 22);
+      if (isQuota) {
+        // QuotaExceededError — broadcast so the listener below can surface the warning.
+        window.dispatchEvent(new CustomEvent('zapp:storage-quota-exceeded', { detail: { key: QUEUE_STORAGE_KEY } }));
+        log.warn('[useMessageQueue] localStorage quota exceeded — queue not persisted', e);
+      } else {
+        log.error('[useMessageQueue] localStorage.setItem failed unexpectedly', e);
+      }
     }
   }, [queue]);
 
+  // Listen for storage-quota-exceeded events (emitted above) and show a toast
+  // so users know the outbound queue was not persisted. Without this listener
+  // the dispatchEvent above is a silent no-op.
+  useEffect(() => {
+    const onQuotaExceeded = () => {
+      toast({
+        title: 'Armazenamento local cheio',
+        description:
+          'A fila de mensagens não pôde ser salva localmente. Recarregue a página ou limpe dados do navegador.',
+        variant: 'destructive',
+      });
+    };
+    window.addEventListener('zapp:storage-quota-exceeded', onQuotaExceeded);
+    return () => window.removeEventListener('zapp:storage-quota-exceeded', onQuotaExceeded);
+  }, []);
+
   // F4-12: beforeunload + pagehide — garante que sends em voo ('sending')
-  // sejam persistidos como 'pending' ANTES do unload/bfcache. Sem isso, um
-  // estado 'sending' preso no localStorage poderia ser restaurado de forma
-  // inconsistente e disparar cascade de sends paralelos no próximo load
-  // (o restore já normaliza 'sending'→'pending', mas aqui garantimos a ordem:
-  // o que está no storage ao fechar já é 'pending'). Usa queueRef.current
-  // (espelho síncrono) para nunca ler estado defasado do closure.
+  // sejam persistidos como 'pending' ANTES do unload/bfcache.
   useEffect(() => {
     const persistBeforeUnload = () => {
       try {
         const queueToSave = queueRef.current.map((item) => ({
           ...item,
           status: item.status === 'sending' ? ('pending' as const) : item.status,
-          attachments: undefined, // Não serializável
+          attachments: undefined,
         }));
         localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queueToSave));
       } catch (e) {
@@ -243,8 +261,6 @@ export function useMessageQueue(
       }
     };
     window.addEventListener('beforeunload', persistBeforeUnload);
-    // pagehide cobre bfcache (beforeunload não dispara em restauração de
-    // cache), mantendo o storage consistente nos dois caminhos.
     window.addEventListener('pagehide', persistBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', persistBeforeUnload);

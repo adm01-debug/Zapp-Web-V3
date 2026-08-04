@@ -130,7 +130,7 @@ export default function AdminEmailAuditPage() {
             Logs de Revalidação
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="font-mono"> {/* @technical */}
+            <Badge variant="outline" className="font-mono">
               Total: {total}
             </Badge>
             {(statusFilter !== 'all' || dateFrom || dateTo) && (
