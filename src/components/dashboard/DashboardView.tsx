@@ -24,6 +24,8 @@ import { DemandPrediction } from './DemandPrediction';
 import { ActivityHeatmap } from './ActivityHeatmap';
 import ConversationHeatmap from './ConversationHeatmap';
 import { RealtimeMetricsPanel } from './RealtimeMetricsPanel';
+import { DailyMetricsKpis } from './DailyMetricsKpis';
+import { HealthScoreCard } from './HealthScoreCard';
 import { AgentPerformancePanel } from './AgentPerformancePanel';
 import { SatisfactionMetrics } from './SatisfactionMetrics';
 import { SentimentTrendChart } from './SentimentTrendChart';
@@ -245,6 +247,12 @@ export const DashboardView = memo(function DashboardView(): JSX.Element {
         <TabsContent value="overview" className="space-y-6">
           <SectionErrorBoundary sectionName="Métricas em tempo real">
             <RealtimeMetricsPanel />
+          </SectionErrorBoundary>
+          <SectionErrorBoundary sectionName="KPIs diários">
+            <DailyMetricsKpis />
+          </SectionErrorBoundary>
+          <SectionErrorBoundary sectionName="Health score">
+            <HealthScoreCard />
           </SectionErrorBoundary>
           <SectionErrorBoundary sectionName="Widgets do dashboard">
             <ProgressiveDisclosureDashboard

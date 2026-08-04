@@ -5,6 +5,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/features/auth';
 
+// TODO DASHBOARD-05 (produtor CSAT automático — fora do escopo desta branch):
+//   Este hook + CSATAutoConfig.tsx só PERSISTEM a configuração em zapp.csat_auto_config.
+//   NÃO existe produtor: nenhuma edge function lê csat_auto_config para disparar a
+//   pesquisa no WhatsApp após resolução (grep `csat_auto_config` em supabase/functions/
+//   retorna vazio). Sem produtor, ativar o toggle salva config que nunca é executada.
+//   Necessário: edge `csat-auto-send` (ou pg_cron) que leia a config e envie o template.
+
 export function useCSATAutoConfig() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
