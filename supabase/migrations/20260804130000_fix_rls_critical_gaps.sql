@@ -132,11 +132,22 @@ DROP POLICY IF EXISTS team_messages_delete ON zapp.team_messages;
 CREATE POLICY team_messages_delete ON zapp.team_messages FOR DELETE TO authenticated USING (sender_id = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()));
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- A-2: zapp.talkx_campaigns — INSERT, UPDATE, DELETE policies (admin/supervisor only)
+-- A-2: zapp.talkx_campaigns — SELECT, INSERT, UPDATE, DELETE policies
 --      UPDATE accepts created_by = auth.uid() OR created_by = profiles.id so that
 --      both legacy (uuid FK to profiles) and current (auth.uid direct) insert
 --      patterns allow the owner to edit their own campaigns.
+--      SELECT must mirror the same dual-predicate: campaigns stored with
+--      created_by = auth.uid() were invisible to their creator because the
+--      canonical SELECT policy only matched profiles.id. Widened to match UPDATE.
 -- ─────────────────────────────────────────────────────────────────────────────
+
+DROP POLICY IF EXISTS talkx_campaigns_select ON zapp.talkx_campaigns;
+CREATE POLICY talkx_campaigns_select ON zapp.talkx_campaigns FOR SELECT TO authenticated
+  USING (
+    created_by = auth.uid()
+    OR created_by = (SELECT p.id FROM zapp.profiles p WHERE p.user_id = auth.uid())
+    OR zapp.is_admin_or_supervisor(auth.uid())
+  );
 
 DROP POLICY IF EXISTS talkx_campaigns_insert ON zapp.talkx_campaigns;
 CREATE POLICY talkx_campaigns_insert ON zapp.talkx_campaigns FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor(auth.uid()));
