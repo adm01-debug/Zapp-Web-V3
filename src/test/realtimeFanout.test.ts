@@ -23,6 +23,7 @@ const EXPECTED_REALTIME_CONSUMERS: string[] = [
   'src/features/inbox/hooks/useRealtimeMessages.ts',
   'src/features/inbox/data-access/messageRepository.ts',
   'src/features/inbox/hooks/useMessageStatus.ts',
+  'src/features/inbox/hooks/useMessagesCursor.ts',
   'src/hooks/useRealtimeManagement.ts',
   'src/components/monitoring/hooks/useEvolutionMonitoring.ts',
   'src/features/inbox/components/useAudioMessagePlayer.ts',
