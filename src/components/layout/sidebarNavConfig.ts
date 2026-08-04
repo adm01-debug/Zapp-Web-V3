@@ -54,6 +54,7 @@ import {
   Webhook,
   BrainCircuit,
   Search,
+  Zap,
 } from 'lucide-react';
 import type { NavItemConfig } from './SidebarNavItem';
 
@@ -93,6 +94,8 @@ export const automationNav: readonly NavItemConfig[] = [
   { id: 'churn', icon: TrendingDown, label: 'Previsão Churn' },
   { id: 'ticket-classifier', icon: Tags, label: 'Classificador IA' },
   { id: 'campaigns', icon: Megaphone, label: 'Campanhas Clássicas' },
+  // Talk X (broadcast humanizado) — rota `talkx` já registrada em ViewRouter/lazyViews.
+  { id: 'talkx', icon: Zap, label: 'Talk X' },
   { id: 'wa-templates', icon: FileText, label: 'Templates WA' },
 ] as const;
 
