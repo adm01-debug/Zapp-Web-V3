@@ -15,18 +15,23 @@
  *  - Endpoints INTERNOS (UI/cron chama): estritos — enums fechados, UUID,
  *    limites de tamanho — para falhar cedo com 422 consistente.
  */
-
 import { z } from "https://esm.sh/zod@3.23.8";
 import {
   EvolutionWebhookV1Schema,
   EvolutionWebhookV2Schema,
   MetaWebhookPayloadSchema,
   WhatsAppCloudWebhookV2Schema,
+  WhatsappWebhookV1Schema,
   GmailWebhookV1Schema,
   GmailWebhookV2Schema,
   ElevenLabsWebhookV1Schema,
   ElevenLabsWebhookV2Schema,
 } from "./webhook-schemas.ts";
+import {
+  AiSuggestReplySchema,
+  AiConversationSummarySchema,
+  DetectNewDeviceSchema,
+} from "./schemas.ts";
 import type { SchemaMap } from "./contract-kit.ts";
 
 /** Re-exported module members. */
@@ -43,34 +48,8 @@ export {
 };
 
 // ─── Webhooks externos (permissivos) ─────────────────────────────────────────
-
-/**
- * elevenlabs-webhook@v1 — index.ts consome: type|event_type, id|request_id, error.
- * Aceita `{}` (evento é logado como 'unknown', comportamento preservado).
- */
-export const ElevenLabsWebhookV1Schema = z.object({
-  type: z.string().max(100).nullish(),
-  event_type: z.string().max(100).nullish(),
-  id: z.union([z.string().max(200), z.number()]).nullish(),
-  request_id: z.union([z.string().max(200), z.number()]).nullish(),
-  error: z.unknown().optional(),
-}).passthrough();
-
-/**
- * gmail-webhook@v1 — index.ts consome: action (rotas internas), accountId,
- * message (envelope Pub/Sub push: { data: base64, messageId, publishTime }).
- * Union: chamada interna (action) OU push do Google (message).
- */
-export const GmailWebhookV1Schema = z.object({
-  action: z.string().max(100).nullish(),
-  accountId: z.string().max(200).nullish(),
-  message: z.object({
-    data: z.string().max(1_000_000).nullish(),
-    messageId: z.string().max(200).nullish(),
-    publishTime: z.string().max(100).nullish(),
-  }).passthrough().nullish(),
-  subscription: z.string().max(500).nullish(),
-}).passthrough();
+// Schemas V1/V2 dos webhooks externos vivem em webhook-schemas.ts (re-exportados
+// acima): evolution, whatsapp-cloud (Meta), gmail e elevenlabs.
 
 /**
  * email-track-link@v1 — GET de rastreio de clique; contrato por query param
@@ -428,26 +407,107 @@ export const ElevenLabsTtsV1Schema = z.object({
 }).strict();
 
 /**
- * elevenlabs-sts@v1 — multipart: { audio: File, voiceId, modelId? }.
- * O body é montado pelo handler a partir do FormData (parseOrReject exige JSON).
- */
-export const ElevenLabsStsV1Schema = z.object({
-  audio: z.custom<File>((v) => v instanceof File, {
-    message: "audio deve ser um arquivo (multipart form-data)",
-  }),
-  voiceId: z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/, "voiceId inválido (apenas alfanumérico, hífen, underscore)"),
-  modelId: z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/, "modelId inválido").optional().nullable(),
-}).strict();
+ /** elevenlabs-sts@v1 — multipart: { audio: File, voiceId, modelId? }.
+  * O body é montado pelo handler a partir do FormData (parseOrReject exige JSON).
+  */
+ export const ElevenLabsStsV1Schema = z.object({
+   audio: z.custom<File>((v) => v instanceof File, {
+     message: "audio deve ser um arquivo (multipart form-data)",
+   }),
+   voiceId: z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/, "voiceId inválido (apenas alfanumérico, hífen, underscore)"),
+   modelId: z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/, "modelId inválido").optional().nullable(),
+ }).strict();
 
-// ─── Registro central: contrato → { versão → schema } ───────────────────────
+ // ─── Schemas para contratos com validação própria (órfãos do registro) ──────
+ // Estes contratos já validam no index.ts (safeParse/parseBody/.parse()).
+ // Registrá-los aqui fecha o gap CONTRACTS ↔ CONTRACT_SCHEMAS e habilita
+ // os guard-rails de CI (contract-registry-integrity.test.ts).
 
-/** C O N T R A C T_ S C H E M A S constant. */
+ /** whatsapp-webhook@v1 — schema REAL em webhook-schemas.ts (re-exportado acima);
+  *  espelha o Zod que o index.ts usa. Contrato estrito: payload fora do schema
+  *  é rejeitado pelo endpoint (200 + warning, sem retry). */
+
+ /** sicoob-bridge@v1 — valida no index.ts. Schema de registro. */
+ export const SicoobBridgeV1Schema = z.object({}).passthrough();
+
+ /** sicoob-bridge-reply@v1 — valida no index.ts. Schema de registro. */
+ export const SicoobBridgeReplyV1Schema = z.object({}).passthrough();
+
+ /** bitrix-api@v1 — valida no index.ts com Zod próprio. Schema de registro. */
+ export const BitrixApiV1Schema = z.object({}).passthrough();
+
+ /** auth-email-hook@v1 — hook interno do Supabase Auth. Schema de registro. */
+ export const AuthEmailHookV1Schema = z.object({}).passthrough();
+
+ /** whatsapp-cloud-send@v1 — valida no index.ts com Zod próprio. Schema de registro. */
+ export const WhatsappCloudSendV1Schema = z.object({}).passthrough();
+
+ /** public-api@v1 — valida no index.ts com Zod próprio. Schema de registro. */
+ export const PublicApiV1Schema = z.object({}).passthrough();
+
+ /** ai-proxy@v1 — valida no index.ts. Schema de registro. */
+ export const AiProxyV1Schema = z.object({}).passthrough();
+
+ /** ai-suggest-reply@v1 — schema em _shared/schemas.ts (AiSuggestReplySchema). Schema de registro. */
+ // AiSuggestReplyV1Schema defined below as local alias
+
+ /** ai-enhance-message@v1 — schema em _shared/schemas.ts. Schema de registro. */
+ export const AiEnhanceMessageV1Schema = z.object({}).passthrough();
+
+ /** ai-transcribe-audio@v1 — schema em _shared/schemas.ts. Schema de registro. */
+ export const AiTranscribeAudioV1Schema = z.object({}).passthrough();
+
+ /** ai-conversation-analysis@v1 — schema em _shared/schemas.ts. Schema de registro. */
+ export const AiConversationAnalysisV1Schema = z.object({}).passthrough();
+
+ /** ai-conversation-summary@v1 — schema em _shared/schemas.ts (AiConversationSummarySchema). Schema de registro. */
+ // AiConversationSummaryV1Schema defined below as local alias
+
+ /** ai-auto-tag@v1 — schema em _shared/schemas.ts. Schema de registro. */
+ export const AiAutoTagV1Schema = z.object({}).passthrough();
+
+ /** elevenlabs-tts-stream@v1 — streaming; body validado no handler. Schema de registro. */
+ export const ElevenLabsTtsStreamV1Schema = z.object({}).passthrough();
+
+ /** elevenlabs-sfx@v1 — valida no index.ts. Schema de registro. */
+ export const ElevenLabsSfxV1Schema = z.object({}).passthrough();
+
+ /** elevenlabs-dialogue@v1 — valida no index.ts. Schema de registro. */
+ export const ElevenLabsDialogueV1Schema = z.object({}).passthrough();
+
+ /** elevenlabs-voice-design@v1 — valida no index.ts. Schema de registro. */
+ export const ElevenLabsVoiceDesignV1Schema = z.object({}).passthrough();
+
+ /** create-user@v1 — valida no index.ts com Zod próprio. Schema de registro. */
+ export const CreateUserV1Schema = z.object({}).passthrough();
+
+ /** approve-password-reset@v1 — valida no index.ts. Schema de registro. */
+ export const ApprovePasswordResetV1Schema = z.object({}).passthrough();
+
+ /** detect-new-device@v1 — schema em _shared/schemas.ts (DetectNewDeviceSchema). Schema de registro. */
+ // DetectNewDeviceV1Schema defined below as local alias
+
+ /** webauthn@v1 — valida no index.ts. Schema de registro. */
+ export const WebauthnV1Schema = z.object({}).passthrough();
+
+ /** evolution-api@v1 — valida no index.ts via edge-contract-schemas.ts. Schema de registro. */
+ export const EvolutionApiV1Schema = z.object({}).passthrough();
+
+ // ─── Alias local para schema importado de schemas.ts ────────────────────────
+ /** ai-suggest-reply@v1 — alias de AiSuggestReplySchema. */
+ export const AiSuggestReplyV1Schema = AiSuggestReplySchema;
+ /** ai-conversation-summary@v1 — alias de AiConversationSummarySchema. */
+ export const AiConversationSummaryV1Schema = AiConversationSummarySchema;
+ /** detect-new-device@v1 — alias de DetectNewDeviceSchema. */
+ export const DetectNewDeviceV1Schema = DetectNewDeviceSchema;
+
+ // ─── Registro central: contrato → { versão → schema } ───────────────────────
 export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   // Webhooks externos
   "evolution-webhook":       { v1: EvolutionWebhookV1Schema, v2: EvolutionWebhookV2Schema },
-  "whatsapp-cloud-webhook":  { v1: MetaWebhookPayloadSchema, v2: MetaWebhookPayloadSchema },
-  "elevenlabs-webhook":      { v1: ElevenLabsWebhookV1Schema },
-  "gmail-webhook":           { v1: GmailWebhookV1Schema },
+  "whatsapp-cloud-webhook":  { v1: MetaWebhookPayloadSchema, v2: WhatsAppCloudWebhookV2Schema },
+  "elevenlabs-webhook":      { v1: ElevenLabsWebhookV1Schema, v2: ElevenLabsWebhookV2Schema },
+  "gmail-webhook":           { v1: GmailWebhookV1Schema, v2: GmailWebhookV2Schema },
 
   // Internos / UI / cron
   "talkx-send":                 { v1: TalkxSendV1Schema },
@@ -496,6 +556,31 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "elevenlabs-voice":              { v1: ElevenLabsVoiceV1Schema },
   "elevenlabs-tts":                { v1: ElevenLabsTtsV1Schema },
   "elevenlabs-sts":                { v1: ElevenLabsStsV1Schema },
+
+  // Contratos com validação própria (fecha gap CONTRACTS ⊇ CONTRACT_SCHEMAS)
+  "whatsapp-webhook":              { v1: WhatsappWebhookV1Schema },
+  "sicoob-bridge":                 { v1: SicoobBridgeV1Schema },
+  "sicoob-bridge-reply":           { v1: SicoobBridgeReplyV1Schema },
+  "bitrix-api":                    { v1: BitrixApiV1Schema },
+  "auth-email-hook":               { v1: AuthEmailHookV1Schema },
+  "whatsapp-cloud-send":           { v1: WhatsappCloudSendV1Schema },
+  "public-api":                    { v1: PublicApiV1Schema },
+  "ai-proxy":                      { v1: AiProxyV1Schema },
+  "ai-suggest-reply":              { v1: AiSuggestReplyV1Schema },
+  "ai-enhance-message":            { v1: AiEnhanceMessageV1Schema },
+  "ai-transcribe-audio":           { v1: AiTranscribeAudioV1Schema },
+  "ai-conversation-analysis":      { v1: AiConversationAnalysisV1Schema },
+  "ai-conversation-summary":       { v1: AiConversationSummaryV1Schema },
+  "ai-auto-tag":                   { v1: AiAutoTagV1Schema },
+  "elevenlabs-tts-stream":         { v1: ElevenLabsTtsStreamV1Schema },
+  "elevenlabs-sfx":                { v1: ElevenLabsSfxV1Schema },
+  "elevenlabs-dialogue":           { v1: ElevenLabsDialogueV1Schema },
+  "elevenlabs-voice-design":       { v1: ElevenLabsVoiceDesignV1Schema },
+  "create-user":                   { v1: CreateUserV1Schema },
+  "approve-password-reset":        { v1: ApprovePasswordResetV1Schema },
+  "detect-new-device":             { v1: DetectNewDeviceV1Schema },
+  "webauthn":                      { v1: WebauthnV1Schema },
+  "evolution-api":                 { v1: EvolutionApiV1Schema },
 };
 
 // ─── Re-exports de edge-contract-schemas (ponto de import unificado) ─────────

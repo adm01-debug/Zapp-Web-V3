@@ -3,6 +3,8 @@
  */
 
 import { handleCors, errorResponse, getCorsHeaders } from "../_shared/validation.ts";
+import { parseRequestOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 /**
  * Edge Function: AI Conversation Summary Generator
@@ -23,7 +25,14 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("authorization");
     if (!authHeader) return errorResponse("Unauthorized", 401, req);
 
-    const body = await req.json();
+    // Contrato ai-conversation-summary@v1 (estrito) — payload da ação
+    // conversation_summary validado antes de encaminhar ao ai-router.
+    const parsed = await parseRequestOrReject('ai-conversation-summary', CONTRACT_SCHEMAS['ai-conversation-summary'], req, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, unknown>;
+
     const aiRouterUrl = Deno.env.get("AI_ROUTER_URL");
     if (!aiRouterUrl) return errorResponse("AI_ROUTER_URL not configured", 503, req);
     const res = await fetch(aiRouterUrl, {

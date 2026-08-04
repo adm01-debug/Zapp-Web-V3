@@ -1,4 +1,6 @@
 import { createZappAdminClient } from '../_shared/db-client.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
 /**
  * email-track-link — Rastreio de cliques em links de emails
@@ -43,6 +45,11 @@ Deno.serve(async (req) => {
   if (!linkId) {
     return new Response('Missing link_id', { status: 400 });
   }
+
+  // Contrato email-track-link@v1: GET de rastreio — contrato por query param
+  // (l/link_id), sem corpo. Schema permissivo ({}) nunca bloqueia o 302.
+  const parsed = parseOrReject('email-track-link', CONTRACT_SCHEMAS['email-track-link'], req, {}, {});
+  if (!parsed.ok) return parsed.response;
 
   const supabase = createZappAdminClient();
 

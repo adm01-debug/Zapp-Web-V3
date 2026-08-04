@@ -1,5 +1,7 @@
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
 /**
  * email-track-pixel — Rastreio de abertura de email via pixel 1x1
@@ -77,6 +79,11 @@ Deno.serve(async (req) => {
 
   const url = new URL(req.url);
   const trackingId = url.searchParams.get('t') ?? url.searchParams.get('tracking_id');
+
+  // Contrato email-track-pixel@v1: GET de pixel — contrato por query param
+  // (t/tracking_id), sem corpo. Schema permissivo ({}) nunca bloqueia o GIF.
+  const parsed = parseOrReject('email-track-pixel', CONTRACT_SCHEMAS['email-track-pixel'], req, {}, {});
+  if (!parsed.ok) return parsed.response;
 
   // Se não tem tracking_id, retorna pixel sem tracking
   if (!trackingId) {

@@ -223,7 +223,7 @@ Deno.serve(async (req) => {
       const changes = entry?.changes ?? [];
       for (const change of changes) {
         const field = change?.field;
-        if (!SUPPORTED_FIELDS.has(field)) {
+        if (!field || !SUPPORTED_FIELDS.has(field)) {
           ignoredFields++;
           continue;
         }

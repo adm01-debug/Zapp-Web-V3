@@ -1,6 +1,7 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit } from "../_shared/validation.ts";
-import { ClassifyEmojiSchema, parseBody } from "../_shared/schemas.ts";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getCorsHeaders } from "../_shared/validation.ts";
 import { requireUser, requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { parseRequestOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 const EMOJI_CATEGORIES = [
   'sorriso', 'riso', 'amor', 'triste', 'raiva',
@@ -30,8 +31,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const parsed = parseBody(ClassifyEmojiSchema, await req.json());
-    if (!parsed.success) return errorResponse(parsed.error, 400, req);
+    // Contrato classify-emoji@v1 (estrito) — image_url HTTPS público + file_name.
+    const parsed = await parseRequestOrReject('classify-emoji', CONTRACT_SCHEMAS['classify-emoji'], req, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
 
     const { image_url, file_name } = parsed.data;
 

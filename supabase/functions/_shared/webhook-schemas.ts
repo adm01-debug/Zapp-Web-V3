@@ -127,3 +127,41 @@ export const ElevenLabsWebhookV2Schema = ElevenLabsWebhookV1Schema.extend({
   version: z.literal('2.0'),
   timestamp: z.number().int().positive(),
 });
+
+/**
+ * whatsapp-webhook@v1 — esquema REAL do index.ts (webhook legado Meta Cloud
+ * API: object + entry[].changes[].value com statuses/messages). Copiado
+ * verbatim do Zod inline que o index.ts usava antes da consolidação —
+ * sem .passthrough()/nullish de propósito: o endpoint valida estrito e
+ * retorna 200 com warning em payload fora do contrato.
+ */
+export const WhatsappWebhookV1Schema = z.object({
+  object: z.string(),
+  entry: z.array(z.object({
+    id: z.string(),
+    changes: z.array(z.object({
+      value: z.object({
+        messaging_product: z.string().optional(),
+        metadata: z.object({
+          display_phone_number: z.string(),
+          phone_number_id: z.string(),
+        }).optional(),
+        statuses: z.array(z.object({
+          id: z.string().max(500),
+          status: z.enum(['sent', 'delivered', 'read', 'failed']),
+          timestamp: z.string(),
+          recipient_id: z.string().optional(),
+          errors: z.array(z.object({ code: z.number(), title: z.string() })).optional(),
+        })).optional(),
+        messages: z.array(z.object({
+          id: z.string(),
+          from: z.string(),
+          timestamp: z.string(),
+          type: z.string(),
+          text: z.object({ body: z.string() }).optional(),
+        })).optional(),
+      }),
+      field: z.string(),
+    })),
+  })),
+});

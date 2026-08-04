@@ -1,5 +1,7 @@
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 Deno.serve(async (req: Request) => {
@@ -12,6 +14,15 @@ Deno.serve(async (req: Request) => {
 
   try {
     const supabase = createZappAdminClient();
+
+    // Contrato gmail-health@v1: params por query string (action/page/pageSize);
+    // corpo não é lido. Schema permissivo — nunca bloqueia health check.
+    let body: unknown = {};
+    if (req.method === "POST") body = await req.json().catch(() => ({}));
+    const parsed = parseOrReject('gmail-health', CONTRACT_SCHEMAS['gmail-health'], req, body, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
 
     const url = new URL(req.url);
     const action = url.searchParams.get("action");

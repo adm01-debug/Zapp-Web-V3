@@ -1,42 +1,9 @@
-import { z } from "https://esm.sh/zod@3.23.8";
 import { getCorsHeaders, jsonResponse, errorResponse, Logger } from "../_shared/validation.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { verifyHmacSignature } from "../_shared/hmac-validation.ts";
 import { timingSafeStringEqual } from "../_shared/auth.ts";
 import { initSentry, captureException, captureMessage } from "../_shared/sentry.ts";
-
-const WhatsAppStatusSchema = z.object({
-  id: z.string().max(500),
-  status: z.enum(['sent', 'delivered', 'read', 'failed']),
-  timestamp: z.string(),
-  recipient_id: z.string().optional(),
-  errors: z.array(z.object({ code: z.number(), title: z.string() })).optional(),
-});
-
-const WhatsAppWebhookSchema = z.object({
-  object: z.string(),
-  entry: z.array(z.object({
-    id: z.string(),
-    changes: z.array(z.object({
-      value: z.object({
-        messaging_product: z.string().optional(),
-        metadata: z.object({
-          display_phone_number: z.string(),
-          phone_number_id: z.string(),
-        }).optional(),
-        statuses: z.array(WhatsAppStatusSchema).optional(),
-        messages: z.array(z.object({
-          id: z.string(),
-          from: z.string(),
-          timestamp: z.string(),
-          type: z.string(),
-          text: z.object({ body: z.string() }).optional(),
-        })).optional(),
-      }),
-      field: z.string(),
-    })),
-  })),
-});
+import { WhatsappWebhookV1Schema } from "../_shared/contract-schemas.ts";
 
 Deno.serve(async (req) => {
   initSentry('whatsapp-webhook');
@@ -102,7 +69,7 @@ Deno.serve(async (req) => {
       } catch {
         return jsonResponse({ success: true, warning: "Invalid JSON" }, 200, req);
       }
-      const parsed = WhatsAppWebhookSchema.safeParse(rawPayload);
+      const parsed = WhatsappWebhookV1Schema.safeParse(rawPayload);
 
       if (!parsed.success) {
         log.warn("Invalid webhook payload", { errors: parsed.error.message });

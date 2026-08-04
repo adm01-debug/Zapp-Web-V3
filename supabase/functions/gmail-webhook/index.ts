@@ -63,17 +63,18 @@ Deno.serve(async (req) => {
         if (authed instanceof Response) return authed;
 
         const { accountId } = body;
+        const accountIdStr = typeof accountId === 'string' ? accountId : '';
 
         // Verify the authenticated user owns this gmail_accounts row.
         const { data: accountCheck } = await supabase
           .from('gmail_accounts')
           .select('id')
-          .eq('id', accountId)
+          .eq('id', accountIdStr)
           .eq('user_id', authed.user.id)
           .maybeSingle();
         if (!accountCheck) return json({ error: 'Conta não encontrada ou acesso negado' }, 403);
 
-        const token = await getValidToken(supabase, accountId);
+        const token = await getValidToken(supabase, accountIdStr);
         if (!token) return json({ error: 'Token inválido' }, 401);
 
         const watchRes = await fetch(`${GMAIL_API}/watch`, {

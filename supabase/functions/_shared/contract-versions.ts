@@ -23,10 +23,10 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   // Webhooks externos
   "evolution-webhook":            { current: "v2", supported: ["v1", "v2"], sunset: { v1: "2027-01-01" } },
   "whatsapp-webhook":             { current: "v1", supported: ["v1"] },
-  "whatsapp-cloud-webhook":       { current: "v1", supported: ["v1", "v2"] },
+  "whatsapp-cloud-webhook":       { current: "v2", supported: ["v1", "v2"], sunset: { v1: "2027-06-01" } },
   "whatsapp-cloud-webhook-verify":{ current: "v1", supported: ["v1"] },
-  "gmail-webhook":                { current: "v1", supported: ["v1"] },
-  "elevenlabs-webhook":           { current: "v1", supported: ["v1"] },
+  "gmail-webhook":                { current: "v2", supported: ["v1", "v2"], sunset: { v1: "2027-06-01" } },
+  "elevenlabs-webhook":           { current: "v2", supported: ["v1", "v2"], sunset: { v1: "2027-06-01" } },
   "sicoob-bridge":                { current: "v1", supported: ["v1"] },
   "sicoob-bridge-reply":          { current: "v1", supported: ["v1"] },
   "bitrix-api":                   { current: "v1", supported: ["v1"] },

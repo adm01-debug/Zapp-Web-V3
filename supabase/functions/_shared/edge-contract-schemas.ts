@@ -5,9 +5,38 @@ import {
   MetaWebhookPayloadSchema,
 } from './webhook-schemas.ts';
 import { contractErrorResponse } from './validation.ts';
+import {
+  AiConversationSummaryV1Schema,
+  AiSuggestReplyV1Schema,
+  ClassifyEmojiV1Schema,
+  ClassifyStickerV1Schema,
+  AiRouterV1Schema,
+  AiProxyV1Schema,
+  AiConversationAnalysisV1Schema,
+  AiEnhanceMessageV1Schema,
+  AiChurnAnalysisV1Schema,
+  AiTranscribeAudioV1Schema,
+  ClassifyAudioMemeV1Schema,
+  SentimentAlertV1Schema,
+  VoiceAgentV1Schema,
+  VoiceChangerV1Schema,
+  VoiceCopilotActionV1Schema,
+  ChatbotL1V1Schema,
+  AutomationSuggestReplyV1Schema,
+  SpeechToTextV1Schema,
+} from './schemas.ts';
 
 export { z };
 
+/**
+ * Registro de contratos por Edge Function (runtime gate + testes).
+ *
+ * RESTAURAÇÃO: o commit a08d63e43 ("fix(base64-critical)") sobrescreveu este
+ * arquivo com uma versão antiga (38 linhas) que quebrava os re-exports de
+ * contract-schemas.ts. Esta versão restaura o registro completo (PR #254/#255)
+ * com EDGE_FUNCTION_NAMES regenerado a partir dos diretórios reais (118) e os
+ * schemas V1 estritos das funções AI/ML vindos de _shared/schemas.ts.
+ */
 export const EDGE_FUNCTION_NAMES = [
   'ai-auto-tag',
   'ai-churn-analysis',
@@ -161,6 +190,7 @@ export const WebhookContractSchemas = {
   'whatsapp-webhook': { v1: NonEmptyObjectSchema },
   'gmail-webhook': { v1: NonEmptyObjectSchema },
   'elevenlabs-webhook': { v1: NonEmptyObjectSchema },
+  'e2e-webhook-fixture': { v1: NonEmptyObjectSchema },
   'webhook-diagnostic': { v1: NonEmptyObjectSchema },
   'webhook-hmac-selftest': { v1: NonEmptyObjectSchema },
 } as const;
@@ -193,33 +223,26 @@ export const ContractLifecycles: Record<string, ContractLifecycle> = {
 const specificEdgeFunctionSchemas: Partial<
   Record<(typeof EDGE_FUNCTION_NAMES)[number], ContractVersionMap>
 > = {
-  'ai-conversation-summary': {
-    v1: z
-      .object({
-        messages: z.array(z.object({ role: z.string().min(1), content: z.string().min(1) })).min(1),
-      })
-      .passthrough(),
-  },
-  'ai-suggest-reply': {
-    v1: z
-      .object({
-        conversationHistory: z.array(
-          z.object({ role: z.string().min(1), content: z.string().min(1) })
-        ),
-      })
-      .passthrough(),
-  },
-  'classify-emoji': {
-    v1: z
-      .object({
-        image_url: z.string().url().optional().nullable(),
-        file_name: z.string().optional().nullable(),
-      })
-      .passthrough(),
-  },
-  'classify-sticker': {
-    v1: z.object({ image_url: z.string().url().optional().nullable() }).passthrough(),
-  },
+  // AI/ML — schemas V1 estritos derivados do consumo real (agent 2, contrato-tests-webhooks)
+  'ai-router': { v1: AiRouterV1Schema },
+  'ai-proxy': { v1: AiProxyV1Schema },
+  'ai-conversation-summary': { v1: AiConversationSummaryV1Schema },
+  'ai-conversation-analysis': { v1: AiConversationAnalysisV1Schema },
+  'ai-enhance-message': { v1: AiEnhanceMessageV1Schema },
+  'ai-churn-analysis': { v1: AiChurnAnalysisV1Schema },
+  'ai-transcribe-audio': { v1: AiTranscribeAudioV1Schema },
+  'ai-suggest-reply': { v1: AiSuggestReplyV1Schema },
+  'classify-emoji': { v1: ClassifyEmojiV1Schema },
+  'classify-sticker': { v1: ClassifyStickerV1Schema },
+  'classify-audio-meme': { v1: ClassifyAudioMemeV1Schema },
+  'sentiment-alert': { v1: SentimentAlertV1Schema },
+  'voice-agent': { v1: VoiceAgentV1Schema },
+  'voice-changer': { v1: VoiceChangerV1Schema },
+  'voice-copilot-action': { v1: VoiceCopilotActionV1Schema },
+  'chatbot-l1': { v1: ChatbotL1V1Schema },
+  'automation-suggest-reply': { v1: AutomationSuggestReplyV1Schema },
+  'speech-to-text': { v1: SpeechToTextV1Schema },
+  // Demais endpoints internos com schema específico
   'create-user': { v1: z.object({ email: z.string().email() }).passthrough() },
   'detect-new-device': {
     v1: z
