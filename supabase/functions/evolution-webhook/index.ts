@@ -1,8 +1,9 @@
 import { createZappAdminClient } from "../_shared/db-client.ts";
-import { getCorsHeaders, handleCors, redactSecrets, contractErrorResponse } from "../_shared/validation.ts";
+import { getCorsHeaders, handleCors, redactSecrets } from "../_shared/validation.ts";
 import { timingSafeStringEqual } from "../_shared/auth.ts";
 import { initSentry, captureException } from "../_shared/sentry.ts";
-import { WebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import {
   isRecord, normalizeEventName, toEventRecords,
   handleReactionEvent, redactJid, generateRequestId,
@@ -142,20 +143,20 @@ Deno.serve(async (req) => {
   let payload: WebhookPayload;
   try {
     const json = JSON.parse(rawBody);
-    const parsed = WebhookPayloadSchema.safeParse(json);
-    if (!parsed.success) {
-      console.warn(`[webhook][${requestId}] contract_violation:`, parsed.error.issues);
+    // Contrato evolution-webhook@v1/v2: parseOrReject negocia versão
+    // (header x-contract-version / body.version) e responde envelope 422 único.
+    // Schemas permissivos — campo novo do provedor nunca derruba a ingestão.
+    const parsed = parseOrReject('evolution-webhook', CONTRACT_SCHEMAS['evolution-webhook'], req, json, {
+      requestId,
+      extraHeaders: corsHeaders,
+    });
+    if (!parsed.ok) {
+      console.warn(`[webhook][${requestId}] contract_violation:`, parsed.body.details);
       await auditWebhookEvent(supabase, {
-        request_id: requestId, status: 'rejected', status_code: 422, error_message: 'contract_violation',
+        request_id: requestId, status: 'rejected', status_code: 422, error_message: parsed.body.code,
         duration_ms: Date.now() - startedAt,
       });
-      return contractErrorResponse(
-        'INVALID_WEBHOOK_PAYLOAD',
-        'Payload does not match Evolution Webhook contract',
-        parsed.error.issues,
-        requestId,
-        req
-      );
+      return parsed.response;
     }
     payload = parsed.data as WebhookPayload;
   } catch {

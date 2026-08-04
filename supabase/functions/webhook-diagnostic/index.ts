@@ -2,6 +2,8 @@ import { createZappAdminClient } from '../_shared/db-client.ts';
 import { WEBHOOK_EVENTS } from '../_shared/evolution-sync-actions.ts';
 import { requireAdminOrSupervisor } from '../_shared/auth.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { parseRequestOrReject } from '../_shared/contract-kit.ts';
+import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
@@ -10,11 +12,18 @@ Deno.serve(async (req: Request) => {
     const authed = await requireAdminOrSupervisor(req);
     if (authed instanceof Response) return authed;
 
+    // Contrato webhook-diagnostic@v1: action default 'full-diagnostic' no
+    // handler; instanceName validado abaixo (regex). Body inválido → 422 único.
+    const parsed = await parseRequestOrReject('webhook-diagnostic', CONTRACT_SCHEMAS['webhook-diagnostic'], req, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, unknown>;
+
     const evolutionUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
     const evolutionKey = Deno.env.get('EVOLUTION_API_KEY') ?? '';
     const supabase = createZappAdminClient();
 
-    const body = await req.json().catch(() => ({}));
     const action = body.action || 'full-diagnostic';
     const rawInstanceName: unknown = body.instanceName;
 

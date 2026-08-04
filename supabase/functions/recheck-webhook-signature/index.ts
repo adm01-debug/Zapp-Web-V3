@@ -8,6 +8,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { requireAdminOrSupervisor } from '../_shared/auth.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
+import { parseRequestOrReject } from '../_shared/contract-kit.ts';
+import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 interface RecheckRequest {
   event_id: string;
   /** Assinatura observada no recebimento (opcional, vem do payload se presente). */
@@ -63,22 +65,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 2. Body
-    let body: RecheckRequest;
-    try {
-      body = (await req.json()) as RecheckRequest;
-    } catch {
-      return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
-        status: 400,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      });
-    }
-    if (!body?.event_id || typeof body.event_id !== 'string') {
-      return new Response(JSON.stringify({ error: 'event_id required' }), {
-        status: 400,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      });
-    }
+    // 2. Body — contrato recheck-webhook-signature@v1: event_id obrigatório
+    // (string 1..200), observed_signature opcional. Falha → envelope 422 único.
+    const parsed = await parseRequestOrReject('recheck-webhook-signature', CONTRACT_SCHEMAS['recheck-webhook-signature'], req, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as RecheckRequest;
 
     // 3. Secret + Evolution DB creds
     const secret =

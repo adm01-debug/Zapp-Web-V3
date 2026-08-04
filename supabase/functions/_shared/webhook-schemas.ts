@@ -6,7 +6,7 @@ export { z };
 /**
  * Evolution Webhook V1 Schema
  *
- * NOTA: Evolution API 2.3.x envia `apikey: null` (e ocasionalmente
+ * NOTA: Evolution API 2.3.x envia `apikey: "***"` (e ocasionalmente
  * `sender`/`data` nulos) em eventos connection.update quando a instância
  * está desconectada/deslogada. `.nullish()` aceita undefined E null;
  * `.optional()` rejeita null e causava 422 contract_violation.
@@ -63,4 +63,67 @@ export const MetaWebhookEntrySchema = z.object({
 export const MetaWebhookPayloadSchema = z.object({
   object: z.literal('whatsapp_business_account'),
   entry: z.array(MetaWebhookEntrySchema).min(1),
+});
+
+/**
+ * whatsapp-cloud-webhook@v2 — estende o envelope Meta (V1) com metadata de
+ * contrato: version obrigatória ("2.0"), timestamp de entrega e
+ * delivery_attempt (contagem de tentativas do provedor, opcional — webhooks
+ * externos são permissivos por design).
+ *
+ * Retrocompat: payload V1 (sem `version`) continua validando contra V1; a
+ * auto-detecção do parseOrReject tenta V2 primeiro e cai para V1.
+ */
+export const WhatsAppCloudWebhookV2Schema = MetaWebhookPayloadSchema.extend({
+  version: z.literal('2.0'),
+  timestamp: z.number().int().positive(),
+  delivery_attempt: z.number().int().nonnegative().optional(),
+});
+
+/**
+ * gmail-webhook@v1 — index.ts consome: action (rotas internas), accountId,
+ * message (envelope Pub/Sub push: { data: base64, messageId, publishTime }).
+ * Union: chamada interna (action) OU push do Google (message).
+ */
+export const GmailWebhookV1Schema = z.object({
+  action: z.string().max(100).nullish(),
+  accountId: z.string().max(200).nullish(),
+  message: z.object({
+    data: z.string().max(1_000_000).nullish(),
+    messageId: z.string().max(200).nullish(),
+    publishTime: z.string().max(100).nullish(),
+  }).passthrough().nullish(),
+  subscription: z.string().max(500).nullish(),
+}).passthrough();
+
+/**
+ * gmail-webhook@v2 — estende V1 (todos os campos V1 + novos):
+ * version ("2.0"), timestamp de recebimento e environment. V2 é a versão
+ * current; V1 permanece aceito até o sunset registrado em contract-versions.ts.
+ */
+export const GmailWebhookV2Schema = GmailWebhookV1Schema.extend({
+  version: z.literal('2.0'),
+  timestamp: z.number().int().positive(),
+  environment: z.enum(['production', 'development', 'staging']).optional(),
+});
+
+/**
+ * elevenlabs-webhook@v1 — index.ts consome: type|event_type, id|request_id, error.
+ * Aceita `{}` (evento é logado como 'unknown', comportamento preservado).
+ */
+export const ElevenLabsWebhookV1Schema = z.object({
+  type: z.string().max(100).nullish(),
+  event_type: z.string().max(100).nullish(),
+  id: z.union([z.string().max(200), z.number()]).nullish(),
+  request_id: z.union([z.string().max(200), z.number()]).nullish(),
+  error: z.unknown().optional(),
+}).passthrough();
+
+/**
+ * elevenlabs-webhook@v2 — estende V1 com version ("2.0") e timestamp de
+ * entrega. Campos V1 continuam todos aceitos (retrocompat).
+ */
+export const ElevenLabsWebhookV2Schema = ElevenLabsWebhookV1Schema.extend({
+  version: z.literal('2.0'),
+  timestamp: z.number().int().positive(),
 });

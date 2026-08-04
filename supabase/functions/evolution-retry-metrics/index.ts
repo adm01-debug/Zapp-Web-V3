@@ -1,6 +1,8 @@
 // Edge function admin-only: lista/agrega métricas de retry da Evolution API.
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { createZappAdminClient, createZappClient } from '../_shared/db-client.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { EvolutionRetryMetricsV1Schema } from '../_shared/contract-schemas.ts';
 
 interface RetryRow {
   id: string;
@@ -77,6 +79,12 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Contrato evolution-retry-metrics@v1 (estrito): GET admin sem body → {} aceito.
+    const parsed = parseOrReject('evolution-retry-metrics', { v1: EvolutionRetryMetricsV1Schema }, req, await req.json().catch(() => ({})), {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+
     const { data: userData, error: userErr } = await createZappClient(req).auth.getUser();
     if (userErr || !userData?.user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {

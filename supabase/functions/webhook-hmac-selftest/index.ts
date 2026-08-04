@@ -25,6 +25,8 @@
 import * as hmacModule from '../_shared/hmac-validation.ts';
 import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * Adapter de validador HMAC
@@ -340,6 +342,16 @@ Deno.serve(async (req) => {
     });
     // segue com defaults — não é fatal
   }
+
+  // Contrato webhook-hmac-selftest@v1: instance/tolerance_seconds/include_negative
+  // opcionais (defaults no handler). Corpo malformado segue com {} (self-test
+  // nunca derruba por parse); JSON válido fora do contrato → envelope 422 único.
+  const contractResult = parseOrReject('webhook-hmac-selftest', CONTRACT_SCHEMAS['webhook-hmac-selftest'], req, body, {
+    requestId,
+    extraHeaders: getCorsHeaders(req),
+  });
+  if (!contractResult.ok) return contractResult.response;
+  body = contractResult.data as Record<string, unknown>;
 
   const instance = (body?.instance as string) ?? 'selftest';
   const requested = Number(body?.tolerance_seconds);

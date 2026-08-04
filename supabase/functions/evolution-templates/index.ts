@@ -2,6 +2,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { EvolutionTemplatesV1Schema } from "../_shared/contract-schemas.ts";
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const supabase = createZappAdminClient();
@@ -77,7 +79,12 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ success: true, templates: data ?? [] }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
     }
     if (req.method === "POST") {
-      const body = await req.json().catch(() => ({}));
+      // Contrato evolution-templates@v1 (estrito): action send|preview + campos tipados.
+      const parsed = parseOrReject('evolution-templates', { v1: EvolutionTemplatesV1Schema }, req, await req.json().catch(() => (null)), {
+        extraHeaders: getCorsHeaders(req),
+      });
+      if (!parsed.ok) return parsed.response;
+      const body = parsed.data as Record<string, unknown>;
       const { action } = body;
       if (action === "send" || !action) {
         const { template_name, remote_jid, variables } = body;

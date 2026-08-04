@@ -30,6 +30,8 @@ import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { requireAdminOrSupervisor } from '../_shared/auth.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
 import { createZappAdminClient } from '../_shared/db-client.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { EvolutionCredentialsV1Schema } from '../_shared/contract-schemas.ts';
 
 const INSTANCE = 'wpp2';
 
@@ -39,6 +41,12 @@ Deno.serve(async (req: Request) => {
   if (req.method !== 'GET') {
     return new Response('Method Not Allowed', { status: 405 });
   }
+
+  // Contrato evolution-credentials@v1 (estrito): GET sem body → {} aceito.
+  const parsed = parseOrReject('evolution-credentials', { v1: EvolutionCredentialsV1Schema }, req, await req.json().catch(() => ({})), {
+    extraHeaders: getCorsHeaders(req),
+  });
+  if (!parsed.ok) return parsed.response;
 
   // [C-2 2026-07-12] Least-privilege gate: a Evolution `api_key` é a chave GLOBAL de
   // admin da instância (cria/deleta instâncias, lê todas as conversas, envia para

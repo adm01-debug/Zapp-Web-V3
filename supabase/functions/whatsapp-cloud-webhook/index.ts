@@ -9,8 +9,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { verifyHmacSignature } from "../_shared/hmac-validation.ts";
-import { contractErrorResponse } from "../_shared/validation.ts";
-import { MetaWebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import { markEventProcessed } from "../_shared/evolution-helpers.ts";
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
@@ -29,6 +29,23 @@ interface MetaWAMessage {
 interface MetaWAContact {
   wa_id?: string;
   profile?: { name?: string };
+}
+
+/** Shape do body Meta validado pelo contrato (object + entry[].changes[]). */
+interface MetaWebhookBody {
+  object: string;
+  entry: Array<{
+    id?: string;
+    changes?: Array<{
+      field?: string;
+      value?: {
+        messaging_product?: string;
+        messages?: MetaWAMessage[];
+        contacts?: MetaWAContact[];
+        statuses?: Array<Record<string, unknown>>;
+      };
+    }>;
+  }>;
 }
 
 const VERIFY_TOKEN = Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN") ?? "";
@@ -179,16 +196,16 @@ Deno.serve(async (req) => {
     );
   }
 
-  const parsed = MetaWebhookPayloadSchema.safeParse(body);
-  if (!parsed.success) {
-    console.warn(`[whatsapp-cloud-webhook][${rid}] contract_violation:`, parsed.error.issues);
-    return contractErrorResponse(
-      'INVALID_META_PAYLOAD',
-      'Payload does not match WhatsApp Cloud Webhook contract',
-      parsed.error.issues,
-      rid,
-      req
-    );
+  // Contrato whatsapp-cloud-webhook@v1/v2: parseOrReject com o schema Meta
+  // (object=whatsapp_business_account + entry[]). Permissivo — campo novo do
+  // provedor nunca derruba a ingestão; falha real → envelope 422 único.
+  const parsed = parseOrReject('whatsapp-cloud-webhook', CONTRACT_SCHEMAS['whatsapp-cloud-webhook'], req, body, {
+    requestId: rid,
+    extraHeaders: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+  });
+  if (!parsed.ok) {
+    console.warn(`[whatsapp-cloud-webhook][${rid}] contract_violation:`, parsed.body.details);
+    return parsed.response;
   }
 
   // A Meta só envia object="whatsapp_business_account".
@@ -196,6 +213,7 @@ Deno.serve(async (req) => {
   // If we reach here, it's valid.
 
   try {
+    const body = parsed.data as MetaWebhookBody;
     const entries = body?.entry ?? [];
     let processed = 0;
     let duplicates = 0;

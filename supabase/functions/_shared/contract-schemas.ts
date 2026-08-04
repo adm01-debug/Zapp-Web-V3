@@ -21,11 +21,26 @@ import {
   EvolutionWebhookV1Schema,
   EvolutionWebhookV2Schema,
   MetaWebhookPayloadSchema,
+  WhatsAppCloudWebhookV2Schema,
+  GmailWebhookV1Schema,
+  GmailWebhookV2Schema,
+  ElevenLabsWebhookV1Schema,
+  ElevenLabsWebhookV2Schema,
 } from "./webhook-schemas.ts";
 import type { SchemaMap } from "./contract-kit.ts";
 
 /** Re-exported module members. */
-export { z, EvolutionWebhookV1Schema, EvolutionWebhookV2Schema, MetaWebhookPayloadSchema };
+export {
+  z,
+  EvolutionWebhookV1Schema,
+  EvolutionWebhookV2Schema,
+  MetaWebhookPayloadSchema,
+  WhatsAppCloudWebhookV2Schema,
+  GmailWebhookV1Schema,
+  GmailWebhookV2Schema,
+  ElevenLabsWebhookV1Schema,
+  ElevenLabsWebhookV2Schema,
+};
 
 // ─── Webhooks externos (permissivos) ─────────────────────────────────────────
 
@@ -56,6 +71,19 @@ export const GmailWebhookV1Schema = z.object({
   }).passthrough().nullish(),
   subscription: z.string().max(500).nullish(),
 }).passthrough();
+
+/**
+ * email-track-link@v1 — GET de rastreio de clique; contrato por query param
+ * (`l`/`link_id`), sem corpo. Schema permissivo guarda POSTs futuros sem
+ * nunca derrubar o redirect 302 por campo desconhecido.
+ */
+export const EmailTrackLinkV1Schema = z.object({}).passthrough();
+
+/**
+ * email-track-pixel@v1 — GET de pixel 1x1; contrato por query param
+ * (`t`/`tracking_id`), sem corpo. Sempre responde o GIF — nunca 422.
+ */
+export const EmailTrackPixelV1Schema = z.object({}).passthrough();
 
 // ─── Endpoints internos (estritos) ───────────────────────────────────────────
 
@@ -154,6 +182,263 @@ export const EvolutionSyncV1Schema = z.object({
   contactPhone: z.string().max(30).optional(),
 }).passthrough();
 
+/**
+ * webhook-hmac-selftest@v1 — self-test HMAC (service-role/cron). index.ts
+ * consome: instance (default 'selftest'), tolerance_seconds (clampado no
+ * handler), include_negative (default true). Corpo opcional — GET roda sem.
+ * Permissivo: tolerância é clampada no handler, não rejeitada.
+ */
+export const WebhookHmacSelftestV1Schema = z.object({
+  instance: z.string().max(100).nullish(),
+  tolerance_seconds: z.number().int().positive().nullish(),
+  include_negative: z.boolean().nullish(),
+}).passthrough();
+
+/** webhook-secret-status@v1 — status admin (GET/POST); index.ts não lê corpo. */
+export const WebhookSecretStatusV1Schema = z.object({}).passthrough();
+
+/** whatsapp-cloud-secrets-status@v1 — status admin (GET/POST); corpo não lido. */
+export const WhatsappCloudSecretsStatusV1Schema = z.object({}).passthrough();
+
+/** whatsapp-cloud-webhook-verify@v1 — diagnóstico interno; corpo não lido. */
+export const WhatsappCloudWebhookVerifyV1Schema = z.object({}).passthrough();
+
+/**
+ * whatsapp-cloud-api@v1 — espelho do evolution-api (staff JWT). index.ts
+ * consome action + aliases por rota (instanceName|instance, number|to,
+ * mediatype|mediaType, media|url, reaction|emoji, messageId|wamid,
+ * templateName|template). Todos opcionais — roteado por action no handler.
+ */
+export const WhatsappCloudApiV1Schema = z.object({
+  action: z.string().max(50).nullish(),
+  instanceName: z.string().max(100).nullish(),
+  instance: z.string().max(100).nullish(),
+  number: z.string().max(30).nullish(),
+  to: z.string().max(30).nullish(),
+  text: z.string().max(100_000).nullish(),
+  linkPreview: z.boolean().nullish(),
+  mediatype: z.string().max(50).nullish(),
+  mediaType: z.string().max(50).nullish(),
+  media: z.string().max(5000).nullish(),
+  url: z.string().max(5000).nullish(),
+  caption: z.string().max(5000).nullish(),
+  audio: z.string().max(5000).nullish(),
+  sticker: z.string().max(5000).nullish(),
+  reaction: z.string().max(100).nullish(),
+  emoji: z.string().max(100).nullish(),
+  messageId: z.string().max(300).nullish(),
+  wamid: z.string().max(300).nullish(),
+  templateName: z.string().max(200).nullish(),
+  template: z.string().max(200).nullish(),
+  language: z.string().max(50).nullish(),
+  components: z.array(z.unknown()).max(100).nullish(),
+}).passthrough();
+
+/**
+ * gmail-token-refresh@v1 — cron/UI. index.ts consome: action (default
+ * 'refreshAll') e accountId (refreshSingle). Corpo opcional — cron chama sem.
+ */
+export const GmailTokenRefreshV1Schema = z.object({
+  action: z.string().max(50).nullish(),
+  accountId: z.string().max(200).nullish(),
+}).passthrough();
+
+/** gmail-health@v1 — health/status (service-role/cron); params por query string. */
+export const GmailHealthV1Schema = z.object({}).passthrough();
+
+// ─── Business/infra endpoints (v1 — estritos, derivados do consumo real) ────
+
+/**
+ * gmail-sync@v1 — UI envia { action, accountId, labelIds?, q?, pageToken?, maxResults? }.
+ * action default 'listThreads'; maxResults clampado [1,100] no handler.
+ */
+export const GmailSyncV1Schema = z.object({
+  action: z.enum(["listThreads", "syncFull", "syncLabels"]).optional(),
+  accountId: z.string().min(1, "accountId é obrigatório").max(200),
+  labelIds: z.array(z.string().min(1).max(200)).max(100).optional(),
+  q: z.string().max(1000).optional(),
+  pageToken: z.string().max(500).optional(),
+  maxResults: z.number().int().min(1).max(100).optional(),
+}).strict();
+
+/**
+ * gmail-oauth@v1 — POST interno (JWT): action + campos por rota
+ * (getAuthUrl | exchangeCode{code,userId,state} | refresh/revoke{accountId}).
+ * Alias kebab-case aceitos (actionMap do handler).
+ */
+export const GmailOauthV1Schema = z.object({
+  action: z.enum([
+    "getAuthUrl", "exchangeCode", "refresh", "revoke", "listAccounts",
+    "get-auth-url", "exchange-code", "refresh-token", "disconnect", "list-accounts",
+  ]),
+  accountId: z.string().min(1).max(200).optional(),
+  code: z.string().min(1).max(4096).optional(),
+  userId: z.string().min(1).max(200).optional(),
+  state: z.string().min(1).max(1000).optional(),
+}).strict();
+
+/** Config IMAP/SMTP aninhada (saveCredentials/testConnection). */
+const ImapSmtpConfigV1Schema = z.object({
+  email: z.string().min(1).max(320).optional(),
+  password: z.string().min(1).max(2000).optional(),
+  provider: z.enum(["outlook", "yahoo", "gmail", "custom"]).optional(),
+  imap_host: z.string().min(1).max(253).optional(),
+  imap_port: z.number().int().min(1).max(65535).optional(),
+  imap_use_ssl: z.boolean().optional(),
+  smtp_host: z.string().min(1).max(253).optional(),
+  smtp_port: z.number().int().min(1).max(65535).optional(),
+  smtp_use_tls: z.boolean().optional(),
+  username: z.string().max(320).optional(),
+}).strict();
+
+/** email-imap-bridge@v1 — action + provider/config por rota. */
+export const EmailImapBridgeV1Schema = z.object({
+  action: z.enum(["getProviderConfig", "saveCredentials", "testConnection", "listProviders"]),
+  provider: z.string().min(1).max(50).optional(),
+  config: ImapSmtpConfigV1Schema.optional(),
+}).strict();
+
+/** Cron sem body — aceita somente {} (ou nada). Base dos schedulers internos. */
+const EmptyStrictV1Schema = z.object({}).strict();
+
+/** evolution-sender@v1 — cron de fila; sem body. */
+export const EvolutionSenderV1Schema = EmptyStrictV1Schema;
+
+/** evolution-health@v1 — cron de health check; sem body. */
+export const EvolutionHealthV1Schema = EmptyStrictV1Schema;
+
+/** evolution-credentials@v1 — GET admin; sem body. */
+export const EvolutionCredentialsV1Schema = EmptyStrictV1Schema;
+
+/**
+ * evolution-templates@v1 — POST { action: send|preview, template_name,
+ * remote_jid?, variables? }; action default 'send' no handler.
+ */
+export const EvolutionTemplatesV1Schema = z.object({
+  action: z.enum(["send", "preview"]).optional(),
+  template_name: z.string().min(1).max(300).optional(),
+  remote_jid: z.string().min(1).max(100).optional(),
+  variables: z.record(z.unknown()).refine(
+    (v) => Object.keys(v).length <= 200,
+    "variables deve ter no máximo 200 chaves",
+  ).optional(),
+}).strict();
+
+/** evolution-sentiment@v1 — POST { action?: analyze, text, remote_jid?, message_id?, instance_name? }. */
+export const EvolutionSentimentV1Schema = z.object({
+  action: z.enum(["analyze"]).optional(),
+  text: z.string().min(1, "text deve ser uma string não vazia").max(5000),
+  remote_jid: z.string().min(1).max(100).optional(),
+  message_id: z.string().min(1).max(200).optional(),
+  instance_name: z.string().min(1).max(100).optional(),
+}).strict();
+
+/** evolution-retry-metrics@v1 — GET admin (query params); sem body. */
+export const EvolutionRetryMetricsV1Schema = EmptyStrictV1Schema;
+
+/** evolution-followup@v1 — cron de follow-ups; sem body. */
+export const EvolutionFollowupV1Schema = EmptyStrictV1Schema;
+
+/** evolution-chatbot@v1 — POST { remote_jid, message, use_ai? } (service-role/cron). */
+export const EvolutionChatbotV1Schema = z.object({
+  remote_jid: z.string().min(1, "remote_jid deve ser uma string não vazia").max(100),
+  message: z.string().min(1, "message deve ser uma string não vazia").max(5000),
+  use_ai: z.boolean().optional(),
+}).strict();
+
+/** evolution-bitrix-sync@v1 — cron de sincronização Bitrix; sem body. */
+export const EvolutionBitrixSyncV1Schema = EmptyStrictV1Schema;
+
+/** db-health-monitor@v1 — cron de health check; sem body. */
+export const DbHealthMonitorV1Schema = EmptyStrictV1Schema;
+
+/** connection-health-check@v1 — GET (todas) ou POST { instanceName? } (verificar agora). */
+export const ConnectionHealthCheckV1Schema = z.object({
+  instanceName: z.string().min(1).max(100).optional(),
+}).strict();
+
+/** health-check@v1 — probe GET; sem body. */
+export const HealthCheckV1Schema = EmptyStrictV1Schema;
+
+/** health@v1 — probe GET (?probe=1 | detalhado); sem body. */
+export const HealthV1Schema = EmptyStrictV1Schema;
+
+/** status@v1 — probe GET; sem body. */
+export const StatusV1Schema = EmptyStrictV1Schema;
+
+/** metrics@v1 — scrape Prometheus GET; sem body. */
+export const MetricsV1Schema = EmptyStrictV1Schema;
+
+/** send-scheduled-report@v1 — cron/UI envia { reportId }. */
+export const SendScheduledReportV1Schema = z.object({
+  reportId: z.string().min(1, "reportId é obrigatório").max(200),
+}).strict();
+
+/** auto-escalate-sla@v1 — cron; sem body. */
+export const AutoEscalateSlaV1Schema = EmptyStrictV1Schema;
+
+/** auto-close-conversations@v1 — cron; sem body. */
+export const AutoCloseConversationsV1Schema = EmptyStrictV1Schema;
+
+/**
+ * backfill-messages@v1 — POST { instance_name?|instance?, connection_id?,
+ * offset?, limit?, dryRun? }; env vars têm precedência no handler.
+ */
+export const BackfillMessagesV1Schema = z.object({
+  instance_name: z.string().min(1).max(100).optional(),
+  instance: z.string().min(1).max(100).optional(),
+  connection_id: z.string().min(1).max(100).optional(),
+  offset: z.number().int().min(0).max(1_000_000).optional(),
+  limit: z.number().int().min(1).max(500).optional(),
+  dryRun: z.boolean().optional(),
+}).strict();
+
+/** Ajustes de voz (elevenlabs-voice textToSpeech) — valores numéricos em [0,1]. */
+const ElevenLabsVoiceSettingsV1Schema = z.object({
+  modelId: z.string().max(100).optional(),
+  stability: z.number().min(0).max(1).optional(),
+  similarityBoost: z.number().min(0).max(1).optional(),
+  style: z.number().min(0).max(1).optional(),
+  useSpeakerBoost: z.boolean().optional(),
+}).strict();
+
+/** elevenlabs-voice@v1 — { action?: listVoices|textToSpeech, text?, voiceId?, settings? }. */
+export const ElevenLabsVoiceV1Schema = z.object({
+  action: z.enum(["listVoices", "textToSpeech"]).optional(),
+  text: z.string().min(1).max(5000).optional(),
+  voiceId: z.string().min(1).max(100).optional(),
+  settings: ElevenLabsVoiceSettingsV1Schema.optional(),
+}).strict().superRefine((val, ctx) => {
+  if (val.action === "textToSpeech") {
+    for (const f of ["text", "voiceId"] as const) {
+      if (!val[f] || val[f].length === 0) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: [f], message: `${f} é obrigatório para textToSpeech` });
+      }
+    }
+  }
+});
+
+/** elevenlabs-tts@v1 — { text, voiceId?, modelId?, languageCode?, applyTextNormalization? }. */
+export const ElevenLabsTtsV1Schema = z.object({
+  text: z.string().min(1).max(10000),
+  voiceId: z.string().max(100).optional().nullable(),
+  modelId: z.string().max(100).optional().nullable(),
+  languageCode: z.string().max(20).optional().nullable(),
+  applyTextNormalization: z.string().max(20).optional().nullable(),
+}).strict();
+
+/**
+ * elevenlabs-sts@v1 — multipart: { audio: File, voiceId, modelId? }.
+ * O body é montado pelo handler a partir do FormData (parseOrReject exige JSON).
+ */
+export const ElevenLabsStsV1Schema = z.object({
+  audio: z.custom<File>((v) => v instanceof File, {
+    message: "audio deve ser um arquivo (multipart form-data)",
+  }),
+  voiceId: z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/, "voiceId inválido (apenas alfanumérico, hífen, underscore)"),
+  modelId: z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/, "modelId inválido").optional().nullable(),
+}).strict();
+
 // ─── Registro central: contrato → { versão → schema } ───────────────────────
 
 /** C O N T R A C T_ S C H E M A S constant. */
@@ -175,6 +460,42 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "contacts-import":            { v1: ContactsImportV1Schema },
   "voice-copilot-action":       { v1: VoiceCopilotActionV1Schema },
   "evolution-sync":             { v1: EvolutionSyncV1Schema },
+  "webhook-hmac-selftest":      { v1: WebhookHmacSelftestV1Schema },
+  "webhook-secret-status":      { v1: WebhookSecretStatusV1Schema },
+  "whatsapp-cloud-webhook-verify":  { v1: WhatsappCloudWebhookVerifyV1Schema },
+  "whatsapp-cloud-secrets-status":  { v1: WhatsappCloudSecretsStatusV1Schema },
+  "whatsapp-cloud-api":         { v1: WhatsappCloudApiV1Schema },
+  "gmail-token-refresh":        { v1: GmailTokenRefreshV1Schema },
+  "gmail-health":               { v1: GmailHealthV1Schema },
+  "email-track-link":           { v1: EmailTrackLinkV1Schema },
+  "email-track-pixel":          { v1: EmailTrackPixelV1Schema },
+
+  // Business / infra (v1)
+  "gmail-sync":                    { v1: GmailSyncV1Schema },
+  "gmail-oauth":                   { v1: GmailOauthV1Schema },
+  "email-imap-bridge":             { v1: EmailImapBridgeV1Schema },
+  "evolution-sender":              { v1: EvolutionSenderV1Schema },
+  "evolution-health":              { v1: EvolutionHealthV1Schema },
+  "evolution-credentials":         { v1: EvolutionCredentialsV1Schema },
+  "evolution-templates":           { v1: EvolutionTemplatesV1Schema },
+  "evolution-sentiment":           { v1: EvolutionSentimentV1Schema },
+  "evolution-retry-metrics":       { v1: EvolutionRetryMetricsV1Schema },
+  "evolution-followup":            { v1: EvolutionFollowupV1Schema },
+  "evolution-chatbot":             { v1: EvolutionChatbotV1Schema },
+  "evolution-bitrix-sync":         { v1: EvolutionBitrixSyncV1Schema },
+  "db-health-monitor":             { v1: DbHealthMonitorV1Schema },
+  "connection-health-check":       { v1: ConnectionHealthCheckV1Schema },
+  "health-check":                  { v1: HealthCheckV1Schema },
+  "health":                        { v1: HealthV1Schema },
+  "status":                        { v1: StatusV1Schema },
+  "metrics":                       { v1: MetricsV1Schema },
+  "send-scheduled-report":         { v1: SendScheduledReportV1Schema },
+  "auto-escalate-sla":             { v1: AutoEscalateSlaV1Schema },
+  "auto-close-conversations":      { v1: AutoCloseConversationsV1Schema },
+  "backfill-messages":             { v1: BackfillMessagesV1Schema },
+  "elevenlabs-voice":              { v1: ElevenLabsVoiceV1Schema },
+  "elevenlabs-tts":                { v1: ElevenLabsTtsV1Schema },
+  "elevenlabs-sts":                { v1: ElevenLabsStsV1Schema },
 };
 
 // ─── Re-exports de edge-contract-schemas (ponto de import unificado) ─────────
