@@ -15549,6 +15549,8 @@ SELECT id, remote_jid, instance_name, profile_picture_url, updated_at
 FROM evo.evolution_contacts
 WHERE profile_picture_url LIKE '%allrjhkpuscmgbsnmjlv%';
 
+ALTER TABLE zapp._backup_avatar_urls_20260803 ENABLE ROW LEVEL SECURITY;
+
 -- Verificação
 -- SELECT count(*) FROM zapp._backup_avatar_urls_20260803; -- 1066
 

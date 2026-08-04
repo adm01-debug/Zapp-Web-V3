@@ -109,6 +109,8 @@ for (const filePath of files) {
     // Detect function declaration with SECURITY DEFINER (skip pure SQL comment lines)
     const isLineComment = /^\s*--/.test(line);
     if (!isLineComment && /SECURITY\s+DEFINER/i.test(line)) {
+      // Skip RAISE statements — "SECURITY DEFINER" in error messages is not a function definition
+      if (/\bRAISE\b/i.test(line)) continue;
       // Look ahead up to 20 lines for SET search_path
       const windowEnd = Math.min(i + 20, lines.length);
       const window = lines.slice(i, windowEnd).join('\n');
