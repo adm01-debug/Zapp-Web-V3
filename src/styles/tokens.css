@@ -100,13 +100,13 @@
     --radius: 1rem; /* More rounded premium feel */
 
     /* ===== ESTADOS ===== */
-    --success: 142 76% 45%;
+    --success: 142 76% 28%; /* Escurecido para WCAG AA >= 4.5:1 com texto branco */
     --success-foreground: 0 0% 100%;
     --warning: 38 100% 50%;
     --warning-foreground: 0 0% 100%;
     --warning-soft: 38 100% 96%;
     --warning-border: 38 100% 90%;
-    --info: 214 100% 50%;
+    --info: 214 100% 48%; /* Escurecido para WCAG AA >= 4.5:1 com texto branco */
     --info-foreground: 0 0% 100%;
 
     /* ===== GAMIFICAÇÃO ===== */
@@ -239,20 +239,20 @@
     --muted-foreground: 215 20% 70%;
     --accent: 221 80% 15%; /* Mais profundo */
     --accent-foreground: 221 100% 95%;
-    --destructive: 0 95% 46%;
+    --destructive: 0 95% 47%; /* WCAG AA: branco sobre ele >=4.5:1 E texto sobre bg OLED >=4.5:1 */
     --destructive-foreground: 0 0% 100%;
     --destructive-soft: 0 95% 10%;
     --destructive-border: 0 95% 20%;
     --border: 0 0% 10%; /* Borda sutil no OLED */
     --input: 0 0% 6%;
     --ring: 221 95% 65%;
-    --success: 142 90% 50%;
+    --success: 142 90% 28%; /* Escurecido para WCAG AA >= 4.5:1 com texto branco */
     --success-foreground: 0 0% 100%;
     --warning: 42 100% 55%;
     --warning-foreground: 0 0% 5%;
     --warning-soft: 42 100% 10%;
     --warning-border: 42 100% 20%;
-    --info: 210 100% 60%;
+    --info: 210 100% 45%; /* Escurecido para WCAG AA >= 4.5:1 com texto branco */
     --info-foreground: 0 0% 100%;
     --xp: 221 95% 55%;
     --xp-foreground: 0 0% 100%;

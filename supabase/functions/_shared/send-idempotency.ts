@@ -13,19 +13,21 @@
 //
 // Scope: ONLY `/message/*` POSTs. Other proxied endpoints bypass the cache.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
 const TTL_HOURS = 24;
 const KEY_MIN = 8;
 const KEY_MAX = 200;
 
-let cached: ReturnType<typeof createClient> | null = null;
+// deno-lint-ignore no-explicit-any
+let cached: SupabaseClient<any, "zapp"> | null = null;
 function getServiceClient() {
   if (cached) return cached;
   const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
   const key = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
   if (!url || !key) return null;
-  cached = createClient(url, key, { auth: { persistSession: false }, db: { schema: "zapp" } });
+  // deno-lint-ignore no-explicit-any
+  cached = createClient<any, "zapp">(url, key, { auth: { persistSession: false }, db: { schema: "zapp" } });
   return cached;
 }
 

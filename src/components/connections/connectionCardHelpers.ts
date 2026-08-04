@@ -51,9 +51,9 @@ export const HEALTH_REASON_LABEL: Record<string, { short: string; long: string; 
       severe: false,
     },
     stale_session: {
-      short: 'Sem atividade recente',
-      long: 'Nenhuma mensagem nas últimas 24h. Normal em horários de baixo movimento — a conexão continua ativa.',
-      severe: false,
+      short: 'Sessão Inativa',
+      long: 'Nenhuma mensagem nas últimas 6h. A instância pode estar desconectada — verifique a conexão.',
+      severe: true,
     },
     socket_closed: {
       short: 'Socket Fechado',

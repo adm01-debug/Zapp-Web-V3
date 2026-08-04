@@ -30,7 +30,7 @@ export function SharedMediaAccordionItem({ contactId, onOpen }: SharedMediaAccor
       return count ?? 0;
     },
     enabled: !!contactId && isValidUUID(contactId),
-    staleTime: 60_000,
+    staleTime: 300_000, // 5min: media count muda pouco (FIX 2026-08-04)
   });
 
   useEffect(() => {

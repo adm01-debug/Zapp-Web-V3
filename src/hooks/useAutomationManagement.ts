@@ -374,7 +374,7 @@ export function useAutomations({
   }, [remoteJid, instanceName, assignedTo]);
 
   useEffect(() => {
-    if (!remoteJid) return;
+    if (!contactId) return;
     const t = setInterval(evaluate, POLL_MS);
     return () => clearInterval(t);
   }, [remoteJid, evaluate]);
@@ -383,21 +383,21 @@ export function useAutomations({
 /* ============ SECTION 2: useAutomationSuggestions ============ */
 
 /** Generates AI-powered automation suggestions based on conversation patterns and history. */
-export function useAutomationSuggestions(remoteJid: string | null) {
+export function useAutomationSuggestions(contactId: string | null) {
   const queryClient = useQueryClient();
-  const key = useMemo(() => ['automation-suggestions', remoteJid] as const, [remoteJid]);
+  const key = useMemo(() => ['automation-suggestions', contactId] as const, [contactId]);
 
   const { data: suggestions = [], isLoading: loading } = useQuery({
     queryKey: key,
     queryFn: async () => {
-      if (!remoteJid) return [] as AutomationSuggestion[];
+      if (!contactId) return [] as AutomationSuggestion[];
       // FIX #2: Join com automations(name) causa 400 — fazer 2 queries
       const { data: execs } = await safeClient.from<_RawExecRow>('automation_executions', (q) =>
         q
           .select(
             'id, rule_id, suggestion_text, recommended_tag, kb_sources, status, created_at, instance_name, remote_jid'
           )
-          .eq('remote_jid', remoteJid)
+          .eq('contact_id', contactId)
           .eq('status', 'pending')
           .not('suggestion_text', 'is', null)
           .order('created_at', { ascending: false })
@@ -426,7 +426,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         remote_jid: r.remote_jid,
       }));
     },
-    enabled: !!remoteJid,
+    enabled: !!contactId,
     staleTime: 30_000,
   });
 
@@ -436,15 +436,15 @@ export function useAutomationSuggestions(remoteJid: string | null) {
   );
 
   useEffect(() => {
-    if (!remoteJid) return;
+    if (!contactId) return;
     const ch = supabase
-      .channel(`automation-exec-${remoteJid}`)
+      .channel(`automation-exec-${contactId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'automation_executions' },
         (payload) => {
           const row = (payload.new ?? payload.old) as Record<string, unknown>;
-          if (row?.remote_jid === remoteJid) void queryClient.invalidateQueries({ queryKey: key });
+          if (row?.contact_id === contactId) void queryClient.invalidateQueries({ queryKey: key });
         }
       )
       .subscribe();
@@ -452,7 +452,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       ch.unsubscribe();
       supabase.removeChannel(ch);
     };
-  }, [remoteJid, queryClient, key]);
+  }, [contactId, queryClient, key]);
 
   const accept = useCallback(
     async (id: string) => {

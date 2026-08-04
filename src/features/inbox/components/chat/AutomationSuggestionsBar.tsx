@@ -6,19 +6,19 @@ import { useAutomationSuggestions } from "@/hooks/useAutomationManagement";
 import { cn } from "@/lib/utils";
 
 interface AutomationSuggestionsBarProps {
-  remoteJid: string | null;
+  contactId: string | null;
   onUseSuggestion: (text: string) => void;
   onSendNow?: (text: string) => Promise<void> | void;
 }
 
 /** Automation Suggestions Bar component for the chat section. */
 export function AutomationSuggestionsBar({
-  remoteJid,
+  contactId,
   onUseSuggestion,
   onSendNow,
 }: AutomationSuggestionsBarProps) {
   const { suggestions, accept, dismiss, applyRecommendedTag } =
-    useAutomationSuggestions(remoteJid);
+    useAutomationSuggestions(contactId);
 
   if (!suggestions.length) return null;
 

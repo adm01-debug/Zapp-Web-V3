@@ -1,7 +1,7 @@
 // Helper: grava métricas de retry da Evolution API (fire-and-forget, service role).
 // NUNCA relança erro — falha de gravação não pode quebrar o hot path de envio.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
 /** log-retry-metric utilities and exports. */
 export interface RetryReason {
@@ -23,14 +23,16 @@ export interface RetryMetricInput {
   total_duration_ms: number;
 }
 
-let cached: ReturnType<typeof createClient> | null = null;
+// deno-lint-ignore no-explicit-any
+let cached: SupabaseClient<any, "zapp"> | null = null;
 
 function getServiceClient() {
   if (cached) return cached;
   const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? Deno.env.get('VITE_SUPABASE_URL');
   const key = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
   if (!url || !key) return null;
-  cached = createClient(url, key, { auth: { persistSession: false }, db: { schema: "zapp" } });
+  // deno-lint-ignore no-explicit-any
+  cached = createClient<any, "zapp">(url, key, { auth: { persistSession: false }, db: { schema: "zapp" } });
   return cached;
 }
 
