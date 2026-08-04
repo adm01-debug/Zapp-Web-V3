@@ -124,7 +124,7 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
         // useArchiveContact → contactsService.archive (soft-delete).
         const contactId = contact.id;
         if (contactId) {
-          void archiveConversation(contactId);
+          void archiveConversation(contactId).catch(() => undefined);
         }
         break;
       }

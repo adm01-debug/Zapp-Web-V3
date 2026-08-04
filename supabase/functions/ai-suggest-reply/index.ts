@@ -22,6 +22,12 @@ Deno.serve(async (req) => {
     if (!parsed.ok) return parsed.response;
     const body = parsed.data as Record<string, unknown>;
 
+    // Normalize: inbox sends 'messages', ai-router expects 'conversationHistory'
+    const conversationHistory = body.conversationHistory ?? body.messages;
+    if (!conversationHistory) return errorResponse("'conversationHistory' or 'messages' is required", 400, req);
+    const requestId = body.requestId ?? crypto.randomUUID();
+    const { messages: _m, ...restBody } = body as Record<string, unknown> & { messages?: unknown };
+
     const aiRouterUrl = Deno.env.get("AI_ROUTER_URL");
     if (!aiRouterUrl) return errorResponse("AI_ROUTER_URL not configured", 503, req);
     const res = await fetch(aiRouterUrl, {
@@ -31,7 +37,7 @@ Deno.serve(async (req) => {
         "content-type": "application/json",
         ...Object.fromEntries([...req.headers.entries()].filter(([k]) => k.toLowerCase().startsWith("x-") || k.toLowerCase() === "idempotency-key")),
       },
-      body: JSON.stringify({ ...body, action: "suggest_reply" }),
+      body: JSON.stringify({ ...restBody, action: "suggest_reply", conversationHistory, requestId }),
       signal: AbortSignal.timeout(60_000),
     });
 

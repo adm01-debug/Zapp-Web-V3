@@ -79,6 +79,10 @@ Deno.serve(async (req) => {
       if (!text || !voiceId) return errorResponse("'text' e 'voiceId' são obrigatórios.", 400, req);
 
       const s = body?.settings ?? {};
+      // Normalize settings: UI may send snake_case (similarity_boost, use_speaker_boost)
+      // or camelCase (similarityBoost, useSpeakerBoost) depending on the caller version
+      const similarityBoost = s.similarityBoost ?? s.similarity_boost;
+      const useSpeakerBoost = s.useSpeakerBoost ?? s.use_speaker_boost;
       const resp = await fetch(
         `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
         {
@@ -86,12 +90,12 @@ Deno.serve(async (req) => {
           headers: { "xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json" },
           body: JSON.stringify({
             text,
-            model_id: s.modelId || "eleven_multilingual_v2",
+            model_id: s.modelId || s.model_id || "eleven_multilingual_v2",
             voice_settings: {
               stability: typeof s.stability === "number" ? s.stability : 0.5,
-              similarity_boost: typeof s.similarityBoost === "number" ? s.similarityBoost : 0.75,
+              similarity_boost: typeof similarityBoost === "number" ? similarityBoost : 0.75,
               style: typeof s.style === "number" ? s.style : 0.3,
-              use_speaker_boost: s.useSpeakerBoost !== false,
+              use_speaker_boost: useSpeakerBoost !== false,
             },
           }),
           signal: AbortSignal.timeout(30_000),

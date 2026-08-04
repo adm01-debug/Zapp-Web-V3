@@ -28,8 +28,8 @@ Deno.serve(async (req) => {
     // O schema exige audio (File), voiceId e modelId com charset seguro.
     const parsed = parseOrReject('elevenlabs-sts', { v1: ElevenLabsStsV1Schema }, req, {
       audio: audioFile ?? undefined,
-      voiceId: voiceId ?? '',
-      modelId: modelId ?? '',
+      voiceId: voiceId ?? undefined,
+      modelId: modelId ?? undefined,
     }, { extraHeaders: getCorsHeaders(req) });
     if (!parsed.ok) return parsed.response;
     if (!audioFile) return errorResponse('Audio file is required', 400, req);
