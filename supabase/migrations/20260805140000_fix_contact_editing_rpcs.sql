@@ -151,6 +151,16 @@ CREATE POLICY contact_notes_delete ON zapp.contact_notes
   );
 
 -- ─────────────────────────────────────────────────────────────────────────────
+-- 5. REVOKE defesa em profundidade (achado A1-F4): authenticated tem grants
+--    table-level UPDATE/DELETE em tabelas de AUDITORIA — inofensivos hoje (RLS
+--    bloqueia), mas qualquer policy FOR ALL futura os reativaria.
+--    NOTA: contact_notes NÃO recebe REVOKE DELETE — o frontend
+--    (useContactNotes.deleteNote) usa .delete() direto e precisa do grant.
+-- ─────────────────────────────────────────────────────────────────────────────
+REVOKE UPDATE, DELETE ON zapp.hmac_selftest_audit   FROM authenticated;
+REVOKE UPDATE, DELETE ON zapp.instance_auth_events  FROM authenticated;
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- VERIFICATION
 -- ─────────────────────────────────────────────────────────────────────────────
 DO $$
