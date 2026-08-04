@@ -12,14 +12,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, Clock, RefreshCw, Users, Zap, Filter } from 'lucide-react';
+import { AlertTriangle, Clock, History, Layers, RefreshCw, Users, Zap, Filter } from 'lucide-react';
 import {
   useQueueSlaPanel,
   QueueSlaFilters,
   QueueSlaRow,
   SlaStatusFilter,
+  RebalanceRunInfo,
 } from '@/hooks/useQueueSlaPanel';
 import { safeFrom } from '@/integrations/supabase/safeClient';
+import { formatRelativeTime } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 
 const PRIORITY_LABEL: Record<QueueSlaRow['sla_priority'], string> = {
@@ -34,6 +36,13 @@ const PRIORITY_COLOR: Record<QueueSlaRow['sla_priority'], string> = {
   high: 'bg-warning text-warning-foreground',
   medium: 'bg-primary/15 text-primary',
   low: 'bg-muted text-muted-foreground',
+};
+
+const REBALANCE_SOURCE_LABEL: Record<NonNullable<RebalanceRunInfo['source']>, string> = {
+  panel: 'Manual (painel)',
+  cron: 'Agendado (cron)',
+  api: 'API',
+  unknown: 'Desconhecido',
 };
 
 interface QueueSkillRequirementRow {
@@ -53,8 +62,19 @@ export const QueueSlaPanel = () => {
   const [skills, setSkills] = useState<string[]>([]);
   const [channels, setChannels] = useState<string[]>([]);
   const [rebalancing, setRebalancing] = useState(false);
+  const [globalRebalancing, setGlobalRebalancing] = useState(false);
 
-  const { rows, loading, refetch, updateQueueConfig, triggerRebalance } = useQueueSlaPanel(filters);
+  const {
+    rows,
+    loading,
+    refetch,
+    updateQueueConfig,
+    triggerRebalance,
+    triggerGlobalRebalance,
+    lastRebalance,
+    rebalanceStateLoading,
+    rebalanceStateError,
+  } = useQueueSlaPanel(filters);
 
   useEffect(() => {
     (async () => {
@@ -99,6 +119,12 @@ export const QueueSlaPanel = () => {
     setRebalancing(false);
   };
 
+  const handleGlobalRebalance = async () => {
+    setGlobalRebalancing(true);
+    await triggerGlobalRebalance();
+    setGlobalRebalancing(false);
+  };
+
   return (
     <div className="space-y-6">
       {/* KPIs globais */}
@@ -125,77 +151,138 @@ export const QueueSlaPanel = () => {
 
       {/* Filtros + ações */}
       <Card className="rounded-2xl">
-        <CardContent className="flex flex-wrap items-center gap-3 p-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Filter className="h-4 w-4" /> Filtros:
+        <CardContent className="space-y-3 p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Filter className="h-4 w-4" /> Filtros:
+            </div>
+
+            <Select
+              value={filters.skill_name ?? '__all'}
+              onValueChange={(v) =>
+                setFilters((f) => ({ ...f, skill_name: v === '__all' ? null : v }))
+              }
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Habilidade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all">Todas as habilidades</SelectItem>
+                {skills.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={filters.channel_type ?? '__all'}
+              onValueChange={(v) =>
+                setFilters((f) => ({ ...f, channel_type: v === '__all' ? null : v }))
+              }
+            >
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Canal" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all">Todos os canais</SelectItem>
+                {channels.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={filters.sla_status ?? '__all'}
+              onValueChange={(v) =>
+                setFilters((f) => ({
+                  ...f,
+                  sla_status: v === '__all' ? null : (v as Exclude<SlaStatusFilter, null>),
+                }))
+              }
+            >
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Status SLA" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all">Todos</SelectItem>
+                <SelectItem value="on_track">No prazo</SelectItem>
+                <SelectItem value="at_risk">Em risco</SelectItem>
+                <SelectItem value="breached">Estourado</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="ml-auto flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" onClick={refetch} className="gap-2">
+                <RefreshCw className="h-4 w-4" /> Atualizar
+              </Button>
+              <Button size="sm" onClick={handleRebalance} disabled={rebalancing} className="gap-2">
+                <Zap className={cn('h-4 w-4', rebalancing && 'animate-pulse')} />
+                {rebalancing ? 'Redistribuindo...' : 'Redistribuir agora'}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleGlobalRebalance}
+                disabled={globalRebalancing}
+                className="gap-2"
+              >
+                <Layers className={cn('h-4 w-4', globalRebalancing && 'animate-pulse')} />
+                {globalRebalancing ? 'Rebalanceando...' : 'Rebalance global'}
+              </Button>
+            </div>
           </div>
 
-          <Select
-            value={filters.skill_name ?? '__all'}
-            onValueChange={(v) =>
-              setFilters((f) => ({ ...f, skill_name: v === '__all' ? null : v }))
-            }
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Habilidade" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all">Todas as habilidades</SelectItem>
-              {skills.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={filters.channel_type ?? '__all'}
-            onValueChange={(v) =>
-              setFilters((f) => ({ ...f, channel_type: v === '__all' ? null : v }))
-            }
-          >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Canal" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all">Todos os canais</SelectItem>
-              {channels.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={filters.sla_status ?? '__all'}
-            onValueChange={(v) =>
-              setFilters((f) => ({
-                ...f,
-                sla_status: v === '__all' ? null : (v as Exclude<SlaStatusFilter, null>),
-              }))
-            }
-          >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Status SLA" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all">Todos</SelectItem>
-              <SelectItem value="on_track">No prazo</SelectItem>
-              <SelectItem value="at_risk">Em risco</SelectItem>
-              <SelectItem value="breached">Estourado</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <div className="ml-auto flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={refetch} className="gap-2">
-              <RefreshCw className="h-4 w-4" /> Atualizar
-            </Button>
-            <Button size="sm" onClick={handleRebalance} disabled={rebalancing} className="gap-2">
-              <Zap className={cn('h-4 w-4', rebalancing && 'animate-pulse')} />
-              {rebalancing ? 'Redistribuindo...' : 'Redistribuir agora'}
-            </Button>
+          {/* Estado do último rebalanceamento (gravado em audit_logs pela edge queue-rebalance) */}
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t pt-3 text-xs text-muted-foreground">
+            {rebalanceStateLoading ? (
+              <span className="flex items-center gap-1.5">
+                <RefreshCw className="h-3 w-3 animate-spin" /> Carregando último
+                rebalanceamento…
+              </span>
+            ) : rebalanceStateError ? (
+              <span className="text-warning">
+                Último rebalanceamento indisponível (sem permissão de leitura em audit_logs).
+              </span>
+            ) : lastRebalance ? (
+              <>
+                <span className="flex items-center gap-1.5">
+                  <History className="h-3.5 w-3.5" />
+                  <span className="font-medium text-foreground">Último rebalanceamento:</span>
+                  {formatRelativeTime(lastRebalance.created_at)}
+                </span>
+                <Badge
+                  variant={lastRebalance.source === 'cron' ? 'success' : 'outline'}
+                  className="text-[10px]"
+                >
+                  {REBALANCE_SOURCE_LABEL[lastRebalance.source ?? 'unknown']}
+                </Badge>
+                {lastRebalance.dry_run && (
+                  <Badge variant="warning" className="text-[10px]">
+                    Simulação (dry-run)
+                  </Badge>
+                )}
+                <span>
+                  {lastRebalance.processed} processados · {lastRebalance.assigned} atribuídos ·{' '}
+                  {lastRebalance.skipped} pulados · {lastRebalance.errors} erros
+                </span>
+                {lastRebalance.source !== 'cron' && (
+                  <span className="text-warning">
+                    Último disparo não veio do job agendado — confira o pg_cron{' '}
+                    <span className="font-mono">queue-rebalance-every-5min</span> em produção.
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="text-warning">
+                Nenhum rebalanceamento registrado em audit_logs. O job automático{' '}
+                <span className="font-mono">queue-rebalance-every-5min</span> (pg_cron) não está
+                ativo em produção — apenas o disparo manual funciona.
+              </span>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -246,8 +333,10 @@ export const QueueSlaPanel = () => {
       </Card>
 
       <p className="text-center text-xs text-muted-foreground">
-        Job automático: o sistema redistribui tickets sem agente ou com SLA estourado a cada 5
-        minutos, respeitando a prioridade e o peso de cada fila.
+        Disparo manual redistribui tickets sem agente ou com SLA estourado, respeitando a
+        prioridade e o peso de cada fila. A automação a cada 5 minutos depende do job pg_cron{' '}
+        <span className="font-mono">queue-rebalance-every-5min</span> estar ativo no banco
+        (disparando a edge <span className="font-mono">queue-rebalance</span>).
       </p>
     </div>
   );

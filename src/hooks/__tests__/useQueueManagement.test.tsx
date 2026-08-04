@@ -282,6 +282,92 @@ describe('useQueueManagement — hooks consolidados', () => {
 
       expect(mockRpc).toHaveBeenCalledWith('rpc_queue_rebalance_candidates', { p_limit: 10 });
     });
+
+    it('lastRebalance é normalizado a partir de audit_logs (queue_bulk_rebalance)', async () => {
+      mockRpc.mockResolvedValue({ data: [], error: null });
+      mockFrom.mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue({
+                data: [
+                  {
+                    id: 'log1',
+                    user_id: null,
+                    action: 'queue_bulk_rebalance',
+                    entity_type: 'queues',
+                    details: {
+                      processed: 12,
+                      assigned: 8,
+                      skipped: 3,
+                      errors: 1,
+                      dry_run: false,
+                      source: 'cron',
+                      finished_at: '2026-08-04T10:00:00.000Z',
+                    },
+                    created_at: '2026-08-04T10:00:01.000Z',
+                  },
+                ],
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      });
+
+      const { result } = renderHook(() => useQueueSlaManagement({ filters }), {
+        wrapper: createWrapper(),
+      });
+      await waitFor(() => expect(result.current.rebalanceStateLoading).toBe(false));
+
+      expect(mockFrom).toHaveBeenCalledWith('audit_logs');
+      expect(result.current.lastRebalance).toEqual({
+        id: 'log1',
+        created_at: '2026-08-04T10:00:01.000Z',
+        processed: 12,
+        assigned: 8,
+        skipped: 3,
+        errors: 1,
+        dry_run: false,
+        source: 'cron',
+        finished_at: '2026-08-04T10:00:00.000Z',
+      });
+    });
+
+    it('lastRebalance fica null e rebalanceStateError true quando audit_logs falha', async () => {
+      mockRpc.mockResolvedValue({ data: [], error: null });
+      mockFrom.mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue({ data: null, error: { message: 'denied' } }),
+            }),
+          }),
+        }),
+      });
+
+      const { result } = renderHook(() => useQueueSlaManagement({ filters }), {
+        wrapper: createWrapper(),
+      });
+      await waitFor(() => expect(result.current.rebalanceStateLoading).toBe(false));
+
+      expect(result.current.lastRebalance).toBeNull();
+      expect(result.current.rebalanceStateError).toBe(true);
+    });
+
+    it('triggerGlobalRebalance usa o lote máximo (200)', async () => {
+      mockRpc.mockResolvedValue({ data: [], error: null });
+      const { result } = renderHook(() => useQueueSlaManagement({ filters }), {
+        wrapper: createWrapper(),
+      });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      await act(async () => {
+        await result.current.triggerGlobalRebalance();
+      });
+
+      expect(mockRpc).toHaveBeenCalledWith('rpc_queue_rebalance_candidates', { p_limit: 200 });
+    });
   });
 
   describe('useQueuesComparisonManagement', () => {

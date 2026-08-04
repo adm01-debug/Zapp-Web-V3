@@ -122,6 +122,49 @@ interface QueueComparison {
   };
 }
 
+/**
+ * Resultado de uma execução de rebalanceamento de filas.
+ * A edge function `queue-rebalance` grava o resumo em `zapp.audit_logs`
+ * (action='queue_bulk_rebalance', entity_type='queues', details=<summary>),
+ * e o disparo manual via `rpc_queue_rebalance_candidates` também registra.
+ */
+interface RebalanceRunInfo {
+  id: string;
+  created_at: string;
+  processed: number;
+  assigned: number;
+  skipped: number;
+  errors: number;
+  dry_run: boolean;
+  source: 'panel' | 'cron' | 'api' | 'unknown' | null;
+  finished_at: string | null;
+}
+
+interface RebalanceAuditRow {
+  id: string;
+  user_id: string | null;
+  action: string;
+  entity_type: string | null;
+  details: Record<string, unknown> | null;
+  created_at: string;
+}
+
+function normalizeRebalanceRun(row: RebalanceAuditRow): RebalanceRunInfo {
+  const d = row.details ?? {};
+  const source = typeof d.source === 'string' ? (d.source as RebalanceRunInfo['source']) : null;
+  return {
+    id: row.id,
+    created_at: row.created_at,
+    processed: Number(d.processed ?? 0),
+    assigned: Number(d.assigned ?? 0),
+    skipped: Number(d.skipped ?? 0),
+    errors: Number(d.errors ?? 0),
+    dry_run: d.dry_run === true,
+    source: source === 'panel' || source === 'cron' || source === 'api' ? source : null,
+    finished_at: typeof d.finished_at === 'string' ? d.finished_at : null,
+  };
+}
+
 interface DateRange {
   startDate: Date;
   endDate: Date;
@@ -315,6 +358,9 @@ export function useQueueSlaManagement(params: { filters: QueueSlaFilters }) {
   const { filters } = params;
   const [slaRows, setSlaRows] = useState<QueueSlaRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastRebalance, setLastRebalance] = useState<RebalanceRunInfo | null>(null);
+  const [rebalanceStateLoading, setRebalanceStateLoading] = useState(false);
+  const [rebalanceStateError, setRebalanceStateError] = useState(false);
   const mountedRef = useRef(true);
   const queryClient = useQueryClient();
 
@@ -353,6 +399,40 @@ export function useQueueSlaManagement(params: { filters: QueueSlaFilters }) {
     else if (mountedRef.current) setLoading(false);
   }, [user, fetchSla]);
 
+  /**
+   * Lê o último rebalanceamento registrado em `zapp.audit_logs`
+   * (action='queue_bulk_rebalance'), gravado pela edge `queue-rebalance`
+   * ou pelo disparo manual. Fonte da verdade do "último estado" — não existe
+   * tabela dedicada de rebalanceamento.
+   */
+  const fetchRebalanceState = useCallback(async () => {
+    if (!user) return;
+    setRebalanceStateLoading(true);
+    const { data, error } = await safeClient.from<RebalanceAuditRow>(
+      'audit_logs',
+      (q) =>
+        q
+          .select('*')
+          .eq('action', 'queue_bulk_rebalance')
+          .order('created_at', { ascending: false })
+          .limit(1)
+    );
+    if (mountedRef.current) {
+      if (!error && Array.isArray(data) && data.length > 0) {
+        setLastRebalance(normalizeRebalanceRun(data[0]));
+        setRebalanceStateError(false);
+      } else {
+        setLastRebalance(null);
+        setRebalanceStateError(Boolean(error));
+      }
+      setRebalanceStateLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user) fetchRebalanceState();
+  }, [user, fetchRebalanceState]);
+
   const updateQueueConfig = useCallback(
     async (queueId: string, patch: QueueSlaPatch): Promise<boolean> => {
       try {
@@ -378,13 +458,20 @@ export function useQueueSlaManagement(params: { filters: QueueSlaFilters }) {
         });
         if (err) throw err;
         await fetchSla();
+        void fetchRebalanceState();
         return true;
       } catch (err) {
         log.error('Error triggering queue rebalance:', err);
         return false;
       }
     },
-    [fetchSla]
+    [fetchSla, fetchRebalanceState]
+  );
+
+  /** Rebalance global: processa o lote máximo (200) em todas as filas ativas. */
+  const triggerGlobalRebalance = useCallback(
+    async (): Promise<boolean> => triggerRebalance(200),
+    [triggerRebalance]
   );
 
   return {
@@ -394,6 +481,10 @@ export function useQueueSlaManagement(params: { filters: QueueSlaFilters }) {
     refetch: fetchSla,
     updateQueueConfig,
     triggerRebalance,
+    triggerGlobalRebalance,
+    lastRebalance,
+    rebalanceStateLoading,
+    rebalanceStateError,
   };
 }
 
@@ -475,4 +566,5 @@ export type {
   SlaStatusFilter,
   QueueComparison,
   DateRange,
+  RebalanceRunInfo,
 };
