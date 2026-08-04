@@ -63,6 +63,11 @@ function ExternalContact360PanelInner({ phone }: ExternalContact360PanelProps) {
       {data.company && <div className="space-y-1.5"><SectionTitle icon={Building}>Empresa</SectionTitle><CompanyCard company={data.company} /></div>}
       {data.customer && <div className="space-y-1.5"><SectionTitle icon={Target}>Perfil Comercial</SectionTitle><CustomerProfile customer={data.customer} /></div>}
       {data.stakeholder && <div className="space-y-1.5"><SectionTitle icon={Star}>Stakeholder</SectionTitle><StakeholderCard stakeholder={data.stakeholder} /></div>}
+      {/* CONTATOS-07 (segmentos): TODO — a tabela zapp.contact_segments existe no
+       * schema local mas NÃO possui código frontend nem consumidor; o segmento RFM
+       * exibido abaixo vem do CRM externo (useExternalContact360). Decisão: NÃO
+       * construir segmentação local nova neste backlog — reavaliar quando houver
+       * demanda real de segmentação nativa (frontend + RPC + RLS). */}
       {data.rfm && data.rfm.segment_code && <div className="space-y-1.5"><SectionTitle icon={BarChart3}>Segmento RFM</SectionTitle><RFMBadge rfm={data.rfm} /></div>}
 
       {data.contact?.behavior && (

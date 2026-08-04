@@ -3,8 +3,12 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useContactsCRUD } from './useContactsCRUD';
+import { supabase } from '@/integrations/supabase/client';
+import { getLogger } from '@/lib/logger';
 import type { ContactViewMode } from './ContactViewSwitcher';
 import type { FilterPreset } from './FilterPresets';
+
+const log = getLogger('contactsExport');
 
 /** use Contacts View State component for the contacts section. */
 export function useContactsViewState() {
@@ -117,6 +121,26 @@ export function useContactsViewState() {
     a.click();
     URL.revokeObjectURL(url);
     toast.success(`${filteredContacts.length} contatos exportados!`);
+
+    // CONTATOS-12: export segue client-side (não há RPC/edge de export no projeto —
+    // grep rpc_export sem resultados), mas registra a operação em contact_export_log
+    // (mesma tabela usada pelo edge contacts-import como 'csv_import').
+    void supabase.auth
+      .getUser()
+      .then(({ data }) =>
+        supabase.from('contact_export_log').insert({
+          user_id: data.user?.id ?? null,
+          exported_by: data.user?.id ?? null,
+          export_type: 'csv',
+          row_count: filteredContacts.length,
+          status: 'completed',
+          filters: { exported_count: filteredContacts.length },
+        })
+      )
+      .then(({ error: logError }) => {
+        if (logError) log.warn('Failed to log contact export', logError.message);
+      })
+      .catch((err: unknown) => log.warn('Failed to log contact export', err));
   }, [filteredContacts]);
 
   // Keyboard shortcuts
