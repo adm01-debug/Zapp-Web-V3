@@ -60,6 +60,7 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "ai-suggest-reply":             { current: "v1", supported: ["v1"] },
   "ai-enhance-message":           { current: "v1", supported: ["v1"] },
   "ai-transcribe-audio":          { current: "v1", supported: ["v1"] },
+  "audio-transcribe":             { current: "v1", supported: ["v1"] },
   "ai-conversation-analysis":     { current: "v1", supported: ["v1"] },
   "ai-conversation-summary":      { current: "v1", supported: ["v1"] },
   "ai-auto-tag":                  { current: "v1", supported: ["v1"] },
