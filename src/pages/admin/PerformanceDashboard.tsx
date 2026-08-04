@@ -139,7 +139,6 @@ export default function PerformanceDashboard() {
             <div className="flex items-center justify-between text-sm">
               <span>Largest Contentful Paint (LCP)</span>
               <span className="font-mono">&lt; 2500ms</span>
-              <span className="font-mono">&lt; 2500ms</span>
             </div>
 
             <div className="flex items-center justify-between text-sm">
