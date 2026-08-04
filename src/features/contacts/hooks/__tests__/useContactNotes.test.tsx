@@ -22,7 +22,6 @@ let notesRows: Array<{
 }> = [];
 let insertResolver: ((v: unknown) => void) | null = null;
 let deleteResolver: ((v: unknown) => void) | null = null;
-let updateResolver: ((v: unknown) => void) | null = null;
 
 const CONTACT_UUID = '00000000-0000-4000-8000-000000000001';
 
@@ -128,7 +127,8 @@ vi.mock('@/integrations/supabase/client', () => ({
             );
             resolve({ data: { id: args.p_note_id }, error: null });
           };
-          updateResolver = finish;
+          // updateResolver exposto via insertResolver? Não — sem teste de update dedicado.
+          finish();
         });
       }
       return Promise.resolve({ data: null, error: { message: `unexpected rpc ${name}` } });
