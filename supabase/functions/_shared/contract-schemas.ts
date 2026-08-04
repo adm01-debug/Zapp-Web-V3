@@ -34,8 +34,21 @@ import {
   AiChurnAnalysisV1Schema,
   ClassifyEmojiV1Schema,
   ClassifyStickerV1Schema,
+  AiConversationAnalysisV1Schema,
+  AiEnhanceMessageV1Schema,
+  AiProxyV1Schema,
+  AiTranscribeAudioV1Schema,
+  AiAutoTagSchema,
 } from "./schemas.ts";
+/** ai-auto-tag@v1 — schema REAL (era placeholder). Proxy que injeta action:'auto_tag'
+ * e repassa ao ai-router; validação do payload do cliente = AiAutoTagSchema estrito. */
+export const AiAutoTagV1Schema = AiAutoTagSchema.strict();
+
 import type { SchemaMap } from "./contract-kit.ts";
+import * as AISchemas from "./contract-schemas-ai.ts";
+import * as InfraSchemas from "./contract-schemas-infra.ts";
+import { OutlookOauthV1Schema, PromogiftsCatalogV1Schema } from "./contract-schemas-integrations.ts";
+
 
 /** Re-exported module members. */
 export {
@@ -432,70 +445,239 @@ export const ElevenLabsTtsV1Schema = z.object({
   *  é rejeitado pelo endpoint (200 + warning, sem retry). */
 
  /** sicoob-bridge@v1 — valida no index.ts. Schema de registro. */
- export const SicoobBridgeV1Schema = z.object({}).passthrough();
+ /**
+ * sicoob-bridge@v1 — real. Consumo: roteado por action
+ * (new_message|mark_read), validado por SicoobBridgeNewMessageSchema/
+ * SicoobBridgeMarkReadSchema: message_id, sender_name, sender_email,
+ * sender_phone, singular_name, singular_id, content, vendedor_user_id,
+ * created_at, sender_id, external_ids. Webhook externo → permissivo.
+ */
+export const SicoobBridgeV1Schema = z.object({
+  action: z.string().optional(),
+  message_id: z.string().optional(),
+  sender_name: z.string().optional(),
+  sender_email: z.string().optional(),
+  sender_phone: z.string().optional(),
+  singular_name: z.string().optional(),
+  singular_id: z.string().optional(),
+  content: z.string().optional(),
+  vendedor_user_id: z.string().optional(),
+  created_at: z.string().optional(),
+  sender_id: z.string().optional(),
+  external_ids: z.unknown().optional(),
+}).passthrough();
 
  /** sicoob-bridge-reply@v1 — valida no index.ts. Schema de registro. */
- export const SicoobBridgeReplyV1Schema = z.object({}).passthrough();
+ /**
+ * sicoob-bridge-reply@v1 — real. Consumo (SicoobBridgeReplySchema):
+ * { contact_id, content, message_id, created_at?, agent_id? }.
+ * Ponte externa (dual-mode) → permissivo.
+ */
+export const SicoobBridgeReplyV1Schema = z.object({
+  contact_id: z.string().optional(),
+  content: z.string().optional(),
+  message_id: z.string().optional(),
+  created_at: z.string().optional(),
+  agent_id: z.string().optional(),
+}).passthrough();
 
  /** bitrix-api@v1 — valida no index.ts com Zod próprio. Schema de registro. */
- export const BitrixApiV1Schema = z.object({}).passthrough();
+ /**
+ * bitrix-api@v1 — real. Consumo (BitrixBodySchema local): action enum
+ * [list,get,create,update,delete,register_call,finish_call,attach_record,
+ * sync_contacts,push_contact,create_lead_from_conversation], entityType?,
+ * entityId?, data?, filters?. Externo → permissivo.
+ */
+export const BitrixApiV1Schema = z.object({
+  action: z.enum(["list", "get", "create", "update", "delete", "register_call",
+    "finish_call", "attach_record", "sync_contacts", "push_contact",
+    "create_lead_from_conversation"]),
+  entityType: z.string().optional(),
+  entityId: z.union([z.string(), z.number()]).optional(),
+  data: z.unknown().optional(),
+  filters: z.unknown().optional(),
+}).passthrough();
 
  /** auth-email-hook@v1 — hook interno do Supabase Auth. Schema de registro. */
  export const AuthEmailHookV1Schema = z.object({}).passthrough();
 
  /** whatsapp-cloud-send@v1 — valida no index.ts com Zod próprio. Schema de registro. */
- export const WhatsappCloudSendV1Schema = z.object({}).passthrough();
+ /**
+ * whatsapp-cloud-send@v1 — real. Consumo (SendSchema local): { to, type:
+ * enum[text,image,video,audio,document,sticker,template,reaction,location,
+ * contacts,read], text?, mediaUrl?, caption?, filename?, template?,
+ * messageId?, emoji?, latitude?, longitude?, name?, address?, contacts?,
+ * messageIds? }. Externo (Meta Cloud API) → permissivo.
+ */
+export const WhatsappCloudSendV1Schema = z.object({
+  to: z.string().optional(),
+  type: z.string().optional(),
+  text: z.string().optional(),
+  mediaUrl: z.string().optional(),
+  caption: z.string().optional(),
+  filename: z.string().optional(),
+  template: z.unknown().optional(),
+  messageId: z.string().optional(),
+  emoji: z.string().optional(),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
+  name: z.string().optional(),
+  address: z.string().optional(),
+  contacts: z.unknown().optional(),
+  messageIds: z.array(z.string()).optional(),
+}).passthrough();
 
  /** public-api@v1 — valida no index.ts com Zod próprio. Schema de registro. */
- export const PublicApiV1Schema = z.object({}).passthrough();
+ /**
+ * public-api@v1 — real. Consumo (publicApiSendSchema): { action:'send',
+ * number, message, connectionId? }. API pública (x-api-key) → permissivo.
+ */
+export const PublicApiV1Schema = z.object({
+  action: z.string().optional(),
+  number: z.string().optional(),
+  message: z.string().optional(),
+  connectionId: z.string().optional(),
+}).passthrough();
 
  /** ai-proxy@v1 — valida no index.ts. Schema de registro. */
- export const AiProxyV1Schema = z.object({}).passthrough();
-
+ 
  /** ai-suggest-reply@v1 — schema em _shared/schemas.ts (AiSuggestReplySchema). Schema de registro. */
  // AiSuggestReplyV1Schema defined below as local alias
 
  /** ai-enhance-message@v1 — schema em _shared/schemas.ts. Schema de registro. */
- export const AiEnhanceMessageV1Schema = z.object({}).passthrough();
-
+ 
  /** ai-transcribe-audio@v1 — schema em _shared/schemas.ts. Schema de registro. */
- export const AiTranscribeAudioV1Schema = z.object({}).passthrough();
-
+ 
  /** ai-conversation-analysis@v1 — schema em _shared/schemas.ts. Schema de registro. */
- export const AiConversationAnalysisV1Schema = z.object({}).passthrough();
-
+ 
  /** ai-conversation-summary@v1 — schema em _shared/schemas.ts (AiConversationSummarySchema). Schema de registro. */
  // AiConversationSummaryV1Schema defined below as local alias
 
  /** ai-auto-tag@v1 — schema em _shared/schemas.ts. Schema de registro. */
- export const AiAutoTagV1Schema = z.object({}).passthrough();
-
+ 
  /** elevenlabs-tts-stream@v1 — streaming; body validado no handler. Schema de registro. */
- export const ElevenLabsTtsStreamV1Schema = z.object({}).passthrough();
+ /**
+ * elevenlabs-tts-stream@v1 — real. Consumo: { action?, text, voice_id?,
+ * model_id?, speed?, stability?, similarity? }. Externo → permissivo.
+ */
+export const ElevenLabsTtsStreamV1Schema = z.object({
+  action: z.string().optional(),
+  text: z.string().optional(),
+  voice_id: z.string().optional(),
+  model_id: z.string().optional(),
+  speed: z.number().optional(),
+  stability: z.number().optional(),
+  similarity: z.number().optional(),
+}).passthrough();
 
  /** elevenlabs-sfx@v1 — valida no index.ts. Schema de registro. */
- export const ElevenLabsSfxV1Schema = z.object({}).passthrough();
+ /**
+ * elevenlabs-sfx@v1 — real. Consumo: { action?, text, duration_seconds?,
+ * prompt_influence? }. Externo → permissivo.
+ */
+export const ElevenLabsSfxV1Schema = z.object({
+  action: z.string().optional(),
+  text: z.string().optional(),
+  duration_seconds: z.number().optional(),
+  prompt_influence: z.number().optional(),
+}).passthrough();
 
  /** elevenlabs-dialogue@v1 — valida no index.ts. Schema de registro. */
- export const ElevenLabsDialogueV1Schema = z.object({}).passthrough();
+ /**
+ * elevenlabs-dialogue@v1 — real. Consumo: roteado por action (dialogue/tts).
+ * Externo (ElevenLabs) → permissivo; campos conhecidos tipados opcionais.
+ */
+export const ElevenLabsDialogueV1Schema = z.object({
+  action: z.string().optional(),
+  text: z.string().optional(),
+  voice_id: z.string().optional(),
+  model_id: z.string().optional(),
+  voice_settings: z.unknown().optional(),
+  dialogue: z.unknown().optional(),
+}).passthrough();
 
  /** elevenlabs-voice-design@v1 — valida no index.ts. Schema de registro. */
- export const ElevenLabsVoiceDesignV1Schema = z.object({}).passthrough();
+ /**
+ * elevenlabs-voice-design@v1 — real. Consumo: roteado por action
+ * (create/preview); voice_settings, name?, description?, preview_text?.
+ * Externo → permissivo.
+ */
+export const ElevenLabsVoiceDesignV1Schema = z.object({
+  action: z.string().optional(),
+  name: z.string().optional(),
+  description: z.string().optional(),
+  preview_text: z.string().optional(),
+  voice_settings: z.unknown().optional(),
+}).passthrough();
 
  /** create-user@v1 — valida no index.ts com Zod próprio. Schema de registro. */
- export const CreateUserV1Schema = z.object({}).passthrough();
+ /**
+ * create-user@v1 — real. Consumo (bodySchema local): email, password, name,
+ * nickname?, signature?, job_title?, avatar_url?, role?, gmail_email?,
+ * google_services?, dropbox_email?. Registro permissivo (validação real no index).
+ */
+export const CreateUserV1Schema = z.object({
+  email: z.string().optional(),
+  password: z.string().optional(),
+  name: z.string().optional(),
+  nickname: z.string().optional(),
+  signature: z.string().optional(),
+  job_title: z.string().optional(),
+  avatar_url: z.string().optional(),
+  role: z.string().optional(),
+  gmail_email: z.string().optional(),
+  google_services: z.unknown().optional(),
+  dropbox_email: z.string().optional(),
+}).passthrough();
 
  /** approve-password-reset@v1 — valida no index.ts. Schema de registro. */
- export const ApprovePasswordResetV1Schema = z.object({}).passthrough();
+ /**
+ * approve-password-reset@v1 — real. Consumo: { action (default 'approve'),
+ * reset_id?/request_id?, approved?/decision? }. Endpoint interno →
+ * permissivo (handler valida os campos).
+ */
+export const ApprovePasswordResetV1Schema = z.object({
+  action: z.string().optional(),
+  reset_id: z.string().optional(),
+  request_id: z.string().optional(),
+  approved: z.boolean().optional(),
+  decision: z.string().optional(),
+}).passthrough();
 
  /** detect-new-device@v1 — schema em _shared/schemas.ts (DetectNewDeviceSchema). Schema de registro. */
  // DetectNewDeviceV1Schema defined below as local alias
 
  /** webauthn@v1 — valida no index.ts. Schema de registro. */
- export const WebauthnV1Schema = z.object({}).passthrough();
+ /**
+ * webauthn@v1 — real. Consumo: roteado por action (WebAuthnActionSchema:
+ * begin_registration|complete_registration|begin_authentication|
+ * complete_authentication). Endpoint interno (JWT) → estrito na action,
+ * campos de challenge/credential permissivos (dados WebAuthn são opacos).
+ */
+export const WebauthnV1Schema = z.object({
+  action: z.string().optional(),
+  challenge: z.string().optional(),
+  credential: z.unknown().optional(),
+  credential_id: z.string().optional(),
+}).passthrough();
 
  /** evolution-api@v1 — valida no index.ts via edge-contract-schemas.ts. Schema de registro. */
- export const EvolutionApiV1Schema = z.object({}).passthrough();
+ /**
+ * evolution-api@v1 — real. Consumo: proxy roteado por action (fallback
+ * pathAction); instanceName|instance, number, remoteJid|chat, readMessages,
+ * key, message etc. (JSON ou multipart). Permissivo — validação real no endpoint.
+ */
+export const EvolutionApiV1Schema = z.object({
+  action: z.string().optional(),
+  instanceName: z.string().optional(),
+  instance: z.string().optional(),
+  number: z.string().optional(),
+  remoteJid: z.string().optional(),
+  chat: z.string().optional(),
+  readMessages: z.boolean().optional(),
+  key: z.unknown().optional(),
+  message: z.unknown().optional(),
+}).passthrough();
 
  // ─── Alias local para schema importado de schemas.ts ────────────────────────
  /** ai-suggest-reply@v1 — alias de AiSuggestReplySchema. */
@@ -506,6 +688,130 @@ export const ElevenLabsTtsV1Schema = z.object({
  export const DetectNewDeviceV1Schema = DetectNewDeviceSchema;
 
  // ─── Registro central: contrato → { versão → schema } ───────────────────────
+
+// ─── Derivados do consumo real (Onda 1 2026-08-04) ─────────────────────
+/**
+ * Contract Schemas — Integrações externas (14 edge functions).
+ *
+ * Registro dedicado às funções de integração externa do zapp-web-v3.
+ *
+ * Origem de cada schema (nada foi inventado):
+ *  - 12 schemas JÁ EXISTEM no registro central `contract-schemas.ts` e são
+ *    RE-EXPORTADOS daqui (import + export) — NUNCA duplicados. Quando o
+ *    registro central evoluir (placeholder → schema real), este arquivo
+ *    reflete a mudança automaticamente.
+ *  - outlook-oauth e promogifts-catalog NÃO tinham registro prévio: os
+ *    schemas abaixo foram DERIVADOS do consumo REAL do body no index.ts de
+ *    cada função (comentário de origem em cada bloco).
+ *
+ * Convenção de permissividade (idêntica à do registro central):
+ *  - Externos/API pública (provedor envia o payload): `.passthrough()` —
+ *    nunca derrubar ingestão por campo novo do provedor.
+ *  - Endpoints internos (UI/cron/JWT chama): `.strict()` — falhar cedo.
+ */
+
+
+// ─── Re-exportados do registro central (contract-schemas.ts) ────────────────
+
+/**
+ * bitrix-api@v1 — re-exportado. Consumo real no index.ts (BitrixBodySchema
+ * local): { action: enum[list, get, create, update, delete, register_call,
+ * finish_call, attach_record, sync_contacts, push_contact,
+ * create_lead_from_conversation], entityType?, entityId?, data?, filters? }.
+ * Externo (origin do portal Bitrix validado) → permissivo no registro.
+ */
+// exportado acima: BitrixApiV1Schema
+
+/**
+ * contacts-import@v1 — re-exportado. Consumo real no index.ts:
+ * { rows: array de objetos (1..50.000 no handler), workspace_id? (default
+ * 'wpp2') }. Schema do registro caps rows em 10.000 e é permissivo.
+ */
+// exportado acima: ContactsImportV1Schema
+
+/**
+ * create-user@v1 — re-exportado. Consumo real no index.ts (bodySchema
+ * local): { email, password, name, nickname?, signature?, job_title?,
+ * avatar_url?, role?, gmail_email?, google_services?, dropbox_email? }.
+ * Registro mantém schema de registro permissivo (validação real no index).
+ */
+// exportado acima: CreateUserV1Schema
+
+/**
+ * evolution-api@v1 — re-exportado. Consumo real no index.ts: proxy roteado
+ * por `action` (fallback pathAction); lê instanceName|instance, number,
+ * remoteJid|chat, readMessages, key, message etc. (multipart ou JSON).
+ * Registro permissivo — schema real vive no endpoint.
+ */
+// exportado acima: EvolutionApiV1Schema
+
+/**
+ * evolution-sync@v1 — re-exportado. Consumo real no index.ts: { action
+ * (default 'sync-contacts'), instanceName (default 'wpp2'), page, offset,
+ * contactPhone, webhookUrl, messagesPerContact } — passthrough cobre os
+ * campos não listados no schema do registro.
+ */
+// exportado acima: EvolutionSyncV1Schema
+
+/**
+ * gmail-send@v1 — re-exportado. Consumo real no index.ts: roteado por
+ * action (default 'send'); accountId obrigatório; to/cc/bcc, subject,
+ * bodyHtml, bodyPlain, threadId, messageId, messageIds, read,
+ * addLabelIds/removeLabelIds, attachments. Registro permissivo.
+ */
+// exportado acima: GmailSendV1Schema
+
+/**
+ * instance-pause-control@v1 — re-exportado. Consumo real no index.ts:
+ * action ∈ {list, history, pause, unpause, recent_events,
+ * mark_investigated, status}; campos limit, instance, minutes, reason,
+ * since_minutes, pause_id, notes — passthrough cobre os não listados.
+ */
+// exportado acima: InstancePauseControlV1Schema
+
+/**
+ * public-api@v1 — re-exportado. Consumo real no index.ts:
+ * publicApiSendSchema (criticalPayloadSchemas.ts): { action: 'send',
+ * number, message, connectionId? }. API pública (x-api-key) → permissivo.
+ */
+// exportado acima: PublicApiV1Schema
+
+/**
+ * sicoob-bridge@v1 — re-exportado. Consumo real no index.ts: roteado por
+ * action ∈ {new_message, mark_read}, validado por
+ * SicoobBridgeNewMessageSchema/SicoobBridgeMarkReadSchema (_shared/schemas.ts)
+ * — message_id, sender_name, sender_email, sender_phone, singular_name,
+ * singular_id, content, vendedor_user_id, created_at, sender_id,
+ * external_ids. Webhook externo (SICOOB_BRIDGE_SECRET) → permissivo.
+ */
+// exportado acima: SicoobBridgeV1Schema
+
+/**
+ * sicoob-bridge-reply@v1 — re-exportado. Consumo real no index.ts:
+ * SicoobBridgeReplySchema (_shared/schemas.ts): { contact_id, content,
+ * message_id, created_at?, agent_id? }. Ponte externa (dual-mode
+ * JWT/service-role) → permissivo.
+ */
+// exportado acima: SicoobBridgeReplyV1Schema
+
+/**
+ * whatsapp-cloud-send@v1 — re-exportado. Consumo real no index.ts
+ * (SendSchema local): { to, type: enum[text, image, video, audio, document,
+ * sticker, template, reaction, location, contacts, read], text?, mediaUrl?,
+ * caption?, filename?, template?, messageId?, emoji?, latitude?,
+ * longitude?, name?, address?, contacts?, messageIds? }. Externo (Meta
+ * Cloud API) → permissivo.
+ */
+// exportado acima: WhatsappCloudSendV1Schema
+
+/**
+ * whatsapp-webhook@v1 — re-exportado de webhook-schemas.ts (fonte canônica;
+ * contract-schemas.ts o importa e registra mas não o re-exporta). Payload
+ * Meta: entry[] → changes[] → value{statuses?, messages?}. Webhook externo
+ * → permissivo.
+ */
+// exportado acima: WhatsappWebhookV1Schema
+
 export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   // Webhooks externos
   "evolution-webhook":       { v1: EvolutionWebhookV1Schema, v2: EvolutionWebhookV2Schema },
@@ -588,6 +894,54 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "detect-new-device":             { v1: DetectNewDeviceV1Schema },
   "webauthn":                      { v1: WebauthnV1Schema },
   "evolution-api":                 { v1: EvolutionApiV1Schema },
+
+  // ─── Onda 1 (2026-08-04): cobertura 100% — schemas reais dos workers ───
+  "ai-classify-tickets":  { v1: AISchemas.AiClassifyTicketsV1Schema },
+  "ai-router":  { v1: AISchemas.AiRouterV1Schema },
+  "automation-suggest-reply":  { v1: AISchemas.AutomationSuggestReplyV1Schema },
+  "batch-fetch-avatars":  { v1: InfraSchemas.BatchFetchAvatarsV1Schema },
+  "chatbot-l1":  { v1: AISchemas.ChatbotL1V1Schema },
+  "classify-audio-meme":  { v1: AISchemas.ClassifyAudioMemeV1Schema },
+  "cleanup-rate-limit-logs":  { v1: InfraSchemas.CleanupRateLimitLogsV1Schema },
+  "cleanup-storage-orphans":  { v1: InfraSchemas.CleanupStorageOrphansV1Schema },
+  "client-observability":  { v1: InfraSchemas.ClientObservabilityV1Schema },
+  "connection-test":  { v1: InfraSchemas.ConnectionTestV1Schema },
+  "contact-media":  { v1: InfraSchemas.ContactMediaV1Schema },
+  "elevenlabs-agent-token":  { v1: InfraSchemas.ElevenlabsAgentTokenV1Schema },
+  "elevenlabs-scribe-token":  { v1: InfraSchemas.ElevenlabsScribeTokenV1Schema },
+  "fetch-whatsapp-avatar":  { v1: InfraSchemas.FetchWhatsappAvatarV1Schema },
+  "file-security-scanner":  { v1: InfraSchemas.FileSecurityScannerV1Schema },
+  "get-mapbox-token":  { v1: InfraSchemas.GetMapboxTokenV1Schema },
+  "get-sip-password":  { v1: InfraSchemas.GetSipPasswordV1Schema },
+  "lgpd-scheduled-jobs":  { v1: InfraSchemas.LgpdScheduledJobsV1Schema },
+  "login-attempts":  { v1: InfraSchemas.LoginAttemptsV1Schema },
+  "main":  { v1: InfraSchemas.MainV1Schema },
+  "mcp":  { v1: InfraSchemas.McpV1Schema },
+  "mcp-server":  { v1: InfraSchemas.McpServerV1Schema },
+  "migrate-media-storage":  { v1: InfraSchemas.MigrateMediaStorageV1Schema },
+  "nps-scheduler":  { v1: InfraSchemas.NpsSchedulerV1Schema },
+  "outlook-oauth":  { v1: OutlookOauthV1Schema },
+  "promogifts-catalog":  { v1: PromogiftsCatalogV1Schema },
+  "provider-healthcheck":  { v1: InfraSchemas.ProviderHealthcheckV1Schema },
+  "provider-router":  { v1: InfraSchemas.ProviderRouterV1Schema },
+  "queue-rebalance":  { v1: InfraSchemas.QueueRebalanceV1Schema },
+  "recover-corrupted-audios":  { v1: InfraSchemas.RecoverCorruptedAudiosV1Schema },
+  "secure-upload":  { v1: InfraSchemas.SecureUploadV1Schema },
+  "seed-teams-users":  { v1: InfraSchemas.SeedTeamsUsersV1Schema },
+  "send-rate-limit-alert":  { v1: InfraSchemas.SendRateLimitAlertV1Schema },
+  "sentiment-alert":  { v1: AISchemas.SentimentAlertV1Schema },
+  "sicoob-outbox-consumer":  { v1: InfraSchemas.SicoobOutboxConsumerV1Schema },
+  "sla-alert-forward":  { v1: InfraSchemas.SlaAlertForwardV1Schema },
+  "sla-alert-log-failure":  { v1: InfraSchemas.SlaAlertLogFailureV1Schema },
+  "speech-to-text":  { v1: AISchemas.SpeechToTextV1Schema },
+  "talkx-add-recipients":  { v1: InfraSchemas.TalkxAddRecipientsV1Schema },
+  "talkx-control":  { v1: InfraSchemas.TalkxControlV1Schema },
+  "talkx-scheduler":  { v1: InfraSchemas.TalkxSchedulerV1Schema },
+  "ticket-router":  { v1: InfraSchemas.TicketRouterV1Schema },
+  "virustotal-test":  { v1: InfraSchemas.VirustotalTestV1Schema },
+  "voice-agent":  { v1: AISchemas.VoiceAgentV1Schema },
+  "voice-changer":  { v1: InfraSchemas.VoiceChangerMultipartV1Schema },
+
 };
 
 // ─── Re-exports de edge-contract-schemas (ponto de import unificado) ─────────

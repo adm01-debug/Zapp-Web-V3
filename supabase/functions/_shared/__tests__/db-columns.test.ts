@@ -26,7 +26,7 @@ Deno.test("db-columns · MESSAGES mapping estável", () => {
 
 Deno.test("evolution-api · não usa .eq('instance_id', ...) para filtrar por nome (regressão histórica)", async () => {
   const src = await Deno.readTextFile(
-    new URL("../../evolution-api/index.ts", import.meta.url).pathname,
+    Deno.realPathSync(new URL("../../evolution-api/index.ts", import.meta.url)),
   );
   // Permitimos ocorrências em strings de log/payload (details.instance_id, mensagem de erro)
   // e em COMENTÁRIOS. Proibimos apenas o padrão .eq('instance_id', ...

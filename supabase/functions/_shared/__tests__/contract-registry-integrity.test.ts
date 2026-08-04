@@ -145,7 +145,7 @@ function walkDir(dir: URL): string[] {
     if (entry.isDirectory) {
       out.push(...walkDir(p));
     } else if (entry.name === "index.ts") {
-      out.push(new URL("index.ts", p).pathname);
+      out.push(Deno.realPathSync(p)); // realPath resolve /C:/... para caminho nativo Windows
     }
   }
   return out;
