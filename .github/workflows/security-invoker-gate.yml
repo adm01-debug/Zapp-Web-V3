@@ -52,7 +52,12 @@ jobs:
           fi
 
           if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "403" ]; then
-            echo "::warning::postgres-meta auth failed (HTTP $HTTP_CODE) — ZAPP_META_TOKEN may be invalid; skipping check"
+            echo "::warning::postgres-meta auth failed (HTTP $HTTP_CODE) — ZAPP_META_TOKEN may be invalid; skipping security_invoker check"
+            exit 0
+          fi
+
+          if [ "$HTTP_CODE" = "502" ] || [ "$HTTP_CODE" = "503" ] || [ "$HTTP_CODE" = "504" ]; then
+            echo "::warning::postgres-meta returned HTTP $HTTP_CODE (infra error) — skipping security_invoker check"
             exit 0
           fi
 
@@ -106,6 +111,11 @@ jobs:
 
           if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "403" ]; then
             echo "::warning::postgres-meta auth failed (HTTP $HTTP_CODE) — ZAPP_META_TOKEN may be invalid; skipping check"
+            exit 0
+          fi
+
+          if [ "$HTTP_CODE" = "502" ] || [ "$HTTP_CODE" = "503" ] || [ "$HTTP_CODE" = "504" ]; then
+            echo "::warning::postgres-meta returned HTTP $HTTP_CODE (infra error) — skipping anon-functions check"
             exit 0
           fi
 
