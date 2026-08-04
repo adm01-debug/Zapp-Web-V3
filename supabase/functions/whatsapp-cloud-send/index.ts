@@ -1,54 +1,15 @@
 // WhatsApp Cloud API sender — text, media, template, sticker, reaction, location, contacts, read
-// Auth: requires JWT (validated below). Body schema validated with Zod.
+// Auth: requires JWT (validated below). Body schema validated with Zod via contract gate.
 import { createZappClient } from '../_shared/db-client.ts';
-import { z } from "https://esm.sh/zod@3.23.8";
-import { contractErrorResponse, getCorsHeaders, checkRateLimit } from "../_shared/validation.ts";
+import { getCorsHeaders, checkRateLimit } from "../_shared/validation.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 const corsHeaders = getCorsHeaders();
 
 const PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_CLOUD_PHONE_NUMBER_ID") ?? "";
 const ACCESS_TOKEN = Deno.env.get("WHATSAPP_CLOUD_ACCESS_TOKEN") ?? "";
 const GRAPH_VERSION = "v21.0";
-
-const SendSchema = z.object({
-  to: z.string().min(5), // E.164 phone w/o '+'
-  type: z.enum([
-    "text",
-    "image",
-    "video",
-    "audio",
-    "document",
-    "sticker",
-    "template",
-    "reaction",
-    "location",
-    "contacts",
-    "read",
-  ]),
-  text: z.string().optional(),
-  mediaUrl: z.string().url().optional(),
-  caption: z.string().optional(),
-  filename: z.string().optional(),
-  template: z
-    .object({
-      name: z.string(),
-      language: z.string().default("pt_BR"),
-      components: z.array(z.any()).optional(),
-    })
-    .optional(),
-  // reaction
-  messageId: z.string().optional(),
-  emoji: z.string().optional(),
-  // location
-  latitude: z.number().optional(),
-  longitude: z.number().optional(),
-  name: z.string().optional(),
-  address: z.string().optional(),
-  // contacts
-  contacts: z.array(z.any()).optional(),
-  // read
-  messageIds: z.array(z.string()).optional(),
-});
 
 function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -122,23 +83,10 @@ Deno.serve(async (req) => {
     );
   }
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return jsonResponse({ error: "invalid_json" }, 400);
-  }
-  const parsed = SendSchema.safeParse(body);
-  if (!parsed.success) {
-    return contractErrorResponse(
-      "VALIDATION_ERROR",
-      "Invalid send payload",
-      parsed.error.issues,
-      undefined,
-      req
-    );
-  }
-  const p = parsed.data;
+  const raw = await req.json().catch(() => null);
+  const parsed = parseOrReject('whatsapp-cloud-send', CONTRACT_SCHEMAS['whatsapp-cloud-send'], req, raw, { extraHeaders: getCorsHeaders(req) });
+  if (!parsed.ok) return parsed.response;
+  const p = parsed.data as Record<string, any>;
 
   // Special case: marking messages as read uses the same /messages endpoint
   // but with a different payload shape (no `to`, requires status=read + message_id).

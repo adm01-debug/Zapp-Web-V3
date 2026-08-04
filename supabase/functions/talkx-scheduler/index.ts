@@ -5,6 +5,8 @@
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
@@ -13,6 +15,12 @@ Deno.serve(async (req) => {
   // Internal/cron-only — must present service role token or CRON_SECRET header.
   const denied = requireServiceRoleOrCron(req);
   if (denied) return denied;
+
+  // Contrato talkx-scheduler@v1 (G4): cron sem body → {} aceito.
+  const parsed = parseOrReject('talkx-scheduler', CONTRACT_SCHEMAS['talkx-scheduler'], req, await req.json().catch(() => ({})), {
+    extraHeaders: getCorsHeaders(req),
+  });
+  if (!parsed.ok) return parsed.response;
 
   const headers = { ...getCorsHeaders(req), "Content-Type": "application/json" };
   const log = new Logger("talkx-scheduler");

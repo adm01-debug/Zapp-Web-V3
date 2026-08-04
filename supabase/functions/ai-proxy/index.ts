@@ -4,7 +4,8 @@
  */
 import { handleCors, errorResponse, jsonResponse, Logger, requireEnv, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { z, parseBody } from "../_shared/schemas.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import { logAiUsage, extractTokenUsage } from "../_shared/ai-usage.ts";
 import { callLovableAI, callOpenAICompatible, callCustomWebhook, withRetry } from "../_shared/ai-providers.ts";
 import { requireUser } from "../_shared/auth.ts";
@@ -14,11 +15,6 @@ import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts
 function getLovableApiKey(): string {
   return Deno.env.get('AI_GATEWAY_KEY') || Deno.env.get('LOVABLE_API_KEY') || requireEnv('AI_GATEWAY_KEY');
 }
-
-const AiToolFunctionSchema = z.object({ name: z.string().min(1).max(64), description: z.string().max(1000).optional(), parameters: z.record(z.unknown()).optional() });
-const AiToolSchema = z.object({ type: z.literal('function'), function: AiToolFunctionSchema });
-const AiToolChoiceSchema = z.union([z.enum(['none', 'auto', 'required']), z.object({ type: z.literal('function'), function: z.object({ name: z.string().min(1).max(64) }) })]);
-const AiProxySchema = z.object({ messages: z.array(z.object({ role: z.string().max(50), content: z.string().max(50000) })).min(1).max(100), model: z.string().max(100).optional(), use_for: z.enum(['copilot', 'analysis', 'summary', 'tagging', 'auto_reply']).default('copilot'), provider_id: z.string().uuid().optional(), tools: z.array(AiToolSchema).max(128).optional(), tool_choice: AiToolChoiceSchema.optional(), stream: z.boolean().optional().default(false) });
 
 interface AiProvider { id: string; name: string; provider_type: string; api_endpoint: string | null; api_key_secret_name: string | null; model: string | null; system_prompt: string | null; config: Record<string, unknown>; is_active: boolean; }
 
@@ -67,9 +63,14 @@ Deno.serve(async (req) => {
     const ip = getClientIP(req);
     const { allowed } = checkRateLimit(`proxy:${userId}:${ip}`, 30, 60_000);
     if (!allowed) return errorResponse("Limite de requisi\u00e7\u00f5es excedido. Tente novamente em 1 minuto.", 429, req);
-    const parsed = parseBody(AiProxySchema, await req.json());
-    if (!parsed.success) return errorResponse(parsed.error, 400, req);
-    const { messages, model: clientModel, use_for, provider_id, tools, tool_choice, stream } = parsed.data;
+    // Contrato ai-proxy@v1 (estrito) — validação unificada 422 (parseOrReject).
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('ai-proxy', CONTRACT_SCHEMAS['ai-proxy'], req, raw, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
+    const { messages, model: clientModel, use_for, provider_id, tools, tool_choice, stream } = body;
     const supabase = createZappAdminClient();
     let provider;
     if (provider_id) {

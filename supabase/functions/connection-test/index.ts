@@ -5,6 +5,8 @@
 //  - entrega de webhook (POST sintético assinado contra a URL pública correta)
 import { getCorsHeaders } from "../_shared/validation.ts";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 type Mode = "official" | "unofficial";
 type Status = "pass" | "warn" | "fail" | "skip";
@@ -341,10 +343,13 @@ Deno.serve(async (req) => {
   if (authed instanceof Response) return authed;
 
   let mode: Mode = "unofficial";
-  try {
-    const body = await req.json();
-    if (body?.mode === "official" || body?.mode === "unofficial") mode = body.mode;
-  } catch { /* default */ }
+  const raw = await req.json().catch(() => ({}));
+  const parsed = parseOrReject("connection-test", CONTRACT_SCHEMAS["connection-test"], req, raw, {
+    extraHeaders: getCorsHeaders(req),
+  });
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data as Record<string, any>;
+  if (body?.mode === "official" || body?.mode === "unofficial") mode = body.mode;
 
   const startedAt = Date.now();
   const checks = mode === "official" ? await runCloudChecks() : await runEvolutionChecks();

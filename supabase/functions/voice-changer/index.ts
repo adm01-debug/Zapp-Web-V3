@@ -2,6 +2,9 @@ import { handleCors, errorResponse, getCorsHeaders, Logger, requireEnv, checkRat
 import { requireUser, requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getStoragePublicUrl } from "../_shared/storage-url.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import { VoiceChangerV1Schema } from "../_shared/schemas.ts";
 
 const VOICE_PRESETS: Record<string, { voiceId: string; label: string; isCloned?: boolean }> = {
   // Masculinas
@@ -70,14 +73,25 @@ Deno.serve(async (req) => {
     const contentType = req.headers.get('content-type') || '';
     if (contentType.includes('multipart/form-data')) {
       const formData = await req.formData();
-      audioData = formData.get('audio') as Blob | null;
-      voicePreset = formData.get('voice_preset') as string || 'grave';
-      taskId = formData.get('task_id') as string | null;
-      authorized = formData.get('authorized') === 'true';
+      const raw = Object.fromEntries(formData.entries()); // preserva File (multipart)
+      // Contrato voice-changer@v1 (variante multipart): audio (File) obrigatório.
+      const parsed = parseOrReject('voice-changer', CONTRACT_SCHEMAS['voice-changer'], req, raw, { extraHeaders: getCorsHeaders(req) });
+      if (!parsed.ok) return parsed.response;
+      const body = parsed.data as Record<string, any>;
+      audioData = (body.audio as File | undefined) ?? null;
+      voicePreset = (body.voice_preset as string) || 'grave';
+      taskId = (body.task_id as string | null) ?? null;
+      authorized = body.authorized === true || body.authorized === 'true';
     } else if (contentType.includes('application/json')) {
-      const json = await req.json();
-      taskId = json.task_id;
-      authorized = json.authorized || false;
+      const json = await req.json().catch(() => null);
+      // Ramo JSON (fila/queue): CONTRACT_SCHEMAS['voice-changer'] é o schema
+      // MULTIPART (audio File obrigatório) — usar a variante JSON registrada
+      // (VoiceChangerV1Schema) para não 422ar todos os requests de fila.
+      const parsed = parseOrReject('voice-changer', { v1: VoiceChangerV1Schema }, req, json, { extraHeaders: getCorsHeaders(req) });
+      if (!parsed.ok) return parsed.response;
+      const body = parsed.data as Record<string, any>;
+      taskId = (body.task_id as string | null) ?? null;
+      authorized = body.authorized === true;
     }
 
     // If we have a taskId but no audio, try to fetch from queue/storage

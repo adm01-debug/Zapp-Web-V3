@@ -1,7 +1,8 @@
 import { createZappAdminClient } from '../_shared/db-client.ts';
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders } from "../_shared/validation.ts";
 import { timingSafeStringEqual } from "../_shared/auth.ts";
-import { SicoobBridgeNewMessageSchema, SicoobBridgeMarkReadSchema, parseBody } from "../_shared/schemas.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -19,21 +20,19 @@ Deno.serve(async (req) => {
 
     const supabase = createZappAdminClient();
     const rawBody = await req.json().catch(() => null);
-    if (!rawBody || typeof rawBody !== 'object' || Array.isArray(rawBody)) return errorResponse('Invalid JSON body', 400, req);
-    const body = rawBody as Record<string, unknown>;
+    const parsed = parseOrReject('sicoob-bridge', CONTRACT_SCHEMAS['sicoob-bridge'], req, rawBody, { extraHeaders: getCorsHeaders(req) });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
     const action = typeof body.action === 'string' ? body.action : '';
 
     if (action === 'new_message') {
-      const parsed = parseBody(SicoobBridgeNewMessageSchema, body);
-      if (!parsed.success) return errorResponse(parsed.error, 400, req);
-
-      const { message_id, sender_name, sender_email, sender_phone, singular_name, singular_id, content, vendedor_user_id, created_at } = parsed.data;
+      const { message_id, sender_name, sender_email, sender_phone, singular_name, singular_id, content, vendedor_user_id, created_at } = body;
 
       // Check existing mapping
       const { data: existingMapping } = await supabase
         .from('sicoob_contact_mapping')
         .select('contact_id, zappweb_agent_id')
-        .eq('sicoob_user_id', parsed.data.sender_id || message_id)
+        .eq('sicoob_user_id', body.sender_id || message_id)
         .eq('sicoob_singular_id', singular_id)
         .maybeSingle();
 
@@ -59,7 +58,7 @@ Deno.serve(async (req) => {
         contactId = newContact.id;
 
         await supabase.from('sicoob_contact_mapping').insert({
-          contact_id: contactId, sicoob_user_id: parsed.data.sender_id || `sender-${message_id}`,
+          contact_id: contactId, sicoob_user_id: body.sender_id || `sender-${message_id}`,
           sicoob_vendedor_id: vendedor_user_id, sicoob_singular_id: singular_id, zappweb_agent_id: agentId,
         });
       }
@@ -87,10 +86,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true, contact_id: contactId, message_id: newMessage.id }, 200, req);
 
     } else if (action === 'mark_read') {
-      const parsed = parseBody(SicoobBridgeMarkReadSchema, body);
-      if (!parsed.success) return errorResponse(parsed.error, 400, req);
-
-      const { external_ids } = parsed.data;
+      const { external_ids } = body;
       const { error } = await supabase.from('messages').update({ is_read: true }).in('external_id', external_ids);
       if (error) throw new Error(`Failed to mark messages as read: ${error.message}`);
 

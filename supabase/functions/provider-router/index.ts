@@ -61,6 +61,8 @@ import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 type Action = "sendText" | "sendMedia" | "getStatus" | "ping";
 
 interface RouteRequest {
@@ -225,22 +227,10 @@ Deno.serve(async (req) => {
     });
   }
 
-  let body: RouteRequest;
-  try {
-    const parsed = await req.json();
-    if (typeof parsed !== "object" || parsed === null) {
-      console.warn('[provider-router] invalid json: not an object', { type: typeof parsed });
-      return new Response(JSON.stringify({ error: "invalid_json" }), {
-        status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
-      });
-    }
-    body = parsed as RouteRequest;
-  } catch (e) {
-    console.error('[provider-router] json parse error', { error: e instanceof Error ? e.message : String(e) });
-    return new Response(JSON.stringify({ error: "invalid_json" }), {
-      status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
-    });
-  }
+  const raw = await req.json().catch(() => null);
+  const parsed = parseOrReject('provider-router', CONTRACT_SCHEMAS['provider-router'], req, raw, { extraHeaders: getCorsHeaders(req) });
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data as RouteRequest;
 
   if (!body.action || typeof body.action !== "string") {
     console.warn('[provider-router] missing or invalid action', { action: body.action });

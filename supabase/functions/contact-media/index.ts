@@ -12,6 +12,8 @@
 
 import { createZappClient } from '../_shared/db-client.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 interface CursorPayload {
   created_at: string;
   id: string;
@@ -59,11 +61,12 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     url.searchParams.forEach((v, k) => (params[k] = v));
   } else if (req.method === "POST") {
-    try {
-      params = (await req.json()) ?? {};
-    } catch {
-      return jsonResponse(req, { error: "Invalid JSON body" }, 400);
-    }
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject("contact-media", CONTRACT_SCHEMAS["contact-media"], req, raw, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    params = parsed.data as Record<string, unknown>;
   } else {
     return jsonResponse(req, { error: "Method not allowed" }, 405);
   }

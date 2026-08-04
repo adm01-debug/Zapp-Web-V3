@@ -1,5 +1,7 @@
-import { handleCors, jsonResponse, Logger, errorResponse, checkRateLimit } from "../_shared/validation.ts";
+import { handleCors, jsonResponse, Logger, errorResponse, checkRateLimit, getCorsHeaders } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 /**
  * Endpoint to test VirusTotal connection and API Key
@@ -21,7 +23,10 @@ Deno.serve(async (req) => {
       return errorResponse("Method not allowed", 405, req);
     }
 
-    const { apiKey } = await req.json();
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('virustotal-test', CONTRACT_SCHEMAS['virustotal-test'], req, raw, { extraHeaders: getCorsHeaders(req) });
+    if (!parsed.ok) return parsed.response;
+    const { apiKey } = parsed.data as Record<string, any>;
 
     if (!apiKey) {
       return errorResponse("API Key is required", 400, req);

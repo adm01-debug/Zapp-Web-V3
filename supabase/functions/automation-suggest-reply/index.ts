@@ -4,6 +4,8 @@ import { createZappAdminClient } from "../_shared/db-client.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { isValidUUID } from "../_shared/validation.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 const MAX_MESSAGE_CONTENT_LEN = 2_000;
 const MAX_CONTACT_NAME_LEN = 200;
@@ -247,11 +249,12 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("AI_GATEWAY_KEY") || Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("Required environment variables missing");
 
-    const rawBody = await req.json();
-    if (typeof rawBody !== 'object' || rawBody === null || Array.isArray(rawBody)) {
-      throw new Error("Invalid request body");
-    }
-    const bodyObj = rawBody as Record<string, unknown>;
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject("automation-suggest-reply", CONTRACT_SCHEMAS["automation-suggest-reply"], req, raw, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const bodyObj = parsed.data as Record<string, any>;
     const executionId = typeof bodyObj.executionId === 'string' ? bodyObj.executionId : '';
     const ruleId = typeof bodyObj.ruleId === 'string' ? bodyObj.ruleId : '';
     const recentMessages = Array.isArray(bodyObj.recentMessages) ? bodyObj.recentMessages : undefined;

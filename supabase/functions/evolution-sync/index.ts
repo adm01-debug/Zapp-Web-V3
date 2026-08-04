@@ -1,6 +1,8 @@
 import { getCorsHeaders, handleCors, checkRateLimit } from "../_shared/validation.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import {
   syncContacts, syncMessages, syncAllMessages,
   setupWebhook, cleanupMock, fullSync,
@@ -44,18 +46,12 @@ Deno.serve(async (req) => {
   const supabase = createZappAdminClient();
 
   try {
-    let rawBody: unknown;
-    try {
-      rawBody = await req.json();
-    } catch {
-      rawBody = {};
-    }
-
-    if (typeof rawBody !== 'object' || rawBody === null || Array.isArray(rawBody)) {
-      rawBody = {};
-    }
-
-    const body = rawBody as Record<string, unknown>;
+    const raw = await req.json().catch(() => ({}));
+    const parsed = parseOrReject("evolution-sync", CONTRACT_SCHEMAS["evolution-sync"], req, raw, {
+      extraHeaders: corsHeaders,
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
     const action = typeof body.action === 'string' ? body.action : 'sync-contacts';
     const rawInstanceName = typeof body.instanceName === 'string' ? body.instanceName : 'wpp2';
     const pageNum = typeof body.page === 'number' ? body.page : 1;

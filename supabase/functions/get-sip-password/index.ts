@@ -1,6 +1,9 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -16,6 +19,12 @@ Deno.serve(async (req) => {
     // Server-side JWT verification via Supabase Auth API (replaces getClaims local decode)
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
+
+    // Contrato get-sip-password@v1 (G4): GET sem body → {} aceito.
+    const parsed = parseOrReject('get-sip-password', CONTRACT_SCHEMAS['get-sip-password'], req, await req.json().catch(() => ({})), {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
 
     const adminClient = createZappAdminClient();
     const { data: profile, error: profileError } = await adminClient

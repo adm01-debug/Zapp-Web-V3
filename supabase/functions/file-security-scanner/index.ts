@@ -1,5 +1,7 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, securityErrorResponse, checkRateLimit } from "../_shared/validation.ts";
+import { handleCors, getCorsHeaders, errorResponse, jsonResponse, requireEnv, Logger, securityErrorResponse, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 
 /**
@@ -46,8 +48,13 @@ Deno.serve(async (req) => {
     }
 
     const formData = await req.formData();
-    const file = formData.get("file") as File;
-    const rawBucket = (formData.get("bucket") as string) || "uploads";
+    const raw = Object.fromEntries(formData.entries()); // preserva File (multipart)
+    // Contrato file-security-scanner@v1 (estrito): file (File) obrigatório, bucket opcional.
+    const parsed = parseOrReject('file-security-scanner', CONTRACT_SCHEMAS['file-security-scanner'], req, raw, { extraHeaders: getCorsHeaders(req) });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
+    const file = body.file as File;
+    const rawBucket = (body.bucket as string) || "uploads";
 
     // Restrict to an explicit allowlist — prevents writing to arbitrary/privileged buckets.
     const ALLOWED_UPLOAD_BUCKETS = new Set(['uploads', 'chat-attachments', 'attachments', 'documents']);

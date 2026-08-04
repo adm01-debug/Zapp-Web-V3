@@ -1,5 +1,6 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders, checkRateLimit } from "../_shared/validation.ts";
-import { ElevenLabsTTSSchema, parseBody } from "../_shared/schemas.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import { requireUser } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
@@ -15,10 +16,20 @@ Deno.serve(async (req) => {
     const rl = checkRateLimit(`elevenlabs-tts:${authed.user.id}`, 20, 60_000);
     if (!rl.allowed) return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
 
-    const parsed = parseBody(ElevenLabsTTSSchema, await req.json());
-    if (!parsed.success) return errorResponse(parsed.error, 400, req);
+    // Contrato elevenlabs-tts-stream@v1 — validação unificada 422 (parseOrReject).
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('elevenlabs-tts-stream', CONTRACT_SCHEMAS['elevenlabs-tts-stream'], req, raw, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
 
-    const { text, voiceId, modelId, languageCode, applyTextNormalization } = parsed.data;
+    // Guarda de compatibilidade: schema registrado é permissivo (placeholder);
+    // preserva o 400 do antigo parseBody(ElevenLabsTTSSchema).
+    const { text, voiceId, modelId, languageCode, applyTextNormalization } = body;
+    if (typeof text !== 'string' || text.length === 0 || text.length > 10000) {
+      return errorResponse('text: Required (1..10000)', 400, req);
+    }
     const ELEVENLABS_API_KEY = requireEnv("ELEVENLABS_API_KEY");
 
     const selectedVoiceId = voiceId || 'TY3h8ANhQUsJaa0Bga5F';

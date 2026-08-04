@@ -1,8 +1,10 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
-import { ChatbotL1Schema, parseBody } from "../_shared/schemas.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import { callAiWithTracking, extractUserIdFromRequest } from "../_shared/ai-usage.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -21,10 +23,15 @@ Deno.serve(async (req) => {
     const { allowed } = checkRateLimit(`chatbot:${ip}`, 30, 60_000);
     if (!allowed) return errorResponse("Rate limit exceeded. Please try again later.", 429, req);
 
-    const parsed = parseBody(ChatbotL1Schema, await req.json());
-    if (!parsed.success) return errorResponse(parsed.error, 400, req);
+    // Contrato chatbot-l1@v1 (estrito) — validação unificada 422 (parseOrReject).
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('chatbot-l1', CONTRACT_SCHEMAS['chatbot-l1'], req, raw, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
 
-    const { contactId, message, connectionId } = parsed.data;
+    const { contactId, message, connectionId } = body;
     const LOVABLE_API_KEY = Deno.env.get("AI_GATEWAY_KEY") || Deno.env.get("LOVABLE_API_KEY") || requireEnv("AI_GATEWAY_KEY");
     const supabase = createZappAdminClient();
 

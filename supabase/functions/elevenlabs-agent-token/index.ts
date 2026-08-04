@@ -1,5 +1,8 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -10,6 +13,12 @@ Deno.serve(async (req) => {
   try {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
+
+    // Contrato elevenlabs-agent-token@v1 (G4): GET sem body → {} aceito.
+    const parsed = parseOrReject('elevenlabs-agent-token', CONTRACT_SCHEMAS['elevenlabs-agent-token'], req, await req.json().catch(() => ({})), {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
 
     const ELEVENLABS_API_KEY = requireEnv('ELEVENLABS_API_KEY');
     const ELEVENLABS_AGENT_ID = requireEnv('ELEVENLABS_AGENT_ID');

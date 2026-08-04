@@ -6,6 +6,8 @@ import { computeBackoffMs, classifyRetryReason, computeBackoffMsByReason } from 
 import { requireServiceRoleOrCron, requireAdminOrSupervisor } from '../_shared/auth.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 const MAX_BATCH = 25;
 
 Deno.serve(async (req) => {
@@ -18,6 +20,12 @@ Deno.serve(async (req) => {
       const authed = await requireAdminOrSupervisor(req);
       if (authed instanceof Response) return authed;
     }
+
+    // Contrato reprocess-failed-messages@v1 (G4): body opcional ({ limit?, dryRun? }).
+    const parsed = parseOrReject('reprocess-failed-messages', CONTRACT_SCHEMAS['reprocess-failed-messages'], req, await req.json().catch(() => ({})), {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
 
     // Uses service-role credentials (SUPABASE_SERVICE_ROLE_KEY) via createZappAdminClient()
     const supabase = createZappAdminClient();

@@ -34,7 +34,7 @@ import {
   ElevenLabsTtsV1Schema,
   ElevenLabsStsV1Schema,
 } from "../contract-schemas.ts";
-import type { z } from "../contract-schemas.ts";
+import type { z } from "../contract-kit.ts";
 
 interface Matrix {
   name: string;

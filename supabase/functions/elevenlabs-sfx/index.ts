@@ -1,7 +1,9 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit } from "../_shared/validation.ts";
-import { ElevenLabsSFXSchema, parseBody } from "../_shared/schemas.ts";
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -16,10 +18,20 @@ Deno.serve(async (req) => {
     const rl = checkRateLimit(`elevenlabs-sfx:${authed.user.id}`, 15, 60_000);
     if (!rl.allowed) return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
 
-    const parsed = parseBody(ElevenLabsSFXSchema, await req.json());
-    if (!parsed.success) return errorResponse(parsed.error, 400, req);
+    // Contrato elevenlabs-sfx@v1 — validação unificada 422 (parseOrReject).
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('elevenlabs-sfx', CONTRACT_SCHEMAS['elevenlabs-sfx'], req, raw, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
 
-    const { prompt, duration, mode } = parsed.data;
+    // Guarda de compatibilidade: schema registrado é permissivo (placeholder);
+    // preserva o 400 do antigo parseBody(ElevenLabsSFXSchema).
+    const { prompt, duration, mode } = body;
+    if (typeof prompt !== 'string' || prompt.length === 0 || prompt.length > 2000) {
+      return errorResponse('prompt: Required (1..2000)', 400, req);
+    }
     const ELEVENLABS_API_KEY = requireEnv("ELEVENLABS_API_KEY");
 
     const isMusic = mode === "music";
@@ -27,7 +39,7 @@ Deno.serve(async (req) => {
       ? "https://api.elevenlabs.io/v1/music"
       : "https://api.elevenlabs.io/v1/sound-generation";
 
-    const body = isMusic
+    const elBody = isMusic
       ? { prompt, duration_seconds: duration || 15 }
       : { text: prompt, duration_seconds: duration || 5, prompt_influence: 0.3 };
 
@@ -39,7 +51,7 @@ Deno.serve(async (req) => {
         "xi-api-key": ELEVENLABS_API_KEY,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(elBody),
       signal: AbortSignal.timeout(30_000),
     });
 

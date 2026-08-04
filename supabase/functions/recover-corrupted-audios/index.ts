@@ -1,9 +1,12 @@
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 const EVOLUTION_API_URL = (Deno.env.get("EVOLUTION_API_URL") || "").replace(/\/+$/, "");
 const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? '';
+const SUPABASE_URL = (Deno.env.get("SELFHOSTED_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL") ?? "").replace(/\/+$/, "");
 
 const supabase = createZappAdminClient();
 
@@ -46,7 +49,10 @@ Deno.serve(async (req) => {
   const log = new Logger("recover-corrupted-audios");
 
   try {
-    const { batch_size = 20, offset = 0, dry_run = false } = await req.json().catch(() => ({}));
+    const raw = await req.json().catch(() => ({}));
+    const parsed = parseOrReject('recover-corrupted-audios', CONTRACT_SCHEMAS['recover-corrupted-audios'], req, raw, { extraHeaders: getCorsHeaders(req) });
+    if (!parsed.ok) return parsed.response;
+    const { batch_size = 20, offset = 0, dry_run = false } = parsed.data as Record<string, any>;
 
     const { data: messages, error: fetchErr } = await supabase
       .from("messages")

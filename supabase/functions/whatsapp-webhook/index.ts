@@ -3,7 +3,9 @@ import { createZappAdminClient } from "../_shared/db-client.ts";
 import { verifyHmacSignature } from "../_shared/hmac-validation.ts";
 import { timingSafeStringEqual } from "../_shared/auth.ts";
 import { initSentry, captureException, captureMessage } from "../_shared/sentry.ts";
-import { WhatsappWebhookV1Schema } from "../_shared/contract-schemas.ts";
+import { parseOrReject, z } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import { WhatsappWebhookV1Schema } from "../_shared/webhook-schemas.ts";
 
 Deno.serve(async (req) => {
   initSentry('whatsapp-webhook');
@@ -41,6 +43,7 @@ Deno.serve(async (req) => {
 
   // Handle webhook events (POST request)
   if (req.method === 'POST') {
+    let payload: z.infer<typeof WhatsappWebhookV1Schema> | undefined;
     try {
       const supabase = createZappAdminClient();
 
@@ -69,15 +72,18 @@ Deno.serve(async (req) => {
       } catch {
         return jsonResponse({ success: true, warning: "Invalid JSON" }, 200, req);
       }
-      const parsed = WhatsappWebhookV1Schema.safeParse(rawPayload);
+      // Gate de contrato APÓS o HMAC (rawBody já foi lido para a assinatura —
+      // NÃO reler o body). Payload inválido NÃO vira 422: a Meta reenviaria o
+      // evento infinitamente. Mantém 200 + warning (padrão Meta de webhook).
+      const parsed = parseOrReject('whatsapp-webhook', CONTRACT_SCHEMAS['whatsapp-webhook'], req, rawPayload, { extraHeaders: getCorsHeaders(req) });
 
-      if (!parsed.success) {
-        log.warn("Invalid webhook payload", { errors: parsed.error.message });
+      if (!parsed.ok) {
+        log.warn("Invalid webhook payload", { errors: parsed.body.message, details: parsed.body.details });
         // Return 200 to acknowledge and prevent retries
         return jsonResponse({ success: true, warning: "Invalid payload format" }, 200, req);
       }
 
-      const payload = parsed.data;
+      payload = parsed.data as z.infer<typeof WhatsappWebhookV1Schema>;
       log.info("Received webhook", { entries: payload.entry.length });
 
       // Process status updates
