@@ -76,6 +76,11 @@ export function ConversationList({
       open: conversations.filter((c) => c.status === 'open').length,
       pending: conversations.filter((c) => c.status === 'pending').length,
       waiting: conversations.filter((c) => c.status === 'waiting').length,
+      // Cast defensivo: `isArchived` ainda não existe em `Conversation`
+      // (types/chat) — chega via merge com o tipo `ConversationWithMessages`.
+      archived: conversations.filter(
+        (c) => (c as Conversation & { isArchived?: boolean }).isArchived === true
+      ).length,
     };
   }, [conversations]);
 
@@ -146,6 +151,7 @@ export function ConversationList({
               { id: 'open', label: 'Abertas', count: counts.open },
               { id: 'pending', label: 'Pendentes', count: counts.pending },
               { id: 'waiting', label: 'Aguardando', count: counts.waiting },
+              { id: 'archived', label: 'Arquivados', count: counts.archived },
             ].map((t) => (
               <TabsTrigger
                 key={t.id}

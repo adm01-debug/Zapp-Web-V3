@@ -230,8 +230,8 @@ vendedores_acima_50k_hoje
 # [2026-08-03 PÓS-LIMPEZA] Objetos confirmados em PRODUÇÃO (query pg_proc/pg_class
 # em 2026-08-03) mas cujos CREATEs viviam em migrations-from-lovable/ e
 # migrations/archive/ (removidos na limpeza massiva ebf9558d5). O guard agora
-# usa supabase/migrations + supabase/migrations-snapshot como fontes; estes
-# itens ficam fora dessas fontes mas EXISTEM nos schemas zapp/ops/public/evo.
+# usa supabase/migrations como fonte (squash canônico 20260804000000); estes
+# itens ficam fora dessa fonte mas EXISTEM nos schemas zapp/ops/public/evo.
 # COMPROVAÇÃO: SELECT em pg_proc/pg_class (schemas zapp, ops, public, evo).
 # ---------------------------------------------------------------------------
 
@@ -315,3 +315,153 @@ is_feature_enabled
 is_instance_paused
 log_version_conflict
 upsert_user_settings
+
+# ---------------------------------------------------------------------------
+# [2026-08-04 PÓS-REMOÇÃO DO SNAPSHOT] Objetos confirmados em PRODUÇÃO
+# (SELECT pg_class/pg_proc via MCP em 2026-08-04 — 270 objetos, schemas
+#  zapp/public/evo/ai/email_app/financeiro). O squash canônico
+#  (20260804000000_canonical_schema.sql) NÃO contém CREATEs destas tabelas/
+#  funções-base (herdadas do Lovable, criadas fora do fluxo de migrations).
+#  Comprovação: query pg_class/pg_proc no banco self-hosted (supabase.atomicabr.com.br).
+# ---------------------------------------------------------------------------
+  agent_achievements
+  agent_skills
+  agent_stats
+  agent_visibility_grants
+  ai_conversation_tags
+  ai_providers
+  ai_usage_logs
+  allowed_countries
+  audio_memes
+  audit_logs
+  auto_close_config
+  automations
+  away_messages
+  blocked_countries
+  blocked_ips
+  business_hours
+  calls
+  campaign_ab_variants
+  campaigns
+  channel_connections
+  channel_connections_safe
+  channel_routing_rules
+  chatbot_flows
+  check_user_permission
+  client_wallet_rules
+  connection_alert_preferences
+  connection_health_logs
+  contact_custom_fields
+  contact_notes
+  contact_purchases
+  contact_tags
+  contacts
+  contacts_count_by_type
+  conversation_analyses
+  conversation_closures
+  conversation_events
+  conversation_memory
+  conversation_sla
+  conversation_snoozes
+  conversation_tasks
+  csat_auto_config
+  csat_surveys
+  custom_emojis
+  deal_activities
+  department_invitations
+  departments
+  email_accounts
+  email_labels
+  email_messages
+  email_threads
+  evolution_health_logs
+  evolution_instance_credentials
+  failed_messages
+  favorite_contacts
+  fn_increment_meme_use
+  fn_toggle_user_meme_favorite
+  followup_sequences
+  followup_steps
+  generate_transfer_ticket
+  geo_blocking_settings
+  get_team_profiles
+  get_visible_agent_ids
+  global_settings
+  goals_configurations
+  handle_new_user_settings
+  has_role
+  inbox_custom_scopes
+  ip_whitelist
+  is_admin_or_supervisor
+  is_queue_member_of_contact
+  is_within_business_hours
+  knowledge_base_articles
+  log_audit_event
+  log_rls_denied
+  log_security_event
+  login_attempts
+  message_reactions
+  message_templates
+  messages
+  meta_capi_events
+  nps_surveys
+  number_reputation
+  on_role_change
+  passkey_credentials
+  password_reset_requests
+  payment_links
+  performance_snapshots
+  permissions
+  pinned_conversations
+  playbooks
+  profiles
+  purge_old_query_telemetry
+  qr_attempts
+  query_telemetry
+  queue_goals
+  queue_members
+  queue_positions
+  queue_skill_requirements
+  queues
+  rate_limit_configs
+  rate_limit_logs
+  reassign_absent_agents
+  reassign_overloaded_agents
+  reminders
+  role_permissions
+  route_permissions
+  rpc_instance_auth_event_summary
+  rpc_instance_auth_event_trend
+  rpc_list_transfers_paginated
+  rpc_upsert_contact
+  sales_deals
+  sales_pipeline_stages
+  scheduled_messages
+  scheduled_report_configs
+  search_knowledge_base
+  security_alerts
+  security_audit_logs
+  sicoob_contact_mapping
+  sla_configurations
+  sla_rules
+  tags
+  talkx_blacklist
+  talkx_campaigns
+  talkx_recipients
+  team_conversation_members
+  team_conversations
+  team_messages
+  training_sessions
+  trg_fn_set_transfer_ticket
+  update_own_profile
+  user_devices
+  user_has_permission
+  user_roles
+  user_sessions
+  user_settings
+  whatsapp_connection_queues
+  whatsapp_connections
+  whatsapp_flows
+  whatsapp_groups
+  whatsapp_templates
+  whisper_messages

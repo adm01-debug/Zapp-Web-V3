@@ -188,6 +188,12 @@ export function buildExternalConversations(
     const unreadCount = realtimeMessages.filter((m) => !m.is_read && m.sender === 'contact').length;
     const lastMessage =
       realtimeMessages.length > 0 ? realtimeMessages[realtimeMessages.length - 1] : null;
-    return { contact, messages: realtimeMessages, unreadCount, lastMessage };
+    return {
+      contact,
+      messages: realtimeMessages,
+      unreadCount,
+      lastMessage,
+      isArchived: Boolean(contact.deleted_at),
+    };
   });
 }
