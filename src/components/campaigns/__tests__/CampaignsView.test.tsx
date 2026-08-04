@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import type { HTMLAttributes, ReactNode } from 'react';
+import type { HTMLAttributes, ReactNode, ReactElement } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+function renderWithQC(ui: ReactElement) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
@@ -45,9 +51,10 @@ vi.mock('framer-motion', () => ({
 }));
 
 // Mock the useCampaigns hook
-const mockCreateCampaign = { mutate: vi.fn(), isPending: false };
+const mockCreateCampaign = { mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false };
 const mockUpdateCampaign = { mutate: vi.fn() };
 const mockDeleteCampaign = { mutate: vi.fn() };
+const mockAddContactsToCampaign = { mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false };
 
 vi.mock('@/hooks/useCampaigns', () => ({
   useCampaigns: () => ({
@@ -56,6 +63,7 @@ vi.mock('@/hooks/useCampaigns', () => ({
     createCampaign: mockCreateCampaign,
     updateCampaign: mockUpdateCampaign,
     deleteCampaign: mockDeleteCampaign,
+    addContactsToCampaign: mockAddContactsToCampaign,
   }),
 }));
 
@@ -66,7 +74,7 @@ describe('CampaignsView', () => {
 
   describe('Target Type Options', () => {
     it('renders the campaigns view', async () => {
-      render(<CampaignsView />);
+      renderWithQC(<CampaignsView />);
       await waitFor(() => {
         expect(screen.getByText('Campanhas')).toBeInTheDocument();
       });

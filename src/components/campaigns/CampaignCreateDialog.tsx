@@ -1,8 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
@@ -18,8 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Megaphone, Loader2 } from 'lucide-react';
+import { Megaphone, Loader2, Search, Users } from 'lucide-react';
 import { UseMutationResult } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import type { CampaignInput } from '@/hooks/useCampaigns';
 
 type TargetType = 'all' | 'tag' | 'queue' | 'groups' | 'custom';
@@ -46,6 +50,13 @@ interface CampaignCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   createCampaign: UseMutationResult<unknown, Error, CampaignInput, unknown>;
+  /** Mutation que persiste contatos em `campaign_contacts` via RPC `add_contacts_to_campaign`. */
+  addContactsToCampaign: UseMutationResult<
+    unknown,
+    Error,
+    { campaignId: string; contactIds: string[] },
+    unknown
+  >;
 }
 
 /** Campaign Create Dialog component for the campaigns section. */
@@ -53,20 +64,72 @@ export function CampaignCreateDialog({
   open,
   onOpenChange,
   createCampaign,
+  addContactsToCampaign,
 }: CampaignCreateDialogProps) {
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
+  const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
+  const [contactSearch, setContactSearch] = useState('');
 
-  const handleCreate = useCallback(() => {
-    createCampaign.mutate(
-      { ...form, target_type: form.target_type as 'all' | 'custom' | 'queue' | 'tag' },
-      {
-        onSuccess: () => {
-          onOpenChange(false);
-          setForm(INITIAL_FORM);
-        },
-      }
+  // Contatos disponíveis para o alvo "Seleção manual" (target_type='custom').
+  const { data: contacts = [], isLoading: contactsLoading } = useQuery({
+    queryKey: ['campaign-create-dialog', 'contacts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('id, name, phone, company')
+        .not('phone', 'is', null)
+        .order('name');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: open && form.target_type === 'custom',
+    staleTime: 300_000,
+  });
+
+  // Normaliza id (string | null → string) para o Checkbox — mesmo padrão do TalkXContactSelector.
+  const contactOptions = useMemo(
+    () => contacts.map((c) => ({ ...c, id: c.id ?? '' })),
+    [contacts]
+  );
+
+  const filteredContacts = contactOptions.filter((c) => {
+    const q = contactSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      (c.name ?? '').toLowerCase().includes(q) ||
+      (c.phone ?? '').includes(q) ||
+      (c.company ?? '').toLowerCase().includes(q)
     );
-  }, [form, createCampaign, onOpenChange]);
+  });
+
+  const toggleContact = useCallback((id: string) => {
+    setSelectedContactIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  }, []);
+
+  const handleCreate = useCallback(async () => {
+    try {
+      const created = (await createCampaign.mutateAsync({
+        ...form,
+        target_type: form.target_type as 'all' | 'custom' | 'queue' | 'tag',
+      })) as { id?: string } | null;
+      // Alvo "Seleção manual": conecta os contatos escolhidos via RPC add_contacts_to_campaign
+      // (insere em campaign_contacts). Sem isso a campanha ficava sem destinatários.
+      if (created?.id && form.target_type === 'custom' && selectedContactIds.length > 0) {
+        await addContactsToCampaign.mutateAsync({
+          campaignId: created.id,
+          contactIds: selectedContactIds,
+        });
+      }
+      onOpenChange(false);
+      setForm(INITIAL_FORM);
+      setSelectedContactIds([]);
+      setContactSearch('');
+    } catch {
+      // Erros já são exibidos pelos onError das mutations (toast) — evita unhandled rejection.
+    }
+  }, [form, createCampaign, addContactsToCampaign, selectedContactIds, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -153,6 +216,56 @@ export function CampaignCreateDialog({
               max={60}
             />
           </div>
+
+          {form.target_type === 'custom' && (
+            <div>
+              <Label className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5" />
+                Contatos da campanha ({selectedContactIds.length} selecionados)
+              </Label>
+              <div className="relative mt-1.5">
+                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  aria-label="Buscar contatos"
+                  value={contactSearch}
+                  onChange={(e) => setContactSearch(e.target.value)}
+                  placeholder="Buscar por nome, telefone ou empresa..."
+                  className="h-9 pl-8"
+                />
+              </div>
+              <ScrollArea className="mt-2 max-h-48 rounded-lg border border-border/60">
+                {contactsLoading ? (
+                  <div className="flex items-center justify-center gap-2 p-4 text-xs text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando contatos...
+                  </div>
+                ) : filteredContacts.length === 0 ? (
+                  <p className="p-4 text-center text-xs text-muted-foreground">
+                    Nenhum contato encontrado
+                  </p>
+                ) : (
+                  <div className="divide-y divide-border/40">
+                    {filteredContacts.map((c) => (
+                      <label
+                        key={c.id}
+                        className="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm hover:bg-muted/50"
+                      >
+                        <Checkbox
+                          checked={selectedContactIds.includes(c.id)}
+                          onCheckedChange={() => toggleContact(c.id)}
+                          aria-label={`Selecionar ${c.name ?? c.phone}`}
+                        />
+                        <span className="min-w-0 flex-1 truncate">{c.name || 'Sem nome'}</span>
+                        <span className="truncate text-xs text-muted-foreground">{c.phone}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Os contatos selecionados serão salvos em campaign_contacts ao criar a campanha
+              </p>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -161,7 +274,12 @@ export function CampaignCreateDialog({
           </Button>
           <Button
             onClick={handleCreate}
-            disabled={!form.name || !form.message_content || createCampaign.isPending}
+            disabled={
+              !form.name ||
+              !form.message_content ||
+              createCampaign.isPending ||
+              (form.target_type === 'custom' && selectedContactIds.length === 0)
+            }
           >
             {createCampaign.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Criar Campanha
