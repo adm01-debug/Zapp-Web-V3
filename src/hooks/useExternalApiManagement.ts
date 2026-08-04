@@ -115,6 +115,10 @@ export function useExternalContact360Batch(phones: string[]) {
     enabled: cleanedPhones.length > 0,
     staleTime: 1000 * 60 * 10, // 10 min cache
     gcTime: 1000 * 60 * 30,
+    // Mantém o Map anterior enquanto o batch do novo conjunto carrega —
+    // evita flicker de company_name na lista durante o scroll e não reseta
+    // o lookup para undefined entre conjuntos visíveis.
+    placeholderData: (prev) => prev,
   });
 
   // Helper to lookup a single phone from the batch result

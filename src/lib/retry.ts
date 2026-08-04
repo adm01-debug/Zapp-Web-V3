@@ -28,7 +28,12 @@ export async function withRetry<T>(
     maxRetries = 3,
     baseDelayMs = 1000,
     maxDelayMs = 10000,
-    shouldRetry = () => true,
+    // SAFE DEFAULT: do NOT retry without an explicit policy.
+    // `() => true` would retry EVERYTHING, including AbortError (page
+    // unload / navigation), producing cascading "[RetryUtil] All N retries
+    // exhausted AbortError: Page unload" errors. Callers MUST pass an
+    // explicit `shouldRetry` that excludes AbortError.
+    shouldRetry = () => false,
     onRetry,
   } = options;
 
@@ -77,6 +82,11 @@ export async function withNetworkRetry<T>(
   return withRetry(operation, {
     maxRetries,
     shouldRetry: (error) => {
+      // NEVER retry aborted requests (page unload, navigation). The browser
+      // aborts all in-flight fetches on unload; retrying them is pointless
+      // and only produces cascading "[RetryUtil] All N retries exhausted"
+      // errors in the console.
+      if (error instanceof Error && error.name === 'AbortError') return false;
       if (error instanceof Error) {
         const msg = error.message.toLowerCase();
         const status = (error as unknown as { status?: number }).status;

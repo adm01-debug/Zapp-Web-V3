@@ -152,6 +152,7 @@ Thumbs.db
 # ====================
 supabase/.branches/
 supabase/.temp/
+supabase/functions/_test/
 .supabase/
 
 # ====================
@@ -195,6 +196,7 @@ playwright-report-e2e/
 # ====================
 # Diretório de trabalho temporário
 tmp/
+scripts/tmp_queries/
 
 # Saídas de scripts de auditoria ad-hoc
 audit.js
@@ -250,7 +252,7 @@ lalamove_*
 Credencias*
 Credenciais*
 deno.lock
-graphify-out/ # Knowledge Graph
+graphify-out/
 
 .vercel
 .env*
@@ -271,3 +273,4 @@ __pycache__/
 .claude/
 .agents/
 .codex/
+.hermes/

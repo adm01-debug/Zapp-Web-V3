@@ -2,6 +2,7 @@ import { useCallback, useRef, useMemo, useState, type RefObject } from 'react';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useDensity } from '@/hooks/useDensity';
+import { useDebouncedValue } from '@/hooks/useDebounce';
 import { MobilePullToRefreshIndicator } from '@/components/mobile/MobilePullToRefresh';
 import { VirtualizedRealtimeList } from './VirtualizedRealtimeList';
 import { useExternalContact360Batch } from '@/hooks/useExternalContact360Batch';
@@ -77,17 +78,14 @@ export function ConversationListSidebar({
   // das conversas DENTRO do viewport; o batch só é disparado para eles
   // (e o resultado volta via getCRMData → enriquece company_name dos itens).
   const [visiblePhones, setVisiblePhones] = useState<string[]>([]);
-
-  // FIX 2026-08-03: estabilizar a lista para evitar queryKey novo a cada render.
-  // Antes: visiblePhones mutava por referência → queryKey diferente → 4-8x
-  // chamadas simultâneas a get_companies_by_phones_batch no mesmo ciclo.
-  // Agora: stablePhones só muda quando o conteúdo ordenado muda.
-  const stablePhones = useMemo(
-    () => [...visiblePhones].sort(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [visiblePhones.slice().sort().join(',')]  // dep estável por valor, não referência
-  );
-  const { lookup } = useExternalContact360Batch(stablePhones);
+  // F4-fanout: debounce de 300ms — o virtualizer muda o conjunto de phones
+  // visíveis várias vezes durante o measure inicial (cada frame de layout
+  // recalcula scrollTop/clientHeight/overscan). Sem debounce, cada conjunto
+  // distinto vira 1 RPC `get_companies_by_phones_batch` enfileirada no
+  // semáforo — observado 5-6 chamadas no mesmo segundo na carga inicial,
+  // contribuindo para filas de 10-20s (durations lineares 4s→8s→13s→20s).
+  const debouncedVisiblePhones = useDebouncedValue(visiblePhones, 300);
+  const { lookup } = useExternalContact360Batch(debouncedVisiblePhones);
 
   const sortedFilteredIds = useMemo(
     () => inboxFilters.filteredConversations.map((c) => c.contact.id), // ignore-audit
