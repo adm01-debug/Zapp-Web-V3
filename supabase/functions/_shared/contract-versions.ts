@@ -103,6 +103,7 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "auto-escalate-sla":            { current: "v1", supported: ["v1"] },
   "auto-close-conversations":     { current: "v1", supported: ["v1"] },
   "backfill-messages":            { current: "v1", supported: ["v1"] },
+  "audio-transcribe":             { current: "v1", supported: ["v1"] },
   "elevenlabs-voice":             { current: "v1", supported: ["v1"] },
   "ai-classify-tickets":                       { current: "v1", supported: ["v1"] },
   "ai-router":                       { current: "v1", supported: ["v1"] },

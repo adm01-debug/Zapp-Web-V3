@@ -389,6 +389,24 @@ export const BackfillMessagesV1Schema = z.object({
   dryRun: z.boolean().optional(),
 }).strict();
 
+/**
+ * audio-transcribe@v1 — POST autenticado (requireUser + rate limit 5/min).
+ * Espelho fiel do TranscribeInput inline v2.2 (migrado do Cloud Fator X):
+ * { action?, audio_base64?, audio_url?, language?, format? } com refine
+ * exigindo audio_base64 OU audio_url. v2.3 versionado no repo (2026-08-04).
+ * NOTA: NÃO usar .strict() — o v2.2 original era permissivo a campos extras
+ * e o handler lê apenas os campos conhecidos.
+ */
+export const AudioTranscribeV1Schema = z.object({
+  action: z.enum(['transcribe', 'translate']).default('transcribe'),
+  audio_base64: z.string().min(100).optional(),
+  audio_url: z.string().url().optional(),
+  language: z.string().min(2).max(5).default('pt'),
+  format: z.enum(['text', 'srt', 'vtt', 'json']).default('text'),
+}).refine(d => d.audio_base64 || d.audio_url, {
+  message: 'Either audio_base64 or audio_url is required',
+});
+
 /** Ajustes de voz (elevenlabs-voice textToSpeech) — valores numéricos em [0,1]. */
 const ElevenLabsVoiceSettingsV1Schema = z.object({
   modelId: z.string().max(100).optional(),
@@ -844,6 +862,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "auto-escalate-sla":             { v1: AutoEscalateSlaV1Schema },
   "auto-close-conversations":      { v1: AutoCloseConversationsV1Schema },
   "backfill-messages":             { v1: BackfillMessagesV1Schema },
+  "audio-transcribe":               { v1: AudioTranscribeV1Schema },
   "elevenlabs-voice":              { v1: ElevenLabsVoiceV1Schema },
   "elevenlabs-tts":                { v1: ElevenLabsTtsV1Schema },
   "elevenlabs-sts":                { v1: ElevenLabsStsV1Schema },
