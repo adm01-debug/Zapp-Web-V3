@@ -1,0 +1,84 @@
+{
+  "generatedAt": "2026-08-04T12:37:14.368Z",
+  "budget": {
+    "entryInitialGzip": 614400,
+    "totalInitialGzip": 2097152,
+    "perChunkGzip": 614400,
+    "LCP": 2500,
+    "INP": 200,
+    "CLS": 0.1,
+    "TTFB": 800
+  },
+  "measurements": {
+    "entryInitialGzip": 449442,
+    "totalInitialGzip": 1219126,
+    "perChunkGzipMax": 449442
+  },
+  "chunks": [
+    {
+      "file": "index-BDPZ89wq.js",
+      "gzip": 449442,
+      "raw": 1553642
+    },
+    {
+      "file": "vendor-react-DILD09Uk.js",
+      "gzip": 211560,
+      "raw": 753029
+    },
+    {
+      "file": "vendor-pdf-6KHG7ZOo.js",
+      "gzip": 138888,
+      "raw": 423642
+    },
+    {
+      "file": "vendor-charts-BTNY66HD.js",
+      "gzip": 132181,
+      "raw": 470351
+    },
+    {
+      "file": "vendor-supabase-Bv88fv-z.js",
+      "gzip": 55559,
+      "raw": 215159
+    },
+    {
+      "file": "vendor-radix-C_uCBhfA.js",
+      "gzip": 51294,
+      "raw": 174360
+    },
+    {
+      "file": "vendor-sip-7Dnjnvw_.js",
+      "gzip": 51095,
+      "raw": 225367
+    },
+    {
+      "file": "vendor-motion-CNIxbJfY.js",
+      "gzip": 46271,
+      "raw": 140032
+    },
+    {
+      "file": "vendor-icons-Bstig-hv.js",
+      "gzip": 25744,
+      "raw": 140440
+    },
+    {
+      "file": "vendor-tanstack-BqClfGti.js",
+      "gzip": 19559,
+      "raw": 66769
+    },
+    {
+      "file": "vendor-zod-DPvxIxWk.js",
+      "gzip": 19249,
+      "raw": 72373
+    },
+    {
+      "file": "vendor-date-Bogw0Pwu.js",
+      "gzip": 12436,
+      "raw": 44244
+    },
+    {
+      "file": "vendor-sentry-WDPSVwE7.js",
+      "gzip": 5848,
+      "raw": 16822
+    }
+  ]
+}

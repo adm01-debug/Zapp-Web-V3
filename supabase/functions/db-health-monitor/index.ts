@@ -13,12 +13,20 @@
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { initSentry, captureMessage } from '../_shared/sentry.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { DbHealthMonitorV1Schema } from '../_shared/contract-schemas.ts';
 
 let sentryReady = false;
 try { sentryReady = initSentry('db-health-monitor'); } catch (_) { /* noop */ }
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return handleCorsPreflight(req);
+
+  // Contrato db-health-monitor@v1 (estrito): cron sem body → {} aceito.
+  const parsed = parseOrReject('db-health-monitor', { v1: DbHealthMonitorV1Schema }, req, await req.json().catch(() => ({})), {
+    extraHeaders: getCorsHeaders(req),
+  });
+  if (!parsed.ok) return parsed.response;
 
   const startTime = Date.now();
   const issues: string[] = [];

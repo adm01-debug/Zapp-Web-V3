@@ -8,6 +8,8 @@
 // =====================================================================
 import { timingSafeStringEqual, requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { MetricsV1Schema } from "../_shared/contract-schemas.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 
@@ -144,6 +146,11 @@ Deno.serve(async (req) => {
   if (req.method !== "GET") {
     return new Response("Method not allowed", { status: 405, headers: getCorsHeaders(req) });
   }
+  // Contrato metrics@v1 (estrito): scrape GET sem body → {} aceito.
+  const parsed = parseOrReject('metrics', { v1: MetricsV1Schema }, req, await req.json().catch(() => ({})), {
+    extraHeaders: getCorsHeaders(req),
+  });
+  if (!parsed.ok) return parsed.response;
   if (SCRAPE_TOKEN) {
     const provided = req.headers.get("x-metrics-token") ?? new URL(req.url).searchParams.get("token") ?? "";
     if (!timingSafeStringEqual(provided, SCRAPE_TOKEN)) {

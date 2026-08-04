@@ -1,6 +1,8 @@
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { getCorsHeaders, handleCors, jsonResponse, errorResponse, Logger } from '../_shared/validation.ts';
 import { requireServiceRoleOrCron } from '../_shared/auth.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { AutoCloseConversationsV1Schema } from '../_shared/contract-schemas.ts';
 
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
@@ -8,6 +10,12 @@ Deno.serve(async (req) => {
 
   const authErr = requireServiceRoleOrCron(req);
   if (authErr) return authErr;
+
+  // Contrato auto-close-conversations@v1 (estrito): cron sem body → {} aceito.
+  const parsed = parseOrReject('auto-close-conversations', { v1: AutoCloseConversationsV1Schema }, req, await req.json().catch(() => ({})), {
+    extraHeaders: getCorsHeaders(req),
+  });
+  if (!parsed.ok) return parsed.response;
 
   const log = new Logger('auto-close-conversations');
 

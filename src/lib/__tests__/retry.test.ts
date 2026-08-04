@@ -7,6 +7,9 @@ const FAST: Parameters<typeof withRetry>[1] = {
   maxDelayMs: 0,
 };
 
+// Explicit retry-all policy for tests that need the old default behavior.
+const RETRY_ALL = { shouldRetry: () => true } as const;
+
 // ── withRetry — success on first attempt ──────────────────────────────────────
 
 describe('withRetry — success on first attempt', () => {
@@ -33,7 +36,7 @@ describe('withRetry — success after retries', () => {
         if (attempts === 1) throw new Error('transient');
         return 'success';
       },
-      { ...FAST, maxRetries: 3 }
+      { ...FAST, ...RETRY_ALL, maxRetries: 3 }
     );
     expect(result).toBe('success');
     expect(attempts).toBe(2);
@@ -47,7 +50,7 @@ describe('withRetry — success after retries', () => {
         if (attempts < 3) throw new Error('transient');
         return 'done';
       },
-      { ...FAST, maxRetries: 3 }
+      { ...FAST, ...RETRY_ALL, maxRetries: 3 }
     );
     expect(result).toBe('done');
     expect(attempts).toBe(3);
@@ -62,7 +65,7 @@ describe('withRetry — success after retries', () => {
         if (attempts < 3) throw new Error('transient');
         return 'ok';
       },
-      { ...FAST, maxRetries: 5, onRetry }
+      { ...FAST, ...RETRY_ALL, maxRetries: 5, onRetry }
     );
     expect(onRetry).toHaveBeenCalledTimes(2);
   });
@@ -78,6 +81,7 @@ describe('withRetry — success after retries', () => {
       },
       {
         ...FAST,
+        ...RETRY_ALL,
         maxRetries: 5,
         onRetry: (_err, attempt) => attemptNums.push(attempt),
       }
@@ -91,13 +95,13 @@ describe('withRetry — success after retries', () => {
 describe('withRetry — exhausting retries', () => {
   it('throws the last error when all retries are exhausted', async () => {
     await expect(
-      withRetry(async () => { throw new Error('permanent'); }, { ...FAST, maxRetries: 2 })
+      withRetry(async () => { throw new Error('permanent'); }, { ...FAST, ...RETRY_ALL, maxRetries: 2 })
     ).rejects.toThrow('permanent');
   });
 
   it('calls the operation maxRetries+1 times when all fail', async () => {
     const op = vi.fn(async () => { throw new Error('fail'); });
-    await expect(withRetry(op, { ...FAST, maxRetries: 2 })).rejects.toThrow();
+    await expect(withRetry(op, { ...FAST, ...RETRY_ALL, maxRetries: 2 })).rejects.toThrow();
     expect(op).toHaveBeenCalledTimes(3); // 1 initial + 2 retries
   });
 
@@ -106,7 +110,7 @@ describe('withRetry — exhausting retries', () => {
     await expect(
       withRetry(
         async () => { throw new Error('fail'); },
-        { ...FAST, maxRetries: 3, onRetry }
+        { ...FAST, ...RETRY_ALL, maxRetries: 3, onRetry }
       )
     ).rejects.toThrow();
     expect(onRetry).toHaveBeenCalledTimes(3);
@@ -230,5 +234,43 @@ describe('withNetworkRetry', () => {
     const op = vi.fn(async () => { throw 'string-error'; });
     await expect(withNetworkRetry(op, 3)).rejects.toBe('string-error');
     expect(op).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── Regression: new safe defaults (2026-08-03) ───────────────────────────────
+
+describe('withRetry — safe default (no retry without explicit policy)', () => {
+  it('does NOT retry when shouldRetry is not provided (safe default)', async () => {
+    const op = vi.fn(async () => { throw new Error('any-error'); });
+    await expect(withRetry(op, { ...FAST, maxRetries: 5 })).rejects.toThrow();
+    expect(op).toHaveBeenCalledTimes(1); // safe default: no retry
+  });
+});
+
+describe('withNetworkRetry — AbortError guard', () => {
+  it('does NOT retry on AbortError (page unload / navigation)', async () => {
+    const abortErr = new DOMException('Page unload', 'AbortError');
+    const op = vi.fn(async () => { throw abortErr; });
+    await expect(withNetworkRetry(op, 5)).rejects.toThrow();
+    expect(op).toHaveBeenCalledTimes(1);
+  });
+
+  it('does NOT retry on AbortError with generic name', async () => {
+    const err = new Error('The operation was aborted.');
+    err.name = 'AbortError';
+    const op = vi.fn(async () => { throw err; });
+    await expect(withNetworkRetry(op, 5)).rejects.toThrow();
+    expect(op).toHaveBeenCalledTimes(1);
+  });
+
+  it('still retries real network errors (TypeError, fetch failed)', async () => {
+    let attempts = 0;
+    const result = await withNetworkRetry(async () => {
+      attempts++;
+      if (attempts < 3) throw new TypeError('Failed to fetch');
+      return 'recovered';
+    }, 5);
+    expect(result).toBe('recovered');
+    expect(attempts).toBe(3);
   });
 });

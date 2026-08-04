@@ -3,6 +3,8 @@ import { getSecret } from '../_shared/mod.ts';
 import { requireUser } from '../_shared/auth.ts';
 import { timingSafeEqual } from '../_shared/hmac-validation.ts';
 import { initSentry, captureException, captureMessage } from '../_shared/sentry.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
@@ -29,7 +31,15 @@ Deno.serve(async (req) => {
   try {
     // ── Push notification do Google Pub/Sub (POST sem body action) ────
     if (req.method === 'POST') {
-      const body = await req.json().catch(() => ({}));
+      // Contrato gmail-webhook@v1: action/accountId (rotas internas) OU
+      // message (push Pub/Sub). Tudo nullish + passthrough — envelope novo do
+      // Google nunca derruba a ingestão; falha real → 422 único.
+      const rawBody: Record<string, unknown> = await req.json().catch(() => ({}));
+      const parsed = parseOrReject('gmail-webhook', CONTRACT_SCHEMAS['gmail-webhook'], req, rawBody, {
+        extraHeaders: getCorsHeaders(req),
+      });
+      if (!parsed.ok) return parsed.response;
+      const body = parsed.data as Record<string, unknown>;
       const { action } = body;
 
       // F2 security fix: fail-closed auth for Pub/Sub push notifications.
@@ -53,17 +63,18 @@ Deno.serve(async (req) => {
         if (authed instanceof Response) return authed;
 
         const { accountId } = body;
+        const accountIdStr = typeof accountId === 'string' ? accountId : '';
 
         // Verify the authenticated user owns this gmail_accounts row.
         const { data: accountCheck } = await supabase
           .from('gmail_accounts')
           .select('id')
-          .eq('id', accountId)
+          .eq('id', accountIdStr)
           .eq('user_id', authed.user.id)
           .maybeSingle();
         if (!accountCheck) return json({ error: 'Conta não encontrada ou acesso negado' }, 403);
 
-        const token = await getValidToken(supabase, accountId);
+        const token = await getValidToken(supabase, accountIdStr);
         if (!token) return json({ error: 'Token inválido' }, 401);
 
         const watchRes = await fetch(`${GMAIL_API}/watch`, {
@@ -97,7 +108,7 @@ Deno.serve(async (req) => {
       }
 
       // ── Pub/Sub push: process email notification ────────────────────
-      const { message } = body;
+      const message = body.message as { data?: string; messageId?: string; publishTime?: string } | undefined;
       if (!message?.data) return json({ ok: true, skipped: 'no_message' });
 
       let decoded: { emailAddress?: string; historyId?: string };

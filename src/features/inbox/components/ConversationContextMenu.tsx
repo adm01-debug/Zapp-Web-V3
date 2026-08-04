@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/context-menu';
 import {
   Archive,
+  ArchiveRestore,
   Pin,
   PinOff,
   Star,
@@ -264,7 +265,7 @@ export function ConversationContextMenu({
           onClick={() => onArchive?.(conversationId)}
           className="gap-2 cursor-pointer"
         >
-          <Archive className="w-4 h-4" />
+          {isArchived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
           {isArchived ? 'Desarquivar' : 'Arquivar'}
           <ContextMenuShortcut>⌘E</ContextMenuShortcut>
         </ContextMenuItem>

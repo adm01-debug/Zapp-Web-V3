@@ -1,7 +1,8 @@
-import { handleCors, errorResponse, jsonResponse, Logger } from "../_shared/validation.ts";
-import { ScheduledReportSchema, parseBody } from "../_shared/schemas.ts";
+import { handleCors, errorResponse, jsonResponse, Logger, getCorsHeaders } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { SendScheduledReportV1Schema } from "../_shared/contract-schemas.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -16,10 +17,13 @@ Deno.serve(async (req) => {
     const supabase = createZappAdminClient();
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
-    const parsed = parseBody(ScheduledReportSchema, await req.json());
-    if (!parsed.success) return errorResponse(parsed.error, 400, req);
+    // Contrato send-scheduled-report@v1 (estrito): reportId obrigatório (422 unificado).
+    const parsed = parseOrReject('send-scheduled-report', { v1: SendScheduledReportV1Schema }, req, await req.json().catch(() => null), {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
 
-    const { reportId } = parsed.data;
+    const { reportId } = parsed.data as { reportId: string };
 
     const { data: report, error: reportError } = await supabase
       .from("scheduled_reports")

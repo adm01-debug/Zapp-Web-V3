@@ -3,6 +3,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { callOpenAICompatible, withRetry } from "../_shared/ai-providers.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { getSecret } from "../_shared/vault.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { EvolutionChatbotV1Schema } from "../_shared/contract-schemas.ts";
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { createZappAdminClient } from '../_shared/db-client.ts';
 const supabase = createZappAdminClient();
@@ -107,8 +109,12 @@ Deno.serve(async (req: Request) => {
   if (authErr) return authErr;
 
   try {
-    let body: Record<string, unknown>;
-    try { body = await req.json() as Record<string, unknown>; } catch { return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }); }
+    // Contrato evolution-chatbot@v1 (estrito): remote_jid + message obrigatórios.
+    const parsed = parseOrReject('evolution-chatbot', { v1: EvolutionChatbotV1Schema }, req, await req.json().catch(() => (null)), {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, unknown>;
 
     const { remote_jid, message, use_ai = true } = body;
 

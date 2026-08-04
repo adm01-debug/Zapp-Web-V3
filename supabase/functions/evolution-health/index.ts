@@ -4,6 +4,8 @@
 import { getCorsHeaders, handleCors, Logger } from '../_shared/validation.ts';
 import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 import { createZappAdminClient } from '../_shared/db-client.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { EvolutionHealthV1Schema } from '../_shared/contract-schemas.ts';
 
 interface HealthCheckResult {
   status: 'healthy' | 'degraded' | 'unhealthy'
@@ -44,6 +46,12 @@ Deno.serve(async (req) => {
   const log = new Logger('evolution-health');
 
   try {
+    // Contrato evolution-health@v1 (estrito): cron sem body → {} aceito.
+    const parsed = parseOrReject('evolution-health', { v1: EvolutionHealthV1Schema }, req, await req.json().catch(() => ({})), {
+      extraHeaders: headers,
+    });
+    if (!parsed.ok) return parsed.response;
+
     const EVOLUTION_API_URL = (Deno.env.get('EVOLUTION_API_URL') || '').trim().replace(/\/+$/, '')
     const EVOLUTION_API_KEY = (Deno.env.get('EVOLUTION_API_KEY') || '').trim()
     const INSTANCE_NAME = Deno.env.get('EVOLUTION_INSTANCE_NAME') || 'wpp2'

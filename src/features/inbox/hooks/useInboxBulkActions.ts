@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useUndoableAction } from '@/hooks/useUndoableAction';
 import { ConversationWithMessages } from '@/features/inbox';
 import { dbFrom } from '@/integrations/datasource/db';
+import { contactsRepository } from '@/services/contacts/contactsRepository';
 import { isValidUUID } from '@/utils/uuid';
 
 interface UseInboxBulkActionsProps {
@@ -110,39 +111,19 @@ export function useInboxBulkActions({ refetch, filteredConversations }: UseInbox
       return;
     }
 
-    const { data: originalContacts } = await supabase
-      .from('contacts')
-      .select('id, assigned_to')
-      .in('id', contactIds);
-
     try {
       await executeUndoable({
         successMessage: `${contactIds.length} contato(s) arquivado(s)`,
         undoMessage: 'Arquivamento desfeito',
         action: async () => {
-          const { error } = await dbFrom('contacts')
-            .update({ assigned_to: null })
-            .in('id', contactIds);
-          if (error) throw error;
+          // Soft-delete (deleted_at + deleted_reason='archived') — NÃO mexe em assigned_to.
+          await contactsRepository.updateStatusBulk(contactIds, 'archived');
           clearSelection();
           refetch();
         },
         undoAction: async () => {
-          if (originalContacts) {
-            // Group contacts by their original assigned_to so we restore with
-            // one .in() update per unique agent instead of N sequential writes.
-            const byAssignee = new Map<string | null, string[]>();
-            for (const c of originalContacts) {
-              if (!byAssignee.has(c.assigned_to)) byAssignee.set(c.assigned_to, []);
-              if (c.id) byAssignee.get(c.assigned_to)?.push(c.id);
-            }
-            await Promise.all(
-              Array.from(byAssignee.entries()).map(([assignedTo, ids]) =>
-                dbFrom('contacts').update({ assigned_to: assignedTo }).in('id', ids)
-              )
-            );
-          }
-          refetch();
+          // Restaura (limpa deleted_at/deleted_reason).
+          await contactsRepository.updateStatusBulk(contactIds, 'active');
         },
         onCommit: () => {},
       });

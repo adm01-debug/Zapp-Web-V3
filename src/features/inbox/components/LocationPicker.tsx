@@ -12,7 +12,6 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { LocationMessage } from '@/types/chat';
 import { useLocationPicker } from './location-picker/useLocationPicker';
-import 'mapbox-gl/dist/mapbox-gl.css';
 
 interface LocationPickerProps {
   open: boolean;

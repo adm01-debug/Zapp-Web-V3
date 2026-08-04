@@ -16,6 +16,70 @@ const AUDIO_MEMES_KEY = ['audio-memes'] as const;
 const log = getLogger('useAudioManagement');
 
 /* ============================================================================
+   HEAD-check helpers (apenas URLs externas não-storage)
+   ============================================================================
+   NOTA: não usamos retryFetch (src/integrations/supabase/client) para o HEAD
+   de URLs externas:
+   - retryFetch reporta TypeError (falha CORS) ao connectivityMonitor como
+     backend-down e loga warn a cada retry — ruído oposto ao desejado, já que
+     falha CORS em HEAD externo é esperada e inofensiva;
+   - o semáforo do retryFetch protege o backend Supabase, não servidores de
+     mídia externos.
+   Em vez disso: cache por URL (1 HEAD por URL por sessão) + limite de 2 HEADs
+   concorrentes — elimina a rajada de 28+ HEADs simultâneos com a inbox cheia.
+   ============================================================================ */
+const HEAD_CHECK_MAX_CONCURRENT = 2;
+const HEAD_CHECK_CACHE_MAX = 500;
+const headCheckCache = new Map<string, boolean | null>(); // url → true | false | null
+let headCheckInFlight = 0;
+const headCheckWaiters: Array<() => void> = [];
+
+async function acquireHeadCheckSlot(): Promise<void> {
+  if (headCheckInFlight < HEAD_CHECK_MAX_CONCURRENT) {
+    headCheckInFlight += 1;
+    return;
+  }
+  await new Promise<void>((resolve) => headCheckWaiters.push(resolve));
+  headCheckInFlight += 1;
+}
+
+function releaseHeadCheckSlot(): void {
+  headCheckInFlight -= 1;
+  headCheckWaiters.shift()?.();
+}
+
+/**
+ * Verifica disponibilidade de URL externa via HEAD com:
+ * - cache por URL (1 HEAD por URL por sessão de página);
+ * - no máximo HEAD_CHECK_MAX_CONCURRENT requisições simultâneas;
+ * - erros de CORS/network silenciosos (esperados para URLs externas).
+ * Retorna: true (ok), false (410/403/404 → expirada) ou null (inconclusivo).
+ */
+async function checkExternalHead(url: string): Promise<boolean | null> {
+  const cached = headCheckCache.get(url);
+  if (cached !== undefined) return cached;
+
+  await acquireHeadCheckSlot();
+  try {
+    let result: boolean | null;
+    try {
+      const resp = await fetch(url, { method: 'HEAD', mode: 'cors' });
+      if (resp.ok) result = true;
+      else if (resp.status === 410 || resp.status === 403 || resp.status === 404) result = false;
+      else result = null; // 5xx etc. — inconclusivo, não marca como expirada
+    } catch {
+      // CORS/network failures são esperados em URLs externas — silencioso de propósito.
+      result = null;
+    }
+    if (headCheckCache.size >= HEAD_CHECK_CACHE_MAX) headCheckCache.clear();
+    headCheckCache.set(url, result);
+    return result;
+  } finally {
+    releaseHeadCheckSlot();
+  }
+}
+
+/* ============================================================================
    SECTION 1: useAudioMemes - Audio meme catalog management
    ============================================================================ */
 
@@ -495,15 +559,11 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
       let urlExpired = false;
       const isHeadable = /^https?:/.test(url) && !url.includes('/storage/v1/');
       if (isHeadable) {
-        try {
-          const resp = await fetch(url, { method: 'HEAD', mode: 'cors' });
-          if (resp.ok) return url;
-          if (resp.status === 410 || resp.status === 403 || resp.status === 404) urlExpired = true;
-        } catch {
-          // CORS/network failures on HEAD are expected for external URLs —
-          // the browser still shows "Falha ao carregar" in console but this is normal.
-          // Fall through to storage fallback instead of logging noise.
-        }
+        const headOk = await checkExternalHead(url);
+        if (headOk === true) return url;
+        if (headOk === false) urlExpired = true;
+        // null (CORS/network/5xx): inconclusivo — cai para o fallback de storage
+        // em silêncio, sem logar warn/error (esperado para URLs externas).
       }
 
       try {

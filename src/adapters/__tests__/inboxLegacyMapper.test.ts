@@ -60,7 +60,13 @@ function makeConversation(overrides: Partial<ConversationWithMessages> = {}): Co
   const contact = overrides.contact ?? makeContact();
   const messages = overrides.messages ?? [];
   const lastMessage = overrides.lastMessage !== undefined ? overrides.lastMessage : null;
-  return { contact, messages, unreadCount: overrides.unreadCount ?? 0, lastMessage };
+  return {
+    contact,
+    messages,
+    unreadCount: overrides.unreadCount ?? 0,
+    lastMessage,
+    isArchived: overrides.isArchived ?? false,
+  };
 }
 
 // ── mapToLegacyConversation — null guard ─────────────────────────────────────

@@ -162,6 +162,6 @@ export function useFallbackContact(
   return useMemo<ConversationWithMessages | null>(() => {
     if (selectedConversation) return selectedConversation;
     if (!selectedContactFallback) return null;
-    return { contact: selectedContactFallback, messages: [], unreadCount: 0, lastMessage: null };
+    return { contact: selectedContactFallback, messages: [], unreadCount: 0, lastMessage: null, isArchived: false };
   }, [selectedConversation, selectedContactFallback]);
 }

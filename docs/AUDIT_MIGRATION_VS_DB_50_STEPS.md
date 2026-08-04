@@ -138,20 +138,21 @@ SELECT COUNT(*) FROM pg_policies WHERE schemaname='zapp' AND tablename='_backup_
 **Gap**: `public` tem 532 views (proxies para `zapp`, `evo`, `email_app`, etc.). Não há teste automatizado verificando que cada view ainda aponta para a tabela correta após refatorações.
 
 **Ação**:
-1. Query para detectar views com dependências quebradas usando o catálogo `pg_depend` (mais confiável que regex em `definition`):
+1. Query para detectar views com dependências quebradas usando `information_schema.view_table_usage` + `pg_class/pg_namespace` (mais confiável que regex em `definition`). A lógica valida **cada linha de dependência individualmente** para capturar views com mix de deps válidas e inválidas:
    ```sql
-   SELECT v.viewname
-   FROM pg_views v
-   WHERE v.schemaname = 'public'
-   AND NOT EXISTS (
-     SELECT 1 FROM information_schema.view_table_usage vtu
-     WHERE vtu.view_schema = 'public'
-       AND vtu.view_name = v.viewname
-       AND EXISTS (
-         SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-         WHERE n.nspname = vtu.table_schema AND c.relname = vtu.table_name
-       )
-   );
+   -- Retorna pares (view, tabela_dependência) onde a tabela não existe mais.
+   -- Uma view com 1 dep válida + 1 quebrada TAMBÉM aparece aqui (por isso JOIN, não NOT EXISTS global).
+   SELECT DISTINCT vtu.view_name, vtu.table_schema, vtu.table_name
+   FROM information_schema.view_table_usage vtu
+   WHERE vtu.view_schema = 'public'
+     AND NOT EXISTS (
+       SELECT 1
+       FROM pg_class c
+       JOIN pg_namespace n ON n.oid = c.relnamespace
+       WHERE n.nspname = vtu.table_schema
+         AND c.relname = vtu.table_name
+     )
+   ORDER BY vtu.view_name, vtu.table_schema, vtu.table_name;
    ```
 2. Criar script `scripts/validate-view-proxies.sh` que executa essa query e falha se > 0 views quebradas
 3. Adicionar ao CI pipeline
@@ -754,19 +755,26 @@ WHERE pubname = 'supabase_realtime'; -- Deve ser >= 20
 ### Etapa 43 🟢 — Criar script de diff de schema entre migration e DB
 
 **Ação**:
-1. Criar `scripts/schema-diff.sh` usando `pg_dump` normalizado (não grep — que perde contexto de bloco):
+1. Criar `scripts/schema-diff.sh` usando `pg_dump` normalizado (não grep — que perde contexto de bloco). Usar nomes únicos por execução (PID) para evitar colisão em runs paralelas:
    ```bash
+   # Nomes únicos por execução para segurança em runs paralelas
+   DIFF_DB="schema_diff_tmp_$$"
+   DB_SORTED="/tmp/db-schema-sorted-$$.sql"
+   MIG_SORTED="/tmp/migration-schema-sorted-$$.sql"
+
    # Extrai schema canônico do DB
    pg_dump --schema-only --no-owner --no-acl -n zapp "$DATABASE_URL" \
-     | grep -v '^--' | grep -v '^$' | sort > /tmp/db-schema-sorted.sql
+     | grep -v '^--' | grep -v '^$' | sort > "$DB_SORTED"
    # Aplica migration em banco temporário e extrai
-   createdb schema_diff_tmp
-   psql schema_diff_tmp < supabase/migrations/20260804000000_canonical_schema.sql
-   pg_dump --schema-only --no-owner --no-acl -n zapp "postgresql://localhost/schema_diff_tmp" \
-     | grep -v '^--' | grep -v '^$' | sort > /tmp/migration-schema-sorted.sql
-   dropdb schema_diff_tmp
+   dropdb --if-exists "$DIFF_DB"
+   createdb "$DIFF_DB"
+   psql "$DIFF_DB" < supabase/migrations/20260804000000_canonical_schema.sql
+   pg_dump --schema-only --no-owner --no-acl -n zapp "postgresql://localhost/$DIFF_DB" \
+     | grep -v '^--' | grep -v '^$' | sort > "$MIG_SORTED"
+   dropdb --if-exists "$DIFF_DB"
    # Diff semântico
-   diff /tmp/db-schema-sorted.sql /tmp/migration-schema-sorted.sql
+   diff "$DB_SORTED" "$MIG_SORTED"
+   rm -f "$DB_SORTED" "$MIG_SORTED"
    ```
    Alternativa: `supabase db diff --db-url "$DATABASE_URL"` se CLI estiver disponível.
 2. Executar semanalmente e postar resultado em canal de infraestrutura

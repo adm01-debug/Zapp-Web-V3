@@ -1,7 +1,8 @@
-import { useCallback, useRef, useMemo, useState, type RefObject } from 'react';
+import { useCallback, useRef, useMemo, useState, useEffect, type RefObject } from 'react';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useDensity } from '@/hooks/useDensity';
+import { useDebouncedValue } from '@/hooks/useDebounce';
 import { MobilePullToRefreshIndicator } from '@/components/mobile/MobilePullToRefresh';
 import { VirtualizedRealtimeList } from './VirtualizedRealtimeList';
 import { useExternalContact360Batch } from '@/hooks/useExternalContact360Batch';
@@ -34,7 +35,8 @@ import { cn } from '@/lib/utils';
 
 import { WhatsAppConnectionStatus } from '@/features/connections';
 import { useInboxShortcuts } from '../hooks/useInboxShortcuts';
-import { toast } from 'sonner';
+import { useArchiveConversationActions } from '../hooks/useArchiveConversationActions';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type InboxState = ReturnType<typeof useRealtimeInbox>;
 type InboxFiltersState = ReturnType<typeof useInboxFilters>;
@@ -77,17 +79,14 @@ export function ConversationListSidebar({
   // das conversas DENTRO do viewport; o batch só é disparado para eles
   // (e o resultado volta via getCRMData → enriquece company_name dos itens).
   const [visiblePhones, setVisiblePhones] = useState<string[]>([]);
-
-  // FIX 2026-08-03: estabilizar a lista para evitar queryKey novo a cada render.
-  // Antes: visiblePhones mutava por referência → queryKey diferente → 4-8x
-  // chamadas simultâneas a get_companies_by_phones_batch no mesmo ciclo.
-  // Agora: stablePhones só muda quando o conteúdo ordenado muda.
-  const stablePhones = useMemo(
-    () => [...visiblePhones].sort(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [visiblePhones.slice().sort().join(',')]  // dep estável por valor, não referência
-  );
-  const { lookup } = useExternalContact360Batch(stablePhones);
+  // F4-fanout: debounce de 300ms — o virtualizer muda o conjunto de phones
+  // visíveis várias vezes durante o measure inicial (cada frame de layout
+  // recalcula scrollTop/clientHeight/overscan). Sem debounce, cada conjunto
+  // distinto vira 1 RPC `get_companies_by_phones_batch` enfileirada no
+  // semáforo — observado 5-6 chamadas no mesmo segundo na carga inicial,
+  // contribuindo para filas de 10-20s (durations lineares 4s→8s→13s→20s).
+  const debouncedVisiblePhones = useDebouncedValue(visiblePhones, 300);
+  const { lookup } = useExternalContact360Batch(debouncedVisiblePhones);
 
   const sortedFilteredIds = useMemo(
     () => inboxFilters.filteredConversations.map((c) => c.contact.id), // ignore-audit
@@ -121,11 +120,16 @@ export function ConversationListSidebar({
   );
 
   const onSearchFocus = useCallback(() => contactSearchRef.current?.focus(), []);
-  const onArchive = useCallback(() => {
-    if (inbox.selectedContactId) {
-      toast.info('Arquivando conversa...');
-    }
-  }, [inbox.selectedContactId]);
+  const { refetch: inboxRefetch } = inbox;
+  // Ações reais de arquivar/desarquivar (soft-delete do contato + refetch da inbox).
+  const { archive } = useArchiveConversationActions(inboxRefetch);
+  const onArchive = useCallback(
+    (contactId?: string) => {
+      const targetId = contactId ?? inbox.selectedContactId;
+      if (targetId) void archive(targetId);
+    },
+    [archive, inbox.selectedContactId]
+  );
   const onTransfer = useCallback(() => {
     if (inbox.selectedContactId) {
       window.dispatchEvent(
@@ -135,14 +139,33 @@ export function ConversationListSidebar({
       );
     }
   }, [inbox.selectedContactId]);
-  const { refetch: inboxRefetch } = inbox;
   const onRefresh = useCallback(() => inboxRefetch(), [inboxRefetch]);
+
+  // Aba "Arquivados" da lista: o estado local de tab alimenta o pipeline via
+  // inboxFilters.setArchivedTab (ConversationList não é renderizada aqui — a
+  // lista real é VirtualizedRealtimeList, sem tabs; o controle fica neste header).
+  // Inicia a partir do hook para respeitar ?tab=archived vindo da URL.
+  const [filter, setFilter] = useState<'all' | 'open' | 'pending' | 'waiting' | 'archived'>(
+    inboxFilters.archivedTab ? 'archived' : 'all'
+  );
+  useEffect(() => {
+    inboxFilters.setArchivedTab(filter === 'archived');
+  }, [filter, inboxFilters.setArchivedTab]);
+  // Sync reverso: reset externo (ex.: "Limpar filtros" → setArchivedTab(false))
+  // reflete no controle visual de aba.
+  useEffect(() => {
+    setFilter((current) => {
+      const isShowingArchived = current === 'archived';
+      if (isShowingArchived === inboxFilters.archivedTab) return current;
+      return inboxFilters.archivedTab ? 'archived' : 'all';
+    });
+  }, [inboxFilters.archivedTab]);
 
   useInboxShortcuts({
     onSearchFocus,
     onNextConversation: handleNextConversation,
     onPrevConversation: handlePrevConversation,
-    onArchive,
+    onArchive: () => onArchive(),
     onTransfer,
     onRefresh,
   });
@@ -304,6 +327,34 @@ export function ConversationListSidebar({
         </ErrorBoundary>
       </div>
 
+      {/* Controle de aba da lista: Conversas | Arquivadas. A lista em si é o
+          VirtualizedRealtimeList (sem tabs) — o filter alimenta o pipeline via
+          inboxFilters.setArchivedTab. */}
+      <div className="shrink-0 border-b border-border/20 px-4 pb-2 pt-1">
+        <Tabs
+          value={filter}
+          onValueChange={(v) =>
+            setFilter(v as 'all' | 'open' | 'pending' | 'waiting' | 'archived')
+          }
+          className="w-full"
+        >
+          <TabsList className="grid w-full grid-cols-2 rounded-xl border-none bg-muted/30 p-1">
+            <TabsTrigger
+              value="all"
+              className="rounded-lg font-semibold text-muted-foreground transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
+            >
+              Conversas
+            </TabsTrigger>
+            <TabsTrigger
+              value="archived"
+              className="rounded-lg font-semibold text-muted-foreground transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
+            >
+              Arquivadas
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
       {isMobile && (
         <MobilePullToRefreshIndicator
           isRefreshing={pullToRefresh.isRefreshing}
@@ -369,7 +420,11 @@ export function ConversationListSidebar({
             const totalLoaded = inbox.conversations?.length ?? 0;
             const hasActiveTypeFilter =
               !!inboxFilters.selectedContactType && inboxFilters.selectedContactType !== 'all';
-            const filtersHideAll = !inbox.usingCache && !inboxFilters.search && totalLoaded > 0;
+            const filtersHideAll =
+              !inboxFilters.archivedTab &&
+              !inbox.usingCache &&
+              !inboxFilters.search &&
+              totalLoaded > 0;
             const canShowWaiting =
               inboxFilters.mainTab === 'open' &&
               inboxFilters.subTab !== 'waiting' &&
@@ -383,14 +438,16 @@ export function ConversationListSidebar({
             const canShowAllAgents =
               inboxFilters.scope !== 'all' &&
               totalLoaded > inboxFilters.filteredConversations.length;
-            const msg = inbox.usingCache
-              ? 'Modo offline — sem dados em cache'
-              : inboxFilters.search
-                ? 'Nenhuma conversa encontrada'
-                : filtersHideAll
-                  ? `Nenhuma conversa nesta aba (${totalLoaded} no total). Ajuste os filtros.`
-                  : emptyMessages[inboxFilters.selectedContactType || ''] ||
-                    'Nenhuma conversa recente encontrada para a instância ativa';
+            const msg = inboxFilters.archivedTab
+              ? 'Nenhuma conversa arquivada'
+              : inbox.usingCache
+                ? 'Modo offline — sem dados em cache'
+                : inboxFilters.search
+                  ? 'Nenhuma conversa encontrada'
+                  : filtersHideAll
+                    ? `Nenhuma conversa nesta aba (${totalLoaded} no total). Ajuste os filtros.`
+                    : emptyMessages[inboxFilters.selectedContactType || ''] ||
+                      'Nenhuma conversa recente encontrada para a instância ativa';
             return (
               <motion.div
                 key={inboxFilters.selectedContactType || 'all'}

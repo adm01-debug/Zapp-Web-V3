@@ -448,6 +448,35 @@ function _releaseSupabaseSlot(): void {
   if (next) next.resume();
 }
 
+// ---------------------------------------------------------------------------
+// Estado do semáforo exposto para callers ajustarem timeouts adaptativos.
+//
+// O getProfile do AuthProvider NÃO é auth request (/auth/v1/), então entra na
+// fila do semáforo e pode esperar 10-20s quando a inbox satura com 48+ RPCs.
+// Expor inFlight/queueLength permite ao caller dimensionar o timeout pela
+// saturação real em vez de chutar um valor fixo.
+// ---------------------------------------------------------------------------
+export interface SupabaseSemaphoreState {
+  /** Requests em voo (slots ocupados). */
+  inFlight: number;
+  /** Requests aguardando slot na fila. */
+  queueLength: number;
+  /** Slots máximos do semáforo. */
+  maxConcurrent: number;
+  /** true quando todos os slots estão ocupados E há fila (saturação real). */
+  saturated: boolean;
+}
+
+/** Leitura síncrona do semáforo de concorrência do retryFetch. */
+export function getSupabaseSemaphoreState(): SupabaseSemaphoreState {
+  return {
+    inFlight: _supabaseInFlight,
+    queueLength: _supabaseQueue.length,
+    maxConcurrent: SUPABASE_MAX_CONCURRENT,
+    saturated: _supabaseInFlight >= SUPABASE_MAX_CONCURRENT && _supabaseQueue.length > 0,
+  };
+}
+
 /** Fetch customizado injetado no supabase-js: timeout (boundedFetch) + retry (F9-04) + semáforo de concorrência. */
 export const retryFetch: typeof fetch = async (input, init) => {
   if (isAuthRequest(input) || hasStreamBody(init)) {

@@ -145,10 +145,17 @@ jobs:
         continue-on-error: true
 
       - name: Install Playwright Browsers
-        run: bunx playwright install chromium --with-deps
+        # playwright.config.ts define 3 projetos (chromium, firefox, webkit) —
+        # instalar só chromium quebra firefox/webkit no runner (E2E boot suite).
+        run: bunx playwright install --with-deps
 
       - name: E2E Tests (boot suite — src/tests/e2e, 13 specs)
         run: npm run test:e2e:boot
+
+      - name: Build (produces dist/ for the Performance Budget Gate)
+        # O gate mede os chunks REAIS de dist/ — sem build ele falha com
+        # "dist não encontrado" (E02-N02: antes passava sem medir nada).
+        run: bun run build
 
       - name: Performance Budget Gate (blocking — E02/F10-06)
         run: npm run perf:budget

@@ -132,6 +132,7 @@ describe('useFallbackContact — early returns', () => {
       messages: [],
       unreadCount: 0,
       lastMessage: null,
+      isArchived: false,
     };
     renderHook(() => useFallbackContact(MOCK_UUID, existing));
 
@@ -150,6 +151,7 @@ describe('useFallbackContact — early returns', () => {
       messages: [],
       unreadCount: 0,
       lastMessage: null,
+      isArchived: false,
     };
     const { result } = renderHook(() => useFallbackContact(MOCK_UUID, existing));
 

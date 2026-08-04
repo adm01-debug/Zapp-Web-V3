@@ -96,6 +96,7 @@ function buildConversation(seed: MockSeed): ConversationWithMessages {
     unreadCount: seed.unreadCount,
     lastMessage,
     messages: [lastMessage],
+    isArchived: false,
   };
 }
 
