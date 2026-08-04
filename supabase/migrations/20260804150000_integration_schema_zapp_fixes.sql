@@ -222,6 +222,9 @@ GRANT EXECUTE ON FUNCTION zapp.fn_safe_audit_log(
   text, text, uuid, text, text, jsonb, jsonb, jsonb, text
 ) TO authenticated;
 
+-- ML-005: função nova recebe EXECUTE p/ PUBLIC por default — revogar
+REVOKE ALL ON FUNCTION zapp.fn_safe_audit_log(text, text, uuid, text, text, jsonb, jsonb, jsonb, text) FROM PUBLIC;
+
 
 -- ============================================================================
 -- F-06: RPCs de information_schema COM WHITELIST (evitar leak de metadados)
@@ -333,6 +336,9 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION zapp.fn_edge_upsert_evolution_credentials(text,text,text,text,text,boolean) FROM PUBLIC;
+-- Default privileges do Supabase concedem EXECUTE a authenticated/anon em função
+-- nova — revogar explicitamente (ACL final: postgres + service_role apenas).
+REVOKE EXECUTE ON FUNCTION zapp.fn_edge_upsert_evolution_credentials(text,text,text,text,text,boolean) FROM authenticated, anon;
 GRANT EXECUTE ON FUNCTION zapp.fn_edge_upsert_evolution_credentials(text,text,text,text,text,boolean) TO service_role;
 
 CREATE OR REPLACE FUNCTION zapp.fn_edge_delete_evolution_credentials(p_id uuid)
@@ -352,6 +358,7 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION zapp.fn_edge_delete_evolution_credentials(uuid) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION zapp.fn_edge_delete_evolution_credentials(uuid) FROM authenticated, anon;
 GRANT EXECUTE ON FUNCTION zapp.fn_edge_delete_evolution_credentials(uuid) TO service_role;
 
 

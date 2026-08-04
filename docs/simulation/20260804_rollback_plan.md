@@ -27,6 +27,10 @@ REVOKE EXECUTE ON FUNCTION zapp.fn_safe_audit_log(text,text,uuid,text,text,jsonb
 -- RPCs de schema drift (remover)
 DROP FUNCTION IF EXISTS zapp.rpc_schema_columns(text);
 DROP FUNCTION IF EXISTS zapp.rpc_schema_tables(text);
+
+-- RPCs de credenciais (remover)
+DROP FUNCTION IF EXISTS zapp.fn_edge_upsert_evolution_credentials(text,text,text,text,text,boolean);
+DROP FUNCTION IF EXISTS zapp.fn_edge_delete_evolution_credentials(uuid);
 ```
 
 ## 2. Front — reverter via git
