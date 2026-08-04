@@ -39,7 +39,7 @@ function isSafeAudioUrl(raw: string): boolean {
   let parsed: URL;
   try { parsed = new URL(raw); } catch { return false; }
   if (parsed.protocol !== 'https:') return false;
-  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, ''); // strip colchetes IPv6
+  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, ''); // strip colchetes IPv6 + trailing dot (FQDN localhost. — probe 2026-08-04)
   if (
     host === 'localhost' ||
     host.endsWith('.localhost') ||

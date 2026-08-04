@@ -21,7 +21,7 @@ function isSafeAudioUrl(raw: string): boolean {
   if (parsed.protocol !== 'https:') return false;
   // REALIDADE do Deno: hostname IPv6 vem COM colchetes ('[::1]') — strip antes
   // de testar (fix v2.3.1, validação Claude #783: o v2.2 NUNCA bloqueava IPv6).
-  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
   if (
     host === 'localhost' ||
     host.endsWith('.localhost') ||
@@ -46,6 +46,11 @@ Deno.test("SSRF: isSafeAudioUrl e redirect:'error' estão no index.ts", () => {
   assertMatch(SOURCE, /redirect: 'error'/);
   assertMatch(SOURCE, /parsed\.protocol !== 'https:'/);
   assertMatch(SOURCE, /169\\.254/);
+  // F-1 (validação Claude #783): o strip de colchetes IPv6 E o trailing dot
+  // precisam de âncora — sem isso, reverter o fix deixa os 11 testes verdes.
+  assertMatch(SOURCE, /hostname\.toLowerCase\(\)\.replace\(/);
+  // âncora do trailing-dot fix via comentário no fonte (robusto, sem regex frágil)
+  assertMatch(SOURCE, /trailing dot \(FQDN localhost\./);
 });
 
 // ─── Vetores: URLs SEGURAS (devem passar) ────────────────────────────────────
@@ -129,6 +134,13 @@ Deno.test("SSRF: fix v2.3.1 — IPv6 com colchetes é bloqueado (gap do v2.2)", 
   assertEquals(isSafeAudioUrl("https://[::]/a.wav"), false);
   assertEquals(isSafeAudioUrl("https://[fe80::1]/a.wav"), false);
   assertEquals(isSafeAudioUrl("https://[fc00::1]/a.wav"), false);
+});
+
+Deno.test("SSRF: FQDN com trailing dot bloqueado (fix v2.3.2, probe 2026-08-04)", () => {
+  // WHATWG preserva o ponto: 'localhost.' e 'sub.localhost.' — o strip de
+  // trailing dot normaliza e o guard bloqueia (probe executável confirmou).
+  assertEquals(isSafeAudioUrl("https://localhost./a.wav"), false);
+  assertEquals(isSafeAudioUrl("https://sub.localhost./a.wav"), false);
 });
 
 // ─── Limitações documentadas (comportamento REAL) ────────────────────────────
