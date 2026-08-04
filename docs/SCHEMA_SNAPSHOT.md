@@ -120,17 +120,23 @@ A publication tem `publish_via_partition_root = true`. **Assinar sempre pela tab
 
 ---
 
-## Nota sobre SECDEF sem `search_path`
+## Nota sobre SECDEF sem `search_path` — AUDITORIA CONCLUÍDA ✅
 
-A query de auditoria de 2026-08-04 retornou `secdef_no_searchpath = 600`. Este número
-inclui funções SECDEF em **todos os schemas** (`bpm`, `ai`, `email_app`, `vendas`, `ops`, etc.)
-que usam `search_path` diferente de `search_path=zapp`. A query anterior (sessão 2026-07-17)
-retornou `0` porque usava predicado `proconfig @> ARRAY['search_path=zapp']` — contando apenas
-funções SEM `search_path=zapp` especificamente, o que excluía funções em outros schemas com
-seus próprios search_path válidos.
+A query inicial de 2026-08-04 retornou `secdef_no_searchpath = 600` (falso positivo). A query
+usava `proconfig @> ARRAY['search_path=zapp']`, contando TODAS as funções sem esse valor
+específico — incluindo funções em outros schemas com seus próprios search_path válidos.
 
-**Ação:** O Etapa 14 do plano `AUDIT_MIGRATION_VS_DB_50_STEPS.md` cobre a auditoria
-detalhada de funções SECDEF por schema. Executar query discriminada por schema antes de agir.
+**Resultado da auditoria discriminada por schema (2026-08-04):**
+
+| Schema | Total SECDEF | Sem search_path | Ação |
+|--------|-------------|-----------------|------|
+| `zapp` | 695 | **0** | ✅ Todas corretas |
+| `evo`, `bpm`, `ai`, `email_app`, etc. | vários | 0 | ✅ Todas corretas |
+| `graphql` | 2 | **2** | ⚠️ Extensão pg_graphql — Supabase-managed, não alterar |
+
+**Conclusão:** Zero funções do código de aplicação sem `search_path` fixo. As 2 funções
+no schema `graphql` pertencem à extensão `pg_graphql` (gerenciada pelo Supabase) e não
+devem ser modificadas. **Etapa 14 do plano de auditoria: CONCLUÍDA — nenhuma ação necessária.**
 
 ---
 

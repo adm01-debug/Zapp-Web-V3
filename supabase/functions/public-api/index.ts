@@ -58,9 +58,20 @@ Deno.serve(async (req) => {
 
     if (!connection) return errorResponse('No active WhatsApp connection found', 404, req);
 
-    let { data: contact } = await supabase.from('contacts').select('id').eq('phone', phone).eq('whatsapp_connection_id', connection.id).single();
+    // BUG-D fix: zapp.contacts is a non-insertable VIEW on evo.evolution_contacts.
+    // Use evolution_contacts directly (auto-updatable view in zapp schema).
+    let { data: contact } = await supabase.from('evolution_contacts')
+      .select('id')
+      .eq('phone_number', phone)
+      .eq('instance_name', connection.instance_id)
+      .maybeSingle();
     if (!contact) {
-      const { data: newContact } = await supabase.from('contacts').insert({ name: phone, phone, whatsapp_connection_id: connection.id }).select('id').single();
+      const remoteJid = `55${phone}@c.us`;
+      const now = new Date().toISOString();
+      const { data: newContact } = await supabase.from('evolution_contacts')
+        .insert({ remote_jid: remoteJid, phone_number: phone, full_name: phone, instance_name: connection.instance_id, created_at: now, updated_at: now })
+        .select('id')
+        .single();
       contact = newContact;
     }
     if (!contact) return errorResponse('Failed to create contact', 500, req);
