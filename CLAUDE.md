@@ -19,14 +19,14 @@
 | **URL** | `https://supabase.atomicabr.com.br` |
 | **Schema principal** | `zapp` |
 | **Schema Evolution API** | `evo` |
-| **Schema public** | 1 tabela interna Supabase + 532 views proxy |
+| **Schema public** | 1 tabela interna Supabase + 511 views proxy |
 
-### Schemas e Tabelas (auditado 2026-07-16 — regras verificadas contra DB de produção)
+### Schemas e Tabelas (auditado 2026-08-04 — contagens do DB de produção)
 
 | Schema | Base Tables | Views | RLS | Descrição |
 |--------|-------------|-------|-----|-----------|
-| **`zapp`** | **312** | **404** | 100% | Todas as tabelas da aplicação |
-| **`evo`** | **193** | — | 100% | Tabelas da Evolution API (WhatsApp) |
+| **`zapp`** | **321** | **380** | 100% | Todas as tabelas da aplicação |
+| **`evo`** | **172** | — | 100% | Tabelas da Evolution API (WhatsApp) |
 | `auth` | 21 | — | — | Auth GoTrue do Supabase |
 | `bpm` | 41 | — | — | BPM/workflows |
 | `email_app` | 33 | — | — | Integração Gmail |
@@ -35,10 +35,10 @@
 | `financeiro` | 16 | — | — | Módulo financeiro |
 | `vendas` | 13 | — | — | Módulo vendas |
 | `ops` | 20 | — | — | Operações internas |
-| `public` | 1¹ | 532² | — | NÃO usar diretamente |
+| `public` | 1¹ | 511² | — | NÃO usar diretamente |
 
 > ¹ `public._wal_slot_guard_events` — tabela interna do Supabase (WAL slot guard), não é tabela de aplicação.
-> ² As 532 views em `public` são proxies/aliases para tabelas em outros schemas (zapp, evo, email_app, etc.).
+> ² As 511 views em `public` são proxies/aliases para tabelas em outros schemas (zapp, evo, email_app, etc.).
 
 ### Regras Críticas de Schema
 
@@ -103,7 +103,7 @@
 | Bucket | Público | Limite | Notas |
 |--------|---------|--------|-------|
 | `audio-memes` | não | 5 MB | |
-| `audio-messages` | **sim** | — | **LEITURA pública** via `/storage/v1/object/public/` — UPLOAD requer autenticação (policy `auth_write_audio_msgs`). Armazena PTTs do WhatsApp (BAIXA sensibilidade). `allowed_mime_types: [ogg,webm,mpeg,mp3,aac,mp4]`. **BUG-38 resolvido.** |
+| `audio-messages` | **sim** | — | **LEITURA pública** via `/storage/v1/object/public/` — UPLOAD requer autenticação. `allowed_mime_types: [ogg,webm,mpeg,mp3,aac,mp4]`. |
 | `avatars` | sim | 5 MB | |
 | `comprovantes-financeiro` | não | 20 MB | |
 | `custom-emojis` | sim | 512 KB | |
@@ -116,67 +116,36 @@
 | `team-chat-files` | não | — | |
 | `whatsapp-media` | não | — | |
 
+---
 
-### Bugs Conhecidos e Gaps de Implementação
+## Bugs Abertos
 
-| ID | Arquivo | Problema | Impacto |
-|----|---------|----------|---------|
-| ~~BUG-1~~ | `src/features/admin/hooks/useAdminManagement.ts` | CORRIGIDO: `safeFrom('queue_skills')` → `safeFrom('queue_skill_requirements')` | Resolvido |
-| ~~BUG-2~~ | `src/features/inbox/components/chat/useAudioVoiceChange.ts` | CORRIGIDO: bucket `chat-media` → `audio-messages`; coluna `mediaUrl` → `media_url` (PostgREST snake_case) | Resolvido |
-| ~~BUG-3~~ | `zapp.fn_messages_view_insert_handler` / `messageSender.ts` | CORRIGIDO: trigger INSTEAD OF INSERT não atribuía `NEW.id` antes de `RETURN NEW`; `data.id` retornava NULL; CORRIGIDO no trigger (DB) e via `crypto.randomUUID()` no cliente | Resolvido |
-| ~~BUG-4~~ | `src/hooks/useCRMManagement.ts` | CORRIGIDO: `contact_notes` INSERT omitia FK não-nula `author_id`; adicionado `supabase.auth.getUser()` | Resolvido |
-| ~~BUG-5~~ | `supabase/migrations/20260712001500_cursor_pagination_optimization.sql:145` | CORRIGIDO: GRANT em `rpc_list_dispatch_error_logs_cursor` tinha 7 params vs 8 na assinatura real; nenhum usuário autenticado tinha permissão; fix em `20260716_fix_dispatch_error_logs_grant.sql` | Resolvido |
-| ~~BUG-6~~ | `src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts` | CORRIGIDO: `p_cursor_id` hardcoded como `null`; paginação nunca avançava; adicionado cursor state management | Resolvido |
-| ~~BUG-7~~ | `src/features/admin/hooks/monitoring/useFailedMessages.ts:142` | REVERTIDO: mudança anterior de `schema: 'zapp'` → `schema: 'public'` era regressão — `public.failed_messages` é VIEW, não está na publication `supabase_realtime`; subscription era no-op silencioso; mantido `schema: 'zapp'` (tabela física, publicada) | Resolvido |
-| ~~GAP-1~~ | `src/hooks/useCampaigns.ts:100` | CORRIGIDO 2026-07-24: `rpc('add_contacts_to_campaign')` — UNIQUE constraint + SECURITY DEFINER function aplicados via `20260721000004_melhoria4_add_contacts_to_campaign_zapp.sql`; `is_admin_or_supervisor` auth + `FOR UPDATE` serialization + `ON CONFLICT DO NOTHING` | Resolvido |
-| ~~GAP-2~~ | `src/hooks/useIntegrationManagement.ts:54,69` | STUB CRIADO: `rpc('initiate_gmail_oauth')`, `rpc('complete_gmail_oauth')` — stubs em `20260717000002_create_missing_rpcs_stubs.sql`; retornam erro descritivo em vez de 42883 | UI degrada com mensagem; OAuth real pendente |
-| ~~GAP-3~~ | `src/hooks/useIntegrationManagement.ts:156` | STUB CRIADO: `rpc('sync_to_crm')` — stub em `20260717000002`; levanta RAISE EXCEPTION explícita (P0001) em vez de retornar void | Sync real pendente |
-| ~~GAP-4~~ | `src/hooks/useMediaManagement.ts:93,128` | STUB CRIADO: `rpc('export_user_data')`, `rpc('import_user_data')` — stubs em `20260717000002`; export retorna dados de perfil (formatos != 'json' rejeitados com RAISE); import levanta RAISE EXCEPTION | Export/Import parcial; full data export deve ser Edge Function |
-| ~~BUG-9~~ | `src/hooks/useMediaManagement.ts:164` | CORRIGIDO: `rpc('check_download_permission')` ausente → `hasPermission` ficava `false` permanentemente, bloqueando todos os downloads silenciosamente; fail-open restrito a SQLSTATE 42883 (função não existe) — outros erros mantêm permissão negada | Resolvido |
-| ~~GAP-5~~ | `src/hooks/useCRMManagement.ts:146` | STUB CRIADO: `rpc('enrich_contact')` — stub em `20260717000002`; retorna dados básicos do contato com `enriched: false` | Integração com API de enriquecimento pendente |
-| ~~GAP-6~~ | `src/hooks/useAnalyticsManagement.ts:168` | STUB CRIADO: `rpc('get_latest_analysis')` — stub em `20260717000002`; retorna média de `contact_intelligence.engagement_score` | Analytics completo pendente |
-| ~~BUG-8~~ | `supabase/migrations/20260712001500_cursor_pagination_optimization.sql:8` | CORRIGIDO: `rpc_list_failed_messages_cursor` tinha RETURNS TABLE com 9 cols vs 15 esperadas por FailedMessageRow; `fm.message_id` inexistente causava erro de compilação; `next_retry_at` vs `next_attempt_at` (nome errado); cursor keyset ignorava ties na created_at. Fix: `20260716_fix_rpc_list_failed_messages_cursor_columns.sql` | Resolvido |
-| ~~GAP-7~~ | `src/features/admin/hooks/monitoring/useFailedMessages.ts:78` | CORRIGIDO 2026-07-24: `rpc_list_failed_messages_cursor` + `rpc_list_dispatch_error_logs_cursor` + `rpc_dlq_list_audit_cursor` + `search_contacts_cursor` — bare-column tuple keyset, `zapp.is_admin_or_supervisor`, `search_path=zapp`, `dispatch_error_logs` adicionada à publication. Aplicado via `20260721000008` + `20260721_fix_cursor_rpcs_and_search_path.sql` | Resolvido |
-| ~~GAP-8~~ | `src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts:61` | CORRIGIDO: `rpc_list_dispatch_error_logs_cursor` estava no schema `public` (PGRST202); tabela referenciada era `public.dispatch_error_logs` (VIEW); count era pós-cursor (decrementava por página); cursor sem ROW() ignorava ties. Fix: `20260717000003_fix_dispatch_dlq_cursor_rpcs_zapp_schema.sql` — movida para `zapp`, conta antes do cursor, ROW() keyset | Necessário aplicar migração ao self-hosted |
-| ~~GAP-9~~ | `src/features/admin/hooks/monitoring/useDlqAuditLog.ts:51` | CORRIGIDO: `rpc_dlq_list_audit_cursor` estava no schema `public` (PGRST202); referências `public.audit_logs`, `public.profiles` → `zapp.audit_logs`, `zapp.profiles`; cursor sem ROW() ignorava ties. Fix: `20260717000003_fix_dispatch_dlq_cursor_rpcs_zapp_schema.sql` | Necessário aplicar migração ao self-hosted |
-| ~~GAP-10~~ | `src/hooks/useQueueManagement.ts:203,415` | TABELA CRIADA: `zapp.queue_analytics` em `20260717000001_create_queue_analytics.sql`; FK para `queues`, RLS habilitado, índice em `(queue_id, timestamp DESC)` | Resolvido — necessário aplicar migração ao self-hosted |
-| ~~BUG-10~~ | `src/features/admin/hooks/monitoring/useFailedMessages.ts:60` | CORRIGIDO: `effectiveFrom` calculado a cada render com `Date.now()` e colocado em `queryKey` + `useEffect` deps → loop infinito de refetch + setState. Fix: `useMemo([from, hours])` para estabilizar o valor | Resolvido |
-| ~~BUG-11~~ | `supabase/migrations/20260717000002_create_missing_rpcs_stubs.sql` | CORRIGIDO: stubs `initiate_gmail_oauth` / `complete_gmail_oauth` retornavam JSON `{success:false}` sem RAISE; chamador em `useIntegrationManagement.ts:72` faz `setIsAuthenticated(true)` incondicionalmente após a RPC não retornar erro → falso estado autenticado. Fix: ambos os stubs agora fazem RAISE EXCEPTION com ERRCODE P0001 | Resolvido |
-|| ~~BUG-12~~ | `src/components/contacts/AuditLogPanel.tsx` | CORRIGIDO: colunas `field_name`, `old_value`, `new_value`, `metadata` nao existem em `contact_audit_log`; colunas reais sao `old_values jsonb`, `new_values jsonb`, `reason text`. Painel retornava 400 e ficava em branco | Resolvido |
-| ~~BUG-12~~ | `src/components/contacts/AuditLogPanel.tsx` | CORRIGIDO: colunas `field_name`, `old_value`, `new_value`, `metadata` não existem em `contact_audit_log`; colunas reais são `old_values jsonb`, `new_values jsonb`, `reason text`. Painel retornava 400 e ficava em branco | Resolvido |
-| ~~BUG-13~~ | `src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts` | CORRIGIDO: `fromIso` calculado a cada render sem `useMemo`; valor ficava obsoleto nos ciclos de `refetchInterval`. Fix: `useMemo([hours])` | Resolvido |
-| ~~BUG-14~~ | `src/features/admin/hooks/monitoring/useDlqAuditLog.ts` | CORRIGIDO: `currentPage` não resetava ao mudar filtros (`action`, `limit`); paginação mantinha página errada. Fix: `useEffect([action, limit])` → `setCurrentPage(0)` | Resolvido |
-| ~~BUG-15~~ | `supabase/migrations/` + `zapp.search_contacts_cursor` | CORRIGIDO (H1): `sort_direction` injetado diretamente no ORDER BY dinâmico sem whitelist → SQL injection. Fix: `IF v_dir NOT IN ('ASC','DESC') THEN RAISE EXCEPTION` | Resolvido — `20260802000003` |
-| ~~BUG-16~~ | `zapp.search_contacts_cursor` | CORRIGIDO (H2): `COUNT(*) OVER()` calculado após predicate do cursor; `total_count` decrescia a cada página. Fix: CTE `total` antes do cursor filter | Resolvido — `20260802000003` |
-| ~~BUG-17~~ | `zapp.search_contacts_cursor` | CORRIGIDO (H3): cursor sempre comparava só `c.id > $7`; ties em `created_at`/`updated_at` pulavam linhas. Fix: keyset composto `ROW(sort_col, id)` com pivot pré-buscado via SQL estático + `format('%L')` | Resolvido — `20260802000003` |
-| ~~BUG-18~~ | `zapp.search_contacts_cursor` | CORRIGIDO (C2): migration `20260717220000` omitiu o REVOKE/GRANT; autenticados sem permissão de EXECUTE. Fix: `REVOKE FROM PUBLIC, anon; GRANT TO authenticated` | Resolvido — `20260802000003` |
-| ~~BUG-19~~ | `zapp.rpc_list_dispatch_error_logs_cursor` | CORRIGIDO (C3): `d.created_at AS occurred_at` aliasava coluna errada; cursor comparava `ROW(b.occurred_at, b.id)` vs `ROW(c.created_at, c.id)` — lados misturados. Fix: `d.occurred_at` direto + cursor alinhado | Resolvido — `20260720000004` |
-| ~~BUG-20~~ | `zapp.rpc_list_dispatch_error_logs` | CORRIGIDO (A2): `FROM public.dispatch_error_logs` dentro de função com `SET search_path = zapp` resolvia para a VIEW proxy em vez da tabela física. Fix: `FROM dispatch_error_logs` sem qualificador | Resolvido — `20260720000004` |
-| ~~BUG-21~~ | `src/hooks/useAlertManagement.ts:363` | CORRIGIDO: `zapp.sentiment_alerts` estava em `logflare_pub` mas NÃO em `supabase_realtime`; subscription era no-op silencioso. Fix: `ALTER PUBLICATION supabase_realtime ADD TABLE zapp.sentiment_alerts` | Resolvido — `20260720000005` |
-| ~~BUG-22~~ | `src/hooks/useNotificationManagement.ts:420,447` | CORRIGIDO: subscriptions para tabelas fantasma `goal_notifications` / `transcription_notifications` (não existem em nenhuma migração). Fix: redirecionado para `zapp.app_notifications` (publicada) com filtro client-side por `type` | Resolvido |
-| ~~BUG-23~~ | `src/services/settings/settingsRepository.ts:114,130` | CORRIGIDO: `zapp.user_settings` e `zapp.workspace_settings` são tabelas físicas subscritas via Realtime para sincronização de configurações cross-tab, mas NÃO estavam em `supabase_realtime`; callbacks nunca disparavam. Fix: `ALTER PUBLICATION supabase_realtime ADD TABLE` para ambas | Resolvido — `20260720000006` |
-|| ~~BUG-13~~ | `zapp.rpc_dlq_list_audit` no DB | CORRIGIDO 2026-07-17: JOIN errado `p.id = a.user_id` — `profiles.id` eh UUID surrogado; o auth UID esta em `profiles.user_id`. Resultado: `user_name` e `user_email` sempre NULL no painel. Corrigido para `p.user_id = a.user_id` | Resolvido |
-| ~~BUG-12~~ | `zapp.rpc_dlq_bulk_retry_now` no DB | CORRIGIDO 2026-07-17: chamava `public.has_role()` e `public.log_rls_denied()` (não existem em public); escrevia em `public.audit_logs` (não existe). DROP+CREATE com `zapp.has_role` e `zapp.log_rls_denied` | Resolvido |
-| ~~BUG-13~~ | `zapp.rpc_dlq_list_audit` no DB | CORRIGIDO 2026-07-17: JOIN errado `p.id = a.user_id` — `profiles.id` é UUID surrogado; o auth UID está em `profiles.user_id`. Resultado: `user_name` e `user_email` sempre NULL no painel. Corrigido para `p.user_id = a.user_id` | Resolvido |
-| ~~BUG-14~~ | `zapp.rpc_dlq_log_item_action` no DB | CORRIGIDO 2026-07-17: 2 overloads inseguros sem role check gravando em `zapp.dlq_audit_log` (tabela errada — painel lê `zapp.audit_logs`). Drops aplicados; canonical (text,uuid[],text) corrigido para gravar em `zapp.audit_logs` com supervisor role | Resolvido |
-| ~~BUG-15~~ | `zapp.rpc_dlq_log_reprocess_trigger` / `rpc_dlq_log_reprocess_result` no DB | CORRIGIDO 2026-07-17: `SET search_path TO 'public','evo','zapp','monitoring'` inseguro; supervisor bloqueado. Corrigido para `SET search_path = zapp` + `zapp.has_role(..., 'supervisor')` | Resolvido |
-| ~~BUG-16~~ | `zapp.search_contacts_cursor` no DB | CORRIGIDO 2026-07-17: (1) cursor direction usava `sort_direction = 'asc'` case-sensitive — passar 'ASC' quebrava paginação pág 2+; (2) `sort_direction` injetável via ORDER BY string concat. Corrigido: `v_sort_dir := UPPER(...); IF v_sort_dir NOT IN ('ASC','DESC')` | Resolvido |
-| ~~BUG-24~~ | `src/hooks/useRealtimeSentimentAlerts.ts:18` | CORRIGIDO 2026-07-24: subscription usava `schema: 'public', table: 'audit_logs', filter: 'action=eq.sentiment_alert'` — `public.audit_logs` é VIEW proxy, nunca emite CDCs; alertas de sentimento completamente silenciosos desde migration `20260720000005`. Fix: `schema: 'zapp', table: 'sentiment_alerts'`; payload atualizado para `alert_level`/`sentiment_score` | Resolvido |
-| ~~BUG-25~~ | `src/components/payments/PaymentLinksView.tsx:61` | CORRIGIDO 2026-07-24 (v2): subscription estava em `schema: 'financeiro'` (CORRETO — tabela física), uma "correção" anterior desta sessão mudou erroneamente para `schema: 'zapp'` (VIEW proxy). Revertido para `schema: 'financeiro'`. Migration `20260724000006` adiciona `financeiro.payment_links` à publication (supercede `20260724000004` que tinha dois bugs: schema errado + FOREACH SLICE type bug) | Resolvido |
-| ~~BUG-26~~ | `src/hooks/useGmailOAuthFlow.ts:292` | CORRIGIDO 2026-07-24: `email_app.email_accounts` não estava em `supabase_realtime`; callback pós-OAuth não disparava; fluxo OAuth aparentava travar. Fix: migration `20260724000006` adiciona tabela à publication (re-adds idempotentemente) | Resolvido |
-| ~~BUG-27~~ | `supabase/migrations/20260724000004_fix_realtime_payment_links_email_accounts.sql` | CORRIGIDO 2026-07-24: bloco verification declarou `t TEXT` (scalar) mas `FOREACH t SLICE 1 IN ARRAY targets` requer `TEXT[]`; PostgreSQL lança `ERROR: FOREACH ... SLICE loop variable must be of an array type` que faz rollback de toda a transação — nem `financeiro.payment_links` nem `email_app.email_accounts` foram adicionados à publication. Supercedido por `20260724000006` com declaração correta `t TEXT[]` | Resolvido — `20260724000006` |
-| ~~BUG-28~~ | `supabase/functions/evolution-sentiment/index.ts:66` | CORRIGIDO 2026-07-24: `saveAnalysis()` tentava inserir em `zapp.evolution_sentiment_alerts` (tabela inexistente — nenhuma migração a cria); erro era apenas logado, nunca propagado; subscriber em `useRealtimeSentimentAlerts.ts` escutava `zapp.sentiment_alerts` (correto e publicado) mas nenhum produtor jamais escrevia lá. Fix: insert redirecionado para `zapp.sentiment_alerts` com colunas corretas (`contact_id`, `message_id`, `sentiment_score`, `alert_level`, `acknowledged`) | Resolvido |
-| ~~BUG-29~~ | `supabase/functions/evolution-sentiment/index.ts:55` + migração ausente | CORRIGIDO 2026-07-24: `zapp.evolution_sentiment_analysis` referenciada em `saveAnalysis()` (linha 55) e no catalog (`catalog.ts:46`) mas sem nenhuma migração de criação — `throw error` na linha 63 fazia com que TODA análise falhasse silenciosamente antes de chegar ao código de alertas (raiz real do BUG-28). Fix: `20260724000007_create_evolution_sentiment_analysis.sql` cria a tabela com todos os campos esperados pelo edge function, 4 índices, RLS (service_role + authenticated SELECT), e adiciona à publication `supabase_realtime` | Resolvido — `20260724000007` |
-| ~~BUG-30~~ | `supabase/migrations/20260724000007_create_evolution_sentiment_analysis.sql` + `20260724000008_create_missing_evolution_tables.sql` | CORRIGIDO 2026-07-24: **Schema mismatch crítico** — migrações usavam `CREATE TABLE IF NOT EXISTS zapp.evolution_X` mas todas as 9 tabelas já existem como VIEW proxies em `zapp` apontando para tabelas físicas em `evo` (confirmado em `docs/SUPABASE_SCHEMA_AUDIT_2026-07-15.md`). `CREATE TABLE IF NOT EXISTS` silenciosamente pulava a VIEW, depois `CREATE INDEX ON zapp.evolution_X` falhava com "cannot create index on view", revertendo toda a migração. Fix: reescrita com DO blocks de detecção de schema (`relkind = 'v'` → `evo`, senão `zapp`) usando `EXECUTE format()` para todo DDL | Resolvido — `20260724000007` + `20260724000008` (commit `8466bc1`) |
-| ~~BUG-31~~ | `supabase/functions/evolution-sentiment/index.ts:55,68` | CORRIGIDO 2026-07-24: **UUID type mismatch** — `msgId` vem de `body.message_id` que pode ser um ID de mensagem da Evolution API (ex: `3EB0C767D360A23D02C3`), formato que NÃO é UUID válido. Passado diretamente para `evolution_sentiment_analysis.message_id` (UUID) e `sentiment_alerts.message_id` (UUID), causando erro de tipo no PostgreSQL que abortava o INSERT silenciosamente. Fix: adicionada função `toUuid(v)` que retorna `null` para strings não-UUID; aplicada em ambos os INSERTs (`message_id: toUuid(msgId)`) | Resolvido — `evolution-sentiment/index.ts` (commit `8466bc1`) |
-| ~~BUG-32~~ | `src/hooks/useConnectionAlertsPush.ts:26` | CORRIGIDO 2026-07-24: subscription usava `table: 'notifications'` — `public.notifications` nunca foi movida para `zapp`; `zapp.notifications` é VIEW proxy (relkind='v'), nunca entra na publication `supabase_realtime` → no-op silencioso. Também filtrava `type='connection_alert'` mas `fn_monitor_instance_health` só escrevia `type='alert'`. Fix: (1) `table` → `'app_notifications'` (física, publicada); (2) trigger atualizado em `20260724000048` para dual-write em `zapp.app_notifications` com `type='connection_alert'` | Resolvido — `20260724000048` |
-| ~~BUG-33~~ | `src/hooks/useIncomingCallListener.ts:29` | CORRIGIDO 2026-07-24: subscription em `{schema:'zapp', table:'calls'}` — `public.calls` foi explicitamente removida de `supabase_realtime` em `20260410111418` por razões de segurança; `zapp.calls` é VIEW proxy → no-op silencioso; listener de chamadas entrantes nunca disparava. Fix: migration `20260724000048` move `public.calls` → `zapp.calls` com RLS baseado em `zapp.profiles` e adiciona à publication | Resolvido — `20260724000048` |
-| ~~BUG-34~~ | `src/components/talkx/TalkXLiveMonitor.tsx:59` | CORRIGIDO 2026-07-24: subscription em `{schema:'zapp', table:'talkx_recipients'}` — `public.talkx_recipients` foi removida de `supabase_realtime` em `20260410004051` ("tabela sensível"); `zapp.talkx_recipients` é VIEW proxy → no-op silencioso; monitor ao vivo de campanhas nunca recebia atualizações de status de destinatários. Fix: migration `20260724000048` move `public.talkx_recipients` → `zapp.talkx_recipients` com RLS usando `zapp.is_admin_or_supervisor`, `zapp.talkx_campaigns`, `zapp.profiles` e adiciona à publication | Resolvido — `20260724000048` |
-| ~~BUG-35~~ | `supabase/functions/{ai-router,connection-health-check,send-rate-limit-alert,_shared/evolution-webhook-handlers}.ts` | CORRIGIDO 2026-07-24: 5 edge functions escreviam notificações em `zapp.notifications` (VIEW proxy → `public.notifications`, tabela nunca adicionada à publication `supabase_realtime`) em vez de `zapp.app_notifications` (tabela física, publicada). Notificações de: chamada entrante, alertas de conexão, rate-limit bloqueado, escalada de IA urgente, conversa escalonada — TODAS não chegavam ao frontend via Realtime. Fix: 5 substituições `from('notifications')` → `from('app_notifications')` | Resolvido |
-| ~~BUG-36~~ | `src/features/admin/hooks/monitoring/useTransfersPaginated.ts` + `supabase/migrations/20260724000049` | CORRIGIDO 2026-07-24: `rpc_list_transfers_paginated` existia apenas no schema `public` (migration `20260627191315`). `safeClient.rpc('rpc_list_transfers_paginated', ...)` via cliente com `db.schema='zapp'` → PostgREST envia `Content-Profile: zapp` → procura `zapp.rpc_list_transfers_paginated` → não encontra → PGRST202. Hook de transferências paginadas sempre falhava. Fix: `20260724000049` cria wrapper `zapp.rpc_list_transfers_paginated` delegando para `public.rpc_list_transfers_paginated` com REVOKE/GRANT corretos | Resolvido — `20260724000049` |
-| ~~BUG-37~~ | 25 tabelas em edge functions via `createZappAdminClient()` sem VIEW proxy em `zapp` | CORRIGIDO 2026-07-25: 25 tabelas físicas em `public` (ou `email_app`) acessadas por 14 edge functions via `createZappAdminClient()` (db: `zapp`) sem correspondência no schema `zapp` → PGRST205 em runtime. Tabelas: `gmail_accounts`, `gmail_threads`, `gmail_messages`, `gmail_health_logs`, `gmail_health_summary`, `gmail_revalidation_jobs`, `gmail_labels`, `voice_conversion_queue`, `sts_telemetry`, `imap_smtp_accounts`, `whatsapp_official_credentials`, `whatsapp_cloud_webhook_pings`, `channel_provider_routes`, `provider_configs`, `provider_sessions`, `provider_session_logs`, `proxy_metrics`, `proxy_alerts`, `query_telemetry`, `instance_processing_pauses`, `sicoob_contact_mapping`, `sicoob_reply_outbox`, `rate_limit_logs`, `user_service_accounts`, `messages_whatsapp`. Fix: `20260802000004` cria 20 VIEWs `WITH (security_invoker=on)` em `zapp` com REVOKE/GRANT granulares (5 tabelas já eram físicas no schema `zapp` e foram puladas) | Resolvido — `20260802000004` |
-| ~~BUG-38~~ | Storage: `audio-messages` bucket + RLS | CORRIGIDO 2026-07-27: bucket `audio-messages` tinha `public=false` + sem policy `SELECT` para `anon` → `/storage/v1/object/public/audio-messages/...` retornava HTTP 400 para todo áudio. `createSignedUrl()` também falhava com anon key (bucket privado). Fix: `public=true` + `allowed_mime_types=[ogg,webm,mpeg,mp3,aac,mp4]` + `CREATE POLICY anon_read_audio_messages FOR SELECT TO anon`. Verificado: áudio retorna HTTP 200. Migration: `20260802000001_fix_audio_messages_bucket_bug38.sql`. Runbook: `docs/INCIDENT_RUNBOOK.md` seção 4. | Resolvido — `20260802000001` |
+| ID | Componente | Problema | Severidade | Próximo Passo |
+|----|-----------|----------|-----------|--------------|
+| BUG-C | n8n | FK constraint violada em `workflow_history` | 🟠 Alto | Investigar DB n8n + FK cascades |
+| BUG-D | Edge Function | `POST /rest/v1/contacts` retorna 404 | 🟠 Alto | Verificar handler da edge function |
 
+> Histórico completo de bugs resolvidos em `docs/CHANGELOG_SESSIONS.md`.
+
+---
+
+## Stubs Ativos (RPCs sem implementação real)
+
+Estas funções existem como stubs em `supabase/migrations/20260717000002_create_missing_rpcs_stubs.sql`.
+Todas fazem `RAISE EXCEPTION P0001` exceto onde indicado. **Não implementar como tabelas** — requerem Edge Functions.
+
+| RPC | Comportamento do Stub | Implementação Real |
+|-----|-----------------------|-------------------|
+| `initiate_gmail_oauth` | RAISE P0001 | Edge Function OAuth Google |
+| `complete_gmail_oauth` | RAISE P0001 | Edge Function OAuth callback |
+| `sync_to_crm` | RAISE P0001 | Edge Function + API CRM |
+| `export_user_data` | Retorna perfil básico (JSON) | Edge Function export completo |
+| `import_user_data` | RAISE P0001 | Edge Function com validação |
+| `enrich_contact` | Retorna `{enriched: false}` | Integração API enriquecimento |
+| `get_latest_analysis` | Retorna avg engagement_score | Analytics completo |
+
+> `check_download_permission` — **NÃO é stub**: função intencionalmente ausente, frontend fail-open via SQLSTATE 42883.
+> Detalhes completos em `docs/RPC_STUBS_STATUS.md`.
 
 ---
 
@@ -229,13 +198,17 @@ O repositório possui um **grafo de conhecimento** em `graphify-out/` (Apache 2.
 | Doc | Conteúdo |
 |-----|----------|
 | `docs/SCHEMA_REFERENCE.md` | **Documento canônico** de schemas e tabelas |
+| `docs/SCHEMA_SNAPSHOT.md` | Snapshot de contagens do DB (2026-08-04) |
+| `docs/RPC_STUBS_STATUS.md` | Status dos stubs de RPC ativos |
+| `docs/CHANGELOG_SESSIONS.md` | Histórico de sessões e bugs resolvidos |
+| `docs/AUDIT_MIGRATION_VS_DB_50_STEPS.md` | Plano de auditoria migration vs DB (50 etapas) |
 | `docs/ER_DIAGRAM.md` | Diagrama de entidade-relacionamento |
 | `docs/ARCHITECTURE_AND_FLOW.md` | Arquitetura e fluxo de dados |
 | `docs/API_CONTRACT.md` | Contratos de API |
 | `docs/EVOLUTION_API_REFERENCE.md` | API Evolution (WhatsApp) |
 | `docs/RUNBOOK_OBSERVABILITY.md` | Observabilidade e alertas |
 | `SECURITY.md` | Políticas de segurança |
-| `infra/runbooks/OPERATIONS.md` | Runbook de operações (22/07) |
+| `infra/runbooks/OPERATIONS.md` | Runbook de operações |
 | `infra/backup/README.md` | Backup & restore procedure |
 | `infra/evolution/SETTINGS.md` | Configs Evolution wpp2 |
 | `docs/QA_REPORT_2026-07-22.md` | QA Report completo (22/07) |
@@ -258,7 +231,7 @@ supabase/
 ├── functions/               # 123 Edge Functions (Deno)
 │   └── _shared/
 │       └── db-client.ts     # createZappAdminClient()
-└── migrations/              # 130 migrações SQL
+└── migrations/              # 130+ migrações SQL
 
 infra/                       # Infraestrutura
 ├── runbooks/                # Procedimentos operacionais
@@ -268,172 +241,3 @@ infra/                       # Infraestrutura
 └── evolution/               # Configurações Evolution
     └── SETTINGS.md          # Settings atuais da wpp2
 ```
-
----
-
-## Sessão 2026-07-17 (tarde) — Meta 10/10
-
-### Melhorias executadas
-
-| Item | Ação | Status |
-|---|---|---|
-| Branches lovable-sync | Deletados (−106K/−104K linhas vs main se mergeados) | ✅ |
-| `public._wal_slot_guard_events` | COMMENT documentando deny-all intencional | ✅ |
-| `bpm_check_breached_slas` | Cron criado (job 198, */5 min) | ✅ |
-| TypeScript 0 errors | `tsc --noEmit --skipLibCheck`: 0 erros | ✅ |
-| Gates CI | Todos passando: schema-usage, casts, simulate-schema (300 cenários) | ✅ |
-| `fn_rate_limit_check` | `p_window_minutes` agora usado (floor epoch) | ✅ |
-| 56 RPCs auditadas | 53/53 existem; 3 são mocks/fail-open | ✅ |
-
-### Estado final do banco
-- Schemas: `zapp` (313 tab, 405 views, 1025 fns) / `evo` (189 tab RLS 100%) / `public` (1 tab)  
-- anon: 0 funções executáveis, 0 views sem security_invoker
-- SECDEF: 0 sem search_path fixo
-- Realtime: `zapp.failed_messages` na publication ✅ (subscription com `schema:'zapp'`)
-- Crons: 119 ativos (18 novo: bpm-check-breached-slas)
-
----
-
-## Sessão 2026-07-20 — Auditoria de Schema e Correção de Bugs
-
-### Melhorias executadas
-
-| Item | Arquivo / Migração | Ação | Status |
-|---|---|---|---|
-| BUG-12 — AuditLogPanel colunas erradas | `src/components/contacts/AuditLogPanel.tsx` | Interface e SELECT corrigidos: `old_values jsonb`, `new_values jsonb`, `reason text` (em vez de `field_name`, `old_value`, `new_value`, `metadata`) | ✅ |
-| BUG-13 — fromIso stale closure | `useDispatchErrorLogs.ts` | `useMemo([hours])` para estabilizar `fromIso` entre ciclos de refetch | ✅ |
-| BUG-14 — currentPage não reseta | `useDlqAuditLog.ts` | `useEffect([action, limit])` → `setCurrentPage(0)` | ✅ |
-| BUG-15 — SQL injection `sort_direction` | `20260802000003` | Whitelist + `RAISE EXCEPTION P0001` para valores inválidos em `search_contacts_cursor` | ✅ |
-| BUG-16 — COUNT decresce por página | `20260802000003` | CTE `total` calculada antes do cursor predicate em `search_contacts_cursor` | ✅ |
-| BUG-17 — Cursor keyset incompleto | `20260802000003` | `ROW(sort_col, id)` composto com pivot pré-buscado via SQL estático | ✅ |
-| BUG-18 — GRANT ausente `search_contacts_cursor` | `20260802000003` | `REVOKE FROM PUBLIC, anon; GRANT TO authenticated` restaurado | ✅ |
-| BUG-19 — occurred_at/created_at mismatch | `20260720000004` | `rpc_list_dispatch_error_logs_cursor`: `d.occurred_at` direto + cursor alinhado em ambos os lados | ✅ |
-| BUG-20 — `public.` view reference em SECDEF | `20260720000004` | `rpc_list_dispatch_error_logs`: `FROM public.dispatch_error_logs` → `FROM dispatch_error_logs` | ✅ |
-| BUG-21 — `sentiment_alerts` fora da publication | `20260720000005` | `ALTER PUBLICATION supabase_realtime ADD TABLE zapp.sentiment_alerts` | ✅ |
-| BUG-22 — Subscriptions em tabelas fantasma | `useNotificationManagement.ts` | `goal_notifications` / `transcription_notifications` → `app_notifications` com filtro client-side por `type` | ✅ |
-| Security hardening — funções internas | `20260720000002` | REVOKE EXECUTE FROM PUBLIC/anon em funções de scoring, rate-limit, trigger e analytics ops | ✅ |
-| Stub `check_download_permission` | `20260720000001` | Fail-open com SQLSTATE 42883 para `rpc('check_download_permission')` ausente | ✅ |
-| `useRealtimeDashboardManagement` | `useRealtimeManagement.ts` | Subscription de `zapp.dashboard_data` (inexistente) → `zapp.app_notifications` (publicada) | ✅ |
-| TypeScript 0 erros | — | `tsc --noEmit --skipLibCheck`: 0 erros após todas as correções | ✅ |
-
-### Estado do Realtime após sessão 2026-07-20
-- `zapp.failed_messages` ✅ (física, publicada)
-- `zapp.sentiment_alerts` ✅ (adicionada em `20260720000005`)
-- `zapp.app_notifications` ✅ (publicada, usada por dashboard + goal + transcription hooks)
-- `zapp.user_settings` ✅ (adicionada em `20260720000006` — sync de configurações cross-tab)
-- `zapp.workspace_settings` ✅ (adicionada em `20260720000006` — sync de configurações cross-tab)
-- `zapp.goal_notifications` / `zapp.transcription_notifications` — tabelas fantasma, subscriptions redirecionadas
-- `zapp.dispatch_error_logs` ✅ (adicionada em `20260721_fix_cursor_rpcs_and_search_path.sql` — 2026-07-24)
-- Auditoria completa de 36 tabelas e 49 RPCs: todos presentes ou cobertos por stubs/migrations
-
-### Estado do Realtime após sessão 2026-07-24
-- `financeiro.payment_links` ✅ (adicionada em `20260724000006` — supercede `20260724000004` com type bug)
-- `email_app.email_accounts` ✅ (adicionada em `20260724000006` — Gmail OAuth flow callback)
-- `email_app.email_threads` ✅ (adicionada em `20260724000005`)
-- `zapp.failed_messages` ✅ (confirmado; `20260724000005` idempotente)
-- `zapp.app_notifications` ✅ (confirmado; `20260724000005` idempotente)
-- `zapp.agent_stats` ✅ (adicionada em `20260724000005`)
-- `zapp.audio_memes` ✅ (adicionada em `20260724000005`)
-- `zapp.qr_attempts` ✅ (adicionada em `20260724000005`)
-- `zapp.queue_members`, `zapp.queue_positions`, `zapp.queues` ✅ (adicionadas em `20260724000005`)
-- `zapp.sales_deals` ✅ (adicionada em `20260724000005`)
-- `zapp.talkx_campaigns` ✅ (adicionada em `20260724000005`)
-- `zapp.team_messages` ✅ (adicionada em `20260724000005`)
-- `zapp.warroom_alerts` ✅ (adicionada em `20260724000005`)
-- `zapp.whatsapp_connections` ✅ (adicionada em `20260724000005`)
-- `zapp.evolution_sentiment_analysis` ✅ (criada em `20260724000007`, adicionada à publication)
-- `evolution-sentiment`: producer agora escreve em `zapp.evolution_sentiment_analysis` + `zapp.sentiment_alerts` (era `evolution_sentiment_alerts` inexistente — BUG-28/29)
-
-## Sessão 2026-07-22 — QA Exaustiva de Infraestrutura (10/10)
-
-### Contexto
-QA realizado diretamente no ambiente de produção AtomicaBR (VPS Docker Swarm).
-144 containers auditados, 11 módulos testados, 7 bugs encontrados.
-Todas as correções foram aplicadas em runtime (Evolution API, Docker, PostgreSQL, Hermes Cron).
-
-### Bugs Encontrados
-
-| # | Componente | Problema | Severidade | Status |
-|---|---|---|---|---|
-| BUG-A | CrowdSec Bouncer | 7 dias sem atualizar decisões | 🔴 CRÍTICO | ✅ Corrigido (restart) |
-| BUG-B | WAL Slot | `cainophile_s7fgrb36` 278MB lag crescendo | 🔴 CRÍTICO | ✅ Corrigido (DB restart) |
-| BUG-C | n8n | FK constraint violada em workflow_history | 🟠 ALTO | ⏳ Pendente |
-| BUG-D | Edge Function | POST /rest/v1/contacts 404 | 🟠 ALTO | ⏳ Pendente |
-| BUG-E | Glitchtip | DB disconnect pós-deploy | 🟡 MÉDIO | ✅ Corrigido (restart) |
-| BUG-F | Backups | Falso alarme (backups R2 OK) | 🟡 MÉDIO | ✅ Investigado e limpo |
-| BUG-G | bridge.js | Sem Express error handler | 🟢 BAIXO | Baixo risco |
-
-### Shift-Left Items (runtime — recriar via docs)
-
-| Item | Local | Como Recriar |
-|---|---|---|
-| alwaysOnline=true | Evolution DB | `infra/evolution/SETTINGS.md` |
-| readMessages=true | Evolution DB | `infra/evolution/SETTINGS.md` |
-| Webhook disabled | Evolution DB | `infra/evolution/SETTINGS.md` |
-| Cron: WAL Monitor (15min) | Hermes Agent | `infra/runbooks/OPERATIONS.md` |
-| Cron: Backup Check (6h) | Hermes Agent | `infra/runbooks/OPERATIONS.md` |
-| VACUUM ANALYZE | PostgreSQL | Efeito temporário (re-aplicar) |
-| BACKUP_FAILED purge | Filesystem | Já limpo (245MB) |
-
-### Informações do Ambiente (22/07)
-
-| Métrica | Valor |
-|---|---|
-| Docker | 28.1.1, Ubuntu 20.04, 12 vCPU, 24GB RAM |
-| Disco | 119 GB usado (61%), 75 GB livre |
-| Containers | 144 total (107 running) |
-| Cache hit ratio | 99.91% |
-| Evolution msgs | 46.700+ processadas |
-| RabbitMQ | 17/17 filas, 0 erros |
-| Backups R2 | 13 consecutivos (último: 22/07, 27MB) |
-| WAL total | 1.024 GB (monitorar via cron) |
-
----
-
-## Sessão 2026-07-24 — Auditoria Evolution API v2.3.7 + Implementação de Melhorias
-
-### Contexto
-Auditoria exaustiva da Evolution API v2.3.7 contra documentação oficial; 300+ cenários de simulação pré-voo.
-13 tarefas de melhoria identificadas e implementadas (LGPD, storage, eventos, integrações).
-
-### Melhorias Implementadas
-
-| # | Tarefa | Componente | Ação | Status |
-|---|---|---|---|---|
-| T5 | LGPD T1-T5: sanitização de logs | Stack 25 (evolution) | Entrypoint custom: plaintext removido de logs, API key mascarada, limite 512B por mensagem | ✅ (sessão anterior) |
-| T6 | C-1: Webhook site temporário | `public."Setting"` | Webhook desativado; URL de desenvolvimento removida (evo_set_webhook pendente de URL de produção) | ⚠️ Mitigado |
-| T7 | A-2: 4 eventos RabbitMQ faltando | `public."Rabbitmq"` | `evo_rabbitmq_set` retorna 500 (bug v2.3.7); RABBITMQ_EVENTS_* adicionados ao stack como fallback global; UPDATE direto via psql bloqueado (requer autorização explícita) | ⚠️ Parcial — psql pendente |
-| T8 | T3: makeBucket R2 ausente | Evolution API startup | Bucket `wa-media` criado via R2 API; label de auditoria atualizado no stack | ✅ (sessão anterior) |
-| T9 | Stack 25: features habilitadas | Docker Stack evolution | `DATABASE_SAVE_DATA_CHATS=true`, `DATABASE_SAVE_DATA_HISTORIC=true`, `OPENAI_ENABLED=true`, `DIFY_ENABLED=true`, `TYPEBOT_ENABLED=true`, `N8N_ENABLED=true` | ✅ |
-| T9 | Stack 25: 8 novos eventos RabbitMQ | Docker Stack evolution | `LABELS_EDIT`, `LABELS_ASSOCIATION`, `QRCODE_UPDATED`, `LOGOUT_INSTANCE`, `MESSAGES_REACTION`, `SEND_MESSAGE`, `PRESENCE_UPDATE`, `CHATS_DELETE` habilitados | ✅ |
-| T10 | DB: migrations para novos handlers | Supabase/Edge Functions | `handlePresenceUpdate` usa Realtime broadcast (sem DB); `handleChatsDelete` usa colunas existentes em `evo.evolution_messages`; nenhuma migration adicional necessária | ✅ |
-| T11 | Edge Function: routing `messages.reaction` | `evolution-webhook/index.ts` | Bloco de roteamento para `messages.reaction` → `handleReactionEvent` adicionado (linhas 411-419) | ✅ |
-| T12 | N8N: integração nativa por instância | Evolution API wpp2 | Bot N8N criado (id: `cmryc6jim0006nm07nkl49g8h`); `webhookUrl`: `https://webhook.atomicabr.com.br/webhook/evolution-wpp2`; triggerType: all; listeningFromMe: true | ✅ |
-
-### Estado da Stack 25 (evolution) — 2026-07-24
-
-| Variável | Antes | Depois |
-|---|---|---|
-| `DATABASE_SAVE_DATA_CHATS` | false | **true** |
-| `DATABASE_SAVE_DATA_HISTORIC` | false | **true** |
-| `OPENAI_ENABLED` | false | **true** |
-| `DIFY_ENABLED` | false | **true** |
-| `TYPEBOT_ENABLED` | false | **true** |
-| `N8N_ENABLED` | (ausente) | **true** |
-| `RABBITMQ_EVENTS_MESSAGES_REACTION` | (ausente) | **true** |
-| `RABBITMQ_EVENTS_SEND_MESSAGE` | (ausente) | **true** |
-| `RABBITMQ_EVENTS_PRESENCE_UPDATE` | (ausente) | **true** |
-| `RABBITMQ_EVENTS_CHATS_DELETE` | (ausente) | **true** |
-| `RABBITMQ_EVENTS_LABELS_EDIT` | (ausente) | **true** |
-| `RABBITMQ_EVENTS_LABELS_ASSOCIATION` | (ausente) | **true** |
-| `RABBITMQ_EVENTS_QRCODE_UPDATED` | (ausente) | **true** |
-| `RABBITMQ_EVENTS_LOGOUT_INSTANCE` | (ausente) | **true** |
-
-### Pendências Após Sessão
-
-| Item | Ação Necessária | Autorização Req. |
-|---|---|---|
-| T7 — 4 eventos RabbitMQ na tabela DB | `exec` no container postgres → `UPDATE public."Rabbitmq" SET events = ARRAY[...21 events...] WHERE id = '28d2d9a1-d100-4a65-856f-dc232e413eac'` | **Sim — exec em container de produção** |
-| BUG-C (n8n FK) | Investigar workflow_history FK em n8n DB | Sim |
-| BUG-D (Edge Function POST 404) | `POST /rest/v1/contacts` — verificar handler | Sim |
-
