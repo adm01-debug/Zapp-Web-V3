@@ -35,7 +35,7 @@ Deno.test("Webhook Fuzzing: should validate all forms of generated UUIDs", () =>
   fc.assert(
     fc.property(fc.uuid(), (id) => {
       const isValid = validateWebhookPayload({ id });
-      if (!isValid) console.log(`Failed UUID: ${id}`);
+      if (!isValid) return false;
       return isValid;
     }),
     { numRuns: 100 },
