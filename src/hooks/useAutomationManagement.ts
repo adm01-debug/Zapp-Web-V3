@@ -407,7 +407,7 @@ export function useAutomationSuggestions(contactId: string | null) {
       const ruleIds = [...new Set((execs ?? []).map((r) => r.rule_id).filter(Boolean))];
       const { data: rules } =
         ruleIds.length > 0
-          ? await safeClient.from<{ id: string; name: string }>('automations', (q) =>
+          ? await safeClient.from<{ id: string; name: string }>('automation_rules', (q) =>
               q.select('id, name').in('id', ruleIds)
             )
           : { data: [] as { id: string; name: string }[] };
