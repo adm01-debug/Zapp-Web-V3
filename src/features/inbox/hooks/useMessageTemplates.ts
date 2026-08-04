@@ -6,7 +6,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useMessageTemplates');
 
-/** Quick-reply template row from the `message_templates` table. */
+/** Quick-reply template row from the `quick_replies` view (zapp.quick_replies). */
 export interface Template {
   id: string;
   title: string;
@@ -19,7 +19,7 @@ export interface Template {
   updated_at?: string;
 }
 
-/** CRUD and usage-count management for message_templates; fetches templates ordered by use_count and exposes add/update/delete/increment helpers. */
+/** CRUD and usage-count management for quick_replies; fetches templates ordered by use_count and exposes add/update/delete/increment helpers. */
 export function useMessageTemplates() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -38,7 +38,7 @@ export function useMessageTemplates() {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
-        .from('message_templates')
+        .from('quick_replies')
         .select('*')
         .order('use_count', { ascending: false });
       if (!mountedRef.current) return;
@@ -62,12 +62,13 @@ export function useMessageTemplates() {
         return false;
       }
       try {
-        const { error } = await supabase.from('message_templates').insert({
-          user_id: user.id,
+        const { error } = await supabase.from('quick_replies').insert({
+          owner_id: user.id,
           title: template.title,
           content: template.content,
-          shortcut: template.shortcut || null,
+          shortcut: template.shortcut || '',
           category: template.category,
+          is_active: true,
         });
         if (error) throw error;
         toast({ title: 'Template criado!', description: 'Seu template foi salvo com sucesso.' });
@@ -89,11 +90,11 @@ export function useMessageTemplates() {
     async (template: Template) => {
       try {
         const { error } = await supabase
-          .from('message_templates')
+          .from('quick_replies')
           .update({
             title: template.title,
             content: template.content,
-            shortcut: template.shortcut,
+            shortcut: template.shortcut ?? '',
             category: template.category,
           })
           .eq('id', template.id);
@@ -112,7 +113,7 @@ export function useMessageTemplates() {
   const deleteTemplate = useCallback(
     async (id: string) => {
       try {
-        const { error } = await supabase.from('message_templates').delete().eq('id', id);
+        const { error } = await supabase.from('quick_replies').delete().eq('id', id);
         if (error) throw error;
         toast({ title: 'Template excluído', description: 'O template foi removido.' });
         await fetchTemplates();
@@ -127,7 +128,7 @@ export function useMessageTemplates() {
 
   const incrementUseCount = useCallback(async (template: Template) => {
     await supabase
-      .from('message_templates')
+      .from('quick_replies')
       .update({ use_count: template.use_count + 1 })
       .eq('id', template.id);
   }, []);

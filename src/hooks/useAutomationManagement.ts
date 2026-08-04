@@ -85,8 +85,8 @@ export interface AutomationRow {
   trigger_config: Record<string, unknown>;
   actions: Record<string, unknown>[];
   created_by: string | null;
-  last_triggered_at: string | null;
-  trigger_count: number;
+  last_executed_at: string | null;
+  execution_count: number;
   created_at: string;
   updated_at: string;
 }
@@ -137,7 +137,7 @@ export function useAutomations({
     const load = async () => {
       try {
         const { data, error } = await supabase
-          .from('automations')
+          .from('automation_rules')
           .select('id,name,trigger_type,trigger_config,actions,is_active')
           .eq('is_active', true)
           .order('name', { ascending: true });
@@ -535,12 +535,21 @@ export function useAutoCloseConversations() {
       updates: Partial<Pick<AutoCloseConfig, 'inactivity_hours' | 'is_enabled' | 'close_message'>>
     ) => {
       const config = configQuery.data;
-      if (!config) throw new Error('Config not found');
 
+      // Upsert em vez de update: se ainda não existe nenhuma linha de config
+      // (tabela vazia), o INSERT cria a config em vez de falhar com "Config not found".
       const { error } = await supabase
         .from('auto_close_config')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', config.id);
+        .upsert(
+          {
+            ...updates,
+            // Insert exige inactivity_hours obrigatório — fallback para o valor atual
+            inactivity_hours: updates.inactivity_hours ?? config?.inactivity_hours ?? 0,
+            updated_at: new Date().toISOString(),
+            ...(config?.id ? { id: config.id } : {}),
+          },
+          { onConflict: 'id' }
+        );
 
       if (error) throw error;
     },
@@ -573,7 +582,7 @@ export function useAutomationsManagementCRUD() {
     queryKey: queryKeys.automations.all(),
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('automations')
+        .from('automation_rules')
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
@@ -584,7 +593,7 @@ export function useAutomationsManagementCRUD() {
   const createMutation = useMutation({
     mutationFn: async (automation: Partial<AutomationRow>) => {
       const { data, error } = await supabase
-        .from('automations')
+        .from('automation_rules')
         .insert({
           name: automation.name || 'Nova Automação',
           description: automation.description || '',
@@ -593,7 +602,7 @@ export function useAutomationsManagementCRUD() {
           actions: automation.actions || [],
           is_active: automation.is_active ?? true,
           created_by: automation.created_by,
-        } as TablesInsert<'automations'>)
+        } as TablesInsert<'automation_rules'>)
         .select()
         .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
       if (error) throw error;
@@ -609,8 +618,8 @@ export function useAutomationsManagementCRUD() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<AutomationRow> & { id: string }) => {
       const { error } = await supabase
-        .from('automations')
-        .update(updates as TablesUpdate<'automations'>)
+        .from('automation_rules')
+        .update(updates as TablesUpdate<'automation_rules'>)
         .eq('id', id);
       if (error) throw error;
     },
@@ -623,7 +632,7 @@ export function useAutomationsManagementCRUD() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('automations').delete().eq('id', id);
+      const { error } = await supabase.from('automation_rules').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {

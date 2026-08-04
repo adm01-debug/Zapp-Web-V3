@@ -182,7 +182,13 @@ export function useBusinessHoursCheck(connectionId: string | null | undefined) {
       const { data, error } = await supabase.rpc('is_within_business_hours', {
         connection_id: connectionId,
       });
-      if (error) return null;
+      // NÃO engolir erro: se o RPC falhar (ex.: search_path quebrado pós-migração),
+      // a query entra em estado de erro (retry + log) em vez de retornar null e
+      // o badge ficar "neutro" silenciosamente. O consumidor trata isError.
+      if (error) {
+        log.error('is_within_business_hours RPC failed:', error);
+        throw error;
+      }
       return data as boolean;
     },
     enabled: !!connectionId,
