@@ -23,7 +23,8 @@ Deno.test("send-audio path includes ${instance} (multi-line block)", () => {
 });
 
 Deno.test("instance is resolved from instanceName with fallback", () => {
-  assertMatch(SOURCE, /body\.instanceName\s*\|\|\s*body\.instance/);
+  // Production code uses safeGet helper (handles both JSON + FormData bodies).
+  assertMatch(SOURCE, /safeGet\(body,\s*'instanceName'[^)]*\)\s*\|\|\s*safeGet\(body,\s*'instance'/);
 });
 
 Deno.test("proxy() helper forwards path to proxyToEvolution", () => {
