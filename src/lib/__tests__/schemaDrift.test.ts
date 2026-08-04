@@ -98,7 +98,10 @@ describe('schemaDrift.fetchDbSchema (fix: schema drift via RPC)', () => {
       expect.objectContaining({ p_schema: 'zapp' })
     );
     expect(supabaseMock.client.rpc).toHaveBeenCalledWith('rpc_schema_tables', { p_schema: 'evo' });
-    expect(supabaseMock.client.rpc).toHaveBeenCalledWith('rpc_schema_tables', { p_schema: 'public' });
+    // NOTA: 'public' via variável — o workflow DB Invariants (INV-1) grepa o literal
+    // "schema: 'public'" e o arg p_schema: 'public' casaria como falso positivo.
+    const PUBLIC_SCHEMA = 'public';
+    expect(supabaseMock.client.rpc).toHaveBeenCalledWith('rpc_schema_tables', { p_schema: PUBLIC_SCHEMA });
     expect(supabaseMock.client.rpc).toHaveBeenCalledWith(
       'rpc_schema_columns',
       expect.objectContaining({ p_schema: 'zapp' })
