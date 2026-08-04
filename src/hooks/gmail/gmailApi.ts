@@ -215,13 +215,14 @@ export async function sendDraft(
 
 /**
  * Renova o access_token Email via refresh_token armazenado.
- * Edge function: email-token-refresh.
+ * Edge function: gmail-token-refresh action=refreshSingle (aceita JWT de usuário;
+ * sem action o default é refreshAll, restrito a service-role/cron → 401).
  */
 export async function emailRefreshToken(
   accountId: string
 ): Promise<EmailApiResponse<{ success: boolean; newExpiry: string }>> {
   const { data, error } = await supabase.functions.invoke('gmail-token-refresh', {
-    body: { accountId },
+    body: { action: 'refreshSingle', accountId },
   });
 
   if (error)

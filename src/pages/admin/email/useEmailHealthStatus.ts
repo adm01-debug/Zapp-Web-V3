@@ -53,57 +53,17 @@ export function useEmailHealthStatus() {
     async (signal?: AbortSignal) => {
       setLoading(true);
       try {
-        const projectUrl = import.meta.env.VITE_SUPABASE_URL;
-        const functionUrl = `${projectUrl}/functions/v1/email-health?page=${filters.page}&pageSize=5${filters.requestId ? `&requestId=${filters.requestId}` : ''}${filters.resource ? `&resource=${filters.resource}` : ''}${filters.operation ? `&operation=${filters.operation}` : ''}`;
-
-        const fetchResponse = await fetch(functionUrl, {
-          headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          signal,
-        });
-        const dataFull = await fetchResponse.json();
-
-        if (!fetchResponse.ok) throw new Error(dataFull.error || 'Erro na Edge Function');
-
-        if (!mountedRef.current) return;
-        setHealth({
-          status: castStatus(dataFull.status),
-          source: typeof dataFull.source === 'string' ? dataFull.source : undefined,
-          lastValidation: dataFull.last_validation ? new Date(dataFull.last_validation) : null,
-          cacheExpiration: null,
-          recentFailures: dataFull.failuresResult?.items || [],
-          stats: {
-            totalCalls: 0,
-            failedCalls: dataFull.failure_count_window || 0,
-            cacheHits: 0,
-          },
-        });
-        setFailuresData(dataFull.failuresResult || { items: [], total: 0 });
+        // A edge `email-health` não existe (404 silencioso). O dado real vem do
+        // RPC rpc_get_email_health_summary + telemetria local (safeClient).
+        const info = await emailHealthService.getHealthStatus();
+        if (signal?.aborted || !mountedRef.current) return;
+        setHealth(info);
+        setFailuresData(emailHealthService.getFailures(filters));
       } catch (error) {
         if ((error instanceof DOMException && error.name === 'AbortError') || signal?.aborted)
           return;
         log.error('Error loading email health', error);
         toast.error('O serviço de telemetria do Email está indisponível.');
-
-        try {
-          const { data: summary, error: summaryError } = await emailApi.getHealthSummary();
-          if (summaryError) throw summaryError;
-
-          if (summary) {
-            if (!mountedRef.current) return;
-            setHealth({
-              status: castStatus(summary.status),
-              lastValidation: summary.last_validation ? new Date(summary.last_validation) : null,
-              cacheExpiration: null,
-              recentFailures: [],
-              stats: { totalCalls: 0, failedCalls: summary.failure_count_60m || 0, cacheHits: 0 },
-            });
-          }
-        } catch (fallbackErr) {
-          log.error('Email health fallback also failed', fallbackErr);
-        }
       } finally {
         if (mountedRef.current) setLoading(false);
       }
@@ -168,23 +128,17 @@ export function useEmailHealthStatus() {
   }, [filters, loadHealth]);
 
   const handleRevalidate = async () => {
+    // A edge `email-health` não existe; a revalidação é local (limpa o cache de
+    // telemetria dos recursos críticos). Jobs em email_revalidation_jobs são
+    // disparados pelo backend e refletidos pelo realtime abaixo.
     const revalidatePromise = async () => {
-      const projectUrl = import.meta.env.VITE_SUPABASE_URL;
-      const res = await fetch(`${projectUrl}/functions/v1/email-health?action=revalidate`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
       await emailHealthService.forceRevalidation();
-      return data;
+      return { success: true };
     };
 
     toast.promise(revalidatePromise(), {
-      loading: 'Agendando revalidação no backend...',
-      success: 'Revalidação agendada com sucesso!',
+      loading: 'Limpando cache de telemetria...',
+      success: 'Revalidação concluída com sucesso!',
       error: 'Erro ao solicitar revalidação',
     });
   };
