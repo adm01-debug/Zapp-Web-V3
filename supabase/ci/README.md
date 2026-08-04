@@ -73,3 +73,32 @@ supabase db diff --db-url "$TEST_DATABASE_URL"
 > **Nota:** O arquivo `.sql` em si NÃO está commitado no git por ser um binário de 3,5 MB
 > (não adequado para versionamento direto). Use `download-baseline.sh` para obtê-lo localmente.
 > Próxima revisão recomendada: **2026-09-01**.
+
+---
+
+## Política oficial: DB-as-source (auditoria de reconciliação 2026-08-04)
+
+> Decisão formalizada após a auditoria container × backend (102 checagens). Evidência: 88/92
+> migrations registradas no DB não têm arquivo no repo; o canonical cobre <9% dos objetos do DB.
+
+**O banco de produção é a fonte de verdade do schema.** As `supabase/migrations/` são um
+**change log** (registro de intenção), nunca fonte de reconstrução isolada.
+
+| Papel | Artefato | Quando usar |
+|---|---|---|
+| **Reconstrução canônica** | `baseline-schema-<data>.sql.gz` (pg_dump --schema-only de prod) | Ambiente novo / restauração / diff estrutural |
+| **Registro de mudança** | `supabase/migrations/` | Rastreabilidade e revisão; CI valida sintaxe, não reconstrução |
+| **Execução real** | DDL aplicado via MCP/psql em produção | Fluxo vigente no time (documentado, não combatido) |
+
+### Regras derivadas
+
+1. **Objeto no DB sem migration file = NORMAL** (não é drift a corrigir). Registrar a versão em
+   `supabase_migrations.schema_migrations` quando o arquivo for criado posteriormente.
+2. **Migration file sem registro no DB**: registrar manualmente SÓ se o DDL já estiver materializado
+   (nunca reaplicar DDL cego).
+3. **Colisão de versão** (2 arquivos com o mesmo `YYYYMMDDHHMMSS`): renomear um antes de registrar
+   (versão é PK de `schema_migrations`). Caso 2026-08-04: `20260804150001_integration_schema_zapp_fixes.sql`.
+4. **Baseline**: regenerar a cada mudança estrutural relevante (novo schema/tabela de plataforma) e,
+   no mínimo, mensalmente (próxima: 2026-09-01).
+5. **CI de reconstrução** (se criada): restaurar baseline + aplicar migrations deve terminar com
+   `db diff` vazio — divergências apontam mudança não documentada, não necessariamente erro.

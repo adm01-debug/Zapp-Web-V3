@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const pathParts = url.pathname.split('/').filter(Boolean);
   const pathAction = pathParts[pathParts.length - 1];
-  const READ_ONLY_POLL_ACTIONS = new Set(['status', 'list-instances', 'instance-info']);
+  const READ_ONLY_POLL_ACTIONS = new Set(['status', 'list-instances', 'instance-info', 'find-status-messages']);
   const isPollAction = READ_ONLY_POLL_ACTIONS.has(pathAction);
   const rl = isPollAction
     ? checkRateLimit(`evolution-poll:${ip}`, 600, 60_000)
@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
     if (instance && !INSTANCE_RE.test(instance)) return new Response(JSON.stringify({ error: 'Invalid instance name' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const instanceLooksLikeUuid = (v: unknown): boolean => typeof v === 'string' && UUID_RE.test(v.trim());
-    const READE_ONLY_INSTANCE_ACTIONS = new Set(['list-instances', 'instance-info', 'status', 'get-settings', 'get-webhook']);
+    const READE_ONLY_INSTANCE_ACTIONS = new Set(['list-instances', 'instance-info', 'status', 'get-settings', 'get-webhook', 'find-status-messages']);
     if (instance && !READE_ONLY_INSTANCE_ACTIONS.has(action) && await isInstancePaused(supabase, String(instance))) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 503, code: 'INSTANCE_PAUSED', message: `Inst\u00e2ncia "${instance}" est\u00e1 pausada.` }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } });
     if (instance && action.startsWith('send-') && SEND_PER_INSTANCE_PER_MIN > 0) {
       const sendRl = checkRateLimit(`evolution-send:${instance}`, SEND_PER_INSTANCE_PER_MIN, 60_000);
@@ -139,6 +139,31 @@ Deno.serve(async (req) => {
     if (action === 'find-messages') return await proxy(`/chat/findMessages/${instance}`, 'POST', body);
     if (action === 'find-contacts') return await proxy(`/chat/findContacts/${instance}`, 'POST', body);
     if (action === 'check-numbers') return await proxy(`/chat/whatsappNumbers/${instance}`, 'POST', body);
+    // ── Status/Stories (F4-08): find-status-messages + send-chat-presence (P1-09 reconciliação)
+    if (action === 'find-status-messages') {
+      const jb = ensureBodyIsRecord(body);
+      const page = safeGetAny(jb, 'page', false);
+      const offset = safeGetAny(jb, 'offset', false);
+      const qp = new URLSearchParams();
+      if (page !== undefined && page !== null && page !== '') qp.set('page', String(page));
+      if (offset !== undefined && offset !== null && offset !== '') qp.set('offset', String(offset));
+      const qs = qp.toString();
+      return await proxy(`/chat/findStatus/${instance}${qs ? `?${qs}` : ''}`, 'GET');
+    }
+    if (action === 'send-chat-presence') {
+      const jb = ensureBodyIsRecord(body);
+      const number = (safeGet(jb, 'number', isMultipart) || '').trim();
+      const presence = (safeGet(jb, 'presence', isMultipart) || '').trim();
+      const PRESENCE_ALLOWED = new Set(['composing', 'recording', 'paused', 'available', 'unavailable']);
+      if (!number || !/^\d{10,15}$/.test(number.replace(/[^0-9]/g, ''))) {
+        return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 400, code: 'INVALID_NUMBER', message: 'number é obrigatório (E.164, dígitos 10-15)' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      if (!PRESENCE_ALLOWED.has(presence)) {
+        return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 400, code: 'INVALID_PRESENCE', message: `presence deve ser um de: ${[...PRESENCE_ALLOWED].join(', ')}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      const { instanceName: _instanceName, ...presenceBody } = jb;
+      return await proxy(`/chat/sendPresence/${instance}`, 'POST', presenceBody);
+    }
     if (action === 'status') return await proxy(`/instance/connectionState/${instance}`, 'GET');
     if (action === 'list-instances') return await proxy(`/instance/fetchInstances`, 'GET');
     if (action === 'instance-info') return await proxy(`/instance/info/${instance}`, 'GET');

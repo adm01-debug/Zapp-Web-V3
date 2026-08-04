@@ -81,7 +81,9 @@ export async function persistMediaToStorage(
 
     const extMap: Record<string, string> = { image: 'jpg', video: 'mp4', audio: 'ogg', document: 'bin' };
     const contentTypeMap: Record<string, string> = { image: 'image/jpeg', video: 'video/mp4', audio: 'audio/ogg', document: 'application/octet-stream' };
-    const respContentType = resp.headers.get('content-type') || contentTypeMap[messageType] || 'application/octet-stream';
+    // P2-03 (reconciliação): normaliza Content-Type — remove parâmetros (ex.: 'audio/ogg; codecs=opus')
+    // que o storage-api rejeita com 415. 'codecs' é atributo da mídia, não do objeto no storage.
+    const respContentType = (resp.headers.get('content-type') || contentTypeMap[messageType] || 'application/octet-stream').split(';')[0].trim();
     const ext = detectExtension(respContentType, extMap[messageType] || 'bin');
 
     const safeId = messageId.replace(/[^a-zA-Z0-9]/g, '');

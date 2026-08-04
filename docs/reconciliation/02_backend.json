@@ -1,0 +1,3062 @@
+{
+  "audit": "FASE 2 - Enumeração completa do backend Supabase (censo de objetos e estado)",
+  "project": "zapp-web-v3",
+  "collected_at": "2026-08-04",
+  "method": "SQL read-only via MCP supabase_db_query",
+  "endpoint": "https://supabase-mcp.atomicabr.com.br/s-a50174164e4b03ef181a29db65d2db80/mcp",
+  "highlights": {
+    "zapp_census_confirmed": {
+      "tables": 321,
+      "views": 380,
+      "matviews": 5,
+      "functions": 1066
+    },
+    "total_functions_all_schemas": 1763,
+    "extensions_installed": 21,
+    "missing_http_extension": true,
+    "cron_jobs_total": 146,
+    "cron_jobs_inactive": 0,
+    "realtime_published_tables": 68,
+    "replication_slots": 2,
+    "replication_slots_inactive": 0,
+    "storage_buckets": 13,
+    "auth_users": 19,
+    "profiles": 19,
+    "identities": {
+      "email": 13,
+      "google": 1,
+      "total": 14
+    },
+    "users_without_identity": 5,
+    "migrations": 92,
+    "latest_migration": "20260804140000 fix_rls_delta_corrigido",
+    "guc_app_pgrst": 0,
+    "vault_secrets": 30,
+    "namespaces": {
+      "regular": 35,
+      "temp": 106,
+      "toast_temp": 106,
+      "total": 247
+    }
+  },
+  "queries": {
+    "23_version": {
+      "sql": "SELECT version(), pg_postmaster_start_time()",
+      "rows": [
+        {
+          "version": "PostgreSQL 15.8 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 13.2.0, 64-bit",
+          "pg_postmaster_start_time": "2026-07-31T18:36:45.535Z"
+        }
+      ],
+      "rowCount": 1,
+      "duration_ms": 1
+    },
+    "24_extensions": {
+      "sql": "SELECT extname, extversion FROM pg_extension ORDER BY 1",
+      "rows": [
+        {
+          "extname": "amcheck",
+          "extversion": "1.3"
+        },
+        {
+          "extname": "btree_gin",
+          "extversion": "1.3"
+        },
+        {
+          "extname": "dblink",
+          "extversion": "1.2"
+        },
+        {
+          "extname": "hypopg",
+          "extversion": "1.4.1"
+        },
+        {
+          "extname": "index_advisor",
+          "extversion": "0.2.0"
+        },
+        {
+          "extname": "pg_buffercache",
+          "extversion": "1.3"
+        },
+        {
+          "extname": "pg_cron",
+          "extversion": "1.6"
+        },
+        {
+          "extname": "pg_graphql",
+          "extversion": "1.5.11"
+        },
+        {
+          "extname": "pg_net",
+          "extversion": "0.14.0"
+        },
+        {
+          "extname": "pg_stat_statements",
+          "extversion": "1.10"
+        },
+        {
+          "extname": "pg_trgm",
+          "extversion": "1.6"
+        },
+        {
+          "extname": "pgcrypto",
+          "extversion": "1.3"
+        },
+        {
+          "extname": "pgjwt",
+          "extversion": "0.2.0"
+        },
+        {
+          "extname": "pgmq",
+          "extversion": "1.4.4"
+        },
+        {
+          "extname": "pgsodium",
+          "extversion": "3.1.8"
+        },
+        {
+          "extname": "plpgsql",
+          "extversion": "1.0"
+        },
+        {
+          "extname": "supabase_vault",
+          "extversion": "0.3.1"
+        },
+        {
+          "extname": "unaccent",
+          "extversion": "1.1"
+        },
+        {
+          "extname": "uuid-ossp",
+          "extversion": "1.1"
+        },
+        {
+          "extname": "vector",
+          "extversion": "0.8.0"
+        },
+        {
+          "extname": "wrappers",
+          "extversion": "0.4.6"
+        }
+      ],
+      "rowCount": 21,
+      "duration_ms": 2
+    },
+    "25_roles": {
+      "sql": "SELECT rolname FROM pg_roles ORDER BY 1",
+      "rows": [
+        {
+          "rolname": "anon"
+        },
+        {
+          "rolname": "authenticated"
+        },
+        {
+          "rolname": "authenticator"
+        },
+        {
+          "rolname": "dashboard_user"
+        },
+        {
+          "rolname": "pg_checkpoint"
+        },
+        {
+          "rolname": "pg_database_owner"
+        },
+        {
+          "rolname": "pg_execute_server_program"
+        },
+        {
+          "rolname": "pg_monitor"
+        },
+        {
+          "rolname": "pg_read_all_data"
+        },
+        {
+          "rolname": "pg_read_all_settings"
+        },
+        {
+          "rolname": "pg_read_all_stats"
+        },
+        {
+          "rolname": "pg_read_server_files"
+        },
+        {
+          "rolname": "pg_signal_backend"
+        },
+        {
+          "rolname": "pg_stat_scan_tables"
+        },
+        {
+          "rolname": "pg_write_all_data"
+        },
+        {
+          "rolname": "pg_write_server_files"
+        },
+        {
+          "rolname": "pgbouncer"
+        },
+        {
+          "rolname": "pgsodium_keyholder"
+        },
+        {
+          "rolname": "pgsodium_keyiduser"
+        },
+        {
+          "rolname": "pgsodium_keymaker"
+        },
+        {
+          "rolname": "postgres"
+        },
+        {
+          "rolname": "service_role"
+        },
+        {
+          "rolname": "supabase_admin"
+        },
+        {
+          "rolname": "supabase_auth_admin"
+        },
+        {
+          "rolname": "supabase_functions_admin"
+        },
+        {
+          "rolname": "supabase_read_only_user"
+        },
+        {
+          "rolname": "supabase_realtime_admin"
+        },
+        {
+          "rolname": "supabase_replication_admin"
+        },
+        {
+          "rolname": "supabase_storage_admin"
+        }
+      ],
+      "rowCount": 29,
+      "duration_ms": 1
+    },
+    "25_role_settings": {
+      "sql": "SELECT r.rolname, s.setconfig FROM pg_db_role_setting s JOIN pg_roles r ON r.oid=s.setrole ORDER BY 1",
+      "rows": [
+        {
+          "rolname": "anon",
+          "setconfig": [
+            "statement_timeout=5s",
+            "search_path=evo, public, extensions",
+            "idle_in_transaction_session_timeout=60s"
+          ]
+        },
+        {
+          "rolname": "authenticated",
+          "setconfig": [
+            "statement_timeout=15s",
+            "search_path=zapp, evo, public, extensions",
+            "idle_in_transaction_session_timeout=60s",
+            "lock_timeout=10s"
+          ]
+        },
+        {
+          "rolname": "authenticator",
+          "setconfig": [
+            "session_preload_libraries=safeupdate",
+            "statement_timeout=8s",
+            "lock_timeout=8s",
+            "TimeZone=America/Sao_Paulo",
+            "search_path=\"$user\", public, evo, zapp, bpm, email_app, monitoring, extensions"
+          ]
+        },
+        {
+          "rolname": "postgres",
+          "setconfig": [
+            "search_path=\"$user\", public, evo, zapp, bpm, email_app, monitoring, extensions",
+            "TimeZone=America/Sao_Paulo",
+            "idle_in_transaction_session_timeout=60s",
+            "enable_partitionwise_join=on",
+            "enable_partitionwise_aggregate=on",
+            "track_io_timing=on",
+            "statement_timeout=120s"
+          ]
+        },
+        {
+          "rolname": "service_role",
+          "setconfig": [
+            "TimeZone=America/Sao_Paulo",
+            "search_path=zapp, evo, public, extensions",
+            "idle_in_transaction_session_timeout=300s",
+            "statement_timeout=60s"
+          ]
+        },
+        {
+          "rolname": "supabase_admin",
+          "setconfig": [
+            "search_path=\"\\$user\", public, auth, extensions"
+          ]
+        },
+        {
+          "rolname": "supabase_auth_admin",
+          "setconfig": [
+            "search_path=auth",
+            "idle_in_transaction_session_timeout=60000"
+          ]
+        },
+        {
+          "rolname": "supabase_functions_admin",
+          "setconfig": [
+            "search_path=supabase_functions"
+          ]
+        },
+        {
+          "rolname": "supabase_storage_admin",
+          "setconfig": [
+            "search_path=storage"
+          ]
+        }
+      ],
+      "rowCount": 9,
+      "duration_ms": 2
+    },
+    "26_namespaces": {
+      "sql": "SELECT nspname FROM pg_namespace ORDER BY 1",
+      "rows": [
+        {
+          "nspname": "_backups"
+        },
+        {
+          "nspname": "_realtime"
+        },
+        {
+          "nspname": "ai"
+        },
+        {
+          "nspname": "archive"
+        },
+        {
+          "nspname": "artes"
+        },
+        {
+          "nspname": "auth"
+        },
+        {
+          "nspname": "bpm"
+        },
+        {
+          "nspname": "cron"
+        },
+        {
+          "nspname": "email_app"
+        },
+        {
+          "nspname": "evo"
+        },
+        {
+          "nspname": "extensions"
+        },
+        {
+          "nspname": "financeiro"
+        },
+        {
+          "nspname": "graphql"
+        },
+        {
+          "nspname": "graphql_public"
+        },
+        {
+          "nspname": "graveyard"
+        },
+        {
+          "nspname": "information_schema"
+        },
+        {
+          "nspname": "logistica"
+        },
+        {
+          "nspname": "monitoring"
+        },
+        {
+          "nspname": "net"
+        },
+        {
+          "nspname": "ops"
+        },
+        {
+          "nspname": "parity_audit"
+        },
+        {
+          "nspname": "pg_catalog"
+        },
+        {
+          "nspname": "pg_temp_10"
+        },
+        {
+          "nspname": "pg_temp_100"
+        },
+        {
+          "nspname": "pg_temp_101"
+        },
+        {
+          "nspname": "pg_temp_102"
+        },
+        {
+          "nspname": "pg_temp_103"
+        },
+        {
+          "nspname": "pg_temp_104"
+        },
+        {
+          "nspname": "pg_temp_105"
+        },
+        {
+          "nspname": "pg_temp_106"
+        },
+        {
+          "nspname": "pg_temp_107"
+        },
+        {
+          "nspname": "pg_temp_108"
+        },
+        {
+          "nspname": "pg_temp_109"
+        },
+        {
+          "nspname": "pg_temp_11"
+        },
+        {
+          "nspname": "pg_temp_110"
+        },
+        {
+          "nspname": "pg_temp_111"
+        },
+        {
+          "nspname": "pg_temp_112"
+        },
+        {
+          "nspname": "pg_temp_113"
+        },
+        {
+          "nspname": "pg_temp_114"
+        },
+        {
+          "nspname": "pg_temp_115"
+        },
+        {
+          "nspname": "pg_temp_116"
+        },
+        {
+          "nspname": "pg_temp_117"
+        },
+        {
+          "nspname": "pg_temp_118"
+        },
+        {
+          "nspname": "pg_temp_12"
+        },
+        {
+          "nspname": "pg_temp_121"
+        },
+        {
+          "nspname": "pg_temp_122"
+        },
+        {
+          "nspname": "pg_temp_125"
+        },
+        {
+          "nspname": "pg_temp_14"
+        },
+        {
+          "nspname": "pg_temp_15"
+        },
+        {
+          "nspname": "pg_temp_17"
+        },
+        {
+          "nspname": "pg_temp_18"
+        },
+        {
+          "nspname": "pg_temp_21"
+        },
+        {
+          "nspname": "pg_temp_22"
+        },
+        {
+          "nspname": "pg_temp_23"
+        },
+        {
+          "nspname": "pg_temp_24"
+        },
+        {
+          "nspname": "pg_temp_25"
+        },
+        {
+          "nspname": "pg_temp_26"
+        },
+        {
+          "nspname": "pg_temp_27"
+        },
+        {
+          "nspname": "pg_temp_28"
+        },
+        {
+          "nspname": "pg_temp_29"
+        },
+        {
+          "nspname": "pg_temp_3"
+        },
+        {
+          "nspname": "pg_temp_30"
+        },
+        {
+          "nspname": "pg_temp_32"
+        },
+        {
+          "nspname": "pg_temp_33"
+        },
+        {
+          "nspname": "pg_temp_35"
+        },
+        {
+          "nspname": "pg_temp_4"
+        },
+        {
+          "nspname": "pg_temp_42"
+        },
+        {
+          "nspname": "pg_temp_43"
+        },
+        {
+          "nspname": "pg_temp_44"
+        },
+        {
+          "nspname": "pg_temp_45"
+        },
+        {
+          "nspname": "pg_temp_46"
+        },
+        {
+          "nspname": "pg_temp_47"
+        },
+        {
+          "nspname": "pg_temp_48"
+        },
+        {
+          "nspname": "pg_temp_49"
+        },
+        {
+          "nspname": "pg_temp_50"
+        },
+        {
+          "nspname": "pg_temp_51"
+        },
+        {
+          "nspname": "pg_temp_52"
+        },
+        {
+          "nspname": "pg_temp_53"
+        },
+        {
+          "nspname": "pg_temp_54"
+        },
+        {
+          "nspname": "pg_temp_55"
+        },
+        {
+          "nspname": "pg_temp_56"
+        },
+        {
+          "nspname": "pg_temp_57"
+        },
+        {
+          "nspname": "pg_temp_58"
+        },
+        {
+          "nspname": "pg_temp_59"
+        },
+        {
+          "nspname": "pg_temp_6"
+        },
+        {
+          "nspname": "pg_temp_60"
+        },
+        {
+          "nspname": "pg_temp_61"
+        },
+        {
+          "nspname": "pg_temp_62"
+        },
+        {
+          "nspname": "pg_temp_63"
+        },
+        {
+          "nspname": "pg_temp_64"
+        },
+        {
+          "nspname": "pg_temp_65"
+        },
+        {
+          "nspname": "pg_temp_66"
+        },
+        {
+          "nspname": "pg_temp_67"
+        },
+        {
+          "nspname": "pg_temp_68"
+        },
+        {
+          "nspname": "pg_temp_69"
+        },
+        {
+          "nspname": "pg_temp_7"
+        },
+        {
+          "nspname": "pg_temp_70"
+        },
+        {
+          "nspname": "pg_temp_71"
+        },
+        {
+          "nspname": "pg_temp_72"
+        },
+        {
+          "nspname": "pg_temp_73"
+        },
+        {
+          "nspname": "pg_temp_74"
+        },
+        {
+          "nspname": "pg_temp_75"
+        },
+        {
+          "nspname": "pg_temp_76"
+        },
+        {
+          "nspname": "pg_temp_77"
+        },
+        {
+          "nspname": "pg_temp_78"
+        },
+        {
+          "nspname": "pg_temp_79"
+        },
+        {
+          "nspname": "pg_temp_8"
+        },
+        {
+          "nspname": "pg_temp_80"
+        },
+        {
+          "nspname": "pg_temp_81"
+        },
+        {
+          "nspname": "pg_temp_82"
+        },
+        {
+          "nspname": "pg_temp_83"
+        },
+        {
+          "nspname": "pg_temp_84"
+        },
+        {
+          "nspname": "pg_temp_85"
+        },
+        {
+          "nspname": "pg_temp_86"
+        },
+        {
+          "nspname": "pg_temp_87"
+        },
+        {
+          "nspname": "pg_temp_88"
+        },
+        {
+          "nspname": "pg_temp_89"
+        },
+        {
+          "nspname": "pg_temp_9"
+        },
+        {
+          "nspname": "pg_temp_90"
+        },
+        {
+          "nspname": "pg_temp_91"
+        },
+        {
+          "nspname": "pg_temp_92"
+        },
+        {
+          "nspname": "pg_temp_93"
+        },
+        {
+          "nspname": "pg_temp_94"
+        },
+        {
+          "nspname": "pg_temp_95"
+        },
+        {
+          "nspname": "pg_temp_96"
+        },
+        {
+          "nspname": "pg_temp_97"
+        },
+        {
+          "nspname": "pg_temp_98"
+        },
+        {
+          "nspname": "pg_temp_99"
+        },
+        {
+          "nspname": "pg_toast"
+        },
+        {
+          "nspname": "pg_toast_temp_10"
+        },
+        {
+          "nspname": "pg_toast_temp_100"
+        },
+        {
+          "nspname": "pg_toast_temp_101"
+        },
+        {
+          "nspname": "pg_toast_temp_102"
+        },
+        {
+          "nspname": "pg_toast_temp_103"
+        },
+        {
+          "nspname": "pg_toast_temp_104"
+        },
+        {
+          "nspname": "pg_toast_temp_105"
+        },
+        {
+          "nspname": "pg_toast_temp_106"
+        },
+        {
+          "nspname": "pg_toast_temp_107"
+        },
+        {
+          "nspname": "pg_toast_temp_108"
+        },
+        {
+          "nspname": "pg_toast_temp_109"
+        },
+        {
+          "nspname": "pg_toast_temp_11"
+        },
+        {
+          "nspname": "pg_toast_temp_110"
+        },
+        {
+          "nspname": "pg_toast_temp_111"
+        },
+        {
+          "nspname": "pg_toast_temp_112"
+        },
+        {
+          "nspname": "pg_toast_temp_113"
+        },
+        {
+          "nspname": "pg_toast_temp_114"
+        },
+        {
+          "nspname": "pg_toast_temp_115"
+        },
+        {
+          "nspname": "pg_toast_temp_116"
+        },
+        {
+          "nspname": "pg_toast_temp_117"
+        },
+        {
+          "nspname": "pg_toast_temp_118"
+        },
+        {
+          "nspname": "pg_toast_temp_12"
+        },
+        {
+          "nspname": "pg_toast_temp_121"
+        },
+        {
+          "nspname": "pg_toast_temp_122"
+        },
+        {
+          "nspname": "pg_toast_temp_125"
+        },
+        {
+          "nspname": "pg_toast_temp_14"
+        },
+        {
+          "nspname": "pg_toast_temp_15"
+        },
+        {
+          "nspname": "pg_toast_temp_17"
+        },
+        {
+          "nspname": "pg_toast_temp_18"
+        },
+        {
+          "nspname": "pg_toast_temp_21"
+        },
+        {
+          "nspname": "pg_toast_temp_22"
+        },
+        {
+          "nspname": "pg_toast_temp_23"
+        },
+        {
+          "nspname": "pg_toast_temp_24"
+        },
+        {
+          "nspname": "pg_toast_temp_25"
+        },
+        {
+          "nspname": "pg_toast_temp_26"
+        },
+        {
+          "nspname": "pg_toast_temp_27"
+        },
+        {
+          "nspname": "pg_toast_temp_28"
+        },
+        {
+          "nspname": "pg_toast_temp_29"
+        },
+        {
+          "nspname": "pg_toast_temp_3"
+        },
+        {
+          "nspname": "pg_toast_temp_30"
+        },
+        {
+          "nspname": "pg_toast_temp_32"
+        },
+        {
+          "nspname": "pg_toast_temp_33"
+        },
+        {
+          "nspname": "pg_toast_temp_35"
+        },
+        {
+          "nspname": "pg_toast_temp_4"
+        },
+        {
+          "nspname": "pg_toast_temp_42"
+        },
+        {
+          "nspname": "pg_toast_temp_43"
+        },
+        {
+          "nspname": "pg_toast_temp_44"
+        },
+        {
+          "nspname": "pg_toast_temp_45"
+        },
+        {
+          "nspname": "pg_toast_temp_46"
+        },
+        {
+          "nspname": "pg_toast_temp_47"
+        },
+        {
+          "nspname": "pg_toast_temp_48"
+        },
+        {
+          "nspname": "pg_toast_temp_49"
+        },
+        {
+          "nspname": "pg_toast_temp_50"
+        },
+        {
+          "nspname": "pg_toast_temp_51"
+        },
+        {
+          "nspname": "pg_toast_temp_52"
+        },
+        {
+          "nspname": "pg_toast_temp_53"
+        },
+        {
+          "nspname": "pg_toast_temp_54"
+        },
+        {
+          "nspname": "pg_toast_temp_55"
+        },
+        {
+          "nspname": "pg_toast_temp_56"
+        },
+        {
+          "nspname": "pg_toast_temp_57"
+        },
+        {
+          "nspname": "pg_toast_temp_58"
+        },
+        {
+          "nspname": "pg_toast_temp_59"
+        },
+        {
+          "nspname": "pg_toast_temp_6"
+        },
+        {
+          "nspname": "pg_toast_temp_60"
+        },
+        {
+          "nspname": "pg_toast_temp_61"
+        },
+        {
+          "nspname": "pg_toast_temp_62"
+        },
+        {
+          "nspname": "pg_toast_temp_63"
+        },
+        {
+          "nspname": "pg_toast_temp_64"
+        },
+        {
+          "nspname": "pg_toast_temp_65"
+        },
+        {
+          "nspname": "pg_toast_temp_66"
+        },
+        {
+          "nspname": "pg_toast_temp_67"
+        },
+        {
+          "nspname": "pg_toast_temp_68"
+        },
+        {
+          "nspname": "pg_toast_temp_69"
+        },
+        {
+          "nspname": "pg_toast_temp_7"
+        },
+        {
+          "nspname": "pg_toast_temp_70"
+        },
+        {
+          "nspname": "pg_toast_temp_71"
+        },
+        {
+          "nspname": "pg_toast_temp_72"
+        },
+        {
+          "nspname": "pg_toast_temp_73"
+        },
+        {
+          "nspname": "pg_toast_temp_74"
+        },
+        {
+          "nspname": "pg_toast_temp_75"
+        },
+        {
+          "nspname": "pg_toast_temp_76"
+        },
+        {
+          "nspname": "pg_toast_temp_77"
+        },
+        {
+          "nspname": "pg_toast_temp_78"
+        },
+        {
+          "nspname": "pg_toast_temp_79"
+        },
+        {
+          "nspname": "pg_toast_temp_8"
+        },
+        {
+          "nspname": "pg_toast_temp_80"
+        },
+        {
+          "nspname": "pg_toast_temp_81"
+        },
+        {
+          "nspname": "pg_toast_temp_82"
+        },
+        {
+          "nspname": "pg_toast_temp_83"
+        },
+        {
+          "nspname": "pg_toast_temp_84"
+        },
+        {
+          "nspname": "pg_toast_temp_85"
+        },
+        {
+          "nspname": "pg_toast_temp_86"
+        },
+        {
+          "nspname": "pg_toast_temp_87"
+        },
+        {
+          "nspname": "pg_toast_temp_88"
+        },
+        {
+          "nspname": "pg_toast_temp_89"
+        },
+        {
+          "nspname": "pg_toast_temp_9"
+        },
+        {
+          "nspname": "pg_toast_temp_90"
+        },
+        {
+          "nspname": "pg_toast_temp_91"
+        },
+        {
+          "nspname": "pg_toast_temp_92"
+        },
+        {
+          "nspname": "pg_toast_temp_93"
+        },
+        {
+          "nspname": "pg_toast_temp_94"
+        },
+        {
+          "nspname": "pg_toast_temp_95"
+        },
+        {
+          "nspname": "pg_toast_temp_96"
+        },
+        {
+          "nspname": "pg_toast_temp_97"
+        },
+        {
+          "nspname": "pg_toast_temp_98"
+        },
+        {
+          "nspname": "pg_toast_temp_99"
+        },
+        {
+          "nspname": "pgbouncer"
+        },
+        {
+          "nspname": "pgmq"
+        },
+        {
+          "nspname": "pgsodium"
+        },
+        {
+          "nspname": "pgsodium_masks"
+        },
+        {
+          "nspname": "public"
+        },
+        {
+          "nspname": "realtime"
+        },
+        {
+          "nspname": "storage"
+        },
+        {
+          "nspname": "supabase_functions"
+        },
+        {
+          "nspname": "supabase_migrations"
+        },
+        {
+          "nspname": "vault"
+        },
+        {
+          "nspname": "vendas"
+        },
+        {
+          "nspname": "zapp"
+        }
+      ],
+      "rowCount": 247,
+      "duration_ms": 1
+    },
+    "26_namespace_classification": {
+      "sql": "SELECT count(*) FILTER (WHERE nspname LIKE 'pg\\_temp\\_%') AS temp_schemas, count(*) FILTER (WHERE nspname LIKE 'pg\\_toast\\_temp\\_%') AS toast_temp_schemas, count(*) FILTER (WHERE nspname NOT LIKE 'pg\\_temp\\_%' AND nspname NOT LIKE 'pg\\_toast\\_temp\\_%') AS regular_schemas FROM pg_namespace",
+      "rows": [
+        {
+          "temp_schemas": "106",
+          "toast_temp_schemas": "106",
+          "regular_schemas": "35"
+        }
+      ],
+      "rowCount": 1,
+      "duration_ms": 2
+    },
+    "27_census": {
+      "sql": "SELECT nspname, count(*) FILTER (WHERE relkind='r') AS tables, count(*) FILTER (WHERE relkind='v') AS views, count(*) FILTER (WHERE relkind='m') AS matviews, count(*) FILTER (WHERE relkind='p') AS partitioned FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE nspname NOT IN ('pg_catalog','information_schema') GROUP BY 1 ORDER BY 1",
+      "rows": [
+        {
+          "nspname": "_backups",
+          "tables": "4",
+          "views": "0",
+          "matviews": "0",
+          "partitioned": "1"
+        },
+        {
+          "nspname": "_realtime",
+          "tables": "4",
+          "views": "0",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "ai",
+          "tables": "31",
+          "views": "0",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "archive",
+          "tables": "36",
+          "views": "0",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "artes",
+          "tables": "2",
+          "views": "1",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "auth",
+          "tables": "24",
+          "views": "0",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "bpm",
+          "tables": "41",
+          "views": "0",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "cron",
+          "tables": "2",
+          "views": "0",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "email_app",
+          "tables": "33",
+          "views": "0",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "evo",
+          "tables": "169",
+          "views": "16",
+          "matviews": "3",
+          "partitioned": "3"
+        },
+        {
+          "nspname": "extensions",
+          "tables": "1",
+          "views": "2",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "financeiro",
+          "tables": "16",
+          "views": "11",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "graphql",
+          "tables": "0",
+          "views": "0",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "logistica",
+          "tables": "3",
+          "views": "0",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "monitoring",
+          "tables": "1",
+          "views": "13",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "net",
+          "tables": "2",
+          "views": "0",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "ops",
+          "tables": "31",
+          "views": "6",
+          "matviews": "1",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "parity_audit",
+          "tables": "2",
+          "views": "0",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "pg_toast",
+          "tables": "0",
+          "views": "0",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "pgmq",
+          "tables": "1",
+          "views": "0",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "pgsodium",
+          "tables": "1",
+          "views": "4",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "public",
+          "tables": "4",
+          "views": "511",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "realtime",
+          "tables": "13",
+          "views": "0",
+          "matviews": "0",
+          "partitioned": "1"
+        },
+        {
+          "nspname": "storage",
+          "tables": "10",
+          "views": "0",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "supabase_functions",
+          "tables": "2",
+          "views": "0",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "supabase_migrations",
+          "tables": "1",
+          "views": "0",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "vault",
+          "tables": "2",
+          "views": "1",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "vendas",
+          "tables": "14",
+          "views": "5",
+          "matviews": "0",
+          "partitioned": "0"
+        },
+        {
+          "nspname": "zapp",
+          "tables": "321",
+          "views": "380",
+          "matviews": "5",
+          "partitioned": "0"
+        }
+      ],
+      "rowCount": 29,
+      "duration_ms": 11
+    },
+    "27_functions": {
+      "sql": "SELECT n.nspname, count(*) AS functions FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE nspname NOT IN ('pg_catalog','information_schema') GROUP BY 1 ORDER BY 1",
+      "rows": [
+        {
+          "nspname": "archive",
+          "functions": "2"
+        },
+        {
+          "nspname": "artes",
+          "functions": "15"
+        },
+        {
+          "nspname": "auth",
+          "functions": "4"
+        },
+        {
+          "nspname": "cron",
+          "functions": "7"
+        },
+        {
+          "nspname": "evo",
+          "functions": "69"
+        },
+        {
+          "nspname": "extensions",
+          "functions": "100"
+        },
+        {
+          "nspname": "financeiro",
+          "functions": "45"
+        },
+        {
+          "nspname": "graphql",
+          "functions": "6"
+        },
+        {
+          "nspname": "graphql_public",
+          "functions": "1"
+        },
+        {
+          "nspname": "monitoring",
+          "functions": "2"
+        },
+        {
+          "nspname": "net",
+          "functions": "10"
+        },
+        {
+          "nspname": "ops",
+          "functions": "64"
+        },
+        {
+          "nspname": "pgbouncer",
+          "functions": "1"
+        },
+        {
+          "nspname": "pgmq",
+          "functions": "28"
+        },
+        {
+          "nspname": "pgsodium",
+          "functions": "137"
+        },
+        {
+          "nspname": "public",
+          "functions": "148"
+        },
+        {
+          "nspname": "realtime",
+          "functions": "14"
+        },
+        {
+          "nspname": "storage",
+          "functions": "17"
+        },
+        {
+          "nspname": "supabase_functions",
+          "functions": "1"
+        },
+        {
+          "nspname": "vault",
+          "functions": "5"
+        },
+        {
+          "nspname": "vendas",
+          "functions": "21"
+        },
+        {
+          "nspname": "zapp",
+          "functions": "1066"
+        }
+      ],
+      "rowCount": 22,
+      "duration_ms": 4
+    },
+    "28_cron_jobs": {
+      "sql": "SELECT jobid, jobname, schedule, active FROM cron.job ORDER BY 1",
+      "rows": [
+        {
+          "jobid": "4",
+          "jobname": "auto-offline-agents",
+          "schedule": "2-59/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "5",
+          "jobname": "retry-stuck-messages",
+          "schedule": "*/10 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "6",
+          "jobname": "refresh-daily-metrics",
+          "schedule": "0 */1 * * *",
+          "active": true
+        },
+        {
+          "jobid": "9",
+          "jobname": "expire-old-media-queue",
+          "schedule": "0 4 * * *",
+          "active": true
+        },
+        {
+          "jobid": "10",
+          "jobname": "retry-stuck-media-queue",
+          "schedule": "*/10 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "11",
+          "jobname": "refresh-top-stickers",
+          "schedule": "30 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "12",
+          "jobname": "sync-r2-lifecycle",
+          "schedule": "0 5 * * *",
+          "active": true
+        },
+        {
+          "jobid": "15",
+          "jobname": "email_tracking_cleanup_weekly",
+          "schedule": "0 3 * * 0",
+          "active": true
+        },
+        {
+          "jobid": "17",
+          "jobname": "reprocess_pending_webhooks",
+          "schedule": "1-59/2 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "27",
+          "jobname": "whatsapp_reconcile_dispatch",
+          "schedule": "*/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "30",
+          "jobname": "whatsapp_reconcile_apply",
+          "schedule": "1-59/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "32",
+          "jobname": "whatsapp_connection_drift_alert",
+          "schedule": "4-59/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "33",
+          "jobname": "message_pipeline_stalled_alert",
+          "schedule": "0 8-22 * * *",
+          "active": true
+        },
+        {
+          "jobid": "34",
+          "jobname": "evolution-pipeline-health-check-bateria10",
+          "schedule": "4-59/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "35",
+          "jobname": "evolution-jid-health-check-5min",
+          "schedule": "3-59/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "41",
+          "jobname": "scan-media-security",
+          "schedule": "1-59/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "43",
+          "jobname": "process_pending_followups",
+          "schedule": "*/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "51",
+          "jobname": "vault_healthcheck",
+          "schedule": "*/15 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "52",
+          "jobname": "vault_healthcheck_cleanup",
+          "schedule": "0 4 * * *",
+          "active": true
+        },
+        {
+          "jobid": "54",
+          "jobname": "purge-processed-webhook-events",
+          "schedule": "30 3 * * *",
+          "active": true
+        },
+        {
+          "jobid": "55",
+          "jobname": "pipeline-watchdog",
+          "schedule": "0 */4 * * *",
+          "active": true
+        },
+        {
+          "jobid": "57",
+          "jobname": "system-health-score",
+          "schedule": "0 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "61",
+          "jobname": "purge_webhook_audit",
+          "schedule": "15 4 * * *",
+          "active": true
+        },
+        {
+          "jobid": "63",
+          "jobname": "db_size_snapshot",
+          "schedule": "0 6 * * *",
+          "active": true
+        },
+        {
+          "jobid": "64",
+          "jobname": "auto-create-monthly-partitions",
+          "schedule": "0 0 1 * *",
+          "active": true
+        },
+        {
+          "jobid": "65",
+          "jobname": "purge_evolution_alerts",
+          "schedule": "0 4 * * *",
+          "active": true
+        },
+        {
+          "jobid": "66",
+          "jobname": "purge_realtime_events",
+          "schedule": "45 4 * * *",
+          "active": true
+        },
+        {
+          "jobid": "67",
+          "jobname": "whatsapp_reconcile_cleanup",
+          "schedule": "17 3 * * *",
+          "active": true
+        },
+        {
+          "jobid": "68",
+          "jobname": "whatsapp_reconcile_reaper",
+          "schedule": "*/3 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "71",
+          "jobname": "cleanup-old-notifications",
+          "schedule": "0 3 * * *",
+          "active": true
+        },
+        {
+          "jobid": "73",
+          "jobname": "escalate-critical-alerts",
+          "schedule": "*/10 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "76",
+          "jobname": "link-orphan-messages",
+          "schedule": "4-59/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "78",
+          "jobname": "analyze-catalogo-diario",
+          "schedule": "0 6 * * *",
+          "active": true
+        },
+        {
+          "jobid": "82",
+          "jobname": "ops-guardrails-deadman",
+          "schedule": "*/10 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "84",
+          "jobname": "ops-notify-critical-alerts",
+          "schedule": "*/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "86",
+          "jobname": "purge_query_telemetry_daily",
+          "schedule": "0 3 * * *",
+          "active": true
+        },
+        {
+          "jobid": "88",
+          "jobname": "archive-old-wpp2-messages",
+          "schedule": "0 3 1 * *",
+          "active": true
+        },
+        {
+          "jobid": "89",
+          "jobname": "ops-payload-retention",
+          "schedule": "15 3 1 * *",
+          "active": true
+        },
+        {
+          "jobid": "90",
+          "jobname": "purge-media-queue-and-scan-log",
+          "schedule": "45 3 * * *",
+          "active": true
+        },
+        {
+          "jobid": "91",
+          "jobname": "monitor-dlq-health",
+          "schedule": "*/30 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "94",
+          "jobname": "ops-ddl-weekly-summary",
+          "schedule": "0 8 * * 1",
+          "active": true
+        },
+        {
+          "jobid": "95",
+          "jobname": "catalog-sanity-weekly",
+          "schedule": "0 5 * * 1",
+          "active": true
+        },
+        {
+          "jobid": "96",
+          "jobname": "sync-instance-registry-status",
+          "schedule": "2-59/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "97",
+          "jobname": "alert-ghost-message-events",
+          "schedule": "*/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "99",
+          "jobname": "cleanup-cron-job-history",
+          "schedule": "0 3 * * *",
+          "active": true
+        },
+        {
+          "jobid": "100",
+          "jobname": "analytics-log-retention",
+          "schedule": "20 5 * * *",
+          "active": true
+        },
+        {
+          "jobid": "101",
+          "jobname": "qr-attempts-expire-15min",
+          "schedule": "*/15 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "102",
+          "jobname": "slow_query_monitor_hourly",
+          "schedule": "0 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "103",
+          "jobname": "pg_stat_statements_weekly_reset",
+          "schedule": "0 2 * * 0",
+          "active": true
+        },
+        {
+          "jobid": "104",
+          "jobname": "wpp2_disconnection_watchdog",
+          "schedule": "*/10 6-23 * * *",
+          "active": true
+        },
+        {
+          "jobid": "105",
+          "jobname": "infra_check_hourly",
+          "schedule": "0 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "106",
+          "jobname": "run_all_checks_daily",
+          "schedule": "0 7 * * *",
+          "active": true
+        },
+        {
+          "jobid": "107",
+          "jobname": "performance_report_weekly",
+          "schedule": "0 6 * * 1",
+          "active": true
+        },
+        {
+          "jobid": "108",
+          "jobname": "health_score_alert_hourly",
+          "schedule": "30 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "111",
+          "jobname": "regression_tests_daily",
+          "schedule": "0 8 * * *",
+          "active": true
+        },
+        {
+          "jobid": "113",
+          "jobname": "bloat_alert_4h",
+          "schedule": "0 */4 * * *",
+          "active": true
+        },
+        {
+          "jobid": "115",
+          "jobname": "redis_sentinel_refresh_5min",
+          "schedule": "*/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "116",
+          "jobname": "purge-webhook-rate-limits-2h",
+          "schedule": "0 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "117",
+          "jobname": "analyze_critical_tables",
+          "schedule": "30 3 * * *",
+          "active": true
+        },
+        {
+          "jobid": "120",
+          "jobname": "wpp2-session-expiry-watchdog",
+          "schedule": "*/15 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "122",
+          "jobname": "wal-slot-monitor",
+          "schedule": "*/15 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "123",
+          "jobname": "weekly-edge-fn-freshness",
+          "schedule": "0 12 * * 1",
+          "active": true
+        },
+        {
+          "jobid": "124",
+          "jobname": "daily-wa-marketing-budget",
+          "schedule": "0 12 * * *",
+          "active": true
+        },
+        {
+          "jobid": "126",
+          "jobname": "types-drift-weekly",
+          "schedule": "0 13 * * 1",
+          "active": true
+        },
+        {
+          "jobid": "127",
+          "jobname": "daily-backup-sentinel-check",
+          "schedule": "0 12 * * *",
+          "active": true
+        },
+        {
+          "jobid": "128",
+          "jobname": "security_acl_email_check",
+          "schedule": "*/30 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "129",
+          "jobname": "cron-log-daily-purge",
+          "schedule": "30 2 * * *",
+          "active": true
+        },
+        {
+          "jobid": "131",
+          "jobname": "guardian-heartbeat-sync",
+          "schedule": "2-59/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "133",
+          "jobname": "vacuum-alerts-daily",
+          "schedule": "6 2 * * *",
+          "active": true
+        },
+        {
+          "jobid": "135",
+          "jobname": "vacuum-bootstrap-log-daily",
+          "schedule": "16 2 * * *",
+          "active": true
+        },
+        {
+          "jobid": "136",
+          "jobname": "vacuum-connection-history-daily",
+          "schedule": "21 2 * * *",
+          "active": true
+        },
+        {
+          "jobid": "137",
+          "jobname": "monthly-evo-audit",
+          "schedule": "0 6 1 * *",
+          "active": true
+        },
+        {
+          "jobid": "138",
+          "jobname": "ensure-evolution-backcompat-views",
+          "schedule": "0 */6 * * *",
+          "active": true
+        },
+        {
+          "jobid": "139",
+          "jobname": "cache-warmup-after-vacuum",
+          "schedule": "35 2 * * *",
+          "active": true
+        },
+        {
+          "jobid": "142",
+          "jobname": "check-media-pipeline-health",
+          "schedule": "*/15 11-23 * * *",
+          "active": true
+        },
+        {
+          "jobid": "143",
+          "jobname": "restore-integrity-check",
+          "schedule": "0 11 * * *",
+          "active": true
+        },
+        {
+          "jobid": "144",
+          "jobname": "alert-consumer-halt",
+          "schedule": "*/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "146",
+          "jobname": "dlq-poison-guard",
+          "schedule": "*/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "147",
+          "jobname": "pino-timeout-monitor",
+          "schedule": "*/30 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "148",
+          "jobname": "refresh-health-score-cache",
+          "schedule": "*/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "149",
+          "jobname": "vps-performance-snapshot",
+          "schedule": "0 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "151",
+          "jobname": "security-invoker-daily-audit",
+          "schedule": "0 6 * * *",
+          "active": true
+        },
+        {
+          "jobid": "152",
+          "jobname": "purge_webhook_events_processed",
+          "schedule": "30 4 * * *",
+          "active": true
+        },
+        {
+          "jobid": "154",
+          "jobname": "v2-mirror-health-check",
+          "schedule": "*/15 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "156",
+          "jobname": "purge-ip-watch",
+          "schedule": "0 3 * * *",
+          "active": true
+        },
+        {
+          "jobid": "158",
+          "jobname": "cleanup-guardian-events-evo-db",
+          "schedule": "2 4 * * *",
+          "active": true
+        },
+        {
+          "jobid": "159",
+          "jobname": "evo-r2-path-scrubber",
+          "schedule": "0 4 * * *",
+          "active": true
+        },
+        {
+          "jobid": "160",
+          "jobname": "evo-swarm-duplicate-detector",
+          "schedule": "*/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "161",
+          "jobname": "evo-401-glitchtip-feed",
+          "schedule": "*/10 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "162",
+          "jobname": "vps-matview-auto-refresh",
+          "schedule": "*/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "163",
+          "jobname": "evo-peak-hours-sla",
+          "schedule": "*/15 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "164",
+          "jobname": "evo-ack-loss-gap-detector",
+          "schedule": "*/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "165",
+          "jobname": "secdef-search-path-guard",
+          "schedule": "*/30 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "166",
+          "jobname": "evo-spurious-close-detector",
+          "schedule": "*/15 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "168",
+          "jobname": "evo-dedup-cap-monitor",
+          "schedule": "*/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "169",
+          "jobname": "vacuum-contacts-2h",
+          "schedule": "35 */2 * * *",
+          "active": true
+        },
+        {
+          "jobid": "171",
+          "jobname": "evo-sync-messages-to-v2",
+          "schedule": "*/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "172",
+          "jobname": "evo-instance-health-check",
+          "schedule": "*/10 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "173",
+          "jobname": "evo-detect-401-bursts",
+          "schedule": "*/15 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "176",
+          "jobname": "v2-pipeline-heartbeat",
+          "schedule": "*/30 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "179",
+          "jobname": "security-surface-sentinel",
+          "schedule": "*/30 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "180",
+          "jobname": "cron-guardian",
+          "schedule": "*/15 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "182",
+          "jobname": "evolution-pipeline-probe-15min",
+          "schedule": "2,17,32,47 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "183",
+          "jobname": "vacuum-burnin-tracker-daily",
+          "schedule": "12 2 * * *",
+          "active": true
+        },
+        {
+          "jobid": "184",
+          "jobname": "vacuum-pipeline-health-log-daily",
+          "schedule": "7 2 * * *",
+          "active": true
+        },
+        {
+          "jobid": "185",
+          "jobname": "vacuum-instance-credentials-daily",
+          "schedule": "9 2 * * *",
+          "active": true
+        },
+        {
+          "jobid": "186",
+          "jobname": "vacuum-messages-2h",
+          "schedule": "25 */2 * * *",
+          "active": true
+        },
+        {
+          "jobid": "187",
+          "jobname": "lid-contamination-daily",
+          "schedule": "0 8 * * *",
+          "active": true
+        },
+        {
+          "jobid": "188",
+          "jobname": "check-guardian-alive",
+          "schedule": "3-59/10 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "189",
+          "jobname": "evo_cleanup_expired_contact_ids",
+          "schedule": "0 2 * * *",
+          "active": true
+        },
+        {
+          "jobid": "190",
+          "jobname": "cleanup_expired_contact_ids",
+          "schedule": "0 3 * * *",
+          "active": true
+        },
+        {
+          "jobid": "191",
+          "jobname": "auth-session-cleanup-weekly",
+          "schedule": "0 3 * * 0",
+          "active": true
+        },
+        {
+          "jobid": "192",
+          "jobname": "auth-session-overflow-alert",
+          "schedule": "*/30 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "193",
+          "jobname": "guardian-db-heartbeat-resilient",
+          "schedule": "*/5 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "194",
+          "jobname": "cleanup-guardian-heartbeat-public",
+          "schedule": "30 2 * * *",
+          "active": true
+        },
+        {
+          "jobid": "197",
+          "jobname": "autofix-security-invoker",
+          "schedule": "*/30 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "203",
+          "jobname": "cookie-probe-2phase-30min",
+          "schedule": "*/30 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "204",
+          "jobname": "lux-maintenance-daily",
+          "schedule": "0 4 * * *",
+          "active": true
+        },
+        {
+          "jobid": "205",
+          "jobname": "verify-alert-delivery-10min",
+          "schedule": "*/10 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "206",
+          "jobname": "monitor-ingestion-persistence-gap",
+          "schedule": "*/15 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "207",
+          "jobname": "purge-health-score-history",
+          "schedule": "0 5 * * *",
+          "active": true
+        },
+        {
+          "jobid": "208",
+          "jobname": "purge-pipeline-health-log-60d",
+          "schedule": "20 2 * * *",
+          "active": true
+        },
+        {
+          "jobid": "209",
+          "jobname": "purge-webhook-audit-log-90d",
+          "schedule": "45 3 * * *",
+          "active": true
+        },
+        {
+          "jobid": "210",
+          "jobname": "purge-reconcile-jobs-7d",
+          "schedule": "10 2 * * *",
+          "active": true
+        },
+        {
+          "jobid": "212",
+          "jobname": "purge-app-notifications-90d",
+          "schedule": "0 4 * * *",
+          "active": true
+        },
+        {
+          "jobid": "213",
+          "jobname": "media_pipeline_health_check",
+          "schedule": "0 */4 * * *",
+          "active": true
+        },
+        {
+          "jobid": "217",
+          "jobname": "expire-whatsapp-media-1h",
+          "schedule": "0 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "218",
+          "jobname": "logflare-cloudflare-cleanup",
+          "schedule": "0 3 * * *",
+          "active": true
+        },
+        {
+          "jobid": "219",
+          "jobname": "logflare-deno-cleanup",
+          "schedule": "10 3 * * *",
+          "active": true
+        },
+        {
+          "jobid": "220",
+          "jobname": "logflare-postgres-cleanup",
+          "schedule": "20 3 * * *",
+          "active": true
+        },
+        {
+          "jobid": "221",
+          "jobname": "logflare-gotrue-cleanup",
+          "schedule": "30 3 * * *",
+          "active": true
+        },
+        {
+          "jobid": "222",
+          "jobname": "logflare-realtime-cleanup",
+          "schedule": "35 3 * * *",
+          "active": true
+        },
+        {
+          "jobid": "223",
+          "jobname": "logflare-storage-cleanup",
+          "schedule": "40 3 * * *",
+          "active": true
+        },
+        {
+          "jobid": "224",
+          "jobname": "logflare-postgrest-cleanup",
+          "schedule": "45 3 * * *",
+          "active": true
+        },
+        {
+          "jobid": "225",
+          "jobname": "wal-alert-state-cleanup",
+          "schedule": "*/15 * * * *",
+          "active": true
+        },
+        {
+          "jobid": "230",
+          "jobname": "disk-actions-cleanup",
+          "schedule": "0 4 * * *",
+          "active": true
+        },
+        {
+          "jobid": "231",
+          "jobname": "disk-tables-vacuum-weekly",
+          "schedule": "0 2 * * 0",
+          "active": true
+        },
+        {
+          "jobid": "233",
+          "jobname": "disk-daily-summary-refresh",
+          "schedule": "30 5 * * *",
+          "active": true
+        },
+        {
+          "jobid": "234",
+          "jobname": "disk-baseline-snapshot-daily",
+          "schedule": "0 1 * * *",
+          "active": true
+        },
+        {
+          "jobid": "235",
+          "jobname": "purge-webhook-logs",
+          "schedule": "15 3 * * *",
+          "active": true
+        },
+        {
+          "jobid": "238",
+          "jobname": "disk-log-prune-daily",
+          "schedule": "0 3 * * *",
+          "active": true
+        },
+        {
+          "jobid": "239",
+          "jobname": "disk-hires-prune-daily",
+          "schedule": "15 3 * * *",
+          "active": true
+        },
+        {
+          "jobid": "240",
+          "jobname": "disk-baseline-prune-weekly",
+          "schedule": "30 3 * * 0",
+          "active": true
+        },
+        {
+          "jobid": "241",
+          "jobname": "disk-events-prune-weekly",
+          "schedule": "45 3 * * 0",
+          "active": true
+        },
+        {
+          "jobid": "242",
+          "jobname": "alert-retention-daily",
+          "schedule": "0 4 * * *",
+          "active": true
+        },
+        {
+          "jobid": "243",
+          "jobname": "refresh_mv_daily_kpis",
+          "schedule": "0 * * * *",
+          "active": true
+        }
+      ],
+      "rowCount": 146,
+      "duration_ms": 2
+    },
+    "29_realtime_publication": {
+      "sql": "SELECT schemaname, tablename FROM pg_publication_tables WHERE pubname='supabase_realtime' ORDER BY 1,2",
+      "rows": [
+        {
+          "schemaname": "email_app",
+          "tablename": "email_accounts"
+        },
+        {
+          "schemaname": "email_app",
+          "tablename": "email_messages"
+        },
+        {
+          "schemaname": "email_app",
+          "tablename": "email_threads"
+        },
+        {
+          "schemaname": "email_app",
+          "tablename": "email_tracking_events"
+        },
+        {
+          "schemaname": "email_app",
+          "tablename": "imap_smtp_accounts"
+        },
+        {
+          "schemaname": "evo",
+          "tablename": "evolution_alerts"
+        },
+        {
+          "schemaname": "evo",
+          "tablename": "evolution_contacts"
+        },
+        {
+          "schemaname": "evo",
+          "tablename": "evolution_conversations"
+        },
+        {
+          "schemaname": "evo",
+          "tablename": "evolution_label_associations"
+        },
+        {
+          "schemaname": "evo",
+          "tablename": "evolution_labels"
+        },
+        {
+          "schemaname": "evo",
+          "tablename": "evolution_messages"
+        },
+        {
+          "schemaname": "evo",
+          "tablename": "evolution_reactions"
+        },
+        {
+          "schemaname": "evo",
+          "tablename": "evolution_realtime_events"
+        },
+        {
+          "schemaname": "evo",
+          "tablename": "evolution_retry_metrics"
+        },
+        {
+          "schemaname": "evo",
+          "tablename": "evolution_sentiment_analysis"
+        },
+        {
+          "schemaname": "evo",
+          "tablename": "evolution_status_reactions"
+        },
+        {
+          "schemaname": "evo",
+          "tablename": "evolution_whatsapp_status"
+        },
+        {
+          "schemaname": "financeiro",
+          "tablename": "payment_links"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "agent_presence"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "agent_stats"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "app_notifications"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "audio_meme_favorites"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "audio_memes"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "audit_logs"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "automation_executions"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "calls"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "channel_connections"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "connection_health_logs"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "contact_audit_log"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "conversation_sla"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "conversation_transfers"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "dispatch_error_logs"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "email_health_summary"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "email_revalidation_jobs"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "failed_messages"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "feature_flags"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "hmac_selftest_audit"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "message_reactions"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "notifications"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "outbound_message_queue"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "password_reset_requests"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "profiles"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "provider_message_log"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "qr_attempts"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "queue_goals"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "queue_members"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "queue_positions"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "queues"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "rate_limit_logs"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "sales_deals"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "security_alerts"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "security_audit_logs"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "sentiment_alerts"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "system_health_incidents"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "talkx_campaigns"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "talkx_recipients"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "team_conversation_members"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "team_conversations"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "team_message_reactions"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "team_messages"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "transfer_comments"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "user_roles"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "user_settings"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "voice_conversion_queue"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "warroom_alerts"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "whatsapp_connections"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "whisper_messages"
+        },
+        {
+          "schemaname": "zapp",
+          "tablename": "workspace_settings"
+        }
+      ],
+      "rowCount": 68,
+      "duration_ms": 5
+    },
+    "30_replication_slots": {
+      "sql": "SELECT slot_name, active, wal_status FROM pg_replication_slots",
+      "rows": [
+        {
+          "slot_name": "supabase_realtime_slot_realtime_",
+          "active": true,
+          "wal_status": "reserved"
+        },
+        {
+          "slot_name": "supabase_realtime_messages_replication_slot_",
+          "active": true,
+          "wal_status": "reserved"
+        }
+      ],
+      "rowCount": 2,
+      "duration_ms": 0
+    },
+    "31_storage_buckets": {
+      "sql": "SELECT id, name, public FROM storage.buckets ORDER BY 1",
+      "rows": [
+        {
+          "id": "audio-memes",
+          "name": "audio-memes",
+          "public": true
+        },
+        {
+          "id": "audio-messages",
+          "name": "audio-messages",
+          "public": false
+        },
+        {
+          "id": "avatars",
+          "name": "avatars",
+          "public": true
+        },
+        {
+          "id": "comprovantes-financeiro",
+          "name": "comprovantes-financeiro",
+          "public": false
+        },
+        {
+          "id": "custom-emojis",
+          "name": "custom-emojis",
+          "public": true
+        },
+        {
+          "id": "email-attachments",
+          "name": "email-attachments",
+          "public": false
+        },
+        {
+          "id": "etiquetas-remessa",
+          "name": "etiquetas-remessa",
+          "public": false
+        },
+        {
+          "id": "fechamentos",
+          "name": "fechamentos",
+          "public": false
+        },
+        {
+          "id": "quarantine",
+          "name": "quarantine",
+          "public": false
+        },
+        {
+          "id": "recibos-entrega",
+          "name": "recibos-entrega",
+          "public": true
+        },
+        {
+          "id": "stickers",
+          "name": "stickers",
+          "public": true
+        },
+        {
+          "id": "team-chat-files",
+          "name": "team-chat-files",
+          "public": false
+        },
+        {
+          "id": "whatsapp-media",
+          "name": "whatsapp-media",
+          "public": false
+        }
+      ],
+      "rowCount": 13,
+      "duration_ms": 1
+    },
+    "32_auth_users": {
+      "sql": "SELECT count(*) AS users FROM auth.users",
+      "rows": [
+        {
+          "users": "19"
+        }
+      ],
+      "rowCount": 1,
+      "duration_ms": 2
+    },
+    "32_auth_identities": {
+      "sql": "SELECT provider, count(*) FROM auth.identities GROUP BY 1 ORDER BY 2 DESC",
+      "rows": [
+        {
+          "provider": "email",
+          "count": "13"
+        },
+        {
+          "provider": "google",
+          "count": "1"
+        }
+      ],
+      "rowCount": 2,
+      "duration_ms": 5
+    },
+    "32_profiles": {
+      "sql": "SELECT count(*) AS profiles FROM zapp.profiles",
+      "rows": [
+        {
+          "profiles": "19"
+        }
+      ],
+      "rowCount": 1,
+      "duration_ms": 2
+    },
+    "33_migrations": {
+      "sql": "SELECT version, name FROM supabase_migrations.schema_migrations ORDER BY 1",
+      "rows": [
+        {
+          "version": "20260716",
+          "name": "fix_dispatch_error_logs_grant"
+        },
+        {
+          "version": "20260717",
+          "name": "create_queue_analytics"
+        },
+        {
+          "version": "20260720000006",
+          "name": "fix_settings_realtime_publication"
+        },
+        {
+          "version": "20260722",
+          "name": "qa_infra_corrections"
+        },
+        {
+          "version": "20260722.2",
+          "name": "fix_profiles_insert_policy_and_trigger"
+        },
+        {
+          "version": "20260724000001",
+          "name": "evo_drop_unused_indexes"
+        },
+        {
+          "version": "20260724000003",
+          "name": "evo_schema_housekeeping"
+        },
+        {
+          "version": "20260724000004",
+          "name": "no_op_placeholder"
+        },
+        {
+          "version": "20260724000005",
+          "name": "fix_critical_sql_bugs"
+        },
+        {
+          "version": "20260724000006",
+          "name": "fix_remaining_realtime_publications"
+        },
+        {
+          "version": "20260724000007",
+          "name": "create_evolution_sentiment_analysis"
+        },
+        {
+          "version": "20260724000011",
+          "name": "fix_evo_schema_blanket_auth_policies"
+        },
+        {
+          "version": "20260724000014",
+          "name": "fix_secdef_search_path_bulk"
+        },
+        {
+          "version": "20260724000015",
+          "name": "add_external_message_id_to_sentiment_analysis"
+        },
+        {
+          "version": "20260724000016",
+          "name": "additional_realtime_publications"
+        },
+        {
+          "version": "20260724130000",
+          "name": "enable_rls_archive_backup_tables"
+        },
+        {
+          "version": "20260724131500",
+          "name": "revoke_anon_execute_secdef_appschemas"
+        },
+        {
+          "version": "20260724132500",
+          "name": "tighten_dormant_anon_select_policies"
+        },
+        {
+          "version": "20260724140000",
+          "name": "fix_rls_policy_monitoring_architecture_changelog"
+        },
+        {
+          "version": "20260724140500",
+          "name": "normalize_public_first_search_path_financeiro_monitoring_ops"
+        },
+        {
+          "version": "20260724141500",
+          "name": "normalize_public_first_search_path_public_schema"
+        },
+        {
+          "version": "20260726103000",
+          "name": "fix_cron_job15_email_cleanup_backcompat_wrapper"
+        },
+        {
+          "version": "20260726111628",
+          "name": "registra_fixes_sessao_20260726"
+        },
+        {
+          "version": "20260726120927",
+          "name": "assert_todas_correcoes_sessao_20260726"
+        },
+        {
+          "version": "20260726121458",
+          "name": "fix_contact_intelligence_expose_phone"
+        },
+        {
+          "version": "20260726124635",
+          "name": "perf_fix_contacts_view_hot_cte"
+        },
+        {
+          "version": "20260726124828",
+          "name": "upgrade_rpc_get_contact_intelligence_by_phone"
+        },
+        {
+          "version": "20260726124922",
+          "name": "populate_contact_intelligence_and_trigger"
+        },
+        {
+          "version": "20260726125340",
+          "name": "perf_indexes_hot_paths"
+        },
+        {
+          "version": "20260726135603",
+          "name": "fix_rpc_empty_phone_guard_and_index_gap"
+        },
+        {
+          "version": "20260726135730",
+          "name": "fix_public_contact_intelligence_view_missing_columns"
+        },
+        {
+          "version": "20260726193100",
+          "name": "security_revoke_anon_dml_financeiro_vendas"
+        },
+        {
+          "version": "20260727120000",
+          "name": "qa_round_2_3_corrigido_consolidado"
+        },
+        {
+          "version": "20260727120500",
+          "name": "qa_round_2_3_ajuste_grants_e_trigger_dup"
+        },
+        {
+          "version": "20260727130100",
+          "name": "melhoria_01_fk_idx_conversations_contact_id"
+        },
+        {
+          "version": "20260727130200",
+          "name": "melhoria_02_fk_idx_role_permissions_permission_id"
+        },
+        {
+          "version": "20260727130300",
+          "name": "melhoria_03_fk_idx_evolution_status_reactions"
+        },
+        {
+          "version": "20260727130400",
+          "name": "melhoria_04_fix_health_score_cache_race"
+        },
+        {
+          "version": "20260727130500",
+          "name": "melhoria_05_pipeline_log_retention_e_v2_idx"
+        },
+        {
+          "version": "20260727130600",
+          "name": "melhoria_06_backup_table_pk_e_relocate"
+        },
+        {
+          "version": "20260727130700",
+          "name": "melhoria_07_reconcile_jobs_idx_composto"
+        },
+        {
+          "version": "20260727130800",
+          "name": "melhoria_08_drop_unused_pagamentos_diarios_indexes"
+        },
+        {
+          "version": "20260727140000",
+          "name": "bugfix_fn_normalize_phone_v2"
+        },
+        {
+          "version": "20260727140100",
+          "name": "bugfix_fn_normalize_phone_v3_final"
+        },
+        {
+          "version": "20260727150000",
+          "name": "fix_privilege_refresh_mv_minimo_privilegio"
+        },
+        {
+          "version": "20260727160000",
+          "name": "melhoria_09_ddl_audit_retencao_indice_cron"
+        },
+        {
+          "version": "20260727160100",
+          "name": "melhoria_10_drop_zero_idx_evolution_media"
+        },
+        {
+          "version": "20260727160200",
+          "name": "melhoria_11_drop_zero_idx_evolution_contacts"
+        },
+        {
+          "version": "20260727160400",
+          "name": "melhoria_12b_drop_zero_idx_conv_wpp2"
+        },
+        {
+          "version": "20260727160500",
+          "name": "melhoria_13_drop_zero_idx_zapp_diversos"
+        },
+        {
+          "version": "20260727160600",
+          "name": "melhoria_14_drop_zero_idx_notifications_pipeline"
+        },
+        {
+          "version": "20260727160700",
+          "name": "melhoria_15_drop_zero_idx_vendas_financeiro"
+        },
+        {
+          "version": "20260727160800",
+          "name": "melhoria_16_app_notifications_retencao_90d"
+        },
+        {
+          "version": "20260727161000",
+          "name": "REVERT_melhoria_15_recriar_idx_vendas_financeiro"
+        },
+        {
+          "version": "20260727200001",
+          "name": "idx_evolution_contacts_instance_phone"
+        },
+        {
+          "version": "20260727200002",
+          "name": "rpc_get_pipeline_health"
+        },
+        {
+          "version": "20260727200003",
+          "name": "fix_contact_audit_log_action_check"
+        },
+        {
+          "version": "20260727200004",
+          "name": "idx_pipeline_health_gaps"
+        },
+        {
+          "version": "20260727200005",
+          "name": "rpc_bulk_repair_dedup_hashes"
+        },
+        {
+          "version": "20260727200006",
+          "name": "rpc_get_pipeline_health_v2"
+        },
+        {
+          "version": "20260727200007",
+          "name": "rpc_backfill_messages_contact_id"
+        },
+        {
+          "version": "20260727200008",
+          "name": "harden_secdef_search_paths"
+        },
+        {
+          "version": "20260727200009",
+          "name": "idx_webhook_audit_log_processed"
+        },
+        {
+          "version": "20260728000001",
+          "name": "ddl_event_trigger_auto_security_invoker"
+        },
+        {
+          "version": "20260728000002",
+          "name": "expand_autofix_all_schemas"
+        },
+        {
+          "version": "20260728000003",
+          "name": "rate_limit_null_guard_and_bridge_auth"
+        },
+        {
+          "version": "20260728000004",
+          "name": "explicit_policies_and_default_privileges"
+        },
+        {
+          "version": "20260728000005",
+          "name": "security_monitoring_rate_limit_hardening"
+        },
+        {
+          "version": "20260728000006",
+          "name": "pgbouncer_get_auth_search_path_hardening"
+        },
+        {
+          "version": "20260728130001",
+          "name": "revoke_anon_usage_financeiro_artes"
+        },
+        {
+          "version": "20260729190001",
+          "name": "drop_evo_to_zapp_fks"
+        },
+        {
+          "version": "20260729190003",
+          "name": "harden_secdef_6"
+        },
+        {
+          "version": "20260729190004",
+          "name": "reactivate_cron"
+        },
+        {
+          "version": "20260729190005",
+          "name": "harden_secdef_106"
+        },
+        {
+          "version": "20260729190006",
+          "name": "harden_secdef_artes_monitoring"
+        },
+        {
+          "version": "20260730185927",
+          "name": "20260730160600"
+        },
+        {
+          "version": "20260730190024",
+          "name": "20260730161000"
+        },
+        {
+          "version": "20260730191510",
+          "name": "20260730162000"
+        },
+        {
+          "version": "20260731124746",
+          "name": "consolidate_zapp_messages_instead_of_triggers"
+        },
+        {
+          "version": "20260801180000",
+          "name": "infra01_consolidate_messages_view_triggers"
+        },
+        {
+          "version": "20260801184500",
+          "name": "r28_fix_health_status_constraint_add_down"
+        },
+        {
+          "version": "20260801184600",
+          "name": "r28_cleanup_constraint_cron_failure_runid_583822"
+        },
+        {
+          "version": "20260801185500",
+          "name": "r28c_create_e2e_user_profile"
+        },
+        {
+          "version": "20260801185700",
+          "name": "r28d_fix_handle_new_user_agent_stats_wrong_id"
+        },
+        {
+          "version": "20260802135939",
+          "name": "check_dblink_net"
+        },
+        {
+          "version": "20260802135945",
+          "name": "enable_dblink"
+        },
+        {
+          "version": "20260803160000",
+          "name": "deprecate_lovable_parity_functions"
+        },
+        {
+          "version": "20260803195326",
+          "name": "20260803183000_drop_proxy_ecosystem"
+        },
+        {
+          "version": "20260804000000",
+          "name": "canonical_schema_squash_133_migrations"
+        },
+        {
+          "version": "20260804120000",
+          "name": "enable_rls_missing_tables (aplicada de facto; delta efetivo em 20260804140000)"
+        },
+        {
+          "version": "20260804130000",
+          "name": "fix_rls_critical_gaps (C-1 corrigido; delta efetivo em 20260804140000)"
+        },
+        {
+          "version": "20260804140000",
+          "name": "fix_rls_delta_corrigido"
+        }
+      ],
+      "rowCount": 92,
+      "duration_ms": 1
+    },
+    "34_gucs": {
+      "sql": "SELECT name, setting FROM pg_settings WHERE name LIKE 'app.%' OR name LIKE 'pgrst.%'",
+      "rows": [],
+      "rowCount": 0,
+      "duration_ms": 2
+    },
+    "35_vault_secrets": {
+      "sql": "SELECT count(*) AS secrets FROM vault.secrets",
+      "rows": [
+        {
+          "secrets": "30"
+        }
+      ],
+      "rowCount": 1,
+      "duration_ms": 1
+    }
+  }
+}
