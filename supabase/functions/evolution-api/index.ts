@@ -7,6 +7,8 @@ import { maybeLogFallback } from "../_shared/evolution-fallback-telemetry.ts";
 import { mapFetchInstancesToProfile, shouldFallbackForProfile } from "../_shared/evolution-profile-fallback.ts";
 import { isInstancePaused, recordAuthFailureAndMaybePause } from "../_shared/instance-pause.ts";
 import { WEBHOOK_EVENTS } from "../_shared/evolution-sync-actions.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 /** FIX (2026-07-27): read-messages action now uses markMessageAsRead instead of
  * deprecated/removed markChatRead (which returned 404 on Evolution API v2.3.7).
@@ -44,7 +46,7 @@ Deno.serve(async (req) => {
   if (!authedUser) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   const SEND_PER_INSTANCE_PER_MIN = Number(Deno.env.get('EVOLUTION_SEND_RATE_PER_INSTANCE') ?? '60');
   let _bodyCache: Record<string, unknown> | null = null;
-  let _formDataCache: FormData | null = null;
+  let _formDataCache: Record<string, unknown> | null = null;
   const safeJsonParse = (text: string): Record<string, unknown> => {
     try { const p = JSON.parse(text); return (typeof p === 'object' && p !== null && !Array.isArray(p)) ? p : { raw: text }; } catch { return { raw: text }; }
   };
@@ -52,12 +54,24 @@ Deno.serve(async (req) => {
     const ct = req.headers.get('content-type') || '';
     if (ct.includes('multipart/form-data')) {
       if (_formDataCache) return { isMultipart: true, data: _formDataCache };
-      try { _formDataCache = await req.formData(); return { isMultipart: true, data: _formDataCache }; } catch { return { isMultipart: false, data: {} }; }
+      try {
+        const fd = await req.formData();
+        const raw = Object.fromEntries(fd.entries()); // preserva File (multipart)
+        // Contrato evolution-api@v1 (permissivo — roteado por action no handler):
+        // gate no ramo multipart, após auth.
+        const parsed = parseOrReject('evolution-api', CONTRACT_SCHEMAS['evolution-api'], req, raw, { extraHeaders: corsHeaders });
+        if (!parsed.ok) return parsed.response;
+        _formDataCache = parsed.data as Record<string, any>;
+        return { isMultipart: true, data: _formDataCache };
+      } catch { return { isMultipart: false, data: {} }; }
     }
     if (_bodyCache !== null) return { isMultipart: false, data: _bodyCache };
     try { _bodyCache = await req.json(); } catch { _bodyCache = {}; }
     if (typeof _bodyCache !== 'object' || _bodyCache === null || Array.isArray(_bodyCache)) _bodyCache = {};
-    return { isMultipart: false, data: _bodyCache! };
+    // Contrato evolution-api@v1 — gate no ramo JSON, após auth.
+    const parsed = parseOrReject('evolution-api', CONTRACT_SCHEMAS['evolution-api'], req, _bodyCache!, { extraHeaders: corsHeaders });
+    if (!parsed.ok) return parsed.response;
+    return { isMultipart: false, data: parsed.data as Record<string, any> };
   };
   const safeGet = (data: unknown, key: string, isFormData: boolean): string | undefined => {
     if (isFormData && data instanceof FormData) { const v = data.get(key); return typeof v === 'string' ? v : undefined; }
@@ -70,13 +84,15 @@ Deno.serve(async (req) => {
     return undefined;
   };
   const ensureBodyIsRecord = (d: unknown): Record<string, unknown> => (typeof d === 'object' && d !== null && !Array.isArray(d)) ? d as Record<string, unknown> : {};
-  const { isMultipart, data: bodyForAction } = await getParsedBody();
+  const bodyResult = await getParsedBody();
+  if (bodyResult instanceof Response) return bodyResult;
+  const { isMultipart, data: bodyForAction } = bodyResult;
   let action = safeGet(bodyForAction, 'action', isMultipart) || '';
   if (!action || action === 'evolution-api') action = pathAction;
   const idemKey = (req.headers.get('idempotency-key') || req.headers.get('x-idempotency-key') || '').trim() || undefined;
   const proxy = (path: string, method = 'POST', proxyBody?: unknown) => proxyToEvolution(evolutionApiUrl, evolutionApiKey, corsHeaders, path, method, proxyBody, undefined, idemKey);
   try {
-    const { isMultipart, data: body } = await getParsedBody();
+    const body = bodyForAction;
     let instance: string | null = safeGet(body, 'instanceName', isMultipart) || safeGet(body, 'instance', isMultipart) || null;
     const INSTANCE_RE = /^[a-zA-Z0-9_-]{1,128}$/;
     if (instance && !INSTANCE_RE.test(instance)) return new Response(JSON.stringify({ error: 'Invalid instance name' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

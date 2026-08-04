@@ -7,6 +7,8 @@ import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 import { checkRateLimit } from "../_shared/validation.ts";
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 interface RouteRequest {
   contact_id: string;
   channel_connection_id?: string | null;
@@ -52,24 +54,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    let rawBody: unknown;
-    try {
-      rawBody = await req.json();
-    } catch {
-      return new Response(JSON.stringify({ error: "invalid_json" }), {
-        status: 400,
-        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
-      });
-    }
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('ticket-router', CONTRACT_SCHEMAS['ticket-router'], req, raw, { extraHeaders: getCorsHeaders(req) });
+    if (!parsed.ok) return parsed.response;
 
-    if (typeof rawBody !== 'object' || rawBody === null || Array.isArray(rawBody)) {
-      return new Response(JSON.stringify({ error: "invalid_json" }), {
-        status: 400,
-        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
-      });
-    }
-
-    const body = rawBody as Record<string, unknown>;
+    const body = parsed.data as Record<string, unknown>;
     const contactId = typeof body.contact_id === 'string' ? body.contact_id : '';
     const channelConnectionId = typeof body.channel_connection_id === 'string' ? body.channel_connection_id : null;
     const queueId = typeof body.queue_id === 'string' ? body.queue_id : null;

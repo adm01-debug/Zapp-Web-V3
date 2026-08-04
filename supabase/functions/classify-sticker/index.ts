@@ -30,10 +30,13 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const parsed = parseBody(ClassifyStickerSchema, await req.json());
-    if (!parsed.success) return errorResponse(parsed.error, 400, req);
+    const parsed = await parseRequestOrReject('classify-sticker', CONTRACT_SCHEMAS['classify-sticker'], req, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
 
-    const { image_url } = parsed.data;
+    const { image_url } = body;
 
     if (!image_url) {
       return jsonResponse({ category: 'outros' }, 200, req);

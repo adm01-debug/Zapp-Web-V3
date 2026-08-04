@@ -10,6 +10,8 @@
 import { createZappAdminClient, createZappClient } from '../_shared/db-client.ts';
 import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 interface AddRecipientsBody {
   campaignId: string;
@@ -28,11 +30,10 @@ Deno.serve(async (req) => {
 
   try {
     const raw = await req.json().catch(() => null);
-    if (!raw || typeof raw !== 'object') {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), { status: 400, headers });
-    }
+    const parsed = parseOrReject('talkx-add-recipients', CONTRACT_SCHEMAS['talkx-add-recipients'], req, raw, { extraHeaders: getCorsHeaders(req) });
+    if (!parsed.ok) return parsed.response;
 
-    const { campaignId, contactIds } = raw as Partial<AddRecipientsBody>;
+    const { campaignId, contactIds } = parsed.data as Partial<AddRecipientsBody>;
 
     if (typeof campaignId !== 'string' || !campaignId) {
       return new Response(JSON.stringify({ error: "campaignId is required" }), { status: 400, headers });
@@ -110,9 +111,9 @@ Deno.serve(async (req) => {
     }
 
     // Upsert — ON CONFLICT DO NOTHING prevents duplicates (same campaign_id + contact_id)
-    const { error: insertErr, count } = await admin
+    const { error: insertErr, count } = await (admin
       .from("talkx_recipients")
-      .upsert(rows, { onConflict: "campaign_id,contact_id", ignoreDuplicates: true })
+      .upsert(rows, { onConflict: "campaign_id,contact_id", ignoreDuplicates: true }) as any)
       .select("id", { count: "exact", head: true });
 
     if (insertErr) {

@@ -12,7 +12,7 @@
  * ausentes, tipos errados, array vazio, null/undefined, campos extras.
  */
 import { assertEquals } from "https://deno.land/std@0.168.0/testing/asserts.ts";
-import { WhatsappWebhookV1Schema } from "../../_shared/contract-schemas.ts";
+import { WhatsappWebhookV1Schema } from "../../_shared/webhook-schemas.ts";
 
 function entry(changes: unknown[]): Record<string, unknown> {
   return { id: "entry_1", changes };

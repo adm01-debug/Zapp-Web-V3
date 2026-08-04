@@ -1,12 +1,21 @@
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { corsHeaders } from "../_shared/validation.ts";
 import { requireServiceRoleOnly } from "../_shared/auth.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const denied = requireServiceRoleOnly(req);
   if (denied) return denied;
+
+  // Contrato seed-teams-users@v1 (G4): cron/GET sem body → {} aceito.
+  const parsed = parseOrReject('seed-teams-users', CONTRACT_SCHEMAS['seed-teams-users'], req, await req.json().catch(() => ({})), {
+    extraHeaders: getCorsHeaders(req),
+  });
+  if (!parsed.ok) return parsed.response;
 
   try {
     const supabase = createZappAdminClient();

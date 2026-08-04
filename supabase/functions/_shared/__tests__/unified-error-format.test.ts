@@ -32,7 +32,7 @@ import {
   type ContractErrorCode,
 } from "../contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../contract-schemas.ts";
-import { CONTRACTS } from "../contract-versions.ts";
+import { contractLabel } from "../contract-versions.ts";
 
 function req(headers: Record<string, string> = {}): Request {
   return new Request("https://edge.local/fn", { method: "POST", headers });
@@ -114,8 +114,8 @@ Deno.test("unified-422: TODAS as funções com body não-estruturado → invalid
   for (const name of names) {
     const r = parseOrReject(name, CONTRACT_SCHEMAS[name], req(), null);
     const body = await assertUnifiedEnvelope(r, "invalid_json");
-    const expectedVersion = CONTRACTS[name]?.current ?? "v1";
-    assertEquals(body.contract, `${name}@${expectedVersion}`, `label de ${name} deve ser ${name}@${expectedVersion}`);
+    const expected = contractLabel(name); // respeita current (v1 OU v2)
+    assertEquals(body.contract, expected, `label de ${name} deve ser ${expected}`);
   }
 });
 

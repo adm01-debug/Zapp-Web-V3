@@ -1,7 +1,8 @@
-import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getClientIP, getCorsHeaders } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
-import { WebAuthnActionSchema, parseBody } from "../_shared/schemas.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 /**
  * Encodes an ArrayBuffer as base64url (RFC 4648 Section 5) without padding.
@@ -83,11 +84,11 @@ Deno.serve(async (req) => {
   try {
     const supabaseAdmin = createZappAdminClient();
 
-    const rawBody = await req.json();
-    const parsed = parseBody(WebAuthnActionSchema, rawBody);
-    if (!parsed.success) return errorResponse(parsed.error, 400, req);
+    const rawBody = await req.json().catch(() => null);
+    const parsed = parseOrReject('webauthn', CONTRACT_SCHEMAS['webauthn'], req, rawBody, { extraHeaders: getCorsHeaders(req) });
+    if (!parsed.ok) return parsed.response;
 
-    const { action, userId, userEmail, userName, credential, friendlyName } = parsed.data;
+    const { action, userId, userEmail, userName, credential, friendlyName } = parsed.data as Record<string, any>;
     const origin = req.headers.get('origin') || 'https://localhost';
     const rpId = getRpId(origin);
     const rpName = 'ZAPP Web';
@@ -219,12 +220,12 @@ Deno.serve(async (req) => {
             return uObj.email === userEmail;
           });
           if (user && typeof user === 'object' && user !== null) {
-            const userObj = user as Record<string, unknown>;
+            const userObj = user as unknown as Record<string, unknown>;
             if (typeof userObj.id === 'string') {
               authUserId = userObj.id;
               const { data: credentials } = await supabaseAdmin.from('passkey_credentials').select('credential_id, transports').eq('user_id', authUserId);
               allowCredentials = (Array.isArray(credentials) ? credentials : [])
-                .filter((cred): cred is { credential_id: string; transports?: string[] } =>
+                .filter((cred): cred is { credential_id: string; transports: string[] } =>
                   typeof cred === 'object' && cred !== null && typeof cred.credential_id === 'string'
                 )
                 .map(cred => ({
@@ -317,7 +318,7 @@ Deno.serve(async (req) => {
 
         const { data: userData } = await supabaseAdmin.auth.admin.getUserById(storedObj.user_id);
         const userEmail = userData && typeof userData === 'object' && 'user' in userData && userData.user && typeof userData.user === 'object'
-          ? (userData.user as Record<string, unknown>).email
+          ? (userData.user as unknown as Record<string, unknown>).email
           : null;
 
         log.done(200, { action });

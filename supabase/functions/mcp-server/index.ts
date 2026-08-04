@@ -1,5 +1,7 @@
 import { getCorsHeaders, handleCors } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 /**
  * MCP Server for Claude / AI Agents
@@ -16,7 +18,12 @@ Deno.serve(async (req) => {
     if (authed instanceof Response) return authed;
 
     const url = new URL(req.url);
-    const body = await req.json().catch(() => ({}));
+    const raw = await req.json().catch(() => ({}));
+    const parsed = parseOrReject("mcp-server", CONTRACT_SCHEMAS["mcp-server"], req, raw, {
+      extraHeaders: corsHeaders,
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
 
     // Basic MCP request handling
     // In a real implementation, we'd list tools and execute them

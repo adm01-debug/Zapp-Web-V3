@@ -125,4 +125,19 @@ var mcp_default = defineMcp({
 
 // lovable-mcp-supabase-entry.ts
 import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@0.20.0/stacks/supabase";
-Deno.serve(createSupabaseHandler(mcp_default, { functionName: "mcp" }));
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+
+const _mcpHandler = createSupabaseHandler(mcp_default, { functionName: "mcp" });
+Deno.serve(async (req) => {
+  // Contrato mcp@v1 (G4): gate apenas para chamadas sem body (GET/health check).
+  // POSTs JSON-RPC do protocolo MCP (com body) são roteados intactos para o handler.
+  if (req.body === null) {
+    const parsed = parseOrReject('mcp', CONTRACT_SCHEMAS['mcp'], req, await req.json().catch(() => ({})), {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+  }
+  return _mcpHandler(req);
+});

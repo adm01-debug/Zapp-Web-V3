@@ -1,7 +1,9 @@
 import { handleCors, errorResponse, jsonResponse, Logger } from "../_shared/validation.ts";
-import { RateLimitAlertSchema, parseBody } from "../_shared/schemas.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -15,10 +17,15 @@ Deno.serve(async (req) => {
   try {
     const supabaseClient = createZappAdminClient();
 
-    const parsed = parseBody(RateLimitAlertSchema, await req.json());
-    if (!parsed.success) return errorResponse(parsed.error, 400, req);
+    // Contrato send-rate-limit-alert@v1 — validação unificada 422 (parseOrReject).
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('send-rate-limit-alert', CONTRACT_SCHEMAS['send-rate-limit-alert'], req, raw, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
 
-    const { ip_address, endpoint, request_count, blocked } = parsed.data;
+    const { ip_address, endpoint, request_count, blocked } = body;
     log.info(`Rate limit alert: IP ${ip_address} hit ${endpoint} ${request_count} times. Blocked: ${blocked}`);
 
     const { error: alertError } = await supabaseClient

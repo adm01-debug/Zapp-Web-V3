@@ -4,6 +4,8 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import { requireUser } from '../_shared/auth.ts';
 import { checkRateLimit, isValidUUID } from '../_shared/validation.ts';
 import { timingSafeStringEqual } from '../_shared/auth.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
 /** Signs OAuth state token as base64(userId|nonce|hmac) — prevents Account Binding CSRF. */
 async function signOAuthState(userId: string, signingKey: string): Promise<string> {
@@ -109,17 +111,10 @@ Deno.serve(async (req) => {
     : `${supabaseUrl}/functions/v1/outlook-oauth`;
 
   try {
-    let bodyRaw: unknown;
-    try {
-      bodyRaw = await req.json();
-    } catch {
-      bodyRaw = {};
-    }
-
-    if (!bodyRaw || typeof bodyRaw !== 'object' || Array.isArray(bodyRaw)) {
-      bodyRaw = {};
-    }
-    const body = bodyRaw as Record<string, unknown>;
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('outlook-oauth', CONTRACT_SCHEMAS['outlook-oauth'], req, raw, { extraHeaders: getCorsHeaders(req) });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
     const action = typeof body.action === 'string' ? body.action : '';
 
     // ── getAuthUrl — gera URL de autorização OAuth2 ────────────────────
@@ -255,8 +250,8 @@ Deno.serve(async (req) => {
         .single();
 
       if (error) {
-        const errMsg = typeof error === 'object' && error !== null && 'message' in error && typeof (error as Record<string, unknown>).message === 'string'
-          ? (error as Record<string, unknown>).message
+        const errMsg = typeof error === 'object' && error !== null && 'message' in error && typeof (error as unknown as Record<string, unknown>).message === 'string'
+          ? (error as unknown as Record<string, unknown>).message
           : 'Internal server error';
         console.error('[outlook-oauth] upsert error', errMsg);
         return json({ error: 'Internal server error' }, 500);
@@ -409,7 +404,9 @@ Deno.serve(async (req) => {
           contentType: typeof att.contentType === 'string' ? att.contentType : 'application/octet-stream',
           content: typeof att.content === 'string' ? att.content : '',
         };
-      }).filter((a) => a && typeof a.content === 'string' && a.content.length > 0);
+      }).filter((a): a is { name: string; contentType: string; content: string } =>
+        a !== null && typeof a.content === 'string' && a.content.length > 0
+      );
 
       const message = {
         subject,

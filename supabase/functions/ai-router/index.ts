@@ -40,7 +40,7 @@
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import {
   handleCors, errorResponse, jsonResponse,
-  sanitizeString, isValidUUID, checkRateLimit, getClientIP, requireEnv, Logger,
+  sanitizeString, isValidUUID, checkRateLimit, getClientIP, requireEnv, Logger, getCorsHeaders,
 } from "../_shared/validation.ts";
 import { timingSafeStringEqual } from "../_shared/auth.ts";
 import {
@@ -51,6 +51,8 @@ import {
 } from "../_shared/schemas.ts";
 import { callAiWithTracking, extractTokenUsage } from "../_shared/ai-usage.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 /** AI gateway key — AI_GATEWAY_KEY with LOVABLE_API_KEY fallback (rename in progress). */
 function getLovableApiKey(): string {
@@ -889,8 +891,20 @@ Deno.serve(async (req) => {
       bodyText = await req.text();
       body = JSON.parse(bodyText);
     } catch {
-      return errorResponse("Invalid JSON", 400, req);
+      // Body inválido/ausente → envelope canônico do contrato (422 invalid_json).
+      // parseOrReject(null) sempre falha com invalid_json; o fallback 400 é
+      // inalcançável mas satisfaz o narrowing de tipo do ParseResult.
+      const invalid = parseOrReject('ai-router', CONTRACT_SCHEMAS['ai-router'], req, null, { extraHeaders: getCorsHeaders(req) });
+      if (invalid.ok) return errorResponse("Invalid JSON", 400, req);
+      return invalid.response;
     }
+
+    // ━━━ PHASE 1C: Contract gate (G4) — valida o body inteiro contra AiRouterV1Schema ━━━
+    // (discriminatedUnion por action). Os handlers internos continuam validando com
+    // parseBody — este gate apenas antecipa a rejeição com envelope canônico 422.
+    const contractParsed = parseOrReject('ai-router', CONTRACT_SCHEMAS['ai-router'], req, body, { extraHeaders: getCorsHeaders(req) });
+    if (!contractParsed.ok) return contractParsed.response;
+    body = contractParsed.data as Record<string, unknown>;
 
     // ━━━ PHASE 1B: Request Signature Validation (IMPROVEMENT 11) ━━━
     // Optional HMAC validation to prevent tampering and replay attacks

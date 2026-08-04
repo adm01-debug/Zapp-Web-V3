@@ -1,5 +1,7 @@
-import { handleCors, jsonResponse, Logger, securityErrorResponse, requireEnv, checkRateLimit } from "../_shared/validation.ts";
+import { handleCors, getCorsHeaders, jsonResponse, Logger, securityErrorResponse, requireEnv, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 
 /**
@@ -55,13 +57,17 @@ Deno.serve(async (req) => {
     }
 
     const formData = await req.formData();
-    const file = formData.get("file") as File;
+    const raw = Object.fromEntries(formData.entries()); // preserva File (multipart)
+    // Contrato secure-upload@v1 (estrito): file (File) obrigatório, bucket/path opcionais.
+    const parsed = parseOrReject('secure-upload', CONTRACT_SCHEMAS['secure-upload'], req, raw, { extraHeaders: getCorsHeaders(req) });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
+    const file = body.file as File;
 
     // Restrict bucket to known-safe values; ignore any attacker-supplied name
-    const requestedBucket = (formData.get("bucket") as string) || "whatsapp-media";
+    const requestedBucket = (body.bucket as string) || "whatsapp-media";
     const bucket = ALLOWED_BUCKETS.has(requestedBucket) ? requestedBucket : "whatsapp-media";
-    const rawPathValue = formData.get("path");
-    const rawPath = typeof rawPathValue === "string" ? rawPathValue : null;
+    const rawPath = body.path ?? null;
     const customPath = rawPath ? sanitizeStoragePath(rawPath) || null : null;
 
     if (file && file.size > MAX_FILE_SIZE) {

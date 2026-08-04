@@ -3,6 +3,9 @@ import { handleCors, jsonResponse, errorResponse, Logger } from "../_shared/vali
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getStoragePublicUrl } from "../_shared/storage-url.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 /**
  * Edge Function: WhatsApp Media Migration Service
@@ -52,6 +55,12 @@ Deno.serve(async (req) => {
 
   const denied = requireServiceRoleOrCron(req);
   if (denied) return denied;
+
+  // Contrato migrate-media-storage@v1 (G4): cron/GET sem body → {} aceito.
+  const parsed = parseOrReject('migrate-media-storage', CONTRACT_SCHEMAS['migrate-media-storage'], req, await req.json().catch(() => ({})), {
+    extraHeaders: getCorsHeaders(req),
+  });
+  if (!parsed.ok) return parsed.response;
 
   const log = new Logger("migrate-media-storage");
 

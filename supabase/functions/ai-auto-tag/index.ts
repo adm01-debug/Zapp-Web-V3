@@ -13,6 +13,8 @@
  */
 
 import { handleCors, errorResponse, getCorsHeaders } from "../_shared/validation.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -25,12 +27,12 @@ Deno.serve(async (req) => {
       return errorResponse("Unauthorized", 401, req);
     }
 
-    let body: Record<string, unknown>;
-    try {
-      body = await req.json();
-    } catch {
-      return errorResponse("Invalid JSON", 400, req);
-    }
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject("ai-auto-tag", CONTRACT_SCHEMAS["ai-auto-tag"], req, raw, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
 
     const aiRouterUrl = Deno.env.get("AI_ROUTER_URL");
     if (!aiRouterUrl) return errorResponse("AI_ROUTER_URL not configured", 503, req);

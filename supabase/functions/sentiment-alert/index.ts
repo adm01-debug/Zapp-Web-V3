@@ -1,7 +1,9 @@
 import { handleCors, errorResponse, jsonResponse, Logger } from "../_shared/validation.ts";
-import { SentimentAlertSchema, parseBody } from "../_shared/schemas.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -15,10 +17,15 @@ Deno.serve(async (req) => {
   const log = new Logger("sentiment-alert");
 
   try {
-    const parsed = parseBody(SentimentAlertSchema, await req.json());
-    if (!parsed.success) return errorResponse(parsed.error, 400, req);
+    // Contrato sentiment-alert@v1 (estrito) — validação unificada 422 (parseOrReject).
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('sentiment-alert', CONTRACT_SCHEMAS['sentiment-alert'], req, raw, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
 
-    const { contactId, contactName, sentimentScore, previousScore, analysisId, threshold, consecutiveRequired } = parsed.data;
+    const { contactId, contactName, sentimentScore, previousScore, analysisId, threshold, consecutiveRequired } = body;
 
     log.info("Sentiment alert triggered", { contactId, sentimentScore, threshold, consecutiveRequired });
 

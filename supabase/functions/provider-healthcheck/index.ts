@@ -7,6 +7,8 @@ import { requireServiceRoleOrCron, requireUser } from "../_shared/auth.ts";
 import { checkRateLimit } from "../_shared/validation.ts";
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 async function ping(baseUrl: string, authToken: string | null, providerType: string) {
   const url = baseUrl.replace(/\/$/, "") + (
     providerType === "evolution" ? "/" :
@@ -45,6 +47,12 @@ Deno.serve(async (req) => {
       });
     }
   }
+
+  // Contrato provider-healthcheck@v1 (G4): GET/cron sem body → {} aceito.
+  const parsed = parseOrReject('provider-healthcheck', CONTRACT_SCHEMAS['provider-healthcheck'], req, await req.json().catch(() => ({})), {
+    extraHeaders: getCorsHeaders(req),
+  });
+  if (!parsed.ok) return parsed.response;
 
   const admin = createZappAdminClient();
 

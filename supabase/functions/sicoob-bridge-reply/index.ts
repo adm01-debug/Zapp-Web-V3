@@ -1,7 +1,9 @@
 import { handleCors, errorResponse, jsonResponse, Logger } from "../_shared/validation.ts";
-import { SicoobBridgeReplySchema, parseBody } from "../_shared/schemas.ts";
 import { requireUser, requireServiceRoleOnly, getBearer, timingSafeStringEqual } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -35,12 +37,22 @@ Deno.serve(async (req) => {
       throw new Error('SICOOB_GIFTS_URL or SICOOB_GIFTS_BRIDGE_SECRET not configured');
     }
 
-    const parsed = parseBody(SicoobBridgeReplySchema, await req.json());
-    if (!parsed.success) return errorResponse(parsed.error, 400, req);
+    // Contrato sicoob-bridge-reply@v1 — validação unificada 422 (parseOrReject).
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('sicoob-bridge-reply', CONTRACT_SCHEMAS['sicoob-bridge-reply'], req, raw, {
+      extraHeaders: getCorsHeaders(req),
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, any>;
 
-    const { contact_id, content, message_id, created_at } = parsed.data;
+    // Guarda de compatibilidade: schema registrado é permissivo (placeholder);
+    // preserva o 400 do antigo parseBody(SicoobBridgeReplySchema).
+    const { contact_id, content, message_id, created_at } = body;
+    if (typeof contact_id !== 'string' || contact_id.length === 0 || typeof content !== 'string' || content.length === 0) {
+      return errorResponse('contact_id: Required, content: Required', 400, req);
+    }
     // For service-role callers the body may carry agent_id; for user callers use JWT identity.
-    if (!agent_id) agent_id = (parsed.data as Record<string, unknown>).agent_id as string ?? null;
+    if (!agent_id) agent_id = (body.agent_id as string | undefined) ?? null;
 
     // Get the contact — contacts.user_id column does not exist; RLS enforces
     // tenant isolation when the caller is a user JWT. Service-role callers bypass

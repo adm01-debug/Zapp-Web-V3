@@ -1,6 +1,8 @@
 import { createZappAdminClient, createZappClient } from '../_shared/db-client.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 interface FailurePayload {
   contact_id: string | null;
   attempted_event_type: string; // typically 'sla_alert'
@@ -38,12 +40,10 @@ Deno.serve(async (req) => {
     });
   }
 
-  let body: FailurePayload;
-  try {
-    body = await req.json();
-  } catch {
-    return badRequest(req, "Invalid JSON");
-  }
+  const raw = await req.json().catch(() => null);
+  const parsed = parseOrReject('sla-alert-log-failure', CONTRACT_SCHEMAS['sla-alert-log-failure'], req, raw, { extraHeaders: getCorsHeaders(req) });
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data as FailurePayload;
 
   if (!body || typeof body !== "object") return badRequest(req, "Invalid body");
   if (body.contact_id !== null && !isUuid(body.contact_id)) {

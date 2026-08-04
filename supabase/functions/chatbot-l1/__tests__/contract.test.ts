@@ -1,8 +1,8 @@
 /**
  * Contract tests — chatbot-l1.
  *
- * Schema real: ChatbotL1Schema (_shared/schemas.ts:153) — usado via
- * parseBody(ChatbotL1Schema, body) no index.ts:24 → 400 em falha.
+ * Schema real: ChatbotL1V1Schema = ChatbotL1Schema.strict() (_shared/schemas.ts:160) — usado
+ * via parseOrReject('chatbot-l1', CONTRACT_SCHEMAS['chatbot-l1']) no index.ts → 422 unificado.
  * Contrato: { contactId: uuid (obrigatório), message: string 1..10000 (obrigatório), connectionId?: string ≤200 }.
  *
  * Rodar: deno test --allow-net --allow-env --allow-read supabase/functions/chatbot-l1/__tests__/contract.test.ts
@@ -103,15 +103,15 @@ Deno.test("Contract: ChatbotL1 — campos extras são aceitos (sem .strict())", 
   assertEquals(result.success, true);
 });
 
-// ─── Fonte: index.ts usa ChatbotL1Schema via parseBody ──────────────────────
+// ─── Fonte: index.ts valida com ChatbotL1V1Schema via parseOrReject ─────────
 
-Deno.test("Contract: ChatbotL1 — index.ts valida com ChatbotL1Schema + parseBody", () => {
-  assertMatchSource(/parseBody\(ChatbotL1Schema, await req\.json\(\)\)/);
-  assertMatchSource(/ChatbotL1Schema/);
+Deno.test("Contract: ChatbotL1 — index.ts valida com parseOrReject + CONTRACT_SCHEMAS['chatbot-l1']", () => {
+  assertMatchSource(/parseOrReject\('chatbot-l1', CONTRACT_SCHEMAS\['chatbot-l1'\]/);
+  assertMatchSource(/CONTRACT_SCHEMAS\[/);
 });
 
-Deno.test("Contract: ChatbotL1 — falha de validação responde 400 com detalhes", () => {
-  assertMatchSource(/if \(!parsed\.success\) return errorResponse\(parsed\.error, 400, req\)/);
+Deno.test("Contract: ChatbotL1 — falha de validação responde 422 via parsed.response", () => {
+  assertMatchSource(/if \(!parsed\.ok\) return parsed\.response/);
 });
 
 function assertMatchSource(pattern: RegExp): void {

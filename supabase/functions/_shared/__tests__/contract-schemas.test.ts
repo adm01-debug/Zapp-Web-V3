@@ -9,6 +9,8 @@ import { assertEquals, assert } from "https://deno.land/std@0.168.0/testing/asse
 import {
   ElevenLabsWebhookV1Schema,
   GmailWebhookV1Schema,
+} from "../webhook-schemas.ts";
+import {
   TalkxSendV1Schema,
   SendEmailV1Schema,
   ReprocessFailedMessagesV1Schema,
@@ -20,7 +22,7 @@ import {
   GmailSendV1Schema,
   EvolutionSyncV1Schema,
 } from "../contract-schemas.ts";
-import type { z } from "../contract-schemas.ts";
+import type { z } from "../contract-kit.ts";
 
 const UUID = "3f0c8a4e-1b2d-4c5e-9f6a-7b8c9d0e1f2a";
 
@@ -215,7 +217,7 @@ for (const m of MATRICES) {
       if (!r.success && c.expectPath) {
         const paths = r.error.issues.map((it) => it.path.join("."));
         assert(
-          paths.some((p) => p === c.expectPath || p.startsWith(c.expectPath + ".") || p === ""),
+          paths.some((p) => p === c.expectPath || p.startsWith(c.expectPath + ".")),
           `esperava issue em '${c.expectPath}', obtido: ${paths.join(" | ")}`,
         );
       }
