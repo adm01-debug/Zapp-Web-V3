@@ -38,8 +38,7 @@ export function useContactSummaryBatch(contactIds: string[]) {
     queryFn: async () => {
       if (!stableIds.length) return [];
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any).rpc(
+      const { data, error } = await supabase.rpc(
         'rpc_get_contact_summary_batch',
         { p_contact_ids: stableIds }
       );
