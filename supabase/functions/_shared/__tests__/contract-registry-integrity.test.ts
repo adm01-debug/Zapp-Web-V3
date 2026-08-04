@@ -212,6 +212,11 @@ const PLACEHOLDER_ALLOWLIST = new Set([
   "email-track-link", "email-track-pixel",
   "webhook-secret-status", "whatsapp-cloud-secrets-status",
   "whatsapp-cloud-webhook-verify", "gmail-health",
+  // Hook interno do Supabase Auth — schema permissivo por design (evento Auth
+  // varia por versão do GoTrue); sem diretório de função (invocado via Auth,
+  // não via gateway). Reintroduzido pelo PR #782 — restaurado na allowlist
+  // 2026-08-04 (fix CI follow-up #787).
+  "auth-email-hook",
 ]);
 
 Deno.test("Registry Integrity: nenhum schema placeholder (z.object vazio) fora da allowlist", async () => {
