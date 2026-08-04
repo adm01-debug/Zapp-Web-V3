@@ -21,10 +21,10 @@ ALTER TABLE zapp.whatsapp_connections ENABLE ROW LEVEL SECURITY;
 
 -- ── Tables without existing policies: enable RLS + add permissive policy ─────
 
-ALTER TABLE zapp.voice_conversion_queue ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.voice_conversion_queue ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY voice_conversion_queue_authenticated
-  ON zapp.voice_conversion_queue
+  ON public.voice_conversion_queue
   FOR ALL
   TO authenticated
   USING (true)

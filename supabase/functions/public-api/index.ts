@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
       .eq('instance_name', connection.instance_id)
       .maybeSingle();
     if (!contact) {
-      const remoteJid = `55${phone}@c.us`;
+      const remoteJid = `${phone.startsWith('55') ? phone : '55' + phone}@c.us`;
       const now = new Date().toISOString();
       const { data: newContact } = await supabase.from('evolution_contacts')
         .insert({ remote_jid: remoteJid, phone_number: phone, full_name: phone, instance_name: connection.instance_id, created_at: now, updated_at: now })

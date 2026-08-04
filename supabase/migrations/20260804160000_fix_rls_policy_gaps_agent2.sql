@@ -203,16 +203,16 @@ DO $voice_queue_delete$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-    WHERE n.nspname = 'zapp' AND c.relname = 'voice_conversion_queue'
+    WHERE n.nspname = 'public' AND c.relname = 'voice_conversion_queue'
   ) THEN
     RAISE NOTICE 'L-2: voice_conversion_queue not found — skipping DELETE policy';
     RETURN;
   END IF;
 
-  DROP POLICY IF EXISTS voice_conversion_queue_delete ON zapp.voice_conversion_queue;
+  DROP POLICY IF EXISTS voice_conversion_queue_delete ON public.voice_conversion_queue;
 
   CREATE POLICY voice_conversion_queue_delete
-    ON zapp.voice_conversion_queue
+    ON public.voice_conversion_queue
     FOR DELETE
     TO authenticated
     USING (created_by = auth.uid());
@@ -263,10 +263,10 @@ BEGIN
 
   -- L-2: voice_conversion_queue DELETE policy must exist (if table exists)
   IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-             WHERE n.nspname = 'zapp' AND c.relname = 'voice_conversion_queue') THEN
+             WHERE n.nspname = 'public' AND c.relname = 'voice_conversion_queue') THEN
     SELECT EXISTS (
       SELECT 1 FROM pg_policies
-      WHERE schemaname = 'zapp'
+      WHERE schemaname = 'public'
         AND tablename = 'voice_conversion_queue'
         AND policyname = 'voice_conversion_queue_delete'
         AND cmd = 'DELETE'
