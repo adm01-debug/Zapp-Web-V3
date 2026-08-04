@@ -160,6 +160,25 @@ let _rateLimitCooldownUntil = 0;
 const RATE_LIMIT_COOLDOWN_MS = 2000; // 2s global pause after 429
 const MAX_CONCURRENT_DEGRADED = 4; // reduced concurrency during cooldown
 
+// FIX 2026-08-03: Detector de DB degradado.
+// Quando queries lentas (>5s) ocorrem, ativa cooldown temporário que
+// desacelera o drain da fila — evita acumular novas queries enquanto o
+// DB ainda está processando as anteriores (spiral-of-death prevention).
+let _slowQueryCooldownUntil = 0;
+const SLOW_QUERY_THRESHOLD_MS = 5_000;
+const SLOW_QUERY_COOLDOWN_MS  = 3_000;  // 3s pause after a slow query
+/** Chama no início de cada RPC: registra timestamp de início. */
+export function markQueryStart(): number { return Date.now(); }
+/** Chama no fim de cada RPC: se demorou demais, ativa cooldown do pool. */
+export function markQueryEnd(startMs: number): void {
+  if (Date.now() - startMs > SLOW_QUERY_THRESHOLD_MS) {
+    _slowQueryCooldownUntil = Math.max(
+      _slowQueryCooldownUntil,
+      Date.now() + SLOW_QUERY_COOLDOWN_MS
+    );
+  }
+}
+
 let _inFlight = 0;
 let _queue: Array<() => void> = [];
 const _activeControllers = new Set<AbortController>();
@@ -175,19 +194,26 @@ if (typeof window !== 'undefined') {
   }, { once: true });
 }
 
-/** Concorrência máxima vigente: reduzida durante o cooldown de rate-limit. */
+/** Concorrência máxima vigente: reduzida durante rate-limit ou slow-query cooldown. */
 function _getMaxConcurrent(): number {
-  return Date.now() < _rateLimitCooldownUntil ? MAX_CONCURRENT_DEGRADED : MAX_CONCURRENT;
+  const now = Date.now();
+  if (now < _rateLimitCooldownUntil) return MAX_CONCURRENT_DEGRADED;
+  // FIX 2026-08-03: quando DB está lento, reduz para 2 slots para dar fôlego ao pool
+  if (now < _slowQueryCooldownUntil) return 2;
+  return MAX_CONCURRENT;
 }
 
 function _acquireSlot(): Promise<void> {
-  const cooldownRemaining = _rateLimitCooldownUntil - Date.now();
+  const now = Date.now();
+  // Cooldown: rate-limit (429) ou slow-query (DB degradado)
+  const cooldownRemaining = Math.max(
+    _rateLimitCooldownUntil - now,
+    _slowQueryCooldownUntil - now,
+    0
+  );
   if (cooldownRemaining > 0) {
-    // Espera o cooldown terminar antes de adquirir um slot.
     return new Promise((resolve) => {
-      setTimeout(() => {
-        _acquireSlotInternal(resolve);
-      }, cooldownRemaining + 50);
+      setTimeout(() => _acquireSlotInternal(resolve), cooldownRemaining + 50);
     });
   }
   return new Promise((resolve) => _acquireSlotInternal(resolve));

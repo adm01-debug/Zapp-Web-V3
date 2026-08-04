@@ -223,7 +223,11 @@ export interface SearchContactsAdvancedParams {
   p_page_size?: number;
 }
 
-interface GetContact360Params { p_phone: string; }
+interface GetContact360Params {
+  p_phone: string;
+  /** FIX 2026-08-03: passar ACTIVE_WHATSAPP_INSTANCE para partition pruning em evolution_conversations. */
+  p_instance?: string | null;
+}
 interface GetContactIntelligenceParams { p_phone: string; }
 interface GetCompaniesByPhonesBatchParams { p_phones: string[]; }
 interface GetContacts360BatchParams { p_phones: string[]; }

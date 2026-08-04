@@ -77,7 +77,17 @@ export function ConversationListSidebar({
   // das conversas DENTRO do viewport; o batch só é disparado para eles
   // (e o resultado volta via getCRMData → enriquece company_name dos itens).
   const [visiblePhones, setVisiblePhones] = useState<string[]>([]);
-  const { lookup } = useExternalContact360Batch(visiblePhones);
+
+  // FIX 2026-08-03: estabilizar a lista para evitar queryKey novo a cada render.
+  // Antes: visiblePhones mutava por referência → queryKey diferente → 4-8x
+  // chamadas simultâneas a get_companies_by_phones_batch no mesmo ciclo.
+  // Agora: stablePhones só muda quando o conteúdo ordenado muda.
+  const stablePhones = useMemo(
+    () => [...visiblePhones].sort(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [visiblePhones.slice().sort().join(',')]  // dep estável por valor, não referência
+  );
+  const { lookup } = useExternalContact360Batch(stablePhones);
 
   const sortedFilteredIds = useMemo(
     () => inboxFilters.filteredConversations.map((c) => c.contact.id), // ignore-audit

@@ -26,6 +26,7 @@ import { Contact360Data } from '@/types/contact360';
 import { log } from '@/lib/logger';
 import { tanstackRetry } from '@/lib/errors/queryErrors';
 import { queryKeys } from '@/services/api/queryKeys';
+import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 
 /** Strips all non-numeric characters from a phone string so it can be used as a consistent lookup key. */
 function cleanPhone(phone: string): string {
@@ -55,6 +56,8 @@ export function useExternalContact360(phone: string | undefined) {
 
       const { data, error } = await dbGet(RPC.getContact360ByPhone, {
         p_phone: cleanedPhone,
+        // FIX 2026-08-03: partition pruning — reduz 23→1 partição em evolution_conversations
+        p_instance: ACTIVE_WHATSAPP_INSTANCE,
       });
 
       if (error) {
@@ -414,6 +417,23 @@ export function useExternalConversations(enabled = true) {
   const [hasMoreConversations, setHasMoreConversations] = useState(false);
   const [loadingMoreConversations, setLoadingMoreConversations] = useState(false);
 
+  // FIX 2026-08-03: backoff adaptativo no poll.
+  // Quando o queryFn leva mais de SLOW_POLL_THRESHOLD_MS, dobra o intervalo
+  // até MAX_POLL_INTERVAL_MS, evitando que polls disparados sobre um DB
+  // saturado piorem a situação (spiral-of-death prevention).
+  const _lastQueryDurationRef = useRef<number>(0);
+  const SLOW_POLL_THRESHOLD_MS = 4_000;
+  const MAX_POLL_INTERVAL_MS = 60_000;
+  const adaptiveInterval = useCallback((): number | false => {
+    const dur = _lastQueryDurationRef.current;
+    if (dur > SLOW_POLL_THRESHOLD_MS) {
+      // Backoff exponencial suave: 2× até 60s
+      const backed = Math.min(POLL_INTERVAL * Math.ceil(dur / SLOW_POLL_THRESHOLD_MS) * 2, MAX_POLL_INTERVAL_MS);
+      return backed;
+    }
+    return POLL_INTERVAL;
+  }, []);
+
   const query = useQuery({
     queryKey: queryKeys.evolutionConversations.sidebar(
       SIDEBAR_DAYS_BACK,
@@ -421,6 +441,7 @@ export function useExternalConversations(enabled = true) {
       DEFAULT_INSTANCE
     ),
     queryFn: async () => {
+      const _t0 = Date.now();
       if (USE_MOCKS) {
         const { MOCK_CONVERSATIONS } =
           await import('@/features/inbox/components/conversation-list/__mocks__/mockConversations');
@@ -496,10 +517,13 @@ export function useExternalConversations(enabled = true) {
       // Apply enrichment from cache to all conversations.
       applyCachedEnrichment(conversations);
 
+      // FIX 2026-08-03: registrar duração para backoff adaptativo
+      _lastQueryDurationRef.current = Date.now() - _t0;
+
       return conversations;
     },
     enabled,
-    refetchInterval: POLL_INTERVAL,
+    refetchInterval: adaptiveInterval,
     staleTime: POLL_INTERVAL - 1000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,

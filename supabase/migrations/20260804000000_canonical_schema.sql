@@ -12231,7 +12231,7 @@ CREATE FUNCTION zapp.rpc_insert_message(
   p_remote_jid text, p_instance text, p_message_id text,
   p_from_me boolean, p_direction text, p_message_type text, p_content text
 ) RETURNS evo.evolution_messages
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = zapp, evo, public
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = zapp, evo, pg_catalog
 AS $$
 DECLARE v_contact_id uuid; v_row evo.evolution_messages;
 BEGIN
@@ -12301,7 +12301,7 @@ DROP FUNCTION IF EXISTS zapp.find_duplicate_contacts(text, integer);
 CREATE FUNCTION zapp.find_duplicate_contacts(
   p_workspace_id text DEFAULT NULL::text, p_limit integer DEFAULT 100
 ) RETURNS TABLE(phone text, contact_ids uuid[], instance_names text[], total integer)
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = zapp, evo, public
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = zapp, evo, pg_catalog
 AS $$
 BEGIN
   IF NOT zapp.is_admin_or_supervisor() THEN RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501'; END IF;
@@ -12318,7 +12318,7 @@ DROP FUNCTION IF EXISTS zapp.merge_contacts(uuid, uuid, jsonb);
 CREATE FUNCTION zapp.merge_contacts(
   p_primary_id uuid, p_secondary_id uuid, p_merged_fields jsonb DEFAULT '{}'::jsonb
 ) RETURNS jsonb
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = zapp, evo, public
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = zapp, evo, pg_catalog
 AS $$
 BEGIN
   IF NOT zapp.is_admin_or_supervisor() THEN RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501'; END IF;
@@ -16317,6 +16317,9 @@ CREATE OR REPLACE FUNCTION zapp.fn_complete_transfer(p_transfer_id uuid)
  SET search_path TO 'zapp'
 AS $function$
 BEGIN
+    IF auth.uid() IS NULL THEN
+      RAISE EXCEPTION 'Authentication required';
+    END IF;
     UPDATE zapp.conversation_transfers
     SET status = 'completed', completed_at = NOW()
     WHERE id = p_transfer_id AND status = 'accepted';
