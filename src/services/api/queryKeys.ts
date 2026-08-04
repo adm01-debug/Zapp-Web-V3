@@ -152,6 +152,7 @@ export const queryKeys = {
   external: {
     contact360: (phone: string) => ['external-contact-360', phone] as const,
     contact360Batch: (key: string) => ['external-contact-360-batch', key] as const,
+    contact360BatchRef: (key: string) => ['external-contact-360-batch-ref', key] as const,
     cargos: () => ['external-cargos'] as const,
     empresas: () => ['external-empresas'] as const,
     catalog: {
@@ -160,8 +161,8 @@ export const queryKeys = {
       suppliers: () => ['external-catalog', 'suppliers'] as const,
       product: (id: string) => ['external-catalog', 'product', id] as const,
     },
-    db: (table: string, params?: unknown) => ['external-db', table, params] as const,
-    rpc: (rpc: string, params?: unknown) => ['external-db', 'rpc', rpc, params] as const,
+    db: (table: string, params?: unknown) => ['evolution-db', table, params] as const,
+    rpc: (rpc: string, params?: unknown) => ['evolution-db', 'rpc', rpc, params] as const,
   },
 
   // Dashboard

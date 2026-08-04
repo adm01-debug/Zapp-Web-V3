@@ -1,7 +1,7 @@
 /**
  * useAutomationFailureAlerts
  *
- * Ouve em realtime a tabela `automation_executions` (Lovable Cloud) e dispara
+ * Ouve em realtime a tabela `automation_executions` (app database) e dispara
  * um toast de alerta quando uma execução de regra de automação termina em
  * `status='failed'`. O motivo da falha (timeout, ausência de intenção/sugestão,
  * erro em apply_tags/escalate_sla, falha na invocação da edge function) já é

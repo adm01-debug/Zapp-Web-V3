@@ -25,9 +25,6 @@ credentials.json
 service-account.json
 firebase-adminsdk*.json
 
-# MCP Configuration (contains credentials - NEVER version)
-.mcp.json
-!.mcp.json.example
 # Credenciais em texto plano (PT-BR e EN)
 *credencia*.txt
 *credential*.txt
@@ -46,6 +43,7 @@ firebase-adminsdk*.json
 # O arquivo .mcp.json contém URLs autenticadas com tokens embutidos.
 # NUNCA commitar. Usar .mcp.json.example como referência.
 .mcp.json
+!.mcp.json.example
 .mcp.json.bak
 .mcp.json.backup
 .mcp.local.json
@@ -109,6 +107,9 @@ out/
 .vite/
 *.tsbuildinfo
 
+# Deno+Vite shadow cache (regenerado por bun install, causa crash do esbuild no Windows)
+node_modules/.deno/
+
 # ====================
 # TESTES
 # ====================
@@ -124,7 +125,7 @@ playwright/.cache/
 # ====================
 .vscode/*
 !.vscode/extensions.json
-!.vscode/settings.json.example
+!.vscode/settings.json
 .idea/
 *.sublime-workspace
 *.sublime-project
@@ -260,3 +261,18 @@ __pycache__/
 .env*
 !supabase/functions/.env.required
 !supabase/functions/.deployignore
+__pycache__/
+*.pyc
+
+# ====================
+# AGENTES AI / ECC TOOLS (gerados por bots — NUNCA versionar)
+# ====================
+# ECC Tools bot gerou 11 arquivos em 21/07/2026 (.agents/, .codex/, .claude/)
+# e foram removidos em 0873919e3 por serem código morto (score 0/7, info
+# incorreta, redundantes com CLAUDE.md e AGENTS.md versionados na raiz).
+# Claude Code (`claude /init`), Codex CLI (`codex`) e o ECC Tools podem
+# recriar essas pastas na raiz a qualquer momento — sem estas regras, um
+# `git add -A` acidental os reintroduziria (mesmo incidente do node_modules).
+.claude/
+.agents/
+.codex/

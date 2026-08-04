@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ category: 'outros' }, 200, req);
     }
 
-    const lovableApiKey = requireEnv('LOVABLE_API_KEY');
+    const lovableApiKey = Deno.env.get('AI_GATEWAY_KEY') || Deno.env.get('LOVABLE_API_KEY') || requireEnv('AI_GATEWAY_KEY');
 
     const prompt = `Analise esta figurinha/sticker e classifique em EXATAMENTE UMA das categorias abaixo. Responda APENAS com o nome da categoria, sem explicação.
 

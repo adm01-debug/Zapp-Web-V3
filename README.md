@@ -120,6 +120,8 @@ bun run dev
 └───────┘ └───────┘ └─────────┘
 ```
 
+> **Arquitetura atual — backend único**: Supabase self-hosted (`supabase.atomicabr.com.br`, schemas `zapp`/`evo`). O antigo **backend duplo** (banco externo "FATOR X" acessado via `externalProxy` → `external-db-proxy`/`external-db-bridge`) foi **descontinuado na consolidação de julho de 2026** — `USE_EXTERNAL_DB=false` e as Edge Functions de ponte foram removidas.
+
 ### Decisões Arquiteturais (ADRs)
 
 Veja `docs/decisions/` para decisões documentadas:
@@ -127,8 +129,8 @@ Veja `docs/decisions/` para decisões documentadas:
 - **ADR-002**: RLS como camada primária de autorização
 - **ADR-003**: CSS modularização
 - **ADR-004**: Evolution API webhook bridge
-- **ADR-005**: Audit & Recovery Model (FATOR X)
-- **ADR-006**: Two-Backend Boundary & Communication
+- **ADR-005**: Audit & Recovery Model (FATOR X) — ⚠️ *superseded* pela consolidação do backend (julho de 2026)
+- **ADR-006**: Two-Backend Boundary & Communication — ⚠️ *superseded*: arquitetura consolidada em um único Supabase self-hosted
 - **ADR-008**: Error Tracking & Monitoring Strategy
 
 ---
@@ -238,7 +240,6 @@ docs/
 | `ai-auto-tag` | Auto-tagging inteligente |
 | `evolution-api` | Proxy seguro para Evolution API |
 | `evolution-webhook` | Webhook de eventos WhatsApp |
-| `external-db-bridge` | Proxy seguro para DBs externos |
 | `chatbot-l1` | Chatbot nível 1 automatizado |
 | `elevenlabs-tts` | Text-to-speech |
 | `send-email` | Envio de emails via Resend |
@@ -324,7 +325,7 @@ O deploy é gerenciado automaticamente pelo **Lovable**:
 3. Migrations são aplicadas via ferramenta de migração
 
 ### URLs
-- **Produção**: https://pronto-talk-suite.lovable.app
+- **Produção**: Vercel (vercel.com)
 
 ---
 

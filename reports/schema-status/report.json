@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-27T01:02:13.206Z",
+  "generated_at": "2026-08-03T21:57:13.832Z",
   "ci": {
     "run_id": null,
     "run_attempt": null,
@@ -20,7 +20,7 @@
       "zapp",
       "evo"
     ],
-    "local_only": true,
+    "local_only": false,
     "meta_url_present": false,
     "meta_token_present": false
   },
@@ -28,17 +28,16 @@
     "status": "ok",
     "types_file_exists": true,
     "present_schemas": [
-      "__InternalSupabase",
+      "evo",
       "public",
-      "zapp",
-      "evo"
+      "zapp"
     ],
     "missing_schemas": [],
     "error": null
   },
   "remote": {
     "status": "skipped",
-    "reason": "flag --local-only",
+    "reason": "ZAPP_META_URL/ZAPP_META_TOKEN ausentes",
     "http_status": null,
     "present_schemas": [],
     "missing_schemas": [],

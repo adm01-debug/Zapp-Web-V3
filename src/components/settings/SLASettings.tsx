@@ -47,7 +47,7 @@ export function SLASettings({ settings, updateSettings }: SLASettingsProps) {
 
             <div className="space-y-2">
               <Label htmlFor="sla_critical" className="flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-destructive-foreground" />
+                <ShieldAlert className="w-4 h-4 text-destructive" />
                 Limite Crítico/Violação (minutos)
               </Label>
               <Input

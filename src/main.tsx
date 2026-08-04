@@ -10,7 +10,7 @@ import { registerExternalSessionBridge } from './integrations/supabase/externalS
 import { initializeSilentErrorPrevention } from './lib/silentErrorPrevention';
 import { logStructuredError } from './lib/structuredErrorLogging';
 
-// Instala bridge dual-session (FATOR X external)
+// Instala bridge dual-session (Evolution DB)
 registerExternalSessionBridge();
 
 // Initialize silent error prevention (MELHORIA #11)

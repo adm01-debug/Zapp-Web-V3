@@ -136,9 +136,11 @@ export function ConversationHistory({
 
       // Convert to conversation history items
       const historyItems: ConversationHistoryItem[] = Object.entries(groupedByDay)
+        .filter(([, dayMessages]) => dayMessages.length > 0)
         .map(([dayKey, dayMessages]) => {
           const firstMsg = dayMessages[dayMessages.length - 1];
           const lastMsg = dayMessages[0];
+          if (!firstMsg || !lastMsg) return null;
           const startTime = new Date(firstMsg.created_at);
           const endTime = new Date(lastMsg.created_at);
           const durationMs = endTime.getTime() - startTime.getTime();
@@ -152,14 +154,15 @@ export function ConversationHistory({
             status = 'open';
           }
 
+          const safeContent = typeof lastMsg.content === 'string' ? lastMsg.content : '';
           return {
             id: dayKey,
             date: new Date(dayKey),
             messageCount: dayMessages.length,
             lastMessage:
-              lastMsg.content.length > 50
-                ? `${lastMsg.content.substring(0, 50)}...`
-                : lastMsg.content,
+              safeContent.length > 50
+                ? `${safeContent.substring(0, 50)}...`
+                : safeContent,
             status,
             duration:
               durationMinutes > 60
@@ -167,6 +170,7 @@ export function ConversationHistory({
                 : `${durationMinutes}min`,
           };
         })
+        .filter((item): item is ConversationHistoryItem => item !== null)
         .sort((a, b) => b.date.getTime() - a.date.getTime());
 
       setConversations(historyItems);

@@ -23,12 +23,14 @@ const EXPECTED_REALTIME_CONSUMERS: string[] = [
   'src/features/inbox/hooks/useRealtimeMessages.ts',
   'src/features/inbox/data-access/messageRepository.ts',
   'src/features/inbox/hooks/useMessageStatus.ts',
+  'src/features/inbox/hooks/useMessagesCursor.ts',
   'src/hooks/useRealtimeManagement.ts',
   'src/components/monitoring/hooks/useEvolutionMonitoring.ts',
   'src/features/inbox/components/useAudioMessagePlayer.ts',
   'src/features/inbox/hooks/realtime/useRetryResolutionAlerts.ts',
   'src/hooks/useRealtimeMessages.ts',
   'src/hooks/useTranscriptionNotifications.ts',
+  'src/features/inbox/components/chat/ChatMessagesArea.tsx',
 ];
 
 const UPDATE_HINT =
@@ -75,7 +77,7 @@ function walk(dir: string, acc: string[] = []): string[] {
 
 // Aceita literal `table: 'messages'|'evolution_messages'` e helper `table: dbTable(...)`,
 // independentemente de o channel vir de `supabase.channel(...)` ou `dbChannel(...)`.
-// 'evolution_messages' é o nome da tabela no schema 'evo' (FATOR X v6.2).
+// 'evolution_messages' é o nome da tabela no schema 'evo' (Evolution DB v6.2).
 const MESSAGES_CHANNEL_RE =
   /(?:supabase\s*\.channel|dbChannel)\([\s\S]*?table:\s*(?:dbTable\(\s*)?['"](?:messages|evolution_messages)['"]/;
 

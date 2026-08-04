@@ -5,7 +5,7 @@
 # Relações (tabelas/views) e funções RPC listadas aqui são chamadas no frontend
 # mas NÃO vivem no schema principal do Supabase (supabase/migrations). Elas
 # pertencem a bancos EXTERNOS acessados por clients separados:
-#   - externalClient.ts  -> projeto "FATOR X" (Bitrix24 bridge)
+#   - externalClient.ts  -> projeto "Evolution DB" (Bitrix24 bridge)
 #   - zappweb/supabaseClient.ts -> instância "zappweb"
 #
 # Portanto NÃO são drift: é correto que não existam migration neste repo.
@@ -21,7 +21,7 @@
 # Uma entrada por linha. Linhas começando com # são comentários.
 # ---------------------------------------------------------------------------
 
-# --- Tabelas do banco EXTERNO (FATOR X / Bitrix24 bridge) ---
+# --- Tabelas do banco EXTERNO (Evolution DB / Bitrix24 bridge) ---
 companies
 interactions
 contact_emails
@@ -37,7 +37,7 @@ evolution_stage_mapping
 evolution_messages_wpp2
 evolution_conversations_wpp2
 
-# --- Funções RPC do banco EXTERNO (FATOR X) — chamadas via externalSupabase ---
+# --- Funções RPC do banco EXTERNO (Evolution DB) — chamadas via externalSupabase ---
 rpc_get_contact
 rpc_list_contacts
 rpc_list_conversations
@@ -129,14 +129,14 @@ my_function
 no_params_fn
 
 # ---------------------------------------------------------------------------
-# [B] Tabelas/views no frontend SEM CREATE em migrations (Lovable Cloud era)
+# [B] Tabelas/views no frontend SEM CREATE em migrations (era legada pré-migração)
 # ---------------------------------------------------------------------------
 app_notifications
 information_schema_columns
 information_schema_tables
 
 # ---------------------------------------------------------------------------
-# [C] Funções ALTER-sem-CREATE — 80+ funções da era Lovable Cloud
+# [C] Funções ALTER-sem-CREATE — 80+ funções da era legada pré-migração
 # Todas confirmadas em produção; stub-migrations planejadas (R17+)
 # ---------------------------------------------------------------------------
 adicionar_parcelas
@@ -225,3 +225,93 @@ sync_parcela_planilha
 unificar_pedidos
 upsert_contact_intelligence
 vendedores_acima_50k_hoje
+
+# ---------------------------------------------------------------------------
+# [2026-08-03 PÓS-LIMPEZA] Objetos confirmados em PRODUÇÃO (query pg_proc/pg_class
+# em 2026-08-03) mas cujos CREATEs viviam em migrations-from-lovable/ e
+# migrations/archive/ (removidos na limpeza massiva ebf9558d5). O guard agora
+# usa supabase/migrations + supabase/migrations-snapshot como fontes; estes
+# itens ficam fora dessas fontes mas EXISTEM nos schemas zapp/ops/public/evo.
+# COMPROVAÇÃO: SELECT em pg_proc/pg_class (schemas zapp, ops, public, evo).
+# ---------------------------------------------------------------------------
+
+# --- [A] RPCs chamadas no frontend — existem em produção (schema zapp) ---
+add_contacts_to_campaign
+fn_safe_audit_log
+record_voice_telemetry
+rpc_email_archive_thread
+rpc_email_assign_thread
+rpc_email_mark_thread_read
+rpc_email_search_threads
+rpc_email_star_thread
+rpc_email_token_status
+rpc_log_email_health
+rpc_log_search_event
+rpc_queue_rebalance_candidates
+rpc_queue_sla_panel
+rpc_reactivate_service_channel
+rpc_record_automation_error
+rpc_set_whatsapp_mode
+rpc_update_email_health_state
+rpc_upsert_service_channel
+
+# --- [B] Tabelas/views referenciadas no frontend — existem em produção ---
+# (schemas zapp/email_app/evo; confirmadas via pg_class em 2026-08-03)
+app_settings
+automation_executions
+automation_rules
+avatars
+contact_assignments
+contact_intelligence
+contact_phones
+conversation_audit_logs
+dev_diagnostic_logs
+email_drafts
+email_signatures
+evolution_audit_log
+evolution_instances
+hmac_selftest_audit
+integrations
+media_cache
+message_attempts
+onboarding_steps
+personal_stickers
+provider_message_log
+salespeople
+search_history
+search_insights
+sentiment_alerts
+sla_alert_preferences
+sla_delivery_rules
+sla_delivery_violations
+sla_history
+team_message_reactions
+webhook_health_checks
+webhook_preferences
+whisper_files
+workspace_settings
+
+# --- [C] ALTER FUNCTION sem CREATE em migrations — existem em produção ---
+# (ops/public/zapp; ALTERs de search_path hardening em
+#  20260729190005_harden_secdef_search_path_remaining.sql e
+#  20260716_harden_security_definer_search_path.sql)
+check_critical_fks
+check_schema_drift
+cleanup_expired_webhook_idempotency
+create_partitions_if_not_exists
+fn_apply_connection_update
+fn_archive_old_audit_partitions
+fn_check_wal_slots
+fn_contacts_proxy_delete
+fn_contacts_proxy_insert
+fn_contacts_proxy_update
+fn_decode_secret
+fn_encode_secret
+fn_migrate_audit_logs_to_partitioned
+fn_update_backup_sentinel
+fn_validate_production_excellence
+increment_webhook_rate_limit
+is_feature_enabled
+is_instance_paused
+log_version_conflict
+upsert_user_settings

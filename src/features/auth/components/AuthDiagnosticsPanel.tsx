@@ -139,30 +139,30 @@ export function AuthDiagnosticsPanel() {
         <div className="rounded-lg border border-border bg-muted/40 p-3 text-left text-xs text-muted-foreground">
           <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
             <dt className="font-medium text-foreground">Hostname</dt>
-            <dd className="truncate font-mono">{hostname}</dd> // @technical
+            <dd className="truncate font-mono">{hostname}</dd> {/* @technical */}
 
             <dt className="font-medium text-foreground">Service Worker</dt>
             <dd>
-              <span className="font-mono">{swLabel}</span> // @technical
+              <span className="font-mono">{swLabel}</span> {/* @technical */}
               {status?.activeUrl && (
-                <div className="mt-0.5 truncate font-mono text-[10px] opacity-70"> // @technical
+                <div className="mt-0.5 truncate font-mono text-[10px] opacity-70"> {/* @technical */}
                   {status.activeUrl}
                 </div>
               )}
               {!status?.activeUrl && status?.installingUrl && (
-                <div className="mt-0.5 truncate font-mono text-[10px] opacity-70"> // @technical
+                <div className="mt-0.5 truncate font-mono text-[10px] opacity-70"> {/* @technical */}
                   {status.installingUrl}
                 </div>
               )}
             </dd>
 
             <dt className="font-medium text-foreground">Caches</dt>
-            <dd className="font-mono"> // @technical
+            <dd className="font-mono"> {/* @technical */}
               {cacheKeys.length === 0 ? 'nenhuma' : `${cacheKeys.length} (${cacheKeys.join(', ')})`}
             </dd>
 
             <dt className="font-medium text-foreground">Última limpeza</dt>
-            <dd className="font-mono">{formatTs(lastPurge)}</dd> // @technical
+            <dd className="font-mono">{formatTs(lastPurge)}</dd> {/* @technical */}
           </dl>
 
           <div className="mt-3 flex flex-wrap gap-2">

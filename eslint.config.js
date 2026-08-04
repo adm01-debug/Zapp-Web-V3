@@ -135,7 +135,7 @@ export default tseslint.config(
                 "**/evolution-api/**/find-chats*"
               ],
               "message":
-                "Inbox lê do FATOR X via queryExternalProxy → external-db-proxy. Não consulte Evolution API para popular UI. Para envio, use externalMessageSender. Veja docs/INBOX_READ_CONTRACT.md"
+                "Inbox lê do Evolution DB (schema evo) via Supabase direto. Não consulte Evolution API para popular UI. Para envio, use externalMessageSender (src/features/inbox/hooks/realtime/externalMessageSender.ts)."
             }
           ]
         }
@@ -166,14 +166,12 @@ export default tseslint.config(
   {
     files: ["src/**/*.{ts,tsx}"],
     ignores: [
-      "src/lib/constants.ts",
       "src/lib/constants/whatsappInstances.ts",
       "src/services/api/queryKeys.ts",
       "src/integrations/supabase/client.ts",
       "src/features/inbox/hooks/realtime/externalSenderTypes.ts",
       "src/integrations/zappweb/evolutionClient.ts",
       "src/lib/whatsappAdapter.ts",
-      "src/pages/admin/external-db-explorer/catalog.ts",
       "src/**/__tests__/**",
       "src/**/*.test.{ts,tsx}",
       "src/**/*.spec.{ts,tsx}",

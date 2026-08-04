@@ -1,6 +1,6 @@
 // Healthcheck endpoint mínimo para a função `status`.
 //
-// Existe porque o runtime do Lovable Cloud (e ferramentas externas de
+// Existe porque o runtime (e ferramentas externas de
 // monitoramento) ocasionalmente fazem GET em `/functions/v1/status`.
 // Sem este arquivo o runtime devolve 503 SUPABASE_EDGE_RUNTIME_ERROR
 // ("Service is temporarily unavailable") porque a função não existe.

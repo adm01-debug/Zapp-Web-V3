@@ -8,6 +8,7 @@ import {
   normalizeMessage,
   buildConversation,
   dedupeContacts,
+  dedupeMessages,
   buildConversations,
   getUniqueMessageContactIds,
   chunkArray,
@@ -21,9 +22,29 @@ import { isValidUUID } from '@/utils/uuid';
 export type { MessageBatcherStatus } from './realtime/useMessageUpdateBatcher';
 
 const log = getLogger('RealtimeMessages');
-const SEEDED_CONTACT_LIMIT = 500;
-const RECENT_MESSAGES_LIMIT = 1000;
+// F4-01: paginação por cursor — os limites fixos SEEDED_CONTACT_LIMIT=500 /
+// RECENT_MESSAGES_LIMIT=1000 (que carregavam o inbox inteiro a cada
+// montagem) deram lugar a páginas de CONTACTS_PAGE_SIZE contatos (cursor
+// updated_at+id) e MESSAGES_PAGE_SIZE mensagens recentes (cursor
+// created_at+id), com load-more sob demanda via loadMoreConversations.
+// F4-18 (2026-08-03): CONTACTS_PAGE_SIZE 100→30 e MESSAGES_PAGE_SIZE 100→50
+// — carga inicial mais leve (menos payload por GET no inbox load); o scroll
+// infinito continua funcionando via loadMoreConversations com os cursors.
+const CONTACTS_PAGE_SIZE = 30;
+const MESSAGES_PAGE_SIZE = 50;
 const CONTACT_FETCH_CHUNK_SIZE = 200;
+
+/** Cursor de paginação de contatos: (updated_at, id) — ordem estável desc. */
+interface ContactPageCursor {
+  updatedAt: string;
+  id: string;
+}
+
+/** Cursor de paginação de mensagens: (created_at, id) — ordem estável desc. */
+interface MessagePageCursor {
+  createdAt: string;
+  id: string;
+}
 /**
  * Janela de debounce (ms) para agregar múltiplas chamadas simultâneas de
  * hydrateConversationForMessage. Em rajadas de mensagens (campanhas, bots),
@@ -127,6 +148,36 @@ export function useRealtimeMessages() {
 
   const conversationsRef = useRef<ConversationWithMessages[]>([]);
 
+  // F4-02: guard de mount — fetchConversations/refetch são async e podem
+  // resolver depois do unmount (navegação de rota durante o fetch inicial).
+  // Nenhum setState roda com isMountedRef.current === false.
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // F4-01: estado de paginação por cursor. Os arrays acumulados alimentam o
+  // merge incremental em buildConversations a cada load-more; os cursors
+  // (updated_at+id / created_at+id) apontam para a última linha da página
+  // anterior e os flags hasMore*Ref indicam se ainda há páginas.
+  const loadedContactsRef = useRef<ConversationContact[]>([]);
+  const loadedMessagesRef = useRef<RealtimeMessage[]>([]);
+  const contactsCursorRef = useRef<ContactPageCursor | null>(null);
+  const messagesCursorRef = useRef<MessagePageCursor | null>(null);
+  const hasMoreContactsRef = useRef(false);
+  const hasMoreMessagesRef = useRef(false);
+  const loadMoreInFlightRef = useRef(false);
+  // F4-18: dedupe de fetch inicial — se fetchConversations já está em curso
+  // (remount/StrictMode, refetch pós-send, fallback de visibilitychange),
+  // chamadas concorrentes são descartadas em vez de disparar outro par de
+  // GETs. O fetch em curso já resetou a paginação e popula o estado.
+  const fetchInFlightRef = useRef(false);
+  const [hasMoreConversations, setHasMoreConversations] = useState(false);
+  const [loadingMoreConversations, setLoadingMoreConversations] = useState(false);
+
   const {
     newMessageNotification,
     notifyAboutIncomingMessage,
@@ -168,6 +219,67 @@ export function useRealtimeMessages() {
     }
     return dedupeContacts(fetchedContacts);
   }, []);
+
+  // ── F4-01: páginas por cursor ────────────────────────────────────────────
+  // Contatos: página de CONTACTS_PAGE_SIZE ordenada por (updated_at desc,
+  // id desc) com cursor composto `updated_at + id` (tie-break estável para
+  // timestamps idênticos). Mensagens: página de MESSAGES_PAGE_SIZE ordenada
+  // por (created_at desc, id desc) com cursor composto `created_at + id`.
+  // O filtro usa or() para "antes do cursor OU (igual ao cursor com id menor)".
+  const fetchContactsPage = useCallback(async (cursor: ContactPageCursor | null) => {
+    let query = dbFrom('contacts')
+      .select('*')
+      .order('updated_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(CONTACTS_PAGE_SIZE);
+    if (cursor) {
+      query = query.or(
+        `and(updated_at.lt.${cursor.updatedAt}),and(updated_at.eq.${cursor.updatedAt},id.lt.${cursor.id})`
+      );
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []) as ConversationContact[];
+  }, []);
+
+  const fetchMessagesPage = useCallback(async (cursor: MessagePageCursor | null) => {
+    let query = dbFrom('messages')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(MESSAGES_PAGE_SIZE);
+    if (cursor) {
+      query = query.or(
+        `and(created_at.lt.${cursor.createdAt}),and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`
+      );
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    return ((data ?? []) as RealtimeMessage[]).map(normalizeMessage);
+  }, []);
+
+  const cursorFromContact = (c: ConversationContact): ContactPageCursor => ({
+    updatedAt: c.updated_at,
+    id: c.id,
+  });
+
+  const cursorFromMessage = (m: RealtimeMessage): MessagePageCursor => ({
+    createdAt: m.created_at,
+    id: m.id,
+  });
+
+  /** Hidrata contatos que apareceram em mensagens mas não estão na página atual de contatos. */
+  const hydrateMissingMessageContacts = useCallback(
+    async (messages: RealtimeMessage[], loadedContacts: ConversationContact[]) => {
+      const loadedIds = new Set(loadedContacts.map((c) => c.id));
+      const missingContactIds = getUniqueMessageContactIds(messages).filter(
+        (id) => !loadedIds.has(id)
+      );
+      if (missingContactIds.length === 0) return [] as ConversationContact[];
+      return fetchContactsByIds(missingContactIds);
+    },
+    [fetchContactsByIds]
+  );
 
   /**
    * Micro-buffer de 50ms para hydrateConversationForMessage.
@@ -366,44 +478,149 @@ export function useRealtimeMessages() {
     [commitConversations]
   );
 
+  // F4-01: fetch inicial com cursor — página 1 de contatos (updated_at+id) e
+  // de mensagens recentes (created_at+id) em PARALELO (antes: 500 contatos +
+  // 1000 mensagens em 2 round-trips sequenciais). F4-02: guard de mount em
+  // todos os setState após await (isMountedRef).
   const fetchConversations = useCallback(async () => {
+    if (!isMountedRef.current) return;
+    // F4-18: descarta fetch concorrente (já existe um em curso).
+    if (fetchInFlightRef.current) return;
+    fetchInFlightRef.current = true;
+    setLoading(true);
+    setError(null);
+    // Reset do estado de paginação (refetch = recarrega do zero).
+    loadedContactsRef.current = [];
+    loadedMessagesRef.current = [];
+    contactsCursorRef.current = null;
+    messagesCursorRef.current = null;
+    hasMoreContactsRef.current = false;
+    hasMoreMessagesRef.current = false;
+    setHasMoreConversations(false);
+
     try {
-      setLoading(true);
-      setError(null);
+      const [contactsPage, messagesPage] = await Promise.all([
+        fetchContactsPage(null),
+        fetchMessagesPage(null),
+      ]);
+      if (!isMountedRef.current) return;
 
-      const { data: seededContacts, error: contactsError } = await dbFrom('contacts')
-        .select('*')
-        .order('updated_at', { ascending: false })
-        .limit(SEEDED_CONTACT_LIMIT);
+      const normalizedMessages = messagesPage;
+      loadedContactsRef.current = dedupeContacts(contactsPage);
+      loadedMessagesRef.current = dedupeMessages(normalizedMessages);
 
-      if (contactsError) throw contactsError;
+      contactsCursorRef.current =
+        contactsPage.length === CONTACTS_PAGE_SIZE
+          ? cursorFromContact(contactsPage[contactsPage.length - 1])
+          : null;
+      messagesCursorRef.current =
+        normalizedMessages.length === MESSAGES_PAGE_SIZE
+          ? cursorFromMessage(normalizedMessages[normalizedMessages.length - 1])
+          : null;
+      hasMoreContactsRef.current = contactsCursorRef.current !== null;
+      hasMoreMessagesRef.current = messagesCursorRef.current !== null;
+      setHasMoreConversations(hasMoreContactsRef.current || hasMoreMessagesRef.current);
 
-      const { data: recentMessages, error: messagesError } = await dbFrom('messages')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(RECENT_MESSAGES_LIMIT);
-
-      if (messagesError) throw messagesError;
-
-      const normalizedMessages = ((recentMessages ?? []) as RealtimeMessage[]).map(
-        normalizeMessage
+      const messageContacts = await hydrateMissingMessageContacts(
+        normalizedMessages,
+        loadedContactsRef.current
       );
-      const seededContactRows = (seededContacts ?? []) as ConversationContact[];
-      const seededContactIds = new Set(seededContactRows.map((c) => c.id));
-      const missingContactIds = getUniqueMessageContactIds(normalizedMessages).filter(
-        (id) => !seededContactIds.has(id)
-      );
-      const messageContacts = await fetchContactsByIds(missingContactIds);
+      if (!isMountedRef.current) return;
+      if (messageContacts.length > 0) {
+        loadedContactsRef.current = dedupeContacts([
+          ...loadedContactsRef.current,
+          ...messageContacts,
+        ]);
+      }
+
       commitConversations(
-        buildConversations([...seededContactRows, ...messageContacts], normalizedMessages)
+        buildConversations(
+          [...contactsPage, ...messageContacts],
+          normalizedMessages
+        )
       );
     } catch (err) {
       log.error('Error fetching conversations:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch conversations');
+      if (isMountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch conversations');
+      }
     } finally {
-      setLoading(false);
+      fetchInFlightRef.current = false;
+      if (isMountedRef.current) setLoading(false);
     }
-  }, [commitConversations, fetchContactsByIds]);
+  }, [commitConversations, fetchContactsPage, fetchMessagesPage, hydrateMissingMessageContacts]);
+
+  // F4-01: load-more sob demanda (scroll infinito da sidebar) — busca as
+  // próximas páginas a partir dos cursors e faz o merge incremental com o
+  // estado acumulado, sem re-buscar as páginas anteriores.
+  const loadMoreConversations = useCallback(async () => {
+    if (loadMoreInFlightRef.current) return;
+    if (!hasMoreContactsRef.current && !hasMoreMessagesRef.current) return;
+    if (!isMountedRef.current) return;
+
+    loadMoreInFlightRef.current = true;
+    setLoadingMoreConversations(true);
+    try {
+      const [contactsPage, messagesPage] = await Promise.all([
+        hasMoreContactsRef.current ? fetchContactsPage(contactsCursorRef.current) : Promise.resolve([] as ConversationContact[]),
+        hasMoreMessagesRef.current ? fetchMessagesPage(messagesCursorRef.current) : Promise.resolve([] as RealtimeMessage[]),
+      ]);
+      if (!isMountedRef.current) return;
+
+      if (contactsPage.length > 0) {
+        loadedContactsRef.current = dedupeContacts([
+          ...loadedContactsRef.current,
+          ...contactsPage,
+        ]);
+        contactsCursorRef.current =
+          contactsPage.length === CONTACTS_PAGE_SIZE
+            ? cursorFromContact(contactsPage[contactsPage.length - 1])
+            : null;
+      } else {
+        contactsCursorRef.current = null;
+      }
+      hasMoreContactsRef.current = contactsCursorRef.current !== null;
+
+      if (messagesPage.length > 0) {
+        loadedMessagesRef.current = dedupeMessages([
+          ...loadedMessagesRef.current,
+          ...messagesPage,
+        ]);
+        messagesCursorRef.current =
+          messagesPage.length === MESSAGES_PAGE_SIZE
+            ? cursorFromMessage(messagesPage[messagesPage.length - 1])
+            : null;
+      } else {
+        messagesCursorRef.current = null;
+      }
+      hasMoreMessagesRef.current = messagesCursorRef.current !== null;
+      setHasMoreConversations(hasMoreContactsRef.current || hasMoreMessagesRef.current);
+
+      const messageContacts = await hydrateMissingMessageContacts(
+        messagesPage,
+        loadedContactsRef.current
+      );
+      if (!isMountedRef.current) return;
+      if (messageContacts.length > 0) {
+        loadedContactsRef.current = dedupeContacts([
+          ...loadedContactsRef.current,
+          ...messageContacts,
+        ]);
+      }
+
+      commitConversations(
+        buildConversations(loadedContactsRef.current, loadedMessagesRef.current)
+      );
+    } catch (err) {
+      log.error('Error loading more conversations:', err);
+      if (isMountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Failed to load more conversations');
+      }
+    } finally {
+      loadMoreInFlightRef.current = false;
+      if (isMountedRef.current) setLoadingMoreConversations(false);
+    }
+  }, [commitConversations, fetchContactsPage, fetchMessagesPage, hydrateMissingMessageContacts]);
 
   // ─── HANDLER REFS ──────────────────────────────────────────────────────────
   // Store event handlers in refs so the realtime subscription useEffect only
@@ -424,12 +641,12 @@ export function useRealtimeMessages() {
 
     log.info('Subscribing to realtime', { source: 'dbTable' });
 
-    const channelName = `messages-realtime-${Math.random().toString(36).slice(2, 9)}`;
+    const channelName = 'messages-realtime'; // F4-03: nome determinístico — 1 channel estável por sessão (sem Math.random() no nome)
     logMessagesSubscribe('useRealtimeMessages', { event: 'INSERT', table: dbTable('messages') });
     logMessagesSubscribe('useRealtimeMessages', { event: 'UPDATE', table: dbTable('messages') });
     logMessagesSubscribe('useRealtimeMessages', { event: 'DELETE', table: dbTable('messages') });
 
-    // FATOR X v6.2: Realtime na TABELA-FONTE evo.evolution_messages (views public não emitem).
+    // Evolution DB v6.2: Realtime na TABELA-FONTE evo.evolution_messages (views public não emitem).
     // Adapter: a fonte usa from_me/deleted_at; o shape legado da view usa sender/is_deleted.
     const adaptEvoPayload = (
       p: RealtimePostgresChangesPayload<Record<string, unknown>>
@@ -541,42 +758,112 @@ export function useRealtimeMessages() {
     return response;
   };
 
-  const markAsRead = async (contactId: string) => {
-    // ── UUID guard ──────────────────────────────────────────────────────────
-    // messages.contact_id (and evo.evolution_messages.contact_id) are uuid
-    // columns. When USE_EXTERNAL_DB=true the selectedContactId in
-    // useRealtimeInbox may be a WhatsApp JID / phone number (e.g. "551146375517")
-    // instead of a UUID. Passing it to PostgREST's .eq() on a uuid column
-    // causes 400 "invalid input syntax for type uuid".
-    // Skip silently — handleSelectConversation already calls evolution-api
-    // to mark messages read on the WhatsApp side when USE_EXTERNAL_DB=true.
-    if (!isValidUUID(contactId)) {
-      log.warn(
-        '[markAsRead] contactId is not a valid UUID — skipping to prevent 400 (likely a WhatsApp JID)',
-        { contactId }
-      );
-      return;
+  // ── Batch markAsRead (2026-08-03) ────────────────────────────────────────
+  // Produção: 22 PATCH individuais em rajada no inbox load (1 por conversa
+  // selecionada, cada um retentado no 429 do Kong — ver logs
+  // www.zappweb.app.br-*.log: PATCH /rest/v1/messages?contact_id=eq.X&
+  // sender=eq.contact&is_read=eq.false). As chamadas agora são coalescidas
+  // num buffer e descarregadas em UMA chamada batch:
+  //   dbFrom('messages').update({is_read:true}).in('contact_id', ids)
+  //     .eq('sender','contact').eq('is_read',false)
+  // O update otimista (commitConversations) continua IMEDIATO por clique —
+  // só o PATCH é agrupado (flush após MARK_READ_FLUSH_MS de inatividade, ou
+  // no unmount em fire-and-forget para não perder writes).
+  const MARK_READ_FLUSH_MS = 250;
+  const pendingMarkReadRef = useRef<Set<string>>(new Set());
+  const markReadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushMarkAsRead = useCallback(async () => {
+    if (markReadTimerRef.current !== null) {
+      clearTimeout(markReadTimerRef.current);
+      markReadTimerRef.current = null;
     }
-    // ────────────────────────────────────────────────────────────────────────
+    const ids = Array.from(pendingMarkReadRef.current);
+    pendingMarkReadRef.current = new Set();
+    if (ids.length === 0) return;
 
     const { error } = await dbFrom('messages')
       .update({ is_read: true })
-      .eq('contact_id', contactId)
+      .in('contact_id', ids)
       .eq('sender', 'contact')
       .eq('is_read', false);
-    if (error) log.error('Error marking messages as read:', error);
+    if (error) log.error('Error marking messages as read (batch):', error);
 
     // Touch last_seen throttled global (máx. 1 PATCH a cada 2min, deduplicado entre instâncias)
     touchLastSeen();
+  }, []);
 
-    commitConversations((prev) =>
-      prev.map((c) =>
-        c.contact.id === contactId
-          ? { ...c, messages: c.messages.map((m) => ({ ...m, is_read: true })), unreadCount: 0 }
-          : c
-      )
-    );
-  };
+  const scheduleMarkAsReadFlush = useCallback(() => {
+    if (markReadTimerRef.current !== null) clearTimeout(markReadTimerRef.current);
+    markReadTimerRef.current = setTimeout(() => {
+      markReadTimerRef.current = null;
+      void flushMarkAsRead();
+    }, MARK_READ_FLUSH_MS);
+  }, [flushMarkAsRead]);
+
+  const applyOptimisticRead = useCallback(
+    (contactIds: string[]) => {
+      const idSet = new Set(contactIds);
+      commitConversations((prev) =>
+        prev.map((c) =>
+          idSet.has(c.contact.id)
+            ? { ...c, messages: c.messages.map((m) => ({ ...m, is_read: true })), unreadCount: 0 }
+            : c
+        )
+      );
+    },
+    [commitConversations]
+  );
+
+  const markAsRead = useCallback(
+    async (contactId: string) => {
+      // ── UUID guard ──────────────────────────────────────────────────────────
+      // messages.contact_id (e evo.evolution_messages.contact_id) são uuid
+      // columns. selectedContactId pode vir de deep-link como JID/telefone
+      // (ex.: "551146375517") em vez de UUID — passar isso ao .eq()/.in() do
+      // PostgREST causaria 400 "invalid input syntax for type uuid".
+      // Pular silenciosamente.
+      if (!isValidUUID(contactId)) {
+        log.warn(
+          '[markAsRead] contactId is not a valid UUID — skipping to prevent 400 (likely a WhatsApp JID)',
+          { contactId }
+        );
+        return;
+      }
+      // ────────────────────────────────────────────────────────────────────────
+
+      // Otimista imediato (mesma UX de antes, sem esperar o PATCH)
+      applyOptimisticRead([contactId]);
+      // PATCH coalescido: rajadas de seleção viram 1 chamada .in()
+      pendingMarkReadRef.current.add(contactId);
+      scheduleMarkAsReadFlush();
+    },
+    [applyOptimisticRead, scheduleMarkAsReadFlush]
+  );
+
+  /** Marca várias conversas como lidas em UM PATCH batch (.in('contact_id', ids)). */
+  const markManyAsRead = useCallback(
+    (contactIds: string[]) => {
+      const validIds = contactIds.filter(isValidUUID);
+      if (validIds.length === 0) return;
+      applyOptimisticRead(validIds);
+      for (const id of validIds) pendingMarkReadRef.current.add(id);
+      scheduleMarkAsReadFlush();
+    },
+    [applyOptimisticRead, scheduleMarkAsReadFlush]
+  );
+
+  // Flush pendente no unmount (fire-and-forget) — evita perder writes quando
+  // o usuário navega antes do debounce disparar.
+  useEffect(() => {
+    return () => {
+      if (markReadTimerRef.current !== null) {
+        clearTimeout(markReadTimerRef.current);
+        markReadTimerRef.current = null;
+      }
+      void flushMarkAsRead();
+    };
+  }, [flushMarkAsRead]);
 
   // Subscribe to bus to recompute conversationSendState
   useEffect(() => {
@@ -584,35 +871,40 @@ export function useRealtimeMessages() {
     return unsub;
   }, []);
 
-  // Derive per-contact send state (transient bus + last DB status)
-  const conversationSendState: Record<string, ConversationSendState> = {};
-  for (const c of conversations) {
-    let state: ConversationSendState = 'idle';
-    const outbound = c.messages.filter((m) => m.sender === 'agent');
-    // Check bus for any retrying/sending in this conversation
-    const anyRetrying = outbound.some((m) => {
-      const bus = getSendStatus(m.id);
-      return bus?.status === 'retrying';
-    });
-    if (anyRetrying) {
-      state = 'retrying';
-    } else {
-      const lastOutbound = outbound[outbound.length - 1];
-      if (lastOutbound) {
-        const bus = getSendStatus(lastOutbound.id);
-        const effective = bus?.status ?? lastOutbound.status;
-        if (
-          effective === 'failed' ||
-          effective === 'failed_auth' ||
-          effective === 'failed_retries'
-        ) {
-          state = 'failed';
+  // Derive per-contact send state (transient bus + last DB status).
+  // F4-04: useMemo com deps [conversations, sendStateTick] — evita O(n·m)
+  // (filter de outbound + getSendStatus por conversa) a cada render.
+  const conversationSendState = useMemo<Record<string, ConversationSendState>>(() => {
+    void sendStateTick; // tick do bus — invalida o memo quando um status muda
+    const stateMap: Record<string, ConversationSendState> = {};
+    for (const c of conversations) {
+      let state: ConversationSendState = 'idle';
+      const outbound = c.messages.filter((m) => m.sender === 'agent');
+      // Check bus for any retrying/sending in this conversation
+      const anyRetrying = outbound.some((m) => {
+        const bus = getSendStatus(m.id);
+        return bus?.status === 'retrying';
+      });
+      if (anyRetrying) {
+        state = 'retrying';
+      } else {
+        const lastOutbound = outbound[outbound.length - 1];
+        if (lastOutbound) {
+          const bus = getSendStatus(lastOutbound.id);
+          const effective = bus?.status ?? lastOutbound.status;
+          if (
+            effective === 'failed' ||
+            effective === 'failed_auth' ||
+            effective === 'failed_retries'
+          ) {
+            state = 'failed';
+          }
         }
       }
+      stateMap[c.contact.id] = state;
     }
-    conversationSendState[c.contact.id] = state;
-  }
-  void sendStateTick; // ensure dep tracked
+    return stateMap;
+  }, [conversations, sendStateTick]);
 
   const filteredConversations = useMemo(() => {
     let filtered = [...conversations];
@@ -679,7 +971,13 @@ export function useRealtimeMessages() {
     error,
     sendMessage,
     markAsRead,
+    markManyAsRead,
     refetch: fetchConversations,
+    // F4-01: paginação por cursor — load-more sob demanda para scroll
+    // infinito da sidebar (páginas de CONTACTS_PAGE_SIZE/MESSAGES_PAGE_SIZE).
+    hasMoreConversations,
+    loadingMoreConversations,
+    loadMoreConversations,
     newMessageNotification,
     dismissNotification,
     setSelectedContact,

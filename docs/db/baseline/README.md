@@ -6,7 +6,7 @@ Este diretório armazena snapshots imutáveis do schema de produção.
 
 - Permite medir regressão de qualquer etapa do plano
 - Bloqueia o argumento "mas funcionava antes" — tem o antes documentado
-- Permite criar o ambiente de staging reproduzindo o estado real (não os 944 arquivos)
+- Permite criar o ambiente de staging reproduzindo o estado real (não os 130 arquivos)
 
 ## Conteúdo esperado
 

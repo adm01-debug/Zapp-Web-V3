@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Activity, Server, ShieldCheck, Zap, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { BridgeStatus } from '../useBridgeStatus';
+import type { BridgeStatus } from '@/hooks/useBridgeStatus';
 
 interface BridgeCoreServicesCardProps {
   lovableDb: boolean | null;
@@ -41,7 +41,7 @@ export function BridgeCoreServicesCard({
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold">Lovable Cloud Proxy</p>
+                <p className="text-sm font-semibold">App Backend</p>
                 <p className="text-xs text-muted-foreground">Encaminhamento de Webhooks e API</p>
               </div>
             </div>
@@ -49,7 +49,7 @@ export function BridgeCoreServicesCard({
               <Badge variant={lovableDb ? 'default' : 'destructive'}>
                 {lovableDb ? 'ATIVO' : 'ERRO'}
               </Badge>
-              <p className="mt-1 font-mono text-[10px] opacity-60"> // @technical
+              <p className="mt-1 font-mono text-[10px] opacity-60"> {/* @technical */}
                 HB: {new Date().toLocaleTimeString()}
               </p>
             </div>
@@ -66,9 +66,9 @@ export function BridgeCoreServicesCard({
                 <Zap className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold">FATOR X Core (External DB)</p>
+                <p className="text-sm font-semibold">Evolution DB (Self-Hosted)</p>
                 <p className="text-xs text-muted-foreground">
-                  Postgres Externo &amp; Evolution Engine
+                  Postgres Self-Hosted &amp; Evolution Engine
                 </p>
               </div>
             </div>
@@ -76,7 +76,7 @@ export function BridgeCoreServicesCard({
               <Badge variant={externalDb ? 'default' : 'warning'}>
                 {externalDb ? 'CONECTADO' : 'FALHA'}
               </Badge>
-              <p className="mt-1 font-mono text-[10px] opacity-60">Sync: OK</p> // @technical
+              <p className="mt-1 font-mono text-[10px] opacity-60">Sync: OK</p> {/* @technical */}
             </div>
           </div>
 

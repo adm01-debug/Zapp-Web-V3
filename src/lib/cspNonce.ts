@@ -99,7 +99,7 @@ export function buildCSPHeader(options: {
       "'self'",
       "'unsafe-inline'", // TailwindCSS uses inline styles
     ],
-    'img-src': ["'self'", 'data:', 'blob:', 'https://zapp-media-proxy.adm01.workers.dev'],
+    'img-src': ["'self'", 'data:', 'blob:', 'https://supabase.atomicabr.com.br', 'https://zapp-media-proxy.adm01.workers.dev'],
     'font-src': ["'self'"],
     'connect-src': [
       "'self'",
@@ -112,7 +112,7 @@ export function buildCSPHeader(options: {
       'https://zapp-media-proxy.adm01.workers.dev',
       ...(isDev ? ['ws://localhost:*'] : []),
     ],
-    'media-src': ["'self'", 'blob:', 'https://zapp-media-proxy.adm01.workers.dev'],
+    'media-src': ["'self'", 'blob:', 'https://supabase.atomicabr.com.br', 'https://zapp-media-proxy.adm01.workers.dev'],
     'object-src': ["'none'"],
     'frame-ancestors': ["'none'"],
     'base-uri': ["'self'"],

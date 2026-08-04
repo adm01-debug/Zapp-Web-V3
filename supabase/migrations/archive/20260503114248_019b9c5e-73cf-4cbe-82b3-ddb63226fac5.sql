@@ -1,1 +1,0 @@
-COMMENT ON TABLE public.profiles IS 'System Profile - Forcing types update';

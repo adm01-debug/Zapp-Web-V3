@@ -8,7 +8,7 @@ import type { SendFingerprint } from '@/lib/sendIdempotency';
 // ── helpers ────────────────────────────────────────────────────────────────────
 
 const NOW_MS = 1_700_000_000_000; // fixed reference (2023-11-14T22:13:20.000Z)
-const BUCKET_MS = 5 * 60 * 1000; // 5 min
+const BUCKET_MS = 1 * 60 * 1000; // 1 min (F4-16)
 
 function makeFp(overrides: Partial<SendFingerprint> = {}): SendFingerprint {
   return {
@@ -82,9 +82,10 @@ describe('buildSendIdempotencyKeyFromFingerprint — determinism', () => {
   });
 
   it('same content within same time bucket yields same key', async () => {
-    // Both are within the same 5-min bucket starting at NOW_MS
+    // NOW_MS está 20s dentro de um bucket de 1min (resto de 20_000ms), então
+    // +30s ainda cai no MESMO bucket.
     const fp1 = makeFp({ now: NOW_MS });
-    const fp2 = makeFp({ now: NOW_MS + 60_000 }); // 1 min later, same bucket
+    const fp2 = makeFp({ now: NOW_MS + 30_000 }); // 30s later, same 1-min bucket
     const k1 = await buildSendIdempotencyKeyFromFingerprint(fp1);
     const k2 = await buildSendIdempotencyKeyFromFingerprint(fp2);
     expect(k1).toBe(k2);
@@ -142,28 +143,27 @@ describe('buildSendIdempotencyKeyFromFingerprint — field sensitivity', () => {
 // ── buildSendIdempotencyKeyFromFingerprint — bucket defaults ──────────────────
 
 describe('buildSendIdempotencyKeyFromFingerprint — bucket defaults', () => {
-  it('uses 5-minute bucket when bucketMs is not provided', async () => {
-    // Use a timestamp at the START of a 5-minute bucket (300_000_000 = bucket 1000)
-    // so that + 1 min is still inside that bucket.
-    const bucketStart = 300_000 * 1000; // exactly bucket 1000
+  it('uses 1-minute bucket when bucketMs is not provided', async () => {
+    // NOW_MS está 20s dentro de um bucket de 1min, então +30s permanece no
+    // mesmo bucket; +60s cairia no próximo.
     const fp1: SendFingerprint = {
       contactId: 'c',
       messageType: 'text',
       content: 'hi',
-      now: bucketStart,
+      now: NOW_MS,
     };
     const fp2: SendFingerprint = {
       contactId: 'c',
       messageType: 'text',
       content: 'hi',
-      now: bucketStart + 60_000, // 1 min later — inside the same 5-min bucket
+      now: NOW_MS + 30_000, // 30s later — inside the same 1-min bucket
     };
     const k1 = await buildSendIdempotencyKeyFromFingerprint(fp1);
     const k2 = await buildSendIdempotencyKeyFromFingerprint(fp2);
     expect(k1).toBe(k2);
   });
 
-  it('treats bucketMs=0 as invalid and falls back to 5-minute default', async () => {
+  it('treats bucketMs=0 as invalid and falls back to 1-minute default', async () => {
     const fp1 = makeFp({ bucketMs: 0, now: NOW_MS });
     const fp2 = makeFp({ bucketMs: undefined, now: NOW_MS });
     const k1 = await buildSendIdempotencyKeyFromFingerprint(fp1);

@@ -153,29 +153,29 @@ export function SwDebugWidget() {
         <>
           <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-muted-foreground">
             <dt className="font-medium text-foreground">Build</dt>
-            <dd className="truncate font-mono">{snap?.buildId ?? '—'}</dd> // @technical
+            <dd className="truncate font-mono">{snap?.buildId ?? '—'}</dd> {/* @technical */}
 
             <dt className="font-medium text-foreground">Estado</dt>
-            <dd className="font-mono">{snap?.state ?? '…'}</dd> // @technical
+            <dd className="font-mono">{snap?.state ?? '…'}</dd> {/* @technical */}
 
             <dt className="font-medium text-foreground">Script</dt>
-            <dd className="truncate font-mono text-[10px]"> // @technical
+            <dd className="truncate font-mono text-[10px]"> {/* @technical */}
               {snap?.scriptUrl ?? '—'}
             </dd>
 
             <dt className="font-medium text-foreground">Scope</dt>
-            <dd className="truncate font-mono text-[10px]">{snap?.scope ?? '—'}</dd> // @technical
+            <dd className="truncate font-mono text-[10px]">{snap?.scope ?? '—'}</dd> {/* @technical */}
 
             <dt className="font-medium text-foreground">Workbox no sw.js</dt>
             <dd
-              className={`font-mono ${snap?.isWorkbox ? 'text-destructive' : 'text-success dark:text-success'}`} // @technical
-            >
+              className={`font-mono ${snap?.isWorkbox ? 'text-destructive' : 'text-success dark:text-success'}`}
+            > {/* @technical */}
               {snap ? (snap.isWorkbox ? 'detectado' : 'não') : '…'}
             </dd>
 
             <dt className="font-medium text-foreground">Caches ({caches_.length})</dt>
             <dd
-              className={`font-mono break-all ${ // @technical
+              className={`font-mono break-all ${ /* @technical */
                 hasWorkboxCache ? 'text-destructive' : ''
               }`}
             >

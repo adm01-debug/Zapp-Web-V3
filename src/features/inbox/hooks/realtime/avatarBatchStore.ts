@@ -2,7 +2,7 @@
  * avatarBatchStore — Gerencia o carregamento e cache dos avatares do WhatsApp.
  *
  * Problema: Componentes de conversa e chat montam em paralelo e tentam resolver
- * a URL do avatar (`profile_picture_url`) individualmente via RPC no FATOR X.
+ * a URL do avatar (`profile_picture_url`) individualmente via RPC no Evolution DB.
  *
  * Solução:
  *  1. Coalesce: Agrupa JIDs solicitados em uma janela de 100ms.
@@ -10,13 +10,10 @@
  *     que retorna `{ jid: url|null }`.
  *  3. Cache: Mantém as URLs em memória (30 min) e propaga via BroadcastChannel
  *     para outras abas evitarem chamadas repetidas.
- *  4. Failover: Se `VITE_EXTERNAL_SUPABASE_*` não estiver configurada (cliente
- *     direto indisponível), cai para o edge function `external-db-proxy`,
- *     que usa service-role secrets server-side. Esse caminho é o que mantém
- *     as fotos aparecendo em deploys sem env client-side (Lovable preview etc.).
+ *  4. Failover: Se a RPC `get_avatars_by_jids_batch` não existir no banco,
+ *     loga em debug e devolve `null` (UI cai no AvatarFallback com iniciais).
  */
-import { getExternalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
-import { queryExternalProxy } from '@/lib/externalProxy';
+import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('AvatarBatchStore');
@@ -67,65 +64,46 @@ if (typeof window !== 'undefined') {
 }
 
 /**
- * Resolve a batch via RPC direta (cliente externo) ou via proxy edge function.
+ * Resolve a batch via RPC direta no Supabase consolidado (schema `zapp`).
  * Sempre retorna `Record<jid, url|null>` — falhas são logadas e viram null.
  */
 async function fetchAvatarBatch(jids: string[]): Promise<Record<string, string | null>> {
   if (jids.length === 0) return {};
 
-  // 1. Caminho rápido: cliente externo direto (env vars presentes)
-  if (isExternalConfigured) {
-    const client = getExternalSupabase();
-    if (client) {
-      try {
-        const { data, error } = await (client.rpc as unknown as (
-          name: string,
-          params?: Record<string, unknown>
-        ) => Promise<{
-          data: unknown;
-          error: { code?: string; message?: string } | null;
-        }>)(RPC_NAME, { p_jids: jids });
-        if (error) {
-          const isMissing = error.code === '42883' || error.message?.includes('does not exist');
-          if (isMissing) {
-            log.debug('Avatar batch RPC not available, using fallback avatars');
-          } else {
-            log.warn('Direct RPC failed, falling back to proxy', { error: error.message });
-          }
-        } else {
-          return (data ?? {}) as Record<string, string | null>;
-        }
-      } catch (err) {
-        log.debug('Direct RPC unavailable, falling back to proxy', {
-          error: err instanceof Error ? err.message : String(err),
-        });
-      }
-    }
-  }
-
-  // 2. Fallback servidor-side via edge function (sem dependência de env client).
-  //    O proxy normaliza a resposta para `{ data: T[] }` — para uma RPC que
-  //    devolve um único objeto jsonb, isso vira `data[0]`.
   try {
-    const result = await queryExternalProxy<Record<string, string | null>>({
-      action: 'rpc',
-      rpc: RPC_NAME,
-      params: { p_jids: jids },
-    });
-    if (result.error) {
-      const errStr = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
-      const isMissing = errStr.includes('42883') || errStr.includes('does not exist');
+    const { data, error } = await (supabase.rpc as unknown as (
+      name: string,
+      params?: Record<string, unknown>
+    ) => Promise<{
+      data: unknown;
+      error: { code?: string; message?: string } | null;
+    }>)(RPC_NAME, { p_jids: jids });
+    if (error) {
+      const isMissing = error.code === '42883' || error.message?.includes('does not exist');
       if (isMissing) {
-        log.debug('Avatar batch RPC not available via proxy, using fallback avatars');
+        log.debug('Avatar batch RPC not available, using fallback avatars');
       } else {
-        log.error('Proxy RPC error', { error: result.error });
+        log.warn('Direct RPC failed', { error: error.message });
       }
       return {};
     }
-    const first = Array.isArray(result.data) ? result.data[0] : result.data;
-    return (first ?? {}) as Record<string, string | null>;
+
+    // A função retorna TABLE(remote_jid, avatar_url) — normaliza para o
+    // contrato do store: Record<jid, url|null>.
+    const rows = (Array.isArray(data) ? data : data == null ? [] : [data]) as Array<{
+      remote_jid?: unknown;
+      avatar_url?: unknown;
+    }>;
+    const map: Record<string, string | null> = {};
+    for (const row of rows) {
+      if (row && typeof row.remote_jid === 'string') {
+        map[row.remote_jid] =
+          typeof row.avatar_url === 'string' && row.avatar_url ? row.avatar_url : null;
+      }
+    }
+    return map;
   } catch (err) {
-    log.debug('Proxy RPC unavailable for avatars', {
+    log.debug('Direct RPC unavailable for avatars', {
       error: err instanceof Error ? err.message : String(err),
     });
     return {};

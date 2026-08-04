@@ -1,6 +1,6 @@
 /**
  * Datasource proxy — escolhe automaticamente o SupabaseClient correto
- * (Lovable Cloud vs self-hosted) e a tabela física para uma entidade lógica.
+ * (self-hosted principal vs external) e a tabela física para uma entidade lógica.
  *
  * Uso:
  *   import { dbFrom, dbChannel, dbTable, dbClient } from '@/integrations/datasource/db';
@@ -78,10 +78,10 @@ export function dbRemoveChannel(entity: LogicalEntity, channel: RealtimeChannel)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RPC layer — padrão para toda leitura/escrita em `evolution_*` (FATOR X).
+// RPC layer — padrão para toda leitura/escrita em `evolution_*` (Evolution DB).
 //
-// `dbFrom`/`dbChannel` acima continuam servindo entidades Lovable Cloud e
-// realtime. Para o domínio de WhatsApp/CRM use SEMPRE as RPCs:
+// `dbFrom`/`dbChannel` acima continuam servindo entidades do banco self-hosted
+// e realtime. Para o domínio de WhatsApp/CRM use SEMPRE as RPCs:
 //
 //   const { data } = await dbList(RPC.listMessagesLite, {
 //     p_remote_jid: jid, p_limit: 50,
@@ -118,7 +118,10 @@ export async function dbRpc<P extends object, R>(
   const merged = { ...(def.defaults ?? {}), ...params };
   const startedAt = performance.now();
   const correlationId = generateCorrelationId();
-  const source = def.client === 'external' ? 'externalSupabase' : 'lovableCloud';
+  // Telemetry source id — 'lovableCloud' é literal de identificação mantido de
+  // propósito (dashboards de telemetria dependem dele); 'external' mapeia para
+  // 'selfHosted'. O app não roda mais em um Lovable separado.
+  const source = def.client === 'external' ? 'selfHosted' : 'lovableCloud';
 
   try {
     const { data, error } = await (client as unknown as DynamicRpcClient).rpc(

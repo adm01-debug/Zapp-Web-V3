@@ -1,7 +1,7 @@
 /**
- * externalMessageSender — envio de mensagens no modo FATOR X.
+ * externalMessageSender — envio de mensagens no modo Evolution DB.
  *
- * O Inbox em modo `USE_EXTERNAL_DB=true` exibe conversas vindas de
+ * O Inbox em modo externo exibe conversas vindas de
  * `evolution_messages`. Esta função envia via Edge Function `evolution-api`
  * (mesmo proxy usado pelo sender legado) e devolve uma "bolha otimista" no
  * formato esperado pelo `useExternalMessages.addMessage` — o webhook
@@ -54,7 +54,7 @@ export async function sendExternalText(
     contactAvatar: opts.contactAvatar,
   });
 
-  // Log de auditoria (FATOR X)
+  // Log de auditoria (Evolution DB)
   logAudit(RPC.rpc_log_service_event, {
     p_instance: instance,
     p_event_type: 'message_send',
@@ -119,7 +119,7 @@ export async function sendExternalText(
 }
 
 /**
- * sendExternalMedia — envia imagens, vídeos ou documentos no modo FATOR X.
+ * sendExternalMedia — envia imagens, vídeos ou documentos no modo Evolution DB.
  */
 export async function sendExternalMedia(
   remoteJid: string,
@@ -199,7 +199,7 @@ export async function sendExternalMedia(
 }
 
 /**
- * sendExternalPtv — envia vídeo-nota circular (ptv) no modo FATOR X.
+ * sendExternalPtv — envia vídeo-nota circular (ptv) no modo Evolution DB.
  */
 export async function sendExternalPtv(
   remoteJid: string,

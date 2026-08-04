@@ -2,14 +2,14 @@
  * useExternalApiManagement
  *
  * Consolidated module for external CRM database integration.
- * Combines 9 previously separate external API hooks into one unified module.
+ * Combines 11 previously separate external API hooks (12 exports) into one unified module.
  *
  * Sections:
- *   1. Contact 360° Data (useExternalContact360, useExternalContact360Batch)
+ *   1. Contact 360° Data (useExternalContact360, useExternalContact360Batch, useExternalContact360BatchRef)
  *   2. Contact Metadata (useExternalCargos, useExternalEmpresas)
- *   3. Evolution/Conversations (useExternalConversations, useExternalMessages)
- *   4. Catalog & Products (useExternalCatalog)
- *   5. Generic External DB (useExternalSelect, useExternalRPC, useExternalTableBrowser, useExternalMutation)
+ *   3. Evolution/Conversations & Messages (useExternalConversations, useExternalMessages)
+ *   4. Catalog & Products (useExternalCatalog, withSafeVariants)
+ *   5. Generic External DB Operations (useExternalSelect, useExternalRPC, useExternalTableBrowser, useExternalMutation)
  */
 
 // ╔══════════════════════════════════════════════════════════════════════════════════
@@ -17,16 +17,16 @@
 // ╚══════════════════════════════════════════════════════════════════════════════════
 
 import { useQuery } from '@tanstack/react-query';
-import { isExternalConfigured, getExternalSupabase } from '@/integrations/supabase/externalClient';
 
 // ignore-audit — nomes de tabela dinâmicos exigem cliente não tipado
-const getDynamicClient = () => getExternalSupabase() as unknown as SupabaseClient;
+const getDynamicClient = () => supabase as unknown as SupabaseClient;
 import { dbGet, dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { Contact360Data } from '@/types/contact360';
 import { log } from '@/lib/logger';
 import { tanstackRetry } from '@/lib/errors/queryErrors';
 import { queryKeys } from '@/services/api/queryKeys';
+import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 
 /** Strips all non-numeric characters from a phone string so it can be used as a consistent lookup key. */
 function cleanPhone(phone: string): string {
@@ -56,6 +56,8 @@ export function useExternalContact360(phone: string | undefined) {
 
       const { data, error } = await dbGet(RPC.getContact360ByPhone, {
         p_phone: cleanedPhone,
+        // FIX 2026-08-03: partition pruning — reduz 23→1 partição em evolution_conversations
+        p_instance: ACTIVE_WHATSAPP_INSTANCE,
       });
 
       if (error) {
@@ -65,7 +67,7 @@ export function useExternalContact360(phone: string | undefined) {
 
       return data as Contact360Data; // ignore-audit: narrows Supabase query result to local interface
     },
-    enabled: isExternalConfigured && !!cleanedPhone && cleanedPhone.length >= 8,
+    enabled: !!cleanedPhone && cleanedPhone.length >= 8,
     staleTime: 1000 * 60 * 10, // 10 min cache
     gcTime: 1000 * 60 * 30, // 30 min gc
     retry: tanstackRetry, // fix: era retry:1 numerico que sobrescrevia o QueryClient global
@@ -110,7 +112,7 @@ export function useExternalContact360Batch(phones: string[]) {
 
       return map;
     },
-    enabled: isExternalConfigured && cleanedPhones.length > 0,
+    enabled: cleanedPhones.length > 0,
     staleTime: 1000 * 60 * 10, // 10 min cache
     gcTime: 1000 * 60 * 30,
   });
@@ -126,8 +128,62 @@ export function useExternalContact360Batch(phones: string[]) {
     batchData: query.data || new Map<string, CRMBatchResult>(),
     lookup,
     isLoading: query.isLoading,
-    isConfigured: isExternalConfigured,
+    isConfigured: true,
   };
+}
+
+/**
+ * Fetches full 360-degree contact data (Contact360Data) for multiple phones with a
+ * single batch RPC call (get_contacts_360_batch). Returns a Map<phone, Contact360Data>
+ * for O(1) lookups, indexed by cleaned phone, with/without country code.
+ */
+export function useExternalContact360BatchRef(phones: string[]) {
+  // Deduplicate and clean phones
+  const cleanedPhones = [...new Set(phones.map(cleanPhone).filter((p) => p.length >= 8))];
+  // Create a stable key from sorted phones
+  const batchPhoneKey = cleanedPhones.sort().join(',');
+
+  return useQuery<Map<string, Contact360Data>>({
+    queryKey: queryKeys.external.contact360BatchRef(batchPhoneKey),
+    queryFn: async () => {
+      if (cleanedPhones.length === 0) return new Map();
+
+      const { data, error } = await dbRpc(RPC.getContacts360Batch, {
+        p_phones: cleanedPhones,
+      });
+
+      if (error) {
+        log.error('Error fetching external 360 batch:', error);
+        return new Map();
+      }
+
+      // Convert batch response to Map for O(1) lookups.
+      // RPC returns: { results: [{phone, contact, found, conversation_id}, ...], count: N }
+      const map = new Map<string, Contact360Data>();
+      const batchData = data as { results?: Array<{ phone: string; contact: unknown; found: boolean; conversation_id?: string | null }>; count?: number } | null;
+      if (batchData?.results && Array.isArray(batchData.results)) {
+        for (const entry of batchData.results) {
+          if (!entry.found || !entry.contact) continue;
+          const phone = entry.phone;
+          const info = entry.contact as Contact360Data;
+          map.set(phone, info);
+          // Also index by cleaned version (without country code)
+          const clean = cleanPhone(phone);
+          if (clean !== phone) map.set(clean, info);
+          // Also index with country code
+          if (!phone.startsWith('55') && clean.length <= 11) {
+            map.set('55' + clean, info);
+          }
+        }
+      }
+
+      return map;
+    },
+    enabled: cleanedPhones.length > 0,
+    staleTime: 1000 * 60 * 10, // 10 min cache
+    gcTime: 1000 * 60 * 30, // 30 min gc
+    retry: tanstackRetry, // fix: era retry:1 numerico que sobrescrevia o QueryClient global
+  });
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════════════
@@ -186,7 +242,7 @@ export function useExternalCargos() {
       log.info(`[useExternalCargos] Loaded ${unique.length} unique cargos`);
       return unique;
     },
-    enabled: isExternalConfigured,
+    enabled: true,
     staleTime: 1000 * 60 * 30,
     gcTime: 1000 * 60 * 60,
   });
@@ -242,7 +298,7 @@ export function useExternalEmpresas() {
       log.info(`[useExternalEmpresas] Loaded ${unique.length} unique companies via RPC`);
       return unique;
     },
-    enabled: isExternalConfigured,
+    enabled: true,
     staleTime: 1000 * 60 * 30,
     gcTime: 1000 * 60 * 60,
   });
@@ -252,12 +308,12 @@ export function useExternalEmpresas() {
 // SECTION 3: Evolution/Conversations & Messages
 // ╚══════════════════════════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { useQueryClient } from '@tanstack/react-query';
 import { evolutionToRealtimeMessage, jidToPhone } from '@/adapters/evolutionAdapter';
 import type { EvolutionMessage } from '@/types/evolutionExternal';
-import type { RealtimeMessage } from '@/features/inbox';
+import type { RealtimeMessage, ConversationWithMessages } from '@/features/inbox';
 import { getLogger } from '@/lib/logger';
 import { dedupedFetch, subscribeDedupe } from '@/lib/realtime/crossTabDedupe';
 import {
@@ -268,6 +324,7 @@ import {
   USE_MOCKS,
   CONVERSATION_PAGE_SIZE,
   fetchRecentMessagesWindow,
+  fetchSidebarMessagesPage,
   fetchMessagesByJid,
   fetchMessagesAfter,
 } from './evolutionFetchers';
@@ -276,10 +333,8 @@ import {
   CACHE_TTL,
   FAILURE_COOLDOWN_MS,
   safeParseTags,
-  type ContactEnrichmentData,
 } from './evolutionContactCache';
 import { buildExternalConversations } from '@/adapters/evolutionAdapter';
-import { queryExternalProxy } from '@/lib/externalProxy';
 import { OPTIMISTIC_PREFIX, applyReconciliation } from './evolutionReconcile';
 
 const logConversations = getLogger('useExternalConversations');
@@ -307,8 +362,78 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
+/** Deduplica mensagens Evolution por id, preservando a ordem (mais recentes primeiro). */
+function dedupeEvolutionMessages(messages: EvolutionMessage[]): EvolutionMessage[] {
+  const seen = new Set<string>();
+  const out: EvolutionMessage[] = [];
+  for (const m of messages) {
+    if (seen.has(m.id)) continue;
+    seen.add(m.id);
+    out.push(m);
+  }
+  return out;
+}
+
+/** Aplica o enriquecimento do contactEnrichmentCache (tags, company, nome) a uma lista de conversas. */
+function applyCachedEnrichment(conversations: ConversationWithMessages[]): void {
+  conversations.forEach((conv) => {
+    const cached = contactEnrichmentCache.get(conv.contact.id);
+    if (cached?.data) {
+      const extra = cached.data;
+      if (extra.tags)
+        conv.contact.tags = Array.isArray(extra.tags)
+          ? (extra.tags as string[])
+          : typeof extra.tags === 'string'
+            ? safeParseTags(extra.tags)
+            : [];
+      if (extra.company) conv.contact.company = extra.company;
+      if (extra.ai_sentiment) conv.contact.ai_sentiment = extra.ai_sentiment;
+
+      const currentName = conv.contact.name;
+      const isGeneric =
+        !currentName || currentName === conv.contact.phone || currentName === conv.contact.id;
+      if (isGeneric) {
+        const newName = extra.name || extra.push_name;
+        if (newName && newName !== 'Você') {
+          conv.contact.name = newName;
+          conv.contact.nickname = newName;
+        }
+      }
+    }
+  });
+}
+
 /** Fetches Evolution API conversations with contact enrichment from external database. */
 export function useExternalConversations(enabled = true) {
+  // F4-01: paginação por cursor (path externo Evolution DB). O react-query mantém a
+  // JANELA inicial (SIDEBAR_LIMIT mensagens mais recentes) e o load-more
+  // acumula páginas mais antigas em olderMessagesRef (cursor = created_at da
+  // mensagem mais antiga já carregada). O merge final deduplica por contato.
+  const windowMessagesRef = useRef<EvolutionMessage[]>([]);
+  const olderMessagesRef = useRef<EvolutionMessage[]>([]);
+  const [olderMessages, setOlderMessages] = useState<EvolutionMessage[]>([]);
+  const hasMoreRef = useRef(false);
+  const loadMoreInFlightRef = useRef(false);
+  const [hasMoreConversations, setHasMoreConversations] = useState(false);
+  const [loadingMoreConversations, setLoadingMoreConversations] = useState(false);
+
+  // FIX 2026-08-03: backoff adaptativo no poll.
+  // Quando o queryFn leva mais de SLOW_POLL_THRESHOLD_MS, dobra o intervalo
+  // até MAX_POLL_INTERVAL_MS, evitando que polls disparados sobre um DB
+  // saturado piorem a situação (spiral-of-death prevention).
+  const _lastQueryDurationRef = useRef<number>(0);
+  const SLOW_POLL_THRESHOLD_MS = 4_000;
+  const MAX_POLL_INTERVAL_MS = 60_000;
+  const adaptiveInterval = useCallback((): number | false => {
+    const dur = _lastQueryDurationRef.current;
+    if (dur > SLOW_POLL_THRESHOLD_MS) {
+      // Backoff exponencial suave: 2× até 60s
+      const backed = Math.min(POLL_INTERVAL * Math.ceil(dur / SLOW_POLL_THRESHOLD_MS) * 2, MAX_POLL_INTERVAL_MS);
+      return backed;
+    }
+    return POLL_INTERVAL;
+  }, []);
+
   const query = useQuery({
     queryKey: queryKeys.evolutionConversations.sidebar(
       SIDEBAR_DAYS_BACK,
@@ -316,6 +441,7 @@ export function useExternalConversations(enabled = true) {
       DEFAULT_INSTANCE
     ),
     queryFn: async () => {
+      const _t0 = Date.now();
       if (USE_MOCKS) {
         const { MOCK_CONVERSATIONS } =
           await import('@/features/inbox/components/conversation-list/__mocks__/mockConversations');
@@ -327,6 +453,15 @@ export function useExternalConversations(enabled = true) {
         () => fetchRecentMessagesWindow(),
         { lockTtl: 8_000, resultTtl: POLL_INTERVAL - 500, waitTimeout: 6_000 }
       );
+
+      windowMessagesRef.current = messages;
+      // F4-01: janela cheia ⇒ pode haver página mais antiga. Mas se o load-more
+      // já acumulou páginas antigas, não zera o flag (a última página antiga
+      // pode ter vindo cheia) — o loadMoreConversations atualiza hasMoreRef
+      // por conta própria ao buscar.
+      if (olderMessagesRef.current.length === 0) {
+        hasMoreRef.current = messages.length === SIDEBAR_LIMIT;
+      }
 
       const conversations = buildExternalConversations(messages);
 
@@ -354,12 +489,13 @@ export function useExternalConversations(enabled = true) {
             ENRICHMENT_CONCURRENCY,
             async (jid) => {
               try {
-                const res = await queryExternalProxy<ContactEnrichmentData>({
-                  action: 'rpc',
-                  rpc: 'rpc_get_contact',
-                  params: { p_remote_jid: jid, p_instance: DEFAULT_INSTANCE },
+                const { data, error } = await getDynamicClient().rpc('rpc_get_contact', {
+                  p_remote_jid: jid,
+                  p_instance: DEFAULT_INSTANCE,
                 });
-                return { jid, res, failed: false as const };
+                if (error) throw new Error(error.message);
+                const rows = data == null ? [] : Array.isArray(data) ? data : [data];
+                return { jid, res: { data: rows }, failed: false as const };
               } catch {
                 contactEnrichmentCache.set(jid, { data: null, timestamp: now, failedAt: now });
                 return { jid, res: null, failed: true as const };
@@ -379,44 +515,97 @@ export function useExternalConversations(enabled = true) {
       }
 
       // Apply enrichment from cache to all conversations.
-      conversations.forEach((conv) => {
-        const cached = contactEnrichmentCache.get(conv.contact.id);
-        if (cached?.data) {
-          const extra = cached.data;
-          if (extra.tags)
-            conv.contact.tags = Array.isArray(extra.tags)
-              ? (extra.tags as string[])
-              : typeof extra.tags === 'string'
-                ? safeParseTags(extra.tags)
-                : [];
-          if (extra.company) conv.contact.company = extra.company;
-          if (extra.ai_sentiment) conv.contact.ai_sentiment = extra.ai_sentiment;
+      applyCachedEnrichment(conversations);
 
-          const currentName = conv.contact.name;
-          const isGeneric =
-            !currentName || currentName === conv.contact.phone || currentName === conv.contact.id;
-          if (isGeneric) {
-            const newName = extra.name || extra.push_name;
-            if (newName && newName !== 'Você') {
-              conv.contact.name = newName;
-              conv.contact.nickname = newName;
-            }
-          }
-        }
-      });
+      // FIX 2026-08-03: registrar duração para backoff adaptativo
+      _lastQueryDurationRef.current = Date.now() - _t0;
 
       return conversations;
     },
     enabled,
-    refetchInterval: POLL_INTERVAL,
+    refetchInterval: adaptiveInterval,
     staleTime: POLL_INTERVAL - 1000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
 
+  // Sincroniza o flag de "há mais páginas" a cada poll (query.data novo).
+  useEffect(() => {
+    setHasMoreConversations(hasMoreRef.current);
+  }, [query.data]);
+
+  // F4-01: load-more sob demanda (scroll infinito da sidebar, path externo).
+  // Busca a próxima página de mensagens ANTES do cursor (created_at da
+  // mensagem mais antiga carregada), acumula em olderMessagesRef e re-deriva
+  // as conversas — sem re-buscar as páginas anteriores.
+  const loadMoreConversations = useCallback(async () => {
+    if (loadMoreInFlightRef.current) return;
+    if (!hasMoreRef.current) return;
+    loadMoreInFlightRef.current = true;
+    setLoadingMoreConversations(true);
+    try {
+      // Cursor = created_at mais antigo entre janela inicial + páginas antigas.
+      const allLoaded = [...windowMessagesRef.current, ...olderMessagesRef.current];
+      let cursor: string | null = null;
+      for (const m of allLoaded) {
+        if (!cursor || m.created_at < cursor) cursor = m.created_at;
+      }
+      if (!cursor) {
+        hasMoreRef.current = false;
+        setHasMoreConversations(false);
+        return;
+      }
+
+      const page = await dedupedFetch(
+        `inbox:sidebar:more:${cursor}`,
+        () => fetchSidebarMessagesPage(cursor as string, SIDEBAR_LIMIT),
+        { lockTtl: 8_000, resultTtl: POLL_INTERVAL - 500, waitTimeout: 6_000 }
+      );
+
+      if (page.length === 0) {
+        hasMoreRef.current = false;
+        setHasMoreConversations(false);
+        return;
+      }
+
+      const merged = dedupeEvolutionMessages([...olderMessagesRef.current, ...page]);
+      olderMessagesRef.current = merged;
+      setOlderMessages(merged);
+      hasMoreRef.current = page.length === SIDEBAR_LIMIT;
+      setHasMoreConversations(hasMoreRef.current);
+    } catch (err) {
+      logConversations.warn('Failed to load more conversations', err);
+    } finally {
+      loadMoreInFlightRef.current = false;
+      setLoadingMoreConversations(false);
+    }
+  }, []);
+
+  // F4-01: merge janela inicial (query.data, sempre fresca) + páginas antigas
+  // acumuladas. Deduplica por contato e mantém a versão com lastMessage mais
+  // recente (a janela ganha; páginas antigas só acrescentam contatos novos).
+  const conversations = useMemo(() => {
+    const firstPage = query.data || [];
+    if (olderMessages.length === 0) return firstPage;
+    const olderConvs = buildExternalConversations(olderMessages);
+    applyCachedEnrichment(olderConvs);
+    const map = new Map<string, ConversationWithMessages>();
+    for (const c of [...firstPage, ...olderConvs]) {
+      const existing = map.get(c.contact.id);
+      if (!existing) {
+        map.set(c.contact.id, c);
+        continue;
+      }
+      const aTime = existing.lastMessage?.created_at ?? existing.contact.updated_at;
+      const bTime = c.lastMessage?.created_at ?? c.contact.updated_at;
+      if (bTime > aTime) map.set(c.contact.id, c);
+    }
+    return Array.from(map.values());
+  }, [query.data, olderMessages]);
+
   return {
-    conversations: query.data || [],
-    allConversations: query.data || [],
+    conversations,
+    allConversations: conversations,
     loading: query.isLoading,
     error: query.error?.message || null,
     refetch: query.refetch,
@@ -426,6 +615,11 @@ export function useExternalConversations(enabled = true) {
     setStatusFilter: () => {},
     sortBy: 'lastMessage',
     setSortBy: () => {},
+    // F4-01: paginação por cursor (path externo) — load-more para scroll
+    // infinito da sidebar.
+    loadMoreConversations,
+    hasMoreConversations,
+    loadingMoreConversations,
   };
 }
 
@@ -523,7 +717,7 @@ export function useExternalMessages(
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [remoteJid, mountedRef, getContactAvatar, instanceName]);
+  }, [remoteJid, mountedRef, getContactAvatar, instanceName, effectiveInstance]);
 
   const pollNewMessages = useCallback(async () => {
     if (!remoteJid || !mountedRef.current) return;
@@ -549,7 +743,7 @@ export function useExternalMessages(
     } catch (err) {
       logMessages.error('Error polling external messages:', err);
     }
-  }, [remoteJid, mountedRef, getContactAvatar, instanceName]);
+  }, [remoteJid, mountedRef, getContactAvatar, instanceName, effectiveInstance]);
 
   const loadOlder = useCallback(async () => {
     if (!remoteJid || !mountedRef.current || loadingOlder || !hasMore) return;
@@ -604,7 +798,7 @@ export function useExternalMessages(
       }
       if (mountedRef.current) setLoadingOlder(false);
     }
-  }, [remoteJid, messages, loadingOlder, hasMore, mountedRef, instanceName]);
+  }, [remoteJid, messages, loadingOlder, hasMore, mountedRef, instanceName, effectiveInstance]);
 
   // Initial fetch on jid change
   useEffect(() => {
@@ -664,7 +858,7 @@ export function useExternalMessages(
       }
     });
     return unsub;
-  }, [remoteJid, mountedRef, instanceName]);
+  }, [remoteJid, mountedRef, instanceName, effectiveInstance]);
 
   const addMessage = useCallback((message: RealtimeMessage) => {
     setMessages((prev) => {
@@ -896,7 +1090,7 @@ export function useExternalCatalog() {
         return null;
       }
     },
-    [queryClient]
+    [queryClient, logCatalog]
   );
 
   const fetchCategories = useCallback(() => {
@@ -1024,7 +1218,7 @@ export function useExternalSelect<T = Record<string, unknown>>(options: UseExter
         offset,
         countMode,
       }),
-    enabled: enabled && isExternalConfigured,
+    enabled,
     staleTime,
     gcTime: staleTime * 2,
   });
@@ -1057,7 +1251,7 @@ export function useExternalRPC<T = unknown>(options: UseExternalRPCOptions) {
         },
       };
     },
-    enabled: (options.enabled ?? true) && isExternalConfigured,
+    enabled: options.enabled ?? true,
     staleTime: options.staleTime ?? 10 * 60 * 1000,
   });
 }

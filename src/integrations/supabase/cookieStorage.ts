@@ -61,8 +61,15 @@ function createLocalStorageAdapter(): StorageAdapter {
     setItem(key: string, value: string): void {
       try {
         localStorage.setItem(key, value);
-      } catch {
-        // QuotaExceededError ou modo privado restrito — ignora silenciosamente.
+      } catch (e: unknown) {
+        // F3-10: QuotaExceededError ou modo privado — dispara evento para UI
+        const isQuota = e instanceof DOMException &&
+          (e.name === 'QuotaExceededError' || e.code === 22);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('zapp:storage-quota-exceeded', {
+            detail: { key, error: isQuota ? 'quota' : 'restricted' },
+          }));
+        }
         // O SDK vai operar sem persistência nesta sessão do browser.
       }
     },

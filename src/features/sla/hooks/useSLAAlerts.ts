@@ -244,47 +244,29 @@ export function useSLAAlerts(params: SLAAlertParams) {
           toast.warning(title, { description, duration: 6_000, action });
         }
 
-        // Audit (best-effort, fire-and-forget). Also serves as the persistent dedupe record.
-        // If the insert fails (typically RLS/permission), forward the failure to a service-role
-        // edge function so we still capture diagnostic info in `conversation_events`.
-        const auditMetadata = {
-          kind,
-          severity,
-          scope: scope,
-          rule_name: ruleName,
-          duration_ms: durationMs,
-        };
-        // Audit trail — await with proper error propagation, not fire-and-forget
+        // Audit trail via Edge Function (service role) — evita RLS/403 do frontend
         try {
-          const { error: insertError } = await supabase.from('conversation_events').insert({
-            contact_id: contactId,
-            event_type: 'sla_alert',
-            metadata: auditMetadata,
+          const { error: fnError } = await supabase.functions.invoke('sla-alert-log-failure', {
+            body: {
+              contact_id: contactId,
+              attempted_event_type: 'sla_alert',
+              event_type: 'sla_alert',
+              original_metadata: {
+                kind,
+                severity,
+                scope,
+                rule_name: ruleName,
+                duration_ms: durationMs,
+              },
+            },
           });
-          if (!insertError) {
+          if (!fnError) {
             void queryClient.invalidateQueries({
               queryKey: queryKeys.conversationHistory.events(contactId),
             });
-          } else {
-            // Fallback: log to edge function for ops visibility
-            try {
-              await supabase.functions.invoke('sla-alert-log-failure', {
-                body: {
-                  contact_id: contactId,
-                  attempted_event_type: 'sla_alert',
-                  error_code: insertError.code ?? null,
-                  error_message: insertError.message ?? null,
-                  error_details: insertError.details ?? null,
-                  original_metadata: auditMetadata,
-                },
-              });
-            } catch {
-              // ops fallback failed — nothing more to do, audit trail broken
-            }
           }
-        } catch (err) {
-          // DB write failed entirely — log for ops
-          console.error('[useSLAAlerts] conversation_events insert threw:', err);
+        } catch {
+          console.error('[useSLAAlerts] Edge Function failed');
         }
 
         // External webhook forwarding (best-effort, fire-and-forget).

@@ -3,12 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
-import { getExternalSupabase } from '@/integrations/supabase/externalClient';
 import { toast } from '@/hooks/use-toast';
-
-// Lazy: getExternalSupabase() can return null when FATOR X env vars are absent.
-// Resolve at call time so module import never crashes.
-const getClient = () => getExternalSupabase();
 
 interface _RawExecRow {
   id: string;
@@ -133,7 +128,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
   );
 
   /**
-   * Aplica a tag recomendada via FATOR X (rpc_upsert_contact). Mantém auditoria
+   * Aplica a tag recomendada via Evolution DB (rpc_upsert_contact). Mantém auditoria
    * em automation_executions.applied_tags. NÃO altera o status — o usuário ainda
    * decide aceitar/descartar a sugestão de texto separadamente.
    */
@@ -142,15 +137,12 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       const sugg = suggestions.find((s) => s.id === id);
       if (!sugg?.recommended_tag) return false;
       try {
-        const externalClient = getClient();
-        if (externalClient) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await (externalClient as SupabaseClient<any>).rpc('rpc_upsert_contact', {
-            p_remote_jid: sugg.remote_jid,
-            p_instance: sugg.instance_name,
-            p_tags: [sugg.recommended_tag],
-          });
-        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as unknown as SupabaseClient<any>).rpc('rpc_upsert_contact', {
+          p_remote_jid: sugg.remote_jid,
+          p_instance: sugg.instance_name,
+          p_tags: [sugg.recommended_tag],
+        });
         await safeClient.from('automation_executions', (q) =>
           q.update({ applied_tags: [sugg.recommended_tag] }).eq('id', id)
         );

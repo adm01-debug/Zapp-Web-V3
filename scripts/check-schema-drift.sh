@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Guard de drift de schema (Lovable -> canônico). Falha o build se houver divergência.
+# Guard de drift de schema (legado migrado -> canônico). Falha o build se houver divergência.
 # Requer DATABASE_URL apontando para o banco canônico (mesmo usado no supabase db push).
 set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -3,7 +3,6 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useConnectionsManager');
 import { supabase } from '@/integrations/supabase/client';
-import { externalSupabase, callExtRpc } from '@/integrations/supabase/externalClient';
 import { toast } from '@/hooks/use-toast';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { whatsappConnectionRepository } from '../data-access/whatsappConnectionRepository';
@@ -137,6 +136,7 @@ export function useConnectionsManager() {
         connectionId: connection.id,
         connectionName: connection.name,
         qrCode: connection.qr_code,
+        pairingCode: null,
         status: connection.status === 'connected' ? 'connected' : 'loading',
         expiresAt: null,
         attemptId: null,
@@ -149,6 +149,81 @@ export function useConnectionsManager() {
       }
     },
     [setQrCodeDialog, generateQr]
+  );
+
+  /**
+   * F6-01: gera o pairing code como alternativa ao QR Code.
+   * Usa o telefone da conexão para `GET /instance/connect/<name>?number=<phone>`.
+   */
+  const handleRequestPairingCode = useCallback(
+    async (connection: WhatsAppConnection) => {
+      if ((connection.api_type ?? 'evolution') === 'official') {
+        toast({
+          title: 'Emparelhamento não disponível',
+          description: 'Esta conexão usa WhatsApp Cloud API (oficial).',
+          variant: 'destructive',
+        });
+        return;
+      }
+      const evoName = evolutionInstanceName(connection);
+      if (!evoName) {
+        toast({
+          title: 'Aguardando sincronização',
+          description: `A instância "${connection.name}" ainda não tem um nome sincronizado da Evolution. Tente novamente em alguns segundos.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+      const phone = connection.phone_number;
+      if (!phone) {
+        toast({
+          title: 'Número ausente',
+          description: 'Esta conexão não possui número de telefone para emparelhamento.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      setQrCodeDialog((prev) => ({
+        ...prev,
+        status: 'loading',
+        qrCode: null,
+        pairingCode: null,
+        errorMessage: undefined,
+      }));
+      try {
+        const result = await whatsappConnectionService.requestPairingCode(evoName, phone);
+        const raw = result as Record<string, unknown> | null;
+        const rawCode = typeof raw?.code === 'string' ? raw.code : undefined;
+        const pairingCode =
+          typeof raw?.pairingCode === 'string' ? raw.pairingCode : rawCode;
+        if (!pairingCode) {
+          setQrCodeDialog((prev) => ({
+            ...prev,
+            status: 'error',
+            rawPayload: result,
+            errorMessage:
+              'A API Evolution não retornou um código de emparelhamento. Tente gerar o QR Code.',
+          }));
+          return;
+        }
+        setQrCodeDialog((prev) => ({
+          ...prev,
+          status: 'pending',
+          pairingCode,
+          qrCode: null,
+          rawPayload: result,
+        }));
+        toast({
+          title: 'Código de emparelhamento gerado',
+          description:
+            'No WhatsApp, toque em Aparelhos conectados → Conectar aparelho → Conectar com número de telefone e digite o código.',
+        });
+      } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        setQrCodeDialog((prev) => ({ ...prev, status: 'error', errorMessage: errMsg }));
+      }
+    },
+    [setQrCodeDialog]
   );
 
   const actions = useConnectionsActions(
@@ -229,13 +304,13 @@ export function useConnectionsManager() {
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        if (user && externalSupabase) {
-          await callExtRpc(externalSupabase, 'fn_safe_audit_log', {
+        if (user) {
+          await supabase.rpc('fn_safe_audit_log', {
             p_entity_type: 'whatsapp_connection',
             p_entity_id: connection.id,
             p_action: 'disconnect',
             p_performed_by: user.email,
-            p_details: { instance: evoName, source: 'manual_ui' },
+            p_metadata: { instance: evoName, source: 'manual_ui' },
           });
         }
       } catch (auditErr) {
@@ -326,6 +401,7 @@ export function useConnectionsManager() {
     evolutionLoading,
     ...actions,
     handleShowQrCode,
+    handleRequestPairingCode,
     handleRefreshQrCode,
     handleCopyId,
     handleDisconnect,

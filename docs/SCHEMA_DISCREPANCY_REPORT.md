@@ -1,6 +1,7 @@
 # Relatório de Discrepâncias — Schemas Zod × types.ts × Código
 
 > **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+> **Consolidação (jul/2026)**: banco externo Evolution descontinuado — dados de WhatsApp/CRM consolidados no schema `evo` do self-hosted único (`salespeople` migrou para o schema `vendas`).
 
 _Gerado em 2026-07-08 · base: banco Lovable Cloud (146 tabelas + 6 views)._
 
@@ -24,8 +25,8 @@ _Gerado em 2026-07-08 · base: banco Lovable Cloud (146 tabelas + 6 views)._
 
 | # refs | Tabela                          | Categoria                       | Ação recomendada |
 |-------:|---------------------------------|---------------------------------|------------------|
-| 19     | `evolution_messages`            | DB externo Fator X              | Manter via `USE_EXTERNAL_DB` (ver `mem://database/migration/external-fator-x-transition`). Adicionar guard em runtime. |
-| 7      | `evolution_contacts`            | DB externo Fator X / obsoleta   | Migrar `useChatMediaSending.ts` para `contacts` (chave: `phone`). |
+| 19     | `evolution_messages`            | Consolidada (schema `evo`)      | Existe no Supabase self-hosted único desde jul/2026 (antes: "DB externo Evolution"). Sem ação. |
+| 7      | `evolution_contacts`            | Consolidada (schema `evo`) / uso a migrar | Existe no self-hosted único desde jul/2026; migrar `useChatMediaSending.ts` para `contacts` (chave: `phone`) se aplicável. |
 | 4      | `automation_executions`         | Nunca criada                    | Criar migration OU remover UI de logs. |
 | 4      | `contact_emails`                | Normalizada mas não migrada     | Usar `contacts.email` (coluna existente). |
 | 4      | `contact_phones`                | Normalizada mas não migrada     | Usar `contacts.phone` + `contacts.phone_variants`. |
@@ -34,7 +35,7 @@ _Gerado em 2026-07-08 · base: banco Lovable Cloud (146 tabelas + 6 views)._
 | 3      | `hmac_selftest_audit`           | Nunca criada                    | Criar migration se o painel `/admin/webhook-secret-status` for mantido. |
 | 3      | `provider_message_log`          | Renomeada                       | Substituir por `dispatch_error_logs` + `messages`. |
 | 2      | `service_channels`              | Renomeada                       | Substituir por `channel_connections` (view: `channel_connections_safe`). |
-| 2      | `evolution_conversations`       | DB externo Fator X              | Manter em modo externo apenas. |
+| 2      | `evolution_conversations`       | Consolidada (schema `evo`)      | Existe no Supabase self-hosted único desde jul/2026. Sem ação. |
 | 2      | `sla_delivery_rules`            | Nunca criada                    | Consolidar em `sla_rules` + `conversation_sla`. |
 | 2      | `system_connections`, `email_drafts`, `email_revalidation_jobs`, `avatars` | Nunca criadas | Remover ou criar migration. |
 | 1 cada | `sla_history`, `sla_alert_preferences`, `sla_delivery_violations`, `outbound_delivery_audit`, `media_cache`, `stress_test_runs`, `stress_test_metrics`, `sts_troubleshooting_report`, `dev_diagnostic_logs`, `app_settings`, `email_signatures`, `whisper_files`, `team_message_reactions`, `evolution_send_idempotency`, `evolution_instances_public`, `provider_configs` | Órfãs / obsoletas | Auditoria individual — a maioria pode ser removida. |
@@ -118,4 +119,4 @@ comm -23 /tmp/used.txt /tmp/db.txt  # tabelas fantasma
 
 **Adiado (não removido nesta sessão):**
 
-- `salespeople` — vive no **DB externo Fator X** (`getExternalSupabase`), não no schema Supabase Lovable Cloud. Ainda em uso ativo via `useExternalCargos` + aba CRM 360 “Vendedores”. Remoção exige plano separado com o time de dados; permanece no relatório apenas como referência.
+- `salespeople` — vivia no **DB externo Evolution** (`getExternalSupabase`); com a consolidação de jul/2026 foi migrada para o schema `vendas` do Supabase self-hosted único. Ainda em uso ativo via `useExternalCargos` + aba CRM 360 “Vendedores”. Ajustar as referências de `getExternalSupabase` para o cliente único; permanece no relatório como referência.

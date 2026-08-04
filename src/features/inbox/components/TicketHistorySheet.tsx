@@ -4,10 +4,10 @@
  * Funde duas fontes de verdade:
  *  1. Eventos locais do `ticketStore` (status_change, assign, transfer,
  *     unassign, auto_routed) — refletem mudanças feitas pela UI nova.
- *  2. `public.conversation_events` (Lovable Cloud) — eventos persistidos
+ *  2. `public.conversation_events` (app database) — eventos persistidos
  *     pelos triggers (`log_assignment_change`, `fn_log_sla_ack_event` etc).
  *
- * Quando a RPC FATOR X estiver disponível, a fonte (1) será substituída
+ * Quando a RPC Evolution DB estiver disponível, a fonte (1) será substituída
  * pelo `evolution_audit_log` filtrado por `entity_type='conversation'`.
  */
 import { useMemo } from 'react';
@@ -51,7 +51,7 @@ interface RemoteEvent {
   performed_by?: string | null;
   metadata?: Record<string, unknown> | null;
   created_at: string;
-  // Fator X audit logs
+  // Evolution DB audit logs
   status?: string;
   error_message?: string;
 }

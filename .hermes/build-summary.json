@@ -1,0 +1,70 @@
+{
+  "js_chunks": 219,
+  "js_total_mb": 9.51,
+  "css_files": 2,
+  "css_total_kb": 283.5,
+  "build_time": "2m 11s",
+  "modules": "6329",
+  "top15": [
+    {
+      "file": "vendor-mapbox-_sjMOy2-.js",
+      "kB": 1867.7
+    },
+    {
+      "file": "index-Bs2QCbvN.js",
+      "kB": 1578.9
+    },
+    {
+      "file": "vendor-react-DILD09Uk.js",
+      "kB": 753.0
+    },
+    {
+      "file": "vendor-charts-CGkcZBho.js",
+      "kB": 470.0
+    },
+    {
+      "file": "vendor-pdf-CJXXYH1Z.js",
+      "kB": 423.7
+    },
+    {
+      "file": "ContactsRichView-BGfpcWXf.js",
+      "kB": 242.5
+    },
+    {
+      "file": "vendor-sip-7Dnjnvw_.js",
+      "kB": 225.4
+    },
+    {
+      "file": "vendor-supabase-DECvRwsC.js",
+      "kB": 215.7
+    },
+    {
+      "file": "html2canvas.esm-QH1iLAAe.js",
+      "kB": 202.4
+    },
+    {
+      "file": "vendor-radix-BS3kUqoC.js",
+      "kB": 174.0
+    },
+    {
+      "file": "SettingsView-ig2oT0df.js",
+      "kB": 169.7
+    },
+    {
+      "file": "DashboardView-B9vRYhE-.js",
+      "kB": 159.9
+    },
+    {
+      "file": "index.es-CX_IZ3jf.js",
+      "kB": 159.6
+    },
+    {
+      "file": "vendor-icons-nVmGLHfv.js",
+      "kB": 140.4
+    },
+    {
+      "file": "vendor-motion-CNIxbJfY.js",
+      "kB": 140.0
+    }
+  ]
+}

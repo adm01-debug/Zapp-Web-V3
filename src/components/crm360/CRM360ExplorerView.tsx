@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Building2, Pencil } from 'lucide-react';
-import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { CRM360StatsCards } from './CRM360StatsCards';
 import { CompanyFormDialog } from './CompanyFormDialog';
 import { ContactFormDialog } from './ContactFormDialog';
@@ -34,20 +33,6 @@ export function CRM360ExplorerView() {
   }, []);
 
   const handleSuccess = useCallback(() => setRefreshKey(k => k + 1), []);
-
-  if (!isExternalConfigured) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Card className="max-w-md">
-          <CardContent className="pt-6 text-center">
-            <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold text-lg mb-2">CRM Externo Não Configurado</h3>
-            <p className="text-muted-foreground text-sm">Configure as variáveis de ambiente para acessar os dados do CRM 360°.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="p-4 md:p-6 space-y-4 h-full flex flex-col">

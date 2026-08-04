@@ -1,7 +1,7 @@
 /**
  * Client-side query telemetry singleton.
  *
- * Aggregates structured events for every external DB call (proxy, RPC, etc.)
+ * Aggregates structured events for every DB call (RPC, direct query, etc.)
  * and exposes counters + latest snapshot in-memory. Snapshot is mirrored on
  * `window.__queryTelemetry` for ad-hoc DevTools inspection.
  *
@@ -13,8 +13,13 @@ const log = getLogger('clientTelemetry');
 
 /** Query latency classification severity. */
 export type Severity = 'ok' | 'slow' | 'very_slow' | 'timeout' | 'error';
-/** Source system for a tracked query. */
-export type QuerySource = 'externalProxy' | 'externalSupabase' | 'lovableCloud';
+/**
+ * Source system for a tracked query.
+ * 'selfHosted' identifies the app's own backend (self-hosted Supabase); the
+ * app no longer runs on a separate Lovable deployment, but 'lovableCloud' is kept
+ * as a legacy telemetry identifier so existing dashboards keep working.
+ */
+export type QuerySource = 'evolutionDB' | 'selfHosted' | 'lovableCloud';
 /** SQL operation type for a tracked query. */
 export type QueryOperation = 'select' | 'rpc' | 'insert' | 'update' | 'delete';
 

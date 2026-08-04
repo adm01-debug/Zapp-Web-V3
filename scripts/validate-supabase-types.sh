@@ -61,10 +61,10 @@ elif [ -d "supabase" ] && command -v docker &> /dev/null && docker ps &> /dev/nu
   npx supabase gen types typescript --local > "$TYPES_FILE.new"
 elif [ -n "${META_URL:-}" ] && [ -n "${META_TOKEN:-}" ]; then
   # Self-hosted (AtomicaBR): postgres-meta via gen-types-zapp.mjs
-  # (schemas public+zapp+evo; preserva a cauda Lovable do types.ts atual).
+  # (schemas public+zapp+evo; preserva a cauda legada do types.ts atual).
   echo "🔄 Generating types via postgres-meta (self-hosted)..."
   if [ ! -f "$TYPES_FILE" ]; then
-    echo "❌ Error: $TYPES_FILE not found (cannot preserve Lovable tail)."
+    echo "❌ Error: $TYPES_FILE not found (cannot preserve legacy tail)."
     exit 1
   fi
   cp "$TYPES_FILE" "$TYPES_FILE.new"

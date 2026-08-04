@@ -10,7 +10,9 @@ import {
   useLayoutEffect,
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { queryKeys } from '@/services/api/queryKeys';
+import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Lock, ChevronDown, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getLogger } from '@/lib/logger';
@@ -165,6 +167,44 @@ export const ChatMessagesArea = memo(
       const messageIds = useMemo(() => messages.map((m) => m.id), [messages]);
       useConversationReactionsRealtime(conversationId, messageIds);
 
+      // Realtime de mensagens: UPDATE e DELETE no schema 'evo' (tabela física particionada)
+      useEffect(() => {
+        if (!contactJid) return;
+        const channel = supabase
+          .channel(`chat-updates:${contactJid}`)
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'evo', table: 'evolution_messages' },
+            () => {
+              void queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() });
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: 'DELETE',
+              schema: 'evo',
+              table: 'evolution_messages',
+              filter: `remote_jid=eq.${contactJid}`,
+            },
+            (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+              const id =
+                payload.old && typeof payload.old === 'object'
+                  ? (payload.old as Record<string, unknown>).id
+                  : undefined;
+              if (id) {
+                void queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() });
+              }
+            }
+          )
+          .subscribe();
+
+        return () => {
+          channel.unsubscribe();
+          supabase.removeChannel(channel);
+        };
+      }, [contactJid, queryClient]);
+
       const SAME_GROUP_MS = 5 * 60 * 1000;
       const groupInfo = useMemo(
         () =>
@@ -264,10 +304,13 @@ export const ChatMessagesArea = memo(
         prevLengthRef.current = messages.length;
       }, [messages.length]);
 
-      const handleMessageDeleted = useCallback((id: string) => {
-        log.info('Message deleted:', id);
-        void queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() });
-      }, [queryClient]);
+      const handleMessageDeleted = useCallback(
+        (id: string) => {
+          log.info('Message deleted:', id);
+          void queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() });
+        },
+        [queryClient]
+      );
 
       const registerRef = useCallback((el: HTMLDivElement | null) => {
         if (!el) return;

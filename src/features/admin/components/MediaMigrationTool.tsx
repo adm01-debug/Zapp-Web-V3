@@ -97,7 +97,7 @@ export function MediaMigrationTool() {
 
           {running && (
             <div className="space-y-2">
-              <Progress value={30} className="h-2" />
+              <Progress value={undefined} className="h-2" />
               <p className="text-xs text-muted-foreground animate-pulse">Processando mídias...</p>
             </div>
           )}

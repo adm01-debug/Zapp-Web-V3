@@ -79,7 +79,7 @@ jobs:
       CI: 'true'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -126,6 +126,11 @@ jobs:
             --reporter=list,html,json \
             $SPECS 2>&1 | tee playwright-inbox.log
 
+      - name: Regressão de acessibilidade autenticada (axe — E02/F10-05)
+        id: run_a11y_auth
+        continue-on-error: true
+        run: bun run test:a11y --project=authenticated --reporter=list
+
       - name: Gerar resumo em Markdown
         if: always()
         run: |
@@ -145,7 +150,7 @@ jobs:
 
       - name: Upload do relatório HTML
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report-e2e-inbox
           path: playwright-report-e2e/
@@ -153,7 +158,7 @@ jobs:
 
       - name: Upload de test-results (traces, screenshots, videos)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-e2e-inbox
           path: test-results/
@@ -162,7 +167,7 @@ jobs:
 
       - name: Upload do resumo markdown
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-inbox-vps-report
           path: e2e-inbox-vps-report.md

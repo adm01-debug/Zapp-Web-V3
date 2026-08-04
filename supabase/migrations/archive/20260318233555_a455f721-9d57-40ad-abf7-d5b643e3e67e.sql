@@ -1,1 +1,0 @@
-UPDATE messages SET is_deleted = true WHERE status = 'deleted' AND is_deleted IS NOT TRUE;

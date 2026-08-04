@@ -2,13 +2,14 @@
   "version": "2.0",
   "technicalLevel": "technical",
   "preferredStyle": {
-    "verbosity": "detailed",
+    "verbosity": "minimal",
     "codeComments": true,
     "explanations": true
   },
   "domains": [
-    "typescript"
+    "typescript",
+    "react"
   ],
   "suggestedBy": "ecc-tools-repo-analysis",
-  "createdAt": "2026-07-21T23:04:49.943Z"
+  "createdAt": "2026-08-03T21:54:02.483Z"
 }

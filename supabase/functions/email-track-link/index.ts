@@ -70,12 +70,12 @@ Deno.serve(async (req) => {
       console.error('[email-track-link] Error:', error?.message ?? data?.error);
       return new Response(null, {
         status: 302,
-        headers: { Location: 'https://pronto-talk-suite.lovable.app' },
+        headers: { Location: 'https://zappweb.app.br' },
       });
     }
 
     // Validate redirect target to prevent javascript:/data: URI injection via stored URL
-    let safeLocation = 'https://pronto-talk-suite.lovable.app';
+    let safeLocation = 'https://zappweb.app.br';
     try {
       const dest = new URL(data.original_url);
       if (dest.protocol === 'https:' || dest.protocol === 'http:') {
@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
     console.error('[email-track-link] Fatal:', err);
     return new Response(null, {
       status: 302,
-      headers: { Location: 'https://pronto-talk-suite.lovable.app' },
+      headers: { Location: 'https://zappweb.app.br' },
     });
   }
 });

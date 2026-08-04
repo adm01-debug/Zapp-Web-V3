@@ -67,6 +67,7 @@ export default function SelfHostedHealthPage() {
       setRunError(err instanceof Error ? err.message : String(err));
     } finally {
       if (runIdRef.current === myRunId) setLoading(false);
+      if (runIdRef.current === myRunId) setLoading(false);
     }
   };
 

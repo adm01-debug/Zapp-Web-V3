@@ -4,6 +4,7 @@ import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 interface FailurePayload {
   contact_id: string | null;
   attempted_event_type: string; // typically 'sla_alert'
+  event_type?: string; // override for the stored event_type (defaults to attempted_event_type + '_failure')
   error_code?: string | null;
   error_message?: string | null;
   error_details?: string | null;
@@ -57,6 +58,20 @@ Deno.serve(async (req) => {
   // Service-role insert — bypasses RLS so we can ALWAYS record the failure.
   const admin = createZappAdminClient();
 
+  // Resolve profile UUID: performed_by FK references profiles.id (surrogate),
+  // NOT auth.users.id. Se o perfil não existir, usamos NULL (best-effort).
+  let performedBy: string | null = null;
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (profile) {
+    performedBy = profile.id;
+  } else {
+    console.warn('[sla-alert-log-failure] no profile found for user', user.id);
+  }
+
   const metadata = {
     failure: true,
     attempted_event_type: body.attempted_event_type,
@@ -73,9 +88,9 @@ Deno.serve(async (req) => {
     .from("conversation_events")
     .insert({
       contact_id: body.contact_id,
-      event_type: "sla_alert_failure",
+      event_type: body.event_type || `${body.attempted_event_type}_failure`,
       metadata,
-      performed_by: user.id,
+      performed_by: performedBy,
     });
 
   if (insertError) {

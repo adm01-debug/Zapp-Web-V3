@@ -1,5 +1,47 @@
 # 📜 Changelog — ZAPP WEB
 
+## [2.3.0] - 2026-08-03 — Consolidação Single-DB (FATOR X + Lovable Cloud)
+
+### Auditoria FATOR X (PR #732-#735)
+
+- **108 arquivos, −1.979 linhas**
+- Edge functions obsoletas removidas: external-db-bridge, analyze-external-db
+- Libs removidas: externalProxyBreaker.ts, externalProxyFetch.ts
+- externalProxy.ts: migrado de HTTP proxy → Supabase direto
+- useRealtimeInbox.ts: removido USE_EXTERNAL_DB (172 linhas de dead code)
+- Labels: 'FATOR X' → 'Evolution DB' em 71 arquivos
+- proxy.test.ts: reescrito para Supabase direto (21/21 passando)
+- DB: migration para fn_constraints_reference_pipeline (FATOR X → Evolution DB)
+
+### Auditoria Lovable Cloud (PR #736)
+
+- **39 arquivos, +147/−108 linhas**
+- UI labels: 'Lovable Cloud Proxy' → 'App Backend'
+- Docs: SELF-HOSTED-DATABASE-GUIDE reescrito para single-DB
+- ENV_SETUP, FUNCTIONALITIES, runbooks, TECHNICAL_DOCUMENTATION atualizados
+- DB: migration com wrapper ops.check_schema_parity()
+
+### Limpeza residual
+
+- eslint.config.js: comentário atualizado
+- Variáveis fatorX renomeadas → evoConn
+- scripts/check-fe-be-sync.sh: diretório fatorx-migrations removido
+- FATOR_X_URL e FATOR_X_SERVICE_ROLE_KEY eliminados
+
+### Segurança
+
+- external-db-proxy: auth mantida (requireUser)
+- LOVABLE_API_KEY preservado (gateway IA ativo)
+- CORS lovableproject.com preservado (preview environments)
+
+### Correções pós-auditoria
+
+- 3 testes quebrados por mock createLogger faltando (externalProxy, resilienceSimulation, v237Fallbacks)
+- 2 edge functions com deno check corrigido (evolution-sender, log-idempotency-miss)
+- 4 referências residuais FATOR X removidas (AdminExternalDbExplorer, catalog, connection-health-check, evolution-sender)
+
+---
+
 ## [2.2.0] - 2026-07-31 — Lint Cleanup Total (0 erros / 0 warnings) + Design Tokens
 
 ### 🟢 Qualidade de Código
@@ -127,3 +169,13 @@
 ### Corrigido
 - Importação ausente de `web-vitals`.
 - Tipagem inconsistente em formulários de catálogo e auth.
+
+---
+
+## ⚠️ Nota Histórica — Consolidação do Backend (Julho de 2026)
+
+> Esta seção **não é uma nova versão**: é uma nota para contextualizar entradas históricas deste changelog (ex.: o fix de circuit breaker da [2.2.0], que citava `externalProxy.ts` e `external-db-proxy`).
+
+- A arquitetura de **backend duplo** (Supabase principal + banco externo "FATOR X", acessado via `externalProxy.ts` → `external-db-proxy` / `external-db-bridge`) foi **descontinuada e consolidada** em um único Supabase self-hosted (schemas `zapp`/`evo`).
+- `USE_EXTERNAL_DB` agora é `false`; as Edge Functions `external-db-bridge` e `analyze-external-db` foram removidas (541 linhas de código morto); as env vars `FATOR_X_URL`/`FATOR_X_SERVICE_ROLE_KEY` foram eliminadas; todas as menções a "FATOR X" foram removidas do código-fonte.
+- As entradas históricas sobre os circuit breakers do `externalProxy` permanecem como registro do incidente, mas **não refletem mais a arquitetura atual**.

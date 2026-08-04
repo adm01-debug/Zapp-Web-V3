@@ -19,7 +19,7 @@ Apenas estes tipos de arquivo pertencem à raiz:
 | Convenções de código | `CODE_REVIEW.md`, `TESTING_CONVENTION.md`, `LEVANTA_FUNCIONALIDADES.md`, `INFRA.md` |
 | Configs de ferramentas | `*.json`, `*.config.*`, `.*rc*`, `Dockerfile`, `docker-compose.yml`, `nginx*.conf` |
 | Manifesto de pacotes | `package.json`, `bun.lock`, `tsconfig*`, `deno.json`, `components.json`, `vercel.json` |
-| Workflows e agentes | `.github/`, `.lovable/`, `.agents/` |
+| Workflows e agentes | `.github/`, `.lovable/` |
 | Código-fonte | `src/`, `supabase/`, `public/`, `scripts/` |
 
 ---

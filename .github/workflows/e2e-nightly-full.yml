@@ -1,0 +1,105 @@
+name: E2E Nightly Full (VPS)
+
+# E02/F10-02 — os 4 workflows `e2e-*-vps.yml` selecionam specs por listas
+# `SPECS="..."` hardcoded; um spec novo em `e2e/` nunca é coletado.
+# Este job roda a suíte INTEIRA de `playwright.e2e.config.ts` sem filtro,
+# garantindo que nenhum spec de `e2e/` fique órfão de execução.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'URL alvo da VPS'
+        required: false
+        default: 'https://zapp.atomicabr.com.br'
+      runner:
+        description: 'Runner alvo'
+        required: false
+        default: 'self-hosted'
+        type: choice
+        options:
+          - self-hosted
+          - ubuntu-latest
+  schedule:
+    # Diário 03:00 BRT (06:00 UTC) — fora da janela dos e2e-*-vps (09:00 UTC)
+    - cron: '0 6 * * *'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  spec-coverage:
+    name: Cobertura de specs — nenhum spec órfão
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Verificar que todo spec de e2e/ é executado por algum workflow
+        run: node scripts/check-e2e-spec-coverage.mjs
+
+  e2e-full:
+    name: Playwright — suíte completa de e2e/ contra VPS
+    if: github.event_name != 'pull_request'
+    runs-on: ${{ github.event.inputs.runner == 'ubuntu-latest' && 'ubuntu-latest' || fromJSON('["self-hosted","vps-zapp","playwright"]') }}
+    timeout-minutes: 120
+    env:
+      E2E_BASE_URL: ${{ github.event.inputs.base_url || 'https://zapp.atomicabr.com.br' }}
+      E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+      E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      CI: 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Instalar dependências
+        run: bun install --frozen-lockfile
+
+      - name: Instalar Chromium do Playwright
+        run: bunx playwright install --with-deps chromium
+
+      - name: Validar credenciais
+        run: |
+          if [ -z "$E2E_USER_EMAIL" ] || [ -z "$E2E_USER_PASSWORD" ]; then
+            echo "::error::E2E_USER_EMAIL / E2E_USER_PASSWORD não configurados nos secrets."
+            exit 1
+          fi
+          echo "Alvo: $E2E_BASE_URL"
+
+      - name: Rodar suíte completa (sem filtro de specs)
+        id: run_full
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          bun run test:e2e:full --reporter=list,html,json 2>&1 | tee playwright-full.log
+
+      - name: Resumo
+        if: always()
+        run: |
+          {
+            echo "# E2E Nightly Full — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo ""
+            echo "- Alvo: \`$E2E_BASE_URL\`"
+            echo "- Resultado: \`${{ steps.run_full.outcome }}\`"
+            echo ""
+            echo '```'
+            tail -n 150 playwright-full.log 2>/dev/null || echo "(sem log)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload do relatório
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: playwright-report-full
+          path: playwright-report/
+          retention-days: 7

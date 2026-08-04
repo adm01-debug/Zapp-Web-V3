@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { queryExternalProxy } from '@/lib/externalProxy';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 import { toast } from 'sonner';
@@ -57,78 +56,63 @@ export function useAdminInboxSync(): AdminInboxSyncState {
     queryKey: INBOX_SYNC_KEY,
     queryFn: async () => {
       const bucketResults = await Promise.all(
-        BUCKET_CONFIGS.map((b) =>
-          queryExternalProxy({
-            table: 'evolution_messages',
-            select: 'id',
-            filters: [
-              { column: 'instance_name', operator: 'eq', value: INSTANCE },
-              {
-                column: 'created_at',
-                operator: 'gte',
-                value: new Date(Date.now() - b.sinceMs).toISOString(),
-              },
-            ],
-            limit: 1,
-            countMode: 'exact',
-          })
-        )
+        BUCKET_CONFIGS.map(async (b) => {
+          const { data, count, error } = await supabase
+            .from('evolution_messages')
+            .select('id', { count: 'exact' })
+            .eq('instance_name', INSTANCE)
+            .gte('created_at', new Date(Date.now() - b.sinceMs).toISOString())
+            .limit(1);
+          if (error) throw new Error(error.message);
+          return { data: data ?? [], count: count ?? 0 };
+        })
       );
 
       const [lastInbound, lastOutbound] = await Promise.all([
-        queryExternalProxy<{ created_at: string }>({
-          table: 'evolution_messages',
-          select: 'created_at',
-          filters: [
-            { column: 'instance_name', operator: 'eq', value: INSTANCE },
-            { column: 'from_me', operator: 'eq', value: false },
-          ],
-          order: { column: 'created_at', ascending: false },
-          limit: 1,
-        }),
-        queryExternalProxy<{ created_at: string }>({
-          table: 'evolution_messages',
-          select: 'created_at',
-          filters: [
-            { column: 'instance_name', operator: 'eq', value: INSTANCE },
-            { column: 'from_me', operator: 'eq', value: true },
-          ],
-          order: { column: 'created_at', ascending: false },
-          limit: 1,
-        }),
+        supabase
+          .from('evolution_messages')
+          .select('created_at')
+          .eq('instance_name', INSTANCE)
+          .eq('from_me', false)
+          .order('created_at', { ascending: false })
+          .limit(1),
+        supabase
+          .from('evolution_messages')
+          .select('created_at')
+          .eq('instance_name', INSTANCE)
+          .eq('from_me', true)
+          .order('created_at', { ascending: false })
+          .limit(1),
       ]);
+      if (lastInbound.error) throw new Error(lastInbound.error.message);
+      if (lastOutbound.error) throw new Error(lastOutbound.error.message);
 
       const since24h = new Date(Date.now() - 24 * 60 * 60_000).toISOString();
-      const sample = await queryExternalProxy<{
-        remote_jid: string;
-        push_name: string | null;
-        created_at: string;
-      }>({
-        table: 'evolution_messages',
-        select: 'remote_jid,push_name,created_at',
-        filters: [
-          { column: 'instance_name', operator: 'eq', value: INSTANCE },
-          { column: 'created_at', operator: 'gte', value: since24h },
-        ],
-        order: { column: 'created_at', ascending: false },
-        limit: 500,
-      });
+      const sample = await supabase
+        .from('evolution_messages')
+        .select('remote_jid,push_name,created_at')
+        .eq('instance_name', INSTANCE)
+        .gte('created_at', since24h)
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (sample.error) throw new Error(sample.error.message);
 
       const grouped = new Map<string, ConversationCount>();
-      for (const row of sample.data) {
-        const cur = grouped.get(row.remote_jid);
+      for (const row of sample.data ?? []) {
+        const jid = row.remote_jid ?? '';
+        const cur = grouped.get(jid);
         if (cur) {
           cur.count += 1;
-          if (row.created_at > cur.lastAt) {
+          if (row.created_at && row.created_at > cur.lastAt) {
             cur.lastAt = row.created_at;
             if (row.push_name) cur.push_name = row.push_name;
           }
         } else {
-          grouped.set(row.remote_jid, {
-            remote_jid: row.remote_jid,
+          grouped.set(jid, {
+            remote_jid: jid,
             push_name: row.push_name,
             count: 1,
-            lastAt: row.created_at,
+            lastAt: row.created_at ?? '',
           });
         }
       }
@@ -157,8 +141,8 @@ export function useAdminInboxSync(): AdminInboxSyncState {
       return {
         buckets,
         lastEvents: {
-          inboundAt: lastInbound.data[0]?.created_at ?? null,
-          outboundAt: lastOutbound.data[0]?.created_at ?? null,
+          inboundAt: lastInbound.data?.[0]?.created_at ?? null,
+          outboundAt: lastOutbound.data?.[0]?.created_at ?? null,
         } as InboundOutboundLast,
         topConversations,
         failed: (failedRes.data ?? []) as FailedRow[],

@@ -9,7 +9,7 @@ Este documento descreve o processo de deploy e configuração do ZAPP-WEB.
 
 - [Ambientes](#ambientes)
 - [Pré-requisitos](#pré-requisitos)
-- [Deploy Automático (Lovable)](#deploy-automático-lovable)
+- [Deploy (Vercel)](#deploy-vercel)
 - [Deploy Manual](#deploy-manual)
 - [Configuração do Supabase](#configuração-do-supabase)
 - [Edge Functions](#edge-functions)
@@ -24,7 +24,7 @@ Este documento descreve o processo de deploy e configuração do ZAPP-WEB.
 
 | Ambiente | URL | Branch |
 |----------|-----|--------|
-| **Produção** | pronto-talk-suite.lovable.app | `main` |
+| **Produção** | Vercel (vercel.com) | `main` |
 | **Staging** | (interno) | `develop` |
 | **Local** | localhost:5173 | qualquer |
 
@@ -41,18 +41,18 @@ Este documento descreve o processo de deploy e configuração do ZAPP-WEB.
 ### Acessos necessários
 - GitHub (repo privado)
 - Supabase Dashboard
-- Lovable Dashboard
+- Vercel Dashboard
 - Evolution API (WhatsApp)
 
 ---
 
-## Deploy Automático (Lovable)
+## Deploy (Vercel)
 
-O deploy é **automático** via Lovable:
+O deploy é **automático** via Vercel (conectado ao GitHub):
 
-1. **Commit na main** → Rebuild automático
-2. **Edge Functions** → Deployadas automaticamente
-3. **Assets** → CDN global
+1. **Push/merge na main** → Build e deploy automáticos
+2. **Edge Functions** → Deploy separado via `supabase functions deploy` no self-hosted
+3. **Assets** → CDN global da Vercel
 
 ### Tempo médio de deploy
 - Build: ~2 minutos
@@ -80,22 +80,25 @@ bun run preview
 
 ### 2. Deploy de Edge Functions
 
-```bash
-# Deploy de todas as funções
-supabase functions deploy --project-ref allrjhkpuscmgbsnmjlv
+> **Self-hosted**: requer `supabase/config.toml` com a URL do projeto ou `SUPABASE_ACCESS_TOKEN`.
+> O `--project-ref` NÃO é usado em self-hosted — a CLI resolve pelo config local.
 
-# Deploy de função específica
-supabase functions deploy evolution-api --project-ref allrjhkpuscmgbsnmjlv
+```bash
+# Deploy de todas as funções (self-hosted)
+supabase functions deploy
+
+# Deploy de função específica (self-hosted)
+supabase functions deploy evolution-api
 ```
 
 ### 3. Aplicar migrations
 
 ```bash
-# Aplicar migrations pendentes
-supabase db push --project-ref allrjhkpuscmgbsnmjlv
+# Aplicar migrations pendentes (self-hosted)
+supabase db push
 
 # Ver status das migrations
-supabase migration list --project-ref allrjhkpuscmgbsnmjlv
+supabase migration list
 ```
 
 ---
@@ -202,7 +205,7 @@ GMAIL_CLIENT_SECRET=xxx
 
 ## Domínio Customizado
 
-### Via Lovable
+### Via Vercel
 1. Dashboard > Settings > Domains
 2. Adicionar domínio customizado
 3. Configurar DNS (CNAME ou A record)
@@ -210,17 +213,17 @@ GMAIL_CLIENT_SECRET=xxx
 
 ### DNS Records
 ```
-CNAME: app.seudominio.com.br → pronto-talk-suite.lovable.app
+CNAME: app.seudominio.com.br → cname.vercel-dns.com
 ```
 
 ---
 
 ## Rollback
 
-### Via Lovable
+### Via Vercel
 1. Dashboard > Deployments
 2. Selecionar deploy anterior
-3. Clicar em "Rollback"
+3. Clicar em "Redeploy"
 
 ### Via Git
 ```bash
@@ -257,7 +260,7 @@ supabase migration list
 - Release tracking
 
 ### Uptime
-- Lovable: Built-in monitoring
+- Vercel: Built-in monitoring + Sentry
 - Edge Functions: Supabase monitoring
 
 ### Alertas

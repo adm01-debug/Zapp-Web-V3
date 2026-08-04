@@ -78,6 +78,46 @@ export interface MessageQueueController {
 
 const MAX_CONCURRENT_SENDS = 5;
 
+// F4-10: cap do dedupe de entregas processadas — o Set crescia sem limite
+// (memory leak). Com o cap, a entrada mais antiga é evictada (Set preserva
+// ordem de inserção) e o dedupe cobre as últimas 1000 entregas.
+const MAX_PROCESSED_DELIVERIES = 1000;
+
+/**
+ * F4-13: classifica erro de envio como retryable (transitório) ou permanente.
+ * - HTTP 5xx / 408 (request timeout) / 429 (rate limit) → retryable — backoff faz sentido.
+ * - HTTP 4xx (exceto 408/429) → permanente — retry não muda o resultado (ex.: 400/401/403/404).
+ * - Sem status conhecido → fallback por mensagem/código (rede/timeout/abort) e,
+ *   se nada casar, retryable (preserva o comportamento legado do queue).
+ */
+function isRetryableSendError(error: unknown): boolean {
+  const status =
+    typeof (error as { status?: unknown } | null)?.status === 'number'
+      ? ((error as { status: number }).status)
+      : undefined;
+
+  if (status !== undefined) {
+    if (status >= 500) return true; // 5xx — servidor instável, vale tentar de novo
+    if (status === 408 || status === 429) return true; // timeout / rate-limit
+    if (status >= 400 && status < 500) return false; // 4xx — erro permanente
+  }
+
+  const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
+  const code = ((error as { code?: string } | null)?.code ?? '').toUpperCase();
+  return (
+    msg.includes('network') ||
+    msg.includes('timeout') ||
+    msg.includes('timed out') ||
+    msg.includes('aborted') ||
+    msg.includes('fetch') ||
+    code === 'ECONNREFUSED' ||
+    code === 'ECONNRESET' ||
+    code === 'ETIMEDOUT' ||
+    code === 'ENOTFOUND' ||
+    code === 'ENETUNREACH'
+  );
+}
+
 /** Manages an ordered outbound message queue with exponential back-off retry, per-conversation concurrency cap, localStorage persistence, and send-metric collection. */
 export function useMessageQueue(
   processMessage: (item: QueueItem) => Promise<void>,
@@ -124,7 +164,14 @@ export function useMessageQueue(
 
   // Persistência: Carregar fila ao iniciar
   useEffect(() => {
-    const savedQueue = localStorage.getItem(QUEUE_STORAGE_KEY);
+    // F4-11: getItem pode lançar (SecurityError em modo privado/bloqueado) —
+    // nunca derrubar o app por indisponibilidade do localStorage.
+    let savedQueue: string | null = null;
+    try {
+      savedQueue = localStorage.getItem(QUEUE_STORAGE_KEY);
+    } catch (e) {
+      log.warn('localStorage unavailable (getItem) — queue restore skipped', e);
+    }
     if (savedQueue) {
       try {
         const parsed = JSON.parse(savedQueue) as QueueItem[];
@@ -183,7 +230,7 @@ export function useMessageQueue(
   }, [queue]);
 
   // Listen for storage-quota-exceeded events (emitted above) and show a toast
-  // so users know the outbound queue was not persisted.  Without this listener
+  // so users know the outbound queue was not persisted. Without this listener
   // the dispatchEvent above is a silent no-op.
   useEffect(() => {
     const onQuotaExceeded = () => {
@@ -196,6 +243,29 @@ export function useMessageQueue(
     };
     window.addEventListener('zapp:storage-quota-exceeded', onQuotaExceeded);
     return () => window.removeEventListener('zapp:storage-quota-exceeded', onQuotaExceeded);
+  }, []);
+
+  // F4-12: beforeunload + pagehide — garante que sends em voo ('sending')
+  // sejam persistidos como 'pending' ANTES do unload/bfcache.
+  useEffect(() => {
+    const persistBeforeUnload = () => {
+      try {
+        const queueToSave = queueRef.current.map((item) => ({
+          ...item,
+          status: item.status === 'sending' ? ('pending' as const) : item.status,
+          attachments: undefined,
+        }));
+        localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queueToSave));
+      } catch (e) {
+        log.warn('Failed to persist message queue on beforeunload', e);
+      }
+    };
+    window.addEventListener('beforeunload', persistBeforeUnload);
+    window.addEventListener('pagehide', persistBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', persistBeforeUnload);
+      window.removeEventListener('pagehide', persistBeforeUnload);
+    };
   }, []);
 
   // Espelho síncrono da fila: permite notificar onProgress sem efeitos
@@ -334,11 +404,20 @@ export function useMessageQueue(
               });
             }
 
-            const shouldAutoRetry = itemToProcess.retryCount < config.maxRetries;
+            // F4-13: classifica o erro — 5xx/timeout/rede são retryable; 4xx é
+            // permanente e não deve gastar tentativas com backoff inútil.
+            const retryable = isRetryableSendError(err);
+            const shouldAutoRetry = retryable && itemToProcess.retryCount < config.maxRetries;
             const delay = shouldAutoRetry
               ? calculateNextRetryDelay(itemToProcess.retryCount, config)
               : 0;
             const nextRetryAt = shouldAutoRetry ? Date.now() + delay : undefined;
+
+            if (!retryable) {
+              log.info(
+                `[QUEUE_ERROR] permanent error (non-retryable) id=${itemToProcess.id} contact=${contactId} err=${errorMsg}`
+              );
+            }
 
             setQueue((q) =>
               q.map((i) =>
@@ -363,9 +442,10 @@ export function useMessageQueue(
 
             if (!shouldAutoRetry) {
               toast({
-                title: 'Falha definitiva',
-                description:
-                  'Atingido limite de tentativas. Você pode tentar manualmente ou remover o item.',
+                title: retryable ? 'Falha definitiva' : 'Falha permanente',
+                description: retryable
+                  ? 'Atingido limite de tentativas. Você pode tentar manualmente ou remover o item.'
+                  : 'O servidor recusou o envio (erro permanente). Verifique os dados e tente novamente.',
                 variant: 'destructive',
               });
               // Persistir no banco para rastreamento e possivel reprocessamento via DLQ
@@ -381,7 +461,26 @@ export function useMessageQueue(
                   max_retries: config.maxRetries,
                   last_attempt_at: new Date().toISOString(),
                 })
-                .then(() => log.debug('Failed message persisted to zapp.failed_messages'))
+                // F4-14: .select() + tratamento estruturado — sem .select() o
+                // erro do PostgREST (ex.: RLS bloqueando o insert) era engolido
+                // e a falha ficava silenciosa (zapp.failed_messages vazia).
+                .select()
+                .then(
+                  ({
+                    error,
+                  }: {
+                    error: { message: string; code?: string | null } | null;
+                  }) => {
+                    if (error) {
+                      log.warn('[failed_messages] insert failed', {
+                        code: error.code ?? null,
+                        message: error.message,
+                      });
+                    } else {
+                      log.debug('Failed message persisted to zapp.failed_messages');
+                    }
+                  }
+                )
                 .catch((e: unknown) => log.warn('Failed to persist failed_message to DB', e));
             } else {
               log.info(`Scheduled retry for ${itemToProcess.id} in ${Math.round(delay / 1000)}s`);
@@ -463,11 +562,18 @@ export function useMessageQueue(
   const reconcileWithDelivery = useCallback(
     (contactId: string, externalId: string, status: 'confirmed' | 'failed') => {
       const dedupeKey = `${contactId}:${externalId}:${status}`;
-      if (processedDeliveriesRef.current.has(dedupeKey)) {
+      const processed = processedDeliveriesRef.current;
+      if (processed.has(dedupeKey)) {
         log.debug('[dedup] Already processed delivery event', { contactId, externalId, status });
         return;
       }
-      processedDeliveriesRef.current.add(dedupeKey);
+      // F4-10: cap do dedupe — evicta a entrada mais antiga (Set preserva
+      // ordem de inserção) para o Set não crescer sem limite.
+      if (processed.size >= MAX_PROCESSED_DELIVERIES) {
+        const oldest = processed.values().next().value;
+        if (oldest !== undefined) processed.delete(oldest);
+      }
+      processed.add(dedupeKey);
 
       if (status === 'confirmed') {
         const confirmedItem = queueRef.current.find(

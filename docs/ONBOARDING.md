@@ -18,8 +18,8 @@ bun run dev
 - **Frontend**: React + Vite + shadcn/ui.
 - **Backend**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`.
   - Veja [docs/SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md) para detalhes.
-  - **FATOR X**: Domínio de WhatsApp/CRM (via `externalClient`).
-- **Comunicação**: Sempre prefira RPCs (`SECURITY DEFINER`) para o FATOR X.
+  - Domínio de WhatsApp/CRM (mensagens, contatos, conversas) vive no schema `evo` do **mesmo** Supabase — desde a consolidação de jul/2026 não existe mais banco externo "Evolution DB".
+- **Comunicação**: Sempre prefira RPCs (`SECURITY DEFINER`) no Supabase self-hosted.
 
 ## 🧪 Qualidade de Código
 - **Tipagem**: Mantenha `strict` e evite `any`.

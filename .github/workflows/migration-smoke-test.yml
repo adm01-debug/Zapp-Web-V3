@@ -4,7 +4,7 @@ name: Migration Smoke Test
 # Captura erros de sintaxe antes de chegarem em producao.
 #
 # ARQUITETURA ATUAL (2026-07-30):
-#   O schema foi migrado do Lovable Cloud (Supabase Cloud) para self-hosted
+#   O schema foi migrado do Supabase Cloud (descontinuado) para self-hosted
 #   via dump/restore em 2026-07-16. As migrations ativas sao INCREMENTAIS
 #   (alaram objetos que ja existem em prod). O baseline (20260730000000) e
 #   puramente documental. Por isso, apply-from-scratch nao e possivel.
@@ -68,7 +68,7 @@ jobs:
         run: echo "Postgres service started"
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
           fetch-depth: 0

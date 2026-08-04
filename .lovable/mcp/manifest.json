@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "sdk_version": "0.24.0",
+  "sdk_version": "0.26.1",
   "path": "/mcp",
   "auth": {
     "type": "oauth",
-    "issuer": "https://uqysyzndkfiwfztbqvsl.supabase.co/auth/v1",
+    "issuer": "https://supabase.atomicabr.com.br/auth/v1",
     "accepted_audiences": [
       "authenticated"
     ]
@@ -19,7 +19,7 @@
       {
         "name": "whoami",
         "title": "Quem sou eu",
-        "description": "Retorna informações do usuário autenticado que está chamando o MCP (ID, e-mail, client ID).",
+        "description": "Retorna informa\u00e7\u00f5es do usu\u00e1rio autenticado que est\u00e1 chamando o MCP (ID, e-mail, client ID).",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -34,8 +34,8 @@
       },
       {
         "name": "list_whatsapp_connections",
-        "title": "Listar conexões WhatsApp",
-        "description": "Lista as conexões WhatsApp (instâncias) visíveis para o usuário autenticado, respeitando RLS.",
+        "title": "Listar conex\u00f5es WhatsApp",
+        "description": "Lista as conex\u00f5es WhatsApp (inst\u00e2ncias) vis\u00edveis para o usu\u00e1rio autenticado, respeitando RLS.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -46,7 +46,7 @@
           "type": "object",
           "properties": {
             "limit": {
-              "description": "Máximo de conexões a retornar (padrão 20).",
+              "description": "M\u00e1ximo de conex\u00f5es a retornar (padr\u00e3o 20).",
               "type": "integer",
               "minimum": 1,
               "maximum": 100
@@ -58,7 +58,7 @@
       {
         "name": "search_contacts",
         "title": "Buscar contatos",
-        "description": "Busca contatos por nome ou telefone (LIKE case-insensitive). Respeita RLS do usuário.",
+        "description": "Busca contatos por nome ou telefone (LIKE case-insensitive). Respeita RLS do usu\u00e1rio.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -75,7 +75,7 @@
               "description": "Termo de busca (nome ou telefone)."
             },
             "limit": {
-              "description": "Máximo de resultados (padrão 20).",
+              "description": "M\u00e1ximo de resultados (padr\u00e3o 20).",
               "type": "integer",
               "minimum": 1,
               "maximum": 50
@@ -88,5 +88,6 @@
         "outputSchema": null
       }
     ]
-  }
+  },
+  "_note": "npm package version (Deno edge function uses @0.20.0 \u2014 independent ecosystems)"
 }

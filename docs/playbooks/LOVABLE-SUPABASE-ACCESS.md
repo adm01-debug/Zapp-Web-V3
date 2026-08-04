@@ -1,6 +1,8 @@
 # Playbook: Acessando Banco de Dados Supabase de Projetos Lovable
 
 > **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [../SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+>
+> **Atualização jul/2026**: acesso a banco externo (FATOR X) encerrado — consolidação em um único Supabase self-hosted (schemas `zapp`/`evo`). As linhas abaixo que citam o FATOR X cloud ficam como referência histórica.
 
 
 > **Autor**: Claude (sessão 29-30/04/2026 com Joaquim / Promo Brindes)
@@ -16,7 +18,7 @@
 - Credenciais ficam no **código-fonte** (repo GitHub): `.env.example`, `supabase/config.toml`, testes com `eyJ*`
 - A Lovable **regenera** `client.ts` a cada build — editar via GitHub é inútil
 - Tela branca = integração Supabase desconectada no painel Lovable
-- O ZAPP Web usa **dois** Supabase: Lovable (`allrjhkpuscmgbsnmjlv`) + FATOR X (`tdprnylgyrogbbhgdoik`)
+- O ZAPP Web usa **um único** Supabase Self-Hosted: `supabase.atomicabr.com.br` (schemas `zapp`/`evo`). O Evolution DB cloud (`tdprnylgyrogbbhgdoik`) foi **descontinuado em jul/2026** (dados consolidados no self-hosted)
 
 ---
 
@@ -40,7 +42,7 @@
 | Projeto | Ref | Anon Key | Acesso PAT |
 |---|---|---|---|
 | ZAPP Web (Lovable) | allrjhkpuscmgbsnmjlv | eyJ...HA74 (do test file) | ❌ |
-| FATOR X | tdprnylgyrogbbhgdoik | eyJ...PZMSI | ✅ |
+| Evolution DB — ⚠️ descontinuado (jul/2026) | tdprnylgyrogbbhgdoik | eyJ...PZMSI | — |
 | time_promo | hncgwjbzdajfdztqgefe | via PAT | ✅ |
 | bancodadosclientes | pgxfvjmuubtbowutlide | via PAT | ✅ |
 | supabase-fuchsia-kite | doufsxqlfjyuvxuezpln | via PAT | ✅ |
@@ -52,7 +54,7 @@
 1. **NUNCA editar `src/integrations/supabase/client.ts`** — Lovable regenera
 2. **Tela branca → problema no painel Lovable**, não no código
 3. **Headless browsers mostram branco mesmo quando app funciona** — testar no browser real
-4. **ZAPP Web tem 2 Supabase** — UI usa Lovable, Evolution usa FATOR X
+4. **ZAPP Web usa 1 Supabase** (desde jul/2026) — tudo no self-hosted `supabase.atomicabr.com.br` (schemas `zapp`/`evo`); Evolution DB cloud descontinuado
 5. **`VITE_SUPABASE_PUBLISHABLE_KEY` ≠ `VITE_SUPABASE_ANON_KEY`** — Lovable usa nome diferente
 
 *Playbook completo em /workspace/notes/playbooks/ na VPS*

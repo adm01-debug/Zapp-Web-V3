@@ -24,7 +24,7 @@ jobs:
     name: Contract Tests (Deno)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
@@ -32,7 +32,7 @@ jobs:
           deno-version: v2.x
 
       - name: Cache Deno dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.deno
           key: deno-${{ runner.os }}-${{ hashFiles('deno.json') }}
@@ -41,9 +41,23 @@ jobs:
 
       - name: Run contract tests
         run: |
-          deno test --allow-net --allow-env --allow-read \
-            supabase/functions/**/*.test.ts 2>/dev/null || \
-          echo 'No contract tests found — skipping'
+          set -euo pipefail
+          TEST_FILES=$(find supabase/functions -name '*.test.ts' -type f 2>/dev/null || true)
+          if [ -z "$TEST_FILES" ]; then
+            echo "::warning::No contract test files found — skipping"
+            exit 0
+          fi
+          COUNT=$(echo "$TEST_FILES" | wc -l)
+          echo "Found $COUNT contract test files"
+          FAILED=0
+          echo "$TEST_FILES" | while IFS= read -r f; do
+            echo "::group::Testing $f"
+            deno test --allow-net --allow-env --allow-read "$f" || {
+              echo "::error title=Contract test failed::$f"
+              exit 1
+            }
+            echo "::endgroup::"
+          done
         env:
           SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}

@@ -32,7 +32,7 @@ Pretendido: `zapp` = app ZAPP Web · `evo` = Evolution API · `public` = neutro.
 3. `zapp` espelha o `evo` (254 views) e concentra lógica de pipeline Evolution em `zapp.fn_*`.
 4. Tabela real "perdida" no `public` (`_wal_slot_guard_events`) + 9 extensões em `public`.
 5. 91% dos índices nunca usados (1.987 de 2.176).
-6. Drift de migrations: 52 registradas × 944 arquivos; 4 versões malformadas.
+6. Drift de migrations: 88 registradas × 130 arquivos (limpos em 2026-08-03, de 944 para 130); 4 versões malformadas corrigidas.
 7. Fachada auto-mantida por cron `ensure-evolution-backcompat-views` (6/6h).
 
 ---
@@ -106,7 +106,7 @@ Pretendido: `zapp` = app ZAPP Web · `evo` = Evolution API · `public` = neutro.
 ## 🗄️ ONDA 2 — TABELAS, TIPOS, CONSTRAINTS, RLS
 16. **Baseline squash das migrations** (52×944; exige etapa 1). *Aceite:* diff zero. `E:G·R:🔴`
 17. **Corrigir versões malformadas + gate de CI.** `E:P·R:🟡`
-18. **Unificar as duas árvores** (`supabase/migrations` vs `infra/migrations`). `E:M·R:🟡`
+18. **Unificar as duas árvores** (`supabase/migrations` vs `infra/migrations`). ✅ **CONCLUÍDO (2026-08-04, PR #767).** `E:M·R:🟢`
 19. **`DOMAIN jid` (JID×UUID)** + branded types. *Aceite:* 30 dias sem `22P02`. `E:G·R:🟡`
 20. **Blindar 18 tabelas RLS-on-sem-policy** (`zapp._lgpd_payload` auditar PII). `E:M·R:🟡`
 21. **Auditoria de FKs** nas quentes. `E:M·R:🟡`

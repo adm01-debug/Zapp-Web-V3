@@ -5,22 +5,26 @@
  *   isEndpointUnavailable — HTTP status codes and message patterns
  *   withV237Fallback      — primary success, payload not-found, thrown 404/non-404
  *
- * externalClient and logger are mocked so no real Supabase is touched.
+ * The Supabase client and logger are mocked so no real Supabase is touched.
  * fallbackFindChats / fallbackFindContacts / fallbackFetchProfile call
- * the external client — they are covered via mockRpc stubs.
+ * `supabase.rpc` directly — covered via the mockRpc stub.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ── Hoisted mocks ─────────────────────────────────────────────────────────────
 const mockRpc = vi.hoisted(() => vi.fn());
 
-vi.mock('@/integrations/supabase/externalClient', () => ({
-  isExternalConfigured: true,
-  externalSupabase: { rpc: mockRpc },
+// Direct Supabase pattern: mock the main client. `externalClient` is a pure shim
+// that re-exports `supabase` from `@/integrations/supabase/client`, so the
+// fallback RPCs resolve to this mock either way.
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: { rpc: mockRpc },
 }));
 
 vi.mock('@/lib/logger', () => ({
   getLogger: () => ({ warn: vi.fn(), debug: vi.fn(), error: vi.fn(), info: vi.fn() }),
+  // externalClient shim calls createLogger at module scope — provide it too
+  createLogger: () => ({ warn: vi.fn(), debug: vi.fn(), error: vi.fn(), info: vi.fn() }),
 }));
 
 // ── Import SUT AFTER mocks ────────────────────────────────────────────────────

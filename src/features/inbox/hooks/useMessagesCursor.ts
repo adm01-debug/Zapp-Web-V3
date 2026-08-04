@@ -1,5 +1,5 @@
 /**
- * useMessagesCursor — paginacao incremental de mensagens (FATOR X)
+ * useMessagesCursor — paginacao incremental de mensagens (Evolution DB)
  *
  * Substitui o "fetch loop ate o fim" do `useMessages` por carregamento
  * cursor-based. A primeira pagina traz `pageSize` mensagens mais recentes;
@@ -20,7 +20,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useMountedRef } from '@/hooks/useMountedRef';
-import { externalSupabase, extRpcBuilder } from '@/integrations/supabase/externalClient';
+import { supabase } from '@/integrations/supabase/client';
 import type { EvolutionMessage, EvolutionMessageLite } from '@/types/evolutionExternal';
 import { toEvolutionMessageLite } from '@/types/evolutionExternal';
 import { getLogger } from '@/lib/logger';
@@ -94,16 +94,21 @@ export function useMessagesCursor({
 
   const fetchPage = useCallback(
     async (beforeDate: string | null): Promise<EvolutionMessageLite[]> => {
-      if (!externalSupabase || !remoteJid) return [];
+      if (!remoteJid) return [];
 
       const controller = new AbortController();
       abortRef.current?.abort();
       abortRef.current = controller;
 
-      // NOTE: usa `extRpcBuilder` (em vez de `dbList(RPC.listMessagesLite, ...)`)
+      // NOTE: usa `supabase.rpc` direto (em vez de `dbList(RPC.listMessagesLite, ...)`)
       // porque precisamos do `.abortSignal()` do PostgrestBuilder — o wrapper `callExtRpc`
       // resolve a Promise antes do builder ser exposto. Caso de uso raro e justificado.
-      const builder = extRpcBuilder(externalSupabase, 'rpc_list_messages_lite', {
+      const builder = (supabase.rpc as unknown as (
+        fn: string,
+        args: Record<string, unknown>
+      ) => {
+        abortSignal?: (signal: AbortSignal) => Promise<{ data: unknown; error: unknown }>;
+      } & Promise<{ data: unknown; error: unknown }>)('rpc_list_messages_lite', {
         p_remote_jid: remoteJid,
         p_instance: instanceName,
         p_limit: pageSize,
@@ -215,15 +220,15 @@ export function useMessagesCursor({
 
   // Realtime — only set up when enabled + jid present.
   useEffect(() => {
-    if (!enabled || !remoteJid || !externalSupabase) return;
+    if (!enabled || !remoteJid) return;
 
-    const channel = externalSupabase
+    const channel = supabase
       .channel(`evolution_messages:${remoteJid}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'evo', // FATOR X v6.2: tabela-fonte evo.evolution_messages
+          schema: 'evo', // Evolution DB v6.2: tabela-fonte evo.evolution_messages
           table: 'evolution_messages',
           // v6.2: postgres_changes aceita UM filtro; instance é implícita pelo jid.
           filter: `remote_jid=eq.${remoteJid}`,
@@ -249,7 +254,7 @@ export function useMessagesCursor({
         'postgres_changes',
         {
           event: 'UPDATE',
-          schema: 'evo', // FATOR X v6.2: tabela-fonte evo.evolution_messages
+          schema: 'evo', // Evolution DB v6.2: tabela-fonte evo.evolution_messages
           table: 'evolution_messages',
           // v6.2: postgres_changes aceita UM filtro; instance é implícita pelo jid.
           filter: `remote_jid=eq.${remoteJid}`,
@@ -269,7 +274,7 @@ export function useMessagesCursor({
         'postgres_changes',
         {
           event: 'DELETE',
-          schema: 'evo', // FATOR X v6.2: tabela-fonte evo.evolution_messages
+          schema: 'evo', // Evolution DB v6.2: tabela-fonte evo.evolution_messages
           table: 'evolution_messages',
           // v6.2: postgres_changes aceita UM filtro; instance é implícita pelo jid.
           filter: `remote_jid=eq.${remoteJid}`,
@@ -286,7 +291,7 @@ export function useMessagesCursor({
       .subscribe();
 
     return () => {
-      externalSupabase.removeChannel(channel);
+      supabase.removeChannel(channel);
     };
   }, [enabled, remoteJid]);
 

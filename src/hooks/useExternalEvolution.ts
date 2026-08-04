@@ -1,5 +1,5 @@
 /**
- * useExternalEvolution — Hooks for reading evolution_messages from external FATOR X DB
+ * useExternalEvolution — Hooks for reading evolution_messages from Evolution DB
  * Replaces the local DB reads for the Inbox when external DB is the source of truth.
  *
  * Pagination strategy (post-incremental refactor):
@@ -10,7 +10,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { queryExternalProxy } from '@/lib/externalProxy';
+import { supabase } from '@/integrations/supabase/client';
 import {
   buildExternalConversations,
   evolutionToRealtimeMessage,
@@ -330,17 +330,15 @@ async function fetchRecentMessagesWindow(
   limit = SIDEBAR_LIMIT
 ): Promise<EvolutionMessage[]> {
   const since = new Date(Date.now() - daysBack * 86_400_000).toISOString();
-  const result = await queryExternalProxy<EvolutionMessage>({
-    table: 'evolution_messages',
-    select: SLIM_MESSAGE_COLUMNS,
-    filters: [
-      { column: 'instance_name', operator: 'eq', value: DEFAULT_INSTANCE },
-      { column: 'created_at', operator: 'gte', value: since },
-    ],
-    order: { column: 'created_at', ascending: false },
-    limit,
-  });
-  return result.data;
+  const { data, error } = await supabase
+    .from('evolution_messages')
+    .select(SLIM_MESSAGE_COLUMNS)
+    .eq('instance_name', DEFAULT_INSTANCE)
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as EvolutionMessage[];
 }
 
 // ─── Per-conversation: paginated by jid (with optional cursor) ──
@@ -350,25 +348,19 @@ async function fetchMessagesByJid(
   beforeDate?: string,
   signal?: AbortSignal
 ): Promise<EvolutionMessage[]> {
-  const filters: { column: string; operator: string; value: unknown }[] = [
-    { column: 'remote_jid', operator: 'eq', value: remoteJid },
-    { column: 'instance_name', operator: 'eq', value: DEFAULT_INSTANCE },
-  ];
-  if (beforeDate) {
-    filters.push({ column: 'created_at', operator: 'lt', value: beforeDate });
-  }
-
-  const result = await queryExternalProxy<EvolutionMessage>({
-    table: 'evolution_messages',
-    select: SLIM_MESSAGE_COLUMNS,
-    filters,
-    // descending so the cursor (oldest in current view) works as upper bound;
-    // we reverse on the client for chronological display.
-    order: { column: 'created_at', ascending: false },
-    limit,
-    signal,
-  });
-  return result.data.slice().reverse();
+  let query = supabase
+    .from('evolution_messages')
+    .select(SLIM_MESSAGE_COLUMNS)
+    .eq('remote_jid', remoteJid)
+    .eq('instance_name', DEFAULT_INSTANCE);
+  if (beforeDate) query = query.lt('created_at', beforeDate);
+  // descending so the cursor (oldest in current view) works as upper bound;
+  // we reverse on the client for chronological display.
+  query = query.order('created_at', { ascending: false }).limit(limit);
+  if (signal) query = query.abortSignal(signal);
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as unknown as EvolutionMessage[]).slice().reverse();
 }
 
 // ─── Cursor-forward poll: only messages newer than lastSeen ────
@@ -377,18 +369,16 @@ async function fetchMessagesAfter(
   afterDate: string,
   limit = CONVERSATION_PAGE_SIZE
 ): Promise<EvolutionMessage[]> {
-  const result = await queryExternalProxy<EvolutionMessage>({
-    table: 'evolution_messages',
-    select: SLIM_MESSAGE_COLUMNS,
-    filters: [
-      { column: 'remote_jid', operator: 'eq', value: remoteJid },
-      { column: 'instance_name', operator: 'eq', value: DEFAULT_INSTANCE },
-      { column: 'created_at', operator: 'gt', value: afterDate },
-    ],
-    order: { column: 'created_at', ascending: true },
-    limit,
-  });
-  return result.data;
+  const { data, error } = await supabase
+    .from('evolution_messages')
+    .select(SLIM_MESSAGE_COLUMNS)
+    .eq('remote_jid', remoteJid)
+    .eq('instance_name', DEFAULT_INSTANCE)
+    .gt('created_at', afterDate)
+    .order('created_at', { ascending: true })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as EvolutionMessage[];
 }
 
 // Mocks são estritamente opt-in E somente em DEV: em produção NUNCA
@@ -458,21 +448,21 @@ export function useExternalConversations(enabled = true) {
 
       if (jidsToFetch.length > 0) {
         try {
-          // Individual calls are safer as rpc_get_contacts (plural) is missing in FATOR X.
+          // Individual calls are safer as rpc_get_contacts (plural) is missing in Evolution DB.
           // We limit concurrent fetches to avoid overloading the proxy.
           const enrichments = await Promise.all(
-            jidsToFetch.map((jid) =>
-              queryExternalProxy<ContactEnrichmentData[]>({
-                action: 'rpc',
-                rpc: 'rpc_get_contact',
-                params: {
+            jidsToFetch.map(async (jid) => {
+              try {
+                const { data: rpcData, error } = await supabase.rpc('rpc_get_contact', {
                   p_remote_jid: jid,
                   p_instance: DEFAULT_INSTANCE,
-                },
-              })
-                .then((res) => ({ jid, res }))
-                .catch(() => ({ jid, res: null }))
-            )
+                });
+                if (error) throw new Error(error.message);
+                return { jid, res: { data: rpcData ?? [] } };
+              } catch {
+                return { jid, res: null };
+              }
+            })
           );
 
           enrichments.forEach(({ jid, res }) => {

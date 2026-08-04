@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/services/api/queryKeys';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
-import { externalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { dbList } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
@@ -436,7 +435,7 @@ const EMPTY: SLATimelineData = {
 
 /** Tracks SLA compliance and timeline events for conversations. */
 export function useConversationSLATimeline(remoteJid: string | null, contactId: string | null) {
-  const enabled = Boolean(remoteJid && isExternalConfigured);
+  const enabled = Boolean(remoteJid);
 
   return useQuery({
     queryKey: queryKeys.sla.timelineDetailed(remoteJid ?? undefined, contactId ?? undefined),
@@ -447,7 +446,7 @@ export function useConversationSLATimeline(remoteJid: string | null, contactId: 
       return data?.isAwaitingFirstResponse ? 30_000 : false;
     },
     queryFn: async (): Promise<SLATimelineData> => {
-      if (!remoteJid || !externalSupabase) return EMPTY;
+      if (!remoteJid) return EMPTY;
 
       const { data: msgs, error: msgErr } = await dbList(RPC.listMessagesLite, {
         p_remote_jid: remoteJid,

@@ -12,4 +12,8 @@ export interface MediaRefreshKey {
   fromMe: boolean;
   /** Evolution `external_id` (key.id na payload original do WhatsApp). */
   id: string;
+  /** FIX 2026-08-03 (Gap 4): tipo da mensagem WhatsApp para skip-list de mídia.
+   *  Stickers, ephemerals e outros tipos nunca produzem base64 válido via Evolution.
+   *  Passar aqui evita 23+ tentativas desnecessárias de refresh por sessão. */
+  messageType?: string | null;
 }

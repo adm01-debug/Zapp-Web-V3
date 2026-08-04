@@ -32,17 +32,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Verify bun.lock is in sync with package.json
-        # bun.lock is generated inside Lovable's private registry environment,
-        # so `bun install --frozen-lockfile` always fails on CI (registry
-        # credentials unavailable).  Instead we enforce the invariant with a
-        # targeted git diff: only fail when dependency sections change without
-        # a corresponding bun.lock update.  Script/version/author edits do NOT
-        # affect the lockfile and must NOT trigger this check (false positive
+        # bun.lock pins some packages from a private GAR registry that is
+        # unavailable on CI, so `bun install --frozen-lockfile` always fails
+        # on CI (registry credentials unavailable).  Instead we enforce the
+        # invariant with a targeted git diff: only fail when dependency
+        # sections change without a corresponding bun.lock update.
+        # Script/version/author edits do NOT affect the lockfile and must NOT
+        # trigger this check (false positive
         # fixed 2026-07-16 after a scripts-only package.json edit blocked CI).
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -91,7 +92,7 @@ jobs:
     needs: lockfile
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -109,19 +110,12 @@ jobs:
           bunx eslint .
           status=$?
           if [ "$status" -ne 0 ]; then
-            echo "::warning title=ESLint debt::ESLint currently fails on existing repository debt. This step is diagnostic until the debt is baselined/cleaned."
+            echo "::error title=ESLint::ESLint reprovou. Teto: --max-warnings 6 (baseline medido em 2026-08-02)."
           fi
-          exit 0
+          exit $status
 
-      - name: Design-system diagnostics
-        run: |
-          set +e
-          bun run scripts/check-design-system.ts --ci
-          status=$?
-          if [ "$status" -ne 0 ]; then
-            echo "::warning title=Design-system debt::Design-system check failed; keeping it advisory until the existing baseline is cleaned."
-          fi
-          exit 0
+      - name: Design-system ratchet (blocking — teto 88, E02/F1-10)
+        run: bun run scripts/check-design-system.ts --ci --max=88
 
       - name: Supabase schema coverage gate (zapp + evo)
         id: schema_gate
@@ -149,7 +143,7 @@ jobs:
 
       - name: Publish schema status report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: schema-status-report
           path: reports/schema-status/
@@ -158,7 +152,7 @@ jobs:
 
       - name: Publish types:repair log
         if: always() && steps.schema_repair.outcome != 'skipped'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: types-repair-log
           path: reports/types-repair/
@@ -194,7 +188,7 @@ jobs:
     needs: [lockfile, quality]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -215,7 +209,7 @@ jobs:
         run: bun run test -- --coverage --reporter=verbose
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-report
@@ -251,7 +245,7 @@ jobs:
     needs: [lockfile, quality]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -264,10 +258,10 @@ jobs:
         run: bun install
 
       - name: Build for production
-        run: bunx vite build
+        run: bun run build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
@@ -292,7 +286,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -307,11 +301,11 @@ jobs:
       - name: Install Playwright Browsers
         run: bunx playwright install --with-deps
 
-      - name: Run E2E tests
-        run: bun run test:e2e
+      - name: Run E2E tests (boot suite — src/tests/e2e, 13 specs)
+        run: bun run test:e2e:boot
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: playwright-report
@@ -325,7 +319,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -344,7 +338,7 @@ jobs:
         run: bun run test:a11y
 
       - name: Upload a11y Playwright report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: playwright-report-a11y
@@ -358,7 +352,7 @@ jobs:
     needs: lockfile
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 

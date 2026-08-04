@@ -1,5 +1,5 @@
 /**
- * AdminInboxSyncStatusPage — Saúde do Inbox ↔ FATOR X (`evolution_messages`).
+ * AdminInboxSyncStatusPage — Saúde do Inbox ↔ Evolution DB (`evolution_messages`).
  *
  * Verifica se o pipeline está sincronizando:
  *  - Última mensagem recebida (inbound) e enviada (outbound) e há quanto tempo.
@@ -8,7 +8,7 @@
  *  - Logs básicos: últimas falhas (`public.failed_messages`) e últimas auditorias
  *    (`zapp.audit_logs`) — fontes locais que cobrem retries/erros do envio.
  *
- * Fonte FATOR X: lida via `queryExternalProxy` (mesmo caminho do Inbox).
+ * Fonte Evolution DB: lida via `queryExternalProxy` (mesmo caminho do Inbox).
  * Refresh manual + auto-poll (15s) com pausa quando a aba está oculta.
  */
 import { Link, useNavigate } from 'react-router-dom';
@@ -73,7 +73,7 @@ export default function AdminInboxSyncStatusPage() {
             Status de sincronização do Inbox
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Verifica o pipeline FATOR X (<code className="">evolution_messages</code>) que alimenta
+            Verifica o pipeline Evolution DB (<code className="">evolution_messages</code>) que alimenta
             o Inbox em tempo real. Atualiza a cada 15s.
           </p>
         </div>

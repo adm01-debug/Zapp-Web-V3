@@ -35,8 +35,8 @@ três perguntas:
           │ INSERT/UPDATE
           ▼
 ┌─────────────────────┐                ┌────────────────────┐
-│ FATOR X (externo)   │  realtime      │  Front-end inbox   │
-│ evolution_*         │ ─────────────▶ │  (subscribe)       │
+│ Evolution DB        │  realtime      │  Front-end inbox   │
+│ (self-hosted)       │ ─────────────▶ │  (subscribe)       │
 └─────────────────────┘                └────────────────────┘
 ```
 
@@ -45,8 +45,8 @@ três perguntas:
   `/instance/*`, `/group/*`.
 - **Entrada (Evolution → front):** Evolution → POST `/evolution-webhook`
   (HMAC) → roteador `evolution-webhook/index.ts` → handlers em
-  `_shared/evolution-webhook-*.ts` → tabelas `evolution_*` (via FATOR X)
-  → realtime → React Query/Zustand → UI.
+  `_shared/evolution-webhook-*.ts` → tabelas `evolution_*` (Evolution DB
+  self-hosted, schema `zapp`) → realtime → React Query/Zustand → UI.
 
 ---
 
@@ -263,9 +263,9 @@ reload (`mem://architecture/storage-buckets`).
 `src/hooks/evolution/v237Fallbacks.ts` envolve `findChats`, `findContacts` e
 `fetchProfile` com `withV237Fallback`. Quando a Evolution v2.3.7 retorna
 `404 / 405 / 501` ou `{ error: 'not_found' }`, o hook redireciona para RPCs
-do FATOR X:
+do Evolution DB (self-hosted):
 
-| Endpoint Evolution            | RPC FATOR X de fallback        |
+| Endpoint Evolution            | RPC Evolution DB (self-hosted) |
 |-------------------------------|--------------------------------|
 | `/chat/findChats/{instance}`  | `rpc_list_conversations`       |
 | `/chat/findContacts/{instance}` | `rpc_list_contacts`         |
@@ -327,5 +327,5 @@ Comportamento testado em `src/hooks/evolution/__tests__/v237Fallbacks.test.ts`
 - `fn_zapp_web_smoke_test_v2()` — 20 checagens de integridade.
 - `v_webhook_health` — SLA de processamento por janela.
 - `evolution_audit_log` — últimas ações por entidade.
-- Webhook live: `https://tdprnylgyrogbbhgdoik.supabase.co/functions/v1/evolution-webhook`
+- Webhook live: `https://supabase.atomicabr.com.br/functions/v1/evolution-webhook`
   (instância `wpp2`, latência média 0.35s, 0 erros em 132k+ eventos).

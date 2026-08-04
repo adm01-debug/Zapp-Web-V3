@@ -1,3 +1,5 @@
+> **Nota histórica**: Este documento refere-se ao banco 'FATOR X' (projeto Supabase `tdprnylgyrogbbhgdoik`), descomissionado em 2026-07-15. O termo foi mantido para rastreabilidade histórica.
+
 # PLANO EXAUSTIVO DE ANÁLISE, TESTES E SIMULAÇÃO — 100 ETAPAS
 
 > **Escopo:** zapp-web-v3 (WhatsApp/omnichannel CRM) + Supabase self-hosted (`supabase.atomicabr.com.br`, schema canônico `zapp`) + Evolution API (evolution-mcp.adm01.workers.dev) + Lovable project 22c0b518-7895-4f4f-9ea0-978457a2c37a.

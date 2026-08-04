@@ -1,5 +1,5 @@
 /**
- * RPC Catalog — fonte única e tipada das RPCs do FATOR X.
+ * RPC Catalog — fonte única e tipada das RPCs do Evolution DB.
  *
  * Toda leitura/escrita do domínio WhatsApp/CRM (`evolution_*`) deve passar
  * por uma RPC SECURITY DEFINER no self-hosted. Este catálogo amarra cada RPC
@@ -223,9 +223,15 @@ export interface SearchContactsAdvancedParams {
   p_page_size?: number;
 }
 
-interface GetContact360Params { p_phone: string; }
+interface GetContact360Params {
+  p_phone: string;
+  /** FIX 2026-08-03: passar ACTIVE_WHATSAPP_INSTANCE para partition pruning em evolution_conversations. */
+  p_instance?: string | null;
+}
 interface GetContactIntelligenceParams { p_phone: string; }
 interface GetCompaniesByPhonesBatchParams { p_phones: string[]; }
+interface GetContacts360BatchParams { p_phones: string[]; }
+interface InboxPreviewBatchParams { p_remote_jids: string[]; p_instance?: string; p_limit?: number; }
 
 interface SyncInteractionParams {
   p_phone: string;
@@ -416,6 +422,11 @@ export const RPC = {
     // sem default — passe p_instance do contexto da conversa
   }),
 
+  inboxPreviewBatch: def<InboxPreviewBatchParams, unknown>({
+    name: 'rpc_inbox_preview_batch',
+    client: 'lovable',
+  }),
+
   listConversations: def<ListConversationsParams, EvolutionConversation[]>({
     name: 'rpc_list_conversations',
     client: 'lovable',
@@ -473,6 +484,11 @@ export const RPC = {
 
   getContact360ByPhone: def<GetContact360Params, unknown>({
     name: 'get_contact_360_by_phone',
+    client: 'lovable',
+  }),
+
+  getContacts360Batch: def<GetContacts360BatchParams, unknown>({
+    name: 'get_contacts_360_batch',
     client: 'lovable',
   }),
 

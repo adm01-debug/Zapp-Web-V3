@@ -70,6 +70,14 @@ export default function AdminFailedAuthMessagesPage() {
         </Button>
       </header>
 
+      {dateError && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Intervalo inválido</AlertTitle>
+          <AlertDescription>{dateError}</AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">

@@ -176,7 +176,7 @@ export function VoiceOrb({ phase, size = 200 }: VoiceOrbProps) {
             animate={prefersReduced ? {} : { rotate: [0, 10, -10, 0] }}
             transition={{ duration: 0.5, repeat: Infinity }}
           >
-            <Mic className="w-6 h-6 text-destructive-foreground drop-shadow-lg" />
+            <Mic className="w-6 h-6 text-destructive drop-shadow-lg" />
           </motion.div>
         )}
       </div>

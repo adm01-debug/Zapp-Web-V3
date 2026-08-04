@@ -1,0 +1,48 @@
+diff --git a/src/features/inbox/hooks/useRealtimeMessages.ts b/src/features/inbox/hooks/useRealtimeMessages.ts
+index f0d291ae3..c76d89f05 100644
+--- a/src/features/inbox/hooks/useRealtimeMessages.ts
++++ b/src/features/inbox/hooks/useRealtimeMessages.ts
+@@ -27,8 +27,11 @@ const log = getLogger('RealtimeMessages');
+ // montagem) deram lugar a páginas de CONTACTS_PAGE_SIZE contatos (cursor
+ // updated_at+id) e MESSAGES_PAGE_SIZE mensagens recentes (cursor
+ // created_at+id), com load-more sob demanda via loadMoreConversations.
+-const CONTACTS_PAGE_SIZE = 100;
+-const MESSAGES_PAGE_SIZE = 100;
++// F4-18 (2026-08-03): CONTACTS_PAGE_SIZE 100→30 e MESSAGES_PAGE_SIZE 100→50
++// — carga inicial mais leve (menos payload por GET no inbox load); o scroll
++// infinito continua funcionando via loadMoreConversations com os cursors.
++const CONTACTS_PAGE_SIZE = 30;
++const MESSAGES_PAGE_SIZE = 50;
+ const CONTACT_FETCH_CHUNK_SIZE = 200;
+ 
+ /** Cursor de paginação de contatos: (updated_at, id) — ordem estável desc. */
+@@ -167,6 +170,11 @@ export function useRealtimeMessages() {
+   const hasMoreContactsRef = useRef(false);
+   const hasMoreMessagesRef = useRef(false);
+   const loadMoreInFlightRef = useRef(false);
++  // F4-18: dedupe de fetch inicial — se fetchConversations já está em curso
++  // (remount/StrictMode, refetch pós-send, fallback de visibilitychange),
++  // chamadas concorrentes são descartadas em vez de disparar outro par de
++  // GETs. O fetch em curso já resetou a paginação e popula o estado.
++  const fetchInFlightRef = useRef(false);
+   const [hasMoreConversations, setHasMoreConversations] = useState(false);
+   const [loadingMoreConversations, setLoadingMoreConversations] = useState(false);
+ 
+@@ -476,6 +484,9 @@ export function useRealtimeMessages() {
+   // todos os setState após await (isMountedRef).
+   const fetchConversations = useCallback(async () => {
+     if (!isMountedRef.current) return;
++    // F4-18: descarta fetch concorrente (já existe um em curso).
++    if (fetchInFlightRef.current) return;
++    fetchInFlightRef.current = true;
+     setLoading(true);
+     setError(null);
+     // Reset do estado de paginação (refetch = recarrega do zero).
+@@ -534,6 +545,7 @@ export function useRealtimeMessages() {
+         setError(err instanceof Error ? err.message : 'Failed to fetch conversations');
+       }
+     } finally {
++      fetchInFlightRef.current = false;
+       if (isMountedRef.current) setLoading(false);
+     }
+   }, [commitConversations, fetchContactsPage, fetchMessagesPage, hydrateMissingMessageContacts]);

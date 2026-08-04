@@ -22,6 +22,7 @@ function createQueryBuilder(resolvedData: unknown = [], resolvedError: unknown =
     order: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
     range: vi.fn().mockReturnThis(),
+    abortSignal: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue(result),
     maybeSingle: vi.fn().mockResolvedValue(result),
     then: vi

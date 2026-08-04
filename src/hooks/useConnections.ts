@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
-import { updateRuntimeExternalConfig } from '@/integrations/supabase/externalClient';
 import { toast } from '@/hooks/use-toast';
 import { getLogger } from '@/lib/logger';
 
@@ -83,7 +82,7 @@ export function useConnections() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const fatorXInitializedRef = useRef(false);
+  const externalConnInitializedRef = useRef(false);
 
   const { data: connections = [], refetch: refetchConnections } = useQuery({
     queryKey: CONNECTIONS_KEY,
@@ -97,19 +96,18 @@ export function useConnections() {
     staleTime: 30_000,
   });
 
-  // Apply fatorX config once on initial load
+  // Apply externalConn config once on initial load
   useEffect(() => {
-    if (fatorXInitializedRef.current || connections.length === 0) return;
-    const fatorX = connections.find(
-      (c) => c.provider === 'supabase_external' || c.name === 'FATOR X'
+    if (externalConnInitializedRef.current || connections.length === 0) return;
+    const externalConn = connections.find(
+      (c) => c.provider === 'supabase_external' || c.name === 'Evolution DB'
     );
-    if (fatorX?.config?.url && fatorX?.config?.anon_key) {
-      fatorXInitializedRef.current = true;
-      setExternalUrl(fatorX.config.url);
-      setDraftUrl(fatorX.config.url);
-      setExternalKey(fatorX.config.anon_key);
-      setDraftKey(fatorX.config.anon_key);
-      updateRuntimeExternalConfig(fatorX.config.url, fatorX.config.anon_key);
+    if (externalConn?.config?.url && externalConn?.config?.anon_key) {
+      externalConnInitializedRef.current = true;
+      setExternalUrl(externalConn.config.url);
+      setDraftUrl(externalConn.config.url);
+      setExternalKey(externalConn.config.anon_key);
+      setDraftKey(externalConn.config.anon_key);
     }
   }, [connections]);
 
@@ -246,7 +244,7 @@ export function useConnections() {
     }
 
     const payload: SystemConnectionPayload = {
-      name: 'FATOR X',
+      name: 'Evolution DB',
       provider: 'supabase_external',
       config: { url: draftUrl, anon_key: draftKey },
       is_active: true,
@@ -254,7 +252,7 @@ export function useConnections() {
 
     try {
       const existing = connections.find(
-        (c) => c.provider === 'supabase_external' || c.name === 'FATOR X'
+        (c) => c.provider === 'supabase_external' || c.name === 'Evolution DB'
       );
       const insertPayload = currentUserId ? { ...payload, created_by: currentUserId } : payload;
 
@@ -290,7 +288,7 @@ export function useConnections() {
         id: string;
         updated_at: string | null;
       }>('system_connections', (q) =>
-        q.select('id, updated_at').eq('provider', 'supabase_external').eq('name', 'FATOR X')
+        q.select('id, updated_at').eq('provider', 'supabase_external').eq('name', 'Evolution DB')
       );
 
       if (verifyError || !verify) {
@@ -303,7 +301,6 @@ export function useConnections() {
       setExternalUrl(draftUrl);
       setExternalKey(draftKey);
       setEditOpen(false);
-      updateRuntimeExternalConfig(draftUrl, draftKey);
 
       toast({
         title: 'Credenciais salvas e validadas',

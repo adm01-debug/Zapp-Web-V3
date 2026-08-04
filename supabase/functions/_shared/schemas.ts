@@ -198,17 +198,6 @@ export const ElevenLabsVoiceDesignCreateSchema = z.object({
   labels: z.record(z.string()).optional().nullable(),
 });
 
-/** external-db-bridge */
-export const ExternalDbBridgeSchema = z.object({
-  action: z.enum(['select', 'insert', 'update', 'delete', 'rpc']),
-  table: z.string().max(200).optional().nullable(),
-  rpc: z.string().max(200).optional().nullable(),
-  params: z.record(z.unknown()).optional().nullable(),
-  limit: z.number().int().min(0).max(10000).optional().nullable(),
-  offset: z.number().int().min(0).optional().nullable(),
-  countMode: z.string().max(20).optional().nullable(),
-});
-
 /** send-rate-limit-alert */
 export const RateLimitAlertSchema = z.object({
   ip_address: z.string().max(100),

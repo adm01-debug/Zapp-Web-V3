@@ -2,7 +2,7 @@
  * MessageStatusTimeline — vertical timeline of the four delivery milestones
  * (queued → sent → delivered → read) for a single outbound message.
  *
- * Data model note: FATOR X stores only ONE `status_at` (the timestamp of the
+ * Data model note: Evolution DB stores only ONE `status_at` (the timestamp of the
  * latest transition). We infer the timeline as follows:
  *   • Queued  → always known (`created_at`)
  *   • Sent    → completed if status ≥ sent. Timestamp shown only if it's
@@ -161,7 +161,7 @@ export const MessageStatusTimeline = memo(function MessageStatusTimeline({
     ];
 
     return isInbound ? buildInbound() : buildOutbound();
-  }, [effectiveStatus, status, createdAt, statusAt, isFailed, isInbound]);
+  }, [effectiveStatus, createdAt, statusAt, isFailed, isInbound]);
 
   return (
     <ol

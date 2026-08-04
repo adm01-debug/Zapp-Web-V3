@@ -35,8 +35,8 @@ function getFileColor(mimeType: string | null): string {
   if (!mimeType) return 'text-muted-foreground';
   if (mimeType.startsWith('image/')) return 'text-primary';
   if (mimeType.startsWith('video/')) return 'text-primary';
-  if (mimeType.includes('pdf')) return 'text-destructive-foreground';
-  if (mimeType.includes('zip') || mimeType.includes('tar')) return 'text-warning-foreground';
+  if (mimeType.includes('pdf')) return 'text-destructive';
+  if (mimeType.includes('zip') || mimeType.includes('tar')) return 'text-warning';
   return 'text-muted-foreground';
 }
 

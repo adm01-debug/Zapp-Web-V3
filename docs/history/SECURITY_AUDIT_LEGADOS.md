@@ -52,6 +52,6 @@ ORDER BY n.nspname, p.proname;
 
 ## Contexto
 
-- schemas `evo` (3 funções) e `zapp` (3 funções) foram corrigidos em 20260711_security_revoke_anon_secdef.sql
+- schemas `evo` (3 funções) e `zapp` (3 funções) foram corrigidos em `20260711_security_revoke_anon_secdef.sql` — **nota (2026-08-04):** este arquivo foi deletado de `infra/migrations/` no PR #767; o DDL já aplicado está coberto pelo canônico `supabase/migrations/20260804000000_canonical_schema.sql`
 - `security_acl` dimensão do health score: `anon_any_execute=0` após os fixes de evo+zapp
 - Os schemas legados não são monitorados pelo `fn_score_security_acl` atual

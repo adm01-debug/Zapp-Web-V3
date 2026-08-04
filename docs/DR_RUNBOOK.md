@@ -8,11 +8,11 @@
 - **RTO (Recovery Time Objective)**: 4 horas para restauração total do ambiente.
 
 ## Procedimento de Restore (Staging Drill)
-1. **Snapshot**: Identificar o último snapshot saudável no dashboard Lovable Cloud.
+1. **Snapshot**: Identificar o último snapshot saudável no dashboard Supabase (self-hosted, `supabase.atomicabr.com.br`).
 2. **Nova Instância**: Criar um projeto temporário de restore.
 3. **Migrações**: Re-aplicar as 453+ migrations para garantir a integridade do schema.
 4. **Validação**: Rodar `bun run smoke:pre-deploy` no ambiente restaurado.
 
 ## Contatos Cloud
 - Supabase Support: support@supabase.com
-- Lovable Cloud Status: https://status.lovable.dev
+- Infra/VPS Status: Portainer na VPS (containers `supabase_*`, `zapp-web`, `traefik`) — ver [DEPLOY_PRODUCAO.md](DEPLOY_PRODUCAO.md)

@@ -8,7 +8,7 @@
  *   4. persistência dos presets após reload (F5) e troca de rota.
  *
  * Estratégia hermética (mesma dos demais specs de Inbox):
- *   - Intercepta o edge function `external-db-proxy` devolvendo 2 mensagens
+ *   - Intercepta o edge function (obsoleto: substituído por Supabase direto) devolvendo 2 mensagens
  *     Evolution inbound sem `assigned_to`.
  *   - Injeta uma sessão Supabase fake em localStorage para passar o
  *     ProtectedRoute.

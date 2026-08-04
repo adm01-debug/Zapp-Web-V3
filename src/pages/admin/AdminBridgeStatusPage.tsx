@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { useBridgeStatus } from './useBridgeStatus';
+import { useBridgeStatus } from '@/hooks/useBridgeStatus';
 import { BridgeDiagnosticsDialog } from './bridge-status/BridgeDiagnosticsDialog';
 import { BridgeStatusBanner } from './bridge-status/BridgeStatusBanner';
 import { BridgeCoreServicesCard } from './bridge-status/BridgeCoreServicesCard';
@@ -33,6 +33,8 @@ export default function BridgeStatusPage() {
     activeAlerts,
     incidents,
     instanceCount,
+    latencyMs,
+    uptimePct,
     recentTraffic,
     diagResults,
     diagRunning,
@@ -53,7 +55,7 @@ export default function BridgeStatusPage() {
             <Activity className="h-6 w-6 text-primary" /> Status da Ponte (Bridge)
           </h1>
           <p className="text-sm text-muted-foreground">
-            Monitoramento em tempo real do fluxo entre Lovable Cloud e FATOR X (Self-Hosted).
+            Monitoramento em tempo real da infraestrutura Self-Hosted.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -79,6 +81,7 @@ export default function BridgeStatusPage() {
 
           <div className="hidden border-l border-border/50 pl-3 text-right sm:block">
             <p className="text-[10px] font-bold uppercase text-muted-foreground">Última checagem</p>
+            <p className="font-mono text-xs">{lastCheck.toLocaleTimeString()}</p>
             <p className="font-mono text-xs">{lastCheck.toLocaleTimeString()}</p>
           </div>
 
@@ -107,8 +110,11 @@ export default function BridgeStatusPage() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card className="flex flex-col items-center justify-center space-y-2 p-4 text-center">
           <Activity className="h-5 w-5 text-primary" />
-          <p className="text-[10px] font-bold uppercase text-muted-foreground">Etapas CRM</p>
-          <p className="text-2xl font-black">{instanceCount}</p>
+          <p className="text-[10px] font-bold uppercase text-muted-foreground">Instâncias Evolution</p>
+          <p className="text-2xl font-black">{instanceCount !== null ? instanceCount : '—'}</p>
+          {instanceCount === null && (
+            <p className="text-[10px] text-muted-foreground">dados indisponíveis</p>
+          )}
         </Card>
         <Card className="flex flex-col items-center justify-center space-y-2 p-4 text-center">
           <MessageSquare className="h-5 w-5 text-primary" />
@@ -118,12 +124,22 @@ export default function BridgeStatusPage() {
         <Card className="flex flex-col items-center justify-center space-y-2 p-4 text-center">
           <Zap className="h-5 w-5 text-warning" />
           <p className="text-[10px] font-bold uppercase text-muted-foreground">Latência Bridge</p>
-          <p className="text-2xl font-black">--</p>
+          <p className="text-2xl font-black">
+            {latencyMs !== null ? `${Math.round(latencyMs)}ms` : '—'}
+          </p>
+          {latencyMs === null && (
+            <p className="text-[10px] text-muted-foreground">dados indisponíveis</p>
+          )}
         </Card>
         <Card className="flex flex-col items-center justify-center space-y-2 p-4 text-center">
           <ShieldCheck className="h-5 w-5 text-success" />
           <p className="text-[10px] font-bold uppercase text-muted-foreground">Uptime 24h</p>
-          <p className="text-2xl font-black">--</p>
+          <p className="text-2xl font-black">
+            {uptimePct !== null ? `${uptimePct.toFixed(1)}%` : '—'}
+          </p>
+          {uptimePct === null && (
+            <p className="text-[10px] text-muted-foreground">dados indisponíveis</p>
+          )}
         </Card>
       </div>
 
@@ -150,10 +166,10 @@ export default function BridgeStatusPage() {
               <WifiOff className="h-4 w-4" />
               <AlertTitle>Guia de Recuperação da Bridge</AlertTitle>
               <AlertDescription className="space-y-2 text-xs">
-                <p>O fluxo entre Lovable e FATOR X está interrompido. Siga os passos:</p>
+                <p>O fluxo entre Lovable e Self-Hosted está interrompido. Siga os passos:</p>
                 <ul className="list-disc space-y-1 pl-5">
                   <li>Verifique se o seu servidor Evolution está com a porta 80/443 exposta.</li>
-                  <li>Teste o acesso ao seu Supabase Externo (FATOR X) via navegador.</li>
+                  <li>Teste o acesso ao seu Supabase Self-Hosted (Evolution DB) via navegador.</li>
                   <li>
                     Certifique-se de que a <code>apikey</code> global não foi alterada.
                   </li>

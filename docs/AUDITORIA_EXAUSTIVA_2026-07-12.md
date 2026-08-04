@@ -1,3 +1,5 @@
+> **Nota histórica**: Este documento refere-se ao banco 'FATOR X' (projeto Supabase `tdprnylgyrogbbhgdoik`), descomissionado em 2026-07-15. O termo foi mantido para rastreabilidade histórica.
+
 # Auditoria Exaustiva ZAPP-WEB v3 — 2026-07-12
 
 **Método:** frota de 20 agentes especializados (14 áreas concluídas antes do limite de sessão) + verificação manual contra o código atual + baterias `tsc`/`vite build`/`vitest`. Consolidado com os relatórios in-repo `QA_REPORT_2026-07-11.md` e `docs/AUDITORIA_BACKEND_SENIOR_2026-07-11.md`.
@@ -85,7 +87,7 @@ Legenda esforço: **P** pequeno · **M** médio · **G** grande. `[DB]` requer a
 20. **[Edge][M]** TOCTOU no cache de idempotência (`evolution-api-proxy:77`) + dupla-enfileiração (`enqueue-failed-message`) → chave única atômica.
 21. 🟡 **[✓FE][M]** `useMessageQueue`: **placeholder-como-texto corrigido** (`a01c322`) — itens `audio`/`attachment` perdidos no reload viram `failed` em vez de `pending` (não são mais reenviados como texto). O processamento assíncrono ainda é disparado dentro do updater de `setQueue` (impuro) — reestruturar isso com segurança exige tocar toda a sequência de envio/retry; não fiz essa mudança maior sem poder testar o fluxo real ponta a ponta. **[ARQ]**
 22. **[✓FE][P]** `useWarRoomAlerts`/`useGoalNotifications`: monitor de SLA como "cron no browser" insere alertas duplicados → mover para edge/cron server-side. **[ARQ]**
-23. 🟡 **[✓FE][P]** `ChatMessagesArea.tsx:117`: canal realtime recriado a cada mensagem → **churn corrigido** (`d54b401`, deps estabilizadas via `conversationId`+ref). A invalidação `queryKey:['messages']` segue sem efeito (nenhum `useQuery` usa essa chave) — religar corretamente exige mapear o fluxo de props entre os pipelines local/FATOR X. **[ARQ]**
+23. 🟡 **[✓FE][P]** `ChatMessagesArea.tsx:117`: canal realtime recriado a cada mensagem → **churn corrigido** (`d54b401`, deps estabilizadas via `conversationId`+ref). A invalidação `queryKey:['messages']` segue sem efeito (nenhum `useQuery` usa essa chave) — religar corretamente exige mapear o fluxo de props entre os pipelines local/Evolution DB. **[ARQ]**
 24. **[✓FE][M]** `useAdminData.ts:109` `handleRoleChange`: delete+insert não atômico e `workspace_id=''` em coluna uuid → RPC transacional. **[DB]**
 25. **[✓FE][M]** `useAuthForm.ts:190` passkey login navega sem sessão e mostra toast de sucesso no erro; 2FA/AAL2 nunca exigido → corrigir fluxo + guard AAL2.
 

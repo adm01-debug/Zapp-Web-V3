@@ -49,7 +49,7 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
       data: { session },
     } = await supabase.auth.getSession();
     if (!session) {
-      record('Auth Check', 'fail', 'Usuário não autenticado no Lovable Cloud.');
+      record('Auth Check', 'fail', 'Usuário não autenticado.');
       return diagnostics;
     }
     record('Auth Check', 'pass', { user: session.user.email });
@@ -59,7 +59,7 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
     const { data: configRows } = await safeClient.from<{
       config: { url?: string; anon_key?: string };
     }>('system_connections', (q) =>
-      q.select('*').eq('name', 'FATOR X').eq('provider', 'supabase_external').limit(1)
+      q.select('*').eq('name', 'Evolution DB').eq('provider', 'supabase_external').limit(1)
     );
     const currentConfigs = configRows?.[0] ?? null;
 

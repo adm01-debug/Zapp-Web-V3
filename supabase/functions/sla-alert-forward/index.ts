@@ -7,7 +7,7 @@
 //
 // Optional shared secret for HMAC-SHA256 signing of the body, sent via the
 // `X-Lovable-Signature: sha256=<hex>` header. Set as the edge function secret
-// `SLA_ALERT_WEBHOOK_SECRET` in Lovable Cloud (no code changes needed).
+// `SLA_ALERT_WEBHOOK_SECRET` in Supabase (no code changes needed).
 
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { z } from 'https://esm.sh/zod@3.23.8';
@@ -18,11 +18,11 @@ import { checkRateLimit } from '../_shared/validation.ts';
 const PayloadSchema = z.object({
   contact_id: z.string().min(1),
   contact_name: z.string().min(1),
-  kind: z.enum(['first_response', 'resolution']),
+  kind: z.enum(['first_response', 'resolution', 'delivery_delay']),
   severity: z.enum(['warning', 'breached']),
   scope: z.enum(['current', 'queue', 'agent', 'none']),
-  rule_name: z.string().nullable(),
-  duration_ms: z.number().nullable(),
+  rule_name: z.string().nullable().optional(),
+  duration_ms: z.number().nullable().optional(),
   occurred_at: z.string().optional(),
 });
 

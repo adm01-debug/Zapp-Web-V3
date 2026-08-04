@@ -1,7 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Database, RefreshCw, Webhook } from 'lucide-react';
-import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { useBridgeHealth } from '@/hooks/connections/useBridgeHealth';
 import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 import { BridgeStatusBadge } from './bridge/BridgeStatusBadge';
@@ -9,7 +8,7 @@ import { BridgeInfoRow } from './bridge/BridgeInfoRow';
 import { BridgeStatCard } from './bridge/BridgeStatCard';
 
 /**
- * Painel da ponte Supabase ↔ Evolution API (FATOR X).
+ * Painel da ponte Supabase ↔ Evolution API (Self-Hosted).
  * Refatorado: lógica extraída para useBridgeHealth, subcomponentes modularizados.
  */
 export function BridgeSupabaseView() {
@@ -28,7 +27,7 @@ export function BridgeSupabaseView() {
               <div>
                 <CardTitle className="text-lg">Ponte Supabase ↔ Evolution API</CardTitle>
                 <CardDescription>
-                  Backend externo (FATOR X) que recebe webhooks da Evolution API e
+                  Backend self-hosted que recebe webhooks da Evolution API e
                   persiste todas as mensagens, contatos e conversas.
                 </CardDescription>
               </div>
@@ -46,7 +45,7 @@ export function BridgeSupabaseView() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            <BridgeStatusBadge status={status} isConfigured={isExternalConfigured} />
+            <BridgeStatusBadge status={status} isConfigured={true} />
             {checkedAt && (
               <span className="text-xs text-muted-foreground">
                 Última verificação: {checkedAt.toLocaleTimeString()}
@@ -64,7 +63,7 @@ export function BridgeSupabaseView() {
             <BridgeInfoRow label="Instância" value={DEFAULT_WHATSAPP_INSTANCE} />
             <BridgeInfoRow
               label="Auth"
-              value={isExternalConfigured ? 'Anon key configurada' : 'Faltando'}
+              value="Anon key configurada"
             />
           </div>
 

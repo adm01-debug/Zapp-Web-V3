@@ -114,31 +114,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [bootstrapError, setBootstrapError] = useState<'timeout' | 'offline' | null>(null);
   const [bootstrapElapsedMs, setBootstrapElapsedMs] = useState<number | null>(null);
 
-  const fetchProfile = useCallback(async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string, signal?: AbortSignal) => {
     try {
-      const { data, error } = await withTimeout(authService.getProfile(userId), 8000, 'getProfile');
+      const { data, error } = await withTimeout(authService.getProfile(userId, signal), 8000, 'getProfile');
       if (error || !data) {
+        if ((error as { name?: string } | null)?.name === 'AbortError') return;
         log.error('[Auth] Failed to fetch profile for user:', userId, error);
         return;
       }
       setProfile(data);
     } catch (err: unknown) {
+      if ((err as Error)?.name === 'AbortError') return;
       log.error('[Auth] Failed to fetch profile for user:', userId, err);
     }
   }, []);
 
-  const fetchRolesAndPermissions = useCallback(async (userId: string) => {
+  const fetchRolesAndPermissions = useCallback(async (userId: string, signal?: AbortSignal) => {
     try {
       if (!supabase) {
         log.error('[Auth] Supabase client not initialized for user:', userId);
         return;
       }
       const { data: userRoles, error } = await withTimeout(
-        Promise.resolve(supabase.from('user_roles').select('role').eq('user_id', userId)),
+        Promise.resolve(supabase.from('user_roles').select('role').eq('user_id', userId).abortSignal(signal ?? new AbortController().signal)),
         8000,
         'fetchRoles'
       );
       if (error || !userRoles) {
+        if ((error as { name?: string } | null)?.name === 'AbortError') return;
         log.error('[Auth] Failed to fetch roles for user:', userId, error);
         return;
       }
@@ -153,11 +156,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // JOIN com permissions table para resolver nomes das permissões
             .select('permission_id, permissions!inner(name)')
             .in('role', roleNames)
+            .abortSignal(signal ?? new AbortController().signal)
         ),
         8000,
         'fetchPermissions'
       );
       if (permError || !userPermissions) {
+        if ((permError as { name?: string } | null)?.name === 'AbortError') return;
         log.error('[Auth] Failed to fetch permissions for user:', userId, permError);
         return;
       }
@@ -170,6 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .filter((n): n is string => typeof n === 'string');
       setPermissions(permNames);
     } catch (err: unknown) {
+      if ((err as Error)?.name === 'AbortError') return;
       log.error('[Auth] Failed to fetch roles/permissions for user:', userId, err);
     }
   }, []);
@@ -177,14 +183,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshAll = useCallback(
     async (userId: string, options: { showLoading?: boolean } = {}) => {
       const { showLoading = true } = options;
+      // Cancela qualquer refresh anterior ainda em voo (ex.: signIn dispara
+      // refreshAll e o onAuthStateChange dispara outro logo em seguida — sem
+      // abort, o mais antigo podia sobrescrever estado com dados stale e
+      // manter loading travado).
+      refreshAbortRef.current?.abort();
+      const controller = new AbortController();
+      refreshAbortRef.current = controller;
+      const { signal } = controller;
       if (showLoading) setLoading(true);
-      await Promise.all([fetchProfile(userId), fetchRolesAndPermissions(userId)]);
-      setLoading(false);
+      try {
+        await Promise.all([
+          fetchProfile(userId, signal),
+          fetchRolesAndPermissions(userId, signal),
+        ]);
+      } finally {
+        // Só o refresh mais recente libera o loading: se um refresh antigo
+        // foi abortado por um novo, quem gerencia o estado é o novo.
+        if (refreshAbortRef.current === controller) {
+          refreshAbortRef.current = null;
+          setLoading(false);
+        }
+      }
     },
     [fetchProfile, fetchRolesAndPermissions]
   );
 
   const bootstrapRunRef = useRef(0);
+  // AbortController do refreshAll: aborta fetches em voo quando um novo
+  // refresh começa ou o provider desmonta (evita corrida de estado, requisições
+  // órfãs e loading travado).
+  const refreshAbortRef = useRef<AbortController | null>(null);
   // Ref para o safety-net timeout de bootstrap — acessível por runBootstrap
   // para cancelar quando o bootstrap resolve ANTES de onAuthStateChange disparar.
   // Sem essa ref, utilizadores sem sessão recebem bootstrapError='timeout'
@@ -212,11 +241,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (runId !== bootstrapRunRef.current) return;
       setSession(cached);
       setUser(cached.user);
-      // profile/roles em background — guards internos evitam corrida com o
-      // refetch que o onAuthStateChange dispara em seguida.
-      void refreshAll(cached.user.id, { showLoading: false }).catch((err) => {
-        log.error('[Auth] Erro ao atualizar perfil/roles em background pós-hidratação:', err);
-      });
       setLoading(false);
       // Já temos sessão utilizável → o safety-net não deve marcar timeout.
       clearBootstrapSafetyNet();
@@ -271,6 +295,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       log.info(
         `[Auth] getSession OK em ${elapsedMs}ms — session=${result.data.session ? 'present' : 'null'}`
       );
+      // Sessão validada: busca profile/roles (adiado da hidratação).
+      if (result.data.session && cached?.user?.id) {
+        void refreshAll(cached.user.id, { showLoading: false }).catch((err) => {
+          log.debug('[Auth] Erro ao atualizar perfil/roles pós-getSession:', err);
+        });
+      }
       // Se o backend confirmar que NÃO há sessão (refresh token revogado/expirado),
       // o supabase-js emite SIGNED_OUT via onAuthStateChange e o app vai para /auth.
     } catch (err) {
@@ -279,6 +309,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt
       );
       setBootstrapElapsedMs(elapsedMs);
+      // AbortError é esperado (StrictMode remount, navegação, timeout).
+      // O app continua com a sessão do cache. Não poluir o console.
+      if ((err as Error)?.name === 'AbortError') {
+        log.debug('[Auth] getSession abortado — sessão do cache mantida.');
+        return;
+      }
       // Não-fatal: já renderizámos a partir do cache. Apenas registamos.
       log.warn(
         `[Auth] Revalidação em background lenta (${elapsedMs}ms) — mantendo sessão do cache. URL=${SUPABASE_RESOLVED_URL}`,
@@ -390,6 +426,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       mounted = false;
+      // Cancela refresh em voo no unmount (ex.: logout rápido durante bootstrap).
+      refreshAbortRef.current?.abort();
+      refreshAbortRef.current = null;
       if (typeof window !== 'undefined') {
         window.removeEventListener('online', handleOnline);
       }
@@ -484,6 +523,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     try {
       await authService.signOut();
+    } catch (e) {
+      log.error('[Auth] Sign out error:', e);
+    } finally {
+      // Fallback local: mesmo se o signOut remoto falhar/rejeitar, a UI nunca
+      // fica presa numa sessão fantasma — estado e cache são limpos sempre.
       setUser(null);
       setSession(null);
       setProfile(null);
@@ -491,8 +535,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setPermissions([]);
       setLoading(false);
       queryClient.clear();
-    } catch (e) {
-      log.error('[Auth] Sign out error:', e);
     }
   }, [queryClient]);
 

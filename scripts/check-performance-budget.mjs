@@ -23,9 +23,11 @@ async function run() {
   const args = process.argv.slice(2);
   const isWriteBaseline = args.includes('--write-baseline');
 
-  // 1. Simulate/Get current metrics
-  // In a real CI, this would read from Lighthouse report or Vitest browser results.
-  // For now, we'll implement the structure.
+  // ⚠️ ACHADO E02-N02 (2026-08-02): os valores abaixo são LITERAIS, não medições.
+  // O gate deixou de ser advisory (F10-06 removeu o continue-on-error), mas
+  // enquanto estes números forem fixos ele passa sempre. Substituir por leitura
+  // de relatório Lighthouse (web vitals) + tamanho real de `dist/assets/*.js`.
+  console.warn('⚠️  AVISO: métricas ainda são valores fixos (achado E02-N02), não medições reais.');
   const currentMetrics = {
     LCP: 1200,
     FID: 25,

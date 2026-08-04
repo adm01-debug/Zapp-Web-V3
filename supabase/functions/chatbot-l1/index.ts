@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     if (!parsed.success) return errorResponse(parsed.error, 400, req);
 
     const { contactId, message, connectionId } = parsed.data;
-    const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
+    const LOVABLE_API_KEY = Deno.env.get("AI_GATEWAY_KEY") || Deno.env.get("LOVABLE_API_KEY") || requireEnv("AI_GATEWAY_KEY");
     const supabase = createZappAdminClient();
 
     // Check if chatbot is active for this connection

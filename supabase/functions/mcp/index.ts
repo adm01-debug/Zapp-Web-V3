@@ -10,12 +10,12 @@ import { defineTool } from "npm:@lovable.dev/mcp-js@0.20.0";
 var whoami_default = defineTool({
   name: "whoami",
   title: "Quem sou eu",
-  description: "Retorna informa\xE7\xF5es do usu\xE1rio autenticado que est\xE1 chamando o MCP (ID, e-mail, client ID).",
+  description: "Retorna informações do usuário autenticado que está chamando o MCP (ID, e-mail, client ID).",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: (_input, ctx) => {
     if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "N\xE3o autenticado." }], isError: true };
+      return { content: [{ type: "text", text: "Não autenticado." }], isError: true };
     }
     const payload = {
       user_id: ctx.getUserId(),
@@ -35,8 +35,8 @@ import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z } from "npm:zod@^4.4.3";
 function supabaseForUser(ctx) {
   return createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY,
+    Deno.env.get("SELFHOSTED_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SELFHOSTED_SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")!,
     {
       global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
       auth: { persistSession: false, autoRefreshToken: false },
@@ -46,15 +46,15 @@ function supabaseForUser(ctx) {
 }
 var list_connections_default = defineTool2({
   name: "list_whatsapp_connections",
-  title: "Listar conex\xF5es WhatsApp",
-  description: "Lista as conex\xF5es WhatsApp (inst\xE2ncias) vis\xEDveis para o usu\xE1rio autenticado, respeitando RLS.",
+  title: "Listar conexões WhatsApp",
+  description: "Lista as conexões WhatsApp (instâncias) visíveis para o usuário autenticado, respeitando RLS.",
   inputSchema: {
-    limit: z.number().int().min(1).max(100).optional().describe("M\xE1ximo de conex\xF5es a retornar (padr\xE3o 20).")
+    limit: z.number().int().min(1).max(100).optional().describe("Máximo de conexões a retornar (padrão 20).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ limit }, ctx) => {
     if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "N\xE3o autenticado." }], isError: true };
+      return { content: [{ type: "text", text: "Não autenticado." }], isError: true };
     }
     const { data, error } = await supabaseForUser(ctx).from("whatsapp_connections").select("id, name, instance_id, phone_number, status, is_default, created_at").limit(limit ?? 20);
     if (error) {
@@ -73,8 +73,8 @@ import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z as z2 } from "npm:zod@^4.4.3";
 function supabaseForUser2(ctx) {
   return createClient2(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY,
+    Deno.env.get("SELFHOSTED_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SELFHOSTED_SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")!,
     {
       global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
       auth: { persistSession: false, autoRefreshToken: false },
@@ -85,15 +85,15 @@ function supabaseForUser2(ctx) {
 var list_contacts_default = defineTool3({
   name: "search_contacts",
   title: "Buscar contatos",
-  description: "Busca contatos por nome ou telefone (LIKE case-insensitive). Respeita RLS do usu\xE1rio.",
+  description: "Busca contatos por nome ou telefone (LIKE case-insensitive). Respeita RLS do usuário.",
   inputSchema: {
     query: z2.string().trim().min(1).max(120).describe("Termo de busca (nome ou telefone)."),
-    limit: z2.number().int().min(1).max(50).optional().describe("M\xE1ximo de resultados (padr\xE3o 20).")
+    limit: z2.number().int().min(1).max(50).optional().describe("Máximo de resultados (padrão 20).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ query, limit }, ctx) => {
     if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "N\xE3o autenticado." }], isError: true };
+      return { content: [{ type: "text", text: "Não autenticado." }], isError: true };
     }
     const sb = supabaseForUser2(ctx);
     const { data, error } = await sb.from("contacts").select("id, name, phone_number, email, assigned_to, created_at").or(`name.ilike.%${encodeURIComponent(query)}%,phone_number.ilike.%${encodeURIComponent(query)}%`).limit(limit ?? 20);
@@ -115,7 +115,7 @@ var mcp_default = defineMcp({
   name: "zapp-web-mcp",
   title: "ZAPP Web MCP",
   version: "0.1.0",
-  instructions: "Ferramentas para o ZAPP Web: identifica\xE7\xE3o do usu\xE1rio autenticado, listagem de conex\xF5es WhatsApp e busca de contatos. Todas as chamadas respeitam RLS do usu\xE1rio.",
+  instructions: "Ferramentas para o ZAPP Web: identificação do usuário autenticado, listagem de conexões WhatsApp e busca de contatos. Todas as chamadas respeitam RLS do usuário.",
   auth: auth.oauth.issuer({
     issuer: `${supabaseUrl}/auth/v1`,
     acceptedAudiences: "authenticated"

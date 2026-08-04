@@ -1,6 +1,6 @@
 
 import { whatsappConnectionRepository } from '@/features/connections/data-access/whatsappConnectionRepository';
-import { isExternalConfigured, getExternalSupabase } from '@/integrations/supabase/externalClient';
+import { supabase } from '@/integrations/supabase/client';
 
 /** Diagnostic Result. */
 export interface DiagnosticResult {
@@ -14,13 +14,11 @@ export interface DiagnosticResult {
 export async function runEvolutionDiagnostics(): Promise<DiagnosticResult[]> {
   const results: DiagnosticResult[] = [];
 
-  // 1. Check if external Supabase is configured
+  // 1. Banco self-hosted configurado (consolidação: cliente único, schema zapp)
   results.push({
-    step: 'Configuração do Banco Externo (FATOR X)',
-    status: isExternalConfigured ? 'ok' : 'fail',
-    message: isExternalConfigured
-      ? 'URL e Anon Key do seu Supabase externo estão configurados nos Secrets.'
-      : 'Secrets VITE_EXTERNAL_SUPABASE_URL ou VITE_EXTERNAL_SUPABASE_ANON_KEY ausentes.',
+    step: 'Configuração do Banco Self-Hosted (Evolution DB)',
+    status: 'ok',
+    message: 'Supabase self-hosted (schema zapp) em uso via cliente único.',
   });
 
   // 2. Test Edge Function Proxy Connectivity
@@ -43,7 +41,7 @@ export async function runEvolutionDiagnostics(): Promise<DiagnosticResult[]> {
       results.push({
         step: 'Evolution Proxy (Edge Function)',
         status: 'ok',
-        message: `Proxy respondendo em ${proxyLatency}ms. Comunicação Lovable -> FATOR X validada.`,
+        message: `Proxy respondendo em ${proxyLatency}ms. Comunicação Lovable -> Self-Hosted validada.`,
         details: proxyData,
       });
 
@@ -69,35 +67,30 @@ export async function runEvolutionDiagnostics(): Promise<DiagnosticResult[]> {
     }
   } catch (err: unknown) {
     results.push({
-      step: 'Conectividade Lovable Cloud',
+      step: 'Conectividade Self-Hosted',
       status: 'fail',
       message: `Erro crítico ao tentar usar a Edge Function: ${err instanceof Error ? err.message : String(err)}`,
     });
   }
 
   // 4. Test External Database Direct Connection
-  if (isExternalConfigured) {
-    try {
-      const extSupabase = getExternalSupabase();
-      if (extSupabase) {
-        // Connectivity probe against the external DB — a working query suffices
-        const { error: extError } = await extSupabase.from('contacts').select('id').limit(1);
-        results.push({
-          step: 'Database Direct (FATOR X)',
-          status: extError ? 'fail' : 'ok',
-          message: extError
-            ? `Erro ao acessar o Postgres do FATOR X: ${extError.message}`
-            : 'Conexão direta com o banco do seu Supabase externo está OK.',
-          details: extError ? { message: extError.message, code: extError.code, hint: extError.hint } : null,
-        });
-      }
-    } catch (err: unknown) {
-      results.push({
-        step: 'Database Direct (FATOR X)',
-        status: 'fail',
-        message: `Falha na conexão com banco de dados: ${err instanceof Error ? err.message : String(err)}`,
-      });
-    }
+  try {
+    // Connectivity probe against the DB — a working query suffices
+    const { error: extError } = await supabase.from('contacts').select('id').limit(1);
+    results.push({
+      step: 'Database Direct (Self-Hosted)',
+      status: extError ? 'fail' : 'ok',
+      message: extError
+        ? `Erro ao acessar o Postgres self-hosted: ${extError.message}`
+        : 'Conexão direta com o banco do seu Supabase externo está OK.',
+      details: extError ? { message: extError.message, code: extError.code, hint: extError.hint } : null,
+    });
+  } catch (err: unknown) {
+    results.push({
+      step: 'Database Direct (Evolution DB)',
+      status: 'fail',
+      message: `Falha na conexão com banco de dados: ${err instanceof Error ? err.message : String(err)}`,
+    });
   }
 
   return results;

@@ -65,8 +65,13 @@ describe('useServiceWorker', () => {
   });
 
   it('cleans legacy caches before registering the current worker', async () => {
-    mockCaches.keys.mockResolvedValueOnce(['whatsapp-crm-v2']);
-    sessionStorage.setItem('sw-cache-reset-done', '1');
+    // Cache name deve casar com o filtro /^(workbox-|zapp-)/i do novo comportamento.
+    // Nomes que nao casam sao tratados como caches legitimos do HTTP (nao purgados).
+    mockCaches.keys.mockResolvedValueOnce(['workbox-precache-v2']);
+    // Simula que o cleanup JA FOI FEITO (localStorage flag = '1'), ou seja,
+    // estamos na segunda visita apos o reload. Nesse cenario, o cleanup
+    // purga os caches mas NAO recarrega — permitindo o registro do SW.
+    localStorage.setItem('sw-cache-reset-done', '1');
 
     const { useServiceWorker } = await import('@/hooks/useServiceWorker');
     renderHook(() => useServiceWorker());
@@ -75,8 +80,57 @@ describe('useServiceWorker', () => {
 
     expect(navigator.serviceWorker.getRegistrations).toHaveBeenCalled();
     expect(mockUnregister).toHaveBeenCalled();
-    expect(caches.delete).toHaveBeenCalledWith('whatsapp-crm-v2');
+    expect(caches.delete).toHaveBeenCalledWith('workbox-precache-v2');
+    // Apos cleanup sem reload, o SW deve registrar.
     expect(navigator.serviceWorker.register).toHaveBeenCalled();
+  });
+
+  it('does not purge non-workbox/zapp caches (HTTP cache is legitimate)', async () => {
+    // Cache name que NAO casa com /^(workbox-|zapp-)/i — deve ser preservado.
+    mockCaches.keys.mockResolvedValueOnce(['whatsapp-crm-v2', 'http-cache-v1']);
+    localStorage.clear();
+
+    const { useServiceWorker } = await import('@/hooks/useServiceWorker');
+    renderHook(() => useServiceWorker());
+
+    await vi.advanceTimersByTimeAsync(0);
+
+    // Nao deve chamar getRegistrations nem delete — caches sao legitimos (HTTP).
+    expect(navigator.serviceWorker.getRegistrations).not.toHaveBeenCalled();
+    expect(caches.delete).not.toHaveBeenCalled();
+    // SW deve registrar normalmente apos skip do cleanup.
+    expect(navigator.serviceWorker.register).toHaveBeenCalled();
+  });
+
+  it('does not purge when SW already controls the page', async () => {
+    // Simula SW ja controlando a pagina — usa o mesmo mock do beforeEach
+    // mas com controller preenchido. Importante: NAO usa spread porque
+    // Object.defineProperty pode criar propriedades nao-enumeraveis.
+    Object.defineProperty(navigator, 'serviceWorker', {
+      value: {
+        register: vi.fn().mockResolvedValue(mockRegistration),
+        controller: { scriptURL: '/sw.js' } as ServiceWorker,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        getRegistrations: vi.fn().mockResolvedValue([{ unregister: mockUnregister }]),
+      },
+      writable: true,
+      configurable: true,
+    });
+    mockCaches.keys.mockResolvedValueOnce(['workbox-precache-v2']);
+    localStorage.clear();
+
+    const { useServiceWorker } = await import('@/hooks/useServiceWorker');
+    const { unmount } = renderHook(() => useServiceWorker());
+
+    await vi.advanceTimersByTimeAsync(0);
+
+    // Com SW controller ativo, nao deve purgar nada.
+    expect(navigator.serviceWorker.getRegistrations).not.toHaveBeenCalled();
+    expect(caches.delete).not.toHaveBeenCalled();
+
+    // Cleanup explicito para evitar erro de removeEventListener no unmount.
+    unmount();
   });
 
   it('does not crash when serviceWorker is unavailable', async () => {

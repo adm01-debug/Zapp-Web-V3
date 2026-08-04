@@ -41,6 +41,10 @@ export function useMediaRefresh(originalUrl: string | null | undefined, refreshK
     originalUrl,
     messageKey: refreshKey ? { remoteJid: refreshKey.remoteJid, fromMe: refreshKey.fromMe, id: refreshKey.id } : null,
     enabled,
+    // FIX 2026-08-03 (Gap 4): propagar messageType para ativar skip-list em
+    // useMediaUrl. Sem isso, stickers/ephemeral/vcard disparam 23+ tentativas
+    // desnecessárias de refresh por sessão (WARN spam no console).
+    messageType: refreshKey?.messageType,
   });
 
   const noopOnError = useCallback(() => {}, []);

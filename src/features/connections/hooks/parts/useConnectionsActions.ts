@@ -5,6 +5,7 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { useToast } from '@/hooks/use-toast';
 import { whatsappConnectionService } from '../../services/whatsappConnectionService';
 import { getLogger } from '@/lib/logger';
+import { validatePhoneDetailed } from '@/lib/phoneUtils';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
 import { queryKeys } from '@/services/api/queryKeys';
 import { validatePhone } from '@/lib/phoneUtils';
@@ -60,38 +61,67 @@ export function useConnectionsActions(
       });
     }
 
-    // F6-29: require a valid phone number for Evolution (non-official) connections.
-    if (correctedApiType !== 'official') {
-      const phoneResult = validatePhone(newConnection.phone_number);
-      if (!phoneResult.valid) {
-        toast({
-          title: 'Número de telefone inválido',
-          description: phoneResult.error ?? 'Informe um número de telefone válido com DDD.',
-          variant: 'destructive',
-        });
-        return;
-      }
+    // F6-29: phone_number obrigatório e em formato brasileiro — phone vazio/inválido
+    // quebra o match do useEvolutionAutoSync (cria duplicatas).
+    const phoneValidation = validatePhoneDetailed(newConnection.phone_number);
+    if (!phoneValidation.valid) {
+      toast({
+        title: 'Número de telefone inválido',
+        description:
+          phoneValidation.error ?? 'Informe um número brasileiro válido (ex.: 11 99999-9999).',
+        variant: 'destructive',
+      });
+      return;
     }
+    const normalizedPhone = phoneValidation.normalized ?? newConnection.phone_number.trim();
+
+    // F6-15: nome/type divergentes — se o nome sugere Cloud API oficial, força
+    // api_type='official' para o registro nunca nascer com nome enganoso.
+    const resolvedApiType: WhatsAppApiType = /cloud\s*api|oficial|official/i.test(
+      newConnection.name
+    )
+      ? 'official'
+      : newConnection.api_type;
 
     setIsCreating(true);
-    const isOfficial = correctedApiType === 'official';
+    const isOfficial = resolvedApiType === 'official';
+    // F6-02: o nome da instância deve ser o mesmo que `evolutionInstanceName`
+    // resolve para roteamento (nome de exibição quando é um instance name válido,
+    // senão o slug) — evita criar instância órfã divergente do roteamento (G4).
+    const trimmedName = newConnection.name.trim();
+    const INSTANCE_NAME_RE = /^[a-zA-Z0-9_-]{1,128}$/;
     const instanceName = isOfficial
       ? `official_${Date.now().toString(36)}`
-      : whatsappConnectionService.generateInstanceName(newConnection.name);
+      : INSTANCE_NAME_RE.test(trimmedName)
+        ? trimmedName
+        : whatsappConnectionService.generateInstanceName(newConnection.name);
 
     try {
+      // F6-02: criar a instância na Evolution API ANTES do INSERT. Falha aqui
+      // aborta o fluxo — nenhum registro fantasma em whatsapp_connections.
+      let evolutionInstanceNameResolved = instanceName;
+      let evolutionInstanceUuid: string | null = null;
+      if (!isOfficial) {
+        const created = await whatsappConnectionService.createInstance(instanceName);
+        const createdInstance = (
+          created as { instance?: { instanceName?: string; instanceId?: string } } | null
+        )?.instance;
+        if (createdInstance?.instanceName) evolutionInstanceNameResolved = createdInstance.instanceName;
+        if (createdInstance?.instanceId) evolutionInstanceUuid = createdInstance.instanceId;
+      }
+
       const { data, error } = await safeClient.single<Record<string, unknown>>(
         'whatsapp_connections',
         (q) =>
           q
             .insert({
               name: newConnection.name,
-              phone_number: newConnection.phone_number,
-              instance_id: instanceName,
-              instance_name: instanceName,
+              phone_number: normalizedPhone,
+              instance_id: evolutionInstanceUuid ?? evolutionInstanceNameResolved,
+              instance_name: evolutionInstanceNameResolved,
               status: 'disconnected',
               is_default: connections.length === 0,
-              api_type: correctedApiType,
+              api_type: resolvedApiType,
             })
             .select()
       );
@@ -104,7 +134,7 @@ export function useConnectionsActions(
         title: 'Conexão criada!',
         description: isOfficial
           ? 'Configure as credenciais da API oficial (Meta) nas configurações da conexão.'
-          : 'Agora conecte escaneando o QR Code.',
+          : 'Agora conecte escaneando o QR Code ou usando o código de emparelhamento.',
       });
       setIsAddDialogOpen(false);
       setNewConnection({ name: '', phone_number: '', api_type: 'evolution' });
@@ -160,26 +190,64 @@ export function useConnectionsActions(
         if (evoName) {
           try {
             await deleteInstance(evoName);
-          } catch (evoError: unknown) {
-            // F6-28: differentiate Evolution API errors — 404 means already gone (safe to
-            // continue cleaning up the DB row); any other failure means the instance is
-            // still live in Evolution and we must NOT delete the DB row, or we leave an
-            // orphan that keeps receiving webhooks with no handler.
-            //
-            // Cubic P1: a routing/function-not-found 404 is indistinguishable from an
-            // instance-not-found 404 by status code alone — verify the error message
-            // mentions the specific instance name before treating it as safe-to-continue.
-            const status = (evoError as { apiStatus?: number }).apiStatus;
-            const errMsg = (evoError as { message?: string }).message ?? '';
-            // A 404 is only "instance gone" if the error message references the specific instance —
-            // routing/unknown-action 404s return a generic message that does not include the instance name.
+          } catch (error: unknown) {
+            // F6-28: não engolir erro da Evolution — classificar e reagir.
+            const status = (error as { apiStatus?: number }).apiStatus;
+            const errMsg = (error as { message?: string }).message ?? '';
             const isInstanceGone = status === 404 && errMsg.includes(evoName);
-            if (!isInstanceGone) {
-              log.error('Evolution API delete failed — aborting DB cleanup:', evoError);
-              // deleteInstance already shows its own error toast before rethrowing; no second toast here.
+            if (isInstanceGone) {
+              // Instância já não existe na Evolution — pode seguir com o delete no banco.
+              log.info(
+                `Instância Evolution ${evoName} já não existe (404); seguindo com o delete no banco.`
+              );
+            } else if (
+              status == null ||
+              status >= 500 ||
+              status === 408 ||
+              status === 425 ||
+              status === 429
+            ) {
+              // 5xx / timeout / falha de rede: erro retriável — NÃO deleta no banco;
+              // marca a conexão para retry (flag em settings) e preserva o registro.
+              const msg = error instanceof Error ? error.message : String(error);
+              log.warn(
+                `Falha retriável ao deletar instância Evolution ${evoName} (status ${status ?? 'timeout/network'}); marcando para retry.`,
+                error
+              );
+              const { error: updateError } = await safeClient.from('whatsapp_connections', (q) =>
+                q
+                  .update({
+                    settings: {
+                      ...((
+                        connection as WhatsAppConnection & {
+                          settings?: Record<string, unknown>;
+                        }
+                      ).settings ?? {}),
+                      delete_pending: true,
+                      delete_pending_at: new Date().toISOString(),
+                      delete_pending_error: msg,
+                    },
+                  })
+                  .eq('id', connection.id)
+              );
+              if (updateError) {
+                log.warn('Falha ao marcar conexão para retry de delete:', updateError);
+              }
+              toast({
+                title: 'Remoção adiada',
+                description:
+                  'A instância ainda existe na Evolution API. A conexão foi mantida e a remoção será tentada novamente.',
+                variant: 'destructive',
+              });
               return;
+            } else {
+              // 4xx terminal (auth/perms): aborta o delete no banco e alerta o usuário.
+              log.error(
+                `Evolution rejeitou o delete da instância ${evoName} (status ${status}); abortando o delete no banco.`,
+                error
+              );
+              throw error;
             }
-            log.info('Evolution instance already absent (404) — continuing DB cleanup:', evoName);
           }
         }
         const { error } = await safeClient.from('whatsapp_connections', (q) =>

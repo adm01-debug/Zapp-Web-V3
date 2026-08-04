@@ -55,7 +55,7 @@ function emptyChannel(): Partial<ServiceChannel> {
     sticky_enabled: false,
     sticky_ttl_hours: 24,
     is_default: false,
-    color: "hsl(var(--primary))",
+    color: "#3b82f6", // blue-500 — default channel color (F7-10: não usar classe CSS como valor)
   };
 }
 
@@ -147,8 +147,7 @@ export default function AdminChannelsPage() {
           {filteredChannels.map((ch) => {
             const queue = queues.find((q) => q.id === ch.default_queue_id);
             const wpp = wppConns.find((w) => w.id === ch.whatsapp_connection_id);
-            // F7-19: defensive fallback for unmapped statuses.
-            const statusInfo = STATUS_BADGE[ch.status] ?? { label: ch.status, variant: 'outline' as const };
+            const statusInfo = STATUS_BADGE[ch.status] ?? { label: ch.status || 'Desconhecido', variant: 'secondary' as const };
             return (
               <Card key={ch.id}>
                 <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">

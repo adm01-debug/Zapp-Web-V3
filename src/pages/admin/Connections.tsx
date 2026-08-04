@@ -25,7 +25,6 @@ import {
   Activity,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { updateRuntimeExternalConfig } from '@/integrations/supabase/externalClient';
 import { MCP_SERVER_URL } from '@/pages/admin/useConnections';
 import { safeClient, safeFrom } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
@@ -171,17 +170,14 @@ export default function AdminConnectionsPage() {
 
     if (!error && data) {
       setConnections(data);
-      const fatorX = data.find(
-        (c: SystemConnection) => c.provider === 'supabase_external' || c.name === 'FATOR X'
+      const externalConn = data.find(
+        (c: SystemConnection) => c.provider === 'supabase_external' || c.name === 'Evolution DB'
       );
-      if (fatorX?.config?.url && fatorX?.config?.anon_key) {
-        setExternalUrl(fatorX.config.url);
-        setDraftUrl(fatorX.config.url);
-        setExternalKey(fatorX.config.anon_key);
-        setDraftKey(fatorX.config.anon_key);
-
-        // Sincroniza o cliente em tempo de execução
-        updateRuntimeExternalConfig(fatorX.config.url, fatorX.config.anon_key);
+      if (externalConn?.config?.url && externalConn?.config?.anon_key) {
+        setExternalUrl(externalConn.config.url);
+        setDraftUrl(externalConn.config.url);
+        setExternalKey(externalConn.config.anon_key);
+        setDraftKey(externalConn.config.anon_key);
       }
     }
     setLoading(false);
@@ -251,7 +247,7 @@ export default function AdminConnectionsPage() {
     }
 
     const payload: SystemConnectionPayload = {
-      name: 'FATOR X',
+      name: 'Evolution DB',
       provider: 'supabase_external',
       config: { url: draftUrl, anon_key: draftKey },
       is_active: true,
@@ -259,7 +255,7 @@ export default function AdminConnectionsPage() {
 
     try {
       const existing: SystemConnection | undefined = connections.find(
-        (c: SystemConnection) => c.provider === 'supabase_external' || c.name === 'FATOR X'
+        (c: SystemConnection) => c.provider === 'supabase_external' || c.name === 'Evolution DB'
       );
       const insertPayload = currentUserId ? { ...payload, created_by: currentUserId } : payload;
 
@@ -300,7 +296,7 @@ export default function AdminConnectionsPage() {
           q
             .select('id, updated_at')
             .eq('provider', 'supabase_external')
-            .eq('name', 'FATOR X')
+            .eq('name', 'Evolution DB')
             .limit(1)
       );
       const verify = verifyRows?.[0] ?? null;
@@ -316,12 +312,12 @@ export default function AdminConnectionsPage() {
       setExternalKey(draftKey);
       setEditOpen(false);
 
-      // Atualiza o cliente em tempo de execução imediatamente
-      updateRuntimeExternalConfig(draftUrl, draftKey);
+      // updateRuntimeExternalConfig() removido — no-op desde a consolidação
+      // single-DB (2026-07-15): o app usa apenas o Supabase self-hosted (schema zapp).
 
       toast({
         title: 'Credenciais salvas e validadas',
-        description: `Configuração atualizada via runtime. Redirecionando para Status da Ponte...`,
+        description: `Configuração salva. Redirecionando para Status da Ponte...`,
       });
 
       if (redirectTimerRef.current !== null) clearTimeout(redirectTimerRef.current);
@@ -449,8 +445,8 @@ export default function AdminConnectionsPage() {
                         value={editOpen ? draftUrl : externalUrl}
                         onChange={(e) => setDraftUrl(e.target.value)}
                         readOnly={!editOpen}
-                        className="font-mono text-xs" // @technical
-                      />
+                        className="font-mono text-xs"
+                      /> {/* @technical */}
                     </div>
                     <div className="space-y-2">
                       <Label>Chave Anon (Public)</Label>
@@ -466,8 +462,8 @@ export default function AdminConnectionsPage() {
                         onChange={(e) => setDraftKey(e.target.value)}
                         readOnly={!editOpen}
                         placeholder={editOpen ? 'eyJhbGciOi...' : ''}
-                        className="font-mono text-xs" // @technical
-                      />
+                        className="font-mono text-xs"
+                      /> {/* @technical */}
                     </div>
                     {editOpen && (
                       <p className="text-[11px] text-muted-foreground">
@@ -757,7 +753,7 @@ export default function AdminConnectionsPage() {
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto whitespace-pre rounded border border-secondary/20 bg-muted p-3 font-mono text-[10px]"> // @technical
+                  <div className="overflow-x-auto whitespace-pre rounded border border-secondary/20 bg-muted p-3 font-mono text-[10px]"> {/* @technical */}
                     {`"mcpServers": {
   "zapp-web": {
     "command": "npx",

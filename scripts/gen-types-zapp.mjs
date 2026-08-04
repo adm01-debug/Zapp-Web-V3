@@ -12,7 +12,7 @@
  *  - inclui schemas zapp,evo,public no endpoint /generators/typescript
  *  - garante que tabelas CRM (deals, pipelines, contatos_crm, etc.) fiquem
  *    tipadas mesmo quando vivem fora do schema public
- *  - mantém a cauda Lovable (DatabaseWithoutInternals + helpers)
+ *  - mantém a cauda legada (DatabaseWithoutInternals + helpers)
  *
  * NOTA: O Kong do Supabase self-hosted usa key-auth (header `apikey`),
  * NÃO `Authorization: Bearer`. Corrigido em 16/07/2026 após falha do
@@ -58,7 +58,7 @@ try {
   src = j.types || j.data || src;
 } catch { /* raw TS */ }
 
-// Preserva cauda Lovable (DatabaseWithoutInternals + helpers)
+// Preserva cauda legada (DatabaseWithoutInternals + helpers)
 let existingTail = '';
 try {
   const existing = readFileSync(OUT, 'utf8');
@@ -77,9 +77,9 @@ try {
 let out = src.trimEnd();
 if (existingTail && existingTail.includes('DatabaseWithoutInternals')) {
   out += '\n' + existingTail;
-  console.log(`✓ Cauda Lovable preservada (${existingTail.split('\n').length} linhas)`);
+  console.log(`✓ Cauda legada preservada (${existingTail.split('\n').length} linhas)`);
 } else {
-  console.warn('⚠ Cauda Lovable não localizada — helpers auxiliares podem faltar.');
+  console.warn('⚠ Cauda legada não localizada — helpers auxiliares podem faltar.');
 }
 
 writeFileSync(OUT, out);

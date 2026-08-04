@@ -1,1 +1,0 @@
-COMMENT ON TABLE public.profiles IS 'User profiles - triggered types regeneration';

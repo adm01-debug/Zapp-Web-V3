@@ -13,7 +13,6 @@ import { KeyboardShortcutsHelp } from '../KeyboardShortcutsHelp';
 import { RealtimeCollaboration } from '../RealtimeCollaboration';
 import { useExternalContact360 } from '@/hooks/useExternalApiManagement';
 import { useContactIntelligence } from '@/hooks/useContactIntelligence';
-import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import {
   Video,
   PhoneCall,
@@ -83,16 +82,12 @@ export const ChatHeader = memo(function ChatHeader({
   whisperCount,
   onOpenValidation,
 }: ChatHeaderProps) {
-  const { data: crmData } = useExternalContact360(
-    isExternalConfigured ? (conversation.contact.phone ?? undefined) : undefined
-  );
+  const { data: crmData } = useExternalContact360(conversation.contact.phone ?? undefined);
   const _crmCompany = crmData?.found ? crmData.company : null;
   const _crmCustomer = crmData?.found ? crmData.customer : null;
   const _crmRfm = crmData?.found ? crmData.rfm : null;
 
-  const { intelligence: intel } = useContactIntelligence(
-    isExternalConfigured ? (conversation.contact.phone ?? undefined) : undefined
-  );
+  const { intelligence: intel } = useContactIntelligence(conversation.contact.phone ?? undefined);
   const _briefing = intel?.found ? intel.briefing : null;
   const { avatarUrl } = useContactAvatar(conversation.contact.remote_jid, conversation.contact.avatar);
   const { density, cycleDensity } = useDensity();

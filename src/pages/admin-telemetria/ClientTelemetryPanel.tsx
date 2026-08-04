@@ -48,7 +48,7 @@ export function ClientTelemetryPanel() {
           <div>
             <h2 className="text-xl font-bold">Telemetria do Cliente</h2>
             <p className="text-sm text-muted-foreground">
-              Contadores em memória das chamadas ao FATOR X / proxy (auto-refresh {REFRESH_MS / 1000}s)
+              Contadores em memória das chamadas ao Evolution DB / proxy (auto-refresh {REFRESH_MS / 1000}s)
             </p>
           </div>
         </div>

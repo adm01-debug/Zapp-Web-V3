@@ -16,10 +16,8 @@ const EVOLUTION_URL = Deno.env.get('EVOLUTION_API_URL');
 if (!EVOLUTION_URL) throw new Error('[backfill] EVOLUTION_API_URL env var is required');
 const EVOLUTION_KEY = Deno.env.get('EVOLUTION_API_KEY');
 if (!EVOLUTION_KEY) throw new Error('[backfill] EVOLUTION_API_KEY env var is required');
-const INSTANCE = Deno.env.get('BACKFILL_INSTANCE_NAME');
-if (!INSTANCE) throw new Error('[backfill] BACKFILL_INSTANCE_NAME env var is required');
-const CONNECTION_ID = Deno.env.get('BACKFILL_CONNECTION_ID');
-if (!CONNECTION_ID) throw new Error('[backfill] BACKFILL_CONNECTION_ID env var is required');
+const INSTANCE = Deno.env.get('BACKFILL_INSTANCE_NAME'); // optional — can be passed in body
+const CONNECTION_ID = Deno.env.get('BACKFILL_CONNECTION_ID'); // optional — can be passed in body
 
 const SKIP_TYPES = new Set(['reaction', 'sticker', 'protocolMessage', 'ephemeralMessage']);
 
@@ -59,10 +57,10 @@ function tsToIso(ts: number | string | undefined): string {
   return new Date(n < 1e10 ? n * 1000 : n).toISOString();
 }
 
-async function upsertContact(supabase: ReturnType<typeof createZappAdminClient>, phone: string, remoteJid: string, pushName: string | undefined): Promise<string | null> {
-  const { data: existing } = await supabase.from('evolution_contacts').select('id').eq('instance_name', INSTANCE).is('deleted_at', null).or(`phone_number.eq.${phone},remote_jid.eq.${remoteJid}`).limit(1).maybeSingle();
+async function upsertContact(supabase: ReturnType<typeof createZappAdminClient>, phone: string, remoteJid: string, pushName: string | undefined, instanceName: string, connectionId: string): Promise<string | null> {
+  const { data: existing } = await supabase.from('evolution_contacts').select('id').eq('instance_name', instanceName).is('deleted_at', null).or(`phone_number.eq.${phone},remote_jid.eq.${remoteJid}`).limit(1).maybeSingle();
   if (existing?.id) return existing.id as string;
-  const { data: created, error } = await supabase.schema('public' as 'zapp').from('contacts').insert({ phone, name: pushName || phone, whatsapp_connection_id: CONNECTION_ID, instance_name: INSTANCE, remote_jid: remoteJid }).select('id').single();
+  const { data: created, error } = await supabase.schema('public' as 'zapp').from('contacts').insert({ phone, name: pushName || phone, whatsapp_connection_id: connectionId, instance_name: instanceName, remote_jid: remoteJid }).select('id').single();
   if (error) { console.error('[backfill] upsertContact error', phone, error.message); return null; }
   return (created as { id: string }).id;
 }
@@ -74,12 +72,16 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response(JSON.stringify({ error: 'method_not_allowed' }), { status: 405, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
   const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
   const body = await req.json().catch(() => ({}));
+  const instanceName = INSTANCE || (body.instance_name as string) || (body.instance as string);
+  const connectionId = CONNECTION_ID || (body.connection_id as string);
+  if (!instanceName) return json({ error: 'missing_instance_name', hint: 'Set BACKFILL_INSTANCE_NAME env var or pass instance_name in body' }, 400);
+  if (!connectionId) return json({ error: 'missing_connection_id', hint: 'Set BACKFILL_CONNECTION_ID env var or pass connection_id in body' }, 400);
   const offset: number = Number(body.offset ?? 0);
   const limit: number = Math.min(Number(body.limit ?? 200), 500);
   const dryRun: boolean = body.dryRun === true;
   let evMsgs: Record<string, unknown>[] = [];
   try {
-    const res = await fetch(`${EVOLUTION_URL}/chat/findMessages/${INSTANCE}`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_KEY }, body: JSON.stringify({ where: {}, limit, offset }) });
+    const res = await fetch(`${EVOLUTION_URL}/chat/findMessages/${instanceName}`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_KEY }, body: JSON.stringify({ where: {}, limit, offset }) });
     if (!res.ok) return json({ error: 'upstream_error', status: res.status }, 502);
     const data = await res.json();
     evMsgs = Array.isArray(data) ? data : Array.isArray(data?.messages) ? data.messages : [];
@@ -99,9 +101,9 @@ Deno.serve(async (req) => {
     if (!phone) { skipped++; continue; }
     if (SKIP_TYPES.has(msgType)) { skipped++; continue; }
     if (!msgId) { skipped++; continue; }
-    const contactId = await upsertContact(supabase, phone, remoteJid, pushName || undefined);
+    const contactId = await upsertContact(supabase, phone, remoteJid, pushName || undefined, instanceName, connectionId);
     if (!contactId) { errors++; continue; }
-    const { error: insErr } = await supabase.schema('evo' as 'zapp').from('evolution_messages').insert({ message_id: msgId, remote_jid: remoteJid, from_me: fromMe, direction: fromMe ? 'outbound' : 'inbound', status: fromMe ? 'sent' : 'received', message_type: msgType, content: extractContent(msg), push_name: pushName || null, instance_name: INSTANCE, contact_id: contactId, timestamp: tsToIso(msg.messageTimestamp as number), raw: msg as unknown as Record<string, unknown> }).select('id');
+    const { error: insErr } = await supabase.schema('evo' as 'zapp').from('evolution_messages').insert({ message_id: msgId, remote_jid: remoteJid, from_me: fromMe, direction: fromMe ? 'outbound' : 'inbound', status: fromMe ? 'sent' : 'received', message_type: msgType, content: extractContent(msg), push_name: pushName || null, instance_name: instanceName, contact_id: contactId, timestamp: tsToIso(msg.messageTimestamp as number), raw: msg as unknown as Record<string, unknown> }).select('id');
     if (insErr) { if ((insErr as { code?: string }).code === '23505') { skipped++; } else { console.error('[backfill] insert error', msgId, insErr.message); errors++; } } else { inserted++; }
   }
   return json({ processed: evMsgs.length, inserted, skipped, errors, next_offset: offset + evMsgs.length, done: evMsgs.length < limit });

@@ -1,13 +1,18 @@
 # ZAPP Web — Guia Definitivo: Banco de Dados Self-Hosted
 
 > **ATENÇÃO LOVABLE AI**: Este documento define a arquitetura oficial de dados do ZAPP Web.
-> O banco de dados de mensagens, contatos e conversas NÃO está no Supabase Lovable.
-> Está em um **Supabase Self-Hosted** na VPS AtomicaBR.
-> NUNCA crie tabelas `evolution_*` no Supabase Lovable. Elas já existem no self-hosted.
+> O ZAPP Web opera com **UM ÚNICO Supabase Self-Hosted** na VPS AtomicaBR (`supabase.atomicabr.com.br`),
+> com múltiplos schemas: `zapp` (aplicativo), `evo` (WhatsApp/CRM) e `public` (interno).
+> NUNCA crie tabelas fora dos schemas definidos — em especial, nunca crie tabelas `evolution_*` fora do schema `evo`.
+> Não existe mais Supabase "Lovable" para dados do app (ver nota de consolidação abaixo).
 
 ---
 
-> **Atualização 2026-07-15**: O projeto foi consolidado para um ÚNICO Supabase Self-Hosted.
+> **Consolidação (2026-07-15)**: A plataforma opera com um **único** Supabase Self-Hosted (`supabase.atomicabr.com.br`).
+> A arquitetura de DOIS bancos foi eliminada: o Supabase Cloud do Lovable (`allrjhkpuscmgbsnmjlv.supabase.co`)
+> foi **descontinuado** — seus dados de aplicação (auth, profiles, whatsapp_connections, user_settings)
+> foram consolidados no schema `zapp` do self-hosted, e o domínio WhatsApp/CRM (tabelas `evolution_*`)
+> no schema `evo`. Não há mais ponte para banco externo (Lovable Cloud ou Evolution DB).
 > Schema principal: `zapp`. Veja [../SCHEMA_REFERENCE.md](../SCHEMA_REFERENCE.md).
 
 ## 1. Arquitetura de Dados
@@ -16,12 +21,15 @@ O ZAPP Web usa **um único Supabase Self-Hosted** com múltiplos schemas:
 
 | Banco | Tipo | URL | Função |
 |-------|------|-----|--------|
-| **Lovable Supabase** | Cloud (Lovable) | `allrjhkpuscmgbsnmjlv.supabase.co` | Auth, profiles, whatsapp_connections, UI state |
-| **Self-Hosted Supabase** | VPS AtomicaBR | `supabase.atomicabr.com.br` | WhatsApp: mensagens, contatos, conversas, CRM, pipeline |
+| **Self-Hosted Supabase** (único) | VPS AtomicaBR | `supabase.atomicabr.com.br` | **Todo o aplicativo** — schema `zapp` (auth, profiles, whatsapp_connections, user_settings, UI state) + schema `evo` (mensagens, contatos, conversas, CRM, pipeline) |
+
+> **Histórico**: o Supabase Cloud do Lovable (`allrjhkpuscmgbsnmjlv.supabase.co`) foi **descontinuado** na
+> consolidação de 2026-07-15. Referências a ele em docs/PRs antigos são obsoletas — não usar.
 
 ### Regra de ouro:
-- **Lovable Supabase** = dados do aplicativo (auth, configurações, conexões)
-- **Self-Hosted Supabase** = dados do WhatsApp (todas as tabelas `evolution_*`)
+- **Um único banco**: `supabase.atomicabr.com.br` concentra TODOS os dados do ZAPP Web (não há mais divisão "Lovable = app / Self-hosted = WhatsApp")
+- **Schema `zapp`** = dados do aplicativo (auth, configurações, conexões) — default do client principal
+- **Schema `evo`** = dados do WhatsApp/CRM (todas as tabelas `evolution_*`) — acessar com `.schema('evo')`
 
 ---
 
@@ -32,19 +40,24 @@ URL:       https://supabase.atomicabr.com.br
 Anon Key:  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ewogICJyb2xlIjogImFub24iLAogICJpc3MiOiAic3VwYWJhc2UiLAogICJpYXQiOiAxNzE1MDUwODAwLAogICJleHAiOiAxODcyODE3MjAwCn0.rvamc0XHuSCYB1glBwOCCxgfd9yxWVYLnhFzg5-7TRk
 ```
 
-Estas credenciais já estão hardcoded no arquivo:
-`src/integrations/supabase/externalClient.ts`
+O client principal está em `src/integrations/supabase/client.ts` (URL fixa do self-hosted;
+anon key via `VITE_SUPABASE_ANON_KEY` / `VITE_SUPABASE_PUBLISHABLE_KEY` — GitHub Secrets / Vercel env vars, sem key hardcoded).
 
 ---
 
 ## 3. Como o Frontend Acessa o Self-Hosted
 
-O arquivo `src/integrations/supabase/externalClient.ts` exporta:
+O client principal (`src/integrations/supabase/client.ts`) aponta para o self-hosted com `schema: 'zapp'`.
+
+> **Shim de compatibilidade**: desde a consolidação (2026-07-15), `src/integrations/supabase/externalClient.ts`
+> é apenas um shim que retorna o MESMO client principal (`externalSupabase === supabase`). Mantido para os
+> ~37 consumidores existentes; código novo deve importar de `@/integrations/supabase/client`.
 
 ```typescript
-import { externalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
+import { externalSupabase } from '@/integrations/supabase/externalClient'; // shim → mesmo client
+// ou: import { supabase } from '@/integrations/supabase/client'; // client principal (schema zapp)
 
-// Uso:
+// Uso (dados evo.* via RPC):
 const { data } = await externalSupabase!.rpc('rpc_list_messages_lite', {
   p_remote_jid: '5511999990000@s.whatsapp.net',
   p_instance: 'wpp2',
@@ -52,7 +65,9 @@ const { data } = await externalSupabase!.rpc('rpc_list_messages_lite', {
 });
 ```
 
-**IMPORTANTE**: Quando precisar ler mensagens, contatos, conversas ou qualquer dado `evolution_*`, use `externalSupabase` — NUNCA `supabase` (que é o client Lovable).
+**IMPORTANTE**: Existe UM ÚNICO client (`supabase`) apontando para `supabase.atomicabr.com.br` (schema `zapp`).
+Para ler mensagens, contatos, conversas ou qualquer tabela `evolution_*` (schema `evo`), use
+`externalSupabase` (shim) ou `.schema('evo')` explicitamente. Não há mais client "Lovable".
 
 ---
 
@@ -208,7 +223,10 @@ const { data } = await externalSupabase!.rpc('rpc_list_messages_lite', {
 
 ## 5. RPCs Disponíveis (47 funções)
 
-Todas acessíveis via `externalSupabase!.rpc('nome', { params })`
+Todas acessíveis via `externalSupabase!.rpc('nome', { params })` (shim → mesmo client único).
+
+> **Recomendado**: no código novo, use a camada tipada `@/integrations/datasource/db` (`dbList`, `dbGet`, `dbInsert`)
+> com o catálogo `rpcCatalog.ts` — encapsula client, schema e tipos.
 
 ### Mensagens
 | RPC | Descrição |
@@ -346,46 +364,50 @@ Todas as RPCs têm `GRANT EXECUTE TO anon, authenticated`.
 
 ## 10. Regras para o Lovable AI
 
+> Desde a consolidação (2026-07-15) não existe mais divisão de bancos: **tudo vive no Supabase Self-Hosted único**
+> (`supabase.atomicabr.com.br`). "Lovable Supabase" e "FATOR X" são referências históricas — não usar.
+
 ### FAÇA:
-- Use `externalSupabase` de `@/integrations/supabase/externalClient` para ler/escrever dados de WhatsApp
+- Use o client principal `supabase` de `@/integrations/supabase/client` (schema `zapp`) para dados do app
+- Use `externalSupabase` (shim) ou `.schema('evo')` para ler/escrever dados de WhatsApp (`evo.*`)
 - Use as RPCs listadas acima (são otimizadas e seguras)
-- Use `externalSupabase.channel()` para Realtime em tabelas `evolution_*`
+- Use `externalSupabase.channel()` para Realtime em tabelas `evolution_*` — sempre com `schema` explícito e a tabela RAIZ (nunca a partição)
 - Filtre sempre por `instance_name` (ex: `p_instance: 'wpp2'`)
 - Use `rpc_list_messages_lite` para carregar mensagens no chat
 - Use `rpc_search_messages` para busca full-text
 - Use `rpc_get_contact` para buscar contato por JID
 
 ### NÃO FAÇA:
-- NUNCA crie tabelas `evolution_*` no Supabase Lovable
-- NUNCA use `supabase` (Lovable client) para acessar mensagens/contatos
-- NUNCA migre dados do self-hosted para o Lovable
-- NUNCA duplique RPCs no Supabase Lovable
-- NUNCA altere `externalClient.ts` sem autorização
-- NUNCA use o FATOR X cloud (tdprnylgyrogbbhgdoik) — foi descontinuado
+- NUNCA crie tabelas `evolution_*` fora do schema `evo` (nem em `zapp`, nem em `public`)
+- NUNCA aponte client para URL `*.supabase.co` (Lovable Cloud e FATOR X são históricos) — o guardrail `scripts/check-schema-usage.mjs` falha o CI
+- NUNCA migre dados entre bancos — não existe outro banco para onde migrar
+- NUNCA duplique RPCs — as 47 do self-hosted são canônicas
+- NUNCA altere `externalClient.ts` sem autorização (é shim de compatibilidade)
+- NUNCA use o Evolution DB cloud (`tdprnylgyrogbbhgdoik`) nem o Lovable cloud (`allrjhkpuscmgbsnmjlv.supabase.co`) — descontinuados na consolidação de 2026-07-15; o projeto usa um único banco
 
-### Qual banco usar para cada feature:
+### Qual schema/client usar para cada feature:
 
 | Feature | Banco | Client |
 |---------|-------|--------|
-| Login/Auth | Lovable | `supabase` |
-| Profiles | Lovable | `supabase` |
-| whatsapp_connections | Lovable | `supabase` |
-| user_settings | Lovable | `supabase` |
-| Edge functions (evolution-api) | Lovable | `supabase.functions.invoke` |
-| **Mensagens WhatsApp** | **Self-Hosted** | `externalSupabase` |
-| **Contatos WhatsApp** | **Self-Hosted** | `externalSupabase` |
-| **Conversas** | **Self-Hosted** | `externalSupabase` |
-| **CRM/Pipeline** | **Self-Hosted** | `externalSupabase` |
-| **Labels/Tags** | **Self-Hosted** | `externalSupabase` |
-| **Tasks** | **Self-Hosted** | `externalSupabase` |
-| **Groups** | **Self-Hosted** | `externalSupabase` |
-| **Calls** | **Self-Hosted** | `externalSupabase` |
-| **Media Library** | **Self-Hosted** | `externalSupabase` |
-| **Quick Replies** | **Self-Hosted** | `externalSupabase` |
-| **Templates** | **Self-Hosted** | `externalSupabase` |
-| **Broadcasts** | **Self-Hosted** | `externalSupabase` |
-| **Audit Log** | **Self-Hosted** | `externalSupabase` |
-| **Notifications** | **Self-Hosted** | `externalSupabase` |
+| Login/Auth | Self-Hosted (Supabase Auth) | `supabase` |
+| Profiles | Self-Hosted (`zapp`) | `supabase` |
+| whatsapp_connections | Self-Hosted (`zapp`) | `supabase` |
+| user_settings | Self-Hosted (`zapp`) | `supabase` |
+| Edge functions (evolution-api) | Self-Hosted | `supabase.functions.invoke` |
+| **Mensagens WhatsApp** | **Self-Hosted (`evo`)** | `externalSupabase` / `.schema('evo')` |
+| **Contatos WhatsApp** | **Self-Hosted (`evo`)** | `externalSupabase` / `.schema('evo')` |
+| **Conversas** | **Self-Hosted (`evo`)** | `externalSupabase` / `.schema('evo')` |
+| **CRM/Pipeline** | **Self-Hosted (`evo`)** | `externalSupabase` / `.schema('evo')` |
+| **Labels/Tags** | **Self-Hosted (`evo`)** | `externalSupabase` / `.schema('evo')` |
+| **Tasks** | **Self-Hosted (`evo`)** | `externalSupabase` / `.schema('evo')` |
+| **Groups** | **Self-Hosted (`evo`)** | `externalSupabase` / `.schema('evo')` |
+| **Calls** | **Self-Hosted (`evo`)** | `externalSupabase` / `.schema('evo')` |
+| **Media Library** | **Self-Hosted (`evo`)** | `externalSupabase` / `.schema('evo')` |
+| **Quick Replies** | **Self-Hosted (`evo`)** | `externalSupabase` / `.schema('evo')` |
+| **Templates** | **Self-Hosted (`evo`)** | `externalSupabase` / `.schema('evo')` |
+| **Broadcasts** | **Self-Hosted (`evo`)** | `externalSupabase` / `.schema('evo')` |
+| **Audit Log** | **Self-Hosted (`evo`)** | `externalSupabase` / `.schema('evo')` |
+| **Notifications** | **Self-Hosted (`evo`)** | `externalSupabase` / `.schema('evo')` |
 
 ---
 
@@ -419,4 +441,4 @@ Instâncias:
 
 ---
 
-*Última atualização: 2026-05-02*
+*Última atualização: 2026-08-03 (refletindo a consolidação single-DB de 2026-07-15)*

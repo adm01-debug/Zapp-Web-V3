@@ -1,8 +1,10 @@
-import { useRef, useMemo, memo, useCallback } from 'react';
+import { useRef, useMemo, memo, useCallback, useEffect, useState } from 'react';
 import { useVirtualizer, type VirtualItem } from '@tanstack/react-virtual';
+import { Loader2 } from 'lucide-react';
 
 import { ConversationWithMessages } from '@/features/inbox';
 import { useDensity } from '@/hooks/useDensity';
+import type { CRMBatchResult } from '@/hooks/useExternalContact360Batch';
 import { MOCK_CONVERSATIONS } from './conversation-list/__mocks__/mockConversations';
 import { ConversationItem as SharedConversationItem } from './conversation-list/ConversationItem';
 import type { ConversationItemData } from './conversation-list/conversationItemShared';
@@ -26,16 +28,48 @@ interface VirtualizedRealtimeListProps {
   onArchive?: (contactId: string) => void;
   onPin?: (contactId: string) => void;
   pinnedIds?: Set<string>;
+  /** F4-01: scroll infinito — chamado quando o sentinel do fim da lista entra na viewport. */
+  onLoadMore?: () => void;
+  /** F4-01: se ainda existem páginas de conversas para carregar. */
+  hasMore?: boolean;
+  /** F4-01: se um load-more está em andamento. */
+  loadingMore?: boolean;
+  /**
+   * Lazy-load contact360: reporta os phones das conversas atualmente DENTRO do
+   * viewport (sem overscan). O pai deve alimentar useExternalContact360Batch
+   * com essa lista para que a busca batch só dispare para contatos visíveis.
+   * Só é chamado quando o conjunto de phones visíveis muda.
+   */
+  onVisiblePhonesChange?: (phones: string[]) => void;
+  /**
+   * Lookup do resultado do batch contact360 (useExternalContact360Batch.lookup).
+   * Enriquece company_name dos itens visíveis quando o contato não o possui.
+   */
+  getCRMData?: (phone: string) => CRMBatchResult | undefined;
 }
 
 const ITEM_HEIGHT_NORMAL = 96; // Comfortable mode with breathing room
 const ITEM_HEIGHT_COMPACT = 82; // Compact mode with clear card separation
 const EMPTY_SET = new Set<string>();
 
-function toConversationItemData(conversation: ConversationWithMessages): ConversationItemData {
+function toConversationItemData(
+  conversation: ConversationWithMessages,
+  getCRMData?: (phone: string) => CRMBatchResult | undefined
+): ConversationItemData {
+  const phone = conversation.contact.phone;
+  const crmData = phone && getCRMData ? getCRMData(phone) : undefined;
+  // ConversationContact não expõe company_name (usa `company`); o item da
+  // lista (ConversationItemData) prefere company_name → enriquece quando o
+  // contato não tem nome de empresa próprio.
+  const contactCompanyName = (conversation.contact as { company_name?: string | null }).company_name;
+  const contact =
+    crmData?.company_name && !contactCompanyName
+      ? { ...conversation.contact, company_name: crmData.company_name }
+      : conversation.contact;
+
   return {
     id: conversation.contact.id,
-    contact: conversation.contact,
+    contact,
     unreadCount: conversation.unreadCount,
     lastMessage: conversation.lastMessage
       ? {
@@ -67,6 +101,7 @@ const VirtualizedItem = memo(
     onToggleSelection,
     onSelectConversation,
     onMarkAsRead,
+    getCRMData,
   }: {
     virtualRow: VirtualItem;
     conversation: ConversationWithMessages;
@@ -77,6 +112,7 @@ const VirtualizedItem = memo(
     onToggleSelection?: (id: string) => void;
     onSelectConversation: (contactId: string) => void;
     onMarkAsRead?: (contactId: string) => void;
+    getCRMData?: (phone: string) => CRMBatchResult | undefined;
   }) => {
     const contactId = conversation.contact.id;
     const isSelected = selectedContactId === contactId;
@@ -100,7 +136,7 @@ const VirtualizedItem = memo(
         className="w-full"
       >
         <SharedConversationItem
-          conversation={toConversationItemData(conversation)}
+          conversation={toConversationItemData(conversation, getCRMData)}
           isSelected={isSelected}
           onSelect={handleSelect}
           selectionMode={selectionMode}
@@ -125,10 +161,17 @@ export function VirtualizedRealtimeList({
   onArchive: _onArchive,
   onPin: _onPin,
   pinnedIds = EMPTY_SET,
+  onLoadMore,
+  hasMore = false,
+  loadingMore = false,
+  onVisiblePhonesChange,
+  getCRMData,
 }: VirtualizedRealtimeListProps) {
   const { density } = useDensity();
   const isCompact = density === 'compact' || density === 'dense';
   const parentRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [sentinelVisible, setSentinelVisible] = useState(false);
 
   const safeConversations = useMemo(() => {
     const hasReal = Array.isArray(conversations) && conversations.length > 0;
@@ -165,6 +208,60 @@ export function VirtualizedRealtimeList({
     overscan: 5,
   });
 
+  // Lazy-load contact360: apenas os contatos realmente dentro do viewport
+  // (scrollTop..scrollTop+clientHeight) entram no batch — itens de overscan
+  // ficam de fora até entrarem na tela. O virtualizer re-renderiza a cada
+  // scroll, então ler os virtual items aqui sempre reflete a posição atual.
+  const scrollEl = parentRef.current;
+  const viewTop = scrollEl?.scrollTop ?? 0;
+  const viewBottom = viewTop + (scrollEl?.clientHeight ?? 0);
+  const visiblePhones = useMemo(() => {
+    const phones = new Set<string>();
+    for (const v of virtualizer.getVirtualItems()) {
+      if (v.end > viewTop && v.start < viewBottom) {
+        const conv = sortedConversations[v.index];
+        if (conv?.contact?.phone) phones.add(conv.contact.phone);
+      }
+    }
+    return [...phones].sort();
+  }, [virtualizer, sortedConversations, viewTop, viewBottom]);
+
+  // Reporta ao pai somente quando o CONJUNTO de phones visíveis muda
+  // (evita loop de render: pai seta estado → re-render → mesmo key → no-op).
+  const visiblePhonesKey = visiblePhones.join('|');
+  const lastVisiblePhonesRef = useRef<{ key: string; phones: string[] } | null>(null);
+  useEffect(() => {
+    const prev = lastVisiblePhonesRef.current;
+    if (prev && prev.key === visiblePhonesKey) return;
+    lastVisiblePhonesRef.current = { key: visiblePhonesKey, phones: visiblePhones };
+    onVisiblePhonesChange?.(visiblePhones);
+  }, [visiblePhonesKey, visiblePhones, onVisiblePhonesChange]);
+
+  // F4-01: scroll infinito — IntersectionObserver no sentinel do fim da lista.
+  // Quando o sentinel entra na viewport (com folga de 400px) e ainda há
+  // páginas, dispara onLoadMore. O estado sentinelVisible + o guard de
+  // loadingMore evitam disparos repetidos enquanto o fetch está em curso.
+  useEffect(() => {
+    const el = sentinelRef.current;
+    const root = parentRef.current;
+    if (!el || !root || !onLoadMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        setSentinelVisible(entries.some((e) => e.isIntersecting));
+      },
+      { root, rootMargin: '400px 0px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [onLoadMore]);
+
+  useEffect(() => {
+    if (sentinelVisible && hasMore && !loadingMore && onLoadMore) {
+      onLoadMore();
+    }
+  }, [sentinelVisible, hasMore, loadingMore, onLoadMore]);
+
   if (sortedConversations.length === 0) {
     return null;
   }
@@ -194,10 +291,19 @@ export function VirtualizedRealtimeList({
               onToggleSelection={onToggleSelection}
               onSelectConversation={onSelectConversation}
               onMarkAsRead={onMarkAsRead}
+              getCRMData={getCRMData}
             />
           );
         })}
       </div>
+      {/* F4-01: sentinel do scroll infinito — observado pelo IntersectionObserver acima. */}
+      <div ref={sentinelRef} className="h-px w-full" aria-hidden="true" />
+      {loadingMore && (
+        <div className="flex items-center justify-center gap-2 py-3 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+          Carregando mais conversas…
+        </div>
+      )}
     </div>
   );
 }

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useEmailHealthStatus } from './email/useEmailHealthStatus';
+import { useNavigate } from 'react-router-dom';
 
 const getStatusIcon = (status?: string) => {
   switch (status) {

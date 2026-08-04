@@ -2,7 +2,7 @@
 
 `scripts/gen-types-zapp.mjs` consulta o `postgres-meta` da VPS AtomicaBR e
 regrava `src/integrations/supabase/types.ts` incluindo os schemas `public`,
-`zapp` e `evo`. Ele preserva a **cauda Lovable**
+`zapp` e `evo`. Ele preserva a **cauda legada**
 (`DatabaseWithoutInternals` + helpers) — só o corpo do `Database` é
 substituído.
 
@@ -39,7 +39,7 @@ bun run gen:types:zapp
 Verificação após rodar:
 
 ```bash
-# 1. Diff deve tocar SÓ o corpo de `Database` (não a cauda Lovable).
+# 1. Diff deve tocar SÓ o corpo de `Database` (não a cauda legada).
 git diff --stat src/integrations/supabase/types.ts
 
 # 2. Ratchet TS precisa continuar verde.
@@ -69,13 +69,13 @@ Como disparar:
    **Run workflow**.
 2. Selecionar a branch alvo (geralmente `main`) e confirmar.
 3. Aguardar o PR aparecer com título `chore(types): regenerate zapp/evo`.
-4. Revisar o diff — se tocar cauda Lovable, **rejeitar** e investigar.
+4. Revisar o diff — se tocar cauda legada, **rejeitar** e investigar.
 
 ## Anti-patterns
 
 | Erro | Correção |
 |------|----------|
 | `SCHEMAS=public` (sem `zapp,evo`) | Restaure `public,zapp,evo`; sem `zapp` o app inteiro perde tipos. |
-| Sobrescrever `types.ts` manualmente | Sempre rode este script — ele preserva a cauda Lovable automaticamente. |
+| Sobrescrever `types.ts` manualmente | Sempre rode este script — ele preserva a cauda legada automaticamente. |
 | Committar `META_TOKEN` no repositório | Rotacione o token na VPS imediatamente e purgue do histórico. |
 | Ignorar aviso do ratchet após regenerar | Regenerar tipos pode expor erros latentes. Corrija ou registre o novo baseline via `--update` com justificativa em PR. |

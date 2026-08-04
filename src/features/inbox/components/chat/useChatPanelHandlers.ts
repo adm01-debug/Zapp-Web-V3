@@ -236,8 +236,8 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
           }
           if (!profile?.id) throw new Error('Usuario nao autenticado');
 
-          // Guard: whisper_messages.contact_id is uuid. When USE_EXTERNAL_DB=true,
-          // opts.contactId may be a WhatsApp JID. Passing a JID causes PostgREST 400.
+          // Guard: whisper_messages.contact_id is uuid. If opts.contactId is a
+          // WhatsApp JID (external mode), passing it causes PostgREST 400.
           if (!isUuidRef(resolveContactRef(contactId))) {
             toast({
               title: 'Sussurro indisponivel',

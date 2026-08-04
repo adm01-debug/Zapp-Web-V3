@@ -173,7 +173,7 @@ export const ContactConsentManager: React.FC<ContactConsentManagerProps> = ({
             </p>
           )}
           {local.lgpd_opt_out_at && (
-            <p className="text-destructive-foreground">
+            <p className="text-destructive">
               <span className="font-medium">Revogado em:</span>{' '}
               {new Date(local.lgpd_opt_out_at).toLocaleString('pt-BR')}
             </p>

@@ -22,6 +22,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { getLogger } from '@/lib/logger';
 import { buildFileHash } from '@/lib/crypto';
+// F4-20: cache LRU com maxSize (50 MB de bytes) + cap de 200 entradas.
+// Data URLs base64 são ASCII → length ≈ bytes. Módulo puro em mediaRefreshCache.
+import { mediaCacheGet, mediaCacheSet } from './mediaRefreshCache';
 
 const log = getLogger('useMediaUrl');
 
@@ -41,6 +44,8 @@ interface UseMediaUrlOptions {
   forceRefreshNonce?: number;
   /** Override default 2-attempt cap (use 0 to disable retries entirely). */
   maxAttempts?: number;
+  /** Message type from WhatsApp — used to skip refresh for known-unsupported types. */
+  messageType?: string | null;
 }
 
 /** Reason category for a media load failure; used to show targeted fallback messages to the agent. */
@@ -72,7 +77,6 @@ interface UseMediaUrlResult {
   refresh: () => Promise<void>;
 }
 
-const refreshCache = new Map<string, string>();
 const toastedKeys = new Set<string>();
 
 function cacheKey(instance: string, key: MessageKey): string {
@@ -130,6 +134,21 @@ function classifyError(raw: unknown): MediaError {
 
 const DEFAULT_MAX_ATTEMPTS = 2;
 
+/** WhatsApp message types that never produce valid base64 via the Evolution API. */
+const UNREFRESHABLE_MESSAGE_TYPES = new Set([
+  'sticker',
+  'ephemeral',
+  'ptv',         // view-once video
+  'viewOnce',
+  'vcard',
+  'contact',
+  'location',
+  'liveLocation',
+  'reaction',
+  'poll',
+  'pollUpdate',
+]);
+
 /** Auto-refreshes expired WhatsApp media URLs via Evolution `chat/getBase64`; deduplicates in-flight requests, caps retry attempts, and surfaces structured errors for fallback UI. */
 export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
   const {
@@ -139,6 +158,7 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
     enabled = true,
     forceRefreshNonce,
     maxAttempts = DEFAULT_MAX_ATTEMPTS,
+    messageType,
   } = opts;
   const [url, setUrl] = useState<string | null>(originalUrl ?? null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -161,8 +181,13 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
     if (!enabled || !messageKey || !instanceName) return;
     if (inFlightRef.current) return inFlightRef.current;
 
+    // Skip refresh for message types known to return empty payload
+    if (messageType && UNREFRESHABLE_MESSAGE_TYPES.has(messageType)) {
+      return;
+    }
+
     const key = cacheKey(instanceName, messageKey);
-    const cached = refreshCache.get(key);
+    const cached = mediaCacheGet(key);
     if (cached) {
       setUrl(cached);
       setError(null);
@@ -207,22 +232,30 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
         if (!payload?.base64) throw new Error('Empty media payload');
         const mime = payload.mimetype || 'application/octet-stream';
         const dataUrl = `data:${mime};base64,${payload.base64}`;
-        refreshCache.set(key, dataUrl);
+        mediaCacheSet(key, dataUrl);
 
-        // Audit & Cache Persistence
+        // F4-21: chave unificada — SEMPRE buildFileHash(originalUrl) como
+        // identidade da mídia. O fallback antigo para buildFileHash(dataUrl)
+        // gerava chave DIFERENTE a cada refresh (dataUrl muda) → media_cache
+        // nunca dava hit. Sem originalUrl não há identidade estável → não
+        // persiste (evita linhas órfãs com chave volátil).
         try {
-          const hash = await buildFileHash(dataUrl);
-          await safeClient.from('media_cache', (q) =>
-            q.upsert(
-              {
-                file_hash: hash,
-                storage_path: dataUrl,
-                mime_type: mime,
-                size: Math.round((payload.base64 ?? '').length * 0.75),
-              },
-              { onConflict: 'file_hash' }
-            )
-          );
+          const hash = originalUrlRef.current
+            ? await buildFileHash(originalUrlRef.current)
+            : null;
+          if (hash) {
+            await safeClient.from('media_cache', (q) =>
+              q.upsert(
+                {
+                  file_hash: hash,
+                  storage_path: dataUrl,
+                  mime_type: mime,
+                  size: Math.round((payload.base64 ?? '').length * 0.75),
+                },
+                { onConflict: 'file_hash' }
+              )
+            );
+          }
         } catch (e) {
           log.warn('Failed to persist media cache', e);
         }
@@ -232,7 +265,10 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
         setFailed(false);
       } catch (err) {
         const classified = classifyError(err);
-        log.warn(
+        // Empty media payload é esperado para certos tipos de mídia do WhatsApp
+        // (ex.: stickers animados, vídeos efêmeros) — não poluir o console.
+        const logLevel = classified.reason === 'unsupported' ? 'debug' : 'warn';
+        log[logLevel](
           `media refresh failed for ${key}: ${classified.reason} — ${classified.cause?.message}`
         );
         setError(classified);
@@ -255,7 +291,7 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
     })();
     inFlightRef.current = job;
     return job;
-  }, [enabled, instanceName, messageKey, maxAttempts]);
+  }, [enabled, instanceName, messageKey, maxAttempts, messageType]);
 
   // Automatic onError trigger: respeita o cap de tentativas.
   const onError = useCallback(() => {

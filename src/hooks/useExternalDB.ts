@@ -1,10 +1,12 @@
 /**
- * useExternalDB — Generic hook for querying any table in the external CRM database
- * Uses externalSupabase client directly (secured by RLS policies on the external DB)
+ * useExternalDB — Generic hook for querying any table in the consolidated CRM database
+ * Uses the main Supabase client directly (single-DB architecture; secured by RLS policies).
+ * The external-db-proxy edge function is no longer used — all queries go straight
+ * to the main self-hosted Supabase backend (schema 'zapp').
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useCallback } from 'react';
-import { getExternalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
+import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 import { validateEntityAccess, validateRpcAccess } from '@/integrations/datasource/sentinel';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
@@ -27,8 +29,10 @@ async function queryExternal<T = unknown>(params: {
   validateEntityAccess(params.table, 'external');
   const start = performance.now();
 
+  // Dynamic table names (evolution_*) are not part of the typed Database map —
+  // cast to an untyped client, same pattern as the rest of the dynamic table access code.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const extClient = getExternalSupabase() as SupabaseClient<any>;
+  const extClient = supabase as unknown as SupabaseClient<any>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let query: any = extClient // ignore-audit — dynamic builder; type changes across .filter()/.order()/.range() chains
     .from(params.table)
@@ -90,7 +94,7 @@ export function useExternalSelect<T = Record<string, unknown>>(options: UseExter
   } = options;
 
   return useQuery({
-    queryKey: ['external-db', table, { select, filters, order, limit, offset, countMode }],
+    queryKey: ['evolution-db', table, { select, filters, order, limit, offset, countMode }],
     queryFn: () =>
       queryExternal<T>({
         table,
@@ -101,7 +105,7 @@ export function useExternalSelect<T = Record<string, unknown>>(options: UseExter
         offset,
         countMode,
       }),
-    enabled: enabled && isExternalConfigured,
+    enabled: enabled && isSupabaseConfigured,
     staleTime,
     gcTime: staleTime * 2,
   });
@@ -117,12 +121,13 @@ interface UseExternalRPCOptions {
 
 export function useExternalRPC<T = unknown>(options: UseExternalRPCOptions) {
   return useQuery({
-    queryKey: ['external-db', 'rpc', options.rpc, options.params],
+    queryKey: ['evolution-db', 'rpc', options.rpc, options.params],
     queryFn: async () => {
       validateRpcAccess(options.rpc, 'external');
       const start = performance.now();
+      // Dynamic RPC names are not part of the typed Database map — untyped client cast.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (getExternalSupabase() as SupabaseClient<any>).rpc(
+      const { data, error } = await (supabase as unknown as SupabaseClient<any>).rpc(
         options.rpc,
         options.params || {}
       );
@@ -137,7 +142,7 @@ export function useExternalRPC<T = unknown>(options: UseExternalRPCOptions) {
         },
       };
     },
-    enabled: (options.enabled ?? true) && isExternalConfigured,
+    enabled: (options.enabled ?? true) && isSupabaseConfigured,
     staleTime: options.staleTime ?? 10 * 60 * 1000,
   });
 }
@@ -214,7 +219,7 @@ export function useExternalTableBrowser<T = Record<string, unknown>>(
   };
 }
 
-// ─── Mutation (insert/update/delete via external client) ──────
+// ─── Mutation (insert/update/delete via main Supabase client) ──
 export function useExternalMutation() {
   const queryClient = useQueryClient();
 
@@ -226,8 +231,10 @@ export function useExternalMutation() {
       match?: Record<string, unknown>;
     }) => {
       validateEntityAccess(params.table, 'external');
+      // Dynamic table names (evolution_*) are not part of the typed Database map —
+      // untyped client cast, same pattern as the rest of the dynamic table access code.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const client = getExternalSupabase() as SupabaseClient<any>;
+      const client = supabase as unknown as SupabaseClient<any>;
       if (params.action === 'insert') {
         const { data, error } = await client
           .from(params.table)
@@ -256,7 +263,7 @@ export function useExternalMutation() {
       }
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['external-db', variables.table] });
+      queryClient.invalidateQueries({ queryKey: ['evolution-db', variables.table] });
     },
   });
 }

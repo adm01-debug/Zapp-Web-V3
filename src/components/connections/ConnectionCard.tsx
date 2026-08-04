@@ -118,7 +118,7 @@ export function ConnectionCard({
                         isConnected && !isPhantomLike
                           ? 'text-primary'
                           : needsAction
-                            ? 'text-destructive-foreground'
+                            ? 'text-destructive'
                             : 'text-muted-foreground'
                       )}
                     />
@@ -313,13 +313,13 @@ export function ConnectionCard({
                 <AlertTriangle
                   className={cn(
                     'mt-0.5 h-3.5 w-3.5 shrink-0',
-                    severe ? 'text-destructive-foreground' : 'text-muted-foreground'
+                    severe ? 'text-destructive' : 'text-muted-foreground'
                   )}
                 />
                 <span
                   className={cn(
                     'text-xs leading-relaxed',
-                    severe ? 'text-destructive-foreground' : 'text-muted-foreground'
+                    severe ? 'text-destructive' : 'text-muted-foreground'
                   )}
                 >
                   {reasonInfo?.long ??

@@ -8,7 +8,7 @@ import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
 const PUBSUB_TOPIC = (() => {
   const v = Deno.env.get('GMAIL_PUBSUB_TOPIC');
-  if (!v) throw new Error('[gmail-webhook] GMAIL_PUBSUB_TOPIC env var is required — set it before deploying');
+  // Non-fatal: returns undefined if not set; handler will return 503
   return v;
 })();
 
@@ -16,6 +16,10 @@ Deno.serve(async (req) => {
   initSentry('gmail-webhook');
 
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
+
+  if (!PUBSUB_TOPIC) {
+    return new Response(JSON.stringify({ error: 'gmail_not_configured', reason: 'GMAIL_PUBSUB_TOPIC env var is not set' }), { status: 503, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+  }
 
   const supabase = createZappAdminClient();
 

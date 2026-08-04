@@ -6,30 +6,81 @@ const log = getLogger('useServiceWorker');
 const CACHE_RESET_FLAG = 'sw-cache-reset-done';
 
 /**
- * Purge ALL caches on load. The current sw.js is push-only and never caches anything,
- * so any cache present comes from an older build and produces the "two frontends"
- * symptom (different browsers serving different bundle hashes). One-shot per session.
+ * Cleanup de caches legados (workbox / versoes antigas do SW) que podem
+ * causar o sintoma "dois frontends" (abas diferentes servindo bundles com
+ * hashes diferentes).
+ *
+ * **Coordenacao com buildVersion (2026-08-03):** Antes esta funcao purgava
+ * TODOS os caches e desregistrava TODOS os SWs, independente de o SW atual
+ * ja estar controlando a pagina. Isso criava uma cascata:
+ *   cleanup reload → buildVersion reload → cleanup reload → ...
+ *
+ * Agora:
+ * 1. Se o SW ja esta controlando a pagina (navigator.serviceWorker.controller),
+ *    os caches sao legitimos — nao purgar.
+ * 2. Purga apenas caches com prefixo workbox- ou zapp- (mesmo filtro do
+ *    activate handler em sw.js), nao TODOS os caches.
+ * 3. O reload one-shot usa localStorage (nao sessionStorage) para nao
+ *    repetir em abas diferentes da mesma sessao.
+ * 4. Respeita a flag SW_PURGE_FLAG do buildVersion — se buildVersion ja
+ *    fez purge, nao repetir.
+ *
+ * One-shot por browser (localStorage), nao por aba.
  */
 async function cleanupLegacyServiceWorker(): Promise<boolean> {
   if (!('serviceWorker' in navigator) || typeof caches === 'undefined') return false;
 
-  const cacheKeys = await caches.keys();
-  if (cacheKeys.length === 0) {
-    sessionStorage.removeItem(CACHE_RESET_FLAG);
+  // Se o SW atual ja esta controlando a pagina, os caches sao legitimos.
+  // Nao purgar — o activate handler do SW ja cuida de limpar caches stale
+  // com prefixo workbox-/zapp-.
+  if (navigator.serviceWorker.controller) {
+    // Garante que nao ha flag residual que cause reload surpresa.
+    try { localStorage.removeItem(CACHE_RESET_FLAG); } catch { /* noop */ }
     return false;
   }
 
-  log.info('[ServiceWorker] Purging stale caches that can restore old UI bundles', cacheKeys);
+  const cacheKeys = await caches.keys();
+  // Filtra apenas caches legados (workbox-/zapp-), mesmo criterio do
+  // activate handler em sw.js. NUNCA purgar o HTTP cache do browser.
+  const staleKeys = cacheKeys.filter((k) =>
+    /^(workbox-|zapp-)/i.test(k)
+  );
 
-  const registrations = navigator.serviceWorker.getRegistrations
-    ? await navigator.serviceWorker.getRegistrations()
-    : [];
+  if (staleKeys.length === 0) {
+    try { localStorage.removeItem(CACHE_RESET_FLAG); } catch { /* noop */ }
+    return false;
+  }
 
-  await Promise.all(registrations.map((registration) => registration.unregister()));
-  await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+  log.info('[ServiceWorker] Purging legacy caches (not controlled by current SW)', staleKeys);
 
-  if (sessionStorage.getItem(CACHE_RESET_FLAG) !== '1') {
-    sessionStorage.setItem(CACHE_RESET_FLAG, '1');
+  await Promise.all(staleKeys.map((key) => caches.delete(key)));
+
+  // So desregistra SWs se nao ha um controller ativo (seguranca extra).
+  try {
+    const registrations = navigator.serviceWorker.getRegistrations
+      ? await navigator.serviceWorker.getRegistrations()
+      : [];
+    if (registrations.length > 0) {
+      await Promise.all(registrations.map((r) => r.unregister().catch(() => false)));
+    }
+  } catch {
+    /* noop */
+  }
+
+  // One-shot: localStorage (persiste entre sessoes) para nao repetir
+  // o reload em cada nova aba. Respeita flag do buildVersion tambem.
+  try {
+    if (localStorage.getItem(CACHE_RESET_FLAG) !== '1') {
+      // Coordenacao: se buildVersion ja fez purge, nao recarregar.
+      const buildPurged = sessionStorage.getItem('zapp-workbox-purged-once') === '1';
+      if (!buildPurged) {
+        localStorage.setItem(CACHE_RESET_FLAG, '1');
+        window.location.reload();
+        return true;
+      }
+    }
+  } catch {
+    /* storage full/disabled — recarregar mesmo assim para limpar caches */
     window.location.reload();
     return true;
   }
@@ -71,9 +122,12 @@ async function unregisterAllServiceWorkers(): Promise<void> {
       log.info('[ServiceWorker] Unregistering existing workers', regs.map((r) => r.scope));
       await Promise.all(regs.map((r) => r.unregister().catch(() => false)));
     }
+    // Purga apenas caches com prefixo workbox-/zapp- (mesmo criterio do
+    // activate handler em sw.js), nao o HTTP cache do browser.
     if (typeof caches !== 'undefined') {
       const keys = await caches.keys();
-      await Promise.all(keys.map((k) => caches.delete(k).catch(() => false)));
+      const staleKeys = keys.filter((k) => /^(workbox-|zapp-)/i.test(k));
+      await Promise.all(staleKeys.map((k) => caches.delete(k).catch(() => false)));
     }
     // Limpa flags para permitir que uma futura mudanca de versao volte a
     // funcionar sem ficar presa em "ja purguei nesta sessao".
@@ -83,6 +137,7 @@ async function unregisterAllServiceWorkers(): Promise<void> {
       sessionStorage.removeItem('zapp-build-reload-once'); // legado
       sessionStorage.removeItem('zapp-workbox-purged-once');
       sessionStorage.removeItem('sw-cache-reset-done');
+      localStorage.removeItem('sw-cache-reset-done');
     } catch { /* noop */ }
   } catch {
     /* noop */

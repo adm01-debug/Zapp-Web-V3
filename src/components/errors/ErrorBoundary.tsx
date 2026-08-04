@@ -53,7 +53,7 @@ function classifyRenderFailure(error: Error): {
   const isTimeout =
     error?.name === 'TimeoutError' ||
     /timeout|timed out|statement timeout|canceling statement|proxy_timeout/.test(msg);
-  const isProxy = /external db proxy|external-db-proxy|query timed out|external_proxy/.test(msg);
+  const isProxy = /query timed out/.test(msg);
   const isAbort = error?.name === 'AbortError' || /aborted/.test(msg);
   // Tightened: specific DB/network patterns only.
   const isQueryPattern =
@@ -69,7 +69,7 @@ function classifyRenderFailure(error: Error): {
   return {
     isQueryFailure,
     severity,
-    target: isTimeout ? 'render:timeout' : isProxy ? 'externalProxy:render' : 'render:error',
+    target: isTimeout ? 'render:timeout' : isProxy ? 'timeout:render' : 'render:error',
   };
 }
 
@@ -152,7 +152,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
       recordQueryEvent({
         operation: 'select',
-        source: isQueryFailure ? 'externalProxy' : 'lovableCloud',
+        // Keep 'lovableCloud' — legacy telemetry id for dashboards; render
+        // failures from the app's own backend still report under it.
+        source: isQueryFailure ? 'evolutionDB' : 'lovableCloud',
         target: isStackOverflow ? 'render:stack_overflow' : target,
         durationMs: 0,
         limit: null,

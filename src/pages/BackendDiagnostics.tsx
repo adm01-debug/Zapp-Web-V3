@@ -12,7 +12,7 @@ function extractProjectRef(url: string | undefined): string {
 
 function detectBackendType(url: string | undefined): { label: string; tone: "default" | "secondary" } {
   if (!url) return { label: "Desconhecido", tone: "secondary" };
-  if (url.includes(".supabase.co")) return { label: "Lovable Cloud (gerenciado)", tone: "default" };
+  if (url.includes(".supabase.co")) return { label: "Self-Hosted", tone: "default" };
   if (url.includes("localhost") || url.includes("127.0.0.1")) return { label: "Supabase Local", tone: "secondary" };
   return { label: "Supabase Self-hosted / Externo", tone: "secondary" };
 }

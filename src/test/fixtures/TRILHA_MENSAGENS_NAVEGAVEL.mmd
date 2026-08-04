@@ -57,7 +57,7 @@ flowchart LR
   end
 
   subgraph BACKENDS["7. Backends"]
-    DB[("Lovable Cloud<br/>messages")]
+    DB[("Supabase Self-Hosted<br/>messages")]
     EDGE[("Edge<br/>evolution-api/sendText")]
     DLQ[("DLQ<br/>failed_messages")]
   end
@@ -118,6 +118,7 @@ flowchart LR
   DB -.->|INSERT health| UEM
   DB -.->|UPDATE media_url| AMP
   DB -.->|UPDATE retry_attempt/status| URRA
+  DB -.->|UPDATE/DELETE evo| CMA2
 
   %% Pipeline interno do realtime principal
   URM --> BATCH
@@ -156,6 +157,7 @@ flowchart LR
   click RETRY "src/lib/retry.ts"
   click RUTL "src/features/inbox/hooks/realtime/realtimeUtils.ts"
   click SUBALL "src/features/inbox/hooks/realtime/sendStatusBus.ts"
+  click UMC "src/features/inbox/hooks/useMessagesCursor.ts"
   click UMSS "src/features/inbox/hooks/realtime/useMessageSendStatus.ts"
   click URD "src/hooks/useRealtimeDashboard.ts"
   click URM "src/features/inbox/hooks/useRealtimeMessages.ts"
@@ -171,6 +173,6 @@ flowchart LR
 %%   ==>   escrita persistente em DB
 %%   -.->  evento realtime / pub-sub in-memory
 %%   -..-> enqueue assincrona (DLQ)
-%% Fan-out realtime (postgres_changes 'messages'): 0 consumidores diretos
+%% Fan-out realtime (postgres_changes 'messages'): 1 consumidor direto
 %% Gerado por scripts/regen-trilha-mensagens.ts em 2026-07-16T18:58:13.683Z
 %% AUTO:LEGEND:END

@@ -15,10 +15,10 @@ const mockGenerateCid = vi.hoisted(() => vi.fn(() => 'test-cid-1'));
 const mockRecordQueryEvent = vi.hoisted(() => vi.fn());
 const mockClassifySeverity = vi.hoisted(() => vi.fn<(...args: unknown[]) => string>(() => 'ok'));
 const mockRpc = vi.hoisted(() => vi.fn());
-const mockGetExternal = vi.hoisted(() => vi.fn(() => ({ rpc: mockRpc })));
+const mockSupabase = vi.hoisted(() => ({ rpc: mockRpc }));
 
-vi.mock('@/integrations/supabase/externalClient', () => ({
-  getExternalSupabase: mockGetExternal,
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: mockSupabase,
 }));
 vi.mock('@/lib/clientTelemetry', () => ({
   recordQueryEvent: mockRecordQueryEvent,
@@ -26,6 +26,20 @@ vi.mock('@/lib/clientTelemetry', () => ({
 }));
 vi.mock('@/lib/correlationId', () => ({
   generateCorrelationId: mockGenerateCid,
+}));
+vi.mock('@/lib/logger', () => ({
+  getLogger: () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
+  createLogger: () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
 }));
 
 // ── Import SUT AFTER mocks ────────────────────────────────────────────────────
@@ -43,7 +57,6 @@ function rpcErr(message: string) {
 // ── Setup ─────────────────────────────────────────────────────────────────────
 beforeEach(() => {
   vi.clearAllMocks();
-  mockGetExternal.mockReturnValue({ rpc: mockRpc });
   mockClassifySeverity.mockReturnValue('ok');
   mockGenerateCid.mockReturnValue('test-cid-1');
 });
@@ -110,11 +123,11 @@ describe('timedRpc — data and error pass-through', () => {
 
 // ── recordQueryEvent fields ───────────────────────────────────────────────────
 describe('timedRpc — recordQueryEvent on success', () => {
-  it('calls recordQueryEvent with operation="rpc" and source="externalSupabase"', async () => {
+  it('calls recordQueryEvent with operation="rpc" and source="selfHosted"', async () => {
     mockRpc.mockResolvedValue(rpcOk(null));
     await timedRpc('my_rpc');
     expect(mockRecordQueryEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ operation: 'rpc', source: 'externalSupabase' })
+      expect.objectContaining({ operation: 'rpc', source: 'selfHosted' })
     );
   });
 

@@ -61,7 +61,7 @@ type CompatToast = ((
   typeof sonnerToast;
 
 const normalizeToast = (input: LegacyToastInput): { message: ReactNode; data: ExternalToast } => {
-  const { title, description, variant, ...rest } = input;
+  const { title, description, variant: _variant, ...rest } = input;
   return {
     message: title ?? description ?? '',
     data: {

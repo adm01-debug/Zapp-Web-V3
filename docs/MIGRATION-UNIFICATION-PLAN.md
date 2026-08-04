@@ -1,5 +1,11 @@
 # Plano de Unificação de Migrations (E28)
 
+> ✅ **CONCLUÍDO em 2026-08-04 (PR #767).** Os 11 arquivos de `infra/migrations/` foram deletados
+> (não movidos para `supabase/migrations/`). O DDL já aplicado está coberto pelo canônico
+> `supabase/migrations/20260804000000_canonical_schema.sql`. Os 3 arquivos `.md` de auditoria
+> foram removidos por serem históricos. O diretório `infra/migrations/` não existe mais.
+> Este documento permanece como registro histórico do plano.
+
 ## Problema
 
 Existem dois locais para migrations SQL no repositório:
@@ -7,7 +13,7 @@ Existem dois locais para migrations SQL no repositório:
 | Local | Qtd | Rastreado pelo Supabase CLI? | Uso |
 |-------|-----|------------------------------|-----|
 | `supabase/migrations/` | 945 | ✅ Sim — via `schema_migrations` | Migrations de aplicação |
-| `infra/migrations/` | 11 | ❌ Não — aplicados via psql direto | Hotfixes operacionais de julho/2026 |
+| `infra/migrations/` | ~~11~~ → **0** (deletado 2026-08-04, PR #767) | ❌ Não — aplicados via psql direto | Hotfixes operacionais de julho/2026 — **REMOVIDOS** |
 
 Os 11 arquivos em `infra/migrations/` foram aplicados diretamente no banco de produção
 durante a auditoria de 2026-07-11, fora do controle do Supabase CLI. Isso significa:
@@ -111,6 +117,9 @@ ON CONFLICT (version) DO NOTHING;
 
 Os arquivos `.md` (relatórios de auditoria) permanecem em `infra/migrations/`.
 
+> **Nota (2026-08-04):** este passo foi superado — os `.md` de auditoria também foram
+> deletados no PR #767 (registro histórico preservado em `docs/history/`).
+
 ### Opção B — Manter Separado com README
 
 Alternativa menos intrusiva: criar um `infra/migrations/APPLY_ORDER.md` documentando
@@ -123,6 +132,6 @@ que esses arquivos devem ser aplicados manualmente em qualquer novo ambiente.
 | Item | Status |
 |------|--------|
 | Análise dos arquivos `infra/migrations/` | ✅ Completo (este doc) |
-| Tornar idempotentes os SQLs | ⏳ Pendente (requer revisão DBA) |
-| git mv + INSERT na schema_migrations | ⏳ Pendente autorização DBA |
-| Teste em staging pós-unificação | ⏳ Pendente staging disponível |
+| Tornar idempotentes os SQLs | ✅ Obsoleto — DDL consolidado no canônico (PR #767) |
+| git mv + INSERT na schema_migrations | ✅ Obsoleto — arquivos deletados, não movidos (PR #767) |
+| Teste em staging pós-unificação | ✅ Obsoleto — resolvido por deleção; DDL coberto pelo canônico |
