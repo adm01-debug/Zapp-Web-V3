@@ -27,9 +27,14 @@ DROP POLICY IF EXISTS auth_secure_70_select ON zapp.hmac_selftest_audit;
 CREATE POLICY auth_secure_70_select ON zapp.hmac_selftest_audit
   FOR SELECT TO authenticated USING (true);
 
--- instance_auth_events: remover TODO acesso authenticated
+-- instance_auth_events: SELECT restrito a admin/supervisor (edge fn
+-- instance-pause-control lê via JWT do usuário autenticado — recent_events);
+-- INSERT/UPDATE/DELETE só service_role (svc_rw).
 DROP POLICY IF EXISTS auth_secure_72 ON zapp.instance_auth_events;
 DROP POLICY IF EXISTS iae_admin_select ON zapp.instance_auth_events;
+CREATE POLICY iae_admin_select ON zapp.instance_auth_events
+  FOR SELECT TO authenticated
+  USING (zapp.is_admin_or_supervisor());
 
 -- service_full_access (hmac) e svc_rw (iae) permanecem: service_role ALL.
 
@@ -53,12 +58,14 @@ BEGIN
     RAISE EXCEPTION 'VERIFICATION FAILED: authenticated ainda tem % policy(s) de escrita em hmac_selftest_audit', v_hmac_ud_policies;
   END IF;
 
-  -- Zero policies p/ authenticated em instance_auth_events
+  -- Zero policies de ESCRITA p/ authenticated em instance_auth_events
+  -- (SELECT admin-only via iae_admin_select é esperado e permitido)
   SELECT count(*) INTO v_iae_policies
     FROM pg_policies
    WHERE schemaname = 'zapp'
      AND tablename  = 'instance_auth_events'
-     AND roles @> ARRAY['authenticated'];
+     AND roles @> ARRAY['authenticated']
+     AND cmd IN ('INSERT', 'UPDATE', 'DELETE', 'ALL');
 
   IF v_iae_policies > 0 THEN
     RAISE EXCEPTION 'VERIFICATION FAILED: authenticated ainda tem % policy(s) em instance_auth_events', v_iae_policies;
