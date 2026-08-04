@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useArchiveContact, useRestoreContact } from '@/services/contacts/useContactsMutations';
+import { isValidUUID } from '@/utils/uuid';
 
 /**
  * Ações reais de arquivar/desarquivar conversas da inbox.
@@ -18,7 +19,9 @@ export function useArchiveConversationActions(onDone?: () => void) {
 
   const archive = useCallback(
     async (contactId: string) => {
-      if (!contactId) return;
+      // Guarda contra IDs inválidos (ex.: JID do WhatsApp) — a mutation sem
+      // guard gera erro feio 22P02 no Supabase (cast uuid inválido).
+      if (!contactId || !isValidUUID(contactId)) return;
       await archiveContact(contactId);
       onDone?.();
     },
@@ -27,7 +30,7 @@ export function useArchiveConversationActions(onDone?: () => void) {
 
   const restore = useCallback(
     async (contactId: string) => {
-      if (!contactId) return;
+      if (!contactId || !isValidUUID(contactId)) return;
       await restoreContact(contactId);
       onDone?.();
     },

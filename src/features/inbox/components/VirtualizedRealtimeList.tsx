@@ -8,6 +8,7 @@ import type { CRMBatchResult } from '@/hooks/useExternalContact360Batch';
 import { MOCK_CONVERSATIONS } from './conversation-list/__mocks__/mockConversations';
 import { ConversationItem as SharedConversationItem } from './conversation-list/ConversationItem';
 import type { ConversationItemData } from './conversation-list/conversationItemShared';
+import { ConversationContextMenu } from './ConversationContextMenu';
 
 // Mocks: estritamente opt-in (localStorage mockConversations='1') e apenas em
 // DEV. Nunca usamos demo-fallback em produção: um inbox legitimamente vazio
@@ -26,6 +27,8 @@ interface VirtualizedRealtimeListProps {
   onToggleSelection?: (contactId: string) => void;
   onMarkAsRead?: (contactId: string) => void;
   onArchive?: (contactId: string) => void;
+  /** PR PR 773: toggle real arquivar/desarquivar (recebe o estado atual do item). */
+  onToggleArchive?: (contactId: string, isArchived: boolean) => void;
   onPin?: (contactId: string) => void;
   pinnedIds?: Set<string>;
   /** F4-01: scroll infinito — chamado quando o sentinel do fim da lista entra na viewport. */
@@ -105,6 +108,8 @@ const VirtualizedItem = memo(
     onToggleSelection,
     onSelectConversation,
     onMarkAsRead,
+    onToggleArchive,
+    onPin,
     getCRMData,
   }: {
     virtualRow: VirtualItem;
@@ -116,6 +121,8 @@ const VirtualizedItem = memo(
     onToggleSelection?: (id: string) => void;
     onSelectConversation: (contactId: string) => void;
     onMarkAsRead?: (contactId: string) => void;
+    onToggleArchive?: (contactId: string, isArchived: boolean) => void;
+    onPin?: (contactId: string) => void;
     getCRMData?: (phone: string) => CRMBatchResult | undefined;
   }) => {
     const contactId = conversation.contact.id;
@@ -127,6 +134,21 @@ const VirtualizedItem = memo(
       onMarkAsRead?.(contactId);
     }, [onSelectConversation, onMarkAsRead, contactId]);
 
+    const itemData = toConversationItemData(conversation, getCRMData);
+
+    const item = (
+      <SharedConversationItem
+        conversation={itemData}
+        isSelected={isSelected}
+        onSelect={handleSelect}
+        selectionMode={selectionMode}
+        isMultiSelected={isMultiSelected}
+        onToggleSelection={onToggleSelection}
+        isPinned={isPinned}
+      />
+    );
+
+    // Menu de contexto real (PR PR 773): Arquivar/Desarquivar na lista ativa.
     return (
       <div
         style={{
@@ -139,15 +161,21 @@ const VirtualizedItem = memo(
         }}
         className="w-full"
       >
-        <SharedConversationItem
-          conversation={toConversationItemData(conversation, getCRMData)}
-          isSelected={isSelected}
-          onSelect={handleSelect}
-          selectionMode={selectionMode}
-          isMultiSelected={isMultiSelected}
-          onToggleSelection={onToggleSelection}
-          isPinned={isPinned}
-        />
+        {selectionMode ? (
+          item
+        ) : (
+          <ConversationContextMenu
+            conversationId={contactId}
+            contactName={itemData.contact?.name ?? 'Contato'}
+            isArchived={itemData.isArchived}
+            onArchive={(id) => onToggleArchive?.(id, Boolean(itemData.isArchived))}
+            onMarkAsRead={onMarkAsRead}
+            onPin={onPin ? () => onPin(contactId) : undefined}
+            onUnpin={onPin ? () => onPin(contactId) : undefined}
+          >
+            {item}
+          </ConversationContextMenu>
+        )}
       </div>
     );
   }
@@ -163,6 +191,7 @@ export function VirtualizedRealtimeList({
   onToggleSelection,
   onMarkAsRead,
   onArchive: _onArchive,
+  onToggleArchive,
   onPin: _onPin,
   pinnedIds = EMPTY_SET,
   onLoadMore,
@@ -295,6 +324,8 @@ export function VirtualizedRealtimeList({
               onToggleSelection={onToggleSelection}
               onSelectConversation={onSelectConversation}
               onMarkAsRead={onMarkAsRead}
+              onToggleArchive={onToggleArchive}
+              onPin={_onPin}
               getCRMData={getCRMData}
             />
           );

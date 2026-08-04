@@ -388,6 +388,7 @@ function makeInputHandlers(overrides: Partial<Parameters<typeof useInputHandlers
     onAddNote: vi.fn().mockResolvedValue(undefined),
     onAddTag: vi.fn().mockResolvedValue(undefined),
     onTransferDialog: vi.fn(),
+    onArchive: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
   const { result } = renderHook(() =>
@@ -471,13 +472,14 @@ describe('SIMULAÇÃO 11-17 — useInputHandlers', () => {
     );
   });
 
-  it('CENARIO 16 — archive → toast informativo honesto e NENHUM callback chamado (mesmo com todos presentes)', async () => {
+  it('CENARIO 16 — archive → chama o callback real onArchive (PR PR 773)', async () => {
     const { result, callbacks } = makeInputHandlers();
 
     await act(async () => {
       result.current.handleSlashCommand({ id: 'archive' }, 'qualquer-coisa');
     });
 
+    expect(callbacks.onArchive).toHaveBeenCalledTimes(1);
     expect(callbacks.onResolveConversation).not.toHaveBeenCalled();
     expect(callbacks.onSnooze).not.toHaveBeenCalled();
     expect(callbacks.onStarToggle).not.toHaveBeenCalled();
@@ -487,8 +489,7 @@ describe('SIMULAÇÃO 11-17 — useInputHandlers', () => {
     expect(callbacks.onTransferDialog).not.toHaveBeenCalled();
     expect(mockToast).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: 'Arquivar Conversa',
-        description: 'Arquivo nao disponivel nesta versao.',
+        title: 'Conversa Arquivada',
       })
     );
   });

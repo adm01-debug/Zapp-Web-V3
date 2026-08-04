@@ -47,6 +47,7 @@ import { ChatPanelOverlays } from './chat/ChatPanelOverlays';
 import { useChatAutoScroll } from '../hooks/useChatAutoScroll';
 import { useTransferConversation } from '../hooks/useTransferConversation';
 import { useInboxShortcuts } from '../hooks/useInboxShortcuts';
+import { useArchiveConversationActions } from '../hooks/useArchiveConversationActions';
 import { dbFrom } from '@/integrations/datasource/db';
 import { isValidUUID } from '@/utils/uuid';
 import type { MessageQueueController } from '../hooks/useMessageQueue';
@@ -110,6 +111,8 @@ export function ChatPanel({
   const { roles: userRoles } = useUserRole();
   const isDevExact = (userRoles ?? []).includes('dev');
   const { dialogs, openDialog, closeDialog } = useChatDialogs();
+  // Ações reais de arquivar/desarquivar (soft-delete do contato — PR PR 773).
+  const { archive: archiveConversation } = useArchiveConversationActions();
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const [activeTool, setActiveTool] = useState<ActiveTool>(null);
@@ -239,6 +242,9 @@ export function ChatPanel({
     openDialog,
     closeDialog,
     handleSetActiveTool,
+    // /archive real: soft-delete do contato (a sidebar refetcha via realtime;
+    // sem onDone aqui pois ChatPanel não recebe refetch da lista).
+    onArchive: () => archiveConversation(conversation.contact.id ?? ''),
   });
 
   useEffect(() => {

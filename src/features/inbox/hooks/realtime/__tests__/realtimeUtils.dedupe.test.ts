@@ -15,6 +15,13 @@ const msg = (over: Partial<RealtimeMessage>): RealtimeMessage =>
     ...over,
   }) as RealtimeMessage;
 
+const makeContact = (over: Partial<ConversationContact> = {}): ConversationContact =>
+  ({
+    id: 'c1',
+    created_at: '2025-01-01T00:00:00.000Z',
+    ...over,
+  }) as ConversationContact;
+
 describe('dedupeMessages', () => {
   it('drops duplicates by id keeping the newest status_updated_at', () => {
     const a = msg({ id: 'm1', status: 'sent', status_updated_at: '2025-01-01T00:00:00.000Z' });
@@ -48,6 +55,38 @@ describe('dedupeMessages', () => {
     const dup = msg({ id: 'm1', is_read: false, sender: 'contact' });
     const conv = buildConversation(contact, [dup, dup, dup]);
     expect(conv.messages).toHaveLength(1);
+    expect(conv.unreadCount).toBe(1);
+  });
+});
+
+describe('buildConversation — isArchived (contato arquivado, PR PR 773)', () => {
+  it('deleted_at null → isArchived=false', () => {
+    expect(buildConversation(makeContact({ deleted_at: null }), []).isArchived).toBe(false);
+  });
+
+  it('deleted_at ausente (undefined) → isArchived=false', () => {
+    expect(buildConversation(makeContact(), []).isArchived).toBe(false);
+  });
+
+  it('deleted_at ISO string → isArchived=true', () => {
+    expect(buildConversation(makeContact({ deleted_at: '2025-06-01T00:00:00.000Z' }), []).isArchived).toBe(true);
+  });
+
+  it('REGRESSÃO PR PR 773: arquivado + duplicatas realtime → dedupe não altera isArchived', () => {
+    const conv = buildConversation(makeContact({ deleted_at: '2025-06-01T00:00:00.000Z' }), [
+      msg({ id: 'm1', is_read: false, sender: 'contact' }),
+      msg({ id: 'm1', is_read: false, sender: 'contact' }),
+    ]);
+    expect(conv.isArchived).toBe(true);
+    expect(conv.messages).toHaveLength(1);
+    expect(conv.unreadCount).toBe(1);
+  });
+
+  it('contato ativo com mensagens → isArchived=false mesmo com mensagens não lidas', () => {
+    const conv = buildConversation(makeContact({ deleted_at: null }), [
+      msg({ id: 'm1', is_read: false, sender: 'contact' }),
+    ]);
+    expect(conv.isArchived).toBe(false);
     expect(conv.unreadCount).toBe(1);
   });
 });
