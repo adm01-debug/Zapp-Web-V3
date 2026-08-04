@@ -52,9 +52,9 @@ export function AutomationCard({ automation, onToggle, onEdit, onDelete, onDupli
             })}
           </div>
           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><Play className="w-3 h-3" />{automation.trigger_count}x executado</span>
-            {automation.last_triggered_at && (
-              <span>Último: {new Date(automation.last_triggered_at).toLocaleDateString('pt-BR')}</span>
+            <span className="flex items-center gap-1"><Play className="w-3 h-3" />{automation.execution_count}x executado</span>
+            {automation.last_executed_at && (
+              <span>Último: {new Date(automation.last_executed_at).toLocaleDateString('pt-BR')}</span>
             )}
           </div>
         </div>

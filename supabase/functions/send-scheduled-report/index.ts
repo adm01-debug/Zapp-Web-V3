@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
     const { reportId } = parsed.data as { reportId: string };
 
     const { data: report, error: reportError } = await supabase
-      .from("scheduled_reports")
+      .from("scheduled_report_configs") // UI (useScheduledReports.ts) grava em zapp.scheduled_report_configs — não em scheduled_reports (órfã)
       .select("*")
       .eq("id", reportId)
       .single();
@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
 
     const frequency = typeof reportObj.frequency === 'string' ? reportObj.frequency : 'weekly';
     const nextSendAt = calculateNextSend(frequency);
-    await supabase.from("scheduled_reports").update({ last_sent_at: now.toISOString(), next_send_at: nextSendAt }).eq("id", reportObj.id);
+    await supabase.from("scheduled_report_configs").update({ last_sent_at: now.toISOString(), next_send_at: nextSendAt }).eq("id", reportObj.id);
 
     log.done(200);
     return jsonResponse({ success: true, reportData }, 200, req);

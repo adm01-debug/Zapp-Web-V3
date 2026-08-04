@@ -26,7 +26,20 @@ interface FollowUpSequence {
   followup_steps: FollowUpStep[];
 }
 
-/** Hook: use Follow Up Sequences. */
+/**
+ * Hook: use Follow Up Sequences.
+ *
+ * NOTA (AUTOMACOES-09): o CRUD abaixo é íntegro e persiste em
+ * zapp.followup_sequences / zapp.followup_steps (views públicas com RLS ok).
+ * PORÉM o motor de envio NÃO é rastreável a partir deste repo:
+ *  - cron `process_pending_followups` (a cada 5 min) + fn `fn_process_pending_followups`
+ *    existem no DB de produção mas não têm fonte em supabase/migrations;
+ *  - o edge `evolution-followup` processa apenas evo.evolution_followups
+ *    (populado pelo Evolution API), sem ponte evidenciada
+ *    zapp.followup_sequences → evo.evolution_followups;
+ *  - zapp.followup_executions fica sem produtor → histórico sempre vazio.
+ * Sinalizado ao maestro: criar edge/SQL-fn com fonte no repo + ponte de sync.
+ */
 export function useFollowUpSequences() {
   const queryClient = useQueryClient();
 

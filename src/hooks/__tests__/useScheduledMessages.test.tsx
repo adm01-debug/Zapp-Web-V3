@@ -116,11 +116,13 @@ describe('useScheduledMessages', () => {
     });
   });
 
-  it('returns empty messages without contactId', async () => {
+  it('fetches all scheduled messages without contactId (calendar view)', async () => {
     const { result } = renderHook(() => useScheduledMessages(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
+
+    expect(result.current.messages).toHaveLength(mockMessages.length);
   });
 });

@@ -34,6 +34,7 @@ const triggerLabels: Record<string, { label: string; icon: React.ComponentType<{
   menu: { label: 'Menu', icon: GitBranch },
   webhook: { label: 'Webhook', icon: Zap },
   schedule: { label: 'Agendado', icon: Clock },
+  ai_l1: { label: 'IA L1 (respostas automáticas)', icon: Bot },
 };
 
 /** Chatbot Flows View component for the chatbot section. */
@@ -43,7 +44,7 @@ export function ChatbotFlowsView() {
   const [editingFlow, setEditingFlow] = useState<ChatbotFlow | null>(null);
   const [search, setSearch] = useState('');
 
-  type TriggerType = 'keyword' | 'first_message' | 'menu' | 'webhook' | 'schedule';
+  type TriggerType = 'keyword' | 'first_message' | 'menu' | 'webhook' | 'schedule' | 'ai_l1';
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -302,6 +303,7 @@ export function ChatbotFlowsView() {
                   <SelectItem value="menu">Menu</SelectItem>
                   <SelectItem value="webhook">Webhook</SelectItem>
                   <SelectItem value="schedule">Agendado</SelectItem>
+                  <SelectItem value="ai_l1">IA L1 (respostas automáticas)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

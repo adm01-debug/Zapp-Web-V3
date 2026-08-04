@@ -186,9 +186,9 @@ describe('checkCondition — templates step', () => {
     expect(await step().checkCondition()).toBe(false);
   });
 
-  it('queries the "message_templates" table', async () => {
+  it('queries the "quick_replies" table', async () => {
     await step().checkCondition();
-    expect(mockFrom).toHaveBeenCalledWith('message_templates');
+    expect(mockFrom).toHaveBeenCalledWith('quick_replies');
   });
 });
 

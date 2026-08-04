@@ -150,9 +150,9 @@ export function ScheduledReportsManager() {
                   </div>
                   <div className="ml-3 flex shrink-0 items-center gap-2">
                     <Switch
-                      checked={config.is_active}
+                      checked={config.is_active ?? true}
                       onCheckedChange={() =>
-                        toggleActive.mutate({ id: config.id, isActive: config.is_active })
+                        toggleActive.mutate({ id: config.id, isActive: config.is_active ?? true })
                       }
                     />
                     <Button

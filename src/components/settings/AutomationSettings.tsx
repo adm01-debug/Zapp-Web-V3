@@ -17,6 +17,15 @@ interface AutomationSettingsProps {
   updateSettings: (updates: Partial<AutomationSettingsProps['settings']>) => void;
 }
 
+// TODO (AUTOMACOES-12): Agendamentos cron customizados — backend-only por enquanto.
+// Tabelas já existem no schema zapp: cron_schedules, cron_schedule_executions,
+// task_queues e batch_jobs. NENHUM consumidor no front hoje (grep em src não acha).
+// Quando for implementar UI: painel de agendamentos aqui na aba Automações
+// (listar/criar/pausar schedules + ver executions/task_queues/batch_jobs),
+// usando os mesmos padrões de useQuery/useMutation + safeClient das demais abas.
+// Não construir do zero antes de o backend produtor (fn de agendamento + cron)
+// ter fonte no repo.
+
 /** Automation Settings component for the settings section. */
 export function AutomationSettings({ settings, updateSettings }: AutomationSettingsProps) {
   return (

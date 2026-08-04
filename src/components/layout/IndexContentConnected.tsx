@@ -10,6 +10,7 @@ import { useTour, DEFAULT_ONBOARDING_STEPS } from '@/components/onboarding/Onboa
 import { useIndexNavigation } from '@/hooks/useIndexNavigation';
 import { useEmailOAuthFlow } from '@/hooks/useGmailOAuthFlow';
 import { useIndexKeyboardShortcuts } from '@/hooks/useIndexKeyboardShortcuts';
+import { useAppBootstrap } from '@/hooks/useAppBootstrap';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { CommandPalette } from '@/components/CommandPalette';
@@ -47,6 +48,11 @@ export const IndexContentConnected = forwardRef<HTMLDivElement>(
 
     useEmailOAuthFlow();
     useIndexKeyboardShortcuts({ goBack, goForward, canGoBack, setCurrentView });
+
+    // DASHBOARD-07: badge de notificações real — rpc_app_bootstrap retorna
+    // unread_notifications (contagem de zapp.app_notifications não lidas).
+    // Antes era hardcoded `0` (AppShell nunca exibia badge).
+    const { unreadNotifications } = useAppBootstrap();
 
     // Notifications & Alerts
     const [notifReady, setNotifReady] = useState(false);
@@ -91,7 +97,7 @@ export const IndexContentConnected = forwardRef<HTMLDivElement>(
             profile={profile}
             userEmail={user.email || ''}
             signOut={signOut}
-            unreadNotifications={0}
+            unreadNotifications={unreadNotifications}
             showChecklist={showChecklist}
             loading={loading}
           />

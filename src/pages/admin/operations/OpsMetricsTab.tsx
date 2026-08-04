@@ -21,6 +21,7 @@ import {
 import { Activity, Inbox, Send, AlertTriangle, Users, Hash, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { MediaPipelineStats } from './MediaPipelineStats';
 
 type Totals = {
   total_in: number;
@@ -168,6 +169,9 @@ export function OpsMetricsTab() {
               value={data.totals.online_agents}
             />
           </div>
+
+          {/* DASHBOARD-18: stats mínimos do media pipeline (download queue + scan log) */}
+          <MediaPipelineStats />
 
           <Card>
             <CardHeader>

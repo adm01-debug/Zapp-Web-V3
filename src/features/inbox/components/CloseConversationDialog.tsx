@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { ticketStore } from '@/lib/inbox/ticketStore';
 import {
   Dialog,
   DialogContent,
@@ -94,6 +95,34 @@ export function CloseConversationDialog({
         notes: notes || null,
       });
     if (!error) {
+      // INBOX-08: persistir status real. Não existe RPC/edge de fechamento no
+      // Evolution DB (só rpc_list_conversations, read-only), então grava-se no
+      // app DB (conversations.status + conversation_events de auditoria) e
+      // sincroniza o overlay de tickets para a UI refletir imediatamente.
+      // Escritas não-fatais: o registro canônico é a conversation_closures.
+      const [convUpdate, eventInsert] = await Promise.all([
+        supabase
+          .from('conversations')
+          .update({ status: 'resolved' })
+          .eq('contact_id', contactId),
+        supabase.from('conversation_events').insert({
+          contact_id: contactId,
+          event_type: 'close',
+          performed_by: profileId ?? null,
+          metadata: {
+            close_reason: reason,
+            outcome: outcome || null,
+            classification: classification || null,
+          },
+        }),
+      ]);
+      if (convUpdate.error) {
+        console.warn('[CloseConversationDialog] falha ao persistir status em conversations:', convUpdate.error.message);
+      }
+      if (eventInsert.error) {
+        console.warn('[CloseConversationDialog] falha ao registrar conversation_events:', eventInsert.error.message);
+      }
+      ticketStore.setStatus(contactId, 'resolved', profileId ?? null);
       toast.success('Conversa encerrada com registro');
       onOpenChange(false);
       setReason('');

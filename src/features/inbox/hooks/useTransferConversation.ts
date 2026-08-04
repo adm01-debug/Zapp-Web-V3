@@ -23,13 +23,7 @@ interface UseTransferConversationOptions {
  *    `contacts.queue_id` (queue transfer) in Supabase.
  * 2. Inserting a system message in the conversation timeline so the
  *    transfer is auditable.
- * 3. Registering the handoff in `conversation_transfers` (+ optional
- *    `transfer_comments` with the TransferDialog message) so
- *    `rpc_list_transfers_paginated` has rows to list in the admin UI.
- * 4. Providing proper error handling with user-facing feedback.
- *
- * The audit writes (3) are best-effort: a denial there must never break the
- * transfer itself (contacts update + timeline message already succeeded).
+ * 3. Providing proper error handling with user-facing feedback.
  */
 export function useTransferConversation({
   contactId,
@@ -43,38 +37,14 @@ export function useTransferConversation({
       }
       try {
         const { data: userData } = await supabase.auth.getUser();
-        const authUserId = userData.user?.id ?? null;
+        const agentId = userData.user?.id;
 
-        // Identidade do agente: zapp.profiles (user_id = auth.uid()). O
-        // restante do app referencia agentes por profiles.id (assigned_to,
-        // queue_members.profile_id, agent_stats.profile_id), então o registro
-        // de transferência usa o mesmo id para RLS/RPCs baterem.
-        let profile: { id: string; name: string | null } | null = null;
-        let contact: Record<string, unknown> | null = null;
-        let conversation: { id: string } | null = null;
-        try {
-          const [profileRes, contactRes, conversationRes] = await Promise.all([
-            authUserId
-              ? dbFrom('profiles').select('id, name').eq('user_id', authUserId).maybeSingle()
-              : Promise.resolve({ data: null as { id: string; name: string | null } | null, error: null }),
-            dbFrom('contacts')
-              .select('name, remote_jid, queue_id, instance_name')
-              .eq('id', contactId)
-              .maybeSingle(),
-            dbFrom('conversations')
-              .select('id')
-              .eq('contact_id', contactId)
-              .limit(1)
-              .maybeSingle(),
-          ]);
-          profile = profileRes?.data ?? null;
-          contact = contactRes?.data ?? null;
-          conversation = conversationRes?.data ?? null;
-        } catch (lookupErr) {
-          // Lookups são best-effort: a transferência principal não depende deles.
-          log.warn('Transfer context lookup failed, proceeding with nulls:', lookupErr);
-        }
-        const agentId = profile?.id ?? authUserId;
+        // INBOX-12: ler a atribuição atual antes da transferência para compor o
+        // audit trail em conversation_transfers (from_agent_id/from_queue_id).
+        const { data: current } = await dbFrom('contacts')
+          .select('assigned_to, queue_id, name, remote_jid, instance_name')
+          .eq('id', contactId)
+          .maybeSingle();
 
         const updateData: Record<string, string | null> = {};
 
@@ -108,54 +78,49 @@ export function useTransferConversation({
           agent_id: agentId,
         });
 
-        // Audit trail: conversation_transfers + transfer_comments — alimenta
-        // rpc_list_transfers_paginated (admin). Best-effort: falha aqui não
-        // desfaz a transferência já efetuada.
-        try {
-          const transferPayload: Record<string, unknown> = {
+        // INBOX-12: persistir a transferência em conversation_transfers (audit
+        // trail + fonte para o realtime) e transfer_comments quando houver
+        // mensagem. Escritas não-fatais: a transferência em si (contacts +
+        // timeline) já foi concluída; falha aqui só degrada a auditoria.
+        const now = new Date().toISOString();
+        const { data: transferRow, error: transferErr } = await supabase
+          .from('conversation_transfers')
+          .insert({
             contact_id: contactId,
-            contact_name: (contact as { name?: string | null } | null)?.name ?? null,
-            remote_jid: (contact as { remote_jid?: string | null } | null)?.remote_jid ?? null,
-            from_agent_id: agentId,
-            from_queue_id: (contact as { queue_id?: string | null } | null)?.queue_id ?? null,
+            contact_name: current?.name ?? null,
+            from_agent_id: current?.assigned_to ?? null,
+            to_agent_id: type === 'agent' ? targetId : null,
+            to_queue_id: type === 'queue' ? targetId : null,
             transfer_type: type,
-            status: 'closed',
-            reason: message ?? null,
-            source_conversation_id: conversation?.id ?? null,
-            source_instance:
-              (contact as { instance_name?: string | null } | null)?.instance_name ??
-              whatsappConnectionId ??
-              null,
-            created_at: new Date().toISOString(),
-          };
-          if (type === 'agent') {
-            transferPayload.to_agent_id = targetId;
-          } else {
-            transferPayload.to_queue_id = targetId;
-          }
+            status: 'pending',
+            reason: message ?? (type === 'agent'
+              ? 'Transferência para outro atendente'
+              : 'Transferência para outra fila'),
+            remote_jid: current?.remote_jid ?? '',
+            source_instance: current?.instance_name ?? '',
+            target_instance: current?.instance_name ?? '',
+            ticket_number: `T-${Date.now().toString(36).toUpperCase()}`,
+            created_at: now,
+            updated_at: now,
+          })
+          .select('id')
+          .maybeSingle();
 
-          const { data: transferRow, error: transferErr } = await dbFrom('conversation_transfers')
-            .insert(transferPayload)
-            .select('id')
-            .single();
-
-          if (transferErr) throw transferErr;
-
-          // Comentário do TransferDialog: vira transfer_comments (content é
-          // NOT NULL — só escreve quando há mensagem).
-          if (message && transferRow?.id) {
-            const { error: commentErr } = await dbFrom('transfer_comments').insert({
+        if (transferErr) {
+          log.error('conversation_transfers insert failed:', transferErr);
+        } else if (message && transferRow?.id && agentId) {
+          const { error: commentErr } = await supabase
+            .from('transfer_comments')
+            .insert({
               transfer_id: transferRow.id,
               agent_id: agentId,
-              author_instance: whatsappConnectionId ?? '', // coluna NOT NULL
-              author_name: profile?.name ?? 'Atendente',
+              author_instance: current?.instance_name ?? '',
+              author_name: 'Agente',
               content: message,
-              created_at: new Date().toISOString(),
             });
-            if (commentErr) throw commentErr;
+          if (commentErr) {
+            log.error('transfer_comments insert failed:', commentErr);
           }
-        } catch (auditErr) {
-          log.error('Transfer audit write failed (transfer still completed):', auditErr);
         }
 
         toast({
