@@ -137,11 +137,25 @@ CREATE TRIGGER trg_validate_whatsapp_connection_url
   FOR EACH ROW EXECUTE FUNCTION zapp.fn_validate_whatsapp_connection_url();
 
 -- ─────────────────────────────────────────────────────────────────────────────
+-- 4. contact_notes_delete — policy DELETE com guard de ownership
+--    (o frontend useContactNotes.deleteNote usa .delete() direto; sem policy
+--    o RLS negava silenciosamente — excluir nota quebrado em produção.
+--    Guard: autor OU admin/supervisor.)
+-- ─────────────────────────────────────────────────────────────────────────────
+DROP POLICY IF EXISTS contact_notes_delete ON zapp.contact_notes;
+CREATE POLICY contact_notes_delete ON zapp.contact_notes
+  FOR DELETE TO authenticated
+  USING (
+    author_id = zapp.get_profile_id_for_user(auth.uid())
+    OR zapp.is_admin_or_supervisor()
+  );
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- VERIFICATION
 -- ─────────────────────────────────────────────────────────────────────────────
 DO $$
 DECLARE
-  v1 BOOLEAN; v2 BOOLEAN; v3 BOOLEAN;
+  v1 BOOLEAN; v2 BOOLEAN; v3 BOOLEAN; v4 BOOLEAN;
 BEGIN
   SELECT EXISTS (
     SELECT 1 FROM pg_catalog.pg_proc p
@@ -162,10 +176,17 @@ BEGIN
    WHERE n.nspname = 'zapp' AND c.relname = 'whatsapp_connections'
      AND t.tgname = 'trg_validate_whatsapp_connection_url' AND NOT t.tgisinternal
   ) INTO v3;
+  SELECT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_policies
+   WHERE schemaname = 'zapp' AND tablename = 'contact_notes'
+     AND policyname = 'contact_notes_delete' AND cmd = 'DELETE'
+     AND roles @> ARRAY['authenticated']
+  ) INTO v4;
 
   IF NOT v1 THEN RAISE EXCEPTION 'VERIFICATION FAILED: update_contact_versioned'; END IF;
   IF NOT v2 THEN RAISE EXCEPTION 'VERIFICATION FAILED: rpc_set_whatsapp_mode'; END IF;
   IF NOT v3 THEN RAISE EXCEPTION 'VERIFICATION FAILED: trg_validate_whatsapp_connection_url'; END IF;
+  IF NOT v4 THEN RAISE EXCEPTION 'VERIFICATION FAILED: contact_notes_delete'; END IF;
 END $$;
 
 COMMIT;
