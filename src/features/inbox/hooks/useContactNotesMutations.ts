@@ -16,7 +16,9 @@ export async function insertContactNote(payload: {
   is_pinned?: boolean;
 }) {
   if (!isValidUUID(payload.contact_id)) return { data: null, error: new Error('Invalid UUID') };
-  return (supabase as any).rpc('add_contact_note', {
+  return (
+    supabase as unknown as { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> }
+  ).rpc('add_contact_note', {
     p_contact_id: payload.contact_id,
     p_content: payload.content,
     p_note_type: payload.note_type ?? 'general',

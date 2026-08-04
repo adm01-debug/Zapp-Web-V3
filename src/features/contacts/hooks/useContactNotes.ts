@@ -132,7 +132,9 @@ export function useContactNotes(contactId: string) {
       noteType?: string;
       isPinned?: boolean;
     }) => {
-      const { data, error } = await (supabase as any).rpc('add_contact_note', {
+      const { data, error } = await (
+        supabase as unknown as { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> }
+      ).rpc('add_contact_note', {
         p_contact_id: contactId,
         p_content: content,
         p_note_type: noteType,
@@ -172,7 +174,9 @@ export function useContactNotes(contactId: string) {
       noteType?: string;
       isPinned?: boolean;
     }) => {
-      const { data, error } = await (supabase as any).rpc('update_contact_note', {
+      const { data, error } = await (
+        supabase as unknown as { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> }
+      ).rpc('update_contact_note', {
         p_note_id: noteId,
         p_content: content ?? null,
         p_note_type: noteType ?? null,
