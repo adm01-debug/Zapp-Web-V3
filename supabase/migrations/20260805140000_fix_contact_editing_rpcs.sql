@@ -126,11 +126,22 @@ REVOKE EXECUTE ON FUNCTION zapp.rpc_set_whatsapp_mode(text) FROM PUBLIC, anon;
 GRANT  EXECUTE ON FUNCTION zapp.rpc_set_whatsapp_mode(text) TO authenticated;
 
 -- ─────────────────────────────────────────────────────────────────────────────
+-- 3. trg_validate_whatsapp_connection_url — trigger reconciliado de produção
+--    (função fn_validate_whatsapp_connection_url criada na delta 05000000,
+--    mas o TRIGGER nunca foi versionado — ambiente limpo teria a função órfã
+--    e F6-12 inerte. Achado ALTO da auditoria 5 agentes.)
+-- ─────────────────────────────────────────────────────────────────────────────
+DROP TRIGGER IF EXISTS trg_validate_whatsapp_connection_url ON zapp.whatsapp_connections;
+CREATE TRIGGER trg_validate_whatsapp_connection_url
+  BEFORE INSERT OR UPDATE OF api_url ON zapp.whatsapp_connections
+  FOR EACH ROW EXECUTE FUNCTION zapp.fn_validate_whatsapp_connection_url();
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- VERIFICATION
 -- ─────────────────────────────────────────────────────────────────────────────
 DO $$
 DECLARE
-  v1 BOOLEAN; v2 BOOLEAN;
+  v1 BOOLEAN; v2 BOOLEAN; v3 BOOLEAN;
 BEGIN
   SELECT EXISTS (
     SELECT 1 FROM pg_catalog.pg_proc p
@@ -144,9 +155,17 @@ BEGIN
    WHERE n.nspname = 'zapp' AND p.proname = 'rpc_set_whatsapp_mode'
      AND p.proargnames = ARRAY['p_mode']
   ) INTO v2;
+  SELECT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_trigger t
+    JOIN pg_catalog.pg_class c ON c.oid = t.tgrelid
+    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+   WHERE n.nspname = 'zapp' AND c.relname = 'whatsapp_connections'
+     AND t.tgname = 'trg_validate_whatsapp_connection_url' AND NOT t.tgisinternal
+  ) INTO v3;
 
   IF NOT v1 THEN RAISE EXCEPTION 'VERIFICATION FAILED: update_contact_versioned'; END IF;
   IF NOT v2 THEN RAISE EXCEPTION 'VERIFICATION FAILED: rpc_set_whatsapp_mode'; END IF;
+  IF NOT v3 THEN RAISE EXCEPTION 'VERIFICATION FAILED: trg_validate_whatsapp_connection_url'; END IF;
 END $$;
 
 COMMIT;
