@@ -22,6 +22,7 @@ let notesRows: Array<{
 }> = [];
 let insertResolver: ((v: unknown) => void) | null = null;
 let deleteResolver: ((v: unknown) => void) | null = null;
+let updateResolver: ((v: unknown) => void) | null = null;
 
 const CONTACT_UUID = '00000000-0000-4000-8000-000000000001';
 
@@ -29,15 +30,22 @@ function makeSelectChain(rows: unknown[]) {
   type SelectChain = {
     select: () => SelectChain;
     eq: () => SelectChain;
+    order: () => SelectChain | Promise<{ data: unknown[]; error: null }>;
     in: () => Promise<{ data: unknown[]; error: null }>;
-    order: () => Promise<{ data: unknown[]; error: null }>;
     maybeSingle: () => Promise<{ data: unknown; error: null }>;
   };
+  const resolveRows: () => Promise<{ data: unknown[]; error: null }> = () =>
+    Promise.resolve({ data: rows, error: null });
+  let orderCalls = 0;
   const chain: SelectChain = {
     select: () => chain,
     eq: () => chain,
-    in: () => Promise.resolve({ data: rows, error: null }),
-    order: () => Promise.resolve({ data: rows, error: null }),
+    in: () => resolveRows(),
+    // Encadeia múltiplos .order() e resolve na última chamada (hook usa 2: is_pinned + created_at)
+    order: () => {
+      orderCalls += 1;
+      return orderCalls >= 2 ? resolveRows() : chain;
+    },
     maybeSingle: () => Promise.resolve({ data: rows[0] ?? null, error: null }),
   };
   return chain;
@@ -87,6 +95,43 @@ vi.mock('@/integrations/supabase/client', () => ({
         };
       }
       return { select: () => makeSelectChain([]) };
+    },
+    rpc: (name: string, args: Record<string, unknown>) => {
+      if (name === 'add_contact_note') {
+        return new Promise((resolve) => {
+          const finish = () => {
+            const row = {
+              id: 'note-new',
+              contact_id: (args.p_contact_id as string) ?? CONTACT_UUID,
+              author_id: 'profile-1',
+              content: (args.p_content as string) ?? '',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            };
+            notesRows = [row, ...notesRows];
+            resolve({ data: { id: row.id }, error: null });
+          };
+          insertResolver = finish;
+        });
+      }
+      if (name === 'update_contact_note') {
+        return new Promise((resolve) => {
+          const finish = () => {
+            notesRows = notesRows.map((n) =>
+              n.id === (args.p_note_id as string)
+                ? {
+                    ...n,
+                    content: (args.p_content as string | null) ?? n.content,
+                    updated_at: new Date().toISOString(),
+                  }
+                : n
+            );
+            resolve({ data: { id: args.p_note_id }, error: null });
+          };
+          updateResolver = finish;
+        });
+      }
+      return Promise.resolve({ data: null, error: { message: `unexpected rpc ${name}` } });
     },
   },
 }));
