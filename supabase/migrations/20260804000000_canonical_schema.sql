@@ -2,9 +2,9 @@
 -- CANONICAL SCHEMA MIGRATION — ZAPP-WEB v3
 -- Generated: 2026-08-04 | Squash de 130 migrations → 1 arquivo canônico
 --
--- Schemas: zapp(312 tables, 404 views), evo(193 tables), public(1 table, 532 views)
+-- Schemas: zapp(320 tables, 404 views), evo(172 tables), public(4 tables, 532 views)
 -- Funções: 1056+ em zapp, 88 migrations registradas
--- Linhas: 15.000+ | Ordem: cronológica (2026-07-16 → 2026-08-03)
+-- Linhas: 15,845+ | Ordem: cronológica (2026-07-16 → 2026-08-03)
 --
 -- Cada seção preserva sua própria transactionalidade (BEGIN/COMMIT).
 -- Operações são idempotentes: CREATE OR REPLACE, IF NOT EXISTS, DO blocks.
@@ -4634,9 +4634,7 @@ GRANT  EXECUTE ON FUNCTION zapp.rpc_dlq_bulk_abandon(uuid[], text) TO authentica
 -- BUG-D  rpc_dlq_bulk_retry_now — DROP + CREATE (public.has_role doesn't exist)
 -- ─────────────────────────────────────────────────────────────────────────────
 
-DROP FUNCTION IF EXISTS zapp.rpc_dlq_bulk_retry_now(uuid[], text);
-
-CREATE FUNCTION zapp.rpc_dlq_bulk_retry_now(
+CREATE OR REPLACE FUNCTION zapp.rpc_dlq_bulk_retry_now(
   p_ids    uuid[],
   p_reason text DEFAULT NULL
 )
@@ -5035,9 +5033,7 @@ CREATE INDEX IF NOT EXISTS idx_failed_messages_next_attempt
 --    Called from: src/features/admin/hooks/monitoring/useFailedMessages.ts:199
 --      supabase.rpc('rpc_dlq_bulk_retry_now', { p_ids: ids, p_reason: reason })
 -- ─────────────────────────────────────────────────────────────────────────────
-DROP FUNCTION IF EXISTS zapp.rpc_dlq_bulk_retry_now(uuid[], text);
-
-CREATE FUNCTION zapp.rpc_dlq_bulk_retry_now(
+CREATE OR REPLACE FUNCTION zapp.rpc_dlq_bulk_retry_now(
   p_ids    uuid[],
   p_reason text DEFAULT NULL
 )
@@ -15520,41 +15516,12 @@ COMMIT;
 /*
 BEGIN;
   -- Overload 1: revert to no-guard version
-  CREATE OR REPLACE FUNCTION public.rpc_get_contact(p_contact_id uuid)
-  RETURNS jsonb
-  LANGUAGE plpgsql
-  SECURITY DEFINER
-  SET search_path = ''
-  AS $$
-  DECLARE v_result jsonb;
-  BEGIN
-    SELECT jsonb_build_object(
-      'contact', to_jsonb(c.*),
-      'deals', COALESCE((SELECT jsonb_agg(to_jsonb(d.*)) FROM evo.evolution_deals d WHERE d.contact_id=c.id),'[]'),
-      'recent_messages', COALESCE((SELECT jsonb_agg(to_jsonb(m.*)) FROM (SELECT * FROM evo.evolution_messages WHERE contact_id=c.id ORDER BY created_at DESC LIMIT 20) m),'[]'),
-      'tasks', COALESCE((SELECT jsonb_agg(to_jsonb(t.*)) FROM evo.evolution_tasks t WHERE t.contact_id=c.id AND t.status IN ('pending','in_progress')),'[]')
-    ) INTO v_result
-    FROM evo.evolution_contacts c WHERE c.id=p_contact_id;
-    RETURN v_result;
-  END;
-  $$;
+  
   GRANT EXECUTE ON FUNCTION public.rpc_get_contact(uuid) TO authenticated, service_role;
 
   -- Overload 2: revert to SQL version
   DROP FUNCTION IF EXISTS public.rpc_get_contact(text, text);
-  CREATE OR REPLACE FUNCTION public.rpc_get_contact(p_remote_jid text, p_instance text)
-  RETURNS SETOF evo.evolution_contacts
-  LANGUAGE sql
-  SECURITY DEFINER
-  SET search_path = ''
-  AS $$
-    SELECT * FROM evo.evolution_contacts
-    WHERE remote_jid=p_remote_jid
-      AND (p_instance IS NULL OR instance_name=p_instance)
-      AND deleted_at IS NULL
-    ORDER BY updated_at DESC
-    LIMIT 1;
-  $$;
+  
   GRANT EXECUTE ON FUNCTION public.rpc_get_contact(text, text) TO authenticated, service_role;
 COMMIT;
 */
@@ -15801,6 +15768,346 @@ $$;
 
 -- ═══════════════════════════════════════════════════════════════════════
 -- SECTION: 20260804000000_r29f_regrant_get_companies_by_phones_batch.sql
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- SECTION: 20260803_notify_sicoob_on_reply.sql
+-- ═══════════════════════════════════════════════════════════════════════
+
+-- Trigger function: notifica bridge Sicoob quando agente responde
+-- contato do tipo sicoob_gifts via chat interno.
+-- Usa net.http_post (pg_net) com service_role_key para autenticação.
+-- EXCEPTION handler garante que falha de rede NUNCA aborta o INSERT.
+
+CREATE OR REPLACE FUNCTION zapp.notify_sicoob_on_reply()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'zapp', 'net', 'extensions', 'pg_catalog'
+AS $function$
+DECLARE
+  v_contact_type text;
+  v_supabase_url text;
+  v_resp bigint;
+BEGIN
+  IF NEW.sender = 'agent' AND NEW.channel_type = 'internal_chat' THEN
+    SELECT contact_type INTO v_contact_type
+    FROM zapp.contacts
+    WHERE id = NEW.contact_id;
+
+    IF v_contact_type = 'sicoob_gifts' THEN
+      v_supabase_url := COALESCE(
+        NULLIF(current_setting('app.settings.supabase_url', true), ''),
+        'https://supabase.atomicabr.com.br'
+      );
+
+      BEGIN
+        SELECT net.http_post(
+          url := v_supabase_url || '/functions/v1/sicoob-bridge-reply',
+          body := jsonb_build_object(
+            'contact_id', NEW.contact_id,
+            'content', NEW.content,
+            'message_id', NEW.id,
+            'agent_id', NEW.agent_id,
+            'created_at', NEW.created_at
+          ),
+          headers := jsonb_build_object(
+            'Content-Type', 'application/json',
+            'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key', true)
+          )
+        ) INTO v_resp;
+      EXCEPTION WHEN OTHERS THEN
+        -- Log falha mas NUNCA aborta o INSERT da mensagem
+        RAISE WARNING '[notify_sicoob_on_reply] http_post falhou: % / %', SQLSTATE, SQLERRM;
+      END;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- SECTION: 20260803_sprint1_security_functions.sql
+-- ═══════════════════════════════════════════════════════════════════════
+
+-- Security-hardened functions from Sprint 1 audit (2026-07-11).
+-- These functions have RAISE EXCEPTION auth guards and SECURITY DEFINER
+-- with explicit SET search_path. Rescued from production 2026-08-03 because
+-- the canonical squash (20260804000000) omitted them.
+-- Includes: prevent_role_escalation, pause/unpause_instance,
+-- manage_department_member, rpc_migrate_whatsapp_integration,
+-- fn_accept_transfer, fn_complete_transfer.
+
+CREATE OR REPLACE FUNCTION zapp.prevent_role_escalation()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'zapp', 'auth', 'extensions', 'pg_catalog'
+AS $function$
+DECLARE
+  v_uid        uuid;
+  v_blocked    text[] := '{}';
+BEGIN
+  IF current_setting('request.jwt.claim.role', true) = 'service_role' THEN
+    RETURN NEW;
+  END IF;
+  BEGIN
+    v_uid := auth.uid();
+  EXCEPTION WHEN OTHERS THEN
+    v_uid := NULL;
+  END;
+  IF OLD.role IS DISTINCT FROM NEW.role
+     AND NOT COALESCE(zapp.is_admin_or_supervisor(v_uid), false) THEN
+    v_blocked := array_append(v_blocked,
+      format('role: %s -> %s', COALESCE(OLD.role,'null'), COALESCE(NEW.role,'null')));
+    NEW.role := OLD.role;
+  END IF;
+  IF OLD.access_level IS DISTINCT FROM NEW.access_level
+     AND NOT COALESCE(zapp.is_admin_or_supervisor(v_uid), false) THEN
+    v_blocked := array_append(v_blocked,
+      format('access_level: %s -> %s', COALESCE(OLD.access_level::text,'null'), COALESCE(NEW.access_level::text,'null')));
+    NEW.access_level := OLD.access_level;
+  END IF;
+  IF OLD.permissions IS DISTINCT FROM NEW.permissions
+     AND NOT COALESCE(zapp.is_admin_or_supervisor(v_uid), false) THEN
+    v_blocked := array_append(v_blocked, 'permissions');
+    NEW.permissions := OLD.permissions;
+  END IF;
+  IF array_length(v_blocked, 1) > 0 THEN
+    RAISE LOG 'PRIVILEGE_ESCALATION_BLOCKED | user=% | profile=% | fields=[%]',
+      v_uid, OLD.id, array_to_string(v_blocked, ', ');
+    BEGIN
+      INSERT INTO zapp.audit_logs
+        (id, action, entity_id, entity_type, user_id, details, event_type, status)
+      VALUES (gen_random_uuid(), 'PRIVILEGE_ESCALATION_BLOCKED', OLD.id, 'profile', v_uid,
+        jsonb_build_object('blocked_fields', v_blocked, 'old_role', OLD.role,
+          'new_role_attempted', NEW.role, 'trigger', TG_NAME,
+          'table', TG_TABLE_SCHEMA || '.' || TG_TABLE_NAME),
+        'security', 'blocked');
+    EXCEPTION WHEN OTHERS THEN NULL;
+    END;
+    RAISE EXCEPTION 'PRIVILEGE_ESCALATION_BLOCKED: Unauthorized attempt on field(s) [%] for profile %. Operation aborted (42501).',
+      array_to_string(v_blocked, ', '), OLD.id USING ERRCODE = 'insufficient_privilege';
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION zapp.pause_instance(p_instance text, p_reason text, p_minutes integer DEFAULT 15, p_trigger_count integer DEFAULT 0)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'zapp', 'evo', 'monitoring'
+AS $function$
+DECLARE
+  v_id uuid;
+BEGIN
+  IF NOT zapp.is_admin_or_supervisor(auth.uid()) THEN
+    RAISE EXCEPTION 'Access denied: admin or supervisor role required';
+  END IF;
+  IF p_minutes <= 0 OR p_minutes > 1440 THEN
+    RAISE EXCEPTION 'p_minutes must be between 1 and 1440';
+  END IF;
+  INSERT INTO zapp.instance_processing_pauses (
+    instance_name, paused_until, reason, trigger_count, paused_by, auto_paused
+  ) VALUES (
+    p_instance, now() + (p_minutes || ' minutes')::interval,
+    COALESCE(NULLIF(trim(p_reason), ''), 'manual_pause'),
+    GREATEST(0, COALESCE(p_trigger_count, 0)), auth.uid(), false
+  ) RETURNING id INTO v_id;
+  INSERT INTO zapp.audit_logs (user_id, action, entity_type, entity_id, details)
+  VALUES (auth.uid(), 'instance_paused', 'instance_processing_pauses', v_id::text,
+    jsonb_build_object('instance', p_instance, 'minutes', p_minutes, 'reason', p_reason, 'trigger_count', p_trigger_count));
+  RETURN v_id;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION zapp.unpause_instance(p_instance text)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'zapp', 'evo', 'monitoring'
+AS $function$
+DECLARE
+  v_count integer;
+BEGIN
+  IF NOT zapp.is_admin_or_supervisor(auth.uid()) THEN
+    RAISE EXCEPTION 'Access denied: admin or supervisor role required';
+  END IF;
+  UPDATE zapp.instance_processing_pauses
+     SET paused_until = now(), updated_at = now()
+   WHERE instance_name = p_instance AND paused_until > now();
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+  IF v_count > 0 THEN
+    INSERT INTO zapp.audit_logs (user_id, action, entity_type, entity_id, details)
+    VALUES (auth.uid(), 'instance_unpaused', 'instance_processing_pauses', p_instance,
+      jsonb_build_object('instance', p_instance, 'cleared', v_count));
+  END IF;
+  RETURN v_count;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION zapp.manage_department_member(_admin_user_id uuid, _target_profile_id uuid, _department_id uuid, _action text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'zapp', 'auth', 'extensions'
+AS $function$
+DECLARE
+  v_admin_role text;
+  v_dept_name  text;
+  v_profile    record;
+BEGIN
+  SELECT role INTO v_admin_role FROM zapp.user_roles WHERE user_id = _admin_user_id LIMIT 1;
+  IF v_admin_role NOT IN ('admin','manager','supervisor') THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permissão insuficiente',
+      'required_role', 'admin/manager/supervisor', 'current_role', v_admin_role);
+  END IF;
+  SELECT name INTO v_dept_name FROM zapp.departments WHERE id = _department_id;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Departamento não encontrado');
+  END IF;
+  SELECT * INTO v_profile FROM zapp.profiles WHERE id = _target_profile_id;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Perfil não encontrado');
+  END IF;
+  IF _action = 'add' THEN
+    UPDATE zapp.profiles SET department_id = _department_id, department = v_dept_name WHERE id = _target_profile_id;
+    RETURN jsonb_build_object('success', true, 'action', 'add', 'profile_id', _target_profile_id,
+      'department_id', _department_id, 'department_name', v_dept_name);
+  ELSIF _action = 'remove' THEN
+    UPDATE zapp.profiles SET department_id = NULL, department = NULL
+    WHERE id = _target_profile_id AND department_id = _department_id;
+    RETURN jsonb_build_object('success', true, 'action', 'remove',
+      'profile_id', _target_profile_id, 'removed_from', v_dept_name);
+  ELSE
+    RETURN jsonb_build_object('success', false, 'error', format('Ação inválida: %s', _action));
+  END IF;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION zapp.rpc_migrate_whatsapp_integration()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'zapp', 'evo', 'monitoring'
+AS $function$
+DECLARE
+  v_evo_count INT := 0;
+  v_evo_open  INT := 0;
+  v_evo_default RECORD;
+  v_cloud_phone TEXT;
+  v_cloud_waba  TEXT;
+  v_current_mode TEXT;
+  v_chosen_provider TEXT;
+  v_status TEXT;
+  v_notes TEXT;
+  v_signals JSONB;
+  v_profile_id UUID;
+  v_default_instance TEXT;
+BEGIN
+  SELECT COUNT(*) INTO v_evo_count FROM zapp.whatsapp_connections;
+  SELECT COUNT(*) INTO v_evo_open FROM zapp.whatsapp_connections WHERE COALESCE(status,'') IN ('open','connected');
+  SELECT instance_id, name, phone_number, status INTO v_evo_default
+    FROM zapp.whatsapp_connections WHERE is_default = true ORDER BY updated_at DESC NULLS LAST LIMIT 1;
+  SELECT value INTO v_cloud_phone FROM zapp.global_settings WHERE key = 'whatsapp_cloud_display_phone';
+  SELECT value INTO v_cloud_waba  FROM zapp.global_settings WHERE key = 'whatsapp_cloud_waba_name';
+  SELECT value INTO v_current_mode FROM zapp.global_settings WHERE key = 'whatsapp_mode';
+  v_signals := jsonb_build_object(
+    'evolution_instances_total', v_evo_count, 'evolution_instances_open', v_evo_open,
+    'evolution_default_instance', COALESCE(v_evo_default.instance_id, NULL),
+    'cloud_display_phone_set', COALESCE(NULLIF(v_cloud_phone,''), NULL) IS NOT NULL,
+    'cloud_waba_name_set', COALESCE(NULLIF(v_cloud_waba,''), NULL) IS NOT NULL,
+    'previous_mode', COALESCE(v_current_mode, 'unset'));
+  IF v_evo_open > 0 OR v_evo_count > 0 THEN v_chosen_provider := 'evolution';
+  ELSIF COALESCE(NULLIF(v_cloud_phone,''),'') <> '' THEN v_chosen_provider := 'cloud';
+  ELSE v_chosen_provider := CASE WHEN v_current_mode = 'official' THEN 'cloud' ELSE 'evolution' END;
+  END IF;
+  v_default_instance := COALESCE(v_evo_default.instance_id, 'wpp2');
+  INSERT INTO zapp.global_settings(key, value)
+  VALUES ('whatsapp_mode', CASE WHEN v_chosen_provider = 'cloud' THEN 'official' ELSE 'unofficial' END)
+  ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()
+    WHERE zapp.global_settings.value IS DISTINCT FROM EXCLUDED.value;
+  UPDATE zapp.integration_profiles SET is_active = false WHERE is_active = true;
+  SELECT id INTO v_profile_id FROM zapp.integration_profiles WHERE provider = v_chosen_provider ORDER BY updated_at DESC LIMIT 1;
+  IF v_profile_id IS NULL THEN
+    INSERT INTO zapp.integration_profiles (provider, is_active, default_instance, display_phone, waba_name,
+      detected_signals, migration_status, migration_notes, migrated_at)
+    VALUES (v_chosen_provider, true, CASE WHEN v_chosen_provider='evolution' THEN v_default_instance ELSE NULL END,
+      NULLIF(v_cloud_phone,''), NULLIF(v_cloud_waba,''), v_signals,
+      CASE WHEN v_chosen_provider = 'cloud' AND COALESCE(NULLIF(v_cloud_phone,''),'') = '' THEN 'pending_credentials'
+           WHEN v_chosen_provider = 'evolution' AND v_evo_count = 0 THEN 'pending_credentials' ELSE 'migrated' END,
+      CASE WHEN v_chosen_provider = 'cloud' AND COALESCE(NULLIF(v_cloud_phone,''),'') = '' THEN 'Modo oficial selecionado, mas faltam credenciais Meta.'
+           WHEN v_chosen_provider = 'evolution' AND v_evo_count = 0 THEN 'Modo Evolution selecionado, mas nenhuma instância registrada.'
+           ELSE format('Provider %s ativado a partir dos sinais existentes.', v_chosen_provider) END,
+      CASE WHEN (v_chosen_provider = 'cloud' AND COALESCE(NULLIF(v_cloud_phone,''),'') <> '')
+             OR (v_chosen_provider = 'evolution' AND v_evo_count > 0) THEN now() ELSE NULL END)
+    RETURNING id INTO v_profile_id;
+  ELSE
+    UPDATE zapp.integration_profiles SET is_active = true,
+      default_instance = CASE WHEN v_chosen_provider='evolution' THEN v_default_instance ELSE default_instance END,
+      display_phone = COALESCE(NULLIF(v_cloud_phone,''), display_phone),
+      waba_name = COALESCE(NULLIF(v_cloud_waba,''), waba_name), detected_signals = v_signals,
+      migration_status = CASE WHEN v_chosen_provider = 'cloud' AND COALESCE(NULLIF(v_cloud_phone,''),'') = '' THEN 'pending_credentials'
+                              WHEN v_chosen_provider = 'evolution' AND v_evo_count = 0 THEN 'pending_credentials' ELSE 'migrated' END,
+      migration_notes = CASE WHEN v_chosen_provider = 'cloud' AND COALESCE(NULLIF(v_cloud_phone,''),'') = '' THEN 'Modo oficial selecionado, mas faltam credenciais Meta.'
+                             WHEN v_chosen_provider = 'evolution' AND v_evo_count = 0 THEN 'Modo Evolution selecionado, mas nenhuma instância registrada.'
+                             ELSE format('Provider %s ativado.', v_chosen_provider) END,
+      migrated_at = CASE WHEN (v_chosen_provider = 'cloud' AND COALESCE(NULLIF(v_cloud_phone,''),'') <> '')
+                           OR (v_chosen_provider = 'evolution' AND v_evo_count > 0) THEN now() ELSE migrated_at END
+    WHERE id = v_profile_id;
+  END IF;
+  RETURN jsonb_build_object('profile_id', v_profile_id, 'provider', v_chosen_provider,
+    'mode', CASE WHEN v_chosen_provider='cloud' THEN 'official' ELSE 'unofficial' END,
+    'status', CASE WHEN (v_chosen_provider = 'cloud' AND COALESCE(NULLIF(v_cloud_phone,''),'') = '')
+                     OR (v_chosen_provider = 'evolution' AND v_evo_count = 0) THEN 'pending_credentials' ELSE 'migrated' END,
+    'notes', CASE WHEN v_chosen_provider = 'cloud' AND COALESCE(NULLIF(v_cloud_phone,''),'') = '' THEN 'Faltam credenciais Meta.'
+                  WHEN v_chosen_provider = 'evolution' AND v_evo_count = 0 THEN 'Nenhuma instância registrada.'
+                  ELSE format('Provider %s ativado.', v_chosen_provider) END,
+    'signals', v_signals);
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION zapp.fn_accept_transfer(p_transfer_id uuid, p_agent_id uuid)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'zapp'
+AS $function$
+DECLARE
+    v_conversation_id UUID;
+BEGIN
+    IF auth.uid() IS NULL THEN
+      RAISE EXCEPTION 'Authentication required';
+    END IF;
+    UPDATE zapp.conversation_transfers
+    SET status = 'accepted', to_agent_id = p_agent_id, accepted_at = NOW()
+    WHERE id = p_transfer_id AND status = 'pending'
+    RETURNING conversation_id INTO v_conversation_id;
+    IF FOUND THEN
+        UPDATE zapp.contacts SET assigned_to = p_agent_id WHERE id = v_conversation_id;
+        RETURN TRUE;
+    END IF;
+    RETURN FALSE;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION zapp.fn_complete_transfer(p_transfer_id uuid, p_notes text, p_type text DEFAULT 'resolved'::text)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'zapp'
+AS $function$
+BEGIN
+    IF auth.uid() IS NULL THEN
+      RAISE EXCEPTION 'Authentication required';
+    END IF;
+    UPDATE zapp.conversation_transfers SET status = 'completed', resolution_notes = p_notes,
+      resolution_type = p_type, completed_at = NOW()
+    WHERE id = p_transfer_id AND status IN ('accepted', 'in_progress');
+    RETURN FOUND;
+END;
+$function$;
 -- ═══════════════════════════════════════════════════════════════════════
 
 -- R29f: Re-grant EXECUTE on zapp.get_companies_by_phones_batch to authenticated
