@@ -138,7 +138,7 @@ SELECT COUNT(*) FROM pg_policies WHERE schemaname='zapp' AND tablename='_backup_
 **Gap**: `public` tem 532 views (proxies para `zapp`, `evo`, `email_app`, etc.). Não há teste automatizado verificando que cada view ainda aponta para a tabela correta após refatorações.
 
 **Ação**:
-1. Query para detectar views com dependências quebradas usando o catálogo `pg_depend` (mais confiável que regex em `definition`):
+1. Query para detectar views com dependências quebradas usando `information_schema.view_table_usage` + `pg_class/pg_namespace` (mais confiável que regex em `definition`):
    ```sql
    SELECT v.viewname
    FROM pg_views v
@@ -760,11 +760,12 @@ WHERE pubname = 'supabase_realtime'; -- Deve ser >= 20
    pg_dump --schema-only --no-owner --no-acl -n zapp "$DATABASE_URL" \
      | grep -v '^--' | grep -v '^$' | sort > /tmp/db-schema-sorted.sql
    # Aplica migration em banco temporário e extrai
+   dropdb --if-exists schema_diff_tmp
    createdb schema_diff_tmp
    psql schema_diff_tmp < supabase/migrations/20260804000000_canonical_schema.sql
    pg_dump --schema-only --no-owner --no-acl -n zapp "postgresql://localhost/schema_diff_tmp" \
      | grep -v '^--' | grep -v '^$' | sort > /tmp/migration-schema-sorted.sql
-   dropdb schema_diff_tmp
+   dropdb --if-exists schema_diff_tmp
    # Diff semântico
    diff /tmp/db-schema-sorted.sql /tmp/migration-schema-sorted.sql
    ```
