@@ -296,6 +296,8 @@ CREATE POLICY audit_logs_insert ON zapp.audit_logs FOR INSERT TO authenticated
 DROP POLICY IF EXISTS warroom_alerts_authenticated ON zapp.warroom_alerts;
 DROP POLICY IF EXISTS warroom_alerts_select_insert ON zapp.warroom_alerts;
 DROP POLICY IF EXISTS warroom_alerts_admin_write ON zapp.warroom_alerts;
+DROP POLICY IF EXISTS warroom_alerts_insert_policy ON zapp.warroom_alerts;
+DROP POLICY IF EXISTS warroom_alerts_admin_delete ON zapp.warroom_alerts;
 
 CREATE POLICY warroom_alerts_select_insert ON zapp.warroom_alerts
   FOR SELECT TO authenticated USING (true);

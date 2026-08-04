@@ -142,11 +142,12 @@ BEGIN
     LOOP
       BEGIN
         IF r.prokind = 'p' THEN
-          -- Stored procedure
           EXECUTE format('REVOKE EXECUTE ON PROCEDURE %I.%I(%s) FROM authenticated, PUBLIC',
                          r.nspname, r.proname, r.args);
+        ELSIF r.prokind = 'a' THEN
+          EXECUTE format('REVOKE EXECUTE ON AGGREGATE %I.%I(%s) FROM authenticated, PUBLIC',
+                         r.nspname, r.proname, r.args);
         ELSE
-          -- Regular function or aggregate
           EXECUTE format('REVOKE EXECUTE ON FUNCTION %I.%I(%s) FROM authenticated, PUBLIC',
                          r.nspname, r.proname, r.args);
         END IF;
