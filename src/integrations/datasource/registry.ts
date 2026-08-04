@@ -52,7 +52,9 @@ export type LogicalEntity =
   | 'contact_notes'
   | 'contact_tags'
   | 'reminders'
-  | 'tags';
+  | 'tags'
+  | 'conversation_transfers'
+  | 'transfer_comments';
 
 /** Datasource Client type alias. */
 export type DatasourceClient = 'lovable' | 'external';
@@ -95,6 +97,9 @@ export const ENTITY_MAP = {
   contact_tags: { client: 'lovable', table: 'contact_tags' },
   reminders: { client: 'lovable', table: 'reminders' },
   tags: { client: 'lovable', table: 'tags' },
+  // ── Transferências (FILAS-14): auditoria de handoff agente/fila ────────
+  conversation_transfers: { client: 'lovable', table: 'conversation_transfers' },
+  transfer_comments: { client: 'lovable', table: 'transfer_comments' },
 } as const satisfies Record<LogicalEntity, EntityMapping>;
 
 /** get Entity Mapping function. */
