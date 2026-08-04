@@ -68,7 +68,13 @@ export function buildConversation(
   ).length;
   const lastMessage = sortedMessages.length > 0 ? sortedMessages[sortedMessages.length - 1] : null;
 
-  return { contact, messages: sortedMessages, unreadCount, lastMessage };
+  return {
+    contact,
+    messages: sortedMessages,
+    unreadCount,
+    lastMessage,
+    isArchived: Boolean(contact.deleted_at),
+  };
 }
 
 /** Deduplicates a contacts array by `id`, keeping the last occurrence of each. */

@@ -61,6 +61,9 @@ export function useInboxFilters({
 }: UseInboxFiltersProps) {
   // Sanitiza a URL antes de qualquer leitura: links antigos/manipulados podem
   // trazer valores inválidos que gerariam estados impossíveis na Inbox.
+  // NOTA: `sanitizeInboxUrlParams` remove `tab=archived` (não está em MAIN_TABS),
+  // então o valor bruto é capturado ANTES da sanitização para restaurar a aba.
+  const rawUrlSearch = useRef<string>(window.location.search).current;
   const sanitizedSearch = useRef<string>(
     (() => {
       const { search, removed } = sanitizeInboxUrlParams(window.location.search);
@@ -85,6 +88,12 @@ export function useInboxFilters({
   const [subTab, setSubTab] = useState<SubTab>(initialPersisted.subTab ?? 'waiting');
   // Nota: o auto-switch abaixo só atua quando a sub-aba restaurada está vazia,
   // então a escolha persistida do usuário é preservada sempre que houver dados.
+
+  // Aba "Arquivados": quando ativa, o pipeline ignora mainTab/subTab e demais
+  // filtros (mantém apenas busca). Persistida na URL como `?tab=archived`.
+  const [archivedTab, setArchivedTab] = useState<boolean>(
+    () => new URLSearchParams(rawUrlSearch).get('tab') === 'archived'
+  );
 
   const [showAll, setShowAll] = useState(() => resolveInitialShowAll(sanitizedSearch));
   const [scope, setScope] = useState<string>(() => resolveInitialScope(sanitizedSearch));
@@ -195,7 +204,8 @@ export function useInboxFilters({
       }
     };
 
-    setOrDelete('tab', mainTab === 'open' ? null : mainTab);
+    // Quando archivedTab=true, `tab=archived` assume a URL e mainTab é ignorado.
+    setOrDelete('tab', archivedTab ? 'archived' : mainTab === 'open' ? null : mainTab);
     setOrDelete('subTab', subTab);
     setOrDelete('type', selectedContactType);
     setOrDelete('queue', selectedQueueId);
@@ -203,7 +213,7 @@ export function useInboxFilters({
     if (changed) {
       window.history.replaceState(null, '', `?${params.toString()}${window.location.hash}`);
     }
-  }, [mainTab, subTab, selectedContactType, selectedQueueId]);
+  }, [archivedTab, mainTab, subTab, selectedContactType, selectedQueueId]);
 
 
   const handleContactTypeChange = useCallback((value: string | null) => {
@@ -410,6 +420,7 @@ export function useInboxFilters({
       hasPermission,
       permissionsLoading,
       enforceChannelPermissions,
+      archivedTab,
     }),
     [
       conversations,
@@ -435,6 +446,7 @@ export function useInboxFilters({
       hasPermission,
       permissionsLoading,
       enforceChannelPermissions,
+      archivedTab,
     ]
   );
 
@@ -450,6 +462,8 @@ export function useInboxFilters({
   useEffect(() => {
     if (restoredTabCheckedRef.current) return;
     if (conversations.length === 0) return;
+    // Na aba Arquivados, mainTab é ignorado — não há fallback a aplicar.
+    if (archivedTab) return;
     restoredTabCheckedRef.current = true;
 
     if (mainTab === 'open') return;
@@ -462,6 +476,7 @@ export function useInboxFilters({
   }, [
     mainTab,
     conversations.length,
+    archivedTab,
     inboxTabCounts.unread,
     inboxTabCounts.resolved,
     inboxTabCounts.attending,
@@ -470,6 +485,8 @@ export function useInboxFilters({
 
   useEffect(() => {
     if (mainTab !== 'open' || conversations.length === 0) return;
+    // Na aba Arquivados, subTab é ignorado — não há auto-switch a aplicar.
+    if (archivedTab) return;
 
     if (subTab === 'attending' && inboxTabCounts.attending === 0 && inboxTabCounts.waiting > 0) {
       setSubTab('waiting');
@@ -479,7 +496,7 @@ export function useInboxFilters({
     if (subTab === 'waiting' && inboxTabCounts.waiting === 0 && inboxTabCounts.attending > 0) {
       setSubTab('attending');
     }
-  }, [mainTab, subTab, conversations.length, inboxTabCounts.attending, inboxTabCounts.waiting]);
+  }, [mainTab, subTab, conversations.length, archivedTab, inboxTabCounts.attending, inboxTabCounts.waiting]);
 
 
   const filteredConversations = useMemo(
@@ -507,6 +524,7 @@ export function useInboxFilters({
   /** Indica se algum filtro difere do padrão (habilita o botão "Limpar filtros"). */
   const hasActiveInboxFilters = useMemo(
     () =>
+      archivedTab ||
       mainTab !== 'open' ||
       subTab !== 'waiting' ||
       !!search ||
@@ -520,6 +538,7 @@ export function useInboxFilters({
       !!filters.dateRange.from ||
       !!filters.dateRange.to,
     [
+      archivedTab,
       mainTab,
       subTab,
       search,
@@ -538,6 +557,7 @@ export function useInboxFilters({
   const resetInboxFilters = useCallback(() => {
     setMainTab('open');
     setSubTab('waiting');
+    setArchivedTab(false);
     setSelectedContactType(null);
     setSelectedQueueId(null);
     setShowOnlyRetrying(false);
@@ -718,6 +738,8 @@ export function useInboxFilters({
     setMainTab,
     subTab,
     setSubTab,
+    archivedTab,
+    setArchivedTab,
     showAll,
     setShowAll,
     scope,

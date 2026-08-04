@@ -73,6 +73,8 @@ export interface ConversationContact {
   queue_id: string | null;
   created_at: string;
   updated_at: string;
+  /** Timestamp do soft delete (contato arquivado). Null = contato ativo. */
+  deleted_at?: string | null;
   whatsapp_connection_id: string | null;
   contact_type: string | null;
   group_category: string | null;
@@ -91,4 +93,6 @@ export interface ConversationWithMessages {
   messages: RealtimeMessage[];
   unreadCount: number;
   lastMessage: RealtimeMessage | null;
+  /** True quando o contato está arquivado (soft delete em contacts.deleted_at). */
+  isArchived: boolean;
 }

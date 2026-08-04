@@ -16,10 +16,9 @@
 import { test, expect, type Page } from '@playwright/test';
 
 const PREVIEW_URL =
-  process.env.E2E_PREVIEW_URL ??
-  'https://id-preview--22c0b518-7895-4f4f-9ea0-978457a2c37a.lovable.app/';
+  process.env.E2E_PREVIEW_URL ?? 'https://zapp-web-v3.vercel.app/';
 const PUBLISHED_URL =
-  process.env.E2E_PUBLISHED_URL ?? 'https://whats-your-line.lovable.app/';
+  process.env.E2E_PUBLISHED_URL ?? 'https://zapp-web-v3.vercel.app/';
 const STRICT = process.env.E2E_STRICT_WORKBOX === '1';
 
 type AuditResult = {
