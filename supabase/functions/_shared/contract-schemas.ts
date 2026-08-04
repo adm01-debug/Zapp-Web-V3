@@ -41,6 +41,7 @@ export {
   EvolutionWebhookV2Schema,
   MetaWebhookPayloadSchema,
   WhatsAppCloudWebhookV2Schema,
+  WhatsappWebhookV1Schema,
   GmailWebhookV1Schema,
   GmailWebhookV2Schema,
   ElevenLabsWebhookV1Schema,
