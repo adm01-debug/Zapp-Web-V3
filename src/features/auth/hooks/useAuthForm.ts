@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from './useAuth';
 import { useWebAuthn } from '@/hooks/useWebAuthn';
@@ -75,9 +75,27 @@ export function useAuthForm() {
     };
   }, []);
 
+  // SEGURANCA-01: pós-auth o usuário com 2FA verificado (fator TOTP ativo) mas
+  // ainda sem challenge na sessão (aal1 → aal2) vai para /2fa antes do destino.
+  const redirectAfterAuth = useCallback(
+    async (path: string) => {
+      try {
+        const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (!error && data?.currentLevel === 'aal1' && data?.nextLevel === 'aal2') {
+          navigate('/2fa', { replace: true });
+          return;
+        }
+      } catch {
+        // Falha na checagem de MFA — segue o fluxo normal (não bloquear login).
+      }
+      navigate(path, { replace: true });
+    },
+    [navigate]
+  );
+
   useEffect(() => {
-    if (user) navigate(nextPath, { replace: true });
-  }, [user, navigate, nextPath]);
+    if (user) void redirectAfterAuth(nextPath);
+  }, [user, navigate, nextPath, redirectAfterAuth]);
 
   useEffect(() => {
     if (isSupported()) {
@@ -177,7 +195,7 @@ export function useAuthForm() {
       await clearLoginAttempts(formData.email);
       if (mountedRef.current) {
         toast({ title: 'Bem-vindo!', description: 'Login realizado com sucesso.' });
-        navigate(nextPath, { replace: true });
+        void redirectAfterAuth(nextPath);
       }
     }
   };
@@ -229,7 +247,7 @@ export function useAuthForm() {
         return;
       }
       toast({ title: 'Autenticado com Passkey!', description: 'Redirecionando...' });
-      navigate(nextPath, { replace: true });
+      void redirectAfterAuth(nextPath);
     }
   };
 

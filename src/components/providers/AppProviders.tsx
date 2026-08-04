@@ -13,6 +13,8 @@ import {
   resetChunkReloadGuard,
 } from '@/lib/lazyWithRetry';
 import { tanstackRetry } from '@/lib/errors/queryErrors';
+import { supabase } from '@/integrations/supabase/client';
+import { loadFeatureFlags } from '@/lib/featureFlags';
 
 const log = getLogger('AppProviders');
 
@@ -79,6 +81,21 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     log.info('AppProviders mounted');
     setErrorKey((prev) => prev + 1);
     retryCountRef.current = 0;
+
+    // SEGURANCA-14: carrega feature flags no bootstrap (defaults até o load).
+    // Recarrega ao autenticar/desautenticar: zapp.feature_flags só é legível
+    // pelo role authenticated (anon vê apenas is_public=true).
+    let authSub: { subscription: { unsubscribe: () => void } } | null = null;
+    void loadFeatureFlags();
+    authSub = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        void loadFeatureFlags();
+      }
+    }).data;
+
+    return () => {
+      authSub?.subscription.unsubscribe();
+    };
   }, []);
 
   if (staleBundle) {

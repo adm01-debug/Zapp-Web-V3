@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Shield, AlertTriangle, CheckCircle2, XCircle, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sanitizeText } from '@/lib/sanitize';
-import { dbFrom } from '@/integrations/datasource/db';
+import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 import { isValidUUID } from '@/utils/uuid';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -59,15 +59,33 @@ export const ContactConsentManager: React.FC<ContactConsentManagerProps> = ({
   const hasConsent = !!local.lgpd_consent_at && !local.lgpd_opt_out_at;
   const hasOptedOut = !!local.lgpd_opt_out_at;
 
+  // SEGURANCA-10: consentimento passa pelos RPCs reais grant/revoke_lgpd_consent
+  // (assinatura em rpcCatalog + types.ts: p_contact_id, p_channel,
+  // p_marketing_consent?, p_data_sharing?, p_profiling? / p_reason?).
+  // Eles centralizam a regra de negócio + trilha de auditoria no banco.
   const saveConsent = async (updates: Partial<ConsentData>) => {
     if (!isValidUUID(contactId)) return;
     setSaving(true);
     try {
-      const { error } = await dbFrom('contacts')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', contactId);
+      const isRevoke = 'lgpd_opt_out_at' in updates && !!updates.lgpd_opt_out_at;
 
-      if (error) throw error;
+      if (isRevoke) {
+        const { error } = await supabase.rpc('revoke_lgpd_consent', {
+          p_contact_id: contactId,
+          p_reason: 'revogado manualmente no painel',
+        });
+        if (error) throw error;
+      } else {
+        const next = { ...local, ...updates };
+        const { error } = await supabase.rpc('grant_lgpd_consent', {
+          p_contact_id: contactId,
+          p_channel: 'manual',
+          p_marketing_consent: !!next.lgpd_marketing_consent,
+          p_data_sharing: !!next.lgpd_data_sharing,
+          p_profiling: !!next.lgpd_profiling,
+        });
+        if (error) throw error;
+      }
 
       const next = { ...local, ...updates };
       setLocal(next);
