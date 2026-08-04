@@ -26,7 +26,7 @@ Estas 4 versões aplicadas **não** seguem `^\d{14}$` (14 dígitos `YYYYMMDDHHMM
 
 ## Duas árvores de migration
 
-Existem migrations em **`supabase/migrations/`** e **`infra/migrations/`**. Definir uma **fonte canônica** e arquivar/consolidar a outra (etapa 18 do plano).
+Existem migrations em **`supabase/migrations/`** (fonte canônica). ~~`infra/migrations/`~~ foi **removido** em 2026-08-04 (PR #767) — os 8 SQLs foram aplicados via psql e o DDL está coberto pelo canônico `20260804000000_canonical_schema.sql`.
 
 ## Regras
 

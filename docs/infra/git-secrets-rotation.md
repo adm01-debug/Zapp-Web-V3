@@ -13,7 +13,7 @@ o valor permanece no histórico Git e deve ser tratado como comprometido.
 **Arquivos que continham o valor (corrigidos em R11):**
 - `INFRA.md`
 - `docs/infra/evolution-stack.reconciled.yml`
-- `infra/migrations/20260711_P0_fix_planned_postburnin.md`
+- `infra/migrations/20260711_P0_fix_planned_postburnin.md` *(deletado 2026-08-04, PR #767; histórico em git)*
 
 ## Passos de Rotação (executar no VPS)
 

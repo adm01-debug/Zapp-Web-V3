@@ -106,7 +106,7 @@ Pretendido: `zapp` = app ZAPP Web · `evo` = Evolution API · `public` = neutro.
 ## 🗄️ ONDA 2 — TABELAS, TIPOS, CONSTRAINTS, RLS
 16. **Baseline squash das migrations** (52×944; exige etapa 1). *Aceite:* diff zero. `E:G·R:🔴`
 17. **Corrigir versões malformadas + gate de CI.** `E:P·R:🟡`
-18. **Unificar as duas árvores** (`supabase/migrations` vs `infra/migrations`). `E:M·R:🟡`
+18. **Unificar as duas árvores** (`supabase/migrations` vs `infra/migrations`). ✅ **CONCLUÍDO (2026-08-04, PR #767).** `E:M·R:🟢`
 19. **`DOMAIN jid` (JID×UUID)** + branded types. *Aceite:* 30 dias sem `22P02`. `E:G·R:🟡`
 20. **Blindar 18 tabelas RLS-on-sem-policy** (`zapp._lgpd_payload` auditar PII). `E:M·R:🟡`
 21. **Auditoria de FKs** nas quentes. `E:M·R:🟡`
