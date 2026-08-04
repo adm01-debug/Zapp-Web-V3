@@ -105,7 +105,7 @@ export function useAutomationSuggestions(contactId: string | null) {
       ch.unsubscribe();
       supabase.removeChannel(ch);
     };
-  }, [remoteJid, queryClient, SUGGESTIONS_KEY]);
+  }, [contactId, queryClient, SUGGESTIONS_KEY]);
 
   const accept = useCallback(
     async (id: string) => {

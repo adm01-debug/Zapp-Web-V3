@@ -44,7 +44,7 @@ export function usePreloadConversationReactions(messageIds: string[]): void {
           return;
         }
 
-        const raw = (data ?? []) as MessageReaction[];
+        const raw = (data ?? []) as unknown as MessageReaction[];
 
         // Group by message_id
         const grouped = raw.reduce<Record<string, MessageReaction[]>>((acc, r) => {

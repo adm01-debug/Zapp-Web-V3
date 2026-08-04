@@ -374,7 +374,7 @@ export function useAutomations({
   }, [remoteJid, instanceName, assignedTo]);
 
   useEffect(() => {
-    if (!contactId) return;
+    if (!remoteJid) return;
     const t = setInterval(evaluate, POLL_MS);
     return () => clearInterval(t);
   }, [remoteJid, evaluate]);
