@@ -18,6 +18,7 @@ import {
   GitBranch,
   Activity,
   CheckCheck,
+  ListChecks,
 } from 'lucide-react';
 import { Conversation, Contact } from '@/types/chat';
 
@@ -42,6 +43,7 @@ import { SLATimelineSection } from './SLATimelineSection';
 import { DeliveryStatsPanel } from '../DeliveryStatsPanel';
 import { Section, sectionVariants } from './ContactAccordionSection';
 import { ContactTagsContent } from './ContactTagsContent';
+import { CustomFieldsSection } from './CustomFieldsSection';
 import { SharedMediaAccordionItem } from './SharedMediaAccordionItem';
 
 import { log } from '@/lib/logger';
@@ -194,6 +196,17 @@ export function ContactAccordionSections({
         }
       >
         <ContactTagsContent contact={contact} conversation={conversation} />
+      </Section>
+
+      <Section
+        index={3.5}
+        value="custom-fields"
+        icon={<ListChecks className="h-3.5 w-3.5 text-primary" />}
+        label="Campos Customizados"
+      >
+        <SectionErrorBoundary sectionName="Campos Customizados">
+          <CustomFieldsSection contactId={contact.id ?? ''} />
+        </SectionErrorBoundary>
       </Section>
 
       <Section

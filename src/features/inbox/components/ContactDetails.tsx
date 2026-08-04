@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { EditContactDialog } from './contact-details/EditContactDialog';
+import { BlockContactDialog } from './contact-details/BlockContactDialog';
 import { Conversation } from '@/types/chat';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
@@ -76,6 +77,7 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [accordionValue, setAccordionValue] = useState<string[]>(getStoredAccordionState);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
 
   const handleAccordionChange = useCallback((value: string[]) => {
     setAccordionValue(value);
@@ -129,13 +131,9 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
         break;
       }
       case 'block':
-        undoToast({
-          message: `${contact.name} bloqueado`,
-          icon: '🚫',
-          onUndo: () => {
-            toast.info('Contato desbloqueado');
-          },
-        });
+        // CONTATOS-16: bloqueio real via BlockContactDialog → updateBlockStatus
+        // (Evolution API). Substitui o undoToast fake anterior.
+        setBlockDialogOpen(true);
         break;
     }
   };
@@ -241,6 +239,16 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
           lgpd_marketing_consent: false,
           lgpd_data_sharing: false,
           lgpd_profiling: false,
+        }}
+      />
+
+      <BlockContactDialog
+        open={blockDialogOpen}
+        onOpenChange={setBlockDialogOpen}
+        contact={{
+          id: contact.id ?? '',
+          name: contact.name ?? '',
+          phone: contact.phone ?? '',
         }}
       />
     </motion.div>

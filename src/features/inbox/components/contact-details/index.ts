@@ -1,5 +1,6 @@
 /** Public barrel exports for the contact-details module. */
 export * from './AssignmentSection';
+export * from './BlockContactDialog';
 export * from './CompactContactHeader';
 export * from './Contact360Helpers';
 export * from './ContactAccordionSections';
@@ -8,6 +9,7 @@ export * from './ContactHeaderSection';
 export * from './ContactInfoSection';
 export * from './ContactIntelligencePanel';
 export * from './ContactStatsSection';
+export * from './CustomFieldsSection';
 export * from './EditContactDialog';
 export * from './ExternalContact360Panel';
 export * from './SLAAndAITagsSection';
