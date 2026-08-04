@@ -287,21 +287,10 @@ const boundedFetch: typeof fetch = async (input, init) => {
   return fetch(input, { ...restInit, signal: controller.signal })
     .then((res) => { release(); return res; })
     .catch((err: unknown) => {
-      // Reporta APENAS falhas reais de conectividade: timeout do nosso
-      // AbortController (TimeoutError) ou erro de rede (TypeError).
-      // Aborts iniciados pelo caller (realtime, navegação) são ignorados
-      // para não acusar backend-down falsamente.
-      const isRealFailure =
-        (err instanceof Error && err.name === 'TimeoutError') ||
-        err instanceof TypeError;
-      if (isRealFailure) {
-        // Avisa o monitor de conectividade para marcar backend-down
-        // imediatamente (não espera o próximo heartbeat).
-        // Dynamic import evita ciclo de módulos (client → monitor → client).
-        void import('./connectivityMonitor')
-          .then((m) => m.reportSupabaseRequestFailure(err))
-          .catch(() => {});
-      }
+      // boundedFetch não reporta ao monitor de conectividade aqui — quem
+      // reporta é retryFetch (após esgotar todas as tentativas) e o path de
+      // auth. Reportar em cada tentativa individual consumiria os mocks do
+      // health-ping durante testes e acusaria backend-down em falhas transitórias.
       release();
       throw err;
     })
