@@ -435,10 +435,10 @@ export function useEmail() {
 
       try {
         const { data, error: fnErr } = await supabase.functions.invoke('gmail-oauth', {
-          body: { action: 'refreshToken', accountId: id },
+          body: { action: 'refresh', accountId: id },
         });
 
-        if (fnErr || !data?.success) {
+        if (fnErr || !data?.access_token) {
           setError('Token expirado — reconecte sua conta Email nas configurações.');
           return false;
         }

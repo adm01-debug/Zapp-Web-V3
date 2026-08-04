@@ -259,8 +259,8 @@ Deno.serve(async (req) => {
       return json({ labelIds });
     }
 
-    // ── saveDraft — Salvar rascunho ───────────────────────────────────
-    if (action === 'saveDraft') {
+    // ── saveDraft / createDraft / updateDraft — Salvar rascunho ────────
+    if (action === 'saveDraft' || action === 'createDraft' || action === 'updateDraft') {
       const toVal = body.to;
       const toArray = Array.isArray(toVal) ? toVal : [];
       const toValid = toArray.every(t => typeof t === 'string');
@@ -275,6 +275,9 @@ Deno.serve(async (req) => {
       const bodyHtml = typeof body.bodyHtml === 'string' ? body.bodyHtml : '';
       const threadId = typeof body.threadId === 'string' ? body.threadId : '';
       const draftId = typeof body.draftId === 'string' ? body.draftId : '';
+      if (action === 'updateDraft' && !draftId) {
+        return json({ error: 'draftId obrigatório para updateDraft' }, 400);
+      }
 
       const raw = buildMime({ to: toArray, cc: ccArray, bcc: [], subject, bodyHtml, bodyPlain: '', attachments: [], threadId });
       const draftBody = JSON.stringify({ message: { raw, ...(threadId ? { threadId } : {}) } });
