@@ -5,7 +5,7 @@
 **Auditado por**: Claude Code (multi-agent workflow `wf_8653a7dd-270`, 10 sub-agentes)  
 **Branch**: `claude/auditoria-migracao-supabase-oj6val`  
 **Supabase**: Self-hosted VPS AtomicaBR (`https://supabase.atomicabr.com.br`)  
-**Migration canônica**: `supabase/migrations/20260804000000_canonical_schema.sql` (779 KB, 16.375 linhas, 133 seções)
+**Migration canônica**: `supabase/migrations/20260804000000_canonical_schema.sql` (779 KB, 16.352 linhas, 133 seções)
 
 ---
 
@@ -81,7 +81,10 @@ WHERE n.nspname = 'zapp'; -- → 1058
 ```
 
 **Ação**:
-1. Executar `pg_dump --schema-only -n zapp -t 'pg_catalog.pg_proc'` para extrair definições das funções
+1. Extrair definições das funções via `pg_get_functiondef()` (não via `pg_dump -t pg_catalog.pg_proc` — que não aceita tabelas de catálogo):
+   ```bash
+   psql -Atc "SELECT pg_get_functiondef(p.oid) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname='zapp'" > zapp-functions.sql
+   ```
 2. Categorizar por prefixo: `rpc_*` (RPCs), `fn_*` (triggers/interno), `has_*` (auth helpers), etc.
 3. Priorizar funções chamadas por edge functions e hooks do frontend para inclusão no `full-schema-dump.sql`
 4. Para funções críticas de negócio: criar migrations individuais em `supabase/migrations/` para garantir versionamento
@@ -135,14 +138,19 @@ SELECT COUNT(*) FROM pg_policies WHERE schemaname='zapp' AND tablename='_backup_
 **Gap**: `public` tem 532 views (proxies para `zapp`, `evo`, `email_app`, etc.). Não há teste automatizado verificando que cada view ainda aponta para a tabela correta após refatorações.
 
 **Ação**:
-1. Query para detectar views com tabelas de destino inexistentes:
+1. Query para detectar views com dependências quebradas usando o catálogo `pg_depend` (mais confiável que regex em `definition`):
    ```sql
-   SELECT v.viewname, v.definition
+   SELECT v.viewname
    FROM pg_views v
    WHERE v.schemaname = 'public'
    AND NOT EXISTS (
-     SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-     WHERE n.nspname || '.' || c.relname = regexp_replace(v.definition, '.*FROM\s+(\S+).*', '\1')
+     SELECT 1 FROM information_schema.view_table_usage vtu
+     WHERE vtu.view_schema = 'public'
+       AND vtu.view_name = v.viewname
+       AND EXISTS (
+         SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+         WHERE n.nspname = vtu.table_schema AND c.relname = vtu.table_name
+       )
    );
    ```
 2. Criar script `scripts/validate-view-proxies.sh` que executa essa query e falha se > 0 views quebradas
@@ -173,7 +181,7 @@ SELECT COUNT(*) FROM pg_policies WHERE schemaname='zapp' AND tablename='_backup_
 **Gap**: Toda vez que uma tabela nova é criada e precisa de Realtime, é necessário rodar `ALTER PUBLICATION supabase_realtime ADD TABLE`. Isso tem causado múltiplos bugs (BUG-21 a BUG-35). Não há mecanismo preventivo.
 
 **Ação**:
-1. Criar função trigger `zapp.fn_auto_add_to_realtime()` que adiciona tabelas com comentário `@realtime` à publication automaticamente
+1. Criar **event trigger** (não trigger DML) `zapp.fn_auto_add_to_realtime` usando `CREATE EVENT TRIGGER ... ON ddl_command_end` para interceptar CREATE TABLE e adicionar tabelas com comentário `@realtime` à publication automaticamente — triggers DML não detectam DDL
 2. OU: Criar checklist de migration obrigatório no `CLAUDE.md` com template:
    ```sql
    -- Ao criar nova tabela:
@@ -204,8 +212,11 @@ SELECT COUNT(*) FROM pg_policies WHERE schemaname='zapp' AND tablename='_backup_
 
 **Gap**: As 18 RPCs críticas são verificadas manualmente. Não há teste automatizado que garanta que todas existem após um restore.
 
-**RPCs críticas auditadas** (todas existem hoje ✅):
-`rpc_list_failed_messages_cursor`, `rpc_list_dispatch_error_logs_cursor`, `rpc_dlq_list_audit_cursor`, `rpc_dlq_bulk_retry_now`, `rpc_dlq_log_item_action`, `rpc_dlq_log_reprocess_trigger`, `rpc_dlq_log_reprocess_result`, `search_contacts_cursor`, `rpc_list_transfers_paginated`, `add_contacts_to_campaign`, `initiate_gmail_oauth` (stub), `complete_gmail_oauth` (stub), `sync_to_crm` (stub), `export_user_data`, `import_user_data` (stub), `check_download_permission` (ausente por design), `enrich_contact` (stub), `get_latest_analysis` (stub)
+**RPCs críticas auditadas** — 17 existem hoje ✅, 1 ausente por design:
+
+Existentes: `rpc_list_failed_messages_cursor`, `rpc_list_dispatch_error_logs_cursor`, `rpc_dlq_list_audit_cursor`, `rpc_dlq_bulk_retry_now`, `rpc_dlq_log_item_action`, `rpc_dlq_log_reprocess_trigger`, `rpc_dlq_log_reprocess_result`, `search_contacts_cursor`, `rpc_list_transfers_paginated`, `add_contacts_to_campaign`, `initiate_gmail_oauth` (stub), `complete_gmail_oauth` (stub), `sync_to_crm` (stub), `export_user_data`, `import_user_data` (stub), `enrich_contact` (stub), `get_latest_analysis` (stub)
+
+**Ausente por design** (fail-open intencional): `check_download_permission` — função não existe; o frontend trata SQLSTATE 42883 como permissão concedida. Ver Etapa 17 para implementação real.
 
 **Ação**:
 1. Criar `supabase/tests/critical-rpcs.sql` com:
@@ -234,10 +245,10 @@ SELECT COUNT(*) FROM pg_policies WHERE schemaname='zapp' AND tablename='_backup_
 **Comportamento esperado**: Iniciar fluxo OAuth2 com Google, retornar URL de autorização.
 
 **Ação**:
-1. Criar Edge Function `supabase/functions/gmail-oauth-init/index.ts`
+1. Ampliar a Edge Function existente `supabase/functions/gmail-oauth/index.ts` (já deployada) com o handler de initiate
 2. Usar Google OAuth2 API: `https://accounts.google.com/o/oauth2/v2/auth`
-3. Parâmetros: `client_id` (de Secret `GOOGLE_CLIENT_ID`), `redirect_uri`, `scope=gmail.readonly gmail.send`, `state` (JWT assinado com user_id)
-4. A RPC deve chamar a Edge Function via `http_post()` ou a Edge Function deve ser chamada diretamente do frontend
+3. Parâmetros: `client_id` (de Secret `GOOGLE_CLIENT_ID`), `redirect_uri`, `scope=https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send`, `state` (JWT assinado com user_id) — usar URIs completas de escopo, não abreviações
+4. A Edge Function deve ser chamada diretamente do frontend (não via `http_post()` da RPC)
 5. Atualizar `useIntegrationManagement.ts:54` para tratar URL retornada e redirecionar
 6. Substituir stub por implementação real em nova migration
 
@@ -252,7 +263,7 @@ SELECT COUNT(*) FROM pg_policies WHERE schemaname='zapp' AND tablename='_backup_
 **Ação**:
 1. Edge Function `supabase/functions/gmail-oauth-callback/index.ts`
 2. Trocar `code` por `access_token` + `refresh_token` via `POST https://oauth2.googleapis.com/token`
-3. Salvar tokens em `email_app.email_accounts` (colunas `access_token`, `refresh_token`, `token_expiry`)
+3. Salvar tokens em `email_app.email_accounts` (colunas `access_token`, `refresh_token`, `token_expires_at`)
 4. Disparar Realtime: `email_app.email_accounts` já está na publication `supabase_realtime` (adicionada em `20260724000006`)
 5. Atualizar `useGmailOAuthFlow.ts:292` — já escuta `email_app.email_accounts`; apenas garantir que o INSERT/UPDATE seja feito
 
@@ -348,7 +359,7 @@ SELECT COUNT(*) FROM pg_policies WHERE schemaname='zapp' AND tablename='_backup_
 1. Acessar container n8n: `docker exec -it n8n_container psql -U n8n`
 2. Identificar o workflow que causa a violação: `SELECT * FROM workflow_history ORDER BY id DESC LIMIT 20`
 3. Verificar tabela referenciada: `SELECT tc.constraint_name, kcu.column_name, ccu.table_name AS foreign_table FROM information_schema.table_constraints AS tc ...`
-4. Opção A: Deletar registros órfãos com `DELETE FROM workflow_history WHERE workflow_id NOT IN (SELECT id FROM workflow)`
+4. Opção A: Antes de deletar, criar backup: `CREATE TABLE workflow_history_backup_20260804 AS SELECT * FROM workflow_history WHERE workflow_id NOT IN (SELECT id FROM workflow)`. Depois: `DELETE FROM workflow_history WHERE workflow_id NOT IN (SELECT id FROM workflow)`
 5. Opção B: Desabilitar FK temporariamente, limpar, reabilitar com `ON DELETE CASCADE`
 
 **Critério de Aceite**: n8n não loga FK constraint errors; workflows historicizados corretamente.
@@ -398,7 +409,7 @@ SELECT COUNT(*) FROM pg_policies WHERE schemaname='zapp' AND tablename='_backup_
    SELECT bucket_id, name, definition FROM storage.policies;
    ```
 2. Garantir que buckets privados (`comprovantes-financeiro`, `fechamentos`, `whatsapp-media`, etc.) têm políticas restritivas
-3. Implementar Etapa 17 com prioridade após confirmar exposição
+3. Implementar Etapa 17 com prioridade — risco condicional: o fail-open é intencional por design, mas buckets privados sem políticas de Storage restritivas podem expor arquivos a qualquer usuário autenticado
 
 **Critério de Aceite**: Usuário sem permissão não consegue baixar arquivo de bucket restrito.
 
@@ -447,7 +458,7 @@ WHERE schemaname = 'zapp' AND NOT rowsecurity;
    WHERE t.schemaname = 'evo'
    GROUP BY t.tablename HAVING COUNT(p.policyname) = 0;
    ```
-2. Identificar tabelas em `evo` com 0 políticas (implícit deny-all)
+2. Identificar tabelas em `evo` com 0 políticas (deny-all implícito)
 3. Para tabelas que devem ser acessíveis: criar políticas adequadas
 4. Documentar tabelas com deny-all intencional
 
@@ -605,12 +616,13 @@ WHERE pubname = 'supabase_realtime'; -- Deve ser >= 20
 **Status parcial**: Verificamos que todas as funções referenciadas pelos crons existem. Não verificamos se os crons estão funcionando corretamente (última execução, status).
 
 **Ação**:
-1. Query de health dos crons:
+1. Query de health dos crons (JOIN entre `cron.job` e `cron.job_run_details` — `last_run_status` não existe como coluna direta):
    ```sql
-   SELECT jobname, schedule, active, 
-          last_run_status, next_run_at
-   FROM cron.job_run_details 
-   ORDER BY last_run_at DESC LIMIT 50;
+   SELECT j.jobname, j.schedule, j.active,
+          d.status, d.start_time, d.end_time, d.return_message
+   FROM cron.job j
+   LEFT JOIN cron.job_run_details d ON d.jobid = j.jobid
+   ORDER BY d.start_time DESC NULLS LAST LIMIT 50;
    ```
 2. Identificar crons com `last_run_status = 'failed'`
 3. Para crons falhando: investigar e corrigir
@@ -742,15 +754,21 @@ WHERE pubname = 'supabase_realtime'; -- Deve ser >= 20
 ### Etapa 43 🟢 — Criar script de diff de schema entre migration e DB
 
 **Ação**:
-1. Criar `scripts/schema-diff.sh`:
+1. Criar `scripts/schema-diff.sh` usando `pg_dump` normalizado (não grep — que perde contexto de bloco):
    ```bash
-   # Extrai schema do DB atual
-   pg_dump --schema-only -n zapp | sort > /tmp/db-schema.sql
-   # Extrai schema da migration
-   grep "CREATE\|ALTER\|DROP" supabase/migrations/20260804000000_canonical_schema.sql | sort > /tmp/migration-schema.sql
-   # Diff
-   diff /tmp/db-schema.sql /tmp/migration-schema.sql
+   # Extrai schema canônico do DB
+   pg_dump --schema-only --no-owner --no-acl -n zapp "$DATABASE_URL" \
+     | grep -v '^--' | grep -v '^$' | sort > /tmp/db-schema-sorted.sql
+   # Aplica migration em banco temporário e extrai
+   createdb schema_diff_tmp
+   psql schema_diff_tmp < supabase/migrations/20260804000000_canonical_schema.sql
+   pg_dump --schema-only --no-owner --no-acl -n zapp "postgresql://localhost/schema_diff_tmp" \
+     | grep -v '^--' | grep -v '^$' | sort > /tmp/migration-schema-sorted.sql
+   dropdb schema_diff_tmp
+   # Diff semântico
+   diff /tmp/db-schema-sorted.sql /tmp/migration-schema-sorted.sql
    ```
+   Alternativa: `supabase db diff --db-url "$DATABASE_URL"` se CLI estiver disponível.
 2. Executar semanalmente e postar resultado em canal de infraestrutura
 
 **Critério de Aceite**: Script identifica corretamente os gaps (GAP-S1, GAP-S2).
@@ -775,7 +793,7 @@ WHERE pubname = 'supabase_realtime'; -- Deve ser >= 20
 ### Etapa 45 🟢 — Implementar health check endpoint para o sistema
 
 **Ação**:
-1. Criar Edge Function `supabase/functions/health/index.ts` que verifica:
+1. Atualizar a Edge Function existente `supabase/functions/health/index.ts` (já deployada) para verificar:
    - DB conectado: `SELECT 1`
    - Realtime: `pg_publication_tables` count >= 20
    - Storage: buckets públicos acessíveis
