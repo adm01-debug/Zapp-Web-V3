@@ -40,6 +40,8 @@ const PUBLIC_FNS = new Set<string>([
   'db-health-monitor',
   'status',
   'login-attempts',
+  // health GET público (POST exige JWT de usuário) — validação Claude #783
+  'audio-transcribe',
   // cron/alert com segredo próprio (CRON_SECRET / *_SECRET)
   'cleanup-rate-limit-logs',
   'cleanup-storage-orphans',

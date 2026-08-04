@@ -27,14 +27,19 @@ const RL_WINDOW_MS = 60_000;
 /**
  * Returns true only for HTTPS URLs pointing outside loopback / link-local /
  * private / metadata ranges. Prevents SSRF to AWS metadata, internal services,
- * or non-HTTPS protocols. Note: URL.hostname returns bracketless IPv6 (e.g.
- * '::1', 'fe80::1') — never '[::1]'.
+ * or non-HTTPS protocols.
+ *
+ * REALIDADE DO DENO (verificado 2026-08-04, validação Claude #783): URL.hostname
+ * devolve IPv6 COM colchetes — `new URL('https://[::1]/').hostname === '[::1]'`
+ * (o comentário v2.2 dizia "bracketless", o que era FALSO). Por isso o guard
+ * normaliza stripando `[` `]` ANTES de testar (o padrão antigo `host.startsWith('::')`
+ * nunca casava → GAP de SSRF em IPv6: `https://[::1]/...` passava).
  */
 function isSafeAudioUrl(raw: string): boolean {
   let parsed: URL;
   try { parsed = new URL(raw); } catch { return false; }
   if (parsed.protocol !== 'https:') return false;
-  const host = parsed.hostname.toLowerCase();
+  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, ''); // strip colchetes IPv6
   if (
     host === 'localhost' ||
     host.endsWith('.localhost') ||
@@ -44,7 +49,7 @@ function isSafeAudioUrl(raw: string): boolean {
     /^10\./.test(host) ||
     /^192\.168\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    host.startsWith('::') ||               // loopback ::1, unspecified ::, IPv4-compat/mapped (bracketless)
+    host.startsWith('::') ||               // loopback ::1, unspecified ::, IPv4-compat/mapped
     /^fe[89ab][0-9a-f]:/i.test(host) ||   // link-local fe80::/10 (fe80–febf)
     /^fec[0-9a-f]:/i.test(host) ||        // site-local fec0::/10
     /^f[cd][0-9a-f]{2}:/i.test(host)      // ULA fc00::/7 (fc+fd)
