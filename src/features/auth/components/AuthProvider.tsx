@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { authService, Profile } from '../services/authService';
 import { log } from '@/lib/logger';
 import { AuthContext } from '../context/AuthContext';
-import { supabase, SUPABASE_RESOLVED_URL } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_RESOLVED_URL, getSupabaseSemaphoreState } from '@/integrations/supabase/client';
 import { verifyHttpOnlyCookieAuth } from '@/integrations/supabase/cookieStorage';
 
 // ---------------------------------------------------------------------------
@@ -20,6 +20,30 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
     timerId = setTimeout(() => reject(new Error(`[Auth] Timeout (${ms}ms) em ${label}`)), ms);
   });
   return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timerId));
+}
+
+// ---------------------------------------------------------------------------
+// Timeout ADAPTATIVO do getProfile.
+//
+// O getProfile NÃO é marcado como auth request (/auth/v1/), então passa pelo
+// semáforo de concorrência do retryFetch (4 slots) e pode esperar 10-20s na
+// fila quando a inbox satura com 48+ RPCs. Um timeout fixo de 8s matava o
+// perfil exatamente nesse cenário (log: "Timeout (8000ms) em getProfile").
+//
+// Estratégia: base 15s + 250ms por request enfileirado no semáforo (cap 30s).
+// Quando o semáforo está ocioso, o timeout volta ao piso de 15s — o perfil
+// nunca mais morre por fila, mas também não pendura para sempre.
+// ---------------------------------------------------------------------------
+const PROFILE_BASE_TIMEOUT_MS = 15_000;
+const PROFILE_TIMEOUT_MAX_MS = 30_000;
+const PROFILE_EXTRA_MS_PER_QUEUED_REQUEST = 250;
+const PROFILE_SLOW_WARN_THRESHOLD_MS = 5_000;
+
+function getProfileTimeoutMs(): number {
+  const sem = getSupabaseSemaphoreState();
+  if (!sem.saturated) return PROFILE_BASE_TIMEOUT_MS;
+  const extra = sem.queueLength * PROFILE_EXTRA_MS_PER_QUEUED_REQUEST;
+  return Math.min(PROFILE_BASE_TIMEOUT_MS + extra, PROFILE_TIMEOUT_MAX_MS);
 }
 
 // ---------------------------------------------------------------------------
@@ -115,8 +139,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [bootstrapElapsedMs, setBootstrapElapsedMs] = useState<number | null>(null);
 
   const fetchProfile = useCallback(async (userId: string, signal?: AbortSignal) => {
+    const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const timeoutMs = getProfileTimeoutMs();
     try {
-      const { data, error } = await withTimeout(authService.getProfile(userId, signal), 8000, 'getProfile');
+      const { data, error } = await withTimeout(
+        authService.getProfile(userId, signal),
+        timeoutMs,
+        'getProfile'
+      );
+      const elapsedMs = Math.round(
+        (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt
+      );
+      // Perfil lento (>5s) é sintoma de semáforo saturado ou backend degradado —
+      // warn (não error) para debug futuro sem poluir o console de erro.
+      if (elapsedMs > PROFILE_SLOW_WARN_THRESHOLD_MS) {
+        log.warn(
+          `[Auth] getProfile lento (${elapsedMs}ms; timeout=${timeoutMs}ms; semáforo=${JSON.stringify(
+            getSupabaseSemaphoreState()
+          )})`
+        );
+      }
       if (error || !data) {
         if ((error as { name?: string } | null)?.name === 'AbortError') return;
         log.error('[Auth] Failed to fetch profile for user:', userId, error);
