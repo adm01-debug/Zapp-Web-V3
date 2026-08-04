@@ -126,7 +126,7 @@ export function ConversationListSidebar({
   const onArchive = useCallback(
     (contactId?: string) => {
       const targetId = contactId ?? inbox.selectedContactId;
-      if (targetId) void archive(targetId);
+      if (targetId) void archive(targetId).catch(() => undefined);
     },
     [archive, inbox.selectedContactId]
   );
@@ -135,9 +135,9 @@ export function ConversationListSidebar({
   const onToggleArchive = useCallback(
     (contactId: string, isArchived: boolean) => {
       if (isArchived) {
-        void restore(contactId);
+        void restore(contactId).catch(() => undefined);
       } else {
-        void archive(contactId);
+        void archive(contactId).catch(() => undefined);
       }
     },
     [archive, restore]

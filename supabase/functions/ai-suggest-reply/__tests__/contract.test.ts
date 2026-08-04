@@ -175,7 +175,7 @@ Deno.test("Contract: AiSuggestReply — mensagens sem role devem falhar", () => 
 Deno.test("Contract: ai-suggest-reply — index.ts encaminha para ai-router com action=suggest_reply", () => {
   assertMatch(SOURCE, /action: "suggest_reply"/);
   assertMatch(SOURCE, /AI_ROUTER_URL/);
-  assertMatch(SOURCE, /body: JSON\.stringify\(\{ \.\.\.body, action: "suggest_reply" \}\)/);
+  assertMatch(SOURCE, /body: JSON\.stringify\(\{ \.\.\.restBody, action: "suggest_reply"/);
 });
 
 Deno.test("Contract: ai-suggest-reply — exige Authorization (proxy autenticado)", () => {

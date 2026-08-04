@@ -51,6 +51,7 @@ export const EDGE_FUNCTION_NAMES = [
   'ai-router',
   'ai-suggest-reply',
   'ai-transcribe-audio',
+  'audio-transcribe',
   'approve-password-reset',
   'auto-close-conversations',
   'auto-escalate-sla',
