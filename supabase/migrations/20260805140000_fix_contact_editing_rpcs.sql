@@ -223,6 +223,20 @@ REVOKE EXECUTE ON FUNCTION zapp.fn_retry_stuck_messages() FROM PUBLIC, anon;
 GRANT  EXECUTE ON FUNCTION zapp.fn_retry_stuck_messages() TO service_role;
 
 -- ─────────────────────────────────────────────────────────────────────────────
+-- 7. GRANTs de tabela (achado A0#2 ALTO): a delta 05000000 criou as tabelas
+--    sem GRANTs explícitos — em ambiente limpo (sem default privileges) os
+--    consumidores quebram na privilege check ANTES do RLS. Padrão do repo:
+--    service_role ALL + authenticated SELECT + nada para PUBLIC/anon.
+-- ─────────────────────────────────────────────────────────────────────────────
+REVOKE ALL ON zapp.hmac_selftest_audit   FROM PUBLIC, anon;
+GRANT  ALL    ON zapp.hmac_selftest_audit TO service_role;
+GRANT  SELECT, INSERT ON zapp.hmac_selftest_audit TO authenticated;
+
+REVOKE ALL ON zapp.instance_auth_events  FROM PUBLIC, anon;
+GRANT  ALL    ON zapp.instance_auth_events TO service_role;
+GRANT  SELECT ON zapp.instance_auth_events TO authenticated;
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- VERIFICATION
 -- ─────────────────────────────────────────────────────────────────────────────
 DO $$
