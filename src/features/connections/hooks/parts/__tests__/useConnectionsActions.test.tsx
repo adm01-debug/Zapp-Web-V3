@@ -569,7 +569,23 @@ describe('useConnectionsActions — handleDelete', () => {
     expect(h.deleteInstance).not.toHaveBeenCalledWith(conn.instance_id);
   });
 
-  it('404 da Evolution: segue com o delete no banco (instância já não existe)', async () => {
+  it('404 da Evolution com nome da instância: segue com o delete no banco (já não existe)', async () => {
+    const { result, h } = setup({
+      deleteInstance: vi
+        .fn()
+        .mockRejectedValue(
+          Object.assign(new Error('404 instance suporte_123456 not found'), { apiStatus: 404 })
+        ),
+    });
+    await act(async () => {
+      await result.current.handleDelete(makeConnection());
+    });
+    expect(recorded.some((r) => r.op === 'delete')).toBe(true);
+    expect(h.setConnections).toHaveBeenCalled();
+    expect(toastSpy).toHaveBeenCalledWith({ title: 'Conexão removida' });
+  });
+
+  it('404 da Evolution SEM o nome da instância: NÃO deleta no banco (fail-safe F6-28)', async () => {
     const { result, h } = setup({
       deleteInstance: vi
         .fn()
@@ -578,9 +594,8 @@ describe('useConnectionsActions — handleDelete', () => {
     await act(async () => {
       await result.current.handleDelete(makeConnection());
     });
-    expect(recorded.some((r) => r.op === 'delete')).toBe(true);
-    expect(h.setConnections).toHaveBeenCalled();
-    expect(toastSpy).toHaveBeenCalledWith({ title: 'Conexão removida' });
+    expect(recorded.some((r) => r.op === 'delete')).toBe(false);
+    expect(h.setConnections).not.toHaveBeenCalled();
   });
 
   it('5xx da Evolution: NÃO deleta no banco, marca para retry e preserva o registro', async () => {
