@@ -41,9 +41,8 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: node scripts/check-deploy-secrets.mjs
-
-          
+        run: |
+          node scripts/check-deploy-secrets.mjs
           echo "✅ Todos os secrets críticos (Auth, DB, Service Role) estão presentes."
 
       - uses: docker/setup-buildx-action@v4

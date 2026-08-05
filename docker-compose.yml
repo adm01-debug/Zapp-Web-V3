@@ -14,7 +14,7 @@ services:
     container_name: zapp-web
     restart: unless-stopped
     networks:
-      - atomicabr
+      - AtomicaBRNet
     labels:
       - traefik.enable=true
       - traefik.http.routers.zapp-web.rule=Host(`${ZAPP_WEB_HOST:-zapp.atomicabr.com.br}`)
@@ -38,5 +38,6 @@ services:
           memory: 64M
 
 networks:
-  atomicabr:
+  AtomicaBRNet:
     external: true
+    name: AtomicaBRNet

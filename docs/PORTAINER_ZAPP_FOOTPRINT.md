@@ -28,13 +28,29 @@ ROLLBACK: ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-<sha-anterior>  (p
 TAG     : ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-latest          (ponteiro móvel)
 ```
 
-**Estado verificado em 2026-08-05 (após faxina):**
-- `production-20023785ecfe` — atual (deploy PR #859)
-- `production-988086a2bbbd` — rollback primário (pré-pullada no host, tagada)
-- `production-fbd04bec303d` — rollback secundário (pré-pullada no host, tagada)
-- `production-latest` — ponteiro
+**Estado verificado em 2026-08-05 (após faxina) com sha256 digests:**
 
-## 3. Runbook de Rollback (etapa 29)
+| Tag | Papel | sha256 digest |
+|-----|-------|---------------|
+| `production-20023785ecfe` | atual (PR #859) | `sha256:c8a722e9124e305287eec51c7839d99679a1ab2fbe0bfd6b33f8e7b28c107626` |
+| `production-988086a2bbbd` | rollback primário (pré-pullada) | `sha256:67e97210f5b1402f705a26f78b7f9274f02a51186b8e5bd7aa2e584fcb06f108` |
+| `production-fbd04bec303d` | rollback secundário (pré-pullada) | verificar com `docker image inspect --format '{{index .RepoDigests 0}}'` |
+| `production-latest` | ponteiro móvel | aponta para atual |
+
+> Para fixar rollback por digest (100% imutável): `docker service update --image ghcr.io/.../zapp-web@sha256:<digest> zapp-web-prod_web`
+> Para inspecionar digests atuais no host: `docker image ls --digests ghcr.io/adm01-debug/zapp-web-v3/zapp-web`
+
+## 3. Arquivo de Stack Canônico
+
+Stack file standalone: `infra/stacks/zapp-web-prod.yml`
+
+Para deploy manual (bypass do CI):
+```bash
+ZAPP_IMAGE=ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-<sha> \
+  docker stack deploy --compose-file infra/stacks/zapp-web-prod.yml zapp-web-prod
+```
+
+## 4. Runbook de Rollback (etapa 29)
 
 ```bash
 # Pré-requisito: imagem de rollback JÁ pré-pullada no host (feito na faxina).
@@ -53,7 +69,7 @@ docker service update --image ghcr.io/adm01-debug/zapp-web-v3/zapp-web:productio
 
 > O `update_config.failure_action: rollback` do stack já faz rollback automático se o healthcheck falhar no monitor de 60s.
 
-## 4. Guardrails anti-recorrência (etapas 46–47)
+## 5. Guardrails anti-recorrência (etapas 46–47)
 
 1. **`docker-housekeeping` v2.2** (`docs/infra/docker-housekeeping-v2.2.yml`, stack Portainer 199):
    - **NUNCA** `docker image prune -a` / `-af` (v2.1 usava `-af --filter until=168h` e apagou a imagem de rollback do zapp-web).
@@ -64,19 +80,19 @@ docker service update --image ghcr.io/adm01-debug/zapp-web-v3/zapp-web:productio
    - **Retenção GHCR automática** (etapa 34): `actions/delete-package-versions` com `min-versions-to-keep: 8` — mantém current + rollback + 5 anteriores + latest.
 3. **Nunca** apagar manualmente imagem do zapp-web no host sem confirmar que não é a de rollback.
 
-## 5. Registry GHCR — política de retenção (etapa 31)
+## 6. Registry GHCR — política de retenção (etapa 31)
 
 - Manter: **últimas 8 versões** (cobre: atual + rollback + 5 anteriores + produção-latest) + qualquer versão com tag `staging-*`.
 - Remover: o restante (na faxina de 2026-08-05: 546 → 8 versões; lista exata em `ghcr-delete-list.txt`).
 - Execução inicial manual exige token com escopo `write:packages`; a partir do próximo deploy, a retenção é automática.
 
-## 6. Órfãos removidos na faxina (etapa 44–45)
+## 7. Órfãos removidos na faxina (etapa 44–45)
 
 - **Configs (27):** `evolution_consumer_v1..v6/v5_1/v5_2` (7), `openclaw_boot_v6..v17/v10b` (13), `openclaw_guard_v4` (1), `watchdog_script_v1..v5` + `watchdog_v12_script` (6). (Verificação: nenhum serviço nem stack file referenciava; `docker config rm` recusa os em uso.)
 - **Secrets (3):** `gh_runner_pat_v1`, `portainer_agent_secret_v1`, `portainer_readonly_password_v1` (nenhum serviço/stack referenciando).
 - **Volume anônimo vazio** (`61003dad…`, 0B).
 
-## 7. Recuperação de disco (etapa 40, medido em 2026-08-05)
+## 8. Recuperação de disco (etapa 40, medido em 2026-08-05)
 
 | Fonte | Recuperado |
 |-------|------------|

@@ -1,0 +1,58 @@
+# =============================================================================
+# ZAPP-WEB — Stack de Produção (Docker Swarm)
+# Stack ID Portainer: 157 | Endpoint: 1 | Rede: AtomicaBRNet
+#
+# DEPLOY via CI (deploy-vps.yml): substitui ZAPP_IMAGE pela tag SHA imutável
+#   docker stack deploy --compose-file zapp-web-prod.yml zapp-web-prod
+#   ou via Portainer API: PUT /api/stacks/157?endpointId=1
+#
+# ROLLBACK manual:
+#   docker service update --image ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-<sha-anterior> zapp-web-prod_web
+#
+# Footprint canônico: docs/PORTAINER_ZAPP_FOOTPRINT.md
+# =============================================================================
+version: "3.8"
+
+services:
+  web:
+    # IMPORTANTE: usar tag SHA imutável (production-<sha12>), NUNCA production-latest no stack.
+    # production-latest é mantida no GHCR como ponteiro externo, mas o serviço Swarm
+    # referencia a tag imutável para evitar dangling images a cada deploy.
+    image: ${ZAPP_IMAGE:-ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-latest}
+    networks:
+      - AtomicaBRNet
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+        - "traefik.http.routers.zapp-prod.rule=Host(`zapp.atomicabr.com.br`)"
+        - traefik.http.services.zapp-prod.loadbalancer.server.port=80
+        - traefik.http.routers.zapp-prod.service=zapp-prod
+        - traefik.http.routers.zapp-prod.entrypoints=websecure
+        - traefik.http.routers.zapp-prod.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.zapp-prod.tls=true
+        - com.centurylinklabs.watchtower.enable=false
+        - com.atomicabr.tier=critical
+      update_config:
+        failure_action: rollback
+        monitor: 60s
+        order: start-first
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+networks:
+  AtomicaBRNet:
+    external: true
+    name: AtomicaBRNet

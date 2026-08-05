@@ -114,8 +114,11 @@ docker logs zapp-edge-functions --since 1m
 df -h
 du -sh /var/lib/docker/containers/*/  | sort -hr | head -20
 
-# 2. Limpar logs antigos
-docker system prune -a --volumes --filter "until=168h"
+# 2. Limpar apenas dangling (NUNCA -a: destrói imagens de rollback do zapp-web!)
+# Para tagged images, usar housekeeping v2.2: docs/infra/docker-housekeeping-v2.2.yml
+docker image prune -f
+docker builder prune -f --filter "until=24h"
+docker container prune -f
 
 # 3. Compactar WAL files
 docker exec zapp-postgres bash -c "
