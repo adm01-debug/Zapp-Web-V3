@@ -76,6 +76,10 @@
 
 **Decisão de segurança (2026-08-04, Auditoria Exaustiva):** O overload 2-arg **não é grantado a `authenticated`**. Só `postgres` e `service_role` têm EXECUTE. Esta decisão é **intencional e permanente** até que a função receba guard interno (`IF p_user_id <> auth.uid() AND NOT zapp.is_admin_or_supervisor() THEN RAISE EXCEPTION ...`).
 
+**Histórico ACL:**
+- `20260805105900_grant_lgpd_auth_rpcs.sql` — concedeu EXECUTE por engano ao 2-arg overload.
+- `20260805180000_revoke_meme_favorite_2arg_authenticated.sql` — revogou imediatamente. ✅
+
 **Verificação ACL em produção:**
 ```sql
 SELECT has_function_privilege('authenticated', 'zapp.fn_toggle_user_meme_favorite(uuid,uuid)', 'EXECUTE');
@@ -83,6 +87,11 @@ SELECT has_function_privilege('authenticated', 'zapp.fn_toggle_user_meme_favorit
 ```
 
 **Jamais "corrigir" isso adicionando o GRANT** — seria uma regressão de segurança.
+
+**REVOKE explícito de `authenticated`, `anon` e `PUBLIC`:**
+```sql
+REVOKE EXECUTE ON FUNCTION zapp.fn_toggle_user_meme_favorite(uuid, uuid) FROM authenticated, anon, PUBLIC;
+```
 
 ---
 
