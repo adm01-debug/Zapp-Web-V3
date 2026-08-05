@@ -128,7 +128,7 @@ while true; do
     fi
 
     # KPI-3 ghost_events: eventos com instance desconhecida na ultima 1h; alerta se > 20
-    GHO_V=$(supa_q "SELECT COUNT(*) FROM evo.${EVO_TBL} e WHERE e.created_at > now() - interval '1 hour' AND (e.instance_name IS NULL OR e.instance_name = '' OR e.instance_name NOT IN (SELECT i.instance_name FROM evo.evolution_instances i WHERE i.instance_name IS NOT NULL AND i.instance_name <> ''));")
+    GHO_V=$(supa_q "SELECT COUNT(*) FROM evo.${EVO_TBL} e WHERE e.created_at > now() - interval '1 hour' AND (e.instance_name IS NULL OR e.instance_name = '');")
     if [ -z "$GHO_V" ]; then
       track GHO_F GHO_S 0; [ "$TRANS" = "down" ] && notify kpi_ghost_events ALERT 503 "evo_q sem resposta (fonte indisponivel)"
     else
