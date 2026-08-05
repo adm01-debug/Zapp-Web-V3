@@ -163,34 +163,51 @@ function hasPGRestEnv() {
 //      PGRST202 (ausente). Restaurado do fix #841 (o merge da #840 o descartava).
 //   3. Tabelas/views: OpenAPI do schema (Accept: application/openapi+json).
 async function pgRestExists(baseUrl, serviceKey, kind, name, schemas) {
-  // Camada 1: inventário via RPC (1 chamada, cacheada por schema na 1ª vez)
-  const inventoryKey = `${baseUrl}|${schemas.join(',')}`;
+  // Camada 1: inventário via RPC (1 chamada, cacheada; falha também é cacheada para
+  // não repetir a chamada a cada objeto quando o inventário não existe no ambiente)
+  const inventoryKey = baseUrl; // payload do inventário é fixo (zapp) — independe de schemas
   if (!pgRestExists._invCache) pgRestExists._invCache = new Map();
   if (!pgRestExists._invCache.has(inventoryKey)) {
     try {
       const url = `${baseUrl}/rest/v1/rpc/rpc_contract_inventory`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'Content-Profile': 'zapp',
-          'Accept-Profile': 'zapp',
-        },
-        body: '{}',
-      });
-      if (res.status === 200) {
-        const data = await res.json().catch(() => null);
-        if (data) {
-          const fns = new Set((data.functions ?? []).map((f) => f.name));
-          const tbls = new Set((data.tables ?? []).map((t) => t.name));
-          pgRestExists._invCache.set(inventoryKey, { fns, tbls });
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), PGREST_TIMEOUT_MS);
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            apikey: serviceKey,
+            Authorization: `Bearer ${serviceKey}`,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'Content-Profile': 'zapp',
+            'Accept-Profile': 'zapp',
+          },
+          body: '{}',
+          signal: ctrl.signal,
+        });
+        if (res.status === 200) {
+          const data = await res.json().catch(() => null);
+          if (data) {
+            const fns = new Set((data.functions ?? []).map((f) => f.name));
+            const tbls = new Set((data.tables ?? []).map((t) => t.name));
+            pgRestExists._invCache.set(inventoryKey, { fns, tbls });
+          } else {
+            pgRestExists._invCache.set(inventoryKey, null);
+          }
+        } else {
+          pgRestExists._invCache.set(inventoryKey, null);
         }
+        await res.text().catch(() => ''); // consome o corpo (libera o socket)
+      } finally {
+        clearTimeout(timer);
       }
-    } catch {
-      // falha do inventário → continua para as camadas seguintes
+    } catch (err) {
+      if (err?.name === 'AbortError') {
+        pgRestExists._invCache.set(inventoryKey, null); // timeout → desativa inventário
+      } else {
+        pgRestExists._invCache.set(inventoryKey, null);
+      }
     }
   }
   const inv = pgRestExists._invCache.get(inventoryKey);
@@ -205,7 +222,8 @@ async function pgRestExists(baseUrl, serviceKey, kind, name, schemas) {
     try {
       // Camada 2 (RPC): POST com body vazio — o PostgREST resolve a função por nome e
       // devolve 400 (params inválidos) se existir; GET sem body devolve 404 PGRST202
-      // para funções com argumentos (falso positivo).
+      // para funções com argumentos (falso positivo). Só chega aqui se o inventário
+      // não respondeu (schema fora de zapp ou função ausente no inventário).
       if (kind === 'rpc') {
         const url = `${baseUrl}/rest/v1/rpc/${encodeURIComponent(name)}`;
         const res = await fetch(url, {
@@ -215,19 +233,18 @@ async function pgRestExists(baseUrl, serviceKey, kind, name, schemas) {
             Authorization: `Bearer ${serviceKey}`,
             Accept: 'application/json',
             'Content-Type': 'application/json',
+            'Content-Profile': schema,
             'Accept-Profile': schema,
           },
           body: '{}',
           signal: ctrl.signal,
         });
-        // 200 = existe; 4xx de validação (400 bad params) = função existe; 404 PGRST202/205 = ausente.
-        if (res.status === 200) return schema;
-        if (res.status === 400 || res.status === 401 || res.status === 403) return schema;
-        if (res.status === 404) {
-          const body = await res.text().catch(() => '');
-          if (/PGRST202|PGRST205/.test(body)) continue;
-          continue; // 404 fora de PGRST: tratar como ausente também (gateway pode mascarar)
-        }
+        // 200 = existe (função sem args executada); 400 = existe (args obrigatórios);
+        // 401/403 = token inválido ou permission denied na função → função existe.
+        // 404 PGRST202/205 = função ausente; 404 sem PGRST = gateway mascarando → ausente também.
+        const ok = res.status === 200 || res.status === 400 || res.status === 401 || res.status === 403;
+        await res.text().catch(() => ''); // consome o corpo (libera o socket)
+        if (ok) return schema;
         continue;
       }
       // Camada 3 (tabelas/views): OpenAPI do schema.
@@ -250,8 +267,6 @@ async function pgRestExists(baseUrl, serviceKey, kind, name, schemas) {
       const found = Object.keys(spec.paths).some((p) =>
         p === needle ||
         p.startsWith(`${needle}/`) ||
-        p === `/rpc/${name}` ||
-        p.startsWith(`/rpc/${name}/`) ||
         p === `/${name}` ||
         p.startsWith(`/${name}/`));
       if (found) return schema;
