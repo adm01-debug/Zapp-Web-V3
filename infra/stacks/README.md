@@ -24,3 +24,18 @@ um redeploy pela UI do Portainer com estes conteúdos NÃO reverte nenhuma corre
 > Os stacks `evolution` (25), `evolution-rabbit-consumer` (113), `watchdog-baileys` (109),
 > `evolution-db-purge` (126) e `zapp-health-guard` (165) estão documentados nos relatórios
 > de auditoria (`docs/EVOLUTION_API_AUDIT_*`), não duplicados aqui.
+
+## Stack de Housekeeping Docker (faxina 2026-08-05)
+
+O stack **`docker-housekeeping v2.4`** (Portainer id 199) não fica nesta pasta por ser de
+infraestrutura transversal (não específico do zapp-web). O arquivo canônico está em:
+
+**`docs/infra/docker-housekeeping-v2.4.yml`**
+
+Funcionalidades críticas do v2.4:
+- **`ensure_ref_tags`**: re-taga Spec+PreviousSpec de todos os serviços Swarm antes de qualquer prune — garante que a imagem de rollback do zapp-web nunca seja varrida pelo dangling prune.
+- **`prune_zapp_old`**: retenção HOST — mantém `ZAPP_KEEP_TAGS=6` imagens mais recentes do zapp + Spec/PreviousSpec/latest; poda tagged antigas (proteção contra crescimento ilimitado de ~116 MB/deploy).
+- **`PROTECTED_REPOS_REGEX`**: regex que protege `ghcr.io/adm01-debug/zapp-web-v3/zapp-web` do prune de tagged images. **NUNCA** usar `docker image prune -a/-af` — use este stack para limpeza abrangente.
+
+> Stack file do zapp-web em produção: `infra/stacks/zapp-web-prod.yml` (Portainer id 157).
+> Runbook de rollback canônico: `docs/PORTAINER_ZAPP_FOOTPRINT.md §4`.

@@ -105,6 +105,9 @@ jobs:
           # o corte de recência cai ENTRE builds, nunca no meio (evita index
           # mantido com filho deletado → manifest unknown). 8 cortava o 3º deploy.
           min-versions-to-keep: 9
+          # Proteger rollbacks históricos tagueados para evitar deleção prematura.
+          # NÃO usar delete-only-untagged-versions (apagaria manifests-filho → pull falha).
+          ignore-versions: "^production-(fbd04bec303d|988086a2bbbd)"
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🚨 Alerta se a retenção GHCR falhar (não bloqueia deploy)
