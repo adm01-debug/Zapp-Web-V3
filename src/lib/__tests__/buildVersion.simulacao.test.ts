@@ -12,7 +12,8 @@
  * - checkVersion: content-type application/json vs text/html (SPA fallback),
  *   buildId igual/diferente, 3xx (SSO), fetch rejeitando e timeout via
  *   AbortController;
- * - version.json OK limpa o estado de reload no sessionStorage.
+ * - version.json OK limpa o estado de reload no sessionStorage;
+ * - prefetch em background dos assets do novo bundle (js/css) no mismatch;
  */
 import {
   afterEach,
@@ -320,8 +321,20 @@ describe('checkVersion (via startBuildVersionWatcher + fake timers)', () => {
       // 'zapp-update-required' (grace:true) e agenda o reload; o reload ocorre
       // ao fim da janela de cortesia UPDATE_GRACE_MS — não mais imediatamente.
       await vi.advanceTimersByTimeAsync(30_000 + __TEST__.UPDATE_GRACE_MS);
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      // Prefetch em background (FIX): 1 fetch de version.json + 4 de prefetch
+      // (js/css no schedule + js/css no forceBundleRefresh ao fim da cortesia).
+      expect(fetchMock).toHaveBeenCalledTimes(5);
       expect(String(fetchMock.mock.calls[0][0])).toMatch(/^\/version\.json\?ts=\d+$/);
+      // Assets do novo bundle pré-carregados em background (cache force-cache).
+      const prefetchUrls = fetchMock.mock.calls
+        .map((c) => String(c[0]))
+        .filter((u) => u.startsWith('/assets/'));
+      expect(prefetchUrls).toEqual([
+        '/assets/index-buildB.js',
+        '/assets/index-buildB.css',
+        '/assets/index-buildB.js',
+        '/assets/index-buildB.css',
+      ]);
       expect(replaceSpy).toHaveBeenCalledTimes(1);
       expect(String(replaceSpy.mock.calls[0][0])).toContain('_bv=');
       expect(__TEST__.readReloadState()).toEqual(

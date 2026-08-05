@@ -24,7 +24,9 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
   useEffect(() => {
     if (!dashboardId) return;
 
-    channelRef.current = supabase.channel(`dashboard:${dashboardId}`);
+    channelRef.current = supabase.channel(
+      `dashboard:${dashboardId}:${Math.random().toString(36).slice(2, 10)}`
+    );
     channelRef.current
       .on(
         'postgres_changes',
@@ -129,7 +131,9 @@ export function useRealtimeMessagesManagement(chatId: string) {
   useEffect(() => {
     if (!chatId) return;
 
-    channelRef.current = supabase.channel(`chat:${chatId}`);
+    channelRef.current = supabase.channel(
+      `chat:${chatId}:${Math.random().toString(36).slice(2, 10)}`
+    );
     channelRef.current
       .on(
         'postgres_changes',
@@ -162,7 +166,9 @@ export function useRealtimeMonitorManagement(tableName: string, schema: string =
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
-    channelRef.current = supabase.channel(`monitor:${schema}:${tableName}`);
+    channelRef.current = supabase.channel(
+      `monitor:${schema}:${tableName}:${Math.random().toString(36).slice(2, 10)}`
+    );
     const pgConfig = { event: '*' as const, schema, table: tableName };
     channelRef.current
       .on(

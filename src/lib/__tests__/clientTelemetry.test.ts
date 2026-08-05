@@ -255,6 +255,52 @@ describe('recordQueryEvent — slowEvents ring buffer', () => {
   });
 });
 
+// ── recordQueryEvent — AbortError filter (Etapa 24) ───────────────────────────
+
+describe('recordQueryEvent — AbortError filter (Etapa 24)', () => {
+  it('downgrades AbortError messages to severity ok (never error)', () => {
+    const ev = recordQueryEvent(makeEvent({ errorMessage: 'AbortError: Page unload' }));
+    expect(ev.severity).toBe('ok');
+  });
+
+  it('downgrades abort messages case-insensitively', () => {
+    const ev = recordQueryEvent(makeEvent({ errorMessage: 'The operation was aborted.' }));
+    expect(ev.severity).toBe('ok');
+  });
+
+  it('does not increment bySeverity.error for AbortError', () => {
+    recordQueryEvent(makeEvent({ errorMessage: 'AbortError: The operation was aborted.' }));
+    const snap = getTelemetrySnapshot();
+    expect(snap.bySeverity.error).toBe(0);
+    expect(snap.bySeverity.ok).toBe(1);
+  });
+
+  it('does not add AbortError events to slowEvents', () => {
+    recordQueryEvent(makeEvent({ durationMs: 5000, errorMessage: 'AbortError: Page unload' }));
+    expect(getTelemetrySnapshot().slowEvents).toHaveLength(0);
+  });
+
+  it('downgrades caller-provided error severity when message is an abort', () => {
+    const ev = recordQueryEvent(
+      makeEvent({ severity: 'error', errorMessage: 'AbortError: Page unload' })
+    );
+    expect(ev.severity).toBe('ok');
+  });
+
+  it('still registers AbortError events in total and recentEvents', () => {
+    recordQueryEvent(makeEvent({ errorMessage: 'AbortError: Page unload' }));
+    const snap = getTelemetrySnapshot();
+    expect(snap.total).toBe(1);
+    expect(snap.recentEvents).toHaveLength(1);
+    expect(snap.recentEvents[0].errorMessage).toBe('AbortError: Page unload');
+  });
+
+  it('keeps non-abort errors as error', () => {
+    recordQueryEvent(makeEvent({ errorMessage: 'connection refused' }));
+    expect(getTelemetrySnapshot().bySeverity.error).toBe(1);
+  });
+});
+
 // ── getTelemetrySnapshot — p95 ────────────────────────────────────────────────
 
 describe('getTelemetrySnapshot — p95DurationMs', () => {

@@ -789,7 +789,7 @@ export function useEmail() {
     if (!activeAccountId || isMockId(activeAccountId)) return;
 
     const channel = supabase
-      .channel(`email-threads-email-${activeAccountId}`)
+      .channel(`email-threads-email-${activeAccountId}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         {

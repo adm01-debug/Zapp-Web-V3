@@ -483,7 +483,7 @@ export function useAutomationSuggestions(contactId: string | null) {
   useEffect(() => {
     if (!contactId) return;
     const ch = supabase
-      .channel(`automation-exec-${contactId}`)
+      .channel(`automation-exec-${contactId}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'automation_executions' },

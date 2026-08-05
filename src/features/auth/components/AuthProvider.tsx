@@ -487,8 +487,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // zapp.profiles / zapp.user_roles são as tabelas físicas.
     // public.profiles / public.user_roles são VIEW proxies → nunca emitem CDC.
+    // Topic único por mount (sufixo random) — evita reutilizar instância de
+    // canal já inscrita cujo teardown (removeChannel assíncrono) não terminou.
     const profileChannel = supabase
-      .channel(`profile-updates-${user.id}`)
+      .channel(`profile-updates-${user.id}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         {
@@ -505,7 +507,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .subscribe();
 
     const rolesChannel = supabase
-      .channel(`roles-updates-${user.id}`)
+      .channel(`roles-updates-${user.id}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         {

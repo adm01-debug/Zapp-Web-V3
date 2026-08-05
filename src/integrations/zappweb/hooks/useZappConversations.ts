@@ -53,7 +53,7 @@ export function useZappConversations(opts: Options = {}) {
   useEffect(() => {
     void fetchAll();
     const ch = zappSupabase
-      .channel(`zapp:conversations:${instance}`)
+      .channel(`zapp:conversations:${instance}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         {

@@ -222,8 +222,10 @@ export function useMessagesCursor({
   useEffect(() => {
     if (!enabled || !remoteJid) return;
 
+    // Topic único por mount (sufixo random) — evita reutilizar instância de
+    // canal já inscrita cujo teardown (removeChannel assíncrono) não terminou.
     const channel = supabase
-      .channel(`evolution_messages:${remoteJid}`)
+      .channel(`evolution_messages:${remoteJid}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         {
@@ -291,6 +293,7 @@ export function useMessagesCursor({
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [enabled, remoteJid]);

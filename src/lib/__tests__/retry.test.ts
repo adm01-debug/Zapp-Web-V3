@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { withRetry, withNetworkRetry } from '@/lib/retry';
+import { withRetry, withNetworkRetry, isIntentionalAbort } from '@/lib/retry';
 
 // Use tiny delays (0 ms) so tests don't stall.
 const FAST: Parameters<typeof withRetry>[1] = {
@@ -114,6 +114,80 @@ describe('withRetry — exhausting retries', () => {
       )
     ).rejects.toThrow();
     expect(onRetry).toHaveBeenCalledTimes(3);
+  });
+});
+
+// ── withRetry — backoff timing (fake timers) ─────────────────────────────────
+
+describe('withRetry — backoff timing (fake timers)', () => {
+  it('waits baseDelayMs * 2^(attempt-1) between retries (exponential backoff)', async () => {
+    vi.useFakeTimers();
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0); // remove jitter
+    try {
+      let attempts = 0;
+      const promise = withRetry(
+        async () => {
+          attempts++;
+          if (attempts < 3) throw new Error('transient');
+          return 'ok';
+        },
+        { baseDelayMs: 100, maxDelayMs: 10_000, maxRetries: 5, ...RETRY_ALL }
+      );
+
+      await vi.advanceTimersByTimeAsync(0); // flush microtasks: attempt 1 fails, backoff timer scheduled
+      expect(attempts).toBe(1);
+
+      // 1st backoff: 100 * 2^0 = 100ms
+      await vi.advanceTimersByTimeAsync(99);
+      expect(attempts).toBe(1); // timer not fired yet
+      await vi.advanceTimersByTimeAsync(1);
+      expect(attempts).toBe(2); // retry fired exactly at 100ms
+
+      // 2nd backoff: 100 * 2^1 = 200ms
+      await vi.advanceTimersByTimeAsync(199);
+      expect(attempts).toBe(2); // timer not fired yet
+      await vi.advanceTimersByTimeAsync(1);
+      expect(attempts).toBe(3); // retry fired exactly at 200ms
+
+      await expect(promise).resolves.toBe('ok');
+    } finally {
+      randomSpy.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it('caps the backoff delay at maxDelayMs', async () => {
+    vi.useFakeTimers();
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+    try {
+      let attempts = 0;
+      const promise = withRetry(
+        async () => {
+          attempts++;
+          if (attempts < 3) throw new Error('transient');
+          return 'ok';
+        },
+        { baseDelayMs: 100, maxDelayMs: 150, maxRetries: 5, ...RETRY_ALL }
+      );
+
+      await vi.advanceTimersByTimeAsync(0);
+      expect(attempts).toBe(1);
+
+      // 1st backoff: 100 * 2^0 = 100ms (below cap)
+      await vi.advanceTimersByTimeAsync(100);
+      expect(attempts).toBe(2);
+
+      // 2nd backoff would be 200ms but is capped at 150ms
+      await vi.advanceTimersByTimeAsync(149);
+      expect(attempts).toBe(2); // still waiting
+      await vi.advanceTimersByTimeAsync(1);
+      expect(attempts).toBe(3);
+
+      await expect(promise).resolves.toBe('ok');
+    } finally {
+      randomSpy.mockRestore();
+      vi.useRealTimers();
+    }
   });
 });
 
@@ -359,5 +433,33 @@ describe('withRetry — intentional abort (no false ERROR)', () => {
     } finally {
       errorSpy.mockRestore();
     }
+  });
+});
+
+// ── isIntentionalAbort (unit) ────────────────────────────────────────────────
+
+describe('isIntentionalAbort', () => {
+  it('returns true for DOMException with name AbortError (page unload)', () => {
+    expect(isIntentionalAbort(new DOMException('Page unload', 'AbortError'))).toBe(true);
+  });
+
+  it('returns true for Error with name AbortError', () => {
+    const err = new Error('The operation was aborted.');
+    err.name = 'AbortError';
+    expect(isIntentionalAbort(err)).toBe(true);
+  });
+
+  it('returns false for regular errors and other DOMExceptions', () => {
+    expect(isIntentionalAbort(new Error('network down'))).toBe(false);
+    expect(isIntentionalAbort(new TypeError('Failed to fetch'))).toBe(false);
+    expect(isIntentionalAbort(new DOMException('timeout', 'TimeoutError'))).toBe(false);
+  });
+
+  it('returns false for non-Error throws', () => {
+    expect(isIntentionalAbort('string-error')).toBe(false);
+    expect(isIntentionalAbort(null)).toBe(false);
+    expect(isIntentionalAbort(undefined)).toBe(false);
+    // Duck-typing is not enough: must be a real Error/DOMException instance
+    expect(isIntentionalAbort({ name: 'AbortError' })).toBe(false);
   });
 });

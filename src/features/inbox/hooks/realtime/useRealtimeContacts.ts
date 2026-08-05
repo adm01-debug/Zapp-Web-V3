@@ -260,7 +260,9 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
       scheduleFlush();
     };
 
-    const channelName = `realtime:evolution_contacts:${instance}`;
+    // Topic único por mount (sufixo random) — evita reutilizar instância de
+    // canal já inscrita cujo teardown (removeChannel assíncrono) não terminou.
+    const channelName = `realtime:evolution_contacts:${instance}:${Math.random().toString(36).slice(2, 10)}`;
     const channel = client
       .channel(channelName)
       .on(
@@ -289,6 +291,7 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
       }
       pendingRef.current = new Map();
       setRealtimeContactsStatus('disconnected');
+      channel.unsubscribe();
       client.removeChannel(channel);
     };
   }, [enabled, instance, queryClient]);

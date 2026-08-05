@@ -29,7 +29,7 @@ export function useConversationReactionsRealtime(
     if (!conversationId) return;
 
     const channel = supabase
-      .channel(`conv-reactions:${conversationId}`)
+      .channel(`conv-reactions:${conversationId}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'message_reactions' },

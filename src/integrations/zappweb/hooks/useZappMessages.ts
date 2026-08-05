@@ -58,7 +58,7 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
     if (!remoteJid) return;
 
     const ch = zappSupabase
-      .channel(`zapp:messages:${instance}:${remoteJid}`)
+      .channel(`zapp:messages:${instance}:${remoteJid}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         {

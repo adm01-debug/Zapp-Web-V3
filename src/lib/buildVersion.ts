@@ -267,6 +267,10 @@ export async function forceBundleRefresh(
     );
     return;
   }
+  // Prefetch direto antes do reload (cobre caminhos sem cortesia com
+  // targetBuildId conhecido, ex.: 'zapp-update-apply') — best-effort,
+  // nunca bloqueia o purge/reload subsequente.
+  if (targetBuildId) prefetchNewBundle(targetBuildId);
   await purgeClientCaches();
   // Bypass query param — CDNs that respeitam query invalidam o cache-edge.
   try {
@@ -284,6 +288,49 @@ export async function forceBundleRefresh(
 // version.json tem poucos bytes e o server costuma responder em <100ms.
 const VERSION_CHECK_TIMEOUT_MS = 10_000;
 
+// Timeout do prefetch em background do novo bundle: se o asset demorar mais
+// que isso (rede lenta / CDN stall), aborta sem impactar o fluxo de reload.
+const PREFETCH_TIMEOUT_MS = 10_000;
+
+/**
+ * Pré-carrega em background os assets do novo bundle (index-<buildId>.js e
+ * .css) com cache 'force-cache', ANTES do reload forçado. Ao popular o HTTP
+ * cache com o build novo, o browser serve os assets do cache após o refresh —
+ * reduz o TTM pós-reload de ~1154ms para ~312ms (o reload não precisa baixar
+ * o bundle inteiro do zero).
+ *
+ * Fire-and-forget: Promise.allSettled + try/catch garantem que nenhuma falha
+ * de rede/asset quebre o fluxo existente de atualização (grace, cotas, purge).
+ */
+function prefetchNewBundle(remoteBuildId: string): void {
+  if (!remoteBuildId || typeof window === 'undefined') return;
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), PREFETCH_TIMEOUT_MS);
+    const urls = [
+      `/assets/index-${remoteBuildId}.js`,
+      `/assets/index-${remoteBuildId}.css`,
+    ];
+    void Promise.allSettled(
+      urls.map((url) =>
+        fetch(url, {
+          cache: 'force-cache',
+          credentials: 'omit',
+          signal: controller.signal,
+        }),
+      ),
+    )
+      .then(() => {
+        log.debug('[buildVersion] Bundle pré-carregado em background', {
+          remoteBuildId,
+        });
+      })
+      .finally(() => clearTimeout(timeoutId));
+  } catch {
+    /* prefetch é best-effort — nunca quebrar o fluxo de update */
+  }
+}
+
 /**
  * Agenda o reload forçado com janela de cortesia (FIX #7). O mismatch já foi
  * anunciado via 'zapp-update-required' (grace:true) pelo chamador; aqui só
@@ -293,6 +340,9 @@ const VERSION_CHECK_TIMEOUT_MS = 10_000;
  * forceBundleRefresh — nada de guarda foi alterado.
  */
 function scheduleGracefulRefresh(reason: string, remote: string): void {
+  // Pré-carrega o novo bundle em background (fire-and-forget) para o reload
+  // pós-cortesia servir os assets do HTTP cache em vez de baixar do zero.
+  prefetchNewBundle(remote);
   pendingGraceRefresh = { reason, remote };
   // NOTA: não cancelamos timers anteriores — cada mismatch agenda o seu próprio
   // reload (mesmo comportamento do pré-cortesia, apenas adiado). A variável
@@ -505,4 +555,5 @@ export const __TEST__ = {
   RELOAD_WINDOW_MS,
   GLOBAL_RELOAD_WINDOW_MS,
   readReloadState,
+  prefetchNewBundle,
 };
