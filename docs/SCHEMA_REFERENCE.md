@@ -313,3 +313,22 @@ curl "$BASE/rest/v1/<obj>?select=*&limit=1" -H "apikey: $ANON" -H "Accept-Profil
 
 `SET LOCAL ROLE anon` em bloco `DO` **não vale** — não persiste no `EXECUTE` dinâmico e
 produz falso negativo.
+
+---
+
+## RPCs de batch do inbox (adicionado 2026-08-05)
+
+As 4 RPCs batch usadas pelo inbox/CRM (substituem padrões N+1). Todas vivem no schema `zapp` e são
+executadas no **único client self-hosted** (`src/integrations/supabase/client.ts`). Shapes abaixo são os
+**reais** — da produção/`types.ts` e dos contratos dos hooks consumidores.
+
+| RPC (schema `zapp`) | Assinatura | Shape real do retorno | Consumidor | Migration |
+|---|---|---|---|---|
+| `rpc_get_contact_summary_batch` | `p_contact_ids uuid[]` | `TABLE(contact_id uuid, unread_whispers integer, pending_tasks integer)` — no PostgREST/types.ts:75865 tipado como `Json`; contrato TS: `ContactSummary[] { contact_id, unread_whispers, pending_tasks }` | `useContactSummaryBatch` (`src/features/inbox/hooks/useContactSummaryBatch.ts:41-44`), ligado em `useRealtimeInbox.ts:235` | `20260806090000_capture_rpc_get_contact_summary_batch.sql` (CAPTURA — antes **sem** migration versionada; `SECURITY DEFINER`, `search_path zapp`) |
+| `rpc_get_reactions_batch` | `p_message_ids string[]` | Array JSONB de reações; contrato TS: `MessageReaction[] { id, message_id, user_id, contact_id, emoji, created_at, user_name? }` (`src/features/inbox/hooks/reactions/types.ts:2-10`); types.ts:75869 tipado como `Json` | `usePreloadConversationReactions` (`src/features/inbox/hooks/reactions/usePreloadConversationReactions.ts:37-39`) | **Nenhuma** (aplicada direto em produção — dívida, mesmo tratamento de captura pendente) |
+| `get_companies_by_phones_batch` | `p_phones TEXT[]` | **Produção**: array de `{ phone, company, full_name, lead_status }` (types.ts:75139-75147; confirmado pelo fix BUG #9 em `useExternalApiManagement.ts:118-123`) — `SECURITY DEFINER`, `REVOKE` de `anon`/`authenticated`, `GRANT service_role` apenas | `useExternalContact360Batch` (`src/hooks/useExternalApiManagement.ts:108`) via `RPC.getCompaniesByPhonesBatch` (`rpcCatalog.ts:500-503`, client `'lovable'` → self-hosted) | `20260804000000_canonical_schema.sql:13416` (definição arquivada difere da produção: `RETURNS JSONB` com `{ phone, company_id, company_name, cnpj, email }` — drift archive × prod) |
+| `get_contacts_360_batch` | `p_phones text[]` | JSONB: `{ results: [{ contact (row_to_json \| null), conversation_id (evo.evolution_conversations.id \| null), phone, found }] }` | `RPC.getContacts360Batch` (`rpcCatalog.ts:490-493`, client `'lovable'` → self-hosted); consumido em `useExternalApiManagement.ts` | `20260804000000_canonical_schema.sql:15859+` (origem `20260803213510_get_contacts_360_batch.sql`; `SECURITY DEFINER`, guard de workspace) |
+
+Notas:
+- `rpc_get_contact_summary_batch` e `rpc_get_reactions_batch` **não estão no catálogo** (`rpcCatalog.ts`) — são chamadas diretas `supabase.rpc(...)` nos hooks (sem roteamento por rótulo).
+- As duas RPCs de telefone (`get_companies_by_phones_batch`, `get_contacts_360_batch`) têm guard de isolamento de workspace (`workspace_members`) e `SECURITY DEFINER` com `search_path` restrito.
