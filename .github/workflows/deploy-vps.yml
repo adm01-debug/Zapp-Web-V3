@@ -85,11 +85,15 @@ jobs:
       # 5 anteriores + production-latest) e apaga o resto.
       # min-versions-to-keep=8 garante que a imagem de ROLLBACK
       # (penúltimo deploy) nunca é removida pela retenção automática.
+      # package-name = caminho completo da imagem SEM o owner
+      # (ghcr.io/adm01-debug/zapp-web-v3/zapp-web -> zapp-web-v3/zapp-web).
+      # continue-on-error: retenção nunca pode BLOQUEAR o deploy.
       # ============================================================
       - name: 🧹 GHCR retention (keep 8 versions — preserva current/rollback/latest)
+        continue-on-error: true
         uses: actions/delete-package-versions@v5
         with:
-          package-name: zapp-web
+          package-name: zapp-web-v3/zapp-web
           package-type: container
           min-versions-to-keep: 8
           token: ${{ secrets.GITHUB_TOKEN }}
