@@ -33,6 +33,25 @@ function cleanPhone(phone: string): string {
   return phone.replace(/[^0-9]/g, '');
 }
 
+/**
+ * Indexes a CRM row in the lookup map under multiple keys so `lookup(phone)`
+ * always hits regardless of the caller's phone format:
+ *   1. raw key as returned by the RPC (may include '+' or DDI),
+ *   2. cleaned key (digits only, no country code),
+ *   3. '55'-prefixed key (Brazil DDI) when the raw key has no DDI and the
+ *      number fits a mobile/landline length (<= 11 digits).
+ */
+function indexPhone(map: Map<string, CRMBatchResult>, phone: string, info: CRMBatchResult): void {
+  map.set(phone, info);
+  // Also index by cleaned version (without country code)
+  const clean = cleanPhone(phone);
+  if (clean !== phone) map.set(clean, info);
+  // Also index with country code
+  if (!phone.startsWith('55') && clean.length <= 11) {
+    map.set('55' + clean, info);
+  }
+}
+
 /** C R M Batch Result interface definition. */
 export interface CRMBatchResult {
   company_name: string | null;
@@ -95,19 +114,47 @@ export function useExternalContact360Batch(phones: string[]) {
         return new Map();
       }
 
-      // Convert JSONB object to Map for O(1) lookups
+      // Convert RPC result to Map for O(1) lookups.
+      // BUG #9 fix: the production RPC returns an ARRAY of rows
+      // ({phone, company, full_name, lead_status}); Object.entries(array)
+      // would key by '0','1',... so lookup(phone) never hit. Parse defensively:
+      //   (a) array  → key each row by row.phone ?? row.phone_number ?? row.telefone
+      //   (b) object → Object.entries (legacy plain-object compatibility)
+      //   (c) other  → empty Map + warn
       const map = new Map<string, CRMBatchResult>();
-      if (data && typeof data === 'object') {
-        for (const [phone, info] of Object.entries(data)) {
-          map.set(phone, info as CRMBatchResult);
-          // Also index by cleaned version (without country code)
-          const clean = cleanPhone(phone);
-          if (clean !== phone) map.set(clean, info as CRMBatchResult);
-          // Also index with country code
-          if (!phone.startsWith('55') && clean.length <= 11) {
-            map.set('55' + clean, info as CRMBatchResult);
-          }
+      if (data == null) {
+        // RPC sem linhas é resultado legítimo — sem warn.
+        return map;
+      }
+      if (Array.isArray(data)) {
+        for (const row of data) {
+          if (!row || typeof row !== 'object') continue;
+          const record = row as Record<string, unknown>;
+          const phone = record.phone ?? record.phone_number ?? record.telefone;
+          if (typeof phone !== 'string' || phone.trim() === '') continue;
+          // Prod retorna {phone, company, full_name, lead_status} — a interface
+          // TS declara company_name; normaliza para o contrato do consumidor
+          // (VirtualizedRealtimeList lê crmData?.company_name).
+          const info = {
+            ...(row as object),
+            company_name: (record.company_name ?? record.company ?? null) as string | null,
+          } as CRMBatchResult;
+          indexPhone(map, phone, info);
         }
+      } else if (typeof data === 'object') {
+        for (const [phone, info] of Object.entries(data)) {
+          if (!phone) continue;
+          const record = info as Record<string, unknown>;
+          const normalized = {
+            ...(info as object),
+            company_name: (record.company_name ?? record.company ?? null) as string | null,
+          } as CRMBatchResult;
+          indexPhone(map, phone, normalized);
+        }
+      } else {
+        log.warn(
+          `useExternalContact360Batch: resposta inesperada da RPC get_companies_by_phones_batch (typeof=${typeof data}); retornando mapa vazio`
+        );
       }
 
       return map;

@@ -11,6 +11,7 @@
  *
  * RPC: zapp.rpc_get_contact_summary_batch(p_contact_ids uuid[])
  */
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { queryKeys } from '@/services/api/queryKeys';
@@ -25,13 +26,36 @@ export interface ContactSummary {
 }
 
 /**
+ * Valida uma row bruta da RPC (tipos gerados dizem `Json`) e constrói o shape
+ * tipado. Retorna null para linhas fora do contrato (defensivo — sem cast cru).
+ */
+function toContactSummary(row: unknown): ContactSummary | null {
+  if (typeof row !== 'object' || row === null || Array.isArray(row)) return null;
+  const r = row as Record<string, unknown>;
+  if (
+    typeof r.contact_id !== 'string' ||
+    typeof r.unread_whispers !== 'number' ||
+    typeof r.pending_tasks !== 'number'
+  ) {
+    return null;
+  }
+  return {
+    contact_id: r.contact_id,
+    unread_whispers: r.unread_whispers,
+    pending_tasks: r.pending_tasks,
+  };
+}
+
+/**
  * Busca resumo de whispers não lidos e tarefas pendentes para múltiplos contatos
  * em uma única chamada RPC (batch).
  *
  * @param contactIds — lista de contact UUIDs. Deve ser estabilizada via useMemo no caller.
  */
 export function useContactSummaryBatch(contactIds: string[]) {
-  const stableIds = [...new Set(contactIds)].sort();
+  // Estabiliza os IDs: sem useMemo o array é recriado a cada render e o
+  // queryKey muda de referência → refetch em loop (BUG-2026-08-04).
+  const stableIds = useMemo(() => [...new Set(contactIds)].sort(), [contactIds]);
 
   return useQuery<ContactSummary[]>({
     queryKey: queryKeys.contactSummaryBatch.batch(stableIds),
@@ -44,15 +68,22 @@ export function useContactSummaryBatch(contactIds: string[]) {
       );
 
       if (error) {
+        // AbortError = cancelamento intencional (unmount/refetch) — silencioso.
+        if (error instanceof Error && error.name === 'AbortError') return [];
         log.warn('rpc_get_contact_summary_batch failed', { error: error.message });
         return [];
       }
 
-      return (data ?? []) as unknown as ContactSummary[];
+      // RPC é RETURNS TABLE → array de rows (tipado como Json nos tipos
+      // gerados). Valida row a row e constrói o shape — se vier objeto, [].
+      return Array.isArray(data)
+        ? data.map(toContactSummary).filter((s): s is ContactSummary => s !== null)
+        : [];
     },
     enabled: stableIds.length > 0,
     staleTime: 30_000,   // 30s — suficiente para a lista ficar estável
     gcTime:   120_000,   // 2min
+    refetchOnWindowFocus: false,
   });
 }
 
