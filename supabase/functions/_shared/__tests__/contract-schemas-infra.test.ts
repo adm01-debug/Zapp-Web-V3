@@ -1,7 +1,7 @@
 /**
  * Matriz de testes de contrato — schemas de INFRAESTRUTURA (v1) de zapp-web-v3.
  *
- * Cobre as 36 funções de infra registradas no registro canônico:
+ * Cobre as 35 funções de infra registradas no registro canônico:
  *   (A) GET/cron sem body (17): EmptyStrictV1Schema — `{}` passa, qualquer
  *       campo desconhecido falha (422).
  *   (B) com body (16): payload válido conforme o CONSUMO REAL documentado nos
