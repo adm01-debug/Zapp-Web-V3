@@ -3,6 +3,6 @@
 -- PostgREST requests. The security-invoker-gate workflow enforces zero anon-executable
 -- functions in the zapp and evo schemas.
 --
--- Rollback: GRANT EXECUTE ON FUNCTION zapp.rpc_contract_inventory() TO anon;
--- (Only apply rollback in a dev/staging environment for debugging purposes.)
+-- Rollback (dev/staging only): restore execute permission on zapp.rpc_contract_inventory
+-- for the anon role — do not apply this in production.
 REVOKE EXECUTE ON FUNCTION zapp.rpc_contract_inventory() FROM anon;
