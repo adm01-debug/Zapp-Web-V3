@@ -91,7 +91,7 @@ Deno.serve(async (req: Request) => {
     return errorResponse(req, 'Invalid JSON body', 400);
   }
 
-  const parsed = parseOrReject<BridgeBody>('followup-bridge', { v1: FollowupBridgeV1Schema }, req, rawBody);
+  const parsed = parseOrReject('followup-bridge', { v1: FollowupBridgeV1Schema }, req, rawBody);
   if (!parsed.ok) return parsed.response;
   const { sequence_id, contact_jid, instance_name, trigger_event } = parsed.data;
 

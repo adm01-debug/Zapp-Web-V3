@@ -90,7 +90,7 @@ Deno.serve(async (req: Request) => {
     return errorResponse(req, "Invalid JSON body", 400);
   }
 
-  const parsed = parseOrReject<CsatAutoSendBody>('csat-auto-send', { v1: CsatAutoSendV1Schema }, req, rawBody);
+  const parsed = parseOrReject('csat-auto-send', { v1: CsatAutoSendV1Schema }, req, rawBody);
   if (!parsed.ok) return parsed.response;
   const { survey_id, contact_id, agent_id, connection_id, conversation_id, delay_minutes } = parsed.data;
 
