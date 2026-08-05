@@ -256,12 +256,12 @@ export const QueueSlaPanel = () => {
                 </span>
                 <Badge
                   variant={lastRebalance.source === 'cron' ? 'success' : 'outline'}
-                  className="text-[10px]"
+                  className="text-xs"
                 >
                   {REBALANCE_SOURCE_LABEL[lastRebalance.source ?? 'unknown']}
                 </Badge>
                 {lastRebalance.dry_run && (
-                  <Badge variant="warning" className="text-[10px]">
+                  <Badge variant="warning" className="text-xs">
                     Simulação (dry-run)
                   </Badge>
                 )}
@@ -272,14 +272,14 @@ export const QueueSlaPanel = () => {
                 {lastRebalance.source !== 'cron' && (
                   <span className="text-warning">
                     Último disparo não veio do job agendado — confira o pg_cron{' '}
-                    <span className="font-mono">queue-rebalance-every-5min</span> em produção.
+                    <code>queue-rebalance-every-5min</code> em produção.
                   </span>
                 )}
               </>
             ) : (
               <span className="text-warning">
                 Nenhum rebalanceamento registrado em audit_logs. O job automático{' '}
-                <span className="font-mono">queue-rebalance-every-5min</span> (pg_cron) não está
+                <code>queue-rebalance-every-5min</code> (pg_cron) não está
                 ativo em produção — apenas o disparo manual funciona.
               </span>
             )}
@@ -335,8 +335,8 @@ export const QueueSlaPanel = () => {
       <p className="text-center text-xs text-muted-foreground">
         Disparo manual redistribui tickets sem agente ou com SLA estourado, respeitando a
         prioridade e o peso de cada fila. A automação a cada 5 minutos depende do job pg_cron{' '}
-        <span className="font-mono">queue-rebalance-every-5min</span> estar ativo no banco
-        (disparando a edge <span className="font-mono">queue-rebalance</span>).
+        <code>queue-rebalance-every-5min</code> estar ativo no banco
+        (disparando a edge <code>queue-rebalance</code>).
       </p>
     </div>
   );
@@ -401,7 +401,7 @@ function QueueRow({
           }
         >
           <SelectTrigger className="h-8 w-[110px]">
-            <Badge className={cn('text-[10px]', PRIORITY_COLOR[row.sla_priority])}>
+            <Badge className={cn('text-xs', PRIORITY_COLOR[row.sla_priority])}>
               {PRIORITY_LABEL[row.sla_priority]}
             </Badge>
           </SelectTrigger>
