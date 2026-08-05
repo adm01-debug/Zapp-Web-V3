@@ -39,7 +39,7 @@ jobs:
           docker rm evo-base
           ls -la infra/evolution-api-custom/main.js
 
-      - name: Apply T1-T5 patches (fail-closed)
+      - name: Apply T1-T6 patches (fail-closed)
         run: |
           cd infra/evolution-api-custom
           node build-patches.mjs main.js main.patched.js t4_prologue.cjs

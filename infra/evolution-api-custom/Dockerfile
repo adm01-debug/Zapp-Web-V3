@@ -15,6 +15,7 @@
 #       401/403" e makeBucket
 #   T4  prologue t4_prologue.cjs (log masking, marcador MASKED) prepended
 #   T5a remove console.log("CACHE:",...) de mensagens
+#   T6  GET / mascara a versão ("2.x" no lugar da real) — F2-21
 # libsignal/src/session_record.js: remove console.info/warn de sessões.
 #
 # Build (gera main.patched.js e publica no GHCR):
@@ -25,14 +26,14 @@ FROM evoapicloud/evolution-api@sha256:6b195676b09abbbd8ac9372cd961674dea2587f23d
 
 LABEL org.opencontainers.image.title="evolution-api-custom" \
       org.opencontainers.image.version="2.3.7" \
-      org.opencontainers.image.description="Evolution API 2.3.7 com patches T1-T5 build-time (log masking, Sentry filtrado, sem logs de stanza/CACHE/webhook)" \
+      org.opencontainers.image.description="Evolution API 2.3.7 com patches T1-T6 build-time (log masking, Sentry filtrado, versao mascarada na raiz, sem logs de stanza/CACHE/webhook)" \
       org.opencontainers.image.source="https://github.com/adm01-debug/evolution-api-custom" \
       org.opencontainers.image.base.digest="sha256:6b195676b09abbbd8ac9372cd961674dea2587f23dc9bc1d1e6a595372556fb1"
 
 WORKDIR /evolution
 EXPOSE 8080
 
-# --- Bundle principal patcheado (T1-T5). Gerado por build-patches.mjs a partir
+# --- Bundle principal patcheado (T1-T6). Gerado por build-patches.mjs a partir
 #     do /evolution/dist/main.js ORIGINAL extraído da imagem base (digest acima).
 COPY main.patched.js /evolution/dist/main.js
 
@@ -49,7 +50,7 @@ RUN if [ -f /evolution/dist/main.mjs ]; then \
 #     o conteúdo já está embutido no topo de main.patched.js pelo build-patches.mjs.
 COPY t4_prologue.cjs /evolution/t4_prologue.cjs
 
-# --- Verificação fail-closed: o build FALHA se o bundle copiado não tiver T1-T5
+# --- Verificação fail-closed: o build FALHA se o bundle copiado não tiver T1-T6
 #     exatamente como esperado (nunca sobe imagem com patch quebrado).
 RUN node -e ' \
 const fs=require("fs"); \
@@ -61,7 +62,9 @@ if(s.includes("tracesSampleRate:1,profilesSampleRate:1"))fail("T3 nao aplicado (
 if(!s.includes("tracesSampleRate:0.05"))fail("T3 marcador ausente (tracesSampleRate:0.05)"); \
 if(!s.includes("MASKED"))fail("T4 prologue ausente (marcador MASKED)"); \
 if(s.includes("console.log(\"CACHE:\",{cached:a"))fail("T5a ainda presente (CACHE log)"); \
-console.log("VERIFY OK: main.js com T1-T5 aplicados"); \
+if(s.includes("version:_l.version,clientName:Nl.CONNECTION.CLIENT_NAME"))fail("T6 nao aplicado (versao real na raiz)"); \
+if(!s.includes("version:\"2.x\",clientName:Nl.CONNECTION.CLIENT_NAME"))fail("T6 marcador ausente (version 2.x)"); \
+console.log("VERIFY OK: main.js com T1-T6 aplicados"); \
 '
 
 # --- libsignal/src/session_record.js: remove console.info/warn de sessões

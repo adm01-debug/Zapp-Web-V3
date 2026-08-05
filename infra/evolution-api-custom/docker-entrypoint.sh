@@ -1,7 +1,7 @@
 #!/bin/sh
 # ============================================================================
 # docker-entrypoint.sh (evolution-api-custom)
-# Entrypoint da imagem custom: NÃO executa logpatch — os patches T1-T5 são
+# Entrypoint da imagem custom: NÃO executa logpatch — os patches T1-T6 são
 # aplicados em BUILD-TIME (main.patched.js + libsignal).
 # Exporta os secrets do Swarm com o MESMO mapeamento do entrypoint oficial
 # (nomes de env esperados pela aplicação).
@@ -26,7 +26,7 @@ if [ -f /run/secrets/supabase_service_key_v1 ]; then
     _aud_digest="$(cat /proc/self/mountinfo 2>/dev/null | grep -o 'sha256:[a-f0-9]\{64\}' | head -1 || true)"
     _aud_version="$(node -e "console.log(require('/evolution/package.json').version)" 2>/dev/null || echo unknown)"
     _aud_ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    _aud_payload="{\"instance_name\":\"wpp2\",\"booted_at\":\"$_aud_ts\",\"image_digest\":\"$_aud_digest\",\"evolution_version\":\"$_aud_version\",\"logpatch_status\":\"ok\",\"logpatch_detail\":{\"mode\":\"build-time\",\"note\":\"patches T1-T5 aplicados em build (Dockerfile VERIFY fail-closed)\"}}"
+    _aud_payload="{\"instance_name\":\"wpp2\",\"booted_at\":\"$_aud_ts\",\"image_digest\":\"$_aud_digest\",\"evolution_version\":\"$_aud_version\",\"logpatch_status\":\"ok\",\"logpatch_detail\":{\"mode\":\"build-time\",\"note\":\"patches T1-T6 aplicados em build (Dockerfile VERIFY fail-closed)\"}}"
     if command -v curl >/dev/null 2>&1; then
       curl -sS -o /dev/null -m 10 -X POST \
         "https://supabase.atomicabr.com.br/rest/v1/evolution_logpatch_audit" \

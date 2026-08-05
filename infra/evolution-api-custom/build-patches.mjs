@@ -15,6 +15,10 @@
  *     401/403" e makeBucket
  * T4  prepend do prologue t4_prologue.cjs (log masking, marcador MASKED)
  * T5a remove console.log("CACHE:",...) de mensagens
+ * T6  mascara a versão no GET / (F2-21): resposta pública sem auth devolve
+ *     {"version":"2.3.7"} via _l.version (require do package.json em runtime);
+ *     substitui o literal da rota raiz por {"version":"2.x"} (não-informativo,
+ *     determinístico no build-time — não depende de digest/CI).
  *
  * FAIL-CLOSED: qualquer target ausente ou ambíguo (count != 1) aborta com
  * exit 1 e mensagem identificando o patch. NUNCA produz bundle parcial.
@@ -60,6 +64,12 @@ const T3N = 'Lr.DSN&&Br.init({dsn:Lr.DSN,environment:"production",tracesSampleRa
 // T5a: log de cache de mensagens (remove o console.log e a condição n.messageTimestamp&&)
 const T5_SRC = 'console.log("CACHE:",{cached:a,updateKey:r,messageTimestamp:n.messageTimestamp,secondsSinceEpoch:c}),';
 const T5_COND = T5_SRC + 'n.messageTimestamp&&';
+// T6: GET / devolve version real (via _l.version do package.json). Mascara a
+// resposta pública da raiz (sem auth) com "2.x" — F2-21. A métrica prometheus
+// (evolution_environment_info) usa outro padrão (_l.version dentro de template)
+// e NÃO é afetada.
+const T6O = 'version:_l.version,clientName:Nl.CONNECTION.CLIENT_NAME';
+const T6N = 'version:"2.x",clientName:Nl.CONNECTION.CLIENT_NAME';
 
 // ============================= Execução =============================
 if (!fs.existsSync(SRC)) {
@@ -101,6 +111,14 @@ const applied = [];
   applied.push("T5a");
 }
 
+// --- T6 (GET / deve ter o literal da versão real, único) ---
+{
+  const c = countOf(out, T6O);
+  if (c !== 1) fail(`T6: literal da rota raiz (version:_l.version) encontrado ${c}x (esperado 1x) — bundle da base mudou?`);
+  out = out.split(T6O).join(T6N);
+  applied.push("T6");
+}
+
 // --- T4 (prologue MASKED) ---
 if (!fs.existsSync(PROLOGUE)) {
   fail(`t4_prologue.cjs não encontrado: ${PROLOGUE} — extrair da config swarm evolution_t4_prologue_cjs e versionar ao lado do script`);
@@ -117,7 +135,7 @@ applied.push("T4");
 
 // Banner determinístico de auditoria (qual bundle base gerou este artefato)
 const srcSha = sha256(SRC);
-out = `/* evolution-api-custom 2.3.7 | patches T1-T5 build-time | base main.js sha256:${srcSha} */\n` + out;
+out = `/* evolution-api-custom 2.3.7 | patches T1-T6 build-time | base main.js sha256:${srcSha} */\n` + out;
 
 fs.writeFileSync(OUT, out);
 
@@ -128,6 +146,8 @@ if (countOf(check, T2) !== 0) fail("pós-verificação T2 falhou");
 if (check.includes("tracesSampleRate:1,profilesSampleRate:1") || !check.includes("tracesSampleRate:0.05")) fail("pós-verificação T3 falhou");
 if (!check.includes("MASKED")) fail("pós-verificação T4 falhou");
 if (countOf(check, T5_COND) !== 0) fail("pós-verificação T5a falhou");
+if (countOf(check, T6O) !== 0) fail("pós-verificação T6 falhou");
+if (countOf(check, T6N) !== 1) fail("pós-verificação T6: literal mascarado ausente/ambíguo");
 
 console.log(`Patches aplicados: ${applied.join(", ")}`);
 console.log(`Original: ${SRC} (${fs.statSync(SRC).size} bytes, sha256 ${srcSha})`);
