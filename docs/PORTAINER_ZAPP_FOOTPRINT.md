@@ -28,6 +28,18 @@ ROLLBACK: ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-<sha-anterior>  (p
 TAG     : ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-latest          (ponteiro móvel)
 ```
 
+**Estado verificado em 2026-08-05 (após faxina) com sha256 digests:**
+
+| Tag | Papel | sha256 digest |
+|-----|-------|---------------|
+| `production-20023785ecfe` | atual (PR #859) | `sha256:c8a722e9124e305287eec51c7839d99679a1ab2fbe0bfd6b33f8e7b28c107626` |
+| `production-988086a2bbbd` | rollback primário (pré-pullada) | `sha256:67e97210f5b1402f705a26f78b7f9274f02a51186b8e5bd7aa2e584fcb06f108` |
+| `production-fbd04bec303d` | rollback secundário (pré-pullada) | verificar com `docker image inspect --format '{{index .RepoDigests 0}}'` |
+| `production-latest` | ponteiro móvel | aponta para atual |
+
+> Para fixar rollback por digest (100% imutável): `docker service update --image ghcr.io/.../zapp-web@sha256:<digest> zapp-web-prod_web`
+> Para inspecionar digests atuais no host: `docker image ls --digests ghcr.io/adm01-debug/zapp-web-v3/zapp-web`
+
 **Exemplo pontual (2026-08-05 pós-faxina) — NÃO vinculante:** o ATUAL muda a cada merge em `origin/main` (deploys concorrentes avançaram 4 SHAs em horas). **Regra canônica:** ATUAL = SHA de origin/main; keep-set = imagens TAGADAS (nunca apagar); untagged antigas = resíduo de deploy → prune_dangling (o housekeeping v2.3 re-taga Spec+PreviousSpec antes de podar).
 - `production-<sha-atual>` — atual (frequentemente presente como `<none>` em uso, sem tag local — normal; imune ao prune por estar em uso)
 - `production-94c2ca5d3c02` — PREV (PreviousSpec; o v2.3 `ensure_ref_tags` o re-taga a cada ciclo — rollback automático OFFLINE)
@@ -35,7 +47,17 @@ TAG     : ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-latest          (p
 - `production-fbd04bec303d` — rollback secundário (tagada, protegida)
 - `production-latest` — ponteiro (pode estar stale no host; GHCR é a fonte da tag)
 
-## 3. Runbook de Rollback (etapa 29 — validado em 2026-08-05)
+## 3. Arquivo de Stack Canônico
+
+Stack file standalone: `infra/stacks/zapp-web-prod.yml`
+
+Para deploy manual (bypass do CI):
+```bash
+ZAPP_IMAGE=ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-<sha> \
+  docker stack deploy --compose-file infra/stacks/zapp-web-prod.yml zapp-web-prod
+```
+
+## 4. Runbook de Rollback (etapa 29 — validado em 2026-08-05)
 
 ```bash
 # Pré-requisito: imagem de rollback JÁ pré-pullada no host (feito na faxina).
@@ -62,7 +84,7 @@ docker service update --detach=false \
 > **Nota OFFLINE:** só as imagens TAGADAS pré-pulladas (`production-988086a2bbbd` / `production-fbd04bec303d`) garantem rollback offline. O housekeeping v2.3 (`ensure_ref_tags`) re-taga Spec+PreviousSpec a cada ciclo, mantendo o PreviousSpec local. Com `pullImage: true` no stack, a policy default é `always` — com ref tag-only o update força pull; com ref `tag@digest` usa a imagem local.
 > **NUNCA** fazer update com o serviço em **0 réplicas** — sem tasks o rollback automático não dispara; se estiver em 0, escale para 1 antes.
 
-## 4. Guardrails anti-recorrência (etapas 46–47)
+## 5. Guardrails anti-recorrência (etapas 46–47)
 
 1. **`docker-housekeeping` v2.3** (`docs/infra/docker-housekeeping-v2.3.yml`, stack Portainer 199):
    - **NUNCA** `docker image prune -a` / `-af` (v2.1 usava `-af --filter until=168h` e apagou a imagem de rollback do zapp-web).
@@ -75,20 +97,20 @@ docker service update --detach=false \
    - **Retenção GHCR automática** (etapa 34): `actions/delete-package-versions` com `min-versions-to-keep: 8` — **8 versões ≈ 2,6 deploys de histórico** (cada deploy cria ~3 versões: index + manifest amd64 + attestation, estes untagged); o rollback (penúltimo deploy) ocupa as posições 4–6 das 8 mantidas. ⚠️ **NÃO usar `delete-only-untagged-versions`** — apagaria os manifests-filho e o `pull` da tag falharia com `manifest unknown` (P0 confirmado 2026-08-05). Alerta se a retenção falhar (não bloqueia deploy).
 3. **Nunca** apagar manualmente imagem do zapp-web no host sem confirmar que não é a de rollback.
 
-## 5. Registry GHCR — política de retenção (etapa 31)
+## 6. Registry GHCR — política de retenção (etapa 31)
 
 - Manter: **últimas 8 versões** (≈ 2,6 deploys: current + rollback + margem apertada — 8 é o mínimo, não folga larga). ⚠️ **NÃO deletar versões untagged isoladamente** (`delete-only-untagged-versions`): as untagged são manifests-filho (amd64/attestation) do index tagado — apagá-las quebra o `pull` da tag com `manifest unknown`.
 - Remover: o restante (na faxina de 2026-08-05: 546 versões inventariadas; lista exata em `ghcr-delete-list.txt`).
 - Execução inicial manual exige token com escopo `write:packages`; a partir do próximo deploy, a retenção é automática.
 - **Nota (deleção assíncrona):** `delete-package-versions` apaga até 100 versões/run (teto interno da action); a contagem cai em degraus (546 → 517 → 452) e a propagação do GHCR leva até 24h. Durante a convergência o total é MAIOR que 8 — estado intermediário esperado, não drift.
 
-## 6. Órfãos removidos na faxina (etapa 44–45)
+## 7. Órfãos removidos na faxina (etapa 44–45)
 
 - **Configs (27):** `evolution_consumer_v1..v6/v5_1/v5_2` (8 nomes: v1, v2, v3, v4, v5, v5_1, v5_2, v6 — 7 removidos de fato, `v5_2` era o em uso), `openclaw_boot_v6..v17/v10b` (13), `openclaw_guard_v4` (1), `watchdog_script_v1..v5` + `watchdog_v12_script` (6). Total 27 provado por 37→10. (Verificação: nenhum serviço nem stack file referenciava; `docker config rm` recusa os em uso.)
 - **Secrets (3):** `gh_runner_pat_v1`, `portainer_agent_secret_v1`, `portainer_readonly_password_v1` (nenhum serviço/stack referenciando).
 - **Volume anônimo vazio** (`61003dad…`, 0B).
 
-## 7. Recuperação de disco (etapa 40, medido em 2026-08-05)
+## 8. Recuperação de disco (etapa 40, medido em 2026-08-05)
 
 | Fonte | Recuperado |
 |-------|------------|

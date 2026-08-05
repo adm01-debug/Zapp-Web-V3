@@ -34,11 +34,28 @@ cscli bouncers list
 # Se Last API pull > 1h: restart container
 ```
 
-## Gaps Identificados (não corrigidos)
+## Gaps Resolvidos (faxina 2026-08-05)
 
-### 1. Imagens Docker órfãs (~20 GB)
-30 imagens sem tag ocupando espaço.
-Solução: Executar `infra/scripts/housekeeping.sh` no VPS.
+### 1. Imagens Docker órfãs — RESOLVIDO
+Imagens sem tag foram removidas na faxina Portainer de 2026-08-05 (~1,19 GB recuperados).
+- **NÃO usar** `infra/scripts/housekeeping.sh` para limpeza de imagens tagged — o script
+  (`docker image prune -f`, sem `-a`) só remove dangling agora.
+- Para limpeza abrangente de tagged images: usar o stack `docker-housekeeping v2.2`
+  (`docs/infra/docker-housekeeping-v2.2.yml`) que protege `ghcr.io/.../zapp-web`.
+- Ver footprint canônico: `docs/PORTAINER_ZAPP_FOOTPRINT.md`
+
+## Rollback do zapp-web
+
+```bash
+# Flipar serviço para imagem de rollback (pre-pullada no host)
+docker service update --image ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-<sha-anterior> zapp-web-prod_web
+
+# Validar
+docker service ps zapp-web-prod_web --no-trunc
+curl -s -o /dev/null -w '%{http_code}' https://zapp.atomicabr.com.br/healthz   # esperado 200
+```
+
+## Gaps Identificados (não corrigidos)
 
 ### 2. Volumes hash órfãos (13 unidades)
 Volumes com nomes hash não identificáveis.
