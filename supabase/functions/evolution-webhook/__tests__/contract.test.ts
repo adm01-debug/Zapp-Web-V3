@@ -19,7 +19,27 @@ Deno.test("HMAC: lê WEBHOOK_SECRET[S] (incl. EVOLUTION_WEBHOOK_*) e instala val
   assertMatch(SOURCE, /EVOLUTION_WEBHOOK/);
   assertMatch(SOURCE, /WEBHOOK_SECRET/);
   // Validador é instalado com a lista (string|string[]) — multi-secret rotation.
-  assertMatch(SOURCE, /createWebhookValidator\(WEBHOOK_SECRETS, STRICT_MODE\)/);
+  // [C-9] 3º arg = ALLOW_SHARED_SECRET (gate de deprecação do plaintext).
+  assertMatch(SOURCE, /createWebhookValidator\(WEBHOOK_SECRETS, STRICT_MODE, ALLOW_SHARED_SECRET\)/);
+});
+
+Deno.test("[C-9] HMAC primário: checagem inline de x-webhook-secret removida (validação única via validador)", () => {
+  // Antes do C-9 o index.ts validava x-webhook-secret ANTES do HMAC (__staticSecretOk),
+  // então plaintext tinha precedência. Agora só existe o validador: HMAC primeiro,
+  // shared-secret como fallback deprecated.
+  assert(!SOURCE.includes("__staticSecretOk"), "checagem inline de plaintext não pode voltar");
+  assert(!SOURCE.includes("timingSafeStringEqual"), "import não usado do auth.ts deve permanecer removido");
+});
+
+Deno.test("[C-9] Gate EVOLUTION_WEBHOOK_ALLOW_SHARED_SECRET presente e wireado no validador", () => {
+  assertMatch(SOURCE, /EVOLUTION_WEBHOOK_ALLOW_SHARED_SECRET/);
+  // default true (compat temporária); false => HMAC-only
+  assertMatch(SOURCE, /\?\? 'true'\)\.toLowerCase\(\) !== 'false'/);
+});
+
+Deno.test("[C-9] Fallback plaintext DEPRECATED loga warning e expõe sharedSecretValid", () => {
+  assertMatch(SOURCE, /DEPRECATED auth: x-webhook-secret/);
+  assertMatch(SOURCE, /result\.sharedSecretValid/);
 });
 
 Deno.test("HMAC: assinatura inválida => 401 + audit rejected", () => {
