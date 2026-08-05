@@ -66,7 +66,10 @@ export function useEvolutionApiIntegration() {
     setLoading(true);
     try {
       const [credsRes, logsRes] = await Promise.all([
-        // View zapp (sem api_key por segurança) — evo não está no PGRST_DB_SCHEMAS
+        // INVARIANT (INTEGRATION_INVARIANTS.md § REGRA CREDENCIAIS):
+        //   zapp.evolution_instance_credentials é VIEW sem coluna api_key.
+        //   SELECT '*' é seguro: api_key nunca é retornada. Não alterar para
+        //   'evo.*' (não está no PGRST_DB_SCHEMAS) nem adicionar api_key ao select.
         supabase.from('evolution_instance_credentials').select('*').order('instance_name'),
         supabase
           .from('evolution_health_logs')

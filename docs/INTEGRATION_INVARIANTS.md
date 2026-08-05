@@ -66,6 +66,26 @@
 
 ---
 
+## GAP-H — `fn_toggle_user_meme_favorite` 2-arg overload NUNCA conceder `authenticated`
+
+**Contexto:** Existem dois overloads de `zapp.fn_toggle_user_meme_favorite`:
+- `fn_toggle_user_meme_favorite(p_meme_id uuid)` — 1 arg, auto-opera sobre `auth.uid()`. GRANT `authenticated` ✅
+- `fn_toggle_user_meme_favorite(p_user_id uuid, p_meme_id uuid)` — 2 args, aceita `p_user_id` arbitrário **sem guard interno**. GRANT `authenticated` **PROIBIDO** ❌
+
+**Risco:** Conceder `authenticated` ao overload 2-arg permitiria escalonamento horizontal de privilégio — qualquer usuário autenticado poderia favoritar/desfavoritar memes **como outro usuário** (passando o `user_id` da vítima como `p_user_id`).
+
+**Decisão de segurança (2026-08-04, Auditoria Exaustiva):** O overload 2-arg **não é grantado a `authenticated`**. Só `postgres` e `service_role` têm EXECUTE. Esta decisão é **intencional e permanente** até que a função receba guard interno (`IF p_user_id <> auth.uid() AND NOT zapp.is_admin_or_supervisor() THEN RAISE EXCEPTION ...`).
+
+**Verificação ACL em produção:**
+```sql
+SELECT has_function_privilege('authenticated', 'zapp.fn_toggle_user_meme_favorite(uuid,uuid)', 'EXECUTE');
+-- DEVE retornar false
+```
+
+**Jamais "corrigir" isso adicionando o GRANT** — seria uma regressão de segurança.
+
+---
+
 ## RECOMENDAÇÃO PGRST
 
 - `PGRST_DB_SCHEMAS` atual: `public`, `zapp`, `storage`, `graphql_public`, `artes`, `vendas`, `financeiro`.
