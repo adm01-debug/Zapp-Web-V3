@@ -454,6 +454,7 @@ export async function handleCallEvent(supabase: SupabaseClient, instance: string
     const externalKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'))
       || (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
     if (externalUrl && externalKey) {
+      // schema-check-exempt — external project client for Realtime broadcast only, no DB queries
       const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
       const externalAdmin = createClient(externalUrl, externalKey, {
         auth: { persistSession: false, autoRefreshToken: false },
