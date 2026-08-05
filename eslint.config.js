@@ -196,6 +196,35 @@ export default tseslint.config(
       ],
     },
   },
+  // Supabase types SEMPRE via barrel canônico (@/integrations/supabase/schema) —
+  // aplica-se a todos os arquivos src incluindo testes. Bloco separado para não
+  // herdar os ignores de test files do bloco SCHEMA CONTRACT GUARDS abaixo.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: [
+      "src/integrations/supabase/types.ts",
+      "src/integrations/supabase/types-manual.ts",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/integrations/supabase/types",
+              message:
+                "Importar de '@/integrations/supabase/schema' (barrel canônico). types.ts é auto-gerado e pode mudar.",
+            },
+            {
+              name: "@/integrations/supabase/types-manual",
+              message:
+                "Importar de '@/integrations/supabase/schema' (barrel canônico). types-manual.ts é detalhe de implementação interno.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   // SCHEMA CONTRACT GUARDS — o front só acessa views/tabelas do schema 'zapp'
   // (client com db.schema='zapp'). Acessos diretos a schemas físicos ('evo' /
   // 'email_app') ou ao 'public' quebram o contrato single-DB e devem ser
@@ -227,26 +256,6 @@ export default tseslint.config(
           selector: "Property[key.name='schema'][value.value='public']",
           message:
             "Não usar schema:'public' no front — usar views zapp (contrato single-DB).",
-        },
-      ],
-      // Tipos Supabase SEMPRE via barrel canônico (@/integrations/supabase/schema),
-      // nunca de types.ts ou types-manual.ts diretamente — esses arquivos são
-      // auto-gerados e o barrel pode remapear/estender sem quebrar importadores.
-      "no-restricted-imports": [
-        "error",
-        {
-          paths: [
-            {
-              name: "@/integrations/supabase/types",
-              message:
-                "Importar de '@/integrations/supabase/schema' (barrel canônico). types.ts é auto-gerado e pode mudar.",
-            },
-            {
-              name: "@/integrations/supabase/types-manual",
-              message:
-                "Importar de '@/integrations/supabase/schema' (barrel canônico). types-manual.ts é detalhe de implementação interno.",
-            },
-          ],
         },
       ],
     },

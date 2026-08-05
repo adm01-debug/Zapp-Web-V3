@@ -204,16 +204,18 @@ jobs:
       - name: Scan contract (sem DB — edge functions + estrutura)
         run: node scripts/audit-contract.mjs --scan-only
 
-  # audit-contract-live: só corre quando SUPABASE_SERVICE_ROLE_KEY está disponível.
-  # PRs de fork não têm acesso a secrets → step pulado internamente (skip sem falhar).
-  # NÃO está no needs de test/build — é informativo. Para forçar gate no CD, promover
-  # para needs quando o runner self-hosted com acesso ao DB estiver disponível.
-  # NOTA: secrets context não é válido em job-level if conditions — verificação
-  # feita no step via variável de ambiente para compatibilidade com workflow_dispatch.
+  # audit-contract-live: só corre em push/workflow_dispatch (NUNCA em pull_request).
+  # Motivo de segurança: o job executa scripts/audit-contract.mjs com
+  # SUPABASE_SERVICE_ROLE_KEY. Em eventos pull_request, código não revisado do
+  # branch do PR roda com acesso ao secret, criando risco de exfiltração.
+  # O scan estrutural (audit-contract-scan) continua disponível para PRs.
+  # NÃO está no needs de test/build — é informativo. Para forçar gate no CD,
+  # promover para needs quando runner self-hosted com acesso ao DB estiver disponível.
   audit-contract-live:
     name: Audit front↔DB contract (live, requires secrets)
     runs-on: ubuntu-latest
     needs: lockfile
+    if: github.event_name != 'pull_request'
     # NOTA (fix 2026-08-05): `secrets` NÃO é permitido em `if:` de job no GitHub
     # Actions ("contexts secrets is not allowed here") — isso tornava o workflow
     # INTEIRO inválido (0 jobs, falha silenciosa em 20/20 runs). O condicional
