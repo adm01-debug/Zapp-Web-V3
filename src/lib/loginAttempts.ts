@@ -1,19 +1,35 @@
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('loginAttempts');
+
+export type LoginBlockReason =
+  | 'ip_blocked'
+  | 'ip_not_whitelisted'
+  | 'country_blocked'
+  | 'country_not_allowed';
 
 interface LockStatus {
   isLocked: boolean;
   lockedUntil: Date | null;
   attempts: number;
   remainingTime: number; // in seconds
+  /** SEGURANCA-04/05: true quando a edge negou o pré-flight por política (IP/país). */
+  blocked: boolean;
+  blockReason: LoginBlockReason | null;
+  country: string | null;
 }
 
 interface LoginAttemptsPayload {
   is_locked?: boolean;
   locked_until?: string | null;
   attempts?: number;
+  /** SEGURANCA-04/05: presente quando a edge responde 403 com código de bloqueio. */
+  blocked?: boolean;
+  block_reason?: LoginBlockReason | null;
+  country?: string | null;
+  geo_unavailable?: boolean;
 }
 
 type LoginAttemptAction = 'check' | 'record_failed' | 'clear';
@@ -23,6 +39,9 @@ const DEFAULT_LOCK_STATUS: LockStatus = {
   lockedUntil: null,
   attempts: 0,
   remainingTime: 0,
+  blocked: false,
+  blockReason: null,
+  country: null,
 };
 
 function toLockStatus(payload: LoginAttemptsPayload | null | undefined, fallbackAttempts = 0): LockStatus {
@@ -40,7 +59,26 @@ function toLockStatus(payload: LoginAttemptsPayload | null | undefined, fallback
     lockedUntil,
     attempts: payload.attempts ?? fallbackAttempts,
     remainingTime,
+    blocked: Boolean(payload.blocked),
+    blockReason: payload.block_reason ?? null,
+    country: payload.country ?? null,
   };
+}
+
+/** Mensagem amigável por código de bloqueio do gate de segurança (SEGURANCA-04/05). */
+export function blockReasonMessage(reason: LoginBlockReason | null): string {
+  switch (reason) {
+    case 'ip_blocked':
+      return 'Seu IP está bloqueado por medidas de segurança. Tente novamente mais tarde ou contate o administrador.';
+    case 'ip_not_whitelisted':
+      return 'Seu IP não está na lista de IPs permitidos. Contate o administrador.';
+    case 'country_blocked':
+      return 'Acesso negado: seu país está na lista de bloqueio desta plataforma.';
+    case 'country_not_allowed':
+      return 'Acesso negado: seu país não está na lista de países permitidos.';
+    default:
+      return 'Acesso bloqueado pela política de segurança.';
+  }
 }
 
 async function invokeLoginAttempts(
@@ -55,7 +93,23 @@ async function invokeLoginAttempts(
     },
   });
 
-  if (error) throw error;
+  if (error) {
+    // 403 do gate de segurança (blocked_ips / ip_whitelist / geo-blocking):
+    // o body vive em error.context (FunctionsHttpError) — mesmo padrão de scanResponse.ts.
+    if (error instanceof FunctionsHttpError) {
+      const context = await error.context
+        .json()
+        .catch(() => null) as (LoginAttemptsPayload & { code?: LoginBlockReason }) | null;
+      if (context?.code) {
+        return {
+          blocked: true,
+          block_reason: context.code,
+          country: context.country ?? null,
+        };
+      }
+    }
+    throw error;
+  }
   return data;
 }
 

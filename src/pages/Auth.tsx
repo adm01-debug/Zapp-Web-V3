@@ -19,6 +19,7 @@ import { PasswordInput } from '@/features/auth';
 import { SocialProof } from '@/features/auth';
 import { HeroBenefits } from '@/features/auth';
 import { useAuthForm } from '@/features/auth';
+import { blockReasonMessage } from '@/lib/loginAttempts';
 import { Link } from 'react-router-dom';
 import { AuthDiagnosticsPanel } from '@/features/auth/components/AuthDiagnosticsPanel';
 
@@ -169,6 +170,31 @@ export default function Auth() {
                               {(lockStatus.remainingTime % 60).toString().padStart(2, '0')}
                             </span>
                           </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                  {lockStatus.blocked && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                      className="mb-4 rounded-lg border border-destructive/20 bg-destructive/10 p-4"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="rounded-full bg-destructive/20 p-2">
+                          <Lock className="h-5 w-5 text-destructive" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-destructive">
+                            Acesso bloqueado pela política de segurança
+                          </p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {blockReasonMessage(lockStatus.blockReason)}
+                          </p>
                         </div>
                       </div>
                     </motion.div>
