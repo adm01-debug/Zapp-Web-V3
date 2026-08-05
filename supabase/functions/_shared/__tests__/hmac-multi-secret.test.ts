@@ -1,6 +1,7 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   WebhookSecurityService,
+  createWebhookValidator,
   readWebhookSecretsFromEnv,
 } from "../hmac-validation.ts";
 
@@ -201,4 +202,50 @@ Deno.test("shared-secret: a valid HMAC signature still wins when both are presen
   const r = await svc.validateRequest(req);
   assertEquals(r.valid, true);
   assertEquals(r.signatureValid, true);
+});
+
+// --- [C-9 2026-08-06] HMAC primário: precedência e gate de deprecação ---------
+
+Deno.test("C-9: HMAC primário — assinatura presente porém INVÁLIDA rejeita mesmo com x-webhook-secret válido", async () => {
+  // Antes do C-9 o index.ts checava x-webhook-secret ANTES do HMAC: um request
+  // com assinatura inválida + segredo estático válido passava pelo plaintext.
+  // Com HMAC primário, assinatura encontrada manda: inválida => 401.
+  const svc = new WebhookSecurityService(["the-strong-secret"], true);
+  const payload = '{"event":"messages.upsert"}';
+  const badSig = await signWith("attacker-key", payload); // válida p/ OUTRA chave
+  const req = new Request("https://x.test/webhook", {
+    method: "POST",
+    headers: {
+      "x-evolution-signature": badSig,
+      "x-webhook-secret": "the-strong-secret", // válido, mas NÃO deve salvar
+      "content-type": "application/json",
+    },
+    body: payload,
+  });
+  const r = await svc.validateRequest(req);
+  assertEquals(r.valid, false);
+  assertEquals(r.signatureValid, false);
+  assertEquals(r.error, "Invalid webhook signature");
+});
+
+Deno.test("C-9: createWebhookValidator com allowSharedSecret=true (default) aceita shared-secret DEPRECATED", async () => {
+  const validate = createWebhookValidator(["the-strong-secret"], true, true);
+  const r = await validate(makeSharedSecretRequest('{"event":"connection.update"}', "the-strong-secret"));
+  assertEquals(r.valid, true);
+  assertEquals(r.signatureValid, false);
+  assertEquals(r.sharedSecretValid, true);
+});
+
+Deno.test("C-9: EVOLUTION_WEBHOOK_ALLOW_SHARED_SECRET=false — shared-secret rejeitado, HMAC segue aceito", async () => {
+  const validate = createWebhookValidator(["the-strong-secret"], true, false /* HMAC-only */);
+  // Plaintext deprecated barrado
+  const r1 = await validate(makeSharedSecretRequest('{"event":"connection.update"}', "the-strong-secret"));
+  assertEquals(r1.valid, false);
+  assertEquals(r1.error, "Missing webhook signature");
+  // HMAC continua funcionando
+  const payload = '{"event":"messages.upsert"}';
+  const sig = await signWith("the-strong-secret", payload);
+  const r2 = await validate(await makeRequest(payload, sig));
+  assertEquals(r2.valid, true);
+  assertEquals(r2.signatureValid, true);
 });
