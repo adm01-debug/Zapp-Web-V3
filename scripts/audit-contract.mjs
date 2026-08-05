@@ -138,18 +138,23 @@ function hasPGRestEnv() {
 /** Checagem via PostgREST HTTP: retorna schema onde o objeto existe (ou null). */
 async function pgRestExists(baseUrl, serviceKey, kind, name, schemas) {
   for (const schema of schemas) {
-    const path = kind === 'rpc' ? `rpc/${encodeURIComponent(name)}` : `${encodeURIComponent(name)}?select=id&limit=1`;
+    // RPC: POST com body vazio — o PostgREST resolve a função por nome e devolve
+    // 400 (params inválidos) se existir; GET sem body devolve 404 PGRST202 para
+    // funções com argumentos (falso positivo). FROM: GET simples.
+    const isRpc = kind === 'rpc';
+    const path = isRpc ? `rpc/${encodeURIComponent(name)}` : `${encodeURIComponent(name)}?select=id&limit=1`;
     const url = `${baseUrl}/rest/v1/${path}`;
     const headers = {
       apikey: serviceKey,
       Authorization: `Bearer ${serviceKey}`,
       Accept: 'application/json',
       'Accept-Profile': schema,
+      ...(isRpc ? { 'Content-Type': 'application/json' } : {}),
     };
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), PGREST_TIMEOUT_MS);
     try {
-      const res = await fetch(url, { method: 'GET', headers, signal: ctrl.signal });
+      const res = await fetch(url, { method: isRpc ? 'POST' : 'GET', headers, body: isRpc ? '{}' : undefined, signal: ctrl.signal });
       // 200 = existe; 4xx de validação (400 bad params) = função existe; 404 PGRST202/205 = ausente.
       if (res.status === 200) return schema;
       if (res.status === 400 || res.status === 401 || res.status === 403) return schema;
