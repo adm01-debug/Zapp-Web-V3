@@ -15,7 +15,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
-import type { Database, Json } from '@/integrations/supabase/types';
+import type { Database, Json } from '@/integrations/supabase/schema';
 
 const log = getLogger('useCompanies');
 
