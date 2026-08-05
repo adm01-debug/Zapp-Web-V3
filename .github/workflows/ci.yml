@@ -186,11 +186,15 @@ jobs:
     name: Audit front↔DB contract (RPC/.from/invoke)
     runs-on: ubuntu-latest
     needs: lockfile
-    # Requer secret de service role para consultar o PostgREST. Sem o secret,
-    # o job é pulado (não quebra PRs de forks). Configurar no repo:
-    #   SUPABASE_URL              — ex.: https://supabase.atomicabr.com.br
-    #   SUPABASE_SERVICE_ROLE_KEY — service_role key (PostgREST)
-    if: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
+    # NOTA (fix 2026-08-05): `secrets` NÃO é permitido em `if:` de job no GitHub
+    # Actions ("contexts secrets is not allowed here") — isso tornava o workflow
+    # INTEIRO inválido (0 jobs, falha silenciosa em 20/20 runs). O condicional
+    # agora é avaliado dentro do STEP (env de job é permitido em steps) via guard.
+    # Sem o secret, o step é pulado e o job passa (PRs de forks não quebram).
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # Alternativa (driver pg): DB_URL: ${{ secrets.SUPABASE_DB_URL }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -203,10 +207,7 @@ jobs:
           node-version: 22
 
       - name: Run contract audit (RPCs, .from(), edge functions vs banco)
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          # Alternativa (driver pg): DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        if: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' }}
         run: node scripts/audit-contract.mjs
 
   test:
