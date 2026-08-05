@@ -24,8 +24,9 @@ docker volume ls -qf dangling=true | while read vol; do
   fi
 done
 
-echo "📦 PASSO 4: Limpar cache do build Docker..."
-docker builder prune -f 2>&1 | tail -3
+echo "📦 PASSO 4: Limpar cache do build Docker (>24h de idade)..."
+# --filter until=24h preserva cache recente; sem o filtro apaga tudo incluindo camadas do deploy atual.
+docker builder prune -f --filter until=24h 2>&1 | tail -3
 
 echo "📦 PASSO 5: Limpar logs de containers (json-file)..."
 for container in $(docker ps -aq); do
