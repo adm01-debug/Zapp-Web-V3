@@ -77583,6 +77583,7 @@ export type Database = {
         }[]
       }
       rpc_contact_stats: { Args: never; Returns: Json }
+      rpc_contract_inventory: { Args: never; Returns: Json }
       rpc_count_contact_media: {
         Args: { p_contact_id: string }
         Returns: {
