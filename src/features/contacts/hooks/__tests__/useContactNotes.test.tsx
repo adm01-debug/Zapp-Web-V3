@@ -29,17 +29,25 @@ function makeSelectChain(rows: unknown[]) {
   type SelectChain = {
     select: () => SelectChain;
     eq: () => SelectChain;
-    in: () => Promise<{ data: unknown[]; error: null }>;
-    order: () => Promise<{ data: unknown[]; error: null }>;
+    in: () => SelectChain;
+    order: () => SelectChain;
     maybeSingle: () => Promise<{ data: unknown; error: null }>;
+    then?: <TResolve = { data: unknown[]; error: null }, TReject = never>(
+      onfulfilled?: ((value: { data: unknown[]; error: null }) => TResolve | PromiseLike<TResolve>) | null,
+      onrejected?: ((reason: unknown) => TReject | PromiseLike<TReject>) | null
+    ) => Promise<TResolve | TReject>;
   };
   const chain: SelectChain = {
     select: () => chain,
     eq: () => chain,
-    in: () => Promise.resolve({ data: rows, error: null }),
-    order: () => Promise.resolve({ data: rows, error: null }),
+    in: () => chain,
+    order: () => chain,
     maybeSingle: () => Promise.resolve({ data: rows[0] ?? null, error: null }),
   };
+  // Chain "thenable": o Supabase real resolve na última chamada encadeada;
+  // aqui, `await` em qualquer ponto da cadeia resolve com as linhas mockadas.
+  chain.then = (onfulfilled, onrejected) =>
+    Promise.resolve({ data: rows, error: null }).then(onfulfilled, onrejected);
   return chain;
 }
 
@@ -87,6 +95,30 @@ vi.mock('@/integrations/supabase/client', () => ({
         };
       }
       return { select: () => makeSelectChain([]) };
+    },
+    rpc: (fn: string, args: Record<string, unknown>) => {
+      if (fn === 'add_contact_note') {
+        return new Promise((resolve) => {
+          insertResolver = (() => {
+            const row = {
+              id: 'note-new',
+              contact_id: String(args.p_contact_id),
+              author_id: 'profile-1',
+              content: String(args.p_content),
+              note_type: (args.p_note_type as string) ?? 'general',
+              is_pinned: (args.p_is_pinned as boolean) ?? false,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            };
+            notesRows = [row, ...notesRows];
+            resolve({ data: row, error: null });
+          }) as unknown as (v: unknown) => void;
+        });
+      }
+      if (fn === 'update_contact_note') {
+        return Promise.resolve({ data: { id: String(args.p_note_id) }, error: null });
+      }
+      return Promise.resolve({ data: null, error: new Error(`unexpected rpc ${fn}`) });
     },
   },
 }));

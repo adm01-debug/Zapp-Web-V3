@@ -37,6 +37,14 @@ vi.mock('@/features/inbox', () => ({
   useAllTicketStates: () => ({}),
 }));
 
+vi.mock('@/features/admin', () => ({
+  useAgents: () => ({ agents: [], isLoading: false }),
+}));
+
+vi.mock('../hooks/useAuditLogMutation', () => ({
+  logAuditEvent: vi.fn(),
+}));
+
 vi.mock('@/hooks/useDensity', () => ({
   useDensity: () => ({ density: 'default' }),
 }));
