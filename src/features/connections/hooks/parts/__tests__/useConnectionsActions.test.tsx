@@ -106,11 +106,7 @@ let recorded: Recorded[] = [];
 function makeBuilder() {
   const builder: Record<string, unknown> = {};
   const chain = (op: string) => (a?: unknown, b?: unknown) => {
-    recorded.push(
-      op === 'eq' || op === 'neq'
-        ? { op, col: a as string, val: b }
-        : { op, arg: a }
-    );
+    recorded.push(op === 'eq' || op === 'neq' ? { op, col: a as string, val: b } : { op, arg: a });
     return builder;
   };
   for (const op of ['insert', 'update', 'delete', 'select', 'eq', 'neq']) {
@@ -176,7 +172,9 @@ function setup(over: Partial<Harness> = {}) {
       h.setConnections as unknown as Dispatch<SetStateAction<WhatsAppConnection[]>>,
       h.setIsCreating as unknown as Dispatch<SetStateAction<boolean>>,
       h.setIsAddDialogOpen as unknown as Dispatch<SetStateAction<boolean>>,
-      h.setNewConnection as unknown as Dispatch<SetStateAction<{ name: string; phone_number: string; api_type: WhatsAppApiType }>>,
+      h.setNewConnection as unknown as Dispatch<
+        SetStateAction<{ name: string; phone_number: string; api_type: WhatsAppApiType }>
+      >,
       h.handleShowQrCode as unknown as (conn: WhatsAppConnection) => void | Promise<void>,
       h.disconnectInstance as unknown as (instance: string) => Promise<unknown>,
       h.deleteInstance as unknown as (instance: string) => Promise<unknown>,
@@ -569,12 +567,12 @@ describe('useConnectionsActions — handleDelete', () => {
     expect(h.deleteInstance).not.toHaveBeenCalledWith(conn.instance_id);
   });
 
-  it('404 da Evolution com nome da instância: segue com o delete no banco (já não existe)', async () => {
+  it('404 da Evolution COM nome da instância na mensagem: segue com o delete no banco (instância já não existe)', async () => {
     const { result, h } = setup({
       deleteInstance: vi
         .fn()
         .mockRejectedValue(
-          Object.assign(new Error('404 instance suporte_123456 not found'), { apiStatus: 404 })
+          Object.assign(new Error('Instance suporte_123456 not found'), { apiStatus: 404 })
         ),
     });
     await act(async () => {
@@ -585,7 +583,7 @@ describe('useConnectionsActions — handleDelete', () => {
     expect(toastSpy).toHaveBeenCalledWith({ title: 'Conexão removida' });
   });
 
-  it('404 da Evolution SEM o nome da instância: NÃO deleta no banco (fail-safe F6-28)', async () => {
+  it('404 da Evolution SEM nome da instância na mensagem: NÃO deleta no banco (F6-28 — não engolir 404 ambíguo)', async () => {
     const { result, h } = setup({
       deleteInstance: vi
         .fn()
@@ -594,8 +592,12 @@ describe('useConnectionsActions — handleDelete', () => {
     await act(async () => {
       await result.current.handleDelete(makeConnection());
     });
+    // 404 sem evidência de que a instância sumiu = erro terminal — aborta e propaga
     expect(recorded.some((r) => r.op === 'delete')).toBe(false);
     expect(h.setConnections).not.toHaveBeenCalled();
+    expect(toastSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Erro ao deletar', variant: 'destructive' })
+    );
   });
 
   it('5xx da Evolution: NÃO deleta no banco, marca para retry e preserva o registro', async () => {

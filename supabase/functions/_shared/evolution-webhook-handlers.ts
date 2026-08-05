@@ -332,7 +332,7 @@ export async function handleChatsUpdate(supabase: SupabaseClient, instance: stri
     if (unreadCount !== undefined) {
       const contact = await getContactByPhone(supabase, phone, connection.id);
       if (contact && unreadCount === 0) {
-        await supabase.schema('evo').from('evolution_messages')
+        await supabase.from('evolution_messages')
           .update({ is_read: true, updated_at: new Date().toISOString() })
           .eq('contact_id', contact.id).eq('from_me', false).eq('is_read', false)
           .eq('instance_name', instance);
@@ -454,6 +454,7 @@ export async function handleCallEvent(supabase: SupabaseClient, instance: string
     const externalKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'))
       || (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
     if (externalUrl && externalKey) {
+      // schema-check-exempt — external project client for Realtime broadcast only, no DB queries
       const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
       const externalAdmin = createClient(externalUrl, externalKey, {
         auth: { persistSession: false, autoRefreshToken: false },
@@ -492,7 +493,7 @@ export async function handleChatsDelete(supabase: SupabaseClient, instance: stri
     const contact = await getContactByPhone(supabase, phone, connection.id);
     if (contact) {
       const now = new Date().toISOString();
-      await supabase.schema('evo').from('evolution_messages')
+      await supabase.from('evolution_messages')
         .update({ deleted_at: now, status: 'deleted', status_at: now, updated_at: now })
         .eq('contact_id', contact.id).eq('instance_name', instance);
     }
@@ -553,7 +554,7 @@ export async function handleChatsSet(supabase: SupabaseClient, instance: string,
     if (unreadCount === 0) {
       const contact = await getContactByPhone(supabase, phone, connection.id);
       if (contact) {
-        await supabase.schema('evo').from('evolution_messages')
+        await supabase.from('evolution_messages')
           .update({ is_read: true, updated_at: new Date().toISOString() })
           .eq('contact_id', contact.id).eq('from_me', false).eq('is_read', false)
           .eq('instance_name', instance);

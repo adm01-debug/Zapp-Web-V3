@@ -29,25 +29,24 @@ function makeSelectChain(rows: unknown[]) {
   type SelectChain = {
     select: () => SelectChain;
     eq: () => SelectChain;
-    in: () => SelectChain;
-    order: () => SelectChain;
+    order: () => SelectChain | Promise<{ data: unknown[]; error: null }>;
+    in: () => Promise<{ data: unknown[]; error: null }>;
     maybeSingle: () => Promise<{ data: unknown; error: null }>;
-    then?: <TResolve = { data: unknown[]; error: null }, TReject = never>(
-      onfulfilled?: ((value: { data: unknown[]; error: null }) => TResolve | PromiseLike<TResolve>) | null,
-      onrejected?: ((reason: unknown) => TReject | PromiseLike<TReject>) | null
-    ) => Promise<TResolve | TReject>;
   };
+  const resolveRows: () => Promise<{ data: unknown[]; error: null }> = () =>
+    Promise.resolve({ data: rows, error: null });
+  let orderCalls = 0;
   const chain: SelectChain = {
     select: () => chain,
     eq: () => chain,
-    in: () => chain,
-    order: () => chain,
+    in: () => resolveRows(),
+    // Encadeia múltiplos .order() e resolve na última chamada (hook usa 2: is_pinned + created_at)
+    order: () => {
+      orderCalls += 1;
+      return orderCalls >= 2 ? resolveRows() : chain;
+    },
     maybeSingle: () => Promise.resolve({ data: rows[0] ?? null, error: null }),
   };
-  // Chain "thenable": o Supabase real resolve na última chamada encadeada;
-  // aqui, `await` em qualquer ponto da cadeia resolve com as linhas mockadas.
-  chain.then = (onfulfilled, onrejected) =>
-    Promise.resolve({ data: rows, error: null }).then(onfulfilled, onrejected);
   return chain;
 }
 
@@ -96,29 +95,43 @@ vi.mock('@/integrations/supabase/client', () => ({
       }
       return { select: () => makeSelectChain([]) };
     },
-    rpc: (fn: string, args: Record<string, unknown>) => {
-      if (fn === 'add_contact_note') {
+    rpc: (name: string, args: Record<string, unknown>) => {
+      if (name === 'add_contact_note') {
         return new Promise((resolve) => {
-          insertResolver = (() => {
+          const finish = () => {
             const row = {
               id: 'note-new',
-              contact_id: String(args.p_contact_id),
+              contact_id: (args.p_contact_id as string) ?? CONTACT_UUID,
               author_id: 'profile-1',
-              content: String(args.p_content),
-              note_type: (args.p_note_type as string) ?? 'general',
-              is_pinned: (args.p_is_pinned as boolean) ?? false,
+              content: (args.p_content as string) ?? '',
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             };
             notesRows = [row, ...notesRows];
-            resolve({ data: row, error: null });
-          }) as unknown as (v: unknown) => void;
+            resolve({ data: { id: row.id }, error: null });
+          };
+          insertResolver = finish;
         });
       }
-      if (fn === 'update_contact_note') {
-        return Promise.resolve({ data: { id: String(args.p_note_id) }, error: null });
+      if (name === 'update_contact_note') {
+        return new Promise((resolve) => {
+          const finish = () => {
+            notesRows = notesRows.map((n) =>
+              n.id === (args.p_note_id as string)
+                ? {
+                    ...n,
+                    content: (args.p_content as string | null) ?? n.content,
+                    updated_at: new Date().toISOString(),
+                  }
+                : n
+            );
+            resolve({ data: { id: args.p_note_id }, error: null });
+          };
+          // updateResolver exposto via insertResolver? Não — sem teste de update dedicado.
+          finish();
+        });
       }
-      return Promise.resolve({ data: null, error: new Error(`unexpected rpc ${fn}`) });
+      return Promise.resolve({ data: null, error: { message: `unexpected rpc ${name}` } });
     },
   },
 }));

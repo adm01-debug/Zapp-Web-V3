@@ -50,7 +50,10 @@ function StatusBadge({ resolved }: { resolved: boolean }) {
       <CheckCircle2 className="h-3 w-3" /> Resolvido
     </Badge>
   ) : (
-    <Badge variant="outline" className="gap-1 border-destructive/40 bg-destructive/10 text-destructive">
+    <Badge
+      variant="outline"
+      className="gap-1 border-destructive/40 bg-destructive/10 text-destructive"
+    >
       <AlertTriangle className="h-3 w-3" /> Aberto
     </Badge>
   );
@@ -71,9 +74,12 @@ export default function AdminACLAlertsPage() {
   const renderDetails = (alert: ACLAlert) => {
     if (!alert.details) return null;
     try {
-      const details =
-        typeof alert.details === 'string' ? JSON.parse(alert.details) : alert.details;
-      return <pre className="whitespace-pre-wrap text-xs text-muted-foreground">{JSON.stringify(details, null, 2)}</pre>;
+      const details = typeof alert.details === 'string' ? JSON.parse(alert.details) : alert.details;
+      return (
+        <pre className="whitespace-pre-wrap text-xs text-muted-foreground">
+          {JSON.stringify(details, null, 2)}
+        </pre>
+      );
     } catch {
       return <span className="text-xs text-muted-foreground">{String(alert.details)}</span>;
     }
@@ -168,13 +174,15 @@ export default function AdminACLAlertsPage() {
                       <TableCell>
                         <SeverityBadge severity={alert.severity} />
                       </TableCell>
-                      <TableCell className="whitespace-nowrap font-mono text-xs">
-                        {alert.role_name}
+                      <TableCell className="whitespace-nowrap text-xs">
+                        <code>{alert.role_name}</code>
                       </TableCell>
                       <TableCell className="max-w-[240px] truncate" title={alert.object_name}>
                         {alert.object_name}
                       </TableCell>
-                      <TableCell className="font-mono text-xs">{alert.privilege}</TableCell>
+                      <TableCell className="text-xs">
+                        <code>{alert.privilege}</code>
+                      </TableCell>
                       <TableCell>
                         <StatusBadge resolved={!!alert.resolved_at} />
                       </TableCell>
@@ -188,7 +196,10 @@ export default function AdminACLAlertsPage() {
             <div className="mt-4 space-y-2">
               {alerts.map((alert) =>
                 alert.details ? (
-                  <details key={`details-${alert.id}`} className="rounded-lg border bg-muted/20 p-2">
+                  <details
+                    key={`details-${alert.id}`}
+                    className="rounded-lg border bg-muted/20 p-2"
+                  >
                     <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
                       Detalhes — alerta #{alert.id}
                     </summary>

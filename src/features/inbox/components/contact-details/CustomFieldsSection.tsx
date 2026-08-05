@@ -109,7 +109,8 @@ export function CustomFieldsSection({ contactId }: CustomFieldsSectionProps) {
                   value={editValue}
                   onChange={(e) => setEditValue(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') void handleEditSave(field.id!, field.field_name);
+                    if (e.key === 'Enter' && field.id)
+                      void handleEditSave(field.id, field.field_name);
                     if (e.key === 'Escape') setEditingId(null);
                   }}
                   autoFocus
@@ -120,7 +121,9 @@ export function CustomFieldsSection({ contactId }: CustomFieldsSectionProps) {
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6 text-primary hover:bg-primary/10"
-                  onClick={() => void handleEditSave(field.id!, field.field_name)}
+                  onClick={() => {
+                    if (field.id) void handleEditSave(field.id, field.field_name);
+                  }}
                   disabled={savingEdit}
                 >
                   <Check className="h-3 w-3" />
@@ -211,7 +214,11 @@ export function CustomFieldsSection({ contactId }: CustomFieldsSectionProps) {
               onClick={() => void handleAdd()}
               disabled={savingAdd || !newName.trim() || !newValue.trim()}
             >
-              {savingAdd ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Plus className="mr-1 h-3 w-3" />}
+              {savingAdd ? (
+                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+              ) : (
+                <Plus className="mr-1 h-3 w-3" />
+              )}
               Adicionar
             </Button>
           </div>
