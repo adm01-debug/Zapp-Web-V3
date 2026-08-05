@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
     if (!msgId) { skipped++; continue; }
     const contactId = await upsertContact(supabase, phone, remoteJid, pushName || undefined, instanceName, connectionId);
     if (!contactId) { errors++; continue; }
-    const { error: insErr } = await supabase.schema('evo' as 'zapp').from('evolution_messages').insert({ message_id: msgId, remote_jid: remoteJid, from_me: fromMe, direction: fromMe ? 'outbound' : 'inbound', status: fromMe ? 'sent' : 'received', message_type: msgType, content: extractContent(msg), push_name: pushName || null, instance_name: instanceName, contact_id: contactId, timestamp: tsToIso(msg.messageTimestamp as number), raw: msg as unknown as Record<string, unknown> }).select('id');
+    const { error: insErr } = await supabase.from('evolution_messages').insert({ message_id: msgId, remote_jid: remoteJid, from_me: fromMe, direction: fromMe ? 'outbound' : 'inbound', status: fromMe ? 'sent' : 'received', message_type: msgType, content: extractContent(msg), push_name: pushName || null, instance_name: instanceName, contact_id: contactId, timestamp: tsToIso(msg.messageTimestamp as number), raw: msg as unknown as Record<string, unknown> }).select('id');
     if (insErr) { if ((insErr as { code?: string }).code === '23505') { skipped++; } else { console.error('[backfill] insert error', msgId, insErr.message); errors++; } } else { inserted++; }
   }
   return json({ processed: evMsgs.length, inserted, skipped, errors, next_offset: offset + evMsgs.length, done: evMsgs.length < limit });
