@@ -12,6 +12,11 @@
  *      com envelope canônico 422 (code contract_violation).
  *   2. parseOrReject com schemas vazio {} → idem.
  *   3. parseRequestOrReject com schemas undefined → idem (sem lançar).
+ *   4. (Hardening fuzz 2026-08-04) schema com valor NÃO-ZodType (objeto cru)
+ *      → NUNCA lança TypeError; vira 422 contract_violation.
+ *   5. (Hardening fuzz 2026-08-04) schema cujo safeParse LANÇA (superRefine/
+ *      z.custom com bug) → NUNCA vira 500; vira 422 contract_violation com o
+ *      erro em details[0].message.
  *
  * Rodar: deno test supabase/functions/_shared/__tests__/contract-gate-undefined-schema.test.ts
  */
@@ -73,4 +78,40 @@ Deno.test("P0 fix: ai-churn-analysis, classify-emoji e classify-sticker têm sch
     assert(CONTRACTS[name] !== undefined, `${name} deve existir em CONTRACTS`);
     assertEquals(CONTRACTS[name].current, "v1");
   }
+});
+
+// ─── Hardening fuzz 2026-08-04: schema NÃO-ZodType e safeParse que lança ────
+
+Deno.test("Hardening: schema com valor NÃO-ZodType (objeto cru) NUNCA lança — 422", async () => {
+  // Reproduzia TypeError: schema.safeParse is not a function → 500.
+  const fakeSchema = { v1: { notAZod: true } } as unknown as Record<string, never>;
+  const r = await parseOrReject("fn-hardening", fakeSchema as never, req(), { a: 1 });
+  assertEquals(r.ok, false);
+  if (!r.ok) {
+    const body = await readEnvelope(r.response);
+    assert(body.details.length > 0, "deve ter details");
+  }
+});
+
+Deno.test("Hardening: schema cujo safeParse LANÇA nunca vira 500 — 422 com erro em details", async () => {
+  // Reproduzia: exceção propagava pelo gate → 500.
+  const z = await import("https://esm.sh/zod@3.23.8");
+  const boomSchema = z.object({ x: z.string() }).superRefine(() => {
+    throw new Error("boom no refine");
+  });
+  const r = await parseOrReject("fn-hardening", { v1: boomSchema } as never, req(), { x: "ok" });
+  assertEquals(r.ok, false);
+  if (!r.ok) {
+    const body = await readEnvelope(r.response);
+    assertEquals(body.code, "contract_violation");
+    assert(
+      body.details.some((d) => (d.message as string).includes("boom no refine")),
+      "erro do schema deve aparecer em details",
+    );
+  }
+});
+
+Deno.test("Hardening: safeParse normal continua funcionando (sem regressão)", () => {
+  const r = parseOrReject("evolution-credentials", CONTRACT_SCHEMAS["evolution-credentials"], req(), {});
+  assertEquals(r.ok, true);
 });

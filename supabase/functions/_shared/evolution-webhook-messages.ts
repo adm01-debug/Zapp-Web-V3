@@ -15,7 +15,7 @@ export async function handleOutgoingWhatsAppMessage(
   key: { remoteJid?: string; remoteJidAlt?: string; participant?: string; participantAlt?: string; fromMe: boolean; id: string },
 ) {
   const externalId = key.id;
-  const evo = () => supabase.schema('evo').from('evolution_messages');
+  const evo = () => supabase.from('evolution_messages');
 
   const { data: existingMessage } = await evo().select('id')
     .eq('message_id', externalId).eq('instance_name', instance).maybeSingle();
@@ -181,7 +181,7 @@ export async function handleIncomingMessage(
   const messageCreatedAt = (data.messageTimestamp as number)
     ? new Date((data.messageTimestamp as number) * 1000).toISOString() : new Date().toISOString();
 
-  const evo = () => supabase.schema('evo').from('evolution_messages');
+  const evo = () => supabase.from('evolution_messages');
 
   const { data: existingMessage } = await evo()
     .select('id, status, content').eq('message_id', key.id).eq('instance_name', instance).maybeSingle();
@@ -319,7 +319,7 @@ export async function handleAudioTranscription(supabase: SupabaseClient, _contac
     .select('value').eq('key', 'auto_transcription_enabled').maybeSingle();
   if (globalSetting?.value === 'false') return;
 
-  const evo = () => supabase.schema('evo').from('evolution_messages');
+  const evo = () => supabase.from('evolution_messages');
 
   await evo().update({ transcription_status: 'processing', updated_at: new Date().toISOString() }).eq('id', messageId);
 
