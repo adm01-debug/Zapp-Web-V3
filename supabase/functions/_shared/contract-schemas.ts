@@ -243,7 +243,7 @@ export const GmailTokenRefreshV1Schema = z.object({
 export const GmailHealthV1Schema = z.object({}).passthrough();
 
 /** email-health@v1 — GET health status (JWT required); no request body. */
-export const EmailHealthV1Schema = z.object({}).passthrough();
+export const EmailHealthV1Schema = z.object({}).strict();
 
 // ─── Business/infra endpoints (v1 — estritos, derivados do consumo real) ────
 
