@@ -242,6 +242,9 @@ export const GmailTokenRefreshV1Schema = z.object({
 /** gmail-health@v1 — health/status (service-role/cron); params por query string. */
 export const GmailHealthV1Schema = z.object({}).passthrough();
 
+/** email-health@v1 — GET health status (JWT required); no request body. */
+export const EmailHealthV1Schema = z.object({}).passthrough();
+
 // ─── Business/infra endpoints (v1 — estritos, derivados do consumo real) ────
 
 /**
@@ -249,12 +252,18 @@ export const GmailHealthV1Schema = z.object({}).passthrough();
  * action default 'listThreads'; maxResults clampado [1,100] no handler.
  */
 export const GmailSyncV1Schema = z.object({
-  action: z.enum(["listThreads", "syncFull", "syncLabels"]).optional(),
+  action: z.enum(["listThreads", "syncFull", "syncLabels", "createLabel", "updateLabel", "deleteLabel"]).optional(),
   accountId: z.string().min(1, "accountId é obrigatório").max(200),
   labelIds: z.array(z.string().min(1).max(200)).max(100).optional(),
   q: z.string().max(1000).optional(),
   pageToken: z.string().max(500).optional(),
   maxResults: z.number().int().min(1).max(100).optional(),
+  // Label mutation fields (EMAIL-07)
+  labelId: z.string().min(1).max(200).optional(),
+  name: z.string().min(1).max(200).optional(),
+  color: z.record(z.string().max(50)).optional(),
+  labelListVisibility: z.enum(["labelShow", "labelShowIfUnread", "labelHide"]).optional(),
+  messageListVisibility: z.enum(["show", "hide"]).optional(),
 }).strict();
 
 /**
@@ -883,6 +892,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "whatsapp-cloud-api":         { v1: WhatsappCloudApiV1Schema },
   "gmail-token-refresh":        { v1: GmailTokenRefreshV1Schema },
   "gmail-health":               { v1: GmailHealthV1Schema },
+  "email-health":               { v1: EmailHealthV1Schema },
   "email-track-link":           { v1: EmailTrackLinkV1Schema },
   "email-track-pixel":          { v1: EmailTrackPixelV1Schema },
 

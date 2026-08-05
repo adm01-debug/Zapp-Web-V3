@@ -28,6 +28,8 @@ const VIEW_REQUIRED_ROLES: Record<string, AppRole[]> = {
   'email-status': ['admin'],
   'email-audit': ['admin'],
   'admin-connections': ['admin'],
+  'notification-channels': ['admin'],
+  'cron-scheduler': ['admin'],
   'evolution-monitor': ['admin'],
   'media-migration': ['admin'],
   'sicoob-bridge': ['admin'],
@@ -146,6 +148,8 @@ const VIEW_MAP: Record<string, React.LazyExoticComponent<React.ComponentType<any
   'sla-history': Views.SLAHistory,
   'admin-connections': Views.AdminConnectionsPage,
   'instance-pauses': Views.AdminInstancePausesPage,
+  'notification-channels': Views.NotificationChannelsPage,
+  'cron-scheduler': Views.CronSchedulerPage,
   bridge: Views.ConnectionsIntegrationsHub,
 };
 

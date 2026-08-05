@@ -37,6 +37,12 @@ const AdminConnectionsPage = lazyWithRetry(() => import('@/pages/admin/Connectio
 const PerformanceDashboard = lazyWithRetry(() => import('@/pages/admin/PerformanceDashboard'));
 const AdminSecurityLogsPage = lazyWithRetry(() => import('@/pages/admin/AdminSecurityLogsPage'));
 const AdminACLAlertsPage = lazyWithRetry(() => import('@/pages/admin/AdminACLAlertsPage'));
+const NotificationChannelsPage = lazyWithRetry(
+  () => import('@/pages/admin/notifications/NotificationChannelsPage')
+);
+const CronSchedulerPage = lazyWithRetry(
+  () => import('@/pages/admin/automacoes/CronSchedulerPage')
+);
 
 /**
  * Returns a React fragment of /admin/* Route elements.
@@ -261,6 +267,22 @@ export function adminRoutes() {
         element={
           <ProtectedRoute requiredRoles={['admin', 'dev']}>
             <PerformanceDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/notification-channels"
+        element={
+          <ProtectedRoute requiredRoles={['admin']}>
+            <NotificationChannelsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/automations/cron"
+        element={
+          <ProtectedRoute requiredRoles={['admin', 'dev']}>
+            <CronSchedulerPage />
           </ProtectedRoute>
         }
       />

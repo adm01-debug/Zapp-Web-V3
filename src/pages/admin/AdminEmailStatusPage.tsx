@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useEmailHealthStatus } from './email/useEmailHealthStatus';
+import { EmailTemplatesManager } from '@/features/email/components/EmailTemplatesManager';
 
 const getStatusIcon = (status?: string) => {
   switch (status) {
@@ -340,6 +341,9 @@ export default function AdminEmailStatusPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* ── Email Templates ──────────────────────────────────────────────── */}
+      <EmailTemplatesManager />
     </div>
   );
 }
