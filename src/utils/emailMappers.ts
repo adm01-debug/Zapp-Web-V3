@@ -73,6 +73,39 @@ export const emailMappers = {
   }),
 
   /**
+   * Mapeia uma linha da tabela REAL 'gmail_threads' (escrita por gmail-sync /
+   * gmail-webhook / gmail-send) para o EmailThread da UI. EMAIL-03: a store
+   * email_app.email_threads nunca é alimentada pelos edges — a leitura de
+   * threads passa a ser feita direto em gmail_threads (view zapp), e este
+   * mapper traduz as colunas físicas (thread_id = id Gmail, participant_emails,
+   * assigned_agent_id) para o shape da UI.
+   */
+  gmailThread: (data: Raw): EmailThread => ({
+    id: (data.id as string) ?? '',
+    account_id: (data.account_id as string) ?? '',
+    email_thread_id: (data.thread_id as string) ?? null,
+    thread_id: (data.thread_id as string) ?? (data.id as string) ?? '',
+    subject: (data.subject as string) ?? '(sem assunto)',
+    snippet: (data.snippet as string) ?? '',
+    from_email: Array.isArray(data.participant_emails)
+      ? (((data.participant_emails as unknown[])[0] as string) ?? null)
+      : null,
+    from_name: null,
+    label_ids: (data.label_ids || []) as string[],
+    unread_count: (data.unread_count || 0) as number,
+    message_count: (data.message_count || 0) as number,
+    is_starred: (data.is_starred ?? false) as boolean,
+    is_important: (data.is_important ?? false) as boolean,
+    is_unread: Number(data.unread_count ?? 0) > 0,
+    sla_status: data.sla_status as SLAStatus | null,
+    assigned_to: (data.assigned_agent_id ?? null) as string | null,
+    last_message_at: (data.last_message_at ?? null) as string | null,
+    first_reply_at: (data.first_reply_at ?? null) as string | null,
+    created_at: (data.created_at ?? '') as string,
+    tags: (data.tags || []) as string[],
+  }),
+
+  /**
    * Mapeia uma linha da tabela 'email_daily_metrics'
    */
   metric: (data: Raw): EmailDayMetric => ({

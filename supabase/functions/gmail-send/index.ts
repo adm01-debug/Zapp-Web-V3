@@ -1,15 +1,17 @@
 /**
  * gmail-send — Envio Gmail (send/markRead/trash/modifyLabels/drafts)
  *
- * TODO(EMAIL-11): Tracking de clique NÃO implementado — reescrever links do
- * bodyHtml para email-track-link?l={link_id} exige parser de HTML + registro
- * por link (email_tracked_links) + idempotência + opt-out. Mudança complexa,
- * fica para iteração dedicada. O pixel de abertura (EMAIL-10) já é injetado
- * no action send (configurável via EMAIL_TRACKING_ENABLED / SUPABASE_URL).
+ * Tracking (EMAIL-10/EMAIL-11): quando EMAIL_TRACKING_ENABLED (default) e
+ * SELFHOSTED_SUPABASE_URL/SUPABASE_URL estão configurados, o action send:
+ *  - gera um tracking_id e injeta o pixel 1x1 de abertura (email-track-pixel);
+ *  - reescreve links http(s) do bodyHtml para email-track-link?l={link_id}
+ *    (EMAIL-11), registrando cada link único em email_tracked_links com o
+ *    mesmo tracking_id. Ambos best-effort — falha de tracking nunca falha o
+ *    envio. O corpo persistido em gmail_messages é o original (sem reescrita).
  */
 import { requireUser } from '../_shared/auth.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
-import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
@@ -81,12 +83,14 @@ Deno.serve(async (req) => {
       const bodyPlain = typeof body.bodyPlain === 'string' ? body.bodyPlain : '';
       const threadId = typeof body.threadId === 'string' ? body.threadId : '';
 
-      // ── EMAIL-10: tracking pixel ─────────────────────────────────────
+      // ── EMAIL-10/EMAIL-11: tracking pixel + reescrita de links ──────
       // Configurável (não hardcoded): URL pública derivada de
       // SELFHOSTED_SUPABASE_URL/SUPABASE_URL (mesmo padrão do gmail-oauth) e
       // flag EMAIL_TRACKING_ENABLED='false' desliga. Gera um tracking_id por
-      // envio e injeta <img> 1x1 no HTML; a abertura é registrada pela edge
-      // email-track-pixel (GET ?t=) via rpc_email_register_open.
+      // envio, injeta <img> 1x1 no HTML (abertura registrada por
+      // email-track-pixel via rpc_email_register_open) e reescreve links
+      // http(s) para email-track-link?l={link_id} (clique registrado por
+      // rpc_email_register_click — EMAIL-11). Tudo best-effort.
       const trackingEnabled = Deno.env.get('EMAIL_TRACKING_ENABLED') !== 'false';
       const publicBaseUrl =
         Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
@@ -94,8 +98,9 @@ Deno.serve(async (req) => {
       let bodyHtmlOut = bodyHtml;
       if (trackingEnabled && publicBaseUrl) {
         trackingId = crypto.randomUUID();
+        bodyHtmlOut = await rewriteLinksForTracking(supabase, bodyHtml, trackingId, publicBaseUrl);
         const pixelUrl = `${publicBaseUrl}/functions/v1/email-track-pixel?t=${trackingId}`;
-        bodyHtmlOut = `${bodyHtml}\n<br/>\n<img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" />`;
+        bodyHtmlOut = `${bodyHtmlOut}\n<br/>\n<img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" />`;
       }
 
       const ccVal = body.cc;
@@ -402,7 +407,7 @@ Deno.serve(async (req) => {
 
 // ── Token helper ───────────────────────────────────────────────────────
 
-async function getValidToken(supabase: ReturnType<typeof createClient>, accountId: string): Promise<string | null> {
+async function getValidToken(supabase: ReturnType<typeof createZappAdminClient>, accountId: string): Promise<string | null> {
   const { data: acc } = await supabase
     .from('gmail_accounts').select('access_token, token_expiry, refresh_token').eq('id', accountId).single();
   if (!acc || typeof acc !== 'object' || Array.isArray(acc)) return null;
@@ -478,6 +483,92 @@ async function getValidToken(supabase: ReturnType<typeof createClient>, accountI
   const newExpiry = new Date(Date.now() + expiresIn * 1000).toISOString();
   await supabase.from('gmail_accounts').update({ access_token: newAccessToken, token_expiry: newExpiry }).eq('id', accountId);
   return newAccessToken;
+}
+
+// ── Tracking de cliques (EMAIL-11) ─────────────────────────────────────
+
+/**
+ * EMAIL-11 — reescreve links http(s) do bodyHtml para a edge email-track-link.
+ *
+ * Para cada URL única encontrada em href="..." / href='...':
+ *  1. gera link_id (uuid) e faz upsert em email_tracked_links com o
+ *     tracking_id do envio (mesmo id do pixel — rpc_email_register_click
+ *     resolve original_url por link_id e vincula o clique ao tracking);
+ *  2. substitui o href pelo endpoint de rastreio
+ *     {publicBaseUrl}/functions/v1/email-track-link?l={link_id}.
+ *
+ * Regras:
+ *  - limite de 30 links únicos por envio (abuso/limite de payload);
+ *  - display_text extraído do texto do âncora (fallback: a própria URL);
+ *  - best-effort: qualquer falha (tabela ausente, RLS, rede) devolve o HTML
+ *    original — tracking de clique nunca pode derrubar o envio.
+ */
+async function rewriteLinksForTracking(
+  supabase: ReturnType<typeof createZappAdminClient>,
+  bodyHtml: string,
+  trackingId: string,
+  publicBaseUrl: string,
+): Promise<string> {
+  if (!bodyHtml || !trackingId || !publicBaseUrl) return bodyHtml;
+
+  const MAX_LINKS = 30;
+  const hrefRe = /href\s*=\s*(["'])(https?:\/\/[^"'\s<>]+)\1/gi;
+  const urls: string[] = [];
+  let m: RegExpExecArray | null;
+  const seen = new Set<string>();
+  while ((m = hrefRe.exec(bodyHtml)) !== null) {
+    const url = m[2];
+    if (seen.has(url)) continue;
+    seen.add(url);
+    urls.push(url);
+    if (urls.length >= MAX_LINKS) break;
+  }
+  if (urls.length === 0) return bodyHtml;
+
+  const linkByUrl = new Map<string, string>();
+  try {
+    for (let i = 0; i < urls.length; i++) {
+      const url = urls[i];
+      const linkId = crypto.randomUUID();
+      const trackedUrl = `${publicBaseUrl}/functions/v1/email-track-link?l=${encodeURIComponent(linkId)}`;
+      linkByUrl.set(url, trackedUrl);
+
+      await supabase.from('email_tracked_links').upsert({
+        link_id:       linkId,
+        tracking_id:   trackingId,
+        original_url:  url,
+        display_text:  extractAnchorText(bodyHtml, url),
+        position:      i,
+        click_count:   0,
+      }, { onConflict: 'link_id' });
+    }
+  } catch (err) {
+    console.error('[gmail-send] link tracking upsert failed (best-effort — links mantidos originais)',
+      err instanceof Error ? err.message : String(err));
+    return bodyHtml;
+  }
+
+  return bodyHtml.replace(
+    /href\s*=\s*(["'])(https?:\/\/[^"'\s<>]+)\1/gi,
+    (match, quote: string, url: string) => {
+      const tracked = linkByUrl.get(url);
+      return tracked ? `href=${quote}${tracked}${quote}` : match;
+    },
+  );
+}
+
+/** Extrai o texto visível do primeiro <a href="url">…</a> (fallback: a URL). */
+function extractAnchorText(html: string, url: string): string {
+  const escUrl = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`<a\\b[^>]*href\\s*=\\s*["']${escUrl}["'][^>]*>([\\s\\S]*?)<\\/a>`, 'i');
+  const m = re.exec(html);
+  if (!m || !m[1]) return url.slice(0, 200);
+  const text = m[1]
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 200);
+  return text || url.slice(0, 200);
 }
 
 // ── MIME builder ───────────────────────────────────────────────────────
