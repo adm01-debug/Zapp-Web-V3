@@ -64,8 +64,8 @@ getent hosts db >/dev/null 2>&1 || echo "[health-guard] WARN: DNS 'db' nao resol
 # tabela de webhook events ativa: particao mensal mais recente com linhas (2026_07 hoje)
 EVO_TBL="evolution_webhook_events_v2_2026_07"
 if [ -n "$PG_EVO" ]; then
-  for T in $(evo_q "SELECT tablename FROM pg_tables WHERE schemaname='evo' AND tablename LIKE 'evolution_webhook_events_v2_2026_%' ORDER BY tablename DESC;"); do
-    N=$(evo_q "SELECT count(*) FROM evo.${T};")
+  for T in $(supa_q "SELECT tablename FROM pg_tables WHERE schemaname='evo' AND tablename LIKE 'evolution_webhook_events_v2_2026_%' ORDER BY tablename DESC;"); do
+    N=$(supa_q "SELECT count(*) FROM evo.${T};")
     case "$N" in ''|*[!0-9]*) N=0;; esac
     if [ "$N" -gt 0 ] 2>/dev/null; then EVO_TBL="$T"; break; fi
   done
@@ -108,7 +108,7 @@ while true; do
   if [ $((ITER % KPI_EVERY)) -eq 0 ] && [ -n "$PG_EVO" ]; then
 
     # KPI-1 pipeline_lag: atraso (s) do ultimo evento; alerta se > 900s
-    LAG_V=$(evo_q "SELECT COALESCE(EXTRACT(EPOCH FROM (now() - MAX(created_at)))::int, 0) FROM evo.${EVO_TBL};")
+    LAG_V=$(supa_q "SELECT COALESCE(EXTRACT(EPOCH FROM (now() - MAX(created_at)))::int, 0) FROM evo.${EVO_TBL};")
     if [ -z "$LAG_V" ]; then
       track LAG_F LAG_S 0; [ "$TRANS" = "down" ] && notify kpi_pipeline_lag ALERT 503 "evo_q sem resposta (fonte indisponivel)"
     else
@@ -118,7 +118,7 @@ while true; do
     fi
 
     # KPI-2 edge_error_rate: % de eventos com status http >= 400 (ou erro) na ultima 1h; alerta se > 5%
-    ERR_V=$(evo_q "SELECT COALESCE(round(100.0 * COUNT(*) FILTER (WHERE status ~ '^[45][0-9]{2}\$' OR lower(status) IN ('error','failed','rejected')) / NULLIF(COUNT(*), 0), 1), 0)::int FROM evo.${EVO_TBL} WHERE created_at > now() - interval '1 hour';")
+    ERR_V=$(supa_q "SELECT COALESCE(round(100.0 * COUNT(*) FILTER (WHERE status ~ '^[45][0-9]{2}\$' OR lower(status) IN ('error','failed','rejected')) / NULLIF(COUNT(*), 0), 1), 0)::int FROM evo.${EVO_TBL} WHERE created_at > now() - interval '1 hour';")
     if [ -z "$ERR_V" ]; then
       track ERR_F ERR_S 0; [ "$TRANS" = "down" ] && notify kpi_edge_error_rate ALERT 503 "evo_q sem resposta (fonte indisponivel)"
     else
@@ -128,7 +128,7 @@ while true; do
     fi
 
     # KPI-3 ghost_events: eventos com instance desconhecida na ultima 1h; alerta se > 20
-    GHO_V=$(evo_q "SELECT COUNT(*) FROM evo.${EVO_TBL} e WHERE e.created_at > now() - interval '1 hour' AND (e.instance_name IS NULL OR e.instance_name = '' OR e.instance_name NOT IN (SELECT i.instance_name FROM evo.evolution_instances i WHERE i.instance_name IS NOT NULL AND i.instance_name <> ''));")
+    GHO_V=$(supa_q "SELECT COUNT(*) FROM evo.${EVO_TBL} e WHERE e.created_at > now() - interval '1 hour' AND (e.instance_name IS NULL OR e.instance_name = '' OR e.instance_name NOT IN (SELECT i.instance_name FROM evo.evolution_instances i WHERE i.instance_name IS NOT NULL AND i.instance_name <> ''));")
     if [ -z "$GHO_V" ]; then
       track GHO_F GHO_S 0; [ "$TRANS" = "down" ] && notify kpi_ghost_events ALERT 503 "evo_q sem resposta (fonte indisponivel)"
     else
@@ -138,7 +138,7 @@ while true; do
     fi
 
     # KPI-4 mirror_freshness: idade (s) do ultimo evento em evolution_messages_wpp2; alerta se > 24h (86400s)
-    MIR_V=$(evo_q "SELECT COALESCE(EXTRACT(EPOCH FROM (now() - MAX(created_at)))::int, 0) FROM evo.evolution_messages_wpp2;")
+    MIR_V=$(supa_q "SELECT COALESCE(EXTRACT(EPOCH FROM (now() - MAX(created_at)))::int, 0) FROM evo.evolution_messages_wpp2;")
     if [ -z "$MIR_V" ]; then
       track MIR_F MIR_S 0; [ "$TRANS" = "down" ] && notify kpi_mirror_freshness ALERT 503 "evo_q sem resposta (fonte indisponivel)"
     else
