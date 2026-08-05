@@ -157,12 +157,13 @@ function hasPGRestEnv() {
 // NOTA (fix 2026-08-05): GET /rpc/{name} sem args retorna PGRST202 falso-negativo
 // para funções com args obrigatórios; OpenAPI também omite algumas funções.
 // Estratégia em camadas:
-//   1. OpenAPI do schema (Accept: application/openapi+json) — lista a maioria;
-//   2. Fallback: RPC de inventário zapp.rpc_contract_inventory (SECURITY DEFINER,
-//      criada na migration 20260805170000) — ground truth pg_proc via HTTP,
-//      chamável com service_role/authenticated (o anon não tem EXECUTE).
+//   1. Inventário zapp.rpc_contract_inventory (SECURITY DEFINER, criada na
+//      migration 20260805170000) — ground truth pg_proc via HTTP, 1 chamada cacheada.
+//   2. RPC: POST {} por função — PostgREST resolve por nome → 400 (existe) ou 404
+//      PGRST202 (ausente). Restaurado do fix #841 (o merge da #840 o descartava).
+//   3. Tabelas/views: OpenAPI do schema (Accept: application/openapi+json).
 async function pgRestExists(baseUrl, serviceKey, kind, name, schemas) {
-  // Fallback via RPC de inventário (1 chamada, cacheada por schema na 1ª vez)
+  // Camada 1: inventário via RPC (1 chamada, cacheada por schema na 1ª vez)
   const inventoryKey = `${baseUrl}|${schemas.join(',')}`;
   if (!pgRestExists._invCache) pgRestExists._invCache = new Map();
   if (!pgRestExists._invCache.has(inventoryKey)) {
@@ -189,7 +190,7 @@ async function pgRestExists(baseUrl, serviceKey, kind, name, schemas) {
         }
       }
     } catch {
-      // falha do inventário → continua para OpenAPI
+      // falha do inventário → continua para as camadas seguintes
     }
   }
   const inv = pgRestExists._invCache.get(inventoryKey);
@@ -199,10 +200,38 @@ async function pgRestExists(baseUrl, serviceKey, kind, name, schemas) {
   }
 
   for (const schema of schemas) {
-    const url = `${baseUrl}/rest/v1/`;
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), PGREST_TIMEOUT_MS);
     try {
+      // Camada 2 (RPC): POST com body vazio — o PostgREST resolve a função por nome e
+      // devolve 400 (params inválidos) se existir; GET sem body devolve 404 PGRST202
+      // para funções com argumentos (falso positivo).
+      if (kind === 'rpc') {
+        const url = `${baseUrl}/rest/v1/rpc/${encodeURIComponent(name)}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            apikey: serviceKey,
+            Authorization: `Bearer ${serviceKey}`,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'Accept-Profile': schema,
+          },
+          body: '{}',
+          signal: ctrl.signal,
+        });
+        // 200 = existe; 4xx de validação (400 bad params) = função existe; 404 PGRST202/205 = ausente.
+        if (res.status === 200) return schema;
+        if (res.status === 400 || res.status === 401 || res.status === 403) return schema;
+        if (res.status === 404) {
+          const body = await res.text().catch(() => '');
+          if (/PGRST202|PGRST205/.test(body)) continue;
+          continue; // 404 fora de PGRST: tratar como ausente também (gateway pode mascarar)
+        }
+        continue;
+      }
+      // Camada 3 (tabelas/views): OpenAPI do schema.
+      const url = `${baseUrl}/rest/v1/`;
       const res = await fetch(url, {
         method: 'GET',
         headers: {
@@ -216,8 +245,8 @@ async function pgRestExists(baseUrl, serviceKey, kind, name, schemas) {
       if (res.status !== 200) continue;
       const spec = await res.json().catch(() => null);
       if (!spec?.paths) continue;
-      // OpenAPI: RPCs viram paths `/rpc/{name}`; tabelas/views viram `/{name}`.
-      const needle = kind === 'rpc' ? `/rpc/${encodeURIComponent(name)}` : `/${encodeURIComponent(name)}`;
+      // OpenAPI: tabelas/views viram `/{name}` no spec.
+      const needle = `/${encodeURIComponent(name)}`;
       const found = Object.keys(spec.paths).some((p) =>
         p === needle ||
         p.startsWith(`${needle}/`) ||
@@ -228,9 +257,9 @@ async function pgRestExists(baseUrl, serviceKey, kind, name, schemas) {
       if (found) return schema;
     } catch (err) {
       if (err?.name === 'AbortError') {
-        throw new Error(`timeout ao consultar OpenAPI de ${schema} via PostgREST`);
+        throw new Error(`timeout ao consultar ${schema}.${name} via PostgREST`);
       }
-      throw new Error(`falha HTTP ao consultar OpenAPI de ${schema}: ${err.message}`);
+      throw new Error(`falha HTTP ao consultar ${schema}.${name}: ${err.message}`);
     } finally {
       clearTimeout(timer);
     }
