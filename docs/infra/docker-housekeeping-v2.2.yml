@@ -1,0 +1,122 @@
+version: "3.8"
+
+# =============================================================================
+# DOCKER-HOUSEKEEPING v2.2 — AtomicaBR — 2026-08-05
+# v2.2: PRUNE_TAGGED SEGURO — NUNCA mais `docker image prune -af` em tagged.
+#   Root cause do bug: v2.1 usava -af --filter until=168h, que apagava imagens
+#   TAGGED não-em-uso — incluindo a imagem de ROLLBACK do zapp-web
+#   (production-fbd04bec303d), removida do host em 2026-08-04/05.
+#   v2.2: loop rmi por imagem, protegendo: (a) imagens em uso por containers,
+#   (b) TODAS as imagens do zapp-web (ghcr.io/adm01-debug/zapp-web-v3/zapp-web).
+#   A gestão de retenção das imagens zapp-web no host é do pipeline de deploy
+#   (ETAPA 47 do plano de faxina) — o housekeeping NÃO apaga zapp-web.
+# =============================================================================
+
+services:
+  cleanup:
+    image: docker:28-cli
+    user: root
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - AtomicaBRNet
+    environment:
+      TZ: "America/Sao_Paulo"
+      DANGLING_INTERVAL_S: "3600"
+      DANGLING_AGE: "30m"
+      CACHE_INTERVAL_S: "21600"
+      CACHE_AGE: "24h"
+      TAGGED_INTERVAL_S: "86400"
+      TAGGED_AGE: "168h"
+      EMERGENCY_DISK_PCT: "80"
+      EMERGENCY_DANGLING_AGE: "5m"
+      EMERGENCY_CACHE_AGE: "1h"
+      # Repos de imagem NUNCA podados pelo prune_tagged (regex ERE do awk).
+      # Default: zapp-web (rollback). Regex vazia = protege TODAS (fail-safe).
+      PROTECTED_REPOS_REGEX: "ghcr.io/adm01-debug/zapp-web-v3/zapp-web"
+      ALERT_WEBHOOK_URL: "https://n8n.atomicabr.com.br/webhook/warroom-alert"
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        echo "=== DOCKER-HOUSEKEEPING v2.2 boot $$(date -u +%FT%TZ) ==="
+        alert() {
+          _MSG="$$1"; _TS=$$(date -u +%FT%TZ)
+          echo "[ALERT] $$_MSG"
+          wget -q --post-data="{\"service\":\"docker-housekeeping\",\"msg\":\"$$_MSG\",\"ts\":\"$$_TS\"}" \
+            --header="Content-Type: application/json" \
+            "$$ALERT_WEBHOOK_URL" -O /dev/null 2>/dev/null || true
+        }
+        prune_dangling() { _AGE="$$1"; _LABEL="$$2"; _OUT=$$(docker image prune -f --filter "until=$${_AGE}" 2>&1 | tail -1); echo "[$${_LABEL}] dangling>$${_AGE}: $${_OUT}"; }
+        prune_cache() { _AGE="$$1"; _LABEL="$$2"; _OUT=$$(docker builder prune -af --filter "until=$${_AGE}" 2>&1 | tail -1); echo "[$${_LABEL}] cache>$${_AGE}: $${_OUT}"; }
+        # v2.2: NUNCA `docker image prune -af`. Loop rmi por imagem com proteção:
+        #   (a) imagens em uso por containers (running/stopped)
+        #   (b) imagens de repos protegidos (default: zapp-web — rollback NUNCA é apagado)
+        # Normalização: IDs em 64 hex SEM prefixo sha256: (docker inspect {{.Image}} e
+        #   images --no-trunc produzem 'sha256:...'; docker images -q produz 12 hex curto).
+        #   case de proteção exige lista separada por ESPAÇO (tr '\n' ' ').
+        prune_tagged() {
+          _AGE="$$1"; _LABEL="$$2"
+          PROTECTED=$$(docker ps -aq | xargs -r docker inspect --format '{{.Image}}' 2>/dev/null | sed 's/^sha256://' | sort -u | tr '\n' ' ')
+          PROTECTED="$$PROTECTED $$(docker images --no-trunc --format '{{.ID}} {{.Repository}}' | awk -v re="$${PROTECTED_REPOS_REGEX}" '$$2 ~ re {print $$1}' | sed 's/^sha256://' | sort -u | tr '\n' ' ')"
+          for IMG in $$(docker images -q --no-trunc --filter "until=$${_AGE}" | sed 's/^sha256://' | sort -u); do
+            case " $$PROTECTED " in *" $$IMG "*) echo "[$${_LABEL}] SKIP protegida: $$IMG";; *)
+              _OUT=$$(docker rmi "$$IMG" 2>&1) && echo "[$${_LABEL}] removida: $$IMG" || echo "[$${_LABEL}] retida: $$IMG — $${_OUT}";; esac
+          done
+        }
+        disk_pct() { df -P / 2>/dev/null | awk 'NR==2 {gsub("%","",$$5); print $$5+0}'; }
+        LAST_CACHE=0; LAST_TAGGED=0; CYCLE=0
+        while true; do
+          CYCLE=$$((CYCLE+1)); NOW=$$(date +%s); TS=$$(date -u +%FT%TZ); DISK=$$(disk_pct)
+          echo ""; echo "[$${TS}] === cycle #$${CYCLE} disk=$${DISK}% ==="
+          if [ "$${DISK:-0}" -ge "$${EMERGENCY_DISK_PCT}" ]; then
+            echo "[$${TS}] EMERGENCY: disk $${DISK}% >= $${EMERGENCY_DISK_PCT}%"
+            prune_dangling "$${EMERGENCY_DANGLING_AGE}" "emerg"
+            prune_cache "$${EMERGENCY_CACHE_AGE}" "emerg"
+            DISK_AFTER=$$(disk_pct)
+            alert "EMERGENCY prune: disk $${DISK}% -> $${DISK_AFTER}% (cycle #$${CYCLE})"
+          fi
+          BEFORE=$$(docker images -f dangling=true -q 2>/dev/null | wc -l)
+          prune_dangling "$${DANGLING_AGE}" "hourly"
+          AFTER=$$(docker images -f dangling=true -q 2>/dev/null | wc -l)
+          echo "[$${TS}] dangling: $${BEFORE} -> $${AFTER} (removed $$((BEFORE - AFTER)))"
+          if [ $$((NOW - LAST_CACHE)) -ge "$${CACHE_INTERVAL_S}" ]; then
+            prune_cache "$${CACHE_AGE}" "6h"; LAST_CACHE=$${NOW}
+          fi
+          if [ $$((NOW - LAST_TAGGED)) -ge "$${TAGGED_INTERVAL_S}" ]; then
+            prune_tagged "$${TAGGED_AGE}" "24h"; LAST_TAGGED=$${NOW}
+          fi
+          DISK_END=$$(disk_pct)
+          echo "[$${TS}] cycle #$${CYCLE} done. disk_end=$${DISK_END}%"
+          if [ "$${CYCLE}" -eq 1 ]; then
+            alert "housekeeping v2.2 online: cycle #1 disk $${DISK}% -> $${DISK_END}%"
+          fi
+          sleep "$${DANGLING_INTERVAL_S}"
+        done
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 30s
+        max_attempts: 0
+        window: 120s
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 128M
+        reservations:
+          memory: 32M
+      labels:
+        - traefik.enable=false
+        - com.centurylinklabs.watchtower.enable=false
+        - com.atomicabr.audit=docker-housekeeping-v2.2-2026-08-05-protected-prune
+        - com.atomicabr.requires-docker-sock=true
+        - com.atomicabr.tier=critical
+
+networks:
+  AtomicaBRNet:
+    external: true
+    name: AtomicaBRNet
