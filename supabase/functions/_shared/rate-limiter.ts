@@ -14,7 +14,7 @@
 // requests could be incorrectly rate-limited or rejected at window boundaries.
 // Migration: 20260712000006_fix_window_boundary_race_s8.sql
 
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 /** rate-limiter utilities and exports. */
 export async function checkRateLimit(supabase: SupabaseClient, {
