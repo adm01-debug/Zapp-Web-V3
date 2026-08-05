@@ -228,10 +228,20 @@ interface GetContact360Params {
   /** FIX 2026-08-03: passar ACTIVE_WHATSAPP_INSTANCE para partition pruning em evolution_conversations. */
   p_instance?: string | null;
 }
-interface GetContactIntelligenceParams { p_phone: string; }
-interface GetCompaniesByPhonesBatchParams { p_phones: string[]; }
-interface GetContacts360BatchParams { p_phones: string[]; }
-interface InboxPreviewBatchParams { p_remote_jids: string[]; p_instance?: string; p_limit?: number; }
+interface GetContactIntelligenceParams {
+  p_phone: string;
+}
+interface GetCompaniesByPhonesBatchParams {
+  p_phones: string[];
+}
+interface GetContacts360BatchParams {
+  p_phones: string[];
+}
+interface InboxPreviewBatchParams {
+  p_remote_jids: string[];
+  p_instance?: string;
+  p_limit?: number;
+}
 
 interface SyncInteractionParams {
   p_phone: string;
@@ -384,6 +394,24 @@ interface LogOutboundEventParams {
   p_latency_ms: number;
   p_error_code?: string | null;
   p_metadata?: Record<string, unknown> | null;
+}
+
+// ── App bootstrap / dashboard / cron (admin RPCs) ─────────────────────────────
+
+type AppBootstrapParams = Record<string, never>;
+
+interface DashboardInitParams {
+  p_agent_id?: string;
+  p_queue_id?: string;
+  p_date_from: string;
+  p_date_to: string;
+}
+
+type ListCronJobsParams = Record<string, never>;
+
+interface ToggleCronJobParams {
+  p_jobname: string;
+  p_active: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -648,6 +676,27 @@ export const RPC = {
   // ── Outbound event telemetry ──────────────────────────────────────────────
   logOutboundEvent: def<LogOutboundEventParams, Record<string, unknown>>({
     name: 'rpc_log_outbound_event',
+    client: 'lovable',
+  }),
+
+  // ── App bootstrap / dashboard / cron ──────────────────────────────────────
+  appBootstrap: def<AppBootstrapParams, Record<string, unknown>>({
+    name: 'rpc_app_bootstrap',
+    client: 'lovable',
+  }),
+
+  dashboardInit: def<DashboardInitParams, Record<string, unknown>>({
+    name: 'rpc_dashboard_init',
+    client: 'lovable',
+  }),
+
+  listCronJobs: def<ListCronJobsParams, unknown[]>({
+    name: 'rpc_list_cron_jobs',
+    client: 'lovable',
+  }),
+
+  toggleCronJob: def<ToggleCronJobParams, unknown>({
+    name: 'rpc_toggle_cron_job',
     client: 'lovable',
   }),
 } as const;

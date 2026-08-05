@@ -15,14 +15,7 @@
  * - version.json OK limpa o estado de reload no sessionStorage;
  * - prefetch em background dos assets do novo bundle (js/css) no mismatch;
  */
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockInstance } from 'vitest';
 import {
   forceBundleRefresh,
@@ -46,9 +39,8 @@ const cachesMock = {
 };
 
 const unregisterMock = vi.fn<() => Promise<boolean>>();
-const getRegistrationsMock = vi.fn<
-  () => Promise<ReadonlyArray<{ unregister: typeof unregisterMock }>>
->();
+const getRegistrationsMock =
+  vi.fn<() => Promise<ReadonlyArray<{ unregister: typeof unregisterMock }>>>();
 
 let replaceSpy: MockInstance<typeof window.location.replace>;
 let dispatchSpy: MockInstance<typeof window.dispatchEvent>;
@@ -62,7 +54,7 @@ beforeEach(() => {
 
   fetchMock.mockReset();
   fetchMock.mockResolvedValue(
-    new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } }),
+    new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } })
   );
   vi.stubGlobal('fetch', fetchMock);
 
@@ -120,7 +112,7 @@ describe('forceBundleRefresh — cota por alvo (simulação de reloads)', () => 
     expect(replaceSpy).toHaveBeenCalledTimes(2);
     expect(dispatchSpy).toHaveBeenCalledTimes(1);
     expect(__TEST__.readReloadState()).toEqual(
-      expect.objectContaining({ targetBuildId: 'buildA', attempts: 2 }),
+      expect.objectContaining({ targetBuildId: 'buildA', attempts: 2 })
     );
   });
 
@@ -131,15 +123,14 @@ describe('forceBundleRefresh — cota por alvo (simulação de reloads)', () => 
 
     const calls = dispatchSpy.mock.calls;
     const event = calls[calls.length - 1]?.[0] as
-      | CustomEvent<{ current: string; remote: string; reason: string }>
-      | undefined;
+      CustomEvent<{ current: string; remote: string; reason: string }> | undefined;
     expect(event?.type).toBe('zapp-update-required');
     expect(event?.detail).toEqual(
       expect.objectContaining({
         current: __TEST__.CURRENT_BUILD_ID,
         remote: 'buildA',
         reason: 'per-target-quota',
-      }),
+      })
     );
   });
 
@@ -176,7 +167,7 @@ describe('forceBundleRefresh — cota por alvo (simulação de reloads)', () => 
     await forceBundleRefresh('mismatch', 'buildB');
     expect(replaceSpy).toHaveBeenCalledTimes(3);
     expect(__TEST__.readReloadState()).toEqual(
-      expect.objectContaining({ targetBuildId: 'buildB', attempts: 1 }),
+      expect.objectContaining({ targetBuildId: 'buildB', attempts: 1 })
     );
   });
 
@@ -190,7 +181,7 @@ describe('forceBundleRefresh — cota por alvo (simulação de reloads)', () => 
     expect(replaceSpy).toHaveBeenCalledTimes(3); // janela expirada → permitido
     expect(dispatchSpy).not.toHaveBeenCalled();
     expect(__TEST__.readReloadState()).toEqual(
-      expect.objectContaining({ targetBuildId: 'buildA', attempts: 1 }),
+      expect.objectContaining({ targetBuildId: 'buildA', attempts: 1 })
     );
   });
 
@@ -203,7 +194,7 @@ describe('forceBundleRefresh — cota por alvo (simulação de reloads)', () => 
     expect(replaceSpy).toHaveBeenCalledTimes(2);
     expect(dispatchSpy).toHaveBeenCalledTimes(1);
     expect(__TEST__.readReloadState()).toEqual(
-      expect.objectContaining({ targetBuildId: 'buildA', attempts: 2 }),
+      expect.objectContaining({ targetBuildId: 'buildA', attempts: 2 })
     );
   });
 
@@ -219,7 +210,7 @@ describe('forceBundleRefresh — cota por alvo (simulação de reloads)', () => 
     await forceBundleRefresh('mismatch', 'buildA');
     expect(replaceSpy).toHaveBeenCalledTimes(2);
     expect(__TEST__.readReloadState()).toEqual(
-      expect.objectContaining({ targetBuildId: 'buildA', attempts: 1 }),
+      expect.objectContaining({ targetBuildId: 'buildA', attempts: 1 })
     );
   });
 
@@ -237,8 +228,7 @@ describe('forceBundleRefresh — cota por alvo (simulação de reloads)', () => 
 
     const calls = dispatchSpy.mock.calls;
     const event = calls[calls.length - 1]?.[0] as
-      | CustomEvent<{ current: string; remote: string; reason: string }>
-      | undefined;
+      CustomEvent<{ current: string; remote: string; reason: string }> | undefined;
     expect(event?.type).toBe('zapp-update-required');
     expect(event?.detail?.reason).toBe('global-quota');
   });
@@ -281,7 +271,7 @@ describe('forceBundleRefresh — purge de caches/SW no reload permitido', () => 
     // Bypass query param para invalidar cache de CDN.
     expect(String(replaceSpy.mock.calls[0][0])).toContain('_bv=');
     expect(__TEST__.readReloadState()).toEqual(
-      expect.objectContaining({ targetBuildId: 'buildA', attempts: 1 }),
+      expect.objectContaining({ targetBuildId: 'buildA', attempts: 1 })
     );
   });
 
@@ -311,9 +301,7 @@ describe('forceBundleRefresh — purge de caches/SW no reload permitido', () => 
 
 describe('checkVersion (via startBuildVersionWatcher + fake timers)', () => {
   it('buildId diferente + content-type application/json → aviso + reload após a janela de cortesia (UPDATE_GRACE_MS)', async () => {
-    fetchMock.mockResolvedValue(
-      jsonResponse({ buildId: 'buildB' }, 'application/json'),
-    );
+    fetchMock.mockResolvedValue(jsonResponse({ buildId: 'buildB' }, 'application/json'));
 
     const { stop } = startWatcherAndStop();
     try {
@@ -338,7 +326,7 @@ describe('checkVersion (via startBuildVersionWatcher + fake timers)', () => {
       expect(replaceSpy).toHaveBeenCalledTimes(1);
       expect(String(replaceSpy.mock.calls[0][0])).toContain('_bv=');
       expect(__TEST__.readReloadState()).toEqual(
-        expect.objectContaining({ targetBuildId: 'buildB', attempts: 1 }),
+        expect.objectContaining({ targetBuildId: 'buildB', attempts: 1 })
       );
     } finally {
       stop();
@@ -351,7 +339,7 @@ describe('checkVersion (via startBuildVersionWatcher + fake timers)', () => {
       new Response('<!doctype html><html><body>index</body></html>', {
         status: 200,
         headers: { 'Content-Type': 'text/html' },
-      }),
+      })
     );
 
     const { stop } = startWatcherAndStop();
@@ -360,7 +348,7 @@ describe('checkVersion (via startBuildVersionWatcher + fake timers)', () => {
       expect(replaceSpy).not.toHaveBeenCalled();
       expect(buildVersionLog().warn).toHaveBeenCalledWith(
         expect.stringContaining('non-JSON'),
-        expect.objectContaining({ contentType: 'text/html' }),
+        expect.objectContaining({ contentType: 'text/html' })
       );
       expect(sessionStorage.getItem(__TEST__.RELOAD_STATE_KEY)).toBeNull();
     } finally {
@@ -373,7 +361,7 @@ describe('checkVersion (via startBuildVersionWatcher + fake timers)', () => {
     // Sessão antiga presa em estado de "purga": flags de guarda setadas.
     sessionStorage.setItem(
       __TEST__.RELOAD_STATE_KEY,
-      JSON.stringify({ targetBuildId: 'buildA', attempts: 2, firstAttemptAt: 1 }),
+      JSON.stringify({ targetBuildId: 'buildA', attempts: 2, firstAttemptAt: 1 })
     );
     sessionStorage.setItem(__TEST__.SW_PURGE_FLAG, '1');
     sessionStorage.setItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY, '3');
@@ -402,9 +390,7 @@ describe('checkVersion (via startBuildVersionWatcher + fake timers)', () => {
     try {
       await vi.advanceTimersByTimeAsync(30_000);
       expect(replaceSpy).not.toHaveBeenCalled();
-      expect(buildVersionLog().warn).toHaveBeenCalledWith(
-        expect.stringContaining('redirect/SSO'),
-      );
+      expect(buildVersionLog().warn).toHaveBeenCalledWith(expect.stringContaining('redirect/SSO'));
     } finally {
       stop();
       vi.clearAllTimers();
@@ -430,9 +416,9 @@ describe('checkVersion (via startBuildVersionWatcher + fake timers)', () => {
       (_input, init) =>
         new Promise((_resolve, reject) => {
           init?.signal?.addEventListener('abort', () =>
-            reject(new DOMException('Aborted', 'AbortError')),
+            reject(new DOMException('Aborted', 'AbortError'))
           );
-        }),
+        })
     );
 
     const { stop } = startWatcherAndStop();
@@ -491,7 +477,7 @@ describe('STRESS: cota GLOBAL sob 100 reloads em loop rápido (fake timers)', ()
     // ...e 95 aborts, TODOS com reason 'global-quota'.
     expect(dispatchSpy).toHaveBeenCalledTimes(95);
     const reasons = dispatchSpy.mock.calls.map(
-      (call) => (call[0] as CustomEvent<{ reason: string }>).detail.reason,
+      (call) => (call[0] as CustomEvent<{ reason: string }>).detail.reason
     );
     expect(reasons.every((reason) => reason === 'global-quota')).toBe(true);
 
@@ -505,7 +491,7 @@ describe('STRESS: cota GLOBAL sob 100 reloads em loop rápido (fake timers)', ()
 
     // Estado por-alvo permanece no ÚLTIMO alvo permitido (build-4).
     expect(__TEST__.readReloadState()).toEqual(
-      expect.objectContaining({ targetBuildId: 'build-4', attempts: 1 }),
+      expect.objectContaining({ targetBuildId: 'build-4', attempts: 1 })
     );
   });
 
@@ -520,7 +506,7 @@ describe('STRESS: cota GLOBAL sob 100 reloads em loop rápido (fake timers)', ()
     expect(dispatchSpy).toHaveBeenCalledTimes(98);
     expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('2');
     expect(__TEST__.readReloadState()).toEqual(
-      expect.objectContaining({ targetBuildId: 'buildA', attempts: 2 }),
+      expect.objectContaining({ targetBuildId: 'buildA', attempts: 2 })
     );
   });
 });
@@ -535,9 +521,7 @@ describe('RACE: dois checkVersion simultâneos (kickoff + visibilitychange)', ()
   // e o 2º res.json() lançaria "body already consumed" (silenciado pelo catch),
   // mascarando a race. GAP CONHECIDO: buildVersion.ts não tem dedup in-flight.
   it.skip('kickoff + visibilitychange no mesmo tick → apenas 1 forceBundleRefresh', async () => {
-    fetchMock.mockImplementation(() =>
-      Promise.resolve(jsonResponse({ buildId: 'buildB' })),
-    );
+    fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ buildId: 'buildB' })));
 
     const { stop } = startWatcherAndStop();
     try {
@@ -557,9 +541,7 @@ describe('RACE: dois checkVersion simultâneos (kickoff + visibilitychange)', ()
   });
 
   it('comportamento REAL: 2 checks simultâneos ficam DENTRO da cota (2 reloads, sem abort)', async () => {
-    fetchMock.mockImplementation(() =>
-      Promise.resolve(jsonResponse({ buildId: 'buildB' })),
-    );
+    fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ buildId: 'buildB' })));
 
     const { stop } = startWatcherAndStop();
     try {
@@ -580,15 +562,13 @@ describe('RACE: dois checkVersion simultâneos (kickoff + visibilitychange)', ()
         dispatchSpy.mock.calls
           .map((c) => c[0] as CustomEvent<{ reason?: string }>)
           .filter(
-            (e) =>
-              e.type === 'zapp-update-required' &&
-              e.detail?.reason !== 'version-mismatch',
+            (e) => e.type === 'zapp-update-required' && e.detail?.reason !== 'version-mismatch'
           );
       expect(replaceSpy).toHaveBeenCalledTimes(2);
       expect(abortEvents()).toHaveLength(0);
       expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('2');
       expect(__TEST__.readReloadState()).toEqual(
-        expect.objectContaining({ targetBuildId: 'buildB', attempts: 2 }),
+        expect.objectContaining({ targetBuildId: 'buildB', attempts: 2 })
       );
 
       // Um 3º check (poll de 5min) já encontra a cota por-alvo esgotada → o
@@ -614,9 +594,7 @@ describe('CENÁRIO REAL: 4 deploys em 23 minutos (padrão do log de produção)'
     // FIX #7: cada reload agora ocorre 60s (UPDATE_GRACE_MS) após o check que o
     // agendou — os checks e cotas são idênticos, apenas adiados pela cortesia.
     let liveBuildId = 'buildA';
-    fetchMock.mockImplementation(() =>
-      Promise.resolve(jsonResponse({ buildId: liveBuildId })),
-    );
+    fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ buildId: liveBuildId })));
 
     const { stop } = startWatcherAndStop();
     try {
@@ -628,8 +606,7 @@ describe('CENÁRIO REAL: 4 deploys em 23 minutos (padrão do log de produção)'
           .map((call) => call[0] as CustomEvent<{ reason?: string }>)
           .filter(
             (call) =>
-              call.type === 'zapp-update-required' &&
-              call.detail?.reason !== 'version-mismatch',
+              call.type === 'zapp-update-required' && call.detail?.reason !== 'version-mismatch'
           );
 
       // ── Deploy 1 (buildA) ── kickoff em 30s detecta o mismatch; reload #1
@@ -692,11 +669,11 @@ describe('CENÁRIO REAL: 4 deploys em 23 minutos (padrão do log de produção)'
       // Resultado: 8 checks de versão → apenas 6 reloads (2 aborts global-quota).
       // Sem a cota global seriam 8 reloads — a cascata auth/429 é evitada.
       const reasons = updateRequired().map(
-        (call) => (call as CustomEvent<{ reason: string }>).detail.reason,
+        (call) => (call as CustomEvent<{ reason: string }>).detail.reason
       );
       expect(reasons).toEqual(['global-quota', 'global-quota']);
       expect(__TEST__.readReloadState()).toEqual(
-        expect.objectContaining({ targetBuildId: 'buildD', attempts: 1 }),
+        expect.objectContaining({ targetBuildId: 'buildD', attempts: 1 })
       );
     } finally {
       stop();
@@ -710,7 +687,7 @@ describe('MIN_BOOT_DELAY_MS (30s) — guarda de boot', () => {
     // Response NOVO por chamada (mockResolvedValue compartilharia o body e o
     // 2º res.json() lançaria "body already consumed", mascarando os checks).
     fetchMock.mockImplementation(() =>
-      Promise.resolve(jsonResponse({ buildId: __TEST__.CURRENT_BUILD_ID })),
+      Promise.resolve(jsonResponse({ buildId: __TEST__.CURRENT_BUILD_ID }))
     );
 
     const { stop } = startWatcherAndStop();
@@ -755,7 +732,7 @@ describe('Limpeza das chaves GLOBAIS no caminho de versão MATCH', () => {
     // Sessão antiga com todas as flags de guarda setadas (cenário pós-loop).
     sessionStorage.setItem(
       __TEST__.RELOAD_STATE_KEY,
-      JSON.stringify({ targetBuildId: 'buildA', attempts: 2, firstAttemptAt: 1 }),
+      JSON.stringify({ targetBuildId: 'buildA', attempts: 2, firstAttemptAt: 1 })
     );
     sessionStorage.setItem(__TEST__.SW_PURGE_FLAG, '1');
     sessionStorage.setItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY, '5');
@@ -794,9 +771,7 @@ describe('Limpeza das chaves GLOBAIS no caminho de versão MATCH', () => {
       expect(replaceSpy).toHaveBeenCalledTimes(1);
       expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('5');
       // Primeira tentativa da janela NÃO é sobrescrita — firstAt original mantido.
-      expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_FIRST_AT_KEY)).toBe(
-        seededFirstAt,
-      );
+      expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_FIRST_AT_KEY)).toBe(seededFirstAt);
     } finally {
       stop();
       vi.clearAllTimers();
@@ -826,8 +801,7 @@ describe('SEM targetBuildId (workbox purge) — consumo da cota GLOBAL', () => {
     await forceBundleRefresh('stale-workbox-cache');
     expect(replaceSpy).toHaveBeenCalledTimes(5);
     const event = dispatchSpy.mock.calls[0]?.[0] as
-      | CustomEvent<{ reason: string; remote: string }>
-      | undefined;
+      CustomEvent<{ reason: string; remote: string }> | undefined;
     expect(event?.type).toBe('zapp-update-required');
     expect(event?.detail?.reason).toBe('global-quota');
     expect(event?.detail?.remote).toBe('unknown'); // sem target → 'unknown'

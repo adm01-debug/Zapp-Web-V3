@@ -138,7 +138,7 @@ const DEFAULT_MAX_ATTEMPTS = 2;
 const UNREFRESHABLE_MESSAGE_TYPES = new Set([
   'sticker',
   'ephemeral',
-  'ptv',         // view-once video
+  'ptv', // view-once video
   'viewOnce',
   'vcard',
   'contact',
@@ -263,9 +263,7 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
         // nunca dava hit. Sem originalUrl não há identidade estável → não
         // persiste (evita linhas órfãs com chave volátil).
         try {
-          const hash = originalUrlRef.current
-            ? await buildFileHash(originalUrlRef.current)
-            : null;
+          const hash = originalUrlRef.current ? await buildFileHash(originalUrlRef.current) : null;
           if (hash) {
             await safeClient.from('media_cache', (q) =>
               q.upsert(

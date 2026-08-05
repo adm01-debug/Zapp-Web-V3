@@ -14,9 +14,8 @@ const supabaseMock = vi.hoisted(() => ({
 
 // Mock do client principal (re-exportado como zappSupabase pelo supabaseClient).
 vi.mock('@/integrations/supabase/client', async () => {
-  const { createMockSupabase } = await vi.importActual<typeof import('@/test/mocks/supabase')>(
-    '@/test/mocks/supabase'
-  );
+  const { createMockSupabase } =
+    await vi.importActual<typeof import('@/test/mocks/supabase')>('@/test/mocks/supabase');
   supabaseMock.client = createMockSupabase({
     tables: { evolution_conversations_wpp2: { data: supabaseMock.convRows } },
   });

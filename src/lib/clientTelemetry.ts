@@ -78,7 +78,11 @@ interface State {
 
 /** Returns a zeroed severity counter map for state initialisation or reset. */
 const initialBySeverity = (): Record<Severity, number> => ({
-  ok: 0, slow: 0, very_slow: 0, timeout: 0, error: 0,
+  ok: 0,
+  slow: 0,
+  very_slow: 0,
+  timeout: 0,
+  error: 0,
 });
 
 /** Returns a zeroed RetryStats object for state initialisation or reset. */
@@ -103,7 +107,7 @@ const state: State = {
 export function classifySeverity(
   durationMs: number,
   hasError: boolean,
-  isTimeout: boolean,
+  isTimeout: boolean
 ): Severity {
   if (isTimeout) return 'timeout';
   if (hasError) return 'error';
@@ -197,7 +201,7 @@ function isAbortErrorMessage(errorMessage: string | undefined): boolean {
 
 /** record Query Event function. */
 export function recordQueryEvent(
-  ev: Omit<QueryEvent, 'severity'> & { severity?: Severity },
+  ev: Omit<QueryEvent, 'severity'> & { severity?: Severity }
 ): QueryEvent {
   // Etapa 24 — AbortError (page unload / navegação) é rebaixado para 'ok'
   // (log.debug) mesmo quando o caller passou severity explícita: não

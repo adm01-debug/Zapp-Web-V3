@@ -120,7 +120,13 @@ describe('resetTelemetry', () => {
   });
 
   it('resets retry stats', () => {
-    recordRetryOutcome({ target: 'foo', attempts: 3, recovered: true, exhausted: false, transientCount: 2 });
+    recordRetryOutcome({
+      target: 'foo',
+      attempts: 3,
+      recovered: true,
+      exhausted: false,
+      transientCount: 2,
+    });
     resetTelemetry();
     const snap = getTelemetrySnapshot();
     expect(snap.retry.totalRetries).toBe(0);
@@ -328,50 +334,116 @@ describe('getTelemetrySnapshot — p95DurationMs', () => {
 
 describe('recordRetryOutcome — basic tracking', () => {
   it('accumulates totalRetries from attempts-1', () => {
-    recordRetryOutcome({ target: 'a', attempts: 3, recovered: false, exhausted: false, transientCount: 0 });
+    recordRetryOutcome({
+      target: 'a',
+      attempts: 3,
+      recovered: false,
+      exhausted: false,
+      transientCount: 0,
+    });
     // 3 attempts → 2 extra retries
     expect(getTelemetrySnapshot().retry.totalRetries).toBe(2);
   });
 
   it('single attempt results in 0 totalRetries', () => {
-    recordRetryOutcome({ target: 'a', attempts: 1, recovered: false, exhausted: false, transientCount: 0 });
+    recordRetryOutcome({
+      target: 'a',
+      attempts: 1,
+      recovered: false,
+      exhausted: false,
+      transientCount: 0,
+    });
     expect(getTelemetrySnapshot().retry.totalRetries).toBe(0);
   });
 
   it('increments recoveredAfterRetry when recovered=true', () => {
-    recordRetryOutcome({ target: 'a', attempts: 2, recovered: true, exhausted: false, transientCount: 0 });
+    recordRetryOutcome({
+      target: 'a',
+      attempts: 2,
+      recovered: true,
+      exhausted: false,
+      transientCount: 0,
+    });
     expect(getTelemetrySnapshot().retry.recoveredAfterRetry).toBe(1);
   });
 
   it('does not increment recoveredAfterRetry when recovered=false', () => {
-    recordRetryOutcome({ target: 'a', attempts: 2, recovered: false, exhausted: false, transientCount: 0 });
+    recordRetryOutcome({
+      target: 'a',
+      attempts: 2,
+      recovered: false,
+      exhausted: false,
+      transientCount: 0,
+    });
     expect(getTelemetrySnapshot().retry.recoveredAfterRetry).toBe(0);
   });
 
   it('increments exhausted when exhausted=true', () => {
-    recordRetryOutcome({ target: 'a', attempts: 3, recovered: false, exhausted: true, transientCount: 0 });
+    recordRetryOutcome({
+      target: 'a',
+      attempts: 3,
+      recovered: false,
+      exhausted: true,
+      transientCount: 0,
+    });
     expect(getTelemetrySnapshot().retry.exhausted).toBe(1);
   });
 
   it('tracks transientByTarget when transientCount > 0', () => {
-    recordRetryOutcome({ target: 'contacts', attempts: 2, recovered: true, exhausted: false, transientCount: 1 });
+    recordRetryOutcome({
+      target: 'contacts',
+      attempts: 2,
+      recovered: true,
+      exhausted: false,
+      transientCount: 1,
+    });
     expect(getTelemetrySnapshot().retry.transientByTarget['contacts']).toBe(1);
   });
 
   it('accumulates transientByTarget across calls for same target', () => {
-    recordRetryOutcome({ target: 'messages', attempts: 2, recovered: true, exhausted: false, transientCount: 2 });
-    recordRetryOutcome({ target: 'messages', attempts: 3, recovered: true, exhausted: false, transientCount: 1 });
+    recordRetryOutcome({
+      target: 'messages',
+      attempts: 2,
+      recovered: true,
+      exhausted: false,
+      transientCount: 2,
+    });
+    recordRetryOutcome({
+      target: 'messages',
+      attempts: 3,
+      recovered: true,
+      exhausted: false,
+      transientCount: 1,
+    });
     expect(getTelemetrySnapshot().retry.transientByTarget['messages']).toBe(3);
   });
 
   it('does not add to transientByTarget when transientCount is 0', () => {
-    recordRetryOutcome({ target: 'a', attempts: 2, recovered: true, exhausted: false, transientCount: 0 });
+    recordRetryOutcome({
+      target: 'a',
+      attempts: 2,
+      recovered: true,
+      exhausted: false,
+      transientCount: 0,
+    });
     expect(getTelemetrySnapshot().retry.transientByTarget['a']).toBeUndefined();
   });
 
   it('accumulates totalRetries across multiple calls', () => {
-    recordRetryOutcome({ target: 'a', attempts: 3, recovered: false, exhausted: false, transientCount: 0 });
-    recordRetryOutcome({ target: 'b', attempts: 2, recovered: false, exhausted: false, transientCount: 0 });
+    recordRetryOutcome({
+      target: 'a',
+      attempts: 3,
+      recovered: false,
+      exhausted: false,
+      transientCount: 0,
+    });
+    recordRetryOutcome({
+      target: 'b',
+      attempts: 2,
+      recovered: false,
+      exhausted: false,
+      transientCount: 0,
+    });
     // 2 + 1 = 3
     expect(getTelemetrySnapshot().retry.totalRetries).toBe(3);
   });
@@ -404,7 +476,7 @@ describe('getTelemetrySnapshot — returns copies, not references', () => {
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 function makeEvent(
-  overrides: Partial<Omit<QueryEvent, 'severity'> & { severity?: QueryEvent['severity'] }> = {},
+  overrides: Partial<Omit<QueryEvent, 'severity'> & { severity?: QueryEvent['severity'] }> = {}
 ): Omit<QueryEvent, 'severity'> & { severity?: QueryEvent['severity'] } {
   return {
     operation: 'select',

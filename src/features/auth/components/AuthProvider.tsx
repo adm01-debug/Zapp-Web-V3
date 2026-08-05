@@ -4,7 +4,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { authService, Profile } from '../services/authService';
 import { log } from '@/lib/logger';
 import { AuthContext } from '../context/AuthContext';
-import { supabase, SUPABASE_RESOLVED_URL, getSupabaseSemaphoreState } from '@/integrations/supabase/client';
+import {
+  supabase,
+  SUPABASE_RESOLVED_URL,
+  getSupabaseSemaphoreState,
+} from '@/integrations/supabase/client';
 import { verifyHttpOnlyCookieAuth } from '@/integrations/supabase/cookieStorage';
 
 // ---------------------------------------------------------------------------
@@ -178,7 +182,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       const { data: userRoles, error } = await withTimeout(
-        Promise.resolve(supabase.from('user_roles').select('role').eq('user_id', userId).abortSignal(signal ?? new AbortController().signal)),
+        Promise.resolve(
+          supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', userId)
+            .abortSignal(signal ?? new AbortController().signal)
+        ),
         8000,
         'fetchRoles'
       );
@@ -235,10 +245,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { signal } = controller;
       if (showLoading) setLoading(true);
       try {
-        await Promise.all([
-          fetchProfile(userId, signal),
-          fetchRolesAndPermissions(userId, signal),
-        ]);
+        await Promise.all([fetchProfile(userId, signal), fetchRolesAndPermissions(userId, signal)]);
       } finally {
         // Só o refresh mais recente libera o loading: se um refresh antigo
         // foi abortado por um novo, quem gerencia o estado é o novo.

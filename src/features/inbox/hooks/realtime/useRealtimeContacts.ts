@@ -19,7 +19,9 @@ const BROADCAST_RE = /(^status@broadcast$|@broadcast$)/i;
 // returned getDiscardedCount() accessor — callers that stored the old
 // module-level getRealtimeDiscardedCount() should use that instead.
 /** @deprecated Use the getDiscardedCount() from the hook return value. */
-export function getRealtimeDiscardedCount(): number { return 0; }
+export function getRealtimeDiscardedCount(): number {
+  return 0;
+}
 
 interface UseRealtimeContactsOptions {
   instance?: string;
@@ -80,7 +82,7 @@ function hasReorderingChange(
  * omits a key (value === undefined). Critical for fields like `tags`: a
  * partial UPDATE that only changes `lead_status` must NOT wipe the
  * previously-known tags array out of the cache.
- * 
+ *
  * Also sanitizes profile_picture_url removing internal kong:8000 hosts
  * (belt-and-suspenders against any residual data coming via realtime).
  */

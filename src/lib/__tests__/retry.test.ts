@@ -95,12 +95,19 @@ describe('withRetry — success after retries', () => {
 describe('withRetry — exhausting retries', () => {
   it('throws the last error when all retries are exhausted', async () => {
     await expect(
-      withRetry(async () => { throw new Error('permanent'); }, { ...FAST, ...RETRY_ALL, maxRetries: 2 })
+      withRetry(
+        async () => {
+          throw new Error('permanent');
+        },
+        { ...FAST, ...RETRY_ALL, maxRetries: 2 }
+      )
     ).rejects.toThrow('permanent');
   });
 
   it('calls the operation maxRetries+1 times when all fail', async () => {
-    const op = vi.fn(async () => { throw new Error('fail'); });
+    const op = vi.fn(async () => {
+      throw new Error('fail');
+    });
     await expect(withRetry(op, { ...FAST, ...RETRY_ALL, maxRetries: 2 })).rejects.toThrow();
     expect(op).toHaveBeenCalledTimes(3); // 1 initial + 2 retries
   });
@@ -109,7 +116,9 @@ describe('withRetry — exhausting retries', () => {
     const onRetry = vi.fn();
     await expect(
       withRetry(
-        async () => { throw new Error('fail'); },
+        async () => {
+          throw new Error('fail');
+        },
         { ...FAST, ...RETRY_ALL, maxRetries: 3, onRetry }
       )
     ).rejects.toThrow();
@@ -195,7 +204,9 @@ describe('withRetry — backoff timing (fake timers)', () => {
 
 describe('withRetry — shouldRetry guard', () => {
   it('does not retry when shouldRetry returns false', async () => {
-    const op = vi.fn(async () => { throw new Error('permanent'); });
+    const op = vi.fn(async () => {
+      throw new Error('permanent');
+    });
     await expect(
       withRetry(op, { ...FAST, maxRetries: 5, shouldRetry: () => false })
     ).rejects.toThrow('permanent');
@@ -214,8 +225,7 @@ describe('withRetry — shouldRetry guard', () => {
       withRetry(op, {
         ...FAST,
         maxRetries: 2,
-        shouldRetry: (err) =>
-          err instanceof Error && err.message.includes('ECONNRESET'),
+        shouldRetry: (err) => err instanceof Error && err.message.includes('ECONNRESET'),
       })
     ).rejects.toThrow();
     expect(attempts).toBe(3);
@@ -233,8 +243,7 @@ describe('withRetry — shouldRetry guard', () => {
       withRetry(op, {
         ...FAST,
         maxRetries: 10,
-        shouldRetry: (err) =>
-          err instanceof Error && err.message === 'transient',
+        shouldRetry: (err) => err instanceof Error && err.message === 'transient',
       })
     ).rejects.toThrow('permanent');
     expect(attempts).toBe(3);
@@ -285,7 +294,9 @@ describe('withNetworkRetry', () => {
 
   it('does NOT retry on a 404 error (status < 500)', async () => {
     const err = Object.assign(new Error('Not Found'), { status: 404 });
-    const op = vi.fn(async () => { throw err; });
+    const op = vi.fn(async () => {
+      throw err;
+    });
     await expect(withNetworkRetry(op, 3)).rejects.toThrow('Not Found');
     expect(op).toHaveBeenCalledTimes(1);
   });
@@ -305,7 +316,9 @@ describe('withNetworkRetry', () => {
   });
 
   it('does not retry non-Error throws', async () => {
-    const op = vi.fn(async () => { throw 'string-error'; });
+    const op = vi.fn(async () => {
+      throw 'string-error';
+    });
     await expect(withNetworkRetry(op, 3)).rejects.toBe('string-error');
     expect(op).toHaveBeenCalledTimes(1);
   });
@@ -315,7 +328,9 @@ describe('withNetworkRetry', () => {
 
 describe('withRetry — safe default (no retry without explicit policy)', () => {
   it('does NOT retry when shouldRetry is not provided (safe default)', async () => {
-    const op = vi.fn(async () => { throw new Error('any-error'); });
+    const op = vi.fn(async () => {
+      throw new Error('any-error');
+    });
     await expect(withRetry(op, { ...FAST, maxRetries: 5 })).rejects.toThrow();
     expect(op).toHaveBeenCalledTimes(1); // safe default: no retry
   });
@@ -324,7 +339,9 @@ describe('withRetry — safe default (no retry without explicit policy)', () => 
 describe('withNetworkRetry — AbortError guard', () => {
   it('does NOT retry on AbortError (page unload / navigation)', async () => {
     const abortErr = new DOMException('Page unload', 'AbortError');
-    const op = vi.fn(async () => { throw abortErr; });
+    const op = vi.fn(async () => {
+      throw abortErr;
+    });
     await expect(withNetworkRetry(op, 5)).rejects.toThrow();
     expect(op).toHaveBeenCalledTimes(1);
   });
@@ -332,7 +349,9 @@ describe('withNetworkRetry — AbortError guard', () => {
   it('does NOT retry on AbortError with generic name', async () => {
     const err = new Error('The operation was aborted.');
     err.name = 'AbortError';
-    const op = vi.fn(async () => { throw err; });
+    const op = vi.fn(async () => {
+      throw err;
+    });
     await expect(withNetworkRetry(op, 5)).rejects.toThrow();
     expect(op).toHaveBeenCalledTimes(1);
   });
@@ -358,7 +377,9 @@ describe('withNetworkRetry — AbortError guard', () => {
 describe('withRetry — intentional abort (no false ERROR)', () => {
   it('AbortError with default shouldRetry → operation called 1x, console.error NOT called', async () => {
     const abortErr = new DOMException('Page unload', 'AbortError');
-    const op = vi.fn(async () => { throw abortErr; });
+    const op = vi.fn(async () => {
+      throw abortErr;
+    });
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
     try {
@@ -375,12 +396,12 @@ describe('withRetry — intentional abort (no false ERROR)', () => {
 
   it('AbortError with shouldRetry: () => true → still 1x (abort guard has precedence)', async () => {
     const abortErr = new DOMException('Page unload', 'AbortError');
-    const op = vi.fn(async () => { throw abortErr; });
+    const op = vi.fn(async () => {
+      throw abortErr;
+    });
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
-      await expect(
-        withRetry(op, { ...FAST, ...RETRY_ALL, maxRetries: 3 })
-      ).rejects.toBe(abortErr);
+      await expect(withRetry(op, { ...FAST, ...RETRY_ALL, maxRetries: 3 })).rejects.toBe(abortErr);
       expect(op).toHaveBeenCalledTimes(1);
       expect(errorSpy).not.toHaveBeenCalled();
     } finally {
@@ -400,7 +421,9 @@ describe('withRetry — intentional abort (no false ERROR)', () => {
 
   it('real non-retryable error → log.warn, NOT log.error', async () => {
     const err = new Error('permanent failure');
-    const op = vi.fn(async () => { throw err; });
+    const op = vi.fn(async () => {
+      throw err;
+    });
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
@@ -420,12 +443,12 @@ describe('withRetry — intentional abort (no false ERROR)', () => {
   });
 
   it('retries genuinely exhausted → log.error emitted', async () => {
-    const op = vi.fn(async () => { throw new Error('fail'); });
+    const op = vi.fn(async () => {
+      throw new Error('fail');
+    });
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
-      await expect(
-        withRetry(op, { ...FAST, ...RETRY_ALL, maxRetries: 2 })
-      ).rejects.toThrow('fail');
+      await expect(withRetry(op, { ...FAST, ...RETRY_ALL, maxRetries: 2 })).rejects.toThrow('fail');
       expect(op).toHaveBeenCalledTimes(3); // 1 initial + 2 retries
       expect(errorSpy).toHaveBeenCalled();
       const errorMsg = String(errorSpy.mock.calls[0]?.[0] ?? '');

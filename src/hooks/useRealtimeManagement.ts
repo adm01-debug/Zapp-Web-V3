@@ -171,22 +171,16 @@ export function useRealtimeMonitorManagement(tableName: string, schema: string =
     );
     const pgConfig = { event: '*' as const, schema, table: tableName };
     channelRef.current
-      .on(
-        'postgres_changes',
-        pgConfig,
-        (payload: PgPayload) => {
-          setChanges((prev) => [...prev, payload]);
-          if (payload.eventType === 'INSERT') {
-            setData((prev) => [...prev, payload.new]);
-          } else if (payload.eventType === 'DELETE') {
-            setData((prev) => prev.filter((item) => item.id !== payload.old.id));
-          } else if (payload.eventType === 'UPDATE') {
-            setData((prev) =>
-              prev.map((item) => (item.id === payload.new.id ? payload.new : item))
-            );
-          }
+      .on('postgres_changes', pgConfig, (payload: PgPayload) => {
+        setChanges((prev) => [...prev, payload]);
+        if (payload.eventType === 'INSERT') {
+          setData((prev) => [...prev, payload.new]);
+        } else if (payload.eventType === 'DELETE') {
+          setData((prev) => prev.filter((item) => item.id !== payload.old.id));
+        } else if (payload.eventType === 'UPDATE') {
+          setData((prev) => prev.map((item) => (item.id === payload.new.id ? payload.new : item)));
         }
-      )
+      })
       .subscribe();
 
     return () => {

@@ -152,6 +152,7 @@ Antes do grant, o corpo ganhou guard: `auth.uid() IS NULL` → `RAISE`; `perform
 | 2026-07-15 | **Auditoria MCP**: contagem corrigida 294→315 (zapp), 193 confirmados (evo) |
 | 2026-07-16 | **Auditoria exaustiva**: contagem definitiva 315→312 (zapp), public = 1+535 (não zero), 23 partições confirmadas (não 25), 12 RPCs ausentes identificados, Realtime corrigido para usar raiz particionada |
 | 2026-08-04 | **Integração schema zapp × front**: inventário pg_catalog atualizado (zapp: **323** tabelas, **359** views, **5** matviews, **1077** funções, **759** policies, **144** cron jobs); wrappers `zapp.rpc_app_bootstrap`/`zapp.rpc_dashboard_init` (SECURITY DEFINER; `public.*` → service_role only); `rpc_schema_columns`/`rpc_schema_tables` (whitelist zapp/evo/public); grants F-03; guard em `fn_safe_audit_log` |
+| 2026-08-05 | **Fechamento plano 100 etapas**: inventário pg_catalog revalidado (323/359/5/1077/759/144); grants `fn_system_health_score`/`reassign_absent_agents`/`reassign_overloaded_agents` com guarda `is_admin_or_supervisor` (migration `20260805183000`); types.ts regenerado via postgres-meta (sync com DB) |
 
 ---
 
@@ -303,7 +304,7 @@ Após a contenção de 16/07 (`security_invoker=true` em 535/535 views) e o REVO
 `authenticated` (717 zapp / 203 evo / 536 public) e `service_role` permanecem intactos.
 Schema `evo` **não é exposto** pelo PostgREST (PGRST106). `PGRST_DB_SCHEMAS` atual: `public`, `zapp`, `storage`, `graphql_public`, `artes`, `vendas`, `financeiro` — `evo`/`email_app` **nunca** adicionar.
 
-> **Recomendação 2026-08-05 (I-02):** artes/vendas/financeiro permanecem expostos no mesmo PostgREST — superfície cross-tenant. Decisão: segregar para PostgREST/rota dedicada em janela agendada com aprovação do dono; NÃO alterado em produção.
+> **Recomendação 2026-08-05 (I-02):** `artes`/`vendas`/`financeiro` permanecem expostos no mesmo PostgREST — superfície cross-tenant. Decisão: segregar para PostgREST/rota dedicada em janela agendada com aprovação do dono; **NÃO alterado em produção** neste ciclo.
 
 **Teste autoritativo de vazamento** (o único que vale):
 

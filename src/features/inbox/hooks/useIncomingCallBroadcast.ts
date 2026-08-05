@@ -5,7 +5,6 @@ import { getLogger } from '@/lib/logger';
 import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 import type { IncomingCall } from '@/types/incomingCall';
 
-
 const log = getLogger('IncomingCallBroadcast');
 
 const DEFAULT_INSTANCE = DEFAULT_WHATSAPP_INSTANCE;
@@ -60,13 +59,15 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
         let contactId: string | null = null;
 
         try {
-          const { data, error } = await (supabase.rpc as unknown as (
-            name: string,
-            params?: Record<string, unknown>
-          ) => Promise<{
-            data: unknown;
-            error: { code?: string; message?: string } | null;
-          }>)('rpc_get_contact', {
+          const { data, error } = await (
+            supabase.rpc as unknown as (
+              name: string,
+              params?: Record<string, unknown>
+            ) => Promise<{
+              data: unknown;
+              error: { code?: string; message?: string } | null;
+            }>
+          )('rpc_get_contact', {
             p_remote_jid: p.remote_jid,
             p_instance: instance,
           });
