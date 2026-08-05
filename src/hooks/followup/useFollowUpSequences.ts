@@ -29,16 +29,21 @@ interface FollowUpSequence {
 /**
  * Hook: use Follow Up Sequences.
  *
- * NOTA (AUTOMACOES-09): o CRUD abaixo é íntegro e persiste em
+ * NOTA (AUTOMACOES-09 / CAMPANHAS-08): o CRUD abaixo é íntegro e persiste em
  * zapp.followup_sequences / zapp.followup_steps (views públicas com RLS ok).
- * PORÉM o motor de envio NÃO é rastreável a partir deste repo:
+ * PORÉM o motor de envio NÃO é rastreável a partir deste repo (verificado 2026-08-04):
  *  - cron `process_pending_followups` (a cada 5 min) + fn `fn_process_pending_followups`
  *    existem no DB de produção mas não têm fonte em supabase/migrations;
- *  - o edge `evolution-followup` processa apenas evo.evolution_followups
- *    (populado pelo Evolution API), sem ponte evidenciada
- *    zapp.followup_sequences → evo.evolution_followups;
+ *  - o edge `evolution-followup` (index.ts lido nesta auditoria) processa APENAS
+ *    evo.evolution_followups (select/update só nessa tabela; 0 referências a
+ *    followup_sequences/followup_steps) — NÃO PODE ler as sequences da UI;
+ *  - NENHUM cron registrado nas migrations chama `evolution-followup` (grep = 0);
+ *  - `trg_create_followups_on_stage_change` aparece só em listas SECDEF revoke
+ *    (sem DDL de origem no repo) — produtor parcial, sem fonte versionada;
  *  - zapp.followup_executions fica sem produtor → histórico sempre vazio.
- * Sinalizado ao maestro: criar edge/SQL-fn com fonte no repo + ponte de sync.
+ * PONTE SQL FALTANTE (sinalizado ao maestro): função/trigger com fonte no repo que
+ * materialize zapp.followup_sequences → evo.evolution_followups (ou edge que leia as
+ * sequences), + cron pg_cron p/ evolution-followup, + produtor de followup_executions.
  */
 export function useFollowUpSequences() {
   const queryClient = useQueryClient();
