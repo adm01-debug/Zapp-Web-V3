@@ -36,7 +36,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION zapp.rpc_list_cron_jobs() IS
-  'Admin RPC — lista todos os jobs pg_cron (somente admins/supervisores). SECURITY DEFINER.';
+  'Admin RPC — lista todos os jobs pg_cron (somente admins/supervisores). Função privilegiada.';
 
 GRANT EXECUTE ON FUNCTION zapp.rpc_list_cron_jobs() TO authenticated;
 
@@ -70,6 +70,6 @@ END;
 $$;
 
 COMMENT ON FUNCTION zapp.rpc_toggle_cron_job(text, bool) IS
-  'Admin RPC — ativa ou desativa um job pg_cron (somente admins/supervisores). SECURITY DEFINER.';
+  'Admin RPC — ativa ou desativa um job pg_cron (somente admins/supervisores). Função privilegiada.';
 
 GRANT EXECUTE ON FUNCTION zapp.rpc_toggle_cron_job(text, bool) TO authenticated;
