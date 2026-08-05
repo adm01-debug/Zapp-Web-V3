@@ -29,50 +29,52 @@ CREATE POLICY "scheduled_reports_delete_own"
 
 -- ============================================================
 -- 2. zapp.notification_channels_config
---    Existing: "auth_secure_152" (SELECT, authenticated)
---    Add: INSERT/UPDATE/DELETE for authenticated (admin table, no owner column)
+--    Existing: "auth_secure_152" (SELECT, is_admin_or_supervisor())
+--    Add: INSERT/UPDATE/DELETE scoped to is_admin_or_supervisor() only
+--    (mirrors SELECT restriction — this is an admin-only config table)
 -- ============================================================
 
 CREATE POLICY "notification_channels_config_insert"
   ON zapp.notification_channels_config
   FOR INSERT
   TO authenticated
-  WITH CHECK (true);
+  WITH CHECK (zapp.is_admin_or_supervisor());
 
 CREATE POLICY "notification_channels_config_update"
   ON zapp.notification_channels_config
   FOR UPDATE
   TO authenticated
-  USING (true)
-  WITH CHECK (true);
+  USING (zapp.is_admin_or_supervisor())
+  WITH CHECK (zapp.is_admin_or_supervisor());
 
 CREATE POLICY "notification_channels_config_delete"
   ON zapp.notification_channels_config
   FOR DELETE
   TO authenticated
-  USING (true);
+  USING (zapp.is_admin_or_supervisor());
 
 -- ============================================================
 -- 3. zapp.queue_routing_rules
---    Existing: "auth_secure_178" (SELECT, authenticated), "qr_service" (ALL, service_role)
---    Add: INSERT/UPDATE/DELETE for authenticated (no owner column)
+--    Existing: "auth_secure_178" (SELECT, is_admin_or_supervisor()), "qr_service" (ALL, service_role)
+--    Add: INSERT/UPDATE/DELETE scoped to is_admin_or_supervisor() only
+--    (mirrors SELECT restriction — agents must not create/delete routing rules)
 -- ============================================================
 
 CREATE POLICY "queue_routing_rules_insert"
   ON zapp.queue_routing_rules
   FOR INSERT
   TO authenticated
-  WITH CHECK (true);
+  WITH CHECK (zapp.is_admin_or_supervisor());
 
 CREATE POLICY "queue_routing_rules_update"
   ON zapp.queue_routing_rules
   FOR UPDATE
   TO authenticated
-  USING (true)
-  WITH CHECK (true);
+  USING (zapp.is_admin_or_supervisor())
+  WITH CHECK (zapp.is_admin_or_supervisor());
 
 CREATE POLICY "queue_routing_rules_delete"
   ON zapp.queue_routing_rules
   FOR DELETE
   TO authenticated
-  USING (true);
+  USING (zapp.is_admin_or_supervisor());

@@ -28,7 +28,7 @@ COMMENT ON COLUMN zapp.csat_auto_config.message_template IS
 CREATE TABLE IF NOT EXISTS zapp.csat_surveys (
   id                        uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   contact_id                uuid        NOT NULL
-    REFERENCES zapp.contacts(id) ON DELETE CASCADE,
+    REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE,
   agent_id                  uuid        REFERENCES zapp.profiles(id) ON DELETE SET NULL,
   conversation_resolved_at  timestamptz NOT NULL DEFAULT now(),
   created_at                timestamptz NOT NULL DEFAULT now(),
