@@ -274,3 +274,90 @@ describe('withNetworkRetry — AbortError guard', () => {
     expect(attempts).toBe(3);
   });
 });
+
+// ── Regression: no false ERROR on intentional abort (2026-08-05) ─────────────
+// Bug #5: production showed "[RetryUtil] All 2 retries exhausted AbortError:
+// Page unload" even when ZERO retries happened (attempt=0, shouldRetry=false).
+// Intentional aborts must be debug-level only; log.error is reserved for
+// genuinely exhausted retries.
+
+describe('withRetry — intentional abort (no false ERROR)', () => {
+  it('AbortError with default shouldRetry → operation called 1x, console.error NOT called', async () => {
+    const abortErr = new DOMException('Page unload', 'AbortError');
+    const op = vi.fn(async () => { throw abortErr; });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    try {
+      await expect(withRetry(op, { ...FAST, maxRetries: 3 })).rejects.toBe(abortErr);
+      expect(op).toHaveBeenCalledTimes(1);
+      expect(errorSpy).not.toHaveBeenCalled();
+      // debug-level log is emitted instead of ERROR
+      expect(debugSpy).toHaveBeenCalled();
+    } finally {
+      errorSpy.mockRestore();
+      debugSpy.mockRestore();
+    }
+  });
+
+  it('AbortError with shouldRetry: () => true → still 1x (abort guard has precedence)', async () => {
+    const abortErr = new DOMException('Page unload', 'AbortError');
+    const op = vi.fn(async () => { throw abortErr; });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      await expect(
+        withRetry(op, { ...FAST, ...RETRY_ALL, maxRetries: 3 })
+      ).rejects.toBe(abortErr);
+      expect(op).toHaveBeenCalledTimes(1);
+      expect(errorSpy).not.toHaveBeenCalled();
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  it('TypeError("Failed to fetch") via withNetworkRetry → 3 calls, resolves on 3rd', async () => {
+    const op = vi.fn(async () => {
+      if (op.mock.calls.length < 3) throw new TypeError('Failed to fetch');
+      return 'recovered';
+    });
+    const result = await withNetworkRetry(op, 3);
+    expect(result).toBe('recovered');
+    expect(op).toHaveBeenCalledTimes(3);
+  });
+
+  it('real non-retryable error → log.warn, NOT log.error', async () => {
+    const err = new Error('permanent failure');
+    const op = vi.fn(async () => { throw err; });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      await expect(
+        withRetry(op, { ...FAST, maxRetries: 5, shouldRetry: () => false })
+      ).rejects.toBe(err);
+      expect(op).toHaveBeenCalledTimes(1);
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalled();
+      const warnMsg = String(warnSpy.mock.calls[0]?.[0] ?? '');
+      expect(warnMsg).toContain('Not retryable');
+      expect(warnMsg).toContain('aborting after 1 attempt');
+    } finally {
+      errorSpy.mockRestore();
+      warnSpy.mockRestore();
+    }
+  });
+
+  it('retries genuinely exhausted → log.error emitted', async () => {
+    const op = vi.fn(async () => { throw new Error('fail'); });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      await expect(
+        withRetry(op, { ...FAST, ...RETRY_ALL, maxRetries: 2 })
+      ).rejects.toThrow('fail');
+      expect(op).toHaveBeenCalledTimes(3); // 1 initial + 2 retries
+      expect(errorSpy).toHaveBeenCalled();
+      const errorMsg = String(errorSpy.mock.calls[0]?.[0] ?? '');
+      expect(errorMsg).toContain('All 2 retries exhausted');
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+});

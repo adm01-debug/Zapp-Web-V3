@@ -58,6 +58,16 @@ try {
   src = j.types || j.data || src;
 } catch { /* raw TS */ }
 
+// O postgres-meta self-hosted emite ESTILO Lovable: além do bloco `export type Database`,
+// já inclui `type DatabaseWithoutInternals` + `export const Constants` próprios.
+// A cauda preservada abaixo (do types.ts anterior) também define esses helpers —
+// remover a seção gerada para evitar duplicação (TS2300/TS2451 no tsc).
+{
+  const srcLines = src.split('\n');
+  const helperIdx = srcLines.findIndex((l) => /^type DatabaseWithoutInternals/.test(l));
+  if (helperIdx > 0) src = srcLines.slice(0, helperIdx).join('\n');
+}
+
 // Preserva cauda legada (DatabaseWithoutInternals + helpers)
 let existingTail = '';
 try {

@@ -200,6 +200,10 @@ export function useEmail() {
   }, [refetchTokenStatus]);
 
   // ── Carregar threads ──────────────────────────────────────────────
+  // EMAIL-03: a store email_app.email_threads (lida por rpc_email_search_threads)
+  // nunca é alimentada — gmail-sync persiste em gmail_threads (store REAL,
+  // view zapp.gmail_threads com GRANT authenticated). Leitura direta na tabela
+  // real com filtro de label (contains em label_ids[]) e paginação por range.
   const loadThreads = useCallback(
     async (accountId?: string, label: EmailLabel = 'INBOX', pageOffset = 0) => {
       const id = accountId ?? activeAccountId;
@@ -208,30 +212,33 @@ export function useEmail() {
       setIsLoadingThreads(true);
       const {
         data,
-        error: rpcErr,
+        error: dbErr,
         requestId,
-      } = await safeClient.rpc('rpc_email_search_threads', {
-        p_account_id: id,
-        p_query: null,
-        p_label_id: label,
-        p_limit: 50,
-        p_offset: pageOffset,
-      });
+      } = await safeClient.from('gmail_threads', (q) =>
+        q
+          .select('*')
+          .eq('account_id', id)
+          .contains('label_ids', [label])
+          .order('last_message_at', { ascending: false, nullsFirst: false })
+          .range(pageOffset, pageOffset + 49)
+      );
 
       if (!mountedRef.current) return;
 
-      if (rpcErr) {
-        if (rpcErr.message.includes('disponível') || rpcErr.message.includes('not found')) {
+      if (dbErr) {
+        if (dbErr.message.includes('disponível') || dbErr.message.includes('not found')) {
           log.warn('Email schema unavailable — using mock threads');
           setThreads(GMAIL_MOCKS.threads);
           setHasMore(false);
         } else {
           setLastRequestId(requestId || null);
-          setError(`Erro ao carregar mensagens do Email. ${rpcErr.message}`);
+          setError(`Erro ao carregar mensagens do Email. ${dbErr.message}`);
         }
       } else {
         setSchemaStatus({ ok: true, lastChecked: new Date() });
-        const mappedThreads = emailMappers.threads(Array.isArray(data) ? data : []);
+        const mappedThreads = (Array.isArray(data) ? data : []).map((row) =>
+          emailMappers.gmailThread(row as Record<string, unknown>)
+        );
         setThreads((prev) => (pageOffset > 0 ? [...prev, ...mappedThreads] : mappedThreads));
         setHasMore(mappedThreads.length === 50);
       }
@@ -260,11 +267,7 @@ export function useEmail() {
     const accountId = thread.account_id ?? '';
 
     const { data: gmailThread } = await safeClient.from('gmail_threads', (q) =>
-      q
-        .select('id')
-        .eq('account_id', accountId)
-        .eq('thread_id', gmailThreadId)
-        .maybeSingle()
+      q.select('id').eq('account_id', accountId).eq('thread_id', gmailThreadId).maybeSingle()
     );
     const refId =
       gmailThread && typeof gmailThread === 'object' && 'id' in gmailThread
