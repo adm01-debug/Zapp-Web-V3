@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { Json } from '@/integrations/supabase/schema';
 import { useQueueRoutingRules, type QueueRoutingRule, type QueueRoutingRuleInsert } from '@/hooks/useQueueRoutingRules';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -64,11 +65,11 @@ function ruleToForm(rule: QueueRoutingRule): RuleFormData {
   };
 }
 
-function tryParseCondition(raw: string): Record<string, unknown> | null {
+function tryParseCondition(raw: string): Json | null {
   try {
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-      return parsed as Record<string, unknown>;
+      return parsed as Json;
     }
     return null;
   } catch {

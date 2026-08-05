@@ -8,11 +8,8 @@ import { toast } from 'sonner';
 // DASHBOARD-08 — UI admin para zapp.notification_channels_config / zapp.notification_templates.
 //
 // SINALIZAÇÕES (fora do escopo desta branch — exigem migration):
-//  1. RLS de escrita AUSENTE: a única policy de `notification_channels_config` é SELECT
-//     (auth_secure_152, `zapp.is_admin_or_supervisor()`). `notification_templates` NÃO tem
-//     nenhuma policy no repositório. INSERT/UPDATE/DELETE via PostgREST retornarão 42501
-//     (permission denied) até uma migration adicionar policies de escrita (admin-only).
-//     O hook propaga o erro cru do Supabase para a UI exibir a mensagem real.
+//  1. `notification_channels_config.config` é NOT NULL — ao limpar o JSON, enviar {} (objeto vazio),
+//     nunca null (23502).
 //  2. Executor de envio NÃO foi criado (proposital): estas tabelas só CONFIGURAM canais e
 //     templates. Falta uma edge/worker que leia notification_channels_config +
 //     notification_templates e efetivamente envie (WhatsApp/email/push). Sem executor,
@@ -90,16 +87,16 @@ export function useNotificationChannels() {
         channel_name: input.channel_name,
         enabled: input.enabled,
         ...(input.min_severity ? { min_severity: input.min_severity } : {}),
-        config: input.config ?? undefined,
+        ...(input.config !== undefined ? { config: input.config ?? {} } : {}),
         updated_at: new Date().toISOString(),
       };
-      const { error } = input.id
+      const { error } = input.id != null
         ? await supabase.from('notification_channels_config').update(payload).eq('id', input.id)
         : await supabase.from('notification_channels_config').insert({
             channel_name: input.channel_name,
             enabled: input.enabled,
             ...(input.min_severity ? { min_severity: input.min_severity } : {}),
-            config: input.config ?? undefined,
+            ...(input.config !== undefined ? { config: input.config ?? {} } : {}),
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           });

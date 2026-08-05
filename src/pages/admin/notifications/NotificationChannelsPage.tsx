@@ -11,7 +11,8 @@ import {
   Shield,
 } from 'lucide-react';
 import { useNotificationChannels } from '@/hooks/useNotificationChannels';
-import type { NotificationChannelConfig, ChannelPatch } from '@/hooks/useNotificationChannels';
+import type { NotificationChannelConfig } from '@/hooks/useNotificationChannels';
+import type { Json } from '@/integrations/supabase/schema';
 import { useUserRole } from '@/features/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -61,7 +62,7 @@ function capitalizeChannelName(name: string): string {
 interface ChannelDraft {
   enabled: boolean;
   min_severity: string;
-  config: Record<string, unknown> | null;
+  config: Json | null;
   configText: string;
   configExpanded: boolean;
   configError: string | null;
@@ -240,7 +241,7 @@ function ChannelCard({ channel, draft, isSaving, onDraftChange, onSave }: Channe
 /** Admin page for managing notification_channels_config. */
 export default function NotificationChannelsPage() {
   const { isAdmin } = useUserRole();
-  const { channels, loading, saving, fetchChannels, updateChannel } = useNotificationChannels();
+  const { channels, channelsLoading: loading, refetch: fetchChannels, saveChannel } = useNotificationChannels();
   const [drafts, setDrafts] = useState<Record<number, ChannelDraft>>({});
 
   // Sync drafts when channels load
@@ -283,19 +284,21 @@ export default function NotificationChannelsPage() {
     const draft = drafts[ch.id];
     if (!draft || draft.configError) return;
 
-    const patch: ChannelPatch = {
-      enabled: draft.enabled,
-      min_severity: draft.min_severity,
-      config: draft.config,
-    };
-
-    const ok = await updateChannel(ch.id, patch);
-    if (ok) {
+    try {
+      await saveChannel.mutateAsync({
+        id: ch.id,
+        channel_name: ch.channel_name,
+        enabled: draft.enabled,
+        min_severity: draft.min_severity,
+        config: draft.config,
+      });
       // Reset dirty state by re-syncing from the updated channel
       setDrafts((prev) => ({
         ...prev,
-        [ch.id]: { ...prev[ch.id], configText: draft.config ? JSON.stringify(draft.config, null, 2) : '' },
+        [ch.id]: { ...prev[ch.id], configText: JSON.stringify(draft.config ?? {}, null, 2) },
       }));
+    } catch {
+      // Erro já exibido pelo toast onError do hook
     }
   }
 
@@ -380,7 +383,7 @@ export default function NotificationChannelsPage() {
               key={ch.id}
               channel={ch}
               draft={drafts[ch.id] ?? toDraft(ch)}
-              isSaving={!!saving[ch.id]}
+              isSaving={saveChannel.isPending && saveChannel.variables?.id === ch.id}
               onDraftChange={(patch) => patchDraft(ch.id, patch)}
               onSave={() => handleSave(ch)}
             />

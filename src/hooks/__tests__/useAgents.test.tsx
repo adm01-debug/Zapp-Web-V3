@@ -53,9 +53,9 @@ const tableData: Record<string, unknown[]> = {
 export interface FakeRealtimeChannel {
   topic: string;
   subscribed: boolean;
-  on: ReturnType<typeof vi.fn>;
-  subscribe: ReturnType<typeof vi.fn>;
-  unsubscribe: ReturnType<typeof vi.fn>;
+  on: (event: string, filter: unknown, callback?: () => void) => FakeRealtimeChannel;
+  subscribe: (callback?: (status: string) => void) => FakeRealtimeChannel;
+  unsubscribe: (callback?: () => void) => FakeRealtimeChannel;
 }
 
 interface ChannelCallLogEntry {
@@ -339,13 +339,15 @@ describe('useAgents', () => {
         'cannot add postgres_changes callbacks after subscribe()'
       );
     } finally {
+      const root1Cleanup = root1;
+      const root2Cleanup = root2;
       try {
-        if (root1) reactAct(() => root1.unmount());
+        if (root1Cleanup) reactAct(() => root1Cleanup.unmount());
       } catch {
         // cleanup defensivo
       }
       try {
-        if (root2) reactAct(() => root2.unmount());
+        if (root2Cleanup) reactAct(() => root2Cleanup.unmount());
       } catch {
         // root2 falhou no mount — unmount pode não ser seguro
       }
