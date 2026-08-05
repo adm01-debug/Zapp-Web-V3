@@ -136,40 +136,83 @@ function hasPGRestEnv() {
 }
 
 /** Checagem via PostgREST HTTP: retorna schema onde o objeto existe (ou null). */
+// NOTA (fix 2026-08-05): GET /rpc/{name} sem args retorna PGRST202 falso-negativo
+// para funções com args obrigatórios; OpenAPI também omite algumas funções.
+// Estratégia em camadas:
+//   1. OpenAPI do schema (Accept: application/openapi+json) — lista a maioria;
+//   2. Fallback: RPC de inventário zapp.rpc_contract_inventory (SECURITY DEFINER,
+//      criada na migration 20260805170000) — ground truth pg_proc via HTTP,
+//      chamável com service_role/authenticated (o anon não tem EXECUTE).
 async function pgRestExists(baseUrl, serviceKey, kind, name, schemas) {
+  // Fallback via RPC de inventário (1 chamada, cacheada por schema na 1ª vez)
+  const inventoryKey = `${baseUrl}|${schemas.join(',')}`;
+  if (!pgRestExists._invCache) pgRestExists._invCache = new Map();
+  if (!pgRestExists._invCache.has(inventoryKey)) {
+    try {
+      const url = `${baseUrl}/rest/v1/rpc/rpc_contract_inventory`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'Content-Profile': 'zapp',
+          'Accept-Profile': 'zapp',
+        },
+        body: '{}',
+      });
+      if (res.status === 200) {
+        const data = await res.json().catch(() => null);
+        if (data) {
+          const fns = new Set((data.functions ?? []).map((f) => f.name));
+          const tbls = new Set((data.tables ?? []).map((t) => t.name));
+          pgRestExists._invCache.set(inventoryKey, { fns, tbls });
+        }
+      }
+    } catch {
+      // falha do inventário → continua para OpenAPI
+    }
+  }
+  const inv = pgRestExists._invCache.get(inventoryKey);
+  if (inv) {
+    const set = kind === 'rpc' ? inv.fns : inv.tbls;
+    if (set.has(name)) return 'zapp';
+  }
+
   for (const schema of schemas) {
-    // RPC: POST com body vazio — o PostgREST resolve a função por nome e devolve
-    // 400 (params inválidos) se existir; GET sem body devolve 404 PGRST202 para
-    // funções com argumentos (falso positivo). FROM: GET simples.
-    const isRpc = kind === 'rpc';
-    const path = isRpc ? `rpc/${encodeURIComponent(name)}` : `${encodeURIComponent(name)}?select=id&limit=1`;
-    const url = `${baseUrl}/rest/v1/${path}`;
-    const headers = {
-      apikey: serviceKey,
-      Authorization: `Bearer ${serviceKey}`,
-      Accept: 'application/json',
-      'Accept-Profile': schema,
-      ...(isRpc ? { 'Content-Type': 'application/json' } : {}),
-    };
+    const url = `${baseUrl}/rest/v1/`;
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), PGREST_TIMEOUT_MS);
     try {
-      const res = await fetch(url, { method: isRpc ? 'POST' : 'GET', headers, body: isRpc ? '{}' : undefined, signal: ctrl.signal });
-      // 200 = existe; 4xx de validação (400 bad params) = função existe; 404 PGRST202/205 = ausente.
-      if (res.status === 200) return schema;
-      if (res.status === 400 || res.status === 401 || res.status === 403) return schema;
-      if (res.status === 404) {
-        const body = await res.text().catch(() => '');
-        if (/PGRST202|PGRST205/.test(body)) continue;
-        // 404 fora de PGRST: tratar como ausente também (gateway pode mascarar).
-        continue;
-      }
-      continue;
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+          Accept: 'application/openapi+json',
+          'Accept-Profile': schema,
+        },
+        signal: ctrl.signal,
+      });
+      if (res.status !== 200) continue;
+      const spec = await res.json().catch(() => null);
+      if (!spec?.paths) continue;
+      // OpenAPI: RPCs viram paths `/rpc/{name}`; tabelas/views viram `/{name}`.
+      const needle = kind === 'rpc' ? `/rpc/${encodeURIComponent(name)}` : `/${encodeURIComponent(name)}`;
+      const found = Object.keys(spec.paths).some((p) =>
+        p === needle ||
+        p.startsWith(`${needle}/`) ||
+        p === `/rpc/${name}` ||
+        p.startsWith(`/rpc/${name}/`) ||
+        p === `/${name}` ||
+        p.startsWith(`/${name}/`));
+      if (found) return schema;
     } catch (err) {
       if (err?.name === 'AbortError') {
-        throw new Error(`timeout ao consultar ${schema}.${name} via PostgREST`);
+        throw new Error(`timeout ao consultar OpenAPI de ${schema} via PostgREST`);
       }
-      throw new Error(`falha HTTP ao consultar ${schema}.${name}: ${err.message}`);
+      throw new Error(`falha HTTP ao consultar OpenAPI de ${schema}: ${err.message}`);
     } finally {
       clearTimeout(timer);
     }
