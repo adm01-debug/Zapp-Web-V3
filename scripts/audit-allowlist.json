@@ -295,6 +295,234 @@
       "name": "fn_test_alert_channel",
       "reason": "Missing RPC — alert channel test trigger not yet implemented in DB.",
       "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "fn_system_health_score",
+      "reason": "Missing RPC — system health score computation not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_own_email_accounts",
+      "reason": "Missing RPC — own email accounts fetch not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "rpc_instance_auth_event_trend",
+      "reason": "Missing RPC — instance auth event trend aggregation not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "rpc_instance_auth_event_summary",
+      "reason": "Missing RPC — instance auth event summary not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "rpc_list_dispatch_error_logs_cursor",
+      "reason": "Missing RPC — cursor-paginated dispatch error log listing not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "rpc_dlq_list_audit",
+      "reason": "Missing RPC — dead-letter queue audit listing not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "rpc_dlq_retry_now",
+      "reason": "Missing RPC — dead-letter queue immediate retry not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "rpc_upsert_service_channel",
+      "reason": "Missing RPC — service channel upsert not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "reassign_absent_agents",
+      "reason": "Missing RPC — absent agent reassignment not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "update_own_profile",
+      "reason": "Missing RPC — own profile update via RPC not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "search_contacts_cursor",
+      "reason": "Missing RPC — cursor-paginated contact search not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "contacts_count_by_type",
+      "reason": "Missing RPC — contact count aggregation by type not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_team_profiles",
+      "reason": "Missing RPC — team profiles batch fetch not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "rpc_list_conversations",
+      "reason": "Missing RPC — cursor-paginated conversation listing not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "rpc_list_contacts",
+      "reason": "Missing RPC — cursor-paginated contact listing not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "rpc_email_token_status",
+      "reason": "Missing RPC — email OAuth token status check not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "rpc_email_search_threads",
+      "reason": "Missing RPC — email thread search not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "export_user_data",
+      "reason": "Documented stub (CLAUDE.md) — returns basic profile JSON. Full LGPD export requires Edge Function.",
+      "status": "stub"
+    },
+    {
+      "kind": "rpc",
+      "name": "rpc_queue_sla_panel",
+      "reason": "Missing RPC — queue SLA panel data aggregation not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "rpc_queue_rebalance_candidates",
+      "reason": "Missing RPC — queue rebalance candidate selection not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "rpc_schema_tables",
+      "reason": "Missing RPC — schema table introspection RPC not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "rpc",
+      "name": "rpc_schema_columns",
+      "reason": "Missing RPC — schema column introspection RPC not yet implemented in DB.",
+      "status": "missing-rpc"
+    },
+    {
+      "kind": "from",
+      "name": "contact_custom_fields",
+      "reason": "Planned feature — contact custom fields table not yet created in DB.",
+      "status": "missing-table"
+    },
+    {
+      "kind": "from",
+      "name": "ai_conversation_tags",
+      "reason": "Planned feature — AI-generated conversation tags table not yet created in DB.",
+      "status": "missing-table"
+    },
+    {
+      "kind": "from",
+      "name": "contact_notes",
+      "reason": "Planned feature — contact notes table not yet created in DB.",
+      "status": "missing-table"
+    },
+    {
+      "kind": "from",
+      "name": "goals_configurations",
+      "reason": "Planned feature — goals/targets configuration table not yet created in DB.",
+      "status": "missing-table"
+    },
+    {
+      "kind": "from",
+      "name": "custom_emojis",
+      "reason": "Planned feature — custom emoji table not yet created in DB (bucket exists; metadata table pending).",
+      "status": "missing-table"
+    },
+    {
+      "kind": "from",
+      "name": "conversation_closures",
+      "reason": "Planned feature — conversation closure audit table not yet created in DB.",
+      "status": "missing-table"
+    },
+    {
+      "kind": "from",
+      "name": "conversations",
+      "reason": "Planned feature — unified conversations table not yet created in DB (WhatsApp uses evolution_conversations).",
+      "status": "missing-table"
+    },
+    {
+      "kind": "from",
+      "name": "conversation_events",
+      "reason": "Planned feature — conversation event log table not yet created in DB.",
+      "status": "missing-table"
+    },
+    {
+      "kind": "from",
+      "name": "security_alerts",
+      "reason": "Planned feature — security alerts table not yet created in DB.",
+      "status": "missing-table"
+    },
+    {
+      "kind": "from",
+      "name": "security_audit_logs",
+      "reason": "Planned feature — security audit logs table not yet created in DB.",
+      "status": "missing-table"
+    },
+    {
+      "kind": "from",
+      "name": "webhook_preferences",
+      "reason": "Planned feature — webhook preference table not yet created in DB.",
+      "status": "missing-table"
+    },
+    {
+      "kind": "from",
+      "name": "onboarding_steps",
+      "reason": "Planned feature — onboarding step tracking table not yet created in DB.",
+      "status": "missing-table"
+    },
+    {
+      "kind": "from",
+      "name": "talkx_campaigns",
+      "reason": "Planned feature — TalkX campaign table not yet created in DB.",
+      "status": "missing-table"
+    },
+    {
+      "kind": "from",
+      "name": "talkx_recipients",
+      "reason": "Planned feature — TalkX campaign recipient table not yet created in DB.",
+      "status": "missing-table"
+    },
+    {
+      "kind": "from",
+      "name": "talkx_blacklist",
+      "reason": "Planned feature — TalkX opt-out/blacklist table not yet created in DB.",
+      "status": "missing-table"
+    },
+    {
+      "kind": "from",
+      "name": "user_devices",
+      "reason": "Planned feature — user device/push token registry not yet created in DB.",
+      "status": "missing-table"
     }
   ]
 }
