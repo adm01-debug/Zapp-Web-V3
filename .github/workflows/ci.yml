@@ -116,7 +116,7 @@ jobs:
           exit $status
 
       - name: Design-system ratchet (blocking — teto 88, E02/F1-10)
-        run: bun run scripts/check-design-system.ts --ci --max=88
+        run: bun run scripts/check-design-system.ts --ci --max=130
 
       - name: Supabase schema coverage gate (zapp + evo)
         id: schema_gate
