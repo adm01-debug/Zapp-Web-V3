@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 interface ZappUpdateDetail {
   current: string;
   remote: string;
+  reason?: string;
+  grace?: boolean;
 }
 
 /**
@@ -12,13 +14,19 @@ interface ZappUpdateDetail {
  * when a new bundle is detected. Prompts the user to reload to avoid the
  * "two frontends" symptom (different tabs/devices serving different bundle hashes).
  *
- * Also listens for `zapp-update-required` (dispatched by src/lib/buildVersion.ts)
- * when the app is stuck on an old bundle after reload (persistent mismatch).
- * In that case the reload uses a `_bv` cache-buster to bypass the stale bundle.
+ * Also listens for `zapp-update-required` (dispatched by src/lib/buildVersion.ts):
+ * - grace:true (reason 'version-mismatch') → a new build was detected and the
+ *   reload is scheduled automatically in ~1 min (UPDATE_GRACE_MS). Offers
+ *   "Atualizar agora", which dispatches 'zapp-update-apply' so buildVersion
+ *   cancels the grace timer and applies the refresh immediately.
+ * - sem grace (reason 'global-quota'/'per-target-quota') → the reload quota is
+ *   exhausted; keeps the manual "Recarregar agora" flow with the `_bv`
+ *   cache-buster.
  */
 export function ServiceWorkerUpdateBanner() {
   const [visible, setVisible] = useState(false);
   const [forced, setForced] = useState(false);
+  const [grace, setGrace] = useState(false);
   const [updateDetail, setUpdateDetail] = useState<ZappUpdateDetail | null>(null);
 
   useEffect(() => {
@@ -28,6 +36,7 @@ export function ServiceWorkerUpdateBanner() {
     const onUpdateRequired = (event: Event) => {
       const detail = (event as CustomEvent<ZappUpdateDetail>).detail;
       setUpdateDetail(detail ?? null);
+      setGrace(detail?.grace === true);
       setForced(true);
       setVisible(true);
     };
@@ -45,6 +54,12 @@ export function ServiceWorkerUpdateBanner() {
     window.location.replace(url.toString());
   };
 
+  const handleApplyNow = () => {
+    // buildVersion cancela a janela de cortesia e aplica o refresh na hora
+    // (mesmo purge + _bv cache-buster do forceBundleRefresh).
+    window.dispatchEvent(new CustomEvent('zapp-update-apply'));
+  };
+
   if (!visible) return null;
 
   return (
@@ -59,9 +74,15 @@ export function ServiceWorkerUpdateBanner() {
           {forced ? 'Atualização necessária' : 'Nova versão disponível'}
         </p>
         <p className="text-xs text-muted-foreground mt-0.5">
-          {forced
-            ? 'Uma nova versão está disponível mas o app não conseguiu recarregar sozinho.'
-            : 'Recarregue para evitar inconsistências entre abas e dispositivos.'}
+          {forced ? (
+            grace ? (
+              'Uma nova versão está disponível. A atualização será aplicada automaticamente em ~1 minuto.'
+            ) : (
+              'Uma nova versão está disponível mas o app não conseguiu recarregar sozinho.'
+            )
+          ) : (
+            'Recarregue para evitar inconsistências entre abas e dispositivos.'
+          )}
         </p>
         {forced && updateDetail && (
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -69,15 +90,27 @@ export function ServiceWorkerUpdateBanner() {
           </p>
         )}
         <div className="flex gap-2 mt-2">
-          <Button
-            size="sm"
-            variant="default"
-            onClick={handleReload}
-            className="gap-1.5 h-7"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Recarregar agora
-          </Button>
+          {forced && grace ? (
+            <Button
+              size="sm"
+              variant="default"
+              onClick={handleApplyNow}
+              className="gap-1.5 h-7"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Atualizar agora
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="default"
+              onClick={handleReload}
+              className="gap-1.5 h-7"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Recarregar agora
+            </Button>
+          )}
           <Button
             size="sm"
             variant="ghost"

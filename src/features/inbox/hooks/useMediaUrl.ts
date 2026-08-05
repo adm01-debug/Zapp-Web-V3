@@ -168,6 +168,18 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
   const inFlightRef = useRef<Promise<void> | null>(null);
   const originalUrlRef = useRef(originalUrl);
   originalUrlRef.current = originalUrl;
+  // Guard de mounted: supabase.functions.invoke (supabase-js v2) não aceita
+  // AbortSignal — client.ts descarta deliberadamente o signal do caller
+  // (fix 2026-08-03 anti retry storm). O padrão correto é mountedRef para
+  // suprimir setState/toast/log.warn quando o componente desmonta com um
+  // refresh ainda em voo.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Keep `url` in sync when the upstream metadata changes.
   useEffect(() => {
@@ -206,6 +218,8 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
 
         if (cacheRow?.storage_path) {
           log.info(`Media cache hit for ${key}`);
+          // Guard de mounted: o await acima pode ter atravessado unmount.
+          if (!mountedRef.current) return;
           setUrl(cacheRow.storage_path);
           setError(null);
           setFailed(false);
@@ -216,6 +230,7 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
       }
     }
 
+    if (!mountedRef.current) return;
     setIsRefreshing(true);
     setError(null);
     const job = (async () => {
@@ -260,6 +275,8 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
           log.warn('Failed to persist media cache', e);
         }
 
+        // Guard de mounted: componente desmontado ⇒ nenhum setState roda.
+        if (!mountedRef.current) return;
         setUrl(dataUrl);
         setError(null);
         setFailed(false);
@@ -268,24 +285,36 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
         // Empty media payload é esperado para certos tipos de mídia do WhatsApp
         // (ex.: stickers animados, vídeos efêmeros) — não poluir o console.
         const logLevel = classified.reason === 'unsupported' ? 'debug' : 'warn';
-        log[logLevel](
-          `media refresh failed for ${key}: ${classified.reason} — ${classified.cause?.message}`
-        );
-        setError(classified);
-        setAttempts((prev) => {
-          const next = prev + 1;
-          if (next >= maxAttempts) {
-            setFailed(true);
-            // Anti-flood: 1 toast por mídia por sessão.
-            if (!toastedKeys.has(key)) {
-              toastedKeys.add(key);
-              toast.error('Mídia indisponível', { description: classified.message });
+        if (!mountedRef.current) {
+          // Desmontado: suprime log.warn e toast.error — apenas debug para
+          // rastreabilidade (refresh que terminou após navegação).
+          log.debug(
+            `media refresh failed after unmount for ${key}: ${classified.reason} — ${classified.cause?.message}`
+          );
+        } else {
+          log[logLevel](
+            `media refresh failed for ${key}: ${classified.reason} — ${classified.cause?.message}`
+          );
+          setError(classified);
+          setAttempts((prev) => {
+            const next = prev + 1;
+            if (next >= maxAttempts) {
+              setFailed(true);
+              // Anti-flood: 1 toast por mídia por sessão.
+              if (!toastedKeys.has(key)) {
+                toastedKeys.add(key);
+                toast.error('Mídia indisponível', { description: classified.message });
+              }
             }
-          }
-          return next;
-        });
+            return next;
+          });
+        }
       } finally {
-        setIsRefreshing(false);
+        // isRefreshing só é resetado se ainda montado; o dedupe inFlightRef
+        // SEMPRE é liberado, mesmo com o componente desmontado.
+        if (mountedRef.current) {
+          setIsRefreshing(false);
+        }
         inFlightRef.current = null;
       }
     })();

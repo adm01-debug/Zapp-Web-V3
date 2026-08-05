@@ -15,6 +15,9 @@ import { useInboxHeartbeat } from './useInboxHeartbeat';
 import { useInboxDeepLinks } from './useInboxDeepLinks';
 import { useInboxSource } from './useInboxSource';
 import { useFallbackContact } from './useFallbackContact';
+import { useContactSummaryBatch } from './useContactSummaryBatch';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 
 const log = getLogger('useRealtimeInbox');
 
@@ -51,7 +54,8 @@ export function useRealtimeInbox() {
     delay: number;
     message?: string;
   } | null>(null);
-  const [whisperCount, setWhisperCount] = useState(0);
+  // whisperCount é derivado do batch RPC (useContactSummaryBatch) — ver seção
+  // "Whisper count (batch)" abaixo. Sem HEAD count por contato (BUG-2026-08-04).
 
   // 1. Data Source (Local)
   const source = useInboxSource(selectedContactId);
@@ -209,44 +213,65 @@ export function useRealtimeInbox() {
     return () => window.removeEventListener('sla-delivery-alert', handler);
   }, [selectedContactId]);
 
-  // Whisper count
-  useEffect(() => {
-    if (!selectedContactId || !profile?.id) {
-      setWhisperCount(0);
-      return;
+  // ── Whisper count (batch) ────────────────────────────────────────────────
+  // BUG-2026-08-04: o HEAD count exact por contato (N+1 em cada churn de
+  // selectedContactId) foi substituído por 1 RPC batch
+  // (zapp.rpc_get_contact_summary_batch) para todos os contatos visíveis.
+  // Só UUIDs válidos entram no batch — deep-links por JID causariam
+  // PostgREST 400 ("invalid input syntax for type uuid").
+  const batchContactIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (selectedContactId) {
+      const ref = resolveContactRef(selectedContactId);
+      if (isUuidRef(ref)) ids.add(ref.uuid);
     }
+    for (const c of conversations ?? []) {
+      const ref = resolveContactRef(c.contact.id);
+      if (isUuidRef(ref)) ids.add(ref.uuid);
+    }
+    return [...ids];
+  }, [conversations, selectedContactId]);
+
+  const { data: summaryBatch } = useContactSummaryBatch(batchContactIds);
+
+  // Derived (não é mais state próprio): unread_whispers do contato selecionado
+  // vindo do batch. Realtime invalida a query → refetch → este memo atualiza.
+  const whisperCount = useMemo(() => {
+    if (!selectedContactId) return 0;
+    const ref = resolveContactRef(selectedContactId);
+    if (!isUuidRef(ref)) return 0;
+    return summaryBatch?.find((s) => s.contact_id === ref.uuid)?.unread_whispers ?? 0;
+  }, [selectedContactId, summaryBatch]);
+
+  const queryClient = useQueryClient();
+  // Ref para invalidar com os IDs atuais do batch sem re-assinar o canal a
+  // cada mudança da lista de conversas.
+  const batchContactIdsRef = useRef<string[]>(batchContactIds);
+  batchContactIdsRef.current = batchContactIds;
+
+  useEffect(() => {
+    if (!selectedContactId || !profile?.id) return;
 
     // ── UUID guard ──────────────────────────────────────────────────────────
     // whisper_messages.contact_id is a uuid column. selectedContactId may be a
     // WhatsApp JID / phone number (e.g. "551146375517") instead of a UUID (deep
     // links). PostgREST returns 400 "invalid input syntax for type uuid" when a
     // non-UUID string is used as a filter on a uuid column.
-    // Skip both the count query and the realtime subscription in that case.
+    // Skip the realtime subscription in that case (whisperCount já deriva 0).
 
-    if (!isUuidRef(resolveContactRef(selectedContactId))) {
+    const ref = resolveContactRef(selectedContactId);
+    if (!isUuidRef(ref)) {
       log.debug(
-        '[whisperCount] selectedContactId is not a UUID — skipping whisper query (likely a WhatsApp JID)',
+        '[whisperCount] selectedContactId is not a UUID — skipping whisper subscription (likely a WhatsApp JID)',
         { selectedContactId }
       );
-      setWhisperCount(0);
       return;
     }
     // ────────────────────────────────────────────────────────────────────────
 
-    let cancelled = false;
-    /** Queries the unread whisper count for the current contact and updates state. */
-    const fetchWhisperCount = async () => {
-      const { count, error } = await supabase
-        .from('whisper_messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('contact_id', selectedContactId)
-        .eq('is_read', false);
-      if (!cancelled && !error && count !== null) setWhisperCount(count);
-    };
-    void fetchWhisperCount();
-
     // Wave 2: whisper_messages is a VIEW in public schema — zapp.whisper_messages is the base table.
     // PostgreSQL views never emit WAL events, so Realtime subscriptions must target the base table.
+    // O callback NÃO faz mais HEAD count — invalida a query batch (1 RPC).
     const channel = supabase
       .channel(`whisper-count-${selectedContactId}`)
       .on(
@@ -255,19 +280,20 @@ export function useRealtimeInbox() {
           event: '*',
           schema: 'zapp',
           table: 'whisper_messages',
-          filter: `contact_id=eq.${selectedContactId}`,
+          filter: `contact_id=eq.${ref.uuid}`,
         },
         () => {
-          void fetchWhisperCount();
+          void queryClient.invalidateQueries({
+            queryKey: queryKeys.contactSummaryBatch.batch(batchContactIdsRef.current),
+          });
         }
       )
       .subscribe();
     return () => {
-      cancelled = true;
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, [selectedContactId, profile?.id]);
+  }, [selectedContactId, profile?.id, queryClient]);
 
   const messageQueue = useMessageQueue(async (item: QueueItem) => {
     const { contactId, content, attachments } = item;

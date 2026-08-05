@@ -11,6 +11,19 @@ interface RetryOptions {
 }
 
 /**
+ * True when the error is an intentional abort (AbortController.abort(),
+ * page unload / navigation).
+ *
+ * Matches by `err.name` — NEVER by `message.includes(...)`: the real browser
+ * message behind an AbortError during page unload is "Page unload", and
+ * matching on message text is fragile across environments.
+ */
+export function isIntentionalAbort(err: unknown): boolean {
+  if (typeof DOMException !== 'undefined' && err instanceof DOMException && err.name === 'AbortError') return true;
+  return err instanceof Error && err.name === 'AbortError';
+}
+
+/**
  * Resilient retry wrapper with exponential backoff and jitter.
  * Works with any async operation (Supabase, fetch, etc).
  *
@@ -46,7 +59,29 @@ export async function withRetry<T>(
     } catch (error) {
       lastError = error;
 
-      if (attempt >= maxRetries || !shouldRetry(error, attempt)) {
+      // Intentional abort (page unload / navigation): never retry, never
+      // log as ERROR. The browser aborts all in-flight fetches on unload;
+      // "Page unload" is the real message behind those AbortErrors, so this
+      // guard matches by err.name only and takes precedence over shouldRetry.
+      if (isIntentionalAbort(error)) {
+        log.debug(
+          `[${correlationId}] Request aborted (attempt ${attempt + 1}) — not retrying`,
+          error
+        );
+        throw error;
+      }
+
+      // Real error, but the retry policy says it is not retryable.
+      if (!shouldRetry(error, attempt)) {
+        log.warn(
+          `[${correlationId}] Not retryable — aborting after ${attempt + 1} attempt(s)`,
+          error
+        );
+        throw error;
+      }
+
+      // Retries genuinely exhausted after a retryable error.
+      if (attempt >= maxRetries) {
         log.error(
           `[${correlationId}] All ${maxRetries} retries exhausted`,
           error

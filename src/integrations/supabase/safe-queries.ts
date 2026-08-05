@@ -7,12 +7,34 @@
  * @module integrations/supabase/safe-queries
  */
 
-import { SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
 import { Database } from './schema';
 
 // Accept clients bound to either schema (zapp is canonical, public via view proxy).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- cliente pode estar ligado a 'zapp' ou 'public'
 type AnySupabaseClient = SupabaseClient<Database, any, any>;
+
+/**
+ * Anexa um disposer ao RealtimeChannel retornado pelas funções `subscribe`
+ * (retrocompatível — o retorno continua sendo o próprio canal, callers antigos
+ * seguem funcionando). O disposer executa o padrão de cleanup do repo:
+ * `channel.unsubscribe()` + `supabase.removeChannel(channel)`.
+ *
+ * LEAK FIX (REALTIME_CHANNELS_AUDIT): antes desta mudança os canais criados aqui
+ * NUNCA eram removidos do cliente (não havia removeChannel em lugar nenhum do
+ * arquivo), vazando uma entrada em `supabase.channels` a cada subscribe.
+ *
+ * Uso: `const ch = safeWhatsAppConnectionsQuery(supabase).subscribe(cb); ... ch.dispose();`
+ */
+export type DisposableChannel = RealtimeChannel & { dispose: () => void };
+
+function attachChannelDisposer(channel: RealtimeChannel, client: AnySupabaseClient): DisposableChannel {
+  (channel as DisposableChannel).dispose = () => {
+    channel.unsubscribe();
+    client.removeChannel(channel);
+  };
+  return channel as DisposableChannel;
+}
 
 /**
  * Safe WhatsApp Connections Query
@@ -108,8 +130,8 @@ export const safeWhatsAppConnectionsQuery = (supabase: AnySupabaseClient) => ({
   subscribe: (
     callback: (changes: unknown) => void,
     options?: { event?: string; filter?: string }
-  ) => {
-    return supabase
+  ): DisposableChannel => {
+    const channel = supabase
       .channel('whatsapp_connections_safe')
       .on(
         'postgres_changes' as never,
@@ -122,6 +144,10 @@ export const safeWhatsAppConnectionsQuery = (supabase: AnySupabaseClient) => ({
         callback
       )
       .subscribe();
+
+    // LEAK FIX (REALTIME_CHANNELS_AUDIT): expõe cleanup retrocompatível via
+    // `channel.dispose()` — ver attachChannelDisposer acima.
+    return attachChannelDisposer(channel, supabase);
   },
 });
 
@@ -166,8 +192,8 @@ export const safeChannelConnectionsQuery = (supabase: SupabaseClient<Database>) 
    * Subscribe to channel changes (RLS enforced)
    * Safe for: realtime updates with masking
    */
-  subscribe: (callback: (changes: unknown) => void) => {
-    return supabase
+  subscribe: (callback: (changes: unknown) => void): DisposableChannel => {
+    const channel = supabase
       .channel('channel_connections_safe')
       .on(
         'postgres_changes',
@@ -179,6 +205,10 @@ export const safeChannelConnectionsQuery = (supabase: SupabaseClient<Database>) 
         callback
       )
       .subscribe();
+
+    // LEAK FIX (REALTIME_CHANNELS_AUDIT): expõe cleanup retrocompatível via
+    // `channel.dispose()` — ver attachChannelDisposer acima.
+    return attachChannelDisposer(channel, supabase);
   },
 });
 

@@ -43,6 +43,24 @@ const RELOAD_WINDOW_MS = 10 * 60 * 1000;
 const MAX_GLOBAL_RELOADS = 5;
 const GLOBAL_RELOAD_WINDOW_MS = 15 * 60 * 1000;
 
+// Cortesia de atualização (FIX #7): ao detectar mismatch, o usuário é avisado
+// via 'zapp-update-required' (grace:true) e o reload é adiado por
+// UPDATE_GRACE_MS — tempo de ler o banner e clicar em "Atualizar agora"
+// (dispara 'zapp-update-apply', que cancela o timer e aplica na hora), ou
+// deixar o reload automático acontecer ao fim da janela. Antes, o 1º/2º reload
+// era silencioso (TTM 312ms → 1154ms no log de produção).
+export const UPDATE_GRACE_MS = 60_000;
+
+// Timer module-level da janela de cortesia — guarda o ÚLTIMO timer agendado
+// para cancelamento via 'zapp-update-apply'. Cada mismatch agenda o seu
+// próprio reload (comportamento idêntico ao pré-cortesia, apenas adiado);
+// timers antigos morrem com o reload da página.
+let graceTimer: ReturnType<typeof setTimeout> | undefined;
+
+// Reason/remote do refresh pendente — usado pelo listener de 'zapp-update-apply'
+// para executar forceBundleRefresh(reason, remote) imediatamente.
+let pendingGraceRefresh: { reason: string; remote: string } | undefined;
+
 interface ReloadState {
   targetBuildId: string;
   attempts: number;
@@ -266,6 +284,50 @@ export async function forceBundleRefresh(
 // version.json tem poucos bytes e o server costuma responder em <100ms.
 const VERSION_CHECK_TIMEOUT_MS = 10_000;
 
+/**
+ * Agenda o reload forçado com janela de cortesia (FIX #7). O mismatch já foi
+ * anunciado via 'zapp-update-required' (grace:true) pelo chamador; aqui só
+ * adiamos o forceBundleRefresh por UPDATE_GRACE_MS. Se 'zapp-update-apply'
+ * chegar antes, o timer é cancelado e o refresh aplicado imediatamente (ver
+ * ensureApplyListener). As cotas de reload continuam valendo DENTRO de
+ * forceBundleRefresh — nada de guarda foi alterado.
+ */
+function scheduleGracefulRefresh(reason: string, remote: string): void {
+  pendingGraceRefresh = { reason, remote };
+  // NOTA: não cancelamos timers anteriores — cada mismatch agenda o seu próprio
+  // reload (mesmo comportamento do pré-cortesia, apenas adiado). A variável
+  // module-level guarda o ÚLTIMO timer para cancelamento via 'zapp-update-apply'.
+  graceTimer = setTimeout(() => {
+    void forceBundleRefresh(reason, remote);
+  }, UPDATE_GRACE_MS);
+}
+
+/** Aplica imediatamente o reload pendente (evento 'zapp-update-apply'). */
+function applyPendingRefreshNow(): void {
+  if (graceTimer) {
+    clearTimeout(graceTimer);
+    graceTimer = undefined;
+  }
+  const pending = pendingGraceRefresh;
+  pendingGraceRefresh = undefined;
+  if (pending) {
+    void forceBundleRefresh(pending.reason, pending.remote);
+  }
+}
+
+let applyListenerAttached = false;
+/**
+ * Listener único (idempotente) para 'zapp-update-apply' — o botão "Atualizar
+ * agora" do banner cancela a cortesia e força o refresh na hora. Registrado
+ * uma única vez no módulo; sobrevive ao ciclo do watcher.
+ */
+function ensureApplyListener(): void {
+  if (applyListenerAttached || typeof window === 'undefined') return;
+  applyListenerAttached = true;
+  window.addEventListener('zapp-update-apply', () => applyPendingRefreshNow());
+}
+ensureApplyListener();
+
 async function checkVersion(): Promise<void> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), VERSION_CHECK_TIMEOUT_MS);
@@ -317,10 +379,22 @@ async function checkVersion(): Promise<void> {
       }
       return;
     }
-    await forceBundleRefresh(
-      `client=${CURRENT_BUILD_ID} server=${remote}`,
-      remote,
+    // FIX #7 (2026-08-05): avisa o usuário ANTES do 1º reload. O mismatch agora
+    // dispara 'zapp-update-required' com grace:true e ADIA o reload por
+    // UPDATE_GRACE_MS — o banner oferece "Atualizar agora" ('zapp-update-apply'
+    // cancela o timer e aplica na hora) ou deixa o reload automático ocorrer.
+    // Antes, forceBundleRefresh recarregava silenciosamente (TTM 312ms→1154ms).
+    window.dispatchEvent(
+      new CustomEvent('zapp-update-required', {
+        detail: {
+          current: CURRENT_BUILD_ID,
+          remote,
+          reason: 'version-mismatch',
+          grace: true,
+        },
+      }),
     );
+    scheduleGracefulRefresh(`client=${CURRENT_BUILD_ID} server=${remote}`, remote);
   } catch {
     /* offline / timeout / network hiccup — retry next tick */
   } finally {
@@ -396,6 +470,13 @@ export function startBuildVersionWatcher(): () => void {
   return () => {
     clearTimeout(kickoff);
     if (intervalId) clearInterval(intervalId);
+    // Cancela a janela de cortesia pendente — um reload agendado não pode
+    // disparar depois que o watcher foi parado (ex.: unmount em testes).
+    if (graceTimer) {
+      clearTimeout(graceTimer);
+      graceTimer = undefined;
+    }
+    pendingGraceRefresh = undefined;
     document.removeEventListener('visibilitychange', onVisible);
     window.removeEventListener('focus', onFocus);
     started = false;
@@ -414,6 +495,7 @@ export function getCurrentBuildId(): string {
 
 export const __TEST__ = {
   CURRENT_BUILD_ID,
+  UPDATE_GRACE_MS,
   RELOAD_STATE_KEY,
   SW_PURGE_FLAG,
   GLOBAL_RELOAD_COUNT_KEY,
