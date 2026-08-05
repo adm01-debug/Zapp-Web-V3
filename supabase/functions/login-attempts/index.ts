@@ -10,6 +10,7 @@ import {
 import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import { checkLoginSecurityGate } from "../_shared/security-gate.ts";
 
 type LoginAttemptAction = "check" | "record_failed" | "clear";
 
@@ -73,6 +74,26 @@ Deno.serve(async (req) => {
     return errorResponse("Muitas requisições. Tente novamente em instantes.", 429, req);
   }
 
+  // ── SEGURANCA-04 + SEGURANCA-05: enforcement de blocked_ips, ip_whitelist e
+  // geo-blocking no início do handler de login (pré-flight chamado pelo frontend
+  // antes de cada signInWithPassword). Consulta direta via service role.
+  // Nota: o request de login do GoTrue (signInWithPassword) NÃO passa pelas Edge
+  // Functions — este gate é o único ponto de enforcement possível sem hook do
+  // GoTrue (sinalizado; hook exigiria migration/config de auth).
+  const admin = createZappAdminClient();
+  const gate = await checkLoginSecurityGate(req, admin);
+  if (!gate.allowed) {
+    console.warn(
+      `[login-attempts] login blocked: reason=${gate.reason} ip=${gate.ip} country=${gate.country}`,
+    );
+    return errorResponse(
+      "Acesso bloqueado pela política de segurança",
+      403,
+      req,
+      { code: gate.reason, ip: gate.ip, country: gate.country },
+    );
+  }
+
   try {
     const raw = await req.json().catch(() => null);
     const parsed = parseOrReject("login-attempts", CONTRACT_SCHEMAS["login-attempts"], req, raw, {
@@ -89,8 +110,6 @@ Deno.serve(async (req) => {
     if (!email) {
       return errorResponse("Email inválido", 400, req);
     }
-
-    const admin = createZappAdminClient();
 
     if (action === "clear") {
       const authClient = createZappClient(req);
@@ -116,7 +135,17 @@ Deno.serve(async (req) => {
     }
 
     if (action === "check") {
-      return jsonResponse(toStatus(existing), 200, req);
+      // Resposta estendida (SEGURANCA-04/05): `country`/`geo_unavailable` para
+      // observabilidade do gate de segurança (contrato de request inalterado).
+      return jsonResponse(
+        {
+          ...toStatus(existing),
+          country: gate.country,
+          geo_unavailable: gate.geoUnavailable,
+        },
+        200,
+        req,
+      );
     }
 
     // FIX 2026-07-16: NAO resetar attempt_count quando o lock expira.
@@ -146,7 +175,17 @@ Deno.serve(async (req) => {
       return errorResponse("Não foi possível registrar tentativa", 500, req);
     }
 
-    return jsonResponse({ is_locked: lockedUntil !== null, locked_until: lockedUntil, attempts }, 200, req);
+    return jsonResponse(
+      {
+        is_locked: lockedUntil !== null,
+        locked_until: lockedUntil,
+        attempts,
+        country: gate.country,
+        geo_unavailable: gate.geoUnavailable,
+      },
+      200,
+      req,
+    );
   } catch {
     return errorResponse("Erro interno ao processar tentativas de login", 500, req);
   }
