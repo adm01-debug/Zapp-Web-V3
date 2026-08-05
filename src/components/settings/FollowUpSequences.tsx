@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Clock, ArrowRight, Zap, MessageSquare } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Plus, Trash2, Clock, ArrowRight, Zap, MessageSquare, Info, AlertTriangle } from 'lucide-react';
 import { FollowUpExecutionsHistory } from './FollowUpExecutionsHistory';
 import { useFollowUpSequences, type Step } from '@/hooks/followup/useFollowUpSequences';
 
@@ -30,7 +31,7 @@ export function FollowUpSequences() {
       is_active: true,
     },
   ]);
-  const { sequences, isLoading, createMutation, toggleMutation, deleteMutation } =
+  const { sequences, isLoading, queryError, createMutation, toggleMutation, deleteMutation } =
     useFollowUpSequences();
 
   const addStep = () => {
@@ -72,6 +73,24 @@ export function FollowUpSequences() {
           Nova Sequência
         </Button>
       </div>
+
+      {/* Aviso de integração com o motor real (WHATSAPP-10) */}
+      <Alert className="border-info/30 bg-info/5">
+        <Info className="h-4 w-4" />
+        <AlertTitle>Integrado ao motor Evolution</AlertTitle>
+        <AlertDescription className="space-y-1 text-sm">
+          <p>
+            As sequências abaixo são gravadas em <code>evolution_followup_rules</code> — a mesma
+            tabela lida pelo motor de follow-up em produção (edge <code>evolution-followup</code>{' '}
+            via cron). O que você gerencia aqui é o que o motor executa.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            A mensagem de cada passo é salva como texto em <code>description</code>. O trigger de
+            produção renderiza mensagens via <code>template_id</code> (template aprovado); sem
+            seletor de template na UI, valide um disparo real antes de depender da feature.
+          </p>
+        </AlertDescription>
+      </Alert>
 
       {/* Create Form */}
       {showCreate && (
@@ -180,10 +199,18 @@ export function FollowUpSequences() {
       {/* Existing Sequences */}
       {isLoading ? (
         <div className="py-8 text-center text-muted-foreground">Carregando...</div>
+      ) : queryError ? (
+        <Card className="p-8 text-center">
+          <AlertTriangle className="mx-auto mb-2 h-10 w-10 text-destructive opacity-60" />
+          <p className="font-medium">Não foi possível carregar as regras de follow-up</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {queryError instanceof Error ? queryError.message : 'Erro desconhecido'}
+          </p>
+        </Card>
       ) : sequences.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground">
           <Zap className="mx-auto mb-2 h-10 w-10 opacity-30" />
-          <p>Nenhuma sequência criada ainda.</p>
+          <p>Nenhuma regra de follow-up cadastrada.</p>
         </Card>
       ) : (
         <div className="space-y-3">

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
+import { fromTable } from '@/lib/supabaseHelpers';
 import {
   getWhatsAppMode,
   invalidateWhatsAppModeCache,
@@ -10,6 +11,16 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import type { SecretStatus, VerifyResult } from './adminWhatsAppModeTypes';
 
+/** Estado das credenciais oficiais persistidas na TABELA (por conexão). */
+export interface TableCredStatus {
+  connection_id: string;
+  connection_name: string;
+  phone_number_id: string | null;
+  waba_id: string | null;
+  has_access_token: boolean;
+  has_app_secret: boolean;
+}
+
 /** use Admin Whats App Mode. */
 export function useAdminWhatsAppMode() {
   const { toast } = useToast();
@@ -18,6 +29,8 @@ export function useAdminWhatsAppMode() {
   const [saving, setSaving] = useState(false);
   const [secrets, setSecrets] = useState<SecretStatus[] | null>(null);
   const [secretsLoading, setSecretsLoading] = useState(false);
+  const [tableCreds, setTableCreds] = useState<TableCredStatus[] | null>(null);
+  const [tableCredsLoading, setTableCredsLoading] = useState(false);
   const [verify, setVerify] = useState<VerifyResult | null>(null);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const webhookUrl = getCloudWebhookUrl();
@@ -28,6 +41,62 @@ export function useAdminWhatsAppMode() {
     setMode(m);
     setLoading(false);
   }, []);
+
+  /**
+   * WHATSAPP-06: o status agora reflete TAMBÉM a tabela
+   * `whatsapp_official_credentials_safe` (por conexão), além dos secrets de
+   * ambiente do edge `whatsapp-cloud-secrets-status`. A view segura é a mesma
+   * fonte usada pelo OfficialApiConfigDialog, então o que o admin vê aqui é o
+   * que foi realmente persistido pelo formulário de credenciais.
+   */
+  const refreshTableCreds = useCallback(async () => {
+    setTableCredsLoading(true);
+    try {
+      const safeView = fromTable('whatsapp_official_credentials_safe') as unknown as {
+        select: (columns: string) => Promise<{
+          data: Array<{
+            connection_id: string | null;
+            phone_number_id: string | null;
+            waba_id: string | null;
+            has_access_token: boolean | null;
+            has_app_secret: boolean | null;
+          }> | null;
+          error: unknown;
+        }>;
+      };
+      const [safeRes, connsRes] = await Promise.all([
+        safeView.select(
+          'connection_id, phone_number_id, waba_id, has_access_token, has_app_secret'
+        ),
+        supabase.from('whatsapp_connections').select('id, name, api_type').order('name'),
+      ]);
+      const safeErr = safeRes.error as { message?: string } | null;
+      if (safeErr) throw safeErr;
+      const connsErr = connsRes.error;
+      if (connsErr) throw connsErr;
+      const conns = connsRes.data ?? [];
+      const byId = new Map(conns.map((c) => [c.id, c.name ?? 'Conexão']));
+      setTableCreds(
+        (safeRes.data ?? []).map((c) => ({
+          connection_id: c.connection_id ?? '',
+          connection_name: c.connection_id ? (byId.get(c.connection_id) ?? 'Conexão') : 'Conexão',
+          phone_number_id: c.phone_number_id,
+          waba_id: c.waba_id,
+          has_access_token: Boolean(c.has_access_token),
+          has_app_secret: Boolean(c.has_app_secret),
+        }))
+      );
+    } catch (e) {
+      setTableCreds(null);
+      toast({
+        title: 'Falha ao consultar credenciais por conexão',
+        description: e instanceof Error ? e.message : 'Erro desconhecido',
+        variant: 'destructive',
+      });
+    } finally {
+      setTableCredsLoading(false);
+    }
+  }, [toast]);
 
   const refreshSecrets = useCallback(async () => {
     setSecretsLoading(true);
@@ -44,7 +113,9 @@ export function useAdminWhatsAppMode() {
     } finally {
       setSecretsLoading(false);
     }
-  }, [toast]);
+    // O botão "Recarregar status" também atualiza o estado por conexão (tabela).
+    void refreshTableCreds();
+  }, [toast, refreshTableCreds]);
 
   const runVerify = useCallback(async () => {
     setVerifyLoading(true);
@@ -67,7 +138,8 @@ export function useAdminWhatsAppMode() {
     document.title = 'Modo WhatsApp — Configurações';
     void refresh();
     void refreshSecrets();
-  }, [refresh, refreshSecrets]);
+    void refreshTableCreds();
+  }, [refresh, refreshSecrets, refreshTableCreds]);
 
   const handleToggle = async (checked: boolean) => {
     const next: WhatsAppMode = checked ? 'official' : 'unofficial';
@@ -109,6 +181,8 @@ export function useAdminWhatsAppMode() {
     saving,
     secrets,
     secretsLoading,
+    tableCreds,
+    tableCredsLoading,
     verify,
     verifyLoading,
     webhookUrl,
@@ -116,6 +190,7 @@ export function useAdminWhatsAppMode() {
     missingCount,
     refresh,
     refreshSecrets,
+    refreshTableCreds,
     runVerify,
     handleToggle,
     copy,

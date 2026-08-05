@@ -17,6 +17,8 @@ export default function AdminWhatsAppModePage() {
     saving,
     secrets,
     secretsLoading,
+    tableCreds,
+    tableCredsLoading,
     verify,
     verifyLoading,
     webhookUrl,
@@ -152,6 +154,8 @@ export default function AdminWhatsAppModePage() {
         secretsLoading={secretsLoading}
         allConfigured={allConfigured}
         missingCount={missingCount}
+        tableCreds={tableCreds}
+        tableCredsLoading={tableCredsLoading}
         onRefreshSecrets={refreshSecrets}
       />
     </div>
