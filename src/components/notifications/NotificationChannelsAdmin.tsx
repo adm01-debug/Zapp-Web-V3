@@ -33,7 +33,7 @@ import {
 import { BellRing, Plus, Pencil, Trash2, ShieldAlert, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUserRole } from '@/features/auth/hooks/useUserRole';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/schema';
 import {
   useNotificationChannels,
   type NotificationChannelConfig,
