@@ -40,20 +40,35 @@ cscli bouncers list
 Imagens sem tag foram removidas na faxina Portainer de 2026-08-05 (~1,19 GB recuperados).
 - **NÃO usar** `infra/scripts/housekeeping.sh` para limpeza de imagens tagged — o script
   (`docker image prune -f`, sem `-a`) só remove dangling agora.
-- Para limpeza abrangente de tagged images: usar o stack `docker-housekeeping v2.2`
-  (`docs/infra/docker-housekeeping-v2.2.yml`) que protege `ghcr.io/.../zapp-web`.
+- Para limpeza abrangente de tagged images: usar o stack `docker-housekeeping v2.3`
+  (`docs/infra/docker-housekeeping-v2.3.yml`) que protege `ghcr.io/.../zapp-web`.
 - Ver footprint canônico: `docs/PORTAINER_ZAPP_FOOTPRINT.md`
 
 ## Rollback do zapp-web
 
+> **Aviso — janela de rollback automático:** `failure_action: rollback` só dispara dentro de `monitor: 60s`.
+> Como `start_period(30s) + retries(3) × interval(30s) = 120s`, um container que sobe mas fica
+> unhealthy lentamente **não** aciona o rollback automático. Nesses casos, execute o rollback manual abaixo.
+> O `zapp-health-guard` (stack 165) cobre falhas pós-start.
+
 ```bash
-# Flipar serviço para imagem de rollback (pre-pullada no host)
-docker service update --image ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-<sha-anterior> zapp-web-prod_web
+# Rollback manual com ref tag@digest (funciona offline — satisfaz pull por digest local)
+# Obter digest da imagem de rollback pré-pullada:
+DIGEST=$(docker images --digests --no-trunc --format '{{.Repository}}:{{.Tag}} {{.Digest}}' \
+  | awk '/production-<sha-anterior>/ {print $2; exit}')
+
+docker service update --detach=false \
+  --image "ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-<sha-anterior>@${DIGEST}" \
+  zapp-web-prod_web
 
 # Validar
 docker service ps zapp-web-prod_web --no-trunc
+docker service inspect zapp-web-prod_web --format '{{.UpdateStatus.State}} — {{.UpdateStatus.Message}}'
 curl -s -o /dev/null -w '%{http_code}' https://zapp.atomicabr.com.br/healthz   # esperado 200
 ```
+
+> **Pré-requisito:** imagem de rollback deve estar pré-pullada no host (ver §4 de `docs/PORTAINER_ZAPP_FOOTPRINT.md`).
+> Para rollback somente por tag (sem digest) — funciona apenas se GHCR estiver online.
 
 ## Gaps Identificados (não corrigidos)
 
