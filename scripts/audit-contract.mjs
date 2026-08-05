@@ -429,9 +429,16 @@ async function main() {
 
   let dbResult = null;
   if (hasPgEnv()) {
-    dbResult = await verifyWithPg(contract);
+    try {
+      dbResult = await verifyWithPg(contract);
+    } catch (err) {
+      // pg env setado mas conexão inalcançável (ex.: SUPABASE_DB_URL aponta p/
+      // IP interno do Swarm — ECONNREFUSED no CI) → fallback PostgREST.
+      console.warn(`audit-contract: modo pg falhou (${err.message}) — usando PostgREST`);
+      dbResult = { mode: null, reason: `pg falhou: ${err.message}` };
+    }
     if (dbResult.mode === null) {
-      // pg env setado mas driver ausente → tenta PostgREST como fallback
+      // pg env setado mas driver ausente/indisponível → tenta PostgREST como fallback
       if (hasPGRestEnv()) dbResult = await verifyWithPGRest(contract);
       else {
         if (JSON_MODE) printJson({ summary: { ok: false, divergences: 0, error: `DB_URL definido mas driver pg ausente e SUPABASE_URL/SERVICE_KEY não configurados` } });
