@@ -579,42 +579,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_blacklist: {
-        Row: {
-          blocked_at: string | null
-          blocked_by: string | null
-          created_at: string | null
-          description: string | null
-          expires_at: string | null
-          id: string
-          is_active: boolean | null
-          reason: string | null
-          remote_jid: string
-        }
-        Insert: {
-          blocked_at?: string | null
-          blocked_by?: string | null
-          created_at?: string | null
-          description?: string | null
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          reason?: string | null
-          remote_jid: string
-        }
-        Update: {
-          blocked_at?: string | null
-          blocked_by?: string | null
-          created_at?: string | null
-          description?: string | null
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          reason?: string | null
-          remote_jid?: string
-        }
-        Relationships: []
-      }
       evolution_bootstrap_log: {
         Row: {
           created_at: string | null
@@ -831,111 +795,6 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string
           started_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_campaign_recipients: {
-        Row: {
-          campaign_id: string | null
-          contact_name: string | null
-          created_at: string | null
-          delivered_at: string | null
-          error_message: string | null
-          id: string
-          message_id: string | null
-          read_at: string | null
-          remote_jid: string
-          sent_at: string | null
-          status: string | null
-        }
-        Insert: {
-          campaign_id?: string | null
-          contact_name?: string | null
-          created_at?: string | null
-          delivered_at?: string | null
-          error_message?: string | null
-          id?: string
-          message_id?: string | null
-          read_at?: string | null
-          remote_jid: string
-          sent_at?: string | null
-          status?: string | null
-        }
-        Update: {
-          campaign_id?: string | null
-          contact_name?: string | null
-          created_at?: string | null
-          delivered_at?: string | null
-          error_message?: string | null
-          id?: string
-          message_id?: string | null
-          read_at?: string | null
-          remote_jid?: string
-          sent_at?: string | null
-          status?: string | null
-        }
-        Relationships: []
-      }
-      evolution_campaigns: {
-        Row: {
-          completed_at: string | null
-          created_at: string | null
-          created_by: string | null
-          delivered_count: number | null
-          description: string | null
-          failed_count: number | null
-          id: string
-          messages_per_minute: number | null
-          name: string
-          read_count: number | null
-          scheduled_at: string | null
-          sent_count: number | null
-          started_at: string | null
-          status: string | null
-          target_filter: Json | null
-          template_id: string | null
-          total_recipients: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          delivered_count?: number | null
-          description?: string | null
-          failed_count?: number | null
-          id?: string
-          messages_per_minute?: number | null
-          name: string
-          read_count?: number | null
-          scheduled_at?: string | null
-          sent_count?: number | null
-          started_at?: string | null
-          status?: string | null
-          target_filter?: Json | null
-          template_id?: string | null
-          total_recipients?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          delivered_count?: number | null
-          description?: string | null
-          failed_count?: number | null
-          id?: string
-          messages_per_minute?: number | null
-          name?: string
-          read_count?: number | null
-          scheduled_at?: string | null
-          sent_count?: number | null
-          started_at?: string | null
-          status?: string | null
-          target_filter?: Json | null
-          template_id?: string | null
-          total_recipients?: number | null
-          updated_at?: string | null
         }
         Relationships: []
       }
@@ -2905,45 +2764,6 @@ export type Database = {
           value?: number | null
           weighted_value?: number | null
           won?: boolean | null
-        }
-        Relationships: []
-      }
-      evolution_dlq: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_id: string | null
-          event_type: string | null
-          id: string
-          instance_name: string | null
-          max_retries: number | null
-          payload: Json | null
-          processed_at: string | null
-          retry_count: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_id?: string | null
-          event_type?: string | null
-          id?: string
-          instance_name?: string | null
-          max_retries?: number | null
-          payload?: Json | null
-          processed_at?: string | null
-          retry_count?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_id?: string | null
-          event_type?: string | null
-          id?: string
-          instance_name?: string | null
-          max_retries?: number | null
-          payload?: Json | null
-          processed_at?: string | null
-          retry_count?: number | null
         }
         Relationships: []
       }
@@ -18655,42 +18475,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_blacklist: {
-        Row: {
-          blocked_at: string | null
-          blocked_by: string | null
-          created_at: string | null
-          description: string | null
-          expires_at: string | null
-          id: string | null
-          is_active: boolean | null
-          reason: string | null
-          remote_jid: string | null
-        }
-        Insert: {
-          blocked_at?: string | null
-          blocked_by?: string | null
-          created_at?: string | null
-          description?: string | null
-          expires_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          reason?: string | null
-          remote_jid?: string | null
-        }
-        Update: {
-          blocked_at?: string | null
-          blocked_by?: string | null
-          created_at?: string | null
-          description?: string | null
-          expires_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          reason?: string | null
-          remote_jid?: string | null
-        }
-        Relationships: []
-      }
       evolution_bootstrap_log: {
         Row: {
           created_at: string | null
@@ -18907,111 +18691,6 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string | null
           started_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_campaign_recipients: {
-        Row: {
-          campaign_id: string | null
-          contact_name: string | null
-          created_at: string | null
-          delivered_at: string | null
-          error_message: string | null
-          id: string | null
-          message_id: string | null
-          read_at: string | null
-          remote_jid: string | null
-          sent_at: string | null
-          status: string | null
-        }
-        Insert: {
-          campaign_id?: string | null
-          contact_name?: string | null
-          created_at?: string | null
-          delivered_at?: string | null
-          error_message?: string | null
-          id?: string | null
-          message_id?: string | null
-          read_at?: string | null
-          remote_jid?: string | null
-          sent_at?: string | null
-          status?: string | null
-        }
-        Update: {
-          campaign_id?: string | null
-          contact_name?: string | null
-          created_at?: string | null
-          delivered_at?: string | null
-          error_message?: string | null
-          id?: string | null
-          message_id?: string | null
-          read_at?: string | null
-          remote_jid?: string | null
-          sent_at?: string | null
-          status?: string | null
-        }
-        Relationships: []
-      }
-      evolution_campaigns: {
-        Row: {
-          completed_at: string | null
-          created_at: string | null
-          created_by: string | null
-          delivered_count: number | null
-          description: string | null
-          failed_count: number | null
-          id: string | null
-          messages_per_minute: number | null
-          name: string | null
-          read_count: number | null
-          scheduled_at: string | null
-          sent_count: number | null
-          started_at: string | null
-          status: string | null
-          target_filter: Json | null
-          template_id: string | null
-          total_recipients: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          delivered_count?: number | null
-          description?: string | null
-          failed_count?: number | null
-          id?: string | null
-          messages_per_minute?: number | null
-          name?: string | null
-          read_count?: number | null
-          scheduled_at?: string | null
-          sent_count?: number | null
-          started_at?: string | null
-          status?: string | null
-          target_filter?: Json | null
-          template_id?: string | null
-          total_recipients?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          delivered_count?: number | null
-          description?: string | null
-          failed_count?: number | null
-          id?: string | null
-          messages_per_minute?: number | null
-          name?: string | null
-          read_count?: number | null
-          scheduled_at?: string | null
-          sent_count?: number | null
-          started_at?: string | null
-          status?: string | null
-          target_filter?: Json | null
-          template_id?: string | null
-          total_recipients?: number | null
-          updated_at?: string | null
         }
         Relationships: []
       }
@@ -20995,45 +20674,6 @@ export type Database = {
           value?: number | null
           weighted_value?: number | null
           won?: boolean | null
-        }
-        Relationships: []
-      }
-      evolution_dlq: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_id: string | null
-          event_type: string | null
-          id: string | null
-          instance_name: string | null
-          max_retries: number | null
-          payload: Json | null
-          processed_at: string | null
-          retry_count: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_id?: string | null
-          event_type?: string | null
-          id?: string | null
-          instance_name?: string | null
-          max_retries?: number | null
-          payload?: Json | null
-          processed_at?: string | null
-          retry_count?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_id?: string | null
-          event_type?: string | null
-          id?: string | null
-          instance_name?: string | null
-          max_retries?: number | null
-          payload?: Json | null
-          processed_at?: string | null
-          retry_count?: number | null
         }
         Relationships: []
       }
@@ -55272,42 +54912,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_blacklist: {
-        Row: {
-          blocked_at: string | null
-          blocked_by: string | null
-          created_at: string | null
-          description: string | null
-          expires_at: string | null
-          id: string | null
-          is_active: boolean | null
-          reason: string | null
-          remote_jid: string | null
-        }
-        Insert: {
-          blocked_at?: string | null
-          blocked_by?: string | null
-          created_at?: string | null
-          description?: string | null
-          expires_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          reason?: string | null
-          remote_jid?: string | null
-        }
-        Update: {
-          blocked_at?: string | null
-          blocked_by?: string | null
-          created_at?: string | null
-          description?: string | null
-          expires_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          reason?: string | null
-          remote_jid?: string | null
-        }
-        Relationships: []
-      }
       evolution_bootstrap_log: {
         Row: {
           created_at: string | null
@@ -55524,111 +55128,6 @@ export type Database = {
           raw_data?: Json | null
           remote_jid?: string | null
           started_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_campaign_recipients: {
-        Row: {
-          campaign_id: string | null
-          contact_name: string | null
-          created_at: string | null
-          delivered_at: string | null
-          error_message: string | null
-          id: string | null
-          message_id: string | null
-          read_at: string | null
-          remote_jid: string | null
-          sent_at: string | null
-          status: string | null
-        }
-        Insert: {
-          campaign_id?: string | null
-          contact_name?: string | null
-          created_at?: string | null
-          delivered_at?: string | null
-          error_message?: string | null
-          id?: string | null
-          message_id?: string | null
-          read_at?: string | null
-          remote_jid?: string | null
-          sent_at?: string | null
-          status?: string | null
-        }
-        Update: {
-          campaign_id?: string | null
-          contact_name?: string | null
-          created_at?: string | null
-          delivered_at?: string | null
-          error_message?: string | null
-          id?: string | null
-          message_id?: string | null
-          read_at?: string | null
-          remote_jid?: string | null
-          sent_at?: string | null
-          status?: string | null
-        }
-        Relationships: []
-      }
-      evolution_campaigns: {
-        Row: {
-          completed_at: string | null
-          created_at: string | null
-          created_by: string | null
-          delivered_count: number | null
-          description: string | null
-          failed_count: number | null
-          id: string | null
-          messages_per_minute: number | null
-          name: string | null
-          read_count: number | null
-          scheduled_at: string | null
-          sent_count: number | null
-          started_at: string | null
-          status: string | null
-          target_filter: Json | null
-          template_id: string | null
-          total_recipients: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          delivered_count?: number | null
-          description?: string | null
-          failed_count?: number | null
-          id?: string | null
-          messages_per_minute?: number | null
-          name?: string | null
-          read_count?: number | null
-          scheduled_at?: string | null
-          sent_count?: number | null
-          started_at?: string | null
-          status?: string | null
-          target_filter?: Json | null
-          template_id?: string | null
-          total_recipients?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          delivered_count?: number | null
-          description?: string | null
-          failed_count?: number | null
-          id?: string | null
-          messages_per_minute?: number | null
-          name?: string | null
-          read_count?: number | null
-          scheduled_at?: string | null
-          sent_count?: number | null
-          started_at?: string | null
-          status?: string | null
-          target_filter?: Json | null
-          template_id?: string | null
-          total_recipients?: number | null
-          updated_at?: string | null
         }
         Relationships: []
       }
@@ -57665,45 +57164,6 @@ export type Database = {
           value?: number | null
           weighted_value?: number | null
           won?: boolean | null
-        }
-        Relationships: []
-      }
-      evolution_dlq: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_id: string | null
-          event_type: string | null
-          id: string | null
-          instance_name: string | null
-          max_retries: number | null
-          payload: Json | null
-          processed_at: string | null
-          retry_count: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_id?: string | null
-          event_type?: string | null
-          id?: string | null
-          instance_name?: string | null
-          max_retries?: number | null
-          payload?: Json | null
-          processed_at?: string | null
-          retry_count?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_id?: string | null
-          event_type?: string | null
-          id?: string | null
-          instance_name?: string | null
-          max_retries?: number | null
-          payload?: Json | null
-          processed_at?: string | null
-          retry_count?: number | null
         }
         Relationships: []
       }
@@ -68883,7 +68343,6 @@ export type Database = {
       fn_d30_reminder_check: { Args: never; Returns: undefined }
       fn_daily_ops_briefing: { Args: never; Returns: Json }
       fn_dashboard_data: { Args: never; Returns: Json }
-      fn_data_retention_cleanup: { Args: never; Returns: Json }
       fn_detect_schema_drift: {
         Args: never
         Returns: {
@@ -69335,6 +68794,7 @@ export type Database = {
         Args: { p_batch_size?: number; p_retention_days?: number }
         Returns: Json
       }
+      fn_purge_webhook_logs: { Args: { older_than?: string }; Returns: number }
       fn_queue_message: {
         Args: {
           p_content: string
