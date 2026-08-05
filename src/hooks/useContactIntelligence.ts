@@ -4,7 +4,7 @@
 // data is missing so the panel always renders a usable state.
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { ContactIntelligenceRow } from '@/integrations/supabase/types-manual';
+import type { ContactIntelligenceRow } from '@/integrations/supabase/schema';
 import { log } from '@/lib/logger';
 import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { isValidUUID } from '@/utils/uuid';
