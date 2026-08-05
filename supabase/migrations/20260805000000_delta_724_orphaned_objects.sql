@@ -80,7 +80,10 @@ CREATE POLICY svc_rw ON zapp.instance_auth_events
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- public compat view (matches production viewdef: id..status_code from zapp)
-CREATE OR REPLACE VIEW public.instance_auth_events AS
+-- security_invoker=true: RLS da tabela base é respeitado (padrão AGENTS.md —
+-- public é só camada de API; sem isso a view roda como owner e bypassa RLS)
+CREATE OR REPLACE VIEW public.instance_auth_events
+WITH (security_invoker = true) AS
   SELECT id, instance_name, event_type, ip_address, user_agent, success,
          created_at, reason, paused_until, investigated_at, source,
          http_status, detail, meta, status_code
