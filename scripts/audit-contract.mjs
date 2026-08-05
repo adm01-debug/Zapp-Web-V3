@@ -40,6 +40,24 @@ const RPC_SCHEMAS = ['zapp', 'public'];
 const PGREST_TIMEOUT_MS = 10_000;
 
 // ---------------------------------------------------------------------------
+// 0. Allowlist — divergências conhecidas/esperadas (não causam exit 1)
+// ---------------------------------------------------------------------------
+function loadAllowlist() {
+  const path = join(ROOT, 'scripts', 'audit-allowlist.json');
+  try {
+    const raw = readFileSync(path, 'utf8');
+    const data = JSON.parse(raw);
+    const set = new Set();
+    for (const entry of (data.allowlist ?? [])) {
+      set.add(`${entry.kind}:${entry.name}`);
+    }
+    return set;
+  } catch {
+    return new Set();
+  }
+}
+
+// ---------------------------------------------------------------------------
 // 1. Extração do contrato declarado no frontend
 // ---------------------------------------------------------------------------
 const RPC_RE = /\.rpc\(\s*['"]([a-z_0-9]+)['"]/g;
@@ -316,8 +334,12 @@ function verifyEdgeFunctions(contract) {
 // ---------------------------------------------------------------------------
 // 4. Relatório
 // ---------------------------------------------------------------------------
-function buildReport(contract, edgeDivergences, dbResult) {
-  const divergences = [...edgeDivergences, ...(dbResult?.divergences ?? [])];
+function buildReport(contract, edgeDivergences, dbResult, allowlist = new Set()) {
+  const allDivergences = [...edgeDivergences, ...(dbResult?.divergences ?? [])];
+  const divergences = allowlist.size > 0
+    ? allDivergences.filter((d) => !allowlist.has(`${d.kind}:${d.name}`))
+    : allDivergences;
+  const suppressed = allDivergences.length - divergences.length;
   const summary = {
     rpcs: contract.rpcs.size,
     froms: contract.froms.size,
@@ -325,6 +347,7 @@ function buildReport(contract, edgeDivergences, dbResult) {
     edgeFunctionsOnDisk: listEdgeFunctionDirs().length,
     dbMode: dbResult?.mode ?? 'none',
     divergences: divergences.length,
+    suppressed,
     ok: divergences.length === 0,
   };
   return { summary, divergences };
@@ -359,6 +382,9 @@ function printText(report, contract) {
   } else {
     console.log(`\n❌ ${summary.divergences} divergência(s) de contrato.`);
   }
+  if ((summary.suppressed ?? 0) > 0) {
+    console.log(`   ℹ️  ${summary.suppressed} suprimida(s) pelo allowlist (scripts/audit-allowlist.json).`);
+  }
 }
 
 function printJson(report) {
@@ -371,9 +397,10 @@ function printJson(report) {
 async function main() {
   const contract = extractContract();
   const edgeDivergences = verifyEdgeFunctions(contract);
+  const allowlist = loadAllowlist();
 
   if (SCAN_ONLY) {
-    const report = buildReport(contract, edgeDivergences, null);
+    const report = buildReport(contract, edgeDivergences, null, allowlist);
     if (JSON_MODE) printJson(report);
     else printText(report, contract);
     process.exit(report.summary.divergences > 0 ? 1 : 0);
@@ -405,7 +432,7 @@ async function main() {
     process.exit(2);
   }
 
-  const report = buildReport(contract, edgeDivergences, dbResult);
+  const report = buildReport(contract, edgeDivergences, dbResult, allowlist);
   if (JSON_MODE) printJson(report);
   else printText(report, contract);
   process.exit(report.summary.ok ? 0 : 1);
