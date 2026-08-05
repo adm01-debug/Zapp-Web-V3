@@ -17,6 +17,8 @@ import {
   jsonResponse,
   errorResponse,
 } from "../_shared/cors.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CsatAutoSendV1Schema } from "../_shared/contract-schemas.ts";
 
 // deno-lint-ignore no-explicit-any
 const admin = createZappAdminClient();
@@ -81,18 +83,16 @@ Deno.serve(async (req: Request) => {
     return errorResponse(req, "Method not allowed", 405);
   }
 
-  let body: CsatAutoSendBody;
+  let rawBody: unknown;
   try {
-    body = (await req.json()) as CsatAutoSendBody;
+    rawBody = await req.json();
   } catch {
     return errorResponse(req, "Invalid JSON body", 400);
   }
 
-  const { survey_id, contact_id, agent_id, connection_id, conversation_id, delay_minutes } = body;
-
-  if (!contact_id || !connection_id) {
-    return errorResponse(req, "contact_id and connection_id are required", 400);
-  }
+  const parsed = parseOrReject<CsatAutoSendBody>('csat-auto-send', { v1: CsatAutoSendV1Schema }, req, rawBody);
+  if (!parsed.ok) return parsed.response;
+  const { survey_id, contact_id, agent_id, connection_id, conversation_id, delay_minutes } = parsed.data;
 
   try {
     // ── 1. Query csat_auto_config ─────────────────────────────────────────────

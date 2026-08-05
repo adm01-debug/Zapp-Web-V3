@@ -867,6 +867,24 @@ export const AiSuggestReplyV1Schema = AiSuggestReplySchema
  * → permissivo.
  */
 
+/** followup-bridge@v1 — POST { sequence_id, contact_jid, instance_name, trigger_event? } */
+export const FollowupBridgeV1Schema = z.object({
+  sequence_id: z.string().uuid({ message: "sequence_id deve ser UUID" }),
+  contact_jid: z.string().min(1).max(200),
+  instance_name: z.string().min(1).max(100),
+  trigger_event: z.string().max(100).optional(),
+}).strict();
+
+/** csat-auto-send@v1 — POST { contact_id, connection_id, survey_id?, agent_id?, conversation_id?, delay_minutes? } */
+export const CsatAutoSendV1Schema = z.object({
+  survey_id: z.string().uuid().nullish(),
+  contact_id: z.string().uuid({ message: "contact_id deve ser UUID" }),
+  agent_id: z.string().uuid().nullish(),
+  connection_id: z.string().uuid({ message: "connection_id deve ser UUID" }),
+  conversation_id: z.string().uuid().nullish(),
+  delay_minutes: z.number().int().min(0).max(1440).nullish(),
+}).strict();
+
 export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   // Webhooks externos
   "evolution-webhook":       { v1: EvolutionWebhookV1Schema, v2: EvolutionWebhookV2Schema },
@@ -998,6 +1016,10 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "virustotal-test":  { v1: InfraSchemas.VirustotalTestV1Schema },
   "voice-agent":  { v1: AISchemas.VoiceAgentV1Schema },
   "voice-changer":  { v1: InfraSchemas.VoiceChangerMultipartV1Schema },
+
+  // ─── INBOX-09 / AUTOMACOES-09 ─────────────────────────────────────────────
+  "followup-bridge": { v1: FollowupBridgeV1Schema },
+  "csat-auto-send":  { v1: CsatAutoSendV1Schema },
 };
 
 // ─── Re-exports de edge-contract-schemas (ponto de import unificado) ─────────

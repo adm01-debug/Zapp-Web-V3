@@ -5,6 +5,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireUser } from '../_shared/auth.ts';
 import { getCorsHeaders, handleCorsPreflight, jsonResponse, errorResponse } from '../_shared/cors.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { FollowupBridgeV1Schema } from '../_shared/contract-schemas.ts';
 
 // Re-use a single admin client instance per isolate lifetime
 const admin = createZappAdminClient();
@@ -89,11 +91,9 @@ Deno.serve(async (req: Request) => {
     return errorResponse(req, 'Invalid JSON body', 400);
   }
 
-  const validation = validateBody(rawBody);
-  if (!validation.ok) {
-    return errorResponse(req, validation.error, 422);
-  }
-  const { sequence_id, contact_jid, instance_name, trigger_event } = validation.body;
+  const parsed = parseOrReject<BridgeBody>('followup-bridge', { v1: FollowupBridgeV1Schema }, req, rawBody);
+  if (!parsed.ok) return parsed.response;
+  const { sequence_id, contact_jid, instance_name, trigger_event } = parsed.data;
 
   try {
     // ── 1. Load sequence (must be active) ──────────────────────────────────
