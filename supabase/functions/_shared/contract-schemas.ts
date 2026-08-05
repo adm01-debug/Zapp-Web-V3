@@ -406,19 +406,6 @@ export const AutoEscalateSlaV1Schema = EmptyStrictV1Schema;
 export const AutoCloseConversationsV1Schema = EmptyStrictV1Schema;
 
 /**
- * backfill-messages@v1 — POST { instance_name?|instance?, connection_id?,
- * offset?, limit?, dryRun? }; env vars têm precedência no handler.
- */
-export const BackfillMessagesV1Schema = z.object({
-  instance_name: z.string().min(1).max(100).optional(),
-  instance: z.string().min(1).max(100).optional(),
-  connection_id: z.string().min(1).max(100).optional(),
-  offset: z.number().int().min(0).max(1_000_000).optional(),
-  limit: z.number().int().min(1).max(500).optional(),
-  dryRun: z.boolean().optional(),
-}).strict();
-
-/**
  * audio-transcribe@v1 — POST autenticado (requireUser + rate limit 5/min).
  * Espelho fiel do TranscribeInput inline v2.2 (migrado do Cloud Fator X):
  * { action?, audio_base64?, audio_url?, language?, format? } com refine
@@ -909,7 +896,6 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "send-scheduled-report":         { v1: SendScheduledReportV1Schema },
   "auto-escalate-sla":             { v1: AutoEscalateSlaV1Schema },
   "auto-close-conversations":      { v1: AutoCloseConversationsV1Schema },
-  "backfill-messages":             { v1: BackfillMessagesV1Schema },
   "elevenlabs-voice":              { v1: ElevenLabsVoiceV1Schema },
   "elevenlabs-tts":                { v1: ElevenLabsTtsV1Schema },
   "elevenlabs-sts":                { v1: ElevenLabsStsV1Schema },
@@ -974,7 +960,6 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "queue-rebalance":  { v1: InfraSchemas.QueueRebalanceV1Schema },
   "recover-corrupted-audios":  { v1: InfraSchemas.RecoverCorruptedAudiosV1Schema },
   "secure-upload":  { v1: InfraSchemas.SecureUploadV1Schema },
-  "seed-teams-users":  { v1: InfraSchemas.SeedTeamsUsersV1Schema },
   "send-rate-limit-alert":  { v1: InfraSchemas.SendRateLimitAlertV1Schema },
   "sentiment-alert":  { v1: AISchemas.SentimentAlertV1Schema },
   "sicoob-outbox-consumer":  { v1: InfraSchemas.SicoobOutboxConsumerV1Schema },
