@@ -13,7 +13,7 @@ import { isValidUUID } from '@/utils/uuid';
 // ContactIntelligenceRow (types-manual) é o espelho verificado do banco
 // (2026-07-31): campos abaixo são Pick de colunas REAIS — coluna inexistente
 // (ex.: total_interactions) quebra o typecheck.
-import type { ContactIntelligenceRow } from '@/integrations/supabase/types-manual';
+import type { ContactIntelligenceRow } from '@/integrations/supabase/schema';
 type ContactIntelligence = Pick<
   ContactIntelligenceRow,
   'contact_id' | 'sentiment' | 'engagement_score' | 'predicted_value' | 'risk_level'

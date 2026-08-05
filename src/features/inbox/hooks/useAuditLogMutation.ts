@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/schema';
 import { getLogger } from '@/lib/logger';
 
 const _log = getLogger('auditLog');

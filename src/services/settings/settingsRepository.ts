@@ -6,7 +6,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/schema';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { DisposableChannel } from '@/integrations/supabase/safe-queries';
 

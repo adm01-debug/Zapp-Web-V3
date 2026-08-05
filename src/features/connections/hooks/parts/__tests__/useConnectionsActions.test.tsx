@@ -106,11 +106,7 @@ let recorded: Recorded[] = [];
 function makeBuilder() {
   const builder: Record<string, unknown> = {};
   const chain = (op: string) => (a?: unknown, b?: unknown) => {
-    recorded.push(
-      op === 'eq' || op === 'neq'
-        ? { op, col: a as string, val: b }
-        : { op, arg: a }
-    );
+    recorded.push(op === 'eq' || op === 'neq' ? { op, col: a as string, val: b } : { op, arg: a });
     return builder;
   };
   for (const op of ['insert', 'update', 'delete', 'select', 'eq', 'neq']) {
@@ -176,7 +172,9 @@ function setup(over: Partial<Harness> = {}) {
       h.setConnections as unknown as Dispatch<SetStateAction<WhatsAppConnection[]>>,
       h.setIsCreating as unknown as Dispatch<SetStateAction<boolean>>,
       h.setIsAddDialogOpen as unknown as Dispatch<SetStateAction<boolean>>,
-      h.setNewConnection as unknown as Dispatch<SetStateAction<{ name: string; phone_number: string; api_type: WhatsAppApiType }>>,
+      h.setNewConnection as unknown as Dispatch<
+        SetStateAction<{ name: string; phone_number: string; api_type: WhatsAppApiType }>
+      >,
       h.handleShowQrCode as unknown as (conn: WhatsAppConnection) => void | Promise<void>,
       h.disconnectInstance as unknown as (instance: string) => Promise<unknown>,
       h.deleteInstance as unknown as (instance: string) => Promise<unknown>,

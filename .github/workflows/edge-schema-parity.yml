@@ -106,8 +106,12 @@ jobs:
           # Procura somente em migrations de aplicacao (nao arquivadas)
           ANON_GRANTS=""
           while IFS= read -r sqlfile; do
+            # Remove linhas de comentario (-- e /* */) antes de colapsar, para nao
+            # gerar falso positivo com documentacao de rollback (ex.: "-- Rollback:
+            # GRANT EXECUTE ON FUNCTION ... TO anon;") — comentario NAO e codigo.
+            CLEAN=$(grep -vE '^\s*--' "$sqlfile" 2>/dev/null || true)
             # Colapsa newlines para capturar GRANTs multilinhas e anon em qualquer posição da lista TO
-            NORMALIZED=$(tr '\n' ' ' < "$sqlfile" 2>/dev/null || true)
+            NORMALIZED=$(echo "$CLEAN" | tr '\n' ' ' 2>/dev/null || true)
             MATCH=$(echo "$NORMALIZED" | grep -oiE \
               'GRANT[[:space:]]+(EXECUTE|ALL([[:space:]]+PRIVILEGES)?)[[:space:]]+ON[[:space:]]+FUNCTION[^;]*\bTO\b[[:space:],[:alnum:]_"]*("?anon"?|"?public"?)[[:space:],[:alnum:]_"]*;' \
               2>/dev/null || true)

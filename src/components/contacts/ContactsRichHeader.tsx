@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { UserPlus, Upload, Keyboard, Users, Zap } from 'lucide-react';
+import { UserPlus, Upload, Keyboard, Users, Zap, Tags } from 'lucide-react';
 import { ContactStatsCards } from './ContactStatsCards';
 import { ContactBirthdayPanel } from './ContactBirthdayPanel';
 
@@ -22,6 +22,7 @@ interface Props {
   onOpenShortcuts: () => void;
   onOpenImport: () => void;
   onOpenAdd: () => void;
+  onOpenSegments: () => void;
   onBirthdayContactClick: (id: string) => void;
 }
 
@@ -37,6 +38,7 @@ export function ContactsRichHeader({
   onOpenShortcuts,
   onOpenImport,
   onOpenAdd,
+  onOpenSegments,
   onBirthdayContactClick,
 }: Props) {
   return (
@@ -97,6 +99,16 @@ export function ContactsRichHeader({
           >
             <Keyboard className="h-4 w-4 text-muted-foreground" />
             <span className="sr-only">Atalhos</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onOpenSegments}
+            className="gap-2 border-primary/20 transition-all hover:border-primary/40 hover:bg-primary/5"
+            title="Segmentos de contato"
+          >
+            <Tags className="h-4 w-4 text-primary" />
+            <span className="hidden font-medium sm:inline">Segmentos</span>
           </Button>
           <Button
             variant="outline"

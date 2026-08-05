@@ -74,9 +74,6 @@ export const NpsSchedulerV1Schema = EmptyStrictV1Schema;
 /** provider-healthcheck@v1 — cron; não consome body. */
 export const ProviderHealthcheckV1Schema = EmptyStrictV1Schema;
 
-/** seed-teams-users@v1 — cron/admin; não consome body. */
-export const SeedTeamsUsersV1Schema = EmptyStrictV1Schema;
-
 /** sicoob-outbox-consumer@v1 — cron; não consome body. */
 export const SicoobOutboxConsumerV1Schema = EmptyStrictV1Schema;
 

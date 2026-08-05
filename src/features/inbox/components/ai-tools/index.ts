@@ -10,4 +10,5 @@ export * from './ToneSelector';
 export * from './ToolPanel';
 export * from './VisionIcon';
 export * from './analysisConfigs';
+export * from './conversationSummaryStorage';
 export * from './useAnalysisTts';

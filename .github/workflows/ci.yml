@@ -13,6 +13,7 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -182,10 +183,39 @@ jobs:
       - name: ts-nocheck drift gate (blocking)
         run: node scripts/check-ts-nocheck.mjs
 
-  audit-contract:
-    name: Audit front↔DB contract (RPC/.from/invoke)
+  # audit-contract-scan: SEMPRE corre (inclusive em PRs de fork sem secrets).
+  # Valida: edge function invoke() tem diretório correspondente + script roda sem
+  # erro de sintaxe. Gate bloqueante: test e build dependem deste job.
+  audit-contract-scan:
+    name: Audit contract (scan-only, always runs)
     runs-on: ubuntu-latest
     needs: lockfile
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Scan contract (sem DB — edge functions + estrutura)
+        run: node scripts/audit-contract.mjs --scan-only
+
+  # audit-contract-live: só corre em push/workflow_dispatch (NUNCA em pull_request).
+  # Motivo de segurança: o job executa scripts/audit-contract.mjs com
+  # SUPABASE_SERVICE_ROLE_KEY. Em eventos pull_request, código não revisado do
+  # branch do PR roda com acesso ao secret, criando risco de exfiltração.
+  # O scan estrutural (audit-contract-scan) continua disponível para PRs.
+  # NÃO está no needs de test/build — é informativo. Para forçar gate no CD,
+  # promover para needs quando runner self-hosted com acesso ao DB estiver disponível.
+  audit-contract-live:
+    name: Audit front↔DB contract (live, requires secrets)
+    runs-on: ubuntu-latest
+    needs: lockfile
+    if: github.event_name != 'pull_request'
     # NOTA (fix 2026-08-05): `secrets` NÃO é permitido em `if:` de job no GitHub
     # Actions ("contexts secrets is not allowed here") — isso tornava o workflow
     # INTEIRO inválido (0 jobs, falha silenciosa em 20/20 runs). O condicional
@@ -207,6 +237,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install pg driver (modo pg = ground truth pg_catalog)
+        run: npm install --no-save --no-audit --no-fund pg@8
+
       - name: Run contract audit (RPCs, .from(), edge functions vs banco)
         if: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' }}
         run: node scripts/audit-contract.mjs
@@ -214,7 +247,7 @@ jobs:
   test:
     name: Unit tests
     runs-on: ubuntu-latest
-    needs: [lockfile, quality]
+    needs: [lockfile, quality, audit-contract-scan]
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -271,7 +304,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lockfile, quality]
+    needs: [lockfile, quality, audit-contract-scan]
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
