@@ -5,6 +5,7 @@
 # aplicados em BUILD-TIME (main.patched.js + libsignal).
 # Exporta os secrets do Swarm com o MESMO mapeamento do entrypoint oficial
 # (nomes de env esperados pela aplicação).
+# Registra o boot em evo.evolution_logpatch_audit (A-8) — best-effort.
 # ============================================================================
 set -e
 
@@ -17,6 +18,24 @@ RUNTIME_URI=""
 [ -f /run/secrets/rabbitmq_url_evolution_v1 ] && export RABBITMQ_URI="$(cat /run/secrets/rabbitmq_url_evolution_v1 | tr -d '\n\r')"
 [ -f /run/secrets/metrics_password_v2 ] && export METRICS_PASSWORD="$(cat /run/secrets/metrics_password_v2 | tr -d '\n\r')"
 [ -f /run/secrets/wa_business_verify_token_v1 ] && export WA_BUSINESS_TOKEN_WEBHOOK="$(cat /run/secrets/wa_business_verify_token_v1 | tr -d '\n\r')"
+
+# --- A-8: auditoria de boot (best-effort; nunca quebra o boot) ---
+if [ -f /run/secrets/supabase_service_key_v1 ]; then
+  _aud_key="$(cat /run/secrets/supabase_service_key_v1 | tr -d '\n\r')"
+  if [ -n "$_aud_key" ]; then
+    _aud_digest="$(cat /proc/self/mountinfo 2>/dev/null | grep -o 'sha256:[a-f0-9]\{64\}' | head -1 || true)"
+    _aud_version="$(node -e "console.log(require('/evolution/package.json').version)" 2>/dev/null || echo unknown)"
+    _aud_ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    _aud_payload="{\"instance_name\":\"wpp2\",\"booted_at\":\"$_aud_ts\",\"image_digest\":\"$_aud_digest\",\"evolution_version\":\"$_aud_version\",\"logpatch_status\":\"ok\",\"logpatch_detail\":{\"mode\":\"build-time\",\"note\":\"patches T1-T5 aplicados em build (Dockerfile VERIFY fail-closed)\"}}"
+    curl -sS -o /dev/null -m 10 -X POST \
+      "https://supabase.atomicabr.com.br/rest/v1/evolution_logpatch_audit" \
+      -H "apikey: $_aud_key" \
+      -H "Authorization: Bearer $_aud_key" \
+      -H "Content-Type: application/json" \
+      -H "Prefer: return=minimal" \
+      --data-binary "$_aud_payload" >/dev/null 2>&1 || true
+  fi
+fi
 
 # Patches são build-time — nada de logpatch.cjs aqui.
 exec node dist/main.js
