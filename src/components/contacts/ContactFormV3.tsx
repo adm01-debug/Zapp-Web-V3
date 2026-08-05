@@ -12,6 +12,7 @@ import { ContactPhoneManager, PhoneEntry } from './ContactPhoneManager';
 import { ContactConsentManager } from './ContactConsentManager';
 import { ContactMergeDialog } from './ContactMergeDialog';
 import { ConflictResolutionDialog } from './ConflictResolutionDialog';
+import { ContactCompanyField } from './ContactCompanyField';
 import { useContactFormV3 } from './useContactFormV3';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -186,20 +187,14 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
         />
       </div>
 
-      {/* Company */}
+      {/* Company — CONTATOS-14: sugestões do cadastro local zapp.companies
+          (combobox com nome livre; vínculo local não quebra o CRM externo). */}
       <div className="space-y-1.5">
         <Label htmlFor="company" className="flex items-center gap-1">
           <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
           Empresa
         </Label>
-        <Input
-          id="company"
-          value={form.company}
-          onChange={(e) => update('company', e.target.value)}
-          placeholder="Nome da empresa"
-          maxLength={300}
-          autoComplete="organization"
-        />
+        <ContactCompanyField value={form.company} onChange={(v) => update('company', v)} />
       </div>
 
       {/* Tags */}

@@ -20,6 +20,8 @@ import { ContactContentArea } from './ContactContentArea';
 import { ContactDialogs } from './ContactDialogs';
 import { ContactImportDialog } from './ContactImportDialog';
 import { ContactQuickView } from './ContactQuickView';
+import { ContactExportDialog } from './ContactExportDialog';
+import { SegmentsManagerDialog } from './SegmentsManagerDialog';
 import { ContactsRichHeader } from './ContactsRichHeader';
 import { ContactsRichTabs } from './ContactsRichTabs';
 import { ContactsBulkActionBar } from './ContactsBulkActionBar';
@@ -84,6 +86,7 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = ({ onOpenChat }
 
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
+  const [isSegmentsOpen, setIsSegmentsOpen] = useState(false);
   const [quickViewContact, setQuickViewContact] = useState<Contact | null>(null);
 
   useContactsKeyboardShortcuts({
@@ -168,6 +171,7 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = ({ onOpenChat }
           onOpenShortcuts={() => setShowShortcutHelp(true)}
           onOpenImport={() => setIsImportOpen(true)}
           onOpenAdd={() => setIsAddDialogOpen(true)}
+          onOpenSegments={() => setIsSegmentsOpen(true)}
           onBirthdayContactClick={openContactChat}
         />
 
@@ -254,7 +258,7 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = ({ onOpenChat }
               selectedIds={selectedIds}
               onBulkTag={() => state.setIsBulkTagOpen(true)}
               onMerge={() => state.setIsMergeOpen(true)}
-              onExportCSV={() => state.handleExportCSV()}
+              onExportCSV={() => state.setIsExportOpen(true)}
               onDeleteMany={handleDeleteMany}
               onClear={() => crud.setSelectedIds([])}
             />
@@ -285,6 +289,15 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = ({ onOpenChat }
         workspaceId={DEFAULT_WHATSAPP_INSTANCE}
         onImportComplete={() => crud.refetch()}
       />
+
+      <ContactExportDialog
+        open={state.isExportOpen}
+        onOpenChange={state.setIsExportOpen}
+        contactCount={contactsForContent.length}
+        onExport={(fieldKeys) => state.handleExportCSV(fieldKeys)}
+      />
+
+      <SegmentsManagerDialog open={isSegmentsOpen} onOpenChange={setIsSegmentsOpen} />
 
       <ContactQuickView
         contact={quickViewContact}

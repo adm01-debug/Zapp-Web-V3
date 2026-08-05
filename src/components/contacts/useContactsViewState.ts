@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { useContactsCRUD } from './useContactsCRUD';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
+import { buildContactsCsv, buildExportFileName, EXPORT_DEFAULT_KEYS } from './contactExportFields';
 import type { ContactViewMode } from './ContactViewSwitcher';
 import type { FilterPreset } from './FilterPresets';
 
@@ -48,6 +47,7 @@ export function useContactsViewState() {
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [groupByCompany, setGroupByCompany] = useState(false);
   const [isBulkTagOpen, setIsBulkTagOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
   const [detailContact, setDetailContact] = useState<(typeof filteredContacts)[0] | null>(null);
 
   const handleApplyPreset = useCallback(
@@ -83,65 +83,46 @@ export function useContactsViewState() {
     [filteredContacts]
   );
 
-  const handleExportCSV = useCallback(() => {
-    const esc = (v: string) =>
-      v.includes(',') || v.includes('"') || v.includes('\n') ? `"${v.replace(/"/g, '""')}"` : v;
-    const headers = [
-      'Nome',
-      'Sobrenome',
-      'Apelido',
-      'Telefone',
-      'Email',
-      'Empresa',
-      'Cargo',
-      'Tipo',
-      'Tags',
-      'Criado em',
-    ];
-    const csvRows = filteredContacts.map((c) =>
-      [
-        esc(c.name ?? ''),
-        esc(c.surname || ''),
-        esc(c.nickname || ''),
-        esc(c.phone ?? ''),
-        esc(c.email || ''),
-        esc(c.company || ''),
-        esc(c.job_title || ''),
-        esc(c.contact_type || 'cliente'),
-        esc((c.tags || []).join('; ')),
-        esc(format(new Date(c.created_at ?? ''), 'dd/MM/yyyy', { locale: ptBR })),
-      ].join(',')
-    );
-    const csv = '\uFEFF' + [headers.join(','), ...csvRows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `contatos_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success(`${filteredContacts.length} contatos exportados!`);
+  // CONTATOS-12: export client-side (não há RPC/edge de export no projeto —
+  // grep rpc_export|contact_export em types.ts e migrations só encontra a
+  // tabela contact_export_log). Melhorias desta iteração:
+  //  1. seleção de campos (ContactExportDialog → handleExportCSV(fieldKeys))
+  //  2. nome de arquivo com data+hora+contagem
+  //  3. log em contact_export_log (mesma tabela usada pelo edge contacts-import
+  //     como 'csv_import'). ⚠️ RLS: política auth_secure_189 é SELECT-only —
+  //     sem INSERT o log falha silenciosamente (warn) até existir migration
+  //     adicionando política de escrita.
+  const handleExportCSV = useCallback(
+    (fieldKeys: string[] = EXPORT_DEFAULT_KEYS) => {
+      const csv = buildContactsCsv({ fields: fieldKeys, contacts: filteredContacts });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = buildExportFileName(filteredContacts.length);
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`${filteredContacts.length} contatos exportados!`);
 
-    // CONTATOS-12: export segue client-side (não há RPC/edge de export no projeto —
-    // grep rpc_export sem resultados), mas registra a operação em contact_export_log
-    // (mesma tabela usada pelo edge contacts-import como 'csv_import').
-    void supabase.auth
-      .getUser()
-      .then(({ data }) =>
-        supabase.from('contact_export_log').insert({
-          user_id: data.user?.id ?? null,
-          exported_by: data.user?.id ?? null,
-          export_type: 'csv',
-          row_count: filteredContacts.length,
-          status: 'completed',
-          filters: { exported_count: filteredContacts.length },
+      void supabase.auth
+        .getUser()
+        .then(({ data }) =>
+          supabase.from('contact_export_log').insert({
+            user_id: data.user?.id ?? null,
+            exported_by: data.user?.id ?? null,
+            export_type: 'csv',
+            row_count: filteredContacts.length,
+            status: 'completed',
+            filters: { exported_count: filteredContacts.length, fields: fieldKeys },
+          })
+        )
+        .then(({ error: logError }) => {
+          if (logError) log.warn('Failed to log contact export', logError.message);
         })
-      )
-      .then(({ error: logError }) => {
-        if (logError) log.warn('Failed to log contact export', logError.message);
-      })
-      .catch((err: unknown) => log.warn('Failed to log contact export', err));
-  }, [filteredContacts]);
+        .catch((err: unknown) => log.warn('Failed to log contact export', err));
+    },
+    [filteredContacts]
+  );
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -200,6 +181,8 @@ export function useContactsViewState() {
     setGroupByCompany,
     isBulkTagOpen,
     setIsBulkTagOpen,
+    isExportOpen,
+    setIsExportOpen,
     detailContact,
     setDetailContact,
     handleApplyPreset,
