@@ -27,13 +27,24 @@ if [ -f /run/secrets/supabase_service_key_v1 ]; then
     _aud_version="$(node -e "console.log(require('/evolution/package.json').version)" 2>/dev/null || echo unknown)"
     _aud_ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     _aud_payload="{\"instance_name\":\"wpp2\",\"booted_at\":\"$_aud_ts\",\"image_digest\":\"$_aud_digest\",\"evolution_version\":\"$_aud_version\",\"logpatch_status\":\"ok\",\"logpatch_detail\":{\"mode\":\"build-time\",\"note\":\"patches T1-T5 aplicados em build (Dockerfile VERIFY fail-closed)\"}}"
-    # Imagem base Alpine: NAO tem curl — usar wget (busybox) com --post-data.
-    wget -q -O /dev/null -T 10 \
-      --header "apikey: $_aud_key" \
-      --header "Authorization: Bearer $_aud_key" \
-      --header "Content-Type: application/json" \
-      --post-data "$_aud_payload" \
-      "https://supabase.atomicabr.com.br/rest/v1/evolution_logpatch_audit" >/dev/null 2>&1 || true
+    if command -v curl >/dev/null 2>&1; then
+      curl -sS -o /dev/null -m 10 -X POST \
+        "https://supabase.atomicabr.com.br/rest/v1/evolution_logpatch_audit" \
+        -H "apikey: $_aud_key" \
+        -H "Authorization: Bearer $_aud_key" \
+        -H "Content-Type: application/json" \
+        -H "Prefer: return=minimal" \
+        --data-binary "$_aud_payload" >/dev/null 2>&1 || true
+    else
+      # Imagem sem curl (só wget — healthcheck oficial usa wget)
+      wget -q -O /dev/null --timeout=10 \
+        --header="apikey: $_aud_key" \
+        --header="Authorization: Bearer $_aud_key" \
+        --header="Content-Type: application/json" \
+        --header="Prefer: return=minimal" \
+        --post-data "$_aud_payload" \
+        "https://supabase.atomicabr.com.br/rest/v1/evolution_logpatch_audit" >/dev/null 2>&1 || true
+    fi
   fi
 fi
 
