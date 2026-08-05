@@ -103,7 +103,13 @@ export function useEmailTemplates() {
   const updateTemplate = useCallback(
     async (id: string, input: Partial<EmailTemplateInput>): Promise<{ error?: string }> => {
       try {
-        const payload: Record<string, unknown> = {
+        const payload: {
+          updated_at: string;
+          name?: string;
+          subject?: string;
+          body?: string;
+          category?: string;
+        } = {
           updated_at: new Date().toISOString(),
         };
         if (input.name !== undefined) payload.name = input.name.trim();

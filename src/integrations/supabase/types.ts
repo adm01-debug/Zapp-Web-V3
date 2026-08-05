@@ -78239,6 +78239,16 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      rpc_list_cron_jobs: {
+        Args: never
+        Returns: {
+          active: boolean
+          command: string
+          jobid: number
+          jobname: string
+          schedule: string
+        }[]
+      }
       rpc_list_deals: {
         Args: {
           p_assigned_to?: string
@@ -79156,6 +79166,10 @@ export type Database = {
       rpc_set_whatsapp_mode: { Args: { p_mode: string }; Returns: string }
       rpc_system_health: { Args: { p_dummy?: string }; Returns: Json }
       rpc_system_health_check: { Args: never; Returns: Json }
+      rpc_toggle_cron_job: {
+        Args: { p_active: boolean; p_jobname: string }
+        Returns: undefined
+      }
       rpc_toggle_message_important: {
         Args: { p_message_id: string; p_value: boolean }
         Returns: undefined

@@ -33,9 +33,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 export interface FakeRealtimeChannel {
   topic: string;
   subscribed: boolean;
-  on: ReturnType<typeof vi.fn>;
-  subscribe: ReturnType<typeof vi.fn>;
-  unsubscribe: ReturnType<typeof vi.fn>;
+  on: (event: string, filter: unknown, callback?: () => void) => FakeRealtimeChannel;
+  subscribe: (callback?: (status: string) => void) => FakeRealtimeChannel;
+  unsubscribe: (callback?: () => void) => FakeRealtimeChannel;
 }
 
 export interface ChannelCallLogEntry {
@@ -44,9 +44,9 @@ export interface ChannelCallLogEntry {
 }
 
 export interface FakeRealtimeClient {
-  channel: ReturnType<typeof vi.fn>;
-  removeChannel: ReturnType<typeof vi.fn>;
-  from: ReturnType<typeof vi.fn>;
+  channel: (topic: string) => FakeRealtimeChannel;
+  removeChannel: (channel: FakeRealtimeChannel) => void;
+  from: (table: string) => unknown;
   channelsByTopic: Map<string, FakeRealtimeChannel>;
   createdChannels: FakeRealtimeChannel[];
   callLog: ChannelCallLogEntry[];
@@ -350,13 +350,15 @@ describe('prova end-to-end do crash (bug #1) com topic estático', () => {
         'cannot add postgres_changes callbacks after subscribe()'
       );
     } finally {
+      const root1Cleanup = root1;
+      const root2Cleanup = root2;
       try {
-        if (root1) reactAct(() => root1.unmount());
+        if (root1Cleanup) reactAct(() => root1Cleanup.unmount());
       } catch {
         // cleanup defensivo
       }
       try {
-        if (root2) reactAct(() => root2.unmount());
+        if (root2Cleanup) reactAct(() => root2Cleanup.unmount());
       } catch {
         // root2 falhou no mount — unmount pode não ser seguro
       }
