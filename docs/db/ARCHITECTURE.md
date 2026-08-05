@@ -21,6 +21,19 @@
 **Direção de dependência permitida:** `public → domínios → dados`.
 **Proibido:** `evo → zapp` (a Evolution API nunca depende do app).
 
+> **Exceção documentada (AD-2026-08-05 — auditoria 10 agentes):** funções de
+> **monitoramento/observabilidade** no schema `evo` leem estado do `zapp`
+> (19 funções: `fn_detect_401_bursts`, `fn_v2_pipeline_heartbeat`,
+> `fn_log_assignment_change`, `fn_check_guardian_alive`, `fn_auto_assign_contact`,
+> `sync_contact_intelligence`, `fn_pipeline_health_probe`, etc.).
+> Justificativa: são **crons/triggers internos** executados com `service_role`
+> (verificado: 0 funções expostas a `authenticated`/`anon`), leitura pura de
+> estado do app para alertas — NÃO é a Evolution API dependendo do app, são
+> monitores do pipeline que cruzam ambos os lados. Refatorar moveria dados
+> entre schemas (quebra de contrato) sem ganho de segurança.
+> Regra: **novas funções em `evo` NÃO devem referenciar `zapp`** — exceção
+> só para monitores, com esta nota no header.
+
 ## Diagrama de plataforma
 
 ```
