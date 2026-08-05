@@ -1,7 +1,15 @@
 version: "3.8"
 
 # =============================================================================
-# DOCKER-HOUSEKEEPING v2.3 — AtomicaBR — 2026-08-05
+# DOCKER-HOUSEKEEPING v2.4 — AtomicaBR — 2026-08-05
+# v2.4 (validação rodada 2, 5 agentes):
+#   - PRUNE_ZAPP_OLD: retenção HOST das imagens zapp (ETAPA 47 implementada) —
+#     mantém só as ZAPP_KEEP_TAGS mais recentes (default 6) + Spec/PreviousSpec/
+#     latest; poda o resto por TAG. Sem isso, cada deploy adiciona ~116MB imortal
+#     ao host (gap MED W5: crescimento ilimitado).
+#   - ensure_ref_tags com `timeout 300` (daemon travado não congela o ciclo) +
+#     contadores/alert (P1 W1: inspect falho era no-op silencioso).
+#   - prune_dangling loga `deleted=` (P2 W1).
 # v2.3 (validação pós-faxina, 5 agentes): 
 #   - ENSURE_REF_TAGS: re-taga Spec+PreviousSpec de TODOS os serviços swarm antes
 #     de cada prune — o prune_dangling apagaria a imagem do PreviousSpec untagged
@@ -16,8 +24,6 @@ version: "3.8"
 #   (production-fbd04bec303d), removida do host em 2026-08-04/05.
 #   v2.2: loop rmi por imagem, protegendo: (a) imagens em uso por containers,
 #   (b) TODAS as imagens do zapp-web (ghcr.io/adm01-debug/zapp-web-v3/zapp-web).
-#   A gestão de retenção das imagens zapp-web no host é do pipeline de deploy
-#   (ETAPA 47 do plano de faxina) — o housekeeping NÃO apaga zapp-web.
 # =============================================================================
 
 services:
@@ -42,11 +48,14 @@ services:
       # Repos de imagem NUNCA podados pelo prune_tagged (regex ERE do awk).
       # Default: zapp-web (rollback). Regex vazia = protege TODAS (fail-safe).
       PROTECTED_REPOS_REGEX: "ghcr.io/adm01-debug/zapp-web-v3/zapp-web"
+      # v2.4: nº de imagens zapp mantidas no HOST (por created, além de
+      # Spec/PreviousSpec/latest que são SEMPRE protegidas). Poda as antigas.
+      ZAPP_KEEP_TAGS: "6"
       ALERT_WEBHOOK_URL: "https://n8n.atomicabr.com.br/webhook/warroom-alert"
     entrypoint: ["sh", "-c"]
     command:
       - |
-        echo "=== DOCKER-HOUSEKEEPING v2.3 boot $$(date -u +%FT%TZ) ==="
+        echo "=== DOCKER-HOUSEKEEPING v2.4 boot $$(date -u +%FT%TZ) ==="
         alert() {
           _MSG="$$1"; _TS=$$(date -u +%FT%TZ)
           echo "[ALERT] $$_MSG"
@@ -59,20 +68,61 @@ services:
         # as remove (tagada ≠ dangling) e o rollback automático fica OFFLINE.
         # case *:*@sha256:* exige TAG explícita (ref sem tag não é re-tagada —
         # evitaria docker tag repo:latest sequestrando o latest de terceiros).
+        # v2.4: `timeout 300` (daemon travado não congela o ciclo) + contadores
+        # e ALERT se o inspect falhar (P1 W1: antes era no-op 100% silencioso).
         ensure_ref_tags() {
-          _MAP="$$(docker images --digests --no-trunc --format '{{.ID}} {{.Digest}}' 2>/dev/null)"
-          for REF in $$(docker service ls -q | xargs -r docker service inspect \
+          _OUT="$$(timeout 300 sh -c 'docker images --digests --no-trunc --format "{{.ID}} {{.Digest}}"' 2>/dev/null)"
+          _MAP="$$_OUT"
+          _REFS=0; _TAGGED=0; _NOID=0
+          for REF in $$(docker service ls -q | xargs -r timeout 300 docker service inspect \
               --format '{{with .Spec.TaskTemplate.ContainerSpec.Image}}{{.}}{{end}} {{with .PreviousSpec.TaskTemplate.ContainerSpec.Image}}{{.}}{{end}}' 2>/dev/null); do
             case "$$REF" in
               *:*@sha256:*)
+                _REFS=$$((_REFS+1))
                 _DIG="sha256:$${REF##*@sha256:}"
                 _ID="$$(printf '%s\n' "$$_MAP" | awk -v d="$$_DIG" '$$2 == d {print $$1; exit}')"
-                [ -n "$$_ID" ] && docker tag "$$_ID" "$${REF%%@sha256:*}" 2>/dev/null || true
+                if [ -n "$$_ID" ]; then
+                  docker tag "$$_ID" "$${REF%%@sha256:*}" 2>/dev/null && _TAGGED=$$((_TAGGED+1)) || true
+                else
+                  _NOID=$$((_NOID+1))
+                fi
                 ;;
             esac
           done
+          if [ "$$_REFS" -gt 0 ] && [ "$$_TAGGED" -eq 0 ]; then
+            alert "ensure_ref_tags: NENHUMA ref tagada (sem_id_local=$$_NOID) — verificar imagens/digests"
+          fi
+          echo "[ensure_ref_tags] refs=$$_REFS tagadas=$$_TAGGED sem_id_local=$$_NOID"
         }
-        prune_dangling() { _AGE="$$1"; _LABEL="$$2"; _OUT=$$(docker image prune -f --filter "until=$${_AGE}" 2>&1 | tail -1); echo "[$${_LABEL}] dangling>$${_AGE}: $${_OUT}"; }
+        # v2.4 (ETAPA 47): retenção HOST das imagens zapp — mantém as
+        # ZAPP_KEEP_TAGS mais recentes por created + Spec/PreviousSpec/latest
+        # (sempre protegidas); poda o resto por TAG. Limita o crescimento
+        # (~116MB/deploy imortal antes desta função).
+        prune_zapp_old() {
+          _KEEP="$${ZAPP_KEEP_TAGS:-6}"
+          _PROTECT=""
+          for svc in $$(docker service ls -q); do
+            # tr ' ' '\n' ANTES do sed: o --format emite Spec e PreviousSpec na
+            # MESMA linha; sed 's/@sha256:.*//' greedy comeria do 1º @ ao fim da
+            # linha, deixando o PreviousSpec FORA da proteção (defeito v2.4).
+            _PROTECT="$$_PROTECT $$(docker service inspect "$$svc" --format '{{with .Spec.TaskTemplate.ContainerSpec.Image}}{{.}}{{end}} {{with .PreviousSpec.TaskTemplate.ContainerSpec.Image}}{{.}}{{end}}' 2>/dev/null | tr ' ' '\n' | sed 's/@sha256:.*//' | tr '\n' ' ')"
+          done
+          _PROTECT="$$_PROTECT ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-latest"
+          # v2.4.1: lista materializada ANTES do loop — while-read em pipe roda em
+          # subshell (POSIX/BusyBox) e zeraria os contadores. Refs não têm espaço.
+          _LIST="$$(docker images --format '{{.Repository}}:{{.Tag}}|{{.CreatedAt}}' \
+            | grep 'ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-' \
+            | sort -t'|' -k2 -r \
+            | tail -n +$$((_KEEP+1)) \
+            | cut -d'|' -f1)"
+          _REMOVED=0; _SKIPPED=0; _RETAINED=0
+          for _TAG in $$_LIST; do
+            case " $$_PROTECT " in *" $$_TAG "*) _SKIPPED=$$((_SKIPPED+1)); continue;; esac
+            if docker rmi "$$_TAG" >/dev/null 2>&1; then _REMOVED=$$((_REMOVED+1)); else _RETAINED=$$((_RETAINED+1)); fi
+          done
+          echo "[zapp] removidas=$$_REMOVED protegidas=$$_SKIPPED retidas(em uso)=$$_RETAINED (keep=$$_KEEP)"
+        }
+        prune_dangling() { _AGE="$$1"; _LABEL="$$2"; _BEFORE=$$(docker images -f dangling=true -q 2>/dev/null | wc -l); _OUT=$$(docker image prune -f --filter "until=$${_AGE}" 2>&1 | tail -1); _AFTER=$$(docker images -f dangling=true -q 2>/dev/null | wc -l); echo "[$${_LABEL}] dangling>$${_AGE}: $${_OUT} deleted=$$((_BEFORE-_AFTER))"; }
         prune_cache() { _AGE="$$1"; _LABEL="$$2"; _OUT=$$(docker builder prune -af --filter "until=$${_AGE}" 2>&1 | tail -1); echo "[$${_LABEL}] cache>$${_AGE}: $${_OUT}"; }
         # v2.2: NUNCA `docker image prune -af`. Loop rmi por imagem com proteção:
         #   (a) imagens em uso por containers (running/stopped)
@@ -135,11 +185,12 @@ services:
           fi
           if [ $$((NOW - LAST_TAGGED)) -ge "$${TAGGED_INTERVAL_S}" ]; then
             prune_tagged "$${TAGGED_AGE}" "24h"; LAST_TAGGED=$${NOW}
+            prune_zapp_old
           fi
           DISK_END=$$(disk_pct)
           echo "[$${TS}] cycle #$${CYCLE} done. disk_end=$${DISK_END}%"
           if [ "$${CYCLE}" -eq 1 ]; then
-            alert "housekeeping v2.3 online: cycle #1 disk $${DISK}% -> $${DISK_END}%"
+            alert "housekeeping v2.4 online: cycle #1 disk $${DISK}% -> $${DISK_END}%"
           fi
           sleep "$${DANGLING_INTERVAL_S}"
         done
@@ -163,7 +214,7 @@ services:
       labels:
         - traefik.enable=false
         - com.centurylinklabs.watchtower.enable=false
-        - com.atomicabr.audit=docker-housekeeping-v2.3-2026-08-05-ensure-ref-tags
+        - com.atomicabr.audit=docker-housekeeping-v2.4-2026-08-05-host-retention
         - com.atomicabr.requires-docker-sock=true
         - com.atomicabr.tier=critical
 

@@ -82,9 +82,11 @@ jobs:
       # ETAPA 34 — Faxina Portainer (2026-08-05): retenção GHCR
       # Cada deploy cria ~3 versões (1 index tagado production-<sha> +
       # manifest amd64 + attestation-manifest, ambos untagged, pois o
-      # buildx gera provenance por padrão). min-versions-to-keep=8
-      # ≈ 2,6 deploys: o rollback (penúltimo deploy) ocupa as posições
-      # 4–6 das 8 mantidas — SEMPRE protegido (validação 2026-08-05).
+      # buildx gera provenance por padrão). min-versions-to-keep=9
+      # = 3 deploys ÍNTEGROS (múltiplo de 3: o corte por recência cai
+      # ENTRE builds, nunca no meio — com 8, o 3º deploy ficava com
+      # index mantido + amd64 deletado → pull com 'manifest unknown').
+      # O rollback (penúltimo deploy) ocupa as posições 4–6 das 9.
       # ⚠️ NÃO usar delete-only-untagged-versions aqui: apagaria os
       # manifests-filho (imagem/attestation) e o pull da tag falharia
       # com 'manifest unknown' (P0 confirmado via OCI index).
@@ -92,26 +94,35 @@ jobs:
       # continue-on-error: retenção nunca pode BLOQUEAR o deploy; falha
       # é sinalizada pelo step de alerta abaixo (sentinel greppável).
       # ============================================================
-      - name: 🧹 GHCR retention (keep 8 versions — preserva current/rollback/latest)
+      - name: 🧹 GHCR retention (keep 9 versions — 3 deploys íntegros)
         id: retention
         continue-on-error: true
         uses: actions/delete-package-versions@v5
         with:
           package-name: zapp-web-v3/zapp-web
           package-type: container
-          min-versions-to-keep: 8
+          # 3 versões/deploy (index + amd64 + attestation). 9 = 3 deploys completos:
+          # o corte de recência cai ENTRE builds, nunca no meio (evita index
+          # mantido com filho deletado → manifest unknown). 8 cortava o 3º deploy.
+          min-versions-to-keep: 9
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🚨 Alerta se a retenção GHCR falhar (não bloqueia deploy)
         if: always() && steps.retention.outcome == 'failure'
         env:
           ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+          GH_TOKEN_ACTIONS: ${{ secrets.GH_TOKEN_ACTIONS }}
         run: |
           MSG="GHCR retention FALHOU em ${{ github.sha }} — run ${{ github.run_id }} (${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
           if [ -n "$ALERT_WEBHOOK_URL" ]; then
             curl -fsS -X POST "$ALERT_WEBHOOK_URL" \
               -H 'Content-Type: application/json' \
               -d "{\"text\":\"⚠️ ${MSG}\"}" || true
+          elif [ -n "$GH_TOKEN_ACTIONS" ]; then
+            curl -fsS -X POST "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments" \
+              -H "Authorization: Bearer $GH_TOKEN_ACTIONS" \
+              -H 'Accept: application/vnd.github+json' \
+              -d "{\"body\":\"⚠️ ${MSG}\"}" || true
           fi
           echo "::warning::GHCR_RETENTION_FAILED ${MSG}"
 
