@@ -207,6 +207,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install pg driver (modo pg = ground truth pg_catalog)
+        run: npm install --no-save --no-audit --no-fund pg@8
+
       - name: Run contract audit (RPCs, .from(), edge functions vs banco)
         if: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' }}
         run: node scripts/audit-contract.mjs
