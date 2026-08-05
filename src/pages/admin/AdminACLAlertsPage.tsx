@@ -168,13 +168,13 @@ export default function AdminACLAlertsPage() {
                       <TableCell>
                         <SeverityBadge severity={alert.severity} />
                       </TableCell>
-                      <TableCell className="whitespace-nowrap font-mono text-xs">
-                        {alert.role_name}
+                      <TableCell className="whitespace-nowrap text-xs">
+                        <code>{alert.role_name}</code>
                       </TableCell>
                       <TableCell className="max-w-[240px] truncate" title={alert.object_name}>
                         {alert.object_name}
                       </TableCell>
-                      <TableCell className="font-mono text-xs">{alert.privilege}</TableCell>
+                      <TableCell className="text-xs"><code>{alert.privilege}</code></TableCell>
                       <TableCell>
                         <StatusBadge resolved={!!alert.resolved_at} />
                       </TableCell>
