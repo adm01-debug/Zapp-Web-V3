@@ -2,4 +2,7 @@
 -- This function is a dev/audit utility — it must not be callable by unauthenticated
 -- PostgREST requests. The security-invoker-gate workflow enforces zero anon-executable
 -- functions in the zapp and evo schemas.
+--
+-- Rollback: GRANT EXECUTE ON FUNCTION zapp.rpc_contract_inventory() TO anon;
+-- (Only apply rollback in a dev/staging environment for debugging purposes.)
 REVOKE EXECUTE ON FUNCTION zapp.rpc_contract_inventory() FROM anon;
