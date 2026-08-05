@@ -229,6 +229,26 @@ export default tseslint.config(
             "Não usar schema:'public' no front — usar views zapp (contrato single-DB).",
         },
       ],
+      // Tipos Supabase SEMPRE via barrel canônico (@/integrations/supabase/schema),
+      // nunca de types.ts ou types-manual.ts diretamente — esses arquivos são
+      // auto-gerados e o barrel pode remapear/estender sem quebrar importadores.
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/integrations/supabase/types",
+              message:
+                "Importar de '@/integrations/supabase/schema' (barrel canônico). types.ts é auto-gerado e pode mudar.",
+            },
+            {
+              name: "@/integrations/supabase/types-manual",
+              message:
+                "Importar de '@/integrations/supabase/schema' (barrel canônico). types-manual.ts é detalhe de implementação interno.",
+            },
+          ],
+        },
+      ],
     },
   },
 );

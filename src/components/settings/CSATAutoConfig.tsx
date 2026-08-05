@@ -11,7 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { MessageSquareHeart, Clock, Send, Zap } from 'lucide-react';
+import { MessageSquareHeart, Clock, Send, Zap, ShieldAlert } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useCSATAutoConfig } from '@/hooks/useCSATAutoConfig';
 
 /** CSATAuto Config component for the settings section. */
@@ -40,6 +41,19 @@ export function CSATAutoConfig() {
           Envie pesquisas de satisfação automaticamente quando um ticket for resolvido.
         </p>
       </div>
+
+      {/* Sinalização DASHBOARD-05: coleta automática sem executor */}
+      <Alert variant="destructive">
+        <ShieldAlert className="h-4 w-4" />
+        <AlertTitle>Sinalização DASHBOARD-05 — coleta automática sem executor</AlertTitle>
+        <AlertDescription>
+          Salvar esta configuração persiste em <code>zapp.csat_auto_config</code>, mas <b>nenhum produtor
+          existe</b>: nenhuma edge function ou worker lê <code>csat_auto_config</code> para disparar a
+          pesquisa no WhatsApp após resolução (grep em supabase/functions/ retorna vazio) e nenhuma edge
+          escreve <code>csat_surveys</code>. O CSAT continua dependendo do registro manual. Criar a edge{' '}
+          <code>csat-auto-send</code> (ou pg_cron) fica fora do escopo desta branch.
+        </AlertDescription>
+      </Alert>
 
       <Card>
         <CardHeader>

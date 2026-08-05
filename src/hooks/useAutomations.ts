@@ -257,17 +257,58 @@ export function useAutomations({
         // Pedir sugestão de IA
         if (actions.suggest_reply || actions.auto_send) {
           try {
-            await supabase.functions.invoke('automation-suggest-reply', {
-              body: {
-                executionId: execId,
-                ruleId: rule.id,
-                remoteJid,
-                recentMessages: sorted.map((m: ExternalMsg) => ({
-                  from_me: m.from_me,
-                  content: m.content,
-                })),
-              },
-            });
+            // Contrato automation-suggest-reply@v1 (estrito — schemas.ts):
+            // recentMessages aceita no MÁXIMO 8 itens e content no MÁXIMO 2000
+            // chars; exceder qualquer limite resulta em 422 (parseOrReject).
+            const recentMessages = sorted.slice(-8).map((m: ExternalMsg) => ({
+              from_me: m.from_me,
+              content: String(m.content ?? '').slice(0, 2000),
+            }));
+
+            const { error: invokeErr } = await supabase.functions.invoke(
+              'automation-suggest-reply',
+              {
+                body: {
+                  executionId: execId,
+                  ruleId: rule.id,
+                  remoteJid,
+                  recentMessages,
+                },
+              }
+            );
+
+            // Edge é internal-only (requireServiceRoleOrCron — auth.ts): o
+            // browser (anon key) recebe 401/403. Fallback local: usa o template
+            // da regra como sugestão para a execução continuar visível no painel.
+            if (invokeErr) {
+              const errObj = invokeErr as {
+                status?: number;
+                context?: { status?: number };
+              };
+              const status = errObj.status ?? errObj.context?.status ?? 0;
+              if (status === 401 || status === 403) {
+                const template =
+                  typeof actions.template === 'string' && actions.template.trim()
+                    ? actions.template.trim()
+                    : '';
+                if (template) {
+                  await safeClient.from('automation_executions', (q) =>
+                    q
+                      .update({ suggestion_text: template, kb_sources: [] })
+                      .eq('id', execId)
+                  );
+                  log.warn(
+                    '[automation] suggest-reply indisponível (edge internal-only) — usando template da regra como sugestão'
+                  );
+                } else {
+                  log.warn(
+                    '[automation] suggest-reply indisponível (edge internal-only) — sem template p/ fallback'
+                  );
+                }
+              } else {
+                throw invokeErr;
+              }
+            }
 
             // Auto envio
             if (actions.auto_send) {

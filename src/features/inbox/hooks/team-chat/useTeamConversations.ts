@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { queryKeys } from '@/services/api/queryKeys';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/schema';
 import type { TeamConversation, TeamMember, TeamMessage } from './teamChatTypes';
 
 /** Type guard: JSON object (não primitivo/array) → shape compatível com Record<string, unknown>. */

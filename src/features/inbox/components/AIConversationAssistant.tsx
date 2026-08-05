@@ -17,6 +17,7 @@ import {
   VolumeX,
   RefreshCcw,
   X,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -24,6 +25,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useConversationAnalyses } from '@/hooks/useConversationManagement';
 import { useSentimentAlerts } from '@/hooks/useSentimentAlerts';
 import { withRetry } from '@/lib/retry';
+import { isValidUUID } from '@/utils/uuid';
+import {
+  persistConversationSummary,
+  loadCachedConversationSummary,
+} from './ai-tools/conversationSummaryStorage';
 import { VisionIcon } from './ai-tools/VisionIcon';
 import { useAnalysisTts } from './ai-tools/useAnalysisTts';
 import { AnalysisTabs } from './ai-tools/AnalysisTabs';
@@ -49,6 +55,7 @@ export function AIConversationAssistant({
 }: AIConversationAssistantProps) {
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('resumo');
 
   const {
@@ -172,6 +179,99 @@ export function AIConversationAssistant({
     SENTIMENT_THRESHOLD,
   ]);
 
+  /**
+   * IA-07: gera SOMENTE o resumo via edge dedicada ai-conversation-summary
+   * (contrato @v1 — AiConversationSummarySchema: contactId?, contactName?,
+   * messages[{ role, content, sender?, timestamp? }] 1..200).
+   * O resumo gerado é persistido em zapp.conversation_summaries (cache) além
+   * da persistência que o ai-router já faz em conversation_analyses.
+   */
+  const generateSummary = useCallback(async () => {
+    if (!canAnalyze) {
+      toast.error('Mínimo de 5 mensagens necessárias para o resumo.');
+      return;
+    }
+
+    setIsSummaryLoading(true);
+
+    try {
+      const result = await withRetry(
+        async () => {
+          const { data, error } = await supabase.functions.invoke('ai-conversation-summary', {
+            body: {
+              contactId,
+              contactName,
+              messages: filteredMessages.slice(0, 200).map((message) => ({
+                role: message.sender === 'agent' ? ('agent' as const) : ('client' as const),
+                content: message.content.slice(0, 10000),
+                sender: message.sender,
+                timestamp: message.created_at,
+              })),
+            },
+          });
+
+          if (error) throw error;
+          return data as AnalysisData; // ignore-audit: narrows Supabase query result to local interface
+        },
+        {
+          maxRetries: 2,
+          shouldRetry: (error) => {
+            if (error instanceof Error) {
+              const message = error.message.toLowerCase();
+              return (
+                message.includes('fetch') ||
+                message.includes('network') ||
+                message.includes('timeout')
+              );
+            }
+            return false;
+          },
+        }
+      );
+
+      setAnalysis(result);
+      setActiveTab('resumo');
+      await refetch();
+
+      // Persistência em conversation_summaries (cache p/ reabertura). RLS hoje
+      // bloqueia escrita de usuário autenticado (sem policy INSERT/UPDATE) —
+      // falha é degradada: resumo continua visível, apenas não fica cacheado.
+      const { ok: persisted } = await persistConversationSummary(contactId, result.summary);
+      if (!persisted) {
+        log.debug('conversation_summaries persistence skipped (RLS)', { contactId });
+      }
+
+      toast.success('Resumo gerado!');
+    } catch (error) {
+      log.error('Error generating conversation summary:', error);
+      toast.error('Erro ao gerar resumo. Tente novamente.');
+    } finally {
+      setIsSummaryLoading(false);
+    }
+  }, [canAnalyze, contactId, contactName, filteredMessages, refetch]);
+
+  /**
+   * IA-07: ao abrir a conversa, hidrata o SummaryTab com o resumo salvo em
+   * conversation_summaries (cache), sem nova chamada de IA. Só preenche se o
+   * usuário ainda não gerou análise/resumo nesta sessão (prev ?? cached).
+   */
+  useEffect(() => {
+    if (!isOpen || !isValidUUID(contactId)) return;
+
+    let cancelled = false;
+    loadCachedConversationSummary(contactId)
+      .then((cached) => {
+        if (cancelled || !cached?.summary) return;
+        // const p/ preservar narrowing dentro do closure do setState
+        const cachedSummary: string = cached.summary;
+        setAnalysis((prev) => prev ?? { summary: cachedSummary, status: '', keyPoints: [], sentiment: 'neutro', sentimentScore: 50 });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, contactId]);
+
   const sentimentTrend = getSentimentTrend();
   const currentSentiment = analysis?.sentiment || 'neutro';
   const sentimentScore = analysis?.sentimentScore ?? 50;
@@ -193,20 +293,36 @@ export function AIConversationAssistant({
       />
 
       <div className="flex flex-col items-center gap-1.5">
-        <Button
-          size="sm"
-          onClick={analyzeConversation}
-          disabled={isLoading || !canAnalyze}
-          className="gap-2 rounded-xl bg-primary px-6 text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90"
-        >
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Sparkles className="h-4 w-4" />
-          )}
-          {isLoading ? 'Analisando...' : `Analisar (${filteredMessages.length} msgs)`}
-        </Button>
-        {canAnalyze && !isLoading && !analysis && (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            size="sm"
+            onClick={analyzeConversation}
+            disabled={isLoading || isSummaryLoading || !canAnalyze}
+            className="gap-2 rounded-xl bg-primary px-6 text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90"
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {isLoading ? 'Analisando...' : `Analisar (${filteredMessages.length} msgs)`}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={generateSummary}
+            disabled={isLoading || isSummaryLoading || !canAnalyze}
+            className="gap-2 rounded-xl px-4"
+          >
+            {isSummaryLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FileText className="h-4 w-4" />
+            )}
+            {isSummaryLoading ? 'Resumindo...' : 'Resumo'}
+          </Button>
+        </div>
+        {canAnalyze && !isLoading && !isSummaryLoading && !analysis && (
           <p className="text-[9px] text-muted-foreground">
             Resumo · Sentimento · Pontos-chave · Histórico
           </p>

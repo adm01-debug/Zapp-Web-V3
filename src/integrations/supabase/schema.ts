@@ -55,3 +55,4 @@ export type EvoTable<T extends keyof EvoTables> = EvoTables[T] extends { Row: in
 export type ContactRow = ZappViews['contacts'] extends { Row: infer R } ? R : never;
 
 export type { Json };
+export type { ContactIntelligenceRow } from './types-manual';

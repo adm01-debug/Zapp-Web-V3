@@ -269,10 +269,16 @@ export function getCorsHeaders(req?: Request): Record<string, string> {
 export const corsHeaders = getCorsHeaders();
 
 /** Standard JSON error response (with origin-validated CORS) */
-export function errorResponse(message: string, status = 400, req?: Request) {
+export function errorResponse(
+  message: string,
+  status = 400,
+  req?: Request,
+  details?: Record<string, unknown>,
+) {
   const headers = req ? getCorsHeaders(req) : corsHeaders;
+  const body = details ? { error: message, ...details } : { error: message };
   return new Response(
-    JSON.stringify({ error: message }),
+    JSON.stringify(body),
     { status, headers: { ...headers, 'Content-Type': 'application/json' } }
   );
 }
