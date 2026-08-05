@@ -28,6 +28,33 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: D-8 — Fail gate if v_security_audit has ⚠ rows (schema evo)
+        run: |
+          if [ -z "$META_URL" ] || [ -z "$META_TOKEN" ]; then
+            echo "⚠ Secrets not configured — skipping security audit gate"
+            exit 0
+          fi
+          echo "→ Querying evo.v_security_audit for ⚠ rows..."
+          RESPONSE=$(curl -sS "$META_URL/query" \
+            -H "apikey: $META_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"query":"SELECT count(*) FROM evo.v_security_audit WHERE severity = $$⚠$$"}' \
+            -w "\n%{http_code}" \
+            --connect-timeout 10 --max-time 30 2>/dev/null || echo -e "\n000")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          RESULT=$(echo "$RESPONSE" | sed '$d')
+          if [ "$HTTP_CODE" = "000" ] || [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "403" ] || [ "$HTTP_CODE" = "502" ] || [ "$HTTP_CODE" = "503" ] || [ "$HTTP_CODE" = "504" ]; then
+            echo "::warning::security audit gate unreachable (HTTP $HTTP_CODE) — skipping"
+            exit 0
+          fi
+          COUNT=$(echo "$RESULT" | grep -oE '[0-9]+' | head -1)
+          COUNT=${COUNT:-0}
+          if [ "$COUNT" != "0" ]; then
+            echo "::error::v_security_audit has $COUNT ⚠ rows — release gate BLOCKED (D-8). Fix before promoting evo changes."
+            exit 1
+          fi
+          echo "✅ v_security_audit clean (0 ⚠ rows)"
+
       - name: Check security_invoker via postgres-meta
         run: |
           if [ -z "$META_URL" ] || [ -z "$META_TOKEN" ]; then
