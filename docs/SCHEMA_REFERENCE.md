@@ -1,7 +1,7 @@
 # 📐 Schema Reference — ZAPP WEB
 
 > **Documento canônico** sobre a arquitetura de schemas do Supabase.
-> Última atualização: **2026-08-04**. Auditado via `pg_catalog` + teste de penetração HTTP real.
+> Última atualização: **2026-08-05**. Auditado via `pg_catalog` + teste de penetração HTTP real.
 > Qualquer doc que contradiga este está desatualizado.
 > Regras de integração (schema canônico, Realtime, credenciais, guardrails): **[INTEGRATION_INVARIANTS.md](./INTEGRATION_INVARIANTS.md)**.
 
@@ -11,7 +11,7 @@ O ZAPP Web usa **um único Supabase Self-Hosted** (`supabase.atomicabr.com.br`) 
 
 | Schema | Conteúdo | Quem acessa | Exemplos |
 |--------|----------|-------------|----------|
-| **`zapp`** | Todas as tabelas do app (**321** base tables + **380** views + **5** matviews), RPCs | Frontend (client.ts), Edge Functions, n8n | `profiles`, `queues`, `contatos`, `whatsapp_connections`, `empresas`, `webhook_audit_log` |
+| **`zapp`** | Todas as tabelas do app (**323** base tables + **359** views + **5** matviews), RPCs | Frontend (client.ts), Edge Functions, n8n | `profiles`, `queues`, `contatos`, `whatsapp_connections`, `empresas`, `webhook_audit_log` |
 | **`evo`** | Tabelas-fonte da Evolution API (**193 tabelas**); tabelas raiz particionadas (`evolution_messages`, `evolution_conversations`) com **23 partições** cada | Realtime subscriptions, Edge Functions que fazem `.schema('evo')` | `evolution_messages` (raiz), `evolution_contacts`, `evolution_webhook_events_v2` |
 | **`public`** | **1 tabela interna Supabase** (`_wal_slot_guard_events`) + **535 views** proxy para zapp/evo/email_app | Não usar diretamente | views proxy |
 | **`auth`** | Auth do Supabase (GoTrue) | `supabase.auth.*` | `auth.users` |
@@ -58,7 +58,7 @@ supabase/functions/_shared/
 
 | Schema | Base Tables | Views | RLS ativo |
 |--------|-------------|-------|-----------|
-| `zapp` | **321** | **380** | 100% |
+| `zapp` | **323** | **359** | 100% |
 | `evo` | **193** | — | 100% |
 | `auth` | 21 | — | — |
 | `bpm` | 41 | — | — |
@@ -152,6 +152,7 @@ Antes do grant, o corpo ganhou guard: `auth.uid() IS NULL` → `RAISE`; `perform
 | 2026-07-15 | **Auditoria MCP**: contagem corrigida 294→315 (zapp), 193 confirmados (evo) |
 | 2026-07-16 | **Auditoria exaustiva**: contagem definitiva 315→312 (zapp), public = 1+535 (não zero), 23 partições confirmadas (não 25), 12 RPCs ausentes identificados, Realtime corrigido para usar raiz particionada |
 | 2026-08-04 | **Integração schema zapp × front**: inventário pg_catalog atualizado (zapp: **321** tabelas, **380** views, **5** matviews, **1060** funções, **729** policies, **146** cron jobs); wrappers `zapp.rpc_app_bootstrap`/`zapp.rpc_dashboard_init` (SECURITY DEFINER; `public.*` → service_role only); `rpc_schema_columns`/`rpc_schema_tables` (whitelist zapp/evo/public); grants F-03; guard em `fn_safe_audit_log` |
+| 2026-08-05 | **Fechamento plano 100 etapas**: inventário pg_catalog atualizado (zapp: **323** tabelas, **359** views, **5** matviews, **1077** funções, **759** policies, **144** cron jobs ativos); grants `fn_system_health_score`/`reassign_absent_agents`/`reassign_overloaded_agents` com guarda `is_admin_or_supervisor` (migration `20260805183000`); types.ts regenerado via postgres-meta (73.021 linhas) |
 
 ---
 
@@ -302,6 +303,8 @@ Após a contenção de 16/07 (`security_invoker=true` em 535/535 views) e o REVO
 
 `authenticated` (717 zapp / 203 evo / 536 public) e `service_role` permanecem intactos.
 Schema `evo` **não é exposto** pelo PostgREST (PGRST106). `PGRST_DB_SCHEMAS` atual: `public`, `zapp`, `storage`, `graphql_public`, `artes`, `vendas`, `financeiro` — `evo`/`email_app` **nunca** adicionar.
+
+> **Recomendação 2026-08-05 (I-02):** `artes`/`vendas`/`financeiro` permanecem expostos no mesmo PostgREST — superfície cross-tenant. Decisão: segregar para PostgREST/rota dedicada em janela agendada com aprovação do dono; **NÃO alterado em produção** neste ciclo.
 
 **Teste autoritativo de vazamento** (o único que vale):
 
