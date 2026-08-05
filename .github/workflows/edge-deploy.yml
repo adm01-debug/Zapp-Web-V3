@@ -1,0 +1,50 @@
+name: edge-deploy
+
+# Pipeline de deploy de Edge Functions (causa-raiz do P0 — REC-ART-04/05):
+# reconcilia supabase/functions/ (repo) com o volume /home/deno/functions do
+# container supabase_functions na VPS, usando o runner self-hosted (que tem
+# /var/run/docker.sock montado — ver infra/runner/).
+#
+# Dispara em push na main que toque supabase/functions/** e em dispatch
+# manual (útil para reconciliar drift acumulado sem novo commit).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/functions/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: edge-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy edge functions (--apply)
+    # Runner self-hosted da VPS (labels: self-hosted, linux, x64, vps-zapp;
+    # a variante docker do runner também carrega a label 'docker').
+    runs-on: [self-hosted, linux, x64, vps-zapp]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Deploy edge functions (apply + hash validation)
+        # O script falha (exit 1) se a escrita não validar hash pós-escrita;
+        # tee preserva o diff para o artefato (pipefail garante exit code real).
+        run: |
+          set -euo pipefail
+          bash infra/edge-deploy/deploy-edge.sh --apply 2>&1 | tee edge-deploy-report.txt
+
+      - name: Upload drift report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: edge-deploy-report
+          path: edge-deploy-report.txt
+          if-no-files-found: error
+          retention-days: 14
