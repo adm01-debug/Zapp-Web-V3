@@ -81,7 +81,9 @@ describe('useZappConversations (fix: hooks zappweb sem .schema("evo"))', () => {
     const { result } = renderHook(() => useZappConversations());
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(supabaseMock.client.channel).toHaveBeenCalledWith(`zapp:conversations:${ZAPPWEB_INSTANCE}`);
+    expect(supabaseMock.client.channel).toHaveBeenCalledWith(
+      expect.stringMatching(new RegExp(`^zapp:conversations:${ZAPPWEB_INSTANCE}(:[a-z0-9]+)?$`))
+    );
     const channel = supabaseMock.client.channel.mock.results[0].value;
     expect(channel.on).toHaveBeenCalledWith(
       'postgres_changes',
