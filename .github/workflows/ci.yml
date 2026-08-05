@@ -194,6 +194,7 @@ jobs:
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
       # Alternativa (driver pg): DB_URL: ${{ secrets.SUPABASE_DB_URL }}
     steps:
       - name: Checkout code
