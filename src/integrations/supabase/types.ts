@@ -41705,6 +41705,42 @@ export type Database = {
           },
         ]
       }
+      ai_function_metrics: {
+        Row: {
+          action: string
+          created_at: string
+          duration_ms: number
+          error_message: string | null
+          function_name: string
+          id: number
+          metadata: Json | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          duration_ms?: number
+          error_message?: string | null
+          function_name: string
+          id?: never
+          metadata?: Json | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          duration_ms?: number
+          error_message?: string | null
+          function_name?: string
+          id?: never
+          metadata?: Json | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       alert_channels: {
         Row: {
           channel_type: string
@@ -50310,6 +50346,42 @@ export type Database = {
             referencedColumns: ["profile_id"]
           },
         ]
+      }
+      processed_requests: {
+        Row: {
+          action: string
+          contact_id: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          request_id: string
+          result_payload: Json | null
+          result_status: number
+          user_id: string
+        }
+        Insert: {
+          action: string
+          contact_id?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          request_id: string
+          result_payload?: Json | null
+          result_status?: number
+          user_id: string
+        }
+        Update: {
+          action?: string
+          contact_id?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          request_id?: string
+          result_payload?: Json | null
+          result_status?: number
+          user_id?: string
+        }
+        Relationships: []
       }
       processed_webhook_events: {
         Row: {
@@ -75127,6 +75199,10 @@ export type Database = {
       _fn_health_min_test: { Args: never; Returns: Json }
       _fn_health_noexc: { Args: never; Returns: Json }
       _fn_health_nosecdef: { Args: never; Returns: Json }
+      acquire_idempotency_lock: {
+        Args: { p_action: string; p_request_id: string; p_user_id: string }
+        Returns: Json
+      }
       acquire_job_lock: {
         Args: { lock_duration_seconds?: number; p_job_name: string }
         Returns: {
@@ -75336,6 +75412,14 @@ export type Database = {
       check_download_permission: {
         Args: { p_resource_id: string }
         Returns: boolean
+      }
+      check_duplicate_request: {
+        Args: { p_action: string; p_request_id: string; p_user_id: string }
+        Returns: {
+          cached_result: Json
+          is_duplicate: boolean
+          status_code: number
+        }[]
       }
       check_user_permission: {
         Args: { p_permission_name: string }
@@ -77341,6 +77425,18 @@ export type Database = {
       reassign_overloaded_agents:
         | { Args: never; Returns: number }
         | { Args: { p_max_conversations?: number }; Returns: Json }
+      record_ai_metrics: {
+        Args: {
+          p_action: string
+          p_duration_ms: number
+          p_error_message?: string
+          p_function_name: string
+          p_metadata?: Json
+          p_status: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       record_failed_login: {
         Args: { p_email: string; p_ip_address?: string; p_user_agent?: string }
         Returns: {
@@ -77348,6 +77444,16 @@ export type Database = {
           is_locked: boolean
           locked_until: string
         }[]
+      }
+      record_processed_request: {
+        Args: {
+          p_action: string
+          p_request_id: string
+          p_result_payload?: Json
+          p_status_code: number
+          p_user_id: string
+        }
+        Returns: undefined
       }
       record_voice_telemetry: {
         Args: {
@@ -79365,6 +79471,17 @@ export type Database = {
         }
         Returns: Json
       }
+      sicoob_outbox_claim: {
+        Args: { p_batch_size?: number }
+        Returns: {
+          attempt_count: number
+          created_at: string
+          id: string
+          next_attempt_at: string
+          payload: Json
+          status: string
+        }[]
+      }
       skill_based_assign: { Args: { p_queue_id: string }; Returns: string }
       soft_delete_contact: {
         Args: { p_contact_id: string; p_reason?: string }
@@ -79398,6 +79515,15 @@ export type Database = {
       translate_dept: { Args: { dept_pt: string }; Returns: string }
       unaccent: { Args: { "": string }; Returns: string }
       unpause_instance: { Args: { p_instance: string }; Returns: number }
+      update_contact_note: {
+        Args: {
+          p_content?: string
+          p_is_pinned?: boolean
+          p_note_id: string
+          p_note_type?: string
+        }
+        Returns: Json
+      }
       update_contact_versioned: {
         Args: {
           p_contact_id: string
@@ -79426,6 +79552,10 @@ export type Database = {
       update_segment_counts: { Args: never; Returns: undefined }
       upsert_contact_intelligence: {
         Args: { p_contact_id: string }
+        Returns: undefined
+      }
+      upsert_conversation_tags_atomic: {
+        Args: { p_contact_id: string; p_new_tags: Json; p_old_tags?: Json }
         Returns: undefined
       }
       user_has_permission: {
