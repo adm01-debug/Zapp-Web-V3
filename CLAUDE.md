@@ -1,5 +1,9 @@
 # ZAPP-WEB — Contexto para Claude Code
 
+## Idioma
+
+**SEMPRE comunicar em Português do Brasil** — toda resposta, comentário de código, mensagem de commit, descrição de PR e qualquer saída de texto deve estar em pt-BR. Nunca alternar para inglês, independentemente do idioma usado na pergunta.
+
 ## Projeto
 
 **ZAPP-WEB (Pronto Talk Suite)** — plataforma omnichannel de atendimento ao cliente com WhatsApp, IA integrada, CRM e automações.

@@ -29,7 +29,6 @@ import {
   SendScheduledReportV1Schema,
   AutoEscalateSlaV1Schema,
   AutoCloseConversationsV1Schema,
-  BackfillMessagesV1Schema,
   ElevenLabsVoiceV1Schema,
   ElevenLabsTtsV1Schema,
   ElevenLabsStsV1Schema,
@@ -247,21 +246,6 @@ const MATRICES: Matrix[] = [
     schema: AutoCloseConversationsV1Schema,
     valid: [{}],
     invalid: [{ label: "campo extra (strict)", payload: { hours: 24 } }],
-  },
-  {
-    name: "backfill-messages@v1 (estrito — campos opcionais)",
-    schema: BackfillMessagesV1Schema,
-    valid: [
-      {},
-      { instance_name: "wpp2", connection_id: "c1" },
-      { instance: "wpp2", offset: 100, limit: 200, dryRun: true },
-    ],
-    invalid: [
-      { label: "offset negativo", payload: { offset: -1 }, expectPath: "offset" },
-      { label: "limit acima de 500", payload: { limit: 501 }, expectPath: "limit" },
-      { label: "dryRun com tipo errado", payload: { dryRun: "yes" }, expectPath: "dryRun" },
-      { label: "campo extra (strict)", payload: { force: true } },
-    ],
   },
   {
     name: "elevenlabs-voice@v1 (estrito — action + textToSpeech)",

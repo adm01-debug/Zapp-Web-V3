@@ -10,6 +10,8 @@ import {
   recordFailedLogin,
   clearLoginAttempts,
   formatLockTime,
+  blockReasonMessage,
+  type LoginBlockReason,
 } from '@/lib/loginAttempts';
 
 const passwordSchema = z
@@ -36,6 +38,10 @@ export interface LockStatus {
   isLocked: boolean;
   remainingTime: number;
   attempts: number;
+  /** SEGURANCA-04/05: IP/país bloqueado pelo gate de segurança (edge login-attempts). */
+  blocked: boolean;
+  blockReason: LoginBlockReason | null;
+  country: string | null;
 }
 
 /** Hook: use Auth Form. */
@@ -60,6 +66,9 @@ export function useAuthForm() {
     isLocked: false,
     remainingTime: 0,
     attempts: 0,
+    blocked: false,
+    blockReason: null,
+    country: null,
   });
   const [formData, setFormData] = useState({
     name: '',
@@ -153,6 +162,17 @@ export function useAuthForm() {
     }
 
     const currentLock = await checkAccountLock(formData.email);
+    // SEGURANCA-04/05: o gate da edge negou o pré-flight (IP bloqueado, IP fora
+    // da whitelist, país bloqueado/não permitido) — NÃO chama o signInWithPassword.
+    if (currentLock.blocked) {
+      setLockStatus(currentLock);
+      toast({
+        title: 'Acesso bloqueado',
+        description: blockReasonMessage(currentLock.blockReason),
+        variant: 'destructive',
+      });
+      return;
+    }
     if (currentLock.isLocked) {
       setLockStatus(currentLock);
       toast({

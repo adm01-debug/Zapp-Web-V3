@@ -458,6 +458,7 @@ export async function handleCallEvent(supabase: SupabaseClient, instance: string
       const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.49.1');
       const externalAdmin = createClient(externalUrl, externalKey, {
         auth: { persistSession: false, autoRefreshToken: false },
+        db: { schema: 'zapp' },
       });
       const bcastChannel = externalAdmin.channel(`incoming-calls:${instance}`);
       await bcastChannel.send({

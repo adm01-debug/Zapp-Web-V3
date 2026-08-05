@@ -1,3 +1,18 @@
+/**
+ * NOTA (CAMPANHAS-01): campanha clássica NÃO tem motor de disparo — verificado em 2026-08-04.
+ *  - Edge `campanha-send`: NÃO EXISTE em supabase/functions (só talkx-send/talkx-scheduler).
+ *  - Edge `talkx-send` (único motor de envio em massa) é HARDCODED para as tabelas
+ *    talkx_campaigns / talkx_recipients / talkx_blacklist — não lê zapp.campaigns nem
+ *    zapp.campaign_contacts. NÃO é reusável para campanha clássica sem adaptação (edge novo
+ *    ou parametrização). Sinalizado ao maestro: criar edge/cron com fonte no repo.
+ *  - Nenhum edge/cron do repo processa zapp.campaigns ou zapp.campaign_contacts (grep em
+ *    supabase/functions = 0 ocorrências). O botão "Iniciar" do CampaignsView apenas faz
+ *    update({ status: 'sending' }) — nenhuma mensagem é enviada.
+ *  - RLS zapp.campaigns (canonical 20260804000000): SÓ `campaigns_select` (SELECT) e
+ *    `campaigns_admin_write` (INSERT admin). POLICIES UPDATE/DELETE FALTAM → Iniciar/Pausar/
+ *    Excluir (updateCampaign/deleteCampaign abaixo) falham com 403 para qualquer role.
+ *    Sinalizado ao maestro: criar policies UPDATE/DELETE.
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';

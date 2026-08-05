@@ -4,6 +4,7 @@ export * from './useAgentRecentSends';
 export * from './useCalls';
 export * from './useChatAutoScroll';
 export * from './useChatSearch';
+export * from './useContactSummaryBatch';
 export * from './useFailureMetricsBatch';
 export * from './useFailureReason';
 export * from './useInboxBulkActions';

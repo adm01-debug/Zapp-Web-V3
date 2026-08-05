@@ -1,0 +1,14 @@
+-- Revoke EXECUTE on fn_toggle_user_meme_favorite(uuid, uuid) from authenticated.
+--
+-- Migration 20260805105900 accidentally granted this overload to authenticated.
+-- The 2-arg overload accepts an arbitrary p_user_id without an internal ownership
+-- guard, enabling horizontal privilege escalation (any authenticated user could
+-- toggle favourites on behalf of another user).
+--
+-- The 1-arg overload fn_toggle_user_meme_favorite(uuid) operates on auth.uid()
+-- internally and remains granted to authenticated — no change there.
+--
+-- Rollback: GRANT EXECUTE ON FUNCTION zapp.fn_toggle_user_meme_favorite(uuid, uuid) TO authenticated;
+-- (Do not apply the rollback until the function receives an internal ownership
+-- guard: IF p_user_id <> auth.uid() AND NOT zapp.is_admin_or_supervisor() THEN RAISE EXCEPTION ...)
+REVOKE EXECUTE ON FUNCTION zapp.fn_toggle_user_meme_favorite(uuid, uuid) FROM authenticated;

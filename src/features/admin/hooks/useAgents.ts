@@ -67,8 +67,11 @@ export function useAgents() {
       }
     })();
 
+    // Topic único por mount — evita reutilizar instância de canal já inscrita
+    // cujo teardown (removeChannel assíncrono) ainda não terminou.
+    const channelName = `agent-presence-realtime:${Math.random().toString(36).slice(2, 10)}`;
     const channel = supabase
-      .channel('agent-presence-realtime')
+      .channel(channelName)
       .on(
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'agent_presence' },

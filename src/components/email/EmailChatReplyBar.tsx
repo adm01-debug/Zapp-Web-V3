@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronUp,
   Signature,
+  FileText,
   X,
   Loader2,
   Clock,
@@ -19,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/u
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { emailSendMessage } from '@/hooks/gmail/gmailApi';
-import { MessageTemplates } from '@/features/inbox/components/MessageTemplates';
+import { useEmailTemplates } from '@/hooks/email/useEmailTemplates';
 import { useEmailSignature, useEmailDraft, useEmailSLA } from '@/hooks/useEmailManagement';
 
 interface EmailChatReplyBarProps {
@@ -54,6 +55,8 @@ export function EmailChatReplyBar({
   const { signatures, defaultSignature } = useEmailSignature(accountId);
   const { draft, update, save: saveDraft, discard } = useEmailDraft(accountId, threadId);
   const { markReplied } = useEmailSLA(accountId);
+  // EMAIL-09: templates de e-mail (email_templates) para inserção rápida.
+  const { templates: emailTemplates } = useEmailTemplates();
 
   // Seleciona assinatura padrão automaticamente
   useEffect(() => {
@@ -131,9 +134,7 @@ export function EmailChatReplyBar({
       // signature) — o front inclui o HTML da assinatura selecionada no
       // bodyHtml antes de enviar, no padrão da edge (campo bodyHtml).
       const signatureHtml = selectedSignature?.html_content ?? null;
-      const finalBodyHtml = signatureHtml
-        ? `${bodyHtml}\n<br/>\n${signatureHtml}`
-        : bodyHtml;
+      const finalBodyHtml = signatureHtml ? `${bodyHtml}\n<br/>\n${signatureHtml}` : bodyHtml;
 
       await emailSendMessage({
         accountId,
@@ -363,19 +364,50 @@ export function EmailChatReplyBar({
               onChange={handleFileSelect}
             />
 
-            {/* Template picker */}
-            {/* TODO(EMAIL-09): a tabela email_templates (subject+body+category)
-                não tem UI de gestão própria — o MessageTemplates abaixo é de
-                escopo WhatsApp (message_templates). Não construir do zero nesta
-                rodada; reutilizar o padrão de MessageTemplates quando houver UI
-                de templates de e-mail. */}
-            <MessageTemplates
-              onSelectTemplate={(content) => {
-                const el = DOMPurify.sanitize(bodyHtml, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
-                const newContent = el ? el + '\n\n' + content : content;
-                setBody(newContent);
-              }}
-            />
+            {/* Template picker (EMAIL-09: email_templates) */}
+            {emailTemplates.length > 0 && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <Select
+                      value="none"
+                      onValueChange={(v) => {
+                        if (v === 'none') return;
+                        const tpl = emailTemplates.find((t) => t.id === v);
+                        if (!tpl) return;
+                        // A textarea é plain-text (sanitizada) — insere o corpo
+                        // do template como texto, no mesmo padrão do draft.
+                        const content = DOMPurify.sanitize(tpl.body ?? '', {
+                          ALLOWED_TAGS: [],
+                          ALLOWED_ATTR: [],
+                        }).trim();
+                        if (!content) return;
+                        const el = DOMPurify.sanitize(bodyHtml, {
+                          ALLOWED_TAGS: [],
+                          ALLOWED_ATTR: [],
+                        });
+                        setBody(el ? `${el}\n\n${content}` : content);
+                        toast.success(`Template "${tpl.name}" inserido`);
+                      }}
+                    >
+                      <SelectTrigger className="h-8 w-8 border-0 bg-transparent p-0 focus:ring-0 [&>svg]:hidden">
+                        <FileText className="h-4 w-4 text-muted-foreground transition-colors hover:text-primary" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Inserir template…</SelectItem>
+                        {emailTemplates.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.name}
+                            {t.category ? ` (${t.category})` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>Inserir template de e-mail</TooltipContent>
+              </Tooltip>
+            )}
 
             {/* Signature picker */}
             {signatures.length > 0 && (

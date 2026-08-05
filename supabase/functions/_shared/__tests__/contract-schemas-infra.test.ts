@@ -1,7 +1,7 @@
 /**
  * Matriz de testes de contrato — schemas de INFRAESTRUTURA (v1) de zapp-web-v3.
  *
- * Cobre as 36 funções de infra registradas no registro canônico:
+ * Cobre as 35 funções de infra registradas no registro canônico:
  *   (A) GET/cron sem body (17): EmptyStrictV1Schema — `{}` passa, qualquer
  *       campo desconhecido falha (422).
  *   (B) com body (16): payload válido conforme o CONSUMO REAL documentado nos
@@ -47,7 +47,6 @@ const EMPTY_STRICT_NAMES = [
   "migrate-media-storage",
   "nps-scheduler",
   "provider-healthcheck",
-  "seed-teams-users",
   "sicoob-outbox-consumer",
   "talkx-scheduler",
 ] as const;
@@ -432,10 +431,10 @@ for (const m of MULTIPART_MATRICES) {
   }
 }
 
-// ─── Sanity — todos os 36 nomes estão registrados com v1 no registro canônico ─
-Deno.test("infra: os 36 nomes de infra estão registrados com v1 no CONTRACT_SCHEMAS", () => {
+// ─── Sanity — todos os 35 nomes estão registrados com v1 no registro canônico ─
+Deno.test("infra: os 35 nomes de infra estão registrados com v1 no CONTRACT_SCHEMAS", () => {
   const all = [...EMPTY_STRICT_NAMES, ...MATRICES.map((m) => m.name.split("@")[0]), ...MULTIPART_MATRICES.map((m) => m.name.split("@")[0])];
-  assertEquals(new Set(all).size, 36, "esperava exatamente 36 nomes de infra distintos");
+  assertEquals(new Set(all).size, 35, "esperava exatamente 35 nomes de infra distintos");
   for (const name of all) {
     assert(CONTRACT_SCHEMAS[name], `CONTRACT_SCHEMAS não registra '${name}'`);
     assert(CONTRACT_SCHEMAS[name].v1, `'${name}' não tem versão v1`);

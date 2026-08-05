@@ -40,6 +40,24 @@ const RPC_SCHEMAS = ['zapp', 'public'];
 const PGREST_TIMEOUT_MS = 10_000;
 
 // ---------------------------------------------------------------------------
+// 0. Allowlist — divergências conhecidas/esperadas (não causam exit 1)
+// ---------------------------------------------------------------------------
+function loadAllowlist() {
+  const path = join(ROOT, 'scripts', 'audit-allowlist.json');
+  try {
+    const raw = readFileSync(path, 'utf8');
+    const data = JSON.parse(raw);
+    const set = new Set();
+    for (const entry of (data.allowlist ?? [])) {
+      set.add(`${entry.kind}:${entry.name}`);
+    }
+    return set;
+  } catch {
+    return new Set();
+  }
+}
+
+// ---------------------------------------------------------------------------
 // 1. Extração do contrato declarado no frontend
 // ---------------------------------------------------------------------------
 const RPC_RE = /\.rpc\(\s*['"]([a-z_0-9]+)['"]/g;
@@ -136,30 +154,122 @@ function hasPGRestEnv() {
 }
 
 /** Checagem via PostgREST HTTP: retorna schema onde o objeto existe (ou null). */
+// NOTA (fix 2026-08-05): GET /rpc/{name} sem args retorna PGRST202 falso-negativo
+// para funções com args obrigatórios; OpenAPI também omite algumas funções.
+// Estratégia em camadas:
+//   1. Inventário zapp.rpc_contract_inventory (SECURITY DEFINER, criada na
+//      migration 20260805170000) — ground truth pg_proc via HTTP, 1 chamada cacheada.
+//   2. RPC: POST {} por função — PostgREST resolve por nome → 400 (existe) ou 404
+//      PGRST202 (ausente). Restaurado do fix #841 (o merge da #840 o descartava).
+//   3. Tabelas/views: OpenAPI do schema (Accept: application/openapi+json).
 async function pgRestExists(baseUrl, serviceKey, kind, name, schemas) {
+  // Camada 1: inventário via RPC (1 chamada, cacheada; falha também é cacheada para
+  // não repetir a chamada a cada objeto quando o inventário não existe no ambiente)
+  const inventoryKey = baseUrl; // payload do inventário é fixo (zapp) — independe de schemas
+  if (!pgRestExists._invCache) pgRestExists._invCache = new Map();
+  if (!pgRestExists._invCache.has(inventoryKey)) {
+    try {
+      const url = `${baseUrl}/rest/v1/rpc/rpc_contract_inventory`;
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), PGREST_TIMEOUT_MS);
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            apikey: serviceKey,
+            Authorization: `Bearer ${serviceKey}`,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'Content-Profile': 'zapp',
+            'Accept-Profile': 'zapp',
+          },
+          body: '{}',
+          signal: ctrl.signal,
+        });
+        if (res.status === 200) {
+          const data = await res.json().catch(() => null);
+          if (data) {
+            const fns = new Set((data.functions ?? []).map((f) => f.name));
+            const tbls = new Set((data.tables ?? []).map((t) => t.name));
+            pgRestExists._invCache.set(inventoryKey, { fns, tbls });
+          } else {
+            pgRestExists._invCache.set(inventoryKey, null);
+          }
+        } else {
+          pgRestExists._invCache.set(inventoryKey, null);
+        }
+        await res.text().catch(() => ''); // consome o corpo (libera o socket)
+      } finally {
+        clearTimeout(timer);
+      }
+    } catch (err) {
+      if (err?.name === 'AbortError') {
+        pgRestExists._invCache.set(inventoryKey, null); // timeout → desativa inventário
+      } else {
+        pgRestExists._invCache.set(inventoryKey, null);
+      }
+    }
+  }
+  const inv = pgRestExists._invCache.get(inventoryKey);
+  if (inv) {
+    const set = kind === 'rpc' ? inv.fns : inv.tbls;
+    if (set.has(name)) return 'zapp';
+  }
+
   for (const schema of schemas) {
-    const path = kind === 'rpc' ? `rpc/${encodeURIComponent(name)}` : `${encodeURIComponent(name)}?select=id&limit=1`;
-    const url = `${baseUrl}/rest/v1/${path}`;
-    const headers = {
-      apikey: serviceKey,
-      Authorization: `Bearer ${serviceKey}`,
-      Accept: 'application/json',
-      'Accept-Profile': schema,
-    };
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), PGREST_TIMEOUT_MS);
     try {
-      const res = await fetch(url, { method: 'GET', headers, signal: ctrl.signal });
-      // 200 = existe; 4xx de validação (400 bad params) = função existe; 404 PGRST202/205 = ausente.
-      if (res.status === 200) return schema;
-      if (res.status === 400 || res.status === 401 || res.status === 403) return schema;
-      if (res.status === 404) {
-        const body = await res.text().catch(() => '');
-        if (/PGRST202|PGRST205/.test(body)) continue;
-        // 404 fora de PGRST: tratar como ausente também (gateway pode mascarar).
+      // Camada 2 (RPC): POST com body vazio — o PostgREST resolve a função por nome e
+      // devolve 400 (params inválidos) se existir; GET sem body devolve 404 PGRST202
+      // para funções com argumentos (falso positivo). Só chega aqui se o inventário
+      // não respondeu (schema fora de zapp ou função ausente no inventário).
+      if (kind === 'rpc') {
+        const url = `${baseUrl}/rest/v1/rpc/${encodeURIComponent(name)}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            apikey: serviceKey,
+            Authorization: `Bearer ${serviceKey}`,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'Content-Profile': schema,
+            'Accept-Profile': schema,
+          },
+          body: '{}',
+          signal: ctrl.signal,
+        });
+        // 200 = existe (função sem args executada); 400 = existe (args obrigatórios);
+        // 401/403 = token inválido ou permission denied na função → função existe.
+        // 404 PGRST202/205 = função ausente; 404 sem PGRST = gateway mascarando → ausente também.
+        const ok = res.status === 200 || res.status === 400 || res.status === 401 || res.status === 403;
+        await res.text().catch(() => ''); // consome o corpo (libera o socket)
+        if (ok) return schema;
         continue;
       }
-      continue;
+      // Camada 3 (tabelas/views): OpenAPI do schema.
+      const url = `${baseUrl}/rest/v1/`;
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+          Accept: 'application/openapi+json',
+          'Accept-Profile': schema,
+        },
+        signal: ctrl.signal,
+      });
+      if (res.status !== 200) continue;
+      const spec = await res.json().catch(() => null);
+      if (!spec?.paths) continue;
+      // OpenAPI: tabelas/views viram `/{name}` no spec.
+      const needle = `/${encodeURIComponent(name)}`;
+      const found = Object.keys(spec.paths).some((p) =>
+        p === needle ||
+        p.startsWith(`${needle}/`) ||
+        p === `/${name}` ||
+        p.startsWith(`/${name}/`));
+      if (found) return schema;
     } catch (err) {
       if (err?.name === 'AbortError') {
         throw new Error(`timeout ao consultar ${schema}.${name} via PostgREST`);
@@ -316,8 +426,12 @@ function verifyEdgeFunctions(contract) {
 // ---------------------------------------------------------------------------
 // 4. Relatório
 // ---------------------------------------------------------------------------
-function buildReport(contract, edgeDivergences, dbResult) {
-  const divergences = [...edgeDivergences, ...(dbResult?.divergences ?? [])];
+function buildReport(contract, edgeDivergences, dbResult, allowlist = new Set()) {
+  const allDivergences = [...edgeDivergences, ...(dbResult?.divergences ?? [])];
+  const divergences = allowlist.size > 0
+    ? allDivergences.filter((d) => !allowlist.has(`${d.kind}:${d.name}`))
+    : allDivergences;
+  const suppressed = allDivergences.length - divergences.length;
   const summary = {
     rpcs: contract.rpcs.size,
     froms: contract.froms.size,
@@ -325,6 +439,7 @@ function buildReport(contract, edgeDivergences, dbResult) {
     edgeFunctionsOnDisk: listEdgeFunctionDirs().length,
     dbMode: dbResult?.mode ?? 'none',
     divergences: divergences.length,
+    suppressed,
     ok: divergences.length === 0,
   };
   return { summary, divergences };
@@ -359,6 +474,9 @@ function printText(report, contract) {
   } else {
     console.log(`\n❌ ${summary.divergences} divergência(s) de contrato.`);
   }
+  if ((summary.suppressed ?? 0) > 0) {
+    console.log(`   ℹ️  ${summary.suppressed} suprimida(s) pelo allowlist (scripts/audit-allowlist.json).`);
+  }
 }
 
 function printJson(report) {
@@ -371,9 +489,10 @@ function printJson(report) {
 async function main() {
   const contract = extractContract();
   const edgeDivergences = verifyEdgeFunctions(contract);
+  const allowlist = loadAllowlist();
 
   if (SCAN_ONLY) {
-    const report = buildReport(contract, edgeDivergences, null);
+    const report = buildReport(contract, edgeDivergences, null, allowlist);
     if (JSON_MODE) printJson(report);
     else printText(report, contract);
     process.exit(report.summary.divergences > 0 ? 1 : 0);
@@ -381,9 +500,16 @@ async function main() {
 
   let dbResult = null;
   if (hasPgEnv()) {
-    dbResult = await verifyWithPg(contract);
+    try {
+      dbResult = await verifyWithPg(contract);
+    } catch (err) {
+      // pg env setado mas conexão inalcançável (ex.: SUPABASE_DB_URL aponta p/
+      // IP interno do Swarm — ECONNREFUSED no CI) → fallback PostgREST.
+      console.warn(`audit-contract: modo pg falhou (${err.message}) — usando PostgREST`);
+      dbResult = { mode: null, reason: `pg falhou: ${err.message}` };
+    }
     if (dbResult.mode === null) {
-      // pg env setado mas driver ausente → tenta PostgREST como fallback
+      // pg env setado mas driver ausente/indisponível → tenta PostgREST como fallback
       if (hasPGRestEnv()) dbResult = await verifyWithPGRest(contract);
       else {
         if (JSON_MODE) printJson({ summary: { ok: false, divergences: 0, error: `DB_URL definido mas driver pg ausente e SUPABASE_URL/SERVICE_KEY não configurados` } });
@@ -405,7 +531,7 @@ async function main() {
     process.exit(2);
   }
 
-  const report = buildReport(contract, edgeDivergences, dbResult);
+  const report = buildReport(contract, edgeDivergences, dbResult, allowlist);
   if (JSON_MODE) printJson(report);
   else printText(report, contract);
   process.exit(report.summary.ok ? 0 : 1);

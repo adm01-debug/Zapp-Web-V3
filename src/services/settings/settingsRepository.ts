@@ -6,7 +6,29 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/schema';
+import type { RealtimeChannel } from '@supabase/supabase-js';
+import type { DisposableChannel } from '@/integrations/supabase/safe-queries';
+
+/**
+ * Anexa um disposer ao RealtimeChannel retornado pelas funções `subscribeTo*`
+ * (retrocompatível — o retorno continua sendo o próprio canal, callers antigos
+ * seguem funcionando). O disposer executa o padrão de cleanup do repo:
+ * `channel.unsubscribe()` + `supabase.removeChannel(channel)`.
+ *
+ * LEAK FIX (REALTIME_CHANNELS_AUDIT): antes desta mudança os canais criados aqui
+ * NUNCA eram removidos do cliente (não havia removeChannel em lugar nenhum do
+ * arquivo), vazando uma entrada em `supabase.channels` a cada subscribe.
+ *
+ * Uso: `const ch = settingsRepository.subscribeToUserSettings(id, cb); ... ch.dispose();`
+ */
+function attachChannelDisposer(channel: RealtimeChannel): DisposableChannel {
+  (channel as DisposableChannel).dispose = () => {
+    channel.unsubscribe();
+    supabase.removeChannel(channel);
+  };
+  return channel as DisposableChannel;
+}
 
 /**
  * User Settings interface — alinhada ao schema `zapp` (canônico do client),
@@ -146,8 +168,8 @@ export const settingsRepository = {
   },
 
   // Realtime subscriptions
-  subscribeToUserSettings: (userId: string, callback: (settings: UserSettings) => void) => {
-    return supabase
+  subscribeToUserSettings: (userId: string, callback: (settings: UserSettings) => void): DisposableChannel => {
+    const channel = supabase
       .channel(`user_settings:${userId}`)
       .on(
         'postgres_changes',
@@ -155,13 +177,17 @@ export const settingsRepository = {
         (payload) => callback(payload.new as UserSettings)
       )
       .subscribe();
+
+    // LEAK FIX (REALTIME_CHANNELS_AUDIT): expõe cleanup retrocompatível via
+    // `channel.dispose()` — ver attachChannelDisposer acima.
+    return attachChannelDisposer(channel);
   },
 
   subscribeToWorkspaceSettings: (
     workspaceId: string,
     callback: (settings: WorkspaceSettings) => void
-  ) => {
-    return supabase
+  ): DisposableChannel => {
+    const channel = supabase
       .channel(`workspace_settings:${workspaceId}`)
       .on(
         'postgres_changes',
@@ -174,5 +200,9 @@ export const settingsRepository = {
         (payload) => callback(payload.new as WorkspaceSettings)
       )
       .subscribe();
+
+    // LEAK FIX (REALTIME_CHANNELS_AUDIT): expõe cleanup retrocompatível via
+    // `channel.dispose()` — ver attachChannelDisposer acima.
+    return attachChannelDisposer(channel);
   },
 };

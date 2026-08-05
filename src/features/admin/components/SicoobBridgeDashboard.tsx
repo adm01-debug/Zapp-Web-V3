@@ -12,12 +12,25 @@ import {
   Users,
   MessageSquare,
   CheckCircle,
+  Clock,
+  ShieldAlert,
+  Send,
+  XCircle,
+  Loader2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { isValidUUID } from '@/utils/uuid';
+
+// DASHBOARD-13 — sinalização (fora do escopo desta branch — exige migration):
+//  pg_cron para sicoob-outbox-consumer AUSENTE (db_crons não lista job sicoob; a edge declara
+//  'Invocado por pg_cron a cada 1 min' em supabase/functions/sicoob-outbox-consumer/index.ts).
+//  Sem o job, itens em sicoob_reply_outbox com status pending/failed nunca são drenados.
+//  Também exige a RPC sicoob_outbox_claim (a edge tem fallback SELECT+UPDATE, então a RPC é
+//  opcional em runtime, mas o cron é obrigatório).
 
 interface SicoobMapping {
   id: string;
@@ -37,6 +50,22 @@ interface SicoobMessage {
   contact_id: string;
   status: string;
 }
+
+interface SicoobOutboxItem {
+  id: string;
+  contact_id: string | null;
+  message_id: string | null;
+  agent_id: string | null;
+  content: string | null;
+  status: string | null;
+  attempts: number | null;
+  created_at: string | null;
+  next_attempt_at: string | null;
+  processed_at: string | null;
+  last_error: string | null;
+}
+
+const OUTBOX_STATUSES = ['pending', 'processing', 'failed', 'sent', 'abandoned'] as const;
 
 /** Sicoob Bridge Dashboard component. */
 export function SicoobBridgeDashboard() {
@@ -77,6 +106,53 @@ export function SicoobBridgeDashboard() {
   const loading = isFetching;
   const loadData = () => {
     void refetch();
+  };
+
+  // Estado real da fila sicoob_reply_outbox (read-only; RLS pode bloquear → erro tratado)
+  const outboxQuery = useQuery({
+    queryKey: queryKeys.adminOps.sicoobOutbox(),
+    queryFn: async (): Promise<SicoobOutboxItem[]> => {
+      const { data, error } = await supabase
+        .from('sicoob_reply_outbox')
+        .select(
+          'id, contact_id, message_id, agent_id, content, status, attempts, created_at, next_attempt_at, processed_at, last_error'
+        )
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return (data as SicoobOutboxItem[]) ?? [];
+    },
+    staleTime: 30_000,
+  });
+
+  const outbox = useMemo(() => outboxQuery.data ?? [], [outboxQuery.data]);
+  const outboxCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const item of outbox) {
+      const status = item.status ?? 'unknown';
+      counts[status] = (counts[status] ?? 0) + 1;
+    }
+    return counts;
+  }, [outbox]);
+
+  const pendingCount = (outboxCounts.pending ?? 0) + (outboxCounts.processing ?? 0);
+  const failedCount = outboxCounts.failed ?? 0;
+  const sentCount = outboxCounts.sent ?? 0;
+  const abandonedCount = outboxCounts.abandoned ?? 0;
+  const lastProcessedAt = useMemo(
+    () =>
+      outbox.reduce<string | null>((latest, item) => {
+        if (!item.processed_at) return latest;
+        return !latest || item.processed_at > latest ? item.processed_at : latest;
+      }, null),
+    [outbox]
+  );
+  const statusColor: Record<string, string> = {
+    pending: 'bg-warning/10 text-warning',
+    processing: 'bg-info/10 text-info',
+    failed: 'bg-destructive/10 text-destructive',
+    sent: 'bg-success/10 text-success',
+    abandoned: 'bg-muted text-muted-foreground',
   };
 
   const { inbound, outbound, uniqueSingulars } = useMemo(
@@ -180,6 +256,131 @@ export function SicoobBridgeDashboard() {
             Auth: Bearer token via secret{' '}
             <code className="rounded bg-muted px-1">SICOOB_BRIDGE_SECRET</code>
           </p>
+        </CardContent>
+      </Card>
+
+      {/* Consumidor: sinalização pg_cron ausente */}
+      <Alert variant="destructive">
+        <ShieldAlert className="h-4 w-4" />
+        <AlertTitle>Sinalização DASHBOARD-13 — pg_cron ausente</AlertTitle>
+        <AlertDescription>
+          O edge <code>sicoob-outbox-consumer</code> é invocado por pg_cron a cada 1 min
+          (supabase/functions/sicoob-outbox-consumer/index.ts), mas <b>nenhum job cron existe</b> em produção
+          (db_crons não lista sicoob). Sem o job, itens <code>pending/failed</code> de{' '}
+          <code>sicoob_reply_outbox</code> nunca são entregues ao Sicoob. Criação do job (e da RPC{' '}
+          <code>sicoob_outbox_claim</code>, se desejada) fica fora do escopo desta branch — exige migration.
+        </AlertDescription>
+      </Alert>
+
+      {/* Estado do Outbox */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Clock className="h-5 w-5 text-warning" /> Estado do Outbox
+            <Badge variant="secondary" className="ml-auto text-[10px]">
+              {outboxQuery.isFetching ? 'atualizando…' : `${outbox.length} itens (últimos 50)`}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {outboxQuery.error ? (
+            <p className="py-3 text-sm text-destructive">
+              Falha ao ler sicoob_reply_outbox (RLS sem policy de SELECT para o papel atual):{' '}
+              {outboxQuery.error.message}
+            </p>
+          ) : outboxQuery.isLoading ? (
+            <div className="flex items-center gap-2 py-3 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Carregando outbox…
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+              {OUTBOX_STATUSES.map((status) => (
+                <div
+                  key={status}
+                  className={`rounded-lg p-3 text-center ${statusColor[status] ?? 'bg-muted/30'}`}
+                >
+                  <p className="text-xl font-bold">{outboxCounts[status] ?? 0}</p>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{status}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Send className="h-3 w-3 text-warning" /> Na fila (pending/processing): {pendingCount}
+            </span>
+            <span className="flex items-center gap-1">
+              <XCircle className="h-3 w-3 text-destructive" /> Falhas: {failedCount}
+            </span>
+            <span className="flex items-center gap-1">
+              <CheckCircle className="h-3 w-3 text-success" /> Entregues: {sentCount}
+            </span>
+            <span>Abandonados: {abandonedCount}</span>
+            {lastProcessedAt && (
+              <span>
+                Último processamento: {new Date(lastProcessedAt).toLocaleString('pt-BR')}
+              </span>
+            )}
+            {!lastProcessedAt && !outboxQuery.isLoading && (
+              <span>Nenhum item processado ainda (consumidor nunca rodou?).</span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Fila de Respostas (outbox) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <MessageSquare className="h-5 w-5" /> Fila de Respostas (sicoob_reply_outbox)
+            <Badge variant="secondary" className="ml-auto text-[10px]">{outbox.length}</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {outboxQuery.error ? (
+            <p className="py-4 text-center text-sm text-destructive">
+              Sem permissão de leitura (RLS): {outboxQuery.error.message}
+            </p>
+          ) : outbox.length === 0 ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              Nenhum item na outbox. Respostas de agentes a contatos Sicoob aparecerão aqui.
+            </p>
+          ) : (
+            <div className="max-h-[300px] overflow-auto">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-background">
+                  <tr className="border-b">
+                    <th scope="col" className="p-2 text-left font-medium text-muted-foreground">Status</th>
+                    <th scope="col" className="p-2 text-left font-medium text-muted-foreground">Conteúdo</th>
+                    <th scope="col" className="p-2 text-left font-medium text-muted-foreground">Tentativas</th>
+                    <th scope="col" className="p-2 text-left font-medium text-muted-foreground">Criado</th>
+                    <th scope="col" className="p-2 text-left font-medium text-muted-foreground">Próx. tentativa</th>
+                    <th scope="col" className="p-2 text-left font-medium text-muted-foreground">Erro</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {outbox.map((item) => (
+                    <tr key={item.id} className="border-b hover:bg-muted/30">
+                      <td className="p-2">
+                        <Badge variant="outline" className={`text-[9px] ${statusColor[item.status ?? ''] ?? ''}`}>
+                          {item.status ?? 'unknown'}
+                        </Badge>
+                      </td>
+                      <td className="max-w-[240px] truncate p-2">{item.content ?? '—'}</td>
+                      <td className="p-2">{item.attempts ?? 0}</td>
+                      <td className="p-2 text-muted-foreground">
+                        {item.created_at ? new Date(item.created_at).toLocaleString('pt-BR') : '—'}
+                      </td>
+                      <td className="p-2 text-muted-foreground">
+                        {item.next_attempt_at ? new Date(item.next_attempt_at).toLocaleString('pt-BR') : '—'}
+                      </td>
+                      <td className="max-w-[180px] truncate p-2 text-destructive">{item.last_error ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 

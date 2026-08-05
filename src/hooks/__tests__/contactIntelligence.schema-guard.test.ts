@@ -16,7 +16,7 @@
  * O arquivo não roda nenhum teste: é um guard de COMPILAÇÃO (tsc --noEmit).
  */
 import { describe, expect, it } from 'vitest';
-import type { ContactIntelligenceRow } from '@/integrations/supabase/types-manual';
+import type { ContactIntelligenceRow } from '@/integrations/supabase/schema';
 
 // ── 1. As 15 colunas reais DEVEM existir no tipo (objeto de atribuição) ─────
 const _colunasReais: ContactIntelligenceRow = {

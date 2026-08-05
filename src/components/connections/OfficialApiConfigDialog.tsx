@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -68,52 +68,56 @@ export function OfficialApiConfigDialog({
   // apenas flags vindas da view `whatsapp_official_credentials_safe`.
   const [hasAccessToken, setHasAccessToken] = useState(false);
   const [hasAppSecret, setHasAppSecret] = useState(false);
+  const [readError, setReadError] = useState<string | null>(null);
+
+  const loadSafeView = useCallback(async () => {
+    setLoading(true);
+    setReadError(null);
+    try {
+      // View not in generated types — use fromTable helper for dynamic table access.
+      // Narrow the dynamic builder so .eq() accepts column names (null-safety sem casts proibidos).
+      const query = fromTable('whatsapp_official_credentials_safe') as unknown as {
+        select: (columns: string) => {
+          eq: (
+            column: string,
+            value: string
+          ) => {
+            maybeSingle: () => Promise<{ data: SafeCredentialView | null; error: unknown }>;
+          };
+        };
+      };
+      const res = await query
+        .select('phone_number_id, waba_id, has_access_token, has_app_secret')
+        .eq('connection_id', connectionId)
+        .maybeSingle();
+      const data = res.data as SafeCredentialView | null; // ignore-audit: narrows Supabase query result to local interface
+      if (data) {
+        setForm({
+          ...EMPTY,
+          phone_number_id: data.phone_number_id ?? '',
+          waba_id: data.waba_id ?? '',
+        });
+        setHasAccessToken(Boolean(data.has_access_token));
+        setHasAppSecret(Boolean(data.has_app_secret));
+      } else {
+        setForm(EMPTY);
+        setHasAccessToken(false);
+        setHasAppSecret(false);
+      }
+    } catch (e) {
+      setReadError(e instanceof Error ? e.message : 'Erro desconhecido');
+      setForm(EMPTY);
+      setHasAccessToken(false);
+      setHasAppSecret(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [connectionId]);
 
   useEffect(() => {
     if (!open) return;
-    let cancelled = false;
-    setLoading(true);
-    (async () => {
-      try {
-        // View not in generated types — use fromTable helper for dynamic table access.
-        // Narrow the dynamic builder so .eq() accepts column names (null-safety sem casts proibidos).
-        const query = fromTable('whatsapp_official_credentials_safe') as unknown as {
-          select: (columns: string) => {
-            eq: (
-              column: string,
-              value: string
-            ) => {
-              maybeSingle: () => Promise<{ data: SafeCredentialView | null; error: unknown }>;
-            };
-          };
-        };
-        const res = await query
-          .select('phone_number_id, waba_id, has_access_token, has_app_secret')
-          .eq('connection_id', connectionId)
-          .maybeSingle();
-        const data = res.data as SafeCredentialView | null; // ignore-audit: narrows Supabase query result to local interface
-        if (cancelled) return;
-        if (data) {
-          setForm({
-            ...EMPTY,
-            phone_number_id: data.phone_number_id ?? '',
-            waba_id: data.waba_id ?? '',
-          });
-          setHasAccessToken(Boolean(data.has_access_token));
-          setHasAppSecret(Boolean(data.has_app_secret));
-        } else {
-          setForm(EMPTY);
-          setHasAccessToken(false);
-          setHasAppSecret(false);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [open, connectionId]);
+    void loadSafeView();
+  }, [open, connectionId, loadSafeView]);
 
   const update = (k: keyof CredentialsForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -131,27 +135,48 @@ export function OfficialApiConfigDialog({
       return;
     }
     setSaving(true);
-    // Apenas envia colunas que existem na tabela; segredos são enviados só se preenchidos.
+    // Apenas envia colunas que existem na tabela; segredos e verify token são
+    // enviados só se preenchidos (WHATSAPP-06: antes verify_token/graph_api_version/
+    // business_account_id digitados no form eram silenciosamente descartados).
     const payload: Record<string, unknown> = {
       connection_id: connectionId,
       phone_number_id: form.phone_number_id,
       waba_id: form.waba_id || null,
+      business_account_id: form.business_account_id || null,
+      graph_api_version: form.graph_api_version || 'v21.0',
     };
     if (form.access_token) payload.access_token = form.access_token;
     if (form.app_secret) payload.app_secret = form.app_secret;
-    // Table not in generated types — use fromTable helper for dynamic table access
+    if (form.verify_token) payload.verify_token = form.verify_token;
+    // Table not in generated types — use fromTable helper for dynamic table access.
+    // ATENÇÃO (WHATSAPP-06): o client usa schema zapp e a view
+    // zapp.whatsapp_official_credentials é service_role-only por design (P0:
+    // access_token/app_secret NUNCA chegam a authenticated). Se o upsert falhar
+    // com permission denied, não há RPC/edge de escrita no repo — bridge
+    // sinalizada (edge service_role seguindo o padrão fn_edge_*).
     const { error } = (await fromTable('whatsapp_official_credentials').upsert(payload, {
       onConflict: 'connection_id',
     })) as { error: { message: string } | null };
     setSaving(false);
     if (error) {
-      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+      const msg = error.message ?? 'Erro desconhecido';
+      // ignore-audit: narrows Supabase query result to local interface
+      console.error('[OfficialApiConfigDialog] falha ao salvar credenciais:', msg);
+      toast({
+        title: 'Erro ao salvar',
+        description: msg.toLowerCase().includes('permission')
+          ? 'Sem permissão de escrita na tabela de credenciais (restrita a service_role por segurança). A ponte de gravação via edge function está sinalizada — até lá, use o fluxo de secrets da plataforma.'
+          : msg,
+        variant: 'destructive',
+      });
       return;
     }
     toast({
       title: 'Credenciais salvas',
       description: 'WhatsApp Cloud API configurada com sucesso.',
     });
+    // Re-lê a view segura para refletir o estado persistido imediatamente.
+    void loadSafeView();
     onOpenChange(false);
   };
 
@@ -220,6 +245,12 @@ export function OfficialApiConfigDialog({
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
         ) : (
+          <>
+            {readError && (
+              <div className="mb-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning-foreground">
+                Não foi possível ler o estado salvo desta conexão: {readError}
+              </div>
+            )}
           <div className="grid grid-cols-1 gap-3 py-2 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <Label htmlFor="phone_number_id">Phone Number ID *</Label>
@@ -293,6 +324,7 @@ export function OfficialApiConfigDialog({
               />
             </div>
           </div>
+          </>
         )}
 
         <DialogFooter className="gap-2">
