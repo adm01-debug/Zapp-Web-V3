@@ -78,7 +78,11 @@ interface State {
 
 /** Returns a zeroed severity counter map for state initialisation or reset. */
 const initialBySeverity = (): Record<Severity, number> => ({
-  ok: 0, slow: 0, very_slow: 0, timeout: 0, error: 0,
+  ok: 0,
+  slow: 0,
+  very_slow: 0,
+  timeout: 0,
+  error: 0,
 });
 
 /** Returns a zeroed RetryStats object for state initialisation or reset. */
@@ -103,7 +107,7 @@ const state: State = {
 export function classifySeverity(
   durationMs: number,
   hasError: boolean,
-  isTimeout: boolean,
+  isTimeout: boolean
 ): Severity {
   if (isTimeout) return 'timeout';
   if (hasError) return 'error';
@@ -177,13 +181,35 @@ function logEvent(ev: QueryEvent) {
   }
 }
 
+/**
+ * Etapa 24 — Filtro de AbortError (page unload / navegação).
+ *
+ * Aborts intencionais — AbortController.abort(), page unload ou navegação —
+ * NUNCA devem ser logados como severity 'error' nem contar como falha: o
+ * browser aborta todos os fetches em flight ao sair da página, e o erro
+ * chega como DOMException/Error com name 'AbortError' (mensagens típicas:
+ * "The operation was aborted." ou "Page unload").
+ *
+ * recordQueryEvent recebe apenas errorMessage (string), então o name
+ * original do erro já se perdeu nesse caminho; a detecção é textual
+ * (case-insensitive). O helper isIntentionalAbort() de retry.ts cobre o
+ * mesmo cenário a montante, onde ainda existe o objeto Error.
+ */
+function isAbortErrorMessage(errorMessage: string | undefined): boolean {
+  return Boolean(errorMessage && /abort/i.test(errorMessage));
+}
+
 /** record Query Event function. */
 export function recordQueryEvent(
-  ev: Omit<QueryEvent, 'severity'> & { severity?: Severity },
+  ev: Omit<QueryEvent, 'severity'> & { severity?: Severity }
 ): QueryEvent {
-  const severity =
-    ev.severity ??
-    classifySeverity(ev.durationMs, Boolean(ev.errorMessage), false);
+  // Etapa 24 — AbortError (page unload / navegação) é rebaixado para 'ok'
+  // (log.debug) mesmo quando o caller passou severity explícita: não
+  // incrementa bySeverity['error'] nem entra em slowEvents.
+  const isAbort = isAbortErrorMessage(ev.errorMessage);
+  const severity = isAbort
+    ? 'ok'
+    : (ev.severity ?? classifySeverity(ev.durationMs, Boolean(ev.errorMessage), false));
 
   const fullEvent: QueryEvent = { ...ev, severity };
 

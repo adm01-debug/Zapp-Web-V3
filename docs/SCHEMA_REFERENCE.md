@@ -151,8 +151,8 @@ Antes do grant, o corpo ganhou guard: `auth.uid() IS NULL` → `RAISE`; `perform
 | 2026-07-15 | 17 syntax issues (}} malformado) corrigidos |
 | 2026-07-15 | **Auditoria MCP**: contagem corrigida 294→315 (zapp), 193 confirmados (evo) |
 | 2026-07-16 | **Auditoria exaustiva**: contagem definitiva 315→312 (zapp), public = 1+535 (não zero), 23 partições confirmadas (não 25), 12 RPCs ausentes identificados, Realtime corrigido para usar raiz particionada |
-| 2026-08-04 | **Integração schema zapp × front**: inventário pg_catalog atualizado (zapp: **321** tabelas, **380** views, **5** matviews, **1060** funções, **729** policies, **146** cron jobs); wrappers `zapp.rpc_app_bootstrap`/`zapp.rpc_dashboard_init` (SECURITY DEFINER; `public.*` → service_role only); `rpc_schema_columns`/`rpc_schema_tables` (whitelist zapp/evo/public); grants F-03; guard em `fn_safe_audit_log` |
-| 2026-08-05 | **Fechamento plano 100 etapas**: inventário pg_catalog atualizado (zapp: **323** tabelas, **359** views, **5** matviews, **1077** funções, **759** policies, **144** cron jobs ativos); grants `fn_system_health_score`/`reassign_absent_agents`/`reassign_overloaded_agents` com guarda `is_admin_or_supervisor` (migration `20260805183000`); types.ts regenerado via postgres-meta (73.021 linhas) |
+| 2026-08-04 | **Integração schema zapp × front**: inventário pg_catalog atualizado (zapp: **323** tabelas, **359** views, **5** matviews, **1077** funções, **759** policies, **144** cron jobs); wrappers `zapp.rpc_app_bootstrap`/`zapp.rpc_dashboard_init` (SECURITY DEFINER; `public.*` → service_role only); `rpc_schema_columns`/`rpc_schema_tables` (whitelist zapp/evo/public); grants F-03; guard em `fn_safe_audit_log` |
+| 2026-08-05 | **Fechamento plano 100 etapas**: inventário pg_catalog revalidado (323/359/5/1077/759/144); grants `fn_system_health_score`/`reassign_absent_agents`/`reassign_overloaded_agents` com guarda `is_admin_or_supervisor` (migration `20260805183000`); types.ts regenerado via postgres-meta (sync com DB) |
 
 ---
 
@@ -335,3 +335,51 @@ executadas no **único client self-hosted** (`src/integrations/supabase/client.t
 Notas:
 - `rpc_get_contact_summary_batch` e `rpc_get_reactions_batch` **não estão no catálogo** (`rpcCatalog.ts`) — são chamadas diretas `supabase.rpc(...)` nos hooks (sem roteamento por rótulo).
 - As duas RPCs de telefone (`get_companies_by_phones_batch`, `get_contacts_360_batch`) têm guard de isolamento de workspace (`workspace_members`) e `SECURITY DEFINER` com `search_path` restrito.
+
+---
+
+## Funções Adicionadas em 2026-08-05 (Bug Fix Sprint)
+
+Sprint de correção de bugs (30 etapas — `PLANO_CORRECAO_ZAPPWEB_30_ETAPAS.md`). Assinaturas abaixo **auditadas via `pg_catalog` em produção** em 2026-08-05 (`pg_get_functiondef` + `pg_index`).
+
+### `zapp.get_companies_by_phones_batch(p_phones text[])`
+
+| Atributo | Valor |
+|---|---|
+| Tipo | FUNCTION, `LANGUAGE sql`, **STABLE**, **SECURITY DEFINER** |
+| `search_path` | `zapp, evo, monitoring` (fixo) |
+| Retorna | `TABLE(phone text, company text, full_name text, lead_status text)` |
+| Permissões | `service_role` apenas (`REVOKE` de `anon`/`authenticated`) |
+| Índice de suporte | **`idx_ec_phone_norm_batch`** em `evo.evolution_contacts` (btree em `regexp_replace(COALESCE(phone_number,''), '\D','','g')`, parcial `WHERE deleted_at IS NULL` — 648 kB) |
+| Consumidor | `useExternalContact360Batch` (`src/hooks/useExternalApiManagement.ts:108`) via `RPC.getCompaniesByPhonesBatch` (`src/integrations/datasource/rpcCatalog.ts:500-503`) |
+
+- **Propósito**: batch lookup de empresa/contato por telefone normalizado (dígitos apenas, `>= 8` dígitos). Normaliza `p_phones` com `regexp_replace(... '\D','','g')` e faz JOIN com `evo.evolution_contacts` pelo mesmo padrão, filtrando `deleted_at IS NULL`.
+- **Otimização anti Seq Scan**: antes do índice, o JOIN por expressão (`regexp_replace`) forçava **Seq Scan** em `evo.evolution_contacts` (20.563 linhas) — a RPC levava **4–6.5s**. O índice funcional `idx_ec_phone_norm_batch` (mesma expressão + parcial `deleted_at IS NULL`) permite **Index Scan** no lookup por telefone.
+- **Roteamento**: fix do Bug #3 consolidou o roteamento no **único client self-hosted** (sem dual-client Lovable/self-hosted).
+
+### `zapp.rpc_get_contact_summary_batch(p_contact_ids uuid[])`
+
+| Atributo | Valor |
+|---|---|
+| Tipo | FUNCTION, `LANGUAGE sql`, **STABLE**, **SECURITY DEFINER** |
+| `search_path` | `zapp` (fixo) |
+| Retorna | `TABLE(contact_id uuid, unread_whispers integer, pending_tasks integer)` |
+| Permissões | `authenticated` (via grant) |
+| Migration | `20260806090000_capture_rpc_get_contact_summary_batch.sql` (CAPTURA — registra definição viva via `pg_get_functiondef`; antes **sem** migration versionada) |
+| Consumidor | `useContactSummaryBatch` (`src/features/inbox/hooks/useContactSummaryBatch.ts:41-44`), ligado em `useRealtimeInbox.ts:235` |
+
+- **Propósito**: batch de `unread_whispers` (COUNT de `zapp.whisper_messages` com `is_read = false`) + `pending_tasks` (COUNT de `zapp.conversation_tasks` com `status = 'pending'`) **por `contact_id`**, via `unnest(p_contact_ids)` + `LEFT JOIN` (todo id de entrada retorna linha; zero vira `COALESCE(..., 0)`).
+- **Substitui**: N+1 HEAD requests para `/rest/v1/whisper_messages?contact_id=eq.<uuid>&is_read=eq.false` — 1 request HEAD por contato vira **1 chamada batch** (Bug #2).
+
+### Bugs Corrigidos em 2026-08-05
+
+| Bug | Descrição | Fix aplicado |
+|-----|-----------|--------------|
+| #1 | Realtime race condition em `agent-presence-realtime` (múltiplos channels por mount, subscribe antes do `.on()`) | Tópico único por mount + `.on()` **antes** de `.subscribe()` |
+| #2 | N+1 HEAD `whisper_messages` (1 request HEAD por contato no inbox) | `rpc_get_contact_summary_batch` — 1 chamada batch para todos os `contact_ids` |
+| #3 | `get_companies_by_phones_batch` 4–6.5s (Seq Scan em `evo.evolution_contacts`) | Índice `idx_ec_phone_norm_batch` (btree em `regexp_replace` de `phone_number`, parcial `deleted_at IS NULL`) + roteamento único self-hosted |
+| #4 | N+1 PATCH `mark-as-read` (1 PATCH por contato ao ler conversa) | Flush **coalescido** `.in('contact_id', ids)` em `useRealtimeMessages.ts` — 1 PATCH batch |
+| #5 | `RetryUtil` retentava `AbortError` (retries desnecessários em aborts) | Guard `isIntentionalAbort` em `src/lib/retry.ts` |
+| #6 | `useMediaUrl` falhando no unload (estado atualizado após unmount) | Guard `mountedRef` |
+| #7 | TTM pós-deploy 1154ms (forced refresh imediato após deploy) | Grace window 60s + banner `zapp-update-required` (`src/lib/buildVersion.ts`) |
+| #8 | `rpc_get_contact_summary_batch` abortado no unload (erro falso no console) | `AbortError` silencioso (guard `isIntentionalAbort` — sem log de erro) |

@@ -673,7 +673,7 @@ export function useEmail() {
     // email_app.email_threads (presente na publication supabase_realtime) e
     // adaptamos o payload ao shape da view via mapBaseThreadRow.
     const channel = supabase
-      .channel(`email-threads-${activeAccountId}`)
+      .channel(`email-threads-${activeAccountId}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         {

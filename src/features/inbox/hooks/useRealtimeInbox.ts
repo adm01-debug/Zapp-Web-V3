@@ -273,7 +273,7 @@ export function useRealtimeInbox() {
     // PostgreSQL views never emit WAL events, so Realtime subscriptions must target the base table.
     // O callback NÃO faz mais HEAD count — invalida a query batch (1 RPC).
     const channel = supabase
-      .channel(`whisper-count-${selectedContactId}`)
+      .channel(`whisper-count-${selectedContactId}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         {

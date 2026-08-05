@@ -88,7 +88,7 @@ export const useMessageStatus = (contactId?: string) => {
       filter: `contact_id=eq.${contactId}`,
     });
     const channel = supabase
-      .channel(`message-status-${contactId}`)
+      .channel(`message-status-${contactId}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         {

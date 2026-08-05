@@ -1,7 +1,7 @@
 import { Logger, checkRateLimit, getClientIP, getCorsHeaders, handleCors, authorizeRoles, errorResponse } from "../_shared/validation.ts";
 import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts";
 import { initSentry, captureException } from "../_shared/sentry.ts";
-import { EVOLUTION_ENVELOPE_VERSION, proxyToEvolution, resolvePrivateBucketUrl } from "../_shared/evolution-api-proxy.ts";
+import { EVOLUTION_ENVELOPE_VERSION, proxyToEvolution, resolvePrivateBucketUrl, type ProxyToEvolutionOptions } from "../_shared/evolution-api-proxy.ts";
 import { normalizeChatList, normalizeContactList, normalizeProfile } from "../_shared/evolution-response-normalizers.ts";
 import { maybeLogFallback } from "../_shared/evolution-fallback-telemetry.ts";
 import { mapFetchInstancesToProfile, shouldFallbackForProfile } from "../_shared/evolution-profile-fallback.ts";
@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
   let action = safeGet(bodyForAction, 'action', isMultipart) || '';
   if (!action || action === 'evolution-api') action = pathAction;
   const idemKey = (req.headers.get('idempotency-key') || req.headers.get('x-idempotency-key') || '').trim() || undefined;
-  const proxy = (path: string, method = 'POST', proxyBody?: unknown) => proxyToEvolution(evolutionApiUrl, evolutionApiKey, corsHeaders, path, method, proxyBody, undefined, idemKey);
+  const proxy = (path: string, method = 'POST', proxyBody?: unknown, proxyOpts?: ProxyToEvolutionOptions) => proxyToEvolution(evolutionApiUrl, evolutionApiKey, corsHeaders, path, method, proxyBody, undefined, idemKey, proxyOpts);
   try {
     const body = bodyForAction;
     let instance: string | null = safeGet(body, 'instanceName', isMultipart) || safeGet(body, 'instance', isMultipart) || null;
@@ -184,9 +184,28 @@ Deno.serve(async (req) => {
     if (action === 'archive-chat') return await proxy(`/message/archiveChat/${instance}`, 'POST', body);
     if (action === 'get-media-base64') {
       const jb = ensureBodyIsRecord(body);
-      const message = safeGetAny(jb, 'message', false) ?? {};
-      if (!instance) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 400, message: 'instanceName is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      return await proxy(`/chat/getBase64FromMediaMessage/${instance}`, 'POST', { message });
+      if (!instance) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 400, code: 'MISSING_INSTANCE', message: 'instanceName é obrigatório' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const invalidMessage = (code: string, message: string) => new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 400, code, message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const rawMessage = safeGetAny(jb, 'message', isMultipart);
+      if (typeof rawMessage !== 'object' || rawMessage === null || Array.isArray(rawMessage)) return invalidMessage('INVALID_MESSAGE', 'message deve ser um objeto com key (remoteJid, fromMe, id)');
+      const msg = rawMessage as Record<string, unknown>;
+      const key = (typeof msg.key === 'object' && msg.key !== null && !Array.isArray(msg.key)) ? msg.key as Record<string, unknown> : null;
+      if (!key || typeof key.id !== 'string' || !key.id.trim()) return invalidMessage('INVALID_MESSAGE_KEY', 'message.key.id é obrigatório');
+      if (key.remoteJid !== undefined && typeof key.remoteJid !== 'string') return invalidMessage('INVALID_MESSAGE_KEY', 'message.key.remoteJid deve ser string');
+      if (key.fromMe !== undefined && typeof key.fromMe !== 'boolean') return invalidMessage('INVALID_MESSAGE_KEY', 'message.key.fromMe deve ser boolean');
+      // Download de mídia é lento: timeout 30s (>= 25s) e propaga o abort do caller (req.signal).
+      const response = await proxy(`/chat/getBase64FromMediaMessage/${instance}`, 'POST', { message: msg }, { signal: req.signal, timeoutMs: 30_000 });
+      // Re-emite envelope de erro com status HTTP real para o frontend classificar
+      // (410/403 → expired, 404 → not_found, 504 → network/timeout).
+      const rawText = await response.text().catch(() => '');
+      let parsed: Record<string, unknown> | null = null;
+      try { parsed = JSON.parse(rawText); } catch { parsed = null; }
+      if (parsed && parsed.error === true) {
+        const upstreamStatus = typeof parsed.status === 'number' ? parsed.status : 502;
+        const status = upstreamStatus >= 400 && upstreamStatus <= 599 ? upstreamStatus : 502;
+        return new Response(JSON.stringify(parsed), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      return new Response(rawText, { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     // ── Instance lifecycle (F6-02 / F6-01) ────────────────────────────────────
     // F6-02: criação explícita de instância ANTES do INSERT em whatsapp_connections.

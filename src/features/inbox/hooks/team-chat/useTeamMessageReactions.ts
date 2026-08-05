@@ -52,7 +52,7 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
   useEffect(() => {
     if (!conversationId) return;
     const channel = supabase
-      .channel(`team-reactions-${conversationId}`)
+      .channel(`team-reactions-${conversationId}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'team_message_reactions' },

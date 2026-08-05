@@ -93,7 +93,7 @@ export function WhisperMode({
   useEffect(() => {
     if (!contactIsUUID) return;
     const channel = supabase
-      .channel(`whisper-${contactId}`)
+      .channel(`whisper-${contactId}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         {

@@ -31,6 +31,14 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
  */
 export const EVOLUTION_ENVELOPE_VERSION = 1 as const;
 
+/** Per-call overrides for proxyToEvolution (additive — optional, never required). */
+export interface ProxyToEvolutionOptions {
+  /** Forward the caller's AbortSignal so client disconnects cancel the upstream fetch. */
+  signal?: AbortSignal;
+  /** Per-call timeout override (default: TIMEOUT_MS = 15000). */
+  timeoutMs?: number;
+}
+
 /** Evolution Error Envelope interface. */
 export interface EvolutionErrorEnvelope {
   version?: number;
@@ -68,6 +76,12 @@ export async function proxyToEvolution(
    * messages. Ignored for non-send paths and non-POST verbs.
    */
   idemKey?: string,
+  /**
+   * Optional per-call overrides: forward the caller's AbortSignal (so client
+   * disconnects abort the upstream fetch) and/or raise the timeout for slow
+   * operations (e.g. media downloads). Defaults: no external signal, 15s.
+   */
+  proxyOpts?: ProxyToEvolutionOptions,
 ): Promise<Response> {
   const fullUrl = instanceInPath
     ? `${evolutionApiUrl}${path}/${instanceInPath}`
@@ -125,6 +139,10 @@ export async function proxyToEvolution(
   })();
   let lastHttpStatus: number | null = null;
 
+  const timeoutMs = proxyOpts?.timeoutMs ?? TIMEOUT_MS;
+  const externalSignal = proxyOpts?.signal;
+  const isClientAborted = () => externalSignal?.aborted === true;
+
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       if (attempt > 0) {
@@ -139,9 +157,19 @@ export async function proxyToEvolution(
       console.log(`[Evolution API] ${method} ${fullUrl} (attempt ${attempt + 1})`);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
-      const response = await fetch(fullUrl, { ...opts, signal: controller.signal });
-      clearTimeout(timeoutId);
+      const onExternalAbort = () => controller.abort();
+      if (externalSignal) {
+        if (externalSignal.aborted) controller.abort();
+        else externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+      }
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      let response: Response;
+      try {
+        response = await fetch(fullUrl, { ...opts, signal: controller.signal });
+      } finally {
+        clearTimeout(timeoutId);
+        if (externalSignal) externalSignal.removeEventListener('abort', onExternalAbort);
+      }
       lastHttpStatus = response.status;
 
       if (RETRYABLE_STATUSES.has(response.status) && attempt < maxAttempts - 1) {
@@ -240,19 +268,25 @@ export async function proxyToEvolution(
       });
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
-      const reason = lastError.name === 'AbortError' ? 'timeout' : 'network_error';
+      const isAbort = lastError.name === 'AbortError';
+      const reason = isAbort ? (isClientAborted() ? 'aborted' : 'timeout') : 'network_error';
       retryReasons.push({ attempt: attempt + 1, reason });
-      if (lastError.name === 'AbortError') {
-        lastError = new Error(`Timeout após ${TIMEOUT_MS / 1000}s aguardando a API Evolution`);
+      if (isAbort) {
+        lastError = new Error(
+          isClientAborted()
+            ? 'Requisição abortada pelo cliente'
+            : `Timeout após ${timeoutMs / 1000}s aguardando a API Evolution`,
+        );
       }
       if (attempt >= maxAttempts - 1) break;
     }
   }
 
+  const abortedByCaller = isClientAborted();
   const timeoutEnvelope: EvolutionErrorEnvelope = {
     version: EVOLUTION_ENVELOPE_VERSION,
     error: true,
-    status: 504,
+    status: abortedByCaller ? 499 : 504,
     message: `Falha ao conectar com a API Evolution: ${lastError?.message || 'Erro desconhecido'}`,
     retries: maxAttempts - 1,
   };
@@ -261,13 +295,14 @@ export async function proxyToEvolution(
     method,
     instance_name: instanceInPath ?? null,
     attempt_count: maxAttempts,
-    final_status: 'exhausted',
+    final_status: abortedByCaller ? 'failed' : 'exhausted',
     final_http_status: lastHttpStatus,
     retry_reasons: retryReasons,
     total_duration_ms: Date.now() - startedAt,
   });
-  // DLQ: enqueue exhausted POST /message/*
-  {
+  // DLQ: enqueue exhausted POST /message/* — skip when the caller aborted
+  // (request cancelled client-side, not a failed delivery).
+  if (!abortedByCaller) {
     const lastReason = retryReasons[retryReasons.length - 1]?.reason ?? 'exhausted';
     enqueueFailedMessage({
       instance_name: instanceInPath ?? '',

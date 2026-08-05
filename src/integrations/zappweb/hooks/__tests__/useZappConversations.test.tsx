@@ -14,9 +14,8 @@ const supabaseMock = vi.hoisted(() => ({
 
 // Mock do client principal (re-exportado como zappSupabase pelo supabaseClient).
 vi.mock('@/integrations/supabase/client', async () => {
-  const { createMockSupabase } = await vi.importActual<typeof import('@/test/mocks/supabase')>(
-    '@/test/mocks/supabase'
-  );
+  const { createMockSupabase } =
+    await vi.importActual<typeof import('@/test/mocks/supabase')>('@/test/mocks/supabase');
   supabaseMock.client = createMockSupabase({
     tables: { evolution_conversations_wpp2: { data: supabaseMock.convRows } },
   });
@@ -81,7 +80,9 @@ describe('useZappConversations (fix: hooks zappweb sem .schema("evo"))', () => {
     const { result } = renderHook(() => useZappConversations());
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(supabaseMock.client.channel).toHaveBeenCalledWith(`zapp:conversations:${ZAPPWEB_INSTANCE}`);
+    expect(supabaseMock.client.channel).toHaveBeenCalledWith(
+      expect.stringMatching(new RegExp(`^zapp:conversations:${ZAPPWEB_INSTANCE}(:[a-z0-9]+)?$`))
+    );
     const channel = supabaseMock.client.channel.mock.results[0].value;
     expect(channel.on).toHaveBeenCalledWith(
       'postgres_changes',

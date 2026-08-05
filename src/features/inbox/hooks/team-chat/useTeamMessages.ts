@@ -69,7 +69,7 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
   useEffect(() => {
     if (!conversationId) return;
     const channel = supabase
-      .channel(`team-messages-${conversationId}`)
+      .channel(`team-messages-${conversationId}:${Math.random().toString(36).slice(2, 10)}`)
       .on<TeamMessage>(
         'postgres_changes',
         {
