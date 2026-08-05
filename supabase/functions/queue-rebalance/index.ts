@@ -125,6 +125,9 @@ Deno.serve(async (req) => {
     })
     .slice(0, limit);
 
+  // Collect unique queue IDs before the assignment loop for FILAS-13 traceability.
+  const affectedQueueIds = new Set(filtered.map((c) => c.queue_id));
+
   let processed = 0;
   let assigned = 0;
   let skipped = 0;
@@ -184,6 +187,7 @@ Deno.serve(async (req) => {
     assigned++;
   }
 
+  const finishedAt = new Date().toISOString();
   const summary = {
     processed,
     assigned,
@@ -191,8 +195,41 @@ Deno.serve(async (req) => {
     errors: errorCount,
     dry_run: dryRun,
     source,
-    finished_at: new Date().toISOString(),
+    finished_at: finishedAt,
   };
+
+  // ── FILAS-13: rebalancing traceability via dispatch_error_logs ──
+  // Uses error_type='REBALANCE_LOG' to distinguish from actual error entries.
+  // Fire-and-forget: logging failure must not block the response.
+  const rebalanceLogContext = {
+    queues_affected: affectedQueueIds.size,
+    agents_moved: assigned,
+    timestamp: finishedAt,
+    contacts_processed: processed,
+    contacts_skipped: skipped,
+    contacts_errors: errorCount,
+    dry_run: dryRun,
+    source,
+  };
+
+  admin
+    .from("dispatch_error_logs")
+    .insert({
+      error_type: "REBALANCE_LOG",
+      error_code: dryRun ? "REBALANCE_DRY_RUN" : "REBALANCE_OK",
+      error_message: `Queue rebalance completed: ${assigned} agent(s) assigned across ${affectedQueueIds.size} queue(s)`,
+      instance_name: source,
+      context: rebalanceLogContext,
+      occurred_at: finishedAt,
+    })
+    .then(({ error }) => {
+      if (error) {
+        // Non-fatal — log to stderr only so it appears in edge function logs (FILAS-13 fallback)
+        console.error("[queue-rebalance][FILAS-13] dispatch_error_logs insert failed:", error.message);
+      } else {
+        console.log(`[queue-rebalance][FILAS-13] rebalance log written: queues_affected=${affectedQueueIds.size} agents_moved=${assigned}`);
+      }
+    });
 
   await admin.from("audit_logs").insert({
     action: "queue_bulk_rebalance",

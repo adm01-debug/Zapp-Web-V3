@@ -1,5 +1,5 @@
 // Shared media persistence helpers for Evolution API functions
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { isRecord } from "./evolution-helpers.ts";
 import { getStoragePublicUrl } from "./storage-url.ts";
 

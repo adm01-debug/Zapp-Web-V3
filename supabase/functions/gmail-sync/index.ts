@@ -7,6 +7,9 @@ import { GmailSyncV1Schema } from '../_shared/contract-schemas.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
 
+// 20 MB in bytes — Storage bucket `email-attachments` enforces this as its hard limit.
+const MAX_ATTACHMENT_BYTES = 20_971_520;
+
 /**
  * Edge Function: Gmail Sync — OAuth Token Refresh & Thread List Retrieval
  *
@@ -48,6 +51,14 @@ const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
  * - Expired/invalid token: 401 + "Token inválido ou conta inexistente"
  * - Gmail API errors: Logged, returned with error details from Gmail response
  * - Network timeouts: 10s AbortSignal on all Gmail API calls
+ *
+ * Attachment Handling (EMAIL-04):
+ * - On syncFull, calls processAttachments() for each persisted message
+ * - Downloads binary content from Gmail Attachments API (30s timeout)
+ * - Skips attachments > 20 MB (Storage bucket hard limit)
+ * - Uploads to Supabase Storage bucket `email-attachments`
+ * - Upserts metadata into zapp.email_attachments table
+ * - Storage path format: {email_message_db_id}/{gmail_attachment_id}/{filename}
  */
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
@@ -337,6 +348,93 @@ Deno.serve(async (req) => {
       return json({ synced: syncedCount });
     }
 
+    // ── createLabel — cria nova label Gmail ──────────────────────────────
+    if (action === 'createLabel') {
+      const name = typeof body.name === 'string' ? body.name.trim() : '';
+      if (!name) return json({ error: 'name é obrigatório para criar uma label' }, 400);
+      const labelPayload: Record<string, unknown> = { name };
+      if (typeof body.labelListVisibility === 'string') labelPayload.labelListVisibility = body.labelListVisibility;
+      if (typeof body.messageListVisibility === 'string') labelPayload.messageListVisibility = body.messageListVisibility;
+      if (body.color && typeof body.color === 'object' && !Array.isArray(body.color)) labelPayload.color = body.color;
+      const createRes = await fetch(`${GMAIL_API}/labels`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(labelPayload),
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!createRes.ok) {
+        console.error('[gmail-sync] createLabel HTTP error', createRes.status);
+        return json({ error: 'Failed to create Gmail label' }, createRes.status >= 500 ? 502 : 400);
+      }
+      let created: unknown;
+      try { created = await createRes.json(); } catch { return json({ error: 'Invalid Gmail API response' }, 500); }
+      if (typeof created !== 'object' || created === null || Array.isArray(created)) return json({ error: 'Invalid Gmail API response format' }, 500);
+      const createdObj = created as Record<string, unknown>;
+      if (typeof createdObj.error === 'object' && createdObj.error !== null) {
+        console.error('[gmail-sync] createLabel Gmail API error', createdObj.error);
+        return json({ error: 'Gmail API error creating label' }, 400);
+      }
+      if (typeof createdObj.id === 'string' && createdObj.id) {
+        await supabase.from('gmail_labels').upsert({
+          account_id: accountId, label_id: createdObj.id,
+          name: typeof createdObj.name === 'string' ? createdObj.name : name, type: 'user',
+        }, { onConflict: 'account_id,label_id' });
+      }
+      return json({ label: createdObj });
+    }
+
+    // ── updateLabel — atualiza label Gmail existente ─────────────────────
+    if (action === 'updateLabel') {
+      const labelId = typeof body.labelId === 'string' ? body.labelId.trim() : '';
+      if (!labelId) return json({ error: 'labelId é obrigatório para atualizar uma label' }, 400);
+      const patchPayload: Record<string, unknown> = { id: labelId };
+      if (typeof body.name === 'string' && body.name.trim()) patchPayload.name = body.name.trim();
+      if (typeof body.labelListVisibility === 'string') patchPayload.labelListVisibility = body.labelListVisibility;
+      if (typeof body.messageListVisibility === 'string') patchPayload.messageListVisibility = body.messageListVisibility;
+      if (body.color && typeof body.color === 'object' && !Array.isArray(body.color)) patchPayload.color = body.color;
+      const patchRes = await fetch(`${GMAIL_API}/labels/${encodeURIComponent(labelId)}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(patchPayload),
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!patchRes.ok) {
+        console.error('[gmail-sync] updateLabel HTTP error', patchRes.status);
+        return json({ error: 'Failed to update Gmail label' }, patchRes.status >= 500 ? 502 : 400);
+      }
+      let updated: unknown;
+      try { updated = await patchRes.json(); } catch { return json({ error: 'Invalid Gmail API response' }, 500); }
+      if (typeof updated !== 'object' || updated === null || Array.isArray(updated)) return json({ error: 'Invalid Gmail API response format' }, 500);
+      const updatedObj = updated as Record<string, unknown>;
+      if (typeof updatedObj.error === 'object' && updatedObj.error !== null) {
+        console.error('[gmail-sync] updateLabel Gmail API error', updatedObj.error);
+        return json({ error: 'Gmail API error updating label' }, 400);
+      }
+      if (typeof patchPayload.name === 'string') {
+        await supabase.from('gmail_labels').update({ name: patchPayload.name })
+          .eq('account_id', accountId).eq('label_id', labelId);
+      }
+      return json({ label: updatedObj });
+    }
+
+    // ── deleteLabel — remove label Gmail ─────────────────────────────────
+    if (action === 'deleteLabel') {
+      const labelId = typeof body.labelId === 'string' ? body.labelId.trim() : '';
+      if (!labelId) return json({ error: 'labelId é obrigatório para deletar uma label' }, 400);
+      const deleteRes = await fetch(`${GMAIL_API}/labels/${encodeURIComponent(labelId)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(10_000),
+      });
+      // 204 = success; 404 = already gone (treat as success); other errors → fail
+      if (!deleteRes.ok && deleteRes.status !== 404) {
+        console.error('[gmail-sync] deleteLabel HTTP error', deleteRes.status);
+        return json({ error: 'Failed to delete Gmail label' }, deleteRes.status >= 500 ? 502 : 400);
+      }
+      await supabase.from('gmail_labels').delete().eq('account_id', accountId).eq('label_id', labelId);
+      return json({ deleted: true, labelId });
+    }
+
     return json({ error: `Ação desconhecida: ${action}` }, 400);
 
   } catch (err) {
@@ -487,6 +585,9 @@ async function getValidToken(supabase: ReturnType<typeof createZappAdminClient>,
  * Handles multipart MIME structures: walks parts tree, extracts base64-decoded bodies,
  * detects plain/HTML/attachment content, normalizes sender/recipient email addresses.
  *
+ * After persisting the message row, calls processAttachments() to download and upload
+ * each attachment binary to Supabase Storage and record it in email_attachments.
+ *
  * Graceful failure: Network timeouts (10s AbortSignal), parse errors, missing fields → silently skips.
  * No exceptions raised; callers rely on batchSettled to continue if individual fetches fail.
  * Used in bounded batches (concurrency=5) to respect Gmail API quota.
@@ -586,11 +687,26 @@ async function fetchAndPersistMessage(
     }
   }
 
-  const hasAttachments = payloadParts.some((p: unknown) => {
-    if (typeof p !== 'object' || p === null || Array.isArray(p)) return false;
-    const part = p as Record<string, unknown>;
-    return typeof part.filename === 'string' && part.filename.length > 0;
-  });
+  // Recursively check if any MIME part is a named attachment with an attachmentId.
+  // Uses deep traversal so nested multipart/mixed structures are correctly detected.
+  const checkHasAttachments = (parts: unknown[]): boolean => {
+    for (const p of parts) {
+      if (typeof p !== 'object' || p === null || Array.isArray(p)) continue;
+      const part = p as Record<string, unknown>;
+      if (typeof part.filename === 'string' && part.filename.length > 0) {
+        const partBody = typeof part.body === 'object' && part.body !== null && !Array.isArray(part.body)
+          ? (part.body as Record<string, unknown>)
+          : null;
+        if (partBody && typeof partBody.attachmentId === 'string' && partBody.attachmentId.length > 0) {
+          return true;
+        }
+      }
+      if (Array.isArray(part.parts) && checkHasAttachments(part.parts)) return true;
+    }
+    return false;
+  };
+
+  const hasAttachments = checkHasAttachments(payloadParts);
 
   const { data: thread, error: threadErr2 } = await supabase.from('gmail_threads').upsert({
     account_id:          accountId,
@@ -609,7 +725,8 @@ async function fetchAndPersistMessage(
 
   if (!thread) return;
 
-  const { error: msgErr } = await supabase.from('gmail_messages').upsert({
+  // Get the DB UUID of the upserted message so processAttachments can link to it.
+  const { data: msgData, error: msgErr } = await supabase.from('gmail_messages').upsert({
     thread_id_ref:   thread.id,
     account_id:      accountId,
     message_id:      messageId,
@@ -627,9 +744,173 @@ async function fetchAndPersistMessage(
     is_sent:         isSent,
     has_attachments: hasAttachments,
     internal_date:   date,
-  }, { onConflict: 'account_id,message_id' });
+  }, { onConflict: 'account_id,message_id' }).select('id').maybeSingle();
 
   if (msgErr) {
     console.error(`[gmail-sync] message upsert failed for ${messageId}:`, msgErr.message);
+  }
+
+  // Download and store attachments when the message row is available and attachments exist.
+  if (msgData?.id && hasAttachments) {
+    await processAttachments(messageId, payloadParts, msgData.id, token, supabase);
+  }
+}
+
+/**
+ * Downloads each Gmail attachment binary and persists it to Storage + DB.
+ *
+ * For every MIME part that carries a non-empty filename and an attachmentId:
+ *   1. Size guard — skip if size_bytes > 20 971 520 (20 MB, Storage bucket limit).
+ *   2. Fetch binary — GET /gmail/v1/users/me/messages/{messageId}/attachments/{attachmentId}
+ *      with Authorization header; response is { data: "<base64url>" }.
+ *   3. Decode base64url → Uint8Array (replace - → +, _ → /, then atob).
+ *   4. Upload to Storage bucket `email-attachments` with upsert=true.
+ *      Path: {emailMessageId}/{gmailAttachmentId}/{filename}
+ *   5. Upsert row into zapp.email_attachments with conflict key
+ *      (email_message_id, gmail_attachment_id).
+ *
+ * Errors are logged per-attachment and execution continues to the next attachment.
+ * Nested multipart structures are traversed recursively.
+ *
+ * @param gmailMessageId  Gmail message ID (for Attachments API path)
+ * @param parts           MIME parts array from the message payload
+ * @param emailMessageId  DB UUID of the persisted gmail_messages row
+ * @param accessToken     Valid OAuth access token
+ * @param adminClient     Supabase admin client (service_role, bypasses RLS)
+ */
+async function processAttachments(
+  gmailMessageId: string,
+  parts: unknown[],
+  emailMessageId: string,
+  accessToken: string,
+  adminClient: ReturnType<typeof createZappAdminClient>,
+): Promise<void> {
+  interface AttachmentMeta {
+    filename: string;
+    mimeType: string;
+    attachmentId: string;
+    sizeBytes: number;
+  }
+
+  // Recursively walk MIME parts to collect all attachment entries.
+  const collected: AttachmentMeta[] = [];
+  const collectAttachments = (pts: unknown[]): void => {
+    for (const p of pts) {
+      if (typeof p !== 'object' || p === null || Array.isArray(p)) continue;
+      const part = p as Record<string, unknown>;
+
+      const filename = typeof part.filename === 'string' ? part.filename.trim() : '';
+      const partBody = typeof part.body === 'object' && part.body !== null && !Array.isArray(part.body)
+        ? (part.body as Record<string, unknown>)
+        : null;
+      const attachmentId = partBody && typeof partBody.attachmentId === 'string' ? partBody.attachmentId : '';
+
+      if (filename && attachmentId) {
+        const sizeBytes = partBody && typeof partBody.size === 'number' ? partBody.size : 0;
+        const mimeType = typeof part.mimeType === 'string' ? part.mimeType : 'application/octet-stream';
+        collected.push({ filename, mimeType, attachmentId, sizeBytes });
+      }
+
+      // Recurse into nested multipart structures (e.g. multipart/alternative, multipart/mixed).
+      if (Array.isArray(part.parts)) collectAttachments(part.parts);
+    }
+  };
+
+  collectAttachments(parts);
+
+  for (const att of collected) {
+    // Guard: skip attachments that exceed the Storage bucket's 20 MB hard limit.
+    if (att.sizeBytes > MAX_ATTACHMENT_BYTES) {
+      console.warn(
+        `[gmail-sync] processAttachments: skipping "${att.filename}" — ` +
+        `${att.sizeBytes} bytes exceeds ${MAX_ATTACHMENT_BYTES} byte limit`,
+      );
+      continue;
+    }
+
+    try {
+      // Step 1 — Fetch binary content from Gmail Attachments API.
+      const attRes = await fetch(
+        `${GMAIL_API}/messages/${gmailMessageId}/attachments/${att.attachmentId}`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          // Allow up to 30 s for larger attachments (up to the 20 MB guard above).
+          signal: AbortSignal.timeout(30_000),
+        },
+      );
+
+      if (!attRes.ok) {
+        console.error(
+          `[gmail-sync] processAttachments: Gmail API HTTP ${attRes.status} ` +
+          `for attachment "${att.filename}" (msg=${gmailMessageId})`,
+        );
+        continue;
+      }
+
+      let attDataRaw: unknown;
+      try {
+        attDataRaw = await attRes.json();
+      } catch {
+        console.error(`[gmail-sync] processAttachments: non-JSON response for "${att.filename}"`);
+        continue;
+      }
+
+      if (typeof attDataRaw !== 'object' || attDataRaw === null || Array.isArray(attDataRaw)) continue;
+      const attData = attDataRaw as Record<string, unknown>;
+
+      // Step 2 — Decode base64url → Uint8Array.
+      const base64url = typeof attData.data === 'string' ? attData.data : '';
+      if (!base64url) {
+        console.warn(`[gmail-sync] processAttachments: empty data for "${att.filename}"`);
+        continue;
+      }
+      const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+      const binaryStr = atob(base64);
+      const bytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+      }
+
+      // Step 3 — Upload to Storage.
+      // Path: {emailMessageId}/{gmailAttachmentId}/{filename}
+      const storagePath = `${emailMessageId}/${att.attachmentId}/${att.filename}`;
+
+      const { error: uploadErr } = await adminClient.storage
+        .from('email-attachments')
+        .upload(storagePath, bytes, {
+          contentType: att.mimeType,
+          upsert: true,
+        });
+
+      if (uploadErr) {
+        console.error(
+          `[gmail-sync] processAttachments: Storage upload failed for "${att.filename}":`,
+          uploadErr.message,
+        );
+        continue;
+      }
+
+      // Step 4 — Upsert metadata row in email_attachments.
+      const { error: dbErr } = await adminClient.from('email_attachments').upsert({
+        email_message_id:    emailMessageId,
+        gmail_attachment_id: att.attachmentId,
+        filename:            att.filename,
+        mime_type:           att.mimeType,
+        size_bytes:          att.sizeBytes,
+        storage_path:        storagePath,
+      }, { onConflict: 'email_message_id,gmail_attachment_id' });
+
+      if (dbErr) {
+        console.error(
+          `[gmail-sync] processAttachments: email_attachments upsert failed for "${att.filename}":`,
+          dbErr.message,
+        );
+      }
+    } catch (err) {
+      console.error(
+        `[gmail-sync] processAttachments: unexpected error for "${att.filename}":`,
+        err instanceof Error ? err.message : String(err),
+      );
+    }
   }
 }

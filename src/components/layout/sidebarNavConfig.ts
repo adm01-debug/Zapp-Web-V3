@@ -55,6 +55,7 @@ import {
   BrainCircuit,
   Search,
   Zap,
+  CalendarRange,
 } from 'lucide-react';
 import type { NavItemConfig } from './SidebarNavItem';
 
@@ -160,10 +161,12 @@ export const advancedNav: readonly NavItemConfig[] = [
   { id: 'realtime-monitor', icon: Activity, label: 'Monitor em Tempo Real', requiredRoles: ['supervisor'] },
   { id: 'dispatch-errors-history', icon: ScrollText, label: 'Histórico Erros Dispatch', requiredRoles: ['supervisor'] },
   { id: 'inbox-sync-status', icon: Activity, label: 'Status do Inbox', requiredRoles: ['supervisor'] },
+  { id: 'cron-scheduler', icon: CalendarRange, label: 'Cron Scheduler', requiredRoles: ['admin', 'dev'] },
   { id: 'evo-api-health', icon: HeartPulse, label: 'Evo API Health', requiredRoles: ['admin'] },
   { id: 'bridge-status', icon: Activity, label: 'Bridge Status', requiredRoles: ['admin', 'supervisor'] },
   { id: 'email-status', icon: Mail, label: 'Status Email', requiredRoles: ['admin'] },
   { id: 'email-audit', icon: ScrollText, label: 'Auditoria Email', requiredRoles: ['admin'] },
+  { id: 'notification-channels', icon: Bell, label: 'Canais de Notificacao', requiredRoles: ['admin'] },
 ] as const;
 
 // ── Backward-compat re-exports ────────────────────────────

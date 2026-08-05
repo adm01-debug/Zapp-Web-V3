@@ -1,5 +1,5 @@
 // Shared proxy logic for Evolution API edge function
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { logRetryMetric, type RetryReason } from './log-retry-metric.ts';
 import { enqueueFailedMessage } from './enqueue-failed-message.ts';
 import {

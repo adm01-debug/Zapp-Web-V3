@@ -1,7 +1,7 @@
 // Shared sync action handlers for evolution-sync/index.ts
 
 import { instanceOrFilter } from "./evolution-helpers.ts";
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 type EvolutionRawMsg = {
   conversation?: string;

@@ -242,6 +242,9 @@ export const GmailTokenRefreshV1Schema = z.object({
 /** gmail-health@v1 — health/status (service-role/cron); params por query string. */
 export const GmailHealthV1Schema = z.object({}).passthrough();
 
+/** email-health@v1 — GET health status (JWT required); no request body. */
+export const EmailHealthV1Schema = z.object({}).strict();
+
 // ─── Business/infra endpoints (v1 — estritos, derivados do consumo real) ────
 
 /**
@@ -249,12 +252,18 @@ export const GmailHealthV1Schema = z.object({}).passthrough();
  * action default 'listThreads'; maxResults clampado [1,100] no handler.
  */
 export const GmailSyncV1Schema = z.object({
-  action: z.enum(["listThreads", "syncFull", "syncLabels"]).optional(),
+  action: z.enum(["listThreads", "syncFull", "syncLabels", "createLabel", "updateLabel", "deleteLabel"]).optional(),
   accountId: z.string().min(1, "accountId é obrigatório").max(200),
   labelIds: z.array(z.string().min(1).max(200)).max(100).optional(),
   q: z.string().max(1000).optional(),
   pageToken: z.string().max(500).optional(),
   maxResults: z.number().int().min(1).max(100).optional(),
+  // Label mutation fields (EMAIL-07)
+  labelId: z.string().min(1).max(200).optional(),
+  name: z.string().min(1).max(200).optional(),
+  color: z.record(z.string().max(50)).optional(),
+  labelListVisibility: z.enum(["labelShow", "labelShowIfUnread", "labelHide"]).optional(),
+  messageListVisibility: z.enum(["show", "hide"]).optional(),
 }).strict();
 
 /**
@@ -845,6 +854,24 @@ export const AiSuggestReplyV1Schema = AiSuggestReplySchema
  * → permissivo.
  */
 
+/** followup-bridge@v1 — POST { sequence_id, contact_jid, instance_name, trigger_event? } */
+export const FollowupBridgeV1Schema = z.object({
+  sequence_id: z.string().uuid({ message: "sequence_id deve ser UUID" }),
+  contact_jid: z.string().min(1).max(200),
+  instance_name: z.string().min(1).max(100),
+  trigger_event: z.string().max(100).optional(),
+}).strict();
+
+/** csat-auto-send@v1 — POST { contact_id, connection_id, survey_id?, agent_id?, conversation_id?, delay_minutes? } */
+export const CsatAutoSendV1Schema = z.object({
+  survey_id: z.string().uuid().nullish(),
+  contact_id: z.string().uuid({ message: "contact_id deve ser UUID" }),
+  agent_id: z.string().uuid().nullish(),
+  connection_id: z.string().uuid({ message: "connection_id deve ser UUID" }),
+  conversation_id: z.string().uuid().nullish(),
+  delay_minutes: z.number().int().min(0).max(1440).nullish(),
+}).strict();
+
 export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   // Webhooks externos
   "evolution-webhook":       { v1: EvolutionWebhookV1Schema, v2: EvolutionWebhookV2Schema },
@@ -870,6 +897,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "whatsapp-cloud-api":         { v1: WhatsappCloudApiV1Schema },
   "gmail-token-refresh":        { v1: GmailTokenRefreshV1Schema },
   "gmail-health":               { v1: GmailHealthV1Schema },
+  "email-health":               { v1: EmailHealthV1Schema },
   "email-track-link":           { v1: EmailTrackLinkV1Schema },
   "email-track-pixel":          { v1: EmailTrackPixelV1Schema },
 
@@ -973,6 +1001,10 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "virustotal-test":  { v1: InfraSchemas.VirustotalTestV1Schema },
   "voice-agent":  { v1: AISchemas.VoiceAgentV1Schema },
   "voice-changer":  { v1: InfraSchemas.VoiceChangerMultipartV1Schema },
+
+  // ─── INBOX-09 / AUTOMACOES-09 ─────────────────────────────────────────────
+  "followup-bridge": { v1: FollowupBridgeV1Schema },
+  "csat-auto-send":  { v1: CsatAutoSendV1Schema },
 };
 
 // ─── Re-exports de edge-contract-schemas (ponto de import unificado) ─────────

@@ -1,6 +1,6 @@
 // Message-specific handlers for evolution-webhook: incoming, outgoing, sticker, transcription
 
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import {
   isRecord, normalizePhone, resolveEventJid,
   getConnectionByInstance, getContactByPhone, fetchProfilePicFromApi, persistProfilePicture,

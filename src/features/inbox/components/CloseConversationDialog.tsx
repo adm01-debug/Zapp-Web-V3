@@ -27,6 +27,10 @@ interface CloseConversationDialogProps {
   onOpenChange: (open: boolean) => void;
   contactId: string;
   profileId?: string | null;
+  /** WhatsApp connection UUID — when provided, triggers CSAT auto-send (INBOX-09). */
+  connectionId?: string | null;
+  /** Conversation UUID stored in metadata of the CSAT survey record. */
+  conversationId?: string | null;
   onClosed?: () => void;
 }
 
@@ -64,6 +68,8 @@ export function CloseConversationDialog({
   onOpenChange,
   contactId,
   profileId,
+  connectionId,
+  conversationId,
   onClosed,
 }: CloseConversationDialogProps) {
   const [reason, setReason] = useState('');
@@ -71,6 +77,27 @@ export function CloseConversationDialog({
   const [classification, setClassification] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // INBOX-09: Fire CSAT auto-send — non-fatal background call.
+  async function triggerCsatIfEnabled(
+    cId: string,
+    agentId: string | null | undefined,
+    convId: string | null | undefined,
+  ): Promise<void> {
+    if (!connectionId) return;
+    try {
+      await supabase.functions.invoke('csat-auto-send', {
+        body: {
+          contact_id: cId,
+          agent_id: agentId ?? null,
+          connection_id: connectionId,
+          conversation_id: convId ?? null,
+        },
+      });
+    } catch (e) {
+      console.warn('[CloseConversationDialog] CSAT auto-send failed (non-fatal):', e);
+    }
+  }
 
   const handleClose = async () => {
     if (!reason) {
@@ -123,6 +150,8 @@ export function CloseConversationDialog({
         console.warn('[CloseConversationDialog] falha ao registrar conversation_events:', eventInsert.error.message);
       }
       ticketStore.setStatus(contactId, 'resolved', profileId ?? null);
+      // INBOX-09: CSAT automation — non-fatal, runs in background
+      void triggerCsatIfEnabled(contactId, profileId, conversationId);
       toast.success('Conversa encerrada com registro');
       onOpenChange(false);
       setReason('');

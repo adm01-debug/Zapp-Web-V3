@@ -37,7 +37,7 @@ export { z };
  * RESTAURAÇÃO: o commit a08d63e43 ("fix(base64-critical)") sobrescreveu este
  * arquivo com uma versão antiga (38 linhas) que quebrava os re-exports de
  * contract-schemas.ts. Esta versão restaura o registro completo (PR #254/#255)
- * com EDGE_FUNCTION_NAMES regenerado a partir dos diretórios reais (118) e os
+ * com EDGE_FUNCTION_NAMES regenerado a partir dos diretórios reais (122) e os
  * schemas V1 estritos das funções AI/ML vindos de _shared/schemas.ts.
  */
 export const EDGE_FUNCTION_NAMES = [
@@ -51,8 +51,8 @@ export const EDGE_FUNCTION_NAMES = [
   'ai-router',
   'ai-suggest-reply',
   'ai-transcribe-audio',
-  'audio-transcribe',
   'approve-password-reset',
+  'audio-transcribe',
   'auto-close-conversations',
   'auto-escalate-sla',
   'automation-suggest-reply',
@@ -70,6 +70,7 @@ export const EDGE_FUNCTION_NAMES = [
   'contact-media',
   'contacts-import',
   'create-user',
+  'csat-auto-send',
   'db-health-monitor',
   'detect-new-device',
   'elevenlabs-agent-token',
@@ -82,6 +83,7 @@ export const EDGE_FUNCTION_NAMES = [
   'elevenlabs-voice',
   'elevenlabs-voice-design',
   'elevenlabs-webhook',
+  'email-health',
   'email-imap-bridge',
   'email-track-link',
   'email-track-pixel',
@@ -99,6 +101,7 @@ export const EDGE_FUNCTION_NAMES = [
   'evolution-webhook',
   'fetch-whatsapp-avatar',
   'file-security-scanner',
+  'followup-bridge',
   'get-mapbox-token',
   'get-sip-password',
   'gmail-health',

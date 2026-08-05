@@ -147,6 +147,10 @@ export const AdminEmailStatusPage = lazyWithRetry(() => import('@/pages/admin/Ad
 export const AdminEmailAuditPage = lazyWithRetry(() => import('@/pages/admin/AdminEmailAuditPage'));
 /** Lazy-loaded AdminConnectionsPage with 3-attempt retry backoff. */
 export const AdminConnectionsPage = lazyWithRetry(() => import('@/pages/admin/Connections'));
+/** Lazy-loaded NotificationChannelsPage with 3-attempt retry backoff. */
+export const NotificationChannelsPage = lazyWithRetry(() => import('@/pages/admin/notifications/NotificationChannelsPage'));
+/** Lazy-loaded CronSchedulerPage with 3-attempt retry backoff. */
+export const CronSchedulerPage = lazyWithRetry(() => import('@/pages/admin/automacoes/CronSchedulerPage'));
 
 /** Lazy-loaded InboxPage with 3-attempt retry backoff. */
 export const InboxPage = lazyWithRetry(() => import('@/pages/inbox/InboxPage'));

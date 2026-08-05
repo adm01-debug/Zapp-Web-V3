@@ -44,6 +44,7 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "whatsapp-cloud-api":           { current: "v1", supported: ["v1"] },
   "gmail-token-refresh":          { current: "v1", supported: ["v1"] },
   "gmail-health":                 { current: "v1", supported: ["v1"] },
+  "email-health":                 { current: "v1", supported: ["v1"] },
   "email-track-link":             { current: "v1", supported: ["v1"] },
   "email-track-pixel":            { current: "v1", supported: ["v1"] },
 
@@ -93,6 +94,7 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "evolution-sentiment":          { current: "v1", supported: ["v1"] },
   "evolution-retry-metrics":      { current: "v1", supported: ["v1"] },
   "evolution-followup":           { current: "v1", supported: ["v1"] },
+  "followup-bridge":              { current: "v1", supported: ["v1"] },
   "evolution-chatbot":            { current: "v1", supported: ["v1"] },
   "evolution-bitrix-sync":        { current: "v1", supported: ["v1"] },
   "db-health-monitor":            { current: "v1", supported: ["v1"] },
@@ -104,6 +106,7 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "send-scheduled-report":        { current: "v1", supported: ["v1"] },
   "auto-escalate-sla":            { current: "v1", supported: ["v1"] },
   "auto-close-conversations":     { current: "v1", supported: ["v1"] },
+  "csat-auto-send":               { current: "v1", supported: ["v1"] },
   "elevenlabs-voice":             { current: "v1", supported: ["v1"] },
   "ai-classify-tickets":          { current: "v1", supported: ["v1"] },
   "ai-router":                    { current: "v1", supported: ["v1"] },

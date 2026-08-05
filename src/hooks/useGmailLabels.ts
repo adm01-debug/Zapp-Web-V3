@@ -99,6 +99,75 @@ export function useEmailLabels(accountId: string | null) {
     [accountId]
   );
 
+  const createLabel = useCallback(
+    async (
+      name: string,
+      options?: {
+        labelListVisibility?: 'labelShow' | 'labelShowIfUnread' | 'labelHide';
+        messageListVisibility?: 'show' | 'hide';
+        color?: Record<string, string>;
+      }
+    ): Promise<{ label: unknown } | null> => {
+      if (!accountId) return null;
+      try {
+        const { data, error: fnErr } = await supabase.functions.invoke('gmail-sync', {
+          body: { action: 'createLabel', accountId, name, ...options },
+        });
+        if (fnErr) throw fnErr;
+        await queryClient.invalidateQueries({ queryKey: key });
+        return data as { label: unknown };
+      } catch (err) {
+        log.error('createLabel error', err);
+        return null;
+      }
+    },
+    [accountId, queryClient, key]
+  );
+
+  const updateLabel = useCallback(
+    async (
+      labelId: string,
+      patches: {
+        name?: string;
+        labelListVisibility?: 'labelShow' | 'labelShowIfUnread' | 'labelHide';
+        messageListVisibility?: 'show' | 'hide';
+        color?: Record<string, string>;
+      }
+    ): Promise<{ label: unknown } | null> => {
+      if (!accountId) return null;
+      try {
+        const { data, error: fnErr } = await supabase.functions.invoke('gmail-sync', {
+          body: { action: 'updateLabel', accountId, labelId, ...patches },
+        });
+        if (fnErr) throw fnErr;
+        await queryClient.invalidateQueries({ queryKey: key });
+        return data as { label: unknown };
+      } catch (err) {
+        log.error('updateLabel error', err);
+        return null;
+      }
+    },
+    [accountId, queryClient, key]
+  );
+
+  const deleteLabel = useCallback(
+    async (labelId: string): Promise<{ deleted: boolean } | null> => {
+      if (!accountId) return null;
+      try {
+        const { data, error: fnErr } = await supabase.functions.invoke('gmail-sync', {
+          body: { action: 'deleteLabel', accountId, labelId },
+        });
+        if (fnErr) throw fnErr;
+        await queryClient.invalidateQueries({ queryKey: key });
+        return data as { deleted: boolean };
+      } catch (err) {
+        log.error('deleteLabel error', err);
+        return null;
+      }
+    },
+    [accountId, queryClient, key]
+  );
+
   const systemLabels = SYSTEM_LABELS.map((sl) => ({
     id: `system-${sl.id}`,
     account_id: accountId ?? '',
@@ -121,6 +190,9 @@ export function useEmailLabels(accountId: string | null) {
     loadLabels,
     syncLabels,
     getLabelCount,
+    createLabel,
+    updateLabel,
+    deleteLabel,
     SYSTEM_LABELS,
   };
 }

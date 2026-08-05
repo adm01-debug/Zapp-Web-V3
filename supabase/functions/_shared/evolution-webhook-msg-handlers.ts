@@ -1,6 +1,6 @@
 // Message-related webhook handlers: send, update, delete, set, edited
 
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import {
   isRecord, normalizePhone, resolveEventJid, toEventRecords, shouldUpdateStatus,
   getConnectionByInstance, getContactByPhone,

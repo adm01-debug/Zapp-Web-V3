@@ -1,7 +1,7 @@
 // Event handlers: connection, contacts, presence, chats, labels, calls, startup
 // Message-specific handlers moved to evolution-webhook-msg-handlers.ts
 
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import {
   isRecord, normalizePhone, toEventRecords, instanceOrFilter,
   getConnectionByInstance, getContactByPhone, persistProfilePicture, generatePhoneVariants,
@@ -455,7 +455,7 @@ export async function handleCallEvent(supabase: SupabaseClient, instance: string
       || (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
     if (externalUrl && externalKey) {
       // schema-check-exempt — external project client for Realtime broadcast only, no DB queries
-      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.49.1');
       const externalAdmin = createClient(externalUrl, externalKey, {
         auth: { persistSession: false, autoRefreshToken: false },
         db: { schema: 'zapp' },
