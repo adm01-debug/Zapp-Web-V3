@@ -30,7 +30,7 @@ var whoami_default = defineTool({
 });
 
 // src/lib/mcp/tools/list-connections.ts
-import { createClient } from "npm:@supabase/supabase-js@^2.110.0";
+import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z } from "npm:zod@^4.4.3";
 function supabaseForUser(ctx) {
@@ -68,7 +68,7 @@ var list_connections_default = defineTool2({
 });
 
 // src/lib/mcp/tools/list-contacts.ts
-import { createClient as createClient2 } from "npm:@supabase/supabase-js@^2.110.0";
+import { createClient as createClient2 } from "npm:@supabase/supabase-js@2.49.1";
 import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z as z2 } from "npm:zod@^4.4.3";
 function supabaseForUser2(ctx) {

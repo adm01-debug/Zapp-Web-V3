@@ -2,7 +2,7 @@
  * Shared AI Usage Logger for Edge Functions.
  * Logs token consumption per user to ai_usage_logs table.
  */
-import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 interface AiUsageEntry {
   functionName: string;
