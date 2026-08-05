@@ -203,8 +203,8 @@ Deno.serve(async (req) => {
         .single();
 
       if (error) {
-        const errMsg = typeof error === 'object' && error !== null && 'message' in error && typeof (error as Record<string, unknown>).message === 'string'
-          ? (error as Record<string, unknown>).message
+        const errMsg = typeof error === 'object' && error !== null && 'message' in error && typeof (error as unknown as Record<string, unknown>).message === 'string'
+          ? (error as unknown as Record<string, unknown>).message
           : 'Internal server error';
         console.error('[email-imap-bridge] upsert error', errMsg);
         return json({ error: 'Internal server error' }, 500);

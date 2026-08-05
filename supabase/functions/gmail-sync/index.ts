@@ -217,7 +217,13 @@ Deno.serve(async (req) => {
         .map(r => (r.status === 'fulfilled' ? r.value : null))
         .filter(Boolean);
 
-      return json({ threads: threadsPayload, nextPageToken: listData.nextPageToken ?? null });
+      return json({
+        threads: threadsPayload,
+        nextPageToken:
+          typeof listData === 'object' && listData !== null && 'nextPageToken' in listData
+            ? (listData as { nextPageToken?: unknown }).nextPageToken ?? null
+            : null,
+      });
     }
 
     // ── syncFull — sincronização completa inicial ──────────────────────
