@@ -205,17 +205,15 @@ jobs:
         run: node scripts/audit-contract.mjs --scan-only
 
   # audit-contract-live: só corre quando SUPABASE_SERVICE_ROLE_KEY está disponível.
-  # PRs de fork não têm acesso a secrets → job pulado (comportamento de segurança do GitHub).
+  # PRs de fork não têm acesso a secrets → step pulado internamente (skip sem falhar).
   # NÃO está no needs de test/build — é informativo. Para forçar gate no CD, promover
   # para needs quando o runner self-hosted com acesso ao DB estiver disponível.
+  # NOTA: secrets context não é válido em job-level if conditions — verificação
+  # feita no step via variável de ambiente para compatibilidade com workflow_dispatch.
   audit-contract-live:
     name: Audit front↔DB contract (live, requires secrets)
     runs-on: ubuntu-latest
     needs: lockfile
-    # Requer secret de service role para consultar o PostgREST. Configurar no repo:
-    #   SUPABASE_URL              — ex.: https://supabase.atomicabr.com.br
-    #   SUPABASE_SERVICE_ROLE_KEY — service_role key (PostgREST)
-    if: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -228,11 +226,20 @@ jobs:
           node-version: 22
 
       - name: Run contract audit (RPCs, .from(), edge functions vs banco)
+        # Requer secret de service role para consultar o PostgREST. Configurar no repo:
+        #   SUPABASE_URL              — ex.: https://supabase.atomicabr.com.br
+        #   SUPABASE_SERVICE_ROLE_KEY — service_role key (PostgREST)
+        # PRs de fork não têm acesso a secrets → script sai com 0 (skip).
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           # Alternativa (driver pg): DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: node scripts/audit-contract.mjs
+        run: |
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "SUPABASE_SERVICE_ROLE_KEY não configurada — audit live ignorado (fork ou secret ausente)."
+            exit 0
+          fi
+          node scripts/audit-contract.mjs
 
   test:
     name: Unit tests
