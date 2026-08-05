@@ -1,7 +1,15 @@
 version: "3.8"
 
 # =============================================================================
-# DOCKER-HOUSEKEEPING v2.2 — AtomicaBR — 2026-08-05
+# DOCKER-HOUSEKEEPING v2.3 — AtomicaBR — 2026-08-05
+# v2.3 (validação pós-faxina, 5 agentes): 
+#   - ENSURE_REF_TAGS: re-taga Spec+PreviousSpec de TODOS os serviços swarm antes
+#     de cada prune — o prune_dangling apagaria a imagem do PreviousSpec untagged
+#     em ≤1h, quebrando o rollback automático OFFLINE (gap ALTO W4).
+#   - rmi por TAG em imagens multi-tag (rmi por ID falha 'referenced in multiple
+#     repositories' → 'retida' para sempre; P2-1).
+#   - zero-match da regex = protege TODAS as imagens + alerta (P2-2).
+#   - ${PROTECTED_REPOS_REGEX:-} imune a set -u (P2-3).
 # v2.2: PRUNE_TAGGED SEGURO — NUNCA mais `docker image prune -af` em tagged.
 #   Root cause do bug: v2.1 usava -af --filter until=168h, que apagava imagens
 #   TAGGED não-em-uso — incluindo a imagem de ROLLBACK do zapp-web
@@ -38,13 +46,31 @@ services:
     entrypoint: ["sh", "-c"]
     command:
       - |
-        echo "=== DOCKER-HOUSEKEEPING v2.2 boot $$(date -u +%FT%TZ) ==="
+        echo "=== DOCKER-HOUSEKEEPING v2.3 boot $$(date -u +%FT%TZ) ==="
         alert() {
           _MSG="$$1"; _TS=$$(date -u +%FT%TZ)
           echo "[ALERT] $$_MSG"
           wget -q --post-data="{\"service\":\"docker-housekeeping\",\"msg\":\"$$_MSG\",\"ts\":\"$$_TS\"}" \
             --header="Content-Type: application/json" \
             "$$ALERT_WEBHOOK_URL" -O /dev/null 2>/dev/null || true
+        }
+        # v2.3: garante que as imagens referenciadas (Spec + PreviousSpec) de TODOS
+        # os serviços swarm estão TAGADAS localmente — assim o prune_dangling não
+        # as remove (tagada ≠ dangling) e o rollback automático fica OFFLINE.
+        # case *:*@sha256:* exige TAG explícita (ref sem tag não é re-tagada —
+        # evitaria docker tag repo:latest sequestrando o latest de terceiros).
+        ensure_ref_tags() {
+          _MAP="$$(docker images --digests --no-trunc --format '{{.ID}} {{.Digest}}' 2>/dev/null)"
+          for REF in $$(docker service ls -q | xargs -r docker service inspect \
+              --format '{{with .Spec.TaskTemplate.ContainerSpec.Image}}{{.}}{{end}} {{with .PreviousSpec.TaskTemplate.ContainerSpec.Image}}{{.}}{{end}}' 2>/dev/null); do
+            case "$$REF" in
+              *:*@sha256:*)
+                _DIG="sha256:$${REF##*@sha256:}"
+                _ID="$$(printf '%s\n' "$$_MAP" | awk -v d="$$_DIG" '$$2 == d {print $$1; exit}')"
+                [ -n "$$_ID" ] && docker tag "$$_ID" "$${REF%%@sha256:*}" 2>/dev/null || true
+                ;;
+            esac
+          done
         }
         prune_dangling() { _AGE="$$1"; _LABEL="$$2"; _OUT=$$(docker image prune -f --filter "until=$${_AGE}" 2>&1 | tail -1); echo "[$${_LABEL}] dangling>$${_AGE}: $${_OUT}"; }
         prune_cache() { _AGE="$$1"; _LABEL="$$2"; _OUT=$$(docker builder prune -af --filter "until=$${_AGE}" 2>&1 | tail -1); echo "[$${_LABEL}] cache>$${_AGE}: $${_OUT}"; }
@@ -57,10 +83,32 @@ services:
         prune_tagged() {
           _AGE="$$1"; _LABEL="$$2"
           PROTECTED=$$(docker ps -aq | xargs -r docker inspect --format '{{.Image}}' 2>/dev/null | sed 's/^sha256://' | sort -u | tr '\n' ' ')
-          PROTECTED="$$PROTECTED $$(docker images --no-trunc --format '{{.ID}} {{.Repository}}' | awk -v re="$${PROTECTED_REPOS_REGEX}" '$$2 ~ re {print $$1}' | sed 's/^sha256://' | sort -u | tr '\n' ' ')"
+          PROTECTED="$$PROTECTED $$(docker images --no-trunc --format '{{.ID}} {{.Repository}}' | awk -v re="$${PROTECTED_REPOS_REGEX:-}" '$$2 ~ re {print $$1}' | sed 's/^sha256://' | sort -u | tr '\n' ' ')"
+          # P2-2: regex configurada mas SEM nenhum match = typo/erro de config
+          # → protege TODAS as imagens neste ciclo + alerta (fail-safe ativo).
+          _NMATCH=$$(docker images --no-trunc --format '{{.Repository}}' | awk -v re="$${PROTECTED_REPOS_REGEX:-}" 're != "" && $$1 ~ re {n++} END {print n+0}')
+          if [ -n "$${PROTECTED_REPOS_REGEX:-}" ] && [ "$$_NMATCH" -eq 0 ]; then
+            alert "housekeeping: PROTECTED_REPOS_REGEX nao casou NENHUM repo — protegendo TODAS as imagens neste ciclo"
+            PROTECTED="$$(docker images -q --no-trunc | sed 's/^sha256://' | tr '\n' ' ') $$PROTECTED"
+          fi
           for IMG in $$(docker images -q --no-trunc --filter "until=$${_AGE}" | sed 's/^sha256://' | sort -u); do
             case " $$PROTECTED " in *" $$IMG "*) echo "[$${_LABEL}] SKIP protegida: $$IMG";; *)
-              _OUT=$$(docker rmi "$$IMG" 2>&1) && echo "[$${_LABEL}] removida: $$IMG" || echo "[$${_LABEL}] retida: $$IMG — $${_OUT}";; esac
+              # P2-1: multi-tag → rmi por TAG (rmi por ID falha 'referenced in multiple repositories')
+              _REPO_TAGS=$$(docker inspect --format '{{range .RepoTags}}{{.}} {{end}}' "$$IMG" 2>/dev/null)
+              _REPO_TAGS=$${_REPO_TAGS% }
+              if [ -z "$$_REPO_TAGS" ]; then
+                _OUT=$$(docker rmi "$$IMG" 2>&1) && echo "[$${_LABEL}] removida: $$IMG" || echo "[$${_LABEL}] retida: $$IMG — $${_OUT}"
+              else
+                _REMOVED=0; _KEPT=0
+                for _TAG in $$_REPO_TAGS; do
+                  # NOTA (P3-7): este case é GLOB, não regex — com regex contendo
+                  # '|' ou '\\.' não casaria; é camada redundante (o filtro externo
+                  # por ID já protegeu o repo) — não confiar isoladamente.
+                  case "$$_TAG" in *"$${PROTECTED_REPOS_REGEX:-}"*) echo "[$${_LABEL}] SKIP tag protegida: $$_TAG"; _KEPT=1; continue;; esac
+                  if _OUT=$$(docker rmi "$$_TAG" 2>&1); then _REMOVED=1; else echo "[$${_LABEL}] retida: $$_TAG — $${_OUT}"; _KEPT=1; fi
+                done
+                [ "$$_REMOVED" = 1 ] && { [ "$$_KEPT" = 1 ] && echo "[$${_LABEL}] parcial: $$IMG (tags antigas removidas)" || echo "[$${_LABEL}] removida: $$IMG"; }
+              fi;; esac
           done
         }
         disk_pct() { df -P / 2>/dev/null | awk 'NR==2 {gsub("%","",$$5); print $$5+0}'; }
@@ -68,6 +116,9 @@ services:
         while true; do
           CYCLE=$$((CYCLE+1)); NOW=$$(date +%s); TS=$$(date -u +%FT%TZ); DISK=$$(disk_pct)
           echo ""; echo "[$${TS}] === cycle #$${CYCLE} disk=$${DISK}% ==="
+          # v2.3: re-tagar refs ANTES de QUALQUER prune (incl. emergência) —
+          # o PreviousSpec pode ter mudado desde o ciclo anterior.
+          ensure_ref_tags
           if [ "$${DISK:-0}" -ge "$${EMERGENCY_DISK_PCT}" ]; then
             echo "[$${TS}] EMERGENCY: disk $${DISK}% >= $${EMERGENCY_DISK_PCT}%"
             prune_dangling "$${EMERGENCY_DANGLING_AGE}" "emerg"
@@ -88,7 +139,7 @@ services:
           DISK_END=$$(disk_pct)
           echo "[$${TS}] cycle #$${CYCLE} done. disk_end=$${DISK_END}%"
           if [ "$${CYCLE}" -eq 1 ]; then
-            alert "housekeeping v2.2 online: cycle #1 disk $${DISK}% -> $${DISK_END}%"
+            alert "housekeeping v2.3 online: cycle #1 disk $${DISK}% -> $${DISK_END}%"
           fi
           sleep "$${DANGLING_INTERVAL_S}"
         done
@@ -112,7 +163,7 @@ services:
       labels:
         - traefik.enable=false
         - com.centurylinklabs.watchtower.enable=false
-        - com.atomicabr.audit=docker-housekeeping-v2.2-2026-08-05-protected-prune
+        - com.atomicabr.audit=docker-housekeeping-v2.3-2026-08-05-ensure-ref-tags
         - com.atomicabr.requires-docker-sock=true
         - com.atomicabr.tier=critical
 

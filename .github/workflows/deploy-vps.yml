@@ -41,9 +41,8 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: node scripts/check-deploy-secrets.mjs
-
-          
+        run: |
+          node scripts/check-deploy-secrets.mjs
           echo "✅ Todos os secrets críticos (Auth, DB, Service Role) estão presentes."
 
       - uses: docker/setup-buildx-action@v4
@@ -81,15 +80,20 @@ jobs:
 
       # ============================================================
       # ETAPA 34 — Faxina Portainer (2026-08-05): retenção GHCR
-      # Mantém as 8 versões mais recentes (inclui current + rollback +
-      # 5 anteriores + production-latest) e apaga o resto.
-      # min-versions-to-keep=8 garante que a imagem de ROLLBACK
-      # (penúltimo deploy) nunca é removida pela retenção automática.
-      # package-name = caminho completo da imagem SEM o owner
-      # (ghcr.io/adm01-debug/zapp-web-v3/zapp-web -> zapp-web-v3/zapp-web).
-      # continue-on-error: retenção nunca pode BLOQUEAR o deploy.
+      # Cada deploy cria ~3 versões (1 index tagado production-<sha> +
+      # manifest amd64 + attestation-manifest, ambos untagged, pois o
+      # buildx gera provenance por padrão). min-versions-to-keep=8
+      # ≈ 2,6 deploys: o rollback (penúltimo deploy) ocupa as posições
+      # 4–6 das 8 mantidas — SEMPRE protegido (validação 2026-08-05).
+      # ⚠️ NÃO usar delete-only-untagged-versions aqui: apagaria os
+      # manifests-filho (imagem/attestation) e o pull da tag falharia
+      # com 'manifest unknown' (P0 confirmado via OCI index).
+      # package-name = caminho completo SEM o owner (zapp-web-v3/zapp-web).
+      # continue-on-error: retenção nunca pode BLOQUEAR o deploy; falha
+      # é sinalizada pelo step de alerta abaixo (sentinel greppável).
       # ============================================================
       - name: 🧹 GHCR retention (keep 8 versions — preserva current/rollback/latest)
+        id: retention
         continue-on-error: true
         uses: actions/delete-package-versions@v5
         with:
@@ -97,6 +101,19 @@ jobs:
           package-type: container
           min-versions-to-keep: 8
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🚨 Alerta se a retenção GHCR falhar (não bloqueia deploy)
+        if: always() && steps.retention.outcome == 'failure'
+        env:
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: |
+          MSG="GHCR retention FALHOU em ${{ github.sha }} — run ${{ github.run_id }} (${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          if [ -n "$ALERT_WEBHOOK_URL" ]; then
+            curl -fsS -X POST "$ALERT_WEBHOOK_URL" \
+              -H 'Content-Type: application/json' \
+              -d "{\"text\":\"⚠️ ${MSG}\"}" || true
+          fi
+          echo "::warning::GHCR_RETENTION_FAILED ${MSG}"
 
   deploy:
     name: Deploy to VPS
@@ -168,6 +185,9 @@ jobs:
                   failure_action: rollback
                   monitor: 60s
                   order: start-first
+                rollback_config:
+                  order: start-first
+                  monitor: 60s
                 resources:
                   limits:
                     memory: 256M
