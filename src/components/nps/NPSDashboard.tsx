@@ -4,6 +4,8 @@ import { useNPSSurveys } from '@/hooks/useNPSSurveys';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { CalendarClock } from 'lucide-react';
 import { TrendingUp, TrendingDown, Minus, Users, ThumbsUp, ThumbsDown, Meh, BarChart3 } from 'lucide-react';
 
 /**
@@ -86,6 +88,19 @@ export function NPSDashboard() {
         <h2 className="text-xl font-bold text-foreground">Net Promoter Score (NPS)</h2>
         <p className="text-sm text-muted-foreground">Meça a lealdade dos seus clientes</p>
       </div>
+
+      {/* Sinalização DASHBOARD-04: trigger do nps-scheduler ausente */}
+      <Alert>
+        <CalendarClock className="h-4 w-4" />
+        <AlertTitle>Sinalização DASHBOARD-04 — campanhas agendadas sem trigger</AlertTitle>
+        <AlertDescription>
+          O edge <code>nps-scheduler</code> está deployado e funcional, mas <b>ninguém o invoca</b>: sem job
+          pg_cron e sem invoke no front (o contrato exige service-role ou <code>x-cron-secret</code> — um
+          invoke com o JWT do usuário retornaria 401). Enquanto o trigger não existir, o NPS depende apenas do
+          registro manual (botão no fluxo de atendimento). Criação do cron fica fora do escopo desta branch —
+          exige migration.
+        </AlertDescription>
+      </Alert>
 
       {/* Main Score + Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">

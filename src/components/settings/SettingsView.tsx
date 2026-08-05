@@ -21,6 +21,7 @@ import { ElevenLabsDialogue } from '@/components/voice/ElevenLabsDialogue';
 import { ElevenLabsVoiceDesign } from '@/components/voice/ElevenLabsVoiceDesign';
 import { MediaLibraryAdmin } from '@/components/settings/MediaLibraryAdmin';
 import { NotificationSettingsPanel } from '@/components/notifications/NotificationSettingsPanel';
+import { NotificationChannelsAdmin } from '@/components/notifications/NotificationChannelsAdmin';
 import { KeyboardShortcutsSettings } from '@/components/settings/KeyboardShortcutsSettings';
 import { GlobalSettingsSection } from '@/components/settings/GlobalSettingsSection';
 import { IntegrationKeysSection } from '@/components/settings/IntegrationKeysSection';
@@ -146,6 +147,7 @@ export function SettingsView() {
 
         <TabsContent value="notifications">
           <NotificationSettingsPanel />
+          <NotificationChannelsAdmin />
         </TabsContent>
 
         <TabsContent value="appearance">
