@@ -47,6 +47,9 @@ services:
         failure_action: rollback
         monitor: 60s
         order: start-first
+      rollback_config:
+        order: start-first
+        monitor: 60s
       resources:
         limits:
           memory: 256M

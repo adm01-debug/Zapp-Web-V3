@@ -60,6 +60,12 @@ ZAPP_IMAGE=ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-<sha> \
 ## 4. Runbook de Rollback (etapa 29 — validado em 2026-08-05, 2 rodadas de validação)
 
 ```bash
+# PRÉ-REQUISITO — garantir imagem de rollback disponível localmente (antes de qualquer incidente).
+# Execute este passo PREVENTIVAMENTE após cada deploy bem-sucedido:
+docker pull ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-<sha-anterior>
+# Verificar que a imagem está local com digest:
+docker images --digests ghcr.io/adm01-debug/zapp-web-v3/zapp-web | grep production-<sha-anterior>
+
 # PASSO 0 — SALVAR a ref canônica ATUAL ANTES de rolar (o ATUAL costuma estar
 # <none> local — puxado por digest — e NÃO é encontrável por tag no awk).
 REF_ATUAL=$(docker service inspect zapp-web-prod_web --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}')
