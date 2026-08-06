@@ -19,7 +19,7 @@
 --       no WhatsApp) -> WARN "media refresh failed ... unknown".
 --
 -- Fix (alinhado ao BUG-38):
---   1. public=true (unconditional UPDATE)
+--   1. public=true (unconditional UPDATE) + file_size_limit 50 MB
 --   2. Public SELECT para anon (defense-in-depth junto do flag public)
 --   3. Authenticated INSERT preservado (idempotente)
 --   allowed_mime_types permanece NULL (sem restrição — como antes do P0-4).
@@ -33,8 +33,10 @@ BEGIN;
 
 -- 1. Make whatsapp-media bucket publicly readable (unconditional UPDATE)
 UPDATE storage.buckets
-SET    public = true
-WHERE  name = 'whatsapp-media';
+SET
+  public          = true,
+  file_size_limit = 52428800  -- 50 MB
+WHERE name = 'whatsapp-media';
 
 -- 2. Public SELECT for anon (defense-in-depth alongside public=true flag)
 DO $$
@@ -69,12 +71,12 @@ END $$;
 -- Log (must be inside a DO block — bare RAISE outside PL/pgSQL context is a syntax error)
 DO $$
 BEGIN
-  RAISE NOTICE 'BUG-MEDIA: whatsapp-media bucket set to public=true. INSERT still requires authenticated.';
+  RAISE NOTICE 'BUG-MEDIA: whatsapp-media bucket set to public=true (50MB limit). INSERT still requires authenticated.';
 END $$;
 
 COMMIT;
 
 -- Verification:
--- SELECT name, public FROM storage.buckets WHERE name = 'whatsapp-media';
+-- SELECT name, public, file_size_limit FROM storage.buckets WHERE name = 'whatsapp-media';
 -- curl -I "https://supabase.atomicabr.com.br/storage/v1/object/public/whatsapp-media/video/3A5FF65C29C771B14CC7_1783713237642.mp4"
 -- Expected: HTTP 200, Content-Type: video/mp4
