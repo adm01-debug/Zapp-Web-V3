@@ -240,3 +240,78 @@ CI/CD pipeline, stack files, housekeeping scripts, network config e failure mode
 | DB-BUG-14 | `zapp.rpc_dlq_log_item_action` | 2 overloads inseguros gravando em tabela errada | DB fix |
 | DB-BUG-15 | `zapp.rpc_dlq_log_reprocess_*` | `search_path` inseguro com schemas múltiplos | DB fix |
 | DB-BUG-16 | `zapp.search_contacts_cursor` | `sort_direction = 'asc'` case-sensitive + injetável | DB fix |
+
+---
+
+## Sessão 2026-08-06 — Auditoria Evolution API (A-5b, A-8, Security Gate)
+
+### Contexto
+Continuação da auditoria Evolution API iniciada em 2026-08-05. Branch de trabalho:
+`claude/evolution-api-audit-ma43rh`. Três frentes trabalhadas nesta sessão.
+
+### A-5b (P0) — `cron.max_running_jobs=6` Ativado
+
+| Item | Detalhe | Status |
+|---|---|---|
+| GUC `cron.max_running_jobs` | Configurado via `ALTER SYSTEM SET` em sessão anterior; `pending_restart=t` impedia ativação | ✅ |
+| Restart `supabase_db.1` | Executado via Portainer API; novo container `f647a389e38f` | ✅ |
+| Verificação pós-restart | `SELECT name, setting, pending_restart FROM pg_settings WHERE name = 'cron.max_running_jobs'` → `setting=6`, `pending_restart=f` | ✅ |
+| Boot confirmado | `pg_postmaster_start_time`: 2026-08-06 07:38:56 UTC-3 | ✅ |
+
+**Impacto:** pg_cron agora executa no máximo 6 jobs concorrentes (antes: 32), evitando tempestade
+de conexões em picos de cron jobs simultâneos.
+
+### A-8 (P2) — Data Quality: `patch_mode` + `evo.v_logpatch_health`
+
+| Item | Migração | Ação | PR |
+|---|---|---|---|
+| Coluna `patch_mode TEXT` em `evo.evolution_logpatch_audit` | `20260806173000_rb2_a8_logpatch_patch_mode.sql` | `ADD COLUMN IF NOT EXISTS patch_mode TEXT NOT NULL DEFAULT 'build-time' CHECK (...)` | #877 |
+| Update de registros existentes | `20260806173000` | `UPDATE ... SET patch_mode='build-time' WHERE patch_mode IS DISTINCT FROM 'build-time'` | #877 |
+| View `evo.v_logpatch_health` atualizada | `20260806173000` | Semântica de `is_healthy` corrigida por `patch_mode`: build-time → `logpatch_status='ok'`; runtime → `t1_ok AND...AND t5_ok AND status='ok'` | #877 |
+| FIX: `security_invoker=on` ausente | `20260806180000_fix_v_logpatch_health_security_invoker.sql` | `CREATE OR REPLACE VIEW evo.v_logpatch_health WITH (security_invoker = on)` | #877 |
+| COMMENTs de coluna | `20260806173000` | Documentados `t1_ok`–`t5_ok` como "N/A em build-time por design" | #877 |
+
+**Contexto:** Os patches T1–T6 são aplicados em `BUILD-TIME` (Dockerfile `VERIFY` fail-closed).
+No modo build-time, `t1_ok`–`t5_ok` são sempre `false` por design (sem runtime check),
+e isso era incorretamente interpretado como "patches ausentes". A coluna `patch_mode`
+e a lógica `CASE WHEN` na view corrigem essa semântica.
+
+**`docker-entrypoint.sh` auditado:** Confirmado que envia `patch_mode: "build-time"` na
+auditoria de boot (POST REST → `evo.evolution_logpatch_audit`). Sem execução de `logpatch.cjs`.
+
+### D-8 (P0) — Gate CI `security-invoker-gate.yml` ✅ RESOLVIDO
+
+| Item | Root Cause | Status |
+|---|---|---|
+| `ZAPP_META_TOKEN` GitHub Actions secret | JWT `service_role` rotacionado em 2026-08-05 (`supabase_service_key_v1/v2` → `supabase_service_key_v3`); secret do GitHub não foi atualizado | ✅ **RESOLVIDO** — admin atualizou o secret em 2026-08-06 |
+| D-8 step "Verify security audit via evo.v_security_audit" | `evo.v_security_audit` → `warning_rows = 0` (todos os objetos `✓ bloqueado`) | ✅ |
+| Steps 2 e 3 (security_invoker, anon-functions) | Passando após atualização do token | ✅ |
+
+**Validação pós-resolução (2026-08-06):**
+- `psql` direto em `supabase_db.1`: `SELECT count(*) FROM evo.v_security_audit WHERE status LIKE '%⚠%'` → `warning_rows = 0`
+- CI `workflow_dispatch` → Run ID `31095278267` → `completed/success` (todos os 5 steps verdes, 9 s)
+- Commit de fix: `b23b3ab` — `fix(ci): gate D-8 aceita count sem aspas (postgres-meta devolve [{"count":0}]) + workflow_dispatch`
+
+### Plano de Validação 50 Etapas — PRs Desta Sessão
+
+| PR | Título | Commits | Status |
+|---|---|---|---|
+| #877 | `fix(evo): auditoria Evolution API — A-8 data quality, OCI_DIGEST e plano de validação 50 etapas` | `09d49f8` | ✅ Merged to main |
+| #878 | `fix(db): auditoria PostgreSQL — GRANT e plano de validação 50 etapas` | `b8d9638` | ✅ Merged |
+| #879 | `fix(security): adiciona ownership guard em fn_toggle_user_meme_favorite` | `0a1fc36` | ✅ Merged |
+| #880 | `docs(infra): auditoria 50 etapas Portainer/Zapp + correções GAP-1/2/5` | `56a1fb2` | ✅ Merged |
+
+### Pendências Pós-Sessão (2026-08-06)
+
+| Item | Prioridade | Ação Necessária |
+|---|---|---|
+| ~~`ZAPP_META_TOKEN` update~~ | ~~P0~~ | ~~Admin atualiza GitHub Secret com `supabase_service_key_v3`~~ → **✅ RESOLVIDO 2026-08-06** |
+| A-8: `OCI_DIGEST` env var | P2 | Injetar `OCI_DIGEST: "{{.Service.Image}}"` no docker-compose/stack `evolution-api-custom` |
+| B-4/B-5: Retenção PG14 | P1 | `"Message"` (432 MB) e `evolution_webhook_events` (107 MB) |
+| B-7: Reconciliação PG14 ↔ PG15 | P1 | Job periódico de reconciliação |
+| B-2: Evolution 2.3.7 → 2.4.x | P2 | Bloqueado até B-1 (imagem custom) confirmado |
+| C-7: DLQs duplicadas em `evo` | P2 | Consolidar blacklists e DLQs redundantes |
+| C-8: ~50 tabelas vazias em `evo` | P2 | Inventário keep/deprecate/drop |
+| C-11: Crons redundantes | P2 | Consolidar jobs de retenção |
+| D-2: Restore test | P3 | Testar procedimento de backup restore |
+| D-3: Health dashboard | P3 | Dashboard unificado |

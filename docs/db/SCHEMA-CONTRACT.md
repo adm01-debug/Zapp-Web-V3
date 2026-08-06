@@ -1,9 +1,9 @@
 # Contrato de Schemas — Documento Normativo
 
-**Versão:** 2.0 · **Data:** 27/07/2026 · **Etapa 5 do plano DB.**
+**Versão:** 2.1 · **Data:** 06/08/2026 · **Etapa 5 do plano DB** (atualizado na Etapa 30 do plano de integridade de referências).
 
 > Define, por schema: **dono**, conteúdo **permitido**, conteúdo **proibido**, e direção de dependência.  
-> Qualquer objeto novo precisa respeitar este contrato. Violações devem falhar no CI (etapa 50).  
+> Qualquer objeto novo precisa respeitar este contrato. Violações devem falhar no CI (etapa 50) — incluindo o **guardrail de integridade de referências** (Q-1: função→objeto; Q-2: cron→função), ativo desde 2026-08-06 via `scripts/sql/check-reference-integrity.sql` (workflow `.github/workflows/db-reference-integrity.yml`) e `ops.fn_check_reference_integrity()`.  
 > Para devs humanos **e** agentes LLM — leia antes de criar qualquer objeto.
 
 ---
@@ -146,6 +146,7 @@
 - **Contém:** auditoria DDL (`ddl_audit`), guardrails, health checks, sentinelas de backup, crons de infra
 - **NÃO contém:** dado de negócio
 - **Receberá (etapas 7+9):** `_wal_slot_guard_events` (de `public`) + 12 tabelas de ops atualmente no `evo`
+- **É dono do guardrail de integridade de referências (desde 2026-08-06):** `ops.fn_check_reference_integrity()` (queries Q-1/Q-2, read-only, fail-closed) e `ops._infra_check_log` (registro `score`/`issues`/`detail` dos checks). O role de auditoria `supabase_read_only_user` tem `SELECT` em `cron.job`/`cron.job_run_details` (migration `20260806124000_db05_grants_cron_observability.sql`).
 
 ---
 

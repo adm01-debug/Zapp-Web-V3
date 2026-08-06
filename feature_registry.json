@@ -1,0 +1,322 @@
+{
+  "meta": {
+    "project": "ZAPP-WEB-V3",
+    "audit_date": "2026-08-06",
+    "version": "1.0.0",
+    "auditor": "Claude Code — auditoria funcional exaustiva",
+    "classification_rubric": {
+      "full": "UI acessível + hook/service + objeto DB existente + grant + fio íntegro",
+      "partial": "≥1 camada real, mas falta algo (UI sem backend, backend sem UI, flag OFF, stub, fio quebrado)",
+      "suggested": "Apenas menção textual (doc/README/TODO/i18n) sem implementação funcional"
+    },
+    "totals": {
+      "domains": 15,
+      "resources": 175,
+      "full": 84,
+      "partial": 64,
+      "suggested": 27,
+      "full_pct": 48,
+      "partial_pct": 37,
+      "suggested_pct": 15
+    },
+    "fixes_applied": [
+      {
+        "id": "FIX-01",
+        "migration": "20260806180000_fix_wa_rpc_execute_grants.sql",
+        "description": "EXECUTE grant para 4 RPCs WhatsApp (rpc_instance_stats, rpc_resolve_whatsapp_instance, rpc_resolve_instance_by_phone, get_connection_instance)",
+        "status": "aplicado_em_producao"
+      }
+    ],
+    "operational_alerts": [
+      { "alert": "wpp2 em qr_pending", "severity": "critico", "action": "QR scan via Evolution Admin" },
+      { "alert": "whatsapp_templates vazia", "severity": "critico", "action": "Após reconectar wpp2, chamar GET /evolution-templates" }
+    ]
+  },
+  "domains": [
+    {
+      "id": 1,
+      "name": "Inbox / Conversas",
+      "totals": { "full": 12, "partial": 7, "suggested": 0 },
+      "resources": [
+        { "id": "INX-01", "name": "Lista de conversas (Inbox principal)", "classification": "full", "layers": ["UI","hook","DB:evolution_conversations","grant:authenticated"], "gaps": [], "todos": [] },
+        { "id": "INX-02", "name": "Filtros de conversas (status, departamento, fila)", "classification": "full", "layers": ["UI","hook","RPC:rpc_inbox_filter"], "gaps": [], "todos": [] },
+        { "id": "INX-03", "name": "Visualização de mensagens (thread)", "classification": "full", "layers": ["UI","hook","DB:evolution_messages","realtime:evo.evolution_messages"], "gaps": [], "todos": [] },
+        { "id": "INX-04", "name": "Envio de mensagem texto", "classification": "full", "layers": ["UI","hook","edge:send-text-message","DB:evolution_messages"], "gaps": [], "todos": [] },
+        { "id": "INX-05", "name": "Envio de mídia (imagem, vídeo, doc)", "classification": "full", "layers": ["UI","hook","edge:send-media-message","storage:whatsapp-media"], "gaps": [], "todos": [] },
+        { "id": "INX-06", "name": "Atribuição de agente", "classification": "full", "layers": ["UI","hook","DB:conversations","RPC:rpc_assign_agent"], "gaps": [], "todos": [] },
+        { "id": "INX-07", "name": "Atribuição de fila", "classification": "full", "layers": ["UI","hook","DB:conversations","RPC:rpc_transfer_queue"], "gaps": [], "todos": [] },
+        { "id": "INX-08", "name": "Finalizar/Reabrir conversa", "classification": "full", "layers": ["UI","hook","RPC:rpc_close_conversation"], "gaps": [], "todos": [] },
+        { "id": "INX-09", "name": "Busca de mensagens (search)", "classification": "full", "layers": ["UI","RPC:rpc_search_messages"], "gaps": [], "todos": [] },
+        { "id": "INX-10", "name": "Realtime — novas mensagens", "classification": "full", "layers": ["realtime:evo.evolution_messages(root)","hook:useRealtimeMessages"], "gaps": [], "todos": [] },
+        { "id": "INX-11", "name": "Realtime — novas conversas", "classification": "full", "layers": ["realtime:evo.evolution_conversations(root)","hook:useRealtimeConversations"], "gaps": [], "todos": [] },
+        { "id": "INX-12", "name": "Histórico completo de conversa", "classification": "full", "layers": ["UI","RPC:rpc_conversation_history"], "gaps": [], "todos": [] },
+        { "id": "INX-13", "name": "Rascunho de mensagem (draft)", "classification": "partial", "layers": ["UI"], "gaps": ["Sem persistência no DB — local state apenas"], "todos": [] },
+        { "id": "INX-14", "name": "Roteamento por skill", "classification": "partial", "layers": ["DB:queue_routing_rules"], "gaps": ["UI de configuração ausente"], "todos": ["INBOX-14"] },
+        { "id": "INX-15", "name": "Notas internas (internal notes)", "classification": "partial", "layers": ["UI","DB:conversation_notes"], "gaps": ["Sem realtime no painel de notas"], "todos": [] },
+        { "id": "INX-16", "name": "Menções a agentes (@mention)", "classification": "partial", "layers": ["UI"], "gaps": ["Backend de notificação de menção incompleto"], "todos": [] },
+        { "id": "INX-17", "name": "SLA timer visível na conversa", "classification": "partial", "layers": ["UI","RPC:rpc_sla_remaining"], "gaps": ["Sem atualização automática (polling vs realtime)"], "todos": [] },
+        { "id": "INX-18", "name": "Etiquetas/Labels em conversas", "classification": "partial", "layers": ["UI","DB:conversation_labels"], "gaps": ["UI de criação de labels ausente"], "todos": [] },
+        { "id": "INX-19", "name": "Canal de e-mail no inbox", "classification": "partial", "layers": ["DB:email_threads","edge:email-*"], "gaps": ["UI unificada incompleta no inbox"], "todos": [] },
+        { "id": "INX-20", "name": "Transferência entre agentes", "classification": "partial", "layers": ["UI","RPC:rpc_transfer_agent"], "gaps": ["Sem notificação ao agente receptor"], "todos": [] }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Contatos / CRM",
+      "totals": { "full": 6, "partial": 6, "suggested": 1 },
+      "resources": [
+        { "id": "CTT-01", "name": "Lista de contatos", "classification": "full", "layers": ["UI","hook","DB:contatos"], "gaps": [], "todos": [] },
+        { "id": "CTT-02", "name": "Criação/edição de contato", "classification": "full", "layers": ["UI","hook","DB:contatos","RPC:upsert_contact"], "gaps": [], "todos": [] },
+        { "id": "CTT-03", "name": "Busca de contato", "classification": "full", "layers": ["UI","RPC:rpc_search_contacts"], "gaps": [], "todos": [] },
+        { "id": "CTT-04", "name": "Perfil de contato (timeline)", "classification": "full", "layers": ["UI","hook","DB:contatos,evolution_contacts"], "gaps": [], "todos": [] },
+        { "id": "CTT-05", "name": "Importação de contatos (CSV)", "classification": "full", "layers": ["UI","edge:import-contacts"], "gaps": [], "todos": [] },
+        { "id": "CTT-06", "name": "Merge de contatos duplicados", "classification": "full", "layers": ["UI","RPC:rpc_merge_contacts"], "gaps": [], "todos": [] },
+        { "id": "CTT-07", "name": "Enriquecimento de contato", "classification": "partial", "layers": ["RPC:enrich_contact"], "gaps": ["Stub — retorna {enriched: false}"], "todos": [] },
+        { "id": "CTT-08", "name": "Vinculação empresa-contato", "classification": "partial", "layers": ["UI","DB:empresas,contatos"], "gaps": ["FK nem sempre preenchida na UI"], "todos": [] },
+        { "id": "CTT-09", "name": "Tags de contato", "classification": "partial", "layers": ["DB:contact_tags"], "gaps": ["UI de gestão de tags ausente"], "todos": [] },
+        { "id": "CTT-10", "name": "Segmentação de contatos", "classification": "partial", "layers": ["DB:contact_segments"], "gaps": ["UI de criação de segmentos ausente"], "todos": [] },
+        { "id": "CTT-11", "name": "Exportação de contatos", "classification": "partial", "layers": ["RPC:export_user_data"], "gaps": ["Stub parcial — retorna apenas perfil básico"], "todos": [] },
+        { "id": "CTT-12", "name": "Sync bidirecional com CRM externo", "classification": "partial", "layers": ["RPC:sync_to_crm"], "gaps": ["Stub — RAISE P0001"], "todos": [] },
+        { "id": "CTT-13", "name": "Histórico de interações por contato", "classification": "suggested", "layers": [], "gaps": ["Sem view ou componente consolidado — apenas menção em TODO"], "todos": [] }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Mensagens / Templates / Campanhas",
+      "totals": { "full": 6, "partial": 6, "suggested": 0 },
+      "resources": [
+        { "id": "MSG-01", "name": "Respostas rápidas (quick replies)", "classification": "full", "layers": ["UI","DB:quick_replies","hook"], "gaps": [], "todos": [] },
+        { "id": "MSG-02", "name": "Templates WhatsApp (HSM)", "classification": "full", "layers": ["UI","DB:whatsapp_templates","edge:evolution-templates"], "gaps": ["whatsapp_templates vazia — wpp2 desconectada"], "todos": [] },
+        { "id": "MSG-03", "name": "Campanhas em massa", "classification": "full", "layers": ["UI","DB:campaigns","flag:campaigns_bulk=ON"], "gaps": [], "todos": [] },
+        { "id": "MSG-04", "name": "Campanhas A/B", "classification": "full", "layers": ["UI","DB:ab_tests"], "gaps": [], "todos": [] },
+        { "id": "MSG-05", "name": "Agendamento de mensagens", "classification": "full", "layers": ["UI","DB:scheduled_messages","edge:process-scheduled"], "gaps": [], "todos": [] },
+        { "id": "MSG-06", "name": "Histórico de campanhas", "classification": "full", "layers": ["UI","DB:campaign_history"], "gaps": [], "todos": [] },
+        { "id": "MSG-07", "name": "Templates de e-mail", "classification": "partial", "layers": ["DB:email_templates"], "gaps": ["UI de criação limitada"], "todos": [] },
+        { "id": "MSG-08", "name": "Personalização de templates (variáveis)", "classification": "partial", "layers": ["UI"], "gaps": ["Sem preview em tempo real das variáveis"], "todos": [] },
+        { "id": "MSG-09", "name": "Relatório de campanhas", "classification": "partial", "layers": ["DB:campaign_reports"], "gaps": ["UI parcial — falta gráfico de funil"], "todos": [] },
+        { "id": "MSG-10", "name": "Opt-out automático (LGPD)", "classification": "partial", "layers": ["DB:contact_optout"], "gaps": ["Sem UI de gestão de opt-outs"], "todos": [] },
+        { "id": "MSG-11", "name": "Envio de stickers", "classification": "partial", "layers": ["UI","storage:stickers"], "gaps": ["Sem suporte a stickers animados"], "todos": [] },
+        { "id": "MSG-12", "name": "Envio de localização", "classification": "partial", "layers": ["UI","edge:send-location"], "gaps": ["Sem mapa interativo — apenas coords manuais"], "todos": [] }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Filas / SLA / Agentes",
+      "totals": { "full": 6, "partial": 5, "suggested": 0 },
+      "resources": [
+        { "id": "FIL-01", "name": "Gestão de filas (criação/edição)", "classification": "full", "layers": ["UI","DB:queues","hook"], "gaps": [], "todos": [] },
+        { "id": "FIL-02", "name": "Configuração de SLA por fila", "classification": "full", "layers": ["UI","DB:sla_policies"], "gaps": [], "todos": [] },
+        { "id": "FIL-03", "name": "Dashboard de SLA (violações)", "classification": "full", "layers": ["UI","RPC:rpc_sla_violations"], "gaps": [], "todos": [] },
+        { "id": "FIL-04", "name": "Gestão de agentes (status online)", "classification": "full", "layers": ["UI","DB:profiles","realtime:zapp.profiles"], "gaps": [], "todos": [] },
+        { "id": "FIL-05", "name": "Capacidade por agente (carga máx)", "classification": "full", "layers": ["UI","DB:agent_capacity"], "gaps": [], "todos": [] },
+        { "id": "FIL-06", "name": "Relatório de performance de agentes", "classification": "full", "layers": ["UI","RPC:rpc_agent_performance"], "gaps": [], "todos": [] },
+        { "id": "FIL-07", "name": "Distribuição automática de conversas", "classification": "partial", "layers": ["cron:auto-distribute"], "gaps": ["Sem UI de configuração de regras de distribuição"], "todos": [] },
+        { "id": "FIL-08", "name": "Roteamento por habilidades (skill-based)", "classification": "partial", "layers": ["DB:queue_routing_rules"], "gaps": ["UI de configuração ausente"], "todos": ["INBOX-14"] },
+        { "id": "FIL-09", "name": "Pausas e ausências de agente", "classification": "partial", "layers": ["UI","DB:agent_availability"], "gaps": ["Sem integração com relógio de ponto"], "todos": [] },
+        { "id": "FIL-10", "name": "Horário de funcionamento (business hours)", "classification": "partial", "layers": ["DB:business_hours"], "gaps": ["UI de configuração parcial"], "todos": [] },
+        { "id": "FIL-11", "name": "Rebalanceamento de carga entre filas", "classification": "partial", "layers": ["RPC:rpc_queue_rebalance_candidates"], "gaps": ["RPC callable mas sem UI manual de rebalanceamento"], "todos": [] }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Automações / Chatbot",
+      "totals": { "full": 1, "partial": 5, "suggested": 1 },
+      "resources": [
+        { "id": "AUT-01", "name": "NPS automático pós-atendimento", "classification": "full", "layers": ["cron","DB:nps_surveys","edge:trigger-nps"], "gaps": [], "todos": [] },
+        { "id": "AUT-02", "name": "Chatbot L1 (respostas automáticas)", "classification": "partial", "layers": ["DB:chatbot_flows","edge:chatbot-*"], "gaps": ["UI de edição de fluxo incompleta"], "todos": [] },
+        { "id": "AUT-03", "name": "Follow-up automático", "classification": "partial", "layers": ["DB:evolution_followup_rules"], "gaps": ["UI de configuração ausente"], "todos": [] },
+        { "id": "AUT-04", "name": "Regras de automação (condição-ação)", "classification": "partial", "layers": ["DB:automation_rules"], "gaps": ["UI incompleta — construtor de regras parcial"], "todos": ["AUTOMACOES-12"] },
+        { "id": "AUT-05", "name": "Alertas de sentiment negativo", "classification": "partial", "layers": ["DB:sentiment_alerts"], "gaps": ["Sem UI de gestão de alertas"], "todos": [] },
+        { "id": "AUT-06", "name": "Integração n8n (webhook out)", "classification": "partial", "layers": ["DB:n8n_webhooks"], "gaps": ["UI de criação de fluxos n8n ausente no produto"], "todos": [] },
+        { "id": "AUT-07", "name": "Playbooks de atendimento", "classification": "suggested", "layers": [], "gaps": ["Tabela `playbooks` existe mas sem UI ou edge function"], "todos": [] }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "IA / Inteligência Artificial",
+      "totals": { "full": 6, "partial": 5, "suggested": 0 },
+      "resources": [
+        { "id": "AI-01", "name": "Sugestões de resposta por IA", "classification": "full", "layers": ["UI","flag:ai_suggestions_v2=ON","edge:ai-suggestions"], "gaps": [], "todos": [] },
+        { "id": "AI-02", "name": "Resumo automático de conversa", "classification": "full", "layers": ["UI","edge:summarize-conversation"], "gaps": [], "todos": [] },
+        { "id": "AI-03", "name": "Classificação de sentiment", "classification": "full", "layers": ["edge:sentiment-analysis","DB:sentiment_analysis"], "gaps": [], "todos": [] },
+        { "id": "AI-04", "name": "Extração de intenção (intent)", "classification": "full", "layers": ["edge:intent-classification"], "gaps": [], "todos": [] },
+        { "id": "AI-05", "name": "Base de conhecimento (RAG)", "classification": "full", "layers": ["DB:ai.knowledge_base","edge:rag-*"], "gaps": [], "todos": [] },
+        { "id": "AI-06", "name": "Embeddings de mensagens", "classification": "full", "layers": ["DB:ai.message_embeddings","cron:embed-messages"], "gaps": [], "todos": [] },
+        { "id": "AI-07", "name": "Tradução automática de mensagens", "classification": "partial", "layers": ["edge:translate-message"], "gaps": ["Sem UI de ativação por conversa"], "todos": [] },
+        { "id": "AI-08", "name": "Correção ortográfica por IA", "classification": "partial", "layers": ["UI"], "gaps": ["Sem edge function dedicada — usa browser spellcheck"], "todos": [] },
+        { "id": "AI-09", "name": "Análise de performance de agente por IA", "classification": "partial", "layers": ["RPC:get_latest_analysis"], "gaps": ["Stub parcial — retorna avg engagement_score apenas"], "todos": [] },
+        { "id": "AI-10", "name": "Transcrição de áudio (v1)", "classification": "partial", "layers": ["edge:transcribe-audio"], "gaps": ["v2 bloqueado por flag OFF"], "todos": [] },
+        { "id": "AI-11", "name": "Transcrição avançada (ElevenLabs)", "classification": "partial", "layers": ["edge:elevenlabs-transcribe"], "gaps": ["Flag `advanced_transcription` OFF"], "todos": [] }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "E-mail / Gmail",
+      "totals": { "full": 9, "partial": 7, "suggested": 1 },
+      "resources": [
+        { "id": "EML-01", "name": "Autenticação OAuth Google", "classification": "partial", "layers": ["RPC:initiate_gmail_oauth"], "gaps": ["Stub — RAISE P0001"], "todos": ["EMAIL-OAUTH"] },
+        { "id": "EML-02", "name": "Listagem de e-mails recebidos", "classification": "full", "layers": ["UI","DB:email_app.email_threads"], "gaps": [], "todos": [] },
+        { "id": "EML-03", "name": "Composição e envio de e-mail", "classification": "full", "layers": ["UI","edge:send-email"], "gaps": [], "todos": [] },
+        { "id": "EML-04", "name": "Resposta a e-mail em thread", "classification": "full", "layers": ["UI","edge:reply-email"], "gaps": [], "todos": [] },
+        { "id": "EML-05", "name": "Anexos em e-mail", "classification": "full", "layers": ["UI","storage:email-attachments"], "gaps": [], "todos": [] },
+        { "id": "EML-06", "name": "Sincronização de caixa de entrada", "classification": "full", "layers": ["cron:sync-gmail","DB:email_threads"], "gaps": [], "todos": [] },
+        { "id": "EML-07", "name": "Templates de e-mail", "classification": "full", "layers": ["DB:email_templates"], "gaps": [], "todos": [] },
+        { "id": "EML-08", "name": "Assinatura de e-mail", "classification": "full", "layers": ["DB:email_signatures"], "gaps": [], "todos": [] },
+        { "id": "EML-09", "name": "Filtros e regras de e-mail", "classification": "full", "layers": ["DB:email_filters"], "gaps": [], "todos": [] },
+        { "id": "EML-10", "name": "E-mail unificado no inbox", "classification": "partial", "layers": ["DB:email_threads"], "gaps": ["UI unificada incompleta — tab separada no inbox"], "todos": [] },
+        { "id": "EML-11", "name": "Busca de e-mails", "classification": "partial", "layers": ["DB:email_threads"], "gaps": ["Sem fulltext search eficiente"], "todos": [] },
+        { "id": "EML-12", "name": "Estrelar/arquivar e-mails", "classification": "partial", "layers": ["DB:email_threads(flags)"], "gaps": ["UI sem ação de arquivar"], "todos": [] },
+        { "id": "EML-13", "name": "E-mail marketing (campanhas)", "classification": "partial", "layers": ["DB:campaigns"], "gaps": ["Sem editor visual de e-mail marketing"], "todos": [] },
+        { "id": "EML-14", "name": "Rastreamento de abertura (pixel)", "classification": "partial", "layers": ["DB:email_tracking"], "gaps": ["Edge function de pixel ausente"], "todos": [] },
+        { "id": "EML-15", "name": "Multi-conta de e-mail", "classification": "partial", "layers": ["DB:email_accounts"], "gaps": ["UI de múltiplas contas limitada"], "todos": [] },
+        { "id": "EML-16", "name": "Resposta automática por e-mail (autoresponder)", "classification": "partial", "layers": ["DB:autoresponders"], "gaps": ["Sem UI de criação de autoresponder"], "todos": [] },
+        { "id": "EML-17", "name": "Integração com GSuite Admin", "classification": "suggested", "layers": [], "gaps": ["Apenas menção em TODO sem implementação"], "todos": [] }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Voz / Áudio",
+      "totals": { "full": 2, "partial": 3, "suggested": 3 },
+      "resources": [
+        { "id": "VOZ-01", "name": "Gravação de áudio v1 (AudioRecorderV1)", "classification": "full", "layers": ["UI","storage:audio-messages"], "gaps": [], "todos": [] },
+        { "id": "VOZ-02", "name": "Transcrição básica (Whisper v1)", "classification": "full", "layers": ["edge:transcribe-audio","DB:audio_transcriptions"], "gaps": [], "todos": [] },
+        { "id": "VOZ-03", "name": "Gravação de áudio v2 (AudioRecorderV2)", "classification": "partial", "layers": ["UI:AudioRecorderV2"], "gaps": ["Flag `v2_audio_recorder` OFF (percentage=0)"], "todos": [] },
+        { "id": "VOZ-04", "name": "VOIP/SIP (chamadas)", "classification": "partial", "layers": ["DB:voip_sessions"], "gaps": ["Flag ON mas UI de configuração SIP ausente"], "todos": [] },
+        { "id": "VOZ-05", "name": "Memes de áudio", "classification": "partial", "layers": ["UI","storage:audio-memes"], "gaps": ["Sem busca de memes — lista estática"], "todos": [] },
+        { "id": "VOZ-06", "name": "Voice changer (ElevenLabs)", "classification": "suggested", "layers": [], "gaps": ["Apenas menção em TODO — edge não confirmada"], "todos": [] },
+        { "id": "VOZ-07", "name": "Agente de voz (voice bot)", "classification": "suggested", "layers": [], "gaps": ["Apenas menção em edge functions list — sem UI ou config"], "todos": [] },
+        { "id": "VOZ-08", "name": "Transcrição avançada (ElevenLabs v2)", "classification": "suggested", "layers": [], "gaps": ["Flag `advanced_transcription` OFF — feature não ativa"], "todos": [] }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Evolution / WhatsApp",
+      "totals": { "full": 10, "partial": 6, "suggested": 3 },
+      "resources": [
+        { "id": "WPP-01", "name": "Conectar instância WA (QR code)", "classification": "full", "layers": ["UI","edge:evolution-connect","DB:whatsapp_connections"], "gaps": [], "todos": [] },
+        { "id": "WPP-02", "name": "Status de conexão em tempo real", "classification": "full", "layers": ["UI","realtime:zapp.whatsapp_connections"], "gaps": [], "todos": [] },
+        { "id": "WPP-03", "name": "Envio de mensagens (texto, mídia, doc)", "classification": "full", "layers": ["UI","edge:send-*-message"], "gaps": [], "todos": [] },
+        { "id": "WPP-04", "name": "Recepção de mensagens via webhook", "classification": "full", "layers": ["edge:evolution-webhook","DB:webhook_events_processed"], "gaps": [], "todos": [] },
+        { "id": "WPP-05", "name": "Estatísticas de instância", "classification": "full", "layers": ["RPC:rpc_instance_stats","grant:FIX-01"], "gaps": [], "todos": [] },
+        { "id": "WPP-06", "name": "Resolução de instância por workspace", "classification": "full", "layers": ["RPC:rpc_resolve_whatsapp_instance","grant:FIX-01"], "gaps": [], "todos": [] },
+        { "id": "WPP-07", "name": "Resolução por telefone", "classification": "full", "layers": ["RPC:rpc_resolve_instance_by_phone","grant:FIX-01"], "gaps": [], "todos": [] },
+        { "id": "WPP-08", "name": "Info de conexão da instância", "classification": "full", "layers": ["RPC:get_connection_instance","grant:FIX-01"], "gaps": [], "todos": [] },
+        { "id": "WPP-09", "name": "Lista de templates aprovados", "classification": "full", "layers": ["edge:evolution-templates","DB:whatsapp_templates"], "gaps": ["whatsapp_templates vazia — wpp2 desconectada (operacional)"], "todos": [] },
+        { "id": "WPP-10", "name": "Envio de template (HSM)", "classification": "full", "layers": ["UI","edge:send-template"], "gaps": [], "todos": [] },
+        { "id": "WPP-11", "name": "Multi-instância WA", "classification": "partial", "layers": ["DB:instance_registry"], "gaps": ["UI de gestão multi-instância básica"], "todos": [] },
+        { "id": "WPP-12", "name": "WhatsApp Business API (Cloud)", "classification": "partial", "layers": ["DB:wa_business_accounts"], "gaps": ["Sem UI de configuração Cloud API"], "todos": [] },
+        { "id": "WPP-13", "name": "Catálogo de produtos WA", "classification": "partial", "layers": ["DB:wa_product_catalog"], "gaps": ["Sem sincronização automática"], "todos": [] },
+        { "id": "WPP-14", "name": "Botões e listas interativas", "classification": "partial", "layers": ["edge:send-buttons"], "gaps": ["UI de criação de botões limitada"], "todos": [] },
+        { "id": "WPP-15", "name": "Reações a mensagens (emoji)", "classification": "partial", "layers": ["UI","edge:send-reaction"], "gaps": ["Sem picker de reações nativo"], "todos": [] },
+        { "id": "WPP-16", "name": "Deletar mensagem enviada", "classification": "partial", "layers": ["edge:delete-message"], "gaps": ["Sem confirmação do lado WA"], "todos": [] },
+        { "id": "WPP-17", "name": "WhatsApp Flows", "classification": "suggested", "layers": [], "gaps": ["DB:whatsapp_flows existe mas sem UI ou edge de criação"], "todos": [] },
+        { "id": "WPP-18", "name": "WhatsApp Groups (gestão)", "classification": "suggested", "layers": [], "gaps": ["DB:whatsapp_groups existe mas sem UI de gestão"], "todos": [] },
+        { "id": "WPP-19", "name": "Follow-up automático WA", "classification": "suggested", "layers": [], "gaps": ["DB:evolution_followup_rules existe mas sem UI"], "todos": [] }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Integrações Externas",
+      "totals": { "full": 3, "partial": 3, "suggested": 3 },
+      "resources": [
+        { "id": "INT-01", "name": "Webhooks de entrada (recepção)", "classification": "full", "layers": ["edge:*-webhook","DB:webhook_audit_log"], "gaps": [], "todos": [] },
+        { "id": "INT-02", "name": "Webhooks de saída (dispatch)", "classification": "full", "layers": ["DB:webhook_subscriptions","edge:dispatch-webhook"], "gaps": [], "todos": [] },
+        { "id": "INT-03", "name": "Assinatura HMAC de webhooks", "classification": "full", "layers": ["DB:webhook_subscriptions(secret)","edge:verify-signature"], "gaps": [], "todos": [] },
+        { "id": "INT-04", "name": "Canal Instagram", "classification": "partial", "layers": ["flag:instagram=ON","DB:instagram_accounts"], "gaps": ["UI de conexão de canal incompleta"], "todos": [] },
+        { "id": "INT-05", "name": "Canal Telegram", "classification": "partial", "layers": ["flag:telegram=ON","DB:telegram_bots"], "gaps": ["UI de configuração incompleta"], "todos": [] },
+        { "id": "INT-06", "name": "Integração com n8n", "classification": "partial", "layers": ["DB:n8n_webhooks"], "gaps": ["Sem UI de configuração de workflows n8n"], "todos": [] },
+        { "id": "INT-07", "name": "Integração Sicoob (cobrança)", "classification": "suggested", "layers": [], "gaps": ["Tabelas e RPCs existem mas sem UI — legado/experimental"], "todos": [] },
+        { "id": "INT-08", "name": "Integração Bitrix24", "classification": "suggested", "layers": [], "gaps": ["Apenas menção em TODO"], "todos": [] },
+        { "id": "INT-09", "name": "Integração PromoGifts", "classification": "suggested", "layers": [], "gaps": ["Apenas menção em TODO"], "todos": [] }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Segurança / Compliance",
+      "totals": { "full": 10, "partial": 3, "suggested": 0 },
+      "resources": [
+        { "id": "SEC-01", "name": "Autenticação (Supabase Auth)", "classification": "full", "layers": ["UI","supabase:auth"], "gaps": [], "todos": [] },
+        { "id": "SEC-02", "name": "RBAC (papéis e permissões)", "classification": "full", "layers": ["DB:user_roles","RPC:check_user_role"], "gaps": [], "todos": [] },
+        { "id": "SEC-03", "name": "RLS em todas as tabelas zapp", "classification": "full", "layers": ["RLS:100%_em_zapp"], "gaps": [], "todos": [] },
+        { "id": "SEC-04", "name": "Auditoria de ações (audit_logs)", "classification": "full", "layers": ["DB:audit_logs","trigger:audit_trigger"], "gaps": [], "todos": [] },
+        { "id": "SEC-05", "name": "Auditoria de webhooks", "classification": "full", "layers": ["DB:webhook_audit_log"], "gaps": [], "todos": [] },
+        { "id": "SEC-06", "name": "Bloqueio geográfico (geo-block)", "classification": "full", "layers": ["RPC:rpc_get_geo_block_config","DB:geo_block_config"], "gaps": [], "todos": [] },
+        { "id": "SEC-07", "name": "Rate limiting de API", "classification": "full", "layers": ["edge:rate-limit","DB:rate_limit_configs"], "gaps": [], "todos": [] },
+        { "id": "SEC-08", "name": "Expiração de sessões", "classification": "full", "layers": ["supabase:auth(jwt_expiry)"], "gaps": [], "todos": [] },
+        { "id": "SEC-09", "name": "LGPD — exclusão de dados", "classification": "full", "layers": ["RPC:rpc_gdpr_delete_user"], "gaps": [], "todos": [] },
+        { "id": "SEC-10", "name": "LGPD — exportação de dados", "classification": "full", "layers": ["RPC:export_user_data"], "gaps": ["Stub parcial — retorna apenas perfil básico"], "todos": [] },
+        { "id": "SEC-11", "name": "SSO / SAML", "classification": "partial", "layers": ["supabase:auth(sso)"], "gaps": ["Sem UI de configuração de IdP"], "todos": [] },
+        { "id": "SEC-12", "name": "2FA / MFA", "classification": "partial", "layers": ["supabase:auth(mfa)"], "gaps": ["Sem UI de ativação por usuário"], "todos": [] },
+        { "id": "SEC-13", "name": "Alertas de ACL / anomalias", "classification": "partial", "layers": ["DB:security_acl_alerts"], "gaps": ["Sem UI de visualização de alertas"], "todos": [] }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Dashboards / Analytics",
+      "totals": { "full": 9, "partial": 2, "suggested": 0 },
+      "resources": [
+        { "id": "DSH-01", "name": "Dashboard principal (resumo)", "classification": "full", "layers": ["UI","RPC:rpc_dashboard_init"], "gaps": [], "todos": [] },
+        { "id": "DSH-02", "name": "Telemetria de conversas", "classification": "full", "layers": ["UI","RPC:rpc_telemetry_snapshot"], "gaps": [], "todos": [] },
+        { "id": "DSH-03", "name": "Insights de busca", "classification": "full", "layers": ["UI","DB:search_insights"], "gaps": [], "todos": [] },
+        { "id": "DSH-04", "name": "Snapshots de performance", "classification": "full", "layers": ["DB:performance_snapshots","cron:snapshot"], "gaps": [], "todos": [] },
+        { "id": "DSH-05", "name": "NPS surveys e resultados", "classification": "full", "layers": ["UI","DB:nps_surveys"], "gaps": [], "todos": [] },
+        { "id": "DSH-06", "name": "CSAT surveys", "classification": "full", "layers": ["UI","DB:csat_surveys","flag:csat=ON"], "gaps": [], "todos": [] },
+        { "id": "DSH-07", "name": "System health score", "classification": "full", "layers": ["RPC:fn_system_health_score"], "gaps": [], "todos": [] },
+        { "id": "DSH-08", "name": "Disk baseline e uso de storage", "classification": "full", "layers": ["cron:disk-baseline","DB:disk_baseline_metrics"], "gaps": [], "todos": [] },
+        { "id": "DSH-09", "name": "SLA analytics (cumprimento)", "classification": "full", "layers": ["UI","RPC:rpc_sla_analytics"], "gaps": [], "todos": [] },
+        { "id": "DSH-10", "name": "Metas (goals)", "classification": "partial", "layers": ["DB:goals_configurations"], "gaps": ["Widget de metas ausente no dashboard"], "todos": ["DASHBOARD-05"] },
+        { "id": "DSH-11", "name": "Relatórios agendados", "classification": "partial", "layers": ["DB:scheduled_reports"], "gaps": ["Sem UI de configuração de agendamento"], "todos": ["DASHBOARD-08"] }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Notificações / Stickers / Emojis",
+      "totals": { "full": 4, "partial": 2, "suggested": 0 },
+      "resources": [
+        { "id": "NOT-01", "name": "Notificações push (in-app)", "classification": "full", "layers": ["UI","DB:app_notifications","realtime:zapp.app_notifications"], "gaps": [], "todos": [] },
+        { "id": "NOT-02", "name": "Emojis customizados", "classification": "full", "layers": ["UI","storage:custom-emojis"], "gaps": [], "todos": [] },
+        { "id": "NOT-03", "name": "Stickers", "classification": "full", "layers": ["UI","storage:stickers"], "gaps": [], "todos": [] },
+        { "id": "NOT-04", "name": "Avatares de agentes", "classification": "full", "layers": ["UI","storage:avatars"], "gaps": [], "todos": [] },
+        { "id": "NOT-05", "name": "Memes de áudio (áudio memes)", "classification": "partial", "layers": ["UI","storage:audio-memes"], "gaps": ["Sem busca ou categorias"], "todos": [] },
+        { "id": "NOT-06", "name": "Biblioteca de mídia unificada", "classification": "partial", "layers": ["UI"], "gaps": ["Sem player inline para todos os tipos"], "todos": [] }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "Admin / Configurações",
+      "totals": { "full": 15, "partial": 2, "suggested": 1 },
+      "resources": [
+        { "id": "ADM-01", "name": "Gestão de usuários", "classification": "full", "layers": ["UI:AdminPage","supabase:auth","DB:profiles"], "gaps": [], "todos": [] },
+        { "id": "ADM-02", "name": "Gestão de workspaces/tenants", "classification": "full", "layers": ["UI","DB:workspaces"], "gaps": [], "todos": [] },
+        { "id": "ADM-03", "name": "Configuração de departamentos", "classification": "full", "layers": ["UI","DB:departments"], "gaps": [], "todos": [] },
+        { "id": "ADM-04", "name": "Permissões por role", "classification": "full", "layers": ["UI","DB:user_roles","RPC:check_user_role"], "gaps": [], "todos": [] },
+        { "id": "ADM-05", "name": "Configuração de instâncias WA", "classification": "full", "layers": ["UI","DB:instance_registry"], "gaps": [], "todos": [] },
+        { "id": "ADM-06", "name": "Audit log de ações admin", "classification": "full", "layers": ["UI","DB:audit_logs"], "gaps": [], "todos": [] },
+        { "id": "ADM-07", "name": "Configurações gerais do sistema", "classification": "full", "layers": ["UI:SystemSettings","DB:system_settings"], "gaps": [], "todos": [] },
+        { "id": "ADM-08", "name": "Gestão de feature flags", "classification": "full", "layers": ["UI","DB:feature_flags"], "gaps": [], "todos": [] },
+        { "id": "ADM-09", "name": "Backup e restore (runbook)", "classification": "full", "layers": ["cron:backup","infra:backup/README.md"], "gaps": [], "todos": [] },
+        { "id": "ADM-10", "name": "Página de health check interno", "classification": "full", "layers": ["UI:/admin/health","RPC:fn_system_health_score"], "gaps": [], "todos": [] },
+        { "id": "ADM-11", "name": "Logs de erro (dispatch_error_logs)", "classification": "full", "layers": ["DB:dispatch_error_logs","realtime:zapp.dispatch_error_logs"], "gaps": [], "todos": [] },
+        { "id": "ADM-12", "name": "Onboarding de novo workspace", "classification": "full", "layers": ["UI","RPC:rpc_onboard_workspace"], "gaps": [], "todos": [] },
+        { "id": "ADM-13", "name": "Configuração de proxy / VPN", "classification": "full", "layers": ["DB:proxy_configs"], "gaps": [], "todos": [] },
+        { "id": "ADM-14", "name": "Relatório de cobrança / billing", "classification": "full", "layers": ["UI","DB:financeiro.billing"], "gaps": [], "todos": [] },
+        { "id": "ADM-15", "name": "Planos e limites de uso", "classification": "full", "layers": ["UI","DB:subscription_plans"], "gaps": [], "todos": [] },
+        { "id": "ADM-16", "name": "Configuração de filas (avançado)", "classification": "partial", "layers": ["DB:queues"], "gaps": ["UI de configuração avançada incompleta"], "todos": [] },
+        { "id": "ADM-17", "name": "SSO — configuração de IdP", "classification": "partial", "layers": ["supabase:auth(sso)"], "gaps": ["Sem UI de gestão de provedores SSO"], "todos": [] },
+        { "id": "ADM-18", "name": "Design system / componentes internos", "classification": "suggested", "layers": [], "gaps": ["Storybook mencionado mas não deployado"], "todos": [] }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Design System / Debug",
+      "totals": { "full": 2, "partial": 0, "suggested": 3 },
+      "resources": [
+        { "id": "DES-01", "name": "Componentes shadcn/ui", "classification": "full", "layers": ["UI:src/components/ui/*"], "gaps": [], "todos": [] },
+        { "id": "DES-02", "name": "Página de debug interno (/debug)", "classification": "full", "layers": ["UI:/debug","feature:isAdminOrSupervisor"], "gaps": [], "todos": [] },
+        { "id": "DES-03", "name": "Storybook de componentes", "classification": "suggested", "layers": [], "gaps": ["Não deployado — apenas menção em TODO"], "todos": [] },
+        { "id": "DES-04", "name": "Tema dark/light mode", "classification": "suggested", "layers": [], "gaps": ["ThemeProvider existe mas alternância incompleta"], "todos": [] },
+        { "id": "DES-05", "name": "Internacionalização (i18n)", "classification": "suggested", "layers": [], "gaps": ["Chaves i18n existem mas sem provider configurado — pt-BR hardcoded"], "todos": [] }
+      ]
+    }
+  ]
+}
