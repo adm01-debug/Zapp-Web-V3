@@ -94,12 +94,16 @@ if [ -s "$TYPES_FILE.new" ]; then
   # to avoid build loops in restricted environments.
   if [ "${SKIP_TSC_VALIDATION:-false}" != "true" ]; then
     if grep -q ";" "$TYPES_FILE.new" && grep -q "  " "$TYPES_FILE.new"; then
-       if ! npx tsc "$TYPES_FILE.new" --noEmit --esModuleInterop --target esnext --moduleResolution node &> /dev/null; then
+       # FIX (validacao 2026-08-06): tsc rejeita extensao '.new' (TS6054 — falso positivo permanente).
+       # Valida via copia temporaria .ts e remove depois.
+       TYPES_TMP="${TYPES_FILE}.tmp.ts"
+       cp "$TYPES_FILE.new" "$TYPES_TMP"
+       if ! npx tsc "$TYPES_TMP" --noEmit --esModuleInterop --target esnext --moduleResolution node &> /dev/null; then
           echo "❌ Error: Generated types.ts contains TypeScript errors."
-          # rm "$TYPES_FILE.new"
-          # exit 1
-          echo "⚠️ Proceeding anyway (TSC validation failed but file exists)."
+          rm -f "$TYPES_TMP"
+          exit 1
        fi
+       rm -f "$TYPES_TMP"
     fi
   fi
 fi

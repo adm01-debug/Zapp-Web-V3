@@ -9,9 +9,11 @@
  * O caso 2 NÃO é coberto por `navigator.onLine` e era o buraco do F19: o app
  * ficava mudo quando o Supabase caía. O monitor faz um heartbeat periódico em
  * `${SUPABASE_RESOLVED_URL}/auth/v1/health` com timeout curto e considera
- * "alcançável" QUALQUER resposta HTTP (inclusive 401 sem apikey — Kong
- * respondeu, logo a infraestrutura está de pé). Falha de rede/timeout/abort
- * marca `'backend-down'` imediatamente.
+ * "alcançável" QUALQUER resolução do fetch. O probe usa `mode: 'no-cors'` SEM
+ * headers custom (GET simples, sem preflight CORS): a resposta é opaca (status
+ * 0, invisível para o JS), mas se o fetch resolveu, a rede/back-end respondeu,
+ * logo a infraestrutura está de pé. Só um `TypeError` (falha real de
+ * rede/DNS/timeout/abort — ou seja, nada respondeu) marca `'backend-down'`.
  *
  * Arquitetura:
  *  - Singleton com pub/sub — N componentes podem consumir o mesmo estado sem
@@ -90,7 +92,9 @@ export function getSupabaseConnectivityInfo(): SupabaseConnectivityInfo {
 /**
  * Pinga o health endpoint do Supabase.
  * @param force — ignora o debounce (usado em retry explícito do usuário).
- * @returns true se o backend respondeu (qualquer status HTTP).
+ * @returns true se o fetch resolveu (qualquer resposta, inclusive opaca do
+ * `mode: 'no-cors'`, significa backend alcançável; status HTTP não é legível
+ * com no-cors e não importa para o health probe).
  */
 export async function pingSupabaseBackend(force = false): Promise<boolean> {
   const now = Date.now();
@@ -107,27 +111,31 @@ export async function pingSupabaseBackend(force = false): Promise<boolean> {
 
   try {
     let url = 'https://supabase.atomicabr.com.br';
-    let anonKey = '';
     try {
       const mod = await import('./client');
       url = mod.SUPABASE_RESOLVED_URL;
-      anonKey = mod.SUPABASE_RESOLVED_ANON_KEY;
     } catch {
       // fallback mantém o ping funcional mesmo se o client não carregar
     }
 
-    const headers: Record<string, string> = { Accept: 'application/json' };
-    if (anonKey) headers.apikey = anonKey;
-
+    // GET simples com mode 'no-cors': NENHUM header custom (nem apikey, nem
+    // Accept — Accept fica no default do browser), então o browser NÃO dispara
+    // preflight CORS. Com no-cors a resposta é opaca (status 0, corpo
+    // invisível), mas isso não importa para o health probe: se o fetch
+    // RESOLVEU, a rede/back-end respondeu (Kong de pé, mesmo que ainda
+    // reiniciando rotas) = alcançável. TypeError só ocorre em falha real de
+    // rede/DNS/timeout. Isso elimina o falso backend-down de produção causado
+    // pelo preflight do header apikey durante o restart do Kong.
     await fetch(`${url}/auth/v1/health`, {
       method: 'GET',
-      headers,
+      mode: 'no-cors',
       cache: 'no-store',
       signal: controller.signal,
     });
 
-    // Qualquer resposta HTTP = backend alcançável. 401 sem apikey conta como
-    // alcançável: o Kong respondeu, a infraestrutura está de pé.
+    // Fetch resolveu = backend alcançável (resposta opaca não expõe status
+    // HTTP — irrelevante para o health probe: qualquer resposta, inclusive
+    // 401/opaca, significa que o Kong respondeu e a infraestrutura está de pé).
     latencyMs = Date.now() - started;
     lastCheckedAt = Date.now();
     setStatus(browserOnline ? 'online' : 'offline');

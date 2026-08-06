@@ -457,6 +457,46 @@ function _releaseSupabaseSlot(): void {
 }
 
 // ---------------------------------------------------------------------------
+// API pública do semáforo — permite a callers fora do retryFetch (ex.:
+// getProfile) furar a fila FIFO com prioridade 'high' SEM alterar o
+// comportamento do retryFetch (que segue adquirindo slots 'normal').
+//
+// ⚠️ O slot adquirido DEVE ser liberado SEMPRE (padrão try/finally) — um
+// slot órfão decrementa a capacidade do semáforo permanentemente (8 slots
+// → 7 → ... até travar todas as requests não-auth).
+// ---------------------------------------------------------------------------
+/** Adquire um slot do semáforo de concorrência; retorna a função de release (chamar UMA vez, em finally). */
+export async function acquireSupabaseSlot(
+  priority: 'normal' | 'high' = 'normal'
+): Promise<() => void> {
+  await _acquireSupabaseSlot({ priority });
+  return _releaseSupabaseSlot;
+}
+
+// ---------------------------------------------------------------------------
+// Contexto de prioridade HIGH por chamada (FIX review 2026-08-06).
+//
+// Motivação: o getProfile NÃO pode adquirir slot manual + deixar o fetch
+// interno (supabase.from(...)) adquirir OUTRO slot normal — isso seguraria 1
+// slot durante a espera (inversão de prioridade) e poderia degradar a fila.
+// O padrão correto: marcar o CONTEXTO da chamada como high; o retryFetch lê
+// o flag e adquire UM ÚNICO slot com prioridade high (fura a fila, não
+// segura capacidade extra).
+// ---------------------------------------------------------------------------
+let _highPriorityActive = false;
+
+/** Executa `fn` com requests supabase (via retryFetch) priorizadas 'high' na fila do semáforo. */
+export async function withSupabaseHighPriority<T>(fn: () => Promise<T>): Promise<T> {
+  const prev = _highPriorityActive;
+  _highPriorityActive = true;
+  try {
+    return await fn();
+  } finally {
+    _highPriorityActive = prev;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Estado do semáforo exposto para callers ajustarem timeouts adaptativos.
 //
 // O getProfile do AuthProvider NÃO é auth request (/auth/v1/), então entra na
@@ -499,7 +539,8 @@ export const retryFetch: typeof fetch = async (input, init) => {
 
   // Semáforo: adquire slot antes de disparar a requisição.
   // Evita que 10+ RPCs simultâneas saturem o pool TCP e o Supavisor.
-  await _acquireSupabaseSlot();
+  // Prioridade high (contexto withSupabaseHighPriority) fura a fila FIFO.
+  await _acquireSupabaseSlot({ priority: _highPriorityActive ? 'high' : 'normal' });
   try {
     return await withRetry(
       async () => {

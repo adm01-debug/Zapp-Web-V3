@@ -32,6 +32,10 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
   const { data: notes, isLoading } = useQuery<NoteRow[]>({
     queryKey: queryKeys.internalNotes.contact(contactId),
     enabled: isValidUUID(contactId),
+    // Dedupe/lazy: cache quente reutilizado em remounts (abrir/fechar painel)
+    // dentro do staleTime — 0 fetches extras. Mesmo padrão do useContactNotes
+    // (contact_notes). gcTime default (5min) mantém o cache entre mounts.
+    staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await safeClient.from<NoteRow>('contact_notes', (q) =>
         q

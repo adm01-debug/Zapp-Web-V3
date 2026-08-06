@@ -15,6 +15,7 @@
 import React from 'react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // ── Builder fluente (hoisted) ────────────────────────────────────────────────
 type QueryResult = { data: unknown; error: unknown; count?: number | null };
@@ -108,7 +109,20 @@ import {
 
 const UUID = '76879475-0590-41be-8941-56807f63b2f1';
 
-const wrapper = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+// useContactAssignmentManagement agora usa @tanstack/react-query (dedupe +
+// lazy): o wrapper precisa prover um QueryClient. Um client FRESCO por
+// instância do wrapper (estado do componente) isola o cache entre testes —
+// compartilhar client entre testes vazaria cache e quebraria contagens de
+// fetch (ex.: assignToUser espera >= 2 consultas).
+function TestWrapper({ children }: { children: React.ReactNode }) {
+  const [client] = React.useState(
+    () => new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  );
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
+// renderHook exige a chave `wrapper`; o componente em si é TestWrapper
+// (maiúscula) para satisfazer react-hooks/rules-of-hooks.
+const wrapper = TestWrapper;
 
 beforeEach(() => {
   sb.calls.from.length = 0;
