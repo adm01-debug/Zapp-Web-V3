@@ -45,13 +45,28 @@ jobs:
             deno-${{ runner.os }}-
 
       - name: Run contract tests
-        # Invocação ÚNICA: o Deno descobre todos os *.test.ts de
-        # supabase/functions, type-checka o grafo 1x (não 70x como o loop
-        # por-arquivo) e reporta TODAS as falhas no mesmo run.
+        # Loop por arquivo (isolamento de processo): testes que setam env no
+        # escopo de módulo (e2e-send.test.ts) e testes com fetch live
+        # (evolution-api/index.test.ts, gmail-tests.test.ts) poluem/leakam no
+        # modo invocação-única — cada arquivo em processo próprio isola isso.
         # Sem --no-check: type-check faz parte do contrato (TS2339 derruba).
         run: |
           set -euo pipefail
-          deno test --allow-net --allow-env --allow-read supabase/functions/
+          TEST_FILES=$(find supabase/functions -name '*.test.ts' -type f 2>/dev/null || true)
+          if [ -z "$TEST_FILES" ]; then
+            echo "::warning::No contract test files found — skipping"
+            exit 0
+          fi
+          COUNT=$(echo "$TEST_FILES" | wc -l)
+          echo "Found $COUNT contract test files"
+          echo "$TEST_FILES" | while IFS= read -r f; do
+            echo "::group::Testing $f"
+            deno test --allow-net --allow-env --allow-read "$f" || {
+              echo "::error title=Contract test failed::$f"
+              exit 1
+            }
+            echo "::endgroup::"
+          done
         env:
           SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
