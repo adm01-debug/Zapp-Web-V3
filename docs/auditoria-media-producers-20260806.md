@@ -80,8 +80,9 @@ Legenda: **OK** = correto; **OK-COND** = gera URL pública para bucket público 
 
 ## 3) GAPs — detalhamento
 
-### GAP-1 (ALTO) — `audio-memes` tratado como bucket público em 4 pontos
-`audio-memes` é **privado por design** (não deve conter PII, mas a decisão do owner é bucket privado). Porém:
+### GAP-1 (ALTO) — `audio-memes` tratado como bucket público em 4 pontos — ✅ RESOLVIDO (decisão do dono 2026-08-06)
+> **Decisão do dono (Joaquim, 2026-08-06): bucket PÚBLICO.** Memes de áudio não contêm PII; a onda de segurança paralela reverteu `public=true` indevidamente (migration `20260806194000`), sem versionar. Reaplicado `public=true` em produção e adicionado ao gate fail-closed do watchdog (`scripts/sql/media-bucket-verification.sql` — seções E/G agora cobrem `audio-memes`).
+`audio-memes` era **privado por design** (não deve conter PII, mas a decisão do owner é bucket privado). Porém:
 
 - `supabase/functions/voice-changer/index.ts:256` — grava `output_audio_url` **pública** (`getStoragePublicUrl('audio-memes', ...)`) em `voice_conversion_queue`.
 - `src/features/inbox/components/VoiceChangerPicker.tsx:203` — gera URL **pública** ao enviar áudio transformado.
