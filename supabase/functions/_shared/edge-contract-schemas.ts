@@ -5,14 +5,11 @@ import {
   MetaWebhookPayloadSchema,
   GmailWebhookV1Schema,
   GmailWebhookV2Schema,
-  ElevenLabsWebhookV1Schema,
-  ElevenLabsWebhookV2Schema,
 } from './webhook-schemas.ts';
 import { contractErrorResponse } from './validation.ts';
 import {
   AiConversationSummaryV1Schema,
   AiSuggestReplyV1Schema,
-  ClassifyEmojiV1Schema,
   ClassifyStickerV1Schema,
   AiRouterV1Schema,
   AiProxyV1Schema,
@@ -52,7 +49,6 @@ export const EDGE_FUNCTION_NAMES = [
   'ai-suggest-reply',
   'ai-transcribe-audio',
   'approve-password-reset',
-  'audio-transcribe',
   'auto-close-conversations',
   'auto-escalate-sla',
   'automation-suggest-reply',
@@ -60,7 +56,6 @@ export const EDGE_FUNCTION_NAMES = [
   'bitrix-api',
   'chatbot-l1',
   'classify-audio-meme',
-  'classify-emoji',
   'classify-sticker',
   'cleanup-rate-limit-logs',
   'cleanup-storage-orphans',
@@ -73,29 +68,20 @@ export const EDGE_FUNCTION_NAMES = [
   'csat-auto-send',
   'db-health-monitor',
   'detect-new-device',
-  'elevenlabs-agent-token',
   'elevenlabs-dialogue',
   'elevenlabs-scribe-token',
   'elevenlabs-sfx',
-  'elevenlabs-sts',
   'elevenlabs-tts',
   'elevenlabs-tts-stream',
   'elevenlabs-voice',
-  'elevenlabs-voice-design',
-  'elevenlabs-webhook',
   'email-health',
   'email-imap-bridge',
   'email-track-link',
   'email-track-pixel',
   'evolution-api',
   'evolution-bitrix-sync',
-  'evolution-chatbot',
   'evolution-credentials',
-  'evolution-followup',
-  'evolution-health',
   'evolution-retry-metrics',
-  'evolution-sender',
-  'evolution-sentiment',
   'evolution-sync',
   'evolution-templates',
   'evolution-webhook',
@@ -104,7 +90,6 @@ export const EDGE_FUNCTION_NAMES = [
   'followup-bridge',
   'get-mapbox-token',
   'get-sip-password',
-  'gmail-health',
   'gmail-oauth',
   'gmail-send',
   'gmail-sync',
@@ -121,7 +106,6 @@ export const EDGE_FUNCTION_NAMES = [
   'metrics',
   'migrate-media-storage',
   'nps-scheduler',
-  'outlook-oauth',
   'promogifts-catalog',
   'provider-healthcheck',
   'provider-router',
@@ -160,7 +144,6 @@ export const EDGE_FUNCTION_NAMES = [
   'whatsapp-cloud-send',
   'whatsapp-cloud-webhook',
   'whatsapp-cloud-webhook-verify',
-  'whatsapp-webhook',
 ] as const;
 
 const JsonValueSchema: z.ZodType<unknown> = z.lazy(() =>
@@ -192,16 +175,11 @@ export const WebhookContractSchemas = {
       received_at: z.string().datetime().optional(),
     }),
   },
-  'whatsapp-webhook': { v1: NonEmptyObjectSchema },
   // v1+v2 reais (alinhado com ContractLifecycles — validação Claude C1, 2ª rodada:
   // lifecycle diz current v2; sem o schema v2 o caminho legado devolvia undefined).
   'gmail-webhook': {
     v1: GmailWebhookV1Schema,
     v2: GmailWebhookV2Schema,
-  },
-  'elevenlabs-webhook': {
-    v1: ElevenLabsWebhookV1Schema,
-    v2: ElevenLabsWebhookV2Schema,
   },
   'e2e-webhook-fixture': { v1: NonEmptyObjectSchema },
   'webhook-diagnostic': { v1: NonEmptyObjectSchema },
@@ -241,13 +219,6 @@ export const ContractLifecycles: Record<string, ContractLifecycle> = {
       v1: { sunset: '2027-06-01', replacement: 'v2' },
     },
   },
-  'elevenlabs-webhook': {
-    current: 'v2',
-    supported: ['v1', 'v2'],
-    deprecated: {
-      v1: { sunset: '2027-06-01', replacement: 'v2' },
-    },
-  },
 };
 
 const specificEdgeFunctionSchemas: Partial<
@@ -262,7 +233,6 @@ const specificEdgeFunctionSchemas: Partial<
   'ai-churn-analysis': { v1: AiChurnAnalysisV1Schema },
   'ai-transcribe-audio': { v1: AiTranscribeAudioV1Schema },
   'ai-suggest-reply': { v1: AiSuggestReplyV1Schema },
-  'classify-emoji': { v1: ClassifyEmojiV1Schema },
   'classify-sticker': { v1: ClassifyStickerV1Schema },
   'classify-audio-meme': { v1: ClassifyAudioMemeV1Schema },
   'sentiment-alert': { v1: SentimentAlertV1Schema },

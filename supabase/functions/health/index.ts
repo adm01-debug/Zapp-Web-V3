@@ -1,8 +1,10 @@
 // Edge Function: health
-// Health check consolidado para Edge Functions + Realtime + DB.
+// Health check consolidado para Edge Functions + Realtime + DB (+ Evolution).
 // Consumido pelo Prometheus como gatekeeper antes de scrapear /metrics.
 //
 // Retorna 200 quando todas as dependências estão OK; 503 caso contrário.
+// O sub-check `evolution` é informativo (degraded NÃO derruba o gate do
+// Prometheus — consolidação da antiga função evolution-health, AG-EX-13).
 // Formato compatível com probes do kube/nginx:
 //   GET /functions/v1/health          → JSON detalhado
 //   GET /functions/v1/health?probe=1  → texto curto (OK | FAIL)
@@ -77,6 +79,34 @@ async function checkMetrics(): Promise<CheckResult> {
 
 const HEALTH_SECRET = Deno.env.get('HEALTH_SECRET') ?? '';
 
+// Sub-check Evolution (consolidado de evolution-health, AG-EX-13 wave 2).
+// Informativo: falha vira 'degraded' (não derruba o gate do Prometheus).
+async function checkEvolution(): Promise<CheckResult> {
+  const t0 = performance.now();
+  try {
+    const apiUrl = (Deno.env.get('EVOLUTION_API_URL') || '').trim().replace(/\/+$/, '');
+    const apiKey = (Deno.env.get('EVOLUTION_API_KEY') || '').trim();
+    const instance = Deno.env.get('EVOLUTION_INSTANCE_NAME') || 'wpp2';
+    if (!apiUrl || !apiKey) throw new Error('EVOLUTION_API_URL/KEY não configurados');
+    const r = await fetch(`${apiUrl}/instance/connectionState/${instance}`, {
+      headers: { apikey: apiKey },
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    const state = data?.instance?.state ?? 'unknown';
+    if (state !== 'open') throw new Error(`WhatsApp state=${state}`);
+    return { name: 'evolution', status: 'ok', latency_ms: Math.round(performance.now() - t0) };
+  } catch (err) {
+    return {
+      name: 'evolution',
+      status: 'degraded',
+      latency_ms: Math.round(performance.now() - t0),
+      detail: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -115,6 +145,7 @@ Deno.serve(async (req) => {
     checkDatabase(),
     checkRealtime(),
     checkMetrics(),
+    checkEvolution(),
   ]);
 
   const failed = checks.filter((c) => c.status === 'fail');

@@ -211,7 +211,7 @@ const PLACEHOLDER_ALLOWLIST = new Set([
   // GET/sem body legítimos (contrato por query param, nunca derrubam ingestão)
   "email-track-link", "email-track-pixel",
   "webhook-secret-status", "whatsapp-cloud-secrets-status",
-  "whatsapp-cloud-webhook-verify", "gmail-health",
+  "whatsapp-cloud-webhook-verify",
   // Hook interno do Supabase Auth — schema permissivo por design (evento Auth
   // varia por versão do GoTrue); sem diretório de função (invocado via Auth,
   // não via gateway). Reintroduzido pelo PR #782 — restaurado na allowlist

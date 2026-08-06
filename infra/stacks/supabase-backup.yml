@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  backup:
+    image: postgres:15-alpine@sha256:09e4f20b14ddb3dfe3a0c825b206032aaf8f28300ba2070c0b60fc1c10c6abc7
+    networks:
+      - atomicabr
+    volumes:
+      - backup_data:/backups
+    secrets:
+      - supabase_db_password_v1
+      - r2_backup_access_key_v1
+      - r2_backup_secret_key_v1
+      - backup_passphrase_v1
+    environment:
+      PGHOST: "supabase_db"
+      PGPORT: "5432"
+      PGUSER: "supabase_admin"
+      PGDATABASE: "postgres"
+      MIN_SIZE_BYTES: "15728640"
+      MIN_TABLES: "400"
+      RETENTION_DAYS: "14"
+      R2_ENDPOINT: "https://cd0f4eee542191c4957567814e1f8ca1.r2.cloudflarestorage.com"
+      R2_BUCKET: "promo-brindes-backups"
+      R2_PREFIX: "backups/supabase-db/daily"
+      R2_RETENTION: "14d"
+      BACKUP_MODE: "local+r2"
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        echo "=== SUPABASE BACKUP v4 (R25: sentinel sync) ==="
+        export PGPASSWORD=$$(cat /run/secrets/supabase_db_password_v1)
+        apk add --no-cache --quiet gnupg >/dev/null 2>&1 || true
+        if ! command -v mc >/dev/null 2>&1; then
+          wget -q -O /usr/local/bin/mc https://dl.min.io/client/mc/release/linux-amd64/mc && chmod +x /usr/local/bin/mc || true
+        fi
+        MC_BIN=$$(command -v mc || true)
+        while true; do
+          STAMP=$$(date +%Y%m%d_%H%M%S); FILE="supabase_selfhosted_$${STAMP}.dump"
+          if ! pg_dump --no-owner --no-acl --format=custom --compress=6 --file=/backups/$${FILE} 2>/dev/null; then
+            touch /backups/BACKUP_FAILED_$${STAMP}; sleep 3600; continue
+          fi
+          SIZE_BYTES=$$(stat -c%s /backups/$${FILE} 2>/dev/null || echo 0)
+          TABLE_COUNT=$$(pg_restore --list /backups/$${FILE} 2>/dev/null | grep -c 'TABLE DATA' || echo 0)
+          if [ "$$SIZE_BYTES" -lt "$$MIN_SIZE_BYTES" ] || [ "$$TABLE_COUNT" -lt "$$MIN_TABLES" ]; then
+            echo "[$$STAMP] FAIL: size=$$SIZE_BYTES tables=$$TABLE_COUNT"
+            mv /backups/$$FILE /backups/REJECTED_$$FILE; sleep 3600; continue
+          fi
+          echo "[$$STAMP] OK: $$((SIZE_BYTES/1048576))MB $$TABLE_COUNT tables"
+          # [AG-EX-17] Offsite PRIMEIRO; sentinel DEPOIS com o flag real (era false hardcoded)
+          OFFSITE_OK=false
+          if [ -n "$$MC_BIN" ] && command -v gpg >/dev/null 2>&1; then
+            if gpg --batch --yes --symmetric --cipher-algo AES256 \
+                 --passphrase-file /run/secrets/backup_passphrase_v1 \
+                 -o /backups/$${FILE}.gpg /backups/$${FILE} 2>/dev/null \
+               && $$MC_BIN alias set r2 "$$R2_ENDPOINT" "$$(cat /run/secrets/r2_backup_access_key_v1)" "$$(cat /run/secrets/r2_backup_secret_key_v1)" >/dev/null 2>&1 \
+               && $$MC_BIN cp -q /backups/$${FILE}.gpg r2/$$R2_BUCKET/$$R2_PREFIX/ 2>/dev/null; then
+              echo "[$$STAMP] R2 OK"
+              OFFSITE_OK=true
+            else
+              touch /backups/OFFSITE_FAILED_$$STAMP
+            fi
+            rm -f /backups/$${FILE}.gpg
+          fi
+          # [R25 P1-3] Sincroniza sentinel com o backup real + flag real de offsite (AG-EX-17)
+          psql -tAc "SELECT ops.fn_update_backup_sentinel('$$FILE', $$SIZE_BYTES, $$TABLE_COUNT, $${OFFSITE_OK})" 2>/dev/null \
+            || echo "[$$STAMP] WARN: sentinel sync falhou (psql/sql)"
+          find /backups -name "supabase_selfhosted_*.dump" -mtime +$$RETENTION_DAYS -delete 2>/dev/null
+          sleep 86400
+        done
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 60s
+      resources:
+        limits:
+          memory: 1G
+      labels:
+        - com.atomicabr.audit=supabase-backup-v4-r25-2026-08-01|AG-EX-17-sentinel-offsite-flag-2026-08-06
+        - com.atomicabr.tier=critical
+
+volumes:
+  backup_data:
+    driver: local
+
+networks:
+  atomicabr:
+    external: true
+    name: AtomicaBRNet
+
+secrets:
+  supabase_db_password_v1:
+    external: true
+  r2_backup_access_key_v1:
+    external: true
+  r2_backup_secret_key_v1:
+    external: true
+  backup_passphrase_v1:
+    external: true
