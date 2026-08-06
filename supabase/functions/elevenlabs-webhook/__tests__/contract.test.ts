@@ -17,7 +17,7 @@ import { assertEquals } from "jsr:@std/assert";
 import {
   ElevenLabsWebhookV1Schema,
   ElevenLabsWebhookV2Schema,
-} from "../../_shared/contract-schemas.ts";
+} from "../../_shared/webhook-schemas.ts";
 
 Deno.test("Contract: elevenlabs-webhook v1 — payload válido (type + id)", () => {
   const payload = { type: "conversation.completed", id: "conv_abc123" };
