@@ -1,0 +1,44 @@
+id,dimension,severity,status,title,component,expected,actual,impact,ttf
+DADO-01,DADO/ESTADO,P0,DRIFT,auth.users x zapp.profiles UUID mismatch completo,Supabase Auth / PostgreSQL / RLS,19 auth.users com profiles correspondentes (UUID = FK match),19 users_sem_profile E 19 profiles_sem_user - sobreposição UUID = ZERO,RLS completamente quebrado para todos os usuários,< 24h
+DADO-02,DADO/ESTADO,P1,DRIFT,WAL slot cainophile_tqoilw2f com lag 281 MB crescente,PostgreSQL / Replication Slots,Slot com consumer ativo e lag < 100 MB,Lag 281 MB (294.522.800 bytes) crescendo durante sessão,Risco de disco cheio no servidor,< 72h
+DADO-03,DADO/ESTADO,P1,DRIFT,evolution-db-purge com OOM killed (137) e command not found (127),Docker Swarm / evolution-db-purge,Container executa limpeza sem erros,Múltiplas instâncias: Exited(137) OOM + Exited(127) command not found,Falha na purge de dados Evolution API - crescimento de tabelas,< 72h
+ARTEF-02,ARTEFATO,P1,DRIFT,Sub-rotas Evolution API ausentes no repositório,Edge Functions / supabase/functions/,"find-status-messages, get-webhook, send-chat-presence, set-webhook em supabase/functions/",Nenhuma das 4 sub-rotas encontrada no repositório,Funcionalidades WhatsApp sem implementação no repo,< 72h
+MIGR-02,MIGRAÇÃO,P1,DRIFT,Schema evo com 143 tabelas vs 172 esperadas (-29),PostgreSQL / Schema evo,172 tabelas no schema evo,143 tabelas presentes - 29 ausentes,Funcionalidades Evolution API potencialmente ausentes,< 72h
+SAUDE-03,SAÚDE,P1,DRIFT,evolution-db-purge OOM kills recorrentes,Docker Swarm / Container,Container operando dentro dos limites de memória,OOM kills recorrentes (exit 137),Acúmulo de dados não purgados na Evolution API,< 72h
+DADO-05,DADO/ESTADO,P2,DRIFT,Flags public de buckets storage inconsistentes com CLAUDE.md,Supabase Storage,"audio-memes: public=false, audio-messages: public=true","audio-memes: public=true no DB; audio-messages: public=false no DB",Possível exposição não intencional de audio-memes,< 1 semana
+DADO-06,DADO/ESTADO,P2,DRIFT,Contagem de cron jobs desatualizada (151 vs 146 no CLAUDE.md),pg_cron / CLAUDE.md,146 cron jobs (per CLAUDE.md 2026-08-04),151 cron jobs em cron.job,Documentação defasada,< 1 semana
+MIGR-03,MIGRAÇÃO,P2,DRIFT,Schema zapp com 323 tabelas vs 321 no CLAUDE.md (+2),PostgreSQL / CLAUDE.md,321 tabelas no schema zapp,323 tabelas presentes,Documentação levemente defasada,< 1 semana
+MIGR-04,MIGRAÇÃO,P2,DRIFT,5 schemas não documentados no CLAUDE.md,PostgreSQL / CLAUDE.md,Apenas schemas listados no CLAUDE.md,"artes, graveyard, logistica, monitoring, parity_audit presentes mas não documentados",Schemas de negócio não documentados,< 1 semana
+ARTEF-05,ARTEFATO,P2,DRIFT,Extensão http ausente (pg_net presente como substituta),PostgreSQL Extensions,http instalada (mencionada em docs),http não instalada; pg_net funcional como alternativa,Baixo - pg_net substitui http,< 1 semana
+SECRET-04,SEGREDO,P2,PENDING,Varredura de hardcoded secrets não executada,Repositório Git / Bundle Frontend,Nenhum secret hardcoded em código,Não auditado nesta sessão,Risco potencial de secrets expostos,< 1 semana
+CONFIG-01,CONFIG,OK,OK,JWT secret consistency - todos os serviços usam supabase_jwt_secret_v1,"GoTrue / PostgREST / Storage / Functions / Realtime",Mesma secret JWT em todos os 5 serviços,Confirmado - todos usam supabase_jwt_secret_v1 via Docker Secret,,N/A
+CONFIG-06,CONFIG,OK,OK,PGRST_DB_SCHEMAS - todos os schemas existem no DB,PostgREST,"public,zapp,storage,graphql_public,artes,vendas,financeiro existem",Todos os 7 schemas verificados via pg_namespace,,N/A
+CONFIG-07,CONFIG,OK,OK,GoTrue SITE_URL correto,GoTrue / Auth,https://zapp.atomicabr.com.br (sem localhost),GOTRUE_SITE_URL=https://zapp.atomicabr.com.br,,N/A
+CONFIG-08,CONFIG,OK,OK,PostgREST DB_URI correto,PostgREST,"host=db, role=authenticator, porta 5432",PGRST_DB_URI aponta para db:5432 com role authenticator,,N/A
+CONFIG-09,CONFIG,OK,OK,Edge Functions SUPABASE_URL aponta para Kong,Supabase Functions,http://kong:8000,SUPABASE_URL=http://kong:8000 confirmado,,N/A
+CONFIG-10,CONFIG,OK,OK,Edge Functions schema zapp configurado,supabase/functions/_shared/db-client.ts,"db: { schema: 'zapp' }","createZappAdminClient() e createZappClient() com schema: 'zapp'",,N/A
+CONFIG-11,CONFIG,OK,OK,PG Timezone = America/Sao_Paulo,PostgreSQL,America/Sao_Paulo,current_setting('TIMEZONE') = America/Sao_Paulo,,N/A
+CONFIG-12,CONFIG,OK,OK,Realtime tenant e schema configurados,supabase_realtime,DB_HOST=db schema configurado RLS habilitado,Confirmado via env vars do container Realtime,,N/A
+VERSAO-01,VERSÃO,OK,OK,PostgreSQL 15.8.1.085,PostgreSQL,15.x (compatível Supabase),15.8.1.085,,N/A
+VERSAO-02,VERSÃO,OK,OK,supabase-js @2.49.1 em Edge Functions,supabase-js,@2.x,@supabase/supabase-js@2.49.1,,N/A
+VERSAO-03,VERSÃO,OK,OK,supabase_meta rodando sem crash-loop,supabase_meta,Up e saudável,Up 12h saudável - crash-loop histórico resolvido,,N/A
+ARTEF-01,ARTEFATO,OK,OK,Edge Functions volume mount correto,supabase_functions container,Funções disponíveis em /home/deno/functions,Bind mount host /root/supabase/docker/volumes/functions -> /home/deno/functions,,N/A
+ARTEF-03,ARTEFATO,OK,OK,Edge Functions env vars presentes,supabase_functions / db-client.ts,SELFHOSTED_SUPABASE_URL e chaves via secrets,Todos os env vars confirmados no container Functions,,N/A
+ARTEF-04,ARTEFATO,OK,OK,Extensions críticas instaladas,PostgreSQL Extensions,"pg_cron, pg_net, pgcrypto, vector, pg_graphql, pgjwt","Todas presentes - 21 extensões instaladas",,N/A
+ARTEF-07,ARTEFATO,OK,OK,Frontend client schema zapp configurado,src/integrations/supabase/client.ts,"db: { schema: 'zapp' }","schema: 'zapp' confirmado no client.ts",,N/A
+ARTEF-08,ARTEFATO,OK,OK,Realtime publication corretamente configurada,PostgreSQL / supabase_realtime,"publish_via_partition_root=true, tabelas raiz","68 tabelas na publication supabase_realtime, publish_via_partition_root=true",,N/A
+SECRET-01,SEGREDO,OK,OK,JWT consistency cross-container,"GoTrue, PostgREST, Storage, Functions, Realtime",Mesma secret JWT em todos os 5 serviços,TODOS usam supabase_jwt_secret_v1,,N/A
+SECRET-02,SEGREDO,OK,OK,DB password via Docker Secret,Todos containers com acesso ao DB,supabase_db_password via Docker Secret,Presente como Docker Secret em todos os containers que acessam DB,,N/A
+SECRET-03,SEGREDO,OK,OK,API keys terceiros em Functions via Docker Secrets,supabase_functions,"EVOLUTION_API_KEY, SENTRY_DSN, OPENAI_API_KEY via secrets",Todos carregados via Docker Secrets,,N/A
+SECRET-06,SEGREDO,OK,OK,Webhook HMAC Evolution API presente,supabase_functions,HMAC/webhook secret presente,Presente como Docker Secret,,N/A
+DADO-04,DADO/ESTADO,OK,OK,Storage buckets count,storage.buckets,13 buckets em storage.buckets,13 confirmados,,N/A
+MIGR-01,MIGRAÇÃO,OK,OK,schema_migrations aplicadas,supabase_migrations.schema_migrations,Migrations aplicadas e registradas,Migration history presente,,N/A
+REDE-01,REDE-VOLUME,OK,OK,Rede interna Swarm,Containers Supabase,Todos na mesma overlay network,Todos na AtomicaBRNet - subnet 10.0.1.x/24,,N/A
+REDE-02,REDE-VOLUME,OK,OK,Functions volume mount,supabase_functions,Bind mount do host para o container,/root/supabase/docker/volumes/functions -> /home/deno/functions,,N/A
+REDE-03,REDE-VOLUME,OK,OK,Kong roteamento interno,Kong / Swarm,"GoTrue:9999, REST:3000, Functions:9000, Storage:5000, Meta:8080, Realtime:4000",Todos os serviços internamente alcançáveis via Kong,,N/A
+REDE-04,REDE-VOLUME,OK,OK,Volumes persistentes DB,supabase_db,Dados em named volume (não efêmero),Volume persistente confirmado para DB,,N/A
+SAUDE-01,SAÚDE,OK,OK,GoTrue Up sem restarts,supabase_auth,"Up, RestartCount=0",Up RestartCount=0,,N/A
+SAUDE-02,SAÚDE,OK,OK,PostgREST Up sem restarts,supabase_rest,"Up, sem restarts",Up funcionando,,N/A
+SAUDE-04,SAÚDE,OK,OK,supabase_meta Up e saudável,supabase_meta,Deve estar Up sem crash-loop,Up 12h saudável,,N/A
+SAUDE-05,SAÚDE,OK,OK,supabase_storage Up e saudável,supabase_storage,"Up, backend filesystem",Up STORAGE_BACKEND=file,,N/A
+SAUDE-06,SAÚDE,OK,OK,supabase_realtime Up e saudável,supabase_realtime,"Up, DB conectado",Up DB_HOST=db,,N/A
