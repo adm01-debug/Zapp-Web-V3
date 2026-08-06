@@ -72,7 +72,7 @@ jobs:
           RESPONSE=$(curl -sS "$META_URL/query" \
             -H "apikey: $META_TOKEN" \
             -H "Content-Type: application/json" \
-            -d '{"query":"SELECT n.nspname, c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ($$public$$,$$zapp$$,$$evo$$) AND c.relkind=$$v$$ AND NOT (c.reloptions IS NOT NULL AND array_to_string(c.reloptions,$$,$$) ILIKE $$%security_invoker%$$)"}' \
+            -d '{"query":"SELECT n.nspname, c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ($$public$$,$$zapp$$,$$evo$$) AND c.relkind=$$v$$ AND NOT COALESCE(array_to_string(c.reloptions,$$,$$),$$$$) ~ $$security_invoker=(true|on)$$"}' \
             -w "\n%{http_code}" \
             --connect-timeout 10 --max-time 30 2>/dev/null || echo -e "\n000")
 
