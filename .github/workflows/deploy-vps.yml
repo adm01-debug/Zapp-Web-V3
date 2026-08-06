@@ -25,7 +25,10 @@ env:
 jobs:
   build-and-push:
     name: Build & push image
-    runs-on: ubuntu-latest
+    # 2026-08-06: runners GitHub-hosted (ubuntu-latest) sem alocação na conta —
+    # fila inteira travada em pending. Build no runner self-hosted da VPS
+    # (online, Docker disponível) — mesmo padrão dos workflows E2E-VPS.
+    runs-on: [self-hosted, Linux, X64, vps-zapp]
     environment: production
     outputs:
       image: ${{ steps.meta.outputs.image }}
@@ -146,7 +149,9 @@ jobs:
 
   deploy:
     name: Deploy to VPS
-    runs-on: ubuntu-latest
+    # Mesmo motivo do build: hosted runner sem alocação; deploy via Portainer
+    # a partir da própria VPS (2026-08-06).
+    runs-on: [self-hosted, Linux, X64, vps-zapp]
     needs: build-and-push
     environment: production
     steps:
