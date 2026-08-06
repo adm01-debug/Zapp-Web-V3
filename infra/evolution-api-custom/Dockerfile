@@ -84,14 +84,14 @@ RUN node -e ' \
 const fs=require("fs"); \
 const s=fs.readFileSync("/evolution/dist/main.js","utf8"); \
 const fail=(m)=>{console.error("VERIFY FAIL: "+m);process.exit(1);}; \
-if(s.includes("console.log(p),this.sendDataWebhook(O.MESSAGES_UPSERT,p)"))fail("T1 ainda presente (webhook log)"); \
+if(s.includes("console.log(c),this.sendDataWebhook(\"messages.upsert\",c)"))fail("T1 ainda presente (webhook log)"); \
 if(s.includes("console.log(\"stanza\",JSON.stringify(e)),"))fail("T2 ainda presente (stanza log)"); \
 if(s.includes("tracesSampleRate:1,profilesSampleRate:1"))fail("T3 nao aplicado (Sentry original)"); \
 if(!s.includes("tracesSampleRate:0.05"))fail("T3 marcador ausente (tracesSampleRate:0.05)"); \
 if(!s.includes("MASKED"))fail("T4 prologue ausente (marcador MASKED)"); \
 if(s.includes("console.log(\"CACHE:\",{cached:"))fail("T5a ainda presente (CACHE log)"); \
-if(s.includes("version:Vh.version,clientName:qh.CONNECTION.CLIENT_NAME"))fail("T6 nao aplicado (versao real na raiz)"); \
-if(!s.includes("version:\"2.x\",clientName:qh.CONNECTION.CLIENT_NAME"))fail("T6 marcador ausente (version 2.x)"); \
+if(s.includes("version:_l.version,clientName:Nl.CONNECTION.CLIENT_NAME"))fail("T6 nao aplicado (versao real na raiz)"); \
+if(!s.includes("version:\"2.x\",clientName:Nl.CONNECTION.CLIENT_NAME"))fail("T6 marcador ausente (version 2.x)"); \
 console.log("VERIFY OK: main.js com T1-T6 aplicados"); \
 '
 
