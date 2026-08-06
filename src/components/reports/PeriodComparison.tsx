@@ -45,11 +45,11 @@ export function PeriodComparison() {
 
     const [currentRes, previousRes] = await Promise.all([
       dbFrom('messages')
-        .select('id', { count: 'exact', head: true })
+        .select('id', { count: 'planned', head: true })
         .gte('created_at', currentStart.toISOString())
         .eq('sender', 'contact'),
       dbFrom('messages')
-        .select('id', { count: 'exact', head: true })
+        .select('id', { count: 'planned', head: true })
         .gte('created_at', previousStart.toISOString())
         .lt('created_at', previousEnd.toISOString())
         .eq('sender', 'contact'),

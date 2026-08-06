@@ -143,18 +143,19 @@ export function useAIStats(selectedPeriod: PeriodOption) {
       }));
 
       const { count: currentTranscriptions } = await dbFrom('messages')
-        .select('*', { count: 'exact', head: true })
+        .select('*', { count: 'planned', head: true })
         .not('transcription', 'is', null)
         .gte('created_at', periodStart.toISOString());
 
       const { count: prevTranscriptions } = await dbFrom('messages')
-        .select('*', { count: 'exact', head: true })
+        .select('*', { count: 'planned', head: true })
         .not('transcription', 'is', null)
         .gte('created_at', previousPeriodStart.toISOString())
         .lt('created_at', periodStart.toISOString());
 
       const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { data: alertRaw } = await supabase.from('audit_logs')
+      const { data: alertRaw } = await supabase
+        .from('audit_logs')
         .select('*')
         .eq('action', 'sentiment_alert')
         .gte('created_at', last24h)
