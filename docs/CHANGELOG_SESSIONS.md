@@ -279,18 +279,18 @@ e a lógica `CASE WHEN` na view corrigem essa semântica.
 **`docker-entrypoint.sh` auditado:** Confirmado que envia `patch_mode: "build-time"` na
 auditoria de boot (POST REST → `evo.evolution_logpatch_audit`). Sem execução de `logpatch.cjs`.
 
-### D-8 (P0) — Gate CI `security-invoker-gate.yml` com HTTP 401
+### D-8 (P0) — Gate CI `security-invoker-gate.yml` ✅ RESOLVIDO
 
 | Item | Root Cause | Status |
 |---|---|---|
-| `ZAPP_META_TOKEN` GitHub Actions secret | JWT `service_role` rotacionado em 2026-08-05 (`supabase_service_key_v1/v2` → `supabase_service_key_v3`); secret do GitHub não foi atualizado | ⏳ **MANUAL PENDENTE** |
-| D-8 step "Verify Kong reachability" | Retorna HTTP 401 com token stale; step é fail-closed → bloqueia gate | ⏳ |
-| Steps 2 e 3 (security_invoker, anon-functions) | Soft-fail em HTTP 401 (não bloqueantes enquanto D-8 falha) | ⏳ |
+| `ZAPP_META_TOKEN` GitHub Actions secret | JWT `service_role` rotacionado em 2026-08-05 (`supabase_service_key_v1/v2` → `supabase_service_key_v3`); secret do GitHub não foi atualizado | ✅ **RESOLVIDO** — admin atualizou o secret em 2026-08-06 |
+| D-8 step "Verify security audit via evo.v_security_audit" | `evo.v_security_audit` → `warning_rows = 0` (todos os objetos `✓ bloqueado`) | ✅ |
+| Steps 2 e 3 (security_invoker, anon-functions) | Passando após atualização do token | ✅ |
 
-**Ação necessária (admin):**
-1. Exec no container kong (`eeda86abfde2`): `cat /run/secrets/supabase_service_key_v3`
-2. Atualizar GitHub → Settings → Secrets and variables → Actions → `ZAPP_META_TOKEN`
-   com o JWT lido acima
+**Validação pós-resolução (2026-08-06):**
+- `psql` direto em `supabase_db.1`: `SELECT count(*) FROM evo.v_security_audit WHERE status LIKE '%⚠%'` → `warning_rows = 0`
+- CI `workflow_dispatch` → Run ID `31095278267` → `completed/success` (todos os 5 steps verdes, 9 s)
+- Commit de fix: `b23b3ab` — `fix(ci): gate D-8 aceita count sem aspas (postgres-meta devolve [{"count":0}]) + workflow_dispatch`
 
 ### Plano de Validação 50 Etapas — PRs Desta Sessão
 
@@ -305,7 +305,7 @@ auditoria de boot (POST REST → `evo.evolution_logpatch_audit`). Sem execução
 
 | Item | Prioridade | Ação Necessária |
 |---|---|---|
-| `ZAPP_META_TOKEN` update | P0 | Admin atualiza GitHub Secret com `supabase_service_key_v3` |
+| ~~`ZAPP_META_TOKEN` update~~ | ~~P0~~ | ~~Admin atualiza GitHub Secret com `supabase_service_key_v3`~~ → **✅ RESOLVIDO 2026-08-06** |
 | A-8: `OCI_DIGEST` env var | P2 | Injetar `OCI_DIGEST: "{{.Service.Image}}"` no docker-compose/stack `evolution-api-custom` |
 | B-4/B-5: Retenção PG14 | P1 | `"Message"` (432 MB) e `evolution_webhook_events` (107 MB) |
 | B-7: Reconciliação PG14 ↔ PG15 | P1 | Job periódico de reconciliação |
