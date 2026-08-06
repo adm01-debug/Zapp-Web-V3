@@ -24,6 +24,7 @@ import { motion, AnimatePresence } from '@/components/ui/motion';
 import { TypingIndicator } from '../TypingIndicator';
 import { MessageBubble } from './MessageBubble';
 import { useConversationReactionsRealtime } from '../../hooks/reactions/useConversationReactionsRealtime';
+import { usePreloadConversationReactions } from '../../hooks/reactions/usePreloadConversationReactions';
 
 import type { LoadOlderProps } from './loadOlderTypes';
 
@@ -166,6 +167,8 @@ export const ChatMessagesArea = memo(
       // Realtime de reacoes: 1 canal por conversa, invalida apenas IDs visiveis
       const messageIds = useMemo(() => messages.map((m) => m.id), [messages]);
       useConversationReactionsRealtime(conversationId, messageIds);
+      // FIX N+1: preload todas reactions em 1 query antes dos MessageBubble individuais
+      usePreloadConversationReactions(messageIds);
 
       // Realtime de mensagens: UPDATE e DELETE no schema 'evo' (tabela física particionada)
       useEffect(() => {

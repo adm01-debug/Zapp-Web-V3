@@ -35,13 +35,32 @@
 --   limite de retry_attempt < 3, sem nunca gravar estado inválido. Quando
 --   fn_enqueue_message_dispatch existir, o fluxo de re-enfileiramento
 --   ('pending' + PERFORM fn_enqueue) é preservado intacto.
+--
+-- SECURITY FIX (2026-08-06, GAP-10): removido 'public' do SET search_path.
+--   Função SECURITY DEFINER não deve incluir o schema public no search_path —
+--   um objeto malicioso em public poderia sobresombrar (shadow) qualquer
+--   referência não-qualificada dentro do corpo. Todos os objetos referenciados
+--   aqui já são schema-qualificados (pg_catalog.pg_proc, pg_catalog.pg_namespace,
+--   evo.evolution_messages, zapp.fn_enqueue_message_dispatch), portanto 'public'
+--   não era necessário funcionalmente.
+--
+-- NOTA SOBRE TIMESTAMP: este arquivo substitui o arquivo com timestamp duplicado
+-- 20260806100000_fix_retry_stuck_messages_queued_status.sql que coexistia com
+-- 20260806100000_harden_meme_favorite_2arg_guard.sql. Conflito de timestamps
+-- causa comportamento indeterminado no Supabase CLI. O arquivo original foi
+-- deletado e este arquivo com timestamp sequencial _100001 é o canônico.
+--
+-- Rollback:
+--   Nenhuma ação de rollback necessária — sem mudança de dados, apenas redefinição
+--   de função. Para reverter o FIX de status, restaurar a CASE expression original
+--   (que usava 'queued') não é recomendado pois 'queued' viola o CHECK da tabela.
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION zapp.fn_retry_stuck_messages()
  RETURNS integer
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'pg_catalog', 'zapp', 'evo', 'public'
+ SET search_path TO 'pg_catalog', 'zapp', 'evo'
 AS $function$
 DECLARE
   v_count   INTEGER := 0;
@@ -64,7 +83,7 @@ BEGIN
      ORDER BY updated_at
      LIMIT 100
      FOR UPDATE SKIP LOCKED  -- anti-double-processing: execuções concorrentes
-                             -- do cron pulam linhas já bloqueadas (achado A3)
+                             -- do cron pulam linhas já bloqueadas
   LOOP
     BEGIN
       UPDATE evo.evolution_messages
@@ -97,4 +116,4 @@ $function$
 ;
 
 COMMENT ON FUNCTION zapp.fn_retry_stuck_messages() IS
-'FIX (2026-08-06, AG-EX-06): função passou a manter status="pending" ao tentar recuperar mensagens presas — antes gravava "queued" quando zapp.fn_enqueue_message_dispatch não existia, violando o CHECK evolution_messages_status_check das partições de evo.evolution_messages (status válidos: received, sent, delivered, read, deleted, pending, played, failed) e gerando ~25 WARNINGs por ciclo no cron job 5. Sem dispatcher, a mensagem permanece elegível para retry (retry_attempt < 3).';
+'FIX (2026-08-06, AG-EX-06): função passou a manter status="pending" ao tentar recuperar mensagens presas — antes gravava "queued" quando zapp.fn_enqueue_message_dispatch não existia, violando o CHECK evolution_messages_status_check das partições de evo.evolution_messages (status válidos: received, sent, delivered, read, deleted, pending, played, failed) e gerando ~25 WARNINGs por ciclo no cron job 5. Sem dispatcher, a mensagem permanece elegível para retry (retry_attempt < 3). GAP-10 (2026-08-06): removido public do search_path (vetor de shadowing desnecessário).';

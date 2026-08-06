@@ -91,12 +91,16 @@ A publication tem `publish_via_partition_root = true`. **Assinar sempre pela tab
 | `evolution_contacts` | ~20.563 | 18 MB | Contatos WhatsApp |
 | `evolution_media` | ~23.366 | 10 MB | Mídias |
 | `evolution_whatsapp_status` | ~14.789 | 10 MB | Status WA |
-| `evolution_messages` | particionada | — | Raiz (25 partições por instância) |
-| `evolution_conversations` | particionada | — | Raiz (25 partições por instância) |
+| `evolution_messages` | particionada | — | Raiz (14 partições — auditado 2026-08-06) |
+| `evolution_conversations` | particionada | — | Raiz (13 partições — auditado 2026-08-06) |
 
-**Partições de `evolution_messages`:**
-`wpp2`, `wpp2_archive`, `artes`, `comercial_01`–`comercial_15`,
-`compras`, `default`, `financeiro`, `gravacao`, `logistica`, `marketing`
+**Partições de `evolution_messages` (14 — confirmado via `pg_inherits` em 2026-08-06):**
+`wpp2`, `comercial_01`–`comercial_08`, `compras`, `default`, `financeiro`, `logistica`, `marketing`
+
+**Partições de `evolution_conversations` (13 — confirmado via `pg_inherits` em 2026-08-06):**
+`wpp2`, `comercial_01`–`comercial_07`, `compras`, `default`, `financeiro`, `logistica`, `marketing`
+
+> `evolution_messages_wpp2_archive` é tabela standalone regular (não partição).
 
 ---
 

@@ -21,9 +21,8 @@ const supabaseMock = vi.hoisted(() => ({
 
 // Mock do client: view zapp.evolution_instance_credentials (SEM api_key) + health logs.
 vi.mock('@/integrations/supabase/client', async () => {
-  const { createMockSupabase } = await vi.importActual<typeof import('@/test/mocks/supabase')>(
-    '@/test/mocks/supabase'
-  );
+  const { createMockSupabase } =
+    await vi.importActual<typeof import('@/test/mocks/supabase')>('@/test/mocks/supabase');
   supabaseMock.client = createMockSupabase({
     tables: {
       evolution_instance_credentials: { data: supabaseMock.credsRows },
@@ -64,7 +63,10 @@ beforeEach(() => {
   supabaseMock.client.from.mockClear();
   supabaseMock.client.schema.mockClear();
   supabaseMock.client.functions.invoke.mockReset();
-  supabaseMock.client.functions.invoke.mockResolvedValue({ data: { ok: true, id: 'new-id' }, error: null });
+  supabaseMock.client.functions.invoke.mockResolvedValue({
+    data: { ok: true, id: 'new-id' },
+    error: null,
+  });
   toastMocks.error.mockClear();
   toastMocks.success.mockClear();
   toastMocks.warning.mockClear();
@@ -77,15 +79,6 @@ beforeEach(() => {
     configurable: true,
     value: supabaseMock.confirmSpy,
   });
-
-  vi.stubGlobal(
-    'fetch',
-    vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => [{ connectionStatus: 'open' }],
-    })
-  );
 });
 
 afterEach(() => {
@@ -194,5 +187,30 @@ describe('useEvolutionApiIntegration (fix: credenciais via view zapp + edge func
     });
 
     expect(toastMocks.error).toHaveBeenCalledWith(expect.stringContaining('Erro ao salvar'));
+  });
+
+  it('handleTestConnection usa o proxy evolution-api (nunca fetch direto com chave no cliente)', async () => {
+    supabaseMock.client.functions.invoke.mockResolvedValue({
+      data: [{ connectionStatus: 'open' }],
+      error: null,
+    });
+    const { result } = renderHook(() => useEvolutionApiIntegration());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.handleTestConnection({
+        id: '00000000-0000-4000-8000-000000000001',
+        instance_name: 'wpp2',
+        api_url: 'https://evolution.atomicabr.com.br',
+        api_key: 'secret-key',
+      });
+    });
+
+    expect(supabaseMock.client.functions.invoke).toHaveBeenCalledWith('evolution-api', {
+      body: { action: 'list-instances' },
+    });
+    expect(toastMocks.success).toHaveBeenCalledWith('Teste bem-sucedido para wpp2');
+    // health log gravado via view zapp (mesmo fluxo de antes)
+    expect(supabaseMock.client.from).toHaveBeenCalledWith('evolution_health_logs');
   });
 });
