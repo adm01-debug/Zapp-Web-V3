@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { authService, invalidateUserCache } from '../services/authService';
 import { toast } from 'sonner';
 
 type SensitiveAction = 'change_password' | 'change_email' | 'configure_mfa' | 'admin_action' | 'delete_account';
@@ -20,7 +21,12 @@ export function useReauthentication() {
     setIsReauthenticating(true);
     
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // Reauth exige identidade FRESCA: o authService.getUser() tem cache de
+      // 30s + single-flight (otimização p/ leituras comuns). Num fluxo sensível
+      // (troca de senha/email/MFA), usuário stale do cache faria o reauth
+      // prosseguir contra uma sessão que pode já não existir.
+      invalidateUserCache();
+      const { data: { user } } = await authService.getUser();
       
       if (!user?.email) {
         return { success: false, error: 'Usuário não encontrado' };
