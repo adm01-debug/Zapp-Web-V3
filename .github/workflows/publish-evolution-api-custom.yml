@@ -226,6 +226,8 @@ jobs:
       - name: Resolve published digest
         id: digest
         run: |
-          DIGEST=$(docker buildx imagetools inspect --format '{{.Manifest.Digest}}' ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.3.7-baileys-${{ inputs.baileys_version }})
+          # driver docker: buildx imagetools nao expoe o digest do push; o daemon
+          # local tem o RepoDigests remoto apos o push (imagem loadada).
+          DIGEST=$(docker image inspect --format '{{index .RepoDigests 0}}' ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.3.7-baileys-${{ inputs.baileys_version }} | cut -d@ -f2)
           echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
           echo "Published digest: $DIGEST"
