@@ -72,7 +72,22 @@ jobs:
         run: |
           export DATABASE_PROVIDER=postgresql
           export DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
-          (npm run build) || { echo "::warning::typecheck falhou — fallback npx tsup (Plano B 2.2)"; npx tsup; }
+          set +e
+          npm run build > /tmp/build.log 2>&1
+          RC=$?
+          if [ $RC -ne 0 ]; then
+            echo "::warning::build (tsc+tsup) falhou rc=$RC — fallback npx tsup (Plano B 2.2)"
+            tail -25 /tmp/build.log
+            NODE_OPTIONS=--max-old-space-size=1536 npx tsup > /tmp/tsup.log 2>&1
+            RC=$?
+            if [ $RC -ne 0 ]; then
+              echo "::error::npx tsup falhou rc=$RC"
+              tail -40 /tmp/tsup.log
+              exit 1
+            fi
+          fi
+          set -e
+          ls -la dist/main.js dist/main.mjs
 
       - name: Verify bundle (require externo do baileys + sem rc.9)
         working-directory: evo-src
