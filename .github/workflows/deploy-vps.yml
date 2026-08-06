@@ -77,6 +77,22 @@ jobs:
             VITE_SENTRY_ENVIRONMENT=production
             VITE_APP_ENV=production
 
+      - name: 📋 Ler tags de rollback protegidas (infra/ghcr-protected-tags.txt)
+        id: protect
+        run: |
+          if [ ! -f infra/ghcr-protected-tags.txt ]; then
+            echo "AVISO: infra/ghcr-protected-tags.txt nao encontrado — usando fallback hardcoded"
+            echo "regex=^production-(fbd04bec303d|988086a2bbbd|a68e678b8496)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          TAGS="$(grep -v '^#' infra/ghcr-protected-tags.txt | grep -v '^[[:space:]]*$' | tr '\n' '|' | sed 's/|$//')"
+          if [ -z "$TAGS" ]; then
+            echo "AVISO: nenhuma SHA encontrada no arquivo — usando fallback hardcoded"
+            echo "regex=^production-(fbd04bec303d|988086a2bbbd|a68e678b8496)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "regex=^production-(${TAGS})" >> "$GITHUB_OUTPUT"
+
       # ============================================================
       # ETAPA 34 — Faxina Portainer (2026-08-05): retenção GHCR
       # Cada deploy cria ~3 versões (1 index tagado production-<sha> +
@@ -104,9 +120,9 @@ jobs:
           # o corte de recência cai ENTRE builds, nunca no meio (evita index
           # mantido com filho deletado → manifest unknown). 8 cortava o 3º deploy.
           min-versions-to-keep: 9
-          # Proteger rollbacks históricos tagueados para evitar deleção prematura.
+          # Proteger rollbacks históricos — lidos de infra/ghcr-protected-tags.txt.
           # NÃO usar delete-only-untagged-versions (apagaria manifests-filho → pull falha).
-          ignore-versions: "^production-(fbd04bec303d|988086a2bbbd|a68e678b8496)"
+          ignore-versions: ${{ steps.protect.outputs.regex }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🚨 Alerta se a retenção GHCR falhar (não bloqueia deploy)

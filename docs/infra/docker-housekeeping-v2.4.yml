@@ -1,7 +1,13 @@
 version: "3.8"
 
 # =============================================================================
-# DOCKER-HOUSEKEEPING v2.4.2 — AtomicaBR — 2026-08-06
+# DOCKER-HOUSEKEEPING v2.4.3 — AtomicaBR — 2026-08-06
+# v2.4.3 (GAP-3 fix, 2026-08-06):
+#   - ensure_ref_tags: fallback `docker pull TAG` quando digest ausente localmente
+#     (GAP-3 da auditoria 50 etapas). Se a imagem foi removida do host (novo nó
+#     no swarm, limpeza manual), o pull recupera antes do prune_dangling agir.
+#     Contador _PULLED separado para observabilidade. Alert individual por TAG
+#     se o pull também falhar (ex: credencial expirada, imagem deletada do GHCR).
 # v2.4.2 (auditoria pós-faxina, 2026-08-06):
 #   - PRUNE_ZAPP_OLD HORÁRIA: separado para ciclo independente PRUNE_ZAPP_INTERVAL_S
 #     (default 3600s). Antes rodava só no ciclo diário (TAGGED_INTERVAL_S=86400),
@@ -64,7 +70,7 @@ services:
     entrypoint: ["sh", "-c"]
     command:
       - |
-        echo "=== DOCKER-HOUSEKEEPING v2.4.2 boot $$(date -u +%FT%TZ) ==="
+        echo "=== DOCKER-HOUSEKEEPING v2.4.3 boot $$(date -u +%FT%TZ) ==="
         alert() {
           _MSG="$$1"; _TS=$$(date -u +%FT%TZ)
           echo "[ALERT] $$_MSG"
@@ -82,26 +88,39 @@ services:
         ensure_ref_tags() {
           _OUT="$$(timeout 300 sh -c 'docker images --digests --no-trunc --format "{{.ID}} {{.Digest}}"' 2>/dev/null)"
           _MAP="$$_OUT"
-          _REFS=0; _TAGGED=0; _NOID=0
+          _REFS=0; _TAGGED=0; _NOID=0; _PULLED=0
           for REF in $$(docker service ls -q | xargs -r timeout 300 docker service inspect \
               --format '{{with .Spec.TaskTemplate.ContainerSpec.Image}}{{.}}{{end}} {{with .PreviousSpec.TaskTemplate.ContainerSpec.Image}}{{.}}{{end}}' 2>/dev/null); do
             case "$$REF" in
               *:*@sha256:*)
                 _REFS=$$((_REFS+1))
                 _DIG="sha256:$${REF##*@sha256:}"
+                _TAG="$${REF%%@sha256:*}"
                 _ID="$$(printf '%s\n' "$$_MAP" | awk -v d="$$_DIG" '$$2 == d {print $$1; exit}')"
                 if [ -n "$$_ID" ]; then
-                  docker tag "$$_ID" "$${REF%%@sha256:*}" 2>/dev/null && _TAGGED=$$((_TAGGED+1)) || true
+                  docker tag "$$_ID" "$$_TAG" 2>/dev/null && _TAGGED=$$((_TAGGED+1)) || true
                 else
-                  _NOID=$$((_NOID+1))
+                  # v2.4.3 GAP-3: digest ausente localmente — pull de recuperação.
+                  # Usa TAG (sem digest) para que o daemon resolva o digest no registry.
+                  # timeout 180s: pull lento nao congela o ciclo inteiro.
+                  if timeout 180 docker pull "$$_TAG" >/dev/null 2>&1; then
+                    _PULLED=$$((_PULLED+1))
+                    _NEW_ID="$$(docker images --digests --no-trunc --format '{{.ID}} {{.Digest}}' 2>/dev/null | awk -v d="$$_DIG" '$$2 == d {print $$1; exit}')"
+                    if [ -n "$$_NEW_ID" ]; then
+                      docker tag "$$_NEW_ID" "$$_TAG" 2>/dev/null && _TAGGED=$$((_TAGGED+1)) || true
+                    fi
+                  else
+                    _NOID=$$((_NOID+1))
+                    alert "ensure_ref_tags: pull FALHOU para $$_TAG — imagem pode nao estar protegida do prune"
+                  fi
                 fi
                 ;;
             esac
           done
           if [ "$$_REFS" -gt 0 ] && [ "$$_TAGGED" -eq 0 ]; then
-            alert "ensure_ref_tags: NENHUMA ref tagada (sem_id_local=$$_NOID) — verificar imagens/digests"
+            alert "ensure_ref_tags: NENHUMA ref tagada (sem_id_local=$$_NOID pulled=$$_PULLED) — verificar imagens/digests"
           fi
-          echo "[ensure_ref_tags] refs=$$_REFS tagadas=$$_TAGGED sem_id_local=$$_NOID"
+          echo "[ensure_ref_tags] refs=$$_REFS tagadas=$$_TAGGED pulled=$$_PULLED sem_id_local=$$_NOID"
         }
         # v2.4 (ETAPA 47): retenção HOST das imagens zapp — mantém as
         # ZAPP_KEEP_TAGS mais recentes por created + Spec/PreviousSpec/latest
@@ -204,7 +223,7 @@ services:
           DISK_END=$$(disk_pct)
           echo "[$${TS}] cycle #$${CYCLE} done. disk_end=$${DISK_END}%"
           if [ "$${CYCLE}" -eq 1 ]; then
-            alert "housekeeping v2.4.2 online: cycle #1 disk $${DISK}% -> $${DISK_END}%"
+            alert "housekeeping v2.4.3 online: cycle #1 disk $${DISK}% -> $${DISK_END}%"
           fi
           sleep "$${DANGLING_INTERVAL_S}"
         done
@@ -228,7 +247,7 @@ services:
       labels:
         - traefik.enable=false
         - com.centurylinklabs.watchtower.enable=false
-        - com.atomicabr.audit=docker-housekeeping-v2.4.2-2026-08-06-prune-zapp-hourly
+        - com.atomicabr.audit=docker-housekeeping-v2.4.3-2026-08-06-gap3-fallback-pull
         - com.atomicabr.requires-docker-sock=true
         - com.atomicabr.tier=critical
 
