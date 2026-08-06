@@ -10,6 +10,6 @@
 - Já existe evo.v_security_audit (0 linhas ⚠ = saudável) e o job cron 165 (secdef-search-path-guard) + 197 (autofix-security-invoker) rodam a cada 30min.
 - Gate de release: CI do repo já tem security-invoker-gate.yml e security.yml. Adicionar step que executa a query do v_security_audit via MCP/supabase_db_query antes de promover migrations que tocam evo:
   ```sql
-  SELECT count(*) FROM evo.v_security_audit WHERE severity='⚠'
+  SELECT count(*) FROM evo.v_security_audit WHERE status LIKE '%⚠%'
   ```
   (0 = passa; >0 = bloqueia). Documentar no runbook de deploy (docs/RUNBOOK_DEPLOY.md).
