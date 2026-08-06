@@ -11,14 +11,9 @@ import {
   GmailSyncV1Schema,
   GmailOauthV1Schema,
   EmailImapBridgeV1Schema,
-  EvolutionSenderV1Schema,
-  EvolutionHealthV1Schema,
   EvolutionCredentialsV1Schema,
   EvolutionTemplatesV1Schema,
-  EvolutionSentimentV1Schema,
   EvolutionRetryMetricsV1Schema,
-  EvolutionFollowupV1Schema,
-  EvolutionChatbotV1Schema,
   EvolutionBitrixSyncV1Schema,
   DbHealthMonitorV1Schema,
   ConnectionHealthCheckV1Schema,
@@ -31,7 +26,6 @@ import {
   AutoCloseConversationsV1Schema,
   ElevenLabsVoiceV1Schema,
   ElevenLabsTtsV1Schema,
-  ElevenLabsStsV1Schema,
 } from "../contract-schemas.ts";
 import type { z } from "../contract-kit.ts";
 
@@ -103,20 +97,6 @@ const MATRICES: Matrix[] = [
     ],
   },
   {
-    name: "evolution-sender@v1 (cron — body opcional)",
-    schema: EvolutionSenderV1Schema,
-    valid: [{}],
-    invalid: [
-      { label: "campo extra (strict)", payload: { batchSize: 10 } },
-    ],
-  },
-  {
-    name: "evolution-health@v1 (cron — body opcional)",
-    schema: EvolutionHealthV1Schema,
-    valid: [{}],
-    invalid: [{ label: "campo extra (strict)", payload: { instance: "wpp2" } }],
-  },
-  {
     name: "evolution-credentials@v1 (GET admin — body opcional)",
     schema: EvolutionCredentialsV1Schema,
     valid: [{}],
@@ -136,47 +116,11 @@ const MATRICES: Matrix[] = [
       { label: "variables com tipo errado", payload: { variables: ["a"] }, expectPath: "variables" },
       { label: "campo extra (strict)", payload: { action: "send", hack: true } },
     ],
-  },
-  {
-    name: "evolution-sentiment@v1 (estrito — text obrigatório)",
-    schema: EvolutionSentimentV1Schema,
-    valid: [
-      { text: "Ótimo atendimento!" },
-      { action: "analyze", text: "Ruim", remote_jid: "5511@s.whatsapp.net", message_id: "ABC123", instance_name: "wpp2" },
-    ],
-    invalid: [
-      { label: "text ausente", payload: { remote_jid: "5511@s.whatsapp.net" }, expectPath: "text" },
-      { label: "text vazio", payload: { text: "" }, expectPath: "text" },
-      { label: "text com tipo errado", payload: { text: 42 }, expectPath: "text" },
-      { label: "text acima de 5000", payload: { text: "x".repeat(5001) }, expectPath: "text" },
-      { label: "campo extra (strict)", payload: { text: "ok", model: "gpt" } },
-    ],
-  },
-  {
+  },  {
     name: "evolution-retry-metrics@v1 (GET admin — body opcional)",
     schema: EvolutionRetryMetricsV1Schema,
     valid: [{}],
     invalid: [{ label: "campo extra (strict)", payload: { hours: 24 } }],
-  },
-  {
-    name: "evolution-followup@v1 (cron — body opcional)",
-    schema: EvolutionFollowupV1Schema,
-    valid: [{}],
-    invalid: [{ label: "campo extra (strict)", payload: { limit: 50 } }],
-  },
-  {
-    name: "evolution-chatbot@v1 (estrito — remote_jid + message)",
-    schema: EvolutionChatbotV1Schema,
-    valid: [
-      { remote_jid: "5511@s.whatsapp.net", message: "Olá" },
-      { remote_jid: "5511@s.whatsapp.net", message: "Olá", use_ai: false },
-    ],
-    invalid: [
-      { label: "remote_jid ausente", payload: { message: "Olá" }, expectPath: "remote_jid" },
-      { label: "message vazio", payload: { remote_jid: "5511@s.whatsapp.net", message: "" }, expectPath: "message" },
-      { label: "use_ai com tipo errado", payload: { remote_jid: "j", message: "m", use_ai: "yes" }, expectPath: "use_ai" },
-      { label: "campo extra (strict)", payload: { remote_jid: "j", message: "m", lang: "pt" } },
-    ],
   },
   {
     name: "evolution-bitrix-sync@v1 (cron — body opcional)",
@@ -279,24 +223,7 @@ const MATRICES: Matrix[] = [
       { label: "voiceId com tipo errado", payload: { text: "t", voiceId: 5 }, expectPath: "voiceId" },
       { label: "campo extra (strict)", payload: { text: "t", speed: 2 } },
     ],
-  },
-  {
-    name: "elevenlabs-sts@v1 (estrito — multipart File)",
-    schema: ElevenLabsStsV1Schema,
-    valid: [
-      { audio: new File(["fake-mp3"], "a.mp3", { type: "audio/mpeg" }), voiceId: "v1" },
-      { audio: new File(["fake-mp3"], "a.mp3"), voiceId: "v1", modelId: "eleven_multilingual_sts_v2" },
-    ],
-    invalid: [
-      { label: "audio ausente", payload: { voiceId: "v1" }, expectPath: "audio" },
-      { label: "audio com tipo errado (string)", payload: { audio: "not-a-file", voiceId: "v1" }, expectPath: "audio" },
-      { label: "voiceId ausente", payload: { audio: new File(["x"], "a.mp3") }, expectPath: "voiceId" },
-      { label: "voiceId com caractere inseguro", payload: { audio: new File(["x"], "a.mp3"), voiceId: "../etc" }, expectPath: "voiceId" },
-      { label: "modelId com caractere inseguro", payload: { audio: new File(["x"], "a.mp3"), voiceId: "v1", modelId: "a/b" }, expectPath: "modelId" },
-      { label: "campo extra (strict)", payload: { audio: new File(["x"], "a.mp3"), voiceId: "v1", text: "x" } },
-    ],
-  },
-];
+  },];
 
 for (const m of MATRICES) {
   for (const [i, payload] of m.valid.entries()) {
@@ -323,11 +250,8 @@ for (const m of MATRICES) {
 // Sanity: cron schemas (body opcional) aceitam {} — exigido pela regra 2 do contrato.
 Deno.test("business/infra: cron jobs sem body aceitam {} (body opcional)", () => {
   const cronSchemas = [
-    EvolutionSenderV1Schema,
-    EvolutionHealthV1Schema,
     EvolutionCredentialsV1Schema,
     EvolutionRetryMetricsV1Schema,
-    EvolutionFollowupV1Schema,
     EvolutionBitrixSyncV1Schema,
     DbHealthMonitorV1Schema,
     HealthCheckV1Schema,

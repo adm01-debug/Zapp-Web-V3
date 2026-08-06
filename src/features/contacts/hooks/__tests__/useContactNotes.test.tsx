@@ -231,4 +231,15 @@ describe('useContactNotes', () => {
       avatar_url: null,
     });
   });
+
+  it('useQuery de notas: enabled com contactId válido e staleTime >= 30s (dedupe/lazy)', async () => {
+    const { Wrapper, client } = makeWrapper();
+    const { result } = renderHook(() => useContactNotes(CONTACT_UUID), { wrapper: Wrapper });
+    await waitFor(() => expect(result.current.notes).toEqual([]));
+
+    const query = client.getQueryCache().find({ queryKey: ['contact-notes', CONTACT_UUID] });
+    expect(query).toBeDefined();
+    expect(query?.observers[0]?.options.staleTime).toBeGreaterThanOrEqual(30_000);
+    expect(query?.observers[0]?.options.enabled).toBe(true);
+  });
 });

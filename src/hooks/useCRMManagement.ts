@@ -1,6 +1,7 @@
 // Consolidated CRM & Customer Management Module (ETAPA 43)
 // Consolidates: useContactIntelligence, useContactNotes, useContactEnrichedData, useContactAssignment, useContactCustomFields
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 import { isValidUUID } from '@/utils/uuid';
@@ -270,9 +271,15 @@ export function useContactEnrichedDataManagement(contactId?: string) {
   return { enrichedData, loading };
 }
 
+/**
+ * Query key estável para contact_assignments — derivada EXCLUSIVAMENTE do
+ * contactId validado. Dois callers com o mesmo contactId compartilham a mesma
+ * chave, então o react-query deduplica: 1 fetch por contactId por tick
+ * (single-flight) e cache compartilhado entre componentes.
+ */
+const CONTACT_ASSIGNMENT_QUERY_KEY = 'contact-assignment';
+
 export function useContactAssignmentManagement(contactId?: string) {
-  const [assignment, setAssignment] = useState<ContactAssignment | null>(null);
-  const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -281,31 +288,54 @@ export function useContactAssignmentManagement(contactId?: string) {
     };
   }, []);
 
-  useEffect(() => {
-    if (!contactId && mountedRef.current) setLoading(false);
-  }, [contactId]);
+  // Lazy: só busca quando contactId existe E é UUID válido — mesma semântica
+  // do guard antigo dentro de fetchAssignment (quem chama não muda).
+  const validContactId = contactId && isValidUUID(contactId) ? contactId : undefined;
 
-  const fetchAssignment = useCallback(async () => {
-    if (!contactId || !isValidUUID(contactId)) return;
+  const { data, isLoading, refetch } = useQuery<ContactAssignment | null>({
+    queryKey: [CONTACT_ASSIGNMENT_QUERY_KEY, validContactId] as const,
+    queryFn: async () => {
+      // Guard defensivo — `enabled` já bloqueia; mantém o queryFn total.
+      if (!validContactId) return null;
 
-    try {
-      setLoading(true);
-      const { data, error: err } = await supabase
-        .from('contact_assignments')
-        .select('*')
-        .eq('contact_id', contactId)
-        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
+      try {
+        const { data: row, error: err } = await supabase
+          .from('contact_assignments')
+          // Colunas mínimas em vez de select('*'): as 6 colunas reais de
+          // zapp.contact_assignments (migration 20260715, linhas 44-52) —
+          // espelham 1:1 o shape público ContactAssignment. Nenhum consumidor
+          // usa campo fora disso (verificado por grep nos callers).
+          .select(
+            'id, contact_id, assigned_to_user_id, assigned_at, created_at, updated_at'
+          )
+          .eq('contact_id', validContactId)
+          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
-      if (err && err.code !== 'PGRST116') throw err;
-      if (mountedRef.current) setAssignment(data || null);
-    } catch (err) {
-      if (mountedRef.current) {
+        if (err && err.code !== 'PGRST116') throw err;
+        return row || null;
+      } catch (err) {
+        // REGRA (review 2026-08-06): NUNCA retornar null em erro — o
+        // react-query cachearia null como SUCESSO por 30s (staleTime), e um
+        // 429/timeout transitório viraria "contato sem responsável" (idêntico
+        // a vazio real). Propagando o erro, a query entra em error state e o
+        // `data` mantém o ÚLTIMO valor bem-sucedido (padrão react-query).
         log.error('Error fetching contact assignment:', err);
+        throw err;
       }
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [contactId]);
+    },
+    // Dedupe/lazy: sem contactId válido nunca busca; cache fresco por 30s
+    // evita 1 request por mount (era o que saturava o semáforo do client.ts).
+    enabled: Boolean(validContactId),
+    staleTime: 30_000,
+    // Retry NÃO é duplicado aqui: já vive no retryFetch do client.ts
+    // (semáforo de 8 slots + cooldown de 429). Retry do react-query só
+    // re-enfileiraria no semáforo e pioraria o 429.
+    retry: false,
+  });
+
+  // Shape público preservado: assignment é `ContactAssignment | null`
+  // (nunca `undefined` como o `data` do react-query durante o 1º load).
+  const assignment = data ?? null;
 
   const assignToUser = useCallback(
     async (userId: string) => {
@@ -317,21 +347,18 @@ export function useContactAssignmentManagement(contactId?: string) {
           .upsert({ contact_id: contactId, assigned_to_user_id: userId });
 
         if (err) throw err;
-        await fetchAssignment();
+        // Refetch explícito pós-mutação (atualiza o cache do contactId).
+        await refetch();
       } catch (err) {
         if (mountedRef.current) {
           log.error('Error assigning contact:', err);
         }
       }
     },
-    [contactId, fetchAssignment, mountedRef]
+    [contactId, refetch, mountedRef]
   );
 
-  useEffect(() => {
-    if (contactId) fetchAssignment();
-  }, [contactId, fetchAssignment]);
-
-  return { assignment, loading, assignToUser, refetch: fetchAssignment };
+  return { assignment, loading: isLoading, assignToUser, refetch };
 }
 
 export function useContactCustomFieldsManagement(contactId?: string) {

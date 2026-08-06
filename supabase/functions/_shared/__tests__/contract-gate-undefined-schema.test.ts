@@ -72,8 +72,8 @@ Deno.test("P0 regressão: parseRequestOrReject com schemas undefined → 422 sem
   }
 });
 
-Deno.test("P0 fix: ai-churn-analysis, classify-emoji e classify-sticker têm schema registrado", () => {
-  for (const name of ["ai-churn-analysis", "classify-emoji", "classify-sticker"]) {
+Deno.test("P0 fix: ai-churn-analysis e classify-sticker têm schema registrado", () => {
+  for (const name of ["ai-churn-analysis", "classify-sticker"]) {
     assert(CONTRACT_SCHEMAS[name] !== undefined, `${name} deve existir em CONTRACT_SCHEMAS`);
     assert(CONTRACTS[name] !== undefined, `${name} deve existir em CONTRACTS`);
     assertEquals(CONTRACTS[name].current, "v1");

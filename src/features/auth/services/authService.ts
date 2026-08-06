@@ -1,5 +1,8 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import {
+  supabase,
+  withSupabaseHighPriority,
+} from '@/integrations/supabase/client';
 import {
   mirrorExternalSignIn,
   mirrorExternalSignOut,
@@ -146,22 +149,31 @@ export const authService = {
     userId: string,
     signal?: AbortSignal
   ): Promise<{ data: Profile | null; error: PostgrestError | null }> {
-    const { data, error } = await (supabase
-      .from('profiles') as unknown as {
-        select: (s: string) => {
-          eq: (c: string, v: string) => {
-            abortSignal: (sig: AbortSignal) => {
-              maybeSingle: () => Promise<{ data: Profile | null; error: PostgrestError | null }>;
+    // Prioridade HIGH no semáforo (FIX review 2026-08-06): o getProfile não
+    // pode esperar atrás da rajada da inbox (48+ RPCs) na fila FIFO — em prod
+    // isso custava ~5600ms. Em vez de slot manual (que seguraria capacidade
+    // extra e causaria inversão de prioridade com o fetch interno), marcamos
+    // o CONTEXTO: o retryFetch lê o flag e adquire UM ÚNICO slot 'high' que
+    // fura a fila de normais. Nada a liberar manualmente — o retryFetch já
+    // gerencia o slot em try/finally.
+    return withSupabaseHighPriority(async () => {
+      const { data, error } = await (supabase
+        .from('profiles') as unknown as {
+          select: (s: string) => {
+            eq: (c: string, v: string) => {
+              abortSignal: (sig: AbortSignal) => {
+                maybeSingle: () => Promise<{ data: Profile | null; error: PostgrestError | null }>;
+              };
             };
           };
-        };
-      })
-      .select('*')
-      .eq('user_id', userId)
-      .abortSignal(signal ?? new AbortController().signal)
-      .maybeSingle();
+        })
+        .select('*')
+        .eq('user_id', userId)
+        .abortSignal(signal ?? new AbortController().signal)
+        .maybeSingle();
 
-    return { data: (data as Profile | null) ?? null, error };
+      return { data: (data as Profile | null) ?? null, error };
+    });
   },
 
   onAuthStateChange(callback: (event: string, session: Session | null) => void) {

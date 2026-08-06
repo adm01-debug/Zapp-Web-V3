@@ -123,13 +123,13 @@ Deno.test("unified-422: TODAS as funções com body não-estruturado → invalid
 
 Deno.test("unified-422: versão não suportada → unsupported_contract_version", async () => {
   const r = parseOrReject(
-    "evolution-sender",
-    CONTRACT_SCHEMAS["evolution-sender"],
+    "gmail-send",
+    CONTRACT_SCHEMAS["gmail-send"],
     req({ "x-contract-version": "v9" }),
     {},
   );
   const body = await assertUnifiedEnvelope(r, "unsupported_contract_version");
-  assertEquals(body.contract, "evolution-sender@v9", "label deve refletir a versão pedida");
+  assertEquals(body.contract, "gmail-send@v9", "label deve refletir a versão pedida");
   assert(
     body.message.includes("v9") && body.message.includes("v1"),
     "message deve listar as versões suportadas",

@@ -26,6 +26,7 @@ import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { logChannelError } from '@/integrations/supabase/channelErrorLogging';
 import { subscribeAllSendStatus, type SendUIStatus } from './sendStatusBus';
 import { getLogger } from '@/lib/logger';
 
@@ -147,6 +148,10 @@ export function useRetryResolutionAlerts(enabled = true): void {
     });
 
     // ── Source 2: Postgres realtime (cross-tab / cross-agent) ──────────────
+    // Última conexão bem-sucedida do canal (status SUBSCRIBED) — usada para
+    // classificar CHANNEL_ERROR transiente vs real.
+    let lastConnectedAtMs: number | null = null;
+
     const channel = supabase
       .channel(`retry_resolution_alerts:${Math.random().toString(36).slice(2, 10)}`)
       .on<MessageRowMinimal>(
@@ -176,7 +181,13 @@ export function useRetryResolutionAlerts(enabled = true): void {
         }
       )
       .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR') log.warn('[retry-resolved] channel error');
+        // Distingue erro transiente (reconexão automática do supabase-js /
+        // backend fora do ar) de erro real: só o erro real loga em warn.
+        if (status === 'SUBSCRIBED') {
+          lastConnectedAtMs = Date.now();
+        } else if (status === 'CHANNEL_ERROR') {
+          void logChannelError(log, '[retry-resolved] channel error', lastConnectedAtMs);
+        }
       });
 
     return () => {

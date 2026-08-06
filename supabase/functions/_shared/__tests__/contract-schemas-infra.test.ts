@@ -37,7 +37,6 @@ const EMPTY_STRICT_NAMES = [
   "batch-fetch-avatars",
   "cleanup-rate-limit-logs",
   "cleanup-storage-orphans",
-  "elevenlabs-agent-token",
   "elevenlabs-scribe-token",
   "get-mapbox-token",
   "get-sip-password",
@@ -431,10 +430,10 @@ for (const m of MULTIPART_MATRICES) {
   }
 }
 
-// ─── Sanity — todos os 35 nomes estão registrados com v1 no registro canônico ─
-Deno.test("infra: os 35 nomes de infra estão registrados com v1 no CONTRACT_SCHEMAS", () => {
+// ─── Sanity — todos os 34 nomes estão registrados com v1 no registro canônico ─
+Deno.test("infra: os 34 nomes de infra estão registrados com v1 no CONTRACT_SCHEMAS", () => {
   const all = [...EMPTY_STRICT_NAMES, ...MATRICES.map((m) => m.name.split("@")[0]), ...MULTIPART_MATRICES.map((m) => m.name.split("@")[0])];
-  assertEquals(new Set(all).size, 35, "esperava exatamente 35 nomes de infra distintos");
+  assertEquals(new Set(all).size, 34, "esperava exatamente 34 nomes de infra distintos");
   for (const name of all) {
     assert(CONTRACT_SCHEMAS[name], `CONTRACT_SCHEMAS não registra '${name}'`);
     assert(CONTRACT_SCHEMAS[name].v1, `'${name}' não tem versão v1`);
