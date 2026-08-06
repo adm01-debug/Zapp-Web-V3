@@ -1,8 +1,8 @@
 # ADR-DB-003 — Mover Extensões de `public` para `extensions`
 
-**Status:** PLANEJADO — aguarda staging  
-**Data:** 27/07/2026  
-**Etapa 8 do Plano DB — risco ALTO.**
+**Status:** EXECUTADO (onda 2 auditoria 06/08/2026 — 9/9 movidas, 0 extensões em public)  
+**Data original:** 27/07/2026 · **Execução:** 06/08/2026 (AG-01, 15 migrations versionadas)  
+**Etapa 8 do Plano DB — risco ALTO (mitigado: 1 extensão por vez + validação + rollback documentado).**
 
 ---
 
