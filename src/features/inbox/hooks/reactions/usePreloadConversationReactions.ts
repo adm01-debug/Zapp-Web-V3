@@ -1,73 +1,103 @@
 /**
- * usePreloadConversationReactions
+ * ReactionsBatchProvider + useReactionsBatchContext
  *
- * Batch-loads ALL reactions for a set of message IDs in a SINGLE Supabase query,
- * then primes the React Query cache so per-message `useMessageReactions` hooks
- * find data immediately without firing individual network requests.
+ * Substitui o antigo `usePreloadConversationReactions` (efeito que primava o
+ * cache sem gate) por um provider que elimina o N+1 de `message_reactions` ao
+ * abrir uma conversa (FIX 2026-08-06 — evidência: 30-60 GETs
+ * `message_reactions?message_id=eq.<uuid>` por conversa aberta):
  *
- * Eliminates O(n) → O(1) query pattern for message reactions.
- * Called once at VirtualizedMessageList level where all IDs are known.
+ *  - Dispara UMA query batch (`fetchReactionsBatch`) para TODAS as mensagens
+ *    visíveis (no máximo 1-2 GETs: batch + profiles para enriquecer nomes);
+ *  - Enquanto o batch está pendente, os hooks por-mensagem (`useMessageReactions`)
+ *    ficam com `enabled=false` — nenhum GET individual dispara no mount;
+ *  - Ao resolver, prima o cache de cada mensagem com
+ *    `queryKeys.messageReactions.message(id)` — a MESMA chave lida pelo hook
+ *    por-mensagem (staleTime 30s → sem refetch no mount);
+ *  - Mantém realtime (invalidação via `useConversationReactionsRealtime`) e
+ *    mutações otimistas (`useReactionMutations`) intactos, pois ambos operam
+ *    nas chaves por-mensagem já primadas.
+ *
+ * Usado em `ChatMessagesArea` envolvendo a lista virtualizada de mensagens.
  */
-import { useEffect, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  createContext,
+  createElement,
+  useContext,
+  useMemo,
+  type ReactNode,
+} from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/services/api/queryKeys';
-import { getLogger } from '@/lib/logger';
+import { fetchReactionsBatch } from './useBatchReactions';
 import type { MessageReaction } from './types';
 
-const log = getLogger('usePreloadConversationReactions');
+/** Chave local da query batch (queryKeys.ts é read-only — não adicionamos lá). */
+const batchQueryKey = (joinedIds: string) => ['message-reactions-batch', joinedIds] as const;
 
-export function usePreloadConversationReactions(messageIds: string[]): void {
+const EMPTY_IDS_SET: ReadonlySet<string> = new Set();
+
+interface ReactionsBatchContextValue {
+  /** IDs cobertos pelo batch atual (mensagens visíveis da conversa). */
+  messageIds: ReadonlySet<string>;
+  /** true enquanto o GET batch está em voo — per-message hooks devem esperar. */
+  isBatchPending: boolean;
+}
+
+const ReactionsBatchContext = createContext<ReactionsBatchContextValue | null>(null);
+
+/** Consome o estado do batch; fora do provider retorna "sem batch" (comportamento antigo). */
+export function useReactionsBatchContext(): ReactionsBatchContextValue {
+  return useContext(ReactionsBatchContext) ?? { messageIds: EMPTY_IDS_SET, isBatchPending: false };
+}
+
+interface ReactionsBatchProviderProps {
+  messageIds: string[];
+  children: ReactNode;
+}
+
+/** Provider que agrupa o carregamento de reações das mensagens visíveis em 1-2 GETs. */
+export function ReactionsBatchProvider({ messageIds, children }: ReactionsBatchProviderProps) {
   const queryClient = useQueryClient();
-  const joinedRef = useRef('');
+  const joinedIds = useMemo(() => messageIds.join('|'), [messageIds]);
+  const idsSet = useMemo(() => new Set(messageIds), [messageIds]);
 
-  useEffect(() => {
-    if (!messageIds.length) return;
+  const { isPending } = useQuery({
+    queryKey: batchQueryKey(joinedIds),
+    queryFn: async () => {
+      // Marca o início do batch para não sobrescrever dados mais frescos
+      // (ex.: refetch disparado por realtime durante a busca do batch).
+      const batchStartedAt = Date.now();
 
-    const joined = messageIds.join(',');
-    if (joined === joinedRef.current) return;
-    joinedRef.current = joined;
+      const rows = await fetchReactionsBatch(messageIds);
 
-    let cancelled = false;
+      const grouped = rows.reduce<Record<string, MessageReaction[]>>((acc, r) => {
+        (acc[r.message_id] ??= []).push(r);
+        return acc;
+      }, {});
 
-    void (async () => {
-      try {
-        // rpc_get_reactions_batch: busca reações de múltiplas mensagens em 1 call
-        // com RLS aplicado no servidor (FIX-2026-08-04: substituiu N×GET individuais)
-        const { data, error } = await supabase.rpc('rpc_get_reactions_batch', {
-          p_message_ids: messageIds,
-        });
-
-        if (cancelled) return;
-        if (error) {
-          log.warn('Preload reactions batch failed', { error: error.message });
-          return;
+      // Prime o cache por-mensagem (mesma queryKey lida por useMessageReactions).
+      // Guard: só escreve se não houver dados ou se os dados atuais forem mais
+      // antigos que o início deste batch (não pisa em dados frescos de realtime).
+      for (const id of messageIds) {
+        const key = queryKeys.messageReactions.message(id);
+        const state = queryClient.getQueryState(key);
+        if (!state?.data || state.dataUpdatedAt < batchStartedAt) {
+          queryClient.setQueryData(key, grouped[id] ?? []);
         }
-
-        const raw = (data ?? []) as unknown as MessageReaction[];
-
-        // Group by message_id
-        const grouped = raw.reduce<Record<string, MessageReaction[]>>((acc, r) => {
-          (acc[r.message_id] ??= []).push(r);
-          return acc;
-        }, {});
-
-        // Prime cache — only write if not already populated to avoid stomping fresher data
-        for (const id of messageIds) {
-          const key = queryKeys.messageReactions.message(id);
-          const state = queryClient.getQueryState(key);
-          if (!state || state.status === 'pending') {
-            queryClient.setQueryData(key, grouped[id] ?? []);
-          }
-        }
-      } catch (err) {
-        if (!cancelled) log.error('Unexpected preload error', err);
       }
-    })();
 
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messageIds.join(','), queryClient]);
+      return grouped;
+    },
+    enabled: messageIds.length > 0,
+    staleTime: 30_000,
+    gcTime: 5 * 60 * 1000,
+    retry: false, // se o batch falhar, o fallback por-mensagem assume (comportamento antigo)
+  });
+
+  const value = useMemo(
+    () => ({ messageIds: idsSet, isBatchPending: messageIds.length > 0 && isPending }),
+    [idsSet, isPending, messageIds.length]
+  );
+
+  return createElement(ReactionsBatchContext.Provider, { value }, children);
 }

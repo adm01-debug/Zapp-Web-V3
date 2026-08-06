@@ -22,6 +22,9 @@ const { queryClientMock, estimateSizeRef } = vi.hoisted(() => ({
 // ── Mocks de módulos externos/pesados ────────────────────────────────────────
 vi.mock('@tanstack/react-query', () => ({
   useQueryClient: () => queryClientMock,
+  // ReactionsBatchProvider (wired no ChatMessagesArea) usa useQuery para o
+  // batch de reações; nestes testes de estimativa de tamanho não há reações.
+  useQuery: () => ({ isPending: false, data: undefined }),
 }));
 
 vi.mock('@tanstack/react-virtual', () => ({

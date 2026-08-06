@@ -24,6 +24,7 @@ import { motion, AnimatePresence } from '@/components/ui/motion';
 import { TypingIndicator } from '../TypingIndicator';
 import { MessageBubble } from './MessageBubble';
 import { useConversationReactionsRealtime } from '../../hooks/reactions/useConversationReactionsRealtime';
+import { ReactionsBatchProvider } from '../../hooks/reactions/usePreloadConversationReactions';
 
 import type { LoadOlderProps } from './loadOlderTypes';
 
@@ -336,11 +337,12 @@ export const ChatMessagesArea = memo(
       }, []);
 
       return (
-        <div
-          ref={scrollContainerRef}
-          onScroll={handleScroll}
-          className="scrollbar-none relative min-h-0 min-w-0 flex-1 overflow-y-auto bg-background/20 px-4 py-6 md:px-24"
-        >
+        <ReactionsBatchProvider messageIds={messageIds}>
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="scrollbar-none relative min-h-0 min-w-0 flex-1 overflow-y-auto bg-background/20 px-4 py-6 md:px-24"
+          >
           <ChatWatermark />
 
           {isLoading && (
@@ -470,7 +472,8 @@ export const ChatMessagesArea = memo(
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
+          </div>
+        </ReactionsBatchProvider>
       );
     }
   )
