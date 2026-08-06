@@ -9,7 +9,7 @@
  * Rodar: deno test --allow-net --allow-env --allow-read supabase/functions/audio-transcribe/__tests__/ssrf-guard.test.ts
  */
 
-import { assertEquals, assertMatch } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assertMatch } from "jsr:@std/assert";
 import { readSourceFrom } from "../../_shared/test-helpers.ts";
 
 const SOURCE = await readSourceFrom(import.meta.url, "../index.ts");

@@ -4,7 +4,7 @@
  * antiga (campo `messages` e `result.fieldErrors`) que não existe mais em
  * `schemas.ts` — 4/5 testes falhavam permanentemente na main.
  */
-import { assertEquals, assert } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assert } from "jsr:@std/assert";
 import { parseBody, AiSuggestReplySchema } from "../_shared/schemas.ts";
 import { WebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
 import { WebhookDiagnosticV1Schema } from "../_shared/contract-schemas.ts";

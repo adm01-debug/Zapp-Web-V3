@@ -10,7 +10,7 @@
  * Rodar: deno test --allow-net --allow-env --allow-read supabase/functions/evolution-credentials/__tests__/contract.test.ts
  */
 
-import { assertEquals, assert, assertMatch } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assert, assertMatch } from "jsr:@std/assert";
 import { parseOrReject } from "../../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../../_shared/contract-schemas.ts";
 import { readSourceFrom } from "../../_shared/test-helpers.ts";

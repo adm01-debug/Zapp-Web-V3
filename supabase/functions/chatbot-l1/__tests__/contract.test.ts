@@ -8,7 +8,7 @@
  * Rodar: deno test --allow-net --allow-env --allow-read supabase/functions/chatbot-l1/__tests__/contract.test.ts
  */
 
-import { assertEquals, assert } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assert } from "jsr:@std/assert";
 import { ChatbotL1Schema } from "../../_shared/schemas.ts";
 import { readSourceFrom } from "../../_shared/test-helpers.ts";
 

@@ -222,6 +222,9 @@ design-system-audit.md
 # Relatórios de CI gerados por check-types-schemas.mjs e scripts similares
 # /reports/ (root only) to avoid matching src/components/reports/
 /reports/
+# exceção: snapshot semanal de schema commitado pelo CI (schema-snapshot.yml)
+!/reports/
+!/reports/schema-snapshot.sql
 
 # Artefatos históricos de sessões/auditorias (movidos para docs/history/)
 ROUND-15-*.md

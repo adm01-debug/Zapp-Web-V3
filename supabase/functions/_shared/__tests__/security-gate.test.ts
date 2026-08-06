@@ -7,7 +7,7 @@
  * Rodar: deno test supabase/functions/_shared/__tests__/security-gate.test.ts
  */
 
-import { assertEquals } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals } from "jsr:@std/assert";
 import {
   checkLoginSecurityGate,
   getClientCountry,

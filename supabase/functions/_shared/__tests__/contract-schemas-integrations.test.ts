@@ -20,7 +20,7 @@
  *   supabase/functions/_shared/__tests__/contract-schemas-integrations.test.ts
  */
 
-import { assertEquals, assert } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assert } from "jsr:@std/assert";
 import { parseOrReject } from "../contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../contract-schemas.ts";
 

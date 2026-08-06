@@ -16,7 +16,7 @@
  * Rodar: deno test --allow-net --allow-env --allow-read contract-schemas-ai.test.ts
  */
 
-import { assertEquals, assert } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assert } from "jsr:@std/assert";
 import type { z } from "../contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../contract-schemas.ts";
 
