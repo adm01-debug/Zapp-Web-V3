@@ -1,33 +1,34 @@
 #!/usr/bin/env node
 /**
- * build-patches.mjs
+ * build-patches.mjs — v2 (Plano B, bundle esbuild 0.27/tsup 8.5.1)
  * Porta BUILD-TIME do logpatch.cjs (stack 25 / config evolution_logpatch_t4_cjs).
  *
  * Aplica os patches T1-T6 no bundle ORIGINAL /evolution/dist/main.js da
- * Evolution API 2.3.7 (evoapicloud/evolution-api@sha256:6b195676...) e gera
- * main.patched.js — o bundle versionado em Git e copiado pela imagem custom
- * (Dockerfile.evolution-custom).
+ * Evolution API 2.3.7 e gera main.patched.js — o bundle copiado pela imagem
+ * custom (Dockerfile.evolution-custom).
  *
- * T1  remove console.log(c) antes de sendDataWebhook("messages.upsert",c)
- * T2  remove console.log("stanza",JSON.stringify(e)),   [TOLERANTE — Plano B]
+ * v2: targets ADAPTADOS aos literais reais do bundle gerado com o lockfile da
+ * tag 2.3.7 (esbuild 0.27.0/tsup 8.5.1 — NÃO é o bundle da imagem oficial de
+ * 2025-12-05, que usava esbuild da época: _l/Nl/Lr/Br viraram Vh/qh/zl/Xl e o
+ * T1 mudou de forma). Determinismo esbuild garante os mesmos nomes no CI.
+ *
+ * T1  remove console.log(p) antes de sendDataWebhook(O.MESSAGES_UPSERT,p)
+ * T2  remove console.log("stanza",JSON.stringify(e)),      [TOLERANTE]
  * T3  Sentry: tracesSampleRate 0.05 / profilesSampleRate 0 / beforeSend
  *     filtra 401, 403, DEVICE_REMOVED, "Request failed with status code
- *     401/403" e makeBucket
+ *     401/403" e makeBucket                                  [ESTRITO]
  * T4  prepend do prologue t4_prologue.cjs (log masking, marcador MASKED)
- * T5a remove console.log("CACHE:",...) de mensagens     [TOLERANTE — Plano B]
- * T6  mascara a versão no GET / (F2-21): resposta pública sem auth devolve
- *     {"version":"2.3.7"} via _l.version (require do package.json em runtime);
- *     substitui o literal da rota raiz por {"version":"2.x"} (não-informativo,
- *     determinístico no build-time — não depende de digest/CI).
+ * T5a remove console.log("CACHE:",...) de mensagens        [TOLERANTE]
+ * T6  GET / mascara a versão ("2.x" no lugar da real) — F2-21 [ESTRITO]
+ * libsignal/src/session_record.js: remove console.info/warn de sessões
+ * (patch no Dockerfile, mesma dep git nas versões do baileys).
  *
  * MODOS:
- *  - ESTRITO (default para T1, T3, T6): count == 1 obrigatório; count != 1
- *    aborta com exit 1. São código da Evolution com source fixo (2.3.7) — se
- *    sumirem, algo grave mudou e o build DEVE falhar.
- *  - TOLERANTE (T2, T5a — origem no código do baileys, pode sumir ao trocar
- *    o pin, ex.: 7.0.0-rc.9 → 6.7.24 — Plano B): count == 0 → SKIP com warn
- *    explícito; count > 1 → FAIL (ambiguidade nunca aplica); count == 1 →
- *    aplica normalmente. NUNCA produz bundle parcial.
+ *  - ESTRITO (T3, T6): count == 1 obrigatório; count != 1 aborta. Críticos
+ *    (Sentry flood / máscara de versão) — nunca publicar sem eles.
+ *  - TOLERANTE (T1, T2, T5a): count == 0 → SKIP com warn explícito; count > 1
+ *    → FAIL (ambiguidade nunca aplica); count == 1 → aplica. NUNCA produz
+ *    bundle parcial.
  *
  * Uso:
  *   node build-patches.mjs [main.js] [main.patched.js] [t4_prologue.cjs] [versao]
@@ -60,24 +61,20 @@ const countOf = (haystack, needle) => haystack.split(needle).length - 1;
 const sha256 = (p) =>
   crypto.createHash("sha256").update(fs.readFileSync(p)).digest("hex");
 
-// ===================== Targets (idênticos ao logpatch.cjs) =====================
-// T1: console.log(c) antes do webhook messages.upsert
-const T1 = 'console.log(c),this.sendDataWebhook("messages.upsert",c)';
-const R1 = 'this.sendDataWebhook("messages.upsert",c)';
-// T2: log de stanza (origem indeterminada Evolution/baileys — TOLERANTE)
+// ============ Targets (literais REAIS do bundle esbuild 0.27/tsup 8.5.1) ====
+// T1: console.log(p) antes do webhook messages.upsert (TOLERANTE — v2)
+const T1 = 'console.log(p),this.sendDataWebhook(O.MESSAGES_UPSERT,p)';
+const R1 = 'this.sendDataWebhook(O.MESSAGES_UPSERT,p)';
+// T2: log de stanza (TOLERANTE)
 const T2 = 'console.log("stanza",JSON.stringify(e)),';
-// T3: init do Sentry (original -> patcheado)
-const T3O = 'Lr.DSN&&Br.init({dsn:Lr.DSN,environment:process.env.NODE_ENV||"development",tracesSampleRate:1,profilesSampleRate:1})';
-const T3N = 'Lr.DSN&&Br.init({dsn:Lr.DSN,environment:"production",tracesSampleRate:0.05,profilesSampleRate:0,beforeSend:(event,hint)=>{try{const e=hint&&hint.originalException;if(e){if(e.response&&[401,403].includes(e.response.status))return null;if(e.message&&(e.message.includes("DEVICE_REMOVED")||e.message.includes("Request failed with status code 401")||e.message.includes("status code 403")||e.message.includes("makeBucket")))return null;}}catch(_){}return event;}})';
-// T5a: log de cache de mensagens (origem indeterminada — TOLERANTE)
-const T5_SRC = 'console.log("CACHE:",{cached:a,updateKey:r,messageTimestamp:n.messageTimestamp,secondsSinceEpoch:c}),';
-const T5_COND = T5_SRC + 'n.messageTimestamp&&';
-// T6: GET / devolve version real (via _l.version do package.json). Mascara a
-// resposta pública da raiz (sem auth) com "2.x" — F2-21. A métrica prometheus
-// (evolution_environment_info) usa outro padrão (_l.version dentro de template)
-// e NÃO é afetada.
-const T6O = 'version:_l.version,clientName:Nl.CONNECTION.CLIENT_NAME';
-const T6N = 'version:"2.x",clientName:Nl.CONNECTION.CLIENT_NAME';
+// T3: init do Sentry (ESTRITO — nomes v2: zl/Xl)
+const T3O = 'zl.DSN&&Xl.init({dsn:zl.DSN,environment:process.env.NODE_ENV||"development",tracesSampleRate:1,profilesSampleRate:1})';
+const T3N = 'zl.DSN&&Xl.init({dsn:zl.DSN,environment:"production",tracesSampleRate:0.05,profilesSampleRate:0,beforeSend:(event,hint)=>{try{const e=hint&&hint.originalException;if(e){if(e.response&&[401,403].includes(e.response.status))return null;if(e.message&&(e.message.includes("DEVICE_REMOVED")||e.message.includes("Request failed with status code 401")||e.message.includes("status code 403")||e.message.includes("makeBucket")))return null;}}catch(_){}return event;}})';
+// T5a: log de cache de mensagens (TOLERANTE — v2: cached:c/secondsSinceEpoch:p)
+const T5_COND = 'console.log("CACHE:",{cached:c,updateKey:r,messageTimestamp:n.messageTimestamp,secondsSinceEpoch:p}),n.messageTimestamp&&';
+// T6: GET / mascara a versão real (F2-21) — ESTRITO (v2: Vh/qh)
+const T6O = 'version:Vh.version,clientName:qh.CONNECTION.CLIENT_NAME';
+const T6N = 'version:"2.x",clientName:qh.CONNECTION.CLIENT_NAME';
 
 // ============================= Execução =============================
 if (!fs.existsSync(SRC)) {
@@ -88,19 +85,25 @@ let out = fs.readFileSync(SRC, "utf8");
 const applied = [];
 const skipped = [];
 
-// --- T1 (ESTRITO: c1 deve ser 1) ---
+// --- T1 (TOLERANTE) ---
 {
   const c = countOf(out, T1);
-  if (c !== 1) fail(`T1: target encontrado ${c}x (esperado 1x) — bundle da base mudou?`);
-  out = out.split(T1).join(R1);
-  applied.push("T1");
+  if (c === 0) {
+    warn(`T1: target ausente (webhook log) — provavelmente removido/renomeado no bundle; seguindo sem este patch`);
+    skipped.push("T1");
+  } else if (c !== 1) {
+    fail(`T1: target encontrado ${c}x (esperado 0 ou 1x) — ambiguidade nunca aplica`);
+  } else {
+    out = out.split(T1).join(R1);
+    applied.push("T1");
+  }
 }
 
-// --- T2 (TOLERANTE: 0 = SKIP, 1 = aplica, >1 = FAIL) ---
+// --- T2 (TOLERANTE) ---
 {
   const c = countOf(out, T2);
   if (c === 0) {
-    warn(`T2: target ausente (stanza log) — provavelmente removido no baileys novo; seguindo sem este patch`);
+    warn(`T2: target ausente (stanza log) — seguindo sem este patch`);
     skipped.push("T2");
   } else if (c !== 1) {
     fail(`T2: target encontrado ${c}x (esperado 0 ou 1x) — ambiguidade nunca aplica`);
@@ -110,19 +113,19 @@ const skipped = [];
   }
 }
 
-// --- T3 (ESTRITO) ---
+// --- T3 (ESTRITO — Sentry) ---
 {
   const c = countOf(out, T3O);
-  if (c !== 1) fail(`T3: init original do Sentry encontrado ${c}x (esperado 1x) — bundle da base mudou?`);
+  if (c !== 1) fail(`T3: init original do Sentry encontrado ${c}x (esperado 1x) — bundle mudou?`);
   out = out.split(T3O).join(T3N);
   applied.push("T3");
 }
 
-// --- T5a (TOLERANTE: 0 = SKIP, 1 = aplica, >1 = FAIL) ---
+// --- T5a (TOLERANTE) ---
 {
   const c = countOf(out, T5_COND);
   if (c === 0) {
-    warn(`T5a: target ausente (CACHE log) — provavelmente removido no baileys novo; seguindo sem este patch`);
+    warn(`T5a: target ausente (CACHE log) — seguindo sem este patch`);
     skipped.push("T5a");
   } else if (c !== 1) {
     fail(`T5a: console.log("CACHE:...") encontrado ${c}x (esperado 0 ou 1x) — ambiguidade nunca aplica`);
@@ -132,10 +135,10 @@ const skipped = [];
   }
 }
 
-// --- T6 (ESTRITO) ---
+// --- T6 (ESTRITO — máscara de versão F2-21) ---
 {
   const c = countOf(out, T6O);
-  if (c !== 1) fail(`T6: literal da rota raiz (version:_l.version) encontrado ${c}x (esperado 1x) — bundle da base mudou?`);
+  if (c !== 1) fail(`T6: literal da rota raiz (version:Vh.version) encontrado ${c}x (esperado 1x) — bundle mudou?`);
   out = out.split(T6O).join(T6N);
   applied.push("T6");
 }
