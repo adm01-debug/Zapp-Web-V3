@@ -192,8 +192,11 @@ jobs:
       - name: Smoke test (Design B' gate — imagem final com baileys ${{ inputs.baileys_version }})
         run: |
           IMG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:smoke-${{ inputs.baileys_version }}
+          set +e
           timeout 45 docker run --rm --entrypoint node "$IMG" dist/main.js > /tmp/smoke.log 2>&1
-          echo "rc=$? (crash por env ausente é esperado; o que importa é o require carregar)"
+          RC=$?
+          set -e
+          echo "rc=$RC (crash por env ausente é esperado; o que importa é o require carregar)"
           tail -25 /tmp/smoke.log
           if grep -iE "cannot find module|MODULE_NOT_FOUND" /tmp/smoke.log; then
             echo "SMOKE FAIL: require externo órfão"
