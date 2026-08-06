@@ -14,7 +14,7 @@
  * Isso fecha o gap onde 43 contratos estavam registrados mas só 14 tinham schema.
  */
 
-import { assertEquals, assert } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assert } from "jsr:@std/assert";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { fromFileUrl } from "https://deno.land/std@0.168.0/path/mod.ts";
 import { CONTRACTS, isDeprecatedVersion } from "../contract-versions.ts";

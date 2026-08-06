@@ -1,4 +1,4 @@
-import { assert, assertEquals } from 'https://deno.land/std@0.168.0/testing/asserts.ts';
+import { assert, assertEquals } from 'jsr:@std/assert';
 import {
   EDGE_FUNCTION_NAMES,
   EdgeFunctionContractSchemas,

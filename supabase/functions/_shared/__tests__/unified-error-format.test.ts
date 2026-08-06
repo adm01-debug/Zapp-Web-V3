@@ -25,7 +25,7 @@
  * Rodar: deno test supabase/functions/_shared/__tests__/unified-error-format.test.ts
  */
 
-import { assertEquals, assert, assertMatch } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assert, assertMatch } from "jsr:@std/assert";
 import {
   parseOrReject,
   type ContractErrorBody,

@@ -30,10 +30,13 @@ jobs:
     # (online, Docker disponível) — mesmo padrão dos workflows E2E-VPS.
     runs-on: [self-hosted, Linux, X64, vps-zapp]
     environment: production
+    timeout-minutes: 30
     outputs:
       image: ${{ steps.meta.outputs.image }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: 🛡️ Preflight Secrets Validation
         env:
@@ -154,6 +157,7 @@ jobs:
     runs-on: [self-hosted, Linux, X64, vps-zapp]
     needs: build-and-push
     environment: production
+    timeout-minutes: 30
     steps:
       - name: Verify required secrets
         run: |
@@ -260,3 +264,76 @@ jobs:
             https://zapp.atomicabr.com.br/auth || echo 000)
           echo "Health /auth: ${HC}"
           case "${HC}" in 200|301|302) echo "App OK" ;; *) echo "::warning::POST_DEPLOY_HC=${HC} — verificar serviço manualmente"; esac
+
+  # ============================================================
+  # Health check pós-deploy DETERMINÍSTICO (fix 2026-08-06 — DP-09):
+  # post-deploy-check.yml (workflow_run) nunca executou (0 runs em 24h+
+  # apesar de deploys concluídos — entrega de webhooks do evento não
+  # confiável). Este job roda SEMPRE que o deploy concluir (if: always()),
+  # independente de webhooks. Mesmas 3 checagens do post-deploy-check.yml:
+  #   1) TTM www.zappweb.app.br < 3.0s (000/timeout = falha)
+  #   2) PostgREST vivo (4xx ok; falha só 5xx/000)
+  #   3) Edge function get-media-base64 viva (4xx ok; falha só 5xx/000)
+  # ============================================================
+  post-deploy-health:
+    name: 🩺 Health check pós-deploy (determinístico)
+    needs: deploy
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: "🔧 Preparação — garante bc no runner (fail-closed)"
+        run: |
+          if ! command -v bc >/dev/null 2>&1; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq bc
+          fi
+          command -v bc >/dev/null 2>&1 || { echo "::error::BC_UNAVAILABLE — não foi possível obter bc; abortando (fail-closed)"; exit 1; }
+          bc --version | head -1
+
+      - name: "1/3 — TTM www.zappweb.app.br (< 3.0s)"
+        run: |
+          RESP=$(curl -s -o /dev/null -w '%{http_code} %{time_total}' --max-time 15 https://www.zappweb.app.br/ || true)
+          CODE=$(echo "$RESP" | awk '{print $1}')
+          TTM=$(echo "$RESP" | awk '{print $2}')
+          CODE=${CODE:-000}
+          TTM=${TTM:-0}
+          echo "www.zappweb.app.br → HTTP ${CODE} em ${TTM}s"
+          if [ "$CODE" = "000" ]; then
+            echo "::error::SITE_DEAD — conexão falhou/timeout (HTTP 000)"
+            exit 1
+          fi
+          if [ "$(echo "$TTM > 3.0" | bc -l)" = "1" ]; then
+            echo "::error::TTM_TOO_SLOW — ${TTM}s > 3.0s (limite)"
+            exit 1
+          fi
+          echo "✅ Site OK — TTM ${TTM}s (< 3.0s)"
+
+      - name: "2/3 — Supabase PostgREST vivo (4xx ok; 5xx/timeout = falha)"
+        if: always()
+        run: |
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 https://supabase.atomicabr.com.br/rest/v1/ || true)
+          CODE=${CODE:-000}
+          echo "supabase.atomicabr.com.br/rest/v1/ → HTTP ${CODE}"
+          if [ "$CODE" = "000" ]; then
+            echo "::error::SUPABASE_DEAD — timeout/conexão (HTTP 000)"
+            exit 1
+          fi
+          case "$CODE" in
+            5*) echo "::error::SUPABASE_DEAD — HTTP ${CODE} (5xx = servidor fora)"; exit 1 ;;
+          esac
+          echo "✅ PostgREST vivo — HTTP ${CODE} (401/4xx sem apikey é esperado)"
+
+      - name: "3/3 — Edge Function get-media-base64 viva (4xx ok; 5xx/timeout = falha)"
+        if: always()
+        run: |
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 -X POST https://supabase.atomicabr.com.br/functions/v1/evolution-api/get-media-base64 || true)
+          CODE=${CODE:-000}
+          echo "evolution-api/get-media-base64 (POST sem body) → HTTP ${CODE}"
+          if [ "$CODE" = "000" ]; then
+            echo "::error::EDGE_FUNCTION_DEAD — timeout/conexão (HTTP 000)"
+            exit 1
+          fi
+          case "$CODE" in
+            5*) echo "::error::EDGE_FUNCTION_DEAD — HTTP ${CODE} (5xx = função fora)"; exit 1 ;;
+          esac
+          echo "✅ Edge Function viva — HTTP ${CODE} (4xx sem body é esperado)"

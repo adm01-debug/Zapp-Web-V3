@@ -1,4 +1,4 @@
-import { assertEquals } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals } from "jsr:@std/assert";
 import {
   EvolutionWebhookV1Schema,
   EvolutionWebhookV2Schema,
