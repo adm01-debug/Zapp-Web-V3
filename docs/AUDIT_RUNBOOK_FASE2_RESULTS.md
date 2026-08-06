@@ -423,7 +423,7 @@ VACUUM FULL ANALYZE n8n_queue.binary_data;
 
 **Diagnóstico:** pg_cron job 172 (`evo-instance-health-check`) executava a cada 10 minutos mas não atualizava nada. O campo `health_status` ficava perpetuamente `NULL` ou desatualizado.
 
-**Correção aplicada (2026-08-06T11:32:48 UTC):**
+**Correção aplicada (2026-08-06T11:32:48 UTC) — seed manual:**
 ```sql
 INSERT INTO evo.evolution_instance_credentials 
   (instance_name, api_url, api_key, health_status, display_name, is_active)
@@ -438,6 +438,18 @@ RETURNING id;
 -- Resultado: id = 7023b237-5438-4ac6-ac19-3c47ef8fec57
 ```
 
+**Correção versionada (migration idempotente):**
+Migration `20260806800000_seed_evo_instance_credentials_wpp2.sql` adicionada ao repositório.
+- Usa `ON CONFLICT (instance_name) DO NOTHING` — seguro para restore e fresh-deploy
+- `api_url` (`https://evolution.atomicabr.com.br`) é URL pública — não é segredo
+- `api_key` inserida como string vazia `''` — deve ser injetada pós-deploy via secrets management:
+  ```sql
+  UPDATE evo.evolution_instance_credentials
+     SET api_key = '<EVO_WPP2_API_KEY>'
+   WHERE instance_name = 'wpp2' AND api_key = '';
+  ```
+- Credenciais nunca ficam no repositório
+
 **Resultado confirmado (15:55 UTC — ~4h após o fix):**
 ```
 instance_name : wpp2
@@ -450,8 +462,12 @@ notes: gap=0.6min msgs1h=282 auto-check=2026-08-06 12:55:00-03 src=evolution_mes
 **Insight técnico sobre a função:**
 - `fn_update_instance_health()` NÃO chama a Evolution API — lê de `evo.evolution_messages` para calcular o gap
 - `api_key` na tabela é metadado armazenado, não é utilizada pela função de health check
-- Threshold: gap < 10min → `healthy`, gap < 30min → `degraded`, caso contrário → `unhealthy`
-- Em fins de semana (`fds=t`), threshold degraded sobe para 120 min
+- Lógica de thresholds (auditada no código-fonte):
+  - `healthy` → **requer `v_msgs_1h > 0` E `v_gap < 10`** (ambas condições obrigatórias)
+  - `degraded` → `v_gap < 30` (dia útil) ou `v_gap < 120` (FDS)
+  - `degraded` (caso especial FDS) → `v_is_fds AND v_msgs_1h > 0`, mesmo com `v_gap >= 120` — empresa B2B, gap longo em FDS é esperado
+  - `unhealthy` → todos os outros casos
+- Threshold `gap_thr` nos `notes` indica o valor adaptativo usado (`30` dia útil, `120` FDS)
 
 ---
 
