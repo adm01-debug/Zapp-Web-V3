@@ -1,7 +1,7 @@
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getCorsHeaders, handleCors, redactSecrets } from "../_shared/validation.ts";
 import { initSentry, captureException } from "../_shared/sentry.ts";
-import { parseOrReject } from "../_shared/contract-kit.ts";
+import { parseOrReject, buildContractErrorBody } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import {
   isRecord, normalizeEventName, toEventRecords,
@@ -170,10 +170,18 @@ Deno.serve(async (req) => {
     payload = parsed.data as WebhookPayload;
   } catch {
     await auditWebhookEvent(supabase, {
-      request_id: requestId, status: 'rejected', status_code: 400, error_message: 'invalid_json',
+      request_id: requestId, status: 'rejected', status_code: 422, error_message: 'invalid_json',
       duration_ms: Date.now() - startedAt,
     });
-    return new Response(JSON.stringify({ error: 'invalid_json', requestId }), { status: 400, headers: corsHeaders });
+    // Falha de validação SEMPRE com envelope 422 canônico (contract-kit) —
+    // correção 2026-08-06 (gap A1-B1): antes era 400 {error} incompleto.
+    const eb = buildContractErrorBody(
+      'evolution-webhook', undefined, 'invalid_json',
+      'Body ausente ou não é um JSON estruturado (objeto/array).',
+      [{ path: 'root', message: 'esperado objeto JSON' }],
+      requestId,
+    );
+    return new Response(JSON.stringify(eb), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
   const event = normalizeEventName(payload.event);

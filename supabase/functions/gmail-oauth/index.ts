@@ -3,7 +3,7 @@ import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { requireUser } from '../_shared/auth.ts';
 import { checkRateLimit, isValidUUID } from '../_shared/validation.ts';
 import { timingSafeStringEqual } from '../_shared/auth.ts';
-import { parseOrReject } from '../_shared/contract-kit.ts';
+import { parseOrReject, buildContractErrorBody } from '../_shared/contract-kit.ts';
 import { GmailOauthV1Schema } from '../_shared/contract-schemas.ts';
 
 /**
@@ -49,6 +49,18 @@ const GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.modify','https://ww
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
   const jsonHeaders = { ...getCorsHeaders(req), 'Content-Type': 'application/json' };
+
+  /**
+   * Falha de validação de campo obrigatório → envelope 422 ÚNICO (contract-kit).
+   * Correção 2026-08-06 (gap A1-B6): era 400 {error} avulso.
+   */
+  const validation422 = (path: string, message: string, _req: Request, headers: Record<string, string>): Response =>
+    new Response(JSON.stringify(buildContractErrorBody(
+      'gmail-oauth', undefined, 'contract_violation',
+      `Campo obrigatório ausente: ${path}.`,
+      [{ path, message }],
+    )), { status: 422, headers });
+
   const serviceRoleKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? '';
   const supabase = createZappAdminClient();
   const clientId = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
@@ -98,7 +110,7 @@ Deno.serve(async (req) => {
 
     if (action === 'exchangeCode') {
       const { code, userId, state } = body as Record<string, any>;
-      if (!code || !userId) return new Response(JSON.stringify({ error: 'code e userId obrigat\u00f3rios' }), { status: 400, headers: jsonHeaders });
+      if (!code || !userId) return validation422('code,userId', 'code e userId obrigat\u00f3rios', req, jsonHeaders);
       // Prevent token hijacking: caller may only bind the OAuth code to their own account
       if (userId !== authenticatedUserId) return new Response(JSON.stringify({ error: 'Forbidden: userId does not match authenticated user' }), { status: 403, headers: jsonHeaders });
       // Verify HMAC-signed state \u2014 prevents Account Binding CSRF
@@ -117,7 +129,7 @@ Deno.serve(async (req) => {
     }
     if (action === 'refresh') {
       const { accountId } = body;
-      if (!accountId) return new Response(JSON.stringify({ error: 'accountId obrigat\u00f3rio' }), { status: 400, headers: jsonHeaders });
+      if (!accountId) return validation422('accountId', 'accountId obrigat\u00f3rio', req, jsonHeaders);
       const { data: account, error: fetchErr } = await supabase.from('gmail_accounts').select('refresh_token, user_id').eq('id', accountId).single();
       if (fetchErr || !account) return new Response(JSON.stringify({ error: 'Conta n\u00e3o encontrada' }), { status: 404, headers: jsonHeaders });
       // Verify caller owns this account
@@ -138,7 +150,7 @@ Deno.serve(async (req) => {
     }
     if (action === 'revoke') {
       const { accountId } = body;
-      if (!accountId) return new Response(JSON.stringify({ error: 'accountId obrigat\u00f3rio' }), { status: 400, headers: jsonHeaders });
+      if (!accountId) return validation422('accountId', 'accountId obrigat\u00f3rio', req, jsonHeaders);
       const { data: account } = await supabase.from('gmail_accounts').select('access_token, user_id').eq('id', accountId).single();
       // Verify caller owns this account before deleting
       if (!account || account.user_id !== authenticatedUserId) return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: jsonHeaders });
