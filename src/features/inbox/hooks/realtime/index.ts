@@ -17,4 +17,5 @@ export * from './useMessageUpdateBatcher';
 export * from './useRealtimeContacts';
 export * from './useRealtimeFallbackRefetch';
 export * from './useRealtimeNotifications';
+export * from './useRealtimePresenceAndConnections';
 export * from './useRetryResolutionAlerts';

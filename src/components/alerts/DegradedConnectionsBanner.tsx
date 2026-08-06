@@ -19,6 +19,9 @@ interface Props {
   recentWindowMs?: number;
 }
 
+/** Fallback de re-sincronização quando o canal Realtime de conexões está fora. */
+const SUBSCRIPTION_FALLBACK_POLL_MS = 120_000;
+
 /**
  * Global top-of-page banner shown whenever any whatsapp_connection has a
  * recent `health_status = 'degraded'`. Provides a one-click jump to the
@@ -28,6 +31,8 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
   const [degraded, setDegraded] = useState<DegradedInstance[]>([]);
   const [dismissedIds, setDismissedIds] = useState<string>('');
   const mountedRef = useRef(true);
+  // Saúde do canal Realtime — o fallback polling (120s) só roda em erro/fechado.
+  const channelStatusRef = useRef<'connecting' | 'connected' | 'error' | 'closed'>('connecting');
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -54,15 +59,31 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
       .channel(`degraded-banner:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'zapp', table: 'whatsapp_connections' },
+        // event '*' cobre INSERT/DELETE também (conexão criada/removida),
+        // não apenas UPDATE de health_check.
+        { event: '*', schema: 'zapp', table: 'whatsapp_connections' },
         () => fetchDegraded()
       )
-      .subscribe();
-    const interval = setInterval(fetchDegraded, 60_000);
+      .subscribe((status) => {
+        // Rastreia a saúde do canal para o fallback polling abaixo.
+        if (status === 'SUBSCRIBED') channelStatusRef.current = 'connected';
+        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT')
+          channelStatusRef.current = 'error';
+        else if (status === 'CLOSED') channelStatusRef.current = 'closed';
+        else channelStatusRef.current = 'connecting';
+      });
+    // Fallback polling 120s: SÓ quando a subscription está em erro/fechado.
+    // Antes: polling incondicional de 60s mesmo com o realtime saudável.
+    const fallbackTimer = setInterval(() => {
+      const st = channelStatusRef.current;
+      if (st !== 'error' && st !== 'closed') return;
+      if (typeof document !== 'undefined' && document.hidden) return;
+      void fetchDegraded();
+    }, SUBSCRIPTION_FALLBACK_POLL_MS);
     return () => {
       channel.unsubscribe();
       supabase.removeChannel(channel);
-      clearInterval(interval);
+      clearInterval(fallbackTimer);
     };
   }, [fetchDegraded]);
 
