@@ -82,16 +82,16 @@ jobs:
         run: |
           if [ ! -f infra/ghcr-protected-tags.txt ]; then
             echo "AVISO: infra/ghcr-protected-tags.txt nao encontrado — usando fallback hardcoded"
-            echo "regex=^production-(fbd04bec303d|988086a2bbbd|a68e678b8496)" >> "$GITHUB_OUTPUT"
+            echo "regex=^production-(fbd04bec303d|988086a2bbbd|a68e678b8496)$" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          TAGS="$(grep -v '^#' infra/ghcr-protected-tags.txt | grep -v '^[[:space:]]*$' | tr '\n' '|' | sed 's/|$//')"
+          TAGS="$(grep -v '^#' infra/ghcr-protected-tags.txt | grep -v '^[[:space:]]*$' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr 'A-F' 'a-f' | tr -d '\r' | grep -E '^[0-9a-f]{12}$' | tr '\n' '|' | sed 's/|$//')"
           if [ -z "$TAGS" ]; then
             echo "AVISO: nenhuma SHA encontrada no arquivo — usando fallback hardcoded"
-            echo "regex=^production-(fbd04bec303d|988086a2bbbd|a68e678b8496)" >> "$GITHUB_OUTPUT"
+            echo "regex=^production-(fbd04bec303d|988086a2bbbd|a68e678b8496)$" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo "regex=^production-(${TAGS})" >> "$GITHUB_OUTPUT"
+          echo "regex=^production-(${TAGS})$" >> "$GITHUB_OUTPUT"
 
       # ============================================================
       # ETAPA 34 — Faxina Portainer (2026-08-05): retenção GHCR
