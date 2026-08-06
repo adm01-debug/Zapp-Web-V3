@@ -244,9 +244,11 @@ const MATRICES: IntegrationCase[] = [
       { to: "5511999999999", type: "image", mediaUrl: "https://x.com/a.jpg", caption: "foto", previewUrl: "https://x.com/p.jpg" }, // previewUrl não está no schema
     ],
     invalid: [
+      { label: "to ausente", payload: { type: "text" }, expectPath: "to" },
       { label: "to curto (<5)", payload: { to: "5511", type: "text" }, expectPath: "to" },
       { label: "type ausente", payload: { to: "5511999999999" }, expectPath: "type" },
       { label: "type fora do enum", payload: { to: "5511999999999", type: "gif" }, expectPath: "type" },
+      { label: "to tipo errado (number)", payload: { to: 42, type: "text" }, expectPath: "to" },
     ],
   },
 ];
