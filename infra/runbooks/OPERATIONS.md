@@ -46,6 +46,11 @@ Imagens sem tag foram removidas na faxina Portainer de 2026-08-05 (~1,19 GB recu
 
 ## Rollback do zapp-web
 
+> **Aviso — janela de rollback automático:** `failure_action: rollback` só dispara dentro de `monitor: 60s`.
+> Como `start_period(30s) + retries(3) × interval(30s) = 120s`, um container que sobe mas fica
+> unhealthy lentamente **não** aciona o rollback automático. Nesses casos, execute o rollback manual abaixo.
+> O `zapp-health-guard` (stack 165) cobre falhas pós-start.
+
 > **Runbook completo em `docs/PORTAINER_ZAPP_FOOTPRINT.md §4`** (inclui PASSO 0 — salvar ref atual,
 > PASSO 1 — flip com digest, PASSO 2 — validação por UpdateStatus, PASSO 3 — restaurar).
 > Use o procedimento abaixo apenas como referência rápida.
@@ -78,6 +83,9 @@ echo "healthz: $CODE — rollback OK"
 # Para restaurar para o estado anterior: usar ref salva no passo 0
 timeout 600s docker service update --detach=false --image "$(cat /tmp/ref_atual.txt)" zapp-web-prod_web
 ```
+
+> **Pré-requisito:** imagem de rollback deve estar pré-pullada no host (ver §4 de `docs/PORTAINER_ZAPP_FOOTPRINT.md`).
+> Para rollback somente por tag (sem digest) — funciona apenas se GHCR estiver online.
 
 ## Gaps Identificados (não corrigidos)
 

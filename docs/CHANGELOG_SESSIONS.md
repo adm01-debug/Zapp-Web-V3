@@ -146,6 +146,43 @@ Auditoria da Evolution API v2.3.7 contra documentação oficial. 300+ cenários 
 
 ---
 
+## Sessão 2026-08-05 — Auditoria Pós-Faxina Portainer (5 Agentes Especializados)
+
+### Contexto
+Auditoria exaustiva da faxina Portainer realizada em 2026-08-05. 5 agentes paralelos analisaram
+CI/CD pipeline, stack files, housekeeping scripts, network config e failure modes.
+
+### Incidente Registrado — 2026-08-05
+
+| Componente | Evento | Root Cause | Resolução |
+|---|---|---|---|
+| Docker Swarm VPS | Imagem de rollback destruída | `docker image prune -a` removeu imagens tagueadas `production-<sha>` (não apenas dangling) | `housekeeping.sh` fixado para usar apenas `docker image prune -f` (sem `-a`); v2.3 usa `ensure_ref_tags` |
+| GHCR | ~1,19 GB de imagens órfãs acumuladas | Deploy anterior com `production-latest` gerava dangling a cada CI run | Substituído por tag SHA imutável no stack Swarm; `production-latest` apenas como referência externa |
+
+### Correções Aplicadas (2026-08-05)
+
+| # | Arquivo | Gap | Fix | PR |
+|---|---|---|---|---|
+| INF-01 | `infra/stacks/zapp-web-prod.yml` | `rollback_config` ausente | Adicionado `order: start-first`, `monitor: 60s`, `failure_action: continue` | #866 |
+| INF-02 | `docs/DEPLOY_PRODUCAO.md` | Rede `atomicabr` (errada) vs `AtomicaBRNet` | Corrigido para `AtomicaBRNet`; `network create` → `network inspect` com erro se ausente | #866 |
+| INF-03 | `infra/scripts/housekeeping.sh` | Referência a `v2.2` (não existe) | Corrigido para `v2.3`; `docker builder prune -f` → `--filter until=24h` | #866 |
+| INF-04 | `docs/RUNBOOK_DISASTER_RECOVERY.md` | Referência a `v2.2` (não existe) | Corrigido para `v2.3` | #866 |
+| INF-05 | `infra/runbooks/OPERATIONS.md` | Referência a `v2.2`; rollback sem `tag@digest`; janela de rollback não documentada | v2.3; padrão `tag@digest` adicionado; aviso timing gap `monitor(60s) < 120s unhealthy` | #866 |
+| CI-01 | `.github/workflows/deploy-vps.yml` | Permissão `actions: write` desnecessária | Removida | #866 |
+| CI-02 | `.github/workflows/deploy-vps.yml` | `VITE_SUPABASE_URL` com fallback hardcoded | Removido fallback; Preflight já garante via `exit 1` | #866 |
+| CI-03 | `.github/workflows/deploy-vps.yml` | `sleep 20 < start_period 30s` = HC falso positivo | `sleep 20` → `sleep 45` | #866 |
+| CI-04 | `.github/workflows/deploy-vps.yml` e stack | `rollback_config` sem `failure_action` explícito | `failure_action: continue` adicionado (evita `pause` default que deixa serviço em estado inconsistente) | #866 |
+
+### Gaps Identificados Mas Não Corrigidos (backlog)
+
+| # | Gap | Risco | Ação Recomendada |
+|---|---|---|---|
+| GAP-I | Stack ID `157` hardcoded no CI | Médio — falha silenciosa se stack mudar | Adicionar secret `PORTAINER_STACK_ID` |
+| GAP-II | `zapp-health-guard` (stack 165) não versionado no repo | Médio — perda em rebuild | Adicionar `infra/stacks/zapp-health-guard.yml` |
+| GAP-III | GHCR offline durante deploy = rollback falha | Alto — requer intervenção manual com digest pré-pullado | Documentado em OPERATIONS.md (workaround `tag@digest`) |
+
+---
+
 ## Histórico Completo de Bugs Resolvidos
 
 | ID | Arquivo | Problema | Migração/Fix |
