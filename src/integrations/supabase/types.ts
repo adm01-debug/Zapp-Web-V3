@@ -10000,16 +10000,6 @@ export type Database = {
           status: string
         }[]
       }
-      fn_migrate_all_message_tables: {
-        Args: { p_batch_size?: number; p_max_batches?: number }
-        Returns: {
-          batches_ran: number
-          instance_name: string
-          source_table: string
-          status: string
-          total_migrated: number
-        }[]
-      }
       fn_monitor_lid_contamination: { Args: never; Returns: Json }
       fn_monitor_pino_timeouts: { Args: never; Returns: Json }
       fn_monthly_evo_audit: { Args: never; Returns: Json }
