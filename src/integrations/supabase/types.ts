@@ -40125,6 +40125,50 @@ export type Database = {
           },
         ]
       }
+      cron_inventory: {
+        Row: {
+          atualizado_em: string
+          jobid: number
+          jobname: string
+          nota: string | null
+          owner: string
+          purpose: string | null
+          replaced_by: number | null
+          sla: string | null
+          status: string
+        }
+        Insert: {
+          atualizado_em?: string
+          jobid: number
+          jobname: string
+          nota?: string | null
+          owner?: string
+          purpose?: string | null
+          replaced_by?: number | null
+          sla?: string | null
+          status?: string
+        }
+        Update: {
+          atualizado_em?: string
+          jobid?: number
+          jobname?: string
+          nota?: string | null
+          owner?: string
+          purpose?: string | null
+          replaced_by?: number | null
+          sla?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cron_inventory_replaced_by_fkey"
+            columns: ["replaced_by"]
+            isOneToOne: false
+            referencedRelation: "cron_inventory"
+            referencedColumns: ["jobid"]
+          },
+        ]
+      }
       cron_schedule_executions: {
         Row: {
           completed_at: string | null
@@ -67721,6 +67765,7 @@ export type Database = {
         }
       }
       fn_security_acl_master_check: { Args: never; Returns: Json }
+      fn_security_self_audit_daily: { Args: never; Returns: Json }
       fn_security_surface_audit: { Args: never; Returns: Json }
       fn_segment_contacts: {
         Args: { p_instance?: string; p_segment: string }
@@ -67935,6 +67980,10 @@ export type Database = {
       fn_webhook_health_check: { Args: never; Returns: Json }
       fn_webhook_pipeline_score: {
         Args: { p_eff_state?: string }
+        Returns: Json
+      }
+      fn_webhook_purge_consolidated: {
+        Args: { p_batch_size?: number; p_v2_retention_days?: number }
         Returns: Json
       }
       fn_zapp_web_smoke_test_v2: {
