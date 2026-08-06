@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/features/auth';
 import { toast } from 'sonner';
+import { QUERY_STALE_TIMES, QUERY_GC_TIMES } from '@/lib/queryStaleTimes';
 import {
   INBOX_PERMISSIONS,
   CHANNEL_PERMISSIONS,
@@ -47,6 +48,8 @@ export function InboxScopeConfig() {
   const { data: customScopes = [], isLoading: loadingScopes } = useQuery({
     queryKey: queryKeys.adminOps.inboxScopes(),
     queryFn: fetchInboxCustomScopes,
+    staleTime: QUERY_STALE_TIMES.inboxCustomScopes,
+    gcTime: QUERY_GC_TIMES.inboxCustomScopes,
   });
 
   const handleAddScope = async () => {

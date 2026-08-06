@@ -18,6 +18,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient, safeFrom } from '@/integrations/supabase/safeClient';
 import { queryKeys } from '@/services/api/queryKeys';
+import { QUERY_STALE_TIMES, QUERY_GC_TIMES } from '@/lib/queryStaleTimes';
 import { toast } from 'sonner';
 import { useToast } from '@/hooks/use-toast';
 import { log, getLogger } from '@/lib/logger';
@@ -613,7 +614,8 @@ function useAdminQueuesManagement() {
         profiles: (pRes.data ?? []) as Profile[],
       };
     },
-    staleTime: 30_000,
+    staleTime: QUERY_STALE_TIMES.queues,
+    gcTime: QUERY_GC_TIMES.queues,
   });
 
   const queues = queuesData?.queues ?? [];

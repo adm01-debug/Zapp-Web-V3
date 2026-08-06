@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
+import { MODULE_TTL_MS } from '@/lib/queryStaleTimes';
 
 interface QueueMemberProfile {
   id: string;
@@ -56,6 +57,20 @@ interface UseQueuesResult {
 /** Re-exported module members. */
 export type { Queue, QueueMember, QueueWithMembers, CreateQueueInput, UseQueuesResult };
 
+// ── Cache module-level (TTL 5min) ─────────────────────────────────────────
+// queues/queue_members são catálogo quase-estático (mudam via admin ou
+// mutações locais, que forçam refresh). O cache evita o refetch completo a
+// cada mount/foco — queue_positions (contagem de espera) NUNCA é cacheado,
+// continua sendo buscada fresca + via realtime.
+const CATALOG_TTL_MS = MODULE_TTL_MS.catalog;
+type QueuesCatalog = { queues: Queue[]; members: QueueMember[]; fetchedAt: number };
+let catalogCache: QueuesCatalog | null = null;
+
+function getCachedCatalog(): QueuesCatalog | null {
+  if (catalogCache && Date.now() - catalogCache.fetchedAt < CATALOG_TTL_MS) return catalogCache;
+  return null;
+}
+
 /** Fetches queues with members and positions, subscribing to realtime changes on queues, queue_members, and queue_positions tables for live updates. */
 export function useQueues(): UseQueuesResult {
   const [loading, setLoading] = useState(true);
@@ -68,24 +83,30 @@ export function useQueues(): UseQueuesResult {
   useEffect(() => {
     let cancelled = false;
 
-    async function fetchQueues() {
-      setLoading(true);
+    async function fetchQueues(force = false) {
+      const cached = !force ? getCachedCatalog() : null;
+
+      if (!cached) setLoading(true);
       setError(null);
       try {
-        const [queuesRes, membersRes, positionsRes] = await Promise.all([
-          supabase.from('queues').select('*').order('priority'),
-          supabase
-            .from('queue_members')
-            .select('*, profile:profiles(id, name, avatar_url, is_active)'),
-          supabase.from('queue_positions').select('queue_id'),
-        ]);
+        let queueList: Queue[];
+        let memberList: QueueMember[];
 
-        if (queuesRes.error) throw queuesRes.error;
-        if (membersRes.error) throw membersRes.error;
-        if (positionsRes.error) throw positionsRes.error;
+        if (cached) {
+          queueList = cached.queues;
+          memberList = cached.members;
+        } else {
+          const [queuesRes, membersRes] = await Promise.all([
+            supabase.from('queues').select('*').order('priority'),
+            supabase
+              .from('queue_members')
+              .select('*, profile:profiles(id, name, avatar_url, is_active)'),
+          ]);
 
-        if (!cancelled) {
-          const queueList: Queue[] = (queuesRes.data || []).map((q) => ({
+          if (queuesRes.error) throw queuesRes.error;
+          if (membersRes.error) throw membersRes.error;
+
+          queueList = (queuesRes.data || []).map((q) => ({
             id: q.id,
             name: q.name,
             color: q.color ?? 'bg-primary',
@@ -96,7 +117,7 @@ export function useQueues(): UseQueuesResult {
             created_at: q.created_at,
             updated_at: q.updated_at,
           }));
-          const memberList: QueueMember[] = (membersRes.data || []).map((m) => ({
+          memberList = (membersRes.data || []).map((m) => ({
             id: m.id,
             queue_id: m.queue_id,
             profile_id: m.profile_id,
@@ -111,6 +132,14 @@ export function useQueues(): UseQueuesResult {
                 }
               : null,
           }));
+          catalogCache = { queues: queueList, members: memberList, fetchedAt: Date.now() };
+        }
+
+        // queue_positions (espera) é dinâmico — sempre busca fresca.
+        const positionsRes = await supabase.from('queue_positions').select('queue_id');
+        if (positionsRes.error) throw positionsRes.error;
+
+        if (!cancelled) {
           const positionList: Array<{ queue_id: string }> = positionsRes.data || [];
 
           const waitingByQueue: Record<string, number> = {};
@@ -137,9 +166,15 @@ export function useQueues(): UseQueuesResult {
 
     const channel = supabase
       .channel(channelName.current)
-      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'queues' }, fetchQueues)
-      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'queue_members' }, fetchQueues)
-      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'queue_positions' }, fetchQueues)
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'queues' }, () =>
+        fetchQueues(true)
+      )
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'queue_members' }, () =>
+        fetchQueues(true)
+      )
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'queue_positions' }, () =>
+        fetchQueues()
+      )
       .subscribe();
 
     return () => {
@@ -150,6 +185,7 @@ export function useQueues(): UseQueuesResult {
   }, [refreshKey]);
 
   const refetch = useCallback(() => {
+    catalogCache = null; // mutações locais forçam busca fresca
     setRefreshKey((k) => k + 1);
   }, []);
 

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { queryKeys } from '@/services/api/queryKeys';
+import { QUERY_STALE_TIMES, QUERY_GC_TIMES } from '@/lib/queryStaleTimes';
 import type { SLARuleScope } from '@/features/sla';
 
 export interface SLARuleCountRow {
@@ -22,6 +23,8 @@ export function useSLARulesCounts() {
       if (error) throw error;
       return (data ?? []) as SLARuleCountRow[];
     },
+    staleTime: QUERY_STALE_TIMES.slaRules,
+    gcTime: QUERY_GC_TIMES.slaRules,
   });
 }
 

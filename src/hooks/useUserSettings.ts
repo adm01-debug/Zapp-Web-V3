@@ -4,6 +4,7 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
+import { QUERY_STALE_TIMES, QUERY_GC_TIMES } from '@/lib/queryStaleTimes';
 
 // Default ElevenLabs voice: Custom system voice
 const DEFAULT_TTS_VOICE_ID = 'TY3h8ANhQUsJaa0Bga5F';
@@ -128,7 +129,8 @@ export function useUserSettings() {
       return rows?.[0] ?? null;
     },
     enabled: !!user?.id,
-    staleTime: 30_000,
+    staleTime: QUERY_STALE_TIMES.userSettings,
+    gcTime: QUERY_GC_TIMES.userSettings,
   });
 
   // Initialize local form state once from server data

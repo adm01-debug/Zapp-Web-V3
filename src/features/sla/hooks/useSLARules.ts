@@ -2,6 +2,7 @@ import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { QUERY_GC_TIMES } from '@/lib/queryStaleTimes';
 import type { Json } from '@/integrations/supabase/schema';
 
 /** Hook: SLARule Metadata. */
@@ -55,6 +56,7 @@ export function useSLARules(scope?: SLARuleScope) {
   const { data: rules = [], isLoading } = useQuery({
     queryKey,
     staleTime: Infinity,
+    gcTime: QUERY_GC_TIMES.slaRules,
     queryFn: async () => {
       let query = supabase.from('sla_rules').select('*').order('priority', { ascending: false });
 

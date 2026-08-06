@@ -31,7 +31,13 @@ import {
 
 const log = getLogger('EmailManagement');
 
-// ──────────────────────────────────────────────────────────────────────────
+// ── Cache module-level (TTL 5min) ─────────────────────────────────────────
+// email_accounts é config quase-estática (muda via Gmail OAuth/admin) — evita
+// refetch a cada mount da página de email. Chamadas pós-mutação (OAuth
+// connect/revoke) passam `force=true` e ignoram o cache.
+const EMAIL_ACCOUNTS_TTL_MS = 5 * 60 * 1000;
+let emailAccountsCache: { accounts: EmailAccount[]; fetchedAt: number } | null = null;
+
 // TYPES AND INTERFACES
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -305,9 +311,26 @@ export function useEmail() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const loadAccounts = useCallback(async () => {
+  const loadAccounts = useCallback(async (force = false) => {
     setIsLoading(true);
     setError(null);
+
+    // TTL 5min: email_accounts é quase-estático — evita refetch a cada mount.
+    // `force` (pós OAuth connect) ignora o cache.
+    const cached =
+      !force && emailAccountsCache && Date.now() - emailAccountsCache.fetchedAt < EMAIL_ACCOUNTS_TTL_MS
+        ? emailAccountsCache
+        : null;
+
+    if (cached) {
+      if (!mountedRef.current) return;
+      setAccounts(cached.accounts);
+      if (cached.accounts.length > 0) {
+        setActiveAccountId((prev) => prev || cached.accounts[0].id);
+      }
+      setIsLoading(false);
+      return;
+    }
 
     const {
       data,
@@ -344,6 +367,7 @@ export function useEmail() {
       const accs = emailMappers.accounts(
         (Array.isArray(data) ? data : []) as Parameters<typeof emailMappers.accounts>[0]
       );
+      emailAccountsCache = { accounts: accs, fetchedAt: Date.now() };
       setAccounts(accs);
       if (accs.length > 0) {
         setActiveAccountId((prev) => prev || accs[0].id);
@@ -759,7 +783,7 @@ export function useEmail() {
           return;
         }
 
-        await loadAccounts();
+        await loadAccounts(true); // pós-OAuth: ignora cache, conta nova
         await checkTokenStatus();
         oauthInFlightRef.current = false;
       };

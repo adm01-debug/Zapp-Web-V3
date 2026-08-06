@@ -4,6 +4,7 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { queryKeys } from '@/services/api/queryKeys';
+import { QUERY_STALE_TIMES, QUERY_GC_TIMES } from '@/lib/queryStaleTimes';
 import { isValidUUID } from '@/utils/uuid';
 
 /** Tag interface definition. */
@@ -191,6 +192,8 @@ export function useContactTags(contactId: string | undefined) {
       return data?.map((ct) => ct.tags).filter(Boolean) as Tag[];
     },
     enabled: !!contactId && isValidUUID(contactId),
+    staleTime: QUERY_STALE_TIMES.contactTags,
+    gcTime: QUERY_GC_TIMES.contactTags,
   });
 
   const addTagMutation = useMutation({
