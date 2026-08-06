@@ -292,7 +292,11 @@ export function useMessagesCursor({
           setPages((prev) => prev.map((page) => page.filter((x) => x.id !== id)));
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') {
+          log.warn('[useMessagesCursor] channel subscription status:', status);
+        }
+      });
 
     return () => {
       channel.unsubscribe();

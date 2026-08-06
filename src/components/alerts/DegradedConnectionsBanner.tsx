@@ -51,7 +51,7 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
   useEffect(() => {
     fetchDegraded();
     const channel = supabase
-      .channel('degraded-banner')
+      .channel(`degraded-banner:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'zapp', table: 'whatsapp_connections' },

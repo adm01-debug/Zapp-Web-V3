@@ -1,10 +1,21 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { useEffect, useState, createContext, useContext, useCallback, useRef, useMemo } from 'react';
+import React, { Suspense, useEffect, useState, createContext, useContext, useCallback, useRef, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useGlobalKeyboardShortcuts } from '@/hooks/useGlobalKeyboardShortcuts';
-import { audioPlaybackBus } from '@/features/inbox';
-import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
-import { CommandPalette } from '@/components/ui/command-palette';
+// Import direto (não-barrel): o barrel @/features/inbox re-exporta a árvore
+// inteira do inbox e impede tree-shaking no chunk inicial (puxava ~300 módulos
+// + sip.js pro entry bundle). FIX perf TTM phase-07.
+import { audioPlaybackBus } from '@/features/inbox/hooks/realtime/audioPlaybackBus';
+import { lazyWithRetry } from '@/lib/lazyWithRetry';
+// Lazy: CommandPalette e KeyboardShortcutsDialog só abrem com Cmd+K / '?'
+// — não precisam estar no chunk inicial (puxavam command-palette-data, dialogs,
+// framer-motion usage e vários componentes ui pro entry bundle).
+const KeyboardShortcutsDialog = lazyWithRetry(() =>
+  import('./KeyboardShortcutsDialog').then((m) => ({ default: m.KeyboardShortcutsDialog }))
+);
+const CommandPalette = lazyWithRetry(() =>
+  import('@/components/ui/command-palette').then((m) => ({ default: m.CommandPalette }))
+);
 
 interface GlobalKeyboardContextType {
   openCommandPalette: () => void;
@@ -135,13 +146,15 @@ export function GlobalKeyboardProvider({ children, customActions }: GlobalKeyboa
   return (
     <GlobalKeyboardContext.Provider value={contextValue}>
       {children}
-      <KeyboardShortcutsDialog open={showHelp} onOpenChange={setShowHelp} />
-      <CommandPalette
-        open={showCommandPalette}
-        onOpenChange={setShowCommandPalette}
-        onNavigate={handleNavigate}
-        placeholder="Buscar ou digitar comando... (⌘K)"
-      />
+      <Suspense fallback={null}>
+        <KeyboardShortcutsDialog open={showHelp} onOpenChange={setShowHelp} />
+        <CommandPalette
+          open={showCommandPalette}
+          onOpenChange={setShowCommandPalette}
+          onNavigate={handleNavigate}
+          placeholder="Buscar ou digitar comando... (⌘K)"
+        />
+      </Suspense>
     </GlobalKeyboardContext.Provider>
   );
 }

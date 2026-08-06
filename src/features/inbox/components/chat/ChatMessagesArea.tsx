@@ -197,7 +197,11 @@ export const ChatMessagesArea = memo(
               }
             }
           )
-          .subscribe();
+          .subscribe((status) => {
+            if (status !== 'SUBSCRIBED') {
+              log.warn('[ChatMessagesArea] channel subscription status:', status);
+            }
+          });
 
         return () => {
           channel.unsubscribe();

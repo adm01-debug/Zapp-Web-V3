@@ -88,7 +88,10 @@ export async function handleOutgoingWhatsAppMessage(
     content: parsed.content,
     message_type: parsed.messageType,
     media_url: mediaUrl,
-    agent_id: contact.assigned_to || null,
+    // NOTA PGRST204 (fix AG-EX-01): coluna agent_id NÃO existe em evolution_messages
+    // (nem em evo.* nem na view public.* — verificado via pg_catalog 2026-08-05).
+    // Enviá-la fazia o PostgREST rejeitar o upsert com PGRST204 e mensagens
+    // outbound (fromMe) do operador não persistirem. Agente fica em public.messages.
     status: 'sent',
     created_at: messageCreatedAt,
     status_at: new Date().toISOString(),

@@ -288,7 +288,11 @@ export function useRealtimeInbox() {
           });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') {
+          log.warn('[useRealtimeInbox] whisper channel subscription status:', status);
+        }
+      });
     return () => {
       channel.unsubscribe();
       supabase.removeChannel(channel);

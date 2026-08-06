@@ -213,10 +213,16 @@ export function useBridgeStatus() {
   }, [checkHealth]);
 
   const fetchIncidents = useCallback(async () => {
-    const { data } = await safeClient.from<SystemIncident>('system_health_incidents', (q) =>
-      q.select('*').order('started_at', { ascending: false }).limit(10)
-    );
-    if (mountedRef.current) setIncidents(data || []);
+    try {
+      const { data } = await safeClient.from<SystemIncident>('system_health_incidents', (q) =>
+        q.select('*').order('started_at', { ascending: false }).limit(10)
+      );
+      if (mountedRef.current) setIncidents(data || []);
+    } catch (err) {
+      // void fetchIncidents() no mount/realtime: sem try/catch, uma falha de
+      // rede vira unhandled promise rejection (e incidentes ficam stale).
+      log.error('Failed to fetch health incidents:', err);
+    }
   }, [mountedRef]);
 
   useEffect(() => {
@@ -224,7 +230,7 @@ export function useBridgeStatus() {
     void fetchIncidents();
 
     const trafficSub = supabase
-      .channel('traffic-changes')
+      .channel(`traffic-changes:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'zapp', table: 'provider_message_log' },
@@ -239,7 +245,7 @@ export function useBridgeStatus() {
       .subscribe();
 
     const alertsSub = supabase
-      .channel('health-incidents')
+      .channel(`health-incidents:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'system_health_incidents' },

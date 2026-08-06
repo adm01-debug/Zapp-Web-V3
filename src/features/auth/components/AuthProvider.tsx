@@ -43,6 +43,21 @@ const PROFILE_TIMEOUT_MAX_MS = 30_000;
 const PROFILE_EXTRA_MS_PER_QUEUED_REQUEST = 250;
 const PROFILE_SLOW_WARN_THRESHOLD_MS = 5_000;
 
+// ---------------------------------------------------------------------------
+// Prazo da revalidação de sessão no boot (padrão da casa — f12-errors-checklist:
+// 8000ms → 4000ms). Quando o access_token persistido JÁ expirou, este prazo vira
+// o VEREDITO do bootstrap: se o GoTrue não responder a tempo, decidimos como
+// não-autenticado (a sessão otimista é um fantasma que só geraria 401s) em vez
+// de esperar o SIGNED_OUT, que num backend degradado pode levar 7s+.
+// ---------------------------------------------------------------------------
+const GET_SESSION_TIMEOUT_MS = 4_000;
+
+/** true quando o access_token persistido já expirou (sessão otimista inutilizável). */
+function isAccessTokenExpired(session: Session): boolean {
+  const exp = session.expires_at;
+  return typeof exp !== 'number' || !isFinite(exp) || exp <= 0 || exp * 1000 <= Date.now();
+}
+
 function getProfileTimeoutMs(): number {
   const sem = getSupabaseSemaphoreState();
   if (!sem.saturated) return PROFILE_BASE_TIMEOUT_MS;
@@ -276,6 +291,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Decide o estado não-autenticado de forma DETERMINÍSTICA, sem depender da
+  // latência do evento SIGNED_OUT do supabase-js (que num GoTrue degradado pode
+  // levar 7s+ para rejeitar um refresh de token morto). Limpa o estado e a
+  // sessão persistida — o ProtectedRoute então redireciona para /auth no
+  // próximo render. O signOut({ scope: 'local' }) também dispara o commit
+  // guard do supabase-js, que descarta tokens rotacionados depois do prazo
+  // (evita re-hidratação tardia via TOKEN_REFRESHED atrasado).
+  const forceUnauthenticated = useCallback(
+    async (runId: number, reason: string, elapsedMs: number) => {
+      if (runId !== bootstrapRunRef.current) return;
+      log.warn(`[Auth] Estado não-autenticado forçado (${reason}, ${elapsedMs}ms).`);
+      setBootstrapElapsedMs(elapsedMs);
+      setProfile(null);
+      setRoles([]);
+      setPermissions([]);
+      setUser(null);
+      setSession(null);
+      setLoading(false);
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch {
+        // signOut local não deve rejeitar; o estado já foi limpo acima.
+      }
+    },
+    []
+  );
+
   const runBootstrap = useCallback(async () => {
     const runId = ++bootstrapRunRef.current;
     setLoading(true);
@@ -333,9 +375,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // mas como já hidratámos do cache isto NÃO é fatal: o onAuthStateChange é a
     // fonte de verdade e promove ou rebaixa a sessão no próximo tick. Nunca mais
     // transformamos uma revalidação lenta numa tela de erro para quem tem sessão.
+    //
+    // CASO ESPECIAL — access_token persistido JÁ expirado: a sessão otimista é
+    // um fantasma (toda chamada à API retornaria 401). Aqui o getSession() vira
+    // o VEREDITO do bootstrap com prazo de GET_SESSION_TIMEOUT_MS (4000ms,
+    // padrão da casa): se o GoTrue não responder a tempo — ou responder que não
+    // há sessão — decidimos como não-autenticado imediatamente (forceUnauthenticated)
+    // em vez de esperar o SIGNED_OUT, que num backend degradado pode levar 7s+
+    // (evidência: authz_failure at:7074ms).
+    const cachedTokenExpired = isAccessTokenExpired(cached);
     const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
     try {
-      const result = await withTimeout(supabase.auth.getSession(), 8000, 'getSession');
+      const result = await withTimeout(supabase.auth.getSession(), GET_SESSION_TIMEOUT_MS, 'getSession');
       if (runId !== bootstrapRunRef.current) return;
       const elapsedMs = Math.round(
         (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt
@@ -349,9 +400,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         void refreshAll(cached.user.id, { showLoading: false }).catch((err) => {
           log.debug('[Auth] Erro ao atualizar perfil/roles pós-getSession:', err);
         });
+      } else if (cached?.user) {
+        // Veredito do backend: NÃO há sessão válida (refresh token morto/revogado).
+        // O supabase-js normalmente emite SIGNED_OUT, mas num GoTrue degradado
+        // essa resposta pode levar 7s+ — decidimos agora, sem esperar o evento.
+        await forceUnauthenticated(runId, 'getSession-null', elapsedMs);
       }
-      // Se o backend confirmar que NÃO há sessão (refresh token revogado/expirado),
-      // o supabase-js emite SIGNED_OUT via onAuthStateChange e o app vai para /auth.
     } catch (err) {
       if (runId !== bootstrapRunRef.current) return;
       const elapsedMs = Math.round(
@@ -364,13 +418,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         log.debug('[Auth] getSession abortado — sessão do cache mantida.');
         return;
       }
+      if (cachedTokenExpired) {
+        // Prazo (4000ms) estourado com access_token já expirado: a sessão
+        // otimista é um fantasma e o veredito do GoTrue pode nunca chegar
+        // (backend degradado). Decide como não-autenticado agora, em vez de
+        // segurar o usuário por 7s+ esperando um SIGNED_OUT que não vem.
+        await forceUnauthenticated(runId, 'getSession-timeout-expired-token', elapsedMs);
+        return;
+      }
       // Não-fatal: já renderizámos a partir do cache. Apenas registamos.
       log.warn(
         `[Auth] Revalidação em background lenta (${elapsedMs}ms) — mantendo sessão do cache. URL=${SUPABASE_RESOLVED_URL}`,
         err
       );
     }
-  }, [refreshAll, clearBootstrapSafetyNet]);
+  }, [refreshAll, clearBootstrapSafetyNet, forceUnauthenticated]);
 
   // Ref (para guards síncronos) + state (para reativos na UI) de retry em andamento.
   const isRetryingRef = useRef(false);
@@ -511,7 +573,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           void fetchProfile(user.id);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') {
+          log.warn('[AuthProvider] profile channel subscription status:', status);
+        }
+      });
 
     const rolesChannel = supabase
       .channel(`roles-updates-${user.id}:${Math.random().toString(36).slice(2, 10)}`)
@@ -527,7 +593,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           void fetchRolesAndPermissions(user.id);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') {
+          log.warn('[AuthProvider] roles channel subscription status:', status);
+        }
+      });
 
     return () => {
       profileChannel.unsubscribe();

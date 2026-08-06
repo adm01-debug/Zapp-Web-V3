@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getLogger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -9,6 +10,8 @@ import { Eye, Edit3 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '@/features/auth';
+
+const log = getLogger('ViewersIndicator');
 
 interface Viewer {
   id: string;
@@ -62,7 +65,12 @@ export function useConversationViewers(contactId: string) {
                 is_typing: false,
                 online_at: new Date().toISOString(),
               })
-            );
+            )
+            .catch((err: unknown) => {
+              // Sem handler, falha de rede do select (ou do track) vira
+              // unhandled promise rejection ao abrir uma conversa.
+              log.warn('[ViewersIndicator] Falha ao registrar presença do viewer:', err);
+            });
         }
       });
 

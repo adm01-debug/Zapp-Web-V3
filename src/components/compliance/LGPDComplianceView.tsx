@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Shield, ShieldAlert, Trash2, FileText, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
+import { createDataDeletionRequest } from '@/features/contacts/services/dataDeletionRequestService';
 import { PrivacyPolicySection } from './PrivacyPolicySection';
 import { WhatsAppComplianceGuide } from './WhatsAppComplianceGuide';
 import { PrivacyAuditTrail } from './PrivacyAuditTrail';
@@ -24,7 +25,7 @@ export function LGPDComplianceView() {
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
-    supabase
+    void supabase
       .rpc('log_audit_event', {
         p_action: 'privacy_policy_viewed',
         p_entity_type: 'user',
@@ -35,6 +36,11 @@ export function LGPDComplianceView() {
       .then(({ error }) => {
         if (cancelled) return;
         if (error) log.warn('Failed to log privacy view', error);
+      })
+      .catch((err: unknown) => {
+        // Rejeição de rede/timeout: sem handler, vira unhandled rejection
+        // no load da tela de compliance.
+        log.warn('Failed to log privacy view (rejeição)', err);
       });
     return () => {
       cancelled = true;
@@ -56,6 +62,9 @@ export function LGPDComplianceView() {
         })
         .then(({ error }) => {
           if (error) log.warn('[audit] gdpr_export_blocked log failed', error);
+        })
+        .catch((err: unknown) => {
+          log.warn('[audit] gdpr_export_blocked log failed (rejeição)', err);
         });
     }
     toast.error('🔒 Exportação bloqueada por política de segurança', {
@@ -70,7 +79,7 @@ export function LGPDComplianceView() {
     try {
       // SEGURANCA-10: cria o pedido real em data_deletion_requests (antes só
       // logava no audit trail, sem registro processável pelo admin).
-      const { error: insertError } = await supabase.from('data_deletion_requests').insert({
+      await createDataDeletionRequest({
         user_id: user.id,
         reason: 'right_to_be_forgotten',
         status: 'pending',
@@ -80,7 +89,6 @@ export function LGPDComplianceView() {
           requested_at: new Date().toISOString(),
         },
       });
-      if (insertError) throw insertError;
 
       // Mantém o audit trail (rastreabilidade LGPD)
       await supabase.rpc('log_audit_event', {

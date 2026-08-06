@@ -359,7 +359,9 @@ export function useTeamChatNotificationsManagement() {
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
-    channelRef.current = supabase.channel('notifications:team-chat');
+    channelRef.current = supabase.channel(
+      `notifications:team-chat:${Math.random().toString(36).slice(2, 10)}`
+    );
     channelRef.current
       .on(
         'postgres_changes',
@@ -407,7 +409,9 @@ export function useSecurityPushNotificationsManagement() {
   const [securityAlerts, setSecurityAlerts] = useState<AppNotification[]>([]);
 
   useEffect(() => {
-    const channel = supabase.channel('notifications:security');
+    const channel = supabase.channel(
+      `notifications:security:${Math.random().toString(36).slice(2, 10)}`
+    );
     channel
       .on(
         'postgres_changes',
@@ -438,7 +442,9 @@ export function useGoalNotificationsManagement() {
   const [goalNotifications, setGoalNotifications] = useState<AppNotification[]>([]);
 
   useEffect(() => {
-    const channel = supabase.channel('notifications:goals');
+    const channel = supabase.channel(
+      `notifications:goals:${Math.random().toString(36).slice(2, 10)}`
+    );
     channel
       .on(
         'postgres_changes',
@@ -471,7 +477,9 @@ export function useTranscriptionNotificationsManagement() {
   );
 
   useEffect(() => {
-    const channel = supabase.channel('notifications:transcription');
+    const channel = supabase.channel(
+      `notifications:transcription:${Math.random().toString(36).slice(2, 10)}`
+    );
     channel
       .on(
         'postgres_changes',

@@ -105,7 +105,12 @@ export function useInboxHeartbeat(profileId: string | undefined) {
         void supabase
           .from('profiles')
           .update({ online_status: 'offline', last_seen: new Date().toISOString() })
-          .eq('id', profileId);
+          .eq('id', profileId)
+          .catch((err: unknown) => {
+            // Fire-and-forget no unmount: sem handler, uma falha de rede vira
+            // unhandled promise rejection no console de produção.
+            log.warn('Failed to write offline heartbeat on unmount:', err);
+          });
       }
     };
   }, [profileId]);

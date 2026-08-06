@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { fromTable } from '@/lib/supabaseHelpers';
+import { whatsappConnectionService } from '@/features/connections/services/whatsappConnectionService';
 import {
   getWhatsAppMode,
   invalidateWhatsAppModeCache,
@@ -64,17 +65,14 @@ export function useAdminWhatsAppMode() {
           error: unknown;
         }>;
       };
-      const [safeRes, connsRes] = await Promise.all([
+      const [safeRes, conns] = await Promise.all([
         safeView.select(
           'connection_id, phone_number_id, waba_id, has_access_token, has_app_secret'
         ),
-        supabase.from('whatsapp_connections').select('id, name, api_type').order('name'),
+        whatsappConnectionService.listBasicConnections(),
       ]);
       const safeErr = safeRes.error as { message?: string } | null;
       if (safeErr) throw safeErr;
-      const connsErr = connsRes.error;
-      if (connsErr) throw connsErr;
-      const conns = connsRes.data ?? [];
       const byId = new Map(conns.map((c) => [c.id, c.name ?? 'Conexão']));
       setTableCreds(
         (safeRes.data ?? []).map((c) => ({

@@ -292,6 +292,10 @@ export function useEmail() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session && mountedRef.current) setIsAuthenticated(true);
+    }).catch((err: unknown) => {
+      // getSession pode rejeitar por rede/timeout — sem handler vira
+      // unhandled rejection no load da tela de email.
+      log.warn('[Email] getSession falhou na checagem inicial:', err);
     });
     const {
       data: { subscription },
@@ -1264,6 +1268,11 @@ export function useEmailSLA(accountId: string | null, config: Partial<SLAConfig>
             registerThread(row.thread_id, row.last_message_at);
           }
         }
+      })
+      .catch((err: unknown) => {
+        // Sem handler, falha de rede vira unhandled rejection ao carregar
+        // threads de email com SLA pendente.
+        log.warn('[Email] Falha ao carregar threads com SLA pendente:', err);
       });
   }, [accountId, registerThread]);
 

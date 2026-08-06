@@ -6,7 +6,7 @@ import type {
   RealtimeMessage,
   ConversationContact,
   ConversationWithMessages,
-} from '@/features/inbox';
+} from '@/features/inbox/hooks/realtime/types';
 import { extractMessageType } from './evolution/messageTypes';
 
 export * from './evolution/messageTypes';

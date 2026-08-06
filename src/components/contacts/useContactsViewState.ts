@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { useContactsCRUD } from './useContactsCRUD';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
+import { logContactExport } from '@/features/contacts/services/contactExportLogService';
 import { buildContactsCsv, buildExportFileName, EXPORT_DEFAULT_KEYS } from './contactExportFields';
 import type { ContactViewMode } from './ContactViewSwitcher';
 import type { FilterPreset } from './FilterPresets';
@@ -107,18 +108,13 @@ export function useContactsViewState() {
       void supabase.auth
         .getUser()
         .then(({ data }) =>
-          supabase.from('contact_export_log').insert({
+          logContactExport({
             user_id: data.user?.id ?? null,
-            exported_by: data.user?.id ?? null,
-            export_type: 'csv',
             row_count: filteredContacts.length,
-            status: 'completed',
             filters: { exported_count: filteredContacts.length, fields: fieldKeys },
           })
         )
-        .then(({ error: logError }) => {
-          if (logError) log.warn('Failed to log contact export', logError.message);
-        })
+        .then(() => undefined)
         .catch((err: unknown) => log.warn('Failed to log contact export', err));
     },
     [filteredContacts]

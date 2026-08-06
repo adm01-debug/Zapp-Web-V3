@@ -13,9 +13,23 @@ import { ThemeDebugger } from '@/components/debug/ThemeDebugger';
 import { AppProviders } from '@/components/providers/AppProviders';
 import { AppRoutes } from '@/components/routing/AppRoutes';
 import { ServiceWorkerUpdateBanner } from '@/components/system/ServiceWorkerUpdateBanner';
-import { BuildValidationOverlay } from '@/components/debug/BuildValidationOverlay';
-import { HardResetButton } from '@/components/debug/HardResetButton';
-import { SwDebugWidget } from '@/components/debug/SwDebugWidget';
+// FIX perf TTM phase-07: widgets de debug agora são lazy — renderizam null em
+// produção mas seus módulos (Button/Badge/ScrollArea/Card/etc.) eram incluídos
+// no chunk inicial por estarem importados estaticamente aqui.
+const BuildValidationOverlay = lazyWithRetry(() =>
+  import('@/components/debug/BuildValidationOverlay').then((m) => ({
+    default: m.BuildValidationOverlay,
+  }))
+);
+const HardResetButton = lazyWithRetry(() =>
+  import('@/components/debug/HardResetButton').then((m) => ({ default: m.HardResetButton }))
+);
+const SwDebugWidget = lazyWithRetry(() =>
+  import('@/components/debug/SwDebugWidget').then((m) => ({ default: m.SwDebugWidget }))
+);
+const ThemeDebugger = lazyWithRetry(() =>
+  import('@/components/debug/ThemeDebugger').then((m) => ({ default: m.ThemeDebugger }))
+);
 
 import { useThemeAudit } from '@/hooks/useThemeAudit';
 import { TransitionProvider } from '@/components/transitions';
@@ -146,7 +160,9 @@ function AppContent() {
   return (
     <BrowserRouter>
       <ThemeInitializer />
-      <ThemeDebugger />
+      <Suspense fallback={null}>
+        <ThemeDebugger />
+      </Suspense>
       <SkipLinks />
       <LiveRegion />
       <GlobalKeyboardProvider>
@@ -159,13 +175,17 @@ function AppContent() {
         <Toaster />
         <Sonner />
         <ServiceWorkerUpdateBanner />
-        <SwDebugWidget />
+        <Suspense fallback={null}>
+          <SwDebugWidget />
+        </Suspense>
 
         <TransitionProvider defaultVariant="fade">
           <AppRoutes />
         </TransitionProvider>
-        <BuildValidationOverlay />
-        <HardResetButton />
+        <Suspense fallback={null}>
+          <BuildValidationOverlay />
+          <HardResetButton />
+        </Suspense>
       </GlobalKeyboardProvider>
     </BrowserRouter>
   );

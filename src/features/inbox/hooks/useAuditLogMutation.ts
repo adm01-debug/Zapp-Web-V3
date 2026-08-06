@@ -16,5 +16,13 @@ export function logAuditEvent(payload: {
     .then(({ error }) => {
       if (error)
         _log.warn('Failed to insert audit log', { action: payload.action, error: error.message });
+    })
+    .catch((err: unknown) => {
+      // Falha de rede/timeout rejeita a promise — sem este handler vira
+      // unhandled promise rejection a cada mutação auditable.
+      _log.warn('Failed to insert audit log (rejeição)', {
+        action: payload.action,
+        error: err instanceof Error ? err.message : String(err),
+      });
     });
 }

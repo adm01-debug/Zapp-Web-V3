@@ -32,7 +32,9 @@ export function useTranscriptionNotifications(options: TranscriptionNotification
   useEffect(() => {
     if (!enabled) return;
 
-    const channel = supabase.channel('transcription-notifications');
+    const channel = supabase.channel(
+      `transcription-notifications:${Math.random().toString(36).slice(2, 10)}`
+    );
     logMessagesSubscribe('useTranscriptionNotifications', {
       event: 'UPDATE',
       schema: 'evo',

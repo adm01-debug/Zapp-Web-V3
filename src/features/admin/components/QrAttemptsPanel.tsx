@@ -100,7 +100,7 @@ export function QrAttemptsPanel() {
   // Realtime: invalidate on any attempt change.
   useEffect(() => {
     const channel = supabase
-      .channel('qr-attempts-admin')
+      .channel(`qr-attempts-admin:${Math.random().toString(36).slice(2, 10)}`)
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'qr_attempts' }, () => {
         void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.qrAttempts() });
       })

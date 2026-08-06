@@ -43,7 +43,7 @@ export function useWarRoomAlerts(_soundEnabled = true) {
 
   useEffect(() => {
     const channel = supabase
-      .channel('warroom-alerts-realtime')
+      .channel(`warroom-alerts-realtime:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'zapp', table: 'warroom_alerts' },

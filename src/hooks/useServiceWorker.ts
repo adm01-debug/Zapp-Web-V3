@@ -256,23 +256,29 @@ export function useServiceWorker() {
             // (the RELOAD_FLAG guard only masks it, at the cost of one wasted
             // reload per page load). Only hard-refresh when the activated SW is
             // genuinely NEWER than the bundle this tab is running.
-            void import('@/lib/buildVersion').then(({ forceBundleRefresh, getCurrentBuildId }) => {
-              const swBuildId =
-                typeof event.data.buildId === 'string' ? event.data.buildId : undefined;
-              const currentBuildId = getCurrentBuildId();
-              if (!swBuildId || swBuildId === 'unknown' || swBuildId === currentBuildId) {
-                log.debug(
-                  '[ServiceWorker] SW_UPDATED for the running build — no reload needed',
+            void import('@/lib/buildVersion')
+              .then(({ forceBundleRefresh, getCurrentBuildId }) => {
+                const swBuildId =
+                  typeof event.data.buildId === 'string' ? event.data.buildId : undefined;
+                const currentBuildId = getCurrentBuildId();
+                if (!swBuildId || swBuildId === 'unknown' || swBuildId === currentBuildId) {
+                  log.debug(
+                    '[ServiceWorker] SW_UPDATED for the running build — no reload needed',
+                    { swBuildId, currentBuildId },
+                  );
+                  return;
+                }
+                log.info(
+                  '[ServiceWorker] SW_UPDATED for a newer build — forcing hard refresh',
                   { swBuildId, currentBuildId },
                 );
-                return;
-              }
-              log.info(
-                '[ServiceWorker] SW_UPDATED for a newer build — forcing hard refresh',
-                { swBuildId, currentBuildId },
-              );
-              void forceBundleRefresh(`sw-updated:${swBuildId}`, swBuildId);
-            });
+                void forceBundleRefresh(`sw-updated:${swBuildId}`, swBuildId);
+              })
+              .catch((err: unknown) => {
+                // import() dinâmico pode rejeitar (chunk removido em redeploy) —
+                // sem handler vira unhandled rejection no handler do SW.
+                log.warn('[ServiceWorker] Falha ao carregar buildVersion no SW_UPDATED:', err);
+              });
           }
         };
         navigator.serviceWorker.addEventListener('message', onMessage);

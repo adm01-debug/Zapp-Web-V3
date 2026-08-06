@@ -47,6 +47,14 @@ export function initSentry(): boolean {
     );
     sentryInit({
       dsn: DSN,
+      // Tunnel same-origin (hardening CORS): envelopes de eventos/replays saem
+      // do browser como POST same-origin p/ /sentry-tunnel e o nginx repassa ao
+      // ingest do Sentry. Elimina CORS e cache opaco (SW/extensoes/adblockers)
+      // como modo de falha — o erro 'No Access-Control-Allow-Origin' visto 1x em
+      // prod nao pode mais acontecer. CSP ja permite connect-src 'self'.
+      // Gate: apenas builds de producao servidos por nginx (Docker/VPS fallback),
+      // que sao os unicos que expoem o location /sentry-tunnel.
+      tunnel: ENV === 'prod' ? '/sentry-tunnel' : undefined,
       environment: ENV,
       release: RELEASE,
       // Tracing: sample 10% in prod, 100% in dev
