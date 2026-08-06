@@ -39,7 +39,7 @@ const enforce =
 const missing = REQUIRED.filter((name) => !truthy(process.env[name]));
 const errors = missing.map((name) => `${name} ausente — esperado: ${HINTS[name]}`);
 
-const url = process.env.VITE_SUPABASE_URL ?? '';
+const url = process.env.VITE_SUPABASE_URL || '';
 if (url.includes('.supabase.co')) {
   errors.push(
     'VITE_SUPABASE_URL aponta para Lovable Cloud (*.supabase.co). ZAPP web exige a VPS self-hosted.',
