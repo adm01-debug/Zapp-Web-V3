@@ -1,10 +1,10 @@
 # SUMÁRIO EXECUTIVO — Auditoria Container × Supabase
 ## ZAPP-WEB — 2026-08-06
 
-> **Status:** CONCLUÍDA (Fases 0–7)  
+> **Status:** CONCLUÍDA (Fases 0–8)  
 > **Executor:** Claude Code — Arquiteto Sênior  
 > **Instância:** Supabase Self-Hosted — PG 15.8.1.085 — VPS AtomicaBR  
-> **Scope:** 8 dimensões × 40+ checagens × read-only
+> **Escopo:** 8 dimensões × 40+ checagens × somente leitura
 
 ---
 
@@ -90,7 +90,7 @@ O schema `evo` (Evolution API) tem 143 tabelas presentes vs. 172 documentadas em
 | ✅ MIGR-03 | Schema `zapp`: 323 tabelas vs. 321 no CLAUDE.md (+2 drift) | RESOLVIDO — CLAUDE.md atualizado para 323 |
 | ✅ MIGR-04 | 5 schemas não documentados: artes, graveyard, logistica, monitoring, parity_audit | RESOLVIDO — documentados no CLAUDE.md |
 | ARTEF-05 | Extensão `http` ausente (pg_net presente como alternativa funcional) | Confirmar se `http` é realmente necessária |
-| ✅ SECRET-04 | Varredura de hardcoded secrets (git grep) não executada | RESOLVIDO — varredura executada, repo LIMPO |
+| ⚠️ SECRET-04 | gitleaks encontrou 2 detecções `supabase-jwt` em arquivos de documentação | PENDENTE — classificar como falso positivo ou remover |
 
 ---
 

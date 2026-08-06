@@ -3,7 +3,7 @@
 
 > **Data:** 2026-08-06  
 > **Executor:** Claude Code (Arquiteto Sênior)  
-> **Scope:** Read-only diagnóstico — nenhuma ação destrutiva  
+> **Escopo:** Somente leitura — nenhuma ação destrutiva  
 > **Branch:** `claude/evolution-api-audit-kdfenp`
 
 **Legenda:** ✅ Concluída | 🔄 Em progresso | ⏳ Pendente | ❌ DRIFT encontrado | ⚠️ RISCO identificado
@@ -348,7 +348,7 @@
     8. auth.users×profiles ❌ P0 DRIFT (zero overlap)
 
 - [x] **97 — Plano de correção priorizado.** ✅
-  - _Resultado:_ P0→P1→P2 com TTF e procedimentos em `RECONCILIATION_MATRIX.md#Plano-de-Correção` e `EXECUTIVE_SUMMARY.md#Próximos-Passos`.
+  - _Resultado:_ P0→P1→P2 com TTF e procedimentos em [Plano de Correção Priorizado](RECONCILIATION_MATRIX.md#plano-de-correção-priorizado) e [Próximos Passos Recomendados](EXECUTIVE_SUMMARY.md#próximos-passos-recomendados).
 
 - [x] **98 — Guardrail de reconciliação contínua.** ✅
   - _Resultado:_ Script de cron job SQL para alertar sobre drift auth.users×profiles incluído em `RECONCILIATION_MATRIX.md#Guardrail`.

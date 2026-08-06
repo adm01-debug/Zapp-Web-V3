@@ -91,7 +91,7 @@
 
 | Tabela | Função |
 |--------|--------|
-| `evolution_messages` | Raiz particionada de mensagens (14 partições — auditado 2026-08-06) |
+| `evolution_messages` | Raiz particionada de mensagens (25 partições por instância) |
 | `evolution_contacts` | Contatos da Evolution API (20.563, 18 MB) |
 | `evolution_conversations` | Raiz particionada de conversas (13 partições — auditado 2026-08-06) |
 | `evolution_webhook_events_v2_*` | Webhooks particionados por mês (2026-03 a 2027-06 + default) |
@@ -115,7 +115,7 @@
 ### Storage Buckets (13 buckets em produção)
 
 | Bucket | Público | Limite | Notas |
-|--------|---------|--------|-------|
+|--------|---------|--------|---------|
 | `audio-memes` | não | 5 MB | |
 | `audio-messages` | **sim** | — | **LEITURA pública** via `/storage/v1/object/public/` — UPLOAD requer autenticação. `allowed_mime_types: [ogg,webm,mpeg,mp3,aac,mp4]`. |
 | `avatars` | sim | 5 MB | |
@@ -137,7 +137,7 @@
 ## Bugs Abertos
 
 | ID | Componente | Problema | Severidade | Próximo Passo |
-|----|-----------|----------|-----------|--------------|
+|----|-----------|----------|-----------|---------------|
 | BUG-C | n8n | FK constraint violada em `workflow_history` | 🟠 Alto | Investigar DB n8n + FK cascades |
 | BUG-D | Edge Function | `POST /rest/v1/contacts` retorna 404 | 🟠 Alto | Verificar handler da edge function |
 
@@ -151,7 +151,7 @@ Estas funções existem como stubs em `supabase/migrations/20260717000002_create
 Todas fazem `RAISE EXCEPTION P0001` exceto onde indicado. **Não implementar como tabelas** — requerem Edge Functions.
 
 | RPC | Comportamento do Stub | Implementação Real |
-|-----|-----------------------|-------------------|
+|-----|-----------------------|--------------------|
 | `initiate_gmail_oauth` | RAISE P0001 | Edge Function OAuth Google |
 | `complete_gmail_oauth` | RAISE P0001 | Edge Function OAuth callback |
 | `sync_to_crm` | RAISE P0001 | Edge Function + API CRM |
@@ -231,6 +231,7 @@ O repositório possui um **grafo de conhecimento** em `graphify-out/` (Apache 2.
 | `docs/audit-2026-08-06/EXECUTIVE_SUMMARY.md` | Sumário executivo da auditoria container × Supabase (2026-08-06) |
 | `docs/audit-2026-08-06/RECONCILIATION_MATRIX.md` | Matriz completa de reconciliação (40 checks, 8 dimensões) |
 | `docs/audit-2026-08-06/reconciliation.json` | Achados da auditoria em formato estruturado |
+| `docs/audit-2026-08-06/VALIDATION_PLAN_100_STEPS.md` | Plano de validação — 100 etapas da auditoria |
 
 ---
 

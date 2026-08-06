@@ -40,25 +40,59 @@ cscli bouncers list
 
 **Diagnóstico via Portainer:** Filtrar containers por nome `evolution-db-purge`, verificar ExitCode e Status em cada instância.
 
-**Exit 137 — OOM Killed:**
-- Causa: Limite de memória insuficiente para a operação de purge das tabelas `evo.*`
-- Correção: Aumentar `deploy.resources.limits.memory` no stack Portainer
-  ```yaml
-  deploy:
-    resources:
-      limits:
-        memory: 512M  # Aumentar (ex: 256M → 512M ou 1G conforme necessário)
+**Exit 137 — Confirmação de OOM:**
+
+> **⚠️ Exit 137 ≠ OOM confirmado.** O sinal SIGKILL (137) pode ser enviado pelo kernel OOM killer OU
+> por um processo externo (systemd, Swarm task timeout, orquestrador). Sempre confirmar antes de agir:
+
+```bash
+# 1. Identificar o container ID com exit 137
+docker ps -a --filter "name=evolution-db-purge" --format "{{.ID}} {{.Status}}"
+
+# 2. Confirmar se foi OOM (State.OOMKilled)
+docker inspect <container_id> --format '{{.State.OOMKilled}}'
+# Se "true" → OOM confirmado; se "false" → investigar timeout/SIGKILL externo
+```
+
+- Se `OOMKilled=true`: aumentar limite de memória do **serviço** (não só o container):
+  ```bash
+  # CORRETO — aplica o novo limite ao serviço Swarm:
+  docker service update --limit-memory 512m evolution-db-purge_evolution-db-purge
+
+  # Verificar se o limite foi aplicado:
+  docker service inspect --format '{{.Spec.Resources.Limits.MemoryBytes}}' evolution-db-purge_evolution-db-purge
+  # Esperado: 536870912 (= 512 MB)
   ```
-- Após ajuste: atualizar o serviço via Portainer (stack update) ou `docker service update --force <nome-do-servico>`
+  > **❌ NÃO usar apenas `--force`:** `docker service update --force` redesploya o container mas **não aplica novos limits de memória**. Sempre passar `--limit-memory` explicitamente.
+
+- Se `OOMKilled=false`: investigar quem enviou SIGKILL — verificar logs do Docker daemon (`journalctl -u docker`), Swarm health check timeouts, ou cron externo.
 
 **Exit 127 — Command Not Found:**
-- Causa: Entrypoint/CMD inválido na imagem — script de purge não encontrado no container
-- Verificar imagem e entrypoint via Portainer: inspecionar o serviço → ver "Command" e "Image"
-- Confirmar que o script de purge existe na imagem antes de redesployar
+- Causa: `Entrypoint`, `Cmd` ou `Args` inválido — o binário/script não existe no PATH do container.
+  - Verificar `Entrypoint` e `Cmd` via `docker inspect <container_id> --format '{{.Config.Entrypoint}} / {{.Config.Cmd}}'`
+  - Confirmar que o script existe dentro da imagem: `docker run --rm --entrypoint sh <image> -c 'which <script>'`
+  - Verificar variável `PATH` dentro do container: `docker run --rm --entrypoint sh <image> -c 'echo $PATH'`
+  - Verificar shebang do script e se o interpretador existe na imagem (`#!/usr/bin/env python3` requer python3 instalado)
+  > **Distinguir de exit 126 (Permission Denied):** exit 126 = arquivo existe mas sem permissão de execução. Exit 127 = arquivo não encontrado no PATH.
+
+**Validação pós-correção:**
+```bash
+# 1. Verificar logs do container após ajuste
+docker service logs --tail 50 evolution-db-purge_evolution-db-purge
+
+# 2. Confirmar que a purge completou sem erro
+docker service ps evolution-db-purge_evolution-db-purge
+
+# 3. Contar tabelas evo antes/depois (executar no PostgreSQL):
+SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='evo' AND table_type='BASE TABLE';
+
+# 4. Verificar uso de disco do volume PostgreSQL (host)
+df -h /var/lib/docker/volumes/
+```
 
 **Impacto se não corrigido:** Tabelas do schema `evo` (ex: `evolution_messages_*`, `evolution_webhook_events_*`) crescem sem limpeza automática — risco de degradação de performance e esgotamento de disco.
 
-**Referência:** DADO-03/SAUDE-03 na RECONCILIATION_MATRIX.md — P1 DRIFT (pendente desde 2026-08-06).
+**Referência:** DADO-03/REDE-05/SAUDE-03 na RECONCILIATION_MATRIX.md — P1 DRIFT (pendente desde 2026-08-06).
 
 ## Gaps Resolvidos (faxina 2026-08-05)
 
