@@ -9,6 +9,9 @@
 --
 -- This migration is idempotent: the DO block checks for the constraint before
 -- attempting to add it, so re-running is safe.
+--
+-- NOTE: zapp.email_attachments is a VIEW; the physical table lives in the
+-- email_app schema. The constraint must be added to the base table.
 
 DO $$
 BEGIN
@@ -18,10 +21,10 @@ BEGIN
     JOIN   pg_class      t  ON c.conrelid   = t.oid
     JOIN   pg_namespace  n  ON t.relnamespace = n.oid
     WHERE  c.conname   = 'email_attachments_email_message_id_gmail_attachment_id_key'
-      AND  n.nspname   = 'zapp'
+      AND  n.nspname   = 'email_app'
       AND  t.relname   = 'email_attachments'
   ) THEN
-    ALTER TABLE zapp.email_attachments
+    ALTER TABLE email_app.email_attachments
       ADD CONSTRAINT email_attachments_email_message_id_gmail_attachment_id_key
       UNIQUE (email_message_id, gmail_attachment_id);
   END IF;

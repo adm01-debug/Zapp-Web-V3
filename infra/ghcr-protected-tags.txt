@@ -1,0 +1,10 @@
+# Tags de rollback protegidas da limpeza automática GHCR.
+# Uma SHA por linha (12 primeiros caracteres do SHA do commit de produção).
+# Para adicionar: bash scripts/update-rollback-protection.sh <sha12>
+# Usado em: .github/workflows/deploy-vps.yml → GHCR retention (ignore-versions)
+#
+# Formato do ignore-versions gerado: ^production-(sha1|sha2|sha3)$
+# Protege: o index OCI tagueado + seus manifests-filho (amd64 + attestation).
+fbd04bec303d
+988086a2bbbd
+a68e678b8496

@@ -56,6 +56,31 @@ jobs:
             ERRORS=$((ERRORS+1))
           fi
 
+          # CRITICAL: check for duplicate timestamp prefixes (14 chars = YYYYMMDDHHmmss).
+          # supabase_migrations.schema_migrations uses version (= timestamp prefix) as
+          # PRIMARY KEY — two files sharing a timestamp cause silent migration skipping.
+          # Only the first file alphabetically is tracked; subsequent files are never applied.
+          DUP_PREFIXES=$(find "$MIGRATIONS_DIR" -name "*.sql" -type f \
+            | sed 's|.*/||' | cut -c1-14 | sort | uniq -d)
+
+          if [ -n "$DUP_PREFIXES" ]; then
+            echo ""
+            echo "### ERROR: Duplicate timestamp prefixes detected!"
+            echo "Affected prefixes (YYYYMMDDHHmmss):"
+            echo "$DUP_PREFIXES"
+            echo ""
+            echo "Files with colliding timestamps:"
+            while IFS= read -r PREFIX; do
+              find "$MIGRATIONS_DIR" -name "${PREFIX}*.sql" -type f | sort | sed 's|^|  |'
+            done <<< "$DUP_PREFIXES"
+            echo ""
+            echo "CRITICAL: supabase_migrations.schema_migrations uses 'version' (timestamp"
+            echo "prefix) as PRIMARY KEY. Multiple files with the same timestamp cause silent"
+            echo "skipping — only the first file alphabetically is tracked and applied."
+            echo "Fix: assign a unique timestamp to each migration file."
+            ERRORS=$((ERRORS+1))
+          fi
+
           echo ""
           TOTAL_MIGRATIONS=$(find "$MIGRATIONS_DIR" -name "*.sql" -type f | wc -l | tr -d ' ')
           echo "Total migration files: $TOTAL_MIGRATIONS"
@@ -64,8 +89,8 @@ jobs:
           if [ $ERRORS -gt 0 ]; then
             echo ""
             echo "### FAILED: $ERRORS uniqueness violation(s) detected."
-            echo "Each migration file MUST have a unique name."
+            echo "Each migration file MUST have a unique name and timestamp."
             exit 1
           else
-            echo "### PASS: All migration names are unique."
+            echo "### PASS: All migration names and timestamps are unique."
           fi

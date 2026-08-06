@@ -279,6 +279,25 @@ function _bumpGlobalReloadCount(): void {
  */
 export async function forceBundleRefresh(reason: string, targetBuildId?: string): Promise<void> {
   log.warn('[buildVersion] Forcing bundle refresh:', reason, { targetBuildId });
+
+  // Verificar se o novo bundle está propagado no CDN ANTES de consumir a cota.
+  // CDNs podem levar 1-5min após deploy para servir os novos assets.
+  // Sem isto, o reload serve a HTML antiga do cache do SW, mas os novos chunks
+  // retornam 404 → "Failed to fetch dynamically imported module".
+  // Se não acessível: abort sem queimar cota — próximo poll (5min) ou evento
+  // SW_UPDATED tentará novamente; a janela de cortesia (60s) já cobre a maioria
+  // dos cenários de propagação.
+  if (targetBuildId) {
+    const reachable = await isBundleReachable(targetBuildId);
+    if (!reachable) {
+      log.warn(
+        '[buildVersion] Bundle não acessível no CDN — reload adiado até próxima verificação',
+        { targetBuildId }
+      );
+      return;
+    }
+  }
+
   if (!acquireReloadQuota(targetBuildId)) {
     // acquireReloadQuota já disparou zapp-update-required com o reason
     // apropriado (ex.: 'global-quota'). Não disparar duplicado aqui.
@@ -311,6 +330,40 @@ const VERSION_CHECK_TIMEOUT_MS = 10_000;
 // Timeout do prefetch em background do novo bundle: se o asset demorar mais
 // que isso (rede lenta / CDN stall), aborta sem impactar o fluxo de reload.
 const PREFETCH_TIMEOUT_MS = 10_000;
+
+// Timeout da verificação de acessibilidade do bundle novo antes do reload.
+// HEAD request deve responder em <5s em condições normais.
+const BUNDLE_VERIFY_TIMEOUT_MS = 5_000;
+
+/**
+ * Verifica se o entry asset do novo bundle está acessível no servidor.
+ * Usa HEAD + cache: 'no-store' para garantir hit real no servidor/CDN sem
+ * baixar o asset inteiro. Retorna false se 404, timeout ou erro de rede.
+ *
+ * CDNs levam 1-5min para propagar após um deploy. Sem esta verificação,
+ * forceBundleRefresh aciona um reload que serve a HTML antiga do SW cache
+ * mas os novos chunks 404 → "Failed to fetch dynamically imported module".
+ */
+async function isBundleReachable(remoteBuildId: string): Promise<boolean> {
+  if (!remoteBuildId || typeof window === 'undefined') return true;
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), BUNDLE_VERIFY_TIMEOUT_MS);
+    try {
+      const res = await fetch(`/assets/index-${remoteBuildId}.js`, {
+        method: 'HEAD',
+        cache: 'no-store',
+        credentials: 'omit',
+        signal: controller.signal,
+      });
+      return res.ok;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Pré-carrega em background os assets do novo bundle (index-<buildId>.js e
@@ -357,13 +410,17 @@ function prefetchNewBundle(remoteBuildId: string): void {
  * forceBundleRefresh — nada de guarda foi alterado.
  */
 function scheduleGracefulRefresh(reason: string, remote: string): void {
+  // Cancela timer anterior — múltiplos mismatches simultâneos (ex: SW_UPDATED +
+  // version.json polling) não devem criar N timers que todos chamam
+  // forceBundleRefresh e consomem cota desnecessariamente. O último mismatch vence.
+  if (graceTimer) {
+    clearTimeout(graceTimer);
+    graceTimer = undefined;
+  }
   // Pré-carrega o novo bundle em background (fire-and-forget) para o reload
   // pós-cortesia servir os assets do HTTP cache em vez de baixar do zero.
   prefetchNewBundle(remote);
   pendingGraceRefresh = { reason, remote };
-  // NOTA: não cancelamos timers anteriores — cada mismatch agenda o seu próprio
-  // reload (mesmo comportamento do pré-cortesia, apenas adiado). A variável
-  // module-level guarda o ÚLTIMO timer para cancelamento via 'zapp-update-apply'.
   graceTimer = setTimeout(() => {
     void forceBundleRefresh(reason, remote);
   }, UPDATE_GRACE_MS);
@@ -613,6 +670,25 @@ export function startBuildVersionWatcher(): () => void {
 }
 
 /**
+ * Solicita refresh com janela de cortesia (UPDATE_GRACE_MS) após notificar o
+ * usuário via evento 'zapp-update-required'. Use em vez de forceBundleRefresh
+ * quando chamado de fora deste módulo (ex.: SW_UPDATED em useServiceWorker)
+ * para garantir a mesma experiência UX do watcher automático via version.json.
+ *
+ * Dispatcha 'zapp-update-required' (grace:true) — o banner oferece
+ * "Atualizar agora" que cancela o timer e aplica imediatamente.
+ */
+export function requestGracefulRefresh(reason: string, remote: string): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent('zapp-update-required', {
+      detail: { current: CURRENT_BUILD_ID, remote, reason, grace: true },
+    })
+  );
+  scheduleGracefulRefresh(reason, remote);
+}
+
+/**
  * Build id this tab is currently running (compile-time constant injected by
  * vite). Consumers compare against it to decide whether a freshly-activated
  * service worker — or a version.json entry — is genuinely newer than the bundle
@@ -638,4 +714,5 @@ export const __TEST__ = {
   GLOBAL_RELOAD_WINDOW_MS,
   readReloadState,
   prefetchNewBundle,
+  isBundleReachable,
 };

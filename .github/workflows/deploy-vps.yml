@@ -13,7 +13,6 @@ on:
 permissions:
   contents: read
   packages: write
-  actions: write
 
 concurrency:
   group: deploy-vps
@@ -70,13 +69,29 @@ jobs:
             ${{ steps.meta.outputs.image }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:production-latest
           build-args: |
-            VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL || 'https://supabase.atomicabr.com.br' }}
+            VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
             VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
             VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
             VITE_SENTRY_DSN=${{ secrets.VITE_SENTRY_DSN }}
             VITE_GIT_SHA=${{ github.sha }}
             VITE_SENTRY_ENVIRONMENT=production
             VITE_APP_ENV=production
+
+      - name: 📋 Ler tags de rollback protegidas (infra/ghcr-protected-tags.txt)
+        id: protect
+        run: |
+          if [ ! -f infra/ghcr-protected-tags.txt ]; then
+            echo "AVISO: infra/ghcr-protected-tags.txt nao encontrado — usando fallback hardcoded"
+            echo "regex=^production-(fbd04bec303d|988086a2bbbd|a68e678b8496)$" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          TAGS="$(grep -v '^#' infra/ghcr-protected-tags.txt | grep -v '^[[:space:]]*$' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr 'A-F' 'a-f' | tr -d '\r' | grep -E '^[0-9a-f]{12}$' | tr '\n' '|' | sed 's/|$//')"
+          if [ -z "$TAGS" ]; then
+            echo "AVISO: nenhuma SHA encontrada no arquivo — usando fallback hardcoded"
+            echo "regex=^production-(fbd04bec303d|988086a2bbbd|a68e678b8496)$" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "regex=^production-(${TAGS})$" >> "$GITHUB_OUTPUT"
 
       # ============================================================
       # ETAPA 34 — Faxina Portainer (2026-08-05): retenção GHCR
@@ -105,9 +120,9 @@ jobs:
           # o corte de recência cai ENTRE builds, nunca no meio (evita index
           # mantido com filho deletado → manifest unknown). 8 cortava o 3º deploy.
           min-versions-to-keep: 9
-          # Proteger rollbacks históricos tagueados para evitar deleção prematura.
+          # Proteger rollbacks históricos — lidos de infra/ghcr-protected-tags.txt.
           # NÃO usar delete-only-untagged-versions (apagaria manifests-filho → pull falha).
-          ignore-versions: "^production-(fbd04bec303d|988086a2bbbd)"
+          ignore-versions: ${{ steps.protect.outputs.regex }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🚨 Alerta se a retenção GHCR falhar (não bloqueia deploy)
@@ -202,6 +217,7 @@ jobs:
                 rollback_config:
                   order: start-first
                   monitor: 60s
+                  failure_action: continue
                 resources:
                   limits:
                     memory: 256M
@@ -229,10 +245,13 @@ jobs:
           cat /tmp/pr.json | head -c 400 || true
           [ "${HTTP}" = "200" ] || { echo "::error::Deploy failed HTTP ${HTTP}"; exit 1; }
 
-          echo "Aguardando 20s rollout..."
-          sleep 20
+          # Aguardar além do start_period (30s) para checar o container novo, não o antigo
+          echo "Aguardando 45s rollout (start_period=30s + margem)..."
+          sleep 45
 
+          # HC best-effort: start-first pode ter container antigo ainda em trânsito.
+          # Falha aqui é ::warning:: (não exit 1) — Docker Swarm monitora saúde internamente.
           HC=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 \
             https://zapp.atomicabr.com.br/auth || echo 000)
           echo "Health /auth: ${HC}"
-          case "${HC}" in 200|301|302) echo "App OK" ;; *) echo "::warning::HC=${HC}"; esac
+          case "${HC}" in 200|301|302) echo "App OK" ;; *) echo "::warning::POST_DEPLOY_HC=${HC} — verificar serviço manualmente"; esac
