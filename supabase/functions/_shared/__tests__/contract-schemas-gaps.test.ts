@@ -23,6 +23,8 @@ interface NegativeCase {
 
 interface Matrix {
   name: string;
+  /** false quando o contrato tem obrigatórios (ex.: bitrix-api action enum) */
+  acceptsEmpty?: boolean;
   invalid: NegativeCase[];
 }
 
@@ -79,6 +81,7 @@ const MATRICES: Matrix[] = [
   {
     name: "bitrix-api",
     // action é OBRIGATÓRIO (enum) — `{}` falha; os demais campos opcionais.
+    acceptsEmpty: false,
     invalid: [
       { label: "action ausente (body {})", payload: {}, expectPath: "action" },
       { label: "action number onde enum", payload: { action: 42 }, expectPath: "action" },
@@ -98,9 +101,11 @@ for (const m of MATRICES) {
     continue;
   }
 
-  Deno.test(`gaps: ${m.name} — {} aceito (permissivo, sem obrigatórios)`, () => {
-    assertEquals(schema.safeParse({}).success, true);
-  });
+  if (m.acceptsEmpty !== false) {
+    Deno.test(`gaps: ${m.name} — {} aceito (permissivo, sem obrigatórios)`, () => {
+      assertEquals(schema.safeParse({}).success, true);
+    });
+  }
 
   for (const c of m.invalid) {
     Deno.test(`gaps: ${m.name} — ${c.label}`, () => {
