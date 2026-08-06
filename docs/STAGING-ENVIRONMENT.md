@@ -46,7 +46,7 @@ No Vercel Dashboard → Settings → Environment Variables:
 
 ```bash
 # Aplicar todas as migrations em staging antes de produção
-SUPABASE_DB_URL="postgresql://postgres:senha@supabase-staging.atomicabr.com.br:5432/postgres" \
+SUPABASE_DB_URL="postgresql://postgres:<SECRETO>@supabase-staging.atomicabr.com.br:5432/postgres" \
   bun run db:migrate
 
 # Ou via supabase CLI
@@ -68,7 +68,7 @@ O workflow `.github/workflows/ci.yml` já suporta a variável
 
 ```yaml
 # Adicionar no GitHub Settings → Secrets → STAGING_SUPABASE_DB_URL
-# postgresql://postgres:SENHA@supabase-staging.atomicabr.com.br:5432/postgres
+# postgresql://postgres:<SECRETO>@supabase-staging.atomicabr.com.br:5432/postgres
 ```
 
 ## .env.staging

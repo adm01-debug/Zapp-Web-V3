@@ -10,12 +10,13 @@ on:
     - cron: '0 6 * * *'  # daily at 06:00 UTC
   workflow_dispatch:
 
-# Verificação usa GITHUB_TOKEN (GET de branch protection é read-only — sem
-# necessidade de PAT; o antigo secret ACTIONS_PAT nunca existiu no repo e
-# derrubava o schedule diário — fix 2026-08-06).
+# Verificação usa GITHUB_TOKEN com escopo administration: read — o GET de
+# branch protection (REST) exige essa permissão; o antigo secret ACTIONS_PAT
+# nunca existiu no repo e derrubava o schedule diário — fix 2026-08-06.
 permissions:
   contents: read
   pull-requests: read
+  administration: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -66,7 +67,7 @@ jobs:
           PROT=$(echo "$RESP" | sed '$d')
 
           if [ "$HTTP_CODE" = "403" ]; then
-            echo "::error::Branch protection API denied (HTTP 403) — ACTIONS_PAT may lack administration:read scope"
+            echo "::error::Branch protection API denied (HTTP 403) — GITHUB_TOKEN requires administration:read scope"
             exit 1
           fi
 

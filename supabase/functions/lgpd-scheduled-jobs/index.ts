@@ -12,7 +12,7 @@ Deno.serve(async (req: Request) => {
   const parsed = parseOrReject('lgpd-scheduled-jobs', CONTRACT_SCHEMAS['lgpd-scheduled-jobs'], req, await req.json().catch(() => ({})), {
     extraHeaders: getCorsHeaders(req),
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
 
   const db = createZappAdminClient();
 

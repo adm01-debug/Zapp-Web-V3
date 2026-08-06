@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
   const parsed = parseOrReject('gmail-token-refresh', CONTRACT_SCHEMAS['gmail-token-refresh'], req, body, {
     extraHeaders: getCorsHeaders(req),
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
   const { action = 'refreshAll' } = parsed.data as { action?: string };
 
   // refreshSingle: accept user JWT (RLS-scoped via callerClient) OR service-role/cron

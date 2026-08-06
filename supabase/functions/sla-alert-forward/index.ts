@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
     // 2. Validate payload.
     const raw = await req.json().catch(() => null);
     const parsed = parseOrReject('sla-alert-forward', CONTRACT_SCHEMAS['sla-alert-forward'], req, raw, { extraHeaders: getCorsHeaders(req) });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const payload: AlertPayload = {
       ...(parsed.data as AlertPayload),
       occurred_at: (parsed.data as AlertPayload).occurred_at ?? new Date().toISOString(),

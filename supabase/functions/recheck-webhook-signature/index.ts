@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     const parsed = await parseRequestOrReject('recheck-webhook-signature', CONTRACT_SCHEMAS['recheck-webhook-signature'], req, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as RecheckRequest;
 
     // 3. Secret + client admin (service role, schema zapp)

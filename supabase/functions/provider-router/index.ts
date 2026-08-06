@@ -61,8 +61,25 @@ import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
-import { parseOrReject } from "../_shared/contract-kit.ts";
+import { import { parseOrReject } from, buildContractErrorBody } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+
+
+/**
+ * Falha de validação pós-gate → envelope 422 ÚNICO (contract-kit).
+ * Correção 2026-08-06 (gap A1): era 400 com shape avulso.
+ */
+function contractViolation422(path: string, message: string, req: Request, extra?: Record<string, string>): Response {
+  const eb = buildContractErrorBody(
+    'provider-router', undefined, 'contract_violation',
+    `Campo obrigatório ausente: ${path}.`,
+    [{ path, message }],
+  );
+  return new Response(JSON.stringify(eb), {
+    status: 422,
+    headers: { ...(extra ?? {}), 'Content-Type': 'application/json' },
+  });
+}
 type Action = "sendText" | "sendMedia" | "getStatus" | "ping";
 
 interface RouteRequest {
@@ -229,7 +246,7 @@ Deno.serve(async (req) => {
 
   const raw = await req.json().catch(() => null);
   const parsed = parseOrReject('provider-router', CONTRACT_SCHEMAS['provider-router'], req, raw, { extraHeaders: getCorsHeaders(req) });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
   const body = parsed.data as RouteRequest;
 
   if (!body.action || typeof body.action !== "string") {
@@ -249,9 +266,7 @@ Deno.serve(async (req) => {
     : null;
 
   if (!channelRef) {
-    return new Response(JSON.stringify({ error: "channel_ref_required" }), {
-      status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
-    });
+    return contractViolation422("channel_ref", "channel_ref_required", req, getCorsHeaders(req));
   }
 
   const { data: route } = await admin

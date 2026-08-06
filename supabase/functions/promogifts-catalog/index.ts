@@ -7,7 +7,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { createZappClient } from '../_shared/db-client.ts';
 import { z } from "https://esm.sh/zod@3.23.8";
 import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
-import { parseOrReject } from "../_shared/contract-kit.ts";
+import { parseOrReject, buildContractErrorBody } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 const jsonRes = (body: unknown, status = 200, req?: Request) =>
@@ -15,6 +15,23 @@ const jsonRes = (body: unknown, status = 200, req?: Request) =>
     status,
     headers: { ...(req ? getCorsHeaders(req) : getCorsHeaders()), "Content-Type": "application/json" },
   });
+
+/**
+ * Falha de validação de params por action (pós-gate) → envelope 422 ÚNICO.
+ * Converte os issues do Zod no formato canônico de details [{path,message}]
+ * (gap A1-B2 da auditoria 2026-08-06: era 400 {error, details: fieldErrors}).
+ */
+function contractViolation422(err: z.ZodError, req?: Request): Response {
+  const body = buildContractErrorBody(
+    'promogifts-catalog', undefined, 'contract_violation',
+    'Parâmetros inválidos para a action.',
+    err.issues.slice(0, 25).map((i) => ({
+      path: i.path.length ? i.path.join('.') : 'root',
+      message: i.message,
+    })),
+  );
+  return jsonRes(body, 422, req);
+}
 
 /**
  * Extrai uma mensagem de erro legível de qualquer valor lançado.
@@ -246,14 +263,14 @@ Deno.serve(async (req) => {
     const extClient = createClient(extUrl, extKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
     const parsed = parseOrReject('promogifts-catalog', CONTRACT_SCHEMAS['promogifts-catalog'], req, rawBody, { extraHeaders: getCorsHeaders(req) });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const { action, params } = parsed.data as { action: string; params?: Record<string, unknown> };
     const startTime = performance.now();
 
     if (action === "list_products") {
       const paramsParse = ListProductsSchema.safeParse(params);
       if (!paramsParse.success) {
-        return jsonRes({ error: "Invalid parameters", details: paramsParse.error.flatten().fieldErrors }, 400, req);
+        return contractViolation422(paramsParse.error, req);
       }
       const { search, category_id, supplier_id, limit, offset, order_by, ascending, only_active, only_in_stock } = paramsParse.data;
 
@@ -277,7 +294,7 @@ Deno.serve(async (req) => {
     if (action === "get_product") {
       const paramsParse = GetProductSchema.safeParse(params);
       if (!paramsParse.success) {
-        return jsonRes({ error: "Invalid parameters", details: paramsParse.error.flatten().fieldErrors }, 400, req);
+        return contractViolation422(paramsParse.error, req);
       }
       const { product_id } = paramsParse.data;
       const { data: product, error: productErr } = await extClient

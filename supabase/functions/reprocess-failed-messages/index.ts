@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('reprocess-failed-messages', CONTRACT_SCHEMAS['reprocess-failed-messages'], req, await req.json().catch(() => ({})), {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
 
     // Uses service-role credentials (SUPABASE_SERVICE_ROLE_KEY) via createZappAdminClient()
     const supabase = createZappAdminClient();

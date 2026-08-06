@@ -51,7 +51,7 @@ import {
 } from "../_shared/schemas.ts";
 import { callAiWithTracking, extractTokenUsage } from "../_shared/ai-usage.ts";
 import { requireUser } from "../_shared/auth.ts";
-import { parseOrReject } from "../_shared/contract-kit.ts";
+import { parseOrReject, buildContractErrorBody } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
 /** AI gateway key — AI_GATEWAY_KEY with LOVABLE_API_KEY fallback (rename in progress). */
@@ -903,7 +903,7 @@ Deno.serve(async (req) => {
     // (discriminatedUnion por action). Os handlers internos continuam validando com
     // parseBody — este gate apenas antecipa a rejeição com envelope canônico 422.
     const contractParsed = parseOrReject('ai-router', CONTRACT_SCHEMAS['ai-router'], req, body, { extraHeaders: getCorsHeaders(req) });
-    if (!contractParsed.ok) return contractParsed.response;
+    if (contractParsed.ok === false) return contractParsed.response;
     body = contractParsed.data as Record<string, unknown>;
 
     // ━━━ PHASE 1B: Request Signature Validation (IMPROVEMENT 11) ━━━
@@ -1110,9 +1110,20 @@ Deno.serve(async (req) => {
         if (ctx?.requestId) ctx.requestId = "";
         return addCorrelationIdHeader(response, ctx.correlationId);
       }
-      // C.16: Return 422 for validation errors, 500 for internal errors
-      const statusCode = result.isValidationError ? 422 : 500;
-      return errorResponse(result.error || "Action failed", statusCode, req);
+      // C.16: Return 422 with ENVELOPE CANÔNICO for validation errors, 500 for internal
+      // (gap A1-A1 da auditoria 2026-08-06: 422 {error} avulso → envelope contract-kit)
+      if (result.isValidationError) {
+        const eb = buildContractErrorBody(
+          'ai-router', undefined, 'contract_violation',
+          result.error || 'Action failed',
+          [{ path: 'root', message: result.error || 'Action failed' }],
+        );
+        return new Response(JSON.stringify(eb), {
+          status: 422,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        });
+      }
+      return errorResponse(result.error || "Action failed", 500, req);
     }
 
     // ━━━ PHASE 6: Record Result for Idempotency ━━━

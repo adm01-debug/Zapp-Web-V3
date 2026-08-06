@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
   const parsed = parseOrReject('auto-close-conversations', { v1: AutoCloseConversationsV1Schema }, req, await req.json().catch(() => ({})), {
     extraHeaders: getCorsHeaders(req),
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
 
   const log = new Logger('auto-close-conversations');
 

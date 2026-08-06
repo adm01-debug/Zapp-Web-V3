@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
     requestId: rid,
     extraHeaders: { ...getCorsHeaders(req), "Content-Type": "application/json" },
   });
-  if (!parsed.ok) {
+  if (parsed.ok === false) {
     console.warn(`[whatsapp-cloud-webhook][${rid}] contract_violation:`, parsed.body.details);
     return parsed.response;
   }

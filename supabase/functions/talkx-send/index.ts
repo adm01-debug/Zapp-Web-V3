@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('talkx-send', { v1: TalkxSendV1Schema }, req, raw, {
       requestId, extraHeaders: headers,
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const { campaignId, action } = parsed.data as { campaignId: string; action?: string };
 
     // Handle pause/cancel

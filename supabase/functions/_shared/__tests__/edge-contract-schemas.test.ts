@@ -222,9 +222,13 @@ Deno.test(
       for (const version of Object.keys(versions)) {
         const schema = getContractSchema(functionName, version);
         assert(schema, `${functionName}@${version} schema should be registered`);
-        if (functionName === 'evolution-webhook' && version === 'v2') continue;
-        if (functionName === 'whatsapp-cloud-webhook' && version === 'v2') continue;
-        schema.safeParse({ smoke: 'ok' });
+        // v2 exige version/timestamp no payload (metadados de contrato) —
+        // o smoke usa payload compatível para NÃO pular versões versionadas
+        // (correção 2026-08-06: v2 de evolution/whatsapp-cloud eram skipadas).
+        const payload = version === 'v2'
+          ? { smoke: 'ok', version: '2.0', timestamp: 1 }
+          : { smoke: 'ok' };
+        schema.safeParse(payload);
       }
     }
   }
@@ -304,7 +308,7 @@ Deno.test(
       { requestId: 'bad-json' }
     );
     assertEquals(invalidJson.success, false);
-    if (!invalidJson.success) {
+    if (invalidJson.success === false) {
       assertEquals(invalidJson.response.status, 422);
       assertEquals(await invalidJson.response.json(), {
         error: true,
@@ -325,7 +329,7 @@ Deno.test(
       { requestId: 'bad-schema' }
     );
     assertEquals(invalidSchema.success, false);
-    if (!invalidSchema.success) {
+    if (invalidSchema.success === false) {
       assertEquals(invalidSchema.response.status, 422);
       const body = await invalidSchema.response.json();
       assertEquals(body.code, 'contract_violation');

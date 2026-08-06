@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
   const parsed = parseOrReject('nps-scheduler', CONTRACT_SCHEMAS['nps-scheduler'], req, await req.json().catch(() => ({})), {
     extraHeaders: getCorsHeaders(req),
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
 
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'method_not_allowed' }), {

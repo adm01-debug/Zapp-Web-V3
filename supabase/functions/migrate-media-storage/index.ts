@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
   const parsed = parseOrReject('migrate-media-storage', CONTRACT_SCHEMAS['migrate-media-storage'], req, await req.json().catch(() => ({})), {
     extraHeaders: getCorsHeaders(req),
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
 
   const log = new Logger("migrate-media-storage");
 

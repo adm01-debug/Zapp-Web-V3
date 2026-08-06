@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
   const parsed = parseOrReject('provider-healthcheck', CONTRACT_SCHEMAS['provider-healthcheck'], req, await req.json().catch(() => ({})), {
     extraHeaders: getCorsHeaders(req),
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
 
   const admin = createZappAdminClient();
 

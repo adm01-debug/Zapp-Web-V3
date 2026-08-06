@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject("login-attempts", CONTRACT_SCHEMAS["login-attempts"], req, raw, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as LoginAttemptRequest;
     const action = body.action;
     const email = normalizeEmail(body.email);

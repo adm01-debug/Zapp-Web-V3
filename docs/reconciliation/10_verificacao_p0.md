@@ -79,8 +79,8 @@ Container `supabase-backup_backup` (postgres:15-alpine), volume `supabase-backup
 
 ### V5 — DB URL do edge — ✅ CONFIRMADO OK (observação de nomenclatura)
 
-- functions: `SUPABASE_DB_URL=postgresql://postgres:${DB_PASS}@db:5432/postgres` (senha via Docker secret)
-- rest: `PGRST_DB_URI=postgres://authenticator:...@db:5432/postgres`
+- functions: `SUPABASE_DB_URL=postgresql://postgres:<SECRETO>@db:5432/postgres` (senha via Docker secret)
+- rest: `PGRST_DB_URI=postgres://authenticator:<SECRETO>@db:5432/postgres`
 - **Mesmo host/porta/dbname: `db:5432/postgres` → MESMO banco** ✓
 - URL pública: `SELFHOSTED_SUPABASE_URL=https://supabase.atomicabr.com.br` ✓ (e `AI_ROUTER_URL=https://supabase.atomicabr.com.br/functions/v1/ai-router` ✓)
 - Observação: `SUPABASE_URL=http://kong:8000` (gateway interno) — padrão normal do edge-runtime self-hosted (roteia via Kong); a URL pública correta está na variável `SELFHOSTED_SUPABASE_URL`, que é a usada pelas functions no código. Não é divergência.
@@ -126,7 +126,7 @@ Container `supabase-backup_backup` (postgres:15-alpine), volume `supabase-backup
 
 ### V10 — Hardcoded secrets no repo — ✅ CONFIRMADO OK (observação)
 
-`grep -rInE 'sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]{10,}' src supabase/functions`:
+`grep -rInE 'sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|eyJhbG...VCJ9\.[A-Za-z0-9_-]{10,}' src supabase/functions`:
 
 - **1 único hit:** `supabase/functions/_shared/__tests__/log-sanitizer.test.ts:112` — `const jwt = "eyJhbG...e_xx";`
 - Contexto lido: é **fixture de teste** do sanitizador de logs (string truncada de exemplo para testar redação de JWT em logs), **não um segredo real** (nem é um JWT completo).

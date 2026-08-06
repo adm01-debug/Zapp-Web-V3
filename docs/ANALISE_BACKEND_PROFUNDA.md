@@ -80,7 +80,7 @@ if (error || !user) return new Response('Unauthorized', { status: 401, headers: 
 **Evidência (verificada):**
 ```ts
 // src/integrations/zappweb/supabaseClient.ts:25  (fallback)
-'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...role":"anon"...exp:1872817200'  // expira em 2029
+'eyJhbG...VCJ9...role":"anon"...exp:1872817200'  // expira em 2029
 // src/pages/admin/Connections.tsx:38  -> MESMO token como fallback
 // supabase/functions/whatsapp-webhook/index.ts:53
 const verifyToken = Deno.env.get('WHATSAPP_VERIFY_TOKEN') || 'lovable_webhook_token';

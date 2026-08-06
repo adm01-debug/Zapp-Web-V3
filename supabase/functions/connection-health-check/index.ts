@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('connection-health-check', { v1: ConnectionHealthCheckV1Schema }, req, await req.json().catch(() => ({})), {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     let onlyInstance: string | null = null;
     if (req.method === 'POST') {
       const body = parsed.data as Record<string, unknown>;

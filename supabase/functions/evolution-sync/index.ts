@@ -1,9 +1,26 @@
 import { getCorsHeaders, handleCors, checkRateLimit } from "../_shared/validation.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
-import { parseOrReject } from "../_shared/contract-kit.ts";
+import { parseOrReject, buildContractErrorBody } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import {
+
+
+/**
+ * Falha de validação pós-gate → envelope 422 ÚNICO (contract-kit).
+ * Correção 2026-08-06 (gap A1): era 400 com shape avulso.
+ */
+function contractViolation422(path: string, message: string, req: Request, extra?: Record<string, string>): Response {
+  const eb = buildContractErrorBody(
+    'evolution-sync', undefined, 'contract_violation',
+    `Campo obrigatório ausente: ${path}.`,
+    [{ path, message }],
+  );
+  return new Response(JSON.stringify(eb), {
+    status: 422,
+    headers: { ...(extra ?? {}), 'Content-Type': 'application/json' },
+  });
+}
   syncContacts, syncMessages, syncAllMessages,
   setupWebhook, cleanupMock, fullSync,
 } from "../_shared/evolution-sync-actions.ts";
@@ -50,7 +67,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject("evolution-sync", CONTRACT_SCHEMAS["evolution-sync"], req, raw, {
       extraHeaders: corsHeaders,
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, any>;
     const action = typeof body.action === 'string' ? body.action : 'sync-contacts';
     const rawInstanceName = typeof body.instanceName === 'string' ? body.instanceName : 'wpp2';
@@ -62,9 +79,7 @@ Deno.serve(async (req) => {
     // Reject instance names that could inject path segments into Evolution API URLs
     const INSTANCE_NAME_RE = /^[a-zA-Z0-9_-]{1,64}$/;
     if (!INSTANCE_NAME_RE.test(rawInstanceName)) {
-      return new Response(JSON.stringify({ error: 'Invalid instanceName' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return contractViolation422('instanceName', 'Invalid instanceName', req, corsHeaders);
     }
     const instanceName = rawInstanceName;
 
@@ -96,9 +111,7 @@ Deno.serve(async (req) => {
       return await syncAllMessages(supabase, evolutionApiUrl, evolutionApiKey, instanceName, messagesPerContact, corsHeaders);
     }
 
-    return new Response(JSON.stringify({ error: 'Unknown action', validActions: ['sync-contacts', 'sync-messages', 'sync-all-messages', 'setup-webhook', 'cleanup-mock', 'full-sync'] }), {
-      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return contractViolation422('action', 'Unknown action', req, corsHeaders);
   } catch (error: unknown) {
     console.error('[Sync] Error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {

@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
 
   const raw = await req.json().catch(() => null);
   const parsed = parseOrReject('sla-alert-log-failure', CONTRACT_SCHEMAS['sla-alert-log-failure'], req, raw, { extraHeaders: getCorsHeaders(req) });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
   const body = parsed.data as FailurePayload;
 
   if (!body || typeof body !== "object") return badRequest(req, "Invalid body");

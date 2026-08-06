@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
 
     const raw = await req.json().catch(() => null);
     const parsed = parseOrReject('bitrix-api', CONTRACT_SCHEMAS['bitrix-api'], req, raw, { extraHeaders: getCorsHeaders(req) });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
 
     const { action, entityType, entityId, data, filters } = parsed.data as Record<string, any>;
     log.info(`action=${action} entityType=${entityType || 'none'}`);

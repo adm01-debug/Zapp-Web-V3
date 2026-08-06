@@ -92,7 +92,7 @@ supabase db push --remote staging
 
 **Method C: psql CLI**
 ```bash
-export STAGING_DB_URL="postgresql://postgres:PASSWORD@host:5432/database"
+export STAGING_DB_URL="postgresql://postgres:<SECRETO>@host:5432/database"
 psql "$STAGING_DB_URL" < supabase/migrations/20260712160X00_*.sql
 ```
 
@@ -296,7 +296,7 @@ supabase db list-migrations --remote staging
 ### Execute All Migrations (psql Method - Direct)
 ```bash
 # Requires: psql installed + database URL
-export STAGING_DB_URL="postgresql://postgres:PASSWORD@host:5432/database"
+export STAGING_DB_URL="postgresql://postgres:<SECRETO>@host:5432/database"
 
 # Execute each in sequence
 for migration in supabase/migrations/202607121600*.sql; do

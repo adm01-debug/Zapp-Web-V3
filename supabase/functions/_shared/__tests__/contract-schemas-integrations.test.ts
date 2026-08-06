@@ -244,9 +244,11 @@ const MATRICES: IntegrationCase[] = [
       { to: "5511999999999", type: "image", mediaUrl: "https://x.com/a.jpg", caption: "foto", previewUrl: "https://x.com/p.jpg" }, // previewUrl não está no schema
     ],
     invalid: [
+      { label: "to ausente", payload: { type: "text" }, expectPath: "to" },
       { label: "to curto (<5)", payload: { to: "5511", type: "text" }, expectPath: "to" },
       { label: "type ausente", payload: { to: "5511999999999" }, expectPath: "type" },
       { label: "type fora do enum", payload: { to: "5511999999999", type: "gif" }, expectPath: "type" },
+      { label: "to tipo errado (number)", payload: { to: 42, type: "text" }, expectPath: "to" },
     ],
   },
 ];
@@ -283,7 +285,7 @@ for (const m of MATRICES) {
   Deno.test(`integrations: ${m.name}@v1 — body null → 422 invalid_json`, () => {
     const result = parseOrReject(m.name, CONTRACT_SCHEMAS[m.name], null, null);
     assertEquals(result.ok, false, `${m.name}: esperado ok=false para body null`);
-    if (!result.ok) {
+    if (result.ok === false) {
       assertEquals(result.response.status, 422);
       assertEquals(result.body.code, "invalid_json");
       assertEquals(result.body.details[0].path, "root");
@@ -346,7 +348,7 @@ Deno.test("integrations: promogifts-catalog@v1 — get_product com params sem pr
 Deno.test("integrations: promogifts-catalog@v1 — body null → 422 invalid_json", () => {
   const result = parseOrReject("promogifts-catalog", CONTRACT_SCHEMAS["promogifts-catalog"], null, null);
   assertEquals(result.ok, false);
-  if (!result.ok) {
+  if (result.ok === false) {
     assertEquals(result.response.status, 422);
     assertEquals(result.body.code, "invalid_json");
   }

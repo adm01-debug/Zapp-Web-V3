@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
   const parsed = parseOrReject('sicoob-outbox-consumer', CONTRACT_SCHEMAS['sicoob-outbox-consumer'], req, await req.json().catch(() => ({})), {
     extraHeaders: getCorsHeaders(req),
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
 
   try {
     const sicoobGiftsUrl = Deno.env.get("SICOOB_GIFTS_URL");

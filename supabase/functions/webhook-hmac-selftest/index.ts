@@ -350,7 +350,7 @@ Deno.serve(async (req) => {
     requestId,
     extraHeaders: getCorsHeaders(req),
   });
-  if (!contractResult.ok) return contractResult.response;
+  if (contractResult.ok === false) return contractResult.response;
   body = contractResult.data as Record<string, unknown>;
 
   const instance = (body?.instance as string) ?? 'selftest';

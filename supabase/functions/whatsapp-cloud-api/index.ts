@@ -6,7 +6,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { authorizeRoles, errorResponse, jsonResponse, checkRateLimit } from "../_shared/validation.ts";
-import { parseOrReject } from '../_shared/contract-kit.ts';
+import { parseOrReject, buildContractErrorBody } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
 
@@ -16,6 +16,26 @@ interface Credentials {
   phone_number_id: string;
   access_token: string;
   graph_api_version: string;
+}
+
+/**
+ * Falha de validação de campo obrigatório por rota → envelope 422 ÚNICO
+ * (formato de contrato): { error, code: 'contract_violation', message,
+ * contract, details: [{ path, message }] }. Alinhado com contract-kit.ts —
+ * nunca emitir 400 com shape avulso para falha de validação.
+ */
+function contractViolation422(field: string, message: string, req: Request): Response {
+  const body = buildContractErrorBody(
+    'whatsapp-cloud-api',
+    undefined,
+    'contract_violation',
+    `Campo obrigatório ausente: ${field}.`,
+    [{ path: field, message }],
+  );
+  return new Response(JSON.stringify(body), {
+    status: 422,
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+  });
 }
 
 async function loadCredentials(
@@ -123,14 +143,14 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('whatsapp-cloud-api', CONTRACT_SCHEMAS['whatsapp-cloud-api'], req, body, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     body = parsed.data as Record<string, unknown>;
 
 
   const action = String(body.action ?? '');
   const instanceName = String(body.instanceName ?? body.instance ?? '');
-  if (!action) return jsonResponse({ error: true, message: 'Missing action' }, 400, req);
-  if (!instanceName) return jsonResponse({ error: true, message: 'Missing instanceName' }, 400, req);
+  if (!action) return contractViolation422('action', 'Campo obrigatório ausente para a rota.', req);
+  if (!instanceName) return contractViolation422('instanceName', 'Campo obrigatório ausente para a rota.', req);
 
   const supabase = createZappAdminClient();
   const externalUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
@@ -158,7 +178,7 @@ Deno.serve(async (req) => {
   }
 
   const number = String(body.number ?? body.to ?? '');
-  if (!number) return jsonResponse({ error: true, message: 'Missing number' }, 400, req);
+  if (!number) return contractViolation422('number', 'Campo obrigatório ausente para a rota.', req);
   const phone = phoneFromAny(number);
   const remoteJid = jidFromNumber(number);
 
@@ -268,7 +288,7 @@ Deno.serve(async (req) => {
       }, 400, req);
   }
 
-  if (!graphBody) return jsonResponse({ error: true, message: 'Empty graph body' }, 400, req);
+  if (!graphBody) return contractViolation422('graphBody', 'Payload da rota não pôde ser montado (campos obrigatórios ausentes).', req);
 
   const result = await callGraph(creds, graphBody);
   if (!result.ok) {

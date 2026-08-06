@@ -74,7 +74,7 @@ async function handleWrite(req: Request): Promise<Response> {
   const parsed = parseOrReject('evolution-credentials-write', CONTRACT_SCHEMAS['evolution-credentials-write'], req, raw, {
     extraHeaders: cors,
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
   const body = parsed.data as Record<string, any>;
 
   // Mesmo gate do GET: apenas admin/supervisor (403 antes de tocar no banco).
@@ -154,7 +154,7 @@ Deno.serve(async (req: Request) => {
   const parsed = parseOrReject('evolution-credentials', { v1: EvolutionCredentialsV1Schema }, req, await req.json().catch(() => ({})), {
     extraHeaders: getCorsHeaders(req),
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
 
   // [C-2 2026-07-12] Least-privilege gate: a Evolution `api_key` é a chave GLOBAL de
   // admin da instância (cria/deleta instâncias, lê todas as conversas, envia para

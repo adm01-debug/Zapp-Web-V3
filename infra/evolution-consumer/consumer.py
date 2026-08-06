@@ -1,12 +1,14 @@
-"""Evolution → RabbitMQ → Supabase bridge — v6.
-Melhorias vs v5 (B-6 do runbook — instrumentação de drops):
-  - stats['drop_by_reason']: dict contabilizando o motivo de cada drop
-    ('no_event_type', '4xx:<status>') — elimina perda silenciosa
-  - helper drop_reason(reason): incrementa drop e o motivo em uma chamada
-  - Sentry: alerta 4xx apenas para status fora de (404, 422) — reduz ruído
-  - STATS periódico inclui drop_by_reason serializado (compacto)
-  - log.info extra quando drop > 0 no ciclo, com os motivos
-  - Demais comportamentos (HMAC, filas, resub, shadow) inalterados vs v5
+"""Evolution → RabbitMQ → Supabase bridge — v7.
+Melhorias vs v6 (REC-07-09/10 — perda permanente 0,06% do volume):
+  - 4xx do gateway (body NÃO-JSON: 404 HTML/empty do Traefik) e 429 (rate
+    limit) → nack+requeue com backoff exponencial, honrando Retry-After
+    quando presente; teto de tentativas (MAX_DELIVERY) evita hot loop (S-09/S2)
+  - drop definitivo APENAS para 4xx com body JSON (erro aplicativo da edge),
+    discriminado por content-type/parse (S-09/S3)
+  - stats['retry_by_reason']: motivo de cada requeue ('4xx:<status>')
+  - drop por teto de tentativas contabilizado como '4xx:<status>:max_attempts'
+  - Demais comportamentos (HMAC, filas, resub, shadow, [STATS]/[DROP-REASONS])
+    inalterados vs v6
 """
 import pika, requests, os, json, time, sys, signal, logging, hmac, hashlib
 
@@ -26,7 +28,7 @@ except ImportError:
 SENTRY_DSN = os.environ.get('SENTRY_DSN', '')
 if SENTRY_DSN and SENTRY_AVAIL:
     sentry_sdk.init(dsn=SENTRY_DSN, traces_sample_rate=0.0,
-                    release='consumer@v6',
+                    release='consumer@v7',
                     environment=os.environ.get('ENVIRONMENT', 'production'))
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s', datefmt='%H:%M:%S')
@@ -40,6 +42,12 @@ PREFIXES        = [p for p in os.environ.get('INSTANCE_PREFIX','wpp2').split() i
 PG_URL          = os.environ.get('PG_EVOLUTION_URL','')
 RESUB_INTERVAL  = int(os.environ.get('RESUB_INTERVAL','60'))
 
+# v7 — backoff exponencial p/ 4xx transientes (gateway/429)
+MAX_DELIVERY    = int(os.environ.get('MAX_DELIVERY','8'))     # teto de tentativas por mensagem
+BACKOFF_BASE    = float(os.environ.get('BACKOFF_BASE','1.0')) # segundos na 1a tentativa
+BACKOFF_FACTOR  = float(os.environ.get('BACKOFF_FACTOR','2.0'))
+BACKOFF_MAX     = float(os.environ.get('BACKOFF_MAX','60.0')) # teto do delay por tentativa
+
 EVENTS = ['messages.upsert','messages.update','messages.edited','messages.delete',
           'contacts.upsert','contacts.update','chats.upsert','chats.update',
           'connection.update','labels.edit','labels.association',
@@ -47,7 +55,7 @@ EVENTS = ['messages.upsert','messages.update','messages.edited','messages.delete
 QUEUES = list(dict.fromkeys(f'{p}.{e}' for p in PREFIXES for e in EVENTS))
 
 stats = {'ok':0,'shadow':0,'retry':0,'err':0,'drop':0,'pg_log_ok':0,'pg_log_err':0,'sentry_sent':0,'resub':0,
-         'drop_by_reason': {}}
+         'drop_by_reason': {}, 'retry_by_reason': {}}
 start = time.time()
 running = True
 
@@ -55,6 +63,68 @@ def drop_reason(reason):
     """Contabiliza um drop com motivo estruturado (stats['drop'] e drop_by_reason)."""
     stats['drop'] += 1
     stats['drop_by_reason'][reason] = stats['drop_by_reason'].get(reason, 0) + 1
+
+def retry_reason(reason):
+    """Contabiliza um requeue com motivo estruturado (stats['retry'] e retry_by_reason)."""
+    stats['retry'] += 1
+    stats['retry_by_reason'][reason] = stats['retry_by_reason'].get(reason, 0) + 1
+
+def delivery_attempts(method, properties):
+    """Nº de tentativas de entrega da mensagem (1 = primeira).
+
+    Usa o header x-death do RabbitMQ (incrementado a cada requeue) e cai
+    para o flag redelivered quando o header não existe (1a entrega).
+    """
+    try:
+        deaths = (properties.headers or {}).get('x-death') or []
+        total = 0
+        for d in deaths:
+            if isinstance(d, dict):
+                total += int(d.get('count', 1) or 1)
+        if total:
+            return total + 1
+    except Exception:
+        pass
+    return 2 if getattr(method, 'redelivered', False) else 1
+
+def parse_retry_after(r):
+    """Retry-After em segundos (RFC 7231). HTTP-date → None (usa backoff computado)."""
+    try:
+        ra = r.headers.get('Retry-After')
+    except Exception:
+        return None
+    if not ra:
+        return None
+    try:
+        return max(0, int(str(ra).strip()))
+    except (TypeError, ValueError):
+        return None
+
+def backoff_delay(attempts, retry_after=None):
+    """Delay do requeue: exponencial com teto, dominado por Retry-After quando presente."""
+    delay = min(BACKOFF_BASE * (BACKOFF_FACTOR ** (attempts - 1)), BACKOFF_MAX)
+    if retry_after is not None:
+        delay = max(delay, retry_after)
+    return delay
+
+def body_is_json(r):
+    """Discrimina 4xx da edge (body JSON) de 4xx do gateway (HTML/empty — S-09/S3)."""
+    try:
+        ct = (r.headers.get('Content-Type') or '').lower()
+    except Exception:
+        ct = ''
+    if 'json' in ct:
+        return True
+    if 'html' in ct:
+        return False
+    text = (r.text or '').strip()
+    if not text:
+        return False
+    try:
+        json.loads(text)
+        return True
+    except Exception:
+        return False
 
 def _stop(*_):
     global running
@@ -151,12 +221,44 @@ def handle(ch, method, properties, body):
             log_event(evt, 'rabbitmq-consumer', r.status_code, latency_ms)
             if stats['ok'] % 100 == 0: log.info(f"[OK {r.status_code}] {endpoint_path} ok={stats['ok']}")
         elif 400 <= r.status_code < 500:
-            ch.basic_ack(delivery_tag=tag)
-            drop_reason(f'4xx:{r.status_code}')
-            log_event(evt, 'rabbitmq-consumer', r.status_code, latency_ms, r.text[:200])
-            log.warning(f"[DROP {r.status_code}] {endpoint_path} reason=4xx:{r.status_code} body[:150]={r.text[:150]}")
-            if r.status_code not in (404, 422):
-                report_to_sentry(msg=f"[4xx] {r.status_code} {endpoint_path}", extras={'body': r.text[:500], 'rk': rk})
+            attempts = delivery_attempts(method, properties)
+            # (a) 429 = rate limit → sempre transiente (retry, honra Retry-After)
+            # (b) 4xx com body NÃO-JSON (HTML/empty do gateway) → transiente
+            if r.status_code == 429 or not body_is_json(r):
+                if attempts >= MAX_DELIVERY:
+                    # teto de tentativas atingido — drop definitivo p/ evitar hot loop (S-09/S2)
+                    ch.basic_ack(delivery_tag=tag)
+                    drop_reason(f'4xx:{r.status_code}:max_attempts')
+                    log_event(evt, 'rabbitmq-consumer', r.status_code, latency_ms,
+                              f'max_attempts={attempts} body_head={r.text[:200]!r}')
+                    log.error(f"[DROP {r.status_code}] {endpoint_path} reason=4xx:{r.status_code}:max_attempts "
+                              f"attempts={attempts}/{MAX_DELIVERY} body[:150]={r.text[:150]!r}")
+                    report_to_sentry(msg=f"[4xx:max_attempts] {r.status_code} {endpoint_path} attempts={attempts}",
+                                     extras={'body': r.text[:500], 'rk': rk})
+                else:
+                    retry_after = parse_retry_after(r)
+                    delay = backoff_delay(attempts, retry_after)
+                    retry_reason(f'4xx:{r.status_code}')
+                    log_event(evt, 'rabbitmq-consumer', r.status_code, latency_ms,
+                              f'retry attempt {attempts}/{MAX_DELIVERY}')
+                    log.warning(f"[RETRY {r.status_code}] {endpoint_path} "
+                                f"reason={'rate_limit' if r.status_code == 429 else 'gateway_non_json'} "
+                                f"attempt={attempts}/{MAX_DELIVERY} delay={delay:.0f}s "
+                                f"retry_after={retry_after} body[:150]={r.text[:150]!r}")
+                    if r.status_code != 404 and attempts == 1:
+                        report_to_sentry(msg=f"[4xx-transient] {r.status_code} {endpoint_path}",
+                                         extras={'body': r.text[:500], 'rk': rk})
+                    time.sleep(delay)  # backoff ANTES do requeue (pacing em todas as réplicas)
+                    ch.basic_nack(delivery_tag=tag, requeue=True)
+            else:
+                # (c) 4xx com body JSON = erro aplicativo da edge → drop definitivo
+                ch.basic_ack(delivery_tag=tag)
+                drop_reason(f'4xx:{r.status_code}')
+                log_event(evt, 'rabbitmq-consumer', r.status_code, latency_ms, r.text[:200])
+                log.warning(f"[DROP {r.status_code}] {endpoint_path} reason=4xx:{r.status_code} "
+                            f"(json edge) body[:150]={r.text[:150]!r}")
+                if r.status_code not in (404, 422):
+                    report_to_sentry(msg=f"[4xx] {r.status_code} {endpoint_path}", extras={'body': r.text[:500], 'rk': rk})
         else:
             ch.basic_nack(delivery_tag=tag, requeue=True); stats['retry']+=1
             log_event(evt, 'rabbitmq-consumer', r.status_code, latency_ms, '5xx will retry')
@@ -195,8 +297,9 @@ def subscribe(conn, q):
         return None
 
 def main():
-    log.info(f"consumer v6 | SHADOW={SHADOW} | prefixes={PREFIXES} | queues={len(QUEUES)} | "
-             f"PG_LOG={'on' if PG_URL and PG_AVAIL else 'off'} | SENTRY={'on' if SENTRY_DSN and SENTRY_AVAIL else 'off'}")
+    log.info(f"consumer v7 | SHADOW={SHADOW} | prefixes={PREFIXES} | queues={len(QUEUES)} | "
+             f"PG_LOG={'on' if PG_URL and PG_AVAIL else 'off'} | SENTRY={'on' if SENTRY_DSN and SENTRY_AVAIL else 'off'} | "
+             f"MAX_DELIVERY={MAX_DELIVERY} | BACKOFF={BACKOFF_BASE}*{BACKOFF_FACTOR}^n cap={BACKOFF_MAX}s")
     log.info(f"target={SUPABASE_URL}")
     while running:
         conn = None
@@ -228,7 +331,8 @@ def main():
                              f"filas={vivas}/{len(QUEUES)} resub={stats['resub']} "
                              f"pg_log_ok={stats['pg_log_ok']} pg_log_err={stats['pg_log_err']} "
                              f"sentry_sent={stats['sentry_sent']} "
-                             f"drop_by={json.dumps(stats['drop_by_reason'], separators=(',',':'))}")
+                             f"drop_by={json.dumps(stats['drop_by_reason'], separators=(',',':'))} "
+                             f"retry_by={json.dumps(stats['retry_by_reason'], separators=(',',':'))}")
                     if stats['drop'] > 0:
                         log.info(f"[DROP-REASONS] drop={stats['drop']} "
                                  f"drop_by={json.dumps(stats['drop_by_reason'], separators=(',',':'))}")
