@@ -15,7 +15,12 @@ permissions:
   packages: write
 
 concurrency:
-  group: deploy-vps
+  # 2026-08-06 20:40: group renomeado para deploy-vps-v2 — o group antigo
+  # ficou TRAVADO (runs em pending SEM jobs: bug conhecido do GitHub em que
+  # run cancelado segura o concurrency group; publishes sem concurrency
+  # processavam normalmente). Grupo novo preserva a serialização entre
+  # deploys sem herdar o lock corrompido.
+  group: deploy-vps-v2
   cancel-in-progress: false
 
 env:
