@@ -140,7 +140,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: evo-main-${{ inputs.baileys_version }}
-          path: infra/evolution-api-custom/
+          path: /tmp/evo-bundle/
+
+      - name: Normalize bundle layout (artifact preserva evo-src/)
+        run: |
+          find /tmp/evo-bundle -name 'main.js' -exec cp {} infra/evolution-api-custom/main.js \;
+          find /tmp/evo-bundle -name 'main.mjs' -exec cp {} infra/evolution-api-custom/main.mjs \;
+          find /tmp/evo-bundle -name 'baileys-*.tgz' -exec cp {} infra/evolution-api-custom/ \;
+          ls -la infra/evolution-api-custom/
 
       - name: Extract baileys package (node_modules swap)
         run: |
