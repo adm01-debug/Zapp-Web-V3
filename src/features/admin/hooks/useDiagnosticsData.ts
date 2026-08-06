@@ -71,6 +71,10 @@ async function fetchConnections(): Promise<ConnectionStatus[]> {
 async function fetchMessageDiagnostics(): Promise<MessageDiagnostic> {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
+  // count:'exact' é necessário aqui porque as contagens são usadas como numerador e
+  // denominador na mesma taxa. Estimativas independentes do planner podem ser
+  // inconsistentes entre si, gerando deliveryRate > 100%. As queries são filtradas
+  // por janela de 24h + sender, portanto a precisão não impacta performance global.
   const [
     { count: totalCount },
     { count: sentCount },
@@ -80,31 +84,31 @@ async function fetchMessageDiagnostics(): Promise<MessageDiagnostic> {
     { count: pendingCount },
   ] = await Promise.all([
     dbFrom('messages')
-      .select('*', { count: 'planned', head: true })
+      .select('*', { count: 'exact', head: true })
       .gte('created_at', since)
       .eq('sender', 'agent'),
     dbFrom('messages')
-      .select('*', { count: 'planned', head: true })
+      .select('*', { count: 'exact', head: true })
       .gte('created_at', since)
       .eq('sender', 'agent')
       .eq('status', 'sent'),
     dbFrom('messages')
-      .select('*', { count: 'planned', head: true })
+      .select('*', { count: 'exact', head: true })
       .gte('created_at', since)
       .eq('sender', 'agent')
       .eq('status', 'delivered'),
     dbFrom('messages')
-      .select('*', { count: 'planned', head: true })
+      .select('*', { count: 'exact', head: true })
       .gte('created_at', since)
       .eq('sender', 'agent')
       .eq('status', 'read'),
     dbFrom('messages')
-      .select('*', { count: 'planned', head: true })
+      .select('*', { count: 'exact', head: true })
       .gte('created_at', since)
       .eq('sender', 'agent')
       .eq('status', 'failed'),
     dbFrom('messages')
-      .select('*', { count: 'planned', head: true })
+      .select('*', { count: 'exact', head: true })
       .gte('created_at', since)
       .eq('sender', 'agent')
       .eq('status', 'sending'),
@@ -168,11 +172,15 @@ async function fetchMessageDiagnostics(): Promise<MessageDiagnostic> {
 }
 
 async function fetchSystemHealth(): Promise<SystemHealth> {
-  const dbStart = performance.now();
+  // contactsCount usa estimated (pg_class.reltuples) — não serve para medir latência real.
+  // A medição de dbLatency usa uma query leve e representativa separada.
   const { count: contactsCount } = await dbFrom('contacts').select('*', {
     count: 'estimated',
     head: true,
   });
+
+  const dbStart = performance.now();
+  await dbFrom('contacts').select('id').limit(1);
   const dbLatency = Math.round(performance.now() - dbStart);
 
   const storageStart = performance.now();
@@ -249,8 +257,10 @@ async function fetchErrorLogs(): Promise<ErrorLog[]> {
     }
   }
 
+  // count:'exact' é obrigatório para alertas de diagnóstico: count:'planned' pode
+  // retornar 0 com estatísticas desatualizadas, suprimindo alertas (falso negativo).
   const { count: orphanCount } = await dbFrom('contacts')
-    .select('*', { count: 'planned', head: true })
+    .select('*', { count: 'exact', head: true })
     .is('whatsapp_connection_id', null);
 
   if (orphanCount && orphanCount > 0) {
@@ -267,7 +277,7 @@ async function fetchErrorLogs(): Promise<ErrorLog[]> {
 
   const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
   const { count: stuckCount } = await dbFrom('messages')
-    .select('*', { count: 'planned', head: true })
+    .select('*', { count: 'exact', head: true })
     .eq('status', 'sending')
     .lt('created_at', fiveMinAgo);
 

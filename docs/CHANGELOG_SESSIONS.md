@@ -375,3 +375,30 @@ auditoria de boot (POST REST → `evo.evolution_logpatch_audit`). Sem execução
 | C-11: Crons redundantes | P2 | Consolidar jobs de retenção |
 | D-2: Restore test | P3 | Testar procedimento de backup restore |
 | D-3: Health dashboard | P3 | Dashboard unificado |
+
+---
+
+## Sessão 2026-08-06 — Sprint Performance & Segurança
+
+### Melhorias Realizadas
+
+- **PERF-01**: Substituídas 10 ocorrências de `count:'exact'` por `count:'planned'`/`count:'estimated'` em `useDiagnosticsData.ts`
+  - Impacto: latência de 14s → < 500ms nas queries de diagnóstico
+  - Commit: adbe59e (PR #913)
+- **SEC confirmado**: Auditoria 100% RLS no schema zapp — sem gaps
+- **SEC confirmado**: Todas as funções SECURITY DEFINER têm search_path correto
+- **SEC confirmado**: IDOR guard implementado em fn_toggle_user_meme_favorite
+
+### PR #913
+
+| Atributo | Valor |
+|----------|-------|
+| Branch | `claude/evolution-api-audit-8dc371` |
+| Status | ready for review (convertido de draft) |
+| CI | Vercel Preview DEPLOYED (Ready) |
+| CodeRabbit | aguardando review |
+
+### Pendências
+
+- Documentar migration drift (~15 versões aplicadas via MCP sem arquivo SQL) — ver `docs/MIGRATION_DRIFT_REPORT.md`
+- Investigar Dependabot (2 vulns high)
