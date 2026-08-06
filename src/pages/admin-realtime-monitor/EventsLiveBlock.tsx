@@ -48,7 +48,7 @@ export function EventsLiveBlock({ windowHours, autoRefresh, onNavigateTo }: Prop
     queryKey: queryKeys.adminOps.realtimeMonitorEvents(windowHours),
     queryFn: async (): Promise<WebhookEventLite[]> => {
       const res = await queryExternalProxy<WebhookEventLite>({
-        table: 'evolution_webhook_events',
+        table: 'evolution_webhook_events_v2',
         select: 'event_type,instance_name,processed,error_message,created_at',
         filters: [{ column: 'created_at', operator: 'gte', value: sinceISO }],
         order: { column: 'created_at', ascending: false },
