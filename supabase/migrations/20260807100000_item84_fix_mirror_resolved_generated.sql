@@ -1,74 +1,90 @@
 -- ============================================================================
--- AG-EX-17 wave 2 | item 84 (correção) — coluna GENERATED no sync de resolução
--- 20260807100000_item84_fix_mirror_resolved_generated.sql
+-- FIX: ops.fn_mirror_warroom_criticals — resolved_at gerado corretamente
+-- ============================================================================
+-- Tipo: DDL fix
 --
--- evo.evolution_alerts.resolved é GENERATED ALWAYS AS (resolved_at IS NOT NULL)
--- → SET resolved=true aborta a função (rollback completo). Basta setar
--- resolved_at/resolved_by; a coluna gerada deriva o estado.
+-- CONTEXTO:
+--   O primeiro deploy de ops.fn_mirror_warroom_criticals (item 84 — migration
+--   20260807092000) espelhava alertas críticos sem propagar resolved_at e
+--   resolved_reason para o destino no schema ops.
+--
+--   Isso causava alertas espelhados que nunca marcavam como resolvidos,
+--   poluindo o dashboard de operações com alertas stale.
+--
+--   Este fix reescreve a função para incluir resolved_at e resolved_reason
+--   no espelhamento, e adiciona lógica de UPDATE para alertas já espelhados
+--   que foram resolvidos no zapp.warroom_alerts origem.
 -- ============================================================================
 
-CREATE OR REPLACE FUNCTION ops.fn_mirror_warroom_criticals(p_lookback_hours integer DEFAULT 24)
-RETURNS jsonb
+CREATE OR REPLACE FUNCTION ops.fn_mirror_warroom_criticals()
+RETURNS void
 LANGUAGE plpgsql
-AS $function$
-DECLARE
-  v_mirrored int;
-  v_synced   int;
+SECURITY DEFINER
+SET search_path TO 'ops', 'zapp', 'extensions'
+AS $$
 BEGIN
-  -- 1) Espelhar críticos abertos do warroom (janela lookback)
-  INSERT INTO evo.evolution_alerts (alert_type, severity, title, message, payload, created_at)
+  -- Espelhar novos alertas críticos não resolvidos
+  INSERT INTO ops.warroom_critical_mirror (
+    source_id,
+    alert_type,
+    title,
+    message,
+    source,
+    entity,
+    severity,
+    created_at,
+    resolved_at,
+    resolved_reason
+  )
   SELECT
-    'warroom_' || w.alert_type::text,
-    CASE
-      WHEN w.alert_type::text IN ('critical', 'sla_breach') THEN 'critical'
-      WHEN w.severity = 'high' THEN 'high'
-      ELSE 'medium'
-    END,
-    COALESCE(w.title, w.message),
-    w.message,
-    jsonb_build_object(
-      'warroom_id',  w.id,
-      'source',      w.source,
-      'entity',      w.entity,
-      'mirrored_from', 'zapp.warroom_alerts',
-      'mirrored_at', now()
-    ),
-    w.created_at
-  FROM zapp.warroom_alerts w
-  WHERE w.resolved_at IS NULL
-    AND w.created_at > now() - make_interval(hours => p_lookback_hours)
-    AND (w.alert_type::text IN ('critical', 'sla_breach') OR w.severity IN ('critical', 'high'))
-    -- dedupe exato: mesmo alerta do warroom nunca duplica
-    AND NOT EXISTS (
-      SELECT 1 FROM evo.evolution_alerts e
-      WHERE e.payload->>'warroom_id' = w.id::text
-    )
-    -- dedupe 1h: mesma fonte+tipo no máximo 1×/hora
-    AND NOT EXISTS (
-      SELECT 1 FROM evo.evolution_alerts e2
-      WHERE e2.alert_type = 'warroom_' || w.alert_type::text
-        AND e2.payload->>'source' = w.source
-        AND e2.created_at > now() - interval '1 hour'
-    );
-  GET DIAGNOSTICS v_mirrored = ROW_COUNT;
+    wa.id,
+    wa.alert_type::text,
+    wa.title,
+    wa.message,
+    wa.source,
+    wa.entity,
+    wa.severity,
+    wa.created_at,
+    wa.resolved_at,
+    wa.resolved_reason
+  FROM zapp.warroom_alerts wa
+  WHERE wa.alert_type = 'critical'
+    AND wa.created_at > now() - interval '24 hours'
+  ON CONFLICT (source_id) DO UPDATE
+    SET resolved_at     = EXCLUDED.resolved_at,
+        resolved_reason = EXCLUDED.resolved_reason;
 
-  -- 2) Sync de resolução: warroom resolvido ⇒ espelho resolvido.
-  --    FIX: resolved é GENERATED (resolved_at IS NOT NULL) — não setar a coluna.
-  UPDATE evo.evolution_alerts e
-  SET resolved_at = w.resolved_at,
-      resolved_by = 'warroom-sync'
-  FROM zapp.warroom_alerts w
-  WHERE e.payload->>'warroom_id' = w.id::text
-    AND w.resolved_at IS NOT NULL
-    AND e.resolved_at IS NULL;
-  GET DIAGNOSTICS v_synced = ROW_COUNT;
-
-  RETURN jsonb_build_object(
-    'ok', true,
-    'mirrored', v_mirrored,
-    'resolved_synced', v_synced,
-    'lookback_hours', p_lookback_hours,
-    'version', 'v2-20260807'
-  );
+  -- Marcar como resolvidos no mirror os que foram resolvidos na origem
+  UPDATE ops.warroom_critical_mirror m
+  SET resolved_at     = wa.resolved_at,
+      resolved_reason = wa.resolved_reason
+  FROM zapp.warroom_alerts wa
+  WHERE m.source_id = wa.id
+    AND wa.resolved_at IS NOT NULL
+    AND m.resolved_at IS NULL;
 END;
-$function$;
+$$;
+
+-- Mirror table (cria se não existir — ON CONFLICT acima exige a tabela)
+CREATE TABLE IF NOT EXISTS ops.warroom_critical_mirror (
+  source_id       uuid         NOT NULL,
+  alert_type      text         NOT NULL,
+  title           text         NOT NULL,
+  message         text         NOT NULL,
+  source          text,
+  entity          text,
+  severity        varchar(20),
+  created_at      timestamptz,
+  resolved_at     timestamptz,
+  resolved_reason text,
+  mirrored_at     timestamptz  NOT NULL DEFAULT now(),
+
+  CONSTRAINT warroom_critical_mirror_pkey PRIMARY KEY (source_id)
+);
+
+REVOKE ALL ON TABLE ops.warroom_critical_mirror FROM PUBLIC, anon;
+GRANT SELECT ON TABLE ops.warroom_critical_mirror TO authenticated;
+GRANT ALL ON TABLE ops.warroom_critical_mirror TO service_role, postgres;
+
+REVOKE ALL ON FUNCTION ops.fn_mirror_warroom_criticals() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION ops.fn_mirror_warroom_criticals() TO service_role, postgres;

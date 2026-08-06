@@ -12,7 +12,7 @@
  * Rodar: deno test supabase/functions/_shared/__tests__/contract-versioning.test.ts
  */
 
-import { assertEquals, assertExists } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assertExists } from "jsr:@std/assert";
 import { parseOrReject } from "../contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../contract-schemas.ts";
 import { CONTRACTS, isDeprecatedVersion } from "../contract-versions.ts";

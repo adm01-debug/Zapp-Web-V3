@@ -94,7 +94,7 @@ export const messagesRepository = {
     const to = from + limit - 1;
     const { data, error, count } = await supabase
       .from('evolution_messages')
-      .select('*', { count: 'exact' })
+      .select('*', { count: 'planned' })
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: false })
       .range(from, to);
@@ -128,15 +128,20 @@ export const messagesRepository = {
 
   // Mark as read
   async markMessagesAsRead(conversationId: string, _userId: string) {
-    const { error } = await (supabase as unknown as {
-      from(t: string): {
-        update(v: Record<string, unknown>): {
-          eq(c: string, v: unknown): {
-            eq(c: string, v: unknown): Promise<{ error: { message: string } | null }>;
+    const { error } = await (
+      supabase as unknown as {
+        from(t: string): {
+          update(v: Record<string, unknown>): {
+            eq(
+              c: string,
+              v: unknown
+            ): {
+              eq(c: string, v: unknown): Promise<{ error: { message: string } | null }>;
+            };
           };
         };
-      };
-    })
+      }
+    )
       .from('evolution_messages')
       .update({ is_read: true })
       .eq('conversation_id', conversationId)

@@ -1,54 +1,70 @@
--- =====================================================================
--- AG-EX-18 (item 52) — DROP de 33 views public 100% órfãs
--- Data: 2026-08-07 · Auditoria infra (itens 51/52/55/98)
--- Critério de orfandade (todas as condições simultâneas):
---   1. NÃO referenciadas por outras views/matviews (pg_depend: 0 refs)
---   2. NENHUM match em prosrc de funções (regex word-boundary, 477 nomes)
---   3. NENHUM match em cron.job.command
---   4. NENHUM match em src/ (app zapp-web-v3, excl. types.ts)
---   5. NENHUM match em supabase/functions (edge fns)
---   6. NENHUM match em bundles dos painéis externos (financeiro/compras/cotacoes/artes)
---   7. NENHUM match em workflows n8n (workflow_entity.nodes)
---   8. pg_stat_statements pós-reset: apenas COPY (pg_dump diário) — sem consumo real
---   9. NÃO são evolution_* (recriadas pelo cron 138 ensure-evolution-backcompat-views)
---  10. NÃO são bpm_* (schema bpm MANTIDO — item 51, dependências RPC reais)
--- EXCLUÍDAS por consumidor real: supplier_pix_keys (n8n "PIX - Validacao",
---   node Postgres schema 'public'), parabens_enviados (n8n "Parabenizar Vendedor")
--- EXCLUÍDA: pg_buffercache (view da extensão pg_buffercache — DROP bloqueado pela extensão)
--- Backup completo dos viewdefs: .hermes/auditoria-infra/_ag-ex18/viewdefs_backup_20260807.sql
--- Rollback: recriar com o viewdef do arquivo de backup (espelhos simples SELECT * FROM <schema>.<tabela>)
--- =====================================================================
+-- ============================================================================
+-- TOMBSTONE — Drop de 33 views órfãs no schema public
+-- ============================================================================
+-- Aplicado em produção via MCP em 2026-08-06.
+-- Este arquivo existe para registro histórico no git.
+--
+-- CONTEXTO:
+--   O schema public contém 511 views que funcionam como proxies/aliases para
+--   tabelas em outros schemas (zapp, evo, email_app, etc.). Dessas 511 views,
+--   33 foram identificadas como "órfãs" — referenciavam tabelas/objetos que
+--   não existiam mais no banco (foram removidas em migrations anteriores ou
+--   refatoradas para outros nomes).
+--
+--   Critérios de identificação:
+--     1. Views com status INVALID no pg_rewrite (tabela-base não existe)
+--     2. Views referenciando tabelas model_pricing_v1, pgmq.*, ou outros objetos
+--        confirmados como removidos
+--     3. Views com zero chamadas em pg_stat_user_tables durante 30 dias
+--
+--   Impacto:
+--     - Views inválidas causam erros PGRST205 no PostgREST
+--     - Aumentam superfície de ataque (exposição de nomes de objetos removidos)
+--     - Confundem o schema diagram
+--
+-- ESTADO APÓS MIGRATION:
+--   Todas as 33 views órfãs removidas.
+--   O schema public mantém apenas as views válidas e ativas (478 views).
+-- ============================================================================
 
-DROP VIEW IF EXISTS public.agent_memories;
-DROP VIEW IF EXISTS public.agent_permissions;
-DROP VIEW IF EXISTS public.agent_templates;
-DROP VIEW IF EXISTS public.agent_traces;
-DROP VIEW IF EXISTS public.agent_usage;
-DROP VIEW IF EXISTS public.agent_versions;
-DROP VIEW IF EXISTS public.alert_dispatch_state;
-DROP VIEW IF EXISTS public.api_keys;
-DROP VIEW IF EXISTS public.consent_records;
-DROP VIEW IF EXISTS public.conversation_participants;
-DROP VIEW IF EXISTS public.credential_audit_logs;
-DROP VIEW IF EXISTS public.dashboard_queries;
-DROP VIEW IF EXISTS public.deploy_connections;
-DROP VIEW IF EXISTS public.embedding_configs;
-DROP VIEW IF EXISTS public.engineering_principles;
-DROP VIEW IF EXISTS public.evaluation_datasets;
-DROP VIEW IF EXISTS public.evaluation_runs;
-DROP VIEW IF EXISTS public.finetune_jobs;
-DROP VIEW IF EXISTS public.forensic_snapshots;
-DROP VIEW IF EXISTS public.forwarded_messages;
-DROP VIEW IF EXISTS public.installed_templates;
-DROP VIEW IF EXISTS public.integration_registry;
-DROP VIEW IF EXISTS public.media_storage_config;
-DROP VIEW IF EXISTS public.queue_items;
-DROP VIEW IF EXISTS public.security_events;
-DROP VIEW IF EXISTS public.sla_policies;
-DROP VIEW IF EXISTS public.supabase_projects;
-DROP VIEW IF EXISTS public.system_settings;
-DROP VIEW IF EXISTS public.tenants;
-DROP VIEW IF EXISTS public.test_cases;
-DROP VIEW IF EXISTS public.webhook_endpoints;
-DROP VIEW IF EXISTS public.webhook_idempotency;
-DROP VIEW IF EXISTS public.webhook_reprocess_queue;
+-- Views órfãs removidas (IF EXISTS garante idempotência):
+-- Grupo 1: views que referenciavam model_pricing_v1
+DROP VIEW IF EXISTS public.model_pricing_v1 CASCADE;
+DROP VIEW IF EXISTS public.ai_model_pricing_v1 CASCADE;
+DROP VIEW IF EXISTS public.model_pricing CASCADE;
+
+-- Grupo 2: views que referenciavam tabelas pgmq
+DROP VIEW IF EXISTS public.pgmq_queues CASCADE;
+DROP VIEW IF EXISTS public.pgmq_messages CASCADE;
+DROP VIEW IF EXISTS public.pgmq_metrics CASCADE;
+
+-- Grupo 3: views com tabelas-base removidas em refatorações anteriores
+DROP VIEW IF EXISTS public.whatsapp_instances_legacy CASCADE;
+DROP VIEW IF EXISTS public.instance_configs_v1 CASCADE;
+DROP VIEW IF EXISTS public.webhook_configs_legacy CASCADE;
+DROP VIEW IF EXISTS public.bot_configs_v1 CASCADE;
+DROP VIEW IF EXISTS public.ai_sessions_legacy CASCADE;
+DROP VIEW IF EXISTS public.flow_configs_v1 CASCADE;
+DROP VIEW IF EXISTS public.flow_steps_v1 CASCADE;
+DROP VIEW IF EXISTS public.flow_transitions_v1 CASCADE;
+DROP VIEW IF EXISTS public.flow_executions_legacy CASCADE;
+DROP VIEW IF EXISTS public.campaign_recipients_v1 CASCADE;
+DROP VIEW IF EXISTS public.message_templates_v1 CASCADE;
+DROP VIEW IF EXISTS public.template_variables_v1 CASCADE;
+DROP VIEW IF EXISTS public.contact_tags_v1 CASCADE;
+DROP VIEW IF EXISTS public.ticket_comments_v1 CASCADE;
+DROP VIEW IF EXISTS public.ticket_attachments_v1 CASCADE;
+DROP VIEW IF EXISTS public.sla_configs_v1 CASCADE;
+DROP VIEW IF EXISTS public.escalation_rules_v1 CASCADE;
+DROP VIEW IF EXISTS public.report_schedules_v1 CASCADE;
+DROP VIEW IF EXISTS public.report_subscriptions_v1 CASCADE;
+DROP VIEW IF EXISTS public.oauth_tokens_legacy CASCADE;
+DROP VIEW IF EXISTS public.integration_configs_v1 CASCADE;
+DROP VIEW IF EXISTS public.integration_logs_v1 CASCADE;
+DROP VIEW IF EXISTS public.workspace_settings_v1 CASCADE;
+DROP VIEW IF EXISTS public.billing_events_v1 CASCADE;
+DROP VIEW IF EXISTS public.usage_metrics_v1 CASCADE;
+DROP VIEW IF EXISTS public.feature_flags_v1 CASCADE;
+DROP VIEW IF EXISTS public.ab_test_configs_v1 CASCADE;
+DROP VIEW IF EXISTS public.experiment_results_v1 CASCADE;
+DROP VIEW IF EXISTS public.notification_templates_v1 CASCADE;

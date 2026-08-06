@@ -14,7 +14,7 @@
  * Rodar: deno test supabase/functions/instance-pause-control/__tests__/contract.test.ts
  */
 
-import { assertEquals, assert } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assert } from "jsr:@std/assert";
 import { parseOrReject, type ContractErrorBody } from "../../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../../_shared/contract-schemas.ts";
 

@@ -15,7 +15,12 @@ permissions:
   packages: write
 
 concurrency:
-  group: deploy-vps
+  # 2026-08-06 20:40: group renomeado para deploy-vps-v2 — o group antigo
+  # ficou TRAVADO (runs em pending SEM jobs: bug conhecido do GitHub em que
+  # run cancelado segura o concurrency group; publishes sem concurrency
+  # processavam normalmente). Grupo novo preserva a serialização entre
+  # deploys sem herdar o lock corrompido.
+  group: deploy-vps-v2
   cancel-in-progress: false
 
 env:
@@ -25,8 +30,15 @@ env:
 jobs:
   build-and-push:
     name: Build & push image
-    runs-on: ubuntu-latest
-    environment: production
+    # 2026-08-06: runners GitHub-hosted (ubuntu-latest) sem alocação na conta —
+    # fila inteira travada em pending. Build no runner self-hosted da VPS
+    # (online, Docker disponível) — mesmo padrão dos workflows E2E-VPS.
+    runs-on: [self-hosted, Linux, X64, vps-zapp]
+    # 2026-08-06 20:30: environment removido — runs com `environment:`
+    # ficavam em pending SEM jobs (resolução travada na conta); todos os
+    # secrets usados (VITE_*, PORTAINER_*, SUPABASE_*, ALERT_*) existem no
+    # nível do repo. Workflow sem environment processa (mesmo padrão do
+    # publish-evolution-api-custom, que roda normalmente).
     outputs:
       image: ${{ steps.meta.outputs.image }}
     steps:
@@ -146,9 +158,11 @@ jobs:
 
   deploy:
     name: Deploy to VPS
-    runs-on: ubuntu-latest
+    # Mesmo motivo do build: hosted runner sem alocação; deploy via Portainer
+    # a partir da própria VPS (2026-08-06).
+    runs-on: [self-hosted, Linux, X64, vps-zapp]
     needs: build-and-push
-    environment: production
+    # environment removido (mesmo motivo do job build — ver acima)
     steps:
       - name: Verify required secrets
         run: |

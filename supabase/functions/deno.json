@@ -1,6 +1,10 @@
 {
   "//": "Auto-install npm deps referenced transitively by JSR type declarations (e.g. jsr:@supabase/functions-js/edge-runtime.d.ts pulls npm:openai for typings). Without nodeModulesDir=auto, `deno test` fails with 'Failed resolving types ... npm:openai'. Runtime deployments are unaffected — Supabase's edge runtime handles resolution server-side.",
   "nodeModulesDir": "auto",
+  "compilerOptions": {
+    "strict": true,
+    "strictNullChecks": true
+  },
   "imports": {
     "openai": "npm:openai@^4.52.5"
   }

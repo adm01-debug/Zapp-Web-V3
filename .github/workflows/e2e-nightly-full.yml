@@ -62,7 +62,8 @@ jobs:
           bun-version: 1.3.14
 
       - name: Instalar dependências
-        run: bun install --frozen-lockfile
+        # HUSKY=0: husky v9 é ESM-only e quebra no Node antigo do container do runner self-hosted (E2E-04, 2026-08-06)
+        run: HUSKY=0 bun install --frozen-lockfile
 
       - name: Instalar Chromium do Playwright
         run: bunx playwright install --with-deps chromium
@@ -81,6 +82,12 @@ jobs:
         run: |
           set -o pipefail
           bun run test:e2e:full --reporter=list,html,json 2>&1 | tee playwright-full.log
+
+      - name: Falhar job se a suíte falhou (E2E-07, 2026-08-06)
+        if: steps.run_full.outcome == 'failure'
+        run: |
+          echo "::error::E2E Nightly Full FALHOU — veja o resumo e o artefato playwright-report-full"
+          exit 1
 
       - name: Resumo
         if: always()
@@ -101,5 +108,16 @@ jobs:
         if: always()
         with:
           name: playwright-report-full
-          path: playwright-report/
+          # E2E-08: o config usa outputFolder playwright-report-e2e (path antigo era inexistente)
+          path: playwright-report-e2e/
+          if-no-files-found: warn
           retention-days: 7
+
+      - name: Upload de test-results (traces/screenshots/vídeos)
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test-results-full
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 14

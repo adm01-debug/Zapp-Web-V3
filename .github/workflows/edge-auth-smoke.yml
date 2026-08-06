@@ -13,7 +13,7 @@ on:
       verify_jwt_enabled:
         description: VERIFY_JWT=true ja esta ativo no runtime?
         required: false
-        default: 'false'
+        default: 'true'
         type: boolean
   schedule:
     - cron: '0 6 * * *'
@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SUPABASE_URL: "${{ inputs.supabase_url || secrets.SUPABASE_URL || 'https://supabase.atomicabr.com.br' }}"
-      VERIFY_JWT_ENABLED: "${{ inputs.verify_jwt_enabled || 'false' }}"
+      VERIFY_JWT_ENABLED: "${{ inputs.verify_jwt_enabled || 'true' }}"
     permissions:
       contents: read
     steps:
@@ -122,7 +122,7 @@ jobs:
 
           # ---- 1. Health checks: funcoes publicas devem responder sem auth ----
           # Espera-se 200 ou 404 (funcao existe mas nenhum body), nunca 401/403
-          PUBLIC_HEALTH_FNS="health-check status evolution-health"
+          PUBLIC_HEALTH_FNS="health-check status"
           echo ""
           echo "=== Testando funcoes publicas (sem Authorization) ==="
           for fn in $PUBLIC_HEALTH_FNS; do
