@@ -45,12 +45,17 @@ COPY main.patched.js /evolution/dist/main.js
 
 # Alguns builds 2.3.x também expõem dist/main.mjs — o runtime (config
 # evolution_main_v2_js) sobrescrevia AMBOS. Replicamos: mesmo bundle nos dois.
-RUN if [ -f /evolution/dist/main.mjs ]; then \
-      cp /evolution/dist/main.js /evolution/dist/main.mjs && \
-      echo "main.mjs sobrescrito com o bundle patcheado"; \
+# BEST-EFFORT (não-crítico): o entrypoint oficial (npm run start:prod) carrega
+# dist/main.js; main.mjs só existe para importadores ESM. Diagnóstico sempre
+# imprime o estado do dist e o rc do cp — nunca bloqueia o build.
+RUN ls -la /evolution/dist/; \
+    if [ -f /evolution/dist/main.mjs ]; then \
+      cp -f /evolution/dist/main.js /evolution/dist/main.mjs; \
+      echo "mjs-sync rc=$? (0=ok; copiado main.js->main.mjs)"; \
     else \
       echo "main.mjs ausente na base — nada a fazer"; \
-    fi
+    fi; \
+    true
 
 # --- T4: prologue de log masking. Mantido na imagem como artefato de auditoria;
 #     o conteúdo já está embutido no topo de main.patched.js pelo build-patches.mjs.
