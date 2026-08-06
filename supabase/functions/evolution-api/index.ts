@@ -203,6 +203,15 @@ Deno.serve(async (req) => {
       if (parsed && parsed.error === true) {
         const upstreamStatus = typeof parsed.status === 'number' ? parsed.status : 502;
         const status = upstreamStatus >= 400 && upstreamStatus <= 599 ? upstreamStatus : 502;
+        // Mídia expirada/irrecuperável no WhatsApp: o upstream devolve 400/404/410 com
+        // 'Failed to fetch stream' / 'Media not found' (URL mmg.whatsapp.net morta).
+        // Re-emite 410 Gone + code MEDIA_EXPIRED p/ o frontend diferenciar 'expirada' de erro genérico.
+        const upstreamBody = JSON.stringify(parsed);
+        const mediaExpired = [400, 404, 410].includes(upstreamStatus) ||
+          /Failed to fetch stream|Media not found|message not found|expired|gone/i.test(upstreamBody);
+        if (mediaExpired) {
+          return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 410, code: 'MEDIA_EXPIRED', message: 'A mídia expirou no WhatsApp e não pode mais ser recuperada.' }), { status: 410, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
         return new Response(JSON.stringify(parsed), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
       return new Response(rawText, { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

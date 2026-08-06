@@ -83,23 +83,92 @@ function cacheKey(instance: string, key: MessageKey): string {
   return `${instance}::${key.remoteJid}::${key.id}`;
 }
 
-function classifyError(raw: unknown): MediaError {
+/**
+ * Extrai status HTTP + texto do body de um erro de `supabase.functions.invoke`.
+ *
+ * supabase-js v2 (>= 2.39) lança `FunctionsHttpError` com `message` genérica
+ * ('Edge Function returned a non-2xx status code') e o `Response` real em
+ * `err.context` — o status HTTP fica em `context.status` e o body JSON do
+ * envelope {version,error,status,code,message} em `context.data` (versões
+ * novas) ou lido via `context.json()` (Response cru). Sem essa extração,
+ * TODO erro HTTP viraria reason 'unknown'.
+ */
+async function extractErrorDetails(raw: unknown): Promise<{ status?: number; text: string }> {
   const err = raw instanceof Error ? raw : new Error(String(raw));
-  const msg = err.message.toLowerCase();
+  let status: number | undefined;
+  let bodyText = '';
+  const ctx = (err as Error & { context?: unknown }).context;
 
+  if (ctx && typeof ctx === 'object') {
+    const ctxObj = ctx as {
+      status?: unknown;
+      data?: unknown;
+      json?: () => Promise<unknown>;
+    };
+    if (typeof ctxObj.status === 'number') status = ctxObj.status;
+
+    let body: unknown = ctxObj.data;
+    if (body === undefined && typeof ctxObj.json === 'function') {
+      try {
+        body = await ctxObj.json();
+      } catch {
+        body = undefined; // body já consumido/indisponível — segue só com status/message
+      }
+    }
+
+    if (body !== undefined) {
+      if (typeof body === 'string') {
+        bodyText = body;
+      } else if (body !== null && typeof body === 'object') {
+        // O envelope {status,error,code,message} também carrega o status
+        // quando o Response cru não o expõe (ex.: testes/mocks).
+        const bodyObj = body as { status?: unknown };
+        if (status === undefined && typeof bodyObj.status === 'number') status = bodyObj.status;
+        try {
+          bodyText = JSON.stringify(body);
+        } catch {
+          bodyText = String(body);
+        }
+      } else {
+        bodyText = String(body);
+      }
+    }
+  }
+
+  const text = `${err.message}\n${bodyText}`.toLowerCase();
+  return { status, text };
+}
+
+export async function classifyError(raw: unknown): Promise<MediaError> {
+  const err = raw instanceof Error ? raw : new Error(String(raw));
+  const { status, text: msg } = await extractErrorDetails(raw);
+
+  // Expired tem prioridade sobre network: a edge fn evolution-api re-emite o
+  // status HTTP real do upstream (400/410/403) e o body pode conter
+  // 'Failed to fetch stream' — que contém 'fetch' e cairia em network se a
+  // ordem fosse invertida.
   if (
+    status === 410 ||
+    status === 403 ||
     msg.includes('410') ||
     msg.includes('403') ||
     msg.includes('expired') ||
-    msg.includes('gone')
+    msg.includes('gone') ||
+    msg.includes('media_expired') ||
+    msg.includes('failed to fetch stream')
   ) {
     return {
       reason: 'expired',
-      message: 'Esta mídia expirou no WhatsApp e não pôde ser recuperada.',
+      message: 'Esta mídia expirou no WhatsApp e não pode mais ser recuperada.',
       cause: err,
     };
   }
-  if (msg.includes('404') || msg.includes('not_found') || msg.includes('not found')) {
+  if (
+    status === 404 ||
+    msg.includes('404') ||
+    msg.includes('not_found') ||
+    msg.includes('not found')
+  ) {
     return {
       reason: 'not_found',
       message: 'Mídia não encontrada no servidor do WhatsApp.',
@@ -107,6 +176,8 @@ function classifyError(raw: unknown): MediaError {
     };
   }
   if (
+    status === 504 ||
+    msg.includes('504') ||
     msg.includes('network') ||
     msg.includes('fetch') ||
     msg.includes('timeout') ||
@@ -133,6 +204,27 @@ function classifyError(raw: unknown): MediaError {
 }
 
 const DEFAULT_MAX_ATTEMPTS = 2;
+
+/**
+ * Cap global de refresh attempts por sessão (anti-storm).
+ *
+ * Incidente 2026-08-06: bucket `whatsapp-media` ficou privado (migração
+ * LGPD) e TODAS as mídias do inbox falharam → cada <img>/<video> onError
+ * disparava `evolution-api/get-media-base64` (2 tentativas cada), gerando
+ * centenas de GET/POST no console. Este contador em module scope limita o
+ * total de invokes da edge fn por carregamento de página; estourado, o
+ * refresh falha silenciosamente (`failed=true`, sem invoke, sem toast).
+ */
+export const MAX_SESSION_REFRESH_ATTEMPTS = 40;
+let sessionRefreshAttempts = 0;
+
+/**
+ * Test-only: reseta (ou pré-define) o contador global de refresh attempts
+ * da sessão. `mediaCacheClear`-style — nada em produção chama isto.
+ */
+export function resetSessionRefreshAttempts(count = 0): void {
+  sessionRefreshAttempts = count;
+}
 
 /** WhatsApp message types that never produce valid base64 via the Evolution API. */
 const UNREFRESHABLE_MESSAGE_TYPES = new Set([
@@ -239,6 +331,20 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
     }
 
     if (!mountedRef.current) return;
+
+    // Cap global anti-storm: em falha em massa (ex.: bucket privado) não
+    // deixa centenas de invokes da edge fn dispararem. Estourou ⇒ falha
+    // silenciosa: marca failed (UI mostra fallback) sem chamar a edge fn
+    // nem disparar toast.
+    if (sessionRefreshAttempts >= MAX_SESSION_REFRESH_ATTEMPTS) {
+      setFailed(true);
+      log.debug(
+        `session refresh cap (${MAX_SESSION_REFRESH_ATTEMPTS}) reached — skipping refresh for ${key}`
+      );
+      return;
+    }
+    sessionRefreshAttempts += 1;
+
     setIsRefreshing(true);
     setError(null);
     const job = (async () => {
@@ -292,10 +398,13 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
         setError(null);
         setFailed(false);
       } catch (err) {
-        const classified = classifyError(err);
+        const classified = await classifyError(err);
         // Empty media payload é esperado para certos tipos de mídia do WhatsApp
         // (ex.: stickers animados, vídeos efêmeros) — não poluir o console.
-        const logLevel = classified.reason === 'unsupported' ? 'debug' : 'warn';
+        // Mídia expirada (410/403/expired) também: é irrecuperável e esperado
+        // em conversas antigas — debug, não warn.
+        const logLevel =
+          classified.reason === 'unsupported' || classified.reason === 'expired' ? 'debug' : 'warn';
         if (!mountedRef.current) {
           // Desmontado: suprime log.warn e toast.error — apenas debug para
           // rastreabilidade (refresh que terminou após navegação).
@@ -309,7 +418,10 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
           setError(classified);
           setAttempts((prev) => {
             const next = prev + 1;
-            if (next >= maxAttempts) {
+            // Irrecuperável (expirada): o WhatsApp não vai "desexpirar" a
+            // URL — falha imediata na 1ª tentativa, sem gastar a 2ª.
+            const unrecoverable = classified.reason === 'expired';
+            if (unrecoverable || next >= maxAttempts) {
               setFailed(true);
               // Anti-flood: 1 toast por mídia por sessão.
               if (!toastedKeys.has(key)) {

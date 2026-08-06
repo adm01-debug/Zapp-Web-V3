@@ -1,5 +1,5 @@
 // Shared media persistence helpers for Evolution API functions
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isRecord } from "./evolution-helpers.ts";
 import { getStoragePublicUrl } from "./storage-url.ts";
 
@@ -169,7 +169,9 @@ export async function persistMediaViaApi(
     for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
     if (bytes.length < 100) return null;
 
-    const mimeType = (result.mimetype as string) || 'application/octet-stream';
+    // P2-03 (reconciliação): normaliza Content-Type — remove parâmetros (ex.: 'audio/ogg; codecs=opus')
+    // que o storage-api rejeita com 415. Mesma normalização do persistMediaToStorage.
+    const mimeType = ((result.mimetype as string) || 'application/octet-stream').split(';')[0].trim();
     let ext = 'bin';
     if (mimeType.includes('jpeg') || mimeType.includes('jpg')) ext = 'jpg';
     else if (mimeType.includes('png')) ext = 'png';
