@@ -172,6 +172,8 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
     const toDelete = items.filter((i) => selected.has(i.id));
     if (toDelete.length === 0) return;
     const ids = [...selected];
+    // EMPTY-IN GUARD: seleção vazia não deve virar `id=in.()` no PostgREST
+    if (ids.length === 0) return;
     const { error } = await supabase
       .from(type as 'stickers')
       .delete()

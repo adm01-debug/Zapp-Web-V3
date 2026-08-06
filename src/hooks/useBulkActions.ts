@@ -115,6 +115,8 @@ export function useBulkActions<T extends { id: string }>(
         },
         action: async (actionItems: T[]) => {
           const ids = actionItems.map((i) => i.id);
+          // EMPTY-IN GUARD: sem itens, pula o DELETE (evita `id=in.()` no PostgREST)
+          if (ids.length === 0) return;
           const { error } = await fromTable(tableName).delete().in('id', ids);
 
           if (error) throw error;
@@ -127,6 +129,8 @@ export function useBulkActions<T extends { id: string }>(
         variant: 'outline' as const,
         action: async (actionItems: T[]) => {
           const ids = actionItems.map((i) => i.id);
+          // EMPTY-IN GUARD: sem itens, pula o UPDATE (evita `id=in.()` no PostgREST)
+          if (ids.length === 0) return;
           const { error } = await (fromTable(tableName) as unknown as {
             update: (values: { status: string; updated_at: string }) => {
               in: (col: string, vals: string[]) => Promise<{ error: { message: string } | null }>;
