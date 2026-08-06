@@ -55,16 +55,17 @@ export function useAdminInboxSync(): AdminInboxSyncState {
   } = useQuery({
     queryKey: INBOX_SYNC_KEY,
     queryFn: async () => {
+      // count:'planned' + head:true — estimativa do planner sem transferir linhas.
+      // Para monitoramento de volumes em janelas de tempo, precisão absoluta não é necessária.
       const bucketResults = await Promise.all(
         BUCKET_CONFIGS.map(async (b) => {
-          const { data, count, error } = await supabase
+          const { count, error } = await supabase
             .from('evolution_messages')
-            .select('id', { count: 'exact' })
+            .select('*', { count: 'planned', head: true })
             .eq('instance_name', INSTANCE)
-            .gte('created_at', new Date(Date.now() - b.sinceMs).toISOString())
-            .limit(1);
+            .gte('created_at', new Date(Date.now() - b.sinceMs).toISOString());
           if (error) throw new Error(error.message);
-          return { data: data ?? [], count: count ?? 0 };
+          return { data: [] as { id: string }[], count: count ?? 0 };
         })
       );
 
