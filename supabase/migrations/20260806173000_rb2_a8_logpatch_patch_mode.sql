@@ -43,7 +43,10 @@ SET patch_mode = 'build-time'
 WHERE patch_mode IS DISTINCT FROM 'build-time';
 
 -- View de saúde: considera o patch_mode para determinar healthiness
-CREATE OR REPLACE VIEW evo.v_logpatch_health AS
+-- security_invoker=on garante que a view herda as permissões do caller (sem escalada de privilégios)
+CREATE OR REPLACE VIEW evo.v_logpatch_health
+WITH (security_invoker = on)
+AS
 SELECT
   id,
   instance_name,
