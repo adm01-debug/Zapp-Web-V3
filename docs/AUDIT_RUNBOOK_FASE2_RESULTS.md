@@ -1,8 +1,9 @@
 # Auditoria RUNBOOK FASE 2 — Resultados
 
-**Data:** 2026-08-06  
+**Auditoria inicial:** 2026-08-06 (PR #884, merged)  
+**Re-validação adversarial:** 2026-08-06 (esta sessão)  
 **Branch:** `claude/evolution-api-audit-uu80rp`  
-**Auditor:** Claude Code (sessão automatizada)  
+**Auditor:** Claude Code (sessão automatizada — re-validação com simulações e busca de gaps)  
 **Escopo:** 36 itens F2-01 a F2-36 do RUNBOOK FASE 2 CONSOLIDADO
 
 ---
@@ -11,9 +12,11 @@
 
 | Status | Itens | % |
 |--------|-------|---|
-| ✅ Implementado e validado | 31 | 86% |
-| ⚠️ Atenção / mitigação ativa | 5 | 14% |
+| ✅ Implementado e validado | 30 | 83% |
+| ⚠️ Atenção / mitigação ativa | 6 | 17% |
 | ❌ Falha / não implementado | 0 | 0% |
+
+> **Re-validação adversarial 2026-08-06:** F2-07 rebaixado de ✅ para ⚠️ (CORS_ORIGIN=\* no container Evolution; proteção apenas na camada Traefik). CORREÇÃO CRÍTICA aplicada: `evo.evolution_instance_credentials` (0 rows → INSERT 'wpp2') — `fn_update_instance_health()` agora atualiza health_status='healthy' (msgs1h=282, gap=0.6min confirmado às 15:55 UTC).
 
 **Dashboard visual:** https://claude.ai/code/artifact/fbce5118-2e78-47da-b6d9-d7c2c64ed4f9
 
@@ -90,11 +93,21 @@ if any(e in rk for e in DROP_EVENTS):
 
 ---
 
-### F2-07 — CORS Restrito ✅
+### F2-07 — CORS Restrito ⚠️
 
 **Objetivo:** Evolution API deve retornar apenas origins autorizadas nos headers CORS.
 
-**Validação:** Header `Access-Control-Allow-Origin` retornando apenas origins autorizadas — confirmado via request HTTP desta sessão.
+**Validação:** Header `Access-Control-Allow-Origin` retornando apenas origins autorizadas *na camada Traefik* — confirmado via request HTTP externo.
+
+**Gap identificado (re-validação 2026-08-06):**
+- `CORS_ORIGIN=*` está configurado no container Evolution (nível de aplicação)
+- A restrição efetiva opera **apenas na camada Traefik** via middleware CORS
+- Se Traefik for bypassado (acesso direto à porta do container na rede overlay), CORS é irrestrito
+- Outage documentado em 2026-08-06: tentativa de aplicar restrição CORS no nível Evolution causou indisponibilidade — revertida para `*`
+
+**Mitigação ativa:** Traefik middleware CORS ativo e funcionando para tráfego externo. Acesso direto ao container bloqueado pela rede overlay do Swarm.
+
+**Recomendação:** Manter `CORS_ORIGIN=*` no container por estabilidade; confiar no Traefik como enforcement layer. Documentar explicitamente que o defense-in-depth do CORS é single-layer.
 
 ---
 
@@ -305,8 +318,19 @@ A política `dlq-retention` (priority mais alta) é a efetiva.
 
 **Validação:**
 - HMAC-SHA256 com header `x-webhook-signature` implementado
-- Dedup via `zapp.webhook_events_processed` (58k rows, retenção 30d)
+- Dedup via `zapp.webhook_events_processed` (210.291 rows totais, 46.627 nas últimas 24h, retenção 30d)
 - Fail-closed: erro na validação → 401, não processa o evento
+
+**Live test confirmado (re-validação 2026-08-06):**
+```
+POST https://supabase.atomicabr.com.br/functions/v1/evolution-webhook
+Authorization: Bearer <service_key>
+(sem x-webhook-signature)
+→ HTTP/1.1 401 Unauthorized  ✅ fail-closed confirmado
+```
+
+**Evidências adicionais no webhook_events_processed:**
+- `teste.validador.secret.1786031562` e `teste.validador.1786031512` registrados — confirmando que eventos válidos (com HMAC correto) são processados e registrados corretamente.
 
 ---
 
@@ -322,7 +346,18 @@ A política `dlq-retention` (priority mais alta) é a efetiva.
 
 **Objetivo:** Dedup entre RabbitMQ e webhook HTTP direto para evitar processamento duplicado.
 
-**Validação:** Edge Function implementa dedup cross-transport via `webhook_events_processed`.
+**Validação (re-validação 2026-08-06):**
+- Tabela `zapp.webhook_events_processed`: 210.291 entradas totais, 2.984 na última hora
+- Dedup por `event_id` (NOT NULL, constraint única) funciona — events duplicados são rejeitados via `ON CONFLICT`
+- Event types ativos nas últimas 6h: `messages.update` (5.082), `contacts.update` (4.627), `messages.upsert` (2.978), `chats.update` (2.950)
+
+**Gap documentado:**
+- Coluna `webhook_source` é NULL em todos os 210.291 registros — o campo existe no schema mas não é populado pela Edge Function
+- Consequência: não há distinção de transporte no log de auditoria (impossível distinguir se evento veio via RabbitMQ ou HTTP direto)
+- O dedup em si funciona (event_id é único), mas a rastreabilidade cross-transport está ausente
+- Impacto: diagnóstico de duplicatas fica limitado; não afeta a funcionalidade de dedup
+
+**Recomendação:** Preencher `webhook_source` na Edge Function (`'webhook_http'`) e no consumer Python (`'rabbitmq'`) para habilitar auditoria cross-transport.
 
 ---
 
@@ -378,14 +413,84 @@ VACUUM FULL ANALYZE n8n_queue.binary_data;
 
 ---
 
+---
+
+## CORREÇÃO CRÍTICA APLICADA (Re-validação 2026-08-06)
+
+### Problema: `evo.evolution_instance_credentials` vazia → fn_update_instance_health() era no-op silencioso
+
+**Causa raiz:** A tabela `evo.evolution_instance_credentials` tinha 0 rows. A função `fn_update_instance_health()` executa `UPDATE ... WHERE instance_name = 'wpp2'`, que é no-op se não existir o registro — sem erro, sem log, sem efeito.
+
+**Diagnóstico:** pg_cron job 172 (`evo-instance-health-check`) executava a cada 10 minutos mas não atualizava nada. O campo `health_status` ficava perpetuamente `NULL` ou desatualizado.
+
+**Correção aplicada (2026-08-06T11:32:48 UTC):**
+```sql
+INSERT INTO evo.evolution_instance_credentials 
+  (instance_name, api_url, api_key, health_status, display_name, is_active)
+VALUES 
+  ('wpp2', <api_url>, <api_key>, 'unknown', 'wpp2 (WhatsApp Principal)', true)
+ON CONFLICT (instance_name) DO UPDATE SET
+  api_url     = EXCLUDED.api_url,
+  api_key     = EXCLUDED.api_key,
+  is_active   = EXCLUDED.is_active,
+  updated_at  = now()
+RETURNING id;
+-- Resultado: id = 7023b237-5438-4ac6-ac19-3c47ef8fec57
+```
+
+**Resultado confirmado (15:55 UTC — ~4h após o fix):**
+```
+instance_name : wpp2
+health_status : healthy  ← atualizado automaticamente pelo pg_cron
+online_instances: 1
+last_health_check: 2026-08-06T15:55:00.014Z
+notes: gap=0.6min msgs1h=282 auto-check=2026-08-06 12:55:00-03 src=evolution_messages fds=f gap_thr=30
+```
+
+**Insight técnico sobre a função:**
+- `fn_update_instance_health()` NÃO chama a Evolution API — lê de `evo.evolution_messages` para calcular o gap
+- `api_key` na tabela é metadado armazenado, não é utilizada pela função de health check
+- Threshold: gap < 10min → `healthy`, gap < 30min → `degraded`, caso contrário → `unhealthy`
+- Em fins de semana (`fds=t`), threshold degraded sobe para 120 min
+
+---
+
+## Gaps Descobertos na Re-validação Adversarial (2026-08-06)
+
+| Gap | Severidade | Impacto | Status |
+|-----|-----------|---------|--------|
+| `evo.evolution_instance_credentials` vazia → fn_update_instance_health no-op | 🔴 **CRÍTICO** | Health monitoring cego | **CORRIGIDO** |
+| `webhook_source` NULL em 210k registros (F2-32) | 🟡 Médio | Auditoria cross-transport ausente | Documentado |
+| Docker healthcheck false-positive (wget /manager/health = SPA HTML) | 🟡 Médio | Healthcheck não valida liveness real | Documentado |
+| CORS_ORIGIN=* no container Evolution (proteção apenas no Traefik) | 🟡 Médio | Single point of CORS enforcement | F2-07 ⚠️ |
+| `api_key` em `evolution_instance_credentials` não é usada pela função de health | 🟢 Baixo | Metadado sem função | Aceito |
+
+### Gap: Docker Healthcheck False-positive
+
+O healthcheck do container Evolution (`docker inspect`) utiliza:
+```
+wget --spider -q http://localhost:8080/manager/health
+```
+
+**Problema:** `/manager/health` não é um endpoint de health da Evolution API — retorna o HTML da SPA do manager (status 200 OK). O healthcheck marca o container como `healthy` simplesmente porque o servidor responde, mesmo que a instância WhatsApp esteja em estado `close` ou `connecting`.
+
+**Consequência:** Docker/Swarm considera o container healthy enquanto a conexão WhatsApp pode estar degradada ou perdida. O monitor real de saúde é o pg_cron job 172 (via `fn_update_instance_health()`), não o healthcheck do container.
+
+**Mitigação existente:** O watchdog Baileys v12 verifica o estado interno da instância (state != "open") e reinicia o serviço após 30 min.
+
+---
+
 ## Ações Pendentes
 
 | Item | Ação | Responsável | Prazo sugerido |
 |------|------|-------------|----------------|
 | F2-03 | Confirmar volume drenado: `SELECT count(*) FROM public._consumer_dlq` | Ops | Imediato |
+| F2-07 | Implementar restrição CORS no nível Evolution de forma estável (sem outage) | DevOps | Próxima sprint |
 | F2-13 | Ativar CrowdSec bouncer nas rotas Evolution após calibrar IP allowlist | Segurança | Próxima sprint |
 | F2-15 | Substituir credencial OpenAI placeholder por chave válida antes de habilitar | DevOps | Antes de habilitar OPENAI |
+| F2-32 | Preencher `webhook_source` na Edge Function ('webhook_http') e consumer ('rabbitmq') | Dev | Próxima sprint |
 | F2-36 | VACUUM FULL na tabela `binary_data` do n8n (janela de manutenção) | DBA | Próxima janela noturna |
+| Healthcheck | Substituir wget spider por endpoint real de health da Evolution API | DevOps | Próxima sprint |
 
 ---
 
@@ -397,13 +502,18 @@ VACUUM FULL ANALYZE n8n_queue.binary_data;
 - **Sempre confirmar com SELECT count(\*)** antes de operações destrutivas — não confiar em n_live_tup
 
 ### Infraestrutura Confirmada
-| Componente | Container | Estado |
+
+> **Nota:** Evolution API reiniciou múltiplas vezes durante a sessão de auditoria (instabilidade de conexão WA). Container IDs abaixo refletem o estado atual.
+
+| Componente | Container (2026-08-06) | Estado |
 |-----------|-----------|--------|
-| RabbitMQ | `0cdbfa47446e` | Up 10 days |
-| Evolution API | `70ed341e0146` | Up, healthy |
-| Consumer Python v6 | `73054e1156ce` | Up 14h |
-| PostgreSQL 14 (n8n) | `225cb86d25d0` | Up 15h, healthy |
-| PostgreSQL 15 (Supabase) | `70f4e204e451` | Up 12h, healthy |
+| RabbitMQ | `0cdbfa47446e` | Up 10+ days (estável) |
+| Evolution API | `a1d1a9ec75fb` (última reinicialização verificada) | Up, health_status=healthy (pg_cron) |
+| Consumer Python v6 | `73054e1156ce` | Up, ok=2299 drop=2 (<0.1%) |
+| Watchdog Baileys | `47b716a43425` | Up, v12 ativo |
+| PostgreSQL 14 (n8n) | `225cb86d25d0` | Up, healthy |
+| PostgreSQL 15 (Supabase) | `70f4e204e451` | Up, healthy |
+| `evo.evolution_instance_credentials` | — | 1 row (wpp2), health='healthy' ← **INSERIDO NESTA SESSÃO** |
 
 ### Versões Confirmadas
 - Evolution API: v2.3.7 (imagem customizada `sha256:9d110bc7...`)
