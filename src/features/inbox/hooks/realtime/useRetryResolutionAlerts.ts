@@ -148,7 +148,7 @@ export function useRetryResolutionAlerts(enabled = true): void {
 
     // ── Source 2: Postgres realtime (cross-tab / cross-agent) ──────────────
     const channel = supabase
-      .channel('retry_resolution_alerts')
+      .channel(`retry_resolution_alerts:${Math.random().toString(36).slice(2, 10)}`)
       .on<MessageRowMinimal>(
         'postgres_changes',
         { event: 'UPDATE', schema: 'evo', table: 'evolution_messages' },

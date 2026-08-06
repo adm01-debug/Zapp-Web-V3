@@ -62,7 +62,7 @@ services:
                 payload_json = json.dumps({'raw': payload_str})
             try:
                 cur = pg.cursor()
-                cur.execute("INSERT INTO public._consumer_dlq (routing_key, event_type, instance, payload, payload_hash, last_attempt_at) VALUES (%s,%s,%s,%s::jsonb,%s,%s) ON CONFLICT (payload_hash) DO NOTHING",
+                cur.execute("INSERT INTO zapp._consumer_dlq (routing_key, event_type, instance, payload, payload_hash, last_attempt_at) VALUES (%s,%s,%s,%s::jsonb,%s,%s) ON CONFLICT (payload_hash) DO NOTHING",
                             (rk, rk, instance, payload_json, payload_hash, now))
                 pg.commit()
                 ch.basic_ack(delivery_tag=m.delivery_tag)

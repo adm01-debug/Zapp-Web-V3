@@ -48,6 +48,9 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 vi.mock('@tanstack/react-query', () => ({
   useQueryClient: () => queryClientMock,
+  // ReactionsBatchProvider (wired no ChatMessagesArea) usa useQuery para o
+  // batch de reações; nestes testes de scroll não há reações a carregar.
+  useQuery: () => ({ isPending: false, data: undefined }),
 }));
 
 vi.mock('@tanstack/react-virtual', () => ({

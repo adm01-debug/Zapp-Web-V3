@@ -465,3 +465,40 @@ upsert_user_settings
   whatsapp_groups
   whatsapp_templates
   whisper_messages
+# ---------------------------------------------------------------------------
+# Base Lovable (2026-08-03: migrations-from-lovable/ removida na limpeza; as
+# definições DDL originais saíram do fluxo de migrations do repo, mas as
+# relações continuam vivas em PRODUÇÃO no schema zapp (e/ou public)).
+# Auditado em 2026-08-06 via information_schema.tables + pg_proc (produção):
+#   - 20 tabelas/views existem em produção (schema zapp/public)
+#   - 3 RPCs existem em produção (schema zapp)
+# NÃO são drift novo: são a base consolidada pré-existente à onda bugs-console.
+# (Re)criar essas definições em migrations é work item separado (fase schema).
+# --- Tabelas base Lovable (confirmadas em produção 2026-08-06) ---
+agent_presence
+budgets
+contact_export_log
+contact_segments
+conversation_summaries
+conversation_transfers
+conversations
+data_deletion_requests
+email_templates
+evolution_daily_metrics
+evolution_followup_rules
+feature_flags
+notification_channels_config
+notification_templates
+queue_routing_rules
+quick_replies
+scheduled_reports
+security_acl_alerts
+sicoob_reply_outbox
+transfer_comments
+
+# --- RPCs criadas fora do fluxo de migrations (confirmadas em pg_proc 2026-08-06) ---
+# grant/revoke_lgpd_consent: CREATE fora do repo (migration de 05/08 só faz GRANT EXECUTE).
+# rpc_get_reactions_batch: criada via SQL manual em produção (sem migration).
+grant_lgpd_consent
+revoke_lgpd_consent
+rpc_get_reactions_batch

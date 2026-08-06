@@ -4,8 +4,49 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
 import { getLogger } from '@/lib/logger';
+import { authService } from '@/features/auth/services/authService';
 
 const log = getLogger('Connections');
+
+// ---------------------------------------------------------------------------
+// user_roles do usuário logado é quase-estático: o checkAdminStatus roda em
+// mount, window focus e troca de aba — sem cache, cada um repetia
+// user_roles?select=role&user_id=... TTL de 5min + single-flight (apenas
+// resultados SEM erro entram no cache; falha re-tenta no próximo disparo).
+// ---------------------------------------------------------------------------
+const ADMIN_ROLE_CHECK_TTL_MS = 5 * 60 * 1000;
+
+let adminRoleCheckCache: { userId: string; hasAccess: boolean; checkedAt: number } | null = null;
+let adminRoleCheckInflight: Promise<boolean> | null = null;
+
+async function checkUserHasAdminRole(userId: string): Promise<boolean> {
+  if (
+    adminRoleCheckCache &&
+    adminRoleCheckCache.userId === userId &&
+    Date.now() - adminRoleCheckCache.checkedAt < ADMIN_ROLE_CHECK_TTL_MS
+  ) {
+    return adminRoleCheckCache.hasAccess;
+  }
+  if (adminRoleCheckInflight) return adminRoleCheckInflight;
+
+  adminRoleCheckInflight = (async () => {
+    const { data: roles, error: rolesError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId);
+
+    if (rolesError) throw rolesError;
+
+    const hasAccess = !!roles?.some(
+      (r: { role: string | null }) => r.role === 'admin' || r.role === 'dev'
+    ); // ignore-audit
+    adminRoleCheckCache = { userId, hasAccess, checkedAt: Date.now() };
+    return hasAccess;
+  })().finally(() => {
+    adminRoleCheckInflight = null;
+  });
+  return adminRoleCheckInflight;
+}
 
 const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as
   'development' | 'staging' | 'production';
@@ -113,25 +154,18 @@ export function useConnections() {
 
   const checkAdminStatus = useCallback(async () => {
     try {
+      // getUser via authService: single-flight + cache 30s (tempestade
+      // /auth/v1/user) — o check roda em mount, focus e troca de aba.
       const {
         data: { user },
         error: authError,
-      } = await supabase.auth.getUser();
+      } = await authService.getUser();
 
       if (authError) throw authError;
 
       setCurrentUserId(user?.id ?? null);
       if (user?.id) {
-        const { data: roles, error: rolesError } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id);
-
-        if (rolesError) throw rolesError;
-
-        const hasAccess = !!roles?.some(
-          (r: { role: string | null }) => r.role === 'admin' || r.role === 'dev'
-        ); // ignore-audit
+        const hasAccess = await checkUserHasAdminRole(user.id);
         setIsAdmin(hasAccess);
 
         if (!hasAccess) {

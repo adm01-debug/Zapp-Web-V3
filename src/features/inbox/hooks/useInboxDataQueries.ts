@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ConversationWithMessages } from '@/features/inbox';
 import { getLogger } from '@/lib/logger';
 import { isValidUUID } from '@/utils/uuid';
+import { QUERY_STALE_TIMES, QUERY_GC_TIMES } from '@/lib/queryStaleTimes';
 
 const log = getLogger('useInboxDataQueries');
 
@@ -19,7 +20,8 @@ export function useInboxDataQueries(conversations: ConversationWithMessages[]) {
       if (error) throw error;
       return data || [];
     },
-    staleTime: 60_000,
+    staleTime: QUERY_STALE_TIMES.inboxCustomScopes,
+    gcTime: QUERY_GC_TIMES.inboxCustomScopes,
   });
 
   const { data: contactTagsMap = {} } = useQuery({
@@ -59,7 +61,8 @@ export function useInboxDataQueries(conversations: ConversationWithMessages[]) {
 
       return map;
     },
-    staleTime: 30_000,
+    staleTime: QUERY_STALE_TIMES.contactTags,
+    gcTime: QUERY_GC_TIMES.contactTags,
   });
 
   return { customScopes, contactTagsMap };

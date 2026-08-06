@@ -1,4 +1,5 @@
--- ============================================================================
+-- =====================================================================
+-- (incluído do merge com main — idempotente)
 -- CREATE TABLE ops.alert_cooldown
 -- ============================================================================
 -- Tipo: DDL
@@ -23,3 +24,6 @@ CREATE TABLE IF NOT EXISTS ops.alert_cooldown (
 REVOKE ALL ON TABLE ops.alert_cooldown FROM PUBLIC, anon;
 GRANT SELECT ON TABLE ops.alert_cooldown TO authenticated;
 GRANT ALL ON TABLE ops.alert_cooldown TO service_role, postgres;
+=======
+-- Item 65 da auditoria infra (AG-EX-01): autovacuum per-table (substitui cron disk-tables-vacuum-weekly job 231)
+ALTER TABLE ops.alert_cooldown SET (autovacuum_vacuum_scale_factor=0.05, autovacuum_vacuum_threshold=100, autovacuum_analyze_scale_factor=0.02);

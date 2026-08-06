@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth';
 import { toast } from 'sonner';
 import { getLogger } from '@/lib/logger';
+import { QUERY_STALE_TIMES, QUERY_GC_TIMES } from '@/lib/queryStaleTimes';
 
 const log = getLogger('useQuickReplies');
 
@@ -68,7 +69,8 @@ export function useQuickReplies() {
       return data as QuickReplyTemplate[]; // ignore-audit: narrows Supabase query result to local interface
     },
     enabled: !!user?.id,
-    staleTime: 60_000,
+    staleTime: QUERY_STALE_TIMES.quickReplies,
+    gcTime: QUERY_GC_TIMES.quickReplies,
   });
 
   // Local favorites storage (synced with localStorage for persistence)

@@ -204,7 +204,13 @@ export async function getQueueStats(): Promise<{
 export function setupOnlineListener(): () => void {
   const handleOnline = async () => {
     log.info('Online — processing queue');
-    await processQueue();
+    try {
+      await processQueue();
+    } catch (err) {
+      // Event listener async: rejeição sem handler vira unhandled rejection
+      // (ex.: IndexedDB indisponível, chunk load do messageSender).
+      log.error('Failed to process offline queue on reconnect:', err);
+    }
   };
 
   const handleOffline = () => {
@@ -216,7 +222,9 @@ export function setupOnlineListener(): () => void {
 
   // Process queue on initial load if online
   if (navigator.onLine) {
-    void processQueue();
+    void processQueue().catch((err: unknown) => {
+      log.error('Failed to process offline queue on boot:', err);
+    });
   }
 
   return () => {

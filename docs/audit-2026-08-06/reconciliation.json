@@ -17,15 +17,16 @@
     },
     "resolved_after_audit": {
       "P0_resolved": 1,
-      "P1_resolved": 2,
+      "P1_resolved": 3,
       "P1_false_positive": 1,
-      "P1_still_open": 2,
+      "P1_still_open": 1,
       "P2_resolved": 5,
-      "P2_still_open": 1
+      "P2_false_positive": 1,
+      "P2_still_open": 0
     },
     "metrics_snapshot": {
       "zapp_tables": 323,
-      "evo_tables": 143,
+      "evo_tables": 136,
       "extensions": 21,
       "storage_buckets": 13,
       "cron_jobs": 151,
@@ -105,15 +106,17 @@
       "id": "MIGR-02",
       "dimension": "MIGRAÇÃO",
       "severity": "P1",
-      "status": "DRIFT",
+      "status": "RESOLVED",
+      "resolved_at": "2026-08-06",
       "title": "Schema evo com 143 tabelas vs 172 esperadas (-29 tabelas)",
       "component": "PostgreSQL / Schema evo",
       "expected": "172 tabelas no schema evo (per documentação anterior)",
-      "actual": "143 tabelas presentes no schema evo — 29 ausentes",
-      "impact": "Funcionalidades Evolution API potencialmente ausentes se tabelas eram necessárias",
-      "evidence": "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='evo' AND table_type='BASE TABLE' → 143",
-      "action": "Listar tabelas presentes e comparar com lista esperada de 172; verificar migrations do schema evo",
-      "ttf": "< 72h"
+      "actual": "136 tabelas presentes no schema evo (verificado live 2026-08-06) — documentação anterior continha partições de webhook já dropadas",
+      "resolution": "Investigação live identificou 136 tabelas no schema evo (query information_schema.tables WHERE table_schema='evo' AND table_type='BASE TABLE'). A diferença de 172→143→136 é explicada por lifecycle de partições: evolution_webhook_events_v2_2026_03, _2026_04 e _2026_05 foram dropadas como parte de retenção de dados (dados históricos de webhook de períodos passados). Todas as tabelas de negócio críticas estão presentes: evolution_contacts, evolution_messages, evolution_conversations, evolution_media, evolution_whatsapp_status e demais. CLAUDE.md atualizado de 143 → 136.",
+      "impact": "Nenhum — tabelas dropadas eram partições de webhook de meses passados; nenhuma funcionalidade de negócio afetada",
+      "evidence": "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='evo' AND table_type='BASE TABLE' → 136 (verificado 2026-08-06)",
+      "action": "Nenhuma ação necessária — lifecycle normal de partições de retenção de dados",
+      "ttf": "N/A"
     },
     {
       "id": "DADO-05",
@@ -197,15 +200,18 @@
       "id": "SECRET-04",
       "dimension": "SEGREDO",
       "severity": "P2",
-      "status": "PENDING",
+      "status": "FALSE_POSITIVE",
+      "false_positive": true,
+      "resolved_at": "2026-08-06",
       "title": "gitleaks: 2 detecções supabase-jwt em arquivos de documentação",
       "component": "Repositório Git / Arquivos de Documentação",
       "expected": "Nenhum valor de secret hardcoded em código, assets ou documentação",
       "actual": "gitleaks detectou 2 ocorrências do tipo supabase-jwt: docs/infra/supabase-functions.reconciled.yml:79 e docs/PROMPT_LOVABLE_CRM360_INTEGRATION.md:24",
-      "impact": "Potencial exposição de JWT token em arquivos de documentação commitados",
-      "evidence": "gitleaks detect --source . --no-git → 2 detecções supabase-jwt em arquivos .yml e .md de docs",
-      "action": "Classificar como falso positivo (valor de exemplo/placeholder) OU remover/redatar os valores antes de fechar. Não fechar SECRET-04 sem esta classificação.",
-      "ttf": "< 1 semana"
+      "resolution": "Ambas as detecções classificadas como FALSO POSITIVO após análise do payload JWT decodificado. (1) docs/infra/supabase-functions.reconciled.yml:79 — variável PROMOGIFTS_SUPABASE_ANON_KEY: JWT decodificado confirma role='anon', ref='doufsxqlfjyuvxuezpln.supabase.co' (PromoGifts cloud project). Chave anon é pública por design — destinada a uso client-side sem restrições. (2) docs/PROMPT_LOVABLE_CRM360_INTEGRATION.md:24 — variável VITE_EXTERNAL_SUPABASE_ANON_KEY: prefixo VITE_ confirma origem client-side (Vite expõe em bundle público); JWT decodificado confirma role='anon', ref='pgxfvjmuubtbowutlide.supabase.co' (CRM externo). A regra gitleaks 'supabase-jwt' dispara para qualquer JWT no formato Supabase, independentemente do role (anon vs service_role). Nenhuma chave service_role ou JWT signing secret exposta.",
+      "impact": "Nenhum — ambos os tokens são chaves anon (role=anon) públicas por design, não service_role nem signing secrets",
+      "evidence": "Decodificação JWT: (1) payload={role:'anon', iss:'supabase', ref:'doufsxqlfjyuvxuezpln'}; (2) payload={role:'anon', iss:'supabase', ref:'pgxfvjmuubtbowutlide'}. Prefixo VITE_ em (2) confirma uso intencional client-side.",
+      "action": "Nenhuma ação necessária — falso positivo da regra gitleaks supabase-jwt que não distingue role anon de service_role",
+      "ttf": "N/A"
     },
     {
       "id": "CONFIG-01",

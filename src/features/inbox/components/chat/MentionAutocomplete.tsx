@@ -4,12 +4,51 @@ import { motion, AnimatePresence } from '@/components/ui/motion';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useMountedRef } from '@/hooks/useMountedRef';
+import { MODULE_TTL_MS } from '@/lib/queryStaleTimes';
 
 interface AgentMention {
   id: string;
   name: string;
   email: string;
   avatar_url?: string | null;
+}
+
+// ── Cache module-level (TTL 5min) ─────────────────────────────────────────
+// Lista de agentes p/ @mention é catálogo quase-estático — evita refetch a
+// cada mount do composer de chat (era a query `profiles?select=id,name,
+// email,avatar_url&limit=50` repetida a cada 1-2min em produção).
+const MENTION_TTL_MS = MODULE_TTL_MS.catalog;
+let mentionCache: { data: AgentMention[]; fetchedAt: number } | null = null;
+let mentionInflight: Promise<AgentMention[]> | null = null;
+
+function fetchMentionAgents(): Promise<AgentMention[]> {
+  if (mentionCache && Date.now() - mentionCache.fetchedAt < MENTION_TTL_MS) {
+    return Promise.resolve(mentionCache.data);
+  }
+  if (mentionInflight) return mentionInflight;
+
+  // R4 regression review da onda: o null do in-flight precisa acontecer no
+  // finally da IIFE ASSÍNCRONA (após o await), não num finally síncrono —
+  // dois mounts no mesmo tick compartilham a MESMA promise (dedupe real).
+  mentionInflight = (async () => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, name, email, avatar_url')
+        .limit(50);
+      const agents = (data ?? []) as AgentMention[];
+      mentionCache = { data: agents, fetchedAt: Date.now() };
+      return agents;
+    } catch {
+      // Nunca rejeita: o caller usa `void fetchAgents()` — rejeição viraria
+      // unhandled rejection (R4).
+      return [];
+    } finally {
+      mentionInflight = null;
+    }
+  })();
+
+  return mentionInflight;
 }
 
 interface MentionAutocompleteProps {
@@ -35,14 +74,11 @@ export function MentionAutocomplete({
   const [mentionStart, setMentionStart] = useState(-1);
   const mounted = useMountedRef();
 
-  // Fetch agents once
+  // Fetch agents once (cache module-level com TTL 5min)
   useEffect(() => {
     const fetchAgents = async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, name, email, avatar_url')
-        .limit(50);
-      if (data && mounted.current) setAgents(data as AgentMention[]); // ignore-audit: narrows Supabase query result to local interface
+      const data = await fetchMentionAgents();
+      if (data && mounted.current) setAgents(data as AgentMention[]);
     };
     void fetchAgents();
   }, [mounted]);

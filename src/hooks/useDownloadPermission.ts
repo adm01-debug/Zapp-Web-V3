@@ -20,6 +20,10 @@ export function useDownloadPermission() {
     },
     enabled: !!user,
     initialData: false,
+    // Perfil do usuário logado é quase-estático — staleTime longo evita
+    // refetch do profiles?select=can_download&user_id=... a cada mount.
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
   });
 
   return { canDownload: data ?? false, isLoading };

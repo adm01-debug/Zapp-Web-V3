@@ -9,6 +9,7 @@ import { initWebVitals } from './lib/webVitals';
 import { registerExternalSessionBridge } from './integrations/supabase/externalSessionBridge';
 import { initializeSilentErrorPrevention } from './lib/silentErrorPrevention';
 import { logStructuredError } from './lib/structuredErrorLogging';
+import { isBenignConsoleNoise } from './lib/consoleErrorFilter';
 
 // Instala bridge dual-session (Evolution DB)
 registerExternalSessionBridge();
@@ -37,19 +38,21 @@ log.info('Initialized at', new Date().toISOString());
  * duplicate set, causing every error to be logged twice. That duplication has
  * been removed; structured logging now happens here.
  *
- * Suppresses:
+ * Suppresses (via isBenignConsoleNoise — see src/lib/consoleErrorFilter.ts):
+ * - ResizeObserver loop: browser layout-observation noise (loop completed /
+ *   limit exceeded) — no actionable stack, expected in SPA with continuous
+ *   layout observation
+ * - Script error.: cross-origin error without stack (CORS)
+ * - Extension context invalidated / chrome-extension:// / moz-extension://
  * - TimeoutError: expected browser timeout from storage/IDB operations
  * - InvalidStateError: expected from service worker / IDB lifecycle events
  */
 window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
   const reason = event.reason;
-  if (reason && typeof reason === 'object' && 'name' in reason) {
-    const name = (reason as { name: string }).name;
-    if (name === 'TimeoutError' || name === 'InvalidStateError') {
-      // Known browser noise — suppress silently.
-      event.preventDefault();
-      return;
-    }
+  if (isBenignConsoleNoise(reason)) {
+    // Known browser noise — suppress silently (no log, no Sentry).
+    event.preventDefault();
+    return;
   }
   const error = reason instanceof Error ? reason : new Error(String(reason));
   log.error('Unhandled promise rejection:', error);
@@ -57,6 +60,11 @@ window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => 
 });
 
 window.addEventListener('error', (event) => {
+  if (isBenignConsoleNoise(event.error) || isBenignConsoleNoise(event.message)) {
+    // Known browser noise — suppress silently (no log, no Sentry).
+    event.preventDefault();
+    return;
+  }
   if (event.error) {
     log.error('Unhandled error:', event.error);
     logStructuredError(event.error as Error, { url: window.location.href });

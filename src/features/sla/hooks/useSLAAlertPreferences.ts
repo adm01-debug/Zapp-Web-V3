@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
+import { QUERY_STALE_TIMES, QUERY_GC_TIMES } from '@/lib/queryStaleTimes';
 
 const log = getLogger('useSLAAlertPreferences');
 
@@ -88,7 +89,8 @@ export function useSLAAlertPreferences() {
       return DEFAULT_SLA_ALERT_PREFERENCES;
     },
     enabled: !!user?.id,
-    staleTime: 60_000,
+    staleTime: QUERY_STALE_TIMES.slaAlertPreferences,
+    gcTime: QUERY_GC_TIMES.slaAlertPreferences,
   });
 
   const setPreferences = useCallback(

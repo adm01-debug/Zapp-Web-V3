@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useDailyMetricsKpis, type DailyMetricRow } from '@/features/dashboard/hooks/useDailyMetricsKpis';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -25,20 +24,6 @@ import {
  *
  * Sem dados / erro → estado vazio explícito (nunca inventa número).
  */
-
-type DailyMetricRow = {
-  metric_date: string | null;
-  messages_received: number | null;
-  messages_sent: number | null;
-  new_contacts: number | null;
-  conversations_opened: number | null;
-  conversations_resolved: number | null;
-  total_contacts: number | null;
-  active_contacts: number | null;
-  avg_response_time_seconds: number | null;
-};
-
-const DAYS_BACK = 7;
 
 function KpiCard({
   icon,
@@ -74,21 +59,7 @@ function fmtDuration(seconds: number | null | undefined): string {
 
 /** Daily KPIs panel — reads zapp.evolution_daily_metrics (DASHBOARD-03). */
 export function DailyMetricsKpis() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['dashboard', 'daily-metrics-kpis', DAYS_BACK],
-    queryFn: async (): Promise<DailyMetricRow[]> => {
-      const { data, error: queryError } = await supabase
-        .from('evolution_daily_metrics')
-        .select(
-          'metric_date, messages_received, messages_sent, new_contacts, conversations_opened, conversations_resolved, total_contacts, active_contacts, avg_response_time_seconds'
-        )
-        .order('metric_date', { ascending: false })
-        .limit(DAYS_BACK);
-      if (queryError) throw queryError;
-      return (data ?? []) as DailyMetricRow[];
-    },
-    staleTime: 5 * 60_000,
-  });
+  const { data, isLoading, error } = useDailyMetricsKpis();
 
   const totals = useMemo(() => {
     const rows = data ?? [];

@@ -18,6 +18,7 @@ import {
   ErrorBoundary,
 } from '@sentry/react';
 import * as Sentry from '@sentry/react';
+import { isBenignConsoleNoise } from './consoleErrorFilter';
 
 const DSN = import.meta.env.VITE_SENTRY_DSN as string | undefined;
 const ENV = (import.meta.env.MODE === 'production' ? 'prod' : import.meta.env.MODE) as string;
@@ -47,6 +48,14 @@ export function initSentry(): boolean {
     );
     sentryInit({
       dsn: DSN,
+      // Tunnel same-origin (hardening CORS): envelopes de eventos/replays saem
+      // do browser como POST same-origin p/ /sentry-tunnel e o nginx repassa ao
+      // ingest do Sentry. Elimina CORS e cache opaco (SW/extensoes/adblockers)
+      // como modo de falha — o erro 'No Access-Control-Allow-Origin' visto 1x em
+      // prod nao pode mais acontecer. CSP ja permite connect-src 'self'.
+      // Gate: apenas builds de producao servidos por nginx (Docker/VPS fallback),
+      // que sao os unicos que expoem o location /sentry-tunnel.
+      tunnel: ENV === 'prod' ? '/sentry-tunnel' : undefined,
       environment: ENV,
       release: RELEASE,
       // Tracing: sample 10% in prod, 100% in dev
@@ -60,14 +69,11 @@ export function initSentry(): boolean {
       ],
       // Don't send if user opted out (LGPD friendly)
       beforeSend(event) {
-        // Filtra erros de extensões browser e ResizeObserver loop
+        // Filtra ruído benigno (extensões browser, ResizeObserver loop,
+        // Script error., rejeições non-Error) — mesma lista do console filter
+        // usado nos handlers globais de main.tsx (isBenignConsoleNoise).
         const msg = event.exception?.values?.[0]?.value || event.message || '';
-        if (
-          msg.includes('ResizeObserver loop') ||
-          msg.includes('chrome-extension://') ||
-          msg.includes('moz-extension://') ||
-          msg.includes('Non-Error promise rejection')
-        ) {
+        if (isBenignConsoleNoise(msg)) {
           return null;
         }
         return event;

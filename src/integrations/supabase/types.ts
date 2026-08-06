@@ -51,6 +51,27 @@ export type Database = {
         }
         Relationships: []
       }
+      _vault_backup_20260806: {
+        Row: {
+          criado_em: string
+          decrypted_secret: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          criado_em?: string
+          decrypted_secret?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          criado_em?: string
+          decrypted_secret?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       contact_id_graveyard: {
         Row: {
           audit_user_id: string | null
@@ -396,60 +417,6 @@ export type Database = {
           last_msg?: string | null
           skipped?: number | null
           updated?: number | null
-        }
-        Relationships: []
-      }
-      evolution_baileys_session_history: {
-        Row: {
-          alerts_resolved: number | null
-          auto_action_taken: string | null
-          classification: string | null
-          duration_offline_min: number | null
-          event_type: string
-          id: string
-          instance_name: string | null
-          is_recovery: boolean | null
-          messages_reset: number | null
-          new_state: string | null
-          occurred_at: string
-          payload: Json | null
-          prev_state: string | null
-          reason_code: string | null
-          source_event_id: string | null
-        }
-        Insert: {
-          alerts_resolved?: number | null
-          auto_action_taken?: string | null
-          classification?: string | null
-          duration_offline_min?: number | null
-          event_type: string
-          id?: string
-          instance_name?: string | null
-          is_recovery?: boolean | null
-          messages_reset?: number | null
-          new_state?: string | null
-          occurred_at?: string
-          payload?: Json | null
-          prev_state?: string | null
-          reason_code?: string | null
-          source_event_id?: string | null
-        }
-        Update: {
-          alerts_resolved?: number | null
-          auto_action_taken?: string | null
-          classification?: string | null
-          duration_offline_min?: number | null
-          event_type?: string
-          id?: string
-          instance_name?: string | null
-          is_recovery?: boolean | null
-          messages_reset?: number | null
-          new_state?: string | null
-          occurred_at?: string
-          payload?: Json | null
-          prev_state?: string | null
-          reason_code?: string | null
-          source_event_id?: string | null
         }
         Relationships: []
       }
@@ -861,75 +828,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_contact_attachments: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          file_name: string
-          file_size: number | null
-          file_type: string | null
-          file_url: string | null
-          id: string
-          remote_jid: string
-          storage_path: string | null
-          uploaded_by: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          file_name: string
-          file_size?: number | null
-          file_type?: string | null
-          file_url?: string | null
-          id?: string
-          remote_jid: string
-          storage_path?: string | null
-          uploaded_by?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          file_name?: string
-          file_size?: number | null
-          file_type?: string | null
-          file_url?: string | null
-          id?: string
-          remote_jid?: string
-          storage_path?: string | null
-          uploaded_by?: string | null
-        }
-        Relationships: []
-      }
-      evolution_contact_blacklist: {
-        Row: {
-          blocked_at: string | null
-          blocked_by: string | null
-          expires_at: string | null
-          id: string
-          is_active: boolean | null
-          reason: string | null
-          remote_jid: string
-        }
-        Insert: {
-          blocked_at?: string | null
-          blocked_by?: string | null
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          reason?: string | null
-          remote_jid: string
-        }
-        Update: {
-          blocked_at?: string | null
-          blocked_by?: string | null
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          reason?: string | null
-          remote_jid?: string
-        }
-        Relationships: []
-      }
       evolution_contact_notes: {
         Row: {
           content: string
@@ -1135,110 +1033,6 @@ export type Database = {
         Relationships: []
       }
       evolution_conversations: {
-        Row: {
-          assigned_to: string | null
-          bot_session_id: string | null
-          contact_id: string | null
-          created_at: string | null
-          department: string | null
-          first_message_at: string | null
-          first_response_at: string | null
-          first_response_seconds: number | null
-          id: string
-          instance_name: string
-          is_bot_active: boolean | null
-          labels: string[] | null
-          last_inbound_at: string | null
-          last_message_at: string | null
-          last_message_content: string | null
-          last_message_type: string | null
-          last_outbound_at: string | null
-          message_count: number | null
-          metadata: Json | null
-          priority: string | null
-          remote_jid: string
-          resolution_at: string | null
-          resolution_seconds: number | null
-          satisfaction_comment: string | null
-          satisfaction_score: number | null
-          status: string | null
-          subject: string | null
-          unread_count: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          assigned_to?: string | null
-          bot_session_id?: string | null
-          contact_id?: string | null
-          created_at?: string | null
-          department?: string | null
-          first_message_at?: string | null
-          first_response_at?: string | null
-          first_response_seconds?: number | null
-          id?: string
-          instance_name?: string
-          is_bot_active?: boolean | null
-          labels?: string[] | null
-          last_inbound_at?: string | null
-          last_message_at?: string | null
-          last_message_content?: string | null
-          last_message_type?: string | null
-          last_outbound_at?: string | null
-          message_count?: number | null
-          metadata?: Json | null
-          priority?: string | null
-          remote_jid: string
-          resolution_at?: string | null
-          resolution_seconds?: number | null
-          satisfaction_comment?: string | null
-          satisfaction_score?: number | null
-          status?: string | null
-          subject?: string | null
-          unread_count?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          assigned_to?: string | null
-          bot_session_id?: string | null
-          contact_id?: string | null
-          created_at?: string | null
-          department?: string | null
-          first_message_at?: string | null
-          first_response_at?: string | null
-          first_response_seconds?: number | null
-          id?: string
-          instance_name?: string
-          is_bot_active?: boolean | null
-          labels?: string[] | null
-          last_inbound_at?: string | null
-          last_message_at?: string | null
-          last_message_content?: string | null
-          last_message_type?: string | null
-          last_outbound_at?: string | null
-          message_count?: number | null
-          metadata?: Json | null
-          priority?: string | null
-          remote_jid?: string
-          resolution_at?: string | null
-          resolution_seconds?: number | null
-          satisfaction_comment?: string | null
-          satisfaction_score?: number | null
-          status?: string | null
-          subject?: string | null
-          unread_count?: number | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      evolution_conversations_artes: {
         Row: {
           assigned_to: string | null
           bot_session_id: string | null
@@ -3076,42 +2870,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_group_stats: {
-        Row: {
-          active_participants: number | null
-          group_id: string | null
-          id: string
-          left_members: number | null
-          links_count: number | null
-          media_count: number | null
-          messages_count: number | null
-          new_members: number | null
-          stat_date: string
-        }
-        Insert: {
-          active_participants?: number | null
-          group_id?: string | null
-          id?: string
-          left_members?: number | null
-          links_count?: number | null
-          media_count?: number | null
-          messages_count?: number | null
-          new_members?: number | null
-          stat_date: string
-        }
-        Update: {
-          active_participants?: number | null
-          group_id?: string | null
-          id?: string
-          left_members?: number | null
-          links_count?: number | null
-          media_count?: number | null
-          messages_count?: number | null
-          new_members?: number | null
-          stat_date?: string
-        }
-        Relationships: []
-      }
       evolution_groups: {
         Row: {
           auto_response_enabled: boolean | null
@@ -3605,6 +3363,7 @@ export type Database = {
           logpatch_detail: Json
           logpatch_status: string
           notes: string | null
+          patch_mode: string
           patch_version: string | null
           patched_size_bytes: number | null
           t1_ok: boolean | null
@@ -3626,6 +3385,7 @@ export type Database = {
           logpatch_detail?: Json
           logpatch_status?: string
           notes?: string | null
+          patch_mode?: string
           patch_version?: string | null
           patched_size_bytes?: number | null
           t1_ok?: boolean | null
@@ -3647,6 +3407,7 @@ export type Database = {
           logpatch_detail?: Json
           logpatch_status?: string
           notes?: string | null
+          patch_mode?: string
           patch_version?: string | null
           patched_size_bytes?: number | null
           t1_ok?: boolean | null
@@ -7359,54 +7120,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_sentiment_alerts: {
-        Row: {
-          acknowledged: boolean | null
-          acknowledged_at: string | null
-          acknowledged_by: string | null
-          alert_type: string
-          contact_id: string | null
-          conversation_id: string | null
-          created_at: string | null
-          id: string
-          message_preview: string | null
-          resolution_notes: string | null
-          resolved: boolean | null
-          sentiment_id: string | null
-          severity: string
-        }
-        Insert: {
-          acknowledged?: boolean | null
-          acknowledged_at?: string | null
-          acknowledged_by?: string | null
-          alert_type: string
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          id?: string
-          message_preview?: string | null
-          resolution_notes?: string | null
-          resolved?: boolean | null
-          sentiment_id?: string | null
-          severity: string
-        }
-        Update: {
-          acknowledged?: boolean | null
-          acknowledged_at?: string | null
-          acknowledged_by?: string | null
-          alert_type?: string
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          id?: string
-          message_preview?: string | null
-          resolution_notes?: string | null
-          resolved?: boolean | null
-          sentiment_id?: string | null
-          severity?: string
-        }
-        Relationships: []
-      }
       evolution_sentiment_analysis: {
         Row: {
           analyzed_at: string | null
@@ -7467,42 +7180,6 @@ export type Database = {
           sentiment?: string
           sentiment_score?: number | null
           urgency?: string | null
-        }
-        Relationships: []
-      }
-      evolution_sentiment_metrics: {
-        Row: {
-          alerts_generated: number | null
-          avg_sentiment_score: number | null
-          calculated_at: string | null
-          id: string
-          metric_date: string
-          negative_count: number | null
-          neutral_count: number | null
-          positive_count: number | null
-          total_messages: number | null
-        }
-        Insert: {
-          alerts_generated?: number | null
-          avg_sentiment_score?: number | null
-          calculated_at?: string | null
-          id?: string
-          metric_date: string
-          negative_count?: number | null
-          neutral_count?: number | null
-          positive_count?: number | null
-          total_messages?: number | null
-        }
-        Update: {
-          alerts_generated?: number | null
-          avg_sentiment_score?: number | null
-          calculated_at?: string | null
-          id?: string
-          metric_date?: string
-          negative_count?: number | null
-          neutral_count?: number | null
-          positive_count?: number | null
-          total_messages?: number | null
         }
         Relationships: []
       }
@@ -7644,48 +7321,6 @@ export type Database = {
           next_stage?: string | null
           stage_key?: string
           stage_order?: number | null
-        }
-        Relationships: []
-      }
-      evolution_status_auto_rules: {
-        Row: {
-          cooldown_hours: number | null
-          created_at: string | null
-          created_by: string | null
-          id: string
-          instance_name: string | null
-          is_active: boolean | null
-          max_reactions_per_day: number | null
-          name: string
-          reaction_emoji: string
-          target_filter: Json | null
-          updated_at: string | null
-        }
-        Insert: {
-          cooldown_hours?: number | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          instance_name?: string | null
-          is_active?: boolean | null
-          max_reactions_per_day?: number | null
-          name: string
-          reaction_emoji?: string
-          target_filter?: Json | null
-          updated_at?: string | null
-        }
-        Update: {
-          cooldown_hours?: number | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          instance_name?: string | null
-          is_active?: boolean | null
-          max_reactions_per_day?: number | null
-          name?: string
-          reaction_emoji?: string
-          target_filter?: Json | null
-          updated_at?: string | null
         }
         Relationships: []
       }
@@ -7919,54 +7554,6 @@ export type Database = {
           send_status?: string
           template_id?: string | null
           variables_used?: Json | null
-        }
-        Relationships: []
-      }
-      evolution_typebot_sessions: {
-        Row: {
-          completed_at: string | null
-          created_at: string | null
-          current_block: string | null
-          id: string
-          last_interaction_at: string | null
-          remote_jid: string
-          session_id: string | null
-          started_at: string | null
-          status: string | null
-          total_interactions: number | null
-          typebot_id: string | null
-          typebot_name: string | null
-          variables: Json | null
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string | null
-          current_block?: string | null
-          id?: string
-          last_interaction_at?: string | null
-          remote_jid: string
-          session_id?: string | null
-          started_at?: string | null
-          status?: string | null
-          total_interactions?: number | null
-          typebot_id?: string | null
-          typebot_name?: string | null
-          variables?: Json | null
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string | null
-          current_block?: string | null
-          id?: string
-          last_interaction_at?: string | null
-          remote_jid?: string
-          session_id?: string | null
-          started_at?: string | null
-          status?: string | null
-          total_interactions?: number | null
-          typebot_id?: string | null
-          typebot_name?: string | null
-          variables?: Json | null
         }
         Relationships: []
       }
@@ -9881,6 +9468,62 @@ export type Database = {
         }
         Relationships: []
       }
+      v_health_unified: {
+        Row: {
+          api_consumers_active: number | null
+          audit_healthy: boolean | null
+          bootstrap_needed_24h: number | null
+          business_hours_status: string | null
+          checked_at: string | null
+          consumer_dlq_rows: number | null
+          consumer_filas_last: string | null
+          consumer_halt_last_status: string | null
+          consumer_ok_count_last: number | null
+          consumer_stats_at: string | null
+          cron_failed_24h: number | null
+          cron_failed_jobs: Json | null
+          cron_jobs_24h: number | null
+          cron_last_run_at: string | null
+          cron_runs_24h: number | null
+          cron_succeeded_24h: number | null
+          gap_inbound_min: number | null
+          health_log_at: string | null
+          health_log_status: string | null
+          http_401_hits_24h: number | null
+          http_401_last_seen: string | null
+          http_401_unique_ips: number | null
+          infra_fix_needed: boolean | null
+          last_ingest_at: string | null
+          mirror_divergence: boolean | null
+          msgs_1h: number | null
+          msgs_5min: number | null
+          open_alerts: number | null
+          overall_status: string | null
+          persisted_msgs_24h: number | null
+          pipeline_lag_s: number | null
+          pipeline_status: string | null
+          probe_latency_ms: number | null
+          probe_status: string | null
+          scorecard_at: string | null
+          source_events_24h: number | null
+          strict_status: string | null
+          total_contacts: number | null
+          total_conversations: number | null
+          total_messages: number | null
+          traffic_level: string | null
+          v2_hours_dead: number | null
+          v2_last_24h: number | null
+          v2_last_7d: number | null
+          v2_last_event_at: string | null
+          v2_pending: number | null
+          v2_processed_1h: number | null
+          v2_score: number | null
+          v2_status: string | null
+          v2_total_rows: number | null
+          webhook_events_1h: number | null
+        }
+        Relationships: []
+      }
       v_incident_metrics_48h: {
         Row: {
           first_seen: string | null
@@ -9888,6 +9531,51 @@ export type Database = {
           last_seen: string | null
           metric: string | null
           total: number | null
+        }
+        Relationships: []
+      }
+      v_kpi_overview: {
+        Row: {
+          checked_at: string | null
+          consumer_drop_total: number | null
+          dedup_failures_24h: number | null
+          dedup_tracked_rows: number | null
+          dlq_consumer_open: number | null
+          dlq_evo_pending: number | null
+          dlq_total_open: number | null
+          gap_sync_checked_at: string | null
+          gap_sync_min: number | null
+          gap_sync_status:
+            | Database["zapp"]["Enums"]["evolution_pipeline_status"]
+            | null
+          ipwatch_hits_24h: number | null
+          last_ingest_at: string | null
+          mirror_coverage_checked_at: string | null
+          mirror_msg_coverage_pct: number | null
+          msgs_1h: number | null
+          msgs_24h: number | null
+          msgs_per_hour_avg_24h: number | null
+          notas: string | null
+          pct_401_24h: number | null
+          rabbitmq_backlog_messages: number | null
+          webhook_events_24h: number | null
+          webhook_latency_avg_ms_24h: number | null
+          webhook_latency_p95_ms_24h: number | null
+        }
+        Relationships: []
+      }
+      v_logpatch_health: {
+        Row: {
+          booted_at: string | null
+          evolution_version: string | null
+          id: string | null
+          image_digest: string | null
+          instance_name: string | null
+          is_healthy: boolean | null
+          logpatch_detail: Json | null
+          logpatch_status: string | null
+          patch_mode: string | null
+          patch_summary: string | null
         }
         Relationships: []
       }
@@ -10287,10 +9975,7 @@ export type Database = {
         }[]
       }
       fn_flag_poison_messages: { Args: never; Returns: Json }
-      fn_get_401_glitchtip_payload: {
-        Args: { p_minutes?: number }
-        Returns: Json
-      }
+      fn_get_401_payload: { Args: { p_minutes?: number }; Returns: Json }
       fn_get_incident_runbook: { Args: { p_type?: string }; Returns: Json }
       fn_link_orphan_messages: { Args: { p_limit?: number }; Returns: Json }
       fn_log_api_401:
@@ -10313,16 +9998,6 @@ export type Database = {
           detail: string
           patch: string
           status: string
-        }[]
-      }
-      fn_migrate_all_message_tables: {
-        Args: { p_batch_size?: number; p_max_batches?: number }
-        Returns: {
-          batches_ran: number
-          instance_name: string
-          source_table: string
-          status: string
-          total_migrated: number
         }[]
       }
       fn_monitor_lid_contamination: { Args: never; Returns: Json }
@@ -18295,60 +17970,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_baileys_session_history: {
-        Row: {
-          alerts_resolved: number | null
-          auto_action_taken: string | null
-          classification: string | null
-          duration_offline_min: number | null
-          event_type: string | null
-          id: string | null
-          instance_name: string | null
-          is_recovery: boolean | null
-          messages_reset: number | null
-          new_state: string | null
-          occurred_at: string | null
-          payload: Json | null
-          prev_state: string | null
-          reason_code: string | null
-          source_event_id: string | null
-        }
-        Insert: {
-          alerts_resolved?: number | null
-          auto_action_taken?: string | null
-          classification?: string | null
-          duration_offline_min?: number | null
-          event_type?: string | null
-          id?: string | null
-          instance_name?: string | null
-          is_recovery?: boolean | null
-          messages_reset?: number | null
-          new_state?: string | null
-          occurred_at?: string | null
-          payload?: Json | null
-          prev_state?: string | null
-          reason_code?: string | null
-          source_event_id?: string | null
-        }
-        Update: {
-          alerts_resolved?: number | null
-          auto_action_taken?: string | null
-          classification?: string | null
-          duration_offline_min?: number | null
-          event_type?: string | null
-          id?: string | null
-          instance_name?: string | null
-          is_recovery?: boolean | null
-          messages_reset?: number | null
-          new_state?: string | null
-          occurred_at?: string | null
-          payload?: Json | null
-          prev_state?: string | null
-          reason_code?: string | null
-          source_event_id?: string | null
-        }
-        Relationships: []
-      }
       evolution_bitrix_field_mapping: {
         Row: {
           bitrix_field: string | null
@@ -18757,75 +18378,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_contact_attachments: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          file_name: string | null
-          file_size: number | null
-          file_type: string | null
-          file_url: string | null
-          id: string | null
-          remote_jid: string | null
-          storage_path: string | null
-          uploaded_by: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          file_name?: string | null
-          file_size?: number | null
-          file_type?: string | null
-          file_url?: string | null
-          id?: string | null
-          remote_jid?: string | null
-          storage_path?: string | null
-          uploaded_by?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          file_name?: string | null
-          file_size?: number | null
-          file_type?: string | null
-          file_url?: string | null
-          id?: string | null
-          remote_jid?: string | null
-          storage_path?: string | null
-          uploaded_by?: string | null
-        }
-        Relationships: []
-      }
-      evolution_contact_blacklist: {
-        Row: {
-          blocked_at: string | null
-          blocked_by: string | null
-          expires_at: string | null
-          id: string | null
-          is_active: boolean | null
-          reason: string | null
-          remote_jid: string | null
-        }
-        Insert: {
-          blocked_at?: string | null
-          blocked_by?: string | null
-          expires_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          reason?: string | null
-          remote_jid?: string | null
-        }
-        Update: {
-          blocked_at?: string | null
-          blocked_by?: string | null
-          expires_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          reason?: string | null
-          remote_jid?: string | null
-        }
-        Relationships: []
-      }
       evolution_contact_notes: {
         Row: {
           content: string | null
@@ -19031,117 +18583,6 @@ export type Database = {
         Relationships: []
       }
       evolution_conversations: {
-        Row: {
-          assigned_to: string | null
-          bot_session_id: string | null
-          contact_id: string | null
-          created_at: string | null
-          department: string | null
-          first_message_at: string | null
-          first_response_at: string | null
-          first_response_seconds: number | null
-          id: string | null
-          instance_name: string | null
-          is_bot_active: boolean | null
-          labels: string[] | null
-          last_inbound_at: string | null
-          last_message_at: string | null
-          last_message_content: string | null
-          last_message_type: string | null
-          last_outbound_at: string | null
-          message_count: number | null
-          metadata: Json | null
-          priority: string | null
-          remote_jid: string | null
-          resolution_at: string | null
-          resolution_seconds: number | null
-          satisfaction_comment: string | null
-          satisfaction_score: number | null
-          status: string | null
-          subject: string | null
-          unread_count: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          assigned_to?: string | null
-          bot_session_id?: string | null
-          contact_id?: string | null
-          created_at?: string | null
-          department?: string | null
-          first_message_at?: string | null
-          first_response_at?: string | null
-          first_response_seconds?: number | null
-          id?: string | null
-          instance_name?: string | null
-          is_bot_active?: boolean | null
-          labels?: string[] | null
-          last_inbound_at?: string | null
-          last_message_at?: string | null
-          last_message_content?: string | null
-          last_message_type?: string | null
-          last_outbound_at?: string | null
-          message_count?: number | null
-          metadata?: Json | null
-          priority?: string | null
-          remote_jid?: string | null
-          resolution_at?: string | null
-          resolution_seconds?: number | null
-          satisfaction_comment?: string | null
-          satisfaction_score?: number | null
-          status?: string | null
-          subject?: string | null
-          unread_count?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          assigned_to?: string | null
-          bot_session_id?: string | null
-          contact_id?: string | null
-          created_at?: string | null
-          department?: string | null
-          first_message_at?: string | null
-          first_response_at?: string | null
-          first_response_seconds?: number | null
-          id?: string | null
-          instance_name?: string | null
-          is_bot_active?: boolean | null
-          labels?: string[] | null
-          last_inbound_at?: string | null
-          last_message_at?: string | null
-          last_message_content?: string | null
-          last_message_type?: string | null
-          last_outbound_at?: string | null
-          message_count?: number | null
-          metadata?: Json | null
-          priority?: string | null
-          remote_jid?: string | null
-          resolution_at?: string | null
-          resolution_seconds?: number | null
-          satisfaction_comment?: string | null
-          satisfaction_score?: number | null
-          status?: string | null
-          subject?: string | null
-          unread_count?: number | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      evolution_conversations_artes: {
         Row: {
           assigned_to: string | null
           bot_session_id: string | null
@@ -20983,42 +20424,6 @@ export type Database = {
           last_executed_at?: string | null
           rule_type?: string | null
           trigger_value?: string | null
-        }
-        Relationships: []
-      }
-      evolution_group_stats: {
-        Row: {
-          active_participants: number | null
-          group_id: string | null
-          id: string | null
-          left_members: number | null
-          links_count: number | null
-          media_count: number | null
-          messages_count: number | null
-          new_members: number | null
-          stat_date: string | null
-        }
-        Insert: {
-          active_participants?: number | null
-          group_id?: string | null
-          id?: string | null
-          left_members?: number | null
-          links_count?: number | null
-          media_count?: number | null
-          messages_count?: number | null
-          new_members?: number | null
-          stat_date?: string | null
-        }
-        Update: {
-          active_participants?: number | null
-          group_id?: string | null
-          id?: string | null
-          left_members?: number | null
-          links_count?: number | null
-          media_count?: number | null
-          messages_count?: number | null
-          new_members?: number | null
-          stat_date?: string | null
         }
         Relationships: []
       }
@@ -24796,54 +24201,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_sentiment_alerts: {
-        Row: {
-          acknowledged: boolean | null
-          acknowledged_at: string | null
-          acknowledged_by: string | null
-          alert_type: string | null
-          contact_id: string | null
-          conversation_id: string | null
-          created_at: string | null
-          id: string | null
-          message_preview: string | null
-          resolution_notes: string | null
-          resolved: boolean | null
-          sentiment_id: string | null
-          severity: string | null
-        }
-        Insert: {
-          acknowledged?: boolean | null
-          acknowledged_at?: string | null
-          acknowledged_by?: string | null
-          alert_type?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          id?: string | null
-          message_preview?: string | null
-          resolution_notes?: string | null
-          resolved?: boolean | null
-          sentiment_id?: string | null
-          severity?: string | null
-        }
-        Update: {
-          acknowledged?: boolean | null
-          acknowledged_at?: string | null
-          acknowledged_by?: string | null
-          alert_type?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          id?: string | null
-          message_preview?: string | null
-          resolution_notes?: string | null
-          resolved?: boolean | null
-          sentiment_id?: string | null
-          severity?: string | null
-        }
-        Relationships: []
-      }
       evolution_sentiment_analysis: {
         Row: {
           analyzed_at: string | null
@@ -24898,42 +24255,6 @@ export type Database = {
           sentiment?: string | null
           sentiment_score?: number | null
           urgency?: string | null
-        }
-        Relationships: []
-      }
-      evolution_sentiment_metrics: {
-        Row: {
-          alerts_generated: number | null
-          avg_sentiment_score: number | null
-          calculated_at: string | null
-          id: string | null
-          metric_date: string | null
-          negative_count: number | null
-          neutral_count: number | null
-          positive_count: number | null
-          total_messages: number | null
-        }
-        Insert: {
-          alerts_generated?: number | null
-          avg_sentiment_score?: number | null
-          calculated_at?: string | null
-          id?: string | null
-          metric_date?: string | null
-          negative_count?: number | null
-          neutral_count?: number | null
-          positive_count?: number | null
-          total_messages?: number | null
-        }
-        Update: {
-          alerts_generated?: number | null
-          avg_sentiment_score?: number | null
-          calculated_at?: string | null
-          id?: string | null
-          metric_date?: string | null
-          negative_count?: number | null
-          neutral_count?: number | null
-          positive_count?: number | null
-          total_messages?: number | null
         }
         Relationships: []
       }
@@ -25075,48 +24396,6 @@ export type Database = {
           next_stage?: string | null
           stage_key?: string | null
           stage_order?: number | null
-        }
-        Relationships: []
-      }
-      evolution_status_auto_rules: {
-        Row: {
-          cooldown_hours: number | null
-          created_at: string | null
-          created_by: string | null
-          id: string | null
-          instance_name: string | null
-          is_active: boolean | null
-          max_reactions_per_day: number | null
-          name: string | null
-          reaction_emoji: string | null
-          target_filter: Json | null
-          updated_at: string | null
-        }
-        Insert: {
-          cooldown_hours?: number | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string | null
-          instance_name?: string | null
-          is_active?: boolean | null
-          max_reactions_per_day?: number | null
-          name?: string | null
-          reaction_emoji?: string | null
-          target_filter?: Json | null
-          updated_at?: string | null
-        }
-        Update: {
-          cooldown_hours?: number | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string | null
-          instance_name?: string | null
-          is_active?: boolean | null
-          max_reactions_per_day?: number | null
-          name?: string | null
-          reaction_emoji?: string | null
-          target_filter?: Json | null
-          updated_at?: string | null
         }
         Relationships: []
       }
@@ -25350,54 +24629,6 @@ export type Database = {
           send_status?: string | null
           template_id?: string | null
           variables_used?: Json | null
-        }
-        Relationships: []
-      }
-      evolution_typebot_sessions: {
-        Row: {
-          completed_at: string | null
-          created_at: string | null
-          current_block: string | null
-          id: string | null
-          last_interaction_at: string | null
-          remote_jid: string | null
-          session_id: string | null
-          started_at: string | null
-          status: string | null
-          total_interactions: number | null
-          typebot_id: string | null
-          typebot_name: string | null
-          variables: Json | null
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string | null
-          current_block?: string | null
-          id?: string | null
-          last_interaction_at?: string | null
-          remote_jid?: string | null
-          session_id?: string | null
-          started_at?: string | null
-          status?: string | null
-          total_interactions?: number | null
-          typebot_id?: string | null
-          typebot_name?: string | null
-          variables?: Json | null
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string | null
-          current_block?: string | null
-          id?: string | null
-          last_interaction_at?: string | null
-          remote_jid?: string | null
-          session_id?: string | null
-          started_at?: string | null
-          status?: string | null
-          total_interactions?: number | null
-          typebot_id?: string | null
-          typebot_name?: string | null
-          variables?: Json | null
         }
         Relationships: []
       }
@@ -40894,6 +40125,50 @@ export type Database = {
           },
         ]
       }
+      cron_inventory: {
+        Row: {
+          atualizado_em: string
+          jobid: number
+          jobname: string
+          nota: string | null
+          owner: string
+          purpose: string | null
+          replaced_by: number | null
+          sla: string | null
+          status: string
+        }
+        Insert: {
+          atualizado_em?: string
+          jobid: number
+          jobname: string
+          nota?: string | null
+          owner?: string
+          purpose?: string | null
+          replaced_by?: number | null
+          sla?: string | null
+          status?: string
+        }
+        Update: {
+          atualizado_em?: string
+          jobid?: number
+          jobname?: string
+          nota?: string | null
+          owner?: string
+          purpose?: string | null
+          replaced_by?: number | null
+          sla?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cron_inventory_replaced_by_fkey"
+            columns: ["replaced_by"]
+            isOneToOne: false
+            referencedRelation: "cron_inventory"
+            referencedColumns: ["jobid"]
+          },
+        ]
+      }
       cron_schedule_executions: {
         Row: {
           completed_at: string | null
@@ -54732,60 +54007,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_baileys_session_history: {
-        Row: {
-          alerts_resolved: number | null
-          auto_action_taken: string | null
-          classification: string | null
-          duration_offline_min: number | null
-          event_type: string | null
-          id: string | null
-          instance_name: string | null
-          is_recovery: boolean | null
-          messages_reset: number | null
-          new_state: string | null
-          occurred_at: string | null
-          payload: Json | null
-          prev_state: string | null
-          reason_code: string | null
-          source_event_id: string | null
-        }
-        Insert: {
-          alerts_resolved?: number | null
-          auto_action_taken?: string | null
-          classification?: string | null
-          duration_offline_min?: number | null
-          event_type?: string | null
-          id?: string | null
-          instance_name?: string | null
-          is_recovery?: boolean | null
-          messages_reset?: number | null
-          new_state?: string | null
-          occurred_at?: string | null
-          payload?: Json | null
-          prev_state?: string | null
-          reason_code?: string | null
-          source_event_id?: string | null
-        }
-        Update: {
-          alerts_resolved?: number | null
-          auto_action_taken?: string | null
-          classification?: string | null
-          duration_offline_min?: number | null
-          event_type?: string | null
-          id?: string | null
-          instance_name?: string | null
-          is_recovery?: boolean | null
-          messages_reset?: number | null
-          new_state?: string | null
-          occurred_at?: string | null
-          payload?: Json | null
-          prev_state?: string | null
-          reason_code?: string | null
-          source_event_id?: string | null
-        }
-        Relationships: []
-      }
       evolution_bitrix_field_mapping: {
         Row: {
           bitrix_field: string | null
@@ -55194,75 +54415,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_contact_attachments: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          file_name: string | null
-          file_size: number | null
-          file_type: string | null
-          file_url: string | null
-          id: string | null
-          remote_jid: string | null
-          storage_path: string | null
-          uploaded_by: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          file_name?: string | null
-          file_size?: number | null
-          file_type?: string | null
-          file_url?: string | null
-          id?: string | null
-          remote_jid?: string | null
-          storage_path?: string | null
-          uploaded_by?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          file_name?: string | null
-          file_size?: number | null
-          file_type?: string | null
-          file_url?: string | null
-          id?: string | null
-          remote_jid?: string | null
-          storage_path?: string | null
-          uploaded_by?: string | null
-        }
-        Relationships: []
-      }
-      evolution_contact_blacklist: {
-        Row: {
-          blocked_at: string | null
-          blocked_by: string | null
-          expires_at: string | null
-          id: string | null
-          is_active: boolean | null
-          reason: string | null
-          remote_jid: string | null
-        }
-        Insert: {
-          blocked_at?: string | null
-          blocked_by?: string | null
-          expires_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          reason?: string | null
-          remote_jid?: string | null
-        }
-        Update: {
-          blocked_at?: string | null
-          blocked_by?: string | null
-          expires_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          reason?: string | null
-          remote_jid?: string | null
-        }
-        Relationships: []
-      }
       evolution_contact_notes: {
         Row: {
           content: string | null
@@ -55465,145 +54617,6 @@ export type Database = {
         Relationships: []
       }
       evolution_conversations: {
-        Row: {
-          assigned_to: string | null
-          bot_session_id: string | null
-          contact_id: string | null
-          created_at: string | null
-          department: string | null
-          first_message_at: string | null
-          first_response_at: string | null
-          first_response_seconds: number | null
-          id: string | null
-          instance_name: string | null
-          is_bot_active: boolean | null
-          labels: string[] | null
-          last_inbound_at: string | null
-          last_message_at: string | null
-          last_message_content: string | null
-          last_message_type: string | null
-          last_outbound_at: string | null
-          message_count: number | null
-          metadata: Json | null
-          priority: string | null
-          remote_jid: string | null
-          resolution_at: string | null
-          resolution_seconds: number | null
-          satisfaction_comment: string | null
-          satisfaction_score: number | null
-          status: string | null
-          subject: string | null
-          unread_count: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          assigned_to?: string | null
-          bot_session_id?: string | null
-          contact_id?: string | null
-          created_at?: string | null
-          department?: string | null
-          first_message_at?: string | null
-          first_response_at?: string | null
-          first_response_seconds?: number | null
-          id?: string | null
-          instance_name?: string | null
-          is_bot_active?: boolean | null
-          labels?: string[] | null
-          last_inbound_at?: string | null
-          last_message_at?: string | null
-          last_message_content?: string | null
-          last_message_type?: string | null
-          last_outbound_at?: string | null
-          message_count?: number | null
-          metadata?: Json | null
-          priority?: string | null
-          remote_jid?: string | null
-          resolution_at?: string | null
-          resolution_seconds?: number | null
-          satisfaction_comment?: string | null
-          satisfaction_score?: number | null
-          status?: string | null
-          subject?: string | null
-          unread_count?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          assigned_to?: string | null
-          bot_session_id?: string | null
-          contact_id?: string | null
-          created_at?: string | null
-          department?: string | null
-          first_message_at?: string | null
-          first_response_at?: string | null
-          first_response_seconds?: number | null
-          id?: string | null
-          instance_name?: string | null
-          is_bot_active?: boolean | null
-          labels?: string[] | null
-          last_inbound_at?: string | null
-          last_message_at?: string | null
-          last_message_content?: string | null
-          last_message_type?: string | null
-          last_outbound_at?: string | null
-          message_count?: number | null
-          metadata?: Json | null
-          priority?: string | null
-          remote_jid?: string | null
-          resolution_at?: string | null
-          resolution_seconds?: number | null
-          satisfaction_comment?: string | null
-          satisfaction_score?: number | null
-          status?: string | null
-          subject?: string | null
-          unread_count?: number | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_contact_360"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_contacts_with_legacy"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_deleted_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "evolution_conversations_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "v_top_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      evolution_conversations_artes: {
         Row: {
           assigned_to: string | null
           bot_session_id: string | null
@@ -57470,42 +56483,6 @@ export type Database = {
           last_executed_at?: string | null
           rule_type?: string | null
           trigger_value?: string | null
-        }
-        Relationships: []
-      }
-      evolution_group_stats: {
-        Row: {
-          active_participants: number | null
-          group_id: string | null
-          id: string | null
-          left_members: number | null
-          links_count: number | null
-          media_count: number | null
-          messages_count: number | null
-          new_members: number | null
-          stat_date: string | null
-        }
-        Insert: {
-          active_participants?: number | null
-          group_id?: string | null
-          id?: string | null
-          left_members?: number | null
-          links_count?: number | null
-          media_count?: number | null
-          messages_count?: number | null
-          new_members?: number | null
-          stat_date?: string | null
-        }
-        Update: {
-          active_participants?: number | null
-          group_id?: string | null
-          id?: string | null
-          left_members?: number | null
-          links_count?: number | null
-          media_count?: number | null
-          messages_count?: number | null
-          new_members?: number | null
-          stat_date?: string | null
         }
         Relationships: []
       }
@@ -61317,54 +60294,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_sentiment_alerts: {
-        Row: {
-          acknowledged: boolean | null
-          acknowledged_at: string | null
-          acknowledged_by: string | null
-          alert_type: string | null
-          contact_id: string | null
-          conversation_id: string | null
-          created_at: string | null
-          id: string | null
-          message_preview: string | null
-          resolution_notes: string | null
-          resolved: boolean | null
-          sentiment_id: string | null
-          severity: string | null
-        }
-        Insert: {
-          acknowledged?: boolean | null
-          acknowledged_at?: string | null
-          acknowledged_by?: string | null
-          alert_type?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          id?: string | null
-          message_preview?: string | null
-          resolution_notes?: string | null
-          resolved?: boolean | null
-          sentiment_id?: string | null
-          severity?: string | null
-        }
-        Update: {
-          acknowledged?: boolean | null
-          acknowledged_at?: string | null
-          acknowledged_by?: string | null
-          alert_type?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          id?: string | null
-          message_preview?: string | null
-          resolution_notes?: string | null
-          resolved?: boolean | null
-          sentiment_id?: string | null
-          severity?: string | null
-        }
-        Relationships: []
-      }
       evolution_sentiment_analysis: {
         Row: {
           analyzed_at: string | null
@@ -61419,42 +60348,6 @@ export type Database = {
           sentiment?: string | null
           sentiment_score?: number | null
           urgency?: string | null
-        }
-        Relationships: []
-      }
-      evolution_sentiment_metrics: {
-        Row: {
-          alerts_generated: number | null
-          avg_sentiment_score: number | null
-          calculated_at: string | null
-          id: string | null
-          metric_date: string | null
-          negative_count: number | null
-          neutral_count: number | null
-          positive_count: number | null
-          total_messages: number | null
-        }
-        Insert: {
-          alerts_generated?: number | null
-          avg_sentiment_score?: number | null
-          calculated_at?: string | null
-          id?: string | null
-          metric_date?: string | null
-          negative_count?: number | null
-          neutral_count?: number | null
-          positive_count?: number | null
-          total_messages?: number | null
-        }
-        Update: {
-          alerts_generated?: number | null
-          avg_sentiment_score?: number | null
-          calculated_at?: string | null
-          id?: string | null
-          metric_date?: string | null
-          negative_count?: number | null
-          neutral_count?: number | null
-          positive_count?: number | null
-          total_messages?: number | null
         }
         Relationships: []
       }
@@ -61596,48 +60489,6 @@ export type Database = {
           next_stage?: string | null
           stage_key?: string | null
           stage_order?: number | null
-        }
-        Relationships: []
-      }
-      evolution_status_auto_rules: {
-        Row: {
-          cooldown_hours: number | null
-          created_at: string | null
-          created_by: string | null
-          id: string | null
-          instance_name: string | null
-          is_active: boolean | null
-          max_reactions_per_day: number | null
-          name: string | null
-          reaction_emoji: string | null
-          target_filter: Json | null
-          updated_at: string | null
-        }
-        Insert: {
-          cooldown_hours?: number | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string | null
-          instance_name?: string | null
-          is_active?: boolean | null
-          max_reactions_per_day?: number | null
-          name?: string | null
-          reaction_emoji?: string | null
-          target_filter?: Json | null
-          updated_at?: string | null
-        }
-        Update: {
-          cooldown_hours?: number | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string | null
-          instance_name?: string | null
-          is_active?: boolean | null
-          max_reactions_per_day?: number | null
-          name?: string | null
-          reaction_emoji?: string | null
-          target_filter?: Json | null
-          updated_at?: string | null
         }
         Relationships: []
       }
@@ -61878,54 +60729,6 @@ export type Database = {
           send_status?: string | null
           template_id?: string | null
           variables_used?: Json | null
-        }
-        Relationships: []
-      }
-      evolution_typebot_sessions: {
-        Row: {
-          completed_at: string | null
-          created_at: string | null
-          current_block: string | null
-          id: string | null
-          last_interaction_at: string | null
-          remote_jid: string | null
-          session_id: string | null
-          started_at: string | null
-          status: string | null
-          total_interactions: number | null
-          typebot_id: string | null
-          typebot_name: string | null
-          variables: Json | null
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string | null
-          current_block?: string | null
-          id?: string | null
-          last_interaction_at?: string | null
-          remote_jid?: string | null
-          session_id?: string | null
-          started_at?: string | null
-          status?: string | null
-          total_interactions?: number | null
-          typebot_id?: string | null
-          typebot_name?: string | null
-          variables?: Json | null
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string | null
-          current_block?: string | null
-          id?: string | null
-          last_interaction_at?: string | null
-          remote_jid?: string | null
-          session_id?: string | null
-          started_at?: string | null
-          status?: string | null
-          total_interactions?: number | null
-          typebot_id?: string | null
-          typebot_name?: string | null
-          variables?: Json | null
         }
         Relationships: []
       }
@@ -68962,6 +67765,7 @@ export type Database = {
         }
       }
       fn_security_acl_master_check: { Args: never; Returns: Json }
+      fn_security_self_audit_daily: { Args: never; Returns: Json }
       fn_security_surface_audit: { Args: never; Returns: Json }
       fn_segment_contacts: {
         Args: { p_instance?: string; p_segment: string }
@@ -69176,6 +67980,10 @@ export type Database = {
       fn_webhook_health_check: { Args: never; Returns: Json }
       fn_webhook_pipeline_score: {
         Args: { p_eff_state?: string }
+        Returns: Json
+      }
+      fn_webhook_purge_consolidated: {
+        Args: { p_batch_size?: number; p_v2_retention_days?: number }
         Returns: Json
       }
       fn_zapp_web_smoke_test_v2: {
@@ -72027,158 +70835,3 @@ export type Database = {
     }
   }
 }
-
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
-
-export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
-    }
-    ? R
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
-
-export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
-
-export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
-
-export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
-
-export const Constants = {
-  public: {
-    Enums: {
-      ai_provider_type: [
-        "lovable_ai",
-        "openai_compatible",
-        "google_gemini",
-        "custom_webhook",
-        "custom_agent",
-      ],
-      app_role: [
-        "admin",
-        "supervisor",
-        "agent",
-        "special_agent",
-        "dev",
-        "manager",
-      ],
-      channel_type: [
-        "whatsapp",
-        "instagram",
-        "telegram",
-        "messenger",
-        "webchat",
-        "email",
-      ],
-      service_account_type: [
-        "google_sheets",
-        "google_docs",
-        "google_calendar",
-        "google_drive",
-        "dropbox",
-      ],
-      warroom_alert_type: ["info", "warning", "critical", "sla_breach"],
-    },
-  },
-} as const

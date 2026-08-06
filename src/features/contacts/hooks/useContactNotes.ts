@@ -52,6 +52,11 @@ export function useContactNotes(contactId: string) {
       return data;
     },
     enabled: !!user?.id,
+    // Perfil do usuário logado (queryKey estável por userId) — staleTime longo
+    // elimina o refetch de profiles?select=id,name,avatar_url&user_id=... a
+    // cada mount da view de notas.
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
   });
 
   // Fetch notes for this contact
@@ -85,10 +90,14 @@ export function useContactNotes(contactId: string) {
 
       // Fetch author profiles separately
       const authorIds = [...new Set(data?.map((n) => n.author_id) || [])];
-      const { data: authors, error: authorsErr } = await supabase
-        .from('profiles')
-        .select('id, name, avatar_url')
-        .in('id', authorIds);
+      // EMPTY-IN GUARD: sem autores, pula o fetch (evita `id=in.()` no PostgREST)
+      const { data: authors, error: authorsErr } =
+        authorIds.length > 0
+          ? await supabase
+              .from('profiles')
+              .select('id, name, avatar_url')
+              .in('id', authorIds)
+          : { data: [] as { id: string; name: string; avatar_url: string | null }[], error: null };
       if (authorsErr) log.error('Failed to fetch author profiles for notes:', authorsErr);
 
       const authorsMap = new Map<string, ContactNoteAuthor>(

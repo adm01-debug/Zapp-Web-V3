@@ -177,3 +177,5 @@ src/features/inbox/hooks/realtime/useConversationsFilter.ts
 src/features/inbox/hooks/useFallbackContact.ts
 src/features/inbox/hooks/useInboxDataQueries.ts
 src/features/inbox/hooks/useWhisperCount.ts
+src/hooks/useVoiceAgent.ts  # re-export de compatibilidade da consolidação ETAPA 35 — API pública delegando a useVoiceManagement (consumido via VoiceSearchOverlayConnected); mantido para não quebrar importadores externos em migração
+src/hooks/useFollowupBridge.ts  # hook AUTOMACOES-09 (#851) pronto, sem consumidor na UI atual — aguarda adoção pela tela de automações; edge function followup-bridge ativa em produção

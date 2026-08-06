@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth';
 import { useReactionMutations } from './reactions/useReactionMutations';
+import { useReactionsBatchContext } from './reactions/usePreloadConversationReactions';
 import type { MessageReaction, UseMessageReactionsOptions } from './reactions/types';
 import { queryKeys } from '@/services/api/queryKeys';
 
@@ -18,6 +19,14 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const lastRefreshKeyRef = useRef(options?.refreshKey);
+
+  // FIX N+1 (2026-08-06): quando a conversa usa ReactionsBatchProvider
+  // (ChatMessagesArea), o GET individual por mensagem fica desabilitado
+  // enquanto o batch cobre esta mensagem — o cache é primado pelo batch
+  // (mesma queryKey, staleTime 30s), então não há refetch no mount.
+  const { messageIds: batchMessageIds, isBatchPending } = useReactionsBatchContext();
+  const inBatch = messageId ? batchMessageIds.has(messageId) : false;
+  const waitForBatch = isBatchPending && inBatch;
 
   // Optional per-message realtime subscription (disabled in chat view to avoid one channel per bubble)
   useEffect(() => {
@@ -93,7 +102,11 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
         user_name: r.user_id ? usersMap.get(r.user_id) || 'Agente' : 'Cliente',
       })) as MessageReaction[];
     },
-    enabled: !!messageId,
+    enabled: !!messageId && !waitForBatch,
+    // Em conversa com batch: sem refetch no mount nem no focus — o batch
+    // (1 GET) cobre a conversa inteira e o realtime mantém a frescura.
+    refetchOnMount: !inBatch,
+    refetchOnWindowFocus: !inBatch,
     staleTime: 30_000,
     gcTime: 5 * 60 * 1000,
   });

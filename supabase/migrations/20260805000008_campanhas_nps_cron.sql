@@ -36,5 +36,7 @@ BEGIN
   RAISE NOTICE '[campanhas-14] cron job "nps-daily-trigger" registrado (0 10 * * * UTC)';
 
 EXCEPTION WHEN OTHERS THEN
-  RAISE NOTICE '[campanhas-14] erro ao registrar cron job [%]: %', SQLSTATE, SQLERRM;
+  -- AG-EX-13: falha EXPLÍCITA em vez de engolir (REC-ARTDB-03 — job NPS nunca
+  -- criado com migration reportando sucesso). Antes: aviso simples (engolia tudo).
+  RAISE EXCEPTION '[campanhas-14] erro ao registrar cron job [%]: %', SQLSTATE, SQLERRM;
 END $$;

@@ -4,6 +4,7 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { queryKeys } from '@/services/api/queryKeys';
+import { QUERY_STALE_TIMES, QUERY_GC_TIMES } from '@/lib/queryStaleTimes';
 import { isValidUUID } from '@/utils/uuid';
 
 /** Tag interface definition. */
@@ -145,6 +146,9 @@ export function useTags() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tags.all() });
+      // Mapa contact→tags da inbox também muda quando o tag é excluído
+      // (ids podem ficar órfãos no mapa) — R2 regression review da onda.
+      queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.tagsMap() });
       toast({
         title: 'Etiqueta excluída',
         description: 'A etiqueta foi excluída com sucesso.',
@@ -191,6 +195,8 @@ export function useContactTags(contactId: string | undefined) {
       return data?.map((ct) => ct.tags).filter(Boolean) as Tag[];
     },
     enabled: !!contactId && isValidUUID(contactId),
+    staleTime: QUERY_STALE_TIMES.contactTags,
+    gcTime: QUERY_GC_TIMES.contactTags,
   });
 
   const addTagMutation = useMutation({
@@ -206,6 +212,9 @@ export function useContactTags(contactId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tags.contact(contactId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.tags.all() });
+      // Badges de tag da lista da inbox: o mapa contact→tags ficaria obsoleto
+      // até 5min (staleTime contactTags) — R2 regression review da onda.
+      queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.tagsMap() });
     },
     onError: (error: Error) => {
       toast({
@@ -231,6 +240,8 @@ export function useContactTags(contactId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tags.contact(contactId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.tags.all() });
+      // Badges de tag da lista da inbox — R2 regression review da onda.
+      queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.tagsMap() });
     },
     onError: (error: Error) => {
       toast({

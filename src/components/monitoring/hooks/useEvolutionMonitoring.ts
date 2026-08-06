@@ -78,7 +78,7 @@ export function useEvolutionMonitoring() {
   useEffect(() => {
     logMessagesSubscribe('useEvolutionMonitoring', { event: 'INSERT', table: 'messages' });
     const channel = supabase
-      .channel('monitoring-connections')
+      .channel(`monitoring-connections:${Math.random().toString(36).slice(2, 10)}`)
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'whatsapp_connections' }, () =>
         fetchData()
       )

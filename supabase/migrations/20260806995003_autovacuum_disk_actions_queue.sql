@@ -1,4 +1,5 @@
--- ============================================================================
+-- =====================================================================
+-- (incluído do merge com main — idempotente)
 -- CREATE TABLE ops.disk_actions_queue + índices + cron cleanup
 -- ============================================================================
 -- Tipo: DDL + pg_cron
@@ -57,3 +58,6 @@ SELECT cron.schedule(
   '9 4 * * *',
   $$DELETE FROM ops.disk_actions_queue WHERE executed_at < now() - interval '7 days'$$
 ) ON CONFLICT (jobname) DO NOTHING;
+=======
+-- Item 65 da auditoria infra (AG-EX-01): autovacuum per-table (substitui cron disk-tables-vacuum-weekly job 231)
+ALTER TABLE ops.disk_actions_queue SET (autovacuum_vacuum_scale_factor=0.05, autovacuum_vacuum_threshold=100, autovacuum_analyze_scale_factor=0.02);

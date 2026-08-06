@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
+import { QUERY_STALE_TIMES, QUERY_GC_TIMES } from '@/lib/queryStaleTimes';
 
 const log = getLogger('useGlobalSettings');
 
@@ -28,7 +29,8 @@ export function useGlobalSettings() {
       if (error) throw error;
       return (data as GlobalSetting[]) ?? [];
     },
-    staleTime: 60_000,
+    staleTime: QUERY_STALE_TIMES.globalSettings,
+    gcTime: QUERY_GC_TIMES.globalSettings,
   });
 
   const getSetting = useCallback(

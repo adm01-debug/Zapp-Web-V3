@@ -3,10 +3,10 @@ import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import { getStoragePublicUrl } from "../_shared/storage-url.ts";
 
 const EVOLUTION_API_URL = (Deno.env.get("EVOLUTION_API_URL") || "").replace(/\/+$/, "");
 const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? '';
-const SUPABASE_URL = (Deno.env.get("SELFHOSTED_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL") ?? "").replace(/\/+$/, "");
 
 const supabase = createZappAdminClient();
 
@@ -120,7 +120,10 @@ Deno.serve(async (req) => {
 
         if (uploadErr) { results.failed++; results.errors.push(`${msg.external_id}: upload failed - ${uploadErr.message}`); continue; }
 
-        const newUrl = `${SUPABASE_URL}/storage/v1/object/public/audio-messages/${storagePath}`;
+        // GAP-4 (auditoria media-producers 2026-08-06): usar getStoragePublicUrl
+        // (ADR-001 — resolve o host público) em vez de concatenar SUPABASE_URL,
+        // que pode cair em kong:8000 (host interno) e gravar URL quebrada no DB.
+        const newUrl = getStoragePublicUrl('audio-messages', storagePath);
         await supabase.from("messages").update({ media_url: newUrl }).eq("id", msg.id);
         results.recovered++;
       } catch (err) {

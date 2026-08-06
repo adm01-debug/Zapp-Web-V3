@@ -65,6 +65,7 @@ export function WhisperMode({
     },
     enabled: !!contactId && !!profile && contactIsUUID,
     refetchOnWindowFocus: false,
+    staleTime: 30_000, // BUG-2026-08-06: sem refetch ao reabrir conversa/re-render
   });
 
   const sendWhisper = useMutation({

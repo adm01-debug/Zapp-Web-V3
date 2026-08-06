@@ -163,7 +163,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
   // Realtime
   useEffect(() => {
     const channel = supabase
-      .channel('failed_messages_realtime')
+      .channel(`failed_messages_realtime:${Math.random().toString(36).slice(2, 10)}`)
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'failed_messages' }, () => {
         void queryClient.invalidateQueries({ queryKey: queryKeys.failedMessages.all() });
       })

@@ -69,6 +69,10 @@ export function useAgentRecentSends() {
       }
 
       const ids = Array.from(new Set(parsed.map((p: RecentSend) => p.message_id)));
+      // EMPTY-IN GUARD: sem message_ids, pula o fetch (evita `id=in.()` no PostgREST)
+      if (ids.length === 0) {
+        return { byAgent: new Map<string, RecentSend[]>(), totalSends: 0 };
+      }
       const { data: msgs, error: msgsErr } = await dbFrom('messages')
         .select('id, agent_id')
         .in('id', ids);

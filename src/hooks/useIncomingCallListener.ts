@@ -25,7 +25,7 @@ export function useIncomingCallListener() {
     if (!profile?.id) return;
 
     const channel = supabase
-      .channel('incoming-calls')
+      .channel(`incoming-calls:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         {
@@ -36,47 +36,56 @@ export function useIncomingCallListener() {
         },
         async (payload) => {
           const call = payload.new as Record<string, unknown>;
+          try {
+            if (call.direction !== 'inbound' || call.status === 'ended') return;
 
-          if (call.direction !== 'inbound' || call.status === 'ended') return;
+            // Fetch contact info
+            let contactName = 'Desconhecido';
+            let contactPhone = '';
 
-          // Fetch contact info
-          let contactName = 'Desconhecido';
-          let contactPhone = '';
+            if (call.contact_id && isValidUUID(call.contact_id as string)) {
+              const { data: contact } = await supabase
+                .from('contacts')
+                .select('name, phone')
+                .eq('id', call.contact_id as string)
+                .maybeSingle();
 
-          if (call.contact_id && isValidUUID(call.contact_id as string)) {
-            const { data: contact } = await supabase
-              .from('contacts')
-              .select('name, phone')
-              .eq('id', call.contact_id as string)
-              .maybeSingle();
+              if (!mountedRef.current) return;
+
+              if (contact) {
+                contactName = contact.name || contact.phone || 'Desconhecido';
+                contactPhone = contact.phone || '';
+              }
+            }
 
             if (!mountedRef.current) return;
 
-            if (contact) {
-              contactName = contact.name || contact.phone || 'Desconhecido';
-              contactPhone = contact.phone || '';
-            }
+            const notes = (call.notes as string) || '';
+            const isVideo = notes.toLowerCase().includes('vídeo');
+
+            setIncomingCall({
+              id: call.id as string,
+              contact_id: call.contact_id as string | null,
+              contact_name: contactName,
+              contact_phone: contactPhone,
+              is_video: isVideo,
+              whatsapp_connection_id: call.whatsapp_connection_id as string | null,
+              started_at: call.started_at as string,
+            });
+
+            log.info(`Incoming ${isVideo ? 'video' : 'audio'} call from ${contactName}`);
+          } catch (err) {
+            // Falha de rede/query no lookup de contato não pode derrubar o
+            // handler do realtime (unhandled rejection silencioso).
+            log.error('[useIncomingCallListener] error handling call payload', err);
           }
-
-          if (!mountedRef.current) return;
-
-          const notes = (call.notes as string) || '';
-          const isVideo = notes.toLowerCase().includes('vídeo');
-
-          setIncomingCall({
-            id: call.id as string,
-            contact_id: call.contact_id as string | null,
-            contact_name: contactName,
-            contact_phone: contactPhone,
-            is_video: isVideo,
-            whatsapp_connection_id: call.whatsapp_connection_id as string | null,
-            started_at: call.started_at as string,
-          });
-
-          log.info(`Incoming ${isVideo ? 'video' : 'audio'} call from ${contactName}`);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') {
+          log.warn('[useIncomingCallListener] channel subscription status:', status);
+        }
+      });
 
     return () => {
       channel.unsubscribe();

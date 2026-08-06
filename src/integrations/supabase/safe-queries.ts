@@ -37,6 +37,25 @@ function attachChannelDisposer(channel: RealtimeChannel, client: AnySupabaseClie
 }
 
 /**
+ * EMPTY-IN GUARD (ONDA BUGS CONSOLE V1)
+ *
+ * Aplica `.in('id', ids)` na query SOMENTE quando `ids` não está vazio.
+ * Chamar `.in('id', [])` com array vazio faz o supabase-js serializar
+ * `id=in.()` — filtro inválido que chega no PostgREST (erro/ruído no console
+ * e scan desnecessário no banco). Com este helper a query é retornada sem o
+ * filtro quando a lista é vazia/undefined.
+ *
+ * ⚠️ Use SOMENTE em SELECTs. Em DELETE/UPDATE batch, lista vazia deve pular a
+ * operação inteira (`if (ids.length === 0) return;`) — "sem filtro" num
+ * DELETE/UPDATE atingiria TODAS as linhas da tabela.
+ */
+export const withIdIn = <Q>(query: Q, ids: readonly string[] | null | undefined): Q => {
+  if (!ids || ids.length === 0) return query;
+  const q = query as unknown as { in: (column: string, values: readonly string[]) => Q };
+  return q.in('id', ids);
+};
+
+/**
  * Safe WhatsApp Connections Query
  * Returns only non-sensitive fields (id, name, phone_number, status, is_default)
  * Enforces RLS policies and hides sensitive fields (qr_code, instance_id, evo_instance_id)
@@ -80,11 +99,11 @@ export const safeWhatsAppConnectionsQuery = (supabase: AnySupabaseClient) => ({
    * Safe for: dropdowns, selectors
    */
   getSummary: async (ids?: string[]) => {
-    let query = supabase.from('whatsapp_connections').select('id, name, phone_number, status');
-
-    if (ids && ids.length > 0) {
-      query = query.in('id', ids);
-    }
+    // EMPTY-IN GUARD: withIdIn omite o filtro quando ids é vazio (evita `id=in.()`)
+    const query = withIdIn(
+      supabase.from('whatsapp_connections').select('id, name, phone_number, status'),
+      ids
+    );
 
     return query.order('name', { ascending: true });
   },

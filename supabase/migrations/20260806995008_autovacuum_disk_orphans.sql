@@ -1,4 +1,5 @@
--- ============================================================================
+-- =====================================================================
+-- (incluído do merge com main — idempotente)
 -- CREATE TABLE ops.disk_orphans
 -- ============================================================================
 -- Tipo: DDL
@@ -25,3 +26,6 @@ CREATE TABLE IF NOT EXISTS ops.disk_orphans (
 REVOKE ALL ON TABLE ops.disk_orphans FROM PUBLIC, anon;
 GRANT SELECT ON TABLE ops.disk_orphans TO authenticated;
 GRANT ALL ON TABLE ops.disk_orphans TO service_role, postgres;
+=======
+-- Item 65 da auditoria infra (AG-EX-01): autovacuum per-table (substitui cron disk-tables-vacuum-weekly job 231)
+ALTER TABLE ops.disk_orphans SET (autovacuum_vacuum_scale_factor=0.05, autovacuum_vacuum_threshold=100, autovacuum_analyze_scale_factor=0.02);

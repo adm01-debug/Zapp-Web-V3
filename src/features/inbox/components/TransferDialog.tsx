@@ -15,9 +15,12 @@ import {
 } from '@/components/ui/select';
 import { User, Users, Send, ArrowRight, Loader2, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getLogger } from '@/lib/logger';
 import { useAgents } from '@/features/admin';
 import { useQueues } from '@/hooks/useQueues';
 import { supabase } from '@/integrations/supabase/client';
+
+const log = getLogger('TransferDialog');
 
 interface TransferDialogProps {
   open: boolean;
@@ -41,17 +44,29 @@ export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialo
   // Fetch WhatsApp connections
   useEffect(() => {
     if (transferType !== 'connection' || !open) return;
+    let cancelled = false;
     setLoadingConnections(true);
-    supabase
-      .from('whatsapp_connections')
-      .select('id, name, phone_number, status')
-      .eq('status', 'connected')
-      .then(({ data }) => {
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('whatsapp_connections')
+          .select('id, name, phone_number, status')
+          .eq('status', 'connected');
+        if (cancelled) return;
         setConnections(
           (data as { id: string; name: string; phone_number: string; status: string }[]) || []
         );
-        setLoadingConnections(false);
-      });
+      } catch (err) {
+        // Antes: promise sem catch → unhandled rejection E setLoadingConnections
+        // nunca rodava → spinner infinito no diálogo de transferência.
+        if (!cancelled) log.error('[TransferDialog] Falha ao carregar conexões:', err);
+      } finally {
+        if (!cancelled) setLoadingConnections(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [transferType, open]);
 
   const [isTransferring, setIsTransferring] = useState(false);

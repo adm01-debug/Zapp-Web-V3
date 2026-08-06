@@ -48,7 +48,7 @@ export function useACLAlerts() {
 
   useEffect(() => {
     const channel = supabase
-      .channel('security_acl_alerts_realtime')
+      .channel(`security_acl_alerts_realtime:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'zapp', table: 'security_acl_alerts' },

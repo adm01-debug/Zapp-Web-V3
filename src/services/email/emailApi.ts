@@ -1,3 +1,4 @@
+import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 
 export interface EmailRevalidationJob {
@@ -24,23 +25,22 @@ export const emailApi = {
     to: number,
     filters?: { status?: string; dateFrom?: string; dateTo?: string }
   ) => {
-    const { data: rows, error } = await safeClient.from<EmailRevalidationJob>(
-      'email_revalidation_jobs',
-      (q) => {
-        let query = q.select('*', { count: 'exact' });
-        if (filters?.status && filters.status !== 'all') {
-          query = query.eq('status', filters.status);
-        }
-        if (filters?.dateFrom) {
-          query = query.gte('requested_at', filters.dateFrom);
-        }
-        if (filters?.dateTo) {
-          query = query.lte('requested_at', filters.dateTo);
-        }
-        return query.order('requested_at', { ascending: false }).range(from, to);
-      }
-    );
-    return { data: rows as EmailRevalidationJob[] | null, count: rows?.length ?? 0, error };
+    // safeClient.from() não expõe o count do PostgREST — usa supabase diretamente
+    // para obter o total real (necessário para paginação correta).
+    let query = supabase.from('email_revalidation_jobs').select('*', { count: 'exact' });
+    if (filters?.status && filters.status !== 'all') {
+      query = query.eq('status', filters.status);
+    }
+    if (filters?.dateFrom) {
+      query = query.gte('requested_at', filters.dateFrom);
+    }
+    if (filters?.dateTo) {
+      query = query.lte('requested_at', filters.dateTo);
+    }
+    const { data, count, error } = await query
+      .order('requested_at', { ascending: false })
+      .range(from, to);
+    return { data: data as EmailRevalidationJob[] | null, count: count ?? 0, error };
   },
   getHealthSummary: async () => {
     const { data: rows, error } = await safeClient.from<EmailHealthSummary>(

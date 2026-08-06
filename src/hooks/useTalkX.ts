@@ -45,7 +45,8 @@ export function useTalkX() {
         .from('talkx_recipients')
         .select('*')
         .eq('campaign_id', selectedCampaignId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(200);
       if (error) throw error;
       return (data ?? []) as TalkXRecipient[];
     },

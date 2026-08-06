@@ -68,9 +68,15 @@ export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManag
   const handleSend = useCallback(
     (sticker: StickerItem) => {
       onSend?.(sticker.image_url);
-      void incrementStickerUseCount(sticker.id, sticker.use_count).then(({ error }) => {
-        if (error) log.warn('[StickerManager] use_count update failed', error);
-      });
+      void incrementStickerUseCount(sticker.id, sticker.use_count)
+        .then(({ error }) => {
+          if (error) log.warn('[StickerManager] use_count update failed', error);
+        })
+        .catch((err: unknown) => {
+          // Falha de rede rejeita a promise — sem handler vira unhandled
+          // rejection a cada envio de figurinha.
+          log.warn('[StickerManager] use_count update failed (rejeição)', err);
+        });
     },
     [onSend]
   );
