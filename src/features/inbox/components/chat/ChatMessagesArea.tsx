@@ -24,7 +24,7 @@ import { motion, AnimatePresence } from '@/components/ui/motion';
 import { TypingIndicator } from '../TypingIndicator';
 import { MessageBubble } from './MessageBubble';
 import { useConversationReactionsRealtime } from '../../hooks/reactions/useConversationReactionsRealtime';
-import { usePreloadConversationReactions } from '../../hooks/reactions/usePreloadConversationReactions';
+import { ReactionsBatchProvider } from '../../hooks/reactions/usePreloadConversationReactions';
 
 import type { LoadOlderProps } from './loadOlderTypes';
 
@@ -167,8 +167,9 @@ export const ChatMessagesArea = memo(
       // Realtime de reacoes: 1 canal por conversa, invalida apenas IDs visiveis
       const messageIds = useMemo(() => messages.map((m) => m.id), [messages]);
       useConversationReactionsRealtime(conversationId, messageIds);
-      // FIX N+1: preload todas reactions em 1 query antes dos MessageBubble individuais
-      usePreloadConversationReactions(messageIds);
+      // FIX N+1 (onda bugs-console v1): o provider abaixo faz 1-2 GETs batch
+      // (RPC rpc_get_reactions_batch → fallback .in() chunkado) e os hooks
+      // por-mensagem ficam com enabled=false enquanto o batch cobre a mensagem.
 
       // Realtime de mensagens: UPDATE e DELETE no schema 'evo' (tabela física particionada)
       useEffect(() => {
@@ -339,7 +340,8 @@ export const ChatMessagesArea = memo(
       }, []);
 
       return (
-        <div
+        <ReactionsBatchProvider messageIds={messageIds}>
+          <div
             ref={scrollContainerRef}
             onScroll={handleScroll}
             className="scrollbar-none relative min-h-0 min-w-0 flex-1 overflow-y-auto bg-background/20 px-4 py-6 md:px-24"
@@ -474,6 +476,7 @@ export const ChatMessagesArea = memo(
             )}
           </AnimatePresence>
           </div>
+        </ReactionsBatchProvider>
       );
     }
   )

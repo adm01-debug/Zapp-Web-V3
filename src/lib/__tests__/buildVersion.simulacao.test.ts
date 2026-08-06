@@ -323,9 +323,11 @@ describe('checkVersion (via startBuildVersionWatcher + fake timers)', () => {
       // de cortesia: 2 checks de version.json + 6 prefetches (js/css por
       // mismatch agendado ×2 + js/css no forceBundleRefresh) = 8 fetches.
       await vi.advanceTimersByTimeAsync(30_000 + __TEST__.UPDATE_GRACE_MS);
-      // Fetch calls esperadas: 1 version.json + 4 prefetch (js/css no schedule
-      // + js/css no forceBundleRefresh) + 1 HEAD CDN check (isBundleReachable).
-      expect(fetchMock).toHaveBeenCalledTimes(6);
+      // Poll e cortesia andam em lockstep (ambos 60s a partir do mismatch):
+      // o poll do mesmo tick NÃO cancela o timer pendente (guard same-target);
+      // o poll seguinte re-agenda. Fetch calls: 2× version.json (t=30 kickoff +
+      // t=90 poll) + 5 assets (js/css do schedule + HEAD CDN + js/css do force).
+      expect(fetchMock).toHaveBeenCalledTimes(7);
       expect(String(fetchMock.mock.calls[0][0])).toMatch(/^\/version\.json\?ts=\d+$/);
       // Assets do novo bundle: 2 prefetch no schedule, 1 HEAD CDN check,
       // 2 prefetch no forceBundleRefresh (total 5 chamadas de /assets/).
@@ -568,10 +570,11 @@ describe('RACE: kickoff + visibilitychange no mesmo tick (dedupe anti-rajada)', 
 
 describe('CENÁRIO REAL: 4 deploys com poll consolidado de 60s (cota corta a cascata)', () => {
   it('rajada de deploys com checks de 60s → cotas por-alvo e global cortam o loop', async () => {
-    // Deploys: buildA em t=0, buildB em t=3min, buildC em t=6min, buildD em t=9min.
-    // Checks (jitter=0 nos testes): kickoff 30s + polls a cada 60s. Cada
-    // mismatch agenda um reload ao fim da cortesia (60s). As cotas (2 por
-    // alvo / 10min, 5 globais / 15min) seguram a cascata.
+    // Deploys: buildA em t=0, buildB em t=360s, buildC em t=720s, buildD em
+    // t=900s. Poll (60s) e cortesia (60s) andam em LOCKSTEP a partir do
+    // mismatch: o poll do tick NÃO cancela o timer do mesmo alvo; cada
+    // reload dispara no tick seguinte ao mismatch. As cotas (2 por alvo /
+    // 10min, 5 globais / 15min) seguram a cascata.
     let liveBuildId = 'buildA';
     fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ buildId: liveBuildId })));
 
@@ -585,51 +588,45 @@ describe('CENÁRIO REAL: 4 deploys com poll consolidado de 60s (cota corta a cas
           .map((call) => (call[0] as CustomEvent<{ reason?: string }>).detail?.reason)
           .filter((r): r is string => !!r && r !== 'version-mismatch');
 
-      // ── Deploy 1 (buildA) ── kickoff@30s + polls@90/150 → reloads #1/#2
-      await vi.advanceTimersByTimeAsync(30_000); // t=30: check A
-      await vi.advanceTimersByTimeAsync(60_000); // t=90: poll A + reload #1
+      // ── Deploy 1 (buildA) ── kickoff@30s → reload #1@90, #2@210; cota A (2/2) estoura @330
+      await vi.advanceTimersByTimeAsync(30_000); // t=30: check A → cortesia@90
+      await vi.advanceTimersByTimeAsync(60_000); // t=90: poll A (mesmo alvo, não cancela) → reload #1
       expect(replaceSpy).toHaveBeenCalledTimes(1);
-      await vi.advanceTimersByTimeAsync(60_000); // t=150: poll A + reload #2
+      await vi.advanceTimersByTimeAsync(120_000); // t=210: poll@150 agenda → reload #2 (A)
       expect(replaceSpy).toHaveBeenCalledTimes(2);
-
-      // ── Deploy 2 (buildB, t=3min) ── poll@210 aborta (cota por-alvo de A)
-      liveBuildId = 'buildB';
-      await vi.advanceTimersByTimeAsync(30_000); // t=180 (deploy B)
-      await vi.advanceTimersByTimeAsync(30_000); // t=210: poll B + abort A
+      await vi.advanceTimersByTimeAsync(120_000); // t=330: cortesia → cota por-alvo de A estoura
       expect(replaceSpy).toHaveBeenCalledTimes(2);
       expect(abortReasons()).toEqual(['per-target-quota']);
-      await vi.advanceTimersByTimeAsync(60_000); // t=270: reload #3 (B)
+
+      // ── Deploy 2 (buildB, t=360s) ── reload #3@450, #4@570; cota B estoura @690
+      liveBuildId = 'buildB';
+      await vi.advanceTimersByTimeAsync(30_000); // t=360 (deploy B)
+      await vi.advanceTimersByTimeAsync(30_000); // t=390: poll B → cortesia B@450
+      await vi.advanceTimersByTimeAsync(60_000); // t=450: reload #3 (B)
       expect(replaceSpy).toHaveBeenCalledTimes(3);
-      await vi.advanceTimersByTimeAsync(60_000); // t=330: reload #4 (B)
+      await vi.advanceTimersByTimeAsync(120_000); // t=570: reload #4 (B)
       expect(replaceSpy).toHaveBeenCalledTimes(4);
-
-      // ── Deploy 3 (buildC, t=6min) ── poll@390 aborta (cota por-alvo de B)
-      liveBuildId = 'buildC';
-      await vi.advanceTimersByTimeAsync(30_000); // t=360 (deploy C)
-      await vi.advanceTimersByTimeAsync(30_000); // t=390: poll C + abort B
+      await vi.advanceTimersByTimeAsync(120_000); // t=690: cota por-alvo de B estoura
+      expect(replaceSpy).toHaveBeenCalledTimes(4);
       expect(abortReasons()).toEqual(['per-target-quota', 'per-target-quota']);
-      await vi.advanceTimersByTimeAsync(60_000); // t=450: reload #5 (C → global 5/5)
+
+      // ── Deploy 3 (buildC, t=720s) ── reload #5@810 (cota global 5/5)
+      liveBuildId = 'buildC';
+      await vi.advanceTimersByTimeAsync(30_000); // t=720 (deploy C)
+      await vi.advanceTimersByTimeAsync(30_000); // t=750: poll C → cortesia C@810
+      await vi.advanceTimersByTimeAsync(60_000); // t=810: reload #5 (C — global 5/5)
       expect(replaceSpy).toHaveBeenCalledTimes(5);
 
-      // ── Deploy 4 (buildD, t=9min) ── cota GLOBAL segura a cascata
+      // ── Deploy 4 (buildD, t=900s) ── cota GLOBAL segura a cascata
       liveBuildId = 'buildD';
-      await vi.advanceTimersByTimeAsync(30_000); // t=480
-      await vi.advanceTimersByTimeAsync(30_000); // t=510: grace do poll C aborta (global 1º)
-      await vi.advanceTimersByTimeAsync(30_000); // t=540 (deploy D)
-      await vi.advanceTimersByTimeAsync(30_000); // t=570: poll D → grace aborta (global 2º)
-      expect(replaceSpy).toHaveBeenCalledTimes(5); // nenhum reload extra
-      expect(abortReasons().filter((r) => r === 'global-quota')).toHaveLength(2);
-
-      // Aborts globais seguem a cada 60s até a janela de 15min expirar (t=990).
-      await vi.advanceTimersByTimeAsync(6 * 60_000); // t=930
-      expect(abortReasons().filter((r) => r === 'global-quota')).toHaveLength(8);
+      await vi.advanceTimersByTimeAsync(90_000); // t=900 (deploy D; poll@870 → cortesia C@930)
+      await vi.advanceTimersByTimeAsync(30_000); // t=930: poll D → cancela cortesia C (alvo diferente) → cortesia D@990
+      await vi.advanceTimersByTimeAsync(60_000); // t=990: cortesia D → cota global estoura (5/5)
       expect(replaceSpy).toHaveBeenCalledTimes(5);
+      expect(abortReasons().filter((r) => r === 'global-quota')).toHaveLength(1);
 
-      await vi.advanceTimersByTimeAsync(60_000); // t=990: último abort global
-      expect(abortReasons().filter((r) => r === 'global-quota')).toHaveLength(9);
-
-      // t=1050: janela global expira (960s > 15min) → reload #6 permitido (D).
-      await vi.advanceTimersByTimeAsync(60_000);
+      // Janela global expira em t=990 (90 + 15min) → reload #6 (D) permitido @1110
+      await vi.advanceTimersByTimeAsync(120_000); // t=1110: reload #6 (D — janela global resetada)
       expect(replaceSpy).toHaveBeenCalledTimes(6);
       expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('1');
       expect(__TEST__.readReloadState()).toEqual(
