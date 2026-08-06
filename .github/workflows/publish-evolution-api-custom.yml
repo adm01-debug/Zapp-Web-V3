@@ -163,6 +163,15 @@ jobs:
           node build-patches.mjs main.js main.patched.js t4_prologue.cjs "2.3.7-baileys-${{ inputs.baileys_version }}"
           ls -la main.patched.js
 
+      - name: Warm base image (resiliente a rate limit Docker Hub)
+        run: |
+          for i in 1 2 3 4 5; do
+            docker pull "${{ inputs.base_image }}" && break
+            echo "::warning::pull base falhou (tentativa $i/5) — aguardando 60s"
+            sleep 60
+          done
+          docker image inspect "${{ inputs.base_image }}" >/dev/null || { echo "::error::base image indisponivel apos 5 tentativas"; exit 1; }
+
       - name: Build image (sem push, load local)
         uses: docker/build-push-action@v7
         with:
