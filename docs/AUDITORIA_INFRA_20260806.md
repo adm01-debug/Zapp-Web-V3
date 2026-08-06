@@ -34,19 +34,19 @@
 | 16 | Sanear `_consumer_dlq` (195 msgs) | P1 | **EXECUTADO** | **195 → 0 pending** (198 replayed idempotente; 1 contacts.update processado). Fila física wpp2.dlq = 0 (AG-EX-12) |
 | 17 | Drift config RabbitMQ instância vs global | P2 | **EXECUTADO** | **QRCODE_UPDATED da instância alinhado com global OFF** (0 eventos pós-mudança; 8.955 lixo eliminados da nativa) (AG-EX-12) |
 | 18 | Escalonamento do rabbit-consumer (2 réplicas) | P2 | **EXECUTADO** | 2 réplicas saudáveis: drop=0, filas=17/17, prefetch 5, sem duplicação (AG-EX-06/12) |
-| 19 | Reduzir `WEBHOOK_RETRY_MAX_ATTEMPTS=10` | P2 | **PRONTO** | 10→4 e MAX_DELAY 300→60 no diff do deploy Plano B (AG-EX-11) |
+| 19 | Reduzir `WEBHOOK_RETRY_MAX_ATTEMPTS=10` | P2 | **EXECUTADO** | 10→4 e MAX_DELAY 300→60 **aplicados no deploy Plano B (06/08 22:45Z)** (AG-EX-11) |
 | 20 | Diagrama de fluxo de eventos ponta a ponta | P3 | **EXECUTADO** | Diagrama mermaid em `DECISAO_INGESTAO.md` (AG-EX-06) |
 
 ## Bloco 3 — Estabilidade da Conexão WhatsApp (P0–P1)
 
 | # | Título curto | Prioridade | Status | Evidência / AG-EX |
 |---|---|---|---|---|
-| 21 | Causa raiz do 401 recorrente do wpp2 | P0 | **EXECUTADO (diagnóstico) + EM EXECUÇÃO (fix)** | **Veredito: enforcement do WhatsApp contra Baileys 7.0.0-rc.9** (issue #2248, CVE-2026-48063). 3 logouts/24h; 0 `POST /instance/logout` externos (um `DELETE` do IP do escritório = runbook). Fix = Plano B (baileys 6.7.24): bundle pronto + workflow com setup-node + artifact fix `d8ed27067`; CI run 31128259703; deploy stop-first + rollback `9d110bc7` prontos (AG-EX-05/11/21) |
+| 21 | Causa raiz do 401 recorrente do wpp2 | P0 | **EXECUTADO (fix DEPLOYADO)** | **Veredito: enforcement do WhatsApp contra Baileys 7.0.0-rc.9** (issue #2248, CVE-2026-48063). 3 logouts/24h; 0 `POST /instance/logout` externos (um `DELETE` do IP do escritório = runbook). Fix = Plano B (baileys 6.7.24): bundle pronto + workflow com setup-node + artifact fix `d8ed27067`; **DEPLOY 06/08 22:45Z: imagem `997cafdb…` (baileys 6.7.24) em prod, wpp2 open, UpdateStatus completed, RestartCount 0, rollback `9d110bc7` (AG-EX-05/11/21) |
 | 22 | Unicidade de sessão (551146375517) | P0 | **PARCIAL** | Só wpp2 na API/DB. Verificação parcial — **instrução ao dono**: checar WhatsApp Web/Desktop logado no número (AG-EX-05) |
 | 23 | wa-version-monitor acionar bump | P1 | **PARCIAL** | Monitor só observa/loga (reporta 2.2413.51 legada; web real 2.3000.x); `CONFIG_SESSION_VERSION` não existe. Bump real = rebuild do Plano B (AG-EX-05) |
 | 24 | Blindar `evolution_instances` (SPOF) + restore real | P1 | **EXECUTADO** | baileys-backup aposentado (UUID stale + hash sem creds). Sessão/creds = pg_dump evolution → R2 (restore-validate ✅) + **volume-backup stack 220** (evolution-instances + redis-data → R2 14d GPG, 1ª execução validada) (AG-EX-15) |
 | 25 | Consolidar watchdogs de conexão | P1 | **EXECUTADO** | watchdog-baileys canônico; watchdog-canary mantido (half-duplex — único); **crons 104/120 desativados**; cron 35 mantido (JID) (AG-EX-19) |
-| 26 | `stop_grace_period` no serviço Evolution | P1 | **PRONTO** | 30s no diff do deploy Plano B (AG-EX-11) |
+| 26 | `stop_grace_period` no serviço Evolution | P1 | **EXECUTADO** | **30s aplicado no deploy Plano B (06/08 22:45Z)** (AG-EX-11) |
 | 27 | Revisar `QRCODE_LIMIT=30` + runbook re-QR | P2 | **PARCIAL** | 30 confirmado (flapping QR 07/31+); fluxo logout→connect→QR validado; runbook do re-QR documentado (AG-EX-05) |
 | 28 | Auditar `_swarm_guardian_events` / dup-detector | P2 | **EXECUTADO** | 0 duplicatas/reconnect_storm; 18 replica_drift = churn de deploy; job 160 mudo por design — MANTER (AG-EX-05/19) |
 | 29 | 401-feed transformar detecção em ação | P2 | **EXECUTADO** | Job 161 reescrito p/ `evolution_connection_history` (≥3/15min, dedup 30min) + entrega real (escalada 73/84). **SEM auto-reconnect** (enforcement → loop de re-pairing; decisão documentada) (AG-EX-19/17) |
@@ -107,7 +107,7 @@
 | 64 | Documentar tabelas custom `_*` do fork | P1 | **EXECUTADO** | Retenção/autovacuum aplicados (bootstrap_log, disk_actions_queue, paused_services, alert_cooldown, docker_prune_log, disk_orphans — migrations `20260806995*`); propósito no changelog do fork (AG-EX-01/10) |
 | 65 | Consolidar VACUUM manuais do cron | P2 | **EXECUTADO** | **Autovacuum tuning por tabela** (6 tabelas com reloptions) em vez de 9 crons de vacuum (AG-EX-01) |
 | 66 | Backup/restore-test do banco `evolution` | P2 | **EXECUTADO** | Cobertura evolution confirmada (daily/weekly/monthly → R2 GPG) + restore-validate ✅ + **metabase/typebot adicionados** (stack 219, 1ª execução validada); rehearsal PG15 usou os MESMOS dumps (AG-EX-08/15/22) |
-| 67 | Reduzir save-flags do Evolution | P2 | **EXECUTADO (decisão + diff pronto)** | **`SAVE_MESSAGE_UPDATE=false` + `SAVE_DATA_HISTORIC=false`** (NEW_MESSAGE=true preservado) — diff YAML validado (labels tier=critical + audit plano-b-saveflags-67) **aplica na janela do Plano B** (AG-EX-23) |
+| 67 | Reduzir save-flags do Evolution | P2 | **EXECUTADO (APLICADO)** | **`SAVE_MESSAGE_UPDATE=false` + `SAVE_DATA_HISTORIC=false`** (NEW_MESSAGE=true preservado) — diff YAML validado (labels tier=critical + audit plano-b-saveflags-67) **APLICADO no deploy do Plano B (06/08 22:45Z)** (AG-EX-23/11) |
 | 68 | Drift de schema no purge (MessageUpdate) | P2 | **EXECUTADO** | **Purge v6 com JOIN `Message.messageTimestamp`** deployado: ciclo real 188 purged (e 170 no rehearsal PG15); órfãos = 0 (AG-EX-14/22) |
 | 69 | Isolar `n8n_queue` (1,7GB) | P3 | **EXECUTADO** | Não é vazamento (~700MB/dia legítimos; prune 14d ativo); recomendação MAX_AGE 336→168h documentada (AG-EX-08) |
 | 70 | Monitorar `IsOnWhatsapp` + TTL | P3 | **EXECUTADO** | TTL alinhado (purge 7d = env 7d); **5.916 purged** no ciclo real (AG-EX-14) |
@@ -187,10 +187,10 @@
 
 | Status | Qtde | Notas |
 |---|---|---|
-| EXECUTADO | **78** | incl. decisões fechadas (3, 11, 14, 21-diag, 81) |
-| PARCIAL | **16** | 2, 5, 7, 12, 13, 19*, 22, 23, 27, 41, 47, 50, 54, 59, 82, 94, 99 (*19/26 = PRONTO janela Plano B) |
+| EXECUTADO | **82** | incl. decisões fechadas (3, 11, 14, 21-diag, 81) |
+| PARCIAL | **14** | 2, 5, 7, 12, 13, 19*, 22, 23, 27, 41, 47, 50, 54, 59, 82, 94, 99 (19/26 aplicados no deploy do Plano B) |
 | PENDENTE | **2** | 9 (higiene opcional), 60 (cosmético) |
-| EM EXECUÇÃO | **2** | 21 (Plano B: CI run 31128259703 → deploy), 96 (AG-EX-25: secrets MCP) |
+| EM EXECUÇÃO | **0** | — |
 | BLOQUEADO | 0 | — |
 
 **Scorecard (metas item 99):** policies USING(true) **741→0 ✓ 10/10** · backups lacunas **0 ✓ 10/10** · DLQ **195→0 ✓ 10/10** · crons 151→**130 ativos** (meta <60 — contínuo) · guards 27→**20** (meta <10 — contínuo) · edge fns 120→**106** (meta <70 — contínuo) · views 477→**444** (meta <150 — contínuo) · RLS/superfície **CLEAN ✓** · P0 401: **fix em voo (Plano B)** · **Nenhum P0 aberto sem plano de ação.**
