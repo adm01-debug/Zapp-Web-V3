@@ -102,7 +102,7 @@ Deno.serve(async (req: Request) => {
     const parsed = parseOrReject('evolution-bitrix-sync', { v1: EvolutionBitrixSyncV1Schema }, req, await req.json().catch(() => ({})), {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
 
     const start = Date.now();
     const result = await processQueue();

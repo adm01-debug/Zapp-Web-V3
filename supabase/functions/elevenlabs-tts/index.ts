@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('elevenlabs-tts', { v1: ElevenLabsTtsV1Schema }, req, await req.json().catch(() => null), {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
 
     const { text, voiceId, modelId, languageCode, applyTextNormalization } = parsed.data as {
       text: string; voiceId?: string | null; modelId?: string | null;

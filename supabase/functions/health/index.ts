@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
   const parsed = parseOrReject('health', { v1: HealthV1Schema }, req, await req.json().catch(() => ({})), {
     extraHeaders: corsHeaders,
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
 
   const url = new URL(req.url);
   const probe = url.searchParams.get('probe');

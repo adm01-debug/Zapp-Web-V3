@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('gmail-oauth', { v1: GmailOauthV1Schema }, req, raw, {
       extraHeaders: jsonHeaders,
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, unknown>;
     const rawAction = body.action as string | undefined;
     const actionMap: Record<string, string> = { 'get-auth-url': 'getAuthUrl', 'exchange-code': 'exchangeCode', 'refresh-token': 'refresh', 'disconnect': 'revoke', 'list-accounts': 'listAccounts' };

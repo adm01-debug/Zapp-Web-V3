@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject("client-observability", CONTRACT_SCHEMAS["client-observability"], req, raw, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, any>;
     const events: VitalPayload[] = Array.isArray(body?.metrics) ? body.metrics : [];
 

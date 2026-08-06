@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject("contact-media", CONTRACT_SCHEMAS["contact-media"], req, raw, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     params = parsed.data as Record<string, unknown>;
   } else {
     return jsonResponse(req, { error: "Method not allowed" }, 405);

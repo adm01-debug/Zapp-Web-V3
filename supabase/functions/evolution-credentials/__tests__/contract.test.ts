@@ -102,7 +102,7 @@ Deno.test("Write: action desconhecida → falha (discriminatedUnion)", () => {
 Deno.test("Write: body null → 422 invalid_json", async () => {
   const r = gate(null);
   assertEquals(r.ok, false);
-  if (!r.ok) {
+  if (r.ok === false) {
     assertEquals(r.response.status, 422);
     const body = await r.response.json() as { code: string };
     assertEquals(body.code, "invalid_json");
@@ -112,7 +112,7 @@ Deno.test("Write: body null → 422 invalid_json", async () => {
 Deno.test("Write: payload sem action → 422 contract_violation", async () => {
   const r = gate({ instance_name: "wpp2" });
   assertEquals(r.ok, false);
-  if (!r.ok) {
+  if (r.ok === false) {
     assertEquals(r.response.status, 422);
     const body = await r.response.json() as { code: string; contract: string };
     assertEquals(body.code, "contract_violation");
@@ -129,7 +129,7 @@ Deno.test("Write: save válido → ok (gate passa)", () => {
 
 Deno.test("Source: handleWrite usa parseOrReject com o registro write", () => {
   assertMatch(SOURCE, /parseOrReject\('evolution-credentials-write', CONTRACT_SCHEMAS\['evolution-credentials-write'\]/);
-  assertMatch(SOURCE, /if \(!parsed\.ok\) return parsed\.response/);
+  assertMatch(SOURCE, /if \(parsed\.ok === false\) return parsed\.response/);
 });
 
 Deno.test("Source: GET preserva gate + role gate + RPC get", () => {

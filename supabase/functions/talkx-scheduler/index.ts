@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
   const parsed = parseOrReject('talkx-scheduler', CONTRACT_SCHEMAS['talkx-scheduler'], req, await req.json().catch(() => ({})), {
     extraHeaders: getCorsHeaders(req),
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
 
   const headers = { ...getCorsHeaders(req), "Content-Type": "application/json" };
   const log = new Logger("talkx-scheduler");

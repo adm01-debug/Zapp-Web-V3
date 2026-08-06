@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
 
   const raw = await req.json().catch(() => null);
   const parsed = parseOrReject('whatsapp-cloud-send', CONTRACT_SCHEMAS['whatsapp-cloud-send'], req, raw, { extraHeaders: getCorsHeaders(req) });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
   const p = parsed.data as Record<string, any>;
 
   // Special case: marking messages as read uses the same /messages endpoint

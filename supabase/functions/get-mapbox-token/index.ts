@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('get-mapbox-token', CONTRACT_SCHEMAS['get-mapbox-token'], req, await req.json().catch(() => ({})), {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
 
     const mapboxToken = requireEnv('MAPBOX_PUBLIC_TOKEN');
     log.done(200);

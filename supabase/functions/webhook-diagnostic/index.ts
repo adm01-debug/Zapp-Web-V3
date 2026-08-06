@@ -17,7 +17,7 @@ Deno.serve(async (req: Request) => {
     const parsed = await parseRequestOrReject('webhook-diagnostic', CONTRACT_SCHEMAS['webhook-diagnostic'], req, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, unknown>;
 
     const evolutionUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');

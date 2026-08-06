@@ -304,7 +304,7 @@ Deno.test(
       { requestId: 'bad-json' }
     );
     assertEquals(invalidJson.success, false);
-    if (!invalidJson.success) {
+    if (invalidJson.success === false) {
       assertEquals(invalidJson.response.status, 422);
       assertEquals(await invalidJson.response.json(), {
         error: true,
@@ -325,7 +325,7 @@ Deno.test(
       { requestId: 'bad-schema' }
     );
     assertEquals(invalidSchema.success, false);
-    if (!invalidSchema.success) {
+    if (invalidSchema.success === false) {
       assertEquals(invalidSchema.response.status, 422);
       const body = await invalidSchema.response.json();
       assertEquals(body.code, 'contract_violation');

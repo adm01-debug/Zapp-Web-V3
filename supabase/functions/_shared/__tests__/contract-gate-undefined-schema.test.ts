@@ -46,7 +46,7 @@ Deno.test("P0 regressão: parseOrReject com schemas undefined NUNCA lança — 4
   // Chave propositalmente NÃO registrada → CONTRACT_SCHEMAS["chave-inexistente"] é undefined
   const r = parseOrReject("chave-inexistente", CONTRACT_SCHEMAS["chave-inexistente"], req(), { any: 1 });
   assertEquals(r.ok, false);
-  if (!r.ok) {
+  if (r.ok === false) {
     const body = await readEnvelope(r.response);
     assertEquals(body.code, "contract_violation", "schema ausente deve ser contract_violation");
     assertEquals(body.contract, "chave-inexistente@v1");
@@ -57,7 +57,7 @@ Deno.test("P0 regressão: parseOrReject com schemas undefined NUNCA lança — 4
 Deno.test("P0 regressão: parseOrReject com schemas {} vazio → 422 sem lançar", async () => {
   const r = parseOrReject("x", {}, req(), { any: 1 });
   assertEquals(r.ok, false);
-  if (!r.ok) {
+  if (r.ok === false) {
     const body = await readEnvelope(r.response);
     assertEquals(body.code, "contract_violation");
   }
@@ -66,7 +66,7 @@ Deno.test("P0 regressão: parseOrReject com schemas {} vazio → 422 sem lançar
 Deno.test("P0 regressão: parseRequestOrReject com schemas undefined → 422 sem lançar", async () => {
   const r = await parseRequestOrReject("outra-inexistente", CONTRACT_SCHEMAS["outra-inexistente"], req(), {});
   assertEquals(r.ok, false);
-  if (!r.ok) {
+  if (r.ok === false) {
     const body = await readEnvelope(r.response);
     assertEquals(body.code, "contract_violation");
   }
@@ -87,7 +87,7 @@ Deno.test("Hardening: schema com valor NÃO-ZodType (objeto cru) NUNCA lança �
   const fakeSchema = { v1: { notAZod: true } } as unknown as Record<string, never>;
   const r = await parseOrReject("fn-hardening", fakeSchema as never, req(), { a: 1 });
   assertEquals(r.ok, false);
-  if (!r.ok) {
+  if (r.ok === false) {
     const body = await readEnvelope(r.response);
     assert(body.details.length > 0, "deve ter details");
   }
@@ -101,7 +101,7 @@ Deno.test("Hardening: schema cujo safeParse LANÇA nunca vira 500 — 422 com er
   });
   const r = await parseOrReject("fn-hardening", { v1: boomSchema } as never, req(), { x: "ok" });
   assertEquals(r.ok, false);
-  if (!r.ok) {
+  if (r.ok === false) {
     const body = await readEnvelope(r.response);
     assertEquals(body.code, "contract_violation");
     assert(

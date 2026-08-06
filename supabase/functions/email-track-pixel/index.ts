@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
   // Contrato email-track-pixel@v1: GET de pixel — contrato por query param
   // (t/tracking_id), sem corpo. Schema permissivo ({}) nunca bloqueia o GIF.
   const parsed = parseOrReject('email-track-pixel', CONTRACT_SCHEMAS['email-track-pixel'], req, {}, {});
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
 
   // Se não tem tracking_id, retorna pixel sem tracking
   if (!trackingId) {

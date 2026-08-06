@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject("evolution-sync", CONTRACT_SCHEMAS["evolution-sync"], req, raw, {
       extraHeaders: corsHeaders,
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, any>;
     const action = typeof body.action === 'string' ? body.action : 'sync-contacts';
     const rawInstanceName = typeof body.instanceName === 'string' ? body.instanceName : 'wpp2';

@@ -101,7 +101,7 @@ Deno.test("Contract: VoiceAgent — transcript tipo errado (array) deve falhar",
 
 Deno.test("Contract: VoiceAgent — CONTRACT_SCHEMAS registra VoiceAgentV1Schema (min(1)/max(2000) strict)", () => {
   assertMatch(SOURCE, /parseOrReject\('voice-agent', CONTRACT_SCHEMAS\['voice-agent'\], req, body/);
-  assertMatch(SOURCE, /if \(!parsed\.ok\) return parsed\.response/);
+  assertMatch(SOURCE, /if \(parsed\.ok === false\) return parsed\.response/);
 });
 
 Deno.test("Contract: VoiceAgent — index.ts valida via parseOrReject (envelope 422 unificado)", () => {

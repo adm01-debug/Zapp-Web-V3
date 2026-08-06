@@ -66,7 +66,7 @@ Deno.serve(withHandler("fetch-whatsapp-avatar", async (req, log) => {
   const parsed = parseOrReject("fetch-whatsapp-avatar", CONTRACT_SCHEMAS["fetch-whatsapp-avatar"], req, raw, {
     extraHeaders: getCorsHeaders(req),
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
   const body = parsed.data as Record<string, any>;
   const phoneRaw = body?.phone;
   if (!phoneRaw || typeof phoneRaw !== "string") {

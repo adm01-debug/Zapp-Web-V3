@@ -430,24 +430,47 @@ export const ElevenLabsTtsV1Schema = z.object({
   * content; mark_read exige external_ids. Webhook externo → permissivo
   * (extras passam), mas os campos obrigatórios por action são exigidos.
   */
+ export const SicoobBridgeNewMessageV1Schema = z.object({
+   action: z.literal("new_message"),
+   message_id: z.string().max(200),
+   sender_name: z.string().max(200).optional().nullable(),
+   sender_email: z.string().max(320).optional().nullable(),
+   sender_phone: z.string().max(50).optional().nullable(),
+   singular_name: z.string().max(200).optional().nullable(),
+   singular_id: z.string().max(200).optional().nullable(),
+   content: z.string().max(10000),
+   vendedor_user_id: z.string().max(200).optional().nullable(),
+   created_at: z.string().max(50).optional().nullable(),
+   sender_id: z.string().max(200).optional().nullable(),
+ }).passthrough();
+
+ export const SicoobBridgeMarkReadV1Schema = z.object({
+   action: z.literal("mark_read"),
+   external_ids: z.array(z.string().max(200)).max(1000),
+ }).passthrough();
+
  export const SicoobBridgeV1Schema = z.discriminatedUnion("action", [
-   z.object({
-     action: z.literal("new_message"),
-     message_id: z.string().max(200),
-     sender_name: z.string().max(200).optional().nullable(),
-     sender_email: z.string().max(320).optional().nullable(),
-     sender_phone: z.string().max(50).optional().nullable(),
-     singular_name: z.string().max(200).optional().nullable(),
-     singular_id: z.string().max(200).optional().nullable(),
-     content: z.string().max(10000),
-     vendedor_user_id: z.string().max(200).optional().nullable(),
-     created_at: z.string().max(50).optional().nullable(),
-     sender_id: z.string().max(200).optional().nullable(),
-   }).passthrough(),
-   z.object({
-     action: z.literal("mark_read"),
-     external_ids: z.array(z.string().max(200)).max(1000),
-   }).passthrough(),
+   SicoobBridgeNewMessageV1Schema,
+   SicoobBridgeMarkReadV1Schema,
+ ]);
+
+ /**
+  * sicoob-bridge@v2 — mesmo discriminatedUnion de V1 com metadata de contrato:
+  * `version` ("2.0") e `timestamp` de entrega em cada branch de action.
+  *
+  * Retrocompat: payload V1 (sem `version`) falha V2 e cai para V1 na
+  * auto-detecção do parseOrReject; payload V2 valida contra V2. V1 permanece
+  * aceito até o sunset registrado em contract-versions.ts.
+  */
+ export const SicoobBridgeV2Schema = z.discriminatedUnion("action", [
+   SicoobBridgeNewMessageV1Schema.extend({
+     version: z.literal("2.0"),
+     timestamp: z.number().int().positive(),
+   }),
+   SicoobBridgeMarkReadV1Schema.extend({
+     version: z.literal("2.0"),
+     timestamp: z.number().int().positive(),
+   }),
  ]);
 
  /** sicoob-bridge-reply@v1 — valida no index.ts. Schema de registro. */
@@ -463,6 +486,16 @@ export const SicoobBridgeReplyV1Schema = z.object({
   created_at: z.string().optional(),
   agent_id: z.string().optional(),
 }).passthrough();
+
+/**
+ * sicoob-bridge-reply@v2 — estende V1 com metadata de contrato: `version`
+ * ("2.0") e `timestamp` de entrega. Retrocompat idêntica aos demais webhooks
+ * (auto-detecção tenta v2 primeiro; payload V1 cai para v1).
+ */
+export const SicoobBridgeReplyV2Schema = SicoobBridgeReplyV1Schema.extend({
+  version: z.literal('2.0'),
+  timestamp: z.number().int().positive(),
+});
 
  /**
   * bitrix-api@v1 — schema REAL (espelha o antigo BitrixBodySchema local, agora
@@ -840,8 +873,8 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "elevenlabs-tts":                { v1: ElevenLabsTtsV1Schema },
 
   // Contratos com validação própria (fecha gap CONTRACTS ⊇ CONTRACT_SCHEMAS)
-  "sicoob-bridge":                 { v1: SicoobBridgeV1Schema },
-  "sicoob-bridge-reply":           { v1: SicoobBridgeReplyV1Schema },
+  "sicoob-bridge":                 { v1: SicoobBridgeV1Schema, v2: SicoobBridgeV2Schema },
+  "sicoob-bridge-reply":           { v1: SicoobBridgeReplyV1Schema, v2: SicoobBridgeReplyV2Schema },
   "bitrix-api":                    { v1: BitrixApiV1Schema },
   "whatsapp-cloud-send":           { v1: WhatsappCloudSendV1Schema },
   "public-api":                    { v1: PublicApiV1Schema },

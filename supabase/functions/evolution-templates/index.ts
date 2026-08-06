@@ -83,7 +83,7 @@ Deno.serve(async (req: Request) => {
       const parsed = parseOrReject('evolution-templates', { v1: EvolutionTemplatesV1Schema }, req, await req.json().catch(() => (null)), {
         extraHeaders: getCorsHeaders(req),
       });
-      if (!parsed.ok) return parsed.response;
+      if (parsed.ok === false) return parsed.response;
       const body = parsed.data as Record<string, unknown>;
       const { action } = body;
       if (action === "send" || !action) {

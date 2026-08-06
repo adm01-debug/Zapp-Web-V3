@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
   try {
     const raw = await req.json().catch(() => ({}));
     const parsed = parseOrReject('recover-corrupted-audios', CONTRACT_SCHEMAS['recover-corrupted-audios'], req, raw, { extraHeaders: getCorsHeaders(req) });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const { batch_size = 20, offset = 0, dry_run = false } = parsed.data as Record<string, any>;
 
     const { data: messages, error: fetchErr } = await supabase

@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('get-sip-password', CONTRACT_SCHEMAS['get-sip-password'], req, await req.json().catch(() => ({})), {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
 
     const adminClient = createZappAdminClient();
     const { data: profile, error: profileError } = await adminClient
