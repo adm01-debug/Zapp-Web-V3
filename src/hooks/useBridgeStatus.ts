@@ -35,7 +35,7 @@ export interface ActiveAlert {
   alert_type: string;
 }
 
-const REFRESH_INTERVAL = 30;
+const REFRESH_INTERVAL = 60;
 
 /** use Bridge Status function. */
 export function useBridgeStatus() {
@@ -66,6 +66,11 @@ export function useBridgeStatus() {
   const [nextRefreshIn, setNextRefreshIn] = useState(REFRESH_INTERVAL);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  // Dedupe: nunca roda 2 health checks concorrentes (interval tick + trigger
+  // realtime podem colidir no mesmo instante).
+  const healthCheckInFlightRef = useRef(false);
+  // Intervalo mínimo de 60s entre checks (inclui re-check por visibility).
+  const lastHealthCheckAtRef = useRef(0);
 
   const runDiagnostics = useCallback(async () => {
     setDiagRunning(true);
@@ -90,6 +95,11 @@ export function useBridgeStatus() {
   }, [mountedRef, toast]);
 
   const checkHealth = useCallback(async () => {
+    // Dedupe: se um check já está em voo (interval tick + trigger realtime),
+    // ignora — nunca 2 health checks concorrentes.
+    if (healthCheckInFlightRef.current) return;
+    healthCheckInFlightRef.current = true;
+    lastHealthCheckAtRef.current = Date.now();
     setLoading(true);
     const startTime = Date.now();
     try {
@@ -204,6 +214,7 @@ export function useBridgeStatus() {
       const minWait = 600;
       if (elapsed < minWait) await new Promise((resolve) => setTimeout(resolve, minWait - elapsed));
       if (mountedRef.current) setLoading(false);
+      healthCheckInFlightRef.current = false;
     }
   }, [toast, mountedRef]);
 
@@ -251,7 +262,11 @@ export function useBridgeStatus() {
         { event: '*', schema: 'zapp', table: 'system_health_incidents' },
         () => {
           void fetchIncidents();
-          void checkHealth();
+          // Trigger realtime com a aba oculta não dispara health check (o
+          // polling já está pausado por visibility).
+          if (document.visibilityState === 'visible') {
+            void checkHealth();
+          }
         }
       )
       .subscribe();
@@ -260,6 +275,13 @@ export function useBridgeStatus() {
       timerRef.current = setInterval(() => {
         setNextRefreshIn((prev) => {
           if (prev <= 1) {
+            // Aba oculta: pausa o polling (countdown parado em 1, sem fetch).
+            if (document.visibilityState !== 'visible') return 1;
+            // Intervalo mínimo de 60s desde o último check (inclui re-check
+            // por visibilitychange/focus — não pode furar a cota).
+            if (Date.now() - lastHealthCheckAtRef.current < REFRESH_INTERVAL * 1000) {
+              return 1;
+            }
             void checkHealth();
             return REFRESH_INTERVAL;
           }
@@ -268,8 +290,18 @@ export function useBridgeStatus() {
       }, 1000);
     }
 
+    // Voltou a ficar visível → re-check na hora: força o countdown a checar no
+    // próximo tick (o gate do intervalo mínimo de 60s é aplicado no tick).
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        setNextRefreshIn(1);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       trafficSub.unsubscribe();
       supabase.removeChannel(trafficSub);
       alertsSub.unsubscribe();

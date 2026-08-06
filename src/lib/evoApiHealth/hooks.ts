@@ -20,7 +20,7 @@ export function useEvoApiDashboard(refetchMs = 30_000) {
   });
 }
 
-export function useActiveAlerts(refetchMs = 15_000) {
+export function useActiveAlerts(refetchMs = 60_000) {
   return useQuery({
     queryKey: queryKeys.adminOps.evoApiHealthAlertsActive(),
     queryFn: () =>
@@ -30,8 +30,13 @@ export function useActiveAlerts(refetchMs = 15_000) {
         order: { column: 'created_at', ascending: false },
         limit: 100,
       }),
+    // Polling consolidado (FIX onda-bugs-console-v1): 60s (antes 15s) com
+    // staleTime 60s. Dedupe por queryKey — badge (useEvoApiAlertsBadge) e
+    // página compartilham o MESMO fetch. O refetchInterval do TanStack Query
+    // já pausa com a aba oculta (refetchIntervalInBackground=false) e o
+    // refetchOnWindowFocus re-checa ao voltar, gateado pelo staleTime.
     refetchInterval: refetchMs,
-    staleTime: 5_000,
+    staleTime: 60_000,
     refetchOnWindowFocus: true,
   });
 }

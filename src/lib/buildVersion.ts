@@ -22,7 +22,13 @@ declare const __APP_BUILD_ID__: string;
 const CURRENT_BUILD_ID: string = typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : 'dev';
 
 const VERSION_URL = '/version.json';
-const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 min
+// Polling consolidado (FIX onda-bugs-console-v1): intervalo base de 60s com
+// jitter ±POLL_JITTER_MS. Em produção o watcher rodava a cada ~30s (às vezes
+// 2 fetches em rajada no mesmo segundo — dois consumers). O intervalo MÍNIMO
+// de 60s entre checks (qualquer trigger) é garantido por MIN_CHECK_GAP_MS.
+const POLL_INTERVAL_MS = 60_000;
+const POLL_JITTER_MS = 10_000;
+const MIN_CHECK_GAP_MS = 60_000;
 const RELOAD_STATE_KEY = 'zapp-build-reload-state';
 const SW_PURGE_FLAG = 'zapp-workbox-purged-once';
 const GLOBAL_RELOAD_COUNT_KEY = 'zapp-build-global-reload-count';
@@ -67,8 +73,17 @@ interface ReloadState {
 }
 
 let started = false;
-let intervalId: ReturnType<typeof setInterval> | undefined;
+// window.setTimeout retorna number (DOM) — diferente do setTimeout do Node.
+let pollTimer: number | undefined;
 let workboxChecked = false;
+
+// Guardas anti-rajada (FIX onda-bugs-console-v1):
+// - checkInFlight: nunca roda 2 checks de versão concorrentes (dedupe de
+//   consumers — kickoff + visibilitychange/focus no mesmo tick).
+// - lastCheckAt: intervalo MÍNIMO de 60s entre checks, qualquer que seja o
+//   trigger (timer/focus/visibilitychange).
+let checkInFlight = false;
+let lastCheckAt = 0;
 
 /**
  * Detect Workbox precache entries in CacheStorage (fonte confiavel — nao depende
@@ -380,7 +395,35 @@ function ensureApplyListener(): void {
 }
 ensureApplyListener();
 
+/**
+ * Agenda o próximo poll de version.json com jitter ±POLL_JITTER_MS — evita
+ * que múltiplas abas/usuários sincronizem o fetch no mesmo segundo. O ciclo
+ * vive no próprio timer (setTimeout encadeado): o check é desacoplado do
+ * agendamento, então um check bloqueado (in-flight / intervalo mínimo) não
+ * mata a cadeia. A pausa por aba oculta é feita limpando `pollTimer` (ver
+ * onVisible no watcher).
+ */
+function scheduleNextPoll(checkFn: () => void): void {
+  if (pollTimer) clearTimeout(pollTimer);
+  const jitter = Math.round((Math.random() * 2 - 1) * POLL_JITTER_MS);
+  pollTimer = window.setTimeout(() => {
+    pollTimer = undefined;
+    checkFn();
+    scheduleNextPoll(checkFn);
+  }, POLL_INTERVAL_MS + jitter);
+}
+
 async function checkVersion(): Promise<void> {
+  // Dedupe in-flight: se um check já está rodando, ignora — nunca 2 fetches
+  // de version.json concorrentes (ex.: kickoff + visibilitychange no mesmo
+  // tick, o padrão de rajada visto em produção).
+  if (checkInFlight) return;
+  const now = Date.now();
+  // Intervalo MÍNIMO de 60s entre checks, qualquer que seja o trigger. O poll
+  // já é agendado em 60s±jitter; focus/visibilitychange não podem furar a cota.
+  if (now - lastCheckAt < MIN_CHECK_GAP_MS) return;
+  checkInFlight = true;
+  lastCheckAt = now;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), VERSION_CHECK_TIMEOUT_MS);
   try {
@@ -452,6 +495,7 @@ async function checkVersion(): Promise<void> {
     /* offline / timeout / network hiccup — retry next tick */
   } finally {
     clearTimeout(timeoutId);
+    checkInFlight = false;
   }
 }
 
@@ -491,6 +535,10 @@ export function startBuildVersionWatcher(): () => void {
   if (started || typeof window === 'undefined') return () => undefined;
   if (isSkippableEnv()) return () => undefined;
   started = true;
+  // Guards de polling reiniciados a cada start (após um stop/cleanup) — o
+  // estado não pode vazar entre ciclos do watcher.
+  checkInFlight = false;
+  lastCheckAt = 0;
 
   // Timestamp da inicialização para evitar checks prematuras no 1o minuto.
   const watcherStartedAt = Date.now();
@@ -506,18 +554,30 @@ export function startBuildVersionWatcher(): () => void {
 
   // Kick off first check after the tab is idle so we don't fight first paint.
   const kickoff = window.setTimeout(() => {
+    // Aba oculta no boot: adia o 1º check e o início do polling até o
+    // visibilitychange (onVisible) — nada de version.json em background.
+    if (document.visibilityState !== 'visible') return;
     void detectAndPurgeStaleWorkboxSW();
     safeCheckVersion();
+    // Primeiro poll 60s±jitter APÓS o kickoff (não a partir do boot — evita
+    // checks a 30s de distância, abaixo do intervalo mínimo de 60s).
+    scheduleNextPoll(() => safeCheckVersion());
   }, MIN_BOOT_DELAY_MS);
-
-  intervalId = setInterval(() => {
-    safeCheckVersion();
-  }, POLL_INTERVAL_MS);
 
   const onVisible = () => {
     if (document.visibilityState === 'visible') {
+      // Voltou a ficar visível: re-checa na hora (respeitando o intervalo
+      // mínimo via MIN_CHECK_GAP_MS) e retoma o polling com jitter fresco.
       void detectAndPurgeStaleWorkboxSW();
       safeCheckVersion();
+      scheduleNextPoll(() => safeCheckVersion());
+    } else {
+      // Aba oculta: PAUSA o polling — limpa o timer pendente para não ficar
+      // baixando version.json em background.
+      if (pollTimer) {
+        clearTimeout(pollTimer);
+        pollTimer = undefined;
+      }
     }
   };
   document.addEventListener('visibilitychange', onVisible);
@@ -530,7 +590,10 @@ export function startBuildVersionWatcher(): () => void {
 
   return () => {
     clearTimeout(kickoff);
-    if (intervalId) clearInterval(intervalId);
+    if (pollTimer) {
+      clearTimeout(pollTimer);
+      pollTimer = undefined;
+    }
     // Cancela a janela de cortesia pendente — um reload agendado não pode
     // disparar depois que o watcher foi parado (ex.: unmount em testes).
     if (graceTimer) {
@@ -541,6 +604,11 @@ export function startBuildVersionWatcher(): () => void {
     document.removeEventListener('visibilitychange', onVisible);
     window.removeEventListener('focus', onFocus);
     started = false;
+    // Zera os guards de polling no cleanup — testes reiniciam o watcher e o
+    // fake clock recomeça do zero a cada caso; estado antigo bloquearia o 1º
+    // check (intervalo mínimo de 60s).
+    checkInFlight = false;
+    lastCheckAt = 0;
   };
 }
 
@@ -557,6 +625,9 @@ export function getCurrentBuildId(): string {
 export const __TEST__ = {
   CURRENT_BUILD_ID,
   UPDATE_GRACE_MS,
+  POLL_INTERVAL_MS,
+  POLL_JITTER_MS,
+  MIN_CHECK_GAP_MS,
   RELOAD_STATE_KEY,
   SW_PURGE_FLAG,
   GLOBAL_RELOAD_COUNT_KEY,
