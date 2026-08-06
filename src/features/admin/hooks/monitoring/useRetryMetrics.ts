@@ -121,7 +121,7 @@ export function useRetryMetrics(filters: RetryMetricsFilters = {}) {
   // Realtime: invalida ao receber INSERT
   useEffect(() => {
     const channel = supabase
-      .channel('evolution_retry_metrics_realtime')
+      .channel(`evolution_retry_metrics_realtime:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         // Tabela física é evo.evolution_retry_metrics (na publicação supabase_realtime,

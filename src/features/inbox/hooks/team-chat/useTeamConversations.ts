@@ -134,7 +134,7 @@ export function useTeamConversations() {
   useEffect(() => {
     if (!profile) return;
     const channel = supabase
-      .channel('team-chat-updates')
+      .channel(`team-chat-updates:${Math.random().toString(36).slice(2, 10)}`)
       // team_messages: tabela física em zapp (migration 000005 moveu de public)
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_messages' }, () => {
         void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });

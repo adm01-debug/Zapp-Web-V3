@@ -84,7 +84,7 @@ Deno.test({
   fn: () =>
     withFetchStub(
       (_input, init) =>
-        new Promise((_resolve, reject) => {
+        new Promise<Response>((_resolve, reject) => {
           const signal = init?.signal as AbortSignal | undefined;
           signal?.addEventListener("abort", () => reject(abortError()));
         }),
@@ -119,11 +119,11 @@ Deno.test("get-media-base64 proxy: success path with caller signal returns versi
     },
   ));
 
-Deno.test("get-media-base64 action: source validates message.key, uses 30s timeout + req.signal, re-emits real HTTP status", async () => {
+Deno.test("get-media-base64 action: source validates message.key, uses 30s timeout + req.signal, re-emits real HTTP status, maps expired media to 410 MEDIA_EXPIRED", async () => {
   const source = await readSource();
   const block = extractBlock(source, "if (action === 'get-media-base64')", {
     until: "// ── Instance lifecycle",
-    maxSize: 4000,
+    maxSize: 6000,
   });
   assert(block.includes("INVALID_MESSAGE_KEY"), "deve validar message.key");
   assert(block.includes("key.id"), "deve exigir key.id");
@@ -131,4 +131,11 @@ Deno.test("get-media-base64 action: source validates message.key, uses 30s timeo
   assert(block.includes("signal: req.signal"), "deve propagar abort do caller");
   assert(block.includes("parsed.error === true"), "deve detectar envelope de erro");
   assert(block.includes("upstreamStatus"), "deve re-emitir status HTTP real");
+  // Hardening mídia expirada (2026-08-06): upstream 400/404/410 ou body com
+  // 'Failed to fetch stream'/'Media not found' → 410 Gone + MEDIA_EXPIRED pt-BR.
+  assert(block.includes("MEDIA_EXPIRED"), "deve re-emitir code MEDIA_EXPIRED p/ mídia expirada");
+  assert(block.includes("410"), "deve re-emitir status 410 (Gone) p/ mídia expirada");
+  assert(block.includes("Failed to fetch stream"), "deve detectar marcador upstream de stream morto");
+  assert(block.includes("Media not found"), "deve detectar marcador upstream de mídia não encontrada");
+  assert(block.includes("A mídia expirou no WhatsApp"), "mensagem pt-BR de mídia expirada");
 });

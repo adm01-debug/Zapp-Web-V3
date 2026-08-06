@@ -8,10 +8,18 @@
 import { safeFrom } from '@/integrations/supabase/safeClient';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
+import { MODULE_TTL_MS } from '@/lib/queryStaleTimes';
 import type { InboxFilterPreset } from './inboxFilterPresets';
 import { MAX_INBOX_PRESETS } from './inboxFilterPresets';
 
 const log = getLogger('inboxPresetsSync');
+
+// ── Cache module-level (TTL 2min) ─────────────────────────────────────────
+// saved_filters é quase-estático (presets do usuário). O useEffect de sync
+// roda a cada mount da Inbox — o cache evita o refetch repetido. upserts
+// locais atualizam o cache inline.
+const PRESETS_TTL_MS = MODULE_TTL_MS.userPrefs;
+let presetsCache: { userId: string; data: InboxFilterPreset[]; fetchedAt: number } | null = null;
 
 export const INBOX_PRESET_ENTITY = 'inbox_filters';
 
@@ -69,6 +77,17 @@ export async function fetchRemoteInboxPresets(): Promise<InboxFilterPreset[] | n
   const userId = await getUserId();
   if (!userId) return null;
 
+  // TTL: presets quase-estáticos — evita refetch a cada mount da Inbox.
+  // Cache keyed por userId: nunca servir presets de outro usuário no mesmo
+  // browser (vazamento cross-user — R1 da regression review da onda).
+  if (
+    presetsCache &&
+    presetsCache.userId === userId &&
+    Date.now() - presetsCache.fetchedAt < PRESETS_TTL_MS
+  ) {
+    return presetsCache.data;
+  }
+
   try {
     const { data, error } = await safeFrom('saved_filters')
       .select('id, name, filters, created_at')
@@ -79,9 +98,11 @@ export async function fetchRemoteInboxPresets(): Promise<InboxFilterPreset[] | n
 
     if (error) throw error;
 
-    return ((data ?? []) as SavedFilterRow[])
+    const presets = ((data ?? []) as SavedFilterRow[])
       .map(fromRow)
       .filter((p): p is InboxFilterPreset => p !== null);
+    presetsCache = { userId, data: presets, fetchedAt: Date.now() };
+    return presets;
   } catch (error) {
     log.warn('Falha ao carregar presets remotos', { error });
     return null;
@@ -119,7 +140,16 @@ export async function upsertRemoteInboxPreset(
       .maybeSingle();
 
     if (error) throw error;
-    return data ? fromRow(data as SavedFilterRow) : null;
+    const saved = data ? fromRow(data as SavedFilterRow) : null;
+    if (saved) {
+      // Mantém o cache coerente com o upsert local (sempre do usuário atual).
+      presetsCache = {
+        userId,
+        data: [saved, ...(presetsCache?.userId === userId ? presetsCache.data : []).filter((p) => p.id !== saved.id)],
+        fetchedAt: Date.now(),
+      };
+    }
+    return saved;
   } catch (error) {
     log.warn('Falha ao salvar preset remoto', { error, name: preset.name });
     return null;
@@ -138,6 +168,14 @@ export async function deleteRemoteInboxPreset(id: string): Promise<void> {
       .eq('user_id', userId)
       .eq('entity_type', INBOX_PRESET_ENTITY);
     if (error) throw error;
+    // Remove do cache para manter coerência (apenas do usuário atual).
+    if (presetsCache?.userId === userId) {
+      presetsCache = {
+        userId,
+        data: presetsCache.data.filter((p) => p.id !== id),
+        fetchedAt: Date.now(),
+      };
+    }
   } catch (error) {
     log.warn('Falha ao remover preset remoto', { error, id });
   }

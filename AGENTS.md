@@ -27,12 +27,16 @@
 4. Rodar em **staging**; comparar contra o baseline. Só então promover para produção.
 5. **Nunca** rodar DDL manual em produção. Nunca commitar direto na `main` (abrir PR).
 
-> **Modelo vigente (DB-as-source, 2026-08):** DDL de produção é aplicado via MCP SQL com
-> migration versionada (`^\d{14}_<nome>.sql` no repo) + registro em
-> `supabase_migrations.schema_migrations`. O **DB é a fonte de verdade** de objetos;
-> os arquivos em `supabase/migrations/` são o registro histórico. Timestamps futuros
-> são permitidos para ordenação (padrão da casa). Reorganizações do diretório de
-> migrations NÃO desaplicam o que já está no DB.
+### Modelo vigente: DB-as-source (produção self-hosted)
+
+O banco de produção é a **fonte de verdade dos objetos**. O fluxo oficial de mudança de banco é:
+
+1. DDL em produção é aplicado via **MCP SQL versionado** (`supabase_apply_migration` / `supabase_db_query` + psql via Portainer quando a role do MCP não cobre o DDL), **nunca** DDL solto sem versionamento.
+2. Toda aplicação grava o registro em `supabase_migrations.schema_migrations` (`version` + `name`) — idempotente (`ON CONFLICT (version) DO NOTHING`).
+3. As migrations no repo (`supabase/migrations/*.sql`) são o **registro histórico** (espelho do que roda no DB), não o mecanismo de aplicação — `supabase db push` **não** é usado neste DB (restaurado de dump). Reorganizações do diretório de migrations NÃO desaplicam o que já está no DB.
+4. Timestamps futuros (ex.: `20260806125000`) são **permitidos e normais** para ordenação — o padrão da casa é `YYYYMMDDHHMMSS`, sem restrição de "não pode ser depois de hoje".
+5. Se o objeto já existir no DB (drift DB×repo), a migration versionada deve conter o corpo **corrigido que já roda no DB** (alinhar repo×DB, sem reintroduzir bug) e é aplicada como no-op + registrada.
+6. Arquivo de migration sem efeito real no DB **não** é registrado antes de decisão explícita (aplicar × arquivar).
 
 ## Lista "NÃO MEXA" (sem revisão sênior explícita)
 

@@ -3,7 +3,11 @@ import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
 import { toast } from 'sonner';
-import { type StickerItem, type PendingUpload, CATEGORY_LABELS } from '@/features/inbox';
+import {
+  type StickerItem,
+  type PendingUpload,
+  CATEGORY_LABELS,
+} from '@/features/inbox/components/stickers/StickerTypes';
 
 const log = getLogger('StickerPicker');
 const RECENT_LIMIT = 8;

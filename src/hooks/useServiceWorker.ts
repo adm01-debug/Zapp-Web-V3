@@ -284,7 +284,11 @@ export function useServiceWorker() {
                 );
                 requestGracefulRefresh(`sw-updated:${swBuildId}`, swBuildId);
               }
-            );
+            ).catch((err: unknown) => {
+              // import() dinâmico pode rejeitar (chunk removido em redeploy) —
+              // sem handler vira unhandled rejection no handler do SW.
+              log.warn('[ServiceWorker] Falha ao carregar buildVersion no SW_UPDATED:', err);
+            });
           }
         };
         navigator.serviceWorker.addEventListener('message', onMessage);

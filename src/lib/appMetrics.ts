@@ -60,9 +60,24 @@ export function markTimeToMainScreen(route: string): void {
   emit({ kind: 'ttm', ms, route });
 }
 
+/** Janela de dedupe: a mesma falha (rota+razão) reemitida dentro deste intervalo vira 1 única métrica. */
+const AUTHZ_DEDUPE_WINDOW_MS = 5_000;
+
+// Chave: `${route}\u0000${reason}` → timestamp (nowMs) da última emissão.
+// Guarda contra re-renders do mesmo guard (ex.: ProtectedRoute renderizando
+// 2x sem sessão) que produziam métricas idênticas a poucos ms de distância.
+const lastAuthzEmitAt = new Map<string, number>();
+
 /** Registra uma falha de autorização (não autenticado, role, permission ou timeout). */
 export function recordAuthzFailure(failure: Omit<AuthzFailure, 'at'>): void {
-  const entry: AuthzFailure = { ...failure, at: Math.round(nowMs()) };
+  const now = Math.round(nowMs());
+  const key = `${failure.route}\u0000${failure.reason}`;
+  const last = lastAuthzEmitAt.get(key);
+  if (last !== undefined && now - last < AUTHZ_DEDUPE_WINDOW_MS) {
+    return; // idempotente: mesma falha dentro da janela já foi emitida e registrada
+  }
+  lastAuthzEmitAt.set(key, now);
+  const entry: AuthzFailure = { ...failure, at: now };
   state.authzFailures.push(entry);
   emit({ kind: 'authz_failure', ...entry });
 }

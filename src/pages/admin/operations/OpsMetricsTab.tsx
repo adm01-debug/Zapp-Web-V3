@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
+import { getLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -73,6 +74,8 @@ function fmtSeconds(sec: number | null | undefined) {
   return `${(sec / 3600).toFixed(1)}h`;
 }
 
+const log = getLogger('OpsMetricsTab');
+
 /** Ops Metrics Tab. */
 export function OpsMetricsTab() {
   const [windowHours, setWindowHours] = useState('24');
@@ -82,16 +85,23 @@ export function OpsMetricsTab() {
   const fetchMetrics = useMemo(
     () => async () => {
       setLoading(true);
-      const { data: res, error } = await safeClient.rpc<Metrics>('rpc_ops_metrics', {
-        p_window_hours: Number(windowHours),
-      });
-      if (error) {
-        toast.error('Erro ao carregar métricas: ' + error.message);
+      try {
+        const { data: res, error } = await safeClient.rpc<Metrics>('rpc_ops_metrics', {
+          p_window_hours: Number(windowHours),
+        });
+        if (error) {
+          toast.error('Erro ao carregar métricas: ' + error.message);
+          return;
+        }
+        setData(res);
+      } catch (err) {
+        // Sem try/catch: unhandled rejection E loading travado (spinner)
+        // quando a RPC rejeita por rede/timeout.
+        log.error('Failed to load ops metrics (rejeição):', err);
+        toast.error('Erro ao carregar métricas. Tente novamente.');
+      } finally {
         setLoading(false);
-        return;
       }
-      setData(res);
-      setLoading(false);
     },
     [windowHours]
   );

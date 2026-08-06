@@ -48,14 +48,17 @@ export function useClientWallet() {
         .order('priority', { ascending: false });
 
       const rawRules = rulesData ?? [];
-      const agentIds = [...new Set(rawRules.map((r) => r.agent_id))];
+      const agentIds = [...new Set(rawRules.map((r) => r.agent_id).filter(Boolean))];
       const connectionIds = [
         ...new Set(rawRules.map((r) => r.whatsapp_connection_id).filter(Boolean)),
       ] as string[];
 
       const [{ data: agentsData }, connectionsResult, { data: allAgents }, allConnectionsResult] =
         await Promise.all([
-          supabase.from('profiles').select('id, name').in('id', agentIds),
+          // EMPTY-IN GUARD: sem regras, agentIds é [] — pula o fetch (evita `id=in.()`)
+          agentIds.length > 0
+            ? supabase.from('profiles').select('id, name').in('id', agentIds)
+            : Promise.resolve({ data: [] as { id: string; name: string }[] }),
           connectionIds.length > 0
             ? safeWhatsAppConnectionsQuery(supabase).getByIds(connectionIds)
             : Promise.resolve({ data: [], error: null }),

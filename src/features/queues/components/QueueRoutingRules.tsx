@@ -297,7 +297,9 @@ export function QueueRoutingRules({ queueId }: Props) {
         </div>
       ) : (
         <div className="mt-2 space-y-1">
-          {rules.map((rule) => (
+          {rules
+            .filter((rule): rule is QueueRoutingRule & { id: string } => rule.id !== null)
+            .map((rule) => (
             <div
               key={rule.id}
               className="flex items-center gap-2.5 rounded-md border border-border/30 bg-muted/10 px-3 py-1.5 transition-colors hover:bg-muted/30"
@@ -305,7 +307,7 @@ export function QueueRoutingRules({ queueId }: Props) {
               <Switch
                 checked={rule.is_active ?? true}
                 onCheckedChange={(checked) =>
-                  updateRule.mutate({ id: rule.id!, data: { is_active: checked } })
+                  updateRule.mutate({ id: rule.id, data: { is_active: checked } })
                 }
                 aria-label="Ativar/desativar regra"
                 className="scale-75"
@@ -335,7 +337,7 @@ export function QueueRoutingRules({ queueId }: Props) {
                 variant="ghost"
                 className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
                 aria-label="Excluir regra"
-                onClick={() => deleteRule.mutate(rule.id!)}
+                onClick={() => deleteRule.mutate(rule.id)}
                 disabled={deleteRule.isPending}
               >
                 <Trash2 className="h-3 w-3" />

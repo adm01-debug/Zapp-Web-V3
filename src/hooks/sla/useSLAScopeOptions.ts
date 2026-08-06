@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getLogger } from '@/lib/logger';
 import type { SLARuleScope } from '@/features/sla';
+
+const log = getLogger('useSLAScopeOptions');
 
 type ContactRow = { id: string; name: string | null; phone: string | null };
 
@@ -48,12 +51,19 @@ export function useSLAScopeOptions(
         .from('contacts')
         .select('company')
         .not('company', 'is', null)
-        .then(({ data }) => {
+        .then(({ data, error }) => {
+          if (error) {
+            log.warn('Failed to load company options:', error);
+            return;
+          }
           const rows = (data ?? []) as Array<{ company: string | null }>;
           const unique = [
             ...new Set(rows.map((r) => r.company).filter((v): v is string => !!v)),
           ].sort();
           setCompanies(unique);
+        })
+        .then(undefined, (err: unknown) => {
+          log.warn('Failed to load company options (rejeição):', err);
         });
     }
 
@@ -62,12 +72,19 @@ export function useSLAScopeOptions(
         .from('contacts')
         .select('job_title')
         .not('job_title', 'is', null)
-        .then(({ data }) => {
+        .then(({ data, error }) => {
+          if (error) {
+            log.warn('Failed to load job_title options:', error);
+            return;
+          }
           const rows = (data ?? []) as Array<{ job_title: string | null }>;
           const unique = [
             ...new Set(rows.map((r) => r.job_title).filter((v): v is string => !!v)),
           ].sort();
           setJobTitles(unique);
+        })
+        .then(undefined, (err: unknown) => {
+          log.warn('Failed to load job_title options (rejeição):', err);
         });
     }
 
@@ -76,8 +93,15 @@ export function useSLAScopeOptions(
         .from('queues')
         .select('id, name')
         .order('name')
-        .then(({ data }) => {
+        .then(({ data, error }) => {
+          if (error) {
+            log.warn('Failed to load queue options:', error);
+            return;
+          }
           setQueues((data ?? []) as unknown as QueueOption[]); // ignore-audit — Supabase queues row has no index signature for direct widening to QueueOption
+        })
+        .then(undefined, (err: unknown) => {
+          log.warn('Failed to load queue options (rejeição):', err);
         });
     }
 
@@ -86,8 +110,15 @@ export function useSLAScopeOptions(
         .from('profiles')
         .select('id, name')
         .order('name')
-        .then(({ data }) => {
+        .then(({ data, error }) => {
+          if (error) {
+            log.warn('Failed to load agent options:', error);
+            return;
+          }
           setAgents((data ?? []) as unknown as AgentOption[]); // ignore-audit — Supabase profiles row has no index signature for direct widening to AgentOption
+        })
+        .then(undefined, (err: unknown) => {
+          log.warn('Failed to load agent options (rejeição):', err);
         });
     }
   }, [open, scope]);
@@ -127,6 +158,8 @@ export function useSLAScopeOptions(
       setContacts(
         merged.slice(0, 20).map((r) => ({ id: r.id, name: r.name ?? '', phone: r.phone ?? '' }))
       );
+    }).then(undefined, (err: unknown) => {
+      log.warn('Failed to search contact options (rejeição):', err);
     });
   }, [open, scope, contactSearch]);
 

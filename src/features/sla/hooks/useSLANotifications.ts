@@ -36,49 +36,55 @@ export const useSLANotifications = () => {
       contactId: string
     ) => {
       if (!isValidUUID(contactId)) return;
-      // Fetch contact info
-      const { data: contact, error: contactErr } = await supabase
-        .from('contacts')
-        .select('name, phone')
-        .eq('id', contactId)
-        .maybeSingle();
-      if (contactErr) log.error('Failed to fetch contact for SLA notification:', contactErr);
+      try {
+        // Fetch contact info
+        const { data: contact, error: contactErr } = await supabase
+          .from('contacts')
+          .select('name, phone')
+          .eq('id', contactId)
+          .maybeSingle();
+        if (contactErr) log.error('Failed to fetch contact for SLA notification:', contactErr);
 
-      const title =
-        type === 'first_response'
-          ? '⚠️ SLA de Primeira Resposta Violado'
-          : '🚨 SLA de Resolução Violado';
+        const title =
+          type === 'first_response'
+            ? '⚠️ SLA de Primeira Resposta Violado'
+            : '🚨 SLA de Resolução Violado';
 
-      const description = contact
-        ? type === 'first_response'
-          ? `O contato ${contact.name || contact.phone} não recebeu resposta no prazo.`
-          : `O atendimento do contato ${contact.name || contact.phone} excedeu o tempo de resolução.`
-        : type === 'first_response'
-          ? 'Um contato não recebeu resposta dentro do prazo de SLA.'
-          : 'Um atendimento excedeu o tempo de resolução de SLA.';
+        const description = contact
+          ? type === 'first_response'
+            ? `O contato ${contact.name || contact.phone} não recebeu resposta no prazo.`
+            : `O atendimento do contato ${contact.name || contact.phone} excedeu o tempo de resolução.`
+          : type === 'first_response'
+            ? 'Um contato não recebeu resposta dentro do prazo de SLA.'
+            : 'Um atendimento excedeu o tempo de resolução de SLA.';
 
-      // Show toast
-      toast({
-        title,
-        description,
-        variant: 'destructive',
-      });
-
-      // Play sound if enabled and not in quiet hours
-      if (settings.soundEnabled && settings.slaBreachSound && !isQuietHours()) {
-        playNotificationSound('sla_breach', settings.soundType, settings.soundVolume);
-      }
-
-      // Show browser notification if enabled
-      if (settings.browserNotifications && settings.desktopAlerts) {
-        showBrowserNotification(title, description, {
-          tag: `sla-breach-${type}`,
+        // Show toast
+        toast({
+          title,
+          description,
+          variant: 'destructive',
         });
+
+        // Play sound if enabled and not in quiet hours
+        if (settings.soundEnabled && settings.slaBreachSound && !isQuietHours()) {
+          playNotificationSound('sla_breach', settings.soundType, settings.soundVolume);
+        }
+
+        // Show browser notification if enabled
+        if (settings.browserNotifications && settings.desktopAlerts) {
+          showBrowserNotification(title, description, {
+            tag: `sla-breach-${type}`,
+          });
+        }
+      } catch (err) {
+        // Falha de rede/query não pode derrubar o handler do realtime
+        // (unhandled rejection silencioso dentro do canal).
+        log.error('[useSLANotifications] error handling SLA breach', err);
       }
     };
 
     const channel = supabase
-      .channel('sla-breaches')
+      .channel(`sla-breaches:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         {

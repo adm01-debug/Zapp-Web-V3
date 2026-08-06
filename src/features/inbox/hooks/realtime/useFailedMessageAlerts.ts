@@ -51,7 +51,7 @@ export function useFailedMessageAlerts(enabled = true): void {
     if (!enabled) return;
 
     const channel = supabase
-      .channel('failed_messages_alerts')
+      .channel(`failed_messages_alerts:${Math.random().toString(36).slice(2, 10)}`)
       .on<FailedMessageRowMinimal>(
         'postgres_changes',
         { event: 'UPDATE', schema: 'zapp', table: 'failed_messages' },

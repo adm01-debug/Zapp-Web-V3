@@ -273,6 +273,14 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
             oauthInFlightRef.current = false;
           }
         }, 500);
+      })
+      .catch((err: unknown) => {
+        // Rejeição da edge fn (rede/timeout): sem handler, o fluxo OAuth fica
+        // PERMANENTEMENTE bloqueado (oauthInFlightRef nunca reseta) e vira
+        // unhandled promise rejection.
+        oauthInFlightRef.current = false;
+        toast.error('Falha ao iniciar a autenticação Email. Tente novamente.');
+        log.warn('[EmailOAuth] getAuthUrl falhou:', err);
       });
   }, [queryClient]);
 
@@ -302,7 +310,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
   // Realtime: recarregar quando conta muda
   useEffect(() => {
     const channel = supabase
-      .channel('email_accounts_changes')
+      .channel(`email_accounts_changes:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'email_app', table: 'email_accounts' },

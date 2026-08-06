@@ -214,6 +214,8 @@ export function useRealtimeMessages() {
     const fetchedContacts: ConversationContact[] = [];
 
     for (const idsChunk of chunkArray(uniqueIds, CONTACT_FETCH_CHUNK_SIZE)) {
+      // EMPTY-IN GUARD: chunk vazio nunca deve virar `id=in.()` no PostgREST
+      if (idsChunk.length === 0) continue;
       const { data, error: contactsError } = await dbFrom('contacts')
         .select('*')
         .in('id', idsChunk);

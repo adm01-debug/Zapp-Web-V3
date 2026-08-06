@@ -95,28 +95,26 @@ export async function getSignedMediaUrl(
   }
 
   try {
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .createSignedUrl(path, ttl);
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, ttl);
 
     if (error || !data?.signedUrl) {
-      log.warn(
-        `[storageSignedUrls] Falha ao assinar ${bucket}/${path} — ` +
-          'usando URL publica como fallback (bucket ainda publico?). ' +
+      // GAP-2 (auditoria media-producers 2026-08-06): NÃO usar URL pública
+      // como fallback — para bucket privado isso gera URL quebrada
+      // silenciosamente (mesmo padrão do incidente whatsapp-media). O
+      // caller já trata null (fallback de UI); loga o erro para diagnóstico.
+      log.error(
+        `[storageSignedUrls] Falha ao assinar ${bucket}/${path} — retornando null. ` +
           'Verificar sessao autenticada: createSignedUrl exige JWT.',
         error ?? 'sem signedUrl no retorno'
       );
-      return resolveMediaUrl(bucket, path);
+      return null;
     }
 
     const expiresAt = Date.now() + ttl * 1000 - CACHE_SAFETY_MARGIN_MS;
     signedUrlCache.set(cacheKey, { url: data.signedUrl, expiresAt });
     return data.signedUrl;
   } catch (err: unknown) {
-    log.warn(
-      `[storageSignedUrls] Excecao ao assinar ${bucket}/${path} — fallback URL publica.`,
-      err
-    );
-    return resolveMediaUrl(bucket, path);
+    log.error(`[storageSignedUrls] Excecao ao assinar ${bucket}/${path} — retornando null.`, err);
+    return null;
   }
 }

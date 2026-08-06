@@ -51,6 +51,8 @@ export function useAgentPerformanceRanking() {
       if (stats.length === 0) return [];
 
       const profileIds = stats.map((s) => s.profile_id);
+      // EMPTY-IN GUARD: sem profile_ids, nada a rankear (evita `id=in.()` no PostgREST)
+      if (profileIds.length === 0) return [];
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('id, name, avatar_url')

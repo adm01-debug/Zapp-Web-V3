@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-03T21:57:13.832Z",
+  "generated_at": "2026-08-05T21:59:21.321Z",
   "ci": {
     "run_id": null,
     "run_attempt": null,
@@ -21,8 +21,8 @@
       "evo"
     ],
     "local_only": false,
-    "meta_url_present": false,
-    "meta_token_present": false
+    "meta_url_present": true,
+    "meta_token_present": true
   },
   "local": {
     "status": "ok",
@@ -36,9 +36,9 @@
     "error": null
   },
   "remote": {
-    "status": "skipped",
-    "reason": "ZAPP_META_URL/ZAPP_META_TOKEN ausentes",
-    "http_status": null,
+    "status": "warning",
+    "reason": "postgres-meta HTTP 500 — pulada",
+    "http_status": 500,
     "present_schemas": [],
     "missing_schemas": [],
     "error": null

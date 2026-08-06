@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, ReactNode } from 'react';
 import { User, Session, type AuthError } from '@supabase/supabase-js';
 import { useQueryClient } from '@tanstack/react-query';
-import { authService, Profile } from '../services/authService';
+import { authService, Profile, invalidateUserCache } from '../services/authService';
 import { log } from '@/lib/logger';
 import { AuthContext } from '../context/AuthContext';
 import {
@@ -43,11 +43,71 @@ const PROFILE_TIMEOUT_MAX_MS = 30_000;
 const PROFILE_EXTRA_MS_PER_QUEUED_REQUEST = 250;
 const PROFILE_SLOW_WARN_THRESHOLD_MS = 5_000;
 
+// ---------------------------------------------------------------------------
+// Prazo da revalidação de sessão no boot (padrão da casa — f12-errors-checklist:
+// 8000ms → 4000ms). Quando o access_token persistido JÁ expirou, este prazo vira
+// o VEREDITO do bootstrap: se o GoTrue não responder a tempo, decidimos como
+// não-autenticado (a sessão otimista é um fantasma que só geraria 401s) em vez
+// de esperar o SIGNED_OUT, que num backend degradado pode levar 7s+.
+// ---------------------------------------------------------------------------
+const GET_SESSION_TIMEOUT_MS = 4_000;
+
+/** true quando o access_token persistido já expirou (sessão otimista inutilizável). */
+function isAccessTokenExpired(session: Session): boolean {
+  const exp = session.expires_at;
+  return typeof exp !== 'number' || !isFinite(exp) || exp <= 0 || exp * 1000 <= Date.now();
+}
+
 function getProfileTimeoutMs(): number {
   const sem = getSupabaseSemaphoreState();
   if (!sem.saturated) return PROFILE_BASE_TIMEOUT_MS;
   const extra = sem.queueLength * PROFILE_EXTRA_MS_PER_QUEUED_REQUEST;
   return Math.min(PROFILE_BASE_TIMEOUT_MS + extra, PROFILE_TIMEOUT_MAX_MS);
+}
+
+// ---------------------------------------------------------------------------
+// Caches TTL + single-flight para profile/roles do usuário logado.
+//
+// O refreshAll() é disparado por CADA evento de auth (INITIAL_SESSION,
+// TOKEN_REFRESHED, SIGNED_IN, USER_UPDATED...) e o fetch de
+// profiles?select=*&user_id=... + user_roles?select=role&user_id=... +
+// role_permissions repetia a cada disparo (tempestade vista em produção).
+// Com TTL de 5min (staleTime equivalente p/ dados quase-estáticos) e
+// single-flight por userId, eventos em rajada e remounts servem do cache.
+//
+// force=true SÓ nos caminhos que exigem frescor imediato:
+//   - realtime postgres_changes (UPDATE na linha → dados mudaram);
+//   - refreshProfile/refreshRoles/refreshPermissions manuais
+//     (AvatarUpload pós-upload, mutações de permissão no admin).
+// Erros NÃO entram no cache — apenas são deduplicados em voo.
+// ---------------------------------------------------------------------------
+const AUTH_DATA_CACHE_TTL_MS = 5 * 60 * 1000; // 5 min
+
+interface ProfileCacheEntry {
+  userId: string;
+  data: Profile;
+  fetchedAt: number;
+}
+
+interface RolesCacheEntry {
+  userId: string;
+  roles: string[];
+  permissions: string[];
+  fetchedAt: number;
+}
+
+/** Resultado do fetch compartilhado — 'aborted' permite o joiner re-tentar. */
+type FetchOutcome = 'ok' | 'aborted' | 'failed';
+
+let profileCache: ProfileCacheEntry | null = null;
+let rolesCache: RolesCacheEntry | null = null;
+const profileInflight = new Map<string, Promise<FetchOutcome>>();
+const rolesInflight = new Map<string, Promise<FetchOutcome>>();
+
+/** Limpa os caches TTL de profile/roles (signOut/SIGNED_OUT). */
+function clearAuthDataCaches(): void {
+  profileCache = null;
+  rolesCache = null;
 }
 
 // ---------------------------------------------------------------------------
@@ -142,95 +202,174 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [bootstrapError, setBootstrapError] = useState<'timeout' | 'offline' | null>(null);
   const [bootstrapElapsedMs, setBootstrapElapsedMs] = useState<number | null>(null);
 
-  const fetchProfile = useCallback(async (userId: string, signal?: AbortSignal) => {
-    const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
-    const timeoutMs = getProfileTimeoutMs();
-    try {
-      const { data, error } = await withTimeout(
-        authService.getProfile(userId, signal),
-        timeoutMs,
-        'getProfile'
-      );
-      const elapsedMs = Math.round(
-        (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt
-      );
-      // Perfil lento (>5s) é sintoma de semáforo saturado ou backend degradado —
-      // warn (não error) para debug futuro sem poluir o console de erro.
-      if (elapsedMs > PROFILE_SLOW_WARN_THRESHOLD_MS) {
-        log.warn(
-          `[Auth] getProfile lento (${elapsedMs}ms; timeout=${timeoutMs}ms; semáforo=${JSON.stringify(
-            getSupabaseSemaphoreState()
-          )})`
-        );
-      }
-      if (error || !data) {
-        if ((error as { name?: string } | null)?.name === 'AbortError') return;
-        log.error('[Auth] Failed to fetch profile for user:', userId, error);
+  const fetchProfile = useCallback(
+    async (userId: string, signal?: AbortSignal, force = false) => {
+      // Cache TTL (5min): eventos de auth em rajada e remounts não repetem o
+      // GET profiles?select=*&user_id=... — dados quase-estáticos.
+      if (
+        !force &&
+        profileCache &&
+        profileCache.userId === userId &&
+        Date.now() - profileCache.fetchedAt < AUTH_DATA_CACHE_TTL_MS
+      ) {
+        setProfile(profileCache.data);
         return;
       }
-      setProfile(data);
-    } catch (err: unknown) {
-      if ((err as Error)?.name === 'AbortError') return;
-      log.error('[Auth] Failed to fetch profile for user:', userId, err);
-    }
-  }, []);
+      // Single-flight: joiner aguarda a MESMA promise do iniciador. Se o
+      // iniciador foi abortado (refreshAll mais novo), o joiner re-tenta com
+      // o próprio signal — nunca fica sem o fetch. Em force=true (ex.: UPDATE
+      // via realtime) NÃO deduplicar: o fetch em voo pode ter começado ANTES
+      // da mudança e retornaria dado velho (R3 regression review da onda).
+      const existing = profileInflight.get(userId);
+      if (existing && !force) {
+        const outcome = await existing;
+        if (outcome !== 'aborted') return;
+      }
 
-  const fetchRolesAndPermissions = useCallback(async (userId: string, signal?: AbortSignal) => {
-    try {
-      if (!supabase) {
-        log.error('[Auth] Supabase client not initialized for user:', userId);
-        return;
+      const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      const timeoutMs = getProfileTimeoutMs();
+      const run = (async (): Promise<FetchOutcome> => {
+        try {
+          const { data, error } = await withTimeout(
+            authService.getProfile(userId, signal),
+            timeoutMs,
+            'getProfile'
+          );
+          const elapsedMs = Math.round(
+            (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt
+          );
+          // Perfil lento (>5s) é sintoma de semáforo saturado ou backend degradado —
+          // warn (não error) para debug futuro sem poluir o console de erro.
+          if (elapsedMs > PROFILE_SLOW_WARN_THRESHOLD_MS) {
+            log.warn(
+              `[Auth] getProfile lento (${elapsedMs}ms; timeout=${timeoutMs}ms; semáforo=${JSON.stringify(
+                getSupabaseSemaphoreState()
+              )})`
+            );
+          }
+          if (error || !data) {
+            if ((error as { name?: string } | null)?.name === 'AbortError') return 'aborted';
+            log.error('[Auth] Failed to fetch profile for user:', userId, error);
+            return 'failed';
+          }
+          profileCache = { userId, data, fetchedAt: Date.now() };
+          setProfile(data);
+          return 'ok';
+        } catch (err: unknown) {
+          if ((err as Error)?.name === 'AbortError') return 'aborted';
+          log.error('[Auth] Failed to fetch profile for user:', userId, err);
+          return 'failed';
+        }
+      })();
+      profileInflight.set(userId, run);
+      try {
+        await run;
+      } finally {
+        if (profileInflight.get(userId) === run) profileInflight.delete(userId);
       }
-      const { data: userRoles, error } = await withTimeout(
-        Promise.resolve(
-          supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', userId)
-            .abortSignal(signal ?? new AbortController().signal)
-        ),
-        8000,
-        'fetchRoles'
-      );
-      if (error || !userRoles) {
-        if ((error as { name?: string } | null)?.name === 'AbortError') return;
-        log.error('[Auth] Failed to fetch roles for user:', userId, error);
-        return;
-      }
-      const roleNames = userRoles.map((r) => r.role);
-      setRoles(roleNames);
+    },
+    []
+  );
 
-      const { data: userPermissions, error: permError } = await withTimeout(
-        Promise.resolve(
-          supabase
-            .from('role_permissions')
-            // FIX #1: Schema correto — role_permissions tem (role, permission_id), não 'permission'
-            // JOIN com permissions table para resolver nomes das permissões
-            .select('permission_id, permissions!inner(name)')
-            .in('role', roleNames)
-            .abortSignal(signal ?? new AbortController().signal)
-        ),
-        8000,
-        'fetchPermissions'
-      );
-      if (permError || !userPermissions) {
-        if ((permError as { name?: string } | null)?.name === 'AbortError') return;
-        log.error('[Auth] Failed to fetch permissions for user:', userId, permError);
+  const fetchRolesAndPermissions = useCallback(
+    async (userId: string, signal?: AbortSignal, force = false) => {
+      // Cache TTL (5min): user_roles?select=role&user_id=... +
+      // role_permissions não repetem a cada evento de auth / remount.
+      if (
+        !force &&
+        rolesCache &&
+        rolesCache.userId === userId &&
+        Date.now() - rolesCache.fetchedAt < AUTH_DATA_CACHE_TTL_MS
+      ) {
+        setRoles(rolesCache.roles);
+        setPermissions(rolesCache.permissions);
         return;
       }
-      const permNames = userPermissions
-        .map((p) => {
-          // p.permissions pode ser array (PostgREST join) ou objeto
-          const perm = Array.isArray(p.permissions) ? p.permissions[0] : p.permissions;
-          return (perm as { name?: string } | null)?.name;
-        })
-        .filter((n): n is string => typeof n === 'string');
-      setPermissions(permNames);
-    } catch (err: unknown) {
-      if ((err as Error)?.name === 'AbortError') return;
-      log.error('[Auth] Failed to fetch roles/permissions for user:', userId, err);
-    }
-  }, []);
+      const existing = rolesInflight.get(userId);
+      // Mesmo padrão do profile: force=true (realtime/manual) não deduplica
+      // no in-flight — R3 regression review da onda.
+      if (existing && !force) {
+        const outcome = await existing;
+        if (outcome !== 'aborted') return;
+      }
+
+      const run = (async (): Promise<FetchOutcome> => {
+        try {
+          if (!supabase) {
+            log.error('[Auth] Supabase client not initialized for user:', userId);
+            return 'failed';
+          }
+          const { data: userRoles, error } = await withTimeout(
+            Promise.resolve(
+              supabase
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', userId)
+                .abortSignal(signal ?? new AbortController().signal)
+            ),
+            8000,
+            'fetchRoles'
+          );
+          if (error || !userRoles) {
+            if ((error as { name?: string } | null)?.name === 'AbortError') return 'aborted';
+            log.error('[Auth] Failed to fetch roles for user:', userId, error);
+            return 'failed';
+          }
+          const roleNames = userRoles.map((r) => r.role);
+
+          // Guard empty-in (R14 regression review): usuário sem roles não tem
+          // permissões — pular a query role_permissions (evita `role=in.()`).
+          if (roleNames.length === 0) {
+            rolesCache = { userId, roles: [], permissions: [], fetchedAt: Date.now() };
+            setRoles([]);
+            setPermissions([]);
+            return 'ok';
+          }
+
+          const { data: userPermissions, error: permError } = await withTimeout(
+            Promise.resolve(
+              supabase
+                .from('role_permissions')
+                // FIX #1: Schema correto — role_permissions tem (role, permission_id), não 'permission'
+                // JOIN com permissions table para resolver nomes das permissões
+                .select('permission_id, permissions!inner(name)')
+                .in('role', roleNames)
+                .abortSignal(signal ?? new AbortController().signal)
+            ),
+            8000,
+            'fetchPermissions'
+          );
+          if (permError || !userPermissions) {
+            if ((permError as { name?: string } | null)?.name === 'AbortError') return 'aborted';
+            log.error('[Auth] Failed to fetch permissions for user:', userId, permError);
+            return 'failed';
+          }
+          const permNames = userPermissions
+            .map((p) => {
+              // p.permissions pode ser array (PostgREST join) ou objeto
+              const perm = Array.isArray(p.permissions) ? p.permissions[0] : p.permissions;
+              return (perm as { name?: string } | null)?.name;
+            })
+            .filter((n): n is string => typeof n === 'string');
+          rolesCache = { userId, roles: roleNames, permissions: permNames, fetchedAt: Date.now() };
+          setRoles(roleNames);
+          setPermissions(permNames);
+          return 'ok';
+        } catch (err: unknown) {
+          if ((err as Error)?.name === 'AbortError') return 'aborted';
+          log.error('[Auth] Failed to fetch roles/permissions for user:', userId, err);
+          return 'failed';
+        }
+      })();
+      rolesInflight.set(userId, run);
+      try {
+        await run;
+      } finally {
+        if (rolesInflight.get(userId) === run) rolesInflight.delete(userId);
+      }
+    },
+    []
+  );
 
   const refreshAll = useCallback(
     async (userId: string, options: { showLoading?: boolean } = {}) => {
@@ -275,6 +414,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       bootstrapTimeoutRef.current = null;
     }
   }, []);
+
+  // Decide o estado não-autenticado de forma DETERMINÍSTICA, sem depender da
+  // latência do evento SIGNED_OUT do supabase-js (que num GoTrue degradado pode
+  // levar 7s+ para rejeitar um refresh de token morto). Limpa o estado e a
+  // sessão persistida — o ProtectedRoute então redireciona para /auth no
+  // próximo render. O signOut({ scope: 'local' }) também dispara o commit
+  // guard do supabase-js, que descarta tokens rotacionados depois do prazo
+  // (evita re-hidratação tardia via TOKEN_REFRESHED atrasado).
+  const forceUnauthenticated = useCallback(
+    async (runId: number, reason: string, elapsedMs: number) => {
+      if (runId !== bootstrapRunRef.current) return;
+      log.warn(`[Auth] Estado não-autenticado forçado (${reason}, ${elapsedMs}ms).`);
+      setBootstrapElapsedMs(elapsedMs);
+      setProfile(null);
+      setRoles([]);
+      setPermissions([]);
+      setUser(null);
+      setSession(null);
+      setLoading(false);
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch {
+        // signOut local não deve rejeitar; o estado já foi limpo acima.
+      }
+    },
+    []
+  );
 
   const runBootstrap = useCallback(async () => {
     const runId = ++bootstrapRunRef.current;
@@ -333,9 +499,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // mas como já hidratámos do cache isto NÃO é fatal: o onAuthStateChange é a
     // fonte de verdade e promove ou rebaixa a sessão no próximo tick. Nunca mais
     // transformamos uma revalidação lenta numa tela de erro para quem tem sessão.
+    //
+    // CASO ESPECIAL — access_token persistido JÁ expirado: a sessão otimista é
+    // um fantasma (toda chamada à API retornaria 401). Aqui o getSession() vira
+    // o VEREDITO do bootstrap com prazo de GET_SESSION_TIMEOUT_MS (4000ms,
+    // padrão da casa): se o GoTrue não responder a tempo — ou responder que não
+    // há sessão — decidimos como não-autenticado imediatamente (forceUnauthenticated)
+    // em vez de esperar o SIGNED_OUT, que num backend degradado pode levar 7s+
+    // (evidência: authz_failure at:7074ms).
+    const cachedTokenExpired = isAccessTokenExpired(cached);
     const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
     try {
-      const result = await withTimeout(supabase.auth.getSession(), 8000, 'getSession');
+      const result = await withTimeout(supabase.auth.getSession(), GET_SESSION_TIMEOUT_MS, 'getSession');
       if (runId !== bootstrapRunRef.current) return;
       const elapsedMs = Math.round(
         (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt
@@ -349,9 +524,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         void refreshAll(cached.user.id, { showLoading: false }).catch((err) => {
           log.debug('[Auth] Erro ao atualizar perfil/roles pós-getSession:', err);
         });
+      } else if (cached?.user) {
+        // Veredito do backend: NÃO há sessão válida (refresh token morto/revogado).
+        // O supabase-js normalmente emite SIGNED_OUT, mas num GoTrue degradado
+        // essa resposta pode levar 7s+ — decidimos agora, sem esperar o evento.
+        await forceUnauthenticated(runId, 'getSession-null', elapsedMs);
       }
-      // Se o backend confirmar que NÃO há sessão (refresh token revogado/expirado),
-      // o supabase-js emite SIGNED_OUT via onAuthStateChange e o app vai para /auth.
     } catch (err) {
       if (runId !== bootstrapRunRef.current) return;
       const elapsedMs = Math.round(
@@ -364,13 +542,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         log.debug('[Auth] getSession abortado — sessão do cache mantida.');
         return;
       }
+      if (cachedTokenExpired) {
+        // Prazo (4000ms) estourado com access_token já expirado: a sessão
+        // otimista é um fantasma e o veredito do GoTrue pode nunca chegar
+        // (backend degradado). Decide como não-autenticado agora, em vez de
+        // segurar o usuário por 7s+ esperando um SIGNED_OUT que não vem.
+        await forceUnauthenticated(runId, 'getSession-timeout-expired-token', elapsedMs);
+        return;
+      }
       // Não-fatal: já renderizámos a partir do cache. Apenas registamos.
       log.warn(
         `[Auth] Revalidação em background lenta (${elapsedMs}ms) — mantendo sessão do cache. URL=${SUPABASE_RESOLVED_URL}`,
         err
       );
     }
-  }, [refreshAll, clearBootstrapSafetyNet]);
+  }, [refreshAll, clearBootstrapSafetyNet, forceUnauthenticated]);
 
   // Ref (para guards síncronos) + state (para reativos na UI) de retry em andamento.
   const isRetryingRef = useRef(false);
@@ -443,6 +629,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setBootstrapError(null);
 
+      // Invalidação do single-flight/cache do getUser: identidade pode ter
+      // mudado (SIGNED_IN), sumido (SIGNED_OUT) ou sido atualizada
+      // (TOKEN_REFRESHED renova claims/metadata). Profile/roles usam TTL de
+      // 5min + key por userId — só precisam de clear explícito no SIGNED_OUT.
+      if (event === 'SIGNED_OUT') {
+        invalidateUserCache();
+        clearAuthDataCaches();
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        invalidateUserCache();
+      }
+
       setSession(session);
       setUser(session?.user ?? null);
 
@@ -508,10 +705,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           filter: `user_id=eq.${user.id}`,
         },
         () => {
-          void fetchProfile(user.id);
+          // UPDATE real na linha → força fetch fresco (ignora cache TTL).
+          void fetchProfile(user.id, undefined, true);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') {
+          log.warn('[AuthProvider] profile channel subscription status:', status);
+        }
+      });
 
     const rolesChannel = supabase
       .channel(`roles-updates-${user.id}:${Math.random().toString(36).slice(2, 10)}`)
@@ -524,10 +726,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           filter: `user_id=eq.${user.id}`,
         },
         () => {
-          void fetchRolesAndPermissions(user.id);
+          // UPDATE real na linha → força fetch fresco (ignora cache TTL).
+          void fetchRolesAndPermissions(user.id, undefined, true);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') {
+          log.warn('[AuthProvider] roles channel subscription status:', status);
+        }
+      });
 
     return () => {
       profileChannel.unsubscribe();
@@ -540,6 +747,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(
     async (email: string, password: string) => {
       try {
+        // Identidade nova → descarta o cache curto do getUser.
+        invalidateUserCache();
         const { data, error } = await authService.signIn(email, password);
         if (error) return { error };
         if (data?.user) {
@@ -557,6 +766,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = useCallback(
     async (email: string, password: string, name: string) => {
       try {
+        // Identidade nova → descarta o cache curto do getUser.
+        invalidateUserCache();
         const { data, error } = await authService.signUp(email, password, name);
         if (error) return { error };
         if (data?.user) {
@@ -579,6 +790,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       // Fallback local: mesmo se o signOut remoto falhar/rejeitar, a UI nunca
       // fica presa numa sessão fantasma — estado e cache são limpos sempre.
+      // Caches TTL (getUser/profile/roles) também são descartados para a
+      // próxima sessão nunca herdar dados da anterior.
+      invalidateUserCache();
+      clearAuthDataCaches();
       setUser(null);
       setSession(null);
       setProfile(null);
@@ -591,17 +806,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshProfile = useCallback(async () => {
     if (!user) return;
-    await fetchProfile(user.id);
+    // Manual (ex.: AvatarUpload pós-upload) → força frescor, ignora TTL.
+    await fetchProfile(user.id, undefined, true);
   }, [user, fetchProfile]);
 
   const refreshRoles = useCallback(async () => {
     if (!user) return;
-    await fetchRolesAndPermissions(user.id);
+    // Manual (ex.: mutações de permissão no admin) → força frescor.
+    await fetchRolesAndPermissions(user.id, undefined, true);
   }, [user, fetchRolesAndPermissions]);
 
   const refreshPermissions = useCallback(async () => {
     if (!user) return;
-    await fetchRolesAndPermissions(user.id);
+    await fetchRolesAndPermissions(user.id, undefined, true);
   }, [user, fetchRolesAndPermissions]);
 
   const contextValue = useMemo(
