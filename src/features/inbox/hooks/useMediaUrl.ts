@@ -49,7 +49,7 @@ interface UseMediaUrlOptions {
 }
 
 /** Reason category for a media load failure; used to show targeted fallback messages to the agent. */
-export type MediaErrorReason = 'expired' | 'not_found' | 'network' | 'unsupported' | 'unknown';
+export type MediaErrorReason = 'expired' | 'not_found' | 'network' | 'unsupported' | 'forbidden' | 'unknown';
 
 /** Structured media load error with reason category and a human-readable pt-BR message for fallback UI. */
 export interface MediaError {

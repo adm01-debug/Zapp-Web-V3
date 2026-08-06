@@ -3,6 +3,8 @@ import { useMountedRef } from '@/hooks/useMountedRef';
 import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { isValidUUID } from '@/utils/uuid';
+import { useConversationSLA } from '@/features/inbox/hooks/useConversationSLAData';
+import { useConversationMessagesData } from '@/features/inbox/hooks/useConversationMessagesData';
 
 const log = getLogger('NextBestActionEngine');
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +41,12 @@ export function NextBestActionEngine({ contactId, contactName }: NextBestActionP
   const [loading, setLoading] = useState(true);
   const mountedRef = useMountedRef();
 
+  // BUG-2026-08-06: SLA e mensagens vêm do cache compartilhado do painel de
+  // conversa (useConversationSLA / useConversationMessagesData) — antes eram
+  // fetches crus duplicando `conversation_sla` e `messages` por contato.
+  const { data: slaInfo } = useConversationSLA(contactId);
+  const { data: messageRows } = useConversationMessagesData(contactId);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -51,23 +59,12 @@ export function NextBestActionEngine({ contactId, contactName }: NextBestActionP
       const suggestedActions: NextAction[] = [];
       try {
         // PERF 2026-08-04: 4 queries sequenciais → Promise.all paralelo
-        // tasks: usa rpc_get_contact_summary_batch (elimina HEAD individual)
-        const [lastMsgResult, summaryResult, slaResult, memoryResult] = await Promise.all([
-          supabase
-            .from('messages')
-            .select('created_at, sender')
-            .eq('contact_id', contactId)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle(),
+        // PERF 2026-08-06: restam 2 queries únicas — SLA e última mensagem
+        // saem do cache compartilhado (dedup com ContactDetails/History/Stats).
+        const [summaryResult, memoryResult] = await Promise.all([
           supabase.rpc('rpc_get_contact_summary_batch', {
             p_contact_ids: [contactId],
           }),
-          supabase
-            .from('conversation_sla')
-            .select('first_response_breached, resolution_breached')
-            .eq('contact_id', contactId)
-            .maybeSingle(),
           supabase
             .from('conversation_memory')
             .select('pending_items, promises_made')
@@ -75,11 +72,14 @@ export function NextBestActionEngine({ contactId, contactName }: NextBestActionP
             .maybeSingle(),
         ]);
 
-        const lastMsg = lastMsgResult.data;
+        // messages vêm em ordem ASC → último elemento = mais recente.
+        const lastMsg =
+          messageRows && messageRows.length > 0
+            ? messageRows[messageRows.length - 1]
+            : null;
         const summaryRow = Array.isArray(summaryResult.data) && summaryResult.data.length > 0
           ? (summaryResult.data[0] as { pending_tasks: number; unread_whispers: number })
           : null;
-        const slaData = slaResult.data;
         const memory = memoryResult.data;
 
         if (lastMsg) {
@@ -118,7 +118,7 @@ export function NextBestActionEngine({ contactId, contactName }: NextBestActionP
           });
         }
 
-        if (slaData?.first_response_breached || slaData?.resolution_breached) {
+        if (slaInfo?.first_response_breached || slaInfo?.resolution_breached) {
           suggestedActions.push({
             type: 'escalate',
             label: 'Escalar para supervisor',
@@ -177,7 +177,9 @@ export function NextBestActionEngine({ contactId, contactName }: NextBestActionP
     return () => {
       cancelled = true;
     };
-  }, [contactId, contactName, mountedRef]);
+    // messageRows/slaInfo vêm de queries com staleTime 30s — identidade estável
+    // entre refetches; o efeito só roda quando o dado de fato muda.
+  }, [contactId, contactName, messageRows, slaInfo, mountedRef]);
 
   const priorityColors = {
     high: 'border-destructive/30 bg-destructive/5',

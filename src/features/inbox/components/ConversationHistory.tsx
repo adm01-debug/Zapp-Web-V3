@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { log } from '@/lib/logger';
 import {
   MessageSquare,
   Clock,
@@ -23,8 +22,8 @@ import {
 } from '@/components/ui/select';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { dbFrom } from '@/integrations/datasource/db';
-import { isValidUUID } from '@/utils/uuid';
+import { useConversationMessagesData } from '@/features/inbox/hooks/useConversationMessagesData';
+import type { ConversationMessageLite } from '@/features/inbox/hooks/useConversationMessagesData';
 
 interface ConversationHistoryItem {
   id: string;
@@ -69,122 +68,76 @@ const statusConfig = {
 };
 
 /** Conversation History component. */
-interface HistoryMessage {
-  created_at: string;
-  sender: string;
-  content: string;
-}
-
 export function ConversationHistory({
   contactId,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   contactPhone,
   onSelectConversation,
 }: ConversationHistoryProps) {
-  const [conversations, setConversations] = useState<ConversationHistoryItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('30d');
 
-  const fetchConversationHistory = useCallback(async () => {
-    if (!isValidUUID(contactId)) {
-      setConversations([]);
-      setIsLoading(false);
-      return;
-    }
-    setIsLoading(true);
-    try {
-      // Get the date filter
-      const selectedPeriod = periodOptions.find((p) => p.value === periodFilter);
-      const fromDate = selectedPeriod?.days
-        ? subDays(new Date(), selectedPeriod.days).toISOString()
-        : null;
+  // BUG-2026-08-06: histórico deriva do CACHE COMPARTILHADO de mensagens do
+  // contato (useConversationMessagesData) — antes era um fetch próprio
+  // (`messages?limit=100&gte 30d`) duplicando a tabela a cada abertura.
+  // Trocar o filtro de período agora é puro cálculo client-side (sem refetch).
+  const { data: messages = [], isLoading } = useConversationMessagesData(contactId);
 
-      // Fetch messages grouped by date to simulate conversation sessions
-      let query = dbFrom('messages')
-        .select('id, content, created_at, sender')
-        .eq('contact_id', contactId)
-        .order('created_at', { ascending: false })
-        .limit(100);
+  const conversations = useMemo<ConversationHistoryItem[]>(() => {
+    const selectedPeriod = periodOptions.find((p) => p.value === periodFilter);
+    const fromMs = selectedPeriod?.days
+      ? subDays(new Date(), selectedPeriod.days).getTime()
+      : null;
 
-      if (fromDate) {
-        query = query.gte('created_at', fromDate);
-      }
+    // Mensagens vêm em ordem ASC → as 100 mais recentes dentro do período.
+    const rows = messages
+      .filter((m) => fromMs === null || new Date(m.created_at).getTime() >= fromMs)
+      .slice(-100);
 
-      const { data: messages, error } = await query;
+    // Agrupa por dia para simular sessões de conversa (ordem ASC dentro do dia).
+    const groupedByDay: Record<string, ConversationMessageLite[]> = {};
+    rows.forEach((msg) => {
+      const dayKey = format(new Date(msg.created_at), 'yyyy-MM-dd');
+      (groupedByDay[dayKey] ??= []).push(msg);
+    });
 
-      if (error) {
-        log.error('Error fetching conversation history:', error);
-        setConversations([]);
-        return;
-      }
+    return Object.entries(groupedByDay)
+      .filter(([, dayMessages]) => dayMessages.length > 0)
+      .map(([dayKey, dayMessages]) => {
+        const firstMsg = dayMessages[0];
+        const lastMsg = dayMessages[dayMessages.length - 1];
+        if (!firstMsg || !lastMsg) return null;
+        const startTime = new Date(firstMsg.created_at).getTime();
+        const endTime = new Date(lastMsg.created_at).getTime();
+        const durationMinutes = Math.max(1, Math.round((endTime - startTime) / 60000));
 
-      if (!messages || messages.length === 0) {
-        setConversations([]);
-        return;
-      }
-
-      // Group messages by day to create "conversation sessions"
-      const groupedByDay: Record<string, typeof messages> = {};
-      messages.forEach((msg: HistoryMessage) => {
-        const dayKey = format(new Date(msg.created_at), 'yyyy-MM-dd');
-        if (!groupedByDay[dayKey]) {
-          groupedByDay[dayKey] = [];
+        // Determine status based on last message sender
+        let status: 'resolved' | 'pending' | 'open' = 'resolved';
+        if (lastMsg.sender === 'contact') {
+          status = 'pending';
+        } else if (durationMinutes < 5) {
+          status = 'open';
         }
-        groupedByDay[dayKey].push(msg);
-      });
 
-      // Convert to conversation history items
-      const historyItems: ConversationHistoryItem[] = Object.entries(groupedByDay)
-        .filter(([, dayMessages]) => dayMessages.length > 0)
-        .map(([dayKey, dayMessages]) => {
-          const firstMsg = dayMessages[dayMessages.length - 1];
-          const lastMsg = dayMessages[0];
-          if (!firstMsg || !lastMsg) return null;
-          const startTime = new Date(firstMsg.created_at);
-          const endTime = new Date(lastMsg.created_at);
-          const durationMs = endTime.getTime() - startTime.getTime();
-          const durationMinutes = Math.max(1, Math.round(durationMs / 60000));
-
-          // Determine status based on last message sender
-          let status: 'resolved' | 'pending' | 'open' = 'resolved';
-          if (lastMsg.sender === 'contact') {
-            status = 'pending';
-          } else if (durationMinutes < 5) {
-            status = 'open';
-          }
-
-          const safeContent = typeof lastMsg.content === 'string' ? lastMsg.content : '';
-          return {
-            id: dayKey,
-            date: new Date(dayKey),
-            messageCount: dayMessages.length,
-            lastMessage:
-              safeContent.length > 50
-                ? `${safeContent.substring(0, 50)}...`
-                : safeContent,
-            status,
-            duration:
-              durationMinutes > 60
-                ? `${Math.round(durationMinutes / 60)}h ${durationMinutes % 60}min`
-                : `${durationMinutes}min`,
-          };
-        })
-        .filter((item): item is ConversationHistoryItem => item !== null)
-        .sort((a, b) => b.date.getTime() - a.date.getTime());
-
-      setConversations(historyItems);
-    } catch (error) {
-      log.error('Error fetching conversation history:', error);
-      setConversations([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [contactId, periodFilter]);
-
-  useEffect(() => {
-    fetchConversationHistory();
-  }, [contactId, periodFilter, fetchConversationHistory]);
+        const safeContent = typeof lastMsg.content === 'string' ? lastMsg.content : '';
+        return {
+          id: dayKey,
+          date: new Date(dayKey),
+          messageCount: dayMessages.length,
+          lastMessage:
+            safeContent.length > 50
+              ? `${safeContent.substring(0, 50)}...`
+              : safeContent,
+          status,
+          duration:
+            durationMinutes > 60
+              ? `${Math.round(durationMinutes / 60)}h ${durationMinutes % 60}min`
+              : `${durationMinutes}min`,
+        };
+      })
+      .filter((item): item is ConversationHistoryItem => item !== null)
+      .sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [messages, periodFilter]);
 
   const displayedConversations = isExpanded ? conversations : conversations.slice(0, 3);
 

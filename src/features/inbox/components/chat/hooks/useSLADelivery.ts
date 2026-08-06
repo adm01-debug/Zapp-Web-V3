@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
+import { queryKeys } from '@/services/api/queryKeys';
 import { Message } from '@/types/chat';
 import { isValidUUID } from '@/utils/uuid';
 
@@ -8,25 +10,47 @@ interface UseSLADeliveryProps {
   messages: Message[];
 }
 
-/** Hook: use SLADelivery. */
+interface SLARule {
+  warning_threshold_minutes?: number | null;
+  breach_threshold_minutes?: number | null;
+  custom_message?: string | null;
+  is_active?: boolean | null;
+}
+
+/**
+ * Hook: useSLADelivery.
+ *
+ * BUG-2026-08-06: a regra de entrega lê o CACHE COMPARTILHADO com
+ * SLADeliveryConfigSection (mesmo queryKey `queryKeys.sla.deliveryConfig`) —
+ * antes cada tick do intervalo fazia um GET cru de `sla_delivery_rules`
+ * (2-4x por contato). A checagem de `is_active` é feita client-side.
+ */
 export function useSLADelivery({ contactId, messages }: UseSLADeliveryProps) {
+  const { data: customRule } = useQuery<SLARule | null>({
+    queryKey: queryKeys.sla.deliveryConfig(contactId),
+    enabled: !!contactId && isValidUUID(contactId),
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data: ruleRows } = await safeClient.from('sla_delivery_rules', (q) =>
+        q.select('*').eq('contact_id', contactId).limit(1)
+      );
+      return (ruleRows?.[0] ?? null) as SLARule | null;
+    },
+  });
+
+  // Query canônica não filtra is_active (o painel de config precisa ver regras
+  // inativas para edição) — a regra ativa é decidida aqui no consumidor.
+  const activeRule = customRule && customRule.is_active ? customRule : null;
+
   useEffect(() => {
     if (!contactId || !isValidUUID(contactId) || !messages.length) return;
 
-    const checkDeliveryDelay = async () => {
-      const { data: ruleRows } = await safeClient.from('sla_delivery_rules', (q) =>
-        q.select('*').eq('contact_id', contactId).eq('is_active', true).limit(1)
-      );
-      const customRule = (ruleRows?.[0] ?? null) as {
-        warning_threshold_minutes?: number | null;
-        breach_threshold_minutes?: number | null;
-        custom_message?: string | null;
-      } | null;
-
+    const checkDeliveryDelay = () => {
       const WARNING_THRESHOLD =
-        ((customRule?.warning_threshold_minutes as number) || 30) * 60 * 1000;
-      const BREACH_THRESHOLD = ((customRule?.breach_threshold_minutes as number) || 60) * 60 * 1000;
-      const customMsg = customRule?.custom_message as string | undefined;
+        ((activeRule?.warning_threshold_minutes as number) || 30) * 60 * 1000;
+      const BREACH_THRESHOLD =
+        ((activeRule?.breach_threshold_minutes as number) || 60) * 60 * 1000;
+      const customMsg = activeRule?.custom_message as string | undefined;
 
       const isSimulating = localStorage.getItem('zappweb:sla-simulation') === 'true';
       if (isSimulating) {
@@ -69,9 +93,8 @@ export function useSLADelivery({ contactId, messages }: UseSLADeliveryProps) {
       }
     };
 
-    const interval = setInterval(() => { void checkDeliveryDelay(); }, 60000);
-    void checkDeliveryDelay();
+    const interval = setInterval(checkDeliveryDelay, 60000);
+    checkDeliveryDelay();
     return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contactId, messages.length]);
+  }, [contactId, messages, messages.length, activeRule]);
 }
