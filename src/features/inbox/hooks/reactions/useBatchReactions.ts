@@ -44,7 +44,6 @@ export async function fetchReactionsBatch(messageIds: string[]): Promise<Message
     rows = [];
     for (let i = 0; i < messageIds.length; i += CHUNK_SIZE) {
       const chunk = messageIds.slice(i, i + CHUNK_SIZE);
-      // eslint-disable-next-line no-await-in-loop
       const { data, error } = await supabase
         .from('message_reactions')
         .select('*')

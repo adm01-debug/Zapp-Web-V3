@@ -41,13 +41,30 @@ export function useContactDetailStats(contactId: string): UseContactDetailStatsR
     },
   });
 
+  // R6 regression review: a timeline tem cap de 200 eventos — contar closes só
+  // no cache subestimaria contatos com muitas transferências/atribuições.
+  // Contagem exata dedicada (SELECT id, sem joins — payload pequeno).
+  const { data: closeIds, isLoading: closeCountLoading } = useQuery<string[]>({
+    queryKey: ['contact-detail-stats-closes', contactId],
+    enabled: !!contactId && isValidUUID(contactId),
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data } = await safeClient.from<{ id: string }>('conversation_events', (q) =>
+        q.select('id').eq('contact_id', contactId).eq('event_type', 'close')
+      );
+      return (data ?? []).map((r) => r.id);
+    },
+  });
+
   const isLoading =
-    messagesQuery.isLoading || eventsQuery.isLoading || csatLoading;
+    messagesQuery.isLoading || eventsQuery.isLoading || csatLoading || closeCountLoading;
 
   const stats = useMemo<ContactDetailStats | null>(() => {
     if (isLoading) return null;
 
-    const messages = messagesQuery.data ?? [];
+    // Cache compartilhado vem em ordem DESC (1000 mais recentes) — o cálculo
+    // de tempo de resposta precisa de ordem cronológica (R7).
+    const messages = [...(messagesQuery.data ?? [])].reverse();
     const totalMessages = messages.length;
 
     // Average first-response time: time from last contact message to first subsequent agent reply
@@ -66,11 +83,9 @@ export function useContactDetailStats(contactId: string): UseContactDetailStatsR
     const avgResponseTimeMinutes =
       responseCount > 0 ? Math.round(totalResponseMs / responseCount / 60000) : null;
 
-    // "Conversas" = eventos de fechamento — lidos do cache da timeline
-    // (conversation_events), sem fetch próprio.
-    const totalConversations = (eventsQuery.data ?? []).filter(
-      (e) => e.event_type === 'close'
-    ).length;
+    // "Conversas" = eventos de fechamento — contagem exata dedicada (R6), sem
+    // depender do cap de 200 da timeline.
+    const totalConversations = closeIds?.length ?? 0;
 
     const ratings = csatData ?? [];
     const csatCount = ratings.length;
@@ -78,7 +93,7 @@ export function useContactDetailStats(contactId: string): UseContactDetailStatsR
       csatCount > 0 ? ratings.reduce((sum, r) => sum + r.rating, 0) / csatCount : null;
 
     return { totalMessages, avgResponseTimeMinutes, totalConversations, csatAverage, csatCount };
-  }, [isLoading, messagesQuery.data, eventsQuery.data, csatData]);
+  }, [isLoading, messagesQuery.data, csatData, closeIds]);
 
   return { stats, isLoading };
 }

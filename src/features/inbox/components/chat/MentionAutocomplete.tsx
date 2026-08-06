@@ -39,7 +39,7 @@ function fetchMentionAgents(): Promise<AgentMention[]> {
       const agents = (data ?? []) as AgentMention[];
       mentionCache = { data: agents, fetchedAt: Date.now() };
       return agents;
-    } catch (error) {
+    } catch {
       // Nunca rejeita: o caller usa `void fetchAgents()` — rejeição viraria
       // unhandled rejection (R4).
       return [];

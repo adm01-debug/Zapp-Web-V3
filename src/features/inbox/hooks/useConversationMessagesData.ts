@@ -8,7 +8,9 @@
  *   - `NextBestActionEngine`  (limit=1 desc, fetch cru)
  *
  * Agora todos derivam do MESMO cache (`['conversation-messages', contactId]`),
- * com o mesmo shape do feed principal do chat (select asc, cap 1000) →
+ * com o mesmo shape do feed principal do chat (select desc, cap 1000 — as
+ * 1000 MAIS RECENTES; R7 regression review: antes ASC pegava as 1000 mais
+ * antigas e o histórico/NBA mostravam dados errados para contatos grandes) →
  * 1 GET por contato para o painel inteiro.
  *
  * staleTime 30s: sem refetch ao reabrir conversa / re-render.
@@ -40,7 +42,9 @@ export function useConversationMessagesData(contactId: string | null | undefined
           q
             .select('id, content, created_at, sender')
             .eq('contact_id', contactId)
-            .order('created_at', { ascending: true })
+            // DESC + range = as 1000 MAIS RECENTES (R7) — consumidores que
+            // precisam de ordem cronológica revertem localmente.
+            .order('created_at', { ascending: false })
             .range(0, MESSAGES_CAP - 1)
       );
       if (error) throw error;

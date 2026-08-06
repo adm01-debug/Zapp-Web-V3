@@ -72,11 +72,9 @@ export function NextBestActionEngine({ contactId, contactName }: NextBestActionP
             .maybeSingle(),
         ]);
 
-        // messages vêm em ordem ASC → último elemento = mais recente.
+        // messages vêm em ordem DESC (1000 mais recentes) → [0] = mais recente.
         const lastMsg =
-          messageRows && messageRows.length > 0
-            ? messageRows[messageRows.length - 1]
-            : null;
+          messageRows && messageRows.length > 0 ? messageRows[0] : null;
         const summaryRow = Array.isArray(summaryResult.data) && summaryResult.data.length > 0
           ? (summaryResult.data[0] as { pending_tasks: number; unread_whispers: number })
           : null;
