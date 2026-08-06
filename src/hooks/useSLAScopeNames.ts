@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { SLARuleScope } from '@/features/sla';
 import { isValidUUID } from '@/utils/uuid';
+import { QUERY_STALE_TIMES, QUERY_GC_TIMES } from '@/lib/queryStaleTimes';
 
 export function useSLAScopeNames(
   scope: SLARuleScope,
@@ -24,6 +25,8 @@ export function useSLAScopeNames(
       return map;
     },
     enabled: scope === 'contact' && contactIds.length > 0,
+    staleTime: QUERY_STALE_TIMES.slaRules,
+    gcTime: QUERY_GC_TIMES.slaRules,
   });
 
   const { data: queueNames = {} } = useQuery({
@@ -38,6 +41,8 @@ export function useSLAScopeNames(
       return map;
     },
     enabled: scope === 'queue' && queueIds.length > 0,
+    staleTime: QUERY_STALE_TIMES.queues,
+    gcTime: QUERY_GC_TIMES.queues,
   });
 
   const { data: agentNames = {} } = useQuery({
@@ -52,6 +57,8 @@ export function useSLAScopeNames(
       return map;
     },
     enabled: scope === 'agent' && agentIds.length > 0,
+    staleTime: QUERY_STALE_TIMES.profiles,
+    gcTime: QUERY_GC_TIMES.profiles,
   });
 
   return { contactNames, queueNames, agentNames };

@@ -29,7 +29,9 @@
 ### Para PRs com mudanças de banco (migrations)
 - [ ] Migration tem seção de ROLLBACK documentada (ou justificativa de irreversibilidade)
 - [ ] Testada em ambiente local antes de propor para produção
-- [ ] Nome do arquivo é único (sem prefixo duplicado)
+- [ ] Nome do arquivo é único (sem prefixo de timestamp duplicado)
+- [ ] Funções `SECURITY DEFINER` com parâmetros `(uuid, uuid)` possuem ownership guard: `IF p_user_id <> auth.uid() AND NOT zapp.is_admin_or_supervisor() THEN RAISE EXCEPTION 'permission_denied'`
+- [ ] `SET search_path` de funções `SECURITY DEFINER` não inclui `public` nem `pg_temp`
 
 ### Para PRs de segurança
 - [ ] Nenhuma credencial, token ou secret no código

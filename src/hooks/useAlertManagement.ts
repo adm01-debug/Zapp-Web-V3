@@ -147,7 +147,7 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
 
   useEffect(() => {
     const channel = supabase
-      .channel('warroom-alerts-management')
+      .channel(`warroom-alerts-management:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'zapp', table: 'warroom_alerts' },
@@ -202,43 +202,49 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
     const checkSLABreaches = async () => {
       if (!isActive) return;
 
-      // FIX #2: Não usa alertsRef (stale) - query direto para verificar alertas existentes
-      // evita race condition entre interval e query invalidation
-      const { data: existingSlaAlerts, error: queryErr } = await supabase
-        .from('warroom_alerts')
-        .select('id')
-        .eq('source', 'sla-monitor')
-        .eq('is_read', false)
-        .limit(1);
+      try {
+        // FIX #2: Não usa alertsRef (stale) - query direto para verificar alertas existentes
+        // evita race condition entre interval e query invalidation
+        const { data: existingSlaAlerts, error: queryErr } = await supabase
+          .from('warroom_alerts')
+          .select('id')
+          .eq('source', 'sla-monitor')
+          .eq('is_read', false)
+          .limit(1);
 
-      if (queryErr) {
-        log.error('Failed to check existing SLA alerts', queryErr);
-        return;
-      }
-
-      const { data: breaches, error: breachesErr } = await supabase
-        .from('conversation_sla')
-        .select('id, contact_id, first_response_breached, resolution_breached')
-        .or('first_response_breached.eq.true,resolution_breached.eq.true');
-
-      if (breachesErr) {
-        log.error('Failed to check SLA breaches', breachesErr);
-        return;
-      }
-
-      if (breaches && breaches.length > 0) {
-        const newBreachCount = breaches.length;
-        // Se já existe alerta SLA não lido, não cria duplicata
-        const hasExistingAlert = existingSlaAlerts && existingSlaAlerts.length > 0;
-        if (!hasExistingAlert) {
-          const { error: insertErr } = await supabase.from('warroom_alerts').insert({
-            alert_type: 'critical',
-            title: `${newBreachCount} SLA(s) Violado(s)`,
-            message: `Existem ${newBreachCount} conversas com SLA violado que precisam de atenção imediata.`,
-            source: 'sla-monitor',
-          });
-          if (insertErr) log.error('Failed to insert SLA breach alert', insertErr);
+        if (queryErr) {
+          log.error('Failed to check existing SLA alerts', queryErr);
+          return;
         }
+
+        const { data: breaches, error: breachesErr } = await supabase
+          .from('conversation_sla')
+          .select('id, contact_id, first_response_breached, resolution_breached')
+          .or('first_response_breached.eq.true,resolution_breached.eq.true');
+
+        if (breachesErr) {
+          log.error('Failed to check SLA breaches', breachesErr);
+          return;
+        }
+
+        if (breaches && breaches.length > 0) {
+          const newBreachCount = breaches.length;
+          // Se já existe alerta SLA não lido, não cria duplicata
+          const hasExistingAlert = existingSlaAlerts && existingSlaAlerts.length > 0;
+          if (!hasExistingAlert) {
+            const { error: insertErr } = await supabase.from('warroom_alerts').insert({
+              alert_type: 'critical',
+              title: `${newBreachCount} SLA(s) Violado(s)`,
+              message: `Existem ${newBreachCount} conversas com SLA violado que precisam de atenção imediata.`,
+              source: 'sla-monitor',
+            });
+            if (insertErr) log.error('Failed to insert SLA breach alert', insertErr);
+          }
+        }
+      } catch (err) {
+        // void checkSLABreaches() roda no boot E a cada 60s: sem try/catch,
+        // uma falha de rede vira unhandled promise rejection em loop.
+        log.error('Failed to check SLA breaches (rejeição)', err);
       }
     };
 

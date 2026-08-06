@@ -47,6 +47,24 @@ export function useInboxHeartbeat(profileId: string | undefined) {
     };
 
     let hiddenTimeout: ReturnType<typeof setTimeout> | undefined;
+    let heartbeatInterval: ReturnType<typeof setInterval> | undefined;
+
+    // Pausa REAL do heartbeat: o timer é destruído com a aba oculta (zero
+    // ticks desperdiçados) e recriado ao voltar a ficar visível. O write de
+    // saída (offline) continua sendo responsabilidade do debounce abaixo.
+    const stopHeartbeat = () => {
+      if (heartbeatInterval !== undefined) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = undefined;
+      }
+    };
+
+    const startHeartbeat = () => {
+      stopHeartbeat();
+      heartbeatInterval = setInterval(() => {
+        if (document.visibilityState === 'visible') updateStatus('online');
+      }, HEARTBEAT_MS);
+    };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -54,10 +72,13 @@ export function useInboxHeartbeat(profileId: string | undefined) {
           clearTimeout(hiddenTimeout);
           hiddenTimeout = undefined;
         }
+        startHeartbeat();
         updateStatus('online');
       } else {
         // No immediate write when hidden: debounce — only write offline if the
         // tab stays hidden for 30s+ (a real leave, not a quick tab switch).
+        // Timer de heartbeat pausado: nada roda com a aba oculta.
+        stopHeartbeat();
         hiddenTimeout = setTimeout(() => {
           if (document.visibilityState !== 'visible') {
             // Already passed a 30s debounce: this is a real leave, force the
@@ -83,9 +104,7 @@ export function useInboxHeartbeat(profileId: string | undefined) {
 
     updateStatus('online');
 
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') updateStatus('online');
-    }, HEARTBEAT_MS);
+    startHeartbeat();
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -93,7 +112,7 @@ export function useInboxHeartbeat(profileId: string | undefined) {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       if (hiddenTimeout) clearTimeout(hiddenTimeout);
-      clearInterval(interval);
+      stopHeartbeat();
 
       // Conditional cleanup: only write offline if we had written 'online' AND the
       // throttle window elapsed. Real closes are handled by pagehide, so plain
@@ -105,7 +124,12 @@ export function useInboxHeartbeat(profileId: string | undefined) {
         void supabase
           .from('profiles')
           .update({ online_status: 'offline', last_seen: new Date().toISOString() })
-          .eq('id', profileId);
+          .eq('id', profileId)
+          .then(undefined, (err: unknown) => {
+            // Fire-and-forget no unmount: sem handler, uma falha de rede vira
+            // unhandled promise rejection no console de produção.
+            log.warn('Failed to write offline heartbeat on unmount:', err);
+          });
       }
     };
   }, [profileId]);

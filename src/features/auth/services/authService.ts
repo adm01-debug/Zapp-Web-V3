@@ -4,11 +4,37 @@ import {
   mirrorExternalSignIn,
   mirrorExternalSignOut,
 } from '@/integrations/supabase/externalSessionBridge';
-import { Session } from '@supabase/supabase-js';
+import { Session, User } from '@supabase/supabase-js';
 import type { AuthError, PostgrestError } from '@supabase/supabase-js';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('authService');
+
+// ---------------------------------------------------------------------------
+// getUser(): single-flight + cache curto (30s).
+//
+// O GET /auth/v1/user era disparado DEZENAS de vezes na mesma sessão — cada
+// componente montando chamava supabase.auth.getUser() independentemente
+// (stacks mostravam _useSession/getUser de vários componentes). Aqui:
+//  - Single-flight: enquanto uma chamada está em voo, os demais chamadores
+//    aguardam a MESMA promise (nenhum fetch adicional);
+//  - Cache de 30s do resultado BEM-SUCEDIDO (inclui user:null quando a resposta
+//    é válida sem sessão). Erros NÃO são cacheados — apenas deduplicados em
+//    voo — para não mascarar um backend degradado por 30s;
+//  - invalidateUserCache() deve ser chamado no signIn/signOut e nos eventos
+//    SIGNED_OUT/TOKEN_REFRESHED (feito no AuthProvider).
+// ---------------------------------------------------------------------------
+const USER_CACHE_TTL_MS = 30_000;
+
+type GetUserResult = { data: { user: User | null }; error: AuthError | null };
+
+let cachedUser: { user: User | null; fetchedAt: number } | null = null;
+let userInflight: Promise<GetUserResult> | null = null;
+
+/** Invalida o cache curto do getUser (signIn/signOut/SIGNED_OUT/TOKEN_REFRESHED). */
+export function invalidateUserCache(): void {
+  cachedUser = null;
+}
 
 /** Limpa chaves de sessão locais (fallback quando o signOut remoto falha). */
 function clearLocalAuthStorage(): void {
@@ -45,8 +71,28 @@ export const authService = {
     return await supabase.auth.getSession();
   },
 
-  async getUser() {
-    return await supabase.auth.getUser();
+  async getUser(): Promise<GetUserResult> {
+    if (
+      cachedUser &&
+      Date.now() - cachedUser.fetchedAt < USER_CACHE_TTL_MS
+    ) {
+      return { data: { user: cachedUser.user }, error: null };
+    }
+    if (!userInflight) {
+      userInflight = supabase.auth
+        .getUser()
+        .then((res): GetUserResult => {
+          // Só resultados sem erro entram no cache (ver comentário do TTL).
+          if (!res.error) {
+            cachedUser = { user: res.data.user, fetchedAt: Date.now() };
+          }
+          return { data: { user: res.data.user }, error: res.error };
+        })
+        .finally(() => {
+          userInflight = null;
+        });
+    }
+    return userInflight;
   },
 
   async signIn(email: string, password: string) {

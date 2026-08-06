@@ -13,7 +13,7 @@ export default tseslint.config(
   // `.eslintrc.tailwind.js` is an orphaned legacy config (never wired into this
   // flat config) that holds TypeScript syntax in a .js file, so it fails to
   // parse. Ignore it here instead of surfacing a spurious parse error.
-  { ignores: ["dist", "supabase/functions/**", ".eslintrc.tailwind.js"] },
+  { ignores: ["dist", "supabase/functions/**", ".eslintrc.tailwind.js", ".hermes/**"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -256,6 +256,14 @@ export default tseslint.config(
           selector: "Property[key.name='schema'][value.value='public']",
           message:
             "Não usar schema:'public' no front — usar views zapp (contrato single-DB).",
+        },
+        {
+          // information_schema — não acessar diretamente (PGRST_DB_SCHEMAS não inclui
+          // information_schema; além disso, consultas diretas expõem metadados sensíveis
+          // do banco). Usar RPCs: rpc_schema_tables / rpc_schema_columns.
+          selector: "Literal[value='information_schema']",
+          message:
+            "Não acessar information_schema diretamente — usar RPCs rpc_schema_tables/rpc_schema_columns (F-06).",
         },
       ],
     },

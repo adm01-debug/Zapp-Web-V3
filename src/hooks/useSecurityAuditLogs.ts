@@ -142,7 +142,7 @@ export function useSecurityAuditLogs() {
 
   useEffect(() => {
     const channel = supabase
-      .channel('security_logs_realtime')
+      .channel(`security_logs_realtime:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'zapp', table: 'security_audit_logs' },

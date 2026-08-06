@@ -59,7 +59,11 @@ grep -rhoiE "create (or replace )?(table|view|materialized view)( if not exists)
 # =============================================================================
 # [A] RPC ÓRFÃ
 # =============================================================================
-grep -rhoE "\.rpc\(\s*['\"\`][a-zA-Z0-9_]+" "$SRC_DIR" --include='*.ts' --include='*.tsx' 2>/dev/null \
+# Testes/mocks documentam o PADRÃO `.rpc('fn')` (ex.: src/test/contractSnapshot.test.ts)
+# e chamam tabelas fake — não alimentam o contrato de PRODUÇÃO. Excluí-los evita
+# falsos positivos que quebram o guard sem drift real.
+grep -rhoE "\.rpc\(\s*['\"\`][a-zA-Z0-9_]+" "$SRC_DIR" --include='*.ts' --include='*.tsx' \
+  --exclude-dir='__tests__' --exclude-dir='test' --exclude-dir='tests' 2>/dev/null \
   | sed -E "s/.*rpc\(\s*['\"\`]//" | tr 'A-Z' 'a-z' | sort -u > "$TMP/rpc_called.txt"
 
 comm -23 "$TMP/rpc_called.txt" "$TMP/fn_defined.txt" \
@@ -75,7 +79,8 @@ fi
 # =============================================================================
 # [B] TABELA ÓRFÃ (client principal; exclui Storage e allowlist)
 # =============================================================================
-grep -rhoE "\.from\(\s*['\"\`][a-zA-Z0-9_-]+" "$SRC_DIR" --include='*.ts' --include='*.tsx' 2>/dev/null \
+grep -rhoE "\.from\(\s*['\"\`][a-zA-Z0-9_-]+" "$SRC_DIR" --include='*.ts' --include='*.tsx' \
+  --exclude-dir='__tests__' --exclude-dir='test' --exclude-dir='tests' 2>/dev/null \
   | sed -E "s/.*from\(\s*['\"\`]//" | tr 'A-Z' 'a-z' | sort -u > "$TMP/from_all.txt"
 grep -rhoE "storage\s*\.\s*from\(\s*['\"\`][a-zA-Z0-9_-]+" "$SRC_DIR" --include='*.ts' --include='*.tsx' 2>/dev/null \
   | sed -E "s/.*from\(\s*['\"\`]//" | tr 'A-Z' 'a-z' | sort -u > "$TMP/from_storage.txt"

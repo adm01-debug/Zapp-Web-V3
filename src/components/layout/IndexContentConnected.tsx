@@ -9,6 +9,7 @@ import { useUserRole } from '@/features/auth';
 import { useTour, DEFAULT_ONBOARDING_STEPS } from '@/components/onboarding/OnboardingTour';
 import { useIndexNavigation } from '@/hooks/useIndexNavigation';
 import { useEmailOAuthFlow } from '@/hooks/useGmailOAuthFlow';
+import { useRealtimePresenceAndConnections } from '@/features/inbox/hooks/realtime';
 import { useIndexKeyboardShortcuts } from '@/hooks/useIndexKeyboardShortcuts';
 import { useAppBootstrap } from '@/hooks/useAppBootstrap';
 
@@ -47,6 +48,9 @@ export const IndexContentConnected = forwardRef<HTMLDivElement>(
     } = useIndexNavigation(user, loading);
 
     useEmailOAuthFlow();
+    // Realtime compartilhado: agent_presence + whatsapp_connections com
+    // fallback polling 120s só quando o canal está em erro/fechado.
+    useRealtimePresenceAndConnections();
     useIndexKeyboardShortcuts({ goBack, goForward, canGoBack, setCurrentView });
 
     // DASHBOARD-07: badge de notificações real — rpc_app_bootstrap retorna

@@ -8,7 +8,7 @@ import { log as logLib } from '@/lib/logger';
 import { toast } from 'sonner';
 import { toast as toastHook } from '@/hooks/use-toast';
 import type { MediaRefreshKey } from '@/types/mediaRefresh';
-import { audioPlaybackBus } from '@/features/inbox';
+import { audioPlaybackBus } from '@/features/inbox/hooks/realtime/audioPlaybackBus';
 import { MAX_PTT_DURATION_SEC } from '@/lib/audio/pttLimits';
 
 const AUDIO_MEMES_KEY = ['audio-memes'] as const;
@@ -149,7 +149,7 @@ export function useAudioMemes(open: boolean) {
     setSyncError(null);
 
     const catalogChannel = supabase
-      .channel('audio-memes-catalog')
+      .channel(`audio-memes-catalog:${Math.random().toString(36).slice(2, 10)}`)
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'audio_memes' }, () => {
         log.info('Catalog update received');
         void queryClient.invalidateQueries({ queryKey: AUDIO_MEMES_KEY });
@@ -164,7 +164,7 @@ export function useAudioMemes(open: boolean) {
       });
 
     const favoritesChannel = supabase
-      .channel('audio-memes-favorites')
+      .channel(`audio-memes-favorites:${Math.random().toString(36).slice(2, 10)}`)
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'audio_meme_favorites' }, () => {
         log.info('Favorites update received');
         void queryClient.invalidateQueries({ queryKey: AUDIO_MEMES_KEY });

@@ -73,7 +73,11 @@ describe('useTranscriptionNotifications', () => {
 
   it('subscribes to transcription-notifications channel', () => {
     renderHook(() => useTranscriptionNotifications());
-    expect(mockChannel).toHaveBeenCalledWith('transcription-notifications');
+    // Tópico único por mount (padrão da casa — evita race de remount:
+    // "cannot add postgres_changes callbacks after subscribe()").
+    expect(mockChannel).toHaveBeenCalledWith(
+      expect.stringMatching(/^transcription-notifications:/)
+    );
   });
 
   it('does not subscribe when disabled', () => {

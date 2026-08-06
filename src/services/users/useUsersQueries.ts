@@ -8,13 +8,15 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useListQuery, useDetailQuery, useSearchQuery, queryKeys } from '@/services/api';
 import { usersService, type User, type Agent } from './index';
 import type { QueryParams } from '@/services/api/types';
+import { QUERY_STALE_TIMES, QUERY_GC_TIMES } from '@/lib/queryStaleTimes';
 
 /**
  * Hook to list all users
  */
 export const useUsersList = (filters?: Partial<User> & QueryParams) => {
   return useListQuery(queryKeys.users.userList(filters), () => usersService.listUsers(filters), {
-    staleTime: 30_000,
+    staleTime: QUERY_STALE_TIMES.profiles,
+    gcTime: QUERY_GC_TIMES.profiles,
     enabled: true,
   });
 };
@@ -52,7 +54,8 @@ export const useSearchUsers = (query?: string) => {
  */
 export const useAgentsList = (filters?: Partial<Agent> & QueryParams) => {
   return useListQuery(queryKeys.users.agentList(filters), () => usersService.listAgents(filters), {
-    staleTime: 30_000,
+    staleTime: QUERY_STALE_TIMES.profiles,
+    gcTime: QUERY_GC_TIMES.profiles,
     enabled: true,
   });
 };

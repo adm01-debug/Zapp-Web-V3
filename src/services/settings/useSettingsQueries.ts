@@ -5,6 +5,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/services/api';
 import { settingsService } from './index';
+import { QUERY_STALE_TIMES, QUERY_GC_TIMES } from '@/lib/queryStaleTimes';
 
 /** Query hook that fetches user-specific settings, enabled only when a userId is provided. */
 export const useUserSettings = (userId?: string) => {
@@ -12,7 +13,8 @@ export const useUserSettings = (userId?: string) => {
     queryKey: queryKeys.settings.user(userId || ''),
     queryFn: () => settingsService.getUserSettings(userId ?? ''),
     enabled: !!userId,
-    staleTime: 60_000,
+    staleTime: QUERY_STALE_TIMES.userSettings,
+    gcTime: QUERY_GC_TIMES.userSettings,
   });
 };
 
@@ -22,6 +24,7 @@ export const useWorkspaceSettings = (workspaceId?: string) => {
     queryKey: queryKeys.settings.workspace(),
     queryFn: () => settingsService.getWorkspaceSettings(workspaceId ?? ''),
     enabled: !!workspaceId,
-    staleTime: 60_000,
+    staleTime: QUERY_STALE_TIMES.userSettings,
+    gcTime: QUERY_GC_TIMES.userSettings,
   });
 };

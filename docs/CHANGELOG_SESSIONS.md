@@ -402,3 +402,81 @@ auditoria de boot (POST REST → `evo.evolution_logpatch_audit`). Sem execução
 
 - Documentar migration drift (~15 versões aplicadas via MCP sem arquivo SQL) — ver `docs/MIGRATION_DRIFT_REPORT.md`
 - Investigar Dependabot (2 vulns high)
+
+---
+
+## Sessão 2026-08-06 (continuação) — Auditoria Exaustiva 5 Agentes + Hardening
+
+**Branch:** `claude/evolution-api-audit-6ly46n` (reset a partir de main após PR #897 merged)
+
+### PRs Mergeados (auditoria exaustiva pós-PR #892)
+
+| PR | Título resumido | Migrations | Status |
+|---|---|---|---|
+| #897 | `fix(security): CRITICAL-1 store_reset_token REVOKE + race condition audio_meme_favorites` | 20260806200100, 20260806300000, 20260806600000, 20260806700000 | ✅ Merged |
+| #899 | `fix(security): re-validação adversarial FASE 2 — hardening pós-P0` | — | ✅ Merged |
+| #900 | `fix(security): fn_verify_alert_delivery v7 + search_path guardrails` | 20260806100001 | ✅ Merged |
+| #901 | `fix(ci): GHCR pipeline hardening — imagem custom Evolution` | — | ✅ Merged |
+| #902 | `fix(db): reconciliação filesystem vs DB — 47 gaps de policy documentados` | — | ✅ Merged |
+| #903 | `fix(db): timestamp collision resolution — 3 migrations com timestamps duplicados` | — | ✅ Merged |
+| #904 | `fix(security): SEC-2/SEC-3/SEC-4 guards + RLS sticker_favorites + G1-B search_path` | 20260806800000 (×3), 20260806900000, 20260806950000 | ✅ Merged |
+
+### Findings da Auditoria Exaustiva (5 Agentes)
+
+#### SEC-2 (P0 — DoS seletivo via idempotency poisoning) ✅ RESOLVIDO em PR #904
+- `acquire_idempotency_lock`, `record_processed_request`, `check_duplicate_request`, `record_ai_metrics` tinham `GRANT EXECUTE TO authenticated` sem guard `auth.uid()`.
+- A UNIQUE constraint em `processed_requests` era em `(request_id, action)` sem `user_id` → qualquer autenticado podia bloquear pagamento/ação de vítima por 5 min.
+- **Correção:** `REVOKE EXECUTE FROM authenticated` (funções chamadas apenas pela Edge Function `ai-router` com `service_role` — sem impacto funcional).
+
+#### SEC-3 (P1 — disclosure de agentes visíveis) ✅ RESOLVIDO em PR #904
+- `get_visible_agent_ids(_user_id)` sem guard: qualquer autenticado consultava agentes visíveis para qualquer outro usuário.
+- **Correção:** `AND _user_id IS NOT DISTINCT FROM auth.uid()` em ambos os ramos do UNION.
+
+#### SEC-4 (P1 — disclosure de roles/permissões) ✅ RESOLVIDO em PR #904
+- `has_role(_user_id, _role)` e `user_has_permission(_user_id, _permission_name)` com `GRANT TO authenticated` — enumeração de roles de qualquer usuário.
+- **Correção:** Guard `_user_id IS NOT DISTINCT FROM auth.uid()` adicionado via `AND`, mantendo compatibilidade com RLS policies que chamam `has_role(auth.uid(), ...)`.
+
+#### RLS sticker_favorites ✅ RESOLVIDO em PR #904
+- `sf_delete_own` (USING = true, sem filtro user_id) → qualquer autenticado deletava favoritos alheios.
+- `sf_service_all` (ALL, USING = true) aplicava a `authenticated` (não `service_role`) e anulava `sf_insert_auth`.
+- **Correção:** DROP de `sf_service_all` + recriar `sf_delete_own` com `USING (user_id = auth.uid())`.
+
+#### G1-B (search_path sintaxe incorreta) ✅ RESOLVIDO em PR #904
+- `fn_toggle_user_meme_favorite(uuid, uuid)` em `20260806300000` usou `SET search_path = 'zapp, auth, extensions'` (todos numa string → schema único inválido).
+- **Correção:** `ALTER FUNCTION … SET search_path TO 'zapp', 'auth', 'extensions'`.
+
+### Continuação desta sessão (branch atual)
+
+#### GAP-AUDIT-1 — RLS explícita em `audio_meme_favorites` ✅ NOVO
+
+| Item | Detalhe |
+|---|---|
+| Problema | Policy `auth_own_or_admin` existia apenas no DB de produção (criada em migrations pré-squash) — sem versão no filesystem |
+| Risco | Recrear DB a partir do filesystem deixaria a tabela sem nenhuma policy: `ENABLE ROW LEVEL SECURITY` sem policy = bloqueia TUDO |
+| Correção | `20260806970000_explicit_rls_audio_meme_favorites.sql` — DROP POLICY IF EXISTS + CREATE POLICY idempotente |
+| Política | ALL, authenticated, USING/WITH CHECK: `user_id = auth.uid() OR zapp.is_admin_or_supervisor()` |
+
+#### BUG CRÍTICO — `fn_toggle_user_meme_favorite(uuid, uuid)` regressão em PR #904 ✅ NOVO
+
+| Item | Detalhe |
+|---|---|
+| Problema | `20260806800000_fix_g1b_meme_favorite_searchpath.sql` foi aplicado à produção com dois bugs: (1) tabela `zapp.user_meme_favorites` não existe, (2) guard IDOR removido |
+| Impacto | Função **quebrada em runtime** — qualquer chamada ao overload 2-argumento retornava erro 500; se tabela existisse, IDOR estaria presente |
+| Ordem de execução | `_fix_g1_` (ALTER FUNCTION, correto) → `_fix_g1b_` (CREATE OR REPLACE, sobrescreve com bugs, vem depois por ordem alfabética) |
+| Correção filesystem | Conteúdo de `20260806800000_fix_g1b_meme_favorite_searchpath.sql` reescrito com tabela certa + guard IDOR |
+| Correção produção | `20260806980000_fix_fn_toggle_meme_favorite_table_and_guard.sql` — aplica versão correta ao DB de produção |
+
+### Migrations desta continuação de sessão
+
+| Arquivo | Tipo | Descrição |
+|---|---|---|
+| `20260806970000_explicit_rls_audio_meme_favorites.sql` | Hardening | RLS policy `auth_own_or_admin` documentada no filesystem (GAP-AUDIT-1) |
+| `20260806980000_fix_fn_toggle_meme_favorite_table_and_guard.sql` | Fix crítico | Restaura guard IDOR + tabela correta em `fn_toggle_user_meme_favorite(uuid, uuid)` |
+
+### Pendências Pós-Sessão (2026-08-06 continuação)
+
+| Item | Prioridade | Ação Necessária |
+|---|---|---|
+| ML-005 falso positivo em `20260806200100` | P3 | Linter lê `GRANT TO PUBLIC` em comentário `--` (rollback); adicionar `-- lint-ignore` ou corrigir linter |
+| ML-008 em migrations pré-2026-08-06 | P2 | Verificar se `20260805000010`, `20260805160000`, `20260805170000`, `20260805183000`, `20260806090000` já foram REVOKE'd em produção |
+| A-8: `OCI_DIGEST` env var | P2 | Injetar `OCI_DIGEST: "{{.Service.Image}}"` no stack `evolution-api-custom` |

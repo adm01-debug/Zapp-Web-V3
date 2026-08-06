@@ -5,7 +5,10 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useLocationPicker');
 import { toast } from '@/hooks/use-toast';
-import mapboxgl from 'mapbox-gl';
+// FIX perf TTM phase-07: import type-only — o mapbox-gl (1.9MB vendor) era
+// puxado pro chunk inicial pelo import estático. O runtime agora vem só do
+// loadMapbox() dinâmico (já usado abaixo), guardado em mapboxRef.
+import type mapboxgl from 'mapbox-gl';
 import { loadMapbox } from '@/lib/mapbox-loader';
 
 interface SelectedLocation {
@@ -20,6 +23,8 @@ export function useLocationPicker(open: boolean, activeTab: 'map' | 'current') {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const marker = useRef<mapboxgl.Marker | null>(null);
+  // Módulo mapbox carregado sob demanda (loadMapbox) — null até o mapa abrir.
+  const mapboxRef = useRef<typeof mapboxgl | null>(null);
 
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
@@ -45,13 +50,14 @@ export function useLocationPicker(open: boolean, activeTab: 'map' | 'current') {
   }, [open]);
 
   const updateMarker = useCallback((lng: number, lat: number) => {
-    if (!map.current) return;
+    const mb = mapboxRef.current;
+    if (!map.current || !mb) return;
     if (marker.current) {
       marker.current.setLngLat([lng, lat]);
     } else {
       const el = document.createElement('div');
       el.innerHTML = `<div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg animate-bounce"><svg class="w-5 h-5 text-primary-foreground" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>`;
-      marker.current = new mapboxgl.Marker(el, { anchor: 'bottom' })
+      marker.current = new mb.Marker(el, { anchor: 'bottom' })
         .setLngLat([lng, lat])
         .addTo(map.current);
     }
@@ -95,16 +101,18 @@ export function useLocationPicker(open: boolean, activeTab: 'map' | 'current') {
     if (!mapContainer.current || !mapboxToken || !open || activeTab !== 'map') return;
     let cancelled = false;
     (async () => {
-      const { default: mapboxgl } = await loadMapbox();
+      const mod = await loadMapbox();
       if (cancelled || !mapContainer.current) return;
-      mapboxgl.accessToken = mapboxToken;
-      map.current = new mapboxgl.Map({
+      mapboxRef.current = mod.default;
+      const mb = mod.default;
+      mb.accessToken = mapboxToken;
+      map.current = new mb.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/streets-v12',
         center: [-46.6333, -23.5505],
         zoom: 12,
       });
-      map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      map.current.addControl(new mb.NavigationControl(), 'top-right');
       map.current.on('load', () => setIsMapLoaded(true));
       map.current.on('click', async (e) => {
         const { lng, lat } = e.lngLat;

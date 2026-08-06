@@ -169,7 +169,7 @@ export function useRateLimitLogs(initial?: Partial<RateLimitLogsFilters>): UseRa
   // Realtime: invalidate paginated cache; prepend into stats snapshot for freshness.
   useEffect(() => {
     const channel = supabase
-      .channel('rate-limit-logs')
+      .channel(`rate-limit-logs:${Math.random().toString(36).slice(2, 10)}`)
       .on<RateLimitLog>(
         'postgres_changes',
         { event: 'INSERT', schema: 'zapp', table: 'rate_limit_logs' },

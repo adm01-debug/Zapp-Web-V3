@@ -87,7 +87,9 @@ describe('ConnectionHealthPanel', () => {
 
   it('subscribes to realtime channel', () => {
     render(<ConnectionHealthPanel />);
-    expect(mockChannel).toHaveBeenCalledWith('health-updates');
+    expect(mockChannel).toHaveBeenCalledWith(
+      expect.stringMatching(/^health-updates:/)
+    );
   });
 
   it('unsubscribes on unmount via removeChannel', () => {

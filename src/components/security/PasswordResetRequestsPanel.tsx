@@ -44,7 +44,7 @@ export function PasswordResetRequestsPanel() {
   useEffect(() => {
     void fetchRequests();
     const channel = supabase
-      .channel('password-reset-requests')
+      .channel(`password-reset-requests:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'password_reset_requests' },

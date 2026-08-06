@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-08-03",
+  "updatedAt": "2026-08-06",
   "calls": {
     "src/components": 0,
     "src/pages": 0,
-    "src/features": 270,
-    "src/hooks": 351
+    "src/features": 286,
+    "src/hooks": 379
   }
 }

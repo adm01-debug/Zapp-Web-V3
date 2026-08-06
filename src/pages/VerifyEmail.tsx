@@ -3,9 +3,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { getLogger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+
+const log = getLogger('VerifyEmail');
 
 type VerificationStatus = 'loading' | 'success' | 'error' | 'expired';
 
@@ -55,6 +58,10 @@ export default function VerifyEmail() {
               setStatus('success');
               setEmail(data.session.user.email || '');
             }
+          }).catch((err: unknown) => {
+            // Rede/timeout: não deixa a promise rejeitar sem handler —
+            // mantém o status atual (loading → sem loop, sem rejection).
+            log.warn('[VerifyEmail] getSession falhou na revalidação:', err);
           });
         }, 2000);
       }

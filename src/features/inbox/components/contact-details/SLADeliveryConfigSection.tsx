@@ -37,8 +37,15 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
     queryKey: queryKeys.sla.deliveryConfig(contactId),
     enabled: !!contactId && isValidUUID(contactId),
     queryFn: async () => {
+      // Mesma ordenação do consumidor de delivery (R5): regra ativa mais
+      // recente primeiro — o painel de config reflete a regra em vigor.
       const { data: rows, error } = await safeClient.from('sla_delivery_rules', (q) =>
-        q.select('*').eq('contact_id', contactId).limit(1)
+        q
+          .select('*')
+          .eq('contact_id', contactId)
+          .order('is_active', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(1)
       );
       if (error) throw error;
       return (rows?.[0] ?? null) as SLADeliveryRule | null;

@@ -14,6 +14,10 @@
  *   AbortController;
  * - version.json OK limpa o estado de reload no sessionStorage;
  * - prefetch em background dos assets do novo bundle (js/css) no mismatch;
+ * - polling consolidado: intervalo base de 60s com jitter ±10s (fixado em 0
+ *   nos testes), intervalo MÍNIMO de 60s entre checks, dedupe in-flight
+ *   (sem 2 fetches concorrentes) e PAUSA com aba oculta (visibilitychange)
+ *   com re-check ao voltar a ficar visível;
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockInstance } from 'vitest';
@@ -50,6 +54,9 @@ beforeEach(() => {
   // Import.meta.env.DEV é true no modo test do vitest; o watcher pula ambientes
   // DEV (isSkippableEnv). Forçamos false para exercitar checkVersion real.
   vi.stubEnv('DEV', false);
+  // Jitter do poll (±POLL_JITTER_MS): fixado em 0 para os avanços de timer
+  // dos testes baterem exatamente com POLL_INTERVAL_MS.
+  vi.spyOn(Math, 'random').mockReturnValue(0.5);
   sessionStorage.clear();
 
   fetchMock.mockReset();
@@ -301,17 +308,26 @@ describe('forceBundleRefresh — purge de caches/SW no reload permitido', () => 
 
 describe('checkVersion (via startBuildVersionWatcher + fake timers)', () => {
   it('buildId diferente + content-type application/json → aviso + reload após a janela de cortesia (UPDATE_GRACE_MS)', async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ buildId: 'buildB' }, 'application/json'));
+    // Response NOVO por chamada — mockResolvedValue compartilharia o MESMO
+    // body e o 2º res.json() (poll de 60s) lançaria "body already consumed".
+    fetchMock.mockImplementation(() =>
+      Promise.resolve(jsonResponse({ buildId: 'buildB' }, 'application/json'))
+    );
 
     const { stop } = startWatcherAndStop();
     try {
       // FIX #7: o kickoff em 30s (MIN_BOOT_DELAY_MS) detecta o mismatch, dispara
       // 'zapp-update-required' (grace:true) e agenda o reload; o reload ocorre
       // ao fim da janela de cortesia UPDATE_GRACE_MS — não mais imediatamente.
+      // Com o poll consolidado de 60s, o tick de t=90s coincide com a janela
+      // de cortesia: 2 checks de version.json + 6 prefetches (js/css por
+      // mismatch agendado ×2 + js/css no forceBundleRefresh) = 8 fetches.
       await vi.advanceTimersByTimeAsync(30_000 + __TEST__.UPDATE_GRACE_MS);
-      // Fetch calls esperadas: 1 version.json + 4 prefetch (js/css no schedule
-      // + js/css no forceBundleRefresh) + 1 HEAD CDN check (isBundleReachable).
-      expect(fetchMock).toHaveBeenCalledTimes(6);
+      // Poll e cortesia andam em lockstep (ambos 60s a partir do mismatch):
+      // o poll do mesmo tick NÃO cancela o timer pendente (guard same-target);
+      // o poll seguinte re-agenda. Fetch calls: 2× version.json (t=30 kickoff +
+      // t=90 poll) + 5 assets (js/css do schedule + HEAD CDN + js/css do force).
+      expect(fetchMock).toHaveBeenCalledTimes(7);
       expect(String(fetchMock.mock.calls[0][0])).toMatch(/^\/version\.json\?ts=\d+$/);
       // Assets do novo bundle: 2 prefetch no schedule, 1 HEAD CDN check,
       // 2 prefetch no forceBundleRefresh (total 5 chamadas de /assets/).
@@ -514,74 +530,37 @@ describe('STRESS: cota GLOBAL sob 100 reloads em loop rápido (fake timers)', ()
   });
 });
 
-describe('RACE: dois checkVersion simultâneos (kickoff + visibilitychange)', () => {
-  // GAP CONHECIDO: buildVersion.ts NÃO tem dedup in-flight — `safeCheckVersion`
-  // pode entrar duas vezes no mesmo tick e as DUAS chamadas passam pela cota
-  // por-alvo (que permite 2 reloads). Este teste documenta o comportamento
-  // DESEJADO (1 reload); o teste seguinte documenta o comportamento REAL
-  // (2 reloads, dentro da cota, sem abort). Usamos mockImplementation com um
-  // Response NOVO por chamada — mockResolvedValue compartilharia o MESMO body,
-  // e o 2º res.json() lançaria "body already consumed" (silenciado pelo catch),
-  // mascarando a race. GAP CONHECIDO: buildVersion.ts não tem dedup in-flight.
-  it.skip('kickoff + visibilitychange no mesmo tick → apenas 1 forceBundleRefresh', async () => {
+describe('RACE: kickoff + visibilitychange no mesmo tick (dedupe anti-rajada)', () => {
+  // FIX onda-bugs-console-v1: checkVersion agora tem in-flight guard
+  // (checkInFlight) + intervalo mínimo de 60s (MIN_CHECK_GAP_MS). O padrão de
+  // produção — 2 fetches de version.json no mesmo segundo (dois consumers) —
+  // é eliminado: o 2º trigger no mesmo tick não gera fetch nem reload extra.
+  it('→ apenas 1 check e 1 reload (in-flight + intervalo mínimo)', async () => {
     fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ buildId: 'buildB' })));
 
     const { stop } = startWatcherAndStop();
     try {
-      // t=30s: o timer de kickoff dispara checkVersion#1; no MESMO tick o
-      // visibilitychange dispara checkVersion#2 — race de verdade.
+      // Conta SÓ os fetches de version.json (prefetch de assets também usa fetch).
+      const versionFetches = () =>
+        fetchMock.mock.calls.filter((c) => String(c[0]).startsWith('/version.json')).length;
+
+      // t=30s: kickoff dispara checkVersion#1 (mismatch → cortesia agendada).
       await vi.advanceTimersByTimeAsync(30_000);
+      expect(versionFetches()).toBe(1);
+
+      // visibilitychange no MESMO instante → 2º check BLOQUEADO pelo intervalo
+      // mínimo (lastCheckAt < 60s) — sem rajada de fetches concorrentes.
       document.dispatchEvent(new Event('visibilitychange'));
       await vi.advanceTimersByTimeAsync(0);
+      expect(versionFetches()).toBe(1);
 
-      expect(fetchMock).toHaveBeenCalledTimes(2); // dois checks rodaram
-      expect(replaceSpy).toHaveBeenCalledTimes(1); // mas só 1 reload
-      expect(dispatchSpy).not.toHaveBeenCalled(); // e nenhum abort
-    } finally {
-      stop();
-      vi.clearAllTimers();
-    }
-  });
-
-  it('comportamento REAL: 2 checks simultâneos ficam DENTRO da cota (2 reloads, sem abort)', async () => {
-    fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ buildId: 'buildB' })));
-
-    const { stop } = startWatcherAndStop();
-    try {
-      // FIX #7: cada check agenda seu reload ao fim da janela de cortesia
-      // (UPDATE_GRACE_MS) — os 2 timers disparam juntos em t=90s.
-      await vi.advanceTimersByTimeAsync(30_000);
-      document.dispatchEvent(new Event('visibilitychange'));
-      await vi.advanceTimersByTimeAsync(0);
-
-      // Reloads ainda NÃO ocorreram (janela de cortesia em andamento)…
-      expect(replaceSpy).not.toHaveBeenCalled();
-
+      // Toda a janela de cortesia: apenas 1 reload (grace do kickoff).
       await vi.advanceTimersByTimeAsync(__TEST__.UPDATE_GRACE_MS);
-
-      // Ambos passam pela cota por-alvo (max 2) → 2 reloads, 0 aborts.
-      // Eventos grace ('version-mismatch') NÃO contam como abort.
-      const abortEvents = () =>
-        dispatchSpy.mock.calls
-          .map((c) => c[0] as CustomEvent<{ reason?: string }>)
-          .filter(
-            (e) => e.type === 'zapp-update-required' && e.detail?.reason !== 'version-mismatch'
-          );
-      expect(replaceSpy).toHaveBeenCalledTimes(2);
-      expect(abortEvents()).toHaveLength(0);
-      expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('2');
+      expect(replaceSpy).toHaveBeenCalledTimes(1);
+      expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('1');
       expect(__TEST__.readReloadState()).toEqual(
-        expect.objectContaining({ targetBuildId: 'buildB', attempts: 2 })
+        expect.objectContaining({ targetBuildId: 'buildB', attempts: 1 })
       );
-
-      // Um 3º check (poll de 5min) já encontra a cota por-alvo esgotada → o
-      // reload agendado aborta ao fim da cortesia, provando que a race não
-      // vira loop infinito.
-      await vi.advanceTimersByTimeAsync(5 * 60_000);
-      expect(replaceSpy).toHaveBeenCalledTimes(2);
-      const abort = abortEvents()[0];
-      expect(abort?.type).toBe('zapp-update-required');
-      expect(abort?.detail?.reason).toBe('per-target-quota');
     } finally {
       stop();
       vi.clearAllTimers();
@@ -589,13 +568,13 @@ describe('RACE: dois checkVersion simultâneos (kickoff + visibilitychange)', ()
   });
 });
 
-describe('CENÁRIO REAL: 4 deploys em 23 minutos (padrão do log de produção)', () => {
-  it('rajada de deploys com checks extras (focus/visibility) → cota global corta o loop', async () => {
-    // Deploys: buildA em t=0, buildB em t=6min, buildC em t=12min, buildD em t=20min.
-    // O watcher checa em: kickoff 30s, polls 5/10/15/20min + focus/visibilitychange
-    // disparados pelo usuário — o mesmo padrão que causou a cascata em produção.
-    // FIX #7: cada reload agora ocorre 60s (UPDATE_GRACE_MS) após o check que o
-    // agendou — os checks e cotas são idênticos, apenas adiados pela cortesia.
+describe('CENÁRIO REAL: 4 deploys com poll consolidado de 60s (cota corta a cascata)', () => {
+  it('rajada de deploys com checks de 60s → cotas por-alvo e global cortam o loop', async () => {
+    // Deploys: buildA em t=0, buildB em t=360s, buildC em t=720s, buildD em
+    // t=900s. Poll (60s) e cortesia (60s) andam em LOCKSTEP a partir do
+    // mismatch: o poll do tick NÃO cancela o timer do mesmo alvo; cada
+    // reload dispara no tick seguinte ao mismatch. As cotas (2 por alvo /
+    // 10min, 5 globais / 15min) seguram a cascata.
     let liveBuildId = 'buildA';
     fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ buildId: liveBuildId })));
 
@@ -604,80 +583,59 @@ describe('CENÁRIO REAL: 4 deploys em 23 minutos (padrão do log de produção)'
       // Filtra APENAS os eventos de ABORT de cota — os eventos de cortesia
       // (reason 'version-mismatch', grace:true) são o aviso ao usuário e não
       // contam como abort.
-      const updateRequired = () =>
+      const abortReasons = () =>
         dispatchSpy.mock.calls
-          .map((call) => call[0] as CustomEvent<{ reason?: string }>)
-          .filter(
-            (call) =>
-              call.type === 'zapp-update-required' && call.detail?.reason !== 'version-mismatch'
-          );
+          .map((call) => (call[0] as CustomEvent<{ reason?: string }>).detail?.reason)
+          .filter((r): r is string => !!r && r !== 'version-mismatch');
 
-      // ── Deploy 1 (buildA) ── kickoff em 30s detecta o mismatch; reload #1
-      // ao fim da janela de cortesia (global 1/5)
-      await vi.advanceTimersByTimeAsync(30_000 + __TEST__.UPDATE_GRACE_MS);
+      // ── Deploy 1 (buildA) ── kickoff@30s → reload #1@90, #2@210; cota A (2/2) estoura @330
+      await vi.advanceTimersByTimeAsync(30_000); // t=30: check A → cortesia@90
+      await vi.advanceTimersByTimeAsync(60_000); // t=90: poll A (mesmo alvo, não cancela) → reload #1
       expect(replaceSpy).toHaveBeenCalledTimes(1);
-      expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('1');
-
-      // Poll de 5min ainda vê buildA → reload #2 em 5min+60s (per-target A 2/2,
-      // global 2/5)
-      await vi.advanceTimersByTimeAsync(4.5 * 60_000);
+      await vi.advanceTimersByTimeAsync(120_000); // t=210: poll@150 agenda → reload #2 (A)
       expect(replaceSpy).toHaveBeenCalledTimes(2);
+      await vi.advanceTimersByTimeAsync(120_000); // t=330: cortesia → cota por-alvo de A estoura
+      expect(replaceSpy).toHaveBeenCalledTimes(2);
+      expect(abortReasons()).toEqual(['per-target-quota']);
 
-      // ── Deploy 2 (buildB, t=6min) ── focus do usuário em 6.2min agenda o
-      // reload #3 (dispara 60s depois — global 3/5)
+      // ── Deploy 2 (buildB, t=360s) ── reload #3@450, #4@570; cota B estoura @690
       liveBuildId = 'buildB';
-      await vi.advanceTimersByTimeAsync(1.2 * 60_000);
-      window.dispatchEvent(new Event('focus'));
-      await vi.advanceTimersByTimeAsync(__TEST__.UPDATE_GRACE_MS);
+      await vi.advanceTimersByTimeAsync(30_000); // t=360 (deploy B)
+      await vi.advanceTimersByTimeAsync(30_000); // t=390: poll B → cortesia B@450
+      await vi.advanceTimersByTimeAsync(60_000); // t=450: reload #3 (B)
       expect(replaceSpy).toHaveBeenCalledTimes(3);
-
-      // Poll de 10min vê buildB → reload #4 (B 2/2, global 4/5)
-      await vi.advanceTimersByTimeAsync(3.8 * 60_000);
+      await vi.advanceTimersByTimeAsync(120_000); // t=570: reload #4 (B)
       expect(replaceSpy).toHaveBeenCalledTimes(4);
+      await vi.advanceTimersByTimeAsync(120_000); // t=690: cota por-alvo de B estoura
+      expect(replaceSpy).toHaveBeenCalledTimes(4);
+      expect(abortReasons()).toEqual(['per-target-quota', 'per-target-quota']);
 
-      // ── Deploy 3 (buildC, t=12min) ── visibilitychange em 12.1min agenda o
-      // reload #5 (global chega a 5/5 — último reload permitido na janela de 15min)
+      // ── Deploy 3 (buildC, t=720s) ── reload #5@810 (cota global 5/5)
       liveBuildId = 'buildC';
-      await vi.advanceTimersByTimeAsync(2.1 * 60_000);
-      document.dispatchEvent(new Event('visibilitychange'));
-      await vi.advanceTimersByTimeAsync(__TEST__.UPDATE_GRACE_MS);
+      await vi.advanceTimersByTimeAsync(30_000); // t=720 (deploy C)
+      await vi.advanceTimersByTimeAsync(30_000); // t=750: poll C → cortesia C@810
+      await vi.advanceTimersByTimeAsync(60_000); // t=810: reload #5 (C — global 5/5)
       expect(replaceSpy).toHaveBeenCalledTimes(5);
 
-      // Focus → checkVersion vê buildC e agenda mais um reload; a cota global
-      // (5/5) só é atingida quando o timer de cortesia dispara.
-      window.dispatchEvent(new Event('focus'));
-      await vi.advanceTimersByTimeAsync(0);
-      expect(replaceSpy).toHaveBeenCalledTimes(5); // loop PREVENIDO
-      expect(updateRequired()).toHaveLength(0);
-
-      // Timers de cortesia do poll de 15min + focus disparam → 2 ABORTS
-      // global-quota (reloads #6/#7 nunca acontecem).
-      await vi.advanceTimersByTimeAsync(__TEST__.UPDATE_GRACE_MS);
-      expect(replaceSpy).toHaveBeenCalledTimes(5);
-      expect(updateRequired()).toHaveLength(2);
-      expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('5');
-
-      // ── Deploy 4 (buildD, t=20min) ── poll de 20min: janela global expirada
-      // (90s + 15min) → contador zera → reload #6 permitido ao fim da cortesia
+      // ── Deploy 4 (buildD, t=900s) ── cota GLOBAL segura a cascata
       liveBuildId = 'buildD';
-      await vi.advanceTimersByTimeAsync(5 * 60_000);
+      await vi.advanceTimersByTimeAsync(90_000); // t=900 (deploy D; poll@870 → cortesia C@930)
+      await vi.advanceTimersByTimeAsync(30_000); // t=930: poll D → cancela cortesia C (alvo diferente) → cortesia D@990
+      await vi.advanceTimersByTimeAsync(60_000); // t=990: cortesia D → cota global estoura (5/5)
+      expect(replaceSpy).toHaveBeenCalledTimes(5);
+      expect(abortReasons().filter((r) => r === 'global-quota')).toHaveLength(1);
+
+      // Janela global expira em t=990 (90 + 15min) → reload #6 (D) permitido @1110
+      await vi.advanceTimersByTimeAsync(120_000); // t=1110: reload #6 (D — janela global resetada)
       expect(replaceSpy).toHaveBeenCalledTimes(6);
       expect(sessionStorage.getItem(__TEST__.GLOBAL_RELOAD_COUNT_KEY)).toBe('1');
-
-      // Fim da simulação em t=25min — poll de 25min agenda reload para 26min,
-      // fora da janela simulada (não dispara).
-      await vi.advanceTimersByTimeAsync(60_000);
-      expect(replaceSpy).toHaveBeenCalledTimes(6);
-
-      // Resultado: 8 checks de versão → apenas 6 reloads (2 aborts global-quota).
-      // Sem a cota global seriam 8 reloads — a cascata auth/429 é evitada.
-      const reasons = updateRequired().map(
-        (call) => (call as CustomEvent<{ reason: string }>).detail.reason
-      );
-      expect(reasons).toEqual(['global-quota', 'global-quota']);
       expect(__TEST__.readReloadState()).toEqual(
         expect.objectContaining({ targetBuildId: 'buildD', attempts: 1 })
       );
+
+      // Resultado: 18 checks → 6 reloads, 2 aborts por-alvo + 9 globais.
+      // Sem as cotas seriam 18 reloads — a cascata auth/429 é evitada.
+      expect(abortReasons().filter((r) => r === 'per-target-quota')).toHaveLength(2);
     } finally {
       stop();
       vi.clearAllTimers();
@@ -685,8 +643,8 @@ describe('CENÁRIO REAL: 4 deploys em 23 minutos (padrão do log de produção)'
   });
 });
 
-describe('MIN_BOOT_DELAY_MS (30s) — guarda de boot', () => {
-  it('visibilitychange/focus antes de 30s NÃO disparam checkVersion; após 30s disparam', async () => {
+describe('MIN_BOOT_DELAY_MS (30s) + intervalo mínimo de 60s — guardas de polling', () => {
+  it('triggers antes de 30s NÃO checam; após 30s checam respeitando o gap de 60s', async () => {
     // Response NOVO por chamada (mockResolvedValue compartilharia o body e o
     // 2º res.json() lançaria "body already consumed", mascarando os checks).
     fetchMock.mockImplementation(() =>
@@ -712,11 +670,25 @@ describe('MIN_BOOT_DELAY_MS (30s) — guarda de boot', () => {
       await vi.advanceTimersByTimeAsync(1);
       expect(fetchMock).toHaveBeenCalledTimes(1);
 
-      // Após 30s, focus e visibilitychange passam a disparar checkVersion.
+      // foco/visibility logo após o check → BLOQUEADOS pelo intervalo mínimo
+      // de 60s (MIN_CHECK_GAP_MS) — sem rajada de fetches.
+      window.dispatchEvent(new Event('focus'));
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      // t=90s: poll de 60s → 2º check (gap exato de 60s passa).
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+
+      // foco logo após o poll → bloqueado (gap 0).
       window.dispatchEvent(new Event('focus'));
       await vi.advanceTimersByTimeAsync(0);
       expect(fetchMock).toHaveBeenCalledTimes(2);
 
+      // t=150s: poll → 3º check; visibility (visível) logo em seguida → bloqueado.
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(fetchMock).toHaveBeenCalledTimes(3);
       document.dispatchEvent(new Event('visibilitychange'));
       await vi.advanceTimersByTimeAsync(0);
       expect(fetchMock).toHaveBeenCalledTimes(3);
@@ -724,6 +696,51 @@ describe('MIN_BOOT_DELAY_MS (30s) — guarda de boot', () => {
       // Build id bate → nenhum reload.
       expect(replaceSpy).not.toHaveBeenCalled();
     } finally {
+      stop();
+      vi.clearAllTimers();
+    }
+  });
+});
+
+describe('ABA OCULTA: polling pausa e retoma ao voltar a ficar visível', () => {
+  it('aba oculta congela os checks; visibilitychange para visible re-checa na hora e retoma o ciclo', async () => {
+    fetchMock.mockImplementation(() =>
+      Promise.resolve(jsonResponse({ buildId: __TEST__.CURRENT_BUILD_ID }))
+    );
+
+    const { stop } = startWatcherAndStop();
+    try {
+      // ── Oculta a aba ANTES do kickoff ──
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      // 5 minutos oculto: NENHUM fetch (kickoff adiado + polling pausado).
+      await vi.advanceTimersByTimeAsync(5 * 60_000);
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      // ── Volta a ficar visível → re-check imediato + polling retoma ──
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+      document.dispatchEvent(new Event('visibilitychange'));
+      expect(fetchMock).toHaveBeenCalledTimes(1); // re-check na hora (gap >> 60s)
+
+      // Polling retomado: próximo check 60s depois.
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+
+      // ── Oculta de novo → pausa (timer pendente é limpo) ──
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(3 * 60_000);
+      expect(fetchMock).toHaveBeenCalledTimes(2); // congelado
+
+      // ── Visível de novo → re-check imediato (gap > 60s) ──
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+      document.dispatchEvent(new Event('visibilitychange'));
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+
+      expect(replaceSpy).not.toHaveBeenCalled(); // build id bate
+    } finally {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
       stop();
       vi.clearAllTimers();
     }

@@ -290,10 +290,37 @@ jobs:
           fi
           exit $status
 
+  # migration-gates: gate de migrations (AG-EX-13, fecha os achados A/B da auditoria
+  # 2026-08-05 — ANALISE_CLAUDE_EXAUSTIVA.md §1.11). Sem secrets — roda em PR e push.
+  # Política implementada em scripts/check-migration-gates.mjs (allowlist via args):
+  #   - FAIL em antipadrão `EXCEPTION WHEN OTHERS THEN ... RAISE NOTICE` (engole
+  #     falha; causa do REC-ARTDB-03) FORA da allowlist; log+re-raise é aceito.
+  #   - WARN (não-fail) em timestamp futuro no nome (padrão da casa: versão futura
+  #     para ordenar migrations — AG-EX-14).
+  # Allowlist = dívida histórica documentada (3 migrations de 2026-08-04; a 4ª do
+  # achado A, campanhas_nps_cron.sql, foi CORRIGIDA em AG-EX-13 com RAISE EXCEPTION).
+  migration-gates:
+    name: Migration gates (antipadrão + timestamp)
+    runs-on: ubuntu-latest
+    needs: lockfile
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run migration gates (allowlist de dívida histórica)
+        run: node scripts/check-migration-gates.mjs --allowlist=20260804000000_canonical_schema.sql,20260804150000_fix_secdef_revoke_extended_schemas.sql,20260804170000_fix_rls_systematic_coverage.sql
+
   test:
     name: Unit tests
     runs-on: ubuntu-latest
-    needs: [lockfile, quality, audit-contract-scan, contract-gate]
+    needs: [lockfile, quality, audit-contract-scan, contract-gate, migration-gates]
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -350,7 +377,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lockfile, quality, audit-contract-scan, contract-gate]
+    needs: [lockfile, quality, audit-contract-scan, contract-gate, migration-gates]
     steps:
       - name: Checkout code
         uses: actions/checkout@v7

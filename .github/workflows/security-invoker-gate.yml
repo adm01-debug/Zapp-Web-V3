@@ -81,18 +81,18 @@ jobs:
           RESULT=$(echo "$RESPONSE" | sed '$d')
 
           if [ "$HTTP_CODE" = "000" ]; then
-            echo "::warning::postgres-meta unreachable (connection failed) — skipping security_invoker check"
-            exit 0
+            echo "::error::postgres-meta unreachable (connection failed) — FAIL-CLOSED: security_invoker gate cannot be bypassed by infra outage"
+            exit 1
           fi
 
           if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "403" ]; then
-            echo "::warning::postgres-meta auth failed (HTTP $HTTP_CODE) — ZAPP_META_TOKEN may be invalid; skipping security_invoker check"
-            exit 0
+            echo "::error::postgres-meta auth failed (HTTP $HTTP_CODE) — FAIL-CLOSED: ZAPP_META_TOKEN may be invalid or revoked; fix the secret before merging"
+            exit 1
           fi
 
           if [ "$HTTP_CODE" = "502" ] || [ "$HTTP_CODE" = "503" ] || [ "$HTTP_CODE" = "504" ]; then
-            echo "::warning::postgres-meta returned HTTP $HTTP_CODE (infra error) — skipping security_invoker check"
-            exit 0
+            echo "::error::postgres-meta returned HTTP $HTTP_CODE (infra error) — FAIL-CLOSED: security gates must not be bypassed by transient server errors"
+            exit 1
           fi
 
           COUNT=$(echo "$RESULT" | node -e "
@@ -139,18 +139,18 @@ jobs:
           RESULT=$(echo "$RESPONSE" | sed '$d')
 
           if [ "$HTTP_CODE" = "000" ]; then
-            echo "::warning::postgres-meta unreachable (connection failed) — skipping anon-functions check"
-            exit 0
+            echo "::error::postgres-meta unreachable (connection failed) — FAIL-CLOSED: anon-function gate cannot be bypassed by infra outage"
+            exit 1
           fi
 
           if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "403" ]; then
-            echo "::warning::postgres-meta auth failed (HTTP $HTTP_CODE) — ZAPP_META_TOKEN may be invalid; skipping check"
-            exit 0
+            echo "::error::postgres-meta auth failed (HTTP $HTTP_CODE) — FAIL-CLOSED: ZAPP_META_TOKEN may be invalid or revoked; fix the secret before merging"
+            exit 1
           fi
 
           if [ "$HTTP_CODE" = "502" ] || [ "$HTTP_CODE" = "503" ] || [ "$HTTP_CODE" = "504" ]; then
-            echo "::warning::postgres-meta returned HTTP $HTTP_CODE (infra error) — skipping anon-functions check"
-            exit 0
+            echo "::error::postgres-meta returned HTTP $HTTP_CODE (infra error) — FAIL-CLOSED: security gates must not be bypassed by transient server errors"
+            exit 1
           fi
 
           COUNT=$(echo "$RESULT" | node -e "
