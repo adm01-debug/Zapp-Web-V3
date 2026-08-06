@@ -116,28 +116,23 @@ export function useEvolutionApiIntegration() {
     const testId = creds.id || 'new';
     setTesting(testId);
     const startTime = Date.now();
-    const timeoutMs = 10000;
 
     try {
-      const url = normalizeUrl(creds.api_url);
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-      const response = await fetch(`${url}/instance/fetchInstances`, {
-        method: 'GET',
-        headers: { apikey: creds.api_key },
-        signal: controller.signal,
+      // AUTENTICAÇÃO VIA EDGE FUNCTION PROXY (fix D-7 2026-08-06):
+      // NUNCA enviar chave da Evolution pelo cliente (bundle público). O proxy
+      // 'evolution-api' valida o usuário autenticado (JWT do Supabase) e usa a
+      // EVOLUTION_API_KEY server-side (secret v5). A chave digitada no form não
+      // é transmitida — o teste valida a CONEXÃO da instância do servidor.
+      const { data, error } = await supabase.functions.invoke('evolution-api', {
+        body: { action: 'list-instances' },
       });
-      clearTimeout(timeoutId);
-
       const responseTime = Date.now() - startTime;
-      const isSuccess = response.ok;
+      const isSuccess = !error;
       let errorMsg: string | null = null;
       let onlineCount = 0;
       let totalCount = 0;
 
       if (isSuccess) {
-        const data = await response.json();
         const instances = Array.isArray(data) ? data : [];
         totalCount = instances.length;
         onlineCount = instances.filter(
@@ -145,8 +140,11 @@ export function useEvolutionApiIntegration() {
         ).length;
         toast.success(`Teste bem-sucedido para ${creds.instance_name || 'nova config'}`);
       } else {
+        const status = (error as { status?: number } | null)?.status;
         errorMsg =
-          response.status === 401 ? 'Chave de API inválida' : `Erro HTTP ${response.status}`;
+          status === 401 || String(error).includes('401')
+            ? 'Chave de API inválida (servidor)'
+            : `Erro HTTP ${status ?? 'desconhecido'}`;
         toast.error(`Falha no teste: ${errorMsg}`);
       }
 

@@ -43,7 +43,7 @@ export function useWebhookOverview() {
         filters.push({ column: 'processed', operator: 'eq', value: true });
       }
       const res = await queryExternalProxy<EvolutionWebhookEvent>({
-        table: 'evolution_webhook_events',
+        table: 'evolution_webhook_events_v2',
         select: 'event_type,instance_name,processed,error_message,created_at',
         filters,
         order: { column: 'created_at', ascending: false },

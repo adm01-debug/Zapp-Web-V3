@@ -565,7 +565,7 @@ supabase functions serve <name> --env-file ./supabase/.env.local
 ### Evolution API
 
 - [Evolution API Docs](https://doc.evolution-api.com/)
-- [GitHub](https://github.com/EvolutionAPI/evolution-api)
+- [GitHub](https://github.com/evolution-foundation/evolution-api)
 
 ---
 

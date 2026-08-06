@@ -4,7 +4,9 @@ on:
   pull_request:
     paths:
       - 'supabase/migrations/**'
+      - 'supabase/functions/**'
       - 'src/integrations/supabase/**'
+  workflow_dispatch:
   schedule:
     - cron: '0 8 * * 1'  # Monday 8am UTC
 
@@ -47,8 +49,9 @@ jobs:
             echo "::error::security audit gate unreachable (HTTP $HTTP_CODE) — FAIL-CLOSED (D-8)"
             exit 1
           fi
-          # postgres-meta /query retorna JSON array: [{"count":"N"}] ou [{"?column?":"N"}]
-          COUNT=$(echo "$RESULT" | grep -oE '"count":"[0-9]+"|"\?column\?":"[0-9]+"' | grep -oE '[0-9]+' | head -1)
+          # postgres-meta /query retorna JSON array — count pode vir como número ([{"count":0}])
+          # ou string ([{"count":"0"}]) dependendo da versão; aceita ambos (fail-closed se nada casar)
+          COUNT=$(echo "$RESULT" | grep -oE '"count": ?"?[0-9]+"?|"\?column\?": ?"?[0-9]+"?' | grep -oE '[0-9]+' | head -1)
           if [ -z "$COUNT" ]; then
             echo "::error::security audit gate: resposta inesperada do postgres-meta — FAIL-CLOSED (D-8): $RESULT"
             exit 1
@@ -70,7 +73,7 @@ jobs:
           RESPONSE=$(curl -sS "$META_URL/query" \
             -H "apikey: $META_TOKEN" \
             -H "Content-Type: application/json" \
-            -d '{"query":"SELECT n.nspname, c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ($$public$$,$$zapp$$,$$evo$$) AND c.relkind=$$v$$ AND NOT (c.reloptions IS NOT NULL AND array_to_string(c.reloptions,$$,$$) ILIKE $$%security_invoker%$$)"}' \
+            -d '{"query":"SELECT n.nspname, c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ($$public$$,$$zapp$$,$$evo$$) AND c.relkind=$$v$$ AND NOT COALESCE(array_to_string(c.reloptions,$$,$$),$$$$) ~ $$security_invoker=(true|on)$$"}' \
             -w "\n%{http_code}" \
             --connect-timeout 10 --max-time 30 2>/dev/null || echo -e "\n000")
 
