@@ -265,6 +265,9 @@ export function useServiceWorker() {
             // module". Com a janela de 60s o CDN tem tempo de propagar.
             void import('@/lib/buildVersion').then(
               ({ requestGracefulRefresh, getCurrentBuildId }) => {
+                // Verifica disposed após import dinâmico assíncrono para evitar
+                // chamar requestGracefulRefresh após o hook ter sido desmontado.
+                if (disposed) return;
                 const swBuildId =
                   typeof event.data.buildId === 'string' ? event.data.buildId : undefined;
                 const currentBuildId = getCurrentBuildId();
