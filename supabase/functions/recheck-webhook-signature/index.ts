@@ -1,9 +1,9 @@
-// Recomputa HMAC-SHA256 do payload de um evolution_webhook_events e devolve
+// Recomputa HMAC-SHA256 do payload de um evolution_webhook_events_v2 e devolve
 // diagnóstico (válido / inválido + motivo). Não grava nada.
 //
 // Auth: exige Bearer JWT de usuário com role 'admin'.
 // Lê o evento direto do Evolution DB via service role do projeto self-hosted.
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { createZappAdminClient } from '../_shared/db-client.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { requireAdminOrSupervisor } from '../_shared/auth.ts';
@@ -73,25 +73,14 @@ Deno.serve(async (req) => {
     if (!parsed.ok) return parsed.response;
     const body = parsed.data as RecheckRequest;
 
-    // 3. Secret + Evolution DB creds
+    // 3. Secret + client admin (service role, schema zapp)
     const secret =
       Deno.env.get('EVOLUTION_WEBHOOK_SECRET') || Deno.env.get('WEBHOOK_SECRET') || '';
-    const extUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
-    const extKey = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
-    if (!extUrl || !extKey) {
-      return new Response(JSON.stringify({ error: 'External DB not configured' }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      });
-    }
-    const ext = createClient(extUrl, extKey, {
-      db: { schema: 'zapp' },
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    const ext = createZappAdminClient();
 
     // 4. Buscar evento
     const { data: ev, error: evErr } = await ext
-      .from('evolution_webhook_events')
+      .from('evolution_webhook_events_v2')
       .select('id,event_type,instance_name,created_at,payload')
       .eq('id', body.event_id)
       .maybeSingle();

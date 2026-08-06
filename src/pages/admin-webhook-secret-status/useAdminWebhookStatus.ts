@@ -71,7 +71,7 @@ export function useAdminWebhookStatus() {
         filtersArr.push({ column: 'instance_name', operator: 'eq', value: selectedInstance });
       }
       const res = await queryExternalProxy<SecretStatusEvent>({
-        table: 'evolution_webhook_events',
+        table: 'evolution_webhook_events_v2',
         select:
           'id,event_type,instance_name,signature_valid,processed,processed_at,error_message,created_at',
         filters: filtersArr,
@@ -91,7 +91,7 @@ export function useAdminWebhookStatus() {
     queryFn: async () => {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const res = await queryExternalProxy<{ instance_name: string | null }>({
-        table: 'evolution_webhook_events',
+        table: 'evolution_webhook_events_v2',
         select: 'instance_name',
         filters: [{ column: 'created_at', operator: 'gte', value: since }],
         order: { column: 'created_at', ascending: false },

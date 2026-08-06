@@ -128,7 +128,7 @@ export function useWebhookEvents() {
       if (name) filters.push({ column: 'push_name', operator: 'ilike', value: `%${name}%` });
 
       const res = await queryExternalProxy<EvolutionWebhookEvent>({
-        table: 'evolution_webhook_events',
+        table: 'evolution_webhook_events_v2',
         select: '*',
         filters,
         order: { column: 'created_at', ascending: false },
