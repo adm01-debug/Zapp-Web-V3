@@ -18,6 +18,7 @@ import {
   ErrorBoundary,
 } from '@sentry/react';
 import * as Sentry from '@sentry/react';
+import { isBenignConsoleNoise } from './consoleErrorFilter';
 
 const DSN = import.meta.env.VITE_SENTRY_DSN as string | undefined;
 const ENV = (import.meta.env.MODE === 'production' ? 'prod' : import.meta.env.MODE) as string;
@@ -68,14 +69,11 @@ export function initSentry(): boolean {
       ],
       // Don't send if user opted out (LGPD friendly)
       beforeSend(event) {
-        // Filtra erros de extensões browser e ResizeObserver loop
+        // Filtra ruído benigno (extensões browser, ResizeObserver loop,
+        // Script error., rejeições non-Error) — mesma lista do console filter
+        // usado nos handlers globais de main.tsx (isBenignConsoleNoise).
         const msg = event.exception?.values?.[0]?.value || event.message || '';
-        if (
-          msg.includes('ResizeObserver loop') ||
-          msg.includes('chrome-extension://') ||
-          msg.includes('moz-extension://') ||
-          msg.includes('Non-Error promise rejection')
-        ) {
+        if (isBenignConsoleNoise(msg)) {
           return null;
         }
         return event;
