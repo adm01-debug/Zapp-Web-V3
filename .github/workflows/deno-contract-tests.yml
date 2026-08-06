@@ -10,9 +10,15 @@ on:
     paths:
       - 'supabase/functions/**'
       - 'deno.json'
+  # Varredura diária: main pode ficar vermelho sem PR tocando functions
+  # (auditoria A6 2026-08-06 — ex.: onda de remoção #922 deixou testes
+  # órfãos lendo index.ts deletados e ninguém viu até o próximo push).
+  schedule:
+    - cron: '0 6 * * *'
 
 permissions:
   contents: read
+  checks: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -22,11 +28,8 @@ jobs:
   deno-contract-tests:
     name: Contract Tests (Deno)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
@@ -37,36 +40,18 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.deno
-          key: deno-${{ runner.os }}-${{ hashFiles('deno.json', 'supabase/functions/deno.json') }}
+          key: deno-${{ runner.os }}-${{ hashFiles('deno.json') }}
           restore-keys: |
             deno-${{ runner.os }}-
 
       - name: Run contract tests
-        # IMPORTANTE: rodar a partir de supabase/functions — o tsconfig.json da raiz
-        # (app Vite/React, strictNullChecks:false) é descoberto pelo Deno quando o
-        # comando roda da raiz e QUEBRA o narrowing de discriminated unions
-        # (TS2339 ParseResult.response/body em ~12 arquivos de teste).
-        # O deno.json de supabase/functions declara compilerOptions strict.
+        # Invocação ÚNICA: o Deno descobre todos os *.test.ts de
+        # supabase/functions, type-checka o grafo 1x (não 70x como o loop
+        # por-arquivo) e reporta TODAS as falhas no mesmo run.
+        # Sem --no-check: type-check faz parte do contrato (TS2339 derruba).
         run: |
           set -euo pipefail
-          cd supabase/functions
-          TEST_FILES=$(find . -name '*.test.ts' -type f 2>/dev/null || true)
-          if [ -z "$TEST_FILES" ]; then
-            echo "::warning::No contract test files found — skipping"
-            exit 0
-          fi
-          COUNT=$(echo "$TEST_FILES" | wc -l)
-          echo "Found $COUNT contract test files"
-          FAILED=0
-          while IFS= read -r f; do
-            echo "::group::Testing $f"
-            if ! deno test --allow-net --allow-env --allow-read "$f"; then
-              echo "::error title=Contract test failed::$f"
-              FAILED=1
-            fi
-            echo "::endgroup::"
-          done <<< "$TEST_FILES"
-          exit "$FAILED"
+          deno test --allow-net --allow-env --allow-read supabase/functions/
         env:
           SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
