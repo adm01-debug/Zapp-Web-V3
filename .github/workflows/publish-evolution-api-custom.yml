@@ -187,8 +187,7 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:smoke-${{ inputs.baileys_version }}
           build-args: |
             BASE_IMAGE=${{ inputs.base_image }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # (cache gha removido: driver docker nao suporta cache export — base via Warm step)
 
       - name: Smoke test (Design B' gate — imagem final com baileys ${{ inputs.baileys_version }})
         run: |
@@ -219,8 +218,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.3.7-baileys-${{ inputs.baileys_version }}
           build-args: |
             BASE_IMAGE=${{ inputs.base_image }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # (cache gha removido: driver docker nao suporta cache export — base via Warm step)
 
       - name: Resolve published digest
         id: digest
