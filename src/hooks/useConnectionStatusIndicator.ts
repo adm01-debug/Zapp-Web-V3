@@ -144,7 +144,7 @@ export function useConnectionStatusIndicator() {
   // Realtime subscription — invalidates the query on any connection change.
   useEffect(() => {
     const channel = supabase
-      .channel('connection-status-indicator')
+      .channel(`connection-status-indicator:${Math.random().toString(36).slice(2, 10)}`)
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'whatsapp_connections' }, () => {
         import('@/lib/whatsappConnectionsCache')
           .then((m) => m.invalidateWhatsappConnectionsCache())

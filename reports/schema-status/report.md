@@ -1,6 +1,6 @@
 # Schema Status Report — ✅ OK
 
-- **Gerado em:** 2026-08-03T21:57:13.832Z
+- **Gerado em:** 2026-08-05T21:59:21.321Z
 - **Requeridos:** `zapp, evo`
 
 ## Local (arquivo `types.ts`)
@@ -16,7 +16,8 @@
 
 | Campo | Valor |
 |-------|-------|
-| Status | ⏭️ skipped |
-| Motivo | ZAPP_META_URL/ZAPP_META_TOKEN ausentes |
+| Status | ⚠️ warning |
+| Motivo | postgres-meta HTTP 500 — pulada |
+| HTTP | `500` |
 | Schemas presentes | _(nenhum)_ |
 | Schemas ausentes | _(nenhum)_ |

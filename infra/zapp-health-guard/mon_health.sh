@@ -128,6 +128,13 @@ while true; do
     fi
 
     # KPI-3 ghost_events: eventos com instance desconhecida na ultima 1h; alerta se > 20
+    # LIMITACAO (regression review R7 2026-08-06): a checagem de instancia
+    # desconhecida via NOT IN (evo.evolution_instances) foi removida porque a
+    # tabela nao existe — hoje detecta apenas instance_name NULL/vazio.
+    # Instancias fantasma com nome invalido (fora da fonte de verdade real)
+    # nao disparam alerta. Mapear contra zapp.whatsapp_connections exige
+    # normalizacao de nomes (instance da Evolution vs connection name do app)
+    # e fica como melhoria; nao fazer aqui para evitar falso-positivo.
     GHO_V=$(supa_q "SELECT COUNT(*) FROM evo.${EVO_TBL} e WHERE e.created_at > now() - interval '1 hour' AND (e.instance_name IS NULL OR e.instance_name = '');")
     if [ -z "$GHO_V" ]; then
       track GHO_F GHO_S 0; [ "$TRANS" = "down" ] && notify kpi_ghost_events ALERT 503 "evo_q sem resposta (fonte indisponivel)"

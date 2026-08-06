@@ -57,7 +57,7 @@ export function PaymentLinksView() {
 
   useEffect(() => {
     const channel = supabase
-      .channel('payment-links-changes')
+      .channel(`payment-links-changes:${Math.random().toString(36).slice(2, 10)}`)
       .on('postgres_changes', { event: '*', schema: 'financeiro', table: 'payment_links' }, () =>
         fetchData()
       )

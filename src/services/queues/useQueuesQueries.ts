@@ -6,11 +6,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useListQuery, useDetailQuery, useSearchQuery, queryKeys } from '@/services/api';
 import { queuesService, type Queue } from './index';
 import type { QueryParams } from '@/services/api/types';
+import { QUERY_STALE_TIMES, QUERY_GC_TIMES } from '@/lib/queryStaleTimes';
 
 /** use Queues List constant. */
 export const useQueuesList = (filters?: Partial<Queue> & QueryParams) => {
   return useListQuery(queryKeys.queues.list(filters), () => queuesService.list(filters), {
-    staleTime: 30_000,
+    staleTime: QUERY_STALE_TIMES.queues,
+    gcTime: QUERY_GC_TIMES.queues,
   });
 };
 

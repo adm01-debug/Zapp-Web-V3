@@ -77,10 +77,7 @@ export const MessageBubble = memo(function MessageBubble({
 
   const isSent = message.sender === 'agent';
   const senderName = isSent ? 'Você' : message.senderName || 'Contato';
-  const { avatarUrl } = useContactAvatar(
-    contactJid,
-    message.contactAvatar || contactAvatar
-  );
+  const { avatarUrl } = useContactAvatar(contactJid, message.contactAvatar || contactAvatar);
 
   const isFailedTerminal =
     isSent &&
@@ -107,9 +104,20 @@ export const MessageBubble = memo(function MessageBubble({
   const mediaRefreshKey = useMemo(
     () =>
       instanceName && contactJid && message.external_id
-        ? { instanceName, remoteJid: contactJid, fromMe: isSent, id: message.external_id }
+        ? {
+            instanceName,
+            remoteJid: contactJid,
+            fromMe: isSent,
+            id: message.external_id,
+            // FIX 2026-08-06 (GAP-01 auditoria mídia): propagar tipo para a
+            // skip-list de mídia — mesmo fix já aplicado em ChatMessageBubble/
+            // VirtualMessageBubble. Sem isso, ptv/ephemeral/vcard disparam
+            // refresh get-media-base64 que sempre falha (WARN spam + toast
+            // "Mídia indisponível" desnecessário) no caminho principal.
+            messageType: message.message_type ?? message.type ?? null,
+          }
         : undefined,
-    [instanceName, contactJid, message.external_id, isSent]
+    [instanceName, contactJid, message.external_id, isSent, message.message_type, message.type]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

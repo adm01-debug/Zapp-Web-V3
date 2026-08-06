@@ -40,16 +40,20 @@ export type SupabaseConnectivityListener = (
   info: SupabaseConnectivityInfo
 ) => void;
 
-const HEARTBEAT_INTERVAL_MS = 20_000;
+// Polling consolidado (FIX onda-bugs-console-v1): heartbeat a cada 60s
+// (antes 20s — o log de produção mostrava ~60s) e PAUSA quando a aba está
+// oculta (visibilitychange): nada de health check em background.
+const HEARTBEAT_INTERVAL_MS = 60_000;
 const PING_TIMEOUT_MS = 6_000;
 /** Debounce mínimo entre pings espontâneos (retry explícito ignora). */
-const MIN_PING_INTERVAL_MS = 2_000;
+const MIN_PING_INTERVAL_MS = 60_000;
 
 let status: SupabaseConnectivityStatus = 'online';
 let lastCheckedAt: number | null = null;
 let latencyMs: number | null = null;
 let browserOnline = typeof navigator === 'undefined' ? true : navigator.onLine;
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+let visibilityHandlerAttached = false;
 let listenerCount = 0;
 let pingInFlight = false;
 let lastPingAt = 0;
@@ -173,25 +177,63 @@ function handleBrowserOnline(): void {
   void pingSupabaseBackend(true).catch(() => {});
 }
 
+/**
+ * Aba oculta → PAUSA o heartbeat (nada de ping em background); voltou a ficar
+ * visível → re-checa na hora (respeitando o debounce mínimo de 60s via
+ * pingSupabaseBackend sem force) e retoma o intervalo se estava pausado.
+ */
+function handleVisibilityChange(): void {
+  if (typeof document === 'undefined') return;
+  if (document.visibilityState === 'visible') {
+    void pingSupabaseBackend().catch(() => {});
+    if (!heartbeatTimer) startHeartbeatInterval();
+  } else if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+}
+
+function attachVisibilityListener(): void {
+  if (visibilityHandlerAttached || typeof document === 'undefined') return;
+  visibilityHandlerAttached = true;
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+}
+
+function detachVisibilityListener(): void {
+  if (!visibilityHandlerAttached) return;
+  visibilityHandlerAttached = false;
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+}
+
+function startHeartbeatInterval(): void {
+  if (heartbeatTimer) return;
+  // Aba oculta no boot: não inicia o intervalo (visibilitychange retoma).
+  if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+  heartbeatTimer = setInterval(() => {
+    void pingSupabaseBackend().catch(() => {});
+  }, HEARTBEAT_INTERVAL_MS);
+}
+
 function startHeartbeat(): void {
   if (heartbeatTimer) return;
   if (typeof window !== 'undefined') {
     window.addEventListener('offline', handleBrowserOffline);
     window.addEventListener('online', handleBrowserOnline);
   }
-  heartbeatTimer = setInterval(() => {
-    void pingSupabaseBackend().catch(() => {});
-  }, HEARTBEAT_INTERVAL_MS);
+  attachVisibilityListener();
+  startHeartbeatInterval();
 }
 
 function stopHeartbeat(): void {
-  if (!heartbeatTimer) return;
-  clearInterval(heartbeatTimer);
-  heartbeatTimer = null;
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
   if (typeof window !== 'undefined') {
     window.removeEventListener('offline', handleBrowserOffline);
     window.removeEventListener('online', handleBrowserOnline);
   }
+  detachVisibilityListener();
 }
 
 /**

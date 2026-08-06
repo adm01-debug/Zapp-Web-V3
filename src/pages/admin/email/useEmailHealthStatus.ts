@@ -78,7 +78,7 @@ export function useEmailHealthStatus() {
     void loadHealth(controller.signal);
 
     const channel = supabase
-      .channel('email-admin-status')
+      .channel(`email-admin-status:${Math.random().toString(36).slice(2, 10)}`)
       .on<EmailHealthSummary>(
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'email_health_summary' },

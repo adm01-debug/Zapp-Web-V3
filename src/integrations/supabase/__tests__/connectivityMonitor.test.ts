@@ -28,6 +28,11 @@ afterEach(() => {
   __resetSupabaseConnectivityForTests();
   vi.unstubAllGlobals();
   vi.useRealTimers();
+  try {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+  } catch {
+    /* noop */
+  }
 });
 
 describe('connectivityMonitor — pingSupabaseBackend', () => {
@@ -135,5 +140,38 @@ describe('connectivityMonitor — ciclo de vida do heartbeat', () => {
 
     await pingSupabaseBackend(true);
     expect(listener).toHaveBeenCalledWith('backend-down', expect.objectContaining({ latencyMs: expect.any(Number) }));
+  });
+});
+
+describe('connectivityMonitor — pausa por aba oculta (visibilitychange)', () => {
+  it('aba oculta pausa o heartbeat; voltar a ficar visível re-checa na hora e retoma o intervalo', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const unsub = subscribeSupabaseConnectivity(() => {});
+    expect(vi.getTimerCount()).toBe(1); // intervalo ativo (aba visível)
+
+    // Oculta a aba → heartbeat pausado (intervalo limpo).
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(vi.getTimerCount()).toBe(0);
+
+    // 3 minutos oculto → NENHUM ping em background.
+    await vi.advanceTimersByTimeAsync(3 * 60_000);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // Volta a ficar visível → re-checa na hora (gap >> 60s) e retoma o intervalo.
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+    document.dispatchEvent(new Event('visibilitychange'));
+    await vi.advanceTimersByTimeAsync(0); // flush do dynamic import do client
+    expect(fetchMock).toHaveBeenCalledTimes(1); // re-check imediato
+    expect(vi.getTimerCount()).toBe(1); // intervalo retomado
+
+    // Próximo heartbeat 60s depois.
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    unsub();
   });
 });

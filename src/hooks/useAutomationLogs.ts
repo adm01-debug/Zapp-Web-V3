@@ -80,7 +80,7 @@ export function useAutomationLogs(filters: AutomationLogsFilters) {
   // Realtime: invalidate current page's logs on any execution change
   useEffect(() => {
     const ch = supabase
-      .channel('automation-executions-audit')
+      .channel(`automation-executions-audit:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'automation_executions' },

@@ -83,7 +83,7 @@ export function ConnectionHealthPanel(): JSX.Element {
   // Realtime updates
   useEffect(() => {
     const channel = supabase
-      .channel('health-updates')
+      .channel(`health-updates:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'zapp', table: 'connection_health_logs' },

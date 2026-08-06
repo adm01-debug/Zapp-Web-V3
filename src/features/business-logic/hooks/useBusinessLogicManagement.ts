@@ -458,7 +458,7 @@ export function useBusinessLogicPipelineManagement(
   // Realtime subscription — invalidate instead of calling fetchData directly
   useEffect(() => {
     const channel = supabase
-      .channel('deals-changes')
+      .channel(`deals-changes:${Math.random().toString(36).slice(2, 10)}`)
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'sales_deals' }, () => {
         void queryClient.invalidateQueries({ queryKey: PIPELINE_KEY });
       })

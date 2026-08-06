@@ -13,8 +13,12 @@
  *
  * Notes:
  * - Only invalidates; React Query handles deduplication and concurrent fetch.
- * - Skipped while the document is hidden to avoid wasted requests; a single
- *   refetch fires on the next `visibilitychange` → visible.
+ * - The periodic timer is PAUSED while the document is hidden (timer torn
+ *   down on `visibilitychange` → hidden) and RESUMED on the next
+ *   `visibilitychange` → visible WITHOUT an immediate refetch — the next
+ *   tick runs only after a full period. Returning to the tab / window focus
+ *   never triggers a mass refetch here; real channel drops are still covered
+ *   by the reconnect trigger.
  */
 import { useCallback, useEffect, useRef } from 'react';
 import { queryKeys } from '@/services/api/queryKeys';
@@ -85,25 +89,46 @@ export function useRealtimeFallbackRefetch({ enabled = true, intervalMs }: Optio
     if (!enabled) return;
     const period = intervalMs ?? REALTIME_FALLBACK_REFETCH_MS;
 
-    const tick = () => {
-      if (typeof document !== 'undefined' && document.hidden) return;
-      refetchAll(`periodic:${period}ms`);
-    };
+    let intervalId: ReturnType<typeof setInterval> | undefined;
 
-    const id = setInterval(tick, period);
-    const onVisible = () => {
-      if (typeof document !== 'undefined' && !document.hidden) {
-        refetchAll('visibilitychange');
+    const stopTimer = () => {
+      if (intervalId !== undefined) {
+        clearInterval(intervalId);
+        intervalId = undefined;
       }
     };
+
+    const startTimer = () => {
+      stopTimer();
+      intervalId = setInterval(() => {
+        if (typeof document !== 'undefined' && document.hidden) return;
+        refetchAll(`periodic:${period}ms`);
+      }, period);
+    };
+
+    // Pausa REAL com aba oculta: o timer é destruído (zero work enquanto
+    // oculto) e recriado ao voltar a ficar visível — SEM refetch imediato.
+    // O próximo tick só roda após um período completo; foco/retorno de aba
+    // não dispara refetch em massa (quedas reais do canal seguem cobertas
+    // pelo reconnect trigger acima).
+    const onVisibilityChange = () => {
+      if (typeof document === 'undefined') return;
+      if (document.hidden) {
+        stopTimer();
+      } else {
+        startTimer();
+      }
+    };
+
+    startTimer();
     if (typeof document !== 'undefined') {
-      document.addEventListener('visibilitychange', onVisible);
+      document.addEventListener('visibilitychange', onVisibilityChange);
     }
 
     return () => {
-      clearInterval(id);
+      stopTimer();
       if (typeof document !== 'undefined') {
-        document.removeEventListener('visibilitychange', onVisible);
+        document.removeEventListener('visibilitychange', onVisibilityChange);
       }
     };
   }, [enabled, intervalMs, refetchAll]);

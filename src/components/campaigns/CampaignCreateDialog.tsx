@@ -1,5 +1,4 @@
 import { useState, useCallback, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,7 +22,7 @@ import {
 } from '@/components/ui/select';
 import { Megaphone, Loader2, Search, Users } from 'lucide-react';
 import { UseMutationResult } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useCampaignContactOptions } from '@/features/contacts/hooks/useCampaignContactOptions';
 import type { CampaignInput } from '@/hooks/useCampaigns';
 
 type TargetType = 'all' | 'tag' | 'queue' | 'groups' | 'custom';
@@ -70,21 +69,9 @@ export function CampaignCreateDialog({
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
   const [contactSearch, setContactSearch] = useState('');
 
-  // Contatos disponíveis para o alvo "Seleção manual" (target_type='custom').
-  const { data: contacts = [], isLoading: contactsLoading } = useQuery({
-    queryKey: ['campaign-create-dialog', 'contacts'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('contacts')
-        .select('id, name, phone, company')
-        .not('phone', 'is', null)
-        .order('name');
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: open && form.target_type === 'custom',
-    staleTime: 300_000,
-  });
+  const { data: contacts = [], isLoading: contactsLoading } = useCampaignContactOptions(
+    open && form.target_type === 'custom'
+  );
 
   // Normaliza id (string | null → string) para o Checkbox — mesmo padrão do TalkXContactSelector.
   const contactOptions = useMemo(

@@ -172,6 +172,10 @@ export function usePersonalStickers(): UsePersonalStickersResult {
       .eq('id', sticker.id)
       .then(({ error }) => {
         if (error) log.warn('Increment use_count failed:', error);
+      })
+      .then(undefined, (err: unknown) => {
+        // Falha de rede rejeita a promise (o .then acima só cobre o error field).
+        log.warn('Increment use_count failed (rejeição):', err);
       });
   }, []);
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Save, Plus, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
+import { getLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,8 @@ import {
   saveRateLimitConfigs,
   type RateLimitRule,
 } from '@/hooks/useRateLimitConfigs';
+
+const log = getLogger('RateLimitConfigPanel');
 
 const DEFAULT_RULES: Omit<RateLimitRule, 'id'>[] = [
   {
@@ -76,14 +79,21 @@ export function RateLimitConfigPanel() {
 
   const fetchRules = async () => {
     setLoading(true);
-    const data = await fetchRateLimitConfigs();
-    if (data.length > 0) {
-      setRules(data);
-    } else {
-      // Initialize with defaults
-      setRules(DEFAULT_RULES.map((r, i) => ({ ...r, id: `temp-${i}` })));
+    try {
+      const data = await fetchRateLimitConfigs();
+      if (data.length > 0) {
+        setRules(data);
+      } else {
+        // Initialize with defaults
+        setRules(DEFAULT_RULES.map((r, i) => ({ ...r, id: `temp-${i}` })));
+      }
+    } catch (err) {
+      // Sem try/catch: unhandled rejection E spinner infinito (setLoading
+      // nunca rodava quando a query rejeitava por rede).
+      log.error('Failed to load rate limit configs', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const updateRule = (id: string, updates: Partial<RateLimitRule>) => {

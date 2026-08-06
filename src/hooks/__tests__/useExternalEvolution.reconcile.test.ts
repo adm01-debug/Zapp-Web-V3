@@ -13,8 +13,12 @@ const mockRecordMatch = vi.hoisted(() => vi.fn());
 const mockMigrate = vi.hoisted(() => vi.fn());
 
 // ── Module mocks ───────────────────────────────────────────────────────────────
-vi.mock('@/features/inbox', () => ({
+// FIX perf TTM phase-07: evolutionReconcile passou a importar direto (não-barrel)
+// de @/features/inbox — os mocks acompanham os paths reais do SUT.
+vi.mock('@/features/inbox/hooks/realtime/reconciliationTelemetry', () => ({
   recordMatch: mockRecordMatch,
+}));
+vi.mock('@/features/inbox/hooks/realtime/playerStateStore', () => ({
   playerStateStore: { migrate: mockMigrate },
 }));
 

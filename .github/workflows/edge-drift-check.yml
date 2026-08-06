@@ -78,3 +78,28 @@ jobs:
             exit 1
           fi
           echo "Todas as variaveis usadas estao declaradas em .env.required"
+
+  # ── E39 (endurecido 2026-08-05, reaplicado em AG-EX-13): drift de HASH repo ×
+  # volume de produção. Antes, o drift era detectado só por HTTP (404/000 no E37)
+  # — não pegava STALE (hash difere com função respondendo) nem MISSING de forma
+  # confiável. Agora roda o pipeline real (infra/edge-deploy/deploy-edge.sh,
+  # READ-ONLY) no runner self-hosted (que tem o socket docker da VPS) e FALHA o
+  # workflow (exit 1) quando existir MISSING, STALE ou ORPHAN.
+  hash-drift:
+    name: E39 — hash drift (volume × repo)
+    if: github.event_name != 'pull_request'
+    runs-on: [self-hosted, linux, x64, vps-zapp]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: E39 — deploy-edge.sh read-only (falha em MISSING/STALE/ORPHAN)
+        env:
+          EDGE_FUNCTIONS_DIR: supabase/functions
+        run: |
+          set -uo pipefail
+          bash infra/edge-deploy/deploy-edge.sh 2>&1 | tee edge-drift-report.txt || {
+            echo "::error::DRIFT de edge functions (MISSING/STALE/ORPHAN) — reconcilie via workflow edge-deploy.yml (--apply) ou backport de hotfix."
+            exit 1
+          }

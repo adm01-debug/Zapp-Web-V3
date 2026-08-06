@@ -211,7 +211,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
 
   useEffect(() => {
     const channel = supabase
-      .channel('evolution-reconnect-monitor')
+      .channel(`evolution-reconnect-monitor:${Math.random().toString(36).slice(2, 10)}`)
       .on<WhatsAppConnection>(
         'postgres_changes',
         { event: 'UPDATE', schema: 'zapp', table: 'whatsapp_connections' },

@@ -2,9 +2,11 @@
  * evolutionReconcile — Optimistic-to-canonical reconciliation utilities.
  * Shared by useExternalConversations and useExternalMessages.
  */
-import { playerStateStore } from '@/features/inbox';
-import { recordMatch } from '@/features/inbox';
-import type { RealtimeMessage } from '@/features/inbox';
+// Imports diretos (não-barrel): o barrel @/features/inbox impede tree-shaking
+// no chunk inicial. FIX perf TTM phase-07.
+import { playerStateStore } from '@/features/inbox/hooks/realtime/playerStateStore';
+import { recordMatch } from '@/features/inbox/hooks/realtime/reconciliationTelemetry';
+import type { RealtimeMessage } from '@/features/inbox/hooks/realtime/types';
 
 /** Prefix applied to optimistic message IDs before canonical IDs are assigned by the server. */
 export const OPTIMISTIC_PREFIX = 'optimistic:';

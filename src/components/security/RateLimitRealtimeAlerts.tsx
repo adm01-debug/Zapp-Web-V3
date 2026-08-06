@@ -76,7 +76,7 @@ export function RateLimitRealtimeAlerts() {
 
     // Subscribe to new alerts
     const channel = supabase
-      .channel('security-alerts')
+      .channel(`security-alerts:${Math.random().toString(36).slice(2, 10)}`)
       .on<SecurityAlert>(
         'postgres_changes',
         { event: 'INSERT', schema: 'zapp', table: 'security_alerts' },

@@ -11,6 +11,8 @@ export function useTeamPermissions(enabled: boolean) {
       return data || [];
     },
     enabled,
+    // user_roles é quase-estático — evita refetch a cada mount/navegação.
+    staleTime: 5 * 60_000,
   });
 
   const permissionsQuery = useQuery({
@@ -23,6 +25,7 @@ export function useTeamPermissions(enabled: boolean) {
       return data || [];
     },
     enabled,
+    staleTime: 5 * 60_000,
   });
 
   const profilesQuery = useQuery({
@@ -36,6 +39,7 @@ export function useTeamPermissions(enabled: boolean) {
       return data || [];
     },
     enabled,
+    staleTime: 5 * 60_000,
   });
 
   return {

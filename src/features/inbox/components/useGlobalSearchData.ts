@@ -342,6 +342,11 @@ export function useGlobalSearchData(open: boolean) {
             .then(({ data, error }) => {
               if (error) log.warn('rpc_log_search_event failed', error);
               else if (typeof data === 'string') lastSearchEventIdRef.current = data;
+            })
+            .catch((err: unknown) => {
+              // Fire-and-forget telemetria: rejeição de rede sem handler vira
+              // unhandled promise rejection a cada busca.
+              log.warn('rpc_log_search_event failed (rejeição)', err);
             });
         }
       } catch (error) {

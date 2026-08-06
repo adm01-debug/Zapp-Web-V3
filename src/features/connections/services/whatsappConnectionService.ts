@@ -37,6 +37,20 @@ export const whatsappConnectionService = {
     return { ttlMs: QR_TTL_DEFAULT_MS, source: 'default' };
   },
 
+  /**
+   * Lista conexões básicas (id, name, api_type) para lookup de nome exibível
+   * (admin/whatsapp-mode). Encapsula o acesso a dados fora da camada de UI
+   * (check-data-layer: components/pages com teto 0).
+   */
+  async listBasicConnections() {
+    const { data, error } = await supabase
+      .from('whatsapp_connections')
+      .select('id, name, api_type')
+      .order('name');
+    if (error) throw error;
+    return data ?? [];
+  },
+
   async logQrAttempt(connId: string, instanceId: string, name: string, status: string = 'pending') {
     try {
       log.debug(`Logging QR attempt for ${instanceId} (${status})`);

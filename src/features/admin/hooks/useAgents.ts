@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/services/api/queryKeys';
 import { agentService, AgentWithStats } from '../services/agentService';
@@ -18,6 +18,9 @@ interface AgentPresenceRow {
 }
 
 const PRESENCE_STATUSES = new Set(['online', 'away', 'offline']);
+
+/** Fallback de re-sincronização do snapshot de presença quando o canal Realtime está fora. */
+const PRESENCE_FALLBACK_POLL_MS = 120_000;
 
 /** Hook: use Agents. */
 export function useAgents() {
@@ -40,6 +43,8 @@ export function useAgents() {
   // o status era estimado por heurística (profiles.updated_at). Aqui a presença
   // real (mantida por heartbeat + cron auto-offline-agents) sobrepõe o status.
   const [presenceMap, setPresenceMap] = useState<Record<string, AgentPresenceRow>>({});
+  // Saúde do canal Realtime — o fallback polling (120s) só roda em erro/fechado.
+  const channelStatusRef = useRef<'connecting' | 'connected' | 'error' | 'closed'>('connecting');
 
   useEffect(() => {
     let cancelled = false;
@@ -55,8 +60,8 @@ export function useAgents() {
       });
     };
 
-    // Snapshot inicial — a subscription só entrega eventos posteriores.
-    void (async () => {
+    // Snapshot inicial + fallback — a subscription só entrega eventos posteriores.
+    const fetchPresenceSnapshot = async () => {
       try {
         const { data } = await supabase
           .from('agent_presence')
@@ -65,7 +70,10 @@ export function useAgents() {
       } catch {
         // Snapshot falhou (ex.: RLS) — a subscription continua cobrindo eventos.
       }
-    })();
+    };
+
+    // Snapshot inicial — a subscription só entrega eventos posteriores.
+    void fetchPresenceSnapshot();
 
     // Topic único por mount — evita reutilizar instância de canal já inscrita
     // cujo teardown (removeChannel assíncrono) ainda não terminou.
@@ -89,10 +97,28 @@ export function useAgents() {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        // Rastreia a saúde do canal para o fallback polling abaixo.
+        if (status === 'SUBSCRIBED') channelStatusRef.current = 'connected';
+        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT')
+          channelStatusRef.current = 'error';
+        else if (status === 'CLOSED') channelStatusRef.current = 'closed';
+        else channelStatusRef.current = 'connecting';
+      });
+
+    // Fallback polling 120s: SÓ quando a subscription está em erro/fechado
+    // (blip de rede, restart do servidor). Canal saudável → sem polling.
+    const fallbackTimer = setInterval(() => {
+      if (cancelled) return;
+      const st = channelStatusRef.current;
+      if (st !== 'error' && st !== 'closed') return;
+      if (typeof document !== 'undefined' && document.hidden) return;
+      void fetchPresenceSnapshot();
+    }, PRESENCE_FALLBACK_POLL_MS);
 
     return () => {
       cancelled = true;
+      clearInterval(fallbackTimer);
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };

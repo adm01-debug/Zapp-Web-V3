@@ -1,11 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { queryKeys } from '@/services/api/queryKeys';
-import { safeClient } from '@/integrations/supabase/safeClient';
-import { conversationEventRowSchema, safeParseEvent } from '@/shared/webhookEventSchemas';
-import { getLogger } from '@/lib/logger';
-import { isValidUUID } from '@/utils/uuid';
-
-const log = getLogger('ConversationTimeline');
+import { conversationEventsQueryOptions } from '@/features/inbox/hooks/useConversationEventsData';
 
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -22,22 +16,6 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
-
-interface TimelineEvent {
-  id: string;
-  event_type: string;
-  from_agent_id: string | null;
-  to_agent_id: string | null;
-  from_queue_id: string | null;
-  to_queue_id: string | null;
-  metadata: Record<string, unknown> | null;
-  performed_by: string | null;
-  created_at: string;
-  from_agent?: { name: string } | null;
-  to_agent?: { name: string } | null;
-  from_queue?: { name: string } | null;
-  to_queue?: { name: string } | null;
-}
 
 const EVENT_CONFIG: Record<string, { icon: typeof ArrowRight; label: string; color: string }> = {
   assign: { icon: UserPlus, label: 'Atribuído', color: 'text-success' },
@@ -60,42 +38,16 @@ const EVENT_CONFIG: Record<string, { icon: typeof ArrowRight; label: string; col
 
 /** Conversation Timeline component. */
 export function ConversationTimeline({ contactId }: { contactId: string }) {
-  const { data: events = [], isLoading } = useQuery({
-    queryKey: queryKeys.adminOps.conversationTimeline(contactId),
-    enabled: !!contactId && isValidUUID(contactId),
-    queryFn: async () => {
-      const { data, error } = await safeClient.from<TimelineEvent>('conversation_events', (q) =>
-        q
-          .select(
-            `
-          id, event_type, from_agent_id, to_agent_id,
-          from_queue_id, to_queue_id, metadata, performed_by, created_at,
-          from_agent:profiles!conversation_events_from_agent_id_fkey(name),
-          to_agent:profiles!conversation_events_to_agent_id_fkey(name),
-          from_queue:queues!conversation_events_from_queue_id_fkey(name),
-          to_queue:queues!conversation_events_to_queue_id_fkey(name)
-        `
-          )
-          .eq('contact_id', contactId)
-          .order('created_at', { ascending: false })
-          .limit(50)
-      );
-      if (error) throw error;
-      // Rejeição silenciosa de linhas malformadas (id/contact_id/event_type ausentes,
-      // enums totalmente fora do vocabulário conhecido/aberto). Preserva joins via passthrough.
-      const rows = Array.isArray(data) ? data : [];
-      const valid: TimelineEvent[] = [];
-      for (const row of rows) {
-        const parsed = safeParseEvent(conversationEventRowSchema, row);
-        if (!parsed.ok) {
-          log.warn('conversation_events row rejeitada', parsed.error);
-          continue;
-        }
-        valid.push(row as TimelineEvent);
-      }
-      return valid;
-    },
-  });
+  // Query canônica de conversation_events (BUG-2026-08-06): mesma queryKey do
+  // stats de contato → 1 GET por contato; staleTime 30s evita refetch ao reabrir.
+  const { data: rawEvents = [], isLoading } = useQuery(
+    conversationEventsQueryOptions(contactId)
+  );
+
+  // Rejeição silenciosa de linhas malformadas (id/event_type ausentes) —
+  // preserva joins via passthrough. Enums fora do vocabulário caem no fallback
+  // de render (EVENT_CONFIG[event_type] || assign).
+  const events = rawEvents.filter((e) => !!e.id && !!e.event_type);
 
   if (isLoading) {
     return (
