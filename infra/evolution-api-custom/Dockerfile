@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # ============================================================================
-# evolution-api-custom — Evolution API 2.3.7 com patches T1-T5 em BUILD-TIME
+# evolution-api-custom — Evolution API 2.3.7 com patches T1-T6 em BUILD-TIME
 # ----------------------------------------------------------------------------
 # Substitui o monkey-patch RUNTIME (logpatch.cjs + configs Swarm
 # evolution_logpatch_t4_cjs / evolution_main_v2_js) por um bundle patcheado
@@ -9,26 +9,33 @@
 #
 # Patches embutidos em main.patched.js (gerado por build-patches.mjs):
 #   T1  remove console.log(c) antes de sendDataWebhook("messages.upsert",c)
-#   T2  remove console.log("stanza",JSON.stringify(e)),
+#   T2  remove console.log("stanza",JSON.stringify(e)),  [tolerante — Plano B]
 #   T3  Sentry: tracesSampleRate 0.05 / profilesSampleRate 0 / beforeSend
 #       filtra 401, 403, DEVICE_REMOVED, "Request failed with status code
 #       401/403" e makeBucket
 #   T4  prologue t4_prologue.cjs (log masking, marcador MASKED) prepended
-#   T5a remove console.log("CACHE:",...) de mensagens
+#   T5a remove console.log("CACHE:",...) de mensagens    [tolerante — Plano B]
 #   T6  GET / mascara a versão ("2.x" no lugar da real) — F2-21
 # libsignal/src/session_record.js: remove console.info/warn de sessões.
+#
+# PLANO B (baileys 6.7.24): o bundle é rebuildado do source da tag 2.3.7 com
+# o pin "baileys": "6.7.24" (exato) — ver workflow publish-evolution-api-custom.
+# T2/T5a podem ser SKIPed pelo build-patches.mjs (origem baileys) — o VERIFY
+# abaixo só exige ausência deles, então é compatível com ambos os casos.
 #
 # Build (gera main.patched.js e publica no GHCR):
 #   ./build-evolution-custom.sh            # build local
 #   PUSH=1 ./build-evolution-custom.sh     # build + push
 # ============================================================================
-FROM evoapicloud/evolution-api@sha256:6b195676b09abbbd8ac9372cd961674dea2587f23dc9bc1d1e6a595372556fb1
+ARG BASE_IMAGE=evoapicloud/evolution-api@sha256:6b195676b09abbbd8ac9372cd961674dea2587f23dc9bc1d1e6a595372556fb1
+FROM ${BASE_IMAGE}
 
 LABEL org.opencontainers.image.title="evolution-api-custom" \
       org.opencontainers.image.version="2.3.7" \
-      org.opencontainers.image.description="Evolution API 2.3.7 com patches T1-T6 build-time (log masking, Sentry filtrado, versao mascarada na raiz, sem logs de stanza/CACHE/webhook)" \
-      org.opencontainers.image.source="https://github.com/adm01-debug/evolution-api-custom" \
-      org.opencontainers.image.base.digest="sha256:6b195676b09abbbd8ac9372cd961674dea2587f23dc9bc1d1e6a595372556fb1"
+      org.opencontainers.image.description="Evolution API 2.3.7 com patches T1-T6 build-time (log masking, Sentry filtrado, versao mascarada na raiz, sem logs de stanza/CACHE/webhook) — bundle com baileys 6.7.24 (Plano B)" \
+      org.opencontainers.image.source="https://github.com/adm01-debug/zapp-web-v3/tree/main/infra/evolution-api-custom" \
+      org.opencontainers.image.base.digest="sha256:6b195676b09abbbd8ac9372cd961674dea2587f23dc9bc1d1e6a595372556fb1" \
+      com.atomicabr.baileys="6.7.24"
 
 WORKDIR /evolution
 EXPOSE 8080
@@ -52,6 +59,8 @@ COPY t4_prologue.cjs /evolution/t4_prologue.cjs
 
 # --- Verificação fail-closed: o build FALHA se o bundle copiado não tiver T1-T6
 #     exatamente como esperado (nunca sobe imagem com patch quebrado).
+#     T2/T5a: tolerantes — só exigem AUSÊNCIA (aplicados ou SKIPed, nunca
+#     presentes). T1/T3/T4/T6: estritos (marcadores obrigatórios).
 RUN node -e ' \
 const fs=require("fs"); \
 const s=fs.readFileSync("/evolution/dist/main.js","utf8"); \
