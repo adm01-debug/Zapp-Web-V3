@@ -173,7 +173,7 @@ export function usePersonalStickers(): UsePersonalStickersResult {
       .then(({ error }) => {
         if (error) log.warn('Increment use_count failed:', error);
       })
-      .catch((err: unknown) => {
+      .then(undefined, (err: unknown) => {
         // Falha de rede rejeita a promise (o .then acima só cobre o error field).
         log.warn('Increment use_count failed (rejeição):', err);
       });

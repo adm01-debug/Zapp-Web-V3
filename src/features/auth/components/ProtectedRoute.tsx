@@ -140,7 +140,7 @@ export function ProtectedRoute({
             });
         }
       })
-      .catch((err: unknown) => {
+      .then(undefined, (err: unknown) => {
         // getSession pode rejeitar por rede/timeout — sem este handler,
         // vira unhandled promise rejection no bootstrap de toda rota protegida.
         log.warn('[ProtectedRoute] getSession falhou na checagem de sessão:', err);
@@ -298,7 +298,7 @@ export function ProtectedRoute({
       p_details: { roles },
     }).then(({ error }) => {
       if (error) log.warn('Failed to log dev bypass', { error: error.message });
-    }).catch((err: unknown) => {
+    }).then(undefined, (err: unknown) => {
       log.warn('[ProtectedRoute] Falha ao registrar dev bypass (audit log):', err);
     });
     markTimeToMainScreen(location.pathname);
@@ -331,7 +331,7 @@ export function ProtectedRoute({
         .then(({ error }) => {
           if (error) log.warn('Failed to log security event', { error: error.message });
         })
-        .catch((err: unknown) => {
+        .then(undefined, (err: unknown) => {
           log.warn('[ProtectedRoute] Falha ao registrar acesso não autorizado (audit log):', err);
         });
 
@@ -363,7 +363,7 @@ export function ProtectedRoute({
       .then(({ error }) => {
         if (error) log.warn('Failed to log security event', { error: error.message });
       })
-      .catch((err: unknown) => {
+      .then(undefined, (err: unknown) => {
         log.warn('[ProtectedRoute] Falha ao registrar permissão negada (audit log):', err);
       });
 

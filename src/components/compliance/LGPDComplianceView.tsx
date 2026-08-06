@@ -37,7 +37,7 @@ export function LGPDComplianceView() {
         if (cancelled) return;
         if (error) log.warn('Failed to log privacy view', error);
       })
-      .catch((err: unknown) => {
+      .then(undefined, (err: unknown) => {
         // Rejeição de rede/timeout: sem handler, vira unhandled rejection
         // no load da tela de compliance.
         log.warn('Failed to log privacy view (rejeição)', err);
@@ -63,7 +63,7 @@ export function LGPDComplianceView() {
         .then(({ error }) => {
           if (error) log.warn('[audit] gdpr_export_blocked log failed', error);
         })
-        .catch((err: unknown) => {
+        .then(undefined, (err: unknown) => {
           log.warn('[audit] gdpr_export_blocked log failed (rejeição)', err);
         });
     }

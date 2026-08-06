@@ -66,7 +66,7 @@ export function useConversationViewers(contactId: string) {
                 online_at: new Date().toISOString(),
               })
             )
-            .catch((err: unknown) => {
+            .then(undefined, (err: unknown) => {
               // Sem handler, falha de rede do select (ou do track) vira
               // unhandled promise rejection ao abrir uma conversa.
               log.warn('[ViewersIndicator] Falha ao registrar presença do viewer:', err);

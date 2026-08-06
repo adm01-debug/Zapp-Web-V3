@@ -9,7 +9,6 @@ import { GlobalKeyboardProvider } from '@/components/keyboard/GlobalKeyboardProv
 import { SkipLinks } from '@/components/ui/skip-link';
 import { LiveRegion } from '@/components/ui/visually-hidden';
 import { ThemeInitializer } from '@/components/ThemeInitializer';
-import { ThemeDebugger } from '@/components/debug/ThemeDebugger';
 import { AppProviders } from '@/components/providers/AppProviders';
 import { AppRoutes } from '@/components/routing/AppRoutes';
 import { ServiceWorkerUpdateBanner } from '@/components/system/ServiceWorkerUpdateBanner';

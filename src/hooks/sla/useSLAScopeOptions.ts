@@ -62,7 +62,7 @@ export function useSLAScopeOptions(
           ].sort();
           setCompanies(unique);
         })
-        .catch((err: unknown) => {
+        .then(undefined, (err: unknown) => {
           log.warn('Failed to load company options (rejeição):', err);
         });
     }
@@ -83,7 +83,7 @@ export function useSLAScopeOptions(
           ].sort();
           setJobTitles(unique);
         })
-        .catch((err: unknown) => {
+        .then(undefined, (err: unknown) => {
           log.warn('Failed to load job_title options (rejeição):', err);
         });
     }
@@ -100,7 +100,7 @@ export function useSLAScopeOptions(
           }
           setQueues((data ?? []) as unknown as QueueOption[]); // ignore-audit — Supabase queues row has no index signature for direct widening to QueueOption
         })
-        .catch((err: unknown) => {
+        .then(undefined, (err: unknown) => {
           log.warn('Failed to load queue options (rejeição):', err);
         });
     }
@@ -117,7 +117,7 @@ export function useSLAScopeOptions(
           }
           setAgents((data ?? []) as unknown as AgentOption[]); // ignore-audit — Supabase profiles row has no index signature for direct widening to AgentOption
         })
-        .catch((err: unknown) => {
+        .then(undefined, (err: unknown) => {
           log.warn('Failed to load agent options (rejeição):', err);
         });
     }
@@ -158,7 +158,7 @@ export function useSLAScopeOptions(
       setContacts(
         merged.slice(0, 20).map((r) => ({ id: r.id, name: r.name ?? '', phone: r.phone ?? '' }))
       );
-    }).catch((err: unknown) => {
+    }).then(undefined, (err: unknown) => {
       log.warn('Failed to search contact options (rejeição):', err);
     });
   }, [open, scope, contactSearch]);
