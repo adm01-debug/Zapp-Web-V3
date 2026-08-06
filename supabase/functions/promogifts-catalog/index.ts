@@ -246,7 +246,7 @@ Deno.serve(async (req) => {
     const extClient = createClient(extUrl, extKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
     const parsed = parseOrReject('promogifts-catalog', CONTRACT_SCHEMAS['promogifts-catalog'], req, rawBody, { extraHeaders: getCorsHeaders(req) });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const { action, params } = parsed.data as { action: string; params?: Record<string, unknown> };
     const startTime = performance.now();
 

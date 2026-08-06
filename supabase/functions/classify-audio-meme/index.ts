@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('classify-audio-meme', CONTRACT_SCHEMAS['classify-audio-meme'], req, raw, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, any>;
 
     const { audio_url, file_name } = body;

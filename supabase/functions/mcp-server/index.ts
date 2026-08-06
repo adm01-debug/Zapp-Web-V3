@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject("mcp-server", CONTRACT_SCHEMAS["mcp-server"], req, raw, {
       extraHeaders: corsHeaders,
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, any>;
 
     // Basic MCP request handling

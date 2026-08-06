@@ -903,7 +903,7 @@ Deno.serve(async (req) => {
     // (discriminatedUnion por action). Os handlers internos continuam validando com
     // parseBody — este gate apenas antecipa a rejeição com envelope canônico 422.
     const contractParsed = parseOrReject('ai-router', CONTRACT_SCHEMAS['ai-router'], req, body, { extraHeaders: getCorsHeaders(req) });
-    if (!contractParsed.ok) return contractParsed.response;
+    if (contractParsed.ok === false) return contractParsed.response;
     body = contractParsed.data as Record<string, unknown>;
 
     // ━━━ PHASE 1B: Request Signature Validation (IMPROVEMENT 11) ━━━

@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     const parsed = await parseRequestOrReject('ai-churn-analysis', CONTRACT_SCHEMAS['ai-churn-analysis'], req, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, unknown>;
 
     const aiRouterUrl = Deno.env.get("AI_ROUTER_URL");

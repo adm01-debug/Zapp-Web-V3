@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('chatbot-l1', CONTRACT_SCHEMAS['chatbot-l1'], req, raw, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, any>;
 
     const { contactId, message, connectionId } = body;

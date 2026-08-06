@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
   const parsed = parseOrReject('health-check', { v1: HealthCheckV1Schema }, req, await req.json().catch(() => ({})), {
     extraHeaders: getCorsHeaders(req),
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
 
   const startTime = Date.now();
   const status: { status: string; timestamp: string; version: string; checks: Record<string, unknown>; response_time_ms?: number } = {

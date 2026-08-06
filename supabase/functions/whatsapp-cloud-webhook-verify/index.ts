@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
   const parsed = parseOrReject('whatsapp-cloud-webhook-verify', CONTRACT_SCHEMAS['whatsapp-cloud-webhook-verify'], req, body, {
     extraHeaders: getCorsHeaders(req),
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
 
   const verifyTokenConfigured = VERIFY_TOKEN.length > 0;
 

@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
   const parsed = parseOrReject("instance-pause-control", CONTRACT_SCHEMAS["instance-pause-control"], req, raw, {
     extraHeaders: getCorsHeaders(req),
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
   const body = parsed.data as Record<string, any>;
   const action = String(body.action ?? '');
 

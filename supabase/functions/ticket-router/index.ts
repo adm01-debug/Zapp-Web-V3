@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
 
     const raw = await req.json().catch(() => null);
     const parsed = parseOrReject('ticket-router', CONTRACT_SCHEMAS['ticket-router'], req, raw, { extraHeaders: getCorsHeaders(req) });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
 
     const body = parsed.data as Record<string, unknown>;
     const contactId = typeof body.contact_id === 'string' ? body.contact_id : '';

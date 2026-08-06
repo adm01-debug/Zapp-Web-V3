@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject("contacts-import", CONTRACT_SCHEMAS["contacts-import"], req, raw, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, any>;
     const rows = body.rows;
     const rawInstanceName = body.workspace_id ?? 'wpp2';

@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     const parsed = await parseRequestOrReject('ai-enhance-message', CONTRACT_SCHEMAS['ai-enhance-message'], req, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, unknown>;
 
     const aiRouterUrl = Deno.env.get("AI_ROUTER_URL");

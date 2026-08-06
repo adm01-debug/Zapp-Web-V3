@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       const parsed = parseOrReject('gmail-webhook', CONTRACT_SCHEMAS['gmail-webhook'], req, rawBody, {
         extraHeaders: getCorsHeaders(req),
       });
-      if (!parsed.ok) return parsed.response;
+      if (parsed.ok === false) return parsed.response;
       const body = parsed.data as Record<string, unknown>;
       const { action } = body;
 

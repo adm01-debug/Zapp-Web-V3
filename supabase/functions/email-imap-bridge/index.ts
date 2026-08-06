@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('email-imap-bridge', { v1: EmailImapBridgeV1Schema }, req, raw, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
 
     const body = parsed.data as Record<string, unknown>;
     const action = typeof body.action === 'string' ? body.action : '';

@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
 
     const raw = await req.json().catch(() => null);
     const parsed = parseOrReject('virustotal-test', CONTRACT_SCHEMAS['virustotal-test'], req, raw, { extraHeaders: getCorsHeaders(req) });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const { apiKey } = parsed.data as Record<string, any>;
 
     if (!apiKey) {

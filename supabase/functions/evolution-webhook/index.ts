@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
       requestId,
       extraHeaders: corsHeaders,
     });
-    if (!parsed.ok) {
+    if (parsed.ok === false) {
       console.warn(`[webhook][${requestId}] contract_violation:`, parsed.body.details);
       await auditWebhookEvent(supabase, {
         request_id: requestId, status: 'rejected', status_code: 422, error_message: parsed.body.code,

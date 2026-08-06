@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
   const parsed = parseOrReject('auto-escalate-sla', { v1: AutoEscalateSlaV1Schema }, req, await req.json().catch(() => ({})), {
     extraHeaders: getCorsHeaders(req),
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
 
   const log = new Logger('auto-escalate-sla');
 

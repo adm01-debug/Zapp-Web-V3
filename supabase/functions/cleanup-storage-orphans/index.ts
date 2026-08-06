@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
   const parsed = parseOrReject('cleanup-storage-orphans', CONTRACT_SCHEMAS['cleanup-storage-orphans'], req, await req.json().catch(() => ({})), {
     extraHeaders: getCorsHeaders(req),
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
 
   const log = new Logger("cleanup-storage-orphans");
   const supabase = createZappAdminClient();

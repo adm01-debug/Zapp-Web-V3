@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('whatsapp-cloud-api', CONTRACT_SCHEMAS['whatsapp-cloud-api'], req, body, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     body = parsed.data as Record<string, unknown>;
 
 

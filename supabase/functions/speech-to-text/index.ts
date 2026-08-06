@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
 
     const raw = await req.json().catch(() => null);
     const parsed = parseOrReject('speech-to-text', CONTRACT_SCHEMAS['speech-to-text'], req, raw, { extraHeaders: getCorsHeaders(req) });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, any>;
     if (!body || typeof body.audio !== "string" || body.audio.length === 0) {
       return errorResponse("Campo 'audio' (base64) é obrigatório.", 400, req);

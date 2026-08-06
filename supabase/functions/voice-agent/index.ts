@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('voice-agent', CONTRACT_SCHEMAS['voice-agent'], req, body, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
 
     const { transcript } = parsed.data as Record<string, any>;
     const trimmed = typeof transcript === 'string' ? transcript.trim() : '';

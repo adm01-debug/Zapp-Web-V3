@@ -229,7 +229,7 @@ Deno.serve(async (req) => {
 
   const raw = await req.json().catch(() => null);
   const parsed = parseOrReject('provider-router', CONTRACT_SCHEMAS['provider-router'], req, raw, { extraHeaders: getCorsHeaders(req) });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
   const body = parsed.data as RouteRequest;
 
   if (!body.action || typeof body.action !== "string") {
