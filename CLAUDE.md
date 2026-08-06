@@ -25,12 +25,12 @@
 | **Schema Evolution API** | `evo` |
 | **Schema public** | 1 tabela interna Supabase + 511 views proxy |
 
-### Schemas e Tabelas (auditado 2026-08-04 — contagens do DB de produção)
+### Schemas e Tabelas (auditado 2026-08-06 — contagens do DB de produção)
 
 | Schema | Base Tables | Views | RLS | Descrição |
 |--------|-------------|-------|-----|-----------|
-| **`zapp`** | **321** | **380** | 100% | Todas as tabelas da aplicação |
-| **`evo`** | **172** | — | 100% | Tabelas da Evolution API (WhatsApp) |
+| **`zapp`** | **323** | **380** | 100% | Todas as tabelas da aplicação |
+| **`evo`** | **143** | — | 100% | Tabelas da Evolution API (WhatsApp) |
 | `auth` | 21 | — | — | Auth GoTrue do Supabase |
 | `bpm` | 41 | — | — | BPM/workflows |
 | `email_app` | 33 | — | — | Integração Gmail |
@@ -39,6 +39,11 @@
 | `financeiro` | 16 | — | — | Módulo financeiro |
 | `vendas` | 13 | — | — | Módulo vendas |
 | `ops` | 20 | — | — | Operações internas |
+| `artes` | 2 | 1 | — | Artes gráficas e design |
+| `graveyard` | 0 | — | — | Schema arquivado (dados legados) |
+| `logistica` | 3 | — | — | Logística e expedição |
+| `monitoring` | 1 | 13 | — | Monitoramento e métricas do sistema |
+| `parity_audit` | 2 | — | — | Auditoria de paridade de dados entre schemas |
 | `public` | 1¹ | 511² | — | NÃO usar diretamente |
 
 > ¹ `public._wal_slot_guard_events` — tabela interna do Supabase (WAL slot guard), não é tabela de aplicação.
@@ -67,7 +72,7 @@
 
 | Tabela | Função |
 |--------|--------|
-| `profiles` | Usuários da plataforma (17 registros) |
+| `profiles` | Usuários da plataforma (19 registros) |
 | `workspaces` | Workspaces/tenants |
 | `workspace_members` | Membros por workspace (15) |
 | `whatsapp_connections` | Conexões WA (3 ativas) |
@@ -119,6 +124,8 @@
 | `stickers` | sim | 512 KB | |
 | `team-chat-files` | não | — | |
 | `whatsapp-media` | não | — | |
+
+> **Cron jobs ativos:** 151 jobs em `cron.job` (pg_cron — auditado 2026-08-06)
 
 ---
 
@@ -216,6 +223,9 @@ O repositório possui um **grafo de conhecimento** em `graphify-out/` (Apache 2.
 | `infra/backup/README.md` | Backup & restore procedure |
 | `infra/evolution/SETTINGS.md` | Configs Evolution wpp2 |
 | `docs/QA_REPORT_2026-07-22.md` | QA Report completo (22/07) |
+| `docs/audit-2026-08-06/EXECUTIVE_SUMMARY.md` | Sumário executivo da auditoria container × Supabase (2026-08-06) |
+| `docs/audit-2026-08-06/RECONCILIATION_MATRIX.md` | Matriz completa de reconciliação (40 checks, 8 dimensões) |
+| `docs/audit-2026-08-06/reconciliation.json` | Achados da auditoria em formato estruturado |
 
 ---
 

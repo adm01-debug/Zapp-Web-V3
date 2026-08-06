@@ -23,6 +23,13 @@
 | 🟡 P2 | 6 | DADO-05, DADO-06, MIGR-03, MIGR-04, REDE-05, SECRET-04 |
 | ✅ OK | 28 | (todos abaixo com status OK) |
 
+> **Atualizações pós-auditoria (2026-08-06):**
+> - ✅ **DADO-01 RESOLVIDO** — UUID reconciliation executada (uuid_overlap=19, users_sem_profile=0, profiles_sem_user=0)
+> - ✅ **DADO-02 RESOLVIDO** — slot `cainophile_tqoilw2f` não existe mais em pg_replication_slots (auto-resolvido)
+> - ✅ **DADO-05 RESOLVIDO** — flags de bucket corrigidas via SQL (audio-memes→private, audio-messages→public)
+> - ℹ️ **ARTEF-02 FALSO POSITIVO** — todas as 4 sub-rotas existem em `evolution-api/index.ts` como blocos if/action
+> - 🟠 **DADO-03/SAUDE-03/REDE-05** — evolution-db-purge OOM: runbook em `infra/runbooks/OPERATIONS.md`
+
 ---
 
 ## DIMENSÃO 1 — CONFIG
@@ -61,7 +68,7 @@
 | ID | Componente | Esperado | Real (Runtime) | Status | Sev | Evidência |
 |----|-----------|---------|----------------|--------|-----|-----------|
 | ARTEF-01 | Edge Functions — volume mount | Funções disponíveis em `/home/deno/functions` no container | Bind mount: host `/root/supabase/docker/volumes/functions` → `/home/deno/functions` | ✅ OK | — | Portainer inspect Functions |
-| ARTEF-02 | Evolution API sub-rotas | `find-status-messages`, `get-webhook`, `send-chat-presence`, `set-webhook` devem existir em `supabase/functions/` | **NÃO ENCONTRADAS** no repositório — ausentes em `supabase/functions/evolution-api/` | ❌ DRIFT | 🟠 P1 | `grep -r "find-status-messages" supabase/functions/` → 0 resultados |
+| ARTEF-02 | Evolution API sub-rotas | `find-status-messages`, `get-webhook`, `send-chat-presence`, `set-webhook` devem existir em `supabase/functions/` | ~~NÃO ENCONTRADAS~~ → **ℹ️ FALSO POSITIVO 2026-08-06**: todas as 4 sub-rotas existem como blocos `if/action` dentro de `supabase/functions/evolution-api/index.ts` (linhas 27, 101, 142-151, 153, 181-182). O grep buscou diretórios separados — monolito correto por design. | ℹ️ **FALSO POSITIVO** | — | Leitura de `supabase/functions/evolution-api/index.ts` confirma todos os handlers |
 | ARTEF-03 | db-client.ts — env vars | `SELFHOSTED_SUPABASE_URL`, `SUPABASE_URL`, chaves via secrets | Todos os env vars confirmados presentes no container Functions | ✅ OK | — | `supabase/functions/_shared/db-client.ts` + Portainer |
 | ARTEF-04 | Extensions requeridas | `pg_cron`, `pg_net`, `pgcrypto`, `vector`, `pg_graphql`, `pgjwt` | Todas presentes — 21 extensões instaladas | ✅ OK | — | `SELECT * FROM pg_extension` |
 | ARTEF-05 | Extension `http` | Documentação menciona `http` como esperada | **AUSENTE** — não instalada. `pg_net` está instalada (substituta funcional) | ⚠️ RISCO | 🟡 P2 | `SELECT * FROM pg_extension WHERE extname='http'` → 0 rows |
@@ -88,11 +95,11 @@
 
 | ID | Componente | Esperado | Real | Status | Sev | Evidência |
 |----|-----------|---------|------|--------|-----|-----------|
-| **DADO-01** | **auth.users × zapp.profiles** | **19 auth.users com profiles correspondentes (UUID = FK)** | **19 users_sem_profile E 19 profiles_sem_user — sobreposição UUID = ZERO** | ❌ **DRIFT** | 🔴 **P0** | `SELECT COUNT(*) FROM auth.users u LEFT JOIN zapp.profiles p ON u.id=p.id WHERE p.id IS NULL → 19; JOIN inverso → 19` |
-| **DADO-02** | **WAL slot lag** | **Slot ativo com lag < 1GB (ideal: 0)** | **`cainophile_tqoilw2f` — lag 281 MB (294.522.800 bytes) e crescendo (era 271MB)** | ❌ **DRIFT** | 🟠 **P1** | `SELECT slot_name, wal_status, pg_wal_lsn_diff(pg_current_wal_lsn(), confirmed_flush_lsn) FROM pg_replication_slots` |
+| **DADO-01** | **auth.users × zapp.profiles** | **19 auth.users com profiles correspondentes (UUID = FK)** | ~~19 users_sem_profile E 19 profiles_sem_user — sobreposição UUID = ZERO~~ → **✅ RESOLVIDO 2026-08-06**: uuid_overlap=19, users_sem_profile=0, profiles_sem_user=0. UPDATE via `session_replication_role='replica'` + 44 tabelas filhas atualizadas. | ✅ **RESOLVIDO** | — | `SELECT COUNT(*) FROM auth.users u JOIN zapp.profiles p ON u.id=p.id` → 19 |
+| **DADO-02** | **WAL slot lag** | **Slot ativo com lag < 1GB (ideal: 0)** | ~~`cainophile_tqoilw2f` — lag 281 MB crescendo~~ → **✅ RESOLVIDO 2026-08-06**: slot não existe mais em `pg_replication_slots` (0 linhas). Auto-resolvido. | ✅ **RESOLVIDO** | — | `SELECT COUNT(*) FROM pg_replication_slots WHERE slot_name='cainophile_tqoilw2f'` → 0 |
 | **DADO-03** | **evolution-db-purge** | **Container em execução limpa ou concluído** | **Múltiplas instâncias: Exited(137)=OOM killed + Exited(127)=command not found** | ❌ **DRIFT** | 🟠 **P1** | `portainer_list_containers` — status Exited nos containers de purge |
 | DADO-04 | Storage buckets | 13 buckets em `storage.buckets` | 13 confirmados | ✅ OK | — | `SELECT COUNT(*) FROM storage.buckets` |
-| DADO-05 | Flags `public` dos buckets | `audio-memes`: private; `audio-messages`: public (per CLAUDE.md) | `audio-memes`: **public=true** no DB (CLAUDE.md diz não-público); `audio-messages`: **public=false** no DB (CLAUDE.md diz público) | ⚠️ RISCO | 🟡 P2 | `SELECT name, public FROM storage.buckets ORDER BY name` |
+| DADO-05 | Flags `public` dos buckets | `audio-memes`: private; `audio-messages`: public (per CLAUDE.md) | ~~audio-memes: public=true no DB; audio-messages: public=false no DB~~ → **✅ RESOLVIDO 2026-08-06**: `UPDATE storage.buckets SET public=false WHERE id='audio-memes'; SET public=true WHERE id='audio-messages'` — 2 linhas afetadas. | ✅ **RESOLVIDO** | — | `SELECT id, public FROM storage.buckets WHERE id IN ('audio-memes','audio-messages')` → ambos corretos |
 | DADO-06 | Cron jobs count | 146 (per CLAUDE.md) | **151** cron jobs em `cron.job` (+5 drift) | ⚠️ RISCO | 🟡 P2 | `SELECT COUNT(*) FROM cron.job` |
 | DADO-07 | Cron execuções 24h | Jobs executando sem falhas nas últimas 24h | Não verificado nesta sessão (step 76 pendente) | ⚠️ RISCO | 🟡 P2 | Pendente |
 | DADO-08 | pg_net egress | `net._http_response` sem erros acumulados | Não verificado nesta sessão (step 78 pendente) | ⚠️ RISCO | 🟡 P2 | Pendente |
@@ -132,7 +139,7 @@
 | SAUDE-04 | supabase_meta | Deve estar Up, sem crash-loop | **Up 12h, saudável** — crash-loop histórico resolvido ✅ | ✅ OK | — | Portainer inspect |
 | SAUDE-05 | supabase_storage | Up, backend filesystem | Up, STORAGE_BACKEND=file ✅ | ✅ OK | — | Portainer inspect |
 | SAUDE-06 | supabase_realtime | Up, DB conectado | Up, DB_HOST=db ✅ | ✅ OK | — | Portainer inspect |
-| SAUDE-07 | WAL lag | Lag estável < 100 MB | **281 MB e crescendo** (estava 271 MB) — slot `cainophile_tqoilw2f` | ❌ DRIFT | 🟠 P1 | `pg_replication_slots` |
+| SAUDE-07 | WAL lag | Lag estável < 100 MB | ~~281 MB e crescendo — slot `cainophile_tqoilw2f`~~ → **✅ RESOLVIDO**: slot não existe mais em `pg_replication_slots` | ✅ **RESOLVIDO** | — | `SELECT * FROM pg_replication_slots WHERE slot_name='cainophile_tqoilw2f'` → 0 linhas |
 | SAUDE-08 | GoTrue memory limit | Dentro dos limites definidos | 1 GB limit, uso dentro do normal | ✅ OK | — | Portainer inspect |
 
 ---

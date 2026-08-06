@@ -34,6 +34,32 @@ cscli bouncers list
 # Se Last API pull > 1h: restart container
 ```
 
+### evolution-db-purge — OOM Killed (137) e Command Not Found (127)
+
+**Sintomas:** Containers `evolution-db-purge*` encerram com código 137 (OOM killed) ou 127 (command not found).
+
+**Diagnóstico via Portainer:** Filtrar containers por nome `evolution-db-purge`, verificar ExitCode e Status em cada instância.
+
+**Exit 137 — OOM Killed:**
+- Causa: Limite de memória insuficiente para a operação de purge das tabelas `evo.*`
+- Correção: Aumentar `deploy.resources.limits.memory` no stack Portainer
+  ```yaml
+  deploy:
+    resources:
+      limits:
+        memory: 512M  # Aumentar (ex: 256M → 512M ou 1G conforme necessário)
+  ```
+- Após ajuste: atualizar o serviço via Portainer (stack update) ou `docker service update --force <nome-do-servico>`
+
+**Exit 127 — Command Not Found:**
+- Causa: Entrypoint/CMD inválido na imagem — script de purge não encontrado no container
+- Verificar imagem e entrypoint via Portainer: inspecionar o serviço → ver "Command" e "Image"
+- Confirmar que o script de purge existe na imagem antes de redesployar
+
+**Impacto se não corrigido:** Tabelas do schema `evo` (ex: `evolution_messages_*`, `evolution_webhook_events_*`) crescem sem limpeza automática — risco de degradação de performance e esgotamento de disco.
+
+**Referência:** DADO-03/SAUDE-03 na RECONCILIATION_MATRIX.md — P1 DRIFT (pendente desde 2026-08-06).
+
 ## Gaps Resolvidos (faxina 2026-08-05)
 
 ### 1. Imagens Docker órfãs — RESOLVIDO
