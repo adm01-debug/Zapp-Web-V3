@@ -5,6 +5,8 @@ import {
   MetaWebhookPayloadSchema,
   GmailWebhookV1Schema,
   GmailWebhookV2Schema,
+  ElevenLabsWebhookV1Schema,
+  ElevenLabsWebhookV2Schema,
 } from './webhook-schemas.ts';
 import { contractErrorResponse } from './validation.ts';
 import {
