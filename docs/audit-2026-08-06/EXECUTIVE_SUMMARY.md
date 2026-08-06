@@ -72,11 +72,16 @@ As 4 sub-rotas estavam referenciadas na auditoria como ausentes, mas a investiga
 
 A auditoria buscou por **diretórios separados** em `supabase/functions/`, mas a Evolution API usa arquitetura **monolítica** (single edge function com roteamento interno). Design correto e intencional.
 
-### ❌ MIGR-02 — Schema `evo` com 143 tabelas vs 172 esperadas (-29)
+### ✅ MIGR-02 — Schema `evo`: diferença de tabelas → **RESOLVIDO — LIFECYCLE DE PARTIÇÕES**
 
-O schema `evo` (Evolution API) tem 143 tabelas presentes vs. 172 documentadas em versões anteriores. Diferença de 29 tabelas.
+Investigação live em 2026-08-06 identificou **136 tabelas** no schema `evo` (não 143 do snapshot da auditoria e não 172 da documentação anterior). A diferença é explicada pelo lifecycle normal de partições de retenção de dados:
 
-**Ação:** Auditar se as 29 tabelas foram removidas intencionalmente ou estão faltando. Ver query em `RECONCILIATION_MATRIX.md#MIGR-02`.
+- `evolution_webhook_events_v2_2026_03` — dropada (dados de março/2026 expirados por política de retenção)
+- `evolution_webhook_events_v2_2026_04` — dropada (abril/2026)
+- `evolution_webhook_events_v2_2026_05` — dropada (maio/2026)
+- Outras partições de períodos anteriores igualmente dropadas
+
+**Todas as tabelas de negócio críticas estão presentes:** `evolution_contacts`, `evolution_messages`, `evolution_conversations`, `evolution_media`, `evolution_whatsapp_status` e demais. Nenhuma funcionalidade afetada. CLAUDE.md atualizado para 136.
 
 ---
 
@@ -90,7 +95,7 @@ O schema `evo` (Evolution API) tem 143 tabelas presentes vs. 172 documentadas em
 | ✅ MIGR-03 | Schema `zapp`: 323 tabelas vs. 321 no CLAUDE.md (+2 drift) | RESOLVIDO — CLAUDE.md atualizado para 323 |
 | ✅ MIGR-04 | 5 schemas não documentados: artes, graveyard, logistica, monitoring, parity_audit | RESOLVIDO — documentados no CLAUDE.md |
 | ARTEF-05 | Extensão `http` ausente (pg_net presente como alternativa funcional) | Confirmar se `http` é realmente necessária |
-| ⚠️ SECRET-04 | gitleaks encontrou 2 detecções `supabase-jwt` em arquivos de documentação | PENDENTE — classificar como falso positivo ou remover |
+| ✅ SECRET-04 | gitleaks encontrou 2 detecções `supabase-jwt` em arquivos de documentação | FALSO POSITIVO — ambas são chaves `anon` (role=anon), não `service_role`. Regra gitleaks `supabase-jwt` não distingue roles. Nenhuma exposição real. |
 
 ---
 
@@ -124,7 +129,7 @@ O schema `evo` (Evolution API) tem 143 tabelas presentes vs. 172 documentadas em
 |---------|-------|
 | PostgreSQL versão | 15.8.1.085 |
 | Schema `zapp` — tabelas | 323 |
-| Schema `evo` — tabelas | 143 |
+| Schema `evo` — tabelas | 136 (136 live; snapshot auditoria: 143) |
 | Extensões instaladas | 21 |
 | Storage buckets | 13 |
 | Cron jobs ativos | 151 |
@@ -149,13 +154,14 @@ Prioridade 2 (PARCIALMENTE CONCLUÍDA):
   ✅ WAL slot cainophile_tqoilw2f — AUTO-RESOLVIDO (slot inexistente em pg_replication_slots)
   ❌ Corrigir evolution-db-purge (memória + entrypoint) — PENDENTE [ver OPERATIONS.md §evolution-db-purge]
   ✅ Sub-rotas Evolution API — FALSO POSITIVO (existem em index.ts — arquitetura monolítica intencional)
-  ❌ MIGR-02 — Schema evo: 29 tabelas ausentes vs documentação anterior — PENDENTE (investigação manual)
+  ✅ MIGR-02 — Schema evo: diferença explicada por lifecycle de partições (136 tabelas live; partições de webhook 2026-03/04/05 dropadas por retenção)
 
 Prioridade 3 (CONCLUÍDA):
   ✅ Atualizar CLAUDE.md com contagens corretas (zapp=323, evo=143, cron=151)
   ✅ Auditar buckets audio-memes/audio-messages e corrigir flag public (UPDATE executado)
   ✅ Documentar schemas artes/graveyard/logistica/monitoring/parity_audit no CLAUDE.md
   ✅ Executar varredura de hardcoded secrets (git grep) — repositório LIMPO
+  ✅ SECRET-04 — gitleaks 2 detecções classificadas como FALSO POSITIVO (ambas role=anon, não service_role)
 ```
 
 ---
