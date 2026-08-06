@@ -41,7 +41,8 @@ export const createService = <T = unknown>(tableName: string, options?: ServiceO
      * List all records with optional filtering and pagination
      */
     async list(filters?: Partial<T> & QueryParams): Promise<ListResponse<T>> {
-      let query = db.from(tableName).select('*', { count: 'exact' });
+      // perf fix 2026-08-05: 'estimated' = reltuples O(1) vs 'exact' full-table RLS count (was 14s on zapp.messages)
+      let query = db.from(tableName).select('*', { count: 'estimated' });
 
       // Apply filters
       if (filters) {
