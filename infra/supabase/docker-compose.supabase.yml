@@ -1,0 +1,585 @@
+# Docker Compose do Supabase self-hosted — ESPELHO DO RUNTIME (stack 35 / Portainer)
+#
+# Obtido via Portainer get_stack_file (stack 35) em 2026-08-06 durante auditoria
+# exaustiva (EX-03). Fonte de verdade do runtime: /data/compose/35 no Portainer.
+# Este arquivo existe para permitir diff repo×runtime em auditorias futuras.
+#
+# ⚠️ REGRAS:
+# - NUNCA editar este arquivo esperando efeito no runtime — o runtime só muda
+#   via update_stack no Portainer (stack 35).
+# - Valores de secrets NÃO são incluídos: todos são secrets externos do Swarm.
+# - Exceção documentada: PROMOGIFTS_SUPABASE_ANON_KEY (anon key pública por
+#   definição) aparece como literal porque é assim no runtime.
+# - Após qualquer update_stack(35), re-sincronizar este espelho (git diff).
+
+version: "3.7"
+
+# AG-EX-05 STACK SYNC GATE (2026-08-05)
+# AG-EX2-07 (2026-08-06): EXCECAO DO REST ELIMINADA — literais PGRST_DB_URI /
+#   PGRST_JWT_SECRET / PGRST_APP_SETTINGS_* -> secret postgrest_conf_v1 montado
+#   em /etc/postgrest/postgrest.conf (config file postgrest v14.12, validado em
+#   servico descartavel 2026-08-06: conectou PG 15.8 + listener pgrst).
+
+services:
+  studio:
+    image: supabase/studio:2026.06.29-sha-20290c7
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "export LOGFLARE_API_KEY=$$(cat /run/secrets/logflare_api_key_v2) && export SUPABASE_ANON_KEY=$$(cat /run/secrets/supabase_anon_key_v2) && export SUPABASE_SERVICE_KEY=$$(cat /run/secrets/supabase_service_key_v3) && export SUPABASE_PUBLISHABLE_KEY=$$(cat /run/secrets/supabase_anon_key_v2) && export SUPABASE_SECRET_KEY=$$(cat /run/secrets/supabase_service_key_v3) && export AUTH_JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v2) && export POSTGRES_PASSWORD=$$(cat /run/secrets/supabase_db_password_v2) && export PG_META_CRYPTO_KEY=$$(cat /run/secrets/pg_meta_crypto_key_v2) && exec docker-entrypoint.sh node apps/studio/server.js"
+    networks:
+      - AtomicaBRNet
+    volumes:
+      - /root/supabase/docker/volumes/functions:/home/deno/functions:ro
+      - /root/supabase/docker/volumes/snippets:/home/deno/snippets
+    secrets:
+      - logflare_api_key_v2
+      - supabase_anon_key_v2
+      - supabase_service_key_v3
+      - supabase_jwt_secret_v2
+      - supabase_db_password_v2
+      - pg_meta_crypto_key_v2
+    environment:
+      - HOSTNAME=0.0.0.0
+      - NEXT_PUBLIC_ENABLE_LOGS=true
+      - NEXT_ANALYTICS_BACKEND_PROVIDER=logflare
+      - ENABLED_FEATURES_LOGS_ALL=true
+      - DEFAULT_ORGANIZATION_NAME=Promo Brindes
+      - DEFAULT_PROJECT_NAME=BrasilMarcas
+      - STUDIO_PG_META_URL=http://meta:8080
+      - SUPABASE_URL=http://kong:8000
+      - SUPABASE_PUBLIC_URL=https://supabase.atomicabr.com.br
+      - LOGFLARE_URL=http://analytics:4000
+      - PGRST_DB_SCHEMAS=public,storage,graphql_public
+      - PGRST_DB_EXTRA_SEARCH_PATH=public,extensions
+      - PGRST_DB_MAX_ROWS=1000
+      - EDGE_FUNCTIONS_MANAGEMENT_FOLDER=/home/deno/functions
+      - SNIPPETS_MANAGEMENT_FOLDER=/home/deno/snippets
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/api/platform/profile').then((r) => {if (r.status !== 200) throw new Error(r.status)})\""]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 1536M
+        reservations:
+          memory: 256M
+      update_config:
+        failure_action: rollback
+        order: stop-first
+      labels:
+        - "com.docker.stack.image=supabase/studio:2026.06.29-sha-20290c7"
+
+  functions:
+    image: supabase/edge-runtime:v1.74.0
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "export JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v1) && export DB_PASS=$$(cat /run/secrets/supabase_db_password_v1) && export SUPABASE_DB_URL=postgresql://postgres:$${DB_PASS}@db:5432/postgres && export SUPABASE_SERVICE_ROLE_KEY=$$(cat /run/secrets/supabase_service_key_v3) && export EVOLUTION_WEBHOOK_SECRETS=$$(cat /run/secrets/supabase_evolution_webhook_secret_v1) && export SELFHOSTED_SUPABASE_URL=https://supabase.atomicabr.com.br && export SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY=$$(cat /run/secrets/supabase_service_key_v3) && export SELFHOSTED_SUPABASE_ANON_KEY=$$(cat /run/secrets/supabase_anon_key_v2) && export SUPABASE_ANON_KEY=$$(cat /run/secrets/supabase_anon_key_v2) && export SENTRY_DSN=$$(cat /run/secrets/sentry_dsn_v2) && export HEALTH_SECRET=$$(cat /run/secrets/health_secret_v2) && export METRICS_SCRAPE_TOKEN=$$(cat /run/secrets/metrics_scrape_token_v2) && export DEEPSEEK_API_KEY=$$(cat /run/secrets/deepseek_api_key_v2) && export EVOLUTION_API_KEY=$$(cat /run/secrets/evolution_api_key_v4_20260704) && exec edge-runtime start --main-service /home/deno/functions/main # secrets-v1"
+    volumes:
+      - /root/supabase/docker/volumes/functions:/home/deno/functions:Z
+    secrets:
+      - supabase_jwt_secret_v1
+      - supabase_db_password_v1
+      - supabase_service_key_v3
+      - supabase_evolution_webhook_secret_v1
+      - deepseek_api_key_v2
+      - source: evolution_api_key_v5_20260805
+        target: evolution_api_key_v4_20260704
+      - supabase_anon_key_v2
+      - sentry_dsn_v2
+      - health_secret_v2
+      - metrics_scrape_token_v2
+    networks:
+      - AtomicaBRNet
+    environment:
+      - VERIFY_JWT=true
+      - SUPABASE_URL=http://kong:8000
+      - PROMOGIFTS_SUPABASE_URL=https://doufsxqlfjyuvxuezpln.supabase.co
+      - PROMOGIFTS_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvdWZzeHFsZmp5dXZ4dWV6cGxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczODY2NDMsImV4cCI6MjA4Mjk2MjY0M30.nm3WMOBSx5SUnIBmvF_Mj0Y-4hV6UohrBF0sUpuQvPc
+      - EVOLUTION_API_URL=https://evolution.atomicabr.com.br
+      - AI_BASE_URL=https://api.deepseek.com/v1
+      - AI_ROUTER_URL=https://supabase.atomicabr.com.br/functions/v1/ai-router
+      - GMAIL_PUBSUB_TOPIC=projects/zapp-web/topics/gmail-push
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1536M
+        reservations:
+          memory: 256M
+      update_config:
+        failure_action: rollback
+        order: stop-first
+
+  kong:
+    image: kong:3.9.3
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "export SUPABASE_ANON_KEY=$$(cat /run/secrets/supabase_anon_key_v2) && export JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v1) && export SUPABASE_SERVICE_KEY=$$(cat /run/secrets/supabase_service_key_v3) && export DASHBOARD_PASSWORD=$$(cat /run/secrets/kong_dashboard_password_v1) && eval \"echo \\\"$$(cat ~/temp.yml)\\\"\" > /tmp/kong.yml && exec /docker-entrypoint.sh kong docker-start"
+    volumes:
+      - /root/supabase/docker/volumes/api/kong.yml:/home/kong/temp.yml:ro
+    secrets:
+      - supabase_jwt_secret_v1
+      - supabase_service_key_v3
+      - kong_dashboard_password_v1
+      - supabase_anon_key_v2
+    networks:
+      - AtomicaBRNet
+    environment:
+      - DASHBOARD_USERNAME=AtomicaBR
+      - KONG_DATABASE=off
+      - KONG_DECLARATIVE_CONFIG=/tmp/kong.yml
+      - KONG_DNS_ORDER=LAST,A,CNAME
+      - KONG_PLUGINS=request-transformer,cors,key-auth,acl,basic-auth,request-termination,rate-limiting
+      - KONG_NGINX_PROXY_PROXY_BUFFER_SIZE=160k
+      - KONG_NGINX_PROXY_PROXY_BUFFERS=64 160k
+    healthcheck:
+      test: ["CMD-SHELL", "kong health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 2g
+      update_config:
+        failure_action: rollback
+        order: stop-first
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.kong.rule=Host(`supabase.atomicabr.com.br`) && PathPrefix(`/`)
+        - traefik.http.services.kong.loadbalancer.server.port=8000
+        - traefik.http.routers.kong.service=kong
+        - traefik.http.routers.kong.entrypoints=websecure
+        - traefik.http.routers.kong.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.kong.tls=true
+
+  auth:
+    image: supabase/gotrue:v2.189.0
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "export DB_PASS=$$(cat /run/secrets/supabase_db_password_v1) && export GOTRUE_DB_DATABASE_URL=postgres://supabase_auth_admin:$${DB_PASS}@db:5432/postgres && export GOTRUE_JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v1) && export GOTRUE_SMTP_PASS=$$(cat /run/secrets/gmail_smtp_password_v1) && exec auth"
+    secrets:
+      - supabase_db_password_v1
+      - supabase_jwt_secret_v1
+      - gmail_smtp_password_v1
+    networks:
+      - AtomicaBRNet
+    environment:
+      - GOTRUE_API_HOST=0.0.0.0
+      - GOTRUE_API_PORT=9999
+      - API_EXTERNAL_URL=https://supabase.atomicabr.com.br
+      - GOTRUE_DB_DRIVER=postgres
+      - GOTRUE_SITE_URL=https://zapp.atomicabr.com.br
+      - GOTRUE_URI_ALLOW_LIST=https://whats-your-line.lovable.app,https://zapp.atomicabr.com.br,https://supabase.atomicabr.com.br,https://zapp-web-v3.vercel.app,https://zappweb.app.br,https://www.zappweb.app.br
+      - GOTRUE_DISABLE_SIGNUP=true
+      - GOTRUE_JWT_ADMIN_ROLES=service_role
+      - GOTRUE_JWT_AUD=authenticated
+      - GOTRUE_JWT_EXP=28800
+      - GOTRUE_JWT_ISSUER=https://supabase.atomicabr.com.br/auth/v1
+      - GOTRUE_EXTERNAL_EMAIL_ENABLED=true
+      - GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED=false
+      - GOTRUE_MAILER_AUTOCONFIRM=true
+      - GOTRUE_SMTP_ADMIN_EMAIL=ti04.promobrindes@gmail.com
+      - GOTRUE_SMTP_HOST=smtp.gmail.com
+      - GOTRUE_SMTP_PORT=587
+      - GOTRUE_SMTP_USER=ti04.promobrindes@gmail.com
+      - GOTRUE_SMTP_SENDER_NAME=AtomicaBR
+      - GOTRUE_MAILER_URLPATHS_INVITE=/auth/v1/verify
+      - GOTRUE_MAILER_URLPATHS_CONFIRMATION=/auth/v1/verify
+      - GOTRUE_MAILER_URLPATHS_RECOVERY=/auth/v1/verify
+      - GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE=/auth/v1/verify
+      - GOTRUE_EXTERNAL_PHONE_ENABLED=false
+      - GOTRUE_SMS_AUTOCONFIRM=false
+      - GOTRUE_SESSIONS_MAX_USER_SESSIONS=10
+      - GOTRUE_SECURITY_REFRESH_TOKEN_ROTATION_ENABLED=true
+      - GOTRUE_SECURITY_REFRESH_TOKEN_REUSE_INTERVAL=10
+      - GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED=true
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 1g
+      update_config:
+        failure_action: rollback
+        order: stop-first
+
+  rest:
+    image: postgrest/postgrest:v14.12
+    # AG-EX2-07: literais ELIMINADOS — config file via secret postgrest_conf_v1
+    command: ["postgrest", "/etc/postgrest/postgrest.conf"]
+    networks:
+      - AtomicaBRNet
+    secrets:
+      - source: postgrest_conf_v1
+        target: /etc/postgrest/postgrest.conf
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 1g
+      update_config:
+        failure_action: rollback
+        order: stop-first
+
+  realtime:
+    image: supabase/realtime:v2.102.3
+    entrypoint: ["/usr/bin/tini", "-s", "-g", "--"]
+    command:
+      - "/bin/sh"
+      - "-c"
+      - "export SECRET_KEY_BASE=$$(cat /run/secrets/secret_key_base_v2) && export METRICS_JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v2) && export DB_PASSWORD=$$(cat /run/secrets/supabase_db_password_v1) && export API_JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v1) && exec /app/run.sh /app/bin/server"
+    secrets:
+      - supabase_db_password_v1
+      - supabase_jwt_secret_v1
+      - secret_key_base_v2
+      - supabase_jwt_secret_v2
+    networks:
+      - AtomicaBRNet
+    environment:
+      - PORT=4000
+      - APP_NAME=realtime
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=supabase_admin
+      - DB_NAME=postgres
+      - DB_AFTER_CONNECT_QUERY=SET search_path TO _realtime
+      - DB_ENC_KEY=supabaserealtime
+      - ERL_AFLAGS=-proto_dist inet_tcp
+      - DNS_NODES="''"
+      - RLIMIT_NOFILE=10000
+      - SEED_SELF_HOST=true
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 1g
+      update_config:
+        failure_action: rollback
+        order: stop-first
+
+  storage:
+    image: supabase/storage-api:v1.60.4
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "export ANON_KEY=$$(cat /run/secrets/supabase_anon_key_v2) && export DB_PASS=$$(cat /run/secrets/supabase_db_password_v1) && export DATABASE_URL=postgres://supabase_storage_admin:$${DB_PASS}@db:5432/postgres && export PGRST_JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v1) && export SERVICE_KEY=$$(cat /run/secrets/supabase_service_key_v3) && exec node dist/start/server.js"
+    volumes:
+      - /root/supabase/docker/volumes/storage:/var/lib/storage:z
+    secrets:
+      - supabase_db_password_v1
+      - supabase_jwt_secret_v1
+      - supabase_service_key_v3
+      - supabase_anon_key_v2
+    networks:
+      - AtomicaBRNet
+    environment:
+      - POSTGREST_URL=http://rest:3000
+      - FILE_SIZE_LIMIT=52428800
+      - STORAGE_BACKEND=file
+      - FILE_STORAGE_BACKEND_PATH=/var/lib/storage
+      - ENABLE_IMAGE_TRANSFORMATION="true"
+      - IMGPROXY_URL=http://imgproxy:5001
+      - TENANT_ID=stub
+      - REGION=eu-south
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 1g
+      update_config:
+        failure_action: rollback
+        order: stop-first
+
+  imgproxy:
+    image: darthsim/imgproxy:v3.30.1
+    volumes:
+      - /root/supabase/docker/volumes/storage:/var/lib/storage:z
+    networks:
+      - AtomicaBRNet
+    environment:
+      - IMGPROXY_BIND=:5001
+      - IMGPROXY_LOCAL_FILESYSTEM_ROOT=/
+      - IMGPROXY_USE_ETAG="true"
+      - IMGPROXY_ENABLE_WEBP_DETECTION=true
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 512m
+      update_config:
+        failure_action: rollback
+        order: stop-first
+
+  meta:
+    image: supabase/postgres-meta:v0.96.6
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "export CRYPTO_KEY=$$(cat /run/secrets/pg_meta_crypto_key_v2) && export PG_META_CRYPTO_KEY=$$(cat /run/secrets/pg_meta_crypto_key_v2) && export PG_META_DB_PASSWORD=$$(cat /run/secrets/supabase_db_password_v1) && exec node dist/server/server.js"
+    secrets:
+      - supabase_db_password_v1
+      - pg_meta_crypto_key_v2
+    networks:
+      - AtomicaBRNet
+    environment:
+      - PG_META_PORT=8080
+      - PG_META_DB_HOST=db
+      - PG_META_DB_PORT=5432
+      - PG_META_DB_NAME=postgres
+      - PG_META_DB_USER=postgres
+      - NODE_OPTIONS=--max-old-space-size=1024
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:8080/health').then((r) => {if (r.status !== 200) throw new Error(r.status)})\""]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 1536M
+        reservations:
+          memory: 128M
+      update_config:
+        failure_action: rollback
+        order: stop-first
+
+  analytics:
+    image: supabase/logflare:1.43.1
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "export LOGFLARE_API_KEY=$$(cat /run/secrets/logflare_api_key_v2) && export DB_PASS=$$(cat /run/secrets/supabase_db_password_v1) && export DB_PASSWORD=$${DB_PASS} && export POSTGRES_BACKEND_URL=postgresql://supabase_admin:$${DB_PASS}@db:5432/_supabase && exec sh run.sh"
+    secrets:
+      - supabase_db_password_v1
+      - logflare_api_key_v2
+    networks:
+      - AtomicaBRNet
+    environment:
+      - DB_USERNAME=supabase_admin
+      - DB_DATABASE=_supabase
+      - DB_HOSTNAME=db
+      - DB_PORT=5432
+      - DB_SCHEMA=_analytics
+      - POSTGRES_BACKEND_SCHEMA=_analytics
+      - LOGFLARE_NODE_HOST=127.0.0.1
+      - LOGFLARE_SINGLE_TENANT=true
+      - LOGFLARE_SUPABASE_MODE=true
+      - LOGFLARE_MIN_CLUSTER_SIZE=1
+      - LOGFLARE_FEATURE_FLAG_OVERRIDE=multibackend=true
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 1g
+      update_config:
+        failure_action: rollback
+        order: stop-first
+
+  db:
+    image: supabase/postgres:15.8.1.085
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "export JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v2) && exec docker-entrypoint.sh postgres -c config_file=/etc/postgresql/postgresql.conf -c log_min_messages=fatal"
+    volumes:
+      - /root/supabase/docker/volumes/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:Z
+      - /root/supabase/docker/volumes/db/webhooks.sql:/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql:Z
+      - /root/supabase/docker/volumes/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:Z
+      - /root/supabase/docker/volumes/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:Z
+      - /root/supabase/docker/volumes/db/data:/var/lib/postgresql/data:Z
+      - /root/supabase/docker/volumes/db/_supabase.sql:/docker-entrypoint-initdb.d/migrations/97-_supabase.sql:Z
+      - /root/supabase/docker/volumes/db/logs.sql:/docker-entrypoint-initdb.d/migrations/99-logs.sql:Z
+      - /root/supabase/docker/volumes/db/pooler.sql:/docker-entrypoint-initdb.d/migrations/99-pooler.sql:Z
+      - supabase_db_config:/etc/postgresql-custom
+    secrets:
+      - supabase_db_password_v1
+      - supabase_jwt_secret_v1
+      - supabase_jwt_secret_v2
+    networks:
+      - AtomicaBRNet
+    environment:
+      - POSTGRES_HOST=/var/run/postgresql
+      - PGPORT=5432
+      - POSTGRES_PORT=5432
+      - POSTGRES_PASSWORD_FILE=/run/secrets/supabase_db_password_v1
+      - POSTGRES_DB=postgres
+      - PGDATABASE=postgres
+      - JWT_EXP=28800
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 10g
+      update_config:
+        failure_action: rollback
+        order: stop-first
+      labels:
+        - com.centurylinklabs.watchtower.enable=false
+
+  vector:
+    image: timberio/vector:0.53.0-alpine
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "export LOGFLARE_API_KEY=$$(cat /run/secrets/logflare_api_key_v2) && exec /usr/local/bin/vector --config etc/vector/vector.yml"
+    secrets:
+      - logflare_api_key_v2
+    volumes:
+      - /root/supabase/docker/volumes/logs/vector.yml:/etc/vector/vector.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - AtomicaBRNet
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 256m
+      update_config:
+        failure_action: rollback
+        order: stop-first
+
+  supavisor:
+    image: supabase/supavisor:2.9.5
+    entrypoint: ["/usr/bin/tini", "-s", "-g", "--", "/app/limits.sh"]
+    command:
+      - "/bin/sh"
+      - "-c"
+      - "export SECRET_KEY_BASE=$$(cat /run/secrets/secret_key_base_v2) && export DB_PASS=$$(cat /run/secrets/supabase_db_password_v1) && export POSTGRES_PASSWORD=$${DB_PASS} && export DATABASE_URL=ecto://postgres:$${DB_PASS}@db:5432/_supabase && export API_JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v1) && export METRICS_JWT_SECRET=$${API_JWT_SECRET} && /app/bin/migrate && /app/bin/supavisor eval \"$$(cat /etc/pooler/pooler.exs)\" && exec /app/bin/server"
+    volumes:
+      - /root/supabase/docker/volumes/pooler/pooler.exs:/etc/pooler/pooler.exs:ro
+    secrets:
+      - supabase_db_password_v1
+      - supabase_jwt_secret_v1
+      - secret_key_base_v2
+    networks:
+      - AtomicaBRNet
+    environment:
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=postgres
+      - POSTGRES_HOST=db
+      - CLUSTER_POSTGRES=true
+      - VAULT_ENC_KEY=your-encryption-key-32-chars-min
+      - REGION=local
+      - ERL_AFLAGS=-proto_dist inet_tcp
+      - POOLER_TENANT_ID=1
+      - POOLER_DEFAULT_POOL_SIZE=20
+      - POOLER_MAX_CLIENT_CONN=100
+      - POOLER_POOL_MODE=transaction
+      - PORT=4000
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 1g
+      update_config:
+        failure_action: rollback
+        order: stop-first
+
+secrets:
+  supabase_db_password_v1:
+    external: true
+  supabase_jwt_secret_v1:
+    external: true
+  supabase_service_key_v1:
+    external: true
+  gmail_smtp_password_v1:
+    external: true
+  kong_dashboard_password_v1:
+    external: true
+  supabase_evolution_webhook_secret_v1:
+    external: true
+  deepseek_api_key_v2:
+    external: true
+  evolution_api_key_v5_20260805:
+    external: true
+  supabase_db_password_v2:
+    external: true
+  supabase_jwt_secret_v2:
+    external: true
+  supabase_anon_key_v2:
+    external: true
+  supabase_service_key_v2:
+    external: true
+  supabase_service_key_v3:
+    external: true
+  supabase_vault_enc_key_v1:
+    external: true
+  logflare_api_key_v2:
+    external: true
+  pg_meta_crypto_key_v2:
+    external: true
+  secret_key_base_v2:
+    external: true
+  sentry_dsn_v2:
+    external: true
+  health_secret_v2:
+    external: true
+  metrics_scrape_token_v2:
+    external: true
+  postgrest_conf_v1:
+    external: true
+
+volumes:
+  supabase_db_config:
+    external: true
+    name: supabase_db_config
+
+networks:
+  AtomicaBRNet:
+    external: true
+    name: AtomicaBRNet
