@@ -158,7 +158,7 @@ while true; do
         else track RMQ_F RMQ_S 0; [ "$TRANS" = "down" ] && notify kpi_rabbitmq_backlog ALERT 503 "backlog: ${RMQ_V} fila(s) em alerta (nao-dlq >200 msgs ou dlq >0)"; fi
         ;;
       *)
-        track RMQ_F RMQ_S 0; [ "$TRANS" = "down" ] && notify kpi_rabbitmq_backlog ALERT 503 "api rabbitmq inacessivel ou auth falhou"
+        RMQ_V="-"; track RMQ_F RMQ_S 0; [ "$TRANS" = "down" ] && notify kpi_rabbitmq_backlog ALERT 503 "api rabbitmq inacessivel ou auth falhou"
         ;;
     esac
   fi
