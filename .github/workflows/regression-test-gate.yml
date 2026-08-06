@@ -19,9 +19,13 @@ jobs:
 
       - name: Collect PR metadata
         id: pr_meta
+        env:
+          # PR title via env — nunca interpolar github.event.pull_request.title
+          # direto em script (script injection — actionlint AL-01, 2026-08-06)
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           # PR title
-          echo "pr_title=${{ github.event.pull_request.title }}" >> "$GITHUB_OUTPUT"
+          echo "pr_title=$PR_TITLE" >> "$GITHUB_OUTPUT"
 
           # Changed files in this PR
           git fetch origin ${{ github.base_ref }}
@@ -37,12 +41,11 @@ jobs:
           echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: "E46 — Enforce regression test for fix: PRs"
-        # Advisory: warns when fix: PR has no test file changes.
-        # Set ADVISORY=false (or remove continue-on-error) to make this blocking.
+        # Blocking (fix RGT-02 2026-08-06): o continue-on-error anulava o exit 1
+        # do script — o gate existia mas nunca falhava o job.
         env:
           PR_TITLE: ${{ steps.pr_meta.outputs.pr_title }}
           CHANGED_FILES: ${{ steps.pr_meta.outputs.changed_files }}
           COMMIT_MESSAGES: ${{ steps.pr_meta.outputs.commit_messages }}
           ADVISORY: "false"
         run: node scripts/check-fix-regression-test.mjs
-        continue-on-error: true

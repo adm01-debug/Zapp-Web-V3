@@ -21,6 +21,7 @@
  */
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { logChannelError } from '@/integrations/supabase/channelErrorLogging';
 import { toast } from 'sonner';
 import { getLogger } from '@/lib/logger';
 
@@ -49,6 +50,10 @@ export function useFailedMessageAlerts(enabled = true): void {
 
   useEffect(() => {
     if (!enabled) return;
+
+    // Última conexão bem-sucedida do canal (status SUBSCRIBED) — usada para
+    // classificar CHANNEL_ERROR transiente vs real.
+    let lastConnectedAtMs: number | null = null;
 
     const channel = supabase
       .channel(`failed_messages_alerts:${Math.random().toString(36).slice(2, 10)}`)
@@ -86,7 +91,13 @@ export function useFailedMessageAlerts(enabled = true): void {
         }
       )
       .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR') log.warn('[dlq-alert] channel error');
+        // Distingue erro transiente (reconexão automática do supabase-js /
+        // backend fora do ar) de erro real: só o erro real loga em warn.
+        if (status === 'SUBSCRIBED') {
+          lastConnectedAtMs = Date.now();
+        } else if (status === 'CHANNEL_ERROR') {
+          void logChannelError(log, '[dlq-alert] channel error', lastConnectedAtMs);
+        }
       });
 
     return () => {

@@ -87,8 +87,13 @@ export function useExternalContact360(phone: string | undefined) {
       return data as Contact360Data; // ignore-audit: narrows Supabase query result to local interface
     },
     enabled: !!cleanedPhone && cleanedPhone.length >= 8,
-    staleTime: 1000 * 60 * 10, // 10 min cache
+    staleTime: 1000 * 60 * 10, // 10 min cache — dados de empresa quase estáticos (mesmo padrão do BatchRef)
     gcTime: 1000 * 60 * 30, // 30 min gc
+    // Mantém os dados do phone anterior enquanto o novo phone carrega — mesmo
+    // padrão do useExternalContact360Batch: evita flicker de skeleton ao trocar
+    // de contato e não zera o header entre remontagens (o remount dentro do
+    // staleTime já é coberto pelo cache; o placeholder cobre o caso do phone novo).
+    placeholderData: (prev) => prev,
     retry: tanstackRetry, // fix: era retry:1 numerico que sobrescrevia o QueryClient global
   });
 }

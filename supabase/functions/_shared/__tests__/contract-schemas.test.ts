@@ -5,9 +5,8 @@
  * Rodar: deno test supabase/functions/_shared/__tests__/contract-schemas.test.ts
  */
 
-import { assertEquals, assert } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assert } from "jsr:@std/assert";
 import {
-  ElevenLabsWebhookV1Schema,
   GmailWebhookV1Schema,
 } from "../webhook-schemas.ts";
 import {
@@ -33,23 +32,7 @@ interface Matrix {
   invalid: Array<{ label: string; payload: unknown; expectPath?: string }>;
 }
 
-const MATRICES: Matrix[] = [
-  {
-    name: "elevenlabs-webhook@v1 (permissivo — webhook externo)",
-    schema: ElevenLabsWebhookV1Schema,
-    valid: [
-      { type: "tts.completed", request_id: "abc" },
-      { event_type: "tts.failed", error: { msg: "x" }, id: 99 },
-      {}, // provedor pode mandar evento desconhecido → logado como 'unknown'
-      { type: null, campo_novo_do_provedor: { a: 1 } }, // passthrough + nullish
-    ],
-    invalid: [
-      { label: "type com tipo errado (objeto)", payload: { type: { nested: true } }, expectPath: "type" },
-      { label: "type acima de 100 chars", payload: { type: "x".repeat(101) }, expectPath: "type" },
-      { label: "id com tipo errado (array)", payload: { id: [1, 2] }, expectPath: "id" },
-    ],
-  },
-  {
+const MATRICES: Matrix[] = [  {
     name: "gmail-webhook@v1 (envelope Pub/Sub OU ação interna)",
     schema: GmailWebhookV1Schema,
     valid: [

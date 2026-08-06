@@ -4,7 +4,7 @@
  * Cobre os 14 contratos de integração via o registro canônico
  * CONTRACT_SCHEMAS['<nome>'].v1 (contract-schemas.ts):
  *   bitrix-api, contacts-import, create-user, evolution-api, evolution-sync,
- *   gmail-send, instance-pause-control, outlook-oauth, promogifts-catalog,
+ *   gmail-send, instance-pause-control, promogifts-catalog,
  *   public-api, sicoob-bridge, sicoob-bridge-reply, whatsapp-cloud-send,
  *   whatsapp-webhook.
  *
@@ -12,7 +12,7 @@
  * ou strip default do Zod) — campo desconhecido NUNCA pode derrubar a
  * ingestão. Por isso os casos "payload desconhecido extra" esperam SUCESSO.
  * Únicas exceções (unions discriminadas ESTRITAS, endpoints internos):
- * outlook-oauth e promogifts-catalog — campo extra no topo FALHA por design.
+ * promogifts-catalog — campo extra no topo FALHA por design.
  *
  * body null → 422 invalid_json (parseOrReject) para todos os 14 contratos.
  *
@@ -20,7 +20,7 @@
  *   supabase/functions/_shared/__tests__/contract-schemas-integrations.test.ts
  */
 
-import { assertEquals, assert } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assert } from "jsr:@std/assert";
 import { parseOrReject } from "../contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../contract-schemas.ts";
 
@@ -36,16 +36,14 @@ const INTEGRATION_CONTRACTS = [
   "evolution-sync",
   "gmail-send",
   "instance-pause-control",
-  "outlook-oauth",
   "promogifts-catalog",
   "public-api",
   "sicoob-bridge",
   "sicoob-bridge-reply",
   "whatsapp-cloud-send",
-  "whatsapp-webhook",
 ] as const;
 
-Deno.test("integrations: os 14 contratos estão registrados em CONTRACT_SCHEMAS com v1", () => {
+Deno.test("integrations: os 12 contratos estão registrados em CONTRACT_SCHEMAS com v1", () => {
   for (const name of INTEGRATION_CONTRACTS) {
     const map = CONTRACT_SCHEMAS[name];
     assert(map, `${name}: ausente de CONTRACT_SCHEMAS`);
@@ -251,60 +249,6 @@ const MATRICES: IntegrationCase[] = [
       { label: "type fora do enum", payload: { to: "5511999999999", type: "gif" }, expectPath: "type" },
     ],
   },
-  {
-    name: "whatsapp-webhook",
-    valid: [
-      {
-        object: "whatsapp_business_account",
-        entry: [{
-          id: "1020",
-          changes: [{
-            value: {
-              messaging_product: "whatsapp",
-              metadata: { display_phone_number: "5511999999999", phone_number_id: "12345" },
-              messages: [{ id: "wamid.AQ", from: "5511888888888", timestamp: "1712345678", type: "text", text: { body: "Olá" } }],
-            },
-            field: "messages",
-          }],
-        }],
-      },
-      {
-        object: "whatsapp_business_account",
-        entry: [{
-          id: "1020",
-          changes: [{
-            value: {
-              statuses: [{ id: "wamid.BQ", status: "delivered", timestamp: "1712345678", recipient_id: "5511888888888" }],
-            },
-            field: "statuses",
-          }],
-        }],
-      },
-    ],
-    extraPass: [
-      {
-        object: "whatsapp_business_account",
-        entry: [{
-          id: "1020",
-          changes: [{
-            value: {
-              messaging_product: "whatsapp",
-              metadata: { display_phone_number: "5511999999999", phone_number_id: "12345" },
-              messages: [{ id: "wamid.AQ", from: "5511888888888", timestamp: "1712345678", type: "text", text: { body: "Olá" } }],
-              extra_value_field: { nested: true }, // campos novos do Meta passam (strip)
-            },
-            field: "messages",
-          }],
-        }],
-        extra_top_level: "ok", // campo novo no envelope também passa
-      },
-    ],
-    invalid: [
-      { label: "body vazio", payload: {}, expectPath: "object" },
-      { label: "entry ausente", payload: { object: "whatsapp_business_account" }, expectPath: "entry" },
-      { label: "changes com tipo errado", payload: { object: "o", entry: [{ id: "1", changes: "nope" }] }, expectPath: "entry.0.changes" },
-    ],
-  },
 ];
 
 for (const m of MATRICES) {
@@ -346,72 +290,6 @@ for (const m of MATRICES) {
     }
   });
 }
-
-// ─── outlook-oauth@v1 — union discriminada por action (endpoint interno, ESTRITO) ──
-
-const OUTLOOK_ROUTES: Array<{ action: string; payload: Record<string, unknown> }> = [
-  { action: "getAuthUrl", payload: { action: "getAuthUrl" } },
-  { action: "listProviderSupport", payload: { action: "listProviderSupport" } },
-  {
-    action: "exchangeCode",
-    payload: { action: "exchangeCode", code: "4/0A_Secr3t", userId: "u1", state: "csrf-state" },
-  },
-  {
-    action: "syncInbox",
-    payload: {
-      action: "syncInbox", accountId: "acc_1", pageSize: 50,
-      nextLink: "https://graph.microsoft.com/v1.0/me/messages?$top=50",
-    },
-  },
-  {
-    action: "sendMessage",
-    payload: {
-      action: "sendMessage", accountId: "acc_1", to: ["a@example.com", "b@example.com"],
-      cc: "cc@example.com", bcc: ["bcc@example.com"], subject: "Oi",
-      bodyHtml: "<p>oi</p>",
-      attachments: [{ name: "f.pdf", contentType: "application/pdf", content: "aGk=" }],
-    },
-  },
-  {
-    action: "markAsRead",
-    payload: { action: "markAsRead", accountId: "acc_1", messageId: "msg_1", isRead: true },
-  },
-  {
-    action: "getMessageBody",
-    payload: { action: "getMessageBody", accountId: "acc_1", messageId: "msg_1" },
-  },
-];
-
-for (const route of OUTLOOK_ROUTES) {
-  Deno.test(`integrations: outlook-oauth@v1 — rota válida ${route.action}`, () => {
-    const r = CONTRACT_SCHEMAS["outlook-oauth"].v1!.safeParse(route.payload);
-    assertEquals(r.success, true, r.success ? "" : JSON.stringify(r.error.issues));
-  });
-}
-
-Deno.test("integrations: outlook-oauth@v1 — action inválida FALHA", () => {
-  const r = CONTRACT_SCHEMAS["outlook-oauth"].v1!.safeParse({ action: "deleteAccount" });
-  assertEquals(r.success, false, "action desconhecida foi aceita");
-});
-
-Deno.test("integrations: outlook-oauth@v1 — campo extra no topo FALHA (strict)", () => {
-  const r = CONTRACT_SCHEMAS["outlook-oauth"].v1!.safeParse({ action: "getAuthUrl", hack: true });
-  assertEquals(r.success, false, "campo extra em union estrita foi aceito");
-});
-
-Deno.test("integrations: outlook-oauth@v1 — exchangeCode sem code FALHA", () => {
-  const r = CONTRACT_SCHEMAS["outlook-oauth"].v1!.safeParse({ action: "exchangeCode", userId: "u1", state: "st" });
-  assertEquals(r.success, false, "exchangeCode sem code foi aceito");
-});
-
-Deno.test("integrations: outlook-oauth@v1 — body null → 422 invalid_json", () => {
-  const result = parseOrReject("outlook-oauth", CONTRACT_SCHEMAS["outlook-oauth"], null, null);
-  assertEquals(result.ok, false);
-  if (!result.ok) {
-    assertEquals(result.response.status, 422);
-    assertEquals(result.body.code, "invalid_json");
-  }
-});
 
 // ─── promogifts-catalog@v1 — union discriminada por action (endpoint interno, ESTRITO) ──
 

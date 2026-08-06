@@ -1,0 +1,7 @@
+# Config do actionlint (validação local de workflows GitHub Actions).
+# Labels custom do runner self-hosted (stack 210, myoung34/github-runner).
+# Uso: actionlint .github/workflows/*.yml
+self-hosted-runner:
+  labels:
+    - vps-zapp
+    - playwright

@@ -12,7 +12,7 @@
  * Rodar: deno test supabase/functions/_shared/__tests__/contract-versioning.test.ts
  */
 
-import { assertEquals, assertExists } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assertExists } from "jsr:@std/assert";
 import { parseOrReject } from "../contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../contract-schemas.ts";
 import { CONTRACTS, isDeprecatedVersion } from "../contract-versions.ts";
@@ -68,10 +68,10 @@ Deno.test("Versioning: sunset header presente para versão deprecated", () => {
   }
 });
 
-// ─── Retrocompatibilidade V1/V2 dos 4 webhooks externos (zapp-web-v3) ───────
+// ─── Retrocompatibilidade V1/V2 dos 3 webhooks externos (zapp-web-v3) ───────
 //
 // Para CADA contrato com current=v2 e v1 em janela de sunset (evolution-webhook,
-// whatsapp-cloud-webhook, gmail-webhook, elevenlabs-webhook) cobre-se:
+// whatsapp-cloud-webhook, gmail-webhook) cobre-se:
 //   1. Payload V2 + header `x-contract-version: v2` → ok, resposta com
 //      `x-contract-version: v2`.
 //   2. Payload V1 + header `x-contract-version: v1` → ok, mas resposta com
@@ -148,13 +148,7 @@ const WEBHOOK_FIXTURES = [
         publishTime: "2026-08-04T00:00:00.000Z",
       },
     },
-  },
-  {
-    name: "elevenlabs-webhook",
-    v2: { version: "2.0", timestamp: Date.now(), type: "voice.conversion.done", id: "req_1" },
-    v1: { type: "voice.conversion.done", id: "req_1" },
-  },
-];
+  },];
 
 for (const { name, v2, v1 } of WEBHOOK_FIXTURES) {
   const sunsetV1 = CONTRACTS[name].sunset?.["v1"];

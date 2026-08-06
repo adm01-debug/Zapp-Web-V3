@@ -8,7 +8,7 @@
  * Roda em CI: deno test --allow-all _shared/__tests__/contract-matrix.test.ts
  */
 
-import { assert, assertEquals, assertExists } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assert, assertEquals, assertExists } from "jsr:@std/assert";
 import { parseOrReject } from "../contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../contract-schemas.ts";
 import { CONTRACTS } from "../contract-versions.ts";

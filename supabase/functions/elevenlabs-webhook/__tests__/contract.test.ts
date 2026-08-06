@@ -13,7 +13,7 @@
  * Casos: válido (type+id), válido (event_type+request_id numérico), mínimo
  * {}, campos extras (passthrough), null/undefined, tipos errados, V2.
  */
-import { assertEquals } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals } from "jsr:@std/assert";
 import {
   ElevenLabsWebhookV1Schema,
   ElevenLabsWebhookV2Schema,

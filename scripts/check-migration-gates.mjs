@@ -30,7 +30,7 @@
  * Integração CI (implementada — job migration-gates no ci.yml):
  *   - name: Run migration gates (allowlist de dívida histórica)
  *     run: node scripts/check-migration-gates.mjs \
- *            --allowlist=20260804000000_canonical_schema.sql,20260804150000_fix_secdef_revoke_extended_schemas.sql,20260804170000_fix_rls_systematic_coverage.sql
+ *            --allowlist=20260804000000_canonical_schema_squash_133_migrations.sql,20260804150000_fix_secdef_revoke_extended_schemas.sql,20260804170000_fix_rls_systematic_coverage.sql
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
