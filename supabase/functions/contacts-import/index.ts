@@ -7,9 +7,26 @@
 import { createZappAdminClient, createZappClient } from '../_shared/db-client.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
-import { parseOrReject } from '../_shared/contract-kit.ts';
+import { import { parseOrReject } from, buildContractErrorBody } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
+
+
+/**
+ * Falha de validação pós-gate → envelope 422 ÚNICO (contract-kit).
+ * Correção 2026-08-06 (gap A1): era 400 com shape avulso.
+ */
+function contractViolation422(path: string, message: string, req: Request, extra?: Record<string, string>): Response {
+  const eb = buildContractErrorBody(
+    'contacts-import', undefined, 'contract_violation',
+    `Campo obrigatório ausente: ${path}.`,
+    [{ path, message }],
+  );
+  return new Response(JSON.stringify(eb), {
+    status: 422,
+    headers: { ...(extra ?? {}), 'Content-Type': 'application/json' },
+  });
+}
 const VALID_DDDS = new Set([11,12,13,14,15,16,17,18,19,21,22,24,27,28,31,32,33,34,35,37,38,41,42,43,44,45,46,47,48,49,51,53,54,55,61,62,63,64,65,66,67,68,69,71,73,74,75,77,79,81,82,83,84,85,86,87,88,89,91,92,93,94,95,96,97,98,99]);
 
 const normalizePhone = (raw: string): string | null => {
@@ -65,7 +82,7 @@ Deno.serve(async (req) => {
     // Validate instance name to prevent URL path injection
     const INSTANCE_NAME_RE = /^[a-zA-Z0-9_-]{1,64}$/;
     if (!INSTANCE_NAME_RE.test(String(rawInstanceName))) {
-      return new Response(JSON.stringify({ error: 'Invalid workspace_id' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+      return contractViolation422('workspace_id', 'Invalid workspace_id', req, getCorsHeaders(req));
     }
     const instanceName = String(rawInstanceName);
 

@@ -2,10 +2,27 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
-import { parseOrReject } from "../_shared/contract-kit.ts";
+import { import { parseOrReject } from, buildContractErrorBody } from "../_shared/contract-kit.ts";
 import { EvolutionTemplatesV1Schema } from "../_shared/contract-schemas.ts";
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+
+
+/**
+ * Falha de validação pós-gate → envelope 422 ÚNICO (contract-kit).
+ * Correção 2026-08-06 (gap A1): era 400 com shape avulso.
+ */
+function contractViolation422(path: string, message: string, req: Request, extra?: Record<string, string>): Response {
+  const eb = buildContractErrorBody(
+    'evolution-templates', undefined, 'contract_violation',
+    `Campo obrigatório ausente: ${path}.`,
+    [{ path, message }],
+  );
+  return new Response(JSON.stringify(eb), {
+    status: 422,
+    headers: { ...(extra ?? {}), 'Content-Type': 'application/json' },
+  });
+}
 const supabase = createZappAdminClient();
 interface TemplateConfig { url: string; key: string; instance: string; }
 interface TemplateRow { is_active?: boolean; approval_status?: string | null; content?: string | null; [key: string]: unknown; }
@@ -88,7 +105,7 @@ Deno.serve(async (req: Request) => {
       const { action } = body;
       if (action === "send" || !action) {
         const { template_name, remote_jid, variables } = body;
-        if (!template_name || !remote_jid) return new Response(JSON.stringify({ error: "template_name e remote_jid obrigatórios" }), { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
+        if (!template_name || !remote_jid) return contractViolation422("template_name,remote_jid", "template_name e remote_jid obrigatórios", req, getCorsHeaders(req));
         const { data: tpl } = await supabase.from("evolution_message_templates").select("*").eq("name", template_name).eq("is_active", true).maybeSingle();
         const v = validate(tpl);
         if (!v.ok) return new Response(JSON.stringify({ template_name, sent: false, error: v.error, http_status: 0 }), { status: 502, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });

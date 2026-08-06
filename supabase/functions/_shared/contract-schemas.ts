@@ -856,6 +856,8 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "gmail-oauth":                   { v1: GmailOauthV1Schema },
   "email-imap-bridge":             { v1: EmailImapBridgeV1Schema },
   "evolution-credentials":         { v1: EvolutionCredentialsV1Schema },
+  // Sub-rota POST do evolution-credentials (dual-route por design — sem
+  // diretório próprio; não consta em EDGE_FUNCTION_NAMES. Auditoria A9).
   "evolution-credentials-write":   { v1: EvolutionCredentialsWriteV1Schema },
   "evolution-templates":           { v1: EvolutionTemplatesV1Schema },
   "evolution-retry-metrics":       { v1: EvolutionRetryMetricsV1Schema },
