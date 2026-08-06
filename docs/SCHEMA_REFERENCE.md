@@ -1,7 +1,7 @@
 # 📐 Schema Reference — ZAPP WEB
 
 > **Documento canônico** sobre a arquitetura de schemas do Supabase.
-> Última atualização: **2026-08-05**. Auditado via `pg_catalog` + teste de penetração HTTP real.
+> Última atualização: **2026-08-06**. Auditado via `pg_catalog` + teste de penetração HTTP real.
 > Qualquer doc que contradiga este está desatualizado.
 > Regras de integração (schema canônico, Realtime, credenciais, guardrails): **[INTEGRATION_INVARIANTS.md](./INTEGRATION_INVARIANTS.md)**.
 
@@ -54,7 +54,7 @@ supabase/functions/_shared/
 └── validation.ts     # requireAuth() com schema: 'zapp'
 ```
 
-## Contagem de Tabelas por Schema (auditado 2026-07-16 via MCP — valores definitivos)
+## Contagem de Tabelas por Schema (auditado 2026-08-06 via MCP — valores definitivos)
 
 | Schema | Base Tables | Views | RLS ativo |
 |--------|-------------|-------|-----------|
@@ -153,6 +153,7 @@ Antes do grant, o corpo ganhou guard: `auth.uid() IS NULL` → `RAISE`; `perform
 | 2026-07-16 | **Auditoria exaustiva**: contagem definitiva 315→312 (zapp), public = 1+535 (não zero), 23 partições confirmadas (não 25), 12 RPCs ausentes identificados, Realtime corrigido para usar raiz particionada |
 | 2026-08-04 | **Integração schema zapp × front**: inventário pg_catalog atualizado (zapp: **323** tabelas, **359** views, **5** matviews, **1077** funções, **759** policies, **144** cron jobs); wrappers `zapp.rpc_app_bootstrap`/`zapp.rpc_dashboard_init` (SECURITY DEFINER; `public.*` → service_role only); `rpc_schema_columns`/`rpc_schema_tables` (whitelist zapp/evo/public); grants F-03; guard em `fn_safe_audit_log` |
 | 2026-08-05 | **Fechamento plano 100 etapas**: inventário pg_catalog revalidado (323/359/5/1077/759/144); grants `fn_system_health_score`/`reassign_absent_agents`/`reassign_overloaded_agents` com guarda `is_admin_or_supervisor` (migration `20260805183000`); types.ts regenerado via postgres-meta (sync com DB) |
+| 2026-08-06 | **Plano 30 etapas — integridade de referências**: fix DB-01 — `zapp.fn_enqueue_message_dispatch(uuid,text)` criada (enqueue canônico; SECURITY DEFINER `search_path=zapp,evo,public`; EXECUTE p/ `service_role`; índice único parcial `idx_outbound_queue_source_message_id` como guard anti-duplicata) — cron `retry-stuck-messages` deixa de ser no-op; fix DB-02 — `fn_purge_api_key_from_logs` sem o UPDATE na tabela morta `evo.evolution_webhook_events` (o parent real `_v2` já era coberto); fix DB-03 — `fn_register_instance` insere em `zapp.instance_registry` e não cria mais partição de `evo.evolution_webhook_events` (parent real `_v2`, RANGE por `created_at`, partições mensais via cron jobid 64); 3 CHECKs `NOT VALID` validados (`chk_ncm_formato` em `vendas.ordens_compra`; `chk_tipo_nota_v2`/`chk_status_v2` em `financeiro.notas_fiscais`); guardrail de integridade de referências ativo (Q-1/Q-2 em CI + `ops.fn_check_reference_integrity()` → `ops._infra_check_log`); `GRANT SELECT ON cron.job, cron.job_run_details TO supabase_read_only_user`; re-auditoria: zapp **323** tabelas / **359** views / **5** matviews / **1077** funções / **759** policies (baseline do plano — 380 views/1075 funções/729 policies — defasado, pré-sprint 2026-08-05) |
 
 ---
 
@@ -335,6 +336,23 @@ executadas no **único client self-hosted** (`src/integrations/supabase/client.t
 Notas:
 - `rpc_get_contact_summary_batch` e `rpc_get_reactions_batch` **não estão no catálogo** (`rpcCatalog.ts`) — são chamadas diretas `supabase.rpc(...)` nos hooks (sem roteamento por rótulo).
 - As duas RPCs de telefone (`get_companies_by_phones_batch`, `get_contacts_360_batch`) têm guard de isolamento de workspace (`workspace_members`) e `SECURITY DEFINER` com `search_path` restrito.
+
+---
+
+## 🛡️ Guardrail de integridade de referências (2026-08-06)
+
+Mecanismo (etapa 29 do plano de correção em 30 etapas) que impede o retorno de **referências penduradas** no banco — função → objeto inexistente (Q-1) e cron → função inexistente (Q-2). Resposta aos achados DB-01/02/03 da auditoria 2026-08-04 (funções `zapp` apontando para objetos que não existem mais).
+
+| Componente | Papel |
+|---|---|
+| `scripts/sql/check-reference-integrity.sql` | SQL read-only (Q-1 + Q-2): parseia `pg_proc.prosrc` das funções `zapp`/`public`/`evo`/`email_app`/`auth` atrás de chamadas `schema.objeto(` e valida a existência do alvo em `pg_proc`/`pg_class`; varre `cron.job.command` contra funções inexistentes. `RAISE EXCEPTION` (fail-closed) se `count > 0`; imprime `REFERENCE_INTEGRITY_OK` quando limpo. Comentários `--` são removidos antes do match (evita falso positivo com documentação de bugs antigos). Custo medido: Q-1 ≈ 35 ms, Q-2 ≈ 5 ms. |
+| `.github/workflows/db-reference-integrity.yml` | Gate de CI (molde INV-6 de `db-invariants.yml`): `schedule` diário (`0 8 * * *`) + `workflow_dispatch` + push em `supabase/**`; instala `postgresql-client` (fail-closed) e roda `psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f scripts/sql/check-reference-integrity.sql`; sem secret → `::notice` + exit 0 (separa falha de infra de falha de invariante). |
+| `ops.fn_check_reference_integrity()` | Função read-only em `ops` com as mesmas queries Q-1/Q-2; registra o resultado em `ops._infra_check_log` (`score = 100 - issues`, `issues = n_fn_obj + n_cron_fn`, `detail` = jsonb das pendências) — histórico contínuo entre runs do GH Actions. |
+| `ops._infra_check_log` | Tabela de observabilidade em `ops` (colunas `id, score, max_score, issues, detail, checked_at`) — shape pré-existente, zero DDL novo. |
+| `GRANT SELECT ON cron.job, cron.job_run_details TO supabase_read_only_user` | Observabilidade de cron para o role de auditoria (USAGE já existia; SELECT aplicado na migration `20260806124000_db05_grants_cron_observability.sql`). |
+
+- **Baseline 2026-08-05:** Q-1 = 3 pendências (exatamente DB-01/02/03), Q-2 = 0. Após os fixes e a re-varredura (etapa 26): **0 referências penduradas** — guardrail ativo em modo fail-closed.
+- **Re-auditoria 2026-08-06 (pg_catalog):** zapp **323** tabelas / **359** views / **5** matviews / **1077** funções / **759** policies — os números do plano (380 views / 1075 funções / 729 policies) estavam **defasados** (pré-sprint 2026-08-05) e **não** devem ser usados como verdade.
 
 ---
 

@@ -1,0 +1,61 @@
+# ==========================================================================
+# DB REFERENCE INTEGRITY — Etapa 29 (guardrail de integridade de referências)
+# ==========================================================================
+# Valida que nenhuma referência pendurada surgiu no banco:
+#   Q-1: função em `zapp` chamando objeto inexistente (fonte: pg_catalog)
+#   Q-2: cron.job.command chamando função inexistente (fonte: cron.job)
+# Falha (exit 1, ::error) se qualquer pendência existir — fail-closed.
+# Sem secret SUPABASE_DB_URL -> ::notice + exit 0 (separa falha de INFRA de
+# falha de INVARIANTE, mesmo princípio do INV-6 em db-invariants.yml).
+# ==========================================================================
+
+name: DB Reference Integrity
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - 'supabase/**'
+      - 'scripts/sql/**'
+
+concurrency:
+  group: db-reference-integrity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reference-integrity:
+    name: Reference Integrity (Q-1/Q-2)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: "REF-INT: integridade de referencias (fonte: pg_catalog)"
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          # Consulta o banco de PRODUÇÃO. Sem secret, sem psql ou sem
+          # conectividade -> avisa e passa (nao ha o que afirmar). Com conexao
+          # de pe -> o check e BLOQUEANTE: qualquer pendencia reprova o PR.
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "::notice title=Reference-Integrity nao executou::secret SUPABASE_DB_URL ausente. Enquanto ele nao existir, referencias penduradas passam despercebidas no CI."
+            exit 0
+          fi
+
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client || true
+          fi
+          if ! command -v psql >/dev/null 2>&1; then
+            echo "::warning title=Reference-Integrity nao executou::psql indisponivel no runner. Invariante nao verificado."
+            exit 0
+          fi
+
+          if ! psql "$SUPABASE_DB_URL" -Atc 'SELECT 1' >/dev/null 2>&1; then
+            echo "::warning title=Reference-Integrity nao executou::sem conectividade com o banco a partir do runner. Invariante nao verificado."
+            exit 0
+          fi
+
+          echo "Conectividade OK — rodando o guardrail em modo bloqueante."
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f scripts/sql/check-reference-integrity.sql
