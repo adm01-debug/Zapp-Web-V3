@@ -76,7 +76,117 @@ const DEFAULTS: Record<FeatureFlag, FeatureConfig> = {
 
 let flagCache: Record<string, FeatureConfig> | null = null;
 
-/** is Feature Enabled function. */
+// ---------------------------------------------------------------------------
+// Cooldown/single-flight do loadFeatureFlags.
+//
+// loadFeatureFlags() era chamado no mount do AppProviders + em cada
+// SIGNED_IN/SIGNED_OUT — e repetia o GET feature_flags?select=... a cada
+// disparo/remount (tempestade vista em produção). Agora:
+//  - Single-flight: chamadas concorrentes aguardam a MESMA promise;
+//  - Cooldown de 5min: só re-busca após o último load BEM-SUCEDIDO da fonte
+//    canônica (zapp.feature_flags sem erro). Se o último load falhou na fonte
+//    canônica (ex.: anon sem RLS), NÃO entra em cooldown — o próximo
+//    SIGNED_IN re-tenta imediatamente e carrega as flags autenticadas.
+// ---------------------------------------------------------------------------
+const FLAG_LOAD_COOLDOWN_MS = 5 * 60 * 1000;
+
+let lastCanonicalLoadAt = 0; // 0 = nunca leu feature_flags com sucesso
+let flagLoadInflight: Promise<void> | null = null;
+
+/** load Feature Flags function. */
+export async function loadFeatureFlags(): Promise<void> {
+  if (flagCache && Date.now() - lastCanonicalLoadAt < FLAG_LOAD_COOLDOWN_MS) {
+    return;
+  }
+  if (flagLoadInflight) return flagLoadInflight;
+
+  flagLoadInflight = (async () => {
+    try {
+      const flags: Record<string, FeatureConfig> = { ...DEFAULTS };
+      let loaded = 0;
+      let canonicalRead = false;
+
+      // ── Fonte canônica: zapp.feature_flags ─────────────────────────────────
+      // Colunas: key, enabled, allowed_roles, allowed_user_ids, blocked_user_ids,
+      // rollout_percentage, expires_at, metadata.
+      const { data: rows, error } = await supabase
+        .from('feature_flags')
+        .select(
+          'key, enabled, allowed_roles, allowed_user_ids, blocked_user_ids, rollout_percentage, expires_at, metadata'
+        );
+
+      if (error) {
+        // anon (pré-login) sem permissão ou tabela indisponível: cai no fallback.
+        log.warn('[FeatureFlags] zapp.feature_flags indisponível, tentando app_settings', error);
+      } else if (rows) {
+        canonicalRead = true;
+        for (const row of rows) {
+          const flagName = row.key as FeatureFlag;
+          if (!row.key || !(flagName in DEFAULTS)) continue;
+          const meta = (row.metadata ?? {}) as Record<string, unknown>;
+          flags[flagName] = {
+            ...flags[flagName],
+            enabled: row.enabled ?? flags[flagName].enabled,
+            percentage: row.rollout_percentage ?? flags[flagName].percentage,
+            segments: row.allowed_user_ids ?? flags[flagName].segments,
+            roles: row.allowed_roles ?? flags[flagName].roles,
+            blockedUsers: row.blocked_user_ids ?? flags[flagName].blockedUsers,
+            expiresAt: row.expires_at ?? flags[flagName].expiresAt,
+            killSwitch:
+              typeof meta.killSwitch === 'boolean'
+                ? meta.killSwitch
+                : flags[flagName].killSwitch,
+          };
+          loaded += 1;
+        }
+      }
+
+      // ── Fallback legado: app_settings (chaves feature_%) ───────────────────
+      // Mantido para ambientes onde feature_flags não foi populada. Merge —
+      // feature_flags (canônica) vence quando ambas existirem.
+      const { data: settingsData, error: settingsError } = await supabase
+        .from('app_settings')
+        .select('key, value')
+        .like('key', 'feature_%');
+
+      if (settingsError) {
+        log.warn('[FeatureFlags] app_settings indisponível', settingsError);
+      } else if (settingsData) {
+        for (const row of settingsData) {
+          const flagName = row.key.replace('feature_', '') as FeatureFlag;
+          if (!(flagName in DEFAULTS)) continue;
+          try {
+            // Parse value if it's JSON string, or use as boolean if it's simple
+            const parsed = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+
+            if (typeof parsed === 'boolean') {
+              flags[flagName] = { ...flags[flagName], enabled: parsed };
+            } else if (typeof parsed === 'object' && parsed !== null) {
+              flags[flagName] = { ...flags[flagName], ...parsed };
+            }
+          } catch {
+            // Fallback to boolean if JSON parse fails
+            flags[flagName] = {
+              ...flags[flagName],
+              enabled: row.value === 'true' || row.value === true,
+            };
+          }
+        }
+      }
+
+      flagCache = flags;
+      // Cooldown só quando a fonte canônica foi legível (authenticated):
+      // um load anon (RLS bloqueou) não pode suprimir o reload pós-login.
+      if (canonicalRead) lastCanonicalLoadAt = Date.now();
+      log.info('[FeatureFlags] Sync complete', Object.keys(flags).length, 'flags active', loaded, 'from feature_flags');
+    } catch (err) {
+      log.warn('[FeatureFlags] Load failed, using safety defaults', err);
+    }
+  })().finally(() => {
+    flagLoadInflight = null;
+  });
+  return flagLoadInflight;
+}
 export function isFeatureEnabled(
   flag: FeatureFlag,
   context?: FeatureFlagContext
@@ -128,86 +238,6 @@ export function isFeatureEnabled(
   }
 
   return true;
-}
-
-/** load Feature Flags function. */
-export async function loadFeatureFlags(): Promise<void> {
-  try {
-    const flags: Record<string, FeatureConfig> = { ...DEFAULTS };
-    let loaded = 0;
-
-    // ── Fonte canônica: zapp.feature_flags ─────────────────────────────────
-    // Colunas: key, enabled, allowed_roles, allowed_user_ids, blocked_user_ids,
-    // rollout_percentage, expires_at, metadata.
-    const { data: rows, error } = await supabase
-      .from('feature_flags')
-      .select(
-        'key, enabled, allowed_roles, allowed_user_ids, blocked_user_ids, rollout_percentage, expires_at, metadata'
-      );
-
-    if (error) {
-      // anon (pré-login) sem permissão ou tabela indisponível: cai no fallback.
-      log.warn('[FeatureFlags] zapp.feature_flags indisponível, tentando app_settings', error);
-    } else if (rows) {
-      for (const row of rows) {
-        const flagName = row.key as FeatureFlag;
-        if (!row.key || !(flagName in DEFAULTS)) continue;
-        const meta = (row.metadata ?? {}) as Record<string, unknown>;
-        flags[flagName] = {
-          ...flags[flagName],
-          enabled: row.enabled ?? flags[flagName].enabled,
-          percentage: row.rollout_percentage ?? flags[flagName].percentage,
-          segments: row.allowed_user_ids ?? flags[flagName].segments,
-          roles: row.allowed_roles ?? flags[flagName].roles,
-          blockedUsers: row.blocked_user_ids ?? flags[flagName].blockedUsers,
-          expiresAt: row.expires_at ?? flags[flagName].expiresAt,
-          killSwitch:
-            typeof meta.killSwitch === 'boolean'
-              ? meta.killSwitch
-              : flags[flagName].killSwitch,
-        };
-        loaded += 1;
-      }
-    }
-
-    // ── Fallback legado: app_settings (chaves feature_%) ───────────────────
-    // Mantido para ambientes onde feature_flags não foi populada. Merge —
-    // feature_flags (canônica) vence quando ambas existirem.
-    const { data: settingsData, error: settingsError } = await supabase
-      .from('app_settings')
-      .select('key, value')
-      .like('key', 'feature_%');
-
-    if (settingsError) {
-      log.warn('[FeatureFlags] app_settings indisponível', settingsError);
-    } else if (settingsData) {
-      for (const row of settingsData) {
-        const flagName = row.key.replace('feature_', '') as FeatureFlag;
-        if (!(flagName in DEFAULTS)) continue;
-        try {
-          // Parse value if it's JSON string, or use as boolean if it's simple
-          const parsed = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
-
-          if (typeof parsed === 'boolean') {
-            flags[flagName] = { ...flags[flagName], enabled: parsed };
-          } else if (typeof parsed === 'object' && parsed !== null) {
-            flags[flagName] = { ...flags[flagName], ...parsed };
-          }
-        } catch {
-          // Fallback to boolean if JSON parse fails
-          flags[flagName] = {
-            ...flags[flagName],
-            enabled: row.value === 'true' || row.value === true,
-          };
-        }
-      }
-    }
-
-    flagCache = flags;
-    log.info('[FeatureFlags] Sync complete', Object.keys(flags).length, 'flags active', loaded, 'from feature_flags');
-  } catch (err) {
-    log.warn('[FeatureFlags] Load failed, using safety defaults', err);
-  }
 }
 
 /** get All Flags function. */
