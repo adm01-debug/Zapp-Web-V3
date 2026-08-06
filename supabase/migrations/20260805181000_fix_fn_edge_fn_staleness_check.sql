@@ -13,6 +13,7 @@ RETURNS jsonb
 LANGUAGE plpgsql
 VOLATILE
 SECURITY DEFINER
+SET search_path = ops, evo, zapp, public, pg_catalog
 AS $function$
 DECLARE
   v_last_seen      timestamptz;
