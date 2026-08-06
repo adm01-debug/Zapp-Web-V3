@@ -30,7 +30,7 @@
 | Schema | Base Tables | Views | RLS | Descrição |
 |--------|-------------|-------|-----|-----------|
 | **`zapp`** | **323** | **380** | 100% | Todas as tabelas da aplicação |
-| **`evo`** | **143** | — | 100% | Tabelas da Evolution API (WhatsApp) |
+| **`evo`** | **136** | — | 100% | Tabelas da Evolution API (WhatsApp) |
 | `auth` | 21 | — | — | Auth GoTrue do Supabase |
 | `bpm` | 41 | — | — | BPM/workflows |
 | `email_app` | 33 | — | — | Integração Gmail |

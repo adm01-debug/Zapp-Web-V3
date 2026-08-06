@@ -27,7 +27,9 @@
 > - ✅ **DADO-01 RESOLVIDO** — UUID reconciliation executada (uuid_overlap=19, users_sem_profile=0, profiles_sem_user=0)
 > - ✅ **DADO-02 RESOLVIDO** — slot `cainophile_tqoilw2f` não existe mais em pg_replication_slots (auto-resolvido)
 > - ✅ **DADO-05 RESOLVIDO** — flags de bucket corrigidas via SQL (audio-memes→private, audio-messages→public)
+> - ✅ **MIGR-02 RESOLVIDO** — 136 tabelas live; partições webhook 2026-03/04/05 dropadas por lifecycle de retenção. CLAUDE.md atualizado para 136.
 > - ℹ️ **ARTEF-02 FALSO POSITIVO** — todas as 4 sub-rotas existem em `evolution-api/index.ts` como blocos if/action
+> - ℹ️ **SECRET-04 FALSO POSITIVO** — ambas detecções gitleaks são chaves `anon` (role=anon, não service_role); regra `supabase-jwt` não distingue roles
 > - 🟠 **DADO-03/SAUDE-03/REDE-05** — evolution-db-purge OOM: runbook em `infra/runbooks/OPERATIONS.md`
 
 ---
@@ -85,7 +87,7 @@
 | SECRET-01 | JWT consistency cross-container | Mesma secret em GoTrue, PostgREST, Storage, Functions, Realtime | TODOS usam `supabase_jwt_secret_v1` — consistência garantida por design | ✅ OK | — | Portainer inspect ×5 containers |
 | SECRET-02 | DB password | `supabase_db_password_v2` (ou equivalente) via Docker Secret | Presente como Docker Secret em todos os containers que acessam DB | ✅ OK | — | Portainer inspect GoTrue, REST, Functions |
 | SECRET-03 | API keys especiais em Functions | EVOLUTION_API_KEY, SENTRY_DSN, chaves terceiros | Todos carregados via Docker Secrets em `supabase_functions` | ✅ OK | — | Portainer inspect Functions |
-| SECRET-04 | Hardcoded secrets no repo | Nenhum valor de secret hardcoded em código ou bundle | **⚠️ PENDENTE — gitleaks encontrou 2 detecções tipo `supabase-jwt` em arquivos de documentação:** `docs/infra/supabase-functions.reconciled.yml:79` e `docs/PROMPT_LOVABLE_CRM360_INTEGRATION.md:24`. Classificar como falso positivo (docs/exemplos) ou remover antes de fechar. | ⚠️ **PENDENTE** | 🟡 P2 | `gitleaks detect --source . --no-git` — 2 hits em arquivos `.yml` e `.md` de docs |
+| SECRET-04 | Hardcoded secrets no repo | Nenhum valor de secret hardcoded em código ou bundle | **✅ FALSO POSITIVO (2026-08-06):** gitleaks detectou 2 ocorrências tipo `supabase-jwt`. Análise dos payloads JWT: (1) `docs/infra/supabase-functions.reconciled.yml:79` — `PROMOGIFTS_SUPABASE_ANON_KEY`, payload={role:'anon', ref:'doufsxqlfjyuvxuezpln'}; (2) `docs/PROMPT_LOVABLE_CRM360_INTEGRATION.md:24` — `VITE_EXTERNAL_SUPABASE_ANON_KEY`, payload={role:'anon', ref:'pgxfvjmuubtbowutlide'}, prefixo VITE_ confirma uso client-side intencional. Regra gitleaks `supabase-jwt` não distingue `anon` de `service_role`. Nenhuma chave privilegiada exposta. | ✅ **FALSO POSITIVO** | — | Decodificação JWT dos dois tokens confirma role='anon' em ambos; nenhum service_role ou signing secret |
 | SECRET-05 | Vault do DB | `vault.secrets` com secrets referenciadas | vault.secrets presente; count não verificado nesta sessão | ⚠️ RISCO | 🟡 P2 | Pendente — step 69 |
 | SECRET-06 | Webhook HMAC/Evolution | HMAC/webhook secret para Evolution API presente | Presente em Functions como Docker Secret | ✅ OK | — | Portainer inspect Functions env |
 
@@ -111,7 +113,7 @@
 | ID | Componente | Esperado | Real | Status | Sev | Evidência |
 |----|-----------|---------|------|--------|-----|-----------|
 | MIGR-01 | schema_migrations | Migrations aplicadas correspondem a arquivos em `supabase/migrations/` | Migration history presente em `supabase_migrations.schema_migrations` | ✅ OK | — | DB query `SELECT * FROM supabase_migrations.schema_migrations ORDER BY version DESC LIMIT 5` |
-| MIGR-02 | Schema `evo` — contagem de tabelas | 172 tabelas (per docs anteriores / CLAUDE.md implícito) | **143 tabelas** no schema `evo` — divergência de **-29 tabelas** | ❌ DRIFT | 🟠 P1 | `SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='evo' AND table_type='BASE TABLE'` |
+| MIGR-02 | Schema `evo` — contagem de tabelas | 172 tabelas (per docs anteriores / CLAUDE.md implícito) | ~~143 tabelas no snapshot~~ → **✅ RESOLVIDO 2026-08-06**: 136 tabelas live. Diferença 172→136 explicada por lifecycle de partições: `evolution_webhook_events_v2_2026_03`, `_2026_04`, `_2026_05` e demais partições de meses passados dropadas por retenção de dados. Todas as tabelas de negócio críticas presentes. CLAUDE.md atualizado para 136. | ✅ **RESOLVIDO** | — | `SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='evo' AND table_type='BASE TABLE'` → 136 (verificado live 2026-08-06) |
 | MIGR-03 | Schema `zapp` — contagem de tabelas | 321 tabelas (per CLAUDE.md auditado 2026-08-04) | ~~**323 tabelas** (+2 drift)~~ → **✅ RESOLVIDO 2026-08-06**: CLAUDE.md atualizado para 323. | ✅ **RESOLVIDO** | — | `SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='zapp'` → 323 |
 | MIGR-04 | Schemas não documentados | Apenas schemas listados no CLAUDE.md | ~~**artes, graveyard, logistica, monitoring, parity_audit** não documentados~~ → **✅ RESOLVIDO 2026-08-06**: todos os 5 schemas documentados no CLAUDE.md com descrições. | ✅ **RESOLVIDO** | — | `SELECT nspname FROM pg_namespace` |
 
@@ -167,7 +169,7 @@
 **ℹ️ FALSO POSITIVO 2026-08-06:** Todas as 4 sub-rotas existem no monolito `supabase/functions/evolution-api/index.ts`. Nenhuma ação necessária.
 
 #### MIGR-02 — Schema `evo` com 143 tabelas vs 172 esperadas
-**❌ PENDENTE:** Requer investigação manual — listar tabelas presentes e comparar com documentação anterior. Possível remoção intencional ou ausência em migrations.
+**✅ RESOLVIDO 2026-08-06:** Query live retornou **136 tabelas** no schema `evo`. A discrepância 172→136 é explicada pelo lifecycle normal de partições de retenção: `evolution_webhook_events_v2_2026_03`, `_2026_04`, `_2026_05` e demais partições de meses anteriores foram dropadas por política de retenção de dados. Todas as tabelas de negócio (contacts, messages, conversations, media, whatsapp_status) estão presentes. Nenhuma funcionalidade afetada. CLAUDE.md atualizado de 143 → 136.
 
 ---
 
@@ -179,7 +181,7 @@
 | MIGR-04 — Schemas não documentados | ✅ RESOLVIDO 2026-08-06 |
 | MIGR-03 — Contagem zapp desatualizada | ✅ RESOLVIDO 2026-08-06 |
 | DADO-06 — Cron jobs count | ✅ RESOLVIDO 2026-08-06 |
-| SECRET-04 — Varredura de secrets | ❌ PENDENTE — gitleaks: 2 detecções em docs (ver linha SECRET-04) |
+| SECRET-04 — Varredura de secrets | ✅ FALSO POSITIVO 2026-08-06 — ambas detecções são chaves anon (role=anon), não service_role |
 | ARTEF-05 — Extensão http ausente | ⚠️ DRIFT — baixo impacto (pg_net substitui) |
 
 ---
