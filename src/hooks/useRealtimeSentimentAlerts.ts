@@ -3,12 +3,18 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 import { playNotificationSound, showBrowserNotification } from '@/utils/notificationSound';
+import { useAuth } from '@/hooks/useAuth';
 
 /** Subscribes to realtime sentiment alerts from zapp.sentiment_alerts and shows a toast (plus optional browser notification and sound) when a new alert is inserted. */
 export function useRealtimeSentimentAlerts() {
+  const { session } = useAuth();
   const { settings, isQuietHours } = useNotificationSettings();
 
   useEffect(() => {
+    // Não subscrever se não há sessão ativa — Realtime requer auth e tentativas
+    // pré-login causam erros de conexão no WebSocket.
+    if (!session) return;
+
     const channel = supabase
       .channel('sentiment-alerts-realtime')
       .on(
@@ -45,7 +51,7 @@ export function useRealtimeSentimentAlerts() {
       void channel.unsubscribe();
       supabase.removeChannel(channel).catch(() => {});
     };
-  }, [settings, isQuietHours]);
+  }, [session, settings, isQuietHours]);
 
   return null;
 }

@@ -309,20 +309,23 @@ describe('checkVersion (via startBuildVersionWatcher + fake timers)', () => {
       // 'zapp-update-required' (grace:true) e agenda o reload; o reload ocorre
       // ao fim da janela de cortesia UPDATE_GRACE_MS — não mais imediatamente.
       await vi.advanceTimersByTimeAsync(30_000 + __TEST__.UPDATE_GRACE_MS);
-      // Prefetch em background (FIX): 1 fetch de version.json + 4 de prefetch
-      // (js/css no schedule + js/css no forceBundleRefresh ao fim da cortesia).
-      expect(fetchMock).toHaveBeenCalledTimes(5);
+      // Fetch calls esperadas: 1 version.json + 4 prefetch (js/css no schedule
+      // + js/css no forceBundleRefresh) + 1 HEAD CDN check (isBundleReachable).
+      expect(fetchMock).toHaveBeenCalledTimes(6);
       expect(String(fetchMock.mock.calls[0][0])).toMatch(/^\/version\.json\?ts=\d+$/);
-      // Assets do novo bundle pré-carregados em background (cache force-cache).
-      const prefetchUrls = fetchMock.mock.calls
-        .map((c) => String(c[0]))
-        .filter((u) => u.startsWith('/assets/'));
+      // Assets do novo bundle: 2 prefetch no schedule, 1 HEAD CDN check,
+      // 2 prefetch no forceBundleRefresh (total 5 chamadas de /assets/).
+      const assetCalls = fetchMock.mock.calls.filter((c) => String(c[0]).startsWith('/assets/'));
+      const prefetchUrls = assetCalls.map((c) => String(c[0]));
       expect(prefetchUrls).toEqual([
-        '/assets/index-buildB.js',
-        '/assets/index-buildB.css',
-        '/assets/index-buildB.js',
-        '/assets/index-buildB.css',
+        '/assets/index-buildB.js',   // prefetch (schedule)
+        '/assets/index-buildB.css',  // prefetch (schedule)
+        '/assets/index-buildB.js',   // HEAD CDN check (isBundleReachable)
+        '/assets/index-buildB.js',   // prefetch (forceBundleRefresh)
+        '/assets/index-buildB.css',  // prefetch (forceBundleRefresh)
       ]);
+      // Verificar que o CDN check é mesmo HEAD (3ª chamada de /assets/)
+      expect(assetCalls[2][1]).toMatchObject({ method: 'HEAD' });
       expect(replaceSpy).toHaveBeenCalledTimes(1);
       expect(String(replaceSpy.mock.calls[0][0])).toContain('_bv=');
       expect(__TEST__.readReloadState()).toEqual(

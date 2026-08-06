@@ -256,23 +256,32 @@ export function useServiceWorker() {
             // (the RELOAD_FLAG guard only masks it, at the cost of one wasted
             // reload per page load). Only hard-refresh when the activated SW is
             // genuinely NEWER than the bundle this tab is running.
-            void import('@/lib/buildVersion').then(({ forceBundleRefresh, getCurrentBuildId }) => {
-              const swBuildId =
-                typeof event.data.buildId === 'string' ? event.data.buildId : undefined;
-              const currentBuildId = getCurrentBuildId();
-              if (!swBuildId || swBuildId === 'unknown' || swBuildId === currentBuildId) {
-                log.debug(
-                  '[ServiceWorker] SW_UPDATED for the running build — no reload needed',
-                  { swBuildId, currentBuildId },
+            //
+            // FIX: usa requestGracefulRefresh (janela de cortesia de 60s) em vez
+            // de forceBundleRefresh imediato. O SW_UPDATED chega logo após o
+            // activate do novo SW — antes que o CDN propague todos os novos
+            // chunks. O reload imediato servia a HTML antiga do cache com chunks
+            // novos que ainda não existiam → "Failed to fetch dynamically imported
+            // module". Com a janela de 60s o CDN tem tempo de propagar.
+            void import('@/lib/buildVersion').then(
+              ({ requestGracefulRefresh, getCurrentBuildId }) => {
+                const swBuildId =
+                  typeof event.data.buildId === 'string' ? event.data.buildId : undefined;
+                const currentBuildId = getCurrentBuildId();
+                if (!swBuildId || swBuildId === 'unknown' || swBuildId === currentBuildId) {
+                  log.debug(
+                    '[ServiceWorker] SW_UPDATED for the running build — no reload needed',
+                    { swBuildId, currentBuildId }
+                  );
+                  return;
+                }
+                log.info(
+                  '[ServiceWorker] SW_UPDATED for a newer build — scheduling graceful refresh',
+                  { swBuildId, currentBuildId }
                 );
-                return;
+                requestGracefulRefresh(`sw-updated:${swBuildId}`, swBuildId);
               }
-              log.info(
-                '[ServiceWorker] SW_UPDATED for a newer build — forcing hard refresh',
-                { swBuildId, currentBuildId },
-              );
-              void forceBundleRefresh(`sw-updated:${swBuildId}`, swBuildId);
-            });
+            );
           }
         };
         navigator.serviceWorker.addEventListener('message', onMessage);

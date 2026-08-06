@@ -133,6 +133,18 @@ export function isFeatureEnabled(
 /** load Feature Flags function. */
 export async function loadFeatureFlags(): Promise<void> {
   try {
+    // Verificar sessão ANTES de qualquer query ao banco.
+    // feature_flags e app_settings têm RLS authenticated-only — sem sessão,
+    // as queries retornam 401 e geram WARN desnecessários no pré-login.
+    // Com flagCache já populado (reload após login), não re-query sem sessão.
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) {
+      if (!flagCache) flagCache = { ...DEFAULTS };
+      return;
+    }
+
     const flags: Record<string, FeatureConfig> = { ...DEFAULTS };
     let loaded = 0;
 
