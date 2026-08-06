@@ -183,6 +183,66 @@ CI/CD pipeline, stack files, housekeeping scripts, network config e failure mode
 
 ---
 
+## Sessão 2026-08-06 — Auditoria Exaustiva Evolution API + FIX-01 (5 Agentes Especializados)
+
+### Contexto
+Continuação da auditoria da Evolution API iniciada na sessão anterior (PR #885).
+5 agentes especializados executaram 78 testes em produção. Relatório completo: `docs/AUDIT_REPORT_2026-08-06.md`.
+
+### Correção Aplicada — FIX-01
+
+| Migration | Timestamp DB | Conteúdo | Status |
+|-----------|-------------|----------|--------|
+| `20260806180000_fix_wa_rpc_execute_grants.sql` | 2026-08-06T10:31:31.179Z | GRANT EXECUTE para 4 RPCs WhatsApp sem acesso para `authenticated` | ✅ Aplicada |
+
+**RPCs corrigidas (todas SECURITY DEFINER com search_path fixo):**
+- `zapp.rpc_instance_stats(text)` ✅
+- `zapp.rpc_resolve_whatsapp_instance(uuid)` ✅
+- `zapp.rpc_resolve_instance_by_phone(text)` ✅
+- `zapp.get_connection_instance(uuid)` ✅
+
+### Documentação Criada/Corrigida
+
+| Arquivo | Ação | Motivo |
+|---------|------|--------|
+| `VALIDATION_PLAN_50_STEPS.md` | Corrigido: 50/50 → 41/50 (82%) | Tabela de progresso estava inflada incorretamente |
+| `docs/AUDIT_REPORT_2026-08-06.md` | Criado | Relatório síntese dos 5 agentes (78 testes) |
+| `FEATURE_REGISTRY.md` | Criado (sessão anterior) | Inventário de 175 recursos em 15 domínios |
+| `feature_registry.json` | Criado (sessão anterior) | Registro estruturado com FIX-01 documentado |
+| `feature_registry.csv` | Criado (sessão anterior) | Export tabular do inventário |
+| `docs/CHANGELOG_SESSIONS.md` | Atualizado | Esta entrada |
+
+### Resultados por Agente (78 testes totais)
+
+| Agente | Domínio | ✅ PASS | ⚠️ WARN | ❌ FAIL | Veredicto |
+|--------|---------|--------|---------|--------|----------|
+| A1 | RPC / Privilégios | 10 | 2 | 0 | Aprovado Com Ressalvas |
+| A2 | RLS / Segurança multi-tenant | 13 | 3 | 2 | Reprovado Parcial |
+| A3 | Realtime / Schema isolation | 13 | 0 | 0 | **Aprovado** ✅ |
+| A4 | Feature Registry / Docs | 11 | 3 | 1 | Aprovado Com Ressalvas |
+| A5 | Integridade de migrations | 14 | 2 | 4 | Reprovado Parcial |
+| **TOTAL** | | **61** | **10** | **7** | ⚠️ **Aprovado Com Ressalvas** |
+
+### Achados Críticos Identificados (pré-existentes)
+
+| Severidade | Achado | Ação Necessária |
+|-----------|--------|----------------|
+| 🔴 CRÍTICO | Mismatch canonical_schema filesystem vs DB | Reconciliar antes do próximo CI/CD |
+| 🔴 CRÍTICO | 17-22 migrations em prod sem arquivo .sql | Reconstruir versões |
+| 🔴 CRÍTICO | 3 tabelas com RLS sem policies (dados bloqueados) | Criar policies urgentemente |
+| 🔴 ALTO | `email_attachments_unique_constraint` não aplicada em prod | `supabase db push` controlado |
+| 🔴 ALTO | `revoke_anon_contract_inventory` não aplicada | `supabase db push` controlado |
+| 🟠 MÉDIO | 48 políticas USING(true) sem filtro workspace | Adicionar workspace_id filter |
+| 🟠 MÉDIO | 40+ RPCs sem GRANT EXECUTE TO authenticated | Auditoria de grants pendente |
+
+### Veredicto Final
+
+> **⚠️ APROVADO COM RESSALVAS CRÍTICAS**  
+> FIX-01 verificada e ativa em produção. Realtime 100% correto (13/13). RLS coverage 100%.  
+> Problemas críticos pré-existentes requerem atenção antes do próximo deploy automatizado.
+
+---
+
 ## Histórico Completo de Bugs Resolvidos
 
 | ID | Arquivo | Problema | Migração/Fix |
