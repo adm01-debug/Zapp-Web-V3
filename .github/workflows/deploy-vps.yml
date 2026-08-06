@@ -85,12 +85,27 @@ jobs:
             echo "regex=^production-(fbd04bec303d|988086a2bbbd|a68e678b8496)$" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          TAGS="$(grep -v '^#' infra/ghcr-protected-tags.txt | grep -v '^[[:space:]]*$' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr 'A-F' 'a-f' | tr -d '\r' | grep -E '^[0-9a-f]{12}$' | tr '\n' '|' | sed 's/|$//')"
-          if [ -z "$TAGS" ]; then
+          # Normaliza: remove comentários e linhas vazias, trim, lowercase, remove CRLF
+          NORMALIZED="$(grep -v '^#' infra/ghcr-protected-tags.txt \
+            | grep -v '^[[:space:]]*$' \
+            | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
+            | tr 'A-F' 'a-f' \
+            | tr -d '\r')"
+          # Arquivo vazio → fallback (não é erro de digitação, só arquivo ainda não populado)
+          if [ -z "$NORMALIZED" ]; then
             echo "AVISO: nenhuma SHA encontrada no arquivo — usando fallback hardcoded"
             echo "regex=^production-(fbd04bec303d|988086a2bbbd|a68e678b8496)$" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          # Falha se qualquer linha não for exatamente 12 hex lowercase (ex: fbd04bec303d)
+          INVALID="$(echo "$NORMALIZED" | grep -Ev '^[0-9a-f]{12}$' || true)"
+          if [ -n "$INVALID" ]; then
+            echo "ERRO: infra/ghcr-protected-tags.txt contém entradas inválidas:" >&2
+            echo "$INVALID" | sed 's/^/  /' >&2
+            echo "Cada linha deve ser exatamente 12 dígitos hex lowercase (ex: fbd04bec303d)." >&2
+            exit 1
+          fi
+          TAGS="$(echo "$NORMALIZED" | tr '\n' '|' | sed 's/|$//')"
           echo "regex=^production-(${TAGS})$" >> "$GITHUB_OUTPUT"
 
       # ============================================================
