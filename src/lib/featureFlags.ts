@@ -141,7 +141,9 @@ export async function loadFeatureFlags(): Promise<void> {
       data: { session },
     } = await supabase.auth.getSession();
     if (!session) {
-      if (!flagCache) flagCache = { ...DEFAULTS };
+      // Sempre reseta para DEFAULTS no logout — evita que flags do usuário
+      // anterior persistam para o próximo usuário na mesma aba/sessão.
+      flagCache = { ...DEFAULTS };
       return;
     }
 

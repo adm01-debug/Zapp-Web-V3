@@ -395,13 +395,17 @@ function prefetchNewBundle(remoteBuildId: string): void {
  * forceBundleRefresh — nada de guarda foi alterado.
  */
 function scheduleGracefulRefresh(reason: string, remote: string): void {
+  // Cancela timer anterior — múltiplos mismatches simultâneos (ex: SW_UPDATED +
+  // version.json polling) não devem criar N timers que todos chamam
+  // forceBundleRefresh e consomem cota desnecessariamente. O último mismatch vence.
+  if (graceTimer) {
+    clearTimeout(graceTimer);
+    graceTimer = undefined;
+  }
   // Pré-carrega o novo bundle em background (fire-and-forget) para o reload
   // pós-cortesia servir os assets do HTTP cache em vez de baixar do zero.
   prefetchNewBundle(remote);
   pendingGraceRefresh = { reason, remote };
-  // NOTA: não cancelamos timers anteriores — cada mismatch agenda o seu próprio
-  // reload (mesmo comportamento do pré-cortesia, apenas adiado). A variável
-  // module-level guarda o ÚLTIMO timer para cancelamento via 'zapp-update-apply'.
   graceTimer = setTimeout(() => {
     void forceBundleRefresh(reason, remote);
   }, UPDATE_GRACE_MS);
@@ -639,4 +643,5 @@ export const __TEST__ = {
   GLOBAL_RELOAD_WINDOW_MS,
   readReloadState,
   prefetchNewBundle,
+  isBundleReachable,
 };
