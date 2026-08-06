@@ -59,7 +59,7 @@ SELECT COUNT(*) as total_contacts FROM contacts;
 **Option A: Via psql CLI**
 ```bash
 # Set connection string
-export DB_URL="postgresql://user:password@host:5432/database"
+export DB_URL="postgresql://user:<SECRETO>@host:5432/database"
 
 # Execute migration
 psql "$DB_URL" < supabase/migrations/20260712160000_fix_contact_id_reuse_critical.sql
