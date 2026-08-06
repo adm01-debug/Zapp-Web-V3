@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════
--- SECTION: 20260806170000_realtime_presence_connections.sql
+-- SECTION: 20260806850000_realtime_presence_connections.sql
 -- ═══════════════════════════════════════════════════════════════════════
 
 -- Publishes zapp.agent_presence and zapp.whatsapp_connections on
