@@ -803,12 +803,14 @@ audio-memes, audio-messages (público), avatars, comprovantes-financeiro, custom
 | Fase | Total | ✅ | 🔄 | ⬜ | % |
 |------|-------|----|----|----|----|
 | 0 — Setup | 5 | 5 | 0 | 0 | 100% |
-| 1 — Frontend | 10 | 10 | 0 | 0 | 100% |
-| 2 — Backend | 10 | 10 | 0 | 0 | 100% |
-| 3 — Correlação | 7 | 7 | 0 | 0 | 100% |
+| 1 — Frontend | 10 | 6 | 1 | 3 | 60% |
+| 2 — Backend | 10 | 9 | 1 | 0 | 90% |
+| 3 — Correlação | 7 | 3 | 3 | 1 | 43% |
 | 4 — Classificação | 10 | 10 | 0 | 0 | 100% |
 | 5 — Entrega | 8 | 8 | 0 | 0 | 100% |
-| **TOTAL** | **50** | **50** | **0** | **0** | **100%** |
+| **TOTAL** | **50** | **41** | **5** | **4** | **82%** |
+
+> ⚠ Tabela corrigida em 2026-08-06 via auditoria A4. Etapas incompletas: 10 (🔄), 13, 14, 15, 32 (⬜), 19, 26, 27, 28 (🔄).
 
 ---
 
