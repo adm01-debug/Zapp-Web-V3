@@ -86,18 +86,23 @@
 
 | Tabela | Função |
 |--------|--------|
-| `evolution_messages` | Raiz particionada de mensagens (25 partições por instância) |
+| `evolution_messages` | Raiz particionada de mensagens (14 partições — auditado 2026-08-06) |
 | `evolution_contacts` | Contatos da Evolution API (20.563, 18 MB) |
-| `evolution_conversations` | Raiz particionada de conversas (25 partições) |
+| `evolution_conversations` | Raiz particionada de conversas (13 partições — auditado 2026-08-06) |
 | `evolution_webhook_events_v2_*` | Webhooks particionados por mês (2026-03 a 2027-06 + default) |
 | `evolution_media` | Mídias (23.366, 10 MB) |
 | `evolution_whatsapp_status` | Status WA (14.789, 10 MB) |
 
-**Partições de `evolution_messages` (25 partições por instância):**
-`wpp2`, `wpp2_archive`, `artes`, `comercial_01`–`comercial_15`, `compras`, `default`, `financeiro`, `gravacao`, `logistica`, `marketing`
+**Partições de `evolution_messages` (14 partições — confirmado via `pg_inherits` em 2026-08-06):**
+`wpp2`, `comercial_01`–`comercial_08`, `compras`, `default`, `financeiro`, `logistica`, `marketing`
+
+**Partições de `evolution_conversations` (13 partições — confirmado via `pg_inherits` em 2026-08-06):**
+`wpp2`, `comercial_01`–`comercial_07`, `compras`, `default`, `financeiro`, `logistica`, `marketing`
+
+> **Nota:** `evo.evolution_messages_wpp2_archive` é uma **tabela standalone regular** (`relkind='r'`), NÃO uma partição — não aparece em `pg_inherits`. Não confundir com as partições acima.
 
 > `evolution_messages` e `evolution_conversations` são **tabelas raiz particionadas** (relkind='p' no evo schema).
-> Os dados ficam nas partições por instância. No schema `zapp`, `evolution_messages` existe como
+> Os dados ficam nas partições listadas acima. No schema `zapp`, `evolution_messages` existe como
 > **view auto-updatable** (security_invoker=on) que aponta para a raiz no schema `evo`.
 > Para queries SELECT, tanto a raiz quanto as partições funcionam.
 > Para **Realtime**, sempre use a raiz (regra 4 acima).
