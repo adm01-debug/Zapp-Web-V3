@@ -12,6 +12,13 @@
  * 2025-12-05, que usava esbuild da época: _l/Nl/Lr/Br viraram Vh/qh/zl/Xl e o
  * T1 mudou de forma). Determinismo esbuild garante os mesmos nomes no CI.
  *
+ * v3 (2026-08-06): a premissa de determinismo falhou — o build LOCAL do Plano B
+ * (AG-EX-11) usou toolchain driftada e produziu nomes Vh/qh/zl/Xl; o bundle do
+ * CI (npm ci + lockfile da tag 2.3.7 + fallback npx tsup) produz os NOMES
+ * OFICIAIS (_l/Nl/Lr/Br) e o literal "messages.upsert" (não O.MESSAGES_UPSERT).
+ * ALVO = bundle do CI (fonte da verdade da imagem publicada). Se o CI mudar de
+ * toolchain, o modo fail-closed (T3/T6) aborta em vez de publicar bundle ruim.
+ *
  * T1  remove console.log(p) antes de sendDataWebhook(O.MESSAGES_UPSERT,p)
  * T2  remove console.log("stanza",JSON.stringify(e)),      [TOLERANTE]
  * T3  Sentry: tracesSampleRate 0.05 / profilesSampleRate 0 / beforeSend
@@ -61,20 +68,20 @@ const countOf = (haystack, needle) => haystack.split(needle).length - 1;
 const sha256 = (p) =>
   crypto.createHash("sha256").update(fs.readFileSync(p)).digest("hex");
 
-// ============ Targets (literais REAIS do bundle esbuild 0.27/tsup 8.5.1) ====
-// T1: console.log(p) antes do webhook messages.upsert (TOLERANTE — v2)
-const T1 = 'console.log(p),this.sendDataWebhook(O.MESSAGES_UPSERT,p)';
-const R1 = 'this.sendDataWebhook(O.MESSAGES_UPSERT,p)';
+// ============ Targets (literais REAIS do bundle CI — esbuild lockfile 2.3.7) =
+// T1: console.log(c) antes do webhook messages.upsert (TOLERANTE — v3: literal "messages.upsert")
+const T1 = 'console.log(c),this.sendDataWebhook("messages.upsert",c)';
+const R1 = 'this.sendDataWebhook("messages.upsert",c)';
 // T2: log de stanza (TOLERANTE)
 const T2 = 'console.log("stanza",JSON.stringify(e)),';
-// T3: init do Sentry (ESTRITO — nomes v2: zl/Xl)
-const T3O = 'zl.DSN&&Xl.init({dsn:zl.DSN,environment:process.env.NODE_ENV||"development",tracesSampleRate:1,profilesSampleRate:1})';
-const T3N = 'zl.DSN&&Xl.init({dsn:zl.DSN,environment:"production",tracesSampleRate:0.05,profilesSampleRate:0,beforeSend:(event,hint)=>{try{const e=hint&&hint.originalException;if(e){if(e.response&&[401,403].includes(e.response.status))return null;if(e.message&&(e.message.includes("DEVICE_REMOVED")||e.message.includes("Request failed with status code 401")||e.message.includes("status code 403")||e.message.includes("makeBucket")))return null;}}catch(_){}return event;}})';
-// T5a: log de cache de mensagens (TOLERANTE — v2: cached:c/secondsSinceEpoch:p)
-const T5_COND = 'console.log("CACHE:",{cached:c,updateKey:r,messageTimestamp:n.messageTimestamp,secondsSinceEpoch:p}),n.messageTimestamp&&';
-// T6: GET / mascara a versão real (F2-21) — ESTRITO (v2: Vh/qh)
-const T6O = 'version:Vh.version,clientName:qh.CONNECTION.CLIENT_NAME';
-const T6N = 'version:"2.x",clientName:qh.CONNECTION.CLIENT_NAME';
+// T3: init do Sentry (ESTRITO — nomes oficiais Lr/Br)
+const T3O = 'Lr.DSN&&Br.init({dsn:Lr.DSN,environment:process.env.NODE_ENV||"development",tracesSampleRate:1,profilesSampleRate:1})';
+const T3N = 'Lr.DSN&&Br.init({dsn:Lr.DSN,environment:"production",tracesSampleRate:0.05,profilesSampleRate:0,beforeSend:(event,hint)=>{try{const e=hint&&hint.originalException;if(e){if(e.response&&[401,403].includes(e.response.status))return null;if(e.message&&(e.message.includes("DEVICE_REMOVED")||e.message.includes("Request failed with status code 401")||e.message.includes("status code 403")||e.message.includes("makeBucket")))return null;}}catch(_){}return event;}})';
+// T5a: log de cache de mensagens (TOLERANTE — nomes oficiais a/r/n/c)
+const T5_COND = 'console.log("CACHE:",{cached:a,updateKey:r,messageTimestamp:n.messageTimestamp,secondsSinceEpoch:c}),n.messageTimestamp&&';
+// T6: GET / mascara a versão real (F2-21) — ESTRITO (nomes oficiais _l/Nl)
+const T6O = 'version:_l.version,clientName:Nl.CONNECTION.CLIENT_NAME';
+const T6N = 'version:"2.x",clientName:Nl.CONNECTION.CLIENT_NAME';
 
 // ============================= Execução =============================
 if (!fs.existsSync(SRC)) {
