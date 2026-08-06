@@ -203,12 +203,23 @@ Deno.serve(async (req) => {
       if (parsed && parsed.error === true) {
         const upstreamStatus = typeof parsed.status === 'number' ? parsed.status : 502;
         const status = upstreamStatus >= 400 && upstreamStatus <= 599 ? upstreamStatus : 502;
-        // Mídia expirada/irrecuperável no WhatsApp: o upstream devolve 400/404/410 com
-        // 'Failed to fetch stream' / 'Media not found' (URL mmg.whatsapp.net morta).
-        // Re-emite 410 Gone + code MEDIA_EXPIRED p/ o frontend diferenciar 'expirada' de erro genérico.
+        // R4 (regression review 2026-08-06): NÃO tratar 400/404 genéricos como
+        // mídia expirada. Antes, [400,404,410] + regex amplo re-emitia 410
+        // MEDIA_EXPIRED para erros que não são de expiração (404 = mensagem/
+        // mídia inexistente; 400 = validação/tipo não suportado) — o frontend
+        // marcava a mídia como irrecuperável para sempre.
+        // Regra nova:
+        //  - 410 do upstream (ou body indicando URL mmg.whatsapp.net morta) → 410
+        //    MEDIA_EXPIRED (frontend: expired — irrecuperável, sem retry);
+        //  - 404 → repassado como 404 (frontend: not_found);
+        //  - 400 só vira MEDIA_EXPIRED se o body evidenciar mídia morta;
+        //  - demais status → repassados com o body/status reais (frontend
+        //    classifica 403 forbidden / 415 unsupported / 504 network).
         const upstreamBody = JSON.stringify(parsed);
-        const mediaExpired = [400, 404, 410].includes(upstreamStatus) ||
+        const upstreamSaysMediaDead =
           /Failed to fetch stream|Media not found|message not found|expired|gone/i.test(upstreamBody);
+        const mediaExpired =
+          upstreamStatus === 410 || (upstreamStatus === 400 && upstreamSaysMediaDead);
         if (mediaExpired) {
           return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 410, code: 'MEDIA_EXPIRED', message: 'A mídia expirou no WhatsApp e não pode mais ser recuperada.' }), { status: 410, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }

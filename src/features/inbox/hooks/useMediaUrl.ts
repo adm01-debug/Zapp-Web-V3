@@ -149,9 +149,7 @@ export async function classifyError(raw: unknown): Promise<MediaError> {
   // ordem fosse invertida.
   if (
     status === 410 ||
-    status === 403 ||
     msg.includes('410') ||
-    msg.includes('403') ||
     msg.includes('expired') ||
     msg.includes('gone') ||
     msg.includes('media_expired') ||
@@ -160,6 +158,23 @@ export async function classifyError(raw: unknown): Promise<MediaError> {
     return {
       reason: 'expired',
       message: 'Esta mídia expirou no WhatsApp e não pode mais ser recuperada.',
+      cause: err,
+    };
+  }
+  // R6 (regression review 2026-08-06): 403 NÃO é expired. Pode ser auth/
+  // permissão transitória da credencial da edge fn (ou do S3 do WhatsApp) —
+  // classificar como 'expired' tornava a mídia irrecuperável (falha imediata
+  // na 1ª tentativa) e escondia o problema em log.debug. Agora é 'forbidden':
+  // retryável (gasta as tentativas) e logado em warn/toast.
+  if (
+    status === 403 ||
+    msg.includes('403') ||
+    msg.includes('forbidden') ||
+    msg.includes('permission denied')
+  ) {
+    return {
+      reason: 'forbidden',
+      message: 'Sem permissão para baixar esta mídia. Tente novamente em instantes.',
       cause: err,
     };
   }
@@ -189,6 +204,17 @@ export async function classifyError(raw: unknown): Promise<MediaError> {
       cause: err,
     };
   }
+  // R5 (regression review 2026-08-06): 415 (Unsupported Media Type) reemitido
+  // pela edge fn era classificado como 'unknown' com toast genérico. Agora
+  // vira 'unsupported' (debug, sem toast de erro — esperado p/ tipos sem
+  // visualização).
+  if (status === 415 || msg.includes('415') || msg.includes('unsupported media type')) {
+    return {
+      reason: 'unsupported',
+      message: 'Formato de mídia não suportado para visualização.',
+      cause: err,
+    };
+  }
   if (msg.includes('empty media payload') || msg.includes('mimetype')) {
     return {
       reason: 'unsupported',
@@ -212,11 +238,19 @@ const DEFAULT_MAX_ATTEMPTS = 2;
  * LGPD) e TODAS as mídias do inbox falharam → cada <img>/<video> onError
  * disparava `evolution-api/get-media-base64` (2 tentativas cada), gerando
  * centenas de GET/POST no console. Este contador em module scope limita o
- * total de invokes da edge fn por carregamento de página; estourado, o
- * refresh falha silenciosamente (`failed=true`, sem invoke, sem toast).
+ * total de invokes da edge fn por janela de tempo; estourado, o refresh
+ * falha silenciosamente (`failed=true`, sem invoke, sem toast).
+ *
+ * R3 (regression review 2026-08-06): o contador era monotônico — nunca
+ * resetava e o retry MANUAL não furava o cap (mídia morta até reload).
+ * Agora: (a) janela deslizante de 5min — passado o prazo, o contador zera
+ * sozinho; (b) o retry() manual zera o contador global (o usuário pediu
+ * explicitamente — a UI não fica presa em 'failed' para sempre).
  */
 export const MAX_SESSION_REFRESH_ATTEMPTS = 40;
+const SESSION_REFRESH_WINDOW_MS = 5 * 60 * 1000;
 let sessionRefreshAttempts = 0;
+let sessionRefreshWindowStart = Date.now();
 
 /**
  * Test-only: reseta (ou pré-define) o contador global de refresh attempts
@@ -224,6 +258,12 @@ let sessionRefreshAttempts = 0;
  */
 export function resetSessionRefreshAttempts(count = 0): void {
   sessionRefreshAttempts = count;
+  sessionRefreshWindowStart = Date.now();
+}
+
+/** True quando a janela deslizante expirou — o contador pode zerar. */
+function isSessionRefreshWindowExpired(): boolean {
+  return Date.now() - sessionRefreshWindowStart >= SESSION_REFRESH_WINDOW_MS;
 }
 
 /** WhatsApp message types that never produce valid base64 via the Evolution API. */
@@ -335,7 +375,12 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
     // Cap global anti-storm: em falha em massa (ex.: bucket privado) não
     // deixa centenas de invokes da edge fn dispararem. Estourou ⇒ falha
     // silenciosa: marca failed (UI mostra fallback) sem chamar a edge fn
-    // nem disparar toast.
+    // nem disparar toast. Janela deslizante de 5min: passado o prazo, o
+    // contador zera (R3 — antes era monotônico e matava a mídia até reload).
+    if (isSessionRefreshWindowExpired()) {
+      sessionRefreshAttempts = 0;
+      sessionRefreshWindowStart = Date.now();
+    }
     if (sessionRefreshAttempts >= MAX_SESSION_REFRESH_ATTEMPTS) {
       setFailed(true);
       log.debug(
@@ -456,6 +501,12 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
     if (messageKey && instanceName) {
       toastedKeys.delete(cacheKey(instanceName, messageKey));
     }
+    // R3: o retry MANUAL também zera o cap global — o usuário pediu
+    // explicitamente uma nova tentativa; sem isso a mídia ficava 'failed'
+    // para sempre depois de uma rajada (mesmo com janela, o reset só
+    // ocorria na próxima chamada de runRefresh que fosse bloqueada).
+    sessionRefreshAttempts = 0;
+    sessionRefreshWindowStart = Date.now();
     setAttempts(0);
     setFailed(false);
     setError(null);

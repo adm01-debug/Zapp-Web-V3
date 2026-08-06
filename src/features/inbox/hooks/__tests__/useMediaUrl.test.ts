@@ -209,9 +209,10 @@ describe('classifyError — body/status do FunctionsHttpError (supabase-js v2)',
     expect(classified.reason).toBe('expired');
   });
 
-  it('403 → expired (status HTTP real do context)', async () => {
+  it('403 → forbidden (R6: NÃO é expired — auth/permissão transitória é retryável)', async () => {
     const classified = await classifyError(functionsHttpError(403));
-    expect(classified.reason).toBe('expired');
+    expect(classified.reason).toBe('forbidden');
+    expect(classified.message).toContain('Sem permissão');
   });
 
   it('404 → not_found (status HTTP real do context)', async () => {
@@ -429,7 +430,7 @@ describe('useMediaUrl — hardening anti-storm (incidente 2026-08-06)', () => {
     expect(debug).toHaveBeenCalledWith(expect.stringContaining('session refresh cap'));
   });
 
-  it('cap global: consome o orçamento por invoke real e bloqueia o próximo', async () => {
+  it('cap global: consome o orçamento por invoke real; retry MANUAL zera o cap (R3)', async () => {
     resetSessionRefreshAttempts(MAX_SESSION_REFRESH_ATTEMPTS - 2);
     invokeMock.mockResolvedValue({
       data: null,
@@ -452,17 +453,17 @@ describe('useMediaUrl — hardening anti-storm (incidente 2026-08-06)', () => {
     });
     expect(invokeMock).toHaveBeenCalledTimes(1);
 
-    // retry() zera o contador LOCAL do hook, mas o global segue em 40.
+    // retry() MANUAL zera o contador GLOBAL (R3): o usuário pediu
+    // explicitamente — a mídia não fica presa em 'failed' até reload.
     await act(async () => {
       await result.current.retry();
     });
     expect(invokeMock).toHaveBeenCalledTimes(2);
 
-    // Tentativa 3: 40 >= 40 → bloqueada sem invoke; failed=true.
+    // Nova rajada pós-reset: invoke roda de novo (orçamento 1 < 40).
     await act(async () => {
       result.current.onError();
     });
-    expect(invokeMock).toHaveBeenCalledTimes(2);
-    expect(result.current.failed).toBe(true);
+    expect(invokeMock).toHaveBeenCalledTimes(3);
   });
 });
