@@ -90,13 +90,15 @@ Legenda: **OK** = correto; **OK-COND** = gera URL pública para bucket público 
 
 **Impacto se `audio-memes` estiver `public=false`:** voz transformada + memes de áudio quebram no mesmo padrão do incidente whatsapp-media (URL pública → 404 "Bucket not found"). **O estado real do bucket em produção não é definido por nenhuma migration do repo** (0 ocorrências de `audio-memes` em `supabase/migrations/`) — precisa ser verificado em `storage.buckets` e alinhado: ou (a) declarar `public=true` + anon SELECT (como BUG-38/BUG-MEDIA) se o produto exige URL pública, ou (b) migrar os 4 produtores para signed URL e remover `audio-memes` do `PUBLIC_BUCKETS`.
 
-### GAP-2 (MÉDIO) — Fallback público no `getSignedMediaUrl` (`src/lib/storageSignedUrls.ts:97-115`)
+### GAP-2 (MÉDIO) — Fallback público no `getSignedMediaUrl` (`src/lib/storageSignedUrls.ts:97-115`) — ✅ CORRIGIDO (2026-08-06)
+> **Status:** corrigido no commit da onda de fixes — o fallback agora retorna `null` + `log.error` (o caller trata null com fallback de UI; sem URL quebrada silenciosa).
 Quando `createSignedUrl` falha (sessão ausente/erro), o helper **retorna a URL pública do bucket** (`resolveMediaUrl`) com `log.warn`. Isso foi escrito quando os buckets ainda eram públicos; hoje, para buckets realmente privados (`team-chat-files`, `audio-memes`, `email-attachments`), o fallback **gera URL quebrada silenciosamente**. Mitigação: retornar `null` + log de erro em vez do fallback público (o próprio `resolvePrivateMediaUrl` em `mediaUrl.ts:330-344` já faz isso corretamente).
 
 ### GAP-3 (MÉDIO/ARQUITETURAL) — ADR-001 não implementado: produtores persistem URL absoluta em `media_url`
 Todos os produtores (E1-E4, E8-E10, F11-F17) gravam **URL absoluta** (pública ou signed) em `messages.media_url` / `evolution_messages.media_url` / tabelas auxiliares. O formato canônico `media_bucket` + `media_path` (ADR-001) **não é escrito por nenhum produtor** (só lido pelos resolvedores). Consequência prática: URLs públicas persistidas dependem do flag `public` no momento da *exibição*, não no momento da escrita — exatamente o que transformou o incidente em 18.494 objetos quebrados de uma vez. Signed URLs persistidas (F15/F16/F17, E11) **expirarão** e quebram no display sem re-assinatura.
 
-### GAP-4 (BAIXO) — `recover-corrupted-audios` monta URL pública manualmente
+### GAP-4 (BAIXO) — `recover-corrupted-audios` monta URL pública manualmente — ✅ CORRIGIDO (2026-08-06)
+> **Status:** corrigido no commit da onda de fixes — agora usa `getStoragePublicUrl` (ADR-001, resolve o host público); `SUPABASE_URL` removido.
 `supabase/functions/recover-corrupted-audios/index.ts:123` concatena `${SUPABASE_URL}/storage/v1/object/public/audio-messages/...`. Usa `SELFHOSTED_SUPABASE_URL` primeiro (OK), mas se o env não estiver setado cai em `SUPABASE_URL` (kong:8000 interno) e grava host interno no banco — o ADR-001 proíbe. Deveria usar `getStoragePublicUrl` (que já resolve o host público).
 
 ---
