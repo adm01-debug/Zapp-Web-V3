@@ -2,7 +2,7 @@ title = "ZAPP-WEB gitleaks config"
 
 [allowlist]
 description = "Allowed patterns"
-paths = ["node_modules", "bun.lockb"]
+paths = ["node_modules", "bun.lockb", ".gitleaks.toml"]
 # JWT histórico: anon key self-hosted presente em 33 commits anteriores à remoção (2026-07-27).
 # Removida de client.ts no PR #599 (commit d795d3f0) e de selfHostedDiagnostics.ts nesta sessão.
 # Rotação da chave real é tarefa humana (RUNBOOK_ROTACAO_SEGREDOS_ZAPP.md — Ação 3).
@@ -66,3 +66,22 @@ id = "github-pat"
 description = "GitHub PAT"
 regex = "ghp_[A-Za-z0-9]{36,}"
 keywords = ["ghp_"]
+
+[[rules]]
+id = "postgres-connstring"
+description = "PostgreSQL connection string with password"
+regex = '''postgres(?:ql)?://[^:]+:[^@]+@[^/\s]+'''
+secretGroup = 2
+entropy = 3.5
+
+[[rules]]
+id = "jwt-generic"
+description = "Generic JWT (header.payload.signature)"
+regex = '''eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'''
+secretGroup = 2
+
+[[rules]]
+id = "aws-access-key"
+description = "AWS Access Key ID"
+regex = '''AKIA[0-9A-Z]{16}'''
+keywords = ["AKIA"]

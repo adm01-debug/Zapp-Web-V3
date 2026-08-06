@@ -85,7 +85,7 @@ services:
       - SERVER_URL=https://seu-dominio.com
       - AUTHENTICATION_API_KEY=sua-chave-secreta
       - DATABASE_PROVIDER=postgresql
-      - DATABASE_CONNECTION_URI=postgresql://user:pass@db:5432/evolution
+      - DATABASE_CONNECTION_URI=postgresql://user:<SECRETO>@db:5432/evolution
       - CACHE_REDIS_URI=redis://redis:6379
     volumes:
       - evolution_data:/evolution/instances
@@ -98,7 +98,7 @@ services:
 | `SERVER_URL` | URL pública do servidor | `https://api.minha-empresa.com` |
 | `AUTHENTICATION_API_KEY` | Chave global de autenticação | `minha-chave-forte-123` |
 | `DATABASE_PROVIDER` | Banco: postgresql/mongodb/sqlite | `postgresql` |
-| `DATABASE_CONNECTION_URI` | String de conexão do banco | `postgresql://user:pass@host/db` |
+| `DATABASE_CONNECTION_URI` | String de conexão do banco | `postgresql://user:<SECRETO>@host/db` |
 | `CACHE_REDIS_URI` | URI do Redis para cache | `redis://redis:6379` |
 | `CACHE_REDIS_ENABLED` | Ativa cache Redis | `true` |
 | `LOG_LEVEL` | Nível de log: ERROR/WARN/INFO/DEBUG | `INFO` |

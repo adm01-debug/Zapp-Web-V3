@@ -21,7 +21,7 @@ pg_dump \
   --no-owner \
   --no-acl \
   --schema='zapp,evo,public,bpm,email_app,ai,archive,ops,financeiro,vendas,logistica,artes,monitoring' \
-  "postgresql://<user>:<pass>@supabase.atomicabr.com.br:5432/postgres" \
+  "postgresql://<user>:<SECRETO>@supabase.atomicabr.com.br:5432/postgres" \
   > docs/db/baseline/schema_$(date +%Y%m%d).sql
 
 # 2. Carregar no staging (Supabase local ou instância separada)

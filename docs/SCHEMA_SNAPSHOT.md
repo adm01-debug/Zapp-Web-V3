@@ -161,7 +161,7 @@ pg_dump \
   --no-acl \
   -n zapp -n evo -n bpm -n email_app -n ai -n archive \
   -n financeiro -n vendas -n ops \
-  postgresql://postgres:SENHA@localhost:5432/postgres \
+  postgresql://postgres:<SECRETO>@localhost:5432/postgres \
   > supabase/ci/baseline-schema-2026-08-04.sql
 ```
 
