@@ -33,8 +33,10 @@ env:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Plano B: rebuild do bundle a partir do SOURCE da Evolution (tag fixa) com o
-  # pin exato do baileys. tsup (esbuild) embute o baileys no dist/main.js.
+  # Plano B (Design B'): rebuild do bundle a partir do SOURCE da Evolution (tag
+  # fixa) com o pin exato do baileys + pack do pacote baileys para substituir o
+  # /evolution/node_modules/baileys da imagem (o tsup EXTERNALIZA o baileys —
+  # require("baileys") em runtime — logo só o bundle NÃO basta).
   # ---------------------------------------------------------------------------
   build-evolution-source:
     name: Build evolution source bundle (baileys ${{ inputs.baileys_version }})
@@ -72,11 +74,18 @@ jobs:
           export DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
           (npm run build) || { echo "::warning::typecheck falhou — fallback npx tsup (Plano B 2.2)"; npx tsup; }
 
-      - name: Verify bundle (rc.9 ausente)
+      - name: Verify bundle (require externo do baileys + sem rc.9)
         working-directory: evo-src
         run: |
           ls -la dist/
-          node -e "const s=require('fs').readFileSync('dist/main.js','utf8'); if(s.includes('7.0.0-rc.9')){console.error('FAIL: rc.9 ainda presente no bundle');process.exit(1)} console.log('OK bytes:', s.length, '| rc.9 ausente:', !s.includes('7.0.0-rc.9'))"
+          node -e "const s=require('fs').readFileSync('dist/main.js','utf8'); if(!s.includes('require(\"baileys\")')){console.error('FAIL: require(\"baileys\") ausente — bundle mudou de arquitetura');process.exit(1)} if(s.includes('7.0.0-rc.9')){console.error('FAIL: rc.9 ainda presente no bundle');process.exit(1)} console.log('OK bytes:', s.length, '| require(\"baileys\") externo presente')"
+
+      - name: Pack baileys (para substituir node_modules/baileys na imagem)
+        working-directory: evo-src
+        run: |
+          npm pack baileys@${{ inputs.baileys_version }} --pack-destination . --silent
+          ls -la baileys-*.tgz
+          tar -tzf baileys-${{ inputs.baileys_version }}.tgz | head -3
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -85,10 +94,12 @@ jobs:
           path: |
             evo-src/dist/main.js
             evo-src/dist/main.mjs
+            evo-src/baileys-${{ inputs.baileys_version }}.tgz
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
-  # Patches T1-T6 (fail-closed, T2/T5a tolerantes) + smoke test Design B + push
+  # Patches T1-T6 (fail-closed, T2/T5a tolerantes) + swap baileys + smoke test
+  # na imagem final + push
   # ---------------------------------------------------------------------------
   build-and-push:
     name: Build & push Evolution custom image (baileys ${{ inputs.baileys_version }})
@@ -106,11 +117,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download bundle (baileys ${{ inputs.baileys_version }})
+      - name: Download bundle + baileys pack (baileys ${{ inputs.baileys_version }})
         uses: actions/download-artifact@v4
         with:
           name: evo-main-${{ inputs.baileys_version }}
           path: infra/evolution-api-custom/
+
+      - name: Extract baileys package (node_modules swap)
+        run: |
+          cd infra/evolution-api-custom
+          mkdir -p baileys
+          tar -xzf baileys-${{ inputs.baileys_version }}.tgz -C baileys --strip-components=1
+          node -e "const v=require('./baileys/package.json').version; if(v!=='${{ inputs.baileys_version }}'){console.error('FAIL: versao baileys extraido = '+v);process.exit(1)} console.log('baileys extraido OK: '+v)"
+          rm -f baileys-${{ inputs.baileys_version }}.tgz
 
       - name: Apply T1-T6 patches (fail-closed, T2/T5a tolerantes)
         run: |
@@ -118,21 +137,29 @@ jobs:
           node build-patches.mjs main.js main.patched.js t4_prologue.cjs "2.3.7-baileys-${{ inputs.baileys_version }}"
           ls -la main.patched.js
 
-      - name: Smoke test (Design B gate — boot descartável na base oficial)
+      - name: Build image (sem push, load local)
+        uses: docker/build-push-action@v7
+        with:
+          context: infra/evolution-api-custom
+          push: false
+          load: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:smoke-${{ inputs.baileys_version }}
+          build-args: |
+            BASE_IMAGE=${{ inputs.base_image }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test (Design B' gate — imagem final com baileys ${{ inputs.baileys_version }})
         run: |
-          docker create --name evo-smoke --entrypoint node ${{ inputs.base_image }} dist/main.js
-          docker cp infra/evolution-api-custom/main.patched.js evo-smoke:/evolution/dist/main.js
-          docker cp infra/evolution-api-custom/main.patched.js evo-smoke:/evolution/dist/main.mjs
-          docker start evo-smoke
-          sleep 25
-          docker logs evo-smoke 2>&1 | tail -30
-          if docker logs evo-smoke 2>&1 | grep -iE "cannot find module|MODULE_NOT_FOUND"; then
-            echo "SMOKE FAIL: require externo órfão no bundle"
-            docker rm -f evo-smoke
+          IMG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:smoke-${{ inputs.baileys_version }}
+          timeout 45 docker run --rm --entrypoint node "$IMG" dist/main.js > /tmp/smoke.log 2>&1
+          echo "rc=$? (crash por env ausente é esperado; o que importa é o require carregar)"
+          tail -25 /tmp/smoke.log
+          if grep -iE "cannot find module|MODULE_NOT_FOUND" /tmp/smoke.log; then
+            echo "SMOKE FAIL: require externo órfão"
             exit 1
           fi
-          echo "SMOKE OK: bundle carrega sem require órfão (boot parcial sem secrets é suficiente)"
-          docker rm -f evo-smoke
+          echo "SMOKE OK: bundle + baileys ${{ inputs.baileys_version }} carregam sem require órfão"
 
       - name: Compute image tag
         id: meta

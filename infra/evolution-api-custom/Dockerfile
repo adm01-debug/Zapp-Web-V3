@@ -57,6 +57,21 @@ RUN if [ -f /evolution/dist/main.mjs ]; then \
 #     o conteúdo já está embutido no topo de main.patched.js pelo build-patches.mjs.
 COPY t4_prologue.cjs /evolution/t4_prologue.cjs
 
+# --- Baileys 6.7.24 (Plano B — Design B'): o bundle EXTERNALIZA o baileys
+#     (require("baileys") em runtime) → o app usa /evolution/node_modules/baileys.
+#     O source build usa o pin 6.7.24; aqui substituímos o pacote da base
+#     (7.0.0-rc.9) pelo 6.7.24. Fail-closed: versão exata conferida em build.
+RUN rm -rf /evolution/node_modules/baileys
+COPY baileys/ /evolution/node_modules/baileys/
+RUN node -e ' \
+const fs=require("fs"); \
+const p="/evolution/node_modules/baileys/package.json"; \
+if(!fs.existsSync(p)){console.error("FAIL: node_modules/baileys ausente apos COPY");process.exit(1);} \
+const v=JSON.parse(fs.readFileSync(p,"utf8")).version; \
+if(v!=="6.7.24"){console.error("FAIL: baileys no node_modules = "+v+" (esperado 6.7.24 — nunca publicar imagem com rc.9)");process.exit(1);} \
+console.log("VERIFY OK: baileys "+v+" no node_modules (Plano B)"); \
+'
+
 # --- Verificação fail-closed: o build FALHA se o bundle copiado não tiver T1-T6
 #     exatamente como esperado (nunca sobe imagem com patch quebrado).
 #     T2/T5a: tolerantes — só exigem AUSÊNCIA (aplicados ou SKIPed, nunca
