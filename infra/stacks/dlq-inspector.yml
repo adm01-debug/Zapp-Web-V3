@@ -1,0 +1,101 @@
+version: "3.8"
+
+services:
+  dlq-inspector:
+    image: python:3.12-alpine
+    networks: [AtomicaBRNet]
+    secrets:
+      - rabbitmq_url_evolution_v2
+      - evolution_db_uri_v1
+    environment:
+      DLQ_QUEUE: "wpp2.dlq"
+      DRAIN_INTERVAL_SEC: "300"
+      MAX_DRAIN_PER_PASS: "500"
+      ALERT_THRESHOLD: "5"
+      TZ: "America/Sao_Paulo"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        apk add --no-cache --quiet curl jq >/dev/null 2>&1
+        pip install --quiet pika psycopg2-binary >/dev/null 2>&1
+        log(){ echo "$$(date -u +%Y-%m-%dT%H:%M:%SZ) [dlq-inspector] $$1"; }
+        log "starting v4 (F2-01: payload no INSERT; F2-02: filtro qrcode/connection)"
+        cat > /tmp/drain.py <<'PY'
+        import os, sys, json, hashlib, datetime, pika, psycopg2
+        rmq_uri = open('/run/secrets/rabbitmq_url_evolution_v2').read().strip()
+        pg_uri  = open('/run/secrets/evolution_db_uri_v1').read().strip()
+        rmq_params = pika.URLParameters(rmq_uri)
+        rmq_params.heartbeat = 30
+        rmq_conn = pika.BlockingConnection(rmq_params)
+        ch = rmq_conn.channel()
+        queue = os.environ['DLQ_QUEUE']
+        instance = queue.split('.')[0]
+        max_drain = int(os.environ.get('MAX_DRAIN_PER_PASS', '20'))
+        ch.queue_declare(queue=queue, passive=True)
+        pg = psycopg2.connect(pg_uri)
+        pg.autocommit = False
+        # F2-02: descartar eventos sem valor de persistencia (~91% do volume)
+        DROP_EVENTS = ('qrcode.updated', 'connection.update')
+        acked, nacked, dropped = 0, 0, 0
+        for _ in range(max_drain):
+            m, p, b = ch.basic_get(queue=queue, auto_ack=False)
+            if m is None:
+                break
+            try:
+                payload_str = b.decode('utf-8', errors='replace')
+            except Exception:
+                payload_str = repr(b)
+            rk = m.routing_key or ''
+            if any(e in rk for e in DROP_EVENTS):
+                ch.basic_ack(delivery_tag=m.delivery_tag)
+                dropped += 1
+                continue
+            payload_hash = hashlib.sha256(payload_str.encode('utf-8', errors='replace')).hexdigest()
+            now = datetime.datetime.utcnow()
+            # F2-01: payload e obrigatorio (jsonb NOT NULL) — envolve se JSON invalido
+            try:
+                json.loads(payload_str)
+                payload_json = payload_str
+            except Exception:
+                payload_json = json.dumps({'raw': payload_str})
+            try:
+                cur = pg.cursor()
+                cur.execute("INSERT INTO public._consumer_dlq (routing_key, event_type, instance, payload, payload_hash, last_attempt_at) VALUES (%s,%s,%s,%s::jsonb,%s,%s) ON CONFLICT (payload_hash) DO NOTHING",
+                            (rk, rk, instance, payload_json, payload_hash, now))
+                pg.commit()
+                ch.basic_ack(delivery_tag=m.delivery_tag)
+                acked += 1
+            except Exception as e:
+                pg.rollback()
+                ch.basic_nack(delivery_tag=m.delivery_tag, requeue=True)
+                nacked += 1
+        ch.close(); rmq_conn.close(); pg.close()
+        print(json.dumps({'acked': acked, 'nacked': nacked, 'dropped': dropped}))
+        PY
+        while true; do
+          OUT=$$(python3 /tmp/drain.py 2>&1) || OUT='{"error":"drain_failed"}'
+          log "drain: $$OUT"
+          sleep "$${DRAIN_INTERVAL_SEC}"
+        done
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy: {condition: on-failure, delay: 60s, max_attempts: 0, window: 600s}
+      resources: {limits: {memory: 256M, cpus: "0.5"}}
+      labels:
+        - com.atomicabr.tier=disposable
+        - com.atomicabr.pause-order=7
+        - com.atomicabr.pause-safe=true
+        - com.atomicabr.audit=F2-01-F2-02-2026-08-05
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+
+secrets:
+  rabbitmq_url_evolution_v2: {external: true}
+  evolution_db_uri_v1:       {external: true}
+
+networks:
+  AtomicaBRNet: {external: true, name: AtomicaBRNet}
