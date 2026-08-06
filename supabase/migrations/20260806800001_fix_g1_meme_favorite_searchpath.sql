@@ -10,7 +10,7 @@
 --   "zapp, auth, extensions" em vez de 3 schemas separados.
 --
 --   Confirmado via auditoria Agente 3 (2026-08-06):
---     proconfig: ["search_path=\"zapp, auth, extensions\""]  ← ERRADO
+--     proconfig: ["search_path=\"zapp, auth, extensions\""]	← ERRADO
 --
 --   Impacto: auth.uid() e extensões ficam inacessíveis por nome não-qualificado.
 --   Na prática a função opera corretamente apenas porque todas as refs ao schema

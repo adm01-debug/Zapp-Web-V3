@@ -80,31 +80,31 @@ async function fetchMessageDiagnostics(): Promise<MessageDiagnostic> {
     { count: pendingCount },
   ] = await Promise.all([
     dbFrom('messages')
-      .select('*', { count: 'exact', head: true })
+      .select('*', { count: 'estimated', head: true })
       .gte('created_at', since)
       .eq('sender', 'agent'),
     dbFrom('messages')
-      .select('*', { count: 'exact', head: true })
+      .select('*', { count: 'estimated', head: true })
       .gte('created_at', since)
       .eq('sender', 'agent')
       .eq('status', 'sent'),
     dbFrom('messages')
-      .select('*', { count: 'exact', head: true })
+      .select('*', { count: 'estimated', head: true })
       .gte('created_at', since)
       .eq('sender', 'agent')
       .eq('status', 'delivered'),
     dbFrom('messages')
-      .select('*', { count: 'exact', head: true })
+      .select('*', { count: 'estimated', head: true })
       .gte('created_at', since)
       .eq('sender', 'agent')
       .eq('status', 'read'),
     dbFrom('messages')
-      .select('*', { count: 'exact', head: true })
+      .select('*', { count: 'estimated', head: true })
       .gte('created_at', since)
       .eq('sender', 'agent')
       .eq('status', 'failed'),
     dbFrom('messages')
-      .select('*', { count: 'exact', head: true })
+      .select('*', { count: 'estimated', head: true })
       .gte('created_at', since)
       .eq('sender', 'agent')
       .eq('status', 'sending'),
@@ -170,7 +170,7 @@ async function fetchMessageDiagnostics(): Promise<MessageDiagnostic> {
 async function fetchSystemHealth(): Promise<SystemHealth> {
   const dbStart = performance.now();
   const { count: contactsCount } = await dbFrom('contacts').select('*', {
-    count: 'exact',
+    count: 'estimated',
     head: true,
   });
   const dbLatency = Math.round(performance.now() - dbStart);
@@ -180,7 +180,7 @@ async function fetchSystemHealth(): Promise<SystemHealth> {
   const storageLatency = Math.round(performance.now() - storageStart);
 
   const { count: messagesCount } = await dbFrom('messages').select('*', {
-    count: 'exact',
+    count: 'estimated', // perf FIX 2026-08-06: evita full-scan 14s em 67k rows
     head: true,
   });
   const { count: connectionsCount } = await supabase
