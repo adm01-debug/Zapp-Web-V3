@@ -25,12 +25,12 @@
 | **Schema Evolution API** | `evo` |
 | **Schema public** | 1 tabela interna Supabase + 511 views proxy |
 
-### Schemas e Tabelas (auditado 2026-08-04 — contagens do DB de produção)
+### Schemas e Tabelas (auditado 2026-08-06 — contagens do DB de produção)
 
 | Schema | Base Tables | Views | RLS | Descrição |
 |--------|-------------|-------|-----|-----------|
-| **`zapp`** | **321** | **380** | 100% | Todas as tabelas da aplicação |
-| **`evo`** | **172** | — | 100% | Tabelas da Evolution API (WhatsApp) |
+| **`zapp`** | **323** | **380** | 100% | Todas as tabelas da aplicação |
+| **`evo`** | **143** | — | 100% | Tabelas da Evolution API (WhatsApp) |
 | `auth` | 21 | — | — | Auth GoTrue do Supabase |
 | `bpm` | 41 | — | — | BPM/workflows |
 | `email_app` | 33 | — | — | Integração Gmail |
@@ -39,6 +39,11 @@
 | `financeiro` | 16 | — | — | Módulo financeiro |
 | `vendas` | 13 | — | — | Módulo vendas |
 | `ops` | 20 | — | — | Operações internas |
+| `artes` | 2 | 1 | — | Artes gráficas e design |
+| `graveyard` | 0 | — | — | Schema arquivado (dados legados) |
+| `logistica` | 3 | — | — | Logística e expedição |
+| `monitoring` | 1 | 13 | — | Monitoramento e métricas do sistema |
+| `parity_audit` | 2 | — | — | Auditoria de paridade de dados entre schemas |
 | `public` | 1¹ | 511² | — | NÃO usar diretamente |
 
 > ¹ `public._wal_slot_guard_events` — tabela interna do Supabase (WAL slot guard), não é tabela de aplicação.
@@ -67,7 +72,7 @@
 
 | Tabela | Função |
 |--------|--------|
-| `profiles` | Usuários da plataforma (17 registros) |
+| `profiles` | Usuários da plataforma (19 registros) |
 | `workspaces` | Workspaces/tenants |
 | `workspace_members` | Membros por workspace (15) |
 | `whatsapp_connections` | Conexões WA (3 ativas) |
@@ -88,16 +93,21 @@
 |--------|--------|
 | `evolution_messages` | Raiz particionada de mensagens (25 partições por instância) |
 | `evolution_contacts` | Contatos da Evolution API (20.563, 18 MB) |
-| `evolution_conversations` | Raiz particionada de conversas (25 partições) |
+| `evolution_conversations` | Raiz particionada de conversas (13 partições — auditado 2026-08-06) |
 | `evolution_webhook_events_v2_*` | Webhooks particionados por mês (2026-03 a 2027-06 + default) |
 | `evolution_media` | Mídias (23.366, 10 MB) |
 | `evolution_whatsapp_status` | Status WA (14.789, 10 MB) |
 
-**Partições de `evolution_messages` (25 partições por instância):**
-`wpp2`, `wpp2_archive`, `artes`, `comercial_01`–`comercial_15`, `compras`, `default`, `financeiro`, `gravacao`, `logistica`, `marketing`
+**Partições de `evolution_messages` (14 partições — confirmado via `pg_inherits` em 2026-08-06):**
+`wpp2`, `comercial_01`–`comercial_08`, `compras`, `default`, `financeiro`, `logistica`, `marketing`
+
+**Partições de `evolution_conversations` (13 partições — confirmado via `pg_inherits` em 2026-08-06):**
+`wpp2`, `comercial_01`–`comercial_07`, `compras`, `default`, `financeiro`, `logistica`, `marketing`
+
+> **Nota:** `evo.evolution_messages_wpp2_archive` é uma **tabela standalone regular** (`relkind='r'`), NÃO uma partição — não aparece em `pg_inherits`. Não confundir com as partições acima.
 
 > `evolution_messages` e `evolution_conversations` são **tabelas raiz particionadas** (relkind='p' no evo schema).
-> Os dados ficam nas partições por instância. No schema `zapp`, `evolution_messages` existe como
+> Os dados ficam nas partições listadas acima. No schema `zapp`, `evolution_messages` existe como
 > **view auto-updatable** (security_invoker=on) que aponta para a raiz no schema `evo`.
 > Para queries SELECT, tanto a raiz quanto as partições funcionam.
 > Para **Realtime**, sempre use a raiz (regra 4 acima).
@@ -105,7 +115,7 @@
 ### Storage Buckets (13 buckets em produção)
 
 | Bucket | Público | Limite | Notas |
-|--------|---------|--------|-------|
+|--------|---------|--------|---------|
 | `audio-memes` | não | 5 MB | |
 | `audio-messages` | **sim** | — | **LEITURA pública** via `/storage/v1/object/public/` — UPLOAD requer autenticação. `allowed_mime_types: [ogg,webm,mpeg,mp3,aac,mp4]`. |
 | `avatars` | sim | 5 MB | |
@@ -120,12 +130,14 @@
 | `team-chat-files` | não | — | |
 | `whatsapp-media` | não | — | |
 
+> **Cron jobs ativos:** 151 jobs em `cron.job` (pg_cron — auditado 2026-08-06)
+
 ---
 
 ## Bugs Abertos
 
 | ID | Componente | Problema | Severidade | Próximo Passo |
-|----|-----------|----------|-----------|--------------|
+|----|-----------|----------|-----------|---------------|
 | BUG-C | n8n | FK constraint violada em `workflow_history` | 🟠 Alto | Investigar DB n8n + FK cascades |
 | BUG-D | Edge Function | `POST /rest/v1/contacts` retorna 404 | 🟠 Alto | Verificar handler da edge function |
 
@@ -139,7 +151,7 @@ Estas funções existem como stubs em `supabase/migrations/20260717000002_create
 Todas fazem `RAISE EXCEPTION P0001` exceto onde indicado. **Não implementar como tabelas** — requerem Edge Functions.
 
 | RPC | Comportamento do Stub | Implementação Real |
-|-----|-----------------------|-------------------|
+|-----|-----------------------|--------------------|
 | `initiate_gmail_oauth` | RAISE P0001 | Edge Function OAuth Google |
 | `complete_gmail_oauth` | RAISE P0001 | Edge Function OAuth callback |
 | `sync_to_crm` | RAISE P0001 | Edge Function + API CRM |
@@ -216,6 +228,10 @@ O repositório possui um **grafo de conhecimento** em `graphify-out/` (Apache 2.
 | `infra/backup/README.md` | Backup & restore procedure |
 | `infra/evolution/SETTINGS.md` | Configs Evolution wpp2 |
 | `docs/QA_REPORT_2026-07-22.md` | QA Report completo (22/07) |
+| `docs/audit-2026-08-06/EXECUTIVE_SUMMARY.md` | Sumário executivo da auditoria container × Supabase (2026-08-06) |
+| `docs/audit-2026-08-06/RECONCILIATION_MATRIX.md` | Matriz completa de reconciliação (40 checks, 8 dimensões) |
+| `docs/audit-2026-08-06/reconciliation.json` | Achados da auditoria em formato estruturado |
+| `docs/audit-2026-08-06/VALIDATION_PLAN_100_STEPS.md` | Plano de validação — 100 etapas da auditoria |
 
 ---
 

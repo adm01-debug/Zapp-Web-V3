@@ -146,6 +146,103 @@ Auditoria da Evolution API v2.3.7 contra documentação oficial. 300+ cenários 
 
 ---
 
+## Sessão 2026-08-05 — Auditoria Pós-Faxina Portainer (5 Agentes Especializados)
+
+### Contexto
+Auditoria exaustiva da faxina Portainer realizada em 2026-08-05. 5 agentes paralelos analisaram
+CI/CD pipeline, stack files, housekeeping scripts, network config e failure modes.
+
+### Incidente Registrado — 2026-08-05
+
+| Componente | Evento | Root Cause | Resolução |
+|---|---|---|---|
+| Docker Swarm VPS | Imagem de rollback destruída | `docker image prune -a` removeu imagens tagueadas `production-<sha>` (não apenas dangling) | `housekeeping.sh` fixado para usar apenas `docker image prune -f` (sem `-a`); v2.3 usa `ensure_ref_tags` |
+| GHCR | ~1,19 GB de imagens órfãs acumuladas | Deploy anterior com `production-latest` gerava dangling a cada CI run | Substituído por tag SHA imutável no stack Swarm; `production-latest` apenas como referência externa |
+
+### Correções Aplicadas (2026-08-05)
+
+| # | Arquivo | Gap | Fix | PR |
+|---|---|---|---|---|
+| INF-01 | `infra/stacks/zapp-web-prod.yml` | `rollback_config` ausente | Adicionado `order: start-first`, `monitor: 60s`, `failure_action: continue` | #866 |
+| INF-02 | `docs/DEPLOY_PRODUCAO.md` | Rede `atomicabr` (errada) vs `AtomicaBRNet` | Corrigido para `AtomicaBRNet`; `network create` → `network inspect` com erro se ausente | #866 |
+| INF-03 | `infra/scripts/housekeeping.sh` | Referência a `v2.2` (não existe) | Corrigido para `v2.3`; `docker builder prune -f` → `--filter until=24h` | #866 |
+| INF-04 | `docs/RUNBOOK_DISASTER_RECOVERY.md` | Referência a `v2.2` (não existe) | Corrigido para `v2.3` | #866 |
+| INF-05 | `infra/runbooks/OPERATIONS.md` | Referência a `v2.2`; rollback sem `tag@digest`; janela de rollback não documentada | v2.3; padrão `tag@digest` adicionado; aviso timing gap `monitor(60s) < 120s unhealthy` | #866 |
+| CI-01 | `.github/workflows/deploy-vps.yml` | Permissão `actions: write` desnecessária | Removida | #866 |
+| CI-02 | `.github/workflows/deploy-vps.yml` | `VITE_SUPABASE_URL` com fallback hardcoded | Removido fallback; Preflight já garante via `exit 1` | #866 |
+| CI-03 | `.github/workflows/deploy-vps.yml` | `sleep 20 < start_period 30s` = HC falso positivo | `sleep 20` → `sleep 45` | #866 |
+| CI-04 | `.github/workflows/deploy-vps.yml` e stack | `rollback_config` sem `failure_action` explícito | `failure_action: continue` adicionado (evita `pause` default que deixa serviço em estado inconsistente) | #866 |
+
+### Gaps Identificados Mas Não Corrigidos (backlog)
+
+| # | Gap | Risco | Ação Recomendada |
+|---|---|---|---|
+| GAP-I | Stack ID `157` hardcoded no CI | Médio — falha silenciosa se stack mudar | Adicionar secret `PORTAINER_STACK_ID` |
+| GAP-II | `zapp-health-guard` (stack 165) não versionado no repo | Médio — perda em rebuild | Adicionar `infra/stacks/zapp-health-guard.yml` |
+| GAP-III | GHCR offline durante deploy = rollback falha | Alto — requer intervenção manual com digest pré-pullado | Documentado em OPERATIONS.md (workaround `tag@digest`) |
+
+---
+
+## Sessão 2026-08-06 — Auditoria Exaustiva Evolution API + FIX-01 (5 Agentes Especializados)
+
+### Contexto
+Continuação da auditoria da Evolution API iniciada na sessão anterior (PR #885).
+5 agentes especializados executaram 78 testes em produção. Relatório completo: `docs/AUDIT_REPORT_2026-08-06.md`.
+
+### Correção Aplicada — FIX-01
+
+| Migration | Timestamp DB | Conteúdo | Status |
+|-----------|-------------|----------|--------|
+| `20260806180000_fix_wa_rpc_execute_grants.sql` | 2026-08-06T10:31:31.179Z | GRANT EXECUTE para 4 RPCs WhatsApp sem acesso para `authenticated` | ✅ Aplicada |
+
+**RPCs corrigidas (todas SECURITY DEFINER com search_path fixo):**
+- `zapp.rpc_instance_stats(text)` ✅
+- `zapp.rpc_resolve_whatsapp_instance(uuid)` ✅
+- `zapp.rpc_resolve_instance_by_phone(text)` ✅
+- `zapp.get_connection_instance(uuid)` ✅
+
+### Documentação Criada/Corrigida
+
+| Arquivo | Ação | Motivo |
+|---------|------|--------|
+| `VALIDATION_PLAN_50_STEPS.md` | Corrigido: 50/50 → 41/50 (82%) | Tabela de progresso estava inflada incorretamente |
+| `docs/AUDIT_REPORT_2026-08-06.md` | Criado | Relatório síntese dos 5 agentes (78 testes) |
+| `FEATURE_REGISTRY.md` | Criado (sessão anterior) | Inventário de 175 recursos em 15 domínios |
+| `feature_registry.json` | Criado (sessão anterior) | Registro estruturado com FIX-01 documentado |
+| `feature_registry.csv` | Criado (sessão anterior) | Export tabular do inventário |
+| `docs/CHANGELOG_SESSIONS.md` | Atualizado | Esta entrada |
+
+### Resultados por Agente (78 testes totais)
+
+| Agente | Domínio | ✅ PASS | ⚠️ WARN | ❌ FAIL | Veredicto |
+|--------|---------|--------|---------|--------|----------|
+| A1 | RPC / Privilégios | 10 | 2 | 0 | Aprovado Com Ressalvas |
+| A2 | RLS / Segurança multi-tenant | 13 | 3 | 2 | Reprovado Parcial |
+| A3 | Realtime / Schema isolation | 13 | 0 | 0 | **Aprovado** ✅ |
+| A4 | Feature Registry / Docs | 11 | 3 | 1 | Aprovado Com Ressalvas |
+| A5 | Integridade de migrations | 14 | 2 | 4 | Reprovado Parcial |
+| **TOTAL** | | **61** | **10** | **7** | ⚠️ **Aprovado Com Ressalvas** |
+
+### Achados Críticos Identificados (pré-existentes)
+
+| Severidade | Achado | Ação Necessária |
+|-----------|--------|----------------|
+| 🔴 CRÍTICO | Mismatch canonical_schema filesystem vs DB | Reconciliar antes do próximo CI/CD |
+| 🔴 CRÍTICO | 17-22 migrations em prod sem arquivo .sql | Reconstruir versões |
+| 🔴 CRÍTICO | 3 tabelas com RLS sem policies (dados bloqueados) | Criar policies urgentemente |
+| 🔴 ALTO | `email_attachments_unique_constraint` não aplicada em prod | `supabase db push` controlado |
+| 🔴 ALTO | `revoke_anon_contract_inventory` não aplicada | `supabase db push` controlado |
+| 🟠 MÉDIO | 48 políticas USING(true) sem filtro workspace | Adicionar workspace_id filter |
+| 🟠 MÉDIO | 40+ RPCs sem GRANT EXECUTE TO authenticated | Auditoria de grants pendente |
+
+### Veredicto Final
+
+> **⚠️ APROVADO COM RESSALVAS CRÍTICAS**  
+> FIX-01 verificada e ativa em produção. Realtime 100% correto (13/13). RLS coverage 100%.  
+> Problemas críticos pré-existentes requerem atenção antes do próximo deploy automatizado.
+
+---
+
 ## Histórico Completo de Bugs Resolvidos
 
 | ID | Arquivo | Problema | Migração/Fix |
@@ -203,3 +300,156 @@ Auditoria da Evolution API v2.3.7 contra documentação oficial. 300+ cenários 
 | DB-BUG-14 | `zapp.rpc_dlq_log_item_action` | 2 overloads inseguros gravando em tabela errada | DB fix |
 | DB-BUG-15 | `zapp.rpc_dlq_log_reprocess_*` | `search_path` inseguro com schemas múltiplos | DB fix |
 | DB-BUG-16 | `zapp.search_contacts_cursor` | `sort_direction = 'asc'` case-sensitive + injetável | DB fix |
+
+---
+
+## Sessão 2026-08-06 — Auditoria Evolution API (A-5b, A-8, Security Gate)
+
+### Contexto
+Continuação da auditoria Evolution API iniciada em 2026-08-05. Branch de trabalho:
+`claude/evolution-api-audit-ma43rh`. Três frentes trabalhadas nesta sessão.
+
+### A-5b (P0) — `cron.max_running_jobs=6` Ativado
+
+| Item | Detalhe | Status |
+|---|---|---|
+| GUC `cron.max_running_jobs` | Configurado via `ALTER SYSTEM SET` em sessão anterior; `pending_restart=t` impedia ativação | ✅ |
+| Restart `supabase_db.1` | Executado via Portainer API; novo container `f647a389e38f` | ✅ |
+| Verificação pós-restart | `SELECT name, setting, pending_restart FROM pg_settings WHERE name = 'cron.max_running_jobs'` → `setting=6`, `pending_restart=f` | ✅ |
+| Boot confirmado | `pg_postmaster_start_time`: 2026-08-06 07:38:56 UTC-3 | ✅ |
+
+**Impacto:** pg_cron agora executa no máximo 6 jobs concorrentes (antes: 32), evitando tempestade
+de conexões em picos de cron jobs simultâneos.
+
+### A-8 (P2) — Data Quality: `patch_mode` + `evo.v_logpatch_health`
+
+| Item | Migração | Ação | PR |
+|---|---|---|---|
+| Coluna `patch_mode TEXT` em `evo.evolution_logpatch_audit` | `20260806173000_rb2_a8_logpatch_patch_mode.sql` | `ADD COLUMN IF NOT EXISTS patch_mode TEXT NOT NULL DEFAULT 'build-time' CHECK (...)` | #877 |
+| Update de registros existentes | `20260806173000` | `UPDATE ... SET patch_mode='build-time' WHERE patch_mode IS DISTINCT FROM 'build-time'` | #877 |
+| View `evo.v_logpatch_health` atualizada | `20260806173000` | Semântica de `is_healthy` corrigida por `patch_mode`: build-time → `logpatch_status='ok'`; runtime → `t1_ok AND...AND t5_ok AND status='ok'` | #877 |
+| FIX: `security_invoker=on` ausente | `20260806180000_fix_v_logpatch_health_security_invoker.sql` | `CREATE OR REPLACE VIEW evo.v_logpatch_health WITH (security_invoker = on)` | #877 |
+| COMMENTs de coluna | `20260806173000` | Documentados `t1_ok`–`t5_ok` como "N/A em build-time por design" | #877 |
+
+**Contexto:** Os patches T1–T6 são aplicados em `BUILD-TIME` (Dockerfile `VERIFY` fail-closed).
+No modo build-time, `t1_ok`–`t5_ok` são sempre `false` por design (sem runtime check),
+e isso era incorretamente interpretado como "patches ausentes". A coluna `patch_mode`
+e a lógica `CASE WHEN` na view corrigem essa semântica.
+
+**`docker-entrypoint.sh` auditado:** Confirmado que envia `patch_mode: "build-time"` na
+auditoria de boot (POST REST → `evo.evolution_logpatch_audit`). Sem execução de `logpatch.cjs`.
+
+### D-8 (P0) — Gate CI `security-invoker-gate.yml` ✅ RESOLVIDO
+
+| Item | Root Cause | Status |
+|---|---|---|
+| `ZAPP_META_TOKEN` GitHub Actions secret | JWT `service_role` rotacionado em 2026-08-05 (`supabase_service_key_v1/v2` → `supabase_service_key_v3`); secret do GitHub não foi atualizado | ✅ **RESOLVIDO** — admin atualizou o secret em 2026-08-06 |
+| D-8 step "Verify security audit via evo.v_security_audit" | `evo.v_security_audit` → `warning_rows = 0` (todos os objetos `✓ bloqueado`) | ✅ |
+| Steps 2 e 3 (security_invoker, anon-functions) | Passando após atualização do token | ✅ |
+
+**Validação pós-resolução (2026-08-06):**
+- `psql` direto em `supabase_db.1`: `SELECT count(*) FROM evo.v_security_audit WHERE status LIKE '%⚠%'` → `warning_rows = 0`
+- CI `workflow_dispatch` → Run ID `31095278267` → `completed/success` (todos os 5 steps verdes, 9 s)
+- Commit de fix: `b23b3ab` — `fix(ci): gate D-8 aceita count sem aspas (postgres-meta devolve [{"count":0}]) + workflow_dispatch`
+
+### Plano de Validação 50 Etapas — PRs Desta Sessão
+
+| PR | Título | Commits | Status |
+|---|---|---|---|
+| #877 | `fix(evo): auditoria Evolution API — A-8 data quality, OCI_DIGEST e plano de validação 50 etapas` | `09d49f8` | ✅ Merged to main |
+| #878 | `fix(db): auditoria PostgreSQL — GRANT e plano de validação 50 etapas` | `b8d9638` | ✅ Merged |
+| #879 | `fix(security): adiciona ownership guard em fn_toggle_user_meme_favorite` | `0a1fc36` | ✅ Merged |
+| #880 | `docs(infra): auditoria 50 etapas Portainer/Zapp + correções GAP-1/2/5` | `56a1fb2` | ✅ Merged |
+
+### Pendências Pós-Sessão (2026-08-06)
+
+| Item | Prioridade | Ação Necessária |
+|---|---|---|
+| ~~`ZAPP_META_TOKEN` update~~ | ~~P0~~ | ~~Admin atualiza GitHub Secret com `supabase_service_key_v3`~~ → **✅ RESOLVIDO 2026-08-06** |
+| A-8: `OCI_DIGEST` env var | P2 | Injetar `OCI_DIGEST: "{{.Service.Image}}"` no docker-compose/stack `evolution-api-custom` |
+| B-4/B-5: Retenção PG14 | P1 | `"Message"` (432 MB) e `evolution_webhook_events` (107 MB) |
+| B-7: Reconciliação PG14 ↔ PG15 | P1 | Job periódico de reconciliação |
+| B-2: Evolution 2.3.7 → 2.4.x | P2 | Bloqueado até B-1 (imagem custom) confirmado |
+| C-7: DLQs duplicadas em `evo` | P2 | Consolidar blacklists e DLQs redundantes |
+| C-8: ~50 tabelas vazias em `evo` | P2 | Inventário keep/deprecate/drop |
+| C-11: Crons redundantes | P2 | Consolidar jobs de retenção |
+| D-2: Restore test | P3 | Testar procedimento de backup restore |
+| D-3: Health dashboard | P3 | Dashboard unificado |
+
+---
+
+## Sessão 2026-08-06 (continuação) — Auditoria Exaustiva 5 Agentes + Hardening
+
+**Branch:** `claude/evolution-api-audit-6ly46n` (reset a partir de main após PR #897 merged)
+
+### PRs Mergeados (auditoria exaustiva pós-PR #892)
+
+| PR | Título resumido | Migrations | Status |
+|---|---|---|---|
+| #897 | `fix(security): CRITICAL-1 store_reset_token REVOKE + race condition audio_meme_favorites` | 20260806200100, 20260806300000, 20260806600000, 20260806700000 | ✅ Merged |
+| #899 | `fix(security): re-validação adversarial FASE 2 — hardening pós-P0` | — | ✅ Merged |
+| #900 | `fix(security): fn_verify_alert_delivery v7 + search_path guardrails` | 20260806100001 | ✅ Merged |
+| #901 | `fix(ci): GHCR pipeline hardening — imagem custom Evolution` | — | ✅ Merged |
+| #902 | `fix(db): reconciliação filesystem vs DB — 47 gaps de policy documentados` | — | ✅ Merged |
+| #903 | `fix(db): timestamp collision resolution — 3 migrations com timestamps duplicados` | — | ✅ Merged |
+| #904 | `fix(security): SEC-2/SEC-3/SEC-4 guards + RLS sticker_favorites + G1-B search_path` | 20260806800000 (×3), 20260806900000, 20260806950000 | ✅ Merged |
+
+### Findings da Auditoria Exaustiva (5 Agentes)
+
+#### SEC-2 (P0 — DoS seletivo via idempotency poisoning) ✅ RESOLVIDO em PR #904
+- `acquire_idempotency_lock`, `record_processed_request`, `check_duplicate_request`, `record_ai_metrics` tinham `GRANT EXECUTE TO authenticated` sem guard `auth.uid()`.
+- A UNIQUE constraint em `processed_requests` era em `(request_id, action)` sem `user_id` → qualquer autenticado podia bloquear pagamento/ação de vítima por 5 min.
+- **Correção:** `REVOKE EXECUTE FROM authenticated` (funções chamadas apenas pela Edge Function `ai-router` com `service_role` — sem impacto funcional).
+
+#### SEC-3 (P1 — disclosure de agentes visíveis) ✅ RESOLVIDO em PR #904
+- `get_visible_agent_ids(_user_id)` sem guard: qualquer autenticado consultava agentes visíveis para qualquer outro usuário.
+- **Correção:** `AND _user_id IS NOT DISTINCT FROM auth.uid()` em ambos os ramos do UNION.
+
+#### SEC-4 (P1 — disclosure de roles/permissões) ✅ RESOLVIDO em PR #904
+- `has_role(_user_id, _role)` e `user_has_permission(_user_id, _permission_name)` com `GRANT TO authenticated` — enumeração de roles de qualquer usuário.
+- **Correção:** Guard `_user_id IS NOT DISTINCT FROM auth.uid()` adicionado via `AND`, mantendo compatibilidade com RLS policies que chamam `has_role(auth.uid(), ...)`.
+
+#### RLS sticker_favorites ✅ RESOLVIDO em PR #904
+- `sf_delete_own` (USING = true, sem filtro user_id) → qualquer autenticado deletava favoritos alheios.
+- `sf_service_all` (ALL, USING = true) aplicava a `authenticated` (não `service_role`) e anulava `sf_insert_auth`.
+- **Correção:** DROP de `sf_service_all` + recriar `sf_delete_own` com `USING (user_id = auth.uid())`.
+
+#### G1-B (search_path sintaxe incorreta) ✅ RESOLVIDO em PR #904
+- `fn_toggle_user_meme_favorite(uuid, uuid)` em `20260806300000` usou `SET search_path = 'zapp, auth, extensions'` (todos numa string → schema único inválido).
+- **Correção:** `ALTER FUNCTION … SET search_path TO 'zapp', 'auth', 'extensions'`.
+
+### Continuação desta sessão (branch atual)
+
+#### GAP-AUDIT-1 — RLS explícita em `audio_meme_favorites` ✅ NOVO
+
+| Item | Detalhe |
+|---|---|
+| Problema | Policy `auth_own_or_admin` existia apenas no DB de produção (criada em migrations pré-squash) — sem versão no filesystem |
+| Risco | Recrear DB a partir do filesystem deixaria a tabela sem nenhuma policy: `ENABLE ROW LEVEL SECURITY` sem policy = bloqueia TUDO |
+| Correção | `20260806970000_explicit_rls_audio_meme_favorites.sql` — DROP POLICY IF EXISTS + CREATE POLICY idempotente |
+| Política | ALL, authenticated, USING/WITH CHECK: `user_id = auth.uid() OR zapp.is_admin_or_supervisor()` |
+
+#### BUG CRÍTICO — `fn_toggle_user_meme_favorite(uuid, uuid)` regressão em PR #904 ✅ NOVO
+
+| Item | Detalhe |
+|---|---|
+| Problema | `20260806800000_fix_g1b_meme_favorite_searchpath.sql` foi aplicado à produção com dois bugs: (1) tabela `zapp.user_meme_favorites` não existe, (2) guard IDOR removido |
+| Impacto | Função **quebrada em runtime** — qualquer chamada ao overload 2-argumento retornava erro 500; se tabela existisse, IDOR estaria presente |
+| Ordem de execução | `_fix_g1_` (ALTER FUNCTION, correto) → `_fix_g1b_` (CREATE OR REPLACE, sobrescreve com bugs, vem depois por ordem alfabética) |
+| Correção filesystem | Conteúdo de `20260806800000_fix_g1b_meme_favorite_searchpath.sql` reescrito com tabela certa + guard IDOR |
+| Correção produção | `20260806980000_fix_fn_toggle_meme_favorite_table_and_guard.sql` — aplica versão correta ao DB de produção |
+
+### Migrations desta continuação de sessão
+
+| Arquivo | Tipo | Descrição |
+|---|---|---|
+| `20260806970000_explicit_rls_audio_meme_favorites.sql` | Hardening | RLS policy `auth_own_or_admin` documentada no filesystem (GAP-AUDIT-1) |
+| `20260806980000_fix_fn_toggle_meme_favorite_table_and_guard.sql` | Fix crítico | Restaura guard IDOR + tabela correta em `fn_toggle_user_meme_favorite(uuid, uuid)` |
+
+### Pendências Pós-Sessão (2026-08-06 continuação)
+
+| Item | Prioridade | Ação Necessária |
+|---|---|---|
+| ML-005 falso positivo em `20260806200100` | P3 | Linter lê `GRANT TO PUBLIC` em comentário `--` (rollback); adicionar `-- lint-ignore` ou corrigir linter |
+| ML-008 em migrations pré-2026-08-06 | P2 | Verificar se `20260805000010`, `20260805160000`, `20260805170000`, `20260805183000`, `20260806090000` já foram REVOKE'd em produção |
+| A-8: `OCI_DIGEST` env var | P2 | Injetar `OCI_DIGEST: "{{.Service.Image}}"` no stack `evolution-api-custom` |

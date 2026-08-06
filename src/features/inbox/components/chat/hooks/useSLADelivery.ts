@@ -31,8 +31,16 @@ export function useSLADelivery({ contactId, messages }: UseSLADeliveryProps) {
     enabled: !!contactId && isValidUUID(contactId),
     staleTime: 30_000,
     queryFn: async () => {
+      // Ordena is_active primeiro: com >1 regra (ativa + inativa), o limit(1)
+      // pega a ATIVA mais recente — antes podia cair na inativa e o delivery
+      // silenciosamente caía para os defaults 30/60min (R5 regression review).
       const { data: ruleRows } = await safeClient.from('sla_delivery_rules', (q) =>
-        q.select('*').eq('contact_id', contactId).limit(1)
+        q
+          .select('*')
+          .eq('contact_id', contactId)
+          .order('is_active', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(1)
       );
       return (ruleRows?.[0] ?? null) as SLARule | null;
     },

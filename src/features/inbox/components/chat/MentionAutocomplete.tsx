@@ -27,21 +27,28 @@ function fetchMentionAgents(): Promise<AgentMention[]> {
   }
   if (mentionInflight) return mentionInflight;
 
+  // R4 regression review da onda: o null do in-flight precisa acontecer no
+  // finally da IIFE ASSÍNCRONA (após o await), não num finally síncrono —
+  // dois mounts no mesmo tick compartilham a MESMA promise (dedupe real).
   mentionInflight = (async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, name, email, avatar_url')
-      .limit(50);
-    const agents = (data ?? []) as AgentMention[];
-    mentionCache = { data: agents, fetchedAt: Date.now() };
-    return agents;
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, name, email, avatar_url')
+        .limit(50);
+      const agents = (data ?? []) as AgentMention[];
+      mentionCache = { data: agents, fetchedAt: Date.now() };
+      return agents;
+    } catch (error) {
+      // Nunca rejeita: o caller usa `void fetchAgents()` — rejeição viraria
+      // unhandled rejection (R4).
+      return [];
+    } finally {
+      mentionInflight = null;
+    }
   })();
 
-  try {
-    return mentionInflight;
-  } finally {
-    mentionInflight = null;
-  }
+  return mentionInflight;
 }
 
 interface MentionAutocompleteProps {

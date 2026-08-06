@@ -28,23 +28,26 @@ ROLLBACK: ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-<sha-anterior>  (p
 TAG     : ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-latest          (ponteiro móvel)
 ```
 
-**Digests de referência (2026-08-05, verificados no host — ATUAL = SHA de origin/main, muda a cada merge):**
+**Digests de referência (2026-08-06, auditoria pós-faxina — ATUAL = SHA de origin/main, muda a cada merge):**
 
 | Tag | Papel | sha256 digest |
 |-----|-------|---------------|
-| `production-<sha-atual>` | atual em uso (ex.: `58fb15fe5f77`) | puxada por digest — ver `docker service inspect zapp-web-prod_web --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}'` |
-| `production-988086a2bbbd` | rollback histórico (tagada) | `sha256:c8a722e9124e305287eec51c7839d99679a1ab2fbe0bfd6b33f8e7b28c107626` |
-| `production-fbd04bec303d` | rollback histórico (tagada) | `sha256:67e97210f5b1402f705a26f78b7f9274f02a51186b8e5bd7aa2e584fcb06f108` |
+| `production-48ff944ac770` | Spec atual (em uso pelo serviço) | `sha256:f281c9b154f5d61d7db78dcffdf001aa91604284761c8ea18dd8b42e3b080940` |
+| `production-a68e678b8496` | PreviousSpec (rollback automático — protegida via ignore-versions CI) | `sha256:e23e1c400b2d5b6c5a6c6a417b943f03ea7116366bb81105a9f3898d2d7ef059` |
+| `production-988086a2bbbd` | rollback histórico primário (tagada, protegida) | `sha256:c8a722e9124e305287eec51c7839d99679a1ab2fbe0bfd6b33f8e7b28c107626` |
+| `production-fbd04bec303d` | rollback histórico secundário (tagada, protegida) | `sha256:67e97210f5b1402f705a26f78b7f9274f02a51186b8e5bd7aa2e584fcb06f108` |
 | `production-latest` | ponteiro móvel | aponta para o build mais recente no GHCR |
+
+> **Nota:** a tabela acima é pontual (2026-08-06). Spec atual e PreviousSpec mudam a cada merge em `origin/main`. Para obter os valores atuais: `docker service inspect zapp-web-prod_web --format '{{.Spec.TaskTemplate.ContainerSpec.Image}} | {{.PreviousSpec.TaskTemplate.ContainerSpec.Image}}'`
 
 > Para fixar rollback por digest (100% imutável): `docker service update --image ghcr.io/.../zapp-web@sha256:<digest> zapp-web-prod_web`
 > Para inspecionar digests atuais no host: `docker image ls --digests ghcr.io/adm01-debug/zapp-web-v3/zapp-web`
 
-**Exemplo pontual (2026-08-05 pós-faxina) — NÃO vinculante:** o ATUAL muda a cada merge em `origin/main` (deploys concorrentes avançaram 4 SHAs em horas). **Regra canônica:** ATUAL = SHA de origin/main; keep-set = imagens TAGADAS (nunca apagar); untagged antigas = resíduo de deploy → prune_dangling (o housekeeping v2.3 re-taga Spec+PreviousSpec antes de podar).
-- `production-<sha-atual>` — atual (frequentemente presente como `<none>` em uso, sem tag local — normal; imune ao prune por estar em uso)
-- `production-94c2ca5d3c02` — PREV (PreviousSpec; o v2.3 `ensure_ref_tags` o re-taga a cada ciclo — rollback automático OFFLINE)
-- `production-988086a2bbbd` — rollback primário (tagada, protegida)
-- `production-fbd04bec303d` — rollback secundário (tagada, protegida)
+**Exemplo pontual (2026-08-06 pós-auditoria) — NÃO vinculante:** o ATUAL muda a cada merge em `origin/main`. **Regra canônica:** ATUAL = SHA de origin/main; keep-set = imagens TAGADAS (nunca apagar); untagged antigas = resíduo de deploy → prune_dangling (o housekeeping v2.4.2 re-taga Spec+PreviousSpec antes de podar).
+- `production-48ff944ac770` — Spec atual (em uso; tagada; imune ao prune por estar em uso)
+- `production-a68e678b8496` — PreviousSpec (o v2.4.2 `ensure_ref_tags` re-taga a cada ciclo — rollback automático OFFLINE; protegida via `ignore-versions` no CI)
+- `production-988086a2bbbd` — rollback histórico primário (tagada, protegida via `ignore-versions`)
+- `production-fbd04bec303d` — rollback histórico secundário (tagada, protegida via `ignore-versions`)
 - `production-latest` — ponteiro (pode estar stale no host; GHCR é a fonte da tag)
 
 ## 3. Arquivo de Stack Canônico

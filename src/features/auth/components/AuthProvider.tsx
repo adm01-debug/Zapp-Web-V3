@@ -217,9 +217,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       // Single-flight: joiner aguarda a MESMA promise do iniciador. Se o
       // iniciador foi abortado (refreshAll mais novo), o joiner re-tenta com
-      // o próprio signal — nunca fica sem o fetch.
+      // o próprio signal — nunca fica sem o fetch. Em force=true (ex.: UPDATE
+      // via realtime) NÃO deduplicar: o fetch em voo pode ter começado ANTES
+      // da mudança e retornaria dado velho (R3 regression review da onda).
       const existing = profileInflight.get(userId);
-      if (existing) {
+      if (existing && !force) {
         const outcome = await existing;
         if (outcome !== 'aborted') return;
       }
@@ -284,7 +286,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       const existing = rolesInflight.get(userId);
-      if (existing) {
+      // Mesmo padrão do profile: force=true (realtime/manual) não deduplica
+      // no in-flight — R3 regression review da onda.
+      if (existing && !force) {
         const outcome = await existing;
         if (outcome !== 'aborted') return;
       }
@@ -312,6 +316,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return 'failed';
           }
           const roleNames = userRoles.map((r) => r.role);
+
+          // Guard empty-in (R14 regression review): usuário sem roles não tem
+          // permissões — pular a query role_permissions (evita `role=in.()`).
+          if (roleNames.length === 0) {
+            rolesCache = { userId, roles: [], permissions: [], fetchedAt: Date.now() };
+            setRoles([]);
+            setPermissions([]);
+            return 'ok';
+          }
 
           const { data: userPermissions, error: permError } = await withTimeout(
             Promise.resolve(

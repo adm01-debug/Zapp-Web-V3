@@ -257,6 +257,14 @@ export default tseslint.config(
           message:
             "Não usar schema:'public' no front — usar views zapp (contrato single-DB).",
         },
+        {
+          // information_schema — não acessar diretamente (PGRST_DB_SCHEMAS não inclui
+          // information_schema; além disso, consultas diretas expõem metadados sensíveis
+          // do banco). Usar RPCs: rpc_schema_tables / rpc_schema_columns.
+          selector: "Literal[value='information_schema']",
+          message:
+            "Não acessar information_schema diretamente — usar RPCs rpc_schema_tables/rpc_schema_columns (F-06).",
+        },
       ],
     },
   },

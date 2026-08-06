@@ -88,9 +88,10 @@ docker build \
 2. Vá em **Stacks** → **Add stack**
 3. Cole o conteúdo do [`docker-compose.yml`](docker-compose.yml)
 4. Configure as variáveis de ambiente (ou use o `.env`)
-5. Certifique-se de que a rede `atomicabr` existe:
+5. Certifique-se de que a rede `AtomicaBRNet` existe (rede Swarm overlay compartilhada — **NUNCA recriar manualmente**):
    ```bash
-   docker network create atomicabr 2>/dev/null || true
+   docker network inspect AtomicaBRNet >/dev/null 2>&1 \
+     || echo "ERRO: rede AtomicaBRNet não existe — contacte o operador do Swarm"
    ```
 6. Clique em **Deploy the stack**
 
