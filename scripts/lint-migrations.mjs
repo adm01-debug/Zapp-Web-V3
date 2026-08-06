@@ -18,6 +18,8 @@
  *  ML-006  Missing CREATE SCHEMA IF NOT EXISTS before first DDL in that schema
  *           (only checked when the migration creates a new schema table)
  *  ML-007  Hardcoded http:// URL (internal Docker URLs that must not be stored)
+ *  ML-008  SECURITY DEFINER function with GRANT TO authenticated but no auth.uid()
+ *           guard in the function body — horizontal privilege escalation risk
  */
 
 import { readFileSync, readdirSync, statSync } from 'node:fs';
@@ -150,7 +152,7 @@ for (const filePath of files) {
     // ML-003: Adding app table to realtime via PUBLIC schema
     // ALTER PUBLICATION supabase_realtime ADD TABLE public.<app_table>
     const realtimePublicAdd =
-      /ALTER\s+PUBLICATION\s+\w+\s+ADD\s+TABLE\s+public\.([\w]+)/i;
+      /ALTER\s+PUBLICATION\s+\w+\s+ADD\s+TABLE\s+public\.(\w+)/i;
     const rtMatch = line.match(realtimePublicAdd);
     if (rtMatch) {
       const table = rtMatch[1].toLowerCase();
@@ -165,7 +167,7 @@ for (const filePath of files) {
     }
 
     // ML-004: CREATE TABLE in zapp schema without ENABLE ROW LEVEL SECURITY on nearby lines
-    const createTableZapp = /CREATE\s+TABLE\s+(IF\s+NOT\s+EXISTS\s+)?zapp\.([\w]+)/i;
+    const createTableZapp = /CREATE\s+TABLE\s+(IF\s+NOT\s+EXISTS\s+)?zapp\.(\w+)/i;
     const ctMatch = line.match(createTableZapp);
     if (ctMatch) {
       const tableName = ctMatch[2];
@@ -205,7 +207,7 @@ for (const filePath of files) {
     }
 
     // ML-007: Hardcoded http:// internal URL (Docker internal hostname stored in DB)
-    const httpInternalUrl = /['"]http:\/\/(kong|supabase_storage_tenant|supabase_meta|postgrest|realtime|gotrue|inbucket|studio|imgproxy|logflare)[:/]/i;
+    const httpInternalUrl = /['"']http:\/\/(kong|supabase_storage_tenant|supabase_meta|postgrest|realtime|gotrue|inbucket|studio|imgproxy|logflare)[:/]/i;
     if (httpInternalUrl.test(line)) {
       addViolation(
         filePath, lineNum, 'ML-007',
@@ -213,6 +215,37 @@ for (const filePath of files) {
         `Do not store internal service URLs in migrations — they are unreachable from outside Docker. ` +
         `Use environment variables or the SELFHOSTED_SUPABASE_URL pattern.`
       );
+    }
+  }
+
+  // ML-008: SECURITY DEFINER + GRANT TO authenticated without auth.uid() in body
+  // File-level check: if a file defines a SECURITY DEFINER function and grants EXECUTE
+  // to authenticated without referencing auth.uid() in the function body, any authenticated
+  // user can call the function as any other user (horizontal privilege escalation).
+  {
+    const srcNoComments = src.replace(/--[^\n]*/g, '');
+    const hasSecDefiner = /SECURITY\s+DEFINER/i.test(srcNoComments);
+    const hasGrantAuthenticated = /GRANT\s+EXECUTE\s+ON\s+FUNCTION\b[^;]+\bTO\s+authenticated\b/i.test(src);
+    if (hasSecDefiner && hasGrantAuthenticated) {
+      // Extract dollar-quoted function bodies (between $$ ... $$ or $tag$ ... $tag$)
+      const dollarBlocks = [...src.matchAll(/\$(\w*)\$\s*([\s\S]*?)\s*\$\1\$/g)].map(m => m[2]);
+      const bodyText = dollarBlocks.length > 0 ? dollarBlocks.join('\n') : src;
+      if (!/auth\.uid\s*\(\)/i.test(bodyText) && !/auth\.role\s*\(\)/i.test(bodyText)) {
+        const grantIdx = lines.findIndex(l =>
+          /GRANT\s+EXECUTE\s+ON\s+FUNCTION\b[^;]+\bTO\s+authenticated\b/i.test(l)
+        );
+        const grantLineNum = grantIdx >= 0 ? grantIdx + 1 : 1;
+        const isExempt = /--\s*ignore-lint-ml008/i.test(lines[Math.max(0, grantIdx)] ?? '');
+        if (!isExempt) {
+          addViolation(
+            filePath, grantLineNum, 'ML-008',
+            `Função SECURITY DEFINER com GRANT TO authenticated sem auth.uid() no corpo (${fileName}). ` +
+            `Risco de escalada horizontal de privilégio: qualquer authenticated pode chamar em nome de outro usuário. ` +
+            `Adicionar: IF auth.uid() IS NULL THEN RAISE EXCEPTION 'unauthenticated'; END IF; ` +
+            `ou -- ignore-lint-ml008 se a validação do caller é feita externamente.`
+          );
+        }
+      }
     }
   }
 }
@@ -228,7 +261,7 @@ console.error(`❌ lint-migrations: ${violations.length} violation(s) in ${files
 
 for (const v of violations) {
   // ML-004 and ML-005 are blocking; ML-001, ML-002, ML-003, ML-007 are blocking
-  const isBlocking = ['ML-001', 'ML-002', 'ML-003', 'ML-004', 'ML-005', 'ML-007'].includes(v.rule);
+  const isBlocking = ['ML-001', 'ML-002', 'ML-003', 'ML-004', 'ML-005', 'ML-007', 'ML-008'].includes(v.rule);
   if (isBlocking) hasBlocker = true;
   const prefix = isBlocking ? '🔴' : '🟡';
   console.error(`${prefix} [${v.rule}] ${v.file}:${v.line}`);
