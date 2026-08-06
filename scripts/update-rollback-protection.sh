@@ -30,12 +30,20 @@ if [ ${#SHA12} -lt 12 ]; then
   exit 1
 fi
 
+# Valida que é exatamente hex lowercase [0-9a-f]{12} — evita injeção de caracteres
+# especiais (pipe, espaço, colchete) que quebrariam a regex do ignore-versions no CI.
+if ! printf '%s' "$SHA12" | grep -qE '^[0-9a-f]{12}$'; then
+  echo "Erro: SHA inválido — deve conter exatamente 12 caracteres hexadecimais lowercase [0-9a-f], obtido '${SHA12}'"
+  exit 1
+fi
+
 if [ ! -f "$PROTECTED_FILE" ]; then
   echo "Erro: arquivo não encontrado: $PROTECTED_FILE"
   exit 1
 fi
 
-if grep -qF "$SHA12" "$PROTECTED_FILE" 2>/dev/null; then
+# grep -qxF: -x = linha inteira (evita falso-positivo se SHA aparecer em comentário)
+if grep -qxF "$SHA12" "$PROTECTED_FILE" 2>/dev/null; then
   echo "SHA $SHA12 já está em $PROTECTED_FILE — nenhuma alteração."
   exit 0
 fi
