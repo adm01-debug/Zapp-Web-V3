@@ -114,7 +114,7 @@ Deno.test("Contract: audio-transcribe — audio_url string inválida", () => {
 Deno.test("Contract: audio-transcribe — body null → 422 invalid_json", async () => {
   const r = gate(null);
   assertEquals(r.ok, false);
-  if (!r.ok) {
+  if (r.ok === false) {
     assertEquals(r.response.status, 422);
     const body = await r.response.json() as { code: string };
     assertEquals(body.code, "invalid_json");
@@ -124,7 +124,7 @@ Deno.test("Contract: audio-transcribe — body null → 422 invalid_json", async
 Deno.test("Contract: audio-transcribe — payload sem audio → 422 contract_violation", async () => {
   const r = gate({ action: "transcribe" });
   assertEquals(r.ok, false);
-  if (!r.ok) {
+  if (r.ok === false) {
     assertEquals(r.response.status, 422);
     const body = await r.response.json() as { code: string; contract: string };
     assertEquals(body.code, "contract_violation");
@@ -141,7 +141,7 @@ Deno.test("Contract: audio-transcribe — payload válido → ok (gate passa)", 
 
 Deno.test("Contract: audio-transcribe — index.ts usa parseOrReject com o registro", () => {
   assertMatch(SOURCE, /parseOrReject\('audio-transcribe', CONTRACT_SCHEMAS\['audio-transcribe'\]/);
-  assertMatch(SOURCE, /if \(!parsed\.ok\) return parsed\.response/);
+  assertMatch(SOURCE, /if \(parsed\.ok === false\) return parsed\.response/);
 });
 
 Deno.test("Contract: audio-transcribe — SSRF guard isSafeAudioUrl preservado", () => {

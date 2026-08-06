@@ -111,7 +111,7 @@ Deno.test("Contract: ChatbotL1 — index.ts valida com parseOrReject + CONTRACT_
 });
 
 Deno.test("Contract: ChatbotL1 — falha de validação responde 422 via parsed.response", () => {
-  assertMatchSource(/if \(!parsed\.ok\) return parsed\.response/);
+  assertMatchSource(/if \(parsed\.ok === false\) return parsed\.response/);
 });
 
 function assertMatchSource(pattern: RegExp): void {
