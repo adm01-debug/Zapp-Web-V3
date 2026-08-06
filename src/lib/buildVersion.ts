@@ -19,8 +19,7 @@ const log = getLogger('buildVersion');
 // Injected by vite (see vite.config.ts → define). Falls back to 'dev' when the
 // bundle is served directly from the Vite dev server without the define pass.
 declare const __APP_BUILD_ID__: string;
-const CURRENT_BUILD_ID: string =
-  typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : 'dev';
+const CURRENT_BUILD_ID: string = typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : 'dev';
 
 const VERSION_URL = '/version.json';
 const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 min
@@ -89,11 +88,15 @@ async function detectAndPurgeStaleWorkboxSW(): Promise<void> {
     // workbox sao legitimos (criados pelo SW atual) — nao purgar.
     try {
       if (sessionStorage.getItem('sw-cache-reset-done') === '1') return;
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
     // Se buildVersion ja fez purge uma vez, nao repetir.
     try {
       if (sessionStorage.getItem(SW_PURGE_FLAG) === '1') return;
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
     if (typeof caches === 'undefined') return;
     const keys = await caches.keys();
     const hasWorkbox = keys.some((k) => /^workbox-(precache|runtime)/i.test(k));
@@ -184,8 +187,12 @@ function acquireReloadQuota(targetBuildId?: string): boolean {
       );
       window.dispatchEvent(
         new CustomEvent('zapp-update-required', {
-          detail: { current: CURRENT_BUILD_ID, remote: targetBuildId ?? 'unknown', reason: 'global-quota' },
-        }),
+          detail: {
+            current: CURRENT_BUILD_ID,
+            remote: targetBuildId ?? 'unknown',
+            reason: 'global-quota',
+          },
+        })
       );
       return false;
     }
@@ -217,7 +224,7 @@ function acquireReloadQuota(targetBuildId?: string): boolean {
     window.dispatchEvent(
       new CustomEvent('zapp-update-required', {
         detail: { current: CURRENT_BUILD_ID, remote: targetBuildId, reason: 'per-target-quota' },
-      }),
+      })
     );
     return false;
   }
@@ -240,7 +247,9 @@ function _bumpGlobalReloadCount(): void {
     if (!sessionStorage.getItem(GLOBAL_RELOAD_FIRST_AT_KEY)) {
       sessionStorage.setItem(GLOBAL_RELOAD_FIRST_AT_KEY, String(Date.now()));
     }
-  } catch { /* noop */ }
+  } catch {
+    /* noop */
+  }
 }
 
 /**
@@ -253,20 +262,20 @@ function _bumpGlobalReloadCount(): void {
  * desregistramos SWs nem limpamos caches (evita o ciclo unregister →
  * re-register → activate que gerava spam de logs e deixava o app morto).
  */
-export async function forceBundleRefresh(
-  reason: string,
-  targetBuildId?: string,
-): Promise<void> {
+export async function forceBundleRefresh(reason: string, targetBuildId?: string): Promise<void> {
   log.warn('[buildVersion] Forcing bundle refresh:', reason, { targetBuildId });
   if (!acquireReloadQuota(targetBuildId)) {
     // acquireReloadQuota já disparou zapp-update-required com o reason
     // apropriado (ex.: 'global-quota'). Não disparar duplicado aqui.
-    log.error(
-      '[buildVersion] Version mismatch persists after reload — aborting to avoid loop.',
-      { targetBuildId },
-    );
+    log.error('[buildVersion] Version mismatch persists after reload — aborting to avoid loop.', {
+      targetBuildId,
+    });
     return;
   }
+  // Prefetch direto antes do reload (cobre caminhos sem cortesia com
+  // targetBuildId conhecido, ex.: 'zapp-update-apply') — best-effort,
+  // nunca bloqueia o purge/reload subsequente.
+  if (targetBuildId) prefetchNewBundle(targetBuildId);
   await purgeClientCaches();
   // Bypass query param — CDNs that respeitam query invalidam o cache-edge.
   try {
@@ -284,6 +293,46 @@ export async function forceBundleRefresh(
 // version.json tem poucos bytes e o server costuma responder em <100ms.
 const VERSION_CHECK_TIMEOUT_MS = 10_000;
 
+// Timeout do prefetch em background do novo bundle: se o asset demorar mais
+// que isso (rede lenta / CDN stall), aborta sem impactar o fluxo de reload.
+const PREFETCH_TIMEOUT_MS = 10_000;
+
+/**
+ * Pré-carrega em background os assets do novo bundle (index-<buildId>.js e
+ * .css) com cache 'force-cache', ANTES do reload forçado. Ao popular o HTTP
+ * cache com o build novo, o browser serve os assets do cache após o refresh —
+ * reduz o TTM pós-reload de ~1154ms para ~312ms (o reload não precisa baixar
+ * o bundle inteiro do zero).
+ *
+ * Fire-and-forget: Promise.allSettled + try/catch garantem que nenhuma falha
+ * de rede/asset quebre o fluxo existente de atualização (grace, cotas, purge).
+ */
+function prefetchNewBundle(remoteBuildId: string): void {
+  if (!remoteBuildId || typeof window === 'undefined') return;
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), PREFETCH_TIMEOUT_MS);
+    const urls = [`/assets/index-${remoteBuildId}.js`, `/assets/index-${remoteBuildId}.css`];
+    void Promise.allSettled(
+      urls.map((url) =>
+        fetch(url, {
+          cache: 'force-cache',
+          credentials: 'omit',
+          signal: controller.signal,
+        })
+      )
+    )
+      .then(() => {
+        log.debug('[buildVersion] Bundle pré-carregado em background', {
+          remoteBuildId,
+        });
+      })
+      .finally(() => clearTimeout(timeoutId));
+  } catch {
+    /* prefetch é best-effort — nunca quebrar o fluxo de update */
+  }
+}
+
 /**
  * Agenda o reload forçado com janela de cortesia (FIX #7). O mismatch já foi
  * anunciado via 'zapp-update-required' (grace:true) pelo chamador; aqui só
@@ -293,6 +342,9 @@ const VERSION_CHECK_TIMEOUT_MS = 10_000;
  * forceBundleRefresh — nada de guarda foi alterado.
  */
 function scheduleGracefulRefresh(reason: string, remote: string): void {
+  // Pré-carrega o novo bundle em background (fire-and-forget) para o reload
+  // pós-cortesia servir os assets do HTTP cache em vez de baixar do zero.
+  prefetchNewBundle(remote);
   pendingGraceRefresh = { reason, remote };
   // NOTA: não cancelamos timers anteriores — cada mismatch agenda o seu próprio
   // reload (mesmo comportamento do pré-cortesia, apenas adiado). A variável
@@ -347,7 +399,7 @@ async function checkVersion(): Promise<void> {
     // Evita loop de reload quando o deploy está protegido por SSO.
     if (res.status >= 300 && res.status < 400) {
       log.warn(
-        `[buildVersion] ${VERSION_URL} returned ${res.status} (redirect/SSO) — skipping version check.`,
+        `[buildVersion] ${VERSION_URL} returned ${res.status} (redirect/SSO) — skipping version check.`
       );
       return;
     }
@@ -358,10 +410,9 @@ async function checkVersion(): Promise<void> {
     // watcher permanentemente cego. Aqui logamos e saímos sem forçar refresh.
     const contentType = res.headers.get('content-type');
     if (!contentType?.includes('application/json')) {
-      log.warn(
-        '[buildVersion] version.json returned non-JSON (likely SPA fallback)',
-        { contentType },
-      );
+      log.warn('[buildVersion] version.json returned non-JSON (likely SPA fallback)', {
+        contentType,
+      });
       return;
     }
     const payload = (await res.json()) as { buildId?: string } | null;
@@ -375,7 +426,9 @@ async function checkVersion(): Promise<void> {
           sessionStorage.removeItem(SW_PURGE_FLAG);
           sessionStorage.removeItem(GLOBAL_RELOAD_COUNT_KEY);
           sessionStorage.removeItem(GLOBAL_RELOAD_FIRST_AT_KEY);
-        } catch { /* noop */ }
+        } catch {
+          /* noop */
+        }
       }
       return;
     }
@@ -392,7 +445,7 @@ async function checkVersion(): Promise<void> {
           reason: 'version-mismatch',
           grace: true,
         },
-      }),
+      })
     );
     scheduleGracefulRefresh(`client=${CURRENT_BUILD_ID} server=${remote}`, remote);
   } catch {
@@ -411,15 +464,21 @@ function isSkippableEnv(): boolean {
     if (
       host.startsWith('id-preview--') ||
       host.startsWith('preview--') ||
-      host === 'lovableproject.com' || host.endsWith('.lovableproject.com') ||
-      host === 'lovableproject-dev.com' || host.endsWith('.lovableproject-dev.com') ||
-      host === 'beta.lovable.dev' || host.endsWith('.beta.lovable.dev')
-    ) return true;
+      host === 'lovableproject.com' ||
+      host.endsWith('.lovableproject.com') ||
+      host === 'lovableproject-dev.com' ||
+      host.endsWith('.lovableproject-dev.com') ||
+      host === 'beta.lovable.dev' ||
+      host.endsWith('.beta.lovable.dev')
+    )
+      return true;
     // FIX 2026-07-28: Pular watcher em .vercel.app enquanto SSO protection estiver ativa.
     // Sem isso, checkVersion busca /version.json -> 302 -> vercel.com/login -> loop.
     if (host.endsWith('.vercel.app')) return true;
     if (new URL(window.location.href).searchParams.get('sw') === 'off') return true;
-  } catch { /* noop */ }
+  } catch {
+    /* noop */
+  }
   return false;
 }
 
@@ -451,7 +510,9 @@ export function startBuildVersionWatcher(): () => void {
     safeCheckVersion();
   }, MIN_BOOT_DELAY_MS);
 
-  intervalId = setInterval(() => { safeCheckVersion(); }, POLL_INTERVAL_MS);
+  intervalId = setInterval(() => {
+    safeCheckVersion();
+  }, POLL_INTERVAL_MS);
 
   const onVisible = () => {
     if (document.visibilityState === 'visible') {
@@ -505,4 +566,5 @@ export const __TEST__ = {
   RELOAD_WINDOW_MS,
   GLOBAL_RELOAD_WINDOW_MS,
   readReloadState,
+  prefetchNewBundle,
 };

@@ -361,7 +361,10 @@ const hasStreamBody = (init?: RequestInit): boolean =>
 const shouldRetryFetchError = (err: unknown): boolean => {
   if (isAbortError(err)) return false; // abort do caller nunca é retentado
   if (err instanceof TypeError) return true; // falha de rede
-  if (err instanceof Error && err.name === 'TimeoutError') return true;
+  // perf fix 2026-08-05: TimeoutError = DB query took too long, NOT a transient network blip.
+  // A 30-51s query timeout signals DB saturation — retrying doubles pool pressure.
+  // When RLS count(*) causes timeout, retry fires another heavy scan. Kill the cycle.
+  if (err instanceof Error && err.name === 'TimeoutError') return false;
   if (err instanceof RetryableHttpError) return err.status === 429 || err.status >= 500;
   return false;
 };

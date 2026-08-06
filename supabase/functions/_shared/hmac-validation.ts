@@ -204,9 +204,20 @@ export class WebhookSecurityService {
     // to strict/non-strict handling. A shared secret that is present but wrong
     // is always rejected (the caller claimed auth and failed), regardless of
     // strict mode.
+    //
+    // [C-9 2026-08-06] Shared-secret bearer is DEPRECATED: HMAC (x-webhook-signature)
+    // is the primary auth scheme. This fallback exists only for producers that
+    // cannot sign per-request (Evolution API native webhook ≤2.3.x sends only
+    // static headers). Every acceptance logs a deprecation warning so ops can
+    // track migration and flip EVOLUTION_WEBHOOK_ALLOW_SHARED_SECRET=false to
+    // enforce HMAC-only once all producers sign.
     if (!signatureFound && sharedSecretFound) {
       if (this.secrets.length > 0 && this.sharedSecretMatches(sharedSecret!)) {
-        console.info('[HMAC] Authenticated via shared-secret bearer (x-webhook-secret)');
+        console.warn(
+          '[HMAC][DEPRECATED] Authenticated via plaintext shared-secret bearer (x-webhook-secret). ' +
+          'HMAC (x-webhook-signature) is the primary scheme — migrate this producer and set ' +
+          'EVOLUTION_WEBHOOK_ALLOW_SHARED_SECRET=false to enforce HMAC-only.',
+        );
         return {
           valid: true,
           payload,

@@ -244,10 +244,56 @@ jobs:
         if: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' }}
         run: node scripts/audit-contract.mjs
 
+  # contract-gate: gate de contrato front↔banco BLOQUEANTE em pull_request
+  # (etapa 84 do plano de correção 2026-08-05).
+  # Gap fechado: audit-contract-scan valida só estrutura (--scan-only, sem DB —
+  # não detecta RPC/.from divergentes) e audit-contract-live nunca roda em PR
+  # (único caminho de merge em main). Este job roda o script COMPLETO em PR:
+  # divergência (exit 1) falha o job → test/build (needs) são pulados →
+  # workflow vermelho → merge bloqueado.
+  # Segurança: mesmo guard do audit-contract-live — sem secret o step é pulado
+  # e o job passa (PRs de fork não quebram). Exit 2 (env/conexão indisponível)
+  # vira warning (fail-open, padrão do repo) para o gate não nascer quebrado
+  # (GAP-J da simulação 20260804). Em push o step é pulado (o live cobre).
+  contract-gate:
+    name: Contract gate (front↔DB, bloqueante em PR)
+    runs-on: ubuntu-latest
+    needs: lockfile
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install pg driver (modo pg = ground truth pg_catalog)
+        run: npm install --no-save --no-audit --no-fund pg@8
+
+      - name: Run audit-contract completo (bloqueante)
+        if: github.event_name == 'pull_request'
+        run: |
+          set +e
+          node scripts/audit-contract.mjs
+          status=$?
+          set -e
+          if [ "$status" -eq 2 ]; then
+            echo "::warning title=Contract gate::audit-contract sem ambiente de banco (exit 2) — gate pulado nesta run."
+            exit 0
+          fi
+          exit $status
+
   test:
     name: Unit tests
     runs-on: ubuntu-latest
-    needs: [lockfile, quality, audit-contract-scan]
+    needs: [lockfile, quality, audit-contract-scan, contract-gate]
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -304,7 +350,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lockfile, quality, audit-contract-scan]
+    needs: [lockfile, quality, audit-contract-scan, contract-gate]
     steps:
       - name: Checkout code
         uses: actions/checkout@v7

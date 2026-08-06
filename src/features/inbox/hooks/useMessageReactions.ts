@@ -24,7 +24,7 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
     if (!messageId || options?.disableRealtime) return;
 
     const channel = supabase
-      .channel(`reactions:${messageId}`)
+      .channel(`reactions:${messageId}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         {

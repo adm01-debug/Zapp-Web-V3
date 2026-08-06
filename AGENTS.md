@@ -27,6 +27,13 @@
 4. Rodar em **staging**; comparar contra o baseline. Só então promover para produção.
 5. **Nunca** rodar DDL manual em produção. Nunca commitar direto na `main` (abrir PR).
 
+> **Modelo vigente (DB-as-source, 2026-08):** DDL de produção é aplicado via MCP SQL com
+> migration versionada (`^\d{14}_<nome>.sql` no repo) + registro em
+> `supabase_migrations.schema_migrations`. O **DB é a fonte de verdade** de objetos;
+> os arquivos em `supabase/migrations/` são o registro histórico. Timestamps futuros
+> são permitidos para ordenação (padrão da casa). Reorganizações do diretório de
+> migrations NÃO desaplicam o que já está no DB.
+
 ## Lista "NÃO MEXA" (sem revisão sênior explícita)
 
 - **Partições-filhas** de `evo.evolution_messages` / `evolution_conversations` / `evolution_webhook_events` — criadas por cron (`evo.fn_auto_create_next_partitions`).

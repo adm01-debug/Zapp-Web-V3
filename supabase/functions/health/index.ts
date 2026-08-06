@@ -7,7 +7,7 @@
 //   GET /functions/v1/health          → JSON detalhado
 //   GET /functions/v1/health?probe=1  → texto curto (OK | FAIL)
 
-import { corsHeaders } from 'npm:@supabase/supabase-js@2.49.1/cors';
+import { corsHeaders } from '../_shared/validation.ts';
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { HealthV1Schema } from '../_shared/contract-schemas.ts';

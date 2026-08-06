@@ -40,8 +40,8 @@ cscli bouncers list
 Imagens sem tag foram removidas na faxina Portainer de 2026-08-05 (~1,19 GB recuperados).
 - **NÃO usar** `infra/scripts/housekeeping.sh` para limpeza de imagens tagged — o script
   (`docker image prune -f`, sem `-a`) só remove dangling agora.
-- Para limpeza abrangente de tagged images: usar o stack `docker-housekeeping v2.3`
-  (`docs/infra/docker-housekeeping-v2.3.yml`) que protege `ghcr.io/.../zapp-web`.
+- Para limpeza abrangente de tagged images: usar o stack `docker-housekeeping v2.4`
+  (`docs/infra/docker-housekeeping-v2.4.yml`) que protege `ghcr.io/.../zapp-web`.
 - Ver footprint canônico: `docs/PORTAINER_ZAPP_FOOTPRINT.md`
 
 ## Rollback do zapp-web
@@ -51,20 +51,37 @@ Imagens sem tag foram removidas na faxina Portainer de 2026-08-05 (~1,19 GB recu
 > unhealthy lentamente **não** aciona o rollback automático. Nesses casos, execute o rollback manual abaixo.
 > O `zapp-health-guard` (stack 165) cobre falhas pós-start.
 
-```bash
-# Rollback manual com ref tag@digest (funciona offline — satisfaz pull por digest local)
-# Obter digest da imagem de rollback pré-pullada:
-DIGEST=$(docker images --digests --no-trunc --format '{{.Repository}}:{{.Tag}} {{.Digest}}' \
-  | awk '/production-<sha-anterior>/ {print $2; exit}')
+> **Runbook completo em `docs/PORTAINER_ZAPP_FOOTPRINT.md §4`** (inclui PASSO 0 — salvar ref atual,
+> PASSO 1 — flip com digest, PASSO 2 — validação por UpdateStatus, PASSO 3 — restaurar).
+> Use o procedimento abaixo apenas como referência rápida.
 
-docker service update --detach=false \
+```bash
+# PRÉ-REQUISITO: garantir imagem de rollback disponível localmente
+docker pull ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-<sha-anterior>
+
+# Salvar ref atual ANTES de flipar (o ATUAL pode estar <none> local — puxado por digest)
+REF_ATUAL=$(docker service inspect zapp-web-prod_web --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}')
+echo "$REF_ATUAL" > /tmp/ref_atual.txt
+
+# Flipar serviço para imagem de rollback (usar tag@digest — funciona offline)
+DIGEST=$(docker images --digests --no-trunc --format '{{.Repository}}:{{.Tag}} {{.Digest}}' \
+  | awk '$1 ~ /:production-<sha-anterior>$/ {print $2; exit}')
+timeout 600s docker service update --detach=false \
   --image "ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-<sha-anterior>@${DIGEST}" \
   zapp-web-prod_web
 
-# Validar
+# Validar — gate REAL = UpdateStatus + healthz
 docker service ps zapp-web-prod_web --no-trunc
 docker service inspect zapp-web-prod_web --format '{{.UpdateStatus.State}} — {{.UpdateStatus.Message}}'
-curl -s -o /dev/null -w '%{http_code}' https://zapp.atomicabr.com.br/healthz   # esperado 200
+for i in $(seq 1 6); do
+  CODE=$(curl -s -m 10 -o /dev/null -w '%{http_code}' https://zapp.atomicabr.com.br/healthz)
+  [ "$CODE" = "200" ] && break; sleep 10
+done
+[ "$CODE" = "200" ] || { echo "healthz FALHOU: $CODE"; exit 1; }
+echo "healthz: $CODE — rollback OK"
+
+# Para restaurar para o estado anterior: usar ref salva no passo 0
+timeout 600s docker service update --detach=false --image "$(cat /tmp/ref_atual.txt)" zapp-web-prod_web
 ```
 
 > **Pré-requisito:** imagem de rollback deve estar pré-pullada no host (ver §4 de `docs/PORTAINER_ZAPP_FOOTPRINT.md`).

@@ -1,6 +1,5 @@
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getCorsHeaders, handleCors, redactSecrets } from "../_shared/validation.ts";
-import { timingSafeStringEqual } from "../_shared/auth.ts";
 import { initSentry, captureException } from "../_shared/sentry.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
@@ -38,8 +37,13 @@ const WEBHOOK_SECRETS = (() => {
   return legacy ? [legacy] : [];
 })();
 const STRICT_MODE = (Deno.env.get('EVOLUTION_WEBHOOK_STRICT') ?? 'true').toLowerCase() !== 'false';
+// [C-9 2026-08-06] HMAC (x-webhook-signature) é o esquema PRIMÁRIO. O shared-secret em texto
+// puro (x-webhook-secret) só é aceito como fallback DEPRECATED para produtores que não assinam
+// payload (webhook nativo da Evolution ≤2.3.x envia apenas headers estáticos). Gate para
+// enforcement HMAC-only: EVOLUTION_WEBHOOK_ALLOW_SHARED_SECRET=false (default true).
+const ALLOW_SHARED_SECRET = (Deno.env.get('EVOLUTION_WEBHOOK_ALLOW_SHARED_SECRET') ?? 'true').toLowerCase() !== 'false';
 const validateWebhook = WEBHOOK_SECRETS.length > 0
-  ? createWebhookValidator(WEBHOOK_SECRETS, STRICT_MODE)
+  ? createWebhookValidator(WEBHOOK_SECRETS, STRICT_MODE, ALLOW_SHARED_SECRET)
   : null;
 
 // [PATCH 2026-07-04 registry-guard] So processa eventos de instancias cadastradas em
@@ -96,13 +100,14 @@ Deno.serve(async (req) => {
   // antes mesmo de parsear o body. Cai em 'unknown' se não houver.
   const headerInstance = req.headers.get('x-evolution-instance') || req.headers.get('x-instance') || null;
 
-  // [PATCH 2026-07-03] Auth por secret estatico: Evolution API envia header fixo x-webhook-secret,
-  // nao assina HMAC por payload. Comparacao timing-safe contra os secrets configurados.
-  const __staticSecret = req.headers.get('x-webhook-secret');
-  const __staticSecretOk = __staticSecret !== null && WEBHOOK_SECRETS.some((s) => timingSafeStringEqual(__staticSecret, s));
-  if (__staticSecretOk) {
-    rawBody = await req.text();
-  } else if (validateWebhook) {
+  // [C-9 2026-08-06] Auth padronizada: HMAC-SHA256 (x-webhook-signature) é o esquema PRIMÁRIO.
+  // O validador rejeita qualquer request com assinatura presente porém INVÁLIDA — mesmo que um
+  // x-webhook-secret válido acompanhe (precedência do HMAC: assinatura encontrada manda).
+  // O shared-secret em texto puro (x-webhook-secret, usado pelo webhook nativo da Evolution
+  // ≤2.3.x, que não assina payload) só é aceito como fallback DEPRECATED quando
+  // ALLOW_SHARED_SECRET=true (default), com console.warn de deprecação. Com
+  // EVOLUTION_WEBHOOK_ALLOW_SHARED_SECRET=false, exige HMAC puro.
+  if (validateWebhook) {
     const result = await validateWebhook(req);
     if (!result.valid) {
       console.warn(redactSecrets(`[webhook][${requestId}] rejected: ${result.error ?? 'unknown'} signatureFound=${result.signatureFound}`));
@@ -117,6 +122,10 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: 'unauthorized', reason: result.error ?? 'invalid_signature', requestId }),
         { status: 401, headers: corsHeaders },
       );
+    }
+    if (!result.signatureValid && result.sharedSecretValid) {
+      // Fallback DEPRECATED em uso — loga para acompanhar migração p/ HMAC.
+      console.warn(redactSecrets(`[webhook][${requestId}] DEPRECATED auth: x-webhook-secret (plaintext shared secret) accepted for instance=${headerInstance ?? 'unknown'} — HMAC x-webhook-signature é o padrão; migre o produtor e set EVOLUTION_WEBHOOK_ALLOW_SHARED_SECRET=false`));
     }
     rawBody = result.payload ?? '';
   } else if (STRICT_MODE) {

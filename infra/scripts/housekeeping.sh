@@ -9,8 +9,8 @@ echo "📦 PASSO 1: Remover imagens DANGLING (sem tag, não referenciadas)..."
 # ATENÇÃO: NUNCA usar 'docker image prune -a' aqui — a flag -a remove TODAS as imagens
 # não em uso, incluindo imagens de ROLLBACK tagueadas do zapp-web (ex: production-<sha>).
 # Esse foi o root cause do incidente de 2026-08-05 que destruiu a imagem de rollback.
-# Para limpeza abrangente de imagens tagged, usar o stack docker-housekeeping v2.3
-# (docs/infra/docker-housekeeping-v2.3.yml) que protege ghcr.io/.../zapp-web.
+# Para limpeza abrangente de imagens tagged, usar o stack docker-housekeeping v2.4
+# (docs/infra/docker-housekeeping-v2.4.yml) que protege ghcr.io/.../zapp-web.
 docker image prune -f 2>&1 | tail -3
 
 echo "📦 PASSO 2: Remover containers parados (exit 255 de deploys antigos)..."

@@ -17,7 +17,7 @@ export function useConnectionAlertsPush() {
       if (cancelled || !auth.user) return;
 
       channel = supabase
-        .channel(`connection-alerts-${auth.user.id}`)
+        .channel(`connection-alerts-${auth.user.id}:${Math.random().toString(36).slice(2, 10)}`)
         .on(
           'postgres_changes',
           {

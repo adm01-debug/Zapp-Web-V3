@@ -53,7 +53,7 @@ export function useAudioMessagePlayer({
       filter: `id=eq.${messageId}`,
     });
     const channel = supabase
-      .channel(`transcription-${messageId}`)
+      .channel(`transcription-${messageId}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         {
@@ -84,7 +84,7 @@ export function useAudioMessagePlayer({
   // Realtime subscription for voice conversion status
   useEffect(() => {
     const channel = supabase
-      .channel(`voice-conversion-${messageId}`)
+      .channel(`voice-conversion-${messageId}:${Math.random().toString(36).slice(2, 10)}`)
       .on<VoiceConversionRow>(
         'postgres_changes',
         {

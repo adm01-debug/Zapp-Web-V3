@@ -42,7 +42,7 @@ export function TalkXLiveMonitor({ campaignId }: Props) {
   // Realtime updates for campaign AND recipients
   useEffect(() => {
     const channel = supabase
-      .channel(`talkx-monitor-${campaignId}`)
+      .channel(`talkx-monitor-${campaignId}:${Math.random().toString(36).slice(2, 10)}`)
       .on<TalkXCampaign>(
         'postgres_changes',
         {

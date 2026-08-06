@@ -103,12 +103,14 @@ export function useMessagesCursor({
       // NOTE: usa `supabase.rpc` direto (em vez de `dbList(RPC.listMessagesLite, ...)`)
       // porque precisamos do `.abortSignal()` do PostgrestBuilder — o wrapper `callExtRpc`
       // resolve a Promise antes do builder ser exposto. Caso de uso raro e justificado.
-      const builder = (supabase.rpc as unknown as (
-        fn: string,
-        args: Record<string, unknown>
-      ) => {
-        abortSignal?: (signal: AbortSignal) => Promise<{ data: unknown; error: unknown }>;
-      } & Promise<{ data: unknown; error: unknown }>)('rpc_list_messages_lite', {
+      const builder = (
+        supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>
+        ) => {
+          abortSignal?: (signal: AbortSignal) => Promise<{ data: unknown; error: unknown }>;
+        } & Promise<{ data: unknown; error: unknown }>
+      )('rpc_list_messages_lite', {
         p_remote_jid: remoteJid,
         p_instance: instanceName,
         p_limit: pageSize,
@@ -222,8 +224,10 @@ export function useMessagesCursor({
   useEffect(() => {
     if (!enabled || !remoteJid) return;
 
+    // Topic único por mount (sufixo random) — evita reutilizar instância de
+    // canal já inscrita cujo teardown (removeChannel assíncrono) não terminou.
     const channel = supabase
-      .channel(`evolution_messages:${remoteJid}`)
+      .channel(`evolution_messages:${remoteJid}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         {
@@ -291,6 +295,7 @@ export function useMessagesCursor({
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [enabled, remoteJid]);

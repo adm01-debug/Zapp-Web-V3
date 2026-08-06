@@ -138,7 +138,7 @@ const DEFAULT_MAX_ATTEMPTS = 2;
 const UNREFRESHABLE_MESSAGE_TYPES = new Set([
   'sticker',
   'ephemeral',
-  'ptv',         // view-once video
+  'ptv', // view-once video
   'viewOnce',
   'vcard',
   'contact',
@@ -190,6 +190,10 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
   }, [originalUrl]);
 
   const runRefresh = useCallback(async (): Promise<void> => {
+    // Guard de unmount na entrada: componente desmontado ⇒ nenhum trabalho
+    // roda — nem invoke, nem upsert, nem setState (defesa contra chamadas
+    // stale de onError/retry que sobrevivam ao unmount).
+    if (!mountedRef.current) return;
     if (!enabled || !messageKey || !instanceName) return;
     if (inFlightRef.current) return inFlightRef.current;
 
@@ -217,15 +221,19 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
         const cacheRow = (cacheRows?.[0] ?? null) as { storage_path: string } | null;
 
         if (cacheRow?.storage_path) {
-          log.info(`Media cache hit for ${key}`);
-          // Guard de mounted: o await acima pode ter atravessado unmount.
+          // Guard de mounted: o await acima pode ter atravessado unmount —
+          // checado ANTES do log para nem log.info rodar desmontado.
           if (!mountedRef.current) return;
+          log.info(`Media cache hit for ${key}`);
           setUrl(cacheRow.storage_path);
           setError(null);
           setFailed(false);
           return;
         }
       } catch (e) {
+        // Guard de mounted: o await do hash/select pode ter atravessado
+        // unmount — sem log.warn pós-desmontagem.
+        if (!mountedRef.current) return;
         log.warn('Cache hash check failed, proceeding with API refresh', e);
       }
     }
@@ -255,9 +263,7 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
         // nunca dava hit. Sem originalUrl não há identidade estável → não
         // persiste (evita linhas órfãs com chave volátil).
         try {
-          const hash = originalUrlRef.current
-            ? await buildFileHash(originalUrlRef.current)
-            : null;
+          const hash = originalUrlRef.current ? await buildFileHash(originalUrlRef.current) : null;
           if (hash) {
             await safeClient.from('media_cache', (q) =>
               q.upsert(
@@ -272,7 +278,12 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
             );
           }
         } catch (e) {
-          log.warn('Failed to persist media cache', e);
+          // Guard de mounted: o upsert pode ter atravessado unmount — sem
+          // log.warn pós-desmontagem. (Persistência fire-and-forget segue,
+          // mas silenciosa; o setUrl abaixo já é guardado.)
+          if (mountedRef.current) {
+            log.warn('Failed to persist media cache', e);
+          }
         }
 
         // Guard de mounted: componente desmontado ⇒ nenhum setState roda.

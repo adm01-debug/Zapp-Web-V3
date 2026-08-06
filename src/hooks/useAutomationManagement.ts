@@ -165,14 +165,11 @@ export function useAutomations({
       if (!rules.length) return;
 
       const client = supabase as unknown as SupabaseClient;
-      const { data: msgs, error } = await client.rpc(
-        'rpc_list_messages',
-        {
-          p_remote_jid: remoteJid,
-          p_instance: instanceName,
-          p_limit: 10,
-        }
-      );
+      const { data: msgs, error } = await client.rpc('rpc_list_messages', {
+        p_remote_jid: remoteJid,
+        p_instance: instanceName,
+        p_limit: 10,
+      });
 
       if (error) throw error;
       if (!msgs || !Array.isArray(msgs) || !isMounted.current) return;
@@ -365,9 +362,7 @@ export function useAutomations({
                     : '';
                 if (template) {
                   await safeClient.from('automation_executions', (q) =>
-                    q
-                      .update({ suggestion_text: template, kb_sources: [] })
-                      .eq('id', execId)
+                    q.update({ suggestion_text: template, kb_sources: [] }).eq('id', execId)
                   );
                   log.warn(
                     '[automation] suggest-reply indisponível (edge internal-only) — usando template da regra como sugestão'
@@ -483,7 +478,7 @@ export function useAutomationSuggestions(contactId: string | null) {
   useEffect(() => {
     if (!contactId) return;
     const ch = supabase
-      .channel(`automation-exec-${contactId}`)
+      .channel(`automation-exec-${contactId}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'automation_executions' },
@@ -583,18 +578,16 @@ export function useAutoCloseConversations() {
 
       // Upsert em vez de update: se ainda não existe nenhuma linha de config
       // (tabela vazia), o INSERT cria a config em vez de falhar com "Config not found".
-      const { error } = await supabase
-        .from('auto_close_config')
-        .upsert(
-          {
-            ...updates,
-            // Insert exige inactivity_hours obrigatório — fallback para o valor atual
-            inactivity_hours: updates.inactivity_hours ?? config?.inactivity_hours ?? 0,
-            updated_at: new Date().toISOString(),
-            ...(config?.id ? { id: config.id } : {}),
-          },
-          { onConflict: 'id' }
-        );
+      const { error } = await supabase.from('auto_close_config').upsert(
+        {
+          ...updates,
+          // Insert exige inactivity_hours obrigatório — fallback para o valor atual
+          inactivity_hours: updates.inactivity_hours ?? config?.inactivity_hours ?? 0,
+          updated_at: new Date().toISOString(),
+          ...(config?.id ? { id: config.id } : {}),
+        },
+        { onConflict: 'id' }
+      );
 
       if (error) throw error;
     },

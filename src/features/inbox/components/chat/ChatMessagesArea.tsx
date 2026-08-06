@@ -171,7 +171,7 @@ export const ChatMessagesArea = memo(
       useEffect(() => {
         if (!contactJid) return;
         const channel = supabase
-          .channel(`chat-updates:${contactJid}`)
+          .channel(`chat-updates:${contactJid}:${Math.random().toString(36).slice(2, 10)}`)
           .on(
             'postgres_changes',
             { event: 'UPDATE', schema: 'evo', table: 'evolution_messages' },
