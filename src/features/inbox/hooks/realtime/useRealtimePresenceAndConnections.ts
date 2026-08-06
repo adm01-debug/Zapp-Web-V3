@@ -136,7 +136,7 @@ export function useRealtimePresenceAndConnections(): void {
         document.removeEventListener('visibilitychange', onVisible);
       }
       channel.unsubscribe();
-      supabase.removeChannel(channel);
+      void Promise.resolve(supabase.removeChannel(channel)).catch(() => {});
     };
   }, [queryClient]);
 }

@@ -19,7 +19,7 @@ const log = getLogger('inboxPresetsSync');
 // roda a cada mount da Inbox — o cache evita o refetch repetido. upserts
 // locais atualizam o cache inline.
 const PRESETS_TTL_MS = MODULE_TTL_MS.userPrefs;
-let presetsCache: { data: InboxFilterPreset[]; fetchedAt: number } | null = null;
+let presetsCache: { userId: string; data: InboxFilterPreset[]; fetchedAt: number } | null = null;
 
 export const INBOX_PRESET_ENTITY = 'inbox_filters';
 
@@ -78,7 +78,13 @@ export async function fetchRemoteInboxPresets(): Promise<InboxFilterPreset[] | n
   if (!userId) return null;
 
   // TTL: presets quase-estáticos — evita refetch a cada mount da Inbox.
-  if (presetsCache && Date.now() - presetsCache.fetchedAt < PRESETS_TTL_MS) {
+  // Cache keyed por userId: nunca servir presets de outro usuário no mesmo
+  // browser (vazamento cross-user — R1 da regression review da onda).
+  if (
+    presetsCache &&
+    presetsCache.userId === userId &&
+    Date.now() - presetsCache.fetchedAt < PRESETS_TTL_MS
+  ) {
     return presetsCache.data;
   }
 
@@ -95,7 +101,7 @@ export async function fetchRemoteInboxPresets(): Promise<InboxFilterPreset[] | n
     const presets = ((data ?? []) as SavedFilterRow[])
       .map(fromRow)
       .filter((p): p is InboxFilterPreset => p !== null);
-    presetsCache = { data: presets, fetchedAt: Date.now() };
+    presetsCache = { userId, data: presets, fetchedAt: Date.now() };
     return presets;
   } catch (error) {
     log.warn('Falha ao carregar presets remotos', { error });
@@ -136,9 +142,10 @@ export async function upsertRemoteInboxPreset(
     if (error) throw error;
     const saved = data ? fromRow(data as SavedFilterRow) : null;
     if (saved) {
-      // Mantém o cache coerente com o upsert local.
+      // Mantém o cache coerente com o upsert local (sempre do usuário atual).
       presetsCache = {
-        data: [saved, ...(presetsCache?.data ?? []).filter((p) => p.id !== saved.id)],
+        userId,
+        data: [saved, ...(presetsCache?.userId === userId ? presetsCache.data : []).filter((p) => p.id !== saved.id)],
         fetchedAt: Date.now(),
       };
     }
@@ -161,9 +168,10 @@ export async function deleteRemoteInboxPreset(id: string): Promise<void> {
       .eq('user_id', userId)
       .eq('entity_type', INBOX_PRESET_ENTITY);
     if (error) throw error;
-    // Remove do cache para manter coerência.
-    if (presetsCache) {
+    // Remove do cache para manter coerência (apenas do usuário atual).
+    if (presetsCache?.userId === userId) {
       presetsCache = {
+        userId,
         data: presetsCache.data.filter((p) => p.id !== id),
         fetchedAt: Date.now(),
       };

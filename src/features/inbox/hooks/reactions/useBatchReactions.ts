@@ -36,14 +36,21 @@ export async function fetchReactionsBatch(messageIds: string[]): Promise<Message
     log.warn('rpc_get_reactions_batch lançou exceção; usando fallback .in()', err);
   }
 
-  // Fallback: query direta `.in('message_id', ids)` (1 call)
+  // Fallback: query direta `.in('message_id', ids)` (1 call por chunk de 100 —
+  // URLs >8k com 1000+ ids estourariam o limite do nginx; R11 regression
+  // review da onda).
   if (!rows) {
-    const { data, error } = await supabase
-      .from('message_reactions')
-      .select('*')
-      .in('message_id', messageIds);
-    if (error) throw error;
-    rows = (data ?? []) as MessageReaction[];
+    const CHUNK_SIZE = 100;
+    rows = [];
+    for (let i = 0; i < messageIds.length; i += CHUNK_SIZE) {
+      const chunk = messageIds.slice(i, i + CHUNK_SIZE);
+      const { data, error } = await supabase
+        .from('message_reactions')
+        .select('*')
+        .in('message_id', chunk);
+      if (error) throw error;
+      rows.push(...((data ?? []) as MessageReaction[]));
+    }
   }
 
   // Enriquece com nomes de usuários (1 GET em profiles, com guard se lista vazia)

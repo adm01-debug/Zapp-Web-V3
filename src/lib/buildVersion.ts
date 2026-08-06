@@ -410,8 +410,15 @@ function prefetchNewBundle(remoteBuildId: string): void {
  * forceBundleRefresh — nada de guarda foi alterado.
  */
 function scheduleGracefulRefresh(reason: string, remote: string): void {
-  // Cancela timer anterior — múltiplos mismatches simultâneos (ex: SW_UPDATED +
-  // version.json polling) não devem criar N timers que todos chamam
+  // MESMO alvo já agendado: NÃO cancelar o timer pendente. O poll de 60s
+  // coincide com o deadline da cortesia (ambos 60s a partir do mismatch); se
+  // o poll cancelasse o timer, o reload automático seria adiado para sempre
+  // (livelock: cada poll re-agenda e cancela o anterior).
+  if (pendingGraceRefresh && pendingGraceRefresh.remote === remote) {
+    return;
+  }
+  // Cancela timer anterior — múltiplos mismatches para ALVOS diferentes
+  // (ex: SW_UPDATED + version.json) não devem criar N timers que todos chamam
   // forceBundleRefresh e consomem cota desnecessariamente. O último mismatch vence.
   if (graceTimer) {
     clearTimeout(graceTimer);
@@ -422,6 +429,8 @@ function scheduleGracefulRefresh(reason: string, remote: string): void {
   prefetchNewBundle(remote);
   pendingGraceRefresh = { reason, remote };
   graceTimer = setTimeout(() => {
+    graceTimer = undefined;
+    pendingGraceRefresh = undefined;
     void forceBundleRefresh(reason, remote);
   }, UPDATE_GRACE_MS);
 }

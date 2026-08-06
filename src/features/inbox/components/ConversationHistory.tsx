@@ -89,10 +89,12 @@ export function ConversationHistory({
       ? subDays(new Date(), selectedPeriod.days).getTime()
       : null;
 
-    // Mensagens vêm em ordem ASC → as 100 mais recentes dentro do período.
+    // Mensagens vêm em ordem DESC (1000 mais recentes) → as 100 mais recentes
+    // dentro do período; inverte para ASC (agrupamento por dia é cronológico).
     const rows = messages
       .filter((m) => fromMs === null || new Date(m.created_at).getTime() >= fromMs)
-      .slice(-100);
+      .slice(0, 100)
+      .reverse();
 
     // Agrupa por dia para simular sessões de conversa (ordem ASC dentro do dia).
     const groupedByDay: Record<string, ConversationMessageLite[]> = {};

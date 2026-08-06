@@ -32,10 +32,12 @@ export function useRealtimeSentimentAlerts() {
     if (!userId) return;
 
     // Nome único por usuário evita colisão durante cleanup/remount simultâneo
-    // (ex.: StrictMode duplo-mount em dev).
-    const channelName = `sentiment-alerts-${userId}`;
+    // (ex.: StrictMode duplo-mount em dev). Sufixo random por mount: tópico
+    // único por instância (padrão da casa) — evita "cannot add postgres_changes
+    // callbacks after subscribe()" em remount rápido (A/B/A).
+    const channelName = `sentiment-alerts-${userId}:${Math.random().toString(36).slice(2, 10)}`;
     const channel = supabase
-      .channel(`sentiment-alerts-realtime:${Math.random().toString(36).slice(2, 10)}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {

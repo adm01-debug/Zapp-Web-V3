@@ -167,6 +167,9 @@ export const ChatMessagesArea = memo(
       // Realtime de reacoes: 1 canal por conversa, invalida apenas IDs visiveis
       const messageIds = useMemo(() => messages.map((m) => m.id), [messages]);
       useConversationReactionsRealtime(conversationId, messageIds);
+      // FIX N+1 (onda bugs-console v1): o provider abaixo faz 1-2 GETs batch
+      // (RPC rpc_get_reactions_batch → fallback .in() chunkado) e os hooks
+      // por-mensagem ficam com enabled=false enquanto o batch cobre a mensagem.
 
       // Realtime de mensagens: UPDATE e DELETE no schema 'evo' (tabela física particionada)
       useEffect(() => {

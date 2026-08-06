@@ -63,7 +63,7 @@ WITH expected(name, should_be_public, intent) AS (
     ('custom-emojis',           true,  'emojis customizados'),
     ('recibos-entrega',         true,  'recibos de entrega'),
     ('stickers',                true,  'stickers'),
-    ('audio-memes',             false, 'privado por design'),
+    ('audio-memes',             true,  'memes de audio - PUBLICO por decisao do dono 2026-08-06 (nao contem PII; onda de seguranca paralela reverteu indevidamente p/ privado)'),
     ('comprovantes-financeiro', false, 'privado por design (LGPD)'),
     ('email-attachments',       false, 'privado por design (LGPD)'),
     ('etiquetas-remessa',       false, 'privado por design'),
@@ -199,10 +199,12 @@ ORDER  BY object_count DESC, b.name;
 -- =============================================================================
 -- Deve retornar 0 linhas. Se retornar nome(s) de bucket = REGRESSAO: o bucket
 -- voltou a ser privado e toda media_url publica quebrou de novo.
+-- whatsapp-media/audio-messages: fix BUG-MEDIA. audio-memes: decisao do dono
+-- 2026-08-06 (publico; reverteu indevidamente na onda de seguranca paralela).
 SELECT name
 FROM   storage.buckets
 WHERE  public = false
-  AND  name IN ('whatsapp-media', 'audio-messages');
+  AND  name IN ('whatsapp-media', 'audio-messages', 'audio-memes');
 
 -- =============================================================================
 -- SECAO G - gate fail-closed (padrao da casa: check-reference-integrity.sql)
@@ -217,13 +219,13 @@ BEGIN
     INTO v_regressed
   FROM   storage.buckets
   WHERE  public = false
-    AND  name IN ('whatsapp-media', 'audio-messages');
+    AND  name IN ('whatsapp-media', 'audio-messages', 'audio-memes');
 
   IF v_regressed IS NOT NULL THEN
     RAISE EXCEPTION 'MEDIA_BUCKET_REGRESSION: bucket(s) privado(s) indevidamente: %', array_to_string(v_regressed, ', ');
   END IF;
 
-  RAISE NOTICE 'MEDIA_BUCKET_VERIFICATION: whatsapp-media e audio-messages estao public=true (OK)';
+  RAISE NOTICE 'MEDIA_BUCKET_VERIFICATION: whatsapp-media, audio-messages e audio-memes estao public=true (OK)';
 END $$;
 
 SELECT 'MEDIA_BUCKET_VERIFICATION_OK' AS status;
