@@ -1272,6 +1272,6 @@ stopBotFromMe: true → humano assume enviando mensagem pela instância
 ---
 
 > **Evolution API v2** — Open Source WhatsApp Integration Platform  
-> GitHub: [github.com/EvolutionAPI/evolution-api](https://github.com/EvolutionAPI/evolution-api)  
+> GitHub: [github.com/evolution-foundation/evolution-api](https://github.com/evolution-foundation/evolution-api)  
 > Docs: [doc.evolution-api.com/v2](https://doc.evolution-api.com/v2)  
 > Docker: `atendai/evolution-api:latest`
