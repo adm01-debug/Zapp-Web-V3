@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'supabase/migrations/**'
+      - 'supabase/functions/**'
       - 'src/integrations/supabase/**'
   workflow_dispatch:
   schedule:
