@@ -11,16 +11,24 @@
 -- service_role (cron/edge functions continuam operando; o app autenticado
 -- mantém acesso às leituras legítimas).
 --
--- Rollback: GRANT EXECUTE ON FUNCTION <fn> TO PUBLIC; (restaura default).
+-- NOTA (correção 2026-08-07): a 6ª função sinalizada pelo gate (feed Sentry
+-- 401, versão antiga com sufixo _v2) foi REMOVIDA desta migration por
+-- referência órfã: não existe no pg_proc (probe 2026-08-07: 0 rows) e não
+-- tem migration de criação no repo — o item85 original (20260807091000,
+-- wave2) a criava, mas foi reescrito no #963 (20260807091100) sem a função;
+-- o cron que a usava (evo-401-feed) foi re-apontado para
+-- evo.fn_feed_401_disconnect_alerts (job 161), já coberta abaixo. REVOKE de
+-- função inexistente quebraria a reaplicação da migration. Restam 6 pares
+-- REVOKE/GRANT (5 funções únicas — o overload de alert_health_score_degraded
+-- conta 2x).
+--
+-- Rollback: restaurar o EXECUTE público default das funções abaixo
+-- (dev/staging only).
 -- =============================================================================
 
 -- evo.fn_feed_401_disconnect_alerts(integer, integer)
 REVOKE EXECUTE ON FUNCTION evo.fn_feed_401_disconnect_alerts(integer, integer) FROM PUBLIC, anon;
 GRANT  EXECUTE ON FUNCTION evo.fn_feed_401_disconnect_alerts(integer, integer) TO authenticated, service_role;
-
--- evo.fn_get_401_payload_v2(integer)
-REVOKE EXECUTE ON FUNCTION evo.fn_get_401_payload_v2(integer) FROM PUBLIC, anon;
-GRANT  EXECUTE ON FUNCTION evo.fn_get_401_payload_v2(integer) TO authenticated, service_role;
 
 -- evo.fn_wpp2_uptime_kpi(interval, text, boolean)
 REVOKE EXECUTE ON FUNCTION evo.fn_wpp2_uptime_kpi(interval, text, boolean) FROM PUBLIC, anon;
