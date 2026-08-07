@@ -252,5 +252,81 @@ class TestHandle(unittest.TestCase):
         self.assertEqual(ns['stats']['retry'], 1)
 
 
+class FakeCursor:
+    def __init__(self, rows=None):
+        self.rows = rows or []
+        self.executed = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def execute(self, sql, params=None):
+        self.executed.append((sql, params))
+
+    def fetchall(self):
+        return self.rows
+
+
+class FakeConn:
+    def __init__(self, rows=None):
+        self.cur = FakeCursor(rows)
+        self.closed = False
+        self.autocommit = False
+
+    def cursor(self):
+        return self.cur
+
+
+class TestPersistStats(unittest.TestCase):
+    def setUp(self):
+        ns['PG_URL'] = 'postgresql://fake:fake@localhost/evolution'
+        ns['_pg_conn'] = None
+        ns['_stats_cols'] = None
+        ns['_stats_cols_ts'] = 0.0
+        ns['stats']['pg_stats_ok'] = 0
+        ns['stats']['pg_stats_err'] = 0
+
+    def tearDown(self):
+        ns['PG_URL'] = ''
+
+    def test_tabela_ausente_nao_quebra(self):
+        # A1 cria a tabela em paralelo — sem ela, persist_stats só WARN (nunca crash)
+        conn = FakeConn(rows=[])
+        ns['psycopg2'].connect = lambda *a, **k: conn
+        ns['persist_stats']()
+        self.assertEqual(ns['stats']['pg_stats_err'], 1)
+        self.assertEqual(ns['stats']['pg_stats_ok'], 0)
+        self.assertTrue(all('INSERT INTO' not in (e[0] or '') for e in conn.cur.executed))
+
+    def test_insert_com_intersecao_e_replica(self):
+        cols = [('collected_at',), ('replica',), ('ok',), ('retry',), ('drop',),
+                ('drop_by',), ('retry_by',)]
+        conn = FakeConn(rows=cols)
+        ns['psycopg2'].connect = lambda *a, **k: conn
+        ns['stats'].update(ok=10, retry=2, drop=1, drop_by_reason={'4xx:400': 1},
+                           retry_by_reason={'4xx:429': 2})
+        ns['persist_stats']()
+        self.assertEqual(ns['stats']['pg_stats_ok'], 1)
+        sql, params = conn.cur.executed[-1]
+        self.assertTrue(sql.startswith('INSERT INTO evo.evolution_rabbit_consumer_stats'))
+        self.assertIn('collected_at', sql)          # now() inline
+        self.assertIn('replica', sql)
+        self.assertEqual(params[0], ns['REPLICA'])  # hostname da réplica
+        self.assertIn(10, params)                   # ok
+
+    def test_colunas_desconhecidas_ignoradas(self):
+        # schema do A1 com coluna extra desconhecida: INSERT só com a interseção
+        cols = [('collected_at',), ('replica',), ('ok',), ('instance',)]
+        conn = FakeConn(rows=cols)
+        ns['psycopg2'].connect = lambda *a, **k: conn
+        ns['persist_stats']()
+        self.assertEqual(ns['stats']['pg_stats_ok'], 1)
+        sql, _ = conn.cur.executed[-1]
+        self.assertNotIn('instance', sql)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

@@ -7,10 +7,12 @@ Melhorias vs v6 (REC-07-09/10 — perda permanente 0,06% do volume):
     discriminado por content-type/parse (S-09/S3)
   - stats['retry_by_reason']: motivo de cada requeue ('4xx:<status>')
   - drop por teto de tentativas contabilizado como '4xx:<status>:max_attempts'
+  - persistência do snapshot [STATS] (30s) em evo.evolution_rabbit_consumer_stats
+    (tabela criada pelo A1 em paralelo; ausência/erro → WARN, não quebra)
   - Demais comportamentos (HMAC, filas, resub, shadow, [STATS]/[DROP-REASONS])
     inalterados vs v6
 """
-import pika, requests, os, json, time, sys, signal, logging, hmac, hashlib
+import pika, requests, os, json, time, sys, signal, logging, hmac, hashlib, socket
 
 try:
     import psycopg2
@@ -55,9 +57,80 @@ EVENTS = ['messages.upsert','messages.update','messages.edited','messages.delete
 QUEUES = list(dict.fromkeys(f'{p}.{e}' for p in PREFIXES for e in EVENTS))
 
 stats = {'ok':0,'shadow':0,'retry':0,'err':0,'drop':0,'pg_log_ok':0,'pg_log_err':0,'sentry_sent':0,'resub':0,
-         'drop_by_reason': {}, 'retry_by_reason': {}}
+         'drop_by_reason': {}, 'retry_by_reason': {}, 'pg_stats_ok':0, 'pg_stats_err':0}
 start = time.time()
 running = True
+
+# v7 — persistência de stats em evo.evolution_rabbit_consumer_stats (criada pelo A1 em paralelo)
+REPLICA = socket.gethostname()
+_STATS_TABLE = 'evo.evolution_rabbit_consumer_stats'
+_STATS_COLS = {  # colunas conhecidas → placeholder SQL (intersectadas com o schema real)
+    'collected_at': 'now()',
+    'replica': '%s', 'ok': '%s', 'shadow': '%s', 'retry': '%s', 'drop': '%s', 'err': '%s',
+    'pg_log_ok': '%s', 'pg_log_err': '%s', 'sentry_sent': '%s', 'resub': '%s',
+    'drop_by': '%s', 'retry_by': '%s',
+}
+_stats_cols = None      # cache do schema real (None = tabela ausente/desconhecida)
+_stats_cols_ts = 0.0
+
+def _stats_schema(c):
+    """Colunas reais da tabela de stats (cache 10min). None se a tabela não existe."""
+    global _stats_cols, _stats_cols_ts
+    now = time.time()
+    if _stats_cols is not None and now - _stats_cols_ts < 600:
+        return _stats_cols
+    try:
+        with c.cursor() as cur:
+            cur.execute(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_schema='evo' AND table_name='evolution_rabbit_consumer_stats'")
+            cols = {r[0] for r in cur.fetchall()}
+        _stats_cols = cols if cols else None
+        _stats_cols_ts = now
+        return _stats_cols
+    except Exception:
+        return None
+
+def persist_stats():
+    """Snapshot [STATS] → evo.evolution_rabbit_consumer_stats (INSERT por ciclo, replica hostname).
+
+    Tabela criada pelo A1 em paralelo — se ausente ou com schema incompatível,
+    contabiliza pg_stats_err e loga WARN (nunca quebra o consumo).
+    """
+    if not PG_URL or not PG_AVAIL:
+        return
+    c = pg_conn()
+    if not c:
+        return
+    cols = _stats_schema(c)
+    if not cols:
+        stats['pg_stats_err'] += 1
+        if stats['pg_stats_err'] <= 3 or stats['pg_stats_err'] % 20 == 0:
+            log.warning(f"stats table {_STATS_TABLE} ausente — snapshot não persistido")
+        return
+    ins = [k for k in _STATS_COLS if k in cols]
+    if not ins:
+        return
+    values = {
+        'replica': REPLICA,
+        'ok': stats['ok'], 'shadow': stats['shadow'], 'retry': stats['retry'],
+        'drop': stats['drop'], 'err': stats['err'],
+        'pg_log_ok': stats['pg_log_ok'], 'pg_log_err': stats['pg_log_err'],
+        'sentry_sent': stats['sentry_sent'], 'resub': stats['resub'],
+        'drop_by': Json(stats['drop_by_reason']),
+        'retry_by': Json(stats['retry_by_reason']),
+    }
+    try:
+        sql = (f"INSERT INTO {_STATS_TABLE} ({','.join(ins)}) "
+               f"VALUES ({','.join(_STATS_COLS[k] for k in ins)})")
+        params = [values[k] for k in ins if k != 'collected_at']
+        with c.cursor() as cur:
+            cur.execute(sql, params)
+        stats['pg_stats_ok'] += 1
+    except Exception as e:
+        stats['pg_stats_err'] += 1
+        if stats['pg_stats_err'] <= 3 or stats['pg_stats_err'] % 20 == 0:
+            log.warning(f"stats persist err: {e}")
 
 def drop_reason(reason):
     """Contabiliza um drop com motivo estruturado (stats['drop'] e drop_by_reason)."""
@@ -299,7 +372,8 @@ def subscribe(conn, q):
 def main():
     log.info(f"consumer v7 | SHADOW={SHADOW} | prefixes={PREFIXES} | queues={len(QUEUES)} | "
              f"PG_LOG={'on' if PG_URL and PG_AVAIL else 'off'} | SENTRY={'on' if SENTRY_DSN and SENTRY_AVAIL else 'off'} | "
-             f"MAX_DELIVERY={MAX_DELIVERY} | BACKOFF={BACKOFF_BASE}*{BACKOFF_FACTOR}^n cap={BACKOFF_MAX}s")
+             f"MAX_DELIVERY={MAX_DELIVERY} | BACKOFF={BACKOFF_BASE}*{BACKOFF_FACTOR}^n cap={BACKOFF_MAX}s | "
+             f"STATS_PG={_STATS_TABLE} ({'on' if PG_URL and PG_AVAIL else 'off'})")
     log.info(f"target={SUPABASE_URL}")
     while running:
         conn = None
@@ -332,10 +406,12 @@ def main():
                              f"pg_log_ok={stats['pg_log_ok']} pg_log_err={stats['pg_log_err']} "
                              f"sentry_sent={stats['sentry_sent']} "
                              f"drop_by={json.dumps(stats['drop_by_reason'], separators=(',',':'))} "
-                             f"retry_by={json.dumps(stats['retry_by_reason'], separators=(',',':'))}")
+                             f"retry_by={json.dumps(stats['retry_by_reason'], separators=(',',':'))} "
+                             f"pg_stats_ok={stats['pg_stats_ok']} pg_stats_err={stats['pg_stats_err']}")
                     if stats['drop'] > 0:
                         log.info(f"[DROP-REASONS] drop={stats['drop']} "
                                  f"drop_by={json.dumps(stats['drop_by_reason'], separators=(',',':'))}")
+                    persist_stats()
                     last_stats = now
             try: conn.close()
             except Exception: pass
