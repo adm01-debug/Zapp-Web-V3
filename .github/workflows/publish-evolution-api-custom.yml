@@ -30,6 +30,10 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/evolution-api-custom
+  # Fallbacks p/ runs push-triggered (inputs vazios em push — só existem em workflow_dispatch).
+  # FIX 2026-08-07: evolution_ref e base_image não tinham fallback → push em infra/evolution-api-custom/** falhava.
+  EVO_REF: ${{ inputs.evolution_ref || '2.3.7' }}
+  BASE_IMAGE: ${{ inputs.base_image || 'evoapicloud/evolution-api@sha256:6b195676b09abbbd8ac9372cd961674dea2587f23dc9bc1d1e6a595372556fb1' }}
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -52,7 +56,7 @@ jobs:
 
       - name: Clone evolution-api source (tag fixa)
         run: |
-          git clone --depth 1 --branch ${{ inputs.evolution_ref }} https://github.com/evolution-foundation/evolution-api.git evo-src
+          git clone --depth 1 --branch ${{ env.EVO_REF }} https://github.com/evolution-foundation/evolution-api.git evo-src
           grep '"baileys"' evo-src/package.json
 
       - name: Pin baileys (exato — package.json + package-lock.json)
@@ -176,11 +180,11 @@ jobs:
       - name: Warm base image (resiliente a rate limit Docker Hub)
         run: |
           for i in 1 2 3 4 5; do
-            docker pull "${{ inputs.base_image }}" && break
+            docker pull "${{ env.BASE_IMAGE }}" && break
             echo "::warning::pull base falhou (tentativa $i/5) — aguardando 60s"
             sleep 60
           done
-          docker image inspect "${{ inputs.base_image }}" >/dev/null || { echo "::error::base image indisponivel apos 5 tentativas"; exit 1; }
+          docker image inspect "${{ env.BASE_IMAGE }}" >/dev/null || { echo "::error::base image indisponivel apos 5 tentativas"; exit 1; }
 
       - name: Build image (sem push, load local)
         uses: docker/build-push-action@v7
@@ -190,7 +194,7 @@ jobs:
           load: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:smoke-${{ inputs.baileys_version || '6.7.24' }}
           build-args: |
-            BASE_IMAGE=${{ inputs.base_image }}
+            BASE_IMAGE=${{ env.BASE_IMAGE }}
           # (cache gha removido: driver docker nao suporta cache export — base via Warm step)
 
       - name: Smoke test (Design B' gate — imagem final com baileys ${{ inputs.baileys_version || '6.7.24' }})
@@ -224,7 +228,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.3.7
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.3.7-baileys-${{ inputs.baileys_version || '6.7.24' }}
           build-args: |
-            BASE_IMAGE=${{ inputs.base_image }}
+            BASE_IMAGE=${{ env.BASE_IMAGE }}
           # (cache gha removido: driver docker nao suporta cache export — base via Warm step)
 
       - name: Resolve published digest

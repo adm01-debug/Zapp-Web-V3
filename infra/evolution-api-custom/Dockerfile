@@ -128,3 +128,5 @@ RUN chmod +x /evolution/docker-entrypoint.sh
 
 ENTRYPOINT ["/evolution/docker-entrypoint.sh"]
 CMD ["node", "dist/main.js"]
+
+# ci-fix-20260807: fallback evolution_ref/base_image em push-triggered
