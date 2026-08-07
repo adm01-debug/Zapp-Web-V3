@@ -10,13 +10,16 @@ on:
     - cron: '0 6 * * *'  # daily at 06:00 UTC
   workflow_dispatch:
 
-# Verificação usa GITHUB_TOKEN com escopo administration: read — o GET de
-# branch protection (REST) exige essa permissão; o antigo secret ACTIONS_PAT
-# nunca existiu no repo e derrubava o schedule diário — fix 2026-08-06.
+# NOTA (fix 2026-08-07): 'administration' NAO e um escopo valido de permissao de
+# GITHUB_TOKEN em workflows (escopos validos: actions, checks, contents, deployments,
+# discussions, id-token, issues, packages, pages, pull-requests, repository-projects,
+# security-events, statuses). Ler branch protection via REST exige um PAT fine-grained
+# com 'Administration: read'. Se o secret BRANCH_PROT_PAT existir, a verificacao roda
+# de verdade; sem ele, o GITHUB_TOKEN nao consegue ler (403) e o job emite aviso em vez
+# de falhar — evitando falha diaria de ruido por uma limitacao inerente do token.
 permissions:
   contents: read
   pull-requests: read
-  administration: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -53,7 +56,10 @@ jobs:
     steps:
       - name: Check branch protection rules
         env:
-          GH_TOKEN: ${{ github.token }}
+          # Usa PAT com Administration:read se disponivel; senao cai no GITHUB_TOKEN
+          # (que nao consegue ler branch protection e resulta em aviso, nao falha).
+          GH_TOKEN: ${{ secrets.BRANCH_PROT_PAT || github.token }}
+          USING_PAT: ${{ secrets.BRANCH_PROT_PAT != '' }}
         run: |
           set -euo pipefail
 
@@ -66,9 +72,15 @@ jobs:
           HTTP_CODE=$(echo "$RESP" | tail -1)
           PROT=$(echo "$RESP" | sed '$d')
 
-          if [ "$HTTP_CODE" = "403" ]; then
-            echo "::error::Branch protection API denied (HTTP 403) — GITHUB_TOKEN requires administration:read scope"
-            exit 1
+          if [ "$HTTP_CODE" = "403" ] || [ "$HTTP_CODE" = "401" ]; then
+            if [ "$USING_PAT" = "true" ]; then
+              echo "::error::PAT BRANCH_PROT_PAT sem escopo Administration:read (HTTP $HTTP_CODE)."
+              exit 1
+            fi
+            echo "::warning::Nao foi possivel ler a protecao de branch (HTTP $HTTP_CODE) — GITHUB_TOKEN nao tem acesso admin."
+            echo "::warning::Para verificacao real, crie um PAT fine-grained com 'Administration: read' e salve como secret BRANCH_PROT_PAT."
+            echo "Verificacao pulada (sem token admin) — isto NAO e uma falha."
+            exit 0
           fi
 
           if [ "$HTTP_CODE" = "404" ]; then
@@ -134,9 +146,6 @@ jobs:
             echo "OK: $CHECKS required status check(s) configured"
           fi
 
-          # Verificação exata dos contexts (fix 2026-08-06): a contagem sozinha
-          # deixava passar remoção de check crítico (ex.: CodeQL) com 1 check
-          # qualquer. Lista = gates de banco/edge/qualidade + segurança.
           EXPECTED_CONTEXTS="edge-auth-smoke edge-drift-check Edge guard checks DB Invariants Migration Uniqueness Gate schema-drift-guard PR Size Gate Analyze (javascript-typescript) 🔍 Secret Scan (gitleaks) Verify security_invoker on all views"
           ACTUAL_CONTEXTS=$(echo "$PROT" | jq -r '.required_status_checks.contexts[]')
           MISSING=""
