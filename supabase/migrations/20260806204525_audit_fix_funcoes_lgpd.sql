@@ -1,0 +1,12 @@
+-- ESPELHO repo×DB — migration aplicada via MCP (supabase_apply_migration) na auditoria Hermes 2026-08-06/07.
+-- Registro em supabase_migrations.schema_migrations; este arquivo é o registro histórico (DB-as-source).
+-- QA-10-04 (P1): 3 funcoes LGPD criadas (edge lgpd-scheduled-jobs chamava -> PGRST202 -> 500 sempre).
+-- zapp.fn_lgpd_purge_contact_activity(p_days_threshold integer DEFAULT 90) RETURNS jsonb
+--   -> DELETE zapp.contact_audit_log WHERE created_at < now() - make_interval(days => p_days_threshold)
+-- zapp.fn_lgpd_anonymize_deleted_contacts(p_days_threshold integer DEFAULT 30) RETURNS jsonb
+--   -> UPDATE evo.evolution_contacts SET full_name='[anonimizado]', push_name/phone_number/email/company/notes=NULL,
+--      pii_masked_at=now() WHERE deleted_at IS NOT NULL AND deleted_at < now()-interval AND pii_masked_at IS NULL
+-- zapp.fn_lgpd_purge_message_metadata(p_days_threshold integer DEFAULT 365) RETURNS jsonb
+--   -> UPDATE evo.evolution_messages SET payload/raw_data/transcription/media_meta=NULL WHERE created_at < now()-interval
+-- Todas SECURITY DEFINER search_path 'zapp, evo, pg_temp'; GRANT EXECUTE TO service_role.
+-- Corpos efetivos no banco (pg_get_functiondef).
