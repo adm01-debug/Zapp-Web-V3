@@ -82,18 +82,48 @@ Deno.test("rate-limiter: should handle RPC timeout with retry", async () => {
   assertEquals(RETRY_DELAYS_MS[2], 200);
 });
 
-Deno.test("rate-limiter: should accumulate count atomically", async () => {
-  // Simula múltiplas chamadas incrementando o contador
-  const responses = [
-    { current_count: 1, is_allowed: true, window_expired: false },
-    { current_count: 2, is_allowed: true, window_expired: false },
-    { current_count: 3, is_allowed: true, window_expired: false },
-  ];
+Deno.test({
+  name: "rate-limiter: should accumulate count atomically",
+  // checkRateLimit usa Promise.race com setTimeout(5000) sem clearTimeout
+  // (timeout do RPC) — timers pendentes no fim do teste; mesmo padrão do teste
+  // de concorrência abaixo (sanitizeOps/Resources desligados).
+  sanitizeOps: false,
+  sanitizeResources: false,
+  async fn() {
+    // Contador compartilhado simula a linha no Postgres; cada rpc() incrementa
+    // e retorna o valor observado de forma síncrona (INSERT ON CONFLICT DO UPDATE
+    // ... RETURNING). Sequência de 3 chamadas: contador deve ser monotônico 1..3
+    // e o rate limit (3) permitir as 3 (nenhuma rejeitada).
+    let sharedCounter = 0;
+    const limit = 3;
+    const atomicMockSupabase = {
+      rpc: () => {
+        const currentCount = ++sharedCounter;
+        return Promise.resolve({
+          data: [{
+            current_count: currentCount,
+            is_allowed: currentCount <= limit,
+            window_expired: false,
+          }],
+          error: null,
+        }) as Promise<{ data: unknown; error: unknown }>;
+      },
+    } as unknown as Parameters<typeof checkRateLimit>[0];
 
-  // Contador deve ser incrementado atomicamente via INSERT ON CONFLICT
-  responses.forEach((r, i) => {
-    assertEquals(r.current_count, i + 1);
-  });
+    const results = [];
+    for (let i = 0; i < limit; i++) {
+      results.push(await checkRateLimit(atomicMockSupabase, {
+        instanceId: "test-atomic-instance",
+        eventType: "test.atomic",
+        limit,
+      }));
+    }
+
+    assertEquals(results.map((r) => r.currentCount), [1, 2, 3]);
+    assertEquals(results.filter((r) => r.allowed).length, limit);
+    assertEquals(results.filter((r) => !r.allowed).length, 0);
+    assertEquals(sharedCounter, limit);
+  },
 });
 
 Deno.test({

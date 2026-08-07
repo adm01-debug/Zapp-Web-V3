@@ -298,7 +298,7 @@ export const McpServerV1Schema = z.object({
  * (nasceu sem contrato — quebrava o contract-coverage; ver PR #957 follow-up).
  */
 export const McpQueryV1Schema = z.object({
-  sql: z.string().min(1, "sql é obrigatório").max(50_000),
+  sql: z.string().trim().min(1, "sql é obrigatório").max(50_000),
   limit: z.number().int().min(1).max(10_000).optional(),
 }).passthrough();
 
