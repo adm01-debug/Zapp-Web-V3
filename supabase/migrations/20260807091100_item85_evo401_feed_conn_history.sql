@@ -46,8 +46,8 @@ SELECT cron.unschedule('evo-default-partition-guard')
 SELECT cron.schedule(
   'evo-default-partition-guard',
   '*/30 * * * *',
-  $$
-  DO $$inner$$
+  $g$
+  DO $i$
   DECLARE v_count bigint;
   BEGIN
     SELECT COUNT(*) INTO v_count
@@ -67,6 +67,6 @@ SELECT cron.schedule(
       ON CONFLICT DO NOTHING;
     END IF;
   END;
-  $$inner$$
-  $$
+  $i$
+  $g$
 );
