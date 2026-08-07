@@ -643,6 +643,42 @@ describe('CENÁRIO REAL: 4 deploys com poll consolidado de 60s (cota corta a cas
   });
 });
 
+describe('GAP-1 (QA-06): version.json com entry real → reload NÃO aborta', () => {
+  it('entry no payload faz o HEAD check/prefetch usarem o asset real (index-<hash>.js)', async () => {
+    fetchMock.mockImplementation(() =>
+      Promise.resolve(
+        jsonResponse({ buildId: 'buildB', entry: 'assets/index-abc123.js' }, 'application/json')
+      )
+    );
+
+    const { stop } = startWatcherAndStop();
+    try {
+      // t=30: kickoff → mismatch buildB (com entry) → cortesia@90
+      await vi.advanceTimersByTimeAsync(30_000);
+      // t=90: poll (same-target, early return) → cortesia dispara → reload aplica
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      // HEAD check usa o ENTRY real, não index-<buildId>.js (que 404aria)
+      const headCall = fetchMock.mock.calls.find(
+        (c) => String(c[0]).startsWith('/assets/') && (c[1] as RequestInit)?.method === 'HEAD'
+      );
+      expect(headCall).toBeDefined();
+      expect(String(headCall![0])).toBe('/assets/index-abc123.js');
+      // Prefetch usa o entry real (js + css companion)
+      const assetCalls = fetchMock.mock.calls
+        .filter((c) => String(c[0]).startsWith('/assets/'))
+        .map((c) => String(c[0]));
+      expect(assetCalls).toContain('/assets/index-abc123.js');
+      expect(assetCalls).toContain('/assets/index-abc123.css');
+      // Reload APLICA (não aborta pelo HEAD 404)
+      expect(replaceSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      stop();
+      vi.clearAllTimers();
+    }
+  });
+});
+
 describe('MIN_BOOT_DELAY_MS (30s) + intervalo mínimo de 60s — guardas de polling', () => {
   it('triggers antes de 30s NÃO checam; após 30s checam respeitando o gap de 60s', async () => {
     // Response NOVO por chamada (mockResolvedValue compartilharia o body e o
