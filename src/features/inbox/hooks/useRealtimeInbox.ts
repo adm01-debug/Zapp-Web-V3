@@ -3,6 +3,7 @@ import { useOfflineCache } from '@/hooks/useOfflineCache';
 import { type RealtimeMessage } from '@/features/inbox';
 import { useAuth } from '@/features/auth';
 import { supabase } from '@/integrations/supabase/client';
+import { logChannelError } from '@/integrations/supabase/channelErrorLogging';
 import { getLogger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { validatePttBlob } from '@/lib/audio/pttLimits';
@@ -272,6 +273,8 @@ export function useRealtimeInbox() {
     // Wave 2: whisper_messages is a VIEW in public schema — zapp.whisper_messages is the base table.
     // PostgreSQL views never emit WAL events, so Realtime subscriptions must target the base table.
     // O callback NÃO faz mais HEAD count — invalida a query batch (1 RPC).
+    // Última conexão bem-sucedida do canal — classifica CHANNEL_ERROR transiente vs real.
+    let lastConnectedAtMs: number | null = null;
     const channel = supabase
       .channel(`whisper-count-${selectedContactId}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
@@ -289,8 +292,10 @@ export function useRealtimeInbox() {
         }
       )
       .subscribe((status) => {
-        if (status !== 'SUBSCRIBED') {
-          log.warn('[useRealtimeInbox] whisper channel subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          lastConnectedAtMs = Date.now();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          void logChannelError(log, '[useRealtimeInbox] whisper channel subscription status:', lastConnectedAtMs, status);
         }
       });
     return () => {

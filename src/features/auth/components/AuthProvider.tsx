@@ -9,6 +9,7 @@ import {
   SUPABASE_RESOLVED_URL,
   getSupabaseSemaphoreState,
 } from '@/integrations/supabase/client';
+import { logChannelError } from '@/integrations/supabase/channelErrorLogging';
 import { verifyHttpOnlyCookieAuth } from '@/integrations/supabase/cookieStorage';
 
 // ---------------------------------------------------------------------------
@@ -693,6 +694,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // public.profiles / public.user_roles são VIEW proxies → nunca emitem CDC.
     // Topic único por mount (sufixo random) — evita reutilizar instância de
     // canal já inscrita cujo teardown (removeChannel assíncrono) não terminou.
+    // Última conexão bem-sucedida do canal — classifica CHANNEL_ERROR transiente vs real.
+    let lastConnectedAtMs: number | null = null;
     const profileChannel = supabase
       .channel(`profile-updates-${user.id}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
@@ -710,8 +713,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       )
       .subscribe((status) => {
-        if (status !== 'SUBSCRIBED') {
-          log.warn('[AuthProvider] profile channel subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          lastConnectedAtMs = Date.now();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          void logChannelError(log, '[AuthProvider] profile channel subscription status:', lastConnectedAtMs, status);
         }
       });
 
@@ -731,8 +736,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       )
       .subscribe((status) => {
-        if (status !== 'SUBSCRIBED') {
-          log.warn('[AuthProvider] roles channel subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          lastConnectedAtMs = Date.now();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          void logChannelError(log, '[AuthProvider] roles channel subscription status:', lastConnectedAtMs, status);
         }
       });
 

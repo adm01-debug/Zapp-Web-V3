@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
+import { logChannelError } from '@/integrations/supabase/channelErrorLogging';
 import { useAuth } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
 import { isValidUUID } from '@/utils/uuid';
@@ -24,6 +25,8 @@ export function useIncomingCallListener() {
   useEffect(() => {
     if (!profile?.id) return;
 
+    // Última conexão bem-sucedida do canal — classifica CHANNEL_ERROR transiente vs real.
+    let lastConnectedAtMs: number | null = null;
     const channel = supabase
       .channel(`incoming-calls:${Math.random().toString(36).slice(2, 10)}`)
       .on(
@@ -82,8 +85,10 @@ export function useIncomingCallListener() {
         }
       )
       .subscribe((status) => {
-        if (status !== 'SUBSCRIBED') {
-          log.warn('[useIncomingCallListener] channel subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          lastConnectedAtMs = Date.now();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          void logChannelError(log, '[useIncomingCallListener] channel subscription status:', lastConnectedAtMs, status);
         }
       });
 

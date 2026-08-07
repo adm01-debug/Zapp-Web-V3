@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { logChannelError } from '@/integrations/supabase/channelErrorLogging';
 import { useAuth } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
 import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
@@ -31,6 +32,8 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
     if (!profile?.id) return;
 
     const topic = `incoming-calls:${instance}`;
+    // Última conexão bem-sucedida do canal — classifica CHANNEL_ERROR transiente vs real.
+    let lastConnectedAtMs: number | null = null;
     const channel = supabase
       .channel(topic)
       .on('broadcast', { event: 'call_received' }, async ({ payload }) => {
@@ -109,8 +112,10 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
         log.info(`Broadcast incoming ${p.is_video ? 'video' : 'audio'} call from ${contactName}`);
       })
       .subscribe((status) => {
-        if (status !== 'SUBSCRIBED') {
-          log.warn('[IncomingCallBroadcast] subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          lastConnectedAtMs = Date.now();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          void logChannelError(log, '[IncomingCallBroadcast] subscription status:', lastConnectedAtMs, status);
         }
       });
 

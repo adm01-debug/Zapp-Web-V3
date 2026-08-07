@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { logChannelError } from '@/integrations/supabase/channelErrorLogging';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useTypingPresence');
 
 /** Usuário atualmente digitando na conversa (excluindo o próprio agente). */
 export interface TypingUser {
@@ -40,6 +44,8 @@ export function useTypingPresence({
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    // Última conexão bem-sucedida do canal — classifica CHANNEL_ERROR transiente vs real.
+    let lastConnectedAtMs: number | null = null;
     const channel = supabase.channel(`typing-presence-${conversationId}`);
     channelRef.current = channel;
 
@@ -61,8 +67,10 @@ export function useTypingPresence({
         setTypingUsers(users);
       })
       .subscribe((status) => {
-        if (status !== 'SUBSCRIBED') {
-          console.warn('[TypingPresence] subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          lastConnectedAtMs = Date.now();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          void logChannelError(log, '[TypingPresence] subscription status:', lastConnectedAtMs, status);
         }
       });
 

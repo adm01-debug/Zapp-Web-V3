@@ -21,6 +21,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
+import { logChannelError } from '@/integrations/supabase/channelErrorLogging';
 import type { EvolutionMessage, EvolutionMessageLite } from '@/types/evolutionExternal';
 import { toEvolutionMessageLite } from '@/types/evolutionExternal';
 import { getLogger } from '@/lib/logger';
@@ -226,6 +227,8 @@ export function useMessagesCursor({
 
     // Topic único por mount (sufixo random) — evita reutilizar instância de
     // canal já inscrita cujo teardown (removeChannel assíncrono) não terminou.
+    // Última conexão bem-sucedida do canal — classifica CHANNEL_ERROR transiente vs real.
+    let lastConnectedAtMs: number | null = null;
     const channel = supabase
       .channel(`evolution_messages:${remoteJid}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
@@ -293,8 +296,10 @@ export function useMessagesCursor({
         }
       )
       .subscribe((status) => {
-        if (status !== 'SUBSCRIBED') {
-          log.warn('[useMessagesCursor] channel subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          lastConnectedAtMs = Date.now();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          void logChannelError(log, '[useMessagesCursor] channel subscription status:', lastConnectedAtMs, status);
         }
       });
 

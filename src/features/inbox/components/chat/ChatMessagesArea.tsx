@@ -13,6 +13,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { queryKeys } from '@/services/api/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
+import { logChannelError } from '@/integrations/supabase/channelErrorLogging';
 import { Loader2, Lock, ChevronDown, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getLogger } from '@/lib/logger';
@@ -174,6 +175,8 @@ export const ChatMessagesArea = memo(
       // Realtime de mensagens: UPDATE e DELETE no schema 'evo' (tabela física particionada)
       useEffect(() => {
         if (!contactJid) return;
+        // Última conexão bem-sucedida do canal — classifica CHANNEL_ERROR transiente vs real.
+        let lastConnectedAtMs: number | null = null;
         const channel = supabase
           .channel(`chat-updates:${contactJid}:${Math.random().toString(36).slice(2, 10)}`)
           .on(
@@ -202,10 +205,12 @@ export const ChatMessagesArea = memo(
             }
           )
           .subscribe((status) => {
-            if (status !== 'SUBSCRIBED') {
-              log.warn('[ChatMessagesArea] channel subscription status:', status);
-            }
-          });
+            if (status === 'SUBSCRIBED') {
+          lastConnectedAtMs = Date.now();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          void logChannelError(log, '[ChatMessagesArea] channel subscription status:', lastConnectedAtMs, status);
+        }
+      });
 
         return () => {
           channel.unsubscribe();

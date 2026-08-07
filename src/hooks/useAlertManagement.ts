@@ -6,6 +6,7 @@
 import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { logChannelError } from '@/integrations/supabase/channelErrorLogging';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { usePushNotificationsManagement } from '@/hooks/useNotificationManagement';
 import { useNotificationSettingsManagement } from '@/hooks/useNotificationManagement';
@@ -146,6 +147,8 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
   }, [alerts]);
 
   useEffect(() => {
+    // Última conexão bem-sucedida do canal — classifica CHANNEL_ERROR transiente vs real.
+    let lastConnectedAtMs: number | null = null;
     const channel = supabase
       .channel(`warroom-alerts-management:${Math.random().toString(36).slice(2, 10)}`)
       .on(
@@ -176,8 +179,10 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
         }
       )
       .subscribe((status) => {
-        if (status !== 'SUBSCRIBED') {
-          log.warn('[useWarRoomAlertsManagement] warroom alerts subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          lastConnectedAtMs = Date.now();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          void logChannelError(log, '[useWarRoomAlertsManagement] warroom alerts subscription status:', lastConnectedAtMs, status);
         }
       });
 
