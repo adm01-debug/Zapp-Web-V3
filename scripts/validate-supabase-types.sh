@@ -98,7 +98,10 @@ if [ -s "$TYPES_FILE.new" ]; then
        # Valida via copia temporaria .ts e remove depois.
        TYPES_TMP="${TYPES_FILE}.tmp.ts"
        cp "$TYPES_FILE.new" "$TYPES_TMP"
-       if ! npx tsc "$TYPES_TMP" --noEmit --esModuleInterop --target esnext --moduleResolution node &> /dev/null; then
+       # TSC_LOCAL evita npx resolver um tsc GLOBAL mais novo (ex.: TS 7) que
+       # quebra com TS5112/TS5108 — usa SEMPRE o tsc do projeto (package.json).
+       TSC_BIN="./node_modules/.bin/tsc"
+       if ! "$TSC_BIN" "$TYPES_TMP" --noEmit --esModuleInterop --target esnext --moduleResolution node &> /dev/null; then
           echo "❌ Error: Generated types.ts contains TypeScript errors."
           rm -f "$TYPES_TMP"
           exit 1

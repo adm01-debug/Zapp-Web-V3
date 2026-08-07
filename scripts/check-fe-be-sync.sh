@@ -102,12 +102,15 @@ fi
 # [C] ALTER FUNCTION sem CREATE FUNCTION
 # =============================================================================
 # Abordagem multi-passo:
-#   Passo 1: grep -rih preserva a linha inteira (sem nome de arquivo)
-#   Passo 2: filtra linhas que começam com -- (comentário SQL)
-#   Passo 3: extrai ALTER FUNCTION nome (para antes do '(')
-#   Passo 4: remove o prefixo e normaliza (strip schema, lowercase)
+#   Passo 0: captura linhas relevantes (ALTER FUNCTION, DO $$, fechamento $$;)
+#            e remove blocos DO $$ ... $$; (ALTERs condicionais via EXECUTE
+#            format são strings, não DDL de topo — falso positivo clássico).
+#   Passo 1: filtra linhas que começam com -- (comentário SQL)
+#   Passo 2: extrai ALTER FUNCTION nome (para antes do '(')
+#   Passo 3: remove o prefixo e normaliza (strip schema, lowercase)
 # O [C] também filtra pelo .sync-ignore (igual a [A] e [B]).
-grep -rihE "alter function " "${MIG_DIRS[@]}" 2>/dev/null \
+grep -rihE 'alter function |DO[[:space:]]*\$\$|\$\$;' "${MIG_DIRS[@]}" 2>/dev/null \
+  | awk 'BEGIN{in_do=0} /DO[[:space:]]*(\$\$|\$[A-Za-z_]*\$)/{in_do=1} in_do==0{print} /\$\$;/{in_do=0}' \
   | grep -viE '^\s*--' \
   | grep -viE 'alter function if (exists|not exists)' \
   | grep -oiE "alter function [a-zA-Z0-9_.\"]*[a-zA-Z0-9_\"]" \
