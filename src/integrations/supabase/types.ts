@@ -9,6 +9,63 @@ export type Json =
 export type Database = {
   evo: {
     Tables: {
+      _ghosts_ip_watch_backup_20260806: {
+        Row: {
+          created_at: string | null
+          endpoint: string | null
+          http_status: number | null
+          id: number | null
+          ip_address: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint?: string | null
+          http_status?: number | null
+          id?: number | null
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string | null
+          http_status?: number | null
+          id?: number | null
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      _ghosts_webhook_metrics_backup_20260806: {
+        Row: {
+          avg_processing_time_ms: number | null
+          created_at: string | null
+          error_count: number | null
+          event_count: number | null
+          event_type: string | null
+          hour_bucket: string | null
+          id: string | null
+        }
+        Insert: {
+          avg_processing_time_ms?: number | null
+          created_at?: string | null
+          error_count?: number | null
+          event_count?: number | null
+          event_type?: string | null
+          hour_bucket?: string | null
+          id?: string | null
+        }
+        Update: {
+          avg_processing_time_ms?: number | null
+          created_at?: string | null
+          error_count?: number | null
+          event_count?: number | null
+          event_type?: string | null
+          hour_bucket?: string | null
+          id?: string | null
+        }
+        Relationships: []
+      }
       _secure_config: {
         Row: {
           created_at: string | null
@@ -69,6 +126,42 @@ export type Database = {
           decrypted_secret?: string | null
           id?: string
           name?: string
+        }
+        Relationships: []
+      }
+      _vault_backup_20260806b: {
+        Row: {
+          created_at: string | null
+          decrypted_secret: string | null
+          description: string | null
+          id: string | null
+          key_id: string | null
+          name: string | null
+          nonce: string | null
+          secret: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          decrypted_secret?: string | null
+          description?: string | null
+          id?: string | null
+          key_id?: string | null
+          name?: string | null
+          nonce?: string | null
+          secret?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          decrypted_secret?: string | null
+          description?: string | null
+          id?: string | null
+          key_id?: string | null
+          name?: string | null
+          nonce?: string | null
+          secret?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -3185,33 +3278,6 @@ export type Database = {
           reason?: string
           unblocked_at?: string | null
           updated_at?: string
-        }
-        Relationships: []
-      }
-      evolution_ip_watch: {
-        Row: {
-          created_at: string
-          endpoint: string | null
-          http_status: number
-          id: number
-          ip_address: string
-          user_agent: string | null
-        }
-        Insert: {
-          created_at?: string
-          endpoint?: string | null
-          http_status?: number
-          id?: number
-          ip_address: string
-          user_agent?: string | null
-        }
-        Update: {
-          created_at?: string
-          endpoint?: string | null
-          http_status?: number
-          id?: number
-          ip_address?: string
-          user_agent?: string | null
         }
         Relationships: []
       }
@@ -6799,6 +6865,42 @@ export type Database = {
         }
         Relationships: []
       }
+      evolution_rabbit_consumer_stats: {
+        Row: {
+          collected_at: string
+          drop_by: Json | null
+          drop_count: number | null
+          filas_ok: string | null
+          id: number
+          instance: string | null
+          ok_count: number | null
+          replica: string | null
+          retry_count: number | null
+        }
+        Insert: {
+          collected_at?: string
+          drop_by?: Json | null
+          drop_count?: number | null
+          filas_ok?: string | null
+          id?: number
+          instance?: string | null
+          ok_count?: number | null
+          replica?: string | null
+          retry_count?: number | null
+        }
+        Update: {
+          collected_at?: string
+          drop_by?: Json | null
+          drop_count?: number | null
+          filas_ok?: string | null
+          id?: number
+          instance?: string | null
+          ok_count?: number | null
+          replica?: string | null
+          retry_count?: number | null
+        }
+        Relationships: []
+      }
       evolution_reactions: {
         Row: {
           created_at: string | null
@@ -7554,6 +7656,36 @@ export type Database = {
           send_status?: string
           template_id?: string | null
           variables_used?: Json | null
+        }
+        Relationships: []
+      }
+      evolution_traefik_401_stats: {
+        Row: {
+          client_host: string | null
+          collected_at: string
+          count: number
+          host: string
+          id: number
+          path: string
+          status: number
+        }
+        Insert: {
+          client_host?: string | null
+          collected_at?: string
+          count?: number
+          host: string
+          id?: number
+          path: string
+          status: number
+        }
+        Update: {
+          client_host?: string | null
+          collected_at?: string
+          count?: number
+          host?: string
+          id?: number
+          path?: string
+          status?: number
         }
         Relationships: []
       }
@@ -8388,36 +8520,6 @@ export type Database = {
           remote_jid?: string | null
           retry_count?: number
           status?: string
-        }
-        Relationships: []
-      }
-      evolution_webhook_metrics: {
-        Row: {
-          avg_processing_time_ms: number | null
-          created_at: string | null
-          error_count: number | null
-          event_count: number | null
-          event_type: string
-          hour_bucket: string
-          id: string
-        }
-        Insert: {
-          avg_processing_time_ms?: number | null
-          created_at?: string | null
-          error_count?: number | null
-          event_count?: number | null
-          event_type: string
-          hour_bucket: string
-          id?: string
-        }
-        Update: {
-          avg_processing_time_ms?: number | null
-          created_at?: string | null
-          error_count?: number | null
-          event_count?: number | null
-          event_type?: string
-          hour_bucket?: string
-          id?: string
         }
         Relationships: []
       }
@@ -9361,20 +9463,6 @@ export type Database = {
         }
         Relationships: []
       }
-      v_401_observability: {
-        Row: {
-          endpoint: string | null
-          endpoint_category: string | null
-          first_seen: string | null
-          hit_count: number | null
-          http_status: number | null
-          ip_address: string | null
-          last_seen: string | null
-          unique_ips: number | null
-          user_agents: string[] | null
-        }
-        Relationships: []
-      }
       v_ack_loss_candidates: {
         Row: {
           created_at: string | null
@@ -9970,7 +10058,6 @@ export type Database = {
         Args: { p_window?: string }
         Returns: Json
       }
-      fn_detect_external_401_bursts: { Args: never; Returns: Json }
       fn_detect_spurious_closes: {
         Args: { p_reconnect_window?: string; p_window?: string }
         Returns: Json
@@ -9993,24 +10080,8 @@ export type Database = {
         Returns: Json
       }
       fn_flag_poison_messages: { Args: never; Returns: Json }
-      fn_get_401_payload: { Args: { p_minutes?: number }; Returns: Json }
-      fn_get_401_payload_v2: { Args: { p_minutes?: number }; Returns: Json }
       fn_get_incident_runbook: { Args: { p_type?: string }; Returns: Json }
       fn_link_orphan_messages: { Args: { p_limit?: number }; Returns: Json }
-      fn_log_api_401:
-        | {
-            Args: { p_endpoint?: string; p_ip: string; p_ua?: string }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              p_endpoint?: string
-              p_ip: string
-              p_status?: number
-              p_ua?: string
-            }
-            Returns: undefined
-          }
       fn_logpatch_verify: {
         Args: never
         Returns: {
@@ -10022,9 +10093,7 @@ export type Database = {
       fn_monitor_lid_contamination: { Args: never; Returns: Json }
       fn_monitor_pino_timeouts: { Args: never; Returns: Json }
       fn_monthly_evo_audit: { Args: never; Returns: Json }
-      fn_peak_hours_sla_check: { Args: { p_window?: string }; Returns: Json }
       fn_pipeline_health_probe: { Args: never; Returns: Json }
-      fn_purge_ip_watch: { Args: never; Returns: number }
       fn_record_runbook_drill: { Args: { p_type: string }; Returns: Json }
       fn_resolve_alert: {
         Args: { p_by?: string; p_id?: string; p_ids?: string[] }
@@ -10123,90 +10192,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      _ck_viol_audit: {
-        Row: {
-          _pk: number
-          conname: string | null
-          def: string | null
-          status: string | null
-          tbl: string | null
-          violations: number | null
-        }
-        Insert: {
-          _pk?: number
-          conname?: string | null
-          def?: string | null
-          status?: string | null
-          tbl?: string | null
-          violations?: number | null
-        }
-        Update: {
-          _pk?: number
-          conname?: string | null
-          def?: string | null
-          status?: string | null
-          tbl?: string | null
-          violations?: number | null
-        }
-        Relationships: []
-      }
-      _fk_orphan_audit: {
-        Row: {
-          _pk: number
-          child_rows_est: number | null
-          child_table: string | null
-          conname: string | null
-          fk_cols: string | null
-          orphans: number | null
-          parent_table: string | null
-          status: string | null
-        }
-        Insert: {
-          _pk?: number
-          child_rows_est?: number | null
-          child_table?: string | null
-          conname?: string | null
-          fk_cols?: string | null
-          orphans?: number | null
-          parent_table?: string | null
-          status?: string | null
-        }
-        Update: {
-          _pk?: number
-          child_rows_est?: number | null
-          child_table?: string | null
-          conname?: string | null
-          fk_cols?: string | null
-          orphans?: number | null
-          parent_table?: string | null
-          status?: string | null
-        }
-        Relationships: []
-      }
-      _msg_shard_orphan_audit: {
-        Row: {
-          _pk: number
-          col: string | null
-          orphans: number | null
-          status: string | null
-          tbl: string | null
-        }
-        Insert: {
-          _pk?: number
-          col?: string | null
-          orphans?: number | null
-          status?: string | null
-          tbl?: string | null
-        }
-        Update: {
-          _pk?: number
-          col?: string | null
-          orphans?: number | null
-          status?: string | null
-          tbl?: string | null
-        }
-        Relationships: []
-      }
       _wal_slot_guard_events: {
         Row: {
           action_taken: string
@@ -20139,33 +20124,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_ip_watch: {
-        Row: {
-          created_at: string | null
-          endpoint: string | null
-          http_status: number | null
-          id: number | null
-          ip_address: string | null
-          user_agent: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          endpoint?: string | null
-          http_status?: number | null
-          id?: number | null
-          ip_address?: string | null
-          user_agent?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          endpoint?: string | null
-          http_status?: number | null
-          id?: number | null
-          ip_address?: string | null
-          user_agent?: string | null
-        }
-        Relationships: []
-      }
       evolution_keyword_automations: {
         Row: {
           cooldown_minutes: number | null
@@ -23280,6 +23238,42 @@ export type Database = {
         }
         Relationships: []
       }
+      evolution_rabbit_consumer_stats: {
+        Row: {
+          collected_at: string | null
+          drop_by: Json | null
+          drop_count: number | null
+          filas_ok: string | null
+          id: number | null
+          instance: string | null
+          ok_count: number | null
+          replica: string | null
+          retry_count: number | null
+        }
+        Insert: {
+          collected_at?: string | null
+          drop_by?: Json | null
+          drop_count?: number | null
+          filas_ok?: string | null
+          id?: number | null
+          instance?: string | null
+          ok_count?: number | null
+          replica?: string | null
+          retry_count?: number | null
+        }
+        Update: {
+          collected_at?: string | null
+          drop_by?: Json | null
+          drop_count?: number | null
+          filas_ok?: string | null
+          id?: number | null
+          instance?: string | null
+          ok_count?: number | null
+          replica?: string | null
+          retry_count?: number | null
+        }
+        Relationships: []
+      }
       evolution_reactions: {
         Row: {
           created_at: string | null
@@ -24029,6 +24023,36 @@ export type Database = {
           send_status?: string | null
           template_id?: string | null
           variables_used?: Json | null
+        }
+        Relationships: []
+      }
+      evolution_traefik_401_stats: {
+        Row: {
+          client_host: string | null
+          collected_at: string | null
+          count: number | null
+          host: string | null
+          id: number | null
+          path: string | null
+          status: number | null
+        }
+        Insert: {
+          client_host?: string | null
+          collected_at?: string | null
+          count?: number | null
+          host?: string | null
+          id?: number | null
+          path?: string | null
+          status?: number | null
+        }
+        Update: {
+          client_host?: string | null
+          collected_at?: string | null
+          count?: number | null
+          host?: string | null
+          id?: number | null
+          path?: string | null
+          status?: number | null
         }
         Relationships: []
       }
@@ -24863,36 +24887,6 @@ export type Database = {
           remote_jid?: string | null
           retry_count?: number | null
           status?: string | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_metrics: {
-        Row: {
-          avg_processing_time_ms: number | null
-          created_at: string | null
-          error_count: number | null
-          event_count: number | null
-          event_type: string | null
-          hour_bucket: string | null
-          id: string | null
-        }
-        Insert: {
-          avg_processing_time_ms?: number | null
-          created_at?: string | null
-          error_count?: number | null
-          event_count?: number | null
-          event_type?: string | null
-          hour_bucket?: string | null
-          id?: string | null
-        }
-        Update: {
-          avg_processing_time_ms?: number | null
-          created_at?: string | null
-          error_count?: number | null
-          event_count?: number | null
-          event_type?: string | null
-          hour_bucket?: string | null
-          id?: string | null
         }
         Relationships: []
       }
@@ -27530,20 +27524,6 @@ export type Database = {
           name?: string | null
           url?: string | null
           user_id?: string | null
-        }
-        Relationships: []
-      }
-      pg_buffercache: {
-        Row: {
-          bufferid: number | null
-          isdirty: boolean | null
-          pinning_backends: number | null
-          relblocknumber: number | null
-          reldatabase: unknown
-          relfilenode: unknown
-          relforknumber: number | null
-          reltablespace: unknown
-          usagecount: number | null
         }
         Relationships: []
       }
@@ -33074,7 +33054,6 @@ export type Database = {
         Args: { p_context: Json; p_required_role: string; p_resource: string }
         Returns: undefined
       }
-      pg_buffercache_pages: { Args: never; Returns: Record<string, unknown>[] }
       purge_old_query_telemetry: { Args: { p_days: number }; Returns: number }
       rpc_app_bootstrap: { Args: never; Returns: Json }
       rpc_dashboard_init: {
@@ -33102,8 +33081,6 @@ export type Database = {
               isSetofReturn: true
             }
           }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       ai_provider_type:
@@ -33134,10 +33111,7 @@ export type Database = {
         | "dropbox"
     }
     CompositeTypes: {
-      dblink_pkey_results: {
-        position: number | null
-        colname: string | null
-      }
+      [_ in never]: never
     }
   }
   zapp: {
@@ -33646,33 +33620,6 @@ export type Database = {
         }
         Relationships: []
       }
-      agent_permissions: {
-        Row: {
-          agent_id: string
-          created_at: string | null
-          granted_by: string | null
-          id: string
-          permission_level: string
-          user_id: string
-        }
-        Insert: {
-          agent_id: string
-          created_at?: string | null
-          granted_by?: string | null
-          id?: string
-          permission_level?: string
-          user_id: string
-        }
-        Update: {
-          agent_id?: string
-          created_at?: string | null
-          granted_by?: string | null
-          id?: string
-          permission_level?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       agent_presence: {
         Row: {
           active_conversations: number | null
@@ -33850,177 +33797,6 @@ export type Database = {
             referencedColumns: ["profile_id"]
           },
         ]
-      }
-      agent_templates: {
-        Row: {
-          category: string | null
-          config: Json
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          icon: string | null
-          id: string
-          is_public: boolean | null
-          name: string
-          usage_count: number | null
-        }
-        Insert: {
-          category?: string | null
-          config?: Json
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          icon?: string | null
-          id?: string
-          is_public?: boolean | null
-          name: string
-          usage_count?: number | null
-        }
-        Update: {
-          category?: string | null
-          config?: Json
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          icon?: string | null
-          id?: string
-          is_public?: boolean | null
-          name?: string
-          usage_count?: number | null
-        }
-        Relationships: []
-      }
-      agent_traces: {
-        Row: {
-          agent_id: string
-          cost_usd: number | null
-          created_at: string
-          event: string
-          id: string
-          input: Json | null
-          latency_ms: number | null
-          level: Database["zapp"]["Enums"]["trace_level"] | null
-          metadata: Json | null
-          output: Json | null
-          session_id: string | null
-          tokens_used: number | null
-          user_id: string
-        }
-        Insert: {
-          agent_id: string
-          cost_usd?: number | null
-          created_at?: string
-          event: string
-          id?: string
-          input?: Json | null
-          latency_ms?: number | null
-          level?: Database["zapp"]["Enums"]["trace_level"] | null
-          metadata?: Json | null
-          output?: Json | null
-          session_id?: string | null
-          tokens_used?: number | null
-          user_id: string
-        }
-        Update: {
-          agent_id?: string
-          cost_usd?: number | null
-          created_at?: string
-          event?: string
-          id?: string
-          input?: Json | null
-          latency_ms?: number | null
-          level?: Database["zapp"]["Enums"]["trace_level"] | null
-          metadata?: Json | null
-          output?: Json | null
-          session_id?: string | null
-          tokens_used?: number | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      agent_usage: {
-        Row: {
-          agent_id: string
-          avg_latency_ms: number | null
-          created_at: string
-          date: string
-          error_count: number | null
-          id: string
-          requests: number | null
-          tokens_input: number | null
-          tokens_output: number | null
-          total_cost_usd: number | null
-          user_id: string
-        }
-        Insert: {
-          agent_id: string
-          avg_latency_ms?: number | null
-          created_at?: string
-          date?: string
-          error_count?: number | null
-          id?: string
-          requests?: number | null
-          tokens_input?: number | null
-          tokens_output?: number | null
-          total_cost_usd?: number | null
-          user_id: string
-        }
-        Update: {
-          agent_id?: string
-          avg_latency_ms?: number | null
-          created_at?: string
-          date?: string
-          error_count?: number | null
-          id?: string
-          requests?: number | null
-          tokens_input?: number | null
-          tokens_output?: number | null
-          total_cost_usd?: number | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      agent_versions: {
-        Row: {
-          agent_id: string
-          change_summary: string | null
-          config: Json
-          created_at: string
-          created_by: string | null
-          id: string
-          mission: string | null
-          model: string | null
-          name: string | null
-          persona: string | null
-          version: number
-        }
-        Insert: {
-          agent_id: string
-          change_summary?: string | null
-          config?: Json
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          mission?: string | null
-          model?: string | null
-          name?: string | null
-          persona?: string | null
-          version?: number
-        }
-        Update: {
-          agent_id?: string
-          change_summary?: string | null
-          config?: Json
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          mission?: string | null
-          model?: string | null
-          name?: string | null
-          persona?: string | null
-          version?: number
-        }
-        Relationships: []
       }
       agent_visibility_grants: {
         Row: {
@@ -55575,33 +55351,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_ip_watch: {
-        Row: {
-          created_at: string | null
-          endpoint: string | null
-          http_status: number | null
-          id: number | null
-          ip_address: string | null
-          user_agent: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          endpoint?: string | null
-          http_status?: number | null
-          id?: number | null
-          ip_address?: string | null
-          user_agent?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          endpoint?: string | null
-          http_status?: number | null
-          id?: number | null
-          ip_address?: string | null
-          user_agent?: string | null
-        }
-        Relationships: []
-      }
       evolution_keyword_automations: {
         Row: {
           cooldown_minutes: number | null
@@ -60259,36 +60008,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_webhook_metrics: {
-        Row: {
-          avg_processing_time_ms: number | null
-          created_at: string | null
-          error_count: number | null
-          event_count: number | null
-          event_type: string | null
-          hour_bucket: string | null
-          id: string | null
-        }
-        Insert: {
-          avg_processing_time_ms?: number | null
-          created_at?: string | null
-          error_count?: number | null
-          event_count?: number | null
-          event_type?: string | null
-          hour_bucket?: string | null
-          id?: string | null
-        }
-        Update: {
-          avg_processing_time_ms?: number | null
-          created_at?: string | null
-          error_count?: number | null
-          event_count?: number | null
-          event_type?: string | null
-          hour_bucket?: string | null
-          id?: string | null
-        }
-        Relationships: []
-      }
       evolution_whatsapp_status: {
         Row: {
           contact_id: string | null
@@ -61115,27 +60834,6 @@ export type Database = {
           updated_at?: string | null
           value?: string | null
           workspace_id?: string | null
-        }
-        Relationships: []
-      }
-      hypopg_hidden_indexes: {
-        Row: {
-          am_name: unknown
-          index_name: unknown
-          indexrelid: unknown
-          is_hypo: boolean | null
-          schema_name: unknown
-          table_name: unknown
-        }
-        Relationships: []
-      }
-      hypopg_list_indexes: {
-        Row: {
-          am_name: unknown
-          index_name: string | null
-          indexrelid: unknown
-          schema_name: unknown
-          table_name: unknown
         }
         Relationships: []
       }
@@ -65133,26 +64831,6 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: Json
       }
-      bt_index_check:
-        | { Args: { index: unknown }; Returns: undefined }
-        | {
-            Args: { heapallindexed: boolean; index: unknown }
-            Returns: undefined
-          }
-      bt_index_parent_check:
-        | { Args: { index: unknown }; Returns: undefined }
-        | {
-            Args: { heapallindexed: boolean; index: unknown }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              heapallindexed: boolean
-              index: unknown
-              rootdescend: boolean
-            }
-            Returns: undefined
-          }
       bulk_add_tag: {
         Args: { p_contact_ids: string[]; p_tag: string }
         Returns: Json
@@ -65263,40 +64941,6 @@ export type Database = {
       }
       current_user_is_privileged: { Args: never; Returns: boolean }
       current_user_role: { Args: never; Returns: string }
-      dblink: { Args: { "": string }; Returns: Record<string, unknown>[] }
-      dblink_cancel_query: { Args: { "": string }; Returns: string }
-      dblink_close: { Args: { "": string }; Returns: string }
-      dblink_connect: { Args: { "": string }; Returns: string }
-      dblink_connect_u: { Args: { "": string }; Returns: string }
-      dblink_current_query: { Args: never; Returns: string }
-      dblink_disconnect:
-        | { Args: never; Returns: string }
-        | { Args: { "": string }; Returns: string }
-      dblink_error_message: { Args: { "": string }; Returns: string }
-      dblink_exec: { Args: { "": string }; Returns: string }
-      dblink_fdw_validator: {
-        Args: { catalog: unknown; options: string[] }
-        Returns: undefined
-      }
-      dblink_get_connections: { Args: never; Returns: string[] }
-      dblink_get_notify:
-        | { Args: { conname: string }; Returns: Record<string, unknown>[] }
-        | { Args: never; Returns: Record<string, unknown>[] }
-      dblink_get_pkey: {
-        Args: { "": string }
-        Returns: Database["public"]["CompositeTypes"]["dblink_pkey_results"][]
-        SetofOptions: {
-          from: "*"
-          to: "dblink_pkey_results"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
-      dblink_get_result: {
-        Args: { "": string }
-        Returns: Record<string, unknown>[]
-      }
-      dblink_is_busy: { Args: { "": string }; Returns: number }
       decode_html_entities: { Args: { p_input: string }; Returns: string }
       decrypt_gmail_token: { Args: { p_encrypted: string }; Returns: string }
       deduplicate_campaign_contacts_atomically: {
@@ -65439,7 +65083,6 @@ export type Database = {
             Returns: string
           }
       fn_agent_metrics: { Args: never; Returns: Json }
-      fn_aggregate_hourly_metrics: { Args: never; Returns: undefined }
       fn_alert_connection_drift: {
         Args: never
         Returns: {
@@ -66016,10 +65659,6 @@ export type Database = {
         Returns: undefined
       }
       fn_increment_meme_use: { Args: { p_meme_id: string }; Returns: undefined }
-      fn_increment_metric: {
-        Args: { p_event_type: string; p_hour_bucket: string }
-        Returns: undefined
-      }
       fn_increment_retry_count: {
         Args: { p_message_id: string }
         Returns: undefined
@@ -66031,6 +65670,16 @@ export type Database = {
       fn_ingest_restore_logs_from_text: {
         Args: { p_logs: string }
         Returns: Json
+      }
+      fn_insert_idempotency_failure_audit: {
+        Args: {
+          p_error_code?: string
+          p_error_message?: string
+          p_event_id: string
+          p_event_type?: string
+          p_instance?: string
+        }
+        Returns: undefined
       }
       fn_integration_report: { Args: never; Returns: Json }
       fn_is_business_hours: {
@@ -67006,25 +66655,6 @@ export type Database = {
         Args: { _role: Database["zapp"]["Enums"]["app_role"]; _user_id: string }
         Returns: boolean
       }
-      hypopg: { Args: never; Returns: Record<string, unknown>[] }
-      hypopg_create_index: {
-        Args: { sql_order: string }
-        Returns: Record<string, unknown>[]
-      }
-      hypopg_drop_index: { Args: { indexid: unknown }; Returns: boolean }
-      hypopg_get_indexdef: { Args: { indexid: unknown }; Returns: string }
-      hypopg_hidden_indexes: {
-        Args: never
-        Returns: {
-          indexid: unknown
-        }[]
-      }
-      hypopg_hide_index: { Args: { indexid: unknown }; Returns: boolean }
-      hypopg_relation_size: { Args: { indexid: unknown }; Returns: number }
-      hypopg_reset: { Args: never; Returns: undefined }
-      hypopg_reset_index: { Args: never; Returns: undefined }
-      hypopg_unhide_all_indexes: { Args: never; Returns: undefined }
-      hypopg_unhide_index: { Args: { indexid: unknown }; Returns: boolean }
       import_user_data: { Args: { p_data: Json }; Returns: Json }
       increment_snapshot_version: {
         Args: { p_table_name: string }
@@ -67040,17 +66670,6 @@ export type Database = {
         Returns: {
           current_count: number
           is_allowed: boolean
-        }[]
-      }
-      index_advisor: {
-        Args: { query: string }
-        Returns: {
-          errors: string[]
-          index_statements: string[]
-          startup_cost_after: Json
-          startup_cost_before: Json
-          total_cost_after: Json
-          total_cost_before: Json
         }[]
       }
       initiate_gmail_oauth: { Args: never; Returns: Json }
@@ -67216,6 +66835,7 @@ export type Database = {
         }
         Returns: string
       }
+      pg_stat_database_simple: { Args: never; Returns: Json }
       populate_contact_intelligence_batch: {
         Args: { p_batch_size?: number; p_offset?: number }
         Returns: number
@@ -69354,7 +68974,6 @@ export type Database = {
         Returns: Json
       }
       translate_dept: { Args: { dept_pt: string }; Returns: string }
-      unaccent: { Args: { "": string }; Returns: string }
       unpause_instance: { Args: { p_instance: string }; Returns: number }
       update_contact_note: {
         Args: {
@@ -69417,17 +69036,6 @@ export type Database = {
       validate_timestamp_freshness: {
         Args: { p_freshness_window_minutes?: number; p_timestamp: string }
         Returns: boolean
-      }
-      verify_heapam: {
-        Args: {
-          check_toast?: boolean
-          endblock?: number
-          on_error_stop?: boolean
-          relation: unknown
-          skip?: string
-          startblock?: number
-        }
-        Returns: Record<string, unknown>[]
       }
     }
     Enums: {
