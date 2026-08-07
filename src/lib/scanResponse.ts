@@ -3,7 +3,7 @@
  *
  * Backend contract (file-security-scanner / secure-upload):
  *   Success: { success: true, verdict: "clean", scanId, message, path, url? }
- *   Error:   { error: true, code, message, verdict, scanId?, details? }
+ *   Error:   { error: true, code, message, verdict, scanId?, contract?, details? }
  *
  * This module normalizes:
  *   1. Successful invocations (data.success === true).
@@ -47,6 +47,8 @@ export interface ScanError {
   message: string;
   verdict: ScanVerdict;
   scanId: string | null;
+  /** Name of the Edge Function contract that produced the error (e.g. 'file-security-scanner'). Optional — older envelopes omit it. */
+  contract?: string;
   details?: Record<string, unknown>;
 }
 
@@ -146,6 +148,7 @@ function fromBody(body: Record<string, unknown> | null | undefined): ScanResult 
           : 'Falha no processamento do arquivo.',
       verdict: asVerdict(body.verdict),
       scanId: asScanId(body.scanId),
+      contract: typeof body.contract === 'string' ? body.contract : undefined,
       details:
         typeof body.details === 'object' && body.details !== null
           ? (body.details as Record<string, unknown>)

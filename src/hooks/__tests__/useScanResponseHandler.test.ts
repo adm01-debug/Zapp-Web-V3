@@ -95,6 +95,15 @@ describe('useScanResponseHandler — blocked outcomes', () => {
     result.current.handleScanResult(makeError('MALWARE_DETECTED'));
     expect(toast.error).toHaveBeenCalledTimes(1);
   });
+
+  it('stays "blocked" when the error envelope carries a contract field (Tarefa A4 compat)', () => {
+    const { result } = renderHook(() => useScanResponseHandler());
+    const outcome = result.current.handleScanResult(
+      makeError('MALWARE_DETECTED', { contract: 'file-security-scanner' })
+    );
+    expect(outcome).toBe('blocked');
+    expect(toast.error).toHaveBeenCalledTimes(1);
+  });
 });
 
 // ── retry ──────────────────────────────────────────────────────────────────────
