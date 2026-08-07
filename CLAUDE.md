@@ -139,7 +139,6 @@
 | ID | Componente | Problema | Severidade | Próximo Passo |
 |----|-----------|----------|-----------|---------------|
 | BUG-C | n8n | FK constraint violada em `workflow_history` | 🟠 Alto | Investigar DB n8n + FK cascades |
-| BUG-D | Edge Function | `POST /rest/v1/contacts` retorna 404 | 🟠 Alto | Verificar handler da edge function |
 
 > Histórico completo de bugs resolvidos em `docs/CHANGELOG_SESSIONS.md`.
 

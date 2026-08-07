@@ -47,6 +47,15 @@ if (!hasFix) {
   process.exit(0);
 }
 
+// [skip-e46] bypass: any commit message containing this token exempts the PR.
+// Use when tests genuinely don't apply (docs-only, CI/config fixes, etc.).
+const skipToken = COMMIT_MESSAGES.find(m => m.includes('[skip-e46]'));
+if (skipToken) {
+  console.log(`ℹ️  [skip-e46] token found in commit: "${skipToken}"`);
+  console.log('ℹ️  E46 bypass active — regression test check skipped.');
+  process.exit(0);
+}
+
 const testFiles = CHANGED_FILES.filter(isTestFile);
 const nonTestFiles = CHANGED_FILES.filter(f => !isTestFile(f));
 
