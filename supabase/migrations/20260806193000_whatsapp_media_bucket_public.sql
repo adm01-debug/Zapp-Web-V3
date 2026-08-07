@@ -24,9 +24,14 @@
 --   3. Authenticated INSERT preservado (idempotente)
 --   allowed_mime_types permanece NULL (sem restrição — como antes do P0-4).
 --
--- Rollback: UPDATE storage.buckets SET public=false WHERE name='whatsapp-media';
---           DROP POLICY IF EXISTS public_read_whatsapp_media ON storage.objects;
---           DROP POLICY IF EXISTS auth_write_whatsapp_media ON storage.objects;
+-- Rollback (ORDEM OBRIGATÓRIA — trg_guard_media_buckets_public bloqueia UPDATE SET public=false):
+--   STEP 1: DROP TRIGGER trg_guard_media_buckets_public ON storage.buckets;
+--   STEP 2: DROP FUNCTION IF EXISTS storage.guard_media_buckets_public();
+--   STEP 3: UPDATE storage.buckets SET public=false, file_size_limit=NULL WHERE name='whatsapp-media';
+--   STEP 4: DROP POLICY IF EXISTS public_read_whatsapp_media ON storage.objects;
+--   STEP 5: DROP POLICY IF EXISTS auth_write_whatsapp_media ON storage.objects;
+-- ATENÇÃO: O trigger foi criado em 20260806195000_guard_media_bucket_public.sql.
+--          Sem os STEPs 1-2, o UPDATE no STEP 3 será bloqueado com SQLSTATE P0001.
 -- =============================================================================
 
 BEGIN;

@@ -128,7 +128,7 @@
 | `recibos-entrega` | sim | 10 MB | |
 | `stickers` | sim | 512 KB | |
 | `team-chat-files` | não | — | |
-| `whatsapp-media` | não | — | |
+| `whatsapp-media` | **sim** | 50 MB | Público desde BUG-MEDIA-20260806. LEITURA pública via `/object/public/`. UPLOAD requer autenticação. 18.494 objetos. |
 
 > **Cron jobs ativos:** 151 jobs em `cron.job` (pg_cron — auditado 2026-08-06)
 

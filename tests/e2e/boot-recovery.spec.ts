@@ -4,7 +4,7 @@ import { testConfig } from './test-config';
 test.describe('Boot Recovery E2E', () => {
   test('should trigger auto-recovery when React fails to mount', async ({ page }) => {
     // 1. Block the main script to simulate "React not mounting"
-    await page.route('**/src/main.tsx', route => route.abort());
+    await page.route('**/src/main.tsx', route => route.abort().catch(() => {}));
 
     // 2. Speed up the boot timers by overriding setTimeout in the browser
     // The boot script uses specific delays (8000ms and 4000ms).
@@ -36,7 +36,7 @@ test.describe('Boot Recovery E2E', () => {
 
   test('should show manual retry link on second failure', async ({ page }) => {
     // 1. Block main script
-    await page.route('**/src/main.tsx', route => route.abort());
+    await page.route('**/src/main.tsx', route => route.abort().catch(() => {}));
 
     // 2. Pre-set the recovery flag to simulate "already tried once"
     await page.addInitScript(() => {

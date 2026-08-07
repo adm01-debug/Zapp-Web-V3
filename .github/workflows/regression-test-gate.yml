@@ -30,15 +30,16 @@ jobs:
           # Changed files in this PR
           git fetch origin ${{ github.base_ref }}
           CHANGED=$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD)
-          echo "changed_files<<EOF" >> "$GITHUB_OUTPUT"
+          DELIM=$(openssl rand -hex 16)
+          echo "changed_files<<${DELIM}" >> "$GITHUB_OUTPUT"
           echo "$CHANGED" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "${DELIM}" >> "$GITHUB_OUTPUT"
 
           # Commit messages in this PR (one per line)
           COMMITS=$(git log --format="%s" "origin/${{ github.base_ref }}"..HEAD)
-          echo "commit_messages<<EOF" >> "$GITHUB_OUTPUT"
+          echo "commit_messages<<${DELIM}" >> "$GITHUB_OUTPUT"
           echo "$COMMITS" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "${DELIM}" >> "$GITHUB_OUTPUT"
 
       - name: "E46 — Enforce regression test for fix: PRs"
         # Blocking (fix RGT-02 2026-08-06): o continue-on-error anulava o exit 1

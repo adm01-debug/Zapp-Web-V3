@@ -104,6 +104,7 @@ export async function loadFeatureFlags(): Promise<void> {
   } = await supabase.auth.getSession();
   if (!session) {
     flagCache = { ...DEFAULTS };
+    lastCanonicalLoadAt = 0; // Força reload autenticado no próximo login
     return;
   }
   if (flagCache && Date.now() - lastCanonicalLoadAt < FLAG_LOAD_COOLDOWN_MS) {
@@ -116,6 +117,7 @@ export async function loadFeatureFlags(): Promise<void> {
       const flags: Record<string, FeatureConfig> = { ...DEFAULTS };
       let loaded = 0;
       let canonicalRead = false;
+      const canonicalKeys = new Set<string>();
 
       // ── Fonte canônica: zapp.feature_flags ─────────────────────────────────
       // Colunas: key, enabled, allowed_roles, allowed_user_ids, blocked_user_ids,
@@ -148,6 +150,7 @@ export async function loadFeatureFlags(): Promise<void> {
                 ? meta.killSwitch
                 : flags[flagName].killSwitch,
           };
+          canonicalKeys.add(flagName);
           loaded += 1;
         }
       }
@@ -166,6 +169,7 @@ export async function loadFeatureFlags(): Promise<void> {
         for (const row of settingsData) {
           const flagName = row.key.replace('feature_', '') as FeatureFlag;
           if (!(flagName in DEFAULTS)) continue;
+          if (canonicalKeys.has(flagName)) continue; // feature_flags (canônica) vence
           try {
             // Parse value if it's JSON string, or use as boolean if it's simple
             const parsed = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
@@ -253,5 +257,6 @@ export function isFeatureEnabled(
 
 /** get All Flags function. */
 export function getAllFlags(): Record<string, FeatureConfig> {
-  return flagCache || DEFAULTS;
+  const source = flagCache || DEFAULTS;
+  return Object.fromEntries(Object.entries(source).map(([k, v]) => [k, { ...v }]));
 }
