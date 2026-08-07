@@ -11,6 +11,11 @@
 --
 --   O espelhamento permite que scripts externos (monitoramento de infraestrutura)
 --   consumam alertas críticos sem acesso direto ao schema zapp.
+--
+-- NOTA (correção 2026-08-07): o SELECT cron.schedule(...) ON CONFLICT era
+-- sintaxe inválida (ON CONFLICT só existe em INSERT) — o efeito foi aplicado
+-- por DDL manual. Padrão idempotente da casa (canonical_squash):
+-- unschedule condicional + schedule.
 -- ============================================================================
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -66,8 +71,11 @@ GRANT ALL ON TABLE zapp.warroom_alerts TO service_role, postgres;
 -- STEP 4: Cron job — mirror de criticals a cada 5 min
 -- ─────────────────────────────────────────────────────────────────────────────
 
+SELECT cron.unschedule('mirror-warroom-criticals')
+  WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'mirror-warroom-criticals');
+
 SELECT cron.schedule(
   'mirror-warroom-criticals',
   '5,20,35,50 * * * *',
   'SELECT ops.fn_mirror_warroom_criticals()'
-) ON CONFLICT (jobname) DO NOTHING;
+);
