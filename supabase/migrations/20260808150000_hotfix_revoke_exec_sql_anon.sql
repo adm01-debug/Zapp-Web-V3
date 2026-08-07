@@ -13,6 +13,11 @@ REVOKE EXECUTE ON FUNCTION evo.fn_check_ack_stall() FROM PUBLIC, anon;
 REVOKE EXECUTE ON FUNCTION evo.fn_check_connection_saturation() FROM PUBLIC, anon;
 REVOKE EXECUTE ON FUNCTION evo.fn_retention_webhook_partitions(boolean, integer) FROM PUBLIC, anon;
 
+-- Complemento D-8 (mesma rodada): funções internas adicionais com proacl default (PUBLIC)
+REVOKE EXECUTE ON FUNCTION evo.fn_dedup_alert() FROM PUBLIC, anon;
+REVOKE EXECUTE ON PROCEDURE evo.p_backfill_evolution_messages() FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION ops.fn_alert_policy_churn() FROM PUBLIC, anon;
+
 -- Validação pós (deve retornar somente postgres/service_role):
 -- SELECT p.proname, p.proacl FROM pg_proc p
 --   WHERE p.proname IN ('exec_sql','fn_check_401_rate','fn_check_ack_stall',
