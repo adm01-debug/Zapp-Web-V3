@@ -453,3 +453,45 @@ auditoria de boot (POST REST → `evo.evolution_logpatch_audit`). Sem execução
 | ML-005 falso positivo em `20260806200100` | P3 | Linter lê `GRANT TO PUBLIC` em comentário `--` (rollback); adicionar `-- lint-ignore` ou corrigir linter |
 | ML-008 em migrations pré-2026-08-06 | P2 | Verificar se `20260805000010`, `20260805160000`, `20260805170000`, `20260805183000`, `20260806090000` já foram REVOKE'd em produção |
 | A-8: `OCI_DIGEST` env var | P2 | Injetar `OCI_DIGEST: "{{.Service.Image}}"` no stack `evolution-api-custom` |
+
+---
+
+## Sessão 2026-08-07 — featureFlags guard + BUG-D fechado
+
+### PRs Mergeados Nesta Sessão
+
+| PR | Branch | Descrição | Status |
+|---|---|---|---|
+| #934 | `fix/featureflags-session-guard` | `loadFeatureFlags()`: guard de sessão pré-login — sem sessão, seta DEFAULTS e retorna sem query (zero 42501 no console) | ✅ Merged |
+| #936 | `fix/hermes-deployvps-97113` | CI: health check pós-deploy reestabelecido + timeouts no deploy-vps (perdidos em merge paralelo) | ✅ Merged |
+
+### Correções CI (commits diretos no main)
+
+| Commit | Descrição |
+|---|---|
+| `827008b` | CI: PORTAINER vars adicionadas ao env do compose step + `stack_id` default |
+| `795ad0e` | CI: E2E-04 — troca `HUSKY=0` por `--ignore-scripts` (Node v10 no runner) |
+| `0b54852` | CI: E2E-05 — remove SSH do cleanup, usa psql direto (porta 22 fechada) |
+
+### BUG-D — Fechado (fix pré-existente confirmado)
+
+| Item | Detalhe |
+|---|---|
+| **Bug original** | `POST /rest/v1/contacts` retornava 404 — `supabase.from('contacts').insert()` falhava porque `zapp.contacts` é VIEW não-inserível sobre `evo.evolution_contacts` |
+| **Fix aplicado** | Commit `2c498ab42` (PR #820) — `supabase/functions/public-api/index.ts` passou a usar `supabase.from('evolution_contacts').insert()` (view auto-updatable no schema `zapp`) |
+| **Verificação** | Comentário `// BUG-D fix:` presente na linha 56 do arquivo; função `createZappAdminClient()` usa `service_role` → bypassa RLS |
+| **Status** | ✅ Resolvido — removido do quadro de bugs abertos no `CLAUDE.md` |
+
+### Teste de Regressão — PR #934 (E46 CI)
+
+O check CI `E46 Regression Test Requirement` exige arquivo de teste para cada PR `fix:`.
+O Joaquim adicionou `src/lib/__tests__/featureFlags.test.ts` (commit `4d56f2d`) cobrindo:
+- Sem sessão → `from` não chamado, flagCache = DEFAULTS
+- Com sessão → `from('feature_flags')` chamado (fluxo normal preservado)
+
+### Pendências Abertas
+
+| Item | Prioridade | Status |
+|---|---|---|
+| BUG-C: n8n FK `workflow_history` | 🟠 Alto | ⏳ Bloqueado — requer investigação DB n8n |
+| DADO-03: evolution-db-purge OOM/exit 127 | 🟠 Alto | ⏳ Bloqueado — requer Portainer da equipe de infra |
