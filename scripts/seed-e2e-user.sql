@@ -3,7 +3,7 @@
 -- Idempotente: pode rodar quantas vezes quiser. Cria/atualiza:
 --   1. auth.users (email + senha bcrypt, email_confirmed)
 --   2. zapp.profiles (ativo, role agent, access_level agent)
---   3. zapp.user_roles: 'agent' + 'supervisor' (garante CRUD de CRM)
+--   3. zapp.user_roles: 'supervisor' (garante CRUD de CRM; schema atual = 1 role/workspace)
 --
 -- Uso (na VPS):
 --   psql "$SUPABASE_DB_URL" \
@@ -29,6 +29,7 @@ DECLARE
   v_roles_added  int := 0;
   v_roles_list   text[];
   v_summary      jsonb;
+  v_workspace_id uuid;
 BEGIN
   IF v_email IS NULL OR v_password IS NULL THEN
     RAISE EXCEPTION 'Parâmetros :email e :password são obrigatórios';
@@ -76,13 +77,22 @@ BEGIN
         email        = EXCLUDED.email,
         updated_at   = now();
 
-  -- 3) roles: agent (base) + supervisor (permite CRUD amplo de CRM/contatos)
+  -- 3) role de CRM: supervisor (permite CRUD amplo de CRM/contatos).
+  --    Schema atual de zapp.user_roles exige role_key + workspace_id (NOT NULL)
+  --    e impoe UNIQUE(user_id, workspace_id) => no maximo 1 role por workspace.
+  SELECT id INTO v_workspace_id
+    FROM zapp.workspaces ORDER BY created_at ASC LIMIT 1;
+  IF v_workspace_id IS NULL THEN
+    RAISE EXCEPTION 'Nenhum workspace em zapp.workspaces - sem destino para o role E2E';
+  END IF;
+
   SELECT COUNT(*) INTO v_roles_before
     FROM zapp.user_roles WHERE user_id = v_user_id;
 
-  INSERT INTO zapp.user_roles (user_id, role)
-  VALUES (v_user_id, 'agent'), (v_user_id, 'supervisor')
-  ON CONFLICT (user_id, role) DO NOTHING;
+  INSERT INTO zapp.user_roles (user_id, role_key, workspace_id, role)
+  VALUES (v_user_id, 'supervisor', v_workspace_id, 'supervisor'::zapp.app_role)
+  ON CONFLICT (user_id, workspace_id)
+    DO UPDATE SET role = 'supervisor'::zapp.app_role, role_key = 'supervisor';
 
   SELECT COUNT(*), array_agg(role::text ORDER BY role::text)
     INTO v_roles_after, v_roles_list
