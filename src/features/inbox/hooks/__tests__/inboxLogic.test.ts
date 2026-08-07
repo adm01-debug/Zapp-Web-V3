@@ -14,6 +14,8 @@ vi.mock('@/features/auth', () => ({
     permissions: [],
     userPermissions: [],
   }),
+  // useAuth consumido por useInboxFilters (presets scoped por userId — QA15-06)
+  useAuth: () => ({ user: { id: 'test-user' } }),
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({

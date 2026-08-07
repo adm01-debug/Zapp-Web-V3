@@ -9,6 +9,7 @@ import { MainTab, SubTab } from '@/features/inbox';
 import { useFailureMetricsBatch, type FailureCategory } from '@/features/inbox';
 import { useAllTicketStates } from '@/features/inbox';
 import { usePermissions } from '@/features/auth';
+import { useAuth } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
 import { logAudit } from '@/lib/audit';
 import {
@@ -59,6 +60,9 @@ export function useInboxFilters({
   sortBy,
   statusFilter,
 }: UseInboxFiltersProps) {
+  // userId para escopar os presets por usuário no localStorage (QA15-06).
+  const { user } = useAuth();
+  const presetsUserId = user?.id;
   // Sanitiza a URL antes de qualquer leitura: links antigos/manipulados podem
   // trazer valores inválidos que gerariam estados impossíveis na Inbox.
   // NOTA: `sanitizeInboxUrlParams` remove `tab=archived` (não está em MAIN_TABS),
@@ -592,7 +596,9 @@ export function useInboxFilters({
   }, [clearUrlFilters]);
 
   // ===================== Presets de filtros =====================
-  const [presets, setPresets] = useState<InboxFilterPreset[]>(() => readInboxPresets());
+  const [presets, setPresets] = useState<InboxFilterPreset[]>(() =>
+    readInboxPresets(presetsUserId)
+  );
 
   // Sincronização inicial com o backend (presets seguem o usuário entre dispositivos).
   useEffect(() => {
@@ -600,16 +606,16 @@ export function useInboxFilters({
     void (async () => {
       const remote = await fetchRemoteInboxPresets();
       if (!active || remote === null) return;
-      const local = readInboxPresets();
+      const local = readInboxPresets(presetsUserId);
       const merged = mergeInboxPresets(local, remote);
-      writeInboxPresets(merged);
+      writeInboxPresets(merged, presetsUserId);
       setPresets(merged);
       await pushLocalOnlyPresets(local, remote);
     })();
     return () => {
       active = false;
     };
-  }, []);
+  }, [presetsUserId]);
 
   /** Salva a combinação atual de filtros com o nome informado. */
   const saveInboxPreset = useCallback(
@@ -626,7 +632,7 @@ export function useInboxFilters({
           showOnlyRetrying,
           failureCategory: failureCategoryFilter,
         });
-        writeInboxPresets(next);
+        writeInboxPresets(next, presetsUserId);
         created = next[0];
         return next;
       });
@@ -640,6 +646,7 @@ export function useInboxFilters({
       selectedQueueId,
       showOnlyRetrying,
       failureCategoryFilter,
+      presetsUserId,
     ]
   );
 
@@ -670,14 +677,17 @@ export function useInboxFilters({
   );
 
   /** Remove um preset salvo (local + remoto). */
-  const deleteInboxPreset = useCallback((id: string) => {
-    setPresets((current) => {
-      const next = removeInboxPreset(current, id);
-      writeInboxPresets(next);
-      return next;
-    });
-    void deleteRemoteInboxPreset(id);
-  }, []);
+  const deleteInboxPreset = useCallback(
+    (id: string) => {
+      setPresets((current) => {
+        const next = removeInboxPreset(current, id);
+        writeInboxPresets(next, presetsUserId);
+        return next;
+      });
+      void deleteRemoteInboxPreset(id);
+    },
+    [presetsUserId]
+  );
 
   /**
    * Edita um preset existente (renomear e/ou alterar aba, sub-aba, busca e
@@ -689,13 +699,13 @@ export function useInboxFilters({
       setPresets((current) => {
         const next = editInboxPreset(current, id, changes);
         if (next === current) return current;
-        writeInboxPresets(next);
+        writeInboxPresets(next, presetsUserId);
         updated = next.find((p) => p.id === id);
         return next;
       });
       if (updated) void upsertRemoteInboxPreset(updated);
     },
-    []
+    [presetsUserId]
   );
 
   /** Sobrescreve um preset com a combinação de filtros ativa no momento. */

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { dbFrom, dbTable, dbChannel, dbRemoveChannel } from '@/integrations/datasource/db';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { getLogger } from '@/lib/logger';
@@ -142,6 +143,7 @@ export interface ConversationWithMessages {
 export type ConversationSendState = 'idle' | 'retrying' | 'failed';
 
 export function useRealtimeMessages() {
+  const queryClient = useQueryClient();
   const [conversations, setConversations] = useState<ConversationWithMessages[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -684,6 +686,12 @@ export function useRealtimeMessages() {
               // Use ref to avoid stale closure and prevent re-subscription on handler changes
               (p: RealtimePostgresChangesPayload<RealtimeMessage>) => handleNewMessageRef.current(p)
             )(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
+          // QA12-GAP1: invalida o cache compartilhado do painel de conversa
+          // (['conversation-messages', contactId]) — History/NBA/Stats ficavam
+          // com a última mensagem STALE até o staleTime (30s) ou reopen.
+          if (active) {
+            queryClient.invalidateQueries({ queryKey: ['conversation-messages'] });
+          }
         }
       )
       .on(
@@ -700,6 +708,11 @@ export function useRealtimeMessages() {
               (p: RealtimePostgresChangesPayload<RealtimeMessage>) =>
                 handleMessageUpdateRef.current(p)
             )(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
+          // QA12-GAP1: mesmo motivo do INSERT — UPDATE de mensagem (status/
+          // conteúdo) deve refletir no cache do painel.
+          if (active) {
+            queryClient.invalidateQueries({ queryKey: ['conversation-messages'] });
+          }
         }
       )
       .on(
@@ -716,6 +729,10 @@ export function useRealtimeMessages() {
               (p: RealtimePostgresChangesPayload<RealtimeMessage>) =>
                 handleMessageDeleteRef.current(p)
             )(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
+          // QA12-GAP1: DELETE de mensagem também deve refletir no cache do painel.
+          if (active) {
+            queryClient.invalidateQueries({ queryKey: ['conversation-messages'] });
+          }
         }
       )
       .subscribe((status) => {
@@ -726,9 +743,10 @@ export function useRealtimeMessages() {
       active = false;
       void dbRemoveChannel('messages', channel);
     };
-  }, [fetchConversations]);
-  // ^^ Only depend on fetchConversations (stable); handlers are accessed via refs above
-  // to prevent re-subscriptions when notification settings load/change.
+  }, [fetchConversations, queryClient]);
+  // ^^ Only depend on fetchConversations (stable) + queryClient (estável); handlers
+  // are accessed via refs above to prevent re-subscriptions when notification
+  // settings load/change.
 
   const sendMessage = async (
     contactId: string,

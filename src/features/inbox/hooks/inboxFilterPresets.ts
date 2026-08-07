@@ -11,6 +11,21 @@ import type { FailureCategory } from '@/features/inbox';
 
 const PRESETS_KEY = 'inbox_filter_presets_v1';
 
+/**
+ * QA15-06 (revalidação da onda): chave de localStorage ESCOPADA por usuário.
+ * A chave global permitia que o merge de presets do usuário A fosse PUSHADO
+ * para a conta do usuário B no mesmo browser (pushLocalOnlyPresets). Com a
+ * chave por usuário, B nunca lê nem herda os presets locais de A; os dados
+ * antigos de A ficam na chave dele (higiene opcional: limpar no signOut).
+ * Fallback para a chave legada apenas quando o userId ainda não está
+ * disponível (primeiro render) — nesse caso o sync seguinte, já com o
+ * usuário real, usa a chave correta.
+ */
+function presetsKeyFor(userId: string | null | undefined): string {
+  if (!userId) return PRESETS_KEY;
+  return `inbox_filter_presets_v1_${userId.slice(0, 8)}`;
+}
+
 export const MAX_INBOX_PRESETS = 20;
 export const PRESET_NAME_MAX_LENGTH = 40;
 export const PRESET_SEARCH_MAX_LENGTH = 200;
@@ -115,8 +130,8 @@ function dedupePresets(presets: InboxFilterPreset[]): InboxFilterPreset[] {
 }
 
 /** Lê os presets salvos, ignorando entradas corrompidas. */
-export function readInboxPresets(): InboxFilterPreset[] {
-  const raw = safeGetJSON<unknown[]>(PRESETS_KEY, []);
+export function readInboxPresets(userId?: string | null): InboxFilterPreset[] {
+  const raw = safeGetJSON<unknown[]>(presetsKeyFor(userId), []);
   if (!Array.isArray(raw)) return [];
   const valid = raw
     .map(parsePreset)
@@ -125,11 +140,11 @@ export function readInboxPresets(): InboxFilterPreset[] {
 }
 
 /** Grava a lista completa de presets, descartando entradas inválidas. */
-export function writeInboxPresets(presets: InboxFilterPreset[]): void {
+export function writeInboxPresets(presets: InboxFilterPreset[], userId?: string | null): void {
   const valid = presets
     .map(parsePreset)
     .filter((p): p is InboxFilterPreset => p !== null);
-  safeSetJSON(PRESETS_KEY, dedupePresets(valid).slice(0, MAX_INBOX_PRESETS));
+  safeSetJSON(presetsKeyFor(userId), dedupePresets(valid).slice(0, MAX_INBOX_PRESETS));
 }
 
 
