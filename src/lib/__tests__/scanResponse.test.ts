@@ -4,6 +4,7 @@ import {
   isRetryable,
   isInputError,
   ScanBlockedError,
+  parseScanInvocation,
 } from '@/lib/scanResponse';
 import type { ScanResult, ScanSuccess, ScanError } from '@/lib/scanResponse';
 
@@ -330,5 +331,91 @@ describe('ScanBlockedError', () => {
       caught = e;
     }
     expect(caught).toBeInstanceOf(ScanBlockedError);
+  });
+});
+
+// ── parseScanInvocation — contract field (Tarefa A4 compat) ──────────────────
+
+describe('parseScanInvocation — contract field', () => {
+  it('parses code/details/verdict correctly and exposes contract when the envelope contains it', async () => {
+    const result = await parseScanInvocation({
+      data: {
+        error: true,
+        code: 'SCAN_TIMEOUT',
+        message: 'Scan timed out',
+        verdict: 'unknown',
+        scanId: 'scan-abc',
+        contract: 'file-security-scanner',
+        details: { durationMs: 30000 },
+      },
+      error: null,
+    });
+
+    expect(result.status).toBe('error');
+    if (result.status === 'error') {
+      expect(result.code).toBe('SCAN_TIMEOUT');
+      expect(result.verdict).toBe('unknown');
+      expect(result.scanId).toBe('scan-abc');
+      expect(result.details).toEqual({ durationMs: 30000 });
+      expect(result.contract).toBe('file-security-scanner');
+    }
+  });
+
+  it('leaves contract undefined when the envelope omits it (backwards compatible)', async () => {
+    const result = await parseScanInvocation({
+      data: {
+        error: true,
+        code: 'STORAGE_ERROR',
+        message: 'Disk full',
+        verdict: 'unknown',
+      },
+      error: null,
+    });
+
+    expect(result.status).toBe('error');
+    if (result.status === 'error') {
+      expect(result.code).toBe('STORAGE_ERROR');
+      expect(result.contract).toBeUndefined();
+    }
+  });
+
+  it('ignores a non-string contract value (defensive)', async () => {
+    const result = await parseScanInvocation({
+      data: {
+        error: true,
+        code: 'INTERNAL_ERROR',
+        message: 'Boom',
+        verdict: 'unknown',
+        contract: 42,
+      },
+      error: null,
+    });
+
+    expect(result.status).toBe('error');
+    if (result.status === 'error') {
+      expect(result.contract).toBeUndefined();
+    }
+  });
+
+  it('keeps isBlocking narrowing by code intact when contract is present (MALWARE_DETECTED)', async () => {
+    const result = await parseScanInvocation({
+      data: {
+        error: true,
+        code: 'MALWARE_DETECTED',
+        message: 'Malware found',
+        verdict: 'malicious',
+        scanId: 'scan-mal',
+        contract: 'file-security-scanner',
+      },
+      error: null,
+    });
+
+    expect(isBlocking(result)).toBe(true);
+    expect(isRetryable(result)).toBe(false);
+    expect(isInputError(result)).toBe(false);
+    if (isBlocking(result)) {
+      expect(result.code).toBe('MALWARE_DETECTED');
+      expect(result.contract).toBe('file-security-scanner');
+    }
   });
 });
