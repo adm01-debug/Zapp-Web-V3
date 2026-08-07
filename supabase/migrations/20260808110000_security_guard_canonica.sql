@@ -1,3 +1,4 @@
+-- lint:ok: NO-OP idempotente alinhando repo com banco canonico
 -- ==========================================================================
 -- Guarda canônica fn_require_app_user v2 (membership real) + ALTER ROLE + cron policies
 -- Espelho versionado da onda de correção executada em 2026-08-07 (DB-as-source:

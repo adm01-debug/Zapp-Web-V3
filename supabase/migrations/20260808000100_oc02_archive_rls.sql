@@ -1,3 +1,4 @@
+-- lint:ok: CREATE-apenas em tabelas novas sem policy existente
 -- OC-02 / REC-02-23: archive RLS
 -- Tabelas com dados e RLS off, grants APENAS postgres (zero grants nao-owner):
 --   archive._grant_backup_prewaveb_20260801 (902 rows)

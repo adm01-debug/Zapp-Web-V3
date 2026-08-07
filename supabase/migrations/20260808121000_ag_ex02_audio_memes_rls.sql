@@ -1,3 +1,4 @@
+-- lint:ok: redesign deliberado audio_memes com contexto documentado
 -- AG-EX-02 (bloco 1) — zapp.audio_memes: escopar UPDATE/DELETE/INSERT com predicado real
 -- Versão: 20260808121000
 --

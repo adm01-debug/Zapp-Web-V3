@@ -1,3 +1,4 @@
+-- lint:ok: onda de correcao documentada aplicada via psql antes desta migration
 -- ==========================================================================
 -- Restrição de policies RLS com PII (33 policies, 27 tabelas) + trigger bloqueador de stickers
 -- Espelho versionado da onda de correção executada em 2026-08-07 (DB-as-source:
