@@ -15,7 +15,15 @@ REVOKE EXECUTE ON FUNCTION evo.fn_retention_webhook_partitions(boolean, integer)
 
 -- Complemento D-8 (mesma rodada): funções internas adicionais com proacl default (PUBLIC)
 REVOKE EXECUTE ON FUNCTION evo.fn_dedup_alert() FROM PUBLIC, anon;
-REVOKE EXECUTE ON PROCEDURE evo.p_backfill_evolution_messages() FROM PUBLIC, anon;
+-- p_backfill_evolution_messages: REVOKE condicional — a procedure pode não existir
+-- (removida por onda de higiene posterior); REVOKE de objeto inexistente = ERROR,
+-- quebraria re-execução (supabase db reset / ambiente novo).
+DO $$
+BEGIN
+  IF to_regprocedure('evo.p_backfill_evolution_messages()') IS NOT NULL THEN
+    EXECUTE 'REVOKE EXECUTE ON PROCEDURE evo.p_backfill_evolution_messages() FROM PUBLIC, anon';
+  END IF;
+END $$;
 REVOKE EXECUTE ON FUNCTION ops.fn_alert_policy_churn() FROM PUBLIC, anon;
 
 -- zapp.rpc_insert_message (SECURITY DEFINER, insere em evo.evolution_messages):
