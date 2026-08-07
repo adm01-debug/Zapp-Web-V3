@@ -8,10 +8,6 @@ on:
       E2E_USER_EMAIL:            { required: true }
       E2E_USER_PASSWORD:         { required: true }
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   seed:
     name: Criar/atualizar usuário E2E (auth + profile + role agent)

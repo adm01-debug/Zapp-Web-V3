@@ -6,10 +6,6 @@ on:
     secrets:
       SUPABASE_SERVICE_ROLE_KEY: { required: true }
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   seed-contacts:
     name: Semear contatos E2E em zapp.contacts
