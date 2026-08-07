@@ -105,6 +105,7 @@ export const EDGE_FUNCTION_NAMES = [
   'login-attempts',
   'main',
   'mcp',
+  'mcp-query',
   'mcp-server',
   'metrics',
   'migrate-media-storage',

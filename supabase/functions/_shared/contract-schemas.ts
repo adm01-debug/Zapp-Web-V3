@@ -920,6 +920,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "main":  { v1: InfraSchemas.MainV1Schema },
   "mcp":  { v1: InfraSchemas.McpV1Schema },
   "mcp-server":  { v1: InfraSchemas.McpServerV1Schema },
+  "mcp-query":   { v1: InfraSchemas.McpQueryV1Schema },
   "migrate-media-storage":  { v1: InfraSchemas.MigrateMediaStorageV1Schema },
   "nps-scheduler":  { v1: InfraSchemas.NpsSchedulerV1Schema },
   "promogifts-catalog":  { v1: PromogiftsCatalogV1Schema },
