@@ -7,10 +7,9 @@
 --   relrowsecurity = true; 3 policies para role public:
 --     email_reval_all  (FOR ALL)    — dono da conta OU admin
 --     reval_admin      (FOR ALL)    — idem (espelho da onda de restrição, PR #962)
---     reval_select     (FOR SELECT) — descrita na wave como "já escopada por conta,
---                                     mantida"; USING = mesma expressão das demais
---                                     (DECISÃO PENDENTE: confirmar byte-exact via
---                                     pg_policies antes de aplicar)
+--     reval_select     (FOR SELECT) — escopada por conta; USING = EXISTS puro
+--                                     (SEM admin, SEM alias — byte-exact via
+--                                     pg_policies, conferido 2026-08-07)
 
 CREATE TABLE IF NOT EXISTS zapp.email_revalidation_jobs (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -57,7 +56,7 @@ CREATE POLICY "reval_admin" ON zapp.email_revalidation_jobs
 DROP POLICY IF EXISTS "reval_select" ON zapp.email_revalidation_jobs;
 CREATE POLICY "reval_select" ON zapp.email_revalidation_jobs
     FOR SELECT TO public
-    USING ((EXISTS (SELECT 1 FROM email_app.email_accounts ea WHERE ea.id = email_revalidation_jobs.account_id AND ea.user_id = auth.uid())) OR zapp.is_admin_or_supervisor());
+    USING (EXISTS (SELECT 1 FROM email_app.email_accounts WHERE email_accounts.id = email_revalidation_jobs.account_id AND email_accounts.user_id = auth.uid()));
 
 -- GRANTs espelho (padrão da casa: authenticated/anon leem via public view)
 GRANT SELECT, INSERT, UPDATE, DELETE ON zapp.email_revalidation_jobs TO authenticated;
