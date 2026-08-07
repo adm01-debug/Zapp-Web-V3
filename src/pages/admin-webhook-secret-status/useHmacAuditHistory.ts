@@ -67,7 +67,7 @@ export function useHmacAuditHistory(range: RangeKey, instanceFilter: string, lim
   const debounceRef = useRef<number | null>(null);
   useEffect(() => {
     const channel = supabase
-      .channel('hmac-selftest-audit-realtime')
+      .channel(`hmac-selftest-audit-realtime:${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'zapp', table: 'hmac_selftest_audit' },
