@@ -1,8 +1,8 @@
 # --- evolution-api-custom build context ---
-# main.js/main.patched.js são gerados no CI (artifact do source build) — nunca
-# versionar nem enviar ao daemon (drift e poluição de cache).
+# main.js é gerado no CI (artifact do source build) — nunca versionar nem
+# enviar ao daemon. main.patched.js PRECISA ir ao daemon (Dockerfile:
+# COPY main.patched.js /evolution/dist/main.js) — NÃO ignorar (fix 2026-08-07).
 main.js
-main.patched.js
 
 # Documentação e lixo
 *.md

@@ -45,6 +45,26 @@ for (const needle of [
   }
 }
 
+// 4. .dockerignore NÃO pode excluir main.patched.js (o Dockerfile faz
+//    COPY main.patched.js /evolution/dist/main.js — fix 2026-08-07: o ignore
+//    antigo quebrava o build com "main.patched.js: not found" no buildkit).
+const DI = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "infra/evolution-api-custom/.dockerignore",
+);
+const dockerignore = readFileSync(DI, "utf8");
+if (/^main\.patched\.js$/m.test(dockerignore)) {
+  failures.push(".dockerignore exclui main.patched.js (quebra o COPY do Dockerfile)");
+}
+const df = readFileSync(
+  path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "infra/evolution-api-custom/Dockerfile"),
+  "utf8",
+);
+if (!df.includes("COPY main.patched.js")) {
+  failures.push("Dockerfile sem COPY main.patched.js (contrato do bundle quebrado)");
+}
+
 if (failures.length > 0) {
   console.error("FAIL: fallbacks do publish evolution-api-custom quebrados:");
   for (const f of failures) console.error("  -", f);
