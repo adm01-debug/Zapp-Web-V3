@@ -108,7 +108,11 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
 
         log.info(`Broadcast incoming ${p.is_video ? 'video' : 'audio'} call from ${contactName}`);
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') {
+          log.warn('[IncomingCallBroadcast] subscription status:', status);
+        }
+      });
 
     return () => {
       channel.unsubscribe();

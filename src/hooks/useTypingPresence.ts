@@ -60,7 +60,11 @@ export function useTypingPresence({
         });
         setTypingUsers(users);
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') {
+          console.warn('[TypingPresence] subscription status:', status);
+        }
+      });
 
     return () => {
       if (stopTimerRef.current) {
