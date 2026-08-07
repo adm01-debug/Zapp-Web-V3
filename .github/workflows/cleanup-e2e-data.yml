@@ -14,16 +14,19 @@ concurrency:
 
 jobs:
   cleanup:
-    runs-on: ubuntu-latest
+    # E2E-05-FIX-v2 (2026-08-07): runner self-hosted (vps-zapp) e nao ubuntu-latest.
+    # Porta 5432 esta FECHADA externamente — apenas o runner VPS alcanca o DB interno
+    # em 10.0.1.243. O psql e instalado no step abaixo se ausente.
+    runs-on: [self-hosted, vps-zapp, linux, x64]
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
-      - name: Instalar psql
-        # E2E-05-FIX (2026-08-07): o script so precisa de psql + SUPABASE_DB_URL.
-        # SSH nunca funcionou externamente (porta 22 fechada na VPS AtomicaBR).
-        run: sudo apt-get install -y --no-install-recommends postgresql-client
+      - name: Instalar psql se ausente
+        # O runner self-hosted (myoung34/github-runner Ubuntu 20.04) nao tem psql
+        # pre-instalado — apt-get disponivel (runner tem privilegios de root).
+        run: which psql 2>/dev/null || apt-get install -y --no-install-recommends postgresql-client
 
       - name: Rodar cleanup
         env:
