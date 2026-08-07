@@ -2,7 +2,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
-import { import { parseOrReject } from, buildContractErrorBody } from "../_shared/contract-kit.ts";
+import { parseOrReject, buildContractErrorBody } from "../_shared/contract-kit.ts";
 import { EvolutionTemplatesV1Schema } from "../_shared/contract-schemas.ts";
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
