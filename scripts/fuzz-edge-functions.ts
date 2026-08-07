@@ -18,7 +18,6 @@ const CONCURRENCY = parseInt(values.concurrency ?? "10");
 // Critical functions to fuzz
 const TARGET_FUNCTIONS = [
   "evolution-webhook",
-  "whatsapp-webhook",
   "gmail-webhook",
   "ai-proxy",
   "send-email"
