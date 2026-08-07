@@ -1,0 +1,11 @@
+-- ESPELHO repo×DB — migration aplicada via MCP (supabase_apply_migration) na auditoria Hermes 2026-08-06/07.
+-- Registro em supabase_migrations.schema_migrations; este arquivo é o registro histórico (DB-as-source).
+-- AG02-RLS-05..12 (P1): 10 policies corrigidas
+-- agents: service_role_all DROP -> service_role ALL(true) (antes roles={authenticated})
+-- role_permissions/route_permissions: auth_secure_95/96 -> SELECT authenticated + escrita is_admin_or_supervisor()
+-- schema_migrations: auth_all DROP (0 consumidores authenticated)
+-- app_settings/integration_registry/service_channels: -> SELECT authenticated + escrita admin
+-- cookies_config: authenticated_read -> SELECT somente is_admin_or_supervisor() (tokens de servicos externos)
+-- storage comprovantes-financeiro: 4 policies com EXISTS zapp.profiles role IN ('admin','supervisor')
+-- bpm.bpm_cards/bpm_flows: service_role_all roles={public} -> ALTER POLICY ... TO service_role
+-- SQL completo dos CREATE POLICY no banco (pg_policies).

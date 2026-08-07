@@ -1,0 +1,7 @@
+-- ESPELHO repo×DB — migration aplicada via MCP (supabase_apply_migration) na auditoria Hermes 2026-08-06/07.
+-- Registro em supabase_migrations.schema_migrations; este arquivo é o registro histórico (DB-as-source).
+-- Fecho ARQ-11: 2 SECDEF restantes (surgidas de migracao concorrente).
+-- ALTER FUNCTION zapp.rpc_e2e_cleanup() SET search_path TO 'zapp, evo, pg_temp';
+-- ALTER FUNCTION zapp.rpc_insert_message(p_remote_jid text, p_instance text, p_message_id text,
+--   p_from_me boolean, p_direction text, p_message_type text, p_content text)
+--   SET search_path TO 'zapp, evo, pg_temp';

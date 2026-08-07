@@ -1,0 +1,12 @@
+-- ESPELHO repo×DB — migration aplicada via MCP (supabase_apply_migration) na auditoria Hermes 2026-08-06/07.
+-- Registro em supabase_migrations.schema_migrations; este arquivo é o registro histórico (DB-as-source).
+-- REC-03-09 (P1): refs orfas corrigidas em 6 funcoes (rename evolution_webhook_events -> _v2
+-- nao propagado; v_webhook_health/v_webhook_events_last_hour inexistentes; evo.media_download_queue errado).
+-- fn_zapp_web_smoke_test_v2: zapp.v_webhook_events_last_hour -> evo.evolution_webhook_events_v2 (count 1h);
+--   zapp.evolution_webhook_events -> evo.evolution_webhook_events_v2 (itens 16/19)
+-- fn_zapp_web_system_health: evolution_webhook_events -> evolution_webhook_events_v2 (3 refs)
+-- rpc_dr_health_check / rpc_pipeline_dashboard: SELECT * FROM zapp.v_webhook_health LIMIT 1
+--   -> agregados de evo.evolution_webhook_events_v2 (health_status/last_event_at/unresponded/events_1h/events_24h/processed_1h)
+-- rpc_run_full_test_suite: EXISTS v_webhook_health -> EXISTS _v2 created_at >= 1h
+-- rpc_get_media_public_url: evo.media_download_queue -> zapp.media_download_queue
+-- Corpos efetivos no banco.

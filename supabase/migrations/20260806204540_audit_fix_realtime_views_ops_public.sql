@@ -1,0 +1,6 @@
+-- ESPELHO repo×DB — migration aplicada via MCP (supabase_apply_migration) na auditoria Hermes 2026-08-06/07.
+-- Registro em supabase_migrations.schema_migrations; este arquivo é o registro histórico (DB-as-source).
+-- QA-10-13 (P2): 79 views removidas da publication supabase_realtime (front so assina tabelas).
+--   DO block: ALTER PUBLICATION supabase_realtime DROP TABLE <schema>.<view> para relkind='v'.
+-- REC-03-04 (verificacao): REVOKE EXECUTE ON FUNCTION ops.fn_auto_classify_check_type()/fn_mirror_warroom_criticals()/fn_host_disk_collector_guard() FROM PUBLIC
+--   + GRANT EXECUTE TO service_role (proacl estava NULL = default PUBLIC).

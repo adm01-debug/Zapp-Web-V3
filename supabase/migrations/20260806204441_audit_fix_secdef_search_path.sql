@@ -1,0 +1,13 @@
+-- ESPELHO repo×DB — migration aplicada via MCP (supabase_apply_migration) na auditoria Hermes 2026-08-06/07.
+-- Registro em supabase_migrations.schema_migrations; este arquivo é o registro histórico (DB-as-source).
+-- REC-03-05/ARQ-10 (P1): remover 'public' do search_path de 21 SECURITY DEFINER.
+-- ALTER FUNCTION ... SET search_path TO 'zapp, pg_temp' | 'ops, pg_temp' | 'zapp, evo, pg_temp' |
+-- 'zapp, evo, extensions, pg_catalog' | 'pg_catalog, zapp, vault' (conforme o dominio).
+-- Funcoes: ops.fn_auto_classify_check_type, ops.fn_edge_fn_staleness_check,
+-- public.evo_logpatch_audit_ins, public.get_contact_intelligence_by_phone, public.purge_old_query_telemetry,
+-- public.rpc_app_bootstrap, public.rpc_dashboard_init, zapp.add_contact_note, zapp.bulk_add_tag,
+-- zapp.find_duplicate_contacts, zapp.fn_enqueue_message_dispatch, zapp.fn_reconcile_apply,
+-- zapp.fn_retry_stuck_messages, zapp.fn_security_self_audit_daily, zapp.fn_system_health_score,
+-- zapp.fn_validate_whatsapp_connection_url, zapp.fn_webhook_purge_consolidated, zapp.merge_contacts,
+-- zapp.rpc_app_bootstrap, zapp.rpc_contract_inventory, zapp.rpc_dashboard_init,
+-- zapp.rpc_insert_message, zapp.update_contact_note. Estado verificado: 0 SECDEF com public.

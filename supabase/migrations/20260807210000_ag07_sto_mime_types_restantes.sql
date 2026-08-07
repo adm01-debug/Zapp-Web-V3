@@ -1,0 +1,8 @@
+-- ESPELHO repo×DB — migration aplicada via MCP (supabase_apply_migration) na auditoria Hermes 2026-08-06/07.
+-- Registro em supabase_migrations.schema_migrations; este arquivo é o registro histórico (DB-as-source).
+-- STO-11 (P2): file_size_limit + allowed_mime_types nos buckets restantes (aplicado 2026-08-07).
+-- Valores efetivos em storage.buckets (13/13 com limite+MIME):
+--   audio-messages 25MB, audio-memes 10MB, custom-emojis 2MB, stickers 5MB,
+--   comprovantes-financeiro 25MB, team-chat-files 50MB, whatsapp-media 100MB,
+--   avatars/recibos-entrega/email-attachments/etiquetas-remessa/fechamentos/quarantine 5-100MB.
+-- UPDATE storage.buckets SET file_size_limit = ..., allowed_mime_types = ... (por bucket).

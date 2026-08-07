@@ -1,0 +1,9 @@
+-- ESPELHO repo×DB — migration aplicada via MCP (supabase_apply_migration) na auditoria Hermes 2026-08-06/07.
+-- Registro em supabase_migrations.schema_migrations; este arquivo é o registro histórico (DB-as-source).
+-- P0-REAL-01/02: guardas de app user em rpc_list_messages, rpc_list_messages_lite, rpc_global_search
+-- (corpos completos: SELECT de evo.evolution_messages/contacts/deals com PERFORM zapp.fn_require_app_user()
+--  como primeira instrucao; assinaturas e defaults preservados; LANGUAGE sql -> plpgsql).
+-- Ver corpos efetivos no banco (pg_get_functiondef). Resumo das assinaturas:
+--   zapp.rpc_list_messages(p_remote_jid text, p_instance text DEFAULT NULL, p_limit integer DEFAULT 50, p_before_date timestamptz DEFAULT NULL) RETURNS SETOF evo.evolution_messages
+--   zapp.rpc_list_messages_lite(... 5 args com defaults ...) RETURNS SETOF evo.evolution_messages
+--   zapp.rpc_global_search(p_query text, p_instance text DEFAULT 'wpp_pink_test', p_limit integer DEFAULT 20) RETURNS jsonb

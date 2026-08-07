@@ -1,0 +1,13 @@
+-- ESPELHO repo×DB — migration aplicada via MCP (supabase_apply_migration) na auditoria Hermes 2026-08-06/07.
+-- Registro em supabase_migrations.schema_migrations; este arquivo é o registro histórico (DB-as-source).
+-- REC-03-08 (P1): overload 2 do rpc_insert_message ganhou p_media_url text DEFAULT NULL e
+-- p_metadata jsonb DEFAULT NULL (edge whatsapp-cloud-api chamava com esses params -> PGRST202) +
+-- guarda fn_require_app_user + persistencia em media_url/payload. Assinatura final:
+--   zapp.rpc_insert_message(p_remote_jid text, p_content text, p_message_type text DEFAULT 'text',
+--     p_message_id text DEFAULT NULL, p_from_me boolean DEFAULT true, p_direction text DEFAULT 'outbound',
+--     p_instance text DEFAULT 'wpp_pink_test', p_media_url text DEFAULT NULL, p_metadata jsonb DEFAULT NULL)
+--   RETURNS evo.evolution_messages
+-- AG02-RLS-04 (P1): rpc_delete_contact ganhou guarda admin/supervisor (auth.uid() NOT NULL AND
+-- NOT is_admin_or_supervisor() -> RAISE 42501). Assinatura preservada:
+--   zapp.rpc_delete_contact(p_remote_jid text, p_instance text DEFAULT 'wpp_pink_test', p_performed_by text DEFAULT 'frontend') RETURNS boolean
+-- Corpos efetivos no banco (pg_get_functiondef).
