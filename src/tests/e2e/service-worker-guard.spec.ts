@@ -29,7 +29,9 @@ async function proxyToDev(route: Route) {
     delete headers['content-security-policy-report-only'];
     await route.fulfill({ response: res, headers });
   } catch {
-    await route.abort();
+    // Ignora "Route is already handled" — ocorre quando o browser trava (e.g.,
+    // WebKit com falha no driver GPU MESA) e aborta a rota internamente antes do catch.
+    await route.abort().catch(() => {});
   }
 }
 
