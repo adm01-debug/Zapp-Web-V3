@@ -2,6 +2,22 @@ name: 📦 Publish evolution-api-custom (GHCR)
 
 on:
   workflow_dispatch:
+    inputs:
+      baileys_version:
+        description: 'Versão do Baileys (pin exato)'
+        required: false
+        default: '6.7.24'
+        type: string
+      evolution_ref:
+        description: 'Tag/branch do evolution-foundation/evolution-api'
+        required: false
+        default: '2.3.7'
+        type: string
+      base_image:
+        description: 'Imagem base oficial (digest imutável)'
+        required: false
+        default: 'evoapicloud/evolution-api@sha256:6b195676b09abbbd8ac9372cd961674dea2587f23dc9bc1d1e6a595372556fb1'
+        type: string
   push:
     paths:
       - 'infra/evolution-api-custom/**'
@@ -14,18 +30,110 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/evolution-api-custom
-  BASE_IMAGE: evoapicloud/evolution-api@sha256:6b195676b09abbbd8ac9372cd961674dea2587f23dc9bc1d1e6a595372556fb1
 
 jobs:
-  build-and-push:
-    name: Build & push Evolution custom image
-    runs-on: ubuntu-latest
+  # ---------------------------------------------------------------------------
+  # Plano B (Design B'): rebuild do bundle a partir do SOURCE da Evolution (tag
+  # fixa) com o pin exato do baileys + pack do pacote baileys para substituir o
+  # /evolution/node_modules/baileys da imagem (o tsup EXTERNALIZA o baileys —
+  # require("baileys") em runtime — logo só o bundle NÃO basta).
+  # ---------------------------------------------------------------------------
+  build-evolution-source:
+    name: Build evolution source bundle (baileys ${{ inputs.baileys_version }})
+    runs-on: [self-hosted, Linux, X64, vps-zapp]
     steps:
       - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v4
         with:
-          persist-credentials: false
+          node-version: 24
+
+      - name: Clone evolution-api source (tag fixa)
+        run: |
+          git clone --depth 1 --branch ${{ inputs.evolution_ref }} https://github.com/evolution-foundation/evolution-api.git evo-src
+          grep '"baileys"' evo-src/package.json
+
+      - name: Pin baileys (exato — package.json + package-lock.json)
+        working-directory: evo-src
+        run: |
+          npm install baileys@${{ inputs.baileys_version }} --save-exact --no-audit --no-fund
+          grep '"baileys"' package.json
+
+      - name: Prisma generate (DATABASE_PROVIDER=postgresql, sem conexão)
+        working-directory: evo-src
+        run: |
+          cp .env.example .env
+          export DATABASE_PROVIDER=postgresql
+          export DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+          npm run db:generate 2>/dev/null || npx prisma generate --schema=./prisma/postgresql-schema.prisma
+
+      - name: Build bundle (tsc --noEmit && tsup; fallback tsup Plano B §2.2)
+        working-directory: evo-src
+        run: |
+          export DATABASE_PROVIDER=postgresql
+          export DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+          set +e
+          npm run build > /tmp/build.log 2>&1
+          RC=$?
+          if [ $RC -ne 0 ]; then
+            echo "::warning::build (tsc+tsup) falhou rc=$RC — fallback npx tsup (Plano B 2.2)"
+            tail -25 /tmp/build.log
+            NODE_OPTIONS=--max-old-space-size=1536 npx tsup > /tmp/tsup.log 2>&1
+            RC=$?
+            if [ $RC -ne 0 ]; then
+              echo "::error::npx tsup falhou rc=$RC"
+              tail -40 /tmp/tsup.log
+              exit 1
+            fi
+          fi
+          set -e
+          ls -la dist/main.js dist/main.mjs
+
+      - name: Verify bundle (require externo do baileys + sem rc.9)
+        working-directory: evo-src
+        run: |
+          ls -la dist/
+          node -e "const s=require('fs').readFileSync('dist/main.js','utf8'); if(!s.includes('require(\"baileys\")')){console.error('FAIL: require(\"baileys\") ausente — bundle mudou de arquitetura');process.exit(1)} if(s.includes('7.0.0-rc.9')){console.error('FAIL: rc.9 ainda presente no bundle');process.exit(1)} console.log('OK bytes:', s.length, '| require(\"baileys\") externo presente')"
+
+      - name: Pack baileys (para substituir node_modules/baileys na imagem)
+        working-directory: evo-src
+        run: |
+          npm pack baileys@${{ inputs.baileys_version }} --pack-destination . --silent
+          ls -la baileys-*.tgz
+          tar -tzf baileys-${{ inputs.baileys_version }}.tgz | head -3
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: evo-main-${{ inputs.baileys_version }}
+          path: |
+            evo-src/dist/main.js
+            evo-src/dist/main.mjs
+            evo-src/baileys-${{ inputs.baileys_version }}.tgz
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # Patches T1-T6 (fail-closed, T2/T5a tolerantes) + swap baileys + smoke test
+  # na imagem final + push
+  # ---------------------------------------------------------------------------
+  build-and-push:
+    name: Build & push Evolution custom image (baileys ${{ inputs.baileys_version }})
+    needs: build-evolution-source
+    runs-on: [self-hosted, Linux, X64, vps-zapp]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
 
       - uses: docker/setup-buildx-action@v4
+        with:
+          # driver: docker — no runner self-hosted (VPS), docker-container
+          # aninhado falha no mask de /proc/acpi (runc interno, kernel sem ACPI):
+          # 'can't mask dir "/proc/acpi"'. driver docker = build direto no daemon
+          # do host (1 nível, como qualquer container normal). Sem cache gha.
+          driver: docker
 
       - name: Login to GHCR
         uses: docker/login-action@v4
@@ -34,18 +142,67 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract original main.js from base image
-        run: |
-          docker create --name evo-base ${{ env.BASE_IMAGE }} true
-          docker cp evo-base:/evolution/dist/main.js infra/evolution-api-custom/main.js
-          docker rm evo-base
-          ls -la infra/evolution-api-custom/main.js
+      - name: Download bundle + baileys pack (baileys ${{ inputs.baileys_version }})
+        uses: actions/download-artifact@v4
+        with:
+          name: evo-main-${{ inputs.baileys_version }}
+          path: /tmp/evo-bundle/
 
-      - name: Apply T1-T6 patches (fail-closed)
+      - name: Normalize bundle layout (artifact preserva evo-src/)
+        run: |
+          find /tmp/evo-bundle -name 'main.js' -exec cp {} infra/evolution-api-custom/main.js \;
+          find /tmp/evo-bundle -name 'main.mjs' -exec cp {} infra/evolution-api-custom/main.mjs \;
+          find /tmp/evo-bundle -name 'baileys-*.tgz' -exec cp {} infra/evolution-api-custom/ \;
+          ls -la infra/evolution-api-custom/
+
+      - name: Extract baileys package (node_modules swap)
         run: |
           cd infra/evolution-api-custom
-          node build-patches.mjs main.js main.patched.js t4_prologue.cjs
+          mkdir -p baileys
+          tar -xzf baileys-${{ inputs.baileys_version }}.tgz -C baileys --strip-components=1
+          node -e "const v=require('./baileys/package.json').version; if(v!=='${{ inputs.baileys_version }}'){console.error('FAIL: versao baileys extraido = '+v);process.exit(1)} console.log('baileys extraido OK: '+v)"
+          rm -f baileys-${{ inputs.baileys_version }}.tgz
+
+      - name: Apply T1-T6 patches (fail-closed, T2/T5a tolerantes)
+        run: |
+          cd infra/evolution-api-custom
+          node build-patches.mjs main.js main.patched.js t4_prologue.cjs "2.3.7-baileys-${{ inputs.baileys_version }}"
           ls -la main.patched.js
+
+      - name: Warm base image (resiliente a rate limit Docker Hub)
+        run: |
+          for i in 1 2 3 4 5; do
+            docker pull "${{ inputs.base_image }}" && break
+            echo "::warning::pull base falhou (tentativa $i/5) — aguardando 60s"
+            sleep 60
+          done
+          docker image inspect "${{ inputs.base_image }}" >/dev/null || { echo "::error::base image indisponivel apos 5 tentativas"; exit 1; }
+
+      - name: Build image (sem push, load local)
+        uses: docker/build-push-action@v7
+        with:
+          context: infra/evolution-api-custom
+          push: false
+          load: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:smoke-${{ inputs.baileys_version }}
+          build-args: |
+            BASE_IMAGE=${{ inputs.base_image }}
+          # (cache gha removido: driver docker nao suporta cache export — base via Warm step)
+
+      - name: Smoke test (Design B' gate — imagem final com baileys ${{ inputs.baileys_version }})
+        run: |
+          IMG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:smoke-${{ inputs.baileys_version }}
+          set +e
+          timeout 45 docker run --rm --entrypoint node "$IMG" dist/main.js > /tmp/smoke.log 2>&1
+          RC=$?
+          set -e
+          echo "rc=$RC (crash por env ausente é esperado; o que importa é o require carregar)"
+          tail -25 /tmp/smoke.log
+          if grep -iE "cannot find module|MODULE_NOT_FOUND" /tmp/smoke.log; then
+            echo "SMOKE FAIL: require externo órfão"
+            exit 1
+          fi
+          echo "SMOKE OK: bundle + baileys ${{ inputs.baileys_version }} carregam sem require órfão"
 
       - name: Compute image tag
         id: meta
@@ -61,7 +218,16 @@ jobs:
           tags: |
             ${{ steps.meta.outputs.image }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.3.7
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.3.7-baileys-${{ inputs.baileys_version }}
           build-args: |
-            BASE_IMAGE=${{ env.BASE_IMAGE }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            BASE_IMAGE=${{ inputs.base_image }}
+          # (cache gha removido: driver docker nao suporta cache export — base via Warm step)
+
+      - name: Resolve published digest
+        id: digest
+        run: |
+          # driver docker: buildx imagetools nao expoe o digest do push; o daemon
+          # local tem o RepoDigests remoto apos o push (imagem loadada).
+          DIGEST=$(docker image inspect --format '{{index .RepoDigests 0}}' ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.3.7-baileys-${{ inputs.baileys_version }} | cut -d@ -f2)
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+          echo "Published digest: $DIGEST"
