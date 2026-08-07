@@ -26,6 +26,13 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- STEP 1: Criar tabelas de cache e histórico
 -- ─────────────────────────────────────────────────────────────────────────────
+-- Ordem obrigatória (rebuild do zero): CREATE SEQUENCE ANTES do CREATE TABLE —
+-- o Postgres valida o regclass de nextval(...) já no parse do CREATE TABLE.
+-- O DO block abaixo ficou apenas com o ALTER (no-op quando o DEFAULT já veio do
+-- CREATE TABLE) como rede de segurança para tabelas pré-existentes.
+
+CREATE SEQUENCE IF NOT EXISTS zapp.fn_health_score_cache_id_seq
+  START WITH 1 INCREMENT BY 1 NO MAXVALUE CACHE 1;
 
 CREATE TABLE IF NOT EXISTS zapp.fn_health_score_cache (
   id          integer      NOT NULL DEFAULT nextval('zapp.fn_health_score_cache_id_seq'),
@@ -39,13 +46,14 @@ CREATE TABLE IF NOT EXISTS zapp.fn_health_score_cache (
 
 DO $$
 BEGIN
-  CREATE SEQUENCE IF NOT EXISTS zapp.fn_health_score_cache_id_seq
-    START WITH 1 INCREMENT BY 1 NO MAXVALUE CACHE 1;
   ALTER TABLE zapp.fn_health_score_cache
     ALTER COLUMN id SET DEFAULT nextval('zapp.fn_health_score_cache_id_seq');
 EXCEPTION WHEN others THEN NULL;
 END;
 $$;
+
+CREATE SEQUENCE IF NOT EXISTS zapp.fn_health_score_history_id_seq
+  START WITH 1 INCREMENT BY 1 NO MAXVALUE CACHE 1;
 
 CREATE TABLE IF NOT EXISTS zapp.fn_health_score_history (
   id          bigint       NOT NULL DEFAULT nextval('zapp.fn_health_score_history_id_seq'),
@@ -58,8 +66,6 @@ CREATE TABLE IF NOT EXISTS zapp.fn_health_score_history (
 
 DO $$
 BEGIN
-  CREATE SEQUENCE IF NOT EXISTS zapp.fn_health_score_history_id_seq
-    START WITH 1 INCREMENT BY 1 NO MAXVALUE CACHE 1;
   ALTER TABLE zapp.fn_health_score_history
     ALTER COLUMN id SET DEFAULT nextval('zapp.fn_health_score_history_id_seq');
 EXCEPTION WHEN others THEN NULL;
