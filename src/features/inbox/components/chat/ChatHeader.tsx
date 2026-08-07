@@ -82,10 +82,14 @@ export const ChatHeader = memo(function ChatHeader({
   whisperCount,
   onOpenValidation,
 }: ChatHeaderProps) {
-  const { data: crmData } = useExternalContact360(conversation.contact.phone ?? undefined);
-  const _crmCompany = crmData?.found ? crmData.company : null;
-  const _crmCustomer = crmData?.found ? crmData.customer : null;
-  const _crmRfm = crmData?.found ? crmData.rfm : null;
+  const { data: crmData, isPlaceholderData: crmIsPlaceholder } = useExternalContact360(
+    conversation.contact.phone ?? undefined
+  );
+  // FIX validação 2026-08-07: placeholderData mantém dados do phone ANTERIOR
+  // durante o load — nunca exibir empresa/contato do contato anterior.
+  const _crmCompany = crmData && !crmIsPlaceholder && crmData.found ? crmData.company : null;
+  const _crmCustomer = crmData && !crmIsPlaceholder && crmData.found ? crmData.customer : null;
+  const _crmRfm = crmData && !crmIsPlaceholder && crmData.found ? crmData.rfm : null;
 
   const { intelligence: intel } = useContactIntelligence(conversation.contact.phone ?? undefined);
   const _briefing = intel?.found ? intel.briefing : null;

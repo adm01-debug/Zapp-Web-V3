@@ -160,4 +160,78 @@ describe('acquireSupabaseSlot — prioridade high', () => {
       globalThis.fetch = origFetch;
     }
   });
+
+  it('release duplicado é no-op (guarda de idempotência — não corrompe o contador)', async () => {
+    const release = await acquireSupabaseSlot('normal');
+    expect(getSupabaseSemaphoreState().inFlight).toBe(1);
+
+    release();
+    expect(getSupabaseSemaphoreState().inFlight).toBe(0);
+
+    // Segunda chamada ao release: deve ser no-op (sem decrementar abaixo de 0).
+    release();
+    release();
+    expect(getSupabaseSemaphoreState().inFlight).toBe(0);
+    expect(getSupabaseSemaphoreState().queueLength).toBe(0);
+  });
+
+  it('withSupabaseHighPriority concorrentes: A termina antes de B — B continua high (sem clobber)', async () => {
+    vi.useFakeTimers();
+
+    for (let i = 0; i < 8; i++) {
+      await acquireTracked();
+    }
+
+    const order: string[] = [];
+    // Normal entra na fila PRIMEIRO (baseline para medir quem fura).
+    void acquireTracked('normal').then(() => {
+      order.push('normal');
+    });
+
+    // A e B começam juntas; A termina RÁPIDO, B continua depois (gateB).
+    let releaseB!: () => void;
+    const gateB = new Promise<void>((r) => {
+      releaseB = r;
+    });
+
+    const origFetch = globalThis.fetch;
+    const fetchMock = vi.fn(async () => {
+      order.push('b-fetch');
+      return new Response('{}', {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    try {
+      const a = withSupabaseHighPriority(async () => {
+        order.push('a-start');
+      });
+      const b = withSupabaseHighPriority(async () => {
+        order.push('b-start');
+        await gateB; // A termina antes de B prosseguir
+        await retryFetch('https://supabase.atomicabr.com.br/rest/v1/health', {
+          method: 'GET',
+          headers: {},
+        } as RequestInit);
+      });
+
+      await a; // A termina — o high de B NÃO pode cair (depth counter)
+      releaseB();
+      // Deixa a continuação de B rodar até o acquire (microtasks puras —
+      // fake timers não afetam promises).
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // Libera UM slot: o fetch de B (ainda high) fura a fila antes do normal.
+      const firstRelease = releases.shift()!;
+      firstRelease();
+      await b;
+
+      expect(order.indexOf('b-fetch')).toBeGreaterThan(-1);
+      expect(order.indexOf('b-fetch')).toBeLessThan(order.indexOf('normal'));
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
 });

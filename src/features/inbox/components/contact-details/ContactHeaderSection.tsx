@@ -100,9 +100,13 @@ export function ContactHeaderSection({
   const [showCallDialog, setShowCallDialog] = useState(false);
   const [showAvatarPreview, setShowAvatarPreview] = useState(false);
 
-  const { data: crmData } = useExternalContact360(isSupabaseConfigured ? contact.phone : undefined);
-  const crmContact = crmData?.found ? crmData.contact : null;
-  const crmCompany = crmData?.found ? crmData.company : null;
+  const { data: crmData, isPlaceholderData: crmIsPlaceholder } = useExternalContact360(
+    isSupabaseConfigured ? contact.phone : undefined
+  );
+  // FIX validação 2026-08-07: placeholderData mantém dados do phone ANTERIOR
+  // durante o load — nunca exibir contato/empresa do contato anterior.
+  const crmContact = crmData && !crmIsPlaceholder && crmData.found ? crmData.contact : null;
+  const crmCompany = crmData && !crmIsPlaceholder && crmData.found ? crmData.company : null;
   const isVip = crmContact ? crmContact.relationship_score >= 70 : false;
   const nomeTratamento = crmContact?.nome_tratamento || crmContact?.apelido;
   const firstName = contact.name.split(' ')[0];

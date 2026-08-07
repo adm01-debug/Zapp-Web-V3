@@ -470,7 +470,15 @@ export async function acquireSupabaseSlot(
   priority: 'normal' | 'high' = 'normal'
 ): Promise<() => void> {
   await _acquireSupabaseSlot({ priority });
-  return _releaseSupabaseSlot;
+  // Guarda de idempotência (FIX validação 2026-08-07): release duplicado
+  // decrementaria o contador 2x e corromperia o semáforo (8 slots → 7 → ...).
+  // Chamadas adicionais ao release são no-op.
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    _releaseSupabaseSlot();
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -482,17 +490,20 @@ export async function acquireSupabaseSlot(
 // O padrão correto: marcar o CONTEXTO da chamada como high; o retryFetch lê
 // o flag e adquire UM ÚNICO slot com prioridade high (fura a fila, não
 // segura capacidade extra).
+//
+// FIX validação 2026-08-07: CONTADOR de profundidade em vez de boolean —
+// duas chamadas concorrentes com withSupabaseHighPriority não se clobberam
+// (a que termina primeiro não derruba o high da outra).
 // ---------------------------------------------------------------------------
-let _highPriorityActive = false;
+let _highPriorityDepth = 0;
 
 /** Executa `fn` com requests supabase (via retryFetch) priorizadas 'high' na fila do semáforo. */
 export async function withSupabaseHighPriority<T>(fn: () => Promise<T>): Promise<T> {
-  const prev = _highPriorityActive;
-  _highPriorityActive = true;
+  _highPriorityDepth++;
   try {
     return await fn();
   } finally {
-    _highPriorityActive = prev;
+    _highPriorityDepth--;
   }
 }
 
@@ -539,8 +550,9 @@ export const retryFetch: typeof fetch = async (input, init) => {
 
   // Semáforo: adquire slot antes de disparar a requisição.
   // Evita que 10+ RPCs simultâneas saturem o pool TCP e o Supavisor.
-  // Prioridade high (contexto withSupabaseHighPriority) fura a fila FIFO.
-  await _acquireSupabaseSlot({ priority: _highPriorityActive ? 'high' : 'normal' });
+  // Prioridade high (contexto withSupabaseHighPriority, contador de
+  // profundidade) fura a fila FIFO.
+  await _acquireSupabaseSlot({ priority: _highPriorityDepth > 0 ? 'high' : 'normal' });
   try {
     return await withRetry(
       async () => {
