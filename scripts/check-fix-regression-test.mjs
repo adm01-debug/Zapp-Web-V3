@@ -29,7 +29,7 @@ const TEST_PATTERNS = [
   /__tests__\//,
   /cypress\//,
   /e2e\//,
-  /test\//,
+  /(^|\/)tests?\//,
 ];
 
 function isFixCommit(msg) {
