@@ -51,11 +51,21 @@ export async function sha256Hex(input: string): Promise<string> {
 // Marks an event as processed. Returns true if this is the first time (caller should process),
 // false if a prior row already exists (caller should treat as duplicate). Non-unique errors are
 // treated as "new" so the handler is never blocked by audit-infra failure.
+// [E7 2026-08-06] Popular webhook_source ('consumer' vs 'evolution-native') e idempotency_key
+// quando o caller fornecer (opts opcionais — backward compatible com todos os callers existentes).
 // deno-lint-ignore no-explicit-any
 /** mark Event Processed function. */
-export async function markEventProcessed(supabase: any, eventId: string, instance: string, eventType: string): Promise<boolean> {
+export async function markEventProcessed(
+  supabase: any,
+  eventId: string,
+  instance: string,
+  eventType: string,
+  opts?: { webhookSource?: string; idempotencyKey?: string },
+): Promise<boolean> {
   const { error } = await supabase.from('webhook_events_processed').insert({
     event_id: eventId, instance, event_type: eventType,
+    ...(opts?.webhookSource ? { webhook_source: opts.webhookSource } : {}),
+    ...(opts?.idempotencyKey ? { idempotency_key: opts.idempotencyKey } : {}),
   });
   if (!error) return true;
   if (error.code === '23505') return false;

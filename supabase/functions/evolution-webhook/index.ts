@@ -46,6 +46,17 @@ const validateWebhook = WEBHOOK_SECRETS.length > 0
   ? createWebhookValidator(WEBHOOK_SECRETS, STRICT_MODE, ALLOW_SHARED_SECRET)
   : null;
 
+// [E7 2026-08-06] Proveniência do evento p/ webhook_events_processed.webhook_source:
+// 'consumer' quando autenticado por HMAC (x-webhook-signature — produtor RabbitMQ/consumer),
+// 'evolution-native' quando autenticado via shared-secret plaintext (webhook nativo Evolution).
+// NOTA: declarada POR REQUEST dentro do handler (estado module-level contaminaria a
+// proveniência entre requests do mesmo isolate).
+// [E7 2026-08-06] Log de sucesso HMAC rate-limited (1/60s): o hmac-validation.ts loga em TODA
+// validação (console.info pode ser filtrado) — este marcador garante um sinal estável e barato
+// no log do edge-runtime sem tocar em _shared (evita drift de hash nas 106 fns).
+let __lastHmacSuccessLogAt = 0;
+const __HMAC_LOG_INTERVAL_MS = 60_000;
+
 // [PATCH 2026-07-04 registry-guard] So processa eventos de instancias cadastradas em
 // instance_registry (existencia, nao is_active - evita perda de dados de instancia nova
 // ainda nao ativada). Cache em memoria TTL 60s. Fail-open (null) em erro de lookup para
@@ -75,6 +86,8 @@ Deno.serve(async (req) => {
 
   const requestId = generateRequestId();
   const startedAt = Date.now();
+  // [E7 2026-08-06] Proveniência POR REQUEST — ver nota no escopo module-level.
+  let webhookSource: 'consumer' | 'evolution-native' = 'evolution-native';
   const baseHeaders = { 'Content-Type': 'application/json', 'x-request-id': requestId };
 
   const corsResponse = handleCors(req);
@@ -126,6 +139,15 @@ Deno.serve(async (req) => {
     if (!result.signatureValid && result.sharedSecretValid) {
       // Fallback DEPRECATED em uso — loga para acompanhar migração p/ HMAC.
       console.warn(redactSecrets(`[webhook][${requestId}] DEPRECATED auth: x-webhook-secret (plaintext shared secret) accepted for instance=${headerInstance ?? 'unknown'} — HMAC x-webhook-signature é o padrão; migre o produtor e set EVOLUTION_WEBHOOK_ALLOW_SHARED_SECRET=false`));
+    }
+    if (result.signatureValid) {
+      // [E7 2026-08-06] Proveniência + log de sucesso HMAC rate-limited (1/60s por isolate).
+      webhookSource = 'consumer';
+      const now = Date.now();
+      if (now - __lastHmacSuccessLogAt >= __HMAC_LOG_INTERVAL_MS) {
+        __lastHmacSuccessLogAt = now;
+        console.log(`[webhook][${requestId}] HMAC OK (x-webhook-signature) source=consumer — rate-limited log 1/60s`);
+      }
     }
     rawBody = result.payload ?? '';
   } else if (STRICT_MODE) {
@@ -222,7 +244,13 @@ Deno.serve(async (req) => {
   const normalizedBody = rawBody.normalize('NFC');
   const bodyHash = await sha256Hex(normalizedBody);
   const eventId = `${instance || 'unknown'}:${event}:${bodyHash}`;
-  const isNew = await markEventProcessed(supabase, eventId, instance, event);
+  // [E7 2026-08-06] idempotency_key = sha256(event_id) — chave estável e rastreável no dado;
+  // webhook_source populado pela autenticação (consumer=HMAC / evolution-native=shared-secret).
+  const idempotencyKey = await sha256Hex(eventId);
+  const isNew = await markEventProcessed(supabase, eventId, instance, event, {
+    webhookSource,
+    idempotencyKey,
+  });
   if (!isNew) {
     await auditWebhookEvent(supabase, {
       request_id: requestId, instance, event_type: event, status: 'duplicate', status_code: 200,
