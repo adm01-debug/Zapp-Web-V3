@@ -33065,6 +33065,13 @@ export type Database = {
         }
         Returns: Json
       }
+      rpc_e2e_cleanup: { Args: never; Returns: Json }
+      rpc_e2e_seed_contacts: { Args: never; Returns: Json }
+      rpc_e2e_seed_user: {
+        Args: { p_email: string; p_password: string }
+        Returns: Json
+      }
+      rpc_e2e_validate_user: { Args: { p_email: string }; Returns: Json }
       rpc_email_cleanup_old_events: {
         Args: { p_retention_days?: number }
         Returns: Json
@@ -43777,13 +43784,6 @@ export type Database = {
             referencedRelation: "departments_safe"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "queues_sla_policy_id_fkey"
-            columns: ["sla_policy_id"]
-            isOneToOne: false
-            referencedRelation: "sla_policies"
-            referencedColumns: ["id"]
-          },
         ]
       }
       quick_replies: {
@@ -45535,54 +45535,6 @@ export type Database = {
           },
         ]
       }
-      sla_policies: {
-        Row: {
-          applies_to_queues: string[] | null
-          business_hours_only: boolean | null
-          created_at: string
-          critical_threshold_pct: number | null
-          description: string | null
-          first_response_minutes: number
-          id: string
-          is_active: boolean | null
-          name: string
-          priority: number | null
-          resolution_minutes: number
-          updated_at: string
-          warning_threshold_pct: number | null
-        }
-        Insert: {
-          applies_to_queues?: string[] | null
-          business_hours_only?: boolean | null
-          created_at?: string
-          critical_threshold_pct?: number | null
-          description?: string | null
-          first_response_minutes?: number
-          id?: string
-          is_active?: boolean | null
-          name: string
-          priority?: number | null
-          resolution_minutes?: number
-          updated_at?: string
-          warning_threshold_pct?: number | null
-        }
-        Update: {
-          applies_to_queues?: string[] | null
-          business_hours_only?: boolean | null
-          created_at?: string
-          critical_threshold_pct?: number | null
-          description?: string | null
-          first_response_minutes?: number
-          id?: string
-          is_active?: boolean | null
-          name?: string
-          priority?: number | null
-          resolution_minutes?: number
-          updated_at?: string
-          warning_threshold_pct?: number | null
-        }
-        Relationships: []
-      }
       sla_rules: {
         Row: {
           agent_id: string | null
@@ -45741,15 +45693,7 @@ export type Database = {
           sla_policy_id?: string | null
           violation_type?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "sla_violations_sla_policy_id_fkey"
-            columns: ["sla_policy_id"]
-            isOneToOne: false
-            referencedRelation: "sla_policies"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       solicitacoes_vale: {
         Row: {
@@ -67149,6 +67093,12 @@ export type Database = {
       rpc_dlq_stats: { Args: never; Returns: Json }
       rpc_dr_health_check: { Args: never; Returns: Json }
       rpc_e2e_cleanup: { Args: never; Returns: Json }
+      rpc_e2e_seed_contacts: { Args: never; Returns: Json }
+      rpc_e2e_seed_user: {
+        Args: { p_email: string; p_password: string }
+        Returns: Json
+      }
+      rpc_e2e_validate_user: { Args: { p_email: string }; Returns: Json }
       rpc_email_archive_thread: {
         Args: { p_archived?: boolean; p_thread_id: string }
         Returns: Json
@@ -68064,6 +68014,16 @@ export type Database = {
           transfer_type: string
         }[]
       }
+      rpc_log_assignment_change: {
+        Args: {
+          p_action: string
+          p_conversation_id: string
+          p_from_agent: string
+          p_performed_by: string
+          p_to_agent: string
+        }
+        Returns: undefined
+      }
       rpc_log_email_health: {
         Args: {
           p_account_id?: string
@@ -68306,6 +68266,10 @@ export type Database = {
         Returns: string
       }
       rpc_purge_channel_sticky: { Args: { p_id: string }; Returns: number }
+      rpc_purge_contact_intelligence: {
+        Args: { p_contact_id: string }
+        Returns: undefined
+      }
       rpc_queue_rebalance_candidates: {
         Args: { p_limit?: number }
         Returns: {
