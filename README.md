@@ -319,13 +319,29 @@ bun test src/hooks/
 
 ## Deploy
 
-O deploy é gerenciado automaticamente pelo **Lovable**:
-1. Edições no código disparam rebuild automático
-2. Edge Functions são deployadas automaticamente
-3. Migrations são aplicadas via ferramenta de migração
+> ⚠️ **Atualizado em 2026-08-07 (OC-05)** — a documentação anterior ("deploy via
+> Lovable/Vercel") era **relicto da fase Lovable** e foi corrigida. O deploy real
+> NÃO usa Vercel/Lovable desde a migração self-hosted (2026-06-30).
+
+O deploy real é **GitHub → GHCR → Portainer (Docker Swarm na VPS AtomicaBR)**:
+
+1. Push/merge em `main` dispara `deploy-vps.yml` (build + push da imagem para
+   GHCR + deploy no Portainer stack `zapp-web-prod`).
+2. Edge Functions (`supabase/functions/*`) são deployadas via `edge-deploy.yml`
+   (ou `infra/edge-deploy/deploy-edge.sh`).
+3. Migrations (`supabase/migrations/*`) são aplicadas pelo fluxo de migrations
+   versionadas (gate de CI + execução no banco).
 
 ### URLs
-- **Produção**: Vercel (vercel.com)
+- **Produção**: https://zapp.atomicabr.com.br (Portainer/Swarm, Nginx + Traefik)
+- **Imagem**: ghcr.io/adm01-debug/zapp-web-v3 (GHCR)
+
+### `vercel.json` — legado
+O `vercel.json` presente na raiz é **herança da fase Lovable/Vercel** e não é
+usado pelo pipeline atual. Foi mantido apenas como referência histórica de
+headers/CSP/rewrites que a stack Nginx reproduz (ver `nginx.conf` /
+`nginx-prod.conf`). Decisão registrada em `docs/DECISION-repo-oc05-legados.md`
+(REC-06-07).
 
 ---
 
