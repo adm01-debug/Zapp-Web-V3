@@ -64,7 +64,7 @@ let graceTimer: ReturnType<typeof setTimeout> | undefined;
 
 // Reason/remote do refresh pendente — usado pelo listener de 'zapp-update-apply'
 // para executar forceBundleRefresh(reason, remote) imediatamente.
-let pendingGraceRefresh: { reason: string; remote: string } | undefined;
+let pendingGraceRefresh: { reason: string; remote: string; entry?: string } | undefined;
 
 interface ReloadState {
   targetBuildId: string;
@@ -277,7 +277,11 @@ function _bumpGlobalReloadCount(): void {
  * desregistramos SWs nem limpamos caches (evita o ciclo unregister →
  * re-register → activate que gerava spam de logs e deixava o app morto).
  */
-export async function forceBundleRefresh(reason: string, targetBuildId?: string): Promise<void> {
+export async function forceBundleRefresh(
+  reason: string,
+  targetBuildId?: string,
+  entry?: string
+): Promise<void> {
   log.warn('[buildVersion] Forcing bundle refresh:', reason, { targetBuildId });
 
   // Verificar se o novo bundle está propagado no CDN ANTES de consumir a cota.
@@ -288,11 +292,11 @@ export async function forceBundleRefresh(reason: string, targetBuildId?: string)
   // SW_UPDATED tentará novamente; a janela de cortesia (60s) já cobre a maioria
   // dos cenários de propagação.
   if (targetBuildId) {
-    const reachable = await isBundleReachable(targetBuildId);
+    const reachable = await isBundleReachable(targetBuildId, entry);
     if (!reachable) {
       log.warn(
         '[buildVersion] Bundle não acessível no CDN — reload adiado até próxima verificação',
-        { targetBuildId }
+        { targetBuildId, entry }
       );
       return;
     }
@@ -309,7 +313,7 @@ export async function forceBundleRefresh(reason: string, targetBuildId?: string)
   // Prefetch direto antes do reload (cobre caminhos sem cortesia com
   // targetBuildId conhecido, ex.: 'zapp-update-apply') — best-effort,
   // nunca bloqueia o purge/reload subsequente.
-  if (targetBuildId) prefetchNewBundle(targetBuildId);
+  if (targetBuildId) prefetchNewBundle(targetBuildId, entry);
   await purgeClientCaches();
   // Bypass query param — CDNs that respeitam query invalidam o cache-edge.
   try {
@@ -344,13 +348,19 @@ const BUNDLE_VERIFY_TIMEOUT_MS = 5_000;
  * forceBundleRefresh aciona um reload que serve a HTML antiga do SW cache
  * mas os novos chunks 404 → "Failed to fetch dynamically imported module".
  */
-async function isBundleReachable(remoteBuildId: string): Promise<boolean> {
+async function isBundleReachable(remoteBuildId: string, entry?: string): Promise<boolean> {
   if (!remoteBuildId || typeof window === 'undefined') return true;
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), BUNDLE_VERIFY_TIMEOUT_MS);
     try {
-      const res = await fetch(`/assets/index-${remoteBuildId}.js`, {
+      // GAP-1 (QA-06): o BUILD_ID (timestamp) NÃO é o nome do asset — o Vite
+      // gera index-<hash>.js. Sem o entry (vindo do version.json), o HEAD 404
+      // abortava o reload automático SEMPRE. Fallback para compatibilidade.
+      // O entry do Rollup vem como 'assets/index-<hash>.js' — normaliza.
+      const normalized = entry?.startsWith('assets/') ? entry.slice('assets/'.length) : entry;
+      const assetPath = normalized ? `/assets/${normalized}` : `/assets/index-${remoteBuildId}.js`;
+      const res = await fetch(assetPath, {
         method: 'HEAD',
         cache: 'no-store',
         credentials: 'omit',
@@ -375,12 +385,20 @@ async function isBundleReachable(remoteBuildId: string): Promise<boolean> {
  * Fire-and-forget: Promise.allSettled + try/catch garantem que nenhuma falha
  * de rede/asset quebre o fluxo existente de atualização (grace, cotas, purge).
  */
-function prefetchNewBundle(remoteBuildId: string): void {
+function prefetchNewBundle(remoteBuildId: string, entry?: string): void {
   if (!remoteBuildId || typeof window === 'undefined') return;
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), PREFETCH_TIMEOUT_MS);
-    const urls = [`/assets/index-${remoteBuildId}.js`, `/assets/index-${remoteBuildId}.css`];
+    // GAP-1 (QA-06): com o entry real (version.json), prefetcha o asset correto;
+    // o CSS companion deriva do mesmo nome (index-<hash>.css). Fallback antigo
+    // para compatibilidade (deploys sem entry no version.json).
+    const normalized = entry?.startsWith('assets/') ? entry.slice('assets/'.length) : entry;
+    const jsPath = normalized ? `/assets/${normalized}` : `/assets/index-${remoteBuildId}.js`;
+    const cssPath = normalized
+      ? `/assets/${normalized.replace(/\.js$/, '.css')}`
+      : `/assets/index-${remoteBuildId}.css`;
+    const urls = [jsPath, cssPath];
     void Promise.allSettled(
       urls.map((url) =>
         fetch(url, {
@@ -409,12 +427,19 @@ function prefetchNewBundle(remoteBuildId: string): void {
  * ensureApplyListener). As cotas de reload continuam valendo DENTRO de
  * forceBundleRefresh — nada de guarda foi alterado.
  */
-function scheduleGracefulRefresh(reason: string, remote: string): void {
+function scheduleGracefulRefresh(reason: string, remote: string, entry?: string): void {
   // MESMO alvo já agendado: NÃO cancelar o timer pendente. O poll de 60s
   // coincide com o deadline da cortesia (ambos 60s a partir do mismatch); se
   // o poll cancelasse o timer, o reload automático seria adiado para sempre
   // (livelock: cada poll re-agenda e cancela o anterior).
   if (pendingGraceRefresh && pendingGraceRefresh.remote === remote) {
+    // MESMO alvo já agendado: NÃO cancelar o timer pendente (livelock). Mas se
+    // o novo mismatch conhece o entry real (poll do version.json) e o pendente
+    // não (SW_UPDATED não carrega entry), atualiza — senão o HEAD 404 do
+    // fallback abortaria o reload (GAP-1, QA-06).
+    if (entry && !pendingGraceRefresh.entry) {
+      pendingGraceRefresh.entry = entry;
+    }
     return;
   }
   // Cancela timer anterior — múltiplos mismatches para ALVOS diferentes
@@ -426,12 +451,12 @@ function scheduleGracefulRefresh(reason: string, remote: string): void {
   }
   // Pré-carrega o novo bundle em background (fire-and-forget) para o reload
   // pós-cortesia servir os assets do HTTP cache em vez de baixar do zero.
-  prefetchNewBundle(remote);
-  pendingGraceRefresh = { reason, remote };
+  prefetchNewBundle(remote, entry);
+  pendingGraceRefresh = { reason, remote, entry };
   graceTimer = setTimeout(() => {
     graceTimer = undefined;
     pendingGraceRefresh = undefined;
-    void forceBundleRefresh(reason, remote);
+    void forceBundleRefresh(reason, remote, entry);
   }, UPDATE_GRACE_MS);
 }
 
@@ -444,7 +469,7 @@ function applyPendingRefreshNow(): void {
   const pending = pendingGraceRefresh;
   pendingGraceRefresh = undefined;
   if (pending) {
-    void forceBundleRefresh(pending.reason, pending.remote);
+    void forceBundleRefresh(pending.reason, pending.remote, pending.entry);
   }
 }
 
@@ -524,7 +549,9 @@ async function checkVersion(): Promise<void> {
       });
       return;
     }
-    const payload = (await res.json()) as { buildId?: string } | null;
+    const payload = (await res.json()) as
+      | { buildId?: string; entry?: string | null }
+      | null;
     const remote = payload?.buildId;
     if (!remote || remote === CURRENT_BUILD_ID) {
       if (remote === CURRENT_BUILD_ID) {
@@ -556,7 +583,11 @@ async function checkVersion(): Promise<void> {
         },
       })
     );
-    scheduleGracefulRefresh(`client=${CURRENT_BUILD_ID} server=${remote}`, remote);
+    scheduleGracefulRefresh(
+      `client=${CURRENT_BUILD_ID} server=${remote}`,
+      remote,
+      payload?.entry ?? undefined
+    );
   } catch {
     /* offline / timeout / network hiccup — retry next tick */
   } finally {
@@ -687,14 +718,14 @@ export function startBuildVersionWatcher(): () => void {
  * Dispatcha 'zapp-update-required' (grace:true) — o banner oferece
  * "Atualizar agora" que cancela o timer e aplica imediatamente.
  */
-export function requestGracefulRefresh(reason: string, remote: string): void {
+export function requestGracefulRefresh(reason: string, remote: string, entry?: string): void {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(
     new CustomEvent('zapp-update-required', {
       detail: { current: CURRENT_BUILD_ID, remote, reason, grace: true },
     })
   );
-  scheduleGracefulRefresh(reason, remote);
+  scheduleGracefulRefresh(reason, remote, entry);
 }
 
 /**

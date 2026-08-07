@@ -33,15 +33,29 @@ const resolvePublicEnv = (mode: string) => {
 const BUILD_ID = `${Date.now()}`;
 
 // Vite plugin: writes dist/version.json at the end of each production build.
+// Inclui o nome REAL do entry JS (index-<hash>.js) — o buildVersion usa para o
+// HEAD check de propagação de CDN (isBundleReachable) e para o prefetch:
+// o BUILD_ID (timestamp) NÃO é o nome do asset; sem o entry, o HEAD 404
+// abortava o reload automático (GAP-1, QA-06 2026-08-07).
 const emitVersionJsonPlugin = () => ({
   name: 'zapp-emit-version-json',
   apply: 'build' as const,
-  generateBundle() {
+  generateBundle(_options: unknown, bundle: Record<string, unknown>) {
+    const entry = Object.keys(bundle).find(
+      (name) =>
+        name.endsWith('.js') &&
+        (bundle[name] as { isEntry?: boolean; type?: string })?.isEntry === true &&
+        (bundle[name] as { type?: string })?.type === 'chunk'
+    );
     // @ts-expect-error — `this.emitFile` is provided by Rollup at build time
     this.emitFile({
       type: 'asset',
       fileName: 'version.json',
-      source: JSON.stringify({ buildId: BUILD_ID, builtAt: new Date().toISOString() }),
+      source: JSON.stringify({
+        buildId: BUILD_ID,
+        builtAt: new Date().toISOString(),
+        entry: entry ?? null,
+      }),
     });
   },
 });
