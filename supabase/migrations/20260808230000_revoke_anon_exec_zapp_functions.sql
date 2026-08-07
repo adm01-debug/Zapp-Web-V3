@@ -1,7 +1,7 @@
 -- AG-E1 (EVO2-10-03): REVOKE EXECUTE de anon/PUBLIC nas 7 funções SECURITY DEFINER anon-executáveis de zapp
 -- Achado: funções SECURITY DEFINER no schema zapp executáveis por anon via grant PUBLIC default.
 -- Nenhum caller legítimo de anon (cron/prosrc sem callers das LGPD; RPCs de uso autenticado via service_role/authenticated).
--- Rollback: GRANT EXECUTE ON FUNCTION <sig> TO PUBLIC (ver .hermes/auditoria-evo-docker-v2-20260806/evidence/preflight/q_grants_backup.json).
+-- Rollback: re-conceder EXECUTE conforme q_grants_backup.json (ver .hermes/auditoria-evo-docker-v2-20260806/evidence/preflight/q_grants_backup.json).
 
 DO $do$
 DECLARE sig text;
