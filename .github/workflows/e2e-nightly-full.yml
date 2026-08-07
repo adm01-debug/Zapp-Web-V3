@@ -1,9 +1,9 @@
 name: E2E Nightly Full (VPS)
 
 # E02/F10-02 — os 4 workflows `e2e-*-vps.yml` selecionam specs por listas
-# `SPECS="..."` hardcoded; um spec novo em `e2e/` nunca é coletado.
-# Este job roda a suíte INTEIRA de `playwright.e2e.config.ts` sem filtro,
-# garantindo que nenhum spec de `e2e/` fique órfão de execução.
+# `SPECS="..."` hardcoded; um spec novo em `e2e/` nunca e coletado.
+# Este job roda a suite INTEIRA de `playwright.e2e.config.ts` sem filtro,
+# garantindo que nenhum spec de `e2e/` fique orfao de execucao.
 
 on:
   workflow_dispatch:
@@ -21,7 +21,6 @@ on:
           - self-hosted
           - ubuntu-latest
   schedule:
-    # Diário 03:00 BRT (06:00 UTC) — fora da janela dos e2e-*-vps (09:00 UTC)
     - cron: '0 6 * * *'
 
 concurrency:
@@ -30,18 +29,18 @@ concurrency:
 
 jobs:
   spec-coverage:
-    name: Cobertura de specs — nenhum spec órfão
+    name: Cobertura de specs — nenhum spec orfao
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Verificar que todo spec de e2e/ é executado por algum workflow
+      - name: Verificar que todo spec de e2e/ e executado por algum workflow
         run: node scripts/check-e2e-spec-coverage.mjs
 
   e2e-full:
-    name: Playwright — suíte completa de e2e/ contra VPS
+    name: Playwright — suite completa de e2e/ contra VPS
     if: github.event_name != 'pull_request'
     runs-on: ${{ github.event.inputs.runner == 'ubuntu-latest' && 'ubuntu-latest' || fromJSON('["self-hosted","vps-zapp","playwright"]') }}
     timeout-minutes: 120
@@ -61,9 +60,13 @@ jobs:
         with:
           bun-version: 1.3.14
 
-      - name: Instalar dependências
-        # HUSKY=0: husky v9 é ESM-only e quebra no Node antigo do container do runner self-hosted (E2E-04, 2026-08-06)
-        run: HUSKY=0 bun install --frozen-lockfile
+      - name: Instalar dependencias
+        # E2E-04-FIX (2026-08-07): --ignore-scripts pula TODOS os lifecycle scripts
+        # incluindo `prepare` que chama husky v9 (ESM-only). HUSKY=0 sozinho nao
+        # basta: bun roda `prepare` antes de honrar HUSKY=0 no Node v10 do runner
+        # self-hosted (Ubuntu 20.04, myoung34/github-runner). Playwright e instalado
+        # explicitamente no proximo step.
+        run: bun install --frozen-lockfile --ignore-scripts
 
       - name: Instalar Chromium do Playwright
         run: bunx playwright install --with-deps chromium
@@ -71,19 +74,19 @@ jobs:
       - name: Validar credenciais
         run: |
           if [ -z "$E2E_USER_EMAIL" ] || [ -z "$E2E_USER_PASSWORD" ]; then
-            echo "::error::E2E_USER_EMAIL / E2E_USER_PASSWORD não configurados nos secrets."
+            echo "::error::E2E_USER_EMAIL / E2E_USER_PASSWORD nao configurados nos secrets."
             exit 1
           fi
           echo "Alvo: $E2E_BASE_URL"
 
-      - name: Rodar suíte completa (sem filtro de specs)
+      - name: Rodar suite completa (sem filtro de specs)
         id: run_full
         continue-on-error: true
         run: |
           set -o pipefail
           bun run test:e2e:full --reporter=list,html,json 2>&1 | tee playwright-full.log
 
-      - name: Falhar job se a suíte falhou (E2E-07, 2026-08-06)
+      - name: Falhar job se a suite falhou (E2E-07, 2026-08-06)
         if: steps.run_full.outcome == 'failure'
         run: |
           echo "::error::E2E Nightly Full FALHOU — veja o resumo e o artefato playwright-report-full"
@@ -103,17 +106,16 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload do relatório
+      - name: Upload do relatorio
         uses: actions/upload-artifact@v7
         if: always()
         with:
           name: playwright-report-full
-          # E2E-08: o config usa outputFolder playwright-report-e2e (path antigo era inexistente)
           path: playwright-report-e2e/
           if-no-files-found: warn
           retention-days: 7
 
-      - name: Upload de test-results (traces/screenshots/vídeos)
+      - name: Upload de test-results (traces/screenshots/videos)
         uses: actions/upload-artifact@v7
         if: always()
         with:
