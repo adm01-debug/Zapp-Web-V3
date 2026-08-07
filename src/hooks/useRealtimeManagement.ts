@@ -2,6 +2,7 @@
 // Consolidates: useRealtimeDashboard, useRealtimeMessages, useRealtimeMonitor, useTypingPresence
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { logChannelError } from '@/integrations/supabase/channelErrorLogging';
 import { log } from '@/lib/logger';
 
 interface RealtimeUpdate {
@@ -23,6 +24,9 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
 
   useEffect(() => {
     if (!dashboardId) return;
+
+    // Última conexão bem-sucedida do canal — classifica CHANNEL_ERROR transiente vs real.
+    let lastConnectedAtMs: number | null = null;
 
     channelRef.current = supabase.channel(
       `dashboard:${dashboardId}:${Math.random().toString(36).slice(2, 10)}`
@@ -49,8 +53,13 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
       )
       .subscribe((status: string) => {
         setIsConnected(status === 'SUBSCRIBED');
-        if (status !== 'SUBSCRIBED') {
-          log.warn('[useRealtimeManagement] channel subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          lastConnectedAtMs = Date.now();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          // FIX validação v2: catch-all logava warn cru para qualquer status !=
+          // SUBSCRIBED (CLOSED no unmount inclusive). Só CHANNEL_ERROR/TIMED_OUT
+          // são classificados; CLOSED é silencioso (unsubscribe intencional).
+          void logChannelError(log, '[useRealtimeManagement] channel subscription status:', lastConnectedAtMs, status);
         }
       });
 

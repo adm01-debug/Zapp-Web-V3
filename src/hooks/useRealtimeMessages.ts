@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { logChannelError } from '@/integrations/supabase/channelErrorLogging';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useRealtimeMessages');
@@ -220,6 +221,8 @@ export function useRealtimeMessages() {
   }, [fetchData]);
 
   useEffect(() => {
+    // Última conexão bem-sucedida do canal — classifica CHANNEL_ERROR transiente vs real.
+    let lastConnectedAtMs: number | null = null;
     const channel = supabase
       .channel(channelId.current)
       .on(
@@ -275,10 +278,12 @@ export function useRealtimeMessages() {
       );
 
     channel.subscribe((status) => {
-      if (status !== 'SUBSCRIBED') {
-        log.warn('[useRealtimeMessages] channel subscription status:', status);
-      }
-    });
+      if (status === 'SUBSCRIBED') {
+          lastConnectedAtMs = Date.now();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          void logChannelError(log, '[useRealtimeMessages] channel subscription status:', lastConnectedAtMs, status);
+        }
+      });
 
     return () => {
       channel.unsubscribe();
