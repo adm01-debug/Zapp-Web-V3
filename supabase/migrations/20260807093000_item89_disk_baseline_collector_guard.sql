@@ -18,8 +18,13 @@
 -- ============================================================================
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- STEP 1: Tabela de linha de base de disco
+-- STEP 1: Sequence + Tabela de linha de base de disco
 -- ─────────────────────────────────────────────────────────────────────────────
+-- Ordem corrigida (rebuild do zero): a sequence precisa existir ANTES do
+-- CREATE TABLE, pois o DEFAULT de ops.disk_baseline.id usa nextval(...).
+
+CREATE SEQUENCE IF NOT EXISTS ops.disk_baseline_id_seq
+  START WITH 1 INCREMENT BY 1 NO MAXVALUE CACHE 1;
 
 CREATE TABLE IF NOT EXISTS ops.disk_baseline (
   ts           timestamptz  NOT NULL DEFAULT now(),
@@ -31,10 +36,10 @@ CREATE TABLE IF NOT EXISTS ops.disk_baseline (
   CONSTRAINT disk_baseline_pkey PRIMARY KEY (id)
 );
 
+-- Reafirma o DEFAULT de forma idempotente (caso a tabela já exista no DB
+-- sem o default — DB-as-source); CREATE SEQUENCE ficou acima, junto ao STEP 1.
 DO $$
 BEGIN
-  CREATE SEQUENCE IF NOT EXISTS ops.disk_baseline_id_seq
-    START WITH 1 INCREMENT BY 1 NO MAXVALUE CACHE 1;
   ALTER TABLE ops.disk_baseline
     ALTER COLUMN id SET DEFAULT nextval('ops.disk_baseline_id_seq');
 EXCEPTION WHEN others THEN NULL;
