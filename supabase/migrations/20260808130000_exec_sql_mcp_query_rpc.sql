@@ -40,4 +40,6 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.exec_sql(text) TO service_role, authenticated, anon;
+-- P0 fix (PR #973): anon/authenticated NUNCA devem executar SECURITY DEFINER com bypass de RLS.
+-- REVOKE correspondente em 20260808150000_hotfix_revoke_exec_sql_anon.sql.
+GRANT EXECUTE ON FUNCTION public.exec_sql(text) TO service_role;
