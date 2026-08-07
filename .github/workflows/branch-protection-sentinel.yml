@@ -146,10 +146,13 @@ jobs:
             echo "OK: $CHECKS required status check(s) configured"
           fi
 
-          EXPECTED_CONTEXTS="edge-auth-smoke edge-drift-check Edge guard checks DB Invariants Migration Uniqueness Gate schema-drift-guard PR Size Gate Analyze (javascript-typescript) 🔍 Secret Scan (gitleaks) Verify security_invoker on all views"
+          # Array explícito: nomes multi-palavra ("Edge guard checks", "DB Invariants",
+          # "🔍 Secret Scan (gitleaks)") quebravam com word-splitting do loop antigo
+          # (VAL-05-02 — falso positivo permanente). Expandir por item preserva o nome.
+          EXPECTED_CONTEXTS=( "edge-auth-smoke" "edge-drift-check" "Edge guard checks" "DB Invariants" "Migration Uniqueness Gate" "schema-drift-guard" "PR Size Gate" "Analyze (javascript-typescript)" "🔍 Secret Scan (gitleaks)" "Verify security_invoker on all views" )
           ACTUAL_CONTEXTS=$(echo "$PROT" | jq -r '.required_status_checks.contexts[]')
           MISSING=""
-          for ctx in $EXPECTED_CONTEXTS; do
+          for ctx in "${EXPECTED_CONTEXTS[@]}"; do
             if ! echo "$ACTUAL_CONTEXTS" | grep -Fxq "$ctx"; then
               MISSING="$MISSING $ctx"
             fi

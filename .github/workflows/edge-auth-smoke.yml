@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SUPABASE_URL: "${{ inputs.supabase_url || secrets.SUPABASE_URL || 'https://supabase.atomicabr.com.br' }}"
-      VERIFY_JWT_ENABLED: "${{ inputs.verify_jwt_enabled || 'true' }}"
+      VERIFY_JWT_ENABLED: "${{ inputs.verify_jwt_enabled == true }}"
     permissions:
       contents: read
     steps:
