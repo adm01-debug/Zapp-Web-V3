@@ -76,6 +76,6 @@ Deno.test("P1: whitelist read-only cobre SELECT/EXPLAIN/WITH", () => {
 
 Deno.test("P1: whitelist read-only é avaliada ANTES do exec_sql", () => {
   const blockStart = SOURCE.indexOf("READ_ONLY_RE.test(sql)");
-  const blockEnd = SOURCE.indexOf("exec_sql");
+  const blockEnd = SOURCE.indexOf("rpc/exec_sql");
   assert(blockStart > 0 && blockEnd > blockStart, "whitelist deve vir antes da execução");
 });
