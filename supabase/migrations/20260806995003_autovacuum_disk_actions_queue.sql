@@ -53,11 +53,14 @@ GRANT USAGE, SELECT ON SEQUENCE ops.disk_actions_queue_id_seq TO service_role, p
 -- STEP 3: Cron job — limpeza de registros executados com mais de 7 dias
 -- ─────────────────────────────────────────────────────────────────────────────
 
+SELECT cron.unschedule('disk-actions-cleanup')
+  WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'disk-actions-cleanup');
+
 SELECT cron.schedule(
   'disk-actions-cleanup',
   '9 4 * * *',
   $$DELETE FROM ops.disk_actions_queue WHERE executed_at < now() - interval '7 days'$$
-) ON CONFLICT (jobname) DO NOTHING;
-=======
+);
+-- =======
 -- Item 65 da auditoria infra (AG-EX-01): autovacuum per-table (substitui cron disk-tables-vacuum-weekly job 231)
 ALTER TABLE ops.disk_actions_queue SET (autovacuum_vacuum_scale_factor=0.05, autovacuum_vacuum_threshold=100, autovacuum_analyze_scale_factor=0.02);
