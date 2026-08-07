@@ -15,36 +15,64 @@ concurrency:
 jobs:
   schema-snapshot:
     name: Snapshot DB Schema
-    runs-on: ubuntu-latest
+    # Runner self-hosted (VPS): o banco self-hosted so e alcancavel pela rede interna
+    # (portas 5432/6543 fechadas externamente). Runner do GitHub nao conecta. Fix 2026-08-07.
+    runs-on: [self-hosted, vps-zapp, linux, x64]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 
+      - name: Garantir pg_dump 15 (PGDG)
+        run: |
+          set -e
+          if pg_dump --version 2>/dev/null | grep -qE ' 1[5-9]'; then
+            echo "pg_dump compativel ja instalado: $(pg_dump --version)"
+            exit 0
+          fi
+          echo "Instalando postgresql-client-15 via PGDG..."
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -qq
+          apt-get install -y -qq curl ca-certificates gnupg lsb-release
+          install -d /usr/share/keyrings
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            | gpg --dearmor -o /usr/share/keyrings/pgdg.gpg
+          echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            > /etc/apt/sources.list.d/pgdg.list
+          apt-get update -qq
+          apt-get install -y -qq postgresql-client-15
+          echo "Instalado: $(pg_dump --version)"
+
       - name: Dump schema snapshot
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const { execSync } = require('child_process');
-            const fs = require('fs');
-            if (!process.env.SUPABASE_DB_URL) {
-              console.log('::warning::SUPABASE_DB_URL não configurado — snapshot pulado');
-              return;
-            }
-            try {
-              const snap = execSync(`pg_dump --schema-only --no-owner --no-privileges "${process.env.SUPABASE_DB_URL}"`, { stdio: ['ignore', 'pipe', 'pipe'] }).toString();
-              fs.mkdirSync('reports', { recursive: true });
-              fs.writeFileSync('reports/schema-snapshot.sql', snap);
-              console.log(`Snapshot gravado: ${snap.length} bytes`);
-            } catch (e) {
-              console.log(`::error::pg_dump falhou (${e.status}): ${e.stderr?.toString()?.slice(0, 400)}`);
-              process.exit(1);
-            }
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-
-      - name: Commit snapshot
         run: |
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git config --global user.name 'github-actions[bot]'
+          set -uo pipefail
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "::warning::SUPABASE_DB_URL nao configurado — snapshot pulado"
+            exit 0
+          fi
+          mkdir -p reports
+          if pg_dump --schema-only --no-owner --no-privileges "$SUPABASE_DB_URL" > reports/schema-snapshot.sql 2>/tmp/pgdump.err; then
+            echo "Snapshot gravado: $(wc -c < reports/schema-snapshot.sql) bytes"
+          else
+            echo "::error::pg_dump falhou:"
+            head -8 /tmp/pgdump.err
+            exit 1
+          fi
+
+      - name: Publicar snapshot em branch dedicado
+        run: |
+          set -e
+          [ -f reports/schema-snapshot.sql ] || { echo "Sem arquivo — nada a publicar (dump pulado)."; exit 0; }
           git add reports/schema-snapshot.sql
-          git diff --staged --quiet || git commit -m 'chore(schema): snapshot semanal' && git push
+          if git diff --staged --quiet; then
+            echo "Sem mudancas no schema desde o ultimo snapshot — nada a publicar."
+            exit 0
+          fi
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git config user.name 'github-actions[bot]'
+          git commit -m "chore(schema): snapshot semanal $(date -u +%Y-%m-%d)"
+          # push direto na main e bloqueado pela branch protection (PRs obrigatorios);
+          # publica em branch dedicado nao protegido, sobrescrevendo (latest-wins).
+          git push origin "HEAD:refs/heads/automation/schema-snapshots" --force
+          echo "Snapshot publicado em automation/schema-snapshots"
