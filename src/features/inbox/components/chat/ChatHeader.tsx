@@ -11,7 +11,6 @@ import { SLAIndicatorForContact } from '../SLAIndicatorForContact';
 import { VoiceSelector } from '../VoiceSelector';
 import { KeyboardShortcutsHelp } from '../KeyboardShortcutsHelp';
 import { RealtimeCollaboration } from '../RealtimeCollaboration';
-import { useExternalContact360 } from '@/hooks/useExternalApiManagement';
 import { useContactIntelligence } from '@/hooks/useContactIntelligence';
 import {
   Video,
@@ -82,15 +81,6 @@ export const ChatHeader = memo(function ChatHeader({
   whisperCount,
   onOpenValidation,
 }: ChatHeaderProps) {
-  const { data: crmData, isPlaceholderData: crmIsPlaceholder } = useExternalContact360(
-    conversation.contact.phone ?? undefined
-  );
-  // FIX validação 2026-08-07: placeholderData mantém dados do phone ANTERIOR
-  // durante o load — nunca exibir empresa/contato do contato anterior.
-  const _crmCompany = crmData && !crmIsPlaceholder && crmData.found ? crmData.company : null;
-  const _crmCustomer = crmData && !crmIsPlaceholder && crmData.found ? crmData.customer : null;
-  const _crmRfm = crmData && !crmIsPlaceholder && crmData.found ? crmData.rfm : null;
-
   const { intelligence: intel } = useContactIntelligence(conversation.contact.phone ?? undefined);
   const _briefing = intel?.found ? intel.briefing : null;
   const { avatarUrl } = useContactAvatar(conversation.contact.remote_jid, conversation.contact.avatar);
