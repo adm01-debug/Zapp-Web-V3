@@ -5,6 +5,9 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   if (req.headers.get("x-mcp-secret") !== SECRET) {
@@ -12,7 +15,14 @@ Deno.serve(async (req) => {
       status: 401, headers: { ...CORS, "Content-Type": "application/json" },
     });
   }
-  const { sql, limit = 100 } = await req.json();
+  // Gate de contrato (2026-08-07 — função nasceu sem gate, quebrava o
+  // contract-coverage): valida { sql, limit } antes de qualquer execução.
+  const raw = await req.json().catch(() => null);
+  const parsed = parseOrReject("mcp-query", CONTRACT_SCHEMAS["mcp-query"], req, raw, {
+    extraHeaders: CORS,
+  });
+  if (parsed.ok === false) return parsed.response;
+  const { sql, limit = 100 } = parsed.data as { sql: string; limit?: number };
   const sqlUpper = (sql || "").toUpperCase().trim();
   if (/\b(DROP|TRUNCATE)\b/.test(sqlUpper)) {
     return new Response(JSON.stringify({ error: "Query destrutiva bloqueada" }), {

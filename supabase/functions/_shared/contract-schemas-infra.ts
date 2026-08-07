@@ -293,6 +293,16 @@ export const McpServerV1Schema = z.object({
 }).passthrough();
 
 /**
+ * mcp-query@v1 — POST interno (header x-mcp-secret). index.ts consome
+ * { sql: string, limit?: number (default 100) }. Gate adicionado 2026-08-07
+ * (nasceu sem contrato — quebrava o contract-coverage; ver PR #957 follow-up).
+ */
+export const McpQueryV1Schema = z.object({
+  sql: z.string().min(1, "sql é obrigatório").max(50_000),
+  limit: z.number().int().min(1).max(10_000).optional(),
+}).passthrough();
+
+/**
  * talkx-add-recipients@v1 — POST interno (requireUser). index.ts
  * (AddRecipientsBody): campaignId (string obrigatória) e contactIds
  * (array não-vazio ≤1000).

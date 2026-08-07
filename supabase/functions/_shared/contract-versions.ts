@@ -117,6 +117,7 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "main":                         { current: "v1", supported: ["v1"] },
   "mcp":                          { current: "v1", supported: ["v1"] },
   "mcp-server":                   { current: "v1", supported: ["v1"] },
+  "mcp-query":                    { current: "v1", supported: ["v1"] },
   "migrate-media-storage":        { current: "v1", supported: ["v1"] },
   "nps-scheduler":                { current: "v1", supported: ["v1"] },
   "promogifts-catalog":           { current: "v1", supported: ["v1"] },
