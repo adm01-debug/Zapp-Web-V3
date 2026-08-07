@@ -179,7 +179,10 @@ jobs:
       - name: 📦 Resolver compose de origem única (Git primeiro)
         id: compose
         env:
-          STACK_FILE: ${{ inputs.stack_file }}
+          STACK_FILE: ${{ inputs.stack_file || '' }}
+          PORTAINER_API_TOKEN: ${{ secrets.PORTAINER_API_TOKEN }}
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+          STACK_ID: ${{ inputs.stack_id || '157' }}
         run: |
           set -euo pipefail
           if [ -n "$STACK_FILE" ] && [ -f "$STACK_FILE" ]; then
@@ -188,7 +191,6 @@ jobs:
           else
             # Fallback: baixa o compose salvo no Portainer (fonte única ainda
             # não migrada para infra/stacks/) — marcar aviso no log.
-            STACK_ID="${{ inputs.stack_id }}"
             curl -fsS -H "X-API-Key: ${PORTAINER_API_TOKEN}" \
               "${PORTAINER_URL}/api/stacks/${STACK_ID}/file" \
               | jq -r '.StackFileContent' > /tmp/compose.yml
