@@ -277,3 +277,11 @@ __pycache__/
 .agents/
 .codex/
 .hermes/
+
+# Artefatos de diagnóstico local
+br.gz
+buildrecord/
+dev/
+evo_exec.json
+scripts/preview/design-*.png
+scripts/preview/logs/
