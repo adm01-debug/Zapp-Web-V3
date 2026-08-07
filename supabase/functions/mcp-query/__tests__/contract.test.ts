@@ -5,7 +5,7 @@
  * Schema REAL: McpQueryV1Schema (contract-schemas-infra.ts) — sql obrigatória
  * (min 1, max 50k), limit opcional (int 1-10k). Permissivo em extras.
  */
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals, assert, assertMatch } from "jsr:@std/assert";
 import { parseOrReject } from "../../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../../_shared/contract-schemas.ts";
 
@@ -52,4 +52,30 @@ Deno.test("Contract: mcp-query v1 — body null → 422 invalid_json", () => {
   const r = parseOrReject("mcp-query", CONTRACT_SCHEMAS["mcp-query"], null, null);
   assertEquals(r.ok, false);
   if (r.ok === false) assertEquals(r.body.code, "invalid_json");
+});
+
+// ─── Hardening P1 (2026-08-07): secret via env + whitelist read-only ───────
+
+const SOURCE = await Deno.readTextFile(new URL("../index.ts", import.meta.url));
+
+Deno.test("P1: secret NÃO está hardcoded no source (vem de MCP_QUERY_SECRET)", () => {
+  assertMatch(SOURCE, /Deno\.env\.get\("MCP_QUERY_SECRET"\)/);
+  // o literal antigo não pode existir no arquivo
+  assertEquals(SOURCE.includes("zappweb_mcp_"), false, "secret hardcoded ainda presente");
+});
+
+Deno.test("P1: fail-closed — sem env o secret é vazio (401 para todos)", () => {
+  assertMatch(SOURCE, /Deno\.env\.get\("MCP_QUERY_SECRET"\) \?\? ""/);
+});
+
+Deno.test("P1: whitelist read-only cobre SELECT/EXPLAIN/WITH", () => {
+  assertMatch(SOURCE, /SELECT\|EXPLAIN\|WITH/);
+  assertMatch(SOURCE, /READ_ONLY_VIOLATION/);
+  assertMatch(SOURCE, /status: 403/);
+});
+
+Deno.test("P1: whitelist read-only é avaliada ANTES do exec_sql", () => {
+  const blockStart = SOURCE.indexOf("READ_ONLY_RE.test(sql)");
+  const blockEnd = SOURCE.indexOf("rpc/exec_sql");
+  assert(blockStart > 0 && blockEnd > blockStart, "whitelist deve vir antes da execução");
 });

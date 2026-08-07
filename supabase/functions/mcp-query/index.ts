@@ -1,4 +1,3 @@
-const SECRET = "zappweb_mcp_cY7xK9pQ2mNvR4tL";
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "x-mcp-secret, content-type",
@@ -8,9 +7,20 @@ const CORS = {
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
+// P1 2026-08-07: o secret era HARDCODED no source (repo público) — agora vem
+// exclusivamente da env MCP_QUERY_SECRET (definida no runtime do serviço
+// supabase_functions). Fail-closed: sem env → 503, nunca aceita sem segredo.
+const SECRET = Deno.env.get("MCP_QUERY_SECRET") ?? "";
+
+// Whitelist read-only (P1 2026-08-07): a função executa com service_role via
+// exec_sql — qualquer comando que não seja leitura (SELECT/EXPLAIN/WITH) é
+// rejeitado ANTES de chegar ao banco. Bloqueia INSERT/UPDATE/DELETE/DDL/
+// GRANT/etc. (o filtro antigo só cobria DROP/TRUNCATE).
+const READ_ONLY_RE = /^\s*(SELECT|EXPLAIN|WITH)\b/i;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
-  if (req.headers.get("x-mcp-secret") !== SECRET) {
+  if (!SECRET || req.headers.get("x-mcp-secret") !== SECRET) {
     return new Response(JSON.stringify({ error: "unauthorized" }), {
       status: 401, headers: { ...CORS, "Content-Type": "application/json" },
     });
@@ -23,11 +33,12 @@ Deno.serve(async (req) => {
   });
   if (parsed.ok === false) return parsed.response;
   const { sql, limit = 100 } = parsed.data as { sql: string; limit?: number };
-  const sqlUpper = (sql || "").toUpperCase().trim();
-  if (/\b(DROP|TRUNCATE)\b/.test(sqlUpper)) {
-    return new Response(JSON.stringify({ error: "Query destrutiva bloqueada" }), {
-      status: 400, headers: { ...CORS, "Content-Type": "application/json" },
-    });
+  if (!READ_ONLY_RE.test(sql)) {
+    return new Response(JSON.stringify({
+      error: true,
+      code: "READ_ONLY_VIOLATION",
+      message: "Somente consultas de leitura são permitidas (SELECT/EXPLAIN/WITH).",
+    }), { status: 403, headers: { ...CORS, "Content-Type": "application/json" } });
   }
   const url = Deno.env.get("SUPABASE_URL")!;
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
