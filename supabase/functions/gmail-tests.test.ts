@@ -82,6 +82,9 @@ function wantsSingle(init?: RequestInit): boolean {
 }
 
 const originalFetch = globalThis.fetch;
+// Corpo síncrono, mas `async` é exigido pelo tipo de globalThis.fetch
+// (retorno Promise<Response>) — mesmo padrão de public-api/__tests__/e2e-send.test.ts.
+// deno-lint-ignore require-await
 globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof input === "string"
     ? input
