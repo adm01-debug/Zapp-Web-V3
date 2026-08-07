@@ -23,8 +23,9 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
  *
  * `version` is an optional integer that callers may inspect to negotiate
  * future, breaking changes to this response shape. Today the proxy always
- * stamps `EVOLUTION_ENVELOPE_VERSION` (currently `1`). Callers that don't
- * read `version` keep working — the field is purely additive.
+ * stamps `EVOLUTION_ENVELOPE_VERSION` (currently `1`). Error envelopes also
+ * carry `contract: 'evolution-api@v1'` (additive). Callers that don't
+ * read `version` keep working — the fields are purely additive.
  *
  * Bump `EVOLUTION_ENVELOPE_VERSION` (and update consumers) only when a
  * breaking change to the envelope shape is shipped.
@@ -42,6 +43,7 @@ export interface ProxyToEvolutionOptions {
 /** Evolution Error Envelope interface. */
 export interface EvolutionErrorEnvelope {
   version?: number;
+  contract?: string;
   error: true;
   status: number;
   message: string;
@@ -202,6 +204,7 @@ export async function proxyToEvolution(
         }
         const errorEnvelope: EvolutionErrorEnvelope = {
           version: EVOLUTION_ENVELOPE_VERSION,
+          contract: 'evolution-api@v1',
           error: true,
           status: response.status,
           message: friendlyMessage,
@@ -285,10 +288,12 @@ export async function proxyToEvolution(
   const abortedByCaller = isClientAborted();
   const timeoutEnvelope: EvolutionErrorEnvelope = {
     version: EVOLUTION_ENVELOPE_VERSION,
+    contract: 'evolution-api@v1',
     error: true,
     status: abortedByCaller ? 499 : 504,
     message: `Falha ao conectar com a API Evolution: ${lastError?.message || 'Erro desconhecido'}`,
     retries: maxAttempts - 1,
+    details: [{ path: 'instance', message: `Falha ao conectar com a API Evolution: ${lastError?.message || 'Erro desconhecido'}` }],
   };
   logRetryMetric({
     action: actionLabel,
