@@ -162,6 +162,8 @@ jobs:
     # docs/SECRETS-ROTATION-RUNBOOK.md §6: rotacionar/migrar p/ GitHub App.
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: 🔑 Verificar secrets de deploy
         run: |
