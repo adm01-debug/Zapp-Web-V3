@@ -85,7 +85,7 @@ Regras:
 touch supabase/migrations/20260801000001_descricao.sql
 
 # 2. Testar em staging
-supabase db push --db-url postgresql://user:pass@staging:5432/postgres
+supabase db push --db-url postgresql://user:<SECRETO>@staging:5432/postgres
 
 # 3. Validar gates
 psql $STAGING_URL -c "SELECT * FROM ops.fn_ci_run_all_gates();"
@@ -93,7 +93,7 @@ psql $STAGING_URL -c "SELECT * FROM ops.fn_ci_run_all_gates();"
 # 4. Code review + merge para main
 
 # 5. Push produção
-supabase db push --db-url postgresql://user:pass@prod:5432/postgres
+supabase db push --db-url postgresql://user:<SECRETO>@prod:5432/postgres
 ```
 
 ---

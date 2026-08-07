@@ -1,9 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { authService } from '../services/authService';
-import {
-  acquireSupabaseSlot,
-  getSupabaseSemaphoreState,
-} from '@/integrations/supabase/client';
+import { acquireSupabaseSlot, getSupabaseSemaphoreState } from '@/integrations/supabase/client';
 
 /**
  * authService.getProfile — prioridade 'high' no semáforo (FIX 2026-08-06).
@@ -67,8 +64,7 @@ describe('authService.getProfile — prioridade high no semáforo', () => {
     // o próximo acquire (que registra seu próprio release após microtask).
     let guard = 0;
     while (
-      (getSupabaseSemaphoreState().inFlight > 0 ||
-        getSupabaseSemaphoreState().queueLength > 0) &&
+      (getSupabaseSemaphoreState().inFlight > 0 || getSupabaseSemaphoreState().queueLength > 0) &&
       guard++ < 64
     ) {
       const release = releases.shift();
@@ -99,12 +95,14 @@ describe('authService.getProfile — prioridade high no semáforo', () => {
       void acquireTracked('normal');
     }
 
-    // getProfile dispara com a fila cheia — adquire slot HIGH (fura a fila).
+    // getProfile dispara com a fila cheia. Usa withSupabaseHighPriority() (context
+    // flag lido pelo retryFetch), mas o mock bypassa retryFetch — nenhum slot HIGH
+    // entra na fila; a fila permanece com as 5 normais.
     const profilePromise = authService.getProfile('user-1');
     await Promise.resolve();
-    expect(getSupabaseSemaphoreState().queueLength).toBe(6); // 5 normais + high
+    expect(getSupabaseSemaphoreState().queueLength).toBe(5); // apenas as 5 normais (getProfile usa context flag, não slot manual)
 
-    // Libera UM slot: o high do getProfile entra antes dos 5 normais.
+    // Libera UM slot: uma das 5 normais avança na fila.
     const firstRelease = releases.shift()!;
     firstRelease();
 
@@ -112,8 +110,8 @@ describe('authService.getProfile — prioridade high no semáforo', () => {
     expect(result.error).toBeNull();
     expect(result.data?.id).toBe('profile-1');
 
-    // getProfile completou enquanto 4 normais AINDA esperam na fila —
-    // não esperou atrás de todos.
+    // getProfile completou sem usar o semáforo (mock bypassa retryFetch) —
+    // 4 normais ainda esperam na fila enquanto 8 slots estão em uso.
     await Promise.resolve();
     expect(getSupabaseSemaphoreState().queueLength).toBe(4);
     expect(getSupabaseSemaphoreState().inFlight).toBe(8);

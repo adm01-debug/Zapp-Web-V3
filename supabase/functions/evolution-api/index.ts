@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
         // Contrato evolution-api@v1 (permissivo — roteado por action no handler):
         // gate no ramo multipart, após auth.
         const parsed = parseOrReject('evolution-api', CONTRACT_SCHEMAS['evolution-api'], req, raw, { extraHeaders: corsHeaders });
-        if (!parsed.ok) return parsed.response;
+        if (parsed.ok === false) return parsed.response;
         _formDataCache = parsed.data as Record<string, any>;
         return { isMultipart: true, data: _formDataCache };
       } catch { return { isMultipart: false, data: {} }; }
@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     if (typeof _bodyCache !== 'object' || _bodyCache === null || Array.isArray(_bodyCache)) _bodyCache = {};
     // Contrato evolution-api@v1 — gate no ramo JSON, após auth.
     const parsed = parseOrReject('evolution-api', CONTRACT_SCHEMAS['evolution-api'], req, _bodyCache!, { extraHeaders: corsHeaders });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     return { isMultipart: false, data: parsed.data as Record<string, any> };
   };
   const safeGet = (data: unknown, key: string, isFormData: boolean): string | undefined => {

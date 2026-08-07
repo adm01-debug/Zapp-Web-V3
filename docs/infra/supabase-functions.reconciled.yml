@@ -53,7 +53,7 @@ services:
       - >-
         export JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v1) &&
         export DB_PASS=$$(cat /run/secrets/supabase_db_password_v1) &&
-        export SUPABASE_DB_URL=postgresql://postgres:$${DB_PASS}@db:5432/postgres &&
+        export SUPABASE_DB_URL=postgresql://postgres:<SECRETO>@db:5432/postgres &&
         export SUPABASE_SERVICE_ROLE_KEY=$$(cat /run/secrets/supabase_service_key_v1) &&
         export EXTERNAL_SUPABASE_SERVICE_ROLE_KEY=$${SUPABASE_SERVICE_ROLE_KEY} &&
         export EVOLUTION_API_URL=http://evolution_evolution:8080 &&
@@ -72,14 +72,14 @@ services:
     environment:
       - VERIFY_JWT="false"
       - SUPABASE_URL=http://kong:8000
-      - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ewogICJyb2xlIjogImFub24iLAogICJpc3MiOiAic3VwYWJhc2UiLAogICJpYXQiOiAxNzE1MDUwODAwLAogICJleHAiOiAxODcyODE3MjAwCn0.rvamc0XHuSCYB1glBwOCCxgfd9yxWVYLnhFzg5-7TRk
+      - SUPABASE_ANON_KEY=eyJhbG...VCJ9.ewogICJyb2xlIjogImFub24iLAogICJpc3MiOiAic3VwYWJhc2UiLAogICJpYXQiOiAxNzE1MDUwODAwLAogICJleHAiOiAxODcyODE3MjAwCn0.rvamc0XHuSCYB1glBwOCCxgfd9yxWVYLnhFzg5-7TRk
       # WEBHOOK_SECRET: usado como EVOLUTION_WEBHOOK_SECRET no entrypoint. VALOR REDIGIDO — repor do runtime.
       - WEBHOOK_SECRET=__REDACTED__COPIAR_DO_RUNTIME__
       - PROMOGIFTS_SUPABASE_URL=https://doufsxqlfjyuvxuezpln.supabase.co
-      - PROMOGIFTS_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvdWZzeHFsZmp5dXZ4dWV6cGxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczODY2NDMsImV4cCI6MjA4Mjk2MjQ0M30.nm3WMOBSx5SUnIBmvF_Mj0Y-4hV6UohrBF0sUpuQvPc
+      - PROMOGIFTS_SUPABASE_ANON_KEY=eyJhbG...VCJ9.eyJpc3...0M30.nm3WMOBSx5SUnIBmvF_Mj0Y-4hV6UohrBF0sUpuQvPc
       # EXTERNAL_SUPABASE_* → apontam o próprio VPS (functions external-db-* usam estas 3 vars)
       - EXTERNAL_SUPABASE_URL=http://kong:8000
-      - EXTERNAL_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ewogICJyb2xlIjogImFub24iLAogICJpc3MiOiAic3VwYWJhc2UiLAogICJpYXQiOiAxNzE1MDUwODAwLAogICJleHAiOiAxODcyODE3MjAwCn0.rvamc0XHuSCYB1glBwOCCxgfd9yxWVYLnhFzg5-7TRk
+      - EXTERNAL_SUPABASE_ANON_KEY=eyJhbG...VCJ9.ewogICJyb2xlIjogImFub24iLAogICJpc3MiOiAic3VwYWJhc2UiLAogICJpYXQiOiAxNzE1MDUwODAwLAogICJleHAiOiAxODcyODE3MjAwCn0.rvamc0XHuSCYB1glBwOCCxgfd9yxWVYLnhFzg5-7TRk
       # EXTERNAL_SUPABASE_SERVICE_ROLE_KEY é exportado no entrypoint (= SUPABASE_SERVICE_ROLE_KEY do secret)
     deploy:
       mode: replicated

@@ -159,7 +159,7 @@ Tipos DEVEM ser gerados do **VPS self-hosted**, não do Cloud:
 ```bash
 # ✅ VPS (correto)
 npx supabase gen types typescript \
-  --db-url "postgresql://postgres:${SUPABASE_DB_PASS}@supabase.atomicabr.com.br:5432/postgres" \
+  --db-url "postgresql://postgres:<SECRETO>@supabase.atomicabr.com.br:5432/postgres" \
   --schema public,zapp,evo \
   > src/integrations/supabase/types.ts
 

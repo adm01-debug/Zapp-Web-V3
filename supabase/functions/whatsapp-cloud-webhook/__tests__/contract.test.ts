@@ -62,3 +62,108 @@ Deno.test("Chamador: duplicata incrementa contador e pula persistInbound", () =>
   assertMatch(loopBlock, /duplicates\+\+;/);
   assertMatch(loopBlock, /continue;/);
 });
+
+// ─── Contratos v1/v2 (schemas reais de webhook-schemas.ts) ──────────────────
+// Fechamento de gap da auditoria 2026-08-06: whatsapp-cloud-webhook v2 não
+// tinha NENHUM teste de contrato (era skipado no smoke) e o v1 não cobria
+// missing-key explícito.
+
+import { assertEquals } from "jsr:@std/assert";
+import {
+  MetaWebhookPayloadSchema,
+  WhatsAppCloudWebhookV2Schema,
+} from "../../_shared/webhook-schemas.ts";
+import { parseOrReject } from "../../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../../_shared/contract-schemas.ts";
+
+function metaEntry(): Record<string, unknown> {
+  return {
+    id: "0",
+    changes: [{ field: "messages", value: { messaging_product: "whatsapp" } }],
+  };
+}
+
+function metaPayload(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return { object: "whatsapp_business_account", entry: [metaEntry()], ...overrides };
+}
+
+// ─── v1 — missing keys ───────────────────────────────────────────────────────
+
+Deno.test("Contract: whatsapp-cloud-webhook v1 — object ausente → rejeitado", () => {
+  const { object: _drop, ...payload } = metaPayload();
+  const r = MetaWebhookPayloadSchema.safeParse(payload);
+  assertEquals(r.success, false);
+});
+
+Deno.test("Contract: whatsapp-cloud-webhook v1 — entry ausente → rejeitado", () => {
+  const { entry: _drop, ...payload } = metaPayload();
+  const r = MetaWebhookPayloadSchema.safeParse(payload);
+  assertEquals(r.success, false);
+});
+
+Deno.test("Contract: whatsapp-cloud-webhook v1 — changes ausente → rejeitado", () => {
+  const payload = metaPayload({ entry: [{ id: "0" }] });
+  const r = MetaWebhookPayloadSchema.safeParse(payload);
+  assertEquals(r.success, false);
+});
+
+// ─── v2 — validação completa (gap: zero testes) ─────────────────────────────
+
+Deno.test("Contract: whatsapp-cloud-webhook v2 — payload v2 válido", () => {
+  const payload = metaPayload({ version: "2.0", timestamp: Date.now() });
+  const r = WhatsAppCloudWebhookV2Schema.safeParse(payload);
+  assertEquals(r.success, true);
+});
+
+Deno.test("Contract: whatsapp-cloud-webhook v2 — version ausente → rejeitado", () => {
+  const payload = metaPayload({ timestamp: Date.now() });
+  const r = WhatsAppCloudWebhookV2Schema.safeParse(payload);
+  assertEquals(r.success, false);
+});
+
+Deno.test("Contract: whatsapp-cloud-webhook v2 — timestamp ausente → rejeitado", () => {
+  const payload = metaPayload({ version: "2.0" });
+  const r = WhatsAppCloudWebhookV2Schema.safeParse(payload);
+  assertEquals(r.success, false);
+});
+
+Deno.test("Contract: whatsapp-cloud-webhook v2 — timestamp string → rejeitado", () => {
+  const payload = metaPayload({ version: "2.0", timestamp: "now" });
+  const r = WhatsAppCloudWebhookV2Schema.safeParse(payload);
+  assertEquals(r.success, false);
+});
+
+Deno.test("Contract: whatsapp-cloud-webhook v2 — version inválida ('3.0') → rejeitado", () => {
+  const payload = metaPayload({ version: "3.0", timestamp: Date.now() });
+  const r = WhatsAppCloudWebhookV2Schema.safeParse(payload);
+  assertEquals(r.success, false);
+});
+
+Deno.test("Contract: whatsapp-cloud-webhook v2 — field tipo errado → rejeitado", () => {
+  const payload = metaPayload({
+    version: "2.0",
+    timestamp: Date.now(),
+    entry: [{ id: "0", changes: [{ field: 42, value: { messaging_product: "whatsapp" } }] }],
+  });
+  const r = WhatsAppCloudWebhookV2Schema.safeParse(payload);
+  assertEquals(r.success, false);
+});
+
+// ─── Versionamento via parseOrReject ─────────────────────────────────────────
+
+Deno.test("Versioning: whatsapp-cloud-webhook v1 aceito quando v2 é current (auto-detect)", () => {
+  const r = parseOrReject("whatsapp-cloud-webhook", CONTRACT_SCHEMAS["whatsapp-cloud-webhook"], null, metaPayload());
+  assertEquals(r.ok, true);
+  if (r.ok) assertEquals(r.version, "v1");
+});
+
+Deno.test("Versioning: whatsapp-cloud-webhook payload v2 preferido", () => {
+  const r = parseOrReject(
+    "whatsapp-cloud-webhook",
+    CONTRACT_SCHEMAS["whatsapp-cloud-webhook"],
+    null,
+    metaPayload({ version: "2.0", timestamp: Date.now() }),
+  );
+  assertEquals(r.ok, true);
+  if (r.ok) assertEquals(r.version, "v2");
+});

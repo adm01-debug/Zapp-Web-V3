@@ -50,7 +50,7 @@ Added to the container command in docker-compose:
 ```yaml
 functions:
   command:
-    - "... && export SELFHOSTED_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... && exec edge-runtime start ..."
+    - "... && export SELFHOSTED_SUPABASE_ANON_KEY=eyJhbG...VCJ9... && exec edge-runtime start ..."
 ```
 
 The `SELFHOSTED_SUPABASE_ANON_KEY` is the same value as `SUPABASE_ANON_KEY` — the Supabase anon/public key (purposefully public, embedded in frontend builds).

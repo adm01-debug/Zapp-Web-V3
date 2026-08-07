@@ -1,5 +1,5 @@
 import { createZappAdminClient } from '../_shared/db-client.ts';
-import { parseOrReject } from '../_shared/contract-kit.ts';
+import { parseOrReject, buildContractErrorBody } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
 /**
@@ -43,13 +43,17 @@ Deno.serve(async (req) => {
   const linkId = url.searchParams.get('l') ?? url.searchParams.get('link_id');
 
   if (!linkId) {
-    return new Response('Missing link_id', { status: 400 });
+    return new Response(JSON.stringify(buildContractErrorBody(
+    'email-track-link', undefined, 'contract_violation',
+    'Campo obrigatório ausente: link_id.',
+    [{ path: 'link_id', message: 'Missing link_id' }],
+  )), { status: 422, headers: { 'Content-Type': 'application/json' } });
   }
 
   // Contrato email-track-link@v1: GET de rastreio — contrato por query param
   // (l/link_id), sem corpo. Schema permissivo ({}) nunca bloqueia o 302.
   const parsed = parseOrReject('email-track-link', CONTRACT_SCHEMAS['email-track-link'], req, {}, {});
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
 
   const supabase = createZappAdminClient();
 

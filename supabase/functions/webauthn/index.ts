@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
 
     const rawBody = await req.json().catch(() => null);
     const parsed = parseOrReject('webauthn', CONTRACT_SCHEMAS['webauthn'], req, rawBody, { extraHeaders: getCorsHeaders(req) });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
 
     const { action, userId, userEmail, userName, credential, friendlyName } = parsed.data as Record<string, any>;
     const origin = req.headers.get('origin') || 'https://localhost';

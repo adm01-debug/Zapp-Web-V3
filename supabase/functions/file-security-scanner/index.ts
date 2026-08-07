@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     const raw = Object.fromEntries(formData.entries()); // preserva File (multipart)
     // Contrato file-security-scanner@v1 (estrito): file (File) obrigatório, bucket opcional.
     const parsed = parseOrReject('file-security-scanner', CONTRACT_SCHEMAS['file-security-scanner'], req, raw, { extraHeaders: getCorsHeaders(req) });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, any>;
     const file = body.file as File;
     const rawBucket = (body.bucket as string) || "uploads";

@@ -50,7 +50,7 @@ Deno.test("Versioning: versão não suportada → 422", () => {
   const req = new Request("http://localhost", { headers });
   const result = parseOrReject("evolution-webhook", CONTRACT_SCHEMAS["evolution-webhook"], req, { event: "t" });
   assertEquals(result.ok, false);
-  if (!result.ok) {
+  if (result.ok === false) {
     assertEquals(result.body.code, "unsupported_contract_version");
     assertEquals(result.response.status, 422);
   }
@@ -185,7 +185,7 @@ for (const { name, v2, v1 } of WEBHOOK_FIXTURES) {
     const req = new Request("http://localhost", { headers: { "x-contract-version": "v9" } });
     const result = parseOrReject(name, CONTRACT_SCHEMAS[name], req, v2, { extraHeaders: {} });
     assertEquals(result.ok, false);
-    if (!result.ok) {
+    if (result.ok === false) {
       assertEquals(result.response.status, 422);
       assertEquals(result.body.code, "unsupported_contract_version");
       assertEquals(result.body.error, true);

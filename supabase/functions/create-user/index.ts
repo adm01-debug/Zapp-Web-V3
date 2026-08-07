@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
 
     const raw = await req.json().catch(() => null);
     const parsed = parseOrReject('create-user', CONTRACT_SCHEMAS['create-user'], req, raw, { extraHeaders: getCorsHeaders(req) });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, any>;
 
     const { email, password, name, nickname, signature, job_title, avatar_url, role, gmail_email, google_services, dropbox_email } = body;

@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
   const parsed = parseOrReject('whatsapp-cloud-secrets-status', CONTRACT_SCHEMAS['whatsapp-cloud-secrets-status'], req, body, {
     extraHeaders: corsHeaders,
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
 
   const status = SECRET_KEYS.map((name) => {
     const v = Deno.env.get(name) ?? "";

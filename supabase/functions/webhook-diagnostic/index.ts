@@ -2,9 +2,26 @@ import { createZappAdminClient } from '../_shared/db-client.ts';
 import { WEBHOOK_EVENTS } from '../_shared/evolution-sync-actions.ts';
 import { requireAdminOrSupervisor } from '../_shared/auth.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
-import { parseRequestOrReject } from '../_shared/contract-kit.ts';
+import { parseRequestOrReject, buildContractErrorBody } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
+
+
+/**
+ * Falha de validação pós-gate → envelope 422 ÚNICO (contract-kit).
+ * Correção 2026-08-06 (gap A1): era 400 com shape avulso.
+ */
+function contractViolation422(path: string, message: string, req: Request, extra?: Record<string, string>): Response {
+  const eb = buildContractErrorBody(
+    'webhook-diagnostic', undefined, 'contract_violation',
+    `Campo obrigatório ausente: ${path}.`,
+    [{ path, message }],
+  );
+  return new Response(JSON.stringify(eb), {
+    status: 422,
+    headers: { ...(extra ?? {}), 'Content-Type': 'application/json' },
+  });
+}
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
 
@@ -17,7 +34,7 @@ Deno.serve(async (req: Request) => {
     const parsed = await parseRequestOrReject('webhook-diagnostic', CONTRACT_SCHEMAS['webhook-diagnostic'], req, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, unknown>;
 
     const evolutionUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
@@ -30,7 +47,7 @@ Deno.serve(async (req: Request) => {
     const INSTANCE_RE = /^[a-zA-Z0-9_-]{1,64}$/;
     if (rawInstanceName !== undefined && rawInstanceName !== null) {
       if (typeof rawInstanceName !== 'string' || !INSTANCE_RE.test(rawInstanceName)) {
-        return new Response(JSON.stringify({ error: 'instanceName contains invalid characters' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+        return contractViolation422('instanceName', 'instanceName contains invalid characters', req, getCorsHeaders(req));
       }
     }
     const instanceName = rawInstanceName as string | undefined;

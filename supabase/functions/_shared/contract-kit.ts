@@ -20,6 +20,15 @@
  *  - `invalid_json`                 → body ausente, não-JSON ou não-objeto/array
  *  - `contract_violation`           → JSON válido, mas fora do schema
  *  - `unsupported_contract_version` → versão pedida não está em `supported`
+ *
+ * CONVENÇÃO DE NARROWING (obrigatória em call sites e testes):
+ *  Use `if (parsed.ok === false)` — NUNCA `if (!parsed.ok)`. O tsconfig.json
+ *  do repo (frontend Lovable) define `strictNullChecks: false`, herdado pelo
+ *  Deno para supabase/functions; sob essa config a negação `!x.ok` NÃO
+ *  estreita a union discriminada ParseOk|ParseFail → TS2339 latente em
+ *  `parsed.response`/`parsed.body` (CI deno-contract-tests vermelho).
+ *  Equality narrowing (`=== false` / `=== true`) funciona sob qualquer config.
+ *  (Incidente 2026-08-06: 122 ocorrências corrigidas em 117 index.ts.)
  */
 
 import { z } from "https://esm.sh/zod@3.23.8";

@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
   const parsed = parseOrReject('batch-fetch-avatars', CONTRACT_SCHEMAS['batch-fetch-avatars'], req, await req.json().catch(() => ({})), {
     extraHeaders: getCorsHeaders(req),
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
 
   const log = new Logger("batch-fetch-avatars");
 

@@ -67,7 +67,7 @@ supabase db list-migrations --remote staging
 
 ```bash
 # Set connection string
-export STAGING_DB_URL="postgresql://postgres:PASSWORD@supabase.atomicabr.com.br:5432/postgres"
+export STAGING_DB_URL="postgresql://postgres:<SECRETO>@supabase.atomicabr.com.br:5432/postgres"
 
 # Execute migration
 psql "$STAGING_DB_URL" < supabase/migrations/20260712160000_fix_contact_id_reuse_critical.sql

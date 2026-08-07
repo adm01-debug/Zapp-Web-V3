@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('mcp', CONTRACT_SCHEMAS['mcp'], req, await req.json().catch(() => ({})), {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
   }
   return _mcpHandler(req);
 });

@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('evolution-retry-metrics', { v1: EvolutionRetryMetricsV1Schema }, req, await req.json().catch(() => ({})), {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
 
     const { data: userData, error: userErr } = await createZappClient(req).auth.getUser();
     if (userErr || !userData?.user) {

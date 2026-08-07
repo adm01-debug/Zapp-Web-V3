@@ -163,7 +163,7 @@ Deno.serve(async (req: Request) => {
     const parsed = parseOrReject('main', CONTRACT_SCHEMAS['main'], req, await req.json().catch(() => ({})), {
       extraHeaders: getCorsHeaders(req),
     })
-    if (!parsed.ok) return parsed.response
+    if (parsed.ok === false) return parsed.response
   }
 
   const servicePath = `/home/deno/functions/${service_name}`

@@ -44,7 +44,7 @@ Deno.test("cross-endpoint: null e primitivo produzem invalid_json idêntico em T
     for (const bad of [null, "texto", 42, true]) {
       const r = parseOrReject(name, schemas, req(), bad);
       assertEquals(r.ok, false, `${name}: primitivo/null deve falhar`);
-      if (!r.ok) {
+      if (r.ok === false) {
         const body = await readEnvelope(r.response);
         assertEquals(body.code, "invalid_json", `${name}: código divergente para ${JSON.stringify(bad)}`);
       }
@@ -56,7 +56,7 @@ Deno.test("cross-endpoint: versão inexistente sempre gera unsupported_contract_
   for (const [name, schemas] of Object.entries(CONTRACT_SCHEMAS)) {
     const r = parseOrReject(name, schemas, req({ "x-contract-version": "v99" }), { any: 1 });
     assertEquals(r.ok, false, `${name}: v99 deve ser rejeitada`);
-    if (!r.ok) {
+    if (r.ok === false) {
       const body = await readEnvelope(r.response);
       assertEquals(body.code, "unsupported_contract_version");
       assert(body.contract.endsWith("@v99"));
@@ -80,7 +80,7 @@ Deno.test("cross-endpoint: contratos estritos com campos obrigatórios rejeitam 
     assert(schemas, `${name} deve estar registrado`);
     const r = parseOrReject(name, schemas, req(), {});
     assertEquals(r.ok, false, `${name}: {} deveria falhar validação`);
-    if (!r.ok) {
+    if (r.ok === false) {
       const body = await readEnvelope(r.response);
       assertEquals(body.code, "contract_violation");
       assert(body.details.length > 0, `${name}: details vazio`);
@@ -119,7 +119,7 @@ Deno.test("cross-endpoint: consistência absoluta de chaves em TODOS os modos de
       parseOrReject(name, schemas, req(), 42),
     ];
     for (const r of failures) {
-      if (r.ok) continue;
+      if (r.ok === true) continue;
       total++;
       const body = await r.response.clone().json();
       shapes.add(Object.keys(body).filter((k) => k !== "requestId").sort().join(","));

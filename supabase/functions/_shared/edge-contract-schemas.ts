@@ -5,6 +5,8 @@ import {
   MetaWebhookPayloadSchema,
   GmailWebhookV1Schema,
   GmailWebhookV2Schema,
+  ElevenLabsWebhookV1Schema,
+  ElevenLabsWebhookV2Schema,
 } from './webhook-schemas.ts';
 import { contractErrorResponse } from './validation.ts';
 import {
@@ -34,8 +36,9 @@ export { z };
  * RESTAURAÇÃO: o commit a08d63e43 ("fix(base64-critical)") sobrescreveu este
  * arquivo com uma versão antiga (38 linhas) que quebrava os re-exports de
  * contract-schemas.ts. Esta versão restaura o registro completo (PR #254/#255)
- * com EDGE_FUNCTION_NAMES regenerado a partir dos diretórios reais (122) e os
- * schemas V1 estritos das funções AI/ML vindos de _shared/schemas.ts.
+ * com EDGE_FUNCTION_NAMES regenerado a partir dos diretórios reais (106 após
+ * a onda de remoção #922 — auditoria A9 2026-08-06) e os schemas V1 estritos
+ * das funções AI/ML vindos de _shared/schemas.ts.
  */
 export const EDGE_FUNCTION_NAMES = [
   'ai-auto-tag',

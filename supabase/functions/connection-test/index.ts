@@ -347,7 +347,7 @@ Deno.serve(async (req) => {
   const parsed = parseOrReject("connection-test", CONTRACT_SCHEMAS["connection-test"], req, raw, {
     extraHeaders: getCorsHeaders(req),
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
   const body = parsed.data as Record<string, any>;
   if (body?.mode === "official" || body?.mode === "unofficial") mode = body.mode;
 

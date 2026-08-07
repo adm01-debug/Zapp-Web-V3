@@ -171,7 +171,7 @@ Deno.test("send-email@v1: versão não suportada via header → unsupported_cont
 
 Deno.test("send-email@v1: requestId é propagado no envelope quando fornecido", async () => {
   const r = parseOrReject("send-email", SCHEMAS, req(), null, { requestId: "req-123" });
-  assert(!r.ok);
+  assert(r.ok === false);
   const body = await r.response!.json() as ContractErrorBody;
   assertEquals(body.requestId, "req-123");
 });

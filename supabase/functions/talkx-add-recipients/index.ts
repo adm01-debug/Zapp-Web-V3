@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
   try {
     const raw = await req.json().catch(() => null);
     const parsed = parseOrReject('talkx-add-recipients', CONTRACT_SCHEMAS['talkx-add-recipients'], req, raw, { extraHeaders: getCorsHeaders(req) });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
 
     const { campaignId, contactIds } = parsed.data as Partial<AddRecipientsBody>;
 
