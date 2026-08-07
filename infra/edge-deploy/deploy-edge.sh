@@ -239,4 +239,86 @@ if [[ $MISSING -gt 0 || $STALE -gt 0 || $ORPHAN -gt 0 ]]; then
     echo "⚠️  ORPHAN restante ($ORPHAN) — higiene manual: conferir ops.edge_function_registry antes de remover do volume."
   fi
 fi
+
+# ── P-13: Sincronização do _shared/ (fix P0 2026-08-07) ───────────────────────
+# GAP DESCOBERTO NA ONDA DE VALIDAÇÃO: o deploy sincronizava SOMENTE os
+# index.ts — o _shared/ (contract-kit, contract-schemas, webhook-schemas, etc.)
+# nunca era copiado → volume stale (ex.: contract-kit sem contractViolation422,
+# CONTRACT_SCHEMAS sem mcp-query → 422 'schema ausente' em runtime).
+# Agora: snapshot → diff → apply (base64 via stdin, hash pós-escrita) de TODOS
+# os arquivos .ts do _shared/ do repo.
+SHARED_DIR="$FUNCTIONS_DIR/_shared"
+SHARED_OK=0; SHARED_MISSING=0; SHARED_STALE=0
+declare -a SHARED_MISSING_LIST SHARED_STALE_LIST
+
+if [[ -d "$SHARED_DIR" ]]; then
+  mapfile -t REPO_SHARED < <(find "$SHARED_DIR" -maxdepth 1 -name '*.ts' -printf '%f\n' | sort)
+  # Snapshot remoto: "nome hash" por arquivo (1 chamada)
+  REMOTE_SHARED_SNAPSHOT=$(edge_exec "
+    for f in ${VOLUME_PATH}/_shared/*.ts; do
+      [ -f \"\$f\" ] && echo \"\$(basename \"\$f\") \$(sha256sum \"\$f\" | cut -c1-12)\"
+    done
+  " 2>/dev/null || true)
+  declare -A REMOTE_SHARED_HASH
+  while read -r name hash; do
+    [[ -z "$name" ]] && continue
+    REMOTE_SHARED_HASH["$name"]="$hash"
+  done <<< "$REMOTE_SHARED_SNAPSHOT"
+
+  for f in "${REPO_SHARED[@]}"; do
+    local_hash=$(sha256sum "$SHARED_DIR/$f" | cut -c1-12)
+    if [[ -z "${REMOTE_SHARED_HASH[$f]:-}" ]]; then
+      SHARED_MISSING=$((SHARED_MISSING+1)); SHARED_MISSING_LIST+=("$f")
+    elif [[ "${REMOTE_SHARED_HASH[$f]}" != "$local_hash" ]]; then
+      SHARED_STALE=$((SHARED_STALE+1)); SHARED_STALE_LIST+=("$f")
+    else
+      SHARED_OK=$((SHARED_OK+1))
+    fi
+  done
+
+  echo
+  echo "════════════ _SHARED DRIFT REPORT ════════════"
+  echo "  OK      : $SHARED_OK"
+  echo "  MISSING : $SHARED_MISSING"
+  if (( SHARED_MISSING > 0 )); then
+    for f in ${SHARED_MISSING_LIST[@]+"${SHARED_MISSING_LIST[@]}"}; do echo "    MISSING  _shared/$f"; done
+  fi
+  echo "  STALE   : $SHARED_STALE"
+  if (( SHARED_STALE > 0 )); then
+    for f in ${SHARED_STALE_LIST[@]+"${SHARED_STALE_LIST[@]}"}; do
+      echo "    STALE    _shared/$f  deploy=${REMOTE_SHARED_HASH[$f]} repo=$(sha256sum "$SHARED_DIR/$f" | cut -c1-12)"
+    done
+  fi
+  echo "═════════════════════════════════════════════"
+
+  if [[ $APPLY -eq 1 ]] && { [[ $SHARED_MISSING -gt 0 || $SHARED_STALE -gt 0 ]]; }; then
+    echo "── P-13: aplicando _shared/ (repo → volume) ──"
+    for f in "${SHARED_MISSING_LIST[@]}" "${SHARED_STALE_LIST[@]}"; do
+      b64=$(base64 -w0 "$SHARED_DIR/$f")
+      expected=$(sha256sum "$SHARED_DIR/$f" | cut -c1-12)
+      echo "$b64" | edge_exec_stdin "
+        mkdir -p ${VOLUME_PATH}/_shared
+        base64 -d > ${VOLUME_PATH}/_shared/$f
+      " >/dev/null 2>&1
+      written=$(edge_exec "sha256sum ${VOLUME_PATH}/_shared/$f" 2>/dev/null | cut -c1-12 || true)
+      if [[ "$written" == "$expected" ]]; then
+        echo "  ✅ _shared/$f → $expected (hash pós-escrita OK)"
+      else
+        echo "  ❌ _shared/$f → escrita FALHOU (esperado=$expected, escrito=$written)" >&2
+        exit 1
+      fi
+    done
+    echo "── P-13 concluído ──"
+  elif [[ $APPLY -eq 1 ]]; then
+    echo "── P-13: _shared/ sem drift ──"
+  fi
+
+  # Gate: drift de _shared sem --apply também falha (mesma semântica do P-12)
+  if [[ $APPLY -eq 0 ]] && { [[ $SHARED_MISSING -gt 0 || $SHARED_STALE -gt 0 ]]; }; then
+    echo "❌ _SHARED DRIFT detectado (MISSING=$SHARED_MISSING STALE=$SHARED_STALE) — rode com --apply." >&2
+    exit 1
+  fi
+else
+  echo "⚠️  _shared/ ausente no repo ($SHARED_DIR) — pulando sincronização."
+fi
 echo "✅ deploy-edge: concluído sem erros."
