@@ -246,6 +246,15 @@ jobs:
                   - traefik.http.routers.zapp-prod.entrypoints=websecure
                   - traefik.http.routers.zapp-prod.tls.certresolver=letsencryptresolver
                   - traefik.http.routers.zapp-prod.tls=true
+                  # Router secundario zappweb.app.br (OC-07, 2026-08-07) —
+                  # no compose inline p/ sobreviver a redeploys (service update
+                  # de label-add e perdido quando o stack e recriado).
+                  - "traefik.http.routers.zappweb.rule=Host(`zappweb.app.br`)"
+                  - traefik.http.services.zappweb.loadbalancer.server.port=80
+                  - traefik.http.routers.zappweb.service=zappweb
+                  - traefik.http.routers.zappweb.entrypoints=websecure
+                  - traefik.http.routers.zappweb.tls.certresolver=letsencryptresolver
+                  - traefik.http.routers.zappweb.tls=true
                   - com.centurylinklabs.watchtower.enable=false
                   - com.atomicabr.tier=critical
                 update_config:
