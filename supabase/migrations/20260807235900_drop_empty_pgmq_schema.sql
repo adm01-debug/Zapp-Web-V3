@@ -1,0 +1,25 @@
+-- ============================================================================
+-- Migration: drop_empty_pgmq_schema
+-- Data:      2026-08-07
+-- Objetivo:  DROP do schema `pgmq` remanescente após a remoção da extensão
+--            pgmq (tombstone 20260806994000_drop_pgmq_extension.sql).
+--
+-- DECISÃO OC-01 (REC-02-05, 2026-08-07 12:3xZ):
+--   Provado vazio e sem referências ANTES do DROP:
+--     - pg_extension: extensão pgmq AUSENTE (drop já efetuado em 2026-08-06);
+--     - schema pgmq: 0 objetos em TODOS os catálogos (pg_class, pg_proc,
+--       pg_type, pg_operator, pg_conversion, pg_collation, pg_policy,
+--       pg_rewrite, pg_ts_config/dict/parser/template, pg_statistic_ext);
+--     - únicos resíduos: 2 pg_default_acl (deptype 'a' — auto-removidos no
+--       DROP do schema) e grants de USAGE no schema (morrem com o schema);
+--     - pg_proc.prosrc ILIKE '%pgmq%' = 0; cron.job.command = 0;
+--     - código-fonte (src/, supabase/functions/, infra/, .github/, scripts/):
+--       zero referências (grep); docs/ citam pgmq apenas como histórico.
+--   DROP SEM CASCADE de propósito: se qualquer dependente surgir no futuro,
+--   o DROP falha (guard natural) em vez de remover objetos alheios.
+--   Não toca em extensões.
+--
+-- ESTADO APÓS MIGRATION:
+--   - schema pgmq removido; registros em supabase_migrations.schema_migrations.
+-- ============================================================================
+DROP SCHEMA IF EXISTS pgmq;
