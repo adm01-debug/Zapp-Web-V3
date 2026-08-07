@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { zappSupabase, ZAPPWEB_INSTANCE } from '../supabaseClient';
 import type { EvolutionMessage } from '../types';
 import { log } from '@/lib/logger';
-import { evolutionMessageRowSchema, safeParseEvent } from '@/shared/webhookEventSchemas';
+import { evolutionMessageRowSchema, isContractErrorResponse, safeParseEvent } from '@/shared/webhookEventSchemas';
 
 interface Options {
   remoteJid: string | null;
@@ -47,6 +47,14 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
       setError(null);
     } catch (e: unknown) {
       log.error('[useZappMessages]', e);
+      if (isContractErrorResponse(e)) {
+        // Envelope 422 canônico do contract-kit (docs/CONTRACT_TESTING.md):
+        // a mensagem do backend já é amigável e a falha é de CONTRATO —
+        // retry não corrige payload inválido, então não há retentativa
+        // automática (só refetch manual do usuário).
+        setError(e.message);
+        return;
+      }
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
