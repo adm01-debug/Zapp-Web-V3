@@ -305,6 +305,17 @@ jobs:
           echo "Health /auth: ${HC}"
           case "${HC}" in 200|301|302) echo "App OK" ;; *) echo "::warning::POST_DEPLOY_HC=${HC} — verificar serviço manualmente"; esac
 
+
+      - name: 🧹 Prune dangling images pós-deploy (manutenção disco VPS)
+        if: always()
+        run: |
+          # Remove imagens sem tag geradas pelo buildx/deploy (dangling).
+          # Nunca remove imagens tagadas (ativas ou rollback) — apenas <none>.
+          # Contexto: cada deploy pode deixar manifests órfãos de 50-120 MB.
+          docker image prune -f
+          echo "Imagens pos-prune:"
+          docker system df 2>&1 | grep Images
+
   # ============================================================
   # Health check pós-deploy DETERMINÍSTICO (DP-09, 2026-08-06):
   # post-deploy-check.yml (workflow_run) não disparava de forma confiável;
