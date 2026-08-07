@@ -27,7 +27,6 @@ DROP TABLE IF EXISTS public.model_pricing_v1 CASCADE;
 DROP SEQUENCE IF EXISTS zapp.model_pricing_v1_id_seq CASCADE;
 DROP SEQUENCE IF EXISTS ai.model_pricing_v1_id_seq CASCADE;
 DROP SEQUENCE IF EXISTS public.model_pricing_v1_id_seq CASCADE;
-=======
 -- Item 55 da auditoria infra (AG-EX-01): ai.model_pricing (v1) vs ai.model_pricing_v2 (ambas vazias)
 -- Verificacao previa: v2 usada por zapp.model_pricing_v2, zapp.v_model_catalog, zapp.estimate_cost e
 -- zapp.find_cheapest_model; v1 so tinha a view orfa zapp.model_pricing (nenhum consumidor no repo: grep src/).

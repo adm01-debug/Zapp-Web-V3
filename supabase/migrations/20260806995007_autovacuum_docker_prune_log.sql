@@ -47,6 +47,5 @@ SELECT cron.schedule(
   '0 2 * * 0',
   $$VACUUM ANALYZE ops.disk_actions_queue, ops.paused_services, ops.alert_cooldown, ops.docker_prune_log, ops.disk_orphans$$
 ) ON CONFLICT (jobname) DO NOTHING;
-=======
 -- Item 65 da auditoria infra (AG-EX-01): autovacuum per-table (substitui cron disk-tables-vacuum-weekly job 231)
 ALTER TABLE ops.docker_prune_log SET (autovacuum_vacuum_scale_factor=0.05, autovacuum_vacuum_threshold=100, autovacuum_analyze_scale_factor=0.02);
