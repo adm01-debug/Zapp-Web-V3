@@ -7,10 +7,6 @@ on:
       SUPABASE_SERVICE_ROLE_KEY: { required: true }
       E2E_USER_EMAIL:            { required: true }
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   validate:
     name: Validar permissões CRM do E2E_USER_EMAIL
