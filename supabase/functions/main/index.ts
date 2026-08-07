@@ -108,6 +108,22 @@ async function verifyJWT(jwt: string): Promise<boolean> {
   return true
 }
 
+// 404 JSON estruturado para função inexistente (ex.: evaluation-health, consolidada
+// em health). Evita o 500 genérico do catch do worker para nomes não deployados.
+// Inclui CORS igual ao restante do router.
+function functionNotFoundResponse(serviceName: string, req: Request): Response {
+  return new Response(
+    JSON.stringify({
+      error: 'function_not_found',
+      message: `Edge function não encontrada: ${serviceName}`,
+    }),
+    {
+      status: 404,
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+    },
+  )
+}
+
 Deno.serve(async (req: Request) => {
   const url = new URL(req.url)
   const { pathname } = url
@@ -168,6 +184,23 @@ Deno.serve(async (req: Request) => {
 
   const servicePath = `/home/deno/functions/${service_name}`
   console.error(`serving the request with ${servicePath}`)
+
+  // Função inexistente → 404 JSON estruturado (em vez do 500 genérico do catch
+  // abaixo): o create() do worker lança erro genérico quando o diretório da
+  // função não existe no volume. Verifica ANTES de criar o worker; funções
+  // existentes seguem exatamente o fluxo atual.
+  try {
+    const fnStat = await Deno.stat(servicePath)
+    if (!fnStat.isDirectory) {
+      return functionNotFoundResponse(service_name, req)
+    }
+  } catch (e) {
+    if (e instanceof Deno.errors.NotFound) {
+      return functionNotFoundResponse(service_name, req)
+    }
+    // Permissão/outro erro de FS: loga e segue — o catch do worker decide (500 atual).
+    console.error('worker stat error:', e)
+  }
 
   // Increased from 150 MB to handle heavier functions (e.g. evolution-api with many imports)
   const memoryLimitMb = 256
