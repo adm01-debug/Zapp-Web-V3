@@ -53,7 +53,7 @@ const APP_SECRET = Deno.env.get("WHATSAPP_CLOUD_APP_SECRET") ?? "";
 const STRICT_MODE =
   (Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_STRICT") ?? "true").toLowerCase() !== "false";
 const EXTERNAL_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL')) ?? "";
-const EXTERNAL_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY')) ?? "";
+const EXTERNAL_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY')) ?? (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY')) ?? "";
 const externalClient =
   EXTERNAL_URL && EXTERNAL_KEY ? createClient(EXTERNAL_URL, EXTERNAL_KEY, { db: { schema: 'zapp' }, auth: { persistSession: false, autoRefreshToken: false } }) : null;
 const localClient = createZappAdminClient();
@@ -115,6 +115,7 @@ async function persistInbound(message: MetaWAMessage, contact: MetaWAContact | u
   }
 
   await externalClient.rpc("rpc_insert_message", {
+    p_instance: "wpp2",
     p_remote_jid: remoteJid,
     p_content: content,
     p_message_id: message.id,

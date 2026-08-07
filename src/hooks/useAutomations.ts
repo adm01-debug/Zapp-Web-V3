@@ -319,6 +319,7 @@ export function useAutomations({
               const exec = execArr?.[0] ?? null;
               if (exec?.suggestion_text) {
                 await typedClient.rpc('rpc_insert_message', {
+                  p_instance: instanceName,
                   p_remote_jid: remoteJid,
                   p_content: exec.suggestion_text,
                   p_from_me: true,

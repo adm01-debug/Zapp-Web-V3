@@ -91,6 +91,7 @@ async function callGraph(
 
 async function persistOutbound(
   externalClient: ReturnType<typeof createClient>,
+  instanceName: string,
   remoteJid: string,
   wamid: string,
   messageType: string,
@@ -100,6 +101,7 @@ async function persistOutbound(
 ) {
   try {
     await externalClient.rpc('rpc_insert_message', {
+      p_instance: instanceName,
       p_remote_jid: remoteJid,
       p_content: content,
       p_message_id: wamid,
@@ -304,7 +306,7 @@ Deno.serve(async (req) => {
   const wamid = data?.messages?.[0]?.id ?? `cloud_${Date.now()}`;
 
   if (externalClient) {
-    await persistOutbound(externalClient, remoteJid, wamid, messageType, contentForLog, mediaUrlForLog);
+    await persistOutbound(externalClient, instanceName, remoteJid, wamid, messageType, contentForLog, mediaUrlForLog);
   }
 
   // Mirror evolution-api success envelope

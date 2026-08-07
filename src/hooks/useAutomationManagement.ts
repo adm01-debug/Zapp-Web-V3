@@ -385,6 +385,7 @@ export function useAutomations({
               const exec = execArr?.[0] ?? null;
               if (exec?.suggestion_text) {
                 await (client as unknown as SupabaseClient).rpc('rpc_insert_message', {
+                  p_instance: instanceName,
                   // ignore-audit — ExtendedDatabase schema client cannot call unregistered RPCs; widening to bare SupabaseClient is intentional
                   p_remote_jid: remoteJid,
                   p_content: exec.suggestion_text,
