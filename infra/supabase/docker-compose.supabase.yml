@@ -186,6 +186,7 @@ services:
       - GOTRUE_API_HOST=0.0.0.0
       - GOTRUE_API_PORT=9999
       - API_EXTERNAL_URL=https://supabase.atomicabr.com.br
+      - GOTRUE_MFA_ENABLED=true
       - GOTRUE_DB_DRIVER=postgres
       - GOTRUE_SITE_URL=https://zapp.atomicabr.com.br
       - GOTRUE_URI_ALLOW_LIST=https://whats-your-line.lovable.app,https://zapp.atomicabr.com.br,https://supabase.atomicabr.com.br,https://zapp-web-v3.vercel.app,https://zappweb.app.br,https://www.zappweb.app.br
