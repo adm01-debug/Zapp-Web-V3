@@ -7,15 +7,19 @@
 -- has_roles=false (run 31172073095).
 --
 -- Esta RPC transpõe o script (idempotente): auth.users upsert por email
--- (senha bcrypt via pgcrypto em `extensions`), zapp.profiles ativo (agent),
--- zapp.user_roles com a estrutura ATUAL da tabela (id/role_key/workspace_id/
--- role; UNIQUE (user_id, workspace_id) → 1 role por workspace; UNIQUE
--- (user_id, role)) — role 'agent' (base CRM; supervisor/admin não cabem no
--- mesmo workspace por constraint). Wrapper public.* p/ exposição PostgREST.
+-- (senha bcrypt via pgcrypto), zapp.profiles ativo (agent), zapp.user_roles
+-- com a estrutura ATUAL da tabela (id/role_key/workspace_id/role;
+-- UNIQUE (user_id, workspace_id) → 1 role por workspace; UNIQUE (user_id,
+-- role)) — role 'agent' (base CRM). Wrapper public.* p/ exposição PostgREST.
 --
--- Segurança: SECURITY DEFINER, search_path = zapp, auth, extensions, public
--- (pgcrypto vive em `extensions`), sem anon; GRANT apenas service_role
--- (senha trafega no corpo do POST — HTTPS; nunca anon/authenticated).
+-- v3 (2026-08-07, validação exaustiva): funções do pgcrypto chamadas
+-- QUALIFICADAS (extensions.crypt/gen_salt/gen_random_uuid) — o search_path
+-- com 'extensions' NÃO resolve dentro de SECURITY DEFINER neste ambiente
+-- (42883 provado com função probe); qualificação explícita é o padrão da
+-- casa. REVOKE authenticated (escalada: authenticated criaria auth.users com
+-- senha arbitrária via SECURITY DEFINER) — GRANT só service_role.
+--
+-- Segurança: SECURITY DEFINER, search_path fixo, sem anon/authenticated.
 --
 -- Rollback: DROP FUNCTION zapp.rpc_e2e_seed_user(text, text);
 --           DROP FUNCTION public.rpc_e2e_seed_user(text, text);
@@ -41,12 +45,14 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'error', 'email e password obrigatorios');
   END IF;
 
-  v_encrypted := crypt(p_password, gen_salt('bf', 10));
+  -- pgcrypto QUALIFICADO: o search_path 'extensions' não resolve nesta stack
+  -- (42883 provado em validação 2026-08-07) — qualificação explícita.
+  v_encrypted := extensions.crypt(p_password, extensions.gen_salt('bf', 10));
 
   SELECT id INTO v_user_id FROM auth.users WHERE email = p_email;
 
   IF v_user_id IS NULL THEN
-    v_user_id := gen_random_uuid();
+    v_user_id := extensions.gen_random_uuid();
     INSERT INTO auth.users (
       id, instance_id, aud, role, email, encrypted_password,
       email_confirmed_at, created_at, updated_at,
@@ -83,7 +89,7 @@ BEGIN
     FROM zapp.user_roles WHERE user_id = v_user_id;
 
   INSERT INTO zapp.user_roles (id, user_id, role_key, workspace_id, role, created_at)
-  VALUES (gen_random_uuid(), v_user_id, 'agent', v_workspace, 'agent', now())
+  VALUES (extensions.gen_random_uuid(), v_user_id, 'agent', v_workspace, 'agent', now())
   ON CONFLICT (user_id, workspace_id) DO UPDATE
     SET role = 'agent', role_key = 'agent';
 
@@ -114,5 +120,7 @@ AS $$ SELECT zapp.rpc_e2e_seed_user(p_email, p_password) $$;
 
 REVOKE ALL ON FUNCTION zapp.rpc_e2e_seed_user(text, text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.rpc_e2e_seed_user(text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION zapp.rpc_e2e_seed_user(text, text) FROM authenticated;
+REVOKE ALL ON FUNCTION public.rpc_e2e_seed_user(text, text) FROM authenticated;
 GRANT EXECUTE ON FUNCTION zapp.rpc_e2e_seed_user(text, text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.rpc_e2e_seed_user(text, text) TO service_role;
