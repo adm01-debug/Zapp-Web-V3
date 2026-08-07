@@ -95,14 +95,14 @@ Deno.serve(async (req) => {
     const body = bodyForAction;
     let instance: string | null = safeGet(body, 'instanceName', isMultipart) || safeGet(body, 'instance', isMultipart) || null;
     const INSTANCE_RE = /^[a-zA-Z0-9_-]{1,128}$/;
-    if (instance && !INSTANCE_RE.test(instance)) return new Response(JSON.stringify({ error: 'Invalid instance name' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (instance && !INSTANCE_RE.test(instance)) return new Response(JSON.stringify({ error: 'Invalid instance name' }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const instanceLooksLikeUuid = (v: unknown): boolean => typeof v === 'string' && UUID_RE.test(v.trim());
     const READE_ONLY_INSTANCE_ACTIONS = new Set(['list-instances', 'instance-info', 'status', 'get-settings', 'get-webhook', 'find-status-messages']);
-    if (instance && !READE_ONLY_INSTANCE_ACTIONS.has(action) && await isInstancePaused(supabase, String(instance))) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 503, code: 'INSTANCE_PAUSED', message: `Inst\u00e2ncia "${instance}" est\u00e1 pausada.` }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } });
+    if (instance && !READE_ONLY_INSTANCE_ACTIONS.has(action) && await isInstancePaused(supabase, String(instance))) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: 503, code: 'INSTANCE_PAUSED', message: `Inst\u00e2ncia "${instance}" est\u00e1 pausada.`, details: [{ path: 'instance', message: `Instância "${instance}" está pausada.` }] }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } });
     if (instance && action.startsWith('send-') && SEND_PER_INSTANCE_PER_MIN > 0) {
       const sendRl = checkRateLimit(`evolution-send:${instance}`, SEND_PER_INSTANCE_PER_MIN, 60_000);
-      if (!sendRl.allowed) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 429, code: 'INSTANCE_RATE_LIMIT' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '30' } });
+      if (!sendRl.allowed) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: 429, code: 'INSTANCE_RATE_LIMIT', details: [{ path: 'instance', message: 'Limite de envios por instância atingido (minuto). Tente novamente em instantes.' }] }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '30' } });
     }
     if (action === 'read-messages') {
       const jsonBody = ensureBodyIsRecord(body);
@@ -156,10 +156,10 @@ Deno.serve(async (req) => {
       const presence = (safeGet(jb, 'presence', isMultipart) || '').trim();
       const PRESENCE_ALLOWED = new Set(['composing', 'recording', 'paused', 'available', 'unavailable']);
       if (!number || !/^\d{10,15}$/.test(number.replace(/[^0-9]/g, ''))) {
-        return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 400, code: 'INVALID_NUMBER', message: 'number é obrigatório (E.164, dígitos 10-15)' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: 422, code: 'INVALID_NUMBER', message: 'number é obrigatório (E.164, dígitos 10-15)', details: [{ path: 'number', message: 'number é obrigatório (E.164, dígitos 10-15)' }] }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
       if (!PRESENCE_ALLOWED.has(presence)) {
-        return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 400, code: 'INVALID_PRESENCE', message: `presence deve ser um de: ${[...PRESENCE_ALLOWED].join(', ')}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: 422, code: 'INVALID_PRESENCE', message: `presence deve ser um de: ${[...PRESENCE_ALLOWED].join(', ')}`, details: [{ path: 'presence', message: `presence deve ser um de: ${[...PRESENCE_ALLOWED].join(', ')}` }] }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
       const { instanceName: _instanceName, ...presenceBody } = jb;
       return await proxy(`/chat/sendPresence/${instance}`, 'POST', presenceBody);
@@ -184,15 +184,15 @@ Deno.serve(async (req) => {
     if (action === 'archive-chat') return await proxy(`/message/archiveChat/${instance}`, 'POST', body);
     if (action === 'get-media-base64') {
       const jb = ensureBodyIsRecord(body);
-      if (!instance) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 400, code: 'MISSING_INSTANCE', message: 'instanceName é obrigatório' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      const invalidMessage = (code: string, message: string) => new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 400, code, message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (!instance) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: 422, code: 'MISSING_INSTANCE', message: 'instanceName é obrigatório', details: [{ path: 'instance', message: 'instanceName é obrigatório' }] }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const invalidMessage = (code: string, message: string, path: string, status = 400) => new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status, code, message, details: [{ path, message }] }), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       const rawMessage = safeGetAny(jb, 'message', isMultipart);
-      if (typeof rawMessage !== 'object' || rawMessage === null || Array.isArray(rawMessage)) return invalidMessage('INVALID_MESSAGE', 'message deve ser um objeto com key (remoteJid, fromMe, id)');
+      if (typeof rawMessage !== 'object' || rawMessage === null || Array.isArray(rawMessage)) return invalidMessage('INVALID_MESSAGE', 'message deve ser um objeto com key (remoteJid, fromMe, id)', 'message');
       const msg = rawMessage as Record<string, unknown>;
       const key = (typeof msg.key === 'object' && msg.key !== null && !Array.isArray(msg.key)) ? msg.key as Record<string, unknown> : null;
-      if (!key || typeof key.id !== 'string' || !key.id.trim()) return invalidMessage('INVALID_MESSAGE_KEY', 'message.key.id é obrigatório');
-      if (key.remoteJid !== undefined && typeof key.remoteJid !== 'string') return invalidMessage('INVALID_MESSAGE_KEY', 'message.key.remoteJid deve ser string');
-      if (key.fromMe !== undefined && typeof key.fromMe !== 'boolean') return invalidMessage('INVALID_MESSAGE_KEY', 'message.key.fromMe deve ser boolean');
+      if (!key || typeof key.id !== 'string' || !key.id.trim()) return invalidMessage('INVALID_MESSAGE_KEY', 'message.key.id é obrigatório', 'key', 422);
+      if (key.remoteJid !== undefined && typeof key.remoteJid !== 'string') return invalidMessage('INVALID_MESSAGE_KEY', 'message.key.remoteJid deve ser string', 'key', 422);
+      if (key.fromMe !== undefined && typeof key.fromMe !== 'boolean') return invalidMessage('INVALID_MESSAGE_KEY', 'message.key.fromMe deve ser boolean', 'key', 422);
       // Download de mídia é lento: timeout 30s (>= 25s) e propaga o abort do caller (req.signal).
       const response = await proxy(`/chat/getBase64FromMediaMessage/${instance}`, 'POST', { message: msg }, { signal: req.signal, timeoutMs: 30_000 });
       // Re-emite envelope de erro com status HTTP real para o frontend classificar
@@ -221,7 +221,7 @@ Deno.serve(async (req) => {
         const mediaExpired =
           upstreamStatus === 410 || (upstreamStatus === 400 && upstreamSaysMediaDead);
         if (mediaExpired) {
-          return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 410, code: 'MEDIA_EXPIRED', message: 'A mídia expirou no WhatsApp e não pode mais ser recuperada.' }), { status: 410, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: 410, code: 'MEDIA_EXPIRED', message: 'A mídia expirou no WhatsApp e não pode mais ser recuperada.', details: [{ path: 'message', message: 'A mídia expirou no WhatsApp e não pode mais ser recuperada.' }] }), { status: 410, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
         return new Response(JSON.stringify(parsed), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
@@ -230,22 +230,22 @@ Deno.serve(async (req) => {
     // ── Instance lifecycle (F6-02 / F6-01) ────────────────────────────────────
     // F6-02: criação explícita de instância ANTES do INSERT em whatsapp_connections.
     if (action === 'create-instance') {
-      if (!instance) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 400, code: 'MISSING_INSTANCE', message: 'instanceName é obrigatório' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (!instance) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: 422, code: 'MISSING_INSTANCE', message: 'instanceName é obrigatório', details: [{ path: 'instance', message: 'instanceName é obrigatório' }] }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       return await proxy(`/instance/create`, 'POST', body);
     }
     // F6-01: pairing code via `GET /instance/connect/<instance>?number=<phone>`.
     if (action === 'pairing-code') {
-      if (!instance) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 400, code: 'MISSING_INSTANCE', message: 'instanceName é obrigatório' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (!instance) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: 422, code: 'MISSING_INSTANCE', message: 'instanceName é obrigatório', details: [{ path: 'instance', message: 'instanceName é obrigatório' }] }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       const rawNumber = String(safeGetAny(body, 'number', isMultipart) ?? '').replace(/\D/g, '');
-      if (!rawNumber) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 400, code: 'MISSING_NUMBER', message: 'number (telefone) é obrigatório para pairing code' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (!rawNumber) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: 422, code: 'MISSING_NUMBER', message: 'number (telefone) é obrigatório para pairing code', details: [{ path: 'number', message: 'number (telefone) é obrigatório para pairing code' }] }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       return await proxy(`/instance/connect/${instance}?number=${rawNumber}`, 'GET');
     }
     // QR Code: GET /instance/connect/<instance>, com auto-create em 404 "does not exist"
     // (comportamento do prod-snapshot) e envelope estruturado para 401/403.
     if (action === 'connect') {
-      if (!instance) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 400, code: 'MISSING_INSTANCE', message: 'instanceName é obrigatório' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      if (instanceLooksLikeUuid(instance)) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: 400, code: 'INSTANCE_NAME_IS_UUID', message: 'Connect deve usar o NOME da instância, não o UUID (evita instância fantasma).' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      const buildAuthError = (upstreamStatus: number, actionName: string) => new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: upstreamStatus, code: 'EVOLUTION_AUTH_ERROR', action: actionName, message: `Evolution API rejeitou a autenticação (${actionName}). Verifique EVOLUTION_API_URL e EVOLUTION_API_KEY.` }), { status: upstreamStatus, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (!instance) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: 422, code: 'MISSING_INSTANCE', message: 'instanceName é obrigatório', details: [{ path: 'instance', message: 'instanceName é obrigatório' }] }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (instanceLooksLikeUuid(instance)) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: 422, code: 'INSTANCE_NAME_IS_UUID', message: 'Connect deve usar o NOME da instância, não o UUID (evita instância fantasma).', details: [{ path: 'instance', message: 'Connect deve usar o NOME da instância, não o UUID (evita instância fantasma).' }] }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const buildAuthError = (upstreamStatus: number, actionName: string) => new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: upstreamStatus, code: 'EVOLUTION_AUTH_ERROR', action: actionName, message: `Evolution API rejeitou a autenticação (${actionName}). Verifique EVOLUTION_API_URL e EVOLUTION_API_KEY.`, details: [{ path: 'instance', message: `Evolution API rejeitou a autenticação (${actionName}). Verifique EVOLUTION_API_URL e EVOLUTION_API_KEY.` }] }), { status: upstreamStatus, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       const doConnect = async () => {
         const response = await fetch(`${evolutionApiUrl}/instance/connect/${instance}`, { method: 'GET', headers: { apikey: evolutionApiKey } });
         const data = await response.json().catch(() => null);
@@ -265,11 +265,11 @@ Deno.serve(async (req) => {
         if (createRes.status === 401 || createRes.status === 403) return buildAuthError(createRes.status, 'create-instance');
         if (!createRes.ok) {
           const createData = await createRes.json().catch(() => ({}));
-          return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: createRes.status, message: (createData as { message?: string }).message || 'Falha ao criar a instância na Evolution API' }), { status: createRes.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: createRes.status, message: (createData as { message?: string }).message || 'Falha ao criar a instância na Evolution API', details: [{ path: 'instance', message: (createData as { message?: string }).message || 'Falha ao criar a instância na Evolution API' }] }), { status: createRes.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
         ({ response, data } = await doConnect());
         if (response.status === 401 || response.status === 403) return buildAuthError(response.status, 'connect');
-        if (!response.ok) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, error: true, status: response.status, message: 'Falha ao conectar após criar a instância' }), { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        if (!response.ok) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: response.status, message: 'Falha ao conectar após criar a instância', details: [{ path: 'instance', message: 'Falha ao conectar após criar a instância' }] }), { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
       return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, data }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
