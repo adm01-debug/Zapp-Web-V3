@@ -132,10 +132,21 @@ describe('getAllFlags', () => {
     expect(flags['advanced_transcription'].enabled).toBe(false);
   });
 
-  it('returns the same object on repeated calls (no flagCache side-effect)', () => {
+  it('returns a fresh copy each call — mutation does not corrupt flagCache', () => {
     const f1 = getAllFlags();
     const f2 = getAllFlags();
-    expect(f1).toBe(f2);
+    // Valores iguais...
+    expect(f1).toStrictEqual(f2);
+    // ...mas referências distintas (cópia — não vaza mutação para o cache)
+    expect(f1).not.toBe(f2);
+  });
+
+  it('mutation of returned object does not affect subsequent getAllFlags calls', () => {
+    const f1 = getAllFlags();
+    (f1 as Record<string, { enabled: boolean }>)['ai_agents'].enabled = false;
+    const f2 = getAllFlags();
+    // DEFAULTS.ai_agents.enabled permanece true após mutação de f1
+    expect(f2['ai_agents'].enabled).toBe(true);
   });
 });
 
