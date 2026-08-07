@@ -93,9 +93,10 @@ function cacheKey(instance: string, key: MessageKey): string {
  * novas) ou lido via `context.json()` (Response cru). Sem essa extração,
  * TODO erro HTTP viraria reason 'unknown'.
  */
-async function extractErrorDetails(raw: unknown): Promise<{ status?: number; text: string }> {
+async function extractErrorDetails(raw: unknown): Promise<{ status?: number; code?: string; text: string }> {
   const err = raw instanceof Error ? raw : new Error(String(raw));
   let status: number | undefined;
+  let code: string | undefined;
   let bodyText = '';
   const ctx = (err as Error & { context?: unknown }).context;
 
@@ -119,11 +120,24 @@ async function extractErrorDetails(raw: unknown): Promise<{ status?: number; tex
     if (body !== undefined) {
       if (typeof body === 'string') {
         bodyText = body;
+        // Body como string crua (ex.: mock de context.json() devolvendo
+        // string): tenta extrair o `code` do envelope JSON mesmo assim.
+        try {
+          const parsed = JSON.parse(body) as { code?: unknown };
+          if (parsed !== null && typeof parsed === 'object' && typeof parsed.code === 'string') {
+            code = parsed.code;
+          }
+        } catch {
+          // não é JSON — segue só com status/texto
+        }
       } else if (body !== null && typeof body === 'object') {
-        // O envelope {status,error,code,message} também carrega o status
-        // quando o Response cru não o expõe (ex.: testes/mocks).
-        const bodyObj = body as { status?: unknown };
+        // O envelope {version,error,status,code,message} também carrega o
+        // status e o code quando o Response cru não os expõe (ex.:
+        // testes/mocks). Campos aditivos (contract, details, …) são
+        // ignorados — o parse não quebra com envelope mais rico.
+        const bodyObj = body as { status?: unknown; code?: unknown };
         if (status === undefined && typeof bodyObj.status === 'number') status = bodyObj.status;
+        if (typeof bodyObj.code === 'string') code = bodyObj.code;
         try {
           bodyText = JSON.stringify(body);
         } catch {
@@ -136,12 +150,32 @@ async function extractErrorDetails(raw: unknown): Promise<{ status?: number; tex
   }
 
   const text = `${err.message}\n${bodyText}`.toLowerCase();
-  return { status, text };
+  return { status, code, text };
 }
 
 export async function classifyError(raw: unknown): Promise<MediaError> {
   const err = raw instanceof Error ? raw : new Error(String(raw));
-  const { status, text: msg } = await extractErrorDetails(raw);
+  const { status, code, text: msg } = await extractErrorDetails(raw);
+
+  // Classificação por CODE do envelope primeiro (mais robusto que
+  // status/substring: o code é o contrato estruturado da edge fn e não
+  // muda com idioma/formato da message). Os branches de status/substring
+  // abaixo permanecem como fallback para erros sem code (upstream cru,
+  // rede, mocks antigos).
+  if (code === 'MEDIA_EXPIRED') {
+    return {
+      reason: 'expired',
+      message: 'Esta mídia expirou no WhatsApp e não pode mais ser recuperada.',
+      cause: err,
+    };
+  }
+  if (code === 'FORBIDDEN' || code === '403') {
+    return {
+      reason: 'forbidden',
+      message: 'Sem permissão para baixar esta mídia. Tente novamente em instantes.',
+      cause: err,
+    };
+  }
 
   // Expired tem prioridade sobre network: a edge fn evolution-api re-emite o
   // status HTTP real do upstream (400/410/403) e o body pode conter

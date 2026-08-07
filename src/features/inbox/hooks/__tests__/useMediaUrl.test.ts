@@ -228,6 +228,71 @@ describe('classifyError — body/status do FunctionsHttpError (supabase-js v2)',
     expect(classified.reason).toBe('expired');
   });
 
+  it('code MEDIA_EXPIRED com status 200 e message sem "expired" → expired (classifica por CODE, não por status/texto)', async () => {
+    // Antes da mudança: status 200 não bate em nenhum branch e a message
+    // ('Solicitação aceita') não contém 'expired' → cairia em 'unknown'.
+    // Agora o code do envelope decide ANTES dos checks de status/substring.
+    const classified = await classifyError(
+      functionsHttpError(200, { code: 'MEDIA_EXPIRED', message: 'Solicitação aceita' })
+    );
+    expect(classified.reason).toBe('expired');
+    expect(classified.message).toContain('expirou no WhatsApp');
+  });
+
+  it('code MEDIA_EXPIRED com status 400 e message sem "expired" → expired (code tem prioridade sobre fallback)', async () => {
+    const classified = await classifyError(
+      functionsHttpError(400, { code: 'MEDIA_EXPIRED', message: 'Erro de validação' })
+    );
+    expect(classified.reason).toBe('expired');
+  });
+
+  it('code FORBIDDEN → forbidden (code do envelope)', async () => {
+    const classified = await classifyError(
+      functionsHttpError(401, { code: 'FORBIDDEN', message: 'Acesso negado' })
+    );
+    expect(classified.reason).toBe('forbidden');
+    expect(classified.message).toContain('Sem permissão');
+  });
+
+  it('code desconhecido com status 410 → expired (fallback por status preservado)', async () => {
+    const classified = await classifyError(
+      functionsHttpError(410, { code: 'SOME_FUTURE_CODE', message: 'Detalhe qualquer' })
+    );
+    expect(classified.reason).toBe('expired');
+  });
+
+  it('envelope completo com campos aditivos (version/contract/details) → continua classificando', async () => {
+    // O envelope da edge fn ganhou campos aditivos (contract, details) —
+    // o parse não pode quebrar nem perder o code com envelope mais rico.
+    const classified = await classifyError(
+      functionsHttpError(410, {
+        version: 1,
+        error: true,
+        status: 410,
+        code: 'MEDIA_EXPIRED',
+        message: 'A mídia expirou no WhatsApp e não pode mais ser recuperada.',
+        contract: 'evolution-api@2026-08',
+        details: { upstreamStatus: 410, upstreamBody: 'Failed to fetch stream' },
+      })
+    );
+    expect(classified.reason).toBe('expired');
+    expect(classified.message).toContain('expirou no WhatsApp');
+  });
+
+  it('envelope com campos aditivos e code ausente → fallback por status/texto segue funcionando', async () => {
+    const classified = await classifyError(
+      functionsHttpError(404, {
+        version: 1,
+        error: true,
+        status: 404,
+        message: 'Mídia não encontrada',
+        contract: 'evolution-api@2026-08',
+        details: { upstreamStatus: 404 },
+      })
+    );
+    expect(classified.reason).toBe('not_found');
+  });
+
   it('504 → network (status HTTP real do context)', async () => {
     const classified = await classifyError(functionsHttpError(504));
     expect(classified.reason).toBe('network');
