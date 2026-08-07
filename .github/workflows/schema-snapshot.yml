@@ -15,55 +15,40 @@ concurrency:
 jobs:
   schema-snapshot:
     name: Snapshot DB Schema
-    # Runner self-hosted (VPS): o banco self-hosted so e alcancavel pela rede interna
-    # (portas 5432/6543 fechadas externamente). Runner do GitHub nao conecta. Fix 2026-08-07.
+    # Runner self-hosted (VPS): o banco self-hosted so e alcancavel pela rede interna.
     runs-on: [self-hosted, vps-zapp, linux, x64]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 
-      - name: Garantir pg_dump 15 (PGDG)
-        run: |
-          set -e
-          if pg_dump --version 2>/dev/null | grep -qE ' 1[5-9]'; then
-            echo "pg_dump compativel ja instalado: $(pg_dump --version)"
-            exit 0
-          fi
-          echo "Instalando postgresql-client-15 via PGDG..."
-          export DEBIAN_FRONTEND=noninteractive
-          apt-get update -qq
-          apt-get install -y -qq curl ca-certificates gnupg lsb-release
-          install -d /usr/share/keyrings
-          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
-            | gpg --dearmor -o /usr/share/keyrings/pgdg.gpg
-          echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
-            > /etc/apt/sources.list.d/pgdg.list
-          apt-get update -qq
-          apt-get install -y -qq postgresql-client-15
-          echo "Instalado: $(pg_dump --version)"
-
-      - name: Dump schema snapshot
-        env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      - name: Dump schema snapshot (pg_dump 15 via container supabase_db)
         run: |
           set -uo pipefail
-          if [ -z "${SUPABASE_DB_URL:-}" ]; then
-            echo "::warning::SUPABASE_DB_URL nao configurado — snapshot pulado"
-            exit 0
-          fi
-          mkdir -p reports
-          if pg_dump --schema-only --no-owner --no-privileges "$SUPABASE_DB_URL" > reports/schema-snapshot.sql 2>/tmp/pgdump.err; then
-            echo "Snapshot gravado: $(wc -c < reports/schema-snapshot.sql) bytes"
-          else
-            echo "::error::pg_dump falhou:"
-            head -8 /tmp/pgdump.err
+          # O runner e Ubuntu focal (sem pg_dump 15) e o PGDG removeu o focal (EOL);
+          # alem disso o banco so aceita conexao interna. Solucao robusta: usar o
+          # pg_dump 15 do PROPRIO container supabase_db (mesma versao do servidor),
+          # via docker socket, conectando em 127.0.0.1 com POSTGRES_PASSWORD interno.
+          # Nome do container e resolvido dinamicamente (sufixo Swarm muda). Fix 2026-08-07.
+          DBC=$(docker ps --filter "name=supabase_db" --format "{{.Names}}" | head -1)
+          if [ -z "$DBC" ]; then
+            echo "::error::Container supabase_db nao encontrado no node"
             exit 1
           fi
+          echo "Usando container do banco: $DBC"
+          mkdir -p reports
+          docker exec "$DBC" sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" pg_dump --schema-only --no-owner --no-privileges -h 127.0.0.1 -U postgres postgres' > reports/schema-snapshot.sql 2>/tmp/pgdump.err
+          RC=$?
+          if [ "$RC" -ne 0 ] || [ ! -s reports/schema-snapshot.sql ]; then
+            echo "::error::pg_dump falhou (rc=$RC):"
+            head -12 /tmp/pgdump.err
+            exit 1
+          fi
+          echo "Snapshot gravado: $(wc -c < reports/schema-snapshot.sql) bytes"
 
       - name: Publicar snapshot em branch dedicado
         run: |
           set -e
-          [ -f reports/schema-snapshot.sql ] || { echo "Sem arquivo — nada a publicar (dump pulado)."; exit 0; }
+          [ -f reports/schema-snapshot.sql ] || { echo "Sem arquivo — nada a publicar."; exit 0; }
           git add reports/schema-snapshot.sql
           if git diff --staged --quiet; then
             echo "Sem mudancas no schema desde o ultimo snapshot — nada a publicar."
