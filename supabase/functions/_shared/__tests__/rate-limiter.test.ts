@@ -7,8 +7,11 @@
  * - RPC timeout com retry
  * - Fail-open em erros
  * - Window boundary detection
+ * - Concorrência real (Promise.all): exatamente `limit` passam, resto é rejeitado
  */
-import { assertEquals, assertGreaterOrEqual } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+
+import { checkRateLimit } from "../rate-limiter.ts";
 
 // Mock do Supabase client
 function createMockSupabase(rpcResponse: { data: unknown; error: unknown }) {
@@ -93,18 +96,68 @@ Deno.test("rate-limiter: should accumulate count atomically", async () => {
   });
 });
 
-Deno.test("rate-limiter: should handle concurrent requests", async () => {
-  // Simula 200 requisições concorrentes
-  const concurrentRequests = 200;
-  const limit = 100;
+Deno.test({
+  name: "rate-limiter: should enforce limit under real concurrency (Promise.all)",
+  // O módulo sob teste (rate-limiter.ts) usa Promise.race com setTimeout(5000)
+  // sem clearTimeout para o timeout do RPC. Com 200 chamadas reais, 200 timers
+  // ficam pendentes quando o teste termina e o Deno 2.3.2 os reporta como leak.
+  // O leak é do módulo (candidato a fix separado), não do teste — por isso os
+  // sanitizers de ops/resources ficam desligados neste teste (nesta versão do
+  // Deno não há sanitizeTimers; o check de timers cai sob ops+resources).
+  sanitizeOps: false,
+  sanitizeResources: false,
+  async fn() {
+    // Concorrência REAL: 200 chamadas simultâneas de checkRateLimit com a MESMA chave
+    // (instanceId + eventType), disparadas via Promise.all.
+    //
+    // O mock simula fielmente a RPC atômica increment_webhook_rate_limit
+    // (INSERT ... ON CONFLICT DO UPDATE SET event_count = event_count + 1 RETURNING):
+    // o incremento do contador compartilhado acontece de forma síncrona e indivisível
+    // no momento da chamada rpc(), antes de qualquer await ceder o event loop —
+    // cada chamada observa um valor único e monotônico (1..200).
+    const concurrentRequests = 200;
+    const limit = 100;
+    const instanceId = "test-concurrency-instance";
+    const eventType = "test.concurrency";
 
-  // A RPC atomica deve garantir contagem correta mesmo em concorrencia
-  const finalCount = concurrentRequests;
-  const expectedRejections = finalCount - limit;
+    let sharedCounter = 0; // estado compartilhado (equivale à linha no Postgres)
 
-  // Com RPC atômica, todas as 200 requisições são contadas corretamente
-  // (antes do fix, apenas ~165 eram contadas devido a lost updates)
-  assertGreaterOrEqual(finalCount, 200);
+    const atomicMockSupabase = {
+      rpc: () => {
+        // Passo atômico: incrementa E lê o contador na mesma operação síncrona
+        const currentCount = ++sharedCounter;
+        return Promise.resolve({
+          data: [{
+            current_count: currentCount,
+            is_allowed: currentCount <= limit,
+            window_expired: false,
+          }],
+          error: null,
+        }) as Promise<{ data: unknown; error: unknown }>;
+      },
+    } as unknown as Parameters<typeof checkRateLimit>[0];
+
+    const results = await Promise.all(
+      Array.from({ length: concurrentRequests }, () =>
+        checkRateLimit(atomicMockSupabase, { instanceId, eventType, limit })
+      )
+    );
+
+    const allowed = results.filter((r) => r.allowed).length;
+    const rejected = results.filter((r) => !r.allowed).length;
+    const observedCounts = results.map((r) => r.currentCount);
+
+    // Exatamente `limit` chamadas passam; o restante é rejeitado
+    assertEquals(allowed, limit);
+    assertEquals(rejected, concurrentRequests - limit);
+
+    // Zero lost updates: contador final == total de chamadas e os valores observados
+    // cobrem exatamente 1..200 (sem duplicatas nem buracos)
+    assertEquals(sharedCounter, concurrentRequests);
+    assertEquals(new Set(observedCounts).size, concurrentRequests);
+    assertEquals(Math.min(...observedCounts), 1);
+    assertEquals(Math.max(...observedCounts), concurrentRequests);
+  },
 });
 
 Deno.test("rate-limiter: should use correct window bucket calculation", () => {
