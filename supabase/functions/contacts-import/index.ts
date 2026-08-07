@@ -7,7 +7,7 @@
 import { createZappAdminClient, createZappClient } from '../_shared/db-client.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
-import { import { parseOrReject } from, buildContractErrorBody } from '../_shared/contract-kit.ts';
+import { parseOrReject, buildContractErrorBody } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
 
