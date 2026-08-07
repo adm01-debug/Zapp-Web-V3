@@ -95,6 +95,17 @@ let flagLoadInflight: Promise<void> | null = null;
 
 /** load Feature Flags function. */
 export async function loadFeatureFlags(): Promise<void> {
+  // Guard de sessão: feature_flags/app_settings têm RLS authenticated-only —
+  // sem sessão (pré-login), as queries retornam 42501 e geram 2 WARNs por
+  // load no console de produção (evidência 2026-08-07). Resetar para
+  // DEFAULTS no logout evita vazar flags do usuário anterior na mesma aba.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) {
+    flagCache = { ...DEFAULTS };
+    return;
+  }
   if (flagCache && Date.now() - lastCanonicalLoadAt < FLAG_LOAD_COOLDOWN_MS) {
     return;
   }
