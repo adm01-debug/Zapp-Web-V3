@@ -109,8 +109,8 @@ fi
 #   Passo 2: extrai ALTER FUNCTION nome (para antes do '(')
 #   Passo 3: remove o prefixo e normaliza (strip schema, lowercase)
 # O [C] também filtra pelo .sync-ignore (igual a [A] e [B]).
-grep -rihE 'alter function |DO[[:space:]]*\$\$|\$\$;' "${MIG_DIRS[@]}" 2>/dev/null \
-  | awk 'BEGIN{in_do=0} /DO[[:space:]]*(\$\$|\$[A-Za-z_]*\$)/{in_do=1} in_do==0{print} /\$\$;/{in_do=0}' \
+grep -rihE 'alter function |DO[[:space:]]*(\$\$|\$[A-Za-z0-9_]*\$)|(\$\$|\$[A-Za-z0-9_]*\$);' "${MIG_DIRS[@]}" 2>/dev/null \
+  | awk 'BEGIN{in_do=0} /DO[[:space:]]*(\$\$|\$[A-Za-z0-9_]*\$)/{in_do=1} in_do==0{print} /(\$\$|\$[A-Za-z0-9_]*\$);/{in_do=0}' \
   | grep -viE '^\s*--' \
   | grep -viE 'alter function if (exists|not exists)' \
   | grep -oiE "alter function [a-zA-Z0-9_.\"]*[a-zA-Z0-9_\"]" \

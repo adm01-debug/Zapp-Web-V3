@@ -123,4 +123,25 @@ describe('logChannelError (mock do logger)', () => {
     expect(logger.warn).not.toHaveBeenCalled();
     expect(logger.info).not.toHaveBeenCalled();
   });
+
+  it('logger que lança NÃO rejeita — callers usam void e rejection viraria unhandled (FIX validação v2)', async () => {
+    const boomLogger = makeLogger();
+    boomLogger.warn = vi.fn<LoggerFn>(() => {
+      throw new Error('logger boom');
+    });
+    boomLogger.info = vi.fn<LoggerFn>(() => {
+      throw new Error('logger boom');
+    });
+    boomLogger.debug = vi.fn<LoggerFn>(() => {
+      throw new Error('logger boom');
+    });
+
+    // Chamada deve RESOLVER (nunca rejeitar) mesmo com logger quebrado.
+    await expect(
+      logChannelError(boomLogger, 'channel error', null)
+    ).resolves.toBeUndefined();
+    await expect(
+      logChannelError(boomLogger, 'channel error', Date.now() - 1_000)
+    ).resolves.toBeUndefined();
+  });
 });

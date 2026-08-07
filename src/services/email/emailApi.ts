@@ -4,12 +4,12 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 export interface EmailRevalidationJob {
   id: string;
   status: string;
-  requested_at: string;
-  requested_by: string | null;
+  // FIX validação 2026-08-07 (W3): colunas REAIS do schema zapp — o frontend
+  // usava requested_at/requested_by (inexistentes → PGRST204 400 na página
+  // admin de email). O DB tem scheduled_at/triggered_by.
+  scheduled_at: string;
+  triggered_by: string | null;
   result: Record<string, unknown> | null;
-  /** Aliases físicos aceitos pelo schema atual (compat legado). */
-  scheduled_at?: string;
-  triggered_by?: string | null;
 }
 
 export interface EmailHealthSummary {
@@ -32,13 +32,13 @@ export const emailApi = {
       query = query.eq('status', filters.status);
     }
     if (filters?.dateFrom) {
-      query = query.gte('requested_at', filters.dateFrom);
+      query = query.gte('scheduled_at', filters.dateFrom);
     }
     if (filters?.dateTo) {
-      query = query.lte('requested_at', filters.dateTo);
+      query = query.lte('scheduled_at', filters.dateTo);
     }
     const { data, count, error } = await query
-      .order('requested_at', { ascending: false })
+      .order('scheduled_at', { ascending: false })
       .range(from, to);
     return { data: data as EmailRevalidationJob[] | null, count: count ?? 0, error };
   },
@@ -70,7 +70,7 @@ export const emailApi = {
     return await safeClient.from<EmailRevalidationJob>('email_revalidation_jobs', (q) =>
       q.insert({
         status: 'pending',
-        requested_by: job.requested_by,
+        triggered_by: job.triggered_by,
         result: { retry_of: jobId },
       })
     );
