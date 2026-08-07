@@ -19,7 +19,7 @@ BEGIN
   EXCEPTION WHEN OTHERS THEN NULL;
   END;
   RETURN NEW;
-END $function$
+END $function$;
 
 CREATE OR REPLACE FUNCTION evo.fn_log_assignment_change()
  RETURNS trigger
@@ -41,7 +41,7 @@ BEGIN
   EXCEPTION WHEN OTHERS THEN NULL;
   END;
   RETURN NEW;
-END $function$
+END $function$;
 
 CREATE OR REPLACE FUNCTION evo.sync_contact_intelligence()
  RETURNS trigger
