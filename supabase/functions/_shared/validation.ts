@@ -284,12 +284,27 @@ export function errorResponse(
 }
 
 /**
- * Standardized security error response for upload/scan flows.
- * Frontend can match on `code` to render specific UX (block, retry, quarantine).
+ * Security verdict envelope — ADITIVO ao formato canônico (exceção documentada).
  *
- * Shape: { error: true, code, message, verdict?, scanId?, details? }
+ * Este NÃO é o envelope 422 unificado do parseOrReject (contract-kit): é o
+ * envelope de VEREDITO de segurança emitido por secure-upload /
+ * file-security-scanner e consumido por src/lib/scanResponse.ts.
  *
- * Conventional codes:
+ * Shape: { error: true, contract, code, message, verdict, scanId?, details? }
+ *
+ * - `details` é OBJETO de metadados do veredito (ex.: { malicious, suspicious,
+ *   fileName } ou { reason }), NUNCA lista de campos como no envelope 422
+ *   (details: [{ path, message }]). src/lib/scanResponse.ts parseia
+ *   body.details como Record<string, unknown> — NÃO mudar para array.
+ * - `code` é o VEREDITO (MALWARE_DETECTED / SUSPICIOUS_FILE / SCAN_TIMEOUT /
+ *   SCAN_UNAVAILABLE / NETWORK_ERROR / INVALID_INPUT / UNAUTHORIZED /
+ *   METHOD_NOT_ALLOWED / STORAGE_ERROR / INTERNAL_ERROR), consumido por
+ *   src/lib/scanResponse.ts com narrowing por code
+ *   (isBlocking / isRetryable / isInputError).
+ * - `contract` identifica o EMISSOR ('secure-upload' | 'file-security-scanner');
+ *   o chamador deve SEMPRE passá-lo explicitamente.
+ *
+ * Conventional codes → status:
  *  - MALWARE_DETECTED  → 422 (verdict: 'malicious')
  *  - SUSPICIOUS_FILE   → 403 (verdict: 'suspicious')
  *  - SCAN_TIMEOUT      → 408 (verdict: 'unknown')
@@ -311,15 +326,26 @@ export interface SecurityErrorPayload {
   details?: Record<string, unknown>;
 }
 
-/** security Error Response function. */
+/**
+ * security Error Response function.
+ *
+ * @param payload dados do veredito (code/message/verdict/scanId/details-objeto)
+ * @param status  HTTP status do erro
+ * @param req     Request opcional — usado apenas para headers CORS
+ * @param contract nome do contrato/emissor ('secure-upload' | 'file-security-scanner');
+ *                 default 'secure-upload' apenas como safety-net — chamadores
+ *                 devem SEMPRE informar o próprio emissor
+ */
 export function securityErrorResponse(
   payload: SecurityErrorPayload,
   status: number,
   req?: Request,
+  contract = 'secure-upload',
 ) {
   const headers = req ? getCorsHeaders(req) : corsHeaders;
   const body = {
     error: true,
+    contract,
     code: payload.code,
     message: payload.message,
     verdict: payload.verdict ?? 'unknown',
