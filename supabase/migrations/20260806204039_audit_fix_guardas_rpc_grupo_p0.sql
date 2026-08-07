@@ -60,6 +60,7 @@ BEGIN
       EXECUTE newdef;
     EXCEPTION WHEN OTHERS THEN
       RAISE NOTICE 'guard FAIL %: %', r.proname, SQLERRM;
+      RAISE;
     END;
   END LOOP;
 END;
