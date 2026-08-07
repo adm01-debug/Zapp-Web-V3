@@ -5,6 +5,7 @@ import {
   evolutionMessageUpsertSchema,
   failedMessageRowSchema,
   gmailPushSchema,
+  isContractErrorResponse,
   messageRowSchema,
   realtimeEnvelopeFor,
   realtimeEnvelopeSchema,
@@ -759,5 +760,110 @@ describe('teamMessageNotificationRowSchema', () => {
       created_at: '2026-07-08T12:00:00Z',
     });
     expect(r.success).toBe(false);
+  });
+});
+
+// ---------------------- isContractErrorResponse (type guard) ----------------------
+// Ativado na A5 (2026-08-07): parser compartilhado do envelope canônico 422.
+// Decisão: contract/requestId opcionais e não validados; details opcional, mas se
+// presente DEVE ser array de {path,message} — o envelope de VEREDITO de segurança
+// (details = objeto) NÃO é o envelope canônico. Ver docs/CONTRACT_TESTING.md.
+
+describe('isContractErrorResponse', () => {
+  const canonicalEnvelope = {
+    error: true,
+    code: 'contract_violation',
+    message: 'Payload não satisfaz o contrato send-email@v1.',
+    contract: 'send-email@v1',
+    requestId: 'req_abc123',
+    details: [{ path: 'to', message: 'e-mail inválido' }],
+  };
+
+  it('retorna true para o envelope canônico completo (422)', () => {
+    expect(isContractErrorResponse(canonicalEnvelope)).toBe(true);
+  });
+
+  it('retorna true para code desconhecido — code é string, não enum fechado', () => {
+    expect(
+      isContractErrorResponse({ ...canonicalEnvelope, code: 'novo_code_backend' }),
+    ).toBe(true);
+  });
+
+  it('retorna true para envelope sem contract (contract é opcional no guard)', () => {
+    const { contract: _contract, ...semContract } = canonicalEnvelope;
+    void _contract;
+    expect(isContractErrorResponse(semContract)).toBe(true);
+  });
+
+  it('retorna true para envelope sem details (details é opcional no guard)', () => {
+    const { details: _details, ...semDetails } = canonicalEnvelope;
+    void _details;
+    expect(isContractErrorResponse(semDetails)).toBe(true);
+  });
+
+  it('retorna true para envelope sem requestId (requestId é opcional)', () => {
+    const { requestId: _requestId, ...semRequestId } = canonicalEnvelope;
+    void _requestId;
+    expect(isContractErrorResponse(semRequestId)).toBe(true);
+  });
+
+  it('retorna false para body null', () => {
+    expect(isContractErrorResponse(null)).toBe(false);
+  });
+
+  it('retorna false para primitivos (string/number/boolean/undefined)', () => {
+    expect(isContractErrorResponse('erro')).toBe(false);
+    expect(isContractErrorResponse(422)).toBe(false);
+    expect(isContractErrorResponse(true)).toBe(false);
+    expect(isContractErrorResponse(undefined)).toBe(false);
+  });
+
+  it('retorna false para array na raiz (body não é objeto)', () => {
+    expect(isContractErrorResponse([])).toBe(false);
+  });
+
+  it('retorna false quando error não é exatamente true', () => {
+    expect(isContractErrorResponse({ ...canonicalEnvelope, error: 'true' })).toBe(false);
+    expect(isContractErrorResponse({ ...canonicalEnvelope, error: false })).toBe(false);
+  });
+
+  it('retorna false quando code não é string', () => {
+    expect(isContractErrorResponse({ ...canonicalEnvelope, code: 422 })).toBe(false);
+  });
+
+  it('retorna false quando message não é string', () => {
+    expect(isContractErrorResponse({ ...canonicalEnvelope, message: 42 })).toBe(false);
+  });
+
+  it('retorna false para details OBJETO — envelope de VEREDITO de segurança (secure-upload/file-security-scanner)', () => {
+    const securityVerdictEnvelope = {
+      error: true,
+      code: 'MALWARE_DETECTED',
+      message: 'Arquivo bloqueado pelo scanner.',
+      verdict: 'malicious',
+      scanId: 'scan_abc123',
+      details: { verdict: 'malicious', threat: 'trojan', sha256: 'abc' },
+    };
+    expect(isContractErrorResponse(securityVerdictEnvelope)).toBe(false);
+  });
+
+  it('retorna false para details null (não é array)', () => {
+    expect(isContractErrorResponse({ ...canonicalEnvelope, details: null })).toBe(false);
+  });
+
+  it('retorna false para details array com item fora do shape {path,message}', () => {
+    expect(
+      isContractErrorResponse({
+        ...canonicalEnvelope,
+        details: [{ path: 'to', message: 'x' }, { path: 'from' }],
+      }),
+    ).toBe(false);
+    expect(
+      isContractErrorResponse({ ...canonicalEnvelope, details: [{ path: 1, message: 'x' }] }),
+    ).toBe(false);
+    expect(
+      isContractErrorResponse({ ...canonicalEnvelope, details: ['não-objeto'] }),
+    ).toBe(false);
+    expect(isContractErrorResponse({ ...canonicalEnvelope, details: [null] })).toBe(false);
   });
 });

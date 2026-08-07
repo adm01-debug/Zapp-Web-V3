@@ -36,6 +36,79 @@ Nenhuma falha de validação pode usar shape avulso ou status diferente de 422
 (correção 2026-08-06: `whatsapp-cloud-api` emitia 400 `{error, message}` para
 campos obrigatórios por rota → agora `contract_violation` 422 canônico).
 
+## Envelopes de domínio (exceções documentadas ao 422 canônico)
+
+> Adicionado na A5 (2026-08-07). O type guard `isContractErrorResponse`
+> (`src/shared/webhookEventSchemas.ts`) ativa o parser compartilhado do envelope
+> canônico. O guard é **puro** (typeof checks, sem dependências) e valida:
+> `{ error: true, code: string, message: string, details?: Array<{path,message}> }`
+> — `contract`/`requestId` opcionais e não validados; `code` validado como string
+> (não enum, para tolerar codes novos do backend); `details` opcional, mas se
+> presente DEVE ser array. Existem envelopes de DOMÍNIO que compartilham campos
+> (`error: true`, `code`, `message`, `details?`) mas NÃO são o envelope canônico:
+
+### (a) evolution-api — envelope de domínio com `status` HTTP
+
+```json
+{
+  "version": "1.0",
+  "error": true,
+  "status": 410,
+  "code": "MEDIA_EXPIRED",
+  "message": "Mídia expirada — não é possível baixar.",
+  "contract": "evolution-media@v1",
+  "details": [{ "path": "mediaKey", "message": "expired" }]
+}
+```
+
+- Shape: `{ version, error, status, code, message, contract?, details? }` — o campo
+  `status` carrega o HTTP real e `code` é o identificador **consumido pelo frontend**
+  para decisão de UI (não é o enum de contrato).
+- Mapeamento status × code vigente:
+
+| status | code | significado |
+|---|---|---|
+| 410 | `MEDIA_EXPIRED` | mídia expirada no WhatsApp — não retentar |
+| 429 | rate limit | throttling — retry com cooldown/backoff |
+| 503 | `paused` | instância pausada — sinalizar ao usuário, não retentar |
+| 422 | validação pura | payload malformado — corrigir antes de reenviar |
+
+- Campos extras (`version`, `status`) são tolerados pelo guard; o que o distingue do
+  envelope canônico é o `status`/origem, não o shape — o parser compartilhado serve
+  para ambos quando `details` é array.
+
+### (b) securityErrorResponse — veredito de segurança (secure-upload / file-security-scanner)
+
+```json
+{
+  "error": true,
+  "code": "MALWARE_DETECTED",
+  "message": "Arquivo bloqueado pelo scanner.",
+  "verdict": "malicious",
+  "scanId": "scan_abc123",
+  "details": { "verdict": "malicious", "threat": "trojan", "sha256": "..." }
+}
+```
+
+- `details` é um **OBJETO de metadados do veredito** (não array de issues) e `code` é
+  o veredito/bloqueio (`MALWARE_DETECTED`, `SUSPICIOUS_FILE`, …) — **NÃO converter
+  para o envelope canônico** (não há `{path,message}` por issue).
+- `isContractErrorResponse` retorna `false` para este shape (teste dedicado em
+  `src/shared/__tests__/webhookEventSchemas.test.ts`) — diferenciar os dois é o
+  objetivo do guard.
+- Parsing normalizado no frontend: `parseScanInvocation` → `ScanResult`
+  (`src/lib/scanResponse.ts`); consumido por `useFileUploadLogic`.
+
+### (c) Erros NÃO de validação (404/502/503 etc.)
+
+O envelope canônico se aplica **somente** a falhas de validação de contrato (422).
+Erros de transporte/infra — 404 (rota inexistente), 502/503 (gateway/indisponível),
+timeouts — NÃO usam o envelope canônico e NÃO devem ser parseados por
+`isContractErrorResponse`: tratá-los como "contrato violado" esconde a causa real
+(retry vs. bug). Regra: aplicar o guard de contrato somente após confirmar falha de
+validação (HTTP 422 ou envelope com `details` array); o restante segue o fluxo de
+erro do cliente HTTP (retry/backoff/erro de infraestrutura).
+
 ## Versionamento v1/v2 e retrocompatibilidade
 
 - Cliente pede versão via header `x-contract-version: v2`, ou `contract_version`/`version` no body (`"2.0"` → `v2`).

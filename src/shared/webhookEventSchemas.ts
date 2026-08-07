@@ -58,16 +58,34 @@ export interface ContractErrorResponse {
   message: string;
   contract?: string;
   requestId?: string;
-  details: Array<{ path: string; message: string }>;
+  details?: Array<{ path: string; message: string }>;
 }
 
-/** Type guard: returns true if a value matches the ContractErrorResponse shape. */
+/**
+ * Type guard puro (typeof checks, sem dependências): true se `value` casa com o shape
+ * canônico do erro de contrato 422 — `{ error: true, code: string, message: string, details?: Array<{path,message}> }`.
+ *
+ * Decisões (A5, 2026-08-07 — ver docs/CONTRACT_TESTING.md "Envelopes de domínio"):
+ * - `code` é validado apenas como string (NÃO como enum): codes novos do backend passam;
+ *   o consumidor faz o narrowing com `ContractErrorCodeValue` e trata desconhecidos.
+ * - `contract` e `requestId` são opcionais e NÃO validados (envelope sem contract é canônico).
+ * - `details` é opcional, mas se presente DEVE ser array de `{path,message}`. O envelope de
+ *   VEREDITO de segurança (secure-upload/file-security-scanner) usa `details` como OBJETO de
+ *   metadados — retorna false, diferenciando domínio de contrato.
+ */
 export function isContractErrorResponse(value: unknown): value is ContractErrorResponse {
-  if (!value || typeof value !== 'object') return false;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const v = value as Record<string, unknown>;
-  return v.error === true
-    && typeof v.code === 'string'
-    && typeof v.message === 'string';
+  if (v.error !== true || typeof v.code !== 'string' || typeof v.message !== 'string') {
+    return false;
+  }
+  if (v.details === undefined) return true;
+  if (!Array.isArray(v.details)) return false;
+  return v.details.every((d) => {
+    if (!d || typeof d !== 'object' || Array.isArray(d)) return false;
+    const item = d as Record<string, unknown>;
+    return typeof item.path === 'string' && typeof item.message === 'string';
+  });
 }
 
 // ─────────────────────────────────────────────
