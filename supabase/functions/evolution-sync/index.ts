@@ -4,6 +4,10 @@ import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 import { parseOrReject, buildContractErrorBody } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import {
+  syncContacts, syncMessages, syncAllMessages,
+  setupWebhook, cleanupMock, fullSync,
+} from "../_shared/evolution-sync-actions.ts";
+
 
 
 /**
@@ -21,9 +25,7 @@ function contractViolation422(path: string, message: string, req: Request, extra
     headers: { ...(extra ?? {}), 'Content-Type': 'application/json' },
   });
 }
-  syncContacts, syncMessages, syncAllMessages,
-  setupWebhook, cleanupMock, fullSync,
-} from "../_shared/evolution-sync-actions.ts";
+
 
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);

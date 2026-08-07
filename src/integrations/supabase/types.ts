@@ -9508,6 +9508,18 @@ export type Database = {
         }
         Relationships: []
       }
+      v_alert_dashboard: {
+        Row: {
+          abertos: number | null
+          alert_type: string | null
+          fechados_24h: number | null
+          mttr_min: number | null
+          severity: string | null
+          total_historico: number | null
+          ultimo_aberto: string | null
+        }
+        Relationships: []
+      }
       v_bootstrap_history: {
         Row: {
           created_at: string | null
@@ -10022,6 +10034,7 @@ export type Database = {
         Returns: Json
       }
       fn_auto_create_next_partitions: { Args: never; Returns: string[] }
+      fn_auto_resolve_alerts: { Args: never; Returns: undefined }
       fn_blockers_auto_detect: { Args: never; Returns: Json }
       fn_bootstrap_wpp2_instance: {
         Args: { p_instance_id: string; p_trigger?: string }
@@ -10031,6 +10044,8 @@ export type Database = {
       fn_burnin_disconnection_check: { Args: never; Returns: Json }
       fn_burnin_monitor: { Args: never; Returns: Json }
       fn_cache_warmup_after_vacuum: { Args: never; Returns: Json }
+      fn_check_401_rate: { Args: never; Returns: undefined }
+      fn_check_ack_stall: { Args: never; Returns: undefined }
       fn_check_guardian_alive: { Args: never; Returns: undefined }
       fn_cleanup_evolution_guardian_events: {
         Args: { p_days_to_keep?: number }
@@ -10192,36 +10207,7 @@ export type Database = {
   }
   public: {
     Tables: {
-      _wal_slot_guard_events: {
-        Row: {
-          action_taken: string
-          details: Json
-          detected_at: string
-          frozen_sec: number | null
-          id: number
-          lag_mb: number | null
-          slot_name: string
-        }
-        Insert: {
-          action_taken: string
-          details?: Json
-          detected_at?: string
-          frozen_sec?: number | null
-          id?: number
-          lag_mb?: number | null
-          slot_name: string
-        }
-        Update: {
-          action_taken?: string
-          details?: Json
-          detected_at?: string
-          frozen_sec?: number | null
-          id?: number
-          lag_mb?: number | null
-          slot_name?: string
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       agent_achievements: {
@@ -33024,6 +33010,7 @@ export type Database = {
         Args: { p_permission_name: string }
         Returns: boolean
       }
+      exec_sql: { Args: { query: string }; Returns: Json[] }
       fn_apply_connection_update: { Args: { p_event: Json }; Returns: Json }
       generate_transfer_ticket: { Args: never; Returns: string }
       get_contact_intelligence_by_phone: {
@@ -67407,63 +67394,26 @@ export type Database = {
         Args: { sticker_id: string }
         Returns: undefined
       }
-      rpc_insert_message:
-        | {
-            Args: {
-              p_content: string
-              p_direction?: string
-              p_from_me?: boolean
-              p_instance?: string
-              p_message_id?: string
-              p_message_type?: string
-              p_remote_jid: string
-            }
-            Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"]
-            SetofOptions: {
-              from: "*"
-              to: "evolution_messages"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-        | {
-            Args: {
-              p_content: string
-              p_direction?: string
-              p_from_me?: boolean
-              p_instance?: string
-              p_media_url?: string
-              p_message_id?: string
-              p_message_type?: string
-              p_metadata?: Json
-              p_remote_jid: string
-            }
-            Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"]
-            SetofOptions: {
-              from: "*"
-              to: "evolution_messages"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-        | {
-            Args: {
-              p_content: string
-              p_direction: string
-              p_from_me: boolean
-              p_instance: string
-              p_message_id: string
-              p_message_type: string
-              p_remote_jid: string
-            }
-            Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"]
-            SetofOptions: {
-              from: "*"
-              to: "evolution_messages"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
+      rpc_insert_message: {
+        Args: {
+          p_content: string
+          p_direction?: string
+          p_from_me?: boolean
+          p_instance: string
+          p_media_url?: string
+          p_message_id?: string
+          p_message_type?: string
+          p_metadata?: Json
+          p_remote_jid: string
+        }
+        Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "evolution_messages"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       rpc_instance_auth_event_summary:
         | { Args: { p_hours?: number; p_instance?: string }; Returns: Json }
         | {
