@@ -23,7 +23,7 @@
  */
 const BENIGN_MESSAGE_SUBSTRINGS: readonly string[] = [
   'resizeobserver loop',
-  'script error.',
+  'script error', // cobre 'Script error.' (com e sem ponto final — G3 revalidação)
   'extension context invalidated',
   'chrome-extension://',
   'moz-extension://',
@@ -60,7 +60,16 @@ function extractMessage(error: unknown): string {
  * envio ao Sentry. Erros reais retornam false e seguem o fluxo normal.
  */
 export function isBenignConsoleNoise(error: unknown): boolean {
-  if (BENIGN_ERROR_NAMES.includes(extractName(error))) return true;
+  const name = extractName(error);
   const message = extractMessage(error).toLowerCase();
+
+  // G1 (revalidação da onda bugs-console): o TimeoutError do PRÓPRIO app
+  // (client.ts makeTimeoutReason → DOMException('Supabase request timed out',
+  // 'TimeoutError')) é erro REAL de timeout de request — nunca suprimir.
+  // TimeoutError/InvalidStateError de storage/IDB/SW continuam sendo ruído.
+  if (name === 'TimeoutError' && message.includes('supabase request timed out')) {
+    return false;
+  }
+  if (BENIGN_ERROR_NAMES.includes(name)) return true;
   return BENIGN_MESSAGE_SUBSTRINGS.some((substring) => message.includes(substring));
 }

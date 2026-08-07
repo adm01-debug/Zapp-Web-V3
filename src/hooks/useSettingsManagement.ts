@@ -1,6 +1,7 @@
 // Consolidated Settings & Preferences Management Module (ETAPA 41)
 // Consolidates: useUserSettings, useGlobalSettings, useWebhookViewPreferences, useOnboardingChecklist
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -61,6 +62,9 @@ interface OnboardingStep {
 }
 
 export function useUserSettingsManagement(userIdParam?: string) {
+  // G1 revalidação (onda QA15): invalidação cruzada — as mutações deste
+  // módulo devem invalidar a query canônica do useUserSettings.
+  const queryClient = useQueryClient();
   // Fix: usar useAuth se userId não fornecido
   const authCtx = useAuth();
   const userId = userIdParam ?? authCtx?.user?.id;
@@ -142,13 +146,16 @@ export function useUserSettingsManagement(userIdParam?: string) {
 
         if (err) throw err;
         await fetchSettings();
+        // Invalida a query canônica ['user-settings', userId] do useUserSettings
+        // (staleTime 2min) — sem isso o painel fica obsoleto até o TTL (A5 QA15).
+        queryClient.invalidateQueries({ queryKey: ['user-settings', userId] });
       } catch (err) {
         if (mountedRef.current) {
           log.error('Error updating user settings:', err);
         }
       }
     },
-    [userId, fetchSettings, mountedRef]
+    [userId, fetchSettings, mountedRef, queryClient]
   );
 
   useEffect(() => {
@@ -174,6 +181,8 @@ interface GlobalSettingRow {
 }
 
 export function useGlobalSettingsManagement() {
+  // Invalidação cruzada da query canônica ['global-settings'] (staleTime 5min).
+  const queryClient = useQueryClient();
   const [settingsRows, setSettingsRows] = useState<GlobalSettingRow[]>([]);
   const [settings, setSettings] = useState<GlobalSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -231,6 +240,8 @@ export function useGlobalSettingsManagement() {
       const { error } = await supabase.from('global_settings').update({ value }).eq('key', key);
       if (error) throw error;
       setSettingsRows((prev) => prev.map((r) => (r.key === key ? { ...r, value } : r)));
+      // Invalida a query canônica ['global-settings'] (staleTime 5min).
+      queryClient.invalidateQueries({ queryKey: ['global-settings'] });
     } catch (err) {
       log.error('Error updating global setting:', err);
     }
@@ -246,6 +257,8 @@ export function useGlobalSettingsManagement() {
         .single();
       if (error) throw error;
       if (data) setSettingsRows((prev) => [...prev, data as GlobalSettingRow]);
+      // Invalida a query canônica ['global-settings'] (staleTime 5min).
+      queryClient.invalidateQueries({ queryKey: ['global-settings'] });
     } catch (err) {
       log.error('Error adding global setting:', err);
     }

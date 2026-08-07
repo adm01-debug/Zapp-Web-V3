@@ -72,8 +72,16 @@ export function initSentry(): boolean {
         // Filtra ruído benigno (extensões browser, ResizeObserver loop,
         // Script error., rejeições non-Error) — mesma lista do console filter
         // usado nos handlers globais de main.tsx (isBenignConsoleNoise).
-        const msg = event.exception?.values?.[0]?.value || event.message || '';
-        if (isBenignConsoleNoise(msg)) {
+        // G2 (revalidação da onda): inclui o TYPE da exceção (name do erro)
+        // para paridade com o filtro de console — antes só o message era
+        // avaliado e regras por name (TimeoutError/InvalidStateError/
+        // ResizeObserver) não se aplicavam no Sentry.
+        const exc = event.exception?.values?.[0];
+        const noiseCandidate = {
+          name: exc?.type,
+          message: exc?.value || event.message || '',
+        };
+        if (isBenignConsoleNoise(noiseCandidate)) {
           return null;
         }
         return event;
