@@ -1,11 +1,13 @@
-name: Cleanup E2E data (VPS)
+name: Cleanup E2E data (REST)
 
 on:
   workflow_dispatch:
   workflow_call:
     secrets:
-      SUPABASE_DB_URL: { required: true }
+      SUPABASE_SERVICE_ROLE_KEY: { required: true }
   schedule:
+    # Diariamente às 04:00 BRT (07:00 UTC) — GC defensivo se algum
+    # afterAll do Playwright falhar.
     - cron: '0 7 * * *'
 
 concurrency:
@@ -14,21 +16,35 @@ concurrency:
 
 jobs:
   cleanup:
-    # E2E-05-FIX-v2 (2026-08-07): runner self-hosted (vps-zapp) e nao ubuntu-latest.
-    # Porta 5432 esta FECHADA externamente — apenas o runner VPS alcanca o DB interno
-    # em 10.0.1.243. O psql e instalado no step abaixo se ausente.
-    runs-on: [self-hosted, vps-zapp, linux, x64]
+    name: Limpar dados E2E (rpc_e2e_cleanup)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-
-      - name: Instalar psql se ausente
-        # O runner self-hosted (myoung34/github-runner Ubuntu 20.04) nao tem psql
-        # pre-instalado — apt-get disponivel (runner tem privilegios de root).
-        run: which psql 2>/dev/null || apt-get install -y --no-install-recommends postgresql-client
-
-      - name: Rodar cleanup
+      # E2E-05/E2E-06 (2026-08-07): porta 22 da VPS fechada p/ internet — SSH
+      # morto. Cleanup via zapp.rpc_e2e_cleanup() (SECURITY DEFINER — remove
+      # contatos/conversas/mensagens zapp + evo pela convenção E2E, janela
+      # 90d) + REST com service_role — sem SSH, sem psql remoto.
+      - name: Executar cleanup via RPC
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: bash scripts/cleanup-e2e-data.sh
+          # URL pública estável (mesmo padrão do edge-auth-smoke); evita secret extra no contrato
+          SUPABASE_URL: https://supabase.atomicabr.com.br
+          SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SERVICE_ROLE_KEY" ]; then
+            echo "::error::SUPABASE_SERVICE_ROLE_KEY não configurado nos secrets."
+            exit 1
+          fi
+          HTTP=$(curl -s -o /tmp/cleanup.json -w "%{http_code}" --max-time 60 \
+            -X POST "$SUPABASE_URL/rest/v1/rpc/rpc_e2e_cleanup" \
+            -H "apikey: $SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{}' || true)
+          echo "HTTP: $HTTP"
+          cat /tmp/cleanup.json
+          if [ "$HTTP" != "200" ]; then
+            echo "::error::E2E_CLEANUP_FAIL — RPC retornou HTTP $HTTP ($(cat /tmp/cleanup.json))"
+            exit 1
+          fi
+          echo "✅ Cleanup OK — $(cat /tmp/cleanup.json)"
