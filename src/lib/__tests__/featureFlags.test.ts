@@ -1,7 +1,24 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Mock do módulo supabase ANTES do import de featureFlags: o guard de sessão
+// (fix 2026-08-07) chama supabase.auth.getSession() no loadFeatureFlags.
+// vi.hoisted: o factory do vi.mock é hoisted para o topo do arquivo.
+const { supabaseMock } = vi.hoisted(() => ({
+  supabaseMock: {
+    auth: {
+      getSession: vi.fn(),
+    },
+    from: vi.fn(),
+  },
+}));
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: supabaseMock,
+}));
+
 import {
   isFeatureEnabled,
   getAllFlags,
+  loadFeatureFlags,
 } from '@/lib/featureFlags';
 
 // ── isFeatureEnabled — defaults (no flagCache loaded) ─────────────────────────
@@ -119,5 +136,44 @@ describe('getAllFlags', () => {
     const f1 = getAllFlags();
     const f2 = getAllFlags();
     expect(f1).toBe(f2);
+  });
+});
+
+// ── loadFeatureFlags — guard de sessão (regressão 2026-08-07) ───────────────
+//
+// Sem sessão (pré-login), o load NÃO deve tocar o banco (antes: 2 WARNs 42501
+// "permission denied" por load no console de produção) e deve resetar para
+// DEFAULTS (não vazar flags do usuário anterior na mesma aba após logout).
+
+describe('loadFeatureFlags — guard de sessão', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    supabaseMock.from.mockReset();
+    supabaseMock.from.mockReturnValue({ select: vi.fn() });
+  });
+
+  it('sem sessão: NÃO faz query (from não chamado) e reseta para DEFAULTS', async () => {
+    supabaseMock.auth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+
+    await loadFeatureFlags();
+
+    expect(supabaseMock.from).not.toHaveBeenCalled();
+    const flags = getAllFlags();
+    expect(flags['ai_agents'].enabled).toBe(true); // DEFAULTS
+    expect(flags['advanced_transcription'].enabled).toBe(false); // DEFAULTS
+  });
+
+  it('com sessão: faz query de feature_flags (fluxo normal preservado)', async () => {
+    supabaseMock.auth.getSession.mockResolvedValue({
+      data: { session: { user: { id: 'u1' } } },
+      error: null,
+    });
+    supabaseMock.from.mockReturnValue({
+      select: vi.fn().mockResolvedValue({ data: [], error: null }),
+    });
+
+    await loadFeatureFlags();
+
+    expect(supabaseMock.from).toHaveBeenCalledWith('feature_flags');
   });
 });
