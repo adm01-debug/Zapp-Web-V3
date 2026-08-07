@@ -60,3 +60,31 @@ cat /etc/cron.d/docker-image-prune
 # Disco ok?
 df -h / | tail -1
 ```
+
+## Descobertas da Auditoria Exaustiva — 07/08/2026
+
+### CRÍTICO: supautils bloqueia ALTER SYSTEM para archive settings
+O `supautils` (Supabase) bloqueia `ALTER SYSTEM` para `archive_timeout` e `archive_command`
+mesmo para superusers via PostgREST/Kong. O único path para alterar é sed direto no arquivo:
+```bash
+CTR=$(docker ps -qf name=supabase_db)
+docker exec -u root $CTR sed -i 's/^archive_timeout = .*/archive_timeout = 600/' /var/lib/postgresql/data/postgresql.auto.conf
+docker exec -u root $CTR sed -i 's/mmin +480/mmin +1440/g' /var/lib/postgresql/data/postgresql.auto.conf
+docker exec $CTR psql -U postgres -d postgres -c "SELECT pg_reload_conf();"
+```
+
+### Guardian de drift instalado
+pg_cron job #314 `archive-drift-guard` (*/5) monitora archive settings e insere
+warroom_alert crítico se archive_timeout != 600 ou archive_command não tem mmin+1440.
+
+### supabase-db-mcp-server (pid 56) — comportamento esperado
+Gera "WARNING: no transaction in progress" e erros pg_get_expr(text,oid). São bugs do
+pacote externo, não causam perda de dados. Monitorar mas não tratar como incidente.
+
+### fn_link_orphan_messages — backlog de 227K zerado 07/08/2026
+Batch aumentado de 5000 para 10000. Índice `idx_wpp2_conv_null` criado na partição wpp2.
+Índice pai `idx_evo_msgs_conv_null` criado em evo.evolution_messages (sem ONLY).
+
+### Constraints instance_registry — auto-resolvido
+Constraint `instance_registry_connection_status_check` já inclui 'connecting'.
+Erros de 16:08 eram de container anterior pré-migration.
