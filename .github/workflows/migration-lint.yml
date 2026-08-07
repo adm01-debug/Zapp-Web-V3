@@ -1,0 +1,93 @@
+# migration-lint.yml
+# Detecta migrations com padrão DROP+CREATE POLICY não-idempotente.
+# O padrão correto é usar ops.safe_create_policy() definida em:
+#   supabase/migrations/20260807240000_pgrst_notify_ratelimit.sql
+#
+# Modo atual: WARN-ONLY (exit 0) — não bloqueia merges em main.
+# Para enforcer estrito: alterar a última linha do lint-migrations.sh
+#   de "exit 0" para "exit $WARN".
+
+name: Migration Lint
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'supabase/migrations/**.sql'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**.sql'
+
+jobs:
+  migration-lint:
+    name: Lint migrations (RLS idempotency)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run migration lint
+        id: lint
+        run: |
+          chmod +x scripts/lint-migrations.sh
+          sh scripts/lint-migrations.sh supabase/migrations 2>&1 | tee lint-output.txt
+          WARN_COUNT=$(grep -c "^WARN" lint-output.txt || true)
+          echo "warn_count=$WARN_COUNT" >> "$GITHUB_OUTPUT"
+          echo "## Migration Lint" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "$WARN_COUNT" -gt 0 ]; then
+            echo "⚠️ **$WARN_COUNT migrations** com padrão DROP+CREATE não-idempotente." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Use \`ops.safe_create_policy()\` em vez de DROP+CREATE:" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`sql" >> $GITHUB_STEP_SUMMARY
+            echo "-- ANTES (ruim):" >> $GITHUB_STEP_SUMMARY
+            echo "DROP POLICY IF EXISTS minha_policy ON zapp.minha_tabela;" >> $GITHUB_STEP_SUMMARY
+            echo "CREATE POLICY minha_policy ON zapp.minha_tabela FOR SELECT TO authenticated USING (true);" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "-- DEPOIS (idempotente, zero NOTIFY pgrst):" >> $GITHUB_STEP_SUMMARY
+            echo "SELECT ops.safe_create_policy('zapp','minha_tabela','minha_policy','FOR SELECT TO authenticated USING (true)');" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Todas as migrations estão usando padrão idempotente." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && steps.lint.outputs.warn_count != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const output = fs.readFileSync('lint-output.txt', 'utf8');
+            const warnCount = '${{ steps.lint.outputs.warn_count }}';
+            const body = `## ⚠️ Migration Lint: ${warnCount} padrões não-idempotentes
+
+            Este PR contém migrations com \`DROP POLICY + CREATE POLICY\` que causam
+            reload desnecessário do PostgREST a cada deploy.
+
+            **Padrão correto:**
+            \`\`\`sql
+            -- Em vez de DROP+CREATE:
+            SELECT ops.safe_create_policy('schema','tabela','nome_policy','FOR SELECT TO authenticated USING (true)');
+            \`\`\`
+
+            <details>
+            <summary>Ver detalhes do lint</summary>
+
+            \`\`\`
+            ${output.slice(0, 3000)}
+            \`\`\`
+            </details>
+
+            > Ref: \`supabase/migrations/20260807240000_pgrst_notify_ratelimit.sql\``;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
