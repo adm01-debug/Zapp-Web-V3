@@ -8,6 +8,11 @@
 --   bytes foram liberados. Permite auditoria e cálculo de eficiência da
 --   estratégia de limpeza automática.
 -- =====================================================================
+-- Ordem corrigida (rebuild do zero): a sequence precisa existir ANTES do
+-- CREATE TABLE, pois o DEFAULT de ops.docker_prune_log.id usa nextval(...).
+CREATE SEQUENCE IF NOT EXISTS ops.docker_prune_log_id_seq
+  START WITH 1 INCREMENT BY 1 NO MAXVALUE CACHE 1;
+
 CREATE TABLE IF NOT EXISTS ops.docker_prune_log (
   id              bigint       NOT NULL DEFAULT nextval('ops.docker_prune_log_id_seq'),
   ts              timestamptz  NOT NULL DEFAULT now(),
@@ -17,11 +22,10 @@ CREATE TABLE IF NOT EXISTS ops.docker_prune_log (
   CONSTRAINT docker_prune_log_pkey PRIMARY KEY (id)
 );
 
--- Criar a sequência separadamente (idempotente)
+-- Reafirma o DEFAULT de forma idempotente (caso a tabela já exista no DB
+-- sem o default — DB-as-source); CREATE SEQUENCE ficou acima, junto à tabela.
 DO $$
 BEGIN
-  CREATE SEQUENCE IF NOT EXISTS ops.docker_prune_log_id_seq
-    START WITH 1 INCREMENT BY 1 NO MAXVALUE CACHE 1;
   ALTER TABLE ops.docker_prune_log
     ALTER COLUMN id SET DEFAULT nextval('ops.docker_prune_log_id_seq');
 EXCEPTION WHEN others THEN
