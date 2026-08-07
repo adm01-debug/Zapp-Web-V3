@@ -23,10 +23,10 @@ BEGIN
     END IF;
   END IF;
 END;
-$function$
+$function$;
 
 -- ALTER ROLE supabase_read_only_user NOROLBYPASSRLS (onda 2026-08-07, CORR-11)
-ALTER ROLE supabase_read_only_user NOROLBYPASSRLS;
+ALTER ROLE supabase_read_only_user NOBYPASSRLS;
 -- Policies de leitura do role de auditoria em cron.* (RLS username=CURRENT_USER)
 DROP POLICY IF EXISTS ro_cron_job_readonly ON cron.job;
 CREATE POLICY ro_cron_job_readonly ON cron.job FOR SELECT TO supabase_read_only_user USING (true);
