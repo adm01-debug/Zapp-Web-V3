@@ -102,7 +102,7 @@ jobs:
         run: |
           if [ ! -f infra/ghcr-protected-tags.txt ]; then
             echo "AVISO: infra/ghcr-protected-tags.txt nao encontrado — usando fallback hardcoded"
-            echo "regex=^production-(fbd04bec303d|988086a2bbbd|a68e678b8496)$" >> "$GITHUB_OUTPUT"
+            echo "regex=^production-(57b05d295af8|7af6ecd0d51b)$" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           # Normaliza: remove comentários e linhas vazias, trim, lowercase, remove CRLF
@@ -114,7 +114,7 @@ jobs:
           # Arquivo vazio → fallback (não é erro de digitação, só arquivo ainda não populado)
           if [ -z "$NORMALIZED" ]; then
             echo "AVISO: nenhuma SHA encontrada no arquivo — usando fallback hardcoded"
-            echo "regex=^production-(fbd04bec303d|988086a2bbbd|a68e678b8496)$" >> "$GITHUB_OUTPUT"
+            echo "regex=^production-(57b05d295af8|7af6ecd0d51b)$" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           # Falha se qualquer linha não for exatamente 12 hex lowercase (ex: fbd04bec303d)
@@ -154,7 +154,7 @@ jobs:
           # 3 versões/deploy (index + amd64 + attestation). 9 = 3 deploys completos:
           # o corte de recência cai ENTRE builds, nunca no meio (evita index
           # mantido com filho deletado → manifest unknown). 8 cortava o 3º deploy.
-          min-versions-to-keep: 9
+          min-versions-to-keep: 30
           # Proteger rollbacks históricos — lidos de infra/ghcr-protected-tags.txt.
           # NÃO usar delete-only-untagged-versions (apagaria manifests-filho → pull falha).
           ignore-versions: ${{ steps.protect.outputs.regex }}
