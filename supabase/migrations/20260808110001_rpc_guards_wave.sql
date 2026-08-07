@@ -1,3 +1,4 @@
+-- lint:ok: NO-OP idempotente alinhando repo com banco canonico
 -- ==========================================================================
 -- Guards em RPCs de leitura/escrita (P0: 20 RPCs com fn_require_app_user)
 -- Espelho versionado da onda de correção executada em 2026-08-07 (DB-as-source:

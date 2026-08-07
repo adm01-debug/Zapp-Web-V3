@@ -18,9 +18,12 @@ interface ExternalContact360PanelProps {
 }
 
 function ExternalContact360PanelInner({ phone }: ExternalContact360PanelProps) {
-  const { data, isLoading, error } = useExternalContact360(phone);
+  const { data, isLoading, error, isPlaceholderData } = useExternalContact360(phone);
 
-  if (isLoading) {
+  // FIX validação 2026-08-07: placeholderData mantém os dados do phone
+  // ANTERIOR durante o load do novo — nunca renderizar o painel com dados de
+  // outro contato (CNPJ/empresa errados visíveis por ~1s).
+  if (isLoading || isPlaceholderData) {
     return (
       <div className="space-y-3 p-1">
         <Skeleton className="h-20" />

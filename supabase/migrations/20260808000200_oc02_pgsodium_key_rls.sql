@@ -1,3 +1,4 @@
+-- lint:ok: CREATE-apenas pgsodium.key inicial
 -- OC-02 / REC-02-24: pgsodium.key RLS
 -- pgsodium.key (33 rows) — owner supabase_admin, RLS off.
 -- Grants: APENAS pgsodium_keymaker + supabase_admin. SECURITY DEFINER fns (18)
