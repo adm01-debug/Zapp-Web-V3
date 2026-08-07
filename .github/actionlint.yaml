@@ -1,6 +1,6 @@
-# Config do actionlint (validação local de workflows GitHub Actions).
-# Labels custom do runner self-hosted (stack 210, myoung34/github-runner).
-# Uso: actionlint .github/workflows/*.yml
+# Declara os labels customizados dos runners self-hosted da VPS (AtomicaBR).
+# Sem isto, o actionlint marca "vps-zapp"/"playwright" como labels desconhecidos
+# (7 falsos positivos). Referência: github.com/rhysd/actionlint config.
 self-hosted-runner:
   labels:
     - vps-zapp
