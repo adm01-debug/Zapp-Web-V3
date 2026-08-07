@@ -12,7 +12,7 @@
  *
  * Rodar: deno test --allow-read supabase/functions/evolution-sync/__tests__/parse-regression.test.ts
  */
-import { assert, assertMatch } from "jsr:@std/assert";
+import { assert } from "jsr:@std/assert";
 import { readSourceFrom } from "../../_shared/test-helpers.ts";
 
 const SOURCE = await readSourceFrom(import.meta.url, "../index.ts");
@@ -41,8 +41,9 @@ Deno.test("evolution-sync: imports agrupados no topo do módulo (antes de Deno.s
 
 Deno.test("evolution-sync: contrato de roteamento por action preservado", () => {
   // Guardrails estruturais do roteador (evita regressão silenciosa de ações).
+  // Busca por substring (sem regex) — imune a escaping e mais direta.
   for (const action of ["sync-contacts", "sync-messages", "setup-webhook", "cleanup-mock", "full-sync", "sync-all-messages"]) {
-    assertMatch(SOURCE, new RegExp(`action === '${action.replace(/-/g, "\\-")}'`));
+    assert(SOURCE.includes(`action === '${action}'`), `roteador deve manter a action '${action}'`);
   }
-  assertMatch(SOURCE, /contractViolation422\('action', 'Unknown action'/);
+  assert(SOURCE.includes("contractViolation422('action', 'Unknown action'"));
 });
