@@ -6,11 +6,11 @@
 # Formato do ignore-versions gerado: ^production-(sha1|sha2|sha3)$
 # Protege: o index OCI tagueado + seus manifests-filho (amd64 + attestation).
 #
-# Atualizado em 2026-08-06 (auditoria workflows — DP-05): as 3 SHAs anteriores
-# (fbd04bec303d, 988086a2bbbd, a68e678b8496) retornavam 404 no GHCR (proteção
-# fictícia); substituídas pelas SHAs de rollback candidato REAIS do runtime
-# (deploys 2026-08-05/06: 01d83bf86c47 = runtime atual, a123fd625d0b =
-# PreviousSpec do serviço, ebfa029b4032 = deploy anterior do GHCR).
-01d83bf86c47
-a123fd625d0b
-ebfa029b4032
+# Atualizado em 2026-08-07 (validação exaustiva VAL-03 — F1): as SHAs anteriores
+# (01d83bf86c47, a123fd625d0b, ebfa029b4032) NUNCA foram head de run deploy —
+# proteção fictícia (tags production-<sha> nunca existiram no GHCR; verificado
+# via registry v2 tags/list). Substituídas pelas ÚNICAS tags reais existentes:
+#   production-57b05d295af8 e production-7af6ecd0d51b
+# (tags/list 2026-08-07: apenas estas 2 + production-latest móvel).
+57b05d295af8
+7af6ecd0d51b
