@@ -64,11 +64,17 @@ export async function logChannelError(
   ...args: unknown[]
 ): Promise<void> {
   const severity = await classifyChannelError(connectedAtMs);
-  if (severity === 'info') {
-    logger.info(message, ...args);
-  } else if (severity === 'debug') {
-    logger.debug(message, ...args);
-  } else {
-    logger.warn(message, ...args);
+  try {
+    if (severity === 'info') {
+      logger.info(message, ...args);
+    } else if (severity === 'debug') {
+      logger.debug(message, ...args);
+    } else {
+      logger.warn(message, ...args);
+    }
+  } catch {
+    // Logger indisponível/defeituoso: NUNCA propagar — os callers usam
+    // `void logChannelError(...)` e uma rejection viraria unhandled
+    // (poluindo mais que o próprio CHANNEL_ERROR que estamos classificando).
   }
 }
