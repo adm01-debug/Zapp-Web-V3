@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { logChannelError } from '@/integrations/supabase/channelErrorLogging';
 import { getLogger } from '@/lib/logger';
 import { queryKeys } from '@/services/api/queryKeys';
 
@@ -28,6 +29,11 @@ export function useConversationReactionsRealtime(
   useEffect(() => {
     if (!conversationId) return;
 
+    // Última conexão bem-sucedida do canal (status SUBSCRIBED) — usada para
+    // classificar CHANNEL_ERROR transiente vs real (mesmo padrão dos demais
+    // canais realtime).
+    let lastConnectedAtMs: number | null = null;
+
     const channel = supabase
       .channel(`conv-reactions:${conversationId}:${Math.random().toString(36).slice(2, 10)}`)
       .on(
@@ -45,8 +51,17 @@ export function useConversationReactionsRealtime(
         }
       )
       .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR')
-          log.error('Falha ao assinar canal de reações', { conversationId });
+        // FIX 2026-08-07 (validação onda-v2): CHANNEL_ERROR transiente (restart
+        // do Kong/reconexão do supabase-js) logava log.error cru por conversa —
+        // mesmo ruído que os outros canais tinham. Usa a classificação central:
+        // debug (transiente <30s), info (backend-down/offline), warn (real).
+        if (status === 'SUBSCRIBED') {
+          lastConnectedAtMs = Date.now();
+        } else if (status === 'CHANNEL_ERROR') {
+          void logChannelError(log, 'Falha ao assinar canal de reações', lastConnectedAtMs, {
+            conversationId,
+          });
+        }
       });
 
     return () => {
