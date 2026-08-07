@@ -1,8 +1,6 @@
--- =====================================================================
--- (incluído do merge com main — idempotente)
+-- ==============================================================-- (incluído do merge com main — idempotente)
 -- CREATE TABLE ops.disk_actions_queue + índices + cron cleanup
--- ============================================================================
--- Tipo: DDL + pg_cron
+-- =====================================================================-- Tipo: DDL + pg_cron
 --
 -- CONTEXTO:
 --   Fila de ações de disco agendadas pelo sistema de monitoramento automático.
@@ -12,8 +10,7 @@
 --
 --   A constraint única uq_disk_actions_pending garante que a mesma ação sobre
 --   o mesmo target não seja enfileirada duplicadamente enquanto pendente.
--- ============================================================================
-
+-- =====================================================================
 -- ─────────────────────────────────────────────────────────────────────────────
 -- STEP 1: Criar tabela
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -61,6 +58,5 @@ SELECT cron.schedule(
   '9 4 * * *',
   $$DELETE FROM ops.disk_actions_queue WHERE executed_at < now() - interval '7 days'$$
 );
--- =======
 -- Item 65 da auditoria infra (AG-EX-01): autovacuum per-table (substitui cron disk-tables-vacuum-weekly job 231)
 ALTER TABLE ops.disk_actions_queue SET (autovacuum_vacuum_scale_factor=0.05, autovacuum_vacuum_threshold=100, autovacuum_analyze_scale_factor=0.02);

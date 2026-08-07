@@ -1,16 +1,13 @@
--- =====================================================================
--- (incluído do merge com main — idempotente)
+-- ==============================================================-- (incluído do merge com main — idempotente)
 -- CREATE TABLE ops.docker_prune_log + VACUUM semanal de todas ops.*
--- ============================================================================
--- Tipo: DDL + pg_cron
+-- =====================================================================-- Tipo: DDL + pg_cron
 --
 -- CONTEXTO:
 --   Log de operações docker prune executadas pelo sistema de gestão de disco.
 --   Registra o tipo de operação (image prune, volume prune, etc.) e quantos
 --   bytes foram liberados. Permite auditoria e cálculo de eficiência da
 --   estratégia de limpeza automática.
--- ============================================================================
-
+-- =====================================================================
 CREATE TABLE IF NOT EXISTS ops.docker_prune_log (
   id              bigint       NOT NULL DEFAULT nextval('ops.docker_prune_log_id_seq'),
   ts              timestamptz  NOT NULL DEFAULT now(),
@@ -50,6 +47,5 @@ SELECT cron.schedule(
   '0 2 * * 0',
   $$VACUUM ANALYZE ops.disk_actions_queue, ops.paused_services, ops.alert_cooldown, ops.docker_prune_log, ops.disk_orphans$$
 );
--- =======
 -- Item 65 da auditoria infra (AG-EX-01): autovacuum per-table (substitui cron disk-tables-vacuum-weekly job 231)
 ALTER TABLE ops.docker_prune_log SET (autovacuum_vacuum_scale_factor=0.05, autovacuum_vacuum_threshold=100, autovacuum_analyze_scale_factor=0.02);
