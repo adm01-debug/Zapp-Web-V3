@@ -14,23 +14,34 @@
 --     - QR code expirado
 --     - Falha de autenticação (401)
 --   E insere alertas em zapp.warroom_alerts para o dashboard de operações.
+--
+-- NOTA (correção 2026-08-07): o SELECT cron.schedule(...) ON CONFLICT era
+-- sintaxe inválida (ON CONFLICT só existe em INSERT) — o efeito foi aplicado
+-- por DDL manual. Padrão idempotente da casa (canonical_squash):
+-- unschedule condicional + schedule.
 -- ============================================================================
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Cron job — verificação de saúde da instância evo a cada 15 min
 -- ─────────────────────────────────────────────────────────────────────────────
 
+SELECT cron.unschedule('evo-instance-health-check')
+  WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'evo-instance-health-check');
+
 SELECT cron.schedule(
   'evo-instance-health-check',
   '3-59/15 * * * *',
   'SELECT evo.fn_update_instance_health()'
-) ON CONFLICT (jobname) DO NOTHING;
+);
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Cron job — guard da partição default de evolution_webhook_events_v2
 -- Dispara alerta no warroom se a partição default acumular eventos
 -- (indica que o roteamento de partições falhou)
 -- ─────────────────────────────────────────────────────────────────────────────
+
+SELECT cron.unschedule('evo-default-partition-guard')
+  WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'evo-default-partition-guard');
 
 SELECT cron.schedule(
   'evo-default-partition-guard',
@@ -58,4 +69,4 @@ SELECT cron.schedule(
   END;
   $$inner$$
   $$
-) ON CONFLICT (jobname) DO NOTHING;
+);
