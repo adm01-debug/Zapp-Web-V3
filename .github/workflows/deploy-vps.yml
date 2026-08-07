@@ -256,6 +256,8 @@ jobs:
                   - traefik.http.routers.zappweb.tls.certresolver=letsencryptresolver
                   - traefik.http.routers.zappweb.tls=true
                   - com.centurylinklabs.watchtower.enable=false
+                  - traefik.http.routers.zapp-prod.middlewares=crowdsec-bouncer@docker
+                  - traefik.http.routers.zappweb.middlewares=crowdsec-bouncer@docker
                   - com.atomicabr.tier=critical
                 update_config:
                   failure_action: rollback
