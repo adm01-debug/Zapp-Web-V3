@@ -16,6 +16,11 @@
 --     - system-health-score: a cada hora (minuto 5), recompute cache TTL=30
 --     - health_score_alert_hourly: a cada hora (minuto 45), dispara alerta
 --       se health score < 70
+--
+-- NOTA (correção 2026-08-07): o SELECT cron.schedule(...) ON CONFLICT era
+-- sintaxe inválida (ON CONFLICT só existe em INSERT) — o efeito foi aplicado
+-- por DDL manual. Padrão idempotente da casa (canonical_squash):
+-- unschedule condicional + schedule.
 -- ============================================================================
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -80,29 +85,41 @@ GRANT USAGE, SELECT ON SEQUENCE zapp.fn_health_score_history_id_seq TO service_r
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- Refresh cache a cada 30 min (forçado, TTL=5 para aceitar o recompute)
+SELECT cron.unschedule('refresh-health-score-cache')
+  WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'refresh-health-score-cache');
+
 SELECT cron.schedule(
   'refresh-health-score-cache',
   '19,49 * * * *',
   'SELECT zapp.fn_system_health_score_cached(5, TRUE)'
-) ON CONFLICT (jobname) DO NOTHING;
+);
 
 -- Purge de histórico > 7 dias
+SELECT cron.unschedule('purge-health-score-history')
+  WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'purge-health-score-history');
+
 SELECT cron.schedule(
   'purge-health-score-history',
   '0 5 * * *',
   $$DELETE FROM zapp.fn_health_score_history WHERE computed_at < now() - interval '7 days'$$
-) ON CONFLICT (jobname) DO NOTHING;
+);
 
 -- Recompute horário (minuto 5) — também serve de heartbeat do sistema de saúde
+SELECT cron.unschedule('system-health-score')
+  WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'system-health-score');
+
 SELECT cron.schedule(
   'system-health-score',
   '5 * * * *',
   'SELECT zapp.fn_system_health_score_cached(30, TRUE)'
-) ON CONFLICT (jobname) DO NOTHING;
+);
 
 -- Alerta horário (minuto 45) se score < 70
+SELECT cron.unschedule('health_score_alert_hourly')
+  WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'health_score_alert_hourly');
+
 SELECT cron.schedule(
   'health_score_alert_hourly',
   '45 * * * *',
   'SELECT zapp.fn_alert_health_score_degraded(70)'
-) ON CONFLICT (jobname) DO NOTHING;
+);

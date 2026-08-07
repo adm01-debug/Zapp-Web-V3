@@ -10,6 +10,11 @@
 --   últimas 2h, dispara alerta no warroom.
 --
 --   ops.disk_baseline também alimenta o snapshot diário (ver item 143).
+--
+-- NOTA (correção 2026-08-07): o SELECT cron.schedule(...) ON CONFLICT era
+-- sintaxe inválida (ON CONFLICT só existe em INSERT) — o efeito foi aplicado
+-- por DDL manual. Padrão idempotente da casa (canonical_squash):
+-- unschedule condicional + schedule.
 -- ============================================================================
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -53,15 +58,21 @@ GRANT USAGE, SELECT ON SEQUENCE ops.disk_baseline_id_seq TO service_role, postgr
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- Guard do collector — verifica se o coletor está ativo (a cada 15 min)
+SELECT cron.unschedule('host-disk-collector-guard')
+  WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'host-disk-collector-guard');
+
 SELECT cron.schedule(
   'host-disk-collector-guard',
   '7,22,37,52 * * * *',
   'SELECT ops.fn_host_disk_collector_guard()'
-) ON CONFLICT (jobname) DO NOTHING;
+);
 
 -- Prune semanal da série histórica (mantém últimos 90 dias)
+SELECT cron.unschedule('disk-baseline-prune-weekly')
+  WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'disk-baseline-prune-weekly');
+
 SELECT cron.schedule(
   'disk-baseline-prune-weekly',
   '30 3 * * 0',
   'SELECT ops.prune_disk_baseline()'
-) ON CONFLICT (jobname) DO NOTHING;
+);

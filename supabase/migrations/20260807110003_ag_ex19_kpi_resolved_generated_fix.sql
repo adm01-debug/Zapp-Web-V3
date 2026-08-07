@@ -52,11 +52,14 @@ REVOKE ALL ON FUNCTION zapp.fn_resolve_kpi_alerts_stale() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION zapp.fn_resolve_kpi_alerts_stale() TO service_role, postgres;
 
 -- Cron: auto-resolução de alertas KPI stale a cada hora (minuto 55)
+SELECT cron.unschedule('kpi-alerts-auto-resolve')
+  WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'kpi-alerts-auto-resolve');
+
 SELECT cron.schedule(
   'kpi-alerts-auto-resolve',
   '55 * * * *',
   'SELECT zapp.fn_resolve_kpi_alerts_stale()'
-) ON CONFLICT (jobname) DO NOTHING;
+);
 
 -- Registrar este cron no inventário
 INSERT INTO zapp.cron_inventory

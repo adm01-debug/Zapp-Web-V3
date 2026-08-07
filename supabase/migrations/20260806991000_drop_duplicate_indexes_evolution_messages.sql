@@ -93,7 +93,6 @@ DROP INDEX IF EXISTS evo.evolution_messages_marketing_created_at_idx;
 
 DROP INDEX IF EXISTS evo.evolution_messages_default_follow_up_at_idx;
 DROP INDEX IF EXISTS evo.evolution_messages_default_created_at_idx;
-=======
 -- Item 53 da auditoria infra (AG-EX-01): indices duplicados em evo.evolution_messages_*
 -- Mesmo conjunto de colunas, nao PK/UNIQUE. DROP no indice PAI remove filhos propagados nas 14 particoes.
 -- Verificacao previa: pg_index (mesmas colunas), pg_stat_user_indexes (idx_scan), pg_inherits (arvore pai-filho).

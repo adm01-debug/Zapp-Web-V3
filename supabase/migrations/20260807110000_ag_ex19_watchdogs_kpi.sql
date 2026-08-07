@@ -40,8 +40,11 @@ GRANT ALL ON TABLE zapp.cron_inventory TO service_role, postgres;
 -- STEP 2: Cron job — KPI de uptime wpp2 (a cada 15 min)
 -- ─────────────────────────────────────────────────────────────────────────────
 
+SELECT cron.unschedule('evo-wpp2-uptime-kpi')
+  WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'evo-wpp2-uptime-kpi');
+
 SELECT cron.schedule(
   'evo-wpp2-uptime-kpi',
   '6,21,36,51 * * * *',
   'SELECT evo.fn_wpp2_uptime_kpi()'
-) ON CONFLICT (jobname) DO NOTHING;
+);

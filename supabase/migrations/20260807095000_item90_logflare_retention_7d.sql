@@ -12,13 +12,22 @@
 --
 --   O cron job consolidado executa às 3:09 diariamente usando um bloco DO
 --   para garantir tratamento de erro por tabela (um falho não cancela o restante).
+--
+-- NOTA (correção 2026-08-07): o SELECT cron.schedule(...) ON CONFLICT era
+-- sintaxe inválida (ON CONFLICT só existe em INSERT) e o dollar-quote
+-- aninhado ($$ + DO $$cleanup$$) quebrava o command. Padrão idempotente da
+-- casa (canonical_squash): unschedule condicional + schedule, com tags
+-- distintas ($g$/$i$) no command.
 -- ============================================================================
+
+SELECT cron.unschedule('logflare-cloudflare-cleanup')
+  WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'logflare-cloudflare-cleanup');
 
 SELECT cron.schedule(
   'logflare-cloudflare-cleanup',
   '9 3 * * *',
-  $$
-  DO $$cleanup$$
+  $g$
+  DO $i$
   BEGIN
     -- Retenção 7 dias: logs de edge/cloudflare/deno
     BEGIN
@@ -65,6 +74,6 @@ SELECT cron.schedule(
     END;
 
   END;
-  $$cleanup$$
-  $$
-) ON CONFLICT (jobname) DO NOTHING;
+  $i$
+  $g$
+);

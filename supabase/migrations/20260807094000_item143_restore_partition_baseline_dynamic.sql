@@ -13,7 +13,15 @@
 --
 --   O cron usa um bloco DO com pg_catalog.pg_class para listar partições
 --   dinamicamente (sem hardcode de nomes de partição).
+--
+-- NOTA (correção 2026-08-07): o SELECT cron.schedule(...) ON CONFLICT era
+-- sintaxe inválida (ON CONFLICT só existe em INSERT) — o efeito foi aplicado
+-- por DDL manual. Padrão idempotente da casa (canonical_squash):
+-- unschedule condicional + schedule.
 -- ============================================================================
+
+SELECT cron.unschedule('disk-baseline-snapshot-daily')
+  WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'disk-baseline-snapshot-daily');
 
 SELECT cron.schedule(
   'disk-baseline-snapshot-daily',
@@ -44,4 +52,4 @@ SELECT cron.schedule(
     )
   FROM disk_info
   $$
-) ON CONFLICT (jobname) DO NOTHING;
+);

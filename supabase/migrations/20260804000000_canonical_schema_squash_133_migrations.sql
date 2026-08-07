@@ -15010,7 +15010,7 @@ CREATE INDEX IF NOT EXISTS idx_contacts_phone_norm_trgm ON evo.evolution_contact
 -- OLD: c.name ILIKE $1 OR c.email ILIKE $1 OR c.phone ILIKE $1
 -- NEW: + c.company ILIKE $1 OR c.job_title ILIKE $1 OR c.nickname ILIKE $1
 --      + regexp_replace(c.phone, '[^0-9]', '', 'g') ILIKE regexp_replace($1, '[^0-9]', '', 'g')
-CREATE OR REPLACE FUNCTION zapp.search_contacts_cursor(...) -- aplicado 2026-08-02
+-- CREATE OR REPLACE FUNCTION zapp.search_contacts_cursor(...) -- aplicado 2026-08-02
 
 
 -- ═══════════════════════════════════════════════════════════════════════
