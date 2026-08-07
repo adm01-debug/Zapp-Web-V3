@@ -19,14 +19,8 @@ verify_jwt = true
 [functions.ai-transcribe-audio]
 verify_jwt = true
 
-[functions.audio-transcribe]
-verify_jwt = true
-
 [functions.get-mapbox-token]
 verify_jwt = true
-
-[functions.whatsapp-webhook]
-verify_jwt = false
 
 [functions.sentiment-alert]
 verify_jwt = false
@@ -41,12 +35,6 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.connection-health-check]
-verify_jwt = true
-
-[functions.evolution-health]
-verify_jwt = false
-
-[functions.evolution-sender]
 verify_jwt = true
 
 [functions.bitrix-api]
@@ -73,25 +61,13 @@ verify_jwt = true
 [functions.classify-audio-meme]
 verify_jwt = true
 
-[functions.classify-emoji]
-verify_jwt = true
-
 [functions.classify-sticker]
 verify_jwt = true
 
 [functions.elevenlabs-tts-stream]
 verify_jwt = true
 
-[functions.elevenlabs-webhook]
-verify_jwt = false
-
 [functions.elevenlabs-dialogue]
-verify_jwt = true
-
-[functions.elevenlabs-voice-design]
-verify_jwt = true
-
-[functions.elevenlabs-sts]
 verify_jwt = true
 
 [functions.elevenlabs-sfx]
