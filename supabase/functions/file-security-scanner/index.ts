@@ -9,7 +9,11 @@ import { createZappAdminClient } from "../_shared/db-client.ts";
  * Middleware for file uploads — scans via VirusTotal and persists clean files.
  *
  * Standardized error format (security flows):
- *   { error: true, code, message, verdict, scanId, details? }
+ *   { error: true, contract: 'file-security-scanner', code, message, verdict, scanId, details? }
+ *
+ * `details` é OBJETO de metadados do veredito (nunca array — o frontend
+ * src/lib/scanResponse.ts faz narrowing por `code` e lê details como
+ * Record<string, unknown>).
  *
  * Status codes:
  *   422 MALWARE_DETECTED   — confirmed malicious (verdict: malicious)
@@ -44,6 +48,7 @@ Deno.serve(async (req) => {
         { code: "METHOD_NOT_ALLOWED", message: "Apenas requisições POST são permitidas." },
         405,
         req,
+        'file-security-scanner',
       );
     }
 
@@ -63,6 +68,7 @@ Deno.serve(async (req) => {
         { code: "INVALID_INPUT", message: "Bucket de destino não permitido.", details: { field: "bucket" } },
         400,
         req,
+        'file-security-scanner',
       );
     }
     const bucketId = rawBucket;
@@ -72,6 +78,7 @@ Deno.serve(async (req) => {
         { code: "INVALID_INPUT", message: "Nenhum arquivo enviado.", details: { field: "file" } },
         400,
         req,
+        'file-security-scanner',
       );
     }
 
@@ -99,6 +106,7 @@ Deno.serve(async (req) => {
         },
         502,
         req,
+        'file-security-scanner',
       );
     }
 
@@ -110,6 +118,7 @@ Deno.serve(async (req) => {
         { code: "SCAN_UNAVAILABLE", message: "Serviço de varredura retornou resposta inválida.", verdict: "unknown" },
         502,
         req,
+        'file-security-scanner',
       );
     }
 
@@ -163,6 +172,7 @@ Deno.serve(async (req) => {
         },
         408,
         req,
+        'file-security-scanner',
       );
     }
 
@@ -202,6 +212,7 @@ Deno.serve(async (req) => {
           },
           422,
           req,
+          'file-security-scanner',
         );
       }
 
@@ -215,6 +226,7 @@ Deno.serve(async (req) => {
         },
         403,
         req,
+        'file-security-scanner',
       );
     }
 
@@ -237,6 +249,7 @@ Deno.serve(async (req) => {
         },
         500,
         req,
+        'file-security-scanner',
       );
     }
 
@@ -264,6 +277,7 @@ Deno.serve(async (req) => {
       },
       500,
       req,
+      'file-security-scanner',
     );
   }
 });

@@ -9,7 +9,11 @@ import { createZappAdminClient } from "../_shared/db-client.ts";
  * Intercepts file uploads, validates via VirusTotal (when configured) and persists.
  *
  * Standardized error response (so the frontend can switch on `code`):
- *   { error: true, code, message, verdict, scanId, details? }
+ *   { error: true, contract: 'secure-upload', code, message, verdict, scanId, details? }
+ *
+ * `details` é OBJETO de metadados do veredito (nunca array — o frontend
+ * src/lib/scanResponse.ts faz narrowing por `code` e lê details como
+ * Record<string, unknown>).
  */
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB — OOM guard (F5b)
 const ALLOWED_BUCKETS = new Set(["whatsapp-media", "audio-messages"]);
@@ -34,6 +38,7 @@ Deno.serve(async (req) => {
       { code: "METHOD_NOT_ALLOWED", message: "Método não permitido." },
       405,
       req,
+      'secure-upload',
     );
   }
 
@@ -44,6 +49,7 @@ Deno.serve(async (req) => {
         { code: "UNAUTHORIZED", message: "Sessão inválida ou expirada." },
         401,
         req,
+        'secure-upload',
       );
     }
 
@@ -53,6 +59,7 @@ Deno.serve(async (req) => {
         { code: "RATE_LIMIT_EXCEEDED", message: "Limite de uploads atingido. Tente novamente em instantes." },
         429,
         req,
+        'secure-upload',
       );
     }
 
@@ -75,6 +82,7 @@ Deno.serve(async (req) => {
         { code: "FILE_TOO_LARGE", message: "Arquivo excede o limite de 50 MB." },
         413,
         req,
+        'secure-upload',
       );
     }
 
@@ -83,6 +91,7 @@ Deno.serve(async (req) => {
         { code: "INVALID_INPUT", message: "Nenhum arquivo enviado.", details: { field: "file" } },
         400,
         req,
+        'secure-upload',
       );
     }
 
@@ -91,6 +100,7 @@ Deno.serve(async (req) => {
         { code: "FILE_TOO_LARGE", message: "Arquivo excede o tamanho máximo permitido de 50 MB." },
         413,
         req,
+        'secure-upload',
       );
     }
 
@@ -138,6 +148,7 @@ Deno.serve(async (req) => {
               },
               422,
               req,
+              'secure-upload',
             );
           }
 
@@ -153,6 +164,7 @@ Deno.serve(async (req) => {
               },
               403,
               req,
+              'secure-upload',
             );
           }
         } else if (lookup.status !== 404) {
@@ -190,6 +202,7 @@ Deno.serve(async (req) => {
         },
         500,
         req,
+        'secure-upload',
       );
     }
 
@@ -224,6 +237,7 @@ Deno.serve(async (req) => {
       },
       500,
       req,
+      'secure-upload',
     );
   }
 });
