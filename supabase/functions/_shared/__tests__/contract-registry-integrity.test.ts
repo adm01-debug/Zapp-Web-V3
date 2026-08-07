@@ -14,7 +14,7 @@
  * Isso fecha o gap onde 43 contratos estavam registrados mas só 14 tinham schema.
  */
 
-import { assertEquals, assert } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assert } from "jsr:@std/assert";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { fromFileUrl } from "https://deno.land/std@0.168.0/path/mod.ts";
 import { CONTRACTS, isDeprecatedVersion } from "../contract-versions.ts";
@@ -211,7 +211,7 @@ const PLACEHOLDER_ALLOWLIST = new Set([
   // GET/sem body legítimos (contrato por query param, nunca derrubam ingestão)
   "email-track-link", "email-track-pixel",
   "webhook-secret-status", "whatsapp-cloud-secrets-status",
-  "whatsapp-cloud-webhook-verify", "gmail-health",
+  "whatsapp-cloud-webhook-verify",
   // Hook interno do Supabase Auth — schema permissivo por design (evento Auth
   // varia por versão do GoTrue); sem diretório de função (invocado via Auth,
   // não via gateway). Reintroduzido pelo PR #782 — restaurado na allowlist

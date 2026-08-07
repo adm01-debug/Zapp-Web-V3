@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { logChannelError } from '@/integrations/supabase/channelErrorLogging';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('ContactTyping');
@@ -142,6 +143,10 @@ export function useContactTypingState(
       }
     };
 
+    // Última conexão bem-sucedida do canal (status SUBSCRIBED) — usada para
+    // classificar CHANNEL_ERROR transiente vs real.
+    let lastConnectedAtMs: number | null = null;
+
     const channel = supabase.channel(`typing:${remoteJid}`);
 
     channel.on('broadcast', { event: 'contact_typing' }, ({ payload }) => {
@@ -173,8 +178,10 @@ export function useContactTypingState(
     });
 
     channel.subscribe((status) => {
-      if (status === 'CHANNEL_ERROR') {
-        log.warn('Typing channel error for', remoteJid);
+      if (status === 'SUBSCRIBED') {
+        lastConnectedAtMs = Date.now();
+      } else if (status === 'CHANNEL_ERROR') {
+        void logChannelError(log, 'Typing channel error for', lastConnectedAtMs, remoteJid);
       }
     });
 

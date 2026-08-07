@@ -14,7 +14,7 @@
  * Casos: push válido, chamada interna, message.data ausente, payload vazio,
  * null, tipos errados, campos extras, V2 (válido / timestamp ausente).
  */
-import { assertEquals } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals } from "jsr:@std/assert";
 import {
   GmailWebhookV1Schema,
   GmailWebhookV2Schema,

@@ -91,7 +91,7 @@ Deno.serve(async (req: Request) => {
   }
 
   const parsed = parseOrReject('csat-auto-send', { v1: CsatAutoSendV1Schema }, req, rawBody);
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
   const { survey_id, contact_id, agent_id, connection_id, conversation_id, delay_minutes } = parsed.data;
 
   try {

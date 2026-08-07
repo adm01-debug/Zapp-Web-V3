@@ -3,7 +3,7 @@ import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 /** INSTANCE. */
 export const INSTANCE = DEFAULT_WHATSAPP_INSTANCE;
 /** POLL_MS. */
-export const POLL_MS = 15_000;
+export const POLL_MS = 60_000;
 
 /** BUCKET_CONFIGS. */
 export const BUCKET_CONFIGS: Array<{ label: string; sinceMs: number }> = [

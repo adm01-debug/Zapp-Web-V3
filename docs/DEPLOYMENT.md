@@ -1,4 +1,9 @@
 # 🚀 Guia de Deploy - ZAPP-WEB
+> **ATUALIZACAO 2026-08-06 (auditoria exaustiva EX-15):** producao = **VPS**
+> (Traefik -> stack 157 -> GHCR via `deploy-vps.yml`). Vercel/Lovable = **preview
+> apenas** (vercel.json; nenhum workflow GitHub referencia Vercel). Tabela de
+> ambientes abaixo desatualizada — producao NAO e Vercel.
+
 
 > **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
 

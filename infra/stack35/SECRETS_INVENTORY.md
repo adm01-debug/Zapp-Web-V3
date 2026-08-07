@@ -1,4 +1,10 @@
 # Inventário de Secrets — Edge Runtime (stack 35)
+> **ATUALIZACAO 2026-08-06 (auditoria exaustiva EX-18):** runtime atual usa
+> `supabase_service_key_v3` e `supabase_anon_key_v2` (secrets Swarm rotacionados).
+> Evolucao API key: entrypoint usa `evolution_api_key_v5_20260805` (source) com
+> target `evolution_api_key_v4_20260704` (padrao de rotacao). Espelho do compose
+> completo do stack 35 em `infra/supabase/docker-compose.supabase.yml`.
+
 
 **Data:** 2026-08-01 · **Origem:** auditoria ZAPP self-hosted (etapa 32) + verificação real do container `supabase_functions` (`/proc/1/environ` + compose stack 35)
 

@@ -110,7 +110,7 @@ O entrypoint do functions exporta envs **com o \n incluso** (verificado: `SUPABA
 
 ## 70. Hardcoded (P0 higiene)
 
-Varredura `src/` + `supabase/functions/` (*.ts/*.js) com padrões `sk-[A-Za-z0-9]{20,}`, `AKIA[0-9A-Z]{16}`, JWT `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\....\....`:
+Varredura `src/` + `supabase/functions/` (*.ts/*.js) com padrões `sk-[A-Za-z0-9]{20,}`, `AKIA[0-9A-Z]{16}`, JWT `eyJhbG...VCJ9\....\....`:
 
 - **1 hit, FALSO POSITIVO (teste):** `supabase/functions/_shared/__tests__/log-sanitizer.test.ts:112` — fixture fake `eyJhbG...` (prefixo 12 chars: `eyJhbGciOiJIU`) usado em teste de sanitização de logs. **Nenhum segredo real hardcoded encontrado.** ✅
 - `.gitleaks.toml` presente na raiz (gate adicional) ✅.

@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
     const raw = await req.json().catch(() => null);
     const parsed = parseOrReject('voice-copilot-action', CONTRACT_SCHEMAS['voice-copilot-action'], req, raw, { extraHeaders: getCorsHeaders(req) });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const { action, params } = parsed.data as Record<string, any>;
     
     const supabase = createZappAdminClient();

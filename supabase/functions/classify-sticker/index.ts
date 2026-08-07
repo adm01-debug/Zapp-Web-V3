@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     const parsed = await parseRequestOrReject('classify-sticker', CONTRACT_SCHEMAS['classify-sticker'], req, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, any>;
 
     const { image_url } = body;

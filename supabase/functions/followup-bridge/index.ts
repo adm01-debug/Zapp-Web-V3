@@ -92,7 +92,7 @@ Deno.serve(async (req: Request) => {
   }
 
   const parsed = parseOrReject('followup-bridge', { v1: FollowupBridgeV1Schema }, req, rawBody);
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
   const { sequence_id, contact_jid, instance_name, trigger_event } = parsed.data;
 
   try {

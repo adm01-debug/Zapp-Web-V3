@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('approve-password-reset', CONTRACT_SCHEMAS['approve-password-reset'], req, raw, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, any>;
 
     // Guarda de compatibilidade: schema registrado é permissivo (placeholder);

@@ -24,7 +24,7 @@ Deno.test("SendActionSchema validates required fields via Zod", () => {
   );
   assertMatch(
     REGISTRY_SOURCE,
-    /message:\s*z\.string\(\)\s*\.min\(1,/,
+    /message:\s*z\.string\(\)\s*(?:\.trim\(\)\s*)?\.min\(1,/,
     "message must be required (z.string().min(1, ...))",
   );
 });

@@ -15,7 +15,7 @@
  * Rodar: deno test supabase/functions/send-email/__tests__/contract.test.ts
  */
 
-import { assertEquals, assert } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assert } from "jsr:@std/assert";
 import { parseOrReject, type ContractErrorBody } from "../../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../../_shared/contract-schemas.ts";
 
@@ -171,7 +171,7 @@ Deno.test("send-email@v1: versão não suportada via header → unsupported_cont
 
 Deno.test("send-email@v1: requestId é propagado no envelope quando fornecido", async () => {
   const r = parseOrReject("send-email", SCHEMAS, req(), null, { requestId: "req-123" });
-  assert(!r.ok);
+  assert(r.ok === false);
   const body = await r.response!.json() as ContractErrorBody;
   assertEquals(body.requestId, "req-123");
 });

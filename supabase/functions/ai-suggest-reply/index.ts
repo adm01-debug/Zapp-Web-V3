@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     const parsed = await parseRequestOrReject('ai-suggest-reply', CONTRACT_SCHEMAS['ai-suggest-reply'], req, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, unknown>;
 
     // Normalize: inbox sends 'messages', ai-router expects 'conversationHistory'

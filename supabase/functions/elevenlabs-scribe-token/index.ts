@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('elevenlabs-scribe-token', CONTRACT_SCHEMAS['elevenlabs-scribe-token'], req, await req.json().catch(() => ({})), {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
 
     const rl = checkRateLimit(`elevenlabs-scribe-token:${authed.user.id}`, 20, 60_000);
     if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);

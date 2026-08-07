@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
   try {
     const raw = await req.json().catch(() => null);
     const parsed = parseOrReject('talkx-control', CONTRACT_SCHEMAS['talkx-control'], req, raw, { extraHeaders: getCorsHeaders(req) });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
 
     const { action, campaignId } = parsed.data as { action?: unknown; campaignId?: unknown };
 

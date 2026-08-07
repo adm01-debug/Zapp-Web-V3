@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('elevenlabs-voice', { v1: ElevenLabsVoiceV1Schema }, req, await req.json().catch(() => null), {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, unknown>;
     const action: string = typeof body.action === 'string' ? body.action : 'listVoices';
     const ELEVENLABS_API_KEY = requireEnv("ELEVENLABS_API_KEY");

@@ -21,7 +21,7 @@ Já foram criados e commitados no GitHub:
 Os **environment secrets** necessários já estão no `.env`:
 ```
 VITE_EXTERNAL_SUPABASE_URL="https://pgxfvjmuubtbowutlide.supabase.co"
-VITE_EXTERNAL_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBneGZ2am11dWJ0Ym93dXRsaWRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxMjcwMTIsImV4cCI6MjA4NTcwMzAxMn0.sW9N_LChqwVNUvMmQWXx87Vhs3eoTI2OKg2TT_Cg4V0"
+VITE_EXTERNAL_SUPABASE_ANON_KEY="eyJhbG...VCJ9.eyJpc3...xMn0.sW9N_LChqwVNUvMmQWXx87Vhs3eoTI2OKg2TT_Cg4V0"
 ```
 
 **IMPORTANTE:** Esses secrets também precisam ser adicionados no painel do Lovable em Settings → Environment Variables.

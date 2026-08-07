@@ -21,18 +21,14 @@ import {
   EvolutionWebhookV2Schema,
   MetaWebhookPayloadSchema,
   WhatsAppCloudWebhookV2Schema,
-  WhatsappWebhookV1Schema,
   GmailWebhookV1Schema,
   GmailWebhookV2Schema,
-  ElevenLabsWebhookV1Schema,
-  ElevenLabsWebhookV2Schema,
 } from "./webhook-schemas.ts";
 import {
   AiSuggestReplySchema,
   AiConversationSummarySchema,
   DetectNewDeviceSchema,
   AiChurnAnalysisV1Schema,
-  ClassifyEmojiV1Schema,
   ClassifyStickerV1Schema,
   AiConversationAnalysisV1Schema,
   AiEnhanceMessageV1Schema,
@@ -47,7 +43,7 @@ export const AiAutoTagV1Schema = AiAutoTagSchema.strict();
 import type { SchemaMap } from "./contract-kit.ts";
 import * as AISchemas from "./contract-schemas-ai.ts";
 import * as InfraSchemas from "./contract-schemas-infra.ts";
-import { OutlookOauthV1Schema, PromogiftsCatalogV1Schema } from "./contract-schemas-integrations.ts";
+import { PromogiftsCatalogV1Schema } from "./contract-schemas-integrations.ts";
 
 
 /** Re-exported module members. */
@@ -57,11 +53,8 @@ export {
   EvolutionWebhookV2Schema,
   MetaWebhookPayloadSchema,
   WhatsAppCloudWebhookV2Schema,
-  WhatsappWebhookV1Schema,
   GmailWebhookV1Schema,
   GmailWebhookV2Schema,
-  ElevenLabsWebhookV1Schema,
-  ElevenLabsWebhookV2Schema,
 };
 
 // ─── Webhooks externos (permissivos) ─────────────────────────────────────────
@@ -239,8 +232,6 @@ export const GmailTokenRefreshV1Schema = z.object({
   accountId: z.string().max(200).nullish(),
 }).passthrough();
 
-/** gmail-health@v1 — health/status (service-role/cron); params por query string. */
-export const GmailHealthV1Schema = z.object({}).passthrough();
 
 /** email-health@v1 — GET health status (JWT required); no request body. */
 export const EmailHealthV1Schema = z.object({}).strict();
@@ -306,11 +297,7 @@ export const EmailImapBridgeV1Schema = z.object({
 /** Cron sem body — aceita somente {} (ou nada). Base dos schedulers internos. */
 const EmptyStrictV1Schema = z.object({}).strict();
 
-/** evolution-sender@v1 — cron de fila; sem body. */
-export const EvolutionSenderV1Schema = EmptyStrictV1Schema;
 
-/** evolution-health@v1 — cron de health check; sem body. */
-export const EvolutionHealthV1Schema = EmptyStrictV1Schema;
 
 /** evolution-credentials@v1 — GET admin; sem body. */
 export const EvolutionCredentialsV1Schema = EmptyStrictV1Schema;
@@ -357,27 +344,9 @@ export const EvolutionTemplatesV1Schema = z.object({
   ).optional(),
 }).strict();
 
-/** evolution-sentiment@v1 — POST { action?: analyze, text, remote_jid?, message_id?, instance_name? }. */
-export const EvolutionSentimentV1Schema = z.object({
-  action: z.enum(["analyze"]).optional(),
-  text: z.string().min(1, "text deve ser uma string não vazia").max(5000),
-  remote_jid: z.string().min(1).max(100).optional(),
-  message_id: z.string().min(1).max(200).optional(),
-  instance_name: z.string().min(1).max(100).optional(),
-}).strict();
-
 /** evolution-retry-metrics@v1 — GET admin (query params); sem body. */
 export const EvolutionRetryMetricsV1Schema = EmptyStrictV1Schema;
 
-/** evolution-followup@v1 — cron de follow-ups; sem body. */
-export const EvolutionFollowupV1Schema = EmptyStrictV1Schema;
-
-/** evolution-chatbot@v1 — POST { remote_jid, message, use_ai? } (service-role/cron). */
-export const EvolutionChatbotV1Schema = z.object({
-  remote_jid: z.string().min(1, "remote_jid deve ser uma string não vazia").max(100),
-  message: z.string().min(1, "message deve ser uma string não vazia").max(5000),
-  use_ai: z.boolean().optional(),
-}).strict();
 
 /** evolution-bitrix-sync@v1 — cron de sincronização Bitrix; sem body. */
 export const EvolutionBitrixSyncV1Schema = EmptyStrictV1Schema;
@@ -414,24 +383,6 @@ export const AutoEscalateSlaV1Schema = EmptyStrictV1Schema;
 /** auto-close-conversations@v1 — cron; sem body. */
 export const AutoCloseConversationsV1Schema = EmptyStrictV1Schema;
 
-/**
- * audio-transcribe@v1 — POST autenticado (requireUser + rate limit 5/min).
- * Espelho fiel do TranscribeInput inline v2.2 (migrado do Cloud Fator X):
- * { action?, audio_base64?, audio_url?, language?, format? } com refine
- * exigindo audio_base64 OU audio_url. v2.3 versionado no repo (2026-08-04).
- * NOTA: NÃO usar .strict() — o v2.2 original era permissivo a campos extras
- * e o handler lê apenas os campos conhecidos.
- */
-export const AudioTranscribeV1Schema = z.object({
-  action: z.enum(['transcribe', 'translate']).default('transcribe'),
-  audio_base64: z.string().min(100).optional(),
-  audio_url: z.string().url().optional(),
-  language: z.string().min(2).max(5).default('pt'),
-  format: z.enum(['text', 'srt', 'vtt', 'json']).default('text'),
-}).refine(d => d.audio_base64 || d.audio_url, {
-  message: 'Either audio_base64 or audio_url is required',
-});
-
 /** Ajustes de voz (elevenlabs-voice textToSpeech) — valores numéricos em [0,1]. */
 const ElevenLabsVoiceSettingsV1Schema = z.object({
   modelId: z.string().max(100).optional(),
@@ -466,18 +417,6 @@ export const ElevenLabsTtsV1Schema = z.object({
   applyTextNormalization: z.string().max(20).optional().nullable(),
 }).strict();
 
-/**
- /** elevenlabs-sts@v1 — multipart: { audio: File, voiceId, modelId? }.
-  * O body é montado pelo handler a partir do FormData (parseOrReject exige JSON).
-  */
- export const ElevenLabsStsV1Schema = z.object({
-   audio: z.custom<File>((v) => v instanceof File, {
-     message: "audio deve ser um arquivo (multipart form-data)",
-   }),
-   voiceId: z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/, "voiceId inválido (apenas alfanumérico, hífen, underscore)"),
-   modelId: z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/, "modelId inválido").optional().nullable(),
- }).strict();
-
  // ─── Schemas para contratos com validação própria (órfãos do registro) ──────
  // Estes contratos já validam no index.ts (safeParse/parseBody/.parse()).
  // Registrá-los aqui fecha o gap CONTRACTS ↔ CONTRACT_SCHEMAS e habilita
@@ -491,24 +430,47 @@ export const ElevenLabsTtsV1Schema = z.object({
   * content; mark_read exige external_ids. Webhook externo → permissivo
   * (extras passam), mas os campos obrigatórios por action são exigidos.
   */
+ export const SicoobBridgeNewMessageV1Schema = z.object({
+   action: z.literal("new_message"),
+   message_id: z.string().max(200),
+   sender_name: z.string().max(200).optional().nullable(),
+   sender_email: z.string().max(320).optional().nullable(),
+   sender_phone: z.string().max(50).optional().nullable(),
+   singular_name: z.string().max(200).optional().nullable(),
+   singular_id: z.string().max(200).optional().nullable(),
+   content: z.string().max(10000),
+   vendedor_user_id: z.string().max(200).optional().nullable(),
+   created_at: z.string().max(50).optional().nullable(),
+   sender_id: z.string().max(200).optional().nullable(),
+ }).passthrough();
+
+ export const SicoobBridgeMarkReadV1Schema = z.object({
+   action: z.literal("mark_read"),
+   external_ids: z.array(z.string().max(200)).max(1000),
+ }).passthrough();
+
  export const SicoobBridgeV1Schema = z.discriminatedUnion("action", [
-   z.object({
-     action: z.literal("new_message"),
-     message_id: z.string().max(200),
-     sender_name: z.string().max(200).optional().nullable(),
-     sender_email: z.string().max(320).optional().nullable(),
-     sender_phone: z.string().max(50).optional().nullable(),
-     singular_name: z.string().max(200).optional().nullable(),
-     singular_id: z.string().max(200).optional().nullable(),
-     content: z.string().max(10000),
-     vendedor_user_id: z.string().max(200).optional().nullable(),
-     created_at: z.string().max(50).optional().nullable(),
-     sender_id: z.string().max(200).optional().nullable(),
-   }).passthrough(),
-   z.object({
-     action: z.literal("mark_read"),
-     external_ids: z.array(z.string().max(200)).max(1000),
-   }).passthrough(),
+   SicoobBridgeNewMessageV1Schema,
+   SicoobBridgeMarkReadV1Schema,
+ ]);
+
+ /**
+  * sicoob-bridge@v2 — mesmo discriminatedUnion de V1 com metadata de contrato:
+  * `version` ("2.0") e `timestamp` de entrega em cada branch de action.
+  *
+  * Retrocompat: payload V1 (sem `version`) falha V2 e cai para V1 na
+  * auto-detecção do parseOrReject; payload V2 valida contra V2. V1 permanece
+  * aceito até o sunset registrado em contract-versions.ts.
+  */
+ export const SicoobBridgeV2Schema = z.discriminatedUnion("action", [
+   SicoobBridgeNewMessageV1Schema.extend({
+     version: z.literal("2.0"),
+     timestamp: z.number().int().positive(),
+   }),
+   SicoobBridgeMarkReadV1Schema.extend({
+     version: z.literal("2.0"),
+     timestamp: z.number().int().positive(),
+   }),
  ]);
 
  /** sicoob-bridge-reply@v1 — valida no index.ts. Schema de registro. */
@@ -524,6 +486,16 @@ export const SicoobBridgeReplyV1Schema = z.object({
   created_at: z.string().optional(),
   agent_id: z.string().optional(),
 }).passthrough();
+
+/**
+ * sicoob-bridge-reply@v2 — estende V1 com metadata de contrato: `version`
+ * ("2.0") e `timestamp` de entrega. Retrocompat idêntica aos demais webhooks
+ * (auto-detecção tenta v2 primeiro; payload V1 cai para v1).
+ */
+export const SicoobBridgeReplyV2Schema = SicoobBridgeReplyV1Schema.extend({
+  version: z.literal('2.0'),
+  timestamp: z.number().int().positive(),
+});
 
  /**
   * bitrix-api@v1 — schema REAL (espelha o antigo BitrixBodySchema local, agora
@@ -648,20 +620,6 @@ export const ElevenLabsDialogueV1Schema = z.object({
   model_id: z.string().optional(),
   voice_settings: z.unknown().optional(),
   dialogue: z.unknown().optional(),
-}).passthrough();
-
- /** elevenlabs-voice-design@v1 — valida no index.ts. Schema de registro. */
- /**
- * elevenlabs-voice-design@v1 — real. Consumo: roteado por action
- * (create/preview); voice_settings, name?, description?, preview_text?.
- * Externo → permissivo.
- */
-export const ElevenLabsVoiceDesignV1Schema = z.object({
-  action: z.string().optional(),
-  name: z.string().optional(),
-  description: z.string().optional(),
-  preview_text: z.string().optional(),
-  voice_settings: z.unknown().optional(),
 }).passthrough();
 
  /**
@@ -847,12 +805,6 @@ export const AiSuggestReplyV1Schema = AiSuggestReplySchema
  * Cloud API) → permissivo.
  */
 
-/**
- * whatsapp-webhook@v1 — re-exportado de webhook-schemas.ts (fonte canônica;
- * contract-schemas.ts o importa e registra mas não o re-exporta). Payload
- * Meta: entry[] → changes[] → value{statuses?, messages?}. Webhook externo
- * → permissivo.
- */
 
 /** followup-bridge@v1 — POST { sequence_id, contact_jid, instance_name, trigger_event? } */
 export const FollowupBridgeV1Schema = z.object({
@@ -876,7 +828,6 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   // Webhooks externos
   "evolution-webhook":       { v1: EvolutionWebhookV1Schema, v2: EvolutionWebhookV2Schema },
   "whatsapp-cloud-webhook":  { v1: MetaWebhookPayloadSchema, v2: WhatsAppCloudWebhookV2Schema },
-  "elevenlabs-webhook":      { v1: ElevenLabsWebhookV1Schema, v2: ElevenLabsWebhookV2Schema },
   "gmail-webhook":           { v1: GmailWebhookV1Schema, v2: GmailWebhookV2Schema },
 
   // Internos / UI / cron
@@ -896,7 +847,6 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "whatsapp-cloud-secrets-status":  { v1: WhatsappCloudSecretsStatusV1Schema },
   "whatsapp-cloud-api":         { v1: WhatsappCloudApiV1Schema },
   "gmail-token-refresh":        { v1: GmailTokenRefreshV1Schema },
-  "gmail-health":               { v1: GmailHealthV1Schema },
   "email-health":               { v1: EmailHealthV1Schema },
   "email-track-link":           { v1: EmailTrackLinkV1Schema },
   "email-track-pixel":          { v1: EmailTrackPixelV1Schema },
@@ -905,15 +855,12 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "gmail-sync":                    { v1: GmailSyncV1Schema },
   "gmail-oauth":                   { v1: GmailOauthV1Schema },
   "email-imap-bridge":             { v1: EmailImapBridgeV1Schema },
-  "evolution-sender":              { v1: EvolutionSenderV1Schema },
-  "evolution-health":              { v1: EvolutionHealthV1Schema },
   "evolution-credentials":         { v1: EvolutionCredentialsV1Schema },
+  // Sub-rota POST do evolution-credentials (dual-route por design — sem
+  // diretório próprio; não consta em EDGE_FUNCTION_NAMES. Auditoria A9).
   "evolution-credentials-write":   { v1: EvolutionCredentialsWriteV1Schema },
   "evolution-templates":           { v1: EvolutionTemplatesV1Schema },
-  "evolution-sentiment":           { v1: EvolutionSentimentV1Schema },
   "evolution-retry-metrics":       { v1: EvolutionRetryMetricsV1Schema },
-  "evolution-followup":            { v1: EvolutionFollowupV1Schema },
-  "evolution-chatbot":             { v1: EvolutionChatbotV1Schema },
   "evolution-bitrix-sync":         { v1: EvolutionBitrixSyncV1Schema },
   "db-health-monitor":             { v1: DbHealthMonitorV1Schema },
   "connection-health-check":       { v1: ConnectionHealthCheckV1Schema },
@@ -926,12 +873,10 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "auto-close-conversations":      { v1: AutoCloseConversationsV1Schema },
   "elevenlabs-voice":              { v1: ElevenLabsVoiceV1Schema },
   "elevenlabs-tts":                { v1: ElevenLabsTtsV1Schema },
-  "elevenlabs-sts":                { v1: ElevenLabsStsV1Schema },
 
   // Contratos com validação própria (fecha gap CONTRACTS ⊇ CONTRACT_SCHEMAS)
-  "whatsapp-webhook":              { v1: WhatsappWebhookV1Schema },
-  "sicoob-bridge":                 { v1: SicoobBridgeV1Schema },
-  "sicoob-bridge-reply":           { v1: SicoobBridgeReplyV1Schema },
+  "sicoob-bridge":                 { v1: SicoobBridgeV1Schema, v2: SicoobBridgeV2Schema },
+  "sicoob-bridge-reply":           { v1: SicoobBridgeReplyV1Schema, v2: SicoobBridgeReplyV2Schema },
   "bitrix-api":                    { v1: BitrixApiV1Schema },
   "whatsapp-cloud-send":           { v1: WhatsappCloudSendV1Schema },
   "public-api":                    { v1: PublicApiV1Schema },
@@ -939,17 +884,14 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "ai-suggest-reply":              { v1: AiSuggestReplyV1Schema },
   "ai-enhance-message":            { v1: AiEnhanceMessageV1Schema },
   "ai-transcribe-audio":           { v1: AiTranscribeAudioV1Schema },
-  "audio-transcribe":              { v1: AudioTranscribeV1Schema },
   "ai-conversation-analysis":      { v1: AiConversationAnalysisV1Schema },
   "ai-conversation-summary":       { v1: AiConversationSummaryV1Schema },
   "ai-churn-analysis":             { v1: AiChurnAnalysisV1Schema },
   "ai-auto-tag":                   { v1: AiAutoTagV1Schema },
   "elevenlabs-tts-stream":         { v1: ElevenLabsTtsStreamV1Schema },
-  "classify-emoji":                { v1: ClassifyEmojiV1Schema },
   "classify-sticker":              { v1: ClassifyStickerV1Schema },
   "elevenlabs-sfx":                { v1: ElevenLabsSfxV1Schema },
   "elevenlabs-dialogue":           { v1: ElevenLabsDialogueV1Schema },
-  "elevenlabs-voice-design":       { v1: ElevenLabsVoiceDesignV1Schema },
   "create-user":                   { v1: CreateUserV1Schema },
   "approve-password-reset":        { v1: ApprovePasswordResetV1Schema },
   "detect-new-device":             { v1: AISchemas.DetectNewDeviceV1Schema },
@@ -968,7 +910,6 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "client-observability":  { v1: InfraSchemas.ClientObservabilityV1Schema },
   "connection-test":  { v1: InfraSchemas.ConnectionTestV1Schema },
   "contact-media":  { v1: InfraSchemas.ContactMediaV1Schema },
-  "elevenlabs-agent-token":  { v1: InfraSchemas.ElevenlabsAgentTokenV1Schema },
   "elevenlabs-scribe-token":  { v1: InfraSchemas.ElevenlabsScribeTokenV1Schema },
   "fetch-whatsapp-avatar":  { v1: InfraSchemas.FetchWhatsappAvatarV1Schema },
   "file-security-scanner":  { v1: InfraSchemas.FileSecurityScannerV1Schema },
@@ -981,7 +922,6 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "mcp-server":  { v1: InfraSchemas.McpServerV1Schema },
   "migrate-media-storage":  { v1: InfraSchemas.MigrateMediaStorageV1Schema },
   "nps-scheduler":  { v1: InfraSchemas.NpsSchedulerV1Schema },
-  "outlook-oauth":  { v1: OutlookOauthV1Schema },
   "promogifts-catalog":  { v1: PromogiftsCatalogV1Schema },
   "provider-healthcheck":  { v1: InfraSchemas.ProviderHealthcheckV1Schema },
   "provider-router":  { v1: InfraSchemas.ProviderRouterV1Schema },

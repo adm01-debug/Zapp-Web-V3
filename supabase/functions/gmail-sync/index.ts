@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('gmail-sync', { v1: GmailSyncV1Schema }, req, rawBody, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, unknown>;
     const action = typeof body.action === 'string' ? body.action : 'listThreads';
     const accountId = typeof body.accountId === 'string' ? body.accountId : '';

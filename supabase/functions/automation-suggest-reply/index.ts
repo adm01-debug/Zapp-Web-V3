@@ -253,7 +253,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject("automation-suggest-reply", CONTRACT_SCHEMAS["automation-suggest-reply"], req, raw, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
     const bodyObj = parsed.data as Record<string, any>;
     const executionId = typeof bodyObj.executionId === 'string' ? bodyObj.executionId : '';
     const ruleId = typeof bodyObj.ruleId === 'string' ? bodyObj.ruleId : '';

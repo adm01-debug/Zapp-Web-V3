@@ -1,0 +1,10 @@
+# --- evolution-api-custom build context ---
+# main.js/main.patched.js são gerados no CI (artifact do source build) — nunca
+# versionar nem enviar ao daemon (drift e poluição de cache).
+main.js
+main.patched.js
+
+# Documentação e lixo
+*.md
+__pycache__/
+*.pyc

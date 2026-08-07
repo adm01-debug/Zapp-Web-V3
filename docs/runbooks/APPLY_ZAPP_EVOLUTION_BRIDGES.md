@@ -11,7 +11,7 @@
 ## 1. Aplicar
 
 ```bash
-export PG_URL="postgres://postgres:***@supabase.atomicabr.com.br:5432/postgres"
+export PG_URL="postgres://postgres:<SECRETO>@supabase.atomicabr.com.br:5432/postgres"
 
 # opção A: usar o aplicador oficial (recomendado)
 ./scripts/apply-vps-migrations.sh --only zapp_evolution_credentials_bridge

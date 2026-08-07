@@ -1,81 +1,66 @@
 # =====================================================================================
-# Evolution API — stack FONTE DA VERDADE (sincronizado com Portainer id=25)
-# Atualização: 2026-07-11 R9-R10
-#
-# HISTÓRICO:
-#   2026-07-03: Reconciliação inicial (R2/secrets v2, mem 3G)
-#   2026-07-06: T4 restaurado como config externo
-#   2026-07-11 R10: DOIS FIXES CRÍTICOS:
-#     (1) AUTHENTICATION_API_KEY adicionado ao bloco environment: (Spec.Env permanente)
-#         sobrevive rollbacks do swarm-task-guardian
-#     (2) tr -d '\n\r' em todos os cat /run/secrets/*
-#         elimina trailing newline (era len=33, agora len=32)
-#         verificado: len=32, md5=bfe43784, state:open
+# Evolution API — stack RECONCILIADO (fonte única: Portainer stackId 25)
+# SINCRONIZADO COM STACK 25 EM 2026-08-06 — espelho do compose real de produção.
+# O arquivo operacional é infra/evolution/docker-compose.evolution.yml (idêntico).
+# Conteúdo = stack file REAL (imagem custom ghcr.io/adm01-debug/zapp-web-v3/evolution-api-custom
+# build-time T1-T6, secrets v5→v4, healthcheck CORS-aware /manager/health, rate limit 200/100/1m).
+# Substitui o reconciliado legacy R10 (imagem oficial 6b195676 + logpatch runtime) — A10-16 (P1).
 # =====================================================================================
 version: "3.7"
 services:
 
   evolution:
-    image: evoapicloud/evolution-api@sha256:6b195676b09abbbd8ac9372cd961674dea2587f23dc9bc1d1e6a595372556fb1
+    image: ghcr.io/adm01-debug/zapp-web-v3/evolution-api-custom@sha256:9d110bc7ecdea904b73036e8f224a1eea2522fe0e37bdd72c82fd9385286d9e8
     init: true
+    read_only: true
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
 
     secrets:
       - evolution_db_uri_v1
       - evolution_db_uri_evolution_app_v1
-      - evolution_api_key_v4_20260704
+      - source: evolution_api_key_v5_20260805
+        target: evolution_api_key_v4_20260704
       - r2_s3_access_key_v2
       - r2_s3_secret_key_v2
       - rabbitmq_url_evolution_v1
       - metrics_password_v2
       - wa_business_verify_token_v1
-
-    configs:
-      - source: evolution_main_v2_js
-        target: /evolution/dist/main.js
-        mode: 0444
-      - source: evolution_main_v2_mjs
-        target: /evolution/dist/main.mjs
-        mode: 0444
-      - source: evolution_logpatch_t4_cjs
-        target: /evolution/t4_prologue.cjs
-        mode: 0444
+      - source: supabase_service_key_v3
+        target: supabase_service_key_v1
 
     volumes:
       - evolution_instances:/evolution/instances
+      - type: tmpfs
+        target: /tmp
+        tmpfs:
+          size: 1073741824
 
     networks:
       - AtomicaBRNet
 
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/"]
+      test: ["CMD-SHELL", "wget -q --spider --header='Origin: https://evolution.atomicabr.com.br' http://127.0.0.1:8080/manager/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 90s
 
     entrypoint:
-      - /bin/bash
-      - -c
-      - |
-        # FIX R10: tr -d elimina trailing newline (era len=33, key real=32)
-        [ -f /run/secrets/evolution_db_uri_v1 ] && export DATABASE_CONNECTION_URI=$$(cat /run/secrets/evolution_db_uri_v1 | tr -d '\n\r')
-        RUNTIME_URI=""
-        [ -f /run/secrets/evolution_db_uri_evolution_app_v1 ] && RUNTIME_URI=$$(cat /run/secrets/evolution_db_uri_evolution_app_v1 | tr -d '\n\r')
-        test -s /run/secrets/evolution_api_key_v4_20260704 || { echo "[entrypoint] FATAL: secret evolution_api_key ausente ou vazio" >&2; exit 1; }
-        export AUTHENTICATION_API_KEY=$$(cat /run/secrets/evolution_api_key_v4_20260704 | tr -d '\n\r')
-        [ -f /run/secrets/r2_s3_access_key_v2 ] && export S3_ACCESS_KEY=$$(cat /run/secrets/r2_s3_access_key_v2 | tr -d '\n\r')
-        [ -f /run/secrets/r2_s3_secret_key_v2 ] && export S3_SECRET_KEY=$$(cat /run/secrets/r2_s3_secret_key_v2 | tr -d '\n\r')
-        [ -f /run/secrets/rabbitmq_url_evolution_v1 ] && export RABBITMQ_URI=$$(cat /run/secrets/rabbitmq_url_evolution_v1 | tr -d '\n\r')
-        [ -f /run/secrets/metrics_password_v2 ] && export METRICS_PASSWORD=$$(cat /run/secrets/metrics_password_v2 | tr -d '\n\r')
-        [ -f /run/secrets/wa_business_verify_token_v1 ] && export WA_BUSINESS_TOKEN_WEBHOOK=$$(cat /run/secrets/wa_business_verify_token_v1 | tr -d '\n\r')
-        echo "[entrypoint] api=$${AUTHENTICATION_API_KEY:+yes}"
-        cd /evolution
-        exec node dist/main.patched.js 2>/dev/null || exec node dist/main.js
+      - /evolution/docker-entrypoint.sh
+    command:
+      - node
+      - dist/main.js
 
     environment:
-      # R11: AUTHENTICATION_API_KEY removida do Spec.Env — carregada via Docker secret no entrypoint
-      # (secret: evolution_api_key_v4_20260704 — rotacionar conforme git-secrets-rotation.md)
       - SERVER_URL=https://evolution.atomicabr.com.br
+      - CORS_ORIGIN=*
+      - CORS_METHODS=GET,POST,PUT,DELETE
+      - CORS_CREDENTIALS=false
       - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=false
       - DEL_INSTANCE=false
       - QRCODE_LIMIT=30
@@ -89,6 +74,8 @@ services:
       - PROMETHEUS_METRICS=true
       - METRICS_AUTH_REQUIRED=true
       - METRICS_USER=prometheus
+      - METRICS_ALLOWED_IPS=127.0.0.1,::1,10.0.0.0/8
+      - SENTRY_DSN=https://4aac50926105fab9dea5a352266ff88b@o4511422295179264.ingest.de.sentry.io/4511422298325072
       - DATABASE_ENABLED=true
       - DATABASE_PROVIDER=postgresql
       - DATABASE_CONNECTION_CLIENT_NAME=evolution
@@ -96,16 +83,24 @@ services:
       - DATABASE_SAVE_DATA_NEW_MESSAGE=true
       - DATABASE_SAVE_MESSAGE_UPDATE=true
       - DATABASE_SAVE_DATA_CONTACTS=true
-      - DATABASE_SAVE_DATA_CHATS=false
+      - DATABASE_SAVE_DATA_CHATS=true
       - DATABASE_SAVE_DATA_LABELS=true
-      - DATABASE_SAVE_DATA_HISTORIC=false
+      - DATABASE_SAVE_DATA_HISTORIC=true
       - DATABASE_SAVE_IS_ON_WHATSAPP=true
       - DATABASE_SAVE_IS_ON_WHATSAPP_DAYS=7
+      - OPENAI_ENABLED=false
+      - DIFY_ENABLED=false
+      - TYPEBOT_ENABLED=false
+      - TYPEBOT_API_VERSION=latest
+      - N8N_ENABLED=false
+      - CHATWOOT_ENABLED=false
+      - CHATWOOT_MESSAGE_READ=true
+      - CHATWOOT_MESSAGE_DELETE=true
       - CACHE_REDIS_ENABLED=true
       - CACHE_REDIS_URI=redis://redis:6379/8
       - CACHE_REDIS_PREFIX_KEY=evolution
-      - CACHE_REDIS_SAVE_INSTANCES=true
-      - CACHE_LOCAL_ENABLED=true
+      - CACHE_REDIS_SAVE_INSTANCES=false
+      - CACHE_LOCAL_ENABLED=false
       - CACHE_REDIS_TTL=604800
       - S3_ENABLED=true
       - S3_BUCKET=zapp-whatsapp-media
@@ -115,26 +110,30 @@ services:
       - S3_REGION=auto
       - S3_SAVE_VIDEO=true
       - S3_SKIP_POLICY=true
+      - WA_BUSINESS_URL=https://graph.facebook.com
+      - WA_BUSINESS_VERSION=v24.0
+      - WA_BUSINESS_LANGUAGE=pt_BR
+      - TELEMETRY_ENABLED=false
+      - TELEMETRY_URL=
+      - WEBSOCKET_ENABLED=false
+      - WEBSOCKET_GLOBAL_EVENTS=false
+      - SQS_ENABLED=false
+      - WEBHOOK_REQUEST_TIMEOUT_MS=60000
+      - WEBHOOK_RETRY_MAX_ATTEMPTS=10
+      - WEBHOOK_RETRY_INITIAL_DELAY_SECONDS=5
+      - WEBHOOK_RETRY_USE_EXPONENTIAL_BACKOFF=true
+      - WEBHOOK_RETRY_MAX_DELAY_SECONDS=300
+      - WEBHOOK_RETRY_JITTER_FACTOR=0.2
+      - WEBHOOK_RETRY_NON_RETRYABLE_STATUS_CODES=400,401,403,404,422
+      - WEBHOOK_EVENTS_ERRORS=true
+      - WEBHOOK_EVENTS_ERRORS_WEBHOOK=https://evolution-webhook-proxy.adm01.workers.dev
       - RABBITMQ_ENABLED=true
       - RABBITMQ_EXCHANGE_NAME=evolution
       - RABBITMQ_GLOBAL_ENABLED=false
       - RABBITMQ_EVENTS_MESSAGES_UPSERT=true
-      - RABBITMQ_EVENTS_MESSAGES_EDITED=true
       - RABBITMQ_EVENTS_MESSAGES_UPDATE=true
-      - RABBITMQ_EVENTS_MESSAGES_DELETE=true
-      - RABBITMQ_EVENTS_CONTACTS_UPSERT=true
-      - RABBITMQ_EVENTS_CONTACTS_UPDATE=true
-      - RABBITMQ_EVENTS_CHATS_UPSERT=true
-      - RABBITMQ_EVENTS_CHATS_UPDATE=true
-      - RABBITMQ_EVENTS_GROUPS_UPSERT=true
-      - RABBITMQ_EVENTS_GROUP_UPDATE=true
-      - RABBITMQ_EVENTS_GROUP_PARTICIPANTS_UPDATE=true
       - RABBITMQ_EVENTS_CONNECTION_UPDATE=true
-      - RABBITMQ_EVENTS_CALL=true
-      - WEBHOOK_GLOBAL_ENABLED=false
-      - WEBHOOK_GLOBAL_URL=
-      - WEBHOOK_EVENTS_ERRORS=true
-      - WEBHOOK_EVENTS_ERRORS_WEBHOOK=https://evolution-webhook-proxy.adm01.workers.dev
+      - RABBITMQ_EVENTS_QRCODE_UPDATED=false
 
     deploy:
       mode: replicated
@@ -170,7 +169,30 @@ services:
       - traefik.http.routers.evolution.service=evolution
       - traefik.http.services.evolution.loadbalancer.server.port=8080
       - traefik.http.services.evolution.loadbalancer.passHostHeader=true
-      - com.atomicabr.audit=auth-key-spec-env-tr-fix-r10-2026-07-11
+      - traefik.http.routers.evolution.middlewares=evo-sec@docker,evo-rl@docker
+      - traefik.http.middlewares.evo-rl.ratelimit.average=200
+      - traefik.http.middlewares.evo-rl.ratelimit.burst=100
+      - traefik.http.middlewares.evo-rl.ratelimit.period=1m
+      - traefik.http.routers.evolution-manager.rule=Host(`evolution.atomicabr.com.br`) && PathPrefix(`/manager`)
+      - traefik.http.routers.evolution-manager.entrypoints=websecure
+      - traefik.http.routers.evolution-manager.priority=10
+      - traefik.http.routers.evolution-manager.tls.certresolver=letsencryptresolver
+      - traefik.http.routers.evolution-manager.service=evolution
+      - traefik.http.middlewares.evo-mgr.ipwhitelist.sourcerange=127.0.0.1/32,10.0.0.0/8,186.207.138.55/32
+      - traefik.http.routers.evolution-manager.middlewares=evo-mgr@docker
+      - traefik.http.middlewares.evo-sec.headers.contentTypeNosniff=true
+      - traefik.http.middlewares.evo-sec.headers.browserXssFilter=true
+      - traefik.http.middlewares.evo-sec.headers.referrerPolicy=strict-origin-when-cross-origin
+      - traefik.http.middlewares.evo-sec.headers.forceSTSHeader=true
+      - traefik.http.middlewares.evo-sec.headers.stsSeconds=31536000
+      - traefik.http.middlewares.evo-sec.headers.stsIncludeSubdomains=true
+      - traefik.http.middlewares.evo-sec.headers.stsPreload=true
+      - traefik.http.middlewares.evo-sec.headers.permissionsPolicy=camera=(), microphone=(), geolocation=(), payment=()
+      - traefik.http.middlewares.evo-sec.headers.customResponseHeaders.Server=
+      - traefik.http.middlewares.evo-sec.headers.customResponseHeaders.X-Powered-By=
+      - com.atomicabr.audit=canonical-20260711-T3-makeBucket-T5a-tr-d-no-plaintext-apikey|20260724-chats-historic-ai-n8n-enabled-rmq21|20260802-sentry-cloud-migration-v2|20260805-buildtime-image-B1-hardening-B3|20260805-B3-readonly-tmpfs-nnp-health|20260805-F2-09-secret-v5-F2-14-F2-21-image|20260806-F2-07-cors-origin-fixed|20260806-F2-07b-cors-origin-restore-wildcard-outage-fix|20260806-keyfix-supabase-service-v3
+      - com.atomicabr.tier=critical
+      - com.centurylinklabs.watchtower.enable=false
 
 volumes:
   evolution_instances:
@@ -182,7 +204,7 @@ secrets:
     external: true
   evolution_db_uri_evolution_app_v1:
     external: true
-  evolution_api_key_v4_20260704:
+  evolution_api_key_v5_20260805:
     external: true
   r2_s3_access_key_v2:
     external: true
@@ -194,13 +216,9 @@ secrets:
     external: true
   wa_business_verify_token_v1:
     external: true
-
-configs:
-  evolution_main_v2_js:
+  supabase_service_key_v1:
     external: true
-  evolution_main_v2_mjs:
-    external: true
-  evolution_logpatch_t4_cjs:
+  supabase_service_key_v3:
     external: true
 
 networks:

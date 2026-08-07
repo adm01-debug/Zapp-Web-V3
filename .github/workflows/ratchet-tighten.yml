@@ -18,6 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          persist-credentials: false
           token: ${{ secrets.GH_TOKEN_ACTIONS || secrets.GITHUB_TOKEN }}
       - name: Tighten baseline (down-only nos escopos hard)
         run: |

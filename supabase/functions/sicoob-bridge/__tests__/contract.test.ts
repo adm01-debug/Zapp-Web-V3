@@ -15,11 +15,14 @@
  * Casos: válidos (completo/mínimo), obrigatórios ausentes, tipos errados,
  * array vazio, null/undefined, campos extras (strip).
  */
-import { assertEquals } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals } from "jsr:@std/assert";
 import {
   SicoobBridgeNewMessageSchema,
   SicoobBridgeMarkReadSchema,
 } from "../../_shared/schemas.ts";
+import { SicoobBridgeV2Schema } from "../../_shared/contract-schemas.ts";
+import { parseOrReject } from "../../_shared/contract-kit.ts";
+import { CONTRACT_SCHEMAS } from "../../_shared/contract-schemas.ts";
 
 Deno.test("Contract: sicoob-bridge v1 (new_message) — payload completo válido", () => {
   const payload = {
@@ -133,5 +136,69 @@ Deno.test("Contract: sicoob-bridge v1 (mark_read) — inválido: external_ids co
 Deno.test("Contract: sicoob-bridge v1 (mark_read) — inválido: external_ids acima do limite (1000)", () => {
   const payload = { external_ids: Array.from({ length: 1001 }, (_, i) => `msg_${i}`) };
   const result = SicoobBridgeMarkReadSchema.safeParse(payload);
+  assertEquals(result.success, false);
+});
+
+// ─── Versionamento v1/v2 (contrato sicoob-bridge) ────────────────────────────
+
+Deno.test("Versioning: payload V1 aceito quando V2 é current (auto-detecção v1)", () => {
+  const v1Payload = { action: "new_message", message_id: "m1", content: "olá" };
+  const result = parseOrReject("sicoob-bridge", CONTRACT_SCHEMAS["sicoob-bridge"], null, v1Payload);
+  assertEquals(result.ok, true);
+  if (result.ok) assertEquals(result.version, "v1");
+});
+
+Deno.test("Versioning: payload V2 (version 2.0) preferido quando V2 é current", () => {
+  const v2Payload = { action: "new_message", message_id: "m1", content: "olá", version: "2.0", timestamp: Date.now() };
+  const result = parseOrReject("sicoob-bridge", CONTRACT_SCHEMAS["sicoob-bridge"], null, v2Payload);
+  assertEquals(result.ok, true);
+  if (result.ok) assertEquals(result.version, "v2");
+});
+
+Deno.test("Versioning: x-contract-version header força v1", () => {
+  const headers = new Headers({ "x-contract-version": "v1" });
+  const req = new Request("http://localhost", { headers });
+  const result = parseOrReject(
+    "sicoob-bridge",
+    CONTRACT_SCHEMAS["sicoob-bridge"],
+    req,
+    { action: "mark_read", external_ids: ["x"] },
+  );
+  assertEquals(result.ok, true);
+  if (result.ok) assertEquals(result.version, "v1");
+});
+
+Deno.test("Versioning: versão não suportada → 422 unsupported_contract_version", () => {
+  const headers = new Headers({ "x-contract-version": "v99" });
+  const req = new Request("http://localhost", { headers });
+  const result = parseOrReject("sicoob-bridge", CONTRACT_SCHEMAS["sicoob-bridge"], req, { action: "mark_read", external_ids: ["x"] });
+  assertEquals(result.ok, false);
+  if (result.ok === false) {
+    assertEquals(result.body.code, "unsupported_contract_version");
+    assertEquals(result.response.status, 422);
+  }
+});
+
+Deno.test("Versioning: v1 deprecated → headers x-contract-deprecated + sunset", () => {
+  const headers = new Headers({ "x-contract-version": "v1" });
+  const req = new Request("http://localhost", { headers });
+  const result = parseOrReject("sicoob-bridge", CONTRACT_SCHEMAS["sicoob-bridge"], req, { action: "new_message", message_id: "m1", content: "c" });
+  assertEquals(result.ok, true);
+  if (result.ok) {
+    assertEquals(result.deprecated, true);
+    assertEquals(result.headers["x-contract-deprecated"], "true");
+    assertEquals(result.headers["sunset"], "2027-06-01");
+  }
+});
+
+Deno.test("Versioning: V2 schema exige timestamp (ausente → contract_violation)", () => {
+  const bad = { action: "mark_read", external_ids: ["x"], version: "2.0" };
+  const result = SicoobBridgeV2Schema.safeParse(bad);
+  assertEquals(result.success, false);
+});
+
+Deno.test("Versioning: V2 schema com timestamp inválido (negativo) → rejeitado", () => {
+  const bad = { action: "mark_read", external_ids: ["x"], version: "2.0", timestamp: -1 };
+  const result = SicoobBridgeV2Schema.safeParse(bad);
   assertEquals(result.success, false);
 });

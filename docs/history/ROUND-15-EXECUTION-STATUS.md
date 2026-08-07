@@ -158,7 +158,7 @@ All 6 Round 15 migrations are **FULLY VALIDATED** and **READY FOR IMMEDIATE STAG
 
 ```bash
 # Option 1: Via psql (fastest)
-export STAGING_DB_URL="postgresql://user:password@staging.db:5432/database"
+export STAGING_DB_URL="postgresql://user:<SECRETO>@staging.db:5432/database"
 
 for migration in \
   "20260712160000_fix_contact_id_reuse_critical.sql" \

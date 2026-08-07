@@ -10,13 +10,13 @@ on:
     - cron: '0 6 * * *'  # daily at 06:00 UTC
   workflow_dispatch:
 
-# branch-protection check uses ACTIONS_PAT secret (requires Administration: read permission).
-# If ACTIONS_PAT is not configured, the verify-branch-protection job fails.
-# Create a fine-grained token scoped to this repository with the Administration: read
-# permission (not the classic "repo" scope) and add it as the ACTIONS_PAT secret.
+# Verificação usa GITHUB_TOKEN com escopo administration: read — o GET de
+# branch protection (REST) exige essa permissão; o antigo secret ACTIONS_PAT
+# nunca existiu no repo e derrubava o schedule diário — fix 2026-08-06.
 permissions:
   contents: read
   pull-requests: read
+  administration: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -53,18 +53,13 @@ jobs:
     steps:
       - name: Check branch protection rules
         env:
-          ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
-          if [ -z "${ACTIONS_PAT:-}" ]; then
-            echo "::error::ACTIONS_PAT not set — branch protection check requires administration:read scope; configure the ACTIONS_PAT secret"
-            exit 1
-          fi
-
           RESP=$(curl -sS --connect-timeout 10 --max-time 30 \
             -w "\n%{http_code}" \
-            -H "Authorization: Bearer $ACTIONS_PAT" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             "${{ github.api_url }}/repos/${{ github.repository }}/branches/main/protection")
 
@@ -72,7 +67,7 @@ jobs:
           PROT=$(echo "$RESP" | sed '$d')
 
           if [ "$HTTP_CODE" = "403" ]; then
-            echo "::error::Branch protection API denied (HTTP 403) — ACTIONS_PAT may lack administration:read scope"
+            echo "::error::Branch protection API denied (HTTP 403) — GITHUB_TOKEN requires administration:read scope"
             exit 1
           fi
 
@@ -133,9 +128,28 @@ jobs:
           fi
 
           if [ "$CHECKS" -eq 0 ]; then
-            echo "::warning::No required status checks configured on main — recommend adding ci/build"
+            echo "::error::No required status checks configured on main — recommend adding ci/build"
+            FAILED=1
           else
             echo "OK: $CHECKS required status check(s) configured"
+          fi
+
+          # Verificação exata dos contexts (fix 2026-08-06): a contagem sozinha
+          # deixava passar remoção de check crítico (ex.: CodeQL) com 1 check
+          # qualquer. Lista = gates de banco/edge/qualidade + segurança.
+          EXPECTED_CONTEXTS="edge-auth-smoke edge-drift-check Edge guard checks DB Invariants Migration Uniqueness Gate schema-drift-guard PR Size Gate Analyze (javascript-typescript) 🔍 Secret Scan (gitleaks) Verify security_invoker on all views"
+          ACTUAL_CONTEXTS=$(echo "$PROT" | jq -r '.required_status_checks.contexts[]')
+          MISSING=""
+          for ctx in $EXPECTED_CONTEXTS; do
+            if ! echo "$ACTUAL_CONTEXTS" | grep -Fxq "$ctx"; then
+              MISSING="$MISSING $ctx"
+            fi
+          done
+          if [ -n "$MISSING" ]; then
+            echo "::error::Required status checks ausentes na proteção de main:${MISSING}"
+            FAILED=1
+          else
+            echo "OK: todos os ${CHECKS} required status checks esperados estão configurados"
           fi
 
           echo "---"

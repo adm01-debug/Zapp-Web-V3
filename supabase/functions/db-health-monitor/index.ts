@@ -26,7 +26,7 @@ Deno.serve(async (req: Request) => {
   const parsed = parseOrReject('db-health-monitor', { v1: DbHealthMonitorV1Schema }, req, await req.json().catch(() => ({})), {
     extraHeaders: getCorsHeaders(req),
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
 
   const startTime = Date.now();
   const issues: string[] = [];

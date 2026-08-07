@@ -6,7 +6,7 @@
  *  - Idempotência por hash (instance:event:bodyHash) e short-circuit em duplicatas.
  *  - Auditoria persistida em rejected/duplicate/processed/error.
  *  - Erros de handler não retornam 5xx para a Evolution (evita retry-storm).
- *  - JSON inválido => 400 + audit rejected.
+ *  - JSON inválido => 422 canônico (envelope contract-kit) + audit rejected.
  *  - CORS pre-flight tratado antes de qualquer leitura de body.
  *  - Cobertura mínima de eventos roteados (PRESENCE/CONTACTS/CHATS/CALL/LABELS).
  */
@@ -70,9 +70,13 @@ Deno.test("Idempotência: dedup por sha256(instance:event:body) + markEventProce
   assertMatch(SOURCE, /duplicate: true/);
 });
 
-Deno.test("JSON inválido => 400 + audit rejected", () => {
-  assertMatch(SOURCE, /error: 'invalid_json'/);
-  assertMatch(SOURCE, /status: 400/);
+Deno.test("JSON inválido => 422 canônico + audit rejected", () => {
+  // Correção 2026-08-06 (gap A1-B1): falha de validação SEMPRE 422 com
+  // envelope contract-kit (era 400 {error} incompleto).
+  assertMatch(SOURCE, /buildContractErrorBody\(/);
+  assertMatch(SOURCE, /'invalid_json'/);
+  assertMatch(SOURCE, /status: 422/);
+  assertMatch(SOURCE, /status_code: 422/);
 });
 
 Deno.test("Resiliência: handler_error retorna 200 (sem retry-storm)", () => {

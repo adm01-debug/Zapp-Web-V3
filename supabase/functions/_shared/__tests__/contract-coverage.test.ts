@@ -15,7 +15,7 @@
  * Rodar: deno test --allow-net --allow-env --allow-read supabase/functions/_shared/__tests__/contract-coverage.test.ts
  */
 
-import { assertEquals, assert } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assert } from "jsr:@std/assert";
 import { fromFileUrl } from "https://deno.land/std@0.168.0/path/mod.ts";
 
 const FUNCTIONS_ROOT = new URL("../../", import.meta.url);

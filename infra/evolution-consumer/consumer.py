@@ -1,14 +1,18 @@
-"""Evolution → RabbitMQ → Supabase bridge — v6.
-Melhorias vs v5 (B-6 do runbook — instrumentação de drops):
-  - stats['drop_by_reason']: dict contabilizando o motivo de cada drop
-    ('no_event_type', '4xx:<status>') — elimina perda silenciosa
-  - helper drop_reason(reason): incrementa drop e o motivo em uma chamada
-  - Sentry: alerta 4xx apenas para status fora de (404, 422) — reduz ruído
-  - STATS periódico inclui drop_by_reason serializado (compacto)
-  - log.info extra quando drop > 0 no ciclo, com os motivos
-  - Demais comportamentos (HMAC, filas, resub, shadow) inalterados vs v5
+"""Evolution → RabbitMQ → Supabase bridge — v7.
+Melhorias vs v6 (REC-07-09/10 — perda permanente 0,06% do volume):
+  - 4xx do gateway (body NÃO-JSON: 404 HTML/empty do Traefik) e 429 (rate
+    limit) → nack+requeue com backoff exponencial, honrando Retry-After
+    quando presente; teto de tentativas (MAX_DELIVERY) evita hot loop (S-09/S2)
+  - drop definitivo APENAS para 4xx com body JSON (erro aplicativo da edge),
+    discriminado por content-type/parse (S-09/S3)
+  - stats['retry_by_reason']: motivo de cada requeue ('4xx:<status>')
+  - drop por teto de tentativas contabilizado como '4xx:<status>:max_attempts'
+  - persistência do snapshot [STATS] (30s) em evo.evolution_rabbit_consumer_stats
+    (tabela criada pelo A1 em paralelo; ausência/erro → WARN, não quebra)
+  - Demais comportamentos (HMAC, filas, resub, shadow, [STATS]/[DROP-REASONS])
+    inalterados vs v6
 """
-import pika, requests, os, json, time, sys, signal, logging, hmac, hashlib
+import pika, requests, os, json, time, sys, signal, logging, hmac, hashlib, socket
 
 try:
     import psycopg2
@@ -26,7 +30,7 @@ except ImportError:
 SENTRY_DSN = os.environ.get('SENTRY_DSN', '')
 if SENTRY_DSN and SENTRY_AVAIL:
     sentry_sdk.init(dsn=SENTRY_DSN, traces_sample_rate=0.0,
-                    release='consumer@v6',
+                    release='consumer@v7',
                     environment=os.environ.get('ENVIRONMENT', 'production'))
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s', datefmt='%H:%M:%S')
@@ -40,6 +44,12 @@ PREFIXES        = [p for p in os.environ.get('INSTANCE_PREFIX','wpp2').split() i
 PG_URL          = os.environ.get('PG_EVOLUTION_URL','')
 RESUB_INTERVAL  = int(os.environ.get('RESUB_INTERVAL','60'))
 
+# v7 — backoff exponencial p/ 4xx transientes (gateway/429)
+MAX_DELIVERY    = int(os.environ.get('MAX_DELIVERY','8'))     # teto de tentativas por mensagem
+BACKOFF_BASE    = float(os.environ.get('BACKOFF_BASE','1.0')) # segundos na 1a tentativa
+BACKOFF_FACTOR  = float(os.environ.get('BACKOFF_FACTOR','2.0'))
+BACKOFF_MAX     = float(os.environ.get('BACKOFF_MAX','60.0')) # teto do delay por tentativa
+
 EVENTS = ['messages.upsert','messages.update','messages.edited','messages.delete',
           'contacts.upsert','contacts.update','chats.upsert','chats.update',
           'connection.update','labels.edit','labels.association',
@@ -47,14 +57,147 @@ EVENTS = ['messages.upsert','messages.update','messages.edited','messages.delete
 QUEUES = list(dict.fromkeys(f'{p}.{e}' for p in PREFIXES for e in EVENTS))
 
 stats = {'ok':0,'shadow':0,'retry':0,'err':0,'drop':0,'pg_log_ok':0,'pg_log_err':0,'sentry_sent':0,'resub':0,
-         'drop_by_reason': {}}
+         'drop_by_reason': {}, 'retry_by_reason': {}, 'pg_stats_ok':0, 'pg_stats_err':0}
 start = time.time()
 running = True
+
+# v7 — persistência de stats em evo.evolution_rabbit_consumer_stats (criada pelo A1 em paralelo)
+REPLICA = socket.gethostname()
+_STATS_TABLE = 'evo.evolution_rabbit_consumer_stats'
+_STATS_COLS = {  # colunas conhecidas → placeholder SQL (intersectadas com o schema real)
+    'collected_at': 'now()',
+    'replica': '%s', 'ok': '%s', 'shadow': '%s', 'retry': '%s', 'drop': '%s', 'err': '%s',
+    'pg_log_ok': '%s', 'pg_log_err': '%s', 'sentry_sent': '%s', 'resub': '%s',
+    'drop_by': '%s', 'retry_by': '%s',
+}
+_stats_cols = None      # cache do schema real (None = tabela ausente/desconhecida)
+_stats_cols_ts = 0.0
+
+def _stats_schema(c):
+    """Colunas reais da tabela de stats (cache 10min). None se a tabela não existe."""
+    global _stats_cols, _stats_cols_ts
+    now = time.time()
+    if _stats_cols is not None and now - _stats_cols_ts < 600:
+        return _stats_cols
+    try:
+        with c.cursor() as cur:
+            cur.execute(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_schema='evo' AND table_name='evolution_rabbit_consumer_stats'")
+            cols = {r[0] for r in cur.fetchall()}
+        _stats_cols = cols if cols else None
+        _stats_cols_ts = now
+        return _stats_cols
+    except Exception:
+        return None
+
+def persist_stats():
+    """Snapshot [STATS] → evo.evolution_rabbit_consumer_stats (INSERT por ciclo, replica hostname).
+
+    Tabela criada pelo A1 em paralelo — se ausente ou com schema incompatível,
+    contabiliza pg_stats_err e loga WARN (nunca quebra o consumo).
+    """
+    if not PG_URL or not PG_AVAIL:
+        return
+    c = pg_conn()
+    if not c:
+        return
+    cols = _stats_schema(c)
+    if not cols:
+        stats['pg_stats_err'] += 1
+        if stats['pg_stats_err'] <= 3 or stats['pg_stats_err'] % 20 == 0:
+            log.warning(f"stats table {_STATS_TABLE} ausente — snapshot não persistido")
+        return
+    ins = [k for k in _STATS_COLS if k in cols]
+    if not ins:
+        return
+    values = {
+        'replica': REPLICA,
+        'ok': stats['ok'], 'shadow': stats['shadow'], 'retry': stats['retry'],
+        'drop': stats['drop'], 'err': stats['err'],
+        'pg_log_ok': stats['pg_log_ok'], 'pg_log_err': stats['pg_log_err'],
+        'sentry_sent': stats['sentry_sent'], 'resub': stats['resub'],
+        'drop_by': Json(stats['drop_by_reason']),
+        'retry_by': Json(stats['retry_by_reason']),
+    }
+    try:
+        sql = (f"INSERT INTO {_STATS_TABLE} ({','.join(ins)}) "
+               f"VALUES ({','.join(_STATS_COLS[k] for k in ins)})")
+        params = [values[k] for k in ins if k != 'collected_at']
+        with c.cursor() as cur:
+            cur.execute(sql, params)
+        stats['pg_stats_ok'] += 1
+    except Exception as e:
+        stats['pg_stats_err'] += 1
+        if stats['pg_stats_err'] <= 3 or stats['pg_stats_err'] % 20 == 0:
+            log.warning(f"stats persist err: {e}")
 
 def drop_reason(reason):
     """Contabiliza um drop com motivo estruturado (stats['drop'] e drop_by_reason)."""
     stats['drop'] += 1
     stats['drop_by_reason'][reason] = stats['drop_by_reason'].get(reason, 0) + 1
+
+def retry_reason(reason):
+    """Contabiliza um requeue com motivo estruturado (stats['retry'] e retry_by_reason)."""
+    stats['retry'] += 1
+    stats['retry_by_reason'][reason] = stats['retry_by_reason'].get(reason, 0) + 1
+
+def delivery_attempts(method, properties):
+    """Nº de tentativas de entrega da mensagem (1 = primeira).
+
+    Usa o header x-death do RabbitMQ (incrementado a cada requeue) e cai
+    para o flag redelivered quando o header não existe (1a entrega).
+    """
+    try:
+        deaths = (properties.headers or {}).get('x-death') or []
+        total = 0
+        for d in deaths:
+            if isinstance(d, dict):
+                total += int(d.get('count', 1) or 1)
+        if total:
+            return total + 1
+    except Exception:
+        pass
+    return 2 if getattr(method, 'redelivered', False) else 1
+
+def parse_retry_after(r):
+    """Retry-After em segundos (RFC 7231). HTTP-date → None (usa backoff computado)."""
+    try:
+        ra = r.headers.get('Retry-After')
+    except Exception:
+        return None
+    if not ra:
+        return None
+    try:
+        return max(0, int(str(ra).strip()))
+    except (TypeError, ValueError):
+        return None
+
+def backoff_delay(attempts, retry_after=None):
+    """Delay do requeue: exponencial com teto, dominado por Retry-After quando presente."""
+    delay = min(BACKOFF_BASE * (BACKOFF_FACTOR ** (attempts - 1)), BACKOFF_MAX)
+    if retry_after is not None:
+        delay = max(delay, retry_after)
+    return delay
+
+def body_is_json(r):
+    """Discrimina 4xx da edge (body JSON) de 4xx do gateway (HTML/empty — S-09/S3)."""
+    try:
+        ct = (r.headers.get('Content-Type') or '').lower()
+    except Exception:
+        ct = ''
+    if 'json' in ct:
+        return True
+    if 'html' in ct:
+        return False
+    text = (r.text or '').strip()
+    if not text:
+        return False
+    try:
+        json.loads(text)
+        return True
+    except Exception:
+        return False
 
 def _stop(*_):
     global running
@@ -151,12 +294,44 @@ def handle(ch, method, properties, body):
             log_event(evt, 'rabbitmq-consumer', r.status_code, latency_ms)
             if stats['ok'] % 100 == 0: log.info(f"[OK {r.status_code}] {endpoint_path} ok={stats['ok']}")
         elif 400 <= r.status_code < 500:
-            ch.basic_ack(delivery_tag=tag)
-            drop_reason(f'4xx:{r.status_code}')
-            log_event(evt, 'rabbitmq-consumer', r.status_code, latency_ms, r.text[:200])
-            log.warning(f"[DROP {r.status_code}] {endpoint_path} reason=4xx:{r.status_code} body[:150]={r.text[:150]}")
-            if r.status_code not in (404, 422):
-                report_to_sentry(msg=f"[4xx] {r.status_code} {endpoint_path}", extras={'body': r.text[:500], 'rk': rk})
+            attempts = delivery_attempts(method, properties)
+            # (a) 429 = rate limit → sempre transiente (retry, honra Retry-After)
+            # (b) 4xx com body NÃO-JSON (HTML/empty do gateway) → transiente
+            if r.status_code == 429 or not body_is_json(r):
+                if attempts >= MAX_DELIVERY:
+                    # teto de tentativas atingido — drop definitivo p/ evitar hot loop (S-09/S2)
+                    ch.basic_ack(delivery_tag=tag)
+                    drop_reason(f'4xx:{r.status_code}:max_attempts')
+                    log_event(evt, 'rabbitmq-consumer', r.status_code, latency_ms,
+                              f'max_attempts={attempts} body_head={r.text[:200]!r}')
+                    log.error(f"[DROP {r.status_code}] {endpoint_path} reason=4xx:{r.status_code}:max_attempts "
+                              f"attempts={attempts}/{MAX_DELIVERY} body[:150]={r.text[:150]!r}")
+                    report_to_sentry(msg=f"[4xx:max_attempts] {r.status_code} {endpoint_path} attempts={attempts}",
+                                     extras={'body': r.text[:500], 'rk': rk})
+                else:
+                    retry_after = parse_retry_after(r)
+                    delay = backoff_delay(attempts, retry_after)
+                    retry_reason(f'4xx:{r.status_code}')
+                    log_event(evt, 'rabbitmq-consumer', r.status_code, latency_ms,
+                              f'retry attempt {attempts}/{MAX_DELIVERY}')
+                    log.warning(f"[RETRY {r.status_code}] {endpoint_path} "
+                                f"reason={'rate_limit' if r.status_code == 429 else 'gateway_non_json'} "
+                                f"attempt={attempts}/{MAX_DELIVERY} delay={delay:.0f}s "
+                                f"retry_after={retry_after} body[:150]={r.text[:150]!r}")
+                    if r.status_code != 404 and attempts == 1:
+                        report_to_sentry(msg=f"[4xx-transient] {r.status_code} {endpoint_path}",
+                                         extras={'body': r.text[:500], 'rk': rk})
+                    time.sleep(delay)  # backoff ANTES do requeue (pacing em todas as réplicas)
+                    ch.basic_nack(delivery_tag=tag, requeue=True)
+            else:
+                # (c) 4xx com body JSON = erro aplicativo da edge → drop definitivo
+                ch.basic_ack(delivery_tag=tag)
+                drop_reason(f'4xx:{r.status_code}')
+                log_event(evt, 'rabbitmq-consumer', r.status_code, latency_ms, r.text[:200])
+                log.warning(f"[DROP {r.status_code}] {endpoint_path} reason=4xx:{r.status_code} "
+                            f"(json edge) body[:150]={r.text[:150]!r}")
+                if r.status_code not in (404, 422):
+                    report_to_sentry(msg=f"[4xx] {r.status_code} {endpoint_path}", extras={'body': r.text[:500], 'rk': rk})
         else:
             ch.basic_nack(delivery_tag=tag, requeue=True); stats['retry']+=1
             log_event(evt, 'rabbitmq-consumer', r.status_code, latency_ms, '5xx will retry')
@@ -195,8 +370,10 @@ def subscribe(conn, q):
         return None
 
 def main():
-    log.info(f"consumer v6 | SHADOW={SHADOW} | prefixes={PREFIXES} | queues={len(QUEUES)} | "
-             f"PG_LOG={'on' if PG_URL and PG_AVAIL else 'off'} | SENTRY={'on' if SENTRY_DSN and SENTRY_AVAIL else 'off'}")
+    log.info(f"consumer v7 | SHADOW={SHADOW} | prefixes={PREFIXES} | queues={len(QUEUES)} | "
+             f"PG_LOG={'on' if PG_URL and PG_AVAIL else 'off'} | SENTRY={'on' if SENTRY_DSN and SENTRY_AVAIL else 'off'} | "
+             f"MAX_DELIVERY={MAX_DELIVERY} | BACKOFF={BACKOFF_BASE}*{BACKOFF_FACTOR}^n cap={BACKOFF_MAX}s | "
+             f"STATS_PG={_STATS_TABLE} ({'on' if PG_URL and PG_AVAIL else 'off'})")
     log.info(f"target={SUPABASE_URL}")
     while running:
         conn = None
@@ -228,10 +405,13 @@ def main():
                              f"filas={vivas}/{len(QUEUES)} resub={stats['resub']} "
                              f"pg_log_ok={stats['pg_log_ok']} pg_log_err={stats['pg_log_err']} "
                              f"sentry_sent={stats['sentry_sent']} "
-                             f"drop_by={json.dumps(stats['drop_by_reason'], separators=(',',':'))}")
+                             f"drop_by={json.dumps(stats['drop_by_reason'], separators=(',',':'))} "
+                             f"retry_by={json.dumps(stats['retry_by_reason'], separators=(',',':'))} "
+                             f"pg_stats_ok={stats['pg_stats_ok']} pg_stats_err={stats['pg_stats_err']}")
                     if stats['drop'] > 0:
                         log.info(f"[DROP-REASONS] drop={stats['drop']} "
                                  f"drop_by={json.dumps(stats['drop_by_reason'], separators=(',',':'))}")
+                    persist_stats()
                     last_stats = now
             try: conn.close()
             except Exception: pass

@@ -196,10 +196,14 @@
   },
   "overrides": {
     "csstype": "3.2.3",
-    "@vitest/browser": "4.1.10"
+    "@vitest/browser": "4.1.10",
+    "brace-expansion": "5.0.9",
+    "fast-uri": ">=3.1.5"
   },
   "resolutions": {
     "csstype": "3.2.3",
-    "@vitest/browser": "4.1.10"
+    "@vitest/browser": "4.1.10",
+    "brace-expansion": "5.0.9",
+    "fast-uri": ">=3.1.5"
   }
 }

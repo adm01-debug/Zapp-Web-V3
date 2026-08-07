@@ -28,10 +28,8 @@ const VERIFY_JWT = Deno.env.get('VERIFY_JWT') === 'true'
 const PUBLIC_FNS = new Set<string>([
   // webhooks com HMAC próprio (fail-closed via *_STRICT + secrets HMAC)
   'evolution-webhook',
-  'whatsapp-webhook',
   'whatsapp-cloud-webhook',
   'whatsapp-cloud-webhook-verify',
-  'elevenlabs-webhook',
   'gmail-webhook',
   // públicos por design (sem dado sensível)
   'email-track-pixel',
@@ -41,7 +39,6 @@ const PUBLIC_FNS = new Set<string>([
   'status',
   'login-attempts',
   // health GET público (POST exige JWT de usuário) — validação Claude #783
-  'audio-transcribe',
   // cron/alert com segredo próprio (CRON_SECRET / *_SECRET)
   'cleanup-rate-limit-logs',
   'cleanup-storage-orphans',
@@ -53,7 +50,6 @@ const PUBLIC_FNS = new Set<string>([
   'talkx-scheduler',
   'sla-alert-forward',
   'sentiment-alert',
-  'evolution-health',
   'bitrix-api',
   'send-rate-limit-alert',
   'evolution-sync',
@@ -167,7 +163,7 @@ Deno.serve(async (req: Request) => {
     const parsed = parseOrReject('main', CONTRACT_SCHEMAS['main'], req, await req.json().catch(() => ({})), {
       extraHeaders: getCorsHeaders(req),
     })
-    if (!parsed.ok) return parsed.response
+    if (parsed.ok === false) return parsed.response
   }
 
   const servicePath = `/home/deno/functions/${service_name}`

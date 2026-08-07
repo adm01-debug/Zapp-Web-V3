@@ -36,6 +36,7 @@
 **Regras de dependência:**
 - `public → domínios` (lê via views) ✓
 - `zapp → evo` (via contrato curado de views/RPC) ✓
+> - **EXCEÇÃO FORMAL (ADR-DB-004):** 32 FKs diretas `zapp.*.contact_id → evo.evolution_contacts(id)` — integridade referencial de identidade de contato (18 CASCADE / 11 NO ACTION / 3 SET NULL).
 - `evo → zapp` **PROIBIDO** — Evolution nunca depende do app
 - `domínios → plataforma` (auth, storage, etc.) — somente para autenticação/storage nativo
 - `evo → ops` **PROIBIDO** — ferramental de ops não deve viver no `evo`
@@ -172,6 +173,11 @@
 `auth`, `storage`, `realtime`, `_realtime`, `vault`, `pgsodium`, `net`, `graphql`, `graphql_public`, `extensions`, `cron`, `pgmq`, `supabase_functions`, `supabase_migrations`, `_analytics`.
 
 ---
+
+
+## Exceções de integridade referencial (ADR-DB-004 — 06/08/2026)
+
+FKs diretas entre schemas são exceção formal, permitidas apenas para (a) proxys de identidade — alvo `evo.evolution_contacts(id)` ou `zapp.profiles(id)` — ou (b) entidades compartilhadas de negócio (ex.: `logistica.transportadoras`, `logistica.cotacoes`, `zapp.sales_deals`, `email_app.email_accounts`). Inventário vigente: 32× zapp→evo (todas → evolution_contacts); 12× entre módulos (email_app→evo 3, email_app→zapp 2, vendas→logistica 2, zapp→email_app 1, ai→zapp 1, financeiro→evo 1, financeiro→logistica 1, financeiro→zapp 1); 3× intra-zapp (extensions→tenants, queues→sla_policies, sla_violations→sla_policies). **`sla_policies` e `tenants` NÃO são schemas** — são tabelas em `zapp`: `tenants` = config do Realtime Server (1 linha, `realtime-dev`); `sla_policies` = dormante (0 linhas, 2 FKs apontando). Nova FK direta exige justificativa no PR; CI-06 (informativo) monitora o total de 32.
 
 ## Storage (buckets) — contrato de visibilidade
 

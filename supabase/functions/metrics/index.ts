@@ -162,7 +162,7 @@ Deno.serve(async (req) => {
   const parsed = parseOrReject('metrics', { v1: MetricsV1Schema }, req, await req.json().catch(() => ({})), {
     extraHeaders: getCorsHeaders(req),
   });
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
   try {
     const body = fmt(await collect());
     return new Response(body, {

@@ -93,6 +93,19 @@ edge_exec() {
   fi
 }
 
+# Variante com stdin (fix 2026-08-07 — exit 126/E2BIG): funções com index.ts
+# >96KB geram base64 >128KB (MAX_ARG_STRLEN) — embutir no argv do sh -c faz o
+# kernel rejeitar com "Argument list too long" (docker exec sai 126). Com
+# `docker exec -i` o payload trafega pelo stdin (sem limite prático).
+edge_exec_stdin() {
+  local cmd="$1"
+  if [[ "$BACKEND" == "housekeeping" ]]; then
+    docker exec docker-housekeeping_cleanup docker exec -i "$FUNCTIONS_CONTAINER" sh -c "$cmd"
+  else
+    docker exec -i "$FUNCTIONS_CONTAINER" sh -c "$cmd"
+  fi
+}
+
 # ── P-05: Descobrir o container real (nome com task id, ex: supabase_functions.1.abc) ─
 echo "── P-05: localizando container '$CONTAINER_PREFIX' (backend=$BACKEND) ──"
 if [[ "$BACKEND" == "housekeeping" ]]; then
@@ -184,9 +197,11 @@ if [[ $APPLY -eq 1 ]] && { [[ $MISSING -gt 0 || $STALE -gt 0 ]]; }; then
   for fn in "${MISSING_LIST[@]}" "${STALE_LIST[@]}"; do
     b64=$(base64 -w0 "$FUNCTIONS_DIR/$fn/index.ts")
     expected=$(sha256sum "$FUNCTIONS_DIR/$fn/index.ts" | cut -c1-12)
-    edge_exec "
+    # Fix 2026-08-07 (exit 126/E2BIG): payload via stdin (docker exec -i) —
+    # argv do sh -c estoura MAX_ARG_STRLEN com index.ts >96KB.
+    echo "$b64" | edge_exec_stdin "
       mkdir -p ${VOLUME_PATH}/${fn}
-      echo '$b64' | base64 -d > ${VOLUME_PATH}/${fn}/index.ts
+      base64 -d > ${VOLUME_PATH}/${fn}/index.ts
     " >/dev/null 2>&1
     # P-10a: validação de hash pós-escrita (anti-corrupção de encoding)
     written=$(edge_exec "sha256sum ${VOLUME_PATH}/${fn}/index.ts" 2>/dev/null | cut -c1-12 || true)

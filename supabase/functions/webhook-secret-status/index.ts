@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('webhook-secret-status', CONTRACT_SCHEMAS['webhook-secret-status'], req, body, {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
 
     const secret = Deno.env.get('WEBHOOK_SECRET') ?? '';
     const present = secret.length > 0;

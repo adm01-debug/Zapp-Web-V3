@@ -10,9 +10,11 @@ export async function fetchActiveAgentsCount() {
 }
 
 export async function fetchBreachedSLACount() {
+  const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const { count } = await supabase
     .from('conversation_sla')
     .select('id', { count: 'exact', head: true })
-    .eq('first_response_breached', true);
+    .eq('first_response_breached', true)
+    .gte('created_at', since30d);
   return count ?? 0;
 }

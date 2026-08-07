@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
       const raw = Object.fromEntries(formData.entries()); // preserva File (multipart)
       // Contrato voice-changer@v1 (variante multipart): audio (File) obrigatório.
       const parsed = parseOrReject('voice-changer', CONTRACT_SCHEMAS['voice-changer'], req, raw, { extraHeaders: getCorsHeaders(req) });
-      if (!parsed.ok) return parsed.response;
+      if (parsed.ok === false) return parsed.response;
       const body = parsed.data as Record<string, any>;
       audioData = (body.audio as File | undefined) ?? null;
       voicePreset = (body.voice_preset as string) || 'grave';
@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
       // MULTIPART (audio File obrigatório) — usar a variante JSON registrada
       // (VoiceChangerV1Schema) para não 422ar todos os requests de fila.
       const parsed = parseOrReject('voice-changer', { v1: VoiceChangerV1Schema }, req, json, { extraHeaders: getCorsHeaders(req) });
-      if (!parsed.ok) return parsed.response;
+      if (parsed.ok === false) return parsed.response;
       const body = parsed.data as Record<string, any>;
       taskId = (body.task_id as string | null) ?? null;
       authorized = body.authorized === true;

@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     const parsed = parseOrReject('send-scheduled-report', { v1: SendScheduledReportV1Schema }, req, await req.json().catch(() => null), {
       extraHeaders: getCorsHeaders(req),
     });
-    if (!parsed.ok) return parsed.response;
+    if (parsed.ok === false) return parsed.response;
 
     const { reportId } = parsed.data as { reportId: string };
 

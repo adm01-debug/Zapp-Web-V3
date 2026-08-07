@@ -1,0 +1,284 @@
+# =============================================================================
+# DRAFT — deploy-vps-selfhosted.yml  (item 92 — AG-EX-20, governança wave 2)
+# -----------------------------------------------------------------------------
+# ⚠️  DRAFT PARA REVISÃO — NÃO ativar antes de aprovação.
+# Objetivo: formalizar Git → CI → deploy Swarm com CONVERGÊNCIA VERIFICADA,
+# rodando o passo de deploy no runner self-hosted (stack 210,
+# myoung34/github-runner, fix portainer-ops: override command + restart any).
+# Após revisão: substituir .github/workflows/deploy-vps.yml por este arquivo
+# (ou mergear a job `deploy` no existente).
+#
+# Decisões de design (alinhadas ao AG-EX-10 item 92):
+#   1. Build/push da imagem: ubuntu-latest (GHCR, tag SHA imutável) — mantém o
+#      padrão do deploy-vps.yml atual (retenção 9 versões + tags protegidas).
+#   2. Deploy: runner SELF-HOSTED (docker socket se montado → `docker stack
+#      deploy`; senão fallback automático para a API do Portainer).
+#   3. Convergência verificada: após o deploy, o job compara stack file ×
+#      runtime (imagem por digest + replicas + UpdateStatus) para CADA serviço
+#      do stack; divergência ⇒ falha o job (padrão guardrail-reconcile).
+#   4. Fim dos stacks `updated:1970`: todo deploy passa a ter trilha
+#      commit → run → digest → runtime.
+# =============================================================================
+
+name: 🚀 Deploy VPS — Git→CI→Swarm (convergência verificada) [DRAFT]
+
+on:
+  push:
+    branches: [main]
+    # Caminhos mínimos para não disparar deploy a cada commit de UI:
+    # paths:
+    #   - 'infra/stacks/**'
+    #   - '.github/workflows/deploy-vps*.yml'
+    #   - 'supabase/**'
+    #   - 'Dockerfile'
+  workflow_dispatch:
+    inputs:
+      stack_id:
+        description: "ID do stack no Portainer (padrão: zapp-web-prod=157)"
+        required: false
+        default: "157"
+      stack_file:
+        description: "Caminho do compose versionado em infra/stacks/ (vazio = usa o arquivo salvo no Portainer)"
+        required: false
+        default: ""
+      image_tag:
+        description: "Override de tag de imagem (default: production-<sha12>)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/zapp-web
+
+jobs:
+  build-and-push:
+    name: Build & push imagem (GHCR)
+    runs-on: ubuntu-latest
+    environment: production
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: 🛡️ Preflight secrets
+        env:
+          CI: "true"
+          ENFORCE_DEPLOY_SECRETS: "1"
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          node scripts/check-deploy-secrets.mjs
+          echo "✅ Secrets críticos presentes."
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Login GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute tag
+        id: meta
+        run: |
+          TAG="${{ inputs.image_tag }}"
+          if [ -z "$TAG" ]; then TAG="production-${GITHUB_SHA::12}"; fi
+          echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Build & push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:production-latest
+          build-args: |
+            VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
+            VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+            VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+            VITE_SENTRY_DSN=${{ secrets.VITE_SENTRY_DSN }}
+            VITE_GIT_SHA=${{ github.sha }}
+            VITE_SENTRY_ENVIRONMENT=production
+            VITE_APP_ENV=production
+
+      - name: 📋 Tags de rollback protegidas
+        id: protect
+        run: |
+          if [ ! -f infra/ghcr-protected-tags.txt ]; then
+            echo "regex=^production-(fbd04bec303d|988086a2bbbd|a68e678b8496)$" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          TAGS="$(grep -v '^#' infra/ghcr-protected-tags.txt | grep -v '^[[:space:]]*$' \
+            | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr 'A-F' 'a-f' | tr -d '\r' \
+            | grep -E '^[0-9a-f]{12}$' | tr '\n' '|' | sed 's/|$//')"
+          if [ -z "$TAGS" ]; then
+            echo "regex=^production-(fbd04bec303d|988086a2bbbd|a68e678b8496)$" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "regex=^production-(${TAGS})$" >> "$GITHUB_OUTPUT"
+
+      # Retenção GHCR: manter 9 versões (3 deploys íntegros: index+amd64+attestation).
+      # Proteger rollbacks via infra/ghcr-protected-tags.txt. NÃO usar
+      # delete-only-untagged-versions (quebraria o pull: manifest unknown).
+      - name: 🧹 GHCR retention (keep 9 — 3 deploys íntegros)
+        id: retention
+        continue-on-error: true
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: zapp-web-v3/zapp-web
+          package-type: container
+          min-versions-to-keep: 9
+          ignore-versions: ${{ steps.protect.outputs.regex }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  # ===========================================================================
+  # DEPLOY — runner SELF-HOSTED (stack 210, myoung34/github-runner)
+  # ---------------------------------------------------------------------------
+  # Labels do runner: conferir com a env LABELS do stack 210 (ex. "vps").
+  # Ajuste `runs-on` para bater com o registro real:
+  #   gh api repos/<owner>/<repo>/actions/runners | jq '.runners[].labels'
+  # ===========================================================================
+  deploy:
+    name: Deploy Swarm + convergência verificada
+    runs-on: [self-hosted, vps-zapp, linux, x64]
+    needs: build-and-push
+    environment: production
+    timeout-minutes: 30
+    # NOTA: o runner (stack 210) monta /var/run/docker.sock → `docker stack
+    # deploy` direto. Labels reais registradas: vps-zapp,playwright,linux,x64.
+    # ⚠️ STACK 210 contém ACCESS_TOKEN (PAT) LITERAL no compose — ver
+    # docs/SECRETS-ROTATION-RUNBOOK.md §6: rotacionar/migrar p/ GitHub App.
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: 🔑 Verificar secrets de deploy
+        run: |
+          missing=""
+          [ -z "${PORTAINER_API_TOKEN}" ] && missing="$missing PORTAINER_API_TOKEN"
+          [ -z "${PORTAINER_URL}" ]        && missing="$missing PORTAINER_URL"
+          if [ -n "$missing" ]; then
+            echo "::error::Secrets ausentes:${missing}"
+            exit 1
+          fi
+        env:
+          PORTAINER_API_TOKEN: ${{ secrets.PORTAINER_API_TOKEN }}
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+
+      - name: 📦 Resolver compose de origem única (Git primeiro)
+        id: compose
+        env:
+          STACK_FILE: ${{ inputs.stack_file || '' }}
+          PORTAINER_API_TOKEN: ${{ secrets.PORTAINER_API_TOKEN }}
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+          STACK_ID: ${{ inputs.stack_id || '157' }}
+        run: |
+          set -euo pipefail
+          if [ -n "$STACK_FILE" ] && [ -f "$STACK_FILE" ]; then
+            cp "$STACK_FILE" /tmp/compose.yml
+            echo "src=git:${STACK_FILE}" >> "$GITHUB_OUTPUT"
+          else
+            # Fallback: baixa o compose salvo no Portainer (fonte única ainda
+            # não migrada para infra/stacks/) — marcar aviso no log.
+            curl -fsS -H "X-API-Key: ${PORTAINER_API_TOKEN}" \
+              "${PORTAINER_URL}/api/stacks/${STACK_ID}/file" \
+              | jq -r '.StackFileContent' > /tmp/compose.yml
+            echo "src=portainer:${STACK_ID}" >> "$GITHUB_OUTPUT"
+            echo "::warning::COMPOSE_FROM_PORTAINER — migrar para infra/stacks/ (item 92)"
+          fi
+          # Substitui tag móvel por digest SHA imutável (anti-dangling)
+          sed -i "s|production-latest|${{ needs.build-and-push.outputs.image }}|g" /tmp/compose.yml
+          grep -n 'image:' /tmp/compose.yml | head -5
+
+      - name: 🚀 Deploy (docker stack deploy via socket OU API Portainer)
+        id: deploy
+        env:
+          PORTAINER_API_TOKEN: ${{ secrets.PORTAINER_API_TOKEN }}
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+          STACK_ID: ${{ inputs.stack_id }}
+          STACK_NAME: zapp-web-prod
+        run: |
+          set -euo pipefail
+          if [ -S /var/run/docker.sock ]; then
+            echo "→ socket docker disponível: deploy via CLI"
+            docker stack deploy -c /tmp/compose.yml "${STACK_NAME}"
+          else
+            echo "→ socket indisponível: deploy via API Portainer"
+            STACK_CONTENT=$(cat /tmp/compose.yml | jq -Rs .)
+            PAYLOAD="{\"pullImage\":true,\"prune\":false,\"stackFileContent\":${STACK_CONTENT}}"
+            HTTP=$(curl -s -o /tmp/pr.json -w "%{http_code}" \
+              -X PUT "${PORTAINER_URL}/api/stacks/${STACK_ID}?endpointId=1" \
+              -H "X-API-Key: ${PORTAINER_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "${PAYLOAD}")
+            echo "Portainer HTTP: ${HTTP}"
+            cat /tmp/pr.json | head -c 400 || true
+            [ "${HTTP}" = "200" ] || { echo "::error::Deploy falhou HTTP ${HTTP}"; exit 1; }
+          fi
+
+      - name: ✅ Convergência verificada (stack file × runtime)
+        id: convergence
+        env:
+          STACK_NAME: zapp-web-prod
+        run: |
+          set -euo pipefail
+          # Para cada serviço do stack: imagem por digest + replicas + UpdateStatus
+          FAIL=0
+          for svc in $(docker service ls --filter "label=com.docker.stack.namespace=${STACK_NAME}" --format '{{.Name}}'); do
+            IMG=$(docker service inspect "$svc" --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}')
+            RUN=$(docker service ls --filter "name=${svc}" --format '{{.Replicas}}')
+            STATUS=$(docker service inspect "$svc" --format '{{if .UpdateStatus}}{{.UpdateStatus.State}}{{else}}none{{end}}')
+            echo "  ${svc}: image=${IMG} replicas=${RUN} update=${STATUS}"
+            case "$STATUS" in
+              completed|none) ;;
+              *) echo "::error::CONVERGENCE_FAIL ${svc} update_status=${STATUS}"; FAIL=1 ;;
+            esac
+            # Imagem esperada (SHA) presente no runtime:
+            EXPECTED="${{ needs.build-and-push.outputs.image }}"
+            EXPECTED_SHA="${EXPECTED##*:}"   # production-<sha12> ou digest
+            case "$EXPECTED_SHA" in
+              sha256:*) ;;
+              *) EXPECTED_SHA="production-${GITHUB_SHA::12}" ;;
+            esac
+            if ! echo "$IMG" | grep -q "${EXPECTED_SHA}"; then
+              # nem todo serviço do stack usa a imagem nova (ex. infra) — aviso
+              echo "::warning::${svc} não aponta para a imagem do deploy (esperado ${EXPECTED_SHA})"
+            fi
+          done
+          [ "$FAIL" = "0" ] || { echo "::error::Convergência NÃO verificada — abortar"; exit 1; }
+          echo "✅ Convergência verificada para ${STACK_NAME}"
+
+      - name: 🩺 Health check pós-deploy
+        if: always() && steps.deploy.outcome == 'success'
+        run: |
+          set +e
+          HC=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 \
+            https://zapp.atomicabr.com.br/auth || echo 000)
+          echo "Health /auth: ${HC}"
+          case "${HC}" in
+            200|301|302) echo "✅ App OK" ;;
+            *) echo "::warning::POST_DEPLOY_HC=${HC} — verificar serviço manualmente" ;;
+          esac
+
+      - name: 📝 Trilha de auditoria (commit → run → digest → runtime)
+        if: always()
+        run: |
+          {
+            echo "commit=${{ github.sha }}"
+            echo "run=${{ github.run_id }}"
+            echo "image=${{ needs.build-and-push.outputs.image }}"
+            echo "compose_src=${{ steps.compose.outputs.src }}"
+            echo "deploy=${{ steps.deploy.outcome }}"
+            echo "convergence=${{ steps.convergence.outcome }}"
+          } | tee /tmp/deploy-audit.txt

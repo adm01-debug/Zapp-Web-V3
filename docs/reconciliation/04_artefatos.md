@@ -28,7 +28,7 @@ O serviço `zapp-web-prod_web` é uma task efêmera do Swarm e foi **redeployado
 Comandos executados em `/usr/share/nginx/html/assets` (nginx oficial, healthcheck `/healthz` ok, IP `10.0.1.253`):
 
 - `grep -rho 'supabase\.atomicabr\.com\.br' … | head -5` → **5 ocorrências exibidas; total = 44 ocorrências** → `SUPABASE_URL` self-hosted (`https://supabase.atomicabr.com.br`) **embutido no bundle**. ✅
-- `grep -rho 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9' … | head -3` → **prefixo JWT HS256 presente** (3+ ocorrências) → anon/service key embutida (apenas prefixo inspecionado, conforme regra — valor completo NÃO extraído). ✅
+- `grep -rho 'eyJhbG...VCJ9' … | head -3` → **prefixo JWT HS256 presente** (3+ ocorrências) → anon/service key embutida (apenas prefixo inspecionado, conforme regra — valor completo NÃO extraído). ✅
 
 **Veredito 52:** env aponta para o self-hosted; sem resquício de URL Lovable/cloud no assets (nenhuma ocorrência de outro domínio na amostra).
 

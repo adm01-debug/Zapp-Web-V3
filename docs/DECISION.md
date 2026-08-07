@@ -95,7 +95,7 @@ Frontend (zapp-web-v3) → PostgREST (public.*)
 ```bash
 # Correto:
 npx supabase gen types typescript \
-  --db-url "postgresql://postgres:...@supabase.atomicabr.com.br:5432/postgres" \
+  --db-url "postgresql://postgres:<SECRETO>@supabase.atomicabr.com.br:5432/postgres" \
   > src/integrations/supabase/types.ts
 
 # ERRADO (stale do Cloud):

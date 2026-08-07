@@ -8,7 +8,7 @@
  * Roda em CI: deno test --allow-all _shared/__tests__/contract-matrix.test.ts
  */
 
-import { assert, assertEquals, assertExists } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assert, assertEquals, assertExists } from "jsr:@std/assert";
 import { parseOrReject } from "../contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../contract-schemas.ts";
 import { CONTRACTS } from "../contract-versions.ts";
@@ -33,7 +33,7 @@ for (const contractName of ALL_CONTRACTS) {
     );
 
     assertEquals(result.ok, false, `${contractName}: esperado ok=false para body null`);
-    if (!result.ok) {
+    if (result.ok === false) {
       assertEquals(result.response.status, 422);
       assertEquals(result.body.error, true);
       assertEquals(result.body.code, "invalid_json",
@@ -63,7 +63,7 @@ for (const contractName of ALL_CONTRACTS) {
     );
 
     assertEquals(result.ok, false, `${contractName}: esperado ok=false para string`);
-    if (!result.ok) {
+    if (result.ok === false) {
       assertEquals(result.response.status, 422);
       assertEquals(result.body.code, "invalid_json");
     }
@@ -79,7 +79,7 @@ for (const contractName of ALL_CONTRACTS) {
     );
 
     assertEquals(result.ok, false);
-    if (!result.ok) {
+    if (result.ok === false) {
       assertEquals(result.response.status, 422);
       assertEquals(result.body.code, "invalid_json");
     }
@@ -102,7 +102,7 @@ for (const contractName of ALL_CONTRACTS) {
     );
 
     assertEquals(result.ok, false, `${contractName}: esperado ok=false para v99`);
-    if (!result.ok) {
+    if (result.ok === false) {
       assertEquals(result.response.status, 422);
       assertEquals(result.body.code, "unsupported_contract_version",
         `${contractName}: esperado code="unsupported_contract_version", recebido "${result.body.code}"`);
@@ -126,7 +126,7 @@ for (const contractName of ALL_CONTRACTS) {
     );
 
     assertEquals(result.ok, false);
-    if (!result.ok) {
+    if (result.ok === false) {
       // Content-Type sempre presente
       assertEquals(
         result.response.headers.get("Content-Type"),
@@ -163,7 +163,7 @@ for (const contractName of ALL_CONTRACTS) {
 
     // {} pode ser aceito (permissivo/nullish) ou rejeitado (strict com required)
     // O importante é que NÃO dê exceção (crash) e que o resultado seja bem-formado
-    if (result.ok) {
+    if (result.ok === true) {
       assertExists(result.data, `${contractName}: data ausente em ok=true`);
       assertExists(result.version, `${contractName}: version ausente`);
     } else {

@@ -15,7 +15,7 @@
  * Rodar: deno test --allow-net --allow-env --allow-read supabase/functions/ai-suggest-reply/__tests__/contract.test.ts
  */
 
-import { assertEquals, assert, assertMatch } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assert, assertMatch } from "jsr:@std/assert";
 import { AiSuggestReplySchema } from "../../_shared/schemas.ts";
 import { readSourceFrom } from "../../_shared/test-helpers.ts";
 
