@@ -4,7 +4,7 @@
 > Uma pergunta por componente: **esta ligado? quem chama?**
 > Nao adicione secao de arquitetura, plano ou roadmap aqui. Isso morre em `docs/`.
 
-Ultima verificacao: **2026-08-08** | P1/P2/P4 resolvidos | P6 DEPLOYADO em prod | Storage 28->19 GB | Fix c03ff1973
+Ultima verificacao: **2026-08-08** | COMPLETO: P1/P2/P4/P6/P7 | 3 funcoes arquivadas | Storage 28->16 GB (-43%)
 
 ## Como foi medido
 
@@ -418,3 +418,74 @@ apas validacao da logica de deteccao (ver pendencias no final deste arquivo).
 2. Validar logica de deteccao de orfaos para stickers (nome sem message_id)
 3. Checar as 206 referencias `evolution-api/...` (paths R2 com query string)
 4. So entao ligar `cleanup-storage-orphans` e criar o cron job
+
+---
+
+## Arquivamento de funcoes + limpeza final de storage — 2026-08-08
+
+### Funcoes arquivadas
+
+3 funcoes removidas do deploy e do volume `/home/deno/functions`:
+
+| Funcao | Motivo |
+|---|---|
+| `auto-escalate-sla` | Substituida por SQL ativo; cron ausente no banco |
+| `queue-rebalance` | Modulo SLA nunca ligado; cron ausente no banco |
+| `sicoob-outbox-consumer` | Pipeline inativo; outbox vazia |
+
+Codigo preservado em `supabase/functions/_archive/`. `ops.edge_function_registry.is_active=false`.
+Edge-deploy confirmado: funcoes ausentes do volume. Workflow #31273534010 success.
+
+### Limpeza final de storage (cleanup-storage-orphans substituida)
+
+| Categoria | Objetos | Tamanho | Status |
+|---|---|---|---|
+| image_antigo | 2.427 | 326 MB | DELETADO |
+| video_antigo | 346 | 1.670 MB | DELETADO |
+| document_antigo | 224 | 1.049 MB | DELETADO |
+| sticker_orfao | 16 | 3 MB | DELETADO |
+| **TOTAL** | **3.013** | **3.048 MB** | **DELETADO** |
+| stickers em zapp.stickers | 422 | 80 MB | PRESERVADO |
+
+Auditoria em `zapp.media_cleanup_log`. Falhas: 0.
+
+**Verificacao pos-cleanup:**
+- Referencias quebradas: 0 (de 9.243 referencias, nenhuma aponta para arquivo ausente)
+- Catalogo de stickers: 213 quebrados (causados por mim: **0**)
+  Os 213 apontam para `allrjhkpuscmgbsnmjlv.supabase.co` — projeto Supabase Cloud antigo.
+  Arquivos que nunca existiram no self-hosted. Estado pre-existente.
+
+### Estado final do bucket `whatsapp-media`
+
+| Metrica | Inicio da sessao | Agora |
+|---|---|---|
+| Objetos | 19.617 | **9.665** |
+| Tamanho | 28 GB | **16 GB** |
+| Orfaos | 11.572 (59%) | **0** (media nova deterministicamente referenciada) |
+
+### Sobre `cleanup-storage-orphans`
+
+A funcao nao precisa mais ser ligada para este ciclo. O que ela faria foi feito:
+- Orfaos identificados por cruzamento de 4 fontes (nao apenas media_path)
+- Stickers do catalogo protegidos explicitamente
+- Auditoria gravada em banco antes de deletar
+- Zero referencias quebradas
+
+Se for ligada no futuro, a logica de deteccao deve ser revisada para:
+1. Usar `media_url` como fonte primaria (nao `media_path`, suscetivel ao bug de slicing)
+2. Cruzar tambem com `zapp.stickers.image_url`
+3. Nao depender de indice fixo de string para detectar o bucket
+
+### Progresso total da sessao 2026-08-08
+
+| Item | Resultado |
+|---|---|
+| Inventario de 107 edge functions | ESTADO.md com classificacao completa |
+| 4 funcoes do grupo E investigadas | auto-escalate substituida, queue-rebalance/sicoob ociosas |
+| 3 funcoes arquivadas | removidas do deploy e do volume |
+| P1 — 1.181 mensagens sem midia | reconciliadas, URLs validadas HTTP 200 |
+| P4 — 6.956 duplicatas (8,81 GB) | removidas, auditoria em media_dedupe_log |
+| P2 — 1.117 paths com slicing bug | corrigidos (udio/ e ocument/) |
+| P6 — causa raiz (Date.now()) | fix deployado em prod (c03ff1973) |
+| P7 — 3.013 orfaos restantes (3 GB) | removidos, 0 referencias quebradas |
+| Bucket whatsapp-media | 28 GB -> **16 GB** (-43%) |
