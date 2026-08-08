@@ -269,7 +269,7 @@ export async function handleStickerMedia(
           const bytes = new Uint8Array(arrayBuf);
           if (bytes.length > 100) {
             // P6-fix: filename deterministico por messageId (remove Date.now() que causava duplicatas).
-      const fileName = `sticker_${key.id.replace(/[^a-zA-Z0-9]/g, '')}.webp`;
+            const fileName = `sticker_${key.id.replace(/[^a-zA-Z0-9]/g, '')}.webp`;
             const { error: uploadErr } = await supabase.storage.from('whatsapp-media').upload(`stickers/${fileName}`, bytes, { contentType: 'image/webp', cacheControl: '31536000', upsert: true });
             if (!uploadErr) { mediaUrl = getStoragePublicUrl('whatsapp-media', `stickers/${fileName}`); }
           }
