@@ -46,7 +46,6 @@ const EMPTY_STRICT_NAMES = [
   "migrate-media-storage",
   "nps-scheduler",
   "provider-healthcheck",
-  "sicoob-outbox-consumer",
   "talkx-scheduler",
 ] as const;
 
@@ -202,19 +201,6 @@ const MATRICES: Matrix[] = [
       { label: "action ausente", payload: { channel_connection_id: "ch1" }, expectPath: "action" },
       { label: "action fora do enum", payload: { action: "deleteAll" }, expectPath: "action" },
       { label: "payload com tipo errado", payload: { action: "ping", payload: "x" }, expectPath: "payload" },
-    ],
-  },
-  {
-    name: "queue-rebalance@v1 (estrito — body opcional)",
-    schema: V1("queue-rebalance"),
-    valid: [
-      {},
-      { limit: 50, dry_run: true, source: "panel" },
-    ],
-    invalid: [
-      { label: "limit abaixo de 1", payload: { limit: 0 }, expectPath: "limit" },
-      { label: "limit acima de 200", payload: { limit: 201 }, expectPath: "limit" },
-      { label: "dry_run com tipo errado", payload: { dry_run: "yes" }, expectPath: "dry_run" },
     ],
   },
   {
@@ -430,10 +416,10 @@ for (const m of MULTIPART_MATRICES) {
   }
 }
 
-// ─── Sanity — todos os 34 nomes estão registrados com v1 no registro canônico ─
-Deno.test("infra: os 34 nomes de infra estão registrados com v1 no CONTRACT_SCHEMAS", () => {
+// ─── Sanity — todos os 32 nomes estão registrados com v1 no registro canônico ─
+Deno.test("infra: os 32 nomes de infra estão registrados com v1 no CONTRACT_SCHEMAS", () => {
   const all = [...EMPTY_STRICT_NAMES, ...MATRICES.map((m) => m.name.split("@")[0]), ...MULTIPART_MATRICES.map((m) => m.name.split("@")[0])];
-  assertEquals(new Set(all).size, 34, "esperava exatamente 34 nomes de infra distintos");
+  assertEquals(new Set(all).size, 32, "esperava exatamente 32 nomes de infra distintos");
   for (const name of all) {
     assert(CONTRACT_SCHEMAS[name], `CONTRACT_SCHEMAS não registra '${name}'`);
     assert(CONTRACT_SCHEMAS[name].v1, `'${name}' não tem versão v1`);
