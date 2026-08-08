@@ -1,4 +1,23 @@
 # ZAPP-WEB — Contexto para Claude Code
+---
+
+## OBRIGATORIO: leia antes de qualquer acao
+
+**1. Leia ESTADO.md (raiz do repo) antes de qualquer mudanca.**
+
+Ele responde as perguntas essenciais:
+- Qual edge function esta ligada em producao e quem a chama?
+- O que foi auditado, arquivado e quais pendencias estao abertas?
+
+Sem ler ESTADO.md voce corre risco de recriar algo que ja existe,
+ou de ligar algo intencionalmente desligado.
+
+**2. Pronto = ligado em producao com trafego real. Codigo existir nao e pronto.**
+
+**3. Nova edge function: declare o chamador no mesmo commit. Sem chamador, nao entra.**
+
+---
+
 
 ## Idioma
 
