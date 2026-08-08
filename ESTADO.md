@@ -4,7 +4,7 @@
 > Uma pergunta por componente: **esta ligado? quem chama?**
 > Nao adicione secao de arquitetura, plano ou roadmap aqui. Isso morre em `docs/`.
 
-Ultima verificacao: **2026-08-08** | Pendencias: P1 reconciliada, P2 resolvido, P4/P5/P6 abertas | Storage 28 GB -> 19 GB
+Ultima verificacao: **2026-08-08** | P1/P2/P4 resolvidos | P6 DEPLOYADO em prod | Storage 28->19 GB | Fix c03ff1973
 
 ## Como foi medido
 
@@ -373,3 +373,48 @@ Ainda **nao ligar**. Restam ~10 GB de objetos sem referencia, mas antes e precis
 P4 (midia gravada 2x) e P2 (path com primeiro caractere cortado) sao o mesmo pipeline de download
 de midia, sem idempotencia na escrita e com manipulacao de string por indice fixo.
 Corrigir os dados e paliativo: o pipeline continua produzindo os dois defeitos.
+
+---
+
+## P6 CORRIGIDO — 2026-08-08
+
+### Fix deployado em producao
+
+Commit `c03ff1973` na `main`. Workflow `edge-deploy` (#31272842779): `completed/success`.
+Volume `/home/deno/functions/_shared/evolution-media.ts` atualizado e confirmado no container.
+
+### Mudanca cirurgica (4 linhas de producao)
+
+**`_shared/evolution-media.ts`** (2 pontos: `persistMediaToStorage` + `persistMediaViaApi`):
+```typescript
+// ANTES — Date.now() diferente a cada chamada → upsert:true nunca funcionava:
+const fileName = `${messageType}/${safeId}_${Date.now()}.${ext}`;
+
+// DEPOIS — deterministico por messageId → retry sobrescreve o mesmo objeto:
+const fileName = `${messageType}/${safeId}.${ext}`;
+```
+
+**`_shared/evolution-webhook-messages.ts`** (2 pontos, stickers):
+- Mesma remocao de `Date.now()` no filename
+- `upsert: true` adicionado (stickers nao tinham)
+
+### O que muda em producao a partir de agora
+
+- Novo arquivo de midia chega → `persistMediaToStorage` tenta download direto do CDN
+- Se falhar → `persistMediaViaApi` chama Evolution para obter base64
+- Em ambos os casos o filename e `messageType/safeId.ext` (deterministico)
+- Retry da mensagem no RabbitMQ → overwrite do mesmo objeto → sem duplicata
+- Sticker recebido 2x → mesmo arquivo → sem duplicata
+
+### Arquivos antigos nao sao afetados
+
+Arquivos com `_timestamp` no nome continuam existindo e referenciados pelas mensagens ja
+persistidas. Nao ha quebra retroativa. Serao removidos pelo `cleanup-storage-orphans`
+apas validacao da logica de deteccao (ver pendencias no final deste arquivo).
+
+### Proximos passos para `cleanup-storage-orphans`
+
+1. Aguardar 7 dias de operacao com o fix para confirmar zero novas duplicatas
+2. Validar logica de deteccao de orfaos para stickers (nome sem message_id)
+3. Checar as 206 referencias `evolution-api/...` (paths R2 com query string)
+4. So entao ligar `cleanup-storage-orphans` e criar o cron job
