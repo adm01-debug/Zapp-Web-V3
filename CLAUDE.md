@@ -2,6 +2,7 @@
 ---
 
 ## OBRIGATORIO: leia antes de qualquer acao
+> Para agentes Hermes: leia tambem [`HERMES.md`](./HERMES.md) para regras especificas de execucao paralela e estado do framework.
 
 **1. Leia ESTADO.md (raiz do repo) antes de qualquer mudanca.**
 
