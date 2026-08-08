@@ -87,7 +87,8 @@ export async function persistMediaToStorage(
     const ext = detectExtension(respContentType, extMap[messageType] || 'bin');
 
     const safeId = messageId.replace(/[^a-zA-Z0-9]/g, '');
-    const fileName = `${messageType}/${safeId}_${Date.now()}.${ext}`;
+    // P6-fix: filename determinístico — Date.now() impedia upsert (cada retry = arquivo novo).
+    const fileName = `${messageType}/${safeId}.${ext}`;
     const bucket = messageType === 'audio' ? 'audio-messages' : 'whatsapp-media';
 
     let uploadErr: any;
@@ -185,7 +186,8 @@ export async function persistMediaViaApi(
     else if (mimeType.includes('quicktime') || mimeType.includes('mov')) ext = 'mov';
 
     const safeId = messageId.replace(/[^a-zA-Z0-9]/g, '');
-    const fileName = `${messageType}/${safeId}_${Date.now()}.${ext}`;
+    // P6-fix: filename determinístico — Date.now() impedia upsert (cada retry = arquivo novo).
+    const fileName = `${messageType}/${safeId}.${ext}`;
     const bucket = messageType === 'audio' ? 'audio-messages' : 'whatsapp-media';
 
     // Retry upload até 3x com backoff exponencial (S20 — conexão intermitente)

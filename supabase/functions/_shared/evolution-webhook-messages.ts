@@ -246,8 +246,9 @@ export async function handleStickerMedia(
       const bytes = new Uint8Array(binaryStr.length);
       for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
       if (bytes.length < 50) return null;
-      const fileName = `sticker_${Date.now()}_${key.id.replace(/[^a-zA-Z0-9]/g, '')}.webp`;
-      const { error: uploadErr } = await supabase.storage.from('whatsapp-media').upload(`stickers/${fileName}`, bytes, { contentType: 'image/webp', cacheControl: '31536000' });
+      // P6-fix: filename deterministico por messageId (remove Date.now() que causava duplicatas).
+      const fileName = `sticker_${key.id.replace(/[^a-zA-Z0-9]/g, '')}.webp`;
+      const { error: uploadErr } = await supabase.storage.from('whatsapp-media').upload(`stickers/${fileName}`, bytes, { contentType: 'image/webp', cacheControl: '31536000', upsert: true });
       if (!uploadErr) {
         return getStoragePublicUrl('whatsapp-media', `stickers/${fileName}`);
       }
@@ -267,8 +268,9 @@ export async function handleStickerMedia(
           const arrayBuf = await resp.arrayBuffer();
           const bytes = new Uint8Array(arrayBuf);
           if (bytes.length > 100) {
-            const fileName = `sticker_${Date.now()}_${key.id.replace(/[^a-zA-Z0-9]/g, '')}.webp`;
-            const { error: uploadErr } = await supabase.storage.from('whatsapp-media').upload(`stickers/${fileName}`, bytes, { contentType: 'image/webp', cacheControl: '31536000' });
+            // P6-fix: filename deterministico por messageId (remove Date.now() que causava duplicatas).
+      const fileName = `sticker_${key.id.replace(/[^a-zA-Z0-9]/g, '')}.webp`;
+            const { error: uploadErr } = await supabase.storage.from('whatsapp-media').upload(`stickers/${fileName}`, bytes, { contentType: 'image/webp', cacheControl: '31536000', upsert: true });
             if (!uploadErr) { mediaUrl = getStoragePublicUrl('whatsapp-media', `stickers/${fileName}`); }
           }
         }
