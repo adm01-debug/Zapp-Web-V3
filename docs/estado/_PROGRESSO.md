@@ -6,6 +6,12 @@
 **Retomada em chat novo:**
 > `lê PLANO-ESTADO.md e _PROGRESSO.md do zapp-web-v3 e continua de onde parou`
 
+> **O trabalho em andamento vive na branch `docs/estado-inventario`.**
+> `main` guarda apenas este ponteiro e o plano. As saídas das Fases 1–8 e as
+> atualizações deste rastreador são commitadas na branch, e voltam para `main`
+> por PR no fim da Fase 9. Ao retomar, faça checkout da branch e leia o
+> `_PROGRESSO.md` **de lá** — é ele que tem o andamento real.
+
 ---
 
 ## Estado atual
