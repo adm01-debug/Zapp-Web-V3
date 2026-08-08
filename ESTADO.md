@@ -4,7 +4,7 @@
 > Uma pergunta por componente: **esta ligado? quem chama?**
 > Nao adicione secao de arquitetura, plano ou roadmap aqui. Isso morre em `docs/`.
 
-Ultima verificacao: **2026-08-08** | Pendencias: P1 **reconciliada (1.181 msgs)**, P2–P5 abertas (ver fim do arquivo)
+Ultima verificacao: **2026-08-08** | Pendencias: P1 reconciliada, P2 resolvido, P4/P5/P6 abertas | Storage 28 GB -> 19 GB
 
 ## Como foi medido
 
@@ -306,3 +306,70 @@ Ainda **nao ligar**. A reconciliacao das pastas image/document/video esta feita,
 sticker e os 73 objetos residuais de image/document/video seguem sem analise. Ligar agora
 apagaria esses. O caminho seguro e remover primeiro **apenas as duplicatas byte-identicas**
 (~8.8 GB), que e operacao de risco baixo e verificavel.
+
+---
+
+## Deduplicacao executada 2026-08-08
+
+### Resultado
+
+| Metrica | Antes | Depois |
+|---|---|---|
+| Objetos em `whatsapp-media` | 19.634 | **12.678** |
+| Tamanho do bucket | 28 GB | **19 GB** |
+| Duplicatas removidas | — | **6.956** (0 falhas) |
+| Espaco liberado | — | **8,81 GB** |
+
+Auditoria completa em `zapp.media_dedupe_log` (name, etag, size, kept_name, deleted_at).
+Sobrou 1 grupo duplicado: o par `.bin`/`.pdf` com eTags divergentes, excluido de proposito.
+
+### Validacoes antes de deletar
+
+1. **Hash real**: 6 pares baixados e comparados por SHA-256 — 6/6 identicos.
+2. **Hash em escala**: `metadata->>'eTag'` (MD5) existe nos 19.634 objetos. Dos 6.925 grupos,
+   6.924 tem eTag unico em todas as copias. O 1 divergente ficou fora.
+3. **Regra de preservacao**: manter sempre a copia **referenciada** no banco.
+   Verificado que 0 objetos referenciados entrariam na lista de delecao.
+4. **Contraprova decisiva**: a heuristica "manter o timestamp menor" seria **errada em 3.714 de
+   6.956 casos (53%)** — nesses, a copia referenciada e a de timestamp maior. Um script baseado
+   em padrao de nome teria quebrado 3.714 midias.
+5. **Teste unitario em producao**: 1 objeto deletado isoladamente. Alvo 200 -> 400,
+   copia preservada 200 -> 200.
+6. **Pos-execucao**: das 902 referencias quebradas detectadas, **0 causadas pela delecao**.
+
+### Nota tecnica: storage-api backend `file`
+
+Os arquivos vivem em `/var/lib/storage/undefined/stub/whatsapp-media/` (o `undefined` no path
+e bug de resolucao de tenant, porem funcional). Cada "arquivo" e na verdade um **diretorio**
+contendo o blob nomeado por UUID de versao. Por isso a delecao **nao** deve ser feita via
+filesystem — foi usada a Storage API oficial (`DELETE /storage/v1/object/{bucket}`),
+com a lista lida direto do Postgres. Credencial lida de `/run/secrets` dentro do proprio
+container do storage; nunca trafegou fora dele.
+
+### P2 RESOLVIDO — bug de slicing de path
+
+O bug que come o primeiro caractere do path afetava dois lugares:
+
+| Coluna | Valor errado | Corrigidos |
+|---|---|---|
+| `evo.evolution_messages.media_path` | `udio/...` | **696** |
+| `zapp.media_download_queue.storage_path` | `ocument/...` | **421** |
+
+Match de 100% validado antes da correcao (696/696 em `audio-messages`, 421/421 em `whatsapp-media`).
+
+**Importante:** nesses 696 casos a `media_url` estava **correta** — o audio sempre funcionou para
+o atendente. O defeito era so no `media_path`. Mas era uma bomba armada: `cleanup-storage-orphans`
+usa `media_path` para decidir o que e orfao, e teria apagado 696 audios em uso.
+
+### Estado da `cleanup-storage-orphans`
+
+Ainda **nao ligar**. Restam ~10 GB de objetos sem referencia, mas antes e preciso:
+1. revisar a logica de deteccao de orfao para nao depender de coluna suscetivel ao bug de slicing;
+2. tratar `stickers` (nome `sticker_<ts>_<hash>`, sem `message_id`);
+3. checar as 206 referencias `evolution-api/...` (paths de R2/S3 com query string).
+
+### P6 — Causa raiz comum (NOVO)
+
+P4 (midia gravada 2x) e P2 (path com primeiro caractere cortado) sao o mesmo pipeline de download
+de midia, sem idempotencia na escrita e com manipulacao de string por indice fixo.
+Corrigir os dados e paliativo: o pipeline continua produzindo os dois defeitos.
