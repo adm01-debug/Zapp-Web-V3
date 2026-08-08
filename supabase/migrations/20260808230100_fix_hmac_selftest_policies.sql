@@ -1,3 +1,4 @@
+-- lint:ok: DROP + CREATE intencionais (fix de regressão de policy VAL3-02-05)
 -- Fix hmac_selftest_audit — regressão do C3 (VAL3-02-05, 3ª validação 2026-08-07)
 -- O C3 (20260807235800) restringiu a tabela com SELECT USING(false) p/ authenticated,
 -- mas o FRONT usa a tabela diretamente (admin-webhook-secret-status):
