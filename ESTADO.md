@@ -4,7 +4,7 @@
 > Uma pergunta por componente: **esta ligado? quem chama?**
 > Nao adicione secao de arquitetura, plano ou roadmap aqui. Isso morre em `docs/`.
 
-Ultima verificacao: **2026-08-08** | Pendencias: **1 P1 critica**, 2 P2/P3 (ver fim do arquivo)
+Ultima verificacao: **2026-08-08** | Pendencias: P1 **reconciliada (1.181 msgs)**, P2–P5 abertas (ver fim do arquivo)
 
 ## Como foi medido
 
@@ -242,3 +242,67 @@ declarado esta de fato ligado.
 
 Anti-join entre `storage.objects` e as 4 fontes de referencia. Usar CTE `MATERIALIZED`
 (a versao com `NOT EXISTS` correlacionado estoura o statement_timeout em 19k objetos).
+
+---
+
+## Reconciliacao executada 2026-08-08
+
+### Resultado
+
+**1.181 mensagens revinculadas** a sua midia (920 image, 200 document, 61 video).
+Validado por HTTP: as URLs retornam 200 com o arquivo correto.
+
+Chave usada: o nome do arquivo carrega o `message_id` do WhatsApp
+(`image/<message_id>_<ts>.jpg`). Match de **100%** contra `evo.evolution_messages.message_id`
+nas pastas image, document e video. Coerencia de tipo perfeita (pasta = message_type).
+Apenas linhas com `media_url IS NULL` foram tocadas.
+
+| Metrica | Antes | Depois |
+|---|---|---|
+| Objetos orfaos | 11.572 | **10.391** |
+| Espaco orfao | 13 GB | **12 GB** |
+
+### Verificacoes feitas antes de escrever
+
+1. `zapp.messages` e **view** sobre `evo.evolution_messages` — a view mascara `media_url`
+   quando `media_status='expired'` ou URL do CDN WhatsApp >7 dias. A medicao foi refeita
+   na tabela base para descartar artefato de view.
+2. Triggers em UPDATE: `fn_rewrite_media_url` (so reescreve minio/r2/kong) e
+   `fn_block_internal_media_url` (so bloqueia loopback). Ambos inofensivos para a URL gravada.
+   Triggers de INSERT (`trg_sicoob_reply`, `trg_filter_canary_messages`) nao disparam em UPDATE
+   — nenhuma mensagem foi reenviada a cliente.
+3. Sem publicacao realtime na tabela — sem broadcast.
+4. Executado em transacao. Dry-run previu 1.181, UPDATE afetou 1.181.
+
+### P4 — Duplicacao de midia no storage (NOVO)
+
+Cada midia foi gravada **duas vezes**, com timestamps no nome diferindo ~57ms:
+
+```
+image/3EB069059D84AA0DFB3EF7_1785780713950.jpg  92158 bytes
+image/3EB069059D84AA0DFB3EF7_1785780714007.jpg  92158 bytes
+```
+
+1.178 de 1.179 pares na janela sao **byte-identicos**. E retry de download gravando duas vezes
+— o pipeline de midia nao tem idempotencia na escrita.
+
+No bucket inteiro: **6.925 grupos duplicados, 6.957 copias excedentes, ~8.8 GB recuperaveis.**
+Ou seja, ~73% dos 12 GB de orfaos e duplicata segura de remover (mantendo 1 de cada par).
+
+### P5 — Audio da janela 02–04/08 perdido de forma irreversivel
+
+601 mensagens de audio sem URL na janela, e o bucket `audio-messages` recebeu apenas
+**8 objetos** naqueles dias (contra 478 em 06/08, quando voltou a funcionar).
+O audio nao foi gravado em lugar nenhum. A midia original expira no CDN do WhatsApp
+em ~7 dias, prazo ja vencido — **nao ha o que recuperar**.
+
+Restante sem URL na janela apos reconciliacao: audio 601, sticker 69, image 36,
+document 30, video 7. Stickers usam nome `sticker_<ts>_<hash>.webp`, sem `message_id`,
+e precisam de outra estrategia de match.
+
+### Estado da `cleanup-storage-orphans`
+
+Ainda **nao ligar**. A reconciliacao das pastas image/document/video esta feita, mas
+sticker e os 73 objetos residuais de image/document/video seguem sem analise. Ligar agora
+apagaria esses. O caminho seguro e remover primeiro **apenas as duplicatas byte-identicas**
+(~8.8 GB), que e operacao de risco baixo e verificavel.
