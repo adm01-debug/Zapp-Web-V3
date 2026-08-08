@@ -69,14 +69,9 @@ COPY t4_prologue.cjs /evolution/t4_prologue.cjs
 #     (7.0.0-rc.9) pelo 6.7.24. Fail-closed: versão exata conferida em build.
 RUN rm -rf /evolution/node_modules/baileys
 COPY baileys/ /evolution/node_modules/baileys/
-RUN node -e ' \
-const fs=require("fs"); \
-const p="/evolution/node_modules/baileys/package.json"; \
-if(!fs.existsSync(p)){console.error("FAIL: node_modules/baileys ausente apos COPY");process.exit(1);} \
-const v=JSON.parse(fs.readFileSync(p,"utf8")).version; \
-if(v!=="6.7.24"){console.error("FAIL: baileys no node_modules = "+v+" (esperado 6.7.24 — nunca publicar imagem com rc.9)");process.exit(1);} \
-console.log("VERIFY OK: baileys "+v+" no node_modules (Plano B)"); \
-'
+# etapa-41: alinhar package.json da base (7.0.0-rc.9) com o runtime (6.7.24).
+RUN node -e 'var fs=require("fs"),p="/evolution/package.json",pkg=JSON.parse(fs.readFileSync(p,"utf8"));if(pkg.dependencies&&pkg.dependencies.baileys!=="6.7.24"){pkg.dependencies.baileys="6.7.24";fs.writeFileSync(p,JSON.stringify(pkg,null,2),"utf8");console.log("pkg.json baileys -> 6.7.24");}else{console.log("pkg.json baileys ok");}'
+RUN node -e 'var fs=require("fs"),p="/evolution/node_modules/baileys/package.json";if(!fs.existsSync(p)){console.error("FAIL: baileys ausente");process.exit(1);}var v=JSON.parse(fs.readFileSync(p,"utf8")).version;if(v!=="6.7.24"){console.error("FAIL: baileys="+v);process.exit(1);}var pkg=JSON.parse(fs.readFileSync("/evolution/package.json","utf8"));var d=pkg.dependencies&&pkg.dependencies.baileys;if(d!=="6.7.24"){console.error("FAIL: package.json declara "+d);process.exit(1);}console.log("VERIFY OK: baileys "+v+" runtime+pkg=6.7.24");'
 
 # --- Verificação fail-closed: o build FALHA se o bundle copiado não tiver T1-T6
 #     exatamente como esperado (nunca sobe imagem com patch quebrado).

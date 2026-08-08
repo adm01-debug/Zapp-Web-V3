@@ -1,0 +1,31 @@
+{
+  "captured_at": "2026-08-08T12:15:00Z",
+  "context": "onda-0-incidente-401-fila-parada",
+  "services": {
+    "evolution_evolution": {
+      "id": "qgc1n6uua2sbo2jn6egzppl1q",
+      "version_index": 13354490,
+      "updated_at": "2026-08-08T00:37:23Z",
+      "image": "sha256:564f9c8b1536b71bd44641c2cdb3a78daebb5497325ce027aac5bbe09c2b5799",
+      "replicas": 1,
+      "state": "running_healthy"
+    },
+    "evolution-rabbit-consumer_consumer": {
+      "id": "brtiwdzkhzf2qx9n9wu6os1kf",
+      "version_index": 13308331,
+      "replicas": 2,
+      "state": "running_healthy"
+    },
+    "evolution-db-purge_purge": {
+      "id": "zp2qizn9ldist9jiag6s7kwmd",
+      "version_index": 13344631,
+      "replicas": 1,
+      "state": "running"
+    }
+  },
+  "freeze": {
+    "audit_log_id": "38b40e43-f42d-4369-9f36-0bbfaa27b17a",
+    "stacks_frozen": [25, 113, 126],
+    "reason": "onda-0: incidente 401 + fila parada + watchdogs off"
+  }
+}
