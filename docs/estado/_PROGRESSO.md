@@ -22,7 +22,7 @@
 | Próximo bloco | **1A — `src/pages` + `src/App.tsx` (árvore de rotas, guards, lazy loading)** |
 | Última atualização | 2026-08-08 (S1, pos-correcoes) |
 | Sessão de chat | S1 |
-| Bloqueios | **SIM — ver secao Bloqueio ativo abaixo** |
+| Bloqueios | nenhum — resolvido 2026-08-08 17:31 |
 
 ---
 
@@ -228,3 +228,35 @@ Entregavel desta trilha: **`estado_atualizado.md`** (renomeado — o caminho
 `/workspace/estado-inventario`.
 
 Detalhe completo na secao 7 do `PLANO-ESTADO.md`.
+
+---
+
+## Bloqueio RESOLVIDO — 2026-08-08 17:31
+
+`code_task` funcionando. Teste PONG: **OK**.
+
+### Como foi resolvido
+
+`claude auth login` via FIFO + `script` no container, com o código de autorização
+colado pelo usuário. O `setup-token` anterior falhava silenciosamente no exchange
+PKCE (razão exata desconhecida — stars apareciam mas nenhuma conexão externa era
+feita). O `auth login` completou com sucesso na mesma infra.
+
+Credenciais gravadas em `/root/.claude/.credentials.json` (volume persistente
+`claude-code_claude_home`):
+- `accessToken`: `sk-ant-oat01-tp...` — expira 2026-08-09
+- `refreshToken`: `sk-ant-ort01-xF...` — claude renova automaticamente
+
+Wrapper `/usr/local/bin/cc` atualizado:
+- Removido `export CLAUDE_CODE_OAUTH_TOKEN` do secret do Swarm (estava expirado)
+- Claude lê `credentials.json` diretamente e gerencia renovação
+
+Secret `claude_code_oauth_token` no Swarm continua expirado — rotacionar em
+proxima manutencao (baixo risco: credentials.json tem refresh token).
+
+### Proxima acao
+
+Bloco **1A** do inventario `estado_atualizado.md`:
+- Executor: `code_task` no worktree `/workspace/estado-inventario`
+- Entrada: `src/components/routing/AppRoutes.tsx` + arvore `src/pages`
+- Saida: `docs/estado/01-frontend.md`
