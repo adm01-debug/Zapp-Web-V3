@@ -1,4 +1,4 @@
-# _PROGRESSO.md — rastreador do inventário ESTADO.md
+# _PROGRESSO.md — rastreador do inventário INVENTARIO-SISTEMA.md
 
 > **Fonte única de verdade sobre o andamento.** Plano completo em `/PLANO-ESTADO.md`.
 > Atualizado ao fim de cada bloco. Se este arquivo e o plano divergirem, este arquivo vence.
@@ -70,7 +70,7 @@
 - [ ] Lacunas acionáveis para tudo que não é OK
 
 ### Fase 8 — Consolidação
-- [ ] `ESTADO.md` na raiz
+- [ ] `INVENTARIO-SISTEMA.md` na raiz
 
 ### Fase 9 — Enforcement
 - [ ] `CLAUDE.md` atualizado
@@ -185,3 +185,17 @@ Worktree criado com:
   shell. Usar classe: `pkill -f 'seu[-]padrao'`.
 - GitHub MCP padrao: **403** em escrita neste repo. Commitar pelo container.
 - `main` tem branch protection (PR + 11 checks). Trabalho vai na branch.
+
+---
+
+## Isolamento obrigatorio — outro agente no mesmo repo
+
+`ESTADO.md` na raiz **pertence a outro agente** (branch
+`docs/estado-inventario-20260808`, commit `aaecf2b12`). Nao ler como insumo, nao
+mesclar, nao editar, nao commitar naquela branch.
+
+Entregavel desta trilha: **`INVENTARIO-SISTEMA.md`** (renomeado — o caminho
+`ESTADO.md` ja estava ocupado). Branch: `docs/estado-inventario`. Worktree:
+`/workspace/estado-inventario`.
+
+Detalhe completo na secao 7 do `PLANO-ESTADO.md`.
