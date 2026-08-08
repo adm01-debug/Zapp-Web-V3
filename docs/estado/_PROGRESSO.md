@@ -22,7 +22,7 @@
 | Próximo bloco | **1A — `src/pages` + `src/App.tsx` (árvore de rotas, guards, lazy loading)** |
 | Última atualização | 2026-08-08 |
 | Sessão de chat | S1 |
-| Bloqueios | nenhum |
+| Bloqueios | **SIM — ver secao Bloqueio ativo abaixo** |
 
 ---
 
@@ -87,3 +87,41 @@
 | Data | Sessão | Concluído | Observação |
 |---|---|---|---|
 | 2026-08-08 | S1 | Fase 0 | Plano e rastreador commitados. Repo já possui `CLAUDE.md`, `AGENTS.md`, `.agents/`, `.codex/`, `FEATURE_REGISTRY.md` — Fase 9 deve editar esses arquivos, não criar novos. GitHub MCP padrão retorna 403 em escrita; usar container `claude-code` + `code_commit`. |
+
+---
+
+## Bloqueio ativo — 2026-08-08
+
+**Fase 1 nao pode ser executada.** O container `claude-code` (stack 122) tem o token
+OAuth expirado. `code_task` retorna:
+
+> Failed to authenticate. API Error: 401 OAuth access token has expired. Re-authenticate to continue.
+
+Diagnostico: `~/.claude/.credentials.json` datado de 2026-07-05. Nao existe
+`ANTHROPIC_API_KEY` no ambiente do container, logo nao ha fallback headless —
+a delegacao depende inteiramente do OAuth.
+
+Duas saidas:
+1. `claude login` dentro do container (interativo, volta a expirar).
+2. Injetar `ANTHROPIC_API_KEY` como variavel/secret da stack 122 e redeploy.
+   Sobrevive a expiracao e e o unico caminho que mantem `code_task` headless.
+
+Recomendado: opcao 2.
+
+---
+
+## Correcao de escopo do bloco 1A — 2026-08-08
+
+`src/App.tsx` (199 linhas) **nao declara rotas**. E apenas o shell da aplicacao:
+`AppProviders`, `BrowserRouter`, `ErrorBoundary`, `GlobalKeyboardProvider`,
+`TransitionProvider`, toasters, `ThemeInitializer`, `SkipLinks`, `LiveRegion`,
+`ServiceWorkerUpdateBanner` e widgets de debug carregados via `lazyWithRetry`.
+
+O router real e `src/components/routing/AppRoutes.tsx`. O bloco 1A deve ler
+**esse** arquivo como ponto de entrada, nao `App.tsx`.
+
+Tambem pertencem ao 1A, por afetarem montagem e disponibilidade de rota:
+- `src/main.tsx` — bootstrap, handlers globais de erro
+- `src/components/providers/AppProviders.tsx` — cadeia de contextos
+- `src/lib/lazyWithRetry.ts` — mecanismo de lazy loading de toda rota
+- `src/components/errors/ErrorBoundary.tsx` — o que acontece quando rota quebra
