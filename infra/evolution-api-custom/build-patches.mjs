@@ -24,7 +24,8 @@
  * T3  Sentry: tracesSampleRate 0.05 / profilesSampleRate 0 / beforeSend
  *     filtra 401, 403, DEVICE_REMOVED, "Request failed with status code
  *     401/403" e makeBucket                                  [ESTRITO]
- * T4  prepend do prologue t4_prologue.cjs (log masking, marcador MASKED)
+ * T4  prepend do prologue t4_prologue.cjs v2 (LGPD masking: apikey + conversation +
+ *       pushName + remoteJid + agentId + WebMessageInfo — etapa-91 2026-08-08)
  * T5a remove console.log("CACHE:",...) de mensagens        [TOLERANTE]
  * T6  GET / mascara a versão ("2.x" no lugar da real) — F2-21 [ESTRITO]
  * libsignal/src/session_record.js: remove console.info/warn de sessões
@@ -175,7 +176,11 @@ const check = fs.readFileSync(OUT, "utf8");
 if (countOf(check, T1) !== 0) fail("pós-verificação T1 falhou");
 if (countOf(check, T2) !== 0) fail("pós-verificação T2 falhou");
 if (check.includes("tracesSampleRate:1,profilesSampleRate:1") || !check.includes("tracesSampleRate:0.05")) fail("pós-verificação T3 falhou");
-if (!check.includes("MASKED")) fail("pós-verificação T4 falhou");
+if (!check.includes("MASKED")) fail("pós-verificação T4 v2 falhou: marcador MASKED ausente");
+// T4 v2 LGPD markers
+if (!check.includes("pushName")) fail("pós-verificação T4 v2 falhou: pushName mask ausente");
+if (!check.includes("conversation")) fail("pós-verificação T4 v2 falhou: conversation mask ausente");
+if (!check.includes("WebMessageInfo")) fail("pós-verificação T4 v2 falhou: WebMessageInfo mask ausente");
 if (countOf(check, T5_COND) !== 0) fail("pós-verificação T5a falhou");
 if (countOf(check, T6O) !== 0) fail("pós-verificação T6 falhou");
 if (countOf(check, T6N) !== 1) fail("pós-verificação T6: literal mascarado ausente/ambíguo");

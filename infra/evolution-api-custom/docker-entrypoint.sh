@@ -6,18 +6,38 @@
 # Exporta os secrets do Swarm com o MESMO mapeamento do entrypoint oficial
 # (nomes de env esperados pela aplicação).
 # Registra o boot em evo.evolution_logpatch_audit (A-8) — best-effort.
+#
+# etapa-27 (2026-08-08): usa evolution_app (menor privilégio) como conexão
+# principal. O superuser (evolution_db_uri_v1) é carregado APENAS como
+# fallback explícito e logado — nunca silencioso. RUNTIME_URI deixou de ser
+# código morto.
 # ============================================================================
 set -e
 
-[ -f /run/secrets/evolution_db_uri_v1 ] && export DATABASE_CONNECTION_URI="$(cat /run/secrets/evolution_db_uri_v1 | tr -d '\n\r')"
-RUNTIME_URI=""
-[ -f /run/secrets/evolution_db_uri_evolution_app_v1 ] && RUNTIME_URI="$(cat /run/secrets/evolution_db_uri_evolution_app_v1 | tr -d '\n\r')"
+# --- Conexão principal: evolution_app (SELECT/INSERT/UPDATE/DELETE; sem DDL) ---
+if [ -f /run/secrets/evolution_db_uri_evolution_app_v1 ]; then
+  _app_uri="$(cat /run/secrets/evolution_db_uri_evolution_app_v1 | tr -d '\n\r')"
+  if [ -n "$_app_uri" ]; then
+    export DATABASE_CONNECTION_URI="$_app_uri"
+    echo "[entrypoint] DATABASE_CONNECTION_URI = evolution_app (least-privilege)" >&2
+  fi
+fi
+
+# --- Fallback: superuser (apenas se evolution_app não disponível) ---
+# Não deve ser necessário em produção. Logado explicitamente para auditoria.
+if [ -z "$DATABASE_CONNECTION_URI" ]; then
+  if [ -f /run/secrets/evolution_db_uri_v1 ]; then
+    export DATABASE_CONNECTION_URI="$(cat /run/secrets/evolution_db_uri_v1 | tr -d '\n\r')"
+    echo "[entrypoint] WARN: DATABASE_CONNECTION_URI = superuser fallback (evolution_app secret ausente)" >&2
+  fi
+fi
+
 [ -f /run/secrets/evolution_api_key_v4_20260704 ] && export AUTHENTICATION_API_KEY="$(cat /run/secrets/evolution_api_key_v4_20260704 | tr -d '\n\r')"
-[ -f /run/secrets/r2_s3_access_key_v2 ] && export S3_ACCESS_KEY="$(cat /run/secrets/r2_s3_access_key_v2 | tr -d '\n\r')"
-[ -f /run/secrets/r2_s3_secret_key_v2 ] && export S3_SECRET_KEY="$(cat /run/secrets/r2_s3_secret_key_v2 | tr -d '\n\r')"
-[ -f /run/secrets/rabbitmq_url_evolution_v1 ] && export RABBITMQ_URI="$(cat /run/secrets/rabbitmq_url_evolution_v1 | tr -d '\n\r')"
-[ -f /run/secrets/metrics_password_v2 ] && export METRICS_PASSWORD="$(cat /run/secrets/metrics_password_v2 | tr -d '\n\r')"
-[ -f /run/secrets/wa_business_verify_token_v1 ] && export WA_BUSINESS_TOKEN_WEBHOOK="$(cat /run/secrets/wa_business_verify_token_v1 | tr -d '\n\r')"
+[ -f /run/secrets/r2_s3_access_key_v2 ]           && export S3_ACCESS_KEY="$(cat /run/secrets/r2_s3_access_key_v2 | tr -d '\n\r')"
+[ -f /run/secrets/r2_s3_secret_key_v2 ]           && export S3_SECRET_KEY="$(cat /run/secrets/r2_s3_secret_key_v2 | tr -d '\n\r')"
+[ -f /run/secrets/rabbitmq_url_evolution_v1 ]      && export RABBITMQ_URI="$(cat /run/secrets/rabbitmq_url_evolution_v1 | tr -d '\n\r')"
+[ -f /run/secrets/metrics_password_v2 ]            && export METRICS_PASSWORD="$(cat /run/secrets/metrics_password_v2 | tr -d '\n\r')"
+[ -f /run/secrets/wa_business_verify_token_v1 ]    && export WA_BUSINESS_TOKEN_WEBHOOK="$(cat /run/secrets/wa_business_verify_token_v1 | tr -d '\n\r')"
 
 # --- A-8: auditoria de boot (best-effort; nunca quebra o boot) ---
 if [ -f /run/secrets/supabase_service_key_v1 ]; then
@@ -26,7 +46,7 @@ if [ -f /run/secrets/supabase_service_key_v1 ]; then
     _aud_digest="$(cat /proc/self/mountinfo 2>/dev/null | grep -o 'sha256:[a-f0-9]\{64\}' | head -1 || true)"
     _aud_version="$(node -e "console.log(require('/evolution/package.json').version)" 2>/dev/null || echo unknown)"
     _aud_ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    _aud_payload="{\"instance_name\":\"wpp2\",\"booted_at\":\"$_aud_ts\",\"image_digest\":\"$_aud_digest\",\"evolution_version\":\"$_aud_version\",\"logpatch_status\":\"ok\",\"logpatch_detail\":{\"mode\":\"build-time\",\"note\":\"patches T1-T6 aplicados em build (Dockerfile VERIFY fail-closed)\"}}"
+    _aud_payload="{\"instance_name\":\"wpp2\",\"booted_at\":\"$_aud_ts\",\"image_digest\":\"$_aud_digest\",\"evolution_version\":\"$_aud_version\",\"logpatch_status\":\"ok\",\"logpatch_detail\":{\"mode\":\"build-time\",\"db_role\":\"evolution_app\",\"note\":\"patches T1-T6 build-time; etapa-27 least-privilege\"}}"
     if command -v curl >/dev/null 2>&1; then
       curl -sS -o /dev/null -m 10 -X POST \
         "https://supabase.atomicabr.com.br/rest/v1/evolution_logpatch_audit" \
@@ -36,7 +56,6 @@ if [ -f /run/secrets/supabase_service_key_v1 ]; then
         -H "Prefer: return=minimal" \
         --data-binary "$_aud_payload" >/dev/null 2>&1 || true
     else
-      # Imagem sem curl (só wget — healthcheck oficial usa wget)
       wget -q -O /dev/null --timeout=10 \
         --header="apikey: $_aud_key" \
         --header="Authorization: Bearer $_aud_key" \
@@ -49,4 +68,5 @@ if [ -f /run/secrets/supabase_service_key_v1 ]; then
 fi
 
 # Patches são build-time — nada de logpatch.cjs aqui.
-exec node dist/main.js
+# Entrypoint termina com exec para passar sinais corretamente ao processo Node.
+exec "$@"
