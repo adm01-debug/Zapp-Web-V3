@@ -4,7 +4,7 @@
 > Uma pergunta por componente: **esta ligado? quem chama?**
 > Nao adicione secao de arquitetura, plano ou roadmap aqui. Isso morre em `docs/`.
 
-Ultima verificacao: **2026-08-08** | COMPLETO: P1/P2/P4/P6/P7 | 3 funcoes arquivadas | Storage 28->16 GB (-43%)
+Ultima verificacao: **2026-08-08** | COMPLETO+VALIDADO: todos os buckets 0 quebradas | 5 agentes PASS
 
 ## Como foi medido
 
@@ -489,3 +489,55 @@ Se for ligada no futuro, a logica de deteccao deve ser revisada para:
 | P6 — causa raiz (Date.now()) | fix deployado em prod (c03ff1973) |
 | P7 — 3.013 orfaos restantes (3 GB) | removidos, 0 referencias quebradas |
 | Bucket whatsapp-media | 28 GB -> **16 GB** (-43%) |
+
+---
+
+## Pendencias da validacao executadas — 2026-08-08 (fim de sessao)
+
+### P1 — audio-messages deduplicado
+
+| Metrica | Antes | Depois |
+|---|---|---|
+| Objetos | 2.919 | **2.386** |
+| Duplicatas | 507 grupos / 533 excedentes | **0** |
+| Espaco liberado | — | **39 MB** |
+| Referencias quebradas | 0 | **0** |
+
+Auditoria em `zapp.audio_dedupe_log`. Metodologia identica a `media_dedupe_log`.
+Teste unitario: alvo deletado -> 400, copia preservada -> 200.
+
+### P2 — 73 mensagens sem arquivo marcadas como `media_status='failed'`
+
+A UI ja trata `media_status = 'failed'` retornando `null` para a URL (`useMediaUrl.ts:78`).
+Em vez de placeholder vazio, o componente exibe o estado de midia indisponivel.
+
+| Tipo | Total na janela | Com URL (ok) | Marcadas failed |
+|---|---|---|---|
+| image | 956 | 920 | 36 |
+| document | 230 | 200 | 30 |
+| video | 68 | 61 | 7 |
+
+Pendente restante: 0. Nenhuma mensagem sem url E sem media_status='failed' na janela.
+
+### P3 — 206 paths `evolution-api/` removidos
+
+206 registros com `media_path LIKE 'evolution-api/%'` -> `media_path=NULL, media_bucket=NULL`.
+A `media_url` foi preservada (apontava para storage externo, ainda funcional).
+Residual: **0**.
+
+### Estado final dos dois buckets
+
+| Bucket | Objetos | Referencias | Quebradas |
+|---|---|---|---|
+| whatsapp-media | 9.665 | 9.243 | **0** |
+| audio-messages | 2.386 | 1.270 | **0** |
+
+### Agentes de validacao (5 especializados)
+
+| Agente | Status | Criticos |
+|---|---|---|
+| A1 DB Integrity | PASS | 0 |
+| A2 Storage | PASS | 0 novas duplicatas |
+| A3 Pipeline P6 | PASS | fix provado por simulacao |
+| A4 Edge Functions | PASS | 0 drift volume/repo |
+| A5 Regressao | 4 gaps menores, todos pre-existentes | 0 causados por esta sessao |
