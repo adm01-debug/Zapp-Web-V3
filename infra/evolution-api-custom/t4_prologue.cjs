@@ -13,7 +13,7 @@
   // apikey (T4 v1)
   const R_KEY=/((?:api[_-]?key|x-api-key)["']?\s*[:=]?\s*["']?)([A-Za-z0-9_-]{8,})/gi;
   // Conteudo de mensagem (conversation field)
-  const R_CONV=/("conversation"\s*:\s*")([^"]{0,20})[^"]*"/gi;
+  const R_CONV=/(\"conversation\"\s*:\s*\")[^\"]*/gi;
   // pushName / agentId
   const R_PUSH=/("pushName"\s*:\s*")([^"]*?)"/gi;
   const R_AGENT=/("agentId"\s*:\s*")([^"]*?)"/gi;
@@ -28,7 +28,7 @@
     if(typeof v==='string'){
       let s=v;
       R_KEY.lastIndex=0; s=s.replace(R_KEY,'$1***MASKED***');
-      R_CONV.lastIndex=0; s=s.replace(R_CONV,'$1$2...[MSG_MASKED]"');
+      R_CONV.lastIndex=0; s=s.replace(R_CONV,'$1[MSG_MASKED]"');
       R_PUSH.lastIndex=0; s=s.replace(R_PUSH,'$1[NAME_MASKED]"');
       R_AGENT.lastIndex=0; s=s.replace(R_AGENT,'$1[AGENT_MASKED]"');
       R_JID.lastIndex=0; s=s.replace(R_JID,'$1$2XXXX$3"');
@@ -45,11 +45,11 @@
       if(j){
         R_KEY.lastIndex=0;
         if(R_KEY.test(j)||j.indexOf('"conversation"')>-1||
-           j.indexOf('"pushName"')>-1||j.indexOf('@s.whatsapp.net')>-1){
+           j.indexOf('"pushName"')>-1||j.indexOf('@s.whatsapp.net')>-1||j.indexOf('@g.us')>-1||j.indexOf('"remoteJid"')>-1){
           // Objeto com PII - re-mascarar serializado
           let s=j;
           R_KEY.lastIndex=0; s=s.replace(R_KEY,'$1***MASKED***');
-          R_CONV.lastIndex=0; s=s.replace(R_CONV,'$1$2...[MSG_MASKED]"');
+          R_CONV.lastIndex=0; s=s.replace(R_CONV,'$1[MSG_MASKED]"');
           R_PUSH.lastIndex=0; s=s.replace(R_PUSH,'$1[NAME_MASKED]"');
           R_AGENT.lastIndex=0; s=s.replace(R_AGENT,'$1[AGENT_MASKED]"');
           R_JID.lastIndex=0; s=s.replace(R_JID,'$1$2XXXX$3"');
