@@ -377,9 +377,6 @@ export const SendScheduledReportV1Schema = z.object({
   reportId: z.string().min(1, "reportId é obrigatório").max(200),
 }).strict();
 
-/** auto-escalate-sla@v1 — cron; sem body. */
-export const AutoEscalateSlaV1Schema = EmptyStrictV1Schema;
-
 /** auto-close-conversations@v1 — cron; sem body. */
 export const AutoCloseConversationsV1Schema = EmptyStrictV1Schema;
 

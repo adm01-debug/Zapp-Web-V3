@@ -22,7 +22,6 @@ import {
   StatusV1Schema,
   MetricsV1Schema,
   SendScheduledReportV1Schema,
-  AutoEscalateSlaV1Schema,
   AutoCloseConversationsV1Schema,
   ElevenLabsVoiceV1Schema,
   ElevenLabsTtsV1Schema,
@@ -180,12 +179,6 @@ const MATRICES: Matrix[] = [
     ],
   },
   {
-    name: "auto-escalate-sla@v1 (cron — body opcional)",
-    schema: AutoEscalateSlaV1Schema,
-    valid: [{}],
-    invalid: [{ label: "campo extra (strict)", payload: { dryRun: true } }],
-  },
-  {
     name: "auto-close-conversations@v1 (cron — body opcional)",
     schema: AutoCloseConversationsV1Schema,
     valid: [{}],
@@ -258,7 +251,6 @@ Deno.test("business/infra: cron jobs sem body aceitam {} (body opcional)", () =>
     HealthV1Schema,
     StatusV1Schema,
     MetricsV1Schema,
-    AutoEscalateSlaV1Schema,
     AutoCloseConversationsV1Schema,
   ];
   for (const s of cronSchemas) {
