@@ -1,4 +1,4 @@
-# _PROGRESSO.md — rastreador do inventário INVENTARIO-SISTEMA.md
+# _PROGRESSO.md — rastreador do inventário estado_atualizado.md
 
 > **Fonte única de verdade sobre o andamento.** Plano completo em `/PLANO-ESTADO.md`.
 > Atualizado ao fim de cada bloco. Se este arquivo e o plano divergirem, este arquivo vence.
@@ -70,7 +70,7 @@
 - [ ] Lacunas acionáveis para tudo que não é OK
 
 ### Fase 8 — Consolidação
-- [ ] `INVENTARIO-SISTEMA.md` na raiz
+- [ ] `estado_atualizado.md` na raiz
 
 ### Fase 9 — Enforcement
 - [ ] `CLAUDE.md` atualizado
@@ -194,7 +194,7 @@ Worktree criado com:
 `docs/estado-inventario-20260808`, commit `aaecf2b12`). Nao ler como insumo, nao
 mesclar, nao editar, nao commitar naquela branch.
 
-Entregavel desta trilha: **`INVENTARIO-SISTEMA.md`** (renomeado — o caminho
+Entregavel desta trilha: **`estado_atualizado.md`** (renomeado — o caminho
 `ESTADO.md` ja estava ocupado). Branch: `docs/estado-inventario`. Worktree:
 `/workspace/estado-inventario`.
 

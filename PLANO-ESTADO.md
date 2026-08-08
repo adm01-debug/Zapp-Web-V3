@@ -1,6 +1,6 @@
 # PLANO-ESTADO.md
 
-> Plano de execução para produzir `INVENTARIO-SISTEMA.md` — o inventário exaustivo do sistema `zapp-web-v3`.
+> Plano de execução para produzir `estado_atualizado.md` — o inventário exaustivo do sistema `zapp-web-v3`.
 > **Este arquivo é o plano. O rastreador de progresso vive em `docs/estado/_PROGRESSO.md`.**
 > Criado: 2026-08-08 · Repo: `adm01-debug/zapp-web-v3` · Branch: `main`
 
@@ -8,7 +8,7 @@
 
 ## 1. Objetivo
 
-Produzir `INVENTARIO-SISTEMA.md` na raiz do repositório, contendo para **cada componente do sistema**:
+Produzir `estado_atualizado.md` na raiz do repositório, contendo para **cada componente do sistema**:
 
 1. **O que é** — propósito, tipo (página, hook, service, edge function, tabela, RPC, workflow, stack, worker).
 2. **O que faz** — funcionalidades enumeradas, uma por uma.
@@ -32,7 +32,7 @@ Uma passada única produz documento raso. O sistema tem duas verdades que precis
 | **Estática** — o que o código diz que existe | repo em disco | Claude Code (container `claude-code`, stack 122) |
 | **Runtime** — o que de fato está rodando | Supabase, Swarm, N8N, Evolution, Cloudflare, Vercel | Claude via MCPs |
 
-Componente que existe no código mas não está deployado é **código morto**. Componente deployado que não existe mais no código é **órfão**. Nenhum dos dois aparece se olharmos só um lado. `INVENTARIO-SISTEMA.md` só tem valor se separar os dois.
+Componente que existe no código mas não está deployado é **código morto**. Componente deployado que não existe mais no código é **órfão**. Nenhum dos dois aparece se olharmos só um lado. `estado_atualizado.md` só tem valor se separar os dois.
 
 ---
 
@@ -93,16 +93,16 @@ Executor: Claude.
 - Para tudo que não for `OK`: **o que falta, em termos acionáveis.**
 - **Saída:** `docs/estado/07-veredito.md`
 
-### Fase 8 — Consolidação do INVENTARIO-SISTEMA.md
+### Fase 8 — Consolidação do estado_atualizado.md
 Executor: Claude.
-- Monta `INVENTARIO-SISTEMA.md` na raiz a partir das saídas parciais.
+- Monta `estado_atualizado.md` na raiz a partir das saídas parciais.
 - Cabeçalho de leitura obrigatória, índice, regras de não-regressão.
-- **Saída:** `INVENTARIO-SISTEMA.md`
+- **Saída:** `estado_atualizado.md`
 
 ### Fase 9 — Enforcement e validação
 Executor: Claude.
 - Plugar em `CLAUDE.md`, `AGENTS.md`, `.agents/`, `.codex/` (todos já existem — editar, não duplicar).
-- Checkbox no template de PR: *li INVENTARIO-SISTEMA.md e atualizei as seções afetadas*.
+- Checkbox no template de PR: *li estado_atualizado.md e atualizei as seções afetadas*.
 - Cruzar com `FEATURE_REGISTRY.md` para eliminar contradição entre os dois.
 - Teste final: pegar 5 componentes ao acaso e conferir se o doc bate com a realidade.
 - **Saída:** arquivos de enforcement atualizados + nota de validação
@@ -138,14 +138,14 @@ Se uma sessão render mais, segue adiante. Se render menos, para no fim do bloco
 - **Zero invenção.** Componente não verificado entra como `NAO_VERIFICADO`, nunca como `OK`. Documento com veredito chutado é pior que documento ausente.
 - **Saídas parciais são commitadas cruas.** Polimento só na Fase 8.
 - **Um bloco por vez.** Bloco fechado = commit imediato.
-- **`INVENTARIO-SISTEMA.md` só nasce na Fase 8.** Antes disso ele não existe, para não circular versão incompleta.
+- **`estado_atualizado.md` só nasce na Fase 8.** Antes disso ele não existe, para não circular versão incompleta.
 - **Divergência encontrada não é corrigida durante o inventário.** Registra e segue. Corrigir durante a auditoria contamina o retrato.
 
 ---
 
 ## 6. Risco conhecido
 
-O documento envelhece. Em duas semanas sem manutenção ele passa a mentir, e um `INVENTARIO-SISTEMA.md` desatualizado é mais perigoso que nenhum — agente confia nele e age errado. Por isso a Fase 9 não é opcional: sem o gancho no template de PR, este trabalho tem prazo de validade curto.
+O documento envelhece. Em duas semanas sem manutenção ele passa a mentir, e um `estado_atualizado.md` desatualizado é mais perigoso que nenhum — agente confia nele e age errado. Por isso a Fase 9 não é opcional: sem o gancho no template de PR, este trabalho tem prazo de validade curto.
 
 ---
 
@@ -163,7 +163,7 @@ quem chama", 375 linhas, mais as pendencias P1-P6 de midia e storage.
 2. **Nao commitar em `docs/estado-inventario-20260808`** nem em qualquer branch que
    nao seja `docs/estado-inventario`.
 3. **Nao criar nem editar `ESTADO.md` na raiz.** Aquele caminho pertence ao outro
-   agente. O entregavel desta trilha e `INVENTARIO-SISTEMA.md`.
+   agente. O entregavel desta trilha e `estado_atualizado.md`.
 4. Trabalhar exclusivamente no worktree `/workspace/estado-inventario`.
 
 **Por que o rename:** o pedido original era `ESTADO.md` na raiz. O caminho ja estava
@@ -175,5 +175,5 @@ trabalhos coexistirem sem que um sobrescreva o outro no merge.
 
 | Branch | Dono | Entregavel |
 |---|---|---|
-| `docs/estado-inventario` | esta trilha | `INVENTARIO-SISTEMA.md` |
+| `docs/estado-inventario` | esta trilha | `estado_atualizado.md` |
 | `docs/estado-inventario-20260808` | outro agente | `ESTADO.md` |
