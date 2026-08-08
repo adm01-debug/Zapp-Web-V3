@@ -1,17 +1,22 @@
 # =====================================================================================
-# Evolution API — docker-compose SINCRONIZADO COM STACK 25 EM 2026-08-06
-# fonte única: Portainer stackId 25 (get_stack_file) — NÃO editar manualmente
-# Conteúdo = stack file REAL de produção (imagem custom build-time T1-T6).
-# Re-sincronizar com: .hermes/execucao-evo-20260806/pt_mcp.sh portainer_get_stack_file '{"stackId":25}'
-# Histórico: substitui compose legacy (imagem oficial 6b195676 + logpatch runtime) — ver docs/PLANO_CORRECAO_EVO_API_100_ETAPAS_20260806.md etapa 4 / A10-16 (P1)
+# Evolution API — docker-compose SINCRONIZADO COM STACK 25 EM 2026-08-08
+# fonte única: Portainer stackId 25 — NÃO editar manualmente
+# Imagem: sha256:678f84d85f2b (commit e1a210286b42, etapa-27, evolution_app least-privilege)
+# Mudanças vs 20260806:
+#   - Remove evolution_db_uri_v1 (superuser removido do runtime)
+#   - Adiciona 12 RABBITMQ_EVENTS (A2/A8): dual delivery eliminada
+#   - IMAGE_DIGEST/OCI_DIGEST atualizados
+#   - DATABASE_SAVE_DATA_HISTORIC=false, DATABASE_SAVE_MESSAGE_UPDATE=false
+#   - stop_grace_period=30s adicionado
 # =====================================================================================
 version: "3.7"
 services:
 
   evolution:
-    image: ghcr.io/adm01-debug/zapp-web-v3/evolution-api-custom@sha256:9d110bc7ecdea904b73036e8f224a1eea2522fe0e37bdd72c82fd9385286d9e8
+    image: ghcr.io/adm01-debug/zapp-web-v3/evolution-api-custom@sha256:678f84d85f2b5736252f05715ff83ea8e9f05b9c66669e8a6276e8a6c8a44661
     init: true
     read_only: true
+    stop_grace_period: 30s
 
     security_opt:
       - no-new-privileges:true
@@ -20,7 +25,6 @@ services:
       - ALL
 
     secrets:
-      - evolution_db_uri_v1
       - evolution_db_uri_evolution_app_v1
       - source: evolution_api_key_v5_20260805
         target: evolution_api_key_v4_20260704
@@ -57,6 +61,8 @@ services:
 
     environment:
       - SERVER_URL=https://evolution.atomicabr.com.br
+      - IMAGE_DIGEST=sha256:678f84d85f2b5736252f05715ff83ea8e9f05b9c66669e8a6276e8a6c8a44661
+      - OCI_DIGEST=sha256:678f84d85f2b5736252f05715ff83ea8e9f05b9c66669e8a6276e8a6c8a44661
       - CORS_ORIGIN=*
       - CORS_METHODS=GET,POST,PUT,DELETE
       - CORS_CREDENTIALS=false
@@ -80,11 +86,11 @@ services:
       - DATABASE_CONNECTION_CLIENT_NAME=evolution
       - DATABASE_SAVE_DATA_INSTANCE=true
       - DATABASE_SAVE_DATA_NEW_MESSAGE=true
-      - DATABASE_SAVE_MESSAGE_UPDATE=true
+      - DATABASE_SAVE_MESSAGE_UPDATE=false
       - DATABASE_SAVE_DATA_CONTACTS=true
       - DATABASE_SAVE_DATA_CHATS=true
       - DATABASE_SAVE_DATA_LABELS=true
-      - DATABASE_SAVE_DATA_HISTORIC=true
+      - DATABASE_SAVE_DATA_HISTORIC=false
       - DATABASE_SAVE_IS_ON_WHATSAPP=true
       - DATABASE_SAVE_IS_ON_WHATSAPP_DAYS=7
       - OPENAI_ENABLED=false
@@ -98,8 +104,8 @@ services:
       - CACHE_REDIS_ENABLED=true
       - CACHE_REDIS_URI=redis://redis:6379/8
       - CACHE_REDIS_PREFIX_KEY=evolution
-      - CACHE_REDIS_SAVE_INSTANCES=false
-      - CACHE_LOCAL_ENABLED=false
+      - CACHE_REDIS_SAVE_INSTANCES=true
+      - CACHE_LOCAL_ENABLED=true
       - CACHE_REDIS_TTL=604800
       - S3_ENABLED=true
       - S3_BUCKET=zapp-whatsapp-media
@@ -118,10 +124,10 @@ services:
       - WEBSOCKET_GLOBAL_EVENTS=false
       - SQS_ENABLED=false
       - WEBHOOK_REQUEST_TIMEOUT_MS=60000
-      - WEBHOOK_RETRY_MAX_ATTEMPTS=10
+      - WEBHOOK_RETRY_MAX_ATTEMPTS=4
       - WEBHOOK_RETRY_INITIAL_DELAY_SECONDS=5
       - WEBHOOK_RETRY_USE_EXPONENTIAL_BACKOFF=true
-      - WEBHOOK_RETRY_MAX_DELAY_SECONDS=300
+      - WEBHOOK_RETRY_MAX_DELAY_SECONDS=60
       - WEBHOOK_RETRY_JITTER_FACTOR=0.2
       - WEBHOOK_RETRY_NON_RETRYABLE_STATUS_CODES=400,401,403,404,422
       - WEBHOOK_EVENTS_ERRORS=true
@@ -129,9 +135,26 @@ services:
       - RABBITMQ_ENABLED=true
       - RABBITMQ_EXCHANGE_NAME=evolution
       - RABBITMQ_GLOBAL_ENABLED=false
+      # Eventos já existentes
       - RABBITMQ_EVENTS_MESSAGES_UPSERT=true
       - RABBITMQ_EVENTS_MESSAGES_UPDATE=true
       - RABBITMQ_EVENTS_CONNECTION_UPDATE=true
+      # Novos eventos — A2/A8 — 2026-08-08 auditoria onda-4
+      # Consumer v7 e edge function (evolution-webhook) tratam todos os 17 tipos (validado)
+      # Webhook wpp2 reduzido para SEND_MESSAGE only — zero dual delivery
+      - RABBITMQ_EVENTS_MESSAGES_EDITED=true
+      - RABBITMQ_EVENTS_MESSAGES_DELETE=true
+      - RABBITMQ_EVENTS_CONTACTS_UPSERT=true
+      - RABBITMQ_EVENTS_CONTACTS_UPDATE=true
+      - RABBITMQ_EVENTS_CHATS_UPSERT=true
+      - RABBITMQ_EVENTS_CHATS_UPDATE=true
+      - RABBITMQ_EVENTS_GROUPS_UPSERT=true
+      - RABBITMQ_EVENTS_GROUP_PARTICIPANTS_UPDATE=true
+      - RABBITMQ_EVENTS_LABELS_EDIT=true
+      - RABBITMQ_EVENTS_LABELS_ASSOCIATION=true
+      - RABBITMQ_EVENTS_CALL=true
+      - RABBITMQ_EVENTS_LOGOUT_INSTANCE=true
+      # QRCODE mantido falso (consumo interno, não precisa do Rabbit)
       - RABBITMQ_EVENTS_QRCODE_UPDATED=false
 
     deploy:
@@ -189,7 +212,7 @@ services:
       - traefik.http.middlewares.evo-sec.headers.permissionsPolicy=camera=(), microphone=(), geolocation=(), payment=()
       - traefik.http.middlewares.evo-sec.headers.customResponseHeaders.Server=
       - traefik.http.middlewares.evo-sec.headers.customResponseHeaders.X-Powered-By=
-      - com.atomicabr.audit=canonical-20260711-T3-makeBucket-T5a-tr-d-no-plaintext-apikey|20260724-chats-historic-ai-n8n-enabled-rmq21|20260802-sentry-cloud-migration-v2|20260805-buildtime-image-B1-hardening-B3|20260805-B3-readonly-tmpfs-nnp-health|20260805-F2-09-secret-v5-F2-14-F2-21-image|20260806-F2-07-cors-origin-fixed|20260806-F2-07b-cors-origin-restore-wildcard-outage-fix|20260806-keyfix-supabase-service-v3
+      - com.atomicabr.audit=20260808-A2A8-rabbitmq-full-events-13-novos-consumer-17-handlers-validados
       - com.atomicabr.tier=critical
       - com.centurylinklabs.watchtower.enable=false
 
@@ -199,8 +222,6 @@ volumes:
     name: evolution_instances
 
 secrets:
-  evolution_db_uri_v1:
-    external: true
   evolution_db_uri_evolution_app_v1:
     external: true
   evolution_api_key_v5_20260805:

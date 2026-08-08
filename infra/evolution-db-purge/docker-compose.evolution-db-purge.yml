@@ -1,0 +1,72 @@
+# =====================================================================================
+# evolution-db-purge — SINCRONIZADO COM STACK 126 EM 2026-08-08
+# fonte única: Portainer stackId 126
+# AUDIT_RETENTION_DAYS: 90→30d (A6 auditoria onda-4)
+# advisory lock SQL: pg_try_advisory_lock(233425868) = hashtext('evolution-db-purge')
+# NOTA: log strings do script ainda dizem "v7"/"lock 42" (cosmético, sem impacto)
+# =====================================================================================
+version: "3.8"
+
+services:
+  purge:
+    image: postgres:14-alpine@sha256:bc06a4b2c6e50e3a9b7638fe7d3064d4497c89b3ce5e45a0bbc1124af6958adf
+    networks:
+      - AtomicaBRNet
+    secrets:
+      - pg_evolution_url_n8n_app_v1
+    configs:
+      - source: purge_v9_20260808
+        target: /tmp/purge-v9.sh
+        mode: 0444
+    volumes:
+      - type: tmpfs
+        target: /var/lib/postgresql/data
+        tmpfs:
+          size: 67108864
+    environment:
+      PURGE_INTERVAL_HOURS: "24"
+      MSG_RETENTION_DAYS: "90"
+      MSGUPDATE_RETENTION_DAYS: "30"
+      WEBHOOK_RETENTION_DAYS: "14"
+      BAILEYS_RETENTION_DAYS: "30"
+      ISONWA_RETENTION_DAYS: "7"
+      GUARDIAN_RETENTION_DAYS: "30"
+      AUDIT_RETENTION_DAYS: "30"
+      DLQ_RETENTION_DAYS: "30"
+      WARROOM_RETENTION_DAYS: "30"
+      BATCH_SIZE: "50000"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        exec sh /tmp/purge-v9.sh
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 60s
+        max_attempts: 5
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+      labels:
+        - com.atomicabr.purpose=evolution-db-purge-v9
+        - com.atomicabr.audit=etapa-70-audit-retention-30d-20260808
+        - com.atomicabr.tier=disposable
+        - com.atomicabr.pause-order=8
+        - com.atomicabr.pause-safe=true
+        - com.centurylinklabs.watchtower.enable=false
+
+configs:
+  purge_v9_20260808:
+    external: true
+
+secrets:
+  pg_evolution_url_n8n_app_v1:
+    external: true
+
+networks:
+  AtomicaBRNet:
+    external: true
