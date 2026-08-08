@@ -83,6 +83,14 @@ const T5_COND = 'console.log("CACHE:",{cached:a,updateKey:r,messageTimestamp:n.m
 // T6: GET / mascara a versão real (F2-21) — ESTRITO (nomes oficiais _l/Nl)
 const T6O = 'version:_l.version,clientName:Nl.CONNECTION.CLIENT_NAME';
 const T6N = 'version:"2.x",clientName:Nl.CONNECTION.CLIENT_NAME';
+// T7: CORS sem-Origin permitido (etapa 81 — previne repetir outage 20260806).
+//     Literal REAL do bundle CI 2.3.7 (extraído da imagem publicada 1e12bec1):
+//     origin(r,a){let{ORIGIN:c}=E.get("CORS");return c.includes("*")||c.indexOf(r)!==-1?a(null,!0):a(new Error("Not allowed by CORS"))}
+//     Patch: adiciona !r|| na frente — requests SEM header Origin (curl, n8n,
+//     edge functions, MCP, watchdogs) passam; browsers com Origin fora da lista
+//     continuam bloqueados. ESTRITO (crítico).
+const T7O = 'origin(r,a){let{ORIGIN:c}=E.get("CORS");return c.includes("*")||c.indexOf(r)!==-1?a(null,!0):a(new Error("Not allowed by CORS"))}';
+const T7N = 'origin(r,a){let{ORIGIN:c}=E.get("CORS");return !r||c.includes("*")||c.indexOf(r)!==-1?a(null,!0):a(new Error("Not allowed by CORS"))}';
 
 // ============================= Execução =============================
 if (!fs.existsSync(SRC)) {
@@ -151,6 +159,14 @@ const skipped = [];
   applied.push("T6");
 }
 
+// --- T7 (ESTRITO — CORS sem-Origin, etapa 81) ---
+{
+  const c = countOf(out, T7O);
+  if (c !== 1) fail(`T7: callback origin do CORS encontrado ${c}x (esperado 1x) — bundle mudou?`);
+  out = out.split(T7O).join(T7N);
+  applied.push("T7");
+}
+
 // --- T4 (prologue MASKED) ---
 if (!fs.existsSync(PROLOGUE)) {
   fail(`t4_prologue.cjs não encontrado: ${PROLOGUE} — extrair da config swarm evolution_t4_prologue_cjs e versionar ao lado do script`);
@@ -167,7 +183,7 @@ applied.push("T4");
 
 // Banner determinístico de auditoria (qual bundle base gerou este artefato)
 const srcSha = sha256(SRC);
-out = `/* evolution-api-custom ${VERSION} | patches T1-T6 build-time | base main.js sha256:${srcSha} */\n` + out;
+out = `/* evolution-api-custom ${VERSION} | patches T1-T7 build-time | base main.js sha256:${srcSha} */\n` + out;
 
 fs.writeFileSync(OUT, out);
 
@@ -184,6 +200,8 @@ if (!check.includes("WebMessageInfo")) fail("pós-verificação T4 v2 falhou: We
 if (countOf(check, T5_COND) !== 0) fail("pós-verificação T5a falhou");
 if (countOf(check, T6O) !== 0) fail("pós-verificação T6 falhou");
 if (countOf(check, T6N) !== 1) fail("pós-verificação T6: literal mascarado ausente/ambíguo");
+if (countOf(check, T7O) !== 0) fail("pós-verificação T7 falhou (callback original ainda presente)");
+if (countOf(check, T7N) !== 1) fail("pós-verificação T7: guard !r ausente/ambíguo");
 
 console.log(`Patches aplicados: ${applied.join(", ")}${skipped.length ? ` | SKIP (tolerante): ${skipped.join(", ")}` : ""}`);
 console.log(`Versão do bundle:  ${VERSION}`);
