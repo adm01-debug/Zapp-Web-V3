@@ -20,7 +20,7 @@
 |---|---|
 | Fase corrente | **1 — Inventário estático: frontend** |
 | Próximo bloco | **1A — `src/pages` + `src/App.tsx` (árvore de rotas, guards, lazy loading)** |
-| Última atualização | 2026-08-08 |
+| Última atualização | 2026-08-08 (S1, pos-correcoes) |
 | Sessão de chat | S1 |
 | Bloqueios | **SIM — ver secao Bloqueio ativo abaixo** |
 
@@ -87,6 +87,35 @@
 | Data | Sessão | Concluído | Observação |
 |---|---|---|---|
 | 2026-08-08 | S1 | Fase 0 | Plano e rastreador commitados. Repo já possui `CLAUDE.md`, `AGENTS.md`, `.agents/`, `.codex/`, `FEATURE_REGISTRY.md` — Fase 9 deve editar esses arquivos, não criar novos. GitHub MCP padrão retorna 403 em escrita; usar container `claude-code` + `code_commit`. |
+| 2026-08-08 | S1 | Fase 0 revisada | Bloqueio inicial mal diagnosticado (credencial local + `ANTHROPIC_API_KEY`) e **corrigido**: causa real e o secret Swarm `claude_code_oauth_token` expirado. Wrapper `/usr/local/bin/cc` faz `unset ANTHROPIC_API_KEY` — API key nao e opcao. |
+| 2026-08-08 | S1 | Fase 0 revisada | Descoberta sessao concorrente mexendo no working tree principal (checkout + commit de dedup de storage deixou a arvore em `main`). Criado worktree dedicado `/workspace/estado-inventario`. Nada perdido. |
+| 2026-08-08 | S1 | Fase 0 revisada | `ESTADO.md` na raiz pertence a **outro agente** (branch `docs/estado-inventario-20260808`, commit `aaecf2b12`). Entregavel desta trilha renomeado para `estado_atualizado.md`. Trabalhos NAO se misturam. |
+
+### Commits desta trilha, em ordem
+
+| Commit | Branch | O que fez |
+|---|---|---|
+| `bcd1e2cf4` | main | `PLANO-ESTADO.md` + `docs/estado/_PROGRESSO.md` |
+| `c05866992` | main | ponteiro do rastreador para a branch de trabalho |
+| `e933618d5` | `docs/estado-inventario` | bloqueio registrado (diagnostico depois corrigido) + escopo do 1A |
+| `e71242a54` | `docs/estado-inventario` | diagnostico corrigido + worktree + armadilhas do container |
+| `a261e9b63` | `docs/estado-inventario` | isolamento do outro agente + rename do entregavel |
+| `d4f40bac8` | `docs/estado-inventario` | entregavel definido como `estado_atualizado.md` |
+
+### Proxima acao exata, quando o token for rotacionado
+
+1. `cd /workspace/estado-inventario` (worktree dedicado — nunca `/workspace/repos/zapp-web-v3`)
+2. Confirmar branch: `git branch --show-current` deve dar `docs/estado-inventario`
+3. Rodar bloco **1A** via `code_task` no repo, com entrada em
+   `src/components/routing/AppRoutes.tsx` (NAO `src/App.tsx` — ele nao tem rotas)
+4. Escopo do 1A: `AppRoutes.tsx`, `main.tsx`, `AppProviders.tsx`, `lazyWithRetry.ts`,
+   `ErrorBoundary.tsx` + toda a arvore `src/pages` (148 arquivos / 27.106 linhas)
+5. Saida: `docs/estado/01-frontend.md`, secao `## 1A - Rotas, guards e lazy loading`
+6. Formato por rota: Papel / Funcionalidades / Chama (saida) / Chamado por (entrada) /
+   Correlacoes / Implementacao (COMPLETA|PARCIAL|STUB|MORTA + o que falta) /
+   Runtime (sempre `NAO_VERIFICADO` — preenchido na Fase 4)
+7. Fechar com: rotas orfas, paginas orfas, achados
+8. `git commit --no-verify` + push na branch, e atualizar este rastreador
 
 ---
 
