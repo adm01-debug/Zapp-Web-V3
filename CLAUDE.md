@@ -116,7 +116,7 @@
 
 | Bucket | Público | Limite | Notas |
 |--------|---------|--------|---------|
-| `audio-memes` | não | 5 MB | |
+| `audio-memes` | **sim** | 5 MB | Público por decisão explícita do dono (migrations 20260806194000 e 20260806195000). Áudios de memes internos. |
 | `audio-messages` | **sim** | — | **LEITURA pública** via `/storage/v1/object/public/` — UPLOAD requer autenticação. `allowed_mime_types: [ogg,webm,mpeg,mp3,aac,mp4]`. |
 | `avatars` | sim | 5 MB | |
 | `comprovantes-financeiro` | não | 20 MB | |
