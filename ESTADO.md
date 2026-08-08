@@ -4,7 +4,7 @@
 > Uma pergunta por componente: **esta ligado? quem chama?**
 > Nao adicione secao de arquitetura, plano ou roadmap aqui. Isso morre em `docs/`.
 
-Ultima verificacao: **2026-08-08**
+Ultima verificacao: **2026-08-08** | Pendencias: **1 P1 critica**, 2 P2/P3 (ver fim do arquivo)
 
 ## Como foi medido
 
@@ -186,3 +186,59 @@ Sem chamador declarado, a funcao nao entra.
 `pronto` = **ligado em producao com trafego real**. Codigo existir nao e pronto.
 
 Reexecutar a medicao: `node /workspace/scripts/audit-edge-callers.mjs`
+
+---
+
+## Pendencias detectadas na verificacao de 2026-08-08
+
+Registro do que foi encontrado ao investigar as 4 funcoes do grupo E.
+As 4 tinham `cron.schedule(...)` no squash de migrations; **nenhum dos 4 jobs existe no banco**.
+
+| Funcao | Job declarado na migration | Veredicto |
+|---|---|---|
+| `auto-escalate-sla` | `warroom-alert-resolver-1min` | substituida por SQL (5.523 alertas resolvidos, 27 abertos, todos <48h) — **arquivar** |
+| `queue-rebalance` | `queue-rebalance-every-5min` | modulo SLA nunca ligado (11 tabelas SLA vazias) — **arquivar** |
+| `sicoob-outbox-consumer` | `sicoob-outbox-drain` | pipeline inativo, `sicoob_reply_outbox` e `outbox_events` vazias — **arquivar** |
+| `cleanup-storage-orphans` | `cleanup-storage-orphans-daily` | **NUNCA rodou.** NAO ligar ainda — ver P1 abaixo |
+
+### P1 — Midia gravada e nao vinculada (02–04/08)
+
+Bucket `whatsapp-media`: **19.617 objetos / 28 GB**, dos quais **11.572 (59%) / 13 GB** sem
+nenhuma referencia em `zapp.messages`, `evo.evolution_messages`, `evo.evolution_messages_wpp2_archive`
+ou `zapp.media_download_queue`.
+
+O padrao temporal mostra que **nao e lixo historico**:
+
+| Dia | Objetos gravados | Mensagens com media_url |
+|---|---|---|
+| 02/08 | — | 0 |
+| 03/08 | 1.406 | 0 |
+| 04/08 | 1.040 | 0 |
+| 05/08 | 1.189 | 190 |
+| 06/08 | 1.168 | 582 |
+| 07/08 | 295 | 149 |
+| 08/08 | 77 | 42 |
+
+Nos dias 02–04/08 a midia foi baixada e gravada no storage mas **nunca vinculada a nenhuma
+mensagem**. Atendentes viram conversas sem a midia que o cliente enviou. A vinculacao voltou
+a funcionar a partir de 05/08, mas **o backlog daquela janela nunca foi reprocessado**.
+
+**Consequencia direta:** parte dos 13 GB de "orfaos" e midia real de conversas de clientes,
+recuperavel por reconciliacao. Ligar `cleanup-storage-orphans` agora **apagaria essa midia
+permanentemente**. A ordem correta e: reconciliar primeiro, limpar depois.
+
+### P2 — `media_download_queue.storage_path` corrompido
+
+2.515 registros com path truncado no primeiro caractere: `ocument/...` em vez de `document/...`.
+Bug de slicing de string. Impede o cruzamento correto e provavelmente quebra o download.
+
+### P3 — Drift entre migration e banco
+
+Os 4 jobs acima foram declarados em migration e nao existem no banco. Mesma classe de problema
+do digest da Evolution (Git `678f84d8` vs producao `1e12bec1`). Nada verifica se o que foi
+declarado esta de fato ligado.
+
+### Reproduzir a medicao de orfaos
+
+Anti-join entre `storage.objects` e as 4 fontes de referencia. Usar CTE `MATERIALIZED`
+(a versao com `NOT EXISTS` correlacionado estoura o statement_timeout em 19k objetos).
