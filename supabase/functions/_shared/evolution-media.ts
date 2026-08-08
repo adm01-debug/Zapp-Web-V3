@@ -132,7 +132,7 @@ export async function persistMediaViaApi(
     if (messageType === 'audio' && rawMessage) {
       // O payload do Evolution webhook pode vir como { audioMessage: {...} } ou
       // encapsulado em { message: { audioMessage: {...} } }
-      const audioMsg = rawMessage.audioMessage || rawMessage.audio || 
+      const audioMsg = rawMessage.audioMessage || rawMessage.audio ||
                        (rawMessage.message as Record<string, unknown>)?.audioMessage;
       if (audioMsg) innerMessage = { audioMessage: audioMsg };
     }
