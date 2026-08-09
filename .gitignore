@@ -281,6 +281,7 @@ __pycache__/
 .agents/
 .codex/
 .hermes/
+.hermes-chats/
 
 # Artefatos de diagnóstico local
 br.gz
