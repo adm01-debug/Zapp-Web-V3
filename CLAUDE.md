@@ -220,11 +220,20 @@ curl -s "http://supabase_meta:8080/generators/typescript?included_schemas=public
 
 O repositório possui um **grafo de conhecimento** em `graphify-out/` (Apache 2.0, on-device).
 
-- **17.146 nós, 40.507 arestas, 1.765 comunidades**
-- **Top god nodes:** `cn()` (790°), `Button` (495°), `supabase` (371°)
+- **21.827 nós, 46.463 arestas, 1.511 comunidades** (rebuild 2026-08-09, commit ab7a1dfa)
+- Extração: 99% EXTRACTED · 1% INFERRED · inclui as 220 migrations SQL (graphifyy[sql])
+- **Top god nodes:** `cn()` (982°), `Button` (504°), `supabase` (410°), `Badge` (366°)
 - **MCP server:** 8 tools (`graphify_query`, `graphify_path`, `graphify_db_crossref`, etc.)
 
-**Sempre consultar o grafo antes de `search_files`/grep.** Regenerar: `bash scripts/regenerate-graph.sh`
+**Sempre consultar o grafo antes de `search_files`/grep.**
+
+Regenerar (via container claude-code, ~2,5 min, sem custo de API):
+```sh
+. /workspace/.local/env.sh && cd /workspace/repos/zapp-web-v3 && graphify update . --force
+```
+Consultar: `graphify explain "<no>"` · `graphify path "A" "B"`
+
+`graph.json` (28 MB) e `graph.html` **não** são versionados — só `GRAPH_REPORT.md` e `manifest.json`.
 
 ---
 
