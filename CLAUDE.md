@@ -68,6 +68,8 @@
 
 5. **Tipos TypeScript**: importar SEMPRE de `@/integrations/supabase/schema` (barrel canônico), nunca de `types.ts` diretamente.
 
+6. **Tabelas de fila** (`queues`, `queue_positions`, `queue_members`, `queue_goals`, `voice_conversion_queue`): existem em `zapp` (tabela, RLS ligada) com **VIEW `security_invoker` correspondente em `public`**. Acessar via cliente padrão (schema `zapp`). Verificado em runtime 2026-08-09: `queue_positions` existe e está **vazia** — nenhum produtor a alimenta (ver issues #1000/#1001). A lista de “Tabelas Principais” abaixo é ilustrativa, não exaustiva: ausência de uma tabela nela **não** significa que a tabela não existe. Para confirmar existência, consultar o runtime, não esta lista.
+
 ### Tabelas Principais do Schema `zapp`
 
 | Tabela | Função |
