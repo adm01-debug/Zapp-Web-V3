@@ -62,7 +62,7 @@ Webhook wpp2 tinha 16 eventos. Consumer Rabbit já tinha 16 eventos (desde 2026-
 | 172.18.0.1 | 526 | Docker bridge (N8N local) |
 | (outros IPs AWS) | ~35K | AWS diversas |
 
-**Ação manual necessária:** Atualizar credencial **`Evolution API - Promo Brindes`** (ID: `tyLhN1fGwJveaDCg`) no N8N:
+**Ação manual necessária:** Atualizar credencial **`Evolution API - Promo Brindes`** (ID: `<REDACTED — rotacionar via n8n UI>`) no N8N:
 1. N8N UI → Settings → Credentials → "Evolution API - Promo Brindes"
 2. Editar → campo `Value` → substituir com a chave v5
 3. A chave v5 está em: `docker exec <evolution_container> cat /run/secrets/evolution_api_key_v4_20260704`
