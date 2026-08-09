@@ -297,3 +297,65 @@ Achados relevantes:
 - Abordagem por extração + batches (script Node + code_task por grupo) contornou o limite de contexto do Claude Code (148 arquivos em uma só chamada explodiu o contexto)
 
 **Próximo: Bloco 1B** — `src/features` (12 módulos de domínio)
+
+---
+
+## Bloco 1B em andamento — 2026-08-09
+
+`src/features` tem **12 modulos**. Dimensao medida (arquivos / linhas TS+TSX):
+
+| Modulo | Arquivos | Linhas | Batch | Saida |
+|---|---|---|---|---|
+| business-logic | 1 | 629 | 1 | `02-features-batch1.md` |
+| email | 1 | 438 | 1 | `02-features-batch1.md` |
+| emojis | 2 | 271 | 1 | `02-features-batch1.md` |
+| integrations | 2 | 485 | 1 | `02-features-batch1.md` |
+| queues | 1 | 363 | 1 | `02-features-batch1.md` |
+| dashboard | 3 | 915 | 1 | `02-features-batch1.md` |
+| contacts | 14 | 1.828 | 2 | `03-features-batch2.md` |
+| connections | 19 | 3.328 | 2 | `03-features-batch2.md` |
+| sla | 18 | 2.820 | 2 | `03-features-batch2.md` |
+| auth | 36 | 4.906 | 3 | `04-features-auth.md` |
+| **admin** | **89** | **15.396** | **4** | `05-features-admin.md` |
+| **inbox** | **474** | **84.208** | **5..N** | a definir |
+
+### Status dos batches
+
+- [x] Batch 1 — 6 modulos pequenos · commit `d838e7bf3`
+- [x] Batch 2 — contacts, connections, sla · commit `55f4b2fd7`
+- [x] Batch 3 — auth (36 arq, 544 linhas de doc) · commit `4d61e660e`
+- [ ] Batch 4 — admin (89 arq) · **em execucao**
+- [ ] Batch 5..N — inbox (474 arq / 84k linhas) · **precisa sub-batching por subdiretorio**
+
+### Padrao de execucao dos batches (funciona — nao mudar)
+
+Extracao estatica primeiro (`/tmp/extract-features.js` -> `/tmp/1b-extract.json`),
+depois um `claude -p` por batch em background:
+
+```sh
+# prompt em arquivo para evitar inferno de quoting no dash
+cat > /tmp/prompt-1b-MODULO.txt << 'P'
+...prompt...
+P
+
+cd /workspace/estado-inventario && nohup sh -c 'cd /workspace/estado-inventario && \
+  claude --model claude-sonnet-4-6 -p "$(cat /tmp/prompt-1b-MODULO.txt)" \
+  > /tmp/1b_MODULO_out.log 2>&1; echo "EXIT=$?" > /tmp/1b_MODULO.txt' > /dev/null 2>&1 &
+```
+
+Armadilhas confirmadas nesta sessao:
+- **`--dangerously-skip-permissions` nao funciona como root.** Erro: *cannot be used
+  with root/sudo privileges*. Nao usar — as permissoes ja estao liberadas no
+  `settings.json` (`Bash(*)`, `Write(*)`, `Read(*)`, `Edit(*)`).
+- Poll pelo marker `/tmp/1b_MODULO.txt` (`EXIT=0`) + `wc -l` da saida. `ps aux | grep
+  'clau[d]e' | grep -v defunct` para ver se ainda roda.
+- Batch de 36 arquivos levou ~6 min. Batch de 19+18+14 levou ~11 min.
+
+### Proxima acao exata
+
+1. Poll do batch 4: `cat /tmp/1b_admin.txt` e `wc -l docs/estado/05-features-admin.md`
+2. `git add docs/estado/05-features-admin.md && git commit --no-verify -m 'docs(estado): bloco 1B batch4 - feature admin' && git push origin docs/estado-inventario`
+3. Batch 5+: `inbox` **nao cabe em uma chamada** (474 arq / 84k linhas). Quebrar por
+   subdiretorio de `src/features/inbox/` — rodar `ls src/features/inbox/` e agrupar em
+   fatias de ~40-60 arquivos, uma saida markdown por fatia
+   (`06-features-inbox-<fatia>.md`).
