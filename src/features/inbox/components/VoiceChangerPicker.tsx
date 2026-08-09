@@ -147,7 +147,7 @@ export function VoiceChangerPicker({ onSendAudio, disabled }: VoiceChangerPicker
         {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: formData,
