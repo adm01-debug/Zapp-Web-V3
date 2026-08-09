@@ -39,7 +39,7 @@ export function ChatPanelOverlays({
       </SectionErrorBoundary>
 
       <AnimatePresence>
-        {showVisualValidation && (
+        {showVisualValidation && import.meta.env.DEV && (
           <motion.div
             key="visual-validation"
             initial={{ opacity: 0, y: -8 }}

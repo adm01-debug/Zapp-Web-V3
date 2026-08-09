@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { AudioLines, Loader2, Play, Square, Send, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ELEVENLABS_VOICES, type ElevenLabsVoice } from './VoiceSelector';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TextToAudioButtonProps {
   inputValue: string;
@@ -67,6 +68,10 @@ export function TextToAudioButton({ inputValue, onAudioReady, disabled }: TextTo
     setIsConverting(true);
 
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
         {
@@ -74,7 +79,7 @@ export function TextToAudioButton({ inputValue, onAudioReady, disabled }: TextTo
           headers: {
             'Content-Type': 'application/json',
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({
             text: inputValue.trim(),
