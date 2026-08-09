@@ -466,3 +466,13 @@ produtor foi fechada varrendo 4 camadas. **Nenhuma escreve em `zapp.queue_positi
 nao tem produtor — falta o INSERT que enfileira o contato quando chega sem atendente livre.
 Enquanto isso: tabela vazia, notifier nunca mostra posicao, painel SLA reporta 0 em espera.
 Detalhe em issue #1001.
+
+### Atualizacao 2 (2026-08-09): subsistema de fila/roteamento dormente por completo
+
+Aprofundando a busca do produtor: nao e so `queue_positions` sem produtor — o subsistema
+inteiro esta desligado. Runtime: **0 filas** em `zapp.queues`, 0 `queue_members`, 0
+`channel_routing_rules`, **0 de 20.743 contatos com `assigned_to`**, `sticky_assignments`
+vazia. Motor existe (`ticket-router` edge via `useTicketStatus.ts:57`, round-robin em
+`fn_resolve_agent_for_routing`) mas sem filas/membros retorna sempre `unassigned`.
+`queue-rebalance-every-5min` (pg_cron) nao agendado. Nada escreve `queue_positions`.
+Decisao de produto (ligar o modelo de fila vs. declarar dormente), nao bug. Detalhe em #1001.
