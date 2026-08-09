@@ -10,8 +10,8 @@
     "semantic_hash": ""
   },
   ".husky/pre-commit": {
-    "mtime": 1785520164.3771517,
-    "ast_hash": "3956ed176f8117e4d0f9520f0eabf5b7",
+    "mtime": 1786271985.4007561,
+    "ast_hash": "856f45f0ccf2e8b1a1901129a4f4ff7d",
     "semantic_hash": ""
   },
   ".lovable/mcp/manifest.json": {
@@ -470,8 +470,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1786105212.8825116,
-    "ast_hash": "88fbdbb1993cc655746a1281e0765969",
+    "mtime": 1786272284.9301276,
+    "ast_hash": "6c49ec6d577a2af0ce32ec5daf2ff23e",
     "semantic_hash": ""
   },
   "playwright.a11y.config.ts": {
@@ -777,11 +777,6 @@
   "scripts/regen-trilha-mensagens.ts": {
     "mtime": 1785804385.046754,
     "ast_hash": "04da23948c05a67628a61b38252f1c7a",
-    "semantic_hash": ""
-  },
-  "scripts/regenerate-graph.sh": {
-    "mtime": 1785801143.7839372,
-    "ast_hash": "e7efaeefd24869a3ab471164bf182f48",
     "semantic_hash": ""
   },
   "scripts/render-seed-report.mjs": {
@@ -13240,8 +13235,8 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1786219895.7437189,
-    "ast_hash": "2c431ebb40b2b6fdd95c4c560f1ca5df",
+    "mtime": 1786271803.4839294,
+    "ast_hash": "730a7b48dd642b5b8d4d912de1256c76",
     "semantic_hash": ""
   },
   "CONTRIBUTING.md": {

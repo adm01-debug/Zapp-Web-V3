@@ -1,27 +1,27 @@
 # Graph Report - zapp-web-v3  (2026-08-09)
 
 ## Corpus Check
-- 3307 files · ~2,715,543 words
+- 3306 files · ~2,715,142 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 21827 nodes · 46463 edges · 1511 communities (1223 shown, 288 thin omitted)
+- 21825 nodes · 46462 edges · 1532 communities (1244 shown, 288 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 421 edges (avg confidence: 0.71)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `ab7a1dfa`
+- Built from commit: `ced2a40b`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - button.tsx
 - badge.tsx
-- client.ts
+- supabase
 - cn
-- AdminWebhookOverviewPage.tsx
-- avatar.tsx
-- hooks/use-toast.ts
+- useWebhookEvents.ts
+- ContactContentArea.tsx
+- ConnectionCard.tsx
 - chat.ts
 - isValidUUID
 - contract-kit.ts
@@ -29,52 +29,52 @@
 - ChatInputArea.tsx
 - dbFrom
 - useAuth
-- SettingsView.tsx
-- promogifts-catalog/index.ts
-- db.ts
+- utils.ts
+- parseOrReject
+- sanitizePostgrestFilter
 - contract-schemas.ts
-- inbox/hooks/useRealtimeMessages.ts
+- inbox/index.ts
 - ContactAccordionSections.tsx
 - AdminChannelsPage.tsx
 - schema.ts
-- useMountedRef
+- err
 - lazyViews.ts
 - useAlertManagement.ts
 - Sidebar.tsx
-- AdminEvoApiHealthPage.tsx
-- ConversationListSidebar.tsx
+- skeleton.tsx
+- TicketTabs.tsx
 - evolution-webhook/index.ts
-- ForceLogoutButton.tsx
+- StickerManager.tsx
 - messageSender.ts
-- tooltip.tsx
+- RealtimeInboxView.tsx
 - schemas.ts
 - ConversationItem.tsx
 - useInboxFilters.ts
 - whatsappAdapter.ts
-- AIStatsWidget.tsx
+- chart.tsx
 - AuthProvider.tsx
-- skeleton.tsx
-- inbox/index.ts
+- queues/SLADashboard.tsx
+- Message
 - useExternalApiManagement.ts
 - scanResponse.ts
 - ._run
 - rpcCatalog.ts
-- useAuthForm.ts
-- AppProviders.tsx
+- .error
+- useUserRole
 - evolution-api/index.ts
 - inbox/components/index.ts
-- utils.ts
+- dropdown-menu.tsx
 - TeamChatPanel.tsx
-- VoiceSearchOverlay.tsx
+- VoiceSearchOverlayConnected.tsx
 - useCampaignEditor.ts
 - retryAlerts.ts
 - crossTabDedupe.ts
 - scripts
-- useUserRole
+- SecurityView.tsx
 - externalDB.ts
 - useEvolutionApiManagement.ts
 - ai-router/index.ts
-- safeClient.ts
+- sidebar/index.ts
 - ContactsRichView.tsx
 - Detalhamento por Item
 - 📋 Levantamento Completo de Funcionalidades do Sistema
@@ -86,7 +86,7 @@
 - retryConfig.ts
 - 🚀 Guia de Deploy - ZAPP-WEB
 - devDependencies
-- 4. HOOKS — 126 hooks
+- SLAIndicatorForContact.tsx
 - PLANO B — Rebuild da imagem custom da Evolution com Baileys 6.7.24 (estável)
 - IndexContentConnected.tsx
 - hooks/useMediaUrl.ts
@@ -94,7 +94,7 @@
 - Parte III — As 20 etapas
 - useUIManagement.ts
 - motion/index.ts
-- whatsapp-cloud-webhook/index.ts
+- gmail-webhook/index.ts
 - 📘 HANDOFF DOCUMENT — ZAPP WEB
 - compilerOptions
 - ErrorBoundary.tsx
@@ -108,9 +108,9 @@
 - useEmail.ts
 - clientTelemetry.ts
 - SCHEMA_REFERENCE.md
-- useAudioManagement.ts
-- evolutionSendRetry.ts
-- contract-schemas-infra.ts
+- hooks/use-toast.ts
+- evolutionCircuitBreaker.ts
+- ChatSearchBar.tsx
 - Relatório de Simulação de Perda de Dados
 - REFACTOR_PLAN.md — Refatoração Estrutural zapp-web-v3
 - Relatório de Simulação de Regressão - ZAPP-WEB v3
@@ -120,7 +120,7 @@
 - contract-versions.ts
 - 📨 JORNADA COMPLETA DE UMA MENSAGEM — WhatsApp → Frontend Zap Webb
 - Guia de Performance - ZAPP WEB
-- ConnectionsIntegrationsHub.tsx
+- useConnectionsManagement.ts
 - formatters.ts
 - src/hooks/useContactIntelligence.ts
 - COMPREHENSIVE VALIDATION REPORT — ARCHITECTURE "OTIMIZADO" v2.1
@@ -160,7 +160,7 @@
 - 📐 Schema Reference — ZAPP WEB
 - test-data.ts
 - useMonitoringManagement.ts
-- useQueueManagement.ts
+- QueueSlaPanel.tsx
 - AppRoutes.tsx
 - AdminTelemetriaPage.tsx
 - AnalysisTabs.tsx
@@ -177,7 +177,7 @@
 - Bloco 1 — Inventário estrutural (etapas 1-10)
 - Achados por etapa
 - PLANO DE CORREÇÃO — populado durante a análise
-- useMediaLibraryManagement.ts
+- mediaUrl.ts
 - DepartmentManagementDialog.tsx
 - services/connections/index.ts
 - evolution-api-proxy.ts
@@ -188,12 +188,12 @@
 - ESTADO.md — Registro do que esta LIGADO
 - Consolidated Patch — The Whole File
 - App.tsx
-- GlobalKeyboardProvider.tsx
+- useNavigationHistory.ts
 - zappweb/index.ts
 - failedMessagesEnqueue.ts
 - Auditoria Infraestrutura VPS — Evolution API Stacks (Sessão 10)
 - consumer.py
-- safeStorage.ts
+- useWebhookOverview.ts
 - sendStatusBus.ts
 - useSearchManagement.ts
 - messages/index.ts
@@ -207,12 +207,12 @@
 - main.tsx
 - KeyboardShortcutsDialog.tsx
 - WebhookAlertHistoryPanel.tsx
-- MonitoringConnectionsList.tsx
-- useAnalyticsManagement.ts
+- AudioMessagePlayer.tsx
+- classifyMetricStatus.ts
 - ViewRouter.tsx
 - UniversityHelp.tsx
 - useChatFilters.test.ts
-- err
+- ChatMessagesArea.tsx
 - dependencies
 - HANDOFF_DOCUMENT.md
 - HANDOFF — Bloco 9A (etapas 81-85): Resiliência e edge cases
@@ -221,13 +221,13 @@
 - 📡 ZAPP-WEB — WEBHOOK EVENTS DOCUMENTATION
 - audit-contract.mjs
 - WarRoomDashboard.tsx
-- SupervisorQueueBoard.tsx
+- useQueues.ts
 - transitions/index.ts
-- InternalNotesPanel.tsx
+- sanitize.ts
 - TicketHistorySheet.tsx
 - services/contacts/index.ts
 - useAgents.test.tsx
-- ConnectionPoolManager
+- useConnectionManagement.ts
 - selfHostedDiagnostics.ts
 - gmail-tests.test.ts
 - Auditoria de Paridade: Lovable Cloud → Supabase Self-Hosted (schema `zapp`)
@@ -237,7 +237,7 @@
 - ChatPanel Blank Incident — Root Cause & Fix
 - RELATÓRIO DE VALIDAÇÃO EXAUSTIVA — 2026-08-07
 - testHelpers.ts
-- hooks.ts
+- AdminEvoApiHealthPage.tsx
 - structuredErrorLogging.ts
 - 🏥 Health Check — Banco Self-Hosted Supabase (PostgreSQL 15.8)
 - GAP REPORT — Lovable Cloud → Self-Hosted (schema `zapp`)
@@ -245,11 +245,11 @@
 - Simulation de Falhas — Fixes de Runtime (61 cenários)
 - useEmailManagement.ts
 - useConnectionStatusIndicator.ts
-- whatsappInstances.ts
+- useRealtimeContacts.ts
 - hooks/useAdminInboxSync.ts
 - proxy.ts
 - api/types.ts
-- useEmailHealthStatus.ts
+- emailHealthService.ts
 - 4. BREAK POINTS IDENTIFICADOS
 - PROMPT — Etapa 3: credenciais e sessão JWT
 - 🔐 Auth & Segurança
@@ -261,10 +261,10 @@
 - emoji-picker.tsx
 - evoApiHealth/types.ts
 - normalizers.ts
-- playTtsAudio.ts
+- ConversationSummary.tsx
 - login-attempts/index.ts
 - DATABASE.md
-- ContactImportDialog.tsx
+- csvUtils.ts
 - Auditoria de Segurança do Banco — zapp/evo/public
 - 4. Disable vs Fix Recommendations
 - Code Quality Metrics Report — zapp-web-v3-fix
@@ -284,14 +284,14 @@
 - Sanitize API Unification — Migration Plan
 - SIMULATION REPORT — Auditoria e Execução 2026-08-07
 - Relatório de Auditoria RLS — Schemas `zapp` e `evo`
-- ProgressiveDisclosureDashboard.tsx
+- useDashboardData.ts
 - 20260804190316_restore_orphaned_rpcs.sql
-- MessageSendHistorySheet.tsx
+- RateLimitLogDetails.tsx
 - evolutionClient.ts
 - BusinessAnalytics
 - DynamicQueryBuilder
 - dedupeTelemetry.ts
-- callCorrelation.ts
+- CallCorrelationView.tsx
 - rules
 - Evolution API ↔ ZAPP Web — Mapeamento Completo
 - BUGS
@@ -302,14 +302,14 @@
 - 3. Respostas por cenário solicitado
 - fixtures/auth.ts
 - admin-filters.ts
-- safeFrom
+- useKnowledgeBase.ts
 - OnboardingTour.tsx
 - useFailedMessages.ts
 - whatsappLogsHelpers.tsx
 - shared/validation.ts
 - dlq-backoff.ts
 - ZAPP-WEB — Contexto para Claude Code
-- lib/useMediaUrl.ts
+- VoiceSearchOverlay.tsx
 - Tema 14 — SLA/BPM (Bloco 8)
 - PLANO-DB-50-ETAPAS.md
 - Adendo — validação de segunda sessão (01/08/2026 ~16:30 UTC)
@@ -331,7 +331,7 @@
 - public/manifest.json
 - compilerOptions
 - regen-trilha-mensagens.ts
-- useQueueGoals.ts
+- safeFrom
 - command-palette.tsx
 - GlobalSearch.tsx
 - useMessageSendHistory.ts
@@ -351,8 +351,8 @@
 - package.json
 - useAgentGamification.ts
 - openContactInChat.ts
-- useRateLimitLogs.ts
-- useNotificationSettings
+- useRateLimitAlertNotifier.ts
+- InboxScopeConfig.tsx
 - AvatarUpload.tsx
 - api/index.ts
 - .execute
@@ -405,9 +405,9 @@
 - Descobertas da Auditoria Exaustiva — 07/08/2026
 - wcag_contrast_v7_validate.py
 - mcp/manifest.json
-- sendProductUtils.ts
-- useBusinessLogicManagement.ts
-- AIConversationAssistant.tsx
+- SendProductDialog.tsx
+- safeStorage.ts
+- ChatToolPanels.tsx
 - TemplatesWithVariables.tsx
 - useSLAAlerts.ts
 - useRealtimeMessages.test.tsx
@@ -440,18 +440,18 @@
 - Rotação Obrigatória (Ordem de Execução)
 - audit-semaphore-sim.mjs
 - check-dead-code.mjs
-- useSentimentData.ts
+- SentimentTabContent.tsx
 - accessible-toast.tsx
-- useIdempotencyMissAlerts.ts
+- DuplicateContactsPanel.tsx
 - useTransfersPaginated.ts
 - ConversationTasksPanel.tsx
-- MediaCard.tsx
+- TalkXCampaignEditor.tsx
 - useInboxHeartbeat.simulacao.test.ts
 - contratoF4.simulacao.test.tsx
 - evo.v_health_unified
-- gmail-webhook/index.ts
-- ConversationSummary.tsx
-- devRealtimeLogger.ts
+- BridgeSupabaseView.tsx
+- ai-router.ts
+- ChatHeader.tsx
 - healthCheck.ts
 - speech-recognition.d.ts
 - Categorias
@@ -478,15 +478,15 @@
 - build-patches.mjs
 - SOP: Deploy Seguro do Watchdog Baileys
 - check-performance-budget.mjs
-- ConnectionHealthPanel.tsx
-- FailedMessageStatusBadge.tsx
+- tooltip.tsx
+- useFailedMessages
 - useGoalsDashboard.ts
-- ScrollLoaderController
-- realtime/types.ts
-- inboxFilterPersistence.ts
+- MessageAttemptsTimeline.tsx
+- archivedScenarios.simulacao.test.ts
+- TeamMemberDetails.tsx
 - proxy.test.ts
 - sanitize-extra.ts
-- sendFunctionRouter.ts
+- evolutionSendRetry.ts
 - compilerOptions
 - Confirmed Zero-Success-Rate Workflows
 - MATRIZ DE RECONCILIAÇÃO — Container × Supabase
@@ -526,11 +526,11 @@
 - AutomationsManager.tsx
 - CampaignsView.test.tsx
 - IntegrationsPanel.tsx
-- QrCodeDialog.tsx
-- ContactCompanyField.tsx
-- useEvolutionMonitoring.ts
+- ProgressiveDisclosureDashboard.tsx
+- useExternalCatalog
+- useInboxBulkActions.ts
 - loadOlderMetrics.ts
-- UnifiedNotificationProviders.tsx
+- useContactFormV3.ts
 - contractSnapshot.test.ts
 - FASE 5 — Aprofundamento e Entrega (Etapas 43–50)
 - Decisão
@@ -569,16 +569,16 @@
 - check-coverage-ratchet.mjs
 - check-fix-regression-test.mjs
 - gerar-indice-achados.mjs
-- AchievementsStats.tsx
+- contacts/hooks/useContactNotes.ts
 - useEvolutionApiIntegration.test.tsx
-- lib/retry.ts
-- inboxFilterPipeline.ts
+- client.ts
+- AgentOpsTable.tsx
 - LinkPreview.tsx
-- ConversationDeliverySummary.tsx
+- whatsappFileTypes.ts
 - realtimeChannelLifecycle.test.ts
 - useImportData.ts
-- useSecurityAuditLogs.ts
-- settings/index.ts
+- promogifts-catalog/index.ts
+- FailedMessageDetailsSheet.tsx
 - __mocks__/logger.ts
 - realtimeFanoutEvents.test.ts
 - supabase.test.ts
@@ -631,7 +631,7 @@
 - InAppNotificationProvider.tsx
 - VoIPPanel.tsx
 - SentimentHelpers.tsx
-- realtime/index.ts
+- ChatInputArea.guards.test.tsx
 - useContactsMutations.ts
 - MediaLibraryAdmin.test.tsx
 - PeriodFilterSelector.tsx
@@ -677,7 +677,7 @@
 - check-design-system.ts
 - lint-supabase-casts.mjs
 - stress-test.ts
-- SLAMetricCards.tsx
+- components/MessageReactions.tsx
 - Button.stories.tsx
 - pg-bootstrap.sql
 - useFallbackContact.test.ts
@@ -686,7 +686,7 @@
 - queryTimeout.ts
 - typing.ts
 - rlsGroupAccess.test.ts
-- useDeliveryStats.ts
+- whatsappInstances.ts
 - Convenção vigente (a partir de 2026-07-11)
 - test-config.ts
 - ADR-006: Arquitetura canônica de SLA
@@ -730,13 +730,13 @@
 - check-types-freshness.mjs
 - fuzz-edge-functions.ts
 - fwdref_scan.py
-- mobile-components.tsx
-- useAgents.ts
+- whatsappStatusService.ts
+- agentService.ts
 - miniGamesData.ts
-- CRMAutoSync.tsx
+- Conversation
 - Input.stories.tsx
 - useApplicableSLA.test.ts
-- useQueueAnalytics.ts
+- QueueCharts.tsx
 - ops.fn_check_reference_integrity
 - contactsDB.test.ts
 - checklistSteps.ts
@@ -759,7 +759,7 @@
 - Sessão 2026-08-06 — Auditoria Evolution API (A-5b, A-8, Security Gate)
 - Sessão 2026-08-06 — Auditoria Exaustiva Evolution API + FIX-01 (5 Agentes Especializados)
 - Sessão 2026-08-06 (continuação) — Auditoria Exaustiva 5 Agentes + Hardening
-- Fluxo de credenciais Evolution
+- LeaderboardHelpers.tsx
 - 18. OPERATIONAL PROCEDURES
 - 7. MIGRATION RULES
 - ADR-DB-004 — FKs zapp→evo e cross-módulo: MANTER (exceção formal documentada)
@@ -786,7 +786,7 @@
 - Hardening & Quality Session — Cycle 2 (2026-07-03)
 - Hardening & Quality Session — Cycle 3 (2026-07-03)
 - Plano de Deduplicação de Migrations
-- 🚀 Onboarding: Bem-vindo ao ZAPP WEB
+- useChatInputLogic.ts
 - Plano de 50 Etapas — Sistema "Lovable Local" no PC (ZAPP Web v3)
 - Inventário de Canais Realtime
 - 09 — RELATÓRIO DA CONSOLIDAÇÃO FINAL (etapas 93–99)
@@ -796,7 +796,7 @@
 - SECRET SCAN REPORT — Historical Secrets
 - RUNBOOK DE EMERGENCIA - Rotacao de Credenciais
 - Supabase Clients — Realidade do Frontend
-- EmailChatInbox.tsx
+- useEmailSearch.ts
 - Domínio: DASHBOARD
 - wcag_contrast_sim.py
 - connection-to-inbox-inbound.spec.ts
@@ -811,14 +811,14 @@
 - render-seed-report.mjs
 - NumberReputationMonitor.tsx
 - Page Transitions
-- AdminAutomationLogsPage.tsx
+- hooks/useAutomationLogs.ts
 - AIToolsPopover.tsx
 - QueueMetricsDashboard.tsx
 - p0-regressions.test.ts
 - contactDetailSections.ts
 - useFailureMetricsBatch.ts
 - simulateChatLatency.ts
-- useNewConversation.ts
+- crossTabSendDedupe.ts
 - Supabase Integration — Convenções
 - useSLAHistory.ts
 - functions/deno.json
@@ -875,7 +875,7 @@
 - lint-migrations.mjs
 - ChatbotFlowEditor.tsx
 - 20260807270000_session_backfill_pipeline_hardening.sql
-- label.tsx
+- switch.tsx
 - GamificationEffects.tsx
 - src/hooks/__tests__/useSLACalculation.test.ts
 - chatOptimizations.ts
@@ -923,9 +923,9 @@
 - Plano de Endurecimento de RLS / SECURITY DEFINER — ZAPP-WEB v3
 - ops.fn_check_reference_integrity
 - popupManager.ts
-- useEvoApiAlertsBadge.ts
-- StoryViewer.tsx
-- archivedUi.simulacao.test.tsx
+- AdminQueuesPage.tsx
+- AudioMemePicker.tsx
+- ConversationListSidebar.tsx
 - Domínio: CONTATOS
 - Domínio: FILAS
 - Domínio: SEGURANÇA
@@ -941,13 +941,13 @@
 - preview-start.sh
 - Templates de Prompt — Estúdio Lovable Local
 - featuresSectionsData.ts
-- useExternalContact360Batch.test.ts
+- VoiceDictationButton.tsx
 - useHmacAuditHistory.ts
 - 20260804150001_integration_schema_zapp_fixes.sql
 - evo.v_kpi_overview
-- 2. MÓDULO INBOX (Chat) — 98 componentes
+- form.tsx
 - ContactToolbar.tsx
-- useSLAMetrics.test.tsx
+- useRateLimitLogs.ts
 - useVersions.test.tsx
 - RetryMetricsTracker
 - realtimeFanoutWildcard.test.ts
@@ -977,9 +977,9 @@
 - C-9 + D-8 — Decisões executadas (2026-08-05)
 - Layer Responsibilities
 - Common Patterns
-- QueueCharts.tsx
-- useWebhookViewPreferences.ts
-- soundConfigs.ts
+- contacts/hooks/useContactIntelligence.ts
+- evolution-templates/index.ts
+- SlashCommands.tsx
 - 20260804210000_restore_edge_idempotency_rpcs.sql
 - 20260804210923_restore_edge_idempotency_rpcs.sql
 - Análise Transversal
@@ -996,10 +996,10 @@
 - validate-barrels.ts
 - Introduction.stories.tsx
 - zapp.get_visible_agent_ids
-- AUDITORIA EXAUSTIVA — ZAPP-WEB
-- 1. NAVEGAÇÃO PRINCIPAL (Sidebar)
+- useChatQuickReplyControl.test.ts
+- ChatMessagesArea.getItemSize.test.tsx
 - useServiceWorker.test.ts
-- 3. EDGE FUNCTIONS — 48 funções
+- useMessages.ts
 - env.ts
 - groupsAutoSync.test.ts
 - no-workbox-after-reload.spec.ts
@@ -1014,8 +1014,8 @@
 - 19. KPIs & Monitoramento
 - 2. Instalação & Configuração
 - PLANO_CORRECAO_EVO_API_100_ETAPAS_20260806.md
-- useQueueManagement.test.tsx
-- sentry.test.ts
+- roleMapping.test.ts
+- profileMappers.ts
 - backup_v4.sh
 - Branch Protection — main (etapa 50)
 - install-runner.sh
@@ -1033,7 +1033,7 @@
 - boot-resilience.spec.ts
 - Edge Functions — _shared/
 - @axe-core/playwright
-- automation-suggest-reply/index.ts
+- 2. Inbox/Chat em Tempo Real
 - @chromatic-com/storybook
 - class-variance-authority
 - clsx
@@ -1059,10 +1059,10 @@
 - cutover/ts-nocheck-batch-2026-07-15T20-01-22-112Z.md
 - cutover/ts-nocheck-batch-2026-07-15T20-32-27-612Z.md
 - Fix #3 light-mode contrast validation — 12 locations (commit 499b7b8e5)
-- dompurify
+- Procedimento de Rotação da Anon Key
 - @elevenlabs/react
 - embla-carousel-react
-- eslint
+- 3. Inteligência Artificial
 - eslint-plugin-react-hooks
 - eslint-plugin-react-refresh
 - eslint-plugin-storybook
@@ -1168,7 +1168,7 @@
 - status.sh
 - stop-preview.sh
 - watchdog-preview.sh
-- regenerate-graph.sh
+- useChatPanelHandlers.edit.test.ts
 - SECRET_SCAN.sh
 - seed-e2e-contacts.sh script
 - seed-e2e-user.sh script
@@ -1183,22 +1183,22 @@
 - supabase-integration.test.ts
 - run-pipeline.sh
 - ChurnPredictionDashboard
-- MFABackupCodes.tsx
+- talkx-send/index.ts
 - auth.tsx
-- metrics/index.ts
+- Guia de Arquitetura e Fluxo de Dados - Zapp Web
 - 20260805220000_revive_logpatch_audit_view_trigger.sql
 - 20260808260000_shadow_mode_fns_and_canonical_route_fix.sql
 - financeiro.ranking_vendas_hoje
 - 20260807102155_onda3_d2_negocio_triggers_evo_contrato_views_rpc.sql
-- SummaryResult.tsx
+- 1. Autenticação & Usuários
 - BridgeStatusBanner.tsx
 - zapp.csat_auto_config
 - zapp.rpc_get_contact_summary_batch
 - 20260806192000_bugfix_evolution_logpatch_audit_security_invoker.sql
 - evo.fn_monitor_lid_contamination
 - zapp.rpc_contract_inventory
-- DegradedQuickActions.tsx
-- useQueueGoals.test.tsx
+- useChatbotFlows.test.tsx
+- ContactSearchWithSuggestions.tsx
 - 20260805160000_harden_rpc_schema_whitelist.sql
 - zapp.fn_retry_stuck_messages
 - ops.fn_verify_alert_delivery
@@ -1310,6 +1310,27 @@
 - zapp.storage_cleanup_logs
 - zapp.user_settings
 - zapp.webhook_idempotency
+- CrmBadges.tsx
+- contract-schemas-infra.test.ts
+- 10. Relatórios & Analytics
+- 4. Gestão de Contatos
+- 5. Filas de Atendimento
+- 7. Gamificação
+- 8. Conexões WhatsApp
+- offline-indicator.tsx
+- voice/retry.ts
+- 11. Configurações
+- 12. Chamadas
+- 15. Auditoria
+- 6. SLA (Service Level Agreement)
+- 9. Catálogo de Produtos
+- useRealtimeMonitor.ts
+- security-error-envelope.test.ts
+- Arquitetura Geral
+- 📝 Notas de Implementação
+- PreviewPreconditionBanner.tsx
+- baseline-browser-mapping
+- @commitlint/config-conventional
 
 ## God Nodes (most connected - your core abstractions)
 1. `cn()` - 982 edges
@@ -1324,211 +1345,204 @@
 10. `err()` - 210 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `HardResetButton()` --indirect_call--> `err()`  [INFERRED]
+  src/components/debug/HardResetButton.tsx → scripts/repair-types-schemas.mjs
 - `fetchMessageBody()` --indirect_call--> `err()`  [INFERRED]
   src/hooks/gmail/gmailApi.ts → scripts/repair-types-schemas.mjs
+- `useConnectionPoolDiagnostics()` --indirect_call--> `err()`  [INFERRED]
+  src/hooks/useConnectionManagement.ts → scripts/repair-types-schemas.mjs
+- `useGmailOAuthFlowManagement()` --indirect_call--> `err()`  [INFERRED]
+  src/hooks/useIntegrationManagement.ts → scripts/repair-types-schemas.mjs
 - `useSearchHistoryManagement()` --indirect_call--> `err()`  [INFERRED]
   src/hooks/useSearchManagement.ts → scripts/repair-types-schemas.mjs
-- `useOnboardingChecklistManagement()` --indirect_call--> `err()`  [INFERRED]
-  src/hooks/useSettingsManagement.ts → scripts/repair-types-schemas.mjs
-- `refreshOneAccount()` --indirect_call--> `err()`  [INFERRED]
-  supabase/functions/gmail-token-refresh/index.ts → scripts/repair-types-schemas.mjs
-- `checkEvolution()` --indirect_call--> `err()`  [INFERRED]
-  supabase/functions/health/index.ts → scripts/repair-types-schemas.mjs
 
 ## Import Cycles
 - 2-file cycle: `src/services/messages/index.ts -> src/services/messages/useMessagesMutations.ts -> src/services/messages/index.ts`
 - 2-file cycle: `src/services/messages/index.ts -> src/services/messages/useMessagesQueries.ts -> src/services/messages/index.ts`
-- 2-file cycle: `src/services/connections/index.ts -> src/services/connections/useConnectionsMutations.ts -> src/services/connections/index.ts`
 - 2-file cycle: `src/services/connections/index.ts -> src/services/connections/useConnectionsQueries.ts -> src/services/connections/index.ts`
+- 2-file cycle: `src/services/connections/index.ts -> src/services/connections/useConnectionsMutations.ts -> src/services/connections/index.ts`
 - 2-file cycle: `src/services/users/index.ts -> src/services/users/useUsersMutations.ts -> src/services/users/index.ts`
 - 2-file cycle: `src/services/users/index.ts -> src/services/users/useUsersQueries.ts -> src/services/users/index.ts`
-- 2-file cycle: `src/services/settings/index.ts -> src/services/settings/useSettingsMutations.ts -> src/services/settings/index.ts`
 - 2-file cycle: `src/services/settings/index.ts -> src/services/settings/useSettingsQueries.ts -> src/services/settings/index.ts`
+- 2-file cycle: `src/services/settings/index.ts -> src/services/settings/useSettingsMutations.ts -> src/services/settings/index.ts`
 - 2-file cycle: `src/services/queues/index.ts -> src/services/queues/useQueuesMutations.ts -> src/services/queues/index.ts`
 - 2-file cycle: `src/services/queues/index.ts -> src/services/queues/useQueuesQueries.ts -> src/services/queues/index.ts`
 - 2-file cycle: `src/services/contacts/index.ts -> src/services/contacts/useContactsMutations.ts -> src/services/contacts/index.ts`
 - 2-file cycle: `src/services/contacts/index.ts -> src/services/contacts/useContactsQueries.ts -> src/services/contacts/index.ts`
 - 3-file cycle: `supabase/functions/_shared/auth.ts -> supabase/functions/_shared/validation.ts -> supabase/functions/_shared/hmac-validation.ts -> supabase/functions/_shared/auth.ts`
-- 3-file cycle: `src/features/inbox/components/TicketHistorySheet.tsx -> src/features/inbox/index.ts -> src/features/inbox/components/index.ts -> src/features/inbox/components/TicketHistorySheet.tsx`
-- 3-file cycle: `src/features/inbox/components/ChatPanel.tsx -> src/features/inbox/index.ts -> src/features/inbox/components/index.ts -> src/features/inbox/components/ChatPanel.tsx`
-- 3-file cycle: `src/features/inbox/components/NewMessageIndicator.tsx -> src/features/inbox/index.ts -> src/features/inbox/components/index.ts -> src/features/inbox/components/NewMessageIndicator.tsx`
 - 3-file cycle: `src/features/inbox/hooks/index.ts -> src/features/inbox/hooks/useRealtimeInbox.ts -> src/features/inbox/index.ts -> src/features/inbox/hooks/index.ts`
-- 3-file cycle: `src/features/inbox/components/ContactTypeFilter.tsx -> src/features/inbox/index.ts -> src/features/inbox/components/index.ts -> src/features/inbox/components/ContactTypeFilter.tsx`
-- 3-file cycle: `src/features/inbox/components/FailureCategoryFilter.tsx -> src/features/inbox/index.ts -> src/features/inbox/components/index.ts -> src/features/inbox/components/FailureCategoryFilter.tsx`
-- 3-file cycle: `src/features/inbox/components/ImagePreview.tsx -> src/features/inbox/index.ts -> src/features/inbox/components/index.ts -> src/features/inbox/components/ImagePreview.tsx`
+- 3-file cycle: `src/features/inbox/components/RealtimeInboxView.tsx -> src/features/inbox/index.ts -> src/features/inbox/components/index.ts -> src/features/inbox/components/RealtimeInboxView.tsx`
+- 3-file cycle: `src/features/admin/components/AIUsageDashboard.tsx -> src/features/admin/index.ts -> src/features/admin/components/index.ts -> src/features/admin/components/AIUsageDashboard.tsx`
+- 3-file cycle: `src/features/admin/components/AIUsageLogsTab.tsx -> src/features/admin/index.ts -> src/features/admin/components/index.ts -> src/features/admin/components/AIUsageLogsTab.tsx`
+- 3-file cycle: `src/features/admin/components/BulkReprocessGuidedDialog.tsx -> src/features/admin/index.ts -> src/features/admin/components/index.ts -> src/features/admin/components/BulkReprocessGuidedDialog.tsx`
+- 3-file cycle: `src/features/admin/components/FailedMessageStatusBadge.tsx -> src/features/admin/index.ts -> src/features/admin/components/index.ts -> src/features/admin/components/FailedMessageStatusBadge.tsx`
+- 3-file cycle: `src/features/admin/components/FailedMessageTableRow.tsx -> src/features/admin/index.ts -> src/features/admin/components/index.ts -> src/features/admin/components/FailedMessageTableRow.tsx`
 
-## Communities (1511 total, 288 thin omitted)
+## Communities (1532 total, 288 thin omitted)
 
 ### Community 0 - "button.tsx"
 Cohesion: 0.02
-Nodes (264): ConfigurePermissionsDialogProps, InviteAgentDialogProps, CampaignABTestingProps, CampaignCreateDialog(), CampaignCreateDialogProps, FormData, INITIAL_FORM, TargetType (+256 more)
+Nodes (228): InviteAgentDialogProps, CallDialogProps, CampaignABTestingProps, CampaignCreateDialog(), CampaignCreateDialogProps, FormData, INITIAL_FORM, TargetType (+220 more)
 
 ### Community 1 - "badge.tsx"
 Cohesion: 0.02
-Nodes (247): log, STATUS_CONFIG, log, ACTION_LABELS, describeAction(), PrivacyAuditTrail(), PrivacyPolicySection(), sections (+239 more)
+Nodes (243): log, STATUS_CONFIG, ChatbotExecutionsDashboard, log, ACTION_LABELS, describeAction(), PrivacyAuditTrail(), dataItems (+235 more)
 
-### Community 2 - "client.ts"
+### Community 2 - "supabase"
 Cohesion: 0.02
-Nodes (130): OmnichannelInbox(), mockConnections, mockContacts, ReportContact, ReportMessage, useReportsData(), Props, STATUS_MAP (+122 more)
+Nodes (163): GoalsConfigDialog(), ReportContact, ReportMessage, Props, STATUS_MAP, AIUsageDashboard(), DispatchErrorLogFilters, DispatchErrorLogRow (+155 more)
 
 ### Community 3 - "cn"
 Cohesion: 0.02
-Nodes (182): ProductImage, ProductImageGrid(), ProductImageGridProps, WhatsAppTemplatesManager(), ContactAnalyticsDashboard(), FieldSelector(), InsightCard(), MetricCardProps (+174 more)
+Nodes (142): FieldSelector(), TrendIndicator(), ChallengesWidget(), InsightCard(), BuildValidationOverlay(), HealthBadge(), MetricCard(), StatusDot() (+134 more)
 
-### Community 4 - "AdminWebhookOverviewPage.tsx"
+### Community 4 - "useWebhookEvents.ts"
+Cohesion: 0.17
+Nodes (15): queryExternalProxy(), consumePendingWebhookEventsFilters(), openWebhookEventsWithFilters(), setPendingWebhookEventsFilters(), WebhookEventsDeepLinkFilters, EVENT_TYPES, EventTypeFilter, MESSAGE_TYPES (+7 more)
+
+### Community 5 - "ContactContentArea.tsx"
 Cohesion: 0.06
-Nodes (42): BulkReprocessGuidedDialog(), FailedMessageTableRow(), ROOT_CAUSE_TONE_CLASS, shortJid(), queryExternalProxy(), getRootCauseMeta(), formatDateTimeCompact(), consumePendingWebhookEventsFilters() (+34 more)
+Nodes (57): AgentsView(), CompanyLogo(), CompanyLogoProps, getCompanyColor(), getCompanyInitials(), iconSizeMap, sizeMap, ContactAnalyticsDashboard() (+49 more)
 
-### Community 5 - "avatar.tsx"
-Cohesion: 0.03
-Nodes (103): AgentsView(), CallDialog(), CallDialogProps, BrowserAudioWindow, log, CompanyLogo(), CompanyLogoProps, getCompanyColor() (+95 more)
-
-### Community 6 - "hooks/use-toast.ts"
-Cohesion: 0.02
-Nodes (117): ConnectionCard(), ConnectionCardProps, getLastActivity(), HEALTH_REASON_LABEL, statusConfig, ConnectionCardMenu(), ConnectionCardMenuProps, ConnectionDisconnectDialog() (+109 more)
+### Community 6 - "ConnectionCard.tsx"
+Cohesion: 0.04
+Nodes (57): BusinessHoursIndicator(), BusinessHoursIndicatorProps, ConnectionCard(), ConnectionCardProps, getLastActivity(), HEALTH_REASON_LABEL, statusConfig, ConnectionCardMenu() (+49 more)
 
 ### Community 7 - "chat.ts"
-Cohesion: 0.03
-Nodes (113): ExtractedMessageType, extractMessageType(), InternalMessageType, MESSAGE_TYPE_BLUEPRINT, MessageCategory, SHORT_ALIASES, AudioMessagePlayer, AudioMessagePlayerProps (+105 more)
+Cohesion: 0.05
+Nodes (57): ChatMessageBubble(), ChatMessageBubbleProps, formatMessageTime(), InputPreviewBars(), InputPreviewBarsProps, baseProps, QueueItemLike, DeletedMessagePlaceholder() (+49 more)
 
 ### Community 8 - "isValidUUID"
-Cohesion: 0.02
-Nodes (111): mockToast, notesRows, log, useContactAssignment(), CustomField, log, useContactCustomFields(), ContactNote (+103 more)
+Cohesion: 0.03
+Nodes (81): CustomField, log, useContactCustomFields(), AnalysisMessage, AnalysisTabs(), ConversationSummaryResult, ConversationSummaryRow, loadCachedConversationSummary() (+73 more)
 
 ### Community 9 - "contract-kit.ts"
-Cohesion: 0.04
-Nodes (125): RFC-4648, validateRequestSignature(), AUDIO_CATEGORIES, STICKER_CATEGORIES, acceptedNoContent(), VALID_NAMES, VitalName, VitalPayload (+117 more)
+Cohesion: 0.05
+Nodes (79): RFC-4648, validateRequestSignature(), AUDIO_CATEGORIES, STICKER_CATEGORIES, acceptedNoContent(), VALID_NAMES, VitalName, VitalPayload (+71 more)
 
 ### Community 10 - "lib/logger.ts"
 Cohesion: 0.02
-Nodes (140): FailedMessageAlertsMount(), log, PasswordRequirement, PasswordStrengthMeter(), PasswordStrengthMeterProps, requirements, sha1Hash(), ContactTypingState (+132 more)
+Nodes (112): mapToLegacyConversation(), HardResetButton, WhatsAppTemplatesManager(), HardResetButton(), log, log, PasswordRequirement, PasswordStrengthMeter() (+104 more)
 
 ### Community 11 - "ChatInputArea.tsx"
-Cohesion: 0.03
-Nodes (91): ExternalProductCardProps, ExternalProductCatalog(), ExternalProductCatalogProps, ProductDetailDialogProps, SendProductDialogProps, TeamChatInputArea(), AdvancedMessageMenu(), AISuggestions() (+83 more)
+Cohesion: 0.10
+Nodes (18): AdvancedMessageMenu(), QuickReplyItem, QuickReplyItem, SecondaryToolbar(), SecondaryToolbarProps, TertiaryToolsMenu(), ChatSendProgress(), ChatSendProgressProps (+10 more)
 
 ### Community 12 - "dbFrom"
 Cohesion: 0.02
-Nodes (130): DemandPredictionProps, DiagnosticsView(), TranscriptionsHistoryView(), ConnectionStatus, ErrorLog, fetchConnections(), fetchErrorLogs(), fetchMessageDiagnostics() (+122 more)
+Nodes (131): DemandPredictionProps, DiagnosticsView(), TranscriptionsHistoryView(), ConnectionStatus, ErrorLog, fetchConnections(), fetchErrorLogs(), fetchMessageDiagnostics() (+123 more)
 
 ### Community 13 - "useAuth"
 Cohesion: 0.03
-Nodes (80): LGPDComplianceView(), OnboardingChecklist(), SettingsView(), ParticipantStatsGraph(), getMediaType(), log, TeamFileUploader(), TeamFileUploaderProps (+72 more)
+Nodes (94): useReportsData(), AddMembersDialog(), NewConversationDialog(), TeamChatInputArea(), TeamChatInputAreaProps, TeamChatPanel(), TeamChatView(), TeamConversationList (+86 more)
 
-### Community 14 - "SettingsView.tsx"
+### Community 14 - "utils.ts"
 Cohesion: 0.02
-Nodes (138): ConfigurePermissionsDialog(), InviteAgentDialog(), CompanyFormDialog(), ContactFormDialog(), CSATDashboard(), ratingColors, ActivityHeatmap(), getLevelColor() (+130 more)
+Nodes (189): ConfigurePermissionsDialog(), ConfigurePermissionsDialogProps, InviteAgentDialog(), BusinessHoursDialog(), BusinessHoursDialogProps, DAYS_OF_WEEK, ConnectionQueuesDialog(), DegradedConnection (+181 more)
 
-### Community 15 - "promogifts-catalog/index.ts"
-Cohesion: 0.05
-Nodes (36): contractViolation422(), VALID_DDDS, contractViolation422(), contractViolation422(), escapeRegex(), getConfig(), normalizeNumber(), replaceVars() (+28 more)
+### Community 15 - "parseOrReject"
+Cohesion: 0.03
+Nodes (83): Body, ExtTag, fetchExternalTags(), KbHit, CursorPayload, jsonResponse(), VALID_TYPES, contractViolation422() (+75 more)
 
-### Community 16 - "db.ts"
-Cohesion: 0.02
-Nodes (144): ACTION_COLORS, ACTION_LABELS, AuditEntry, AuditLogPanel(), FIELD_LABELS, log, CHANNEL_LABELS, ConsentData (+136 more)
+### Community 16 - "sanitizePostgrestFilter"
+Cohesion: 0.07
+Nodes (30): getDateFilterStart(), SearchContactRef, SearchContactRow, SearchMessageRow, TagSuggestion, useGlobalSearchData(), ContactResult, useNewConversation() (+22 more)
 
 ### Community 17 - "contract-schemas.ts"
 Cohesion: 0.02
-Nodes (121): gate(), req(), aggregate(), percentile(), RetryRow, extractEmails(), fetchAndPersistMessage(), headerMap() (+113 more)
+Nodes (118): gate(), req(), extractEmails(), fetchAndPersistMessage(), headerMap(), processAttachments(), PUBSUB_PUSH, checkDatabase() (+110 more)
 
-### Community 18 - "inbox/hooks/useRealtimeMessages.ts"
-Cohesion: 0.16
-Nodes (21): ConversationContact, MessageBatcherIndicatorProps, buildConversation(), buildConversations(), chunkArray(), dedupeContacts(), dedupeMessages(), getUniqueMessageContactIds() (+13 more)
+### Community 18 - "inbox/index.ts"
+Cohesion: 0.11
+Nodes (30): ConversationContact, MessageBatcherIndicator(), MessageBatcherIndicatorProps, buildConversation(), buildConversations(), chunkArray(), dedupeContacts(), dedupeMessages() (+22 more)
 
 ### Community 19 - "ContactAccordionSections.tsx"
-Cohesion: 0.04
-Nodes (60): AccordionContent, AccordionItem, AccordionTrigger, AIConversationTag, EnrichedContactData, SLAInfo, AnalysisBadges(), AnalysisBadgesProps (+52 more)
+Cohesion: 0.05
+Nodes (49): PrivacyPolicySection(), sections, AccordionContent, AccordionItem, AccordionTrigger, AIConversationTag, EnrichedContactData, SLAInfo (+41 more)
 
 ### Community 20 - "AdminChannelsPage.tsx"
-Cohesion: 0.03
-Nodes (121): ContactDialogsProps, Contact, AddMemberDialog(), CreateQueueDialog(), QueueGoalsDialog(), QueuesView(), AdminChannelsPage, BlockIPDialog() (+113 more)
+Cohesion: 0.06
+Nodes (72): ConnectionDisconnectDialogProps, CreateQueueDialog(), QueueCard, QueueGoalsDialog(), BlockIPDialog(), BlockIPDialogProps, UnblockIPDialog(), UnblockIPDialogProps (+64 more)
 
 ### Community 21 - "schema.ts"
 Cohesion: 0.02
-Nodes (99): AutomationsManager(), SegmentsManagerDialog(), InboxScopeConfig(), log, CHANNEL_PERMISSIONS, INBOX_PERMISSIONS, NewScopeForm(), NewScopeFormProps (+91 more)
+Nodes (100): AutomationsManager(), SegmentsManagerDialog(), ContactExportLogInput, DataDeletionRequestInput, AutomationSuggestionsBar(), ConversationMemoryPanel(), ConversationMemoryPanelProps, MemoryData (+92 more)
 
-### Community 22 - "useMountedRef"
-Cohesion: 0.03
-Nodes (77): DialPadProps, ConnectionAuditDialog(), ConnectionAuditDialogProps, log, ConnectionsView(), formatPairingCode(), InstanceSettingsDialog(), MonitoringWebhookPanel() (+69 more)
+### Community 22 - "err"
+Cohesion: 0.02
+Nodes (113): err(), DialPadProps, ConnectionAuditDialog(), ConnectionAuditDialogProps, log, ACTION_COLORS, ACTION_LABELS, AuditEntry (+105 more)
 
 ### Community 23 - "lazyViews.ts"
-Cohesion: 0.03
-Nodes (80): AutoTicketClassifier(), CATEGORIES, ClassifiedTicket, classifyTag(), derivePriority(), getCategoryInfo(), log, PRIORITY_MAP (+72 more)
+Cohesion: 0.02
+Nodes (102): formatBucketTime(), formatCountdown(), IdempotencyMissBanner(), Achievement, AchievementDetailDialog(), AchievementDetailDialogProps, iconMap, rarityConfig (+94 more)
 
 ### Community 24 - "useAlertManagement.ts"
-Cohesion: 0.08
-Nodes (29): log, RealtimeSentimentAlert, SentimentAlertData, useRealtimeSentimentAlertsManagement(), UseRealtimeSentimentAlertsResult, useSentimentAlertsManagement(), UseSentimentAlertsResult, UseWarRoomAlertsResult (+21 more)
+Cohesion: 0.03
+Nodes (81): RealtimeSentimentAlertProvider, NotificationSettingsPanel(), SoundSelectorProps, GoalNotificationProvider, GoalNotificationsLayer(), RealtimeSentimentAlertProvider, SentimentAlertsLayer(), SLANotificationProvider (+73 more)
 
 ### Community 25 - "Sidebar.tsx"
-Cohesion: 0.12
-Nodes (33): allItems, CommandPalette(), CommandPaletteProps, getRecent(), groups, pushRecent(), SidebarProps, advancedNav (+25 more)
+Cohesion: 0.06
+Nodes (60): allItems, CommandPalette(), CommandPaletteProps, getRecent(), groups, pushRecent(), CompaniesManagerDialog(), ContactCompanyField() (+52 more)
 
-### Community 26 - "AdminEvoApiHealthPage.tsx"
-Cohesion: 0.03
-Nodes (86): AlertsTab, SEVERITY_VARIANT, ChannelsTab, DrTab, HistoryTab, reasonMeta, RetryAlertsBanner(), NPSDashboard() (+78 more)
+### Community 26 - "skeleton.tsx"
+Cohesion: 0.02
+Nodes (143): COLUMN_ALIASES, ContactImportDialogProps, EXPECTED_COLUMNS, ImportResult, mapHeader(), parseRows(), CRM360StatsCards, StatCard (+135 more)
 
-### Community 27 - "ConversationListSidebar.tsx"
-Cohesion: 0.09
-Nodes (27): MobilePullToRefreshIndicator(), MobilePullToRefreshProps, BulkActionsState, ConversationListSidebar(), ConversationListSidebarProps, InboxState, PullToRefreshState, toInboxScope() (+19 more)
+### Community 27 - "TicketTabs.tsx"
+Cohesion: 0.11
+Nodes (27): MAIN_TAB_OPTIONS, Props, SUB_TAB_OPTIONS, mockHasPermission, mockUserRole, InboxScope, MainTab, SubTab (+19 more)
 
 ### Community 28 - "evolution-webhook/index.ts"
 Cohesion: 0.08
-Nodes (68): FUZZ_STRINGS, __registryCache, auditWebhookEvent(), DeadLetterInput, fetchProfilePicFromApi(), generatePhoneVariants(), generateRequestId(), get() (+60 more)
+Nodes (69): FUZZ_STRINGS, __registryCache, auditWebhookEvent(), DeadLetterInput, fetchProfilePicFromApi(), generatePhoneVariants(), generateRequestId(), get() (+61 more)
 
-### Community 29 - "ForceLogoutButton.tsx"
-Cohesion: 0.60
-Nodes (3): ForceLogoutButton(), ForceLogoutButtonProps, invalidateUserSession()
+### Community 29 - "StickerManager.tsx"
+Cohesion: 0.11
+Nodes (28): StickerPicker(), StickerPickerProps, CategorySelector(), CategorySelectorProps, PersonalStickers(), StickerCategoryBar(), StickerCategoryBarProps, StickerGrid() (+20 more)
 
 ### Community 30 - "messageSender.ts"
 Cohesion: 0.05
-Nodes (51): {
-  getWhatsappConnectionsMock,
-  invalidateCacheMock,
-  safeFromMock,
-  normalizeConnectionMock,
-  supabaseFromMock,
-  invokeMock,
-}, CANONICAL_SELECT, whatsappConnectionRepository, auditBuffer, AuditRow, contactCache, contactInflight, enqueueAudit() (+43 more)
+Nodes (59): CampaignABTesting(), Deal, ABVariant, log, PIPELINE_KEY, PipelineDealRow, PipelineStage, useBusinessLogicCampaignsManagement() (+51 more)
 
-### Community 31 - "tooltip.tsx"
-Cohesion: 0.03
-Nodes (84): BusinessHoursIndicator(), BusinessHoursIndicatorProps, SwipeableMessage(), SwipeableMessageProps, mockToggleListening, VoiceDictationButton(), VoiceDictationButtonProps, getEnabled() (+76 more)
+### Community 31 - "RealtimeInboxView.tsx"
+Cohesion: 0.08
+Nodes (25): MiniChatPiP(), SwipeableMessage(), SwipeableMessageProps, InboxPage, useDepartmentAgents(), InboxEmptyChat(), ChatPanel, NewConversationModal (+17 more)
 
 ### Community 32 - "schemas.ts"
-Cohesion: 0.04
-Nodes (74): RFC-1918, AiClassifyTicketsV1Schema, DetectNewDeviceV1Schema, SicoobBridgeV2Schema, WebhookDiagnosticV1Schema, ContractLifecycle, ContractLifecycles, ContractParseOptions (+66 more)
+Cohesion: 0.03
+Nodes (108): RFC-1918, AiClassifyTicketsV1Schema, DetectNewDeviceV1Schema, BatchFetchAvatarsV1Schema, CleanupRateLimitLogsV1Schema, CleanupStorageOrphansV1Schema, ClientObservabilityV1Schema, ConnectionTestV1Schema (+100 more)
 
 ### Community 33 - "ConversationItem.tsx"
-Cohesion: 0.05
-Nodes (58): DensitySelector(), QuickPeek(), QuickPeekProps, useContactTyping(), BulkActionsToolbar(), BulkActionsToolbarProps, buildFullPrimaryLabel(), buildPrimaryLabel() (+50 more)
+Cohesion: 0.07
+Nodes (46): QuickPeek(), QuickPeekProps, buildFullPrimaryLabel(), buildPrimaryLabel(), buildSecondaryLabel(), ChannelBadge(), ConversationItem, ConversationItemProps (+38 more)
 
 ### Community 34 - "useInboxFilters.ts"
-Cohesion: 0.09
-Nodes (39): resolveInitialScope(), resolveInitialShowAll(), sanitizeInboxUrlParams(), writeStoredInboxFilters(), applyInboxFilters(), buildFailureCategoryCounts(), computeInboxTabCounts(), dedupePresets() (+31 more)
+Cohesion: 0.07
+Nodes (52): filterByContactType(), InboxFiltersState, InboxFiltersState, EMPTY, FAILURE_CATEGORIES, INBOX_SCOPES, InboxScope, MAIN_TABS (+44 more)
 
 ### Community 35 - "whatsappAdapter.ts"
 Cohesion: 0.06
-Nodes (78): TestResult, WhatsAppModeSetting(), assertValidJid(), BroadcastJid, ensureBrazilDDI(), GroupJid, IndividualJid, isBroadcast() (+70 more)
+Nodes (69): TestResult, assertValidJid(), BroadcastJid, ensureBrazilDDI(), GroupJid, IndividualJid, isBroadcast(), isIndividual() (+61 more)
 
-### Community 36 - "AIStatsWidget.tsx"
-Cohesion: 0.12
-Nodes (22): AIStatsWidget(), chartConfig, periodLabels, SentimentType, sentimentTypeLabels, TrendIndicator(), ChartConfig, ChartContainer (+14 more)
+### Community 36 - "chart.tsx"
+Cohesion: 0.20
+Nodes (14): ChartConfig, ChartContainer, ChartContext, ChartContextProps, ChartLegendContent, ChartStyle(), ChartTooltipContent, ChartTooltipItem (+6 more)
 
 ### Community 37 - "AuthProvider.tsx"
 Cohesion: 0.04
-Nodes (62): ExportDropdown(), ExportDropdownProps, mockCanDownload, AuthProvider(), clearAuthDataCaches(), FetchOutcome, getProfileTimeoutMs(), isAccessTokenExpired() (+54 more)
+Nodes (58): ExportDropdown(), ExportDropdownProps, mockCanDownload, AuthProvider(), clearAuthDataCaches(), FetchOutcome, getProfileTimeoutMs(), isAccessTokenExpired() (+50 more)
 
-### Community 38 - "skeleton.tsx"
-Cohesion: 0.03
-Nodes (77): EMPTY_DRAFT, SegmentDraft, SegmentsManagerDialogProps, CRM360StatsCards, StatCard, StatCardItem(), STATS, DailyMetricsKpis() (+69 more)
+### Community 38 - "queues/SLADashboard.tsx"
+Cohesion: 0.04
+Nodes (58): getRateBadge(), getRateBg(), getRateColor(), PERIOD_LABELS, SLAConfigurationManager, SLAMetricsDashboard(), getRateColor(), PERIOD_KEYS (+50 more)
 
-### Community 40 - "inbox/index.ts"
-Cohesion: 0.02
-Nodes (118): StatusLabelToggle(), EmptyState(), ChatDragOverlay(), ChatDragOverlayProps, ChatMessagesArea, ChatMessagesAreaProps, ChatMessagesAreaRef, log (+110 more)
+### Community 40 - "Message"
+Cohesion: 0.04
+Nodes (74): ExtractedMessageType, extractMessageType(), InternalMessageType, MESSAGE_TYPE_BLUEPRINT, MessageCategory, SHORT_ALIASES, StatusLabelToggle(), ChatDragOverlay() (+66 more)
 
 ### Community 41 - "useExternalApiManagement.ts"
 Cohesion: 0.05
-Nodes (54): ExternalProductManagement(), mockDbRpc, mockFrom, CACHE_TTL, contactEnrichmentCache, ContactEnrichmentData, FAILURE_COOLDOWN_MS, safeParseTags() (+46 more)
+Nodes (51): mockDbRpc, mockFrom, CACHE_TTL, contactEnrichmentCache, ContactEnrichmentData, FAILURE_COOLDOWN_MS, safeParseTags(), _configuredInterval (+43 more)
 
 ### Community 42 - "scanResponse.ts"
 Cohesion: 0.11
@@ -1542,41 +1556,41 @@ Nodes (13): FakeCh, FakeConn, FakeCursor, FakeMethod, FakeResp, make_props(), Te
 Cohesion: 0.04
 Nodes (53): AddContactNoteParams, AppBootstrapParams, BulkAddTagParams, BulkAutoMergeDuplicatesParams, BulkSoftDeleteContactsParams, BulkUpdateLeadStatusParams, DashboardHomeParams, DashboardInitParams (+45 more)
 
-### Community 45 - "useAuthForm.ts"
-Cohesion: 0.08
-Nodes (37): LockStatus, loginSchema, passwordSchema, signupSchema, useAuthForm(), mockFrom, mockInvoke, mockUseAuth (+29 more)
+### Community 45 - ".error"
+Cohesion: 0.07
+Nodes (42): LGPDComplianceView(), GamificationProvider(), OnboardingChecklist(), LockStatus, loginSchema, passwordSchema, signupSchema, useAuthForm() (+34 more)
 
-### Community 46 - "AppProviders.tsx"
-Cohesion: 0.05
-Nodes (47): log, StaleBundleNotice(), ValidationContext, ValidationContextType, ValidationProvider(), HighContrastProvider(), AdminUsersTableProps, AuditLog (+39 more)
+### Community 46 - "useUserRole"
+Cohesion: 0.04
+Nodes (64): log, StaleBundleNotice(), ValidationContext, ValidationContextType, ValidationProvider(), HighContrastProvider(), AdminView(), DlqAuditAction (+56 more)
 
 ### Community 47 - "evolution-api/index.ts"
 Cohesion: 0.07
-Nodes (36): detectFallbackReason(), EvolutionFallbackAction, EvolutionFallbackEvent, EvolutionFallbackMode, EvolutionFallbackReason, FALLBACK_TARGETS, logFallbackEvent(), maybeLogFallback() (+28 more)
+Nodes (35): detectFallbackReason(), EvolutionFallbackAction, EvolutionFallbackEvent, EvolutionFallbackMode, EvolutionFallbackReason, FALLBACK_TARGETS, logFallbackEvent(), maybeLogFallback() (+27 more)
 
 ### Community 48 - "inbox/components/index.ts"
-Cohesion: 0.04
-Nodes (53): ConnectionStatusIndicator(), Props, PopoverContent, AgentOpsTable(), initials(), Props, statusBadgeVariant(), statusDot() (+45 more)
+Cohesion: 0.09
+Nodes (25): CustomEmoji, EMOJIS_QUERY_KEY, PendingEmojiUpload, useCustomEmojis(), CategorySelector(), CustomEmojiPicker(), CustomEmojiPickerProps, ALL_CATEGORIES (+17 more)
 
-### Community 49 - "utils.ts"
-Cohesion: 0.04
-Nodes (71): addRecentSearch(), clearRecentSearches(), ContactSearchWithSuggestions(), ContactSearchWithSuggestionsProps, getRecentSearches(), ContactViewSwitcher(), ContactViewSwitcherProps, GRID_COLUMN_OPTIONS (+63 more)
+### Community 49 - "dropdown-menu.tsx"
+Cohesion: 0.06
+Nodes (44): ConnectionCardMenuProps, ContactViewSwitcher(), ContactViewSwitcherProps, GRID_COLUMN_OPTIONS, VIEW_MODES, DealCard(), DealCardProps, formatCloseDate() (+36 more)
 
 ### Community 50 - "TeamChatPanel.tsx"
-Cohesion: 0.04
-Nodes (77): AddMembersDialog(), Props, EXTENDED_EMOJIS, MessageReactions, Props, QUICK_EMOJIS, TeamQuickReactionBar, NewConversationDialog() (+69 more)
+Cohesion: 0.05
+Nodes (58): EXTENDED_EMOJIS, MessageReactions, Props, QUICK_EMOJIS, TeamQuickReactionBar, ParticipantStatsGraph(), TeamChatHeader(), TeamChatMessageRow (+50 more)
 
-### Community 51 - "VoiceSearchOverlay.tsx"
-Cohesion: 0.06
-Nodes (43): LazyVoiceOverlay, AudioFrequencyVisualizer(), AudioFrequencyVisualizerProps, FloatingParticles(), FloatingParticlesProps, Particle, PHASE_CONFIG, hsl() (+35 more)
+### Community 51 - "VoiceSearchOverlayConnected.tsx"
+Cohesion: 0.12
+Nodes (18): LazyVoiceOverlay, Props, SUPABASE_KEY, SUPABASE_URL, VoiceSearchOverlayConnected(), logVoiceCommand(), processVoiceTranscript(), UseVoiceAgentOptions (+10 more)
 
 ### Community 52 - "useCampaignEditor.ts"
-Cohesion: 0.11
-Nodes (19): DegradedConnectionsBanner(), DegradedInstance, Props, TalkXView(), ClientWalletView(), MEDIA_TYPES, MESSAGE_TEMPLATES, toLocalDateTimeInput() (+11 more)
+Cohesion: 0.07
+Nodes (34): DegradedConnectionsBanner(), DegradedInstance, Props, TalkXView(), ClientWalletView(), MEDIA_TYPES, MESSAGE_TEMPLATES, toLocalDateTimeInput() (+26 more)
 
 ### Community 53 - "retryAlerts.ts"
-Cohesion: 0.11
-Nodes (36): RetryAlertsBannerProps, RetryAlertsConfigProps, RetryMetricsPanel(), statusIcon(), statusVariant(), timeAgo(), useRetryMetricsPanelState(), RetryAggregates (+28 more)
+Cohesion: 0.10
+Nodes (37): reasonMeta, RetryAlertsBanner(), RetryAlertsBannerProps, RetryAlertsConfigProps, RetryMetricsPanel(), statusIcon(), statusVariant(), timeAgo() (+29 more)
 
 ### Community 54 - "crossTabDedupe.ts"
 Cohesion: 0.07
@@ -1586,29 +1600,29 @@ Nodes (46): addToDedupRing(), broadcast(), BroadcastMessage, clearCrossTabDedupe
 Cohesion: 0.04
 Nodes (53): scripts, build, build:dev, build-storybook, check, check:barrels, check:casts, check:datalayer (+45 more)
 
-### Community 56 - "useUserRole"
-Cohesion: 0.04
-Nodes (63): ThemeDebugger(), ChannelDialogState, NotificationChannelsAdmin(), tryParseJson(), NotificationChannelsPage, ACTION_COLORS, ACTION_ICONS, AuditLogDashboard() (+55 more)
+### Community 56 - "SecurityView.tsx"
+Cohesion: 0.06
+Nodes (40): ACTION_COLORS, ACTION_ICONS, AuditLogDashboard(), getDeviceIcon(), PasskeysPanel(), PasswordResetRequestsPanel(), DEFAULT_RULES, log (+32 more)
 
 ### Community 57 - "externalDB.ts"
 Cohesion: 0.05
-Nodes (50): exportToCSV(), formatCellValue(), RFM_SEGMENT_COLORS, TABS, COMMUNICATION_TABS, CORE_TABS, CRM_PIPELINE_TABS, GAMIFICATION_TABS (+42 more)
+Nodes (56): StatCardItem(), exportToCSV(), formatCellValue(), RFM_SEGMENT_COLORS, TABS, COMMUNICATION_TABS, CORE_TABS, CRM_PIPELINE_TABS (+48 more)
 
 ### Community 58 - "useEvolutionApiManagement.ts"
 Cohesion: 0.11
-Nodes (36): ButtonItem, ChatwootConfig, ContactCard, CreateInstanceParams, DifyConfig, EvolutionBotConfig, FlowiseConfig, GroupParams (+28 more)
+Nodes (35): ButtonItem, ChatwootConfig, ContactCard, CreateInstanceParams, DifyConfig, EvolutionBotConfig, FlowiseConfig, GroupParams (+27 more)
 
 ### Community 59 - "ai-router/index.ts"
 Cohesion: 0.11
 Nodes (42): ACTION_RATE_LIMITS, ACTION_TIMEOUTS, ActionResult, buildPartialSuccessResponse(), calculateJitteredRetryAfter(), callAiWithTimeout(), checkMemoryLimit(), CircuitBreakerState (+34 more)
 
-### Community 60 - "safeClient.ts"
-Cohesion: 0.03
-Nodes (65): AccountForm, log, ENTITY_QUERY_KEYS, Version, CONTACT_STATS_KEY, ContactStatsData, UseContactStatsReturn, EMAIL_TEMPLATES_KEY (+57 more)
+### Community 60 - "sidebar/index.ts"
+Cohesion: 0.14
+Nodes (33): SIDEBAR_COOKIE_MAX_AGE, SIDEBAR_COOKIE_NAME, SIDEBAR_KEYBOARD_SHORTCUT, SIDEBAR_WIDTH, SIDEBAR_WIDTH_ICON, SIDEBAR_WIDTH_MOBILE, SidebarContext, SidebarContextType (+25 more)
 
 ### Community 61 - "ContactsRichView.tsx"
-Cohesion: 0.07
-Nodes (28): ContactContentArea(), ContactDialogs(), ContactExportDialog(), ContactsBulkActionBar(), Props, BirthdayContact, ContactsRichHeader(), Props (+20 more)
+Cohesion: 0.06
+Nodes (39): ContactDialogs(), ContactDialogsProps, ContactExportDialog(), buildContactsCsv(), BuildCsvOptions, buildExportFileName(), esc(), EXPORT_DEFAULT_KEYS (+31 more)
 
 ### Community 62 - "Detalhamento por Item"
 Cohesion: 0.04
@@ -1623,16 +1637,16 @@ Cohesion: 0.04
 Nodes (47): Archive Retention Policy, Complete Rotation Cycle Results, Concurrent Access During Rotation, Concurrent Access Test Results, Data Integrity Verification, Encryption Key Rotation Workflow Test — Migration #5, Encryption State Table: _authoritative_time, Executive Summary (+39 more)
 
 ### Community 65 - "externalProxy.ts"
-Cohesion: 0.08
-Nodes (19): QueryOperation, CORRELATION_HEADER, generateCorrelationId(), applyFilters(), AwaitableChain, client, deriveMeta(), DirectClient (+11 more)
+Cohesion: 0.09
+Nodes (17): QueryOperation, applyFilters(), AwaitableChain, client, deriveMeta(), DirectClient, executeDirect(), proxyLog (+9 more)
 
 ### Community 66 - "useUIInteractionManagement.ts"
 Cohesion: 0.08
-Nodes (27): Sidebar, mockFrom, mockFunctionsInvoke, mockUseAuth, AriaAnnouncer(), useAriaAnnouncer(), useSidebarCollapse(), useSidebarFavorites() (+19 more)
+Nodes (30): Sidebar, DevicesPanel(), mockFrom, mockFunctionsInvoke, mockUseAuth, AriaAnnouncer(), useAriaAnnouncer(), useDeviceDetection() (+22 more)
 
 ### Community 67 - "UnifiedEmptyState.tsx"
 Cohesion: 0.08
-Nodes (38): EmptyState(), EmptyStateProps, illustrations, sizeClasses, contextConfigs, EmptyStateAction, EmptyStateConfig, ContextualEmptyState() (+30 more)
+Nodes (39): EmptyState(), EmptyStateProps, illustrations, sizeClasses, contextConfigs, EmptyStateAction, EmptyStateConfig, ContextualEmptyState() (+31 more)
 
 ### Community 68 - "Guia de Segurança Defensiva - ZAPP WEB"
 Cohesion: 0.04
@@ -1640,7 +1654,7 @@ Nodes (45): 1. Network Security, 2. Authentication, 3. Authorization (RBAC), 4. 
 
 ### Community 69 - "retryConfig.ts"
 Cohesion: 0.11
-Nodes (30): RetrySchedulePreview(), buildPreview(), RetryConfigPanel(), log, RETRY_CONFIG_KEY(), useInstanceRetryConfig(), UseInstanceRetryConfigResult, buildKeys() (+22 more)
+Nodes (31): RetrySchedulePreview(), buildPreview(), RetryConfigPanel(), log, RETRY_CONFIG_KEY(), useInstanceRetryConfig(), UseInstanceRetryConfigResult, buildKeys() (+23 more)
 
 ### Community 70 - "🚀 Guia de Deploy - ZAPP-WEB"
 Cohesion: 0.05
@@ -1648,27 +1662,27 @@ Nodes (44): 1. Auth, 1. Build local, 2. Deploy de Edge Functions, 2. RLS, 3. Apl
 
 ### Community 71 - "devDependencies"
 Cohesion: 0.05
-Nodes (43): autoprefixer, @commitlint/config-conventional, @eslint/js, globals, devDependencies, autoprefixer, @commitlint/config-conventional, @eslint/js (+35 more)
+Nodes (43): autoprefixer, eslint, @eslint/js, globals, devDependencies, autoprefixer, eslint, @eslint/js (+35 more)
 
-### Community 72 - "4. HOOKS — 126 hooks"
-Cohesion: 0.20
-Nodes (10): 4.1 Chat & Mensagens, 4.2 Contatos & CRM, 4.3 Agentes & Filas, 4.4 Automação & IA, 4.5 WhatsApp & Evolution API, 4.6 Dashboard & Analytics, 4.7 Segurança, 4.8 Mídia & Voz (+2 more)
+### Community 72 - "SLAIndicatorForContact.tsx"
+Cohesion: 0.08
+Nodes (31): getPercent(), SLAIndicator(), SLAIndicatorProps, statusStyles, HIERARCHY, levelLabel(), log, resolveMessageTimestamp() (+23 more)
 
 ### Community 73 - "PLANO B — Rebuild da imagem custom da Evolution com Baileys 6.7.24 (estável)"
 Cohesion: 0.05
 Nodes (41): 1) Síntese, 2) Causa raiz, 3) Timeline completa, 4) Diagnóstico — evidências, 5) Correções aplicadas nesta sessão, 6) Diagnóstico diferencial — o que NÃO era, 7) Lições aprendidas e recomendações, 8) Referências (+33 more)
 
 ### Community 74 - "IndexContentConnected.tsx"
-Cohesion: 0.09
-Nodes (22): IndexContentConnected, ConnectionToast(), OfflineIndicator(), OfflineIndicatorProps, useOfflineStatus(), mockFrom, mockUseAuth, AppBootstrapData (+14 more)
+Cohesion: 0.06
+Nodes (33): CallDialog(), IndexContentConnected, SettingsView(), useLoginAudit(), useCalls(), mockFrom, mockUseAuth, mockFrom (+25 more)
 
 ### Community 75 - "hooks/useMediaUrl.ts"
 Cohesion: 0.08
-Nodes (31): cache, mediaCacheClear(), mediaCacheConfigure(), mediaCacheGet(), mediaCacheSet(), mediaCacheStats(), buildFileHashMock, invokeMock (+23 more)
+Nodes (30): cache, mediaCacheClear(), mediaCacheConfigure(), mediaCacheGet(), mediaCacheSet(), mediaCacheStats(), buildFileHashMock, invokeMock (+22 more)
 
 ### Community 76 - "useAdminWebhookStatus.ts"
-Cohesion: 0.10
-Nodes (23): mockSearchParams, mockSetSearchParams, PARAM_KEYS, UrlFiltersState, useUrlFilters(), RecheckResult, recheckWebhookSignature(), mockInvoke (+15 more)
+Cohesion: 0.08
+Nodes (31): mockSearchParams, mockSetSearchParams, PARAM_KEYS, UrlFiltersState, useUrlFilters(), useWebhookHealthAlerts(), computeActiveFilterCount(), DEFAULT_WEBHOOK_VIEW_PREFS (+23 more)
 
 ### Community 77 - "Parte III — As 20 etapas"
 Cohesion: 0.05
@@ -1679,12 +1693,12 @@ Cohesion: 0.08
 Nodes (33): AppContent(), VisualValidationChecklist, DEFAULT_ITEMS, ValidationItem, VisualValidationChecklist(), Sentiment, useAmbientColor(), useThemeAudit() (+25 more)
 
 ### Community 79 - "motion/index.ts"
-Cohesion: 0.09
-Nodes (39): MotionButton, MotionButtonProps, MotionCard, MotionCardProps, MotionFadeIn, MotionFadeInProps, MotionInteractive, MotionScale (+31 more)
+Cohesion: 0.10
+Nodes (37): MotionButton, MotionButtonProps, MotionCard, MotionCardProps, MotionFadeIn, MotionFadeInProps, MotionInteractive, MotionScale (+29 more)
 
-### Community 80 - "whatsapp-cloud-webhook/index.ts"
+### Community 80 - "gmail-webhook/index.ts"
 Cohesion: 0.06
-Nodes (24): WEBHOOK_SECRETS, markEventProcessed(), createWebhookValidator(), extractSharedSecretFromHeaders(), extractSignatureFromHeaders(), readWebhookSecretsFromEnv(), timingSafeEqual, verifyHmacSignature() (+16 more)
+Nodes (34): WEBHOOK_SECRETS, fetchAndPersistMessage(), NonRetryableMessageError, processHistory(), PUBSUB_TOPIC, functionNotFoundResponse(), jwtSecretFile, PUBLIC_FNS (+26 more)
 
 ### Community 81 - "📘 HANDOFF DOCUMENT — ZAPP WEB"
 Cohesion: 0.05
@@ -1711,8 +1725,8 @@ Cohesion: 0.05
 Nodes (39): 1.10 Secrets Docker — Rotação R2, 1.11 wpp2 — Instância WhatsApp, 1.12 Disco — Recuperação de Espaço, 1.13 RLS — Row Level Security PG15, 1.1 LGPD Logpatch — `main.patched.js`, 1.2 Redis — Política de Eviction e AOF, 1.3 RabbitMQ — Pipeline de Mensagens, 1.4 PostgreSQL 14 — Migração e Integridade (+31 more)
 
 ### Community 87 - "useExternalEvolution.ts"
-Cohesion: 0.10
-Nodes (29): buildExternalConversations(), deriveContactsFromMessages(), derivedToConversationContact(), evolutionToRealtimeMessage(), mapStatus(), UseMessagesCursorReturn, applyReconciliation(), contactEnrichmentCache (+21 more)
+Cohesion: 0.09
+Nodes (32): buildExternalConversations(), deriveContactsFromMessages(), derivedToConversationContact(), evolutionToRealtimeMessage(), mapStatus(), MessageDetailsDialog(), safeStringify(), useMessageDetails() (+24 more)
 
 ### Community 88 - "2. Implementações de retry/backoff (núcleo)"
 Cohesion: 0.05
@@ -1727,28 +1741,28 @@ Cohesion: 0.05
 Nodes (38): 1. **Core API Infrastructure** (Established in Previous Context), 1. Eliminated Boilerplate, 2. **Domain Services Implemented This Session**, 2. Standardized Patterns, 3. Type Safety, 4. Developer Experience, Architecture Established, Branches & Workflow (+30 more)
 
 ### Community 91 - "useEmail.ts"
-Cohesion: 0.10
-Nodes (27): GMAIL_MOCKS, definedOnly(), EmailTokenStatus, EmailWatchStatus, isMockId(), log, mapBaseThreadRow(), mapGmailMessageRow() (+19 more)
+Cohesion: 0.09
+Nodes (31): EmailChatInbox(), EmailThreadListProps, EmailInboxViewProps, GMAIL_MOCKS, definedOnly(), EmailTokenStatus, EmailWatchStatus, isMockId() (+23 more)
 
 ### Community 92 - "clientTelemetry.ts"
-Cohesion: 0.08
-Nodes (32): MessageDetailsDialog(), safeStringify(), useMessageDetails(), UseMessageDetailsOptions, classifySeverity(), getTelemetrySnapshot(), initialBySeverity(), initialRetry() (+24 more)
+Cohesion: 0.09
+Nodes (30): classifySeverity(), getTelemetrySnapshot(), initialBySeverity(), initialRetry(), isAbortErrorMessage(), log, logEvent(), p95() (+22 more)
 
 ### Community 93 - "SCHEMA_REFERENCE.md"
 Cohesion: 0.08
-Nodes (16): 1. Visão Geral da Arquitetura, 2. Diagrama de Sequência: Fluxo de Mensagem, 3. Mapa do Projeto (Estrutura de Pastas), 4. Diretrizes para Desenvolvedores, Camadas de Responsabilidade, Guia de Arquitetura e Fluxo de Dados - Zapp Web, Contatos Cloud, Procedimento de Restore (Staging Drill) (+8 more)
+Nodes (17): 🔑 Credential Map — ZAPP WEB, Escrita (POST — actions `save` | `delete`), Fluxo de credenciais Evolution, Leitura (GET), Outras credenciais (referência), Regras duras, Topologia (3 camadas), Contatos Cloud (+9 more)
 
-### Community 94 - "useAudioManagement.ts"
-Cohesion: 0.05
-Nodes (47): CustomEmoji, EMOJIS_QUERY_KEY, PendingEmojiUpload, useCustomEmojis(), loadVolume(), log, useAudioRecorderUI(), _ACCEPTED_TYPES (+39 more)
+### Community 94 - "hooks/use-toast.ts"
+Cohesion: 0.02
+Nodes (97): INITIAL_QR_STATE, loadPersistedQr(), useConnectionsState(), AudioMemePicker(), AudioRecorder(), AIEnhanceButton(), AIEnhanceButtonProps, log (+89 more)
 
-### Community 95 - "evolutionSendRetry.ts"
-Cohesion: 0.11
-Nodes (31): BreakerEntry, BreakerEvent, breakers, canCall(), CanCallResult, CircuitBreakerConfig, CircuitOpenError, CircuitState (+23 more)
+### Community 95 - "evolutionCircuitBreaker.ts"
+Cohesion: 0.14
+Nodes (26): BreakerEntry, BreakerEvent, breakers, canCall(), CanCallResult, CircuitBreakerConfig, CircuitOpenError, CircuitState (+18 more)
 
-### Community 96 - "contract-schemas-infra.ts"
-Cohesion: 0.05
-Nodes (37): BatchFetchAvatarsV1Schema, CleanupRateLimitLogsV1Schema, CleanupStorageOrphansV1Schema, ClientObservabilityV1Schema, ConnectionTestV1Schema, ContactMediaV1Schema, ElevenlabsAgentTokenV1Schema, ElevenlabsScribeTokenV1Schema (+29 more)
+### Community 96 - "ChatSearchBar.tsx"
+Cohesion: 0.09
+Nodes (27): ChatSearchBar(), ChatSearchBarProps, ChatSearchFilters(), ChatSearchFiltersProps, DATE_PRESETS, FILTERS, ChatSearchResultsList, ChatSearchResultsListProps (+19 more)
 
 ### Community 97 - "Relatório de Simulação de Perda de Dados"
 Cohesion: 0.05
@@ -1767,12 +1781,12 @@ Cohesion: 0.09
 Nodes (33): DeferredHooks, cleanupLegacyServiceWorker(), log, shouldSkipServiceWorker(), unregisterAllServiceWorkers(), useServiceWorker(), acquireReloadQuota(), applyPendingRefreshNow() (+25 more)
 
 ### Community 101 - "Contact360Helpers.tsx"
-Cohesion: 0.08
-Nodes (31): AddressLine(), BehaviorRadar(), CompanyCard(), ContactChannels(), ContactDetailCard(), CustomerProfile(), InfoRow(), InteractionsTimeline() (+23 more)
+Cohesion: 0.09
+Nodes (30): AddressLine(), BehaviorRadar(), CompanyCard(), ContactChannels(), ContactDetailCard(), CustomerProfile(), InfoRow(), InteractionsTimeline() (+22 more)
 
 ### Community 102 - "reconciliationTelemetry.ts"
-Cohesion: 0.10
-Nodes (25): Counters, debugEnabled(), getRecentMatches(), getReconciliationStats(), listeners, log, MatchEvent, MatchStrategy (+17 more)
+Cohesion: 0.08
+Nodes (29): Listener, listeners, PlayerState, playerStateStore, store, Counters, debugEnabled(), getRecentMatches() (+21 more)
 
 ### Community 103 - "contract-versions.ts"
 Cohesion: 0.07
@@ -1786,12 +1800,12 @@ Nodes (35): Assinatura da RPC, Caminho A — SQL direto para Supabase DB, Caminh
 Cohesion: 0.06
 Nodes (35): 1. Bounded Operations, 1. Cleanup de Resources, 1. HTTP/2 Multiplexing, 1. Indexes Críticos, 1. React Query Cache, 2. Cursor-based Pagination, 2. Realtime com Batching, 2. Request Coalescing (+27 more)
 
-### Community 106 - "ConnectionsIntegrationsHub.tsx"
-Cohesion: 0.10
-Nodes (22): BridgeStatusBadge(), BridgeStatusBadgeProps, BridgeSupabaseView(), fmt(), ConnectionsIntegrationsHub(), BridgeStatus, HealthRow, HubTab (+14 more)
+### Community 106 - "useConnectionsManagement.ts"
+Cohesion: 0.16
+Nodes (14): BridgeStatusBadgeProps, BridgeStatus, HealthRow, HubTab, useBridgeHealthManagement(), UseBridgeHealthParams, UseBridgeHealthResult, UseHubTabNavigationParams (+6 more)
 
 ### Community 107 - "formatters.ts"
-Cohesion: 0.16
+Cohesion: 0.15
 Nodes (18): log, Props, QrAttemptHistory(), STATUS_META, fetchQrAttemptHistory(), QrAttemptRow, cleanPhone(), formatBrazilianPhone() (+10 more)
 
 ### Community 108 - "src/hooks/useContactIntelligence.ts"
@@ -1811,16 +1825,16 @@ Cohesion: 0.14
 Nodes (27): SupabaseConnectivityBanner(), SupabaseConnectivityBannerProps, ConnectivityState, useSupabaseConnectivity(), UseSupabaseConnectivityResult, attachVisibilityListener(), detachVisibilityListener(), getSupabaseConnectivityInfo() (+19 more)
 
 ### Community 112 - "SLATimelineSection.tsx"
-Cohesion: 0.13
-Nodes (29): Milestone(), MilestoneProps, SLATimelineFilters(), SLATimelineFiltersProps, ALL_STATUSES, FILTER_STORAGE_KEY, formatDurationMs(), formatTs() (+21 more)
+Cohesion: 0.22
+Nodes (20): Milestone(), MilestoneProps, SLATimelineFilters(), SLATimelineFiltersProps, ALL_STATUSES, FILTER_STORAGE_KEY, formatDurationMs(), formatTs() (+12 more)
 
 ### Community 113 - "webhookEventSchemas.ts"
-Cohesion: 0.10
+Cohesion: 0.09
 Nodes (31): contactRowSchema, ContractErrorCode, ContractErrorCodeValue, ContractErrorResponse, ConversationEventRow, conversationEventRowSchema, conversationSlaRowSchema, conversationTransferRowSchema (+23 more)
 
 ### Community 114 - "test-helpers.ts"
 Cohesion: 0.10
-Nodes (20): WEBHOOK_EVENTS_27, extractBlock, ExtractBlockOptions, hasMarker, readSource(), MEDIA_ACTIONS, FUTURE_MEDIA_ACTIONS, extractBlock (+12 more)
+Nodes (21): WEBHOOK_EVENTS_27, extractBlock, ExtractBlockOptions, hasMarker, readSource(), MEDIA_ACTIONS, FUTURE_MEDIA_ACTIONS, extractBlock (+13 more)
 
 ### Community 115 - "Arquitetura de Segurança RLS - ZAPP WEB"
 Cohesion: 0.06
@@ -1839,20 +1853,20 @@ Cohesion: 0.06
 Nodes (34): 📊 Analytics & Dashboards, Arquitetura, 💬 Atendimento Omnichannel, Autenticação, Autorização (RBAC), Bitrix24, 📢 Campanhas, Contribuição (+26 more)
 
 ### Community 119 - "EmailChatBubble.tsx"
-Cohesion: 0.10
-Nodes (34): EmailAttachmentPreview(), getFileColor(), getFileIcon(), EMAIL_ALLOWED_ATTR, EMAIL_ALLOWED_TAGS, EmailChatBubble(), EmailChatBubbleProps, getAvatarColor() (+26 more)
+Cohesion: 0.11
+Nodes (31): EMAIL_ALLOWED_ATTR, EMAIL_ALLOWED_TAGS, EmailChatBubble(), EmailChatBubbleProps, getAvatarColor(), sanitizeHtml(), EmailChatBubble(), EmailChatBubbleProps (+23 more)
 
 ### Community 120 - "gmailApi.ts"
-Cohesion: 0.09
-Nodes (22): createDraft(), EmailApiResponse, EmailAttachment, emailDeleteDraft(), emailRefreshToken(), emailRegisterWatch(), emailRevokeAccount(), emailSaveDraft() (+14 more)
+Cohesion: 0.08
+Nodes (28): buildMimeMessage(), createDraft(), EmailApiError, EmailApiResponse, EmailAttachment, emailDeleteDraft(), emailRefreshToken(), emailRegisterWatch() (+20 more)
 
 ### Community 121 - "useRetryAndErrorPrevention.ts"
 Cohesion: 0.07
 Nodes (39): mockToast, FATAL_CODES, log, RetryState, useAsyncEffect(), useFireAndForget(), useRetryableAsync(), useSafeAsync() (+31 more)
 
 ### Community 122 - "gmailTypes.ts"
-Cohesion: 0.08
-Nodes (25): RFC-2822, EmailAttachmentPreviewProps, buildMimeMessage(), EmailApiError, isAuthError(), EmailAttachment, EmailDailyMetrics, EmailDraft (+17 more)
+Cohesion: 0.09
+Nodes (22): RFC-2822, EmailAttachmentPreviewProps, EmailAttachment, EmailDailyMetrics, EmailDraft, EmailHistoryEvent, EmailLabel, EmailLabelId (+14 more)
 
 ### Community 123 - "Relatório de Auditoria: Integração Zapp Web v3 ↔ Evolution API"
 Cohesion: 0.06
@@ -1875,12 +1889,12 @@ Cohesion: 0.09
 Nodes (27): blend(), build_rows(), hexs(), hsl_to_rgb(), load_tokens(), lum_gamma(), lum_wcag(), main() (+19 more)
 
 ### Community 128 - "dedupeMetrics.ts"
-Cohesion: 0.09
-Nodes (28): CrossTabDedupePanel(), outcomeMeta(), shortKey(), timeAgo(), awaitBroadcast(), BroadcastDone, claimLeadership(), ClaimRecord (+20 more)
+Cohesion: 0.15
+Nodes (17): CrossTabDedupePanel(), outcomeMeta(), shortKey(), timeAgo(), DedupeCounters, DedupeEvent, DedupeOutcome, DedupeStore (+9 more)
 
 ### Community 129 - "ConversationWithMessages"
 Cohesion: 0.08
-Nodes (25): computeStats(), ContactTypeFilter(), ContactTypeFilterProps, FILTER_OPTIONS, filterByContactType(), FilterOption, FilterStats, isGroup() (+17 more)
+Nodes (26): computeStats(), ContactTypeFilter(), ContactTypeFilterProps, FILTER_OPTIONS, FilterOption, FilterStats, isGroup(), SEPARATOR_AFTER (+18 more)
 
 ### Community 130 - "🤖 INSTRUÇÕES PARA AGENTES IA — ZAPP WEB"
 Cohesion: 0.06
@@ -1907,12 +1921,12 @@ Cohesion: 0.11
 Nodes (30): BorderRadiusControl(), PresetCard(), PresetCardProps, applyGxDarkSurfaces(), applyGxGlass(), applyGxNeonGlow(), boostGlowAlpha(), buildGxPreset() (+22 more)
 
 ### Community 136 - "useAdminManagement.ts"
-Cohesion: 0.05
-Nodes (53): ALL_ROLES, AutomationChannel, AutomationDepartment, ChannelQueue, ChannelStatus, Department, PERMISSIONS_QUERY_KEY, Phase (+45 more)
+Cohesion: 0.06
+Nodes (50): ALGO_LABEL, ALL_ROLES, AutomationChannel, AutomationDepartment, ChannelQueue, ChannelStatus, Department, DistAlgo (+42 more)
 
 ### Community 137 - "webhookHealthAlerts.ts"
-Cohesion: 0.10
-Nodes (27): RetryAlertsConfig(), sanitize(), RecentAlertEntry, UseWebhookHealthAlertsOptions, AlertHistoryEntry, AlertSeverity, appendAlertHistory(), buildHistoryEntry() (+19 more)
+Cohesion: 0.14
+Nodes (19): RecentAlertEntry, UseWebhookHealthAlertsOptions, AlertHistoryEntry, AlertSeverity, buildHistoryEntry(), classifySeverity(), ALERT_COOLDOWN_MS, DEFAULT_ALERT_CONFIG (+11 more)
 
 ### Community 138 - "users/index.ts"
 Cohesion: 0.16
@@ -1943,20 +1957,20 @@ Cohesion: 0.13
 Nodes (12): CapturedDlqInsert, E2E_USER_EMAIL, E2E_USER_PASSWORD, MOCK_EVOLUTION_SEND_RESPONSE, MOCK_QR_CODE_RESPONSE, TEST_CONTACT_NAME, TEST_INSTANCE, TEST_PHONE (+4 more)
 
 ### Community 145 - "useMonitoringManagement.ts"
-Cohesion: 0.14
-Nodes (27): ConnectionInfo, HealthLog, InstanceUptime, MessageStats, periodBuckets, periodMs, SparklineData, TimePeriod (+19 more)
+Cohesion: 0.06
+Nodes (70): EvolutionMonitoringDashboard(), ConnectionInfo, DiagnosticResult, HealthLog, InstanceUptime, MessageStats, periodBuckets, periodMs (+62 more)
 
-### Community 146 - "useQueueManagement.ts"
-Cohesion: 0.13
-Nodes (21): QueueSlaPanel(), DateRange, isQueueSlaPriority(), isSlaStatusFilter(), normalizeQueueSlaRow(), normalizeRebalanceRun(), Queue, QueueAnalytics (+13 more)
+### Community 146 - "QueueSlaPanel.tsx"
+Cohesion: 0.10
+Nodes (28): ChannelConnectionRow, KpiCard(), PRIORITY_COLOR, PRIORITY_LABEL, QueueRow(), QueueSkillRequirementRow, QueueSlaPanel(), REBALANCE_SOURCE_LABEL (+20 more)
 
 ### Community 147 - "AppRoutes.tsx"
-Cohesion: 0.07
-Nodes (26): adminRoutes(), AccessDenied, AppRoutes(), Auth, ChatPopup, DesignSystem, ForgotPassword, InboxPage (+18 more)
+Cohesion: 0.08
+Nodes (25): adminRoutes(), AccessDenied, AppRoutes(), Auth, ChatPopup, DesignSystem, ForgotPassword, Index (+17 more)
 
 ### Community 148 - "AdminTelemetriaPage.tsx"
-Cohesion: 0.10
-Nodes (30): DashboardFilters(), DashboardFiltersProps, DashboardFiltersState, getDefaultFilters(), PERIOD_OPTIONS, Calendar(), CalendarProps, formatBucketTime() (+22 more)
+Cohesion: 0.13
+Nodes (22): formatBucketTime(), TelemetryCharts(), TelemetryChartsProps, TelemetryRow, ClientTelemetryPanel(), severityBadge(), TelemetryStatsCards(), TelemetryStatsCardsProps (+14 more)
 
 ### Community 149 - "AnalysisTabs.tsx"
 Cohesion: 0.19
@@ -1979,16 +1993,16 @@ Cohesion: 0.07
 Nodes (30): 🔧 Arquivos de Configuração Base, 📝 Checklist de Implementação, 🚀 Componentes Base Essenciais, 📦 Dependências Essenciais, 🎨 Design System Base, Estrutura de Componente, 📁 Estrutura de Pastas, Fase 1: Setup Inicial (+22 more)
 
 ### Community 154 - "MobileShell.tsx"
-Cohesion: 0.13
-Nodes (15): FABAction, MobileFAB(), MobileFABProps, mobileNavItems, MobileShell(), MobileShellProps, Notification, NotificationsPanel() (+7 more)
+Cohesion: 0.07
+Nodes (28): FABAction, MobileFAB(), MobileFABProps, MobileHeader, mobileNavItems, MobileShell(), MobileShellProps, Notification (+20 more)
 
 ### Community 155 - "inbox/hooks/useMessageReactions.ts"
 Cohesion: 0.13
 Nodes (19): MessageReaction, UseMessageReactionsOptions, fetchReactionsBatch(), log, useMessagesReactions(), batchQueryKey(), EMPTY_IDS_SET, ReactionsBatchContext (+11 more)
 
 ### Community 156 - "columnMap.ts"
-Cohesion: 0.08
-Nodes (32): useRolesManagement(), AdminAgentProfile, normalizeAgentProfile(), normalizeAgentProfiles(), normalizeProfileRef(), pickFirst(), ProfileEmbed, ColumnDescriptor (+24 more)
+Cohesion: 0.09
+Nodes (25): ColumnDescriptor, columnMap, ColumnMapEntity, ContactCanonical, contactsMap, EmbedDescriptor, EntityColumnMap, FailedMessageCanonical (+17 more)
 
 ### Community 157 - "[2.2.0] - 2026-07-31 — Lint Cleanup Total (0 erros / 0 warnings) + Design Tokens"
 Cohesion: 0.07
@@ -2014,13 +2028,13 @@ Nodes (28): Achados ativos que nenhuma etapa cobre, Achados por etapa, Defeitos 
 Cohesion: 0.07
 Nodes (28): Como ler um achado — campos de triagem (normalizados em 2026-08-02, Etapa 1 itens 3-5), Escala de severidade, F1-10 — Remover `|| true` do script `lint` em `package.json`, F1-11 — Reduzir `--max-warnings 999 → 0` progressivamente, F1-12 — Homônimos em `src/pages/` — padronizar `<slug>/index.tsx`, F1-13 — 11 pages órfãs (sem `<Route>`) mas lazy-carregadas — decidir URL ou `?view=`, F1-14 — Consolidar padrão duplo URL canônica vs `?view=X&tab=Y`, F2-01 — Revogar `EXECUTE` de `authenticated` nas 6 TRIGGER functions em `public` (+20 more)
 
-### Community 163 - "useMediaLibraryManagement.ts"
-Cohesion: 0.18
-Nodes (23): MediaItemRowProps, MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB, log, MEDIA_LIBRARY_KEY(), useMediaCrudManagement(), UseMediaCrudParams, UseMediaCrudResult (+15 more)
+### Community 163 - "mediaUrl.ts"
+Cohesion: 0.05
+Nodes (56): ADR-0002, ADR-0003, mapToLegacyMessages(), MediaItemRowProps, MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB, log, MEDIA_LIBRARY_KEY() (+48 more)
 
 ### Community 164 - "DepartmentManagementDialog.tsx"
-Cohesion: 0.10
-Nodes (19): DepartmentAuditView(), CreateMutation, DeleteMutation, DepartmentInvitesView(), Invitation, Props, DepartmentMembersView(), DepartmentWhatsAppView() (+11 more)
+Cohesion: 0.09
+Nodes (21): AuditLog, DepartmentAuditView(), Props, CreateMutation, DeleteMutation, DepartmentInvitesView(), Invitation, Props (+13 more)
 
 ### Community 165 - "services/connections/index.ts"
 Cohesion: 0.13
@@ -2055,16 +2069,16 @@ Cohesion: 0.07
 Nodes (27): 10. Redundant `push [main, master]` trigger, 1. Step 12: Cluster typecheck ratchet — blocking loses information on first failure, 2. Step 1+6: Shallow checkout breaks `git diff HEAD~1` in Migration Linter, 3. Step 3: `bun install` without `--frozen-lockfile` allows lockfile drift, 4. Step 18: Fuzzing Tests always fails in CI (no supabase local), 5. Step 19: Playwright installs all browsers (slow), 6. Step 10: Schema access simulation missing blocking/advisory label, 7. Step 15: Supabase types freshness labeled "advisory" but has no `continue-on-error` (+19 more)
 
 ### Community 173 - "App.tsx"
-Cohesion: 0.08
-Nodes (21): BuildValidationOverlay, IncomingCallAlert, log, SwDebugWidget, ThemeDebugger, isEnabled(), readSwSnapshot(), SwDebugWidget() (+13 more)
+Cohesion: 0.09
+Nodes (20): BuildValidationOverlay, IncomingCallAlert, log, SwDebugWidget, isEnabled(), readSwSnapshot(), SwDebugWidget(), SwSnapshot (+12 more)
 
-### Community 174 - "GlobalKeyboardProvider.tsx"
-Cohesion: 0.11
-Nodes (18): CommandPalette, GlobalKeyboardContext, GlobalKeyboardContextType, GlobalKeyboardProvider(), GlobalKeyboardProviderProps, useGlobalKeyboard(), ActivePlayerHandle, audioPlaybackBus (+10 more)
+### Community 174 - "useNavigationHistory.ts"
+Cohesion: 0.29
+Nodes (7): useGlobalKeyboard(), useIndexNavigation(), NavigationEntry, NavigationHistoryReturn, NavigationState, RESERVED_HASHES, useNavigationHistory()
 
 ### Community 175 - "zappweb/index.ts"
-Cohesion: 0.17
-Nodes (19): useZappContactSearch(), log, Options, useZappConversations(), Options, useZappMessages(), zappSupabase, ZAPPWEB_CONFIG (+11 more)
+Cohesion: 0.19
+Nodes (18): useZappContactSearch(), log, Options, useZappConversations(), Options, useZappMessages(), zappSupabase, ZAPPWEB_CONFIG (+10 more)
 
 ### Community 176 - "failedMessagesEnqueue.ts"
 Cohesion: 0.15
@@ -2078,17 +2092,17 @@ Nodes (26): Achado I-1: consumer-prebuilt:v2 sem digest (ALTO), Achado I-2: SENT
 Cohesion: 0.12
 Nodes (25): backoff_delay(), body_is_json(), delivery_attempts(), drop_reason(), handle(), log_event(), main(), parse_retry_after() (+17 more)
 
-### Community 179 - "safeStorage.ts"
-Cohesion: 0.15
-Nodes (19): LanguageSelector, resources, useLanguage(), log, safeGetItem(), safeRemoveItem(), safeSetItem(), aggregateByType() (+11 more)
+### Community 179 - "useWebhookOverview.ts"
+Cohesion: 0.24
+Nodes (12): aggregateByType(), aggregateByTypeAndInstance(), aggregateHourly(), categoryColor(), categoryFill(), formatBucketLabel(), MatrixAggregate, WebhookEventLite (+4 more)
 
 ### Community 180 - "sendStatusBus.ts"
-Cohesion: 0.12
-Nodes (24): clearSendStatusHistory(), EmitContext, getAllSendStatusHistory(), getSendStatus(), getSendStatusHistory(), globalListeners, history, historyListeners (+16 more)
+Cohesion: 0.09
+Nodes (32): FAILURE_STATUSES, fmt(), MessageStatusTimeline, MessageStatusTimelineProps, STATUS_ORDER, StepKey, StepState, TimelineStep (+24 more)
 
 ### Community 181 - "useSearchManagement.ts"
-Cohesion: 0.11
-Nodes (25): useGlobalSearchShortcut(), UseGlobalSearchShortcutProps, useSearchInsights(), dynamicRpc, normalizeSearchInsights(), SEARCH_HISTORY_KEY, SearchHistoryEntry, SearchInsights (+17 more)
+Cohesion: 0.13
+Nodes (22): useSearchInsights(), dynamicRpc, normalizeSearchInsights(), SEARCH_HISTORY_KEY, SearchHistoryEntry, SearchInsights, SearchInsightsTopQuery, SearchInsightsZeroResult (+14 more)
 
 ### Community 182 - "messages/index.ts"
 Cohesion: 0.17
@@ -2123,44 +2137,44 @@ Cohesion: 0.10
 Nodes (15): baseline, BASELINE_PATH, current, __dirname, output, regressions, UPDATE, enqueueMessage() (+7 more)
 
 ### Community 190 - "main.tsx"
-Cohesion: 0.16
-Nodes (14): App(), BENIGN_ERROR_NAMES, BENIGN_MESSAGE_SUBSTRINGS, extractMessage(), extractName(), isBenignConsoleNoise(), DSN, ENV (+6 more)
+Cohesion: 0.10
+Nodes (20): App(), registerExternalSessionBridge(), BENIGN_ERROR_NAMES, BENIGN_MESSAGE_SUBSTRINGS, extractMessage(), extractName(), isBenignConsoleNoise(), DSN (+12 more)
 
 ### Community 191 - "KeyboardShortcutsDialog.tsx"
-Cohesion: 0.12
-Nodes (17): KeyboardShortcutsDialog, additionalShortcuts, categoryConfig, CategorySection(), KeyboardShortcutsDialog(), KeyboardShortcutsDialogProps, ShortcutRow(), ShortcutRow() (+9 more)
+Cohesion: 0.06
+Nodes (32): CommandPalette, GlobalKeyboardContext, GlobalKeyboardContextType, GlobalKeyboardProvider(), GlobalKeyboardProviderProps, KeyboardShortcutsDialog, additionalShortcuts, categoryConfig (+24 more)
 
 ### Community 192 - "WebhookAlertHistoryPanel.tsx"
-Cohesion: 0.04
-Nodes (51): AdminQueuesPage, formatDateLabel(), groupByDate(), TranscriptionContactGroup(), TranscriptionContactGroupProps, TranscriptionRecord, ALGO_LABEL, DistAlgo (+43 more)
+Cohesion: 0.17
+Nodes (12): AuthDiagnosticsPanel(), formatTs(), readSwStatus(), SwStatus, clearAlertHistory(), formatMetric(), SEVERITY_LABEL, SEVERITY_VARIANT (+4 more)
 
-### Community 193 - "MonitoringConnectionsList.tsx"
-Cohesion: 0.20
-Nodes (12): DiagnosticResult, WebhookConfig, WebhookTestResult, MonitoringConnectionsList(), Props, statusIcon(), Props, ALL_EXPECTED_EVENTS (+4 more)
-
-### Community 194 - "useAnalyticsManagement.ts"
+### Community 193 - "AudioMessagePlayer.tsx"
 Cohesion: 0.11
-Nodes (18): classifyMetricStatus(), PerformanceMetricStatus, PerformanceMetric, PerformanceMonitor(), mockNav, Analysis, ErrorLog, PerformanceMetric (+10 more)
+Nodes (21): AudioMessagePlayer, AudioMessagePlayerProps, AudioRecorderProps, AudioTranscriptionPanel(), AudioTranscriptionPanelProps, AudioVolumeControl(), AudioVolumeControlProps, TextToAudioButton() (+13 more)
+
+### Community 194 - "classifyMetricStatus.ts"
+Cohesion: 0.36
+Nodes (5): classifyMetricStatus(), PerformanceMetricStatus, PerformanceMetric, PerformanceMonitor(), mockNav
 
 ### Community 195 - "ViewRouter.tsx"
-Cohesion: 0.10
-Nodes (14): ErrorBoundaryWithRetry, ErrorBoundaryWithRetryProps, State, useCurrentModule(), useDocumentTitle(), ErrorBoundaryView(), FallbackView(), FULL_SCREEN_VIEWS (+6 more)
+Cohesion: 0.09
+Nodes (16): ErrorBoundaryWithRetry, ErrorBoundaryWithRetryProps, State, NotAuthorizedView(), NotAuthorizedViewProps, useCurrentModule(), useDocumentTitle(), ErrorBoundaryView() (+8 more)
 
 ### Community 196 - "UniversityHelp.tsx"
-Cohesion: 0.16
-Nodes (19): AIResponseCard, AIResponseCardProps, PeriodFilterSelector(), getTonePrompt(), TONE_OPTIONS, ToneKey, ToneSelector, ToneSelectorProps (+11 more)
+Cohesion: 0.12
+Nodes (24): AIResponseCard, AIResponseCardProps, usePeriodFilter(), getTonePrompt(), TONE_OPTIONS, ToneKey, ToneSelector, ToneSelectorProps (+16 more)
 
 ### Community 197 - "useChatFilters.test.ts"
 Cohesion: 0.09
 Nodes (18): FailureFilterBar(), FailureFilterBarProps, ALL_MESSAGES, MSG_DELIVERED, MSG_FAILED, MSG_FAILED_AUTH, MSG_FAILED_RETRIES, MSG_READ (+10 more)
 
-### Community 198 - "err"
-Cohesion: 0.06
-Nodes (34): err(), HardResetButton, IncomingCallAlert, ContactMergeDialog(), HardResetButton(), log, PublicApiDashboard(), SicoobBridgeDashboard() (+26 more)
+### Community 198 - "ChatMessagesArea.tsx"
+Cohesion: 0.03
+Nodes (72): BrowserAudioWindow, IncomingCallAlert, log, FailedMessageAlertsMount(), ContactTypingState, log, TYPING_AUTO_CLEAR_MS, TYPING_STOP_DEBOUNCE_MS (+64 more)
 
 ### Community 199 - "dependencies"
 Cohesion: 0.08
-Nodes (25): @axe-core/react, baseline-browser-mapping, caniuse-lite, jwt-decode, @lovable.dev/mcp-js, dependencies, @axe-core/react, baseline-browser-mapping (+17 more)
+Nodes (25): @axe-core/react, caniuse-lite, dompurify, jwt-decode, @lovable.dev/mcp-js, dependencies, @axe-core/react, caniuse-lite (+17 more)
 
 ### Community 200 - "HANDOFF_DOCUMENT.md"
 Cohesion: 0.08
@@ -2187,24 +2201,24 @@ Cohesion: 0.13
 Nodes (24): args, buildReport(), extractContract(), FUNCTIONS_DIR, hasPgEnv(), hasPGRestEnv(), JSON_MODE, lineAt() (+16 more)
 
 ### Community 206 - "WarRoomDashboard.tsx"
-Cohesion: 0.10
-Nodes (25): AgentCardProps, statusColors, WarRoomAgentCard(), AlertRowProps, alertStyles, WarRoomAlertRow(), QueueRowProps, WarRoomQueueRow() (+17 more)
+Cohesion: 0.08
+Nodes (30): AgentCardProps, statusColors, WarRoomAgentCard(), AlertRowProps, alertStyles, WarRoomAlertRow(), MetricCardProps, WarRoomMetricCard() (+22 more)
 
-### Community 207 - "SupervisorQueueBoard.tsx"
+### Community 207 - "useQueues.ts"
 Cohesion: 0.07
-Nodes (31): QueueCardProps, ConversationRow(), FILTERS, RowProps, SupervisorQueueBoard(), AgentOption, ContactsResp, QueueOption (+23 more)
+Nodes (28): QueueCardProps, RowProps, AgentOption, ContactsResp, QueueOption, SUPERVISOR_ROLES, SupervisorConversationRow, useSupervisorConversations() (+20 more)
 
 ### Community 208 - "transitions/index.ts"
 Cohesion: 0.22
 Nodes (19): PageTransition(), PageTransitionProps, ALL_NAMES, TransitionContext, TransitionContextValue, TransitionProviderProps, TransitionState, usePageTransition() (+11 more)
 
-### Community 209 - "InternalNotesPanel.tsx"
-Cohesion: 0.14
-Nodes (16): HandoffDialog(), InternalNotesPanel(), NoteRow, MentionInput(), MentionInputProps, { mockSafeFrom }, NOTES_FIXTURE, log (+8 more)
+### Community 209 - "sanitize.ts"
+Cohesion: 0.13
+Nodes (24): ContactCard(), EditContactDialog(), ALLOWED_ATTRS_MAP, ALLOWED_TAGS_SET, decodeHtmlEntities(), domSanitize(), log, normalizationCache (+16 more)
 
 ### Community 210 - "TicketHistorySheet.tsx"
-Cohesion: 0.10
-Nodes (18): AuditLogRow, describeAudit(), describeLocal(), describeRemote(), ICONS, isRecord(), log, normalizeAuditLog() (+10 more)
+Cohesion: 0.09
+Nodes (25): STATUS_META, TeamProfile, TicketActionsBar(), TicketActionsBarProps, useTeamProfiles(), AuditLogRow, describeAudit(), describeLocal() (+17 more)
 
 ### Community 211 - "services/contacts/index.ts"
 Cohesion: 0.22
@@ -2214,9 +2228,9 @@ Nodes (14): useListQuery(), ListResponse, baseContactsService, Contact, contacts
 Cohesion: 0.08
 Nodes (17): channelCallLog, ChannelCallLogEntry, channelMock, channelsByTopic, FakeRealtimeChannel, getOrCreateChannel(), makeChain(), makeChannelInstance() (+9 more)
 
-### Community 213 - "ConnectionPoolManager"
-Cohesion: 0.12
-Nodes (6): ConnectionEntry, ConnectionMetrics, ConnectionPoolManager, log, pool, shutdownConnectionPool()
+### Community 213 - "useConnectionManagement.ts"
+Cohesion: 0.07
+Nodes (17): mockFrom, CONN_QUEUES_KEY(), ConnectionQueue, EMPTY_METRICS, log, poolClient, PoolTelemetry, useConnectionPoolDiagnostics() (+9 more)
 
 ### Community 214 - "selfHostedDiagnostics.ts"
 Cohesion: 0.15
@@ -2254,9 +2268,9 @@ Nodes (23): Achado 1.A — rpc_list_transfers_paginated (SECURITY INVOKER), 🔴
 Cohesion: 0.17
 Nodes (4): login(), loginAs(), openConversation(), AppWindow
 
-### Community 223 - "hooks.ts"
-Cohesion: 0.25
-Nodes (13): useAcknowledgeAlert(), useAlertChannels(), useDrHealth(), useDrRunbook(), useEvoApiDashboard(), useHealthHistory(), useRunTestSuite(), useTestAlertChannel() (+5 more)
+### Community 223 - "AdminEvoApiHealthPage.tsx"
+Cohesion: 0.18
+Nodes (20): AlertsTab, ChannelsTab, DrTab, HealthTab, HistoryTab, useAcknowledgeAlert(), useActiveAlerts(), useAlertChannels() (+12 more)
 
 ### Community 224 - "structuredErrorLogging.ts"
 Cohesion: 0.20
@@ -2279,16 +2293,16 @@ Cohesion: 0.09
 Nodes (22): A. REVOKE race (Monte Carlo), Ações prioritárias (top 5), B. Deploy concorrente (torn-file), C. Overflow do contador, D. HMAC / clock skew, E. Partição sem índice (seq scan), Fix inventory (evidência), Gaps cross-cutting (não cobertos pelos 10 fixes) (+14 more)
 
 ### Community 229 - "useEmailManagement.ts"
-Cohesion: 0.09
-Nodes (29): EmailThreadList(), EmailThreadListProps, FilterValue, ThreadListItem(), EmailInboxView(), EmailInboxViewProps, formatDate(), EMAIL_SIGNATURES_KEY() (+21 more)
+Cohesion: 0.10
+Nodes (26): EmailSearchBarProps, EmailThreadList(), EmailInboxView(), formatDate(), EMAIL_SIGNATURES_KEY(), EmailSignature, log, useEmailSignature() (+18 more)
 
 ### Community 230 - "useConnectionStatusIndicator.ts"
-Cohesion: 0.18
-Nodes (20): ConnectionPopoverContent(), Props, ConnectionRow, DisconnectEvent, FILTER_STORAGE_KEY, FilterValue, formatRelative(), HISTORY_MAX_ENTRIES (+12 more)
+Cohesion: 0.16
+Nodes (22): ConnectionPopoverContent(), Props, ConnectionStatusIndicator(), Props, ConnectionRow, DisconnectEvent, FILTER_STORAGE_KEY, FilterValue (+14 more)
 
-### Community 231 - "whatsappInstances.ts"
-Cohesion: 0.15
-Nodes (18): setRealtimeContactsStatus(), arraysEqual(), ContactChange, extractRow(), hasReorderingChange(), log, mergeContact(), REORDER_FIELDS (+10 more)
+### Community 231 - "useRealtimeContacts.ts"
+Cohesion: 0.12
+Nodes (18): getSnapshot(), listeners, RealtimeContactsStatus, setRealtimeContactsStatus(), subscribe(), useRealtimeContactsStatus(), arraysEqual(), ContactChange (+10 more)
 
 ### Community 232 - "hooks/useAdminInboxSync.ts"
 Cohesion: 0.18
@@ -2302,9 +2316,9 @@ Nodes (12): applyFilter(), _dynamicClient, DynamicRpcClient, DynamicSupabaseClie
 Cohesion: 0.15
 Nodes (20): BulkResponse, CreateResponse, DeleteResponse, DetailResponse, FilterParams, PaginationParams, QueryParams, SupabaseError (+12 more)
 
-### Community 235 - "useEmailHealthStatus.ts"
-Cohesion: 0.12
-Nodes (19): OperationFailure, castStatus(), Filters, log, useEmailHealthStatus(), emailApi, EmailHealthSummary, EmailRevalidationJob (+11 more)
+### Community 235 - "emailHealthService.ts"
+Cohesion: 0.17
+Nodes (12): OperationFailure, EmailHealthRepository, EmailHealthService, toEmailFailure(), toEmailFailures(), makeFailure(), makeFailures(), makeRepo() (+4 more)
 
 ### Community 236 - "4. BREAK POINTS IDENTIFICADOS"
 Cohesion: 0.09
@@ -2339,20 +2353,20 @@ Cohesion: 0.09
 Nodes (21): Alertas Operacionais, Domínio 10 — Integrações Externas, Domínio 11 — Segurança / Compliance, Domínio 12 — Dashboards / Analytics / Relatórios, Domínio 13 — Notificações / Stickers / Emojis / Avatares, Domínio 14 — Admin / Config / Usuários / Permissões, Domínio 15 — Design System / Debug, Domínio 1 — Inbox / Conversas (+13 more)
 
 ### Community 244 - "emoji-picker.tsx"
-Cohesion: 0.16
-Nodes (13): categoryIcons, EmojiButtonProps, EmojiPicker(), EmojiPickerProps, FloatingReactionProps, QuickReactionPicker(), QuickReactionPickerProps, EMOJI_CATEGORY_KEYS (+5 more)
+Cohesion: 0.17
+Nodes (12): categoryIcons, EmojiButtonProps, EmojiPickerProps, FloatingReactionProps, QuickReactionPicker(), QuickReactionPickerProps, EMOJI_CATEGORY_KEYS, EmojiCategoryData (+4 more)
 
 ### Community 245 - "evoApiHealth/types.ts"
-Cohesion: 0.15
-Nodes (12): ChannelsTabProps, DrTabProps, HealthTabProps, HistoryTabProps, AlertChannel, DashboardResponse, DrRunbookStep, HealthHistoryRow (+4 more)
+Cohesion: 0.11
+Nodes (17): AlertsTabProps, ChannelsTabProps, DrTabProps, HealthTabProps, HistoryTabProps, mockUseActiveAlerts, ActiveAlert, AlertChannel (+9 more)
 
 ### Community 246 - "normalizers.ts"
 Cohesion: 0.13
 Nodes (26): PaymentLinksView(), ALERT_CONFIG, log, playAlertSound(), RateLimitRealtimeAlerts(), SEVERITY_COLORS, fetchBlockedIPs(), createPaymentLink() (+18 more)
 
-### Community 247 - "playTtsAudio.ts"
-Cohesion: 0.36
-Nodes (7): useAnalysisTts(), log, playTtsAudio(), PlayTtsOptions, splitLongTtsSegment(), splitTextIntoTtsChunks(), TtsPlayback
+### Community 247 - "ConversationSummary.tsx"
+Cohesion: 0.13
+Nodes (16): PeriodFilterSelector(), useAnalysisTts(), ConversationSummary(), ConversationSummaryProps, log, Message, sentimentConfig, statusConfig (+8 more)
 
 ### Community 248 - "login-attempts/index.ts"
 Cohesion: 0.12
@@ -2362,9 +2376,9 @@ Nodes (15): LoginAttemptAction, LoginAttemptRequest, LoginAttemptRow, LoginAttem
 Cohesion: 0.16
 Nodes (7): Convenção de offset (anti thundering-herd), Jobs críticos (ler antes de mexer), Registro completo, Registro de Crons (`pg_cron`), Architecture Decision Records (ADRs), DATABASE — Overview, Navegação
 
-### Community 250 - "ContactImportDialog.tsx"
-Cohesion: 0.16
-Nodes (18): RFC-4180, COLUMN_ALIASES, ContactImportDialog(), ContactImportDialogProps, EXPECTED_COLUMNS, ImportResult, mapHeader(), parseRows() (+10 more)
+### Community 250 - "csvUtils.ts"
+Cohesion: 0.24
+Nodes (11): RFC-4180, buildCsv(), buildCsvString, CsvColumn, downloadCsv(), downloadCsvFile(), escapeCsvCell(), getCsvFilename() (+3 more)
 
 ### Community 251 - "Auditoria de Segurança do Banco — zapp/evo/public"
 Cohesion: 0.10
@@ -2442,21 +2456,21 @@ Nodes (19): 1. ESTADO AO INÍCIO DA SESSÃO (verificado ao vivo), 2. SIMULAÇÃO
 Cohesion: 0.10
 Nodes (19): 1. Contagem de Políticas por Tabela, 2.1 `assigned_to IS NULL` — ❌ NÃO ENCONTRADO em nenhum schema, 2.2 Tabelas de Contato, 2.3 Tabelas de Mensagem, 2.4 Tabelas de Conversa, 2.5 Perfis e Empresas, 2. Verificação de Políticas Críticas, 3. Problemas Encontrados (+11 more)
 
-### Community 270 - "ProgressiveDisclosureDashboard.tsx"
-Cohesion: 0.08
-Nodes (26): SectionHeader(), SectionHeaderProps, variantStyles, WidgetSection, DashboardToolbar(), DashboardToolbarProps, DashboardView, EnhancedProps (+18 more)
+### Community 270 - "useDashboardData.ts"
+Cohesion: 0.15
+Nodes (13): DashboardView, DashboardFilters, DashboardStats, QueueStats, RecentActivity, ContactRow, ProfileRow, QueueMemberRow (+5 more)
 
 ### Community 271 - "20260804190316_restore_orphaned_rpcs.sql"
 Cohesion: 0.06
 Nodes (22): instance_id, zapp.user_roles, zapp.voice_conversion_queue, zapp.whatsapp_connections, zapp.auto_pause_instance_on_auth_spike(), zapp.claim_next_voice_task(), zapp.fn_apply_connection_update(), zapp.fn_edge_get_evolution_credentials() (+14 more)
 
-### Community 272 - "MessageSendHistorySheet.tsx"
-Cohesion: 0.14
-Nodes (21): SheetContent, SheetContentProps, SheetDescription, SheetHeader(), SheetOverlay, SheetTitle, sheetVariants, copyToClipboard() (+13 more)
+### Community 272 - "RateLimitLogDetails.tsx"
+Cohesion: 0.20
+Nodes (14): SheetContent, SheetContentProps, SheetDescription, SheetFooter(), SheetHeader(), SheetOverlay, SheetTitle, sheetVariants (+6 more)
 
 ### Community 273 - "evolutionClient.ts"
-Cohesion: 0.16
-Nodes (20): SUPABASE_RESOLVED_ANON_KEY, SUPABASE_RESOLVED_URL, circuitBreaker, evoFetch(), EvolutionCredentials, EvolutionInstancePublicRow, fetchInstances(), fetchKeyFromEdge() (+12 more)
+Cohesion: 0.15
+Nodes (21): SUPABASE_RESOLVED_ANON_KEY, SUPABASE_RESOLVED_URL, circuitBreaker, evoFetch(), EvolutionCredentials, EvolutionInstancePublicRow, fetchInstances(), fetchKeyFromEdge() (+13 more)
 
 ### Community 274 - "BusinessAnalytics"
 Cohesion: 0.14
@@ -2466,9 +2480,9 @@ Nodes (6): analytics, AnalyticsConfig, BusinessAnalytics, BusinessEvent, EventCa
 Cohesion: 0.17
 Nodes (18): DedupeEvent, DedupeHitReason, DedupeKeyKind, DedupeMissReason, DedupeOutcome, DedupeReason, DedupeTelemetrySnapshot, extractNamespace() (+10 more)
 
-### Community 277 - "callCorrelation.ts"
-Cohesion: 0.27
-Nodes (11): Props, AnyRec, asRec(), CallTimelineEntry, CallTimelineGroup, extractCallId(), extractCallStatus(), groupEventsByCall() (+3 more)
+### Community 277 - "CallCorrelationView.tsx"
+Cohesion: 0.20
+Nodes (17): Props, AnyRec, asRec(), CallTimelineEntry, CallTimelineGroup, extractCallId(), extractCallStatus(), formatDuration() (+9 more)
 
 ### Community 278 - "rules"
 Cohesion: 0.17
@@ -2510,17 +2524,17 @@ Nodes (5): Fixtures, loginViaUI(), test, STORAGE_STATE, FUZZ_INPUTS
 Cohesion: 0.27
 Nodes (12): ensureAdminRouteOrSkip(), failedFilters, readResultsCount(), readRowAttributes(), selectOption(), waitForFiltersSettled(), webhookFilters, assertIntersectionInvariants() (+4 more)
 
-### Community 288 - "safeFrom"
+### Community 288 - "useKnowledgeBase.ts"
 Cohesion: 0.20
-Nodes (10): KnowledgeBaseView(), statusIcon(), EmailWebhookMonitor(), useKnowledgeBase(), useQueuesCrudManagement(), DynamicSupabaseClient, safeFrom(), validateTableName() (+2 more)
+Nodes (9): KnowledgeBaseView(), statusIcon(), Article, CATEGORIES, CATEGORY_LABELS, KB_QUERY_KEY, KBFile, KBSnapshot (+1 more)
 
 ### Community 289 - "OnboardingTour.tsx"
-Cohesion: 0.12
-Nodes (17): DEFAULT_ONBOARDING_STEPS, TourProvider(), TourProviderProps, TourConsumer(), TourContext, TourContextProvider, TourContextType, TourStep (+9 more)
+Cohesion: 0.20
+Nodes (12): DEFAULT_ONBOARDING_STEPS, TourProvider(), TourProviderProps, TourConsumer(), TourContext, TourContextProvider, TourContextType, TourStep (+4 more)
 
 ### Community 290 - "useFailedMessages.ts"
-Cohesion: 0.14
-Nodes (28): BulkReprocessGuidedDialogProps, FailedMessageTableRowProps, computeFailedMessagesAggregates(), DlqStats, ErrorCodeAggregate, FailedMessageRow, FailedMessagesAggregates, FailedMessagesFilters (+20 more)
+Cohesion: 0.26
+Nodes (15): BulkReprocessGuidedDialogProps, FailedMessageTableRowProps, computeFailedMessagesAggregates(), DlqStats, ErrorCodeAggregate, FailedMessageRow, FailedMessagesAggregates, FailedMessagesFilters (+7 more)
 
 ### Community 291 - "whatsappLogsHelpers.tsx"
 Cohesion: 0.19
@@ -2538,9 +2552,9 @@ Nodes (16): buildIdempotencyKey(), classifyByStatus(), classifyRetryReason(), co
 Cohesion: 0.11
 Nodes (18): Banco de Dados — OBRIGATÓRIO LER, Bugs Abertos, Comandos Úteis, Configuração do Cliente Supabase, Documentação de Referência, Estrutura de Pastas Relevante, Idioma, Instância Supabase (+10 more)
 
-### Community 295 - "lib/useMediaUrl.ts"
-Cohesion: 0.18
-Nodes (16): ADR-0002, ADR-0003, isMediaUrlFailed(), SUPABASE_PUBLIC_URL, CachedSignedUrl, getCachedSignedUrl(), isPublicBucket(), MediaItem (+8 more)
+### Community 295 - "VoiceSearchOverlay.tsx"
+Cohesion: 0.14
+Nodes (20): AudioFrequencyVisualizer(), AudioFrequencyVisualizerProps, FloatingParticles(), FloatingParticlesProps, Particle, PHASE_CONFIG, hsl(), PhaseColors (+12 more)
 
 ### Community 296 - "Tema 14 — SLA/BPM (Bloco 8)"
 Cohesion: 0.11
@@ -2626,17 +2640,17 @@ Nodes (17): ES2023, vite.config.ts, compilerOptions, allowImportingTsExtensions,
 Cohesion: 0.16
 Nodes (17): buildClicksBlock(), buildLegendBlock(), ConsumerDef, CONSUMERS, Drift, ensureMarkers(), escapeRe(), EXTRA_CLICKS (+9 more)
 
-### Community 317 - "useQueueGoals.ts"
-Cohesion: 0.24
-Nodes (8): alertIcons, QueueAlertsDisplay(), QueueAlertsDisplayProps, DEFAULT_GOAL, log, QueueAlert, QueueGoal, useQueueGoalsManagement()
+### Community 317 - "safeFrom"
+Cohesion: 0.08
+Nodes (26): InstanceSettingsDialog(), alertIcons, QueueAlertsDisplay(), QueueAlertsDisplayProps, EmailWebhookMonitor(), useAdminQueuesManagement(), mockChannel, mockFrom (+18 more)
 
 ### Community 318 - "command-palette.tsx"
 Cohesion: 0.20
 Nodes (12): CommandPalette(), CommandPaletteProps, CommandCategory, CommandGroup, CommandItem, defaultActionCommands, defaultNavigationCommands, fuzzyMatch() (+4 more)
 
 ### Community 319 - "GlobalSearch.tsx"
-Cohesion: 0.10
-Nodes (25): Toggle, toggleVariants, GlobalSearch, GlobalSearch(), GlobalSearchProps, log, QuickAction, GlobalSearch (+17 more)
+Cohesion: 0.06
+Nodes (43): Toggle, toggleVariants, CallDialog, ChatDialogs(), ChatDialogsProps, CloseConversationDialog, DialogKey, DialogState (+35 more)
 
 ### Community 320 - "useMessageSendHistory.ts"
 Cohesion: 0.24
@@ -2695,24 +2709,24 @@ Cohesion: 0.12
 Nodes (16): engines, node, name, overrides, brace-expansion, csstype, fast-uri, @vitest/browser (+8 more)
 
 ### Community 335 - "useAgentGamification.ts"
-Cohesion: 0.07
-Nodes (37): GoalsConfigDialog(), AchievementType, Achievement, GamificationContext, GamificationContextType, GamificationProvider(), log, NOOP_CONTEXT (+29 more)
+Cohesion: 0.08
+Nodes (29): AchievementBadge, AchievementBadgeMini, AchievementBadgeProps, BADGE_CONFIG, DEFAULT_BADGE, RARITY_BORDERS, SIZE_CONFIG, AchievementsHeaderBadges() (+21 more)
 
 ### Community 336 - "openContactInChat.ts"
 Cohesion: 0.25
 Nodes (9): useFailedMessagesStats(), jidToPhone(), openContactInChat(), OpenContactInChatOptions, PendingChatTarget, resolveContactId(), Window, AdminFailedMessagesPage() (+1 more)
 
-### Community 337 - "useRateLimitLogs.ts"
-Cohesion: 0.09
-Nodes (28): RateLimitAlertsPanel(), DEFAULT_PREFS, loadNotifyPrefs(), loadSeen(), NotifyPreferences, requestBrowserNotificationPermission(), saveNotifyPrefs(), saveSeen() (+20 more)
+### Community 337 - "useRateLimitAlertNotifier.ts"
+Cohesion: 0.15
+Nodes (19): RateLimitAlertsPanel(), DEFAULT_PREFS, loadNotifyPrefs(), loadSeen(), NotifyPreferences, requestBrowserNotificationPermission(), saveNotifyPrefs(), saveSeen() (+11 more)
 
-### Community 338 - "useNotificationSettings"
-Cohesion: 0.13
-Nodes (20): NotificationSettingsPanel(), SoundSelector(), useRealtimeNotifications(), mockFrom, mockUseAuth, mockFrom, mockFunctionsInvoke, useNotificationSettings() (+12 more)
+### Community 338 - "InboxScopeConfig.tsx"
+Cohesion: 0.14
+Nodes (18): InboxScopeConfig(), log, CHANNEL_PERMISSIONS, INBOX_PERMISSIONS, NewScopeForm(), NewScopeFormProps, ROLES, createInboxCustomScope() (+10 more)
 
 ### Community 339 - "AvatarUpload.tsx"
-Cohesion: 0.05
-Nodes (47): buildContactsCsv(), BuildCsvOptions, buildExportFileName(), esc(), EXPORT_DEFAULT_KEYS, EXPORT_FIELDS, ExportableContact, ExportFieldDef (+39 more)
+Cohesion: 0.06
+Nodes (38): ContactFormData, EMPTY_CONTACT, useContactsCRUD(), GroupsView(), log, mockInvoke, mockOrder, AvatarUpload() (+30 more)
 
 ### Community 340 - "api/index.ts"
 Cohesion: 0.19
@@ -2783,12 +2797,12 @@ Cohesion: 0.12
 Nodes (15): 1. Arquitetura do Pipeline (versão atual), 2. Healthcheck Rápido (roda em <1 segundo), 3.1 URLs `kong:8000` voltaram, 3.2 Fila acumulando (worker parado), 3.3 Bucket `whatsapp-media` ficou privado, 3.4 WAL Slot Logflare acumulando (⚠️ RISCO DE DISCO), 3.5 Realtime DELETE sem `remote_jid`, 3.6 Erro de áudio sem contexto (+7 more)
 
 ### Community 357 - "EasterEggs.tsx"
-Cohesion: 0.15
-Nodes (15): EasterEggsProvider, CelebrationOverlay(), CelebrationOverlayProps, COLORS, Confetti(), ConfettiProps, Particle, useCelebration() (+7 more)
+Cohesion: 0.16
+Nodes (14): EasterEggsProvider, CelebrationOverlay(), CelebrationOverlayProps, COLORS, Confetti(), ConfettiProps, Particle, useCelebration() (+6 more)
 
 ### Community 358 - "externalAudioSender.ts"
-Cohesion: 0.15
-Nodes (21): jidToPhone(), blobToBase64(), log, logAudit(), sendExternalAudio(), log, logAudit(), sendExternalMedia() (+13 more)
+Cohesion: 0.14
+Nodes (23): jidToPhone(), blobToBase64(), log, logAudit(), sendExternalAudio(), log, logAudit(), sendExternalMedia() (+15 more)
 
 ### Community 359 - "clientRateLimiter.ts"
 Cohesion: 0.17
@@ -2803,12 +2817,12 @@ Cohesion: 0.12
 Nodes (10): loadModule(), mockDebug, mockGetLogger, mockInfo, mockInvoke, mockIsConfigured, MockPerfObserver, mockWarn (+2 more)
 
 ### Community 362 - "evolution-bitrix-sync/index.ts"
-Cohesion: 0.08
-Nodes (24): admin, CsatAutoSendBody, CheckResult, FailureRecord, Summary, bitrixCall(), BitrixResult, getBitrixUrl() (+16 more)
+Cohesion: 0.17
+Nodes (14): bitrixCall(), BitrixResult, getBitrixUrl(), processQueue(), QueueItem, QueuePayload, STAGE_MAP, supabase (+6 more)
 
 ### Community 363 - "AppShell.tsx"
-Cohesion: 0.10
-Nodes (20): AppShell, AppShellProps, MemoizedMobileShell, MemoizedSidebar, MemoizedViewRouter, ViewLoadingFallback(), AutomationFailureAlertsMount(), IntegrationMigrationMount() (+12 more)
+Cohesion: 0.09
+Nodes (21): AppShell, AppShellProps, MemoizedMobileShell, MemoizedSidebar, MemoizedViewRouter, ViewLoadingFallback(), AutomationFailureAlertsMount(), RouteLoadingBar() (+13 more)
 
 ### Community 364 - "Auditoria Exaustiva — Evolution API na VPS (Produção)"
 Cohesion: 0.13
@@ -2918,17 +2932,17 @@ Nodes (14): check_pair(), fmt_rgb(), hsl_to_rgb(), lin_wcag(), lum_gamma(), lum_
 Cohesion: 0.13
 Nodes (14): auth, accepted_audiences, issuer, type, mcp, server, tools, path (+6 more)
 
-### Community 391 - "sendProductUtils.ts"
-Cohesion: 0.23
-Nodes (11): ProductVariantSelector(), ProductVariantSelectorProps, SendProductDialog(), buildMessage(), collectAllImages(), ContactResult, groupVariantsByColor(), SendMode (+3 more)
+### Community 391 - "SendProductDialog.tsx"
+Cohesion: 0.11
+Nodes (27): ContactSelectionStep(), ContactSelectionStepProps, ExternalProductCardProps, ExternalProductCatalogProps, ProductDetailDialogProps, ProductImage, ProductImageGrid(), ProductImageGridProps (+19 more)
 
-### Community 392 - "useBusinessLogicManagement.ts"
-Cohesion: 0.13
-Nodes (20): CampaignABTesting(), Deal, ABVariant, log, PIPELINE_KEY, PipelineDealRow, PipelineStage, useBusinessLogicCampaignsManagement() (+12 more)
+### Community 392 - "safeStorage.ts"
+Cohesion: 0.14
+Nodes (19): ThemeDebugger, ThemeDebugger(), RetryAlertsConfig(), sanitize(), LanguageSelector, EmojiPicker(), resources, useLanguage() (+11 more)
 
-### Community 393 - "AIConversationAssistant.tsx"
-Cohesion: 0.17
-Nodes (12): AnalysisMessage, AnalysisTabs(), getPeriodDays(), ToolPanel(), VisionIcon, VisionIconProps, AIConversationAssistantProps, AIConversationAssistant (+4 more)
+### Community 393 - "ChatToolPanels.tsx"
+Cohesion: 0.20
+Nodes (9): ToolPanel(), VisionIcon, VisionIconProps, AIConversationAssistant, ChatToolPanels(), ChatToolPanelsProps, ObjectionDetector, TeamFiles (+1 more)
 
 ### Community 394 - "TemplatesWithVariables.tsx"
 Cohesion: 0.20
@@ -3058,29 +3072,29 @@ Nodes (10): makeSemaphore(), propertyRun(), results, scenarioAllHighThenNormal()
 Cohesion: 0.15
 Nodes (12): allowlist, allowlistPath, dead, files, fileSet, LIST_ONLY, normalizePath(), referenced (+4 more)
 
-### Community 426 - "useSentimentData.ts"
-Cohesion: 0.28
-Nodes (7): AgentProfile, AgentSentimentData, ConversationAnalysis, getSentimentBg(), getSentimentLabel(), log, SentimentAlert
+### Community 426 - "SentimentTabContent.tsx"
+Cohesion: 0.15
+Nodes (19): SentimentAlertsDashboard(), AgentData, AgentsTab(), Alert, AlertsTab(), Analysis, DailyData, DistributionTab() (+11 more)
 
 ### Community 427 - "accessible-toast.tsx"
 Cohesion: 0.14
 Nodes (10): AccessibleToastProviderProps, backgrounds, icons, Toast, ToastContainerProps, ToastContext, ToastContextValue, ToastItem (+2 more)
 
-### Community 428 - "useIdempotencyMissAlerts.ts"
-Cohesion: 0.23
-Nodes (12): AuditLogRow, buildPersistKey(), DEFAULT_MISS_THRESHOLD, hourBucket(), InstanceMissCount, loadPersistedAlerts(), log, safeStorage() (+4 more)
+### Community 428 - "DuplicateContactsPanel.tsx"
+Cohesion: 0.18
+Nodes (20): DuplicateGroup, DuplicateReport, log, Props, useEvolutionAutoSync(), formatBRPhone, formatPhoneForDisplay(), fromWhatsAppJID() (+12 more)
 
 ### Community 429 - "useTransfersPaginated.ts"
-Cohesion: 0.15
-Nodes (18): TransferRow, TransfersFilters, useTransfersPaginated(), ADMIN_RESOURCES, AdminResource, canAccessAdminResource(), CanonicalRole, highestRole() (+10 more)
+Cohesion: 0.27
+Nodes (9): TransferRow, TransfersFilters, useTransfersPaginated(), formatAdminError(), isRlsDeniedError(), rlsDeniedMessage(), RlsDeniedShape, RpcFn (+1 more)
 
 ### Community 430 - "ConversationTasksPanel.tsx"
 Cohesion: 0.25
 Nodes (12): ConversationTasksPanel(), ConversationTasksPanelProps, priorityConfig, Task, createConversationTask(), deleteConversationTask(), fetchConversationTasks(), fetchPendingTaskContactIds() (+4 more)
 
-### Community 431 - "MediaCard.tsx"
-Cohesion: 0.23
-Nodes (9): MediaCard, MediaCardProps, MediaGalleryListView(), MediaGalleryListViewProps, MediaPreviewDialogProps, getFilename(), getMediaType(), MediaItem (+1 more)
+### Community 431 - "TalkXCampaignEditor.tsx"
+Cohesion: 0.04
+Nodes (54): _COLORS, Props, TalkXAnalytics(), TalkXBlacklist(), Props, TalkXCampaignCard(), MEDIA_ICONS, Props (+46 more)
 
 ### Community 432 - "useInboxHeartbeat.simulacao.test.ts"
 Cohesion: 0.15
@@ -3094,17 +3108,17 @@ Nodes (16): ConnectionAlertPreferences(), insertMock, updateMock, upsertMock, Te
 Cohesion: 0.09
 Nodes (24): ch, cr, cron.job_run_details, cs, evo.evolution_api_consumers, hl, mirror, o401 (+16 more)
 
-### Community 435 - "gmail-webhook/index.ts"
-Cohesion: 0.13
-Nodes (17): fetchAndPersistMessage(), NonRetryableMessageError, processHistory(), PUBSUB_TOPIC, functionNotFoundResponse(), jwtSecretFile, PUBLIC_FNS, rawSecret (+9 more)
+### Community 435 - "BridgeSupabaseView.tsx"
+Cohesion: 0.12
+Nodes (14): BridgeInfoRow(), BridgeInfoRowProps, BridgeStatCard(), BridgeStatCardProps, BridgeStatusBadge(), BridgeSupabaseView(), fmt(), ConnectionsIntegrationsHub() (+6 more)
 
-### Community 436 - "ConversationSummary.tsx"
-Cohesion: 0.13
-Nodes (21): ConversationSummary(), ConversationSummaryProps, log, Message, sentimentConfig, statusConfig, SummaryData, useSummaryTts() (+13 more)
+### Community 436 - "ai-router.ts"
+Cohesion: 0.24
+Nodes (13): AiAction, AiRouterRequest, AiRouterResponse, autoTag(), callAiRouter(), churnAnalysis(), classifyEmoji(), classifySticker() (+5 more)
 
-### Community 437 - "devRealtimeLogger.ts"
-Cohesion: 0.16
-Nodes (19): AnyPayload, Bind, clearFanoutHistory(), FanoutEventRecord, FanoutSubscriptionRecord, getFanoutLastEvents(), getFanoutRecentEvents(), getFanoutSubscriptions() (+11 more)
+### Community 437 - "ChatHeader.tsx"
+Cohesion: 0.13
+Nodes (17): ChatHeader, ChatHeaderProps, ChatPanelHeader(), NewMessageIndicator(), VoiceSelector(), avatarCache, AvatarCacheEntry, fetchAvatarBatch() (+9 more)
 
 ### Community 438 - "healthCheck.ts"
 Cohesion: 0.18
@@ -3210,29 +3224,29 @@ Nodes (12): Checklist de Validação Pós-Deploy, Etapa 1 — Verificar estado a
 Cohesion: 0.23
 Nodes (12): ASSETS_DIR, BASELINE_FILE, DEFAULT_BUDGET, DIST_DIR, fmtBytes(), fmtNum(), ghAnnotation(), gzipSizeOf() (+4 more)
 
-### Community 464 - "ConnectionHealthPanel.tsx"
-Cohesion: 0.16
-Nodes (15): ConnectionHealthLocal, ConnectionHealthPanel(), log, mockChannel, mockInvoke, mockRemoveChannel, colorMap, iconMap (+7 more)
+### Community 464 - "tooltip.tsx"
+Cohesion: 0.03
+Nodes (74): ExternalProductCard, formatPrice(), formatPrice(), ProductDetailDialog(), maskSensitiveData(), QrCodeDialog(), QrCodeDialogProps, QrCodeDialogState (+66 more)
 
-### Community 465 - "FailedMessageStatusBadge.tsx"
-Cohesion: 0.40
-Nodes (4): FailedMessageStatusBadge(), Props, STATUS_LABEL, STATUS_VARIANT
+### Community 465 - "useFailedMessages"
+Cohesion: 0.21
+Nodes (10): FailedMessageStatusBadge(), Props, STATUS_LABEL, STATUS_VARIANT, FailedMessageStatus, setMockRows(), _rpc(), useFailedMessages() (+2 more)
 
 ### Community 466 - "useGoalsDashboard.ts"
-Cohesion: 0.39
-Nodes (6): GoalsDashboard(), Goal, getProgressBgColor(), getProgressColor(), PERIOD_OPTIONS, useGoalsDashboard()
+Cohesion: 0.31
+Nodes (8): GoalsDashboard(), getDateRange(), Goal, useGoalsDashboardManagement(), getProgressBgColor(), getProgressColor(), PERIOD_OPTIONS, useGoalsDashboard()
 
-### Community 467 - "ScrollLoaderController"
+### Community 467 - "MessageAttemptsTimeline.tsx"
+Cohesion: 0.11
+Nodes (11): fmt(), MessageAttemptsTimeline(), MessageAttemptsTimelineProps, STATUS_META, createScrollLoaderController(), ScrollLoaderController, ScrollLoaderOptions, useMessageAttemptsManagement() (+3 more)
+
+### Community 468 - "archivedScenarios.simulacao.test.ts"
+Cohesion: 0.09
+Nodes (17): makeContact(), makeConversation(), buildContact(), buildConversation(), ContactSeed, createMockMessage(), MOCK_CONVERSATIONS, MOCK_SEEDS (+9 more)
+
+### Community 469 - "TeamMemberDetails.tsx"
 Cohesion: 0.19
-Nodes (3): createScrollLoaderController(), ScrollLoaderController, ScrollLoaderOptions
-
-### Community 468 - "realtime/types.ts"
-Cohesion: 0.12
-Nodes (15): mapToLegacyConversation(), mapToLegacyMessages(), makeContact(), makeConversation(), buildContact(), buildConversation(), ContactSeed, createMockMessage() (+7 more)
-
-### Community 469 - "inboxFilterPersistence.ts"
-Cohesion: 0.27
-Nodes (12): EMPTY, FAILURE_CATEGORIES, INBOX_SCOPES, InboxScope, MAIN_TABS, pick(), readStoredInboxFilters(), resolveInitialInboxFilters() (+4 more)
+Nodes (17): Props, TeamChatHeaderProps, Props, Props, SectionHeader(), TeamMemberDetails(), TeamMemberDetailsProps, DirectProfileHeader() (+9 more)
 
 ### Community 470 - "proxy.test.ts"
 Cohesion: 0.17
@@ -3242,9 +3256,9 @@ Nodes (6): evoApi, bridgeFrom(), FAKE_HEADERS, mockFetch, mockGetSession, MockQu
 Cohesion: 0.28
 Nodes (10): maskPhoneBR(), normalizePhoneBR(), sanitizeEmail(), sanitizeFilename(), sanitizeLogMessage(), sanitizeUrl(), truncate(), validateFileExtension() (+2 more)
 
-### Community 472 - "sendFunctionRouter.ts"
-Cohesion: 0.24
-Nodes (8): cache, CacheEntry, clearSendFunctionCache(), FnName, queryConnections(), resolveSendFunction(), WhatsappConnectionRow, mockMaybySingle
+### Community 472 - "evolutionSendRetry.ts"
+Cohesion: 0.13
+Nodes (13): EvolutionInvokeOptions, EvolutionInvokeResult, isTransient(), log, TRANSIENT_PATTERNS, cache, CacheEntry, clearSendFunctionCache() (+5 more)
 
 ### Community 473 - "compilerOptions"
 Cohesion: 0.15
@@ -3259,8 +3273,8 @@ Cohesion: 0.17
 Nodes (12): Auditoria ZAPP-WEB — 2026-08-06, DIMENSÃO 1 — CONFIG, DIMENSÃO 2 — VERSÃO, DIMENSÃO 3 — ARTEFATO, DIMENSÃO 4 — SEGREDO/ENV, DIMENSÃO 5 — DADO/ESTADO, DIMENSÃO 6 — MIGRAÇÃO, DIMENSÃO 7 — REDE/VOLUME (+4 more)
 
 ### Community 476 - "5. TABELAS SUPABASE — 117 entidades"
-Cohesion: 0.17
-Nodes (12): 5.10 Configurações & Permissões, 5.11 Outros, 5.1 Core, 5.2 Filas & Atribuição, 5.3 WhatsApp & Conexões, 5.4 IA & Analytics, 5.5 Automação, 5.6 Vendas & CRM (+4 more)
+Cohesion: 0.04
+Nodes (54): 1.1 Primary Nav, 1.2 Comunicação, 1.3 Automação & IA, 1.4 Vendas & CRM, 1.5 Conexões, 1.6 Analytics, 1.7 Sistema, 1. NAVEGAÇÃO PRINCIPAL (Sidebar) (+46 more)
 
 ### Community 477 - "Tema 15 — Resiliência e edge cases (Bloco 9A, etapas 81-85)"
 Cohesion: 0.17
@@ -3402,25 +3416,25 @@ Nodes (8): CampaignsView(), mockAddContactsToCampaign, mockCreateCampaign, mockD
 Cohesion: 0.26
 Nodes (10): IntegrationsPanel(), IntegrationsPanelProps, log, chatwootFields, difyFields, evolutionBotFields, flowiseFields, openaiFields (+2 more)
 
-### Community 512 - "QrCodeDialog.tsx"
-Cohesion: 0.20
-Nodes (10): maskSensitiveData(), QrCodeDialog(), QrCodeDialogProps, QrCodeDialogState, BlockReason, log, REASON_COPY, RefreshQrButton() (+2 more)
+### Community 512 - "ProgressiveDisclosureDashboard.tsx"
+Cohesion: 0.18
+Nodes (13): SectionHeader(), SectionHeaderProps, variantStyles, WidgetSection, DashboardToolbar(), DashboardToolbarProps, EnhancedProps, LegacyProps (+5 more)
 
-### Community 513 - "ContactCompanyField.tsx"
-Cohesion: 0.12
-Nodes (22): CompaniesManagerDialog(), ContactCompanyField(), ContactCompanyFieldProps, Command, CommandDialog(), CommandDialogProps, CommandEmpty, CommandGroup (+14 more)
+### Community 513 - "useExternalCatalog"
+Cohesion: 0.26
+Nodes (15): ExternalProductCatalog(), ExternalProductManagement(), invokeAction(), useExternalCatalog(), withSafeVariants(), hasArrayField(), hasField(), hasSuccessFlag() (+7 more)
 
-### Community 514 - "useEvolutionMonitoring.ts"
-Cohesion: 0.16
-Nodes (17): EvolutionMonitoringDashboard(), useEvolutionMonitoring(), log, useMonitoringNotifications(), isVoiceConversionRow(), useAudioMessagePlayer(), useMonitoringActions(), useMonitoringData() (+9 more)
+### Community 514 - "useInboxBulkActions.ts"
+Cohesion: 0.15
+Nodes (11): HookResult, mockDbFrom, mockExecute, mockSupabaseFrom, mockUpdateStatusBulk, setup(), useInboxBulkActions(), log (+3 more)
 
 ### Community 515 - "loadOlderMetrics.ts"
 Cohesion: 0.33
 Nodes (10): getLoadOlderMetrics(), LoadOlderSnapshot, log, publishToWindow(), recordLoadOlderCancelled(), recordLoadOlderCompleted(), recordLoadOlderStarted(), resetLoadOlderMetrics() (+2 more)
 
-### Community 516 - "UnifiedNotificationProviders.tsx"
-Cohesion: 0.13
-Nodes (18): RealtimeSentimentAlertProvider, GoalNotificationProvider, GoalNotificationsLayer(), RealtimeSentimentAlertProvider, SentimentAlertsLayer(), SLANotificationProvider, SLANotificationsLayer(), UnifiedNotificationProviders (+10 more)
+### Community 516 - "useContactFormV3.ts"
+Cohesion: 0.17
+Nodes (14): ConsentData, ContactFormV3(), ContactV3FormData, ContactForMerge, DuplicateState, log, normalizePhone(), PotentialDuplicate (+6 more)
 
 ### Community 517 - "contractSnapshot.test.ts"
 Cohesion: 0.18
@@ -3574,29 +3588,29 @@ Nodes (9): CHANGED_FILES, COMMIT_MESSAGES, isTestFile(), message, nonTestFiles, 
 Cohesion: 0.20
 Nodes (7): achados, an, badge(), etapas, ORDEM_SEV, render(), texto
 
-### Community 556 - "AchievementsStats.tsx"
-Cohesion: 0.17
-Nodes (14): AchievementBadge, AchievementBadgeMini, AchievementBadgeProps, BADGE_CONFIG, DEFAULT_BADGE, RARITY_BORDERS, SIZE_CONFIG, AchievementsHeaderBadges() (+6 more)
+### Community 556 - "contacts/hooks/useContactNotes.ts"
+Cohesion: 0.16
+Nodes (9): mockToast, notesRows, ContactNote, ContactNoteAuthor, log, useContactNotes(), mockFrom, mockNotes (+1 more)
 
 ### Community 557 - "useEvolutionApiIntegration.test.tsx"
 Cohesion: 0.22
 Nodes (8): CRED_ROW, MockClient, supabaseMock, toastMocks, DEFAULT_URL, EvolutionInstanceCredential, HealthLog, useEvolutionApiIntegration()
 
-### Community 558 - "lib/retry.ts"
-Cohesion: 0.33
-Nodes (8): generateCorrelationId, isIntentionalAbort(), log, RetryOptions, withNetworkRetry(), withRetry(), FAST, RETRY_ALL
+### Community 558 - "client.ts"
+Cohesion: 0.03
+Nodes (71): OfficialApiConfigDialog(), OmnichannelInbox(), mockConnections, mockContacts, AIGenerateDialog(), WhatsAppModeSetting(), IntegrationMigrationMount(), log (+63 more)
 
-### Community 559 - "inboxFilterPipeline.ts"
-Cohesion: 0.12
-Nodes (13): InboxFiltersState, InboxFiltersState, ApplyInboxFiltersOptions, CHANNEL_PERMISSION_KEYS, countUnique(), InboxTabCounts, PermissionChecker, TicketStateMap (+5 more)
+### Community 559 - "AgentOpsTable.tsx"
+Cohesion: 0.22
+Nodes (12): AgentOpsTable(), initials(), Props, statusBadgeVariant(), statusDot(), statusLabel(), AgentRecentSendsPopover(), Props (+4 more)
 
 ### Community 560 - "LinkPreview.tsx"
 Cohesion: 0.22
 Nodes (18): LinkPreview(), LinkPreviewProps, TextWithLinks(), TextWithLinksProps, escapeHtml(), extractLinks(), FAVICON_SAFE_DOMAINS, getDomain() (+10 more)
 
-### Community 561 - "ConversationDeliverySummary.tsx"
-Cohesion: 0.20
-Nodes (10): aggregate(), Chip(), ConversationDeliverySummary, Counts, DELIVERED_LIKE, DirectionRow(), FAILED_LIKE, Props (+2 more)
+### Community 561 - "whatsappFileTypes.ts"
+Cohesion: 0.15
+Nodes (10): FileUploader, getCategoryIcon(), QueueFileItem(), CONTACT_TYPES, ContactType, FileTypeConfig, formatFileSize(), getAllowedMimeTypes() (+2 more)
 
 ### Community 562 - "realtimeChannelLifecycle.test.ts"
 Cohesion: 0.18
@@ -3606,13 +3620,13 @@ Nodes (5): ChannelCallLogEntry, FakeRealtimeChannel, FakeRealtimeClient, fakeSup
 Cohesion: 0.22
 Nodes (9): TestRow, testSchema, ImportError, ImportResult, ImportStatus, useImportData(), UseImportDataOptions, useImportDataTyped() (+1 more)
 
-### Community 564 - "useSecurityAuditLogs.ts"
-Cohesion: 0.20
-Nodes (10): AuditLog, cutoff(), log, SECURITY_ADMIN_LOGINS_KEY, SECURITY_DENIED_24H_KEY, SECURITY_LOGS_KEY, SECURITY_PERMISSION_CHANGES_KEY, SECURITY_RLS_FAILURES_KEY (+2 more)
+### Community 564 - "promogifts-catalog/index.ts"
+Cohesion: 0.16
+Nodes (12): ActionSchema, ALLOWED_ORDER_FIELDS, buildMisconfigPayload(), contractViolation422(), errMessage(), GetProductSchema, jsonRes(), ListProductsSchema (+4 more)
 
-### Community 565 - "settings/index.ts"
-Cohesion: 0.18
-Nodes (15): DisposableChannel, settingsRepository, UserSettings, WorkspaceSettings, settingsService, VALID_LANGUAGES, VALID_THEMES, ValidLanguage (+7 more)
+### Community 565 - "FailedMessageDetailsSheet.tsx"
+Cohesion: 0.25
+Nodes (12): BulkReprocessGuidedDialog(), FailedMessageTableRow(), shortJid(), aggregateByRootCause(), ALL_ROOT_CAUSES, classifyByStatus(), ClassifyInput, classifyRootCause() (+4 more)
 
 ### Community 566 - "__mocks__/logger.ts"
 Cohesion: 0.27
@@ -3783,8 +3797,8 @@ Cohesion: 0.20
 Nodes (9): 1. Resumo executivo, 2. Topologia dos callers (evidência), 3.1 (Confirmar) Worker Cloudflare `evolution-mcp` — já atualizado, 3.2 CORRIGIR a causa dos 401s ativos — Supabase Cloud do `match`, 3.3 Alinhar match-v2 (preventivo), 3. Ações necessárias, 4. Verificação final (após aplicar 3.2), 5. Notas / pendências (+1 more)
 
 ### Community 608 - "📚 Documentação Técnica Completa - Sistema de Atendimento WhatsApp"
-Cohesion: 0.02
-Nodes (82): 10. Relatórios & Analytics, 11. Configurações, 12. Chamadas, 13. Grupos WhatsApp, 14. Carteira de Clientes, 15. Auditoria, 1. Autenticação & Usuários, 2. Inbox/Chat em Tempo Real (+74 more)
+Cohesion: 0.20
+Nodes (10): 13. Grupos WhatsApp, 14. Carteira de Clientes, 📦 Dependências Completas, Descrição, Descrição, 📚 Documentação Técnica Completa - Sistema de Atendimento WhatsApp, Tabela do Banco, Tabela do Banco (+2 more)
 
 ### Community 609 - "Plano de saneamento `@ts-nocheck`"
 Cohesion: 0.20
@@ -3822,9 +3836,9 @@ Nodes (10): dialButtons, DialPad(), formatTime(), subLabels, defaultProps, loadS
 Cohesion: 0.20
 Nodes (7): CustomTooltipProps, SentimentCustomTooltip(), SentimentDataPoint, SentimentStatsCards(), TooltipPayloadItem, SentimentTrendChartProps, SentimentData
 
-### Community 618 - "realtime/index.ts"
-Cohesion: 0.13
-Nodes (12): Listener, listeners, PlayerState, playerStateStore, store, getSnapshot(), listeners, RealtimeContactsStatus (+4 more)
+### Community 618 - "ChatInputArea.guards.test.tsx"
+Cohesion: 0.28
+Nodes (10): getLastAttemptDuration(), getQueueLength(), normalizeAttempts(), QueueAttempt, QueueItemLike, QueueBlock(), TextareaWithRef(), AnyRef (+2 more)
 
 ### Community 619 - "useContactsMutations.ts"
 Cohesion: 0.18
@@ -3836,7 +3850,7 @@ Nodes (5): mockAuth, mockFrom, mockFunctions, mockStorage, StickerRecord
 
 ### Community 621 - "PeriodFilterSelector.tsx"
 Cohesion: 0.24
-Nodes (9): AnalysisPeriod, calendarClassNames, filterMessagesByPeriod(), getLastConversationStart(), PERIOD_PRESETS, PeriodFilterSelectorProps, PeriodMessage, startOfDay() (+1 more)
+Nodes (8): AnalysisPeriod, calendarClassNames, filterMessagesByPeriod(), getLastConversationStart(), PERIOD_PRESETS, PeriodFilterSelectorProps, PeriodMessage, startOfDay()
 
 ### Community 622 - "useChatPanelHandlers.burst.test.ts"
 Cohesion: 0.27
@@ -4006,9 +4020,9 @@ Nodes (7): CONFIG, FORBIDDEN_PATTERNS, getLineContext(), lintFile(), main(), ADR
 Cohesion: 0.25
 Nodes (7): concurrency, duration, endpoints, Stats, { values }, worker(), _workers
 
-### Community 664 - "SLAMetricCards.tsx"
-Cohesion: 0.31
-Nodes (7): getRateBg(), getRateColor(), OverallData, SLAMetricCards(), SLAMetricCardsProps, Sparkline(), SparklineProps
+### Community 664 - "components/MessageReactions.tsx"
+Cohesion: 0.21
+Nodes (12): EXTENDED_REACTIONS, MessageReactions, MessageReactionsProps, QuickReactionBar, QuickReactionBarProps, WHATSAPP_REACTIONS, trackReactionEvent(), useReactionMutations() (+4 more)
 
 ### Community 665 - "Button.stories.tsx"
 Cohesion: 0.22
@@ -4034,9 +4048,9 @@ Nodes (6): DEFAULT_TIMEOUTS, QueryTimeout, QueryTimeoutError, recommendedTimeout
 Cohesion: 0.33
 Nodes (6): canDeleteGroups(), canInsertGroups(), canManageConnections(), canUpdateGroups(), isAdminOrSupervisor(), UserRole
 
-### Community 673 - "useDeliveryStats.ts"
-Cohesion: 0.20
-Nodes (14): DeliveryStatsPanel(), KpiCard(), Props, relTime(), DeliveryStatsResult, DeliveryTimelinePoint, extractParticipant(), generateMockData() (+6 more)
+### Community 673 - "whatsappInstances.ts"
+Cohesion: 0.14
+Nodes (22): DeliveryStatsPanel(), KpiCard(), Props, relTime(), DeliveryStatsResult, DeliveryTimelinePoint, extractParticipant(), generateMockData() (+14 more)
 
 ### Community 674 - "Convenção vigente (a partir de 2026-07-11)"
 Cohesion: 0.22
@@ -4210,21 +4224,21 @@ Nodes (8): CONCURRENCY, main(), runFuzz(), RUNS, TARGET_FUNCTIONS, { values }, c
 Cohesion: 0.50
 Nodes (7): clean(), line_of(), main(), pglast_scan(), scan_segment(), strip_meta(), ts_of()
 
-### Community 717 - "mobile-components.tsx"
-Cohesion: 0.16
-Nodes (12): IconButton, IconButtonProps, iconButtonVariants, MotionIconButton, MotionIconButtonProps, BottomNavigationProps, BottomNavItem, MobileDrawer (+4 more)
+### Community 717 - "whatsappStatusService.ts"
+Cohesion: 0.25
+Nodes (9): ContactConnectionInfo, WhatsAppPresenceInfo, WhatsAppStatusMessage, whatsappStatusRepository, WhatsAppStatusData, buildPhoneNeedles(), matchesPhone(), normalizeDigits() (+1 more)
 
-### Community 718 - "useAgents.ts"
-Cohesion: 0.21
-Nodes (8): AgentProfile, agentRepository, AgentPresenceRow, PRESENCE_STATUSES, agentService, AgentWithStats, log, FIXED_NOW
+### Community 718 - "agentService.ts"
+Cohesion: 0.23
+Nodes (6): AgentProfile, agentRepository, agentService, AgentWithStats, log, FIXED_NOW
 
 ### Community 719 - "miniGamesData.ts"
 Cohesion: 0.46
 Nodes (6): EMOJI_CHALLENGES, Game, GAMES, GameType, QUIZ_QUESTIONS, TYPING_PHRASES
 
-### Community 720 - "CRMAutoSync.tsx"
-Cohesion: 0.21
-Nodes (12): buildSummary(), CRMAutoSync(), CRMAutoSyncProps, CRMSyncButton(), detectSentiment(), log, callSyncRpc(), log (+4 more)
+### Community 720 - "Conversation"
+Cohesion: 0.05
+Nodes (45): AnalysisBadges(), AnalysisBadgesProps, sentimentMap, urgencyMap, ChatAssignedBarProps, ChatPanelHeaderProps, AssignmentSectionProps, CompactContactHeader() (+37 more)
 
 ### Community 721 - "Input.stories.tsx"
 Cohesion: 0.25
@@ -4234,9 +4248,9 @@ Nodes (7): CommonUseCases, Default, InputGallery, meta, Sizes, Story, Validation
 Cohesion: 0.25
 Nodes (4): ApplicableSLA, ContactSLAParams, SLAConfig, SLARule
 
-### Community 723 - "useQueueAnalytics.ts"
-Cohesion: 0.28
-Nodes (7): QueueCharts(), dateRange, mockFrom, DateRange, LegacyDateRange, useQueueAnalytics(), useQueueAnalyticsManagement()
+### Community 723 - "QueueCharts.tsx"
+Cohesion: 0.19
+Nodes (11): AXIS_PROPS, GRID_PROPS, TOOLTIP_STYLE, QueueCharts(), QueueChartsProps, dateRange, mockFrom, DateRange (+3 more)
 
 ### Community 724 - "ops.fn_check_reference_integrity"
 Cohesion: 0.15
@@ -4322,9 +4336,9 @@ Nodes (7): Achados Críticos Identificados (pré-existentes), Contexto, Correç�
 Cohesion: 0.29
 Nodes (7): BUG CRÍTICO — `fn_toggle_user_meme_favorite(uuid, uuid)` regressão em PR #904 ✅ NOVO, Continuação desta sessão (branch atual), GAP-AUDIT-1 — RLS explícita em `audio_meme_favorites` ✅ NOVO, Migrations desta continuação de sessão, Pendências Pós-Sessão (2026-08-06 continuação), PRs Mergeados (auditoria exaustiva pós-PR #892), Sessão 2026-08-06 (continuação) — Auditoria Exaustiva 5 Agentes + Hardening
 
-### Community 746 - "Fluxo de credenciais Evolution"
-Cohesion: 0.29
-Nodes (7): 🔑 Credential Map — ZAPP WEB, Escrita (POST — actions `save` | `delete`), Fluxo de credenciais Evolution, Leitura (GET), Outras credenciais (referência), Regras duras, Topologia (3 camadas)
+### Community 746 - "LeaderboardHelpers.tsx"
+Cohesion: 0.21
+Nodes (7): Leaderboard(), achievementIcons, LeaderboardRow(), LeaderboardAgent, rangeStart(), useLeaderboardManagement(), useLeaderboard()
 
 ### Community 747 - "18. OPERATIONAL PROCEDURES"
 Cohesion: 0.29
@@ -4430,9 +4444,9 @@ Nodes (6): 1. DB — swept the last latent anon mines, 2. Tests — turned the 2
 Cohesion: 0.29
 Nodes (6): Contexto, Duplicatas Detectadas, Plano de Deduplicação de Migrations, Prevenção de Novos Duplicados, Procedimento de Resolução (requer DBA), Status
 
-### Community 773 - "🚀 Onboarding: Bem-vindo ao ZAPP WEB"
-Cohesion: 0.29
-Nodes (6): 🏗️ Arquitetura Core, 🚀 Fluxo de Trabalho, 📦 Instalação, 🚀 Onboarding: Bem-vindo ao ZAPP WEB, 🧪 Qualidade de Código, 🛠️ Setup do Ambiente
+### Community 773 - "useChatInputLogic.ts"
+Cohesion: 0.20
+Nodes (12): ChatInputArea(), getQueueErrorMessage(), createObjectURLMock, makeHook(), mockToast, revokeObjectURLMock, SendFn, testDir (+4 more)
 
 ### Community 774 - "Plano de 50 Etapas — Sistema "Lovable Local" no PC (ZAPP Web v3)"
 Cohesion: 0.29
@@ -4470,9 +4484,9 @@ Nodes (6): Evolution API Key, GitHub PAT, RUNBOOK DE EMERGENCIA - Rotacao de Cre
 Cohesion: 0.29
 Nodes (6): (a) O único client real, (b) `'lovable'` / `'external'` são rótulos históricos, (c) `'lovableCloud'` na telemetria = rótulo cosmético (dívida coordenada), (d) Roteamento por operação — realidade, (e) Convenção de import, Supabase Clients — Realidade do Frontend
 
-### Community 783 - "EmailChatInbox.tsx"
-Cohesion: 0.19
-Nodes (11): EmailChatInbox(), EmailChatInboxProps, EmailSearchBar(), EmailSearchBarProps, EmailAccountSelectorProps, EmailAccount, EmailSearchResult, useEmailSearch() (+3 more)
+### Community 783 - "useEmailSearch.ts"
+Cohesion: 0.40
+Nodes (5): EmailSearchBar(), emailListThreads(), useEmailSearch(), EmailSearchResult, useEmailSearch()
 
 ### Community 784 - "Domínio: DASHBOARD"
 Cohesion: 0.29
@@ -4526,9 +4540,9 @@ Nodes (5): NumberReputationMonitor(), ConnectionInfo, fetchNumberReputations(), 
 Cohesion: 0.29
 Nodes (6): Acessibilidade, Override pontual por rota, Page Transitions, Setup, Trocar variant em runtime, Variants disponíveis
 
-### Community 798 - "AdminAutomationLogsPage.tsx"
-Cohesion: 0.26
-Nodes (11): AdminAutomationLogsPage, AdminAutomationLogsPage(), AutomationStatus, ExecutionRow, KV(), PAGE_SIZE, Pre(), RuleLite (+3 more)
+### Community 798 - "hooks/useAutomationLogs.ts"
+Cohesion: 0.20
+Nodes (12): AutomationLogsFilters, useAutomationLogs(), AdminAutomationLogsPage(), AutomationStatus, ExecutionRow, KV(), PAGE_SIZE, Pre() (+4 more)
 
 ### Community 799 - "AIToolsPopover.tsx"
 Cohesion: 0.29
@@ -4547,24 +4561,24 @@ Cohesion: 0.48
 Nodes (5): AccordionSectionConfig, CONTACT_DETAIL_SECTIONS, DEFAULT_OPEN_SECTIONS, getStoredAccordionState(), saveAccordionState()
 
 ### Community 803 - "useFailureMetricsBatch.ts"
-Cohesion: 0.18
-Nodes (12): FailureCategoryFilter, Option, OPTIONS, Props, RetryReason, classifyFailure(), collectTerminalMessageIds(), FAILURE_CATEGORY_LABEL (+4 more)
+Cohesion: 0.17
+Nodes (13): FailureCategoryFilter, Option, OPTIONS, Props, BuildFailureCategoryCountsOptions, RetryReason, classifyFailure(), collectTerminalMessageIds() (+5 more)
 
 ### Community 804 - "simulateChatLatency.ts"
 Cohesion: 0.52
 Nodes (5): clearSimulationConfig(), getSimulationConfig(), setSimulationConfig(), shouldSimulateFailure(), simulateLatency()
 
-### Community 805 - "useNewConversation.ts"
-Cohesion: 0.28
-Nodes (8): ContactResult, useNewConversation(), newRequestId(), RequestTrace, ContractErrorCode, createCriticalPayloadSchemas(), mapValidationIssuesToContractError(), ValidationIssue
+### Community 805 - "crossTabSendDedupe.ts"
+Cohesion: 0.24
+Nodes (11): awaitBroadcast(), BroadcastDone, claimLeadership(), ClaimRecord, crossTabDedupe(), CrossTabDedupeOptions, getChannel(), getStorage() (+3 more)
 
 ### Community 806 - "Supabase Integration — Convenções"
 Cohesion: 0.29
 Nodes (6): Como adicionar uma nova coluna, Entidades cobertas na v1, Exemplo, Fora de escopo, Regra de ouro, Supabase Integration — Convenções
 
 ### Community 807 - "useSLAHistory.ts"
-Cohesion: 0.19
-Nodes (10): SLAHistoryDashboard(), calcTrend(), DailyViolation, fetchSLAHistory(), HistoryPeriod, PERIOD_DAYS, SLAHistoryData, useSLAHistory() (+2 more)
+Cohesion: 0.20
+Nodes (8): calcTrend(), DailyViolation, fetchSLAHistory(), HistoryPeriod, PERIOD_DAYS, SLAHistoryData, ViolationTrend, mockFrom
 
 ### Community 808 - "functions/deno.json"
 Cohesion: 0.29
@@ -4763,20 +4777,20 @@ Cohesion: 0.33
 Nodes (4): APP_TABLE_PATTERNS, files, PUBLIC_VIEW_PROXIES, violations
 
 ### Community 860 - "ChatbotFlowEditor.tsx"
-Cohesion: 0.15
-Nodes (17): ChatbotFlowEditor(), flowSteps, Props, ChatbotFlowsView(), AddNodeDialog(), AddNodeDialogProps, EditNodeDialog(), EditNodeDialogProps (+9 more)
+Cohesion: 0.21
+Nodes (11): ChatbotFlowEditor(), flowSteps, Props, AddNodeDialog(), AddNodeDialogProps, EditNodeDialog(), EditNodeDialogProps, nodeTypes (+3 more)
 
 ### Community 861 - "20260807270000_session_backfill_pipeline_hardening.sql"
 Cohesion: 0.17
 Nodes (9): evo.evolution_messages_wpp2, evo.evolution_traefik_401_stats, ranked, evo.fn_check_ack_stall(), evo.fn_pipeline_health_probe(), evo.evolution_alerts, evo.evolution_messages, zapp.fn_evict_media_cache() (+1 more)
 
-### Community 862 - "label.tsx"
-Cohesion: 0.02
-Nodes (126): InstanceSettingsDialogProps, log, PRIVACY_ITEMS, PRIVACY_OPTIONS, ReconnectionLog, SETTINGS_ITEMS, LabelsTabContent(), LabelsTabProps (+118 more)
+### Community 862 - "switch.tsx"
+Cohesion: 0.03
+Nodes (79): AutoTicketClassifier(), CATEGORIES, ClassifiedTicket, classifyTag(), derivePriority(), getCategoryInfo(), log, PRIORITY_MAP (+71 more)
 
 ### Community 863 - "GamificationEffects.tsx"
-Cohesion: 0.18
-Nodes (10): AnimatedBadge, AnimatedBadgeProps, LevelProgress(), LevelProgressProps, sizeConfig, StatCardProps, StatCardWithGamification(), variantConfig (+2 more)
+Cohesion: 0.20
+Nodes (9): AnimatedBadgeProps, LevelProgress(), LevelProgressProps, sizeConfig, StatCardProps, StatCardWithGamification(), variantConfig, MiniSparkline() (+1 more)
 
 ### Community 865 - "chatOptimizations.ts"
 Cohesion: 0.60
@@ -4815,8 +4829,8 @@ Cohesion: 0.60
 Nodes (4): col(), CONTACTS, MESSAGES, WHATSAPP_CONNECTIONS
 
 ### Community 875 - "pttLimits.ts"
-Cohesion: 0.27
-Nodes (8): formatSeconds(), MAX_PTT_SIZE_BYTES, MIN_PTT_DURATION_SEC, probeAudioDuration(), PttValidationResult, validatePttBlob(), AudioEvent, formatBytesCompact()
+Cohesion: 0.20
+Nodes (11): EmailAttachmentPreview(), getFileColor(), getFileIcon(), formatSeconds(), MAX_PTT_SIZE_BYTES, MIN_PTT_DURATION_SEC, probeAudioDuration(), PttValidationResult (+3 more)
 
 ### Community 876 - "FASE 0 — Setup, Baseline e Estrutura (Etapas 1–5)"
 Cohesion: 0.33
@@ -4954,17 +4968,17 @@ Nodes (11): ops.fn_check_reference_integrity(), calls, cron.job, fns, j, LATERAL
 Cohesion: 0.29
 Nodes (7): cleanClosedPopups(), closeAllPopups(), closePopup(), isPopupOpen(), openChatPopup(), openPopups, FakePopup
 
-### Community 910 - "useEvoApiAlertsBadge.ts"
-Cohesion: 0.27
-Nodes (6): AlertsTabProps, useActiveAlerts(), mockUseActiveAlerts, ActiveAlert, EvoApiAlertsBadge, useEvoApiAlertsBadge()
+### Community 910 - "AdminQueuesPage.tsx"
+Cohesion: 0.17
+Nodes (12): AdminQueuesPage, Queue, useAdminQueues(), AdminQueuesPage, AdminQueuesPage(), TODO: criar seção "Regras de Roteamento" por fila aqui na AdminQueuesPage, Props, QueueCard() (+4 more)
 
-### Community 911 - "StoryViewer.tsx"
-Cohesion: 0.33
-Nodes (9): getBgColor(), getMediaType(), getStatusTime(), getTextContent(), ResolvedMedia, StoryViewer(), StoryViewerProps, toDataUrl() (+1 more)
+### Community 911 - "AudioMemePicker.tsx"
+Cohesion: 0.31
+Nodes (9): AudioMemeCategorySelector(), AudioMemeCategorySelectorProps, ALL_CATEGORIES, CATEGORY_LABELS, AudioMemePickerProps, AudioMemeUploadPreview(), AudioMemeUploadPreviewProps, AudioMemeItem (+1 more)
 
-### Community 912 - "archivedUi.simulacao.test.tsx"
-Cohesion: 0.24
-Nodes (5): AnyRecord, buildInboxFiltersMock(), buildInboxMock(), NOTE: VirtualizedRealtimeList NÃO é mockado aqui de propósito: a sidebar o, renderSidebar()
+### Community 912 - "ConversationListSidebar.tsx"
+Cohesion: 0.08
+Nodes (29): MobilePullToRefreshIndicator(), MobilePullToRefreshProps, DensitySelector(), BulkActionsToolbar(), ConversationContextMenu(), ConversationList(), ConversationListProps, toConversationItemData() (+21 more)
 
 ### Community 913 - "Domínio: CONTATOS"
 Cohesion: 0.40
@@ -5022,13 +5036,13 @@ Nodes (4): Template de CÓDIGO (lógica), Template de DESIGN (visual), Template 
 Cohesion: 0.60
 Nodes (3): FeatureSection, sections, totalFeatures
 
-### Community 928 - "useExternalContact360Batch.test.ts"
-Cohesion: 0.27
-Nodes (8): createWrapper(), mockLogger, mockRpc, renderBatch(), cleanPhone(), indexPhone(), useExternalContact360Batch(), useExternalContact360BatchRef()
+### Community 928 - "VoiceDictationButton.tsx"
+Cohesion: 0.24
+Nodes (8): mockToggleListening, VoiceDictationButton(), VoiceDictationButtonProps, MockSpeechRecognition, WindowWithSR, getSpeechRecognition(), SpeechToTextOptions, useSpeechToText()
 
 ### Community 929 - "useHmacAuditHistory.ts"
-Cohesion: 0.33
-Nodes (8): ALL_INSTANCES, AuditRow, bucketize(), HmacAuditHistoryPanelProps, RangeKey, RANGES, tooltipStyle, useHmacAuditHistory()
+Cohesion: 0.27
+Nodes (10): ALL_INSTANCES, AuditRow, bucketize(), fmtDate(), HmacAuditHistoryPanelProps, RangeKey, RANGES, tooltipStyle (+2 more)
 
 ### Community 930 - "20260804150001_integration_schema_zapp_fixes.sql"
 Cohesion: 0.22
@@ -5038,13 +5052,17 @@ Nodes (4): information_schema.columns, information_schema.tables, zapp.rpc_schem
 Cohesion: 0.20
 Nodes (9): evo.v_kpi_overview, _consumer_dlq, evo.evolution_ip_watch, evo.evolution_messages, evo.evolution_pipeline_health_log, evo.evolution_webhook_dlq, probe, v_dedup_failures (+1 more)
 
-### Community 932 - "2. MÓDULO INBOX (Chat) — 98 componentes"
-Cohesion: 0.22
-Nodes (9): 2.1 Chat Core, 2.2 Mensagens Especiais, 2.3 Mídias, 2.4 IA & Automação no Chat, 2.5 Contato (Painel Lateral), 2.6 CRM 360° (integração externa), 2.7 Operações no Chat, 2.8 Colaboração em Tempo Real (+1 more)
+### Community 932 - "form.tsx"
+Cohesion: 0.23
+Nodes (10): FormControl, FormDescription, FormFieldContext, FormFieldContextValue, FormItem, FormItemContext, FormItemContextValue, FormLabel (+2 more)
 
 ### Community 933 - "ContactToolbar.tsx"
-Cohesion: 0.36
-Nodes (7): ContactToolbarProps, SORT_OPTIONS, FilterPreset, FilterPresets(), FilterPresetsProps, getPresets(), savePresets()
+Cohesion: 0.31
+Nodes (8): ContactAdvancedFilters(), ContactToolbarProps, SORT_OPTIONS, FilterPreset, FilterPresets(), FilterPresetsProps, getPresets(), savePresets()
+
+### Community 934 - "useRateLimitLogs.ts"
+Cohesion: 0.18
+Nodes (10): DEFAULT_FILTERS, LOGS_COLUMNS, RateLimitLogsFilters, RateLimitSortDir, RateLimitSortKey, RateLimitStats, stableFilterKey(), useRateLimitLogs() (+2 more)
 
 ### Community 938 - "inbox-unassigned-conversations.spec.ts"
 Cohesion: 0.40
@@ -5142,17 +5160,17 @@ Nodes (4): 1. Repository Layer (`contactsRepository.ts`), 2. Service Layer (`con
 Cohesion: 0.50
 Nodes (4): Common Patterns, Conditional Query, Dependent Query, Parallel Queries
 
-### Community 964 - "QueueCharts.tsx"
-Cohesion: 0.39
-Nodes (5): AXIS_PROPS, GRID_PROPS, TOOLTIP_STYLE, PeriodOption, QueueChartsProps
+### Community 964 - "contacts/hooks/useContactIntelligence.ts"
+Cohesion: 0.20
+Nodes (11): BestTime, ChurnData, cleanPhone(), ContactBriefing, ContactIntelligenceData, DISCTips, log, MentalTrigger (+3 more)
 
-### Community 965 - "useWebhookViewPreferences.ts"
-Cohesion: 0.36
-Nodes (7): computeActiveFilterCount(), DEFAULT_WEBHOOK_VIEW_PREFS, loadPrefs(), savePrefs(), useWebhookViewPreferences(), WebhookStatusFilter, WebhookViewPrefs
+### Community 965 - "evolution-templates/index.ts"
+Cohesion: 0.21
+Nodes (10): contractViolation422(), escapeRegex(), getConfig(), normalizeNumber(), replaceVars(), sendMsg(), supabase, TemplateConfig (+2 more)
 
-### Community 966 - "soundConfigs.ts"
-Cohesion: 0.31
-Nodes (6): NotificationType, SOUND_CONFIGS, SoundConfig, SoundType, NOTIFICATION_TYPES, SOUND_TYPES
+### Community 966 - "SlashCommands.tsx"
+Cohesion: 0.33
+Nodes (7): ChatInputAreaProps, categoryColors, categoryLabels, SLASH_COMMANDS, SlashCommand, SlashCommands(), SlashCommandsProps
 
 ### Community 967 - "20260804210000_restore_edge_idempotency_rpcs.sql"
 Cohesion: 0.22
@@ -5198,21 +5216,21 @@ Nodes (3): CI, E2E_BASE_URL, run-e2e-evolution-vps.sh script
 Cohesion: 0.28
 Nodes (8): zapp.profiles, zapp.user_roles, zapp.get_visible_agent_ids(), zapp.has_role(), zapp.user_has_permission(), zapp.agent_visibility_grants, zapp.permissions, zapp.role_permissions
 
-### Community 983 - "AUDITORIA EXAUSTIVA — ZAPP-WEB"
+### Community 983 - "useChatQuickReplyControl.test.ts"
 Cohesion: 0.25
-Nodes (7): 6. PÁGINAS & ROTAS STANDALONE, 7. RPCs DO CRM EXTERNO (bancodadosclientes), 8. RESUMO QUANTITATIVO, AUDITORIA EXAUSTIVA — ZAPP-WEB, Checklist de Verificação Frontend vs Backend, COMO USAR ESTE DOCUMENTO, INSTRUÇÕES PARA O LOVABLE
+Nodes (7): makeOpenParams(), makeParams(), REPLIES, Params, useChatQuickReplyControl(), InputExtraToolsProps, QuickReply
 
-### Community 984 - "1. NAVEGAÇÃO PRINCIPAL (Sidebar)"
-Cohesion: 0.25
-Nodes (8): 1.1 Primary Nav, 1.2 Comunicação, 1.3 Automação & IA, 1.4 Vendas & CRM, 1.5 Conexões, 1.6 Analytics, 1.7 Sistema, 1. NAVEGAÇÃO PRINCIPAL (Sidebar)
+### Community 984 - "ChatMessagesArea.getItemSize.test.tsx"
+Cohesion: 0.18
+Nodes (5): BUTTONS, { queryClientMock, estimateSizeRef }, REACTION, REPLY, ResizeObserverStub
 
 ### Community 985 - "useServiceWorker.test.ts"
 Cohesion: 0.50
 Nodes (3): mockCaches, mockRegistration, mockUnregister
 
-### Community 986 - "3. EDGE FUNCTIONS — 48 funções"
-Cohesion: 0.25
-Nodes (8): 3.1 IA & NLP, 3.2 ElevenLabs (Voz), 3.3 WhatsApp / Evolution API, 3.4 Gmail, 3.5 Segurança & Auth, 3.6 Integrações, 3.7 Utilitários, 3. EDGE FUNCTIONS — 48 funções
+### Community 986 - "useMessages.ts"
+Cohesion: 0.29
+Nodes (6): Message, messageRepository, log, UseMessagesOptions, log, messageService
 
 ### Community 990 - "supabase/deno.json"
 Cohesion: 0.50
@@ -5246,37 +5264,49 @@ Nodes (3): 19.1 KPIs Essenciais, 19.2 SLAs Recomendados, 19. KPIs & Monitorament
 Cohesion: 0.67
 Nodes (3): 2.1 Docker (Recomendado), 2.2 Variáveis de Ambiente Essenciais, 2. Instalação & Configuração
 
-### Community 1002 - "useQueueManagement.test.tsx"
-Cohesion: 0.25
-Nodes (6): dateRange, mockFrom, mockInvalidateQueries, mockRpc, mockUseAuth, useQueuesComparisonManagement()
+### Community 1002 - "roleMapping.test.ts"
+Cohesion: 0.29
+Nodes (9): ADMIN_RESOURCES, AdminResource, canAccessAdminResource(), CanonicalRole, highestRole(), ROLE_RANK, ALLOWED_ROLES, DENIED_ROLES (+1 more)
 
-### Community 1003 - "sentry.test.ts"
-Cohesion: 0.25
-Nodes (5): loadSentry(), mockBrowserTracing, mockErrorBoundary, mockReplay, mockSentryInit
+### Community 1003 - "profileMappers.ts"
+Cohesion: 0.36
+Nodes (7): useRolesManagement(), AdminAgentProfile, normalizeAgentProfile(), normalizeAgentProfiles(), normalizeProfileRef(), pickFirst(), ProfileEmbed
 
-### Community 1024 - "automation-suggest-reply/index.ts"
+### Community 1024 - "2. Inbox/Chat em Tempo Real"
 Cohesion: 0.25
-Nodes (4): Body, ExtTag, fetchExternalTags(), KbHit
+Nodes (8): 2. Inbox/Chat em Tempo Real, Componente de Chat, Dependências, Descrição, Gravação de Áudio, Hook de Mensagens em Tempo Real, Hook de Status de Mensagem, Tabelas do Banco
 
 ### Community 1028 - "evo.fn_detect_spurious_closes"
 Cohesion: 0.29
 Nodes (6): classified, disconnects, evo.evolution_connection_history, evo.evolution_health_logs, evo.fn_detect_spurious_closes(), evo.fn_peak_hours_sla_check()
 
+### Community 1050 - "Procedimento de Rotação da Anon Key"
+Cohesion: 0.29
+Nodes (6): Data sugerida: Próxima janela de manutenção, Passos para rotação segura:, Por que rotacionar?, Procedimento de Rotação da Anon Key, Risco: MÉDIO, Status: PENDENTE (requer janela de manutenção)
+
+### Community 1054 - "3. Inteligência Artificial"
+Cohesion: 0.29
+Nodes (7): 3. Inteligência Artificial, Dependências, Descrição, Edge Function - Resumo de Conversa, Edge Function - Sugestão de Resposta, Hook de Análises, Tabelas do Banco
+
+### Community 1161 - "useChatPanelHandlers.edit.test.ts"
+Cohesion: 0.29
+Nodes (6): EDIT_MSG, EditMessageApiMock, makeHandlers(), mockDbFrom, mockDbUpdate, mockToast
+
 ### Community 1232 - "ChurnPredictionDashboard"
 Cohesion: 0.43
 Nodes (4): ChurnPredictionDashboard(), ChurnRisk, classifyChurnRisk(), mockContacts
 
-### Community 1233 - "MFABackupCodes.tsx"
+### Community 1233 - "talkx-send/index.ts"
 Cohesion: 0.38
-Nodes (5): generateBackupCodes(), MFABackupCodes(), MFABackupCodesProps, mockCreateObjectURL, mockRevokeObjectURL
+Nodes (4): fetchWithRetry(), getGreeting(), personalize(), sleep()
 
 ### Community 1234 - "auth.tsx"
 Cohesion: 0.29
 Nodes (5): mockAuthContext, mockAuthContextLoggedOut, mockProfile, mockSession, mockUser
 
-### Community 1235 - "metrics/index.ts"
-Cohesion: 0.38
-Nodes (6): admin(), collect(), escapePromLabel(), fmt(), Sample, MetricsV1Schema
+### Community 1235 - "Guia de Arquitetura e Fluxo de Dados - Zapp Web"
+Cohesion: 0.33
+Nodes (6): 1. Visão Geral da Arquitetura, 2. Diagrama de Sequência: Fluxo de Mensagem, 3. Mapa do Projeto (Estrutura de Pastas), 4. Diretrizes para Desenvolvedores, Camadas de Responsabilidade, Guia de Arquitetura e Fluxo de Dados - Zapp Web
 
 ### Community 1236 - "20260805220000_revive_logpatch_audit_view_trigger.sql"
 Cohesion: 0.33
@@ -5294,9 +5324,9 @@ Nodes (5): financeiro.ranking_exclusoes, financeiro.vendas_unificadas, meta, fin
 Cohesion: 0.33
 Nodes (3): public.client_wallet_rules, public.whatsapp_connections, evo.fn_auto_assign_contact()
 
-### Community 1240 - "SummaryResult.tsx"
+### Community 1240 - "1. Autenticação & Usuários"
 Cohesion: 0.33
-Nodes (3): SummaryData, SummaryResult(), SummaryResultProps
+Nodes (6): 1. Autenticação & Usuários, Dependências, Descrição, Hook de Roles, Hook Principal, Tabelas do Banco
 
 ### Community 1241 - "BridgeStatusBanner.tsx"
 Cohesion: 0.40
@@ -5322,13 +5352,13 @@ Nodes (3): evo.evolution_conversations_wpp2, evo.fn_monitor_lid_contamination(),
 Cohesion: 0.40
 Nodes (4): pg_proc, pg_class, pg_namespace, zapp.rpc_contract_inventory()
 
-### Community 1248 - "DegradedQuickActions.tsx"
-Cohesion: 0.50
-Nodes (4): DegradedConnection, DegradedQuickActions(), latencyTier(), Props
+### Community 1248 - "useChatbotFlows.test.tsx"
+Cohesion: 0.33
+Nodes (4): ChatbotFlowsView(), mockFlows, mockFrom, useChatbotFlows()
 
-### Community 1249 - "useQueueGoals.test.tsx"
-Cohesion: 0.40
-Nodes (4): mockChannel, mockFrom, mockGoals, mockRemoveChannel
+### Community 1249 - "ContactSearchWithSuggestions.tsx"
+Cohesion: 0.60
+Nodes (5): addRecentSearch(), clearRecentSearches(), ContactSearchWithSuggestions(), ContactSearchWithSuggestionsProps, getRecentSearches()
 
 ### Community 1250 - "20260805160000_harden_rpc_schema_whitelist.sql"
 Cohesion: 0.40
@@ -5394,25 +5424,93 @@ Nodes (3): e2e_contacts, zapp.contacts, zapp.rpc_e2e_cleanup()
 Cohesion: 0.67
 Nodes (3): profiles, zapp.export_user_data(), zapp.sync_to_crm()
 
+### Community 1511 - "CrmBadges.tsx"
+Cohesion: 0.40
+Nodes (5): CrmBadges(), CrmBadgesProps, formatCurrency(), RFM_PT, rfmSegmentColors
+
+### Community 1512 - "contract-schemas-infra.test.ts"
+Cohesion: 0.33
+Nodes (4): EMPTY_STRICT_NAMES, MATRICES, Matrix, MULTIPART_MATRICES
+
+### Community 1513 - "10. Relatórios & Analytics"
+Cohesion: 0.40
+Nodes (5): 10. Relatórios & Analytics, Dependências de Relatórios, Descrição, Hook de Dashboard, Utilitário de Exportação
+
+### Community 1514 - "4. Gestão de Contatos"
+Cohesion: 0.40
+Nodes (5): 4. Gestão de Contatos, Descrição, Hook de Notas, Hook de Tags, Tabelas do Banco
+
+### Community 1515 - "5. Filas de Atendimento"
+Cohesion: 0.40
+Nodes (5): 5. Filas de Atendimento, Descrição, Hook de Filas, Hook de Metas, Tabelas do Banco
+
+### Community 1516 - "7. Gamificação"
+Cohesion: 0.40
+Nodes (5): 7. Gamificação, Descrição, Hook de Gamificação, Provider de Gamificação, Tabelas do Banco
+
+### Community 1517 - "8. Conexões WhatsApp"
+Cohesion: 0.40
+Nodes (5): 8. Conexões WhatsApp, Descrição, Edge Function - Evolution API, Hook Evolution API, Tabelas do Banco
+
+### Community 1518 - "offline-indicator.tsx"
+Cohesion: 0.50
+Nodes (4): ConnectionToast(), OfflineIndicator(), OfflineIndicatorProps, useOfflineStatus()
+
+### Community 1519 - "voice/retry.ts"
+Cohesion: 0.80
+Nodes (3): friendlyErrorMessage(), isRetryableError(), withRetry()
+
+### Community 1520 - "11. Configurações"
+Cohesion: 0.50
+Nodes (4): 11. Configurações, Descrição, Hook de Configurações, Tabela do Banco
+
+### Community 1521 - "12. Chamadas"
+Cohesion: 0.50
+Nodes (4): 12. Chamadas, Descrição, Hook de Chamadas, Tabela do Banco
+
+### Community 1522 - "15. Auditoria"
+Cohesion: 0.50
+Nodes (4): 15. Auditoria, Descrição, Tabela do Banco, Utilitário de Auditoria
+
+### Community 1523 - "6. SLA (Service Level Agreement)"
+Cohesion: 0.50
+Nodes (4): 6. SLA (Service Level Agreement), Descrição, Hook de Métricas SLA, Tabelas do Banco
+
+### Community 1524 - "9. Catálogo de Produtos"
+Cohesion: 0.50
+Nodes (4): 9. Catálogo de Produtos, Componente de Card de Produto, Descrição, Tabelas do Banco
+
+### Community 1525 - "useRealtimeMonitor.ts"
+Cohesion: 0.67
+Nodes (3): useRealtimeMonitorManagement(), useRealtimeMonitor(), AdminRealtimeMonitorPage()
+
+### Community 1527 - "Arquitetura Geral"
+Cohesion: 0.67
+Nodes (3): Arquitetura Geral, Estrutura de Pastas, Stack Tecnológica
+
+### Community 1528 - "📝 Notas de Implementação"
+Cohesion: 0.67
+Nodes (3): 📝 Notas de Implementação, Padrões Recomendados, Segurança
+
 ## Knowledge Gaps
-- **9840 isolated node(s):** `@commitlint/config-conventional`, `.`, `Config`, `version`, `sdk_version` (+9835 more)
+- **9839 isolated node(s):** `@commitlint/config-conventional`, `.`, `Config`, `version`, `sdk_version` (+9834 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **288 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `err()` connect `err` to `button.tsx`, `badge.tsx`, `UnifiedNotificationProviders.tsx`, `hooks/use-toast.ts`, `chat.ts`, `isValidUUID`, `contract-kit.ts`, `lib/logger.ts`, `ChatInputArea.tsx`, `dbFrom`, `useAuth`, `SettingsView.tsx`, `promogifts-catalog/index.ts`, `db.ts`, `contract-schemas.ts`, `inbox/hooks/useRealtimeMessages.ts`, `ContactAccordionSections.tsx`, `AdminChannelsPage.tsx`, `schema.ts`, `useMountedRef`, `lazyViews.ts`, `useAlertManagement.ts`, `evolution-webhook/index.ts`, `messageSender.ts`, `AuthProvider.tsx`, `useExternalApiManagement.ts`, `useEvolutionApiIntegration.test.tsx`, `AppProviders.tsx`, `evolution-api/index.ts`, `inbox/components/index.ts`, `utils.ts`, `TeamChatPanel.tsx`, `VoiceSearchOverlay.tsx`, `useCampaignEditor.ts`, `crossTabDedupe.ts`, `useUserRole`, `ai-router/index.ts`, `safeClient.ts`, `useFileUploadLogic.ts`, `ai-proxy/index.ts`, `retryConfig.ts`, `hooks/useMediaUrl.ts`, `whatsapp-cloud-webhook/index.ts`, `useExternalEvolution.ts`, `useEmail.ts`, `useAudioManagement.ts`, `evolutionSendRetry.ts`, `repair-types-schemas.mjs`, `src/hooks/useContactIntelligence.ts`, `connectivityMonitor.ts`, `EmailChatBubble.tsx`, `gmailApi.ts`, `ThemeCustomizer.tsx`, `useAdminManagement.ts`, `AdminTelemetriaPage.tsx`, `inbox/hooks/useMessageReactions.ts`, `useMediaLibraryManagement.ts`, `DepartmentManagementDialog.tsx`, `evolution-api-proxy.ts`, `zappweb/index.ts`, `useSearchManagement.ts`, `check-tsc-ratchet.mjs`, `main.tsx`, `SupervisorQueueBoard.tsx`, `ChurnPredictionDashboard`, `selfHostedDiagnostics.ts`, `useEmailManagement.ts`, `useEmailHealthStatus.ts`, `playTtsAudio.ts`, `ContactImportDialog.tsx`, `evolutionClient.ts`, `fixtures/auth.ts`, `safeFrom`, `QueueMetricsDashboard.tsx`, `webVitals.ts`, `useNotificationSettings`, `AvatarUpload.tsx`, `label.tsx`, `migrate-media-storage/index.ts`, `useBusinessLogicManagement.ts`, `gmail-webhook/index.ts`, `ConnectionHealthPanel.tsx`, `check-types-schemas.mjs`, `IntegrationsPanel.tsx`?**
-  _High betweenness centrality (0.054) - this node is a cross-community bridge._
-- **Why does `cn()` connect `cn` to `button.tsx`, `badge.tsx`, `useEvolutionMonitoring.ts`, `ContactCompanyField.tsx`, `AdminWebhookOverviewPage.tsx`, `avatar.tsx`, `hooks/use-toast.ts`, `chat.ts`, `client.ts`, `isValidUUID`, `lib/logger.ts`, `ChatInputArea.tsx`, `dbFrom`, `useAuth`, `SettingsView.tsx`, `ContactAccordionSections.tsx`, `AdminChannelsPage.tsx`, `schema.ts`, `useMountedRef`, `Sidebar.tsx`, `AdminEvoApiHealthPage.tsx`, `ConversationListSidebar.tsx`, `tooltip.tsx`, `ConversationItem.tsx`, `AIStatsWidget.tsx`, `skeleton.tsx`, `inbox/index.ts`, `AchievementsStats.tsx`, `inbox/components/index.ts`, `utils.ts`, `TeamChatPanel.tsx`, `ConversationDeliverySummary.tsx`, `LinkPreview.tsx`, `retryAlerts.ts`, `ContactsRichView.tsx`, `useUIInteractionManagement.ts`, `UnifiedEmptyState.tsx`, `retryConfig.ts`, `IndexContentConnected.tsx`, `useUIManagement.ts`, `motion/index.ts`, `Contact360Helpers.tsx`, `SentimentHelpers.tsx`, `formatters.ts`, `src/hooks/useContactIntelligence.ts`, `PeriodFilterSelector.tsx`, `connectivityMonitor.ts`, `SLATimelineSection.tsx`, `EmailChatBubble.tsx`, `ConversationWithMessages`, `useMonitoringManagement.ts`, `useQueueManagement.ts`, `AdminTelemetriaPage.tsx`, `SLAMetricCards.tsx`, `MobileShell.tsx`, `DepartmentManagementDialog.tsx`, `App.tsx`, `safeStorage.ts`, `useSearchManagement.ts`, `KeyboardShortcutsDialog.tsx`, `WebhookAlertHistoryPanel.tsx`, `MonitoringConnectionsList.tsx`, `ViewRouter.tsx`, `UniversityHelp.tsx`, `err`, `mobile-components.tsx`, `WarRoomDashboard.tsx`, `SupervisorQueueBoard.tsx`, `transitions/index.ts`, `InternalNotesPanel.tsx`, `BridgeStatusBanner.tsx`, `DegradedQuickActions.tsx`, `useEmailManagement.ts`, `useConnectionStatusIndicator.ts`, `emoji-picker.tsx`, `normalizers.ts`, `buttons.tsx`, `ProgressiveDisclosureDashboard.tsx`, `EmailChatInbox.tsx`, `MessageSendHistorySheet.tsx`, `OnboardingTour.tsx`, `useFailedMessages.ts`, `useFailureMetricsBatch.ts`, `useSLAHistory.ts`, `command-palette.tsx`, `GlobalSearch.tsx`, `openContactInChat.ts`, `useNotificationSettings`, `ChatbotFlowEditor.tsx`, `label.tsx`, `GamificationEffects.tsx`, `AppShell.tsx`, `sendProductUtils.ts`, `AIConversationAssistant.tsx`, `TemplatesWithVariables.tsx`, `StoryViewer.tsx`, `ContactToolbar.tsx`, `accessible-toast.tsx`, `MediaCard.tsx`, `devRealtimeLogger.ts`, `ConnectionHealthPanel.tsx`, `useGoalsDashboard.ts`, `AutomationsManager.tsx`, `CampaignsView.test.tsx`?**
-  _High betweenness centrality (0.049) - this node is a cross-community bridge._
-- **Why does `parseOrReject()` connect `contract-kit.ts` to `automation-suggest-reply/index.ts`, `promogifts-catalog/index.ts`, `contract-schemas.ts`, `evolution-webhook/index.ts`, `schemas.ts`, `evolution-api/index.ts`, `gmail-webhook/index.ts`, `ai-router/index.ts`, `ai-proxy/index.ts`, `err`, `whatsapp-cloud-webhook/index.ts`, `metrics/index.ts`, `webhook-hmac-selftest/index.ts`, `connection-health-check/index.ts`, `contract-versions.ts`, `migrate-media-storage/index.ts`, `evolution-bitrix-sync/index.ts`, `connection-test/index.ts`, `login-attempts/index.ts`?**
-  _High betweenness centrality (0.029) - this node is a cross-community bridge._
+- **Why does `err()` connect `err` to `useExternalCatalog`, `supabase`, `badge.tsx`, `useContactFormV3.ts`, `isValidUUID`, `contract-kit.ts`, `lib/logger.ts`, `dbFrom`, `useAuth`, `utils.ts`, `parseOrReject`, `sanitizePostgrestFilter`, `contract-schemas.ts`, `inbox/index.ts`, `ContactAccordionSections.tsx`, `AdminChannelsPage.tsx`, `schema.ts`, `useAlertManagement.ts`, `skeleton.tsx`, `evolution-webhook/index.ts`, `StickerManager.tsx`, `messageSender.ts`, `RealtimeInboxView.tsx`, `AuthProvider.tsx`, `useExternalApiManagement.ts`, `useEvolutionApiIntegration.test.tsx`, `useUserRole`, `client.ts`, `inbox/components/index.ts`, `evolution-api/index.ts`, `VoiceSearchOverlayConnected.tsx`, `useCampaignEditor.ts`, `promogifts-catalog/index.ts`, `crossTabDedupe.ts`, `SecurityView.tsx`, `ai-router/index.ts`, `ai-proxy/index.ts`, `useFileUploadLogic.ts`, `retryConfig.ts`, `IndexContentConnected.tsx`, `hooks/useMediaUrl.ts`, `gmail-webhook/index.ts`, `useExternalEvolution.ts`, `useEmail.ts`, `hooks/use-toast.ts`, `evolutionCircuitBreaker.ts`, `repair-types-schemas.mjs`, `src/hooks/useContactIntelligence.ts`, `connectivityMonitor.ts`, `EmailChatBubble.tsx`, `gmailApi.ts`, `ThemeCustomizer.tsx`, `components/MessageReactions.tsx`, `inbox/hooks/useMessageReactions.ts`, `DepartmentManagementDialog.tsx`, `evolution-api-proxy.ts`, `useSearchManagement.ts`, `check-tsc-ratchet.mjs`, `main.tsx`, `ChatMessagesArea.tsx`, `useQueues.ts`, `ChurnPredictionDashboard`, `sanitize.ts`, `TicketHistorySheet.tsx`, `talkx-send/index.ts`, `useConnectionManagement.ts`, `selfHostedDiagnostics.ts`, `useEmailManagement.ts`, `emailHealthService.ts`, `ConversationSummary.tsx`, `evolutionClient.ts`, `fixtures/auth.ts`, `QueueMetricsDashboard.tsx`, `safeFrom`, `webVitals.ts`, `InboxScopeConfig.tsx`, `AvatarUpload.tsx`, `switch.tsx`, `migrate-media-storage/index.ts`, `DuplicateContactsPanel.tsx`, `ChatHeader.tsx`, `tooltip.tsx`, `check-types-schemas.mjs`, `IntegrationsPanel.tsx`?**
+  _High betweenness centrality (0.061) - this node is a cross-community bridge._
+- **Why does `cn()` connect `cn` to `button.tsx`, `badge.tsx`, `ProgressiveDisclosureDashboard.tsx`, `supabase`, `useWebhookEvents.ts`, `ContactContentArea.tsx`, `ConnectionCard.tsx`, `chat.ts`, `isValidUUID`, `lib/logger.ts`, `ChatInputArea.tsx`, `dbFrom`, `useAuth`, `utils.ts`, `inbox/index.ts`, `ContactAccordionSections.tsx`, `AdminChannelsPage.tsx`, `schema.ts`, `err`, `lazyViews.ts`, `useAlertManagement.ts`, `Sidebar.tsx`, `skeleton.tsx`, `TicketTabs.tsx`, `StickerManager.tsx`, `RealtimeInboxView.tsx`, `ConversationItem.tsx`, `chart.tsx`, `queues/SLADashboard.tsx`, `Message`, `.error`, `AgentOpsTable.tsx`, `inbox/components/index.ts`, `dropdown-menu.tsx`, `TeamChatPanel.tsx`, `whatsappFileTypes.ts`, `LinkPreview.tsx`, `retryAlerts.ts`, `FailedMessageDetailsSheet.tsx`, `sidebar/index.ts`, `ContactsRichView.tsx`, `useUIInteractionManagement.ts`, `UnifiedEmptyState.tsx`, `retryConfig.ts`, `SLAIndicatorForContact.tsx`, `IndexContentConnected.tsx`, `useUIManagement.ts`, `motion/index.ts`, `useEmail.ts`, `hooks/use-toast.ts`, `ChatSearchBar.tsx`, `Contact360Helpers.tsx`, `SentimentHelpers.tsx`, `formatters.ts`, `src/hooks/useContactIntelligence.ts`, `PeriodFilterSelector.tsx`, `connectivityMonitor.ts`, `SLATimelineSection.tsx`, `EmailChatBubble.tsx`, `ConversationWithMessages`, `useMonitoringManagement.ts`, `QueueSlaPanel.tsx`, `AdminTelemetriaPage.tsx`, `components/MessageReactions.tsx`, `MobileShell.tsx`, `DepartmentManagementDialog.tsx`, `App.tsx`, `useWebhookOverview.ts`, `sendStatusBus.ts`, `useSearchManagement.ts`, `KeyboardShortcutsDialog.tsx`, `AudioMessagePlayer.tsx`, `ViewRouter.tsx`, `UniversityHelp.tsx`, `ChatMessagesArea.tsx`, `WarRoomDashboard.tsx`, `transitions/index.ts`, `Conversation`, `TicketHistorySheet.tsx`, `BridgeStatusBanner.tsx`, `useChatbotFlows.test.tsx`, `ContactSearchWithSuggestions.tsx`, `useEmailManagement.ts`, `useConnectionStatusIndicator.ts`, `emoji-picker.tsx`, `normalizers.ts`, `ConversationSummary.tsx`, `buttons.tsx`, `useChatInputLogic.ts`, `useEmailSearch.ts`, `RateLimitLogDetails.tsx`, `CallCorrelationView.tsx`, `OnboardingTour.tsx`, `useFailureMetricsBatch.ts`, `command-palette.tsx`, `GlobalSearch.tsx`, `useAgentGamification.ts`, `openContactInChat.ts`, `InboxScopeConfig.tsx`, `ChatbotFlowEditor.tsx`, `switch.tsx`, `GamificationEffects.tsx`, `pttLimits.ts`, `AppShell.tsx`, `SendProductDialog.tsx`, `safeStorage.ts`, `ChatToolPanels.tsx`, `TemplatesWithVariables.tsx`, `AudioMemePicker.tsx`, `ConversationListSidebar.tsx`, `VoiceDictationButton.tsx`, `useHmacAuditHistory.ts`, `form.tsx`, `ContactToolbar.tsx`, `accessible-toast.tsx`, `TalkXCampaignEditor.tsx`, `BridgeSupabaseView.tsx`, `ChatHeader.tsx`, `SlashCommands.tsx`, `tooltip.tsx`, `useGoalsDashboard.ts`, `TeamMemberDetails.tsx`, `CrmBadges.tsx`, `offline-indicator.tsx`, `useRealtimeMonitor.ts`, `AutomationsManager.tsx`, `CampaignsView.test.tsx`?**
+  _High betweenness centrality (0.057) - this node is a cross-community bridge._
+- **Why does `supabase` connect `supabase` to `button.tsx`, `badge.tsx`, `useInboxBulkActions.ts`, `cn`, `ConnectionCard.tsx`, `isValidUUID`, `lib/logger.ts`, `dbFrom`, `useAuth`, `utils.ts`, `sanitizePostgrestFilter`, `AdminChannelsPage.tsx`, `schema.ts`, `err`, `lazyViews.ts`, `useAlertManagement.ts`, `Sidebar.tsx`, `skeleton.tsx`, `StickerManager.tsx`, `messageSender.ts`, `useInboxFilters.ts`, `whatsappAdapter.ts`, `AuthProvider.tsx`, `useExternalApiManagement.ts`, `contacts/hooks/useContactNotes.ts`, `.error`, `useUserRole`, `client.ts`, `inbox/components/index.ts`, `useEvolutionApiIntegration.test.tsx`, `realtimeChannelLifecycle.test.ts`, `VoiceSearchOverlayConnected.tsx`, `useCampaignEditor.ts`, `retryAlerts.ts`, `dropdown-menu.tsx`, `SecurityView.tsx`, `externalDB.ts`, `useEvolutionApiManagement.ts`, `ContactsRichView.tsx`, `useFileUploadLogic.ts`, `useUIInteractionManagement.ts`, `retryConfig.ts`, `SLAIndicatorForContact.tsx`, `IndexContentConnected.tsx`, `hooks/useMediaUrl.ts`, `useAdminWebhookStatus.ts`, `useExternalEvolution.ts`, `useEmail.ts`, `clientTelemetry.ts`, `hooks/use-toast.ts`, `VoIPPanel.tsx`, `formatters.ts`, `src/hooks/useContactIntelligence.ts`, `BackendDiagnostics.tsx`, `gmailApi.ts`, `useAdminManagement.ts`, `users/index.ts`, `useMonitoringManagement.ts`, `inbox/hooks/useMessageReactions.ts`, `mediaUrl.ts`, `services/connections/index.ts`, `zappweb/index.ts`, `failedMessagesEnqueue.ts`, `useSearchManagement.ts`, `messages/index.ts`, `AudioMessagePlayer.tsx`, `UniversityHelp.tsx`, `ChatMessagesArea.tsx`, `whatsappStatusService.ts`, `agentService.ts`, `useQueues.ts`, `Conversation`, `WarRoomDashboard.tsx`, `TicketHistorySheet.tsx`, `services/contacts/index.ts`, `useAgents.test.tsx`, `useConnectionManagement.ts`, `checklistSteps.ts`, `selfHostedDiagnostics.ts`, `useEmailManagement.ts`, `useConnectionStatusIndicator.ts`, `useRealtimeContacts.ts`, `hooks/useAdminInboxSync.ts`, `proxy.ts`, `normalizers.ts`, `useDashboardData.ts`, `evolutionClient.ts`, `NumberReputationMonitor.tsx`, `hooks/useAutomationLogs.ts`, `useKnowledgeBase.ts`, `useFailedMessages.ts`, `useFailureMetricsBatch.ts`, `whatsappLogsHelpers.tsx`, `useSLAHistory.ts`, `GlobalSearch.tsx`, `useMessageSendHistory.ts`, `webVitals.ts`, `useAgentGamification.ts`, `openContactInChat.ts`, `InboxScopeConfig.tsx`, `AvatarUpload.tsx`, `api/index.ts`, `switch.tsx`, `externalAudioSender.ts`, `AppShell.tsx`, `useSLAAlerts.ts`, `schemaDrift.ts`, `useHmacAuditHistory.ts`, `useRateLimitLogs.ts`, `SentimentTabContent.tsx`, `ConversationTasksPanel.tsx`, `TalkXCampaignEditor.tsx`, `contratoF4.simulacao.test.tsx`, `ai-router.ts`, `ChatHeader.tsx`, `tooltip.tsx`, `TeamMemberDetails.tsx`, `evolutionSendRetry.ts`, `useMessages.ts`?**
+  _High betweenness centrality (0.032) - this node is a cross-community bridge._
 - **What connects `@commitlint/config-conventional`, `.`, `Config` to the rest of the system?**
-  _9840 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _9839 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `button.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.018900534548103157 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.023599271514057024 - nodes in this community are weakly interconnected._
 - **Should `badge.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.017463988052223347 - nodes in this community are weakly interconnected._
-- **Should `client.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.018599660198515604 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.018138732770064888 - nodes in this community are weakly interconnected._
+- **Should `supabase` be split into smaller, more focused modules?**
+  _Cohesion score 0.015716196498054474 - nodes in this community are weakly interconnected._
