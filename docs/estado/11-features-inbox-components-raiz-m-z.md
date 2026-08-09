@@ -446,3 +446,23 @@ Dependências externas ao conjunto:
 `StickerPicker.tsx:4` — comentário indica que tooltip foi removido propositalmente. Ausência de acessibilidade (aria-label) para ícones do picker não compensada por outra solução — interação potencialmente inacessível em modo teclado/leitor de tela.
 
 *Runtime: NAO_VERIFICADO - nenhuma execução real foi realizada durante esta análise.*
+
+---
+
+### Atualizacao 2026-08-09 — queue_positions: investigacao de produtor conclusiva
+
+Alem da confirmacao de que a tabela existe (achado 16 refutado), a investigacao do
+produtor foi fechada varrendo 4 camadas. **Nenhuma escreve em `zapp.queue_positions`:**
+
+- Triggers Postgres: 0 (`information_schema.triggers`)
+- pg_cron: 0 relacionados (os 6 jobs de fila sao midia/outbound)
+- Funcoes/RPC: so leitura — `zapp.rpc_queue_sla_panel` faz SELECT de `entered_at`;
+  `ops.check_schema_drift` e guardrail. (via `pg_proc.prosrc`, ja que `pg_get_functiondef`
+  dispara erro "array_agg is an aggregate function" neste banco — provavel event trigger)
+- Frontend + edge functions: 1 ocorrencia, leitura (`QueuePositionNotifier.tsx:21`)
+- N8N (254 workflows, 138 ativos): 0 (`workflow_entity.nodes ILIKE %queue_positions%`)
+
+**Veredito: lacuna de implementacao no servidor.** A fila de espera tem consumidor mas
+nao tem produtor — falta o INSERT que enfileira o contato quando chega sem atendente livre.
+Enquanto isso: tabela vazia, notifier nunca mostra posicao, painel SLA reporta 0 em espera.
+Detalhe em issue #1001.
