@@ -74,9 +74,6 @@ export const NpsSchedulerV1Schema = EmptyStrictV1Schema;
 /** provider-healthcheck@v1 — cron; não consome body. */
 export const ProviderHealthcheckV1Schema = EmptyStrictV1Schema;
 
-/** sicoob-outbox-consumer@v1 — cron; não consome body. */
-export const SicoobOutboxConsumerV1Schema = EmptyStrictV1Schema;
-
 /** talkx-scheduler@v1 — cron; não consome body. */
 export const TalkxSchedulerV1Schema = EmptyStrictV1Schema;
 
@@ -257,17 +254,6 @@ export const ProviderRouterV1Schema = z.object({
   channel_connection_id: z.string().max(100).optional(),
   whatsapp_connection_id: z.string().max(100).optional(),
   payload: z.record(z.string(), z.unknown()).optional(),
-}).strict();
-
-/**
- * queue-rebalance@v1 — POST interno (requireServiceRoleOrCron). index.ts
- * (BulkRequest): limit? (default 50, clamp 1..200), dry_run? (boolean) e
- * source? (string, default "panel").
- */
-export const QueueRebalanceV1Schema = z.object({
-  limit: z.number().int().min(1).max(200).optional(),
-  dry_run: z.boolean().optional(),
-  source: z.string().max(50).optional(),
 }).strict();
 
 /**
