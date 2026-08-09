@@ -359,3 +359,50 @@ Armadilhas confirmadas nesta sessao:
    subdiretorio de `src/features/inbox/` — rodar `ls src/features/inbox/` e agrupar em
    fatias de ~40-60 arquivos, uma saida markdown por fatia
    (`06-features-inbox-<fatia>.md`).
+
+---
+
+## Bloco 1B — plano de fatiamento do modulo `inbox` — 2026-08-09
+
+`inbox` = 474 arquivos / 84.208 linhas (66% de todo `src/features`). Nao cabe em uma
+chamada. Fatiado em 7 batches, todos com lista explicita de caminhos em `/tmp/lista-*.txt`
+e prompt gerado do template `/tmp/tmpl-comp.txt` via `sed`.
+
+| Batch | Escopo | Arq | Linhas | Saida | Status |
+|---|---|---|---|---|---|
+| 5A | `hooks/` raiz + `hooks/realtime/` | 99 | 17.076 | `06-features-inbox-hooks.md` | [x] `a8e01a7a8` |
+| 5B | `hooks/__tests__`, `voice`, `team-chat`, `reactions`, `sip` + `services`, `utils`, `data-access`, `types`, raiz | 54 | 8.195 | `07-features-inbox-services.md` | [x] `a8e01a7a8` |
+| 6A | `components/chat/` | 99 | 18.620 | `08-features-inbox-components-chat.md` | [ ] em execucao |
+| 6B1 | `components/` raiz, A–M (`AIConversationAssistant`→`MessageReactions`) | 58 | 12.914 | `10-features-inbox-components-raiz-a-m.md` | [ ] |
+| 6B2 | `components/` raiz, M–Z (`MessageStatus`→`voiceChangerParts`) | 57 | 11.631 | `11-features-inbox-components-raiz-m-z.md` | [ ] |
+| 6C | `contact-details`, `conversation-list`, `ai-tools`, `stickers` | 62 | 10.353 | `09-features-inbox-components-contato-lista-ia.md` | [ ] em execucao |
+| 6D | 12 diretorios restantes de `components/` | 45 | 5.419 | `12-features-inbox-components-restantes.md` | [ ] |
+
+Soma dos batches de `components/`: 99+58+57+62+45 = **321** = total medido. Cobertura fechada.
+
+### Paralelismo — medido, funciona
+
+Dois `claude -p` simultaneos (5A de 99 arq + 5B de 54 arq) terminaram juntos em ~28 min
+— praticamente o mesmo tempo do batch 4 sozinho (89 arq, ~25 min). Paralelismo de 2 e
+quase gratuito. Lancar com `sleep 5` entre os dois.
+
+### Achados acumulados do inbox (para a Fase 7)
+
+5A (10 achados) — destaques: **dual-path de mensagens** `zapp.messages` vs
+`evo.evolution_messages` (A2); orquestradores de alta complexidade sem teste (A3);
+`getRealtimeDiscardedCount()` deprecated nao removido (A4); `rpc()` sem tipo em
+`useMessagesCursor` (A6).
+
+5B (19 achados) — destaques: **`touchLastSeen` filtra por `user_id` em vez de `id`**
+(A1, bug real); **mesmo topic de realtime = mesma instancia, `.on()` depois de
+`.subscribe()` lanca excecao** (A4); `bulkArchive` precisa de soft-delete via
+`updateStatusBulk(ids,'archived')` (A5); `archivedTab` bypassa todos os outros filtros
+em `applyInboxFilters` (A10); heartbeat com `THROTTLE_MS=240s > HEARTBEAT_MS=180s` (A11);
+`useMediaUrl` invoca edge function sem `AbortSignal` (A12); dois hooks de reactions
+nao exportados de proposito (A2, A3).
+
+### Fim do 1B — o que fazer quando os 7 batches fecharem
+
+As Fases 1B produziram **11 arquivos parciais** em `docs/estado/`. Nao consolidar agora:
+a consolidacao e a Fase 8. Marcar 1B como concluido no checklist e seguir para o
+bloco **1C** (`src/components` + `src/shared`).
