@@ -39,6 +39,7 @@ export async function handleOutgoingWhatsAppMessage(
   const parsed = parseMessageContent(message, data);
   if (parsed.messageType === 'reaction') return;
   if (!parsed.content && parsed.messageType === 'text') return;
+  const { ingestMeta: outIngestMeta, quotedMessageId: outQuotedId, captionText: outCaption } = parsed;
 
   let { mediaUrl } = parsed;
   if (parsed.messageType === 'audio' && mediaUrl) {
@@ -86,6 +87,9 @@ export async function handleOutgoingWhatsAppMessage(
     from_me: true,
     direction: 'outbound',
     content: parsed.content,
+    ...(outIngestMeta ? { media_meta: outIngestMeta, ingest_meta: outIngestMeta } : {}),
+    ...(outQuotedId ? { quoted_message_id: outQuotedId } : {}),
+    ...(outCaption ? { caption: outCaption } : {}),
     message_type: parsed.messageType,
     media_url: mediaUrl,
     // NOTA PGRST204 (fix AG-EX-01): coluna agent_id NÃO existe em evolution_messages
@@ -120,7 +124,7 @@ export async function handleIncomingMessage(
   if (parsed.messageType === 'reaction') return;
 
   let { mediaUrl } = parsed;
-  const { content, messageType } = parsed;
+  const { content, messageType, ingestMeta, quotedMessageId, captionText } = parsed;
 
   if (messageType === 'sticker') {
     mediaUrl = await handleStickerMedia(supabase, instance, data, message, key);
@@ -200,6 +204,8 @@ export async function handleIncomingMessage(
       from_me: false,
       direction: 'inbound',
       status: preservedStatus,
+      ...(ingestMeta ? { media_meta: ingestMeta, ingest_meta: ingestMeta } : {}),
+      ...(quotedMessageId ? { quoted_message_id: quotedMessageId } : {}),
       updated_at: new Date().toISOString(),
     }).eq('id', existingMessage.id);
     if (updateErr) console.error('[INCOMING] Error updating existing message:', { updateErr, messageId: existingMessage.id });
@@ -216,6 +222,10 @@ export async function handleIncomingMessage(
     content,
     message_type: messageType,
     media_url: mediaUrl,
+    media_meta: ingestMeta || undefined,
+    ingest_meta: ingestMeta || undefined,
+    quoted_message_id: quotedMessageId || undefined,
+    caption: captionText || undefined,
     status: 'received',
     remote_jid: bestJid || `${phone}@s.whatsapp.net`,
     push_name: (data.pushName as string) || null,

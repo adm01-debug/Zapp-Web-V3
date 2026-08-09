@@ -215,6 +215,43 @@ export interface ParsedMessage {
   content: string;
   messageType: string;
   mediaUrl: string | null;
+  ingestMeta: Record<string, unknown> | null;
+  quotedMessageId: string | null;
+  captionText: string | null;
+}
+
+/** Extrai metadados estruturais de midia (mediaKey, directPath, etc) sem incluir conteudo. */
+function extractIngestMeta(subMsg: Record<string, unknown> | undefined): Record<string, unknown> | null {
+  if (!subMsg) return null;
+  const meta: Record<string, unknown> = {};
+  if (subMsg.mediaKey)      meta.mediaKey      = subMsg.mediaKey;
+  if (subMsg.directPath)    meta.directPath    = subMsg.directPath;
+  if (subMsg.fileEncSha256) meta.fileEncSha256 = subMsg.fileEncSha256;
+  if (subMsg.fileSha256)    meta.fileSha256    = subMsg.fileSha256;
+  if (subMsg.fileLength)    meta.fileLength    = subMsg.fileLength;
+  if (subMsg.mimetype)      meta.mimetype      = subMsg.mimetype;
+  if (subMsg.seconds)       meta.seconds       = subMsg.seconds;
+  if (subMsg.ptt)           meta.ptt           = subMsg.ptt;
+  if (subMsg.width)         meta.width         = subMsg.width;
+  if (subMsg.height)        meta.height        = subMsg.height;
+  if (subMsg.pageCount)     meta.pageCount     = subMsg.pageCount;
+  if (subMsg.fileName)      meta.fileName      = subMsg.fileName;
+  return Object.keys(meta).length > 0 ? meta : null;
+}
+
+/** Extrai stanzaId (id da mensagem citada) de contextInfo em qualquer nivel. */
+function extractQuotedId(message: Record<string, unknown> | undefined, data: Record<string, unknown>): string | null {
+  if (!message) return null;
+  const dataCtx = (data.contextInfo as Record<string, unknown> | undefined);
+  if (dataCtx?.stanzaId) return dataCtx.stanzaId as string;
+  const etCtx = ((message.extendedTextMessage as Record<string, unknown> | undefined)?.contextInfo) as Record<string, unknown> | undefined;
+  if (etCtx?.stanzaId) return etCtx.stanzaId as string;
+  for (const k of ['imageMessage','videoMessage','audioMessage','documentMessage','stickerMessage','ptvMessage']) {
+    const sub = message[k] as Record<string, unknown> | undefined;
+    const ctx = sub?.contextInfo as Record<string, unknown> | undefined;
+    if (ctx?.stanzaId) return ctx.stanzaId as string;
+  }
+  return null;
 }
 
 /** parse Message Content function. */
@@ -245,7 +282,11 @@ export function parseMessageContent(message: Record<string, unknown> | undefined
   let messageType = 'text';
   let mediaUrl: string | null = null;
 
-  if (!message) return { content, messageType, mediaUrl };
+  let ingestMeta: Record<string, unknown> | null = null;
+  let quotedMessageId: string | null = null;
+  let captionText: string | null = null;
+
+  if (!message) return { content, messageType, mediaUrl, ingestMeta, quotedMessageId, captionText };
 
   if (message.conversation) {
     content = message.conversation as string;
@@ -254,28 +295,35 @@ export function parseMessageContent(message: Record<string, unknown> | undefined
   } else if (message.imageMessage) {
     messageType = 'image';
     const img = message.imageMessage as Record<string, unknown>;
-    content = (img.caption as string) || '[Imagem]';
+    captionText = (img.caption as string) || null;
+    content = captionText || '[Imagem]';
     mediaUrl = (img.url as string) || null;
+    ingestMeta = extractIngestMeta(img);
   } else if (message.videoMessage) {
     messageType = 'video';
     const vid = message.videoMessage as Record<string, unknown>;
-    content = (vid.caption as string) || '[Vídeo]';
+    captionText = (vid.caption as string) || null;
+    content = captionText || '[Vídeo]';
     mediaUrl = (vid.url as string) || null;
+    ingestMeta = extractIngestMeta(vid);
   } else if (message.audioMessage) {
     messageType = 'audio';
     content = '[Áudio]';
     mediaUrl = (message.audioMessage as Record<string, unknown>).url as string || null;
+    ingestMeta = extractIngestMeta(message.audioMessage as Record<string, unknown>);
   } else if (message.documentMessage) {
     messageType = 'document';
     const doc = message.documentMessage as Record<string, unknown>;
     content = (doc.fileName as string) || '[Documento]';
     mediaUrl = (doc.url as string) || null;
+    ingestMeta = extractIngestMeta(doc);
   } else if (message.documentWithCaptionMessage) {
     messageType = 'document';
     const dwc = message.documentWithCaptionMessage as Record<string, unknown>;
     const innerDoc = (dwc.message as Record<string, unknown>)?.documentMessage as Record<string, unknown>;
     content = (innerDoc?.fileName as string) || (innerDoc?.caption as string) || '[Documento]';
     mediaUrl = (innerDoc?.url as string) || null;
+    if (innerDoc) ingestMeta = extractIngestMeta(innerDoc as Record<string, unknown>);
   } else if (message.locationMessage) {
     messageType = 'location';
     const loc = message.locationMessage as Record<string, unknown>;
@@ -283,6 +331,7 @@ export function parseMessageContent(message: Record<string, unknown> | undefined
   } else if (message.stickerMessage || (data.messageType as string) === 'stickerMessage') {
     messageType = 'sticker';
     content = '[Sticker]';
+    if (message.stickerMessage) ingestMeta = extractIngestMeta(message.stickerMessage as Record<string, unknown>);
   } else if (message.reactionMessage) {
     messageType = 'reaction';
     content = '';
@@ -294,5 +343,6 @@ export function parseMessageContent(message: Record<string, unknown> | undefined
     content = (message.pollCreationMessage as Record<string, unknown>).name as string || '[Enquete]';
   }
 
-  return { content, messageType, mediaUrl };
+  quotedMessageId = extractQuotedId(message, data);
+  return { content, messageType, mediaUrl, ingestMeta, quotedMessageId, captionText };
 }
