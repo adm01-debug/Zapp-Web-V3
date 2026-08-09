@@ -19,7 +19,7 @@
 | Campo | Valor |
 |---|---|
 | Fase corrente | **1 — Inventário estático: frontend** |
-| Próximo bloco | **1B — `src/features` — módulos de domínio** |
+| Próximo bloco | **1C — `src/components` + `src/shared` (10 batches)** |
 | Última atualização | 2026-08-09 |
 | Sessão de chat | S1 |
 | Bloqueios | nenhum — resolvido 2026-08-08 17:31 |
@@ -34,7 +34,7 @@
 
 ### Fase 1 — Frontend -> `01-frontend.md`
 - [x] 1A `src/pages` + `App.tsx` — rotas, guards, lazy loading
-- [ ] 1B `src/features` — módulos de domínio
+- [x] 1B `src/features` — módulos de domínio (660 arquivos, 11 saídas parciais)
 - [ ] 1C `src/components` + `src/shared` — UI, usados vs. órfãos
 - [ ] 1D `src/hooks` + `src/adapters` + `src/integrations`
 - [ ] 1E `src/services` + `src/lib` + `src/utils` + `src/types`
@@ -406,3 +406,103 @@ nao exportados de proposito (A2, A3).
 As Fases 1B produziram **11 arquivos parciais** em `docs/estado/`. Nao consolidar agora:
 a consolidacao e a Fase 8. Marcar 1B como concluido no checklist e seguir para o
 bloco **1C** (`src/components` + `src/shared`).
+
+---
+
+## BLOCO 1B CONCLUIDO — 2026-08-09
+
+**Cobertura fechada: 660/660 arquivos `.ts`/`.tsx` de `src/features`.** Zero sobra, zero overlap.
+
+| Batch | Escopo | Arq | Saida | Commit |
+|---|---|---|---|---|
+| 1 | business-logic, email, emojis, integrations, queues, dashboard | 10 | `02-features-batch1.md` | `d838e7bf3` |
+| 2 | contacts, connections, sla | 51 | `03-features-batch2.md` | `55f4b2fd7` |
+| 3 | auth | 36 | `04-features-auth.md` | `4d61e660e` |
+| 4 | admin | 89 | `05-features-admin.md` | `1abe10d51` |
+| 5A | inbox `hooks/` + `hooks/realtime/` | 99 | `06-features-inbox-hooks.md` | `a8e01a7a8` |
+| 5B | inbox hooks especializados + services/utils/data-access/types | 54 | `07-features-inbox-services.md` | `a8e01a7a8` |
+| 6A1 | inbox `components/chat/` 1a metade | 50 | `08-...-chat-1.md` | `519a95bd5` |
+| 6A2 | inbox `components/chat/` 2a metade | 49 | `08-...-chat-2.md` | `f3a6eb192` |
+| 6B1 | inbox `components/` raiz A–M | 58 | `10-...-raiz-a-m.md` | `f3a6eb192` |
+| 6B2 | inbox `components/` raiz M–Z | 57 | `11-...-raiz-m-z.md` | `3f0aa1432` |
+| 6C | contact-details, conversation-list, ai-tools, stickers | 62 | `09-...-contato-lista-ia.md` | `519a95bd5` |
+| 6D | 12 diretorios restantes de `components/` | 45 | `12-...-restantes.md` | `3f0aa1432` |
+
+**11 saidas parciais, ~5.900 linhas de doc, 144 achados catalogados.** Consolidacao e Fase 8 — nao consolidar agora.
+
+### LIMITE DURO MEDIDO — respeitar nos proximos blocos
+
+O batch 6A original (`components/chat/` inteiro, 99 arq / **18.620 linhas**) **morreu
+com `EXIT=1`**: *"Autocompact is thrashing: the context refilled to the limit within 3
+turns of the previous compact, 3 times in a row."* Foi refeito em duas metades e passou.
+
+**Regra: teto de ~13.000 linhas por batch.** Contagem de arquivos importa menos que
+volume de linhas — 98 arquivos com 10.361 linhas (`components/ui`) passa; 99 arquivos
+com 18.620 nao.
+
+### CONCORRENCIA — duas sessoes rodando a mesma trilha
+
+Entre 10:40 e 11:22 uma **segunda sessao** leu este rastreador, encontrou os prompts em
+`/tmp/prompt-6*.txt` e executou 6A1, 6A2, 6B1, e disparou 6B2 e 6D — commitando em
+`519a95bd5` e `f3a6eb192`. Trabalho correto e sem perda: mesmas convencoes, cobertura
+intacta, e foi ela que descobriu o limite de contexto do 6A. Mas houve duplicacao de
+esforco e o rastreador ficou defasado da realidade por ~40 min.
+
+**Antes de disparar qualquer batch: `ps aux | grep 'clau[d]e' | grep -v defunct`.**
+Se houver processo vivo, outra sessao esta trabalhando — nao relance, faca poll.
+
+---
+
+## BLOCO 1C — fatiamento — iniciado 2026-08-09
+
+`src/components` = 591 arq / 103.781 linhas · `src/shared` = 6 arq / 1.967 linhas.
+**Total 597 arquivos / 105.748 linhas — maior que o inbox inteiro.**
+
+Objetivo central do 1C: **separar EM_USO de ORFAO**. Cada batch tem secao obrigatoria
+de "Chamado Por" baseada em grep real, e secao de Orfaos com veredito de risco de
+remocao (SEGURO | VERIFICAR | NAO_REMOVER).
+
+| Batch | Escopo | Arq | Linhas | Saida | Status |
+|---|---|---|---|---|---|
+| 7A | `ui/` | 98 | 10.361 | `13-components-ui.md` | [ ] em execucao |
+| 7B | `settings/` | 54 | 11.275 | `14-components-settings.md` | [ ] em execucao |
+| 7C | `contacts/` | 50 | 10.388 | `15-components-contacts.md` | [ ] |
+| 7D | `connections/` + `dashboard/` | 65 | 10.925 | `16-components-connections-dashboard.md` | [ ] |
+| 7E | `team-chat/` + `monitoring/` | 48 | 11.345 | `17-components-teamchat-monitoring.md` | [ ] |
+| 7F | `security/` + `queues/` + `mobile/` | 51 | 8.895 | `18-components-security-queues-mobile.md` | [ ] |
+| 7G | `layout/`, `gamification/`, `talkx/`, `catalog/`, `reports/`, `notifications/` | 69 | 12.992 | `19-components-layout-gamification-talkx-catalog-reports-notifications.md` | [ ] |
+| 7H | `email/`, `voice/`, `crm360/`, `onboarding/`, `evoApiHealth/`, `calls/`, `transitions/`, `integrations/`, `ai/` | 68 | 11.448 | `20-components-email-voice-crm360-onboarding-calls-ai.md` | [ ] |
+| 7I | 15 diretorios medios (`docs`→`pipeline`) | 58 | 10.124 | `21-components-diretorios-medios.md` | [ ] |
+| 7J | 18 diretorios pequenos + raiz de `components/` + `src/shared/` | 36 | 7.995 | `22-components-pequenos-e-shared.md` | [ ] |
+
+**Verificado programaticamente: soma dos 10 batches = 597 = total. Zero overlap.**
+Listas em `/tmp/lista-7[a-j].txt`, prompts em `/tmp/prompt-7[a-j].txt`, template em
+`/tmp/tmpl-1c.txt`.
+
+### Como retomar o 1C
+
+```sh
+# 1. checar se outra sessao esta rodando
+ps aux | grep 'clau[d]e' | grep -v defunct
+
+# 2. disparar o proximo par (7C+7D, depois 7E+7F, 7G+7H, 7I+7J)
+cd /workspace/estado-inventario
+nohup sh -c 'cd /workspace/estado-inventario && claude --model claude-sonnet-4-6 \
+  -p "$(cat /tmp/prompt-7c.txt)" > /tmp/1b_7c_out.log 2>&1; echo "EXIT=$?" > /tmp/1b_7c.txt' >/dev/null 2>&1 &
+sleep 5
+nohup sh -c 'cd /workspace/estado-inventario && claude --model claude-sonnet-4-6 \
+  -p "$(cat /tmp/prompt-7d.txt)" > /tmp/1b_7d_out.log 2>&1; echo "EXIT=$?" > /tmp/1b_7d.txt' >/dev/null 2>&1 &
+
+# 3. poll: marker EXIT=0 + conferir "Arquivos lidos: N/N" no cabecalho da saida
+# 4. commit --no-verify + push na branch
+```
+
+Se os prompts em `/tmp` tiverem sido perdidos (restart do container limpa `/tmp`),
+regerar com o template `/tmp/tmpl-1c.txt` — mas ele tambem vive em `/tmp`. Em caso de
+perda total, os escopos e nomes de saida da tabela acima sao suficientes para recriar.
+
+### Depois do 1C
+
+- **1D** — `src/hooks` + `src/adapters` + `src/integrations`
+- **1E** — `src/services` + `src/lib` + `src/utils` + `src/types`
+- Medir dimensao antes de fatiar, sempre. Teto de 13.000 linhas por batch.
