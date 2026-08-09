@@ -466,8 +466,8 @@ remocao (SEGURO | VERIFICAR | NAO_REMOVER).
 |---|---|---|---|---|---|
 | 7A | `ui/` | 98 | 10.361 | `13-components-ui.md` | [ ] em execucao |
 | 7B | `settings/` | 54 | 11.275 | `14-components-settings.md` | [ ] em execucao |
-| 7C | `contacts/` | 50 | 10.388 | `15-components-contacts.md` | [ ] |
-| 7D | `connections/` + `dashboard/` | 65 | 10.925 | `16-components-connections-dashboard.md` | [ ] |
+| 7C | contacts/ | 50 | 10.388 | 15-components-contacts.md | [x] 88afdd07a (37 orfaos) |
+| 7D | connections+dashboard | 65 | 10.925 | 16-... | [x] 88afdd07a (10 orfaos) |
 | 7E | `team-chat/` + `monitoring/` | 48 | 11.345 | `17-components-teamchat-monitoring.md` | [ ] |
 | 7F | `security/` + `queues/` + `mobile/` | 51 | 8.895 | `18-components-security-queues-mobile.md` | [ ] |
 | 7G | `layout/`, `gamification/`, `talkx/`, `catalog/`, `reports/`, `notifications/` | 69 | 12.992 | `19-components-layout-gamification-talkx-catalog-reports-notifications.md` | [ ] |
@@ -506,3 +506,44 @@ perda total, os escopos e nomes de saida da tabela acima sao suficientes para re
 - **1D** — `src/hooks` + `src/adapters` + `src/integrations`
 - **1E** — `src/services` + `src/lib` + `src/utils` + `src/types`
 - Medir dimensao antes de fatiar, sempre. Teto de 13.000 linhas por batch.
+
+---
+
+## Bloco 1C — andamento e correcao de metodo — 2026-08-09 (sessao S1 cont.)
+
+7A/7B (ui, settings) recolhidos por outra sessao: commit 6d477c05b. 7C/7D commit 88afdd07a.
+
+### Correcao critica de metodo — prompts 7C-7J regenerados
+
+Os prompts 7C-7J que estavam em /tmp (gerados 11:31 pela sessao concorrente) mandavam
+LER TODOS OS ARQUIVOS NA THREAD PRINCIPAL — mesmo erro que matou 6A/6C com "Autocompact
+ is thrashing". Foram **regenerados do template /tmp/tmpl-1c.txt** com:
+- delegacao OBRIGATORIA via Task (1 subagente por 10-12 arquivos)
+- formato inline (nao le docs/estado/ como template)
+- `grep -rl` para importadores, nunca cat
+O idx slim (/tmp/slim-index.js) NAO serve para o 1C: o 1b-extract.json so cobre
+`src/features`, nao `src/components`. Sem idx; a delegacao sozinha resolve o thrash.
+
+### Batches restantes (prontos, disparar em pares)
+
+7E+7F em execucao. Depois: 7G+7H, 7I+7J. Prompts prontos em /tmp/prompt-7[e-j].txt,
+listas em /tmp/lista-7[e-j].txt.
+
+### Verificacao de runtime cruzada (Fase 4A antecipada) — 2026-08-09
+
+Varredura das 36 tabelas + 4 rpcs mais citadas do inbox contra o self-hosted:
+- **36/36 tabelas existem.** Zero referencias quebradas. Achado 16 (queue_positions) era
+  falso-positivo: CLAUDE.md defasado, nao banco. Corrigido em 11-raiz-m-z.md + issue #1001.
+- `conversations` e `ai_usage_logs` so existem em `zapp` (VIEW), nao em public — mas o
+  cliente ja usa schema zapp por padrao (CLAUDE.md regra 1), entao nao e bug.
+- RPCs: `rpc_get_contact` ok (public,zapp); `search_contacts_gin` so em `evo` (coerente
+  com o cast // ignore-audit ja documentado); `insert_message`/`fn_dlq_reprocess` nao
+  batem por nome exato — provavel imprecisao do regex de extracao, nao ausencia real.
+- CLAUDE.md ganhou regra 6 (tabelas de fila + "lista de Tabelas Principais e ilustrativa,
+  confirmar no runtime"). Commit 06b99d75f.
+
+### Fix P1 da issue #1000 — PR isolado
+
+PR #1002 aberto contra main (branch fix/inbox-tts-voice-auth-p1-1000, cherry-pick de
+e7bd13715). 5 arquivos, +14/-5. GITHUB_TOKEN do container cria PR/issue/comentario via
+REST — o 403 era limitacao do MCP, nao do token. Comentario postado na #1000.
