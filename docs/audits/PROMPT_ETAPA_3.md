@@ -172,7 +172,7 @@ Rotacionar invalida qualquer coisa que assine ou verifique token com o valor ant
 - `supabase_storage` (`PGRST_JWT_SECRET` ou `AUTH_JWT_SECRET`)
 - `supabase_functions` / edge-runtime
 - `supabase_kong` — as chaves `anon` e `service_role` são **JWTs assinados com esse secret**
-- **Consumidores fora da stack:** n8n (credencial `tyLhN1fGwJveaDCg` e demais), Evolution API, os ~20 MCPs `SUPABASE - * - MCP` deste workspace, o frontend `zapp-web-v3` (`VITE_SUPABASE_ANON_KEY`), Cloudflare Workers.
+- **Consumidores fora da stack:** n8n (credencial `<REDACTED — rotacionar via n8n UI>` e demais), Evolution API, os ~20 MCPs `SUPABASE - * - MCP` deste workspace, o frontend `zapp-web-v3` (`VITE_SUPABASE_ANON_KEY`), Cloudflare Workers.
 
 > **Esta é a parte que pode dar errado feio.** Rotacionar o `jwt_secret` de um Supabase self-hosted **regenera `anon key` e `service_role key`**. Tudo que carrega essas chaves hardcoded para de funcionar. Monte a lista completa **antes** e trate a rotação como item com plano de propagação, não como um `ALTER DATABASE`.
 
