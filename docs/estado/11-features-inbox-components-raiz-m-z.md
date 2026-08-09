@@ -140,7 +140,7 @@ Segunda metade alfabética dos arquivos soltos na raiz de `src/features/inbox/co
 | tabela | schema | arquivo(s) |
 |--------|--------|------------|
 | `conversation_memory` | zapp | NextBestActionEngine.tsx |
-| `queue_positions` | zapp (não confirmada) | QueuePositionNotifier.tsx |
+| `queue_positions` | public (VIEW security_invoker sobre zapp.queue_positions) — CONFIRMADA em runtime | QueuePositionNotifier.tsx |
 | `queues` | zapp | QueuePositionNotifier.tsx |
 | `whisper_files` | zapp | TeamFiles.tsx |
 | `conversation_events` | zapp | TicketHistorySheet.tsx |
@@ -281,7 +281,7 @@ Dependências externas ao conjunto:
 | NextBestActionEngine.tsx | `chat/ChatPanelOverlays.tsx` |
 | ObjectionDetector.tsx | `chat/ChatToolPanels.tsx`, `AIToolsPopover.tsx` |
 | PrivateNotes.tsx | `contact-details/ContactAccordionSections.tsx` |
-| **QueuePositionNotifier.tsx** | **apenas `index.ts` — SEM uso real identificado (candidato a código morto)** |
+| QueuePositionNotifier.tsx | apenas `index.ts` no grep estatico; tabela CONFIRMADA e vazia em runtime — ver A4 |
 | QuickRepliesManager.tsx | `settings/SettingsView.tsx` |
 | RealtimeCollaboration.tsx | `chat/ChatHeader.tsx` |
 | RealtimeInboxView.tsx | `pages/inbox/InboxPage.tsx`, `pages/ViewRouter.tsx`, `pages/lazyViews.ts` |
@@ -345,7 +345,7 @@ Dependências externas ao conjunto:
 | NextBestActionEngine.tsx | PARCIAL | `action?: () => void` nunca atribuído; cards visuais sem handler real |
 | ObjectionDetector.tsx | COMPLETA | — |
 | PrivateNotes.tsx | COMPLETA | — |
-| QueuePositionNotifier.tsx | PARCIAL | Tabela `queue_positions` não confirmada no schema; sem uso real identificado |
+| QueuePositionNotifier.tsx | COMPLETA (cliente) | Componente correto; falta produtor escrevendo em zapp.queue_positions (tabela vazia em runtime) — ver A4 |
 | QuickRepliesManager.tsx | COMPLETA | — |
 | RealtimeCollaboration.tsx | COMPLETA | — |
 | RealtimeInboxView.tsx | COMPLETA | Cast duplo `as unknown as` em l.139; emoji `📡` hardcoded |
@@ -409,8 +409,8 @@ Dependências externas ao conjunto:
 ### A3 — NextBestActionEngine: sugestões visuais sem handler real (feature inoperante)
 `NextBestActionEngine.tsx:28-31` — `action?: () => void` declarado no tipo `NextAction` mas nunca atribuído nas instâncias criadas; os cards de sugestão não têm `onClick`. O componente exibe ações ("Responder agora", "Follow-up", "Escalar SLA") que o usuário não pode executar. Feature visualmente presente mas funcionalmente incompleta.
 
-### A4 — QueuePositionNotifier consultando tabela não confirmada no schema
-`QueuePositionNotifier.tsx:43` — `return null` quando `position` é falsy. A tabela `queue_positions` não aparece no schema canônico do CLAUDE.md (323 tabelas do schema `zapp`). Duas queries sequenciais (`queue_positions` → `queues`) dentro do mesmo `queryFn` — possível consulta a tabela inexistente gerando erro silencioso (react-query não relança por padrão). Componente sem importador real além do barrel (`index.ts`) — **candidato a código morto**.
+### A4 — QueuePositionNotifier: feature funcional ligada a tabela vazia (VERIFICADO em runtime 2026-08-09)
+`QueuePositionNotifier.tsx:43` — `return null` quando `position` é falsy. **Correcao do diagnostico estatico:** a tabela EXISTE — `public.queue_positions` e uma VIEW com `security_invoker=true` sobre `zapp.queue_positions` (tabela real, RLS ligada, policy exige `authenticated`, `anon` sem grant). A query funciona; o CLAUDE.md e que esta desatualizado. Ambas (view e base) tem **0 linhas** — a feature nunca teve dado, por isso o `return null` e o caminho permanente. Nao e codigo morto nem query quebrada: e **feature incompleta no lado servidor** — nenhum produtor escreve em `zapp.queue_positions`. UI + RLS + polling de 15s existem, falta quem alimente a fila. Registrado em #1000 (comentario) e #1001. *Runtime: VERIFICADO.*
 
 ### A5 — ScheduleMessageDialog: UTC midnight bug no preview
 `ScheduleMessageDialog.tsx:181` — preview usa `new Date(date)` onde `date` é string `"yyyy-MM-dd"`, resultando em UTC midnight e exibindo data um dia errada em fusos UTC-N (ex: América/São_Paulo UTC-3). O `handleSchedule` (l.49) já faz o parse correto com `new Date(y, mo-1, d, h, m)` — inconsistência entre preview e a data que será de fato agendada.
