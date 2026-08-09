@@ -65,9 +65,8 @@ AS $$
   SELECT left(encode(extensions.digest(current_setting('app.settings.jwt_secret', true)::text, 'sha256'), 'hex'), 8)
 $$;
 
--- Guardrail externo/health-check (paridade live, proacl verificado 2026-08-08): retorna fingerprint sha256 (8 hex chars), não expõe o segredo
--- ignore-lint-ml005
-GRANT EXECUTE ON FUNCTION public.fn_jwt_secret_ref() TO anon, authenticated, service_role;
+-- GRANT EXECUTE apenas para roles autenticados/serviço (política da casa: sem anon em funções — Edge Schema Parity)
+GRANT EXECUTE ON FUNCTION public.fn_jwt_secret_ref() TO authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION zapp.fn_jwt_secret_ref()
 RETURNS text
@@ -79,9 +78,8 @@ AS $$
   SELECT left(encode(extensions.digest(current_setting('app.settings.jwt_secret', true)::text, 'sha256'), 'hex'), 8)
 $$;
 
--- Guardrail externo/health-check (paridade live, proacl verificado 2026-08-08): retorna fingerprint sha256 (8 hex chars), não expõe o segredo
--- ignore-lint-ml005
-GRANT EXECUTE ON FUNCTION zapp.fn_jwt_secret_ref() TO anon, authenticated, service_role;
+-- GRANT EXECUTE apenas para roles autenticados/serviço (política da casa: sem anon em funções — Edge Schema Parity)
+GRANT EXECUTE ON FUNCTION zapp.fn_jwt_secret_ref() TO authenticated, service_role;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- PARTE 3 — Recarrega o schema cache do PostgREST (RPCs novas ficam expostas)
