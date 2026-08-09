@@ -468,12 +468,12 @@ remocao (SEGURO | VERIFICAR | NAO_REMOVER).
 | 7B | `settings/` | 54 | 11.275 | `14-components-settings.md` | [ ] em execucao |
 | 7C | contacts/ | 50 | 10.388 | 15-components-contacts.md | [x] 88afdd07a (37 orfaos) |
 | 7D | connections+dashboard | 65 | 10.925 | 16-... | [x] 88afdd07a (10 orfaos) |
-| 7E | `team-chat/` + `monitoring/` | 48 | 11.345 | `17-components-teamchat-monitoring.md` | [ ] |
-| 7F | `security/` + `queues/` + `mobile/` | 51 | 8.895 | `18-components-security-queues-mobile.md` | [ ] |
-| 7G | `layout/`, `gamification/`, `talkx/`, `catalog/`, `reports/`, `notifications/` | 69 | 12.992 | `19-components-layout-gamification-talkx-catalog-reports-notifications.md` | [ ] |
-| 7H | `email/`, `voice/`, `crm360/`, `onboarding/`, `evoApiHealth/`, `calls/`, `transitions/`, `integrations/`, `ai/` | 68 | 11.448 | `20-components-email-voice-crm360-onboarding-calls-ai.md` | [ ] |
-| 7I | 15 diretorios medios (`docs`→`pipeline`) | 58 | 10.124 | `21-components-diretorios-medios.md` | [ ] |
-| 7J | 18 diretorios pequenos + raiz de `components/` + `src/shared/` | 36 | 7.995 | `22-components-pequenos-e-shared.md` | [ ] |
+| 7E | `team-chat/` + `monitoring/` | 48 | 11.345 | `17-components-teamchat-monitoring.md` | [x] ad4517e7a (13 orfaos) |
+| 7F | `security/` + `queues/` + `mobile/` | 51 | 8.895 | `18-components-security-queues-mobile.md` | [x] ad4517e7a (15 orfaos) |
+| 7G | `layout/`, `gamification/`, `talkx/`, `catalog/`, `reports/`, `notifications/` | 69 | 12.992 | `19-components-layout-gamification-talkx-catalog-reports-notifications.md` | [x] 460d36009 (29 orfaos) |
+| 7H | `email/`, `voice/`, `crm360/`, `onboarding/`, `evoApiHealth/`, `calls/`, `transitions/`, `integrations/`, `ai/` | 68 | 11.448 | `20-components-email-voice-crm360-onboarding-calls-ai.md` | [x] 460d36009 (9 orfaos) |
+| 7I | 15 diretorios medios (`docs`→`pipeline`) | 58 | 10.124 | `21-components-diretorios-medios.md` | [x] 5babcb8c2 (18 orfaos) |
+| 7J | 18 diretorios pequenos + raiz de `components/` + `src/shared/` | 36 | 7.995 | `22-components-pequenos-e-shared.md` | [x] 5babcb8c2 (4 orfaos) |
 
 **Verificado programaticamente: soma dos 10 batches = 597 = total. Zero overlap.**
 Listas em `/tmp/lista-7[a-j].txt`, prompts em `/tmp/prompt-7[a-j].txt`, template em
@@ -547,3 +547,31 @@ Varredura das 36 tabelas + 4 rpcs mais citadas do inbox contra o self-hosted:
 PR #1002 aberto contra main (branch fix/inbox-tts-voice-auth-p1-1000, cherry-pick de
 e7bd13715). 5 arquivos, +14/-5. GITHUB_TOKEN do container cria PR/issue/comentario via
 REST — o 403 era limitacao do MCP, nao do token. Comentario postado na #1000.
+
+---
+
+## BLOCO 1C — CONCLUIDO — 2026-08-09
+
+Todos os 10 batches (7A-7J) fechados. src/components + src/shared inventariados.
+
+| Batch | Escopo | Arq | Orfaos | Commit |
+|---|---|---|---|---|
+| 7A | ui | 98 | 17 | 6d477c05b |
+| 7B | settings | 54 | 37 | 6d477c05b |
+| 7C | contacts | 50 | 37 | 88afdd07a |
+| 7D | connections+dashboard | 65 | 10 | 88afdd07a |
+| 7E | team-chat+monitoring | 48 | 13 | ad4517e7a |
+| 7F | security+queues+mobile | 51 | 15 | ad4517e7a |
+| 7G | layout/gamification/talkx/catalog/reports/notifications | 69 | 29 | 460d36009 |
+| 7H | email/voice/crm360/onboarding/evoApiHealth/calls/transitions/integrations/ai | 68 | 9 | 460d36009 |
+| 7I | 15 dirs medios | 58 | 18 | 5babcb8c2 |
+| 7J | 18 dirs pequenos + raiz + src/shared | 36 | 4 | 5babcb8c2 |
+| **TOTAL** | **src/components + src/shared** | **597** | **189** | — |
+
+**189 orfaos em 597 arquivos = ~32% da biblioteca de componentes sem importador.**
+Confirma a tese do 1C: a camada de componentes esta fortemente inflada. As saidas
+13-22 trazem, por batch, a lista fechada de orfaos com veredito de risco de remocao.
+
+Saidas geradas: docs/estado/13 a 22 (10 arquivos).
+
+### Proximo: bloco 1D (src/hooks + adapters + integrations) e 1E (src/services + lib + utils + types)
