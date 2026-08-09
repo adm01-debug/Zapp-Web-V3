@@ -19,8 +19,8 @@
 | Campo | Valor |
 |---|---|
 | Fase corrente | **1 — Inventário estático: frontend** |
-| Próximo bloco | **1A — `src/pages` + `src/App.tsx` (árvore de rotas, guards, lazy loading)** |
-| Última atualização | 2026-08-08 (S1, pos-correcoes) |
+| Próximo bloco | **1B — `src/features` — módulos de domínio** |
+| Última atualização | 2026-08-09 |
 | Sessão de chat | S1 |
 | Bloqueios | nenhum — resolvido 2026-08-08 17:31 |
 
@@ -33,7 +33,7 @@
 - [x] `docs/estado/_PROGRESSO.md` criado
 
 ### Fase 1 — Frontend -> `01-frontend.md`
-- [ ] 1A `src/pages` + `App.tsx` — rotas, guards, lazy loading
+- [x] 1A `src/pages` + `App.tsx` — rotas, guards, lazy loading
 - [ ] 1B `src/features` — módulos de domínio
 - [ ] 1C `src/components` + `src/shared` — UI, usados vs. órfãos
 - [ ] 1D `src/hooks` + `src/adapters` + `src/integrations`
@@ -260,3 +260,18 @@ Bloco **1A** do inventario `estado_atualizado.md`:
 - Executor: `code_task` no worktree `/workspace/estado-inventario`
 - Entrada: `src/components/routing/AppRoutes.tsx` + arvore `src/pages`
 - Saida: `docs/estado/01-frontend.md`
+
+---
+
+## Resultado bloco 1A — 2026-08-09
+
+Arquivo: `docs/estado/01-frontend.md` — 888 linhas / 53 KB
+
+Achados relevantes:
+- **19 páginas ativas** referenciadas em AppRoutes.tsx
+- **128 páginas órfãs** (não referenciadas em nenhuma rota) — candidatas a remoção
+- Guards: `ProtectedRoute` de `@/features/auth` — rotas públicas: `/auth`, `/forgot-password`, `/reset-password`, `/verify-email`, `/oauth-consent`, `/sso-callback`, `/install`
+- Subrotas descobertas em `DebugRoutes.tsx` e `AdminRoutes.tsx` (além de AppRoutes.tsx)
+- `lazyWithRetry` envolve todas as importações dinâmicas com retry automático
+- 16 páginas órfãs têm handlers vazios / return null / throw not implemented
+
