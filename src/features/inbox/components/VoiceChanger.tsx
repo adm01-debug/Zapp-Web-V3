@@ -155,13 +155,17 @@ export const VoiceChanger = memo(function VoiceChanger({
       formData.append('task_id', taskId ?? '');
       formData.append('authorized', isCloned ? 'true' : 'false');
 
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-changer`,
         {
           method: 'POST',
           headers: {
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: formData,
           signal: convSignal,
