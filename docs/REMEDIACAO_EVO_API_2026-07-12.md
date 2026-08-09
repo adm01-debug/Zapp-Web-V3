@@ -61,7 +61,7 @@ neste ciclo de auditoria. A investigação via MCP confirmou:
 | Título | "ETAPA 3: 401 Unauthorized — n8n credential desatualizado" |
 | Criado em | 2026-07-09 17:23:54 UTC |
 | Resolvido em | **2026-07-10 14:39:11 UTC** |
-| Causa raiz | Credential n8n `tyLhN1fGwJveaDCg` ("Evolution API - Promo Brindes") ficou com apikey stale após rotação de 2026-07-04; n8n continuou emitindo requisições com a chave antiga → burst de 401s detectado pelo `evo-401-glitchtip-feed` (job 161) |
+| Causa raiz | Credential n8n `<REDACTED — rotacionar via n8n UI>` ("Evolution API - Promo Brindes") ficou com apikey stale após rotação de 2026-07-04; n8n continuou emitindo requisições com a chave antiga → burst de 401s detectado pelo `evo-401-glitchtip-feed` (job 161) |
 | Correção aplicada | Atualização manual do campo `api_key` no n8n UI em 2026-07-10 |
 | Evidências | `evo.evolution_alerts` (SELECT): alerta `credential_mismatch` com `resolved_at='2026-07-10T14:39:11'`; `evo.evolution_ip_watch`: **0 linhas** (sem eventos 401 ativos) |
 

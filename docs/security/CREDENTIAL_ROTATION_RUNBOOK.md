@@ -12,7 +12,7 @@
 
 - Portainer > stack evolution > env AUTHENTICATION_API_KEY
 - Atualizar: zapp.whatsapp_connections, evo.evolution_instance_credentials
-- Credencial n8n: tyLhN1fGwJveaDCg
+- Credencial n8n: <REDACTED — rotacionar via n8n UI>
 
 ## Supabase JWT
 
