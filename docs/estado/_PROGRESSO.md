@@ -575,3 +575,39 @@ Confirma a tese do 1C: a camada de componentes esta fortemente inflada. As saida
 Saidas geradas: docs/estado/13 a 22 (10 arquivos).
 
 ### Proximo: bloco 1D (src/hooks + adapters + integrations) e 1E (src/services + lib + utils + types)
+
+---
+
+## BLOCO 1D — iniciado 2026-08-09 (src/hooks + adapters + integrations)
+
+Fatiamento (9 batches; template de delegacao /tmp/tmpl-1c.txt; listas /tmp/lista-8*.txt):
+
+| Batch | Escopo | Arq | Saida | Status |
+|---|---|---|---|---|
+| 8A | hooks raiz chunk 1/4 | 58 | 23-hooks-raiz-1.md | [x] 32b7e77cf (1 orfao) |
+| 8B | hooks raiz chunk 2/4 | 59 | 24-hooks-raiz-2.md | [x] 32b7e77cf (2 orfaos) |
+| 8C | hooks raiz chunk 3/4 | 56 | 25-hooks-raiz-3.md | [ ] rodando |
+| 8D | hooks raiz chunk 4/4 | 59 | 26-hooks-raiz-4.md | [ ] rodando |
+| 8E | hooks subdirs (admin, media-library, gmail, ...) | 46 | 27-hooks-subdirs.md | [ ] |
+| 8F1 | hooks __tests__ metade 1 | 57 | 28-hooks-tests-1.md | [ ] |
+| 8F2 | hooks __tests__ metade 2 | 56 | 29-hooks-tests-2.md | [ ] |
+| 8G | integrations (sem types.ts gerado 69k) | 31 | 30-integrations.md | [ ] |
+| 8H | adapters + integrations __tests__ | 13 | 31-adapters-e-integrations-tests.md | [ ] |
+
+Nota: `src/integrations/supabase/types.ts` (69.076 linhas) e GERADO — registrado numa
+linha, nao auditado. hooks tem baixissima taxa de orfao (1-2 por chunk) vs 32% de components:
+sao a camada de logica, de fato usada.
+
+### Item queue_positions (issues #1000/#1001) — diagnostico fechado, decisao pendente
+
+Subsistema de fila/roteamento DORMENTE: 0 filas, 0 membros, 0 regras, 0/20.743 contatos
+atribuidos, sticky vazia, `queue-rebalance-every-5min` nao agendado. `ticket-router`
+(manual, admin-gated) existe mas sem filas retorna sempre unassigned. Nada escreve
+`queue_positions`. NAO implementado — e decisao de produto (ligar modelo de fila vs.
+declarar dormente). Detalhe em #1001 e docs/estado/11.
+
+### Orfaos 1C consolidados
+
+docs/estado/_ORFAOS-1C-consolidado.md: dos ~189, so 7 acionaveis (4 VERIFICAR + 3
+NAO_REMOVER); resto e encapsulamento SEGURO. Classificacao completa dos ~122 ORFAO-only
+pendente como job delegado (nao rodado junto com 1D p/ nao sobrecarregar).
