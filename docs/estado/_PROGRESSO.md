@@ -275,3 +275,25 @@ Achados relevantes:
 - `lazyWithRetry` envolve todas as importações dinâmicas com retry automático
 - 16 páginas órfãs têm handlers vazios / return null / throw not implemented
 
+
+---
+
+## Bloco 1A concluído — 2026-08-09
+
+`docs/estado/01-frontend.md` — 888 linhas.
+
+**Saída:**
+- Shell da aplicação: `main.tsx`, `AppProviders.tsx` (7 providers documentados), `lazyWithRetry.ts`, `ErrorBoundary.tsx`
+- 55 rotas mapeadas: AppRoutes (24), DebugRoutes (3), AdminRoutes (28)
+- Guards: `ProtectedRoute` em dois modos, roles `admin/dev/supervisor/manager`
+- 20 páginas ativas detalhadas: Papel, Funcionalidades, Chama, Chamado por, Correlações, Implementação, Runtime
+- 128 páginas órfãs tabeladas (86% do total de arquivos em `src/pages/`)
+
+**Achados relevantes:**
+- 128/148 arquivos em `src/pages/` são órfãos — não referenciados em nenhuma rota
+- 16 páginas órfãs com issues (handlers vazios, return null, throw not implemented)
+- `Index.tsx` e `QueuesComparison.tsx`: `return null` — stubs
+- `InboxPage.tsx`: 7 linhas, shell vazio
+- Abordagem por extração + batches (script Node + code_task por grupo) contornou o limite de contexto do Claude Code (148 arquivos em uma só chamada explodiu o contexto)
+
+**Próximo: Bloco 1B** — `src/features` (12 módulos de domínio)
