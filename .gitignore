@@ -255,7 +255,11 @@ lalamove_*
 Credencias*
 Credenciais*
 deno.lock
-graphify-out/
+graphify-out/*
+!graphify-out/GRAPH_REPORT.md
+!graphify-out/manifest.json
+!graphify-out/.graphify_labels.json
+!graphify-out/.graphify_labels.json.sig
 
 .vercel
 .env*

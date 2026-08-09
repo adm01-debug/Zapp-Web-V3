@@ -139,7 +139,7 @@
     "vite-plugin-compression2": "1.4.0",
     "vite-plugin-pwa": "^0.21.0",
     "web-vitals": "^6.0.1",
-    "xlsx": "0.18.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^4.4.3"
   },
   "devDependencies": {

@@ -1,11 +1,12 @@
 # =============================================================================
 # docker-compose.evolution.canonical.yml — STACK 25 (evolution) — COMPOSE CANÔNICO
 # =============================================================================
-# Data de canonicidade : 2026-08-08
+# Data de canonicidade : 2026-08-08 (deploy 23:58Z — stack 25 REAL)
 # Estado de referência  : stack 25 REAL em produção (VPS AtomicaBR) — key v6,
-#                         WEBHOOK_EVENTS_ERRORS=false (fix etapa 2), errors=false
+#                         WEBHOOK_EVENTS_ERRORS=false (fix etapa 2), errors=false,
+#                         CORS restrito (T7) + metrics_password_v3 (rotação v2→v3)
 # IMAGE_DIGEST (OCI)    :
-#   ghcr.io/adm01-debug/zapp-web-v3/evolution-api-custom@sha256:1e12bec1eeeb4af933b6c4bb696941ea46c4d383340e562e08f2a4c4aa9ee40e
+#   ghcr.io/adm01-debug/zapp-web-v3/evolution-api-custom@sha256:66bb579a5533dacbbf116893c3c8c10f6909c925269b7245679627ff75d2dafb
 # Base de construção    : estado real (08/08/2026) + estrutura de
 #                         auditorias/pastas-trabalho/evolution_stack25_align/docker-compose.new.yml
 #                         (9d110bc7 — DESATUALIZADO, apenas referência estrutural)
@@ -14,8 +15,9 @@
 #   ✅ evolution_api_key_v6_20260808 -> target evolution_api_key_v4_20260704 (rotação v5→v6, etapa 5)
 #   ✅ WEBHOOK_EVENTS_ERRORS=false (fix etapa 2 — Sentry cobre erros)
 #   ✅ SEM WEBHOOK_EVENTS_ERRORS_WEBHOOK (webhook de erro removido; proxy descarta POSTs sem assinatura)
-#   ⏳ CORS_ORIGIN=* — MANTER (fix outage F2-07b); restrição a lista de origens
-#      é a ETAPA 81 (D — Evolução), PENDENTE. Não alterar até execução da etapa 81.
+#   ✅ CORS_ORIGIN restrito a 6 origens (etapa 81/T7 — aplicado em prod 23:58Z 08/08)
+#   ✅ metrics_password_v3 -> target metrics_password_v2 (rotação v2→v3)
+#   ✅ IMAGE_DIGEST/OCI_DIGEST = sha256:66bb579a... (build T7 CORS)
 #   ✅ init:true, read_only:true, cap_drop ALL, no-new-privileges (hardening B3)
 #   ✅ healthcheck curl /manager/health (interval 10s)
 #   ✅ deploy: node.role==manager, memory 2G, failure_action rollback, order stop-first
@@ -27,7 +29,7 @@ version: "3.7"
 services:
 
   evolution:
-    image: ghcr.io/adm01-debug/zapp-web-v3/evolution-api-custom@sha256:1e12bec1eeeb4af933b6c4bb696941ea46c4d383340e562e08f2a4c4aa9ee40e
+    image: ghcr.io/adm01-debug/zapp-web-v3/evolution-api-custom@sha256:66bb579a5533dacbbf116893c3c8c10f6909c925269b7245679627ff75d2dafb
     init: true
     read_only: true
 
@@ -41,7 +43,8 @@ services:
       - source: evolution_api_key_v6_20260808
         target: evolution_api_key_v4_20260704
       - evolution_db_uri_evolution_app_v1
-      - metrics_password_v2
+      - source: metrics_password_v3
+        target: metrics_password_v2
       - r2_s3_access_key_v2
       - r2_s3_secret_key_v2
       - rabbitmq_url_evolution_v1
@@ -76,6 +79,9 @@ services:
       # --- Autenticação (key global via arquivo — secret v6, target v4) ---
       - AUTHENTICATION_API_KEY_FILE=/run/secrets/evolution_api_key_v4_20260704
       - AUTHENTICATION_EXCLUDE_INSTANCES=manager
+      # --- Imagem (digest T7 CORS — build 66bb579a) ---
+      - IMAGE_DIGEST=sha256:66bb579a5533dacbbf116893c3c8c10f6909c925269b7245679627ff75d2dafb
+      - OCI_DIGEST=sha256:66bb579a5533dacbbf116893c3c8c10f6909c925269b7245679627ff75d2dafb
       # --- Cache ---
       - CACHE_REDIS_SAVE_INSTANCES=true
       - CACHE_LOCAL_ENABLED=true
@@ -83,8 +89,8 @@ services:
       - DATABASE_SAVE_MESSAGE_UPDATE=false
       - DATABASE_SAVE_DATA_HISTORIC=false
       - DATABASE_CONNECTION_CLIENT_NAME=evolution
-      # --- CORS: MANTER * até etapa 81 (fix outage F2-07b; callers sem Origin quebram) ---
-      - CORS_ORIGIN=*
+      # --- CORS: restrito a 6 origens (etapa 81/T7 — aplicado em prod 23:58Z 08/08) ---
+      - CORS_ORIGIN=https://zapp.atomicabr.com.br,https://zapp-web-v3.vercel.app,https://zappweb.app.br,https://www.zappweb.app.br,https://whats-your-line.lovable.app,https://evolution.atomicabr.com.br
       # --- RabbitMQ (URI via arquivo) ---
       - RABBITMQ_ENABLED=true
       - RABBITMQ_URI_FILE=/run/secrets/rabbitmq_url_evolution_v1
@@ -156,7 +162,7 @@ services:
       - traefik.http.middlewares.evo-sec.headers.permissionsPolicy=camera=(), microphone=(), geolocation=(), payment=()
       - traefik.http.middlewares.evo-sec.headers.customResponseHeaders.Server=
       - traefik.http.middlewares.evo-sec.headers.customResponseHeaders.X-Powered-By=
-      - com.atomicabr.audit=canonical-20260711-T3-makeBucket-T5a-tr-d-no-plaintext-apikey|20260724-chats-historic-ai-n8n-enabled-rmq21|20260802-sentry-cloud-migration-v2|20260805-buildtime-image-B1-hardening-B3|20260805-B3-readonly-tmpfs-nnp-health|20260805-F2-09-secret-v5-F2-14-F2-21-image|20260806-F2-07-cors-origin-fixed|20260806-F2-07b-cors-origin-restore-wildcard-outage-fix|20260808-key-v6|20260808-etapa2-webhook-errors-off|20260808-canonical-v1
+      - com.atomicabr.audit=canonical-20260711-T3-makeBucket-T5a-tr-d-no-plaintext-apikey|20260724-chats-historic-ai-n8n-enabled-rmq21|20260802-sentry-cloud-migration-v2|20260805-buildtime-image-B1-hardening-B3|20260805-B3-readonly-tmpfs-nnp-health|20260805-F2-09-secret-v5-F2-14-F2-21-image|20260806-F2-07-cors-origin-fixed|20260806-F2-07b-cors-origin-restore-wildcard-outage-fix|20260808-key-v6|20260808-etapa2-webhook-errors-off|20260808-canonical-v1|20260808-CORS-T7-restrito|20260808-metrics-password-v3
       - com.atomicabr.tier=critical
       - com.centurylinklabs.watchtower.enable=false
 
@@ -170,7 +176,7 @@ secrets:
     external: true
   evolution_db_uri_evolution_app_v1:
     external: true
-  metrics_password_v2:
+  metrics_password_v3:
     external: true
   r2_s3_access_key_v2:
     external: true

@@ -157,29 +157,15 @@ ALTER TABLE zapp.instance_registry
     'connected','disconnected','qr_pending','error',
     'connecting','reconnecting','degraded']));
 
--- 7. RLS service_only policies
-DO $$ BEGIN
-  IF NOT EXISTS(SELECT 1 FROM pg_policy WHERE polname='service_only'
-    AND polrelid='evo.evolution_traefik_401_stats'::regclass) THEN
-    CREATE POLICY "service_only" ON evo.evolution_traefik_401_stats
-      FOR ALL TO service_role USING(true) WITH CHECK(true);
-  END IF;
-  IF NOT EXISTS(SELECT 1 FROM pg_policy WHERE polname='service_only'
-    AND polrelid='zapp.cron_inventory'::regclass) THEN
-    CREATE POLICY "service_only" ON zapp.cron_inventory
-      FOR ALL TO service_role USING(true) WITH CHECK(true);
-  END IF;
-  IF NOT EXISTS(SELECT 1 FROM pg_policy WHERE polname='service_only'
-    AND polrelid='zapp.ai_function_metrics'::regclass) THEN
-    CREATE POLICY "service_only" ON zapp.ai_function_metrics
-      FOR ALL TO service_role USING(true) WITH CHECK(true);
-  END IF;
-  IF NOT EXISTS(SELECT 1 FROM pg_policy WHERE polname='service_only'
-    AND polrelid='zapp.processed_requests'::regclass) THEN
-    CREATE POLICY "service_only" ON zapp.processed_requests
-      FOR ALL TO service_role USING(true) WITH CHECK(true);
-  END IF;
-END $$;
+-- 7. RLS service_only policies (idempotente via ops.safe_create_policy)
+SELECT ops.safe_create_policy('evo','evolution_traefik_401_stats','service_only',
+  'FOR ALL TO service_role USING(true) WITH CHECK(true)');
+SELECT ops.safe_create_policy('zapp','cron_inventory','service_only',
+  'FOR ALL TO service_role USING(true) WITH CHECK(true)');
+SELECT ops.safe_create_policy('zapp','ai_function_metrics','service_only',
+  'FOR ALL TO service_role USING(true) WITH CHECK(true)');
+SELECT ops.safe_create_policy('zapp','processed_requests','service_only',
+  'FOR ALL TO service_role USING(true) WITH CHECK(true)');
 
 -- 8. Cron adjustments
 UPDATE cron.job SET active=false WHERE jobname='alert-consumer-halt';
