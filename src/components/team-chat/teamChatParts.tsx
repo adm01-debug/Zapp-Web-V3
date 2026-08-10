@@ -5,6 +5,7 @@ import { format, isToday, isYesterday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { TeamMessage } from '@/hooks/useTeamChat';
+import { resolvePublicMediaUrl } from '@/lib/useMediaUrl';
 
 /** format Time component for the team chat section. */
 export function formatTime(dateStr: string) {
@@ -20,16 +21,29 @@ export function formatDateSep(dateStr: string) {
 }
 
 /** Media Content component for the team chat section. */
-export const MediaContent = memo(function MediaContent({ msg }: { msg: TeamMessage }) {
-  if (!msg.media_url) return null;
+export const MediaContent = memo(function MediaContent({
+  msg,
+  resolvedUrl,
+}: {
+  msg: TeamMessage;
+  resolvedUrl?: string | null;
+}) {
+  const url =
+    resolvedUrl ??
+    resolvePublicMediaUrl({
+      mediaBucket: msg.media_bucket,
+      mediaPath: msg.media_path,
+      mediaUrl: msg.media_url,
+    });
+  if (!url) return null;
   switch (msg.media_type) {
     case 'image':
     case 'sticker':
     case 'emoji':
       return (
-        <a href={msg.media_url} target="_blank" rel="noopener noreferrer">
+        <a href={url} target="_blank" rel="noopener noreferrer">
           <img
-            src={msg.media_url}
+            src={url}
             alt={
               msg.media_type === 'sticker' || msg.media_type === 'emoji'
                 ? 'Figurinha'
@@ -45,14 +59,14 @@ export const MediaContent = memo(function MediaContent({ msg }: { msg: TeamMessa
         </a>
       );
     case 'video':
-      return <video src={msg.media_url} controls className="max-h-48 max-w-full rounded-lg" />;
+      return <video src={url} controls className="max-h-48 max-w-full rounded-lg" />;
     case 'audio':
     case 'audio_meme':
-      return <audio src={msg.media_url} controls className="max-w-full" />;
+      return <audio src={url} controls className="max-w-full" />;
     case 'document':
       return (
         <a
-          href={msg.media_url}
+          href={url}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2 rounded-lg bg-muted/30 p-2 transition-colors hover:bg-muted/50"

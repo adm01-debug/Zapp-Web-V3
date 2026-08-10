@@ -11,7 +11,13 @@ import { toast } from 'sonner';
 
 interface TeamFileUploaderProps {
   conversationId: string;
-  onFileSent: (mediaUrl: string, mediaType: string, fileName: string) => void;
+  onFileSent: (
+    mediaUrl: string,
+    mediaType: string,
+    fileName: string,
+    mediaBucket: string,
+    mediaPath: string
+  ) => void;
   disabled?: boolean;
 }
 
@@ -75,9 +81,11 @@ export function TeamFileUploader({ conversationId, onFileSent, disabled }: TeamF
       onFileSent(
         (await getSignedMediaUrl('team-chat-files', path, 604800)) ?? '',
         mediaType,
-        file.name
+        file.name,
+        'team-chat-files',
+        path
       );
-      
+
       URL.revokeObjectURL(preview.url);
       setPreview(null);
     } catch (err) {
@@ -125,7 +133,7 @@ export function TeamFileUploader({ conversationId, onFileSent, disabled }: TeamF
         onChange={handleFileSelect}
         aria-label="Selecionar arquivo para enviar"
       />
-      
+
       <Button
         aria-label="Enviar arquivo"
         size="icon"
@@ -135,32 +143,48 @@ export function TeamFileUploader({ conversationId, onFileSent, disabled }: TeamF
         disabled={disabled}
         title="Enviar arquivo"
       >
-        <Paperclip className="w-4 h-4" />
+        <Paperclip className="h-4 w-4" />
       </Button>
 
       {/* Preview overlay */}
       {preview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="bg-card rounded-xl p-4 max-w-sm w-full mx-4 space-y-3 shadow-xl border border-border" role="dialog" aria-label="Preview do arquivo">
+          <div
+            className="mx-4 w-full max-w-sm space-y-3 rounded-xl border border-border bg-card p-4 shadow-xl"
+            role="dialog"
+            aria-label="Preview do arquivo"
+          >
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-semibold text-foreground">Enviar arquivo</h4>
-              <Button aria-label="Cancelar envio" size="icon" variant="ghost" className="h-6 w-6" onClick={handleCancel}>
-                <X className="w-4 h-4" />
+              <Button
+                aria-label="Cancelar envio"
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6"
+                onClick={handleCancel}
+              >
+                <X className="h-4 w-4" />
               </Button>
             </div>
 
-            <div className="rounded-lg overflow-hidden bg-muted/30 border border-border/30">
+            <div className="overflow-hidden rounded-lg border border-border/30 bg-muted/30">
               {preview.file.type.startsWith('image/') && safePreviewUrl ? (
-                <img src={safePreviewUrl} alt="Pré-visualização do arquivo" className="max-h-48 w-full object-contain" />
+                <img
+                  src={safePreviewUrl}
+                  alt="Pré-visualização do arquivo"
+                  className="max-h-48 w-full object-contain"
+                />
               ) : (
                 <div className="flex items-center gap-3 p-4">
                   {preview.file.type.startsWith('video/') ? (
-                    <FileText className="w-8 h-8 text-muted-foreground" />
+                    <FileText className="h-8 w-8 text-muted-foreground" />
                   ) : (
-                    <FileText className="w-8 h-8 text-muted-foreground" />
+                    <FileText className="h-8 w-8 text-muted-foreground" />
                   )}
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{preview.file.name}</p>
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {preview.file.name}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {(preview.file.size / 1024).toFixed(0)} KB
                     </p>
@@ -170,11 +194,16 @@ export function TeamFileUploader({ conversationId, onFileSent, disabled }: TeamF
             </div>
 
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={handleCancel} disabled={uploading}>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={handleCancel}
+                disabled={uploading}
+              >
                 Cancelar
               </Button>
               <Button className="flex-1" onClick={handleUpload} disabled={uploading}>
-                {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                {uploading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
                 Enviar
               </Button>
             </div>

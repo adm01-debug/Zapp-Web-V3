@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { resolvePublicMediaUrl } from '@/lib/useMediaUrl';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -48,21 +49,33 @@ function formatDateLabel(date: Date) {
 }
 
 /** Transcription Contact Group component for the transcriptions section. */
-export function TranscriptionContactGroup({ contact, transcriptions, isExpanded, onToggle, index }: TranscriptionContactGroupProps) {
+export function TranscriptionContactGroup({
+  contact,
+  transcriptions,
+  isExpanded,
+  onToggle,
+  index,
+}: TranscriptionContactGroupProps) {
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const dateGroups = groupByDate(transcriptions);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+    >
       <Collapsible open={isExpanded} onOpenChange={onToggle}>
-        <Card className="border border-border/50 bg-card/80 backdrop-blur-sm hover:border-primary/30 transition-colors">
+        <Card className="border border-border/50 bg-card/80 backdrop-blur-sm transition-colors hover:border-primary/30">
           <CollapsibleTrigger className="w-full">
             <CardHeader className="py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Avatar className="w-10 h-10">
+                  <Avatar className="h-10 w-10">
                     <AvatarImage src={contact.avatar || undefined} alt={contact.name} />
-                    <AvatarFallback className="bg-primary/10 text-primary">{contact.name.charAt(0).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      {contact.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
                   </Avatar>
                   <div className="text-left">
                     <CardTitle className="text-base font-medium">{contact.name}</CardTitle>
@@ -70,9 +83,15 @@ export function TranscriptionContactGroup({ contact, transcriptions, isExpanded,
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Badge variant="secondary" className="gap-1"><FileText className="w-3 h-3" />{transcriptions.length} transcrições</Badge>
-                  <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                  <Badge variant="secondary" className="gap-1">
+                    <FileText className="h-3 w-3" />
+                    {transcriptions.length} transcrições
+                  </Badge>
+                  <motion.div
+                    animate={{ rotate: isExpanded ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
                   </motion.div>
                 </div>
               </div>
@@ -80,30 +99,70 @@ export function TranscriptionContactGroup({ contact, transcriptions, isExpanded,
           </CollapsibleTrigger>
 
           <CollapsibleContent>
-            <CardContent className="pt-0 space-y-4">
+            <CardContent className="space-y-4 pt-0">
               {dateGroups.map(({ date, items }) => (
                 <div key={date.toISOString()} className="space-y-2">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Calendar className="w-3 h-3" /><span className="font-medium">{formatDateLabel(date)}</span>
+                    <Calendar className="h-3 w-3" />
+                    <span className="font-medium">{formatDateLabel(date)}</span>
                   </div>
-                  <div className="space-y-2 pl-4 border-l-2 border-border/50">
+                  <div className="space-y-2 border-l-2 border-border/50 pl-4">
                     {items.map((item) => (
-                      <motion.div key={item.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="bg-muted/30 rounded-lg p-3 space-y-2">
+                      <motion.div
+                        key={item.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="space-y-2 rounded-lg bg-muted/30 p-3"
+                      >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Clock className="w-3 h-3" />
-                            <span>{format(new Date(item.created_at), 'HH:mm', { locale: ptBR })}</span>
+                            <Clock className="h-3 w-3" />
+                            <span>
+                              {format(new Date(item.created_at), 'HH:mm', { locale: ptBR })}
+                            </span>
                             <span className="text-muted-foreground/50">•</span>
-                            <span>{formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: ptBR })}</span>
+                            <span>
+                              {formatDistanceToNow(new Date(item.created_at), {
+                                addSuffix: true,
+                                locale: ptBR,
+                              })}
+                            </span>
                           </div>
-                          {item.media_url && (
-                            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setPlayingAudio(playingAudio === item.id ? null : item.id)}>
-                              {playingAudio === item.id ? <><Volume2 className="w-3 h-3" />Pausar</> : <><Play className="w-3 h-3" />Ouvir</>}
+                          {resolvePublicMediaUrl({ mediaUrl: item.media_url }) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 gap-1 text-xs"
+                              onClick={() =>
+                                setPlayingAudio(playingAudio === item.id ? null : item.id)
+                              }
+                            >
+                              {playingAudio === item.id ? (
+                                <>
+                                  <Volume2 className="h-3 w-3" />
+                                  Pausar
+                                </>
+                              ) : (
+                                <>
+                                  <Play className="h-3 w-3" />
+                                  Ouvir
+                                </>
+                              )}
                             </Button>
                           )}
                         </div>
-                        <p className="text-sm text-foreground/90 italic leading-relaxed">"{item.transcription}"</p>
-                        {playingAudio === item.id && item.media_url && <audio src={item.media_url} autoPlay onEnded={() => setPlayingAudio(null)} className="hidden" />}
+                        <p className="text-sm italic leading-relaxed text-foreground/90">
+                          "{item.transcription}"
+                        </p>
+                        {playingAudio === item.id &&
+                          resolvePublicMediaUrl({ mediaUrl: item.media_url }) && (
+                            <audio
+                              src={resolvePublicMediaUrl({ mediaUrl: item.media_url }) ?? ''}
+                              autoPlay
+                              onEnded={() => setPlayingAudio(null)}
+                              className="hidden"
+                            />
+                          )}
                       </motion.div>
                     ))}
                   </div>

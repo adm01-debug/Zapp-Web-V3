@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState, useRef, memo } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useSignedMediaUrlBatch } from '@/lib/useMediaUrl';
 import { ErrorBoundary } from 'react-error-boundary';
 import { getLogger } from '@/lib/logger';
 import { List, useDynamicRowHeight } from 'react-window';
@@ -66,34 +68,41 @@ function formatDateSep(dateStr: string) {
   return format(d, "d 'de' MMMM", { locale: ptBR });
 }
 
-const MediaContent = memo(function MediaContent({ msg }: { msg: TeamMessage }) {
-  if (!msg.media_url) return null;
+const MediaContent = memo(function MediaContent({
+  msg,
+  resolvedUrl,
+}: {
+  msg: TeamMessage;
+  resolvedUrl?: string | null;
+}) {
+  const url = resolvedUrl ?? msg.media_url;
+  if (!url) return null;
   switch (msg.media_type) {
     case 'image':
     case 'sticker':
     case 'emoji':
       return (
         <img
-          src={msg.media_url}
+          src={url}
           alt="media"
           className={cn(
             'max-h-48 cursor-pointer rounded-lg object-contain',
             msg.media_type === 'sticker' || msg.media_type === 'emoji' ? 'h-24 w-24' : 'max-w-full'
           )}
           onClick={() => {
-            if (msg.media_url) window.open(msg.media_url, '_blank', 'noopener,noreferrer');
+            if (url) window.open(url, '_blank', 'noopener,noreferrer');
           }}
         />
       );
     case 'video':
-      return <video src={msg.media_url} controls className="max-h-48 max-w-full rounded-lg" />;
+      return <video src={url} controls className="max-h-48 max-w-full rounded-lg" />;
     case 'audio':
     case 'audio_meme':
-      return <audio src={msg.media_url} controls className="max-w-full" />;
+      return <audio src={url} controls className="max-w-full" />;
     case 'document':
       return (
         <a
-          href={msg.media_url}
+          href={url}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2 rounded-lg bg-muted/30 p-2 transition-colors hover:bg-muted/50"
@@ -171,6 +180,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
     isToggling,
   } = useTeamMessageReactions(conversation.id);
   const dynamicRowHeight = useDynamicRowHeight({ defaultRowHeight: 100, key: conversation.id });
+  const { signedUrls } = useSignedMediaUrlBatch(filteredMessages, supabase);
   const itemHeights = useRef<Record<number, number>>({});
 
   // Keyboard shortcuts for chat
@@ -223,7 +233,14 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
     }
     // reset cache if needed (handled by dynamicRowHeight key mostly)
     itemHeights.current = {};
-  }, [filteredMessages, conversation.id, profile, updateStatusMutation, isNearBottomRef, scrollRef]);
+  }, [
+    filteredMessages,
+    conversation.id,
+    profile,
+    updateStatusMutation,
+    isNearBottomRef,
+    scrollRef,
+  ]);
 
   useEffect(() => {
     // If we are at the bottom, stay at the bottom
@@ -589,7 +606,12 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                                       </div>
                                     ) : (
                                       <>
-                                        {hasMedia && <MediaContent msg={msg} />}
+                                        {hasMedia && (
+                                          <MediaContent
+                                            msg={msg}
+                                            resolvedUrl={signedUrls.get(msg.id)}
+                                          />
+                                        )}
                                         {msg.content &&
                                           (!hasMedia || msg.media_type === 'document') && (
                                             <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
