@@ -151,7 +151,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download bundle + baileys pack (baileys ${{ inputs.baileys_version || '6.7.24' }})
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: evo-main-${{ inputs.baileys_version || '6.7.24' }}
           path: /tmp/evo-bundle/
