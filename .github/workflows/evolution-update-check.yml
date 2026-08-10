@@ -1,0 +1,297 @@
+name: "🔄 Evolution API — Update Check & PR"
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_version:
+        description: 'Versao alvo (vazio = busca ultima stable do upstream)'
+        required: false
+        default: ''
+        type: string
+      baileys_version:
+        description: 'Versao do Baileys para o build'
+        required: false
+        default: '6.7.24'
+        type: string
+      force:
+        description: 'forcar build mesmo sem nova versao'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+permissions:
+  contents: write
+  packages: read
+  pull-requests: write
+  actions: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: adm01-debug/zapp-web-v3/evolution-api-custom
+  CURRENT_VERSION: '2.3.7'
+  STACK_FILE: infra/evolution/docker-compose.evolution.yml
+  BUILD_WORKFLOW: publish-evolution-api-custom.yml
+
+jobs:
+  check-and-update:
+    name: Check upstream & open update PR
+    runs-on: [self-hosted, Linux, X64, vps-zapp]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Detect target version
+        id: version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TARGET="${{ inputs.target_version }}"
+          if [ -z "$TARGET" ]; then
+            TARGET=$(gh api \
+              repos/evolution-foundation/evolution-api/releases/latest \
+              --jq '.tag_name | ltrimstr("v")')
+          fi
+          echo "target=$TARGET" >> "$GITHUB_OUTPUT"
+          echo "Versao detectada: $TARGET (atual: ${{ env.CURRENT_VERSION }})"
+
+      - name: Guard - skip if already current
+        if: steps.version.outputs.target == env.CURRENT_VERSION && inputs.force == 'false'
+        run: |
+          echo "Evolution API ja esta na versao ${{ steps.version.outputs.target }}. Nada a fazer."
+          echo "Use force=true para forcar rebuild da mesma versao."
+          exit 0
+
+      - name: Guard - block 2.4.0+ (licensing breaking change)
+        run: |
+          TARGET="${{ steps.version.outputs.target }}"
+          MAJOR=$(echo "$TARGET" | cut -d. -f1)
+          MINOR=$(echo "$TARGET" | cut -d. -f2)
+          if [ "$MAJOR" -gt 2 ] || { [ "$MAJOR" -eq 2 ] && [ "$MINOR" -ge 4 ]; }; then
+            echo "::error::BLOQUEADO: v$TARGET exige ativacao de licenca contra servidor Evolution Foundation."
+            echo "::error::Toda instancia sem licenca retorna HTTP 503 LICENSE_REQUIRED apos upgrade."
+            echo "::error::Leia: https://github.com/evolution-foundation/evolution-api/releases/tag/2.4.0-rc1"
+            echo "::error::Para prosseguir com 2.4.x: remova este guard explicitamente no workflow."
+            exit 1
+          fi
+          echo "Versao $TARGET: sem breaking changes de licenca. Prosseguindo."
+
+      - name: Resolve upstream base_image digest
+        id: base
+        run: |
+          TARGET="${{ steps.version.outputs.target }}"
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin 2>/dev/null || true
+          docker pull "evoapicloud/evolution-api:${TARGET}" 2>/dev/null || true
+          DIGEST=$(docker image inspect \
+            --format '{{index .RepoDigests 0}}' \
+            "evoapicloud/evolution-api:${TARGET}" 2>/dev/null | cut -d@ -f2 || echo "")
+          if [ -n "$DIGEST" ]; then
+            BASE_IMAGE="evoapicloud/evolution-api@${DIGEST}"
+          else
+            BASE_IMAGE="evoapicloud/evolution-api:${TARGET}"
+            echo "::warning::Nao foi possivel resolver digest imutavel; usando tag mutable $BASE_IMAGE"
+          fi
+          echo "base_image=$BASE_IMAGE" >> "$GITHUB_OUTPUT"
+          echo "base_image=$BASE_IMAGE"
+
+      - name: Trigger publish-evolution-api-custom.yml
+        id: trigger
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TARGET="${{ steps.version.outputs.target }}"
+          BAILEYS="${{ inputs.baileys_version }}"
+          BASE_IMAGE="${{ steps.base.outputs.base_image }}"
+          BEFORE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          echo "before=$BEFORE" >> "$GITHUB_OUTPUT"
+          gh workflow run "${{ env.BUILD_WORKFLOW }}" \
+            --repo "${{ github.repository }}" \
+            --ref main \
+            -f "evolution_ref=${TARGET}" \
+            -f "baileys_version=${BAILEYS}" \
+            -f "base_image=${BASE_IMAGE}"
+          echo "Workflow disparado: evolution_ref=$TARGET baileys=$BAILEYS"
+          echo "Aguardando 25s para o run aparecer na API..."
+          sleep 25
+
+      - name: Get triggered run ID
+        id: run_id
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BEFORE="${{ steps.trigger.outputs.before }}"
+          MAX=8
+          COUNT=0
+          while [ $COUNT -lt $MAX ]; do
+            RUN_ID=$(gh api \
+              "repos/${{ github.repository }}/actions/workflows/${{ env.BUILD_WORKFLOW }}/runs?per_page=5" \
+              --jq ".workflow_runs[] | select(.created_at > \"$BEFORE\") | .id" \
+              | head -1)
+            if [ -n "$RUN_ID" ]; then
+              echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+              echo "Run ID encontrado: $RUN_ID"
+              break
+            fi
+            COUNT=$((COUNT + 1))
+            echo "Run nao encontrado (tentativa $COUNT/$MAX), aguardando 15s..."
+            sleep 15
+          done
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::Run ID nao encontrado apos $MAX tentativas"
+            exit 1
+          fi
+
+      - name: Wait for build to complete (max 25min)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RUN_ID="${{ steps.run_id.outputs.run_id }}"
+          MAX=50
+          COUNT=0
+          while [ $COUNT -lt $MAX ]; do
+            RESULT=$(gh api "repos/${{ github.repository }}/actions/runs/${RUN_ID}" \
+              --jq '[.status, .conclusion] | join(":")')
+            STATUS=$(echo "$RESULT" | cut -d: -f1)
+            CONCLUSION=$(echo "$RESULT" | cut -d: -f2)
+            echo "[$COUNT/$MAX] status=$STATUS conclusion=$CONCLUSION"
+            if [ "$STATUS" = "completed" ]; then
+              if [ "$CONCLUSION" = "success" ]; then
+                echo "Build concluido com sucesso!"
+                break
+              else
+                echo "::error::Build falhou: conclusion=$CONCLUSION"
+                echo "::error::Ver: https://github.com/${{ github.repository }}/actions/runs/${RUN_ID}"
+                exit 1
+              fi
+            fi
+            COUNT=$((COUNT + 1))
+            sleep 30
+          done
+          if [ $COUNT -ge $MAX ]; then
+            echo "::error::Timeout: build nao completou em 25min"
+            exit 1
+          fi
+
+      - name: Resolve new custom image digest
+        id: digest
+        run: |
+          TARGET="${{ steps.version.outputs.target }}"
+          BAILEYS="${{ inputs.baileys_version }}"
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TARGET}-baileys-${BAILEYS}"
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin 2>/dev/null || true
+          docker pull "$IMAGE"
+          DIGEST=$(docker image inspect --format '{{index .RepoDigests 0}}' "$IMAGE" | cut -d@ -f2)
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+          echo "Novo digest: $DIGEST"
+
+      - name: Update files and open PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET: ${{ steps.version.outputs.target }}
+          DIGEST: ${{ steps.digest.outputs.digest }}
+          OLD_VER: ${{ env.CURRENT_VERSION }}
+          RUN_ID: ${{ steps.run_id.outputs.run_id }}
+          BAILEYS: ${{ inputs.baileys_version }}
+          STACK_FILE: ${{ env.STACK_FILE }}
+          BUILD_WORKFLOW: ${{ env.BUILD_WORKFLOW }}
+          REPO: ${{ github.repository }}
+          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+        run: |
+          TODAY=$(date +%Y%m%d)
+          BRANCH="chore/evolution-api-update-${TARGET}"
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH" origin/main
+
+          node << 'NODESCRIPT'
+          const fs = require('fs');
+          const { TARGET, DIGEST, OLD_VER, TODAY, BAILEYS, STACK_FILE, BUILD_WORKFLOW } = process.env;
+
+          // --- Stack file ---
+          let stack = fs.readFileSync(STACK_FILE, 'utf8');
+          stack = stack.replace(/evolution-api-custom@sha256:[a-f0-9]+/g,
+            'evolution-api-custom@' + DIGEST);
+          stack = stack.replace(/IMAGE_DIGEST=sha256:[a-f0-9]+/g, 'IMAGE_DIGEST=' + DIGEST);
+          stack = stack.replace(/OCI_DIGEST=sha256:[a-f0-9]+/g, 'OCI_DIGEST=' + DIGEST);
+          stack = stack.replace(
+            /(com.atomicabr.audit=[^
+]+)/,
+            '$1|' + TODAY + '-evolution-update-' + TARGET
+          );
+          fs.writeFileSync(STACK_FILE, stack);
+          console.log('Stack file atualizado.');
+
+          // --- Build workflow ---
+          const WFLOW = '.github/workflows/' + BUILD_WORKFLOW;
+          let wflow = fs.readFileSync(WFLOW, 'utf8');
+          // evolution_ref default (first occurrence under evolution_ref block)
+          wflow = wflow.replace(
+            /(evolution_ref:[\s\S]{0,300}?default: ')[^']+'/,
+            (m, p) => p + TARGET + "'"
+          );
+          // EVO_REF env fallback
+          wflow = wflow.replace(
+            /(EVO_REF:.*\|\|\s*')[^']+'/,
+            '$1' + TARGET + "'"
+          );
+          // Tags :OLD_VER (not followed by -baileys)
+          const esc = OLD_VER.replace(/\./g, '\\.');
+          wflow = wflow.replace(new RegExp(':' + esc + "'(?=\\s*\\n)", 'g'), ':' + TARGET + "'");
+          wflow = wflow.replace(new RegExp(':' + esc + '-baileys-', 'g'), ':' + TARGET + '-baileys-');
+          fs.writeFileSync(WFLOW, wflow);
+          console.log('Workflow defaults atualizados.');
+          NODESCRIPT
+
+          git add "$STACK_FILE" ".github/workflows/$BUILD_WORKFLOW"
+          git diff --cached --stat
+
+          if git diff --cached --quiet; then
+            echo "Sem mudancas para commitar (digests identicos?). Abortando."
+            exit 0
+          fi
+
+          git commit -m "chore(evolution): update evolution-api-custom ${OLD_VER} -> ${TARGET}
+
+- Image: ghcr.io/$IMAGE_NAME@${DIGEST}
+- Evolution API: ${OLD_VER} -> ${TARGET}
+- Baileys: ${BAILEYS}
+- Build run: https://github.com/$REPO/actions/runs/$RUN_ID
+
+APLICAR no Portainer (Stack 25) manualmente apos o merge."
+
+          git push origin "$BRANCH" --force-with-lease 2>/dev/null || git push origin "$BRANCH"
+
+          gh pr create \
+            --repo "$REPO" \
+            --base main \
+            --head "$BRANCH" \
+            --title "chore(evolution): update evolution-api-custom ${OLD_VER} -> ${TARGET}" \
+            --body "## Evolution API Update
+
+| Campo | Valor |
+|---|---|
+| Versao anterior | \\\`${OLD_VER}\\\` |
+| Versao nova | \\\`${TARGET}\\\` |
+| Digest novo | \\\`${DIGEST}\\\` |
+| Baileys | \\\`${BAILEYS}\\\` |
+| Build run | https://github.com/$REPO/actions/runs/$RUN_ID |
+
+### Arquivos alterados
+- \\\`$STACK_FILE\\\` - image digest + IMAGE_DIGEST/OCI_DIGEST atualizados
+- \\\`.github/workflows/$BUILD_WORKFLOW\\\` - defaults evolution_ref e tags atualizados
+
+### Deploy (apos merge)
+1. Portainer -> Stack 25 (evolution) -> Edit -> Deploy
+2. Verificar health: curl https://evolution.atomicabr.com.br/manager/health
+3. Confirmar instancia wpp2 conectada
+
+### Changelog
+https://github.com/evolution-foundation/evolution-api/releases/tag/${TARGET}
+
+> Atencao: o deploy NAO acontece automaticamente. Aplicar no Portainer apos merge."
