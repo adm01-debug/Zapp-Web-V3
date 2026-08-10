@@ -1,6 +1,6 @@
 # 🛡️ Runbook de Disaster Recovery — Evolution API (banco evolution + sessão WhatsApp)
 
-**Atualizado:** 2026-08-10 (onda 10/10 + onda 2 — PITR/pgBackRest ATIVO, rotação Redis executada, UNIQUE aplicado; T19, stack 25 e ACL fase 2 pendentes de janela única; fluxo do WhatsApp DEGRADADO)
+**Atualizado:** 2026-08-10 ~17:20Z (onda 3 — T19 **MERGED** via #1017; janela única (deploy T19 + stack 25 + ACL fase 2) NÃO executada; wpp2 **aguardando scan do QR**; restore PIT com creds de leitura v2 em teste sem resultado final; cron full semanal pgBackRest pendente)
 **Escopo:** banco `evolution` (PG14 nativo da VPS — stack `postgres`/20), stack `evolution` (25, imagem `evolution-api-custom@6f78bb0d`), Redis DB 8 (sessão Baileys), R2 (mídia)
 
 > **Este é o runbook da EVOLUTION.** O `docs/DR_RUNBOOK.md` cobre o Supabase/zapp (ambiente separado).
@@ -32,7 +32,7 @@ Backups automáticos (R2 `promo-brindes-backups`, GPG):
 - **RTO:** PG **21s** (restore de dump testado) / **~8 min (471s)** (restore pgBackRest testado na ativação) · Redis **2s** (restore testado) · rollback de imagem: 1 comando
 
 ## PITR (Point-in-Time Recovery) — pgBackRest ATIVO e validado (onda 2, 10/08)
-> **Estado: ✅ ATIVO E VALIDADO (~16:25Z).** WAL archiving em produção via **pgBackRest 2.59.0** (substitui o wal-g do plano original — 10/08 15:27-15:30Z). RPO efetivo **~5 min** (`archive_timeout=300s` desde 16:15Z); RTO testado **471s (~8 min)**. **Restore point-in-time real (`--type=time` / `recovery_target_time`) em teste na onda 2 — sem resultado final** (pendência datada 10/08; procedimento padrão abaixo).
+> **Estado: ✅ ATIVO E VALIDADO (~16:25Z).** WAL archiving em produção via **pgBackRest 2.59.0** (substitui o wal-g do plano original — 10/08 15:27-15:30Z). RPO efetivo **~5 min** (`archive_timeout=300s` desde 16:15Z); RTO testado **471s (~8 min)**. **Restore point-in-time real (`--type=time` / `recovery_target_time`) EM TESTE na onda 3 — sem resultado final; GAP DE DR identificado: creds de archive-push são WRITE-ONLY (restore falha com Unauthorized) — creds de LEITURA v2 confirmadas para restore/archive-get** (pendência datada 10/08; procedimento abaixo; atualizar após consolidação).
 
 | Item | Estado (10/08 ~16:25Z) |
 |---|---|
@@ -45,12 +45,17 @@ Backups automáticos (R2 `promo-brindes-backups`, GPG):
 | Destino R2 | bucket `promo-brindes-backups`, path `/evolution-pgbackrest`, endpoint R2 (`cd0f4eee…r2.cloudflarestorage.com`), key-type shared |
 | WALs arquivados | `pg_stat_archiver`: archived 33→34+ (16:18-16:22Z), **failed=0** pós-ativação; min/max 5B/83 |
 | Restore full | ✅ testado na ativação (**RTO 471s**); dir de teste removido (`/tmp/evo-restore-test` ausente); disco 51% |
-| Restore point-in-time (`--type=time`) | ⏳ **em teste na onda 2 (16:23-16:30Z, `auditorias/pitr-test/`); sem resultado final** — pendência datada 10/08 (procedimento abaixo) |
+| Restore point-in-time (`--type=time`) | ⏳ **em teste na onda 3 (`auditorias/pitr-test/s20-s46`, 13:29-13:48Z); sem resultado final** — pendência datada 10/08 (procedimento abaixo). 🔴 **GAP DE DR**: restore falhou com **Unauthorized** — creds `r2_backup_*_v1` (archive-push) são **WRITE-ONLY** (PUT ok, GET negado); creds `r2_s3_*_v2` têm **leitura** (wal-g st ls OK) → wrapper de restore/archive-get deve priorizar **v2** |
 | Volume WAL | ~17 GB/dia a 60s → **~3,5 GB/dia com `archive_timeout=300`** (~5x menor; RPO 5 min) |
 | Watchdog sugerido | `pg_stat_archiver.failed_count > 0` ou `last_archived_time > 5min` → alerta (baseline stats_reset 15:43:24Z) |
 
+**Serviço de backup full semanal (pgBackRest) — ⏳ PENDENTE (onda 3):** serviço dedicado **não criado** até 17:20Z. Plano (M3): serviço com `INTERVAL_SECONDS` + loop (padrão volume-backup), volume `pgbackrest_data` + secrets R2 + wrapper; `pgbackrest --stanza=evolution backup --type=full` 1x/semana (ex.: dom ~05:00 — sem overlap com `postgres-backup-daily` 02:00) + `expire` (retention-full=7/diff=14 já no conf). **Nota: atualizar após consolidação.**
+
 **Procedimento de restore point-in-time (container EFÊMERO — nunca na produção):**
 ```bash
+# 0. CREDS: restore/archive-get usam as creds de LEITURA v2 (r2_s3_*_v2 — validadas com
+#    wal-g st ls); as v1 (r2_backup_*_v1) são WRITE-ONLY — archive-push segue com v1.
+#    Se v2 não tiver acesso ao bucket, criar token R2 ReadWrite dedicado (painel CF — documentar).
 # 1. conferir backups disponíveis (container postgres)
 docker exec <postgres-cid> pgbackrest --stanza=evolution info
 # 2. montar PG descartável com volume NOVO e restaurar até o target time
@@ -130,10 +135,30 @@ Notas: múltiplos NULLs em `key->>'id'` são permitidos pelo UNIQUE (ok); se o �
 ## ⚠️ FLUXO DO WHATSAPP — BLOQUEADO (10/08, colapso ~14:10Z; sessão perdida ~16:11Z)
 - Taxa de ingestão **~50x abaixo do baseline** desde ~14:10Z (0,22 msg/min vs 5-14; colapso **ANTECEDE** o deploy T15-T18 15:05Z); webhooks 15:00h=6 vs 5.625 em 13:00h; RabbitMQ sem backlog → fluxo secou **na origem**.
 - **16:11:03Z + 16:14:44Z: wpp2 LOGOUT/401 `Connection Failure` (2 eventos; W5 P1 flapping 16:18Z)** — sessão Redis DB8 **DELETADA** (chave `evolution:instance:f7a73e2c-…` ausente 16:21:37Z, dbsize 290→10); restart 16:06Z **não recuperou**; ingestão 0 msgs/10min (última 16:10:25Z); Bad MAC/SessionError sem tendência de queda; W3 alertou em tempo real (16:13:08Z hlen=1 → 16:18:12Z chave ausente).
+- ✅ **QR gerado e entregue ao usuário (14:14Z — `wpp2-qrcode-20260810.png` na pasta de auditoria)**; **aguardando scan**; wpp2 segue `close`/`connecting`; hash de creds ausente (creds novas ~6874 esperadas pós-scan). Se o QR expirar, regenerar (procedimento abaixo).
 - **Ação P1: re-parear wpp2 (QR/pairing)** — sem a sessão não há reconexão; após reconexão revalidar frescor <180s, taxa >5 msg/min, ACKs (SERVER_ACK), W3 (hlen>=100/creds>=1000). Não executar janela única (T19/stack 25/ACL fase 2) enquanto o fluxo não estabilizar.
 
-## T19 — senderPn → remoteJidAlt (mapeamento @lid) — ⏳ PENDENTE
-> **Estado: PENDENTE — sem PR aberto (10/08 ~16:30Z).** Branch local `fix/hermes-378591-evo-t17b` existe mas **sem commits próprios** (0/0 vs main); `gh pr list` vazio. **Nota: atualizar após consolidação.**
+## Re-pareamento do wpp2 — procedimento (onda 3)
+> **Estado: ⏳ AGUARDANDO SCAN (QR entregue 14:14Z).** Pareamento não concluído até 17:20Z → critério do 10/10 NÃO atendido. Atualizar após consolidação.
+
+```bash
+# 1. GERAR o QR (se o atual expirou ou o scan falhou):
+#    via MCP Evolution: evo_instance_connect (instance wpp2) → retorna QR/base64
+# 2. ENTREGAR o QR ao usuário (arquivo de auditoria: wpp2-qrcode-20260810.png)
+# 3. SCAN no celular (WhatsApp → Aparelhos conectados → Conectar aparelho)
+# 4. VALIDAR pós-scan (todos os itens):
+#    - instância wpp2 em 'open' (não mais close/connecting)
+#    - hash de creds recriado no Redis DB8 (creds novas ~6874, HLEN>=100)
+#    - ingestão volta à taxa 5-14 msg/min (frescor < 180s)
+#    - Bad MAC/SessionError zeram em ~15 min
+#    - W3 OK (hlen>=100, creds>=1000) · W1 dups=0 · webhooks >= 99%
+#    - envios PENDING (24) redelivered pelo Baileys
+# 5. Se o scan falhar (QR velho/expirado): regenerar via evo_instance_connect e repetir
+```
+⚠️ A sessão antiga foi perdida (hash deletado) — o re-pareamento não recupera histórico da sessão; o histórico de mensagens no PG (`Message`) é preservado.
+
+## T19 — senderPn → remoteJidAlt (mapeamento @lid) — ✅ MERGED; deploy pendente
+> **Estado: ✅ MERGED 17:18:52Z — PR #1017** (`fix/hermes-378591-evo-t17b`; squash na main `cff9cfeed`). **Build GHCR + deploy PENDENTES (janela única)** — sem evidência local de build/deploy até 17:20Z. **Nota: atualizar após consolidação.**
 
 Contexto (validações da onda 2):
 - T17 (getPNForLID, PR #1016) está **inefetivo**: 0/11 msgs @lid pós-deploy com `remoteJidAlt` (vs 56% histórico); coluna não existe em `Message`; `catch{}` silencioso engole o erro (sem diagnóstico).
@@ -144,20 +169,23 @@ Plano (M2, fallback triplo): usar `senderPn` se presente → senão `getPNForLID
 - Validação pós-deploy: `remoteJidAlt` preenchido em msgs @lid (KPI de cobertura; hoje 0%).
 
 ## Stack 25 (evolution) — arquivo stale + janela única planejada
-> **Estado: ⏳ PENDENTE.** Runtime já atualizado (rotação 10/08); **arquivo do stack desatualizado** — `update_stack` futuro pode REGREDIR runtime.
+> **Estado: ⏳ PENDENTE (onda 3, ~17:20Z).** Runtime já atualizado (rotação 10/08); **arquivo do stack desatualizado** — `update_stack` futuro pode REGREDIR runtime. Janela única (deploy T19 + stack 25 + ACL fase 2) **NÃO executada**.
 
 | Item | Estado (10/08 ~16:02Z) |
 |---|---|
 | Runtime (`docker service inspect`) | monta `evolution_db_uri_evolution_app_v2` (alias v2→v1) + `redis_password_v2` (alias v2→v1); `CACHE_REDIS_URI` com `evolution_app` |
-| Arquivo do stack (Portainer `/data/compose/25`) | **STALE**: `source: evolution_db_uri_evolution_app_v1` — risco de regressão v2→v1 em `update_stack` |
+| Arquivo do stack (Portainer `/data/compose/25`) | **STALE**: `source: evolution_db_uri_evolution_app_v1` — risco de regressão v2→v1 em `update_stack`; imagem aponta `66bb579a` (pré-T19) — **corrigir para o digest do build T19 ANTES do update** (drift documentado) |
 
 Ação: sincronizar o arquivo para `source: evolution_db_uri_evolution_app_v2` (manter target v1); validar com `docker stack config --compose-file <novo>` + diff vs Spec atual **antes de QUALQUER update_stack**. Aplicar na **janela única** (com T19 e ACL fase 2). Rollback: `docker service update` com o spec anterior (digest/spec conhecidos).
 
-## ACL Redis — fase 2 (restringir user `default`) — ⏳ PENDENTE
-> **Estado: ⏳ PENDENTE (depende da janela única).** Fase 1 concluída: `evolution_app` (`~evolution:*`) e `n8n_app` (`~n8n:* ~bull:*`), ambos `-@admin -@dangerous`; **`default` segue `~* &* +@all`** — necessário enquanto a evolution usar URI sem username.
+## ACL Redis — fase 2 (restringir user `default`) — ⏳ PENDENTE (plano v6 pronto)
+> **Estado: ⏳ PENDENTE (onda 3, ~17:20Z) — NADA aplicado** (depende da janela única). Fase 1 concluída: `evolution_app` (`~evolution:*`) e `n8n_app` (`~n8n:* ~bull:*`), ambos `-@admin -@dangerous`; **`default` segue `~* &* +@all`** — alvo da fase 2. Plano completo de aplicação em `~/auditorias/evolution-schema-check/redis-acl-fase2.md` (aclfile **v6** proposto): `default off`; users `admin_app` (`~* +@all` — obrigatório p/ administrar com default off), `probe_app` (`+ping +info`), `realtime_app` (proativo; realtime hoje não conecta); `evolution_app`/`n8n_app` inalterados. Migrações pré-requisito: w3→`--user evolution_app` (config `ag6_w3_v6`), redis-health-watchdog + mcp-health-monitor→`--user probe_app` (configs v4/v5), **healthcheck do serviço redis→`--user admin_app` no MESMO update** (senão Swarm marca unhealthy). Rollback: aclfile v5 + reload.
 
 Plano (M6): **SÓ restringir `default` DEPOIS do stack 25** (CACHE_REDIS_URI com `evolution_app`) — senão quebra a evolution; n8n já migrado para `n8n_app`; realtime → user próprio ou `default` limitado aos DBs 0/2. Rollback: aclfile com `default` restaurado + reload. ⚠️ Manter fluxo **config-based** (`redis_acl_v5`): `ACL SETUSER` em runtime não persiste.
-NITs: (a) healthcheck do redis (stack 23) ainda usa `redis-cli -a` — trocar por `REDISCLI_AUTH` (padrão W3 v5); (b) os 3 users compartilham o **mesmo hash SHA-256 de senha** (validação 16:21Z) — na fase 2, rotacionar para **senhas distintas por user**.
+NITs: (a) healthcheck do redis (stack 23) ainda usa `redis-cli -a` — trocar por `REDISCLI_AUTH`/`--user`; (b) os 3 users compartilham o **mesmo hash SHA-256 de senha** (validação 16:21Z) — na fase 2, rotacionar para **senhas distintas por user** (fase 3; 2 rotações no mesmo dia = risco alto — adiado).
+
+## W2 (watchdog de volume/ingestão) — ajuste de threshold pendente (onda 3)
+> **Estado: ⏳ PENDENTE (~17:20Z) — ajuste NÃO aplicado.** W2 em **ALERTA** (evento 05/08, 9.987/dia, dentro da janela 7d — sai ~11-12/08). Ajuste de threshold (`2000→8000`) OU documentação da decisão de manter a janela: **pendente** (decisão registrada no SIMULACAO-MELHORIAS-3 M4). Após ajuste, validar W2 OK sem falso-positivo. **Nota: atualizar após consolidação.**
 
 ## Cenário A — Perda do container postgres
 ```bash
