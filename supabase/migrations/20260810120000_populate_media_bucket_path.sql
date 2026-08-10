@@ -6,7 +6,8 @@
 -- executado em prod: 2026-08-10 via supabase_db_batch_query
 -- resultado: 6.697 linhas wpp2 + 7.602 linhas evolution_media populadas
 --            + 7.102 media_status 'unknown' corrigidos para ready/expired
--- estado final: 8.517 ready | 8.702 expired | 0 unknown
+-- estado final: 8.536 ready | 8.702 expired | 0 unknown
+-- fix 2026-08-10: 2.515 storage_path_clean corrigidos (1-char bug) + 4 media_status wrong ready fixados
 
 -- 1) evolution_messages_wpp2: bucket + path
 UPDATE evo.evolution_messages_wpp2
@@ -17,9 +18,9 @@ SET
   END,
   media_path = CASE
     WHEN media_url ILIKE '%supabase.atomicabr.com.br%/whatsapp-media/%'
-      THEN regexp_replace(media_url, '^.*?/whatsapp-media/', '')
+      THEN substring(media_url FROM position('/whatsapp-media/' IN media_url) + 16)
     WHEN media_url ILIKE '%supabase.atomicabr.com.br%/audio-messages/%'
-      THEN regexp_replace(media_url, '^.*?/audio-messages/', '')
+      THEN substring(media_url FROM position('/audio-messages/' IN media_url) + 16)
   END
 WHERE
   media_bucket IS NULL
@@ -37,9 +38,9 @@ SET
   END,
   storage_path_clean = CASE
     WHEN storage_url ILIKE '%supabase.atomicabr.com.br%/whatsapp-media/%'
-      THEN regexp_replace(storage_url, '^.*?/whatsapp-media/', '')
+      THEN substring(storage_url FROM position('/whatsapp-media/' IN storage_url) + 16)
     WHEN storage_url ILIKE '%supabase.atomicabr.com.br%/audio-messages/%'
-      THEN regexp_replace(storage_url, '^.*?/audio-messages/', '')
+      THEN substring(storage_url FROM position('/audio-messages/' IN storage_url) + 16)
   END
 WHERE
   storage_bucket IS NULL
