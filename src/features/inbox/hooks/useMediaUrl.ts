@@ -49,7 +49,8 @@ interface UseMediaUrlOptions {
 }
 
 /** Reason category for a media load failure; used to show targeted fallback messages to the agent. */
-export type MediaErrorReason = 'expired' | 'not_found' | 'network' | 'unsupported' | 'forbidden' | 'unknown';
+export type MediaErrorReason =
+  'expired' | 'not_found' | 'network' | 'unsupported' | 'forbidden' | 'unknown';
 
 /** Structured media load error with reason category and a human-readable pt-BR message for fallback UI. */
 export interface MediaError {
@@ -93,7 +94,9 @@ function cacheKey(instance: string, key: MessageKey): string {
  * novas) ou lido via `context.json()` (Response cru). Sem essa extração,
  * TODO erro HTTP viraria reason 'unknown'.
  */
-async function extractErrorDetails(raw: unknown): Promise<{ status?: number; code?: string; text: string }> {
+async function extractErrorDetails(
+  raw: unknown
+): Promise<{ status?: number; code?: string; text: string }> {
   const err = raw instanceof Error ? raw : new Error(String(raw));
   let status: number | undefined;
   let code: string | undefined;
@@ -428,6 +431,39 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
     setError(null);
     const job = (async () => {
       try {
+        // ADR-004: shortcut para buckets Supabase privados (whatsapp-media, audio-messages)
+        // Quando a URL original é do storage local, criar signed URL diretamente
+        // sem chamar a edge function (que só sabe buscar no CDN WhatsApp).
+        const localStorageUrl = originalUrlRef.current ?? '';
+        const storageMarkers = [
+          '/storage/v1/object/public/whatsapp-media/',
+          '/storage/v1/object/public/audio-messages/',
+        ];
+        for (const marker of storageMarkers) {
+          const idx = localStorageUrl.indexOf(marker);
+          if (idx !== -1) {
+            const bucketName = marker.split('/object/public/')[1].replace('/', '');
+            const pathWithQuery = localStorageUrl.substring(idx + marker.length);
+            const storagePath = decodeURIComponent(pathWithQuery.split('?')[0]);
+            try {
+              const { data: signedData } = await supabase.storage
+                .from(bucketName)
+                .createSignedUrl(storagePath, 3600); // 1h TTL
+              if (signedData?.signedUrl) {
+                if (!mountedRef.current) return;
+                mediaCacheSet(key, signedData.signedUrl);
+                setUrl(signedData.signedUrl);
+                setError(null);
+                setFailed(false);
+                return;
+              }
+            } catch (_signedErr) {
+              // Falha no signed URL → continuar para edge function como fallback
+            }
+            break;
+          }
+        }
+
         const { data, error: fnError } = await supabase.functions.invoke(
           'evolution-api/get-media-base64',
           {
