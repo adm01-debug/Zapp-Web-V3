@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * build-patches.mjs — v6 (Plano B, bundle esbuild 0.27/tsup 8.5.1)
+ * build-patches.mjs — v7 (Plano B, bundle esbuild 0.27/tsup 8.5.1)
  * Porta BUILD-TIME do logpatch.cjs (stack 25 / config evolution_logpatch_t4_cjs).
  *
  * v4 (2026-08-10): adiciona T8-T14 — correções da auditoria evolution (onda 5):
@@ -38,7 +38,7 @@
  *   não produziu remoteJidAlt (lidMapping vazio no fork). T19 estende o bloco
  *   T17 no messages.upsert com fallback triplo: senderPn → getPNForLID (T17)
  *   → nada. Tudo em try/catch — nunca quebra a ingestão.              [ESTRITO]
- *   TEST_MODE agora também cobre T8-T19 (skip quando o literal NOVO já está
+ *   TEST_MODE agora também cobre T8-T20 (skip quando o literal NOVO já está
  *   presente) — permite validar o script contra o bundle JÁ patcheado.
  *
  * MODOS:
@@ -145,6 +145,11 @@ const T18N = 'source:(0,R.getDevice)(e.key.id)};const mt=["imageMessage","videoM
 // substring (o `{` diverge — T17N é consumido). Tudo em try/catch — ESTRITO
 const T19O = 'let c=this.prepareMessage(n);try{if(c?.key?.remoteJid?.includes("@lid")&&!c.key.remoteJidAlt){let lidPn=await this.client.signalRepository.lidMapping.getPNForLID(c.key.remoteJid);if(typeof lidPn==="string"&&lidPn.includes("@s.whatsapp.net"))c.key.remoteJidAlt=lidPn}}catch{}';
 const T19N = 'let c=this.prepareMessage(n);try{if(c?.key?.remoteJid?.includes("@lid")&&!c.key.remoteJidAlt){if(typeof c.key.senderPn==="string"&&c.key.senderPn.includes("@s.whatsapp.net"))c.key.remoteJidAlt=c.key.senderPn;else{let lidPn=await this.client.signalRepository.lidMapping.getPNForLID(c.key.remoteJid);if(typeof lidPn==="string"&&lidPn.includes("@s.whatsapp.net"))c.key.remoteJidAlt=lidPn}}}catch{}';
+
+// ============ T20 (v7 — cache TTL fix, literal validado no main.js da imagem 03ac2a5d) =
+// T20: userDevicesCache stdTTL 3e5 (83h) → 300s + msgRetryCounterCache sem TTL → 3600s — ESTRITO
+const T20O = 'this.msgRetryCounterCache=new er.default;this.userDevicesCache=new er.default({stdTTL:3e5,useClones:!1})';
+const T20N = 'this.msgRetryCounterCache=new er.default({stdTTL:3600,useClones:!1});this.userDevicesCache=new er.default({stdTTL:300,useClones:!1})';
 
 // ============================= Execução =============================
 if (!fs.existsSync(SRC)) {
@@ -412,9 +417,22 @@ if (TEST_MODE) {
   }
 }
 
+// --- T20 (ESTRITO — cache TTL: userDevicesCache 3e5→300s, msgRetryCounterCache sem TTL→3600s) ---
+{
+  const c = countOf(out, T20O);
+  if (TEST_MODE && countOf(out, T20N) !== 0) {
+    warn(`T20: TEST_MODE — bundle já patcheado, skip`);
+    skipped.push("T20");
+  } else if (c !== 1) fail(`T20: literal de cache TTL encontrado ${c}x (esperado 1x) — bundle mudou?`);
+  else {
+    out = out.split(T20O).join(T20N);
+    applied.push("T20");
+  }
+}
+
 // Banner determinístico de auditoria (qual bundle base gerou este artefato)
 const srcSha = sha256(SRC);
-out = `/* evolution-api-custom ${VERSION} | patches T1-T19 build-time | base main.js sha256:${srcSha} */\n` + out;
+out = `/* evolution-api-custom ${VERSION} | patches T1-T20 build-time | base main.js sha256:${srcSha} */\n` + out;
 
 fs.writeFileSync(OUT, out);
 
@@ -451,6 +469,7 @@ if (countOf(check, T16O) !== 0 || countOf(check, T16N) !== 1) fail("pós-verific
 if (countOf(check, T17N) === 0 && countOf(check, T19N) === 0) fail("pós-verificação T17 falhou (remoteJidAlt ausente)");
 if (countOf(check, T18N) !== 1) fail("pós-verificação T18 falhou");
 if (countOf(check, T19N) !== 1) fail("pós-verificação T19 falhou");
+if (countOf(check, T20O) !== 0 || countOf(check, T20N) !== 1) fail("pós-verificação T20 falhou");
 
 console.log(`Patches aplicados: ${applied.join(", ")}${skipped.length ? ` | SKIP (tolerante): ${skipped.join(", ")}` : ""}`);
 console.log(`Versão do bundle:  ${VERSION}`);
