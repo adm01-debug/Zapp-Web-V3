@@ -195,6 +195,27 @@ export async function handleConnectionUpdate(supabase: SupabaseClient, instance:
 /** handle Contacts Upsert function. */
 export async function handleContactsUpsert(supabase: SupabaseClient, instance: string, data: unknown) {
   const contacts = Array.isArray(data) ? data : [data];
+  if (contacts.length === 0) return;
+
+  // G-6 FIX 2026-08-10: fast-path via fn_process_contacts_batch para N>1.
+  // N>50 ativa app.batch_mode=on no Postgres -> 9 AFTER triggers suprimidos -> 60x mais rapido.
+  // Fallback garantido: slow-path serial com avatar CDN persistence.
+  if (contacts.length > 1) {
+    try {
+      const { data: batchResult, error: batchErr } = await supabase
+        .rpc('fn_process_contacts_batch', { p_contacts: contacts, p_instance: instance });
+      if (!batchErr) {
+        const r = Array.isArray(batchResult) ? batchResult[0] : batchResult;
+        console.log('[contacts/batch] n=' + contacts.length + ' processed=' + (r?.processed ?? 0) + ' skipped=' + (r?.skipped ?? 0) + ' errors=' + (r?.error_count ?? 0));
+        return;
+      }
+      console.warn('[contacts/batch] RPC failed (n=' + contacts.length + '): ' + batchErr.message + ' -- fallback serial');
+    } catch (e) {
+      console.warn('[contacts/batch] exception -- fallback serial:', e);
+    }
+  }
+
+  // Slow-path: contato individual (N=1) ou fallback. Com avatar CDN persistence.
   const connection = await getConnectionByInstance(supabase, instance);
   if (!connection) return;
   for (const contact of contacts) {
