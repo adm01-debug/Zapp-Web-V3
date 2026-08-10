@@ -57,7 +57,7 @@ try {
   const out = execFileSync(
     "node",
     [
-      path.resolve(import.meta.dirname, "build-patches.mjs"),
+      path.resolve(import.meta.dirname, "..", "build-patches.mjs"),
       mainJs,
       patchedJs,
       prologue,
