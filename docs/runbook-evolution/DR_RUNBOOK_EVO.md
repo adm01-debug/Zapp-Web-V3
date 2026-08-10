@@ -1,6 +1,6 @@
 # 🛡️ Runbook de Disaster Recovery — Evolution API (banco evolution + sessão WhatsApp)
 
-**Atualizado:** 2026-08-10 12:50 (pós-correções — checksums do estado pos-fix)
+**Atualizado:** 2026-08-10 (onda 10/10 — seções PITR, rotação Redis, UNIQUE e índices; estados parciais em consolidação)
 **Escopo:** banco `evolution` (PG14 nativo da VPS — stack `postgres`/20), stack `evolution` (25, imagem `evolution-api-custom@6f78bb0d`), Redis DB 8 (sessão Baileys), R2 (mídia)
 
 > **Este é o runbook da EVOLUTION.** O `docs/DR_RUNBOOK.md` cobre o Supabase/zapp (ambiente separado).
@@ -26,8 +26,92 @@ Backups automáticos (R2 `promo-brindes-backups`, GPG):
 - **Decisão:** manter weekly no domingo + verificação manual do objeto de domingo na segunda (mecanismo validado em 10/08). Alternativa futura: cron do daily 112 passar a incluir domingo.
 
 ## RPO / RTO (medidos em 10/08)
-- **RPO:** 24h nominal (gap domingo documentado acima)
+- **RPO:** 24h nominal (gap domingo documentado acima; PITR em implantação — ver seção PITR abaixo)
 - **RTO:** PG **21s** (restore testado) · Redis **2s** (restore testado) · rollback de imagem: 1 comando
+
+## PITR (Point-in-Time Recovery) — estado e procedimento (onda 10/10)
+> **Estado: EM IMPLANTAÇÃO (AG4 em andamento).** `archive_mode` segue **off** — RPO nominal continua **24h** até o WAL archiving entrar em produção. Atualizar esta seção após a consolidação.
+
+| Item | Estado (10/08) |
+|---|---|
+| `archive_mode` | `off` (pendente — restart do postgres na janela) |
+| `wal_level` | `replica` (já suficiente p/ archive) |
+| wal-g | **v3.0.8** baixado no container postgres (`/walg/wal-g`, sha256 `9a09c2b1…`, 66 MB) |
+| Sidecar basebackup | `pitr-ag10-bb` criado (mounts: `postgres_data` RO + `/opt/walg` bind) |
+| Destino R2 | bucket `promo-brindes-backups` (endpoint R2 `cd0f4eee…r2.cloudflarestorage.com`) |
+| Retenção WAL/base | `BACKUP_KEEP_DAYS=14`, `POSTGRES_DATABASE=evolution` (padrão dos dumps diários) |
+| Teste de restore PITR | pendente (basebackup + replay de WAL em container efêmero) |
+| RPO após habilitação | ~minutos (janela de WAL arquivado) |
+
+**Procedimento de restore point-in-time (após habilitação):**
+```bash
+# 1. basebackup mais recente no R2 (wal-g no container postgres)
+docker exec <postgres-cid> /walg/wal-g backup-list --config /opt/walg/wal-g.yaml
+# 2. montar PG descartável e restaurar base + WALs até o target time
+wal-g backup-fetch <dir> LATEST
+wal-g wal-fetch <wal> <dir>   # replay sequencial
+# 3. recovery: recovery_target_time='<YYYY-MM-DD HH:MM:SS UTC>' no postgresql.conf
+#    (escolher o ponto ANTES do incidente; validar Message.max(messageTimestamp))
+# 4. subir o PG restaurado e validar: 36+ tabelas, migrations 57, dups=0, W1 OK
+# 5. produção: parar evolution → restaurar volume postgres_data → subir evolution
+```
+⚠️ Enquanto `archive_mode=off`, o restore é o do **Cenário A** (dump diário, RPO 24h).
+
+## Rotação da senha do Redis — procedimento (pós-mapeamento, onda 10/10)
+> **Estado: mapeamento concluído (10/08); rotação pendente** (janela com dono — afeta evolution/n8n/realtime). Mapa de consumidores levantado (nunca imprimir valores):
+
+| Consumidor | Uso da senha |
+|---|---|
+| evolution (stack 25) | `CACHE_REDIS_URI=redis://evolution_app:<secret>@redis:6379/8` |
+| n8n | `QUEUE_BULL_REDIS_PASSWORD=<secret>` (DB 2 bull) |
+| realtime | DB 0 via secret compartilhado |
+| redis (service) | healthcheck `redis-cli -a "$(cat /run/secrets/redis_password_v1)"` + ACL `redis_acl_v2` (users `default`/`evolution_app`/`n8n_app`) |
+| watchdogs W3 (ag6) | `REDIS_PASS_FILE=/run/secrets/redis_password_v1` (W3 v5: `REDISCLI_AUTH` via env, nunca `-a` no argv) |
+| mcp-health-monitor | probe redis com `REDISCLI_AUTH` (probe v4) |
+
+**Procedimento (janela única, padrão validado em 10/08):**
+```bash
+# 1. criar o secret novo (v2) e referenciá-lo no serviço redis
+printf '%s' '<nova-senha>' | docker secret create redis_password_v2 -
+# 2. atualizar ACL: CONFIG SET requirepass <nova> + re-hash users default/evolution_app/n8n_app
+# 3. atualizar todos os serviços do mapa (evolution, n8n, realtime, ag6-watchdogs, mcp-health) p/ redis_password_v2
+# 4. redeploy em sequência (mesma janela); validar a cada passo:
+redis-cli --no-auth-warning -a "$(cat /run/secrets/redis_password_v2)" -n 8 ping   # PONG
+#    + W3 OK (hlen>=100, creds>=1000) + wpp2 conectado SEM QR + ingestão < 3 min
+# 5. rollback: restaurar secret v1 + redeploy (procedimento reverso)
+```
+⚠️ Só rotacionar se **todos** os consumidores estiverem 100% via secret (mapeamento acima confirma). Senha nunca em argv/chat.
+
+## UNIQUE (instanceId, key->>'id') — dedup pré-índice + aplicação (onda 10/10)
+> **Estado: pendente** — aguarda deploy do **T15** (dedup no `messages.upsert`, PR do fork), ordem obrigatória do plano M2.
+
+```sql
+-- 1. PRÉ-REQUISITO: T15 deployado (findFirst por key->>'id' + instanceId antes do create).
+-- 2. DEDUP MANUAL (padrão validado 10/08 — nunca pular): listar e remover não-canônicas
+SELECT count(*) FROM (
+  SELECT "instanceId", "key"->>'id' AS kid, count(*) c, min(id) AS keep
+  FROM "Message" GROUP BY 1, 2 HAVING count(*) > 1) d;
+-- DELETE das não-canônicas (cada grupo mantém min(id)) — validar W1 dups=0 ANTES e DEPOIS
+-- 3. ÍNDICE (sem lock de escrita):
+CREATE UNIQUE INDEX CONCURRENTLY "Message_instanceId_keyId_uniq"
+  ON "Message" ("instanceId", ("key"->>'id'));
+-- 4. VALIDAÇÃO: W1 dups=0 · pg_index.indisvalid = t · ingestão normal
+-- 5. ROLLBACK: DROP INDEX CONCURRENTLY "Message_instanceId_keyId_uniq";
+```
+Notas: múltiplos NULLs em `key->>'id'` são permitidos pelo UNIQUE (ok); se o índice nascer INVALID, dropar e refazer; P2002 residual pós-T15 é janela ~1ms documentada (100% só com ON CONFLICT futuro).
+
+## Índices — novos e dropados (onda 10/10)
+| Ação | Índice | Tabela | Modo |
+|---|---|---|---|
+| ➕ NOVO | `MessageUpdate_instanceId_remoteJid_keyId_idx` | `MessageUpdate` (instanceId, remoteJid, keyId) | `CONCURRENTLY` |
+| ➕ NOVO | `Message_instanceId_keyId_uniq` | `Message` (instanceId, key->>'id') — ver seção UNIQUE | `CONCURRENTLY` (após dedup) |
+| 🗑️ DROP | `Message_instanceId_idx` | `Message` | `CONCURRENTLY` (redundante) |
+| 🗑️ DROP | `Chat_instanceId_idx` | `Chat` | `CONCURRENTLY` (redundante) |
+| 🗑️ DROP | `Contact_remoteJid_idx` | `Contact` | `CONCURRENTLY` (redundante) |
+| 🗑️ DROP | `idx_integrationsession_instanceid` | `IntegrationSession` | `CONCURRENTLY` (redundante) |
+| 🗑️ DROP | `MessageUpdate_instanceId_idx` | `MessageUpdate` | `CONCURRENTLY` (coberto pelo novo composto) |
+
+> **Estado: scripts prontos (`tmp/idxopt/`); aplicação pendente de consolidação** — validar `pg_stat_user_indexes.idx_scan` antes de cada DROP; verificar `indisvalid` após cada CREATE.
 
 ## Cenário A — Perda do container postgres
 ```bash
