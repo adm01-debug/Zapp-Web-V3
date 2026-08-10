@@ -155,6 +155,17 @@ export interface Message {
   is_read?: boolean | null;
   /** Meta-informações brutas (Evolution/WhatsApp API). Campos conhecidos são tipados; campos adicionais são aceitos via index. */
   media_meta?: (Record<string, unknown> & { ptt?: boolean; isPtv?: boolean }) | null;
+
+  // ─── ADR-001 / ADR-004: campos canônicos para signed URL (privatização) ───
+  // Quando presentes, useSignedMediaUrlBatch usa estes campos em vez de mediaUrl
+  // para gerar signed URLs para buckets privados (whatsapp-media, audio-messages).
+  // DB populado em 2026-08-10 (migration 20260810120000).
+  /** Nome do bucket (ex: 'whatsapp-media', 'audio-messages', 'avatars'). */
+  media_bucket?: string | null;
+  /** Path relativo dentro do bucket (ex: 'image/3EB0CBB.jpg'). */
+  media_path?: string | null;
+  /** Status do objeto no Storage. 'ready' = disponivel; 'expired' = expirou. */
+  media_status?: 'pending' | 'processing' | 'ready' | 'failed' | 'expired' | null;
 }
 
 /** Conversation interface. */

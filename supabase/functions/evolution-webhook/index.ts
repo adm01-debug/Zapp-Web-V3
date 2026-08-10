@@ -406,7 +406,17 @@ Deno.serve(async (req) => {
 
           const msg = (entry.message || baseData.message) as Record<string, unknown> | undefined;
           if (msg?.reactionMessage) {
-            await handleReactionEvent(supabase, instance, msg.reactionMessage as Record<string, unknown>, !!key.fromMe);
+            // [FIX 2026-08-09] Pass pushName for raw log; add ingest_ledger entry
+            const pushNameStr = (typeof entry.pushName === 'string' ? entry.pushName : undefined)
+              ?? (typeof baseData.pushName === 'string' ? baseData.pushName : undefined);
+            await handleReactionEvent(supabase, instance, msg.reactionMessage as Record<string, unknown>, !!key.fromMe, pushNameStr);
+            // Fire-and-forget: log reaction to ingest_ledger (observability)
+            supabase.from('ingest_ledger').insert({
+              instance_name: instance, event_type: event, message_id: externalId,
+              remote_jid: key.remoteJid ?? null, message_type: 'reactionMessage',
+              from_me: key.fromMe, outcome: 'processed_reaction',
+              payload_sha256: bodyHash, latency_ms: Date.now() - startedAt,
+            }).then(() => {}).catch((e: unknown) => console.warn('[ingest_ledger] reaction err:', e instanceof Error ? e.message : String(e)));
             continue;
           }
 
@@ -414,6 +424,17 @@ Deno.serve(async (req) => {
             await handleIncomingMessage(supabase, instance, { ...baseData, ...entry }, key, supabaseUrl, supabaseServiceKey);
           } else {
             await handleOutgoingWhatsAppMessage(supabase, instance, { ...baseData, ...entry }, key);
+          }
+          // [FIX 2026-08-09] Fire-and-forget: log each processed message to ingest_ledger
+          {
+            const msgObj = (entry.message || baseData.message) as Record<string, unknown> | undefined;
+            const mtype = msgObj ? (Object.keys(msgObj)[0] || 'unknown') : 'unknown';
+            supabase.from('ingest_ledger').insert({
+              instance_name: instance, event_type: event, message_id: externalId,
+              remote_jid: key.remoteJid ?? null, message_type: mtype,
+              from_me: key.fromMe, outcome: 'processed',
+              payload_sha256: bodyHash, latency_ms: Date.now() - startedAt,
+            }).then(() => {}).catch((e: unknown) => console.warn('[ingest_ledger] msg err:', e instanceof Error ? e.message : String(e)));
           }
         } catch (entryError: unknown) {
           const entryDetail = entryError instanceof Error ? entryError.message : String(entryError);

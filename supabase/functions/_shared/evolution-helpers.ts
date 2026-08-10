@@ -449,18 +449,65 @@ export async function persistProfilePicture(supabase: any, phone: string, profil
 
 // deno-lint-ignore no-explicit-any
 /** handle Reaction Event function. */
-export async function handleReactionEvent(supabase: any, instance: string, reactionMessage: Record<string, unknown>, actorFromMe: boolean) {
+// [FIX 2026-08-09] handleReactionEvent:
+//   1. Grava raw log em public.evolution_reactions (fire-and-forget, idempotente).
+//   2. Aceita pushName opcional.
+//   3. Decode seguro de senderTimestampMs proto3 int64 {low,high}.
+//   4. CRM path (message_reactions) inalterado — zero regressão.
+export async function handleReactionEvent(
+  supabase: any,
+  instance: string,
+  reactionMessage: Record<string, unknown>,
+  actorFromMe: boolean,
+  pushName?: string,
+) {
   const emoji = (reactionMessage.text as string) || '';
   const reactKey = reactionMessage.key as Record<string, unknown> | undefined;
   if (!reactKey?.id) return;
 
   const targetExternalId = reactKey.id as string;
+  const rawJid = (reactKey.remoteJid as string) || '';
+
+  // Proto3 int64 decode: {low: int32, high: int32} → milliseconds UTC
+  let reactedAt: string = new Date().toISOString();
+  const sts = reactionMessage.senderTimestampMs as { low?: number; high?: number } | null | undefined;
+  if (sts && typeof sts.low === 'number' && typeof sts.high === 'number') {
+    const lo = sts.low >>> 0;  // unsigned 32-bit
+    const hi = sts.high >>> 0;
+    const ms = hi * 4_294_967_296 + lo;
+    // Sanity: after 2020-01-01 (1577836800000ms) and not >1 day in the future
+    if (ms > 1_577_836_800_000 && ms < Date.now() + 86_400_000) {
+      reactedAt = new Date(ms).toISOString();
+    }
+  }
+
+  // [RAW LOG] Always upsert to public.evolution_reactions (fire-and-forget).
+  // ON CONFLICT DO UPDATE captura mudança de emoji e remoções (emoji='').
+  // UNIQUE (message_id, instance_name, remote_jid, from_me).
+  supabase.from('evolution_reactions').upsert(
+    {
+      message_id: targetExternalId,
+      instance_name: instance,
+      remote_jid: rawJid,
+      push_name: pushName ?? null,
+      emoji,
+      from_me: actorFromMe,
+      reacted_at: reactedAt,
+    },
+    { onConflict: 'message_id,instance_name,remote_jid,from_me' },
+  )
+    .then(({ error }: { error: { message: string } | null }) => {
+      if (error) console.warn(`[evolution_reactions] upsert warn ${targetExternalId}: ${error.message}`);
+    })
+    .catch((e: unknown) => console.warn('[evolution_reactions] upsert err:', e instanceof Error ? e.message : String(e)));
+
+  // [CRM PATH] Link to normalized message_reactions quando target encontrado em evo.
   const connection = await getConnectionByInstance(supabase, instance);
   if (!connection) { console.log(`Reaction: no connection for instance ${instance}`); return; }
   const { data: targetMessage } = await supabase
     .from('messages').select('id, contact_id').eq('external_id', targetExternalId)
     .eq('whatsapp_connection_id', connection.id).maybeSingle();
-  if (!targetMessage) { console.log(`Reaction target not found: ${targetExternalId}`); return; }
+  if (!targetMessage) { console.log(`Reaction target not found in CRM: ${targetExternalId} (raw log gravado em evo.evolution_reactions)`); return; }
 
   if (emoji === '') {
     if (!actorFromMe) {
@@ -481,6 +528,7 @@ export async function handleReactionEvent(supabase: any, instance: string, react
     }
   }
 }
+
 
 // ─── [RESTORE 2026-07-10] Exports perdidos em merge — dependidos por
 // evolution-webhook/index.ts e evolution-webhook-handlers.ts ─────────────────
