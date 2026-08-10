@@ -14,6 +14,9 @@
 
 version: "3.7"
 
+# WAL-FIX-2026-08-10 (analytics memory): ERL_FLAGS memsup 0.95 + reservations 256m
+#   ROOT CAUSE: Erlang os_mon alarmava em 80% RAM host; pausa consumo WAL slot.
+#   FIX aplicado via portainer_update_service (nao via update_stack) em 2026-08-10.
 # AG-EX-05 STACK SYNC GATE (2026-08-05)
 # AG-EX2-07 (2026-08-06): EXCECAO DO REST ELIMINADA — literais PGRST_DB_URI /
 #   PGRST_JWT_SECRET / PGRST_APP_SETTINGS_* -> secret postgrest_conf_v1 montado
@@ -408,6 +411,8 @@ services:
       - LOGFLARE_SUPABASE_MODE=true
       - LOGFLARE_MIN_CLUSTER_SIZE=1
       - LOGFLARE_FEATURE_FLAG_OVERRIDE=multibackend=true
+      # WAL-FIX-2026-08-10: threshold memsup 0.80->0.95 elimina ciclo alarm/pause WAL slot
+      - ERL_FLAGS=-kernel memsup_system_memory_high_watermark 0.95
     deploy:
       mode: replicated
       replicas: 1
@@ -417,6 +422,8 @@ services:
       resources:
         limits:
           memory: 1g
+        reservations:
+          memory: 256m
       update_config:
         failure_action: rollback
         order: stop-first
