@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 /**
- * build-patches.test.mjs — E46: regressão para os patches T1-T14 (2026-08-10)
+ * build-patches.test.mjs — E46: regressão para os patches T1-T18 (2026-08-10)
  *
  * Valida o build-patches.mjs contra um FIXTURE mínimo contendo os literais
  * originais de TODOS os alvos (T1, T2, T3, T5a, T6, T7, T8, T9, T10, T11,
- * T13a, T13b, T14). Se qualquer literal do bundle real mudar (esbuild variar
- * nomes/quotes), o fail-closed do build-patches.mjs aborta e este teste falha.
+ * T13a, T13b, T14, T15, T16, T17, T18). Se qualquer literal do bundle real
+ * mudar (esbuild variar nomes/quotes), o fail-closed do build-patches.mjs
+ * aborta e este teste falha.
  *
- * Uso: node infra/evolution-api-custom/build-patches.test.mjs
+ * Uso: node infra/evolution-api-custom/tests/build-patches.test.mjs
  */
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -41,6 +42,15 @@ const FIXTURE = [
   'if(!D){this.logger.verbose("No valid media to upload (messageContextInfo only), skipping MinIO");return}',
   // T14 — CTE fetchChats: 2ª coluna pushName
   '"Chat"."name" as "pushName",',
+  // T15 — create do messages.upsert SEM dedup (o handler real usa `g` = messageData
+  //       sem pollUpdates; `c` = prepareMessage(n); `f` recebe a linha criada)
+  'let{pollUpdates:h,...g}=c,f=await this.prismaRepository.message.create({data:g})',
+  // T16 — findFirst de edição (updateMessage via app) SEM instanceId
+  'let c=await this.prismaRepository.message.findFirst({where:{key:{path:["id"],equals:a}}});if(!c)throw new F("Message not found")',
+  // T17 — prepareMessage no messages.upsert (âncora do lidMapping)
+  'let c=this.prepareMessage(n)',
+  // T18 — fim da montagem do objeto i no prepareMessage (âncora da poda de bloat)
+  'source:(0,R.getDevice)(e.key.id)};!i.status&&e.key.fromMe===!1&&(i.status=ie[3])',
 ].join("\n");
 
 const PROLOGUE =
@@ -84,6 +94,14 @@ try {
     'skipping MinIO");continue}',
     // T14 (chatName)
     '"Chat"."name" as "chatName"',
+    // T15 (dedup no upsert)
+    'keyIdV=g?.key?.id;if(keyIdV&&await this.prismaRepository.message.findFirst({where:{instanceId:this.instanceId,key:{path:["id"],equals:keyIdV}}}))continue',
+    // T16 (instanceId no findFirst de edição)
+    'findFirst({where:{instanceId:this.instanceId,key:{path:["id"],equals:a}}});if(!c)throw new F("Message not found")',
+    // T17 (remoteJidAlt via lidMapping)
+    'let lidPn=await this.client.signalRepository.lidMapping.getPNForLID(c.key.remoteJid)',
+    // T18 (poda de bloat)
+    'const mt=["imageMessage","videoMessage","stickerMessage","audioMessage","documentMessage","ptvMessage"]',
   ];
   const missing = MUST_CONTAIN.filter((m) => !patched.includes(m));
   if (missing.length > 0) {
@@ -92,7 +110,7 @@ try {
     console.error("stderr do build-patches:", out);
     process.exit(1);
   }
-  console.log("✅ E46 PASS — T1-T14 aplicados no fixture; fail-closed e pós-verificação OK.");
+  console.log("✅ E46 PASS — T1-T18 aplicados no fixture; fail-closed e pós-verificação OK.");
   process.exit(0);
 } catch (e) {
   console.error("❌ E46 FAIL — build-patches.mjs abortou ou pós-verificação falhou:");

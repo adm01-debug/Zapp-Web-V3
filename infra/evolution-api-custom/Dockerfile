@@ -1,5 +1,5 @@
 # ============================================================================
-# evolution-api-custom — Evolution API 2.3.7 com patches T1-T6 em BUILD-TIME
+# evolution-api-custom — Evolution API 2.3.7 com patches T1-T18 em BUILD-TIME
 # ----------------------------------------------------------------------------
 # Substitui o monkey-patch RUNTIME (logpatch.cjs + configs Swarm
 # evolution_logpatch_t4_cjs / evolution_main_v2_js) por um bundle patcheado
@@ -15,6 +15,22 @@
 #   T4  prologue t4_prologue.cjs (log masking, marcador MASKED) prepended
 #   T5a remove console.log("CACHE:",...) de mensagens    [tolerante — Plano B]
 #   T6  GET / mascara a versão ("2.x" no lugar da real) — F2-21
+#   T8  guard SAVE_DATA.MESSAGE_UPDATE no fluxo de EDIÇÃO (MU EDITED)
+#   T9  guard SAVE_DATA.MESSAGE_UPDATE no deleteMessage lógico
+#   T10 guard SAVE_DATA.MESSAGE_UPDATE no revoke (messages.update DELETED)
+#   T11 instanceId no findFirst do deleteMessage (bug multi-instância)
+#   T13a/T13b S3: return→continue no messages.upsert (não aborta o batch)
+#   T14 fetchChats: "Chat"."name" as "chatName" (não sobrescreve pushName)
+#   T15 dedup no messages.upsert: findFirst key->>'id'+instanceId antes do
+#       create (duplicatas (instanceId,key->>'id') aceitas pelo banco)
+#   T16 instanceId no findFirst do updateMessage (edição via app)
+#   T17 remoteJidAlt via signalRepository.lidMapping.getPNForLID quando
+#       key.remoteJid tem "@lid" e Alt ausente (try/catch — nunca quebra
+#       a ingestão)
+#   T18 poda de bloat no prepareMessage: remove jpegThumbnail/waveform dos
+#       sub-objetos de mídia (image/video/sticker/audio/document/ptv +
+#       ephemeral/viewOnce); mantém mediaKey/fileSha256/fileEncSha256/
+#       messageSecret (download/descriptografia)
 # libsignal/src/session_record.js: remove console.info/warn de sessões.
 #
 # PLANO B (baileys 6.7.24): o bundle é rebuildado do source da tag 2.3.7 com
@@ -32,7 +48,7 @@ FROM ${BASE_IMAGE}
 
 LABEL org.opencontainers.image.title="evolution-api-custom" \
       org.opencontainers.image.version="2.3.7" \
-      org.opencontainers.image.description="Evolution API 2.3.7 com patches T1-T6 build-time (log masking, Sentry filtrado, versao mascarada na raiz, sem logs de stanza/CACHE/webhook) — bundle com baileys 6.7.24 (Plano B)" \
+      org.opencontainers.image.description="Evolution API 2.3.7 com patches T1-T18 build-time (log masking, Sentry filtrado, versao mascarada na raiz, sem logs de stanza/CACHE/webhook, guards MessageUpdate, dedup de ingestao, remoteJidAlt via lidMapping, poda de bloat) — bundle com baileys 6.7.24 (Plano B)" \
       org.opencontainers.image.source="https://github.com/adm01-debug/zapp-web-v3/tree/main/infra/evolution-api-custom" \
       org.opencontainers.image.base.digest="sha256:6b195676b09abbbd8ac9372cd961674dea2587f23dc9bc1d1e6a595372556fb1" \
       org.opencontainers.image.revision="${GIT_SHA}" \
@@ -41,7 +57,7 @@ LABEL org.opencontainers.image.title="evolution-api-custom" \
 WORKDIR /evolution
 EXPOSE 8080
 
-# --- Bundle principal patcheado (T1-T6). Gerado por build-patches.mjs a partir
+# --- Bundle principal patcheado (T1-T18). Gerado por build-patches.mjs a partir
 #     do /evolution/dist/main.js ORIGINAL extraído da imagem base (digest acima).
 COPY main.patched.js /evolution/dist/main.js
 
@@ -73,10 +89,13 @@ COPY baileys/ /evolution/node_modules/baileys/
 RUN node -e 'var fs=require("fs"),p="/evolution/package.json",pkg=JSON.parse(fs.readFileSync(p,"utf8"));if(pkg.dependencies&&pkg.dependencies.baileys!=="6.7.24"){pkg.dependencies.baileys="6.7.24";fs.writeFileSync(p,JSON.stringify(pkg,null,2),"utf8");console.log("pkg.json baileys -> 6.7.24");}else{console.log("pkg.json baileys ok");}'
 RUN node -e 'var fs=require("fs"),p="/evolution/node_modules/baileys/package.json";if(!fs.existsSync(p)){console.error("FAIL: baileys ausente");process.exit(1);}var v=JSON.parse(fs.readFileSync(p,"utf8")).version;if(v!=="6.7.24"){console.error("FAIL: baileys="+v);process.exit(1);}var pkg=JSON.parse(fs.readFileSync("/evolution/package.json","utf8"));var d=pkg.dependencies&&pkg.dependencies.baileys;if(d!=="6.7.24"){console.error("FAIL: package.json declara "+d);process.exit(1);}console.log("VERIFY OK: baileys "+v+" runtime+pkg=6.7.24");'
 
-# --- Verificação fail-closed: o build FALHA se o bundle copiado não tiver T1-T6
-#     exatamente como esperado (nunca sobe imagem com patch quebrado).
-#     T2/T5a: tolerantes — só exigem AUSÊNCIA (aplicados ou SKIPed, nunca
-#     presentes). T1/T3/T4/T6: estritos (marcadores obrigatórios).
+# --- Verificação fail-closed: o build FALHA se o bundle copiado não tiver os
+#     patches T1-T18 exatamente como esperado (nunca sobe imagem com patch
+#     quebrado). T2/T5a: tolerantes — só exigem AUSÊNCIA (aplicados ou SKIPed,
+#     nunca presentes). T1/T3/T4/T6: estritos (marcadores obrigatórios).
+#     T8-T18 (v4/v5): marcadores obrigatórios de presença (T8/T9/T17/T18 têm o
+#     original como substring do novo — só presença); T10/T11/T13a/T13b/T14/
+#     T15/T16: presença do novo + ausência do original.
 RUN node -e ' \
 const fs=require("fs"); \
 const s=fs.readFileSync("/evolution/dist/main.js","utf8"); \
@@ -89,7 +108,24 @@ if(!s.includes("MASKED"))fail("T4 prologue ausente (marcador MASKED)"); \
 if(s.includes("console.log(\"CACHE:\",{cached:"))fail("T5a ainda presente (CACHE log)"); \
 if(s.includes("version:_l.version,clientName:Nl.CONNECTION.CLIENT_NAME"))fail("T6 nao aplicado (versao real na raiz)"); \
 if(!s.includes("version:\"2.x\",clientName:Nl.CONNECTION.CLIENT_NAME"))fail("T6 marcador ausente (version 2.x)"); \
-console.log("VERIFY OK: main.js com T1-T6 aplicados"); \
+if(!s.includes("SAVE_DATA.MESSAGE_UPDATE&&await this.prismaRepository.messageUpdate.create({data:{fromMe:r.key.fromMe"))fail("T8 marcador ausente (guard MU EDITED)"); \
+if(!s.includes("SAVE_DATA.MESSAGE_UPDATE&&await this.prismaRepository.messageUpdate.create({data:a})"))fail("T9 marcador ausente (guard deleteMessage logico)"); \
+if(s.includes("status:\"DELETED\",instanceId:this.instanceId};await this.prismaRepository.messageUpdate.create({data:u})"))fail("T10 nao aplicado (revoke sem guard)"); \
+if(!s.includes("status:\"DELETED\",instanceId:this.instanceId};this.configService.get(\"DATABASE\").SAVE_DATA.MESSAGE_UPDATE&&await this.prismaRepository.messageUpdate.create({data:u})"))fail("T10 marcador ausente (guard revoke)"); \
+if(s.includes("findFirst({where:{key:{path:[\"id\"],equals:o}}})"))fail("T11 nao aplicado (deleteMessage sem instanceId)"); \
+if(!s.includes("findFirst({where:{instanceId:this.instanceId,key:{path:[\"id\"],equals:o}}})"))fail("T11 marcador ausente (deleteMessage instanceId)"); \
+if(s.includes("Skipping video upload.\");return}"))fail("T13a nao aplicado (return em vez de continue)"); \
+if(!s.includes("Skipping video upload.\");continue}"))fail("T13a marcador ausente (continue S3 video)"); \
+if(!s.includes("skipping MinIO\");continue}"))fail("T13b marcador ausente (continue S3 !media)"); \
+if(s.includes("\"Chat\".\"name\" as \"pushName\","))fail("T14 nao aplicado (CTE pushName duplicado)"); \
+if(!s.includes("\"Chat\".\"name\" as \"chatName\","))fail("T14 marcador ausente (chatName)"); \
+if(s.includes("let{pollUpdates:h,...g}=c,f=await this.prismaRepository.message.create({data:g})"))fail("T15 nao aplicado (create upsert sem dedup)"); \
+if(!s.includes("keyIdV=g?.key?.id;if(keyIdV&&await this.prismaRepository.message.findFirst({where:{instanceId:this.instanceId,key:{path:[\"id\"],equals:keyIdV}}}))continue"))fail("T15 marcador ausente (dedup upsert)"); \
+if(s.includes("let c=await this.prismaRepository.message.findFirst({where:{key:{path:[\"id\"],equals:a}}});if(!c)throw new F(\"Message not found\")"))fail("T16 nao aplicado (findFirst edicao sem instanceId)"); \
+if(!s.includes("let c=await this.prismaRepository.message.findFirst({where:{instanceId:this.instanceId,key:{path:[\"id\"],equals:a}}});if(!c)throw new F(\"Message not found\")"))fail("T16 marcador ausente (findFirst edicao instanceId)"); \
+if(!s.includes("let lidPn=await this.client.signalRepository.lidMapping.getPNForLID(c.key.remoteJid)"))fail("T17 marcador ausente (remoteJidAlt lidMapping)"); \
+if(!s.includes("const mt=[\"imageMessage\",\"videoMessage\",\"stickerMessage\",\"audioMessage\",\"documentMessage\",\"ptvMessage\"],ep=i.message?.ephemeralMessage?.message"))fail("T18 marcador ausente (poda bloat prepareMessage)"); \
+console.log("VERIFY OK: main.js com T1-T18 aplicados"); \
 '
 
 # --- libsignal/src/session_record.js: remove console.info/warn de sessões
