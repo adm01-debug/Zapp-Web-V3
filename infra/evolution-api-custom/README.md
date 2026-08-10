@@ -1,7 +1,7 @@
 # evolution-api-custom — imagem custom da Evolution API (stack 25)
 
 Pipeline de build da imagem `ghcr.io/adm01-debug/zapp-web-v3/evolution-api-custom`
-(Evolution API 2.3.7 + hardening + patches de build-time T1–T6), usada pelo
+(Evolution API 2.3.7 + hardening + patches de build-time T1–T18), usada pelo
 **stack 25 (`evolution`)** em produção (VPS AtomicaBR, Docker Swarm).
 
 ## Arquivos

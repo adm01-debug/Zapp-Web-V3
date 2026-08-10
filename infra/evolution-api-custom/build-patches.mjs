@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * build-patches.mjs — v4 (Plano B, bundle esbuild 0.27/tsup 8.5.1)
+ * build-patches.mjs — v5 (Plano B, bundle esbuild 0.27/tsup 8.5.1)
  * Porta BUILD-TIME do logpatch.cjs (stack 25 / config evolution_logpatch_t4_cjs).
  *
  * v4 (2026-08-10): adiciona T8-T14 — correções da auditoria evolution (onda 5):
@@ -17,10 +17,25 @@
  *   T14 fetchChats: "Chat"."name" as "pushName" → "chatName" (2ª coluna
  *       sobrescrevia o CASE do Contact.pushName no node-postgres)         [ESTRITO]
  *
+ * v5 (2026-08-10): adiciona T15-T18 — ingestão e edição (onda 6):
+ *   T15 dedup no messages.upsert: findFirst por key->>'id' + instanceId
+ *       ANTES do message.create (duplicatas (instanceId,key->>'id') eram
+ *       aceitas pelo banco — causa-raiz 2026-08-10; catch engolia P2002)  [ESTRITO]
+ *   T16 instanceId no findFirst do updateMessage (edição via app usava
+ *       só key id — mesmo padrão do bug que o T11 corrigiu no delete)     [ESTRITO]
+ *   T17 remoteJidAlt via signalRepository.lidMapping.getPNForLID quando
+ *       key.remoteJid contém "@lid" e remoteJidAlt ausente (regressão
+ *       remoteJidAlt 07/08 — mitigação documentada) — try/catch, nunca
+ *       quebra a ingestão                                               [ESTRITO]
+ *   T18 poda de bloat no prepareMessage: remove jpegThumbnail/waveform dos
+ *       sub-objetos de mídia (image/video/sticker/audio/document/ptv +
+ *       ephemeral/viewOnce) — mantém mediaKey/fileSha256/fileEncSha256/
+ *       messageSecret (download/descriptografia)                          [ESTRITO]
+ *
  * MODOS:
  *  - ESTRITO: count == 1 obrigatório; count != 1 aborta (fail-closed).
  *  - TOLERANTE (T1, T2, T5a): count == 0 → SKIP com warn; count > 1 → FAIL.
- *  - TEST_MODE=1: T3/T6/T7/T4 viram SKIP (para validar T8-T14 sobre um
+ *  - TEST_MODE=1: T3/T6/T7/T4 viram SKIP (para validar T8-T18 sobre um
  *    bundle que JÁ recebeu T1-T7 — teste local; no CI o modo normal vale).
  *
  * Uso:
@@ -96,6 +111,20 @@ const T13bN = 'if(!D){this.logger.verbose("No valid media to upload (messageCont
 // T14: fetchChats CTE — 2ª coluna pushName (Chat.name) sobrescrevia o CASE — ESTRITO
 const T14O = '"Chat"."name" as "pushName",';
 const T14N = '"Chat"."name" as "chatName",';
+
+// ============ T15-T18 (v5 — ingestão/edição, literais validados no main.js da imagem 6f78bb0d, sha256 280ed0af) =
+// T15: dedup no messages.upsert — findFirst key->>'id'+instanceId antes do create — ESTRITO
+const T15O = 'let{pollUpdates:h,...g}=c,f=await this.prismaRepository.message.create({data:g})';
+const T15N = 'let{pollUpdates:h,...g}=c,keyIdV=g?.key?.id;if(keyIdV&&await this.prismaRepository.message.findFirst({where:{instanceId:this.instanceId,key:{path:["id"],equals:keyIdV}}}))continue;let f=await this.prismaRepository.message.create({data:g})';
+// T16: instanceId no findFirst do updateMessage (edição via app) — ESTRITO
+const T16O = 'let c=await this.prismaRepository.message.findFirst({where:{key:{path:["id"],equals:a}}});if(!c)throw new F("Message not found")';
+const T16N = 'let c=await this.prismaRepository.message.findFirst({where:{instanceId:this.instanceId,key:{path:["id"],equals:a}}});if(!c)throw new F("Message not found")';
+// T17: remoteJidAlt via lidMapping quando key.remoteJid tem @lid e Alt ausente — ESTRITO
+const T17O = 'let c=this.prepareMessage(n)';
+const T17N = 'let c=this.prepareMessage(n);try{if(c?.key?.remoteJid?.includes("@lid")&&!c.key.remoteJidAlt){let lidPn=await this.client.signalRepository.lidMapping.getPNForLID(c.key.remoteJid);if(typeof lidPn==="string"&&lidPn.includes("@s.whatsapp.net"))c.key.remoteJidAlt=lidPn}}catch{}';
+// T18: poda de bloat no prepareMessage — remove jpegThumbnail/waveform dos sub-objetos de mídia — ESTRITO
+const T18O = 'source:(0,R.getDevice)(e.key.id)};!i.status&&e.key.fromMe===!1&&(i.status=ie[3])';
+const T18N = 'source:(0,R.getDevice)(e.key.id)};const mt=["imageMessage","videoMessage","stickerMessage","audioMessage","documentMessage","ptvMessage"],ep=i.message?.ephemeralMessage?.message||i.message?.viewOnceMessage?.message;for(let mi=0;mi<mt.length;mi++){if(i.message[mt[mi]]?.jpegThumbnail)delete i.message[mt[mi]].jpegThumbnail;if(i.message[mt[mi]]?.waveform)delete i.message[mt[mi]].waveform;if(ep?.[mt[mi]]?.jpegThumbnail)delete ep[mt[mi]].jpegThumbnail;if(ep?.[mt[mi]]?.waveform)delete ep[mt[mi]].waveform};!i.status&&e.key.fromMe===!1&&(i.status=ie[3])';
 
 // ============================= Execução =============================
 if (!fs.existsSync(SRC)) {
@@ -205,62 +234,129 @@ if (TEST_MODE) {
 // --- T8 (ESTRITO — guard MU no fluxo de edição) ---
 {
   const c = countOf(out, T8O);
-  if (c !== 1) fail(`T8: fluxo de edição (MU EDITED) encontrado ${c}x (esperado 1x) — bundle mudou?`);
-  out = out.split(T8O).join(T8N);
-  applied.push("T8");
+  if (TEST_MODE && countOf(out, T8N) !== 0) {
+    warn(`T8: TEST_MODE — bundle já patcheado, skip`);
+    skipped.push("T8");
+  } else if (c !== 1) fail(`T8: fluxo de edição (MU EDITED) encontrado ${c}x (esperado 1x) — bundle mudou?`);
+  else {
+    out = out.split(T8O).join(T8N);
+    applied.push("T8");
+  }
 }
 
 // --- T9 (ESTRITO — guard MU no deleteMessage lógico) ---
 {
   const c = countOf(out, T9O);
-  if (c !== 1) fail(`T9: deleteMessage (create({data:a})) encontrado ${c}x (esperado 1x) — bundle mudou?`);
-  out = out.split(T9O).join(T9N);
-  applied.push("T9");
+  if (TEST_MODE && countOf(out, T9N) !== 0) {
+    warn(`T9: TEST_MODE — bundle já patcheado, skip`);
+    skipped.push("T9");
+  } else if (c !== 1) fail(`T9: deleteMessage (create({data:a})) encontrado ${c}x (esperado 1x) — bundle mudou?`);
+  else {
+    out = out.split(T9O).join(T9N);
+    applied.push("T9");
+  }
 }
 
 // --- T10 (ESTRITO — guard MU no revoke) ---
 {
   const c = countOf(out, T10O);
-  if (c !== 1) fail(`T10: revoke (create({data:u}) sem guard) encontrado ${c}x (esperado 1x) — bundle mudou?`);
-  out = out.split(T10O).join(T10N);
-  applied.push("T10");
+  if (TEST_MODE && countOf(out, T10N) !== 0) {
+    warn(`T10: TEST_MODE — bundle já patcheado, skip`);
+    skipped.push("T10");
+  } else if (c !== 1) fail(`T10: revoke (create({data:u}) sem guard) encontrado ${c}x (esperado 1x) — bundle mudou?`);
+  else {
+    out = out.split(T10O).join(T10N);
+    applied.push("T10");
+  }
 }
 
 // --- T11 (ESTRITO — instanceId no findFirst do deleteMessage) ---
 {
   const c = countOf(out, T11O);
-  if (c !== 1) fail(`T11: findFirst do deleteMessage encontrado ${c}x (esperado 1x) — bundle mudou?`);
-  out = out.split(T11O).join(T11N);
-  applied.push("T11");
+  if (TEST_MODE && countOf(out, T11N) !== 0) {
+    warn(`T11: TEST_MODE — bundle já patcheado, skip`);
+    skipped.push("T11");
+  } else if (c !== 1) fail(`T11: findFirst do deleteMessage encontrado ${c}x (esperado 1x) — bundle mudou?`);
+  else {
+    out = out.split(T11O).join(T11N);
+    applied.push("T11");
+  }
 }
 
 // --- T13a (ESTRITO — return→continue vídeo S3) ---
 {
   const c = countOf(out, T13aO);
-  if (c !== 1) fail(`T13a: bloco S3 vídeo encontrado ${c}x (esperado 1x) — bundle mudou?`);
-  out = out.split(T13aO).join(T13aN);
-  applied.push("T13a");
+  if (TEST_MODE && countOf(out, T13aN) !== 0) {
+    warn(`T13a: TEST_MODE — bundle já patcheado, skip`);
+    skipped.push("T13a");
+  } else if (c !== 1) fail(`T13a: bloco S3 vídeo encontrado ${c}x (esperado 1x) — bundle mudou?`);
+  else {
+    out = out.split(T13aO).join(T13aN);
+    applied.push("T13a");
+  }
 }
 
 // --- T13b (ESTRITO — return→continue !media) ---
 {
   const c = countOf(out, T13bO);
-  if (c !== 1) fail(`T13b: bloco S3 !media (messages.upsert) encontrado ${c}x (esperado 1x) — bundle mudou?`);
-  out = out.split(T13bO).join(T13bN);
-  applied.push("T13b");
+  if (TEST_MODE && countOf(out, T13bN) !== 0) {
+    warn(`T13b: TEST_MODE — bundle já patcheado, skip`);
+    skipped.push("T13b");
+  } else if (c !== 1) fail(`T13b: bloco S3 !media (messages.upsert) encontrado ${c}x (esperado 1x) — bundle mudou?`);
+  else {
+    out = out.split(T13bO).join(T13bN);
+    applied.push("T13b");
+  }
 }
 
 // --- T14 (ESTRITO — CTE fetchChats pushName duplicado) ---
 {
   const c = countOf(out, T14O);
-  if (c !== 1) fail(`T14: CTE fetchChats (Chat.name as pushName) encontrado ${c}x (esperado 1x) — bundle mudou?`);
-  out = out.split(T14O).join(T14N);
-  applied.push("T14");
+  if (TEST_MODE && countOf(out, T14N) !== 0) {
+    warn(`T14: TEST_MODE — bundle já patcheado, skip`);
+    skipped.push("T14");
+  } else if (c !== 1) fail(`T14: CTE fetchChats (Chat.name as pushName) encontrado ${c}x (esperado 1x) — bundle mudou?`);
+  else {
+    out = out.split(T14O).join(T14N);
+    applied.push("T14");
+  }
+}
+
+// --- T15 (ESTRITO — dedup no messages.upsert) ---
+{
+  const c = countOf(out, T15O);
+  if (c !== 1) fail(`T15: create do messages.upsert encontrado ${c}x (esperado 1x) — bundle mudou?`);
+  out = out.split(T15O).join(T15N);
+  applied.push("T15");
+}
+
+// --- T16 (ESTRITO — instanceId no findFirst do updateMessage/edição) ---
+{
+  const c = countOf(out, T16O);
+  if (c !== 1) fail(`T16: findFirst de edição (updateMessage) encontrado ${c}x (esperado 1x) — bundle mudou?`);
+  out = out.split(T16O).join(T16N);
+  applied.push("T16");
+}
+
+// --- T17 (ESTRITO — remoteJidAlt via lidMapping no messages.upsert) ---
+{
+  const c = countOf(out, T17O);
+  if (c !== 1) fail(`T17: prepareMessage no messages.upsert encontrado ${c}x (esperado 1x) — bundle mudou?`);
+  out = out.split(T17O).join(T17N);
+  applied.push("T17");
+}
+
+// --- T18 (ESTRITO — poda de bloat no prepareMessage) ---
+{
+  const c = countOf(out, T18O);
+  if (c !== 1) fail(`T18: montagem do objeto no prepareMessage encontrado ${c}x (esperado 1x) — bundle mudou?`);
+  out = out.split(T18O).join(T18N);
+  applied.push("T18");
 }
 
 // Banner determinístico de auditoria (qual bundle base gerou este artefato)
 const srcSha = sha256(SRC);
-out = `/* evolution-api-custom ${VERSION} | patches T1-T14 build-time | base main.js sha256:${srcSha} */\n` + out;
+out = `/* evolution-api-custom ${VERSION} | patches T1-T18 build-time | base main.js sha256:${srcSha} */\n` + out;
 
 fs.writeFileSync(OUT, out);
 
@@ -288,6 +384,12 @@ if (countOf(check, T11O) !== 0 || countOf(check, T11N) !== 1) fail("pós-verific
 if (countOf(check, T13aO) !== 0 || countOf(check, T13aN) !== 1) fail("pós-verificação T13a falhou");
 if (countOf(check, T13bO) !== 0 || countOf(check, T13bN) !== 1) fail("pós-verificação T13b falhou");
 if (countOf(check, T14O) !== 0 || countOf(check, T14N) !== 1) fail("pós-verificação T14 falhou");
+// v5 — T15/T16: novos NÃO contêm os originais como substring (verificar ambos);
+// T17/T18: novos contêm os originais (verificar só o novo, regra da skill)
+if (countOf(check, T15O) !== 0 || countOf(check, T15N) !== 1) fail("pós-verificação T15 falhou");
+if (countOf(check, T16O) !== 0 || countOf(check, T16N) !== 1) fail("pós-verificação T16 falhou");
+if (countOf(check, T17N) !== 1) fail("pós-verificação T17 falhou");
+if (countOf(check, T18N) !== 1) fail("pós-verificação T18 falhou");
 
 console.log(`Patches aplicados: ${applied.join(", ")}${skipped.length ? ` | SKIP (tolerante): ${skipped.join(", ")}` : ""}`);
 console.log(`Versão do bundle:  ${VERSION}`);
