@@ -10,6 +10,30 @@ import { persistMediaToStorage, persistMediaViaApi, parseMessageContent, isSafeM
 import { getStoragePublicUrl } from "./storage-url.ts";
 
 /** evolution-webhook-messages utilities and exports. */
+
+/**
+ * ADR-001 / ADR-004: extrai bucket + path canônicos de uma URL do Storage self-hosted.
+ * Só popula campos para URLs do nosso storage — CDN externo (mmg.whatsapp.net etc) retorna nulls.
+ * Usar estes campos em vez de construir mediaUrl absoluta em código downstream.
+ */
+function extractStorageFields(url: string | null | undefined): {
+  media_bucket: string | null;
+  media_path: string | null;
+  media_status: 'ready' | null;
+} {
+  if (!url) return { media_bucket: null, media_path: null, media_status: null };
+  const BUCKETS = ['whatsapp-media', 'audio-messages', 'avatars', 'stickers'];
+  for (const bucket of BUCKETS) {
+    const marker = `/${bucket}/`;
+    const idx = url.indexOf(marker);
+    if (idx !== -1) {
+      const path = url.slice(idx + marker.length).split('?')[0].split('#')[0];
+      return { media_bucket: bucket, media_path: path, media_status: 'ready' };
+    }
+  }
+  return { media_bucket: null, media_path: null, media_status: null };
+}
+
 export async function handleOutgoingWhatsAppMessage(
   supabase: SupabaseClient, instance: string, data: Record<string, unknown>,
   key: { remoteJid?: string; remoteJidAlt?: string; participant?: string; participantAlt?: string; fromMe: boolean; id: string },
@@ -92,6 +116,8 @@ export async function handleOutgoingWhatsAppMessage(
     ...(outCaption ? { caption: outCaption } : {}),
     message_type: parsed.messageType,
     media_url: mediaUrl,
+    // ADR-004: campos canônicos para signed URLs (privatização whatsapp-media)
+    ...extractStorageFields(mediaUrl),
     // NOTA PGRST204 (fix AG-EX-01): coluna agent_id NÃO existe em evolution_messages
     // (nem em evo.* nem na view public.* — verificado via pg_catalog 2026-08-05).
     // Enviá-la fazia o PostgREST rejeitar o upsert com PGRST204 e mensagens
@@ -201,6 +227,8 @@ export async function handleIncomingMessage(
       content: preservedContent,
       message_type: messageType,
       media_url: mediaUrl,
+      // ADR-004: campos canônicos
+      ...extractStorageFields(mediaUrl),
       from_me: false,
       direction: 'inbound',
       status: preservedStatus,
@@ -222,6 +250,8 @@ export async function handleIncomingMessage(
     content,
     message_type: messageType,
     media_url: mediaUrl,
+    // ADR-004: campos canônicos
+    ...extractStorageFields(mediaUrl),
     media_meta: ingestMeta || undefined,
     ingest_meta: ingestMeta || undefined,
     quoted_message_id: quotedMessageId || undefined,
