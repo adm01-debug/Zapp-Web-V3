@@ -38,6 +38,9 @@ fi
 [ -f /run/secrets/rabbitmq_url_evolution_v1 ]      && export RABBITMQ_URI="$(cat /run/secrets/rabbitmq_url_evolution_v1 | tr -d '\n\r')"
 [ -f /run/secrets/metrics_password_v2 ]            && export METRICS_PASSWORD="$(cat /run/secrets/metrics_password_v2 | tr -d '\n\r')"
 [ -f /run/secrets/wa_business_verify_token_v1 ]    && export WA_BUSINESS_TOKEN_WEBHOOK="$(cat /run/secrets/wa_business_verify_token_v1 | tr -d '\n\r')"
+# v4 (2026-08-10): CACHE_REDIS_URI vem de secret (ACL do Redis com senha) —
+# nunca no env do stack (evita senha em claro no Portainer).
+[ -f /run/secrets/evolution_cache_redis_uri_v1 ]   && export CACHE_REDIS_URI="$(cat /run/secrets/evolution_cache_redis_uri_v1 | tr -d '\n\r')"
 
 # --- A-8: auditoria de boot (best-effort; nunca quebra o boot) ---
 if [ -f /run/secrets/supabase_service_key_v1 ]; then
