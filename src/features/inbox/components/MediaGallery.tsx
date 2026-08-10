@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect, useCallback, memo } from 'react';
 import { GenericEmptyState } from '@/components/ui/GenericEmptyState';
 import { useQuery } from '@tanstack/react-query';
+import { useSignedMediaUrlBatch } from '@/lib/useMediaUrl';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -63,6 +65,9 @@ interface MediaGalleryProps {
 interface GalleryMessage {
   id: string;
   media_url: string | null;
+  media_bucket: string | null;
+  media_path: string | null;
+  media_status: string | null;
   message_type: string;
   created_at: string;
   content: string;
@@ -89,7 +94,9 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
     queryKey: queryKeys.mediaGallery.contact(contactId),
     queryFn: async () => {
       const { data, error } = await dbFrom('messages')
-        .select('id, media_url, message_type, content, created_at')
+        .select(
+          'id, media_url, media_bucket, media_path, media_status, message_type, content, created_at'
+        )
         .eq('contact_id', contactId)
         .not('media_url', 'is', null)
         .order('created_at', { ascending: false });
@@ -111,22 +118,38 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
     return () => clearTimeout(t);
   }, [isFetching]);
 
+  // ADR-004: batch signing para buckets privados (whatsapp-media)
+  const itemsForBatch = useMemo(
+    () =>
+      (messages || []).map((m) => ({
+        id: m.id,
+        media_bucket: m.media_bucket ?? null,
+        media_path: m.media_path ?? null,
+        media_url: m.media_url ?? null,
+        media_status: m.media_status ?? null,
+      })),
+    [messages]
+  );
+  const { signedUrls } = useSignedMediaUrlBatch(itemsForBatch, supabase);
+
   const mediaItems = useMemo((): MediaItem[] => {
     if (!messages) return [];
     return messages
-      .filter(
-        (m: GalleryMessage): m is GalleryMessage & { media_url: string } =>
-          Boolean(m.media_url)
+      .filter((m: GalleryMessage): m is GalleryMessage & { media_url: string } =>
+        Boolean(m.media_url)
       )
       .map((m: GalleryMessage & { media_url: string }) => ({
         id: m.id,
-        url: m.media_url,
+        media_bucket: m.media_bucket,
+        media_path: m.media_path,
+        media_status: m.media_status,
+        url: signedUrls.get(m.id) ?? m.media_url,
         type: getMediaType(m.media_url, m.message_type),
         filename: getFilename(m.media_url),
         created_at: m.created_at,
         message_content: m.content,
       }));
-  }, [messages]);
+  }, [messages, signedUrls]);
 
   const filteredItems = useMemo(
     () =>

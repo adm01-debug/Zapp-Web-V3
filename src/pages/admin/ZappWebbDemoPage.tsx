@@ -13,6 +13,7 @@ import { motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { resolvePublicMediaUrl } from '@/lib/useMediaUrl';
 import {
   Send,
   Loader2,
@@ -82,7 +83,8 @@ function MessageBubble({ msg }: { msg: EvolutionMessage }) {
     );
   }
 
-  const isMedia = msg.media_url && (msg.media_type || msg.message_type !== 'conversation');
+  const resolvedMediaUrl = resolvePublicMediaUrl({ mediaUrl: msg.media_url });
+  const isMedia = resolvedMediaUrl && (msg.media_type || msg.message_type !== 'conversation');
 
   return (
     <div className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
@@ -95,26 +97,26 @@ function MessageBubble({ msg }: { msg: EvolutionMessage }) {
       >
         {isMedia && msg.media_type === 'image' && (
           <img
-            src={msg.media_url ?? ""}
+            src={resolvedMediaUrl ?? ''}
             alt="Imagem da mensagem"
             className="mb-1 max-h-60 rounded-lg object-cover"
           />
         )}
         {isMedia && msg.media_type === 'audio' && (
           <>
-            <audio controls src={msg.media_url ?? ""} className="my-1 w-56" />
+            <audio controls src={resolvedMediaUrl ?? ''} className="my-1 w-56" />
             <p className="sr-only">Transcrição de áudio não disponível.</p>
           </>
         )}
         {isMedia && msg.media_type === 'video' && (
           <>
-            <video controls src={msg.media_url ?? ""} className="mb-1 max-h-60 rounded-lg" />
+            <video controls src={resolvedMediaUrl ?? ''} className="mb-1 max-h-60 rounded-lg" />
             <p className="sr-only">Legendas não disponíveis para este vídeo.</p>
           </>
         )}
         {isMedia && msg.media_type === 'document' && (
           <a
-            href={msg.media_url ?? ""}
+            href={resolvedMediaUrl ?? ''}
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-2 text-sm underline"
@@ -185,7 +187,8 @@ export default function ZappWebbDemoPage() {
         <div className="flex-1">
           <h1 className="font-display font-bold">Zap Webb · Inbox Demo</h1>
           <p className="text-[11px] text-muted-foreground">
-            Instância: <span className="font-mono">{ZAPPWEB_INSTANCE}</span> · Realtime ativo {/* @technical */}
+            Instância: <span className="font-mono">{ZAPPWEB_INSTANCE}</span> · Realtime ativo{' '}
+            {/* @technical */}
           </p>
         </div>
         <Badge variant="outline" className="gap-1">
@@ -214,7 +217,8 @@ export default function ZappWebbDemoPage() {
                 const name = c?.full_name || c?.push_name || conv.remote_jid;
                 const isActive = conv.id === activeId;
                 return (
-                  <button type="button"
+                  <button
+                    type="button"
                     key={conv.id}
                     onClick={() => handleOpen(conv)}
                     className={`w-full border-b px-3 py-2.5 text-left transition-colors hover:bg-muted/50 ${

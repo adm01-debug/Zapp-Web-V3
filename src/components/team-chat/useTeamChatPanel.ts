@@ -191,13 +191,21 @@ export function useTeamChatPanel(conversation: TeamConversation) {
   }, [text, sendMutation, conversation.id, replyTo]);
 
   const handleSendMedia = useCallback(
-    (mediaUrl: string, mediaType: string, content?: string) => {
+    (
+      mediaUrl: string,
+      mediaType: string,
+      content?: string,
+      mediaBucket?: string,
+      mediaPath?: string
+    ) => {
       sendMutation.mutate(
         {
           conversationId: conversation.id,
           content: content || '',
           mediaUrl,
           mediaType,
+          mediaBucket,
+          mediaPath,
           replyToId: replyTo?.id,
         },
         {
@@ -225,8 +233,13 @@ export function useTeamChatPanel(conversation: TeamConversation) {
     [handleSendMedia]
   );
   const handleFileSent = useCallback(
-    (mediaUrl: string, mediaType: string, fileName: string) =>
-      handleSendMedia(mediaUrl, mediaType, fileName),
+    (
+      mediaUrl: string,
+      mediaType: string,
+      fileName: string,
+      mediaBucket?: string,
+      mediaPath?: string
+    ) => handleSendMedia(mediaUrl, mediaType, fileName, mediaBucket, mediaPath),
     [handleSendMedia]
   );
 
@@ -242,7 +255,9 @@ export function useTeamChatPanel(conversation: TeamConversation) {
         handleSendMedia(
           (await getSignedMediaUrl('team-chat-files', path, 604800)) ?? '',
           'audio',
-          '🎤 Mensagem de áudio'
+          '🎤 Mensagem de áudio',
+          'team-chat-files',
+          path
         );
       } catch (err) {
         toast.error('Erro ao enviar áudio');

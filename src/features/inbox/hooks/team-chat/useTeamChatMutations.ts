@@ -74,6 +74,8 @@ export function useSendTeamMessage() {
       replyToId?: string;
       mediaUrl?: string;
       mediaType?: string;
+      mediaBucket?: string;
+      mediaPath?: string;
     }) => {
       if (!profile) throw new Error('Not authenticated');
       const { data, error } = await supabase
@@ -85,6 +87,8 @@ export function useSendTeamMessage() {
           reply_to_id: replyToId || null,
           media_url: mediaUrl || null,
           media_type: mediaType || null,
+          media_bucket: mediaBucket || null,
+          media_path: mediaPath || null,
         })
         .select()
         .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
@@ -113,6 +117,8 @@ export function useSendTeamMessage() {
               message_type: data?.message_type ?? 'text',
               media_url: data?.media_url ?? null,
               media_type: data?.media_type ?? null,
+              media_bucket: data?.media_bucket ?? null,
+              media_path: data?.media_path ?? null,
               reply_to_id: data?.reply_to_id ?? null,
               is_edited: data?.is_edited ?? false,
               created_at: data?.created_at ?? new Date().toISOString(),
