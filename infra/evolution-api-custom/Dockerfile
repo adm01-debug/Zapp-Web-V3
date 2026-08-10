@@ -1,5 +1,5 @@
 # ============================================================================
-# evolution-api-custom — Evolution API 2.3.7 com patches T1-T18 em BUILD-TIME
+# evolution-api-custom — Evolution API 2.3.7 com patches T1-T19 em BUILD-TIME
 # ----------------------------------------------------------------------------
 # Substitui o monkey-patch RUNTIME (logpatch.cjs + configs Swarm
 # evolution_logpatch_t4_cjs / evolution_main_v2_js) por um bundle patcheado
@@ -31,6 +31,9 @@
 #       sub-objetos de mídia (image/video/sticker/audio/document/ptv +
 #       ephemeral/viewOnce); mantém mediaKey/fileSha256/fileEncSha256/
 #       messageSecret (download/descriptografia)
+#   T19 remoteJidAlt via senderPn (Baileys 6.7.24 entrega senderPn no key):
+#       fallback triplo senderPn → getPNForLID (T17) → nada, em try/catch —
+#       nunca quebra a ingestão
 # libsignal/src/session_record.js: remove console.info/warn de sessões.
 #
 # PLANO B (baileys 6.7.24): o bundle é rebuildado do source da tag 2.3.7 com
@@ -48,7 +51,7 @@ FROM ${BASE_IMAGE}
 
 LABEL org.opencontainers.image.title="evolution-api-custom" \
       org.opencontainers.image.version="2.3.7" \
-      org.opencontainers.image.description="Evolution API 2.3.7 com patches T1-T18 build-time (log masking, Sentry filtrado, versao mascarada na raiz, sem logs de stanza/CACHE/webhook, guards MessageUpdate, dedup de ingestao, remoteJidAlt via lidMapping, poda de bloat) — bundle com baileys 6.7.24 (Plano B)" \
+      org.opencontainers.image.description="Evolution API 2.3.7 com patches T1-T19 build-time (log masking, Sentry filtrado, versao mascarada na raiz, sem logs de stanza/CACHE/webhook, guards MessageUpdate, dedup de ingestao, remoteJidAlt via senderPn com fallback lidMapping, poda de bloat) — bundle com baileys 6.7.24 (Plano B)" \
       org.opencontainers.image.source="https://github.com/adm01-debug/zapp-web-v3/tree/main/infra/evolution-api-custom" \
       org.opencontainers.image.base.digest="sha256:6b195676b09abbbd8ac9372cd961674dea2587f23dc9bc1d1e6a595372556fb1" \
       org.opencontainers.image.revision="${GIT_SHA}" \
@@ -57,7 +60,7 @@ LABEL org.opencontainers.image.title="evolution-api-custom" \
 WORKDIR /evolution
 EXPOSE 8080
 
-# --- Bundle principal patcheado (T1-T18). Gerado por build-patches.mjs a partir
+# --- Bundle principal patcheado (T1-T19). Gerado por build-patches.mjs a partir
 #     do /evolution/dist/main.js ORIGINAL extraído da imagem base (digest acima).
 COPY main.patched.js /evolution/dist/main.js
 
@@ -90,12 +93,12 @@ RUN node -e 'var fs=require("fs"),p="/evolution/package.json",pkg=JSON.parse(fs.
 RUN node -e 'var fs=require("fs"),p="/evolution/node_modules/baileys/package.json";if(!fs.existsSync(p)){console.error("FAIL: baileys ausente");process.exit(1);}var v=JSON.parse(fs.readFileSync(p,"utf8")).version;if(v!=="6.7.24"){console.error("FAIL: baileys="+v);process.exit(1);}var pkg=JSON.parse(fs.readFileSync("/evolution/package.json","utf8"));var d=pkg.dependencies&&pkg.dependencies.baileys;if(d!=="6.7.24"){console.error("FAIL: package.json declara "+d);process.exit(1);}console.log("VERIFY OK: baileys "+v+" runtime+pkg=6.7.24");'
 
 # --- Verificação fail-closed: o build FALHA se o bundle copiado não tiver os
-#     patches T1-T18 exatamente como esperado (nunca sobe imagem com patch
+#     patches T1-T19 exatamente como esperado (nunca sobe imagem com patch
 #     quebrado). T2/T5a: tolerantes — só exigem AUSÊNCIA (aplicados ou SKIPed,
 #     nunca presentes). T1/T3/T4/T6: estritos (marcadores obrigatórios).
-#     T8-T18 (v4/v5): marcadores obrigatórios de presença (T8/T9/T17/T18 têm o
-#     original como substring do novo — só presença); T10/T11/T13a/T13b/T14/
-#     T15/T16: presença do novo + ausência do original.
+#     T8-T19 (v4/v5/v6): marcadores obrigatórios de presença (T8/T9/T17/T18/T19
+#     têm o original como substring do novo — só presença); T10/T11/T13a/T13b/
+#     T14/T15/T16: presença do novo + ausência do original.
 RUN node -e ' \
 const fs=require("fs"); \
 const s=fs.readFileSync("/evolution/dist/main.js","utf8"); \
@@ -124,8 +127,9 @@ if(!s.includes("keyIdV=g?.key?.id;if(keyIdV&&await this.prismaRepository.message
 if(s.includes("let c=await this.prismaRepository.message.findFirst({where:{key:{path:[\"id\"],equals:a}}});if(!c)throw new F(\"Message not found\")"))fail("T16 nao aplicado (findFirst edicao sem instanceId)"); \
 if(!s.includes("let c=await this.prismaRepository.message.findFirst({where:{instanceId:this.instanceId,key:{path:[\"id\"],equals:a}}});if(!c)throw new F(\"Message not found\")"))fail("T16 marcador ausente (findFirst edicao instanceId)"); \
 if(!s.includes("let lidPn=await this.client.signalRepository.lidMapping.getPNForLID(c.key.remoteJid)"))fail("T17 marcador ausente (remoteJidAlt lidMapping)"); \
+if(!s.includes("if(typeof c.key.senderPn===\"string\"&&c.key.senderPn.includes(\"@s.whatsapp.net\"))c.key.remoteJidAlt=c.key.senderPn"))fail("T19 marcador ausente (remoteJidAlt senderPn)"); \
 if(!s.includes("const mt=[\"imageMessage\",\"videoMessage\",\"stickerMessage\",\"audioMessage\",\"documentMessage\",\"ptvMessage\"],ep=i.message?.ephemeralMessage?.message"))fail("T18 marcador ausente (poda bloat prepareMessage)"); \
-console.log("VERIFY OK: main.js com T1-T18 aplicados"); \
+console.log("VERIFY OK: main.js com T1-T19 aplicados"); \
 '
 
 # --- libsignal/src/session_record.js: remove console.info/warn de sessões

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * build-patches.mjs — v5 (Plano B, bundle esbuild 0.27/tsup 8.5.1)
+ * build-patches.mjs — v6 (Plano B, bundle esbuild 0.27/tsup 8.5.1)
  * Porta BUILD-TIME do logpatch.cjs (stack 25 / config evolution_logpatch_t4_cjs).
  *
  * v4 (2026-08-10): adiciona T8-T14 — correções da auditoria evolution (onda 5):
@@ -32,11 +32,21 @@
  *       ephemeral/viewOnce) — mantém mediaKey/fileSha256/fileEncSha256/
  *       messageSecret (download/descriptografia)                          [ESTRITO]
  *
+ * v6 (2026-08-10): adiciona T19 — remoteJidAlt via senderPn (Baileys 6.7.24):
+ *   O Baileys 6.7.24 entrega senderPn no key (validado em runtime: 24 msgs
+ *   @lid com senderPn nas últimas 2h, remoteJidAlt 0) e o T17 (getPNForLID)
+ *   não produziu remoteJidAlt (lidMapping vazio no fork). T19 estende o bloco
+ *   T17 no messages.upsert com fallback triplo: senderPn → getPNForLID (T17)
+ *   → nada. Tudo em try/catch — nunca quebra a ingestão.              [ESTRITO]
+ *   TEST_MODE agora também cobre T8-T19 (skip quando o literal NOVO já está
+ *   presente) — permite validar o script contra o bundle JÁ patcheado.
+ *
  * MODOS:
  *  - ESTRITO: count == 1 obrigatório; count != 1 aborta (fail-closed).
  *  - TOLERANTE (T1, T2, T5a): count == 0 → SKIP com warn; count > 1 → FAIL.
- *  - TEST_MODE=1: T3/T6/T7/T4 viram SKIP (para validar T8-T18 sobre um
- *    bundle que JÁ recebeu T1-T7 — teste local; no CI o modo normal vale).
+ *  - TEST_MODE=1: T3/T6/T7/T4 e T8-T19 viram SKIP quando o literal NOVO já
+ *    está presente (para validar contra bundle que JÁ recebeu os patches —
+ *    teste local; no CI o modo normal vale).
  *
  * Uso:
  *   node build-patches.mjs [main.js] [main.patched.js] [t4_prologue.cjs] [versao]
@@ -125,6 +135,16 @@ const T17N = 'let c=this.prepareMessage(n);try{if(c?.key?.remoteJid?.includes("@
 // T18: poda de bloat no prepareMessage — remove jpegThumbnail/waveform dos sub-objetos de mídia — ESTRITO
 const T18O = 'source:(0,R.getDevice)(e.key.id)};!i.status&&e.key.fromMe===!1&&(i.status=ie[3])';
 const T18N = 'source:(0,R.getDevice)(e.key.id)};const mt=["imageMessage","videoMessage","stickerMessage","audioMessage","documentMessage","ptvMessage"],ep=i.message?.ephemeralMessage?.message||i.message?.viewOnceMessage?.message;for(let mi=0;mi<mt.length;mi++){if(i.message[mt[mi]]?.jpegThumbnail)delete i.message[mt[mi]].jpegThumbnail;if(i.message[mt[mi]]?.waveform)delete i.message[mt[mi]].waveform;if(ep?.[mt[mi]]?.jpegThumbnail)delete ep[mt[mi]].jpegThumbnail;if(ep?.[mt[mi]]?.waveform)delete ep[mt[mi]].waveform};!i.status&&e.key.fromMe===!1&&(i.status=ie[3])';
+
+// ============ T19 (v6 — remoteJidAlt via senderPn, Baileys 6.7.24; literais validados no bundle 72b5524f) =
+// T19: fallback triplo senderPn → getPNForLID (T17) → nada. O Baileys 6.7.24
+// entrega senderPn no key (runtime validado: 24 msgs @lid com senderPn nas
+// últimas 2h, remoteJidAlt 0) e o T17 isolado não produziu remoteJidAlt
+// (lidMapping vazio no fork). Alvo = bloco T17 já aplicado (T17N); T19N
+// preserva o getPNForLID como fallback no else, mas NÃO contém T17N como
+// substring (o `{` diverge — T17N é consumido). Tudo em try/catch — ESTRITO
+const T19O = 'let c=this.prepareMessage(n);try{if(c?.key?.remoteJid?.includes("@lid")&&!c.key.remoteJidAlt){let lidPn=await this.client.signalRepository.lidMapping.getPNForLID(c.key.remoteJid);if(typeof lidPn==="string"&&lidPn.includes("@s.whatsapp.net"))c.key.remoteJidAlt=lidPn}}catch{}';
+const T19N = 'let c=this.prepareMessage(n);try{if(c?.key?.remoteJid?.includes("@lid")&&!c.key.remoteJidAlt){if(typeof c.key.senderPn==="string"&&c.key.senderPn.includes("@s.whatsapp.net"))c.key.remoteJidAlt=c.key.senderPn;else{let lidPn=await this.client.signalRepository.lidMapping.getPNForLID(c.key.remoteJid);if(typeof lidPn==="string"&&lidPn.includes("@s.whatsapp.net"))c.key.remoteJidAlt=lidPn}}}catch{}';
 
 // ============================= Execução =============================
 if (!fs.existsSync(SRC)) {
@@ -325,38 +345,76 @@ if (TEST_MODE) {
 // --- T15 (ESTRITO — dedup no messages.upsert) ---
 {
   const c = countOf(out, T15O);
-  if (c !== 1) fail(`T15: create do messages.upsert encontrado ${c}x (esperado 1x) — bundle mudou?`);
-  out = out.split(T15O).join(T15N);
-  applied.push("T15");
+  if (TEST_MODE && countOf(out, T15N) !== 0) {
+    warn(`T15: TEST_MODE — bundle já patcheado, skip`);
+    skipped.push("T15");
+  } else if (c !== 1) fail(`T15: create do messages.upsert encontrado ${c}x (esperado 1x) — bundle mudou?`);
+  else {
+    out = out.split(T15O).join(T15N);
+    applied.push("T15");
+  }
 }
 
 // --- T16 (ESTRITO — instanceId no findFirst do updateMessage/edição) ---
 {
   const c = countOf(out, T16O);
-  if (c !== 1) fail(`T16: findFirst de edição (updateMessage) encontrado ${c}x (esperado 1x) — bundle mudou?`);
-  out = out.split(T16O).join(T16N);
-  applied.push("T16");
+  if (TEST_MODE && countOf(out, T16N) !== 0) {
+    warn(`T16: TEST_MODE — bundle já patcheado, skip`);
+    skipped.push("T16");
+  } else if (c !== 1) fail(`T16: findFirst de edição (updateMessage) encontrado ${c}x (esperado 1x) — bundle mudou?`);
+  else {
+    out = out.split(T16O).join(T16N);
+    applied.push("T16");
+  }
 }
 
 // --- T17 (ESTRITO — remoteJidAlt via lidMapping no messages.upsert) ---
+// TEST_MODE: skip se T17N (standalone) OU T19N (chain senderPn, que ENGLOBA a
+// lógica do T17 como fallback) já estiverem presentes — T17N NÃO é substring
+// do T19N (o `{` diverge), por isso as duas formas são checadas.
 {
   const c = countOf(out, T17O);
-  if (c !== 1) fail(`T17: prepareMessage no messages.upsert encontrado ${c}x (esperado 1x) — bundle mudou?`);
-  out = out.split(T17O).join(T17N);
-  applied.push("T17");
+  if (TEST_MODE && (countOf(out, T17N) !== 0 || countOf(out, T19N) !== 0)) {
+    warn(`T17: TEST_MODE — bundle já patcheado, skip`);
+    skipped.push("T17");
+  } else if (c !== 1) fail(`T17: prepareMessage no messages.upsert encontrado ${c}x (esperado 1x) — bundle mudou?`);
+  else {
+    out = out.split(T17O).join(T17N);
+    applied.push("T17");
+  }
+}
+
+// --- T19 (ESTRITO — remoteJidAlt via senderPn, fallback triplo senderPn → T17 → nada) ---
+// Alvo = bloco T17 JÁ aplicado (T17N). Roda depois do T17 no mesmo build (CI: source
+// limpo → T17 aplica e T19 encadeia; TEST_MODE: bundle deployado → T17N já presente).
+{
+  const c = countOf(out, T19O);
+  if (TEST_MODE && countOf(out, T19N) !== 0) {
+    warn(`T19: TEST_MODE — bundle já patcheado, skip`);
+    skipped.push("T19");
+  } else if (c !== 1) fail(`T19: bloco T17 (prepareMessage no messages.upsert) encontrado ${c}x (esperado 1x) — bundle mudou?`);
+  else {
+    out = out.split(T19O).join(T19N);
+    applied.push("T19");
+  }
 }
 
 // --- T18 (ESTRITO — poda de bloat no prepareMessage) ---
 {
   const c = countOf(out, T18O);
-  if (c !== 1) fail(`T18: montagem do objeto no prepareMessage encontrado ${c}x (esperado 1x) — bundle mudou?`);
-  out = out.split(T18O).join(T18N);
-  applied.push("T18");
+  if (TEST_MODE && countOf(out, T18N) !== 0) {
+    warn(`T18: TEST_MODE — bundle já patcheado, skip`);
+    skipped.push("T18");
+  } else if (c !== 1) fail(`T18: montagem do objeto no prepareMessage encontrado ${c}x (esperado 1x) — bundle mudou?`);
+  else {
+    out = out.split(T18O).join(T18N);
+    applied.push("T18");
+  }
 }
 
 // Banner determinístico de auditoria (qual bundle base gerou este artefato)
 const srcSha = sha256(SRC);
-out = `/* evolution-api-custom ${VERSION} | patches T1-T18 build-time | base main.js sha256:${srcSha} */\n` + out;
+out = `/* evolution-api-custom ${VERSION} | patches T1-T19 build-time | base main.js sha256:${srcSha} */\n` + out;
 
 fs.writeFileSync(OUT, out);
 
@@ -384,12 +442,15 @@ if (countOf(check, T11O) !== 0 || countOf(check, T11N) !== 1) fail("pós-verific
 if (countOf(check, T13aO) !== 0 || countOf(check, T13aN) !== 1) fail("pós-verificação T13a falhou");
 if (countOf(check, T13bO) !== 0 || countOf(check, T13bN) !== 1) fail("pós-verificação T13b falhou");
 if (countOf(check, T14O) !== 0 || countOf(check, T14N) !== 1) fail("pós-verificação T14 falhou");
-// v5 — T15/T16: novos NÃO contêm os originais como substring (verificar ambos);
-// T17/T18: novos contêm os originais (verificar só o novo, regra da skill)
+// v5/v6 — T15/T16: novos NÃO contêm os originais como substring (verificar ambos);
+// T17: T17N vira o ALVO do T19 (T19O == T17N) — após o T19, T17N some (não é
+// substring do T19N); checar "T17N standalone OU T19N chain presente".
+// T18/T19: T18N contém T18O; T19N contém T19O (T17N) — verificar só o novo.
 if (countOf(check, T15O) !== 0 || countOf(check, T15N) !== 1) fail("pós-verificação T15 falhou");
 if (countOf(check, T16O) !== 0 || countOf(check, T16N) !== 1) fail("pós-verificação T16 falhou");
-if (countOf(check, T17N) !== 1) fail("pós-verificação T17 falhou");
+if (countOf(check, T17N) === 0 && countOf(check, T19N) === 0) fail("pós-verificação T17 falhou (remoteJidAlt ausente)");
 if (countOf(check, T18N) !== 1) fail("pós-verificação T18 falhou");
+if (countOf(check, T19N) !== 1) fail("pós-verificação T19 falhou");
 
 console.log(`Patches aplicados: ${applied.join(", ")}${skipped.length ? ` | SKIP (tolerante): ${skipped.join(", ")}` : ""}`);
 console.log(`Versão do bundle:  ${VERSION}`);

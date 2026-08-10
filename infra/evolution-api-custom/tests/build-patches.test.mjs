@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * build-patches.test.mjs — E46: regressão para os patches T1-T18 (2026-08-10)
+ * build-patches.test.mjs — E46: regressão para os patches T1-T19 (2026-08-10)
  *
  * Valida o build-patches.mjs contra um FIXTURE mínimo contendo os literais
  * originais de TODOS os alvos (T1, T2, T3, T5a, T6, T7, T8, T9, T10, T11,
- * T13a, T13b, T14, T15, T16, T17, T18). Se qualquer literal do bundle real
+ * T13a, T13b, T14, T15, T16, T17, T18, T19). Se qualquer literal do bundle real
  * mudar (esbuild variar nomes/quotes), o fail-closed do build-patches.mjs
  * aborta e este teste falha.
  *
@@ -51,7 +51,7 @@ const FIXTURE = [
   'let c=this.prepareMessage(n)',
   // T18 — fim da montagem do objeto i no prepareMessage (âncora da poda de bloat)
   'source:(0,R.getDevice)(e.key.id)};!i.status&&e.key.fromMe===!1&&(i.status=ie[3])',
-].join("\n");
+  ].join("\n");
 
 const PROLOGUE =
   "/* prologue-test MASKED pushName conversation WebMessageInfo apikey remoteJid agentId */\n";
@@ -102,6 +102,8 @@ try {
     'let lidPn=await this.client.signalRepository.lidMapping.getPNForLID(c.key.remoteJid)',
     // T18 (poda de bloat)
     'const mt=["imageMessage","videoMessage","stickerMessage","audioMessage","documentMessage","ptvMessage"]',
+    // T19 (remoteJidAlt via senderPn — fallback triplo senderPn → getPNForLID → nada)
+    'if(typeof c.key.senderPn==="string"&&c.key.senderPn.includes("@s.whatsapp.net"))c.key.remoteJidAlt=c.key.senderPn',
   ];
   const missing = MUST_CONTAIN.filter((m) => !patched.includes(m));
   if (missing.length > 0) {
@@ -110,7 +112,7 @@ try {
     console.error("stderr do build-patches:", out);
     process.exit(1);
   }
-  console.log("✅ E46 PASS — T1-T18 aplicados no fixture; fail-closed e pós-verificação OK.");
+  console.log("✅ E46 PASS — T1-T19 aplicados no fixture; fail-closed e pós-verificação OK.");
   process.exit(0);
 } catch (e) {
   console.error("❌ E46 FAIL — build-patches.mjs abortou ou pós-verificação falhou:");
