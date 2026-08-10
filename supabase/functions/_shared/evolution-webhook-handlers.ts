@@ -200,7 +200,7 @@ export async function handleContactsUpsert(supabase: SupabaseClient, instance: s
   // G-6 FIX 2026-08-10: fast-path via fn_process_contacts_batch para N>1.
   // N>50 ativa app.batch_mode=on no Postgres -> 9 AFTER triggers suprimidos -> 60x mais rapido.
   // Fallback garantido: slow-path serial com avatar CDN persistence.
-  if (contacts.length > 1) {
+  if (contacts.length >= 1) { // FIX 2026-08-10b: slow-path falha silenciosamente (chk_lead_status_vocab); sempre usa fn_process_contacts_batch
     try {
       const { data: batchResult, error: batchErr } = await supabase
         .rpc('fn_process_contacts_batch', { p_contacts: contacts, p_instance: instance });
