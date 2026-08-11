@@ -344,6 +344,30 @@ export async function handlePresenceUpdate(supabase: SupabaseClient, instance: s
       return;
     }
 
+    // Persistência de presença em evo.evolution_contacts (online/última vez).
+    // 1:1 → remote_jid do contato; grupo → apenas o participant digitando (evita
+    // volume alto de presences em grupo). Throttle de 60s é feito na função DB.
+    const presenceJid = isGroup ? (isComposing ? typingParticipant : null) : jid;
+    if (presenceJid && !presenceJid.endsWith('@broadcast')) {
+      let presenceState = 'unavailable';
+      if (presences) {
+        const pState = presences[presenceJid] ?? presences[jid];
+        if (pState) {
+          presenceState = (pState.lastKnownPresence as string) || (pState.status as string) || 'unavailable';
+        }
+      } else {
+        presenceState = (presenceData.status as string) || (presenceData.lastKnownPresence as string) || 'unavailable';
+      }
+      const { error: presenceErr } = await supabase.rpc('zapp_touch_contact_presence', {
+        p_remote_jid: presenceJid,
+        p_presence: presenceState,
+        p_instance: instance,
+      });
+      if (presenceErr) {
+        console.warn(`[presence.update] persist failed jid=${presenceJid} err=${presenceErr.message}`);
+      }
+    }
+
     const timestamp = new Date().toISOString();
     const basePayload: Record<string, unknown> = { isTyping: isComposing, remoteJid: jid, timestamp };
     if (isGroup) {
