@@ -295,8 +295,9 @@ async function sendEmail(
   contact: { email: string | null },
   config: NotifChannelConfig | null,
 ): Promise<{ ok: boolean; error: string | null }> {
-  const resendKey = Deno.env.get('RESEND_API_KEY');
-  if (!resendKey) return { ok: false, error: 'RESEND_API_KEY ausente' };
+  const resendKey =
+    (await getSecret('resend_api_key')) ?? Deno.env.get('RESEND_API_KEY');
+  if (!resendKey) return { ok: false, error: 'resend_api_key ausente (vault/env)' };
 
   const to = resolveEmailRecipient(payload, contact, config);
   const subject = firstString(payload.title, asRecord(payload.metadata)?.subject, 'Notificação Zapp');
@@ -311,7 +312,7 @@ async function sendEmail(
         'Content-Type': 'application/json',
         Authorization: `Bearer ${resendKey}`,
       },
-      body: JSON.stringify({ from: 'noreply@zappweb.app', to, subject, html }),
+      body: JSON.stringify({ from: 'Promo Brindes <on@resend.dev>', to, subject, html }),
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
     const body = await res.text();
