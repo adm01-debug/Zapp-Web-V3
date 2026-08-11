@@ -481,6 +481,30 @@ export async function handleReactionEvent(
     }
   }
 
+  // [FIX 2026-08-11] Reações órfãs (evolution_reactions sem mensagem alvo — 110 casos):
+  // se a mensagem ainda não existe (messages.upsert atrasado/perdido), criar um
+  // placeholder mínimo para satisfazer a FK (message_id, instance_name) →
+  // evolution_messages. Quando a mensagem real chegar, o update path existente
+  // (handleIncomingMessage/handleOutgoingWhatsAppMessage) a completa.
+  // Best-effort: se o placeholder falhar, a reação ainda é gravada (raw log).
+  const { data: targetMsg } = await supabase
+    .from('evolution_messages').select('id')
+    .eq('message_id', targetExternalId).eq('instance_name', instance).maybeSingle();
+  if (!targetMsg) {
+    const { error: phErr } = await supabase.from('evolution_messages').upsert({
+      message_id: targetExternalId,
+      instance_name: instance,
+      remote_jid: rawJid,
+      from_me: actorFromMe,
+      direction: actorFromMe ? 'outbound' : 'inbound',
+      message_type: 'unknown', // vocabulário canônico: subtipo não mapeado
+      status: 'received',
+      created_at: reactedAt,   // aproximação (a reação é posterior à mensagem)
+    }, { onConflict: 'message_id,instance_name', ignoreDuplicates: true });
+    if (phErr) console.warn(`[evolution_reactions] placeholder warn ${targetExternalId}: ${phErr.message}`);
+    else console.log(`[evolution_reactions] placeholder criado para mensagem ausente ${targetExternalId}`);
+  }
+
   // [RAW LOG] Always upsert to public.evolution_reactions (fire-and-forget).
   // ON CONFLICT DO UPDATE captura mudança de emoji e remoções (emoji='').
   // UNIQUE (message_id, instance_name, remote_jid, from_me).
