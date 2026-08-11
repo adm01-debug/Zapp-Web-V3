@@ -178,8 +178,9 @@ export const EvolutionSyncV1Schema = z.object({
  * instanceName opcional (default 'wpp2', sanitizado no handler).
  */
 export const EvolutionGroupSyncV1Schema = z.object({
-  action: z.literal("groups").optional(),
+  action: z.enum(["groups", "isonwa"]).optional(),
   instanceName: z.string().min(1).max(100).optional(),
+  limit: z.number().int().min(1).max(50).optional(),
 }).passthrough();
 
 /**
