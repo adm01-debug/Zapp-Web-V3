@@ -1,6 +1,7 @@
 import { getCorsHeaders, handleCors } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
+import { getSecret } from "../_shared/vault.ts";
 import { parseOrReject, buildContractErrorBody } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
@@ -169,14 +170,17 @@ Deno.serve(async (req) => {
   const authError = requireServiceRoleOrCron(req);
   if (authError) return authError;
 
-  // 2) Token da instância — env obrigatória. O secret EVOLUTION_INSTANCE_TOKEN_WPP2
-  //    precisa ser criado no stack do Supabase self-hosted (valor = vault
-  //    evolution_instance_token_wpp2). Sem fallback para vault por design.
-  const token = Deno.env.get("EVOLUTION_INSTANCE_TOKEN_WPP2");
+  // 2) Token da instância — vault (padrão do repo: _shared/vault.ts getSecret,
+  //    mesmo mecanismo do dispatcher) com fallback p/ env (segredos do stack).
+  //    O valor é o vault evolution_instance_token_wpp2 (UUID 36 chars da tabela
+  //    Instance do banco evolution — auth comprovada 200 em 2026-08-11).
+  const token =
+    (await getSecret("evolution_instance_token_wpp2")) ??
+    Deno.env.get("EVOLUTION_INSTANCE_TOKEN_WPP2");
   if (!token) {
     return jsonResponse({
       ok: false, fetched: 0, upserted: 0, errors: 1,
-      primeiro_erro: "EVOLUTION_INSTANCE_TOKEN_WPP2 não configurado — criar o secret no stack do Supabase (valor do vault evolution_instance_token_wpp2)",
+      primeiro_erro: "token da instância ausente — criar secret do vault evolution_instance_token_wpp2 (ou env EVOLUTION_INSTANCE_TOKEN_WPP2)",
     }, 503, corsHeaders);
   }
 
