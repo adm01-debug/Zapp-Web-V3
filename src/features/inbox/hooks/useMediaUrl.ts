@@ -457,7 +457,7 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
                 setFailed(false);
                 return;
               }
-            } catch (_signedErr) {
+            } catch {
               // Falha no signed URL → continuar para edge function como fallback
             }
             break;
