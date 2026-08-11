@@ -299,6 +299,27 @@ async function sendEmail(
     (await getSecret('resend_api_key')) ?? Deno.env.get('RESEND_API_KEY');
   if (!resendKey) return { ok: false, error: 'resend_api_key ausente (vault/env)' };
 
+  // Remetente dinâmico: se o domínio promobrindes.com.br estiver VERIFICADO na
+  // conta Resend, usa noreply@promobrindes.com.br; senão cai em on@resend.dev
+  // (modo teste — só entrega para o email da conta). Consulta /domains por
+  // envio (barata, <100ms) — dispensa novo deploy quando o DNS for verificado.
+  let from = 'Promo Brindes <on@resend.dev>';
+  try {
+    const domRes = await fetch('https://api.resend.com/domains', {
+      headers: { Authorization: `Bearer ${resendKey}` },
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (domRes.ok) {
+      const domBody = await domRes.json() as { data?: Array<{ name?: string; status?: string }> };
+      const verified = (domBody.data ?? []).some(
+        (d) => d.name === 'promobrindes.com.br' && d.status === 'verified',
+      );
+      if (verified) from = 'Promo Brindes <noreply@promobrindes.com.br>';
+    }
+  } catch {
+    // falha na consulta → mantém on@resend.dev (melhor que quebrar o envio)
+  }
+
   const to = resolveEmailRecipient(payload, contact, config);
   const subject = firstString(payload.title, asRecord(payload.metadata)?.subject, 'Notificação Zapp');
   const html = firstString(asRecord(payload.metadata)?.html, payload.html, payload.message);
@@ -312,7 +333,7 @@ async function sendEmail(
         'Content-Type': 'application/json',
         Authorization: `Bearer ${resendKey}`,
       },
-      body: JSON.stringify({ from: 'Promo Brindes <on@resend.dev>', to, subject, html }),
+      body: JSON.stringify({ from, to, subject, html }),
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
     const body = await res.text();
