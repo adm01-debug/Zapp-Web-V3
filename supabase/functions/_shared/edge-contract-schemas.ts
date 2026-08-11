@@ -84,6 +84,7 @@ export const EDGE_FUNCTION_NAMES = [
   'evolution-bitrix-sync',
   'evolution-credentials',
   'evolution-group-sync',
+  'evolution-notification-dispatcher',
   'evolution-retry-metrics',
   'evolution-sync',
   'evolution-templates',
@@ -245,6 +246,14 @@ const specificEdgeFunctionSchemas: Partial<
   'speech-to-text': { v1: SpeechToTextV1Schema },
   // Demais endpoints internos com schema específico
   'create-user': { v1: z.object({ email: z.string().email() }).passthrough() },
+  'evolution-notification-dispatcher': {
+    v1: z
+      .object({
+        limit: z.number().int().min(1).max(50).optional(),
+        dryRun: z.boolean().optional(),
+      })
+      .strict(),
+  },
   'detect-new-device': {
     v1: z
       .object({
