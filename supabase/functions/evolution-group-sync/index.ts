@@ -15,7 +15,7 @@ import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
  *
  * Fluxo (action='groups'):
  *   1. requireServiceRoleOrCron (service-role bearer OU x-cron-secret).
- *   2. Lê o token da instância em Deno.env.get('EVOLUTION_INSTANCE_TOKEN_WPP2')
+ *   2. Lé o token da instância em Deno.env.get('EVOLUTION_INSTANCE_TOKEN_WPP2')
  *      — NÃO há fallback para vault; o secret precisa ser criado no stack do
  *      Supabase self-hosted (supabase-edge-functions env) com o valor do vault
  *      `evolution_instance_token_wpp2` (UUID 36 chars da tabela Instance do
@@ -135,7 +135,7 @@ export interface GroupsSyncStats {
  */
 export async function processGroups(
   groups: unknown[],
-  rpcCall: (params: GroupUpsertParams) =>
+  rpcCall: (params: GroupUsertParams) =>
     | { error: { message: string } | null; data?: unknown }
     | PromiseLike<{ error: { message: string } | null; data?: unknown }>,
   connectionId: string,
@@ -148,7 +148,16 @@ export async function processGroups(
   let errors = 0;
   let primeiroErro: string | null = null;
 
-  for (const g of groups) {
+  // FIX 2026-08-11: 221 grupos com RPC sequencial estouravam o tempo da edge
+  // (504 "upstream server is timing out" — grupos grandes ficavam fora do
+  // espelho). Concorrência limitada: 8 workers consomem a fila; stats
+  // agregadas e isolamento de erro permanecem idênticos ao loop original.
+  const CONCURRENCY = 8;
+  const queue = [...groups];
+  const worker = async (): Promise<void> => {
+    for (;;) {
+      const g = queue.shift();
+      if (g === undefined) return;
     try {
       const grp = (g ?? {}) as Record<string, unknown>;
       const gid = typeof grp.id === "string" && grp.id.trim() ? grp.id.trim() : null;
@@ -185,7 +194,7 @@ export async function processGroups(
         upserted++;
       }
       // Promove admins (best-effort): falha não vira erro de lote, mas é reportada.
-      // A RPC de promote espera o uuid interno de evolution_groups (retornado
+      // A RPD de promote espera o uuid interno de evolution_groups (retornado
       // pela RPC de upsert), não o JID @g.us.
       if (adminJids.length > 0 && promoteCall) {
         if (typeof groupUuid === 'string' && groupUuid) {
@@ -199,14 +208,19 @@ export async function processGroups(
             primeiroErro ??= `promote admins(${gid}): ${promoteErr.message}`;
           }
         } else {
-          primeiroErro ??= `promote admins(${gid}): upsert não retornou uuid`;
+          primeiroErro ??= `promote admins(${gid}): upsert ão retornou uuid`;
         }
       }
     } catch (e) {
       errors++;
       primeiroErro ??= errMsg(e);
     }
-  }
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: Math.min(CONCURRENCY, queue.length) }, () => worker()),
+  );
 
   return { fetched: groups.length, upserted, errors, primeiro_erro: primeiroErro };
 }
@@ -231,7 +245,7 @@ function jsonSimple(
  * action='isonwa' — processa a fila evo.evolution_whatsapp_check_queue contra a
  * Evolution API (POST /chat/whatsappNumbers/:instance) e atualiza
  * evo.evolution_contacts.is_on_whatsapp / whatsapp_checked_at.
- * A fila deve conter jids @s.whatsapp.net (números puros são aceitos e
+ * A Fila deve conter jids @s.whatsapp.net (números puros são aceitos e
  * normalizados para o jid correspondente no retorno da API).
  */
 export async function handleIsonwa(
@@ -243,7 +257,7 @@ export async function handleIsonwa(
 ): Promise<Response> {
   const vLimit = Math.min(Math.max(limit, 1), 50);
   // Fila e contacts vivem em evo (não exposto no PostgREST) — acesso via RPC
-  // zapp (SECURITY DEFINER, service_role only).
+  // zapp (SECURITY DEFINERS, service_role only).
   const { data: fila, error: filaErr } = await supabase.rpc("zapp_isonwa_pull", {
     p_limit: vLimit,
   });
