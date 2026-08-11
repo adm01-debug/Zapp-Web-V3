@@ -8,7 +8,8 @@ import { Download, ShieldCheck, AlertTriangle, CheckCircle2, Clock } from 'lucid
 /**
  * DASHBOARD-18 — Media Pipeline (stats mínimos).
  *
- * zapp.media_download_queue (~9.5k linhas) e zapp.media_scan_log (~11k linhas)
+ * evo.media_download_queue (~3.3k linhas) e evo.media_scan_log
+ * (tabelas migradas de zapp -> evo em 2026-08-10; acessadas via public.* VIEW)
  * não tinham NENHUMA UI de monitoramento. Este card expõe contagens por status
  * da fila de download + resumo de scans, para diagnóstico rápido do pipeline.
  *
@@ -68,7 +69,7 @@ function KpiCell({
   );
 }
 
-/** Media Pipeline stats card — reads zapp.media_download_queue / media_scan_log (DASHBOARD-18). */
+/** Media Pipeline stats card — reads evo.media_download_queue / evo.media_scan_log via public.* VIEW (DASHBOARD-18). */
 export function MediaPipelineStats() {
   const [queue, setQueue] = useState<QueueCounts | null>(null);
   const [scans, setScans] = useState<ScanSummary | null>(null);
@@ -134,8 +135,8 @@ export function MediaPipelineStats() {
           Media Pipeline
         </CardTitle>
         <CardDescription className="text-xs">
-          Fila de download de mídias (zapp.media_download_queue) e varreduras de
-          segurança (zapp.media_scan_log)
+          Fila de download de mídias (evo.media_download_queue) e varreduras de
+          segurança (evo.media_scan_log)
         </CardDescription>
       </CardHeader>
       <CardContent>
