@@ -160,6 +160,110 @@ function errMsg(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
+/** JSON simples com CORS (respostas da action isonwa). */
+function jsonSimple(
+  body: Record<string, unknown>,
+  status: number,
+  corsHeaders: Record<string, string>,
+): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+/**
+ * action='isonwa' — processa a fila evo.evolution_whatsapp_check_queue contra a
+ * Evolution API (POST /chat/whatsappNumbers/:instance) e atualiza
+ * evo.evolution_contacts.is_on_whatsapp / whatsapp_checked_at.
+ * A fila deve conter jids @s.whatsapp.net (números puros são aceitos e
+ * normalizados para o jid correspondente no retorno da API).
+ */
+export async function handleIsonwa(
+  supabase: ReturnType<typeof createZappAdminClient>,
+  corsHeaders: Record<string, string>,
+  token: string,
+  instanceName: string,
+  limit: number,
+): Promise<Response> {
+  const vLimit = Math.min(Math.max(limit, 1), 50);
+  const { data: fila, error: filaErr } = await supabase
+    .from("evolution_whatsapp_check_queue")
+    .select("remote_jid")
+    .eq("status", "pending")
+    .order("created_at", { ascending: true })
+    .limit(vLimit);
+  if (filaErr) {
+    return jsonSimple({
+      ok: false, checked: 0, on_whatsapp: 0, not_found: 0, errors: 1,
+      primeiro_erro: `fila: ${filaErr.message}`,
+    }, 502, corsHeaders);
+  }
+  const jids = (fila ?? [])
+    .map((r) => (r as { remote_jid?: unknown }).remote_jid)
+    .filter((j): j is string => typeof j === "string" && /^[0-9]+@s\.whatsapp\.net$/.test(j));
+  if (jids.length === 0) {
+    return jsonSimple({ ok: true, checked: 0, on_whatsapp: 0, not_found: 0, errors: 0, fila_vazia: true }, 200, corsHeaders);
+  }
+  const numbers = jids.map((j) => j.split("@")[0]);
+  const baseUrl = (Deno.env.get("EVOLUTION_API_URL") || EVOLUTION_API_URL_DEFAULT).replace(/\/+$/, "");
+  const url = `${baseUrl}/chat/whatsappNumbers/${instanceName}`;
+  let resp: Response;
+  try {
+    resp = await fetch(url, {
+      method: "POST",
+      headers: { apikey: token, "Content-Type": "application/json" },
+      body: JSON.stringify({ numbers }),
+    });
+  } catch (e) {
+    return jsonSimple({
+      ok: false, checked: 0, on_whatsapp: 0, not_found: 0, errors: 1,
+      primeiro_erro: `fetch Evolution falhou: ${errMsg(e)}`,
+    }, 502, corsHeaders);
+  }
+  if (!resp.ok) {
+    const bodyPrefix = await resp.text().catch(() => "").then((t) => t.slice(0, 200));
+    return jsonSimple({
+      ok: false, checked: 0, on_whatsapp: 0, not_found: 0, errors: 1,
+      primeiro_erro: `Evolution API respondeu ${resp.status}: ${bodyPrefix}`,
+    }, 502, corsHeaders);
+  }
+  const result = (await resp.json().catch(() => [])) as Array<{ jid?: string; exists?: boolean }>;
+  const onWa = new Map<string, boolean>();
+  for (const item of result) {
+    if (item && typeof item.jid === "string") onWa.set(item.jid, item.exists === true);
+  }
+  const okJids = jids.filter((j) => onWa.get(j) === true);
+  const nowIso = new Date().toISOString();
+
+  const { error: upErr } = await supabase
+    .from("evolution_whatsapp_check_queue")
+    .update({ status: "done", checked_at: nowIso })
+    .in("remote_jid", jids);
+  if (upErr) {
+    return jsonSimple({
+      ok: false, checked: 0, on_whatsapp: 0, not_found: 0, errors: 1,
+      primeiro_erro: `marcar fila: ${upErr.message}`,
+    }, 502, corsHeaders);
+  }
+
+  if (okJids.length > 0) {
+    await supabase
+      .from("evolution_contacts")
+      .update({ is_on_whatsapp: true, whatsapp_checked_at: nowIso })
+      .in("remote_jid", okJids);
+  }
+  await supabase
+    .from("evolution_contacts")
+    .update({ whatsapp_checked_at: nowIso })
+    .in("remote_jid", jids.filter((j) => !okJids.includes(j)));
+
+  return jsonSimple({
+    ok: true, checked: jids.length, on_whatsapp: okJids.length,
+    not_found: jids.length - okJids.length, errors: 0,
+  }, 200, corsHeaders);
+}
+
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
@@ -191,10 +295,10 @@ Deno.serve(async (req) => {
     extraHeaders: corsHeaders,
   });
   if (parsed.ok === false) return parsed.response;
-  const body = parsed.data as { action?: string; instanceName?: string };
+  const body = parsed.data as { action?: string; instanceName?: string; limit?: number };
 
-  if (body.action && body.action !== "groups") {
-    return contractViolation422("action", `action inválida: '${body.action}' (esperado 'groups')`, corsHeaders);
+  if (body.action && body.action !== "groups" && body.action !== "isonwa") {
+    return contractViolation422("action", `action inválida: '${body.action}' (esperado 'groups'|'isonwa')`, corsHeaders);
   }
 
   // instanceName opcional (default 'wpp2') — sanitizado contra path injection.
@@ -203,6 +307,11 @@ Deno.serve(async (req) => {
     : INSTANCE_DEFAULT;
 
   const supabase = createZappAdminClient();
+
+  // action='isonwa': processa a fila IsOnWhatsApp (não precisa da conexão).
+  if (body.action === "isonwa") {
+    return handleIsonwa(supabase, corsHeaders, token, instanceName, body.limit ?? 10);
+  }
 
   // 4a) Resolve a conexão do zapp para a instância.
   const { data: conn, error: connErr } = await supabase
