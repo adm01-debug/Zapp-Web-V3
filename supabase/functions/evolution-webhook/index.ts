@@ -487,6 +487,19 @@ Deno.serve(async (req) => {
       request_id: requestId, instance, event_type: event, status: 'processed', status_code: 200,
       duration_ms: Date.now() - startedAt,
     });
+
+    // [2026-08-11 TRILHA BRUTA] Grava o payload ORIGINAL do evento (envelope Evolution
+    // completo) em webhook_events_processed.payload para auditoria/replay fina.
+    // Best-effort: falha de gravação não derruba o fluxo (evento já processado).
+    // LGPD: payload pode conter conteúdo de mensagens — retenção de 30d (job 263).
+    try {
+      const rawJson = JSON.parse(rawBody) as unknown;
+      await supabase.from('webhook_events_processed').update({ payload: rawJson })
+        .eq('event_id', eventId);
+    } catch (e) {
+      console.warn(`[webhook][${requestId}] payload persist failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+
     return new Response(JSON.stringify({ success: true, requestId }), { status: 200, headers: corsHeaders });
   } catch (error: unknown) {
     // Logical/handler errors: log the detail internally, return 200 to evo so it does not
