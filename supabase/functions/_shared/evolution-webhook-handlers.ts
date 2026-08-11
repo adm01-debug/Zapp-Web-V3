@@ -63,21 +63,60 @@ export async function handleGroupsUpsert(supabase: SupabaseClient, instance: str
 
     // Persistência canônica em evo (evolution_groups + evolution_group_participants).
     // O snapshot de groups.upsert traz todos os participantes -> action 'add' idempotente.
-    const participantJids = Array.isArray(participants)
+    // Evolution 2.3.7: participantes podem ser string ("5511@c.us") ou objeto
+    // { id, phoneNumber?, admin? } — preservamos phone (p_phones) e promovemos admins.
+    const participantRows = Array.isArray(participants)
       ? participants
-          .map((p) => typeof p === 'string' ? p : (isRecord(p) ? (p.id as string | undefined) ?? null : null))
-          .filter((j): j is string => !!j)
+          .map((p) => {
+            if (typeof p === 'string') {
+              const t = p.trim();
+              return t ? { jid: t, phone: null as string | null, admin: false } : null;
+            }
+            if (isRecord(p)) {
+              const id = typeof p.id === 'string' ? p.id.trim() : '';
+              if (!id) return null;
+              const phone = typeof p.phoneNumber === 'string' && p.phoneNumber.trim()
+                ? p.phoneNumber.trim() : null;
+              const admin = p.admin === 'admin' || p.admin === true;
+              return { jid: id, phone, admin };
+            }
+            return null;
+          })
+          .filter((r): r is { jid: string; phone: string | null; admin: boolean } => !!r)
       : [];
+    const participantJids = participantRows.map((r) => r.jid);
+    const participantPhones = participantRows.map((r) => r.phone ?? '');
+    const adminJids = participantRows.filter((r) => r.admin).map((r) => r.jid);
     const { error: evoError } = await supabase.rpc('zapp_upsert_group_from_event', {
       p_connection_id: connection.id,
       p_group_id: groupId,
       p_name: name || groupId,
       p_desc: description,
       p_participants: participantJids,
+      p_phones: participantPhones,
       p_instance: instance,
     });
     if (evoError) {
       console.warn(`[groups.upsert] evo persist failed instance=${instance} group=${groupId} err=${evoError.message}`);
+    }
+    // Admins do snapshot: promote best-effort (idempotente). A RPC espera o
+    // uuid interno de evolution_groups (não o JID @g.us).
+    if (adminJids.length > 0) {
+      const { data: evoGroupRow } = await supabase.from('evolution_groups')
+        .select('id').eq('whatsapp_connection_id', connection.id).eq('group_id', groupId).maybeSingle();
+      if (evoGroupRow?.id) {
+        const { error: promoteError } = await supabase.rpc('zapp_upsert_group_participants', {
+          p_group_id: evoGroupRow.id,
+          p_participants: adminJids,
+          p_action: 'promote',
+          p_instance: instance,
+        });
+        if (promoteError) {
+          console.warn(`[groups.upsert] admin promote failed group=${groupId} err=${promoteError.message}`);
+        }
+      } else {
+        console.warn(`[groups.upsert] admin promote skipped — grupo ${groupId} não catalogado em evolution_groups`);
+      }
     }
   }
   console.log(`[groups.upsert] instance=${instance} upserted=${upserted}/${groups.length}`);

@@ -65,18 +65,36 @@ function contractViolation422(path: string, message: string, extra?: Record<stri
 }
 
 /**
- * Normaliza um participante do fetchAllGroups para o formato text[] da RPC:
- * string direta ("5511999999999@c.us") ou objeto { id } (com getParticipants=true).
+ * Participante normalizado do fetchAllGroups (getParticipants=true).
+ * A Evolution 2.3.7 retorna { id: "@lid", phoneNumber: "@s.whatsapp.net", admin: "admin"|null }.
+ */
+export interface NormalizedParticipant {
+  jid: string;
+  phoneNumber: string | null;
+  isAdmin: boolean;
+}
+
+/**
+ * Normaliza um participante do fetchAllGroups para { jid, phoneNumber, isAdmin }:
+ * string direta ("5511999999999@c.us") ou objeto { id, phoneNumber?, admin? }.
  * Retorna null para entradas inválidas (ignoradas pelo caller).
  */
-export function normalizeParticipant(p: unknown): string | null {
+export function normalizeParticipant(p: unknown): NormalizedParticipant | null {
   if (typeof p === "string") {
     const t = p.trim();
-    return t ? t : null;
+    return t ? { jid: t, phoneNumber: null, isAdmin: false } : null;
   }
   if (p && typeof p === "object" && !Array.isArray(p)) {
-    const id = (p as Record<string, unknown>).id;
-    if (typeof id === "string" && id.trim()) return id.trim();
+    const rec = p as Record<string, unknown>;
+    const id = rec.id;
+    if (typeof id === "string" && id.trim()) {
+      const phone = rec.phoneNumber;
+      return {
+        jid: id.trim(),
+        phoneNumber: typeof phone === "string" && phone.trim() ? phone.trim() : null,
+        isAdmin: rec.admin === "admin" || rec.admin === true,
+      };
+    }
   }
   return null;
 }
@@ -88,6 +106,15 @@ export interface GroupUpsertParams {
   p_name: string;
   p_desc: string;
   p_participants: string[];
+  p_phones: string[];
+  p_instance: string;
+}
+
+/** Parâmetros da RPC zapp.zapp_upsert_group_participants (promote de admins). */
+export interface GroupParticipantsParams {
+  p_group_id: string;
+  p_participants: string[];
+  p_action: string;
   p_instance: string;
 }
 
@@ -103,14 +130,18 @@ export interface GroupsSyncStats {
  * Processa o array de grupos da Evolution API, chamando a RPC por grupo.
  * Erro isolado não derruba o lote (padrão do evo.fn_sync_groups_from_api).
  * `rpcCall` é injetável para testes (fetch mock / RPC fake).
+ * `promoteCall` (opcional) promove admins (best-effort — falha não derruba o lote).
  */
 export async function processGroups(
   groups: unknown[],
   rpcCall: (params: GroupUpsertParams) =>
-    | { error: { message: string } | null }
-    | PromiseLike<{ error: { message: string } | null }>,
+    | { error: { message: string } | null; data?: unknown }
+    | PromiseLike<{ error: { message: string } | null; data?: unknown }>,
   connectionId: string,
   instanceName: string,
+  promoteCall?: (params: GroupParticipantsParams) =>
+    | { error: { message: string } | null }
+    | PromiseLike<{ error: { message: string } | null }>,
 ): Promise<GroupsSyncStats> {
   let upserted = 0;
   let errors = 0;
@@ -130,15 +161,20 @@ export async function processGroups(
         ? grp.desc
         : (typeof grp.description === "string" ? grp.description : "");
       const participants = Array.isArray(grp.participants)
-        ? grp.participants.map(normalizeParticipant).filter((p): p is string => p !== null)
+        ? grp.participants.map(normalizeParticipant).filter((p): p is NormalizedParticipant => p !== null)
         : [];
+      // p_phones alinhado por índice com p_participants (string vazia = sem número).
+      const p_participants = participants.map((p) => p.jid);
+      const p_phones = participants.map((p) => p.phoneNumber ?? "");
+      const adminJids = participants.filter((p) => p.isAdmin).map((p) => p.jid);
 
-      const { error: rpcErr } = await rpcCall({
+      const { error: rpcErr, data: groupUuid } = await rpcCall({
         p_connection_id: connectionId,
         p_group_id: gid,
         p_name: name,
         p_desc: desc,
-        p_participants: participants,
+        p_participants,
+        p_phones,
         p_instance: instanceName,
       });
       if (rpcErr) {
@@ -146,6 +182,24 @@ export async function processGroups(
         primeiroErro ??= `RPC zapp_upsert_group_from_event(${gid}): ${rpcErr.message}`;
       } else {
         upserted++;
+      }
+      // Promove admins (best-effort): falha não vira erro de lote, mas é reportada.
+      // A RPC de promote espera o uuid interno de evolution_groups (retornado
+      // pela RPC de upsert), não o JID @g.us.
+      if (adminJids.length > 0 && promoteCall) {
+        if (typeof groupUuid === 'string' && groupUuid) {
+          const { error: promoteErr } = await promoteCall({
+            p_group_id: groupUuid,
+            p_participants: adminJids,
+            p_action: "promote",
+            p_instance: instanceName,
+          });
+          if (promoteErr) {
+            primeiroErro ??= `promote admins(${gid}): ${promoteErr.message}`;
+          }
+        } else {
+          primeiroErro ??= `promote admins(${gid}): upsert não retornou uuid`;
+        }
       }
     } catch (e) {
       errors++;
@@ -344,12 +398,15 @@ Deno.serve(async (req) => {
   }
 
   // 4c) Upsert grupo a grupo — erro isolado não derruba o lote (padrão do
-  //     evo.fn_sync_groups_from_api, agora com transporte correto).
+  // evo.fn_sync_groups_from_api, agora com transporte correto). Admins do
+  // fetchAllGroups (campo `admin` dos participantes) são promovidos via
+  // zapp_upsert_group_participants (best-effort).
   const stats = await processGroups(
     groups,
     (params) => supabase.rpc("zapp_upsert_group_from_event", params),
     conn.id,
     instanceName,
+    (params) => supabase.rpc("zapp_upsert_group_participants", params),
   );
 
   console.log("[evolution-group-sync] groups sync concluído", {
