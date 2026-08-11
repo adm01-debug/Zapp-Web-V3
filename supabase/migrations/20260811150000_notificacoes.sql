@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260811_melhorias_notificacoes.sql
+-- 20260811150000_notificacoes.sql
 -- Frente C — PROCESSADOR DE NOTIFICAÇÕES (evo.evolution_notifications)
 -- aplicado em produção 2026-08-11
 -- ----------------------------------------------------------------------------
