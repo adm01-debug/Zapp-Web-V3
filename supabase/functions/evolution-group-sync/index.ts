@@ -188,7 +188,7 @@ export async function handleIsonwa(
 ): Promise<Response> {
   const vLimit = Math.min(Math.max(limit, 1), 50);
   const { data: fila, error: filaErr } = await supabase
-    .from("evolution_whatsapp_check_queue")
+    .schema("evo").from("evolution_whatsapp_check_queue")
     .select("remote_jid")
     .eq("status", "pending")
     .order("created_at", { ascending: true })
@@ -237,7 +237,7 @@ export async function handleIsonwa(
   const nowIso = new Date().toISOString();
 
   const { error: upErr } = await supabase
-    .from("evolution_whatsapp_check_queue")
+    .schema("evo").from("evolution_whatsapp_check_queue")
     .update({ status: "done", checked_at: nowIso })
     .in("remote_jid", jids);
   if (upErr) {
@@ -249,12 +249,12 @@ export async function handleIsonwa(
 
   if (okJids.length > 0) {
     await supabase
-      .from("evolution_contacts")
+      .schema("evo").from("evolution_contacts")
       .update({ is_on_whatsapp: true, whatsapp_checked_at: nowIso })
       .in("remote_jid", okJids);
   }
   await supabase
-    .from("evolution_contacts")
+    .schema("evo").from("evolution_contacts")
     .update({ whatsapp_checked_at: nowIso })
     .in("remote_jid", jids.filter((j) => !okJids.includes(j)));
 
