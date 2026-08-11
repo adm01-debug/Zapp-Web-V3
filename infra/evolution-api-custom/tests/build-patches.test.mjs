@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * build-patches.test.mjs — E46: regressão para os patches T1-T19 (2026-08-10)
+ * build-patches.test.mjs — E46: regressão para os patches T1-T20b (2026-08-11)
  *
  * Valida o build-patches.mjs contra um FIXTURE mínimo contendo os literais
  * originais de TODOS os alvos (T1, T2, T3, T5a, T6, T7, T8, T9, T10, T11,
- * T13a, T13b, T14, T15, T16, T17, T18, T19). Se qualquer literal do bundle real
- * mudar (esbuild variar nomes/quotes), o fail-closed do build-patches.mjs
- * aborta e este teste falha.
+ * T13a, T13b, T14, T15, T16, T17, T18, T19, T20, T20b). Se qualquer literal do
+ * bundle real mudar (esbuild variar nomes/quotes), o fail-closed do
+ * build-patches.mjs aborta e este teste falha.
  *
  * Uso: node infra/evolution-api-custom/tests/build-patches.test.mjs
  */
@@ -51,6 +51,10 @@ const FIXTURE = [
   'let c=this.prepareMessage(n)',
   // T18 — fim da montagem do objeto i no prepareMessage (âncora da poda de bloat)
   'source:(0,R.getDevice)(e.key.id)};!i.status&&e.key.fromMe===!1&&(i.status=ie[3])',
+  // T20 — cache TTL original (v7: msgRetryCounterCache sem TTL + userDevicesCache 3e5)
+  'this.msgRetryCounterCache=new er.default;this.userDevicesCache=new er.default({stdTTL:3e5,useClones:!1})',
+  // T20b — socketConfig do makeWASocket (âncora: markOnlineOnConnect)
+  'markOnlineOnConnect:this.localSettings.alwaysOnline,retryRequestDelayMs:350',
   ].join("\n");
 
 const PROLOGUE =
@@ -104,6 +108,10 @@ try {
     'const mt=["imageMessage","videoMessage","stickerMessage","audioMessage","documentMessage","ptvMessage"]',
     // T19 (remoteJidAlt via senderPn — fallback triplo senderPn → getPNForLID → nada)
     'if(typeof c.key.senderPn==="string"&&c.key.senderPn.includes("@s.whatsapp.net"))c.key.remoteJidAlt=c.key.senderPn',
+    // T20 (cache TTL: userDevicesCache 300s + msgRetryCounterCache 3600s)
+    'this.msgRetryCounterCache=new er.default({stdTTL:3600,useClones:!1});this.userDevicesCache=new er.default({stdTTL:300,useClones:!1})',
+    // T20b (appStateMacVerification strict no socketConfig)
+    'appStateMacVerification:"strict",markOnlineOnConnect:this.localSettings.alwaysOnline,retryRequestDelayMs:350',
   ];
   const missing = MUST_CONTAIN.filter((m) => !patched.includes(m));
   if (missing.length > 0) {
@@ -112,7 +120,7 @@ try {
     console.error("stderr do build-patches:", out);
     process.exit(1);
   }
-  console.log("✅ E46 PASS — T1-T19 aplicados no fixture; fail-closed e pós-verificação OK.");
+  console.log("✅ E46 PASS — T1-T20b aplicados no fixture; fail-closed e pós-verificação OK.");
   process.exit(0);
 } catch (e) {
   console.error("❌ E46 FAIL — build-patches.mjs abortou ou pós-verificação falhou:");

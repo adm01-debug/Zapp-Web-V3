@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * build-patches.mjs — v7 (Plano B, bundle esbuild 0.27/tsup 8.5.1)
+ * build-patches.mjs — v8 (Plano B, bundle esbuild 0.27/tsup 8.5.1)
  * Porta BUILD-TIME do logpatch.cjs (stack 25 / config evolution_logpatch_t4_cjs).
  *
  * v4 (2026-08-10): adiciona T8-T14 — correções da auditoria evolution (onda 5):
@@ -41,10 +41,19 @@
  *   TEST_MODE agora também cobre T8-T20 (skip quando o literal NOVO já está
  *   presente) — permite validar o script contra o bundle JÁ patcheado.
  *
+ * v8 (2026-08-11): adiciona T20b — appStateMacVerification:"strict" no
+ *   socketConfig do makeWASocket (Baileys 6.7.24): o campo não é declarado
+ *   (default da lib {patch:false,snapshot:false} = MACs NÃO validados). A
+ *   string "strict" ativa a validação via default validateMacs=true de
+ *   decodeSyncdSnapshot/decodePatches (chats.js lê .snapshot/.patch = undefined
+ *   → default true). Falha de MAC → catch do fluxo de sync → resync do zero,
+ *   nunca derruba a conexão. Inserido ANTES de markOnlineOnConnect (após o
+ *   spread `...o`), prevalece sobre options do usuário.              [ESTRITO]
+ *
  * MODOS:
  *  - ESTRITO: count == 1 obrigatório; count != 1 aborta (fail-closed).
  *  - TOLERANTE (T1, T2, T5a): count == 0 → SKIP com warn; count > 1 → FAIL.
- *  - TEST_MODE=1: T3/T6/T7/T4 e T8-T19 viram SKIP quando o literal NOVO já
+ *  - TEST_MODE=1: T3/T6/T7/T4 e T8-T20b viram SKIP quando o literal NOVO já
  *    está presente (para validar contra bundle que JÁ recebeu os patches —
  *    teste local; no CI o modo normal vale).
  *
@@ -150,6 +159,20 @@ const T19N = 'let c=this.prepareMessage(n);try{if(c?.key?.remoteJid?.includes("@
 // T20: userDevicesCache stdTTL 3e5 (83h) → 300s + msgRetryCounterCache sem TTL → 3600s — ESTRITO
 const T20O = 'this.msgRetryCounterCache=new er.default;this.userDevicesCache=new er.default({stdTTL:3e5,useClones:!1})';
 const T20N = 'this.msgRetryCounterCache=new er.default({stdTTL:3600,useClones:!1});this.userDevicesCache=new er.default({stdTTL:300,useClones:!1})';
+
+// ============ T20b (v8 — appStateMacVerification strict no socketConfig do Baileys) =
+// T20b: o socketConfig do makeWASocket (Baileys 6.7.24) NÃO declara
+// appStateMacVerification (default da lib = {patch:false,snapshot:false} → MACs NÃO
+// validados — risco de estado adulterado/desync silencioso). O Baileys 6.7.24 tipa o
+// campo como {patch,snapshot} (boolean), mas `"strict"` (string) também ATIVA a
+// validação: chats.js chama decodeSyncdSnapshot(..., appStateMacVerification.snapshot)
+// e decodePatches(..., appStateMacVerification.patch) — com string, `.snapshot`/`.patch`
+// são undefined e o DEFAULT validateMacs=true entra (decodeSyncdSnapshot/decodePatches
+// em Utils/chat-utils.js). Falha de MAC → catch do fluxo de sync → resync do zero
+// (nunca derruba a conexão). Inserido ANTES de markOnlineOnConnect (após o spread
+// `...o`), então prevalece sobre qualquer option do usuário. — ESTRITO
+const T20bO = 'markOnlineOnConnect:this.localSettings.alwaysOnline,retryRequestDelayMs:350';
+const T20bN = 'appStateMacVerification:"strict",markOnlineOnConnect:this.localSettings.alwaysOnline,retryRequestDelayMs:350';
 
 // ============================= Execução =============================
 if (!fs.existsSync(SRC)) {
@@ -430,9 +453,25 @@ if (TEST_MODE) {
   }
 }
 
+// --- T20b (ESTRITO — appStateMacVerification:"strict" no socketConfig do Baileys) ---
+// Alvo = socketConfig do makeWASocket (markOnlineOnConnect — count 1 no bundle). O
+// T20bN contém o T20bO como substring (prefixo inserido antes) — pós-verificação só do
+// novo; TEST_MODE skip por presença do T20bN.
+{
+  const c = countOf(out, T20bO);
+  if (TEST_MODE && countOf(out, T20bN) !== 0) {
+    warn(`T20b: TEST_MODE — bundle já patcheado, skip`);
+    skipped.push("T20b");
+  } else if (c !== 1) fail(`T20b: socketConfig (markOnlineOnConnect) encontrado ${c}x (esperado 1x) — bundle mudou?`);
+  else {
+    out = out.split(T20bO).join(T20bN);
+    applied.push("T20b");
+  }
+}
+
 // Banner determinístico de auditoria (qual bundle base gerou este artefato)
 const srcSha = sha256(SRC);
-out = `/* evolution-api-custom ${VERSION} | patches T1-T20 build-time | base main.js sha256:${srcSha} */\n` + out;
+out = `/* evolution-api-custom ${VERSION} | patches T1-T20,T20b build-time | base main.js sha256:${srcSha} */\n` + out;
 
 fs.writeFileSync(OUT, out);
 
@@ -470,6 +509,8 @@ if (countOf(check, T17N) === 0 && countOf(check, T19N) === 0) fail("pós-verific
 if (countOf(check, T18N) !== 1) fail("pós-verificação T18 falhou");
 if (countOf(check, T19N) !== 1) fail("pós-verificação T19 falhou");
 if (countOf(check, T20O) !== 0 || countOf(check, T20N) !== 1) fail("pós-verificação T20 falhou");
+// T20b: T20bN contém T20bO como substring — verificar só o novo (padrão T8/T9/T10/T18)
+if (countOf(check, T20bN) !== 1) fail("pós-verificação T20b falhou (appStateMacVerification strict ausente/ambíguo)");
 
 console.log(`Patches aplicados: ${applied.join(", ")}${skipped.length ? ` | SKIP (tolerante): ${skipped.join(", ")}` : ""}`);
 console.log(`Versão do bundle:  ${VERSION}`);
