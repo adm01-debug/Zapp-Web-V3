@@ -234,7 +234,7 @@ const T19N_CHECK = 'let p=this.prepareMessage(n);try{if(p?.key?.remoteJid?.inclu
 // --- T22: Silencia P2002 race em saveOnWhatsappCache (skip seguro vs update que pode falhar) ---
 {
   const T22O = 'it.verbose(`[saveOnWhatsappCache] Race condition detected for ${t}, updating existing record instead.`),await B.isOnWhatsapp.update({where:{remoteJid:t},data:g});';
-  const T22N = 'it.verbose(`[saveOnWhatsappCache] P2002 dedup ${t}: skip`);return;';
+  const T22N = '{it.verbose(`[saveOnWhatsappCache] P2002 dedup ${t}: skip`);return;}';
   const c = countOf(out, T22O);
   if (c === 0) { warn("T22: P2002 update handler ausente - SKIP"); skipped.push("T22"); }
   else if (c !== 1) fail(`T22: P2002 update handler ${c}x`);
