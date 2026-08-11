@@ -455,16 +455,38 @@ export function _resetRateLimitForTests(): void {
   lastCleanup = Date.now();
 }
 
-/** Extract and normalize client IP from request for rate limiting (C.14: IPv6 support) */
+/**
+ * Extract and normalize client IP from request for rate limiting (C.14: IPv6 support).
+ *
+ * Cadeia real de proxies: Client → Traefik → Kong → Edge Function. Cada proxy faz
+ * APPEND do endereço do peer no X-Forwarded-For, então os 2 últimos entries são
+ * sempre proxies internos (Traefik + Kong). O entry correto é o 3º a partir do FIM
+ * (primeiro hop fora da nossa infra); com menos de 3 entries (acesso direto ou
+ * chain menor), usar o primeiro entry.
+ *
+ * Trade-off anti-spoofing: o cliente pode forjar entries na FRENTE do
+ * X-Forwarded-For (ex.: enviar "6.6.6.6, <ip real>" para tentar zerar o rate-limit
+ * com IPs falsos), mas NUNCA atrás dos proxies — Traefik e Kong fazem append no
+ * fim e não podem ser removidos/forjados pelo cliente. Por isso contamos hops
+ * confiáveis a partir do FIM em vez de confiar no leftmost (controlável) ou no
+ * rightmost (que, sem x-real-ip, é o IP interno do Traefik — não o cliente).
+ */
 export function getClientIP(req: Request): string {
-  // Prefer x-real-ip (set by Supabase's infrastructure proxy, not client-controllable).
-  // Fall back to the RIGHTMOST x-forwarded-for entry — the leftmost is appended by the
-  // client and is fully attacker-controlled (reading it allows rate-limit bypass by
-  // cycling fake IPs).
-  const raw =
-    req.headers.get('x-real-ip') ||
-    req.headers.get('x-forwarded-for')?.split(',').at(-1)?.trim() ||
-    'unknown';
+  // Prefer x-real-ip (set by Traefik infra proxy, not client-controllable).
+  const xRealIp = req.headers.get('x-real-ip');
+  const xff = req.headers.get('x-forwarded-for');
+
+  let raw: string;
+  if (xRealIp) {
+    raw = xRealIp;
+  } else if (xff) {
+    const entries = xff.split(',').map((s) => s.trim()).filter((s) => s.length > 0);
+    // 2 últimos entries = Traefik + Kong (append garantido); 3º a partir do fim
+    // = cliente real. Menos de 3 entries → primeiro entry (chain menor/direto).
+    raw = entries.length >= 3 ? entries[entries.length - 3] : (entries[0] ?? 'unknown');
+  } else {
+    raw = 'unknown';
+  }
 
   // Normalize IPv6 addresses to lowercase canonical form to prevent rate-limit bypass
   // via different representations (e.g., 2001:db8::1 vs 2001:0db8::0001)
