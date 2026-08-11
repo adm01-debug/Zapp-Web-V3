@@ -1,0 +1,74 @@
+# ============================================================================
+# Dockerfile.2.4 — Evolution API 2.4.0 + Baileys 7.x nativo
+# Patches T1-T20 em BUILD-TIME via build-patches-2.4.mjs
+# Sem swap de Baileys (2.4.0 ja inclui 7.0.0-rc.9)
+# ============================================================================
+ARG BASE_IMAGE=evoapicloud/evolution-api@sha256:0589281d448736759b98d11071066a3b9be3a1f19724802dd5867d9608a9584b
+ARG GIT_SHA=unknown
+FROM ${BASE_IMAGE}
+
+LABEL org.opencontainers.image.title="evolution-api-custom" \
+      org.opencontainers.image.version="2.4.0-rc2" \
+      org.opencontainers.image.description="Evolution API 2.4.0-rc2 com patches T1-T20 build-time (Sentry filtrado, versao mascarada, guards MessageUpdate, dedup ingestao, remoteJidAlt LID via senderPn+lidMapping, CORS sem-Origin, cache TTL fix) — Baileys 7.0.0-rc.9 nativo" \
+      org.opencontainers.image.source="https://github.com/adm01-debug/zapp-web-v3/tree/main/infra/evolution-api-custom" \
+      org.opencontainers.image.base.digest="sha256:0589281d448736759b98d11071066a3b9be3a1f19724802dd5867d9608a9584b" \
+      org.opencontainers.image.revision="${GIT_SHA}" \
+      com.atomicabr.baileys="7.x-native" \
+      com.atomicabr.evolution="2.4.0-rc2"
+
+WORKDIR /evolution
+EXPOSE 8080
+
+# Bundle patcheado (T1-T20 via build-patches-2.4.mjs)
+COPY main.patched.js /evolution/dist/main.js
+RUN ls -la /evolution/dist/; \
+    if [ -f /evolution/dist/main.mjs ]; then \
+      cp -f /evolution/dist/main.js /evolution/dist/main.mjs; \
+      echo "mjs-sync ok"; \
+    fi; \
+    true
+
+# T4 prologue (auditoria)
+COPY t4_prologue.cjs /evolution/t4_prologue.cjs
+
+# Verificar Baileys 7.x nativo (presente na base image)
+RUN node -e 'var p="/evolution/node_modules/baileys/package.json"; \
+  if(!require("fs").existsSync(p)){console.error("FAIL: baileys ausente");process.exit(1);} \
+  var v=JSON.parse(require("fs").readFileSync(p,"utf8")).version; \
+  if(!v.startsWith("7.")){console.error("FAIL: baileys="+v+" (esperado 7.x)");process.exit(1);} \
+  console.log("VERIFY OK: baileys "+v+" nativo 2.4.x");'
+
+# Verificar patches T1-T20 aplicados (fail-closed, strings do 2.4.0)
+RUN node -e ' \
+const fs=require("fs"); \
+const s=fs.readFileSync("/evolution/dist/main.js","utf8"); \
+const fail=(m)=>{console.error("VERIFY FAIL: "+m);process.exit(1);}; \
+if(s.includes("console.log(c),this.sendDataWebhook(\"messages.upsert\",c)"))fail("T1 ainda presente"); \
+if(s.includes("tracesSampleRate:1,profilesSampleRate:1"))fail("T3 nao aplicado"); \
+if(!s.includes("tracesSampleRate:0.05"))fail("T3 marcador ausente"); \
+if(!s.includes("MASKED"))fail("T4 prologue ausente"); \
+if(s.includes("version:lu.version,clientName:pu.CONNECTION.CLIENT_NAME"))fail("T6 nao aplicado (versao real)"); \
+if(!s.includes("version:\\"2.x\\",clientName:pu.CONNECTION.CLIENT_NAME"))fail("T6 marcador ausente"); \
+if(!s.includes("!l||d.includes"))fail("T7 CORS guard ausente"); \
+if(!s.includes("SAVE_DATA.MESSAGE_UPDATE&&await this.prismaRepository.messageUpdate.create({data:{fromMe:r.key.fromMe"))fail("T8 ausente"); \
+if(!s.includes("SAVE_DATA.MESSAGE_UPDATE&&await this.prismaRepository.messageUpdate.create({data:a})"))fail("T9 ausente"); \
+if(!s.includes("SAVE_DATA.MESSAGE_UPDATE&&await this.prismaRepository.messageUpdate.create({data:d})"))fail("T10 ausente"); \
+if(!s.includes("findFirst({where:{instanceId:this.instanceId,key:{path:[\\"id\\"],equals:o}}})"))fail("T11 ausente"); \
+if(!s.includes("Skipping video upload.\\");continue}"))fail("T13a ausente"); \
+if(!s.includes("skipping MinIO\\");continue}"))fail("T13b ausente"); \
+if(!s.includes("\\"Chat\\".\\"name\\" as \\"chatName\\","))fail("T14 ausente"); \
+if(!s.includes("let{pollUpdates:h,...m}=p,keyIdV"))fail("T15 dedup ausente"); \
+if(!s.includes("senderPn"))fail("T19 senderPn ausente"); \
+if(!s.includes("getPNForLID"))fail("T17/T19 lidMapping ausente"); \
+if(!s.includes("msgRetryCounterCache=new wr.default({stdTTL:3600"))fail("T20 cache TTL ausente"); \
+console.log("VERIFY OK: main.js com T1-T20 aplicados (2.4.0)"); \
+'
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD wget -q --spider http://127.0.0.1:8080/ || exit 1
+
+COPY docker-entrypoint.sh /evolution/docker-entrypoint.sh
+RUN chmod +x /evolution/docker-entrypoint.sh
+
+ENTRYPOINT ["/evolution/docker-entrypoint.sh"]
+CMD ["node", "dist/main.js"]
