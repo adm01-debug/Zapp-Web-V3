@@ -111,6 +111,16 @@ export const ReprocessFailedMessagesV1Schema = z.object({
   dryRun: z.boolean().optional(),
 }).strict();
 
+/**
+ * evolution-notification-dispatcher@v1 — dispatcher da outbox de canais externos.
+ * Cron chama sem body ({} aceito). limit controla o tamanho do batch (default 20,
+ * teto 50 por ciclo); dryRun apenas lê/claima e devolve o batch sem enviar.
+ */
+export const EvolutionNotificationDispatcherV1Schema = z.object({
+  limit: z.number().int().min(1).max(50).optional(),
+  dryRun: z.boolean().optional(),
+}).strict();
+
 /** recheck-webhook-signature@v1 — index.ts exige event_id string; observed_signature opcional. */
 export const RecheckWebhookSignatureV1Schema = z.object({
   event_id: z.string().min(1, "event_id é obrigatório").max(200),
@@ -832,6 +842,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "send-email":                 { v1: SendEmailV1Schema },
   "gmail-send":                 { v1: GmailSendV1Schema },
   "reprocess-failed-messages":  { v1: ReprocessFailedMessagesV1Schema },
+  "evolution-notification-dispatcher": { v1: EvolutionNotificationDispatcherV1Schema },
   "recheck-webhook-signature":  { v1: RecheckWebhookSignatureV1Schema },
   "webhook-diagnostic":         { v1: WebhookDiagnosticV1Schema },
   "instance-pause-control":     { v1: InstancePauseControlV1Schema },

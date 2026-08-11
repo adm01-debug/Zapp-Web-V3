@@ -31,6 +31,7 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "recheck-webhook-signature":    { current: "v1", supported: ["v1"] },
   "reprocess-failed-messages":    { current: "v1", supported: ["v1"] },
   "instance-pause-control":       { current: "v1", supported: ["v1"] },
+  "evolution-notification-dispatcher": { current: "v1", supported: ["v1"] },
   "contacts-import":              { current: "v1", supported: ["v1"] },
   "voice-copilot-action":         { current: "v1", supported: ["v1"] },
   "evolution-sync":               { current: "v1", supported: ["v1"] },
