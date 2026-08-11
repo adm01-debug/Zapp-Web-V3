@@ -70,6 +70,11 @@ Deno.test("normalizeParticipant: objeto com phoneNumber e admin (formato 2.3.7 @
     normalizeParticipant({ id: "x@lid", phoneNumber: "55@c.us", admin: true }),
     { jid: "x@lid", phoneNumber: "55@c.us", isAdmin: true },
   );
+  // Evolution 2.3.7 usa "superadmin" para o dono do grupo
+  assertEquals(
+    normalizeParticipant({ id: "215947298218192@lid", phoneNumber: "5515981020437@s.whatsapp.net", admin: "superadmin" }),
+    { jid: "215947298218192@lid", phoneNumber: "5515981020437@s.whatsapp.net", isAdmin: true },
+  );
 });
 
 Deno.test("normalizeParticipant: objetos sem id / id não-string / null / número → null", () => {

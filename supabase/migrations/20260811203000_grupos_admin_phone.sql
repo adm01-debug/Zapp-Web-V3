@@ -31,6 +31,8 @@ COMMENT ON COLUMN evo.evolution_group_participants.phone_jid IS
     'Telefone real (@s.whatsapp.net) do participante, quando a Evolution API o retorna (fetchAllGroups 2.3.7). Ajuda a resolver contact_id quando o participant_jid é @lid.';
 
 -- 2) fn_upsert_group_participants com p_phones
+-- Versão BATCH (unnest): um único INSERT para todos os participantes — o loop
+-- FOREACH por linha estourava timeouts em grupos grandes (1.8k participantes).
 CREATE OR REPLACE FUNCTION evo.fn_upsert_group_participants(
     p_group_id     uuid,
     p_participants text[],
@@ -44,38 +46,31 @@ SECURITY DEFINER
 SET search_path = evo, public
 AS $$
 DECLARE
-    v_count   integer := 0;
-    v_jid     text;
-    v_phone   text;
-    v_contact uuid;
+    v_count integer := 0;
 BEGIN
     IF p_group_id IS NULL OR p_participants IS NULL OR cardinality(p_participants) = 0 THEN
         RETURN 0;
     END IF;
     IF p_action = 'add' THEN
-        FOR i IN 1 .. array_length(p_participants, 1) LOOP
-            v_jid := p_participants[i];
-            IF v_jid IS NULL OR btrim(v_jid) = '' THEN
-                CONTINUE;
-            END IF;
-            v_phone := NULLIF(btrim(COALESCE(p_phones[i], '')), '');
-            -- Resolve por JID (@lid/@s.whatsapp.net) primeiro; fallback por telefone
-            -- quando o JID não casa (LIDs não são telefones).
-            v_contact := evo.fn_resolve_contact_id_by_jid(v_jid);
-            IF v_contact IS NULL AND v_phone IS NOT NULL THEN
-                v_contact := evo.fn_resolve_contact_id_by_jid(v_phone);
-            END IF;
-            INSERT INTO evo.evolution_group_participants
-                (group_id, participant_jid, contact_id, phone_jid, role, joined_at, left_at, is_active)
-            VALUES
-                (p_group_id, v_jid, v_contact, v_phone, 'member', now(), NULL, true)
-            ON CONFLICT (group_id, participant_jid) DO UPDATE
-                SET is_active = true,
-                    left_at   = NULL,
-                    phone_jid = COALESCE(EXCLUDED.phone_jid, evo.evolution_group_participants.phone_jid),
-                    contact_id = COALESCE(evo.evolution_group_participants.contact_id, EXCLUDED.contact_id);
-            v_count := v_count + 1;
-        END LOOP;
+        INSERT INTO evo.evolution_group_participants
+            (group_id, participant_jid, contact_id, phone_jid, role, joined_at, left_at, is_active)
+        SELECT p_group_id, t.jid,
+               COALESCE(
+                   evo.fn_resolve_contact_id_by_jid(t.jid),
+                   CASE WHEN t.phone <> '' THEN evo.fn_resolve_contact_id_by_jid(t.phone) END
+               ),
+               NULLIF(t.phone, ''), 'member', now(), NULL, true
+        FROM (
+            SELECT p_participants[i] AS jid, COALESCE(p_phones[i], '') AS phone
+            FROM generate_subscripts(p_participants, 1) AS i
+        ) t
+        WHERE btrim(t.jid) <> ''
+        ON CONFLICT (group_id, participant_jid) DO UPDATE
+            SET is_active = true,
+                left_at   = NULL,
+                phone_jid = COALESCE(EXCLUDED.phone_jid, evo.evolution_group_participants.phone_jid),
+                contact_id = COALESCE(evo.evolution_group_participants.contact_id, EXCLUDED.contact_id);
+        GET DIAGNOSTICS v_count = ROW_COUNT;
     ELSIF p_action = 'remove' THEN
         UPDATE evo.evolution_group_participants
            SET left_at = now(), is_active = false

@@ -92,7 +92,8 @@ export function normalizeParticipant(p: unknown): NormalizedParticipant | null {
       return {
         jid: id.trim(),
         phoneNumber: typeof phone === "string" && phone.trim() ? phone.trim() : null,
-        isAdmin: rec.admin === "admin" || rec.admin === true,
+        // Evolution 2.3.7 usa "admin" e também "superadmin" (dono do grupo).
+        isAdmin: rec.admin === "admin" || rec.admin === "superadmin" || rec.admin === true,
       };
     }
   }
