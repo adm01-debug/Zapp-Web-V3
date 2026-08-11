@@ -187,12 +187,11 @@ export async function handleIsonwa(
   limit: number,
 ): Promise<Response> {
   const vLimit = Math.min(Math.max(limit, 1), 50);
-  const { data: fila, error: filaErr } = await supabase
-    .schema("evo").from("evolution_whatsapp_check_queue")
-    .select("remote_jid")
-    .eq("status", "pending")
-    .order("created_at", { ascending: true })
-    .limit(vLimit);
+  // Fila e contacts vivem em evo (não exposto no PostgREST) — acesso via RPC
+  // zapp (SECURITY DEFINER, service_role only).
+  const { data: fila, error: filaErr } = await supabase.rpc("zapp_isonwa_pull", {
+    p_limit: vLimit,
+  });
   if (filaErr) {
     return jsonSimple({
       ok: false, checked: 0, on_whatsapp: 0, not_found: 0, errors: 1,
@@ -234,29 +233,17 @@ export async function handleIsonwa(
     if (item && typeof item.jid === "string") onWa.set(item.jid, item.exists === true);
   }
   const okJids = jids.filter((j) => onWa.get(j) === true);
-  const nowIso = new Date().toISOString();
 
-  const { error: upErr } = await supabase
-    .schema("evo").from("evolution_whatsapp_check_queue")
-    .update({ status: "done", checked_at: nowIso })
-    .in("remote_jid", jids);
-  if (upErr) {
+  const { error: markErr } = await supabase.rpc("zapp_isonwa_mark", {
+    p_jids: jids,
+    p_ok_jids: okJids.length > 0 ? okJids : null,
+  });
+  if (markErr) {
     return jsonSimple({
       ok: false, checked: 0, on_whatsapp: 0, not_found: 0, errors: 1,
-      primeiro_erro: `marcar fila: ${upErr.message}`,
+      primeiro_erro: `marcar fila: ${markErr.message}`,
     }, 502, corsHeaders);
   }
-
-  if (okJids.length > 0) {
-    await supabase
-      .schema("evo").from("evolution_contacts")
-      .update({ is_on_whatsapp: true, whatsapp_checked_at: nowIso })
-      .in("remote_jid", okJids);
-  }
-  await supabase
-    .schema("evo").from("evolution_contacts")
-    .update({ whatsapp_checked_at: nowIso })
-    .in("remote_jid", jids.filter((j) => !okJids.includes(j)));
 
   return jsonSimple({
     ok: true, checked: jids.length, on_whatsapp: okJids.length,
