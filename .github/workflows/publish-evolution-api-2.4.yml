@@ -1,0 +1,198 @@
+name: "\U0001F4E6 Publish evolution-api-custom 2.4.x (GHCR)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      evolution_ref:
+        description: 'Tag do evolution-foundation/evolution-api'
+        required: false
+        default: '2.4.0-rc2'
+        type: string
+      base_image:
+        description: 'Imagem base oficial (digest imutavel)'
+        required: false
+        default: 'evoapicloud/evolution-api@sha256:0589281d448736759b98d11071066a3b9be3a1f19724802dd5867d9608a9584b'
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/evolution-api-custom
+  EVO_REF: ${{ inputs.evolution_ref || '2.4.0-rc2' }}
+  BASE_IMAGE: ${{ inputs.base_image || 'evoapicloud/evolution-api@sha256:0589281d448736759b98d11071066a3b9be3a1f19724802dd5867d9608a9584b' }}
+
+jobs:
+  build-evolution-source:
+    name: Build evolution 2.4.x bundle (Baileys 7.x nativo)
+    runs-on: [self-hosted, Linux, X64, vps-zapp]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Clone evolution-api source
+        run: |
+          git clone --depth 1 --branch ${{ env.EVO_REF }} https://github.com/evolution-foundation/evolution-api.git evo-src
+          echo "Baileys na source:"
+          grep '"baileys"' evo-src/package.json
+
+      - name: Prisma generate
+        working-directory: evo-src
+        run: |
+          cp env.example .env
+          export DATABASE_PROVIDER=postgresql
+          export DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+          npm install --prefer-offline --no-audit --no-fund
+          npm run db:generate 2>/dev/null || npx prisma generate --schema=./prisma/postgresql-schema.prisma
+
+      - name: Build bundle
+        working-directory: evo-src
+        run: |
+          export DATABASE_PROVIDER=postgresql
+          export DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+          set +e
+          npm run build > /tmp/build.log 2>&1
+          RC=$?
+          if [ $RC -ne 0 ]; then
+            echo "::warning::build falhou rc=$RC - fallback tsup"
+            NODE_OPTIONS=--max-old-space-size=1536 npx tsup > /tmp/tsup.log 2>&1
+            RC=$?
+            if [ $RC -ne 0 ]; then
+              tail -40 /tmp/tsup.log
+              exit 1
+            fi
+          fi
+          set -e
+          ls -la dist/main.js
+
+      - name: Verify bundle (require externo do baileys)
+        working-directory: evo-src
+        run: |
+          node -e "
+            const s=require('fs').readFileSync('dist/main.js','utf8');
+            if(!s.includes('require(\"baileys\")')){
+              console.error('FAIL: require(\"baileys\") ausente');
+              process.exit(1);
+            }
+            console.log('OK: require(\"baileys\") externo presente | bytes:', s.length);
+          "
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: evo-main-2.4
+          path: |
+            evo-src/dist/main.js
+            evo-src/dist/main.mjs
+          if-no-files-found: error
+
+  build-and-push:
+    name: Build & push Evolution 2.4.x custom image
+    needs: build-evolution-source
+    runs-on: [self-hosted, Linux, X64, vps-zapp]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - uses: docker/setup-buildx-action@v4
+        with:
+          driver: docker
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download bundle
+        uses: actions/download-artifact@v8
+        with:
+          name: evo-main-2.4
+          path: /tmp/evo-bundle-2.4/
+
+      - name: Normalize bundle layout
+        run: |
+          find /tmp/evo-bundle-2.4 -name 'main.js' -exec cp {} infra/evolution-api-custom/main.js \;
+          find /tmp/evo-bundle-2.4 -name 'main.mjs' -exec cp {} infra/evolution-api-custom/main.mjs 2>/dev/null || true \;
+          ls -la infra/evolution-api-custom/main.js
+
+      - name: Apply patches T1-T20 (build-patches-2.4.mjs)
+        run: |
+          cd infra/evolution-api-custom
+          node build-patches-2.4.mjs main.js main.patched.js t4_prologue.cjs "2.4.0-rc2"
+          ls -la main.patched.js
+
+      - name: Warm base image
+        run: |
+          for i in 1 2 3 4 5; do
+            docker pull "${{ env.BASE_IMAGE }}" && break
+            echo "::warning::pull base falhou (tentativa $i/5) - aguardando 60s"
+            sleep 60
+          done
+          docker image inspect "${{ env.BASE_IMAGE }}" >/dev/null || { echo "::error::base image indisponivel"; exit 1; }
+
+      - name: Build image (smoke, sem push)
+        uses: docker/build-push-action@v7
+        with:
+          context: infra/evolution-api-custom
+          file: infra/evolution-api-custom/Dockerfile.2.4
+          push: false
+          load: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:smoke-2.4
+          build-args: |
+            BASE_IMAGE=${{ env.BASE_IMAGE }}
+
+      - name: Smoke test
+        run: |
+          IMG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:smoke-2.4
+          set +e
+          timeout 45 docker run --rm --entrypoint node "$IMG" dist/main.js > /tmp/smoke.log 2>&1
+          RC=$?
+          set -e
+          echo "rc=$RC (crash por env ausente e esperado)"
+          tail -25 /tmp/smoke.log
+          if grep -iE "cannot find module|MODULE_NOT_FOUND" /tmp/smoke.log; then
+            echo "SMOKE FAIL: require orfao"
+            exit 1
+          fi
+          echo "SMOKE OK: 2.4.0 carrega sem require orfao"
+
+      - name: Compute tag
+        id: meta
+        run: |
+          TAG="${GITHUB_SHA::12}"
+          echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: infra/evolution-api-custom
+          file: infra/evolution-api-custom/Dockerfile.2.4
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.4.0-rc2
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.4.0
+          build-args: |
+            BASE_IMAGE=${{ env.BASE_IMAGE }}
+
+      - name: Resolve published digest
+        id: digest
+        run: |
+          DIGEST=$(docker image inspect --format '{{index .RepoDigests 0}}' ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.4.0 | cut -d@ -f2)
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+          echo "Published digest: $DIGEST"
+          echo "Proximo passo: portainer_update_service com ghcr.io/adm01-debug/zapp-web-v3/evolution-api-custom@$DIGEST"
