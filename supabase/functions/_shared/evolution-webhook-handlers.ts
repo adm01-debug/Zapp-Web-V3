@@ -60,6 +60,25 @@ export async function handleGroupsUpsert(supabase: SupabaseClient, instance: str
     const { error } = await supabase.from('whatsapp_groups')
       .upsert(row, { onConflict: 'whatsapp_connection_id,group_id' });
     if (!error) upserted++;
+
+    // Persistência canônica em evo (evolution_groups + evolution_group_participants).
+    // O snapshot de groups.upsert traz todos os participantes -> action 'add' idempotente.
+    const participantJids = Array.isArray(participants)
+      ? participants
+          .map((p) => typeof p === 'string' ? p : (isRecord(p) ? (p.id as string | undefined) ?? null : null))
+          .filter((j): j is string => !!j)
+      : [];
+    const { error: evoError } = await supabase.rpc('zapp_upsert_group_from_event', {
+      p_connection_id: connection.id,
+      p_group_id: groupId,
+      p_name: name || groupId,
+      p_desc: description,
+      p_participants: participantJids,
+      p_instance: instance,
+    });
+    if (evoError) {
+      console.warn(`[groups.upsert] evo persist failed instance=${instance} group=${groupId} err=${evoError.message}`);
+    }
   }
   console.log(`[groups.upsert] instance=${instance} upserted=${upserted}/${groups.length}`);
 }
@@ -90,6 +109,36 @@ export async function handleGroupParticipantsUpdate(supabase: SupabaseClient, in
       whatsapp_connection_id: connection.id, group_id: groupId,
       name: groupId, participant_count: Math.max(0, delta),
     });
+  }
+
+  // Persistência real de participantes em evo (evolution_group_participants),
+  // com recálculo idempotente de participant_count dentro da função.
+  const { data: evoGroup } = await supabase.from('evolution_groups')
+    .select('id').eq('whatsapp_connection_id', connection.id).eq('group_id', groupId).maybeSingle();
+  if (evoGroup?.id) {
+    const { error: pErr } = await supabase.rpc('zapp_upsert_group_participants', {
+      p_group_id: evoGroup.id,
+      p_participants: participants,
+      p_action: action,
+      p_instance: instance,
+    });
+    if (pErr) {
+      console.warn(`[group.participants.update] evo participants failed group=${groupId} action=${action} err=${pErr.message}`);
+    }
+  } else {
+    // Grupo ainda não catalogado em evolution_groups: cria com o snapshot atual
+    // (evita participantes órfãos e garante o grupo no catálogo).
+    const { error: gErr } = await supabase.rpc('zapp_upsert_group_from_event', {
+      p_connection_id: connection.id,
+      p_group_id: groupId,
+      p_name: groupId,
+      p_desc: null,
+      p_participants: participants,
+      p_instance: instance,
+    });
+    if (gErr) {
+      console.warn(`[group.participants.update] evo group create failed group=${groupId} err=${gErr.message}`);
+    }
   }
   console.log(`[group.participants.update] instance=${instance} group=${groupId} action=${action} delta=${delta}`);
 }
@@ -368,7 +417,27 @@ export async function handleChatsUpdate(supabase: SupabaseClient, instance: stri
   for (const chat of chats) {
     const chatData = chat as Record<string, unknown>;
     const jid = chatData.id as string;
-    if (!jid || jid.endsWith('@g.us') || jid.endsWith('@lid')) continue;
+    if (!jid || jid.endsWith('@lid')) continue;
+
+    // Grupos: catalogar/atualizar nome em evolution_groups via subject (chats.upsert).
+    // Sem subject (payload sem nome), o upsert usa o próprio groupId como fallback.
+    if (jid.endsWith('@g.us')) {
+      const subject = chatData.subject as string | undefined;
+      if (subject && subject.trim()) {
+        const { error: gErr } = await supabase.rpc('zapp_upsert_group_from_event', {
+          p_connection_id: connection.id,
+          p_group_id: jid,
+          p_name: subject.trim(),
+          p_desc: null,
+          p_participants: [],
+          p_instance: instance,
+        });
+        if (gErr) {
+          console.warn(`[chats.update] group name persist failed group=${jid} err=${gErr.message}`);
+        }
+      }
+      continue;
+    }
 
     const phone = normalizePhone(jid);
     if (!phone) continue;
