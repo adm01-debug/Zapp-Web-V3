@@ -271,28 +271,6 @@ export function useAuthForm() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    try {
-      const { lovable } = await import('@/integrations/lovable/index');
-      const { error } = await lovable.auth.signInWithOAuth('google', {
-        redirect_uri: `${window.location.origin}/auth?next=${encodeURIComponent(nextPath)}`,
-      });
-      if (error) {
-        toast({
-          title: 'Erro ao conectar com Google',
-          description: error.message,
-          variant: 'destructive',
-        });
-      }
-    } catch {
-      toast({
-        title: 'Login social indisponível',
-        description: 'Tente novamente mais tarde.',
-        variant: 'destructive',
-      });
-    }
-  };
-
   return {
     loading,
     activeTab,
@@ -306,6 +284,5 @@ export function useAuthForm() {
     handleLogin,
     handleSignUp,
     handlePasskeyLogin,
-    handleGoogleLogin,
   };
 }

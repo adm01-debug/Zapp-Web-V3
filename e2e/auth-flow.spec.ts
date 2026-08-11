@@ -53,6 +53,7 @@ test.describe('Verificação de Payload e Estado (Visual Regression Light)', () 
     await expect(page.locator('svg.text-primary-foreground')).toBeVisible(); // Smartphone icon
     await expect(page.locator('input[type="email"]')).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
-    await expect(page.locator('button:has-text("Entrar com Google")')).toBeVisible();
+    // Regressão: provider Google nunca foi habilitado no GoTrue self-hosted — botão removido (2026-08-10)
+    await expect(page.locator('button:has-text("Entrar com Google")')).toHaveCount(0);
   });
 });
