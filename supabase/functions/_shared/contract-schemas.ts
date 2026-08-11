@@ -115,6 +115,10 @@ export const ReprocessFailedMessagesV1Schema = z.object({
  * evolution-notification-dispatcher@v1 — dispatcher da outbox de canais externos.
  * Cron chama sem body ({} aceito). limit controla o tamanho do batch (default 20,
  * teto 50 por ciclo); dryRun apenas lê/claima e devolve o batch sem enviar.
+ * O body de ENTRADA é estrito ({limit?, dryRun?}). O RETORNO (não validado por
+ * este schema) desde 2026-08-11 inclui config_used (itens cuja config de canal
+ * foi lida via zapp.zapp_notif_config_get) e skipped_priority (itens descartados
+ * por priority_filter da config), além de sent/failed/skipped_in_app.
  */
 export const EvolutionNotificationDispatcherV1Schema = z.object({
   limit: z.number().int().min(1).max(50).optional(),
