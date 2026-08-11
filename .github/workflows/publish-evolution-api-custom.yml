@@ -190,6 +190,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: infra/evolution-api-custom
+          file: infra/evolution-api-custom/Dockerfile.2.4
           push: false
           load: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:smoke-${{ inputs.baileys_version || '6.7.24' }}
@@ -222,6 +223,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: infra/evolution-api-custom
+          file: infra/evolution-api-custom/Dockerfile.2.4
           push: true
           tags: |
             ${{ steps.meta.outputs.image }}
