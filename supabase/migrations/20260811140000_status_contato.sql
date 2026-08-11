@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260811_melhorias_status_contato.sql
+-- 20260811140000_status_contato.sql
 -- Frente B — STATUS DE CONTATO (presença online/última vez, stories viewed,
 -- IsOnWhatsApp) — aplicado em produção 2026-08-11
 -- ----------------------------------------------------------------------------

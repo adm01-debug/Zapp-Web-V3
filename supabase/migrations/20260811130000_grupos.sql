@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260811_melhorias_grupos.sql
+-- 20260811130000_grupos.sql
 -- Frente A — GRUPOS WhatsApp (Evolution) — aplicado em produção 2026-08-11
 -- ----------------------------------------------------------------------------
 -- Conteúdo (100% ADDITIVE; nada foi dropado):
