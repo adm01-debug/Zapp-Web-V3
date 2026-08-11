@@ -113,6 +113,7 @@ Deno.serve(async (req) => {
         let contentType = "audio/ogg";
         let ext = "ogg";
         if (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) { contentType = "audio/mpeg"; ext = "mp3"; }
+        else if (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0) { contentType = "audio/mpeg"; ext = "mp3"; }
         else if (bytes[0] === 0x1a && bytes[1] === 0x45) { contentType = "audio/webm"; ext = "webm"; }
 
         const storagePath = `audio/${msg.external_id}.${ext}`;
