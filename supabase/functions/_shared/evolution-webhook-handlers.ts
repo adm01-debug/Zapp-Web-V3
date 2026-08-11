@@ -77,7 +77,7 @@ export async function handleGroupsUpsert(supabase: SupabaseClient, instance: str
               if (!id) return null;
               const phone = typeof p.phoneNumber === 'string' && p.phoneNumber.trim()
                 ? p.phoneNumber.trim() : null;
-              const admin = p.admin === 'admin' || p.admin === true;
+              const admin = p.admin === 'admin' || p.admin === 'superadmin' || p.admin === true;
               return { jid: id, phone, admin };
             }
             return null;
