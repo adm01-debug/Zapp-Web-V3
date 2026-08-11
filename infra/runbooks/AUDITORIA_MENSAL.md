@@ -113,7 +113,7 @@ WHERE name IN ('wal_sender_timeout','max_slot_wal_keep_size','wal_keep_size','ma
 # 3) último ciclo do purge (stack 126) — esperado: 1×/dia, zero "syntax error", lock ok
 docker service logs evolution-db-purge_purge --since 26h | grep -E "purged|VACUUM|lock|ERROR|syntax" | tail -40
 # 4) runs registrados
-# SELECT run_id, started_at, finished_at, rows_deleted, status FROM _purge_runs ORDER BY started_at DESC LIMIT 5;
+# SELECT id, ran_at, tabela, linhas_removidas, duration_ms, status FROM _purge_runs ORDER BY ran_at DESC LIMIT 5;
 # 5) Redis db8 (cache baileys) — TTL=-1 em todas as chaves = risco de crescimento sem limite (etapa aberta)
 # redis-cli -n 8 info keyspace
 ```
