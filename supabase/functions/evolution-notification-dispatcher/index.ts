@@ -312,7 +312,7 @@ async function sendEmail(
         'Content-Type': 'application/json',
         Authorization: `Bearer ${resendKey}`,
       },
-      body: JSON.stringify({ from: 'Promo Brindes <noreply@promobrindes.com.br>', to, subject, html }),
+      body: JSON.stringify({ from: 'Promo Brindes <on@resend.dev>', to, subject, html }),
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
     const body = await res.text();
