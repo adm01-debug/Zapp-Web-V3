@@ -1,0 +1,27 @@
+name: "Notify CI Failure — Abner TI"
+# A8-RESEND-20260811: alerta email via N8N warroom quando CI falha em main.
+
+on:
+  workflow_run:
+    workflows:
+      - "CI"
+      - "E2E CRM VPS"
+      - "E2E Inbox VPS"
+      - "E2E Nightly Full"
+      - "Quality Gate"
+      - "Deploy VPS"
+    types: [completed]
+    branches: [main, production]
+
+jobs:
+  notify-failure:
+    name: "Email Abner via N8N"
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    steps:
+      - name: "POST warroom → Email + Bitrix24"
+        run: |
+          curl -sf -X POST https://webhook.atomicabr.com.br/webhook/zapp-webb-critical-alert \
+            -H "Content-Type: application/json" \
+            -d "{\"severity\":\"critical\",\"alert_type\":\"ci_failure\",\"title\":\"CI FAILED: ${{ github.event.workflow_run.name }}\",\"message\":\"Repo: ${{ github.repository }}\nBranch: ${{ github.event.workflow_run.head_branch }}\nActor: ${{ github.event.workflow_run.triggering_actor.login }}\nSHA: ${{ github.event.workflow_run.head_sha }}\nURL: ${{ github.event.workflow_run.html_url }}\",\"source\":\"github-actions\",\"run_id\":\"${{ github.event.workflow_run.id }}\"}" \
+          && echo "Alerta enviado (Email Abner + Bitrix24)"
