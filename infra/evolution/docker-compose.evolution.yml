@@ -86,7 +86,7 @@ services:
       - CACHE_REDIS_SAVE_INSTANCES=true
       - CACHE_LOCAL_ENABLED=true
       # --- Banco (save-flags reduzidos — item 67 / AG-EX-23) ---
-      - DATABASE_SAVE_MESSAGE_UPDATE=false
+      - DATABASE_SAVE_MESSAGE_UPDATE=true
       - DATABASE_SAVE_DATA_HISTORIC=false
       - DATABASE_CONNECTION_CLIENT_NAME=evolution
       # --- CORS: restrito a 6 origens (etapa 81/T7 — aplicado em prod 23:58Z 08/08) ---
