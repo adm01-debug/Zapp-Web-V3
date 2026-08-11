@@ -34,6 +34,7 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "contacts-import":              { current: "v1", supported: ["v1"] },
   "voice-copilot-action":         { current: "v1", supported: ["v1"] },
   "evolution-sync":               { current: "v1", supported: ["v1"] },
+  "evolution-group-sync":         { current: "v1", supported: ["v1"] },
   "gmail-sync":                   { current: "v1", supported: ["v1"] },
   "webhook-diagnostic":           { current: "v1", supported: ["v1"] },
   "webhook-hmac-selftest":        { current: "v1", supported: ["v1"] },

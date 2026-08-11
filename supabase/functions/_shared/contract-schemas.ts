@@ -172,6 +172,17 @@ export const EvolutionSyncV1Schema = z.object({
 }).passthrough();
 
 /**
+ * evolution-group-sync@v1 — sync de grupos WhatsApp (Evolution fetchAllGroups
+ * → zapp.zapp_upsert_group_from_event). Internal/cron (requireServiceRoleOrCron);
+ * rota única action='groups' (default, corpo vazio {} válido para cron).
+ * instanceName opcional (default 'wpp2', sanitizado no handler).
+ */
+export const EvolutionGroupSyncV1Schema = z.object({
+  action: z.literal("groups").optional(),
+  instanceName: z.string().min(1).max(100).optional(),
+}).passthrough();
+
+/**
  * webhook-hmac-selftest@v1 — self-test HMAC (service-role/cron). index.ts
  * consome: instance (default 'selftest'), tolerance_seconds (clampado no
  * handler), include_negative (default true). Corpo opcional — GET roda sem.
@@ -838,6 +849,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "contacts-import":            { v1: ContactsImportV1Schema },
   "voice-copilot-action":       { v1: VoiceCopilotActionV1Schema },
   "evolution-sync":             { v1: EvolutionSyncV1Schema },
+  "evolution-group-sync":       { v1: EvolutionGroupSyncV1Schema },
   "webhook-hmac-selftest":      { v1: WebhookHmacSelftestV1Schema },
   "webhook-secret-status":      { v1: WebhookSecretStatusV1Schema },
   "whatsapp-cloud-webhook-verify":  { v1: WhatsappCloudWebhookVerifyV1Schema },

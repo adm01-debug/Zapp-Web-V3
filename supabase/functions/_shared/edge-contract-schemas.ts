@@ -83,6 +83,7 @@ export const EDGE_FUNCTION_NAMES = [
   'evolution-api',
   'evolution-bitrix-sync',
   'evolution-credentials',
+  'evolution-group-sync',
   'evolution-retry-metrics',
   'evolution-sync',
   'evolution-templates',
