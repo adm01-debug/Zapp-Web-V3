@@ -1,5 +1,5 @@
 # ============================================================================
-# evolution-api-custom — Evolution API 2.3.7 com patches T1-T19 em BUILD-TIME
+# evolution-api-custom — Evolution API 2.3.7 com patches T1-T20b em BUILD-TIME
 # ----------------------------------------------------------------------------
 # Substitui o monkey-patch RUNTIME (logpatch.cjs + configs Swarm
 # evolution_logpatch_t4_cjs / evolution_main_v2_js) por um bundle patcheado
@@ -34,6 +34,13 @@
 #   T19 remoteJidAlt via senderPn (Baileys 6.7.24 entrega senderPn no key):
 #       fallback triplo senderPn → getPNForLID (T17) → nada, em try/catch —
 #       nunca quebra a ingestão
+#   T20 userDevicesCache stdTTL 3e5 (83h) → 300s + msgRetryCounterCache sem
+#       TTL → 3600s (previne memory leak de cache)
+#   T20b appStateMacVerification:"strict" no socketConfig do makeWASocket —
+#       ativa validação de MACs do app-state (default da lib é
+#       {patch:false,snapshot:false}); string "strict" → .snapshot/.patch
+#       undefined → default validateMacs=true em decodeSyncdSnapshot/
+#       decodePatches; falha de MAC → catch → resync do zero (nunca derruba)
 # libsignal/src/session_record.js: remove console.info/warn de sessões.
 #
 # PLANO B (baileys 6.7.24): o bundle é rebuildado do source da tag 2.3.7 com
@@ -51,7 +58,7 @@ FROM ${BASE_IMAGE}
 
 LABEL org.opencontainers.image.title="evolution-api-custom" \
       org.opencontainers.image.version="2.3.7" \
-      org.opencontainers.image.description="Evolution API 2.3.7 com patches T1-T19 build-time (log masking, Sentry filtrado, versao mascarada na raiz, sem logs de stanza/CACHE/webhook, guards MessageUpdate, dedup de ingestao, remoteJidAlt via senderPn com fallback lidMapping, poda de bloat) — bundle com baileys 6.7.24 (Plano B)" \
+      org.opencontainers.image.description="Evolution API 2.3.7 com patches T1-T20b build-time (log masking, Sentry filtrado, versao mascarada na raiz, sem logs de stanza/CACHE/webhook, guards MessageUpdate, dedup de ingestao, remoteJidAlt via senderPn com fallback lidMapping, poda de bloat, cache TTL, appStateMacVerification strict) — bundle com baileys 6.7.24 (Plano B)" \
       org.opencontainers.image.source="https://github.com/adm01-debug/zapp-web-v3/tree/main/infra/evolution-api-custom" \
       org.opencontainers.image.base.digest="sha256:6b195676b09abbbd8ac9372cd961674dea2587f23dc9bc1d1e6a595372556fb1" \
       org.opencontainers.image.revision="${GIT_SHA}" \
@@ -60,7 +67,7 @@ LABEL org.opencontainers.image.title="evolution-api-custom" \
 WORKDIR /evolution
 EXPOSE 8080
 
-# --- Bundle principal patcheado (T1-T19). Gerado por build-patches.mjs a partir
+# --- Bundle principal patcheado (T1-T20b). Gerado por build-patches.mjs a partir
 #     do /evolution/dist/main.js ORIGINAL extraído da imagem base (digest acima).
 COPY main.patched.js /evolution/dist/main.js
 
@@ -93,12 +100,12 @@ RUN node -e 'var fs=require("fs"),p="/evolution/package.json",pkg=JSON.parse(fs.
 RUN node -e 'var fs=require("fs"),p="/evolution/node_modules/baileys/package.json";if(!fs.existsSync(p)){console.error("FAIL: baileys ausente");process.exit(1);}var v=JSON.parse(fs.readFileSync(p,"utf8")).version;if(v!=="6.7.24"){console.error("FAIL: baileys="+v);process.exit(1);}var pkg=JSON.parse(fs.readFileSync("/evolution/package.json","utf8"));var d=pkg.dependencies&&pkg.dependencies.baileys;if(d!=="6.7.24"){console.error("FAIL: package.json declara "+d);process.exit(1);}console.log("VERIFY OK: baileys "+v+" runtime+pkg=6.7.24");'
 
 # --- Verificação fail-closed: o build FALHA se o bundle copiado não tiver os
-#     patches T1-T19 exatamente como esperado (nunca sobe imagem com patch
+#     patches T1-T20b exatamente como esperado (nunca sobe imagem com patch
 #     quebrado). T2/T5a: tolerantes — só exigem AUSÊNCIA (aplicados ou SKIPed,
 #     nunca presentes). T1/T3/T4/T6: estritos (marcadores obrigatórios).
-#     T8-T19 (v4/v5/v6): marcadores obrigatórios de presença (T8/T9/T17/T18/T19
-#     têm o original como substring do novo — só presença); T10/T11/T13a/T13b/
-#     T14/T15/T16: presença do novo + ausência do original.
+#     T8-T20b (v4/v5/v6/v7/v8): marcadores obrigatórios de presença (T8/T9/T17/
+#     T18/T19/T20/T20b têm o original como substring do novo — só presença);
+#     T10/T11/T13a/T13b/T14/T15/T16: presença do novo + ausência do original.
 RUN node -e ' \
 const fs=require("fs"); \
 const s=fs.readFileSync("/evolution/dist/main.js","utf8"); \
@@ -129,7 +136,10 @@ if(!s.includes("let c=await this.prismaRepository.message.findFirst({where:{inst
 if(!s.includes("let lidPn=await this.client.signalRepository.lidMapping.getPNForLID(c.key.remoteJid)"))fail("T17 marcador ausente (remoteJidAlt lidMapping)"); \
 if(!s.includes("if(typeof c.key.senderPn===\"string\"&&c.key.senderPn.includes(\"@s.whatsapp.net\"))c.key.remoteJidAlt=c.key.senderPn"))fail("T19 marcador ausente (remoteJidAlt senderPn)"); \
 if(!s.includes("const mt=[\"imageMessage\",\"videoMessage\",\"stickerMessage\",\"audioMessage\",\"documentMessage\",\"ptvMessage\"],ep=i.message?.ephemeralMessage?.message"))fail("T18 marcador ausente (poda bloat prepareMessage)"); \
-console.log("VERIFY OK: main.js com T1-T19 aplicados"); \
+if(s.includes("this.msgRetryCounterCache=new er.default;this.userDevicesCache=new er.default({stdTTL:3e5,useClones:!1})"))fail("T20 nao aplicado (cache TTL original)"); \
+if(!s.includes("this.msgRetryCounterCache=new er.default({stdTTL:3600,useClones:!1});this.userDevicesCache=new er.default({stdTTL:300,useClones:!1})"))fail("T20 marcador ausente (cache TTL)"); \
+if(!s.includes("appStateMacVerification:\"strict\",markOnlineOnConnect:this.localSettings.alwaysOnline,retryRequestDelayMs:350"))fail("T20b marcador ausente (appStateMacVerification strict no socketConfig)"); \
+console.log("VERIFY OK: main.js com T1-T20b aplicados"); \
 '
 
 # --- libsignal/src/session_record.js: remove console.info/warn de sessões
