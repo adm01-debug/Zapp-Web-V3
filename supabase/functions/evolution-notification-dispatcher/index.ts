@@ -10,6 +10,22 @@
 //   slack/webhook → POST à URL do payload (payload.metadata.webhook_url |
 //                   payload.metadata.slack_webhook_url | payload.webhook_url | payload.url)
 //
+// CONFIG DE CANAL (evo.evolution_notification_config, melhoria 2026-08-11):
+//   A tabela existe em produção (schema evo NÃO exposto no PostgREST) mas a
+//   edge não a lia — configurar a tabela não mudava nada. Agora a edge busca
+//   a config por canal via RPC zapp.zapp_notif_config_get (SECURITY DEFINER,
+//   service_role) e:
+//     * FALLBACK DE DESTINATÁRIO quando o payload não traz um:
+//         whatsapp_promo → config.chat_id (número)
+//         email          → config.email_addresses[0]
+//         slack          → config.slack_webhook (depois webhook_url)
+//         webhook        → config.webhook_url
+//     * PRIORITY FILTER: se config.priority_filter não vazio e
+//       payload.priority (ou payload.metadata.priority) não está na lista
+//       (CSV ou array), o item é SKIPADO (log + mark failed com
+//       last_error='skipped_by_priority_filter' — sai do ciclo sem loop).
+//   RPC indisponível/erro → config null → comportamento anterior (sem fallback).
+//
 // Idempotência:
 //   1. claim atômico via zapp.fn_evo_outbox_claim (UPDATE ... WHERE status='pending'
 //      RETURNING) → status='sending' + attempt_count+1. Dois dispatchers concorrentes
@@ -45,6 +61,22 @@ interface OutboxRow {
   last_error: string | null;
 }
 
+/** Linha de evo.evolution_notification_config (via zapp_notif_config_get jsonb). */
+export interface NotifChannelConfig {
+  channel?: unknown;
+  webhook_url?: unknown;
+  api_token?: unknown;
+  chat_id?: unknown;
+  enabled?: unknown;
+  notify_on?: unknown;
+  slack_webhook?: unknown;
+  email_addresses?: unknown;
+  notify_on_hours?: unknown;
+  notify_on_days?: unknown;
+  priority_filter?: unknown;
+  [key: string]: unknown;
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -69,6 +101,135 @@ function firstString(...vals: unknown[]): string | null {
   return null;
 }
 
+/** Normaliza chat_id numérico (jsonb) para string. */
+function asStringOrUndefined(v: unknown): string | undefined {
+  if (typeof v === 'string' && v.trim().length > 0) return v.trim();
+  if (typeof v === 'number' && Number.isFinite(v)) return String(v);
+  return undefined;
+}
+
+// ─── Núcleo de config (exportado p/ testes unitários sem rede) ──────────────
+
+/**
+ * Parseia priority_filter da config: aceita CSV ("high,urgent") ou array
+ * jsonb (["high","urgent"]). Vazio/null → [] (filtro inativo).
+ */
+export function parsePriorityFilter(filter: unknown): string[] {
+  if (Array.isArray(filter)) {
+    return filter
+      .map((v) => (typeof v === 'string' ? v.trim() : String(v)))
+      .filter((v) => v.length > 0);
+  }
+  if (typeof filter === 'string') {
+    return filter
+      .split(',')
+      .map((v) => v.trim())
+      .filter((v) => v.length > 0);
+  }
+  return [];
+}
+
+/**
+ * Decide se o item deve ser SKIPADO pelo priority_filter da config.
+ * Regra: filtro não vazio E payload.priority (ou metadata.priority) não está
+ * na lista → skip (payload sem priority com filtro ativo também skipa).
+ */
+export function isExcludedByPriorityFilter(
+  config: NotifChannelConfig | null,
+  payload: Record<string, unknown>,
+): boolean {
+  const allowed = parsePriorityFilter(config?.priority_filter);
+  if (allowed.length === 0) return false;
+  const priority = firstString(asRecord(payload.metadata)?.priority, payload.priority);
+  if (priority === null) return true;
+  return !allowed.includes(priority);
+}
+
+/** Destinatário WhatsApp: payload/metadata > contact > config.chat_id. */
+export function resolveWhatsAppNumber(
+  payload: Record<string, unknown>,
+  contact: { phone: string | null },
+  config: NotifChannelConfig | null,
+): string | null {
+  return firstString(
+    asRecord(payload.metadata)?.phone,
+    asRecord(payload.metadata)?.number,
+    payload.phone,
+    payload.number,
+    contact.phone,
+    asStringOrUndefined(config?.chat_id),
+  );
+}
+
+/** Primeiro email de config.email_addresses (array) — fallback de email. */
+export function firstEmailFromConfig(config: NotifChannelConfig | null): string | undefined {
+  const addrs = config?.email_addresses;
+  if (Array.isArray(addrs)) {
+    for (const a of addrs) {
+      const s = asStringOrUndefined(a);
+      if (s !== undefined) return s;
+    }
+  }
+  return undefined;
+}
+
+/** Destinatário email: payload/metadata > contact > config.email_addresses[0]. */
+export function resolveEmailRecipient(
+  payload: Record<string, unknown>,
+  contact: { email: string | null },
+  config: NotifChannelConfig | null,
+): string | null {
+  return firstString(
+    asRecord(payload.metadata)?.to,
+    asRecord(payload.metadata)?.email,
+    payload.to,
+    payload.email,
+    contact.email,
+    firstEmailFromConfig(config),
+  );
+}
+
+/** URL webhook: payload/metadata > config (slack_webhook p/ slack; webhook_url geral). */
+export function resolveWebhookUrl(
+  channel: string,
+  payload: Record<string, unknown>,
+  config: NotifChannelConfig | null,
+): string | null {
+  const metadata = asRecord(payload.metadata);
+  return firstString(
+    metadata.webhook_url,
+    metadata.slack_webhook_url,
+    metadata.url,
+    payload.webhook_url,
+    payload.url,
+    channel === 'slack' ? asStringOrUndefined(config?.slack_webhook) : undefined,
+    asStringOrUndefined(config?.webhook_url),
+  );
+}
+
+/**
+ * Busca a config ativa do canal via RPC zapp.zapp_notif_config_get.
+ * Retorna null quando: RPC falha (log), sem linha, ou desabilitada.
+ * Nunca lança — fallback silencioso para o comportamento anterior.
+ */
+export async function getChannelConfig(
+  supabase: ReturnType<typeof createZappAdminClient>,
+  channel: string,
+): Promise<NotifChannelConfig | null> {
+  try {
+    const { data, error } = await supabase.rpc('zapp_notif_config_get', { p_channel: channel });
+    if (error) {
+      console.warn(`[evolution-notification-dispatcher] zapp_notif_config_get falhou (${channel}): ${error.message}`);
+      return null;
+    }
+    if (data === null || data === undefined) return null;
+    return asRecord(data) as NotifChannelConfig;
+  } catch (e) {
+    console.warn(`[evolution-notification-dispatcher] zapp_notif_config_get exception (${channel}): ${e instanceof Error ? e.message : String(e)}`);
+    return null;
+  }
+}
+
 async function lookupContact(
   supabase: ReturnType<typeof createZappAdminClient>,
   contactId: unknown,
@@ -91,6 +252,7 @@ async function lookupContact(
 async function sendWhatsAppPromo(
   payload: Record<string, unknown>,
   contact: { phone: string | null },
+  config: NotifChannelConfig | null,
 ): Promise<{ ok: boolean; error: string | null }> {
   const url = (await getSecret('evolution_api_url'))?.replace(/\/+$/, '') ?? '';
   const apikey = (await getSecret('evolution_instance_token_wpp2')) ??
@@ -99,15 +261,9 @@ async function sendWhatsAppPromo(
 
   if (!url || !apikey) return { ok: false, error: 'vault: evolution_api_url/evolution_instance_token_wpp2 ausentes' };
 
-  const number = firstString(
-    asRecord(payload.metadata)?.phone,
-    asRecord(payload.metadata)?.number,
-    payload.phone,
-    payload.number,
-    contact.phone,
-  );
+  const number = resolveWhatsAppNumber(payload, contact, config);
   const text = firstString(payload.message, payload.title);
-  if (!number) return { ok: false, error: 'whatsapp_promo sem número (payload/contact)' };
+  if (!number) return { ok: false, error: 'whatsapp_promo sem número (payload/contact/config.chat_id)' };
   if (!text) return { ok: false, error: 'whatsapp_promo sem texto (message/title)' };
 
   try {
@@ -137,15 +293,15 @@ async function sendWhatsAppPromo(
 async function sendEmail(
   payload: Record<string, unknown>,
   contact: { email: string | null },
+  config: NotifChannelConfig | null,
 ): Promise<{ ok: boolean; error: string | null }> {
   const resendKey = Deno.env.get('RESEND_API_KEY');
   if (!resendKey) return { ok: false, error: 'RESEND_API_KEY ausente' };
 
-  const metadata = asRecord(payload.metadata);
-  const to = firstString(metadata.to, metadata.email, payload.to, payload.email, contact.email);
-  const subject = firstString(payload.title, metadata.subject, 'Notificação Zapp');
-  const html = firstString(metadata.html, payload.html, payload.message);
-  if (!to) return { ok: false, error: 'email sem destinatário (payload/contact)' };
+  const to = resolveEmailRecipient(payload, contact, config);
+  const subject = firstString(payload.title, asRecord(payload.metadata)?.subject, 'Notificação Zapp');
+  const html = firstString(asRecord(payload.metadata)?.html, payload.html, payload.message);
+  if (!to) return { ok: false, error: 'email sem destinatário (payload/contact/config.email_addresses)' };
   if (!html) return { ok: false, error: 'email sem conteúdo (html/message)' };
 
   try {
@@ -168,21 +324,15 @@ async function sendEmail(
   }
 }
 
-/** Envia para slack/webhook genérico — POST na URL do payload. */
+/** Envia para slack/webhook genérico — POST na URL do payload (ou config). */
 async function sendWebhook(
   channel: string,
   payload: Record<string, unknown>,
+  config: NotifChannelConfig | null,
 ): Promise<{ ok: boolean; error: string | null }> {
-  const metadata = asRecord(payload.metadata);
-  const url = firstString(
-    metadata.webhook_url,
-    metadata.slack_webhook_url,
-    metadata.url,
-    payload.webhook_url,
-    payload.url,
-  );
+  const url = resolveWebhookUrl(channel, payload, config);
   if (!url || !/^https?:\/\//i.test(url)) {
-    return { ok: false, error: `${channel} sem webhook_url no payload` };
+    return { ok: false, error: `${channel} sem webhook_url (payload/config)` };
   }
   const text = firstString(payload.message, payload.title, 'Notificação Zapp') ?? '';
   const body = channel === 'slack' ? { text } : { text, title: payload.title ?? null, notification_id: payload.notification_id ?? null };
@@ -232,10 +382,10 @@ Deno.serve(async (req) => {
     }
     const rows = Array.isArray(batch) ? (batch as OutboxRow[]) : [];
     if (rows.length === 0) {
-      return json(req, { ok: true, claimed: 0, sent: 0, failed: 0, skipped_in_app: 0, dryRun, message: 'outbox vazia' });
+      return json(req, { ok: true, claimed: 0, sent: 0, failed: 0, skipped_in_app: 0, config_used: 0, skipped_priority: 0, dryRun, message: 'outbox vazia' });
     }
 
-    const stats = { sent: 0, failed: 0, skipped_in_app: 0 };
+    const stats = { sent: 0, failed: 0, skipped_in_app: 0, config_used: 0, skipped_priority: 0 };
 
     for (let i = 0; i < rows.length; i++) {
       // Rate limit: 1 envio/segundo (entre itens).
@@ -251,8 +401,33 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // Config do canal: fallback de destinatário + priority_filter.
+      // Falha de leitura → null → comportamento anterior (sem fallback).
+      const config = await getChannelConfig(supabase, channel);
+      if (config !== null) stats.config_used++;
+
       if (dryRun) {
         await supabase.rpc('fn_evo_outbox_release', { p_id: row.id });
+        continue;
+      }
+
+      // priority_filter: config ativa com filtro e payload.priority fora da
+      // lista → skip (log + mark failed descritivo; sai do ciclo sem loop).
+      if (isExcludedByPriorityFilter(config, payload)) {
+        const priority = firstString(asRecord(payload.metadata)?.priority, payload.priority);
+        console.warn(
+          `[evolution-notification-dispatcher] outbox ${row.id} (${channel}): skip por priority_filter ` +
+          `(payload.priority=${priority ?? '(ausente)'}, filtro=${JSON.stringify(config?.priority_filter)})`,
+        );
+        stats.skipped_priority++;
+        const { error: markErr } = await supabase.rpc('fn_evo_outbox_mark', {
+          p_id: row.id,
+          p_status: 'failed',
+          p_last_error: 'skipped_by_priority_filter',
+        });
+        if (markErr) {
+          console.error(`[evolution-notification-dispatcher] mark skipped falhou para outbox ${row.id}:`, markErr.message);
+        }
         continue;
       }
 
@@ -261,14 +436,14 @@ Deno.serve(async (req) => {
 
       switch (channel) {
         case 'whatsapp_promo':
-          result = await sendWhatsAppPromo(payload, contact);
+          result = await sendWhatsAppPromo(payload, contact, config);
           break;
         case 'email':
-          result = await sendEmail(payload, contact);
+          result = await sendEmail(payload, contact, config);
           break;
         case 'slack':
         case 'webhook':
-          result = await sendWebhook(channel, payload);
+          result = await sendWebhook(channel, payload, config);
           break;
         default:
           result = { ok: false, error: `canal desconhecido: ${channel}` };
