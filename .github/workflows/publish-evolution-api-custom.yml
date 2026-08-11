@@ -6,17 +6,17 @@ on:
       baileys_version:
         description: 'Versão do Baileys (pin exato)'
         required: false
-        default: '6.7.24'
+        default: '7.0.0-rc.9'
         type: string
       evolution_ref:
         description: 'Tag/branch do evolution-foundation/evolution-api'
         required: false
-        default: '2.3.7'
+        default: '2.4.0-rc2'
         type: string
       base_image:
         description: 'Imagem base oficial (digest imutável)'
         required: false
-        default: 'evoapicloud/evolution-api@sha256:6b195676b09abbbd8ac9372cd961674dea2587f23dc9bc1d1e6a595372556fb1'
+        default: 'evoapicloud/evolution-api@sha256:0589281d448736759b98d11071066a3b9be3a1f19724802dd5867d9608a9584b'
         type: string
   push:
     paths:
@@ -32,8 +32,8 @@ env:
   IMAGE_NAME: ${{ github.repository }}/evolution-api-custom
   # Fallbacks p/ runs push-triggered (inputs vazios em push — só existem em workflow_dispatch).
   # FIX 2026-08-07: evolution_ref e base_image não tinham fallback → push em infra/evolution-api-custom/** falhava.
-  EVO_REF: ${{ inputs.evolution_ref || '2.3.7' }}
-  BASE_IMAGE: ${{ inputs.base_image || 'evoapicloud/evolution-api@sha256:6b195676b09abbbd8ac9372cd961674dea2587f23dc9bc1d1e6a595372556fb1' }}
+  EVO_REF: ${{ inputs.evolution_ref || '2.4.0-rc2' }}
+  BASE_IMAGE: ${{ inputs.base_image || 'evoapicloud/evolution-api@sha256:0589281d448736759b98d11071066a3b9be3a1f19724802dd5867d9608a9584b' }}
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -99,7 +99,7 @@ jobs:
         working-directory: evo-src
         run: |
           ls -la dist/
-          node -e "const s=require('fs').readFileSync('dist/main.js','utf8'); if(!s.includes('require(\"baileys\")')){console.error('FAIL: require(\"baileys\") ausente — bundle mudou de arquitetura');process.exit(1)} if(s.includes('7.0.0-rc.9')){console.error('FAIL: rc.9 ainda presente no bundle');process.exit(1)} console.log('OK bytes:', s.length, '| require(\"baileys\") externo presente')"
+          node -e "const s=require('fs').readFileSync('dist/main.js','utf8'); if(!s.includes('require(\"baileys\")')){console.error('FAIL: require(\"baileys\") ausente — bundle mudou de arquitetura');process.exit(1)} console.log('OK bytes:', s.length, '| require(\"baileys\") externo presente')"
 
       - name: Pack baileys (para substituir node_modules/baileys na imagem)
         working-directory: evo-src
@@ -171,10 +171,10 @@ jobs:
           node -e "const v=require('./baileys/package.json').version; if(v!=='${{ inputs.baileys_version || '6.7.24' }}'){console.error('FAIL: versao baileys extraido = '+v);process.exit(1)} console.log('baileys extraido OK: '+v)"
           rm -f baileys-${{ inputs.baileys_version || '6.7.24' }}.tgz
 
-      - name: Apply T1-T6 patches (fail-closed, T2/T5a tolerantes)
+      - name: Apply T1-T20 patches 2.4 (fail-closed, tolerantes; nativos SKIP)
         run: |
           cd infra/evolution-api-custom
-          node build-patches.mjs main.js main.patched.js t4_prologue.cjs "2.3.7-baileys-${{ inputs.baileys_version || '6.7.24' }}"
+          node build-patches-2.4.mjs main.js main.patched.js t4_prologue.cjs "2.4.0-baileys-${{ inputs.baileys_version || '7.0.0-rc.9' }}"
           ls -la main.patched.js
 
       - name: Warm base image (resiliente a rate limit Docker Hub)
@@ -225,8 +225,8 @@ jobs:
           push: true
           tags: |
             ${{ steps.meta.outputs.image }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.3.7
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.3.7-baileys-${{ inputs.baileys_version || '6.7.24' }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.4.0
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.4.0-rc2-baileys-${{ inputs.baileys_version || '7.0.0-rc.9' }}
           build-args: |
             BASE_IMAGE=${{ env.BASE_IMAGE }}
           # (cache gha removido: driver docker nao suporta cache export — base via Warm step)
@@ -236,6 +236,6 @@ jobs:
         run: |
           # driver docker: buildx imagetools nao expoe o digest do push; o daemon
           # local tem o RepoDigests remoto apos o push (imagem loadada).
-          DIGEST=$(docker image inspect --format '{{index .RepoDigests 0}}' ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.3.7-baileys-${{ inputs.baileys_version || '6.7.24' }} | cut -d@ -f2)
+          DIGEST=$(docker image inspect --format '{{index .RepoDigests 0}}' ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.4.0-rc2-baileys-${{ inputs.baileys_version || '7.0.0-rc.9' }} | cut -d@ -f2)
           echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
           echo "Published digest: $DIGEST"
