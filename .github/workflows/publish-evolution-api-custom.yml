@@ -43,7 +43,7 @@ jobs:
   # require("baileys") em runtime — logo só o bundle NÃO basta).
   # ---------------------------------------------------------------------------
   build-evolution-source:
-    name: Build evolution source bundle (baileys ${{ inputs.baileys_version || '6.7.24' }})
+    name: Build evolution source bundle (baileys ${{ inputs.baileys_version || '7.0.0-rc.9' }})
     runs-on: [self-hosted, Linux, X64, vps-zapp]
     steps:
       - uses: actions/checkout@v7
@@ -62,7 +62,7 @@ jobs:
       - name: Pin baileys (exato — package.json + package-lock.json)
         working-directory: evo-src
         run: |
-          npm install baileys@${{ inputs.baileys_version || '6.7.24' }} --save-exact --no-audit --no-fund
+          npm install baileys@${{ inputs.baileys_version || '7.0.0-rc.9' }} --save-exact --no-audit --no-fund
           grep '"baileys"' package.json
 
       - name: Prisma generate (DATABASE_PROVIDER=postgresql, sem conexão)
@@ -104,18 +104,18 @@ jobs:
       - name: Pack baileys (para substituir node_modules/baileys na imagem)
         working-directory: evo-src
         run: |
-          npm pack baileys@${{ inputs.baileys_version || '6.7.24' }} --pack-destination . --silent
+          npm pack baileys@${{ inputs.baileys_version || '7.0.0-rc.9' }} --pack-destination . --silent
           ls -la baileys-*.tgz
-          tar -tzf baileys-${{ inputs.baileys_version || '6.7.24' }}.tgz | head -3
+          tar -tzf baileys-${{ inputs.baileys_version || '7.0.0-rc.9' }}.tgz | head -3
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: evo-main-${{ inputs.baileys_version || '6.7.24' }}
+          name: evo-main-${{ inputs.baileys_version || '7.0.0-rc.9' }}
           path: |
             evo-src/dist/main.js
             evo-src/dist/main.mjs
-            evo-src/baileys-${{ inputs.baileys_version || '6.7.24' }}.tgz
+            evo-src/baileys-${{ inputs.baileys_version || '7.0.0-rc.9' }}.tgz
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
@@ -123,7 +123,7 @@ jobs:
   # na imagem final + push
   # ---------------------------------------------------------------------------
   build-and-push:
-    name: Build & push Evolution custom image (baileys ${{ inputs.baileys_version || '6.7.24' }})
+    name: Build & push Evolution custom image (baileys ${{ inputs.baileys_version || '7.0.0-rc.9' }})
     needs: build-evolution-source
     runs-on: [self-hosted, Linux, X64, vps-zapp]
     steps:
@@ -150,10 +150,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download bundle + baileys pack (baileys ${{ inputs.baileys_version || '6.7.24' }})
+      - name: Download bundle + baileys pack (baileys ${{ inputs.baileys_version || '7.0.0-rc.9' }})
         uses: actions/download-artifact@v8
         with:
-          name: evo-main-${{ inputs.baileys_version || '6.7.24' }}
+          name: evo-main-${{ inputs.baileys_version || '7.0.0-rc.9' }}
           path: /tmp/evo-bundle/
 
       - name: Normalize bundle layout (artifact preserva evo-src/)
@@ -167,9 +167,9 @@ jobs:
         run: |
           cd infra/evolution-api-custom
           mkdir -p baileys
-          tar -xzf baileys-${{ inputs.baileys_version || '6.7.24' }}.tgz -C baileys --strip-components=1
-          node -e "const v=require('./baileys/package.json').version; if(v!=='${{ inputs.baileys_version || '6.7.24' }}'){console.error('FAIL: versao baileys extraido = '+v);process.exit(1)} console.log('baileys extraido OK: '+v)"
-          rm -f baileys-${{ inputs.baileys_version || '6.7.24' }}.tgz
+          tar -xzf baileys-${{ inputs.baileys_version || '7.0.0-rc.9' }}.tgz -C baileys --strip-components=1
+          node -e "const v=require('./baileys/package.json').version; if(v!=='${{ inputs.baileys_version || '7.0.0-rc.9' }}'){console.error('FAIL: versao baileys extraido = '+v);process.exit(1)} console.log('baileys extraido OK: '+v)"
+          rm -f baileys-${{ inputs.baileys_version || '7.0.0-rc.9' }}.tgz
 
       - name: Apply T1-T20 patches 2.4 (fail-closed, tolerantes; nativos SKIP)
         run: |
@@ -193,14 +193,14 @@ jobs:
           file: infra/evolution-api-custom/Dockerfile.2.4
           push: false
           load: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:smoke-${{ inputs.baileys_version || '6.7.24' }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:smoke-${{ inputs.baileys_version || '7.0.0-rc.9' }}
           build-args: |
             BASE_IMAGE=${{ env.BASE_IMAGE }}
           # (cache gha removido: driver docker nao suporta cache export — base via Warm step)
 
-      - name: Smoke test (Design B' gate — imagem final com baileys ${{ inputs.baileys_version || '6.7.24' }})
+      - name: Smoke test (Design B' gate — imagem final com baileys ${{ inputs.baileys_version || '7.0.0-rc.9' }})
         run: |
-          IMG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:smoke-${{ inputs.baileys_version || '6.7.24' }}
+          IMG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:smoke-${{ inputs.baileys_version || '7.0.0-rc.9' }}
           set +e
           timeout 45 docker run --rm --entrypoint node "$IMG" dist/main.js > /tmp/smoke.log 2>&1
           RC=$?
@@ -211,7 +211,7 @@ jobs:
             echo "SMOKE FAIL: require externo órfão"
             exit 1
           fi
-          echo "SMOKE OK: bundle + baileys ${{ inputs.baileys_version || '6.7.24' }} carregam sem require órfão"
+          echo "SMOKE OK: bundle + baileys ${{ inputs.baileys_version || '7.0.0-rc.9' }} carregam sem require órfão"
 
       - name: Compute image tag
         id: meta
