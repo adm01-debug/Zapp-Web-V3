@@ -199,12 +199,12 @@ export async function handleIsonwa(
     }, 502, corsHeaders);
   }
   const jids = (fila ?? [])
-    .map((r) => (r as { remote_jid?: unknown }).remote_jid)
-    .filter((j): j is string => typeof j === "string" && /^[0-9]+@s\.whatsapp\.net$/.test(j));
+    .map((r: unknown) => (r as { remote_jid?: unknown }).remote_jid)
+    .filter((j: unknown): j is string => typeof j === "string" && /^[0-9]+@s\.whatsapp\.net$/.test(j));
   if (jids.length === 0) {
     return jsonSimple({ ok: true, checked: 0, on_whatsapp: 0, not_found: 0, errors: 0, fila_vazia: true }, 200, corsHeaders);
   }
-  const numbers = jids.map((j) => j.split("@")[0]);
+  const numbers = jids.map((j: string) => j.split("@")[0]);
   const baseUrl = (Deno.env.get("EVOLUTION_API_URL") || EVOLUTION_API_URL_DEFAULT).replace(/\/+$/, "");
   const url = `${baseUrl}/chat/whatsappNumbers/${instanceName}`;
   let resp: Response;
@@ -232,7 +232,7 @@ export async function handleIsonwa(
   for (const item of result) {
     if (item && typeof item.jid === "string") onWa.set(item.jid, item.exists === true);
   }
-  const okJids = jids.filter((j) => onWa.get(j) === true);
+  const okJids = jids.filter((j: string) => onWa.get(j) === true);
 
   const { error: markErr } = await supabase.rpc("zapp_isonwa_mark", {
     p_jids: jids,
