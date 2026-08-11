@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * build-patches-2.4.mjs — v1 (Evolution 2.4.0 + Baileys 7.x)
+ * build-patches-2.4.mjs — v2 (Evolution 2.4.0 + Baileys 7.x)
  * Adapta os targets do build-patches.mjs (v7/2.3.7) para o bytecode
  * gerado pelo tsup no Evolution 2.4.0-rc2 com Baileys 7.0.0-rc.9.
  *
@@ -15,6 +15,9 @@
  *  T18 : TOLERANTE (jpegThumbnail ausente no 2.4.0 nativamente)
  *  T19 : adapta T17N/T19O/T19N para variavel p
  *  T20 : er.default -> wr.default
+ *  T21 : Fix CACHE log (variaveis u/l/d em 2.4.0 vs a/r/c que T5a esperava)
+ *  T22 : Silencia P2002 race saveOnWhatsappCache (skip vs update que falha)
+ *  T23 : Loga falha silenciosa do getLinkPreview
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -220,8 +223,35 @@ const T19N_CHECK = 'let p=this.prepareMessage(n);try{if(p?.key?.remoteJid?.inclu
   else { out = out.split(T20O).join(T20N); applied.push("T20"); }
 }
 
+// --- T21: Fix CACHE log variaveis 2.4.0 (u/l/d em vez de a/r/c que T5a esperava) ---
+{
+  const T21 = 'console.log("CACHE:",{cached:u,updateKey:l,messageTimestamp:n.messageTimestamp,secondsSinceEpoch:d}),';
+  const c = countOf(out, T21);
+  if (c === 0) { warn("T21: CACHE log ausente ou ja removido - SKIP"); skipped.push("T21"); }
+  else if (c !== 1) fail(`T21: CACHE log ${c}x`);
+  else { out = out.split(T21).join(""); applied.push("T21"); }
+}
+// --- T22: Silencia P2002 race em saveOnWhatsappCache (skip seguro vs update que pode falhar) ---
+{
+  const T22O = 'it.verbose(`[saveOnWhatsappCache] Race condition detected for ${t}, updating existing record instead.`),await B.isOnWhatsapp.update({where:{remoteJid:t},data:g});';
+  const T22N = 'it.verbose(`[saveOnWhatsappCache] P2002 dedup ${t}: skip`);return;';
+  const c = countOf(out, T22O);
+  if (c === 0) { warn("T22: P2002 update handler ausente - SKIP"); skipped.push("T22"); }
+  else if (c !== 1) fail(`T22: P2002 update handler ${c}x`);
+  else { out = out.split(T22O).join(T22N); applied.push("T22"); }
+}
+// --- T23: Loga falha silenciosa do getLinkPreview ---
+{
+  const T23O = 'getLinkPreview)(i,{imagesPropertyType:"og",headers:{"user-agent":"googlebot"}});if(!n||!n.title)return;';
+  const T23N = 'getLinkPreview)(i,{imagesPropertyType:"og",headers:{"user-agent":"googlebot"}});if(!n||!n.title){this.logger&&this.logger.debug&&this.logger.debug(`[linkPreview] sem preview: ${i?.substring(0,80)||"no-url"}`);return;}';
+  const c = countOf(out, T23O);
+  if (c === 0) { warn("T23: linkPreview pattern ausente - SKIP"); skipped.push("T23"); }
+  else if (c !== 1) fail(`T23: linkPreview ${c}x`);
+  else { out = out.split(T23O).join(T23N); applied.push("T23"); }
+}
+
 const srcSha = sha256(SRC);
-out = `/* evolution-api-custom ${VERSION} | patches T1-T20 build-time 2.4.x | base sha256:${srcSha} */\n` + out;
+out = `/* evolution-api-custom ${VERSION} | patches T1-T23 build-time 2.4.x | base sha256:${srcSha} */\n` + out;
 fs.writeFileSync(OUT, out);
 
 // Verificacao pos-escrita
