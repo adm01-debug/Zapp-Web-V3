@@ -129,7 +129,7 @@ Manifest de referência (drift repo×runtime): config `guardrail_edge_functions_
 docker service logs evolution-db-purge_purge --since 26h | grep -E "purged|VACUUM|lock|ERROR|syntax" | tail -40
 # Estado dos runs (via container purge como host psql read-only):
 PG_URL=$(cat /run/secrets/pg_evolution_url_n8n_app_v1)  # dentro do container purge (stack 126)
-psql "$PG_URL" -t -A -c "SELECT run_id, started_at, finished_at, rows_deleted, status FROM _purge_runs ORDER BY started_at DESC LIMIT 5;"
+psql "$PG_URL" -t -A -c "SELECT id, ran_at, tabela, linhas_removidas, duration_ms, status FROM _purge_runs ORDER BY ran_at DESC LIMIT 5;"
 ```
 **Purge manual (emergência — crescimento de tabela):** o deploy do script é do MAESTRO.
 NUNCA rodar DELETE manual em produção. Para estourar retenção fora do ciclo: criar config nova
