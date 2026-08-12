@@ -492,8 +492,10 @@ Deno.serve(async (req) => {
     // completo) em webhook_events_processed.payload para auditoria/replay fina.
     // Best-effort: falha de gravação não derruba o fluxo (evento já processado).
     // LGPD: payload pode conter conteúdo de mensagens — retenção de 30d (job 263).
+    // LGPD: apikey é redigida do envelope ANTES de persistir (segredo nunca vai ao banco).
     try {
-      const rawJson = JSON.parse(rawBody) as unknown;
+      const rawJson = JSON.parse(rawBody) as Record<string, unknown>;
+      delete rawJson.apikey; // LGPD: demais chaves preservadas (data/event/instance/date_time/server_url — URL pública).
       await supabase.from('webhook_events_processed').update({ payload: rawJson })
         .eq('event_id', eventId);
     } catch (e) {

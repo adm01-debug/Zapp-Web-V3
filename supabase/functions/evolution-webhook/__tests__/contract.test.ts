@@ -249,6 +249,26 @@ Deno.test("Privacidade: redactJid usado em logs de mensagens", () => {
   assertMatch(SOURCE, /redactJid\(key\.remoteJid\)/);
 });
 
+Deno.test("LGPD: apikey redigida do payload persistido (TRILHA BRUTA)", () => {
+  // Bloco da trilha bruta: do marcador até o catch que loga falha de persistência.
+  const block = SOURCE.slice(
+    SOURCE.lastIndexOf("TRILHA BRUTA"),
+    SOURCE.indexOf("payload persist failed"),
+  );
+  // A redação acontece ANTES do update que persiste o payload.
+  const delIdx = block.indexOf("delete rawJson.apikey");
+  const updIdx = block.indexOf("update({ payload: rawJson })");
+  assert(delIdx > 0, "delete rawJson.apikey deve existir no bloco TRILHA BRUTA");
+  assert(delIdx < updIdx, "apikey deve ser removida ANTES do update({ payload: rawJson })");
+  // Nenhuma outra chave do envelope é deletada (data/event/instance/date_time/
+  // server_url preservadas — server_url é URL pública, não é segredo).
+  const deletes = block.match(/delete\s+rawJson\.(\w+)/g) ?? [];
+  assert(
+    deletes.length === 1 && deletes[0] === "delete rawJson.apikey",
+    `Apenas apikey pode ser deletada do envelope; encontrado: ${deletes.join(", ")}`,
+  );
+});
+
 Deno.test("Observabilidade: requestId em todas as respostas", () => {
   assertMatch(SOURCE, /generateRequestId\(\)/);
   assertMatch(SOURCE, /'x-request-id': requestId/);
