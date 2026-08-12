@@ -152,7 +152,7 @@ export async function processGroups(
   // (504 "upstream server is timing out" — grupos grandes ficavam fora do
   // espelho). Concorrência limitada: 8 workers consomem a fila; stats
   // agregadas e isolamento de erro permanecem idênticos ao loop original.
-  const CONCURRENCY = 8;
+  const CONCURRENCY = 4;
   const queue = [...groups];
   const worker = async (): Promise<void> => {
     for (;;) {
