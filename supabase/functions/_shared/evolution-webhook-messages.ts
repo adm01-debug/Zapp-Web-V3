@@ -229,8 +229,28 @@ export async function handleIncomingMessage(
         await supabase.from('contacts').update({ updated_at: new Date().toISOString() }).eq('id', existing.id);
         console.log(`[CONTACT] Recovered existing contact ${existing.id} after duplicate insert conflict (instance: ${instance})`);
         if (!existing.avatar_url) persistAvatarInBackground(supabase, instance, phone, existing.id);
+      } else {
+        // [OBS 2026-08-12] 23505 sem recovery = unique em phone/remote_jid aponta para linha
+        // que o getContactByPhone/recover não encontra (ex.: soft-deleted ou variant não coberta).
+        // Sem este log, a mensagem seria descartada silenciosamente em `if (!contact) return`.
+        console.warn('[CONTACT] Duplicate insert conflict (23505) but NO existing contact found for recovery', {
+          messageId: key.id, phone, instance, remoteJid: bestJid, variants: phonesVariants,
+        });
       }
     } else {
+      if (insertErr) {
+        // [OBS 2026-08-12] Causa do incidente de perda de inbound (chk_lead_status_vocab):
+        // erro ≠ 23505 era engolido silenciosamente -> contact=null -> mensagem descartada.
+        // Agora logado para diagnóstico imediato de qualquer nova violação.
+        console.error('[CONTACT] Insert FAILED (non-23505) — message WILL NOT be mirrored', {
+          messageId: key.id, phone, instance, remoteJid: bestJid,
+          code: insertErr.code, message: insertErr.message, details: insertErr.details, hint: insertErr.hint,
+        });
+      } else if (!newContact) {
+        console.warn('[CONTACT] Insert returned no row without error (0 rows? unexpected)', {
+          messageId: key.id, phone, instance, remoteJid: bestJid,
+        });
+      }
       contact = newContact;
       if (contact) persistAvatarInBackground(supabase, instance, phone, contact.id);
     }
