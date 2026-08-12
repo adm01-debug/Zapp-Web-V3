@@ -220,6 +220,9 @@ export function toEventRecords(data: unknown, collectionKeys: string[] = []): Re
 /** normalize Phone function. */
 export function normalizePhone(rawJid?: string): string | null {
   if (!rawJid) return null;
+  // Guarda 1: LID (WhatsApp user id de 15 dígitos) NÃO é telefone — rejeita
+  // antes de qualquer strip (elimina os 34.827 fake_jids persistidos).
+  if (/@lid$/i.test(rawJid.trim())) return null;
   const sanitized = rawJid
     .trim()
     .replace(/(:\d+)+(?=@)/g, '')
@@ -230,7 +233,10 @@ export function normalizePhone(rawJid?: string): string | null {
     .replace(/^\+/, '');
 
   const digitsOnly = sanitized.replace(/\D/g, '');
-  return digitsOnly || sanitized || null;
+  // Sanity: PN válido tem 10–14 dígitos. 15 dígitos = comprimento de LID
+  // (número puro mascarado de @s.whatsapp.net) — rejeita como PN falso.
+  if (!/^\d{10,14}$/.test(digitsOnly)) return null;
+  return digitsOnly;
 }
 
 /** resolve Best Jid function. */
