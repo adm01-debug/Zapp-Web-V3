@@ -53,7 +53,7 @@ BACKOFF_MAX     = float(os.environ.get('BACKOFF_MAX','60.0')) # teto do delay po
 EVENTS = ['messages.upsert','messages.update','messages.edited','messages.delete',
           'contacts.upsert','contacts.update','chats.upsert','chats.update',
           'connection.update','labels.edit','labels.association',
-          'groups.upsert','groups.update','group-participants.update','call','qrcode.updated','logout.instance']
+          'groups.upsert','groups.update','group-participants.update','call','qrcode.updated','logout.instance','send.message']
 QUEUES = list(dict.fromkeys(f'{p}.{e}' for p in PREFIXES for e in EVENTS))
 
 stats = {'ok':0,'shadow':0,'retry':0,'err':0,'drop':0,'pg_log_ok':0,'pg_log_err':0,'sentry_sent':0,'resub':0,
