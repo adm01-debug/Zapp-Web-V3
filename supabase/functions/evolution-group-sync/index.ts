@@ -297,11 +297,42 @@ export async function handleIsonwa(
     }, 502, corsHeaders);
   }
   const result = (await resp.json().catch(() => [])) as Array<{ jid?: string; exists?: boolean }>;
-  const onWa = new Map<string, boolean>();
-  for (const item of result) {
-    if (item && typeof item.jid === "string") onWa.set(item.jid, item.exists === true);
+  // FIX 2026-08-12 (LID): com o fix #2544 da rc2, o /chat/whatsappNumbers
+  // retorna jids @lid (ex.: "64338677260383@lid") no lugar do PN original —
+  // o match por PN original falhava e okJids ia null (contato descartado como
+  // not_found). A resposta da API é alinhada POR ÍNDICE com o request
+  // `numbers`, então o match passa a ser por índice:
+  //   (a) item com jid @lid + exists → o PN naquele índice está no WhatsApp;
+  //       a identidade LID→PN é persistida via zapp.fn_upsert_lid_identity
+  //       (best-effort — erro isolado não derruba o lote);
+  //   (b) jid normal (@s.whatsapp.net/@c.us) + exists → mesmo match por índice.
+  const okJids: string[] = [];
+  for (let i = 0; i < result.length; i++) {
+    const item = result[i];
+    if (!item || item.exists !== true) continue;
+    const pn = jids[i];
+    if (!pn) continue;
+    okJids.push(pn);
+    if (typeof item.jid === "string" && item.jid.endsWith("@lid")) {
+      try {
+        const { error: lidErr } = await supabase.rpc("fn_upsert_lid_identity", {
+          p_lid_jid: item.jid,
+          p_pn_jid: pn,
+          p_phone_number: pn.split("@")[0],
+          p_confidence: "high",
+          p_source: "usync",
+          p_raw: item,
+        });
+        if (lidErr) {
+          console.warn("[evolution-group-sync] fn_upsert_lid_identity", {
+            lid_jid: item.jid, pn_jid: pn, message: lidErr.message,
+          });
+        }
+      } catch (e) {
+        console.warn("[evolution-group-sync] fn_upsert_lid_identity exceção", errMsg(e));
+      }
+    }
   }
-  const okJids = jids.filter((j: string) => onWa.get(j) === true);
 
   const { error: markErr } = await supabase.rpc("zapp_isonwa_mark", {
     p_jids: jids,
