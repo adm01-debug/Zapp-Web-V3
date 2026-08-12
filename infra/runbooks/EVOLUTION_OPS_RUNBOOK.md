@@ -28,7 +28,7 @@ ou direto no manager.
 |---|---|---|---|---|
 | **20** | `postgres` | Banco da Evolution (postgres:14, volume `postgres_data`) — 717MB, 51 tabelas, top `Message` 405MB | `postgres:14` | 1 |
 | **23** | `redis` | Cache — db8 = `evolution:baileys:*` (88 chaves, TTL=-1 — atenção) | redis | 1 |
-| **25** | `evolution` | **Serviço principal** — Evolution API 2.3.7 custom (patches T1–T6), endpoints `evolution.atomicabr.com.br` | `ghcr.io/adm01-debug/zapp-web-v3/evolution-api-custom@sha256:1e12bec1…` | 1 |
+| **25** | `evolution` | **Serviço principal** — Evolution API 2.3.7 custom (patches T1–T6), endpoints `evolution.atomicabr.com.br` | `ghcr.io/adm01-debug/zapp-web-v3/evolution-api-custom@sha256:f07b7fd2 (oficial) / 09f847e8 (rollback) — política 2 imagens 12/08/2026…` | 1 |
 | **35** | `supabase` | Supabase self-hosted: `supabase_db` PG15.8.1.085 · `functions` edge-runtime v1.74.0 · `rest` postgrest v14.12 · `kong` 3.9.3 · `realtime` v2.102.3 · `auth` gotrue v2.189.0. Edge fn `evolution-webhook` valida HMAC (`EVOLUTION_WEBHOOK_SECRETS`). Secret `supabase_evolution_webhook_secret_v1` | múltiplos serviços | 1 (functions) |
 | **113** | `evolution-rabbit-consumer` | Bridge RabbitMQ → Supabase: consome filas `wpp2.*` (17 filas), assina HMAC (`consumer.py:327`, `x-webhook-signature`), secret `supabase_webhook_secret_v1` | `ghcr.io/adm01-debug/zapp-web-v3/evolution-rabbit-consumer@sha256:e9d355…` | 2 (parallelism 1, start-first) |
 | **124** | `supabase-backup` | Backup do Supabase — dumps `supabase_selfhosted_*.dump` em `/backups` (volume `supabase-backup_backup_data`) | `postgres:15-alpine` | 1 |

@@ -6,7 +6,7 @@
 #                         WEBHOOK_EVENTS_ERRORS=false (fix etapa 2), errors=false,
 #                         CORS restrito (T7) + metrics_password_v3 (rotação v2→v3)
 # IMAGE_DIGEST (OCI)    :
-#   ghcr.io/adm01-debug/zapp-web-v3/evolution-api-custom@sha256:66bb579a5533dacbbf116893c3c8c10f6909c925269b7245679627ff75d2dafb
+#   ghcr.io/adm01-debug/zapp-web-v3/evolution-api-custom@sha256:f07b7fd27737066cdd8466855ff6f63038829153e129a0a065c4103862f86129
 # Base de construção    : estado real (08/08/2026) + estrutura de
 #                         auditorias/pastas-trabalho/evolution_stack25_align/docker-compose.new.yml
 #                         (9d110bc7 — DESATUALIZADO, apenas referência estrutural)
@@ -29,7 +29,7 @@ version: "3.7"
 services:
 
   evolution:
-    image: ghcr.io/adm01-debug/zapp-web-v3/evolution-api-custom@sha256:66bb579a5533dacbbf116893c3c8c10f6909c925269b7245679627ff75d2dafb
+    image: ghcr.io/adm01-debug/zapp-web-v3/evolution-api-custom@sha256:f07b7fd27737066cdd8466855ff6f63038829153e129a0a065c4103862f86129
     init: true
     read_only: true
 
@@ -80,8 +80,8 @@ services:
       - AUTHENTICATION_API_KEY_FILE=/run/secrets/evolution_api_key_v4_20260704
       - AUTHENTICATION_EXCLUDE_INSTANCES=manager
       # --- Imagem (digest T7 CORS — build 66bb579a) ---
-      - IMAGE_DIGEST=sha256:66bb579a5533dacbbf116893c3c8c10f6909c925269b7245679627ff75d2dafb
-      - OCI_DIGEST=sha256:66bb579a5533dacbbf116893c3c8c10f6909c925269b7245679627ff75d2dafb
+      - IMAGE_DIGEST=sha256:f07b7fd27737066cdd8466855ff6f63038829153e129a0a065c4103862f86129
+      - OCI_DIGEST=sha256:f07b7fd27737066cdd8466855ff6f63038829153e129a0a065c4103862f86129
       # --- Cache ---
       - CACHE_REDIS_SAVE_INSTANCES=true
       - CACHE_LOCAL_ENABLED=true
