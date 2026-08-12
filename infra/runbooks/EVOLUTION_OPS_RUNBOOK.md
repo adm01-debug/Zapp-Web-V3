@@ -48,7 +48,7 @@ WhatsApp → Evolution API (25) → RabbitMQ (filas wpp2.*) → consumer (113, H
         → Zapp Web / n8n
 ```
 Webhook nativo (header `x-webhook-secret`, 49% do tráfego) também alimenta a edge fn
-(`ALLOW_SHARED_SECRET=true` — migração planejada fases M1–M5 em `docs/HMAC_ROTATION_PLAN.md`).
+(`ALLOW_SHARED_SECRET=true` — MIGRAÇÃO CONCLUÍDA 12/08/2026 — HMAC-only ativo (ALLOW_SHARED_SECRET=false), webhook direto desligado, consumer 18 filas em `docs/HMAC_ROTATION_PLAN.md`).
 
 ---
 
