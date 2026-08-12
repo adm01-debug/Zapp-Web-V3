@@ -258,3 +258,27 @@ Deno.test("processGroups: lista vazia → zeros sem chamadas", async () => {
   assertEquals(stats, { fetched: 0, upserted: 0, errors: 0, primeiro_erro: null });
   assertEquals(calls.length, 0);
 });
+
+Deno.test("processGroups: concorrência de workers com rpcCall assíncrono (nenhum grupo perdido)", async () => {
+  // PR #1050: processGroups usa 8 workers (queue.shift + Promise.all). Com
+  // rpcCall ASSÍNCRONO (latência real), a ordem das chamadas é não-determinística
+  // — o contrato é: TODOS os grupos processados, stats agregadas corretas.
+  const groups = Array.from({ length: 12 }, (_, i) => ({
+    id: `g${i}@newsletter`,
+    subject: `Grupo ${i}`,
+    participants: [{ id: `p${i}@lid` }],
+  }));
+  const calls: GroupUpsertParams[] = [];
+  const asyncRpc = async (params: GroupUpsertParams) => {
+    calls.push(params);
+    await new Promise((r) => setTimeout(r, Math.floor(Math.random() * 4)));
+    return { error: null };
+  };
+
+  const stats = await processGroups(groups, asyncRpc, CONN_ID, "wpp2");
+
+  assertEquals(stats, { fetched: 12, upserted: 12, errors: 0, primeiro_erro: null });
+  assertEquals(calls.length, 12);
+  const ids = calls.map((c) => c.p_group_id).sort();
+  assertEquals(ids, groups.map((g) => g.id).sort());
+});
