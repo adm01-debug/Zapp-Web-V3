@@ -19,8 +19,8 @@
  *
  * DOCUMENTED GAPS (non-blocking, documented here as regression anchors):
  *   GAP-A: Unknown ACK code falls through to toLowerCase() → may write invalid status to DB
- *   GAP-B: @lid JID with digits passes handleIncomingMessage guards → spurious contact risk
- *   GAP-C: handleContactsUpsert has no @lid guard → alpha phone proceeds to DB
+ *   GAP-B: @lid JID with digits — FECHADO pela Guarda 1 (PR #1055): normalizePhone → null
+ *   GAP-C: handleContactsUpsert @lid — FECHADO pela Guarda 1: alpha phone nunca chega à DB
  *   GAP-D: redactJid uses /:\d+$/ (no /g) → only strips last :N suffix in log output
  *   GAP-E: received(1) and sent(1) equal priority — intentional design
  *   GAP-F: @broadcast not in handlePresenceUpdate guard
@@ -520,18 +520,14 @@ Deno.test('chain | 12-digit BR: normalize → variants adds 9th digit', () => {
   assertSameElements(generatePhoneVariants(phone!), ['551187654321', '+551187654321', '5511987654321'], '12-digit chain');
 });
 
-Deno.test('chain | @lid digit JID: normalize → digits extracted, variants without BR suffix', () => {
+Deno.test('chain | @lid digit JID: Guarda 1 bloqueia antes de extrair dígitos', () => {
   const phone = normalizePhone('1234567890123@lid');
-  assertEquals(phone, '1234567890123');
-  // 13 digits but doesn't start with 55 → no BR handling
-  assertSameElements(generatePhoneVariants(phone!), ['1234567890123', '+1234567890123'], '@lid digit chain');
+  assertEquals(phone, null, 'Guarda 1: @lid NÃO é telefone (fake_jids) — nada a extrair');
 });
 
-Deno.test('chain | @lid alpha JID: GAP-B/C — alpha phone proceeds to DB (no guard)', () => {
+Deno.test('chain | @lid alpha JID: GAP-B/C FECHADOS pela Guarda 1', () => {
   const phone = normalizePhone('xyz789abc@lid');
-  // digits extracted: "789"
-  assertEquals(phone, '789');
-  assertSameElements(generatePhoneVariants(phone!), ['789', '+789'], '@lid alpha chain');
+  assertEquals(phone, null, 'Guarda 1: @lid rejeitado antes de qualquer sanitização (nada chega à DB)');
 });
 
 Deno.test('chain | null/undefined inputs are safe throughout chain', () => {
@@ -553,10 +549,11 @@ Deno.test('chain | 23505 conflict recovery: re-normalizing device JID produces s
   assertSameElements(generatePhoneVariants(first!), generatePhoneVariants(second!), 'conflict recovery: same variants');
 });
 
-Deno.test('chain | all domain suffixes stripped by normalizePhone', () => {
-  for (const suffix of ['@s.whatsapp.net', '@g.us', '@broadcast', '@lid']) {
+Deno.test('chain | domain suffixes stripped by normalizePhone (exceto @lid, bloqueado pela Guarda 1)', () => {
+  for (const suffix of ['@s.whatsapp.net', '@g.us', '@broadcast']) {
     assertEquals(normalizePhone(`5511987654321${suffix}`), '5511987654321', `strip ${suffix}`);
   }
+  assertEquals(normalizePhone('5511987654321@lid'), null, '@lid → null (Guarda 1)');
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -579,20 +576,18 @@ Deno.test('integration | Chain2: handleIncomingMessage with group JID → blocke
   assert(bestJid?.includes('@g.us') ?? false, 'group JID blocked by @g.us guard');
 });
 
-Deno.test('integration | Chain3: GAP-B — @lid digit JID passes guard, proceeds to DB', () => {
+Deno.test('integration | Chain3: GAP-B FECHADO — @lid digit JID NÃO passa à DB', () => {
   const bestJid = resolveEventJid({ remoteJid: '1234567890123@lid', fromMe: false, id: 'MSG002' }, null, {});
   assertEquals(bestJid, '1234567890123@lid');
   const phone = normalizePhone(bestJid ?? undefined);
-  assertEquals(phone, '1234567890123');
-  assertFalse(bestJid?.includes('@g.us') ?? false, '@lid does NOT include @g.us → passes guard');
+  assertEquals(phone, null, 'Guarda 1: phone null → handleIncomingMessage descarta antes do insert');
 });
 
-Deno.test('integration | Chain4: GAP-C — @lid alpha JID → alpha phone → 3-char query', () => {
+Deno.test('integration | Chain4: GAP-C FECHADO — @lid alpha JID → phone null → sem query', () => {
   const bestJid = resolveEventJid({ remoteJid: 'xyz789abc@lid', fromMe: false, id: 'MSG003' }, null, {});
   assertEquals(bestJid, 'xyz789abc@lid');
   const phone = normalizePhone(bestJid ?? undefined);
-  assertEquals(phone, '789');
-  assertSameElements(generatePhoneVariants(phone!), ['789', '+789'], 'Chain4 alpha variants');
+  assertEquals(phone, null, 'Guarda 1: nada de "789" chegando a query de 3 chars');
 });
 
 Deno.test('integration | Chain5: contacts.set @lid guard blocks before normalizePhone', () => {

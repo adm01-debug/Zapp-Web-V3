@@ -132,6 +132,39 @@ export async function handleOutgoingWhatsAppMessage(
   await supabase.from('contacts').update({ updated_at: new Date().toISOString() }).eq('id', contact.id);
 }
 
+/** [FIX 2026-08-12] Avatar em background: nunca bloquear o insert da mensagem
+ *  no fetch/upload da foto de perfil — com volume alto, o isolate do edge-runtime
+ *  era cancelado (early termination) antes do insert da mensagem e mensagens de
+ *  contatos NOVOS se perdiam (~22-40%). Fire-and-forget com EdgeRuntime.waitUntil:
+ *  sem ele, a promise é cancelada quando a resposta HTTP retorna.
+ */
+function persistAvatarInBackground(
+  supabase: SupabaseClient,
+  instance: string,
+  phone: string,
+  contactId: string,
+): void {
+  const task = (async () => {
+    try {
+      const picUrl = await fetchProfilePicFromApi(instance, phone);
+      if (!picUrl) return;
+      const avatarUrl = await persistProfilePicture(supabase, phone, picUrl);
+      if (avatarUrl) {
+        await supabase.from('contacts').update({ avatar_url: avatarUrl }).eq('id', contactId);
+      }
+    } catch (e) {
+      console.warn('[AVATAR-BG] failed:', e instanceof Error ? e.message : String(e));
+    }
+  })();
+  const rt = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+  if (rt?.waitUntil) {
+    rt.waitUntil(task);
+  } else {
+    // Fallback (testes/outros runtimes): apenas evita unhandled rejection
+    task.catch(() => {});
+  }
+}
+
 /** handle Incoming Message function. */
 export async function handleIncomingMessage(
   supabase: SupabaseClient, instance: string, data: Record<string, unknown>,
@@ -178,13 +211,11 @@ export async function handleIncomingMessage(
   let contact = await getContactByPhone(supabase, phone, connection.id);
 
   if (!contact) {
-    let avatarUrl: string | null = null;
-    const picUrl = await fetchProfilePicFromApi(instance, phone);
-    if (picUrl) avatarUrl = await persistProfilePicture(supabase, phone, picUrl);
     const { data: newContact, error: insertErr } = await supabase.from('contacts').insert({
       phone,
       name: (data.pushName as string) || phone,
-      avatar_url: avatarUrl,
+      // [FIX 2026-08-12] avatar_url em background (persistAvatarInBackground) —
+      // criar o contato SEM avatar não bloqueia o insert da mensagem.
       whatsapp_connection_id: connection.id,
       instance_name: instance,
       remote_jid: bestJid || `${phone}@s.whatsapp.net`,
@@ -197,16 +228,14 @@ export async function handleIncomingMessage(
         contact = existing;
         await supabase.from('contacts').update({ updated_at: new Date().toISOString() }).eq('id', existing.id);
         console.log(`[CONTACT] Recovered existing contact ${existing.id} after duplicate insert conflict (instance: ${instance})`);
+        if (!existing.avatar_url) persistAvatarInBackground(supabase, instance, phone, existing.id);
       }
     } else {
       contact = newContact;
+      if (contact) persistAvatarInBackground(supabase, instance, phone, contact.id);
     }
   } else if (!contact.avatar_url || (() => { try { return new URL(contact.avatar_url).hostname.endsWith('.whatsapp.net'); } catch { return false; } })()) {
-    const picUrl = await fetchProfilePicFromApi(instance, phone);
-    if (picUrl) {
-      const avatarUrl = await persistProfilePicture(supabase, phone, picUrl);
-      if (avatarUrl) await supabase.from('contacts').update({ avatar_url: avatarUrl }).eq('id', contact.id);
-    }
+    persistAvatarInBackground(supabase, instance, phone, contact.id);
   }
 
   if (!contact) return;

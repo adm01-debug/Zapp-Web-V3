@@ -66,9 +66,9 @@ function gv(
 np("5511998765432@s.whatsapp.net",   "5511998765432",       "N01 standard @s.whatsapp.net JID");
 np("5511998765432:5@s.whatsapp.net", "5511998765432",       "N02 device suffix :5 stripped");
 np("5511998765432:0@s.whatsapp.net", "5511998765432",       "N03 device suffix :0 stripped");
-np("120363050625987654@g.us",        "120363050625987654",  "N04 group @g.us JID");
+np("120363050625987654@g.us",        null,                  "N04 group @g.us JID → null (18 dígitos — fora do sanity 10-14; grupos não são PN)");
 np("5511998765432@broadcast",        "5511998765432",       "N05 @broadcast JID");
-np("5511998765432@lid",              "5511998765432",       "N06 @lid JID");
+np("5511998765432@lid",              null,                   "N06 @lid JID → null (Guarda 1: LID não é telefone — fake_jids)");
 np("+5511998765432",                 "5511998765432",       "N07 leading + stripped");
 np("5511998765432",                  "5511998765432",       "N08 plain number passthrough");
 
@@ -83,8 +83,8 @@ np(undefined, null, "N11 undefined → null");
 np("@s.whatsapp.net", null, "N12 domain-only JID → null (both slots empty)");
 
 // ── N13  Non-numeric user part ────────────────────────────────────────────────
-// digitsOnly="", sanitized="abc" → returns "abc" (the non-numeric fallback)
-np("abc@s.whatsapp.net", "abc", "N13 non-numeric user → returns sanitized string");
+// digitsOnly="" → sanity 10-14 falha → null (PN precisa de 10-14 dígitos).
+np("abc@s.whatsapp.net", null, "N13 non-numeric user → null (sem dígitos suficientes)");
 
 // ── N14  Leading/trailing whitespace ─────────────────────────────────────────
 np(" 5511998765432@s.whatsapp.net ", "5511998765432", "N14 leading+trailing spaces trimmed");
@@ -120,9 +120,9 @@ np("5511998765432:999@s.whatsapp.net", "5511998765432", "N21 three-digit suffix 
 
 // ── N22  Colon but no digits before @ (suffix-only JID) ──────────────────────
 // /:\d+(?=@)/ needs at least one digit after ":" — ":@" does NOT match.
-// "@s.whatsapp.net" is stripped → sanitized=":", digitsOnly="" → returns ":"
-Deno.test("normalizePhone | N22 colon with no digits before @ — returns \":\"", () => {
-  assertEquals(normalizePhone(":@s.whatsapp.net"), ":");
+// "@s.whatsapp.net" is stripped → sanitized=":", digitsOnly="" → sanity falha → null
+Deno.test("normalizePhone | N22 colon with no digits before @ — returns null", () => {
+  assertEquals(normalizePhone(":@s.whatsapp.net"), null);
 });
 
 // ── N23  Whitespace-only input ────────────────────────────────────────────────
@@ -130,14 +130,13 @@ Deno.test("normalizePhone | N22 colon with no digits before @ — returns \":\""
 np("   ", null, "N23 whitespace-only string → null after trim");
 
 // ── N24  WhatsApp status JID ──────────────────────────────────────────────────
-// "status@broadcast" → after @broadcast strip → "status" (non-numeric returned)
-np("status@broadcast", "status", "N24 status@broadcast → non-numeric sanitized returned");
+// "status@broadcast" → sem dígitos suficientes → null (sanity 10-14)
+np("status@broadcast", null, "N24 status@broadcast → null (sem dígitos)");
 
-// ── N25  Uppercase domain (case-sensitive replace) ────────────────────────────
-// '@lid' replace is case-sensitive: '@LID' is NOT stripped.
-// digitsOnly = "5511998765432" saves the number value via digit extraction.
-np("5511998765432@LID", "5511998765432",
-   "N25 uppercase @LID not stripped by case-sensitive replace — digit extraction rescues");
+// ── N25  Uppercase domain ────────────────────────────────────────────────────
+// Guarda 1 é case-insensitive (/@lid$/i): '@LID' TAMBÉM é rejeitado.
+np("5511998765432@LID", null,
+   "N25 uppercase @LID → null (Guarda 1 case-insensitive)");
 
 // ── N26  Plus-prefix combined with domain ─────────────────────────────────────
 np("+5511998765432@s.whatsapp.net", "5511998765432",
@@ -153,7 +152,7 @@ np("5511998765432@s.whatsapp.netXYZ", "5511998765432",
 np("5511998765432:5@g.us", "5511998765432", "N28 group JID with device suffix");
 
 // ── N29  Non-numeric @lid value ───────────────────────────────────────────────
-np("newsletter@lid", "newsletter", "N29 non-numeric @lid user → returns sanitized");
+np("newsletter@lid", null, "N29 non-numeric @lid user → null (Guarda 1)");
 
 // ── N30  Decimal point in phone body ─────────────────────────────────────────
 // After @s.whatsapp.net strip: "55119987654.32"; digitsOnly removes the dot.
@@ -161,9 +160,9 @@ np("55119987654.32@s.whatsapp.net", "5511998765432",
    "N30 decimal point in number — dot removed by digit extraction");
 
 // ── N31  Lone @ sign ──────────────────────────────────────────────────────────
-// "@" is truthy, no replacements match, digitsOnly="" → returns "@" (sanitized fallback)
-Deno.test("normalizePhone | N31 bare @ sign — returns \"@\" (sanitized fallback)", () => {
-  assertEquals(normalizePhone("@"), "@");
+// "@" é truthy, sanitized="@" (sem replacements), digitsOnly="" → sanity falha → null
+Deno.test("normalizePhone | N31 bare @ sign — returns null", () => {
+  assertEquals(normalizePhone("@"), null);
 });
 
 // ── N32  Trailing space after domain before strip ─────────────────────────────
@@ -172,17 +171,17 @@ np("5511998765432@s.whatsapp.net ", "5511998765432",
    "N32 trailing space after domain — trim removes it first");
 
 // ── N33  Single zero ──────────────────────────────────────────────────────────
-np("0", "0", "N33 single-digit zero → returns '0'");
+np("0", null, "N33 single-digit zero → null (sanity 10-14)");
 
 // ── N34  Single letter ────────────────────────────────────────────────────────
-np("a", "a", "N34 single non-digit letter → sanitized fallback");
+np("a", null, "N34 single non-digit letter → null (sanity 10-14)");
 
 // ── N35  String literal 'null' ────────────────────────────────────────────────
-np("null", "null", "N35 string 'null' → returned as non-numeric sanitized");
+np("null", null, "N35 string 'null' → null (sanity 10-14)");
 
 // ── N36  Short JID with device suffix ────────────────────────────────────────
-// ":5" stripped before @, "55" returned.
-np("55:5@s.whatsapp.net", "55", "N36 two-digit phone with device suffix :5");
+// ":5" stripped antes do @; "55" tem 2 dígitos → sanity falha → null.
+np("55:5@s.whatsapp.net", null, "N36 two-digit phone with device suffix :5 → null (sanity)");
 
 // ── N37  Plus-only string ─────────────────────────────────────────────────────
 // "+" is truthy; /^\+/ strips it → sanitized="", digitsOnly="" → null
@@ -195,9 +194,9 @@ np("+1-555-867-5309@s.whatsapp.net", "15558675309",
    "N38 US formatted number — + stripped, dashes removed via digit extraction");
 
 // ── N39  @lid JID with trailing whitespace ───────────────────────────────────
-// trim() removes trailing space before any replacement runs.
-np("5511998765432@lid ", "5511998765432",
-   "N39 @lid JID with trailing space — trim then @lid strip");
+// Guarda 1 usa rawJid.trim() antes do teste @lid → espaço não salva.
+np("5511998765432@lid ", null,
+   "N39 @lid JID with trailing space — trim então Guarda 1 → null");
 
 // ── N40  Tabs and newlines embedded in phone string ──────────────────────────
 // trim() only removes leading/trailing whitespace; internal tabs/newlines stay in sanitized,
