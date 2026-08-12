@@ -15,7 +15,7 @@ A sessão do WhatsApp **NÃO** está na tabela `Session` (0 linhas) — está no
 | Snapshot PG pré-fix | `/opt/backups/evolution-20260810/evolution_pre_fix_20260810.dump` | `68c63470…` | histórico |
 | Snapshot PG **pos-fix** | `/opt/backups/evolution-20260810/evolution_pos_fix_20260810.dump` | `60b3f110…` | **restaurável (testado, 21s)** |
 | Redis DB 8 (BGSAVE) | `/opt/backups/evolution-20260810/redis_db8_dump.rdb` | `7918c7f3…` | **restaurável (testado, 2s)** |
-| Bundle da imagem 66bb579a | `/opt/backups/evolution-20260810/main_original_66bb579a.js` | `232dbf94…` | referência dos patches T8-T14 |
+| Bundle da imagem f07b7fd2 | `/opt/backups/evolution-20260810/main_original_f07b7fd2.js` | `232dbf94…` | referência dos patches T8-T14 |
 
 Backups automáticos (R2 `promo-brindes-backups`, GPG):
 - `postgres-backup-daily` (112): **seg–sáb 02:00**, `backups/evolution-db/daily`, retenção 14d
@@ -174,7 +174,7 @@ Plano (M2, fallback triplo): usar `senderPn` se presente → senão `getPNForLID
 | Item | Estado (10/08 ~16:02Z) |
 |---|---|
 | Runtime (`docker service inspect`) | monta `evolution_db_uri_evolution_app_v2` (alias v2→v1) + `redis_password_v2` (alias v2→v1); `CACHE_REDIS_URI` com `evolution_app` |
-| Arquivo do stack (Portainer `/data/compose/25`) | **STALE**: `source: evolution_db_uri_evolution_app_v1` — risco de regressão v2→v1 em `update_stack`; imagem aponta `66bb579a` (pré-T19) — **corrigir para o digest do build T19 ANTES do update** (drift documentado) |
+| Arquivo do stack (Portainer `/data/compose/25`) | **STALE**: `source: evolution_db_uri_evolution_app_v1` — risco de regressão v2→v1 em `update_stack`; imagem aponta `f07b7fd2` (pré-T19) — **corrigir para o digest do build T19 ANTES do update** (drift documentado) |
 
 Ação: sincronizar o arquivo para `source: evolution_db_uri_evolution_app_v2` (manter target v1); validar com `docker stack config --compose-file <novo>` + diff vs Spec atual **antes de QUALQUER update_stack**. Aplicar na **janela única** (com T19 e ACL fase 2). Rollback: `docker service update` com o spec anterior (digest/spec conhecidos).
 
@@ -225,7 +225,7 @@ redis-cli -a "$(cat /run/secrets/redis_password_v1)" --no-auth-warning -n 8 \
 ## Cenário D — Rollback da imagem do fork
 ```bash
 docker service update evolution_evolution \
-  --image ghcr.io/adm01-debug/zapp-web-v3/evolution-api-custom@sha256:66bb579a5533dacbbf116893c3c8c10f6909c925269b7245679627ff75d2dafb
+  --image ghcr.io/adm01-debug/zapp-web-v3/evolution-api-custom@sha256:f07b7fd27737066cdd8466855ff6f63038829153e129a0a065c4103862f86129
 ```
 (imagem atual com patches T8-T14: `6f78bb0db489eebebe3681d81ca63b57a9c1873ce0d444cb894068e064157afc`)
 
