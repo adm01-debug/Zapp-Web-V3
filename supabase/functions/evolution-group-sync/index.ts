@@ -135,7 +135,7 @@ export interface GroupsSyncStats {
  */
 export async function processGroups(
   groups: unknown[],
-  rpcCall: (params: GroupUsertParams) =>
+  rpcCall: (params: GroupUpsertParams) =>
     | { error: { message: string } | null; data?: unknown }
     | PromiseLike<{ error: { message: string } | null; data?: unknown }>,
   connectionId: string,
