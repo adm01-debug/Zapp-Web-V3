@@ -227,8 +227,8 @@ jobs:
           push: true
           tags: |
             ${{ steps.meta.outputs.image }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.4.0
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.4.0-rc2-baileys-${{ inputs.baileys_version || '7.0.0-rc.9' }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.4.0-custom-${{ github.sha }}
           build-args: |
             BASE_IMAGE=${{ env.BASE_IMAGE }}
           # (cache gha removido: driver docker nao suporta cache export — base via Warm step)
