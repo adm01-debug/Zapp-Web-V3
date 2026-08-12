@@ -135,7 +135,7 @@ export interface GroupsSyncStats {
  */
 export async function processGroups(
   groups: unknown[],
-  rpcCall: (params: GroupUsertParams) =>
+  rpcCall: (params: GroupUpsertParams) =>
     | { error: { message: string } | null; data?: unknown }
     | PromiseLike<{ error: { message: string } | null; data?: unknown }>,
   connectionId: string,
@@ -194,7 +194,7 @@ export async function processGroups(
         upserted++;
       }
       // Promove admins (best-effort): falha não vira erro de lote, mas é reportada.
-      // A RPD de promote espera o uuid interno de evolution_groups (retornado
+      // A RPC de promote espera o uuid interno de evolution_groups (retornado
       // pela RPC de upsert), não o JID @g.us.
       if (adminJids.length > 0 && promoteCall) {
         if (typeof groupUuid === 'string' && groupUuid) {
@@ -208,7 +208,7 @@ export async function processGroups(
             primeiroErro ??= `promote admins(${gid}): ${promoteErr.message}`;
           }
         } else {
-          primeiroErro ??= `promote admins(${gid}): upsert ão retornou uuid`;
+          primeiroErro ??= `promote admins(${gid}): upsert não retornou uuid`;
         }
       }
     } catch (e) {
@@ -257,7 +257,7 @@ export async function handleIsonwa(
 ): Promise<Response> {
   const vLimit = Math.min(Math.max(limit, 1), 50);
   // Fila e contacts vivem em evo (não exposto no PostgREST) — acesso via RPC
-  // zapp (SECURITY DEFINERS, service_role only).
+  // zapp (SECURITY DEFINER, service_role only).
   const { data: fila, error: filaErr } = await supabase.rpc("zapp_isonwa_pull", {
     p_limit: vLimit,
   });
