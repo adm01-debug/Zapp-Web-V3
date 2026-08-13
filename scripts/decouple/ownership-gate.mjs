@@ -87,6 +87,16 @@ const MIGRATED_TO_ZAPP = new Set([
   'evolution_incident_runbook',      // 10 linhas — runbook de incidentes
   'evolution_logpatch_audit',        // 379 linhas — auditoria de logpatch
   'evolution_api_consumers',         // 6 linhas — consumidores de API
+  // ── Lote 9A (2026-08-13): evolution_health_logs ──────────────────────────────
+  'evolution_health_logs',           // 1 linha — health logs migrados + RPC canônica (E-F3)
+  // ── Lote 9B (2026-08-13): família evolution_conversations (7 tabelas) ─────────
+  'evolution_conversations',         // tabela mãe particionada — 15 fns corrigidas
+  'evolution_conversations_wpp2',    // 15.5k rows — partição principal
+  'evolution_conversations_default', // 3 rows — partição default
+  'evolution_conversations_compras', // 0 rows — partição compras
+  'evolution_conversations_financeiro', // 0 rows — partição financeiro
+  'evolution_conversations_logistica',  // 0 rows — partição logistica
+  'evolution_conversations_marketing',  // 0 rows — partição marketing
   // ── GRUPO A SKIP — fica em evo; escrita legítima de edge fn de infra ────────
   // Tabela não migra para zapp. A edge fn de ingestão escreve aqui legitimamente.
   'ingest_ledger',  // evolution-webhook/index.ts:414,432 — ledger de ingestão (Grupo A)
