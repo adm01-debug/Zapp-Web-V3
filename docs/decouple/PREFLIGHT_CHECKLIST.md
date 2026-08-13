@@ -506,3 +506,62 @@ vacuum-contacts-2h, lid-phonejid-emergence-watchdog, evo-repopula-fila-isonwa, e
 - Trigger em evo.evolution_connection_history: fn_detect_instance_recreate = SECURITY DEFINER ✅
 - Fns não-SECDEF detectadas (5): todas fazem SELECT ou escrevem em zapp.* — SEGURO ✅
 - D6: 0 grants de escrita para authenticated em Grupo A; SELECT intacto; health 97.5 A+
+
+---
+
+## Auditoria exaustiva pós-desacoplamento completo (2026-08-13)
+
+Bateria de validação final (10 frentes) cobrindo todos os Lotes 1-FINAL + [H1] + [H2].
+Estado do projeto quando esta auditoria foi executada: **gate 0/37/0**, 74 tabelas evolution_*
+em zapp, desacoplamento declarado concluído pelo agente concurrent (lote FINAL incluiu
+evolution_contacts + evolution_messages + 79 fns + 5 SETOF + 4 crons).
+
+### Resultado da varredura
+
+- **74 tabelas evolution_* em zapp** (confirmado via pg_class)
+- **Gate 0/37/0** (baseline=0, migrated=37, críticos=0) ✓
+- **65/65 views públicas vivas** (incluindo a criada nesta auditoria)
+- **Zero literais residuais** em funções produção, views e crons
+  (1 falso positivo em pg_temp_14 — função temporária de sessão)
+- **Partições em zapp:** evolution_messages (parent relkind='p') → wpp2 (r) + default (r);
+  evolution_conversations → wpp2 (r, cross-schema partition, parent ainda em evo)
+- **SETOF:** 20+ RPCs retornando SETOF zapp.* — zero apontando para evo
+- **[H1] anon search_path=public,extensions** ✓
+- **[H2] 6 tabelas Grupo A REVOGADAS** (authenticated sem INSERT/UPDATE/DELETE):
+  evolution_connection_history, evolution_pipeline_history, evolution_pipeline_health_log,
+  evolution_guardian_heartbeat, evolution_whatsapp_check_queue, evolution_reconcile_jobs
+- **RLS:** evolution_contacts(4), evolution_messages(5), evolution_alerts(2),
+  evolution_conversations_wpp2(1), evolution_health_logs(3) policies ativas
+
+### Gaps encontrados e corrigidos nesta auditoria
+
+**[GAP-1] `evolution_license_health_log` sem view pública:**
+Tabela migrada no Lote 7, mas view em public nunca foi criada. Corrigido:
+`CREATE OR REPLACE VIEW public.evolution_license_health_log AS SELECT * FROM zapp.evolution_license_health_log`
+
+**[GAP-2] 3 funções em schema `ops` com referências evo.* para tabelas já migradas:**
+O scanner de literais cobria apenas schemas evo/zapp/public. Funções em `ops` foram
+varridas manualmente e encontradas com:
+- `ops.fn_monitor_ingestion_persistence_gap`: `evo.evolution_audit_log` → `zapp.evolution_audit_log`
+  (audit_log migrado Lote 6; evo.evolution_connection_history permanece — Grupo A correto)
+- `ops.fn_system_health`: `evo.evolution_instance_credentials` → `zapp.evolution_instance_credentials`
+  (instance_credentials migrado Lote 6)
+- `ops.fn_notify_critical_alerts`: `evo.evolution_instance_credentials` → `zapp.evolution_instance_credentials`
+
+Aplicado via CREATE OR REPLACE (padrão [A5], corrigido direto no banco).
+
+**Confirmado por smoke test:** `ops.fn_monitor_ingestion_persistence_gap()` retornou
+`estado=sem_volume_suficiente, ok=true` — função executou sem erro pela primeira vez
+desde a migração do audit_log.
+
+### Smoke tests com execução real (todos passaram)
+
+- `rpc_list_contacts(NULL,NULL,NULL,NULL,3)` → 3 rows ✓
+- `rpc_list_messages_all(NULL,NULL,NULL,NULL,NULL,NULL,5,0)` → 5 rows ✓
+- `rpc_list_calls(NULL,NULL,5)` → 5 rows ✓
+- `fn_calculate_daily_kpis()` → jsonb válido (metric_date=2026-08-13, contacts=21725) ✓
+- INSERT `zapp.evolution_contacts` via trigger → rollback limpo ✓
+- INSERT `zapp.evolution_messages` (particionado) → roteou para _wpp2, rollback limpo ✓
+- `cleanup_evolution_send_idempotency()` → executou, rollback limpo ✓
+- `zapp.zapp_notif_config_get(NULL)` → NULL correto ✓
+- `ops.fn_monitor_ingestion_persistence_gap()` → ok=true ✓
