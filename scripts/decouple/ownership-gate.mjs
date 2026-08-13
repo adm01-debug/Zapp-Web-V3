@@ -102,6 +102,8 @@ const MIGRATED_TO_ZAPP = new Set([
   'evolution_messages_wpp2',         // partição principal (276k)
   'evolution_messages_default',      // partição default (0)
   'evolution_messages_wpp2_archive', // archive (64)
+  // Lote FINAL — 2026-08-13 (evolution_contacts — 79 fns + 5 SETOF [A16] + 4 crons)
+  'evolution_contacts',  // 21854 linhas — GIGANTE (4 TS writes: contacts-import + bitrix-sync×3)
   // ── GRUPO A SKIP — fica em evo; escrita legítima de edge fn de infra ────────
   // Tabela não migra para zapp. A edge fn de ingestão escreve aqui legitimamente.
   'ingest_ledger',  // evolution-webhook/index.ts:414,432 — ledger de ingestão (Grupo A)
@@ -126,10 +128,10 @@ const MIGRATED_TO_ZAPP = new Set([
 //       O write vira "legítimo" (conta como migrated), não "eliminado".
 //       Para eliminar: refatorar o código para não escrever diretamente.
 const BASELINE = {
-  total:       4,   // 13 - 9 (evolution_messages migradas: 9 writes TS)
-  migrated:   34,   // 25 + 9 (evolution_messages: helpers×2, webhook-handlers×6, mark_read×1)
+  total:       0,   // 4 - 4 (evolution_contacts migrada: contacts-import×1 + bitrix-sync×3)
+  migrated:   38,   // 34 + 4 (evolution_contacts: contacts-import:151, bitrix-sync:73,77,+1)
   eliminated:  0,   // writes eliminados por refatoração de código
-  updated_at: '2026-08-13-lote10',
+  updated_at: '2026-08-13-lote-FINAL',
 };
 
 // ── GRUPO A — Evolution-stack owns. Zero tolerância. ────────────────────────

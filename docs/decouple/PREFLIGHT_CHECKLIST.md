@@ -468,3 +468,34 @@ rpc_get_message_details, rpc_list_messages, rpc_list_messages_all, rpc_list_mess
 - 6 fns SETOF/RETURNS: typname=evolution_messages em zapp ✅
 - Total zapp: 71 tabelas evolution_* ✅
 - Gate: 4 pendentes | 33 migrados | 0 críticos ✅
+
+---
+
+## Lote FINAL — 2026-08-13 (evolution_contacts — a mais acoplada)
+
+| Tabela | Rows | FK↓ | Trigs | Fns corrigidas |
+|---|---|---|---|---|
+| evolution_contacts | 21854 | 53 | 24 | 79 via massa + 5 SETOF/RETURNS [A16] |
+
+### [A16] 5 fns DROP+CREATE
+- public.rpc_get_contact(text, text) → SETOF
+- zapp.rpc_get_contact(text, text) → SETOF
+- zapp.rpc_list_contacts(6 params) → SETOF
+- zapp.fn_search_contacts(text, int) → SETOF
+- zapp.rpc_upsert_contact(14 params) → RETURNS row
+
+### Crons: 4 atualizados
+vacuum-contacts-2h, lid-phonejid-emergence-watchdog, evo-repopula-fila-isonwa, evo-schema-guardian-monthly
+
+### 53 FKs seguiram automaticamente (PG15 OID-based) ✅
+24 triggers: 1 com literal (auto_assign_to_queue_agent_sh) — corrigido pelo bloco em massa.
+
+### P-VAL
+- evolution_contacts em zapp ✅
+- 0 fns com evo.evolution_contacts ✅
+- 0 crons com literal antigo ✅
+- public.evolution_contacts: 21854 rows (view OID-based viva) ✅
+- 5 SETOF/RETURNS: typname=evolution_contacts em zapp ✅
+- 53 FKs em zapp.evolution_contacts ✅
+- Total zapp: 72 tabelas evolution_* ✅
+- **GATE: 0 pendentes | 37 migrados | 0 críticos — META ATINGIDA ✅**
