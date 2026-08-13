@@ -218,3 +218,49 @@ Nenhum aplicado neste lote. Tabelas migradas → saem do Grupo A, write via view
 - [F2] fn_route_failed_webhooks_to_dlq: literal dlq dentro de format() string — fix cirúrgico no texto do format
 - Cron guardian-monthly para notifications já estava com zapp.evolution_notifications (corrigido por outra instância ou lote anterior)
 - fn_add_to_dlq tem 2 overloads: overload 1 (search_path=zapp,evo + unqualified) auto-resolve; overload 2 tinha evo. explícito — corrigido
+
+---
+
+## Auditoria exaustiva pós-Lote 4 (2026-08-13)
+
+Bateria de validação (10 frentes) contra estado real do banco, cobrindo os Lotes 1-3
+(25 tabelas + 8 fns + 2 RPCs SETOF + 1 REVOKE + 1 cron). Todos os testes de execução
+via chamada real (funções read-only executadas direto; funções/triggers que gravam via
+rollback proposital com savepoint, zero efeito colateral).
+
+**Resultado: 25/25 tabelas em zapp (0 em evo), 25/25 views public vivas, integridade de
+dados 8/8 (count via zapp == via public), ZERO literais residuais (fns/views/crons),
+25/25 RLS + 46 policies + 2 triggers seguiram, REVOKE efetivo (authenticated sem
+INSERT/UPDATE/DELETE, mantém SELECT), 0 dependências órfãs apontando para evo.**
+
+Funções testadas com execução real (todas OK): `fn_calculate_daily_kpis` (jsonb válido,
+total_contacts 21665, lê tabelas evo + evolution_automation_logs zapp),
+`fn_save_daily_kpis`, `cleanup_evolution_send_idempotency`, `trg_queue_deal_for_bitrix`
+(via UPDATE evolution_deals), `fn_queue_notification` (via INSERT evolution_alerts),
+`zapp_notif_config_get`, `rpc_list_calls` (SETOF zapp.evolution_calls, 10 rows).
+
+### BUG HERDADO corrigido: `rpc_list_message_templates`
+
+Descoberto no teste de execução: `column "status" does not exist`. A tabela
+`zapp.evolution_message_templates` tem `approval_status` (text) e `is_active` (boolean),
+NÃO `status`. A RPC referenciava `status = p_status` — e como o planner valida a coluna
+mesmo com `p_status IS NULL`, quebrava em QUALQUER chamada. Bug pré-existente (o body
+original já tinha `status`; foi reproduzido fielmente ao recriar a RPC com
+`RETURNS SETOF zapp.*` no Lote 3). A RPC não é consumida por ninguém (o front usa
+`supabase.from("evolution_message_templates").eq("is_active", true)` na edge function
+evolution-templates), então a correção não tem risco de regressão.
+
+Correção (CREATE OR REPLACE, assinatura e RETURNS SETOF inalterados, SECDEF + search_path
+preservados): `status` → `approval_status` (mapeamento type-safe text→text). Validado:
+3 assinaturas de chamada executam sem erro (0 rows, tabela vazia).
+
+> Aplicado direto no banco via `supabase_db_query` (fonte de verdade). Padrão [A5]: sem
+> migration formal, lógica versionada aqui.
+
+### Lote 4 (outro agente) — validado íntegro
+
+5/5 tabelas do Lote 4 em zapp (0 em evo), FK `evolution_notification_outbox` →
+`evolution_notifications` preservada (zapp→zapp), zero literais residuais nas 30 tabelas
+(25 dos Lotes 1-3 + 5 do Lote 4). A correção de `evolution_reactions` que fiz no cron
+`evo-schema-guardian-monthly` (Lote 3) foi preservada pelo Lote 4, que adicionou a
+correção de `notifications` ao mesmo cron. Gate: 22 pendentes / 17 migrados / 0 críticos.
