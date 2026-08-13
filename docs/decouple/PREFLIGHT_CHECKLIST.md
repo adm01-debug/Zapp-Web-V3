@@ -438,3 +438,33 @@ vacuum-instance-credentials-daily e wpp2-session-expiry-watchdog → zapp.evolut
 - 0 crons com literal antigo ✅
 - Total zapp: 61 tabelas evolution_* ✅
 - Gate: 16 pendentes | 23 migrados | 0 críticos ✅
+
+---
+
+## Lote 10 — 2026-08-13 (4 tabelas messages — 86 fns + 6 SETOF [A16] + 3 crons)
+
+| Tabela | Rows | Tipo |
+|---|---|---|
+| evolution_messages | 276k | PARTITIONED (mãe) |
+| evolution_messages_wpp2 | 276k | partição principal |
+| evolution_messages_default | 0 | partição default |
+| evolution_messages_wpp2_archive | 64 | archive |
+
+### Estratégia
+- Bloco em massa com EXCEPTION handler: corrigiu 80+ fns de uma vez
+- 6 fns com RETURNS evo.evolution_messages ou DECLARE v_row evo.evolution_messages: DROP+CREATE via bloco DO único capturando corpos antes do DROP
+- zapp.v_rls_impact_preview: dependência de zapp.evolution_messages (view) → DROP CASCADE + recriar após SET SCHEMA
+- 3 crons (pipeline-canary, vacuum-messages, guardian-monthly): UPDATE replace() em massa
+
+### [A16] 6 fns DROP+CREATE
+rpc_get_message_details, rpc_list_messages, rpc_list_messages_all, rpc_list_messages_lite (SETOF), rpc_insert_message×2 (RETURNS row)
+
+### P-VAL
+- 4/4 tabelas em zapp ✅
+- 0 fns com evo.evolution_messages ✅
+- 0 crons com literal antigo ✅
+- public.evolution_messages_wpp2: 276k rows viva ✅
+- zapp.v_rls_impact_preview: recriada e funcional (20 rows) ✅
+- 6 fns SETOF/RETURNS: typname=evolution_messages em zapp ✅
+- Total zapp: 71 tabelas evolution_* ✅
+- Gate: 4 pendentes | 33 migrados | 0 críticos ✅
