@@ -330,3 +330,51 @@ correção de `notifications` ao mesmo cron. Gate: 22 pendentes / 17 migrados / 
 35e9d013e  feat(decouple): F2 tipos canônicos — ChannelMessage/Contact/Conversation + ADR-008 (Agente 9)
 [LOTE5-COMMIT]  feat(decouple): lote 5 — 13 tabelas + 18 fns + [H1] + gate 22→20 + D5 zero
 ```
+
+---
+
+## Lote 6 — 2026-08-13 (4 tabelas médias)
+
+| Tabela | Rows | FK↓ | Trigs | Fns corrigidas |
+|---|---|---|---|---|
+| evolution_settings | 43 | 0 | 1 (set_updated_at) | 6 ([A7] fn_system_health_score, trg_process_connection_event, trg_process_webhook_connection, _fn_health_diag, _fn_health_noexc, fn_auto_update_connection_status) |
+| evolution_audit_log | 3.9k | 0 | 0 | 11 ([A7] bulk_update_lead_status, fn_purge_api_key_from_logs, grant_lgpd_consent, revoke_lgpd_consent, sync_interaction_from_zapp, fn_canonical_route_check_daily, fn_cleanup_test_artifacts, fn_filter_canary_messages, rpc_log_service_event, rpc_complete_media_download, delete_contact_completely, fn_monthly_evo_audit) |
+| evolution_media | 17.6k | 0 | 1 (fn_block_internal_media_url) | 6 ([A7] fn_purge_storage_cache, fn_watchdog_media_links; mono fn_list_storage_cache_for_purge, fn_migrate_media_urls_to_r2, list_media_to_mirror, rpc_complete_media_download) |
+| evolution_instance_credentials | 1 | 0 | 1 (fn_evo_creds_updated_at) | 5 ([A7] fn_detect_instance_recreate, fn_update_instance_health; mono fn_edge_delete/get/upsert) |
+
+### Armadilha [A17] descoberta neste lote
+SQL puro verifica existência de tabela ao CREATE FUNCTION. Funções PL/pgSQL não verificam. Padrão corrigido: DDL (DROP VIEW + SET SCHEMA) SEMPRE antes de EXECUTE das funções — mesmo que a tabela não tenha view em zapp (caso license_health_log). Isso torna o protocolo universal.
+
+### Técnica EXECUTE + pg_get_functiondef + replace()
+Para funções longas (fn_system_health_score: ~200 linhas), usar:
+`DO $$ DECLARE v text; BEGIN SELECT pg_get_functiondef(...) INTO v; v := replace(v, 'evo.X', 'zapp.X'); EXECUTE v; END; $$;`
+Evita reescrita manual do corpo. Seguro para múltiplas ocorrências.
+
+### Crons corrigidos
+vacuum-instance-credentials-daily e wpp2-session-expiry-watchdog → zapp.evolution_instance_credentials
+
+### P-VAL
+- 10/10 tabelas em zapp ✅
+- D5: zero literais residuais em 30+ fns ✅
+- Views public vivas (evolution_license_health_log não tinha view pub — normal) ✅
+
+---
+
+## Lote 7 — 2026-08-13 (6 tabelas fáceis)
+
+| Tabela | Rows | Fns |
+|---|---|---|
+| evolution_source_shadow_log | 2 | 3 (fn_canonical_route_decision, fn_shadow_snapshot_daily, fn_canonical_route_check_daily [já corrigida 6B]) |
+| evolution_license_health_log | ~0 | 2 (fn_last_evo_license_alert SQL puro!, fn_log_evo_license_health) |
+| evolution_burnin_tracker | 1 | 2 ([A7] fn_burnin_critical_alert_check, fn_burnin_disconnection_check — connection_history fica evo) |
+| evolution_incident_runbook | 10 | 2 (fn_get_incident_runbook, fn_record_runbook_drill) |
+| evolution_logpatch_audit | 379 | 1 (evo_logpatch_audit_ins em public) |
+| evolution_api_consumers | 6 | 1 ([A7] fn_monthly_evo_audit — audit_log→zapp, health_logs fica evo) |
+
+### P-VAL
+- 6/6 tabelas em zapp ✅
+- D5 zero residuais ✅
+
+### Gate (script)
+- Baseline atualizado: 20→19 pendentes (apenas evolution_audit_log tinha write literal TS entre as 10 tabelas destes lotes; as demais 9 são acessadas via RPC/fn SQL, fora do escopo do scanner) / 20 migrados / 0 críticos, sem regressão ✅
+- `evolution_burnin_tracker` e `evolution_license_health_log` removidas do GRUPO_A (zero-tolerância) do gate — passaram a ser owned por zapp após SET SCHEMA

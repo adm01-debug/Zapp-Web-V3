@@ -75,6 +75,18 @@ const MIGRATED_TO_ZAPP = new Set([
   'evolution_deals',                // 9 linhas — negócios/deals
   'evolution_whatsapp_status',      // 16101 linhas — status WhatsApp
   'evolution_performance_metrics',  // 11 linhas — métricas de performance (bônus)
+  // Lote 6 — 2026-08-13 (4 tabelas médias + [A17] DDL-antes-de-EXECUTE + técnica EXECUTE+replace())
+  'evolution_settings',              // 43 linhas — configurações
+  'evolution_audit_log',             // 3.9k linhas — log de auditoria
+  'evolution_media',                 // 17.6k linhas — mídias
+  'evolution_instance_credentials',  // 1 linha — credenciais de instância
+  // Lote 7 — 2026-08-13 (6 tabelas fáceis)
+  'evolution_source_shadow_log',     // 2 linhas — shadow log de rota canônica
+  'evolution_license_health_log',    // ~0 linhas — saúde de licença
+  'evolution_burnin_tracker',        // 1 linha — burn-in tracker
+  'evolution_incident_runbook',      // 10 linhas — runbook de incidentes
+  'evolution_logpatch_audit',        // 379 linhas — auditoria de logpatch
+  'evolution_api_consumers',         // 6 linhas — consumidores de API
 ]);
 
 // ── BASELINE ────────────────────────────────────────────────────────────────
@@ -83,10 +95,11 @@ const MIGRATED_TO_ZAPP = new Set([
 //       O write vira "legítimo" (conta como migrated), não "eliminado".
 //       Para eliminar: refatorar o código para não escrever diretamente.
 const BASELINE = {
-  total:      20,   // 22 - 2 (writes literais que passaram a apontar para zapp após lote 5)
-  migrated:   19,   // 17 + 2 writes legítimos por migração lote 5 (maioria das 13 tabelas é acessada via RPC, não write literal TS)
+  total:      19,   // 20 - 1 (único write literal das 10 tabelas lote6+7 com insert() real: evolution_audit_log;
+                     //         as outras 9 são acessadas só via RPC/fns SQL, fora do escopo deste scanner TS)
+  migrated:   20,   // 19 (lote5) + 1 write legítimo (evolution_audit_log, lote 6)
   eliminated:  0,   // writes eliminados por refatoração de código
-  updated_at: '2026-08-13-lote5',
+  updated_at: '2026-08-13-lote7',
 };
 
 // ── GRUPO A — Evolution-stack owns. Zero tolerância. ────────────────────────
@@ -97,8 +110,6 @@ const GRUPO_A = new Set([
   'evolution_connection_history',
   'evolution_guardian_heartbeat',
   'evolution_bootstrap_log',
-  'evolution_burnin_tracker',
-  'evolution_license_health_log',
   'evolution_pipeline_health_log',
   'evolution_pipeline_history',
   'evolution_reconcile_jobs',
