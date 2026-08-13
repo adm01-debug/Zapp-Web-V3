@@ -499,3 +499,10 @@ vacuum-contacts-2h, lid-phonejid-emergence-watchdog, evo-repopula-fila-isonwa, e
 - 53 FKs em zapp.evolution_contacts ✅
 - Total zapp: 72 tabelas evolution_* ✅
 - **GATE: 0 pendentes | 37 migrados | 0 críticos — META ATINGIDA ✅**
+
+## [H2] REVOKE Grupo A — 2026-08-13
+- 5 tabelas: alert_cooldown, backfill_audit, connection_history, pipeline_history, retention_log
+- REVOKE INSERT/UPDATE/DELETE FROM authenticated (transação atômica, 5 statements)
+- Trigger em evo.evolution_connection_history: fn_detect_instance_recreate = SECURITY DEFINER ✅
+- Fns não-SECDEF detectadas (5): todas fazem SELECT ou escrevem em zapp.* — SEGURO ✅
+- D6: 0 grants de escrita para authenticated em Grupo A; SELECT intacto; health 97.5 A+
