@@ -32,6 +32,10 @@ src/features/inbox/hooks/useExternalApiManagement.ts @adm01-debug
 src/features/inbox/components/chat/ChatMessagesArea.tsx @adm01-debug
 src/features/inbox/components/ChatPanel.tsx @adm01-debug
 
+# Desacoplamento Zapp <-> Evolution API
+/docs/decouple/ @adm01-debug
+/scripts/decouple/ @adm01-debug
+
 # CI e configuracao
 vitest.config.ts @adm01-debug
 package.json @adm01-debug
