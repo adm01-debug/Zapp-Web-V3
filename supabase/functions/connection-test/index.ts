@@ -7,6 +7,7 @@ import { getCorsHeaders } from "../_shared/validation.ts";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import { evolutionClient, getBaseUrl } from "../_shared/providers/evolution/index.ts";
 
 type Mode = "official" | "unofficial";
 type Status = "pass" | "warn" | "fail" | "skip";
@@ -49,7 +50,8 @@ async function hmacSha256Hex(payload: string, secret: string): Promise<string> {
 // ==================== Modo NÃO-OFICIAL (Evolution) ====================
 async function runEvolutionChecks(): Promise<Check[]> {
   const checks: Check[] = [];
-  const url = (Deno.env.get("EVOLUTION_API_URL") ?? "").replace(/\/+$/, "");
+  let url = "";
+  try { url = getBaseUrl(); } catch { /* not configured */ }
   const key = Deno.env.get("EVOLUTION_API_KEY") ?? "";
   const instance = Deno.env.get("EVOLUTION_DEFAULT_INSTANCE") ?? "wpp2";
   const webhookSecret =
@@ -63,14 +65,14 @@ async function runEvolutionChecks(): Promise<Check[]> {
     id: "evo.credentials",
     label: "Credenciais Evolution (URL + API Key)",
     status: url && key ? "pass" : "fail",
-    detail: url && key ? `Endpoint: ${url}` : "Defina EVOLUTION_API_URL e EVOLUTION_API_KEY nos secrets.",
+    detail: url && key ? `Endpoint: ${url}` : "Configure os secrets EVOLUTION_API_URL e EVOLUTION_API_KEY.",
   });
   if (!url || !key) return appendWebhookCheck(checks, "unofficial", webhookSecret);
 
   // 2. Provider alcançável
   const reach = await timed(async () => {
-    const r = await fetch(`${url}/`, { headers: { apikey: key }, signal: AbortSignal.timeout(10_000) });
-    return { status: r.status, body: (await r.text()).slice(0, 120) };
+    const r = await evolutionClient.get("", { timeoutMs: 10_000 });
+    return { status: r.status, body: r.ok ? JSON.stringify(r.data).slice(0, 120) : (r.error ?? "").slice(0, 120) };
   });
   checks.push({
     id: "evo.reachable",
@@ -82,14 +84,9 @@ async function runEvolutionChecks(): Promise<Check[]> {
 
   // 3. Instância autenticada (connectionState)
   const conn = await timed(async () => {
-    const r = await fetch(`${url}/instance/connectionState/${encodeURIComponent(instance)}`, {
-      headers: { apikey: key },
-      signal: AbortSignal.timeout(10_000),
-    });
-    const txt = await r.text();
-    let parsed: Record<string, unknown> | null = null;
-    try { parsed = JSON.parse(txt) as Record<string, unknown>; } catch { /* keep raw */ }
-    return { status: r.status, parsed, raw: txt.slice(0, 200) };
+    const r = await evolutionClient.getConnectionState(encodeURIComponent(instance), { timeoutMs: 10_000 });
+    const parsed = (r.data ?? null) as Record<string, unknown> | null;
+    return { status: r.status, parsed, raw: r.error?.slice(0, 200) ?? "" };
   });
   const state =
     conn.value?.parsed?.instance?.state ??
@@ -106,14 +103,8 @@ async function runEvolutionChecks(): Promise<Check[]> {
 
   // 4. Webhook configurado no provedor
   const wh = await timed(async () => {
-    const r = await fetch(`${url}/webhook/find/${encodeURIComponent(instance)}`, {
-      headers: { apikey: key },
-      signal: AbortSignal.timeout(10_000),
-    });
-    const txt = await r.text();
-    let parsed: Record<string, unknown> | null = null;
-    try { parsed = JSON.parse(txt) as Record<string, unknown>; } catch { /* keep raw */ }
-    return { status: r.status, parsed };
+    const r = await evolutionClient.get(`webhook/find/${encodeURIComponent(instance)}`, { timeoutMs: 10_000 });
+    return { status: r.status, parsed: (r.data ?? null) as Record<string, unknown> | null };
   });
   const expectedWebhook = `${PROJECT_FUNCTIONS_BASE}/evolution-webhook`;
   const configuredUrl: string = wh.value?.parsed?.url ?? wh.value?.parsed?.webhook?.url ?? "";

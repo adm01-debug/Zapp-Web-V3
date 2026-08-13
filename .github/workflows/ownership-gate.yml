@@ -1,0 +1,26 @@
+name: ownership-gate
+
+on:
+  push:
+    branches: [main, 'feat/decouple*']
+    paths:
+      - 'src/**/*.ts'
+      - 'src/**/*.tsx'
+      - 'supabase/functions/**/*.ts'
+  pull_request:
+    paths:
+      - 'src/**/*.ts'
+      - 'src/**/*.tsx'
+      - 'supabase/functions/**/*.ts'
+
+jobs:
+  schema-ownership:
+    name: "Schema ownership — Zapp não grava em evo Grupo A"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run ownership gate
+        run: node --experimental-vm-modules scripts/decouple/ownership-gate.mjs --ci

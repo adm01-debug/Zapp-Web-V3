@@ -8,8 +8,8 @@
  *   'zapp' (security_invoker=on) que OMITE api_key por segurança — usar supabase direto.
  * - ESCRITA: edge function 'evolution-credentials' (POST actions save/delete) roda com
  *   service_role e grava na tabela física em 'evo' (service_role only via RLS).
- * - HEALTH LOGS: zapp.evolution_health_logs é VIEW auto-updatable; INSERT via client
- *   autenticado funciona (policies na base em evo p/ role public).
+ * - HEALTH LOGS: gravados via RPC zapp.rpc_log_evolution_health (F3 ingest-port), NÃO
+ *   via insert direto — evolution_health_logs é tabela física em 'evo', ainda não migrada.
  * - O schema 'evo' NÃO está no PGRST_DB_SCHEMAS — qualquer override de schema
  *   apontando para 'evo' falha com PGRST106 (guardrail check-schema-usage).
  *   PGRST106. Nunca usar evo a partir do client.
@@ -148,15 +148,15 @@ export function useEvolutionApiIntegration() {
         toast.error(`Falha no teste: ${errorMsg}`);
       }
 
-      // Log the health check in the database (view zapp, INSERT autenticado)
+      // Log the health check via RPC canônica (F3 ingest-port — evolution_health_logs vive em evo)
       if (creds.instance_name) {
-        await supabase.from('evolution_health_logs').insert({
-          instance_name: creds.instance_name,
-          status: isSuccess ? 'success' : 'failure',
-          error_message: errorMsg,
-          response_time_ms: responseTime,
-          online_instances: onlineCount,
-          total_instances: totalCount,
+        await supabase.rpc('rpc_log_evolution_health', {
+          p_instance_name: creds.instance_name,
+          p_status: isSuccess ? 'success' : 'failure',
+          p_error_message: errorMsg,
+          p_response_time_ms: responseTime,
+          p_online_instances: onlineCount,
+          p_total_instances: totalCount,
         });
 
         // health_status/last_health_check NÃO são atualizados aqui: a view omite api_key
@@ -171,11 +171,11 @@ export function useEvolutionApiIntegration() {
       toast.error(`Erro de conexão: ${errorMsg}`);
 
       if (creds.instance_name) {
-        await supabase.from('evolution_health_logs').insert({
-          instance_name: creds.instance_name,
-          status: 'failure',
-          error_message: errorMsg,
-          response_time_ms: Date.now() - startTime,
+        await supabase.rpc('rpc_log_evolution_health', {
+          p_instance_name: creds.instance_name,
+          p_status: 'failure',
+          p_error_message: errorMsg,
+          p_response_time_ms: Date.now() - startTime,
         });
         fetchData();
       }

@@ -49,6 +49,7 @@ import { createZappAdminClient } from '../_shared/db-client.ts';
 import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { TalkxSendV1Schema } from "../_shared/contract-schemas.ts";
+import { evolutionClient } from "../_shared/providers/evolution/index.ts";
 import { requireAdminOrSupervisor, requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 /**
@@ -161,11 +162,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const evolutionUrl = (Deno.env.get("EVOLUTION_API_URL") || "").replace(/\/+$/, "");
-    const evolutionKey = Deno.env.get("EVOLUTION_API_KEY");
-    if (!evolutionKey) {
-      return new Response(JSON.stringify({ error: "Evolution API configuration missing" }), { status: 500, headers });
-    }
+
 
     const supabase = createZappAdminClient();
     // Contrato talkx-send@v1 (estrito): campaignId UUID + action enum.
@@ -314,62 +311,37 @@ Deno.serve(async (req) => {
         const typingDelay = randomBetween(typingDelayMin, typingDelayMax);
 
         try {
-          await fetch(`${evolutionUrl}/chat/updatePresence/${connObj.instance_id}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", apikey: evolutionKey },
-            body: JSON.stringify({ number: cleanPhone, presence: "composing" }),
-            signal: AbortSignal.timeout(5_000),
-          });
+          await evolutionClient.post(`chat/updatePresence/${connObj.instance_id}`, { number: cleanPhone, presence: "composing" }, { timeoutMs: 5_000 });
         } catch { /* Presence update is best-effort */ }
 
         await sleep(typingDelay);
 
-        let sendResponse: Response;
+        let sendOk: boolean;
         let sendResult: unknown;
 
         if (hasMedia) {
           const mediaType = campaignObj.media_type as string;
           const mediaEndpoint = getMediaEndpoint(mediaType);
-          sendResponse = await fetchWithRetry(
-            `${evolutionUrl}/message/${mediaEndpoint}/${connObj.instance_id}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json", apikey: evolutionKey },
-              body: JSON.stringify({
-                number: cleanPhone,
-                mediatype: mediaType,
-                media: campaignObj.media_url,
-                caption: personalizedMsg,
-                delay: 0,
-              }),
-            }
+          const evoResp = await evolutionClient.post(
+            `message/${mediaEndpoint}/${connObj.instance_id}`,
+            { number: cleanPhone, mediatype: mediaType, media: campaignObj.media_url, caption: personalizedMsg, delay: 0 },
           );
-          try {
-            sendResult = await sendResponse.json();
-          } catch {
-            sendResult = {};
-          }
+          sendOk = evoResp.ok;
+          sendResult = evoResp.data ?? {};
         } else {
-          sendResponse = await fetchWithRetry(
-            `${evolutionUrl}/message/sendText/${connObj.instance_id}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json", apikey: evolutionKey },
-              body: JSON.stringify({ number: cleanPhone, text: personalizedMsg, delay: 0 }),
-            }
+          const evoResp = await evolutionClient.post(
+            `message/sendText/${connObj.instance_id}`,
+            { number: cleanPhone, text: personalizedMsg, delay: 0 },
           );
-          try {
-            sendResult = await sendResponse.json();
-          } catch {
-            sendResult = {};
-          }
+          sendOk = evoResp.ok;
+          sendResult = evoResp.data ?? {};
         }
 
         const hasError = typeof sendResult === 'object' && sendResult !== null && !Array.isArray(sendResult)
           ? (sendResult as Record<string, unknown>).error
           : true;
 
-        if (sendResponse.ok && !hasError) {
+        if (sendOk && !hasError) {
           sentCount++;
           if (recipId) {
             await supabase.from("talkx_recipients")

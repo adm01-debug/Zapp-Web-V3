@@ -3,6 +3,7 @@ import { requireServiceRoleOrCron, requireUser } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { isSafeMediaCdnUrl } from "../_shared/evolution-media.ts";
 import { getStoragePublicUrl } from "../_shared/storage-url.ts";
+import { evolutionClient } from "../_shared/providers/evolution/index.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
@@ -56,9 +57,6 @@ Deno.serve(async (req) => {
     }
 
     const connectionMap = new Map(connections.map(c => [c.id, c.instance_id]));
-    const evolutionUrl = Deno.env.get('EVOLUTION_API_URL');
-    const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
-
     let updated = 0, failed = 0, skipped = 0;
 
     for (let i = 0; i < contacts.length; i += 5) {
@@ -66,17 +64,13 @@ Deno.serve(async (req) => {
 
       await Promise.allSettled(batch.map(async (contact) => {
         const instanceId = connectionMap.get(contact.whatsapp_connection_id);
-        if (!instanceId || !evolutionUrl || !evolutionKey) { skipped++; return; }
+        if (!instanceId) { skipped++; return; }
 
         try {
-          const baseUrl = evolutionUrl.replace(/\/+$/, '');
-          const resp = await fetch(`${baseUrl}/chat/fetchProfilePictureUrl/${instanceId}`, {
-            method: 'POST', headers: { 'apikey': evolutionKey, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ number: contact.phone }), signal: AbortSignal.timeout(5000),
-          });
+          const resp = await evolutionClient.getProfilePicture(instanceId, contact.phone, { timeoutMs: 5000 });
           if (!resp.ok) { failed++; return; }
-          const result = await resp.json();
-          const picUrl = result?.profilePictureUrl || result?.picture || result?.url || null;
+          const result = resp.data as Record<string, unknown>;
+          const picUrl = (result?.profilePictureUrl || result?.picture || result?.url || null) as string | null;
           if (!picUrl) { failed++; return; }
 
           if (!isSafeMediaCdnUrl(picUrl)) {

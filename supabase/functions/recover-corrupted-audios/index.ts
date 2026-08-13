@@ -4,9 +4,8 @@ import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import { getStoragePublicUrl } from "../_shared/storage-url.ts";
+import { evolutionClient } from "../_shared/providers/evolution/index.ts";
 
-const EVOLUTION_API_URL = (Deno.env.get("EVOLUTION_API_URL") || "").replace(/\/+$/, "");
-const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? '';
 
 const supabase = createZappAdminClient();
 
@@ -22,16 +21,14 @@ function isValidAudioBytes(bytes: Uint8Array): boolean {
 
 async function getMediaBase64(instanceName: string, messageId: string): Promise<string | null> {
   try {
-    const url = `${EVOLUTION_API_URL}/chat/getBase64FromMediaMessage/${instanceName}`;
-    const resp = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_KEY },
-      body: JSON.stringify({ message: { key: { id: messageId } }, convertToMp4: false }),
-      signal: AbortSignal.timeout(30_000),
-    });
+    const resp = await evolutionClient.post(
+      `chat/getBase64FromMediaMessage/${instanceName}`,
+      { message: { key: { id: messageId } }, convertToMp4: false },
+      { timeoutMs: 30_000 },
+    );
     if (!resp.ok) return null;
-    const data = await resp.json();
-    return data?.base64 || null;
+    const data = resp.data as Record<string, unknown>;
+    return (data?.base64 as string) || null;
   } catch (err) {
     console.error(`Failed to fetch media for ${messageId}:`, err);
     return null;

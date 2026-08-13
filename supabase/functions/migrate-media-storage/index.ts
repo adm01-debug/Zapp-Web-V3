@@ -6,6 +6,7 @@ import { getStoragePublicUrl } from "../_shared/storage-url.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { evolutionClient } from "../_shared/providers/evolution/index.ts";
 
 /**
  * Edge Function: WhatsApp Media Migration Service
@@ -65,8 +66,7 @@ Deno.serve(async (req) => {
   const log = new Logger("migrate-media-storage");
 
   try {
-    const evolutionUrl = Deno.env.get('EVOLUTION_API_URL');
-    const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
+
     const supabase = createZappAdminClient();
 
     // Get all active WhatsApp connections with instance IDs
@@ -132,14 +132,14 @@ Deno.serve(async (req) => {
 
         let permanentUrl = await downloadAndUpload(supabase, mediaUrl, messageType, messageId, log);
 
-        if (!permanentUrl && evolutionUrl && evolutionKey && externalId) {
+        if (!permanentUrl && externalId) {
           log.info("CDN failed, trying API fallback", { messageId: messageId });
           const instance = connId ? instanceMap.get(connId) : null;
           const instancesToTry = instance ? [instance] : Array.from(instanceMap.values());
 
           for (const inst of instancesToTry) {
             permanentUrl = await getBase64Fallback(
-              supabase, evolutionUrl, evolutionKey, inst,
+              supabase, inst,
               externalId, messageType, messageId, log
             );
             if (permanentUrl) break;
@@ -213,8 +213,6 @@ async function downloadAndUpload(
 
 async function getBase64Fallback(
   supabase: SupabaseClient,
-  evolutionUrl: string,
-  evolutionKey: string,
   instance: string,
   externalId: string,
   messageType: string,
@@ -222,28 +220,18 @@ async function getBase64Fallback(
   log: Logger,
 ): Promise<string | null> {
   try {
-    const baseUrl = evolutionUrl.replace(/\/+$/, '');
-    const resp = await fetch(`${baseUrl}/chat/getBase64FromMediaMessage/${instance}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': evolutionKey },
-      body: JSON.stringify({
-        message: { key: { id: externalId } },
-        convertToMp4: false,
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
+    const resp = await evolutionClient.post(
+      `chat/getBase64FromMediaMessage/${instance}`,
+      { message: { key: { id: externalId } }, convertToMp4: false },
+      { timeoutMs: 15000 },
+    );
 
     if (!resp.ok) {
-      log.warn(`getBase64 API error for ${messageId}`, { status: resp.status });
+      log.warn(`getBase64 API error for ${messageId}`, { error: resp.error });
       return null;
     }
 
-    let result: unknown;
-    try {
-      result = await resp.json();
-    } catch {
-      return null;
-    }
+    const result: unknown = resp.data;
 
     if (typeof result !== 'object' || result === null || Array.isArray(result)) return null;
     const resultObj = result as Record<string, unknown>;

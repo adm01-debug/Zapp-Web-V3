@@ -186,15 +186,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const evolutionUrl = requireEnv('EVOLUTION_API_URL');
-    const evolutionKey = requireEnv('EVOLUTION_API_KEY');
-    const isPlaceholder = (v: string) => !v || /PLACEHOLDER|REPLACE_ME|YOUR_|CHANGE_ME/i.test(v);
-    const isValidUrl = (v: string) => { try { new URL(v); return true; } catch { return false; } };
-    if (isPlaceholder(evolutionUrl) || isPlaceholder(evolutionKey) || !isValidUrl(evolutionUrl)) {
-      return new Response(JSON.stringify({ error: 'evolution_api_not_configured', message: 'Configure os secrets EVOLUTION_API_URL (URL válida) e EVOLUTION_API_KEY.' }), { status: 503, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
-    }
-    const supabase = createZappAdminClient();
-    const baseUrl = evolutionUrl.replace(/\/+$/, '');
 
     // Evolution DB (opcional — se faltar, layer 3 é skipped graciosamente)
     const externalUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
@@ -225,7 +216,7 @@ Deno.serve(async (req) => {
     if (connError || !connections) return errorResponse('Failed to fetch connections', 500, req);
 
     // Detector de instância fantasma: snapshot único de todas as instâncias.
-    const allInstances = await fetchAllInstances(baseUrl, evolutionKey, log);
+    const allInstances = await fetchAllInstances(log);
 
     const results = [];
     const alertsToCreate: Array<{ connection_id: string; instance_id: string; phone: string | null; reason: 'disconnected' | 'degraded' | 'phantom_session' | 'webhook_silent' | 'stale_session' }> = [];
@@ -248,16 +239,13 @@ Deno.serve(async (req) => {
 
       // Layer 1
       try {
-        const resp = await fetch(`${baseUrl}/instance/connectionState/${encodeURIComponent(evoName)}`, {
-          method: 'GET', headers: { 'apikey': evolutionKey },
-          signal: AbortSignal.timeout(10000),
-        });
+        const resp = await evolutionClient.getConnectionState(encodeURIComponent(evoName), { timeoutMs: 10000 });
         responseTime = Math.round(performance.now() - start);
         if (resp.ok) {
-          const data = await resp.json();
-          socketState = (data?.instance?.state || data?.state || 'unknown') as string;
+          const data = (resp.data ?? {}) as Record<string, unknown>;
+          socketState = ((data?.instance as Record<string,unknown>)?.state ?? data?.state ?? 'unknown') as string;
         } else {
-          httpErrorMessage = `HTTP ${resp.status}: ${(await resp.text()).slice(0, 200)}`;
+          httpErrorMessage = resp.error ?? 'Evolution API error';
         }
       } catch (err) {
         responseTime = Math.round(performance.now() - start);
@@ -272,7 +260,7 @@ Deno.serve(async (req) => {
       let lastActivityAt: Date | null = null;
       if (socketState === 'open') {
         const [owner, activity] = await Promise.all([
-          fetchOwnerJid(baseUrl, evolutionKey, evoName, log),
+          fetchOwnerJid(evoName, log),
           externalUrl && externalKey
             ? fetchLastActivityAt(externalUrl, externalKey, evoName, log)
             : Promise.resolve(null),

@@ -1,6 +1,7 @@
 import { getCorsHeaders, handleCors } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
+import { getBaseUrl } from "../_shared/providers/evolution/index.ts";
 import { getSecret } from "../_shared/vault.ts";
 import { parseOrReject, buildContractErrorBody } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
@@ -29,7 +30,6 @@ import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
  *   5. Resposta sempre { ok, fetched, upserted, errors, primeiro_erro }.
  */
 
-const EVOLUTION_API_URL_DEFAULT = "https://evolution.atomicabr.com.br";
 const INSTANCE_DEFAULT = "wpp2";
 const INSTANCE_NAME_RE = /^[a-zA-Z0-9_-]{1,64}$/;
 
@@ -274,7 +274,7 @@ export async function handleIsonwa(
     return jsonSimple({ ok: true, checked: 0, on_whatsapp: 0, not_found: 0, errors: 0, fila_vazia: true }, 200, corsHeaders);
   }
   const numbers = jids.map((j: string) => j.split("@")[0]);
-  const baseUrl = (Deno.env.get("EVOLUTION_API_URL") || EVOLUTION_API_URL_DEFAULT).replace(/\/+$/, "");
+  const baseUrl = getBaseUrl();
   const url = `${baseUrl}/chat/whatsappNumbers/${instanceName}`;
   let resp: Response;
   try {
@@ -415,7 +415,7 @@ Deno.serve(async (req) => {
 
   // 4b) Fetch dos grupos na Evolution API — header apikey via fetch (Deno),
   //     que o pg_net não envia (causa-raiz do 401 no backfill antigo).
-  const baseUrl = (Deno.env.get("EVOLUTION_API_URL") || EVOLUTION_API_URL_DEFAULT).replace(/\/+$/, "");
+  const baseUrl = getBaseUrl();
   const url = `${baseUrl}/group/fetchAllGroups/${instanceName}?getParticipants=true`;
 
   let resp: Response;

@@ -4,6 +4,7 @@ import { requireAdminOrSupervisor } from '../_shared/auth.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { parseRequestOrReject, buildContractErrorBody } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
+import { evolutionClient } from '../_shared/providers/evolution/index.ts';
 
 
 
@@ -37,8 +38,7 @@ Deno.serve(async (req: Request) => {
     if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, unknown>;
 
-    const evolutionUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
-    const evolutionKey = Deno.env.get('EVOLUTION_API_KEY') ?? '';
+
     const supabase = createZappAdminClient();
 
     const action = body.action || 'full-diagnostic';
@@ -65,16 +65,16 @@ Deno.serve(async (req: Request) => {
 
       try {
         let state = 'unknown';
-        const statusRes = await fetch(`${evolutionUrl}/instance/connectionState/${conn.instance_id}`, { headers: { apikey: evolutionKey }, signal: AbortSignal.timeout(10000) });
-        if (statusRes.ok) { const statusData = await statusRes.json(); state = statusData?.instance?.state || statusData?.state || 'unknown'; }
+        const statusRes = await evolutionClient.getConnectionState(conn.instance_id, { timeoutMs: 10000 });
+        if (statusRes.ok) { const statusData = statusRes.data as Record<string, unknown>; state = ((statusData?.instance as Record<string,unknown>)?.state as string) || statusData?.state as string || 'unknown'; }
         if (state === 'unknown') state = dbConnRecord?.status === 'connected' ? 'open' : (dbConnRecord?.status || 'unknown');
         diag.connectionState = state;
         diag.statusOk = state === 'open' || state === 'connected';
       } catch (e) { diag.connectionState = 'error'; diag.statusError = e instanceof Error ? e.message : 'timeout'; }
 
       try {
-        const whRes = await fetch(`${evolutionUrl}/webhook/find/${conn.instance_id}`, { headers: { apikey: evolutionKey }, signal: AbortSignal.timeout(10000) });
-        const whData = await whRes.json().catch(() => ({}));
+        const whRes = await evolutionClient.get(`webhook/find/${conn.instance_id}`, { timeoutMs: 10000 });
+        const whData = (whRes.data ?? {}) as Record<string, unknown>;
         const webhook = whData?.webhook || whData;
         const expectedUrl = `${supabaseUrl}/functions/v1/evolution-webhook`;
         const currentUrl = webhook?.url || webhook?.webhookUrl || '';
@@ -99,7 +99,7 @@ Deno.serve(async (req: Request) => {
 
       if (action === 'auto-fix' && (diag.webhookSeverity === 'critical' || diag.webhookSeverity === 'warning')) {
         try {
-          const fixRes = await fetch(`${evolutionUrl}/webhook/set/${conn.instance_id}`, { method: 'POST', headers: { apikey: evolutionKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ webhook: { enabled: true, url: `${supabaseUrl}/functions/v1/evolution-webhook`, webhookByEvents: false, webhookBase64: true, events: WEBHOOK_EVENTS } }), signal: AbortSignal.timeout(15000) });
+          const fixRes = await evolutionClient.post(`webhook/set/${conn.instance_id}`, { webhook: { enabled: true, url: `${supabaseUrl}/functions/v1/evolution-webhook`, webhookByEvents: false, webhookBase64: true, events: WEBHOOK_EVENTS } }, { timeoutMs: 15000 });
           diag.autoFix = { applied: fixRes.ok, status: fixRes.status };
         } catch (e) { diag.autoFix = { applied: false, error: e instanceof Error ? e.message : 'failed' }; }
       }

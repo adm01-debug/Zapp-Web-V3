@@ -210,7 +210,14 @@ describe('useEvolutionApiIntegration (fix: credenciais via view zapp + edge func
       body: { action: 'list-instances' },
     });
     expect(toastMocks.success).toHaveBeenCalledWith('Teste bem-sucedido para wpp2');
-    // health log gravado via view zapp (mesmo fluxo de antes)
-    expect(supabaseMock.client.from).toHaveBeenCalledWith('evolution_health_logs');
+    // health log gravado via RPC canônica (F3 ingest-port), não via insert direto
+    expect(supabaseMock.client.rpc).toHaveBeenCalledWith('rpc_log_evolution_health', {
+      p_instance_name: 'wpp2',
+      p_status: 'success',
+      p_error_message: null,
+      p_response_time_ms: expect.any(Number),
+      p_online_instances: 1,
+      p_total_instances: 1,
+    });
   });
 });

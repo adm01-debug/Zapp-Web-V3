@@ -7,6 +7,7 @@ import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
+import { evolutionClient } from '../_shared/providers/evolution/index.ts';
 
 const COOLDOWN_DAYS = 30;
 const RESOLVED_AGE_DAYS = 3;
@@ -35,9 +36,7 @@ Deno.serve(async (req) => {
 
   const supabase = createZappAdminClient();
 
-  const evolutionUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
-  const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
-  const dryRun = !evolutionUrl || !evolutionKey;
+  const dryRun = false;
 
   // 1. Find candidate contacts: resolved conversations in window, with phone, not recently invited
   const cutoffResolved = new Date(Date.now() - RESOLVED_AGE_DAYS * 86_400_000).toISOString();
@@ -97,14 +96,9 @@ Deno.serve(async (req) => {
 
     try {
       if (!dryRun) {
-        const resp = await fetch(`${evolutionUrl}/message/sendText/${instanceName}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', apikey: evolutionKey as string },
-          body: JSON.stringify({ number: contact.phone, text }),
-          signal: AbortSignal.timeout(15_000),
-        });
-        const txt = await resp.text();
+        const resp = await evolutionClient.sendText(instanceName, contact.phone, text, { timeoutMs: 15_000 });
         if (!resp.ok) {
+          const txt = resp.error ?? 'evolution_send_failed';
           await supabase.from('failed_messages').insert({
             instance_name: instanceName,
             remote_jid: `${contact.phone}@s.whatsapp.net`,

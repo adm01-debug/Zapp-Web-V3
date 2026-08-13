@@ -52,15 +52,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const evolutionApiUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
-  const evolutionApiKey = Deno.env.get('EVOLUTION_API_KEY');
   const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
-
-  if (!evolutionApiUrl || !evolutionApiKey || !supabaseUrl) {
-    return new Response(JSON.stringify({ error: 'Server misconfigured' }), {
-      status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
 
   const supabase = createZappAdminClient();
 
@@ -86,17 +78,17 @@ Deno.serve(async (req) => {
     const instanceName = rawInstanceName;
 
     if (action === 'sync-contacts') {
-      return await syncContacts(supabase, evolutionApiUrl, evolutionApiKey, instanceName, corsHeaders, page, offset);
+      return await syncContacts(supabase, instanceName, corsHeaders, page, offset);
     }
 
     const contactPhone = typeof body.contactPhone === 'string' ? body.contactPhone : '';
     if (action === 'sync-messages') {
-      return await syncMessages(supabase, evolutionApiUrl, evolutionApiKey, instanceName, contactPhone, corsHeaders);
+      return await syncMessages(supabase, instanceName, contactPhone, corsHeaders);
     }
 
     const webhookUrl = typeof body.webhookUrl === 'string' ? body.webhookUrl : '';
     if (action === 'setup-webhook') {
-      return await setupWebhook(evolutionApiUrl, evolutionApiKey, instanceName, supabaseUrl, webhookUrl, corsHeaders);
+      return await setupWebhook(instanceName, supabaseUrl, webhookUrl, corsHeaders);
     }
 
     if (action === 'cleanup-mock') {
@@ -104,13 +96,13 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'full-sync') {
-      return await fullSync(supabase, evolutionApiUrl, evolutionApiKey, instanceName, supabaseUrl, corsHeaders);
+      return await fullSync(supabase, instanceName, supabaseUrl, corsHeaders);
     }
 
     const messagesPerContactNum = typeof body.messagesPerContact === 'number' ? body.messagesPerContact : 200;
     const messagesPerContact = Math.min(Math.max(1, Math.floor(messagesPerContactNum)), 1_000);
     if (action === 'sync-all-messages') {
-      return await syncAllMessages(supabase, evolutionApiUrl, evolutionApiKey, instanceName, messagesPerContact, corsHeaders);
+      return await syncAllMessages(supabase, instanceName, messagesPerContact, corsHeaders);
     }
 
     return contractViolation422('action', 'Unknown action', req, corsHeaders);

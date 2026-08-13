@@ -1,6 +1,7 @@
-// Shared helpers for Evolution API webhook and sync functions
+// Shared helpers for Evolutmon API webhook and sync functions
 declare const Deno: { env: { get(key: string): string | undefined } };
 import { getStoragePublicUrl } from "./storage-url.ts";
+import { evolutionClient } from "./providers/evolution/index.ts";
 
 
 /** Webhook Payload interface definition. */
@@ -410,19 +411,10 @@ export function generatePhoneVariants(phone: string): string[] {
 /** fetch Profile Pic From Api function. */
 export async function fetchProfilePicFromApi(instance: string, phone: string): Promise<string | null> {
   try {
-    const evolutionUrl = Deno.env.get('EVOLUTION_API_URL');
-    const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
-    if (!evolutionUrl || !evolutionKey) return null;
-    const baseUrl = evolutionUrl.replace(/\/+$/, '');
-    const resp = await fetch(`${baseUrl}/chat/fetchProfilePictureUrl/${instance}`, {
-      method: 'POST',
-      headers: { 'apikey': evolutionKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ number: phone }),
-      signal: AbortSignal.timeout(5000),
-    });
+    const resp = await evolutionClient.getProfilePicture(instance, phone, { timeoutMs: 5000 });
     if (!resp.ok) return null;
-    const result = await resp.json();
-    return result?.profilePictureUrl || result?.picture || result?.url || null;
+    const result = (resp.data ?? {}) as Record<string, unknown>;
+    return (result?.profilePictureUrl || result?.picture || result?.url || null) as string | null;
   } catch { return null; }
 }
 

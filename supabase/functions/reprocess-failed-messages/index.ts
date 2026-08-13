@@ -8,6 +8,7 @@ import { requireServiceRoleOrCron, requireAdminOrSupervisor } from '../_shared/a
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
+import { evolutionFetch } from '../_shared/providers/evolution/index.ts';
 const MAX_BATCH = 25;
 
 Deno.serve(async (req) => {
@@ -30,11 +31,7 @@ Deno.serve(async (req) => {
     // Uses service-role credentials (SUPABASE_SERVICE_ROLE_KEY) via createZappAdminClient()
     const supabase = createZappAdminClient();
 
-    const evolutionUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
-    const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
-    if (!evolutionUrl || !evolutionKey) {
-      return json({ error: true, message: 'Evolution credentials missing' }, 500);
-    }
+
 
     const { data: rows, error } = await supabase
     .from('failed_messages')
@@ -87,19 +84,14 @@ Deno.serve(async (req) => {
         id: row.id, instance, path, attempt, max: row.max_retries, hasIdem: !!idemKey,
       }));
 
-      const fetchHeaders: Record<string, string> = {
-        'Content-Type': 'application/json',
-        apikey: evolutionKey,
-      };
-      if (idemKey) fetchHeaders['Idempotency-Key'] = idemKey;
-
-      const resp = await fetch(`${evolutionUrl}${path}/${instance}`, {
+      const resp = await evolutionFetch(`${path.replace(/^\//, '')}/${instance}`, {
         method: 'POST',
-        headers: fetchHeaders,
+        headers: idemKey ? { 'Idempotency-Key': idemKey } : {},
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(15_000),
+        timeoutMs: 15_000,
       });
-      const respText = await resp.text();
+      const statusCode = resp.ok ? resp.status : parseInt((resp.error ?? '').match(/^HTTP (\d+)/)?.[1] ?? '0');
+      const respText = resp.ok ? '' : (resp.error ?? '').replace(/^HTTP \d+:\s*/, '');
 
       if (resp.ok) {
         await supabase.from('failed_messages').update({
@@ -110,25 +102,25 @@ Deno.serve(async (req) => {
         }).eq('id', row.id);
         succeeded++;
       } else if (attempt >= row.max_retries) {
-        const reason = classifyRetryReason(resp.status, respText);
+        const reason = classifyRetryReason(statusCode, respText);
         await supabase.from('failed_messages').update({
           status: 'abandoned',
           retry_count: attempt,
           last_attempt_at: new Date().toISOString(),
-          http_status: resp.status,
+          http_status: statusCode,
           error_message: respText.slice(0, 500),
           last_retry_reason: reason,
         }).eq('id', row.id);
         abandoned++;
       } else {
-        const reason = classifyRetryReason(resp.status, respText);
+        const reason = classifyRetryReason(statusCode, respText);
         const backoffMs = computeBackoffMsByReason(attempt + 1, reason);
         await supabase.from('failed_messages').update({
           status: 'retrying',
           retry_count: attempt,
           last_attempt_at: new Date().toISOString(),
           next_attempt_at: new Date(Date.now() + backoffMs).toISOString(),
-          http_status: resp.status,
+          http_status: statusCode,
           error_message: respText.slice(0, 500),
           last_retry_reason: reason,
         }).eq('id', row.id);

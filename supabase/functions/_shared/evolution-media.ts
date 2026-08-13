@@ -1,5 +1,6 @@
 // Shared media persistence helpers for Evolution API functions
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { evolutionClient } from "./providers/evolution/index.ts";
 import { isRecord } from "./evolution-helpers.ts";
 import { getStoragePublicUrl } from "./storage-url.ts";
 
@@ -117,12 +118,6 @@ export async function persistMediaViaApi(
   messageId: string,
 ): Promise<string | null> {
   try {
-    const evolutionUrl = Deno.env.get('EVOLUTION_API_URL');
-    const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
-    if (!evolutionUrl || !evolutionKey) return null;
-
-    const baseUrl = evolutionUrl.replace(/\/+$/, '');
-    
     // Áudios precisam de timeout maior — arquivos podem ter vários MB
     const timeoutMs = messageType === 'audio' ? 90000 : 30000;
 
@@ -137,20 +132,18 @@ export async function persistMediaViaApi(
       if (audioMsg) innerMessage = { audioMessage: audioMsg };
     }
 
-    const resp = await fetch(`${baseUrl}/chat/getBase64FromMediaMessage/${encodeURIComponent(instance)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': evolutionKey },
-      body: JSON.stringify({ message: { key: data.key, message: innerMessage }, convertToMp4: false }),
-      signal: AbortSignal.timeout(timeoutMs),
-    });
+    const resp = await evolutionClient.post(
+      `chat/getBase64FromMediaMessage/${encodeURIComponent(instance)}`,
+      { message: { key: data.key, message: innerMessage }, convertToMp4: false },
+      { timeoutMs },
+    );
 
     if (!resp.ok) {
-      const errBody = await resp.text().catch(() => '');
-      console.error(`[MEDIA] getBase64 API error (${resp.status}) for ${messageType} ${messageId}: ${errBody.slice(0,200)}`);
+      console.error(`[MEDIA] getBase64 API error for ${messageType} ${messageId}: ${resp.error ?? ''}`);
       return null;
     }
 
-    const result = await resp.json();
+    const result = resp.data as Record<string, unknown>;
     const b64 = (result.base64 as string) || (result.data as string) || (result.media as string);
     if (!b64) {
       console.warn(`[MEDIA] API returned 200 but no base64 for ${messageType} ${messageId}. Response keys: ${Object.keys(result).join(',')}`);

@@ -19,6 +19,7 @@ import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getStoragePublicUrl } from "../_shared/storage-url.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import { evolutionClient } from "../_shared/providers/evolution/index.ts";
 
 const ALLOWED_AVATAR_ORIGINS = new Set([
   "mmg.whatsapp.net",
@@ -76,11 +77,7 @@ Deno.serve(withHandler("fetch-whatsapp-avatar", async (req, log) => {
   if (!phone) return errorResponse("Telefone inválido.", 400, req);
 
   const supabase = createZappAdminClient();
-  const evolutionUrl = Deno.env.get("EVOLUTION_API_URL");
-  const evolutionKey = Deno.env.get("EVOLUTION_API_KEY");
-  if (!evolutionUrl || !evolutionKey) {
-    return jsonResponse({ avatar_url: null, error: "EVOLUTION_NOT_CONFIGURED" }, 200, req);
-  }
+
 
   // 1) Tenta a conexão específica do contato; senão usa a primeira conectada.
   let instanceId: string | null = null;
@@ -114,20 +111,14 @@ Deno.serve(withHandler("fetch-whatsapp-avatar", async (req, log) => {
     return jsonResponse({ avatar_url: null, error: "NO_ACTIVE_CONNECTION" }, 200, req);
   }
 
-  // 2) Busca a URL da foto de perfil no Evolution.
-  const baseUrl = evolutionUrl.replace(/\/+$/, "");
-  const resp = await fetch(`${baseUrl}/chat/fetchProfilePictureUrl/${instanceId}`, {
-    method: "POST",
-    headers: { apikey: evolutionKey, "Content-Type": "application/json" },
-    body: JSON.stringify({ number: phone }),
-    signal: AbortSignal.timeout(8000),
-  });
-  if (!resp.ok) {
-    log.warn("Evolution fetchProfilePictureUrl failed", { status: resp.status });
+  // 2) Busca a URL da foto de perfil no Evolution (via gateway).
+  const evoResp = await evolutionClient.getProfilePicture(instanceId, phone, { timeoutMs: 8000 });
+  if (!evoResp.ok) {
+    log.warn("Evolution fetchProfilePictureUrl failed", { error: evoResp.error });
     return jsonResponse({ avatar_url: null }, 200, req);
   }
-  const result = await resp.json().catch(() => ({}));
-  const picUrl: string | null = result?.profilePictureUrl || result?.picture || result?.url || null;
+  const result = (evoResp.data ?? {}) as Record<string, unknown>;
+  const picUrl: string | null = (result?.profilePictureUrl || result?.picture || result?.url || null) as string | null;
   if (!picUrl) return jsonResponse({ avatar_url: null }, 200, req);
 
   // F1 SSRF guard: reject URLs not matching WhatsApp CDN allowlist

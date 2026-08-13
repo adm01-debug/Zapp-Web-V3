@@ -2,6 +2,7 @@ import { Logger, checkRateLimit, getClientIP, getCorsHeaders, handleCors, author
 import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts";
 import { initSentry, captureException } from "../_shared/sentry.ts";
 import { EVOLUTION_ENVELOPE_VERSION, proxyToEvolution, resolvePrivateBucketUrl, type ProxyToEvolutionOptions } from "../_shared/evolution-api-proxy.ts";
+import { getBaseUrl } from "../_shared/providers/evolution/index.ts";
 import { normalizeChatList, normalizeContactList, normalizeProfile } from "../_shared/evolution-response-normalizers.ts";
 import { maybeLogFallback } from "../_shared/evolution-fallback-telemetry.ts";
 import { mapFetchInstancesToProfile, shouldFallbackForProfile } from "../_shared/evolution-profile-fallback.ts";
@@ -30,13 +31,11 @@ Deno.serve(async (req) => {
     ? checkRateLimit(`evolution-poll:${ip}`, 600, 60_000)
     : checkRateLimit(`evolution:${ip}`, 120, 60_000);
   if (!rl.allowed) return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } });
-  const rawEvolutionApiUrl = (Deno.env.get('EVOLUTION_API_URL') || '').trim();
-  const rawEvolutionApiKey = (Deno.env.get('EVOLUTION_API_KEY') || '').trim();
+  let evolutionApiUrl: string;
+  try { evolutionApiUrl = getBaseUrl(); } catch { return new Response(JSON.stringify({ error: 'Evolution API not configured' }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }); }
+  const evolutionApiKey = (Deno.env.get('EVOLUTION_API_KEY') || '').trim();
   const isPlaceholder = (v: string) => !v || /PLACEHOLDER|REPLACE_ME|YOUR_|CHANGE_ME/i.test(v);
-  const isValidUrl = (v: string) => { try { new URL(v); return true; } catch { return false; } };
-  const evolutionApiUrl = rawEvolutionApiUrl.replace(/\/+$/, '');
-  const evolutionApiKey = rawEvolutionApiKey;
-  if (isPlaceholder(evolutionApiUrl) || isPlaceholder(evolutionApiKey) || !isValidUrl(evolutionApiUrl)) return new Response(JSON.stringify({ error: 'Evolution API not configured' }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (isPlaceholder(evolutionApiKey)) return new Response(JSON.stringify({ error: 'Evolution API not configured' }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   const supabase = createZappAdminClient();
   const supabaseUrl = ((Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? '').replace(/\/+$/, '');
   const supabaseServiceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? '';
