@@ -148,7 +148,7 @@ https://zapp-web-v3.vercel.app
 ## 10. Stack Evolution — Fix R10/R11
 
 ```
-Documento: docs/infra/evolution-stack.reconciled.yml (fonte da verdade — COMMITED, não aplicado no VPS)
+Documento: docs/infra/evolution-stack.reconciled.DEPRECATED.yml (⚠️ DEPRECADO — namespace obsoleto; fonte da verdade: github.com/adm01-debug/evolution-stack/blob/main/stacks/evolution.yml)
 
 R10 (aplicado no VPS em 2026-07-11 via portainer_update_stack):
   1. tr -d '\n\r' em todos os cat /run/secrets/* (era len=33, agora len=32)

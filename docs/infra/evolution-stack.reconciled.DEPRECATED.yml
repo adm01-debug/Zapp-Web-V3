@@ -1,3 +1,8 @@
+# DEPRECATED — 2026-08-13
+# NAO USAR para redeploy. Namespace e digest estao obsoletos.
+# Fonte da verdade: https://github.com/adm01-debug/evolution-stack/blob/main/stacks/evolution.yml
+# Namespace atual: ghcr.io/adm01-debug/evolution-stack/evolution-api-custom
+
 # =====================================================================================
 # Evolution API — stack RECONCILIADO (fonte única: Portainer stackId 25)
 # SINCRONIZADO COM STACK 25 EM 2026-08-06 — espelho do compose real de produção.
