@@ -11,6 +11,7 @@
 
 import { corsHeaders } from '../_shared/validation.ts';
 import { createZappAdminClient } from '../_shared/db-client.ts';
+import { evolutionClient } from '../_shared/providers/evolution/index.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { HealthV1Schema } from '../_shared/contract-schemas.ts';
 
@@ -84,17 +85,11 @@ const HEALTH_SECRET = Deno.env.get('HEALTH_SECRET') ?? '';
 async function checkEvolution(): Promise<CheckResult> {
   const t0 = performance.now();
   try {
-    const apiUrl = (Deno.env.get('EVOLUTION_API_URL') || '').trim().replace(/\/+$/, '');
-    const apiKey = (Deno.env.get('EVOLUTION_API_KEY') || '').trim();
     const instance = Deno.env.get('EVOLUTION_INSTANCE_NAME') || 'wpp2';
-    if (!apiUrl || !apiKey) throw new Error('EVOLUTION_API_URL/KEY não configurados');
-    const r = await fetch(`${apiUrl}/instance/connectionState/${instance}`, {
-      headers: { apikey: apiKey },
-      signal: AbortSignal.timeout(5_000),
-    });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const data = await r.json();
-    const state = data?.instance?.state ?? 'unknown';
+    const r = await evolutionClient.getConnectionState(instance, { timeoutMs: 5_000 });
+    if (!r.ok) throw new Error(r.error ?? 'Evolution API error');
+    const data = (r.data ?? {}) as Record<string, unknown>;
+    const state = ((data?.instance as Record<string,unknown>)?.state ?? 'unknown') as string;
     if (state !== 'open') throw new Error(`WhatsApp state=${state}`);
     return { name: 'evolution', status: 'ok', latency_ms: Math.round(performance.now() - t0) };
   } catch (err) {

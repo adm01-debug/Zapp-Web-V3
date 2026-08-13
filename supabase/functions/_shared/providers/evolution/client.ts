@@ -27,7 +27,7 @@ export interface EvolutionResponse<T = unknown> {
   retries?: number;
 }
 
-function getBaseUrl(): string {
+export function getBaseUrl(): string {
   const url = Deno.env.get('EVOLUTION_API_URL');
   if (!url) throw new Error('EVOLUTION_API_URL not set');
   return url.replace(/\/$/, '');

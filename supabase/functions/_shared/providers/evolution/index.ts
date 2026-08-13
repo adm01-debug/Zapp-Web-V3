@@ -1,2 +1,2 @@
-export { evolutionClient, evolutionFetch } from './client.ts';
+export { evolutionClient, evolutionFetch, getBaseUrl } from './client.ts';
 export type { EvolutionClientConfig, EvolutionResponse } from './client.ts';
