@@ -88,3 +88,46 @@ WHERE last_run_status IS DISTINCT FROM 'succeeded';
 | `anon` tem `search_path=evo, public` | ⚠️ evo na frente | Corrigir para `search_path=public, extensions` antes de dropar qualquer view-alias |
 | 139 funções `evo.*` com literal `evo.tablename` | 🔧 Trabalho mecânico | Script de qualificação por tabela |
 | 100 crons com `evo.fn_*` no comando | 🔧 Trabalho mecânico | Atualizar command se função mudar de schema |
+
+---
+
+## Registro de execuções
+
+### Lote 1 — 2026-08-13 (5 tabelas de baixo risco)
+
+**Simulação de cenários executada antes:**
+- Ensaio sintético SET SCHEMA confirmou: views OID-based sobrevivem, funções com literal quebram, RLS segue tabela
+- G7 confirmou: funções referenciando essas 5 tabelas usam referência NÃO qualificada → resolvem por search_path após move
+- `cleanup_evolution_fallback_events` já usava `zapp.evolution_fallback_events` (via VIEW alias) → após move usa TABLE diretamente
+
+**Bloqueador identificado e resolvido:**
+- Todas as 5 tabelas tinham VIEW alias em `zapp` → bloqueavam SET SCHEMA
+- Sequência: `DROP VIEW zapp.tabela` → `ALTER TABLE evo.tabela SET SCHEMA zapp`
+- View em `public` sobreviveu por OID (dados legíveis via `public.tabela` antes e depois)
+
+**Validação pós-execução:**
+| Tabela | Em zapp? | Fora de evo? | RLS? | Dados via public? |
+|---|---|---|---|---|
+| evolution_spam_keywords | ✅ | ✅ | 2 policies | ✅ 5 linhas |
+| evolution_source_schema_map | ✅ | ✅ | 2 policies | ✅ 0 linhas |
+| evolution_mirror_runs | ✅ | ✅ | 2 policies | ✅ 0 linhas |
+| evolution_status_reactions | ✅ | ✅ | 2 policies | ✅ 0 linhas |
+| evolution_fallback_events | ✅ | ✅ | 2 policies | ✅ 0 linhas |
+
+**Gate pós-move:** `38 pendentes + 1 migrado + 0 críticos` ✅
+
+---
+
+## Nota sobre contact_id_graveyard — NÃO é um bloqueador
+
+`evo.contact_id_graveyard` e `zapp.contact_id_graveyard` são **tabelas intencionalmente diferentes**:
+
+| | evo.contact_id_graveyard | zapp.contact_id_graveyard |
+|---|---|---|
+| Colunas | 10 (inclui `original_remote_jid`, `lid_jid`, `merge_strategy`, `pre_merge_snapshot`) | 5 (inclui `original_workspace_id`) |
+| Linhas | ~125 | ~644 |
+| Propósito | Gerenciamento de IDs LID/Baileys (merges de dedup) | Rastreamento de contatos deletados no Workspace Zapp |
+| Dono | Evolution-stack (Grupo A) | Zapp (Grupo B, já no schema correto) |
+| Interseção | 125 IDs em ambas; 1 só em evo; 521 só em zapp | — |
+
+**Não fazer SET SCHEMA nem merge.** Cada uma serve ao seu dono.
