@@ -169,3 +169,52 @@ WHERE last_run_status IS DISTINCT FROM 'succeeded';
 - Motivo: 4 funções não-SECURITY DEFINER (fn_feed_401_disconnect_alerts, fn_log_whatsapp_connection_state_change, fn_track_connection_changes, fn_validate_media_security) → precisam de análise
 
 **Gate pós-lote:** `36 pendentes + 3 migrados + 0 críticos` ✅ (era 38+1+0)
+
+---
+
+## Lote 4 — 2026-08-13
+
+### Tabelas migradas (5)
+
+| Tabela | Rows | FK↓ | Trigs | view-zapp | view-public | Crons |
+|---|---|---|---|---|---|---|
+| evolution_webhook_dlq | 0 | 0 | 0 | DROP+SET | sobrevive | 0 |
+| evolution_notification_outbox | 2 | 0 | 0 | n/a (sem view) | sobrevive | guardian-monthly |
+| evolution_notifications | 8666 | 1↓ | 0 | DROP+SET | sobrevive | guardian-monthly |
+| evolution_followup_rules | 4 | 0 | 1 (set_updated_at) | DROP+SET | sobrevive | 0 |
+| evolution_followups | 0 | 0 | 0 | DROP+SET | sobrevive | 0 |
+
+### Funções corrigidas (18 + 1 cron)
+
+**Bloco 4A (dlq):** fn_add_to_dlq[overload2], fn_audit_rmq_durability_risk, fn_flag_poison_messages,
+fn_lid_upgrade_readiness_check[C03], fn_monitor_dlq_health, fn_post_upgrade_verify[V06],
+fn_pre_upgrade_final_check[C03], fn_purge_api_key_from_logs[passo6], fn_route_failed_webhooks_to_dlq[format()],
+fn_scrub_r2_paths_from_logs — todos [A7] aplicado (refs Grupo A intactas em evo).
+
+**Bloco 4B (outbox+notifications):** fn_evo_outbox_claim, fn_evo_outbox_mark, fn_evo_outbox_release,
+fn_process_evolution_notifications, fn_repontar_filhas_graveyard[[A7]: só notifications→zapp],
+rpc_get_notifications — RETURNS TABLE (não SETOF evo.*) → CREATE OR REPLACE direto.
+Cron: evo-schema-guardian-monthly (já estava corrigido; confirmado has_zapp_ref=true).
+
+**Bloco 4C (followup_rules+followups):** trg_create_followups_on_stage_change — 3 refs
+(followup_rules SELECT, followups EXISTS+INSERT) → zapp. Trigger em evo.evolution_deals
+(Grupo A, não migra) continua chamando zapp.trg_create_followups_on_stage_change normalmente.
+
+### REVOKEs
+Nenhum aplicado neste lote. Tabelas migradas → saem do Grupo A, write via view public continua OK.
+
+### P-VAL resumido
+- Todas em zapp ✅ (pg_class.relnamespace confirmado)
+- Contagens: dlq=0, outbox=2, notifications=8666, rules=4, followups=0 ✅
+- Views public sobreviveram (relkind='v') ✅
+- FK outbox→notifications auto-atualizada para zapp.outbox→zapp.notifications ✅
+- Trigger set_updated_at seguiu followup_rules para zapp ✅
+- RLS: 2 policies em followup_rules e followups ✅
+- D5: zero literal evo.<tabela_migrada> residual em todas as 18 funções ✅
+- Gate: 27→22 pendentes (baseline atualizado) ✅
+
+### Descobertas/armadilhas documentadas
+- [A7] Confirmado crítico em fn_post_upgrade_verify, fn_pre_upgrade_final_check, fn_repontar_filhas_graveyard
+- [F2] fn_route_failed_webhooks_to_dlq: literal dlq dentro de format() string — fix cirúrgico no texto do format
+- Cron guardian-monthly para notifications já estava com zapp.evolution_notifications (corrigido por outra instância ou lote anterior)
+- fn_add_to_dlq tem 2 overloads: overload 1 (search_path=zapp,evo + unqualified) auto-resolve; overload 2 tinha evo. explícito — corrigido

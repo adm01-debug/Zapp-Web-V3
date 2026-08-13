@@ -55,6 +55,12 @@ const MIGRATED_TO_ZAPP = new Set([
   'evolution_notification_log',    // 81 linhas — log de notificação
   'evolution_calls',               // 70 linhas — chamadas
   'evolution_message_templates',   // 0 linhas — templates (1 TS write migrated)
+  // Lote 4 — 2026-08-13 (5 tabelas + 18 fns + 1 cron corrigidos)
+  'evolution_webhook_dlq',          // 0 linhas — DLQ de webhooks (1 TS write migrated)
+  'evolution_notification_outbox',  // 2 linhas — outbox de notificações
+  'evolution_notifications',        // 8666 linhas — notificações
+  'evolution_followup_rules',       // 4 linhas — regras de followup (3 TS writes migrated)
+  'evolution_followups',            // 0 linhas — followups (1 TS write migrated)
 ]);
 
 // ── BASELINE ────────────────────────────────────────────────────────────────
@@ -63,10 +69,10 @@ const MIGRATED_TO_ZAPP = new Set([
 //       O write vira "legítimo" (conta como migrated), não "eliminado".
 //       Para eliminar: refatorar o código para não escrever diretamente.
 const BASELINE = {
-  total:      27,   // 39 original - 1(fallback) - 2(msg_queue) - 5(bitrix) - 1(templates) - 1(reactions) - 1(retry) - 1(send_idp)
-  migrated:   12,   // writes que viraram legítimos por migração
+  total:      22,   // 27 - 5 (webhook_dlq + outbox + notifications + followup_rules + followups)
+  migrated:   17,   // 12 + 5 writes legítimos por migração lote 4
   eliminated:  0,   // writes eliminados por refatoração de código
-  updated_at: '2026-08-13-lote3',
+  updated_at: '2026-08-13-lote4',
 };
 
 // ── GRUPO A — Evolution-stack owns. Zero tolerância. ────────────────────────
