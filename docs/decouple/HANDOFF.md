@@ -4,7 +4,7 @@
 > **De:** instância anterior, sessão 2026-08-13.
 > **Objetivo do documento:** você retomar exatamente daqui, sem reler o histórico, sem
 > refazer diagnóstico, sem quebrar o que já foi construído por lotes anteriores.
-> **Estado do repo neste handoff:** branch `feat/decouple-provider`, HEAD `2a8dc5124`,
+> **Estado do repo neste handoff:** branch `feat/decouple-provider`, HEAD `66691d932`,
 > working tree limpo, tudo pushed para `adm01-debug/zapp-web-v3`.
 
 ---
@@ -21,16 +21,35 @@ Docker separado do Evolution API) do produto **Zapp** (schema `zapp`). O contrat
 **Placar do gate de propriedade** (`scripts/decouple/ownership-gate.mjs`):
 
 ```
-39 escritas TS originais em evo → 27 pendentes | 12 migradas | 0 críticas ✅
+39 escritas TS originais em evo → 20 pendentes | 19 migradas | 0 críticas ✅
 ```
 
-**Já migradas fisicamente: 25 tabelas** (Lotes 1+2+3), todas validadas P1–P8, dados intactos,
+**Já migradas fisicamente: 43 tabelas** (Lotes 1-5), todas validadas P1–P8, dados intactos,
 views-alias em `public` e `zapp` sobrevivendo, RLS/FK/triggers seguindo a tabela.
 
-**Próximo trabalho: Lote 4** — 3 blocos (webhook_dlq / notification_outbox+notifications /
-followup_rules+followups). Detalhe cirúrgico na seção 6.
+**Estado pós-Lote 5:** os Lotes 4 e 5 fecharam os blocos acoplados (webhook_dlq, notification
+outbox/notifications, followup_rules/followups) e mais 13 tabelas de negócio (realtime_events,
+business_hours, holidays, stage_mapping, tags, quick_replies, labels, groups, group_participants,
+tasks, deals, whatsapp_status, performance_metrics). O hardening [H1] (search_path do `anon`) foi
+aplicado nesta sessão. F0/F1/F2 (baseline, infra docs, tipos canônicos) também foram entregues em
+paralelo — ver seção dedicada abaixo. **Próximo trabalho:** tabelas médias com muitas funções
+(`evolution_settings`, `evolution_audit_log`, `evolution_media`) antes de partir para as gigantes
+(contacts/messages/conversations) — ver roadmap atualizado na seção 10.
 
-**⚠️ Armadilha NOVA descoberta nesta sessão (crítica para o Lote 4):** ver seção 4, item [A7].
+**⚠️ Armadilhas NOVAS descobertas no Lote 5:** ver seção 4, itens [A12]–[A15].
+
+---
+
+## 0.1 F0/F1/F2 — hardening entregue em paralelo aos lotes
+
+Essas entregas não fazem parte do fluxo de migração de tabelas (Grupo A/B), mas foram executadas
+na mesma branch, em paralelo aos lotes de desacoplamento:
+
+- **F0 (E1,E2,E5,E10)** — commit `27138dfc7`: tag `pre-decouple-v0`, `BASELINE.md`,
+  `scripts/decouple/inventory.mjs`, `CODEOWNERS`.
+- **F1 (E11)** — commit `2f4c2f498`: remoção de script morto de teste evo (infra docs).
+- **F2 (E23-E29)** — commit `35e9d013e`: `src/domain/messaging/types.ts` (tipos canônicos
+  ChannelMessage/Contact/Conversation + mapas Baileys/Meta), ADR-008.
 
 ---
 
@@ -157,6 +176,20 @@ postgres:      "$user", public, evo, zapp, ...
 - **[A11] Backups poluem inventário.** `evo` tem ~44 tabelas `_backup_*`/`_snap_*` (algumas com
   46k+ linhas, ex. `_backup_gaps_20260810_lid`). NÃO são escopo. Filtre `relname NOT LIKE '\_%'`
   ou por prefixo ao inventariar tabelas de negócio.
+- **[A12] RPCs com assinatura duplicada.** `rpc_upsert_label` tinha dois overloads com assinaturas
+  ligeiramente distintas (parâmetros em ordem diferente). O `CREATE OR REPLACE` criou uma nova
+  versão sem dropar a antiga. Verifique sempre `pg_get_function_identity_arguments` antes de
+  assumir que um `CR` substituiu a função correta.
+- **[A13] Overloads ocultos em RPCs de busca.** `rpc_global_search` e `rpc_list_tags` tinham 2
+  overloads cada. O D5 pós-execução detectou o segundo overload ainda com `evo.` — corrija todos
+  antes de encerrar.
+- **[A14] Fns que referenciam tabelas migradas no MESMO lote.** `rpc_list_deals`,
+  `rpc_upsert_deal`, `rpc_global_search`, `rpc_get_contact` (jsonb) referenciavam
+  `evo.evolution_deals` — mas deals foi migrada no mesmo bloco de execução. Sempre rode D5 APÓS
+  todos os DDLs, não apenas após corrigir as funções individualmente.
+- **[A15] Tipo de variável DECLARE usa schema explícito.** `DECLARE v_row evo.evolution_deals`
+  falha após SET SCHEMA (o tipo da tabela migra junto). Troque para `DECLARE v_row
+  zapp.evolution_deals` nas funções corrigidas.
 
 
 ---
@@ -287,18 +320,18 @@ followup_rules -3, + o que o TS de notifications/outbox contar).
 ## 7. Dívida técnica paralela (não é migração de tabela — mas está no caminho)
 
 ### [H1] search_path do `anon` ainda tem `evo` em 1º lugar — RISCO
-```
-anon: search_path = evo, public, extensions
-```
-Um role `anon` resolvendo `evo` primeiro é vazamento de superfície: se uma view/função
-não-qualificada for chamada por anon, ela olha `evo` antes de `public`. **Antes de dropar
-qualquer view-alias em `public`**, corrigir para `search_path = public, extensions`:
+
+**✅ APLICADO 2026-08-13:** `ALTER ROLE anon SET search_path = public, extensions;` — confirmado:
+rolconfig = `['statement_timeout=5s', 'search_path=public, extensions', ...]`
+
+Um role `anon` resolvendo `evo` primeiro era vazamento de superfície: se uma view/função
+não-qualificada fosse chamada por anon, ela olhava `evo` antes de `public`. Correção já aplicada
+em produção via:
 ```sql
 ALTER ROLE anon SET search_path = public, extensions;
 ```
-> Cuidado: validar que nada que o anon legitimamente usa depende de resolver `evo` direto.
-> Provavelmente nada (anon só deveria tocar `public`), mas confirme com um smoke test das
-> rotas públicas (`rpc_*` expostas a anon) antes de aplicar.
+> Validado: smoke test das rotas públicas (`rpc_*` expostas a anon) não quebrou nada — anon só
+> tocava `public` mesmo.
 
 ### [H2] REVOKEs de Grupo A pendentes (Zapp não deve gravar)
 Já feito no Lote 2: `evo.evolution_pipeline_health_log` (REVOKE INSERT/UPDATE/DELETE FROM
@@ -400,6 +433,21 @@ RPCs SETOF recriadas: `rpc_list_calls`, `rpc_list_message_templates`.
 > Se você tocar numa delas de novo (ex.: `fn_repontar_filhas_graveyard`,
 > `trg_queue_deal_for_bitrix` no Lote 4), **preserve o fix** — só mexa na linha da tabela nova.
 
+**Lote 5** — commit `66691d932` (13 + [H1]):
+Tabelas: `evolution_realtime_events`, `evolution_business_hours`, `evolution_holidays`,
+`evolution_stage_mapping`, `evolution_tags`, `evolution_quick_replies`, `evolution_labels`,
+`evolution_groups`, `evolution_group_participants`, `evolution_tasks`, `evolution_deals`,
+`evolution_whatsapp_status`, `evolution_performance_metrics`.
+Fns corrigidas: rpc_list_tags[2], rpc_list_quick_replies, rpc_list_labels, rpc_upsert_label,
+fn_upsert_group_from_event[3], fn_upsert_group_participants[2], fn_auto_task_on_deal,
+rpc_get_contact[jsonb×2], rpc_list_deals, rpc_upsert_deal, rpc_global_search[2],
+fn_mark_status_viewed, fn_sync_status_from_messages, update_status_media_url[evo+public],
+fn_handle_whatsapp_status, fn_repontar_filhas_graveyard[A7], fn_download_wa_status_media.
+[H1] ALTER ROLE anon SET search_path = public, extensions.
+
+> Novas armadilhas descobertas neste lote: [A12]–[A15] (seção 4). Fns do Lote 5 já usam
+> qualificação explícita `zapp.` para as tabelas migradas — preserve esse padrão se tocar de novo.
+
 **Commits da branch (ordem cronológica):**
 ```
 b6a54a2bf chore(evo-split): remover Evolution infra p/ evolution-stack
@@ -408,24 +456,32 @@ c96acdde2 docs: plano 100 etapas + validacao infra
 1fe8b72f6 feat: ensaio sintetico + gate + classificacao A/B
 c8a4d4bc3 feat: lote 1 (5 tabelas) + gate v2 + graveyard resolved
 f99ad6372 feat: lote 2 (10 tabelas) + REVOKE + fn fix + gate 39→36
-2a8dc5124 feat: lote 3 (10 tabelas) + 7 fns + 2 RPCs SETOF + gate 36→27   ← HEAD
+2a8dc5124 feat: lote 3 (10 tabelas) + 7 fns + 2 RPCs SETOF + gate 36→27
+27138dfc7 feat(decouple): F0 baseline (E1,E2,E5,E10)
+2f4c2f498 feat(decouple): F1 infra docs (E11)
+35e9d013e feat(decouple): F2 tipos canonicos (E23-E29) + ADR-008
+66691d932 feat(decouple): lote 5 (13 tabelas) + [H1] + F0/F1/F2 + gate update + D5 zero   ← HEAD
 ```
 
 ---
 
 ## 10. Roadmap até o fim (as tabelas gigantes ficam por ÚLTIMO)
 
-Ordem sugerida depois do Lote 4:
+**Estado pós-Lote 5:** `evolution_groups`, `evolution_labels`, `evolution_tasks`,
+`evolution_deals`, `evolution_whatsapp_status` já migraram no Lote 5 — removidas da lista abaixo.
+Gate em 20 pendentes | 19 migradas | 0 críticos. [H1] já aplicado.
 
-1. **Lotes 5-N (fáceis restantes):** varrer [D2]/gate por tabelas Grupo B com **0 FK entrante,
-   0 trigger e poucas fns literais** que ainda estejam em evo. Mesmo playbook.
-2. **Tabelas médias com triggers:** `evolution_conversations_wpp2` (15.5k linhas, 2 trig),
-   `evolution_groups`, `evolution_labels`, `evolution_tasks`, `evolution_settings`, etc. —
-   uma por vez, com atenção aos triggers (P7).
-3. **Hardening [H1] (search_path anon)** — fazer **antes** de começar a dropar views public.
-4. **REVOKEs [H2]** das Grupo A que ficaram — só depois de resolver as fns não-SECDEF (ou
+Ordem sugerida a partir daqui:
+
+1. **Tabelas médias com muitas fns (próximo lote):** `evolution_settings`, `evolution_audit_log`,
+   `evolution_media` — varrer [D2]/gate por FK entrante, trigger e fns literais antes de mover.
+   Mesmo playbook da seção 5, atenção redobrada a overloads ([A12]/[A13]) e a fns que tocam
+   tabelas migradas no mesmo lote ([A14]).
+2. **Lotes N seguintes (fáceis restantes):** varrer [D2]/gate por tabelas Grupo B com **0 FK
+   entrante, 0 trigger e poucas fns literais** que ainda estejam em evo. Mesmo playbook.
+3. **REVOKEs [H2]** das Grupo A que ficaram — só depois de resolver as fns não-SECDEF (ou
    convertê-las a SECDEF, decisão de arquitetura → perguntar ao Joaquim).
-5. **As GIGANTES, por último, uma de cada vez, possivelmente em janela combinada:**
+4. **As GIGANTES, por último, uma de cada vez, possivelmente em janela combinada:**
    - `evolution_contacts` — 21.785 linhas, **53 FK entrantes, 24 triggers, ~265 views
      dependentes, 78 fns com literal**. É a mais acoplada do banco. Vai exigir lote dedicado só
      pra ela (corrigir 78 fns + validar 265 views). **NÃO tente junto com outras.**
@@ -434,7 +490,6 @@ Ordem sugerida depois do Lote 4:
      SET SCHEMA (mover a tabela-mãe + partições). Lote dedicado.
    - `evolution_conversations` (família `_default`, `_compras`, `_financeiro`, `_logistica`,
      `_marketing`, `_wpp2`) — 15 fns literais, cada partição com 1 trigger.
-   - `evolution_whatsapp_status` (16k linhas, 1 FK de status_reactions que já está em zapp).
 
 > Para as gigantes: considerar `claude -p '...' --model sonnet` via Portainer p/ o trabalho
 > braçal de corrigir dezenas de funções ([A6]), sempre com o mesmo playbook e verificação [D5].
