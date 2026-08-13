@@ -33,6 +33,17 @@ const MIGRATED_TO_ZAPP = new Set([
   'evolution_mirror_runs',       // 0 linhas — runs de mirror
   'evolution_status_reactions',  // 0 linhas — reações de status
   'evolution_fallback_events',   // 0 linhas — eventos de fallback
+  // Lote 2 — 2026-08-13 (10 tabelas de baixo risco + fn_calculate_daily_kpis corrigida)
+  'evolution_chatbot_responses',   // 3 linhas — respostas de chatbot
+  'evolution_group_messages',      // 0 linhas — mensagens de grupo
+  'evolution_group_rules',         // 0 linhas — regras de grupo
+  'evolution_ip_blocklist',        // 0 linhas — blocklist de IP
+  'evolution_label_associations',  // 0 linhas — associações de labels
+  'evolution_scheduled_messages',  // 0 linhas — mensagens agendadas
+  'evolution_tag_assignments',     // 0 linhas — atribuições de tags
+  'evolution_template_usage',      // 0 linhas — uso de templates
+  'evolution_message_queue',       // 0 linhas — fila de mensagens (2 TS writes migrated)
+  'evolution_automation_logs',     // 0 linhas — logs de automação
 ]);
 
 // ── BASELINE ────────────────────────────────────────────────────────────────
@@ -41,10 +52,10 @@ const MIGRATED_TO_ZAPP = new Set([
 //       O write vira "legítimo" (conta como migrated), não "eliminado".
 //       Para eliminar: refatorar o código para não escrever diretamente.
 const BASELINE = {
-  total:      38,   // 39 original - 1 (evolution_fallback_events now migrated)
-  migrated:    1,   // writes que viraram legítimos por migração
+  total:      36,   // 39 original - 1 (evolution_fallback_events) - 2 (evolution_message_queue)
+  migrated:    3,   // writes que viraram legítimos por migração
   eliminated:  0,   // writes eliminados por refatoração de código
-  updated_at: '2026-08-13',
+  updated_at: '2026-08-13-lote2',
 };
 
 // ── GRUPO A — Evolution-stack owns. Zero tolerância. ────────────────────────

@@ -131,3 +131,41 @@ WHERE last_run_status IS DISTINCT FROM 'succeeded';
 | Interseção | 125 IDs em ambas; 1 só em evo; 521 só em zapp | — |
 
 **Não fazer SET SCHEMA nem merge.** Cada uma serve ao seu dono.
+
+---
+
+### Lote 2 — 2026-08-13 (10 tabelas + 1 função corrigida + 1 REVOKE)
+
+**Tabelas migradas evo→zapp:**
+
+| Tabela | Linhas | Triggers | RLS pós-move | Via public? |
+|---|---|---|---|---|
+| evolution_chatbot_responses | 3 | 0 | 2 | ✅ |
+| evolution_group_messages | 0 | 0 | 2 | ✅ |
+| evolution_group_rules | 0 | 0 | 2 | ✅ |
+| evolution_ip_blocklist | 0 | 0 | 1 | ✅ |
+| evolution_label_associations | 0 | 0 | 1 | ✅ |
+| evolution_scheduled_messages | 0 | 0 | 2 | ✅ |
+| evolution_tag_assignments | 0 | 0 | 2 | ✅ |
+| evolution_template_usage | 0 | 0 | 2 | ✅ |
+| evolution_message_queue | 0 | 0 | 2 | ✅ |
+| evolution_automation_logs | 0 | 0 | 2 | ✅ |
+
+**Excluída do lote:** `evolution_message_templates`
+- `rpc_list_message_templates` usa `RETURNS SETOF evo.evolution_message_templates` (tipo composto + literal no body)
+- Requer DROP + CREATE da função com novo return type → Lote 3
+
+**Gaps encontrados e resolvidos na simulação:**
+- `fn_calculate_daily_kpis` tinha `FROM evo.evolution_automation_logs` literal → regex `FROM evo\.evolution_automation_logs` confirmou → CREATE OR REPLACE com `SET search_path = zapp, evo, ...` e referência não-qualificada
+- Todas as 10 tinham VIEW aliases em zapp (bloqueador) → DROP VIEW → SET SCHEMA (padrão do Lote 1)
+
+**REVOKE executado:**
+- `evo.evolution_pipeline_health_log`: REVOKE INSERT, UPDATE, DELETE FROM authenticated
+- Motivo: todas as 3 funções que escrevem nela são SECURITY DEFINER (fn_monthly_evo_audit, fn_pipeline_health_log_cleanup, fn_pipeline_health_probe)
+- Verificação pós-REVOKE: 0 grants retornados ✅
+
+**Skipped (UNSAFE):**
+- `evo.evolution_connection_history`, `evo.media_cleanup_log`, `evo.media_dedupe_log`, `evo.media_scan_log`
+- Motivo: 4 funções não-SECURITY DEFINER (fn_feed_401_disconnect_alerts, fn_log_whatsapp_connection_state_change, fn_track_connection_changes, fn_validate_media_security) → precisam de análise
+
+**Gate pós-lote:** `36 pendentes + 3 migrados + 0 críticos` ✅ (era 38+1+0)
