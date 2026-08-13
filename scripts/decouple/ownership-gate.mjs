@@ -100,6 +100,9 @@ const MIGRATED_TO_ZAPP = new Set([
   'evolution_mirror_checkpoints',   // 0 linhas — checkpoints de espelho
   'evolution_mirror_media_queue',   // 0 linhas — fila de mídia espelho
   'evolution_monthly_audit_log',    // 2 linhas — log de auditoria mensal (fn_monthly_evo_audit corrigida [A7])
+  // Lote 9 — 2026-08-13 (2 tabelas: health_logs registrada + convs_wpp2 partition)
+  'evolution_health_logs',           // 1 linha — logs de saúde da instância (DDL movido no lote8, gate atualizado no lote9)
+  'evolution_conversations_wpp2',    // 15601 linhas — partição principal de evolution_conversations
 ]);
 
 // ── BASELINE ────────────────────────────────────────────────────────────────
@@ -108,10 +111,10 @@ const MIGRATED_TO_ZAPP = new Set([
 //       O write vira "legítimo" (conta como migrated), não "eliminado".
 //       Para eliminar: refatorar o código para não escrever diretamente.
 const BASELINE = {
-  total:      16,   // 17 - 1 (evolution_alerts migrada: gmail-token-refresh:162 agora é write legítimo)
-  migrated:   23,   // 22 + 1 (evolution_alerts: gmail-token-refresh:162)
+  total:      13,   // 16 - 3 (evolution_health_logs: 2 writes + evolution_conversations_wpp2: 1 write)
+  migrated:   25,   // 23 + 2 (evolution_health_logs + evolution_conversations_wpp2)
   eliminated:  0,   // writes eliminados por refatoração de código
-  updated_at: '2026-08-13-lote8',
+  updated_at: '2026-08-13-lote9',
 };
 
 // ── GRUPO A — Evolution-stack owns. Zero tolerância. ────────────────────────
