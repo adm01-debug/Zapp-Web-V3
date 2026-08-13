@@ -7,6 +7,61 @@
 > **Estado do repo neste handoff:** branch `feat/decouple-provider`, HEAD `66691d932`,
 > working tree limpo, tudo pushed para `adm01-debug/zapp-web-v3`.
 
+
+---
+
+## 📍 SESSÃO 2026-08-13 (Tarde) — Auditoria Exaustiva + Lotes 9A/9B + F3/F5
+
+**HEAD final:** `978b79884`
+**Gate:** 13 pendentes | 24 migrados | 0 críticos
+
+### O que foi feito
+
+#### Auditoria Exaustiva (10 Agentes Simultâneos)
+- 53/53 tabelas confirmadas em zapp, D5 global zerado, RLS íntegra
+- **2 bugs corrigidos:**
+  1. `vacuum-burnin-tracker-daily` cron: `evo.evolution_burnin_tracker` → `zapp.`
+  2. `rpc_upsert_label`: colunas inexistentes (label_type, description, sort_order) removidas do INSERT/UPDATE
+- `fn_system_health_score`: 100.0 A+ após migração de evolution_settings
+
+#### Lote 9A — evolution_health_logs
+- 5 fns corrigidas: fn_audit_rmq_durability_risk, fn_logpatch_verify, fn_monitor_pino_timeouts,
+  fn_purge_api_key_from_logs, fn_scrub_r2_paths_from_logs
+- DROP VIEW zapp + SET SCHEMA evo → zapp
+- View pública recriada
+
+#### F3 — rpc_log_evolution_health  
+- RPC canônica criada: zapp.rpc_log_evolution_health (9 params)
+- Front `useEvolutionApiIntegration.ts` já usava .rpc() — compatível
+- Elimina as 2 escritas diretas em evo.evolution_health_logs
+
+#### F5 — Gateway HTTP Evolution API
+- Criado: `supabase/functions/_shared/providers/evolution/client.ts`
+- Criado: `supabase/functions/_shared/providers/evolution/index.ts` (barrel)
+- Criado: `supabase/functions/_shared/providers/registry.ts` (resolve client por provider)
+- 11 verbos: sendText, sendMedia, sendSticker, getConnectionState, getQrCode, restartInstance, listInstances, listGroups, checkWhatsApp, getProfilePicture, get/post
+
+#### Lote 9B — Família evolution_conversations (7 tabelas)
+- **Descoberta**: evolution_conversations_wpp2 já estava em zapp (Hermes)
+- 13 PL/pgSQL corrigidas via EXECUTE+replace()
+- **get_platform_health**: bug duplo corrigido (conversations + evolution_webhook_events→_v2)
+- **get_sla_dashboard**: conversations corrigida
+- DROP+CREATE SETOF: get_contact_conversations e rpc_list_conversations com RETURNS SETOF zapp.evolution_conversations
+- SET SCHEMA: mãe particionada + 5 partições restantes
+- 7 views públicas recriadas
+
+### Estado das Tabelas Pendentes
+| Tabela | Status | Fns |
+|---|---|---|
+| evolution_contacts | em evo | 79 — GIGANTE, ÚLTIMO |
+| evolution_messages | em evo (particionada) | 55 — GIGANTE |
+| evolution_messages_wpp2 | em evo | 20 — via Portainer |
+
+### Próximos Passos Imediatos
+1. Lote 10 — evolution_messages (55+ fns, particionada) — delegar via `claude -p` no container claude-code [A6]
+2. Lote FINAL — evolution_contacts (79 fns, 24 trigs, 53 FK) — sessão dedicada
+3. F5 E69-E76: migrar as 21 edge fns para usar evolutionClient de _shared/providers/evolution/client.ts
+
 ---
 
 ## 0. TL;DR — onde estamos (leia isto primeiro)
