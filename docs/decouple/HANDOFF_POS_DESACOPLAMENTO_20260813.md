@@ -9,6 +9,53 @@
 
 ---
 
+## ⚠️ ADENDO 2026-08-13 (madrugada) — auditoria exaustiva + correções pós-handoff
+
+> Sessões posteriores (multi-agente: **Claude + Hermes**) rodaram auditoria de 10 frentes e
+> aplicaram correções. **Residual global `evo.<tabela migrada>` em funções/crons/triggers = 0.**
+> Vários números do TL;DR abaixo estão desatualizados: branch efetivo `main` (HEAD ~`ea50202c8`),
+> `zapp.evolution_*` = **74 tabelas** (drift benigno), `fn_system_health_score` = **100.0 A+**.
+
+**Concluído nesta rodada de auditoria:**
+- **[H2] REVOKE Grupo A — FEITO.** Verificado: 5 tabelas evo Grupo A (`evolution_alert_cooldown`,
+  `backfill_audit`, `connection_history`, `pipeline_history`, `retention_log`) com apenas SELECT
+  para `authenticated`. A **FRENTE 1** abaixo já está satisfeita.
+- **GAP#1 — funções `ops` liam `evo.<tabela migrada>` inexistente.**
+  `fn_monitor_ingestion_persistence_gap` (→`evo.evolution_audit_log`), `fn_notify_critical_alerts`
+  e `fn_system_health` (→`evo.evolution_instance_credentials`). Schema corrigido pelo **Hermes**
+  (evo→zapp, "Lote 6"). **Claude corrigiu um 2º bug latente** em `ops.fn_system_health`: 4 appends
+  `text[] || 'literal'` (tipo `unknown`) davam *malformed array literal* — corrigidos com `::text`.
+  Crons 84 (notify) e 206 (monitor-gap) voltaram a rodar OK. `evo.evolution_connection_history`
+  (Grupo A legítima) **preservada** — fix cirúrgico por nome de tabela, não genérico.
+- **GAP#3 — máscara no cron 149** (`vps-performance-snapshot`): removido o filtro
+  `AND return_message NOT LIKE '%does not exist%'` que mascarava falhas no cálculo de
+  `cron_failures_24h`. Medição honesta. *Nota:* `vps_health_score` pode oscilar até as falhas
+  históricas saírem da janela de 24h (transitório).
+- **GAP#4 — 2 índices INVÁLIDOS** em `zapp.evolution_messages` (`idx_evo_msgs_media_status_pending`,
+  `pidx_msgs_created_at`): eram `ON ONLY` da mãe com só o filho de `wpp2`. Criados os índices-filho
+  na partição `evolution_messages_default` (vazia) + `ATTACH PARTITION` → ambas as mães revalidaram
+  (`indisvalid=true`, 2 filhos).
+- **Overloads RPC (dívida F4):**
+  - `rpc_insert_message` tinha 2 overloads de 9 args **idênticos** (só ordem de params) → risco de
+    *"is not unique"* via PostgREST. Dropado o redundante; mantido o flexível
+    (`p_remote_jid, p_content, p_instance, ...`). Sobra 1 overload.
+  - `rpc_upsert_contact(14 args)`: `COALESCE(p_lead_status,'new')` violava `chk_lead_status_vocab`
+    (vocabulário PT-BR: novo/qualificado/negociando/ganho/perdido/inativo). Corrigido para `'novo'`.
+- **FKs `NOT VALID`** em `evolution_messages/media/reactions`: 1 validada
+  (`evolution_reactions`→`wpp2`). As 4 restantes apontam para `evolution_messages_default` e são
+  **sub-constraints internas** de partição (filhas de `fk_*_message`, todas válidas) — criadas
+  `NOT VALID` pelo `ATTACH`, não-dropáveis nem validáveis isoladamente, **inócuas**: integridade
+  garantida pelas FKs-mãe.
+
+**ESCALADO (precisa decisão de Joaquim):**
+- Consolidar `rpc_upsert_contact` **3-args vs 14-args**. Divergem em pontos reais: o de 3 escreve via
+  view `zapp.contacts` (+handler `INSTEAD OF`), o de 14 escreve direto em `zapp.evolution_contacts`
+  e **reativa** soft-deleted (`deleted_at=NULL`); `ON CONFLICT` atualiza campos diferentes. Dropar um
+  muda o comportamento do pipeline de ingestão → trade-off de negócio. Recomendação: manter o de 14
+  (já corrigido) como canônico, mas requer aprovação.
+
+---
+
 ## 0. TL;DR — Leia Isto Primeiro
 
 ### Estado confirmado (verificado no banco e no repo nesta sessão)
