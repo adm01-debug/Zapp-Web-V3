@@ -59,7 +59,7 @@ shell = dash: sem [[ ]], sem arrays bash, usar . no lugar de source
 | evolution_audit_log | 1 | _shared/log-idempotency-miss.ts:46 | Grupo B — migrar |
 | evolution_contacts | 4 | contacts-import, evolution-bitrix-sync (x3) | Grupo B — GIGANTE (último) |
 | evolution_conversations_wpp2 | 1 | useZappConversations.ts:78 | Grupo B — família conversations |
-| evolution_health_logs | 2 | useEvolutionApiIntegration.ts:153,174 | VIOLAÇÃO: front escreve direto — tratar via F3 |
+| evolution_health_logs | 0 (era 2) | ~~useEvolutionApiIntegration.ts:153,174~~ | RESOLVIDO — F3: front agora usa RPC `zapp.rpc_log_evolution_health` (migration `20260813180000_rpc_log_evolution_health.sql`); tabela continua em evo |
 | evolution_messages | 9 | evolution-helpers (x2), webhook-handlers (+6) | Grupo B — GIGANTE |
 | ingest_ledger | 2 | evolution-webhook/index.ts:414,432 | GRUPO A — NÃO migra. Escrita legítima de edge fn |
 
@@ -214,7 +214,7 @@ Lote FINAL: evolution_contacts GIGANTE (21.8k rows, 53 FK, 24 trigs, 78 fns, 265
 
 [H2] REVOKEs: só após todas as fns gravadoras forem SECDEF (decisão arquitetural com Joaquim)
 E14/E15: BLOQUEADO — precisa aprovação explícita
-evolution_health_logs: tratar via F3 (front escreve direto — violação de política)
+evolution_health_logs: RESOLVIDO — F3 aplicado (RPC zapp.rpc_log_evolution_health, migration pendente de apply em produção — sem acesso a MCP de DB nesta sessão)
 ingest_ledger: Grupo A, não migra, documentar no gate
 
 ---
