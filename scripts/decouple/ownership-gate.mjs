@@ -61,6 +61,20 @@ const MIGRATED_TO_ZAPP = new Set([
   'evolution_notifications',        // 8666 linhas — notificações
   'evolution_followup_rules',       // 4 linhas — regras de followup (3 TS writes migrated)
   'evolution_followups',            // 0 linhas — followups (1 TS write migrated)
+  // Lote 5 — 2026-08-13 (13 tabelas + 18 fns + [H1] anon search_path corrigidos)
+  'evolution_realtime_events',      // 1569 linhas — eventos realtime (cron purge_realtime_events)
+  'evolution_business_hours',       // 7 linhas — horário comercial
+  'evolution_holidays',             // 11 linhas — feriados
+  'evolution_stage_mapping',        // 14 linhas — mapa de estágios
+  'evolution_tags',                 // 24 linhas — tags
+  'evolution_quick_replies',        // 13 linhas — respostas rápidas
+  'evolution_labels',               // 9 linhas — labels
+  'evolution_groups',               // 221 linhas — grupos
+  'evolution_group_participants',   // 10714 linhas — participantes de grupo
+  'evolution_tasks',                // 6 linhas — tarefas
+  'evolution_deals',                // 9 linhas — negócios/deals
+  'evolution_whatsapp_status',      // 16101 linhas — status WhatsApp
+  'evolution_performance_metrics',  // 11 linhas — métricas de performance (bônus)
 ]);
 
 // ── BASELINE ────────────────────────────────────────────────────────────────
@@ -69,10 +83,10 @@ const MIGRATED_TO_ZAPP = new Set([
 //       O write vira "legítimo" (conta como migrated), não "eliminado".
 //       Para eliminar: refatorar o código para não escrever diretamente.
 const BASELINE = {
-  total:      22,   // 27 - 5 (webhook_dlq + outbox + notifications + followup_rules + followups)
-  migrated:   17,   // 12 + 5 writes legítimos por migração lote 4
+  total:      20,   // 22 - 2 (writes literais que passaram a apontar para zapp após lote 5)
+  migrated:   19,   // 17 + 2 writes legítimos por migração lote 5 (maioria das 13 tabelas é acessada via RPC, não write literal TS)
   eliminated:  0,   // writes eliminados por refatoração de código
-  updated_at: '2026-08-13-lote4',
+  updated_at: '2026-08-13-lote5',
 };
 
 // ── GRUPO A — Evolution-stack owns. Zero tolerância. ────────────────────────

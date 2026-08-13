@@ -264,3 +264,69 @@ preservados): `status` → `approval_status` (mapeamento type-safe text→text).
 (25 dos Lotes 1-3 + 5 do Lote 4). A correção de `evolution_reactions` que fiz no cron
 `evo-schema-guardian-monthly` (Lote 3) foi preservada pelo Lote 4, que adicionou a
 correção de `notifications` ao mesmo cron. Gate: 22 pendentes / 17 migrados / 0 críticos.
+
+---
+
+## Lote 5 — 2026-08-13
+
+### Tabelas migradas (13 + 1 bônus)
+
+| Tabela | Rows | FK↓ | Trigs | view-zapp | view-public | Crons |
+|---|---|---|---|---|---|---|
+| evolution_realtime_events | 1569 | 0 | 0 | DROP+SET | sobrevive | purge_realtime_events |
+| evolution_business_hours | 7 | 0 | 0 | DROP+SET | sobrevive | 0 |
+| evolution_holidays | 11 | 0 | 0 | DROP+SET | sobrevive | 0 |
+| evolution_stage_mapping | 14 | 0 | 0 | DROP+SET | sobrevive | 0 |
+| evolution_tags | 24 | 0 | 0 | DROP+SET (SETOF) | sobrevive | 0 |
+| evolution_quick_replies | 13 | 0 | 0 | DROP+SET (SETOF) | sobrevive | 0 |
+| evolution_labels | 9 | 0 | 1 (set_updated_at) | DROP+SET (SETOF) | sobrevive | 0 |
+| evolution_groups | 221 | 0 | 1 (fn_set_updated_at) | DROP+SET | sobrevive | 0 |
+| evolution_group_participants | 10714 | 0 | 0 | DROP+SET | sobrevive | 0 |
+| evolution_tasks | 6 | 0 | 1 (handle_updated_at) | DROP+SET | sobrevive | 0 |
+| evolution_deals | 9 | 0 | 5 (audit/auto_task/bitrix/followup/updated_at) | DROP+SET | sobrevive | 0 |
+| evolution_whatsapp_status | 16101 | 1→status_reactions(zapp✅) | 0 | DROP+SET | sobrevive | 0 |
+| evolution_performance_metrics | 11 | 0 | 0 | DROP+SET | sobrevive | 0 |
+
+### Funções corrigidas (18 funções + 1 cron + [H1])
+
+**Tags/Quick_replies:** rpc_list_tags[overload1+2], rpc_list_quick_replies — DROP+CREATE (SETOF evo→zapp).
+
+**Labels:** rpc_list_labels — DROP+CREATE SETOF. rpc_upsert_label — CREATE OR REPLACE (versão antiga com assinatura divergente removida).
+
+**Groups+Participants:** fn_upsert_group_from_event[3 overloads], fn_upsert_group_participants[2 overloads] — todos CREATE OR REPLACE para zapp. evo.fn_resolve_contact_id_by_jid PRESERVADA (é função, não tabela).
+
+**Tasks:** fn_auto_task_on_deal [A7] (tasks→zapp, deals preservado), rpc_get_contact[public+zapp jsonb] [A7] (tasks→zapp, deals/messages/contacts preservados).
+
+**Deals:** rpc_list_deals, rpc_upsert_deal, rpc_global_search[2 overloads], rpc_get_contact[public+zapp jsonb] — evolution_deals → zapp após migração. Triggers em evolution_deals (todos já corrigidos Lotes 3+4): trg_queue_deal_for_bitrix, trg_create_followups_on_stage_change, fn_audit_trigger (unqualified, resolve via view), fn_auto_task_on_deal, fn_set_updated_at.
+
+**Whatsapp_status:** fn_mark_status_viewed, fn_sync_status_from_messages [A7], update_status_media_url[evo+public], fn_handle_whatsapp_status [A7], fn_repontar_filhas_graveyard [A7], fn_download_wa_status_media — todos corrigidos status→zapp, evolution_contacts PRESERVADO.
+
+**Cron:** purge_realtime_events → zapp.evolution_realtime_events.
+
+**[H1] Hardening:** ALTER ROLE anon SET search_path = public, extensions (anon não resolve evo. mais).
+
+### Descobertas/armadilhas documentadas
+
+- [A12-rpcupsert] rpc_upsert_label tinha assinatura duplicada (p_name first vs p_id first) — versão antiga droppada
+- [A13-global_search] rpc_global_search tem 2 overloads (p_limit antes vs depois de p_instance) — ambos corrigidos
+- [A14-deals_in_fns] rpc_list_deals, rpc_upsert_deal, rpc_global_search, rpc_get_contact tinham evo.evolution_deals hardcoded — detectado via D5 pós-DDL, corrigido na mesma sessão (zero downtime)
+- [A15-perf_metrics_bonus] evolution_performance_metrics = 0 fns literais — migrada como bônus (DROP VIEW + SET SCHEMA apenas)
+- [H1-confirmed] anon search_path confirmado em produção: ['statement_timeout=5s', 'search_path=public, extensions', ...]
+
+### P-VAL resumido
+
+- 13/13 tabelas em zapp (pg_class.relnamespace confirmado) ✅
+- 13/13 views public sobreviveram ✅
+- D5 zero residuais: 0 funções com evo.<tabela_migrada> executável ✅
+- Cron purge_realtime_events atualizado ✅
+- [H1] anon search_path = public, extensions ✅
+- Gate: 22→20 pendentes / 19 migrados / 0 críticos, sem regressão ✅
+
+### Commits desta sessão (branch feat/decouple-provider)
+
+```
+27138dfc7  feat(decouple): F0 baseline — BASELINE.md + inventory.mjs + tag pre-decouple-v0 (E1,E2,E5,E10)
+2f4c2f498  feat(decouple): F1 infra docs — E11 + E13 + E16 (Agente 8)
+35e9d013e  feat(decouple): F2 tipos canônicos — ChannelMessage/Contact/Conversation + ADR-008 (Agente 9)
+[LOTE5-COMMIT]  feat(decouple): lote 5 — 13 tabelas + 18 fns + [H1] + gate 22→20 + D5 zero
+```
