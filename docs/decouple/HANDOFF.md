@@ -573,3 +573,42 @@ Ordem sugerida a partir daqui:
 
 _Fim do handoff. Se algo aqui divergir do banco real, o banco é a fonte de verdade — rode o kit
 de diagnóstico (seção 8) e atualize este arquivo. Bom trabalho._
+
+---
+
+## 📍 SESSÃO 2026-08-13 (Auditoria Pós-Conclusão) — 10 Agentes PhD
+
+**HEAD auditado:** `e17804cd1`
+**Gate:** 0 pendentes | 37 migrados | 0 críticos ✅
+
+### Bugs Encontrados e Corrigidos
+
+1. **`fn_get_evolution_health_summary`** (zapp): 3 queries executáveis apontavam para `evo.evolution_webhook_events` (tabela descontinuada) → corrigido para `evolution_webhook_events_v2`. A função retornava `{error: "relation does not exist"}` em produção silenciosamente.
+
+2. **`evolution_license_health_log`**: RLS habilitado com 0 policies (DENY total). Criada policy `service_role ALL` para permitir acesso do serviço.
+
+### Validações Aprovadas (10 Agentes)
+
+| Agente | Escopo | Resultado |
+|---|---|---|
+| A1 Schema | 74 tabelas em zapp, 13 Grupo A em evo | ✅ APROVADO |
+| A2 D5 Global | 0 residuais reais (fn_register_instance = comentário) | ✅ APROVADO |
+| A3 Crons | 0 crons com tabelas migradas | ✅ APROVADO |
+| A4 RLS/Policies | Todas as 74 com RLS + policies (exceto license, corrigida) | ✅ APROVADO |
+| A5 SETOF | 18 funções com schema_tipo=zapp | ✅ APROVADO |
+| A6 H2 REVOKE | authenticated=SELECT-only em evo, anon=0 em evo | ✅ APROVADO |
+| A7 Execução Real | contacts/messages/conversations/health RPCs funcionais | ✅ APROVADO |
+| A8 Views Públicas | 100 views vivas em public | ✅ APROVADO |
+| A9 FK cross-schema | 6 FKs evo→zapp intactas | ✅ APROVADO |
+| A10 Simulação | CRUD em produção, fn_repontar schemas corretos | ✅ APROVADO |
+
+### Estado Final do Sistema
+- fn_system_health_score: **97.5 A+**
+- 277k messages em zapp.evolution_messages_wpp2
+- 15.5k conversations em zapp.evolution_conversations_wpp2
+- 21.8k contacts em zapp.evolution_contacts
+- 101 views públicas, 26 tabelas com triggers
+
+### Próximo Passo Opcional
+- F5 E69-E76: Migrar as 21 edge fns para usar `evolutionClient` (2 ondas já feitas — E69-E76)
+- PR para merge feat/decouple-provider → main
