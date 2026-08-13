@@ -62,13 +62,13 @@
 | Dimensão | Valor |
 |---|---|
 | Repo | `adm01-debug/zapp-web-v3` |
-| Branch | `feat/decouple-provider` |
+| Branch | `main` (PR mergeado) |
 | HEAD | `df3f28ca0` |
 | Working tree | limpo (tudo commitado e pushed) |
 | Gate | **0 pendentes \| 37 migrados \| 0 críticos** ✅ |
-| zapp.evolution_* | **72 tabelas** |
+| zapp.evolution_* | **74 tabelas** |
 | evo.evolution_* restantes | **27 — todas Grupo A** (Evolution API owns) |
-| fn_system_health_score | **97.5 A+** |
+| fn_system_health_score | **A+** (score flutua ~97-100) |
 | PostgreSQL | 15.8 |
 
 ### O DESACOPLAMENTO DE TABELAS ESTÁ COMPLETO
