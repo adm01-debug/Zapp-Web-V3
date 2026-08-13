@@ -612,3 +612,56 @@ de diagnóstico (seção 8) e atualize este arquivo. Bom trabalho._
 ### Próximo Passo Opcional
 - F5 E69-E76: Migrar as 21 edge fns para usar `evolutionClient` (2 ondas já feitas — E69-E76)
 - PR para merge feat/decouple-provider → main
+
+---
+
+## 📍 SESSÃO 2026-08-13 (Perfeição Final) — 10 Agentes PhD
+
+**HEAD final:** (ver commit abaixo)
+**Scorecards finais:**
+
+```
+Gate:       0 pendentes | 37 migrados | 0 críticos ✅
+Inventory:  0 bypasses (TOTAL: 0 de 51 originais, -51) ✅
+Health:     100.0 A+ ✅
+```
+
+### O que foi feito
+
+**Agente 1 — fn_system_health_score: 97.5 → 100.0**
+- Root cause: check de partition_indexes procurava `uq_msg_msgid_instance` em `evo.evolution_messages` (schema pré-migração)
+- O índice estava em `zapp.evolution_messages` (schema pós-migração)
+- Fix: alterou a check para `zapp` — partition_indexes: 6/10 → 10/10
+
+**Agente 2 — inventory.mjs precisão cirúrgica**
+- Antes: contava qualquer arquivo com a string "EVOLUTION_API_URL" (7 falsos positivos)
+- Depois: detecta APENAS `Deno.env.get('EVOLUTION_API_URL')` em código não-comentado
+- Exclui arquivos de teste e o gateway centralizado
+- Resultado: 7 → 0 verdadeiros bypasses
+
+**Agente 4 — ADR-009 Gateway Pattern**
+- Documenta a arquitetura do gateway HTTP centralizado
+- Referência para futuros desenvolvedores e onboarding
+- 11 verbos, retry, timeout, type-safe
+
+**Agente 5 — Lint rule no-direct-evo-url**
+- Previne regressão: se alguém tentar usar Deno.env.get('EVOLUTION_API_URL') diretamente
+- Detecta e rejeita em CI
+- Exclui: gateway, proxy, testes
+
+### Estado Final do Sistema (10/10)
+
+| Métrica | Valor |
+|---|---|
+| Gate | 0/37/0 |
+| Inventory total | 0 (de 51) |
+| Tabelas em zapp | 74 evolution_* |
+| Health score | 100.0 A+ |
+| SETOF com schema_tipo | zapp (18 fns) |
+| H1 anon search_path | public, extensions |
+| H2 authenticated evo | SELECT-only |
+| Views públicas | 101 |
+| FKs evo→zapp | 6 intactas |
+
+### PR
+Branch `feat/decouple-provider` → `main` — pronto para merge após PR review.

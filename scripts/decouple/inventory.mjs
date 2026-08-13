@@ -30,14 +30,20 @@ const edgeFns = walk(join(ROOT, 'supabase/functions'), ['.ts']);
 let frontEvoBypass = 0, backendUrlBypass = 0, frontDirectRead = 0;
 
 for (const f of tsFiles) {
+  if (f.includes('__tests__') || f.includes('.test.ts') || f.includes('.test.tsx')) continue;
   const src = readFileSync(f, 'utf8');
   if (src.includes("invoke('evolution-api')") || src.includes('invoke("evolution-api")')) frontEvoBypass++;
   if (src.match(/from\(['"]evo\./)) frontDirectRead++;
 }
 
 for (const f of edgeFns) {
+  // Excluir: arquivos de teste, o próprio proxy, e o gateway centralizado
+  if (f.includes('__tests__') || f.includes('.test.ts') || f.includes('evolution-api-proxy') || f.includes('providers/evolution')) continue;
+  // Detectar APENAS leitura real da variável de ambiente (não comentários, strings de erro, etc.)
   const src = readFileSync(f, 'utf8');
-  if (src.includes('EVOLUTION_API_URL') && !f.includes('evolution-api-proxy') && !f.includes('providers/evolution')) backendUrlBypass++;
+  const lines = src.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*'));
+  const code = lines.join('\n');
+  if (code.match(/Deno\.env\.get\(['"]EVOLUTION_API_URL['"]/)) backendUrlBypass++;
 }
 
 console.log('════ INVENTORY — Acoplamento Evolution ════');
