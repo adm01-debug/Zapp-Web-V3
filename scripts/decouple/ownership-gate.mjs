@@ -90,6 +90,8 @@ const MIGRATED_TO_ZAPP = new Set([
   // ── GRUPO A SKIP — fica em evo; escrita legítima de edge fn de infra ────────
   // Tabela não migra para zapp. A edge fn de ingestão escreve aqui legitimamente.
   'ingest_ledger',  // evolution-webhook/index.ts:414,432 — ledger de ingestão (Grupo A)
+  // Lote 8 — 2026-08-13 (evolution_alerts: 60 ocorr. fns + 9 crons + 3 trigs — EXECUTE+replace() em massa)
+  'evolution_alerts',    // 1150 linhas — alertas de sistema (1 TS write: gmail-token-refresh:162)
   // Lote 8B — 2026-08-13 (7 tabelas baixa prioridade, 0 fns literais, 0 writes TS detectados)
   'evolution_sales_pipeline',       // 0 linhas — pipeline de vendas
   'evolution_keyword_automations',  // 0 linhas — automações por keyword
@@ -106,10 +108,10 @@ const MIGRATED_TO_ZAPP = new Set([
 //       O write vira "legítimo" (conta como migrated), não "eliminado".
 //       Para eliminar: refatorar o código para não escrever diretamente.
 const BASELINE = {
-  total:      17,   // 19 - 2 (ingest_ledger agora em GRUPO_A_SKIP: 2 writes legítimos de infra)
-  migrated:   22,   // 20 + 2 (ingest_ledger: evolution-webhook:414,432)
+  total:      16,   // 17 - 1 (evolution_alerts migrada: gmail-token-refresh:162 agora é write legítimo)
+  migrated:   23,   // 22 + 1 (evolution_alerts: gmail-token-refresh:162)
   eliminated:  0,   // writes eliminados por refatoração de código
-  updated_at: '2026-08-13-ingest-skip',
+  updated_at: '2026-08-13-lote8',
 };
 
 // ── GRUPO A — Evolution-stack owns. Zero tolerância. ────────────────────────

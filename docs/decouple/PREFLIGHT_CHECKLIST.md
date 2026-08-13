@@ -410,3 +410,31 @@ vacuum-instance-credentials-daily e wpp2-session-expiry-watchdog → zapp.evolut
 - 7/7 views public sobreviveram ✅
 - Total zapp: 53→60 tabelas evolution_* ✅
 - Gate: 17 pendentes | 22 migrados | 0 críticos ✅
+
+---
+
+## Lote 8 — 2026-08-13 (evolution_alerts)
+
+| Tabela | Rows | Fns corrigidas | Crons | Triggers |
+|---|---|---|---|---|
+| evolution_alerts | 1150 | 60 ocorrências (fn. únicas: ~44 + overloads multi-schema) via EXECUTE+replace() em massa | 9 crons SQL inline → UPDATE cron.job replace() | 3 (fn_dedup_alert, fn_dedup_connection_alert, fn_queue_notification) |
+
+### Estratégia executada
+- Bloco PL/pgSQL único: `FOR r IN SELECT oid WHERE prosrc ~ 'evo\.evolution_alerts' LOOP EXECUTE replace() END LOOP` — 60 fns corrigidas em 153ms
+- UPDATE cron.job replace() em massa: 9 crons atualizados de uma vez (RETURNING confirmou todos os 9)
+- fn_queue_notification: usa evolution_notification_log/config unqualified com search_path=zapp → OK, não precisa alteração
+- fn_monthly_evo_audit: [A7] — já corrigida no Lote 8B, não re-corrigida aqui
+
+### Armadilhas resolvidas
+- [A7] EXECUTE+replace() só troca 'evo.evolution_alerts', outras refs (evo.evolution_messages, evo.evolution_contacts, etc.) preservadas
+- 9 crons com SQL inline identificados e corrigidos (gap não documentado no HANDOFF anterior)
+- fn_alert_health_score_degraded tinha 2 overloads em zapp (SECDEF e não-SECDEF) — ambos corrigidos pelo bloco em massa
+- fn_ensure_critical_crons_active existia em 2 schemas (evo e ops) — ambos corrigidos
+
+### P-VAL
+- evolution_alerts em zapp ✅
+- 0 fns com 'evo.evolution_alerts' residual (D5: `count=0`) ✅
+- public.evolution_alerts retorna 1150 rows (view OID-based sobreviveu) ✅
+- 0 crons com literal antigo ✅
+- Total zapp: 61 tabelas evolution_* ✅
+- Gate: 16 pendentes | 23 migrados | 0 críticos ✅
