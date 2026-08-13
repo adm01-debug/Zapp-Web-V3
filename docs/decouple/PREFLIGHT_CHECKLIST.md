@@ -378,3 +378,35 @@ vacuum-instance-credentials-daily e wpp2-session-expiry-watchdog → zapp.evolut
 ### Gate (script)
 - Baseline atualizado: 20→19 pendentes (apenas evolution_audit_log tinha write literal TS entre as 10 tabelas destes lotes; as demais 9 são acessadas via RPC/fn SQL, fora do escopo do scanner) / 20 migrados / 0 críticos, sem regressão ✅
 - `evolution_burnin_tracker` e `evolution_license_health_log` removidas do GRUPO_A (zero-tolerância) do gate — passaram a ser owned por zapp após SET SCHEMA
+
+---
+
+## Lote 8B — 2026-08-13 (7 tabelas baixa prioridade)
+
+| Tabela | Rows | Fns corrigidas | Triggers |
+|---|---|---|---|
+| evolution_sales_pipeline | 0 | 0 | handle_updated_at (genérico) |
+| evolution_keyword_automations | 0 | 0 | handle_updated_at (genérico) |
+| evolution_contact_rate_limits | 0 | 0 | fn_set_updated_at (genérico) |
+| evolution_mirror_batches | 0 | 0 | — |
+| evolution_mirror_checkpoints | 0 | 0 | handle_updated_at (genérico) |
+| evolution_mirror_media_queue | 0 | 0 | handle_updated_at (genérico) |
+| evolution_monthly_audit_log | 2 | 1 (fn_monthly_evo_audit [A7]: só trocou monthly_audit_log→zapp, manteve evolution_messages, evolution_alerts, evolution_pipeline_health_log em evo) | — |
+
+### Gate fix aplicado nesta sessão
+- ingest_ledger adicionado como GRUPO_A_SKIP no gate.mjs (escrita legítima de edge fn de ingestão — tabela fica em evo)
+- Baseline: 19→17 pendentes (removidas 2 escritas de ingest_ledger)
+- Migrados: 20→22
+
+### Gaps descobertos nesta sessão (pré-execução Lote 8)
+- [NOVO] evolution_conversations é PARTITIONED TABLE (relkind=p). SET SCHEMA não cascata partições no PG 15. Cada partição precisa de SET SCHEMA individual + DROP VIEW zapp.partição.
+- [NOVO] 9 crons têm SQL inline apontando evo.evolution_alerts diretamente (não via fn). Precisam de UPDATE cron.job individual no Lote 8.
+- [NOVO] D_alerts_unqualified_fns = 0: todas as fns escrevem com evo.evolution_alerts explícito. EXECUTE+replace() funciona para todas sem risco de unqualified.
+- [NOVO] fn_monthly_evo_audit: multi-tabela [A7] — toca evolution_messages (evo), evolution_alerts (evo), evolution_pipeline_health_log (evo Grupo A), evolution_api_consumers (zapp já migrado). Só trocar ref monthly_audit_log.
+
+### P-VAL
+- 7/7 tabelas em zapp ✅
+- fn_monthly_evo_audit: zero literal evo.evolution_monthly_audit_log ✅
+- 7/7 views public sobreviveram ✅
+- Total zapp: 53→60 tabelas evolution_* ✅
+- Gate: 17 pendentes | 22 migrados | 0 críticos ✅

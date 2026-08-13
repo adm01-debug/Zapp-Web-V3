@@ -87,6 +87,17 @@ const MIGRATED_TO_ZAPP = new Set([
   'evolution_incident_runbook',      // 10 linhas — runbook de incidentes
   'evolution_logpatch_audit',        // 379 linhas — auditoria de logpatch
   'evolution_api_consumers',         // 6 linhas — consumidores de API
+  // ── GRUPO A SKIP — fica em evo; escrita legítima de edge fn de infra ────────
+  // Tabela não migra para zapp. A edge fn de ingestão escreve aqui legitimamente.
+  'ingest_ledger',  // evolution-webhook/index.ts:414,432 — ledger de ingestão (Grupo A)
+  // Lote 8B — 2026-08-13 (7 tabelas baixa prioridade, 0 fns literais, 0 writes TS detectados)
+  'evolution_sales_pipeline',       // 0 linhas — pipeline de vendas
+  'evolution_keyword_automations',  // 0 linhas — automações por keyword
+  'evolution_contact_rate_limits',  // 0 linhas — rate limits de contato
+  'evolution_mirror_batches',       // 0 linhas — batches de espelho
+  'evolution_mirror_checkpoints',   // 0 linhas — checkpoints de espelho
+  'evolution_mirror_media_queue',   // 0 linhas — fila de mídia espelho
+  'evolution_monthly_audit_log',    // 2 linhas — log de auditoria mensal (fn_monthly_evo_audit corrigida [A7])
 ]);
 
 // ── BASELINE ────────────────────────────────────────────────────────────────
@@ -95,11 +106,10 @@ const MIGRATED_TO_ZAPP = new Set([
 //       O write vira "legítimo" (conta como migrated), não "eliminado".
 //       Para eliminar: refatorar o código para não escrever diretamente.
 const BASELINE = {
-  total:      19,   // 20 - 1 (único write literal das 10 tabelas lote6+7 com insert() real: evolution_audit_log;
-                     //         as outras 9 são acessadas só via RPC/fns SQL, fora do escopo deste scanner TS)
-  migrated:   20,   // 19 (lote5) + 1 write legítimo (evolution_audit_log, lote 6)
+  total:      17,   // 19 - 2 (ingest_ledger agora em GRUPO_A_SKIP: 2 writes legítimos de infra)
+  migrated:   22,   // 20 + 2 (ingest_ledger: evolution-webhook:414,432)
   eliminated:  0,   // writes eliminados por refatoração de código
-  updated_at: '2026-08-13-lote7',
+  updated_at: '2026-08-13-ingest-skip',
 };
 
 // ── GRUPO A — Evolution-stack owns. Zero tolerância. ────────────────────────
