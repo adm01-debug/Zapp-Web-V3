@@ -44,6 +44,17 @@ const MIGRATED_TO_ZAPP = new Set([
   'evolution_template_usage',      // 0 linhas — uso de templates
   'evolution_message_queue',       // 0 linhas — fila de mensagens (2 TS writes migrated)
   'evolution_automation_logs',     // 0 linhas — logs de automação
+  // Lote 3 — 2026-08-13 (10 tabelas + 7 funções corrigidas + 2 RPCs SETOF fixadas)
+  'evolution_retry_metrics',       // 3325 linhas — métricas de retry
+  'evolution_sentiment_analysis',  // 0 linhas — análise de sentimento
+  'evolution_daily_metrics',       // 1 linha — métricas diárias
+  'evolution_send_idempotency',    // 0 linhas — idempotência de envio
+  'evolution_reactions',           // 219 linhas — reações
+  'evolution_bitrix_queue',        // 0 linhas — fila Bitrix (5 TS writes migrated)
+  'evolution_notification_config', // 1 linha — config de notificação
+  'evolution_notification_log',    // 81 linhas — log de notificação
+  'evolution_calls',               // 70 linhas — chamadas
+  'evolution_message_templates',   // 0 linhas — templates (1 TS write migrated)
 ]);
 
 // ── BASELINE ────────────────────────────────────────────────────────────────
@@ -52,10 +63,10 @@ const MIGRATED_TO_ZAPP = new Set([
 //       O write vira "legítimo" (conta como migrated), não "eliminado".
 //       Para eliminar: refatorar o código para não escrever diretamente.
 const BASELINE = {
-  total:      36,   // 39 original - 1 (evolution_fallback_events) - 2 (evolution_message_queue)
-  migrated:    3,   // writes que viraram legítimos por migração
+  total:      27,   // 39 original - 1(fallback) - 2(msg_queue) - 5(bitrix) - 1(templates) - 1(reactions) - 1(retry) - 1(send_idp)
+  migrated:   12,   // writes que viraram legítimos por migração
   eliminated:  0,   // writes eliminados por refatoração de código
-  updated_at: '2026-08-13-lote2',
+  updated_at: '2026-08-13-lote3',
 };
 
 // ── GRUPO A — Evolution-stack owns. Zero tolerância. ────────────────────────
