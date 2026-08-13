@@ -16,18 +16,18 @@ type EvolutionRawMsg = {
 };
 /** evolution-sync-actions utilities and exports. */
 export async function syncContacts(
-  supabase: SupabaseClient, evolutionApiUrl: string, evolutionApiKey: string,
+  supabase: SupabaseClient,
   instanceName: string, corsHeaders: Record<string, string>, page: number, offset: number
 ): Promise<Response> {
   console.log(`[Sync] Fetching contacts from instance ${instanceName}`);
 
-  const contactsResponse = await fetch(
-    `${evolutionApiUrl}/chat/findContacts/${instanceName}`,
-    { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey }, body: JSON.stringify({ where: {} }), signal: AbortSignal.timeout(10_000) }
+  const contactsResponse = await evolutionClient.post(
+    `chat/findContacts/${instanceName}`,
+    { where: {} }, { timeoutMs: 10_000 }
   );
 
   if (!contactsResponse.ok) {
-    const errText = await contactsResponse.text();
+    const errText = contactsResponse.error ?? 'Evolution API error';
     await supabase.from('audit_logs').insert({
       action: 'contact_sync_failure',
       entity_type: 'whatsapp_connection',
@@ -42,7 +42,7 @@ export async function syncContacts(
     throw new Error(`Evolution API error [${contactsResponse.status}]: ${errText}`);
   }
 
-  const contacts = await contactsResponse.json();
+  const contacts = contactsResponse.data as unknown[];
   if (!Array.isArray(contacts) || contacts.length === 0) {
     return jsonRes({ success: true, message: 'No more contacts to sync', synced: 0, page }, corsHeaders);
   }
@@ -80,21 +80,21 @@ export async function syncContacts(
 
 /** sync Messages function. */
 export async function syncMessages(
-  supabase: SupabaseClient, evolutionApiUrl: string, evolutionApiKey: string,
+  supabase: SupabaseClient,
   instanceName: string, contactPhone: string, corsHeaders: Record<string, string>
 ): Promise<Response> {
   if (!contactPhone) throw new Error('contactPhone is required');
 
   const remoteJid = contactPhone.includes('@') ? contactPhone : `${contactPhone}@s.whatsapp.net`;
 
-  const messagesResponse = await fetch(
-    `${evolutionApiUrl}/chat/findMessages/${instanceName}`,
-    { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey },
+  const messagesResponse = await evolutionClient.post(
+    `chat/findMessages/${instanceName}`,
+    {
       body: JSON.stringify({ where: { key: { remoteJid } }, page: 1, offset: 50 }), signal: AbortSignal.timeout(10_000) }
   );
-  if (!messagesResponse.ok) throw new Error(`Evolution API error [${messagesResponse.status}]: ${await messagesResponse.text()}`);
+  if (!messagesResponse.ok) throw new Error(`Evolution API error [${messagesResponse.status}]: ${messagesResponse.error ?? ''}`);
 
-  const messagesData = await messagesResponse.json();
+  const messagesData = messagesResponse.data as Record<string, unknown>;
   const messages = Array.isArray(messagesData) ? messagesData : messagesData.messages || [];
 
   const { data: connection2 } = await supabase.from('whatsapp_connections').select('id').or(instanceOrFilter(instanceName)).maybeSingle();
@@ -131,7 +131,7 @@ export async function syncMessages(
 
 /** sync All Messages function. */
 export async function syncAllMessages(
-  supabase: SupabaseClient, evolutionApiUrl: string, evolutionApiKey: string,
+  supabase: SupabaseClient,
   instanceName: string, messagesPerContact: number, corsHeaders: Record<string, string>
 ): Promise<Response> {
   const { data: conn } = await supabase.from('whatsapp_connections').select('id').or(instanceOrFilter(instanceName)).maybeSingle();
@@ -150,14 +150,13 @@ export async function syncAllMessages(
     for (const contact of batch) {
       try {
         const remoteJid = `${contact.phone}@s.whatsapp.net`;
-        const msgResponse = await fetch(`${evolutionApiUrl}/chat/findMessages/${instanceName}`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey },
+        const msgResponse = await evolutionClient.post(`chat/findMessages/${instanceName}`, {
           body: JSON.stringify({ where: { key: { remoteJid } }, page: 1, offset: messagesPerContact }),
           signal: AbortSignal.timeout(10_000),
         });
         if (!msgResponse.ok) { totalErrors++; continue; }
 
-        const msgData = await msgResponse.json();
+        const msgData = msgResponse.data as Record<string, unknown>;
         const messages = Array.isArray(msgData) ? msgData : msgData.messages || [];
 
         for (const msg of messages) {
@@ -202,19 +201,14 @@ export async function syncAllMessages(
 
 /** setup Webhook function. */
 export async function setupWebhook(
-  evolutionApiUrl: string, evolutionApiKey: string,
   instanceName: string, supabaseUrl: string, webhookUrlOverride: string | undefined, corsHeaders: Record<string, string>
 ): Promise<Response> {
   const webhookUrl = webhookUrlOverride || `${supabaseUrl}/functions/v1/evolution-webhook`;
   // Evolution API v4.x: body must be wrapped in { webhook: { ... } }
-  const webhookResponse = await fetch(`${evolutionApiUrl}/webhook/set/${instanceName}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey },
-    body: JSON.stringify({
-      webhook: { enabled: true, url: webhookUrl, webhookByEvents: false, webhookBase64: true, events: WEBHOOK_EVENTS },
-    }),
-    signal: AbortSignal.timeout(10_000),
-  });
-  const webhookData = await webhookResponse.json().catch(() => ({}));
+  const webhookResponse = await evolutionClient.post(`webhook/set/${instanceName}`, {
+    webhook: { enabled: true, url: webhookUrl, webhookByEvents: false, webhookBase64: true, events: WEBHOOK_EVENTS },
+  }, { timeoutMs: 10_000 });
+  const webhookData = webhookResponse.data ?? {};
   return new Response(JSON.stringify({ success: webhookResponse.ok, webhook: webhookData }), {
     status: webhookResponse.ok ? 200 : 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
@@ -236,7 +230,7 @@ export async function cleanupMock(supabase: SupabaseClient, corsHeaders: Record<
 
 /** full Sync function. */
 export async function fullSync(
-  supabase: SupabaseClient, evolutionApiUrl: string, evolutionApiKey: string,
+  supabase: SupabaseClient,
   instanceName: string, supabaseUrl: string, corsHeaders: Record<string, string>
 ): Promise<Response> {
   const results: Record<string, unknown> = {};
@@ -266,13 +260,10 @@ export async function fullSync(
   // Import contacts
   let totalSynced = 0, totalSkipped = 0;
   try {
-    const contactsResponse = await fetch(`${evolutionApiUrl}/chat/findContacts/${instanceName}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey },
-      body: JSON.stringify({ where: {} }),
-      signal: AbortSignal.timeout(10_000),
-    });
+    const contactsResponse = await evolutionClient.post(`chat/findContacts/${instanceName}`,
+      { where: {} }, { timeoutMs: 10_000 });
     if (contactsResponse.ok) {
-      const contactsList = await contactsResponse.json();
+      const contactsList = contactsResponse.data as unknown[];
       const validContacts: { phone: string; name: string; avatar_url: string | null; whatsapp_connection_id: string }[] = [];
       for (const c of contactsList) {
         const jid = c.id || c.remoteJid || '';
@@ -298,11 +289,9 @@ export async function fullSync(
   // Webhook
   const webhookUrl = `${supabaseUrl}/functions/v1/evolution-webhook`;
   try {
-    const webhookResponse = await fetch(`${evolutionApiUrl}/webhook/set/${instanceName}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey },
-      body: JSON.stringify({ webhook: { enabled: true, url: webhookUrl, webhookByEvents: false, webhookBase64: true, events: WEBHOOK_EVENTS } }),
-      signal: AbortSignal.timeout(10_000),
-    });
+    const webhookResponse = await evolutionClient.post(`webhook/set/${instanceName}`,
+      { webhook: { enabled: true, url: webhookUrl, webhookByEvents: false, webhookBase64: true, events: WEBHOOK_EVENTS } },
+      { timeoutMs: 10_000 });
     results.webhook = { success: webhookResponse.ok, url: webhookUrl };
   } catch (e) {
     console.error('[fullSync] webhook setup error:', e instanceof Error ? e.message : String(e));
