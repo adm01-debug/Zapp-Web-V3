@@ -58,6 +58,11 @@ const PN2 = "5521988887777@s.whatsapp.net";
 const PN3 = "5531888886666@s.whatsapp.net";
 const CORS: Record<string, string> = {};
 
+// CI: o client (getBaseUrl) faz throw se EVOLUTION_API_URL ausente.
+// Com fetch mockado o valor é irrelevante — só precisa existir.
+Deno.env.set("EVOLUTION_API_URL", "http://localhost:8080");
+Deno.env.set("EVOLUTION_API_KEY", "test-key");
+
 function okRpc(): { data?: unknown; error?: { message: string } | null } {
   return { data: null, error: null };
 }
