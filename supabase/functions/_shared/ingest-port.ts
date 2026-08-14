@@ -103,8 +103,8 @@ export async function ingestContact(
   },
 ): Promise<{ ok: boolean; contactId?: string; error?: string }> {
   try {
-    // rpc_upsert_contact (3-args): p_remote_jid, p_instance, p_push_name
-    // p_avatar_url e p_provider serao adicionados quando rpc_upsert_contact for estendido (F6)
+    // rpc_upsert_contact: unico overload, retorna zapp.evolution_contacts (E93)
+    
     const { data, error } = await supabase.rpc('rpc_upsert_contact', {
       p_remote_jid:   opts.remoteJid,
       p_instance:     opts.instanceRef,
