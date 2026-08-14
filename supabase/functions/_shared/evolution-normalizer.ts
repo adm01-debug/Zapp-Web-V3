@@ -51,7 +51,7 @@ export function baileysTextContent(msg: BaileysMessage): string {
   if (!msg.message) return '';
   const m = msg.message as Record<string, Record<string, unknown>>;
   return (
-    (m.conversation as string) ??
+    (m.conversation as unknown as string | undefined) ??
     (m.extendedTextMessage?.text as string) ??
     (m.imageMessage?.caption as string) ??
     (m.videoMessage?.caption as string) ??
