@@ -318,3 +318,10 @@ bun run build
 ---
 
 *Última atualização: 2026-04-12*
+
+
+## Evolution API — Deploy (pós-desacoplamento 2026-08-12)
+
+O deploy da Evolution API é gerenciado exclusivamente no repo [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack).
+Não há mais workflows de build da Evolution neste repo (removidos no PR #1069).
+Para rebuild da imagem custom, seguir runbook em [evolution-stack/runbooks/](https://github.com/adm01-debug/evolution-stack/tree/main/runbooks).

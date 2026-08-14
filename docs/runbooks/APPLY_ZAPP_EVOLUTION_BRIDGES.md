@@ -1,3 +1,5 @@
+> **Pós-desacoplamento (2026-08-12):** Este runbook trata das bridges de schema (views de contrato evo→zapp). A infra Evolution está em [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack). DDL de bridges: aplicar via MCP SUPABASE SELF HOSTED.
+
 # Runbook — Aplicar bridges zapp.evolution_* na VPS
 
 **Migração:** `docs/migrations/2026-07-15_zapp_evolution_credentials_bridge.sql`

@@ -91,3 +91,9 @@ As funções legadas do domínio WhatsApp/CRM (`audio-transcribe`, `evolution-*`
 ---
 
 _Última atualização: 2026-07-04 — corrigido diagnóstico bun vs npm; adicionados detalhes sobre bun.lock e functions-legacy._
+
+
+## Evolution API — operação (pós-2026-08-12)
+
+Build e deploy da imagem Evolution: gerenciados em [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack).
+Workflows removidos deste repo: `publish-evolution-api-custom.yml`, `publish-evolution-rabbit-consumer.yml`.

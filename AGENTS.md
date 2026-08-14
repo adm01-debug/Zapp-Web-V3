@@ -8,6 +8,7 @@
 
 ## Onde mora o quê
 
+> **Pós-desacoplamento (2026-08-12):** Infra da Evolution (servidor, stacks, consumer) está em [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack). Edge functions `evolution-*` e schema `evo` permanecem **aqui**.
 - Dado real do **WhatsApp/Evolution** → schema **`evo`** (`evolution_*`, partições, `contact_id_graveyard`).
 - Dado real do **app ZAPP Web** → schema **`zapp`**.
 - **`public` é só camada de API** (views `security_invoker` + RPC). **Nunca** crie tabela nem escreva "na tabela" do `public` — ali é sempre uma **view** apontando para `zapp`/`evo`/domínio.

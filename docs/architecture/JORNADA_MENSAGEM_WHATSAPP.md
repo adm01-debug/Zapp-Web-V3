@@ -1,3 +1,8 @@
+> ⚠️ **ATENÇÃO — Documento pré-desacoplamento (referência histórica, 2026-05-05)**
+> Infra Evolution está agora em [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack).
+> O "PG14 nativo" (Destino 1, stack 20) foi **descomissionado** — gravação vai para Supabase self-hosted (schema `evo`, stack 35) via consumer (stack 113).
+> A jornada de dados é equivalente; referências de container/stack ID estão desatualizadas.
+
 # 📨 JORNADA COMPLETA DE UMA MENSAGEM — WhatsApp → Frontend Zap Webb
 ## Documentação técnica | 05/05/2026
 

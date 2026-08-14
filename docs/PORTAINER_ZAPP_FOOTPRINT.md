@@ -141,3 +141,11 @@ timeout 600s docker service update --detach=false --image "$(cat /tmp/ref_atual.
 | **Total** | **~1,19 GB** |
 
 Volumes (66,5 GB): 0 recuperável **com segurança** — **nunca tocar** (`runner-work` ~1,1 GB é o único reclaimable nomeado e é volume do serviço github-actions-runner — não remover; contagens totais variam ±1 conforme o momento da coleta).
+
+
+## Stacks Evolution (removidos do footprint zapp em 2026-08-12)
+
+Os stacks Evolution (25, 113, 126, 225, 230, 234, 236) foram movidos para o repositório
+[adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack).
+Não pertencem mais ao footprint do zapp-web-v3 no Portainer.
+Para gerenciamento, usar runbooks em evolution-stack.

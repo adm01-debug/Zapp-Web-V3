@@ -33,6 +33,24 @@ ou de ligar algo intencionalmente desligado.
 
 ---
 
+## Evolution API — REGRA DE ACESSO (pós-desacoplamento 2026-08-12)
+
+> ⚠️ **A infraestrutura da Evolution API foi extraída para [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack).**
+> Edge functions, hooks e migrations do zapp **permanecem aqui**.
+
+**Regra de acesso obrigatória:**
+- TODA saída HTTP para a Evolution API deve passar pelo gateway único:
+  `supabase/functions/_shared/providers/evolution/client.ts` (12 verbos, 0 bypasses)
+- **Nunca** use `EVOLUTION_API_URL` diretamente em edge functions ou frontend
+- `callEvolutionApi` = @deprecated (removido de runtime em 2026-08-13, F3 decoupling)
+  — presente apenas em mocks de teste legado; não reutilizar
+- CI guard ativo: `decouple-guard.yml` bloqueia recriação de infra evolution neste repo
+
+**Fronteira de propriedade:**
+- `evo.*` → propriedade da Evolution / consumer (leitura via 12 views de contrato)
+- `zapp.*` → propriedade do app (evo acessa só para monitoria — ADR-DB-002)
+
+
 ## Banco de Dados — OBRIGATÓRIO LER
 
 ### Instância Supabase

@@ -1,3 +1,5 @@
+> **Estado pós-desacoplamento (2026-08-12):** Análise válida. Fronteira operacional documentada em `docs/BOUNDARY-evolution.md` + `docs/decouple/ADR-009-gateway-pattern.md`. DDL proposto neste ADR permanece pendente para onda futura.
+
 # ADR-DB-002 — Fronteira evo→zapp: monitoria = exceção formal; negócio = correção via views de contrato
 
 **Status:** Aceito · **Data:** 2026-08-06 · **Autor:** AG-02 (Onda 2, D2 — ARQ-05/06 P1) · **Escopo:** somente análise/documentação (NENHUM DDL executado)

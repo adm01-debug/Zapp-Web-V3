@@ -1,5 +1,8 @@
 # ⚡ EVOLUTION API v2 — Análise Técnica Completa
 
+> ⚠️ **Acesso pós-desacoplamento (2026-08-12):** Endpoints abaixo são válidos, mas todo acesso passa pelo gateway unificado `supabase/functions/_shared/providers/evolution/client.ts` (12 verbos). Não usar `EVOLUTION_API_URL` direto. Servidor Evolution: [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack).
+
+
 > **Guia de Referência Máxima** | Todos os Endpoints • Webhooks • Integrações • Automações  
 > Versão de Referência: Evolution API v2.x (2025) | `doc.evolution-api.com/v2`
 
