@@ -1,5 +1,6 @@
 import { whatsappConnectionRepository } from '../data-access/whatsappConnectionRepository';
 import { supabase } from '@/integrations/supabase/client';
+import { connectInstance } from '@/lib/whatsappAdapter';
 
 import { getLogger } from '@/lib/logger';
 
