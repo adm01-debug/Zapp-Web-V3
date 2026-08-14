@@ -1,6 +1,6 @@
 import { whatsappConnectionRepository } from '../data-access/whatsappConnectionRepository';
 import { supabase } from '@/integrations/supabase/client';
-import { connectInstance } from '@/lib/whatsappAdapter';
+import { connectInstance, createInstance, requestPairingCode } from '@/lib/whatsappAdapter';
 
 import { getLogger } from '@/lib/logger';
 
@@ -83,12 +83,12 @@ export const whatsappConnectionService = {
 
       if (error) {
         log.error(`API error requesting QR for ${instanceId}:`, error);
-        throw new Error(error.message || 'Erro ao gerar QR Code na API');
+        throw new Error((error as Error | { message?: string } | null)?.message || 'Erro ao gerar QR Code na API');
       }
       
-      if (data?.error === true) {
+      if ((data as { error?: boolean } | null | undefined)?.error === true) {
         log.error(`Evolution API returned error for ${instanceId}:`, data);
-        throw new Error(data.message || 'A API do Evolution retornou um erro ao gerar o QR Code');
+        throw new Error((data as { message?: string } | null | undefined)?.message || 'A API do Evolution retornou um erro ao gerar o QR Code');
       }
       
       log.info(`QR code successfully received for ${instanceId}`);
@@ -120,13 +120,13 @@ export const whatsappConnectionService = {
 
       if (error) {
         log.error(`API error creating instance ${instanceName}:`, error);
-        throw new Error(error.message || 'Erro ao criar instância na API Evolution');
+        throw new Error((error as Error | { message?: string } | null)?.message || 'Erro ao criar instância na API Evolution');
       }
 
-      if (data?.error === true) {
+      if ((data as { error?: boolean } | null | undefined)?.error === true) {
         log.error(`Evolution API returned error creating ${instanceName}:`, data);
         throw new Error(
-          data.message || 'A API do Evolution retornou um erro ao criar a instância'
+          (data as { message?: string } | null | undefined)?.message || 'A API do Evolution retornou um erro ao criar a instância'
         );
       }
 
@@ -156,13 +156,13 @@ export const whatsappConnectionService = {
 
       if (error) {
         log.error(`API error requesting pairing code for ${instanceName}:`, error);
-        throw new Error(error.message || 'Erro ao gerar código de emparelhamento na API');
+        throw new Error((error as Error | { message?: string } | null)?.message || 'Erro ao gerar código de emparelhamento na API');
       }
 
-      if (data?.error === true) {
+      if ((data as { error?: boolean } | null | undefined)?.error === true) {
         log.error(`Evolution API returned error requesting pairing code for ${instanceName}:`, data);
         throw new Error(
-          data.message ||
+          (data as { message?: string } | null | undefined)?.message ||
             'A API do Evolution retornou um erro ao gerar o código de emparelhamento'
         );
       }
