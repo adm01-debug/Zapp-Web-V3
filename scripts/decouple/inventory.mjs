@@ -121,8 +121,10 @@ for (const f of tsFiles) {
 }
 
 for (const f of edgeFns) {
-  if (f.includes('__tests__') || f.includes('.test.ts')
-      || f.includes('evolution-api-proxy') || f.includes('evolution-proxy') || f.includes('providers/evolution')) continue; // evolution-proxy é proxy por design (V3)
+  // Normaliza separadores p/ casar marcadores com '/' em Windows (mesmo padrão de isTooling/isEvoAdapterOrArchive)
+  const n = f.split(sep).join('/');
+  if (n.includes('__tests__') || n.includes('.test.ts')
+      || n.includes('evolution-api-proxy') || n.includes('evolution-proxy') || n.includes('providers/evolution')) continue; // evolution-proxy é proxy por design (V3)
   const src = readFileSync(f, 'utf8');
   const lines = src.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*'));
   const code = lines.join('\n');
@@ -153,3 +155,6 @@ const total = frontEvoBypass + backendUrlBypass + frontEvoWrites + frontDirectEv
 const btotal = OLD_BASELINE.frontEvoBypass + OLD_BASELINE.backendUrlBypass + OLD_BASELINE.frontEvoWrites + OLD_BASELINE.frontDirectEvoHttp;
 console.log(`TOTAL: ${total}  ${passEmoji(total)} (baseline novo: 0, antigo: ${btotal}, delta: ${total - btotal})`);
 console.log('Meta: TOTAL → 0 (desacoplamento completo)');
+
+// Exit code para workflow/CI (pipe com tee não quebra): 1 se houver violações
+process.exit(total > 0 ? 1 : 0);
