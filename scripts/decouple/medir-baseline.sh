@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -uo pipefail
 #
 # W10_medir_baseline.sh - Baseline do ensaio de troca de provider (ZAPP).
 #
@@ -64,3 +65,6 @@ printf '%-22s %s\n' 'dlq' "$DLQ"
 printf '%-22s %s\n' 'health_score' "$HEALTH_SCORE"
 printf '%-22s %s\n' 'health_grade' "$HEALTH_GRADE"
 printf '%-22s %s\n' 'grants_escrita_evo' "$GRANTS"
+
+# fail-closed: se alguma metrica nao veio, falha (validacao final V3)
+[ -n "${MSGS_24H:-}" ] && [ -n "${DLQ:-}" ] && [ -n "${HEALTH_SCORE:-}" ] || { echo "ERRO: medicao incompleta" >&2; exit 1; }

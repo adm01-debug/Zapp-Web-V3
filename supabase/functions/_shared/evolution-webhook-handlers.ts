@@ -8,7 +8,7 @@ import {
 } from "./evolution-helpers.ts";
 
 /** evolution-webhook-handlers utilities and exports. */
-export async function handleLogoutInstance(supabase: SupabaseClient, instance: string, data: unknown) {
+export async function handleLogoutInstance(supabase: SupabaseClient<any, any>, instance: string, data: unknown) {
   const payload = isRecord(data) ? data : {};
   const reasonCode = (payload.disconnectionReasonCode as number | undefined)
     ?? (payload.reasonCode as number | undefined)
@@ -35,7 +35,7 @@ export async function handleLogoutInstance(supabase: SupabaseClient, instance: s
 }
 
 /** handle Groups Upsert function. */
-export async function handleGroupsUpsert(supabase: SupabaseClient, instance: string, data: unknown) {
+export async function handleGroupsUpsert(supabase: SupabaseClient<any, any>, instance: string, data: unknown) {
   const groups = toEventRecords(data, ['groups']);
   if (groups.length === 0) return;
   const connection = await getConnectionByInstance(supabase, instance);
@@ -123,7 +123,7 @@ export async function handleGroupsUpsert(supabase: SupabaseClient, instance: str
 }
 
 /** handle Group Participants Update function. */
-export async function handleGroupParticipantsUpdate(supabase: SupabaseClient, instance: string, data: unknown) {
+export async function handleGroupParticipantsUpdate(supabase: SupabaseClient<any, any>, instance: string, data: unknown) {
   const payload = isRecord(data) ? data : {};
   const groupId = payload.id as string;
   const action = payload.action as string;
@@ -190,7 +190,7 @@ export {
 } from "./evolution-webhook-msg-handlers.ts";
 
 /** handle Connection Update function. */
-export async function handleConnectionUpdate(supabase: SupabaseClient, instance: string, baseData: Record<string, unknown>) {
+export async function handleConnectionUpdate(supabase: SupabaseClient<any, any>, instance: string, baseData: Record<string, unknown>) {
   // Lê estado de várias chaves possíveis
   const evoState = (baseData.state ?? baseData.status ?? baseData.connectionStatus
     ?? (baseData.data as Record<string,unknown>)?.state
@@ -281,7 +281,7 @@ export async function handleConnectionUpdate(supabase: SupabaseClient, instance:
 }
 
 /** handle Contacts Upsert function. */
-export async function handleContactsUpsert(supabase: SupabaseClient, instance: string, data: unknown) {
+export async function handleContactsUpsert(supabase: SupabaseClient<any, any>, instance: string, data: unknown) {
   const contacts = Array.isArray(data) ? data : [data];
   if (contacts.length === 0) return;
 
@@ -347,7 +347,7 @@ export async function handleContactsUpsert(supabase: SupabaseClient, instance: s
 }
 
 /** handle Presence Update function. */
-export async function handlePresenceUpdate(supabase: SupabaseClient, instance: string, data: unknown) {
+export async function handlePresenceUpdate(supabase: SupabaseClient<any, any>, instance: string, data: unknown) {
   const presenceData = isRecord(data) ? data : {};
   const jid = (presenceData.id as string) || (presenceData.remoteJid as string);
   const presences = presenceData.presences as Record<string, Record<string, unknown>> | undefined;
@@ -449,7 +449,7 @@ export async function handlePresenceUpdate(supabase: SupabaseClient, instance: s
 }
 
 /** handle Chats Update function. */
-export async function handleChatsUpdate(supabase: SupabaseClient, instance: string, data: unknown) {
+export async function handleChatsUpdate(supabase: SupabaseClient<any, any>, instance: string, data: unknown) {
   const chats = Array.isArray(data) ? data : [data];
   const connection = await getConnectionByInstance(supabase, instance);
   if (!connection) return;
@@ -493,7 +493,7 @@ export async function handleChatsUpdate(supabase: SupabaseClient, instance: stri
 }
 
 /** handle Labels Edit function. */
-export async function handleLabelsEdit(supabase: SupabaseClient, instance: string, data: unknown) {
+export async function handleLabelsEdit(supabase: SupabaseClient<any, any>, instance: string, data: unknown) {
   const labelData = isRecord(data) ? data : {};
   const labelId = labelData.id as string;
   const labelName = labelData.name as string;
@@ -518,7 +518,7 @@ export async function handleLabelsEdit(supabase: SupabaseClient, instance: strin
 }
 
 /** handle Labels Association function. */
-export async function handleLabelsAssociation(supabase: SupabaseClient, instance: string, data: unknown) {
+export async function handleLabelsAssociation(supabase: SupabaseClient<any, any>, instance: string, data: unknown) {
   const assocData = isRecord(data) ? data : {};
   const labelId = assocData.labelId as string || (assocData.label as Record<string, unknown>)?.id as string;
   const chatId = assocData.chatId as string;
@@ -547,7 +547,7 @@ export async function handleLabelsAssociation(supabase: SupabaseClient, instance
 }
 
 /** handle Call Event function. */
-export async function handleCallEvent(supabase: SupabaseClient, instance: string, data: unknown) {
+export async function handleCallEvent(supabase: SupabaseClient<any, any>, instance: string, data: unknown) {
   const callData = isRecord(data) ? data : {};
   const from = callData.from as string;
   const isVideo = callData.isVideo as boolean;
@@ -632,7 +632,7 @@ export async function handleCallEvent(supabase: SupabaseClient, instance: string
 }
 
 /** handle Chats Delete function. */
-export async function handleChatsDelete(supabase: SupabaseClient, instance: string, data: unknown) {
+export async function handleChatsDelete(supabase: SupabaseClient<any, any>, instance: string, data: unknown) {
   const chats = Array.isArray(data) ? data : [data];
   const connection = await getConnectionByInstance(supabase, instance);
   if (!connection) return;
@@ -652,7 +652,7 @@ export async function handleChatsDelete(supabase: SupabaseClient, instance: stri
 }
 
 /** handle Application Startup function. */
-export async function handleApplicationStartup(supabase: SupabaseClient, instance: string) {
+export async function handleApplicationStartup(supabase: SupabaseClient<any, any>, instance: string) {
   console.log(`Application startup event from instance: ${instance}`);
   const { data: conn } = await supabase.from('whatsapp_connections')
     .select('id, status').or(instanceOrFilter(instance)).maybeSingle();
@@ -663,7 +663,7 @@ export async function handleApplicationStartup(supabase: SupabaseClient, instanc
 }
 
 /** handle Contacts Set function. */
-export async function handleContactsSet(supabase: SupabaseClient, instance: string, data: unknown) {
+export async function handleContactsSet(supabase: SupabaseClient<any, any>, instance: string, data: unknown) {
   const contacts = toEventRecords(data, ['contacts']);
   if (contacts.length === 0) return;
 
@@ -690,7 +690,7 @@ export async function handleContactsSet(supabase: SupabaseClient, instance: stri
 }
 
 /** handle Chats Set function. */
-export async function handleChatsSet(supabase: SupabaseClient, instance: string, data: unknown) {
+export async function handleChatsSet(supabase: SupabaseClient<any, any>, instance: string, data: unknown) {
   const chats = toEventRecords(data, ['chats']);
   const connection = await getConnectionByInstance(supabase, instance);
   if (!connection || chats.length === 0) return;

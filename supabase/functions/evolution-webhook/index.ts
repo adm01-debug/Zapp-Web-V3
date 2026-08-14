@@ -416,7 +416,7 @@ Deno.serve(async (req) => {
               remote_jid: key.remoteJid ?? null, message_type: 'reactionMessage',
               from_me: key.fromMe, outcome: 'processed_reaction',
               payload_sha256: bodyHash, latency_ms: Date.now() - startedAt,
-            }).then(() => {}).catch((e: unknown) => console.warn('[ingest_ledger] reaction err:', e instanceof Error ? e.message : String(e)));
+            }).then(() => {}, (e: unknown) => console.warn('[ingest_ledger] reaction err:', e instanceof Error ? e.message : String(e)));
             continue;
           }
 
@@ -434,7 +434,7 @@ Deno.serve(async (req) => {
               remote_jid: key.remoteJid ?? null, message_type: mtype,
               from_me: key.fromMe, outcome: 'processed',
               payload_sha256: bodyHash, latency_ms: Date.now() - startedAt,
-            }).then(() => {}).catch((e: unknown) => console.warn('[ingest_ledger] msg err:', e instanceof Error ? e.message : String(e)));
+            }).then(() => {}, (e: unknown) => console.warn('[ingest_ledger] msg err:', e instanceof Error ? e.message : String(e)));
           }
         } catch (entryError: unknown) {
           const entryDetail = entryError instanceof Error ? entryError.message : String(entryError);

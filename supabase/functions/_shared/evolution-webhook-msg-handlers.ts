@@ -7,7 +7,7 @@ import {
 } from "./evolution-helpers.ts";
 
 /** evolution-webhook-msg-handlers utilities and exports. */
-export async function handleSendMessage(supabase: SupabaseClient, instance: string, data: unknown, baseData: Record<string, unknown>) {
+export async function handleSendMessage(supabase: SupabaseClient<any, any>, instance: string, data: unknown, baseData: Record<string, unknown>) {
   const connection = await getConnectionByInstance(supabase, instance);
   if (!connection) return;
   for (const entry of toEventRecords(data, ['messages'])) {
@@ -75,7 +75,7 @@ export async function handleSendMessage(supabase: SupabaseClient, instance: stri
 }
 
 /** handle Messages Update function. */
-export async function handleMessagesUpdate(supabase: SupabaseClient, instance: string, data: unknown, baseData: Record<string, unknown>) {
+export async function handleMessagesUpdate(supabase: SupabaseClient<any, any>, instance: string, data: unknown, baseData: Record<string, unknown>) {
   // Mapeamento canônico ACK do WhatsApp/Baileys (Evolution v2):
   //   PENDING(0) → sending; SERVER_ACK(1) → sent; DELIVERY_ACK(2) → delivered;
   //   READ(3) → read; PLAYED(4) → played (áudio reproduzido).
@@ -125,7 +125,7 @@ export async function handleMessagesUpdate(supabase: SupabaseClient, instance: s
 }
 
 /** handle Messages Delete function. */
-export async function handleMessagesDelete(supabase: SupabaseClient, instance: string, data: unknown, baseData: Record<string, unknown>) {
+export async function handleMessagesDelete(supabase: SupabaseClient<any, any>, instance: string, data: unknown, baseData: Record<string, unknown>) {
   const connection = await getConnectionByInstance(supabase, instance);
   if (!connection) return;
   for (const entry of toEventRecords(data, ['messages', 'keys'])) {
@@ -169,7 +169,7 @@ export async function handleMessagesDelete(supabase: SupabaseClient, instance: s
 }
 
 /** handle Messages Set function. */
-export async function handleMessagesSet(supabase: SupabaseClient, instance: string, data: unknown) {
+export async function handleMessagesSet(supabase: SupabaseClient<any, any>, instance: string, data: unknown) {
   const messages = toEventRecords(data, ['messages']);
   if (messages.length === 0) return;
 
@@ -220,7 +220,7 @@ export async function handleMessagesSet(supabase: SupabaseClient, instance: stri
 }
 
 /** handle Messages Edited function. */
-export async function handleMessagesEdited(supabase: SupabaseClient, instance: string, data: unknown, baseData: Record<string, unknown>) {
+export async function handleMessagesEdited(supabase: SupabaseClient<any, any>, instance: string, data: unknown, baseData: Record<string, unknown>) {
   const connection = await getConnectionByInstance(supabase, instance);
   if (!connection) return;
   for (const entry of toEventRecords(data, ['messages'])) {

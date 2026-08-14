@@ -41,40 +41,52 @@ export const fakeProvider = {
 
   // Interface do evolutionClient (12 verbos canônicos)
   async sendText(_instance: string, _jid: string, _text: string) {
-    return _fakes.get('sendText') ?? { ok: true, data: { key: { id: 'fake-msg-id' } } };
+
+  assertTestEnv();    return _fakes.get('sendText') ?? { ok: true, data: { key: { id: 'fake-msg-id' } } };
   },
   async sendMedia(_instance: string, _jid: string, _opts: unknown) {
-    return _fakes.get('sendMedia') ?? { ok: true, data: { key: { id: 'fake-media-id' } } };
+
+  assertTestEnv();    return _fakes.get('sendMedia') ?? { ok: true, data: { key: { id: 'fake-media-id' } } };
   },
   async sendSticker(_instance: string, _jid: string, _url: string) {
-    return _fakes.get('sendSticker') ?? { ok: true, data: { key: { id: 'fake-sticker-id' } } };
+
+  assertTestEnv();    return _fakes.get('sendSticker') ?? { ok: true, data: { key: { id: 'fake-sticker-id' } } };
   },
   async getConnectionState(_instance: string) {
-    return _fakes.get('getConnectionState') ?? { ok: true, data: { instance: { state: 'open' } } };
+
+  assertTestEnv();    return _fakes.get('getConnectionState') ?? { ok: true, data: { instance: { state: 'open' } } };
   },
   async getQrCode(_instance: string) {
-    return _fakes.get('getQrCode') ?? { ok: true, data: { qrcode: { code: 'fake-qr' } } };
+
+  assertTestEnv();    return _fakes.get('getQrCode') ?? { ok: true, data: { qrcode: { code: 'fake-qr' } } };
   },
   async restartInstance(_instance: string) {
-    return _fakes.get('restartInstance') ?? { ok: true };
+
+  assertTestEnv();    return _fakes.get('restartInstance') ?? { ok: true };
   },
   async listInstances() {
-    return _fakes.get('listInstances') ?? { ok: true, data: [{ instance: { instanceName: 'wpp2' } }] };
+
+  assertTestEnv();    return _fakes.get('listInstances') ?? { ok: true, data: [{ instance: { instanceName: 'wpp2' } }] };
   },
   async listGroups(_instance: string) {
-    return _fakes.get('listGroups') ?? { ok: true, data: [] };
+
+  assertTestEnv();    return _fakes.get('listGroups') ?? { ok: true, data: [] };
   },
   async checkWhatsApp(_instance: string, _phones: string[]) {
-    return _fakes.get('checkWhatsApp') ?? { ok: true, data: [] };
+
+  assertTestEnv();    return _fakes.get('checkWhatsApp') ?? { ok: true, data: [] };
   },
   async getProfilePicture(_instance: string, _number: string) {
-    return _fakes.get('getProfilePicture') ?? { ok: true, data: { profilePicUrl: 'fake-profile-url' } };
+
+  assertTestEnv();    return _fakes.get('getProfilePicture') ?? { ok: true, data: { profilePicUrl: 'fake-profile-url' } };
   },
   async get(_path: string) {
-    return _fakes.get('get') ?? { ok: true, data: {} };
+
+  assertTestEnv();    return _fakes.get('get') ?? { ok: true, data: {} };
   },
   async post(_path: string, _body: unknown) {
-    return _fakes.get('post') ?? { ok: true, data: {} };
+
+  assertTestEnv();    return _fakes.get('post') ?? { ok: true, data: {} };
   },
 };
 

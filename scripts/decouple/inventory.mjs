@@ -118,7 +118,21 @@ function stripInlineComment(line) {
 }
 
 function codeOnly(src) {
-  return src.split('\n').map(l => stripInlineComment(l)).filter(l => {
+  let inBlock = false;
+  return src.split('\n').map(l => {
+    let line = l;
+    if (!inBlock) {
+      const bc = line.indexOf('/*');
+      const sc = line.indexOf('//');
+      if (bc > -1 && (sc === -1 || bc < sc)) { inBlock = true; line = line.slice(0, bc); }
+      else if (sc > -1) { line = line.slice(0, sc); }
+    } else {
+      const end = line.indexOf('*/');
+      if (end > -1) { inBlock = false; line = line.slice(end + 2); }
+      else { line = ''; }
+    }
+    return line;
+  }).filter(l => {
     const t = l.trim();
     return !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*');
   }).join('\n');
@@ -229,3 +243,6 @@ const total = frontEvoBypass + backendUrlBypass + frontEvoWrites + frontDirectEv
 const btotal = OLD_BASELINE.frontEvoBypass + OLD_BASELINE.backendUrlBypass + OLD_BASELINE.frontEvoWrites + OLD_BASELINE.frontDirectEvoHttp;
 console.log(`TOTAL: ${total}  ${passEmoji(total)} (baseline novo: 0, antigo: ${btotal}, delta: ${total - btotal})`);
 console.log('Meta: TOTAL → 0 (desacoplamento completo)');
+
+// fail-closed: exit != 0 quando TOTAL > 0 (validacao final V3)
+process.exit(total > 0 ? 1 : 0);
