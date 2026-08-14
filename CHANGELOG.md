@@ -1,5 +1,22 @@
 # 📜 Changelog — ZAPP WEB
 
+## [2.4.0] - 2026-08-12 — Desacoplamento Evolution Stack
+
+### Separação de Infraestrutura Evolution API
+- Servidor Evolution API (Dockerfile, build-patches T1-T25, consumer RabbitMQ) extraído para [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack)
+- Stacks Portainer (25, 113, 126, 225, 230, 234, 236), watchdogs e scripts operacionais removidos deste repo
+- PR #1069 mergeado — remoção de infra/evolution* e 4 workflows de build
+
+### Gateway Pattern (ADR-009) — F5 Zero Bypass
+- Todos os 17+ edge functions que liam `EVOLUTION_API_URL` direto migrados para gateway único
+- `supabase/functions/_shared/providers/evolution/client.ts`: 12 verbos (10 nomeados + 2 genéricos)
+- `inventory.mjs` = 0 bypasses confirmados · CI guard `decouple-guard.yml` ativo
+
+### Egresso via Postgres (F3)
+- Writes de mensagem migrados para RPCs: `rpc_claim_outbound_message` + `rpc_update_incoming_message`
+- Normalizer canônico: edge fn `evolution-webhook v10` ← fn_process_whatsapp_message
+
+
 ## [2.3.0] - 2026-08-03 — Consolidação Single-DB (FATOR X + Lovable Cloud)
 
 ### Auditoria FATOR X (PR #732-#735)

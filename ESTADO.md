@@ -1,5 +1,11 @@
 # ESTADO.md — Registro do que esta LIGADO
 
+> **Nota pós-desacoplamento (2026-08-12):** A infraestrutura da Evolution API (servidor, consumer, stacks Swarm)
+> foi extraída para o repo separado [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack).
+> O inventário abaixo reflete o estado do app zapp-web-v3 (edge functions, frontend, banco).
+> Acesso à Evolution API: gateway unificado `_shared/providers/evolution/client.ts` (12 verbos, 0 bypasses).
+
+
 > Fonte unica de verdade sobre **estado operacional**, nao sobre arquitetura.
 > Uma pergunta por componente: **esta ligado? quem chama?**
 > Nao adicione secao de arquitetura, plano ou roadmap aqui. Isso morre em `docs/`.
