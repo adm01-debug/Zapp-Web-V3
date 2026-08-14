@@ -154,7 +154,7 @@ export function useEvolutionApiIntegration() {
         await supabase.rpc('rpc_log_evolution_health', {
           p_instance_name: creds.instance_name,
           p_status: isSuccess ? 'success' : 'failure',
-          p_error_message: errorMsg,
+          p_error_message: errorMsg ?? undefined,
           p_response_time_ms: responseTime,
           p_online_instances: onlineCount,
           p_total_instances: totalCount,
@@ -175,7 +175,7 @@ export function useEvolutionApiIntegration() {
         await supabase.rpc('rpc_log_evolution_health', {
           p_instance_name: creds.instance_name,
           p_status: 'failure',
-          p_error_message: errorMsg,
+          p_error_message: errorMsg ?? undefined,
           p_response_time_ms: Date.now() - startTime,
         });
         fetchData();

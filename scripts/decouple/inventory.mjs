@@ -229,3 +229,6 @@ const total = frontEvoBypass + backendUrlBypass + frontEvoWrites + frontDirectEv
 const btotal = OLD_BASELINE.frontEvoBypass + OLD_BASELINE.backendUrlBypass + OLD_BASELINE.frontEvoWrites + OLD_BASELINE.frontDirectEvoHttp;
 console.log(`TOTAL: ${total}  ${passEmoji(total)} (baseline novo: 0, antigo: ${btotal}, delta: ${total - btotal})`);
 console.log('Meta: TOTAL → 0 (desacoplamento completo)');
+
+// Exit code para workflow/CI (pipe com tee não quebra): 1 se houver violações
+process.exit(total > 0 ? 1 : 0);
