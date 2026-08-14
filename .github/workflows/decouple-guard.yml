@@ -90,6 +90,10 @@ jobs:
             exit 1
           }
           echo "[OK] SQL egress gate OK (fixture snapshot)"
+      - name: Verb contract gate (12 verbos do gateway)
+        # Falha se _shared/providers/evolution/client.ts ganhar/perder verbo sem
+        # atualizar BOUNDARY-evolution.md + RUNBOOK + contract.zod.ts no mesmo PR.
+        run: node scripts/decouple/verb-contract-gate.mjs
       - name: Diagnostic - grep de padroes de bypass
         if: failure()
         run: |
