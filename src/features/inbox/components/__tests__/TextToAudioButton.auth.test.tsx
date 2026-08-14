@@ -32,7 +32,6 @@ describe('TextToAudioButton — auth da EF elevenlabs-tts (regressao #1000)', ()
       blob: async () => new Blob(['x'], { type: 'audio/mpeg' }),
     }) as unknown as typeof fetch;
     // Audio() usado no auto-play do preview
-    // @ts-expect-error jsdom/happy-dom nao implementa
     global.Audio = vi.fn().mockImplementation(() => ({ play: vi.fn().mockResolvedValue(undefined), pause: vi.fn(), onended: null, onerror: null }));
     global.URL.createObjectURL = vi.fn(() => 'blob:mock');
     global.URL.revokeObjectURL = vi.fn();

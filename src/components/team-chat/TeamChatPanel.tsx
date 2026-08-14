@@ -180,7 +180,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
     isToggling,
   } = useTeamMessageReactions(conversation.id);
   const dynamicRowHeight = useDynamicRowHeight({ defaultRowHeight: 100, key: conversation.id });
-  const { signedUrls } = useSignedMediaUrlBatch(filteredMessages, supabase);
+  const { signedUrls } = useSignedMediaUrlBatch(filteredMessages, supabase as unknown as Parameters<typeof useSignedMediaUrlBatch>[1]);
   const itemHeights = useRef<Record<number, number>>({});
 
   // Keyboard shortcuts for chat

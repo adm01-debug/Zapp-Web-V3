@@ -59785,9 +59785,44 @@ export type Database = {
         Args: { p_instance?: string; p_limit?: number; p_remote_jids: string[] }
         Returns: Json
       }
+      rpc_delete_followup_sequence: {
+        Args: { p_id: string }
+        Returns: Json
+      }
+      rpc_delete_message: {
+        Args: { p_id: string }
+        Returns: Json
+      }
       rpc_increment_sticker_use: {
         Args: { sticker_id: string }
         Returns: undefined
+      }
+      rpc_log_evolution_health: {
+        Args: {
+          p_endpoint_tested?: string
+          p_error_message?: string
+          p_http_status_code?: number
+          p_instance_name: string
+          p_metadata?: Json
+          p_online_instances?: number
+          p_response_time_ms?: number
+          p_status: string
+          p_total_instances?: number
+        }
+        Returns: string
+      }
+      rpc_mark_messages_read:
+        | {
+            Args: { p_contact_id: string; p_instance: string }
+            Returns: number
+          }
+        | {
+            Args: { p_conversation_id: string }
+            Returns: undefined
+          }
+      rpc_toggle_followup_sequence: {
+        Args: { p_id: string; p_is_active: boolean }
+        Returns: Json
       }
       rpc_insert_message:
         | {

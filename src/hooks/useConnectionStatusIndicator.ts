@@ -8,6 +8,7 @@ import {
 import { toast } from 'sonner';
 import { getLogger } from '@/lib/logger';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
+import { connectInstance } from '@/lib/whatsappAdapter';
 import {
   RECONNECT_COOLDOWN_MS,
   HISTORY_MAX_ENTRIES,
@@ -188,10 +189,10 @@ export function useConnectionStatusIndicator() {
       } catch (err) {
         error = err;
       }
-      if (error) throw new Error(error.message || 'Falha ao invocar evolution-api');
-      if (data?.error === true) {
-        const code = typeof data?.code === 'string' ? data.code : null;
-        const message = data?.message || 'Erro Evolution API';
+      if (error) throw new Error((error as Error | { message?: string } | null)?.message || 'Falha ao invocar evolution-api');
+      if ((data as { error?: boolean } | null | undefined)?.error === true) {
+        const code = typeof (data as { code?: unknown } | null | undefined)?.code === 'string' ? (data as { code: string }).code : null;
+        const message = (data as { message?: string } | null | undefined)?.message || 'Erro Evolution API';
         if (code === 'EVOLUTION_AUTH_ERROR') {
           if (!opts.silent) toast.error(`Sem autorização: ${message}`, { duration: 8000 });
           return { ok: false, authError: true, error: message };

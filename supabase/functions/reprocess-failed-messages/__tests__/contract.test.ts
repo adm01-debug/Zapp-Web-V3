@@ -20,11 +20,13 @@ const BACKOFF_SOURCE = await readSourceFrom(
   "../../_shared/dlq-backoff.ts",
 );
 
-Deno.test("Setup: usa SERVICE_ROLE_KEY e exige credenciais Evolution", () => {
+Deno.test("Setup: usa SERVICE_ROLE_KEY e egresso via gateway evolutionFetch", () => {
   assertMatch(SOURCE, /SUPABASE_SERVICE_ROLE_KEY/);
-  assertMatch(SOURCE, /EVOLUTION_API_URL/);
-  assertMatch(SOURCE, /EVOLUTION_API_KEY/);
-  assertMatch(SOURCE, /Evolution credentials missing/);
+  // F5 (2026-08-13): URL/KEY resolvidas pelo gateway (client.ts) — o index não
+  // deve mais conter EVOLUTION_API_URL literal (senão o inventory v3 acusa).
+  assertMatch(SOURCE, /evolutionFetch/);
+  assertMatch(SOURCE, /from '\.\.\/_shared\/providers\/evolution\/index\.ts'/);
+  assertMatch(SOURCE, /createZappAdminClient/);
 });
 
 Deno.test("CORS: pre-flight OPTIONS tratado", () => {
@@ -44,10 +46,12 @@ Deno.test("Path da Evolution: __path removido antes do envio", () => {
   assertMatch(SOURCE, /delete \(body as Record<string, unknown>\)\.__path/);
 });
 
-Deno.test("Envio: POST para ${evolutionUrl}${path}/${instance} com apikey", () => {
-  assertMatch(SOURCE, /\$\{evolutionUrl\}\$\{path\}\/\$\{instance\}/);
+Deno.test("Envio: POST via evolutionFetch para path/instance com Idempotency-Key", () => {
+  // F5: URL montada pelo gateway (client.ts); o index só passa path+instance.
+  assertMatch(SOURCE, /evolutionFetch\(/);
+  assertMatch(SOURCE, /path\.replace\(\/\^\\\/\/, ''\)\}\/\$\{instance\}/);
   assertMatch(SOURCE, /method: 'POST'/);
-  assertMatch(SOURCE, /apikey: evolutionKey/);
+  assertMatch(SOURCE, /Idempotency-Key/);
 });
 
 Deno.test("Sucesso: marca succeeded com succeeded_at e incrementa retry_count", () => {
