@@ -27,11 +27,13 @@ A infraestrutura da Evolution API foi extraída de `zapp-web-v3` para um repo de
 |------|----------|------|
 | Servidor Evolution API (imagem custom, patches T1-T25) | 25 | evolution-stack |
 | Consumer RabbitMQ → PostgreSQL | 113 | evolution-stack |
-| Evolution DB Purge (cron 24h) | 126 | evolution-stack |
+| Evolution DB Purge (cron 24h) | 238 | evolution-stack |
 | WhatsApp Observer | 225 | evolution-stack |
 | WhatsApp Watchdog | 230 | evolution-stack |
-| Evolution Watchdogs (purge/trap/webhook) | 234 | evolution-stack |
-| Evolution Functions Health | 236 | evolution-stack |
+| Evolution Watchdogs (purge/trap/webhook) | 240 | evolution-stack |
+| zapp-functions-health (renomeado) | 265 | evolution-stack |
+| Evolution Security Guardian | 262 | evolution-stack |
+| Evolution pgBackRest Backup | 264 | evolution-stack |
 | Scripts operacionais, watchdogs, GitOps | — | evolution-stack |
 | Runbooks de infra | — | evolution-stack/runbooks/ |
 
