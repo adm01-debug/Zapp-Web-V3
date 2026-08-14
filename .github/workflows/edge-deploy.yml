@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   deploy:
-    name: Deploy edge functions (--apply)
+    name: Deploy edge functions (--apply --restart)
     # Runner self-hosted da VPS (labels: self-hosted, linux, x64, vps-zapp;
     # a variante docker do runner também carrega a label 'docker').
     runs-on: [self-hosted, linux, x64, vps-zapp]
@@ -35,11 +35,13 @@ jobs:
           fetch-depth: 0
 
       - name: Deploy edge functions (apply + hash validation)
-        # O script falha (exit 1) se a escrita não validar hash pós-escrita;
-        # tee preserva o diff para o artefato (pipefail garante exit code real).
+        # --apply: copia MISSING/STALE do repo para o volume, valida hash pós-escrita.
+        # --restart: docker service update --force supabase_functions após o deploy
+        # para garantir que o edge-runtime carregue o código novo em memória
+        # (sem restart o módulo cacheado em memória pode divergir do volume).
         run: |
           set -euo pipefail
-          bash infra/edge-deploy/deploy-edge.sh --apply 2>&1 | tee edge-deploy-report.txt
+          bash infra/edge-deploy/deploy-edge.sh --apply --restart 2>&1 | tee edge-deploy-report.txt
 
       - name: Upload drift report
         if: always()
