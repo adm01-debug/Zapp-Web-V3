@@ -1,3 +1,6 @@
+> [!NOTE] **STATUS 2026-08-14 — pós-onda de 10 agentes (reconciliação `main` @`8ff014fb0`)**
+> Este arquivo é o **desenho** do Plano V4 (100 etapas). O retrato **medido** do estado do desacoplamento está em [`BASELINE_V4.md`](./BASELINE_V4.md) e a matriz de cenários E1–E30 em [`CENARIOS_V4_LOG.md`](./CENARIOS_V4_LOG.md). Banner inserido em 2026-08-14 (Agente 8) — o conteúdo abaixo permanece integralmente preservado.
+
 # PLANO V4 — Desacoplamento Zapp Web V3 ↔ Evolution API · 100 etapas de fechamento
 
 **Data:** 2026-08-14 · **Autor:** Claude Agent A8 (análise exaustiva pós-V3, dev sênior) · **Baseline:** `PLANO_DESACOPLAMENTO_V3_100_ETAPAS.md` + `SCORECARD_V3.md` + `VALIDACAO_V3.md` (nota 8,5/10, migração ✅ APROVADA, 12 resíduos)
