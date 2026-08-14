@@ -7,7 +7,7 @@
  * Uso em testes:
  *   import { fakeProvider } from '../_shared/providers/fake/index.ts';
  *   import { registry } from '../_shared/providers/registry.ts';
- *   registry.useProvider('fake', fakeProvider);
+ *   registry.getProviderClient('fake');  // passa pelo guard DENO_ENV=test
  */
 
 export type FakeResponse<T = unknown> = { ok: boolean; data?: T; error?: string };
@@ -16,6 +16,8 @@ export type FakeResponse<T = unknown> = { ok: boolean; data?: T; error?: string 
 const _fakes: Map<string, unknown> = new Map();
 
 export const fakeProvider = {
+  /** Guard anti-vazamento por verbo (G1 V3): import direto em prod lança. */
+  assertSafe() { assertTestEnv(); },
   /** Define o que o fake retorna para uma action específica (ex: 'sendText'). */
   mock(action: string, response: unknown) {
     _fakes.set(action, response);
