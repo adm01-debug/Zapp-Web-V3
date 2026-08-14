@@ -98,7 +98,7 @@ describe('useZappConversations (fix: hooks zappweb sem .schema("evo"))', () => {
     expect(typeof result.current.refetch).toBe('function');
   });
 
-  it('markAsRead faz update em evolution_conversations_wpp2 sem .schema', async () => {
+  it('markAsRead chama rpc_mark_conversation_read sem .schema (F3/V3)', async () => {
     const { result } = renderHook(() => useZappConversations());
     await waitFor(() => expect(result.current.loading).toBe(false));
 
@@ -107,10 +107,9 @@ describe('useZappConversations (fix: hooks zappweb sem .schema("evo"))', () => {
     });
 
     expect(supabaseMock.client.schema).not.toHaveBeenCalled();
-    const calls = supabaseMock.client.from.mock.results;
-    const updateBuilder = calls[calls.length - 1].value;
-    expect(updateBuilder.update).toHaveBeenCalledWith({ unread_count: 0 });
-    expect(updateBuilder.eq).toHaveBeenCalledWith('id', '00000000-0000-4000-8000-0000000000a1');
+    expect(supabaseMock.client.rpc).toHaveBeenCalledWith('rpc_mark_conversation_read', {
+      p_id: '00000000-0000-4000-8000-0000000000a1',
+    });
   });
 
   it('refetch recarrega a lista', async () => {
