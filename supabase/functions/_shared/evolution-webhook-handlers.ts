@@ -705,7 +705,7 @@ export async function handleChatsSet(supabase: SupabaseClient, instance: string,
     if (unreadCount === 0) {
       const contact = await getContactByPhone(supabase, phone, connection.id);
       if (contact) {
-        await // F4: rpc_mark_messages_read (bulk is_read via RPC — chats.set)
+        // F4: rpc_mark_messages_read (bulk is_read via RPC — chats.set)
         await supabase.rpc('rpc_mark_messages_read', { p_contact_id: contact.id, p_instance: instance });
         processed++;
       }
