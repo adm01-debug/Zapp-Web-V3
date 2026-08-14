@@ -1,3 +1,4 @@
+import { sendMedia, sendText } from '@/lib/whatsappAdapter';
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -255,19 +256,13 @@ export function useBusinessLogicCatalogManagement(
           if (dbError || !dbResult?.id)
             throw new Error(dbError?.message ?? 'Image DB insert failed');
 
-          const { data: apiResult, error: mediaApiErr } = await supabase.functions.invoke(
-            'evolution-api',
-            {
-              body: {
-                action: 'send-media',
-                instanceName: evoName,
-                number: contact.phone,
-                mediatype: 'image',
-                media: imgUrl,
-                caption: '',
-              },
-            }
-          );
+          let apiResult: unknown;
+          let mediaApiErr: unknown;
+          try {
+            apiResult = await sendMedia({ remoteJid: contact.phone, mediaUrl: imgUrl, type: 'image', caption: '', instance: evoName });
+          } catch (err) {
+            mediaApiErr = err;
+          }
           if (mediaApiErr) throw mediaApiErr;
 
           const externalId = extractEvolutionMessageId(apiResult);
@@ -293,17 +288,13 @@ export function useBusinessLogicCatalogManagement(
         if (textDbError || !textDbResult?.id)
           throw new Error(textDbError?.message ?? 'Text DB insert failed');
 
-        const { data: textApiResult, error: textApiErr } = await supabase.functions.invoke(
-          'evolution-api',
-          {
-            body: {
-              action: 'send-text',
-              instanceName: evoName,
-              number: contact.phone,
-              text: message,
-            },
-          }
-        );
+        let textApiResult: unknown;
+        let textApiErr: unknown;
+        try {
+          textApiResult = await sendText({ remoteJid: contact.phone, text: message, instance: evoName });
+        } catch (err) {
+          textApiErr = err;
+        }
         if (textApiErr) throw textApiErr;
 
         const textExternalId = extractEvolutionMessageId(textApiResult);

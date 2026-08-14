@@ -1,3 +1,4 @@
+import { getQrCode, restartInstance } from '@/lib/whatsappAdapter';
 import { useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,9 +40,9 @@ export function MonitoringConnectionsList({ connections, webhookTest, onCheckWeb
     if (!evoName) { toast.error('Conexão sem nome de instância válido.'); return; }
     setLoadingQr(prev => ({ ...prev, [conn.instance_id]: true }));
     try {
-      const { data, error } = await supabase.functions.invoke('evolution-api', {
-        body: { action: 'get-qrcode', instanceName: evoName },
-      });
+      let data: unknown;
+      let error: unknown;
+      try { data = await getQrCode({ instanceName: evoName }); } catch (err) { error = err; }
       if (error) throw error;
       const base64 = data?.qrcode?.base64 || data?.base64;
       if (base64) {
@@ -61,9 +62,8 @@ export function MonitoringConnectionsList({ connections, webhookTest, onCheckWeb
     if (!evoName) { toast.error('Conexão sem nome de instância válido.'); return; }
     setReconnecting(prev => ({ ...prev, [conn.instance_id]: true }));
     try {
-      const { error: restartErr } = await supabase.functions.invoke('evolution-api', {
-        body: { action: 'restart-instance', instanceName: evoName },
-      });
+      let restartErr: unknown;
+      try { await restartInstance({ instanceName: evoName }); } catch (err) { restartErr = err; }
       if (restartErr) throw restartErr;
       toast.success(`Instância ${evoName} reiniciada!`);
     } catch {

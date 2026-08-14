@@ -181,9 +181,13 @@ export function useConnectionStatusIndicator() {
       return { ok: false, error: msg };
     }
     try {
-      const { data, error } = await supabase.functions.invoke('evolution-api', {
-        body: { action: 'connect', instanceName },
-      });
+      let data: unknown;
+      let error: unknown;
+      try {
+        data = await connectInstance({ instanceName });
+      } catch (err) {
+        error = err;
+      }
       if (error) throw new Error(error.message || 'Falha ao invocar evolution-api');
       if (data?.error === true) {
         const code = typeof data?.code === 'string' ? data.code : null;

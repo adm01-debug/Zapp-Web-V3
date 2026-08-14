@@ -1,3 +1,4 @@
+import { listGroups, sendText } from '@/lib/whatsappAdapter';
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
@@ -49,9 +50,9 @@ export function useGroupActions({
           continue;
         }
         try {
-          const { data, error } = await supabase.functions.invoke('evolution-api', {
-            body: { action: 'list-groups', instanceName: evoName, getParticipants: 'false' },
-          });
+          let data: unknown;
+          let error: unknown;
+          try { data = await listGroups({ instanceName: evoName, getParticipants: false }); } catch (err) { error = err; }
           if (error) {
             totalErrors++;
             continue;
@@ -197,14 +198,12 @@ export function useGroupActions({
           continue;
         }
         try {
-          const { error } = await supabase.functions.invoke('evolution-api', {
-            body: {
-              action: 'send-text',
-              instanceName: evoName,
-              number: group.group_id,
-              text: broadcastMessage,
-            },
-          });
+          let error: unknown;
+          try {
+            await sendText({ remoteJid: group.group_id, text: broadcastMessage, instance: evoName });
+          } catch (err) {
+            error = err;
+          }
           if (error) failed++;
           else sent++;
           if (groupsToSend.indexOf(group) < groupsToSend.length - 1)

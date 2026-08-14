@@ -1,3 +1,4 @@
+import { listInstances } from '@/lib/whatsappAdapter';
 /**
  * useEvolutionApiIntegration — Wave 3 (2026-07-06) / rewrite 2026-08-04
  * Camada de dados extraída de EvolutionApiIntegrationView (componente ficou 100% UI).
@@ -123,9 +124,9 @@ export function useEvolutionApiIntegration() {
       // 'evolution-api' valida o usuário autenticado (JWT do Supabase) e usa a
       // EVOLUTION_API_KEY server-side (secret v5). A chave digitada no form não
       // é transmitida — o teste valida a CONEXÃO da instância do servidor.
-      const { data, error } = await supabase.functions.invoke('evolution-api', {
-        body: { action: 'list-instances' },
-      });
+      let data: unknown;
+      let error: unknown;
+      try { data = await listInstances(); } catch (err) { error = err; }
       const responseTime = Date.now() - startTime;
       const isSuccess = !error;
       let errorMsg: string | null = null;

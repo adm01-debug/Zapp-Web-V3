@@ -2,6 +2,14 @@
 // scripts/decouple/inventory.mjs
 // Conta bypasses de acoplamento vs baseline (E5 do Plano 100 Etapas)
 // Uso: node scripts/decouple/inventory.mjs
+//
+// Métricas (redefinidas 2026-08-13 — corrige detecção falsa-zero):
+//   1. frontEvoBypass:  arquivos front chamando invoke('evolution-api', …) FORA de whatsappAdapter.ts
+//   2. backendUrlBypass: edge fns lendo Deno.env.get('EVOLUTION_API_URL') fora do gateway
+//   3. frontEvoWrites:  arquivos front fazendo .from('evolution_*').insert/update/delete direto
+//      (leituras via PostgREST são arquiteturalmente legítimas — não contamos)
+//
+// Metas: 1→0, 2→0 (já), 3→0
 
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, extname } from 'path';
@@ -9,9 +17,9 @@ import { join, extname } from 'path';
 const ROOT = new URL('../..', import.meta.url).pathname;
 
 const BASELINE = {
-  frontEvoBypass: 10,     // arquivos front chamando invoke('evolution-api') direto
-  backendUrlBypass: 17,   // edge fns lendo EVOLUTION_API_URL direto
-  frontDirectRead: 24,    // arquivos front lendo evolution_* direto
+  frontEvoBypass:   9,  // arquivos front que invocam 'evolution-api' diretamente (ex-whatsappAdapter)
+  backendUrlBypass: 0,  // edge fns lendo EVOLUTION_API_URL direto (zerado em F5)
+  frontEvoWrites:   6,  // arquivos front com .from('evolution_*').insert/update/delete direto
 };
 
 function walk(dir, exts, results = []) {
@@ -27,30 +35,40 @@ function walk(dir, exts, results = []) {
 const tsFiles = walk(join(ROOT, 'src'), ['.ts', '.tsx']);
 const edgeFns = walk(join(ROOT, 'supabase/functions'), ['.ts']);
 
-let frontEvoBypass = 0, backendUrlBypass = 0, frontDirectRead = 0;
+let frontEvoBypass = 0, backendUrlBypass = 0, frontEvoWrites = 0;
+
+// Regex detecta invoke('evolution-api', com qualquer argumento seguinte
+const RE_INVOKE_EVO = /invoke\(['"]evolution-api['"]/;
+// Regex detecta .from('evolution_ALGO').método-de-escrita
+const RE_EVO_WRITE  = /\.from\(['"]evolution_[^'"]+['"]\)\s*\n?[^;]*(\.insert|\.update|\.delete|\.upsert)/;
 
 for (const f of tsFiles) {
   if (f.includes('__tests__') || f.includes('.test.ts') || f.includes('.test.tsx')) continue;
+  // Métrica 1: invoke direto — excluir o próprio adapter (ele invoca por design)
+  const isAdapter = f.endsWith('whatsappAdapter.ts') || f.endsWith('sendFunctionRouter.ts');
   const src = readFileSync(f, 'utf8');
-  if (src.includes("invoke('evolution-api')") || src.includes('invoke("evolution-api")')) frontEvoBypass++;
-  if (src.match(/from\(['"]evo\./)) frontDirectRead++;
+  if (!isAdapter && RE_INVOKE_EVO.test(src)) frontEvoBypass++;
+  // Métrica 3: writes diretos em tabelas evolution_*
+  if (!isAdapter && RE_EVO_WRITE.test(src)) frontEvoWrites++;
 }
 
 for (const f of edgeFns) {
-  // Excluir: arquivos de teste, o próprio proxy, e o gateway centralizado
-  if (f.includes('__tests__') || f.includes('.test.ts') || f.includes('evolution-api-proxy') || f.includes('providers/evolution')) continue;
-  // Detectar APENAS leitura real da variável de ambiente (não comentários, strings de erro, etc.)
+  if (f.includes('__tests__') || f.includes('.test.ts')
+      || f.includes('evolution-api-proxy') || f.includes('providers/evolution')) continue;
   const src = readFileSync(f, 'utf8');
   const lines = src.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*'));
   const code = lines.join('\n');
   if (code.match(/Deno\.env\.get\(['"]EVOLUTION_API_URL['"]/)) backendUrlBypass++;
 }
 
+const passEmoji = (n, b) => n === 0 ? '✅' : n < b ? '🔶' : '🔴';
+
 console.log('════ INVENTORY — Acoplamento Evolution ════');
-console.log(`front invoke bypass:   ${frontEvoBypass} (baseline: ${BASELINE.frontEvoBypass}, delta: ${frontEvoBypass - BASELINE.frontEvoBypass})`);
-console.log(`backend URL bypass:    ${backendUrlBypass} (baseline: ${BASELINE.backendUrlBypass}, delta: ${backendUrlBypass - BASELINE.backendUrlBypass})`);
-console.log(`front direct read evo: ${frontDirectRead} (baseline: ${BASELINE.frontDirectRead}, delta: ${frontDirectRead - BASELINE.frontDirectRead})`);
+console.log(`front invoke bypass:  ${frontEvoBypass}  ${passEmoji(frontEvoBypass, BASELINE.frontEvoBypass)} (baseline: ${BASELINE.frontEvoBypass}, delta: ${frontEvoBypass - BASELINE.frontEvoBypass})`);
+console.log(`backend URL bypass:   ${backendUrlBypass}  ${passEmoji(backendUrlBypass, BASELINE.backendUrlBypass)} (baseline: ${BASELINE.backendUrlBypass}, delta: ${backendUrlBypass - BASELINE.backendUrlBypass})`);
+console.log(`front evo writes:     ${frontEvoWrites}  ${passEmoji(frontEvoWrites, BASELINE.frontEvoWrites)} (baseline: ${BASELINE.frontEvoWrites}, delta: ${frontEvoWrites - BASELINE.frontEvoWrites})`);
 console.log('═══════════════════════════════════════════');
-const total = frontEvoBypass + backendUrlBypass + frontDirectRead;
-const btotal = BASELINE.frontEvoBypass + BASELINE.backendUrlBypass + BASELINE.frontDirectRead;
+const total = frontEvoBypass + backendUrlBypass + frontEvoWrites;
+const btotal = BASELINE.frontEvoBypass + BASELINE.backendUrlBypass + BASELINE.frontEvoWrites;
 console.log(`TOTAL: ${total} (baseline: ${btotal}, delta: ${total - btotal})`);
+console.log('Meta: TOTAL → 0 (desacoplamento completo)');
