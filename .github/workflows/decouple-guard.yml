@@ -1,9 +1,9 @@
-# decouple-guard.yml — bloqueia recriação de infra Evolution no zapp-web-v3
-# e verifica regressão no inventory de acoplamento (E22 do Plano 100 Etapas)
-# v2: gate endurecido — TOTAL > 0 falha (whitelist de tooling embutida no inventory v3)
-# v2+sqlgate: passo extra no job coupling-inventory — gate de egresso SQL da
+# decouple-guard.yml - bloqueia recriacao de infra Evolution no zapp-web-v3
+# e verifica regressao no inventory de acoplamento (E22 do Plano 100 Etapas)
+# v2: gate endurecido - TOTAL > 0 falha (whitelist de tooling embutida no inventory v3)
+# v2+sqlgate: passo extra no job coupling-inventory - gate de egresso SQL da
 # Evolution (E46) contra o fixture commitado scripts/decouple/fixtures/sql_report_snapshot.json
-# (CI não tem acesso ao banco — o snapshot é a fonte de verdade).
+# (CI nao tem acesso ao banco - o snapshot e a fonte de verdade).
 name: Decouple Guard
 
 on:
@@ -35,7 +35,7 @@ jobs:
             echo "::error::Infraestrutura Evolution deve ficar em adm01-debug/evolution-stack."
             exit 1
           fi
-          echo "✅ Sem infra/evolution* em zapp-web-v3"
+          echo "[OK] Sem infra/evolution* em zapp-web-v3"
 
       - name: Verify no Evolution workflows in zapp-web-v3
         run: |
@@ -46,7 +46,7 @@ jobs:
             echo "::error::Mova para adm01-debug/evolution-stack."
             exit 1
           fi
-          echo "✅ Sem workflows Evolution em zapp-web-v3"
+          echo "[OK] Sem workflows Evolution em zapp-web-v3"
 
   coupling-inventory:
     name: Check coupling inventory
@@ -56,44 +56,44 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Run coupling inventory v3 (métrica 4 + whitelist + gate 0)
+      - name: Run coupling inventory v3 (metrica 4 + whitelist + gate 0)
         run: |
-          # inventory v3 (scripts/decouple/inventory.mjs) inclui a métrica 4
-          # (front direct HTTP) e a whitelist de tooling embutida — TOTAL=0 é o gate.
+          # inventory v3 (scripts/decouple/inventory.mjs) inclui a metrica 4
+          # (front direct HTTP) e a whitelist de tooling embutida - TOTAL=0 e o gate.
           node scripts/decouple/inventory.mjs | tee /tmp/inventory-v3.txt
       - name: Fail if TOTAL > 0
         run: |
           TOTAL=$(grep "^TOTAL:" /tmp/inventory-v3.txt | grep -oE '[0-9]+' | head -1)
           echo "TOTAL de bypasses: $TOTAL"
           if [ -z "$TOTAL" ]; then
-            echo "::error::Não foi possível extrair TOTAL da saída do inventory v3."
+            echo "::error::Nao foi possivel extrair TOTAL da saida do inventory v3."
             exit 1
           fi
           if [ "$TOTAL" -gt 0 ]; then
-            echo "::error::Regressão de acoplamento! TOTAL=$TOTAL > 0 (gate endurecido na v2)."
+            echo "::error::Regressao de acoplamento! TOTAL=$TOTAL > 0 (gate endurecido na v2)."
             echo "::error::Arquivos violadores (o inventory v3 imprime a contagem por arquivo):"
-            grep -vE "^(TOTAL:|Meta:|═|front |backend )" /tmp/inventory-v3.txt
+            grep -vE "^(TOTAL:|Meta:|=|front |backend )" /tmp/inventory-v3.txt
             echo "::error::Rode 'node scripts/decouple/inventory.mjs' localmente para ver o detalhamento por arquivo e corrija os bypasses."
             exit 1
           fi
-          echo "✅ Inventory v3 OK (TOTAL=$TOTAL = 0)"
+          echo "[OK] Inventory v3 OK (TOTAL=$TOTAL = 0)"
       - name: Run SQL egress gate (E46, fixture snapshot sem DB)
         run: |
           # E46: gate de egresso SQL da Evolution (scripts/decouple/sql-gate.mjs).
-          # O CI não tem acesso ao banco — valida o fixture commitado
+          # O CI nao tem acesso ao banco - valida o fixture commitado
           # (scripts/decouple/fixtures/sql_report_snapshot.json), snapshot fiel do
           # report real gerado pela query --sample no Supabase self-hosted.
           # Toda fn PL/pgSQL que chama a Evolution DEVE montar URL/chave via
           # ops.fn_evo_url()/ops.fn_evo_key(). Exit != 0 derruba o job.
           node scripts/decouple/sql-gate.mjs scripts/decouple/fixtures/sql_report_snapshot.json || {
-            echo "::error::SQL gate falhou: egresso SQL da Evolution fora do padrão (use ops.fn_evo_url/ops.fn_evo_key)."
+            echo "::error::SQL gate falhou: egresso SQL da Evolution fora do padrao (use ops.fn_evo_url/ops.fn_evo_key)."
             exit 1
           }
-          echo "✅ SQL egress gate OK (fixture snapshot)"
-      - name: Diagnostic - grep de padrões de bypass
+          echo "[OK] SQL egress gate OK (fixture snapshot)"
+      - name: Diagnostic - grep de padroes de bypass
         if: failure()
         run: |
-          echo "::group::Padrões de acoplamento encontrados (diagnóstico)"
+          echo "::group::Padroes de acoplamento encontrados (diagnostico)"
           echo "--- invoke('evolution-api', ...) fora do adapter ---"
           grep -rniE "invoke\(\s*['\"]evolution-api['\"]" src/ | grep -vE "whatsappAdapter\.ts|sendFunctionRouter\.ts" || true
           echo "--- EVOLUTION_API_URL lido direto em edge functions ---"
