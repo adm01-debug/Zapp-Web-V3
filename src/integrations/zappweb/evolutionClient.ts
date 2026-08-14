@@ -8,17 +8,15 @@
  *  - Circuit breaker: 3 erros 401/403 consecutivos → suspende 30 min.
  *  - Jitter no TTL de cache: evita thundering herd em multi-tab.
  *
- * INTEGRAÇÃO FULL v3 2026-07-06:
- *  - api_key agora resolvida em RUNTIME via edge fn `evolution-credentials`
- *    (JWT do usuário → Vault → header X-Evolution-Key). O secret deixa de
- *    depender de build-time e NUNCA entra no bundle público do Vite.
- *  - VITE_EVOLUTION_API_KEY passa a ser OVERRIDE opcional (emergência /
- *    rotação manual) — produção não exige mais env var no Vercel.
- *  - Cache da key: TTL 55s (< max-age=60 da fn) + jitter, single-flight
- *    (multi-componente/multi-tab não estoura a fn), bust automático em
- *    401/403 (rotação server-side é absorvida no request seguinte).
+ * SECURITY FIX 2026-08-14 — Phase 6 Desacoplamento:
+ *  - api_key NUNCA chega ao browser (nem via header X-Evolution-Key).
+ *  - evoFetch() agora chama edge fn `evolution-proxy` (server-side):
+ *    JWT do usuário → proxy valida → Evolution API server-side.
+ *  - Browser não conhece nem a URL nem a key da Evolution API.
+ *  - CORS entre zapp.atomicabr.com.br e evolution.atomicabr.com.br pode
+ *    ser removido após validação desta versão em produção.
  *
- * Endpoints cobertos:
+ * Endpoints cobertos (proxied server-side via evolution-proxy):
  *  - POST /message/sendText/{instance}
  *  - POST /message/sendMedia/{instance}
  *  - POST /message/sendWhatsAppAudio/{instance}
@@ -37,99 +35,18 @@ import { log } from '@/lib/logger';
 /** Evolution Credentials interface definition. */
 export interface EvolutionCredentials {
   api_url: string;
+  /** @deprecated - key nunca retorna ao browser após Phase 6; sempre string vazia */
   api_key: string;
   instance_name: string;
 }
 
-const DEFAULT_URL =
-  (import.meta.env.VITE_EVOLUTION_API_URL as string | undefined) ||
-  'https://evolution.atomicabr.com.br';
-
-/**
- * OVERRIDE opcional (emergência/rotação manual fora de banda). Quando ausente
- * — o caso padrão em produção — a key é obtida em runtime via edge fn
- * `evolution-credentials` (JWT-gated, Vault-backed). Assim o secret nunca é
- * embutido no bundle público.
- */
-const ENV_KEY_OVERRIDE = (import.meta.env.VITE_EVOLUTION_API_KEY as string | undefined) || '';
-
 const DEFAULT_INSTANCE = (import.meta.env.VITE_ZAPPWEB_INSTANCE as string | undefined) || 'wpp2';
 
-// ─── Cache de URL (sem credenciais) ───────────────────────────────────────
+// ─── Cache de URL da instância (sem credenciais) ──────────────────────────
 const urlCache = new Map<string, { api_url: string; at: number }>();
-// TTL base 5 min com ±20% jitter para evitar thundering herd em multi-tab
 const URL_TTL_BASE_MS = 5 * 60_000;
 function urlTtlWithJitter(): number {
   return URL_TTL_BASE_MS * (0.8 + Math.random() * 0.4);
-}
-
-// ─── Cache da api_key (edge fn evolution-credentials) ────────────────────
-const KEY_TTL_BASE_MS = 55_000; // < Cache-Control max-age=60 da edge fn
-let keyCache: { key: string; at: number } | null = null;
-let keyInflight: Promise<string> | null = null;
-function keyTtlWithJitter(): number {
-  return KEY_TTL_BASE_MS * (0.9 + Math.random() * 0.2);
-}
-
-/** Invalida o cache da key (rotação server-side detectada via 401/403). */
-function bustKeyCache(): void {
-  keyCache = null;
-}
-
-async function fetchKeyFromEdge(): Promise<string> {
-  const { data: sessionData } = await supabase.auth.getSession();
-  const token = sessionData.session?.access_token;
-  if (!token) {
-    log.warn(
-      '[evolutionClient] Sem sessão autenticada — edge fn evolution-credentials indisponível.'
-    );
-    return '';
-  }
-  const res = await fetch(`${SUPABASE_RESOLVED_URL}/functions/v1/evolution-credentials`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      apikey: SUPABASE_RESOLVED_ANON_KEY,
-    },
-  });
-  if (!res.ok) {
-    log.warn(`[evolutionClient] evolution-credentials respondeu ${res.status} — key indisponível.`);
-    return '';
-  }
-  const key = res.headers.get('X-Evolution-Key') ?? '';
-  if (!key) {
-    log.warn(
-      '[evolutionClient] evolution-credentials 200 sem header X-Evolution-Key (checar Access-Control-Expose-Headers).'
-    );
-  }
-  return key;
-}
-
-/**
- * Resolve a api_key: override de env (se definido) → cache → edge fn
- * (single-flight). Retorna '' quando nenhuma fonte está disponível;
- * evoFetch converte em erro claro para o caller.
- */
-async function getEvolutionApiKey(): Promise<string> {
-  if (ENV_KEY_OVERRIDE) return ENV_KEY_OVERRIDE;
-  if (keyCache && Date.now() - keyCache.at < keyTtlWithJitter()) {
-    return keyCache.key;
-  }
-  if (!keyInflight) {
-    keyInflight = fetchKeyFromEdge()
-      .then((key) => {
-        if (key) keyCache = { key, at: Date.now() };
-        return key;
-      })
-      .catch((err: unknown) => {
-        log.warn('[evolutionClient] Falha ao buscar key na edge fn:', err);
-        return '';
-      })
-      .finally(() => {
-        keyInflight = null;
-      });
-  }
-  return keyInflight;
 }
 
 // ─── Circuit Breaker (auth errors 401/403) ────────────────────────────────
@@ -137,12 +54,11 @@ const circuitBreaker = {
   consecutiveAuthErrors: 0,
   openUntil: 0,
   THRESHOLD: 3,
-  OPEN_MS: 30 * 60_000, // 30 minutos
+  OPEN_MS: 30 * 60_000,
 
   isOpen(): boolean {
     if (Date.now() < this.openUntil) return true;
     if (this.openUntil > 0) {
-      // Resetar ao fechar
       this.openUntil = 0;
       this.consecutiveAuthErrors = 0;
       log.info('[evolutionClient] circuit breaker CLOSED — retomando chamadas');
@@ -152,20 +68,14 @@ const circuitBreaker = {
 
   recordError(status: number): void {
     if (status === 401 || status === 403) {
-      // Key pode ter sido rotacionada no Vault — próxima tentativa refaz o
-      // fetch na edge fn em vez de reutilizar uma key possivelmente morta.
-      bustKeyCache();
       this.consecutiveAuthErrors++;
       if (this.consecutiveAuthErrors >= this.THRESHOLD) {
         this.openUntil = Date.now() + this.OPEN_MS;
         log.error(
-          `[evolutionClient] circuit breaker OPEN — ${
-            this.THRESHOLD
-          } erros auth consecutivos. Suspenso por ${this.OPEN_MS / 60000} min.`
+          `[evolutionClient] circuit breaker OPEN — ${this.THRESHOLD} erros auth consecutivos. Suspenso por ${this.OPEN_MS / 60000} min.`
         );
       }
     } else {
-      // Erros não-auth não contam para o circuit breaker
       this.consecutiveAuthErrors = 0;
     }
   },
@@ -187,33 +97,25 @@ export function stripJid(numberOrJid: string): string {
   return (numberOrJid || '').replace(/@s\.whatsapp\.net$/i, '').replace(/@c\.us$/i, '');
 }
 
-/**
- * Retorna credenciais para a instância solicitada.
- *
- * api_url: consultado via `evolution_instances_public` (view segura, sem api_key).
- * api_key: override de env OU runtime via edge fn `evolution-credentials`
- *          (nunca lida do banco pelo browser — REVOKE de 2026-07-05 mantido).
- */
 interface EvolutionInstancePublicRow {
   instance_name: string;
   api_url: string | null;
   is_active: boolean;
 }
 
-/** Resolves the Evolution API URL and key for a given instance, with a short-lived URL cache. */
+/**
+ * Retorna URL da instância (sem api_key — nunca exposta ao browser).
+ * api_key retorna string vazia para compatibilidade de interface.
+ */
 export async function getEvolutionCredentials(
   instance: string = DEFAULT_INSTANCE
 ): Promise<EvolutionCredentials> {
-  const api_key = await getEvolutionApiKey();
-
-  // Cache de URL (sem credenciais)
   const cached = urlCache.get(instance);
   if (cached && Date.now() - cached.at < urlTtlWithJitter()) {
-    return { api_url: cached.api_url, api_key, instance_name: instance };
+    return { api_url: cached.api_url, api_key: '', instance_name: instance };
   }
 
   try {
-    // Consulta view SEGURA — sem api_key, sem instance_token (REVOKE aplicado 2026-07-05)
     const { data: rows } = await safeClient.from<EvolutionInstancePublicRow>(
       'evolution_instances_public',
       (q) =>
@@ -228,25 +130,28 @@ export async function getEvolutionCredentials(
     if (data?.api_url) {
       const api_url = normalizeUrl(data.api_url);
       urlCache.set(instance, { api_url, at: Date.now() });
-      return { api_url, api_key, instance_name: instance };
+      return { api_url, api_key: '', instance_name: instance };
     }
   } catch (err) {
-    log.warn('[evolutionClient] Falha ao carregar api_url da BD, usando fallback env:', err);
+    log.warn('[evolutionClient] Falha ao carregar api_url da BD:', err);
   }
 
   return {
-    api_url: normalizeUrl(DEFAULT_URL),
-    api_key,
+    api_url: normalizeUrl(SUPABASE_RESOLVED_URL), // fallback inócuo; proxy não usa api_url do browser
+    api_key: '',
     instance_name: instance,
   };
 }
 
+/**
+ * evoFetch — todas as chamadas vão via evolution-proxy (edge fn server-side).
+ * A Evolution API key NUNCA sai do servidor.
+ */
 async function evoFetch<T>(
   path: string,
   init: RequestInit,
-  instance: string = DEFAULT_INSTANCE
+  _instance: string = DEFAULT_INSTANCE
 ): Promise<T> {
-  // Circuit breaker check
   if (circuitBreaker.isOpen()) {
     const remainingMin = Math.ceil((circuitBreaker.openUntil - Date.now()) / 60_000);
     log.warn(
@@ -257,30 +162,43 @@ async function evoFetch<T>(
     );
   }
 
-  const creds = await getEvolutionCredentials(instance);
-  if (!creds.api_key) {
-    throw new Error(
-      'Evolution API key indisponível: sessão expirada/edge fn evolution-credentials inacessível. ' +
-        'Refaça o login ou defina VITE_EVOLUTION_API_KEY como override de emergência.'
-    );
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+  if (!token) {
+    throw new Error('[evolutionClient] Sem sessão autenticada — evolution-proxy indisponível.');
   }
 
-  const url = `${creds.api_url}${path}`;
-  const headers = new Headers(init.headers);
-  headers.set('apikey', creds.api_key);
-  if (init.body && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
+  // Parsear o body antes de re-serializar no envelope do proxy
+  let parsedBody: unknown = undefined;
+  if (init.body) {
+    try {
+      parsedBody = typeof init.body === 'string' ? JSON.parse(init.body) : init.body;
+    } catch {
+      parsedBody = init.body;
+    }
   }
 
-  const res = await fetch(url, { ...init, headers });
+  const proxyUrl = `${SUPABASE_RESOLVED_URL}/functions/v1/evolution-proxy`;
+  const res = await fetch(proxyUrl, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      apikey: SUPABASE_RESOLVED_ANON_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      method: init.method ?? 'POST',
+      path,
+      ...(parsedBody !== undefined ? { body: parsedBody } : {}),
+    }),
+  });
 
   if (!res.ok) {
     circuitBreaker.recordError(res.status);
     const body = await res.text().catch(() => '');
-    const err = Object.assign(new Error(`Evolution API ${res.status}: ${body || res.statusText}`), {
+    throw Object.assign(new Error(`Evolution proxy ${res.status}: ${body || res.statusText}`), {
       status: res.status,
     });
-    throw err;
   }
 
   circuitBreaker.recordSuccess();
@@ -288,7 +206,7 @@ async function evoFetch<T>(
   try {
     return (await res.json()) as T;
   } catch (err) {
-    log.error('[evolutionClient] Falha ao processar JSON de resposta:', err);
+    log.error('[evolutionClient] Falha ao processar JSON de resposta do proxy:', err);
     return {} as T;
   }
 }
@@ -312,7 +230,7 @@ export async function sendMedia(
   params: {
     number: string;
     mediatype: 'image' | 'video' | 'document';
-    media: string; // URL pública
+    media: string;
     caption?: string;
     fileName?: string;
   },
@@ -360,7 +278,6 @@ export async function markChatRead(number: string, instance: string = DEFAULT_IN
 
 /**
  * Verifica o estado de conexão da instância.
- * Guarda-se contra circuit breaker aberto — retorna 'unknown' nesse caso.
  */
 export async function getConnectionState(
   instance: string = DEFAULT_INSTANCE
