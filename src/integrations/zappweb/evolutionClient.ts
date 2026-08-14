@@ -18,4 +18,3 @@ export const fetchInstances = (): never => { throw new Error('[V3] Use evolution
 export const connectionState = (): never => { throw new Error('[V3] Use evolution-proxy via supabase.functions.invoke'); };
 export const getEvolutionCredentials = connectionState;
 export const stripJid = (jid: string) => (jid || '').replace(/@s\.whatsapp\.net$/i, '').replace(/@c\.us$/i, '');
-export type { EvolutionCredentials } from './types';
