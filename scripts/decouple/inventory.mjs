@@ -47,9 +47,11 @@ for (const f of tsFiles) {
   // Métrica 1: invoke direto — excluir o próprio adapter (ele invoca por design)
   const isAdapter = f.endsWith('whatsappAdapter.ts') || f.endsWith('sendFunctionRouter.ts');
   const src = readFileSync(f, 'utf8');
-  if (!isAdapter && RE_INVOKE_EVO.test(src)) frontEvoBypass++;
+  // Excluir arquivos onde a única ocorrência é em comment/docstring (ex: withRequestId.ts)
+  const codeLines = src.split('\n').filter(l => { const t=l.trim(); return !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*'); }).join('\n');
+  if (!isAdapter && RE_INVOKE_EVO.test(codeLines)) frontEvoBypass++;
   // Métrica 3: writes diretos em tabelas evolution_*
-  if (!isAdapter && RE_EVO_WRITE.test(src)) frontEvoWrites++;
+  if (!isAdapter && RE_EVO_WRITE.test(codeLines)) frontEvoWrites++;
 }
 
 for (const f of edgeFns) {

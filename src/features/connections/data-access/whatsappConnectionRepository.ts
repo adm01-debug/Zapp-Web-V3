@@ -87,10 +87,9 @@ export const whatsappConnectionRepository = {
     return supabase.from('qr_attempts').update(updates).eq('id', id);
   },
 
-  /** @deprecated Use specific whatsappAdapter methods instead (F3 decoupling). */
-  async callEvolutionApi(body: Record<string, unknown>) {
-    return supabase.functions.invoke('evolution-api', { body });
-  },
+  // callEvolutionApi REMOVIDO (2026-08-13) — F3 decoupling completo.
+  // Todos os callers migrados para whatsappAdapter (connectInstance, createInstance,
+  // requestPairingCode, listInstances). Referência: feat/decouple-provider ADR-009.
 
   async callEvolutionApiV2(path: string, options: Parameters<typeof supabase.functions.invoke>[1]) {
     return supabase.functions.invoke(path, options);

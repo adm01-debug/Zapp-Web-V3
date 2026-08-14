@@ -380,6 +380,50 @@ export async function listInstances() {
 }
 
 
+// ── Helper para sub-path invokes (routing por caminho, não por action) ───
+async function invokeEvolutionPath(path: string, body: Record<string, unknown>) {
+  const { data, error } = await supabase.functions.invoke(`evolution-api/${path}`, {
+    method: 'POST',
+    body,
+  });
+  if (error) throw error;
+  return data;
+}
+
+// ── WhatsApp Status (Stories) ────────────────────────────────────────────
+export interface FindStatusMessagesParams { instanceName: string; page?: number; offset?: number }
+export async function findStatusMessages(params: FindStatusMessagesParams) {
+  return invokeEvolutionPath('find-status-messages', {
+    instanceName: params.instanceName,
+    page: params.page ?? 1,
+    offset: params.offset ?? 200,
+  });
+}
+
+export interface SendChatPresenceParams { instanceName: string; number: string; presence?: string; delay?: number }
+export async function sendChatPresence(params: SendChatPresenceParams) {
+  return invokeEvolutionPath('send-chat-presence', {
+    instanceName: params.instanceName,
+    number: params.number,
+    presence: params.presence ?? 'paused',
+    delay: params.delay ?? 0,
+  });
+}
+
+// ── Webhook management ────────────────────────────────────────────────────
+export interface GetWebhookConfigParams { instanceName: string }
+export async function getWebhookConfig(params: GetWebhookConfigParams) {
+  return invokeEvolutionPath('get-webhook', { instanceName: params.instanceName });
+}
+
+export interface SetWebhookConfigParams { instanceName: string; webhook: Record<string, unknown> }
+export async function setWebhookConfig(params: SetWebhookConfigParams) {
+  return invokeEvolutionPath('set-webhook', {
+    instanceName: params.instanceName,
+    webhook: params.webhook,
+  });
+}
+
 // ── Gerenciamento de instâncias ───────────────────────────────────────────
 
 export interface CreateInstanceParams {
@@ -467,6 +511,10 @@ export const whatsapp = {
   getQrCode,
   restartInstance,
   listInstances,
+  findStatusMessages,
+  sendChatPresence,
+  getWebhookConfig,
+  setWebhookConfig,
   createInstance,
   requestPairingCode,
   sendPtv,

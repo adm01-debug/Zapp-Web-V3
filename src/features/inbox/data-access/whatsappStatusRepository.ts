@@ -81,16 +81,10 @@ export const whatsappStatusRepository = {
   },
 
   async findStatusMessages(instanceName: string, page = 1, offset = 200) {
-    return supabase.functions.invoke('evolution-api/find-status-messages', {
-      method: 'POST',
-      body: { instanceName, page, offset },
-    });
+    return findStatusMessages({ instanceName, page, offset });
   },
 
   async sendChatPresence(instanceName: string, phone: string) {
-    return supabase.functions.invoke('evolution-api/send-chat-presence', {
-      method: 'POST',
-      body: { instanceName, number: phone, presence: 'paused', delay: 0 },
-    });
+    return sendChatPresence({ instanceName, number: phone });
   },
 };

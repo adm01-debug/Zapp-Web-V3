@@ -75,12 +75,12 @@ export async function ingestContact(
   },
 ): Promise<{ ok: boolean; contactId?: string; error?: string }> {
   try {
+    // rpc_upsert_contact (3-args): p_remote_jid, p_instance, p_push_name
+    // p_avatar_url e p_provider serão adicionados quando rpc_upsert_contact for estendido (F6)
     const { data, error } = await supabase.rpc('rpc_upsert_contact', {
       p_remote_jid:   opts.remoteJid,
       p_instance:     opts.instanceRef,
       p_push_name:    opts.pushName ?? null,
-      p_avatar_url:   opts.avatarUrl ?? null,
-      p_provider:     opts.provider,
     });
 
     if (error) return { ok: false, error: error.message };

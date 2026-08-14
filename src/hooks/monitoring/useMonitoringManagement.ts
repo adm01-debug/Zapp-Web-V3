@@ -1,3 +1,4 @@
+import { getWebhookConfig, setWebhookConfig } from '@/lib/whatsappAdapter';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { safeFrom } from '@/integrations/supabase/safeClient';
@@ -366,10 +367,8 @@ export function useMonitoringActionsManagement(
       return;
     }
     try {
-      const { data, error } = await supabase.functions.invoke('evolution-api/get-webhook', {
-        method: 'POST',
-        body: { instanceName: instanceId },
-      });
+      let data: unknown, error: unknown;
+      try { data = await getWebhookConfig({ instanceName: instanceId }); } catch (err) { error = err; }
       if (error) throw error;
       const webhook = data?.webhook || data;
       setWebhookConfig({
@@ -393,39 +392,24 @@ export function useMonitoringActionsManagement(
       try {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const webhookUrl = `${supabaseUrl}/functions/v1/evolution-webhook`;
-        const { error } = await supabase.functions.invoke('evolution-api/set-webhook', {
-          method: 'POST',
-          body: {
+        let error: unknown;
+        try {
+          await setWebhookConfig({
             instanceName: instanceId,
             webhook: {
               url: webhookUrl,
               webhookByEvents: false,
               webhookBase64: true,
               events: [
-                'MESSAGES_UPSERT',
-                'MESSAGES_UPDATE',
-                'MESSAGES_DELETE',
-                'MESSAGES_SET',
-                'SEND_MESSAGE',
-                'CONTACTS_UPSERT',
-                'CONTACTS_UPDATE',
-                'CONTACTS_SET',
-                'PRESENCE_UPDATE',
-                'CHATS_UPSERT',
-                'CHATS_UPDATE',
-                'CHATS_DELETE',
-                'CHATS_SET',
-                'CONNECTION_UPDATE',
-                'LABELS_EDIT',
-                'LABELS_ASSOCIATION',
-                'GROUPS_UPSERT',
-                'GROUP_PARTICIPANTS_UPDATE',
-                'CALL',
-                'QRCODE_UPDATED',
+                'MESSAGES_UPSERT','MESSAGES_UPDATE','MESSAGES_DELETE','MESSAGES_SET',
+                'SEND_MESSAGE','CONTACTS_UPSERT','CONTACTS_UPDATE','CONTACTS_SET',
+                'PRESENCE_UPDATE','CHATS_UPSERT','CHATS_UPDATE','CHATS_DELETE','CHATS_SET',
+                'CONNECTION_UPDATE','LABELS_EDIT','LABELS_ASSOCIATION',
+                'GROUPS_UPSERT','GROUP_PARTICIPANTS_UPDATE','CALL','QRCODE_UPDATED',
               ],
             },
-          },
-        });
+          });
+        } catch (err) { error = err; }
         if (error) throw error;
         toast.success('Webhook reconfigurado com sucesso!');
         await checkWebhookConfig(instanceId);
