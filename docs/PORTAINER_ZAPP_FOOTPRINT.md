@@ -145,7 +145,7 @@ Volumes (66,5 GB): 0 recuperável **com segurança** — **nunca tocar** (`runne
 
 ## Stacks Evolution (removidos do footprint zapp em 2026-08-12)
 
-Os stacks Evolution (25, 113, 126, 225, 230, 234, 236) foram movidos para o repositório
+Os stacks Evolution (25, 113, 238, 225, 230, 240, 265, 262, 264) — IDs verificados Portainer 2026-08-14 foram movidos para o repositório
 [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack).
 Não pertencem mais ao footprint do zapp-web-v3 no Portainer.
 Para gerenciamento, usar runbooks em evolution-stack.

@@ -174,6 +174,6 @@ Campos obrigatórios: **nome · dono · propósito · criticidade · dependênci
 ## Separação de infraestrutura (2026-08-12)
 
 Serviços Evolution extraídos para repo separado [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack):
-- Stack 25 (Evolution API), Stack 113 (consumer RabbitMQ), Stack 126 (purge)
-- Stacks 225, 230, 234, 236 (watchdogs/observers)
+- Stack 25 (Evolution API), Stack 113 (consumer RabbitMQ), Stack 238 (purge)
+- Stacks 225, 230, 240 (watchdogs), 265 (functions-health), 262 (security-guardian), 264 (pgbackrest)
 - Imagens GHCR: `evolution-stack/evolution-api-custom`, `evolution-stack/evolution-rabbit-consumer`
