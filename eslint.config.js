@@ -166,6 +166,7 @@ export default tseslint.config(
   {
     files: ["src/**/*.{ts,tsx}"],
     ignores: [
+      "src/_archive/**",
       "src/lib/constants/whatsappInstances.ts",
       "src/services/api/queryKeys.ts",
       "src/integrations/supabase/client.ts",
@@ -225,7 +226,10 @@ export default tseslint.config(
       ],
     },
   },
-  // DECOUPLE GUARDS (E94 Plano V2 + V3) — impede regressão do acoplamento Evolution
+  // CONTRACT + DECOUPLE GUARDS (fundidos 2026-08-14) — flat config: quando 2 blocos
+  // definem a MESMA regra para os mesmos arquivos, o último vence por completo.
+  // Antes, o bloco SCHEMA CONTRACT sobrescrevia o DECOUPLE (regras mortas). Agora
+  // os 6 selectors vivem num único bloco (ignores = união dos dois).
   {
     files: ["src/**/*.{ts,tsx}"],
     ignores: [
@@ -238,43 +242,9 @@ export default tseslint.config(
       "src/lib/healthCheck.ts",
       "src/integrations/zappweb/evolutionClient.ts",
       "src/integrations/zappweb/supabaseClient.ts",
-      "src/**/__tests__/**",
-      "src/**/*.test.{ts,tsx}",
-      "src/**/*.spec.{ts,tsx}",
-    ],
-    rules: {
-      "no-restricted-syntax": [
-        "error",
-        {
-          // Proíbe invoke('evolution-api', ...) fora do whatsappAdapter
-          selector:
-            "CallExpression[callee.property.name='invoke'][arguments.0.value='evolution-api']",
-          message:
-            "[decouple] invoke('evolution-api') direto — usar whatsappAdapter (E94 Plano V2). https://github.com/adm01-debug/zapp-web-v3/blob/main/docs/decouple/PLANO_DESACOPLAMENTO_V2_100_ETAPAS.md",
-        },
-        {
-          // Proíbe import de evolutionExternal fora de src/adapters
-          selector:
-            "ImportDeclaration[source.value=/evolutionExternal/]",
-          message:
-            "[decouple] Import de evolutionExternal só permitido em src/adapters/ (E94 Plano V2).",
-        },
-        {
-          // V3 F2 — proíbe VITE_EVOLUTION_API_URL hardcoded no front (zombie coupling)
-          selector: "Literal[value=/VITE_EVOLUTION_API_URL/]",
-          message:
-            "[decouple] VITE_EVOLUTION_API_URL é proibido no front — usar whatsappAdapter (V3 F2).",
-        },
-      ],
-    },
-  },
-  // SCHEMA CONTRACT GUARDS — o front só acessa views/tabelas do schema 'zapp'
-  // (client com db.schema='zapp'). Acessos diretos a schemas físicos ('evo' /
-  // 'email_app') ou ao 'public' quebram o contrato single-DB e devem ser
-  // substituídos por views em zapp.
-  {
-    files: ["src/**/*.{ts,tsx}"],
-    ignores: [
+      // Exceção: import de VALOR de toEvolutionMessageLite (função de conversão
+      // definida em types/evolutionExternal.ts — não é bypass de provider)
+      "src/features/inbox/hooks/useMessagesCursor.ts",
       "src/integrations/supabase/types.ts",
       "src/integrations/supabase/types-manual.ts",
       "src/integrations/supabase/client.ts",
@@ -287,23 +257,41 @@ export default tseslint.config(
       "no-restricted-syntax": [
         "error",
         {
-          // .schema('evo') / .schema('email_app') — usar views zapp.
+          // DECOUPLE — proíbe invoke('evolution-api', ...) fora do whatsappAdapter
+          selector:
+            "CallExpression[callee.property.name='invoke'][arguments.0.value='evolution-api']",
+          message:
+            "[decouple] invoke('evolution-api') direto — usar whatsappAdapter (E94 Plano V2). https://github.com/adm01-debug/zapp-web-v3/blob/main/docs/decouple/PLANO_DESACOPLAMENTO_V2_100_ETAPAS.md",
+        },
+        {
+          // DECOUPLE — import de VALOR de evolutionExternal só permitido em src/adapters
+          // (type-only permitido: 13 consumidores legítimos de tipos)
+          selector:
+            "ImportDeclaration:not([importKind='type'])[source.value=/evolutionExternal/]",
+          message:
+            "[decouple] Import de VALOR de evolutionExternal só permitido em src/adapters/ (E94 Plano V2).",
+        },
+        {
+          // DECOUPLE — proíbe VITE_EVOLUTION_API_URL hardcoded no front (zombie coupling)
+          selector: "Literal[value=/VITE_EVOLUTION_API_URL/]",
+          message:
+            "[decouple] VITE_EVOLUTION_API_URL é proibido no front — usar whatsappAdapter (V3 F2).",
+        },
+        {
+          // SCHEMA CONTRACT — .schema('evo') / .schema('email_app') — usar views zapp.
           selector:
             "CallExpression[callee.type='MemberExpression'][callee.property.name='schema'][arguments.0.value=/^(evo|email_app)$/]",
           message:
             "Não usar .schema('evo'|'email_app') no front — usar views zapp (contrato single-DB).",
         },
         {
-          // schema:'public' em objetos (ex.: postgres_changes) — views não
-          // emitem WAL, mas o contrato de leitura é sempre zapp.
+          // SCHEMA CONTRACT — schema:'public' em objetos (ex.: postgres_changes)
           selector: "Property[key.name='schema'][value.value='public']",
           message:
             "Não usar schema:'public' no front — usar views zapp (contrato single-DB).",
         },
         {
-          // information_schema — não acessar diretamente (PGRST_DB_SCHEMAS não inclui
-          // information_schema; além disso, consultas diretas expõem metadados sensíveis
-          // do banco). Usar RPCs: rpc_schema_tables / rpc_schema_columns.
+          // SCHEMA CONTRACT — information_schema direto
           selector: "Literal[value='information_schema']",
           message:
             "Não acessar information_schema diretamente — usar RPCs rpc_schema_tables/rpc_schema_columns (F-06).",

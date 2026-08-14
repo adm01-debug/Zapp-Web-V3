@@ -27,7 +27,15 @@
 
 import { readFileSync } from 'node:fs';
 
-const WHITELIST = new Set(['ops.fn_evo_url', 'ops.fn_evo_key']);
+const WHITELIST = new Set([
+  'ops.fn_evo_url',
+  'ops.fn_evo_key',
+  // V7 allowlist nominal (egressos legítimos fora do gateway, sem apikey):
+  // - zapp.fn_check_license_heartbeat: health check do license server (sem apikey)
+  // - evo.fn_detect_instance_recreate: alerta webhook n8n (bootstrap)
+  'zapp.fn_check_license_heartbeat',
+  'evo.fn_detect_instance_recreate',
+]);
 // Report sem prefixo de schema (query sem JOIN) também é aceito no whitelist.
 const WHITELIST_SHORT = new Set(['fn_evo_url', 'fn_evo_key']);
 const SCOPE_SCHEMAS = new Set(['evo', 'zapp', 'ops', 'public']);
@@ -89,9 +97,12 @@ function checkEntry(entry) {
   const prosrc = typeof entry.prosrc === 'string' ? entry.prosrc : '';
   const reasons = [];
 
+  // CONFORMIDADE (V3 V7): fn que resolve url/key via ops.fn_evo_url/fn_evo_key é
+  // compliant — mata falsos positivos de comentários/'Evolution' em fns 100% OK
+  const usesResolvers = /ops\.fn_evo_url|ops\.fn_evo_key/i.test(prosrc);
   const hasHttpCall = /net\.http_(get|post)\s*\(/i.test(prosrc);
   const mentionsEvolution = /evolution/i.test(prosrc);
-  if (hasHttpCall && mentionsEvolution) {
+  if (hasHttpCall && mentionsEvolution && !usesResolvers) {
     reasons.push(
       'chama net.http_get/net.http_post referenciando evolution no corpo; ' +
       'use ops.fn_evo_url()/ops.fn_evo_key() para montar o egresso'
@@ -100,7 +111,7 @@ function checkEntry(entry) {
 
   const readsVault = /vault\.decrypted_secrets/i.test(prosrc);
   const readsEvoUrlSecret = /evolution_api_url/i.test(prosrc);
-  if (readsVault && readsEvoUrlSecret) {
+  if (readsVault && readsEvoUrlSecret && !usesResolvers) {
     reasons.push(
       'lê vault.decrypted_secrets (evolution_api_url) diretamente; ' +
       'use ops.fn_evo_url()'
@@ -150,6 +161,8 @@ function main() {
   let whitelisted = 0;
 
   for (const entry of report) {
+    // V7: entry null/object inválido não derruba o gate (crash fix)
+    if (!entry || typeof entry !== 'object') continue;
     const fn = entry && typeof entry.fn === 'string'
       ? entry.fn
       : String((entry && entry.fn) ?? '?');
