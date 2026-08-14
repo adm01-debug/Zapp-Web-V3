@@ -19,6 +19,28 @@ interface Check {
   durationMs?: number;
 }
 
+/** Forma do body de connectionState da Evolution (fields opcionais — type-only). */
+interface EvoConnectionState {
+  instance?: { state?: string };
+  state?: string;
+  status?: string;
+}
+
+/** Forma do body de webhook/find da Evolution (fields opcionais — type-only). */
+interface EvoWebhookInfo {
+  url?: string;
+  enabled?: boolean;
+  webhook?: { url?: string; enabled?: boolean };
+}
+
+/** Forma do body da Graph API da Meta (fields opcionais — type-only). */
+interface GraphPhoneInfo {
+  error?: { message?: string };
+  display_phone_number?: string;
+  verified_name?: string;
+  quality_rating?: string;
+}
+
 const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? '';;
 const PROJECT_FUNCTIONS_BASE = `${SUPABASE_URL}/functions/v1`;
@@ -85,7 +107,7 @@ async function runEvolutionChecks(): Promise<Check[]> {
   // 3. Instância autenticada (connectionState)
   const conn = await timed(async () => {
     const r = await evolutionClient.getConnectionState(encodeURIComponent(instance), { timeoutMs: 10_000 });
-    const parsed = (r.data ?? null) as Record<string, unknown> | null;
+    const parsed = (r.data ?? null) as EvoConnectionState | null;
     return { status: r.status, parsed, raw: r.error?.slice(0, 200) ?? "" };
   });
   const state =
@@ -104,7 +126,7 @@ async function runEvolutionChecks(): Promise<Check[]> {
   // 4. Webhook configurado no provedor
   const wh = await timed(async () => {
     const r = await evolutionClient.get(`webhook/find/${encodeURIComponent(instance)}`, { timeoutMs: 10_000 });
-    return { status: r.status, parsed: (r.data ?? null) as Record<string, unknown> | null };
+    return { status: r.status, parsed: (r.data ?? null) as EvoWebhookInfo | null };
   });
   const expectedWebhook = `${PROJECT_FUNCTIONS_BASE}/evolution-webhook`;
   const configuredUrl: string = wh.value?.parsed?.url ?? wh.value?.parsed?.webhook?.url ?? "";
@@ -157,8 +179,8 @@ async function runCloudChecks(): Promise<Check[]> {
       { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000) },
     );
     const txt = await r.text();
-    let parsed: Record<string, unknown> | null = null;
-    try { parsed = JSON.parse(txt) as Record<string, unknown>; } catch { /* keep raw */ }
+    let parsed: GraphPhoneInfo | null = null;
+    try { parsed = JSON.parse(txt) as GraphPhoneInfo; } catch { /* keep raw */ }
     return { status: r.status, parsed, raw: txt.slice(0, 250) };
   });
   if (meta.error || !meta.value) {

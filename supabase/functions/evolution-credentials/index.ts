@@ -1,35 +1,39 @@
 /**
- * evolution-credentials — Edge Function (v2, 2026-07-06) — POST-only desde 2026-08-14
+ * evolution-credentials — Edge Function (v2, 2026-07-06)
  *
- * POST — CRUD de credenciais da instância Evolution (actions 'save' | 'delete').
- * O GET (que entregava a Evolution api_key ao browser via header X-Evolution-Key)
- * foi ATERRADO com 410 Gone em 2026-08-14 (commit bed8e1039): a key nunca mais
- * sai do servidor — o browser usa a edge `evolution-proxy`. O código morto do
- * GET foi removido em 2026-08-14 (aposentadoria formal — plano desacoplamento #30).
+ * Serve a Evolution API key para o frontend de forma segura.
+ * Substitui a leitura via PostgREST (revogada em 2026-07-05).
  *
- * SEGURANÇA (POST):
- * - Requer role admin/supervisor (requireAdminOrSupervisor)
- * - Escrita via RPC SECURITY DEFINER em zapp (service_role); a tabela física
- *   evo.evolution_instance_credentials NÃO está no PGRST_DB_SCHEMAS
+ * SEGURANÇA:
+ * - Requer JWT válido (authenticated)
+ * - Lê api_key do Vault Supabase (NUNCA de env var ou config pública)
  * - CORS restrito a origens conhecidas via _shared/cors.ts
- * - Nunca ecoa nem loga api_key
+ * - Não loga o valor da key
  *
  * v2 — CAUSA RAIZ CORRIGIDA (auditoria integração full 2026-07-06):
  * As leituras `.schema('vault')` / `.schema('evo')` da v1 NUNCA funcionaram
  * em produção: PGRST_DB_SCHEMAS = public,zapp,storage,graphql_public,artes,
  * vendas,financeiro não expõe `vault` nem `evo` — e NÃO DEVE expor (vault no
  * PostgREST = superfície de ataque inaceitável; `evo` foi justamente fechado
- * no fix do storm 401). A escrita passa por RPCs SECURITY DEFINER
- * (fn_edge_upsert_evolution_credentials / fn_edge_delete_evolution_credentials):
+ * no fix do storm 401). A key agora sai por UMA chamada à RPC SECURITY
+ * DEFINER `public.fn_edge_get_evolution_credentials(p_instance)`:
  *   - EXECUTE revogado de PUBLIC/anon/authenticated; GRANT só service_role
+ *   - guarda interna de claims (role=service_role) como defesa em profundidade
  *   - search_path='' fixado; vault continua invisível ao PostgREST
+ *
+ * RESPOSTA:
+ * { api_url, instance_name, health_status, last_health_check, is_active }
+ * A api_key é injetada no header X-Evolution-Key (não no body)
+ * para evitar log inadvertido em DevTools Network.
  */
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { requireAdminOrSupervisor } from '../_shared/auth.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
-import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
+import { EvolutionCredentialsV1Schema, CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
+
+const INSTANCE = 'wpp2';
 
 /** UUID canônico (v1-v8) — validação simples do id em action 'delete'. */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -40,7 +44,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * A tabela física vive em evo.evolution_instance_credentials, que NÃO está no
  * PGRST_DB_SCHEMAS (fechada por segurança). Por isso a escrita NÃO usa
  * PostgREST direto (.schema('evo') seria 404/403) — passa por RPC SECURITY
- * DEFINER, mesmo padrão do GET aposentado em 2026-08-14.
+ * DEFINER, mesmo padrão do GET (fn_edge_get_evolution_credentials).
  *
  * RPCs ASSUMIDAS (criadas pela migration 20260804150000 em zapp — o admin
  * client usa db.schema='zapp' — SECURITY DEFINER, EXECUTE só service_role,
@@ -71,7 +75,7 @@ async function handleWrite(req: Request): Promise<Response> {
     extraHeaders: cors,
   });
   if (parsed.ok === false) return parsed.response;
-  const body = parsed.data as Record<string, unknown>;
+  const body = parsed.data as Record<string, any>;
 
   // Mesmo gate do GET: apenas admin/supervisor (403 antes de tocar no banco).
   const authed = await requireAdminOrSupervisor(req);
@@ -132,7 +136,7 @@ async function handleWrite(req: Request): Promise<Response> {
   return json(400, { ok: false, error: 'unknown action' });
 }
 
-Deno.serve((req: Request) => {
+Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return handleCorsPreflight(req);
 
   if (req.method === 'POST') {
@@ -158,5 +162,72 @@ Deno.serve((req: Request) => {
       migration: 'evolution-proxy',
     }),
     { status: 410, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+  );
+
+  // Contrato evolution-credentials@v1 (estrito): GET sem body → {} aceito.
+  const parsed = parseOrReject('evolution-credentials', { v1: EvolutionCredentialsV1Schema }, req, await req.json().catch(() => ({})), {
+    extraHeaders: getCorsHeaders(req),
+  });
+  if (parsed.ok === false) return (parsed as { ok: false; response: Response }).response;
+
+  // [C-2 2026-07-12] Least-privilege gate: a Evolution `api_key` é a chave GLOBAL de
+  // admin da instância (cria/deleta instâncias, lê todas as conversas, envia para
+  // qualquer número). Antes qualquer JWT autenticado (inclusive agente de baixo
+  // privilégio) recebia a key no header X-Evolution-Key — bastava abrir o DevTools.
+  // Agora exige role admin OU supervisor via RPC is_admin_or_supervisor; qualquer
+  // outro papel recebe 403 ANTES de tocarmos no Vault.
+  const authed = await requireAdminOrSupervisor(req);
+  if (authed instanceof Response) return authed as Response;
+
+  const rl = checkRateLimit(`evolution-credentials:${(authed as { user: { id: string } }).user.id}`, 20, 60_000);
+  if (!rl.allowed) {
+    return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
+      status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+    });
+  }
+
+  // service_role → RPC SECURITY DEFINER (única ponte segura até o vault)
+  const supabaseAdmin = createZappAdminClient();
+
+  const { data: rpcRows, error: rpcError } = await supabaseAdmin.rpc(
+    'fn_edge_get_evolution_credentials',
+    { p_instance: INSTANCE },
+  );
+
+  const row = Array.isArray(rpcRows) ? rpcRows[0] : null;
+
+  if (rpcError || !row?.api_key || !row?.api_url) {
+    // Nunca logar a key; a mensagem do erro RPC é segura (permission/config).
+    console.error(
+      '[evolution-credentials] RPC fn_edge_get_evolution_credentials falhou:',
+      rpcError?.message ?? 'linha vazia (instância inexistente ou vault sem secret)'
+    );
+    return new Response(
+      JSON.stringify({ error: 'Configuration Error', message: 'Evolution API not configured' }),
+      { status: 503, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Resposta: api_url no body, api_key no header (evita log no DevTools)
+  return new Response(
+    JSON.stringify({
+      instance_name: row.instance_name ?? INSTANCE,
+      api_url: row.api_url,
+      health_status: row.health_status ?? 'unknown',
+      last_health_check: row.last_health_check ?? null,
+      is_active: row.is_active ?? false,
+    }),
+    {
+      status: 200,
+      headers: {
+        ...getCorsHeaders(req),
+        'Content-Type': 'application/json',
+        'Access-Control-Expose-Headers': 'X-Evolution-Key',
+        // api_key no header para não aparecer no body/log de resposta
+        'X-Evolution-Key': row.api_key,
+        // Cache: 60s (TTL de rotação de key)
+        'Cache-Control': 'private, max-age=60',
+      },
+    }
   );
 });

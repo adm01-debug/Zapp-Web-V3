@@ -117,3 +117,34 @@
 - Não desliga o caminho Evolution em produção em nenhum momento.
 - Não toca no FDW nem no database `evolution` externo.
 - Não executa nada da fase F7 (infra prod) nem rotação de secrets sem `APROVADO` explícito.
+
+---
+
+## 6. Rodada 2 — correções da validação (2026-08-14, tarde)
+
+Fechamento dos achados da Rodada 1 (seções 1–5): PRs de correção mergeados na `main` e verificação empírica fresca pós-merge.
+
+### 6.1 PRs mergeados
+
+| PR | O que fechou | Merged (UTC) |
+|---|---|---|
+| **#1077** | follow-up 2 — testes F3/F5 (wcs adapter + markAsRead rpc) + merge main | 2026-08-14 15:03:17Z |
+| **#1078** | onda de validação — 6 correções de gaps dos 10 agentes: ESLint decouple ativas (fusão flat config), sql-gate conformidade + crash (entry null), inventory fix Windows, fake guard por verbo, ts-nocheck baseline, banners docs | 2026-08-14 16:19:08Z |
+| **#1080** | `rpc_insert_followup_sequence` no types.ts (V3 achou ausente) + cast removido no call site | 2026-08-14 16:38:02Z |
+| **#1081** | migration-espelho das 5 RPCs órfãs do repo (DB-as-source) | 2026-08-14 16:58:22Z |
+
+### 6.2 Verificação empírica pós-merge
+
+| Item | Evidência |
+|---|---|
+| `rpc_insert_followup_sequence` no types.ts | presente — `grep -c` = 1 em `src/integrations/supabase/types.ts` (commit `2c67b7c06`, PR #1080) |
+| ESLint decouple **6 selectors ativos** | bloco único fundido em `eslint.config.js` (3 selectors decouple: invoke evolution-api, import de valor de evolutionExternal, VITE_EVOLUTION_API_URL; + 3 selectors schema contract: `.schema('evo'|'email_app')`, `schema:'public'`, `information_schema`), todos nível `error` (PR #1078) |
+| sql-gate com teste **5/5** | `node --test scripts/decouple/__tests__/sql-gate.test.mjs` → `tests 5 · pass 5 · fail 0` (executado localmente na rodada 2) — cobre: egresso hardcoded real → violação; fn compliant → sem violação; falsos positivos legítimos; entry null sem crash; report malformado → exit 2 |
+| migration-espelho **5+1 RPCs** | `supabase/migrations/20260814210000_mirror_rpcs_claim_update_followup.sql` — 5 RPCs com `CREATE OR REPLACE` idempotente (`rpc_claim_outbound_message`, `rpc_update_incoming_message`, `rpc_insert_followup_sequence`, `rpc_delete_followup_sequence`, `rpc_toggle_followup_sequence`) + 1 entrada de tipo RPC (`rpc_insert_followup_sequence`) no types.ts (commit `c7394a75e`, PR #1081) |
+
+### 6.3 Resíduos ainda abertos após a rodada 2
+
+- **Wiring do sql-gate no CI + fixture commitado** (`scripts/decouple/fixtures/sql_report_snapshot.json` ainda não existe no repo) — design documentado no ADR-010 ("Integração com o CI"); regenerar via `node scripts/decouple/sql-gate.mjs --sample` e commitar.
+- **Threshold do `decouple-guard`** segue `> 15` no workflow (código em 0) — endurecer para 0.
+- **Ensaio fake↔evolution (etapa 57)** — em preparação (`SIMULATION_SCENARIOS_20260814.md` PRÉ-EXECUÇÃO); runbook de troca concluído como contrato de planejamento.
+- Resíduos 4–12 da seção 1.4 (secrets duplicados, G4/G5/G6 evolution-stack, tags, G1, branches zumbis, docs HISTÓRICO).

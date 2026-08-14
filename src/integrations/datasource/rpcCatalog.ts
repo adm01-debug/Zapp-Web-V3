@@ -729,6 +729,203 @@ export const RPC = {
     name: 'rpc_mark_conversation_read',
     client: 'lovable',
   }),
+
+  // ── W5 (2026-08-14): allowlist → catálogo (achado V3 — duplicações catálogo×allowlist) ──
+  // RPCs que existem no types.ts e têm CALL real no src/ — migradas da allowlist
+  // (scripts/audit-allowlist.json) para o catálogo tipado. Shapes ainda genéricos;
+  // tipar Args/Returns ao consolidar o contrato (mesmo padrão da seção V3 acima).
+  add_contacts_to_campaign: def<Record<string, unknown>, unknown>({
+    name: 'add_contacts_to_campaign',
+    client: 'lovable',
+  }),
+  contacts_count_by_type: def<Record<string, unknown>, unknown>({
+    name: 'contacts_count_by_type',
+    client: 'lovable',
+  }),
+  enrich_contact: def<Record<string, unknown>, unknown>({
+    name: 'enrich_contact',
+    client: 'lovable',
+  }),
+  export_user_data: def<Record<string, unknown>, unknown>({
+    name: 'export_user_data',
+    client: 'lovable',
+  }),
+  fn_increment_meme_use: def<Record<string, unknown>, unknown>({
+    name: 'fn_increment_meme_use',
+    client: 'lovable',
+  }),
+  fn_safe_audit_log: def<Record<string, unknown>, unknown>({
+    name: 'fn_safe_audit_log',
+    client: 'lovable',
+  }),
+  fn_system_health_score: def<Record<string, unknown>, unknown>({
+    name: 'fn_system_health_score',
+    client: 'lovable',
+  }),
+  fn_test_alert_channel: def<Record<string, unknown>, unknown>({
+    name: 'fn_test_alert_channel',
+    client: 'lovable',
+  }),
+  get_own_email_accounts: def<Record<string, unknown>, unknown>({
+    name: 'get_own_email_accounts',
+    client: 'lovable',
+  }),
+  get_team_profiles: def<Record<string, unknown>, unknown>({
+    name: 'get_team_profiles',
+    client: 'lovable',
+  }),
+  get_visible_agent_ids: def<Record<string, unknown>, unknown>({
+    name: 'get_visible_agent_ids',
+    client: 'lovable',
+  }),
+  import_user_data: def<Record<string, unknown>, unknown>({
+    name: 'import_user_data',
+    client: 'lovable',
+  }),
+  is_within_business_hours: def<Record<string, unknown>, unknown>({
+    name: 'is_within_business_hours',
+    client: 'lovable',
+  }),
+  log_security_event: def<Record<string, unknown>, unknown>({
+    name: 'log_security_event',
+    client: 'lovable',
+  }),
+  reassign_absent_agents: def<Record<string, unknown>, unknown>({
+    name: 'reassign_absent_agents',
+    client: 'lovable',
+  }),
+  record_voice_telemetry: def<Record<string, unknown>, unknown>({
+    name: 'record_voice_telemetry',
+    client: 'lovable',
+  }),
+  rpc_dlq_abandon: def<Record<string, unknown>, unknown>({
+    name: 'rpc_dlq_abandon',
+    client: 'lovable',
+  }),
+  rpc_dlq_bulk_abandon: def<Record<string, unknown>, unknown>({
+    name: 'rpc_dlq_bulk_abandon',
+    client: 'lovable',
+  }),
+  rpc_dlq_list_audit: def<Record<string, unknown>, unknown>({
+    name: 'rpc_dlq_list_audit',
+    client: 'lovable',
+  }),
+  rpc_dlq_log_item_action: def<Record<string, unknown>, unknown>({
+    name: 'rpc_dlq_log_item_action',
+    client: 'lovable',
+  }),
+  rpc_dlq_retry_now: def<Record<string, unknown>, unknown>({
+    name: 'rpc_dlq_retry_now',
+    client: 'lovable',
+  }),
+  rpc_email_archive_thread: def<Record<string, unknown>, unknown>({
+    name: 'rpc_email_archive_thread',
+    client: 'lovable',
+  }),
+  rpc_email_assign_thread: def<Record<string, unknown>, unknown>({
+    name: 'rpc_email_assign_thread',
+    client: 'lovable',
+  }),
+  rpc_email_mark_thread_read: def<Record<string, unknown>, unknown>({
+    name: 'rpc_email_mark_thread_read',
+    client: 'lovable',
+  }),
+  rpc_email_star_thread: def<Record<string, unknown>, unknown>({
+    name: 'rpc_email_star_thread',
+    client: 'lovable',
+  }),
+  rpc_email_token_status: def<Record<string, unknown>, unknown>({
+    name: 'rpc_email_token_status',
+    client: 'lovable',
+  }),
+  rpc_get_contact_summary_batch: def<Record<string, unknown>, unknown>({
+    name: 'rpc_get_contact_summary_batch',
+    client: 'lovable',
+  }),
+  rpc_get_reactions_batch: def<Record<string, unknown>, unknown>({
+    name: 'rpc_get_reactions_batch',
+    client: 'lovable',
+  }),
+  rpc_instance_auth_event_trend: def<Record<string, unknown>, unknown>({
+    name: 'rpc_instance_auth_event_trend',
+    client: 'lovable',
+  }),
+  rpc_list_dispatch_error_logs_cursor: def<Record<string, unknown>, unknown>({
+    name: 'rpc_list_dispatch_error_logs_cursor',
+    client: 'lovable',
+  }),
+  rpc_log_email_health: def<Record<string, unknown>, unknown>({
+    name: 'rpc_log_email_health',
+    client: 'lovable',
+  }),
+  rpc_log_search_event: def<Record<string, unknown>, unknown>({
+    name: 'rpc_log_search_event',
+    client: 'lovable',
+  }),
+  rpc_migrate_whatsapp_integration: def<Record<string, unknown>, unknown>({
+    name: 'rpc_migrate_whatsapp_integration',
+    client: 'lovable',
+  }),
+  rpc_queue_rebalance_candidates: def<Record<string, unknown>, unknown>({
+    name: 'rpc_queue_rebalance_candidates',
+    client: 'lovable',
+  }),
+  rpc_queue_sla_panel: def<Record<string, unknown>, unknown>({
+    name: 'rpc_queue_sla_panel',
+    client: 'lovable',
+  }),
+  rpc_reactivate_service_channel: def<Record<string, unknown>, unknown>({
+    name: 'rpc_reactivate_service_channel',
+    client: 'lovable',
+  }),
+  rpc_record_automation_error: def<Record<string, unknown>, unknown>({
+    name: 'rpc_record_automation_error',
+    client: 'lovable',
+  }),
+  rpc_record_search_click: def<Record<string, unknown>, unknown>({
+    name: 'rpc_record_search_click',
+    client: 'lovable',
+  }),
+  rpc_schema_columns: def<Record<string, unknown>, unknown>({
+    name: 'rpc_schema_columns',
+    client: 'lovable',
+  }),
+  rpc_schema_tables: def<Record<string, unknown>, unknown>({
+    name: 'rpc_schema_tables',
+    client: 'lovable',
+  }),
+  rpc_set_whatsapp_mode: def<Record<string, unknown>, unknown>({
+    name: 'rpc_set_whatsapp_mode',
+    client: 'lovable',
+  }),
+  rpc_update_email_health_state: def<Record<string, unknown>, unknown>({
+    name: 'rpc_update_email_health_state',
+    client: 'lovable',
+  }),
+  rpc_upsert_service_channel: def<Record<string, unknown>, unknown>({
+    name: 'rpc_upsert_service_channel',
+    client: 'lovable',
+  }),
+  search_contacts_cursor: def<Record<string, unknown>, unknown>({
+    name: 'search_contacts_cursor',
+    client: 'lovable',
+  }),
+  search_knowledge_base: def<Record<string, unknown>, unknown>({
+    name: 'search_knowledge_base',
+    client: 'lovable',
+  }),
+  update_contact_note: def<Record<string, unknown>, unknown>({
+    name: 'update_contact_note',
+    client: 'lovable',
+  }),
+  update_own_profile: def<Record<string, unknown>, unknown>({
+    name: 'update_own_profile',
+    client: 'lovable',
+  }),
+  user_has_permission: def<Record<string, unknown>, unknown>({
+    name: 'user_has_permission',
+    client: 'lovable',
+  }),
 } as const;
 
 /** Rpc Key type alias. */
