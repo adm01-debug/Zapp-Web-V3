@@ -4,6 +4,7 @@ import { requireAdminOrSupervisor, timingSafeStringEqual } from "../_shared/auth
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { ConnectionHealthCheckV1Schema } from "../_shared/contract-schemas.ts";
+import { evolutionClient } from "../_shared/providers/evolution/index.ts";
 
 /**
  * 3-layer health check para conexões Evolution.
@@ -187,6 +188,18 @@ Deno.serve(async (req) => {
 
   try {
 
+    // Evolution API — URL/KEY via gateway (client.ts resolve a env; aqui só
+    // para o detector de instância fantasma, que ainda usa fetch direto).
+    const evolutionUrl = requireEnv('EVOLUTION_API_URL');
+    const evolutionKey = requireEnv('EVOLUTION_API_KEY');
+    const isPlaceholder = (v: string) => !v || /PLACEHOLDER|REPLACE_ME|YOUR_|CHANGE_ME/i.test(v);
+    const isValidUrl = (v: string) => { try { new URL(v); return true; } catch { return false; } };
+    if (isPlaceholder(evolutionUrl) || isPlaceholder(evolutionKey) || !isValidUrl(evolutionUrl)) {
+      return new Response(JSON.stringify({ error: 'evolution_api_not_configured', message: 'Configure os secrets EVOLUTION_API_URL (URL válida) e EVOLUTION_API_KEY.' }), { status: 503, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+    }
+    const supabase = createZappAdminClient();
+    const baseUrl = evolutionUrl.replace(/\/+$/, '');
+
     // Evolution DB (opcional — se faltar, layer 3 é skipped graciosamente)
     const externalUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
     const externalKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'))
@@ -216,7 +229,7 @@ Deno.serve(async (req) => {
     if (connError || !connections) return errorResponse('Failed to fetch connections', 500, req);
 
     // Detector de instância fantasma: snapshot único de todas as instâncias.
-    const allInstances = await fetchAllInstances(log);
+    const allInstances = await fetchAllInstances(baseUrl, evolutionKey, log);
 
     const results = [];
     const alertsToCreate: Array<{ connection_id: string; instance_id: string; phone: string | null; reason: 'disconnected' | 'degraded' | 'phantom_session' | 'webhook_silent' | 'stale_session' }> = [];
@@ -260,7 +273,7 @@ Deno.serve(async (req) => {
       let lastActivityAt: Date | null = null;
       if (socketState === 'open') {
         const [owner, activity] = await Promise.all([
-          fetchOwnerJid(evoName, log),
+          fetchOwnerJid(baseUrl, evolutionKey, evoName, log),
           externalUrl && externalKey
             ? fetchLastActivityAt(externalUrl, externalKey, evoName, log)
             : Promise.resolve(null),

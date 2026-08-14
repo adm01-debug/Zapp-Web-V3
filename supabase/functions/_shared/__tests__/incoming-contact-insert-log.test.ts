@@ -62,6 +62,17 @@ function makeSupabase(
       calls[`from:${table}`] = (calls[`from:${table}`] ?? 0) + 1;
       return builderFor(table);
     },
+    // F3-edge (2026-08-14): ingestão via RPC canônico — mock do sucesso
+    rpc: (name: string) => {
+      calls[`rpc:${name}`] = (calls[`rpc:${name}`] ?? 0) + 1;
+      if (name === 'rpc_insert_message') {
+        return Promise.resolve({ data: { id: 'm1', message_id: 'TESTMSG001', contact_id: 'c9' }, error: null });
+      }
+      if (name === 'rpc_update_incoming_message') {
+        return Promise.resolve({ data: { id: 'm1' }, error: null });
+      }
+      return Promise.resolve({ data: null, error: { message: `rpc não mockada: ${name}` } });
+    },
   };
 }
 
@@ -160,7 +171,9 @@ Deno.test('incoming | insert de contato com SUCESSO NÃO loga erro e persiste a 
 
     assertEquals(errorStub.calls.length, 0, 'console.error NÃO deve ser chamado no sucesso');
     assertEquals(warnStub.calls.length, 0, 'console.warn NÃO deve ser chamado no sucesso');
-    assert((calls['from:evolution_messages'] ?? 0) >= 2, 'insert da mensagem deve ter sido tentado');
+    // F3-edge (2026-08-14): persistência da mensagem via rpc_insert_message (ingest-port)
+    assert((calls['rpc:rpc_insert_message'] ?? 0) >= 1, 'rpc_insert_message deve ter sido chamado');
+    assert((calls['from:evolution_messages'] ?? 0) >= 1, 'select da mensagem deve ter sido feito');
   } finally {
     errorStub.restore();
     warnStub.restore();

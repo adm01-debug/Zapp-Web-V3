@@ -10,7 +10,6 @@ import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { whatsapp } from '@/lib/whatsappAdapter';
-import { whatsappConnectionRepository } from '@/features/connections/data-access/whatsappConnectionRepository';
 import { useToast } from '@/hooks/use-toast';
 import { runEvolutionDiagnostics, type DiagnosticResult } from '@/lib/evolutionDiagnostics';
 

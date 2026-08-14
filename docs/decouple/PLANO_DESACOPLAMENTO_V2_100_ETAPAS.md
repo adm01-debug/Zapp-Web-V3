@@ -1,3 +1,6 @@
+> [!NOTE] **HISTÓRICO — 2026-08-14**
+> Este documento descreve o estado de 2026-08-13 e foi **SUPERSEDED** pelo [Plano V3](PLANO_DESACOPLAMENTO_V3_100_ETAPAS.md) e pelo estado real da `main`. Leia o V3 antes de agir com base neste doc.
+
 # Plano de Desacoplamento V2 — 100 etapas
 **Data:** 2026-08-13 · **Baseline:** main `8b2aeaf0f` · evolution-stack `ca9e1af` · web em prod `production-709489fb6ad5`
 **Autor:** validação sobre estado REAL (banco vivo + Portainer + container edge-runtime + repo), não sobre docs.

@@ -1,3 +1,6 @@
+> [!NOTE] **HISTÓRICO — 2026-08-14**
+> Este documento descreve o estado de 2026-08-13 e foi **SUPERSEDED** pelo [Plano V3](PLANO_DESACOPLAMENTO_V3_100_ETAPAS.md) e pelo estado real da `main`. Leia o V3 antes de agir com base neste doc.
+
 # Plano de desacoplamento zapp-web-v3 ↔ Evolution API — 100 etapas
 
 **Data:** 2026-08-13 · **Baseline:** zapp-web-v3 `891b1ad73` · evolution-stack `e531ef4`
