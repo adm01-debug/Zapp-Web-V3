@@ -18,6 +18,9 @@
  *   restartInstance, listInstances, listGroups, checkWhatsApp,
  *   getProfilePicture, get, post.
  * Nota: NÃO existe sendAudio no client real — áudio é coberto por sendMedia.
+ *
+ *   import { registry } from '../_shared/providers/registry.ts';
+ *   registry.getProviderClient('fake');  // passa pelo guard DENO_ENV=test
  */
 
 export type FakeResponse<T = unknown> = { ok: boolean; data?: T; error?: string };
@@ -26,6 +29,8 @@ export type FakeResponse<T = unknown> = { ok: boolean; data?: T; error?: string 
 const _fakes: Map<string, unknown> = new Map();
 
 export const fakeProvider = {
+  /** Guard anti-vazamento por verbo (G1 V3): import direto em prod lança. */
+  assertSafe() { assertTestEnv(); },
   /** Define o que o fake retorna para uma action específica (ex: 'sendText'). */
   mock(action: string, response: unknown) {
     _fakes.set(action, response);

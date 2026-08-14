@@ -140,7 +140,7 @@ export function useFollowUpSequences() {
         description: s.message_template,
         is_active: s.is_active,
       }));
-      const { error } = await supabase.rpc('rpc_insert_followup_sequence', { p_rows: rows as unknown as unknown[] }).then(r => ({ error: r.error }));
+      const { error } = await supabase.rpc('rpc_insert_followup_sequence', { p_rows: rows }).then(r => ({ error: r.error }));
       if (error) throw error;
     },
     onSuccess: () => {

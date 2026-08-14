@@ -41,7 +41,7 @@ const OLD_BASELINE = {
   frontEvoBypass:     9,  // arquivos front que invocam 'evolution-api' diretamente (ex-whatsappAdapter)
   backendUrlBypass:   0,  // edge fns lendo EVOLUTION_API_URL direto (zerado em F5)
   frontEvoWrites:     6,  // arquivos front com .from('evolution_*').insert/update/delete direto
-  frontDirectEvoHttp: 0,  // V3: exceções documentadas em isEvoAdapterOrArchive
+  frontDirectEvoHttp: 2,  // arquivos front com HTTP direto à Evolution API (v3)
 };
 
 function walk(dir, exts, results = []) {
@@ -68,16 +68,16 @@ function isEvoAdapterOrArchive(p) {
     || /src\/lib\/whatsappAdapter[^/]*\.ts$/.test(n)
     || n.endsWith('src/lib/sendFunctionRouter.ts')
     // Exceção documentada (V3 F2): demo admin legada usa evolutionClient direto
-    || n.includes('src/pages/admin/ZappWebbDemoPage.tsx')
-    // V3 etapa 23: evolutionClient.ts é o cliente legado (evoFetch → Evolution API direto).
-    // Em migração: ZappWebbDemoPage → edge fn evolution-api → arquivar este módulo.
-    // Rastreado em PLANO_DESACOPLAMENTO_V3_100_ETAPAS.md etapas 23/28.
-    || n.endsWith('src/integrations/zappweb/evolutionClient.ts');
+    || n.includes('src/pages/admin/ZappWebbDemoPage.tsx');
 }
 
 // Remove linhas de comentário/docstring (mesma regra do v2)
 function codeOnly(src) {
-  return src.split('\n').filter(l => {
+  return src.split('\n').map(l => {
+    // strip comentário inline (// ... no fim da linha) — evita falso-positivo
+    const idx = l.indexOf('//');
+    return idx > -1 ? l.slice(0, idx) : l;
+  }).filter(l => {
     const t = l.trim();
     return !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*');
   }).join('\n');
@@ -108,7 +108,9 @@ function hasEvoClientImport(code) {
 }
 
 for (const f of tsFiles) {
-  if (f.includes('__tests__') || f.includes('.test.ts') || f.includes('.test.tsx')) continue;
+  const n = f.split(sep).join('/');
+  if (n.includes('__tests__') || n.includes('.test.ts') || n.includes('.test.tsx')
+      || n.includes('.spec.ts') || n.includes('.spec.tsx') || n.includes('src/_archive/')) continue;
   if (isTooling(f)) continue; // whitelist de tooling (métricas 1/3 compartilham o scan de src/)
   // Métrica 1: invoke direto — excluir o próprio adapter (ele invoca por design)
   const isAdapter = f.endsWith('whatsappAdapter.ts') || f.endsWith('sendFunctionRouter.ts');
@@ -121,10 +123,9 @@ for (const f of tsFiles) {
 }
 
 for (const f of edgeFns) {
-  // Normaliza separadores p/ casar marcadores com '/' em Windows (mesmo padrão de isTooling/isEvoAdapterOrArchive)
-  const n = f.split(sep).join('/');
+  const n = f.split(sep).join('/');  // normaliza \ para / (bug Windows 2026-08-14 V0)
   if (n.includes('__tests__') || n.includes('.test.ts')
-      || n.includes('evolution-api-proxy') || n.includes('evolution-proxy') || n.includes('providers/evolution')) continue; // evolution-proxy é proxy por design (V3)
+      || n.includes('evolution-api-proxy') || n.includes('providers/evolution')) continue;
   const src = readFileSync(f, 'utf8');
   const lines = src.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*'));
   const code = lines.join('\n');

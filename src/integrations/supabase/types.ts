@@ -59824,6 +59824,10 @@ export type Database = {
         Args: { p_id: string; p_is_active: boolean }
         Returns: Json
       }
+      rpc_insert_followup_sequence: {
+        Args: { p_rows: Json }
+        Returns: Json
+      }
       rpc_insert_message:
         | {
             Args: {

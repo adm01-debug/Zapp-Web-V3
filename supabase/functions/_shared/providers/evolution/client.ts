@@ -63,6 +63,7 @@ export async function evolutionFetch<T = unknown>(
   headers.set('Content-Type', 'application/json');
 
   let lastError: string = '';
+  let lastStatus = 0; // 0 = falha de rede/timeout (sem resposta HTTP)
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const controller = new AbortController();
@@ -80,6 +81,7 @@ export async function evolutionFetch<T = unknown>(
         return { ok: true, status: res.status, data, retries: attempt };
       }
 
+      lastStatus = res.status;
       lastError = `HTTP ${res.status}: ${await res.text().catch(() => '')}`;
     } catch (err) {
       lastError = err instanceof Error ? err.message : String(err);
@@ -90,7 +92,7 @@ export async function evolutionFetch<T = unknown>(
     }
   }
 
-  return { ok: false, status: 0, error: lastError, retries: maxRetries };
+  return { ok: false, status: lastStatus, error: lastError, retries: maxRetries };
 }
 
 // ─── Verbos de alto nível ────────────────────────────────────────────────────
