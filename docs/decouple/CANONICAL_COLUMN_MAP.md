@@ -52,7 +52,7 @@
 |---|---|---|---|
 | `id` (uuid) | `ChannelContact.id` | string | ⚠️ espelho Deno `CanonicalContact` não tem `id` |
 | `remote_jid` (varchar) | `address` | `ChannelAddress{channel:'whatsapp', address: remote_jid}` | caso-exemplo do brief |
-| `phone_number` (text) | `phone` | string (E.164 sem `+`) | normalizer usa só dígitos de `normalizeJid` |
+| `phone_number` (text) | ⚠️ `phone` — campo NÃO existe no contrato TS E23 (`ChannelContact` atual não tem `phone`) | string (E.164 sem `+`) | derivável de `address.address` (dígitos de `normalizeJid`); corrigir doc OU adicionar `phone` ao TS |
 | `instance_name` (varchar) | `account` | `ChannelAccount{id, provider:'evolution', externalRef}` | |
 | `push_name` (varchar) | `pushName` | string | |
 | `full_name` (varchar) | `displayName` | string | ⚠️ `ChannelContact.displayName` existe no TS, mas normalizer não preenche (usa `pushName`) |
@@ -87,7 +87,66 @@
 | `last_message_content`, `last_message_type` | — | — | ⚠️ dívida (desnormalização de exibição) |
 | `created_at`, `updated_at` | — | — | ⚠️ dívida |
 
+## 4. Validação de cobertura por campo canônico (V4-FINAL #82, 2026-08-14)
+
+> Contrato de referência: `src/domain/messaging/types.ts` (E23–E29). Cada campo das 3 interfaces canônicas foi confrontado com as seções 1–3. **17/25 campos têm mapeamento direto; 7 são parciais (⚠️); 1 não tem coluna (❌ — derivado).** Campos sem mapeamento explícito estão consolidados em 4.4.
+
+### 4.1 `ChannelMessage` (13 campos)
+
+| Campo canônico | Tipo | Coluna `zapp.evolution_messages` | Status |
+|---|---|---|---|
+| `id` | string | `id` (uuid) | ⚠️ parcial — PK interna; id de domínio real é `externalId` (`message_id`) |
+| `externalId?` | string | `message_id` | ✅ |
+| `from` | ChannelAddress | `remote_jid` (inbound) | ✅ — `address` direto; `channel` derivado constante `'whatsapp'` (4.4) |
+| `to` | ChannelAddress | `remote_jid` (outbound) | ✅ — idem |
+| `account` | ChannelAccount | `instance_name` | ✅ — `id`/`externalRef` = instance_name; `provider` derivado (4.4) |
+| `type` | CanonicalMessageType | `message_type` | ✅ — via `BAILEYS_TO_CANONICAL` / `META_TO_CANONICAL` |
+| `content` | string | `content` (+ `caption` parcial) | ✅ |
+| `mediaUrl?` | string | `media_url` | ✅ |
+| `mediaMimetype?` | string | `media_mimetype` | ✅ |
+| `status` | DeliveryStatus | `status` | ✅ — via `EVOLUTION_ACK_TO_STATUS`; ⚠️ valores legados não-enum |
+| `fromMe` | boolean | `from_me` | ✅ — redundante com `direction` |
+| `timestamp` | Date | `created_at` | ✅ |
+| `metadata?` | Record<string, unknown> | — (agregador) | ⚠️ sem coluna única — alvo das colunas-dívida (tags, notes, category, sentiment, is_starred, is_important, follow_up_*, sent_by_bot, template_name, link_preview, is_read, reply_to_id, audio_meme_id, sticker_id, transcription_*, error_*, retry_*) |
+
+### 4.2 `ChannelContact` (6 campos)
+
+| Campo canônico | Tipo | Coluna `zapp.evolution_contacts` | Status |
+|---|---|---|---|
+| `id?` | string | `id` (uuid) | ⚠️ parcial — espelho Deno `CanonicalContact` não tem `id` |
+| `address` | ChannelAddress | `remote_jid` | ✅ — `channel` derivado constante |
+| `displayName?` | string | `full_name` | ✅ — ⚠️ normalizer usa `pushName` em vez de preencher |
+| `avatarUrl?` | string | `profile_picture_url` | ⚠️ — nomes divergem entre espelhos (`avatarUrl` TS × `profilePicUrl` Deno) |
+| `provider` | string | — | ❌ sem coluna — derivado da instância (`account.provider`), nunca persistido |
+| `externalRef` | string | `instance_name` | ⚠️ sem coluna dedicada — reusa `instance_name` (compartilhado com `account`) |
+
+### 4.3 `ChannelConversation` (6 campos)
+
+| Campo canônico | Tipo | Coluna `zapp.evolution_conversations_wpp2` | Status |
+|---|---|---|---|
+| `id?` | string | `id` (uuid) | ⚠️ parcial — espelho Deno não define tipo conversa |
+| `contact` | ChannelContact | `contact_id` + `remote_jid` | ⚠️ parcial — `contact_id` sem FK canônica; `contact.address` ← `remote_jid` |
+| `account` | ChannelAccount | `instance_name` | ✅ |
+| `lastMessageAt?` | Date | `last_message_at` | ✅ |
+| `unreadCount?` | number | `unread_count` | ✅ |
+| `metadata?` | Record<string, unknown> | `metadata` (jsonb) | ✅ — único mapeamento direto da tabela |
+
+### 4.4 Tipos de suporte e campos SEM mapeamento explícito
+
+| Campo/Entidade | Situação |
+|---|---|
+| `ChannelAddress.channel` | sem coluna — derivado constante `'whatsapp'` (toda linha de `evolution_*` é WhatsApp) |
+| `ChannelAccount.provider` | sem coluna — derivado da instância |
+| `ChannelContact.provider` | ❌ sem coluna — derivado (4.2) |
+| `ChannelContact.externalRef` | ⚠️ sem coluna dedicada — reusa `instance_name` (4.2) |
+| `ChannelContact.phone` (citado na seção 2) | ❌ campo NÃO existe no contrato TS E23 — derivável de `address.address` (dígitos de `normalizeJid`) |
+| `ChannelMessage.metadata` | ⚠️ agregador — sem coluna única (4.1) |
+| `ChannelMessage.id` / `ChannelConversation.id` / `ChannelContact.id` | ⚠️ PK interna ≠ id de domínio (`externalId`) |
+| `ProviderCapabilities` (E29) + `EVOLUTION_CAPABILITIES` / `CLOUD_CAPABILITIES` | fora do escopo do mapa — declaração de capacidade por provider, não persistida em `zapp.evolution_*` |
+| `BAILEYS_TO_CANONICAL` / `META_TO_CANONICAL` / `EVOLUTION_ACK_TO_STATUS` | tabelas de tradução (código), não colunas — aplicadas sobre `message_type` / `status` |
+
 ## Notas finais
+- **Cobertura do contrato TS validada (2026-08-14, V4-FINAL #82):** 17/25 campos das interfaces E23 com mapeamento direto; 7 parciais (⚠️); 1 sem coluna (`ChannelContact.provider` — derivado). Detalhe campo a campo na seção 4.
 - **Dívida dominante:** ~55 colunas nas 3 tabelas sem correspondente canônico — candidatas a `metadata: Record<string, unknown>` (grupos CRM, LGPD, SLA, mídia, entrega).
 - **Drift entre espelhos canônicos:** `DeliveryStatus` usa `'pending'` no TS (E27) vs `'queued'` no Deno (E45) — corrigir antes de usar o mapa como contrato único.
 - **Normalizers assimétricos:** E47 (Evolution) produz `CanonicalMessage` direto; E48 (Meta) produz `NormalizedIncoming` pré-canônico (sem `account`/`direction`) — a conversão final falta no lado Cloud.

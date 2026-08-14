@@ -14,12 +14,12 @@ jobs:
   tighten:
     runs-on: ubuntu-latest
     env:
-      GH_PUSH_TOKEN: ${{ secrets.GH_TOKEN_ACTIONS }}
+      GH_PUSH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-          token: ${{ secrets.GH_TOKEN_ACTIONS || secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Tighten baseline (down-only nos escopos hard)
         run: |
           node - << 'EOF'

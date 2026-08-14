@@ -179,3 +179,10 @@ src/features/inbox/hooks/useInboxDataQueries.ts
 src/features/inbox/hooks/useWhisperCount.ts
 src/hooks/useVoiceAgent.ts  # re-export de compatibilidade da consolidação ETAPA 35 — API pública delegando a useVoiceManagement (consumido via VoiceSearchOverlayConnected); mantido para não quebrar importadores externos em migração
 src/hooks/useFollowupBridge.ts  # hook AUTOMACOES-09 (#851) pronto, sem consumidor na UI atual — aguarda adoção pela tela de automações; edge function followup-bridge ativa em produção
+
+# Wave V3/V4 — arquivamento pós-desacoplamento Evolution (2026-08-14)
+# Código morto INTENCIONAL: arquivados com banner @deprecated ou stubs de migração; sem importadores por design.
+src/_archive/evolutionClient.archived.ts  # V3 etapa 23: evolutionClient arquivado (browser não fala mais com Evolution direto); preservado p/ histórico — nunca importar
+src/_archive/healthCheck.archived.ts  # V3: health check direto arquivado; saúde agora via edge functions; preservado p/ histórico — nunca importar
+src/domain/messaging/index.ts  # barrel do modelo canônico ADR-008; consumido por normalizers/testes fora do grafo estático
+src/integrations/zappweb/evolutionClient.ts  # stub deprecado que lança erro orientando uso do evolution-proxy; mantido como guarda de migração — sem importadores por design

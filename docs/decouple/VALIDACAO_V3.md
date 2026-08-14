@@ -157,3 +157,4 @@ Fechamento dos achados da Rodada 1 (seções 1–5): PRs de correção mergeados
 - Type-fixes P1: evolution-webhook (24) + evolution-api (1) — deno check 0 erros.
 - Migrations-espelho: 5 RPCs + fn_validate 1-arg + **0-arg (trigger)** — 6/6 byte-exact com producao.
 - 137+ branches limpas; scorecard 9.4/10.
+
