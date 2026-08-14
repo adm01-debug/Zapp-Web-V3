@@ -148,3 +148,13 @@ Fechamento dos achados da Rodada 1 (seções 1–5): PRs de correção mergeados
 - **Threshold do `decouple-guard`** segue `> 15` no workflow (código em 0) — endurecer para 0.
 - **Ensaio fake↔evolution (etapa 57)** — em preparação (`SIMULATION_SCENARIOS_20260814.md` PRÉ-EXECUÇÃO); runbook de troca concluído como contrato de planejamento.
 - Resíduos 4–12 da seção 1.4 (secrets duplicados, G4/G5/G6 evolution-stack, tags, G1, branches zumbis, docs HISTÓRICO).
+
+## Rodada 3 (2026-08-14 noite) — validacao final
+- Guard v2 aplicado na main (threshold 0 + sql-gate fixture; ASCII-safe apos pitfall do em-dash no YAML).
+- 101/101 testes verdes (64 vitest + 5 ensaio + 5 sql-gate + 27 deno).
+- Inventory v4.1: block comment ciente de strings, backtick no m1, process.exit fail-closed.
+- sql-gate --migrations: scan estatico de supabase/migrations (0 violacoes reais).
+- Type-fixes P1: evolution-webhook (24) + evolution-api (1) — deno check 0 erros.
+- Migrations-espelho: 5 RPCs + fn_validate 1-arg + **0-arg (trigger)** — 6/6 byte-exact com producao.
+- 137+ branches limpas; scorecard 9.4/10.
+

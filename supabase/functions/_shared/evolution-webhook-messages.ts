@@ -37,7 +37,7 @@ function extractStorageFields(url: string | null | undefined): {
 }
 
 export async function handleOutgoingWhatsAppMessage(
-  supabase: SupabaseClient, instance: string, data: Record<string, unknown>,
+  supabase: SupabaseClient<any, any>, instance: string, data: Record<string, unknown>,
   key: { remoteJid?: string; remoteJidAlt?: string; participant?: string; participantAlt?: string; fromMe: boolean; id: string },
 ) {
   const externalId = key.id;
@@ -133,7 +133,7 @@ export async function handleOutgoingWhatsAppMessage(
  *  sem ele, a promise é cancelada quando a resposta HTTP retorna.
  */
 function persistAvatarInBackground(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<any, any>,
   instance: string,
   phone: string,
   contactId: string,
@@ -161,7 +161,7 @@ function persistAvatarInBackground(
 
 /** handle Incoming Message function. */
 export async function handleIncomingMessage(
-  supabase: SupabaseClient, instance: string, data: Record<string, unknown>,
+  supabase: SupabaseClient<any, any>, instance: string, data: Record<string, unknown>,
   key: { remoteJid?: string; remoteJidAlt?: string; participant?: string; participantAlt?: string; fromMe: boolean; id: string },
   supabaseUrl: string, supabaseServiceKey: string
 ) {
@@ -314,7 +314,7 @@ export async function handleIncomingMessage(
 
 /** handle Sticker Media function. */
 export async function handleStickerMedia(
-  supabase: SupabaseClient, instance: string, data: Record<string, unknown>,
+  supabase: SupabaseClient<any, any>, instance: string, data: Record<string, unknown>,
   message: Record<string, unknown> | undefined, key: { id: string }
 ): Promise<string | null> {
   let mediaUrl: string | null = null;
@@ -396,7 +396,7 @@ export async function handleStickerMedia(
 }
 
 /** Transcribes an audio message via the configured AI provider and persists the result to the message record. */
-export async function handleAudioTranscription(supabase: SupabaseClient, _contactId: string, messageId: string, mediaUrl: string, supabaseUrl: string, supabaseServiceKey: string) {
+export async function handleAudioTranscription(supabase: SupabaseClient<any, any>, _contactId: string, messageId: string, mediaUrl: string, supabaseUrl: string, supabaseServiceKey: string) {
   const { data: globalSetting } = await supabase.from('global_settings')
     .select('value').eq('key', 'auto_transcription_enabled').maybeSingle();
   if (globalSetting?.value === 'false') return;

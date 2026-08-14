@@ -25,7 +25,8 @@
  *      fora do whitelist → leitura direta do segredo de URL da Evolution.
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 
 const WHITELIST = new Set([
   'ops.fn_evo_url',
@@ -121,8 +122,40 @@ function checkEntry(entry) {
   return reasons;
 }
 
+
+// V3 validacao final: scan estatico de supabase/migrations/*.sql - pega
+// egresso hardcoded em migration NOVA sem depender do snapshot/DB.
+function scanMigrations(migrationsDir) {
+  const viol = [];
+  try {
+    for (const f of readdirSync(migrationsDir).filter(f => f.endsWith('.sql'))) {
+      const src = readFileSync(join(migrationsDir, f), 'utf8');
+      // por STATEMENT (split ';') — evita falso positivo de 'evolution' em
+      // statement vizinho (ex.: INSERT em zapp.evolution_xxx + net.http p/ n8n)
+      for (const stmt of src.split(';')) {
+        if (/net\.http_(get|post)\(/i.test(stmt)
+            && /evolution/i.test(stmt)
+            && !/ops\.fn_evo_url|ops\.fn_evo_key/i.test(stmt)) {
+          viol.push(f);
+          break;
+        }
+      }
+    }
+  } catch { /* dir ausente = sem violacoes */ }
+  return viol;
+}
+
 function main() {
   const args = process.argv.slice(2);
+
+  const migIdx = args.indexOf('--migrations');
+  if (migIdx > -1) {
+    const dir = args[migIdx + 1] || 'supabase/migrations';
+    const v = scanMigrations(dir);
+    if (v.length > 0) { console.error('SQL GATE MIGRATIONS: ' + v.length + ' migration(s) com egresso Evolution fora do padrao:'); v.forEach(x => console.error('  - ' + x)); process.exit(1); }
+    console.log('SQL gate migrations OK: 0 violacoes em ' + dir);
+    process.exit(0);
+  }
 
   if (args.includes('--sample')) {
     console.log(SAMPLE_QUERY);

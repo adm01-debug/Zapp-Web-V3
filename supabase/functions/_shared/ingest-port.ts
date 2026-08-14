@@ -52,7 +52,7 @@ export interface IngestResult {
  * Retorna rowId=undefined quando a mensagem já existia (race condition / duplicate).
  */
 export async function ingestMessage(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<any, any>,
   msg: IngestMessage,
 ): Promise<IngestResult> {
   try {
@@ -93,7 +93,7 @@ export async function ingestMessage(
  * Ingere um contato via RPC canônica (rpc_upsert_contact).
  */
 export async function ingestContact(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<any, any>,
   opts: {
     provider: 'evolution' | 'cloud';
     instanceRef: string;

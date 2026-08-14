@@ -39,7 +39,7 @@ type EvolutionSyncMessage = {
 };
 /** evolution-sync-actions utilities and exports. */
 export async function syncContacts(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<any, any>,
   instanceName: string, corsHeaders: Record<string, string>, page: number, offset: number
 ): Promise<Response> {
   console.log(`[Sync] Fetching contacts from instance ${instanceName}`);
@@ -103,7 +103,7 @@ export async function syncContacts(
 
 /** sync Messages function. */
 export async function syncMessages(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<any, any>,
   instanceName: string, contactPhone: string, corsHeaders: Record<string, string>
 ): Promise<Response> {
   if (!contactPhone) throw new Error('contactPhone is required');
@@ -154,7 +154,7 @@ export async function syncMessages(
 
 /** sync All Messages function. */
 export async function syncAllMessages(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<any, any>,
   instanceName: string, messagesPerContact: number, corsHeaders: Record<string, string>
 ): Promise<Response> {
   const { data: conn } = await supabase.from('whatsapp_connections').select('id').or(instanceOrFilter(instanceName)).maybeSingle();
@@ -238,7 +238,7 @@ export async function setupWebhook(
 }
 
 /** cleanup Mock function. */
-export async function cleanupMock(supabase: SupabaseClient, corsHeaders: Record<string, string>): Promise<Response> {
+export async function cleanupMock(supabase: SupabaseClient<any, any>, corsHeaders: Record<string, string>): Promise<Response> {
   const { data: mockContacts } = await supabase.from('contacts').select('id').like('id', 'c1000001-%');
   if (mockContacts?.length) {
     const mockIds = mockContacts.map((c: { id: string }) => c.id);
@@ -253,7 +253,7 @@ export async function cleanupMock(supabase: SupabaseClient, corsHeaders: Record<
 
 /** full Sync function. */
 export async function fullSync(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<any, any>,
   instanceName: string, supabaseUrl: string, corsHeaders: Record<string, string>
 ): Promise<Response> {
   const results: Record<string, unknown> = {};

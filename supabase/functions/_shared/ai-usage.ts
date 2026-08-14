@@ -49,7 +49,7 @@ export function extractUserIdFromRequest(req: Request): string | null {
 
 /** Resolve profile_id from user_id via profiles table */
 async function resolveProfileId(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<any, any>,
   userId: string | null | undefined
 ): Promise<string | null> {
   if (!userId) return null;

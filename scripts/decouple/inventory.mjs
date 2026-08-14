@@ -102,27 +102,7 @@ function isM4Exception(p) {
 // Remove linhas de comentário/docstring (mesma regra do v2)
 // v4 FIX: strip de comentário inline é ciente de strings — o indexOf('//') ingênuo
 // do v3 cortava 'https://' dentro de literais e MASCARAVA a m4 ampliada (V1).
-function stripInlineComment(line) {
-  let inS = null; // null | "'" | '"' | '`'
-  for (let i = 0; i < line.length - 1; i++) {
-    const c = line[i];
-    if (inS) {
-      if (c === '\\') { i++; continue; }
-      if (c === inS) inS = null;
-      continue;
-    }
-    if (c === "'" || c === '"' || c === '`') { inS = c; continue; }
-    if (c === '/' && line[i + 1] === '/') return line.slice(0, i);
-  }
-  return line;
-}
 
-function codeOnly(src) {
-  return src.split('\n').map(l => stripInlineComment(l)).filter(l => {
-    const t = l.trim();
-    return !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*');
-  }).join('\n');
-}
 
 const tsFiles = walk(join(ROOT, 'src'), ['.ts', '.tsx']);
 const edgeFns = walk(join(ROOT, 'supabase/functions'), ['.ts']);
@@ -137,7 +117,46 @@ const rootNorm = ROOT.split(sep).join('/').replace(/\/+$/, '');
 const rel = f => f.split(sep).join('/').replace(rootNorm + '/', '');
 
 // Regex detecta invoke('evolution-api', com qualquer argumento seguinte (idêntico ao v2)
-const RE_INVOKE_EVO = /invoke\(['\"]evolution-api['\"]/;
+const RE_INVOKE_EVO = /invoke\(['\"`]evolution-api['\"`]/;
+// strip de comentario inline ciente de strings E block comments (v4.1):
+// - 'https://' dentro de literal NAO e cortado (fix v4)
+// - /* ... */ multi-linha NAO conta na metrica (fix v4.1 — 2 FPs reais)
+function stripInlineComment(line, inBlock) {
+  if (inBlock) {
+    const end = line.indexOf('*/');
+    return end > -1 ? line.slice(end + 2) : '';
+  }
+  const bc = line.indexOf('/*');
+  const sc = line.indexOf('//');
+  if (bc > -1 && (sc === -1 || bc < sc)) return line.slice(0, bc);
+  let inS = null;
+  for (let i = 0; i < line.length - 1; i++) {
+    const c = line[i];
+    if (inS) {
+      if (c === '\\') { i++; continue; }
+      if (c === inS) inS = null;
+      continue;
+    }
+    if (c === "'" || c === '"' || c === '`') { inS = c; continue; }
+    if (c === '/' && line[i + 1] === '/') return line.slice(0, i);
+  }
+  return line;
+}
+
+function codeOnly(src) {
+  let inBlock = false;
+  return src.split('\n').map(l => {
+    if (!inBlock && l.indexOf('/*') > -1 && (l.indexOf('//') === -1 || l.indexOf('/*') < l.indexOf('//'))) inBlock = true;
+    const out = stripInlineComment(l, inBlock);
+    if (inBlock && l.indexOf('*/') > -1) inBlock = false;
+    return out;
+  }).filter(l => {
+    const t = l.trim();
+    return !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*');
+  }).join('\n');
+}
+
+
 // Regex detecta .from('evolution_ALGO').método-de-escrita (idêntico ao v2)
 const RE_EVO_WRITE  = /\.from\(['\"]evolution_[^'\"]+['\"]\)\s*\n?[^;]*(\.insert|\.update|\.delete|\.upsert)/;
 
@@ -230,5 +249,5 @@ const btotal = OLD_BASELINE.frontEvoBypass + OLD_BASELINE.backendUrlBypass + OLD
 console.log(`TOTAL: ${total}  ${passEmoji(total)} (baseline novo: 0, antigo: ${btotal}, delta: ${total - btotal})`);
 console.log('Meta: TOTAL → 0 (desacoplamento completo)');
 
-// Exit code para workflow/CI (pipe com tee não quebra): 1 se houver violações
+// fail-closed: exit != 0 quando TOTAL > 0 (validacao final V3)
 process.exit(total > 0 ? 1 : 0);

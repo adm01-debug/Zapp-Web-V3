@@ -58,7 +58,7 @@ export function isSafeMediaCdnUrl(url: string): boolean {
 
 /** persist Media To Storage function. */
 export async function persistMediaToStorage(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<any, any>,
   cdnUrl: string,
   messageType: string,
   messageId: string,
@@ -111,7 +111,7 @@ export async function persistMediaToStorage(
 
 /** persist Media Via Api function. */
 export async function persistMediaViaApi(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<any, any>,
   instance: string,
   data: Record<string, unknown>,
   messageType: string,

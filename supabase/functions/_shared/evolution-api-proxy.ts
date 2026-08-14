@@ -329,7 +329,7 @@ export async function proxyToEvolution(
 
 // Helper to generate signed URLs for private storage buckets
 /** resolve Private Bucket Url function. */
-export async function resolvePrivateBucketUrl(supabase: SupabaseClient, url: string, buckets: string[] = ['whatsapp-media', 'audio-messages']): Promise<string> {
+export async function resolvePrivateBucketUrl(supabase: SupabaseClient<any, any>, url: string, buckets: string[] = ['whatsapp-media', 'audio-messages']): Promise<string> {
   if (typeof url !== 'string') return url;
   for (const bucket of buckets) {
     if (url.includes(`/storage/v1/object/public/${bucket}/`)) {
