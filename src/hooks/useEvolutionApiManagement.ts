@@ -360,13 +360,21 @@ function useEvolutionInstance(
     [withToast]
   );
 
-  const setPresence = useCallback(
-    (
-      instanceName: string,
-      presence: 'available' | 'unavailable' | 'composing' | 'recording' | 'paused'
-    ) => callApi('set-presence', { instanceName, presence }),
-    [callApi]
-  );
+  // TODO(2026-08-14, poda-actions-mortas): action 'delete-instance' NÃO tem
+  // handler no router da evolution-api (supabase/functions/evolution-api/index.ts
+  // → 404 'Unknown action'); a Evolution API expõe DELETE /instance/delete/{instance}.
+  // NÃO removido: funcionalidade É usada de verdade — consumida por
+  // useConnectionsActions.handleDelete (fluxo de remoção de conexão, F6-28, com
+  // classificação de erro retriável/terminal). Correção exige adicionar o case
+  // 'delete-instance' no router (trabalho futuro na evolution-api); até lá o fluxo
+  // cai no branch 4xx terminal (aborta delete no banco).
+
+  // TODO(2026-08-14, poda-actions-mortas): action 'set-presence' NÃO tem handler
+  // no router da evolution-api (supabase/functions/evolution-api/index.ts → 404
+  // 'Unknown action') e NÃO possui consumidor em produção (apenas testes) —
+  // chamada morta removida. Presença de instância (POST /presence/set/{instance}
+  // na Evolution API) não tem equivalente no router; re-adicionar setPresence
+  // quando o handler existir (trabalho futuro na evolution-api).
 
   const setSettings = useCallback(
     (config: SettingsConfig) =>
@@ -399,7 +407,6 @@ function useEvolutionInstance(
     restartInstance,
     disconnectInstance,
     deleteInstance,
-    setPresence,
     setSettings,
     getSettings,
     setWebhook,

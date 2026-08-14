@@ -50,12 +50,21 @@ services:
         max_attempts: 3
       labels:
         - traefik.enable=true
-        - traefik.http.routers.supabase-db-mcp.rule=Host(`supabase-mcp.atomicabr.com.br`)
         - traefik.http.services.supabase-db-mcp.loadbalancer.server.port=3100
+        # router principal: PathPrefix com o token do tenant (autentica pelo link, sem header).
+        # NAO trocar por Host() puro: expoe SQL arbitrario em / e /mcp para qualquer caller.
+        - traefik.http.routers.supabase-db-mcp.rule=Host(`supabase-mcp.atomicabr.com.br`) && PathPrefix(`/s-a50174164e4b03ef181a29db65d2db80`)
         - traefik.http.routers.supabase-db-mcp.service=supabase-db-mcp
         - traefik.http.routers.supabase-db-mcp.entrypoints=websecure
         - traefik.http.routers.supabase-db-mcp.tls.certresolver=letsencryptresolver
         - traefik.http.routers.supabase-db-mcp.tls=true
+        # router de health: publico, priority 100 para vencer o PathPrefix acima
+        - traefik.http.routers.supabase-db-mcp-health.rule=Host(`supabase-mcp.atomicabr.com.br`) && Path(`/health`)
+        - traefik.http.routers.supabase-db-mcp-health.priority=100
+        - traefik.http.routers.supabase-db-mcp-health.service=supabase-db-mcp
+        - traefik.http.routers.supabase-db-mcp-health.entrypoints=websecure
+        - traefik.http.routers.supabase-db-mcp-health.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.supabase-db-mcp-health.tls=true
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3100/health"]
       interval: 30s
