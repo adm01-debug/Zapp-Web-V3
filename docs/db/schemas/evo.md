@@ -1,5 +1,8 @@
 # Schema `evo` — Integração Evolution API / WhatsApp
 
+> **Proprietário:** [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack). Consumer RabbitMQ (stack 113) escreve neste schema. Acesso pelo app zapp: apenas via 12 views de contrato em `public.*` (ver ADR-DB-002).
+
+
 **Dono:** time de integração WhatsApp  
 **Criado:** histórico (2024)  
 **Atualizado:** 27/07/2026
