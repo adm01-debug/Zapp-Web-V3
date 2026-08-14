@@ -1,4 +1,4 @@
-import { getWebhookConfig } from '@/lib/whatsappAdapter';
+import { getWebhookConfig, setWebhookConfig } from '@/lib/whatsappAdapter';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { safeFrom } from '@/integrations/supabase/safeClient';
@@ -297,7 +297,7 @@ export function useMonitoringActionsManagement(
   const { fetchData } = params;
   const [refreshing, setRefreshing] = useState(false);
   const [webhookTest, setWebhookTest] = useState<WebhookTestResult>({ status: 'idle' });
-  const [webhookConfig, setWebhookConfig] = useState<WebhookConfig | null>(null);
+  const [webhookConfig, setWebhookConfigState] = useState<WebhookConfig | null>(null);
   const [reconfiguring, setReconfiguring] = useState(false);
   const [diagnostic, setDiagnostic] = useState<DiagnosticResult | null>(null);
   const [diagnosing, setDiagnosing] = useState(false);
@@ -374,14 +374,15 @@ export function useMonitoringActionsManagement(
         error = err;
       }
       if (error) throw error;
-      const webhook = data?.webhook || data;
-      setWebhookConfig({
+      const webhookShape = data as { webhook?: { url?: string; webhookUrl?: string; events?: string[] }; url?: string; webhookUrl?: string; events?: string[] } | null | undefined;
+      const webhook = webhookShape?.webhook || webhookShape;
+      setWebhookConfigState({
         url: webhook?.url || webhook?.webhookUrl,
         events: webhook?.events || [],
         configured: !!(webhook?.url || webhook?.webhookUrl),
       });
     } catch {
-      setWebhookConfig({ configured: false });
+      setWebhookConfigState({ configured: false });
       toast.error('Erro ao verificar webhook');
     }
   }, []);
