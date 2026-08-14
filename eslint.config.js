@@ -234,6 +234,10 @@ export default tseslint.config(
       "src/_archive/**",
       // Exceção documentada (V3 F2): demo admin legada usa evolutionClient direto
       "src/pages/admin/ZappWebbDemoPage.tsx",
+      // Exceção documentada (V3 F2): legados com VITE_EVOLUTION_API_URL — dead code a arquivar
+      "src/lib/healthCheck.ts",
+      "src/integrations/zappweb/evolutionClient.ts",
+      "src/integrations/zappweb/supabaseClient.ts",
       "src/**/__tests__/**",
       "src/**/*.test.{ts,tsx}",
       "src/**/*.spec.{ts,tsx}",
