@@ -225,6 +225,36 @@ export default tseslint.config(
       ],
     },
   },
+  // DECOUPLE GUARDS (E94 Plano V2) — impede regresso do acoplamento Evolution
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: [
+      "src/lib/whatsappAdapter.ts",
+      "src/lib/sendFunctionRouter.ts",
+      "src/**/__tests__/**",
+      "src/**/*.test.{ts,tsx}",
+      "src/**/*.spec.{ts,tsx}",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "warn",
+        {
+          // Proíbe invoke('evolution-api', ...) fora do whatsappAdapter
+          selector:
+            "CallExpression[callee.property.name='invoke'][arguments.0.value='evolution-api']",
+          message:
+            "[decouple] invoke('evolution-api') direto — usar whatsappAdapter (E94 Plano V2). https://github.com/adm01-debug/zapp-web-v3/blob/main/docs/decouple/PLANO_DESACOPLAMENTO_V2_100_ETAPAS.md",
+        },
+        {
+          // Proíbe import de evolutionExternal fora de src/adapters
+          selector:
+            "ImportDeclaration[source.value=/evolutionExternal/]",
+          message:
+            "[decouple] Import de evolutionExternal só permitido em src/adapters/ (E94 Plano V2).",
+        },
+      ],
+    },
+  },
   // SCHEMA CONTRACT GUARDS — o front só acessa views/tabelas do schema 'zapp'
   // (client com db.schema='zapp'). Acessos diretos a schemas físicos ('evo' /
   // 'email_app') ou ao 'public' quebram o contrato single-DB e devem ser
