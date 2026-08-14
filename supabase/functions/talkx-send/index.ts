@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
         typeof r === 'object' && r !== null && !Array.isArray(r)
       )
       .filter((r: Record<string, unknown>) => {
-        if (blacklistSet.has(r.contact_id)) {
+        if (blacklistSet.has(r.contact_id as string)) {
           const recipId = typeof r.id === 'string' ? r.id : '';
           if (recipId) {
             blacklistedRecipientIds.push(recipId);

@@ -9,6 +9,13 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { evolutionClient } from "../_shared/providers/evolution/index.ts";
 
 /**
+ * Client do schema `zapp` (createZappAdminClient usa db.schema='zapp').
+ * Os helpers abaixo recebem o client real — tipar com o schema correto
+ * (type-only; runtime inalterado).
+ */
+type ZappClient = SupabaseClient<any, "zapp">;
+
+/**
  * Edge Function: WhatsApp Media Migration Service
  *
  * Migrates media attachments from temporary WhatsApp CDN URLs to permanent Supabase Storage.
@@ -182,7 +189,7 @@ Deno.serve(async (req) => {
 });
 
 async function downloadAndUpload(
-  supabase: SupabaseClient,
+  supabase: ZappClient,
   cdnUrl: string,
   messageType: string,
   messageId: string,
@@ -212,7 +219,7 @@ async function downloadAndUpload(
 }
 
 async function getBase64Fallback(
-  supabase: SupabaseClient,
+  supabase: ZappClient,
   instance: string,
   externalId: string,
   messageType: string,
@@ -270,7 +277,7 @@ function detectExtension(contentType: string, messageType: string): string {
 }
 
 async function uploadToStorage(
-  supabase: SupabaseClient,
+  supabase: ZappClient,
   bytes: Uint8Array,
   contentType: string,
   messageType: string,
@@ -294,7 +301,7 @@ async function uploadToStorage(
 }
 
 async function migrateSimple(
-  supabase: SupabaseClient,
+  supabase: ZappClient,
   req: Request,
   log: Logger,
 ): Promise<Response> {

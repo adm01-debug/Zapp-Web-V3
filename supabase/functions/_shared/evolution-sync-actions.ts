@@ -15,6 +15,28 @@ type EvolutionRawMsg = {
   reactionMessage?: unknown;
   [key: string]: unknown;
 };
+
+type EvolutionSyncContact = {
+  id?: string;
+  remoteJid?: string;
+  pushName?: string;
+  name?: string;
+  verifiedName?: string;
+  profilePictureUrl?: string;
+  profilePicUrl?: string;
+  isGroup?: boolean;
+};
+
+type EvolutionSyncMessageKey = {
+  id?: string;
+  fromMe?: boolean;
+};
+
+type EvolutionSyncMessage = {
+  key?: EvolutionSyncMessageKey;
+  message?: EvolutionRawMsg;
+  messageTimestamp?: string | number;
+};
 /** evolution-sync-actions utilities and exports. */
 export async function syncContacts(
   supabase: SupabaseClient,
@@ -43,7 +65,7 @@ export async function syncContacts(
     throw new Error(`Evolution API error [${contactsResponse.status}]: ${errText}`);
   }
 
-  const contacts = contactsResponse.data as unknown[];
+  const contacts = contactsResponse.data as EvolutionSyncContact[];
   if (!Array.isArray(contacts) || contacts.length === 0) {
     return jsonRes({ success: true, message: 'No more contacts to sync', synced: 0, page }, corsHeaders);
   }
@@ -96,7 +118,7 @@ export async function syncMessages(
   if (!messagesResponse.ok) throw new Error(`Evolution API error [${messagesResponse.status}]: ${messagesResponse.error ?? ''}`);
 
   const messagesData = messagesResponse.data as Record<string, unknown>;
-  const messages = Array.isArray(messagesData) ? messagesData : messagesData.messages || [];
+  const messages = (Array.isArray(messagesData) ? messagesData : messagesData.messages || []) as EvolutionSyncMessage[];
 
   const { data: connection2 } = await supabase.from('whatsapp_connections').select('id').or(instanceOrFilter(instanceName)).maybeSingle();
   if (!connection2) throw new Error('WhatsApp connection not found');
@@ -108,7 +130,7 @@ export async function syncMessages(
 
   let synced = 0;
   for (const msg of messages) {
-    const key = msg.key || {};
+    const key = (msg.key || {}) as EvolutionSyncMessageKey;
     const externalId = key.id;
     if (!externalId) continue;
 
@@ -158,10 +180,10 @@ export async function syncAllMessages(
         if (!msgResponse.ok) { totalErrors++; continue; }
 
         const msgData = msgResponse.data as Record<string, unknown>;
-        const messages = Array.isArray(msgData) ? msgData : msgData.messages || [];
+        const messages = (Array.isArray(msgData) ? msgData : msgData.messages || []) as EvolutionSyncMessage[];
 
         for (const msg of messages) {
-          const key = msg.key || {};
+          const key = (msg.key || {}) as EvolutionSyncMessageKey;
           if (!key.id) continue;
           const { data: existing } = await supabase.from('messages').select('id').eq('external_id', key.id).maybeSingle();
           if (existing) { totalSkipped++; continue; }
@@ -264,7 +286,7 @@ export async function fullSync(
     const contactsResponse = await evolutionClient.post(`chat/findContacts/${instanceName}`,
       { where: {} }, { timeoutMs: 10_000 });
     if (contactsResponse.ok) {
-      const contactsList = contactsResponse.data as unknown[];
+      const contactsList = contactsResponse.data as EvolutionSyncContact[];
       const validContacts: { phone: string; name: string; avatar_url: string | null; whatsapp_connection_id: string }[] = [];
       for (const c of contactsList) {
         const jid = c.id || c.remoteJid || '';
