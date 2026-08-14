@@ -9,6 +9,8 @@ import {
 } from '@/shared/criticalPayloadSchemas';
 import { dbFrom } from '@/integrations/datasource/db';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
+import { sendText } from '@/lib/whatsappAdapter';
+import { toJid } from '@/lib/jid';
 
 interface ContactResult {
   id: string;
@@ -187,10 +189,16 @@ export function useNewConversation(
         setIsSending(false);
         return;
       }
-      const { error: sendError } = await supabase.functions.invoke('evolution-api', {
-        body: { action: 'send-text', ...sendValidation.data },
-        headers: trace.headers,
-      });
+      let sendError: unknown = null;
+      try {
+        await sendText({
+          remoteJid: toJid(sendValidation.data.number),
+          text: sendValidation.data.text,
+          instance: sendValidation.data.instanceName,
+        });
+      } catch (err) {
+        sendError = err;
+      }
       if (sendError) throw sendError;
       toast.success('Mensagem enviada!');
       await supabase.functions.invoke('batch-fetch-avatars');

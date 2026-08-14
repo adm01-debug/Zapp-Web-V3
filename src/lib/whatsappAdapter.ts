@@ -151,6 +151,8 @@ export async function sendAudio(params: SendAudioParams) {
     number: toPhone(params.remoteJid),
     audio: params.audioUrl,
     ptt: params.ptt ?? true,
+    encoding: params.encoding,
+    mediaHash: params.mediaHash,
   });
 }
 
@@ -348,6 +350,35 @@ export async function markAsRead(params: MarkAsReadParams) {
   });
 }
 
+// ── Verbos de gerenciamento de instância/conexão ──────────────────────────
+
+export interface ConnectParams { instanceName: string }
+export async function connectInstance(params: ConnectParams) {
+  return invokeEvolution('connect', { instanceName: params.instanceName });
+}
+
+export interface ListGroupsParams { instanceName: string; getParticipants?: boolean }
+export async function listGroups(params: ListGroupsParams) {
+  return invokeEvolution('list-groups', {
+    instanceName: params.instanceName,
+    getParticipants: params.getParticipants ? 'true' : 'false',
+  });
+}
+
+export interface GetQrCodeParams { instanceName: string }
+export async function getQrCode(params: GetQrCodeParams) {
+  return invokeEvolution('get-qrcode', { instanceName: params.instanceName });
+}
+
+export interface RestartInstanceParams { instanceName: string }
+export async function restartInstance(params: RestartInstanceParams) {
+  return invokeEvolution('restart-instance', { instanceName: params.instanceName });
+}
+
+export async function listInstances() {
+  return invokeEvolution('list-instances', {});
+}
+
 // ----- Webhooks de entrada --------------------------------------------------
 
 /** Returns the Supabase Functions base URL, preferring the self-hosted instance when VITE_SUPABASE_URL is not a managed `.supabase.co` host. */
@@ -395,6 +426,11 @@ export const whatsapp = {
   sendTemplate,
   sendPresence,
   markAsRead,
+  connectInstance,
+  listGroups,
+  getQrCode,
+  restartInstance,
+  listInstances,
   getActiveWebhookUrl,
   getCloudWebhookUrl,
   getEvolutionWebhookUrl,

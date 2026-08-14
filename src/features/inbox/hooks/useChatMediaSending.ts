@@ -8,6 +8,8 @@ import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { newRequestId } from '@/lib/withRequestId';
 import type { AudioMemeItem } from '@/hooks/useAudioManagement';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
+import { sendMedia, sendText, sendAudio } from '@/lib/whatsappAdapter';
+import { toJid } from '@/lib/jid';
 import { resolveContactRef, isUuidRef } from '../utils/contactRef';
 import { insertAuxMessage } from './useAuxiliaryMessageLog';
 
@@ -249,23 +251,13 @@ export function useChatMediaSending(
         const isUrl = emojiUrl.startsWith('http');
         const trace = newRequestId('emoji');
 
-        const apiPromise = isUrl
-          ? supabase.functions.invoke('evolution-api', {
-              method: 'POST',
-              body: {
-                action: 'send-media',
-                instanceName: inst,
-                number: phone,
-                mediaUrl: emojiUrl,
-                mediaType: 'image',
-              },
-              headers: trace.headers,
-            })
-          : supabase.functions.invoke('evolution-api', {
-              method: 'POST',
-              body: { action: 'send-text', instanceName: inst, number: phone, text: emojiUrl },
-              headers: trace.headers,
-            });
+        const apiPromise = (
+          isUrl
+            ? sendMedia({ remoteJid: toJid(phone), mediaUrl: emojiUrl, type: 'image', instance: inst })
+            : sendText({ remoteJid: toJid(phone), text: emojiUrl, instance: inst })
+        )
+          .then((data) => ({ data, error: null }))
+          .catch((error) => ({ data: null, error }));
 
         // E14-A: roteamento correto via insertAuxMessage
         const auxPromise = insertAuxMessage({
@@ -330,18 +322,14 @@ export function useChatMediaSending(
         const normalizedAudioUrl = normalizeMediaUrl(audioUrl);
         const trace = newRequestId('audio');
 
-        const apiPromise = supabase.functions.invoke('evolution-api', {
-          body: {
-            action: 'send-audio',
-            instanceName: inst,
-            number: phone,
-            audio: normalizedAudioUrl,
-            encoding: true,
-            isPtt: true, // Audio memes MUST appear as voice notes (green waveform)
-            audio_meme_id: memeId,
-          },
-          headers: trace.headers,
-        });
+        const apiPromise = sendAudio({
+          remoteJid: toJid(phone),
+          audioUrl: normalizedAudioUrl,
+          instance: inst,
+          ptt: true, // Audio memes MUST appear as voice notes (green waveform)
+        })
+          .then((data) => ({ data, error: null }))
+          .catch((error) => ({ data: null, error }));
 
         // E14-A: roteamento correto via insertAuxMessage
         const auxPromise = insertAuxMessage({

@@ -39,6 +39,9 @@ export interface SendAudioParams {
   audioUrl: string;
   instance?: string;
   ptt?: boolean;
+  /** True quando `audioUrl` carrega áudio em base64 em vez de uma URL. */
+  encoding?: boolean;
+  mediaHash?: string;
 }
 
 /** Send Sticker Params interface definition. */

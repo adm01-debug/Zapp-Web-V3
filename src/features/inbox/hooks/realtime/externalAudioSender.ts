@@ -9,9 +9,9 @@
  *
  * Erros são propagados para alimentar o `SendErrorBanner` (sem swallow).
  */
-import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { jidToPhone } from '@/adapters/evolutionAdapter';
+import { sendAudio } from '@/lib/whatsappAdapter';
 import { getLogger } from '@/lib/logger';
 import { parseEvolutionError } from '@/features/inbox';
 import { dbInsert } from '@/integrations/datasource/db';
@@ -93,19 +93,20 @@ export async function sendExternalAudio(
     log.debug('Hash calculation skipped', e);
   }
 
-  const payload: Record<string, unknown> = {
-    action: 'send-audio',
-    instanceName: instance,
-    number: phone,
-    audio: audioBase64,
-    encoding: true,
-    isPtt: opts.isPtt ?? true,
-  };
-  if (mediaHash) payload.mediaHash = mediaHash;
-
-  const { data, error } = await supabase.functions.invoke('evolution-api', {
-    body: payload,
-  });
+  let data: unknown;
+  let error: unknown;
+  try {
+    data = await sendAudio({
+      remoteJid,
+      audioUrl: audioBase64,
+      instance,
+      ptt: opts.isPtt ?? true,
+      encoding: true,
+      mediaHash,
+    });
+  } catch (err) {
+    error = err;
+  }
 
   const latency = Date.now() - startTime;
 

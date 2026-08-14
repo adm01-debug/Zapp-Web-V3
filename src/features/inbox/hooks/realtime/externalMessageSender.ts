@@ -20,6 +20,7 @@ import { parseEvolutionError } from '@/features/inbox';
 import { dbInsert } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { buildFileHash as calculateFileHash } from '@/lib/crypto';
+import { sendText, sendMedia } from '@/lib/whatsappAdapter';
 import {
   DEFAULT_INSTANCE,
   SendError,
@@ -63,14 +64,13 @@ export async function sendExternalText(
     p_payload: { content },
   });
 
-  const { data, error } = await supabase.functions.invoke('evolution-api', {
-    body: {
-      action: 'send-text',
-      instanceName: instance,
-      number: phone,
-      text: content,
-    },
-  });
+  let data: unknown;
+  let error: unknown;
+  try {
+    data = await sendText({ remoteJid, text: content, instance });
+  } catch (err) {
+    error = err;
+  }
 
   if (error) {
     log.error('evolution-api send-text failed', error);
@@ -162,17 +162,20 @@ export async function sendExternalMedia(
     contactAvatar: opts.contactAvatar,
   });
 
-  const { data, error } = await supabase.functions.invoke('evolution-api', {
-    body: {
-      action: 'send-media',
-      instanceName: instance,
-      number: phone,
+  let data: unknown;
+  let error: unknown;
+  try {
+    data = await sendMedia({
+      remoteJid,
       mediaUrl: signed.signedUrl,
-      mediaType: type,
+      type,
       caption: opts.caption,
-      fileName: file.name,
-    },
-  });
+      filename: file.name,
+      instance,
+    });
+  } catch (err) {
+    error = err;
+  }
 
   if (error) {
     log.error('evolution-api send-media failed', error);
@@ -233,6 +236,7 @@ export async function sendExternalPtv(
     log.debug('Hash calculation skipped', e);
   }
 
+  // TODO-F3: send-ptv usa FormData multipart — adapter não suporta ainda
   const { data, error } = await supabase.functions.invoke('evolution-api', {
     body: formData,
   });
