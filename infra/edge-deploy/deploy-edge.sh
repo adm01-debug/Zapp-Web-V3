@@ -24,6 +24,14 @@
 #     Selecione com EDGE_EXEC_BACKEND=docker (default) | housekeeping.
 #   - Escrita SEMPRE via base64 + validação de hash pós-escrita (nunca sed/cat
 #     direto, que corrompe encoding em arquivos com acentos/emojis).
+#   - _shared/ é sincronizado de forma RECURSIVA desde 2026-08-14 (fix P0):
+#     todos os .ts sob supabase/functions/_shared/** (ex.: providers/,
+#     providers/evolution/, providers/fake/, domain/) entram no diff
+#     MISSING/STALE por hash, com a mesma semântica das functions; os
+#     diretórios __tests__/ e __fixtures__/ e os arquivos *.test.ts / *.spec.ts
+#     são EXCLUÍDOS do sync (testes/fixtures não vão para produção). A chave
+#     do diff é o caminho RELATIVO a _shared/ (basename colidiria, ex.:
+#     providers/evolution/index.ts × providers/fake/index.ts).
 #
 # Modos:
 #   Sem --apply  → READ-ONLY: imprime o diff e sai com exit 1 se houver
@@ -240,23 +248,43 @@ if [[ $MISSING -gt 0 || $STALE -gt 0 || $ORPHAN -gt 0 ]]; then
   fi
 fi
 
-# ── P-13: Sincronização do _shared/ (fix P0 2026-08-07) ───────────────────────
+# ── P-13: Sincronização do _shared/ (fix P0 2026-08-07; recursivo 2026-08-14) ─
 # GAP DESCOBERTO NA ONDA DE VALIDAÇÃO: o deploy sincronizava SOMENTE os
 # index.ts — o _shared/ (contract-kit, contract-schemas, webhook-schemas, etc.)
 # nunca era copiado → volume stale (ex.: contract-kit sem contractViolation422,
 # CONTRACT_SCHEMAS sem mcp-query → 422 'schema ausente' em runtime).
 # Agora: snapshot → diff → apply (base64 via stdin, hash pós-escrita) de TODOS
 # os arquivos .ts do _shared/ do repo.
+# Fix 2026-08-14 (BUG P0 — sync só da raiz): o loop antigo usava
+# `${VOLUME_PATH}/_shared/*.ts` (globo só do nível 1) → subdiretórios
+# (providers/, providers/evolution/, providers/fake/, domain/) NUNCA eram
+# sincronizados (evidência: providers/registry.ts V2 stale no volume vs V3 no
+# repo; providers/fake/ nem existe no runtime). Agora o find é RECURSIVO e a
+# chave do diff passou de basename para caminho relativo a _shared/ (basename
+# colidiria, ex.: providers/evolution/index.ts × providers/fake/index.ts).
+# Excluídos do sync (testes/fixtures não vão para produção): __tests__/,
+# __fixtures__/, *.test.ts, *.spec.ts.
 SHARED_DIR="$FUNCTIONS_DIR/_shared"
 SHARED_OK=0; SHARED_MISSING=0; SHARED_STALE=0
 declare -a SHARED_MISSING_LIST SHARED_STALE_LIST
 
 if [[ -d "$SHARED_DIR" ]]; then
-  mapfile -t REPO_SHARED < <(find "$SHARED_DIR" -maxdepth 1 -name '*.ts' -printf '%f\n' | sort)
-  # Snapshot remoto: "nome hash" por arquivo (1 chamada)
+  # Lista recursiva dos .ts do repo, como caminho RELATIVO a _shared/
+  # (ex.: providers/registry.ts) — exclui testes/fixtures (não vão a produção).
+  mapfile -t REPO_SHARED < <(
+    find "$SHARED_DIR" -type f -name '*.ts' \
+      ! -path '*/__tests__/*' \
+      ! -path '*/__fixtures__/*' \
+      ! -name '*.test.ts' \
+      ! -name '*.spec.ts' \
+      -printf '%P\n' | sort
+  )
+  # Snapshot remoto RECURSIVO: "caminho_relativo hash" por arquivo (1 chamada).
+  # ${f#...} remove o prefixo do volume; basename colidiria entre
+  # providers/evolution/index.ts e providers/fake/index.ts.
   REMOTE_SHARED_SNAPSHOT=$(edge_exec "
-    for f in ${VOLUME_PATH}/_shared/*.ts; do
-      [ -f \"\$f\" ] && echo \"\$(basename \"\$f\") \$(sha256sum \"\$f\" | cut -c1-12)\"
+    find ${VOLUME_PATH}/_shared -type f -name '*.ts' 2>/dev/null | sort | while IFS= read -r f; do
+      [ -f \"\$f\" ] && echo \"\${f#${VOLUME_PATH}/_shared/} \$(sha256sum \"\$f\" | cut -c1-12)\"
     done
   " 2>/dev/null || true)
   declare -A REMOTE_SHARED_HASH
@@ -296,9 +324,14 @@ if [[ -d "$SHARED_DIR" ]]; then
     for f in "${SHARED_MISSING_LIST[@]}" "${SHARED_STALE_LIST[@]}"; do
       b64=$(base64 -w0 "$SHARED_DIR/$f")
       expected=$(sha256sum "$SHARED_DIR/$f" | cut -c1-12)
+      # fdir = subdiretório do arquivo relativo a _shared/ (ex.: providers/
+      # evolution); arquivos da raiz caem em fdir="." (mkdir -p .../_shared/.
+      # é no-op seguro quando _shared/ já existe).
+      fdir="${f%/*}"
+      [[ "$fdir" == "$f" ]] && fdir="."
       echo "$b64" | edge_exec_stdin "
-        mkdir -p ${VOLUME_PATH}/_shared
-        base64 -d > ${VOLUME_PATH}/_shared/$f
+        mkdir -p ${VOLUME_PATH}/_shared/${fdir}
+        base64 -d > ${VOLUME_PATH}/_shared/${f}
       " >/dev/null 2>&1
       written=$(edge_exec "sha256sum ${VOLUME_PATH}/_shared/$f" 2>/dev/null | cut -c1-12 || true)
       if [[ "$written" == "$expected" ]]; then

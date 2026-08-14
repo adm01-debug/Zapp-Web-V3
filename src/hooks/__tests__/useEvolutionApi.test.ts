@@ -41,7 +41,7 @@ describe('useEvolutionApi - Exhaustive Test Suite', () => {
       const { result } = renderHook(() => useEvolutionApi());
       const expectedFunctions = [
         'createInstance', 'listInstances', 'connectInstance', 'getInstanceStatus',
-        'getInstanceInfo', 'restartInstance', 'disconnectInstance', 'deleteInstance', 'setPresence',
+        'getInstanceInfo', 'restartInstance', 'disconnectInstance', 'deleteInstance',
         'setSettings', 'getSettings', 'setWebhook', 'getWebhook',
         'sendTextMessage', 'sendMediaMessage', 'sendAudioMessage', 'sendStickerMessage',
         'sendLocationMessage', 'sendContactMessage', 'sendReaction', 'sendPollMessage',
@@ -213,16 +213,9 @@ describe('useEvolutionApi - Exhaustive Test Suite', () => {
       }));
     });
 
-    it('setPresence sends presence type', async () => {
-      const { result } = renderHook(() => useEvolutionApi());
-      await act(async () => {
-        await result.current.setPresence('wpp2', 'composing');
-      });
-      expect(mockInvoke).toHaveBeenCalledWith('evolution-api/set-presence', expect.objectContaining({
-        method: 'POST',
-        body: { instanceName: 'wpp2', presence: 'composing' },
-      }));
-    });
+    // setPresence removido em 2026-08-14 (poda-actions-mortas): action
+    // 'set-presence' sem handler no router da evolution-api e sem consumidor
+    // em produção — ver TODO em src/hooks/useEvolutionApiManagement.ts.
   });
 
   // =============================================

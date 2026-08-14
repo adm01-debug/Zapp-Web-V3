@@ -1,11 +1,13 @@
 /**
- * Contract tests — evolution-credentials (GET) + evolution-credentials-write (POST CRUD).
+ * Contract tests — evolution-credentials (POST CRUD) — GET aterrado com 410 desde 2026-08-14.
  *
  * Cobre:
- *  - GET: EvolutionCredentialsV1Schema (EmptyStrict) + gate parseOrReject.
  *  - POST: EvolutionCredentialsWriteV1Schema (discriminatedUnion save|delete),
  *    gate aplicado no handleWrite (correção 2026-08-04 — antes lia req.json()
  *    sem contrato).
+ *  - Aposentadoria do GET (2026-08-14, commit bed8e1039 + remoção do código
+ *    zumbi da key — plano desacoplamento #30): 410 Gone preservado; source não
+ *    pode conter X-Evolution-Key nem a RPC de leitura da key.
  *
  * Rodar: deno test --allow-net --allow-env --allow-read supabase/functions/evolution-credentials/__tests__/contract.test.ts
  */
@@ -132,10 +134,18 @@ Deno.test("Source: handleWrite usa parseOrReject com o registro write", () => {
   assertMatch(SOURCE, /if \(parsed\.ok === false\) return parsed\.response/);
 });
 
-Deno.test("Source: GET preserva gate + role gate + RPC get", () => {
-  assertMatch(SOURCE, /fn_edge_get_evolution_credentials/);
+Deno.test("Source: GET aterrado com 410 — código zumbi da key removido (2026-08-14)", () => {
+  // 410 Gone do GET preservado (commit bed8e1039)
+  assertMatch(SOURCE, /status: 410/);
+  assertMatch(SOURCE, /error: 'Gone'/);
+  // Gate de role preservado no POST (handleWrite)
   assertMatch(SOURCE, /requireAdminOrSupervisor/);
-  assertMatch(SOURCE, /X-Evolution-Key/);
+  // Código morto que servia a key ao browser NÃO pode existir mais (plano #30).
+  // A menção histórica em comentário (SECURITY FIX 2026-08-14) é permitida —
+  // o que não pode existir é CÓDIGO ecoando a key.
+  assert(!/row\.api_key/.test(SOURCE), "nenhum código pode ecoar a api_key (row.api_key)");
+  assert(!/fn_edge_get_evolution_credentials/.test(SOURCE), "RPC de leitura da key removida junto com o código morto");
+  assert(!/Access-Control-Expose-Headers/.test(SOURCE), "header de exposição da key removido");
 });
 
 Deno.test("Source: CRUD preserva RPCs upsert/delete + rate limit próprio", () => {
