@@ -3,8 +3,8 @@
 > **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [docs/SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
 
 
-**Última atualização:** 2026-07-12 R9-R11 — fix AUTHENTICATION_API_KEY + 7 bugs DB + fn_health_preflight
-**Score:** 10/10 — AUTHENTICATION_API_KEY via secret (stack file atualizado R11; deploy VPS ⏳ pendente) · fn_health_preflight 15/15 all_green
+**Última atualização:** 2026-08-14 — fn_health_preflight 16/16 all_green=100% (check 9 vault_key + detect401 ativado + sessões GoTrue)
+**Score:** 10/10 — AUTHENTICATION_API_KEY via secret (stack file atualizado R11; deploy VPS ⏳ pendente) · fn_health_preflight 16/16 all_green
 
 > **BANCO CANÔNICO: `supabase.atomicabr.com.br` (self-hosted VPS)**
 > O projeto Lovable Cloud `allrjhkpuscmgbsnmjlv` foi DESCONTINUADO em 30/06/2026. Zero dados ativos.
@@ -109,7 +109,7 @@ https://zapp-web-v3.vercel.app
   - ⚠️ Rotação de chave pendente (valor exposto em histórico git)
 - `fn_security_surface_audit v3`: `truly_dangerous` substitui `anon_execute>0` ✅ **R9**
 - `fn_guardrails_check v2`: sábado corrigido (BETWEEN 1-6 → 1-5) ✅ **R9**
-- `fn_health_preflight`: 15 checks críticos em 1 chamada, all_green=true ✅ **R9**
+- `fn_health_preflight`: 16 checks críticos em 1 chamada, all_green=true ✅ **R9**
 
 ## 8. Gates 10/10 — Status ✅ COMPLETO
 
@@ -127,7 +127,7 @@ https://zapp-web-v3.vercel.app
 | **Consumer max_attempts=0** | ✅ consumer-prebuilt:v2 |
 | start_period 90→120s | ⏳ próximo MW |
 | **AUTHENTICATION_API_KEY via secret** | ⏳ **R11** — stack file atualizado; aplicar update no Portainer e rotacionar chave (ver `git-secrets-rotation.md`) |
-| **fn_health_preflight 15/15** | ✅ **R9** — all_green=true |
+| **fn_health_preflight 16/16** | ✅ **R9** — all_green=true |
 | **fn_guardrails_check v2** | ✅ **R9** — sábado (DOW BETWEEN 1-5) |
 | **fn_security_surface_audit v3** | ✅ **R9** — truly_dangerous |
 | **VPS 100% + Sistema 100% A+** | ✅ 89/89 done · 584/584 risk |
@@ -141,7 +141,7 @@ https://zapp-web-v3.vercel.app
 | `fn_guardrails_check` | ops | Saturday fix (DOW 1-5, threshold FDS=480) | v2 |
 | `fn_alert_consumer_halt` | ops | DOW check + sem bug 4h window | v2 |
 | `fn_pipeline_health_probe` | evo | Weekend 1440min + payload vs details | v2 |
-| `fn_health_preflight` | public | Nova — 15 checks em 1 chamada | v1 |
+| `fn_health_preflight` | public | Nova — 16 checks em 1 chamada | v1 |
 | `fn_vps_health_score` | evo | 100% — 89/89 done | v1 |
 | `fn_system_health_score_cached` | public | 100% A+ — 21/21 dims | canonical |
 
@@ -164,4 +164,4 @@ Verificação pós-R10 (container 0c9e3cd35f07 — snapshot antes do R11):
 ```
 
 ---
-*Atualizado 2026-07-12 R9-R11. Score: 10/10. fn_health_preflight: 15/15 all_green=true. AUTHENTICATION_API_KEY: stack file correto — deploy VPS pendente.*
+*Atualizado 2026-08-14. Score: 10/10. fn_health_preflight: 16/16 all_green=true (100%).*
