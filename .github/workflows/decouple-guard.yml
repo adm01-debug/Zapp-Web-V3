@@ -13,13 +13,19 @@ on:
       - 'supabase/functions/**'
       - 'infra/**'
       - 'scripts/**'
+      - 'e2e/**'
+      - 'db/**'
+      - 'supabase/migrations/**'
+      - '.github/workflows/decouple-guard.yml'
     branches: [main]
   push:
     branches: [main]
     paths:
       - 'src/**'
       - 'supabase/functions/**'
+      - 'infra/**'
       - 'scripts/**'
+      - 'supabase/migrations/**'
 
 jobs:
   infra-regression:
@@ -89,11 +95,15 @@ jobs:
             echo "::error::SQL gate falhou: egresso SQL da Evolution fora do padrao (use ops.fn_evo_url/ops.fn_evo_key)."
             exit 1
           }
-          echo "[OK] SQL egress gate OK (fixture snapshot)"
-      - name: Verb contract gate (12 verbos do gateway)
-        # Falha se _shared/providers/evolution/client.ts ganhar/perder verbo sem
-        # atualizar BOUNDARY-evolution.md + RUNBOOK + contract.zod.ts no mesmo PR.
-        run: node scripts/decouple/verb-contract-gate.mjs
+          node scripts/decouple/sql-gate.mjs --migrations supabase/migrations || {
+            echo "::error::SQL gate migrations: migration com egresso Evolution fora do padrao."
+            exit 1
+          }
+          node --test scripts/decouple/__tests__/sql-gate.test.mjs || {
+            echo "::error::Testes do sql-gate falharam."
+            exit 1
+          }
+          echo "[OK] SQL egress gate OK (fixture snapshot + migrations + testes)"
       - name: Diagnostic - grep de padroes de bypass
         if: failure()
         run: |
