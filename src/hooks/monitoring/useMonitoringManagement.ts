@@ -345,7 +345,7 @@ export function useMonitoringActionsManagement(
         .select('id')
         .eq('message_id', testId)
         .maybeSingle();
-      if (msg?.id) await supabase.from('evolution_messages').delete().eq('id', msg.id);
+      if (msg?.id) await supabase.rpc('rpc_delete_message', { p_id: msg.id });
       setWebhookTest({
         status: msg ? 'success' : 'error',
         message: msg
@@ -368,7 +368,11 @@ export function useMonitoringActionsManagement(
     }
     try {
       let data: unknown, error: unknown;
-      try { data = await getWebhookConfig({ instanceName: instanceId }); } catch (err) { error = err; }
+      try {
+        data = await getWebhookConfig({ instanceName: instanceId });
+      } catch (err) {
+        error = err;
+      }
       if (error) throw error;
       const webhook = data?.webhook || data;
       setWebhookConfig({
@@ -401,15 +405,32 @@ export function useMonitoringActionsManagement(
               webhookByEvents: false,
               webhookBase64: true,
               events: [
-                'MESSAGES_UPSERT','MESSAGES_UPDATE','MESSAGES_DELETE','MESSAGES_SET',
-                'SEND_MESSAGE','CONTACTS_UPSERT','CONTACTS_UPDATE','CONTACTS_SET',
-                'PRESENCE_UPDATE','CHATS_UPSERT','CHATS_UPDATE','CHATS_DELETE','CHATS_SET',
-                'CONNECTION_UPDATE','LABELS_EDIT','LABELS_ASSOCIATION',
-                'GROUPS_UPSERT','GROUP_PARTICIPANTS_UPDATE','CALL','QRCODE_UPDATED',
+                'MESSAGES_UPSERT',
+                'MESSAGES_UPDATE',
+                'MESSAGES_DELETE',
+                'MESSAGES_SET',
+                'SEND_MESSAGE',
+                'CONTACTS_UPSERT',
+                'CONTACTS_UPDATE',
+                'CONTACTS_SET',
+                'PRESENCE_UPDATE',
+                'CHATS_UPSERT',
+                'CHATS_UPDATE',
+                'CHATS_DELETE',
+                'CHATS_SET',
+                'CONNECTION_UPDATE',
+                'LABELS_EDIT',
+                'LABELS_ASSOCIATION',
+                'GROUPS_UPSERT',
+                'GROUP_PARTICIPANTS_UPDATE',
+                'CALL',
+                'QRCODE_UPDATED',
               ],
             },
           });
-        } catch (err) { error = err; }
+        } catch (err) {
+          error = err;
+        }
         if (error) throw error;
         toast.success('Webhook reconfigurado com sucesso!');
         await checkWebhookConfig(instanceId);

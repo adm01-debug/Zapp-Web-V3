@@ -74,10 +74,7 @@ export function useZappConversations(opts: Options = {}) {
   }, [instance, fetchAll]);
 
   const markAsRead = useCallback(async (conversationId: string) => {
-    await zappSupabase
-      .from('evolution_conversations_wpp2')
-      .update({ unread_count: 0 })
-      .eq('id', conversationId);
+    await zappSupabase.rpc('rpc_mark_conversation_read', { p_id: conversationId });
   }, []);
 
   return { conversations, loading, error, refetch: fetchAll, markAsRead };

@@ -1,7 +1,7 @@
 import { z } from "https://esm.sh/zod@3.23.8";
 import { MetaWebhookPayloadSchema } from "./webhook-schemas.ts";
 
-// Normalizes Meta WhatsApp Cloud API payloads to the unified Evolution model.
+// Normalizes Meta WhatsApp Cloud API payloads to the canonical Zapp domain model (E48 — R1).
 
 // Meta sends webhooks shaped as:
 // { object: "whatsapp_business_account", entry: [{ id, changes: [{ value: { messaging_product, metadata, contacts, messages, statuses } }] }] }

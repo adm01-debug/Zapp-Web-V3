@@ -9,6 +9,7 @@ import {
 } from "./evolution-helpers.ts";
 import { persistMediaToStorage, persistMediaViaApi, parseMessageContent, isSafeMediaCdnUrl } from "./evolution-media.ts";
 import { getStoragePublicUrl } from "./storage-url.ts";
+import { ingestMessage } from "./ingest-port.ts";
 
 /** evolution-webhook-messages utilities and exports. */
 
@@ -104,32 +105,25 @@ export async function handleOutgoingWhatsAppMessage(
     .maybeSingle();
   if (raceCheck) return;
 
-  const { data: insertedMessage, error: msgError } = await evo().upsert({
-    contact_id: contact.id,
-    instance_name: instance,
-    message_id: externalId,
-    remote_jid: bestJid,
-    from_me: true,
-    direction: 'outbound',
-    content: parsed.content,
-    ...(outIngestMeta ? { media_meta: outIngestMeta, ingest_meta: outIngestMeta } : {}),
-    ...(outQuotedId ? { quoted_message_id: outQuotedId } : {}),
-    ...(outCaption ? { caption: outCaption } : {}),
-    message_type: parsed.messageType,
-    media_url: mediaUrl,
-    // ADR-004: campos canônicos para signed URLs (privatização whatsapp-media)
-    ...extractStorageFields(mediaUrl),
-    // NOTA PGRST204 (fix AG-EX-01): coluna agent_id NÃO existe em evolution_messages
-    // (nem em evo.* nem na view public.* — verificado via pg_catalog 2026-08-05).
-    // Enviá-la fazia o PostgREST rejeitar o upsert com PGRST204 e mensagens
-    // outbound (fromMe) do operador não persistirem. Agente fica em public.messages.
-    status: 'sent',
-    created_at: messageCreatedAt,
-    status_at: new Date().toISOString(),
-  }, { onConflict: 'message_id,instance_name', ignoreDuplicates: true }).select('id').maybeSingle();
-
-  if (msgError) { console.error('[FROM_ME] Error inserting outgoing message:', msgError); return; }
-  if (!insertedMessage) return; // ON CONFLICT DO NOTHING: concurrent writer already persisted this message
+  // F4: ingestMessage via RPC canônico (ON CONFLICT DO NOTHING + campos ricos ADR-004)
+  const storageOut = extractStorageFields(mediaUrl);
+  const outResult = await ingestMessage(supabase, {
+    provider: 'evolution', instanceRef: instance, remoteJid: bestJid!,
+    messageId: externalId, messageType: parsed.messageType, content: parsed.content ?? '',
+    fromMe: true, direction: 'outbound',
+    timestamp: new Date(messageCreatedAt), contactId: contact.id,
+    mediaUrl: mediaUrl ?? undefined,
+    mediaBucket: storageOut.media_bucket ?? undefined,
+    mediaPath: storageOut.media_path ?? undefined,
+    mediaStatus: storageOut.media_status ?? undefined,
+    ingestMeta: outIngestMeta ?? undefined,
+    mediaMeta: outIngestMeta ?? undefined,
+    quotedMessageId: outQuotedId ?? undefined,
+    caption: outCaption ?? undefined,
+    status: 'sent', statusAt: new Date().toISOString(),
+  });
+  if (!outResult.ok) { console.error('[FROM_ME] Error inserting outgoing message:', outResult.error); return; }
+  if (!outResult.rowId) return; // ON CONFLICT DO NOTHING: concurrent writer already persisted this message
   await supabase.from('contacts').update({ updated_at: new Date().toISOString() }).eq('id', contact.id);
 }
 
@@ -291,35 +285,31 @@ export async function handleIncomingMessage(
     return;
   }
 
-  const { data: insertedMessage, error: msgError } = await evo().insert({
-    contact_id: contact.id,
-    instance_name: instance,
-    message_id: key.id,
-    from_me: false,
-    direction: 'inbound',
-    content,
-    message_type: messageType,
-    media_url: mediaUrl,
-    // ADR-004: campos canônicos
-    ...extractStorageFields(mediaUrl),
-    media_meta: ingestMeta || undefined,
-    ingest_meta: ingestMeta || undefined,
-    quoted_message_id: quotedMessageId || undefined,
-    caption: captionText || undefined,
-    status: 'received',
-    remote_jid: bestJid || `${phone}@s.whatsapp.net`,
-    push_name: (data.pushName as string) || null,
-    created_at: messageCreatedAt,
-  }).select('id').maybeSingle();
-
-  if (msgError) {
-    if (msgError.code === '23505') return; // concurrent webhook already inserted this message
-    console.error('Error inserting message:', { msgError, externalId: key.id, bestJid, phone, messageType, content });
+  // F4: ingestMessage via RPC canônico (ON CONFLICT DO NOTHING + campos ricos ADR-004)
+  const storageIn = extractStorageFields(mediaUrl);
+  const inResult = await ingestMessage(supabase, {
+    provider: 'evolution', instanceRef: instance,
+    remoteJid: bestJid || `${phone}@s.whatsapp.net`,
+    messageId: key.id, messageType, content,
+    fromMe: false, direction: 'inbound',
+    timestamp: new Date(messageCreatedAt), contactId: contact.id,
+    pushName: (data.pushName as string) || undefined,
+    mediaUrl: mediaUrl ?? undefined,
+    mediaBucket: storageIn.media_bucket ?? undefined,
+    mediaPath: storageIn.media_path ?? undefined,
+    mediaStatus: storageIn.media_status ?? undefined,
+    ingestMeta: ingestMeta ?? undefined,
+    mediaMeta: ingestMeta ?? undefined,
+    quotedMessageId: quotedMessageId ?? undefined,
+    caption: captionText ?? undefined,
+  });
+  if (!inResult.ok) {
+    console.error('Error inserting message:', { error: inResult.error, externalId: key.id, bestJid, phone, messageType, content });
     return;
   }
-  if (!insertedMessage) return; // ON CONFLICT DO NOTHING: concurrent writer won the race
+  if (!inResult.rowId) return; // ON CONFLICT DO NOTHING: concurrent writer won the race
   await supabase.from('contacts').update({ updated_at: new Date().toISOString() }).eq('id', contact.id);
-  if (messageType === 'audio' && mediaUrl) await handleAudioTranscription(supabase, contact.id, insertedMessage.id, mediaUrl, supabaseUrl, supabaseServiceKey);
+  if (messageType === 'audio' && mediaUrl && inResult.rowId) await handleAudioTranscription(supabase, contact.id, inResult.rowId, mediaUrl, supabaseUrl, supabaseServiceKey);
 }
 
 /** handle Sticker Media function. */
@@ -413,7 +403,8 @@ export async function handleAudioTranscription(supabase: SupabaseClient, _contac
 
   const evo = () => supabase.from('evolution_messages');
 
-  await evo().update({ transcription_status: 'processing', updated_at: new Date().toISOString() }).eq('id', messageId);
+  // F4: transcription status via RPC
+  await supabase.rpc('rpc_update_message_transcription', { p_message_uuid: messageId, p_status: 'processing' });
 
   try {
     const response = await fetch(`${supabaseUrl}/functions/v1/ai-transcribe-audio`, {
@@ -424,11 +415,11 @@ export async function handleAudioTranscription(supabase: SupabaseClient, _contac
 
     if (response.ok) {
       const result = await response.json();
-      await evo().update({ transcription: result.text, transcription_status: 'completed', updated_at: new Date().toISOString() }).eq('id', messageId);
+      await supabase.rpc('rpc_update_message_transcription', { p_message_uuid: messageId, p_status: 'completed', p_transcription: result.text });
     } else {
-      await evo().update({ transcription_status: 'failed', updated_at: new Date().toISOString() }).eq('id', messageId);
+      await supabase.rpc('rpc_update_message_transcription', { p_message_uuid: messageId, p_status: 'failed' });
     }
   } catch {
-    await evo().update({ transcription_status: 'failed', updated_at: new Date().toISOString() }).eq('id', messageId);
+    await supabase.rpc('rpc_update_message_transcription', { p_message_uuid: messageId, p_status: 'failed' });
   }
 }

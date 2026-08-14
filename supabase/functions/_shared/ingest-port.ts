@@ -9,7 +9,7 @@
  * em edge functions de ingestão.
  */
 
-import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 export interface IngestMessage {
   provider: 'evolution' | 'cloud';
@@ -20,21 +20,36 @@ export interface IngestMessage {
   content: string;
   fromMe: boolean;
   timestamp: Date;
-  contactRef?: string;       // push_name / wa_id
+  contactRef?: string;       // legado — alias de pushName
+  pushName?: string;         // push_name do remetente
   mediaUrl?: string;
   rawPayload?: Record<string, unknown>;
+  // Campos ricos opcionais (F4 — ADR-004 storage + media metadata)
+  contactId?: string;               // UUID do contato já resolvido (evita lookup no RPC)
+  direction?: string;               // 'inbound' | 'outbound' (default derivado de fromMe)
+  status?: string;                  // 'sent' | 'received' | 'delivered' | 'read'
+  statusAt?: string;                // ISO timestamp do status
+  quotedMessageId?: string;         // message_id da mensagem citada
+  caption?: string;                 // legenda de mídia
+  ingestMeta?: Record<string, unknown>;   // metadados de ingestão (provider raw)
+  mediaMeta?: Record<string, unknown>;    // metadados de mídia (mimetype, duration, etc)
+  mediaBucket?: string;             // bucket do storage (ADR-004)
+  mediaPath?: string;               // path no bucket (ADR-004)
+  mediaStatus?: string;             // 'ready' | 'pending' | 'error'
 }
 
 export interface IngestResult {
   ok: boolean;
-  messageId?: string;
-  contactId?: string;
+  rowId?: string;      // id (UUID interno) da linha em evolution_messages
+  messageId?: string;  // message_id (external id, e.g. Evolution/WhatsApp message ID)
+  contactId?: string;  // contact_id da linha inserida
   error?: string;
 }
 
 /**
- * Ingere uma mensagem via RPC canônica (rpc_insert_message).
- * Idempotente por messageId + instanceRef.
+ * Ingere uma mensagem via RPC canônica (rpc_insert_message 21-arg).
+ * Idempotente por messageId + instanceRef (ON CONFLICT DO NOTHING no DB).
+ * Retorna rowId=undefined quando a mensagem já existia (race condition / duplicate).
  */
 export async function ingestMessage(
   supabase: SupabaseClient,
@@ -42,20 +57,33 @@ export async function ingestMessage(
 ): Promise<IngestResult> {
   try {
     const { data, error } = await supabase.rpc('rpc_insert_message', {
-      p_message_id:   msg.messageId,
-      p_instance:     msg.instanceRef,
-      p_remote_jid:   msg.remoteJid,
-      p_message_type: msg.messageType,
-      p_content:      msg.content,
-      p_from_me:      msg.fromMe,
-      p_push_name:    msg.contactRef ?? null,
-      p_media_url:    msg.mediaUrl ?? null,
-      p_provider:     msg.provider,
-      p_timestamp:    msg.timestamp.toISOString(),
+      p_message_id:        msg.messageId,
+      p_instance:          msg.instanceRef,
+      p_remote_jid:        msg.remoteJid,
+      p_message_type:      msg.messageType,
+      p_content:           msg.content,
+      p_from_me:           msg.fromMe,
+      p_direction:         msg.direction ?? null,
+      p_media_url:         msg.mediaUrl ?? null,
+      p_metadata:          msg.rawPayload ?? null,
+      p_provider:          msg.provider,
+      p_timestamp:         msg.timestamp.toISOString(),
+      // Campos ricos (F4)
+      p_contact_id:        msg.contactId ?? null,
+      p_quoted_message_id: msg.quotedMessageId ?? null,
+      p_caption:           msg.caption ?? null,
+      p_ingest_meta:       msg.ingestMeta ?? null,
+      p_media_meta:        msg.mediaMeta ?? null,
+      p_media_bucket:      msg.mediaBucket ?? null,
+      p_media_path:        msg.mediaPath ?? null,
+      p_media_status:      msg.mediaStatus ?? null,
+      p_status_at:         msg.statusAt ?? null,
+      p_push_name:         msg.pushName ?? msg.contactRef ?? null,
     });
 
     if (error) return { ok: false, error: error.message };
-    return { ok: true, messageId: data?.message_id, contactId: data?.contact_id };
+    // data=null significa ON CONFLICT DO NOTHING (mensagem duplicada): ok=true, rowId=undefined
+    return { ok: true, rowId: data?.id, messageId: data?.message_id, contactId: data?.contact_id };
   } catch (err) {
     return { ok: false, error: String(err) };
   }
@@ -76,7 +104,7 @@ export async function ingestContact(
 ): Promise<{ ok: boolean; contactId?: string; error?: string }> {
   try {
     // rpc_upsert_contact (3-args): p_remote_jid, p_instance, p_push_name
-    // p_avatar_url e p_provider serão adicionados quando rpc_upsert_contact for estendido (F6)
+    // p_avatar_url e p_provider serao adicionados quando rpc_upsert_contact for estendido (F6)
     const { data, error } = await supabase.rpc('rpc_upsert_contact', {
       p_remote_jid:   opts.remoteJid,
       p_instance:     opts.instanceRef,
