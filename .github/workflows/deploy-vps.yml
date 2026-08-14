@@ -226,6 +226,7 @@ jobs:
               image: ZAPP_IMAGE_PLACEHOLDER
               networks:
                 - AtomicaBRNet
+                - zapp-net
               healthcheck:
                 test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
                 interval: 30s
@@ -275,6 +276,9 @@ jobs:
             AtomicaBRNet:
               external: true
               name: AtomicaBRNet
+            zapp-net:
+              external: true
+              name: zapp-net
           COMPOSEYML
 
           # Substitui o placeholder pelo SHA-based tag real
