@@ -856,6 +856,9 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   // Internos / UI / cron
   "talkx-send":                 { v1: TalkxSendV1Schema },
   "send-email":                 { v1: SendEmailV1Schema },
+  // evolution-proxy (2026-08-14): proxy server-side — envelope validado manualmente
+  // (allowlist de method + path); contrato registrado para o gate de cobertura.
+  "evolution-proxy":            { v1: z.object({ method: z.enum(['GET', 'POST', 'PUT']).optional(), path: z.string().min(1), body: z.unknown().optional() }) },
   "gmail-send":                 { v1: GmailSendV1Schema },
   "reprocess-failed-messages":  { v1: ReprocessFailedMessagesV1Schema },
   "evolution-notification-dispatcher": { v1: EvolutionNotificationDispatcherV1Schema },
