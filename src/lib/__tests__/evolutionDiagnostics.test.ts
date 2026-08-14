@@ -12,11 +12,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ── Hoisted mocks ─────────────────────────────────────────────────────────────
-const mockCallEvolutionApi = vi.hoisted(() => vi.fn());
+const mockListInstances = vi.hoisted(() => vi.fn());
 const mockSupabaseFrom = vi.hoisted(() => vi.fn());
 
-vi.mock('@/features/connections/data-access/whatsappConnectionRepository', () => ({
-  whatsappConnectionRepository: { callEvolutionApi: mockCallEvolutionApi },
+// F3/F5 (2026-08-13/14): evolutionDiagnostics usa o whatsappAdapter (gateway).
+vi.mock('@/lib/whatsappAdapter', () => ({
+  listInstances: mockListInstances,
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
@@ -38,7 +39,7 @@ function makeDbChain(result: { error: unknown }) {
 // ── Setup ─────────────────────────────────────────────────────────────────────
 beforeEach(() => {
   vi.clearAllMocks();
-  mockCallEvolutionApi.mockResolvedValue({ data: [], error: null });
+  mockListInstances.mockResolvedValue({ data: [], error: null });
   mockSupabaseFrom.mockReturnValue(makeDbChain({ error: null }));
 });
 
@@ -58,14 +59,14 @@ describe('runEvolutionDiagnostics — step 1: external config', () => {
 // ── Step 2: proxy ─────────────────────────────────────────────────────────────
 describe('runEvolutionDiagnostics — step 2: proxy connectivity', () => {
   it('has step 2 status "ok" when callEvolutionApi succeeds', async () => {
-    mockCallEvolutionApi.mockResolvedValue({ data: [], error: null });
+    mockListInstances.mockResolvedValue({ data: [], error: null });
     const results = await runEvolutionDiagnostics();
     const step2 = results.find(r => r.step.includes('Evolution Proxy'));
     expect(step2?.status).toBe('ok');
   });
 
   it('has step 2 status "fail" when callEvolutionApi returns proxyError', async () => {
-    mockCallEvolutionApi.mockResolvedValue({
+    mockListInstances.mockResolvedValue({
       data: null,
       error: { message: 'connection refused' },
     });
@@ -77,7 +78,7 @@ describe('runEvolutionDiagnostics — step 2: proxy connectivity', () => {
 
   it('includes proxyError object in details on failure', async () => {
     const proxyError = { message: 'timeout' };
-    mockCallEvolutionApi.mockResolvedValue({ data: null, error: proxyError });
+    mockListInstances.mockResolvedValue({ data: null, error: proxyError });
     const results = await runEvolutionDiagnostics();
     const step2 = results.find(r => r.step.includes('Evolution Proxy'));
     expect(step2?.details).toEqual(proxyError);
@@ -85,7 +86,7 @@ describe('runEvolutionDiagnostics — step 2: proxy connectivity', () => {
 
   it('step 2 details contains proxy data on success', async () => {
     const data = [{ id: '1' }];
-    mockCallEvolutionApi.mockResolvedValue({ data, error: null });
+    mockListInstances.mockResolvedValue({ data, error: null });
     const results = await runEvolutionDiagnostics();
     const step2 = results.find(r => r.step.includes('Evolution Proxy'));
     expect(step2?.details).toEqual(data);
@@ -93,11 +94,11 @@ describe('runEvolutionDiagnostics — step 2: proxy connectivity', () => {
 
   it('uses action "list-instances" for the callEvolutionApi call', async () => {
     await runEvolutionDiagnostics();
-    expect(mockCallEvolutionApi).toHaveBeenCalledWith({ action: 'list-instances' });
+    expect(mockListInstances).toHaveBeenCalledWith({ action: 'list-instances' });
   });
 
   it('falls through to catch step when callEvolutionApi throws', async () => {
-    mockCallEvolutionApi.mockRejectedValue(new Error('network down'));
+    mockListInstances.mockRejectedValue(new Error('network down'));
     const results = await runEvolutionDiagnostics();
     const catchStep = results.find(r => r.step.includes('Conectividade'));
     expect(catchStep?.status).toBe('fail');
@@ -108,7 +109,7 @@ describe('runEvolutionDiagnostics — step 2: proxy connectivity', () => {
 // ── Step 3: API key / instances ───────────────────────────────────────────────
 describe('runEvolutionDiagnostics — step 3: API key permissions', () => {
   it('status "ok" when data is a direct array of instances', async () => {
-    mockCallEvolutionApi.mockResolvedValue({
+    mockListInstances.mockResolvedValue({
       data: [{ id: '1' }, { id: '2' }],
       error: null,
     });
@@ -119,7 +120,7 @@ describe('runEvolutionDiagnostics — step 3: API key permissions', () => {
   });
 
   it('status "ok" when data has .instances array', async () => {
-    mockCallEvolutionApi.mockResolvedValue({
+    mockListInstances.mockResolvedValue({
       data: { instances: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] },
       error: null,
     });
@@ -130,7 +131,7 @@ describe('runEvolutionDiagnostics — step 3: API key permissions', () => {
   });
 
   it('status "warn" when response format is unexpected (object without instances)', async () => {
-    mockCallEvolutionApi.mockResolvedValue({
+    mockListInstances.mockResolvedValue({
       data: { unexpected: true },
       error: null,
     });
@@ -140,7 +141,7 @@ describe('runEvolutionDiagnostics — step 3: API key permissions', () => {
   });
 
   it('step 3 is absent when step 2 fails (proxyError)', async () => {
-    mockCallEvolutionApi.mockResolvedValue({
+    mockListInstances.mockResolvedValue({
       data: null,
       error: { message: 'fail' },
     });
@@ -185,7 +186,7 @@ describe('runEvolutionDiagnostics — step 4: direct database connection', () =>
 // ── overall structure ─────────────────────────────────────────────────────────
 describe('runEvolutionDiagnostics — overall result structure', () => {
   it('returns at least 3 results on happy path (config + proxy + api-key + db)', async () => {
-    mockCallEvolutionApi.mockResolvedValue({ data: [{ id: '1' }], error: null });
+    mockListInstances.mockResolvedValue({ data: [{ id: '1' }], error: null });
     const results = await runEvolutionDiagnostics();
     expect(results.length).toBeGreaterThanOrEqual(3);
   });
