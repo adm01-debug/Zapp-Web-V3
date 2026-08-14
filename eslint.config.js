@@ -225,19 +225,22 @@ export default tseslint.config(
       ],
     },
   },
-  // DECOUPLE GUARDS (E94 Plano V2) — impede regresso do acoplamento Evolution
+  // DECOUPLE GUARDS (E94 Plano V2 + V3) — impede regressão do acoplamento Evolution
   {
     files: ["src/**/*.{ts,tsx}"],
     ignores: [
       "src/lib/whatsappAdapter.ts",
       "src/lib/sendFunctionRouter.ts",
+      "src/_archive/**",
+      // Exceção documentada (V3 F2): demo admin legada usa evolutionClient direto
+      "src/pages/admin/ZappWebbDemoPage.tsx",
       "src/**/__tests__/**",
       "src/**/*.test.{ts,tsx}",
       "src/**/*.spec.{ts,tsx}",
     ],
     rules: {
       "no-restricted-syntax": [
-        "warn",
+        "error",
         {
           // Proíbe invoke('evolution-api', ...) fora do whatsappAdapter
           selector:
@@ -251,6 +254,12 @@ export default tseslint.config(
             "ImportDeclaration[source.value=/evolutionExternal/]",
           message:
             "[decouple] Import de evolutionExternal só permitido em src/adapters/ (E94 Plano V2).",
+        },
+        {
+          // V3 F2 — proíbe VITE_EVOLUTION_API_URL hardcoded no front (zombie coupling)
+          selector: "Literal[value=/VITE_EVOLUTION_API_URL/]",
+          message:
+            "[decouple] VITE_EVOLUTION_API_URL é proibido no front — usar whatsappAdapter (V3 F2).",
         },
       ],
     },
