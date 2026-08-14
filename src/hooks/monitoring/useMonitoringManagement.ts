@@ -1,4 +1,4 @@
-import { getWebhookConfig } from '@/lib/whatsappAdapter';
+import { getWebhookConfig, setWebhookConfig } from '@/lib/whatsappAdapter';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { safeFrom } from '@/integrations/supabase/safeClient';

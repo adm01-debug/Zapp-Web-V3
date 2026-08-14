@@ -214,7 +214,7 @@ describe('useEvolutionApiIntegration (fix: credenciais via view zapp + edge func
     expect(supabaseMock.client.rpc).toHaveBeenCalledWith('rpc_log_evolution_health', {
       p_instance_name: 'wpp2',
       p_status: 'success',
-      p_error_message: null,
+      p_error_message: undefined, // hook envia undefined (omite) — RPC usa DEFAULT NULL; mesmo resultado no banco
       p_response_time_ms: expect.any(Number),
       p_online_instances: 1,
       p_total_instances: 1,
