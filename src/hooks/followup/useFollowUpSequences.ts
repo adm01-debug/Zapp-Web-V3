@@ -140,7 +140,7 @@ export function useFollowUpSequences() {
         description: s.message_template,
         is_active: s.is_active,
       }));
-      const { error } = await supabase.from('evolution_followup_rules').insert(rows);
+      const { error } = await supabase.rpc('rpc_insert_followup_sequence', { p_rows: rows as unknown as unknown[] }).then(r => ({ error: r.error }));
       if (error) throw error;
     },
     onSuccess: () => {
@@ -159,10 +159,7 @@ export function useFollowUpSequences() {
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      const { error } = await supabase
-        .from('evolution_followup_rules')
-        .update({ is_active: isActive })
-        .or(`sequence_group.eq.${id},and(sequence_group.is.null,id.eq.${id})`);
+      const { error } = await supabase.rpc('rpc_toggle_followup_sequence', { p_id: id, p_is_active: isActive }).then(r => ({ error: r.error }));
       if (error) throw error;
     },
     onSuccess: () => {
@@ -180,10 +177,7 @@ export function useFollowUpSequences() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('evolution_followup_rules')
-        .delete()
-        .or(`sequence_group.eq.${id},and(sequence_group.is.null,id.eq.${id})`);
+      const { error } = await supabase.rpc('rpc_delete_followup_sequence', { p_id: id }).then(r => ({ error: r.error }));
       if (error) throw error;
     },
     onSuccess: () => {

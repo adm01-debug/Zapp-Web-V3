@@ -126,27 +126,11 @@ export const messagesRepository = {
     return { count: count || 0, error };
   },
 
-  // Mark as read
+  // Mark as read (E84 — rpc_mark_messages_read)
   async markMessagesAsRead(conversationId: string, _userId: string) {
-    const { error } = await (
-      supabase as unknown as {
-        from(t: string): {
-          update(v: Record<string, unknown>): {
-            eq(
-              c: string,
-              v: unknown
-            ): {
-              eq(c: string, v: unknown): Promise<{ error: { message: string } | null }>;
-            };
-          };
-        };
-      }
-    )
-      .from('evolution_messages')
-      .update({ is_read: true })
-      .eq('conversation_id', conversationId)
-      .eq('is_read', false);
-
+    const { error } = await supabase.rpc('rpc_mark_messages_read', {
+      p_conversation_id: conversationId,
+    });
     return { error };
   },
 };
