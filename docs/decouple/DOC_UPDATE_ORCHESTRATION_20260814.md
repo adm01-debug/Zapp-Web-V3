@@ -72,5 +72,14 @@ evolution-stack:
 ## 7. Status
 | Agente | Estado |
 |---|---|
-| A0 orquestracao | OK |
-| A1..A10 | pendente |
+| A0 orquestracao | ✅ OK |
+| A1 nucleo & arquitetura (evo) | ✅ OK — 2026-08-14 |
+| A2 ops & runbooks (evo) | ✅ OK — 2026-08-14 |
+| A3 fronteira & changelog (evo) | ✅ OK — 2026-08-14 (BOUNDARY-zapp.md criado) |
+| A4 docs de topo (zapp) | ✅ OK — 2026-08-14 |
+| A5 context de agente (zapp) | ✅ OK — 2026-08-14 |
+| A6 arquitetura & fluxo (zapp) | ✅ OK — 2026-08-14 |
+| A7 contrato & boundary (zapp) | ✅ OK — 2026-08-14 |
+| A8 banco & DB (zapp) | ✅ OK — 2026-08-14 |
+| A9 infra & deploy (zapp) | ✅ OK — 2026-08-14 |
+| A10 consolidacao & indices (zapp) | ✅ OK — 2026-08-14 |

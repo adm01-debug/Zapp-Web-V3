@@ -240,3 +240,11 @@ WHERE p.prosecdef = true
   AND n.nspname IN ('zapp','evo','ops','public')
 HAVING count(*) > 0;  -- FAIL se > 0
 ```
+
+
+## Fronteira evo × zapp (pós-desacoplamento 2026-08-12)
+
+- **`evo.*`** — tabelas `evolution_*`, partições `_wpp2`/`_default`/`_archive`. Proprietário: [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack) (consumer RabbitMQ → Postgres).
+- **`zapp.*`** — domínio do app (atendimento, CRM, automações). Proprietário: este repo.
+- **Acesso cross-schema:** `evo` lê `zapp` apenas para monitoria (17 fns SECDEF, exceção formal ADR-DB-002). `zapp` lê `evo` via 12 views de contrato em `public.*`.
+- **GAP:** `zapp.evolution_pipeline_status` é TYPE, sem view de contrato — adiado para onda futura (ADR-DB-002).

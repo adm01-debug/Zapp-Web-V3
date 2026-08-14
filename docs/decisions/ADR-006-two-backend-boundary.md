@@ -20,3 +20,18 @@ O projeto utiliza dois backends Supabase: Lovable Cloud (Interno) e Evolution DB
 ## Consequências
 - Código desacoplado.
 - Facilidade em migrar um dos backends independentemente.
+
+
+---
+
+## Situação pós-desacoplamento (2026-08-13)
+
+Este ADR foi **superseded em 2026-07-15** pela consolidação em único Supabase self-hosted.
+Pós-desacoplamento de 2026-08-12/13, a fronteira operacional é descrita por:
+
+- **[ADR-009: Gateway Pattern](../decouple/ADR-009-gateway-pattern.md)** — toda saída HTTP para Evolution via gateway canônico
+- **[docs/BOUNDARY-evolution.md](../BOUNDARY-evolution.md)** — o que fica em cada repo
+- **[ADR-DB-002](../db/adrs/ADR-DB-002-fronteira-zapp-evo.md)** — fronteira de schema `evo` × `zapp`
+
+`callEvolutionApi` (descrito neste ADR como "RPC First") foi removido de runtime em 2026-08-13.
+Presente apenas em mocks de teste legado (`whatsappConnectionRepository.test.ts`).

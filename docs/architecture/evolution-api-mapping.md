@@ -1,3 +1,9 @@
+> ⚠️ **ATENÇÃO — Documento parcialmente desatualizado (última edição: 2026-04-25)**
+> Pós-desacoplamento (2026-08-12): saída HTTP para Evolution não passa mais por `callApi()` / edge `evolution-api/index.ts` diretamente.
+> **Fonte canônica atual:** gateway `supabase/functions/_shared/providers/evolution/client.ts` (12 verbos).
+> O mapeamento de endpoints permanece válido como referência; o ponto de entrada mudou.
+> Ver: `docs/BOUNDARY-evolution.md` e `docs/decouple/ADR-009-gateway-pattern.md`.
+
 # Evolution API ↔ ZAPP Web — Mapeamento Completo
 
 > **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [../SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).

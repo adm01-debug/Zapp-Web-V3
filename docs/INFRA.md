@@ -26,7 +26,7 @@
 | #109 | `watchdog-baileys` | Watchdog wpp2 | ✅ Ativo |
 | #116 | `baileys-backup` | Backup Redis→R2 (6h) | ✅ Ativo |
 | #120 | `swarm-task-guardian` | Guardião duplicatas | ✅ Ativo |
-| #126 | `evolution-db-purge` | Purge PG14 (v4) | ✅ Ativo |
+| #238 | `evolution-db-purge` | Purge PG14 (v4) | ✅ Ativo |
 | #35 auth | `supabase_auth` | GOTRUE v2.186.0 | ✅ ALLOW_LIST corrigido sessão 7 |
 
 ---

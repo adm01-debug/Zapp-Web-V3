@@ -95,3 +95,15 @@
 ---
 
 **Última atualização:** 2026-04-12
+
+
+## Pós-desacoplamento (2026-08-12)
+
+| Documento | Descrição |
+|-----------|----------|
+| [`DECOUPLING.md`](../DECOUPLING.md) | Referência cruzada principal do desacoplamento |
+| [`BOUNDARY-evolution.md`](BOUNDARY-evolution.md) | O que ficou em cada repo + 12 verbos do gateway |
+| [`decouple/ADR-009-gateway-pattern.md`](decouple/ADR-009-gateway-pattern.md) | ADR do gateway pattern |
+| [`decouple/HANDOFF_POS_DESACOPLAMENTO_20260813.md`](decouple/HANDOFF_POS_DESACOPLAMENTO_20260813.md) | Handoff completo pós-desacoplamento |
+| [`decouple/SIMULATION_SCENARIOS_20260814.md`](decouple/SIMULATION_SCENARIOS_20260814.md) | Simulação de cenários e gaps |
+| **evolution-stack** | [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack) — infra separada |

@@ -1,5 +1,8 @@
 > **Schema canônico**: [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md)
 
+> **Pós-desacoplamento (2026-08-12):** Infraestrutura Evolution API extraída para [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack). Seções sobre Evolution embutida estão desatualizadas. Fonte canônica de acesso: gateway `_shared/providers/evolution/client.ts` (12 verbos, 0 bypasses).
+
+
 > **⚠️ DOCUMENTO DESATUALIZADO (Dezembro 2024 — pré-migração)**
 > Os exemplos de código e DDL abaixo usam `schema: 'public'` e `CREATE TABLE public.*`,
 > que refletem a arquitetura da plataforma original (Lovable Cloud, pré-migração). Após a

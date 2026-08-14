@@ -8,7 +8,7 @@ A plataforma é construída sobre uma arquitetura moderna e escalável, utilizan
 
 - **Frontend:** React + TypeScript + Vite + Tailwind CSS + Shadcn UI.
 - **Backend (BaaS):** Supabase Self-Hosted (`supabase.atomicabr.com.br`) — PostgreSQL, Auth, Realtime, Edge Functions, Storage.
-- **Integrações Externas:** Evolution API (WhatsApp).
+- **Integrações Externas:** Evolution API (WhatsApp) — infra em [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack). Acesso via gateway único (`_shared/providers/evolution/client.ts`, 12 verbos).
 
 > **⚠️ Schema obrigatório**: Todo acesso ao banco usa `schema: 'zapp'` (315 tabelas). Mensagens WhatsApp ficam em `schema: 'evo'` (193 tabelas). O schema `public` tem **zero tabelas** — não usar. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
 >
@@ -83,3 +83,19 @@ sequenceDiagram
 ---
 
 Este guia deve ser atualizado sempre que houver mudanças estruturais na arquitetura do sistema.
+
+
+---
+
+## 5. Pós-desacoplamento (2026-08-12) — Evolution API como serviço externo
+
+A infraestrutura da Evolution API foi extraída para o repositório separado [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack).
+
+**O que permanece neste repositório:**
+- Edge functions `supabase/functions/evolution-*` (Deno, mesmo projeto Supabase)
+- Adapters TypeScript do frontend (`src/adapters/evolution*`, `src/hooks/evolution*`)
+- Schema `evo` (tabelas `evolution_*`) — propriedade Evolution, Postgres compartilhado (stack 35)
+- Migrations `supabase/migrations/*evolution*`
+
+**Gateway obrigatório:** TODA saída HTTP para a Evolution passa por
+`supabase/functions/_shared/providers/evolution/client.ts` (12 verbos: 10 nomeados + 2 genéricos).

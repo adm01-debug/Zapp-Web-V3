@@ -35,15 +35,29 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { supabase } from '@/integrations/supabase/client';
 import {
   useZappConversations,
   useZappMessages,
-  sendText,
-  markChatRead,
   ZAPPWEB_INSTANCE,
   type EvolutionMessage,
   type EvolutionConversation,
 } from '@/integrations/zappweb';
+
+/** V3: chama evolution-proxy (edge fn) em vez de evolutionClient direto. */
+function stripJidLocal(jid: string): string {
+  return (jid || '').replace(/@s\.whatsapp\.net$/i, '').replace(/@c\.us$/i, '');
+}
+async function evoProxyCall(
+  method: 'POST' | 'PUT' | 'GET',
+  path: string,
+  body?: Record<string, unknown>
+) {
+  const { error } = await supabase.functions.invoke('evolution-proxy', {
+    body: { method, path, ...(body ? { body } : {}) },
+  });
+  if (error) throw error;
+}
 
 function MediaIcon({ type }: { type: string | null }) {
   switch (type) {
@@ -161,7 +175,10 @@ export default function ZappWebbDemoPage() {
     setActiveId(conv.id);
     if (conv.unread_count > 0) {
       await markAsRead(conv.id);
-      markChatRead(conv.remote_jid).catch(() => null);
+      evoProxyCall('PUT', `/chat/markChatUnread/${ZAPPWEB_INSTANCE}`, {
+        number: stripJidLocal(conv.remote_jid),
+        unread: false,
+      }).catch(() => null); // fire-and-forget
     }
   };
 
@@ -169,7 +186,10 @@ export default function ZappWebbDemoPage() {
     if (!active || !draft.trim()) return;
     setSending(true);
     try {
-      await sendText(active.remote_jid, draft.trim());
+      await evoProxyCall('POST', `/message/sendText/${ZAPPWEB_INSTANCE}`, {
+        number: stripJidLocal(active.remote_jid),
+        text: draft.trim(),
+      });
       setDraft('');
     } catch (err: unknown) {
       toast.error('Falha ao enviar: ' + (err instanceof Error ? err.message : String(err)));

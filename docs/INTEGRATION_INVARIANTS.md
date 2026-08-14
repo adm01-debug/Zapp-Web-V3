@@ -108,3 +108,10 @@ REVOKE EXECUTE ON FUNCTION zapp.fn_toggle_user_meme_favorite(uuid, uuid) FROM au
 - **ESLint** (`eslint.config.js`): proíbe `.schema('evo')` e `.schema('email_app')` em código de app; proíbe `schema: 'public'` em `postgres_changes`.
 - **`scripts/audit-contract.mjs`**: valida `RPC`/`from`/`invoke` do código contra o banco (drift contract).
 - **`scripts/check-schema-usage.mjs`**: guardrail bloqueante no CI para uso de schema (legado — ver [SCHEMA_REFERENCE.md](./SCHEMA_REFERENCE.md)).
+
+
+## Invariante pós-desacoplamento (2026-08-12)
+
+- **INV-EVO-01:** TODA saída HTTP para a Evolution API passa pelo gateway unificado `_shared/providers/evolution/client.ts`. Zero bypasses (`inventory.mjs` = 0). Violação bloqueia CI (`decouple-guard.yml`).
+- **INV-EVO-02:** Infraestrutura Evolution (servidor, consumer, stacks) está em [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack). Edge functions e migrations permanecem aqui.
+- **INV-EVO-03:** Schema `evo.*` = propriedade Evolution. Schema `zapp.*` = propriedade app. Cross-access via views de contrato (12 cobertas, 1 gap documentado em ADR-DB-002).

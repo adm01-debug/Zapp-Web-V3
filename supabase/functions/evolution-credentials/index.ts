@@ -150,6 +150,20 @@ Deno.serve(async (req: Request) => {
     );
   }
 
+  // SECURITY FIX 2026-08-14 — Phase 6 Desacoplamento:
+  // O GET desta fn entregava a evolution api_key ao browser (via X-Evolution-Key header).
+  // A key agora nunca sai do servidor: usa-se o evolution-proxy edge fn.
+  // O browser (evolutionClient.ts) já foi atualizado para chamar evolution-proxy.
+  // Retornamos 410 Gone para clientes legados que ainda chamem este endpoint.
+  return new Response(
+    JSON.stringify({
+      error: 'Gone',
+      message: 'Use /functions/v1/evolution-proxy for Evolution API calls. This endpoint no longer serves credentials.',
+      migration: 'evolution-proxy',
+    }),
+    { status: 410, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+  );
+
   // Contrato evolution-credentials@v1 (estrito): GET sem body → {} aceito.
   const parsed = parseOrReject('evolution-credentials', { v1: EvolutionCredentialsV1Schema }, req, await req.json().catch(() => ({})), {
     extraHeaders: getCorsHeaders(req),

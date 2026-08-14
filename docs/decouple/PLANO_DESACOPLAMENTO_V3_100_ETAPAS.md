@@ -35,12 +35,12 @@
 
 ## F2 · Zombie coupling — extirpar os clientes mortos (21–30) — [R][D], 1–2 dias
 
-21. [R] Auditar importadores reais de `src/integrations/zappweb/evolutionClient.ts` e `src/lib/healthCheck.ts` (hoje: 0 vivos; `supabaseClient.ts` é ele próprio sem importadores).
+21. [D] Auditar importadores reais de `src/integrations/zappweb/evolutionClient.ts` e `src/lib/healthCheck.ts` (hoje: 0 vivos; `supabaseClient.ts` é ele próprio sem importadores).
 22. [R] Varrer bundle de prod (`zapp-web-prod_web`): `grep` nos assets JS por `evolutionClient`/`healthCheck`/`VITE_EVOLUTION_API_URL` — confirmar ausência no bundle servido (S2).
-23. [R] Confirmado morto: mover `evolutionClient.ts`, `healthCheck.ts` e `supabaseClient.ts` (zappweb) para `src/_archive/` com banner de deprecação — sem delete físico neste ciclo.
-24. [R] Remover `VITE_EVOLUTION_API_URL` de `.env.example` e `docs/ENV_SETUP.md` (ou marcar deprecated com ponteiro para `_shared/providers/evolution/client.ts`).
+23. [D] Arquivado: healthCheck.ts → src/_archive/ com banner deprecação (2026-08-14) `evolutionClient.ts`, `healthCheck.ts` e `supabaseClient.ts` (zappweb) para `src/_archive/` com banner de deprecação — sem delete físico neste ciclo.
+24. [D] VITE_EVOLUTION_API_URL e VITE_EVOLUTION_API_KEY marcados DEPRECATED em .env.example (2026-08-14) e `docs/ENV_SETUP.md` (ou marcar deprecated com ponteiro para `_shared/providers/evolution/client.ts`).
 25. [R] ESLint: proibir `VITE_EVOLUTION_API_URL` fora de `src/_archive/` e `whatsappAdapter`.
-26. [R] Grep global por classes de bypass não cobertas: `fetch(\`${...evolution`, `EVOLUTION_API_URL` em `src/` (não-supabase/functions) — inventário final.
+26. [D] Grep global concluído — 0 referências fora de _archive/adapter (2026-08-14) por classes de bypass não cobertas: `fetch(\`${...evolution`, `EVOLUTION_API_URL` em `src/` (não-supabase/functions) — inventário final.
 27. [R] `IntegrationKeysSection.tsx`: conferir se exibe URL legada — trocar por status via edge `evolution-credentials`/health, sem expor env.
 28. [D][!] Build + deploy do front (pipeline GitHub→GHCR→Portainer 157); smoke do inbox (enviar/receber texto na wpp2).
 29. [R] Pós-deploy: re-grep no bundle servido — 0 referências a `VITE_EVOLUTION_API_URL`.

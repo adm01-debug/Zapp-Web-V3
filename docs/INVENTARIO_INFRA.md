@@ -169,3 +169,11 @@ Campos obrigatórios: **nome · dono · propósito · criticidade · dependênci
 ---
 
 *Gerado por AG-EX-24 (item 96 + 93/99) — 2026-08-06. Read-only; nenhum segredo incluído. v0.1 = AG-EX-10, re-baseline = AG-EX-20, v0.2 = AG-EX-24.*
+
+
+## Separação de infraestrutura (2026-08-12)
+
+Serviços Evolution extraídos para repo separado [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack):
+- Stack 25 (Evolution API), Stack 113 (consumer RabbitMQ), Stack 238 (purge)
+- Stacks 225, 230, 240 (watchdogs), 265 (functions-health), 262 (security-guardian), 264 (pgbackrest)
+- Imagens GHCR: `evolution-stack/evolution-api-custom`, `evolution-stack/evolution-rabbit-consumer`

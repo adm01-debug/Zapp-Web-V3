@@ -53,7 +53,7 @@ ZAPP-WEB (Pronto Talk Suite) é uma plataforma completa de atendimento ao client
 | **Estado** | TanStack React Query, Context API |
 | **Backend** | Supabase (Auth, Database, Storage, Edge Functions, Realtime) |
 | **IA** | Gemini, GPT via Edge Functions |
-| **WhatsApp** | Evolution API v2.3.7+ |
+| **WhatsApp** | Evolution API v2.3.7+ (serviço externo — [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack)) |
 | **CRM** | Bitrix24 API |
 | **Áudio** | ElevenLabs (TTS, STT, SFX) |
 | **Mapas** | Mapbox GL |
@@ -128,9 +128,9 @@ Veja `docs/decisions/` para decisões documentadas:
 - **ADR-001**: React Query como gerenciador de estado do servidor
 - **ADR-002**: RLS como camada primária de autorização
 - **ADR-003**: CSS modularização
-- **ADR-004**: Evolution API webhook bridge
+- **ADR-004**: Evolution API webhook bridge (cópia operacional em [evolution-stack/docs/decisions/ADR-004](https://github.com/adm01-debug/evolution-stack/blob/main/docs/decisions/ADR-004-evolution-api-webhook-bridge.md))
 - **ADR-005**: Audit & Recovery Model (FATOR X) — ⚠️ *superseded* pela consolidação do backend (julho de 2026)
-- **ADR-006**: Two-Backend Boundary & Communication — ⚠️ *superseded*: arquitetura consolidada em um único Supabase self-hosted
+- **ADR-006**: Two-Backend Boundary & Communication — ⚠️ *superseded* (2026-07-15): arquitetura consolidada em Supabase self-hosted + gateway pattern ADR-009
 - **ADR-008**: Error Tracking & Monitoring Strategy
 
 ---
@@ -181,7 +181,7 @@ docs/
 ## Funcionalidades Principais
 
 ### 💬 Atendimento Omnichannel
-- Chat em tempo real via WhatsApp (Evolution API)
+- Chat em tempo real via WhatsApp (Evolution API — infra em [evolution-stack](https://github.com/adm01-debug/evolution-stack), acesso via gateway unificado)
 - Transferência entre agentes e filas
 - Notas internas (whisper messages)
 - Presença de digitação em tempo real

@@ -87,3 +87,11 @@ App (zapp-web-v3)
 2. **Evolution API down**: WhatsApp desconecta. Crons de healthcheck disparam alertas.
 3. **Storage down**: Uploads falham. App mostra erro. Downloads usam cache local.
 4. **Auth down**: Login falhou. Tokens existentes continuam válidos por TTL.
+
+
+## Evolution Stack (pós-desacoplamento 2026-08-12)
+
+- **Repo:** [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack)
+- **Consumer (stack 113):** escreve em `evo.evolution_messages_wpp2`, `evo.evolution_contacts`, etc.
+- **Acesso inverso:** edge functions deste repo acessam `evo.*` via RPC e views de contrato.
+- **Fronteira:** `BOUNDARY-evolution.md` + `ADR-DB-002`
