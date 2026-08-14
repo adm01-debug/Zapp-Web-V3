@@ -43,7 +43,8 @@ export function MonitoringConnectionsList({ connections, webhookTest, onCheckWeb
       let error: unknown;
       try { data = await getQrCode({ instanceName: evoName }); } catch (err) { error = err; }
       if (error) throw error;
-      const base64 = data?.qrcode?.base64 || data?.base64;
+      const qrData = data as { qrcode?: { base64?: string }; base64?: string } | null | undefined;
+      const base64 = qrData?.qrcode?.base64 || qrData?.base64;
       if (base64) {
         setQrCodes(prev => ({ ...prev, [conn.instance_id]: base64 }));
       } else {
