@@ -1,6 +1,9 @@
 # decouple-guard.yml — bloqueia recriação de infra Evolution no zapp-web-v3
 # e verifica regressão no inventory de acoplamento (E22 do Plano 100 Etapas)
 # v2: gate endurecido — TOTAL > 0 falha (whitelist de tooling embutida no inventory v3)
+# v2+sqlgate: passo extra no job coupling-inventory — gate de egresso SQL da
+# Evolution (E46) contra o fixture commitado scripts/decouple/fixtures/sql_report_snapshot.json
+# (CI não tem acesso ao banco — o snapshot é a fonte de verdade).
 name: Decouple Guard
 
 on:
@@ -74,6 +77,19 @@ jobs:
             exit 1
           fi
           echo "✅ Inventory v3 OK (TOTAL=$TOTAL = 0)"
+      - name: Run SQL egress gate (E46, fixture snapshot sem DB)
+        run: |
+          # E46: gate de egresso SQL da Evolution (scripts/decouple/sql-gate.mjs).
+          # O CI não tem acesso ao banco — valida o fixture commitado
+          # (scripts/decouple/fixtures/sql_report_snapshot.json), snapshot fiel do
+          # report real gerado pela query --sample no Supabase self-hosted.
+          # Toda fn PL/pgSQL que chama a Evolution DEVE montar URL/chave via
+          # ops.fn_evo_url()/ops.fn_evo_key(). Exit != 0 derruba o job.
+          node scripts/decouple/sql-gate.mjs scripts/decouple/fixtures/sql_report_snapshot.json || {
+            echo "::error::SQL gate falhou: egresso SQL da Evolution fora do padrão (use ops.fn_evo_url/ops.fn_evo_key)."
+            exit 1
+          }
+          echo "✅ SQL egress gate OK (fixture snapshot)"
       - name: Diagnostic - grep de padrões de bypass
         if: failure()
         run: |
