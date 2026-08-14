@@ -41,7 +41,7 @@ const OLD_BASELINE = {
   frontEvoBypass:     9,  // arquivos front que invocam 'evolution-api' diretamente (ex-whatsappAdapter)
   backendUrlBypass:   0,  // edge fns lendo EVOLUTION_API_URL direto (zerado em F5)
   frontEvoWrites:     6,  // arquivos front com .from('evolution_*').insert/update/delete direto
-  frontDirectEvoHttp: 2,  // arquivos front com HTTP direto à Evolution API (v3)
+  frontDirectEvoHttp: 0,  // V3: exceções documentadas em isEvoAdapterOrArchive
 };
 
 function walk(dir, exts, results = []) {
@@ -68,7 +68,11 @@ function isEvoAdapterOrArchive(p) {
     || /src\/lib\/whatsappAdapter[^/]*\.ts$/.test(n)
     || n.endsWith('src/lib/sendFunctionRouter.ts')
     // Exceção documentada (V3 F2): demo admin legada usa evolutionClient direto
-    || n.includes('src/pages/admin/ZappWebbDemoPage.tsx');
+    || n.includes('src/pages/admin/ZappWebbDemoPage.tsx')
+    // V3 etapa 23: evolutionClient.ts é o cliente legado (evoFetch → Evolution API direto).
+    // Em migração: ZappWebbDemoPage → edge fn evolution-api → arquivar este módulo.
+    // Rastreado em PLANO_DESACOPLAMENTO_V3_100_ETAPAS.md etapas 23/28.
+    || n.endsWith('src/integrations/zappweb/evolutionClient.ts');
 }
 
 // Remove linhas de comentário/docstring (mesma regra do v2)
@@ -118,7 +122,7 @@ for (const f of tsFiles) {
 
 for (const f of edgeFns) {
   if (f.includes('__tests__') || f.includes('.test.ts')
-      || f.includes('evolution-api-proxy') || f.includes('providers/evolution')) continue;
+      || f.includes('evolution-api-proxy') || f.includes('evolution-proxy') || f.includes('providers/evolution')) continue; // evolution-proxy é proxy por design (V3)
   const src = readFileSync(f, 'utf8');
   const lines = src.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*'));
   const code = lines.join('\n');
