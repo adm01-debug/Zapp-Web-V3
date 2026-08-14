@@ -121,7 +121,7 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
   // ADR-004: batch signing para buckets privados (whatsapp-media)
   const itemsForBatch = useMemo(
     () =>
-      (messages || []).map((m) => ({
+      (messages || []).map((m: { id: string; media_bucket: string | null; media_path: string | null; media_url: string | null; media_status: string | null }) => ({
         id: m.id,
         media_bucket: m.media_bucket ?? null,
         media_path: m.media_path ?? null,
@@ -130,7 +130,7 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
       })),
     [messages]
   );
-  const { signedUrls } = useSignedMediaUrlBatch(itemsForBatch, supabase);
+  const { signedUrls } = useSignedMediaUrlBatch(itemsForBatch, supabase as unknown as Parameters<typeof useSignedMediaUrlBatch>[1]);
 
   const mediaItems = useMemo((): MediaItem[] => {
     if (!messages) return [];
