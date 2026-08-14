@@ -1,4 +1,4 @@
-import { listInstances, connectInstance } from '@/lib/whatsappAdapter';
+import { listInstances } from '@/lib/whatsappAdapter';
 
 import { supabase } from '@/integrations/supabase/client';
 
