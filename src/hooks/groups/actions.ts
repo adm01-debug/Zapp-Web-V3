@@ -58,7 +58,7 @@ export function useGroupActions({
             continue;
           }
 
-          const apiGroups = Array.isArray(data) ? data : data?.data || data?.groups || [];
+          const apiGroups = Array.isArray(data) ? data : (data as { data?: unknown[]; groups?: unknown[] } | null | undefined)?.data || (data as { data?: unknown[]; groups?: unknown[] } | null | undefined)?.groups || [];
           const now = new Date().toISOString();
           type GroupRow = {
             group_id: string;
