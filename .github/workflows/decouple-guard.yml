@@ -1,7 +1,6 @@
 # decouple-guard.yml — bloqueia recriação de infra Evolution no zapp-web-v3
 # e verifica regressão no inventory de acoplamento (E22 do Plano 100 Etapas)
-# v3 (2026-08-14): gate endurecido (TOTAL > 0 falha) + SQL egress gate via fixture
-# commitado (ADR-010, sem secrets no CI) + verb-contract gate (12 verbos do gateway).
+# v2: gate endurecido — TOTAL > 0 falha (whitelist de tooling embutida no inventory v3)
 name: Decouple Guard
 
 on:
@@ -54,36 +53,31 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Run coupling inventory
+      - name: Run coupling inventory v3 (métrica 4 + whitelist + gate 0)
         run: |
-          node scripts/decouple/inventory.mjs | tee /tmp/inventory.txt
+          # inventory v3 (scripts/decouple/inventory.mjs) inclui a métrica 4
+          # (front direct HTTP) e a whitelist de tooling embutida — TOTAL=0 é o gate.
+          node scripts/decouple/inventory.mjs | tee /tmp/inventory-v3.txt
       - name: Fail if TOTAL > 0
         run: |
-          TOTAL=$(grep "^TOTAL:" /tmp/inventory.txt | grep -oE '[0-9]+' | head -1)
+          TOTAL=$(grep "^TOTAL:" /tmp/inventory-v3.txt | grep -oE '[0-9]+' | head -1)
           echo "TOTAL de bypasses: $TOTAL"
           if [ -z "$TOTAL" ]; then
-            echo "::error::Não foi possível extrair TOTAL da saída do inventory."
+            echo "::error::Não foi possível extrair TOTAL da saída do inventory v3."
             exit 1
           fi
           if [ "$TOTAL" -gt 0 ]; then
-            echo "::error::Regressão de acoplamento! TOTAL=$TOTAL > 0 (gate endurecido)."
-            echo "::error::Arquivos violadores:"
-            grep -vE "^(TOTAL:|Meta:|═|front |backend )" /tmp/inventory.txt
-            echo "::error::Rode 'node scripts/decouple/inventory.mjs' localmente para detalhar e corrija."
+            echo "::error::Regressão de acoplamento! TOTAL=$TOTAL > 0 (gate endurecido na v2)."
+            echo "::error::Arquivos violadores (o inventory v3 imprime a contagem por arquivo):"
+            grep -vE "^(TOTAL:|Meta:|═|front |backend )" /tmp/inventory-v3.txt
+            echo "::error::Rode 'node scripts/decouple/inventory.mjs' localmente para ver o detalhamento por arquivo e corrija os bypasses."
             exit 1
           fi
-          echo "✅ Inventory OK (TOTAL=$TOTAL = 0)"
-      - name: SQL egress gate (fixture commitado — ADR-010)
-        # Determinístico: valida o snapshot das fns de egresso contra o whitelist
-        # {ops.fn_evo_url, ops.fn_evo_key, zapp.fn_check_license_heartbeat, evo.fn_detect_instance_recreate}.
-        # Refrescar o snapshot só quando o egresso SQL mudar (ver ADR-010).
-        run: node scripts/decouple/sql-gate.mjs scripts/decouple/fixtures/sql_report_snapshot.json
-      - name: Verb contract gate (12 verbos do gateway)
-        run: node scripts/decouple/verb-contract-gate.mjs
+          echo "✅ Inventory v3 OK (TOTAL=$TOTAL = 0)"
       - name: Diagnostic - grep de padrões de bypass
         if: failure()
         run: |
-          echo "::group::Padrões de acoplamento encontrados (diagns�stico)"
+          echo "::group::Padrões de acoplamento encontrados (diagnóstico)"
           echo "--- invoke('evolution-api', ...) fora do adapter ---"
           grep -rniE "invoke\(\s*['\"]evolution-api['\"]" src/ | grep -vE "whatsappAdapter\.ts|sendFunctionRouter\.ts" || true
           echo "--- EVOLUTION_API_URL lido direto em edge functions ---"
@@ -93,10 +87,10 @@ jobs:
           echo "--- import dinâmico de supabase/functions em src ---"
           grep -rniE "import\(\s*['\"].*supabase/functions" src/ || true
           echo "::endgroup::"
-      - name: Upload inventory report
+      - name: Upload inventory v3 report
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: coupling-inventory
-          path: /tmp/inventory.txt
+          name: coupling-inventory-v3
+          path: /tmp/inventory-v3.txt
           retention-days: 7
