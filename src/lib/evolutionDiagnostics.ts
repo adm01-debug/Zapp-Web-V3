@@ -1,6 +1,5 @@
 import { listInstances } from '@/lib/whatsappAdapter';
 
-import { whatsappConnectionRepository } from '@/features/connections/data-access/whatsappConnectionRepository';
 import { supabase } from '@/integrations/supabase/client';
 
 /** Diagnostic Result. */
