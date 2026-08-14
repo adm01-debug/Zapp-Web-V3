@@ -1,4 +1,4 @@
-import { listInstances } from '@/lib/whatsappAdapter';
+import { listInstances, connectInstance } from '@/lib/whatsappAdapter';
 
 import { supabase } from '@/integrations/supabase/client';
 
@@ -32,15 +32,15 @@ export async function runEvolutionDiagnostics(): Promise<DiagnosticResult[]> {
       results.push({
         step: 'Evolution Proxy (Edge Function)',
         status: 'fail',
-        message: `Falha na Edge Function: ${proxyError.message}`,
-        details: proxyError,
+        message: `Falha na Edge Function: ${(proxyError as Error | { message?: string } | null)?.message}`,
+        details: proxyError as Record<string, unknown> | null | undefined,
       });
     } else {
       results.push({
         step: 'Evolution Proxy (Edge Function)',
         status: 'ok',
         message: `Proxy respondendo em ${proxyLatency}ms. Comunicação Lovable -> Self-Hosted validada.`,
-        details: proxyData,
+        details: proxyData as Record<string, unknown> | null | undefined,
       });
 
       // 3. Test API Key Permissions
@@ -59,7 +59,7 @@ export async function runEvolutionDiagnostics(): Promise<DiagnosticResult[]> {
           step: 'Global API Key (Evolution)',
           status: 'warn',
           message: 'Conectado, mas o formato de resposta da Evolution API é inesperado.',
-          details: proxyData,
+          details: proxyData as Record<string, unknown> | null | undefined,
         });
       }
     }
