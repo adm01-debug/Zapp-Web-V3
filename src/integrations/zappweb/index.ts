@@ -8,16 +8,9 @@
  */
 export { zappSupabase, ZAPPWEB_INSTANCE, ZAPPWEB_CONFIG } from './supabaseClient';
 
-export {
-  sendText,
-  sendMedia,
-  sendWhatsAppAudio,
-  markChatRead,
-  fetchInstances,
-  getConnectionState as connectionState,
-  getEvolutionCredentials,
-  stripJid,
-} from './evolutionClient';
+// V3 2026-08-14: exports do evolutionClient removidos do barrel.
+// ZappWebbDemoPage agora chama evolution-proxy diretamente via supabase.functions.invoke.
+// evolutionClient.ts arquivado em src/_archive/ — ver PLANO_DESACOPLAMENTO_V3_100_ETAPAS.md etapa 23.
 
 /** Re-exported module members. */
 export type {
