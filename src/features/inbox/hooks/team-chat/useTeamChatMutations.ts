@@ -68,6 +68,8 @@ export function useSendTeamMessage() {
       replyToId,
       mediaUrl,
       mediaType,
+      mediaBucket,
+      mediaPath,
     }: {
       conversationId: string;
       content: string;

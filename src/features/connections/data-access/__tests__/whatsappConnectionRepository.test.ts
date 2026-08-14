@@ -186,9 +186,9 @@ describe('whatsappConnectionRepository — qr_attempts', () => {
 });
 
 describe('whatsappConnectionRepository — edge functions', () => {
-  it('callEvolutionApi invoca a function evolution-api com o body', async () => {
+  it('callEvolutionApiV2 invoca a function evolution-api com o body', async () => {
     invokeMock.mockResolvedValue({ data: {}, error: null });
-    await whatsappConnectionRepository.callEvolutionApi({ action: 'connect' });
+    await whatsappConnectionRepository.callEvolutionApiV2('evolution-api', { body: { action: 'connect' } });
     expect(invokeMock).toHaveBeenCalledWith('evolution-api', {
       body: { action: 'connect' },
     });

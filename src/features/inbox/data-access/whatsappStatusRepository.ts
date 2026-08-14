@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { dbFrom } from '@/integrations/datasource/db';
+import { findStatusMessages, sendChatPresence } from '@/lib/whatsappAdapter';
 
 /** Whats App Status Message. */
 export interface WhatsAppStatusMessage {

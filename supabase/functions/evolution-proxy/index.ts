@@ -1,12 +1,14 @@
 /**
- * evolution-proxy — Edge Function (v1, 2026-08-14)
+ * evolution-proxy — Edge Function (v2, 2026-08-14)
  *
  * SECURITY FIX: Proxy server-side para a Evolution API.
  * Elimina o acoplamento browser→evolution.atomicabr.com.br:
  *  - A Evolution API key NUNCA chega ao browser (nem via header)
  *  - Autenticação: JWT admin/supervisor (mesmo gate do evolution-credentials)
  *  - Allowlist rígida de paths: apenas os 6 verbos necessários
- *  - Key lida de EVOLUTION_API_KEY env var (vault do edge runtime)
+ *  - Key e baseUrl resolvidas via cliente canônico (_shared/providers/evolution/client.ts)
+ *
+ * v2: eliminado bypass Deno.env.get direto — tudo via evolutionFetch()
  *
  * Paths permitidos (allowlist):
  *  POST /message/sendText/{instance}
@@ -23,6 +25,7 @@
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { requireAdminOrSupervisor } from '../_shared/auth.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
+import { evolutionFetch } from '../_shared/providers/evolution/client.ts';
 
 // Paths que o browser pode chamar via proxy (prefixos permitidos)
 const ALLOWED_PATH_PREFIXES = [
@@ -40,17 +43,6 @@ type AllowedMethod = typeof ALLOWED_METHODS[number];
 function isAllowedPath(path: string): boolean {
   const clean = path.startsWith('/') ? path : `/${path}`;
   return ALLOWED_PATH_PREFIXES.some((prefix) => clean.startsWith(prefix));
-}
-
-function getEvolutionApiKey(): string {
-  const key = Deno.env.get('EVOLUTION_API_KEY');
-  if (!key) throw new Error('[evolution-proxy] EVOLUTION_API_KEY not set in edge runtime');
-  return key;
-}
-
-function getEvolutionBaseUrl(): string {
-  const url = Deno.env.get('EVOLUTION_API_URL') ?? 'https://evolution.atomicabr.com.br';
-  return url.replace(/\/$/, '');
 }
 
 Deno.serve(async (req: Request) => {
@@ -99,36 +91,31 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // Chamar Evolution API server-side (key nunca vai ao browser)
-  const apiKey = getEvolutionApiKey();
-  const targetUrl = `${getEvolutionBaseUrl()}${path.startsWith('/') ? path : `/${path}`}`;
-
-  const headers = new Headers({
-    'apikey': apiKey,
-    'Content-Type': 'application/json',
-  });
+  // Chamar Evolution API via cliente canônico (key e baseUrl resolvidas internamente)
+  const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
 
   try {
-    const evoRes = await fetch(targetUrl, {
+    const evoRes = await evolutionFetch<unknown>(normalizedPath, {
       method: method as AllowedMethod,
-      headers,
       body: proxyBody !== undefined ? JSON.stringify(proxyBody) : undefined,
-      signal: AbortSignal.timeout(30_000),
+      maxRetries: 0,
+      timeoutMs: 30_000,
     });
 
-    const responseText = await evoRes.text();
+    if (!evoRes.ok) {
+      return json(evoRes.status || 502, {
+        ok: false,
+        error: evoRes.error ?? 'Evolution API inacessível',
+      });
+    }
 
-    // Repassar status + body da Evolution (sem repassar headers sensíveis)
-    return new Response(responseText, {
+    return new Response(JSON.stringify(evoRes.data), {
       status: evoRes.status,
-      headers: {
-        ...cors,
-        'Content-Type': evoRes.headers.get('Content-Type') ?? 'application/json',
-      },
+      headers: { ...cors, 'Content-Type': 'application/json' },
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error('[evolution-proxy] fetch para Evolution falhou:', msg);
+    console.error('[evolution-proxy] evolutionFetch falhou:', msg);
     return json(502, { ok: false, error: `Evolution API inacessível: ${msg}` });
   }
 });

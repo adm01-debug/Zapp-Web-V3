@@ -699,6 +699,36 @@ export const RPC = {
     name: 'rpc_toggle_cron_job',
     client: 'lovable',
   }),
+
+  // ── Decoupling V3 (2026-08-14): RPCs de followup/health/messages ──────────
+  logEvolutionHealth: def<Record<string, unknown>, unknown>({
+    name: 'rpc_log_evolution_health',
+    client: 'lovable',
+  }),
+  insertFollowupSequence: def<Record<string, unknown>, unknown>({
+    name: 'rpc_insert_followup_sequence',
+    client: 'lovable',
+  }),
+  toggleFollowupSequence: def<Record<string, unknown>, unknown>({
+    name: 'rpc_toggle_followup_sequence',
+    client: 'lovable',
+  }),
+  deleteFollowupSequence: def<Record<string, unknown>, unknown>({
+    name: 'rpc_delete_followup_sequence',
+    client: 'lovable',
+  }),
+  deleteMessage: def<Record<string, unknown>, unknown>({
+    name: 'rpc_delete_message',
+    client: 'lovable',
+  }),
+  markMessagesRead: def<Record<string, unknown>, unknown>({
+    name: 'rpc_mark_messages_read',
+    client: 'lovable',
+  }),
+  markConversationRead: def<Record<string, unknown>, unknown>({
+    name: 'rpc_mark_conversation_read',
+    client: 'lovable',
+  }),
 } as const;
 
 /** Rpc Key type alias. */

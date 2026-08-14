@@ -28,7 +28,6 @@ export interface SystemHealth {
 class HealthCheckService {
   private startTime = Date.now();
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async run(_config = {}): Promise<SystemHealth> {
     return {
       healthy: true,
