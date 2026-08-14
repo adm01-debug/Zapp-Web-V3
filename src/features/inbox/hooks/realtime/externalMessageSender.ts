@@ -20,7 +20,7 @@ import { parseEvolutionError } from '@/features/inbox';
 import { dbInsert } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { buildFileHash as calculateFileHash } from '@/lib/crypto';
-import { sendText, sendMedia } from '@/lib/whatsappAdapter';
+import { sendText, sendMedia, sendPtv } from '@/lib/whatsappAdapter';
 import {
   DEFAULT_INSTANCE,
   SendError,
@@ -236,10 +236,13 @@ export async function sendExternalPtv(
     log.debug('Hash calculation skipped', e);
   }
 
-  // TODO-F3: send-ptv usa FormData multipart — adapter não suporta ainda
-  const { data, error } = await supabase.functions.invoke('evolution-api', {
-    body: formData,
-  });
+  let data: unknown;
+  let error: unknown;
+  try {
+    data = await sendPtv(formData);
+  } catch (err) {
+    error = err;
+  }
 
   const latency = Date.now() - startTime;
 

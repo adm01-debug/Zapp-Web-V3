@@ -87,6 +87,7 @@ export const whatsappConnectionRepository = {
     return supabase.from('qr_attempts').update(updates).eq('id', id);
   },
 
+  /** @deprecated Use specific whatsappAdapter methods instead (F3 decoupling). */
   async callEvolutionApi(body: Record<string, unknown>) {
     return supabase.functions.invoke('evolution-api', { body });
   },

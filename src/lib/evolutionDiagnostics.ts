@@ -1,3 +1,4 @@
+import { listInstances } from '@/lib/whatsappAdapter';
 
 import { whatsappConnectionRepository } from '@/features/connections/data-access/whatsappConnectionRepository';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,10 +25,8 @@ export async function runEvolutionDiagnostics(): Promise<DiagnosticResult[]> {
   // 2. Test Edge Function Proxy Connectivity
   try {
     const startProxy = Date.now();
-    const { data: proxyData, error: proxyError } =
-      await whatsappConnectionRepository.callEvolutionApi({
-        action: 'list-instances',
-      });
+    let proxyData: unknown, proxyError: unknown;
+    try { proxyData = await listInstances(); } catch (err) { proxyError = err; }
     const proxyLatency = Date.now() - startProxy;
 
     if (proxyError) {

@@ -1,3 +1,4 @@
+import { listInstances } from '@/lib/whatsappAdapter';
 /**
  * useBridgeStatus — data layer for AdminBridgeStatusPage.
  * Centralises health checks, incidents, diagnostics, auto-refresh and
@@ -147,7 +148,7 @@ export function useBridgeStatus() {
       // 6. Real instance count from Evolution API (via proxy) — replaces hardcoded 0
       try {
         const { data: proxyData, error: proxyError } =
-          await whatsappConnectionRepository.callEvolutionApi({ action: 'list-instances' });
+          await listInstances();
         if (!proxyError) {
           const instances = Array.isArray(proxyData)
             ? proxyData

@@ -77,10 +77,8 @@ export const whatsappConnectionService = {
     
     try {
       log.info(`Requesting QR code for instance ${instanceId}`);
-      const { data, error } = await whatsappConnectionRepository.callEvolutionApi({
-        action: 'connect',
-        instanceName: instanceId
-      });
+      let data: unknown, error: unknown;
+      try { data = await connectInstance({ instanceName: instanceId }); } catch (err) { error = err; }
 
       if (error) {
         log.error(`API error requesting QR for ${instanceId}:`, error);
@@ -114,12 +112,10 @@ export const whatsappConnectionService = {
 
     try {
       log.info(`Creating instance ${instanceName} on Evolution API`);
-      const { data, error } = await whatsappConnectionRepository.callEvolutionApi({
-        action: 'create-instance',
-        instanceName,
-        integration: options?.integration ?? 'WHATSAPP-BAILEYS',
-        qrcode: options?.qrcode ?? true,
-      });
+      let data: unknown, error: unknown;
+      try {
+        data = await createInstance({ instanceName, integration: options?.integration, qrcode: options?.qrcode });
+      } catch (err) { error = err; }
 
       if (error) {
         log.error(`API error creating instance ${instanceName}:`, error);
@@ -152,11 +148,10 @@ export const whatsappConnectionService = {
 
     try {
       log.info(`Requesting pairing code for instance ${instanceName}`);
-      const { data, error } = await whatsappConnectionRepository.callEvolutionApi({
-        action: 'pairing-code',
-        instanceName,
-        number,
-      });
+      let data: unknown, error: unknown;
+      try {
+        data = await requestPairingCode({ instanceName, number });
+      } catch (err) { error = err; }
 
       if (error) {
         log.error(`API error requesting pairing code for ${instanceName}:`, error);

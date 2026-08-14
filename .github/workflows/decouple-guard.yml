@@ -1,0 +1,73 @@
+# decouple-guard.yml — bloqueia recriação de infra Evolution no zapp-web-v3
+# e verifica regressão no inventory de acoplamento (E22 do Plano 100 Etapas)
+name: Decouple Guard
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'supabase/functions/**'
+      - 'infra/**'
+      - 'scripts/**'
+    branches: [main]
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'supabase/functions/**'
+      - 'scripts/**'
+
+jobs:
+  infra-regression:
+    name: Block infra/evolution recreation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify no Evolution infra in zapp-web-v3
+        run: |
+          # E22: qualquer arquivo em infra/evolution* viola o split do evo-stack
+          if ls infra/evolution* 2>/dev/null; then
+            echo "::error::Arquivos infra/evolution* encontrados em zapp-web-v3."
+            echo "::error::Infraestrutura Evolution deve ficar em adm01-debug/evolution-stack."
+            exit 1
+          fi
+          echo "✅ Sem infra/evolution* em zapp-web-v3"
+
+      - name: Verify no Evolution workflows in zapp-web-v3
+        run: |
+          # Workflows de build da Evolution API devem estar em evolution-stack
+          FOUND=$(ls .github/workflows/publish-evolution*.yml 2>/dev/null || true)
+          if [ -n "$FOUND" ]; then
+            echo "::error::Workflows publish-evolution* encontrados em zapp-web-v3: $FOUND"
+            echo "::error::Mova para adm01-debug/evolution-stack."
+            exit 1
+          fi
+          echo "✅ Sem workflows Evolution em zapp-web-v3"
+
+  coupling-inventory:
+    name: Check coupling inventory
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run coupling inventory
+        run: |
+          node scripts/decouple/inventory.mjs | tee /tmp/inventory.txt
+          # Extrair TOTAL
+          TOTAL=$(grep "^TOTAL:" /tmp/inventory.txt | grep -oE '[0-9]+' | head -1)
+          echo "TOTAL de bypasses: $TOTAL"
+          if [ "$TOTAL" -gt 15 ]; then
+            echo "::error::Regressão detectada! TOTAL=$TOTAL > baseline=15"
+            echo "::error::Verifique o inventory e corrija os bypasses adicionados."
+            exit 1
+          fi
+          echo "✅ Inventory OK (TOTAL=$TOTAL ≤ 15)"
+      - name: Upload inventory report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coupling-inventory
+          path: /tmp/inventory.txt
+          retention-days: 7

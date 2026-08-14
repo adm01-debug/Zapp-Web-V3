@@ -379,6 +379,42 @@ export async function listInstances() {
   return invokeEvolution('list-instances', {});
 }
 
+
+// ── Gerenciamento de instâncias ───────────────────────────────────────────
+
+export interface CreateInstanceParams {
+  instanceName: string;
+  integration?: 'WHATSAPP-BAILEYS' | 'WHATSAPP-BUSINESS-CLOUD';
+  qrcode?: boolean;
+}
+export async function createInstance(params: CreateInstanceParams) {
+  return invokeEvolution('create-instance', {
+    instanceName: params.instanceName,
+    integration: params.integration ?? 'WHATSAPP-BAILEYS',
+    qrcode: params.qrcode ?? true,
+  });
+}
+
+export interface RequestPairingCodeParams { instanceName: string; number: string }
+export async function requestPairingCode(params: RequestPairingCodeParams) {
+  return invokeEvolution('pairing-code', {
+    instanceName: params.instanceName,
+    number: params.number,
+  });
+}
+
+// ── Video circular (PTV) — usa FormData, adapter passa direto ────────────
+// TODO-F3-sendPtv: sendPtv usa FormData multipart (não JSON).
+// Evolution API detecta o content-type e roteia para /message/sendPtv/{instance}.
+// A chamada direta a supabase.functions.invoke é necessária neste caso.
+export async function sendPtv(formData: FormData) {
+  const { data, error } = await supabase.functions.invoke('evolution-api', {
+    body: formData,
+  });
+  if (error) throw error;
+  return data;
+}
+
 // ----- Webhooks de entrada --------------------------------------------------
 
 /** Returns the Supabase Functions base URL, preferring the self-hosted instance when VITE_SUPABASE_URL is not a managed `.supabase.co` host. */
@@ -431,6 +467,9 @@ export const whatsapp = {
   getQrCode,
   restartInstance,
   listInstances,
+  createInstance,
+  requestPairingCode,
+  sendPtv,
   getActiveWebhookUrl,
   getCloudWebhookUrl,
   getEvolutionWebhookUrl,
