@@ -39,7 +39,7 @@ function makeDbChain(result: { error: unknown }) {
 // ── Setup ─────────────────────────────────────────────────────────────────────
 beforeEach(() => {
   vi.clearAllMocks();
-  mockListInstances.mockResolvedValue({ data: [], error: null });
+  mockListInstances.mockResolvedValue([]);
   mockSupabaseFrom.mockReturnValue(makeDbChain({ error: null }));
 });
 
@@ -59,17 +59,14 @@ describe('runEvolutionDiagnostics — step 1: external config', () => {
 // ── Step 2: proxy ─────────────────────────────────────────────────────────────
 describe('runEvolutionDiagnostics — step 2: proxy connectivity', () => {
   it('has step 2 status "ok" when callEvolutionApi succeeds', async () => {
-    mockListInstances.mockResolvedValue({ data: [], error: null });
+    mockListInstances.mockResolvedValue([]);
     const results = await runEvolutionDiagnostics();
     const step2 = results.find(r => r.step.includes('Evolution Proxy'));
     expect(step2?.status).toBe('ok');
   });
 
   it('has step 2 status "fail" when callEvolutionApi returns proxyError', async () => {
-    mockListInstances.mockResolvedValue({
-      data: null,
-      error: { message: 'connection refused' },
-    });
+    mockListInstances.mockRejectedValue(new Error('connection refused'));
     const results = await runEvolutionDiagnostics();
     const step2 = results.find(r => r.step.includes('Evolution Proxy'));
     expect(step2?.status).toBe('fail');
@@ -78,7 +75,7 @@ describe('runEvolutionDiagnostics — step 2: proxy connectivity', () => {
 
   it('includes proxyError object in details on failure', async () => {
     const proxyError = { message: 'timeout' };
-    mockListInstances.mockResolvedValue({ data: null, error: proxyError });
+    mockListInstances.mockRejectedValue(proxyError);
     const results = await runEvolutionDiagnostics();
     const step2 = results.find(r => r.step.includes('Evolution Proxy'));
     expect(step2?.details).toEqual(proxyError);
@@ -86,7 +83,7 @@ describe('runEvolutionDiagnostics — step 2: proxy connectivity', () => {
 
   it('step 2 details contains proxy data on success', async () => {
     const data = [{ id: '1' }];
-    mockListInstances.mockResolvedValue({ data, error: null });
+    mockListInstances.mockResolvedValue(data);
     const results = await runEvolutionDiagnostics();
     const step2 = results.find(r => r.step.includes('Evolution Proxy'));
     expect(step2?.details).toEqual(data);
@@ -94,25 +91,22 @@ describe('runEvolutionDiagnostics — step 2: proxy connectivity', () => {
 
   it('uses action "list-instances" for the callEvolutionApi call', async () => {
     await runEvolutionDiagnostics();
-    expect(mockListInstances).toHaveBeenCalledWith({ action: 'list-instances' });
+    expect(mockListInstances).toHaveBeenCalledTimes(1);
   });
 
-  it('falls through to catch step when callEvolutionApi throws', async () => {
+  it('step 2 fail quando listInstances lança (network down)', async () => {
     mockListInstances.mockRejectedValue(new Error('network down'));
     const results = await runEvolutionDiagnostics();
-    const catchStep = results.find(r => r.step.includes('Conectividade'));
-    expect(catchStep?.status).toBe('fail');
-    expect(catchStep?.message).toContain('network down');
+    const step2 = results.find(r => r.step.includes('Evolution Proxy'));
+    expect(step2?.status).toBe('fail');
+    expect(step2?.message).toContain('network down');
   });
 });
 
 // ── Step 3: API key / instances ───────────────────────────────────────────────
 describe('runEvolutionDiagnostics — step 3: API key permissions', () => {
   it('status "ok" when data is a direct array of instances', async () => {
-    mockListInstances.mockResolvedValue({
-      data: [{ id: '1' }, { id: '2' }],
-      error: null,
-    });
+    mockListInstances.mockResolvedValue([{ id: '1' }, { id: '2' }]);
     const results = await runEvolutionDiagnostics();
     const step3 = results.find(r => r.step.includes('Global API Key'));
     expect(step3?.status).toBe('ok');
@@ -120,10 +114,7 @@ describe('runEvolutionDiagnostics — step 3: API key permissions', () => {
   });
 
   it('status "ok" when data has .instances array', async () => {
-    mockListInstances.mockResolvedValue({
-      data: { instances: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] },
-      error: null,
-    });
+    mockListInstances.mockResolvedValue({ instances: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] });
     const results = await runEvolutionDiagnostics();
     const step3 = results.find(r => r.step.includes('Global API Key'));
     expect(step3?.status).toBe('ok');
@@ -131,20 +122,14 @@ describe('runEvolutionDiagnostics — step 3: API key permissions', () => {
   });
 
   it('status "warn" when response format is unexpected (object without instances)', async () => {
-    mockListInstances.mockResolvedValue({
-      data: { unexpected: true },
-      error: null,
-    });
+    mockListInstances.mockResolvedValue({ unexpected: true });
     const results = await runEvolutionDiagnostics();
     const step3 = results.find(r => r.step.includes('Global API Key'));
     expect(step3?.status).toBe('warn');
   });
 
   it('step 3 is absent when step 2 fails (proxyError)', async () => {
-    mockListInstances.mockResolvedValue({
-      data: null,
-      error: { message: 'fail' },
-    });
+    mockListInstances.mockRejectedValue(new Error('fail'));
     const results = await runEvolutionDiagnostics();
     const step3 = results.find(r => r.step.includes('Global API Key'));
     expect(step3).toBeUndefined();
@@ -186,7 +171,7 @@ describe('runEvolutionDiagnostics — step 4: direct database connection', () =>
 // ── overall structure ─────────────────────────────────────────────────────────
 describe('runEvolutionDiagnostics — overall result structure', () => {
   it('returns at least 3 results on happy path (config + proxy + api-key + db)', async () => {
-    mockListInstances.mockResolvedValue({ data: [{ id: '1' }], error: null });
+    mockListInstances.mockResolvedValue([{ id: '1' }]);
     const results = await runEvolutionDiagnostics();
     expect(results.length).toBeGreaterThanOrEqual(3);
   });
