@@ -184,3 +184,11 @@ Antes de qualquer deploy de frontend:
 
 *Documento gerado automaticamente pela auditoria de espelhamento 2026-07-05.*  
 *Manter sincronizado com o estado do banco via `ops.check_mirror_integrity()`.*
+
+
+## Evolution API — Contrato pós-desacoplamento (2026-08-12)
+
+Infra da Evolution está em [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack).
+Acesso desta aplicação: exclusivamente via gateway `supabase/functions/_shared/providers/evolution/client.ts`.
+
+Ver contrato completo em [docs/BOUNDARY-evolution.md](BOUNDARY-evolution.md).
