@@ -89,13 +89,12 @@ export async function handleOutgoingWhatsAppMessage(
     .order('created_at', { ascending: true }).limit(1).maybeSingle();
 
   if (pendingMessage?.id) {
-    const { data: claimed, error: claimError } = await evo()
-      .update({ status: 'sent', message_id: externalId, status_at: new Date().toISOString() })
-      .eq('id', pendingMessage.id)
-      .is('message_id', null)
-      .select('id');
-    if (claimError) { console.error('[FROM_ME] Error claiming placeholder:', claimError); return; }
-    if (claimed?.length) return;
+    // F3-edge: claim via RPC canônico (rpc_claim_outbound_message)
+    const claimResult = await supabase.rpc('rpc_claim_outbound_message', {
+      p_row_id: pendingMessage.id, p_message_id: externalId,
+    });
+    if (claimResult.error) { console.error('[FROM_ME] Error claiming placeholder:', claimResult.error); return; }
+    if (claimResult.data?.claimed) return; // race winner claimed the row
   }
 
   const { data: raceCheck } = await evo()
@@ -266,21 +265,22 @@ export async function handleIncomingMessage(
   if (existingMessage?.id) {
     const preservedStatus = existingMessage.status && existingMessage.status !== 'received' ? existingMessage.status : 'received';
     const preservedContent = existingMessage.status === 'deleted' ? (existingMessage.content || '[Mensagem apagada]') : content;
-    const { error: updateErr } = await evo().update({
-      contact_id: contact.id,
-      content: preservedContent,
-      message_type: messageType,
-      media_url: mediaUrl,
-      // ADR-004: campos canônicos
-      ...extractStorageFields(mediaUrl),
-      from_me: false,
-      direction: 'inbound',
-      status: preservedStatus,
-      ...(ingestMeta ? { media_meta: ingestMeta, ingest_meta: ingestMeta } : {}),
-      ...(quotedMessageId ? { quoted_message_id: quotedMessageId } : {}),
-      updated_at: new Date().toISOString(),
-    }).eq('id', existingMessage.id);
-    if (updateErr) console.error('[INCOMING] Error updating existing message:', { updateErr, messageId: existingMessage.id });
+    const storageFields = extractStorageFields(mediaUrl);
+    // F3-edge: update via RPC canônico (rpc_update_incoming_message)
+    const updResult = await supabase.rpc('rpc_update_incoming_message', {
+      p_row_id: existingMessage.id,
+      p_contact_id: contact.id,
+      p_content: preservedContent,
+      p_message_type: messageType,
+      p_media_url: mediaUrl ?? null,
+      p_media_bucket: storageFields.media_bucket,
+      p_media_path: storageFields.media_path,
+      p_media_status: storageFields.media_status,
+      p_status: preservedStatus,
+      p_ingest_meta: ingestMeta ?? null,
+      p_quoted_message_id: quotedMessageId ?? null,
+    });
+    if (updResult.error) console.error('[INCOMING] Error updating existing message:', { error: updResult.error, messageId: existingMessage.id });
     if (messageType === 'audio' && mediaUrl) await handleAudioTranscription(supabase, contact.id, existingMessage.id, mediaUrl, supabaseUrl, supabaseServiceKey);
     return;
   }
@@ -400,8 +400,6 @@ export async function handleAudioTranscription(supabase: SupabaseClient, _contac
   const { data: globalSetting } = await supabase.from('global_settings')
     .select('value').eq('key', 'auto_transcription_enabled').maybeSingle();
   if (globalSetting?.value === 'false') return;
-
-  const evo = () => supabase.from('evolution_messages');
 
   // F4: transcription status via RPC
   await supabase.rpc('rpc_update_message_transcription', { p_message_uuid: messageId, p_status: 'processing' });
