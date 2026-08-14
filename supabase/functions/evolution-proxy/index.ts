@@ -39,7 +39,7 @@
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { requireAdminOrSupervisor } from '../_shared/auth.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
-import { evolutionFetch, evolutionClient } from '../_shared/providers/evolution/client.ts';
+import { evolutionFetch, evolutionClient, type EvolutionClientConfig } from '../_shared/providers/evolution/client.ts';
 import { getProviderClient } from '../_shared/providers/registry.ts';
 
 // Paths que o browser pode chamar via proxy (prefixos permitidos)
@@ -72,8 +72,8 @@ export interface ProviderCallResult {
 
 /** Interface dos verbos genéricos usados pelo proxy (get/post existem nos dois providers). */
 export interface ProviderClientLike {
-  get?: (path: string, options?: unknown) => Promise<ProviderCallResult>;
-  post?: (path: string, body?: unknown, options?: unknown) => Promise<ProviderCallResult>;
+  get?: (path: string, options?: EvolutionClientConfig) => Promise<ProviderCallResult>;
+  post?: (path: string, body?: unknown, options?: EvolutionClientConfig) => Promise<ProviderCallResult>;
 }
 
 /**
