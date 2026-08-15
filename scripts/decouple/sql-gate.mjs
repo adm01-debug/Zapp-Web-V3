@@ -312,10 +312,23 @@ function checkEntry(entry) {
 // egresso hardcoded em migration NOVA sem depender do snapshot/DB.
 // I4 (2026-08-15): reusa httpLiteralViolations (por-statement, url:=, cobre
 // net.http_* completo incl. http_delete).
+// ALLOWLIST HISTÓRICA (2026-08-15): o canonical (20260804000000) é SNAPSHOT
+// histórico (documento, não migration executável — regra da casa) e as 2
+// migrations fix_notify contêm funções pré-I4 cujas versões corrigidas vivem
+// nas migrations 00001-00013 (já aplicadas em produção). O critério v2 flagra
+// os textos antigos nelas — dívida de histórico, não regressão nova. Remover
+// entradas quando essas migrations forem reescritas/squashadas.
+const MIGRATION_HISTORICAL_ALLOWLIST = new Set([
+  '20260804000000_canonical_schema_squash_133_migrations.sql',
+  '20260813230000_fix_notify_and_analyze_cron.sql',
+  '20260814050000_fix_notify_v6_pending_view.sql',
+]);
+
 function scanMigrations(migrationsDir) {
   const viol = [];
   try {
     for (const f of readdirSync(migrationsDir).filter(f => f.endsWith('.sql'))) {
+      if (MIGRATION_HISTORICAL_ALLOWLIST.has(f)) continue;
       const src = readFileSync(join(migrationsDir, f), 'utf8');
       if (httpLiteralViolations(src).length > 0) {
         viol.push(f);
