@@ -238,11 +238,20 @@ POST /instance/setPresence/{instance}
 
 ### 4.2 Send Text
 
+> ⚠️ **Envelope v2 (obrigatório no gateway):** desde a v2 da Evolution o texto
+> é enviado dentro de `textMessage.text` — na **v1** o campo era `text` no
+> top-level. O gateway `providers/evolution/client.ts` **sempre** envia o
+> envelope v2 (`{ number, textMessage: { text } }`) e o contrato Zod
+> (`supabase/functions/_shared/providers/evolution/contract.zod.ts`) valida
+> exatamente esse shape de request.
+
 ```json
 POST /message/sendText/{instance}
 {
   "number": "5511999999999",
-  "text": "Olá! *negrito* _itálico_ ~riscado~\n\nNova linha",
+  "textMessage": {
+    "text": "Olá! *negrito* _itálico_ ~riscado~\n\nNova linha"
+  },
   "delay": 1200,
   "quoted": {
     "key": {
@@ -254,6 +263,20 @@ POST /message/sendText/{instance}
   },
   "mentionsEveryOne": false,
   "mentioned": ["5511888888888"]
+}
+```
+
+```json
+// Resposta (shape Baileys v2 — o contrato exige `key` ou `message` presente):
+{
+  "key": {
+    "remoteJid": "5511999999999@s.whatsapp.net",
+    "fromMe": true,
+    "id": "3EB0C767D360A23D02C3"
+  },
+  "message": { "conversation": "Olá!" },
+  "messageTimestamp": 1755180000,
+  "status": "PENDING"
 }
 ```
 
