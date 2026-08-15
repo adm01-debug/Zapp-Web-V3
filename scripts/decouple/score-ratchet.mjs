@@ -3,29 +3,27 @@
  * score-ratchet.mjs — E97/E98: Ratchet do placar de invariantes de desacoplamento
  *
  * REUSA scripts/decouple/boundary-audit.mjs (não reimplementa os 9 invariantes):
- *   - modo padrão: executa boundary-audit em modo OFFLINE (DB_OFFLINE=1) e lê o
- *     relatório gerado (mesmos 9 invariantes I1..I9);
+ *   - modo padrão: executa boundary-audit em modo ONLINE (RPC ops.fn_boundary_audit
+ *     contra o banco real; requer SUPABASE_URL + SUPABASE_SERVICE_KEY);
  *   - modo --score-file: lê um decouple-score.json (artifact do
  *     measure-invariants.yml, que inclui medição real do banco quando
  *     SUPABASE_DB_URL está configurado).
  *
  * Compara o score atual contra o baseline commitado:
- *   1. docs/decouple/BOUNDARY_SCORE_T2.json  (preferido — estado atual documentado)
- *   2. docs/decouple/BOUNDARY_SCORE_T0.json  (fallback — medição inicial)
- *   3. nenhum → cria BOUNDARY_SCORE_T2.json a partir da medição atual e passa.
+ *   1. docs/decouple/BOUNDARY_SCORE_T3.json  (preferido — 1ª medição real dos 9 invariantes do plano)
+ *   2. docs/decouple/BOUNDARY_SCORE_T2.json  (legado — invariantes redefinidos, NÃO confiar)
+ *   3. docs/decouple/BOUNDARY_SCORE_T0.json  (fallback — medição inicial)
+ *   4. nenhum → cria BOUNDARY_SCORE_T3.json a partir da medição atual e passa.
  *
  * Semântica do ratchet (threshold: NÃO regredir abaixo do baseline, não "== baseline"):
  *   - PASSA (exit 0) se score atual >= baseline;
  *   - FALHA (exit 1) se o score REGREDIU (abaixo do baseline).
  *
- * Invariantes DB (I1/I2/I4/I8/I9) NÃO são mensuráveis offline: nesse modo o
- * boundary-audit apenas replaya o baseline T0 (campos `t0`/`t0_fallback` no
- * relatório). O ratchet adota o valor do baseline COMMITADO para invariantes
- * não medidos ao vivo (sem informação nova → assume-se inalterado); regressões
- * de DB são capturadas pelo modo --score-file (medição com banco real).
+ * Modo offline do boundary-audit não é evidência (exit 3, cenário C9) — o
+ * ratchet NÃO o usa. Sem banco e sem --score-file, o ratchet falha explícito.
  *
  * Uso:
- *   node scripts/decouple/score-ratchet.mjs                     # modo offline (CI/PR)
+ *   node scripts/decouple/score-ratchet.mjs                     # modo online (banco real)
  *   node scripts/decouple/score-ratchet.mjs --score-file decouple-score.json
  *   node scripts/decouple/score-ratchet.mjs --baseline docs/decouple/BOUNDARY_SCORE_T0.json
  *   node scripts/decouple/score-ratchet.mjs --update            # aperta baseline (manual)
@@ -43,6 +41,7 @@ const __dirname = dirname(__filename);
 const REPO_ROOT = resolve(__dirname, '..', '..');
 
 const AUDIT_SCRIPT = join(REPO_ROOT, 'scripts', 'decouple', 'boundary-audit.mjs');
+const BASELINE_T3 = join(REPO_ROOT, 'docs', 'decouple', 'BOUNDARY_SCORE_T3.json');
 const BASELINE_T2 = join(REPO_ROOT, 'docs', 'decouple', 'BOUNDARY_SCORE_T2.json');
 const BASELINE_T0 = join(REPO_ROOT, 'docs', 'decouple', 'BOUNDARY_SCORE_T0.json');
 const SCORE_FILE_DEFAULT = join(REPO_ROOT, 'decouple-score.json');
@@ -106,18 +105,19 @@ function extractScore(report) {
 }
 
 /**
- * Medição atual via boundary-audit OFFLINE (DB_OFFLINE=1).
- * O exit code do boundary-audit é advisory (1 quando < 9/9) — o ratchet ignora
- * e aplica a própria comparação; só falha se o audit nem rodar (exit 2 / spawn).
+ * Medição atual via boundary-audit ONLINE (RPC contra o banco real).
+ * Requer SUPABASE_URL + SUPABASE_SERVICE_KEY no ambiente. O exit code do
+ * boundary-audit é advisory (1 quando < 9/9) — o ratchet ignora e aplica a
+ * própria comparação; só falha se o audit nem rodar (exit 2/3 / spawn).
  */
-function runAuditOffline() {
+function runAuditLive() {
   if (!existsSync(AUDIT_SCRIPT)) {
     throw new Error(`boundary-audit.mjs não encontrado: ${AUDIT_SCRIPT}`);
   }
   const out = join(tmpdir(), `boundary-ratchet-${process.pid}.json`);
   const proc = spawnSync(process.execPath, [AUDIT_SCRIPT, '--out', out], {
     cwd: REPO_ROOT,
-    env: { ...process.env, DB_OFFLINE: '1' },
+    env: { ...process.env },
     encoding: 'utf8',
     timeout: 180000,
   });
@@ -126,8 +126,8 @@ function runAuditOffline() {
   if (proc.error) {
     throw new Error(`falha ao executar boundary-audit: ${proc.error.message}`);
   }
-  if (proc.status === 2) {
-    throw new Error(`boundary-audit falhou (exit 2): ${(proc.stderr || '').slice(0, 500)}`);
+  if (proc.status === 2 || proc.status === 3) {
+    throw new Error(`boundary-audit falhou (exit ${proc.status}) — modo online exige SUPABASE_URL + SUPABASE_SERVICE_KEY; offline não é evidência (C9): ${(proc.stderr || '').slice(0, 400)}`);
   }
   if (!report) {
     throw new Error(`não foi possível ler o relatório do boundary-audit (exit ${proc.status ?? '?'})`);
@@ -148,6 +148,7 @@ function resolveBaseline(explicit) {
     if (!r) throw new Error(`baseline ilegível: ${explicit}`);
     return { file: explicit, report: r };
   }
+  if (existsSync(BASELINE_T3)) return { file: BASELINE_T3, report: readJson(BASELINE_T3) };
   if (existsSync(BASELINE_T2)) return { file: BASELINE_T2, report: readJson(BASELINE_T2) };
   if (existsSync(BASELINE_T0)) return { file: BASELINE_T0, report: readJson(BASELINE_T0) };
   return null;
@@ -211,9 +212,9 @@ function main() {
     currentReport = readScoreFile(SCORE_FILE_DEFAULT);
     mode = `score-file: ${SCORE_FILE_DEFAULT} (detectado)`;
   } else {
-    log('Executando boundary-audit em modo OFFLINE (DB_OFFLINE=1)...');
-    currentReport = runAuditOffline();
-    mode = 'boundary-audit offline';
+    log('Executando boundary-audit em modo ONLINE (banco real via RPC)...');
+    currentReport = runAuditLive();
+    mode = 'boundary-audit online';
   }
 
   const current = extractScore(currentReport);
@@ -227,7 +228,7 @@ function main() {
 
   if (update) {
     if (!baseline) {
-      baseline = { file: BASELINE_T2, report: null };
+      baseline = { file: BASELINE_T3, report: null };
     }
     const b = extractScore(baseline.report);
     const regressed = b && current.pass < b.pass;
@@ -243,9 +244,9 @@ function main() {
 
   if (!baseline) {
     // Sem baseline commitado → cria T2 a partir da medição atual e passa (primeiro run).
-    const t2 = buildBaseline(currentReport, current, 'Auto-criado pelo score-ratchet (primeiro run sem baseline)');
-    writeFileSync(BASELINE_T2, JSON.stringify(t2, null, 2) + '\n');
-    console.log(`ℹ️  Nenhum baseline commitado — BOUNDARY_SCORE_T2.json criado a partir do estado atual.`);
+    const t3 = buildBaseline(currentReport, current, 'Auto-criado pelo score-ratchet (primeiro run sem baseline)');
+    writeFileSync(BASELINE_T3, JSON.stringify(t3, null, 2) + '\n');
+    console.log(`ℹ️  Nenhum baseline commitado — BOUNDARY_SCORE_T3.json criado a partir do estado atual.`);
     console.log(`✅ Ratchet inicializado: ${current.pass}/${current.total} (exit 0)`);
     process.exit(0);
   }
@@ -256,7 +257,8 @@ function main() {
     process.exit(2);
   }
 
-  // 3. Comparação — modo offline usa medição híbrida (live + baseline-carried)
+  // 3. Comparação — relatório do boundary-audit usa currentOffline (com medição
+  // online não há campos t0 → tudo conta como medido ao vivo)
   const offlineHybrid = mode.startsWith('boundary-audit');
   const currentPass = offlineHybrid ? currentOffline(currentReport, baseline.report) : null;
   const pass = offlineHybrid ? currentPass.pass : current.pass;
@@ -303,7 +305,7 @@ function buildBaseline(currentReport, current, note) {
     meta: {
       generated_at: new Date().toISOString(),
       mode: 'committed_baseline',
-      description: 'Baseline T2 do ratchet de invariantes de desacoplamento (E97/E98)',
+      description: 'Baseline do ratchet de invariantes de desacoplamento (E97/E98) — 9 invariantes do PLANO_INDEPENDENCIA',
       note,
       repo: 'adm01-debug/zapp-web-v3',
     },
