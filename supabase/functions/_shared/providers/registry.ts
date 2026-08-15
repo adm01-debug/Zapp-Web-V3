@@ -1,6 +1,14 @@
 /**
  * providers/registry.ts — Resolve client por provider/conta
  * E68 do Plano de Desacoplamento 100 Etapas.
+ * V5 (2026-08-15): provider 'cloud' registrado (E-P2 do Runbook Troca de Provider).
+ *  - getProviderClient('cloud') resolve o client real via getCloudClient()
+ *    (providers/cloud/client.ts — factory lazy que lê o ambiente), que exige
+ *    WHATSAPP_CLOUD_PHONE_ID e WHATSAPP_CLOUD_TOKEN.
+ *  - Fail-closed: sem as duas variáveis → throw Error(
+ *    'cloud: WHATSAPP_CLOUD_PHONE_ID/TOKEN nao configurados'). NUNCA retorna
+ *    undefined. Guard verificado aqui no registry (defesa em profundidade) e
+ *    também no construtor da factory (createCloudClient).
  * V4 (2026-08-14): suporte a PROVIDER_UNDER_TEST (E73/S9).
  *
  * PROVIDER_UNDER_TEST:
@@ -15,8 +23,24 @@
  */
 import { evolutionClient } from './evolution/index.ts';
 import { fakeProvider, assertTestEnv } from './fake/index.ts';
+import { getCloudClient } from './cloud/index.ts';
 
 export type ProviderType = 'evolution' | 'cloud' | 'fake';
+
+/** Lista canônica de providers registrados (ordem: default → alternativos). */
+export const PROVIDERS: readonly ProviderType[] = ['evolution', 'cloud', 'fake'];
+
+/** Nome de exibição por provider (telemetria/logs/UI). */
+export function getProviderName(provider: ProviderType): string {
+  switch (provider) {
+    case 'evolution':
+      return 'Evolution API (Baileys)';
+    case 'cloud':
+      return 'WhatsApp Cloud API (Meta)';
+    case 'fake':
+      return 'Fake provider (testes)';
+  }
+}
 
 function getEnv(name: string): string | undefined {
   if (typeof Deno !== 'undefined') return Deno.env.get(name);
@@ -54,8 +78,14 @@ export function getProviderClient(provider: ProviderType = 'evolution') {
   switch (effective) {
     case 'evolution':
       return evolutionClient;
-    case 'cloud':
-      throw new Error('Cloud provider client not yet implemented');
+    case 'cloud': {
+      // Fail-closed (E-P2): sem as credenciais da Meta o client cloud não
+      // pode existir — lança em vez de retornar undefined/degradado.
+      if (!getEnv('WHATSAPP_CLOUD_PHONE_ID') || !getEnv('WHATSAPP_CLOUD_TOKEN')) {
+        throw new Error('cloud: WHATSAPP_CLOUD_PHONE_ID/TOKEN nao configurados');
+      }
+      return getCloudClient();
+    }
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }

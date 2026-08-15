@@ -19,7 +19,7 @@ import { readSource } from "./_helpers.ts";
 const SOURCE = await readSource();
 
 Deno.test("Dedup: reusa o helper compartilhado markEventProcessed (insert-first)", () => {
-  assertMatch(SOURCE, /import \{ markEventProcessed \} from "\.\.\/_shared\/evolution-helpers\.ts";/);
+  assertMatch(SOURCE, /import \{[^}]*markEventProcessed[^}]*\} from "\.\.\/_shared\/evolution-helpers\.ts";/);
   assertMatch(SOURCE, /markEventProcessed\(localClient, eventId, "whatsapp-cloud", "messages\.upsert"\)/);
 });
 

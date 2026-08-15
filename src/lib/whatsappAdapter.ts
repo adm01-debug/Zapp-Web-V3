@@ -18,6 +18,18 @@
  *    o serviço relata claramente em `error` em vez de quebrar silenciosamente.
  *  - Templates só existem no modo oficial; chamada no modo Evolution lança
  *    erro explícito para o caller orientar o usuário.
+ *
+ * Fluxo dual-mode (envio):
+ *  - `remoteJid` de grupo (termina em `@g.us`) → SEMPRE `evolution-api`.
+ *    Grupos não existem na Meta Cloud API (Graph API) — roteá-los pelo modo
+ *    mandaria um destino impossível para o Cloud.
+ *  - Demais destinos → transporte resolvido pelo modo do workspace
+ *    (`rpc_get_whatsapp_mode` com cache de 30s): `unofficial` → evolution,
+ *    `official` → cloud (com fallback degradado para evolution se faltarem
+ *    secrets). `unofficial` é o default — comportamento de produção atual
+ *    permanece idêntico (no-op).
+ *  - `listGroups` (sync de grupos) continua via Evolution direto: groups sync
+ *    só existe no Baileys e nunca passa por resolução de modo.
  */
 import { supabase } from '@/integrations/supabase/client';
 import { toPhone } from '@/lib/jid';
@@ -71,6 +83,11 @@ const DEFAULT_INSTANCE = ACTIVE_WHATSAPP_INSTANCE;
 
 // ----- Helpers --------------------------------------------------------------
 
+/** True quando `remoteJid` é grupo do WhatsApp — grupos só existem na Evolution (Baileys). */
+function isGroupJid(remoteJid: string): boolean {
+  return remoteJid.endsWith('@g.us');
+}
+
 /** Calls the `whatsapp-cloud-send` edge function with `body` and throws on HTTP or API-level errors. */
 async function invokeCloud(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke('whatsapp-cloud-send', { body });
@@ -96,7 +113,11 @@ async function invokeEvolution(action: string, body: Record<string, unknown>) {
 
 /** send Text function. */
 export async function sendText(params: SendTextParams) {
-  const { transport } = await resolveTransport();
+  // Dual-mode: grupos (@g.us) não existem na Meta Cloud API → Evolution sempre
+  // (sem round-trip de modo; demais destinos seguem o modo do workspace).
+  const transport = isGroupJid(params.remoteJid)
+    ? 'evolution'
+    : (await resolveTransport()).transport;
   if (transport === 'cloud') {
     return invokeCloud({
       to: toPhone(params.remoteJid),
@@ -115,7 +136,11 @@ export async function sendText(params: SendTextParams) {
 
 /** send Media function. */
 export async function sendMedia(params: SendMediaParams) {
-  const { transport } = await resolveTransport();
+  // Dual-mode: grupos (@g.us) não existem na Meta Cloud API → Evolution sempre
+  // (sem round-trip de modo; demais destinos seguem o modo do workspace).
+  const transport = isGroupJid(params.remoteJid)
+    ? 'evolution'
+    : (await resolveTransport()).transport;
   if (transport === 'cloud') {
     return invokeCloud({
       to: toPhone(params.remoteJid),
