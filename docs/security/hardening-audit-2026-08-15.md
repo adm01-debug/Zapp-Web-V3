@@ -260,3 +260,72 @@ Durante a execução do step de recreação (`docker service rm` + `docker stack
 **Mitigação implementada:** step pós-deploy em 3 workflows (zapp-web-v3 `deploy-vps-selfhosted.yml`, evolution-stack `gitops-watchdogs.yml`, atomicabr-infra `deploy.yml`) que re-aplica NNP via Docker REST API ou Portainer API após cada deploy.
 
 **Fix definitivo pendente:** `postgres_postgres` precisa de recreação idêntica ao traefik (durante janela de manutenção).
+
+---
+
+## Fechamento da Campanha — 2026-08-15 (19:00 UTC)
+
+### Descoberta fundamental: `docker stack deploy` CLI também ignora `security_opt`
+
+Durante a recreação de `postgres_postgres`, o CLI emitiu:
+
+```
+Ignoring unsupported options: security_opt
+```
+
+**Isso significa que NENHUM mecanismo automático de deploy aplica NNP:**
+
+| Mecanismo | cap_drop | security_opt (NNP) |
+|-----------|:--------:|:-----------------:|
+| `docker stack deploy` CLI | ✅ aplicado | ❌ silenciosamente ignorado |
+| Portainer API (`PUT /api/stacks/{id}`) | ✅ aplicado | ❌ não traduzido |
+| `portainer_update_stack` (MCP) | ✅ aplicado | ❌ não traduzido |
+| Docker REST API (socket direto) | ✅ | ✅ funciona via `Privileges.NoNewPrivileges` |
+
+**Única solução viável para NNP:** Docker REST API direta ao socket (`/var/run/docker.sock`), que aceita o campo `Spec.TaskTemplate.ContainerSpec.Privileges.NoNewPrivileges = true`.
+
+### Correções adicionais desta fase
+
+| Serviço/Arquivo | Fix |
+|----------------|-----|
+| `gitops-stacks.yml` (evolution-stack) | NNP step adicionado — cobria o root cause real (Portainer API deploy de evolution-watchdogs.yml) |
+| `postgres_postgres` | Recreado do formato pré-TaskSpec (HTTP 501 → 200); NNP=true + Cap=12; CapEff=0x0 no kernel |
+| `stacks/postgres/docker-compose.yml` | Adicionados evolution-net + pgbackrest_data volume (faltavam no YAML; divergência com runtime) |
+| `pg-exporters_pgx-*` (4 serviços) | NNP=true + Cap=12 via Docker REST API |
+| `reapply-nnp.yml` | Workflow cron 03:00 UTC diário + workflow_dispatch dry_run como safety net |
+
+### Estado final da campanha
+
+| Categoria | Início | **Final** | Delta |
+|-----------|:------:|:---------:|------:|
+| NNP + CapDrop | ~11 (8%) | **84 (57%)** | +73 |
+| NNP apenas | ~0 (0%) | **46 (31%)** | +46 |
+| Sem hardening | ~135 (92%) | **16 (10%)** | -119 |
+
+Os 16 sem hardening são todos exclusões técnicas com justificativa documentada.
+
+### Commits desta campanha
+
+| Repo | Commit | Descrição |
+|------|--------|-----------|
+| evolution-stack | `387d666` | NNP+CapDrop em evolution-watchdogs.yml |
+| evolution-stack | `4ab5556` | ag6-watchdogs.yml novo |
+| evolution-stack | `63389f8` | FIX YAML inválido ag6-watchdogs.yml |
+| evolution-stack | `ed6ba6b` | CI: NNP step em gitops-watchdogs.yml |
+| evolution-stack | `e1548e6` | CI: NNP step em gitops-stacks.yml (root cause fix) |
+| evolution-stack | `3e32ba8` | reapply-nnp.yml cron diário |
+| zapp-web-v3 | `330cc1ba` | NNP+CapDrop em zapp-web-prod.yml |
+| zapp-web-v3 | `6d9972600` | CI: NNP step em deploy-vps-selfhosted.yml |
+| zapp-web-v3 | `46bcb4d4e` | Audit doc round 2 |
+| atomicabr-infra | `b60e8d1` | Redis NNP+Cap seletivo |
+| atomicabr-infra | `5f63847` | rabbitmq, n8n, analytics NNP+Cap |
+| atomicabr-infra | `692e6cd` | traefik NNP+Cap (pré-recreação) |
+| atomicabr-infra | `573d5c2` | traefik: zapp-net + evolution-net + ping |
+| atomicabr-infra | `eba4014` | CI: NNP step em deploy.yml (Portainer API) |
+| atomicabr-infra | `04fa942` | postgres: evolution-net + pgbackrest_data + NNP |
+
+### Mitigações permanentes implementadas
+
+1. **4 workflows com step pós-deploy NNP** (zapp-web-v3, evolution-stack ×2, atomicabr-infra) — garante que qualquer CI deploy re-aplique NNP em ~30s
+2. **reapply-nnp.yml cron 03:00 UTC** — safety net diário que detecta e corrige qualquer regressão de NNP em todos os 146 serviços
+3. **Diagnóstico de pré-TaskSpec** — HTTP 501 = serviço antigo que requer recreação; documentado e corrigido para traefik e postgres
