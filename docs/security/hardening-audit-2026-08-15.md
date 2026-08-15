@@ -329,3 +329,43 @@ Os 16 sem hardening são todos exclusões técnicas com justificativa documentad
 1. **4 workflows com step pós-deploy NNP** (zapp-web-v3, evolution-stack ×2, atomicabr-infra) — garante que qualquer CI deploy re-aplique NNP em ~30s
 2. **reapply-nnp.yml cron 03:00 UTC** — safety net diário que detecta e corrige qualquer regressão de NNP em todos os 146 serviços
 3. **Diagnóstico de pré-TaskSpec** — HTTP 501 = serviço antigo que requer recreação; documentado e corrigido para traefik e postgres
+
+
+---
+
+## Correção de Entendimento — 2026-08-15 (19:30 UTC)
+
+### NNP ≠ cap_drop: são controles independentes
+
+Durante os testes exaustivos foi identificado um erro conceitual na campanha:
+
+| Controle | O que faz | Exclusão legítima |
+|----------|-----------|------------------|
+| **cap_drop** | Remove capabilities do container (NET_ADMIN, SYS_ADMIN, etc.) | Sim: crowdsec precisa de NET_ADMIN; Elasticsearch precisa de SYS_ADMIN para vm.max_map_count |
+| **NNP (NoNewPrivileges)** | Impede processos de ganhar novos privilégios via setuid/setgid executáveis | **Não — NNP funciona em 100% dos serviços, independente de capabilities** |
+
+Os 15 serviços que estavam classificados como "exclusões" eram exclusões de cap_drop erroneamente aplicadas ao NNP. Todos os 15 aceitaram NNP via Docker REST API sem rollback.
+
+### Estado definitivo após correção
+
+| Categoria | Quantidade | % |
+|-----------|:----------:|:--:|
+| NNP + CapDrop | 84 | 57% |
+| NNP apenas (sem cap_drop — exclusões de cap_drop justificadas) | 62 | 42% |
+| Sem NNP | **0** | **0%** |
+| **Total** | **146** | **100%** |
+
+**146/146 serviços com NoNewPrivileges=1 no kernel.**
+
+### Validação kernel-level dos "excluídos" corrigidos
+
+| Serviço | NoNewPrivs | CapEff | Observação |
+|---------|:----------:|--------|-----------|
+| elasticsearch | 1 | 0x0 | JVM cai para elasticsearch user; caps efetivas=0 |
+| crowdsec | 1 | 0xa80425fb | Mantém NET_ADMIN para iptables; NNP bloqueia escalada adicional |
+| github-runner | 1 | 0xa80425fb | Set padrão Docker; NNP bloqueia setuid binaries externos |
+| ban-agent | 1 | 0xa80425fb | Mesmo padrão |
+
+### `reapply-nnp.yml` corrigido (commit `168db19`)
+
+Lista EXCLUDED removida — NNP aplica-se a todos os 146 serviços sem exceção.
