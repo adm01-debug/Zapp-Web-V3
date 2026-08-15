@@ -167,3 +167,10 @@ Deno.test("Versioning: whatsapp-cloud-webhook payload v2 preferido", () => {
   assertEquals(r.ok, true);
   if (r.ok) assertEquals(r.version, "v2");
 });
+
+// Validacao final (2026-08-15): handshake de verificacao que a Meta exige.
+Deno.test("Contract: whatsapp-cloud-webhook v2 — GET verify (hub.challenge)", () => {
+  assertMatch(SOURCE, /req\.method === "GET"/);
+  assertMatch(SOURCE, /hub\.challenge/);
+  assertMatch(SOURCE, /hub\.verify_token/);
+});

@@ -121,6 +121,24 @@ function typeFromMime(mime: string): string {
 }
 
 /** Extensão determinística a partir do mime (mesma cadeia do evolution-media.ts). */
+function detectMediaType(bytes: Uint8Array): string | null {
+  // retorna o mime REAL pelos magic bytes (validacao final 2026-08-15)
+  const b = bytes;
+  if (b.length >= 3 && b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF) return 'image/jpeg';
+  if (b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47) return 'image/png';
+  if (b.length >= 6 && b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x38) return 'image/gif';
+  if (b.length >= 12 && b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return 'image/webp';
+  if (b.length >= 4 && b[0] === 0x4F && b[1] === 0x67 && b[2] === 0x67 && b[3] === 0x53) return 'audio/ogg';
+  if (b.length >= 3 && b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33) return 'audio/mpeg';
+  if (b.length >= 8 && b[0] === 0x1A && b[1] === 0x45 && b[2] === 0xDF && b[3] === 0xA3) return 'audio/mp4';
+  if (b.length >= 4 && b[0] === 0x66 && b[1] === 0x4C && b[2] === 0x61 && b[3] === 0x43) return 'audio/flac';
+  if (b.length >= 4 && b[0] === 0x4F && b[1] === 0x70 && b[2] === 0x75 && b[3] === 0x73) return 'audio/opus';
+  if (b.length >= 12 && b[0] === 0x00 && b[1] === 0x00 && b[2] === 0x00 && b[3] === 0x18 && b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) return 'video/mp4';
+  if (b.length >= 5 && b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46 && b[4] === 0x2D) return 'application/pdf';
+  if (b.length >= 4 && b[0] === 0x50 && b[1] === 0x4B && b[2] === 0x03 && b[3] === 0x04) return 'application/zip';
+  return null;
+}
+
 function extFromMime(mime: string): string {
   const m = mime.toLowerCase();
   if (m.includes("jpeg") || m.includes("jpg")) return "jpg";
@@ -179,14 +197,47 @@ export async function downloadMedia(
   const url = `${CLOUD_GRAPH_API_BASE}/${CLOUD_GRAPH_API_VERSION}/${encodeURIComponent(mediaId)}`;
   const timeoutMs = type === "audio" ? TIMEOUT_MS_AUDIO : TIMEOUT_MS_DEFAULT;
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const resp = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: controller.signal,
-    });
+  let resp: Response | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const r = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      // retry apenas em 5xx e timeout (validacao final 2026-08-15)
+      if (r.status >= 500 && attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+        continue;
+      }
+      resp = r;
+      break;
+    } catch (err) {
+      clearTimeout(timer);
+      const isTimeout = err instanceof Error && err.name === "AbortError";
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+        continue;
+      }
+      return {
+        ok: false,
+        error: {
+          code: isTimeout ? "TIMEOUT" : "NETWORK_ERROR",
+          status: 0,
+          message: isTimeout
+            ? `Cloud media download timed out after ${timeoutMs}ms (${mediaId})`
+            : `Cloud media download failed (${mediaId}): ${err instanceof Error ? err.message : String(err)}`,
+        },
+      };
+    }
+  }
+  if (!resp) {
+    return { ok: false, error: { code: "SERVER_ERROR", status: 0, message: `download falhou apos retries (${mediaId})` } };
+  }
 
+  try {
     if (resp.status === 401 || resp.status === 403) {
       return {
         ok: false,
@@ -245,7 +296,23 @@ export async function downloadMedia(
     }
 
     // P2-03: normaliza Content-Type (remove parâmetros — ex.: 'audio/ogg; codecs=opus').
-    const mime = (resp.headers.get("content-type") || "application/octet-stream").split(";")[0].trim();
+    let mime = (resp.headers.get("content-type") || "application/octet-stream").split(";")[0].trim();
+    // Validacao final: detecta o mime REAL pelos magic bytes e usa o detectado
+    // quando o declarado diverge (ex.: content-type jpeg com bytes PNG).
+    const detected = detectMediaType(bytes);
+    if (detected && detected !== mime) {
+      console.warn(`[CLOUD-MEDIA] Content-Type '${mime}' diverge dos bytes (detectado '${detected}') — usando o detectado`);
+      mime = detected;
+    } else if (!detected && (mime === "application/octet-stream" || mime.startsWith("text/"))) {
+      return {
+        ok: false,
+        error: {
+          code: "INVALID_MEDIA",
+          status: 0,
+          message: `Cloud media bytes nao reconhecidos (${mediaId})`,
+        },
+      };
+    }
     const filename = parseFilenameFromDisposition(resp.headers.get("content-disposition"));
 
     return { ok: true, bytes, mime, filename: filename ?? undefined };
