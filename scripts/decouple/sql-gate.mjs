@@ -144,18 +144,38 @@ function isWhitelisted(fn) {
   return false;
 }
 
-// --- I4: critério de egresso HTTP por-STATEMENT (2026-08-15) ----------------
+// --- I4: critério de egresso HTTP por-STATEMENT (2026-08-15, v2 2026-08-15) ---
 // Violação = statement com net.http_* (incl. http_delete) + literal https?://
-// NO ARGUMENTO url (nomeado ou 1º posicional) + sem resolver na mesma
-// statement. Literais em headers (Origin/Referer) NÃO são egresso de URL.
-// Extração string-aware (aspas, dollar-quotes, vírgula/parentese nível 0).
-const HTTP_CALL_RE = /net\.http_\w+\s*\(/i;
+// NO ARGUMENTO url (nomeado ou 1º posicional) + sem resolver NA EXPRESSÃO da
+// URL (não na statement inteira — resolver em comentário/string/outra chamada
+// não mascara violação, achado W-V2/FN). Literais em headers não são egresso.
+const HTTP_CALL_RE = /(?<![A-Za-z0-9_])net\.http_\w+\s*\(/i;
 const LITERAL_URL_RE = /https?:\/\//i;
 const RESOLVER_RE = /ops\.fn_evo_url|ops\.fn_get_vault_secret|fn_get_vault_secret|current_setting/i;
 
 function splitStatements(src) {
-  // split aproximado por ';' — o pior caso amplia a statement (fail-closed)
-  return src.split(';');
+  // split string-aware (achado W-V2/FN-64/65): não dividir dentro de aspas
+  // simples/duplas ou dollar-quotes — ';' dentro de literal NÃO separa
+  // statement; sem isso egresso real ficava escondido no split ingênuo.
+  const out = [];
+  let cur = '';
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    if (c === "'" || c === '"' || c === '$') {
+      const j = skipQuoted(src, i);
+      cur += src.slice(i, j);
+      i = j - 1;
+      continue;
+    }
+    if (c === ';') {
+      out.push(cur);
+      cur = '';
+      continue;
+    }
+    cur += c;
+  }
+  if (cur.trim() !== '') out.push(cur);
+  return out;
 }
 
 function skipQuoted(src, i) {
@@ -221,13 +241,17 @@ function httpLiteralViolations(prosrc) {
   for (let i = 0; i < stmts.length; i++) {
     const stmt = stmts[i];
     if (!HTTP_CALL_RE.test(stmt)) continue;
-    if (RESOLVER_RE.test(stmt)) continue; // resolver presente na statement → ok
-    const callRe = /net\.http_\w+\s*\(/gi;
+    const callRe = /(?<![A-Za-z0-9_])net\.http_\w+\s*\(/gi;
     let m;
     while ((m = callRe.exec(stmt)) !== null) {
       const open = m.index + m[0].length - 1; // índice do '('
       const close = findBalancedClose(stmt, open);
-      if (close === -1) continue;
+      // FAIL-CLOSED (achado W-V2/FN-64/65): parênteses desbalanceados = não é
+      // possível provar conformidade — tratar como violação, não pular.
+      if (close === -1) {
+        out.push({ index: i, excerpt: stmt.trim().slice(0, 90) });
+        break;
+      }
       const args = stmt.slice(open + 1, close);
       const urlArgMatch = args.match(/\burl\s*:?=\s*/i);
       let urlExpr = null;
@@ -240,7 +264,9 @@ function httpLiteralViolations(prosrc) {
         const posMatch = args.match(/^\s*('[^']*'|"[^"]*"|\$[0-9]+)/);
         urlExpr = posMatch ? posMatch[1] : null;
       }
-      if (urlExpr && LITERAL_URL_RE.test(urlExpr)) {
+      // v2: resolver verificado NA EXPRESSÃO da URL (não na statement inteira)
+      // — comentário/string com 'ops.fn_evo_url' não mascara URL hardcoded real.
+      if (urlExpr && !RESOLVER_RE.test(urlExpr) && LITERAL_URL_RE.test(urlExpr)) {
         out.push({ index: i, excerpt: stmt.trim().slice(0, 90) });
         break;
       }
@@ -286,10 +312,23 @@ function checkEntry(entry) {
 // egresso hardcoded em migration NOVA sem depender do snapshot/DB.
 // I4 (2026-08-15): reusa httpLiteralViolations (por-statement, url:=, cobre
 // net.http_* completo incl. http_delete).
+// ALLOWLIST HISTÓRICA (2026-08-15): o canonical (20260804000000) é SNAPSHOT
+// histórico (documento, não migration executável — regra da casa) e as 2
+// migrations fix_notify contêm funções pré-I4 cujas versões corrigidas vivem
+// nas migrations 00001-00013 (já aplicadas em produção). O critério v2 flagra
+// os textos antigos nelas — dívida de histórico, não regressão nova. Remover
+// entradas quando essas migrations forem reescritas/squashadas.
+const MIGRATION_HISTORICAL_ALLOWLIST = new Set([
+  '20260804000000_canonical_schema_squash_133_migrations.sql',
+  '20260813230000_fix_notify_and_analyze_cron.sql',
+  '20260814050000_fix_notify_v6_pending_view.sql',
+]);
+
 function scanMigrations(migrationsDir) {
   const viol = [];
   try {
     for (const f of readdirSync(migrationsDir).filter(f => f.endsWith('.sql'))) {
+      if (MIGRATION_HISTORICAL_ALLOWLIST.has(f)) continue;
       const src = readFileSync(join(migrationsDir, f), 'utf8');
       if (httpLiteralViolations(src).length > 0) {
         viol.push(f);

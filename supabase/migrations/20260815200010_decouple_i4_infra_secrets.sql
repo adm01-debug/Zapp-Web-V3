@@ -44,6 +44,13 @@ BEGIN
 END
 $function$;
 
+-- Achado W-V1/F-01 (2026-08-15): REVOKE explícito do PUBLIC — em DB fresco o
+-- default concede EXECUTE a PUBLIC; sem isso qualquer role com USAGE em ops
+-- conseguiria ler QUALQUER secret do vault via esta função. Produção já é
+-- protegida pelo watchdog ops.fn_auto_revoke_public_on_evo_zapp_fn; o REVOKE
+-- garante o mesmo comportamento em DB novo/CI.
+REVOKE EXECUTE ON FUNCTION ops.fn_get_vault_secret(text) FROM PUBLIC;
+
 -- Idempotência e criptografia: a coluna vault.secrets.secret armazena base64 do
 -- ciphertext AEAD (vault._crypto_aead_det_decrypt na view decrypted_secrets).
 -- INSERT direto de texto plano QUEBRA a leitura (decode base64 falha em ':') —
@@ -58,3 +65,4 @@ SELECT vault.create_secret('https://api.leadcontact.ai', 'leadcontact_api_url', 
 SELECT vault.create_secret('https://www.linkedin.com', 'linkedin_api_url', 'I4: base API LinkedIn') WHERE NOT EXISTS (SELECT 1 FROM vault.secrets WHERE name='linkedin_api_url');
 SELECT vault.create_secret('http://functions:9000', 'sicoob_bridge_edge_url', 'I4: URL base da edge sicoob-bridge-reply (DNS interno Swarm)') WHERE NOT EXISTS (SELECT 1 FROM vault.secrets WHERE name='sicoob_bridge_edge_url');
 SELECT vault.create_secret('https://api.resend.com', 'resend_api_url', 'I4: URL base do Resend (canal email de alertas)') WHERE NOT EXISTS (SELECT 1 FROM vault.secrets WHERE name='resend_api_url');
+SELECT vault.create_secret('https://n8n.atomicabr.com.br/webhook/warroom-alert', 'n8n_warroom_alert_webhook', 'I4: webhook n8n de alerta warroom (wal slots — consumido pela migration 00013)') WHERE NOT EXISTS (SELECT 1 FROM vault.secrets WHERE name='n8n_warroom_alert_webhook');
