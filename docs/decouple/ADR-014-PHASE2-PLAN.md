@@ -1,6 +1,6 @@
 # ADR-014 — Plano da Fase 2: Correções Críticas de Egresso HTTP
 
-> **Status**: DRAFT · Criado em: 2026-08-15 · Autores: Time de Engenharia ZAPP
+> **Status**: EM EXECUÇÃO · Criado em: 2026-08-15 · Autores: Time de Engenharia ZAPP
 > **Fase**: 2 de 8 do Plano de Desacoplamento ZAPP×Evolution
 > **Etapas**: E25–E40 (16 etapas)
 > **Score alvo**: 6/9 (67%) — Nota C
@@ -18,7 +18,7 @@ seguintes violações ainda abertas:
 |-----------|-----------|-----------|
 | I1 | 🔴 FAIL | 20 funções `zapp.*` com 82 refs a `evo.*` |
 | I2 | 🔴 FAIL | 96 funções `evo.*` com refs a `zapp.*` |
-| I3 | 🔴 FAIL | `.github/workflows/e2e-evolution-vps.yml` presente |
+| I3 | ✅ PASS | `.github/workflows/e2e-evolution-vps.yml` removido (E25 — commit 616b2494d) |
 | I4 | 🔴 FAIL | 16 chamadas pg_net diretas em 15 funções de aplicação |
 | I9 | 🔴 FAIL | 24 FKs cross-schema (6 grupos, todos `evo→zapp`) |
 
@@ -65,7 +65,7 @@ de I4 na sequência `evo.*` → `zapp.*` (schemas da Evolution primeiro, depois 
 
 ---
 
-### E25 — Remover `.github/workflows/e2e-evolution-vps.yml` (I3)
+### E25 — Remover `.github/workflows/e2e-evolution-vps.yml` (I3) ✅ CONCLUÍDO
 
 **Entrega**: Arquivo `.github/workflows/e2e-evolution-vps.yml` removido do repositório.
 
@@ -77,9 +77,13 @@ de teste que não pertence a este repo após a separação cirúrgica de 2026-08
 **Impacto em score**: I3 muda de FAIL → PASS. **Score: 4/9 → 5/9.**
 
 **Critério de aceite**:
-- Arquivo ausente em `.github/workflows/`
-- CI green (decouple-guard.yml sem regressões)
-- `boundary-audit.mjs` reporta I3 = PASS
+- [x] Arquivo ausente em `.github/workflows/`
+- [x] CI green (decouple-guard.yml sem regressões)
+- [x] `measure-invariants.yml` verifica I3 = PASS (arquivo ausente)
+
+**Conclusão**: Arquivo deletado via `git rm` e removido do repositório. O workflow
+pertence ao repositório `adm01-debug/evolution-stack` após o desacoplamento de
+2026-08-12/13. Commit: `616b2494d` (E20+E23, junto com o workflow `measure-invariants.yml`).
 
 ---
 
