@@ -17,7 +17,7 @@
 | 4 | Egresso front via adapter | 10 | **10** | Concluído (zero bypass confirmado hoje) |
 | 5 | Gateway edge (client.ts + allowlist) | 10 | **10** | Concluído (ADR-011 formal pendente) |
 | 6 | Porta de ingestão (ingest-port/RPCs) | 9 | **9** | Concluído |
-| 7 | Egresso SQL (resolvers vault) | 9,5 | **9** | Concluído (dedup de secrets APROVADO, execução pendente — F6) |
+| 7 | Egresso SQL (resolvers vault) | 9,5 | **10** | Concluído (F6 EXECUTADO — re-medido 2026-08-15, ver Adendo) |
 | 8 | Modelo canônico + normalizers | 9 | **10** | Concluído (contract.zod executável) |
 | 9 | Prova de troca de provider (fake/runbook/ensaio) | 6 | **8** | **Parcial** (ensaio cronometrado operacional F5 pendente) |
 | 10 | Governança e gates CI | 8,5 | **9** | Concluído (PRs #1083/#1084 pendentes de merge na main) |
@@ -106,3 +106,16 @@
 
 ---
 *Rascunho — notas finais após F5/F6/F7. Documento gerado em 2026-08-14 (tarde) pelo Agente 9 da onda V4-FINAL (tarefa #43). Evidências `[HOJE]` medidas no worktree `chat-h713641` (inventory/sql-gate/verb-gate executados; arquivos lidos na árvore atual); evidências `[ONTEM]` herdadas de [BASELINE_V4.md](./BASELINE_V4.md) (medição da manhã, onda 10 agentes). Nenhuma medição de produção foi refeita neste rascunho — valores de runtime citados vêm do BASELINE_V4/V3. Notas podem subir (D1/D5/D10) ou ajustar após o merge dos PRs #1083/#1084 e execução de F5/F6/F7.*
+
+---
+
+## Adendo — Re-medição 2026-08-15 (maestro, pós-merge #1097)
+
+Medições executadas diretamente no Postgres de produção (stack 35) via MCP em 2026-08-15 ~16:20Z:
+
+- **F6 (D7) EXECUTADO e verificado:** vault com **44 secrets, 0 nomes duplicados**. Os duplicados \`evolution_api_key_v2\` e \`evolution_webhook_secret\` **não existem mais**; canônicos vivos com consumidores reais (\`evolution_api_key\` → \`ops.fn_evo_key\`/\`_v2\`; \`webhook_secret_evolution\` → 1 fn). D7 → **10/10**.
+- **Migrations I4 aplicadas:** versões \`20260815200001–00013\` registradas em \`supabase_migrations.schema_migrations\`; \`ops.fn_evo_url_v2\`/\`fn_evo_key_v2\`/\`fn_get_vault_secret\` presentes; 10/10 secrets I4 no vault.
+- **ACL verificada:** as 5 funções ops (\`fn_evo_url\`, \`fn_evo_key\`, \`fn_evo_url_v2\`, \`fn_evo_key_v2\`, \`fn_get_vault_secret\`) com ACL \`{postgres=X/postgres}\` — **sem EXECUTE público** (critério W-V1/F-01 satisfeito em produção).
+- **Consumer (evolution-stack):** INSERT morto em \`public.evolution_webhook_events\` removido (commit \`cc44a64\`), imagem \`0f4b07cf\` deployada no stack 113 com rolling start-first; runtime confirmado com \`pg_log_err=0\` (antes: 1 falha silenciosa por evento). Achado F4 da AUDITORIA_INDEPENDENCIA fechado.
+- **Topologia (issue #1098):** PR #1096 retrabalhado para a topologia real (E41 mantém só \`zapp.evolution_webhook_events_v2\`), rebaseado na main, 5 gates exit 0, un-drafted.
+- **Pendências para fechamento:** F5 (ensaio cronometrado operacional — em execução, D9) e F7 (congelamento formal \`evo\`, D2).

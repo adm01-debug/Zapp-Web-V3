@@ -1,0 +1,36 @@
+# MOVIDO do evolution-stack em 2026-08-15 (E29): mede edge functions do ZAPP, pertence a este repo.
+version: "3.7"
+# =============================================================================
+# ATENCAO: Stack 239 (evolution-functions-health) foi DELETADA do Portainer
+# em 2026-08-14 (desacoplamento zapp-web-v3). Este arquivo e referencia
+# historica. Removido do gitops-stacks STACK_MAP na mesma data.
+# Para recriar: importar este YAML no Portainer como nova stack manualmente.
+# =============================================================================
+# evolution-functions-health — Stack 239 (recriado 2026-08-12 / deletado 2026-08-14)
+# Usa config externo: check_functions_health
+services:
+  functions-health:
+    image: alpine:3.19
+    command: ["/bin/sh", "-c", "sleep 60; while true; do sh /scripts/check-functions-health.sh; sleep 300; done"]
+    configs:
+      - source: check_functions_health
+        target: /scripts/check-functions-health.sh
+        mode: 0555
+    networks:
+      - AtomicaBRNet
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: any
+      labels:
+        - com.atomicabr.watchdog=functions-health
+        - com.atomicabr.watchdog.cycle=5m
+        - com.atomicabr.audit=recreated-2026-08-12-gitops-migration
+configs:
+  check_functions_health:
+    external: true
+networks:
+  AtomicaBRNet:
+    external: true
+    name: AtomicaBRNet

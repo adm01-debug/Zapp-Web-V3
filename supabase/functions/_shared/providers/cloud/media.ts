@@ -39,7 +39,7 @@ const TIMEOUT_MS_DEFAULT = 30_000;
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 
 export interface CloudMediaDownloadError {
-  code: "UNAUTHORIZED" | "NOT_FOUND" | "SERVER_ERROR" | "TOO_LARGE" | "TIMEOUT" | "NETWORK_ERROR";
+  code: "UNAUTHORIZED" | "NOT_FOUND" | "SERVER_ERROR" | "TOO_LARGE" | "TIMEOUT" | "NETWORK_ERROR" | "INVALID_MEDIA";
   status: number; // 0 = falha de rede/timeout (sem resposta HTTP)
   message: string;
 }
@@ -130,10 +130,15 @@ function detectMediaType(bytes: Uint8Array): string | null {
   if (b.length >= 12 && b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return 'image/webp';
   if (b.length >= 4 && b[0] === 0x4F && b[1] === 0x67 && b[2] === 0x67 && b[3] === 0x53) return 'audio/ogg';
   if (b.length >= 3 && b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33) return 'audio/mpeg';
-  if (b.length >= 8 && b[0] === 0x1A && b[1] === 0x45 && b[2] === 0xDF && b[3] === 0xA3) return 'audio/mp4';
+  if (b.length >= 4 && b[0] === 0x1A && b[1] === 0x45 && b[2] === 0xDF && b[3] === 0xA3) return 'video/webm'; // EBML (webm/mkv)
   if (b.length >= 4 && b[0] === 0x66 && b[1] === 0x4C && b[2] === 0x61 && b[3] === 0x43) return 'audio/flac';
   if (b.length >= 4 && b[0] === 0x4F && b[1] === 0x70 && b[2] === 0x75 && b[3] === 0x73) return 'audio/opus';
-  if (b.length >= 12 && b[0] === 0x00 && b[1] === 0x00 && b[2] === 0x00 && b[3] === 0x18 && b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) return 'video/mp4';
+  // ISO-BMFF (mp4/m4a): distinguir pelo major brand (bytes 8-11)
+  if (b.length >= 12 && b[0] === 0x00 && b[1] === 0x00 && b[2] === 0x00 && b[3] === 0x18 && b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) {
+    const brand = String.fromCharCode(b[8], b[9], b[10], b[11]);
+    if (brand === 'M4A ' || brand === 'M4B ' || brand === 'isom' && b[12] === 0x4D) return 'audio/mp4';
+    return 'video/mp4';
+  }
   if (b.length >= 5 && b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46 && b[4] === 0x2D) return 'application/pdf';
   if (b.length >= 4 && b[0] === 0x50 && b[1] === 0x4B && b[2] === 0x03 && b[3] === 0x04) return 'application/zip';
   return null;
@@ -198,9 +203,10 @@ export async function downloadMedia(
   const timeoutMs = type === "audio" ? TIMEOUT_MS_AUDIO : TIMEOUT_MS_DEFAULT;
 
   let resp: Response | null = null;
+  let timer: ReturnType<typeof setTimeout> | null = null;
   for (let attempt = 0; attempt < 3; attempt++) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const r = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
@@ -329,7 +335,7 @@ export async function downloadMedia(
       },
     };
   } finally {
-    clearTimeout(timer);
+    if (timer) clearTimeout(timer);
   }
 }
 

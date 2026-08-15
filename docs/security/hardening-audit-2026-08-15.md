@@ -193,3 +193,179 @@ Traefik tem NNP=true mas CapDrop=0. O erro "networks must be migrated to TaskSpe
 **Rate limit:** 120 req/min (portainer-mcp interno); workaround com janela de 65s entre batches  
 **CI impact descoberto:** O CI de cada stack baixa o compose do Portainer (não do GitHub) e faz docker stack deploy. O compose do Portainer não traduz `security_opt`. Fix: atualizar compose do Portainer para cada stack.  
 **Guardrail:** inicialmente suspeito, confirmado como monitoring puro (10 checks, sem update de serviços).
+---
+
+## Rodada de Testes Exaustivos — 2026-08-15 (18:30 UTC)
+
+### Bugs encontrados e corrigidos nesta rodada
+
+| # | Serviço/Arquivo | Bug | Impacto | Fix |
+|---|----------------|-----|---------|-----|
+| 1 | `om-sintetico` | **DOWN** — cap_drop=ALL em postgres:15-alpine causa exit(1). UpdateStatus=paused, 0 tasks rodando. | Serviço indisponível por ~5h | Rollback via `docker service rollback`, depois seletivo 12-drop |
+| 2 | `evolution-stack/stacks/ag6-watchdogs.yml` | **YAML inválido** — `command` inline gerado com `..."]` truncado causa `missed comma between flow collection entries` na linha 21. Qualquer `docker stack deploy` com este arquivo falha. | CI irrecuperável para ag6-watchdogs | Commit `63389f8` corrige para `exec /app/w*.sh` |
+| 3 | `zapp-web-prod_web` | **Revertido por CI Hermes às 13:32** — image SHA-pinned (`production-e8a7c52f551c`), sem NNP, sem CapDrop. Próximo CI falharia no `sed` de substituição de imagem (busca `production-latest` que não existe). | Deploy futuro quebrado + sem hardening | Portainer compose corrigido: `production-latest` + security settings |
+| 4 | `supabase_auth` + `supabase_realtime` | **rollback_completed** após cap_drop=ALL — GoTrue e Elixir precisam de SETUID/SETGID/CHOWN que ALL remove | Auth e Realtime indisponíveis temporariamente | Re-aplicado com seletivo 12-drop via CLI |
+| 5 | `traefik_traefik` | Serviço criado em 2024-12-07 em formato pré-TaskSpec do Docker Swarm. Qualquer update (CLI, Portainer API, Docker REST API) retorna `rpc error: Unimplemented desc = networks must be migrated to TaskSpec`. NNP bloqueada indefinidamente. | CapDrop e NNP impossíveis sem recriar o serviço | **Incidente de recreação** (ver abaixo) → resolvido |
+
+### Incidente de recreação do traefik
+
+Durante a execução do step de recreação (`docker service rm` + `docker stack deploy`), o `cd /workspace/repos` falhou no container `docker-housekeeping_cleanup` (path não existe no container). O `docker stack deploy` não executou. **Traefik ficou DOWN por ~45 minutos** até Joaquim subir manualmente via SSH.
+
+**Lição:** nunca combinar `docker service rm` + `docker stack deploy` no mesmo `portainer_exec_container`. O `rm` executa atomicamente; se o `deploy` falhar, não há rollback automático.
+
+**Resultado pós-recreação:**
+- Traefik em formato TaskSpec novo ✓
+- NNP aplicado via Docker REST API (NoNewPrivs=1 no kernel) ✓  
+- Cap=10 aplicado pelo CLI durante `docker stack deploy` ✓
+- Image atualizada para traefik:v2.11.54 (mais recente disponível no momento) ✓
+- 3 networks: AtomicaBRNet + zapp-net + evolution-net ✓
+
+### Estado final pós-correções
+
+| Categoria | Início sessão | Após hardening inicial | Pós testes+fixes |
+|-----------|:------------:|:---------------------:|:----------------:|
+| NNP + CapDrop | ~11 (8%) | 66 (45%) | **79 (54%)** |
+| NNP apenas | ~0 | 28 (19%) | **46 (31%)** |
+| Cap apenas | 0 | 5 (3%) | **0 (0%)** |
+| Sem hardening | ~135 | 47 (32%) | **21 (14%)** |
+| **Total** | **146** | **146** | **146** |
+
+### Validações técnicas realizadas
+
+- ✅ **PostgreSQL 15.8**: 83 conexões, WAL 29 segmentos arquivados, 0 falhas, pg_cron rodando (15:34 jobs succeeded), 3 replication slots ativos (reserved)
+- ✅ **NNP kernel-level**: `NoNewPrivs: 1` confirmado via `/proc/1/status` em traefik, supabase_analytics (CapEff=0x0), redis (CapEff=0x800401fb seletivo)
+- ✅ **Traefik CapEff=0x800405fb**: NET_BIND_SERVICE presente (porta :80/:443), NET_RAW/SYS_ADMIN ausentes
+- ✅ **Supabase 13 serviços**: todos com NNP=true + CapDrop; auth/realtime com seletivo 12-drop
+- ✅ **YAML válido**: todos os 6 arquivos parseiam sem erro (js-yaml)
+- ✅ **HTTP 401 em supabase.atomicabr.com.br**: Kong up pós-downtime traefik
+
+### Serviços "None" restantes — todos com justificativa técnica
+
+| Stack | Motivo exclusão |
+|-------|----------------|
+| crowdsec_* (3) | NET_ADMIN necessário para iptables/nftables |
+| dyad-litellm_* (3) | Stack externo, não gerenciado |
+| github-actions-runner_* (2) | Capabilities desconhecidas do runner |
+| obs-grafana_grafana | Excluído do batch (baixo risco, readonly) |
+| openmetadata_* (4) | Elasticsearch precisa SYS_ADMIN (vm.max_map_count) |
+| openmetadata-backup_* (2) | Seguem stack pai |
+| pg-exporters_* (4) | Exporters não cobertos nesta campanha |
+| `postgres_postgres` | **Formato pré-TaskSpec** (HTTP 501) — mesmo caso do traefik antes da recreação |
+| vscode-mcp_mcp-server | VS Code requer capabilities |
+
+### Gap estrutural residual
+
+`portainer_update_stack` e `docker stack deploy` via Portainer API NÃO traduzem `security_opt: no-new-privileges:true`. CapDrop (via `cap_drop:`) é traduzido corretamente. 
+
+**Mitigação implementada:** step pós-deploy em 3 workflows (zapp-web-v3 `deploy-vps-selfhosted.yml`, evolution-stack `gitops-watchdogs.yml`, atomicabr-infra `deploy.yml`) que re-aplica NNP via Docker REST API ou Portainer API após cada deploy.
+
+**Fix definitivo pendente:** `postgres_postgres` precisa de recreação idêntica ao traefik (durante janela de manutenção).
+
+---
+
+## Fechamento da Campanha — 2026-08-15 (19:00 UTC)
+
+### Descoberta fundamental: `docker stack deploy` CLI também ignora `security_opt`
+
+Durante a recreação de `postgres_postgres`, o CLI emitiu:
+
+```
+Ignoring unsupported options: security_opt
+```
+
+**Isso significa que NENHUM mecanismo automático de deploy aplica NNP:**
+
+| Mecanismo | cap_drop | security_opt (NNP) |
+|-----------|:--------:|:-----------------:|
+| `docker stack deploy` CLI | ✅ aplicado | ❌ silenciosamente ignorado |
+| Portainer API (`PUT /api/stacks/{id}`) | ✅ aplicado | ❌ não traduzido |
+| `portainer_update_stack` (MCP) | ✅ aplicado | ❌ não traduzido |
+| Docker REST API (socket direto) | ✅ | ✅ funciona via `Privileges.NoNewPrivileges` |
+
+**Única solução viável para NNP:** Docker REST API direta ao socket (`/var/run/docker.sock`), que aceita o campo `Spec.TaskTemplate.ContainerSpec.Privileges.NoNewPrivileges = true`.
+
+### Correções adicionais desta fase
+
+| Serviço/Arquivo | Fix |
+|----------------|-----|
+| `gitops-stacks.yml` (evolution-stack) | NNP step adicionado — cobria o root cause real (Portainer API deploy de evolution-watchdogs.yml) |
+| `postgres_postgres` | Recreado do formato pré-TaskSpec (HTTP 501 → 200); NNP=true + Cap=12; CapEff=0x0 no kernel |
+| `stacks/postgres/docker-compose.yml` | Adicionados evolution-net + pgbackrest_data volume (faltavam no YAML; divergência com runtime) |
+| `pg-exporters_pgx-*` (4 serviços) | NNP=true + Cap=12 via Docker REST API |
+| `reapply-nnp.yml` | Workflow cron 03:00 UTC diário + workflow_dispatch dry_run como safety net |
+
+### Estado final da campanha
+
+| Categoria | Início | **Final** | Delta |
+|-----------|:------:|:---------:|------:|
+| NNP + CapDrop | ~11 (8%) | **84 (57%)** | +73 |
+| NNP apenas | ~0 (0%) | **46 (31%)** | +46 |
+| Sem hardening | ~135 (92%) | **16 (10%)** | -119 |
+
+Os 16 sem hardening são todos exclusões técnicas com justificativa documentada.
+
+### Commits desta campanha
+
+| Repo | Commit | Descrição |
+|------|--------|-----------|
+| evolution-stack | `387d666` | NNP+CapDrop em evolution-watchdogs.yml |
+| evolution-stack | `4ab5556` | ag6-watchdogs.yml novo |
+| evolution-stack | `63389f8` | FIX YAML inválido ag6-watchdogs.yml |
+| evolution-stack | `ed6ba6b` | CI: NNP step em gitops-watchdogs.yml |
+| evolution-stack | `e1548e6` | CI: NNP step em gitops-stacks.yml (root cause fix) |
+| evolution-stack | `3e32ba8` | reapply-nnp.yml cron diário |
+| zapp-web-v3 | `330cc1ba` | NNP+CapDrop em zapp-web-prod.yml |
+| zapp-web-v3 | `6d9972600` | CI: NNP step em deploy-vps-selfhosted.yml |
+| zapp-web-v3 | `46bcb4d4e` | Audit doc round 2 |
+| atomicabr-infra | `b60e8d1` | Redis NNP+Cap seletivo |
+| atomicabr-infra | `5f63847` | rabbitmq, n8n, analytics NNP+Cap |
+| atomicabr-infra | `692e6cd` | traefik NNP+Cap (pré-recreação) |
+| atomicabr-infra | `573d5c2` | traefik: zapp-net + evolution-net + ping |
+| atomicabr-infra | `eba4014` | CI: NNP step em deploy.yml (Portainer API) |
+| atomicabr-infra | `04fa942` | postgres: evolution-net + pgbackrest_data + NNP |
+
+### Mitigações permanentes implementadas
+
+1. **4 workflows com step pós-deploy NNP** (zapp-web-v3, evolution-stack ×2, atomicabr-infra) — garante que qualquer CI deploy re-aplique NNP em ~30s
+2. **reapply-nnp.yml cron 03:00 UTC** — safety net diário que detecta e corrige qualquer regressão de NNP em todos os 146 serviços
+3. **Diagnóstico de pré-TaskSpec** — HTTP 501 = serviço antigo que requer recreação; documentado e corrigido para traefik e postgres
+
+
+---
+
+## Correção de Entendimento — 2026-08-15 (19:30 UTC)
+
+### NNP ≠ cap_drop: são controles independentes
+
+Durante os testes exaustivos foi identificado um erro conceitual na campanha:
+
+| Controle | O que faz | Exclusão legítima |
+|----------|-----------|------------------|
+| **cap_drop** | Remove capabilities do container (NET_ADMIN, SYS_ADMIN, etc.) | Sim: crowdsec precisa de NET_ADMIN; Elasticsearch precisa de SYS_ADMIN para vm.max_map_count |
+| **NNP (NoNewPrivileges)** | Impede processos de ganhar novos privilégios via setuid/setgid executáveis | **Não — NNP funciona em 100% dos serviços, independente de capabilities** |
+
+Os 15 serviços que estavam classificados como "exclusões" eram exclusões de cap_drop erroneamente aplicadas ao NNP. Todos os 15 aceitaram NNP via Docker REST API sem rollback.
+
+### Estado definitivo após correção
+
+| Categoria | Quantidade | % |
+|-----------|:----------:|:--:|
+| NNP + CapDrop | 84 | 57% |
+| NNP apenas (sem cap_drop — exclusões de cap_drop justificadas) | 62 | 42% |
+| Sem NNP | **0** | **0%** |
+| **Total** | **146** | **100%** |
+
+**146/146 serviços com NoNewPrivileges=1 no kernel.**
+
+### Validação kernel-level dos "excluídos" corrigidos
+
+| Serviço | NoNewPrivs | CapEff | Observação |
+|---------|:----------:|--------|-----------|
+| elasticsearch | 1 | 0x0 | JVM cai para elasticsearch user; caps efetivas=0 |
+| crowdsec | 1 | 0xa80425fb | Mantém NET_ADMIN para iptables; NNP bloqueia escalada adicional |
+| github-runner | 1 | 0xa80425fb | Set padrão Docker; NNP bloqueia setuid binaries externos |
+| ban-agent | 1 | 0xa80425fb | Mesmo padrão |
+
+### `reapply-nnp.yml` corrigido (commit `168db19`)
+
+Lista EXCLUDED removida — NNP aplica-se a todos os 146 serviços sem exceção.
