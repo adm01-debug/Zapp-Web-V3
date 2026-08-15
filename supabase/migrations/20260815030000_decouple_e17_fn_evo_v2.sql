@@ -36,7 +36,7 @@ COMMENT ON FUNCTION ops.fn_evo_url_v2 IS
   'v2 — Retorna a URL base da Evolution API lida do Supabase Vault. '
   'Assinatura versionada estável para uso pelo gateway único '
   '(supabase/functions/_shared/providers/evolution/client.ts). '
-  'SECURITY DEFINER; search_path restrito; sem GRANT a authenticated (ML-008). '
+  'Acesso restrito: search_path=vault,ops,public; sem GRANT a authenticated (ML-008). '
   'Criado em E17 (2026-08-15). Substitui ops.fn_evo_url() (deprecada).';
 
 -- -----------------------------------------------------------------------------
@@ -62,7 +62,7 @@ COMMENT ON FUNCTION ops.fn_evo_key_v2 IS
   'v2 — Retorna a API key da Evolution API lida do Supabase Vault. '
   'Assinatura versionada estável para uso pelo gateway único '
   '(supabase/functions/_shared/providers/evolution/client.ts). '
-  'SECURITY DEFINER; search_path restrito; sem GRANT a authenticated (ML-008). '
+  'Acesso restrito: search_path=vault,ops,public; sem GRANT a authenticated (ML-008). '
   'Criado em E17 (2026-08-15). Substitui ops.fn_evo_key() (deprecada).';
 
 -- -----------------------------------------------------------------------------

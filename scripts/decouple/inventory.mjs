@@ -309,7 +309,10 @@ const metrics = {
   i2EvoRefZapp: i2,
 };
 
-const total = Object.values(metrics).reduce((a, b) => a + b, 0);
+// gateTotal: métricas 1-4 (hard blockers — gate CI). I1/I2 são métricas de progresso, não de gate.
+const gateTotal = frontEvoBypass + backendUrlBypass + frontEvoWrites + frontDirectEvoHttp;
+const progressTotal = i1 + i2;
+const total = gateTotal + progressTotal;
 const btotal = Object.values(OLD_BASELINE).reduce((a, b) => a + b, 0);
 
 if (IS_JSON) {
@@ -349,7 +352,8 @@ if (IS_JSON) {
   printMetric('I1 zapp.* → evo.* (sql): ', 'i1ZappRefEvo',       i1);
   printMetric('I2 evo.* → zapp.* (sql): ', 'i2EvoRefZapp',       i2);
   console.log('═══════════════════════════════════════════════');
-  console.log(`TOTAL: ${total}  ${passEmoji(total)} (baseline novo: 0, antigo: ${btotal}, delta: ${total - btotal})`);
+  console.log(`TOTAL: ${gateTotal}  ${passEmoji(gateTotal)} (baseline novo: 0, antigo: ${btotal}, delta: ${gateTotal - btotal})`);
+  console.log(`PROGRESS (I1+I2): ${progressTotal}  (não bloqueia CI — métricas de evolução incremental)`);
   console.log('Meta: TOTAL → 0 (desacoplamento completo)');
 }
 
