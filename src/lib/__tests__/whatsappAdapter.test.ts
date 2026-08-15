@@ -523,6 +523,29 @@ describe('sendText', () => {
     });
   });
 
+  it('routes @g.us to evolution even when mode is cloud (dual-mode)', async () => {
+    mockSafeRpc.mockResolvedValueOnce(rpcResult('official')); // modo cloud
+    mockFunctionsInvoke.mockResolvedValueOnce(invokeResult({ success: true }));
+
+    await sendText({ remoteJid: '5511999999999@g.us', text: 'Grupo!' });
+
+    expect(mockFunctionsInvoke).toHaveBeenCalledWith('evolution-api', {
+      body: expect.objectContaining({ action: 'send-text', text: 'Grupo!' }),
+    });
+    expect(mockFunctionsInvoke).not.toHaveBeenCalledWith('whatsapp-cloud-send', expect.anything());
+  });
+
+  it('routes @g.us to evolution without consulting the mode RPC', async () => {
+    mockFunctionsInvoke.mockResolvedValueOnce(invokeResult({ success: true }));
+
+    await sendText({ remoteJid: '5511999999999@g.us', text: 'Grupo2' });
+
+    expect(mockSafeRpc).not.toHaveBeenCalled();
+    expect(mockFunctionsInvoke).toHaveBeenCalledWith('evolution-api', {
+      body: expect.objectContaining({ action: 'send-text', text: 'Grupo2' }),
+    });
+  });
+
   it('passes stripped phone number (without @domain) to the cloud function', async () => {
     mockSafeRpc.mockResolvedValueOnce(rpcResult('official'));
     mockFunctionsInvoke
