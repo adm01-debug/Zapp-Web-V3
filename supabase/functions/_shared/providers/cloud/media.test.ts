@@ -27,7 +27,7 @@ Deno.test("download 500 -> SERVER_ERROR apos 3 attempts (retry)", async () => {
   const c = stub(500, "err");
   const r = await downloadMedia("m2", "tok");
   assertEquals(r.ok, false);
-  if (!r.ok) assertEquals(r.error.code, "SERVER_ERROR");
+  if (!r.ok && r.error) assertEquals(r.error.code, "SERVER_ERROR");
   assertEquals(c(), 3);
 });
 
@@ -57,14 +57,14 @@ Deno.test("texto + octet-stream -> INVALID_MEDIA (fail-closed)", async () => {
   stub(200, TEXT, { "content-type": "application/octet-stream" });
   const r = await downloadMedia("m6", "tok");
   assertEquals(r.ok, false);
-  if (!r.ok) assertEquals(r.error.code, "INVALID_MEDIA");
+  if (!r.ok && r.error) assertEquals(r.error.code, "INVALID_MEDIA");
 });
 
 Deno.test("404 -> NOT_FOUND, 1 chamada (sem retry)", async () => {
   const c = stub(404, "nf");
   const r = await downloadMedia("m7", "tok");
   assertEquals(r.ok, false);
-  if (!r.ok) assertEquals(r.error.code, "NOT_FOUND");
+  if (!r.ok && r.error) assertEquals(r.error.code, "NOT_FOUND");
   assertEquals(c(), 1);
 });
 
@@ -72,5 +72,5 @@ Deno.test("timeout -> TIMEOUT", async () => {
   globalThis.fetch = (async () => { throw new DOMException("aborted", "AbortError"); }) as typeof fetch;
   const r = await downloadMedia("m8", "tok");
   assertEquals(r.ok, false);
-  if (!r.ok) assertEquals(r.error.code, "TIMEOUT");
+  if (!r.ok && r.error) assertEquals(r.error.code, "TIMEOUT");
 });
