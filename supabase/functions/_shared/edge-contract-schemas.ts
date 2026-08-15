@@ -167,6 +167,62 @@ const NonEmptyObjectSchema = JsonObjectSchema.refine((value) => Object.keys(valu
 });
 const NoBodySchema = z.undefined().optional();
 
+// W6_BEGIN_CLOUD_CONTRACTS
+// CloudWebhookV1Schema: envelope do webhook da Meta. `object` é literal e
+// `entry[].changes[].value` é PERMISSIVO (metadata + contacts/messages/
+// statuses/errors como arrays de any) porque o normalizer
+// (whatsapp-cloud-normalizer.ts) valida o conteúdo DEPOIS — o gate só garante
+// o shape do envelope e nunca derruba ingestão por campo novo do provedor.
+export const CloudWebhookV1Schema = z.object({
+  object: z.literal('whatsapp_business_account'),
+  entry: z
+    .array(
+      z.object({
+        id: z.string().trim().min(1),
+        changes: z
+          .array(
+            z.object({
+              field: z.string().trim().min(1),
+              value: z
+                .object({
+                  messaging_product: z.literal('whatsapp').optional(),
+                  metadata: z
+                    .object({
+                      display_phone_number: z.string().trim().min(1).optional(),
+                      phone_number_id: z.string().trim().min(1).optional(),
+                    })
+                    .optional(),
+                  contacts: z.array(z.any()).optional(),
+                  messages: z.array(z.any()).optional(),
+                  statuses: z.array(z.any()).optional(),
+                  errors: z.array(z.any()).optional(),
+                })
+                .passthrough(),
+            })
+          )
+          .min(1),
+      })
+    )
+    .min(1),
+});
+
+// CloudSendV1Schema: corpo de envio da Graph API da Meta (whatsapp-cloud-send).
+// `to` E.164 — regex de 10 a 15 dígitos (DDI+DDD+número); `type` restrito aos
+// 6 tipos de envio suportados; `text` ≤ 4096 (limite real da API Meta);
+// media/mediatype/filename opcionais. Permissivo (extras passam) — provedor
+// externo, mesmo padrão dos demais contratos Meta.
+export const CloudSendV1Schema = z
+  .object({
+    to: z.string().regex(/^\d{10,15}$/, 'to: 10-15 dígitos (DDI+DDD+número)'),
+    type: z.enum(['text', 'image', 'audio', 'video', 'document', 'sticker']),
+    text: z.string().max(4096).optional(),
+    media: z.string().url().optional(),
+    mediatype: z.string().optional(),
+    filename: z.string().max(255).optional(),
+  })
+  .passthrough();
+// W6_END_CLOUD_CONTRACTS
+
 export const WebhookContractSchemas = {
   'evolution-webhook': {
     v1: EvolutionWebhookV1Schema,

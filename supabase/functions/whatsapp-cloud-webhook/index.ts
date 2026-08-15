@@ -4,6 +4,19 @@
 //         filtra eventos suportados (messages/statuses), aplica idempotência por message.id
 //         e persiste no Evolution DB via rpc_insert_message.
 //
+// Evolução W5 (decouple-audit):
+//  1. Normalizer v2 (_shared/whatsapp-cloud-normalizer.ts) substitui a extração inline
+//     (text/image/video/document/location/interactive...) para mensagens E statuses.
+//  2. Statuses (sent/delivered/read/failed) agora são PERSISTIDOS — imitando o handler de
+//     status do evolution-webhook (handleMessagesUpdate): lookup em evolution_messages por
+//     message_id + instance_name e update com guarda de prioridade (shouldUpdateStatus),
+//     sem fabricar placeholder para ACK órfão (M-4).
+//  3. p_instance resolvido via env WHATSAPP_CLOUD_INSTANCE (default 'wpp2').
+//  4. HMAC: secret configurado + assinatura ausente/incorreta → 401; secret NÃO configurado
+//     → warning + segue (dev mode).
+//  5. Notificação vazia da Meta (entry null/[]) → 200 benigno (sem retry-storm).
+//  6. Resposta de sucesso ganha `duplicate:true` quando houve mensagem já processada.
+//
 // Este endpoint é exclusivo do MODO OFICIAL. O modo NÃO-OFICIAL (Evolution API) é
 // servido por `evolution-webhook` com validação HMAC própria (x-evolution-signature).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
@@ -11,7 +24,12 @@ import { createZappAdminClient } from '../_shared/db-client.ts';
 import { verifyHmacSignature } from "../_shared/hmac-validation.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
-import { markEventProcessed } from "../_shared/evolution-helpers.ts";
+import { markEventProcessed, shouldUpdateStatus } from "../_shared/evolution-helpers.ts";
+import {
+  normalizeMetaPayload,
+  type NormalizedIncoming,
+  type NormalizedStatus,
+} from "../_shared/whatsapp-cloud-normalizer.ts";
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { timingSafeStringEqual } from '../_shared/auth.ts';
@@ -50,8 +68,9 @@ interface MetaWebhookBody {
 
 const VERIFY_TOKEN = Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN") ?? "";
 const APP_SECRET = Deno.env.get("WHATSAPP_CLOUD_APP_SECRET") ?? "";
-const STRICT_MODE =
-  (Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_STRICT") ?? "true").toLowerCase() !== "false";
+// [W5] Instância alvo no Evolution DB — configurável via env, default 'wpp2'
+// (compat com o valor hardcoded anterior).
+const P_INSTANCE = Deno.env.get("WHATSAPP_CLOUD_INSTANCE") ?? "wpp2";
 const EXTERNAL_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL')) ?? "";
 const EXTERNAL_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY')) ?? (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY')) ?? "";
 const externalClient =
@@ -62,11 +81,6 @@ const localClient = createZappAdminClient();
 // ignorado (e logado), em vez de processado às cegas.
 // Meta WhatsApp Cloud API notification fields
 const SUPPORTED_FIELDS = new Set(["messages", "statuses"]);
-
-function jidFromPhone(phone: string): string {
-  const digits = String(phone || "").replace(/\D/g, "");
-  return `${digits}@s.whatsapp.net`;
-}
 
 function reqId(): string {
   return crypto.randomUUID().slice(0, 8);
@@ -94,34 +108,95 @@ async function isDuplicate(messageId: string): Promise<boolean> {
   return !isNew;
 }
 
-async function persistInbound(message: MetaWAMessage, contact: MetaWAContact | undefined) {
+/**
+ * [W5] Persiste mensagem inbound NORMALIZADA (normalizer v2) via RPCs canônicos.
+ * A extração inline antiga (text.body ?? image.caption ?? ...) foi substituída
+ * pelo normalizeMetaPayload — aqui só mapeamos o modelo canônico para as RPCs.
+ */
+async function persistInbound(message: NormalizedIncoming) {
   if (!externalClient) return;
-  const remoteJid = jidFromPhone(message.from);
-  const content =
-    message.text?.body ??
-    message.image?.caption ??
-    message.video?.caption ??
-    message.document?.filename ??
-    `[${message.type}]`;
-
   try {
     await externalClient.rpc("rpc_upsert_contact", {
-      p_remote_jid: remoteJid,
-      p_instance: "wpp2",
-      p_push_name: contact?.profile?.name ?? null,
+      p_remote_jid: message.remoteJid,
+      p_instance: P_INSTANCE,
+      p_push_name: message.pushName ?? null,
     });
   } catch (_e) {
     // ignore — contact may already exist
   }
 
   await externalClient.rpc("rpc_insert_message", {
-    p_instance: "wpp2",
-    p_remote_jid: remoteJid,
-    p_content: content,
-    p_message_id: message.id,
-    p_message_type: message.type ?? "text",
+    p_instance: P_INSTANCE,
+    p_remote_jid: message.remoteJid,
+    p_content: message.content || `[${message.messageType}]`,
+    p_message_id: message.wamid,
+    p_message_type: message.messageType,
     p_from_me: false,
+    p_direction: "inbound",
+    p_provider: "whatsapp_cloud",
+    p_timestamp: new Date(message.timestamp * 1000).toISOString(),
+    p_push_name: message.pushName ?? null,
+    p_metadata: message.metadata ?? null,
   });
+}
+
+/**
+ * [W5] Persiste status ACK (sent/delivered/read/failed) — NÃO apenas loga.
+ * Imita o handler de status do evolution-webhook (handleMessagesUpdate):
+ * lookup em evolution_messages por message_id + instance_name, guarda de
+ * prioridade shouldUpdateStatus (sent→delivered→read; failed só antes de
+ * delivered) e update de status/status_at/updated_at. ACK órfão (mensagem
+ * desconhecida) é logado e descartado — nunca fabrica placeholder (M-4: o
+ * placeholder bloquearia o upsert real da mensagem).
+ */
+async function persistStatus(status: NormalizedStatus): Promise<"updated" | "skipped" | "orphan"> {
+  if (!externalClient) return "skipped";
+  if (!["sent", "delivered", "read", "failed"].includes(status.status)) return "skipped";
+  try {
+    const { data: current } = await externalClient.from("evolution_messages")
+      .select("id, status")
+      .eq("message_id", status.wamid)
+      .eq("instance_name", P_INSTANCE)
+      .maybeSingle();
+
+    if (!current?.id) {
+      console.warn(
+        `[whatsapp-cloud-webhook] orphan ACK for unknown message message_id=${status.wamid} status=${status.status} — skipping placeholder (awaiting real upsert)`,
+      );
+      return "orphan";
+    }
+
+    if (shouldUpdateStatus(current.status, status.status)) {
+      const now = new Date().toISOString();
+      await externalClient.from("evolution_messages")
+        .update({
+          status: status.status,
+          status_at: new Date(status.timestamp * 1000).toISOString(),
+          updated_at: now,
+        })
+        .eq("id", current.id);
+      console.log(`[whatsapp-cloud-webhook] message ${status.wamid} status: ${current.status} → ${status.status}`);
+      return "updated";
+    }
+    return "skipped";
+  } catch (e) {
+    console.error(`[whatsapp-cloud-webhook] status persist error:`, e);
+    return "skipped";
+  }
+}
+
+/**
+ * [W5] Notificação vazia/benigna da Meta (entry null ou []) → ack 200 sem crash.
+ * Payload JSON válido com object=whatsapp_business_account e entry nulo/vazio
+ * não é violação de contrato digna de 422 (que provocaria retry-storm da Meta
+ * por até 24h) — é ack silencioso. Entry AUSENTE continua caindo no contrato 422.
+ */
+function isBenignEmptyNotification(body: unknown): boolean {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return false;
+  const b = body as Record<string, unknown>;
+  if (b.object !== "whatsapp_business_account") return false;
+  const entry = b.entry;
+  return entry === null || (Array.isArray(entry) && entry.length === 0);
 }
 
 Deno.serve(async (req) => {
@@ -154,36 +229,27 @@ Deno.serve(async (req) => {
   const rawBody = await req.text();
   const signature = req.headers.get("x-hub-signature-256") ?? "";
 
+  // [W5] HMAC obrigatório quando o secret ESTÁ configurado: assinatura ausente ou
+  // incorreta → 401. Secret NÃO configurado → warning + segue (dev mode) — o
+  // antigo fail-closed 503 (WHATSAPP_CLOUD_WEBHOOK_STRICT) foi removido em favor
+  // deste comportamento explícito (requisito W5.1).
   if (APP_SECRET) {
     const ok = signature
       ? await verifyHmacSignature(rawBody, signature, APP_SECRET)
       : false;
     if (!ok) {
       console.warn(
-        `[whatsapp-cloud-webhook][${rid}] invalid signature (strict=${STRICT_MODE} hasSig=${!!signature})`,
+        `[whatsapp-cloud-webhook][${rid}] invalid signature (hasSig=${!!signature})`,
       );
-      void recordPing("invalid_signature", { rid, hasSig: !!signature, strict: STRICT_MODE });
-      if (STRICT_MODE) {
-        return new Response(
-          JSON.stringify({ error: "invalid_signature", requestId: rid }),
-          { status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
-        );
-      }
+      void recordPing("invalid_signature", { rid, hasSig: !!signature });
+      return new Response(
+        JSON.stringify({ error: "invalid_signature", requestId: rid }),
+        { status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
+      );
     }
-  } else if (STRICT_MODE) {
-    // Secret not configured: in strict mode reject all requests rather than
-    // processing unauthenticated payloads. Operator must set the env var.
-    console.error(
-      `[whatsapp-cloud-webhook][${rid}] WHATSAPP_CLOUD_APP_SECRET not configured — rejecting in strict mode`,
-    );
-    void recordPing("invalid_signature", { rid, reason: "no_secret_configured", strict: true });
-    return new Response(
-      JSON.stringify({ error: "webhook_not_configured", requestId: rid }),
-      { status: 503, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
-    );
   } else {
     console.warn(
-      `[whatsapp-cloud-webhook][${rid}] WHATSAPP_CLOUD_APP_SECRET not configured — signature validation skipped (non-strict)`,
+      `[whatsapp-cloud-webhook][${rid}] WHATSAPP_CLOUD_APP_SECRET not configured — signature validation skipped (dev mode)`,
     );
   }
 
@@ -194,6 +260,21 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ error: "invalid_json", requestId: rid }),
       { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
+    );
+  }
+
+  // [W5] Notificação vazia da Meta → 200 benigno ANTES do contrato (evita 422 →
+  // retry-storm da Meta para payload estruturalmente inofensivo).
+  if (isBenignEmptyNotification(body)) {
+    console.log(`[whatsapp-cloud-webhook][${rid}] benign empty notification (entry null/empty) — acked`);
+    void recordPing("event", { rid, processed: 0, duplicates: 0, ignoredFields: 0, benign: true });
+    return new Response(
+      JSON.stringify({
+        ok: true, processed: 0, duplicates: 0, ignoredFields: 0,
+        statusesUpdated: 0, statusesSkipped: 0, statusesOrphan: 0,
+        duplicate: false, benign: true, requestId: rid,
+      }),
+      { status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
     );
   }
 
@@ -214,11 +295,28 @@ Deno.serve(async (req) => {
   // If we reach here, it's valid.
 
   try {
-    const body = parsed.data as MetaWebhookBody;
-    const entries = body?.entry ?? [];
+    const payload = parsed.data as MetaWebhookBody;
+    const entries = payload?.entry ?? [];
+
+    // [W5] Normalizer v2 (E48): mensagens E statuses → modelo canônico. A extração
+    // inline (jidFromPhone, text/image/video/document captions, mapeamento de tipo)
+    // foi REMOVIDA — normalizeMetaPayload é a fonte única de verdade.
+    const normalized = normalizeMetaPayload(payload);
+    if (normalized.validationError) {
+      // Não deve ocorrer (mesmo schema do contrato), mas nunca derruba o fluxo.
+      console.warn(`[whatsapp-cloud-webhook][${rid}] normalizer validation error:`, normalized.validationError.issues);
+    }
+    const normByWamid = new Map<string, NormalizedIncoming>();
+    for (const ev of normalized.events) {
+      if (ev.kind === "message") normByWamid.set(ev.wamid, ev);
+    }
+
     let processed = 0;
     let duplicates = 0;
     let ignoredFields = 0;
+    let statusesUpdated = 0;
+    let statusesSkipped = 0;
+    let statusesOrphan = 0;
 
     for (const entry of entries) {
       const changes = entry?.changes ?? [];
@@ -230,33 +328,43 @@ Deno.serve(async (req) => {
         }
         const value = change?.value ?? {};
         const messages = value?.messages ?? [];
-        const contacts = value?.contacts ?? [];
         for (const msg of messages) {
           if (await isDuplicate(msg.id)) {
             duplicates++;
             continue;
           }
-          const contact = (contacts as MetaWAContact[]).find((c) => c?.wa_id === msg?.from);
+          const normalizedMsg = normByWamid.get(msg.id);
+          if (!normalizedMsg) {
+            console.warn(`[whatsapp-cloud-webhook][${rid}] normalizer produced no event for message id=${msg.id} — skipped`);
+            ignoredFields++;
+            continue;
+          }
           try {
-            await persistInbound(msg, contact);
+            await persistInbound(normalizedMsg);
             processed++;
           } catch (e) {
             console.error(`[whatsapp-cloud-webhook][${rid}] persist error:`, e);
           }
         }
-        const statuses = value?.statuses ?? [];
-        if (statuses.length) {
-          console.log(
-            `[whatsapp-cloud-webhook][${rid}] statuses count=${statuses.length}:`,
-            JSON.stringify(statuses).slice(0, 300),
-          );
-        }
       }
     }
 
-    void recordPing("event", { rid, processed, duplicates, ignoredFields });
+    // [W5] Statuses PERSISTIDOS (não apenas logados) — mesmo mecanismo do evolution.
+    for (const ev of normalized.events) {
+      if (ev.kind !== "status") continue;
+      const outcome = await persistStatus(ev);
+      if (outcome === "updated") statusesUpdated++;
+      else if (outcome === "orphan") statusesOrphan++;
+      else statusesSkipped++;
+    }
+
+    void recordPing("event", { rid, processed, duplicates, ignoredFields, statusesUpdated, statusesSkipped, statusesOrphan });
     return new Response(
-      JSON.stringify({ ok: true, processed, duplicates, ignoredFields, requestId: rid }),
+      JSON.stringify({
+        ok: true, processed, duplicates, ignoredFields,
+        statusesUpdated, statusesSkipped, statusesOrphan,
+        duplicate: duplicates > 0, requestId: rid,
+      }),
       { status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
     );
   } catch (e) {

@@ -87,13 +87,22 @@ Deno.test("registry: DENO_ENV=test + PROVIDER_UNDER_TEST inválido é ignorado",
 
 // ─── Comportamentos estáveis ───────────────────────────────────────────────
 
-Deno.test("registry: 'cloud' continua lançando 'not yet implemented'", () => {
-  withEnv({ DENO_ENV: "test", PROVIDER_UNDER_TEST: undefined }, () => {
+Deno.test("registry: 'cloud' sem env lança (fail-closed)", () => {
+  withEnv({ DENO_ENV: "test", PROVIDER_UNDER_TEST: undefined, WHATSAPP_CLOUD_PHONE_ID: undefined, WHATSAPP_CLOUD_TOKEN: undefined }, () => {
     assertThrows(
       () => getProviderClient("cloud"),
       Error,
-      "not yet implemented",
+      "nao configurados",
     );
+  });
+});
+
+Deno.test("registry: 'cloud' com env retorna client com 12 verbos", () => {
+  withEnv({ DENO_ENV: "test", PROVIDER_UNDER_TEST: undefined, WHATSAPP_CLOUD_PHONE_ID: "123", WHATSAPP_CLOUD_TOKEN: "tok" }, () => {
+    const c = getProviderClient("cloud");
+    for (const v of ["sendText", "sendMedia", "sendSticker", "getConnectionState", "getQrCode", "restartInstance", "listInstances", "listGroups", "checkWhatsApp", "getProfilePicture", "get", "post"]) {
+      assertEquals(typeof c[v as keyof typeof c], "function", v);
+    }
   });
 });
 
