@@ -1,33 +1,15 @@
 # =============================================================================
-# measure-invariants.yml — E20 + E23 do Plano de Desacoplamento 100 Etapas
+# measure-invariants.yml — E20 + E23 do PLANO_INDEPENDENCIA_100_ETAPAS_20260815
 # =============================================================================
-# Mede automaticamente o score dos 9 invariantes de desacoplamento ZAPP×Evolution
-# a cada PR e publica o resultado como comment e artifact JSON.
+# Mede o score dos 9 invariantes de desacoplamento ZAPP×Evolution a cada PR
+# usando a RÉGUA ÚNICA: scripts/decouple/boundary-audit.mjs em modo ONLINE
+# (RPC ops.fn_boundary_audit() contra o banco real, via PostgREST).
 #
-# MODO ADVISORY: este workflow NUNCA bloqueia um PR (continue-on-error: true).
-# É puramente informativo — serve para rastrear progresso do desacoplamento.
+# MODO ADVISORY: nunca bloqueia PR (continue-on-error: true).
 #
-# Invariantes:
-#   I1 — funções zapp.* não referenciam evo.*
-#   I2 — funções evo.* não referenciam zapp.*
-#   I3 — e2e-evolution-vps.yml ausente deste repo
-#   I4 — egresso HTTP via gateway único (sem bypass pg_net direto)
-#   I5 — CI decouple-guard.yml presente e ativo
-#   I6 — consumer.py ausente (infraestrutura não recriada)
-#   I7 — inventory.mjs cobre evolution-* sem regressão
-#   I8 — sql-gate fixture sincronizado com snapshot commitado
-#   I9 — zero FK cross-schema evo→zapp
-#
-# Baseline T0 (2026-08-06, auditoria inicial):
-#   I1: FAIL — cross-refs zapp→evo em funções SQL
-#   I2: FAIL — cross-refs evo→zapp em funções SQL
-#   I3: FAIL — e2e-evolution-vps.yml presente no repo
-#   I4: FAIL — violações pg_net registradas em ops.i4_violation_baseline
-#   I5: PASS — decouple-guard.yml ativo
-#   I6: PASS — consumer.py ausente
-#   I7: PASS — inventory.mjs em versão corrente
-#   I8: WARN — aguardando validação completa do fixture
-#   I9: FAIL — 24 FKs evo→zapp identificadas
+# Sem os secrets SUPABASE_URL + SUPABASE_SERVICE_KEY NÃO há medição — o comment
+# diz isso explicitamente. Baseline offline não é evidência (cenário C9 do
+# plano); este workflow nunca publica score derivado de replay.
 # =============================================================================
 
 name: 'Desacoplamento — Score de Invariantes'
@@ -45,375 +27,42 @@ jobs:
   measure-invariants:
     name: 'Medir Score de Desacoplamento (I1-I9)'
     runs-on: ubuntu-latest
-    # ADVISORY: nunca bloqueia o PR — modo informativo
     continue-on-error: true
 
     steps:
-      # ------------------------------------------------------------------
-      # 1. Checkout do repositório
-      # ------------------------------------------------------------------
       - name: 'Checkout'
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      # ------------------------------------------------------------------
-      # 2. Setup Node.js (para inventory.mjs e sql-gate.mjs)
-      # ------------------------------------------------------------------
       - name: 'Setup Node.js 20'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # ------------------------------------------------------------------
-      # 3. Verificações locais (I3, I5, I6, I7, I8) — sem acesso ao DB
-      # ------------------------------------------------------------------
-      - name: 'Verificações locais (I3, I5, I6, I7, I8)'
-        id: local_checks
-        run: |
-          set -euo pipefail
-
-          # ----------------------------------------------------------------
-          # I3 — e2e-evolution-vps.yml deve estar AUSENTE neste repo
-          # ----------------------------------------------------------------
-          if [ -f ".github/workflows/e2e-evolution-vps.yml" ]; then
-            echo "I3_STATUS=FAIL" >> "$GITHUB_ENV"
-            echo "I3_DETAIL=arquivo .github/workflows/e2e-evolution-vps.yml presente (deve estar em evolution-stack)" >> "$GITHUB_ENV"
-          else
-            echo "I3_STATUS=PASS" >> "$GITHUB_ENV"
-            echo "I3_DETAIL=arquivo ausente corretamente" >> "$GITHUB_ENV"
-          fi
-
-          # ----------------------------------------------------------------
-          # I5 — decouple-guard.yml deve estar PRESENTE e ativo
-          # ----------------------------------------------------------------
-          if [ -f ".github/workflows/decouple-guard.yml" ]; then
-            echo "I5_STATUS=PASS" >> "$GITHUB_ENV"
-            echo "I5_DETAIL=ativo em .github/workflows/decouple-guard.yml" >> "$GITHUB_ENV"
-          else
-            echo "I5_STATUS=FAIL" >> "$GITHUB_ENV"
-            echo "I5_DETAIL=decouple-guard.yml ausente — proteção CI removida" >> "$GITHUB_ENV"
-          fi
-
-          # ----------------------------------------------------------------
-          # I6 — consumer.py deve estar AUSENTE (infra Evolution não recriada)
-          # ----------------------------------------------------------------
-          CONSUMER_FOUND=$(find . -name "consumer.py" -not -path "./.git/*" 2>/dev/null | head -5 || true)
-          if [ -n "$CONSUMER_FOUND" ]; then
-            COUNT=$(echo "$CONSUMER_FOUND" | wc -l | tr -d ' ')
-            echo "I6_STATUS=FAIL" >> "$GITHUB_ENV"
-            echo "I6_DETAIL=${COUNT} arquivo(s) consumer.py encontrado(s)" >> "$GITHUB_ENV"
-          else
-            echo "I6_STATUS=PASS" >> "$GITHUB_ENV"
-            echo "I6_DETAIL=ausente corretamente" >> "$GITHUB_ENV"
-          fi
-
-          # ----------------------------------------------------------------
-          # I7 — inventory.mjs deve cobrir evolution-* sem regressão
-          # ----------------------------------------------------------------
-          if [ -f "scripts/decouple/inventory.mjs" ]; then
-            # Rodar inventory; exit != 0 significa regressão
-            if node scripts/decouple/inventory.mjs 2>&1 | tee /tmp/inventory_output.txt; then
-              TOTAL=$(grep -oP 'TOTAL\s*[:=]\s*\K\d+' /tmp/inventory_output.txt | head -1 || echo "0")
-              echo "I7_STATUS=PASS" >> "$GITHUB_ENV"
-              echo "I7_DETAIL=ok (total acoplamentos: ${TOTAL:-0})" >> "$GITHUB_ENV"
-            else
-              # Regressão detectada — extrair contagem
-              TOTAL=$(grep -oP 'TOTAL\s*[:=]\s*\K\d+' /tmp/inventory_output.txt | head -1 || echo "?")
-              echo "I7_STATUS=FAIL" >> "$GITHUB_ENV"
-              echo "I7_DETAIL=regressão detectada (total: ${TOTAL:-?})" >> "$GITHUB_ENV"
-            fi
-          else
-            echo "I7_STATUS=WARN" >> "$GITHUB_ENV"
-            echo "I7_DETAIL=scripts/decouple/inventory.mjs não encontrado" >> "$GITHUB_ENV"
-          fi
-
-          # ----------------------------------------------------------------
-          # I8 — sql-gate fixture sincronizado com snapshot commitado
-          # ----------------------------------------------------------------
-          if [ -f "scripts/decouple/sql-gate.mjs" ] && [ -f "scripts/decouple/fixtures/sql_report_snapshot.json" ]; then
-            # Valida o fixture contra as regras do sql-gate (sem acesso ao DB)
-            if node scripts/decouple/sql-gate.mjs "scripts/decouple/fixtures/sql_report_snapshot.json" 2>&1 | tee /tmp/sqlgate_output.txt; then
-              echo "I8_STATUS=PASS" >> "$GITHUB_ENV"
-              echo "I8_DETAIL=fixture válido e sincronizado" >> "$GITHUB_ENV"
-            else
-              VIOLATIONS=$(grep -c "violação\|violation" /tmp/sqlgate_output.txt || echo "?")
-              echo "I8_STATUS=FAIL" >> "$GITHUB_ENV"
-              echo "I8_DETAIL=fixture desatualizado — ${VIOLATIONS} violação(ões)" >> "$GITHUB_ENV"
-            fi
-          elif [ -f "scripts/decouple/fixtures/sql_report_snapshot.json" ]; then
-            echo "I8_STATUS=WARN" >> "$GITHUB_ENV"
-            echo "I8_DETAIL=fixture presente mas sql-gate.mjs ausente — validação manual necessária" >> "$GITHUB_ENV"
-          else
-            echo "I8_STATUS=WARN" >> "$GITHUB_ENV"
-            echo "I8_DETAIL=aguardando validação (fixture não commitado)" >> "$GITHUB_ENV"
-          fi
-
-      # ------------------------------------------------------------------
-      # 4. Medições via banco de dados (I1, I2, I4, I9) com psql
-      #    Requer secret SUPABASE_DB_URL configurado no repositório.
-      #    Se ausente, usa baseline T0 estático para não quebrar PRs externos.
-      # ------------------------------------------------------------------
-      - name: 'Instalar cliente psql'
-        run: sudo apt-get install -y --no-install-recommends postgresql-client 2>/dev/null || true
-
-      - name: 'Medir invariantes DB (I1, I2, I4, I9)'
-        id: db_checks
+      - name: 'Medir 9 invariantes (boundary-audit ONLINE — banco real)'
+        id: audit
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          set -euo pipefail
-
-          # Função helper para executar query psql com timeout
-          run_query() {
-            local query="$1"
-            if [ -n "${SUPABASE_DB_URL:-}" ]; then
-              psql "$SUPABASE_DB_URL" \
-                --no-password \
-                --tuples-only \
-                --no-align \
-                --command="$query" \
-                --connect-timeout=15 \
-                2>/dev/null || echo "ERROR"
-            else
-              echo "NO_DB"
-            fi
-          }
-
-          DB_AVAILABLE=false
-          if [ -n "${SUPABASE_DB_URL:-}" ]; then
-            # Testar conectividade antes de medir
-            if psql "$SUPABASE_DB_URL" --no-password --connect-timeout=10 -c "SELECT 1" \
-               --tuples-only --no-align >/dev/null 2>&1; then
-              DB_AVAILABLE=true
-              echo "DB disponível — usando medições reais do banco"
-            else
-              echo "::warning::Não foi possível conectar ao banco. Usando baseline T0 estático."
-            fi
+          set +e
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_SERVICE_KEY:-}" ]; then
+            echo "AUDIT_STATUS=NO_SECRETS" >> "$GITHUB_ENV"
+            echo "::warning::Secrets SUPABASE_URL/SUPABASE_SERVICE_KEY ausentes — sem medição não há score (C9)."
+            exit 0
+          fi
+          node scripts/decouple/boundary-audit.mjs --out decouple-score.json 2> audit-stderr.txt
+          CODE=$?
+          cat audit-stderr.txt >&2 || true
+          if [ -f decouple-score.json ] && [ "$CODE" -le 1 ]; then
+            echo "AUDIT_STATUS=MEASURED" >> "$GITHUB_ENV"
           else
-            echo "::warning::SUPABASE_DB_URL não configurado. Usando baseline T0 estático."
+            echo "AUDIT_STATUS=ERROR" >> "$GITHUB_ENV"
+            head -c 400 audit-stderr.txt > audit-error.txt || true
           fi
+          exit 0
 
-          # ----------------------------------------------------------------
-          # I1 — funções zapp.* que referenciam evo.*
-          # ----------------------------------------------------------------
-          if [ "$DB_AVAILABLE" = "true" ]; then
-            RESULT=$(run_query "SELECT COUNT(DISTINCT p.proname)::text || '|' || COUNT(*)::text
-              FROM pg_proc p
-              JOIN pg_namespace n ON n.oid = p.pronamespace
-              WHERE n.nspname = 'zapp'
-                AND p.prosrc ~ 'evo\\\\.';")
-            if [ "$RESULT" = "ERROR" ] || [ "$RESULT" = "NO_DB" ] || [ -z "$RESULT" ]; then
-              FN_COUNT="?" && REF_COUNT="?"
-              echo "I1_STATUS=WARN" >> "$GITHUB_ENV"
-              echo "I1_DETAIL=erro na query — dado indisponível" >> "$GITHUB_ENV"
-            else
-              FN_COUNT=$(echo "$RESULT" | cut -d'|' -f1 | tr -d ' ')
-              REF_COUNT=$(echo "$RESULT" | cut -d'|' -f2 | tr -d ' ')
-              if [ "${FN_COUNT:-0}" -eq 0 ] 2>/dev/null; then
-                echo "I1_STATUS=PASS" >> "$GITHUB_ENV"
-                echo "I1_DETAIL=zero funções zapp.* referenciam evo.*" >> "$GITHUB_ENV"
-              else
-                echo "I1_STATUS=FAIL" >> "$GITHUB_ENV"
-                echo "I1_DETAIL=${FN_COUNT} função(ões), ${REF_COUNT} referência(s) a evo.*" >> "$GITHUB_ENV"
-              fi
-            fi
-          else
-            # Baseline T0 estático
-            echo "I1_STATUS=FAIL" >> "$GITHUB_ENV"
-            echo "I1_DETAIL=baseline T0 — DB indisponível (cross-refs identificadas em auditoria 2026-08-06)" >> "$GITHUB_ENV"
-          fi
-
-          # ----------------------------------------------------------------
-          # I2 — funções evo.* que referenciam zapp.*
-          # ----------------------------------------------------------------
-          if [ "$DB_AVAILABLE" = "true" ]; then
-            RESULT=$(run_query "SELECT COUNT(DISTINCT p.proname)::text
-              FROM pg_proc p
-              JOIN pg_namespace n ON n.oid = p.pronamespace
-              WHERE n.nspname = 'evo'
-                AND p.prosrc ~ 'zapp\\\\.';")
-            if [ "$RESULT" = "ERROR" ] || [ "$RESULT" = "NO_DB" ] || [ -z "$RESULT" ]; then
-              echo "I2_STATUS=WARN" >> "$GITHUB_ENV"
-              echo "I2_DETAIL=erro na query — dado indisponível" >> "$GITHUB_ENV"
-            else
-              FN_COUNT=$(echo "$RESULT" | tr -d ' ')
-              if [ "${FN_COUNT:-0}" -eq 0 ] 2>/dev/null; then
-                echo "I2_STATUS=PASS" >> "$GITHUB_ENV"
-                echo "I2_DETAIL=zero funções evo.* referenciam zapp.*" >> "$GITHUB_ENV"
-              else
-                echo "I2_STATUS=FAIL" >> "$GITHUB_ENV"
-                echo "I2_DETAIL=${FN_COUNT} função(ões) evo.* referenciam zapp.*" >> "$GITHUB_ENV"
-              fi
-            fi
-          else
-            echo "I2_STATUS=FAIL" >> "$GITHUB_ENV"
-            echo "I2_DETAIL=baseline T0 — DB indisponível (cross-refs identificadas em auditoria 2026-08-06)" >> "$GITHUB_ENV"
-          fi
-
-          # ----------------------------------------------------------------
-          # I4 — violações pg_net (bypass do gateway único)
-          # ----------------------------------------------------------------
-          if [ "$DB_AVAILABLE" = "true" ]; then
-            RESULT=$(run_query "SELECT COUNT(*)::text
-              FROM ops.i4_violation_baseline
-              WHERE resolved_date IS NULL
-                AND schema_name != 'ops';")
-            if [ "$RESULT" = "ERROR" ] || [ "$RESULT" = "NO_DB" ] || [ -z "$RESULT" ]; then
-              # Tabela pode ainda não existir — usar baseline
-              echo "I4_STATUS=FAIL" >> "$GITHUB_ENV"
-              echo "I4_DETAIL=baseline T0 — ops.i4_violation_baseline indisponível (24 violações em T0)" >> "$GITHUB_ENV"
-            else
-              V_COUNT=$(echo "$RESULT" | tr -d ' ')
-              if [ "${V_COUNT:-0}" -eq 0 ] 2>/dev/null; then
-                echo "I4_STATUS=PASS" >> "$GITHUB_ENV"
-                echo "I4_DETAIL=zero violações pg_net ativas" >> "$GITHUB_ENV"
-              else
-                echo "I4_STATUS=FAIL" >> "$GITHUB_ENV"
-                echo "I4_DETAIL=${V_COUNT} violação(ões) ativas em ops.i4_violation_baseline" >> "$GITHUB_ENV"
-              fi
-            fi
-          else
-            echo "I4_STATUS=FAIL" >> "$GITHUB_ENV"
-            echo "I4_DETAIL=baseline T0 — DB indisponível (violações identificadas em auditoria 2026-08-06)" >> "$GITHUB_ENV"
-          fi
-
-          # ----------------------------------------------------------------
-          # I9 — FK cross-schema evo→zapp
-          # ----------------------------------------------------------------
-          if [ "$DB_AVAILABLE" = "true" ]; then
-            RESULT=$(run_query "SELECT COUNT(*)::text
-              FROM pg_constraint c
-              JOIN pg_class cl ON cl.oid = c.conrelid
-              JOIN pg_namespace nl ON nl.oid = cl.relnamespace
-              JOIN pg_class cf ON cf.oid = c.confrelid
-              JOIN pg_namespace nf ON nf.oid = cf.relnamespace
-              WHERE c.contype = 'f'
-                AND nl.nspname = 'evo'
-                AND nf.nspname = 'zapp';")
-            if [ "$RESULT" = "ERROR" ] || [ "$RESULT" = "NO_DB" ] || [ -z "$RESULT" ]; then
-              echo "I9_STATUS=WARN" >> "$GITHUB_ENV"
-              echo "I9_DETAIL=erro na query — dado indisponível" >> "$GITHUB_ENV"
-            else
-              FK_COUNT=$(echo "$RESULT" | tr -d ' ')
-              if [ "${FK_COUNT:-0}" -eq 0 ] 2>/dev/null; then
-                echo "I9_STATUS=PASS" >> "$GITHUB_ENV"
-                echo "I9_DETAIL=zero FK cross-schema evo→zapp" >> "$GITHUB_ENV"
-              else
-                echo "I9_STATUS=FAIL" >> "$GITHUB_ENV"
-                echo "I9_DETAIL=${FK_COUNT} FK(s) cross-schema evo→zapp" >> "$GITHUB_ENV"
-              fi
-            fi
-          else
-            # Baseline T0: 24 FKs evo→zapp (auditoria 2026-08-06)
-            echo "I9_STATUS=FAIL" >> "$GITHUB_ENV"
-            echo "I9_DETAIL=baseline T0 — DB indisponível (24 FKs identificadas em auditoria 2026-08-06)" >> "$GITHUB_ENV"
-          fi
-
-      # ------------------------------------------------------------------
-      # 5. Calcular score final e gerar JSON
-      # ------------------------------------------------------------------
-      - name: 'Calcular score e gerar decouple-score.json'
-        id: score
-        run: |
-          set -euo pipefail
-
-          # Mapeamento de emoji por status
-          status_emoji() {
-            case "$1" in
-              PASS) echo "✅ PASS" ;;
-              FAIL) echo "🔴 FAIL" ;;
-              WARN) echo "⚠️ WARN" ;;
-              *)    echo "❓ N/A"  ;;
-            esac
-          }
-
-          # Ler variáveis de ambiente definidas nos steps anteriores
-          I1_S="${I1_STATUS:-WARN}"
-          I2_S="${I2_STATUS:-WARN}"
-          I3_S="${I3_STATUS:-WARN}"
-          I4_S="${I4_STATUS:-WARN}"
-          I5_S="${I5_STATUS:-WARN}"
-          I6_S="${I6_STATUS:-WARN}"
-          I7_S="${I7_STATUS:-WARN}"
-          I8_S="${I8_STATUS:-WARN}"
-          I9_S="${I9_STATUS:-WARN}"
-
-          I1_D="${I1_DETAIL:-n/a}"
-          I2_D="${I2_DETAIL:-n/a}"
-          I3_D="${I3_DETAIL:-n/a}"
-          I4_D="${I4_DETAIL:-n/a}"
-          I5_D="${I5_DETAIL:-n/a}"
-          I6_D="${I6_DETAIL:-n/a}"
-          I7_D="${I7_DETAIL:-n/a}"
-          I8_D="${I8_DETAIL:-n/a}"
-          I9_D="${I9_DETAIL:-n/a}"
-
-          # Contar passes (WARN conta como metade — não é sucesso, não é falha)
-          PASS_COUNT=0
-          TOTAL=9
-          for S in "$I1_S" "$I2_S" "$I3_S" "$I4_S" "$I5_S" "$I6_S" "$I7_S" "$I8_S" "$I9_S"; do
-            [ "$S" = "PASS" ] && PASS_COUNT=$((PASS_COUNT + 1))
-          done
-
-          PCT=$((PASS_COUNT * 100 / TOTAL))
-
-          # Nota por score
-          if   [ "$PCT" -ge 90 ]; then NOTA="A"
-          elif [ "$PCT" -ge 75 ]; then NOTA="B"
-          elif [ "$PCT" -ge 60 ]; then NOTA="C"
-          elif [ "$PCT" -ge 45 ]; then NOTA="D"
-          elif [ "$PCT" -ge 25 ]; then NOTA="E"
-          else                         NOTA="F"
-          fi
-
-          NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          SHA="${GITHUB_SHA:-unknown}"
-          REF="${GITHUB_REF_NAME:-unknown}"
-
-          # Gerar JSON estruturado
-          cat > decouple-score.json << JSON
-          {
-            "meta": {
-              "timestamp": "${NOW}",
-              "sha": "${SHA}",
-              "ref": "${REF}",
-              "workflow": "measure-invariants",
-              "version": "E20+E23"
-            },
-            "score": {
-              "pass": ${PASS_COUNT},
-              "total": ${TOTAL},
-              "percent": ${PCT},
-              "nota": "${NOTA}"
-            },
-            "invariants": {
-              "I1": { "status": "${I1_S}", "detail": "${I1_D}", "description": "zapp.* nao referencia evo.*" },
-              "I2": { "status": "${I2_S}", "detail": "${I2_D}", "description": "evo.* nao referencia zapp.*" },
-              "I3": { "status": "${I3_S}", "detail": "${I3_D}", "description": "e2e-evolution-vps.yml ausente" },
-              "I4": { "status": "${I4_S}", "detail": "${I4_D}", "description": "Egresso HTTP via gateway unico" },
-              "I5": { "status": "${I5_S}", "detail": "${I5_D}", "description": "CI decouple-guard.yml ativo" },
-              "I6": { "status": "${I6_S}", "detail": "${I6_D}", "description": "consumer.py ausente" },
-              "I7": { "status": "${I7_S}", "detail": "${I7_D}", "description": "inventory.mjs cobre evolution-*" },
-              "I8": { "status": "${I8_S}", "detail": "${I8_D}", "description": "sql-gate fixture sincronizado" },
-              "I9": { "status": "${I9_S}", "detail": "${I9_D}", "description": "Zero FK cross-schema evo→zapp" }
-            }
-          }
-          JSON
-
-          echo "SCORE_PASS=${PASS_COUNT}" >> "$GITHUB_ENV"
-          echo "SCORE_TOTAL=${TOTAL}"     >> "$GITHUB_ENV"
-          echo "SCORE_PCT=${PCT}"         >> "$GITHUB_ENV"
-          echo "SCORE_NOTA=${NOTA}"       >> "$GITHUB_ENV"
-          echo "SCORE_TIMESTAMP=${NOW}"   >> "$GITHUB_ENV"
-
-          echo "### Score de Desacoplamento: ${PASS_COUNT}/${TOTAL} (${PCT}%) — Nota ${NOTA}"
-          cat decouple-score.json
-
-      # ------------------------------------------------------------------
-      # 6. Publicar score como artifact JSON
-      # ------------------------------------------------------------------
       - name: 'Publicar artifact decouple-score.json'
+        if: env.AUDIT_STATUS == 'MEASURED'
         uses: actions/upload-artifact@v4
         with:
           name: decouple-score
@@ -421,113 +70,76 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-      # ------------------------------------------------------------------
-      # 7. Postar PR comment com tabela de invariantes (E23)
-      # ------------------------------------------------------------------
       - name: 'Postar score como PR comment'
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
-        env:
-          I1_STATUS: ${{ env.I1_STATUS }}
-          I1_DETAIL: ${{ env.I1_DETAIL }}
-          I2_STATUS: ${{ env.I2_STATUS }}
-          I2_DETAIL: ${{ env.I2_DETAIL }}
-          I3_STATUS: ${{ env.I3_STATUS }}
-          I3_DETAIL: ${{ env.I3_DETAIL }}
-          I4_STATUS: ${{ env.I4_STATUS }}
-          I4_DETAIL: ${{ env.I4_DETAIL }}
-          I5_STATUS: ${{ env.I5_STATUS }}
-          I5_DETAIL: ${{ env.I5_DETAIL }}
-          I6_STATUS: ${{ env.I6_STATUS }}
-          I6_DETAIL: ${{ env.I6_DETAIL }}
-          I7_STATUS: ${{ env.I7_STATUS }}
-          I7_DETAIL: ${{ env.I7_DETAIL }}
-          I8_STATUS: ${{ env.I8_STATUS }}
-          I8_DETAIL: ${{ env.I8_DETAIL }}
-          I9_STATUS: ${{ env.I9_STATUS }}
-          I9_DETAIL: ${{ env.I9_DETAIL }}
-          SCORE_PASS: ${{ env.SCORE_PASS }}
-          SCORE_TOTAL: ${{ env.SCORE_TOTAL }}
-          SCORE_PCT: ${{ env.SCORE_PCT }}
-          SCORE_NOTA: ${{ env.SCORE_NOTA }}
-          SCORE_TIMESTAMP: ${{ env.SCORE_TIMESTAMP }}
         with:
           script: |
-            // Converte status string em emoji+label
-            function statusEmoji(s) {
-              if (s === 'PASS') return '✅ PASS';
-              if (s === 'FAIL') return '🔴 FAIL';
-              if (s === 'WARN') return '⚠️ WARN';
-              return '❓ N/A';
+            const fs = require('fs');
+            const MARKER = '<!-- decouple-score-comment -->';
+            const status = process.env.AUDIT_STATUS || 'ERROR';
+            let body;
+
+            if (status === 'NO_SECRETS') {
+              body = [
+                '### Score de Desacoplamento ZAPP×Evolution',
+                '',
+                '⚠️ **Medição indisponível** — secrets `SUPABASE_URL` / `SUPABASE_SERVICE_KEY` não configurados no repositório.',
+                '',
+                'Sem medição contra o banco real não há score. Replay de baseline commitado **não é evidência** (cenário C9 do plano).',
+                'Último score real commitado: `docs/decouple/BOUNDARY_SCORE_T3.json`.',
+              ].join('\n');
+            } else if (status === 'ERROR') {
+              let err = '';
+              try { err = fs.readFileSync('audit-error.txt', 'utf8'); } catch {}
+              body = [
+                '### Score de Desacoplamento ZAPP×Evolution',
+                '',
+                '🚨 **Falha na medição online** (boundary-audit não retornou relatório).',
+                '',
+                '```',
+                (err || 'sem stderr capturado').trim(),
+                '```',
+              ].join('\n');
+            } else {
+              const r = JSON.parse(fs.readFileSync('decouple-score.json', 'utf8'));
+              const s = r.summary;
+              const rows = r.invariants.map(function (i) {
+                const icon = i.score === 1 ? '✅ PASS' : '🔴 FAIL';
+                return '| ' + i.invariant + ' | ' + i.name + ' | ' + icon + ' | ' + (i.detail || 'n/a') + ' |';
+              }).join('\n');
+              const notaEmoji = ({ A: '🏆', B: '🥈', C: '🥉', D: '📉', F: '🚨' })[s.grade] || '❓';
+              body = [
+                '### Score de Desacoplamento ZAPP×Evolution',
+                '',
+                '| # | Invariante | Status | Detalhe |',
+                '|---|-----------|--------|---------|',
+                rows,
+                '',
+                '**Score: ' + s.passed + '/' + s.total + ' (' + s.percentage + '%) — Nota ' + notaEmoji + ' ' + s.grade + '**',
+                '',
+                '> 📊 Medição ONLINE contra o banco real via ops.fn_boundary_audit() — advisory, não bloqueia PR',
+                '> ⏰ Medido em: ' + (r.meta.measured_at_db || r.meta.generated_at),
+                '> 🔗 Artifact decouple-score.json disponível nos Actions deste commit',
+              ].join('\n');
             }
 
-            const inv = [
-              { id: 'I1', desc: 'zapp.\\* → evo.\\*',             status: process.env.I1_STATUS, detail: process.env.I1_DETAIL },
-              { id: 'I2', desc: 'evo.\\* → zapp.\\*',             status: process.env.I2_STATUS, detail: process.env.I2_DETAIL },
-              { id: 'I3', desc: '.github/workflows/e2e-evolution-vps.yml', status: process.env.I3_STATUS, detail: process.env.I3_DETAIL },
-              { id: 'I4', desc: 'Egresso HTTP via gateway único',  status: process.env.I4_STATUS, detail: process.env.I4_DETAIL },
-              { id: 'I5', desc: 'CI decouple-guard.yml',           status: process.env.I5_STATUS, detail: process.env.I5_DETAIL },
-              { id: 'I6', desc: 'consumer.py ausente',             status: process.env.I6_STATUS, detail: process.env.I6_DETAIL },
-              { id: 'I7', desc: 'inventory.mjs cobre evolution-\\*', status: process.env.I7_STATUS, detail: process.env.I7_DETAIL },
-              { id: 'I8', desc: 'sql-gate fixture sincronizado',   status: process.env.I8_STATUS, detail: process.env.I8_DETAIL },
-              { id: 'I9', desc: 'Zero FK cross-schema evo→zapp',   status: process.env.I9_STATUS, detail: process.env.I9_DETAIL },
-            ];
-
-            const rows = inv
-              .map(i => `| ${i.id} | ${i.desc} | ${statusEmoji(i.status)} | ${i.detail || 'n/a'} |`)
-              .join('\n');
-
-            const pass  = parseInt(process.env.SCORE_PASS  || '0');
-            const total = parseInt(process.env.SCORE_TOTAL || '9');
-            const pct   = parseInt(process.env.SCORE_PCT   || '0');
-            const nota  = process.env.SCORE_NOTA  || '?';
-            const ts    = process.env.SCORE_TIMESTAMP || new Date().toISOString();
-
-            // Emoji da nota
-            const notaEmoji = { A: '🏆', B: '🥈', C: '🥉', D: '📉', E: '⚠️', F: '🚨' }[nota] || '❓';
-
-            const body = [
-              `### Score de Desacoplamento ZAPP×Evolution`,
-              '',
-              `| # | Invariante | Status | Detalhe |`,
-              `|---|-----------|--------|---------|`,
-              rows,
-              '',
-              `**Score: ${pass}/${total} (${pct}%) — Nota ${notaEmoji} ${nota}**`,
-              '',
-              `> 📊 Medição automática — advisory only, não bloqueia PR`,
-              `> ⏰ Atualizado em: ${ts}`,
-              `> 🔗 Artifact \`decouple-score.json\` disponível nos Actions deste commit`,
-            ].join('\n');
-
-            // Marcador único para identificar/atualizar o comment
-            const MARKER = '<!-- decouple-score-comment -->';
             const fullBody = MARKER + '\n' + body;
-
-            // Listar comments existentes e atualizar se já existe
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
-              repo:  context.repo.repo,
+              repo: context.repo.repo,
               issue_number: context.issue.number,
               per_page: 100,
             });
-
             const existing = comments.find(c => c.body && c.body.includes(MARKER));
-
             if (existing) {
               await github.rest.issues.updateComment({
-                owner:      context.repo.owner,
-                repo:       context.repo.repo,
-                comment_id: existing.id,
-                body:       fullBody,
+                owner: context.repo.owner, repo: context.repo.repo,
+                comment_id: existing.id, body: fullBody,
               });
-              core.info(`Comment de score atualizado (ID ${existing.id})`);
             } else {
               await github.rest.issues.createComment({
-                owner:        context.repo.owner,
-                repo:         context.repo.repo,
-                issue_number: context.issue.number,
-                body:         fullBody,
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: context.issue.number, body: fullBody,
               });
-              core.info('Comment de score criado');
             }
