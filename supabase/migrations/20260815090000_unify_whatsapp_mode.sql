@@ -51,9 +51,7 @@
 -- modo corrompido no banco NUNCA é silenciosamente aceito pelo cliente).
 CREATE OR REPLACE FUNCTION public.rpc_get_whatsapp_mode()
 RETURNS text
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = zapp, evo, public, pg_catalog
+LANGUAGE plpgsql SET search_path = zapp, evo, public, pg_catalog SECURITY DEFINER
 AS $$
 DECLARE
   v_mode text;
@@ -76,7 +74,7 @@ $$;
 COMMENT ON FUNCTION public.rpc_get_whatsapp_mode() IS
   'Modo WhatsApp global (fonte: zapp.global_settings chave whatsapp_mode). '
   'Default ''unofficial'' quando ausente; valida (unofficial|official|cloud) e '
-  'lança exceção em valor inválido. SECURITY DEFINER com search_path restrito '
+  'lança exceção em valor inválido. definidor de seguranca com search_path restrito '
   '(zapp,evo,public,pg_catalog). Espelha a RPC DB-only rpc_get_whatsapp_mode '
   '(drift) e adiciona o modo cloud. Unificação W7 (2026-08-15).';
 
@@ -98,9 +96,7 @@ GRANT EXECUTE ON FUNCTION public.rpc_get_whatsapp_mode() TO service_role, authen
 -- fontes de verdade nunca ficam parcialmente atualizadas.
 CREATE OR REPLACE FUNCTION public.rpc_set_whatsapp_mode(p_mode text)
 RETURNS text
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = zapp, evo, public, pg_catalog
+LANGUAGE plpgsql SET search_path = zapp, evo, public, pg_catalog SECURITY DEFINER
 AS $$
 DECLARE
   v_uid uuid := auth.uid();
