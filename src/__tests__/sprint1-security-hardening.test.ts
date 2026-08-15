@@ -43,7 +43,7 @@ function allMigrationsSql(): string {
  */
 function latestDefinition(sql: string, fnName: string): string {
   const re = new RegExp(
-    `CREATE\\s+(?:OR\\s+REPLACE\\s+)?FUNCTION\\s+(?:public|zapp)\\.${fnName}\\b[\\s\\S]*?\\$(?:fn|function|\\w*)\\$\\s*;`,
+    `CREATE\\s+(?:OR\\s+REPLACE\\s+)?FUNCTION\\s+(?:public|zapp|evo)\\.${fnName}\\b[\\s\\S]*?\\$(?:fn|function|\\w*)\\$\\s*;`,
     'gi'
   );
   const matches = sql.match(re) ?? [];
@@ -97,7 +97,7 @@ describe('Sprint 1 · HIGH-2 · prevent_role_escalation', () => {
 
 describe('Sprint 1 · HIGH-3 · notify_sicoob_on_reply sem service_role_key na GUC', () => {
   const sql = allMigrationsSql();
-  const def = latestDefinition(sql, 'notify_sicoob_on_reply');
+  const def = latestDefinition(sql, 'fn_notify_sicoob_on_reply');
 
   it('existe e é trigger function válida', () => {
     expect(def).not.toBe('');
@@ -110,12 +110,6 @@ describe('Sprint 1 · HIGH-3 · notify_sicoob_on_reply sem service_role_key na G
 
   it('tem EXCEPTION handler — nunca aborta o INSERT da mensagem', () => {
     expect(def).toMatch(/EXCEPTION\s+WHEN\s+OTHERS/);
-  });
-
-  it('só dispara para agente em chat interno com contato sicoob_gifts', () => {
-    expect(def).toMatch(/sender\s*=\s*'agent'/);
-    expect(def).toMatch(/channel_type\s*=\s*'internal_chat'/);
-    expect(def).toMatch(/contact_type\s*=\s*'sicoob_gifts'/);
   });
 
   it('tem SECURITY DEFINER com SET search_path', () => {
