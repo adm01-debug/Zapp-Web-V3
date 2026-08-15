@@ -286,3 +286,37 @@ jobs:
             echo "deploy=${{ steps.deploy.outcome }}"
             echo "convergence=${{ steps.convergence.outcome }}"
           } | tee /tmp/deploy-audit.txt
+
+      - name: 🔒 Re-aplicar NNP pós-deploy (security_opt não traduzido pelo Portainer API)
+        if: always() && steps.deploy.outcome == 'success'
+        env:
+          STACK_NAME: zapp-web-prod
+        run: |
+          set +e
+          # O Portainer API não traduz security_opt: no-new-privileges — portanto o deploy
+          # via Portainer API (fallback) pode ter revertido NNP. O CLI (via socket) traduz
+          # corretamente, mas verificamos de qualquer forma.
+          for svc in $(docker service ls --filter "label=com.docker.stack.namespace=${STACK_NAME}" --format '{{.Name}}'); do
+            CURRENT=$(docker service inspect "$svc" \
+              --format '{{.Spec.TaskTemplate.ContainerSpec.Privileges.NoNewPrivileges}}' 2>/dev/null)
+            if [ "$CURRENT" != "true" ]; then
+              echo "⚠️  NNP=false em $svc — reaplicando via Docker REST API"
+              SID=$(docker service inspect "$svc" --format '{{.ID}}')
+              VER=$(docker service inspect "$svc" --format '{{.Version.Index}}')
+              SPEC=$(docker service inspect "$svc" | jq -c \
+                '.[0].Spec | .TaskTemplate.ContainerSpec.Privileges.NoNewPrivileges = true')
+              HTTP=$(curl -s -o /tmp/nnp_result.json -w "%{http_code}" \
+                --unix-socket /var/run/docker.sock \
+                -X POST "http://localhost/services/${SID}/update?version=${VER}" \
+                -H "Content-Type: application/json" \
+                -d "$SPEC")
+              if [ "$HTTP" = "200" ]; then
+                echo "✅ NNP reaplicado em $svc"
+              else
+                echo "::warning::Falha ao reaplicar NNP em $svc (HTTP $HTTP)"
+                cat /tmp/nnp_result.json || true
+              fi
+            else
+              echo "✅ NNP já aplicado em $svc"
+            fi
+          done
