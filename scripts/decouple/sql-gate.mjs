@@ -8,11 +8,14 @@
  * Propósito:
  *   Impedir regressão da centralização do egresso HTTP da Evolution API.
  *   Toda função PL/pgSQL que chama a Evolution DEVE montar URL/chave via
- *   ops.fn_evo_url() e ops.fn_evo_key() (que leem vault.decrypted_secrets).
+ *   ops.fn_evo_url() / ops.fn_evo_key() / ops.fn_evo_url_v2() / ops.fn_evo_key_v2()
+ *   (que leem vault.decrypted_secrets).
  *
  * Uso:
- *   node sql-gate.mjs <report.json>     # valida o report (exit 0 = ok, 1 = violações)
- *   node sql-gate.mjs --sample          # imprime a query SQL geradora do report
+ *   node sql-gate.mjs <report.json>          # valida o report (exit 0 = ok, 1 = violações)
+ *   node sql-gate.mjs --sample               # imprime a query SQL geradora do report
+ *   node sql-gate.mjs --check-freshness      # verifica data da WHITELIST e contagem do registry
+ *   node sql-gate.mjs --validate-fixture     # valida sql-gate-fixture.json contra PROD_OBJECTS_REGISTRY
  *
  * report.json = [{"fn":"schema.fn","prosrc":"..."}, ...]
  *   (gerado pela query impressa em --sample, rodada no Supabase self-hosted)
@@ -26,11 +29,21 @@
  */
 
 import { readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Data de geração da WHITELIST (usada em --check-freshness, E19)
+const FRESHNESS_DATE = '2026-08-15';
 
 const WHITELIST = new Set([
   'ops.fn_evo_url',
   'ops.fn_evo_key',
+  // E17: versões v2 com assinatura versionada
+  'ops.fn_evo_url_v2',
+  'ops.fn_evo_key_v2',
   // V7 allowlist nominal (egressos legítimos fora do gateway, sem apikey):
   // - zapp.fn_check_license_heartbeat: health check do license server (sem apikey)
   // - evo.fn_detect_instance_recreate: alerta webhook n8n (bootstrap)
@@ -38,8 +51,50 @@ const WHITELIST = new Set([
   'evo.fn_detect_instance_recreate',
 ]);
 // Report sem prefixo de schema (query sem JOIN) também é aceito no whitelist.
-const WHITELIST_SHORT = new Set(['fn_evo_url', 'fn_evo_key']);
+const WHITELIST_SHORT = new Set([
+  'fn_evo_url',
+  'fn_evo_key',
+  'fn_evo_url_v2',
+  'fn_evo_key_v2',
+]);
 const SCOPE_SCHEMAS = new Set(['evo', 'zapp', 'ops', 'public']);
+
+/**
+ * PROD_OBJECTS_REGISTRY — 25 objetos de produção confirmados (auditado 2026-08-15, E18).
+ * Usado em --check-freshness (E19) e --validate-fixture (E22).
+ *
+ * Estrutura: { name: "schema.objeto", kind: "view|table|function", desc: "..." }
+ */
+const PROD_OBJECTS_REGISTRY = [
+  // 12 views de contrato (zapp → evo)
+  { name: 'zapp.evolution_messages',         kind: 'view',     desc: 'View auto-updatable messages (raiz particionada evo)' },
+  { name: 'zapp.evolution_conversations',    kind: 'view',     desc: 'View auto-updatable conversas' },
+  { name: 'zapp.evolution_contacts',         kind: 'view',     desc: 'View auto-updatable contatos' },
+  { name: 'zapp.evolution_media',            kind: 'view',     desc: 'View mídia Evolution' },
+  { name: 'zapp.evolution_whatsapp_status',  kind: 'view',     desc: 'View status WA' },
+  { name: 'zapp.evolution_webhook_events_v2',kind: 'view',     desc: 'View webhooks v2' },
+  { name: 'zapp.evolution_instances',        kind: 'view',     desc: 'View instâncias' },
+  { name: 'zapp.evolution_sessions',         kind: 'view',     desc: 'View sessões' },
+  { name: 'zapp.evolution_groups',           kind: 'view',     desc: 'View grupos WA' },
+  { name: 'zapp.evolution_group_participants',kind: 'view',    desc: 'View participantes de grupos' },
+  { name: 'zapp.evolution_labels',           kind: 'view',     desc: 'View labels WA' },
+  { name: 'zapp.evolution_chats',            kind: 'view',     desc: 'View chats' },
+  // 8 objetos de observabilidade (ops.*)
+  { name: 'ops.pgnet_egress_log',            kind: 'table',    desc: 'Log de chamadas pg_net fora do gateway (E8)' },
+  { name: 'ops.i4_violation_baseline',       kind: 'table',    desc: 'Baseline das violações I4 (T0 = 14 violadores)' },
+  { name: 'ops.log_pgnet_call',              kind: 'function', desc: 'Registra chamada pg_net manualmente' },
+  { name: 'ops.v_i4_violations_summary',     kind: 'view',     desc: 'Resumo de violações I4 ativas' },
+  { name: 'ops.v_i4_correction_progress',    kind: 'view',     desc: 'Progresso de correção I4' },
+  { name: 'ops.decouple_preflight_runs',     kind: 'table',    desc: 'Histórico de execuções do preflight (E10)' },
+  { name: 'ops.fn_decouple_preflight',       kind: 'function', desc: 'Preflight checklist pré-deploy' },
+  { name: 'ops.v_preflight_history',         kind: 'view',     desc: 'Histórico de runs do preflight' },
+  // 5 funções de vault/whitelist
+  { name: 'ops.fn_evo_url',                  kind: 'function', desc: '[DEPRECATED] URL da Evolution API do vault — usar v2' },
+  { name: 'ops.fn_evo_key',                  kind: 'function', desc: '[DEPRECATED] API key da Evolution API do vault — usar v2' },
+  { name: 'ops.fn_evo_url_v2',               kind: 'function', desc: 'URL da Evolution API (assinatura versionada v2, E17)' },
+  { name: 'ops.fn_evo_key_v2',               kind: 'function', desc: 'API key da Evolution API (assinatura versionada v2, E17)' },
+  { name: 'zapp.fn_check_license_heartbeat', kind: 'function', desc: 'Health check do license server (egresso legítimo, sem apikey)' },
+];
 
 const SAMPLE_QUERY = `-- =====================================================================
 -- sql-gate.mjs — query geradora do report.json (Supabase self-hosted)
@@ -68,6 +123,8 @@ function usage() {
   console.error(
     'Uso: node sql-gate.mjs <report.json>\n' +
     '     node sql-gate.mjs --sample\n' +
+    '     node sql-gate.mjs --check-freshness\n' +
+    '     node sql-gate.mjs --validate-fixture\n' +
     'report.json = [{"fn":"schema.fn","prosrc":"..."}, ...] (ver --sample)'
   );
 }
@@ -145,8 +202,110 @@ function scanMigrations(migrationsDir) {
   return viol;
 }
 
+/**
+ * E19 — --check-freshness
+ * Verifica se a WHITELIST está atualizada (FRESHNESS_DATE < 30 dias)
+ * e se o PROD_OBJECTS_REGISTRY tem exatamente 25 entradas.
+ * WARN (exit 0) se desatualizado; FAIL (exit 1) se contagem errada.
+ */
+function checkFreshness() {
+  const EXPECTED_COUNT = 25;
+  let hasFailure = false;
+
+  console.log('=== sql-gate --check-freshness ===');
+  console.log(`FRESHNESS_DATE: ${FRESHNESS_DATE}`);
+
+  // Verificar idade da whitelist
+  const today = new Date();
+  const freshnessDate = new Date(FRESHNESS_DATE);
+  const diffMs = today - freshnessDate;
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays > 30) {
+    console.warn(`WARN: WHITELIST com ${diffDays} dias (gerada em ${FRESHNESS_DATE}). ` +
+      `Considere regenerar após auditar os objetos de produção.`);
+  } else {
+    console.log(`OK: WHITELIST com ${diffDays} dia(s) — dentro do prazo de 30 dias.`);
+  }
+
+  // Verificar contagem do PROD_OBJECTS_REGISTRY
+  const actual = PROD_OBJECTS_REGISTRY.length;
+  if (actual !== EXPECTED_COUNT) {
+    console.error(`FAIL: PROD_OBJECTS_REGISTRY tem ${actual} entradas, esperado ${EXPECTED_COUNT}.`);
+    hasFailure = true;
+  } else {
+    console.log(`OK: PROD_OBJECTS_REGISTRY com ${actual} entradas (esperado ${EXPECTED_COUNT}).`);
+  }
+
+  console.log('=== fim check-freshness ===');
+  process.exit(hasFailure ? 1 : 0);
+}
+
+/**
+ * E22 — --validate-fixture
+ * Lê scripts/decouple/sql-gate-fixture.json e valida contra PROD_OBJECTS_REGISTRY.
+ * exit 0 se todos os 25 objetos estiverem no fixture; exit 1 se faltar algum.
+ */
+function validateFixture() {
+  const fixturePath = resolve(__dirname, 'sql-gate-fixture.json');
+  console.log('=== sql-gate --validate-fixture ===');
+  console.log(`Fixture: ${fixturePath}`);
+
+  // Verificar existência e validade do JSON
+  let fixture;
+  try {
+    const raw = readFileSync(fixturePath, 'utf8');
+    fixture = JSON.parse(raw);
+  } catch (err) {
+    console.error(`FAIL: Não foi possível ler/parsear fixture: ${err.message}`);
+    process.exit(1);
+  }
+
+  if (!Array.isArray(fixture)) {
+    console.error('FAIL: fixture deve ser um array JSON.');
+    process.exit(1);
+  }
+
+  const EXPECTED_COUNT = 25;
+  if (fixture.length !== EXPECTED_COUNT) {
+    console.error(`FAIL: fixture tem ${fixture.length} entradas, esperado ${EXPECTED_COUNT}.`);
+    process.exit(1);
+  }
+
+  console.log(`OK: fixture com ${fixture.length} entradas (esperado ${EXPECTED_COUNT}).`);
+
+  // Verificar se cada objeto do PROD_OBJECTS_REGISTRY está no fixture
+  const fixtureNames = new Set(fixture.map(e => e && e.name).filter(Boolean));
+  const missing = PROD_OBJECTS_REGISTRY.filter(obj => !fixtureNames.has(obj.name));
+
+  if (missing.length > 0) {
+    console.error(`FAIL: ${missing.length} objeto(s) do PROD_OBJECTS_REGISTRY ausente(s) no fixture:`);
+    for (const obj of missing) {
+      console.error(`  - ${obj.name} (${obj.kind}): ${obj.desc}`);
+    }
+    console.log('=== fim validate-fixture ===');
+    process.exit(1);
+  }
+
+  console.log(`PASS: todos os ${PROD_OBJECTS_REGISTRY.length} objetos do PROD_OBJECTS_REGISTRY presentes no fixture.`);
+  console.log('=== fim validate-fixture ===');
+  process.exit(0);
+}
+
 function main() {
   const args = process.argv.slice(2);
+
+  // E19: --check-freshness
+  if (args.includes('--check-freshness')) {
+    checkFreshness();
+    return;
+  }
+
+  // E22: --validate-fixture
+  if (args.includes('--validate-fixture')) {
+    validateFixture();
+    return;
+  }
 
   const migIdx = args.indexOf('--migrations');
   if (migIdx > -1) {
