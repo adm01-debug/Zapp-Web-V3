@@ -71,7 +71,7 @@
 
 ---
 
-## (c) Tabela final — RPC × overloads × status (121 pronames)
+## (c) Tabela final — RPC × overloads × status (121 pronames; +1 adicionado† = 122)
 
 ### evo (17 — todos 1 overload, status OK)
 
@@ -95,7 +95,7 @@
 | fn_touch_contact_last_message | 1 | OK |
 | fn_touch_contact_presence | 1 | OK |
 
-### zapp (104 pronames — 101 OK + 3 DRIFT)
+### zapp (105 pronames — 101 OK + 3 DRIFT + 1 RESOLVIDO†)
 
 | RPC | Overloads | Status |
 |---|---|---|
@@ -161,6 +161,7 @@
 | fn_update_contact_search_vector | 1 | OK |
 | fn_update_conversation_metrics | 1 | OK |
 | fn_upsert_contact_from_webhook | 1 | OK |
+| fn_validate_whatsapp_connection_url | 2 (0-arg trigger + p_instance text) | RESOLVIDO† |
 | rpc_backfill_messages_contact_id | 1 | OK |
 | rpc_claim_outbound_message | 1 | OK |
 | rpc_confirm_message_sent | 1 | OK |
@@ -204,9 +205,19 @@
 | rpc_update_message_transcription | 1 | OK |
 | rpc_upsert_contact | 1 | OK |
 
+> **† `zapp.fn_validate_whatsapp_connection_url` — RESOLVIDO (CORRETOR 7, 2026-08-15).** Proname fora do filtro original da V4 (não casa `message|contact|conversation|inbox|outbound`), incluído por relevância à meta de overloads. **2 overloads intencionais, ambos espelhados repo×DB — drift encerrado:**
+>
+> | Overload | Corpo real (produção) | Decisão |
+> |---|---|---|
+> | `()` — 0-arg, `RETURNS trigger` (usada por `trg_validate_whatsapp_connection_url` em `zapp.whatsapp_connections`) | **LENIENT**: valida `NEW.webhook_url` contra `ops.fn_evo_url()`; se divergir → `RAISE WARNING`; **fail-open** (retorna `NEW`, NUNCA bloqueia escrita); `api_type='official'` passa direto | **Canônico**: trigger de validação de config NÃO bloqueia escrita por validação de URL — alerta via WARNING é o mecanismo. Espelhada em `20260814230000_mirror_fn_validate_0arg.sql`. ⚠️ **NUNCA dropar** — `trg_validate_whatsapp_connection_url` (20260805140000) depende; quebraria F6-12 |
+> | `(p_instance text)` — `RETURNS jsonb`, SECURITY DEFINER, `net.http_get` em `/instance/connectionState/` via `ops.fn_evo_url`/`ops.fn_evo_key` | RPC de verificação de estado (não é trigger) | **1 overload, sem drift**. Espelhada em `20260814220000_mirror_fn_validate_whatsapp_connection.sql` |
+>
+> **Referências:** `supabase/migrations/20260814220000_mirror_fn_validate_whatsapp_connection.sql` + `20260814230000_mirror_fn_validate_0arg.sql`, ambas no commit `9caebe471` (PR **#1088**). Status: **RESOLVIDO** — os 2 overloads são intencionais (trigger 0-arg + RPC p_instance), não configuram DRIFT da meta; sem ação pendente.
+
 ---
 
 ## Conclusão
 
 - **#78 (overloads)**: 118/121 pronames já com 1 overload (meta OK). **3 DRIFT** a consolidar: `fn_compute_contact_dedup_hash`, `rpc_get_contact`, `rpc_mark_messages_read` (protocolo E15 antes de remover assinatura). `rpc_upsert_contact` **confirmado consolidado (1 overload, 14 args)**. Verificação de chamadores/erros PGRST (parte do #78) pendente — requer logs PostgREST/Kong, fora do alcance read-only via MCP SQL.
 - **#79 (dispatch_error_logs)**: **documentado** — log de erro de dispatch com retenção própria (DLQ-adjacente), **não é DLQ ativa** e **não está crescendo** (1 registro órfão de 2026-05-04, canal `sicoob_bridge_reply`). Nenhuma escrita/DELETE executado (read-only).
+- **CORRETOR 7 — `fn_validate_whatsapp_connection_url`**: **RESOLVIDO** — 2 overloads intencionais, ambos espelhados repo×DB (drift encerrado): overload 0-arg (trigger) = LENIENT fail-open canônico para validação de config (WARNING, nunca bloqueia; NUNCA dropar — F6-12 depende); overload `(p_instance text)` = 1 overload, sem drift. Refs: migrations `20260814220000`/`20260814230000` + commit `9caebe471` (#1088).
