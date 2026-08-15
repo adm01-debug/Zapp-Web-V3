@@ -54,15 +54,12 @@ function latestDefinition(sql: string, fnName: string): string {
 
 /**
  * Definição no canonical squash (20260804000000) — espelha o schema APLICADO em
- * produção. Usado onde migrations pós-canonical NÃO aplicadas conflitam com o
- * contrato real (drift #1093, 2026-08-15: e38 reescreve notify_sicoob_on_reply
- * sem SECURITY DEFINER mas nunca foi aplicado — supabase_migrations não registra
- * nenhuma das 16 migrations do PR #1093; produção mantém a versão SECDEF).
+ * produção. (Removida do HIGH-3 no merge #1095: o teste passou a validar a
+ * função REAL evo.fn_notify_sicoob_on_reply via allMigrationsSql + regex evo.*;
+ * este helper ficou documentado aqui como referência para o drift do PR #1093 —
+ * migrations e38 não aplicadas vs produção. Reativar se o teste voltar a
+ * validar a órfã zapp.* contra produção.)
  */
-function canonicalDefinition(fnName: string): string {
-  const sql = readFileSync(join(MIGRATIONS_DIR, '20260804000000_canonical_schema_squash_133_migrations.sql'), 'utf-8');
-  return latestDefinition(sql, fnName);
-}
 
 describe('Sprint 1 · HIGH-1 · RPC SECURITY DEFINER guards', () => {
   const sql = allMigrationsSql();
