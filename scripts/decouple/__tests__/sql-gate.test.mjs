@@ -48,12 +48,20 @@ test('fn compliant (usa ops.fn_evo_url/fn_evo_key) NÃO viola', () => {
   assert.equal(exit, 0, `esperava exit 0, saída: ${out}`);
 });
 
-test('falsos positivos legítimos (license/webhook n8n) NÃO violam', () => {
+test('license/n8n CORRIGIDAS (URL via variável) NÃO violam; ANTIGAS violam (whitelist nominal removido)', () => {
+  // Versões corrigidas (I4 2026-08-15): URL montada de variável — sem literal inline
   const { exit, out } = runGate([
+    { fn: 'zapp.fn_check_license_heartbeat', prosrc: "DECLARE v_license_url text; BEGIN v_license_url := COALESCE(ops.fn_evo_url_v2(), 'https://evolution.atomicabr.com.br') || '/license/status'; PERFORM net.http_get(v_license_url); END;" },
+    { fn: 'evo.fn_detect_instance_recreate', prosrc: "DECLARE v_webhook_url text; BEGIN v_webhook_url := COALESCE(ops.fn_get_vault_secret('n8n_bootstrap_alert_webhook'), 'https://webhook.atomicabr.com.br/webhook/evolution-bootstrap-alert'); PERFORM net.http_post(url := v_webhook_url); END;" },
+  ]);
+  assert.equal(exit, 0, `esperava exit 0, saída: ${out}`);
+
+  // Versões ANTIGAS (literal inline na chamada) agora SÃO violação — whitelist nominal removido (item 7 da revisão)
+  const old = runGate([
     { fn: 'zapp.fn_check_license_heartbeat', prosrc: "BEGIN PERFORM net.http_get('https://evolution.atomicabr.com.br/license/status'); END;" },
     { fn: 'evo.fn_detect_instance_recreate', prosrc: "BEGIN PERFORM net.http_post(url:='https://webhook.atomicabr.com.br/webhook/evolution-bootstrap-alert'); END;" },
   ]);
-  assert.equal(exit, 0, `esperava exit 0, saída: ${out}`);
+  assert.equal(old.exit, 1, `esperava exit 1 para versões antigas, saída: ${old.out}`);
 });
 
 test('entry null no report não crasha (fix V7)', () => {

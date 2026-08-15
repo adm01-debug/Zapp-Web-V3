@@ -44,11 +44,9 @@ const WHITELIST = new Set([
   // E17: versões v2 com assinatura versionada
   'ops.fn_evo_url_v2',
   'ops.fn_evo_key_v2',
-  // V7 allowlist nominal (egressos legítimos fora do gateway, sem apikey):
-  // - zapp.fn_check_license_heartbeat: health check do license server (sem apikey)
-  // - evo.fn_detect_instance_recreate: alerta webhook n8n (bootstrap)
-  'zapp.fn_check_license_heartbeat',
-  'evo.fn_detect_instance_recreate',
+  // NOTA I4 (2026-08-15): allowlist nominal V7 REMOVIDA — as funções
+  // license_heartbeat/detect_instance_recreate agora passam pelo critério
+  // por-STATEMENT real (URL montada de variável, sem literal inline).
 ]);
 // Report sem prefixo de schema (query sem JOIN) também é aceito no whitelist.
 const WHITELIST_SHORT = new Set([
@@ -146,6 +144,111 @@ function isWhitelisted(fn) {
   return false;
 }
 
+// --- I4: critério de egresso HTTP por-STATEMENT (2026-08-15) ----------------
+// Violação = statement com net.http_* (incl. http_delete) + literal https?://
+// NO ARGUMENTO url (nomeado ou 1º posicional) + sem resolver na mesma
+// statement. Literais em headers (Origin/Referer) NÃO são egresso de URL.
+// Extração string-aware (aspas, dollar-quotes, vírgula/parentese nível 0).
+const HTTP_CALL_RE = /net\.http_\w+\s*\(/i;
+const LITERAL_URL_RE = /https?:\/\//i;
+const RESOLVER_RE = /ops\.fn_evo_url|ops\.fn_get_vault_secret|fn_get_vault_secret|current_setting/i;
+
+function splitStatements(src) {
+  // split aproximado por ';' — o pior caso amplia a statement (fail-closed)
+  return src.split(';');
+}
+
+function skipQuoted(src, i) {
+  const q = src[i];
+  if (q === "'" || q === '"') {
+    let j = i + 1;
+    while (j < src.length) {
+      if (src[j] === q && src[j - 1] !== '\\') return j + 1;
+      j++;
+    }
+    return src.length;
+  }
+  if (q === '$') {
+    const m = src.slice(i).match(/^\$[A-Za-z0-9_]*\$/);
+    if (m) {
+      const tag = m[0];
+      const end = src.indexOf(tag, i + tag.length);
+      return end === -1 ? src.length : end + tag.length;
+    }
+  }
+  return i + 1;
+}
+
+function findBalancedClose(src, openIdx) {
+  let depth = 0;
+  for (let i = openIdx; i < src.length; i++) {
+    const c = src[i];
+    if (c === "'" || c === '"' || c === '$') {
+      i = skipQuoted(src, i) - 1;
+      continue;
+    }
+    if (c === '(') depth++;
+    else if (c === ')') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+function findTopLevelComma(src) {
+  let depth = 0;
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    if (c === "'" || c === '"' || c === '$') {
+      i = skipQuoted(src, i) - 1;
+      continue;
+    }
+    if (c === '(') depth++;
+    else if (c === ')') depth = Math.max(0, depth - 1);
+    else if (c === ',' && depth === 0) return i;
+  }
+  return -1;
+}
+
+/**
+ * Statements com egresso HTTP de URL literal inline SEM resolver na mesma
+ * statement (critério I4). @returns {{index:number, excerpt:string}[]}
+ */
+function httpLiteralViolations(prosrc) {
+  const out = [];
+  const stmts = splitStatements(prosrc);
+  for (let i = 0; i < stmts.length; i++) {
+    const stmt = stmts[i];
+    if (!HTTP_CALL_RE.test(stmt)) continue;
+    if (RESOLVER_RE.test(stmt)) continue; // resolver presente na statement → ok
+    const callRe = /net\.http_\w+\s*\(/gi;
+    let m;
+    while ((m = callRe.exec(stmt)) !== null) {
+      const open = m.index + m[0].length - 1; // índice do '('
+      const close = findBalancedClose(stmt, open);
+      if (close === -1) continue;
+      const args = stmt.slice(open + 1, close);
+      const urlArgMatch = args.match(/\burl\s*:?=\s*/i);
+      let urlExpr = null;
+      if (urlArgMatch) {
+        const start = urlArgMatch.index + urlArgMatch[0].length;
+        const rest = args.slice(start);
+        const comma = findTopLevelComma(rest);
+        urlExpr = comma === -1 ? rest : rest.slice(0, comma);
+      } else {
+        const posMatch = args.match(/^\s*('[^']*'|"[^"]*"|\$[0-9]+)/);
+        urlExpr = posMatch ? posMatch[1] : null;
+      }
+      if (urlExpr && LITERAL_URL_RE.test(urlExpr)) {
+        out.push({ index: i, excerpt: stmt.trim().slice(0, 90) });
+        break;
+      }
+    }
+  }
+  return out;
+}
+
 /**
  * Retorna lista de razões de violação para uma entrada do report.
  * @param {{fn?: unknown, prosrc?: unknown}} entry
@@ -155,18 +258,17 @@ function checkEntry(entry) {
   const prosrc = typeof entry.prosrc === 'string' ? entry.prosrc : '';
   const reasons = [];
 
-  // CONFORMIDADE (V3 V7): fn que resolve url/key via ops.fn_evo_url/fn_evo_key é
-  // compliant — mata falsos positivos de comentários/'Evolution' em fns 100% OK
-  const usesResolvers = /ops\.fn_evo_url|ops\.fn_evo_key/i.test(prosrc);
-  const hasHttpCall = /net\.http_(get|post)\s*\(/i.test(prosrc);
-  const mentionsEvolution = /evolution/i.test(prosrc);
-  if (hasHttpCall && mentionsEvolution && !usesResolvers) {
+  // I4 por-STATEMENT (2026-08-15): violação = statement com net.http_* +
+  // literal https?:// NO ARGUMENTO url (nomeado ou 1º posicional) + sem
+  // resolver na mesma statement. URL montada de variável não viola.
+  const httpVios = httpLiteralViolations(prosrc);
+  if (httpVios.length > 0) {
     reasons.push(
-      'chama net.http_get/net.http_post referenciando evolution no corpo; ' +
-      'use ops.fn_evo_url()/ops.fn_evo_key() para montar o egresso'
+      `${httpVios.length} statement(s) com net.http_* e URL literal inline sem resolver (ex.: "${httpVios[0].excerpt}..."); monte o egresso via ops.fn_evo_url()/ops.fn_get_vault_secret()/current_setting`
     );
   }
 
+  const usesResolvers = /ops\.fn_evo_url|ops\.fn_evo_key/i.test(prosrc);
   const readsVault = /vault\.decrypted_secrets/i.test(prosrc);
   const readsEvoUrlSecret = /evolution_api_url/i.test(prosrc);
   if (readsVault && readsEvoUrlSecret && !usesResolvers) {
@@ -182,20 +284,15 @@ function checkEntry(entry) {
 
 // V3 validacao final: scan estatico de supabase/migrations/*.sql - pega
 // egresso hardcoded em migration NOVA sem depender do snapshot/DB.
+// I4 (2026-08-15): reusa httpLiteralViolations (por-statement, url:=, cobre
+// net.http_* completo incl. http_delete).
 function scanMigrations(migrationsDir) {
   const viol = [];
   try {
     for (const f of readdirSync(migrationsDir).filter(f => f.endsWith('.sql'))) {
       const src = readFileSync(join(migrationsDir, f), 'utf8');
-      // por STATEMENT (split ';') — evita falso positivo de 'evolution' em
-      // statement vizinho (ex.: INSERT em zapp.evolution_xxx + net.http p/ n8n)
-      for (const stmt of src.split(';')) {
-        if (/net\.http_(get|post)\(/i.test(stmt)
-            && /evolution/i.test(stmt)
-            && !/ops\.fn_evo_url|ops\.fn_evo_key/i.test(stmt)) {
-          viol.push(f);
-          break;
-        }
+      if (httpLiteralViolations(src).length > 0) {
+        viol.push(f);
       }
     }
   } catch { /* dir ausente = sem violacoes */ }
