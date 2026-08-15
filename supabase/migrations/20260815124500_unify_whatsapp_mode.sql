@@ -157,3 +157,9 @@ COMMENT ON VIEW zapp.vw_whatsapp_mode IS
   'zapp.global_settings chave whatsapp_mode.';
 
 GRANT SELECT ON zapp.vw_whatsapp_mode TO authenticated, service_role;
+
+-- Validacao final (2026-08-15): a constraint antiga so aceitava
+-- ('evolution','official') e QUEBRARIA o sync do rpc_set_whatsapp_mode('cloud').
+ALTER TABLE zapp.whatsapp_connections DROP CONSTRAINT IF EXISTS whatsapp_connections_api_type_check;
+ALTER TABLE zapp.whatsapp_connections ADD CONSTRAINT whatsapp_connections_api_type_check
+  CHECK (api_type = ANY (ARRAY['evolution'::text, 'official'::text, 'cloud'::text]));

@@ -208,7 +208,11 @@ function validateShape(shape: ExpectShape, data: unknown): boolean {
   const obj = data as Record<string, unknown>;
   switch (shape) {
     case 'messages':
-      return obj.messaging_product === 'whatsapp';
+      // fail-closed completo (validacao final): 200 sem messages[0].id nao e ok
+      return obj.messaging_product === 'whatsapp'
+        && Array.isArray(obj.messages)
+        && obj.messages.length > 0
+        && typeof (obj.messages[0] as { id?: unknown } | null | undefined)?.id === 'string';
     case 'media':
       return typeof obj.id === 'string' && obj.id.length > 0;
     case 'phone':
