@@ -279,4 +279,6 @@ ORDER BY run_at DESC;
 -- Permissões
 GRANT SELECT ON ops.decouple_preflight_runs TO authenticated;
 GRANT SELECT ON ops.v_preflight_history TO authenticated;
-GRANT EXECUTE ON FUNCTION ops.fn_decouple_preflight TO authenticated;
+-- ops.fn_decouple_preflight é função de checklist admin/ops.
+-- Acesso via service_role apenas; não expor a authenticated.
+-- GRANT EXECUTE ON FUNCTION ops.fn_decouple_preflight TO authenticated; -- removido ML-008

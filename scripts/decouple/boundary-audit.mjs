@@ -29,7 +29,7 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execSync } from 'node:child_process';
+import { execSync, spawnSync } from 'node:child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -208,17 +208,19 @@ function checkI7_inventoryMjs() {
   ];
 
   // Executa inventory.mjs para obter o score atual
+  // Usa spawnSync com array de args para evitar injeção via shell (CodeQL CWE-078)
   let inventoryResult = null;
   try {
-    const output = execSync(`node ${inventoryPath} 2>/dev/null`, {
+    const proc = spawnSync(process.execPath, [inventoryPath], {
       cwd: REPO_ROOT,
       timeout: 30000,
       encoding: 'utf8',
     });
-    // O inventory imprime para stderr e pode ter JSON no stdout
+    if (proc.error) throw proc.error;
+    const output = proc.stdout || '';
     inventoryResult = { ran: true, output: output.slice(0, 500) };
   } catch (e) {
-    inventoryResult = { ran: false, error: e.message.slice(0, 200) };
+    inventoryResult = { ran: false, error: (e.message || String(e)).slice(0, 200) };
   }
 
   const missing = checks.filter(c => !c.present);

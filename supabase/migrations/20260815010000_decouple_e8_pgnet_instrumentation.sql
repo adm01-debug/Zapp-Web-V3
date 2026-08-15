@@ -193,4 +193,6 @@ GRANT SELECT ON ops.pgnet_egress_log TO authenticated;
 GRANT SELECT ON ops.v_i4_violations_summary TO authenticated;
 GRANT SELECT ON ops.i4_violation_baseline TO authenticated;
 GRANT SELECT ON ops.v_i4_correction_progress TO authenticated;
-GRANT EXECUTE ON FUNCTION ops.log_pgnet_call TO authenticated;
+-- ops.log_pgnet_call é função interna chamada de outras funções DB (service_role).
+-- Não expor a authenticated: risco de poluição de log de auditoria.
+-- GRANT EXECUTE ON FUNCTION ops.log_pgnet_call TO authenticated; -- removido ML-008
