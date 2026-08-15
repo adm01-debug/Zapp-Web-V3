@@ -8,6 +8,7 @@ import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import { evolutionClient, getBaseUrl } from "../_shared/providers/evolution/index.ts";
+import { getProviderClient } from "../_shared/providers/registry.ts";
 
 type Mode = "official" | "unofficial";
 type Status = "pass" | "warn" | "fail" | "skip";
@@ -54,6 +55,29 @@ async function timed<T>(fn: () => Promise<T>): Promise<{ value?: T; error?: stri
     return { value, ms: Date.now() - t0 };
   } catch (e) {
     return { error: e instanceof Error ? e.message : String(e), ms: Date.now() - t0 };
+  }
+}
+
+/**
+ * Piloto F5 (Plano V4-FINAL, etapas 53-62): resolve getConnectionState via
+ * registry atrás de flag de ambiente.
+ *  - REGISTRY_PILOT_CONNECTION_STATE ausente/≠'1' → evolutionClient direto,
+ *    caminho antigo intacto (comportamento padrão, sem mudança).
+ *  - REGISTRY_PILOT_CONNECTION_STATE='1' → resolve via
+ *    registry.getProviderClient() (fora de DENO_ENV=test sempre retorna o
+ *    evolutionClient real — mesmo resultado); defesa em profundidade: se o
+ *    registry lançar, cai no evolutionClient direto (mesmo padrão já usado
+ *    em evolution-proxy/index.ts, piloto #34).
+ */
+export function resolveConnectionStateClient(): Pick<typeof evolutionClient, "getConnectionState"> {
+  if (Deno.env.get("REGISTRY_PILOT_CONNECTION_STATE") !== "1") return evolutionClient;
+  try {
+    return getProviderClient() as unknown as Pick<typeof evolutionClient, "getConnectionState">;
+  } catch (err) {
+    console.error(
+      `[connection-test] registry.getProviderClient() falhou (${err instanceof Error ? err.message : String(err)}); fallback evolutionClient`,
+    );
+    return evolutionClient;
   }
 }
 
@@ -106,7 +130,7 @@ async function runEvolutionChecks(): Promise<Check[]> {
 
   // 3. Instância autenticada (connectionState)
   const conn = await timed(async () => {
-    const r = await evolutionClient.getConnectionState(encodeURIComponent(instance), { timeoutMs: 10_000 });
+    const r = await resolveConnectionStateClient().getConnectionState(encodeURIComponent(instance), { timeoutMs: 10_000 });
     const parsed = (r.data ?? null) as EvoConnectionState | null;
     return { status: r.status, parsed, raw: r.error?.slice(0, 200) ?? "" };
   });
