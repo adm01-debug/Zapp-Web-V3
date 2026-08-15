@@ -69,19 +69,32 @@ COMMENT ON FUNCTION ops.fn_evo_key_v2 IS
 -- Marcar funções originais como deprecadas
 -- (as funções originais não estão em nenhuma migration — foram criadas
 --  diretamente no prod DB antes do versionamento do schema. Os COMMENTs
---  abaixo atualizam os comentários no catalog para sinalizar a deprecação.)
+--  abaixo atualizam os comentários no catalog para sinalizar a deprecação.
+--  Envolvidos em DO blocks para tolerar fresh-DB onde as funções não existem.)
 -- -----------------------------------------------------------------------------
-COMMENT ON FUNCTION ops.fn_evo_url IS
-  '[DEPRECATED — usar ops.fn_evo_url_v2()] '
-  'Retorna a URL da Evolution API do vault. '
-  'Será removida após a Fase 2 do desacoplamento (E25+). '
-  'Não reutilizar em novas funções.';
+DO $depr_url$
+BEGIN
+  COMMENT ON FUNCTION ops.fn_evo_url IS
+    '[DEPRECATED — usar ops.fn_evo_url_v2()] '
+    'Retorna a URL da Evolution API do vault. '
+    'Sera removida apos a Fase 2 do desacoplamento (E25+). '
+    'Nao reutilizar em novas funcoes.';
+EXCEPTION WHEN undefined_function THEN
+  NULL;
+END;
+$depr_url$;
 
-COMMENT ON FUNCTION ops.fn_evo_key IS
-  '[DEPRECATED — usar ops.fn_evo_key_v2()] '
-  'Retorna a API key da Evolution API do vault. '
-  'Será removida após a Fase 2 do desacoplamento (E25+). '
-  'Não reutilizar em novas funções.';
+DO $depr_key$
+BEGIN
+  COMMENT ON FUNCTION ops.fn_evo_key IS
+    '[DEPRECATED — usar ops.fn_evo_key_v2()] '
+    'Retorna a API key da Evolution API do vault. '
+    'Sera removida apos a Fase 2 do desacoplamento (E25+). '
+    'Nao reutilizar em novas funcoes.';
+EXCEPTION WHEN undefined_function THEN
+  NULL;
+END;
+$depr_key$;
 
 -- -----------------------------------------------------------------------------
 -- Permissões
