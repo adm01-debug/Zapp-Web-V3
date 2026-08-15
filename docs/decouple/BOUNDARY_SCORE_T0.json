@@ -1,0 +1,174 @@
+{
+  "meta": {
+    "generated_at": "2026-08-15T02:59:21.502Z",
+    "mode": "offline_baseline",
+    "description": "Auditoria dos 9 Invariantes de Independência ZAPP×EVO",
+    "baseline_snapshot": "20260815",
+    "repo": "adm01-debug/zapp-web-v3",
+    "branch": "claude/evolution-zapp-separation-analysis-29lixd"
+  },
+  "summary": {
+    "passed": 3,
+    "partial": 0,
+    "failed": 6,
+    "errored": 0,
+    "total": 9,
+    "percentage": 33,
+    "grade": "D"
+  },
+  "invariants": [
+    {
+      "invariant": "I1",
+      "name": "Zero funções zapp.* referenciando evo.*",
+      "score": 0,
+      "violations": [
+        {
+          "count": 82,
+          "distinct_functions": 20,
+          "source": "baseline T0"
+        }
+      ],
+      "detail": "[OFFLINE] T0: 82 refs em 20 funções zapp→evo",
+      "t0": {
+        "refs": 82,
+        "distinct_functions": 20
+      }
+    },
+    {
+      "invariant": "I2",
+      "name": "Zero funções evo.* referenciando zapp.*",
+      "score": 0,
+      "violations": [
+        {
+          "distinct_functions": 96,
+          "source": "baseline T0"
+        }
+      ],
+      "detail": "[OFFLINE] T0: 96 funções evo→zapp",
+      "t0": {
+        "distinct_functions": 96
+      }
+    },
+    {
+      "invariant": "I3",
+      "name": "supabase.yml não em zapp-web-v3",
+      "score": 0,
+      "violations": [
+        {
+          "file": ".github/workflows/e2e-evolution-vps.yml",
+          "reason": "Workflow evolution (exceto decouple-guard)"
+        }
+      ],
+      "detail": "1 arquivo(s) de infra evolution encontrado(s)"
+    },
+    {
+      "invariant": "I4",
+      "name": "Todo egresso HTTP via gateway único",
+      "score": 0,
+      "violations": {
+        "cron_I4": 5,
+        "pg_net_functions": 18,
+        "source": "baseline T0"
+      },
+      "detail": "[OFFLINE] T0: 5 cron I4-bypass + 18 pg_net function violations",
+      "t0": {
+        "cron_I4_bypass": 5,
+        "pg_net_functions": 18
+      }
+    },
+    {
+      "invariant": "I5",
+      "name": "CI guard decouple-guard.yml ativo",
+      "score": 1,
+      "violations": [],
+      "detail": "decouple-guard.yml presente e contém verificações de evolution",
+      "guardPath": "/home/user/zapp-web-v3/.github/workflows/decouple-guard.yml"
+    },
+    {
+      "invariant": "I6",
+      "name": "consumer.py sem INSERT morto",
+      "score": 1,
+      "violations": [],
+      "detail": "consumer.py não encontrado em zapp-web-v3 (correto — pertence ao evo stack)"
+    },
+    {
+      "invariant": "I7",
+      "name": "inventory.mjs cobre todos evolution-* invocations",
+      "score": 1,
+      "violations": [],
+      "detail": "inventory.mjs contém todas as métricas de cobertura",
+      "inventoryRun": {
+        "ran": true,
+        "output": "════ INVENTORY v4 — Acoplamento Evolution ════\nfront invoke bypass:       0  ✅ (baseline novo: 0, antigo: 9, delta: -9)\nbackend URL bypass:        0  ✅ (baseline novo: 0, antigo: 0, delta: 0)\nfront evo writes:          0  ✅ (baseline novo: 0, antigo: 6, delta: -6)\nfront direct evo http:     0  ✅ (baseline novo: 0, antigo: 2, delta: -2)\n═══════════════════════════════════════════════\nTOTAL: 0  ✅ (baseline novo: 0, antigo: 17, delta: -17)\nMeta: TOTAL → 0 (desacoplamento completo)\n"
+      }
+    },
+    {
+      "invariant": "I8",
+      "name": "sql-gate fixture sincronizado com prod",
+      "score": 0,
+      "violations": [
+        {
+          "fixture_count": 12,
+          "prod_count": 25,
+          "gap": 13
+        }
+      ],
+      "detail": "[OFFLINE] T0: fixture=12 entradas; prod=25; gap=13",
+      "t0": {
+        "fixture": 12,
+        "prod": 25
+      }
+    },
+    {
+      "invariant": "I9",
+      "name": "Zero FKs cross-schema não documentadas",
+      "score": 0,
+      "violations": [
+        {
+          "total_rows": 24,
+          "distinct_constraints": 6,
+          "source": "baseline T0"
+        }
+      ],
+      "detail": "[OFFLINE] T0: 24 FK rows, 6 constraints cross-schema",
+      "t0": {
+        "rows": 24,
+        "constraints": 6
+      }
+    }
+  ],
+  "t0_reference": {
+    "I1": {
+      "refs": 82,
+      "distinct_functions": 20
+    },
+    "I2": {
+      "distinct_functions": 96
+    },
+    "I3": "parcialmente ok (verificar docker-compose)",
+    "I4": {
+      "cron_I4_bypass": 5,
+      "pg_net_functions": 16,
+      "total_violations": 14
+    },
+    "I5": "parcialmente ok (guard presente)",
+    "I6": "ok (consumer.py não em zapp repo)",
+    "I7": "falhou (inventory não cobre todos invocations)",
+    "I8": {
+      "fixture": 12,
+      "prod": 25,
+      "gap": 13
+    },
+    "I9": {
+      "rows": 24,
+      "constraints": 6
+    }
+  },
+  "next_steps": [
+    "E2: Este script (boundary-audit.mjs) em modo online para medir T0 ao vivo",
+    "E3: Commit BOUNDARY_SCORE_T0.json",
+    "E4: Criar ADR-012 com medições formais T0",
+    "E13–E24: Fase 1 — Documentação e correções de baixo risco",
+    "E25–E40: Fase 2 — Blindagem de CI"
+  ]
+}
