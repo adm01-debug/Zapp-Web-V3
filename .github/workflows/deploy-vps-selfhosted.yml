@@ -83,6 +83,9 @@ jobs:
           echo "✅ Secrets críticos presentes."
 
       - uses: docker/setup-buildx-action@v4
+        with:
+          # 2026-08-15: nome fixo para reaproveitar o builder entre runs.
+          name: atomica-zapp
 
       - name: Login GHCR
         uses: docker/login-action@v4
