@@ -1,6 +1,6 @@
 # ADR-013 — Plano da Fase 1: Fundação e Documentação
 
-> **Status**: APROVADO · Criado em: 2026-08-15 · Autores: Time de Engenharia ZAPP
+> **Status**: APROVADO · CONCLUÍDA em 2026-08-15 · Autores: Time de Engenharia ZAPP
 > **Fase**: 1 de 8 do Plano de Desacoplamento ZAPP×Evolution
 > **Etapas**: E13–E24 (12 etapas)
 > **Referência mestre**: [`docs/decouple/DECOUPLING.md`](./DECOUPLING.md)
@@ -75,7 +75,7 @@ as funções antigas são gradualmente removidas.
 **Critério de aceite**: Migration aplicada; `SELECT ops.fn_evo_url_v2()` retorna URL válida;
 linter ML-008 não dispara (sem `GRANT EXECUTE TO authenticated` em SECURITY DEFINER).
 
-### E18 — Regenerar sql-gate.mjs WHITELIST (12 → 25 entradas)
+### E18 — Regenerar sql-gate.mjs WHITELIST (12 → 25 entradas) ✅ CONCLUÍDA
 
 **Entrega**: `scripts/decouple/sql-gate.mjs` com WHITELIST expandida para cobrir as 25
 tabelas/views confirmadas em produção.
@@ -84,7 +84,7 @@ tabelas/views confirmadas em produção.
 há 25 objetos documentados em prod. Sem essa correção, qualquer PR que adicione uma
 referência SQL válida é falsamente bloqueado.
 
-### E19 — Freshness check no sql-gate
+### E19 — Freshness check no sql-gate ✅ CONCLUÍDA
 
 **Entrega**: `scripts/decouple/sql-gate.mjs` com verificação de freshness:
 - Se a WHITELIST não foi atualizada nos últimos 30 dias, emitir WARN
@@ -92,7 +92,7 @@ referência SQL válida é falsamente bloqueado.
 
 **Critério de aceite**: `bun run scripts/decouple/sql-gate.mjs --check-freshness` passa.
 
-### E20 — Role CI para medição de invariantes em DB vivo
+### E20 — Role CI para medição de invariantes em DB vivo ✅ CONCLUÍDA
 
 **Entrega**: Workflow `.github/workflows/measure-invariants.yml` que:
 - Conecta ao DB de prod (via `SUPABASE_DB_URL` secret) em read-only
@@ -102,14 +102,14 @@ referência SQL válida é falsamente bloqueado.
 
 **Rationale**: Sem medição automática, o score T0 envelhece. O CI deve medir a cada PR.
 
-### E21 — inventory.mjs: métricas I1/I2
+### E21 — inventory.mjs: métricas I1/I2 ✅ CONCLUÍDA
 
 **Entrega**: `scripts/decouple/inventory.mjs` expandido com:
 - Contagem de funções `zapp.*` que referenciam `evo.*` (I1)
 - Contagem de funções `evo.*` que referenciam `zapp.*` (I2)
 - Output em JSON estruturado com delta vs baseline
 
-### E22 — Fixture sql-gate sincronizado (I8 pass)
+### E22 — Fixture sql-gate sincronizado (I8 pass) ✅ CONCLUÍDA
 
 **Entrega**: Arquivo de fixture `scripts/decouple/sql-gate-fixture.json` sincronizado com
 as 25 entradas reais de produção.
@@ -117,7 +117,7 @@ as 25 entradas reais de produção.
 **Critério de aceite**: `bun run scripts/decouple/sql-gate.mjs --validate-fixture` retorna PASS;
 invariante I8 muda de FAIL para PASS.
 
-### E23 — CI job que mede score a cada PR
+### E23 — CI job que mede score a cada PR ✅ CONCLUÍDA
 
 **Entrega**: `.github/workflows/measure-invariants.yml` produzindo score consolidado (I1–I9)
 como PR comment via `github-script`.
@@ -132,21 +132,21 @@ como PR comment via `github-script`.
 **Score: 3/9 (33%) — Nota D**
 ```
 
-### E24 — Marcar I8 como PASS; medir T1
+### E24 — Marcar I8 como PASS; medir T1 ✅ CONCLUÍDA
 
 **Entrega**: I8 marcado como PASS após E22 confirmar sincronização.
-Score T1 medido e documentado (esperado: 4/9 mínimo, se apenas I8 corrigido).
-Entrada no histórico do DECOUPLING.md com score T1 e data.
+Score T1 medido e documentado: **4/9 (44%) — Nota D** (I8 corrigido).
+Entrada no histórico do DECOUPLING.md com score T1 e data (2026-08-15).
 
 ---
 
 ## Critérios de Aceite da Fase 1 (global)
 
-- [ ] Todos os E13–E24 commitados e no branch de produção
-- [ ] Score T1 ≥ 4/9 (I8 corrigido)
-- [ ] CI job de medição de invariantes ativo em todo PR
-- [ ] SCHEMA_REFERENCE.md, DECOUPLING.md e este ADR-013 em sync
-- [ ] Zero regressões nos invariantes I5, I6, I7 (que já eram PASS)
+- [x] Todos os E13–E24 commitados e no branch de produção
+- [x] Score T1 ≥ 4/9 (I8 corrigido) — T1 = 4/9 confirmado em 2026-08-15
+- [x] CI job de medição de invariantes ativo em todo PR (E23 concluída)
+- [x] SCHEMA_REFERENCE.md, DECOUPLING.md e este ADR-013 em sync (E15, E24)
+- [x] Zero regressões nos invariantes I5, I6, I7 (que já eram PASS)
 
 ---
 

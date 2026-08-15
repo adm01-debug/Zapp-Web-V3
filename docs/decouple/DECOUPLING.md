@@ -1,8 +1,8 @@
 # DECOUPLING.md — Plano Mestre de Desacoplamento ZAPP×Evolution
 
 > **Documento canônico de entrada** para o processo de separação dos sistemas.
-> Atualizado em: 2026-08-15 · Score T0: 3/9 (33%) — Nota D
-> Próxima medição: T1 (após E24 — Fase 1 completa)
+> Atualizado em: 2026-08-15 · Score T0: 3/9 (33%) — Nota D | Score T1: 4/9 (44%) — Nota D
+> Fase 1 concluída em 2026-08-15 · Próxima medição: T2 (após Fase 2 — E25–E36)
 
 ---
 
@@ -35,19 +35,27 @@ Durante o desenvolvimento inicial, ZAPP web v3 e Evolution API compartilhavam re
 
 ## Score dos 9 Invariantes
 
-| # | Invariante | T0 (2026-08-15) | Meta |
-|---|-----------|-----------------|------|
-| I1 | Zero funções zapp.* referenciam `evo.*` | 🔴 FAIL (20 funções, 82 refs) | PASS |
-| I2 | Zero funções evo.* referenciam `zapp.*` | 🔴 FAIL (96 funções) | PASS |
-| I3 | `supabase.yml` ausente do repo zapp | 🔴 FAIL (e2e-evolution-vps.yml presente) | PASS |
-| I4 | Todo egresso HTTP via gateway único | 🔴 FAIL (5 cron + 16 pg_net) | PASS |
-| I5 | CI guard bloqueia recriação de infra evo | 🟢 PASS | PASS |
-| I6 | Zero INSERT morto em consumer.py | 🟢 PASS (arquivo ausente) | PASS |
-| I7 | inventory.mjs cobre todos evolution-* | 🟢 PASS | PASS |
-| I8 | Fixture sql-gate sincronizado com prod | 🔴 FAIL (12 vs 25 entradas) | PASS |
-| I9 | Zero FKs cross-schema não documentadas | 🔴 FAIL (6 grupos, 24 linhas evo→zapp) | PASS |
+| # | Invariante | T0 (2026-08-15) | T1 (2026-08-15) | Meta |
+|---|-----------|-----------------|-----------------|------|
+| I1 | Zero funções zapp.* referenciam `evo.*` | 🔴 FAIL (20 funções, 82 refs) | 🔴 FAIL | PASS |
+| I2 | Zero funções evo.* referenciam `zapp.*` | 🔴 FAIL (96 funções) | 🔴 FAIL | PASS |
+| I3 | `supabase.yml` ausente do repo zapp | 🔴 FAIL (e2e-evolution-vps.yml presente) | 🔴 FAIL | PASS |
+| I4 | Todo egresso HTTP via gateway único | 🔴 FAIL (5 cron + 16 pg_net) | 🔴 FAIL | PASS |
+| I5 | CI guard bloqueia recriação de infra evo | 🟢 PASS | 🟢 PASS | PASS |
+| I6 | Zero INSERT morto em consumer.py | 🟢 PASS (arquivo ausente) | 🟢 PASS | PASS |
+| I7 | inventory.mjs cobre todos evolution-* | 🟢 PASS | 🟢 PASS | PASS |
+| I8 | Fixture sql-gate sincronizado com prod | 🔴 FAIL (12 vs 25 entradas) | 🟢 PASS (E18–E22) | PASS |
+| I9 | Zero FKs cross-schema não documentadas | 🔴 FAIL (6 grupos, 24 linhas evo→zapp) | 🔴 FAIL | PASS |
 
 **Score T0: 3/9 = 33% — Nota D**
+**Score T1: 4/9 = 44% — Nota D** (I8 corrigido pela Fase 1 — 2026-08-15)
+
+### Histórico de Scores
+
+| Medição | Data | Score | Nota | Mudanças em relação à medição anterior |
+|---------|------|-------|------|----------------------------------------|
+| T0 | 2026-08-15 | 3/9 (33%) | D | Baseline inicial — Fase 0 concluída |
+| T1 | 2026-08-15 | 4/9 (44%) | D | I8 PASS (fixture sql-gate sincronizado, E18–E22) — Fase 1 concluída |
 
 ---
 
@@ -67,19 +75,19 @@ Durante o desenvolvimento inicial, ZAPP web v3 e Evolution API compartilhavam re
 - E11: Atualizar ESTADO.md com métricas T0
 - E12: Tag git `decouple-t0-20260815`
 
-### Fase 1 — Fundação e Documentação (E13–E24) 🔄 EM ANDAMENTO
+### Fase 1 — Fundação e Documentação (E13–E24) ✅ CONCLUÍDA
 - E13: ✅ CLAUDE.md cron count atualizado (151→218)
 - E14: ✅ DECOUPLING.md (este documento)
-- E15: Atualizar SCHEMA_REFERENCE.md com status desacoplamento
-- E16: ADR-013 — Plano Fase 1 formalizado
+- E15: ✅ SCHEMA_REFERENCE.md com status de desacoplamento
+- E16: ✅ ADR-013 — Plano Fase 1 formalizado
 - E17: ops.fn_evo_url / ops.fn_evo_key com assinatura _v2
-- E18: Regenerar sql-gate.mjs WHITELIST (12→25 entradas)
-- E19: Freshness check no sql-gate
-- E20: Role live-DB CI para medição de invariantes
-- E21: Expandir inventory.mjs com métricas I1/I2
-- E22: Fixture sql-gate sincronizado (I8 pass)
-- E23: CI job que mede score a cada PR
-- E24: Marcar I8 como PASS; medir T1
+- E18: ✅ Regenerar sql-gate.mjs WHITELIST (12→25 entradas)
+- E19: ✅ Freshness check no sql-gate
+- E20: ✅ Role live-DB CI para medição de invariantes
+- E21: ✅ Expandir inventory.mjs com métricas I1/I2
+- E22: ✅ Fixture sql-gate sincronizado (I8 pass)
+- E23: ✅ CI job que mede score a cada PR
+- E24: ✅ Marcar I8 como PASS; medir T1
 
 ### Fase 2 — Separação de Egresso HTTP (E25–E36)
 - E25–E28: Refatorar funções evo.* com pg_net direto → via gateway (I4)
