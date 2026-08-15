@@ -80,156 +80,104 @@ function readBaseline(filename) {
   return JSON.parse(readFileSync(path, 'utf8'));
 }
 
-// ─── Verificações de Filesystem ───────────────────────────────────────────────
+// ─── Verificações de Filesystem / Plano (invariantes reais do PLANO_INDEPENDENCIA) ───
 
-function checkI3_supabaseYml() {
-  const result = { invariant: 'I3', name: 'supabase.yml não em zapp-web-v3' };
-  const supabaseYml = join(REPO_ROOT, 'supabase.yml');
-  const evolutionYml = join(REPO_ROOT, 'docker-compose.evolution.yml');
-  const violations = [];
-
-  if (existsSync(supabaseYml)) {
-    const content = readFileSync(supabaseYml, 'utf8');
-    if (content.includes('evolution') || content.includes('Evolution')) {
-      violations.push({ file: 'supabase.yml', reason: 'Contém referência a evolution' });
+function committedBaselineInvariant(inv) {
+  for (const f of ['BOUNDARY_SCORE_T2.json', 'BOUNDARY_SCORE_T0.json']) {
+    const p = join(REPO_ROOT, 'docs', 'decouple', f);
+    if (existsSync(p)) {
+      try {
+        const j = JSON.parse(readFileSync(p, 'utf8'));
+        const hit = (j.invariants || []).find(x => x.invariant === inv);
+        if (hit) return hit;
+      } catch { /* ignore */ }
     }
   }
-
-  // Verifica se há docker-compose de evolution neste repo
-  const dcFiles = readdirSync(REPO_ROOT).filter(f =>
-    f.startsWith('docker-compose') && (f.includes('evolution') || f.includes('evo'))
-  );
-  for (const f of dcFiles) {
-    violations.push({ file: f, reason: 'docker-compose evolution no zapp-web-v3' });
-  }
-
-  // Verifica .github/workflows por arquivos de infra evolution
-  const workflowDir = join(REPO_ROOT, '.github', 'workflows');
-  if (existsSync(workflowDir)) {
-    const workflows = readdirSync(workflowDir);
-    for (const wf of workflows) {
-      if (wf.includes('evolution') && wf !== 'decouple-guard.yml') {
-        violations.push({ file: `.github/workflows/${wf}`, reason: 'Workflow evolution (exceto decouple-guard)' });
-      }
-    }
-  }
-
-  result.score = violations.length === 0 ? 1 : 0;
-  result.violations = violations;
-  result.detail = violations.length === 0
-    ? 'Sem infra evolution em zapp-web-v3'
-    : `${violations.length} arquivo(s) de infra evolution encontrado(s)`;
-  return result;
+  return null;
 }
 
-function checkI5_ciGuard() {
-  const result = { invariant: 'I5', name: 'CI guard decouple-guard.yml ativo' };
-  const guardPath = join(REPO_ROOT, '.github', 'workflows', 'decouple-guard.yml');
-
-  if (!existsSync(guardPath)) {
-    result.score = 0;
-    result.violations = [{ file: '.github/workflows/decouple-guard.yml', reason: 'Arquivo não encontrado' }];
-    result.detail = 'decouple-guard.yml AUSENTE — CI guard inativo';
+// I3 (plano I4) — o dado da Evolution reside no schema evo
+async function checkI3_supabaseYml(offline) {
+  const result = { invariant: 'I3', name: 'Dado da Evolution reside no schema evo (evolution_messages/conversations/contacts)' };
+  if (offline) {
+    const base = committedBaselineInvariant('I3');
+    result.score = base && typeof base.score === 'number' ? base.score : 0;
+    result.violations = (base && base.violations) || [];
+    result.detail = '[offline] replay do baseline commitado — ' + ((base && base.detail) || 'tabelas em zapp');
     return result;
   }
-
-  const content = readFileSync(guardPath, 'utf8');
-  const checks = [
-    { key: 'supabase.yml', present: content.includes('supabase.yml') || content.includes('evolution') },
-    { key: 'push trigger', present: content.includes('push:') || content.includes('pull_request:') },
-  ];
-
-  const missing = checks.filter(c => !c.present);
-  result.score = missing.length === 0 ? 1 : 0.5;
-  result.violations = missing.map(c => ({ check: c.key, reason: 'Verificação ausente no guard' }));
-  result.detail = missing.length === 0
-    ? 'decouple-guard.yml presente e contém verificações de evolution'
-    : `decouple-guard.yml presente mas incompleto (${missing.length} check(s) ausente)`;
-  result.guardPath = guardPath;
-  return result;
-}
-
-function checkI6_consumerPy() {
-  const result = { invariant: 'I6', name: 'consumer.py sem INSERT morto' };
-  // consumer.py pode estar em vários locais
-  const candidates = [
-    'consumer.py',
-    'src/consumer.py',
-    'supabase/functions/_shared/consumer.py',
-    'scripts/consumer.py',
-  ].map(p => join(REPO_ROOT, p)).filter(existsSync);
-
-  if (candidates.length === 0) {
-    result.score = 1;
-    result.violations = [];
-    result.detail = 'consumer.py não encontrado em zapp-web-v3 (correto — pertence ao evo stack)';
-    return result;
-  }
-
-  const deadInsertPattern = /\.insert\s*\(\s*\[?\s*\{[^}]*evolution[^}]*\}/gi;
-  const violations = [];
-
-  for (const filePath of candidates) {
-    const content = readFileSync(filePath, 'utf8');
-    const matches = content.match(deadInsertPattern) || [];
-    if (matches.length > 0) {
-      violations.push({ file: filePath, insertCount: matches.length, samples: matches.slice(0, 3) });
-    }
-  }
-
-  result.score = violations.length === 0 ? 1 : 0;
-  result.violations = violations;
-  result.filesChecked = candidates;
-  result.detail = violations.length === 0
-    ? 'Sem INSERTs mortos em consumer.py'
-    : `${violations.length} arquivo(s) com INSERT morto detectado`;
-  return result;
-}
-
-function checkI7_inventoryMjs() {
-  const result = { invariant: 'I7', name: 'inventory.mjs cobre todos evolution-* invocations' };
-  const inventoryPath = join(REPO_ROOT, 'scripts', 'decouple', 'inventory.mjs');
-
-  if (!existsSync(inventoryPath)) {
-    result.score = 0;
-    result.violations = [{ file: 'scripts/decouple/inventory.mjs', reason: 'Arquivo não encontrado' }];
-    result.detail = 'inventory.mjs AUSENTE';
-    return result;
-  }
-
-  // Verifica se inventory.mjs menciona as métricas esperadas
-  const content = readFileSync(inventoryPath, 'utf8');
-  const checks = [
-    { key: 'frontEvoBypass', present: content.includes('frontEvoBypass') },
-    { key: 'backendUrlBypass', present: content.includes('backendUrlBypass') },
-    { key: 'frontEvoWrites', present: content.includes('frontEvoWrites') },
-    { key: 'frontDirectEvoHttp', present: content.includes('frontDirectEvoHttp') },
-    { key: 'EVOLUTION_API_URL detection', present: content.includes('EVOLUTION_API_URL') },
-  ];
-
-  // Executa inventory.mjs para obter o score atual
-  // Usa spawnSync com array de args para evitar injeção via shell (CodeQL CWE-078)
-  let inventoryResult = null;
   try {
-    const proc = spawnSync(process.execPath, [inventoryPath], {
-      cwd: REPO_ROOT,
-      timeout: 30000,
-      encoding: 'utf8',
-    });
-    if (proc.error) throw proc.error;
-    const output = proc.stdout || '';
-    inventoryResult = { ran: true, output: output.slice(0, 500) };
-  } catch (e) {
-    inventoryResult = { ran: false, error: (e.message || String(e)).slice(0, 200) };
-  }
+    const rows = await dbQuery(`SELECT n.nspname AS schema, c.relname AS tbl
+      FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE c.relname IN ('evolution_messages','evolution_conversations','evolution_contacts')
+        AND c.relkind IN ('r','p')`);
+    const wrong = rows.filter(r => r.schema !== 'evo');
+    result.score = (wrong.length === 0 && rows.length === 3) ? 1 : 0;
+    result.violations = wrong.map(w => ({ table: w.schema + '.' + w.tbl, reason: 'fora do schema evo' }));
+    result.detail = wrong.length === 0 ? 'As 3 tabelas residem em evo' : wrong.length + ' tabela(s) fora de evo';
+  } catch (e) { result.score = null; result.violations = []; result.detail = 'erro DB: ' + e.message; }
+  return result;
+}
 
-  const missing = checks.filter(c => !c.present);
-  result.score = missing.length === 0 ? 1 : (checks.filter(c => c.present).length / checks.length);
-  result.violations = missing.map(c => ({ check: c.key, reason: 'Métrica ausente no inventory.mjs' }));
-  result.detail = missing.length === 0
-    ? 'inventory.mjs contém todas as métricas de cobertura'
-    : `inventory.mjs incompleto — ${missing.length} métrica(s) ausente`;
-  result.inventoryRun = inventoryResult;
+// I5 (plano I5) — o app lê o outro lado só por view de contrato
+async function checkI5_ciGuard(offline) {
+  const result = { invariant: 'I5', name: 'Leitura do outro lado só por contrato (zero SELECT de authenticated direto em evo.*)' };
+  if (offline) {
+    const base = committedBaselineInvariant('I5');
+    result.score = base && typeof base.score === 'number' ? base.score : 0;
+    result.violations = (base && base.violations) || [];
+    result.detail = '[offline] replay do baseline commitado — ' + ((base && base.detail) || 'grants abertos');
+    return result;
+  }
+  try {
+    const rows = await dbQuery(`SELECT count(*) AS cnt FROM information_schema.role_table_grants
+      WHERE table_schema='evo' AND grantee='authenticated' AND privilege_type='SELECT'`);
+    const cnt = Number(rows[0] && (rows[0].cnt ?? rows[0].count) || 0);
+    result.score = cnt === 0 ? 1 : 0;
+    result.violations = cnt === 0 ? [] : [{ grants: cnt, reason: 'authenticated com SELECT direto em relations evo (E80 pendente)' }];
+    result.detail = cnt === 0 ? 'Leitura só por contrato' : cnt + ' grants SELECT de authenticated em evo.*';
+  } catch (e) { result.score = null; result.violations = []; result.detail = 'erro DB: ' + e.message; }
+  return result;
+}
+
+// I6 (plano I6) — cada repo deploya só a sua infra
+function checkI6_consumerPy() {
+  const result = { invariant: 'I6', name: 'Cada repo deploya só a sua infra (soberania de plataforma)' };
+  const violations = [];
+  const localInfra = readdirSync(REPO_ROOT).filter(f =>
+    f.startsWith('docker-compose') && /evo/i.test(f));
+  for (const f of localInfra) violations.push({ file: f, reason: 'infra evolution dentro do zapp-web-v3' });
+  const proofPath = join(REPO_ROOT, 'docs', 'decouple', 'PROOF_I6_PLATFORM_SOVEREIGNTY.md');
+  const hasProof = existsSync(proofPath);
+  if (!hasProof) {
+    violations.push({ check: 'E27/E37', reason: 'stacks/supabase.yml segue no evolution-stack; prova de soberania ausente (docs/decouple/PROOF_I6_PLATFORM_SOVEREIGNTY.md)' });
+  }
+  result.score = localInfra.length === 0 ? (hasProof ? 1 : 0) : 0;
+  result.violations = violations;
+  result.detail = result.score === 1
+    ? 'Infra local limpa e soberania provada (E37)'
+    : 'Soberania NÃO provada — plataforma do ZAPP ainda deployada pelo repo do provider';
+  return result;
+}
+
+// I7 (plano I7) — dono único de migrations do schema evo
+function checkI7_inventoryMjs() {
+  const result = { invariant: 'I7', name: 'Dono único de migrations em evo (zero DDL evo.* em supabase/migrations deste repo)' };
+  const dir = join(REPO_ROOT, 'supabase', 'migrations');
+  const violations = [];
+  if (existsSync(dir)) {
+    const ddlRx = /\b(CREATE|ALTER|DROP)\s+(OR\s+REPLACE\s+)?(TABLE|FUNCTION|PROCEDURE|VIEW|MATERIALIZED\s+VIEW|INDEX|TRIGGER|POLICY|SEQUENCE|TYPE|SCHEMA)\b[^;]{0,500}?\bevo\./is;
+    for (const f of readdirSync(dir).filter(f => f.endsWith('.sql'))) {
+      const content = readFileSync(join(dir, f), 'utf8');
+      if (ddlRx.test(content)) violations.push({ file: 'supabase/migrations/' + f, reason: 'DDL em evo.* — dono é o evolution-stack (E39/E42)' });
+    }
+  }
+  result.score = violations.length === 0 ? 1 : 0;
+  result.violations = violations.slice(0, 50);
+  result.violationCount = violations.length;
+  result.detail = violations.length === 0
+    ? 'Nenhuma migration deste repo faz DDL em evo'
+    : violations.length + ' migration(s) fazem DDL em evo.* neste repo';
   return result;
 }
 
@@ -553,11 +501,11 @@ async function main() {
 
   const timestamp = new Date().toISOString();
 
-  log('Verificando I3 (supabase.yml)...');
-  const i3 = checkI3_supabaseYml();
+  log('Verificando I3 (residência do dado)...');
+  const i3 = await checkI3_supabaseYml(offline);
 
-  log('Verificando I5 (CI guard)...');
-  const i5 = checkI5_ciGuard();
+  log('Verificando I5 (leitura por contrato)...');
+  const i5 = await checkI5_ciGuard(offline);
 
   log('Verificando I6 (consumer.py)...');
   const i6 = checkI6_consumerPy();
