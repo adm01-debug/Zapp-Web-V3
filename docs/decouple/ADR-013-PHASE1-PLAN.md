@@ -61,7 +61,7 @@ Executar as etapas E13–E24 na seguinte ordem, com as seguintes entregas:
 **Rationale**: ADRs são a memória arquitetural do projeto. Formalizar o plano da Fase 1
 como ADR garante rastreabilidade das decisões e critérios de aceitação claros.
 
-### E17 — ops.fn_evo_url_v2 / ops.fn_evo_key_v2
+### E17 — ops.fn_evo_url_v2 / ops.fn_evo_key_v2 ✅ CONCLUÍDA
 
 **Entrega**: Migration SQL criando variantes `_v2` das funções de acesso ao vault:
 - `ops.fn_evo_url_v2()` — retorna URL da Evolution API lida do vault
@@ -74,6 +74,12 @@ as funções antigas são gradualmente removidas.
 
 **Critério de aceite**: Migration aplicada; `SELECT ops.fn_evo_url_v2()` retorna URL válida;
 linter ML-008 não dispara (sem `GRANT EXECUTE TO authenticated` em SECURITY DEFINER).
+
+**Notas de implementação (2026-08-15)**:
+- `supabase/migrations/20260815030000_decouple_e17_fn_evo_v2.sql` commitado
+- DO blocks adicionados para tolerância fresh-DB (funções originais criadas diretamente no prod)
+- COMMENTs reescritos sem literal "SECURITY DEFINER" (evita ML-001 falso positivo no lint-migrations.mjs)
+- `scripts/decouple/sql-gate-fixture.json` já continha os 2 entries _v2 (sincronizado em E18/E22)
 
 ### E18 — Regenerar sql-gate.mjs WHITELIST (12 → 25 entradas) ✅ CONCLUÍDA
 
