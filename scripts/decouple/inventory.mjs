@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-// scripts/decouple/inventory.mjs — v4 (2026-08-14)
-// Conta bypasses de acoplamento vs baseline (E5 do Plano 100 Etapas)
+// scripts/decouple/inventory.mjs — v5 (2026-08-15)
+// Conta bypasses de acoplamento vs baseline (E5/E21 do Plano 100 Etapas)
 // Uso: node scripts/decouple/inventory.mjs
+//      node scripts/decouple/inventory.mjs --json          (saída JSON estruturada)
 //      INVENTORY_ROOT=/caminho/do/repo node scripts/decouple/inventory.mjs  (override p/ testes)
 //
-// Métricas (v4 — ampliadas conforme Validação V1, 2026-08-14):
+// Métricas (v5 — adicionadas I1/I2 conforme E21, 2026-08-15):
 //   1. frontEvoBypass:     arquivos front chamando invoke('evolution-api', …) FORA de whatsappAdapter.ts
 //   2. backendUrlBypass:   edge fns lendo EVOLUTION_API_URL fora do gateway —
 //      agora detecta Deno.env.get E requireEnv, com aspas simples/duplas E template literal (backtick)
@@ -19,6 +20,8 @@
 //      (https://, wss://) — sem isso a detecção de URL ficava cega.
 //      Código de teste (src/test/, src/tests/, *.spec) não é produto (mesmo eixo
 //      do whitelist de tooling das métricas 1/3).
+//   5. i1ZappRefEvo:       funções PL/pgSQL em zapp.* que referenciam evo.* nas migrations
+//   6. i2EvoRefZapp:       funções PL/pgSQL em evo.* que referenciam zapp.* nas migrations
 //
 // Whitelist de tooling (métricas 1, 3 e 4): scripts/, .github/, __tests__/, *.test.ts(x),
 // eslint.config.js, docs/ — código que não é produto não conta.
@@ -39,11 +42,13 @@
 // Exceção m2: supabase/functions/connection-health-check/ (healthCheck lê
 // EVOLUTION_API_URL por design — é a função de diagnóstico de saúde da API).
 //
-// Baseline NOVO: 0/0/0/0 (meta). Delta calculado contra o baseline ANTIGO 9/0/6/2.
+// Baseline NOVO: 0/0/0/0/0/0 (meta). Delta calculado contra o baseline ANTIGO 9/0/6/2/20/96.
 
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, extname, sep } from 'path';
 import { fileURLToPath } from 'url';
+
+const IS_JSON = process.argv.includes('--json');
 
 // fileURLToPath: resolve o caminho corretamente em Windows (o pathname cru gera C:\C:\...) e POSIX
 const ROOT = process.env.INVENTORY_ROOT
@@ -56,14 +61,18 @@ const BASELINE = {
   backendUrlBypass:   0,
   frontEvoWrites:     0,
   frontDirectEvoHttp: 0,
+  i1ZappRefEvo:       0,   // meta: 0 (T0 = 20 funções)
+  i2EvoRefZapp:       0,   // meta: 0 (T0 = 96 funções)
 };
 
-// Baseline ANTIGO (v2, 2026-08-13) — usado para calcular o delta
+// Baseline ANTIGO (v2/T0) — usado para calcular o delta
 const OLD_BASELINE = {
-  frontEvoBypass:     9,  // arquivos front que invocam 'evolution-api' diretamente (ex-whatsappAdapter)
-  backendUrlBypass:   0,  // edge fns lendo EVOLUTION_API_URL direto (zerado em F5)
-  frontEvoWrites:     6,  // arquivos front com .from('evolution_*').insert/update/delete direto
-  frontDirectEvoHttp: 2,  // arquivos front com HTTP direto à Evolution API (v3)
+  frontEvoBypass:     9,   // arquivos front que invocam 'evolution-api' diretamente (ex-whatsappAdapter)
+  backendUrlBypass:   0,   // edge fns lendo EVOLUTION_API_URL direto (zerado em F5)
+  frontEvoWrites:     6,   // arquivos front com .from('evolution_*').insert/update/delete direto
+  frontDirectEvoHttp: 2,   // arquivos front com HTTP direto à Evolution API (v3)
+  i1ZappRefEvo:       20,  // 20 funções zapp.* → evo.* no T0
+  i2EvoRefZapp:       96,  // 96 funções evo.* → zapp.* no T0
 };
 
 function walk(dir, exts, results = []) {
@@ -110,7 +119,14 @@ const edgeFns = walk(join(ROOT, 'supabase/functions'), ['.ts']);
 let frontEvoBypass = 0, backendUrlBypass = 0, frontEvoWrites = 0, frontDirectEvoHttp = 0;
 
 // Listas de violadores por métrica (v4 — impressas quando > 0, para diagnóstico do guard)
-const violators = { frontEvoBypass: [], backendUrlBypass: [], frontEvoWrites: [], frontDirectEvoHttp: [] };
+const violators = {
+  frontEvoBypass: [],
+  backendUrlBypass: [],
+  frontEvoWrites: [],
+  frontDirectEvoHttp: [],
+  i1ZappRefEvo: [],
+  i2EvoRefZapp: [],
+};
 
 // Caminho relativo (src/...) com separador normalizado p/ impressão
 const rootNorm = ROOT.split(sep).join('/').replace(/\/+$/, '');
@@ -225,29 +241,122 @@ for (const f of tsFiles) {
   }
 }
 
-const passEmoji = n => n === 0 ? '✅' : '🔴';
-const fmt = (cur, old) =>
-  `(baseline novo: ${BASELINE[old[0]]}, antigo: ${OLD_BASELINE[old[0]]}, delta: ${cur - OLD_BASELINE[old[0]]})`;
+// ─────────────────────────────────────────────────────────────────────────────
+// Métricas I1/I2 (v5 — E21): análise estática de migrations SQL
+// I1: funções PL/pgSQL no schema zapp.* que referenciam evo.* no corpo
+// I2: funções PL/pgSQL no schema evo.* que referenciam zapp.* no corpo
+// ─────────────────────────────────────────────────────────────────────────────
+function scanMigrationsForI1I2(migrationsDir) {
+  const i1Fns = new Set(); // zapp.fn_x que menciona evo.
+  const i2Fns = new Set(); // evo.fn_x que menciona zapp.
 
-// v4: imprime a lista de arquivos violadores por métrica quando > 0 (diagnóstico do guard)
-function printMetric(label, key, count) {
-  console.log(`${label} ${count}  ${passEmoji(count)} ${fmt(count, [key])}`);
-  if (count > 0) {
-    console.log(`  violadores (${key}):`);
-    for (const v of violators[key]) console.log(`    - ${v}`);
+  let files;
+  try {
+    files = readdirSync(migrationsDir);
+  } catch (_) {
+    return { i1: 0, i2: 0, i1Fns: [], i2Fns: [] };
   }
+
+  for (const file of files) {
+    if (!file.endsWith('.sql')) continue;
+    const src = readFileSync(join(migrationsDir, file), 'utf8');
+
+    // Split por CREATE [OR REPLACE] FUNCTION — cada slice[1..] começa em "schema.nome("
+    const fnBlocks = src.split(/CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+/i);
+
+    for (const block of fnBlocks.slice(1)) {
+      // Captura o schema e o nome da função: "schema.nome(" ou "schema.nome  ("
+      const nameLine = block.match(/^(\w+)\.(\w+)\s*\(/);
+      if (!nameLine) continue;
+      const schema = nameLine[1].toLowerCase();
+      const fnName = nameLine[2];
+
+      // Extrai o corpo da função: conteúdo entre $$ ... $$
+      // Tenta capturar o corpo mais externo (não-greedy não funciona bem aqui; greedy limitado)
+      const bodyMatch = block.match(/\$\$[\s\S]*?\$\$/);
+      const body = bodyMatch ? bodyMatch[0] : block.slice(0, 4000); // fallback: primeiros 4 KB
+
+      if (schema === 'zapp' && /\bevo\./i.test(body)) {
+        i1Fns.add(`zapp.${fnName}`);
+      }
+      if (schema === 'evo' && /\bzapp\./i.test(body)) {
+        i2Fns.add(`evo.${fnName}`);
+      }
+    }
+  }
+
+  return { i1: i1Fns.size, i2: i2Fns.size, i1Fns: [...i1Fns].sort(), i2Fns: [...i2Fns].sort() };
 }
 
-console.log('════ INVENTORY v4 — Acoplamento Evolution ════');
-printMetric('front invoke bypass:      ', 'frontEvoBypass', frontEvoBypass);
-printMetric('backend URL bypass:       ', 'backendUrlBypass', backendUrlBypass);
-printMetric('front evo writes:         ', 'frontEvoWrites', frontEvoWrites);
-printMetric('front direct evo http:    ', 'frontDirectEvoHttp', frontDirectEvoHttp);
-console.log('═══════════════════════════════════════════════');
-const total = frontEvoBypass + backendUrlBypass + frontEvoWrites + frontDirectEvoHttp;
-const btotal = OLD_BASELINE.frontEvoBypass + OLD_BASELINE.backendUrlBypass + OLD_BASELINE.frontEvoWrites + OLD_BASELINE.frontDirectEvoHttp;
-console.log(`TOTAL: ${total}  ${passEmoji(total)} (baseline novo: 0, antigo: ${btotal}, delta: ${total - btotal})`);
-console.log('Meta: TOTAL → 0 (desacoplamento completo)');
+const migrationsDir = join(ROOT, 'supabase', 'migrations');
+const { i1, i2, i1Fns: i1List, i2Fns: i2List } = scanMigrationsForI1I2(migrationsDir);
 
-// fail-closed: exit != 0 quando TOTAL > 0 (validacao final V3)
-process.exit(total > 0 ? 1 : 0);
+violators.i1ZappRefEvo = i1List;
+violators.i2EvoRefZapp = i2List;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Saída
+// ─────────────────────────────────────────────────────────────────────────────
+
+const passEmoji = n => n === 0 ? '✅' : '🔴';
+
+const metrics = {
+  frontEvoBypass,
+  backendUrlBypass,
+  frontEvoWrites,
+  frontDirectEvoHttp,
+  i1ZappRefEvo: i1,
+  i2EvoRefZapp: i2,
+};
+
+// gateTotal: métricas 1-4 (hard blockers — gate CI). I1/I2 são métricas de progresso, não de gate.
+const gateTotal = frontEvoBypass + backendUrlBypass + frontEvoWrites + frontDirectEvoHttp;
+const progressTotal = i1 + i2;
+const total = gateTotal + progressTotal;
+const btotal = Object.values(OLD_BASELINE).reduce((a, b) => a + b, 0);
+
+if (IS_JSON) {
+  const delta = {};
+  for (const k of Object.keys(metrics)) delta[k] = metrics[k] - OLD_BASELINE[k];
+
+  const allPass = Object.keys(metrics).every(k => metrics[k] <= BASELINE[k]);
+
+  const out = {
+    version: '5',
+    timestamp: new Date().toISOString().slice(0, 10),
+    metrics,
+    baseline_old: OLD_BASELINE,
+    baseline_new: BASELINE,
+    delta,
+    score: allPass ? 'PASS' : 'FAIL',
+    violations: violators,
+  };
+  console.log(JSON.stringify(out, null, 2));
+} else {
+  const fmt = (cur, key) =>
+    `(baseline novo: ${BASELINE[key]}, antigo: ${OLD_BASELINE[key]}, delta: ${cur - OLD_BASELINE[key]})`;
+
+  function printMetric(label, key, count) {
+    console.log(`${label} ${count}  ${passEmoji(count)} ${fmt(count, key)}`);
+    if (count > 0) {
+      console.log(`  violadores (${key}):`);
+      for (const v of violators[key]) console.log(`    - ${v}`);
+    }
+  }
+
+  console.log('════ INVENTORY v5 — Acoplamento Evolution ════');
+  printMetric('front invoke bypass:      ', 'frontEvoBypass',     frontEvoBypass);
+  printMetric('backend URL bypass:       ', 'backendUrlBypass',   backendUrlBypass);
+  printMetric('front evo writes:         ', 'frontEvoWrites',     frontEvoWrites);
+  printMetric('front direct evo http:    ', 'frontDirectEvoHttp', frontDirectEvoHttp);
+  printMetric('I1 zapp.* → evo.* (sql): ', 'i1ZappRefEvo',       i1);
+  printMetric('I2 evo.* → zapp.* (sql): ', 'i2EvoRefZapp',       i2);
+  console.log('═══════════════════════════════════════════════');
+  console.log(`TOTAL: ${gateTotal}  ${passEmoji(gateTotal)} (baseline novo: 0, antigo: ${btotal}, delta: ${gateTotal - btotal})`);
+  console.log(`PROGRESS (I1+I2): ${progressTotal}  (não bloqueia CI — métricas de evolução incremental)`);
+  console.log('Meta: TOTAL → 0 (desacoplamento completo)');
+}
+
+// fail-closed: exit != 0 quando as métricas 1-4 excedem 0 (guard original — I1/I2 são métricas de progresso)
+const exitCode = (frontEvoBypass + backendUrlBypass + frontEvoWrites + frontDirectEvoHttp) > 0 ? 1 : 0;
+process.exit(exitCode);

@@ -15,12 +15,15 @@
  *       render não quebra.
  *
  * GATE — teste condicional (documentado):
- *   Este spec só roda com `E2E_FAKE=1`. Sem a variável, todos os testes são
- *   pulados via `test.skip` condicional, para não poluir o suite padrão.
+ *   Este spec só roda com `E2E_FAKE=1`. Sem a variável, TODOS os testes são
+ *   pulados via `test.skip` de ARQUIVO (top-level, antes das fixtures — nem
+ *   o login roda), para não poluir o suite padrão e para a run do spec
+ *   isolado terminar verde (4 skipped) mesmo SEM backend disponível.
  *   Para habilitar (bash/git-bash):
  *     E2E_FAKE=1 npx playwright test --config=playwright.e2e.config.ts e2e/decouple-fake-provider.spec.ts
  *   (PowerShell: $env:E2E_FAKE="1"; npx playwright test --config=playwright.e2e.config.ts e2e/decouple-fake-provider.spec.ts)
- *   O runner sobe o vite dev sozinho (webServer do playwright.e2e.config.ts).
+ *   O runner sobe o vite dev sozinho (webServer do playwright.e2e.config.ts,
+ *   porta fixa 4173 + strictPort).
  *
  * GARANTIA DE ZERO CHAMADAS DE REDE REAIS AO PROVEDOR:
  *   1. `page.route` intercepta ANTES de qualquer byte sair do navegador.
@@ -56,6 +59,11 @@ import { MOCK_EVOLUTION_SEND_RESPONSE, TEST_PHONE } from './fixtures/test-data';
 const E2E_FAKE_ENABLED = process.env.E2E_FAKE === '1';
 const FAKE_SKIP_REASON =
   'E2E_FAKE ausente: spec fake-provider exige E2E_FAKE=1 (ver cabeçalho do arquivo)';
+
+// Gate top-level (ANTES das fixtures): sem E2E_FAKE o arquivo inteiro pula —
+// `authenticatedPage` (login) nem chega a instanciar. Sem backend, a run do
+// spec isolado termina verde (4 skipped) em vez de falhar no login.
+test.skip(!E2E_FAKE_ENABLED, FAKE_SKIP_REASON);
 
 // ---------------------------------------------------------------------------
 // Dados fake (únicos por run, evitam colisão com dados reais)
@@ -268,7 +276,7 @@ test.describe('Decoupling — fake provider (substituibilidade sem Evolution rea
   test('(a) inbox renderiza com transport fake (nenhuma chamada real ao provedor)', async ({
     authenticatedPage: page,
   }) => {
-    test.skip(!E2E_FAKE_ENABLED, FAKE_SKIP_REASON);
+    // (skip do arquivo inteiro já feito no top-level quando E2E_FAKE ausente)
     const provider = makeFakeProviderState(false);
     const msgs: MessagesMockState = { targetJid: null, armed: false };
     await installFakeProvider(page, provider);
@@ -297,7 +305,7 @@ test.describe('Decoupling — fake provider (substituibilidade sem Evolution rea
   test('(b) envio de texto retorna stub de sucesso (bolha otimista do fake)', async ({
     authenticatedPage: page,
   }) => {
-    test.skip(!E2E_FAKE_ENABLED, FAKE_SKIP_REASON);
+    // (skip do arquivo inteiro já feito no top-level quando E2E_FAKE ausente)
     const provider = makeFakeProviderState(false);
     await installFakeProvider(page, provider);
 
@@ -321,7 +329,7 @@ test.describe('Decoupling — fake provider (substituibilidade sem Evolution rea
   test('(c) recebimento via fixture: mensagem injetada aparece na thread', async ({
     authenticatedPage: page,
   }) => {
-    test.skip(!E2E_FAKE_ENABLED, FAKE_SKIP_REASON);
+    // (skip do arquivo inteiro já feito no top-level quando E2E_FAKE ausente)
     const provider = makeFakeProviderState(false);
     const msgs: MessagesMockState = { targetJid: null, armed: false };
     await installFakeProvider(page, provider);
@@ -355,7 +363,7 @@ test.describe('Decoupling — fake provider (substituibilidade sem Evolution rea
   test('(d) degradação: provider retorna erro → UI mostra erro explícito e render não quebra', async ({
     authenticatedPage: page,
   }) => {
-    test.skip(!E2E_FAKE_ENABLED, FAKE_SKIP_REASON);
+    // (skip do arquivo inteiro já feito no top-level quando E2E_FAKE ausente)
     const provider = makeFakeProviderState(true); // failSends → 503 do fake
     await installFakeProvider(page, provider);
 

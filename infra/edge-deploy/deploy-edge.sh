@@ -13,7 +13,12 @@
 #   MISSING — existe no repo, não existe no volume (→ 404 em runtime)
 #   STALE   — hash difere (repo mais novo OU hotfix de produção não backportado)
 #   ORPHAN  — existe no volume, não existe no repo (higiene; conferir
-#             ops.edge_function_registry is_active=false antes de remover)
+#             ops.edge_function_registry is_active=false antes de remover).
+#             No _shared/ vale para QUALQUER arquivo regular do volume fora
+#             das exclusões (__tests__/, __fixtures__/, *.test.ts, *.spec.ts)
+#             que não exista no repo — inclusive lixo sem extensão .ts
+#             (fix 2026-08-15: o snapshot remoto lista todos os arquivos
+#             regulares, não só *.ts).
 #
 # Padrão da casa (ver .hermes/reconciliation + skill supabase-edge-function-ops):
 #   - O acesso ao container é feito por `docker exec` no container do serviço
@@ -32,19 +37,29 @@
 #     são EXCLUÍDOS do sync (testes/fixtures não vão para produção). A chave
 #     do diff é o caminho RELATIVO a _shared/ (basename colidiria, ex.:
 #     providers/evolution/index.ts × providers/fake/index.ts).
+#   - Órfãos de _shared (arquivo regular no volume, ausente do repo, fora das
+#     exclusões) são DETECTADOS desde 2026-08-15: read-only reporta e sai com
+#     exit 1 (fecha o gate E39); --apply NÃO os remove — apenas --prune.
 #
 # Modos:
 #   Sem --apply  → READ-ONLY: imprime o diff e sai com exit 1 se houver
-#                  MISSING/STALE/ORPHAN (gate de drift p/ CI).
+#                  MISSING/STALE/ORPHAN (gate de drift p/ CI — E39).
 #   --apply      → Escreve MISSING/STALE (repo → volume), valida hash pós-
 #                  escrita e (com --restart) força restart do serviço.
+#   --prune      → (com --apply) remove os ORPHANs de _shared do volume
+#                  (arquivos fora das exclusões que só existem no volume).
 #   --restart    → docker service update --force supabase_functions (exige
 #                  socket docker; ignorado se EDGE_EXEC_BACKEND=housekeeping
-#                  roda o docker interno do housekeeping).
+#                  roda o docker interno do housekeeping). Dispara SEMPRE que
+#                  algo foi escrito/removido no volume (functions OU _shared
+#                  OU --prune), DEPOIS de todas as escritas (fix 2026-08-15 —
+#                  antes o restart ficava antes do sync do _shared e não
+#                  disparava quando só o _shared mudava).
 #
 # Uso:
 #   bash infra/edge-deploy/deploy-edge.sh                    # drift check
 #   bash infra/edge-deploy/deploy-edge.sh --apply            # deploy
+#   bash infra/edge-deploy/deploy-edge.sh --apply --prune    # deploy + remove órfãos de _shared
 #   bash infra/edge-deploy/deploy-edge.sh --apply --restart  # deploy + restart
 #
 # Env:
@@ -60,18 +75,20 @@ CONTAINER_PREFIX="${EDGE_FUNCTIONS_CONTAINER:-supabase_functions}"
 BACKEND="${EDGE_EXEC_BACKEND:-docker}"
 VOLUME_PATH="/home/deno/functions"
 APPLY=0
+PRUNE=0
 RESTART=0
 
 # ── P-02: Parse de argumentos ────────────────────────────────────────────────
 for arg in "$@"; do
   case "$arg" in
     --apply)   APPLY=1 ;;
+    --prune)   PRUNE=1 ;;
     --restart) RESTART=1 ;;
     -h|--help)
       grep -E '^#( |$)' "$0" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
-    *) echo "ERRO: argumento desconhecido: $arg (use --apply/--restart/--help)" >&2; exit 2 ;;
+    *) echo "ERRO: argumento desconhecido: $arg (use --apply/--prune/--restart/--help)" >&2; exit 2 ;;
   esac
 done
 
@@ -141,14 +158,14 @@ echo "  repo: ${#REPO_FNS[@]} funções com index.ts"
 echo "── P-07: snapshot do volume ${VOLUME_PATH} ──"
 REMOTE_SNAPSHOT=$(edge_exec "
   for d in ${VOLUME_PATH}/*/; do
-    [ -f \"\$d/index.ts\" ] && echo \"\$(basename \"\$d\") \$(sha256sum \"\$d/index.ts\" | cut -c1-12)\"
+    [ -f \"\$d/index.ts\" ] && printf '%s\t%s\n' \"\$(basename \"\$d\")\" \"\$(sha256sum \"\$d/index.ts\" | cut -c1-12)\"
   done
 " 2>/dev/null || true)
 
 declare -A REMOTE_HASH
 declare -A REMOTE_FNS
 REMOTE_COUNT=0
-while read -r name hash; do
+while IFS=$'\t' read -r name hash; do
   [[ -z "$name" ]] && continue
   REMOTE_HASH["$name"]="$hash"
   REMOTE_FNS["$name"]=1
@@ -208,11 +225,11 @@ if [[ $APPLY -eq 1 ]] && { [[ $MISSING -gt 0 || $STALE -gt 0 ]]; }; then
     # Fix 2026-08-07 (exit 126/E2BIG): payload via stdin (docker exec -i) —
     # argv do sh -c estoura MAX_ARG_STRLEN com index.ts >96KB.
     echo "$b64" | edge_exec_stdin "
-      mkdir -p ${VOLUME_PATH}/${fn}
-      base64 -d > ${VOLUME_PATH}/${fn}/index.ts
+      mkdir -p \"${VOLUME_PATH}/${fn}\"
+      base64 -d > \"${VOLUME_PATH}/${fn}/index.ts\"
     " >/dev/null 2>&1
     # P-10a: validação de hash pós-escrita (anti-corrupção de encoding)
-    written=$(edge_exec "sha256sum ${VOLUME_PATH}/${fn}/index.ts" 2>/dev/null | cut -c1-12 || true)
+    written=$(edge_exec "sha256sum \"${VOLUME_PATH}/${fn}/index.ts\"" 2>/dev/null | cut -c1-12 || true)
     if [[ "$written" == "$expected" ]]; then
       echo "  ✅ $fn  → $expected (hash pós-escrita OK)"
     else
@@ -225,26 +242,16 @@ elif [[ $APPLY -eq 1 ]]; then
   echo "── P-10: nada a aplicar (sem MISSING/STALE) ──"
 fi
 
-# ── P-11: Restart do serviço (opcional) ──────────────────────────────────────
-if [[ $RESTART -eq 1 && ( $APPLY -eq 1 ) && ( $MISSING -gt 0 || $STALE -gt 0 ) ]]; then
-  echo "── P-11: restart supabase_functions (docker service update --force) ──"
-  if [[ "$BACKEND" == "housekeeping" ]]; then
-    docker exec docker-housekeeping_cleanup docker service update --force supabase_functions
-  else
-    docker service update --force supabase_functions
-  fi
-  echo "  ✅ restart disparado"
-fi
-
 # ── P-12: Exit code — drift sem --apply falha (gate de CI) ───────────────────
 if [[ $MISSING -gt 0 || $STALE -gt 0 || $ORPHAN -gt 0 ]]; then
   if [[ $APPLY -eq 0 ]]; then
     echo "❌ DRIFT detectado (MISSING=$MISSING STALE=$STALE ORPHAN=$ORPHAN) — rode com --apply para reconciliar." >&2
     exit 1
   fi
-  # Com --apply: MISSING/STALE foram resolvidos; ORPHAN é higiene (não bloqueia).
+  # Com --apply: MISSING/STALE foram resolvidos; ORPHAN de functions é higiene
+  # manual (não bloqueia); ORPHAN de _shared é tratado em P-13/P-13b (--prune).
   if [[ $ORPHAN -gt 0 ]]; then
-    echo "⚠️  ORPHAN restante ($ORPHAN) — higiene manual: conferir ops.edge_function_registry antes de remover do volume."
+    echo "⚠️  ORPHAN de functions restante ($ORPHAN) — higiene manual: conferir ops.edge_function_registry antes de remover do volume."
   fi
 fi
 
@@ -265,7 +272,8 @@ fi
 # Excluídos do sync (testes/fixtures não vão para produção): __tests__/,
 # __fixtures__/, *.test.ts, *.spec.ts.
 SHARED_DIR="$FUNCTIONS_DIR/_shared"
-SHARED_OK=0; SHARED_MISSING=0; SHARED_STALE=0
+SHARED_OK=0; SHARED_MISSING=0; SHARED_STALE=0; SHARED_ORPHAN=0
+PRUNED=0
 declare -a SHARED_MISSING_LIST SHARED_STALE_LIST
 
 if [[ -d "$SHARED_DIR" ]]; then
@@ -279,18 +287,21 @@ if [[ -d "$SHARED_DIR" ]]; then
       ! -name '*.spec.ts' \
       -printf '%P\n' | sort
   )
-  # Snapshot remoto RECURSIVO: "caminho_relativo hash" por arquivo (1 chamada).
-  # ${f#...} remove o prefixo do volume; basename colidiria entre
-  # providers/evolution/index.ts e providers/fake/index.ts.
+  # Snapshot remoto RECURSIVO: "caminho_relativo<TAB>hash" por arquivo (1
+  # chamada). Fix 2026-08-15 (BUG-1/3): saída TAB-delimitada (path com ESPAÇO
+  # não quebra o parse) e TODOS os arquivos regulares, não só *.ts (lixo sem
+  # extensão fica visível e entra na detecção de órfão).
   REMOTE_SHARED_SNAPSHOT=$(edge_exec "
-    find ${VOLUME_PATH}/_shared -type f -name '*.ts' 2>/dev/null | sort | while IFS= read -r f; do
-      [ -f \"\$f\" ] && echo \"\${f#${VOLUME_PATH}/_shared/} \$(sha256sum \"\$f\" | cut -c1-12)\"
+    find ${VOLUME_PATH}/_shared -type f 2>/dev/null | sort | while IFS= read -r f; do
+      [ -f \"\$f\" ] && printf '%s\t%s\n' \"\${f#${VOLUME_PATH}/_shared/}\" \"\$(sha256sum \"\$f\" | cut -c1-12)\"
     done
   " 2>/dev/null || true)
   declare -A REMOTE_SHARED_HASH
-  while read -r name hash; do
+  declare -A REMOTE_SHARED_FNS
+  while IFS=$'\t' read -r name hash; do
     [[ -z "$name" ]] && continue
     REMOTE_SHARED_HASH["$name"]="$hash"
+    REMOTE_SHARED_FNS["$name"]=1
   done <<< "$REMOTE_SHARED_SNAPSHOT"
 
   for f in "${REPO_SHARED[@]}"; do
@@ -301,6 +312,21 @@ if [[ -d "$SHARED_DIR" ]]; then
       SHARED_STALE=$((SHARED_STALE+1)); SHARED_STALE_LIST+=("$f")
     else
       SHARED_OK=$((SHARED_OK+1))
+    fi
+  done
+
+  # Órfãos de _shared (BUG-2, fix 2026-08-15): arquivo regular no volume,
+  # ausente do repo e FORA das exclusões (testes/fixtures no volume ficam
+  # fora do escopo do sync — não são órfãos nem são prunados).
+  for name in "${!REMOTE_SHARED_FNS[@]}"; do
+    case "/$name" in
+      */__tests__/*|*/__fixtures__/*) continue ;;
+    esac
+    case "${name##*/}" in
+      *.test.ts|*.spec.ts) continue ;;
+    esac
+    if ! printf '%s\n' "${REPO_SHARED[@]}" | grep -qx "$name"; then
+      SHARED_ORPHAN=$((SHARED_ORPHAN+1)); SHARED_ORPHAN_LIST+=("$name")
     fi
   done
 
@@ -317,6 +343,12 @@ if [[ -d "$SHARED_DIR" ]]; then
       echo "    STALE    _shared/$f  deploy=${REMOTE_SHARED_HASH[$f]} repo=$(sha256sum "$SHARED_DIR/$f" | cut -c1-12)"
     done
   fi
+  echo "  ORPHAN  : $SHARED_ORPHAN  (volume sem repo, fora das exclusões — --apply --prune remove)"
+  if (( SHARED_ORPHAN > 0 )); then
+    for f in ${SHARED_ORPHAN_LIST[@]+"${SHARED_ORPHAN_LIST[@]}"}; do
+      echo "    ORPHAN   _shared/$f  deploy=${REMOTE_SHARED_HASH[$f]}"
+    done
+  fi
   echo "═════════════════════════════════════════════"
 
   if [[ $APPLY -eq 1 ]] && { [[ $SHARED_MISSING -gt 0 || $SHARED_STALE -gt 0 ]]; }; then
@@ -330,10 +362,10 @@ if [[ -d "$SHARED_DIR" ]]; then
       fdir="${f%/*}"
       [[ "$fdir" == "$f" ]] && fdir="."
       echo "$b64" | edge_exec_stdin "
-        mkdir -p ${VOLUME_PATH}/_shared/${fdir}
-        base64 -d > ${VOLUME_PATH}/_shared/${f}
+        mkdir -p \"${VOLUME_PATH}/_shared/${fdir}\"
+        base64 -d > \"${VOLUME_PATH}/_shared/${f}\"
       " >/dev/null 2>&1
-      written=$(edge_exec "sha256sum ${VOLUME_PATH}/_shared/$f" 2>/dev/null | cut -c1-12 || true)
+      written=$(edge_exec "sha256sum \"${VOLUME_PATH}/_shared/${f}\"" 2>/dev/null | cut -c1-12 || true)
       if [[ "$written" == "$expected" ]]; then
         echo "  ✅ _shared/$f → $expected (hash pós-escrita OK)"
       else
@@ -346,12 +378,49 @@ if [[ -d "$SHARED_DIR" ]]; then
     echo "── P-13: _shared/ sem drift ──"
   fi
 
-  # Gate: drift de _shared sem --apply também falha (mesma semântica do P-12)
-  if [[ $APPLY -eq 0 ]] && { [[ $SHARED_MISSING -gt 0 || $SHARED_STALE -gt 0 ]]; }; then
-    echo "❌ _SHARED DRIFT detectado (MISSING=$SHARED_MISSING STALE=$SHARED_STALE) — rode com --apply." >&2
+  # P-13b: remoção de órfãos SÓ com --apply --prune (fix BUG-2 2026-08-15 —
+  # --apply sozinho NUNCA remove arquivo do volume).
+  if [[ $APPLY -eq 1 ]] && [[ $SHARED_ORPHAN -gt 0 ]] && [[ $PRUNE -eq 1 ]]; then
+    echo "── P-13b: removendo órfãos de _shared (--prune) ──"
+    for name in "${SHARED_ORPHAN_LIST[@]}"; do
+      edge_exec "rm -f \"${VOLUME_PATH}/_shared/${name}\"" >/dev/null 2>&1 || true
+      if ! edge_exec "[ -e \"${VOLUME_PATH}/_shared/${name}\" ]" 2>/dev/null; then
+        echo "  🗑️  _shared/$name removido"
+        PRUNED=$((PRUNED+1))
+      else
+        echo "  ❌ _shared/$name: falha ao remover do volume" >&2
+        exit 1
+      fi
+    done
+    echo "── P-13b concluído ($PRUNED removidos) ──"
+  fi
+
+  # Gate: drift de _shared sem --apply também falha (mesma semântica do P-12;
+  # ORPHAN de _shared entra no gate desde 2026-08-15 — fecha E39).
+  if [[ $APPLY -eq 0 ]] && { [[ $SHARED_MISSING -gt 0 || $SHARED_STALE -gt 0 || $SHARED_ORPHAN -gt 0 ]]; }; then
+    echo "❌ _SHARED DRIFT detectado (MISSING=$SHARED_MISSING STALE=$SHARED_STALE ORPHAN=$SHARED_ORPHAN) — rode com --apply (órfãos: --prune)." >&2
     exit 1
+  fi
+  if [[ $APPLY -eq 1 ]] && [[ $SHARED_ORPHAN -gt 0 ]] && [[ $PRUNE -eq 0 ]]; then
+    echo "⚠️  ORPHAN de _shared restante ($SHARED_ORPHAN) — use --apply --prune para removê-los do volume." >&2
   fi
 else
   echo "⚠️  _shared/ ausente no repo ($SHARED_DIR) — pulando sincronização."
+fi
+
+# ── P-14: Restart do serviço (opcional) ──────────────────────────────────────
+# Fix 2026-08-15 (BUG-4): o restart morava no antigo P-11 — rodava ANTES do
+# sync do _shared (P-13) e só disparava com drift de functions; quando SOMENTE
+# o _shared mudava, o edge-runtime continuava servindo o módulo em cache (gap
+# do commit 4151e93ec). Agora roda DEPOIS de todas as escritas/remoções e
+# cobre functions + _shared + --prune.
+if [[ $RESTART -eq 1 && $APPLY -eq 1 ]] && { [[ $MISSING -gt 0 || $STALE -gt 0 || $SHARED_MISSING -gt 0 || $SHARED_STALE -gt 0 || $PRUNED -gt 0 ]]; }; then
+  echo "── P-14: restart supabase_functions (docker service update --force) ──"
+  if [[ "$BACKEND" == "housekeeping" ]]; then
+    docker exec docker-housekeeping_cleanup docker service update --force supabase_functions
+  else
+    docker service update --force supabase_functions
+  fi
+  echo "  ✅ restart disparado"
 fi
 echo "✅ deploy-edge: concluído sem erros."

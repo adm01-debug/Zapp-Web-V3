@@ -1,0 +1,29 @@
+{
+  "collected_at": "2026-08-15T00:00:00Z",
+  "description": "Funções DB que chamam net.http_post/get diretamente (violação I4 — bypass do gateway HTTP)",
+  "query": "SELECT nspname, proname FROM pg_proc JOIN pg_namespace ON pronamespace=oid WHERE nspname IN ('zapp','evo','public','extensions') AND (prosrc ILIKE '%net.http_post%' OR prosrc ILIKE '%net.http_get%' OR prosrc ILIKE '%extensions.http%')",
+  "row_count": 18,
+  "application_violations": 16,
+  "infrastructure_rows": 2,
+  "notes": "Linhas extensions.grant_pg_net_access e extensions.http_post são infraestrutura pg_net (não violações de aplicação). As demais 16 são violações reais ao contrato do gateway.",
+  "rows": [
+    {"schema_name":"evo","function_name":"fn_detect_instance_recreate","pg_net_usage":"net.http_post","is_infra":false},
+    {"schema_name":"evo","function_name":"fn_download_wa_status_media","pg_net_usage":"net.http_post","is_infra":false},
+    {"schema_name":"evo","function_name":"fn_notify_sicoob_on_reply","pg_net_usage":"net.http_post","is_infra":false},
+    {"schema_name":"evo","function_name":"fn_sync_lid_from_api","pg_net_usage":"net.http_get","is_infra":false},
+    {"schema_name":"evo","function_name":"fn_sync_lid_from_api","pg_net_usage":"net.http_get","is_infra":false},
+    {"schema_name":"evo","function_name":"fn_trigger_audio_transcription","pg_net_usage":"net.http_post","is_infra":false},
+    {"schema_name":"extensions","function_name":"grant_pg_net_access","pg_net_usage":"net.http_post","is_infra":true},
+    {"schema_name":"extensions","function_name":"http_post","pg_net_usage":"net.http_post","is_infra":true},
+    {"schema_name":"zapp","function_name":"fn_check_license_heartbeat","pg_net_usage":"net.http_get","is_infra":false},
+    {"schema_name":"zapp","function_name":"fn_collect_restore_logs","pg_net_usage":"net.http_get","is_infra":false},
+    {"schema_name":"zapp","function_name":"fn_cookie_probe_dispatch","pg_net_usage":"net.http_post","is_infra":false},
+    {"schema_name":"zapp","function_name":"fn_cookie_real_probe","pg_net_usage":"net.http_post","is_infra":false},
+    {"schema_name":"zapp","function_name":"fn_escalate_critical_alerts","pg_net_usage":"net.http_post","is_infra":false},
+    {"schema_name":"zapp","function_name":"fn_outbound_dispatch","pg_net_usage":"net.http_post","is_infra":false},
+    {"schema_name":"zapp","function_name":"fn_reconcile_dispatch","pg_net_usage":"net.http_get","is_infra":false},
+    {"schema_name":"zapp","function_name":"fn_send_bitrix_alert","pg_net_usage":"net.http_post","is_infra":false},
+    {"schema_name":"zapp","function_name":"fn_validate_whatsapp_connection_url","pg_net_usage":"net.http_get","is_infra":false},
+    {"schema_name":"zapp","function_name":"notify_sicoob_on_reply","pg_net_usage":"net.http_post","is_infra":false}
+  ]
+}

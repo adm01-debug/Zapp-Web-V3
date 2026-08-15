@@ -168,7 +168,7 @@ ou de ligar algo intencionalmente desligado.
 | `team-chat-files` | não | — | |
 | `whatsapp-media` | **sim** | 50 MB | Público desde BUG-MEDIA-20260806. LEITURA pública via `/object/public/`. UPLOAD requer autenticação. 18.494 objetos. |
 
-> **Cron jobs ativos:** 151 jobs em `cron.job` (pg_cron — auditado 2026-08-06)
+> **Cron jobs ativos:** 218 jobs em `cron.job` (pg_cron — auditado 2026-08-15; anterior: 151 em 2026-08-06)
 
 ---
 

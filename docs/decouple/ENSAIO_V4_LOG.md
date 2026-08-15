@@ -3,7 +3,8 @@
 > **Alvo no repo:** `docs/decouple/ENSAIO_V4_LOG.md` (zapp-web-v3) · **Tarefa:** V4-FINAL #54
 > **Status:** ⏳ TEMPLATE — NUNCA EXECUTADO (2026-08-14). Nenhum número abaixo é evidência; preencher na execução noturna.
 > **Propósito:** log executável do **ensaio cronometrado fake↔evolution** (etapa 57 do Plano V3 / runbook `RUNBOOK_TROCA_PROVIDER.md`) — mede **TEMPO** e **ROLLBACK** do procedimento de troca de provider.
-> **Divisão de cobertura:** o ensaio de mesa `supabase/functions/_shared/__tests__/ensaio-fake.test.ts` (PR #1082) já valida o **CONTRATO** (guard do registry, shapes canônicos dos 12 verbos, casamento com o normalizer, benchmark de mesa). Este ensaio **operacional** mede o que o de mesa não mede: **tempo real por passo, gates de entrada e rollback cronometrado**.
+> **Divisão de cobertura:** o ensaio de mesa `supabase/functions/_shared/__tests__/ensaio-fake.test.ts` (PR #1082) já valida o **CONTRATO** (guard do registry, shapes canônicos dos 12 verbos, casamento com o normalizer, benchmark de mesa, paridade 12/12 fake×evolutionClient — E2b). Este ensaio **operacional** mede o que o de mesa não mede: **tempo real por passo, gates de entrada e rollback cronometrado**.
+> **Estado real na main (2026-08-15):** `PROVIDER_UNDER_TEST` já existe no registry (`providers/registry.ts`); a proxy `evolution-proxy` já consome o registry (piloto #34 mergeado); o fake está **12/12** com `assertTestEnv()` por verbo (gap `getProfilePicture` fechado no #1088). O ensaio operacional exercita esse caminho já existente.
 
 ## 0. Metadados da execução
 
@@ -15,18 +16,18 @@
 | SHA do repo | |
 | PRs envolvidos (P1–P4) | |
 | Baseline msgs/24h | 5.077 (`docs/decouple/BASELINE.md`) |
-| PROVIDER_UNDER_TEST | `fake` (`supabase/functions/_shared/providers/fake/index.ts` — 12 verbos, guard `assertTestEnv()`/`DENO_ENV=test`) |
+| PROVIDER_UNDER_TEST | `fake` (`supabase/functions/_shared/providers/fake/index.ts` — **12/12** verbos incluindo `getProfilePicture`, `assertTestEnv()` por verbo, `DENO_ENV=test`; gap 11/12 fechado no #1088) |
 | Veredito final | ⏳ pendente / ✅ sucesso / ❌ abortado (passo __) |
 
 ## 1. Gates de entrada (TODOS verdes antes do passo 1)
 
 | # | Gate | Critério | Como verificar | Resultado |
 |---|---|---|---|---|
-| G1 | CI decouple | inventory **0/0/0/0** no último PR mergeado | `decouple-guard.yml` + `ownership-gate.yml` verdes no GitHub | ⬜ |
+| G1 | CI decouple | inventory **0/0/0/0** no último PR mergeado (threshold do decouple-guard: `TOTAL=0`; sql-gate via fixture `scripts/decouple/fixtures/sql_report_snapshot.json`) | `decouple-guard.yml` + `ownership-gate.yml` verdes no GitHub | ⬜ |
 | G2 | Saúde | health score **A+ (≥95)**, wpp2 `state=open` | `ops.v_health_latest` / dashboard / `connectionHealthCheck` | ⬜ |
 | G3 | Pipeline | **DLQ = 0** e erro de envio ≤1% nas últimas 24h | `zapp.vw_dlq_pending` + `evolution-retry-metrics` | ⬜ |
 | G4 | Baseline | msgs/24h registrado (5.077) | `docs/decouple/BASELINE.md` | ⬜ |
-| G5 | Ensaio de mesa | `ensaio-fake.test.ts` verde (PR #1082) — contrato validado | `DENO_ENV=test deno test --allow-all W8_ensaio_fake.test.ts` | ⬜ |
+| G5 | Ensaio de mesa (verb-gate ativo) | `ensaio-fake.test.ts` verde (PR #1082) — contrato validado; E2b garante paridade **12/12** fake×evolutionClient (roda no CI via `deno-contract-tests.yml`) | `DENO_ENV=test deno test --allow-all supabase/functions/_shared/__tests__/ensaio-fake.test.ts` | ⬜ |
 | G6 | Guard do fake | `registry.getProviderClient('fake')` só resolve com `DENO_ENV=test` | `assertTestEnv()` não lança em test; lança fora (E8 do `CENARIOS_V4_LOG.md`) | ⬜ |
 
 > Abort antes de começar: qualquer gate permanece ⬜ após 2 tentativas de re-verificação.
