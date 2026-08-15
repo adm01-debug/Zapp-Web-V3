@@ -49,8 +49,8 @@ async function fetchAudit() {
       'Content-Type': 'application/json',
       apikey: key,
       Authorization: `Bearer ${key}`,
-      'Content-Profile': 'ops',
-      'Accept-Profile': 'ops',
+      // schema public (wrapper public.fn_boundary_audit -> ops.fn_boundary_audit;
+      // PostgREST nao expoe o schema ops em db-schemas)
     },
     body: '{}',
   });
