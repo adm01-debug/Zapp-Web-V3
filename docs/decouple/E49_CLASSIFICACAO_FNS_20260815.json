@@ -1,0 +1,889 @@
+{
+  "meta": {
+    "etapa": "E49 — PLANO_INDEPENDENCIA_100_ETAPAS_20260815",
+    "generated_at": "2026-08-15T23:33:29.957Z",
+    "universo": "fns evo.* cujo prosrc cita zapp.* (I1 do boundary-audit) — 98 linhas (97 oids, overloads contam separado)",
+    "criterio_morta": "zero cron + zero trigger + zero chamador SQL (evo/zapp/ops/public) + zero uso em codigo (zapp-web-v3 src/functions/scripts + evolution-stack, excluindo types.ts gerado) + zero uso em workflows N8N (workflow_entity.nodes)",
+    "verificacao_externa": "grep nos 2 repos + query no banco n8n_queue em 2026-08-15; unica orfa-SQL com uso externo real: rpc_complete_media_download (N8N)"
+  },
+  "resumo": {
+    "a_monitoria": 37,
+    "b_negocio": 27,
+    "c_morta": 33
+  },
+  "planilha": [
+    {
+      "fn": "fn_alert_ghost_conversations",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_analytics_wal_watchdog",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_apply_lid_mappings",
+      "args": "p_dry_run boolean, p_batch integer",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_audit_rmq_durability_risk",
+      "args": "p_window interval",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_auto_apply_lid_mappings",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_auto_resolve_alerts",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 1,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_backfill_contact_id",
+      "args": "p_batch integer",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_bootstrap_coverage_hourly_check",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_burnin_critical_alert_check",
+      "args": "",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_burnin_disconnection_check",
+      "args": "",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_cache_warmup_after_vacuum",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_canonical_route_check_daily",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_canonical_route_decision",
+      "args": "p_min_days integer, p_max_parity_delta_pct numeric",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_checar_inbound_zerado",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_check_401_rate",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_check_ack_stall",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_check_connection_saturation",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_check_guardian_alive",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_check_socket_flapping",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_check_unknown_contact_health",
+      "args": "",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_check_v04_phonejid_arrived",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_check_wal_slot_health",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_cleanup_test_artifacts",
+      "args": "p_confirm boolean, p_max_age_hours integer",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_dedup_alert",
+      "args": "",
+      "cron": 0,
+      "trig": 1,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_delete_test_contacts",
+      "args": "p_pattern text",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_detect_401_bursts",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_detect_ack_loss_gap",
+      "args": "p_window interval, p_dlq_threshold integer",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_detect_dedup_cap_failures",
+      "args": "p_window interval",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_detect_instance_recreate",
+      "args": "",
+      "cron": 0,
+      "trig": 1,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_detect_spurious_closes",
+      "args": "p_window interval, p_reconnect_window interval",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_detect_swarm_task_duplication",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_download_wa_status_media",
+      "args": "p_batch_size integer",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_e2e_media_probe",
+      "args": "p_window_hours integer",
+      "cron": 2,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_enqueue_orphan_media",
+      "args": "p_limit integer, p_days_back integer",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_ensure_critical_crons_active",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_ensure_evolution_backcompat_views",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_expire_whatsapp_media_urls",
+      "args": "p_days_old integer, p_batch_limit integer",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_feed_401_disconnect_alerts",
+      "args": "p_minutes integer, p_threshold integer",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_filter_canary_messages",
+      "args": "",
+      "cron": 0,
+      "trig": 3,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_flag_poison_messages",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_get_incident_runbook",
+      "args": "p_type text",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_handle_expired_r2_media",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_lid_convergence_snapshot",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_lid_health_report",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_lid_normalizer_test_suite",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_lid_regression_suite",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_lid_upgrade_alert_check",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_lid_upgrade_readiness_check",
+      "args": "",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_link_orphan_messages",
+      "args": "p_limit integer",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_list_storage_cache_for_purge",
+      "args": "days integer",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_logpatch_verify",
+      "args": "",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_mark_status_viewed",
+      "args": "p_message_id text, p_instance text",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_migrate_media_urls_to_r2",
+      "args": "dry_run boolean, batch_size integer",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_monitor_lid_contamination",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_monitor_pino_timeouts",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_monthly_evo_audit",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_normalize_conversation_jid",
+      "args": "",
+      "cron": 0,
+      "trig": 1,
+      "callers_sql": 1,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_normalize_remote_jid",
+      "args": "",
+      "cron": 0,
+      "trig": 1,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_notify_sicoob_on_reply",
+      "args": "",
+      "cron": 0,
+      "trig": 3,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_passive_lid_accumulator",
+      "args": "p_lookback_hours integer",
+      "cron": 2,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_pipeline_health_probe",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_post_upgrade_verify",
+      "args": "p_timeout_minutes integer",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_pre_upgrade_final_check",
+      "args": "",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_prepare_lid_dedup",
+      "args": "p_dry_run boolean, p_instance text, p_batch_size integer",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_purge_lid_orphan_messages_batch",
+      "args": "p_batch_size integer",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_purge_storage_cache",
+      "args": "p_days integer",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_record_runbook_drill",
+      "args": "p_type text",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_repontar_filhas_graveyard",
+      "args": "p_dry_run boolean",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_resolve_alert",
+      "args": "p_id uuid, p_by text, p_ids uuid[]",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_resolve_contact_id_by_jid",
+      "args": "p_jid text",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_retention_webhook_partitions",
+      "args": "p_dry_run boolean, p_retain_months integer",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_run_media_health_alert",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_scrub_r2_paths_from_logs",
+      "args": "p_window interval",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_shadow_snapshot_daily",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_shadow_source_measurement",
+      "args": "p_days integer",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_sync_messages_to_v2",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_sync_status_from_messages",
+      "args": "",
+      "cron": 0,
+      "trig": 1,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_test_normalizer_deep",
+      "args": "",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_touch_contact_last_message",
+      "args": "",
+      "cron": 0,
+      "trig": 1,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_touch_contact_presence",
+      "args": "p_remote_jid text, p_presence text, p_instance text",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_trigger_audio_transcription",
+      "args": "p_batch_size integer",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_update_instance_health",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_upsert_group_from_event",
+      "args": "p_connection_id uuid, p_group_id text, p_name text, p_desc text, p_participants text[], p_instance text",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_upsert_group_from_event",
+      "args": "p_connection_id uuid, p_group_id text, p_name text, p_desc text, p_instance text, p_participants text[]",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_upsert_group_from_event",
+      "args": "p_connection_id uuid, p_group_id text, p_name text, p_desc text, p_participants text[], p_instance text, p_phones text[]",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_upsert_group_participants",
+      "args": "p_group_id uuid, p_participants text[], p_action text, p_instance text",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_upsert_group_participants",
+      "args": "p_group_id uuid, p_participants text[], p_action text, p_instance text, p_phones text[]",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_v2_mirror_health",
+      "args": "",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_v2_pipeline_heartbeat",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_watchdog_media_links",
+      "args": "",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "fn_wpp2_uptime_kpi",
+      "args": "p_instance text, p_window interval, p_alert boolean",
+      "cron": 1,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "a_monitoria",
+      "caller_externo": null
+    },
+    {
+      "fn": "increment_snapshot_version",
+      "args": "entity_name text",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 2,
+      "balde": "b_negocio",
+      "caller_externo": null
+    },
+    {
+      "fn": "list_media_to_mirror",
+      "args": "limit_count integer, offset_count integer",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "pr_link_msgs_to_conversations",
+      "args": "IN p_batch integer",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "rpc_complete_media_download",
+      "args": "p_queue_id bigint, p_download_url text, p_storage_path text",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "b_negocio",
+      "caller_externo": "n8n: ZAPP Media Downloader + ZAPP - Media Download Worker (ambos active)"
+    },
+    {
+      "fn": "search_contacts_gin",
+      "args": "p_query text, p_limit integer, p_offset integer, p_min_sim double precision",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    },
+    {
+      "fn": "update_status_media_url",
+      "args": "p_status_id uuid, p_media_url text",
+      "cron": 0,
+      "trig": 0,
+      "callers_sql": 0,
+      "balde": "c_morta",
+      "caller_externo": null
+    }
+  ]
+}
