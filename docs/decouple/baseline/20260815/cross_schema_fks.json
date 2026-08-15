@@ -1,0 +1,40 @@
+{
+  "collected_at": "2026-08-15T00:00:00Z",
+  "description": "FKs cross-schema entre evo e zapp (violação I9)",
+  "query": "information_schema.table_constraints JOIN key_column_usage JOIN constraint_column_usage WHERE constraint_type='FOREIGN KEY' AND schemas em ('evo','zapp')",
+  "row_count": 24,
+  "distinct_constraints": 6,
+  "summary": {
+    "evo_to_zapp": 24,
+    "zapp_to_evo": 0,
+    "cascade_delete_count": 12,
+    "tables_involved": ["evo.media_download_queue", "evo.media_loss_registry"],
+    "ref_tables": ["zapp.evolution_messages", "zapp.evolution_messages_wpp2", "zapp.evolution_messages_default"]
+  },
+  "rows": [
+    {"constraint_name":"media_download_queue_message_id_instance_name_fkey1","fk_schema":"evo","fk_table":"media_download_queue","fk_column":"instance_name","ref_schema":"zapp","ref_table":"evolution_messages_default","ref_column":"instance_name","delete_rule":"CASCADE","update_rule":"NO ACTION"},
+    {"constraint_name":"media_download_queue_message_id_instance_name_fkey","fk_schema":"evo","fk_table":"media_download_queue","fk_column":"instance_name","ref_schema":"zapp","ref_table":"evolution_messages_wpp2","ref_column":"message_id","delete_rule":"CASCADE","update_rule":"NO ACTION"},
+    {"constraint_name":"media_download_queue_message_id_instance_name_fkey","fk_schema":"evo","fk_table":"media_download_queue","fk_column":"instance_name","ref_schema":"zapp","ref_table":"evolution_messages_wpp2","ref_column":"instance_name","delete_rule":"CASCADE","update_rule":"NO ACTION"},
+    {"constraint_name":"fk_mdq_message","fk_schema":"evo","fk_table":"media_download_queue","fk_column":"instance_name","ref_schema":"zapp","ref_table":"evolution_messages","ref_column":"message_id","delete_rule":"CASCADE","update_rule":"NO ACTION"},
+    {"constraint_name":"fk_mdq_message","fk_schema":"evo","fk_table":"media_download_queue","fk_column":"instance_name","ref_schema":"zapp","ref_table":"evolution_messages","ref_column":"instance_name","delete_rule":"CASCADE","update_rule":"NO ACTION"},
+    {"constraint_name":"media_download_queue_message_id_instance_name_fkey1","fk_schema":"evo","fk_table":"media_download_queue","fk_column":"instance_name","ref_schema":"zapp","ref_table":"evolution_messages_default","ref_column":"message_id","delete_rule":"CASCADE","update_rule":"NO ACTION"},
+    {"constraint_name":"media_download_queue_message_id_instance_name_fkey1","fk_schema":"evo","fk_table":"media_download_queue","fk_column":"message_id","ref_schema":"zapp","ref_table":"evolution_messages_default","ref_column":"instance_name","delete_rule":"CASCADE","update_rule":"NO ACTION"},
+    {"constraint_name":"media_download_queue_message_id_instance_name_fkey1","fk_schema":"evo","fk_table":"media_download_queue","fk_column":"message_id","ref_schema":"zapp","ref_table":"evolution_messages_default","ref_column":"message_id","delete_rule":"CASCADE","update_rule":"NO ACTION"},
+    {"constraint_name":"fk_mdq_message","fk_schema":"evo","fk_table":"media_download_queue","fk_column":"message_id","ref_schema":"zapp","ref_table":"evolution_messages","ref_column":"instance_name","delete_rule":"CASCADE","update_rule":"NO ACTION"},
+    {"constraint_name":"fk_mdq_message","fk_schema":"evo","fk_table":"media_download_queue","fk_column":"message_id","ref_schema":"zapp","ref_table":"evolution_messages","ref_column":"message_id","delete_rule":"CASCADE","update_rule":"NO ACTION"},
+    {"constraint_name":"media_download_queue_message_id_instance_name_fkey","fk_schema":"evo","fk_table":"media_download_queue","fk_column":"message_id","ref_schema":"zapp","ref_table":"evolution_messages_wpp2","ref_column":"instance_name","delete_rule":"CASCADE","update_rule":"NO ACTION"},
+    {"constraint_name":"media_download_queue_message_id_instance_name_fkey","fk_schema":"evo","fk_table":"media_download_queue","fk_column":"message_id","ref_schema":"zapp","ref_table":"evolution_messages_wpp2","ref_column":"message_id","delete_rule":"CASCADE","update_rule":"NO ACTION"},
+    {"constraint_name":"media_loss_registry_message_uuid_instance_name_fkey1","fk_schema":"evo","fk_table":"media_loss_registry","fk_column":"instance_name","ref_schema":"zapp","ref_table":"evolution_messages_default","ref_column":"id","delete_rule":"NO ACTION","update_rule":"NO ACTION"},
+    {"constraint_name":"fk_mlr_message_uuid_instance","fk_schema":"evo","fk_table":"media_loss_registry","fk_column":"instance_name","ref_schema":"zapp","ref_table":"evolution_messages","ref_column":"id","delete_rule":"NO ACTION","update_rule":"NO ACTION"},
+    {"constraint_name":"media_loss_registry_message_uuid_instance_name_fkey1","fk_schema":"evo","fk_table":"media_loss_registry","fk_column":"instance_name","ref_schema":"zapp","ref_table":"evolution_messages_default","ref_column":"instance_name","delete_rule":"NO ACTION","update_rule":"NO ACTION"},
+    {"constraint_name":"fk_mlr_message_uuid_instance","fk_schema":"evo","fk_table":"media_loss_registry","fk_column":"instance_name","ref_schema":"zapp","ref_table":"evolution_messages","ref_column":"instance_name","delete_rule":"NO ACTION","update_rule":"NO ACTION"},
+    {"constraint_name":"media_loss_registry_message_uuid_instance_name_fkey","fk_schema":"evo","fk_table":"media_loss_registry","fk_column":"instance_name","ref_schema":"zapp","ref_table":"evolution_messages_wpp2","ref_column":"instance_name","delete_rule":"NO ACTION","update_rule":"NO ACTION"},
+    {"constraint_name":"media_loss_registry_message_uuid_instance_name_fkey","fk_schema":"evo","fk_table":"media_loss_registry","fk_column":"instance_name","ref_schema":"zapp","ref_table":"evolution_messages_wpp2","ref_column":"id","delete_rule":"NO ACTION","update_rule":"NO ACTION"},
+    {"constraint_name":"fk_mlr_message_uuid_instance","fk_schema":"evo","fk_table":"media_loss_registry","fk_column":"message_uuid","ref_schema":"zapp","ref_table":"evolution_messages","ref_column":"instance_name","delete_rule":"NO ACTION","update_rule":"NO ACTION"},
+    {"constraint_name":"fk_mlr_message_uuid_instance","fk_schema":"evo","fk_table":"media_loss_registry","fk_column":"message_uuid","ref_schema":"zapp","ref_table":"evolution_messages","ref_column":"id","delete_rule":"NO ACTION","update_rule":"NO ACTION"},
+    {"constraint_name":"media_loss_registry_message_uuid_instance_name_fkey1","fk_schema":"evo","fk_table":"media_loss_registry","fk_column":"message_uuid","ref_schema":"zapp","ref_table":"evolution_messages_default","ref_column":"id","delete_rule":"NO ACTION","update_rule":"NO ACTION"},
+    {"constraint_name":"media_loss_registry_message_uuid_instance_name_fkey1","fk_schema":"evo","fk_table":"media_loss_registry","fk_column":"message_uuid","ref_schema":"zapp","ref_table":"evolution_messages_default","ref_column":"instance_name","delete_rule":"NO ACTION","update_rule":"NO ACTION"},
+    {"constraint_name":"media_loss_registry_message_uuid_instance_name_fkey","fk_schema":"evo","fk_table":"media_loss_registry","fk_column":"message_uuid","ref_schema":"zapp","ref_table":"evolution_messages_wpp2","ref_column":"instance_name","delete_rule":"NO ACTION","update_rule":"NO ACTION"},
+    {"constraint_name":"media_loss_registry_message_uuid_instance_name_fkey","fk_schema":"evo","fk_table":"media_loss_registry","fk_column":"message_uuid","ref_schema":"zapp","ref_table":"evolution_messages_wpp2","ref_column":"id","delete_rule":"NO ACTION","update_rule":"NO ACTION"}
+  ]
+}

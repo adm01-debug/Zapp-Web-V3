@@ -1,0 +1,201 @@
+{
+  "meta": {
+    "snapshot_date": "2026-08-15",
+    "snapshot_label": "T0-baseline",
+    "schema_source": "cron.job (pg_cron)",
+    "collector_branch": "claude/evolution-zapp-separation-analysis-29lixd",
+    "total_jobs": 218,
+    "note_discrepancy": "CLAUDE.md documentava 151 jobs; contagem real do DB em 2026-08-15 é 218 (este valor é autoritativo)",
+    "by_violation_class": {
+      "cross_schema_bidirectional": 9,
+      "I4_net_http": 2,
+      "I4_extensions_http": 3,
+      "zapp_only": 71,
+      "evo_only": 79,
+      "other": 54
+    },
+    "total_invariant_violations": 14,
+    "invariants_violated": ["I4 (HTTP egress fora do gateway)", "I1/I2 (cross-schema bidirectional — via SQL/cron)"]
+  },
+
+  "invariant_violations": {
+    "cross_schema_bidirectional": {
+      "description": "Jobs que lêem E escrevem em ambos schemas (evo + zapp) — violam a fronteira de escrita unidirecional",
+      "count": 9,
+      "jobs": [
+        {
+          "jobid": 149,
+          "jobname": "vps-performance-snapshot",
+          "active": true,
+          "cross_schema_pattern": "READ evo.vps_scenario_status + zapp.evolution_alerts; CALL evo.fn_vps_health_score() AND zapp.fn_system_health_score_cached()",
+          "invariant_broken": "I1+I2 — zapp calls evo function, evo data written to zapp"
+        },
+        {
+          "jobid": 189,
+          "jobname": "evo_cleanup_expired_contact_ids",
+          "active": true,
+          "cross_schema_pattern": "CALL evo.cleanup_expired_contact_ids() AND zapp.cleanup_expired_contact_ids()",
+          "invariant_broken": "I1+I2 — mesmo job orquestra cleanup em ambos schemas"
+        },
+        {
+          "jobid": 193,
+          "jobname": "guardian-db-heartbeat-resilient",
+          "active": true,
+          "cross_schema_pattern": "INSERT INTO zapp.evolution_guardian_heartbeat AND evo.evolution_guardian_heartbeat; CALL evo.fn_sync_guardian_heartbeat()",
+          "invariant_broken": "I1+I2 — heartbeat gravado em ambos schemas pelo mesmo cron"
+        },
+        {
+          "jobid": 301,
+          "jobname": "evo-default-partition-guard",
+          "active": true,
+          "cross_schema_pattern": "READ evo.evolution_webhook_events_v2_default; WRITE zapp.warroom_alerts",
+          "invariant_broken": "I2 — cron evo escreve em zapp.warroom_alerts"
+        },
+        {
+          "jobid": 338,
+          "jobname": "ingest-loss-alert",
+          "active": true,
+          "cross_schema_pattern": "READ evo.v_ingest_reconciliation; WRITE zapp.evolution_alerts",
+          "invariant_broken": "I2 — cron monitora evo e escreve alertas em zapp"
+        },
+        {
+          "jobid": 479,
+          "jobname": "evo-schema-guardian-weekly",
+          "active": true,
+          "cross_schema_pattern": "READ evo views (schema drift check); WRITE zapp.evolution_alerts",
+          "invariant_broken": "I2 — guardian evo escreve em zapp"
+        },
+        {
+          "jobid": 480,
+          "jobname": "evo-schema-guardian-monthly",
+          "active": true,
+          "cross_schema_pattern": "READ evo tables + zapp.evolution_notifications + zapp.evolution_reactions; WRITE zapp.evolution_alerts",
+          "invariant_broken": "I1+I2 — bidirecional: lê zapp E escreve zapp via cron evo"
+        },
+        {
+          "jobid": 483,
+          "jobname": "lid-phonejid-emergence-watchdog",
+          "active": true,
+          "cross_schema_pattern": "READ zapp.evolution_contacts; CALL evo.fn_passive_lid_accumulator() + evo.fn_apply_lid_mappings(); WRITE zapp.evolution_alerts",
+          "invariant_broken": "I1+I2 — bidirecional completo: lê zapp, chama evo, escreve zapp"
+        },
+        {
+          "jobid": 501,
+          "jobname": "evo-repopula-fila-isonwa",
+          "active": true,
+          "cross_schema_pattern": "READ zapp.evolution_contacts; WRITE evo.evolution_whatsapp_check_queue",
+          "invariant_broken": "I1 — cron lê dados zapp e enfileira em evo"
+        }
+      ]
+    },
+
+    "I4_http_egress_bypass": {
+      "description": "Jobs que chamam edge functions via net.http_post ou extensions.http_post diretamente em SQL — bypassam o gateway único evolution/client.ts",
+      "count": 5,
+      "note": "job 427 pode ser falso positivo (classificado I4_net_http mas comando não contém chamada http explícita — verificar impl da fn)",
+      "jobs": [
+        {
+          "jobid": 261,
+          "jobname": "nps-daily-trigger",
+          "active": true,
+          "violation_class": "I4_extensions_http",
+          "command_summary": "SELECT extensions.http_post(url := 'https://supabase.atomicabr.com.br/functions/v1/nps-scheduler', ...)",
+          "invariant_broken": "I4 — HTTP SQL egress via extensions.http_post fora do gateway"
+        },
+        {
+          "jobid": 427,
+          "jobname": "auto-resolve-pipeline-alerts",
+          "active": true,
+          "violation_class": "I4_net_http",
+          "command_summary": "UPDATE zapp.evolution_alerts SET ... (possível false positive — verificar corpo da fn chamada)",
+          "invariant_broken": "I4 (a confirmar) — classificado por pattern matching no query; validar manualmente"
+        },
+        {
+          "jobid": 476,
+          "jobname": "sync-groups-daily",
+          "active": true,
+          "violation_class": "I4_net_http",
+          "command_summary": "SELECT net.http_post(url := 'https://supabase.atomicabr.com.br/functions/v1/evolution-group-sync', ...)",
+          "invariant_broken": "I4 — HTTP SQL egress via net.http_post fora do gateway"
+        },
+        {
+          "jobid": 477,
+          "jobname": "check-whatsapp-numbers",
+          "active": true,
+          "violation_class": "I4_extensions_http",
+          "command_summary": "SELECT extensions.http_post(url := 'https://supabase.atomicabr.com.br/functions/v1/evolution-group-sync', ...)",
+          "invariant_broken": "I4 — HTTP SQL egress via extensions.http_post fora do gateway"
+        },
+        {
+          "jobid": 478,
+          "jobname": "notif-dispatcher",
+          "active": true,
+          "violation_class": "I4_extensions_http",
+          "command_summary": "SELECT extensions.http_post(url := 'https://supabase.atomicabr.com.br/functions/v1/evolution-notification-dispatcher', ...)",
+          "invariant_broken": "I4 — HTTP SQL egress via extensions.http_post fora do gateway"
+        }
+      ]
+    }
+  },
+
+  "job_ids_by_class": {
+    "cross_schema_bidirectional": [149, 189, 193, 301, 338, 479, 480, 483, 501],
+    "I4_net_http": [427, 476],
+    "I4_extensions_http": [261, 477, 478],
+    "zapp_only": [4, 5, 6, 11, 17, 27, 30, 32, 33, 34, 35, 43, 51, 52, 55, 57, 63, 65, 66, 71, 73, 86, 88, 91, 96, 97, 101, 102, 103, 104, 107, 108, 113, 116, 117, 120, 126, 128, 133, 143, 148, 151, 169, 179, 180, 183, 185, 186, 190, 194, 197, 203, 204, 207, 212, 245, 262, 263, 298, 313, 317, 318, 322, 333, 335, 429, 465, 493, 496, 497, 508],
+    "evo_only": [9, 10, 12, 41, 64, 67, 68, 76, 90, 131, 135, 136, 137, 138, 139, 142, 146, 147, 158, 159, 160, 161, 162, 163, 164, 166, 168, 171, 173, 176, 182, 184, 187, 188, 208, 213, 217, 243, 295, 296, 297, 300, 305, 306, 312, 319, 320, 328, 329, 334, 336, 337, 339, 340, 344, 345, 411, 443, 445, 446, 458, 460, 461, 463, 466, 467, 468, 469, 471, 475, 481, 484, 486, 487, 488, 494, 495, 498, 500],
+    "other": [15, 78, 82, 84, 89, 94, 95, 99, 100, 105, 106, 111, 115, 122, 123, 124, 127, 129, 144, 165, 191, 192, 205, 206, 218, 219, 220, 221, 222, 223, 224, 225, 230, 231, 233, 234, 238, 239, 240, 241, 246, 248, 249, 268, 269, 311, 326, 447, 450, 456, 459, 485, 490, 505]
+  },
+
+  "recent_jobs_full_detail": {
+    "description": "Jobs com IDs > 440 com detalhes completos (chunk final do snapshot)",
+    "jobs": [
+      { "jobid": 443, "jobname": "unknown-443", "active": true, "violation_class": "evo_only" },
+      { "jobid": 445, "jobname": "unknown-445", "active": true, "violation_class": "evo_only" },
+      { "jobid": 446, "jobname": "unknown-446", "active": true, "violation_class": "evo_only" },
+      { "jobid": 447, "jobname": "view-column-drift-guard", "active": true, "schedule": "*/15 * * * *", "command": "SELECT ops.fn_check_view_column_drift()", "violation_class": "other" },
+      { "jobid": 450, "jobname": "security-hardening-autofix", "active": true, "schedule": "*/2 * * * *", "command": "SELECT ops.fn_revoke_anon_public_breaches()", "violation_class": "other" },
+      { "jobid": 456, "jobname": "rt12-autofix-pk-guardian", "active": true, "schedule": "*/15 * * * *", "command": "SELECT ops.fn_autofix_tables_no_pk()", "violation_class": "other" },
+      { "jobid": 458, "jobname": "wal-slot-lag-alert", "active": true, "schedule": "*/15 * * * *", "command": "SELECT evo.fn_check_wal_slot_health()", "violation_class": "evo_only" },
+      { "jobid": 459, "jobname": "ensure-critical-crons-active", "active": true, "schedule": "*/5 * * * *", "command": "SELECT ops.fn_ensure_critical_crons_active()", "violation_class": "other" },
+      { "jobid": 460, "jobname": "analytics-wal-watchdog", "active": true, "schedule": "*/10 * * * *", "command": "SELECT evo.fn_analytics_wal_watchdog()", "violation_class": "evo_only" },
+      { "jobid": 461, "jobname": "watchdog-media-links", "active": true, "schedule": "4-59/15 * * * *", "command": "SELECT evo.fn_watchdog_media_links()", "violation_class": "evo_only" },
+      { "jobid": 463, "jobname": "purge-storage-cache", "active": true, "schedule": "0 3 * * *", "command": "SELECT evo.fn_purge_storage_cache(30)", "violation_class": "evo_only" },
+      { "jobid": 465, "jobname": "process-evolution-notifications", "active": true, "schedule": "*/2 * * * *", "command": "SELECT zapp.fn_process_evolution_notifications(200)", "violation_class": "zapp_only" },
+      { "jobid": 466, "jobname": "lid-convergence-snapshot-hourly", "active": true, "schedule": "*/15 * * * *", "command": "SELECT evo.fn_lid_convergence_snapshot()", "violation_class": "evo_only" },
+      { "jobid": 467, "jobname": "lid-normalizer-test-suite-6h", "active": true, "schedule": "0 */6 * * *", "command": "SELECT evo.fn_lid_normalizer_test_suite()", "violation_class": "evo_only" },
+      { "jobid": 468, "jobname": "lid-regression-suite-2h", "active": true, "schedule": "0 */2 * * *", "command": "SELECT evo.fn_lid_regression_suite()", "violation_class": "evo_only" },
+      { "jobid": 469, "jobname": "lid-quarterly-checkpoint", "active": true, "schedule": "0 9 1 1,4,7,10 *", "command": "INSERT INTO evo.e2e_probe_results ... FROM evo.v_production_scorecard, evo.v_lid_health_scorecard", "violation_class": "evo_only" },
+      { "jobid": 471, "jobname": "lid-upgrade-detect-and-alert", "active": true, "schedule": "30 * * * *", "command": "SELECT evo.fn_lid_upgrade_alert_check()", "violation_class": "evo_only" },
+      { "jobid": 475, "jobname": "lid-weekly-health-report", "active": true, "schedule": "0 6 * * 1", "command": "INSERT INTO evo.e2e_probe_results ... evo.fn_lid_health_report()", "violation_class": "evo_only" },
+      { "jobid": 481, "jobname": "cron-guardian-lid-15min", "active": true, "schedule": "*/15 * * * *", "command": "SELECT evo.fn_ensure_critical_crons_active()", "violation_class": "evo_only" },
+      { "jobid": 484, "jobname": "check-socket-flapping-wpp2", "active": true, "schedule": "*/5 * * * *", "command": "SELECT evo.fn_check_socket_flapping()", "violation_class": "evo_only" },
+      { "jobid": 485, "jobname": "evolution-session-redis-snapshot-6h", "active": true, "schedule": "0 */6 * * *", "command": "INSERT INTO ops.evolution_session_snapshots ...", "violation_class": "other" },
+      { "jobid": 486, "jobname": "v04-phonejid-monitor", "active": true, "schedule": "*/5 * * * *", "command": "SELECT evo.fn_check_v04_phonejid_arrived()", "violation_class": "evo_only" },
+      { "jobid": 487, "jobname": "lid-backfill-22h-auto", "active": true, "schedule": "0 1 * * *", "command": "SELECT evo.fn_execute_lid_backfill_when_ready()", "violation_class": "evo_only" },
+      { "jobid": 488, "jobname": "v04-auto-apply-lid-mappings", "active": true, "schedule": "*/30 * * * *", "command": "SELECT evo.fn_auto_apply_lid_mappings()", "violation_class": "evo_only" },
+      { "jobid": 490, "jobname": "auth-session-auto-cleanup-daily", "active": true, "schedule": "30 2 * * *", "command": "DO $cleanup$ ... DELETE FROM auth.refresh_tokens, auth.sessions > 3 days ...", "violation_class": "other" },
+      { "jobid": 493, "jobname": "onda2_license_monitor", "active": true, "schedule": "0 * * * *", "command": "SELECT zapp.fn_check_license_heartbeat()", "violation_class": "zapp_only" },
+      { "jobid": 494, "jobname": "repontar-filhas-graveyard", "active": true, "schedule": "0 5 * * *", "command": "SELECT evo.fn_repontar_filhas_graveyard(false)", "violation_class": "evo_only" },
+      { "jobid": 495, "jobname": "monitor-inbound-zerado", "active": true, "schedule": "*/15 * * * *", "command": "SELECT evo.fn_checar_inbound_zerado()", "violation_class": "evo_only" },
+      { "jobid": 496, "jobname": "license-heartbeat-log-purge-30d", "active": true, "schedule": "0 3 * * *", "command": "DELETE FROM zapp.license_heartbeat_log WHERE checked_at < now()-interval '30 days'", "violation_class": "zapp_only" },
+      { "jobid": 497, "jobname": "onda3_evo_compose_antidrift", "active": false, "schedule": "*/30 * * * *", "command": "SELECT zapp.fn_check_evo_compose_drift()", "violation_class": "zapp_only" },
+      { "jobid": 498, "jobname": "ghost-conversations-daily-alert", "active": true, "schedule": "0 10 * * *", "command": "SELECT evo.fn_alert_ghost_conversations()", "violation_class": "evo_only" },
+      { "jobid": 500, "jobname": "bootstrap-coverage-hourly", "active": true, "schedule": "5 * * * *", "command": "SELECT evo.fn_bootstrap_coverage_hourly_check()", "violation_class": "evo_only" },
+      { "jobid": 505, "jobname": "views-drift-guard", "active": true, "schedule": "0 6 * * *", "command": "SELECT ops.fn_views_drift_guard()", "violation_class": "other" },
+      { "jobid": 508, "jobname": "zapp-purge-reconcile-snapshots", "active": true, "schedule": "10 3 * * *", "command": "SELECT zapp.purge_old_reconcile_snapshots()", "violation_class": "zapp_only" }
+    ]
+  },
+
+  "counts_verification": {
+    "cross_schema_bidirectional": 9,
+    "I4_net_http": 2,
+    "I4_extensions_http": 3,
+    "zapp_only": 71,
+    "evo_only": 79,
+    "other": 54,
+    "sum": 218,
+    "db_row_count": 218,
+    "check": "OK"
+  }
+}
