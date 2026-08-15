@@ -10,7 +10,8 @@
  *     SUPABASE_DB_URL está configurado).
  *
  * Compara o score atual contra o baseline commitado:
- *   1. docs/decouple/BOUNDARY_SCORE_T3.json  (preferido — 1ª medição real dos 9 invariantes do plano)
+ *   1. docs/decouple/BOUNDARY_SCORE_T4.json  (preferido — medição real mais recente)
+ *   1b. docs/decouple/BOUNDARY_SCORE_T3.json (1ª medição real dos 9 invariantes do plano)
  *   2. docs/decouple/BOUNDARY_SCORE_T2.json  (legado — invariantes redefinidos, NÃO confiar)
  *   3. docs/decouple/BOUNDARY_SCORE_T0.json  (fallback — medição inicial)
  *   4. nenhum → cria BOUNDARY_SCORE_T3.json a partir da medição atual e passa.
@@ -41,6 +42,7 @@ const __dirname = dirname(__filename);
 const REPO_ROOT = resolve(__dirname, '..', '..');
 
 const AUDIT_SCRIPT = join(REPO_ROOT, 'scripts', 'decouple', 'boundary-audit.mjs');
+const BASELINE_T4 = join(REPO_ROOT, 'docs', 'decouple', 'BOUNDARY_SCORE_T4.json');
 const BASELINE_T3 = join(REPO_ROOT, 'docs', 'decouple', 'BOUNDARY_SCORE_T3.json');
 const BASELINE_T2 = join(REPO_ROOT, 'docs', 'decouple', 'BOUNDARY_SCORE_T2.json');
 const BASELINE_T0 = join(REPO_ROOT, 'docs', 'decouple', 'BOUNDARY_SCORE_T0.json');
@@ -148,6 +150,7 @@ function resolveBaseline(explicit) {
     if (!r) throw new Error(`baseline ilegível: ${explicit}`);
     return { file: explicit, report: r };
   }
+  if (existsSync(BASELINE_T4)) return { file: BASELINE_T4, report: readJson(BASELINE_T4) };
   if (existsSync(BASELINE_T3)) return { file: BASELINE_T3, report: readJson(BASELINE_T3) };
   if (existsSync(BASELINE_T2)) return { file: BASELINE_T2, report: readJson(BASELINE_T2) };
   if (existsSync(BASELINE_T0)) return { file: BASELINE_T0, report: readJson(BASELINE_T0) };
