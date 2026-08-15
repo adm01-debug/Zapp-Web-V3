@@ -11,6 +11,7 @@
 > Nao adicione secao de arquitetura, plano ou roadmap aqui. Isso morre em `docs/`.
 
 Ultima verificacao: **2026-08-08** | COMPLETO: P1/P2/P4/P6/P7 | 3 funcoes arquivadas | Storage 28->16 GB (-43%)
+Baseline desacoplamento T0: **2026-08-15** | Score 3/9 (33%) — Nota D | ver seção Desacoplamento abaixo
 
 ## Como foi medido
 
@@ -23,9 +24,40 @@ Fontes cruzadas nesta verificacao:
 |---|---|
 | Arquivos do repo escaneados | 2.911 |
 | Edge functions encontradas | 107 |
-| pg_cron jobs no banco | 162 (apenas `nps-daily-trigger` chama edge fn) |
+| pg_cron jobs no banco | 218 (apenas `nps-daily-trigger` chama edge fn) [auditado 2026-08-15: ver seção Desacoplamento] |
 | Workflows N8N | 254 (138 ativos) — **nenhum** chama edge fn |
 | Cloudflare Workers | nao verificado nesta rodada |
+
+---
+
+## Desacoplamento ZAPP×Evolution — Baseline T0 (2026-08-15)
+
+Medicao formal do grau de separacao entre os sistemas em 2026-08-15 (T0).
+Score: **3/9 invariantes aprovados (33%) — Nota D**
+Referencia: `docs/decouple/BOUNDARY_SCORE_T0.json` · `docs/decouple/ADR-012-T0-MEASUREMENT.md`
+
+| Invariante | Descricao | Status T0 | Detalhes |
+|---|---|---|---|
+| I1 | Zero funcoes zapp referenciam `evo.*` | FAIL | 20 funcoes distintas, 82 referencias |
+| I2 | Zero funcoes evo referenciam `zapp.*` | FAIL | 96 funcoes distintas |
+| I3 | `supabase.yml` ausente do repo zapp | FAIL | `.github/workflows/e2e-evolution-vps.yml` presente |
+| I4 | Todo egresso HTTP via gateway unico | FAIL | 5 cron jobs + 16 funcoes pg_net em bypass |
+| I5 | CI gate bloqueia recriacão de infra evo | PASS | `decouple-guard.yml` ativo |
+| I6 | Zero INSERT morto em consumer.py | PASS | Arquivo ausente no repo ZAPP |
+| I7 | inventory.mjs conta todos evolution-* | PASS | Verificado offline |
+| I8 | Fixture sql-gate sincronizado com prod | FAIL | 12 entradas fixture vs 25 em prod |
+| I9 | Zero FKs cross-schema nao documentadas | FAIL | 24 linhas FK, 6 grupos, todas evo->zapp |
+
+**Violacoes detalhadas:**
+- I1: `docs/decouple/baseline/20260815/zapp_evo_refs.json`
+- I2: `docs/decouple/baseline/20260815/evo_zapp_refs.json`
+- I4: `docs/decouple/baseline/20260815/pg_net_functions.json` + `cron_jobs.json` (jobids 149, 189, 193, 261, 301, 338, 427, 476-478, 479-480, 483, 501)
+- I9: `docs/decouple/baseline/20260815/cross_schema_fks.json` — CASCADE DELETE em `media_download_queue`
+
+**Plano de remediacao:** `docs/decouple/` (ADR-012, ADR-013+, scripts/decouple/)
+Proxima medicao planejada: T1 (apos E24 — Phase 1 completa)
+
+---
 
 ## Resumo
 
