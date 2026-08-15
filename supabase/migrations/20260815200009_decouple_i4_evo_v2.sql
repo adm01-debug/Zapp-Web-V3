@@ -72,23 +72,31 @@ COMMENT ON FUNCTION ops.fn_evo_key_v2 IS
   'Executa com privilégios do owner (definer); search_path restrito; sem GRANT a authenticated (ML-008). '
   'Criado em E17 (2026-08-15). Substitui ops.fn_evo_key() (deprecada).';
 
--- -----------------------------------------------------------------------------
 -- Marcar funções originais como deprecadas
 -- (as funções originais não estão em nenhuma migration — foram criadas
 --  diretamente no prod DB antes do versionamento do schema. Os COMMENTs
 --  abaixo atualizam os comentários no catalog para sinalizar a deprecação.)
--- -----------------------------------------------------------------------------
-COMMENT ON FUNCTION ops.fn_evo_url IS
-  '[DEPRECATED — usar ops.fn_evo_url_v2()] '
-  'Retorna a URL da Evolution API do vault. '
-  'Será removida após a Fase 2 do desacoplamento (E25+). '
-  'Não reutilizar em novas funções.';
-
-COMMENT ON FUNCTION ops.fn_evo_key IS
-  '[DEPRECATED — usar ops.fn_evo_key_v2()] '
-  'Retorna a API key da Evolution API do vault. '
-  'Será removida após a Fase 2 do desacoplamento (E25+). '
-  'Não reutilizar em novas funções.';
+-- DO block condicional: em DB fresco as funções v1 não existem — COMMENT direto
+-- falharia (achado W-V1/F-03, 2026-08-15).
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+             WHERE n.nspname = 'ops' AND p.proname = 'fn_evo_url') THEN
+    COMMENT ON FUNCTION ops.fn_evo_url IS
+      '[DEPRECATED — usar ops.fn_evo_url_v2()] '
+      'Retorna a URL da Evolution API do vault. '
+      'Será removida após a Fase 2 do desacoplamento (E25+). '
+      'Não reutilizar em novas funções.';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+             WHERE n.nspname = 'ops' AND p.proname = 'fn_evo_key') THEN
+    COMMENT ON FUNCTION ops.fn_evo_key IS
+      '[DEPRECATED — usar ops.fn_evo_key_v2()] '
+      'Retorna a API key da Evolution API do vault. '
+      'Será removida após a Fase 2 do desacoplamento (E25+). '
+      'Não reutilizar em novas funções.';
+  END IF;
+END $$;
 
 -- -----------------------------------------------------------------------------
 -- Permissões
@@ -96,7 +104,12 @@ COMMENT ON FUNCTION ops.fn_evo_key IS
 -- Não expor a authenticated — ML-008 compliance.
 -- ops.fn_evo_url_v2 e ops.fn_evo_key_v2: service_role apenas (sem GRANT explícito
 -- porque service_role tem EXECUTE em todas as funções por padrão no Supabase).
+-- REVOKE explícito do PUBLIC (achado W-V1/F-01, 2026-08-15): em DB fresco o
+-- default PostgreSQL concede EXECUTE a PUBLIC — revogar aqui garante o mesmo
+-- comportamento que produção (watchdog fn_auto_revoke_public_on_evo_zapp_fn).
 -- -----------------------------------------------------------------------------
+REVOKE EXECUTE ON FUNCTION ops.fn_evo_url_v2() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION ops.fn_evo_key_v2() FROM PUBLIC;
 
 -- Nenhum GRANT EXECUTE TO authenticated nestas funções SECURITY DEFINER.
 -- Ver: docs/decouple/ADR-013-PHASE1-PLAN.md E17, critério ML-008.

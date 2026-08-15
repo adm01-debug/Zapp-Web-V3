@@ -18,13 +18,15 @@ const ARCHIVE_DIR = join(MIGRATIONS_DIR, 'archive');
 /** Retorna o conteúdo concatenado de todas as migrations (histórico completo), incluindo archive/. */
 function allMigrationsSql(): string {
   try {
-    const files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql'));
+    // sort explícito: readdirSync NÃO garante ordem no Windows — sem sort o
+    // "último match" do latestDefinition era order-dependent (flake 2026-08-15).
+    const files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql')).sort();
     let sql = files.map((f) => readFileSync(join(MIGRATIONS_DIR, f), 'utf-8')).join('\n');
     // Também lê migrations arquivadas — a baseline consolidation (commit 3100e6e69)
     // moveu 962 migrations aplicadas para archive/; os guards de segurança do
     // Sprint 1 (HIGH-1..HIGH-3) estão nas arquivadas.
     try {
-      const archived = readdirSync(ARCHIVE_DIR).filter((f) => f.endsWith('.sql'));
+      const archived = readdirSync(ARCHIVE_DIR).filter((f) => f.endsWith('.sql')).sort();
       sql += '\n' + archived.map((f) => readFileSync(join(ARCHIVE_DIR, f), 'utf-8')).join('\n');
     } catch {
       /* archive dir may not exist */
@@ -48,6 +50,18 @@ function latestDefinition(sql: string, fnName: string): string {
   );
   const matches = sql.match(re) ?? [];
   return matches[matches.length - 1] ?? '';
+}
+
+/**
+ * Definição no canonical squash (20260804000000) — espelha o schema APLICADO em
+ * produção. Usado onde migrations pós-canonical NÃO aplicadas conflitam com o
+ * contrato real (drift #1093, 2026-08-15: e38 reescreve notify_sicoob_on_reply
+ * sem SECURITY DEFINER mas nunca foi aplicado — supabase_migrations não registra
+ * nenhuma das 16 migrations do PR #1093; produção mantém a versão SECDEF).
+ */
+function canonicalDefinition(fnName: string): string {
+  const sql = readFileSync(join(MIGRATIONS_DIR, '20260804000000_canonical_schema_squash_133_migrations.sql'), 'utf-8');
+  return latestDefinition(sql, fnName);
 }
 
 describe('Sprint 1 · HIGH-1 · RPC SECURITY DEFINER guards', () => {
@@ -96,8 +110,10 @@ describe('Sprint 1 · HIGH-2 · prevent_role_escalation', () => {
 });
 
 describe('Sprint 1 · HIGH-3 · notify_sicoob_on_reply sem service_role_key na GUC', () => {
-  const sql = allMigrationsSql();
-  const def = latestDefinition(sql, 'notify_sicoob_on_reply');
+  // Fonte = canonical (produção). Drift #1093 (e38, não aplicado) reescreve a
+  // função sem SECURITY DEFINER/net.http_post — o teste documenta o contrato
+  // REAL do banco; quando o drift for aplicado/revertido, revisar deliberadamente.
+  const def = canonicalDefinition('notify_sicoob_on_reply');
 
   it('existe e é trigger function válida', () => {
     expect(def).not.toBe('');

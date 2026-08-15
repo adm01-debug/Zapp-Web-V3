@@ -1,0 +1,110 @@
+{
+  "meta": {
+    "generated_at": "2026-08-15T00:00:00.000Z",
+    "mode": "committed_baseline",
+    "description": "Baseline T2 do ratchet de invariantes de desacoplamento ZAPP×EVO (E97/E98)",
+    "note": "Valores atuais documentados em .hermes/fase3/dados-reais.json (score_atual: T2 = 6/9) e ADR-014 (meta T2: 6/9, Nota C). I4/I8 PASS por medição real pós E25-E40; I3/I5/I6/I7 medidos ao vivo pelo boundary-audit offline; I1/I2/I9 ainda FAIL (dados T0).",
+    "baseline_snapshot": "20260815",
+    "repo": "adm01-debug/zapp-web-v3"
+  },
+  "summary": {
+    "passed": 6,
+    "partial": 0,
+    "failed": 3,
+    "errored": 0,
+    "total": 9,
+    "percentage": 67,
+    "grade": "C"
+  },
+  "invariants": [
+    {
+      "invariant": "I1",
+      "name": "Zero funções zapp.* referenciando evo.*",
+      "score": 0,
+      "status": "FAIL",
+      "violations": [
+        {
+          "count": 82,
+          "distinct_functions": 20,
+          "source": "baseline T0"
+        }
+      ],
+      "detail": "[T2] 82 refs em 20 funções zapp→evo (baseline T0)"
+    },
+    {
+      "invariant": "I2",
+      "name": "Zero funções evo.* referenciando zapp.*",
+      "score": 0,
+      "status": "FAIL",
+      "violations": [
+        {
+          "distinct_functions": 96,
+          "source": "baseline T0"
+        }
+      ],
+      "detail": "[T2] 96 funções evo→zapp (baseline T0)"
+    },
+    {
+      "invariant": "I3",
+      "name": "supabase.yml não em zapp-web-v3",
+      "score": 1,
+      "status": "PASS",
+      "violations": [],
+      "detail": "Sem infra evolution em zapp-web-v3"
+    },
+    {
+      "invariant": "I4",
+      "name": "Todo egresso HTTP via gateway único",
+      "score": 1,
+      "status": "PASS",
+      "violations": [],
+      "detail": "[T2] Egresso HTTP via gateway único — PASS (medição real pós E25-E40, dados-reais.json)"
+    },
+    {
+      "invariant": "I5",
+      "name": "CI guard decouple-guard.yml ativo",
+      "score": 1,
+      "status": "PASS",
+      "violations": [],
+      "detail": "decouple-guard.yml presente e contém verificações de evolution"
+    },
+    {
+      "invariant": "I6",
+      "name": "consumer.py sem INSERT morto",
+      "score": 1,
+      "status": "PASS",
+      "violations": [],
+      "detail": "consumer.py não encontrado em zapp-web-v3 (correto — pertence ao evo stack)"
+    },
+    {
+      "invariant": "I7",
+      "name": "inventory.mjs cobre todos evolution-* invocations",
+      "score": 1,
+      "status": "PASS",
+      "violations": [],
+      "detail": "inventory.mjs contém todas as métricas de cobertura"
+    },
+    {
+      "invariant": "I8",
+      "name": "sql-gate fixture sincronizado com prod",
+      "score": 1,
+      "status": "PASS",
+      "violations": [],
+      "detail": "[T2] sql-gate fixture sincronizado — PASS (medição real pós E25-E40, dados-reais.json)"
+    },
+    {
+      "invariant": "I9",
+      "name": "Zero FKs cross-schema não documentadas",
+      "score": 0,
+      "status": "FAIL",
+      "violations": [
+        {
+          "total_rows": 24,
+          "distinct_constraints": 6,
+          "source": "baseline T0"
+        }
+      ],
+      "detail": "[T2] 24 FK rows, 6 constraints cross-schema (baseline T0)"
+    }
+  ]
+}
