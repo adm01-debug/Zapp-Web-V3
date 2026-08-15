@@ -91,13 +91,13 @@ ou de ligar algo intencionalmente desligado.
 
 1. **SEMPRE usar `schema: 'zapp'`** — o cliente Supabase já está configurado com isso em `src/integrations/supabase/client.ts`. Não trocar para `public`.
 
-2. **Para dados Evolution (mensagens/contatos/conversas)**: usar o cliente padrão (`supabase.from('evolution_messages')` etc.) porque as tabelas `evolution_*` existem como **views auto-updatable** no schema `zapp` com `security_invoker=on`. **NÃO usar `.schema('evo').from(...)` para objetos que existem como views em `zapp`** — isso causa `PGRST205` se o objeto não existir no schema `evo`. Use `.schema('evo')` apenas para tabelas que existem SOMENTE no schema `evo` e não têm view correspondente em `zapp`.
+2. **Para dados Evolution (mensagens/contatos/conversas)**: usar o cliente padrão (`supabase.from('evolution_messages')` etc.). **TOPOLOGIA ATUAL (migração evo→zapp; corrigido 2026-08-15 — fonte de verdade: `docs/decouple/ANALISE_FRONTEIRA_EVO_ZAPP_20260815.md`, ver issue #1098):** `zapp.evolution_messages` e `zapp.evolution_conversations` são as **tabelas físicas particionadas** e `zapp.evolution_contacts` é **tabela física** — NÃO são views. `evo.evolution_messages`, `evo.evolution_contacts` e `evo.evolution_conversations` **NÃO EXISTEM** (`evo.evolution_messages_v2` é uma view que lê `zapp`). NÃO usar `.schema('evo')` para dado de negócio: `evo` não está exposto no PostgREST (retorna `PGRST205`) e hoje contém apenas operação/monitoria/mídia/LID.
 
 3. **PostgREST**: sem o header `Accept-Profile: zapp`, queries falham com `PGRST205`.
 
 4. **Realtime — IMPORTANTE**: a publicação `supabase_realtime` tem `publish_via_partition_root = true`. Isso significa que eventos CDC são publicados pela **tabela raiz particionada**, nunca pela partição. Use a tabela raiz nos listeners:
-   - Mensagens do WhatsApp → `schema: 'evo'`, tabela **`evolution_messages`** (raiz), NÃO `evolution_messages_wpp2`
-   - Conversas → `schema: 'evo'`, tabela **`evolution_conversations`** (raiz), NÃO `evolution_conversations_wpp2`
+   - Mensagens do WhatsApp → `schema: 'zapp'`, tabela **`evolution_messages`** (raiz física em `zapp` desde a migração evo→zapp), NÃO `evolution_messages_wpp2`. **Subscription em `schema: 'evo'` recebe ZERO eventos** — a relação física não está lá.
+   - Conversas → `schema: 'zapp'`, tabela **`evolution_conversations`** (raiz física em `zapp`), NÃO `evolution_conversations_wpp2`
    - Perfis/notificações → `schema: 'zapp'`
    - **`failed_messages`** → `schema: 'zapp'` (tabela física; `public.failed_messages` é VIEW, não entra na publication — subscription com `schema: 'public'` é no-op silencioso)
    - **`dispatch_error_logs`** → `schema: 'zapp'` (adicionada à publication `supabase_realtime` em `20260721_fix_cursor_rpcs_and_search_path.sql`)
@@ -129,14 +129,14 @@ ou de ligar algo intencionalmente desligado.
 
 | Tabela | Função |
 |--------|--------|
-| `evolution_messages` | Raiz particionada de mensagens (25 partições por instância) |
-| `evolution_contacts` | Contatos da Evolution API (20.563, 18 MB) |
-| `evolution_conversations` | Raiz particionada de conversas (13 partições — auditado 2026-08-06) |
+| ~~`evolution_messages`~~ | **MOVIDA para `zapp`** (migração evo→zapp) — em `evo` só existe a view `evolution_messages_v2` → `zapp.evolution_messages` |
+| ~~`evolution_contacts`~~ | **MOVIDA para `zapp`** — `zapp.evolution_contacts` é a tabela física |
+| ~~`evolution_conversations`~~ | **MOVIDA para `zapp`** — raiz particionada física em `zapp` |
 | `evolution_webhook_events_v2_*` | Webhooks particionados por mês (2026-03 a 2027-06 + default) |
 | `evolution_media` | Mídias (23.366, 10 MB) |
 | `evolution_whatsapp_status` | Status WA (14.789, 10 MB) |
 
-**Partições de `evolution_messages` (14 partições — confirmado via `pg_inherits` em 2026-08-06):**
+**Partições de `zapp.evolution_messages` (14 partições — raiz física em `zapp`; revalidado via `pg_class`/`pg_inherits` em 2026-08-15):**
 `wpp2`, `comercial_01`–`comercial_08`, `compras`, `default`, `financeiro`, `logistica`, `marketing`
 
 **Partições de `evolution_conversations` (13 partições — confirmado via `pg_inherits` em 2026-08-06):**

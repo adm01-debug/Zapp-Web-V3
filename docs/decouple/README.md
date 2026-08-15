@@ -1,6 +1,6 @@
 # docs/decouple — Índice canônico da pasta
 
-> **Status:** VIVO · **Data:** 2026-08-14 · Este README é o índice oficial da pasta `docs/decouple/` (desacoplamento Zapp ↔ Evolution API).
+> **Status:** VIVO · **Data:** 2026-08-15 · Este README é o índice oficial da pasta `docs/decouple/` (desacoplamento Zapp ↔ Evolution API).
 > **Legenda:** 🟢 VIVO (referência atual) · 🟡 HISTÓRICO (superseded; manter como registro) · 🔴 LIXO-typo (stub com nome errado — **marcado para o orquestrador avaliar remoção**).
 
 ## Índice (nome — status — o que é)
@@ -35,15 +35,22 @@
 | `RETRO_V2.md` | 🟡 HISTÓRICO | Retrospectiva da fase V2 — registro histórico. |
 | `SIMULATION_REPORT.md` | 🟡 HISTÓRICO | Relatório da simulação (cenários E1-E5/E19-E21) — matéria-prima; vereditos consolidados em `CENARIOS_V4_LOG.md` (VIVO). |
 | `SIMULATION_SCENARIOS_20260814.md` | 🟡 HISTÓRICO | Cenários da simulação V4 (14/08, 241 linhas) — matéria-prima; idem acima. |
-| `HANDOFF_POS_DESACOPLOMENTO_20260813.md` | 🔴 LIXO-typo | Stub de 240B com **typo no nome** ("DESACOPLOMENTO"); duplicata do `HANDOFF_POS_DESACOPLAMENTO_20260813.md` — avaliar remoção. |
-| `PLANO_DESACOPLOMENTO_100_ETAPAS.md` | 🔴 LIXO-typo | Stub de 240B com **typo no nome**; duplicata do `PLANO_DESACOPLAMENTO_100_ETAPAS.md` — avaliar remoção. |
-| `PLANO_DESACOPLOMENTO_V2_100_ETAPAS.md` | 🔴 LIXO-typo | Stub de 240B com **typo no nome**; duplicata do `PLANO_DESACOPLAMENTO_V2_100_ETAPAS.md` — avaliar remoção. |
+
+## Adição ao índice — 2026-08-15
+
+| Arquivo | Status | O que é |
+|---|---|---|
+| `ANALISE_FRONTEIRA_EVO_ZAPP_20260815.md` | 🟢 VIVO | **FONTE DE VERDADE DE TOPOLOGIA** evo×zapp (15/08): tabelas canônicas são FÍSICAS em `zapp`; `evo` = operação/monitoria. |
+| `AUDITORIA_INDEPENDENCIA_20260815.md` | 🟢 VIVO | Auditoria de independência de sistemas (15/08): código separado; dado e plataforma não. |
+| `PLANO_INDEPENDENCIA_100_ETAPAS_20260815.md` | 🟢 VIVO | Plano vigente de independência (15/08). |
+| `SCORECARD_V4.md` | 🟢 VIVO | Scorecard V4 (rascunho final — 9,4/10 no escopo das portas de egresso). |
+| `DECOUPLING.md` · `EGRESS_SURFACE_V4.md` · `SUBSTITUABILITY_MATRIX_V4.md` · `RPC_AUDIT_V4.md` · `COVERAGE_V4.md` · `CI_GATES_V4.md` · `ENSAIO_V4_LOG.md` · `VAULT_SECRETS_V4.md` · `CREDENTIAL_BOUNDARY.md` · `CRON_FAILURES_7D.md` · `INDICES_CLEANUP_PROPOSTA.md` · `PAUSE_INGEST.md` · `CLOUD_CLIENT.md` · `EVO_RETIREMENT_V4.md` · `BOUNDARY_SCORE_T0.json` · `ADR-011`–`ADR-014` · série `E25`–`E41` | 🟢 VIVO | Artefatos da onda V4/independência (14–15/08): medições, gates, planos de remoção/correção. |
 
 ## Notas de fronteira (itens referenciados, ausentes da pasta)
 
 - **BOUNDARY refs:** `docs/BOUNDARY-evolution.md` e `docs/BOUNDARY-zapp.md` **não ficam nesta pasta** — vivem em `docs/` (fronteira física) e no repo `evolution-stack` (BOUNDARY-zapp, agente A3). Referenciados pelos planos V3/V4 como artefatos vivos de fronteira.
 - **`CENARIOS_V4_LOG.md`:** 🟢 VIVO (criado nesta onda, 2026-08-14 — Agente 8) — log E1–E30 com vereditos; substitui `SIMULATION_REPORT.md`/`SIMULATION_SCENARIOS_20260814.md` como fonte de vereditos (etapa 89 do V4-FINAL executada).
-- **Stubs 🔴 (240B):** os 3 arquivos com typo são apenas um NOTE de "HISTÓRICO — SUPERSEDED pelo V3" com nome errado — sem conteúdo próprio; remoção não perde informação (o conteúdo real vive nos arquivos sem typo).
+- **Stubs 🔴:** os 3 arquivos com typo foram **removidos do diretório** (confirmado 2026-08-15); linhas retiradas do índice.
 
 ## Convenção de manutenção
 
