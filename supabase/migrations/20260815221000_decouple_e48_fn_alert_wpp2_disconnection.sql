@@ -1,9 +1,10 @@
 -- =============================================================================
 -- E48 — zapp.fn_alert_wpp2_disconnection (Fase 3 — Isolamento I1)
 -- =============================================================================
--- Objetivo: remover referências diretas a evo.evolution_alerts (invariante I1).
--- Substituição: evo.evolution_alerts → zapp.evo_alerts (view de contrato/alias)
--- Nota: zapp.evolution_alerts é tabela física — usar zapp.evo_alerts como alias.
+-- REWORK (2026-08-15, issue #1098): evo.evolution_alerts NÃO EXISTE em produção.
+-- zapp.evolution_alerts é tabela física real — referenciá-la diretamente satisfaz
+-- o invariante I1 trivialmente (não há fronteira evo a cruzar). A view alias
+-- zapp.evo_alerts foi removida do E41 por apontar para uma origem inexistente.
 -- search_path: ausente → zapp, pg_catalog
 -- =============================================================================
 
@@ -52,7 +53,7 @@ BEGIN
   v_alert_type := p_instance_name || '_disconnection';
 
   SELECT EXISTS(
-    SELECT 1 FROM zapp.evo_alerts
+    SELECT 1 FROM zapp.evolution_alerts
     WHERE alert_type = v_alert_type
       AND created_at > now() - INTERVAL '60 minutes'
       AND resolved_at IS NULL
@@ -65,7 +66,7 @@ BEGIN
     );
   END IF;
 
-  INSERT INTO zapp.evo_alerts (alert_type, severity, title, message, payload)
+  INSERT INTO zapp.evolution_alerts (alert_type, severity, title, message, payload)
   VALUES (
     v_alert_type,
     CASE WHEN v_min_disconnected > 120 THEN 'critical' ELSE 'high' END,
@@ -96,6 +97,7 @@ END;
 $function$;
 
 COMMENT ON FUNCTION zapp.fn_alert_wpp2_disconnection IS
-  'Alerta de desconexão WA via view de contrato zapp.evo_alerts. '
-  'E48 (2026-08-15): evo.evolution_alerts → zapp.evo_alerts (invariante I1). '
+  'Alerta de desconexão WA via tabela física zapp.evolution_alerts. '
+  'E48 (2026-08-15, rework issue #1098): evo.evolution_alerts nao existe; '
+  'zapp.evolution_alerts referenciada diretamente (invariante I1 trivial). '
   'Acesso restrito: search_path=zapp,pg_catalog.';
