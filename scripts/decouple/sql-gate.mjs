@@ -75,14 +75,8 @@ const SCOPE_SCHEMAS = new Set(['evo', 'zapp', 'ops', 'public']);
  * zapp.evolution_conversations). Eram entradas vazias do catálogo original.
  */
 const PLANNED_OBJECTS = [
-  { name: 'ops.pgnet_egress_log',            kind: 'table',    desc: 'Log de chamadas pg_net fora do gateway (E8)' },
-  { name: 'ops.i4_violation_baseline',       kind: 'table',    desc: 'Baseline das violações I4 (T0 = 14 violadores)' },
-  { name: 'ops.log_pgnet_call',              kind: 'function', desc: 'Registra chamada pg_net manualmente' },
-  { name: 'ops.v_i4_violations_summary',     kind: 'view',     desc: 'Resumo de violações I4 ativas' },
-  { name: 'ops.v_i4_correction_progress',    kind: 'view',     desc: 'Progresso de correção I4' },
-  { name: 'ops.decouple_preflight_runs',     kind: 'table',    desc: 'Histórico de execuções do preflight (E10)' },
-  { name: 'ops.fn_decouple_preflight',       kind: 'function', desc: 'Preflight checklist pré-deploy' },
-  { name: 'ops.v_preflight_history',         kind: 'view',     desc: 'Histórico de runs do preflight' },
+  // vazio — os 8 ops.* foram criados em producao em 2026-08-16 (Opcao A) e promovidos
+  // ao PROD_OBJECTS_REGISTRY. Verificado ao vivo via pg_class/pg_proc.
 ];
 const PROD_OBJECTS_REGISTRY = [
   // 12 views de contrato (zapp → evo)
@@ -103,6 +97,15 @@ const PROD_OBJECTS_REGISTRY = [
   { name: 'ops.fn_evo_url_v2',               kind: 'function', desc: 'URL da Evolution API (assinatura versionada v2, E17)' },
   { name: 'ops.fn_evo_key_v2',               kind: 'function', desc: 'API key da Evolution API (assinatura versionada v2, E17)' },
   { name: 'zapp.fn_check_license_heartbeat', kind: 'function', desc: 'Health check do license server (egresso legítimo, sem apikey)' },
+  // 8 objetos de observabilidade ops.* (criados 2026-08-16, Opcao A, E8/E10/E86)
+  { name: 'ops.pgnet_egress_log',            kind: 'table',    desc: 'Log de chamadas pg_net fora do gateway (E8)' },
+  { name: 'ops.i4_violation_baseline',       kind: 'table',    desc: 'Baseline das violações I4 (T0 = 14 violadores)' },
+  { name: 'ops.log_pgnet_call',              kind: 'function', desc: 'Registra chamada pg_net manualmente' },
+  { name: 'ops.v_i4_violations_summary',     kind: 'view',     desc: 'Resumo de violações I4 ativas' },
+  { name: 'ops.v_i4_correction_progress',    kind: 'view',     desc: 'Progresso de correção I4' },
+  { name: 'ops.decouple_preflight_runs',     kind: 'table',    desc: 'Histórico de execuções do preflight (E10)' },
+  { name: 'ops.fn_decouple_preflight',       kind: 'function', desc: 'Preflight checklist pré-deploy' },
+  { name: 'ops.v_preflight_history',         kind: 'view',     desc: 'Histórico de runs do preflight' },
 ];
 
 const SAMPLE_QUERY = `-- =====================================================================
@@ -356,7 +359,7 @@ function scanMigrations(migrationsDir) {
  * WARN (exit 0) se desatualizado; FAIL (exit 1) se contagem errada.
  */
 function checkFreshness() {
-  const EXPECTED_COUNT = 15;
+  const EXPECTED_COUNT = 23;
   let hasFailure = false;
 
   console.log('=== sql-gate --check-freshness ===');
@@ -418,7 +421,7 @@ function validateFixture() {
     process.exit(1);
   }
 
-  const EXPECTED_COUNT = 15;
+  const EXPECTED_COUNT = 23;
   if (fixture.length !== EXPECTED_COUNT) {
     console.error(`FAIL: fixture tem ${fixture.length} entradas, esperado ${EXPECTED_COUNT}.`);
     process.exit(1);

@@ -12,3 +12,31 @@
 ## Zonas congeladas (nenhum agente toca sem coordenação explícita)
 - **I4 / E73–E77** — mover tabelas `evolution_*` de `zapp` para `evo` (destrutivo, conflita com tudo)
 - ~~sql-gate / registry / fixture~~ — RESOLVIDO 2026-08-16 (Claude/claude.ai, aprovado por Joaquim): registry dividido em PROD_OBJECTS_REGISTRY (15 verificados ao vivo, bloqueante) + PLANNED_OBJECTS (10 inexistentes, WARN). Criar os `ops.*`/2 views segue como backlog — quem criar, move a entrada de volta.
+
+## Notas de coordenação
+- **2026-08-16 (Claude claude.ai → Agente 2):** hotfix aplicado direto em prod na tua lane
+  (quebra ativa): cron `auto_resolve_alerts` falhava desde ~01:00 (19 runs) com
+  "fn_auto_resolve_alerts() is not unique" — o move do lote criou colisão de nome com a
+  acknowledger pré-existente `zapp.fn_auto_resolve_alerts(p_hours)`. Fix: `ALTER FUNCTION
+  ... RENAME TO fn_acknowledge_stale_alerts` (zero chamadores com arg; só comentário em
+  fn_auto_resolve_baileys_alerts cita). Smoke da chamada do cron OK. Materializa na tua
+  próxima migration. Além disso: o corpo ORIGINAL de fn_list_storage_cache_for_purge está
+  em `docs/decouple/graveyard_E50_20260815.sql` no MAIN (tua branch divergiu antes dele).
+- **2026-08-16 (Claude claude.ai):** decisão do Joaquim na zona sql-gate: **Opção A** —
+  os 8 ops.* de observabilidade serão CRIADOS (migration no main). Ao mergear, mover as
+  8 entradas PLANNED_OBJECTS → PROD_OBJECTS_REGISTRY no sql-gate.mjs + fixture (arquivo
+  é teu na branch; não toquei para não conflitar).
+- **2026-08-16 (Claude claude.ai, follow-up):** diff graveyard × reconstrução de
+  `fn_list_storage_cache_for_purge` FEITO — **manter a reconstruída** (nada a fazer).
+  Original partia de `evolution_media` (status='ready'+proxy) e nunca purgava órfãos de
+  storage (vazamento eterno); reconstruída parte de `storage.objects` e os GUARDs R2 do
+  chamador (fases A e B) cobrem mídia pendente de migração. Assinatura de 2 colunas bate
+  com o que `fn_purge_storage_cache` consome. LIMIT 200/run é adequado ao cron diário.
+- **2026-08-16 (Claude claude.ai/sessao-2, mea culpa + fix):** corrida de agentes nos ops.*:
+  comecei a aplicar migration propria dos 8 objetos sem re-checar existencia — a sessao-1
+  ja os tinha criado com design proprio. Apply parou na linha 66 (ON CONFLICT em coluna
+  inexistente). Residuo limpo: DROP do overload quebrado ops.log_pgnet_call(6 args);
+  mantidos policy p_service_all (x2) e indice idx_pgnet_egress_log_called_at (uteis, sem
+  duplicata). Minha migration descartada — design da sessao-1 e o canonico. Promocao
+  PLANNED→REGISTRY feita no sql-gate (15→23) + fixture; gate PASS. Licao operacional:
+  re-verificar estado do banco imediatamente antes de qualquer apply, sempre.
