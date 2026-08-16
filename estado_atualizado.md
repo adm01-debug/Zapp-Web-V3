@@ -5,7 +5,7 @@
 >
 > **Este documento roteia e sintetiza. O detalhe vive nos 40 documentos de `docs/estado/`.**
 >
-> Simulação de falhas prévia: `docs/simulation/2026-08-16_inventario_estado_10_agentes_failure_simulation.md`
+> Simulação de falhas prévia: `docs/_archive/simulation/`
 
 ---
 
@@ -74,7 +74,7 @@ Amostra de 18 nomes da coluna "Evidência Camada UI" do `FEATURE_REGISTRY.md`: *
 em `src/`** (zero ocorrências por busca livre). As fabricações concentram-se nas linhas de
 *feature de negócio* — `Contact360View`, `CampaignABView`, `AgentSkillsPanel` — enquanto as
 páginas `Admin*` têm lastro real. O documento promete na linha 9 que toda linha tem evidência
-concreta. *Detalhe: `docs/estado/_RECONCILIACAO-INVENTARIOS.md` §D3 + correção no topo.*
+concreta. *Detalhe: `docs/_archive/estado/` §D3 + correção no topo.*
 
 ### 3.3 🟠 Realtime de mensagens degradado para polling
 Verificado ao vivo. A inbox assina `evo.evolution_messages` — **schema correto**, pois é a

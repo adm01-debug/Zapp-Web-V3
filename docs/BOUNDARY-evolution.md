@@ -17,7 +17,7 @@
 | Adapters TS | `src/adapters/evolution*` | Código React que chama a API |
 | Hooks React | `src/hooks/evolution*` | Estado browser-side |
 | Libs cliente | `src/lib/evolution*` | Circuit breaker, retry, diagnostics do browser |
-| Integração | `src/integrations/zappweb/evolutionClient.ts` | HTTP client do app |
+| Integração | `src/adapters/evolutionAdapter.ts` + `src/hooks/useEvolutionApi.ts` | HTTP client do app |
 | Tipos | `src/types/evolutionExternal.ts` | Tipos consumidos pelo app |
 | Edge Functions | `supabase/functions/evolution-*` | Deployadas via Supabase CLI COM este repo |
 | Shared Deno | `supabase/functions/_shared/evolution-*` | Shared libs das edge functions |

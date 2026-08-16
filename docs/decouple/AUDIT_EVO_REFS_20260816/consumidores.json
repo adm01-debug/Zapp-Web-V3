@@ -1,0 +1,792 @@
+{
+  "imports_src": {
+    "src/components/connections/ConnectionCard.tsx": [
+      "28:import { evolutionInstanceName } from '@/lib/evolutionInstance';"
+    ],
+    "src/components/connections/ConnectionsView.tsx": [
+      "58:import { evolutionSync } from '@/lib/adapters/evolutionOps';"
+    ],
+    "src/components/connections/DegradedQuickActions.tsx": [
+      "10:import { evolutionInstanceName } from '@/lib/evolutionInstance';"
+    ],
+    "src/components/connections/useConnectionCardActions.ts": [
+      "4:import { evolutionInstanceName } from '@/lib/evolutionInstance';"
+    ],
+    "src/components/layout/ConnectionPopoverContent.tsx": [
+      "3:import { evolutionInstanceName } from '@/lib/evolutionInstance';"
+    ],
+    "src/components/layout/Sidebar.tsx": [
+      "15:import { useEvoApiAlertsBadge } from '@/lib/evoApiHealth/useEvoApiAlertsBadge';"
+    ],
+    "src/components/monitoring/MonitoringConnectionsList.tsx": [
+      "13:import { evolutionInstanceName } from '@/lib/evolutionInstance';"
+    ],
+    "src/components/monitoring/MonitoringWebhookPanel.tsx": [
+      "25:import { evolutionInstanceName } from '@/lib/evolutionInstance';"
+    ],
+    "src/features/business-logic/hooks/useBusinessLogicManagement.ts": [
+      "9:import { extractEvolutionMessageId } from '@/lib/evolutionMessageId';",
+      "11:import { evolutionInstanceName } from '@/lib/evolutionInstance';"
+    ],
+    "src/features/connections/hooks/parts/useConnectionsActions.ts": [
+      "9:import { evolutionInstanceName } from '@/lib/evolutionInstance';"
+    ],
+    "src/features/connections/hooks/useConnectionsManager.ts": [
+      "13:import { evolutionInstanceName } from '@/lib/evolutionInstance';"
+    ],
+    "src/features/inbox/components/chat/MessageBubble.tsx": [
+      "17:import { extractMessageType } from '@/adapters/evolutionAdapter';"
+    ],
+    "src/features/inbox/components/chat/messageBubbleParts.tsx": [
+      "6:import { type extractMessageType } from '@/adapters/evolutionAdapter';"
+    ],
+    "src/features/inbox/components/chat/MessageBubbleUnsupported.tsx": [
+      "20:import type { ExtractedMessageType } from '@/adapters/evolutionAdapter';"
+    ],
+    "src/features/inbox/components/contact-details/BlockContactDialog.tsx": [
+      "14:import { evolutionInstanceName } from '@/lib/evolutionInstance';"
+    ],
+    "src/features/inbox/components/useFileUploadLogic.ts": [
+      "10:import { extractEvolutionMessageId } from '@/lib/evolutionMessageId';"
+    ],
+    "src/features/inbox/hooks/realtime/externalAudioSender.ts": [
+      "13:import { jidToPhone } from '@/adapters/evolutionAdapter';"
+    ],
+    "src/features/inbox/hooks/realtime/externalMessageSender.ts": [
+      "17:import { jidToPhone } from '@/adapters/evolutionAdapter';"
+    ],
+    "src/features/inbox/hooks/realtime/messageSender.ts": [
+      "4:import { extractEvolutionMessageId } from '@/lib/evolutionMessageId';",
+      "5:import { invokeEvolutionWithRetry } from '@/lib/evolutionSendRetry';",
+      "13:import { evolutionInstanceName } from '@/lib/evolutionInstance';"
+    ],
+    "src/features/inbox/hooks/realtime/useRealtimeContacts.ts": [
+      "6:import type { EvolutionContact } from '@/types/evolutionExternal';"
+    ],
+    "src/features/inbox/hooks/useChatMediaSending.ts": [
+      "10:import { evolutionInstanceName } from '@/lib/evolutionInstance';"
+    ],
+    "src/features/inbox/hooks/useFallbackContact.ts": [
+      "6:import { DEFAULT_INSTANCE } from '@/hooks/evolutionFetchers';"
+    ],
+    "src/features/inbox/hooks/useMessageDetails.ts": [
+      "13:import type { EvolutionMessage } from '@/types/evolutionExternal';"
+    ],
+    "src/features/inbox/hooks/useMessagesCursor.ts": [
+      "25:import type { EvolutionMessage, EvolutionMessageLite } from '@/types/evolutionExternal';",
+      "26:import { toEvolutionMessageLite } from '@/types/evolutionExternal';"
+    ],
+    "src/features/inbox/hooks/useNewConversation.ts": [
+      "11:import { evolutionInstanceName } from '@/lib/evolutionInstance';"
+    ],
+    "src/features/inbox/services/whatsappStatusService.ts": [
+      "7:import { evolutionInstanceName } from '@/lib/evolutionInstance';"
+    ],
+    "src/hooks/groups/actions.ts": [
+      "11:import { evolutionInstanceName } from '@/lib/evolutionInstance';"
+    ],
+    "src/hooks/monitoring/useMonitoringManagement.ts": [
+      "22:import { isUuidLike } from '@/lib/evolutionInstance';",
+      "23:import { evolutionWebhookTest } from '@/lib/adapters/evolutionOps';"
+    ],
+    "src/hooks/useBridgeStatus.ts": [
+      "14:import { runEvolutionDiagnostics, type DiagnosticResult } from '@/lib/evolutionDiagnostics';"
+    ],
+    "src/hooks/useConnectionStatusIndicator.ts": [
+      "10:import { evolutionInstanceName } from '@/lib/evolutionInstance';"
+    ],
+    "src/hooks/useExternalApiManagement.ts": [
+      "370:import { evolutionToRealtimeMessage, jidToPhone } from '@/adapters/evolutionAdapter';",
+      "371:import type { EvolutionMessage } from '@/types/evolutionExternal';",
+      "386:} from './evolutionFetchers';",
+      "392:} from './evolutionContactCache';",
+      "393:import { buildExternalConversations } from '@/adapters/evolutionAdapter';",
+      "394:import { OPTIMISTIC_PREFIX, applyReconciliation } from './evolutionReconcile';"
+    ],
+    "src/hooks/useWhatsAppTemplates.ts": [
+      "7:import { evolutionTemplatesGet } from '@/lib/adapters/evolutionOps';"
+    ],
+    "src/integrations/datasource/rpcCatalog.ts": [
+      "31:} from '@/types/evolutionExternal';"
+    ],
+    "src/pages/admin/bridge-status/BridgeDiagnosticsDialog.tsx": [
+      "13:import type { DiagnosticResult } from '@/lib/evolutionDiagnostics';"
+    ],
+    "src/pages/admin/ZappWebbDemoPage.tsx": [
+      "39:import { evolutionChatMarkRead } from '@/lib/adapters/evolutionOps';"
+    ],
+    "src/pages/admin-webhook-events/useWebhookEvents.ts": [
+      "7:import type { EvolutionWebhookEvent } from '@/types/evolutionExternal';"
+    ],
+    "src/pages/admin-webhook-events/WebhookEventsTable.tsx": [
+      "23:import type { EvolutionWebhookEvent } from '@/types/evolutionExternal';"
+    ],
+    "src/pages/admin-webhook-overview/callCorrelation.ts": [
+      "14:import type { EvolutionWebhookEvent } from '@/types/evolutionExternal';"
+    ],
+    "src/pages/admin-webhook-overview/CallCorrelationView.tsx": [
+      "12:import type { EvolutionWebhookEvent } from '@/types/evolutionExternal';"
+    ],
+    "src/pages/admin-webhook-overview/useWebhookOverview.ts": [
+      "7:import type { EvolutionWebhookEvent } from '@/types/evolutionExternal';"
+    ]
+  },
+  "imports_functions": {
+    "supabase/functions/batch-fetch-avatars/index.ts": [
+      "4:import { isSafeMediaCdnUrl } from \"../_shared/evolution-media.ts\";",
+      "6:import { evolutionClient } from \"../_shared/providers/evolution/index.ts\";"
+    ],
+    "supabase/functions/connection-health-check/index.ts": [
+      "7:import { evolutionClient } from \"../_shared/providers/evolution/index.ts\";"
+    ],
+    "supabase/functions/connection-test/index.ts": [
+      "10:import { evolutionClient, getBaseUrl } from \"../_shared/providers/evolution/index.ts\";"
+    ],
+    "supabase/functions/connection-test/__tests__/registry-pilot.test.ts": [
+      "30:import { evolutionClient } from \"../../_shared/providers/evolution/client.ts\";"
+    ],
+    "supabase/functions/fetch-whatsapp-avatar/index.ts": [
+      "22:import { evolutionClient } from \"../_shared/providers/evolution/index.ts\";"
+    ],
+    "supabase/functions/health/index.ts": [
+      "14:import { evolutionClient } from '../_shared/providers/evolution/index.ts';"
+    ],
+    "supabase/functions/migrate-media-storage/index.ts": [
+      "9:import { evolutionClient } from \"../_shared/providers/evolution/index.ts\";"
+    ],
+    "supabase/functions/nps-scheduler/index.ts": [
+      "10:import { evolutionClient } from '../_shared/providers/evolution/index.ts';"
+    ],
+    "supabase/functions/public-api/index.ts": [
+      "4:import { extractEvolutionMessageId } from \"../_shared/evolution-message-id.ts\";"
+    ],
+    "supabase/functions/recover-corrupted-audios/index.ts": [
+      "7:import { evolutionClient } from \"../_shared/providers/evolution/index.ts\";"
+    ],
+    "supabase/functions/reprocess-failed-messages/index.ts": [
+      "11:import { evolutionFetch } from '../_shared/providers/evolution/index.ts';"
+    ],
+    "supabase/functions/talkx-send/index.ts": [
+      "52:import { evolutionClient } from \"../_shared/providers/evolution/index.ts\";"
+    ],
+    "supabase/functions/webhook-diagnostic/index.ts": [
+      "2:import { WEBHOOK_EVENTS } from '../_shared/evolution-sync-actions.ts';",
+      "7:import { evolutionClient } from '../_shared/providers/evolution/index.ts';"
+    ],
+    "supabase/functions/whatsapp-cloud-send/index.ts": [
+      "11:import { EVOLUTION_ENVELOPE_VERSION } from \"../_shared/evolution-api-proxy.ts\";"
+    ],
+    "supabase/functions/whatsapp-cloud-webhook/index.ts": [
+      "27:import { markEventProcessed, shouldUpdateStatus } from \"../_shared/evolution-helpers.ts\";"
+    ],
+    "supabase/functions/_shared/providers/registry.ts": [
+      "24:import { evolutionClient } from './evolution/index.ts';"
+    ],
+    "supabase/functions/_shared/__tests__/ensaio-f5-operacional.test.ts": [
+      "26:import { evolutionClient } from \"../providers/evolution/index.ts\";",
+      "27:import { evolutionGatewayContract, type EvolutionGatewayVerb } from \"../providers/evolution/contract.zod.ts\";"
+    ],
+    "supabase/functions/_shared/__tests__/ensaio-fake.test.ts": [
+      "39:import { evolutionClient } from \"../providers/evolution/index.ts\";",
+      "43:} from \"../evolution-normalizer.ts\";"
+    ],
+    "supabase/functions/_shared/__tests__/handle-messages-update.test.ts": [
+      "8:import { handleMessagesUpdate } from '../evolution-webhook-msg-handlers.ts';"
+    ],
+    "supabase/functions/_shared/__tests__/incoming-contact-insert-log.test.ts": [
+      "19:import { handleIncomingMessage } from '../evolution-webhook-messages.ts';"
+    ],
+    "supabase/functions/_shared/__tests__/phone-helpers-exhaustive.test.ts": [
+      "28:} from \"../evolution-helpers.ts\";"
+    ],
+    "supabase/functions/_shared/__tests__/registry.test.ts": [
+      "17:import { evolutionClient } from \"../providers/evolution/index.ts\";"
+    ]
+  },
+  "markdown_links": {
+    "docs/API_CONTRACT.md": [
+      "191:Infra da Evolution está em [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack).",
+      "194:Ver contrato completo em [docs/BOUNDARY-evolution.md](BOUNDARY-evolution.md)."
+    ],
+    "docs/architecture/JORNADA_MENSAGEM_WHATSAPP.md": [
+      "2:> Infra Evolution está agora em [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack)."
+    ],
+    "docs/ARCHITECTURE_AND_FLOW.md": [
+      "11:- **Integrações Externas:** Evolution API (WhatsApp) — infra em [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack). Acesso via gat",
+      "92:A infraestrutura da Evolution API foi extraída para o repositório separado [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack)."
+    ],
+    "docs/audit-2026-08-06/VALIDATION_PLAN_100_STEPS.md": [
+      "203:- [x] **56 — Sub-rotas evolution-api.** ❌ _DRIFT P1_"
+    ],
+    "docs/AUDITORIA_PARIDADE_LOVABLE_VS_SELFHOSTED_2026-07-04.md": [
+      "112:3. **[MÉDIA] Religar auto-assign/log de atribuição em `evo.evolution_contacts`** — ou confirmar que a atribuição agora é feita pelo pipeline evo/edge functi"
+    ],
+    "docs/audits/connection-creation-flow.md": [
+      "53:[7] EDGE FUNCTION — supabase/functions/evolution-api/index.ts (branch atual, 147 linhas)"
+    ],
+    "docs/audits/history/evolution-api-audit-report.md": [
+      "16:| Última stable no GitHub | ✅ v2.3.7 | [GitHub Releases](https://github.com/evolution-foundation/evolution-api/releases) |"
+    ],
+    "docs/BOUNDARY-evolution.md": [
+      "47:  O arquivo tem namespace e digest obsoletos. Fonte da verdade: [evolution-stack/stacks/evolution.yml](https://github.com/adm01-debug/evolution-stack/blob/ma",
+      "132:> Reciprocidade: [adm01-debug/evolution-stack/docs/BOUNDARY-zapp.md](https://github.com/adm01-debug/evolution-stack/blob/main/docs/BOUNDARY-zapp.md)"
+    ],
+    "docs/cutover/2026-07-15_final_report.md": [
+      "51:2. **[+0.1]** Índice `evolution_messages_wpp2 (remote_jid, timestamp DESC)` para hot-path inbox."
+    ],
+    "docs/cutover/2026-07-15_wave_next_gaps.md": [
+      "45:**Entregue:** [`docs/migrations/2026-07-15_evo_indices_perf.sql`](../migrations/2026-07-15_evo_indices_perf.sql)"
+    ],
+    "docs/db/DATABASE.md": [
+      "29:- [ADR-002](adrs/ADR-DB-002-fronteira-zapp-evo.md) — Fronteira zapp↔evo"
+    ],
+    "docs/db/EXTERNAL-DEPENDENCIES.md": [
+      "94:- **Repo:** [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack)"
+    ],
+    "docs/db/PR-CHECKLIST.md": [
+      "29:- [ ] Não há alterações em `evo` schema (Evolution API)?",
+      "30:- [ ] Não há FK `evo`→`zapp`?"
+    ],
+    "docs/db/SCHEMA-CONTRACT.md": [
+      "247:- **`evo.*`** — tabelas `evolution_*`, partições `_wpp2`/`_default`/`_archive`. Proprietário: [adm01-debug/evolution-stack](https://github.com/adm01-debug/e"
+    ],
+    "docs/db/schemas/evo.md": [
+      "3:> **Proprietário:** [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack). Consumer RabbitMQ (stack 113) escreve neste schema. Acesso "
+    ],
+    "docs/db/schemas/README.md": [
+      "10:| [evo.md](./evo.md) | `evo` | Evolution API — dados WhatsApp |"
+    ],
+    "docs/db/WAVE5-ROADMAP.md": [
+      "13:- [ ] **Repatriar tabelas evo→ops** (Step 9)",
+      "35:- [ ] Pipeline de dados: evo → data warehouse",
+      "46:- [ ] Schema evolution tracker (diff entre versões)"
+    ],
+    "docs/decisions/ADR-006-two-backend-boundary.md": [
+      "33:- **[docs/BOUNDARY-evolution.md](../BOUNDARY-evolution.md)** — o que fica em cada repo",
+      "34:- **[ADR-DB-002](../db/adrs/ADR-DB-002-fronteira-zapp-evo.md)** — fronteira de schema `evo` × `zapp`"
+    ],
+    "docs/decouple/ADR-014-PHASE2-PLAN.md": [
+      "317:- [ ] E25: `.github/workflows/e2e-evolution-vps.yml` removido — I3 = PASS",
+      "318:- [ ] E26–E30: 5 funções `evo.*` sem `net.http_*` hardcoded — baseline `evo.*` limpo"
+    ],
+    "docs/decouple/ADR-015-evo-schema-owner.md": [
+      "29:- [x] E41 baseline no evolution-stack (mergeado)",
+      "31:- [x] E43 gate ativo no evolution-stack (mergeado 16/08)",
+      "32:- [ ] Zero migrations novas `evo.*` fora da allowlist por 30 dias corridos (métrica)"
+    ],
+    "docs/decouple/BOUNDARY_SCORE_T0.json": [
+      "31:      \"detail\": \"[OFFLINE] T0: 82 refs em 20 funções zapp→evo\",",
+      "47:      \"detail\": \"[OFFLINE] T0: 96 funções evo→zapp\","
+    ],
+    "docs/decouple/BOUNDARY_SCORE_T3.json": [
+      "11:    { \"invariant\": \"I1\", \"name\": \"Zero funções do schema evo escrevendo/citando zapp.*\", \"score\": 0, \"violations\": [{ \"fns\": 97, \"triggers_zapp_com_fn_evo\": ",
+      "12:    { \"invariant\": \"I2\", \"name\": \"Zero funções do schema zapp escrevendo/citando evo.*\", \"score\": 0, \"violations\": [{ \"fns\": 40 }], \"detail\": \"40 fns zapp ci",
+      "13:    { \"invariant\": \"I3\", \"name\": \"Zero FKs cruzando a fronteira evo↔zapp\", \"score\": 0, \"violations\": [{ \"constraints\": 6 }], \"detail\": \"6 constraints FK cruz",
+      "14:    { \"invariant\": \"I4\", \"name\": \"Dado da Evolution reside no schema evo\", \"score\": 0, \"violations\": [{ \"tabelas_fora_de_evo\": 3, \"phys_refs_pendentes_E67\": ",
+      "15:    { \"invariant\": \"I5\", \"name\": \"Leitura do outro lado só por view de contrato\", \"score\": 0, \"violations\": [{ \"grants_authenticated_select_evo\": 38 }], \"det",
+      "17:    { \"invariant\": \"I7\", \"name\": \"Dono único de migrations em evo\", \"score\": 0, \"violations\": [{ \"migrations_com_evo\": 131 }], \"detail\": \"131 arquivos em sup"
+    ],
+    "docs/decouple/CI_GATES_V4.md": [
+      "130:  1. `[decouple]` `invoke('evolution-api', …)` direto — usar `whatsappAdapter` (E94 Plano V2);",
+      "131:  2. `[decouple]` import de **valor** de `evolutionExternal` fora de `src/adapters/` (type-only permitido — 13 consumidores legítimos);"
+    ],
+    "docs/decouple/CLOUD_CLIENT.md": [
+      "78:- [ ] `PROVIDER_MODE=cloud` — única chave que liga o dual-mode (default evolution)"
+    ],
+    "docs/decouple/CONTRACT_WRITE_EVO_TO_ZAPP.md": [
+      "91:- [ ] RPCs criadas em migration + `evo_writer` (E53) — próxima leva"
+    ],
+    "docs/decouple/CONTRACT_WRITE_ZAPP_TO_EVO.md": [
+      "65:- [ ] RPCs 1–7 criadas em migration no repo dono de `evo` + `zapp_writer` (E53)"
+    ],
+    "docs/decouple/E25-I3-REMOVAL-PLAN.md": [
+      "138:- [ ] `admin-evolution-api-smoke.spec.ts` está em `e2e-admin-vps.yml` (confirmado: está)",
+      "139:- [ ] Branch de trabalho: `claude/evolution-zapp-separation-analysis-29lixd`"
+    ],
+    "docs/decouple/E25-I4-CORRECTION-PLAN.md": [
+      "167:- [ ] Usa `ops.fn_evo_url_v2()` e `ops.fn_evo_key_v2()` para credenciais",
+      "888:E25  [✅ CONCLUÍDO] Remover e2e-evolution-vps.yml (I3)",
+      "890:E26  [⏳ PENDENTE] evo.fn_detect_instance_recreate → Padrão A",
+      "891:E27  [⏳ PENDENTE] evo.fn_download_wa_status_media → Padrão A",
+      "892:E28  [⏳ PENDENTE] evo.fn_notify_sicoob_on_reply   → Padrão C",
+      "893:E29  [⏳ PENDENTE] evo.fn_sync_lid_from_api        → Padrão B/A",
+      "894:E30  [⏳ PENDENTE] evo.fn_trigger_audio_transcription → Padrão C",
+      "945:- [ ] `ops.fn_evo_url_v2()` retorna URL correta do vault",
+      "946:- [ ] `ops.fn_evo_key_v2()` retorna API key correta do vault"
+    ],
+    "docs/decouple/HANDOFF.md": [
+      "229:- **[A10] Crons também têm literal `evo.<tabela>`.** No Lote 3 o cron `evo-schema-guardian-monthly`",
+      "234:- **[A11] Backups poluem inventário.** `evo` tem ~44 tabelas `_backup_*`/`_snap_*` (algumas com",
+      "248:- **[A15] Tipo de variável DECLARE usa schema explícito.** `DECLARE v_row evo.evolution_deals`",
+      "380:### [H1] search_path do `anon` ainda tem `evo` em 1º lugar — RISCO",
+      "415:-- [D1] Inventário de tabelas de NEGÓCIO em evo (exclui backups/snaps)",
+      "425:-- [D2] Funções com literal evo.<tabela>, agregado por tabela (o mapa de bloqueio)",
+      "433:-- [D3] Crons que referenciam evo.evolution_* (cheque ANTES de mover)"
+    ],
+    "docs/decouple/HANDOFF_EXAUSTIVO_20260813.md": [
+      "82:  AND m[1] IN ('evolution_settings','evolution_audit_log','evolution_media',",
+      "127:[A7] CRÍTICA: funções multi-tabela. Trocar APENAS a ref da tabela-alvo para zapp., deixar resto em evo. Exemplo: fn_purge_api_key_from_logs toca audit_log +",
+      "128:[A8] Falso-positivo de regex. Usar prosrc ~ 'FROM evo\\.T' (não ILIKE que pega comentários).",
+      "130:[A10] Crons também têm literal. Verificar cron.job WHERE command ~ 'evo\\.T' antes de DDL.",
+      "135:[A15] DECLARE com schema explícito. DECLARE v_row evo.evolution_X falha após SET SCHEMA. Trocar para zapp.evolution_X.",
+      "184:Fns corrigidas: rpc_list_tags[x2], rpc_list_quick_replies, rpc_list_labels, rpc_upsert_label, fn_upsert_group_from_event[x3], fn_upsert_group_participants[x",
+      "228:-- [D1] Inventário evo (exclui backups)",
+      "236:-- [D2] Funções com literal evo.*",
+      "243:-- [D3] Crons com literal evo.*",
+      "255:-- [D6] Grants authenticated em evo"
+    ],
+    "docs/decouple/HANDOFF_FINAL_20260813.md": [
+      "29:- 6 fns [A16] (RETURNS evo.evolution_messages): rpc_get_message_details, rpc_list_messages, rpc_list_messages_all, rpc_list_messages_lite, rpc_insert_message"
+    ],
+    "docs/decouple/HANDOFF_POS_DESACOPLAMENTO_20260813.md": [
+      "23:- **[H2] REVOKE Grupo A — FEITO.** Verificado: 5 tabelas evo Grupo A (`evolution_alert_cooldown`,",
+      "83:1. **[H2] REVOKE hardening** — revogar INSERT/UPDATE/DELETE de `authenticated` em 5 tabelas Grupo A. Baixo risco, já diagnosticado seguro. **Pode fazer agora",
+      "88:- **[E14/E15]** — versionar 5 configs `evo_watchdog_*_v1` como Docker Swarm configs. Toca produção (VPS AtomicaBR, stack Evolution). **NÃO executar sem `APRO",
+      "349:- **[A7]** Funções multi-tabela: ao trocar `evo.X → zapp.X`, trocar APENAS a ref da tabela-alvo; outras refs `evo.*` ficam.",
+      "350:- **[A16]** Fns com `RETURNS SETOF evo.<T>` ou `RETURNS evo.<T>` ou `DECLARE v_row evo.<T>`: precisam DROP+CREATE (não CREATE OR REPLACE — muda tipo de reto"
+    ],
+    "docs/decouple/INDICES_CLEANUP_PROPOSTA.md": [
+      "188:- [ ] Revisão sênior explícita (partições-filhas de `evolution_webhook_events` estão na lista \"NÃO MEXA\" do AGENTS.md)"
+    ],
+    "docs/decouple/PLANO_DESACOPLAMENTO_100_ETAPAS.md": [
+      "107:1. **[R]** Tag `pre-decouple-v0` em zapp-web-v3 e evolution-stack — ponto único de rollback.",
+      "108:2. **[R]** `docs/decouple/BASELINE.md` com digests de produção: evolution `6f9f1d35`, consumer `75210b9f`, web `production-b6a54a2bff23`.",
+      "109:3. **[R]** Dump schema-only de `evo` + `zapp` como contrato de referência congelado.",
+      "110:4. **[R]** Promover `docs/BOUNDARY-evolution.md` a ADR-007 versionado (hoje é doc solto).",
+      "112:6. **[R]** Baseline de volume: mensagens/dia por caminho via `evo.v_messages_unified`.",
+      "114:8. **[R]** Rodar `e2e-evolution-vps.yml` e arquivar o resultado verde como referência.",
+      "120:11. **[R]** Remover `scripts/check-publish-evo-fallbacks.test.js` de zapp-web-v3 (G1 — aponta para arquivos deletados, falha com ENOENT).",
+      "121:12. **[R]** Recriá-lo em `evolution-stack/image/tests/` com paths `image/Dockerfile`, `.github/workflows/publish-evolution-api-custom.yml`.",
+      "122:13. **[R]** Corrigir header de `docs/infra/evolution-stack.reconciled.DEPRECATED.yml` que ainda cita `infra/evolution/docker-compose.evolution.yml` (path re",
+      "123:14. **[D][!]** **G2 — crítico:** versionar os 5 configs `evo_watchdog_*_v1`. Hoje `watchdogs/*.sh` no repo é decorativo; produção lê Swarm config.",
+      "124:15. **[D]** Workflow `gitops-configs.yml`: `watchdogs/*.sh` → `docker config create evo_watchdog_<n>_<sha8>` → `service update`. Fecha o loop GitOps.",
+      "126:17. **[D][!]** Versionar `evolution-security-guardian` e `evolution-pgbackrest-backup` como stacks (G4 — hoje rodam fora de governança).",
+      "128:19. **[R]** Documentar o alias `evolution_api_key_v6 → target v4` ou normalizar target no próximo ciclo (G7).",
+      "129:20. **[D]** Preencher `EXPECTED_DIGEST` no `evo_watchdog_portainer_drift_v1` (G6 — hoje só valida namespace).",
+      "130:21. **[R]** Auditar `e2e-evolution-vps.yml`: mover asserts de infra para evolution-stack, manter só os de app.",
+      "131:22. **[R]** CODEOWNERS + CI guard em zapp-web-v3 bloqueando recriação de `infra/evolution*`.",
+      "138:26. **[R]** Tabela de mapeamento `MessageType` canônico ↔ Baileys ↔ Meta (hoje só existe Baileys, em `src/adapters/evolution/messageTypes.ts`).",
+      "144:32. **[R]** Criar `evolution-normalizer.ts` simétrico — Baileys → canônico.",
+      "149:37. **[R]** Marcar `src/adapters/evolutionAdapter.ts` como legado de leitura — **não remover** (96 arquivos em `src/features` dependem indiretamente).",
+      "150:38. **[R]** Gate CI: novos imports de `@/types/evolutionExternal` proibidos fora de `src/adapters/`.",
+      "166:51. **[R]** ESLint rule: `invoke('evolution-api')` proibido fora de `src/lib/whatsappAdapter*`.",
+      "174:56. **[R]** Migrar `_shared/evolution-webhook-messages.ts` para a porta (hoje `supabase.from('evolution_messages')` em ≥3 pontos).",
+      "177:59. **[R]** Unificar idempotência dentro da porta (`evolution_send_idempotency` + `evo.ingest_ledger`).",
+      "178:60. **[D]** `consumer.py` grava em `public.evolution_webhook_events`: manter como raw-event store, documentar que não é caminho canônico.",
+      "179:61. **[D]** Coluna `provider` em `evo.evolution_webhook_events_v2` (13 partições + default).",
+      "180:62. **[D][!]** Backfill `provider='evolution'` nas partições existentes, em lotes.",
+      "182:64. **[D]** DLQ discriminada por provider em `evolution_webhook_dlq`.",
+      "183:65. **[D]** Métrica por provider em `evolution_daily_metrics`.",
+      "184:66. **[R]** Gate CI: `from('evolution_messages')` proibido em edge functions fora de `ingest-port.ts`.",
+      "188:67. **[R]** Promover `_shared/evolution-api-proxy.ts` → `_shared/providers/evolution/client.ts`, preservando envelope v1.",
+      "190:69. **[R]** Migrar `_shared/evolution-helpers.ts` e `_shared/evolution-media.ts`.",
+      "193:72. **[R]** Migrar `evolution-sync`, `evolution-group-sync`.",
+      "201:77. **[R]** **Decisão registrada: NÃO renomear tabelas nem o schema `evo`.** 165 tabelas, 422 views em `public`, 314 em `zapp`. Custo/risco desproporcional ",
+      "202:78. **[D]** Views canônicas `zapp.messages`, `zapp.contacts`, `zapp.conversations` sobre `evo.*` — aditivas, sem tocar nas existentes.",
+      "203:79. **[D]** Coluna `provider text NOT NULL DEFAULT 'evolution'` em `evo.evolution_messages`.",
+      "204:80. **[D]** Idem em `evo.evolution_contacts` e `evo.evolution_conversations`.",
+      "208:84. **[R]** Migrar leituras do frontend (24 arquivos; 22 usos de `evolution_messages`) para as views canônicas.",
+      "226:96. **[R]** Gate CI consolidado: bypass front = 0, bypass backend = 1, sem `from('evolution_messages')` fora da porta.",
+      "227:97. **[R]** Atualizar `docs/BOUNDARY-evolution.md` com a fronteira **lógica** (hoje só documenta arquivos, não contratos).",
+      "229:99. **[D][!]** Após validação: limpar as ~40 tabelas `_backup_*`/`_snap_*` em `evo` (≥150 MB, incluindo `_backup_repontagem_evolution_messages_20260812` com"
+    ],
+    "docs/decouple/PLANO_DESACOPLAMENTO_V2_100_ETAPAS.md": [
+      "21:- [H2] REVOKE Grupo A: **feito** — 0 grants de escrita p/ authenticated/anon em `evo.evolution_*`.",
+      "76:2. **[R]** Atualizar `scripts/decouple/inventory.mjs` para contar também: fns SQL com `evolution_api_url` (via query), `from('evolution_messages')` em edge f",
+      "77:3. **[R]** Registrar digests de prod: evolution `6f9f1d35`, consumer `75210b9f`, web `709489fb6`.",
+      "85:9. **[R]** `connection-test/index.ts`: trocar os 2 usos de env por `evolutionClient` (`getConnectionState`/`get`).",
+      "87:11. **[R]** `evolution-group-sync/index.ts`: mapear as 4 ocorrências (fetch groups, participants, etc.) → verbos do client (`listGroups`, `get`).",
+      "88:12. **[R]** Teste de `evolution-group-sync` com transport mockado.",
+      "89:13. **[R]** Inventariar TODAS as actions de `evolution-api/index.ts` (roteador) e agrupá-las por verbo do client.",
+      "96:20. **[R]** Gate: `EVOLUTION_API_URL` permitido em exatamente 1 arquivo (`providers/evolution/client.ts`) + testes. Inventory: 3→0.",
+      "102:24. **[R]** Grep global: `invoke('evolution-api'` fora de `whatsappAdapter*` = 0.",
+      "103:25. **[R]** ESLint `no-restricted-syntax`: proibir `invoke('evolution-api')` fora de `src/lib/whatsappAdapter*`.",
+      "104:26. **[R]** ESLint idem para import de `@/types/evolutionExternal` fora de `src/adapters/` (E38 do V1, nunca implementado).",
+      "112:32. **[R]** Migrar `_shared/evolution-webhook-messages.ts` → ingest-port (os ≥3 pontos de escrita direta).",
+      "113:33. **[R]** Migrar `_shared/evolution-webhook-handlers.ts` → ingest-port.",
+      "114:34. **[R]** `_shared/evolution-helpers.ts` por ÚLTIMO (mais consumidores): mover apenas as escritas; leituras podem ficar.",
+      "118:38. **[R]** Gate: `from('evolution_messages')` em edge fns fora de `ingest-port.ts` = 0.",
+      "129:47. **[R]** Criar `_shared/evolution-normalizer.ts`: Baileys → canônico.",
+      "138:56. **[R]** Front: tipos do inbox migram para os canônicos APENAS onde aditivo (sem quebrar 96 arquivos de features — `evolutionAdapter.ts` segue como legad",
+      "146:62. **[D]** Migrar `evo.fn_sync_lid_from_api`. Validar com o cron correspondente.",
+      "151:67. **[D]** Consolidar segredos: fns leem só via wrapper; inventariar e documentar os 10 secrets `evolution_*` do vault (2 pares de key duplicados — anotar ",
+      "166:80. **[R]** Ensaio cronometrado da troca em teste (fake↔evolution). Registrar tempo medido.",
+      "171:83. **[⛔][D][!]** E14: versionar os 5 configs `evo_watchdog_*_v1` (fonte real dos watchdogs) no evolution-stack.",
+      "173:85. **[⛔][D][!]** G4a: `evolution-security-guardian` como stack versionada (confirmado fora de stack no Portainer).",
+      "174:86. **[⛔][D][!]** G4b: `evolution-pgbackrest-backup` como stack versionada (idem).",
+      "178:90. **[R]** G7: normalizar alias `evolution_api_key_v6 → target v4` na próxima rotação (documentar agora).",
+      "179:91. **[R]** CI guard no zapp-web-v3 bloqueando recriação de `infra/evolution*` (E22 do V1, verificar se existe).",
+      "180:92. **[R]** Runbook DR do evolution-stack revisado pós-mudanças.",
+      "186:96. **[R]** `docs/BOUNDARY-evolution.md` atualizado com a fronteira LÓGICA final."
+    ],
+    "docs/decouple/PLANO_DESACOPLAMENTO_V3_100_ETAPAS.md": [
+      "13:2. [R] Registrar digests de prod no `docs/decouple/BASELINE.md`: evolution `6f9f1d35`, consumer `75210b9f`, web `production-b87b4e9718a5` (já medidos).",
+      "14:3. [R] Snapshot da tabela `ops.fn_bodies_backup` (INSERT dos 6 corpos atuais: `fn_outbound_dispatch`, `fn_reconcile_dispatch`, `fn_notify_critical_alerts`, `",
+      "26:12. [R] Extender `inventory.mjs` com **métrica 4**: front construindo URL Evolution direta (`VITE_EVOLUTION_API_URL`, `fetch(...evolution.../message/send...)",
+      "29:15. [R] Promover ESLint decouple (`no-restricted-syntax` invoke + import evolutionExternal) de `warn` → `error` (resíduo 3).",
+      "38:21. [D] Auditar importadores reais de `src/integrations/zappweb/evolutionClient.ts` e `src/lib/healthCheck.ts` (hoje: 0 vivos; `supabaseClient.ts` é ele próp",
+      "44:27. [R] `IntegrationKeysSection.tsx`: conferir se exibe URL legada — trocar por status via edge `evolution-credentials`/health, sem expor env.",
+      "53:33. [R] Corrigir strings de erro que citam `evolution_api_url ausente` para `ops.fn_evo_url() ausente` — elimina os 4 falsos-positivos do gate (S7).",
+      "64:41. [R] Inventariar consumidores dos 10 secrets `evolution_*` (edge env, stack 25, consumer, SQL resolvers) — tabela secreto×consumidor.",
+      "65:42. [R] Classificar pares duplicados: `evolution_api_key` × `_v2`; `evolution_webhook_secret` × `webhook_secret_evolution` — decidir canônico por evidência d",
+      "71:48. [⛔][!] Conferir mapping de secrets do stack 25 (`evolution_api_key_v6→v4` — G7) e normalizar alias na stack file.",
+      "80:54. [R] Rodar suites de paridade existentes: `parity.test.ts`, `whatsapp-cloud-normalizer.test.ts`, `evolution-response-normalizers.test.ts` — verdes.",
+      "83:57. [R] Ensaio cronometrado de troca fake↔evolution em ambiente de teste — medir tempo real.",
+      "84:58. [R] Se viável: ensaio real de troca (evolution→cloud→evolution) em janela noturna com critérios de abort (S11) — [!] só com APROVADO.",
+      "92:63. [R] Atualizar `docs/BOUNDARY-evolution.md` com a fronteira LÓGICA: 4 portas (adapter front, client edge, ingest-port, resolvers SQL) + o que é Grupo A/B ",
+      "103:71. [⛔][R] Snapshot das configs atuais de `evolution-security-guardian` e `evolution-pgbackrest-backup` (`docker service inspect` → salvar em `stacks/snapsh",
+      "104:72. [⛔][D][!] G4a: `evolution-security-guardian` como stack versionada (`stacks/evolution-security-guardian.yml`) — deploy e verificação do heartbeat.",
+      "105:73. [⛔][D][!] G4b: `evolution-pgbackrest-backup` como stack versionada — conferir agendamento pós-redeploy.",
+      "108:76. [⛔][D] G6: preencher `EXPECTED_DIGEST` no `portainer-drift-check.sh` (evolution `6f9f1d35`, consumer `75210b9f`) e validar alerta sintético.",
+      "109:77. [⛔][R] G7: normalizar alias `evolution_api_key_v6→v4` (conclui F4 E48) e documentar na rotação.",
+      "111:79. [R] Corrigir README/architecture do evolution-stack: stack IDs reais (purge 238, watchdogs 240, functions-health 239) e tags/releases (resíduo 9/12).",
+      "112:80. [R] PR F7 → main no evolution-stack; CI dos workflows GitOps verde.",
+      "116:81. [R] Recriar `check-publish-evo-fallbacks` em `evolution-stack/image/tests/` com paths corretos (G1 — resíduo 10).",
+      "119:84. [R] Conferir CODEOWNERS dos 2 repos (boundary: evolution-stack = infra; zapp = app/edge).",
+      "124:89. [R] Verificar e2e `e2e-evolution-vps.yml`: asserts de infra pertencem ao evolution-stack (E21 do V1) — mover se ainda estiver.",
+      "131:93. [R] Reconferir os 4 gates: inventory 0/0/0/0 · SQL egress whitelist · CI threshold 0 · grants authenticated em `evo.evolution_*` = 0."
+    ],
+    "docs/decouple/PLANO_DESACOPLAMENTO_V4_100_ETAPAS_20260814.md": [
+      "89:4. [R] Mapear todos os consumidores dos 10 secrets `evolution_*` (edge env, stack 25, consumer, SQL resolvers, cron containers).",
+      "107:7. [R] Validar que `evolutionClient.ts` e `healthCheck.ts` estão de fato mortos (0 importadores vivos).",
+      "137:11. [R] Refinar `scripts/decouple/inventory.mjs` para métrica 4: detectar qualquer construção de URL Evolution direta no `src/` (`fetch(\\`...evolution`, `ne",
+      "161:15. [R] Refinar `scripts/decouple/sql-gate.mjs`: ignorar mensagens de erro (`'evolution_api_url ausente'`) e flagrar apenas chamadas reais `net.http_(get|po",
+      "179:18. [D] Adicionar smoke test de egresso edge no CI (chamada a `evolution-proxy`/`evolution-api` com fixture, sem depender de Evolution online).",
+      "191:20. [R] Teste deliberado de regressão: PR dummy adicionando 1 import de `evolutionClient` em `src/` → CI deve falhar.",
+      "203:22. [D] Endurecer CI para exigir `run-all-gates.mjs` verde em todo PR que toca `src/integrations/zappweb`, `src/lib/whatsappAdapter*`, `supabase/functions/e",
+      "233:26. [R] Confirmar que `src/integrations/zappweb/evolutionClient.ts` e `src/lib/healthCheck.ts` têm 0 importadores vivos e 0 referências no bundle de prod.",
+      "239:27. [D] Mover `evolutionClient.ts` e `healthCheck.ts` para `src/_archive/` com banner de deprecação.",
+      "263:31. [R] Re-grep no bundle servido pós-deploy: 0 referências a `VITE_EVOLUTION_API_URL`/`evolutionClient`/`healthCheck`.",
+      "269:32. [R] [herdado V3 #81] Recriar `check-publish-evo-fallbacks` em `evolution-stack/image/tests/` se ainda não existir.",
+      "281:34. [R] Verificar branches zumbis (`feat/decouple-v2`, `feat/decouple-provider`, `chore/remove-evolution-infra-to-evolution-stack`, `docs/pos-desacoplamento",
+      "299:36. [R] [herdado V3 #31] Revalidar `ADR-010-sql-gateway.md` e atualizar com design real (`ops.fn_evo_url`/`fn_evo_key`).",
+      "311:38. [D] Corrigir strings de erro que citam `evolution_api_url ausente` para `ops.fn_evo_url() ausente` (3 arquivos).",
+      "341:43. [R] Atualizar `docs/decouple/BOUNDARY-evolution.md` com a fronteira LÓGICA (4 portas + Grupo A/B).",
+      "377:48. [⛔][!] Criar secrets canônicos novos (`evolution_api_key_canonical`, `evolution_webhook_secret_canonical`) com valores idênticos aos atuais.",
+      "395:51. [⛔][!] Após 48h verdes pós-rotação: apagar pares obsoletos (`evolution_api_key_v2`, `webhook_secret_evolution` e alias antigos).",
+      "401:52. [R] Normalizar alias `evolution_api_key_v6→v4` no stack file 25 e documentar.",
+      "449:59. [R] Ensaio cronometrado de troca fake↔evolution em ambiente de teste local.",
+      "461:61. [D] Criar suite e2e de troca de provider: iniciar em `fake`, enviar/receber fixture, trocar para `evolution`, enviar/receber real (em staging), voltar p",
+      "473:63. [⛔][!] Ensaio real de troca (evolution → fake → evolution) em staging com critérios de abort.",
+      "479:64. [⛔][!] Ensaio real de troca (evolution → fake → evolution) em produção em janela noturna (opcional, alto risco).",
+      "491:66. [R] Criar teste de contrato dos 11 verbos do gateway (evolution-proxy/evolution-api) antes de qualquer upgrade Evolution.",
+      "497:67. [D] Adicionar contrato-test ao CI obrigatório para PRs que toquem `supabase/functions/evolution-*`.",
+      "557:76. [R] Atualizar `README.md` do evolution-stack: stack IDs reais (purge 238, watchdogs 240, functions-health 265) e tags/releases.",
+      "593:81. [⛔][R] Snapshot das configs atuais de `evolution-security-guardian` e `evolution-pgbackrest-backup` (`docker service inspect`).",
+      "599:82. [⛔][D][!] G4a: `evolution-security-guardian` como stack versionada (`stacks/evolution-security-guardian.yml`).",
+      "605:83. [⛔][D][!] G4b: `evolution-pgbackrest-backup` como stack versionada.",
+      "629:87. [D] PR F7 → main no evolution-stack.",
+      "635:88. [R] Criar tag `decouple-v4-infra` no evolution-stack.",
+      "647:89. [R] Inventariar as 27 tabelas `evo.evolution_*` remanescentes e classificar: (a) usadas por crons/ops, (b) usadas por relatórios/Metabase, (c) realmente",
+      "659:91. [⛔][!] Para tabelas órfãs: fazer backup lógico (`pg_dump -t evo.tabela`) para `archive` / S3 antes de drop.",
+      "665:92. [⛔][!] Drop das tabelas `evo` órfãs em janela de manutenção.",
+      "683:94. [R] Onda de 10 agentes paralelos validando cada frente com evidência fresca (DB, Portainer, repo×prod digests, bundle front, edge runtime, vault, crons,",
+      "689:95. [R] Reconferir os 4 gates: inventory 0/0/0/0 · SQL egress whitelist · CI threshold 0 · grants authenticated em `evo.evolution_*` = 0.",
+      "759:- [ ] Vault sem secrets duplicados (`evolution_api_key`, `evolution_webhook_secret` únicos)",
+      "760:- [ ] `src/_archive/` contém `evolutionClient.ts`/`healthCheck.ts`; bundle prod sem referências",
+      "762:- [ ] 100% de egresso SQL via `ops.fn_evo_url()`/`fn_evo_key()`",
+      "764:- [ ] `evo` tabelas órfãs aposentadas (drop ou congelamento formal)"
+    ],
+    "docs/decouple/PLANO_DESACOPLAMENTO_V4_CLAUDE_100_ETAPAS_20260814.md": [
+      "52:- [ ] **6.** [R] Confirmar ausência de client `providers/cloud/` — só existem `providers/evolution/` e `providers/fake/`; `registry.ts` lança `not yet implem",
+      "91:- [ ] **11.** [R] Testar o guard deliberadamente: branch dummy com 1 `invoke('evolution-api', ...)` fora do adapter → abrir PR sintético → **deve falhar**.",
+      "119:- [ ] **15.** [R] Adicionar ao CI um step de **contrato de verbos**: contar `evolutionClient.*` exportados em `providers/evolution/client.ts` e falhar se ≠ ",
+      "126:- [ ] **16.** [D] Escrever contrato Zod para os 12 verbos do gateway (`src/domain/messaging/contracts/evolutionGateway.zod.ts`, novo) — schema de request/re",
+      "133:- [ ] **17.** [R] Adicionar teste unitário que valida CADA verbo do `providers/evolution/client.ts` contra o schema Zod do passo 16 usando fixtures reais ca",
+      "230:- [ ] **30.** [R] Rodar as suites de paridade já existentes — `parity.test.ts`, `whatsapp-cloud-normalizer.test.ts`, `evolution-response-normalizers.test.ts",
+      "300:- [ ] **40.** [R] Atualizar `docs/BOUNDARY-evolution.md` com a fronteira lógica final: 4 portas + contrato Zod + matriz de substituibilidade (referenciar `S",
+      "346:- [ ] **46.** [R] Adaptar o runbook para o ensaio fake↔evolution (o runbook original é Evolution→Cloud; o ensaio real desta rodada é Evolution→Fake→Evolutio",
+      "436:- [ ] **58.** [R] Mapear consumidores de cada par (edge env, stack secrets, resolvers SQL `ops.fn_evo_key`) — tabela secreto × consumidor, igual ao V3 #41 m",
+      "464:- [ ] **62.** [R] Normalizar o alias `evolution_api_key_v6→v4` do stack 25 (resíduo G7 do V3, nunca fechado) na mesma leva — documentar na rotação.",
+      "489:- [ ] **65.** [R] Branches zumbis: conferir estado de `feat/decouple-v2`, `feat/decouple-provider`, `chore/remove-evolution-infra-to-evolution-stack`, `docs",
+      "503:- [ ] **67.** [R] Recriar `check-publish-evo-fallbacks` no repo `evolution-stack` (`image/tests/`) com paths corretos — resíduo 10/G1 do V3, [herdado V3 #81",
+      "510:- [ ] **68.** [R] Auditar as 27 tabelas `evo.*` remanescentes (Grupo A, migradas fisicamente para `zapp` — dimensão 2 do SCORECARD, 9/10) quanto à janela de",
+      "517:- [ ] **69.** [R] Se `#68` mostrar 0 acessos diretos em 7+ dias: **congelamento formal** (revogar grants restantes, marcar comentário SQL `-- CONGELADO 2026",
+      "577:- [ ] **77.** [R] Atualizar `docs/BOUNDARY-evolution.md` (já parcialmente feito em F2 #40) com o link para `CANONICAL_COLUMN_MAP.md` e `RPC_AUDIT_V4.md`.",
+      "605:- [ ] **81.** [R] Atualizar `README.md` raiz do zapp: seção \"Integrações → WhatsApp\" aponta para ADR-009/010 + BOUNDARY + o novo `SUBSTITUABILITY_MATRIX_V4."
+    ],
+    "docs/decouple/PLANO_DESACOPLAMENTO_V4_FINAL_100_ETAPAS_20260814.md": [
+      "42:- [ ] **5.** [R] Registrar digests de prod atuais no BASELINE_V4: evolution `6f9f1d35` · consumer `75210b9f` · web `production-ccdb663ba68d` · functions-heal",
+      "57:- [ ] **9.** [D] Corrigir o bypass real `backendUrlBypass=1`: `supabase/functions/connection-health-check/index.ts:193` deve resolver a URL via `ops.fn_evo_u",
+      "61:- [ ] **11.** [R] Fechar a cegueira do `inventory.mjs` a invokes sub-path/dinâmicos: regex deve casar `invoke('evolution-api/...')`, `invoke(\\`evolution-api/",
+      "84:- [ ] **20.** [R] Criar `verb-contract-gate.mjs`: contar exports de `providers/evolution/client.ts` via AST de exports nomeados (não `Object.keys`) e falhar ",
+      "86:- [ ] **21.** [D] Escrever contrato Zod dos 12 verbos em `supabase/functions/_shared/providers/evolution/contract.zod.ts` (request/response por verbo, tipos ",
+      "92:- [ ] **24.** [R] Trigger path-based: testes de contrato + verb-gate rodam em TODO PR que toca `_shared/providers/**`, `evolution-api/**`, `evolution-proxy/*",
+      "107:- [ ] **29.** [R] Inventário formal das 10 edge functions evolution-* em `docs/decouple/EGRESS_SURFACE_V4.md`: papel, chamadores, classificação (PORTA OFICI",
+      "109:- [ ] **30.** [D] Aposentadoria formal da `evolution-credentials`: remover as ~66 linhas de código zumbi que serviam a apikey (`X-Evolution-Key`), manter o ",
+      "111:- [ ] **31.** [D] Corrigir ou aposentar `evolution-templates`: hoje `useWhatsAppTemplates` (browser) chama direto e recebe 401 provável — feature quebrada e",
+      "115:- [ ] **33.** [R] ADR de gateway único de egresso edge: hoje coexistem `evolution-proxy` (allowlist 6 paths, usado só pela demo) e `evolution-api` (router ~",
+      "119:- [ ] **35.** [R] Documentar `sendPtv` (FormData direto ao evolution-api) como exceção formal no EGRESS_SURFACE + teste de smoke.",
+      "121:- [ ] **36.** [R] `ZappWebbDemoPage`: migrar as 2 calls restantes do `evolution-proxy` para o caminho canônico decidido em #33, ou marcar a página como demo",
+      "123:- [ ] **37.** [R] Pós-deploy: re-grep no bundle de prod servido — 0 `VITE_EVOLUTION_API_URL`, 0 `evolutionClient`, 0 URL evolution direta (estado já confirm",
+      "140:- [ ] **43.** [R] Suites de paridade existentes (`parity.test.ts`, `whatsapp-cloud-normalizer.test.ts`, `evolution-response-normalizers.test.ts`) 100% verde",
+      "142:- [ ] **44.** [R] `scripts/decouple/coverage-report.mjs` + `docs/decouple/COVERAGE_V4.md`: % real de operações de mensageria passando pelas portas com contr",
+      "156:- [ ] **51.** [R] Teste unitário do guard: `DENO_ENV=production PROVIDER_UNDER_TEST=fake` → resolve `evolution` (fake nunca vaza para prod).",
+      "175:- [ ] **57.** [!] Ensaio cronometrado dos 8 passos (evolution→fake→evolution na sonda) — timestamps reais em `docs/decouple/ENSAIO_V4_LOG.md`; monitorar cri",
+      "181:- [ ] **60.** [R] Rollback cronometrado (fake→evolution) — tempo de reversão medido, não assumido.",
+      "192:- [ ] **63.** [R] Confirmar com SQL fresco: 10 secrets `evolution_*` (nomes apenas) e os 2 pares duplicados (`evolution_api_key`/`_v2`, `evolution_webhook_s",
+      "202:- [ ] **68.** [R] Normalizar alias `evolution_api_key_v6→v4` no stack file 25 (resíduo G7).",
+      "213:- [ ] **71.** [R] Branches zumbis (`feat/decouple-v2`, `feat/decouple-provider`, `chore/remove-evolution-infra-to-evolution-stack`, `docs/pos-desacoplamento",
+      "215:- [ ] **72.** [R] Recriar `check-publish-evo-fallbacks` em `evolution-stack/image/tests/` (ou nota com path exato se o repo não estiver acessível na sessão)",
+      "217:- [ ] **73.** [R] Auditoria das **29** tabelas `evo.*` (16 operacionais + 13 partições): acessos diretos nos últimos 7 dias por tabela (pg_stat / logs).",
+      "219:- [ ] **74.** [R] **Inventário de realtime subscriptions no schema `evo`** (3+ ativas — achado da onda): listar canais/publications que escutam `evo.*` ANTE",
+      "225:- [ ] **77.** [R] Decisão sobre as **115 funções `evo.*` executáveis por `authenticated`** via PUBLIC default: REVOKE EXECUTE nas que não são contrato públi",
+      "231:- [ ] **80.** [R] PR F7 → main + entrada no `CHANGELOG.md` (gates endurecidos, ensaio executado, secrets dedup, evo congelado).",
+      "242:- [ ] **83.** [R] `docs/BOUNDARY-evolution.md`: fronteira lógica final — 4 portas + decisão de gateway único (#33) + prova V4 + links para matriz/coluna/RPC",
+      "250:- [ ] **87.** [R] Checklist de conformidade com `SCHEMA-CONTRACT.md`: 0 objetos de negócio novos em `public`, 0 dependências `evo → zapp` criadas pelo V4.",
+      "281:- [ ] **100.** [R] Encerramento: `RETRO_V4.md` final (números medidos, gaps explícitos: Cloud real, adoção em massa do registry além do piloto, DROP físico "
+    ],
+    "docs/decouple/PLANO_INDEPENDENCIA_100_ETAPAS_20260815.md": [
+      "264:> `[B: E72–E77 são substituídas por]` — manter as tabelas em `zapp`, renomear `evo` para"
+    ],
+    "docs/decouple/PREFLIGHT_CHECKLIST.md": [
+      "192:fn_scrub_r2_paths_from_logs — todos [A7] aplicado (refs Grupo A intactas em evo).",
+      "292:**Tags/Quick_replies:** rpc_list_tags[overload1+2], rpc_list_quick_replies — DROP+CREATE (SETOF evo→zapp).",
+      "296:**Groups+Participants:** fn_upsert_group_from_event[3 overloads], fn_upsert_group_participants[2 overloads] — todos CREATE OR REPLACE para zapp. evo.fn_reso",
+      "300:**Deals:** rpc_list_deals, rpc_upsert_deal, rpc_global_search[2 overloads], rpc_get_contact[public+zapp jsonb] — evolution_deals → zapp após migração. Trigg",
+      "302:**Whatsapp_status:** fn_mark_status_viewed, fn_sync_status_from_messages [A7], update_status_media_url[evo+public], fn_handle_whatsapp_status [A7], fn_repon",
+      "306:**[H1] Hardening:** ALTER ROLE anon SET search_path = public, extensions (anon não resolve evo. mais).",
+      "312:- [A14-deals_in_fns] rpc_list_deals, rpc_upsert_deal, rpc_global_search, rpc_get_contact tinham evo.evolution_deals hardcoded — detectado via D5 pós-DDL, co",
+      "313:- [A15-perf_metrics_bonus] evolution_performance_metrics = 0 fns literais — migrada como bônus (DROP VIEW + SET SCHEMA apenas)",
+      "341:| evolution_audit_log | 3.9k | 0 | 0 | 11 ([A7] bulk_update_lead_status, fn_purge_api_key_from_logs, grant_lgpd_consent, revoke_lgpd_consent, sync_interacti",
+      "369:| evolution_burnin_tracker | 1 | 2 ([A7] fn_burnin_critical_alert_check, fn_burnin_disconnection_check — connection_history fica evo) |",
+      "372:| evolution_api_consumers | 6 | 1 ([A7] fn_monthly_evo_audit — audit_log→zapp, health_logs fica evo) |",
+      "394:| evolution_monthly_audit_log | 2 | 1 (fn_monthly_evo_audit [A7]: só trocou monthly_audit_log→zapp, manteve evolution_messages, evolution_alerts, evolution_",
+      "402:- [NOVO] evolution_conversations é PARTITIONED TABLE (relkind=p). SET SCHEMA não cascata partições no PG 15. Cada partição precisa de SET SCHEMA individual ",
+      "403:- [NOVO] 9 crons têm SQL inline apontando evo.evolution_alerts diretamente (não via fn). Precisam de UPDATE cron.job individual no Lote 8.",
+      "404:- [NOVO] D_alerts_unqualified_fns = 0: todas as fns escrevem com evo.evolution_alerts explícito. EXECUTE+replace() funciona para todas sem risco de unqualif",
+      "405:- [NOVO] fn_monthly_evo_audit: multi-tabela [A7] — toca evolution_messages (evo), evolution_alerts (evo), evolution_pipeline_health_log (evo Grupo A), evolu",
+      "538:**[GAP-1] `evolution_license_health_log` sem view pública:**",
+      "542:**[GAP-2] 3 funções em schema `ops` com referências evo.* para tabelas já migradas:**"
+    ],
+    "docs/decouple/SCORECARD_V4.md": [
+      "31:- **[ONTEM]** Digests distintos em produção — evolution `6f9f1d35`, consumer `75210b9f`, web `production-ccdb663ba68d` ([BASELINE_V4 §4.1](./BASELINE_V4.md))",
+      "32:- **[HOJE]** Guard de regressão no CI: `decouple-guard.yml` bloqueia recriação de `infra/evolution*` e workflows `publish-evolution*` no zapp-web-v3 (E22) — ",
+      "37:- **[ONTEM]** 99 objetos `zapp.evolution_*` vs 29 tabelas `evo.*` (16 operacionais + 13 partições); **grants de escrita para `authenticated`/`anon` em `evo.*",
+      "38:- **[PENDENTE]** Congelamento **formal** das tabelas `evo` remanescentes (drop após janela de observação ou congelamento declarado) — onda **F7** (etapas 71–",
+      "53:- **[HOJE]** **Allowlist documentada**: `EGRESS_SURFACE_V4.md` §3 lista as **41 actions** da `evolution-api` (porta edge canônica) e formaliza a decisão \"Bro",
+      "66:- **[EXECUTADO 2026-08-15]** Dedup dos **2 pares de secrets duplicados** no vault (10 secrets: `evolution_api_key`×`evolution_api_key_v2`, `evolution_webhook",
+      "70:- **[HOJE]** **Contrato Zod executável e versionado**: `providers/evolution/contract.zod.ts` define `evolutionGatewayContract` (request/response dos **12 ver",
+      "78:- **[HOJE]** **PROVIDER_UNDER_TEST + guard absoluto**: `registry.ts` — fora de `DENO_ENV=test` a flag é **ignorada** (resolução sempre segue o provider pedid",
+      "79:- **[HOJE]** **Guard testado**: `registry.test.ts` cobre produção+flag→evolution, test→fake, assertTestEnv, `cloud` not-implemented (roda no CI deno-contract"
+    ],
+    "docs/DEPLOYMENT.md": [
+      "325:O deploy da Evolution API é gerenciado exclusivamente no repo [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack).",
+      "327:Para rebuild da imagem custom, seguir runbook em [evolution-stack/runbooks/](https://github.com/adm01-debug/evolution-stack/tree/main/runbooks)."
+    ],
+    "docs/ENV_SETUP.md": [
+      "45:| `EVOLUTION_WEBHOOK_SECRET[S]`                                       | `evolution-webhook`         | HMAC dos webhooks.           |"
+    ],
+    "docs/estado/33-lib-raiz.md": [
+      "25:**Conformidade de topologia `evo`/`zapp`: OK.** Zero ocorrências de `schema('evo')`, `evo.evolution_*`, `evolution_messages_v2` ou sufixos `_wpp2` em toda a "
+    ],
+    "docs/estado/34-lib-subdirs-utils-types.md": [
+      "170:`schema:\\s*['\"]|postgres_changes|\\.channel\\(|evolution_messages|evolution_conversations|evolution_contacts|_wpp2|publish_via|\\.schema\\(`:"
+    ],
+    "docs/estado/35-lib-tests.md": [
+      "208:| `newStatus === 'failed'` | `return true` incondicional (`:18`) | `return currentPriority < STATUS_PRIORITY['delivered']` (`evolution-helpers.ts:332`) |"
+    ],
+    "docs/EVOLUTION_API_AUDIT_2026-07-03.md": [
+      "256:Arquivo: [`db/remediation/evolution_supabase_remediation.sql`](../db/remediation/evolution_supabase_remediation.sql) —"
+    ],
+    "docs/EVOLUTION_API_AUDIT_2026-07-12_sessao10.md": [
+      "252:3. **[FIX-1]** Atualizar manualmente o stack file 126 (evolution-db-purge) para pinar `postgres:14-alpine@sha256:bc06a4b2c6e50e3a9b7638fe7d3064d4497c89b3ce5",
+      "253:4. **[I-2]** Criar `sentry_dsn_evolution_v1` como Docker secret e remover do env plaintext no stack 25",
+      "257:5. **[I-3]** Adicionar `requirepass` ao Redis e atualizar `CACHE_REDIS_URI` no evolution stack"
+    ],
+    "docs/EVOLUTION_API_REFERENCE.md": [
+      "3:> ⚠️ **Acesso pós-desacoplamento (2026-08-12):** Endpoints abaixo são válidos, mas todo acesso passa pelo gateway unificado `supabase/functions/_shared/provid",
+      "13:1. [O que é a Evolution API](#1-o-que-é-a-evolution-api)",
+      "27:15. [Integração: Evolution Bot](#15-integração-evolution-bot)",
+      "1301:> GitHub: [github.com/evolution-foundation/evolution-api](https://github.com/evolution-foundation/evolution-api)",
+      "1302:> Docs: [doc.evolution-api.com/v2](https://doc.evolution-api.com/v2)"
+    ],
+    "docs/EXECUCAO_MELHORIAS_PARIDADE_2026-07-04.md": [
+      "53:### 3. [MÉDIA] Auto-assign + auditoria de atribuição em `evo.evolution_contacts` ✅"
+    ],
+    "docs/HANDOFF_DOCUMENT.md": [
+      "567:- [Evolution API Docs](https://doc.evolution-api.com/)",
+      "568:- [GitHub](https://github.com/evolution-foundation/evolution-api)"
+    ],
+    "docs/infra/git-secrets-rotation.md": [
+      "94:  echo \"[ERRO] Não remova o secret antigo sem confirmar a revogação (HTTP 401).\" >&2"
+    ],
+    "docs/INTEGRATION_INVARIANTS.md": [
+      "116:- **INV-EVO-02:** Infraestrutura Evolution (servidor, consumer, stacks) está em [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack"
+    ],
+    "docs/INVENTARIO_INFRA.md": [
+      "176:Serviços Evolution extraídos para repo separado [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack):"
+    ],
+    "docs/OPERACAO_BUILD_DEPLOY_V3.md": [
+      "98:Build e deploy da imagem Evolution: gerenciados em [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack)."
+    ],
+    "docs/PORTAINER_ZAPP_FOOTPRINT.md": [
+      "149:[adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack)."
+    ],
+    "docs/QA_REPORT_V2.md": [
+      "100:- [ ] Edge Function `evolution-api` re-deployada",
+      "104:- [ ] Testar painel admin (verificar se não há mais 500 em evolution-api/status)"
+    ],
+    "docs/README.md": [
+      "105:| [`BOUNDARY-evolution.md`](BOUNDARY-evolution.md) | O que ficou em cada repo + 12 verbos do gateway |",
+      "109:| **evolution-stack** | [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack) — infra separada |"
+    ],
+    "docs/reconciliation/08_saude.md": [
+      "99:| 2 | `[Error] Error inserting message: PGRST106 \"Invalid schema: evo\" — Only the following schemas are exposed: public, zapp, storage, graphql_public, artes"
+    ],
+    "docs/runbooks/APPLY_ZAPP_EVOLUTION_BRIDGES.md": [
+      "1:> **Pós-desacoplamento (2026-08-12):** Este runbook trata das bridges de schema (views de contrato evo→zapp). A infra Evolution está em [adm01-debug/evolution"
+    ],
+    "docs/RUNBOOK_MEDIA_REFRESH_400_20260806.md": [
+      "1:# Runbook — WARN `[useMediaUrl] media refresh failed … unknown` + 400 em `evolution-api/get-media-base64`"
+    ],
+    "docs/TECHNICAL_DOCUMENTATION.md": [
+      "3:> **Pós-desacoplamento (2026-08-12):** Infraestrutura Evolution API extraída para [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack"
+    ],
+    "docs/validacao/V1-lib-raiz.md": [
+      "38:| **A8** | 4 hooks React em `src/lib` raiz | **CONFIRMADO** | `rg '^export (function\\|const) use[A-Z]' src/lib/*.ts` devolve **exatamente** 4 linhas: `useMed"
+    ],
+    "docs/WEBHOOK_EVENTS.md": [
+      "21:POST https://[PROJECT_ID].supabase.co/functions/v1/evolution-sync",
+      "374:- [Evolution API Documentation](https://doc.evolution-api.com)",
+      "375:- [ADR-004: Evolution API Webhook Bridge](./decisions/ADR-004-evolution-api-webhook-bridge.md)"
+    ],
+    "docs/WEBHOOK_SECURITY.md": [
+      "209:- [Evolution API Webhooks](https://doc.evolution-api.com/v1/webhooks)"
+    ],
+    "docs/_archive/AUDITORIA_EVO_API_2026-07-10.md": [
+      "86:1. **[E8 — MÉDIO/ALTO] Durabilidade RabbitMQ.** Confirmar `durable=true` no exchange `evolution` e em todas as 17 filas, e `deliveryMode=2` nas mensagens. Se"
+    ],
+    "docs/_archive/AUDITORIA_EVO_API_2026-07-12.md": [
+      "74:- **M-4 · `handleMessagesUpdate` insere placeholder `\"[Mensagem recebida]\"`** quando o ACK chega sem o `upsert` correspondente (`_shared/evolution-webhook-ms",
+      "83:- **OBS-2 · 401 Unauthorized constante (~a cada 5 min) no container Evolution:** log `[SERVER] error Unauthorized ... server_url: https://evolution.atomicabr"
+    ],
+    "docs/_archive/AUDITORIA_EXAUSTIVA_2026-07-12.md": [
+      "74:11. **[✓FE][M]** `evolutionClient`/`IntegrationKeysSection`: master API key da Evolution entregue ao browser e gravada em localStorage → mover todo tráfego E",
+      "87:20. **[Edge][M]** TOCTOU no cache de idempotência (`evolution-api-proxy:77`) + dupla-enfileiração (`enqueue-failed-message`) → chave única atômica.",
+      "118:42. **[DB][M]** Tornar o histórico replayável: schemas `zapp`/`vendas` nunca criados; `evo` usado antes de existir; migração admin de teste + `DISABLE TRIGG"
+    ]
+  },
+  "workflow_refs": {
+    ".github/workflows/check-realtime-dead-channels.yml": [
+      "58:          echo '| `public.contacts` | `evo.evolution_contacts` |' >> $GITHUB_STEP_SUMMARY",
+      "59:          echo '| `public.messages` | `evo.evolution_messages` |' >> $GITHUB_STEP_SUMMARY",
+      "60:          echo '| `public.evolution_messages` | `evo.evolution_messages` |' >> $GITHUB_STEP_SUMMARY"
+    ],
+    ".github/workflows/ci.yml": [
+      "137:      - name: Supabase schema coverage gate (zapp + evo)",
+      "334:        run: node scripts/check-migration-gates.mjs --allowlist=20260804000000_canonical_schema_squash_133_migrations.sql,20260804150000_fix_secdef_revoke_e"
+    ],
+    ".github/workflows/cleanup-e2e-data.yml": [
+      "21:      # contatos/conversas/mensagens zapp + evo pela convenção E2E, janela"
+    ],
+    ".github/workflows/db-invariants.yml": [
+      "10:#   INV-5: No bare .from('evolution_messages') without schema qualification",
+      "46:          #   useRetryMetrics.ts       — public.evolution_retry_metrics (physical table,",
+      "47:          #                              added by migration 20260802000003; zapp.evolution_retry_metrics",
+      "68:          LEAF_PATTERN=\"(evolution_messages|evolution_conversations|evolution_webhook_events_v2)_(wpp2|artes|comercial_[0-9]+|compras|default|financeiro|grav",
+      "128:      - name: \"INV-5: evolution_messages/conversations subscriptions must use schema:'evo'\"",
+      "130:          echo \"Checking evolution_* table subscriptions for correct schema...\"",
+      "131:          FILES=$(grep -rl \"table: ['\\\"']evolution_\\(messages\\|conversations\\)['\\\"']\" src/ \\",
+      "135:            HAS_EVO_SCHEMA=$(grep -c \"schema: ['\\\"']evo['\\\"']\" \"$file\" 2>/dev/null || echo \"0\")",
+      "136:            if [ \"$HAS_EVO_SCHEMA\" -eq 0 ]; then",
+      "141:            echo \"::error::INV-5 VIOLATION — evolution_messages/conversations subscribed without schema:'evo'.\"",
+      "191:          echo \"INV-5: evolution_* uses schema:'evo'         v\""
+    ],
+    ".github/workflows/decouple-guard.yml": [
+      "1:# decouple-guard.yml - bloqueia recriacao de infra Evolution no zapp-web-v3",
+      "5:# Evolution (E46) contra o fixture commitado scripts/decouple/fixtures/sql_report_snapshot.json",
+      "32:    name: Block infra/evolution recreation",
+      "36:      - name: Verify no Evolution infra in zapp-web-v3",
+      "38:          # E22: qualquer arquivo em infra/evolution* viola o split do evo-stack",
+      "39:          if ls infra/evolution* 2>/dev/null; then",
+      "40:            echo \"::error::Arquivos infra/evolution* encontrados em zapp-web-v3.\"",
+      "41:            echo \"::error::Infraestrutura Evolution deve ficar em adm01-debug/evolution-stack.\"",
+      "44:          echo \"[OK] Sem infra/evolution* em zapp-web-v3\"",
+      "46:      - name: Verify no Evolution workflows in zapp-web-v3",
+      "48:          # Workflows de build da Evolution API devem estar em evolution-stack",
+      "49:          FOUND=$(ls .github/workflows/publish-evolution*.yml 2>/dev/null || true)",
+      "51:            echo \"::error::Workflows publish-evolution* encontrados em zapp-web-v3: $FOUND\"",
+      "52:            echo \"::error::Mova para adm01-debug/evolution-stack.\"",
+      "55:          echo \"[OK] Sem workflows Evolution em zapp-web-v3\"",
+      "88:          # E46: gate de egresso SQL da Evolution (scripts/decouple/sql-gate.mjs).",
+      "92:          # Toda fn PL/pgSQL que chama a Evolution DEVE montar URL/chave via",
+      "93:          # ops.fn_evo_url()/ops.fn_evo_key(). Exit != 0 derruba o job.",
+      "95:            echo \"::error::SQL gate falhou: egresso SQL da Evolution fora do padrao (use ops.fn_evo_url/ops.fn_evo_key).\"",
+      "99:            echo \"::error::SQL gate migrations: migration com egresso Evolution fora do padrao.\"",
+      "111:          echo \"--- invoke('evolution-api', ...) fora do adapter ---\"",
+      "112:          grep -rniE \"invoke\\(\\s*['\\\"]evolution-api['\\\"]\" src/ | grep -vE \"whatsappAdapter\\.ts|sendFunctionRouter\\.ts\" || true",
+      "113:          echo \"--- EVOLUTION_API_URL lido direto em edge functions ---\"",
+      "114:          grep -rniE \"Deno\\.env\\.get\\(\\s*['\\\"]EVOLUTION_API_URL['\\\"]\" supabase/functions/ || true",
+      "115:          echo \"--- writes diretos em tabelas evolution_* ---\"",
+      "116:          grep -rniE \"\\.from\\(\\s*['\\\"]evolution_[^'\\\"]+['\\\"]\\s*\\)\" src/ | grep -E \"\\.(insert|update|delete|upsert)\" || true"
+    ],
+    ".github/workflows/deno-contract-tests.yml": [
+      "52:        # (evolution-api/index.test.ts, gmail-tests.test.ts) poluem/leakam no"
+    ],
+    ".github/workflows/deploy-vps.yml": [
+      "42:    # publish-evolution-api-custom, que roda normalmente).",
+      "385:          CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 -X POST https://supabase.atomicabr.com.br/functions/v1/evolution-api/get-media-base64 ",
+      "387:          echo \"evolution-api/get-media-base64 (POST sem body) → HTTP ${CODE}\""
+    ],
+    ".github/workflows/e2e-admin-vps.yml": [
+      "79:            e2e/admin-evolution-api-smoke.spec.ts \\"
+    ],
+    ".github/workflows/edge-auth-smoke.yml": [
+      "77:          # Inclui funcoes de infra criticas (ai-router, evolution-api) que nunca",
+      "80:          PROTECTED_FNS=\"admin delete-user reset-password ai-router evolution-api\"",
+      "153:          PROTECTED_FNS=\"evolution-api ai-router\"",
+      "155:            # evolution-api e ai-router sao SEMPRE protegidas — se aparecerem na"
+    ],
+    ".github/workflows/edge-schema-parity.yml": [
+      "105:          # Pattern: GRANT EXECUTE ON FUNCTION ... TO anon (ou TO public sem REVOKE posterior)"
+    ],
+    ".github/workflows/evo-ddl-gate.yml": [
+      "1:name: evo-ddl-gate",
+      "2:# Gate E42: bloqueia DDL NOVO em schema `evo` via migrations deste repo.",
+      "3:# O schema evo e fronteira (infra no repo evolution-stack); DDL evo novo",
+      "5:# scripts/decouple/evo-ddl-allowlist.txt (regularizacao DR do desacoplamento).",
+      "11:      - 'scripts/decouple/evo-ddl-gate.mjs'",
+      "12:      - '.github/workflows/evo-ddl-gate.yml'",
+      "15:  evo-ddl-gate:",
+      "16:    name: \"E42 — DDL novo em schema evo bloqueado\"",
+      "40:            grep -qxF \"$b\" <(grep -v '^#' scripts/decouple/evo-ddl-allowlist.txt | grep -v '^$') || echo \"$f\"",
+      "59:        run: node scripts/decouple/evo-ddl-gate.mjs --allowlist auto"
+    ],
+    ".github/workflows/measure-invariants.yml": [
+      "4:# Mede o score dos 9 invariantes de desacoplamento ZAPP×Evolution a cada PR",
+      "85:                '### Score de Desacoplamento ZAPP×Evolution',",
+      "96:                '### Score de Desacoplamento ZAPP×Evolution',",
+      "113:                '### Score de Desacoplamento ZAPP×Evolution',"
+    ],
+    ".github/workflows/migration-smoke-test.yml": [
+      "166:              FOREACH s IN ARRAY ARRAY['zapp', 'evo', 'bpm', 'email_app', 'financeiro', 'ai', 'archive', 'vendas', 'ops']"
+    ],
+    ".github/workflows/ownership-gate.yml": [
+      "18:    name: \"Schema ownership — Zapp não grava em evo Grupo A\""
+    ],
+    ".github/workflows/post-deploy-check.yml": [
+      "14:#      SEM apikey o PostgREST devolve 401 — isso é NORMAL e conta",
+      "18:#      POST sem body devolve 4xx (400/401) — aceitável = função",
+      "102:          CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 -X POST https://supabase.atomicabr.com.br/functions/v1/evolution-api/get-media-base64 ",
+      "104:          echo \"evolution-api/get-media-base64 (POST sem body) → HTTP ${CODE}\""
+    ],
+    ".github/workflows/quality-gate.yml": [
+      "82:      - name: Schema usage guardrail (zapp/evo)"
+    ],
+    ".github/workflows/security-invoker-gate.yml": [
+      "33:      - name: D-8 — Fail gate if v_security_audit has ⚠ rows (schema evo)",
+      "39:          echo \"→ Querying evo.v_security_audit for ⚠ rows...\"",
+      "43:            -d '{\"query\":\"SELECT count(*) FROM evo.v_security_audit WHERE status LIKE $$%⚠%$$\"}' \\",
+      "60:            echo \"::error::v_security_audit has $COUNT ⚠ rows — release gate BLOCKED (D-8). Fix before promoting evo changes.\"",
+      "76:            -d '{\"query\":\"SELECT n.nspname, c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ($$public$$,$$zapp$$,$$e",
+      "89:            echo \"::error::postgres-meta auth failed (HTTP $HTTP_CODE) — FAIL-CLOSED: ZAPP_META_TOKEN may be invalid or revoked; fix the secret before mergin",
+      "134:            -d '{\"query\":\"SELECT count(*) AS c FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN ($$zapp$$,$$evo$$) AND has_func",
+      "147:            echo \"::error::postgres-meta auth failed (HTTP $HTTP_CODE) — FAIL-CLOSED: ZAPP_META_TOKEN may be invalid or revoked; fix the secret before mergi"
+    ],
+    ".github/workflows/zapp-schema-drift-gate.yml": [
+      "5:    - cron: '10 9 * * *'   # 06:10 America/Sao_Paulo (offset do gate evo)"
+    ]
+  },
+  "generated_at": "2026-08-16T19:40:25.262729+00:00"
+}

@@ -236,7 +236,7 @@ Esta é a fase central do V4. O V3 criou o fake provider e o guard `DENO_ENV=tes
 
 - [ ] **31.** [R] Medir cobertura REAL: % de operações WhatsApp (front + edge + SQL) que passam pelas 4 portas do gateway vs. total de operações do domínio de mensageria — número honesto, não estimado (herdado V3 #55, agora com o contrato Zod como régua objetiva de "o que conta como porta").
   - Objetivo: publicar o número real de cobertura do desacoplamento, a métrica que sustenta a nota da dimensão 9.
-  - Artefato: script `scripts/decouple/coverage-report.mjs` + saída em `docs/decouple/COVERAGE_V4.md`.
+  - Artefato: script `scripts/decouple/_archive/coverage-report.mjs` + saída em `docs/decouple/COVERAGE_V4.md`.
   - Validação: número calculado, não redigido a mão; fórmula documentada (operações com contrato Zod / operações totais de mensageria).
   - Rollback: `git rm`.
   - Dependências: #16, #27.

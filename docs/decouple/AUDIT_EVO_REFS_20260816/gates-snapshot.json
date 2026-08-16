@@ -1,0 +1,17 @@
+{
+  ".github/workflows/evo-ddl-gate.yml": {
+    "sha1": "7e2b61ecfa47e9bdbae8ca66690492059444a49e",
+    "size": 2095,
+    "present": true
+  },
+  "scripts/decouple/evo-ddl-allowlist.txt": {
+    "sha1": "f02061c6c69e73c7107f1876088edcad2823c831",
+    "size": 1561,
+    "present": true
+  },
+  ".deno-lint-rules/no-direct-evo-url.ts": {
+    "sha1": "9e9ec5598a692b4d6ca823a41d5127502e62586c",
+    "size": 745,
+    "present": true
+  }
+}

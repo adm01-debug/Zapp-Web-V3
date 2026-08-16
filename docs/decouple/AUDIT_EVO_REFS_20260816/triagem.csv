@@ -1,0 +1,1279 @@
+path;classe;justificativa;consumidores;destino_path;etapa
+.coderabbit.yaml;FICA;default conservador (R3);;;
+.deno-lint-rules/no-direct-evo-url.ts;FICA;gate/enforcement CI (E77-E78);;;
+.env.example;FICA;default conservador (R3);;;
+.github/CODEOWNERS;FICA;default conservador (R3);;;
+.github/workflows/check-realtime-dead-channels.yml;FICA;Gate vivo de monitoramento: detecta canais realtime mortos e mapeia tabelas zapp->evo no report (linhas 58-60).;cron/CI;;E81
+.github/workflows/db-invariants.yml;FICA;Gate vivo INV-5: exige schema:'evo' nas subscriptions evolution_messages/conversations (linhas 128-135).;PRs;;E81
+.github/workflows/decouple-guard.yml;FICA;Gate de enforcement E22/E46: bloqueia infra/evolution* e regressão do inventory de acoplamento (roda scripts/decouple/inventory.mjs e sql-gate).;PRs;;E81
+.github/workflows/deno-contract-tests.yml;FICA;Contratos vivos, ref 'evo' é só comentário sobre tests evolution-api que leakam (linha 52).;PRs;;E81
+.github/workflows/deploy-vps.yml;FICA;Deploy vivo do zapp, smoke check da edge function evolution-api (linha 385). Comentário linha 42 citando publish-evolution-api-custom é histórico (workflow já migrou p/ evolution-stack).;deploy VPS;;E81
+.github/workflows/e2e-admin-vps.yml;FICA;E2E evolution contract: roda e2e/admin-evolution-api-smoke.spec.ts (linha 79).;E2E VPS;;E81
+.github/workflows/edge-auth-smoke.yml;FICA;Edge function evolution-api mora no zapp, smoke/auth gate protege evolution-api e ai-router (linhas 80, 153).;PRs;;E81
+.github/workflows/evo-ddl-gate.yml;FICA;Gate E42 de enforcement: bloqueia DDL novo em schema evo via scripts/decouple/evo-ddl-gate.mjs + allowlist.;PRs;;E81
+.github/workflows/measure-invariants.yml;FICA;Gate vivo E2/E20: mede os 9 invariantes de desacoplamento ZAPP×Evolution via boundary-audit ONLINE (linhas 41-53).;PRs;;E81
+.github/workflows/post-deploy-check.yml;FICA;Health check pós-deploy vivo: smoke evolution-api/get-media-base64 (linhas 102-104).;deploy VPS;;E81
+.github/workflows/security-invoker-gate.yml;FICA;Gate vivo D-8: consulta evo.v_security_audit e valida security_invoker nas views zapp/evo (linhas 33-147), fail-closed.;PRs;;E81
+.hermes/auditoria-infra/AUDITORIA_TRACKING_EVO_20260806.md;"EXCLUI;REVISAR";working file de sessao [R2: consumidor encontrado: .hermes/execucao-evo-20260806/E10-docs.md, docs/PLANO_CORRECAO_EVO_API_100_ETAPAS_20260806.md];;;
+.hermes/execucao-evo-20260806/E10-docs.md;EXCLUI;working file de sessao;;;
+.hermes/plans/AUDITORIA-ZAPP-SELFHOSTED-2026-08-01.md;"EXCLUI;REVISAR";working file de sessao [R2: consumidor encontrado: .hermes/plans/PLANO-EXECUCAO-MESTRE-2026-08-01.md];;;
+.hermes/plans/fix-console-20260803.md;EXCLUI;working file de sessao;;;
+.hermes/postgrest_exposed_fns.json;EXCLUI;working file de sessao;;;
+.hermes/postgrest_exposure_audit_2026-08-03.md;EXCLUI;working file de sessao;;;
+.hermes/rollback-test/rollback-test-report.md;"EXCLUI;REVISAR";working file de sessao [R2: consumidor encontrado: .hermes/rollback-test/__pycache__/generate_and_test_rollbacks.cpython-311.pyc, .hermes/rollback-test/generate_and_test_rollbacks.py, docs/simulation/2026-08-03_deleted-scripts_50_failure_simulation.md];;;
+.hermes/secddef_exposed_defs.txt;EXCLUI;working file de sessao;;;
+.hermes/security-auth-audit-2026-08-03.md;"EXCLUI;REVISAR";working file de sessao [R2: consumidor encontrado: docs/simulation/2026-08-03_runtime_fixes_60_failure_simulation.md];;;
+.hermes/zapp_exposed_compact.json;EXCLUI;working file de sessao;;;
+.mcp.json.example;FICA;default conservador (R3);;;
+AGENTS.md;FICA;default conservador (R3);;;
+CHANGELOG.md;FICA;default conservador (R3);;;
+CLAUDE.md;FICA;default conservador (R3);;;
+CONTRIBUTING.md;FICA;default conservador (R3);;;
+DECOUPLING.md;FICA;default conservador (R3);;;
+ESTADO.md;FICA;default conservador (R3);;;
+FEATURE_REGISTRY.md;FICA;default conservador (R3);;;
+HERMES.md;FICA;default conservador (R3);;;
+PLANO-ESTADO.md;FICA;default conservador (R3);;;
+README.md;FICA;default conservador (R3);;;
+REGRESSION_SIMULATION_REPORT.md;FICA;default conservador (R3);;;
+RLS_AUDIT_REPORT.md;FICA;default conservador (R3);;;
+VALIDATION_PLAN_50_STEPS.md;FICA;default conservador (R3);;;
+db/migrations/evo/20260808_auditoria_onda4.sql;FICA;R1: migracao imutavel;;;
+db/migrations/supabase/20260808_auditoria_onda4_evo_schema.sql;FICA;R1: migracao imutavel;;;
+db/remediation/consumer-hmac-patch.md;FICA;default conservador (R3);;;
+docs/ADR-003_REPOSITORIO_PRIVADO.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/ADR-004_REVOGA_BUCKET_PUBLICO.md;FICA;ADR de decisão vigente (revogação do bucket público whatsapp-media) com 2 consumidores vivos (INCIDENTE-MEDIA-BUCKET e watchdog-bucket-public), sem duplicata em docs/decisions/ (os ADR-004-* de lá são de outros temas: css-modularization e evolution-api-webhook-bridge) -> mover para docs/decisions/.;docs/INCIDENTE-MEDIA-BUCKET-20260806.md, docs/watchdog-bucket-public-20260806.md;docs/decisions/ADR-004_REVOGA_BUCKET_PUBLICO.md;E28
+docs/AGENT_INSTRUCTIONS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/ANALISE_BACKEND_PROFUNDA.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/API_CONTRACT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/ARCHITECTURE_AND_FLOW.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/ARCHITECTURE_RLS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/ARCHITECTURE_SCHEMAS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/AUDITORIA_BACKEND_SENIOR_2026-07-11.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/AUDITORIA_COMPLETA_ZAPP_WEB.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/AUDITORIA_EVOLUTION_API_ONDA4_20260808.md;ARQUIVA;Auditoria concluída (onda 4, 2026-08-08) sem nenhum link de entrada no repo, histórico puro -> docs/_archive/.;nenhum (0 links de entrada);docs/_archive/AUDITORIA_EVOLUTION_API_ONDA4_20260808.md;E28
+docs/AUDITORIA_FORENSE_20260706.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/AUDITORIA_INFRA_20260806.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/AUDITORIA_LOVABLE_VS_ZAPP_2026-07-04.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/AUDITORIA_PARIDADE_LOVABLE_VS_SELFHOSTED_2026-07-04.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/AUDITORIA_ZAPP_SCHEMA_DASHBOARD_2026-07-04.html;FICA;doc estrutural — revisao Fase 3;;;
+docs/AUDIT_MIGRATION_VS_DB_50_STEPS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/AUDIT_PORTAINER_50_ETAPAS_VALIDACAO.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/AUDIT_REPORT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/AUDIT_REPORT_2026-08-06.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/AUDIT_RUNBOOK_FASE2_RESULTS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/AUDIT_VALIDATION_50_STEPS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/BOUNDARY-evolution.md;"FICA;REVISAR";Doc canonico da fronteira pos-split (2026-08-12/13) com 18 links de entrada, 'I1=0 aceitos (usa nomenclatura P1-P4, nao menciona I1), bridges: sim (1 mencao - ADR-004 bridge webhook, nao bridge views), reconciler: nao' -> nao reflete indicadores I1/reconciler usados nos docs decouple (BOUNDARY_AUDIT;DECOUPLING.md, docs/API_CONTRACT.md, docs/architecture/evolution-api-mapping.md, docs/db/adrs/ADR-DB-002-fronteira-zapp-evo.md, docs/db/EXTERNAL-DEPENDENCIES.md, docs/decisions/ADR-006-two-backend-boundary.md, docs/decouple/AUDITORIA_INDEPENDENCIA_20260815.md, docs/decouple/DOC_UPDATE_ORCHESTRATION_;docs/BOUNDARY-evolution.md;E29
+docs/CHANGELOG_SESSIONS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/CHAOS_ENGINEERING.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/COMPLETE_SYSTEM_FEATURES.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/CONTRACT_TESTING.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/CREDENTIAL-MAP.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/CREDENTIAL_INVENTORY.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/DATABASE_SCHEMA_RULES.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/DATABASE_TABLES_INVENTORY.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/DB_HEALTH_AUDIT_2026-07-30.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/DB_OPTIMIZATION_REPORT_2026-07-30.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/DECISAO_INGESTAO.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/DECISION-repo-oc05-legados.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/DECISION.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/DEPLOYMENT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/DEPLOYMENT_GUIDE.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/DEPLOY_GUIDE.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/DEPLOY_PRODUCAO.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/DOCUMENTATION_CONVENTIONS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/EDGE_CONTRACT_VALIDATION.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/ENV_SETUP.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/ER_DIAGRAM.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/EVOLUTION_API_AUDIT_2026-07-03.md;"ARQUIVA;REVISAR";Auditoria histórica sessão 1 (2026-07-03), todos os 8 consumidores são docs da mesma série de auditoria (followup, scorecard, sessao3/4/6, 07-10 sessao5/8 tabela índice), zero refs em EVOLUTION_API_REFERENCE/API_CONTRACT/AGENT_INSTRUCTIONS, src/, scripts/ ou .github/ [R2: consumidor encontrado: docs;docs/EVOLUTION_API_AUDIT_2026-07-04_followup.md, _scorecard.md, _sessao3.md, _sessao4.md, 2026-07-05_sessao6.md, 2026-07-10_sessao5.md:447, 2026-07-10_sessao8.md:448 (todos mesma série histórica);docs/_archive/EVOLUTION_API_AUDIT_2026-07-03.md;E13
+docs/EVOLUTION_API_AUDIT_2026-07-04_followup.md;"ARQUIVA;REVISAR";Auditoria de acompanhamento sessão 2 (2026-07-04), consumidores apenas docs irmãos da série (07-03, scorecard, sessao3/4), nenhum consumidor vivo em REFERENCE/API_CONTRACT/src/scripts/.github [R2: consumidor encontrado: docs/EVOLUTION_API_AUDIT_2026-07-03.md, docs/EVOLUTION_API_AUDIT_2026-07-04_scor;docs/EVOLUTION_API_AUDIT_2026-07-03.md:336, _scorecard.md:7, _sessao3.md:12, _sessao4.md:12 (mesma série);docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_followup.md;E13
+docs/EVOLUTION_API_AUDIT_2026-07-04_scorecard.md;"ARQUIVA;REVISAR";Scorecard final sessão 3 (2026-07-04), consumidores apenas sessao4, sessao5 e 07-05_sessao6_webhook-eventos-glitchtip (todas da série de auditoria), sem consumidor vivo [R2: consumidor encontrado: docs/EVOLUTION_API_AUDIT_2026-07-04_sessao4.md, docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5.md, docs/EV;docs/EVOLUTION_API_AUDIT_2026-07-04_sessao4.md:14, _sessao5.md:14, 2026-07-05_sessao6_webhook-eventos-glitchtip.md:21 (mesma série);docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_scorecard.md;E14
+docs/EVOLUTION_API_AUDIT_2026-07-04_sessao3.md;"ARQUIVA;REVISAR";Auditoria exaustiva sessão 3 (2026-07-04), consumidores apenas sessao4, sessao5, EXECUCAO_sessao4 e tabelas índice dos docs 07-10_sessao5/sessao8, sem consumidor vivo [R2: consumidor encontrado: docs/EVOLUTION_API_AUDIT_2026-07-04_sessao4.md, docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5.md, docs/EVOL;docs/EVOLUTION_API_AUDIT_2026-07-04_sessao4.md:13, _sessao5.md:11, EXECUCAO_2026-07-04_sessao4.md:6, 07-10_sessao5.md:448, 07-10_sessao8.md:449 (mesma série);docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_sessao3.md;E14
+docs/EVOLUTION_API_AUDIT_2026-07-04_sessao4.md;"ARQUIVA;REVISAR";Auditoria noturna sessão 4 (2026-07-04), consumidores apenas sessao5, EXECUCAO_sessao5_infra e tabelas índice 07-10_sessao5/sessao8 (mesma série), sem consumidor vivo [R2: consumidor encontrado: docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5.md, docs/EVOLUTION_API_AUDIT_2026-07-10_sessao5.md, docs/EVOL;docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5.md:12, EXECUCAO_2026-07-04_sessao5_infra.md:19, 07-10_sessao5.md:449, 07-10_sessao8.md:450 (mesma série);docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_sessao4.md;E15
+docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5.md;"ARQUIVA;REVISAR";Auditoria sessão 5 manhã (2026-07-04), consumidores apenas 07-05_sessao6_webhook-eventos-glitchtip e EXECUCAO_sessao5_infra (mesma série), sem consumidor vivo [R2: consumidor encontrado: docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md, docs/EVOLUTION_API_EXECUCAO_2026-07-04_;docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md:22, EXECUCAO_2026-07-04_sessao5_infra.md:18 (mesma série);docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_sessao5.md;E16
+docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5_wpp2.md;"ARQUIVA;REVISAR";Auditoria conexão WPP2 sessão 5 (2026-07-04), consumidores apenas 07-05_sessao6_webhook, 07-05_sessao7 e EXECUCAO_sessao5 (mesma série), sem consumidor vivo [R2: consumidor encontrado: docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md, docs/EVOLUTION_API_AUDIT_2026-07-05_sessa;docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md:23, 2026-07-05_sessao7.md:22, EXECUCAO_2026-07-04_sessao5.md:5 (mesma série);docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_sessao5_wpp2.md;E16
+docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6.md;"ARQUIVA;REVISAR";Relatório de sessão de auditoria histórica (banner 'DOCUMENTO HISTÓRICO', achados S6-1..N já corrigidos/tratados em 2026-07-05) sem consumidor vivo: únicos links são dos próprios docs-irmãos de auditoria EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md:4 e EVOLUTION_API_AUDIT_2026;['docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md:4 (link)', 'docs/EVOLUTION_API_AUDIT_2026-07-05_sessao7.md:7,23 (links)'];docs/_archive/EVOLUTION_API_AUDIT_2026-07-05_sessao6.md;E17
+docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md;"ARQUIVA;REVISAR";Relatório de sessão com correções já aplicadas e verificadas (drift de inscrição 15->26 eventos, restart GlitchTip, paridade do webhook secret), não é o contrato vivo de ingestão (esse vive em EVOLUTION_API_REFERENCE.md, que não linka sessoes) e seu único consumidor é docs/decouple/VAULT_DEDUP_ANALY;['docs/decouple/VAULT_DEDUP_ANALYSIS.md:79,143,162 (citações de evidência, artefato fase-3 EXECUTADO)'];docs/_archive/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md;E17
+docs/EVOLUTION_API_AUDIT_2026-07-05_sessao7.md;"ARQUIVA;REVISAR";Relatório de sessão de auditoria histórica (banner 'DOCUMENTO HISTÓRICO', 9 achados de 2026-07-05, correções aplicadas ou gated) sem NENHUM consumidor em docs/ (grep do basename só retorna o próprio arquivo), sucessor ONDA4 não referencia. [R2: consumidor encontrado: supabase/functions/whatsapp-clou;nenhum;docs/_archive/EVOLUTION_API_AUDIT_2026-07-05_sessao7.md;E18
+docs/EVOLUTION_API_AUDIT_2026-07-10_sessao5.md;EXCLUI;Duplicado com canônico identificado: diff vs EVOLUTION_API_AUDIT_2026-07-10_sessao8.md mostra conteúdo ~idêntico (456 linhas, diferenças só no título 'Sessão 5'->'Sessão 8 — Validação Pós-S4', nota de sessões anteriores, redação de target_jid/URL do webhook e rodapé) — sessao8 é a versão renomeada e;nenhum;;E18
+docs/EVOLUTION_API_AUDIT_2026-07-10_sessao8.md;ARQUIVA;Relatório de validação pós-S4 (13/13 correções confirmadas, 2026-07-10) sem consumidor em docs/ (grep do basename só retorna o próprio), versão canônica redigida do par sessao5/sessao8 — histórico com valor de registro.;nenhum;docs/_archive/EVOLUTION_API_AUDIT_2026-07-10_sessao8.md;E18
+docs/EVOLUTION_API_AUDIT_2026-07-12_sessao10.md;ARQUIVA;Relatório de auditoria de infra VPS (3 stacks Evolution, 2026-07-12, gaps I-1..I-4 registrados para ação manual) sem consumidor em docs/ (grep só retorna o próprio arquivo), registro histórico da série, sucedido pela ONDA4.;nenhum;docs/_archive/EVOLUTION_API_AUDIT_2026-07-12_sessao10.md;E19
+docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao4.md;"ARQUIVA;REVISAR";Execução de melhorias FMEA+9 itens sessão 4 (2026-07-04), consumidores apenas sessao5 audit, sessao5_wpp2 (tabela cronológica) e VALIDACAO_2026-07-10_sessao5 (todas da série), sem consumidor vivo [R2: consumidor encontrado: docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5.md, docs/EVOLUTION_API_AUDIT_202;docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5.md:13, _sessao5_wpp2.md:30, EVOLUTION_API_VALIDACAO_2026-07-10_sessao5.md:7 (mesma série);docs/_archive/EVOLUTION_API_EXECUCAO_2026-07-04_sessao4.md;E15
+docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao5.md;"ARQUIVA;REVISAR";Execução FMEA+8 itens sessão 5 trilha código (2026-07-04), único consumidor é EXECUCAO_sessao5_infra (mesma série, também sendo migrado/arquivado), sem consumidor vivo [R2: consumidor encontrado: docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao5_infra.md];docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao5_infra.md:8 (mesma série);docs/_archive/EVOLUTION_API_EXECUCAO_2026-07-04_sessao5.md;E16
+docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao5_infra.md;MIGRA;Execução trilha INFRA/DB sessão 5 (GlitchTip, retenção _analytics, drift backups, secrets, registry, ghost alert) — dono é a infra Evolution, zero consumidores no zapp, NENHUM equivalente no clone evolution-stack (grep '11 workstreams'/'trilha INFRA/DB'/'sessao5_infra' sem hits em docs/ ou raiz);nenhum;docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao5_infra.md;E16
+docs/EVOLUTION_API_FMEA_2026-07-04.md;"MIGRA;REVISAR";FMEA é referência viva para operação da API Evolution, dono é a infra Evolution, não o zapp (pós-desacoplamento 2026-08-12). [R2: consumidor encontrado: docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md, docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao5_infra.md];docs/AUDITORIA_EVOLUTION_API_ONDA4_20260808.md, docs/EVOLUTION_API_AUDIT_2026-07-04_scorecard.md, docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md, docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao4.md, docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao5.md, docs/EVOLUTION_API_EXECUCA;evolution-stack/docs/EVOLUTION_API_FMEA.md;E20
+docs/EVOLUTION_API_GAPS_ANALYSIS.md;ARQUIVA;Snapshot de 2026-04-12 (Evolution API v1.0.1) superseded: todos os gaps listados têm evidência de fechamento no repo (HMAC em supabase/functions/evolution-webhook e recheck-webhook-signature, DLQ+backoff em _shared/dlq-backoff.ts e enqueue-failed-message.ts, reconciliação em src/features/inbox/hooks;docs/EVOLUTION_API_AUDIT_2026-07-10_sessao5.md (sessão de auditoria histórica);docs/_archive/EVOLUTION_API_GAPS_ANALYSIS.md;E22
+docs/EVOLUTION_API_REFERENCE.md;FICA;versao citada: Evolution API v2.x (2025) - doc.evolution-api.com/v2, contrato vivo com 8 links de entrada incluindo README.md e CLAUDE.md.;CLAUDE.md, README.md, docs/README.md, docs/WEBHOOK_EVENTS.md, docs/DOCUMENTATION_CONVENTIONS.md, docs/AUDIT_MIGRATION_VS_DB_50_STEPS.md, docs/decouple/DOC_UPDATE_ORCHESTRATION_20260814.md, docs/decouple/SIMULATION_SCENARIOS_20260814.md;docs/EVOLUTION_API_REFERENCE.md;E21
+docs/EVOLUTION_API_VALIDACAO_2026-07-10_sessao5.md;ARQUIVA;Relatório de validação exaustiva 60/60 testes (2026-07-10, bug DLQ corrigido) sem consumidor em docs/ (grep do basename só retorna o próprio arquivo), histórico de auditoria com valor de registro.;nenhum;docs/_archive/EVOLUTION_API_VALIDACAO_2026-07-10_sessao5.md;E19
+docs/EXECUCAO_MELHORIAS_EVO_2026-07-10.md;ARQUIVA;Registro histórico de execução de melhorias (2026-07-10), sem consumidor vivo.;.hermes/execucao-evo-20260806/E10-docs.md (artefato de plano de orquestração, não-doc vivo);docs/_archive/EXECUCAO_MELHORIAS_EVO_2026-07-10.md;E23
+docs/EXECUCAO_MELHORIAS_PARIDADE_2026-07-04.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/EXHAUSTIVE_QA_FINAL_REPORT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/EXHAUSTIVE_VALIDATION_REPORT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/FE_BE_SYNC_REPORT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/FINAL_REPORT_10_10.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/FRONTEND_CONTRACT_AUDIT_2026-07-09.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/FUNCTIONALITIES_INVENTORY.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/GOD_FILE_DECOMPOSITION.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/HANDOFF-LID-S14-20260811.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/HANDOFF_DOCUMENT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/HANDOFF_EVOLUTION_SECURITY_2026-04-12.md;"ARQUIVA;REVISAR";Handoff antigo (2026-04-12) superado pelo desacoplamento, unico link de entrada e SIMULATION_SCENARIOS_20260814.md (cenarios de simulacao, nao contrato vivo) -> historico em docs/_archive/. [R2: consumidor encontrado: docs/decouple/SIMULATION_SCENARIOS_20260814.md];docs/decouple/SIMULATION_SCENARIOS_20260814.md;docs/_archive/HANDOFF_EVOLUTION_SECURITY_2026-04-12.md;E28
+docs/INCIDENT-2026-07-26-PIPELINE-SECURITY.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/INCIDENT-RUNBOOK.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/INCIDENTE-EVOLUTION-20260806.md;"MIGRA;REVISAR";Registro de incidente da infra Evolution (wpp2 deslogado 05/08-06/08), dono é o evolution-stack, não o zapp. [R2: consumidor encontrado: .hermes/execucao-evo-20260806/E10-docs.md, docs/PLANO-B-BAILEYS-6.7.24.md, docs/PLANO_CORRECAO_EVO_API_100_ETAPAS_20260806.md];.hermes/execucao-evo-20260806/E10-docs.md, docs/PLANO-B-BAILEYS-6.7.24.md, docs/PLANO_CORRECAO_EVO_API_100_ETAPAS_20260806.md (também migrando), graphify-out/manifest.json (gerado);docs/INCIDENTE-EVOLUTION-20260806.md;E25
+docs/INCIDENTE-MEDIA-BUCKET-20260806.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/INCIDENT_RUNBOOK.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/INCIDENT_SECURITY_TOKEN_2026-07-26.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/INFRA.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/INTEGRATION_INVARIANTS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/INVENTARIO_INFRA.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/KONG_URL_ROOT_CAUSE.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/LGPD-INCIDENTE-2026-07-26.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/LGPD_IMPACT_ASSESSMENT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/MCP_INVESTIGATION_REPORT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/MIGRACAO_SYNC_ZAPP_2026-07-01.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/ONBOARDING.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/OPERACAO_BUILD_DEPLOY_V3.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/PERFORMANCE_GUIDE.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/PLANO-B-BAILEYS-6.7.24.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/PLANO_CORRECAO_EVO_API_100_ETAPAS_20260806.md;"MIGRA;REVISAR";Plano de correção da infra Evolution (100 etapas, rodada 2026-08-06) já concluído, dono é o evolution-stack, vai para docs/history/ no repo destino. [R2: consumidor encontrado: .hermes/auditoria-infra/AUDITORIA_TRACKING_EVO_20260806.md];.hermes/auditoria-infra/AUDITORIA_TRACKING_EVO_20260806.md, docs/audits/HANDOFF_REVISAO_BACKLOG.md, INDICE_ACHADOS.md, PLANO_IMPLEMENTACAO_100.md, PROMPT_AGENTE_LOCAL_CORRECAO.md, PROMPT_ETAPA_2.md, PROMPT_ETAPA_3.md, PROMPT_LOTE_C_F7.md, RELATORIO_CORRECAO.md, docs/SCHEMA_REFERENCE.md (menções nomi;docs/history/PLANO_CORRECAO_EVO_API_100_ETAPAS_20260806.md;E24
+docs/PORTAINER_ZAPP_FOOTPRINT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/QA_REPORT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/QA_REPORT_2026-07-22.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/QA_REPORT_V2.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/README.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/REALTIME-CHANNELS-INVENTORY.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/REFACTORING.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/REFACTOR_PLAN.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/REMEDIACAO_EVO_API_2026-07-12.md;ARQUIVA;Execução de remediação da auditoria de 2026-07-12, histórico concluído sem contrato vivo, vai para docs/_archive/.;.hermes/execucao-evo-20260806/E10-docs.md, graphify-out/manifest.json (gerado);docs/_archive/REMEDIACAO_EVO_API_2026-07-12.md;E27
+docs/RETRO_PLANO_100_ETAPAS_20260805.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/RETRO_PLANO_30_ETAPAS_20260806.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/RLS-AUDIT-MATRIX.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/ROADMAP_10_10.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/ROLLBACK_PLANO_100_ETAPAS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/RPC_STUBS_STATUS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/RUNBOOK.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/RUNBOOK_401_WORKERS_EVOLUTION_20260806.md;"MIGRA;REVISAR";Runbook de operação/diagnóstico de 401s na Evolution API (callers externos), dono é o evolution-stack. [R2: consumidor encontrado: .hermes/execucao-evo-20260806/E10-docs.md, docs/PLANO_CORRECAO_EVO_API_100_ETAPAS_20260806.md, docs/RUNBOOK_MEDIA_REFRESH_400_20260806.md];.hermes/execucao-evo-20260806/E10-docs.md, docs/PLANO_CORRECAO_EVO_API_100_ETAPAS_20260806.md (também migrando), docs/RUNBOOK_MEDIA_REFRESH_400_20260806.md, graphify-out/manifest.json (gerado);docs/RUNBOOK_401_WORKERS_EVOLUTION_20260806.md;E25
+docs/RUNBOOK_DISASTER_RECOVERY.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/RUNBOOK_DR_EVO_20260806.md;EXCLUI;Duplicata antiga (06/08, 5,9KB) superada pelo canônico docs/runbook-evolution/DR_RUNBOOK_EVO.md (12/08, 24KB, +238/-64 no diff): canônico corrige erro crítico (sessão fica no Redis DB 8, não na tabela Session do PG — root está errado), adiciona checksums sha256, PITR pgBackRest e RPO/RTO medidos, ro;graphify-out/manifest.json (artefato gerado, não-consumidor real), nenhum .md de docs/ ou src/ referencia;;E26
+docs/RUNBOOK_MEDIA_REFRESH_400_20260806.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/RUNBOOK_OBSERVABILITY.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/RUNBOOK_WA_BUSINESS_ACTIVATION.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/SCHEMA_DISCREPANCY_REPORT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/SCHEMA_REFERENCE.md;FICA;doc vivo de fronteira — revisao manual E20/E21/E29;;;
+docs/SCHEMA_SNAPSHOT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/SECRETS-ROTATION-RUNBOOK.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/SECURITY_HARDENING.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/SIMULACAO_CENARIOS_EVO_2026-07-10.md;"ARQUIVA;REVISAR";Registro histórico de simulação de cenários (2026-07-10), único link de entrada é o irmão EXECUCAO_MELHORIAS_EVO também arquivado. [R2: consumidor encontrado: docs/EXECUCAO_MELHORIAS_EVO_2026-07-10.md];docs/EXECUCAO_MELHORIAS_EVO_2026-07-10.md (irmão, também ARQUIVA);docs/_archive/SIMULACAO_CENARIOS_EVO_2026-07-10.md;E23
+docs/SIMULATION_REPORT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/STRICT_MODE_BACKLOG.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/SUPABASE_SCHEMA_AUDIT_2026-07-15.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/TECHNICAL_DOCUMENTATION.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/TESTE_EXAUSTIVO_2026-07-15.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/TROUBLESHOOTING.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/TS_NOCHECK_CLEANUP.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/VALIDACAO_CORRECOES_2026-08-05.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/VALIDATION_PLAN_50_STEPS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/VALIDATION_REPORT_CHATPANEL_2026-08-01.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/VPS_SETUP_RUNBOOK.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/WEBHOOK_EVENTS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/WEBHOOK_SECURITY.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/_archive/AUDITORIA_EVO_API_2026-07-10.md;FICA;ja em archive;;;
+docs/_archive/AUDITORIA_EVO_API_2026-07-12.md;FICA;ja em archive;;;
+docs/_archive/AUDITORIA_EXAUSTIVA_2026-07-12.md;FICA;ja em archive;;;
+docs/_archive/AUDITORIA_EXAUSTIVA_2026-07-16.md;FICA;ja em archive;;;
+docs/_archive/cutover-reports/ts-nocheck-batch-2026-07-15T13-39-30-705Z.md;FICA;ja em archive;;;
+docs/_archive/cutover-reports/ts-nocheck-batch-2026-07-15T13-39-46-339Z.md;FICA;ja em archive;;;
+docs/_archive/cutover-reports/ts-nocheck-batch-2026-07-15T13-40-03-725Z.md;FICA;ja em archive;;;
+docs/_archive/cutover-reports/ts-nocheck-batch-2026-07-15T13-40-18-958Z.md;FICA;ja em archive;;;
+docs/_archive/cutover-reports/ts-nocheck-batch-2026-07-15T13-40-40-092Z.md;FICA;ja em archive;;;
+docs/_archive/cutover-reports/ts-nocheck-batch-2026-07-15T13-41-31-506Z.md;FICA;ja em archive;;;
+docs/_archive/cutover-reports/ts-nocheck-batch-2026-07-15T20-01-22-112Z.md;FICA;ja em archive;;;
+docs/_archive/cutover-reports/ts-nocheck-batch-2026-07-15T20-32-27-612Z.md;FICA;ja em archive;;;
+docs/adr/ADR-001-media-url-storage.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/adr/ADR-002-bucket-public.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/adr/ADR-006-arquitetura-sla-canonica.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/architecture/ARQUITETURA_INSTANCIAS_TRANSFERENCIAS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/architecture/JORNADA_MENSAGEM_WHATSAPP.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/architecture/SELF-HOSTED-DATABASE-GUIDE.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/architecture/edge-functions.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/architecture/evolution-api-mapping.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/arquitetura/adr-005-unicidade-contatos.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/arquitetura/edge-auth.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/arquitetura/zapp-facade-layer.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audit-2026-08-06/EXECUTIVE_SUMMARY.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audit-2026-08-06/RECONCILIATION_MATRIX.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audit-2026-08-06/VALIDATION_PLAN_100_STEPS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audit-2026-08-06/reconciliation.csv;FICA;doc estrutural — revisao Fase 3;;;
+docs/audit-2026-08-06/reconciliation.json;FICA;doc estrutural — revisao Fase 3;;;
+docs/audit/FINAL_AUDIT_REPORT_2026-08-03.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audit/SECURITY_AUDIT_BANCO_2026-08-03.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audit/feature-registry-2026-08-04/FEATURE_REGISTRY.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audit/feature-registry-2026-08-04/SUMARIO_EXECUTIVO.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audit/feature-registry-2026-08-04/feature_registry.csv;FICA;doc estrutural — revisao Fase 3;;;
+docs/audit/feature-registry-2026-08-04/feature_registry.json;FICA;doc estrutural — revisao Fase 3;;;
+docs/auditoria-frontend-media-20260806.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/auditoria-media-producers-20260806.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/AUDITORIA_EXECUCAO.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/AUDITORIA_FINAL_20_ETAPAS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/HANDOFF_BLOCO_9A.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/HANDOFF_REVISAO_BACKLOG.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/INDICE_ACHADOS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/PLANO30_DIAGNOSTICO_REAL.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/PLANO_CORRECAO_20_ETAPAS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/PLANO_IMPLEMENTACAO_100.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/PLANO_QA_ANALISE_100.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/PROMPT_AGENTE_LOCAL_CORRECAO.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/PROMPT_ETAPA_3.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/PROMPT_LOTE_C_F7.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/REALTIME_CHANNELS_AUDIT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/RELATORIO_CORRECAO.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/RELATORIO_EXECUCAO_ANALISE.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/REVISAO_BACKLOG_172.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/SUPLEMENTO_AUDITORIA_2026-08-02.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/circuit-breakers-inventory.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/connection-creation-flow.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/crons-inventory.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/history/CI_COST_ANALYSIS_REPORT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/history/FLUXO_CLIQUE_CHATPANEL.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/history/QUALITY_METRICS_REPORT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/history/audit-summary.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/history/auditoria-edge-functions.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/history/auditoria_tabelas_zapp.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/history/data-loss-simulation-report.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/history/evolution-api-audit-report.md;"ARQUIVA;REVISAR";historico de auditoria/incidente (Fase 2 confirma) [R2: consumidor encontrado: docs/audits/PLANO_QA_ANALISE_100.md];;;
+docs/audits/history/health-check-banco-2026-07-30.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/retry-backoff-inventory.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/simulation-consolidated-2026-07-12.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/triggers-whatsapp-connections.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/audits/whatsapp-flow-simulation.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/baseline-edge-tests-20260806.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/csp.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/cutover/2026-06-30_RUNBOOK.md;"ARQUIVA;REVISAR";Runbook de cutover 2026-06-30 marcado 'DOCUMENTO HISTÓRICO' — cutover concluído 2026-07-15, superseded por SCHEMA_REFERENCE. [R2: consumidor encontrado: supabase/config.toml];— (sem links externos, banner aponta p/ docs/SCHEMA_REFERENCE.md);docs/_archive/cutover-reports/;E83
+docs/cutover/2026-07-15_final_report.md;ARQUIVA;Relatório final 'Rumo a 10/10' da consolidação zapp/evo 2026-07-15 — relatório de execução concluída.;— (sem links externos);docs/_archive/cutover-reports/;E83
+docs/cutover/2026-07-15_schema_audit.md;"ARQUIVA;REVISAR";Auditoria de BD/Schema 2026-07-15 com nota histórica (FATOR X descomissionado) — auditoria concluída. [R2: consumidor encontrado: docs/cutover/2026-07-15_final_report.md, supabase/migrations/20260804000000_canonical_schema_squash_133_migrations.sql];docs/cutover/2026-07-15_final_report.md;docs/_archive/cutover-reports/;E83
+docs/cutover/2026-07-15_simulation_report.md;"ARQUIVA;REVISAR";Relatório de simulação ~300 cenários de acesso zapp/evo 2026-07-15 — simulação concluída pós-cutover. [R2: consumidor encontrado: docs/cutover/2026-07-15_final_report.md];docs/cutover/2026-07-15_final_report.md;docs/_archive/cutover-reports/;E83
+docs/cutover/2026-07-15_wave_next_gaps.md;ARQUIVA;Auditoria da onda 'Rumo a 10/10' (Fase 0→5) 2026-07-15 — relatório de auditoria concluído.;— (sem links externos);docs/_archive/cutover-reports/;E83
+docs/cutover/GAP_REPORT.md;ARQUIVA;GAP REPORT Lovable Cloud → Self-Hosted 2026-07-16 — relatório de auditoria da migração concluída.;— (sem links externos, referencia cloud-tables/db_sweep/rpcs/tables internos);docs/_archive/cutover-reports/;E83
+docs/cutover/cloud-tables.txt;"ARQUIVA;REVISAR";Lista de tabelas cloud Lovable do cutover — artefato de inventário da migração concluída. [R2: consumidor encontrado: docs/cutover/GAP_REPORT.md];docs/cutover/GAP_REPORT.md;docs/_archive/cutover-reports/;E83
+docs/cutover/db_old_reference_sweep.md;"ARQUIVA;REVISAR";Sweep de referências antigas 2026-06-30 marcado 'DOCUMENTO HISTÓRICO' — cutover concluído. [R2: consumidor encontrado: docs/cutover/GAP_REPORT.md];docs/cutover/GAP_REPORT.md;docs/_archive/cutover-reports/;E83
+docs/cutover/realtime_readiness.md;ARQUIVA;Verdict de readiness realtime 2026-06-30 pré-cutover — veredito de execução concluída (cutover feito 07-15).;— (sem links externos);docs/_archive/cutover-reports/;E83
+docs/cutover/repo-edge-functions.txt;"ARQUIVA;REVISAR";Lista de edge functions do repo — artefato de inventário da migração concluída. [R2: consumidor encontrado: docs/cutover/GAP_REPORT.md];docs/cutover/GAP_REPORT.md;docs/_archive/cutover-reports/;E83
+docs/cutover/selfhosted-zapp-rpcs.txt;"ARQUIVA;REVISAR";Lista de RPCs self-hosted zapp — artefato de inventário da migração concluída. [R2: consumidor encontrado: docs/cutover/GAP_REPORT.md];docs/cutover/GAP_REPORT.md;docs/_archive/cutover-reports/;E83
+docs/cutover/selfhosted-zapp-tables.txt;"ARQUIVA;REVISAR";Lista de tabelas self-hosted zapp — artefato de inventário da migração concluída. [R2: consumidor encontrado: docs/cutover/GAP_REPORT.md];docs/cutover/GAP_REPORT.md;docs/_archive/cutover-reports/;E83
+docs/cutover/ts-nocheck-batch-2026-07-15T13-39-30-705Z.md;EXCLUI;duplicata identica de docs/_archive/cutover-reports/ (diff -q = 0);docs/cutover/2026-07-15_ts-nocheck-wave1.md, duplicata já arquivada em docs/_archive/cutover-reports/;;E93
+docs/cutover/ts-nocheck-batch-2026-07-15T13-39-46-339Z.md;EXCLUI;duplicata identica de docs/_archive/cutover-reports/ (diff -q = 0);;;E93
+docs/cutover/ts-nocheck-batch-2026-07-15T13-40-03-725Z.md;EXCLUI;duplicata identica de docs/_archive/cutover-reports/ (diff -q = 0);;;E93
+docs/cutover/ts-nocheck-batch-2026-07-15T13-40-18-958Z.md;EXCLUI;duplicata identica de docs/_archive/cutover-reports/ (diff -q = 0);;;E93
+docs/cutover/ts-nocheck-batch-2026-07-15T13-40-40-092Z.md;EXCLUI;duplicata identica de docs/_archive/cutover-reports/ (diff -q = 0);;;E93
+docs/cutover/ts-nocheck-batch-2026-07-15T13-41-31-506Z.md;EXCLUI;duplicata identica de docs/_archive/cutover-reports/ (diff -q = 0);;;E93
+docs/cutover/ts-nocheck-batch-2026-07-15T20-01-22-112Z.md;EXCLUI;duplicata identica de docs/_archive/cutover-reports/ (diff -q = 0);;;E93
+docs/cutover/ts-nocheck-batch-2026-07-15T20-32-27-612Z.md;EXCLUI;duplicata identica de docs/_archive/cutover-reports/ (diff -q = 0);;;E93
+docs/dados/lovable-policies-referencia-20260801.json;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/AGENTS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/ARCHITECTURE.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/BACKCOMPAT-VIEWS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/CRONS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/DATABASE.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/DDL-FREEZE-POLICY.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/EXTERNAL-DEPENDENCIES.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/FUNCTIONS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/INDEXES.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/ONBOARDING.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/PARTITIONS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/PLANO-DB-50-ETAPAS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/PR-CHECKLIST.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/R25-P2-9-SECDEF-316-AUDIT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/SCHEMA-CONTRACT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/WAVE5-ROADMAP.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/adrs/ADR-DB-001-schema-public-destino.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/adrs/ADR-DB-002-fronteira-zapp-evo.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/adrs/ADR-DB-004-fks-zapp-evo-e-cross-modulo.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/schemas/README.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/schemas/evo.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/schemas/public.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/db/schemas/zapp.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/decisions/ADR-004-evolution-api-webhook-bridge.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/decisions/ADR-005-audit-recovery-model.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/decisions/ADR-006-two-backend-boundary.md;FICA;doc vivo de fronteira — revisao manual E20/E21/E29;;;
+docs/decisions/ADR-007-audit-recovery-model.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/decouple/ADR-008-canonical-domain-model.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/ADR-009-gateway-pattern.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/ADR-010-sql-gateway.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/ADR-011-egress-gateway.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/ADR-012-T0-MEASUREMENT.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/ADR-013-PHASE1-PLAN.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/ADR-014-PHASE2-PLAN.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/ADR-015-evo-schema-owner.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/ADR-017-corte-fisico-evo.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/ADR-I4-E73-E77-PLANO-JANELA.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/ADR-I4-ROTA-A-MANTIDA.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/AGENTES_LANES.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/ANALISE_FRONTEIRA_EVO_ZAPP_20260815.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/AUDITORIA_INDEPENDENCIA_20260815.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/BASELINE.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/BASELINE_V4.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/BOUNDARY_AUDIT_V2.md;FICA;doc vivo de fronteira — revisao manual E20/E21/E29;;;
+docs/decouple/BOUNDARY_SCORE_T0.json;FICA;doc vivo de fronteira — revisao manual E20/E21/E29;;;
+docs/decouple/BOUNDARY_SCORE_T1.json;FICA;doc vivo de fronteira — revisao manual E20/E21/E29;;;
+docs/decouple/BOUNDARY_SCORE_T2.json;FICA;doc vivo de fronteira — revisao manual E20/E21/E29;;;
+docs/decouple/BOUNDARY_SCORE_T3.json;FICA;doc vivo de fronteira — revisao manual E20/E21/E29;;;
+docs/decouple/BOUNDARY_SCORE_T4.json;FICA;doc vivo de fronteira — revisao manual E20/E21/E29;;;
+docs/decouple/BOUNDARY_SCORE_T5.json;FICA;doc vivo de fronteira — revisao manual E20/E21/E29;;;
+docs/decouple/CANONICAL_COLUMN_MAP.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/CENARIOS_V4_LOG.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/CHECKLIST_EXECUCAO_ONDAS_20260816.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/CI_GATES_V4.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/CLASSIFICATION_A_B.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/CLOUD_CLIENT.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/CONTRACT_SURFACE_V1.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/CONTRACT_WRITE_EVO_TO_ZAPP.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/CONTRACT_WRITE_ZAPP_TO_EVO.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/COVERAGE_V4.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/CREDENTIAL_BOUNDARY.md;FICA;doc vivo de fronteira — revisao manual E20/E21/E29;;;
+docs/decouple/CRON_FAILURES_7D.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/DECOUPLING.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/DOC_UPDATE_ORCHESTRATION_20260814.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/E25-I1-I2-AUDIT.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/E25-I3-REMOVAL-PLAN.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/E25-I4-CORRECTION-PLAN.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/E41-I9-FK-REMOVAL-PLAN.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/E49_CLASSIFICACAO_FNS_20260815.json;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/E59_E60_MOVE_LOG.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/E62_REPOINT_LOG.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/E6_PLANO_PGBACKREST_SUPABASE.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/E93_RELATORIO_CAMADAS.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/EGRESS_SURFACE_V4.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/ENSAIO_F5_OPERACIONAL_20260815.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/ENSAIO_TROCA_PROVIDER_MEDIDO.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/ENSAIO_V4_LOG.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/EVO_GRANTS_AUDIT_20260815.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/EVO_MIGRATION_SPLIT.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/EVO_RETIREMENT_V4.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/FUNCTIONS_CLASSIFICATION.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/HANDOFF.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/HANDOFF_EXAUSTIVO_20260813.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/HANDOFF_FINAL_20260813.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/HANDOFF_POS_DESACOPLAMENTO_20260813.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/INDICES_CLEANUP_PROPOSTA.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/LOTE4_FASE2_LOG.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/LOTE5_LOG.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/LOTE6_7_8_LOG.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/LOTE9_LOG.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/PAUSE_INGEST.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/PHYS_REFS_MAP.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/PLANO_DESACOPLAMENTO_100_ETAPAS.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/PLANO_DESACOPLAMENTO_V2_100_ETAPAS.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/PLANO_DESACOPLAMENTO_V3_100_ETAPAS.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/PLANO_DESACOPLAMENTO_V4_100_ETAPAS_20260814.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/PLANO_DESACOPLAMENTO_V4_CLAUDE_100_ETAPAS_20260814.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/PLANO_DESACOPLAMENTO_V4_FINAL_100_ETAPAS_20260814.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/PLANO_INDEPENDENCIA_100_ETAPAS_20260815.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/PREFLIGHT_CHECKLIST.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/README.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/RETROSPECTIVA_FINAL_100_ETAPAS.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/RETRO_V2.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/ROLLBACK_TRIGGERS.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/ROTINA_TRIMESTRAL.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/RPC_AUDIT_V4.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/RUNBOOK_TROCA_PROVIDER.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/SCORECARD_V3.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/SCORECARD_V4.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/SEARCHPATH_AUDIT_20260815.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/SIMULATION_REPORT.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/SIMULATION_SCENARIOS_20260814.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/SUBSTITUABILITY_MATRIX_V4.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/VALIDACAO_EXECUCAO_PLANO_20260815.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/VALIDACAO_POS_MOVE_I4_20260816.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/VALIDACAO_V3.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/VAULT_DEDUP_ANALYSIS.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/VAULT_SECRETS_V4.md;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/baseline/20260815/cron_jobs.json;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/baseline/20260815/cross_schema_fks.json;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/baseline/20260815/evo_zapp_refs.json;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/baseline/20260815/zapp_evo_refs.json;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/graveyard_E50_20260815.sql;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/schema-registry/evo.json;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/decouple/schema-registry/zapp.json;FICA;registro do plano 100E (vivo ate fechar);;;
+docs/edge/inventario-109.csv;FICA;doc estrutural — revisao Fase 3;;;
+docs/edge/reconciliacao-2026-08.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/edge/relatorio-e0-2026-08-01.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/edge/relatorio-e4-2026-08-01.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/estado/01-frontend.md;FICA;Inventário vigente do frontend (shell/roteamento), auditado 2026-08-09, commit 2026-08-16 — descreve o sistema atual.;— (parte do inventário docs/estado);;E83
+docs/estado/02-features-batch1.md;FICA;Inventário vigente de features pequenas (business-logic), auditado 2026-08-09 — estado atual do sistema.;— (parte do inventário docs/estado);;E83
+docs/estado/03-features-batch2.md;FICA;Inventário vigente features contacts/connections/sla, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/05-features-admin.md;FICA;Inventário vigente do módulo admin (DLQ, retry Evolution API), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/06-features-inbox-hooks.md;FICA;Inventário vigente dos hooks do inbox (orquestração WhatsApp/Evolution API), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/07-features-inbox-services.md;FICA;Inventário vigente dos services do inbox, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/08-features-inbox-components-chat-1.md;FICA;Inventário vigente UI da conversa (chat parte 1), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/08-features-inbox-components-chat-2.md;FICA;Inventário vigente UI da conversa (chat parte 2), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/09-features-inbox-components-contato-lista-ia.md;FICA;Inventário vigente contact-details/conversation-list/ai-tools, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/10-features-inbox-components-raiz-a-m.md;FICA;Inventário vigente componentes raiz A–M do inbox, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/11-features-inbox-components-raiz-m-z.md;FICA;Inventário vigente componentes raiz M–Z do inbox, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/12-features-inbox-components-restantes.md;FICA;Inventário vigente dos 12 subdiretórios finais do inbox, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/14-components-settings.md;FICA;Inventário vigente de components/settings, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/15-components-contacts.md;FICA;Inventário vigente de components/contacts (CRM), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/16-components-connections-dashboard.md;FICA;Inventário vigente connections+dashboard (bridge Supabase-Evolution), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/17-components-teamchat-monitoring.md;FICA;Inventário vigente team-chat+monitoring (Evolution Monitoring Dashboard/DLQ), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/19-components-layout-gamification-talkx-catalog-reports-notifications.md;FICA;Inventário vigente de 6 diretórios de components, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/20-components-email-voice-crm360-onboarding-calls-ai.md;FICA;Inventário vigente email/voice/crm360/evoApiHealth etc., auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/22-components-pequenos-e-shared.md;FICA;Inventário vigente components pequenos + src/shared, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/23-hooks-raiz-1.md;FICA;Inventário vigente hooks raiz parte 1, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/24-hooks-raiz-2.md;FICA;Inventário vigente hooks raiz chunk 2/4, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/25-hooks-raiz-3.md;FICA;Inventário vigente hooks raiz chunk 3/4, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/26-hooks-raiz-4.md;FICA;Inventário vigente hooks raiz chunk 4/4 (S–Z), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/27-hooks-subdirs.md;FICA;Inventário vigente hooks em 24 subdiretórios (incl. evolution/), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/28-hooks-tests-1.md;FICA;Inventário vigente testes de hooks parte 1 (incl. Evolution API), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/29-hooks-tests-2.md;FICA;Inventário vigente testes de hooks parte 2 (incl. evolution/), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/30-integrations.md;FICA;Inventário vigente src/integrations (cliente Evolution API em zappweb), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/31-adapters-e-integrations-tests.md;FICA;Inventário vigente adapters+integrations tests, auditado 2026-08-16 com errata do orquestrador — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/32-services.md;FICA;Inventário vigente src/services, auditado 2026-08-16 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/33-lib-raiz.md;FICA;Inventário vigente src/lib raiz, auditado 2026-08-16 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/34-lib-subdirs-utils-types.md;FICA;Inventário vigente lib subdirs+utils+types, auditado 2026-08-16 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/35-lib-tests.md;FICA;Inventário vigente lib __tests__, auditado 2026-08-16 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/36-backend-edge-functions.md;FICA;Inventário vigente supabase/functions (107 funções), auditado 2026-08-16 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/37-backend-db-runtime.md;FICA;Inventário vigente do banco (524 objetos declarados × ~2600 vivos), VERIFICADO ao vivo 2026-08-16 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/38-infra-ci-scripts.md;FICA;Inventário vigente infra/CI/scripts, auditado 2026-08-16 com errata do orquestrador — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/39-residual-tests.md;FICA;Inventário vigente testes residuais, auditado 2026-08-16 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/40-e2e-harness-data.md;FICA;Inventário vigente e2e/harness/src/data, auditado 2026-08-16 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/_ERRATA-TOPOLOGIA.md;FICA;Errata de topologia do docs/estado (base 2026-08-09 → verdade 2026-08-16), correções NÃO aplicadas aguardando revisão — vigente/pendente.;docs/estado/_HANDOFF.md, _PROGRESSO.md, _RECONCILIACAO-INVENTARIOS.md (mencionam);;E83
+docs/estado/_HANDOFF.md;"ARQUIVA;REVISAR";Handoff de sessão 2026-08-09 ('retomar onde paramos') — propósito cumprido: inventário docs/estado concluído em 2026-08-16. [R2: consumidor encontrado: docs/estado/_ERRATA-TOPOLOGIA.md, docs/estado/_RECONCILIACAO-INVENTARIOS.md, docs/simulation/2026-08-16_inventario_estado_10_agentes_failure_simulat;docs/estado/_ERRATA-TOPOLOGIA.md, docs/estado/_RECONCILIACAO-INVENTARIOS.md, docs/simulation/2026-08-16_inventario_estado_10_agentes_failure_simulation.md;docs/_archive/estado/;E83
+docs/estado/_PROGRESSO.md;"ARQUIVA;REVISAR";Rastreador do inventário estado_atualizado.md — onda de 10 agentes concluída (docs 01–40 publicados 2026-08-16), tracker superseded. [R2: consumidor encontrado: PLANO-ESTADO.md, docs/estado/_ERRATA-TOPOLOGIA.md, docs/estado/_HANDOFF.md, docs/simulation/2026-08-16_inventario_estado_10_agentes_failure;docs/estado/_ERRATA-TOPOLOGIA.md, docs/estado/_HANDOFF.md, docs/simulation/2026-08-16_inventario_estado_10_agentes_failure_simulation.md;docs/_archive/estado/;E83
+docs/estado/_RECONCILIACAO-INVENTARIOS.md;"ARQUIVA;REVISAR";Reconciliação Fase 5 dos inventários paralelos (auditoria com correções pendentes) — histórico de auditoria concluída. [R2: consumidor encontrado: docs/estado/_PROGRESSO.md, docs/simulation/2026-08-16_inventario_estado_10_agentes_failure_simulation.md, estado_atualizado.md];docs/estado/_PROGRESSO.md, docs/simulation/2026-08-16_inventario_estado_10_agentes_failure_simulation.md, docs/reconciliation/EXECUTIVE_SUMMARY.md;docs/_archive/estado/;E83
+docs/history/DEPLOYMENT_EXECUTION_STATUS.md;"ARQUIVA;REVISAR";Status de execução Round 15 Database Hardening (2026-07-12, CERTIFIED PRODUCTION READY) — relatório histórico concluído. [R2: consumidor encontrado: .gitignore, docs/history/ARCHIVE_INDEX.md];docs/history/ARCHIVE_INDEX.md;docs/_archive/history/;E83
+docs/history/FALHAS_E_GAPS.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/history/FALHAS_E_GAPS.md;E83
+docs/history/PRODUCTION_EXCELLENCE_IMPLEMENTATION.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/history/PRODUCTION_EXCELLENCE_IMPLEMENTATION.md;E83
+docs/history/QA_REPORT_2026-06-14.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/history/QA_REPORT_2026-06-14.md;E83
+docs/history/QA_REPORT_2026-07-11.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/history/QA_REPORT_2026-07-11.md;E83
+docs/history/ROUND-15-COMPLETION-REPORT.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/history/ROUND-15-COMPLETION-REPORT.md;E83
+docs/history/ROUND-17-POST-DEPLOYMENT-VERIFICATION.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/history/ROUND-17-POST-DEPLOYMENT-VERIFICATION.md;E83
+docs/history/RUNTIME-RLS-VALIDATION.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/history/RUNTIME-RLS-VALIDATION.md;E83
+docs/history/SCHEMA-INTROSPECTION-PROTECTION.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/history/SCHEMA-INTROSPECTION-PROTECTION.md;E83
+docs/incident/2026-07-30-chatpanel-blank-fix.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/infra/2026-08-03_docker_secrets_migration.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/infra/evolution-stack.reconciled.DEPRECATED.yml;"EXCLUI;REVISAR";stacks devem morar no evolution-stack (E80 diffs) [R2: consumidor encontrado: docs/BOUNDARY-evolution.md, docs/INFRA.md, docs/decouple/PLANO_DESACOPLAMENTO_100_ETAPAS.md];;;
+docs/infra/git-secrets-rotation.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/infra/supabase-functions.reconciled.yml;FICA;doc estrutural — revisao Fase 3;;;
+docs/investigation-synthesis-and-plan.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/ops/CRON-MATRIX.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/ops/MCP-QUERY-SECRET-ROTATION.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/ops/MIGRATIONS-DRIFT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/ops/RELATORIO_CORRECAO_EVO.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/ops/RUNBOOK_EVO_DB.md;MIGRA;operacao da infra Evolution (Fase 2/3 confirma);;;
+docs/ops/SCORECARD-CONTRATOS-DB.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/ops/runbook.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/playbooks/AVATAR-MIGRATION-PLAN.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/playbooks/LOVABLE-SUPABASE-ACCESS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/realtime-schema-guide.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/reconciliation/00_simulacao.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/00_simulacao.md;E83
+docs/reconciliation/01_runtime.json;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/01_runtime.json;E83
+docs/reconciliation/01_runtime.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/01_runtime.md;E83
+docs/reconciliation/02_backend.json;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/02_backend.json;E83
+docs/reconciliation/02_backend.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/02_backend.md;E83
+docs/reconciliation/04_artefatos.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/04_artefatos.md;E83
+docs/reconciliation/05_migracao.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/05_migracao.md;E83
+docs/reconciliation/06_segredos.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/06_segredos.md;E83
+docs/reconciliation/07_dados.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/07_dados.md;E83
+docs/reconciliation/08_saude.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/08_saude.md;E83
+docs/reconciliation/09_consolidacao.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/09_consolidacao.md;E83
+docs/reconciliation/11_execucao.md;ARQUIVA;Registro de execução das correções P0→P1 da auditoria 2026-08-04 — log de execução concluída.;— (sem links externos);docs/_archive/reconciliation/;E83
+docs/reconciliation/EXECUTIVE_SUMMARY.md;"ARQUIVA;REVISAR";Resumo executivo da auditoria de reconciliação 2026-08-04 (102 checagens) — histórico de auditoria concluída. [R2: consumidor encontrado: CLAUDE.md, docs/audit-2026-08-06/VALIDATION_PLAN_100_STEPS.md, docs/estado/_RECONCILIACAO-INVENTARIOS.md, docs/reconciliation/09_consolidacao.md, docs/reconciliat;docs/audit-2026-08-06/VALIDATION_PLAN_100_STEPS.md, docs/estado/_RECONCILIACAO-INVENTARIOS.md, docs/reconciliation/09_consolidacao.md, docs/reconciliation/RECONCILIATION_MATRIX.md;docs/_archive/reconciliation/;E83
+docs/reconciliation/RECONCILIATION_MATRIX.md;"ARQUIVA;REVISAR";Matriz de reconciliação 2026-08-04 (consolidação etapas 93–99) — histórico de auditoria concluída. [R2: consumidor encontrado: CLAUDE.md, docs/audit-2026-08-06/EXECUTIVE_SUMMARY.md, docs/audit-2026-08-06/VALIDATION_PLAN_100_STEPS.md, docs/reconciliation/09_consolidacao.md, docs/reconciliation/EXECUT;docs/audit-2026-08-06/EXECUTIVE_SUMMARY.md, docs/audit-2026-08-06/VALIDATION_PLAN_100_STEPS.md, docs/reconciliation/09_consolidacao.md, docs/reconciliation/EXECUTIVE_SUMMARY.md;docs/_archive/reconciliation/;E83
+docs/reconciliation/reconciliation.csv;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/reconciliation.csv;E83
+docs/reconciliation/reconciliation.json;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/reconciliation.json;E83
+docs/runbook-evolution/DR_RUNBOOK_EVO.md;"ARQUIVA;REVISAR";"canonico vivo em evolution-stack/runbooks/ (14/08, mais novo); zapp guarda historico";docs/decouple/AUDIT_EVO_REFS_20260816/baseline.json (artefato da auditoria, não-consumidor vivo), graphify-out/manifest.json (gerado);docs/_archive/runbook-evolution/DR_RUNBOOK_EVO.md;E26
+docs/runbook-evolution/c9-d8-decision.md;"ARQUIVA;REVISAR";"canonico vivo em evolution-stack/runbooks/ (14/08, mais novo); zapp guarda historico";;docs/_archive/runbook-evolution/c9-d8-decision.md;
+docs/runbook-evolution/evo-tables-kdw-inventory.md;"ARQUIVA;REVISAR";"canonico vivo em evolution-stack/runbooks/ (14/08, mais novo); zapp guarda historico";;docs/_archive/runbook-evolution/evo-tables-kdw-inventory.md;
+docs/runbooks/APPLY_ZAPP_EVOLUTION_BRIDGES.md;"ARQUIVA;REVISAR";historico de auditoria/incidente (Fase 2 confirma) [R2: consumidor encontrado: docs/decouple/DOC_UPDATE_ORCHESTRATION_20260814.md, docs/simulation/2026-08-03_deleted-scripts_50_failure_simulation.md];;;
+docs/runbooks/deploy.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/runbooks/evolution-restart-rabbitmq-bindings.md;"ARQUIVA;REVISAR";historico de auditoria/incidente (Fase 2 confirma) [R2: consumidor encontrado: docs/EVOLUTION-CHANGELOG.md, docs/SETTINGS.md];;;
+docs/runbooks/media-pipeline-ops.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/runbooks/session-followups-2026-07-11-r13-r14.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/runbooks/session-report-2026-07-11-audit-10-10.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/security/CREDENTIAL_ROTATION_RUNBOOK.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/security/SIMULATION-SECURITY-FAILURES-REPORT.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/security/hardening-audit-2026-08-15.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/simulation/2026-08-03_deleted-scripts_50_failure_simulation.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/simulation/2026-08-03_deleted-scripts_50_failure_simulation.md;E83
+docs/simulation/2026-08-03_runtime_fixes_60_failure_simulation.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/simulation/2026-08-03_runtime_fixes_60_failure_simulation.md;E83
+docs/simulation/2026-08-03_storage_migration_500_simulation.json;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/simulation/2026-08-03_storage_migration_500_simulation.json;E83
+docs/simulation/2026-08-04_feature_inventory_100_etapas_failure_simulation.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/simulation/2026-08-04_feature_inventory_100_etapas_failure_simulation.md;E83
+docs/simulation/2026-08-16_inventario_estado_10_agentes_failure_simulation.md;"ARQUIVA;REVISAR";Pre-mortem da onda de 10 agentes do inventário docs/estado (2026-08-16) — simulação pré-onda, onda já executada e docs publicados. [R2: consumidor encontrado: estado_atualizado.md];— (sem links externos, referencia _HANDOFF/_PROGRESSO/_RECONCILIACAO);docs/_archive/simulation/;E83
+docs/simulation/20260803_db_migrations_500_failure_simulation.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/simulation/20260803_db_migrations_500_failure_simulation.md;E83
+docs/simulation/20260804_db_snapshot.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/simulation/20260804_db_snapshot.md;E83
+docs/simulation/20260804_integracao_schema_zapp_failure_simulation.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/simulation/20260804_integracao_schema_zapp_failure_simulation.md;E83
+docs/simulation/20260804_rollback_plan.md;"ARQUIVA;REVISAR";Rollback plan da integração schema zapp×front 2026-08-04, aplicável em até 48h pós-deploy — janela expirada. [R2: consumidor encontrado: supabase/migrations/20260804150001_integration_schema_zapp_fixes.sql];— (sem links externos);docs/_archive/simulation/;E83
+docs/supabase-schema-audit.html;FICA;doc estrutural — revisao Fase 3;;;
+docs/testing/e2e.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/validacao/V1-lib-raiz.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/validacao/V2-lib-subdirs.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/validacao/V3-testes.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/validacao/V4-e2e-harness.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/validacao/V5-edge-functions.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/validacao/_CONSOLIDADO.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/watchdog-bucket-public-20260806.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/workflow-benchmark.md;FICA;doc estrutural — revisao Fase 3;;;
+e2e/admin-evolution-api-smoke.spec.ts;FICA;e2e do contrato (E79);;;
+e2e/connection-to-inbox-inbound.spec.ts;FICA;e2e do contrato (E79);;;
+e2e/contacts-crud.spec.ts;FICA;e2e do contrato (E79);;;
+e2e/decouple-fake-provider.spec.ts;FICA;e2e do contrato (E79);;;
+e2e/dlq-idempotency.spec.ts;FICA;e2e do contrato (E79);;;
+e2e/error-handling.spec.ts;FICA;e2e do contrato (E79);;;
+e2e/evolution-media-retry-failure.spec.ts;FICA;e2e do contrato (E79);;;
+e2e/evolution-retry-failure.spec.ts;FICA;e2e do contrato (E79);;;
+e2e/failure-isolation-per-thread.spec.ts;FICA;e2e do contrato (E79);;;
+e2e/fixtures/test-data.ts;FICA;e2e do contrato (E79);;;
+e2e/inbox-created-thread-inbound.spec.ts;FICA;e2e do contrato (E79);;;
+e2e/inbox-full-flow.spec.ts;FICA;e2e do contrato (E79);;;
+e2e/inbox-thread-message-arrival.spec.ts;FICA;e2e do contrato (E79);;;
+e2e/retry-counter-inline.spec.ts;FICA;e2e do contrato (E79);;;
+e2e/send-message-cycle.spec.ts;FICA;e2e do contrato (E79);;;
+e2e/send-message.spec.ts;FICA;e2e do contrato (E79);;;
+e2e/whatsapp-connection.spec.ts;FICA;e2e do contrato (E79);;;
+eslint.config.js;FICA;default conservador (R3);;;
+estado_atualizado.md;FICA;default conservador (R3);;;
+feature_registry.csv;FICA;default conservador (R3);;;
+feature_registry.json;FICA;default conservador (R3);;;
+graphify-out/.graphify_labels.json;FICA;artefato gerado;;;
+graphify-out/GRAPH_REPORT.md;FICA;artefato gerado;;;
+graphify-out/manifest.json;FICA;artefato gerado;;;
+infra/backup/README.md;FICA;default conservador (R3);;;
+infra/edge-deploy/deploy-edge.sh;FICA;default conservador (R3);;;
+infra/runbooks/AUDITORIA_MENSAL.md;FICA;default conservador (R3);;;
+infra/runbooks/OPERATIONS.md;FICA;default conservador (R3);;;
+infra/runbooks/PLAYBOOK_INCIDENTE.md;FICA;default conservador (R3);;;
+infra/runbooks/POLITICA_ANTI_RESIDUOS.md;FICA;default conservador (R3);;;
+infra/runbooks/SECURITY-INCIDENT-CREDENTIAL-ROTATION.md;FICA;default conservador (R3);;;
+infra/scripts/memory-limits.sh;FICA;default conservador (R3);;;
+infra/stack35/SECRETS_INVENTORY.md;FICA;default conservador (R3);;;
+infra/stacks/README.md;"FICA;REVISAR";README pre-split com conteudo unico (changelog sessao 5, secrets, docker-housekeeping, zapp-web-prod) — evostack stacks/README.md e outro documento (mapeamento GitOps evolution): 0 linhas em comum, diff de 41 linhas (100% do arquivo).;Documentacao manual, nenhum workflow do zapp consome infra/stacks (PATH filter 'infra/stacks/**' comentado em .github/workflows/deploy-vps-selfhosted.yml:30);manter em zapp, revisar conteudo (encolher para itens zapp-specific, maestro decide);E80
+infra/stacks/dlq-inspector.yml;"FICA;REVISAR";Sem equivalente no evolution-stack (grep 'dlq' so acha evolution-db-purge.yml e docs, nenhum compose dlq*), stack unico que drena wpp2.dlq (RabbitMQ) para o DB usando secrets rabbitmq_url_evolution_v2/evolution_db_uri_v1.;Deploy manual via Portainer, nenhum workflow ativo do zapp (deploy-vps-selfhosted.yml usa COMPOSE_FROM_PORTAINER, item 92 pendente);manter em zapp ou migrar p/ evolution-stack (maestro decide, usa secret rabbitmq_url_evolution_v2);E80
+infra/stacks/glitchtip.yml;"FICA;REVISAR";Sem equivalente no evolution-stack (glitchtip so em docs EVOLUTION-CHANGELOG.md/WATCHDOG_DEPLOY_SOP.md, nenhum compose), stack 41 de error-monitoring com fix S4-3 (glitchtip-valkey) e secrets v1, unico no zapp.;Deploy manual via Portainer, nenhum workflow ativo do zapp;manter em zapp ou migrar p/ evolution-stack como obs-* (maestro decide);E80
+infra/stacks/postgres-backup-daily.yml;"FICA;REVISAR";Sem equivalente no evolution-stack — evolution-pgbackrest-backup.yml (264, pgBackRest/PITR) e camada complementar, nao substituta: DR_RUNBOOK_EVO.md (10/08) lista stack 112 como backup automatico R2+GPG ativo do PG evolution (seg-sab 02:00, retencao 14d).;Portainer stack 112 vivo em producao (DR_RUNBOOK_EVO.md linhas 23-26), deploy manual via Portainer;manter, candidato a migrar p/ evolution-stack (backup do DB evolution, maestro decide);E80
+infra/stacks/postgres-backup-monthly.yml;"FICA;REVISAR";Sem equivalente no evolution-stack (so evolution-pgbackrest-backup.yml complementar), DR_RUNBOOK_EVO.md lista stack 85 como backup automatico R2+GPG ativo (dia 1 04:00, retencao 365d, passphrase distinta backup_passphrase_monthly_v1).;Portainer stack 85 vivo em producao (DR_RUNBOOK_EVO.md linhas 23-26), deploy manual via Portainer;manter, candidato a migrar p/ evolution-stack (backup do DB evolution, maestro decide);E80
+infra/stacks/postgres-backup-weekly.yml;"FICA;REVISAR";Sem equivalente no evolution-stack (so evolution-pgbackrest-backup.yml complementar), DR_RUNBOOK_EVO.md lista stack 84 como backup automatico R2+GPG ativo (dom 03:00, retencao 35d) do PG evolution.;Portainer stack 84 vivo em producao (DR_RUNBOOK_EVO.md linhas 23-26), deploy manual via Portainer;manter, candidato a migrar p/ evolution-stack (backup do DB evolution, maestro decide);E80
+infra/stacks/reconcile-ops.yml;"EXCLUI;REVISAR";Superseded: funcao reconcile migrou para stacks/evolution-watchdogs.yml v11 (commit 63389f8, 2026-08-14) no evolution-stack com config externa evo_reconcile_v4 + ALERT_THRESHOLD_PCT=20, arquivo do zapp usa script inline v1 (base64 gzip) e o snapshot Portainer 2026-08-14 ja documentava drift (runtime;Portainer stack 226 (runtime config v3 com drift vs arquivo v1, HANDOFF desacoplamento 2026-08-14), sucessor: evolution-watchdogs stack 240 (v11, evo_reconcile_v4);remover de infra/stacks/ do zapp (canonico: evolution-stack stacks/evolution-watchdogs.yml + scripts/reconcile-v4.sh);E80
+infra/stacks/zapp-functions-health.yml;"FICA;REVISAR";Sem equivalente no evolution-stack (git ls-files stacks/ nao contem o arquivo, so referencias em docs stacks/README.md, CLAUDE.md, GITOPS.md e snapshot antigo stack-239), commit dce12a951 (E29, 2026-08-15) moveu intencionalmente do evolution-stack para o zapp — health das edge functions do ZAPP.;Portainer stack 265 (per docs do evolution-stack, config externa check_functions_health), stack 239 deletado em 2026-08-14 (nome errado, escopo era do ZAPP);manter em zapp (E29 intencional), maestro decide se atualiza docs do evolution-stack (stacks/README.md e CLAUDE.md referenciam arquivo inexistente no evostack);E80
+infra/supabase/EDGE_FUNCTIONS.md;FICA;default conservador (R3);;;
+infra/supabase/docker-compose.supabase.yml;FICA;default conservador (R3);;;
+infra/zapp-health-guard/mon_health.sh;FICA;default conservador (R3);;;
+nginx-prod.conf;FICA;default conservador (R3);;;
+ops/LOG_POLICY.md;FICA;default conservador (R3);;;
+ops/snapshots/20260808/ONDA_0_ACOES.md;FICA;default conservador (R3);;;
+ops/snapshots/20260808/VERSION_INDEX.json;FICA;default conservador (R3);;;
+reports/CHATPANEL_QA_EXAUSTIVO_2026-07-30.md;FICA;default conservador (R3);;;
+scripts/.column-map-baseline.txt;FICA;script — revisao manual Fase 7;;;
+scripts/.sync-ignore;FICA;script — revisao manual Fase 7;;;
+scripts/audit-allowlist.json;FICA;script — revisao manual Fase 7;;;
+scripts/audit-rls-coverage.mjs;FICA;script — revisao manual Fase 7;;;
+scripts/check-column-map.mjs;FICA;script — revisao manual Fase 7;;;
+scripts/check-edge-function-sync.sh;FICA;script — revisao manual Fase 7;;;
+scripts/check-realtime-dead-channels.sh;FICA;script — revisao manual Fase 7;;;
+scripts/check-schema-usage.mjs;FICA;script — revisao manual Fase 7;;;
+scripts/check_schema_drift.sql;FICA;script — revisao manual Fase 7;;;
+scripts/dead-code-allowlist.txt;FICA;script — revisao manual Fase 7;;;
+scripts/decouple/__tests__/evo-ddl-gate.test.mjs;FICA;gate/enforcement CI (E77-E78);;;
+scripts/decouple/__tests__/schema-registry-validate.test.mjs;FICA;script decouple — E82 tria one-shot;;;
+scripts/decouple/__tests__/sql-gate.test.mjs;FICA;script decouple — E82 tria one-shot;;;
+scripts/decouple/boundary-audit.mjs;FICA;Gate vivo: audita os 9 invariantes ZAPP×EVO em modo ONLINE, executado por measure-invariants.yml.;measure-invariants.yml;;E82
+scripts/decouple/coverage-report.mjs;"ARQUIVA;REVISAR";One-shot E44: relatório de cobertura real do desacoplamento, saída materializada em docs/decouple/COVERAGE_V4.md ('Gerado por ... não editar manualmente'). [R2: consumidor encontrado: docs/decouple/COVERAGE_V4.md, docs/decouple/PLANO_DESACOPLAMENTO_V4_CLAUDE_100_ETAPAS_20260814.md, docs/decouple/PLA;docs/decouple/COVERAGE_V4.md;scripts/decouple/_archive/coverage-report.mjs;E82
+scripts/decouple/evo-ddl-allowlist.txt;FICA;Allowlist viva do gate E42 (regularização DR), lida pelo evo-ddl-gate.mjs/yml.;evo-ddl-gate.yml;;E82
+scripts/decouple/evo-ddl-gate.mjs;FICA;Gate vivo E42 (bloqueia DDL novo em schema evo), executado por evo-ddl-gate.yml.;evo-ddl-gate.yml;;E82
+scripts/decouple/fixtures/sql_report_snapshot.json;FICA;script decouple — E82 tria one-shot;;;
+scripts/decouple/inventory.mjs;FICA;Gate vivo v3: conta bypasses de acoplamento vs baseline (E5/E21/E22), executado por decouple-guard.yml.;decouple-guard.yml;;E82
+scripts/decouple/ownership-gate.mjs;FICA;Gate vivo de propriedade de schema (zapp não grava em evo Grupo A), executado por ownership-gate.yml --ci.;ownership-gate.yml;;E82
+scripts/decouple/phys-refs-gate.mjs;"FICA;REVISAR";Gate E71: bloqueia referências físicas qualificadas NOVAS, é gate por design, mas NÃO está wired em nenhum workflow.;nenhum (manual);;E82
+scripts/decouple/schema-registry-validate.mjs;FICA;Validador vivo do schema registry JSON (docs/decouple/schema-registry/*.json) com __tests__ dedicados.;manual + __tests__;;E82
+scripts/decouple/snapshots/zapp_schema_snapshot.sql;FICA;Snapshot canônico vivo do schema zapp, consumido pelo zapp-drift-check.sh e health-score-anti-drift.yml.;zapp-drift-check.sh, health-score-anti-drift.yml;;E82
+scripts/decouple/sql-gate-fixture.json;FICA;script decouple — E82 tria one-shot;;;
+scripts/decouple/sql-gate.mjs;FICA;Gate vivo do egresso SQL da Evolution API, executado por decouple-guard.yml.;decouple-guard.yml;;E82
+scripts/decouple/verb-contract-gate.mjs;"FICA;REVISAR";Gate do contrato de verbos do client Evolution, é gate por design, mas NÃO está wired em nenhum workflow.;nenhum (manual);;E82
+scripts/fuzz-edge-functions.ts;FICA;script — revisao manual Fase 7;;;
+scripts/lint-supabase-casts.mjs;FICA;script — revisao manual Fase 7;;;
+scripts/regen-trilha-mensagens.ts;FICA;script — revisao manual Fase 7;;;
+scripts/residuos-sweep.sh;FICA;script — revisao manual Fase 7;;;
+scripts/rls-role-matrix.test.ts;FICA;script — revisao manual Fase 7;;;
+scripts/run-e2e-evolution-vps.sh;FICA;script — revisao manual Fase 7;;;
+scripts/simulate-schema-access.mjs;FICA;script — revisao manual Fase 7;;;
+scripts/sql/check-reference-integrity.sql;FICA;doc vivo de fronteira — revisao manual E20/E21/E29;;;
+scripts/sql/media-bucket-verification.sql;FICA;script — revisao manual Fase 7;;;
+scripts/sql/realtime-publication.manifest;FICA;script — revisao manual Fase 7;;;
+scripts/templates/audit_template.md;FICA;script — revisao manual Fase 7;;;
+src/__tests__/sprint1-security-hardening.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/_archive/evolutionClient.archived.ts;"EXCLUI;REVISAR";Arquivado e sem nenhum import real: única referência é comentário no header de evolutionClient.ts (grep 'evolutionClient.archived' só acha a linha 5 do próprio evolutionClient.ts). [R2: consumidor encontrado: docs/decouple/ADR-011-egress-gateway.md, docs/decouple/EGRESS_SURFACE_V4.md, docs/estado/40;nenhum (0 imports, ref. apenas em comentário);;E57
+src/_archive/healthCheck.archived.ts;FICA;Ja arquivado em _archive, unica ref e VITE_EVOLUTION_API_URL em codigo morto (linha 224) - Fase 5 (caca dead code) deve excluir.;nenhum (arquivado);;E69
+src/adapters/__tests__/evolutionAdapter.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/adapters/evolution/__tests__/messageTypes.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/adapters/evolution/messageTypes.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/adapters/evolutionAdapter.ts;FICA;Adapter ativo com 8+ consumidores reais (MessageBubble, messageBubbleParts, MessageBubbleUnsupported, externalAudioSender, externalMessageSender, useExternalApiManagement, useExternalEvolution, domain/messaging/types) + teste.;src/features/inbox/components/chat/MessageBubble.tsx, messageBubbleParts.tsx, MessageBubbleUnsupported.tsx, src/features/inbox/hooks/realtime/externalAudioSender.ts, externalMessageSender.ts, src/hooks/useExternalApiManagement.ts, useExternalEvolution.ts, src/domain/messaging/types.ts, src/adapters/;;E58
+src/components/catalog/WhatsAppTemplatesManager.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/compliance/PrivacyPolicySection.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/connections/AddConnectionDialog.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/connections/BridgeSupabaseView.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/connections/ConnectionCard.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/connections/ConnectionsIntegrationsHub.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/connections/ConnectionsView.tsx;FICA;Consumidor legitimo: importa/usa useEvolutionAutoSync e useEvolutionAutoReconnect (contrato de auto-sync).;rotas App, usa hooks useEvolutionAutoSync/Reconnect;;E69
+src/components/connections/DegradedQuickActions.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/connections/IdempotencyMissBanner.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/connections/InstanceSettingsDialog.tsx;FICA;Consumidor legitimo do contrato useEvolutionApi (QR/pareamento).;importa @/hooks/useEvolutionApi;;E69
+src/components/connections/IntegrationsPanel.tsx;FICA;Consumidor legitimo do contrato useEvolutionApi.;importa @/hooks/useEvolutionApi;;E69
+src/components/connections/QrCodeDialog.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/connections/QrTtlBadge.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/connections/connectionCardHelpers.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/connections/integrationsPanelFields.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/connections/useConnectionCardActions.ts;FICA;Consumidor legitimo do contrato useEvolutionApi (restartInstance/connectInstance).;importa @/hooks/useEvolutionApi + @/lib/evolutionInstance;;E69
+src/components/dashboard/DailyMetricsKpis.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/docs/featuresSectionsData.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/errors/ErrorBoundary.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/evoApiHealth/KpiCard.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/evoApiHealth/Stat.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/evoApiHealth/tabs/AlertsTab.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/evoApiHealth/tabs/ChannelsTab.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/evoApiHealth/tabs/DrTab.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/evoApiHealth/tabs/HealthTab.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/evoApiHealth/tabs/HistoryTab.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/groups/__tests__/GroupsView.test.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/integrations/EvolutionApiIntegrationView.tsx;FICA;Consumidor legitimo: usa useEvolutionApiIntegration e DEFAULT_URL (URL estrutural do contrato).;importa @/features/integrations/hooks/useEvolutionApiIntegration;;E69
+src/components/integrations/IntegrationsHub.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/layout/ConnectionPopoverContent.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/layout/sidebarNavConfig.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/monitoring/DLQPanel.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/monitoring/EvolutionMonitoringDashboard.tsx;FICA;Consumidor legitimo do contrato de monitoramento (useEvolutionMonitoring + type TimePeriod).;importa ./hooks/useEvolutionMonitoring;;E69
+src/components/monitoring/MonitoringAvailabilityHeatmap.tsx;FICA;Consumidor legitimo: import type HealthLog do hook de monitoramento.;importa ./hooks/useEvolutionMonitoring;;E69
+src/components/monitoring/MonitoringConnectionsList.tsx;FICA;Consumidor legitimo: import type ConnectionInfo/WebhookTestResult.;importa ./hooks/useEvolutionMonitoring;;E69
+src/components/monitoring/MonitoringDiagnosticPanel.tsx;FICA;Consumidor legitimo: import type DiagnosticResult.;importa ./hooks/useEvolutionMonitoring;;E69
+src/components/monitoring/MonitoringHealthLogs.tsx;FICA;Consumidor legitimo: import type HealthLog.;importa ./hooks/useEvolutionMonitoring;;E69
+src/components/monitoring/MonitoringMessageChart.tsx;FICA;Consumidor legitimo: import type MessageStats/TimePeriod.;importa ./hooks/useEvolutionMonitoring;;E69
+src/components/monitoring/MonitoringSLAPanel.tsx;FICA;Consumidor legitimo: import type InstanceUptime/UptimeInfo.;importa ./hooks/useEvolutionMonitoring;;E69
+src/components/monitoring/MonitoringStatsCards.tsx;FICA;Consumidor legitimo: import type ConnectionInfo/MessageStats/UptimeInfo/SparklineData.;importa ./hooks/useEvolutionMonitoring;;E69
+src/components/monitoring/MonitoringWebhookPanel.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/monitoring/MonitoringWebhookPanelTypes.ts;FICA;Consumidor legitimo: tipos de webhook derivados do useEvolutionMonitoring.;importa ./hooks/useEvolutionMonitoring;;E69
+src/components/monitoring/RetryMetricsPanel.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/monitoring/hooks/index.ts;"EXCLUI;REVISAR";Re-export barrel morto: zero importers em src/ (grep 'monitoring/hooks' so acha refs ao proprio arquivo, a hooks/types e hooks/useEvolutionMonitoring), doc-comment sugere uso que nao existe. [R2: consumidor encontrado: .github/workflows/deno-contract-tests.yml, .github/workflows/edge-auth-smoke.yml,;nenhum (0 refs fora do proprio arquivo);;E69
+src/components/monitoring/hooks/useEvolutionMonitoring.ts;FICA;Nucleo do contrato de monitoramento Evolution: 13 importers (8 paineis + barrel morto + 2 testes + RealtimeFanoutDebug), subscreve INSERT em messages.;13 importers: EvolutionMonitoringDashboard, Monitoring*Panel/Chart/SLA/Stats/Heatmap/ConnectionsList/HealthLogs/WebhookPanelTypes, RealtimeFanoutDebug, 2 testes;;E69
+src/components/settings/ConnectionTestPanel.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/settings/FollowUpExecutionsHistory.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/settings/FollowUpSequences.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/settings/IntegrationKeysSection.tsx;FICA;Consumidor legitimo: useEvolutionApi (listInstances) + useEvolutionAutoSync (syncAll), chaves evolution_api_url/evolution_api_token (schema/contract).;importa @/hooks/useEvolutionApi + useEvolutionAutoSync;;E69
+src/components/settings/WhatsAppModeSetting.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/components/team-chat/department-management/DepartmentWhatsAppView.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/domain/messaging/types.ts;FICA;Ref ESTRUTURAL de tipo: importa tipos de @/adapters/evolutionAdapter (contrato de tipos de mensagem).;consumido por domain/features de mensageria;;E69
+src/features/admin/components/EvolutionFallbackStatusCard.tsx;FICA;Consumidor legitimo: useEvolutionFallbackStats + RPC rpc_evolution_fallback_stats (schema).;importa @/hooks/useEvolutionFallbackStats;;E69
+src/features/admin/components/MediaMigrationTool.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/admin/components/index.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/admin/components/instance-pauses/AuthEventTrendChart.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/admin/components/instance-pauses/IncidentDetailDialog.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/admin/hooks/monitoring/useFailedMessages.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/admin/hooks/monitoring/useIdempotencyMissAlerts.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/admin/hooks/monitoring/useRetryMetrics.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/admin/hooks/useAgentReassignment.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/admin/hooks/useDiagnosticsData.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/business-logic/hooks/useBusinessLogicManagement.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/connections/components/__tests__/WhatsAppConnectionStatus.test.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/connections/data-access/__tests__/whatsappConnectionRepository.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/connections/data-access/whatsappConnectionRepository.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/connections/hooks/parts/__tests__/useConnectionsActions.test.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/connections/hooks/parts/__tests__/useConnectionsState.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/connections/hooks/parts/useConnectionsActions.ts;FICA;Arquivo vivo (acoes de conexao), refs evo NAO-estruturais pelos padroes E69: 1 comentario (useEvolutionAutoSync) + 3 strings UI, import estrutural de @/lib/evolutionInstance (modulo evo-nomeado, fora dos padroes).;useConnectionsManager (via useConnectionsActions);;E69
+src/features/connections/hooks/parts/useConnectionsState.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/connections/hooks/types.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/connections/hooks/useConnectionsManager.ts;FICA;Consumidor legitimo do contrato useEvolutionApi (gerencia de conexoes).;importa @/hooks/useEvolutionApi;;E69
+src/features/connections/services/__tests__/whatsappConnectionService.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/connections/services/whatsappConnectionService.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/contacts/hooks/useContactEnrichedData.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/dashboard/hooks/useDailyMetricsKpis.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/components/AdvancedMessageMenu.tsx;FICA;Consumidor legitimo do contrato useEvolutionApi (sendSticker/Poll/Contact/Status).;importa @/hooks/useEvolutionApi;;E69
+src/features/inbox/components/AudioMessagePlayer.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/components/ChatPanel.tsx;FICA;Consumidor legitimo do contrato useEvolutionApi (editMessage).;importa @/hooks/useEvolutionApi;;E69
+src/features/inbox/components/CloseConversationDialog.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/components/ContactDetails.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/components/DeletedMessagePlaceholder.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/components/MessageContextActions.tsx;FICA;Consumidor legitimo do contrato useEvolutionApi.;importa @/hooks/useEvolutionApi;;E69
+src/features/inbox/components/RealtimeInboxView.tsx;FICA;Consumidor legitimo do contrato useEvolutionAutoReconnect (reconexao em tempo real).;importa @/hooks/useEvolutionAutoReconnect;;E69
+src/features/inbox/components/TicketHistorySheet.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/components/agents-ops/AgentRecentSendsPopover.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/components/chat/ChatMessagesArea.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/components/chat/MessageBubble.tsx;FICA;Ref ESTRUTURAL: import extractMessageType de @/adapters/evolutionAdapter (tipagem de mensagens).;importa @/adapters/evolutionAdapter;;E69
+src/features/inbox/components/chat/MessageBubbleUnsupported.tsx;FICA;Ref ESTRUTURAL: import type ExtractedMessageType de @/adapters/evolutionAdapter.;importa @/adapters/evolutionAdapter;;E69
+src/features/inbox/components/chat/MessageHoverToolbar.tsx;FICA;Consumidor legitimo do contrato useEvolutionApi.;importa @/hooks/useEvolutionApi;;E69
+src/features/inbox/components/chat/MessageSendHistorySheet.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/components/chat/MessageStatusInline.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/components/chat/MessageStatusTimeline.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/components/chat/SendErrorBanner.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/components/chat/__tests__/p0-regressions.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/components/chat/messageBubbleParts.tsx;FICA;Ref ESTRUTURAL: import type extractMessageType de @/adapters/evolutionAdapter.;importa @/adapters/evolutionAdapter;;E69
+src/features/inbox/components/chat/useChatPanelHandlers.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/components/contact-details/BlockContactDialog.tsx;FICA;Consumidor legitimo do contrato useEvolutionApi (updateBlockStatus).;importa @/hooks/useEvolutionApi + @/lib/evolutionInstance;;E69
+src/features/inbox/components/contact-details/StoryViewer.tsx;FICA;Consumidor legitimo do contrato useEvolutionApi (getMediaBase64).;importa @/hooks/useEvolutionApi;;E69
+src/features/inbox/components/conversation-list/RetryFailureBadge.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/components/useAudioMessagePlayer.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/components/useFileUploadLogic.ts;FICA;Consumidor legitimo do contrato useEvolutionApi (sendMediaMessage/sendAudioMessage).;importa @/hooks/useEvolutionApi;;E69
+src/features/inbox/data-access/messageRepository.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/__tests__/useFallbackContact.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/__tests__/useMediaUrl.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/messageSendHistory.schemas.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/reactions/types.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/reactions/useReactionMutations.ts;FICA;Consumidor legitimo do contrato useEvolutionApi (sendReaction).;importa @/hooks/useEvolutionApi;;E69
+src/features/inbox/hooks/realtime/__tests__/parseEvolutionError.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/realtime/avatarBatchStore.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/realtime/externalAudioSender.ts;FICA;Ref ESTRUTURAL: import jidToPhone de @/adapters/evolutionAdapter, grava em tabela evolution_messages (schema).;usado por realtime inbox (envio PTT);;E69
+src/features/inbox/hooks/realtime/externalMessageSender.ts;FICA;Ref ESTRUTURAL: import jidToPhone de @/adapters/evolutionAdapter, grava evolution_messages (schema).;usado por realtime inbox (envio texto);;E69
+src/features/inbox/hooks/realtime/externalSenderTypes.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/realtime/index.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/realtime/messageSender.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/realtime/messageSenderHelpers.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/realtime/parseEvolutionError.ts;FICA;Parser usado ativamente nos senders de inbox (externalAudioSender 2 usos, externalMessageSender 5 usos) via barrel @/features/inbox, com teste dedicado.;src/features/inbox/hooks/realtime/externalAudioSender.ts, externalMessageSender.ts, src/features/inbox/components/chat/SendErrorBanner.tsx (comentário), src/features/inbox/hooks/realtime/__tests__/parseEvolutionError.test.ts;;E68
+src/features/inbox/hooks/realtime/realtimeContactsStatusStore.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/realtime/types.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/realtime/useRealtimeContacts.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/realtime/useRealtimeFallbackRefetch.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/realtime/useRetryResolutionAlerts.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/useAgentRecentSends.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/useAuxiliaryMessageLog.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/useChatMediaSending.ts;FICA;Consumidor legitimo do contrato useEvolutionApi (sendStickerMessage), ref evolution_contacts (schema).;importa @/hooks/useEvolutionApi + @/lib/evolutionInstance;;E69
+src/features/inbox/hooks/useFailureMetricsBatch.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/useFailureReason.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/useFallbackContact.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/useInboxFilters.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/useInboxSource.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/useIncomingCallBroadcast.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/useMediaRefresh.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/useMediaUrl.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/useMessageDetails.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/useMessageSendHistory.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/useMessageStatus.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/useMessagesCursor.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/useNewConversation.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/useRealtimeInbox.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/useRealtimeMessages.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/useSafeInteractiveMessage.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/useSendThrottle.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/hooks/useTicketStatus.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/services/whatsappStatusService.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/inbox/utils/contactRef.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/features/integrations/hooks/__tests__/useEvolutionApiIntegration.test.tsx;FICA;Teste do contrato de credenciais (useEvolutionApiIntegration, DEFAULT_URL, evolution_instance_credentials/evolution_health_logs).;vitest (teste dedicado);;E69
+src/features/integrations/hooks/useEvolutionApiIntegration.ts;FICA;Implementacao do contrato de credenciais via view zapp + edge function evolution-credentials, URL real https://evolution.atomicabr.com.br (estrutural).;EvolutionApiIntegrationView.tsx + teste;;E69
+src/hooks/__tests__/useContactIntelligence.simulacao.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/__tests__/useEvolutionApi.test.ts;FICA;Suite exaustiva (70+ casos) do contrato useEvolutionApi - consumidor legitimo de teste.;vitest;;E69
+src/hooks/__tests__/useExternalCatalog.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/__tests__/useExternalEvolution.reconcile.test.ts;FICA;Teste dos utilitarios de reconciliacao exportados de useExternalEvolution (ref @/adapters/evolutionAdapter).;vitest;;E69
+src/hooks/__tests__/useTranscriptionNotifications.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/__tests__/useVoiceActionHandler.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/evolution/__tests__/v237Fallbacks.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/evolution/v237Fallbacks.ts;"FICA;REVISAR";producao roda 2.4.0 — reavaliar remocao futura (rede de seguranca, NAO excluir agora);src/hooks/useEvolutionApiManagement.ts (+ __tests__/v237Fallbacks.test.ts);;E63
+src/hooks/evolutionApi.types.ts;FICA;Tipos consumidos por useEvolutionApi.ts e useEvolutionApiManagement.ts (2 importadores reais).;src/hooks/useEvolutionApi.ts, src/hooks/useEvolutionApiManagement.ts;;E59
+src/hooks/evolutionContactCache.ts;FICA;Consumido por useExternalApiManagement.ts (bridge atual, linha 392).;src/hooks/useExternalApiManagement.ts;;E59
+src/hooks/evolutionFetchers.ts;FICA;Consumido por useFallbackContact.ts (features/inbox) e useExternalApiManagement.ts (linha 386).;src/features/inbox/hooks/useFallbackContact.ts, src/hooks/useExternalApiManagement.ts;;E59
+src/hooks/evolutionReconcile.ts;FICA;Consumido por useExternalApiManagement.ts (linha 394, applyReconciliation), teste reconcile é secundário.;src/hooks/useExternalApiManagement.ts (+ __tests__/useExternalEvolution.reconcile.test.ts);;E59
+src/hooks/followup/useFollowUpSequences.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/groups/actions.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/monitoring/useMonitoringManagement.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/team-chat/useDepartmentManagement.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useAbandonmentRateData.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useAdminInboxSync.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useAudioManagement.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useAutomationSuggestions.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useAutomations.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useBridgeStatus.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useConnectionStatusIndicator.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useConnections.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useContactIntelligence.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useConversationHeatmap.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useConversationManagement.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useDemandPrediction.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useEvolutionApi.ts;FICA;Re-export VIVO: 25 importers de @/hooks/useEvolutionApi (nao e re-export morto).;25 importers (InstanceSettingsDialog, IntegrationsPanel, ChatPanel, StoryViewer, etc.);;E69
+src/hooks/useEvolutionApiLogs.ts;FICA;Consumidor legitimo do contrato (logs de retry), 1 importer, ref evolution_retry_metrics (schema).;AdminEvolutionApiLogsPage.tsx;;E69
+src/hooks/useEvolutionApiManagement.ts;FICA;Implementacao consolidada do contrato (useEvolutionApiCore + 10 submodulos, ETAPA 18), URL evolution-api/${action} estrutural, refs @/hooks/evolutionApi.types e v237Fallbacks.;useEvolutionApi.ts (re-export) e internos;;E69
+src/hooks/useEvolutionAutoReconnect.ts;FICA;Consumidor legitimo do contrato useEvolutionApi (restart/getStatus/connect) + evolutionInstanceName.;ConnectionsView.tsx, RealtimeInboxView.tsx, IntegrationKeysSection.tsx;;E69
+src/hooks/useEvolutionAutoSync.ts;FICA;Consumidor legitimo do contrato useEvolutionApi (listInstances/syncAll).;ConnectionsView.tsx, IntegrationKeysSection.tsx;;E69
+src/hooks/useEvolutionFallbackStats.ts;FICA;Consumidor legitimo: RPC rpc_evolution_fallback_stats e tabela public.evolution_fallback_events (schema estrutural).;EvolutionFallbackStatusCard.tsx;;E69
+src/hooks/useExternalApiManagement.ts;FICA;Refs ESTRUTURAIS: imports de @/adapters/evolutionAdapter, ./evolutionFetchers, ./evolutionContactCache, ./evolutionReconcile, type EvolutionMessage.;27 importers (catalog, crm360, inbox chat, contacts);;E69
+src/hooks/useExternalDB.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useExternalEvolution.ts;FICA;Ref ESTRUTURAL: import buildExternalConversations/evolutionToRealtimeMessage/jidToPhone de @/adapters/evolutionAdapter, schema evolution_messages, 1 importer (teste).;useExternalEvolution.reconcile.test.ts;;E69
+src/hooks/useFollowupBridge.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useIntegrationManagement.ts;"EXCLUI;REVISAR";Re-export morto: zero refs em src/ (so comentarios em scripts/.sync-ignore e entrada em scripts/dead-code-allowlist.txt), modulo consolidado ETAPA 42 sem consumidores - remover junto com a entrada do allowlist. [R2: consumidor encontrado: docs/RPC_STUBS_STATUS.md, docs/cutover/ts-nocheck-batch-2026-;nenhum em src/ (scripts/dead-code-allowlist.txt:66 e .sync-ignore comentam);;E69
+src/hooks/useProviderPanel.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useQueueDetails.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useQueuesComparison.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useRealtimeManagement.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useRealtimeMessages.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useRealtimeMonitor.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useTranscriptionNotifications.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useVoiceActionHandler.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useVoiceAgent.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useVoiceManagement.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/hooks/useWhatsAppTemplates.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/integrations/datasource/db.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/integrations/datasource/registry.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/integrations/datasource/rpcCatalog.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/integrations/datasource/sentinel.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/integrations/supabase/README.md;FICA;front consumidor (Fase 5 caca dead code);;;
+src/integrations/supabase/__tests__/columnMap.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/integrations/supabase/columnMap.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/integrations/supabase/rowNormalizers.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/integrations/supabase/schema.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/integrations/supabase/types.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/integrations/zappweb/evolutionClient.ts;"EXCLUI;REVISAR";Cliente legado esvaziado (todos os métodos lançam throw '[V3] Use o whatsappAdapter'), removido do barrel zappweb/index.ts e com zero imports reais em src/. [R2: consumidor encontrado: docs/BOUNDARY-evolution.md, docs/decouple/ADR-011-egress-gateway.md, docs/decouple/CI_GATES_V4.md, docs/decouple/EG;nenhum (0 imports, refs só em comentários de zappweb/index.ts e supabaseClient.ts);;E58
+src/integrations/zappweb/hooks/__tests__/useZappConversations.test.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/integrations/zappweb/hooks/__tests__/useZappMessages.test.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/integrations/zappweb/hooks/useZappContactSearch.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/integrations/zappweb/hooks/useZappConversations.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/integrations/zappweb/hooks/useZappMessages.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/integrations/zappweb/index.ts;FICA;Refs evo apenas em COMENTARIOS (historico de remocao do evolutionClient p/ _archive, V3 2026-08-14) - nao-estrutural, barrel segue vivo para outras integracoes.;consumidores zappweb (outros barrels);;E69
+src/integrations/zappweb/supabaseClient.ts;FICA;Ref evo apenas em COMENTARIO (mencao a src/integrations/zappweb/evolutionClient.ts arquivado) - nao-estrutural.;consumidores zappweb;;E69
+src/integrations/zappweb/types.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/__tests__/clientTelemetry.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/__tests__/degradacao-evolution.test.ts;FICA;Teste acompanha alvos FICA: evolutionSendRetry.ts e evolutionCircuitBreaker.ts (imports reais, linha 59/62).;alvos: evolutionSendRetry.ts + evolutionCircuitBreaker.ts (ambos FICA);;E64
+src/lib/__tests__/evolutionCircuitBreaker.test.ts;FICA;Teste acompanha alvo FICA: evolutionCircuitBreaker.ts.;alvo: evolutionCircuitBreaker.ts (FICA);;E64
+src/lib/__tests__/evolutionDiagnostics.test.ts;FICA;Teste acompanha alvo FICA: evolutionDiagnostics.ts.;alvo: evolutionDiagnostics.ts (FICA);;E64
+src/lib/__tests__/evolutionInstance.test.ts;FICA;Teste acompanha alvo FICA: evolutionInstance.ts.;alvo: evolutionInstance.ts (FICA);;E64
+src/lib/__tests__/evolutionMessageId.test.ts;FICA;Teste acompanha alvo FICA: evolutionMessageId.ts.;alvo: evolutionMessageId.ts (FICA);;E64
+src/lib/__tests__/evolutionSendRetry.invoke.test.ts;FICA;Teste acompanha alvos FICA: evolutionSendRetry.ts + evolutionCircuitBreaker.ts.;alvos: evolutionSendRetry.ts + evolutionCircuitBreaker.ts (ambos FICA);;E64
+src/lib/__tests__/evolutionSendRetry.isTransient.test.ts;FICA;Teste acompanha alvos FICA: evolutionSendRetry.ts + evolutionCircuitBreaker.ts.;alvos: evolutionSendRetry.ts + evolutionCircuitBreaker.ts (ambos FICA);;E64
+src/lib/__tests__/externalProxy.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/__tests__/groupsAutoSync.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/__tests__/phoneNormalization.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/__tests__/rateLimiter.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/__tests__/resilienceSimulation.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/__tests__/schemaDrift.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/__tests__/sendFunctionRouter.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/__tests__/webhookStatusPriority.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/__tests__/whatsappAdapter.sendInteractive.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/__tests__/whatsappAdapter.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/__tests__/whatsappConnectionsCache.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/adapters/evolutionOps.ts;FICA;Adapter de operações Evolution com 5 consumidores reais (ConnectionsView, useEvolutionApiIntegration, useMonitoringManagement, useWhatsAppTemplates, ZappWebbDemoPage).;src/components/connections/ConnectionsView.tsx, src/features/integrations/hooks/useEvolutionApiIntegration.ts, src/hooks/monitoring/useMonitoringManagement.ts, src/hooks/useWhatsAppTemplates.ts, src/pages/admin/ZappWebbDemoPage.tsx;;E68
+src/lib/audio/pttLimits.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/clientTelemetry.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/constants/whatsappInstances.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/correlationId.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/crossTabSendDedupe.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/diagnostics.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/evoApiHealth/__tests__/hooks.test.ts;FICA;Teste acompanha alvo FICA: evoApiHealth/hooks.ts.;alvo: src/lib/evoApiHealth/hooks.ts (FICA);;E65
+src/lib/evoApiHealth/__tests__/proxy.test.ts;FICA;Teste acompanha alvo FICA: evoApiHealth/proxy.ts.;alvo: src/lib/evoApiHealth/proxy.ts (FICA);;E65
+src/lib/evoApiHealth/__tests__/useEvoApiAlertsBadge.test.ts;FICA;Teste acompanha alvo FICA: evoApiHealth/useEvoApiAlertsBadge.ts.;alvo: src/lib/evoApiHealth/useEvoApiAlertsBadge.ts (FICA);;E65
+src/lib/evoApiHealth/hooks.ts;FICA;764 importadores (maior hub de hooks de saude da API: App.tsx, Sidebar.tsx, AdminEvoApiHealthPage.tsx, useEvolutionMonitoring, etc.), nucleo do modulo.;src/App.tsx, src/pages/admin/AdminEvoApiHealthPage.tsx, src/components/monitoring/hooks/useEvolutionMonitoring.ts, src/lib/evoApiHealth/useEvoApiAlertsBadge.ts;;E65
+src/lib/evoApiHealth/proxy.ts;FICA;64 importadores incluindo integrations/supabase/client.ts, useExternalEvolution.ts, externalProxy.ts e hooks internos, proxy dinamico evoApi usado em todo o modulo.;src/integrations/supabase/client.ts, src/hooks/useExternalEvolution.ts, src/lib/externalProxy.ts, src/lib/evoApiHealth/hooks.ts;;E65
+src/lib/evoApiHealth/types.ts;FICA;330 importadores (tipos ActiveAlert/DashboardResponse etc. usados em components/evoApiHealth/tabs, hooks de monitoramento, services/email, domain/messaging).;src/components/evoApiHealth/tabs/HealthTab.tsx, src/components/monitoring/hooks/useEvolutionMonitoring.ts, src/services/email/emailHealthService.ts;;E65
+src/lib/evoApiHealth/useEvoApiAlertsBadge.ts;FICA;3 importadores: Sidebar.tsx (badge de alertas), hooks.ts e teste proprio — consumido em producao.;src/components/layout/Sidebar.tsx, src/lib/evoApiHealth/hooks.ts, src/lib/evoApiHealth/__tests__/useEvoApiAlertsBadge.test.ts;;E65
+src/lib/evolutionCircuitBreaker.ts;FICA;Usado em produção por src/lib/evolutionSendRetry.ts (import linha 27) e exercitado por 4 suites de teste (degradacao-evolution, evolutionCircuitBreaker, evolutionSendRetry.invoke/isTransient).;src/lib/evolutionSendRetry.ts, src/lib/__tests__/evolutionCircuitBreaker.test.ts, src/lib/__tests__/degradacao-evolution.test.ts;;E64
+src/lib/evolutionDiagnostics.ts;FICA;Consumidores ativos em produção: runEvolutionDiagnostics usado por src/hooks/useBridgeStatus.ts e DiagnosticResult por src/pages/admin/bridge-status/BridgeDiagnosticsDialog.tsx (n=3, 2 nao-teste).;src/hooks/useBridgeStatus.ts, src/pages/admin/bridge-status/BridgeDiagnosticsDialog.tsx, src/lib/__tests__/evolutionDiagnostics.test.ts;;E64
+src/lib/evolutionInstance.ts;FICA;24 importadores em producao (evolutionInstanceName/evolutionInstanceStatus amplamente usados em conexoes, monitoramento e envio de mensagens).;src/components/connections/ConnectionCard.tsx, src/features/inbox/hooks/realtime/messageSender.ts, src/hooks/useEvolutionAutoReconnect.ts;;E64
+src/lib/evolutionMessageId.ts;FICA;extractEvolutionMessageId usado por useBusinessLogicManagement.ts, useFileUploadLogic.ts e messageSender.ts em producao (n=4, 3 nao-teste).;src/features/business-logic/hooks/useBusinessLogicManagement.ts, src/features/inbox/components/useFileUploadLogic.ts, src/features/inbox/hooks/realtime/messageSender.ts;;E64
+src/lib/evolutionSendRetry.ts;FICA;invokeEvolutionWithRetry consumido por messageSender.ts, failedMessagesEnqueue.ts e retryScheduleSimulation.ts em producao (n=6, 3 nao-teste).;src/features/inbox/hooks/realtime/messageSender.ts, src/lib/failedMessagesEnqueue.ts, src/lib/retryScheduleSimulation.ts;;E64
+src/lib/failedMessagesEnqueue.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/failureRootCause.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/healthCheck.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/inbox/ticketStore.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/jid.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/phoneUtils.ts;FICA;Ref evo apenas em COMENTARIO (mencao a consumidores legados useEvolutionAutoSync) - nao-estrutural, util de telefone sem dependencia evo.;utils gerais (sem dependencia evo);;E69
+src/lib/retryScheduleSimulation.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/sanitize.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/sendFunctionRouter.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/sendIdempotency.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/types/branded.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/whatsappAdapter.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/whatsappAdapterTransport.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/whatsappAdapterTypes.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/lib/withRequestId.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/main.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/AdminEvolutionApiLogsPage.tsx;FICA;Consumidor legitimo do contrato useEvolutionApiLogs + schema evolution_retry_metrics.;rota admin, importa @/hooks/useEvolutionApiLogs;;E69
+src/pages/AdminEvolutionApiLogsPageParts.tsx;FICA;Importado por AdminEvolutionApiLogsPage.tsx:49, pagina confirmada viva (nao e dead code).;src/pages/AdminEvolutionApiLogsPage.tsx:49 (import './AdminEvolutionApiLogsPageParts');;E65
+src/pages/AdminFailedMessagesPage.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/AdminInstancePausesPage.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/AdminRealtimeMonitorPage.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/AdminWebhookEventsPage.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/AdminWebhookOverviewPage.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/AdminWebhookSecretStatusPage.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/RealtimeFanoutDebug.tsx;FICA;Ref nao-estrutural: string de config 'useEvolutionMonitoring' (painel debug de fanout) - nao importa o hook.;rota debug;;E69
+src/pages/ViewRouter.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin-realtime-monitor/EventsLiveBlock.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin-telemetria/ClientTelemetryPanel.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin-webhook-events/WebhookEventsTable.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin-webhook-events/useWebhookEvents.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin-webhook-overview/CallCorrelationView.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin-webhook-overview/callCorrelation.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin-webhook-overview/useWebhookOverview.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin-webhook-secret-status/HmacSelfTestButton.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin-webhook-secret-status/useAdminWebhookStatus.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin/AdminBridgeStatusPage.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin/AdminChannelsPage.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin/AdminEvoApiHealthPage.tsx;FICA;Consumidor legitimo do contrato de health: queryKeys.adminOps.evoApiHealth() (keys estruturais de API).;rota admin;;E69
+src/pages/admin/AdminInboxSyncStatusPage.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin/AdminProvidersPage.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin/AdminWhatsAppLogsPage.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin/AdminWhatsAppModePage.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin/Connections.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin/ZappWebbDemoPage.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin/bridge-status/BridgeCoreServicesCard.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin/bridge-status/BridgeDiagnosticsDialog.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin/operations/MediaPipelineStats.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin/useAdminWhatsAppMode.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/admin/whatsappLogsHelpers.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/inbox/AgentsOperationsPage.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
+src/pages/lazyViews.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/services/api/queryKeys.ts;FICA;Refs ESTRUTURAIS de contrato: queryKeys evoApiHealth*/evolution-db/evolution-fallback-stats/external-evolution (chaves de API/edge functions).;consumido por hooks/pages de admin e health;;E69
+src/services/connections/BridgeService.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/services/connections/__tests__/BridgeService.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/services/messages/messagesRepository.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/shared/__tests__/webhookEventSchemas.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/shared/validation.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/shared/webhookEventSchemas.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/test/fixtures/TRILHA_MENSAGENS_NAVEGAVEL.mmd;FICA;front consumidor (Fase 5 caca dead code);;;
+src/test/realtimeFanout.test.ts;FICA;Teste legitimo de fanout: referencia o modulo useEvolutionMonitoring e schema evolution_messages.;vitest;;E69
+src/test/realtimeFanoutEvents.test.ts;FICA;Teste legitimo de fanout: referencia o modulo useEvolutionMonitoring (chave UEM).;vitest;;E69
+src/tests/e2e/inbox-filter-presets.spec.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/tests/e2e/inbox-filters-persistence.spec.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/tests/e2e/inbox-unassigned-conversations.spec.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/tests/e2e/inbox-unassigned-empty-permissions.spec.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/types/chat.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+src/types/evolutionExternal.ts;FICA;16 imports em 14 arquivos (evolutionAdapter, hooks inbox, rpcCatalog, admin-webhook-*) — tipos load-bearing, nao morto.;evolutionAdapter.ts, useRealtimeContacts.ts, useMessageDetails.ts, useMessagesCursor.ts (import de valor toEvolutionMessageLite), evolutionFetchers.ts, useExternalApiManagement.ts, useExternalEvolution.ts, rpcCatalog.ts, admin-webhook-events/useWebhookEvents.ts, admin-webhook-events/WebhookEventsTab;;E65
+src/types/mediaRefresh.ts;FICA;front consumidor (Fase 5 caca dead code);;;
+supabase/config.toml;FICA;default conservador (R3);;;
+supabase/functions/.env.required;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/__tests__/contract-coverage.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/__tests__/contract-gate-undefined-schema.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/__tests__/contract-kit.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/__tests__/contract-registry-integrity.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/__tests__/contract-schemas-business.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/__tests__/contract-schemas-consumer-stats.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/__tests__/contract-schemas-integrations.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/__tests__/contract-schemas.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/__tests__/contract-versioning.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/__tests__/db-columns.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/__tests__/edge-contract-schemas.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/__tests__/ensaio-f5-operacional.test.ts;FICA;Teste do contrato evolution: exercita evolutionClient e evolutionGatewayContract (contract.zod).;evolutionClient + evolutionGatewayContract (providers/evolution/index.ts + contract.zod.ts);;E41
+supabase/functions/_shared/__tests__/ensaio-fake.test.ts;FICA;Teste do contrato evolution: valida fake/contrato via evolutionClient.;evolutionClient (providers/evolution/index.ts);;E41
+supabase/functions/_shared/__tests__/evolution-fallback-telemetry.test.ts;FICA;Teste de alvo FICA (evolution-fallback-telemetry.ts tem importador em produção).;—;;E50
+supabase/functions/_shared/__tests__/evolution-helpers-guarda1.spec.ts;FICA;Teste de alvo FICA (evolution-helpers.ts tem 13 importadores).;—;;E50
+supabase/functions/_shared/__tests__/evolution-helpers-wiring.test.ts;FICA;Teste de alvo FICA (evolution-helpers.ts).;—;;E50
+supabase/functions/_shared/__tests__/evolution-profile-fallback.test.ts;FICA;Teste de alvo FICA (evolution-profile-fallback.ts tem importador em produção).;—;;E50
+supabase/functions/_shared/__tests__/evolution-response-normalizers.test.ts;FICA;Teste de alvo FICA (evolution-response-normalizers.ts tem importador em produção).;—;;E50
+supabase/functions/_shared/__tests__/evolution-webhook-security.test.ts;FICA;Teste de alvo FICA (evolution-helpers.ts).;—;;E50
+supabase/functions/_shared/__tests__/handle-messages-update.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/__tests__/hmac-multi-secret.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/__tests__/incoming-contact-insert-log.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/__tests__/log-sanitizer.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/__tests__/parity.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/__tests__/phone-helpers-exhaustive.test.ts;FICA;Teste exaustivo dos helpers do contrato evolution (evolution-helpers).;helpers de _shared/evolution-helpers.ts;;E41
+supabase/functions/_shared/__tests__/registry.test.ts;FICA;Teste do registry que valida fallback/paridade com evolutionClient.;evolutionClient (providers/evolution/index.ts);;E41
+supabase/functions/_shared/contract-kit.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/contract-schemas.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/contract-versions.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/db-columns.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/domain/messaging.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/edge-contract-schemas.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/evolution-api-proxy.ts;FICA;8 importadores no mapa (evolution-api/index.ts, whatsapp-cloud-send/index.ts, log-idempotency-miss.ts e testes), grep confirma uso em produção.;evolution-api/index.ts, whatsapp-cloud-send/index.ts, _shared/log-idempotency-miss.ts, tests (envelope-contract, get-media-base64, proxy-fetch-failure);;E50
+supabase/functions/_shared/evolution-fallback-telemetry.ts;FICA;2 importadores no mapa, incluindo evolution-api/index.ts em produção, grep confirma.;evolution-api/index.ts, __tests__/evolution-fallback-telemetry.test.ts;;E50
+supabase/functions/_shared/evolution-helpers.ts;FICA;13 importadores no mapa, incluindo evolution-webhook/index.ts, whatsapp-cloud-webhook/index.ts e helpers _shared, uso massivo em produção.;evolution-webhook/index.ts, whatsapp-cloud-webhook/index.ts, evolution-media.ts, evolution-sync-actions.ts, evolution-webhook-handlers.ts, evolution-webhook-messages.ts, evolution-webhook-msg-handlers.ts + 6 testes;;E50
+supabase/functions/_shared/evolution-media.ts;FICA;4 importadores no mapa (evolution-webhook/index.ts, batch-fetch-avatars/index.ts, providers/cloud/media.ts, evolution-webhook-messages.ts).;evolution-webhook/index.ts, batch-fetch-avatars/index.ts, providers/cloud/media.ts, evolution-webhook-messages.ts;;E50
+supabase/functions/_shared/evolution-message-id.ts;FICA;1 importador em produção: public-api/index.ts (grep confirma).;public-api/index.ts;;E50
+supabase/functions/_shared/evolution-normalizer.ts;"EXCLUI;REVISAR";Único importador no mapa é __tests__/ensaio-fake.test.ts (teste/ensaio de mesa, etapa 57 do plano V3), grep repo-wide confirma zero referências em código de produção (demais hits são docs/planos). [R2: consumidor encontrado: docs/decouple/ADR-008-canonical-domain-model.md, docs/decouple/CANONICAL_CO;apenas __tests__/ensaio-fake.test.ts (teste);;E50
+supabase/functions/_shared/evolution-profile-fallback.ts;FICA;3 importadores no mapa, incluindo evolution-api/index.ts em produção, grep confirma.;evolution-api/index.ts, __tests__/evolution-profile-fallback.test.ts, providers/evolution/__tests__/contract-fixtures.test.ts;;E50
+supabase/functions/_shared/evolution-response-normalizers.ts;FICA;3 importadores no mapa, incluindo evolution-api/index.ts em produção, grep confirma.;evolution-api/index.ts, __tests__/evolution-response-normalizers.test.ts, providers/evolution/__tests__/contract-fixtures.test.ts;;E50
+supabase/functions/_shared/evolution-sync-actions.ts;FICA;5 importadores no mapa (evolution-api/index.ts, evolution-sync/index.ts, evolution-webhook/index.ts, webhook-diagnostic/index.ts + teste).;evolution-api/index.ts, evolution-sync/index.ts, evolution-webhook/index.ts, webhook-diagnostic/index.ts, evolution-sync/__tests__/parse-regression.test.ts;;E50
+supabase/functions/_shared/evolution-webhook-handlers.ts;FICA;2 importadores no mapa, incluindo evolution-webhook/index.ts em produção, grep confirma.;evolution-webhook/index.ts, evolution-webhook-msg-handlers.ts;;E50
+supabase/functions/_shared/evolution-webhook-messages.ts;FICA;3 importadores no mapa (evolution-webhook/index.ts, evolution-normalizer.ts e teste incoming-contact-insert-log).;evolution-webhook/index.ts, evolution-normalizer.ts, __tests__/incoming-contact-insert-log.test.ts;;E50
+supabase/functions/_shared/evolution-webhook-msg-handlers.ts;FICA;2 importadores no mapa (evolution-webhook-handlers.ts e teste handle-messages-update).;evolution-webhook-handlers.ts, __tests__/handle-messages-update.test.ts;;E50
+supabase/functions/_shared/hmac-validation.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/ingest-port.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/instance-pause.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/log-idempotency-miss.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/log-retry-metric.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/mode.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/providers/cloud/client.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/providers/cloud/index.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/providers/cloud/media.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/providers/evolution/__tests__/contract-fixtures.test.ts;FICA;Teste de alvo FICA (contract.zod.ts ativo, também consome evolution-profile-fallback/response-normalizers).;—;;E50
+supabase/functions/_shared/providers/evolution/client.ts;FICA;130 importadores no mapa, núcleo do gateway Evolution, uso extensivo.;130 importadores (evolution-api, evolution-sync, webhooks, _shared, testes);;E50
+supabase/functions/_shared/providers/evolution/contract.zod.ts;FICA;2 importadores no mapa (contract-fixtures.test.ts e ensaio-f5-operacional.test.ts), contrato ativo do gateway — ver achado E51.;providers/evolution/__tests__/contract-fixtures.test.ts, __tests__/ensaio-f5-operacional.test.ts;;E51
+supabase/functions/_shared/providers/evolution/index.ts;FICA;79 importadores no mapa, barrel público do provider Evolution.;79 importadores (evolution-api, webhooks, _shared, testes);;E50
+supabase/functions/_shared/providers/fake/index.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/providers/registry.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/send-idempotency.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/test-helpers.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/validation.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/webhook-contracts.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/_shared/webhook-schemas.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/automation-suggest-reply/index.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/batch-fetch-avatars/index.ts;FICA;Consumidor legítimo: usa evolutionClient.getProfilePicture do provider evolution.;evolutionClient.getProfilePicture (providers/evolution/index.ts);;E41
+supabase/functions/bitrix-api/SECURITY.md;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/cleanup-storage-orphans/index.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/connection-health-check/index.ts;FICA;Consumidor legítimo: checa health do Evolution via evolutionClient + env EVOLUTION_API_URL/KEY e tabela evolution_messages.;evolutionClient (providers/evolution/index.ts), requireEnv EVOLUTION_API_URL/EVOLUTION_API_KEY, tabela evolution_messages;;E41
+supabase/functions/connection-test/__tests__/registry-pilot.test.ts;FICA;Teste do piloto registry: importa evolutionClient do client.ts para comparar paridade.;evolutionClient (providers/evolution/client.ts);;E41
+supabase/functions/connection-test/index.ts;FICA;Consumidor legítimo: testa conexão via evolutionClient.getConnectionState (com piloto registry getProviderClient como fallback).;evolutionClient.getConnectionState + getBaseUrl (providers/evolution/index.ts), getProviderClient (registry) quando REGISTRY_PILOT_CONNECTION_STATE=1;;E41
+supabase/functions/contacts-import/index.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/csat-auto-send/index.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/evolution-api/__tests__/_helpers.ts;FICA;Helper compartilhado dos testes do contrato vivo evolution-api (mesmo padrao dos demais workers).;suites de teste evolution-api;;E42
+supabase/functions/evolution-api/__tests__/connect-auth-errors.test.ts;FICA;Teste de contrato dos erros de auth do connect (EVOLUTION_AUTH_ERROR 401/403) da funcao viva.;CI;;E42
+supabase/functions/evolution-api/__tests__/connect-missing-instance.test.ts;FICA;Teste de contrato do caso MISSING_INSTANCE do connect (funcao viva).;CI;;E42
+supabase/functions/evolution-api/__tests__/envelope-contract.test.ts;FICA;Locks o envelope aditivo contract:'evolution-api@v1' + details em todos os erros da funcao viva.;CI;;E42
+supabase/functions/evolution-api/__tests__/get-media-base64.test.ts;FICA;Teste de contrato do hardening get-media-base64 (MEDIA_EXPIRED 410) da funcao viva.;CI;;E42
+supabase/functions/evolution-api/__tests__/proxy-fetch-failure.test.ts;FICA;Teste de contrato do proxy send-media sob falha de fetch (504/timeout/500) da funcao viva.;CI;;E42
+supabase/functions/evolution-api/__tests__/send-media-audio-instance.test.ts;FICA;Teste de contrato de envio de audio por instancia (funcao viva).;CI;;E42
+supabase/functions/evolution-api/__tests__/send-sticker-instance.test.ts;FICA;Teste de contrato de envio de sticker por instancia (funcao viva).;CI;;E42
+supabase/functions/evolution-api/__tests__/v237-fallback.test.ts;FICA;Locks o fallback automatico para endpoints v2.3.7 (find-chats/fetch-chats/fetch-instances) do proxy compartilhado usado pela funcao viva.;CI;;E42
+supabase/functions/evolution-api/index.test.ts;FICA;Teste de contrato do index.ts (funcao viva em prod), usa SUPABASE_URL placeholder de fixture apenas.;CI/typecheck;;E42
+supabase/functions/evolution-api/index.ts;FICA;Proxy principal do front (chat operante em prod), contrato vivo evolution-api@v1, usa provider _shared/providers/evolution (getBaseUrl via env EVOLUTION_API_URL, sem URL hard-coded) e contract-kit (parseOrReject + CONTRACT_SCHEMAS).;front zapp-web (chat operante, prod);;E42
+supabase/functions/evolution-bitrix-sync/index.ts;"FICA;REVISAR";Deployada e funcional (drena evolution_bitrix_queue p/ Bitrix24), mas ZERO invocadores no codigo (nenhum cron pg_cron 'bitrix', nenhum invoke no front/router) e segredo bitrix_webhook_url AUSENTE no vault -> 503 se chamado, docs EGRESS_SURFACE_V4: MANTER condicional (restaurar segredo ou aposentar).;nenhum no codigo (0 invocacoes em src/, scripts/, .github/, docs/, main/), fila alimentada por triggers zapp trg_contact_bitrix_sync/trg_deal_bitrix_sync (zapp.trg_queue_*_for_bitrix) e docs/decouple/EGRESS_SURFACE_V4.md (SUPORTE VÁLIDO - MANTER condicional);;E46
+supabase/functions/evolution-consumer-stats/index.ts;FICA;Receptor HTTP de stats do evolution-rabbit-consumer (E89): POST + HMAC + RPC de contrato, consumido ao vivo pelo container na VPS a cada ~30s (contrato vivo, pg_stats_ok=652) — bug bilateral de path/URL reportado no achado.;evolution-rabbit-consumer (container VPS, repo adm01-debug/evolution-stack — fora deste workspace);;E48
+supabase/functions/evolution-credentials/__tests__/contract.test.ts;FICA;Contrato tests do POST CRUD (save/delete) + guarda de regressao da aposentadoria do GET (410, sem X-Evolution-Key na source) — mantem junto da funcao.;deno test (CI), valida CONTRACT_SCHEMAS['evolution-credentials-write'].v1 e ausencia de leitura da key;;E46
+supabase/functions/evolution-credentials/index.ts;FICA;ATIVO e crítico: POST-only CRUD de credenciais da instância wpp2, deployada no edge-runtime (08-07) e consumida pelo front (save/delete) — GET aterrado com 410 em 2026-08-14.;src/features/integrations/hooks/useEvolutionApiIntegration.ts (handleSave/handleDelete), src/lib/adapters/evolutionOps.ts:20 (POST), evolution-api/wpp2 (credenciais via tabela evo.evolution_instance_credentials, per maestro);;E46
+supabase/functions/evolution-group-sync/__tests__/groups-sync.test.ts;FICA;Teste da action groups (upsert de grupos/participantes) da function viva.;CI/desenvolvedores (cobertura da function ativa);;E45
+supabase/functions/evolution-group-sync/__tests__/isonwa.test.ts;FICA;Teste da action isonwa (fila IsOnWhatsApp) consumida pelo cron 477 em producao.;CI/desenvolvedores (cobertura da action isonwa ativa);;E45
+supabase/functions/evolution-group-sync/index.ts;FICA;Edge function viva: consumida pelo pg_cron ATIVO 'sync-groups-daily' (diario 04:10) via extensions.http_post com headers de autorizacao, e pelo cron 477 check-whatsapp-numbers (isonwa).;pg_cron 'sync-groups-daily' (jobid 476, '10 4 * * *' UTC), pg_cron 'check-whatsapp-numbers' (jobid 477, 15 min) p/ action isonwa, chamadas internas service-role/cron;;E45
+supabase/functions/evolution-notification-dispatcher/__tests__/config.test.ts;FICA;Teste unitario do nucleo de config (parsePriorityFilter, isExcludedByPriorityFilter, fallbacks de destinatario, getChannelConfig com RPC fake) — sem rede/DB, roda em CI via deno test.;CI (deno test evolution-notification-dispatcher/__tests__/config.test.ts);;E48
+supabase/functions/evolution-notification-dispatcher/index.ts;FICA;Dispatcher da outbox de canais externos (claim atomico zapp.fn_evo_outbox_claim + mark, rate-limit 1/s, auth service-role ou x-cron-secret, contrato v1 body {}) — acionado pelo pg_cron de producao.;pg_cron 'notif-dispatcher' (job 478, */5 * * * *, active, prod via MCP — NAO ha migration no repo definindo esse cron, 'process-evolution-notifications' (2min) e cron SQL que chama zapp.fn_process_evolution_notifications(200), funcao ≠ edge), migrations 20260811150400/20260811170000 dao suporte (out;;E48
+supabase/functions/evolution-retry-metrics/index.ts;FICA;GET admin-only (JWT + is_admin_or_supervisor) que agrega evolution_retry_metrics com percentis e comparativo de janela — consumido pelo painel admin do frontend.;src/features/admin/hooks/monitoring/useRetryMetrics.ts (chama `evolution-retry-metrics?${params}`), queryKeys.ts evolutionRetryMetrics;;E48
+supabase/functions/evolution-sync/__tests__/parse-regression.test.ts;FICA;Teste de regressao do parser/contrato da function viva evolution-sync.;CI/desenvolvedores (cobertura da function ativa);;E45
+supabase/functions/evolution-sync/index.ts;FICA;Edge function viva: consumida pelo pg_cron ATIVO 'evo-sync-messages-to-v2' (a cada 5 min) via pg_net HTTP, alem de uso manual admin/supervisor.;pg_cron 'evo-sync-messages-to-v2' (5 min, prod), chamadas HTTP manuais admin/supervisor (actions sync-contacts/sync-messages/full-sync/sync-all-messages/setup-webhook/cleanup-mock);;E45
+supabase/functions/evolution-templates/index.ts;FICA;ATIVO: GET lista templates ativos (evolution_message_templates) e POST send/preview envia via Evolution API (vault) — deployada, consumida pelo hook do browser, conhecido 401 de gate (JWT vs service-role) documentado no topo, decisao pendente plano #31, sem quebra silenciosa (hook tolera fallback).;src/hooks/useWhatsAppTemplates.ts:185 (syncFromEvolution, GET), src/lib/adapters/evolutionOps.ts:30 (listTemplates, GET), POST send/preview destinado a cron/service-role (maestro: crons notif-dispatcher/process-evolution-notifications podem consumir templates via function);;E46
+supabase/functions/evolution-webhook/__tests__/_helpers.ts;FICA;Helper dos testes do contrato vivo do webhook (reusa _shared/test-helpers.ts).;suites de teste evolution-webhook;;E42
+supabase/functions/evolution-webhook/__tests__/contract.test.ts;FICA;Locks o contrato HMAC do webhook vivo: createWebhookValidator(WEBHOOK_SECRETS, STRICT_MODE, ALLOW_SHARED_SECRET), proibe retorno de __staticSecretOk, HMAC 401 + audit rejected.;CI;;E42
+supabase/functions/evolution-webhook/fuzz_test.ts;FICA;Fuzzer manual do contrato vivo do webhook (roda contra supabase local).;QA/eng de plataforma;;E42
+supabase/functions/evolution-webhook/index.ts;FICA;Ingestao VIVA em prod: 548 eventos em evo.evolution_webhook_events_v2 nas ultimas 24h (ultimo 19:45Z), deployada no edge-runtime.;Evolution API v2.4.0 (webhook nativo) + consumer RabbitMQ, alimenta evo.evolution_webhook_events_v2 via ledger/processed;;E42
+supabase/functions/fetch-whatsapp-avatar/index.ts;FICA;Consumidor legítimo: busca avatar via evolutionClient.getProfilePicture + isSafeMediaCdnUrl (evolution-media).;evolutionClient.getProfilePicture (providers/evolution/index.ts), isSafeMediaCdnUrl (_shared/evolution-media.ts);;E41
+supabase/functions/followup-bridge/index.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/gmail-tests.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/gmail-token-refresh/index.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/health/index.ts;FICA;Consumidor legítimo: sub-check 'evolution' consolidado da antiga evolution-health (AG-EX-13) via evolutionClient.getConnectionState.;evolutionClient.getConnectionState (providers/evolution/index.ts);;E41
+supabase/functions/instance-pause-control/index.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/main/index.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/metrics/index.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/migrate-media-storage/index.ts;FICA;Consumidor legítimo: migra mídias baixando do Evolution via evolutionClient.post (download).;evolutionClient.post (providers/evolution/index.ts);;E41
+supabase/functions/nps-scheduler/index.ts;FICA;Consumidor legítimo: envia NPS via evolutionClient.sendText.;evolutionClient.sendText (providers/evolution/index.ts);;E41
+supabase/functions/provider-healthcheck/index.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/provider-router/index.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/public-api/__tests__/e2e-send.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/public-api/__tests__/no-direct-fetch.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/public-api/__tests__/send-routes-instance.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/public-api/index.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/recheck-webhook-signature/index.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/recover-corrupted-audios/index.ts;FICA;Consumidor legítimo: baixa áudios corrompidos do Evolution via evolutionClient.post.;evolutionClient.post (providers/evolution/index.ts);;E41
+supabase/functions/reprocess-failed-messages/__tests__/contract.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/reprocess-failed-messages/index.ts;FICA;Consumidor legítimo: reprocessa mensagens falhas chamando o Evolution via evolutionFetch.;evolutionFetch (providers/evolution/index.ts);;E41
+supabase/functions/talkx-send/index.ts;FICA;Consumidor legítimo: envia mensagens/presença via evolutionClient.post (chat/updatePresence e sendText).;evolutionClient.post (providers/evolution/index.ts): chat/updatePresence + sendText;;E41
+supabase/functions/webhook-diagnostic/contract.test.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/webhook-diagnostic/index.ts;FICA;Consumidor legítimo: diagnostica webhook do Evolution via evolutionClient (getConnectionState/get/post webhook/set) e WEBHOOK_EVENTS.;evolutionClient.getConnectionState/get/post (providers/evolution/index.ts), WEBHOOK_EVENTS (_shared/evolution-sync-actions.ts);;E41
+supabase/functions/webhook-hmac-selftest/index.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/whatsapp-cloud-api/index.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/whatsapp-cloud-send/index.ts;FICA;camada de contrato edge (Fase 4 valida vida);;;
+supabase/functions/whatsapp-cloud-webhook/__tests__/_helpers.ts;FICA;Helper de teste, menção a 'evolution' apenas em comentário (mesmo padrão de evolution-webhook), sem import do provider.;nenhum (menção em comentário apenas);;E41
+supabase/functions/whatsapp-cloud-webhook/__tests__/contract.test.ts;FICA;Teste de contrato: verifica que o index.ts importa markEventProcessed de _shared/evolution-helpers.ts.;markEventProcessed (_shared/evolution-helpers.ts) — verificação estática;;E41
+supabase/functions/whatsapp-cloud-webhook/index.ts;FICA;Consumidor legítimo: usa helpers compartilhados do contrato evolution (markEventProcessed/shouldUpdateStatus) e tabela evolution_messages.;markEventProcessed + shouldUpdateStatus (_shared/evolution-helpers.ts), tabela evolution_messages;;E41
+supabase/migrations/20260804000000_canonical_schema_squash_133_migrations.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260804140000_fix_rls_delta_corrigido.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260804140100_fix_rls_critical_follow_up.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260804150000_fix_secdef_revoke_extended_schemas.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260804150001_integration_schema_zapp_fixes.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260804170000_fix_rls_systematic_coverage.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260804190316_restore_orphaned_rpcs.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260805000000_delta_724_orphaned_objects.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260805104000_harden_evo_insert_policies.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260805104043_harden_evo_insert_policies.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260805120001_leakproof_privileged_check.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260805120407_revoke_auth_edge_rpcs.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260805121000_wave2_perf_security.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260805140000_fix_contact_editing_rpcs.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260805170002_revoke_anon_contract_inventory.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260805180000_revoke_meme_favorite_2arg_authenticated.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260805180532_fix_pgrst204_agent_id_evolution_messages.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260805190000_create_csat_tables.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260805220000_revive_logpatch_audit_view_trigger.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806100002_fix_retry_stuck_messages_queued_status.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806110000_revoke_anon_public_read_audio_messages.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806120000_db01_enqueue_message_dispatch.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806121000_db02_purge_api_key_logs.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806121500_db02b_fix_return_purge_api_key_logs.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806122000_db03_register_instance.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806125000_fix_evo_percent_format.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806130000_fix_percent_format_class.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806141000_f2_31_sync_messages_v2_orderby.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806150000_db05c_guardrail_comment_aware.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806160000_revoke_anon_public_read_etiquetas_remessa.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806170500_rb2_c4_drop_empty_evo_indexes.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806172000_rb2_a4_fix_lid_contamination_format.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806172500_rb2_c5_c6_audit_index_autovacuum.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806173000_rb2_a4b_verify_alert_delivery_sync_skip_locked.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806173001_rb2_a8_logpatch_patch_mode.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806180000_fix_wa_rpc_execute_grants.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806180001_fix_v_logpatch_health_security_invoker.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806185000_rb2_onda3_views_drops.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806185500_rb2_d9_kpi_overview.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806190000_bugfix_fn_verify_alert_delivery_v6.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806190500_rb2_glitchtip_cleanup.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806192000_bugfix_evolution_logpatch_audit_security_invoker.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806193000_whatsapp_media_bucket_public.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806200001_bugfix_fn_verify_alert_delivery_v7.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806200002_revoke_store_reset_token_from_authenticated.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806200100_fix_meme_favorite_race_condition_and_revoke_public.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806203257_audit_fix_p0_guards_list_messages_global_search.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806204354_audit_fix_insert_message_overload2_delete_contact.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806204504_audit_fix_orph_refs_v2.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806204525_audit_fix_funcoes_lgpd.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806210200_f12_linkage_realtime_view.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806400000_fix_retry_auto_fail_max_retry.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806700000_fix_g1_searchpath_gaps.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806800002_seed_evo_instance_credentials_wpp2.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806960000_fix_cotacoes_schema_ref.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806990000_rb2_desfasar_evo_401_feed.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806991000_drop_duplicate_indexes_evolution_messages.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806992000_drop_unused_tsvector_indexes.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806993000_drop_model_pricing_v1_orphan.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260806995001_autovacuum_bootstrap_log.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260807091100_item85_evo401_feed_conn_history.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260807094000_item143_restore_partition_baseline_dynamic.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260807101000_item85_sentinel_stale_race_fix.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260807102155_onda3_d2_negocio_triggers_evo_contrato_views_rpc.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260807110000_ag_ex19_watchdogs_kpi.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260807110001_ag_ex19_v2_cron_and_inventory.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260807110002_ag_ex19_kpi_episodio.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260807110003_ag_ex19_kpi_resolved_generated_fix.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260807120000_revoke_anon_execute_six_functions.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260807120325_consolidate_rpc_insert_message.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260807130000_revoke_anon_execute_fn_require_app_user.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260807140000_create_rpc_e2e_cleanup.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260807165000_cleanup_evo_contacts_orphans.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260807190000_rpc_e2e_cleanup_v3_trigger_guard.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260807220000_ag05_onda2_qa1005_fn_insert_idempotency_failure_audit.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260807235800_c3_restrict_rls_permissive_policies.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260807236000_revoke_excessive_grants_control_tables.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260807250000_search_contacts_gin.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260807270000_session_backfill_pipeline_hardening.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260808110001_rpc_guards_wave.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260808110002_mask_resolve_revokes.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260808110004_cleanup_hygiene_wave.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260808120001_drop_redundant_partition_rjid_indexes.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260808150000_hotfix_revoke_exec_sql_anon.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260808150001_rerevoke_re_grants.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260808230000_revoke_anon_exec_zapp_functions.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260808230200_revoke_anon_execute_search_contacts_gin.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260808230300_revoke_anon_execute_internal_functions.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260808240000_fix_gap01_search_contacts_gin_expression.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260808250000_fix_gap03_logflare_pub_restrict.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260808260000_shadow_mode_fns_and_canonical_route_fix.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260808270000_pgcron_jobs_outbound_shadow_archive.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260808280000_fix_security_definer_evo_fns_anon_access.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260809000000_versioned_drops_and_jwt_ref.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260809179000_queue_enqueue_dequeue_mechanic.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260809180000_queue_autorouter_wiring.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260810120000_populate_media_bucket_path.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260810170000_g6_batch_mode_guards_evolution_contacts.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260810200100_fix_consumer_stats_fdw_evolution_postgres.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260810200200_fn_process_contacts_batch_all_guards.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260810200300_fn_delete_test_contacts.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260811130000_grupos.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260811140000_status_contato.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260811150100_evo_integridade_fks_limpezas.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260811150200_evo_doc_comments_massivos.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260811150300_notificacoes.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260811150400_evo_notification_outbox_dispatcher.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260811160000_revoke_auth_exec_fns_novas.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260811170000_evo_notif_config_get_rpc.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260811180000_depreca_funcoes_pgnet.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260811203000_grupos_admin_phone.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260811220000_view_zapp_evolution_messages_54cols.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260812160000_fix_trigger_lead_status.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260812170000_health_filter_snap_staging.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260812173000_zapp_fn_upsert_lid_identity.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260813180000_rpc_log_evolution_health.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260813220000_idx_fk_without_index.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260813230000_fix_notify_and_analyze_cron.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260813240000_h2_revoke_views_backcompat_grupo_a.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260814010000_fix_inbound_silencio_comercial.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260814020000_revoke_credentials_auth_grants.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260814040000_revoke_service_only_tables_auth_write.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260814050000_fix_notify_v6_pending_view.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260814060000_fix_wpp2_uptime_kpi_warn_resolve.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260814100000_f4_audit_rpc_fixes.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260814110000_f4_security_unread_fixes.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260814120000_fix_cron_detect401_bursts_active.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260814130000_fn_health_preflight_check9_vault_key.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260814140000_rls_policy_evo_reconcile_snapshot.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260814150000_fix_fn_detect_401_bursts_dedup.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260814210000_mirror_rpcs_claim_update_followup.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260814220000_mirror_fn_validate_whatsapp_connection.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260814230000_mirror_fn_validate_0arg.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815010000_decouple_e8_pgnet_instrumentation.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815020000_decouple_e10_preflight_checklist.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815030000_decouple_e17_fn_evo_v2.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815035000_decouple_ops_pgnet_wrappers.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815040000_decouple_e26_evo_detect_instance_recreate.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815050000_decouple_e27_evo_download_wa_status_media.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815060000_decouple_e28_evo_notify_sicoob_on_reply.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815070000_decouple_e29_evo_sync_lid_from_api.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815080000_decouple_e30_evo_trigger_audio_transcription.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815090000_decouple_e31_zapp_check_license_heartbeat.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815095959_decouple_e32_zapp_collect_restore_logs.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815110000_decouple_e33_zapp_cookie_probe_dispatch.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815120000_decouple_e34_zapp_cookie_real_probe.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815124500_unify_whatsapp_mode.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815130000_decouple_e35_zapp_escalate_critical_alerts.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815140000_decouple_e36_zapp_outbound_dispatch.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815150000_decouple_e37_zapp_reconcile_dispatch.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815160000_decouple_e38_multi_functions.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815170000_decouple_e39_validate_i4.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815180000_decouple_e40_t2_score.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815200001_decouple_i4_license_heartbeat.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815200002_decouple_i4_wa_status_media.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815200003_decouple_i4_audio_transcription.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815200004_decouple_i4_instance_recreate.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815200008_decouple_i4_sicoob.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815200009_decouple_i4_evo_v2.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815200010_decouple_i4_infra_secrets.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815200011_decouple_i4_resend.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815200012_decouple_i4_purge_storage_cache.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815210000_decouple_e41_i1_contract_views.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815211000_decouple_e42_fn_archive_old_wpp2_messages.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815212000_decouple_e43_messages_update_trigger.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815213000_decouple_e44_fn_system_health_score.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815214000_decouple_e45_fn_contacts_view_delete_handler.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815215000_decouple_e46_bulk_soft_delete_contacts.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815220000_decouple_e47_merge_contacts.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815221000_decouple_e48_fn_alert_wpp2_disconnection.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815222000_decouple_e49_get_contact_intelligence_by_phone.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815223000_decouple_e50_get_contacts_360_batch.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815224000_decouple_e51_rpc_inbox_preview_batch.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815225000_decouple_e52_validate_search_contacts_cursor.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815230000_decouple_e53_validate_i1.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815231000_decouple_e54_score_t3.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815240000_decouple_fase4_lote1_e55_e57_e48.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250000_decouple_e20_fn_boundary_audit_rpc.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250001_decouple_e46_searchpath_evo_sem_zapp_safe.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250003_decouple_e47_e48_searchpath_evo_sem_zapp_completo.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250004_fix_lid_health_report_idx_schema.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250005_decouple_e80_revoke_authenticated_evo_views_contrato.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250006_decouple_e50_drop_33_fns_mortas.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250007_decouple_e64_e66_drop_fks_cruzadas_reconciliador.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250008_decouple_e59_e60_lote1_move_8_fns_monitoria.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250009_decouple_e59_e60_lote2_move_3_fns_monitoria.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250010_decouple_e53_e85_audit_v2_roles_provider_call_3_bypasses.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250011_decouple_e78_min_4_views_leitura_evo.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250012_decouple_e51_e52_e54_rpc_boundary_surface_v1_grants_teste_negativo.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250013_decouple_e62_repoint_8_escritoras_lote3_move_5_fns_i8_zerado.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250014_decouple_lote4_move_6_fns_views_e78_drops_codigo_morto_fase2_events_rpcs.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250015_decouple_fix_metadata_source_table_pos_move_views.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250016_decouple_lote5_16_leitoras_i2_views_e78_boundary_rpcs.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250017_decouple_move_normalize_jid_triggers_hot_path_evo_para_zapp.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250018_decouple_lote6_5_moves_boundary_heartbeat_i2_zero_ops_restore_check.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250019_decouple_fix_vitimas_e50_list_storage_purge_health_report_canonical_drop.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250020_decouple_lote7_lote8_12_moves_9_views_e78_repoint_crons.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250021_decouple_leitoras_reversas_5_views_zapp_7_fns_evo_e2e_boundary_alert.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260815250022_lote9_fase_a_boundaries_triggers_cruzados.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260816090000_drop_dead_functions_zapp_evo.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260816140000_decouple_i1_i2_zerar.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260816141000_decouple_i1_i2_fix2.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260816150000_decouple_e54_test_negativo_roles.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260816170000_decouple_e86_egress_log.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260816250001_decouple_e86_ops_observabilidade_8_objetos.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260816250002_decouple_preflight_cron_alerta_canary_repoint.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260816250003_decouple_e73_e75_i4_zero.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260816250005_decouple_fix_rls_grants_views_contrato_i5_redef.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260816250006_decouple_restaura_wrappers_zapp_vitimas_e50.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260816250007_decouple_public_views_invoker_true.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/20260816250008_decouple_realtime_publication_messages_conversations.sql;FICA;R1: migracao imutavel;;;
+supabase/migrations/__tests__/migrations-idempotency.test.ts;FICA;R1: migracao imutavel;;;
+tests/e2e/fuzz/api-fuzz.spec.ts;FICA;default conservador (R3);;;
+tests/e2e/reliability.spec.ts;FICA;default conservador (R3);;;
+tests/e2e/resilience.spec.ts;FICA;default conservador (R3);;;
+tests/e2e/webhooks.spec.ts;FICA;default conservador (R3);;;
+vercel.json;FICA;default conservador (R3);;;
+vitest.config.ts;FICA;default conservador (R3);;;
+zero-success-rate-workflows.md;FICA;default conservador (R3);;;

@@ -54,7 +54,7 @@ workflow e com os 55 entries de `package.json:scripts`.
 | `scripts/decouple/verb-contract-gate.mjs` | rg repo-wide | **não** — self (5) + `coverage-report.mjs:94` (menção em comentário) + 5 docs de plano/cenário | ORFAO confirmado |
 | `scripts/decouple/run-all-gates.mjs` | rg repo-wide | **não** — self (3) + 4 docs de plano + `ADR-010-sql-gateway.md:50,91` | ORFAO confirmado |
 | `scripts/decouple/score-ratchet.mjs` | rg repo-wide | **não** — self (7) + `VALIDACAO_EXECUCAO_PLANO_20260815.md:182` | ORFAO confirmado — **e agravado**: existe agora `.github/workflows/score-ratchet.yml` que **reimplementa a lógica inline em `node - <<EOF`** em vez de chamar o script de 342 ln. Duplicação, não wiring. |
-| `scripts/decouple/coverage-report.mjs` | rg repo-wide | **não** — self (3) + 2 docs V4 + o próprio `COVERAGE_V4.md:3` (que ele gera) | ORFAO confirmado |
+| `scripts/decouple/_archive/coverage-report.mjs` | rg repo-wide | **não** — self (3) + 2 docs V4 + o próprio `COVERAGE_V4.md:3` (que ele gera) | ORFAO confirmado |
 | `scripts/audit-semaphore-sim.mjs` | rg repo-wide | **não** — **zero** ocorrências fora de `graphify-out/` e do próprio doc 38 | ORFAO confirmado (o mais limpo dos 8) |
 | `scripts/query-fingerprint.mjs` | rg repo-wide | **não** — self (4) + `docs/REFACTOR_PLAN.md:54,97` + doc de simulação | ORFAO confirmado. Ressalva ao veredito "REMOVER": `REFACTOR_PLAN.md:54` o chama de *"ferramenta permanente"* e `:97` o prescreve como passo 1 de procedimento de refactor — é doc de método, não de plano concluído. Trocar REMOVER por AVALIAR. |
 | `scripts/render-seed-report.mjs` | rg repo-wide | **não** — self (2), nem docs | ORFAO confirmado |

@@ -306,7 +306,7 @@ Deno.serve(async (req) => {
             await supabase.from('warroom_alerts').insert({
               alert_type: 'critical',
               title,
-              message: `O número ${conn.phone_number ?? expectedOwner ?? '?'} está pareado e ATIVO na instância "${ghost.name}", mas esta conexão roteia por "${evoName}". Eventos/envios não fluem pelo pipeline. Runbook: docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5_wpp2.md §4.`,
+              message: `O número ${conn.phone_number ?? expectedOwner ?? '?'} está pareado e ATIVO na instância "${ghost.name}", mas esta conexão roteia por "${evoName}". Eventos/envios não fluem pelo pipeline. Runbook: docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_sessao5_wpp2.md §4.`,
               source: 'connection_health',
             });
           }

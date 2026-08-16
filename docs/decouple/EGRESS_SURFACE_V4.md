@@ -52,7 +52,7 @@
 ### 2.5 `evolution-bitrix-sync` — SUPORTE VÁLIDO (com pendência de segredo)
 - **Papel:** drena `evo.evolution_bitrix_queue` (pending, até 20/lote, claim atômico, backoff exponencial, max_attempts) e envia create/update de contatos/deals ao Bitrix24 via webhook (STAGE_MAP, SOURCE_ID=WHATSAPP); registra `evolution_performance_metrics`; contrato `evolution-bitrix-sync@v1`; gate service-role/cron.
 - **Chamadores (grep):** nenhum em `src/`; serviço interno (cron). Registrado em `_shared/contract-schemas.ts` / `contract-versions.ts`.
-- **Status:** ✅ Deployada. **Decisão: MANTER com condição** — segredo `bitrix_webhook_url` **ausente** em env/vault (docs/reconciliation/06_segredos.md R06-07 → função retorna 503 "Bitrix24 não configurado"); restaurar o segredo ou formalizar aposentadoria se a integração Bitrix estiver descontinuada.
+- **Status:** ✅ Deployada. **Decisão: MANTER com condição** — segredo `bitrix_webhook_url` **ausente** em env/vault (docs/_archive/reconciliation/06_segredos.md R06-07 → função retorna 503 "Bitrix24 não configurado"); restaurar o segredo ou formalizar aposentadoria se a integração Bitrix estiver descontinuada.
 
 ### 2.6 `evolution-group-sync` — SUPORTE VÁLIDO
 - **Papel:** sync de grupos WhatsApp (GET `/group/fetchAllGroups/{instance}?getParticipants=true` com header apikey → normaliza participantes → RPC `zapp.zapp_upsert_group_from_event`); substituiu o backfill via pg_net (`evo.fn_sync_groups_from_api`), que não enviava header custom (401 — investigação 2026-08-11); rota única `action='groups'` (default); exige `EVOLUTION_INSTANCE_TOKEN_WPP2` no env (503 sem ele); contrato `evolution-group-sync@v1`; gate service-role/cron.
