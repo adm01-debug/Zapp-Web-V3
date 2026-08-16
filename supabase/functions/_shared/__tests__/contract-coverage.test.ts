@@ -29,11 +29,9 @@ const ALLOWLIST: Record<string, string> = {
   // cobertura (validação Claude C3 2026-08-04).
   "main": "proxy — não pode consumir stream; gate só para req sem body (no-op)",
   "mcp": "proxy JSON-RPC — não pode consumir stream; gate só para req sem body (no-op)",
-  // evolution-proxy (2026-08-14): proxy server-side com validação MANUAL forte
   // (allowlist de método + allowlist de paths + parse JSON) — o body do envelope
   // é opaco e re-encaminhado à Evolution; adicionar parseOrReject consumiria o
   // stream sem ganho real de segurança (paths já restritos a 6 verbos).
-  "evolution-proxy": "proxy — validação manual de method/path (allowlist 6 verbos); body opaco encaminhado",
 };
 
 function walkDir(dir: URL): string[] {

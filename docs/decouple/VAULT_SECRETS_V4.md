@@ -10,14 +10,14 @@ Fonte: `SELECT name, created_at, updated_at FROM vault.decrypted_secrets WHERE n
 | # | name | created_at | updated_at | observação |
 |---|---|---|---|---|
 | 1 | `evolution_api_key` | 2026-05-03T21:24:47.896Z | **2026-08-09T23:40:18.532Z** | atualizado ~18min APÓS criação do `_v2` |
-| 2 | `evolution_api_key_v2` | 2026-08-09T23:22:24.267Z | 2026-08-09T23:22:24.267Z | nunca mais tocado |
+| 2 | `evolution_api_key_v2` | 2026-08-09T23:22:24.267Z | 2026-08-09T23:22:24.267Z | **DELETADO 2026-08-15 (dedup F6)** |
 | 3 | `evolution_api_url` | 2026-05-03T21:24:47.898Z | 2026-05-03T21:24:47.898Z | estável |
 | 4 | `evolution_foundation_license_key` | 2026-08-11T19:11:41.352Z | 2026-08-11T19:11:41.352Z | novo (11/08) |
 | 5 | `evolution_instance_name` | 2026-05-03T21:24:47.899Z | 2026-05-03T21:24:47.899Z | estável |
 | 6 | `evolution_instance_token_wpp2` | 2026-08-11T14:49:07.685Z | 2026-08-11T14:49:07.685Z | novo (11/08) |
 | 7 | `evolution_pg_password` | 2026-07-11T17:14:27.239Z | 2026-07-11T17:14:27.239Z | 11/07 |
 | 8 | `evolution_postgres_dsn` | 2026-05-03T21:24:47.901Z | 2026-05-03T21:24:47.901Z | estável |
-| 9 | `evolution_webhook_secret` | 2026-05-03T21:24:47.904Z | 2026-05-03T21:24:47.904Z | nunca atualizado |
+| 9 | `evolution_webhook_secret` | 2026-05-03T21:24:47.904Z | 2026-05-03T21:24:47.904Z | **DELETADO 2026-08-15 (dedup F6)** |
 | 10 | `webhook_secret_evolution` | 2026-06-13T14:32:55.891Z | 2026-06-13T14:32:55.891Z | nunca atualizado |
 
 **Pares duplicados confirmados (2):**

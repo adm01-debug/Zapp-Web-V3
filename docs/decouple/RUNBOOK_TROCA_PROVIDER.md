@@ -75,7 +75,7 @@ SELECT score, grade FROM ops.v_health_latest ORDER BY 1 DESC LIMIT 1;
 - **Envelope v1:** webhooks antigos chegam no envelope v1 da Evolution (payload diferente do canônico). Normalizer precisa rejeitar/mapear explicitamente; envelope desconhecido deve ir para `zapp.evolution_webhook_dlq`/log, nunca quebrar o ingest.
 - **Idempotência do `ingest_ledger`:** durante o overlap dual, a mesma mensagem pode entrar 2×. O ledger precisa deduplicar por message id canônico; se a chave for diferente entre providers, duplicatas entram no inbox.
 - **`search_path`:** as fns SQL (P4) dependem do `search_path` correto (`zapp`, `ops`). `CREATE OR REPLACE` com search_path errado quebra resolução de tabelas em runtime — conferir `SHOW search_path` por role antes e depois.
-- **Vault com secrets duplicados:** `evolution_api_key` × `evolution_api_key_v2` e `evolution_webhook_secret` × `webhook_secret_evolution` existem (resíduo 4 do V3). Resolver cloud idem: um par canônico, sem duplicata.
+- **Vault com secrets duplicados:** `evolution_api_key` × `evolution_api_key_v2` e `evolution_webhook_secret` × `webhook_secret_evolution` **foram eliminados em 2026-08-15** (dedup F6 — os duplicados `_v2`/`evolution_webhook_secret` deletados; canônicos `evolution_api_key` e `webhook_secret_evolution` preservados; vault 46 → 44).
 
 ## 6. O que NÃO está coberto (limites honestos)
 
@@ -83,7 +83,7 @@ SELECT score, grade FROM ops.v_health_latest ORDER BY 1 DESC LIMIT 1;
 - **Templates:** `whatsapp-cloud-send`/templates Meta exigem aprovação prévia na Meta Business; templates ElevenLabs/Evolution (`evolution-templates`) não são traduzidos automaticamente.
 - **Grupos:** `listGroups`/gestão de grupos é verbo Evolution sem equivalente Cloud direto no escopo atual; funcionalidades de grupo ficam degradadas no modo oficial.
 - **QR/onboarding:** `getQrCode`/`restartInstance` não existem na Cloud API; o fluxo de conexão do número muda (número dedicado vs pareamento), não coberto aqui.
-- **Ensaio cronometrado:** tempo real de execução nunca foi medido — estimativas abaixo são planejamento, não evidência.
+- **Ensaio cronometrado:** MEDIDO em 16/08/2026 (E91) — ver `ENSAIO_TROCA_PROVIDER_MEDIDO.md` (ensaio fake↔evolution 12/12 verbos, f5-operacional 46 ms, rollback por identidade). As estimativas da seção 7 continuam sendo planejamento para a troca REAL (E92 — aguarda credenciais cloud).
 
 ## 7. Estimativa de tempo
 
@@ -104,4 +104,4 @@ SELECT score, grade FROM ops.v_health_latest ORDER BY 1 DESC LIMIT 1;
 
 ---
 
-*Limite declarado: a troca Evolution→Cloud NÃO foi executada nem ensaiada em produção até 2026-08-14. Este runbook é um contrato de planejamento; qualquer relato de sucesso deve vir de execução real com evidência (logs, DLQ, health).*
+*Limite declarado: a troca Evolution→Cloud (E92) NÃO foi executada em produção até 2026-08-16 — **aguarda credenciais cloud** (`WHATSAPP_CLOUD_PHONE_ID`/`WHATSAPP_CLOUD_TOKEN`). O ensaio simulado (E91) foi concluído e medido (12/12 verbos, 46 ms) — ver `ENSAIO_TROCA_PROVIDER_MEDIDO.md`. Este runbook é contrato de planejamento; qualquer relato de sucesso deve vir de execução real com evidência (logs, DLQ, health).*

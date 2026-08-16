@@ -22,6 +22,7 @@ export interface ContractSpec {
 export const CONTRACTS: Record<string, ContractSpec> = {
   // Webhooks externos
   "evolution-webhook":            { current: "v2", supported: ["v1", "v2"], sunset: { v1: "2027-01-01" } },
+  "evolution-consumer-stats":     { current: "v1", supported: ["v1"] },
   "whatsapp-cloud-webhook":       { current: "v2", supported: ["v1", "v2"], sunset: { v1: "2027-06-01" } },
   "whatsapp-cloud-webhook-verify":{ current: "v1", supported: ["v1"] },
   "gmail-webhook":                { current: "v2", supported: ["v1", "v2"], sunset: { v1: "2027-06-01" } },
@@ -32,7 +33,6 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "reprocess-failed-messages":    { current: "v1", supported: ["v1"] },
   "instance-pause-control":       { current: "v1", supported: ["v1"] },
   "evolution-notification-dispatcher": { current: "v1", supported: ["v1"] },
-  "evolution-proxy":                { current: "v1", supported: ["v1"] },
   "contacts-import":              { current: "v1", supported: ["v1"] },
   "voice-copilot-action":         { current: "v1", supported: ["v1"] },
   "evolution-sync":               { current: "v1", supported: ["v1"] },

@@ -63,7 +63,7 @@
 
 ### 7. Egresso SQL (resolvers vault) — Nota: 9/10 (era 9,5)
 - **[HOJE]** **sql-gate verde** executado neste rascunho com fixture commitado: "SQL gate OK: 0 violações (8 funções analisadas, 4 no whitelist)" — `node scripts/decouple/sql-gate.mjs scripts/decouple/fixtures/sql_report_snapshot.json` (fixture **[HOJE]** presente em [scripts/decouple/fixtures/sql_report_snapshot.json](../../scripts/decouple/fixtures/sql_report_snapshot.json)); egresso das fns via `ops.fn_evo_url()`/`ops.fn_evo_key()` (ADR-010).
-- **[PENDENTE]** Dedup dos **2 pares de secrets duplicados** no vault (10 secrets: `evolution_api_key`×`evolution_api_key_v2`, `evolution_webhook_secret`×`webhook_secret_evolution`) — **APROVADO** (decisão registrada), execução pendente na onda **F6** (etapas 63–70 do plano; expand/contract + evidência fresca de que nenhum resolver referencia os duplicados).
+- **[EXECUTADO 2026-08-15]** Dedup dos **2 pares de secrets duplicados** no vault (10 secrets: `evolution_api_key`×`evolution_api_key_v2`, `evolution_webhook_secret`×`webhook_secret_evolution`) — **APROVADO** (decisão registrada), executado na onda **F6** (etapas 63–70; expand/contract + evidência fresca de que nenhum resolver referencia os duplicados). Vault: 46 → **44 secrets** (deletados: `evolution_api_key_v2`, `evolution_webhook_secret`; registro em `ops.schema_changelog` session `hermes-f6-dedup`).
 - **Ação para 10/10:** executar F6 (dedup com validação) e re-medir vault.
 
 ### 8. Modelo canônico + normalizers — Nota: 10/10 (era 9)

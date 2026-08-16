@@ -60,7 +60,7 @@ evolution-stack:
 | A6 | zapp-web-v3 | Arquitetura & fluxo | docs/TECHNICAL_DOCUMENTATION.md, docs/ARCHITECTURE_AND_FLOW.md, docs/architecture/JORNADA_MENSAGEM_WHATSAPP.md, evolution-api-mapping.md, edge-functions.md, ARQUITETURA_INSTANCIAS_TRANSFERENCIAS.md |
 | A7 | zapp-web-v3 | Contrato de integracao & boundary | docs/API_CONTRACT.md, docs/EVOLUTION_API_REFERENCE.md, docs/BOUNDARY-evolution.md, docs/arquitetura/zapp-facade-layer.md, edge-auth.md, docs/decisions/ADR-006, docs/INTEGRATION_INVARIANTS.md, docs/EDGE_CONTRACT_VALIDATION.md |
 | A8 | zapp-web-v3 | Banco & fronteira DB | docs/db/SCHEMA-CONTRACT.md, docs/db/adrs/*, docs/db/schemas/{evo,zapp,ops}.md, docs/db/FUNCTIONS.md, CRONS.md, EXTERNAL-DEPENDENCIES.md, docs/SCHEMA_REFERENCE.md |
-| A9 | zapp-web-v3 | Infra, deploy & ops | docs/INFRA.md, docs/INVENTARIO_INFRA.md, docs/DEPLOYMENT.md, docs/OPERACAO_BUILD_DEPLOY_V3.md, docs/PORTAINER_ZAPP_FOOTPRINT.md, infra/runbooks/*, docs/ops/*, docs/runbooks/APPLY_ZAPP_EVOLUTION_BRIDGES.md |
+| A9 | zapp-web-v3 | Infra, deploy & ops | docs/INFRA.md, docs/INVENTARIO_INFRA.md, docs/DEPLOYMENT.md, docs/OPERACAO_BUILD_DEPLOY_V3.md, docs/PORTAINER_ZAPP_FOOTPRINT.md, infra/runbooks/*, docs/ops/*, docs/_archive/runbooks/APPLY_ZAPP_EVOLUTION_BRIDGES.md |
 | A10 | zapp-web-v3 | Consolidacao, ADRs & indice | docs/decouple/* (finalizar), FEATURE_REGISTRY.md, docs/README.md, docs/history/ARCHIVE_INDEX.md, novo DECOUPLING.md (raiz) |
 
 ## 6. Protocolo de execucao

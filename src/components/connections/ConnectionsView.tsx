@@ -37,7 +37,7 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
+// supabase removido do import (E82: envio migrado para whatsappAdapter)
 import { toast } from '@/hooks/use-toast';
 import { BusinessHoursDialog } from './BusinessHoursDialog';
 import { ConnectionQueuesDialog } from './ConnectionQueuesDialog';
@@ -55,6 +55,7 @@ import { useConnectionsManager } from '@/features/connections';
 import type { WhatsAppConnection } from '@/features/connections/hooks/useConnectionsManager';
 import { useEvolutionAutoSync } from '@/hooks/useEvolutionAutoSync';
 import { useEvolutionAutoReconnect } from '@/hooks/useEvolutionAutoReconnect';
+import { evolutionSync } from '@/lib/adapters/evolutionOps';
 
 /** F6-01: formata o pairing code em grupos de 4 (ex.: ABCD-EFGH-IJKL). */
 function formatPairingCode(code: string): string {
@@ -195,9 +196,7 @@ export function ConnectionsView() {
     setSyncingHistory(connection.id);
     toast({ title: 'Sincronizando histórico...', description: 'Isso pode levar alguns minutos.' });
     try {
-      const { data, error } = await supabase.functions.invoke('evolution-sync', {
-        body: { action: 'sync-all-messages', instanceName: connection.instance_id },
-      });
+      const { data, error } = await evolutionSync({ action: 'sync-all-messages', instanceName: connection.instance_id });
       if (error) throw error;
       toast({
         title: 'Sincronização concluída!',

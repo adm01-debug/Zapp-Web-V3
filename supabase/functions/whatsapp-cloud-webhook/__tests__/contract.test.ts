@@ -7,7 +7,7 @@
  * unique constraint em `webhook_events_processed`), no lugar do antigo
  * select-then-insert contra `processed_webhook_events` — tabela que foi
  * dropada num incidente de DDL e nunca recriada (ver
- * docs/EVOLUTION_API_AUDIT_2026-07-05_sessao7.md §1.3/§2).
+ * docs/_archive/EVOLUTION_API_AUDIT_2026-07-05_sessao7.md §1.3/§2).
  *
  * Sem isso, uma futura mudança no nome da tabela, na constraint ou na
  * semântica de retorno do helper poderia regredir a dedup silenciosamente

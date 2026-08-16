@@ -139,7 +139,7 @@
   - Dep: #41.
 - [ ] **43.** [R] Suites de paridade existentes (`parity.test.ts`, `whatsapp-cloud-normalizer.test.ts`, `evolution-response-normalizers.test.ts`) 100% verdes.
   - Dep: #39–42.
-- [ ] **44.** [R] `scripts/decouple/coverage-report.mjs` + `docs/decouple/COVERAGE_V4.md`: % real de operações de mensageria passando pelas portas com contrato (fórmula documentada; contar actions do router evolution-api, não só os 12 verbos do client).
+- [ ] **44.** [R] `scripts/decouple/_archive/coverage-report.mjs` + `docs/decouple/COVERAGE_V4.md`: % real de operações de mensageria passando pelas portas com contrato (fórmula documentada; contar actions do router evolution-api, não só os 12 verbos do client).
   - Dep: #21, #33.
 - [ ] **45.** [R] Se cobertura <100%: seção "Gaps conhecidos" com arquivo:linha de cada operação fora do contrato (sem inflar).
   - Dep: #44.

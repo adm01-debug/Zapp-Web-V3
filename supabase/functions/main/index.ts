@@ -55,6 +55,9 @@ const PUBLIC_FNS = new Set<string>([
   'sicoob-bridge-reply',
   'gmail-oauth',
   'public-api',
+  // E89 (2026-08-16): stats do evolution-rabbit-consumer — HMAC próprio
+  // (X-Stats-Signature + STATS_HTTP_HMAC_SECRET), fail-closed sem assinatura.
+  'evolution-consumer-stats',
 ])
 
 // O segredo JWT pode vir direto de JWT_SECRET ou de um arquivo montado no container

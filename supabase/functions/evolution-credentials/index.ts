@@ -4,7 +4,7 @@
  * POST — CRUD de credenciais da instância Evolution (actions 'save' | 'delete').
  * O GET (que entregava a Evolution api_key ao browser via header X-Evolution-Key)
  * foi ATERRADO com 410 Gone em 2026-08-14 (commit bed8e1039): a key nunca mais
- * sai do servidor — o browser usa a edge `evolution-proxy`. O código morto do
+ * sai do servidor — o browser usa o whatsappAdapter/evolution-api (proxy removida no E82). O código morto do
  * GET foi removido em 2026-08-14 (aposentadoria formal — plano desacoplamento #30).
  *
  * SEGURANÇA (POST):
@@ -148,8 +148,8 @@ Deno.serve((req: Request) => {
 
   // SECURITY FIX 2026-08-14 — Phase 6 Desacoplamento:
   // O GET desta fn entregava a evolution api_key ao browser (via X-Evolution-Key header).
-  // A key agora nunca sai do servidor: usa-se o evolution-proxy edge fn.
-  // O browser (evolutionClient.ts) já foi atualizado para chamar evolution-proxy.
+  // A key agora nunca sai do servidor: usa-se o whatsappAdapter → evolution-api.
+  // O browser usa o whatsappAdapter (evolution-proxy removida no E82).
   // Retornamos 410 Gone para clientes legados que ainda chamem este endpoint.
   return new Response(
     JSON.stringify({

@@ -19,7 +19,6 @@ import { getLogger } from '@/lib/logger';
 import { parseEvolutionError } from '@/features/inbox';
 import { dbInsert } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
-import { buildFileHash as calculateFileHash } from '@/lib/crypto';
 import { sendText, sendMedia, sendPtv } from '@/lib/whatsappAdapter';
 import {
   DEFAULT_INSTANCE,
@@ -223,23 +222,18 @@ export async function sendExternalPtv(
 
   if (opts.onProgress) opts.onProgress(50);
 
-  const formData = new FormData();
-  formData.append('action', 'send-ptv');
-  formData.append('instanceName', instance);
-  formData.append('number', phone);
-  formData.append('video', blob, 'video.mp4');
-
-  try {
-    const hash = await calculateFileHash(blob);
-    formData.append('mediaHash', hash);
-  } catch (e) {
-    log.debug('Hash calculation skipped', e);
-  }
-
   let data: unknown;
   let error: unknown;
   try {
-    data = await sendPtv(formData);
+    // E81: envio via adapter — o FormData (action='send-ptv', instanceName,
+    // number, video 'video.mp4', mediaHash) é montado dentro de sendPtv,
+    // preservando o body exato do invoke original.
+    data = await sendPtv({
+      remoteJid,
+      videoUrl: localVideoUrl,
+      mimetype: blob.type || undefined,
+      instance,
+    });
   } catch (err) {
     error = err;
   }

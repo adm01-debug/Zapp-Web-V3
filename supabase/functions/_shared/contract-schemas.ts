@@ -545,7 +545,7 @@ export const SicoobBridgeReplyV2Schema = SicoobBridgeReplyV1Schema.extend({
    to: z.string().min(5),
    type: z.enum([
      "text", "image", "video", "audio", "document", "sticker", "template",
-     "reaction", "location", "contacts", "read",
+     "reaction", "location", "contacts", "read", "interactive",
    ]),
    text: z.string().optional(),
    mediaUrl: z.string().url().optional(),
@@ -564,6 +564,14 @@ export const SicoobBridgeReplyV2Schema = SicoobBridgeReplyV1Schema.extend({
    address: z.string().optional(),
    contacts: z.array(z.any()).optional(),
    messageIds: z.array(z.string()).optional(),
+   interactive: z.object({
+     type: z.enum(["button", "list", "cta_url"]),
+     header: z.object({ type: z.string(), text: z.string().optional() }).passthrough().optional(),
+     body: z.object({ text: z.string() }).passthrough().optional(),
+     footer: z.object({ text: z.string() }).passthrough().optional(),
+     action: z.record(z.unknown()).optional(),
+   }).passthrough().optional(),
+   idemKey: z.string().min(8).max(200).optional(),
  }).passthrough();
 
  /**
@@ -858,7 +866,6 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "send-email":                 { v1: SendEmailV1Schema },
   // evolution-proxy (2026-08-14): proxy server-side — envelope validado manualmente
   // (allowlist de method + path); contrato registrado para o gate de cobertura.
-  "evolution-proxy":            { v1: z.object({ method: z.enum(['GET', 'POST', 'PUT']).optional(), path: z.string().min(1), body: z.unknown().optional() }) },
   "gmail-send":                 { v1: GmailSendV1Schema },
   "reprocess-failed-messages":  { v1: ReprocessFailedMessagesV1Schema },
   "evolution-notification-dispatcher": { v1: EvolutionNotificationDispatcherV1Schema },
@@ -868,6 +875,17 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "contacts-import":            { v1: ContactsImportV1Schema },
   "voice-copilot-action":       { v1: VoiceCopilotActionV1Schema },
   "evolution-sync":             { v1: EvolutionSyncV1Schema },
+  "evolution-consumer-stats": { v1: z.object({
+    collected_at: z.string().optional(),
+    replica: z.string().optional(),
+    ok: z.number().optional(), shadow: z.number().optional(),
+    retry: z.number().optional(), drop: z.number().optional(), err: z.number().optional(),
+    pg_log_ok: z.number().optional(), pg_log_err: z.number().optional(),
+    sentry_sent: z.number().optional(), resub: z.number().optional(),
+    pg_stats_ok: z.number().optional(), pg_stats_err: z.number().optional(),
+    drop_by: z.record(z.string(), z.number()).optional(),
+    retry_by: z.record(z.string(), z.number()).optional(),
+  }).passthrough() },
   "evolution-group-sync":       { v1: EvolutionGroupSyncV1Schema },
   "webhook-hmac-selftest":      { v1: WebhookHmacSelftestV1Schema },
   "webhook-secret-status":      { v1: WebhookSecretStatusV1Schema },
