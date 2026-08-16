@@ -483,9 +483,9 @@ docs/reconciliation/reconciliation.json;"ARQUIVA;REVISAR";lote w20: concluido/su
 docs/runbook-evolution/DR_RUNBOOK_EVO.md;"ARQUIVA;REVISAR";"canonico vivo em evolution-stack/runbooks/ (14/08, mais novo); zapp guarda historico";docs/decouple/AUDIT_EVO_REFS_20260816/baseline.json (artefato da auditoria, não-consumidor vivo), graphify-out/manifest.json (gerado);docs/_archive/runbook-evolution/DR_RUNBOOK_EVO.md;E26
 docs/runbook-evolution/c9-d8-decision.md;"ARQUIVA;REVISAR";"canonico vivo em evolution-stack/runbooks/ (14/08, mais novo); zapp guarda historico";;docs/_archive/runbook-evolution/c9-d8-decision.md;
 docs/runbook-evolution/evo-tables-kdw-inventory.md;"ARQUIVA;REVISAR";"canonico vivo em evolution-stack/runbooks/ (14/08, mais novo); zapp guarda historico";;docs/_archive/runbook-evolution/evo-tables-kdw-inventory.md;
-docs/runbooks/APPLY_ZAPP_EVOLUTION_BRIDGES.md;"ARQUIVA;REVISAR";historico de auditoria/incidente (Fase 2 confirma) [R2: consumidor encontrado: docs/decouple/DOC_UPDATE_ORCHESTRATION_20260814.md, docs/simulation/2026-08-03_deleted-scripts_50_failure_simulation.md];;;
+docs/runbooks/APPLY_ZAPP_EVOLUTION_BRIDGES.md;FICA;E37: bridges vivem no banco compartilhado, aplicadas pelo zapp (desvio de heuristica corrigido pos-merge);;;
 docs/runbooks/deploy.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/runbooks/evolution-restart-rabbitmq-bindings.md;"ARQUIVA;REVISAR";historico de auditoria/incidente (Fase 2 confirma) [R2: consumidor encontrado: docs/EVOLUTION-CHANGELOG.md, docs/SETTINGS.md];;;
+docs/runbooks/evolution-restart-rabbitmq-bindings.md;MIGRA;"E37: RabbitMQ e infra Evo -> copia no evolution-stack; original permanece no zapp";;evolution-stack/docs/evolution-restart-rabbitmq-bindings.md;
 docs/runbooks/media-pipeline-ops.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/runbooks/session-followups-2026-07-11-r13-r14.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/runbooks/session-report-2026-07-11-audit-10-10.md;FICA;doc estrutural — revisao Fase 3;;;
