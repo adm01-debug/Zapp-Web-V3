@@ -1,110 +1,43 @@
 {
   "meta": {
     "generated_at": "2026-08-15T00:00:00.000Z",
-    "mode": "committed_baseline",
-    "description": "Baseline T2 do ratchet de invariantes de desacoplamento ZAPP×EVO (E97/E98)",
-    "note": "Valores atuais documentados em .hermes/fase3/dados-reais.json (score_atual: T2 = 6/9) e ADR-014 (meta T2: 6/9, Nota C). I4/I8 PASS por medição real pós E25-E40; I3/I5/I6/I7 medidos ao vivo pelo boundary-audit offline; I1/I2/I9 ainda FAIL (dados T0).",
-    "baseline_snapshot": "20260815",
+    "mode": "measured_live_mcp",
+    "description": "Baseline T2 (corrigido) — os 9 invariantes do PLANO_INDEPENDENCIA_100_ETAPAS_20260815, medidos ao vivo no Postgres de produção e nos repositórios em 2026-08-15, pós lote 1 da Fase 4 (E55-E57 + E48 parcial).",
+    "note": "Baseline anterior usava definições renumeradas/triviais (supabase.yml local, consumer.py, inventory.mjs) que inflavam o placar para 6/9. Este baseline usa a semântica do plano. Regra do ratchet: só pode melhorar.",
+    "baseline_snapshot": "20260815-corrigido",
     "repo": "adm01-debug/zapp-web-v3"
   },
-  "summary": {
-    "passed": 6,
-    "partial": 0,
-    "failed": 3,
-    "errored": 0,
-    "total": 9,
-    "percentage": 67,
-    "grade": "C"
-  },
+  "summary": { "passed": 0, "partial": 0, "failed": 9, "errored": 0, "total": 9, "percentage": 0, "grade": "F" },
   "invariants": [
-    {
-      "invariant": "I1",
-      "name": "Zero funções zapp.* referenciando evo.*",
-      "score": 0,
-      "status": "FAIL",
+    { "invariant": "I1", "name": "Zero funções zapp.* referenciando evo.*", "score": 0, "status": "FAIL",
+      "violations": [{ "distinct_functions": 40, "source": "pg_proc live 2026-08-15 pós lote 1" }],
+      "detail": "40 funções zapp citam evo.* por nome (pg_proc, medição ao vivo)" },
+    { "invariant": "I2", "name": "Zero funções evo.* referenciando zapp.*", "score": 0, "status": "FAIL",
+      "violations": [{ "distinct_functions": 97, "source": "pg_proc live 2026-08-15 pós lote 1 (era 99; E55-E57 moveram 3)" }],
+      "detail": "97 funções evo citam zapp.* por nome; 24 triggers em tabelas zapp com fn evo (era 27)" },
+    { "invariant": "I3", "name": "Dado da Evolution reside no schema evo (evolution_messages/conversations/contacts)", "score": 0, "status": "FAIL",
       "violations": [
-        {
-          "count": 82,
-          "distinct_functions": 20,
-          "source": "baseline T0"
-        }
-      ],
-      "detail": "[T2] 82 refs em 20 funções zapp→evo (baseline T0)"
-    },
-    {
-      "invariant": "I2",
-      "name": "Zero funções evo.* referenciando zapp.*",
-      "score": 0,
-      "status": "FAIL",
-      "violations": [
-        {
-          "distinct_functions": 96,
-          "source": "baseline T0"
-        }
-      ],
-      "detail": "[T2] 96 funções evo→zapp (baseline T0)"
-    },
-    {
-      "invariant": "I3",
-      "name": "supabase.yml não em zapp-web-v3",
-      "score": 1,
-      "status": "PASS",
-      "violations": [],
-      "detail": "Sem infra evolution em zapp-web-v3"
-    },
-    {
-      "invariant": "I4",
-      "name": "Todo egresso HTTP via gateway único",
-      "score": 1,
-      "status": "PASS",
-      "violations": [],
-      "detail": "[T2] Egresso HTTP via gateway único — PASS (medição real pós E25-E40, dados-reais.json)"
-    },
-    {
-      "invariant": "I5",
-      "name": "CI guard decouple-guard.yml ativo",
-      "score": 1,
-      "status": "PASS",
-      "violations": [],
-      "detail": "decouple-guard.yml presente e contém verificações de evolution"
-    },
-    {
-      "invariant": "I6",
-      "name": "consumer.py sem INSERT morto",
-      "score": 1,
-      "status": "PASS",
-      "violations": [],
-      "detail": "consumer.py não encontrado em zapp-web-v3 (correto — pertence ao evo stack)"
-    },
-    {
-      "invariant": "I7",
-      "name": "inventory.mjs cobre todos evolution-* invocations",
-      "score": 1,
-      "status": "PASS",
-      "violations": [],
-      "detail": "inventory.mjs contém todas as métricas de cobertura"
-    },
-    {
-      "invariant": "I8",
-      "name": "sql-gate fixture sincronizado com prod",
-      "score": 1,
-      "status": "PASS",
-      "violations": [],
-      "detail": "[T2] sql-gate fixture sincronizado — PASS (medição real pós E25-E40, dados-reais.json)"
-    },
-    {
-      "invariant": "I9",
-      "name": "Zero FKs cross-schema não documentadas",
-      "score": 0,
-      "status": "FAIL",
-      "violations": [
-        {
-          "total_rows": 24,
-          "distinct_constraints": 6,
-          "source": "baseline T0"
-        }
-      ],
-      "detail": "[T2] 24 FK rows, 6 constraints cross-schema (baseline T0)"
-    }
+        { "table": "zapp.evolution_messages", "reason": "fora do schema evo" },
+        { "table": "zapp.evolution_conversations", "reason": "fora do schema evo" },
+        { "table": "zapp.evolution_contacts", "reason": "fora do schema evo" }],
+      "detail": "As 3 tabelas residem em zapp; 161 funções citam o nome físico (E67-E77 pendentes)" },
+    { "invariant": "I4", "name": "Todo egresso HTTP via gateway único", "score": 0, "status": "FAIL",
+      "violations": [{ "check": "ops.fn_provider_call", "reason": "contrato SQL de egresso (E85) inexistente; porta P4 (fn_outbound_dispatch/fn_reconcile_dispatch) fala pg_net direto" }],
+      "detail": "Porta P4 fora do gateway; sem contrato SQL de egresso" },
+    { "invariant": "I5", "name": "Leitura do outro lado só por contrato (zero SELECT de authenticated direto em evo.*)", "score": 0, "status": "FAIL",
+      "violations": [{ "grants": 38, "reason": "authenticated com SELECT direto em relations evo (E80 pendente)" }],
+      "detail": "38 grants SELECT de authenticated em evo.* (medição ao vivo); views public.evolution_* com security_invoker existem" },
+    { "invariant": "I6", "name": "Cada repo deploya só a sua infra (soberania de plataforma)", "score": 0, "status": "FAIL",
+      "violations": [{ "check": "E27/E37", "reason": "stacks/supabase.yml, zapp_health_guard_script_v2.sh e evolution-functions-health.yml residem no evolution-stack; prova de soberania (E37) ausente" }],
+      "detail": "Plataforma do ZAPP deployada pelo repo do provider" },
+    { "invariant": "I7", "name": "Dono único de migrations em evo (zero DDL evo.* em supabase/migrations deste repo)", "score": 0, "status": "FAIL",
+      "violations": [{ "count": 62, "reason": "migrations deste repo com DDL em evo.* (scan local boundary-audit)" }],
+      "detail": "62 migrations fazem DDL em evo.* neste repo (E39-E43 pendentes)" },
+    { "invariant": "I8", "name": "sql-gate fixture sincronizado com prod (gate mede o banco, não fixture)", "score": 0, "status": "FAIL",
+      "violations": [{ "check": "E20", "reason": "CI sem acesso read-only ao banco; gate roda contra fixture/baseline commitado" }],
+      "detail": "Sem medição ao vivo no CI — E18-E20 pendentes" },
+    { "invariant": "I9", "name": "Zero FKs cross-schema evo↔zapp", "score": 0, "status": "FAIL",
+      "violations": [{ "total_rows": 24, "distinct_constraints": 6, "source": "pg_constraint live 2026-08-15" }],
+      "detail": "6 constraints FK cruzando a fronteira (media_download_queue/media_loss_registry → evolution_messages)" }
   ]
 }

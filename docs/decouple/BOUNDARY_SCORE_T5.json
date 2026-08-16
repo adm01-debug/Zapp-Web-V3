@@ -1,0 +1,329 @@
+{
+  "meta": {
+    "generated_at": "2026-08-15T23:44:04.180Z",
+    "measured_at_db": "2026-08-15T20:44:04.400994-03:00",
+    "mode": "online_live",
+    "description": "Auditoria dos 9 invariantes do PLANO_INDEPENDENCIA_100_ETAPAS_20260815, medidos contra o banco real via ops.fn_boundary_audit()",
+    "repo": "adm01-debug/zapp-web-v3"
+  },
+  "summary": {
+    "passed": 2,
+    "partial": 0,
+    "failed": 7,
+    "errored": 0,
+    "total": 9,
+    "percentage": 22,
+    "grade": "F"
+  },
+  "invariants": [
+    {
+      "invariant": "I1",
+      "name": "Zero funções do schema evo escrevendo/citando zapp.*",
+      "score": 0,
+      "violations": [
+        {
+          "fns": 66,
+          "triggers_zapp_com_fn_evo": 24
+        }
+      ],
+      "detail": "66 fns evo citam zapp.* (+24 triggers em zapp com fn evo)"
+    },
+    {
+      "invariant": "I2",
+      "name": "Zero funções do schema zapp escrevendo/citando evo.*",
+      "score": 0,
+      "violations": [
+        {
+          "fns": 40
+        }
+      ],
+      "detail": "40 fns zapp citam evo.*"
+    },
+    {
+      "invariant": "I3",
+      "name": "Zero FKs cruzando a fronteira evo↔zapp",
+      "score": 1,
+      "violations": [],
+      "detail": "0 constraints FK cruzadas"
+    },
+    {
+      "invariant": "I4",
+      "name": "Dado da Evolution reside no schema evo",
+      "score": 0,
+      "violations": [
+        {
+          "tabelas_fora_de_evo": 3,
+          "phys_refs_pendentes_E67": 152
+        }
+      ],
+      "detail": "3/3 tabelas fora de evo; 152 fns citam o nome físico (E67–E69)"
+    },
+    {
+      "invariant": "I5",
+      "name": "Leitura do outro lado só por view de contrato",
+      "score": 1,
+      "violations": [],
+      "detail": "0 grants SELECT de authenticated direto em evo.* (E80)"
+    },
+    {
+      "invariant": "I8",
+      "name": "Todo egresso HTTP ao provider via gateway declarado",
+      "score": 0,
+      "violations": [
+        {
+          "fns_pgnet_provider": 14,
+          "cron_citando_evo": 89
+        }
+      ],
+      "detail": "14 fns falam com o provider por pg_net fora do gateway (P4, E84–E85)"
+    },
+    {
+      "invariant": "I6",
+      "name": "Cada repo deploya só a sua infra (soberania de plataforma)",
+      "score": 0,
+      "violations": [
+        {
+          "check": "E27/E37",
+          "reason": "stacks/supabase.yml segue no evolution-stack; prova de soberania ausente (PROOF_I6_PLATFORM_SOVEREIGNTY.md)"
+        }
+      ],
+      "detail": "Plataforma do ZAPP ainda deployada pelo repo do provider"
+    },
+    {
+      "invariant": "I7",
+      "name": "Dono único de migrations em evo (zero DDL evo.* neste repo)",
+      "score": 0,
+      "violations": [
+        {
+          "file": "supabase/migrations/20260804000000_canonical_schema_squash_133_migrations.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260804170000_fix_rls_systematic_coverage.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260805104000_harden_evo_insert_policies.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260805104043_harden_evo_insert_policies.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260805121000_wave2_perf_security.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260805190000_create_csat_tables.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260805220000_revive_logpatch_audit_view_trigger.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260806122000_db03_register_instance.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260806125000_fix_evo_percent_format.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260806141000_f2_31_sync_messages_v2_orderby.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260806170500_rb2_c4_drop_empty_evo_indexes.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260806172000_rb2_a4_fix_lid_contamination_format.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260806173001_rb2_a8_logpatch_patch_mode.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260806180001_fix_v_logpatch_health_security_invoker.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260806185000_rb2_onda3_views_drops.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260806185500_rb2_d9_kpi_overview.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260806190500_rb2_glitchtip_cleanup.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260806192000_bugfix_evolution_logpatch_audit_security_invoker.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260806960000_fix_cotacoes_schema_ref.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260806991000_drop_duplicate_indexes_evolution_messages.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260806992000_drop_unused_tsvector_indexes.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260806995001_autovacuum_bootstrap_log.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260807101000_item85_sentinel_stale_race_fix.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260807102155_onda3_d2_negocio_triggers_evo_contrato_views_rpc.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260807110002_ag_ex19_kpi_episodio.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260807120000_revoke_anon_execute_six_functions.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260807120325_consolidate_rpc_insert_message.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260807190000_rpc_e2e_cleanup_v3_trigger_guard.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260807235800_c3_restrict_rls_permissive_policies.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260807250000_search_contacts_gin.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260807270000_session_backfill_pipeline_hardening.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260808110004_cleanup_hygiene_wave.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260808120001_drop_redundant_partition_rjid_indexes.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260808240000_fix_gap01_search_contacts_gin_expression.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260808260000_shadow_mode_fns_and_canonical_route_fix.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260809000000_versioned_drops_and_jwt_ref.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260809180000_queue_autorouter_wiring.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260810170000_g6_batch_mode_guards_evolution_contacts.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260810200300_fn_delete_test_contacts.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260811130000_grupos.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260811140000_status_contato.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260811150100_evo_integridade_fks_limpezas.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260811150300_notificacoes.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260811150400_evo_notification_outbox_dispatcher.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260811170000_evo_notif_config_get_rpc.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260811180000_depreca_funcoes_pgnet.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260811203000_grupos_admin_phone.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260811220000_view_zapp_evolution_messages_54cols.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260814010000_fix_inbound_silencio_comercial.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        },
+        {
+          "file": "supabase/migrations/20260814060000_fix_wpp2_uptime_kpi_warn_resolve.sql",
+          "reason": "DDL em evo.* — dono é o evolution-stack (E39/E42)"
+        }
+      ],
+      "violationCount": 67,
+      "detail": "67 migration(s) fazem DDL em evo.*"
+    },
+    {
+      "invariant": "I9",
+      "name": "Troca de provider sem tocar UI nem PL/pgSQL (ensaio E91–E95 medido)",
+      "score": 0,
+      "violations": [
+        {
+          "check": "E91-E95",
+          "reason": "nenhum ensaio cronometrado registrado (ENSAIO_TROCA_PROVIDER_MEDIDO.md ausente)"
+        }
+      ],
+      "detail": "Independência não exercitada"
+    }
+  ],
+  "raw_db_measurement": {
+    "measured_at": "2026-08-15T20:44:04.400994-03:00",
+    "I3_fks_cruzadas": 0,
+    "aux_cron_citando_evo": 89,
+    "I1_fns_evo_citando_zapp": 66,
+    "I2_fns_zapp_citando_evo": 40,
+    "aux_roles_contrato_existem": 0,
+    "aux_searchpath_evo_com_zapp": 0,
+    "aux_triggers_zapp_com_fn_evo": 24,
+    "I4_tabelas_evolution_fora_de_evo": 3,
+    "aux_phys_refs_fns_zapp_evolution": 152,
+    "I5_grants_authenticated_select_evo": 0,
+    "I8_fns_pgnet_provider_fora_gateway": 14,
+    "aux_cron_citando_zapp_evolution_tables": 6
+  }
+}

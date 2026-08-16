@@ -1,0 +1,36 @@
+{
+  "meta": {
+    "generated_at": "2026-08-15T21:45:35.375Z",
+    "measured_at_db": "2026-08-15T18:45:35.375341-03:00",
+    "mode": "online_live",
+    "description": "T3 — primeira medição REAL dos 9 invariantes do PLANO_INDEPENDENCIA_100_ETAPAS_20260815 contra o banco de produção, via ops.fn_boundary_audit() (migration 20260815250000). Substitui o BOUNDARY_SCORE_T2.json, cujos invariantes I3/I5/I6/I7 haviam sido redefinidos para checks triviais de filesystem — o 6/9 do T2 não corresponde aos invariantes do plano.",
+    "repo": "adm01-debug/zapp-web-v3"
+  },
+  "summary": { "passed": 0, "partial": 0, "failed": 9, "errored": 0, "total": 9, "percentage": 0, "grade": "F" },
+  "invariants": [
+    { "invariant": "I1", "name": "Zero funções do schema evo escrevendo/citando zapp.*", "score": 0, "violations": [{ "fns": 97, "triggers_zapp_com_fn_evo": 24 }], "detail": "97 fns evo citam zapp.* (+24 triggers em zapp com fn evo). T0 do plano: 64 fns / 26 triggers." },
+    { "invariant": "I2", "name": "Zero funções do schema zapp escrevendo/citando evo.*", "score": 0, "violations": [{ "fns": 40 }], "detail": "40 fns zapp citam evo.*. T0 do plano: 12." },
+    { "invariant": "I3", "name": "Zero FKs cruzando a fronteira evo↔zapp", "score": 0, "violations": [{ "constraints": 6 }], "detail": "6 constraints FK cruzadas (media_download_queue/media_loss_registry → zapp.evolution_messages). Inalterado desde T0 (E64–E66 não executadas)." },
+    { "invariant": "I4", "name": "Dado da Evolution reside no schema evo", "score": 0, "violations": [{ "tabelas_fora_de_evo": 3, "phys_refs_pendentes_E67": 161 }], "detail": "evolution_messages, evolution_conversations e evolution_contacts continuam em zapp. 161 fns citam o nome físico — E67–E69 com progresso zero." },
+    { "invariant": "I5", "name": "Leitura do outro lado só por view de contrato", "score": 0, "violations": [{ "grants_authenticated_select_evo": 38 }], "detail": "authenticated segue com SELECT direto em 38 relations de evo (E80 pendente). Views public.evolution_* com security_invoker existem, mas sobre zapp.*." },
+    { "invariant": "I6", "name": "Cada repo deploya só a sua infra (soberania de plataforma)", "score": 0, "violations": [{ "check": "E25-E37", "reason": "stacks/supabase.yml, zapp_health_guard_script_v2.sh e evolution-functions-health.yml seguem no evolution-stack; 37 arquivos daquele repo citam zapp; repo atomica-platform não existe" }], "detail": "O ZAPP não sobe sem o repo do provider." },
+    { "invariant": "I7", "name": "Dono único de migrations em evo", "score": 0, "violations": [{ "migrations_com_evo": 131 }], "detail": "131 arquivos em supabase/migrations citam evo. — incluindo migrations novas de 15/08. E39–E43 não executadas. NOTA: a migration 20260815250000 (ops.fn_boundary_audit) NÃO viola — cria objeto em ops, não em evo." },
+    { "invariant": "I8", "name": "Todo egresso HTTP ao provider via gateway declarado", "score": 0, "violations": [{ "fns_pgnet_provider": 14, "cron_citando_evo": 88 }], "detail": "14 fns falam com o provider por pg_net fora do gateway (porta P4 aberta, E84–E85). ops.fn_provider_call não existe. Roles evo_writer/zapp_writer não existem (E53)." },
+    { "invariant": "I9", "name": "Troca de provider sem tocar UI nem PL/pgSQL", "score": 0, "violations": [{ "check": "E91-E95", "reason": "nenhum ensaio cronometrado registrado" }], "detail": "Independência não exercitada." }
+  ],
+  "raw_db_measurement": {
+    "measured_at": "2026-08-15T18:45:35.375341-03:00",
+    "I1_fns_evo_citando_zapp": 97,
+    "I2_fns_zapp_citando_evo": 40,
+    "I3_fks_cruzadas": 6,
+    "I4_tabelas_evolution_fora_de_evo": 3,
+    "I5_grants_authenticated_select_evo": 38,
+    "I8_fns_pgnet_provider_fora_gateway": 14,
+    "aux_triggers_zapp_com_fn_evo": 24,
+    "aux_cron_citando_evo": 88,
+    "aux_cron_citando_zapp_evolution_tables": 6,
+    "aux_phys_refs_fns_zapp_evolution": 161,
+    "aux_searchpath_evo_com_zapp": 35,
+    "aux_roles_contrato_existem": 0
+  }
+}
