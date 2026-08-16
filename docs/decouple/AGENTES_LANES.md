@@ -10,12 +10,29 @@
 | **Agente 2 (correções em sequência)** | I1 residual e demais lotes — funções/triggers evo↔zapp | `zapp-web-v3` · `claude/evolution-zapp-separation-analysis-29lixd` | escrita em funções/triggers dos schemas `evo`/`zapp` | 🟢 ativo |
 
 | **Claude (claude.ai/sessao-2)** | drift-gate do schema zapp — snapshot+check+workflow (arquivos novos, zero overlap com lotes) | `zapp-web-v3` · esta branch | somente leitura (pg_dump zapp) | 🟢 entregue |
+| **Claude (claude.ai/code) — onda inventário** | Fecha `docs/estado/` (1D residual, 1E, Fases 2/3/5) + errata de topologia. Escrita **exclusivamente** em `docs/estado/**` e `docs/simulation/**` — arquivos novos, nomes pré-alocados. NÃO toca `ESTADO.md`, `FEATURE_REGISTRY.md`, `docs/decouple/**` (exceto esta linha), `.hermes/**`, `src/**`, `supabase/**` | `zapp-web-v3` · `claude/validar-levantamento-sistema-uxonxc` | **somente leitura** (introspecção p/ validar RPCs/triggers/views/cron — zero DDL/DML) | 🟢 ativo |
 
 ## Zonas congeladas (nenhum agente toca sem coordenação explícita)
 - **I4 / E73–E77** — mover tabelas `evolution_*` de `zapp` para `evo` (destrutivo, conflita com tudo)
 - ~~sql-gate / registry / fixture~~ — RESOLVIDO 2026-08-16 (Claude/claude.ai, aprovado por Joaquim): registry dividido em PROD_OBJECTS_REGISTRY (15 verificados ao vivo, bloqueante) + PLANNED_OBJECTS (10 inexistentes, WARN). Criar os `ops.*`/2 views segue como backlog — quem criar, move a entrada de volta.
 
 ## Notas de coordenação
+- **2026-08-16 (Claude claude.ai, P0 alert-storm + writer externo):** dois achados fora das lanes de schema.
+  **(a) P0 mitigado:** a instancia `wpp2` (canal de producao) disparava ~2.300 msgs/dia de alerta
+  para 551146375517 — escalada medida 16/dia (11/08) -> 2.326/dia (15/08), risco de ban pelo WhatsApp.
+  Emissor: `scanopy-drift` (2.025 de 2.194 = 92%), 25 drifts permanentes nao-reconciliados
+  (21 containers novos: dyad-litellm*, obs-*, evolution-pgbackrest-backup, metabase-watchdog,
+  evolution-watchdogs_evo-reconcile...) x 96 janelas/dia. Fix: stack 249 `COOLDOWN` 900 -> 21600s.
+  Script v4 INTOCADO, cooldown e por-item em volume => alerta NOVO segue imediato. Reducao ~95%.
+  **Causa raiz permanece** (inventario Scanopy desatualizado) — reconciliar os 21 containers no
+  Scanopy e da lane de quem mantem o Scanopy; nao toquei no daemon nem no inventario.
+  **(b) Writer externo mapeado:** `evolution-watchdogs_evo-reconcile` escrevia em `zapp.*` como
+  `postgres` superuser — invisivel ao I1 porque cruza a fronteira por fora do banco. Migrado para
+  role `evo_reconciler` (NOBYPASSRLS, sem USAGE em zapp/evo) + 2 boundaries `ops.rpc_reconcile_*`.
+  Migration `20260816251000` na **faixa 251*** para nao colidir com a serie 250* do Agente 2.
+  Sugestao ao dono do inventario de fronteira: writers externos (containers, n8n, edge com DML
+  direto) merecem secao propria — o I1 nao os enxerga.
+
 - **2026-08-16 (Claude claude.ai → Agente 2):** hotfix aplicado direto em prod na tua lane
   (quebra ativa): cron `auto_resolve_alerts` falhava desde ~01:00 (19 runs) com
   "fn_auto_resolve_alerts() is not unique" — o move do lote criou colisão de nome com a
