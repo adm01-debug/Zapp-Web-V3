@@ -4,23 +4,25 @@
  * Impede acesso direto a Deno.env.get('EVOLUTION_API_URL') fora do gateway
  * centralizado. Use evolutionClient de _shared/providers/evolution/client.ts.
  * ADR-009 — Gateway Pattern para Evolution API.
- *
- * Reescrita 2026-08-16 (auditoria evo-refs rodada 2): formato antigo
- * {name, message, predicate} nao era carregavel pelo deno lint; convertido
- * para {name, rules: {rule: {create(ctx)}}}.
  */
 export default {
   name: "no-direct-evo-url",
   rules: {
     "no-direct-evo-url": {
       create(context: any) {
-        const isExempt = (rawPath: string) => { const filePath = rawPath.replace(/\/g, "/"); return
-          filePath.includes("providers/evolution") || filePath.includes("evolution-api-proxy") || filePath.includes(".test.ts") || filePath.includes("__tests__"); };
+        const isExempt = (rawPath: string) => {
+          const filePath = rawPath.replace(/\\/g, "/");
+          return (
+            filePath.includes("providers/evolution") ||
+            filePath.includes("evolution-api-proxy") ||
+            filePath.includes(".test.ts") ||
+            filePath.includes("__tests__")
+          );
+        };
         return {
           CallExpression(node: any) {
             const callee = node.callee;
             if (!callee || callee.type !== "MemberExpression") return;
-            const prop = callee.property;
             const arg0 = node.arguments && node.arguments[0];
             const val = arg0 && (arg0.value ?? null);
             if (val === "EVOLUTION_API_URL") {
