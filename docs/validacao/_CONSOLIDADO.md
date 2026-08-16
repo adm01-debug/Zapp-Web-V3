@@ -232,3 +232,49 @@ histórico de 7 dias mostra taxas de **0,4% a 12,5%** — intermitentes. Um bug 
 em 100%. Além disso, duas das falhas foram **colaterais da migração I4** (janela de 11:47–11:52Z,
 quando a tabela virou view — e view não tem `ctid`), e `auto_resolve_alerts` **já havia sido
 corrigido por outra lane** antes desta validação.
+
+---
+
+## 9. Achado de encerramento — o gate I8 dá garantia falsa
+
+Durante a validação, o CI do próprio PR #1111 exibiu:
+
+> **I8 — Todo egresso HTTP ao provider via gateway declarado — ✅ PASS**
+> *0 fns falam com o provider por pg_net fora do gateway*
+
+Isso é **verdadeiro e enganoso ao mesmo tempo**. O invariante, lido direto de
+`ops.fn_boundary_audit()`, é:
+
+```sql
+'I8_fns_pgnet_provider_fora_gateway', (
+  SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname IN ('zapp','evo','ops','public')
+    AND p.prosrc ~ 'net\.http_'
+    AND p.prosrc ~* '(fn_evo_url|evolution\.atomicabr\.com\.br)'
+    AND p.proname NOT IN ('fn_evo_url','fn_evo_key','fn_provider_call',
+                          'fn_outbound_dispatch','fn_reconcile_dispatch'))
+```
+
+Ele varre **`pg_proc`** — funções PL/pgSQL no banco. **Edge functions são Deno/TypeScript e não
+existem em `pg_proc`.** A camada onde o V5 encontrou 3 bypasses reais (§8.2), incluindo dois que
+**enviam WhatsApp em produção** via `POST /message/sendText` com URL vinda do vault, é
+estruturalmente invisível para este gate.
+
+O nome interno do campo é honesto (`I8_fns_pgnet_provider_fora_gateway` — diz "pgnet"). O **rótulo
+exibido** no comentário do PR não: promete "todo egresso HTTP" e entrega "egresso via pg_net".
+
+### Por que isto importa mais que os outros achados
+
+O programa de desacoplamento usa este placar para decidir progresso — hoje **7/9, nota B**. Um
+invariante que passa por não olhar onde a violação está não mede a fronteira: **mede o que é fácil
+medir**. E dá confiança na direção errada, que é pior que não medir.
+
+**Recomendação (não aplicada — decisão de arquitetura, fora da lane desta validação):** estender o
+I8 com uma verificação estática sobre `supabase/functions/**` procurando o **endpoint do provider**
+(`/message/sendText`, `/message/send*`, `/instance/`) em vez do nome da variável de ambiente — foi
+assim que os bypasses via vault apareceram. Alternativa mínima: renomear o rótulo para
+*"Egresso via pg_net ao provider passa pelo gateway"*, que é o que ele de fato afirma.
+
+> Este achado é a versão mais nítida do padrão **"CI que mente"** já catalogado em `docs/estado/38`:
+> lá eram gates que nunca disparavam; aqui é um gate que dispara, passa, e mede menos do que o nome
+> promete.
