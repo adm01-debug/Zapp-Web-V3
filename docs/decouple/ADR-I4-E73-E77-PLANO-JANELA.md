@@ -1,7 +1,8 @@
 # ADR-I4: Plano de janela — Fase E73–E77 (I4 = 0)
 
-**Data:** 2026-08-16  
-**Decisão pendente:** aprovação da janela e ordem de execução  
+**Data:** 2026-08-16
+**Status:** ⛔ **SUPERSEDIDO** — ver [ADR-I4-ROTA-B-DECISION.md](./ADR-I4-ROTA-B-DECISION.md). O dono aprovou a **Rota B** (dado permanece em `zapp`; `evo` = observabilidade). **Este plano de janela NÃO deve ser executado.**
+**Decisão pendente:** ~~aprovação da janela e ordem de execução~~ → resolvida em 16/08/2026 (Rota B)
 **Estado atual:** I4 = 3 (3 tabelas físicas em `zapp.*`); baseline de 148 refs congelado em `ops.i4_violation_baseline`
 
 ---
