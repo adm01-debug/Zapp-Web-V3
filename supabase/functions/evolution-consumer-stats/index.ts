@@ -37,7 +37,7 @@ Deno.serve(async (req: Request) => {
     req,
     json,
   );
-  if (!parsed.ok) return parsed.response;
+  if (parsed.ok === false) return parsed.response;
 
   const signature = req.headers.get("X-Stats-Signature") ?? "";
   const valid = STATS_HMAC_SECRET
