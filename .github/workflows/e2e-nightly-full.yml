@@ -42,7 +42,7 @@ jobs:
   e2e-full:
     name: Playwright — suite completa de e2e/ contra VPS
     if: github.event_name != 'pull_request'
-    runs-on: ${{ github.event.inputs.runner == 'ubuntu-latest' && 'ubuntu-latest' || fromJSON('["self-hosted","vps-zapp","playwright"]') }}
+    runs-on: ${{ github.event.inputs.runner == 'ubuntu-latest' && 'ubuntu-latest' || fromJSON('["Linux","X64","vps-zapp","playwright"]') }}
     timeout-minutes: 120
     env:
       E2E_BASE_URL: ${{ github.event.inputs.base_url || 'https://zapp.atomicabr.com.br' }}

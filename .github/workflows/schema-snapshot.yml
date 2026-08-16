@@ -16,7 +16,7 @@ jobs:
   schema-snapshot:
     name: Snapshot DB Schema
     # Runner self-hosted (VPS): o banco self-hosted so e alcancavel pela rede interna.
-    runs-on: [self-hosted, vps-zapp, linux, x64]
+    runs-on: [Linux, X64, vps-zapp]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
