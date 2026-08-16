@@ -142,3 +142,11 @@ Contagens iniciais da 1ª passada (heurística): ver seção Fase 1 do triagem.c
 - **E96** ⏳ merges (evostack primeiro, zapp depois).
 
 ---
+
+## Fase 10 — Verificação Final e Relatório (E97–E100)
+
+- **E97** ✅: inventários pós-merge — A 242→241 (35 removidos = 27 movidos + 8 excluídos; 34 adicionados = _archive + 7 artefatos da auditoria), B 1036→1016, C 37→41. Delta confere com o CSV. **Catch E97**: 2 docs de docs/runbooks/ arquivados por vão de cobertura dos workers (E37 manda FICA/MIGRA) → restaurados nos PRs #1120 (zapp) e #13 (evostack), mergeados.
+- **E98** ✅: produção HTTP 200; webhook 10 eventos/30min (último 21:24Z); CI da main com Build/Unit/Contract/quality-gate verdes; 2 fails pré-existentes documentados (fixture evolution-proxy fixada por #1118; security-invoker = drift de banco). Deploy do build novo em andamento (verificado por validador v1).
+- **E99** ✅: BOUNDARY-evolution.md com seção 'estado final' (contagens por camada + achados vivos).
+- **E100** ✅: RELATORIO_FINAL.md com contagens, EXCLUI executados, MIGRA origem→destino, 12 pendências REVISAR, verificação pós-merge.
+- **Onda de verificação final**: 5 validadores read-only (v1 deploy, v2 main zapp, v3 links quebrados, v4 evostack, v5 CI) — deleg_5d959c78.
