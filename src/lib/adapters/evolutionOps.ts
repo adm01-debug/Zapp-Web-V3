@@ -35,10 +35,7 @@ export function evolutionWebhookTest<T = unknown>(body: Record<string, unknown>)
   return invokeOps<T>('evolution-webhook', { method: 'POST', body });
 }
 
-/**
- * @deprecated evolution-proxy é DEPRECATED (E82). Único uso sancionado:
- * ZappWebbDemoPage (admin). Não adicionar novos call sites.
- */
-export function evolutionProxyLegacy<T = unknown>(body: Record<string, unknown>) {
-  return invokeOps<T>('evolution-proxy', { body });
+/** Marca as mensagens de um chat como lidas (action read-messages da evolution-api). */
+export function evolutionChatMarkRead<T = unknown>(instanceName: string, remoteJid: string) {
+  return invokeOps<T>('evolution-api', { body: { action: 'read-messages', instanceName, remoteJid } });
 }

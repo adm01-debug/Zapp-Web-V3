@@ -1,7 +1,7 @@
 /**
  * @deprecated V3 ARQUIVADO 2026-08-14 — etapa 23 do PLANO_DESACOPLAMENTO_V3_100_ETAPAS.md
  *
- * ZappWebbDemoPage agora usa evolution-proxy diretamente via supabase.functions.invoke.
+ * ZappWebbDemoPage usa whatsappAdapter.sendText + evolutionOps.evolutionChatMarkRead (E82).
  * Este arquivo foi esvaziado. Ver src/_archive/evolutionClient.archived.ts para histórico.
  *
  * Mapa de migração:
@@ -10,11 +10,11 @@
  *   getConnectionState → evolutionProxyLegacy( // via adapters/evolutionOps — { body: { method:'GET',  path:'/instance/connectionState/{instance}' } })
  */
 
-export const sendText    = (): never => { throw new Error('[V3] Use evolution-proxy via supabase.functions.invoke'); };
-export const sendMedia   = (): never => { throw new Error('[V3] Use evolution-proxy via supabase.functions.invoke'); };
-export const sendWhatsAppAudio = (): never => { throw new Error('[V3] Use evolution-proxy via supabase.functions.invoke'); };
-export const markChatRead = (): never => { throw new Error('[V3] Use evolution-proxy via supabase.functions.invoke'); };
-export const fetchInstances = (): never => { throw new Error('[V3] Use evolution-proxy via supabase.functions.invoke'); };
-export const connectionState = (): never => { throw new Error('[V3] Use evolution-proxy via supabase.functions.invoke'); };
+export const sendText    = (): never => { throw new Error('[V3] Use o whatsappAdapter (evolution-proxy foi removida no E82)'); };
+export const sendMedia   = (): never => { throw new Error('[V3] Use o whatsappAdapter (evolution-proxy foi removida no E82)'); };
+export const sendWhatsAppAudio = (): never => { throw new Error('[V3] Use o whatsappAdapter (evolution-proxy foi removida no E82)'); };
+export const markChatRead = (): never => { throw new Error('[V3] Use o whatsappAdapter (evolution-proxy foi removida no E82)'); };
+export const fetchInstances = (): never => { throw new Error('[V3] Use o whatsappAdapter (evolution-proxy foi removida no E82)'); };
+export const connectionState = (): never => { throw new Error('[V3] Use o whatsappAdapter (evolution-proxy foi removida no E82)'); };
 export const getEvolutionCredentials = connectionState;
 export const stripJid = (jid: string) => (jid || '').replace(/@s\.whatsapp\.net$/i, '').replace(/@c\.us$/i, '');
