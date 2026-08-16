@@ -1,4 +1,28 @@
 # Reconciliação dos inventários paralelos — Fase 5
+
+> ## ⚠️ CORREÇÃO DO ORQUESTRADOR — D3 está direcionalmente certo, mas superdimensionado
+>
+> A divergência **D3** afirma que *"0 de 20 nomes amostrados"* da coluna "Evidência
+> Camada UI" do `FEATURE_REGISTRY.md` existem em `src/`. **Refeita a medição com amostra
+> própria de 18 nomes, o resultado é 12 existem / 6 não existem.**
+>
+> Os 6 ausentes têm de fato **zero ocorrência** em qualquer arquivo de `src/` (teste por
+> string livre, não só por export) e são fabricações reais: `AgentSkillsPanel`,
+> `AnalysisPanel`, `ArchiveButton`, `CampaignABView`, `ConnectionsList`, `Contact360View`.
+> Os 12 que existem são as páginas `Admin*Page`, todas resolvíveis em `src/pages/`.
+>
+> **O padrão importa mais que o número:** a evidência fabricada concentra-se nas linhas
+> de *feature de negócio* (Perfil 360 do contato, Campanhas AB, Skills de agentes),
+> enquanto as linhas de *página administrativa* têm lastro real. Ou seja, a coluna é
+> menos confiável exatamente onde descreve capacidade de produto — que é o que o
+> documento se propõe a inventariar.
+>
+> Severidade mantida como CRÍTICA (a promessa anti-alucinação da linha 9 do registry é
+> violada, e ~1/3 da amostra não resolve), mas a afirmação "a coluna não é evidência"
+> deve ser lida como **"a coluna é parcialmente fabricada, com viés para as features de
+> negócio"**. Quem for corrigir o registry deve reverificar linha a linha, não descartar
+> a coluna inteira.
+
 > Auditado em: 2026-08-16 | Acervos cruzados: 4 (+1 concorrente) | Runtime: NAO_VERIFICADO
 > Autor: agente E10. **Escrita restrita a este arquivo.** Nenhum dos acervos foi editado.
 > Método: leitura estática do repo na branch `claude/validar-levantamento-sistema-uxonxc`.
