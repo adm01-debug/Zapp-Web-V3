@@ -11,7 +11,7 @@
  * - Só faz retry para erros transitórios (rede, 5xx, timeout). 4xx aborta.
  * - Reporta cada retry via `onRetry` (toast opcional).
  */
-import { supabase } from '@/integrations/supabase/client';
+import { invokeRawEdge } from '@/lib/whatsappAdapter';
 import { withRetry } from '@/lib/retry';
 import { getLogger } from '@/lib/logger';
 import { enqueueClientFailedMessage } from '@/lib/failedMessagesEnqueue';
@@ -121,8 +121,6 @@ export async function invokeEvolutionWithRetry<T = unknown>(
   // Cloud API (official) functions accept the same `{ action, ... }` body shape.
   const targetFn = await resolveSendFunction(instanceName);
   // For the Cloud API edge function, action goes in the body (not the path).
-  const invokePath =
-    targetFn === 'whatsapp-cloud-api' ? 'whatsapp-cloud-api' : `evolution-api/${action}`;
   const invokeBody = targetFn === 'whatsapp-cloud-api' ? { action, ...opts.body } : opts.body;
 
   const runRetryLoop = () =>
@@ -138,7 +136,11 @@ export async function invokeEvolutionWithRetry<T = unknown>(
           }
         }
 
-        const result = await supabase.functions.invoke(invokePath, {
+        // E81: invoke via whatsappAdapter (invokeRawEdge) — envelope
+        // {data, error} do supabase-js preservado para o retry loop abaixo.
+        const result = await invokeRawEdge({
+          functionName: targetFn,
+          path: targetFn === 'whatsapp-cloud-api' ? undefined : action,
           method: opts.method || 'POST',
           body: invokeBody,
           headers: mergedHeaders,

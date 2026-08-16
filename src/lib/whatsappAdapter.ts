@@ -37,6 +37,7 @@ import type {
   SendTextParams,
   SendMediaParams,
   SendAudioParams,
+  SendPtvParams,
   SendStickerParams,
   SendReactionParams,
   SendLocationParams,
@@ -60,6 +61,7 @@ export type {
   SendTextParams,
   SendMediaParams,
   SendAudioParams,
+  SendPtvParams,
   SendStickerParams,
   SendReactionParams,
   SendLocationParams,
@@ -78,6 +80,7 @@ export {
   invalidateTransportCache,
 } from './whatsappAdapterTransport';
 import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
+import { buildFileHash as calculateFileHash } from '@/lib/crypto';
 
 const DEFAULT_INSTANCE = ACTIVE_WHATSAPP_INSTANCE;
 
@@ -462,6 +465,33 @@ async function invokeEvolutionPath(path: string, body: Record<string, unknown>) 
   return data;
 }
 
+/** Raw Edge Invoke Params interface definition. */
+export interface RawEdgeInvokeParams {
+  /** Nome da edge function — 'evolution-api' ou 'whatsapp-cloud-api'. */
+  functionName: 'evolution-api' | 'whatsapp-cloud-api';
+  /** Sufixo de path (ex.: 'send-text' → 'evolution-api/send-text'). Quando ausente, invoca `functionName` direto. */
+  path?: string;
+  method?: 'POST' | 'GET';
+  body?: Record<string, unknown>;
+  headers?: Record<string, string>;
+}
+
+/**
+ * Invoke cru de edge function preservando o envelope `{data, error}` do
+ * supabase-js — para wrappers de retry (evolutionSendRetry) que tratam
+ * erro/retry por conta própria, sem throw do adapter.
+ */
+export async function invokeRawEdge(params: RawEdgeInvokeParams) {
+  const functionName = params.path
+    ? `${params.functionName}/${params.path}`
+    : params.functionName;
+  return supabase.functions.invoke(functionName, {
+    method: params.method ?? 'POST',
+    body: params.body,
+    headers: params.headers,
+  });
+}
+
 // ── WhatsApp Status (Stories) ────────────────────────────────────────────
 export interface FindStatusMessagesParams { instanceName: string; page?: number; offset?: number }
 export async function findStatusMessages(params: FindStatusMessagesParams) {
@@ -519,11 +549,40 @@ export async function requestPairingCode(params: RequestPairingCodeParams) {
   });
 }
 
-// ── Video circular (PTV) — usa FormData, adapter passa direto ────────────
-// TODO-F3-sendPtv: sendPtv usa FormData multipart (não JSON).
-// Evolution API detecta o content-type e roteia para /message/sendPtv/{instance}.
-// A chamada direta a supabase.functions.invoke é necessária neste caso.
-export async function sendPtv(formData: FormData) {
+// ── Video circular (PTV) — FormData multipart com campo `video` ───────────
+// O proxy `evolution-api` detecta o content-type multipart e roteia para
+// /message/sendPtv/{instance}. O FormData montado aqui preserva EXATAMENTE o
+// body do call site original (externalMessageSender.sendExternalPtv):
+//   action='send-ptv', instanceName, number, video (Blob 'video.mp4'), mediaHash.
+export async function sendPtv(params: SendPtvParams) {
+  const videoUrl = params.videoUrl ?? params.mediaUrl;
+  if (!videoUrl) {
+    throw new Error('sendPtv: videoUrl (ou mediaUrl) é obrigatório.');
+  }
+
+  const formData = new FormData();
+  formData.append('action', 'send-ptv');
+  formData.append('instanceName', params.instance ?? DEFAULT_INSTANCE);
+  formData.append('number', toPhone(params.remoteJid));
+
+  const response = await fetch(videoUrl);
+  if (!response.ok) {
+    throw new Error(`Falha ao baixar o vídeo para envio (HTTP ${response.status}).`);
+  }
+  let videoBlob = await response.blob();
+  if (params.mimetype && videoBlob.type !== params.mimetype) {
+    videoBlob = new Blob([videoBlob], { type: params.mimetype });
+  }
+  formData.append('video', videoBlob, 'video.mp4');
+
+  // mediaHash é best-effort (mesmo comportamento do call site original).
+  try {
+    const mediaHash = await calculateFileHash(videoBlob);
+    formData.append('mediaHash', mediaHash);
+  } catch {
+    // Hash é usado só para dedupe — pulo silencioso preserva o envio.
+  }
+
   const { data, error } = await supabase.functions.invoke('evolution-api', {
     body: formData,
   });
@@ -590,6 +649,7 @@ export const whatsapp = {
   createInstance,
   requestPairingCode,
   sendPtv,
+  invokeRawEdge,
   getActiveWebhookUrl,
   getCloudWebhookUrl,
   getEvolutionWebhookUrl,
