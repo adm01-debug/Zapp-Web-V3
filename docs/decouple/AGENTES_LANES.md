@@ -9,6 +9,8 @@
 | **Claude (claude.ai)** | E41/I7 — baseline da estrutura do schema `evo` como migration no repo dono | `evolution-stack` · branch `claude/e41-evo-schema-baseline` | **somente leitura** (introspecção/pg_dump do schema `evo`) | 🟢 ativo |
 | **Agente 2 (correções em sequência)** | I1 residual e demais lotes — funções/triggers evo↔zapp | `zapp-web-v3` · `claude/evolution-zapp-separation-analysis-29lixd` | escrita em funções/triggers dos schemas `evo`/`zapp` | 🟢 ativo |
 
+| **Claude (claude.ai/sessao-2)** | drift-gate do schema zapp — snapshot+check+workflow (arquivos novos, zero overlap com lotes) | `zapp-web-v3` · esta branch | somente leitura (pg_dump zapp) | 🟢 entregue |
+
 ## Zonas congeladas (nenhum agente toca sem coordenação explícita)
 - **I4 / E73–E77** — mover tabelas `evolution_*` de `zapp` para `evo` (destrutivo, conflita com tudo)
 - ~~sql-gate / registry / fixture~~ — RESOLVIDO 2026-08-16 (Claude/claude.ai, aprovado por Joaquim): registry dividido em PROD_OBJECTS_REGISTRY (15 verificados ao vivo, bloqueante) + PLANNED_OBJECTS (10 inexistentes, WARN). Criar os `ops.*`/2 views segue como backlog — quem criar, move a entrada de volta.

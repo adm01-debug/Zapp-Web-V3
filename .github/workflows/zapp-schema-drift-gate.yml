@@ -1,0 +1,19 @@
+name: zapp-schema-drift-gate
+# Gate I7 lado zapp: zapp-web-v3 e o dono unico da estrutura do schema zapp.
+on:
+  schedule:
+    - cron: '10 9 * * *'   # 06:10 America/Sao_Paulo (offset do gate evo)
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'scripts/decouple/snapshots/**'
+
+jobs:
+  drift-check:
+    runs-on: [Linux, X64, vps-zapp]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check drift zapp schema vs snapshot
+        run: sh scripts/decouple/zapp-drift-check.sh
