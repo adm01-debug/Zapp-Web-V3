@@ -1,6 +1,43 @@
 # Estado: src/adapters + src/integrations/__tests__ (batch 8H)
 > Runtime: NAO_VERIFICADO | Auditado em: 2026-08-16 | Arquivos lidos: 10/10
 
+---
+
+> ## ⚠️ CORREÇÃO DO ORQUESTRADOR — 2026-08-16, pós-publicação
+>
+> **Os achados A1 e A2 abaixo estão INVERTIDOS. NÃO aplicar a correção que eles recomendam.**
+>
+> Este documento foi produzido sob um briefing errado meu, que afirmava que
+> `evolution_messages`/`_conversations`/`_contacts` eram tabelas físicas em `zapp` e que
+> `evo.evolution_*` não existia. **É o contrário.** Verificado ao vivo via `pg_class`
+> nesta data:
+>
+> | objeto | `evo` | `zapp` |
+> |---|---|---|
+> | `evolution_messages` | **tabela particionada** (física) | VIEW |
+> | `evolution_conversations` | **tabela particionada** (física) | VIEW |
+> | `evolution_contacts` | **tabela** (física) | VIEW |
+>
+> Causa: a migration `20260816250003_decouple_e73_e75_i4_zero.sql` (ADR-I4, commit
+> `a3c1dc952`) moveu as tabelas de volta `zapp`→`evo` às 11:50Z de 2026-08-16, cerca de
+> uma hora antes desta auditoria, criando bridge views em `zapp`.
+>
+> **Consequência prática:** trocar `schema: 'evo'` por `schema: 'zapp'` nos hooks
+> apontaria a subscription para uma **VIEW**, e view nunca emite CDC. A troca
+> introduziria a quebra que o achado pretendia corrigir.
+>
+> **Ressalva que continua válida, por outro motivo:** `evolution_messages` e
+> `evolution_conversations` **não estão na publication `supabase_realtime` em nenhum
+> schema** (só `evo.evolution_contacts`, `zapp.evolution_alerts` e
+> `zapp.evolution_realtime_events` estão). Logo as subscriptions de mensagens e
+> conversas realmente não recebem eventos — mas a causa é ausência na publication, não
+> o schema. O diagnóstico de sintoma estava certo; a causa e o fix, errados.
+>
+> A topologia mudou três vezes em sete dias. Revalidar `relkind` ao vivo antes de agir
+> sobre qualquer afirmação de schema neste documento.
+
+---
+
 ## 1. Visão Geral
 
 Batch 8H cobre 1 módulo de produção (`src/adapters/evolution/messageTypes.ts`) e 9 arquivos de
