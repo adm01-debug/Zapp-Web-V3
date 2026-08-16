@@ -11,4 +11,4 @@
 
 ## Zonas congeladas (nenhum agente toca sem coordenação explícita)
 - **I4 / E73–E77** — mover tabelas `evolution_*` de `zapp` para `evo` (destrutivo, conflita com tudo)
-- **sql-gate / `PROD_OBJECTS_REGISTRY` / fixture** — pendente decisão: limpar registry × criar objetos `ops.*`
+- ~~sql-gate / registry / fixture~~ — RESOLVIDO 2026-08-16 (Claude/claude.ai, aprovado por Joaquim): registry dividido em PROD_OBJECTS_REGISTRY (15 verificados ao vivo, bloqueante) + PLANNED_OBJECTS (10 inexistentes, WARN). Criar os `ops.*`/2 views segue como backlog — quem criar, move a entrada de volta.
