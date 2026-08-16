@@ -46,6 +46,15 @@ jobs:
           restore-keys: |
             deno-${{ runner.os }}-
 
+      - name: Lint no-direct-evo-url (report-only)
+        run: |
+          deno lint -c deno.json --rules-tags= --rules-include=no-direct-evo-url/no-direct-evo-url supabase/functions > /tmp/lint-out.txt || true
+          cat /tmp/lint-out.txt
+          if grep -q 'no-direct-evo-url' /tmp/lint-out.txt; then
+            echo '::warning::no-direct-evo-url: violacoes encontradas (report-only - fase 2 torna blocking)'
+          else
+            echo 'no-direct-evo-url: 0 violacoes'
+          fi
       - name: Run contract tests
         # Loop por arquivo (isolamento de processo): testes que setam env no
         # escopo de módulo (e2e-send.test.ts) e testes com fetch live
