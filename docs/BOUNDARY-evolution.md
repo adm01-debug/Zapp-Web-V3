@@ -54,6 +54,19 @@
 - 3 suítes e2e + 6 testes unitários confirmados como testes do cliente
 - TypeScript: 0 erros pré/pós operação (baseline limpo)
 
+## Auditoria de referências — estado final (2026-08-16, AUDIT_EVO_REFS_20260816)
+
+Sweep completo de 1.278 arquivos com referência à Evolution (100 etapas, gate humano aprovado, validação Claude APROVADO):
+
+- **FICA 1.203** (1.191 + 12 REVISAR): contrato vivo — 10 edge functions `evolution-*` (todas deployadas, webhook com 548 eventos/24h), hooks/UI, libs de resiliência, gates de CI, 214 migrations (R1, intocáveis)
+- **ARQUIVA 85**: histórico (série de auditorias jul/2026, cutover, reconciliation, simulation) → `docs/_archive/`
+- **EXCLUI 28**: duplicatas (ts-nocheck, RUNBOOK_DR_EVO), working files `.hermes/`, código morto (2 clients antigos, barrel, normalizer), yml residuais — todos com prova de zero consumidores
+- **MIGRA 7** → evolution-stack (`docs/` e `docs/history/`): FMEA, incidente, runbooks DR/401, plano de correção 100E, RUNBOOK_EVO_DB, sessao5_infra, rabbitmq-bindings
+- Triagem completa: `docs/decouple/AUDIT_EVO_REFS_20260816/triagem.csv` · Relatório: `RELATORIO_FINAL.md`
+
+**Achados vivos desta auditoria** (acompanhar): produção Evolution **2.4.0** (fallbacks v237 e contract.zod ainda assumem 2.3.x → REVISAR); bug bilateral consumer-stats (POST HTTP 404 do lado do consumer); rule `no-direct-evo-url.ts` não plugada no CI; dependência reversa `evo → zapp.fn_normalize_send_jid` (13 refs) a formalizar como contrato.
+
+
 
 ## Fronteira lógica (4 portas de egresso/ingestão)
 
