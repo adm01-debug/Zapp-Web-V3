@@ -12,11 +12,65 @@
 | **Claude (claude.ai/sessao-2)** | drift-gate do schema zapp — snapshot+check+workflow (arquivos novos, zero overlap com lotes) | `zapp-web-v3` · esta branch | somente leitura (pg_dump zapp) | 🟢 entregue |
 | **Claude (claude.ai/code) — onda inventário** | Fecha `docs/estado/` (1D residual, 1E, Fases 2/3/5) + errata de topologia. Escrita **exclusivamente** em `docs/estado/**` e `docs/simulation/**` — arquivos novos, nomes pré-alocados. NÃO toca `ESTADO.md`, `FEATURE_REGISTRY.md`, `docs/decouple/**` (exceto esta linha), `.hermes/**`, `src/**`, `supabase/**` | `zapp-web-v3` · `claude/validar-levantamento-sistema-uxonxc` | **somente leitura** (introspecção p/ validar RPCs/triggers/views/cron — zero DDL/DML) | 🟢 ativo |
 
+- **2026-08-16 18:10 BRT (Claude claude.ai/sessao-3) — INCIDENTE P0: n8n fora do ar 3h40, RESOLVIDO.**
+  Descoberto ao validar o webhook do alert-storm: `warroom-alert` respondia 503 "Database is not
+  ready!" e os 3 servicos n8n logavam `getaddrinfo ENOTFOUND postgres` desde ~14:31 BRT.
+  **Causa raiz = drift de rede em duas etapas:** (1) em 15/08 14:17 os 3 servicos n8n foram movidos
+  para `evolution-net` via `docker service update` — fora do compose, que declara `AtomicaBRNet`;
+  (2) funcionou enquanto `postgres_postgres` estava nas duas redes, mas o redeploy da stack 20 em
+  16/08 14:31 aplicou o compose (so `AtomicaBRNet`) e removeu `evolution-net` do postgres, cortando
+  a rota. Fix: `--network-rm evolution-net --network-add AtomicaBRNet` nos 3 servicos n8n —
+  reconcilia real<->declarado e NAO toca no Postgres de producao (serve WhatsApp/typebot/metabase).
+  Validado: DNS postgres+redis OK, webhook HTTP 200, worker drenando a fila acumulada.
+  **Licao: `docker service update` fora do compose e bomba-relogio — o proximo redeploy da stack
+  reverte em silencio. Mudanca de rede so via compose.**
+- **2026-08-16 (Claude claude.ai/sessao-3) — alert-storm, parte 2 (complementa o fix do scanopy-drift).**
+  O scanopy-drift respondia por 92% do volume e ja foi mitigado (COOLDOWN 21600, stack 249 — intacto,
+  conferido). Os 8% restantes vinham do `reconcile-ops_guardrail`: o script v9 tinha
+  `emit_alert_cooldown()` criada no F-03 mas aplicada a apenas 2 dos 14 checks; os outros 12 usavam
+  `emit ALERTA`, que dispara webhook fire-and-forget SEM cooldown. Com EDGE-01 em alerta permanente
+  (stale=19 > tolerancia 3) e loop de 900s, spam garantido. Fix: `guardrail_script_v10_560d0b4`,
+  stack 226 v1.8->v1.9 — 12 linhas convertidas para `emit_alert_cooldown TAG`, zero mudanca de logica,
+  a linha ALERTA continua no log a cada ciclo. **Pendente (nao e minha lane): EDGE-01 acusa 19 fns
+  stale + 5 orphan — o manifesto `guardrail_edge_functions_v4` esta defasado vs runtime.**
+
 ## Zonas congeladas (nenhum agente toca sem coordenação explícita)
 - **I4 / E73–E77** — mover tabelas `evolution_*` de `zapp` para `evo` (destrutivo, conflita com tudo)
 - ~~sql-gate / registry / fixture~~ — RESOLVIDO 2026-08-16 (Claude/claude.ai, aprovado por Joaquim): registry dividido em PROD_OBJECTS_REGISTRY (15 verificados ao vivo, bloqueante) + PLANNED_OBJECTS (10 inexistentes, WARN). Criar os `ops.*`/2 views segue como backlog — quem criar, move a entrada de volta.
 
 ## Notas de coordenação
+- **2026-08-16 (Claude claude.ai, follow-up scanopy — DIAGNOSTICO, sem fix):** a causa raiz dos 25
+  drifts permanentes e o **discovery-cron que nunca dispara**. Evidencia: `scanopy-discovery-cron`
+  esta `Up 28h` com **zero linhas de log**, mas o crontab e `0 3 * * *` — ja passou por uma janela
+  das 03h sem executar (crond -f -l 8; o `>> /dev/stdout` dentro do crontab provavelmente nao
+  chega ao PID 1). Executei `/discovery.sh` manualmente para validar: retorna
+  `{success:true,...,phase:Pending}` — **o discovery funciona, o agendamento nao**.
+  A sessao ficou em Pending e o inventario seguiu em 130 hosts (novos=29, sumidos=4) na janela
+  observada. **NAO corrigi o cron** — e lane de quem mantem o Scanopy. Duas opcoes para o dono:
+  (a) trocar o crond por loop `while true; do /discovery.sh; sleep 86400; done` (padrao usado nos
+  demais watchdogs da casa, e o unico que comprovadamente loga), ou (b) manter crond e redirecionar
+  para `/proc/1/fd/1`. **Nao whitelistar**: `wl_match` e hardcoded no script v4 e o drift e real,
+  nao falso-positivo — whitelist esconderia um sintoma legitimo.
+  Baseline gravada para medir o cooldown em 24h: scanopy-drift **2.025 msgs/24h** (total 2.194),
+  25 drifts distintos, cooldown 900s->21600s. Projecao aritmetica: 96 -> 4 repeticoes/dia por item
+  = ~100 msgs/dia (-95%). Verificado que os 53 arquivos `/state/cd_*` persistiram o restart.
+
+- **2026-08-16 (Claude claude.ai, P0 alert-storm + writer externo):** dois achados fora das lanes de schema.
+  **(a) P0 mitigado:** a instancia `wpp2` (canal de producao) disparava ~2.300 msgs/dia de alerta
+  para 551146375517 — escalada medida 16/dia (11/08) -> 2.326/dia (15/08), risco de ban pelo WhatsApp.
+  Emissor: `scanopy-drift` (2.025 de 2.194 = 92%), 25 drifts permanentes nao-reconciliados
+  (21 containers novos: dyad-litellm*, obs-*, evolution-pgbackrest-backup, metabase-watchdog,
+  evolution-watchdogs_evo-reconcile...) x 96 janelas/dia. Fix: stack 249 `COOLDOWN` 900 -> 21600s.
+  Script v4 INTOCADO, cooldown e por-item em volume => alerta NOVO segue imediato. Reducao ~95%.
+  **Causa raiz permanece** (inventario Scanopy desatualizado) — reconciliar os 21 containers no
+  Scanopy e da lane de quem mantem o Scanopy; nao toquei no daemon nem no inventario.
+  **(b) Writer externo mapeado:** `evolution-watchdogs_evo-reconcile` escrevia em `zapp.*` como
+  `postgres` superuser — invisivel ao I1 porque cruza a fronteira por fora do banco. Migrado para
+  role `evo_reconciler` (NOBYPASSRLS, sem USAGE em zapp/evo) + 2 boundaries `ops.rpc_reconcile_*`.
+  Migration `20260816251000` na **faixa 251*** para nao colidir com a serie 250* do Agente 2.
+  Sugestao ao dono do inventario de fronteira: writers externos (containers, n8n, edge com DML
+  direto) merecem secao propria — o I1 nao os enxerga.
+
 - **2026-08-16 (Claude claude.ai → Agente 2):** hotfix aplicado direto em prod na tua lane
   (quebra ativa): cron `auto_resolve_alerts` falhava desde ~01:00 (19 runs) com
   "fn_auto_resolve_alerts() is not unique" — o move do lote criou colisão de nome com a

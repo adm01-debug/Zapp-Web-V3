@@ -37,10 +37,37 @@ Janelas de dedup preservam a semântica original (WHERE NOT EXISTS 2h → interv
 - Canário sintético com rollback: INSERT em evolution_messages_wpp2 com media fake → ledger=1 queue=1 ✔.
 - Tráfego real 10min: 3 msgs / 3 ledger rows (1:1).
 
-## Fases B e C — PENDENTES
-- **B**: `fn_pipeline_health_probe` (mover p/ zapp + boundary insert pipeline_health_log + view webhook stats),
-  `fn_scrub_r2_paths_from_logs` (mover p/ zapp; decidir helper fn_scrub_r2_text),
-  `fn_ensure_evolution_backcompat_views` (mover p/ ops; corrigir check evo/zapp inconsistente no IF da view v2).
-- **C (cluster LID)**: `fn_apply_lid_mappings`, `fn_passive_lid_accumulator`, `fn_lid_normalizer_test_suite`,
-  `fn_lid_regression_suite`, `fn_lid_health_report` — mover p/ zapp com views reversas onde faltarem.
-- Ficam (contratos, fora de escopo): `rpc_boundary_provision_instance_partitions`, `rpc_complete_media_download`.
+## Fase B (2026-08-16 07:29 BRT, migration 20260815250023) — APLICADA
+
+Efeito: I1 11→8 (probe, scrub e backcompat saem de evo). I2 mantido 0.
+
+### Moves + boundaries
+- `fn_pipeline_health_probe` → `zapp` (lê agregados via `public.evo_webhook_events_recent`, nova view leitora reversa B1; escreve via boundary `evo.rpc_boundary_insert_pipeline_health(jsonb)` B2). DROP da versão evo.
+- `fn_scrub_r2_paths_from_logs` → `zapp`, com helper `zapp.fn_scrub_r2_text(text)` (decisão: helper movido junto, não inlinado). DROPs das versões evo.
+- `fn_ensure_evolution_backcompat_views` → `ops` (gerencia views public/evo, não é domínio evo). DROP da versão evo.
+
+### Bug latente corrigido no move
+- `fn_ensure_evolution_backcompat_views`: o IF checava `pg_views` em `schemaname='evo'` mas o CREATE apontava `zapp.evolution_messages_v2` — o bloco nunca executava. Corrigido para checar e criar `evo.evolution_messages_v2` (o alias que existe e é consumido).
+
+### Validação
+- Transação única com guard via supabase_db_query; replay convergente registrado em 250023.
+
+## Fase C (2026-08-16 07:35–07:37 BRT, migration 20260815250024) — APLICADA
+
+Efeito: I1 8→4 (cluster LID inteiro sai da contagem; restantes 4 = contratos aceitos/graveyard). I2 mantido 0.
+
+### Padrão LID cluster (zero churn de callers)
+- `fn_apply_lid_mappings` tinha 3 callers evo + cron 483 (DO block) — movê-la criaria I1 novo em cada caller. Solução: corpo virou `zapp.rpc_boundary_apply_lid_mappings` (escreve 4 tabelas zapp; lê o mapa via `public.evo_lid_phone_map`, 9 ocorrências repontadas) e `evo.fn_apply_lid_mappings` virou thin wrapper whitelisted. Callers e cron intactos.
+
+### Boundaries novos (C1/C2)
+- `zapp.rpc_boundary_normalize_send_jid(text,text)` — normalização de JID como serviço zapp exposto ao evo.
+- `zapp.rpc_boundary_system_health_score()` — health score consumido pelo `fn_lid_health_report`.
+
+### Suites/report ficam em evo (C6/C7/C8)
+- `fn_lid_normalizer_test_suite`, `fn_lid_regression_suite` (v5, 19 tests) e `fn_lid_health_report` permanecem em evo (escrevem `evo.lid_phone_map`/`e2e_probe_results` em testes); refs zapp viraram boundaries (C1/C2) ou views public.
+
+### Incidente corrigido na sessão (T09)
+- `public.contact_intelligence` NÃO é espelho fiel de `zapp.contact_intelligence` (coluna `phone` vem de `zapp.contacts` via LEFT JOIN) — T09 passou a medir outra coisa e falhou com 7127. Fix: view espelho `public.zapp_contact_intelligence` (SELECT * 1:1, security_invoker) e T09 repontado. Regression voltou a 16/17 (único FAIL = T12 score 9, pré-existente desde 04h, não relacionado ao lote).
+
+### Fora de escopo (contratos, ficam)
+- `rpc_boundary_provision_instance_partitions`, `rpc_complete_media_download`.

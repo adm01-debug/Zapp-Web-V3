@@ -9,7 +9,8 @@
 | `supabase_anon_key_v2` | atomica-platform (stack supabase) | stack supabase (ID 35) | plataforma compartilhada |
 | `supabase_service_key_v3` | atomica-platform | stack supabase **e** evolution.yml (25) | **cruzamento**: evolution-stack consome — documentado, rotação coordenada |
 | `supabase_jwt_secret_v1` | atomica-platform | stack supabase | plataforma |
-| `supabase_db_password_v1` | atomica-platform | stack supabase **e** evolution-watchdogs.yml (240) | **cruzamento** |
+| `supabase_db_password_v1` | atomica-platform | stack supabase **e** reconcile-ops.yml (226) | **cruzamento** — removido de evolution-watchdogs (240) em 2026-08-16, ver `pg_supa_url_evo_reconciler_v1` |
+| `pg_supa_url_evo_reconciler_v1` | zapp-web-v3 | evolution-watchdogs.yml (240), serviço `evo-reconcile` | **cruzamento least-privilege** — URL completa do role `evo_reconciler` (NOBYPASSRLS, sem USAGE em zapp/evo). Substituiu o uso de `postgres` superuser. Bootstrap: ver RUNBOOK_EVO_RECONCILER.md |
 | `supabase_webhook_secret_v1` | atomica-platform | evolution-rabbit-consumer.yml (113) | **cruzamento** — HMAC do webhook |
 | `logflare_api_key_v2` / `logflare_*` | atomica-platform | stack supabase (analytics) | plataforma |
 | `postgrest_conf_*` | atomica-platform | stack supabase (rest) | plataforma |
@@ -24,3 +25,4 @@
 2. **Propriedade documental ≠ propriedade runtime:** o evolution-stack consome secrets da plataforma porque o provider fala com o Supabase — o registro acima é o mapa oficial; o CI dos dois repos não altera secrets.
 3. **Nunca versionar** secrets em arquivos (todos `external: true` no Swarm).
 4. Alvo futuro (não bloqueante): criar secrets dedicados por consumidor para eliminar compartilhamento (E34 estendida).
+5. **Roles de writer externo:** processos que escrevem no banco de fora (containers Swarm, n8n, jobs) NÃO devem usar `postgres`/superuser. Padrão: role dedicado com `NOBYPASSRLS`, sem `USAGE` nos schemas de dados, e acesso exclusivo via função `SECURITY DEFINER` em `ops`. Precedente: `evo_reconciler` (2026-08-16). Esses writers são invisíveis ao `fn_boundary_audit()`/I1 — só o registro documental os cobre.

@@ -106,6 +106,10 @@ const PROD_OBJECTS_REGISTRY = [
   { name: 'ops.decouple_preflight_runs',     kind: 'table',    desc: 'Histórico de execuções do preflight (E10)' },
   { name: 'ops.fn_decouple_preflight',       kind: 'function', desc: 'Preflight checklist pré-deploy' },
   { name: 'ops.v_preflight_history',         kind: 'view',     desc: 'Histórico de runs do preflight' },
+
+  // 2 boundaries do writer externo evo-reconcile (migration 20260816251000, 2026-08-16)
+  { name: 'ops.rpc_reconcile_snapshot',       kind: 'function', desc: 'Boundary de escrita do snapshot de reconciliacao (role evo_reconciler)' },
+  { name: 'ops.rpc_reconcile_mirror_jids',    kind: 'function', desc: 'Expoe remote_jid do espelho p/ calculo de cobertura (role evo_reconciler)' },
 ];
 
 const SAMPLE_QUERY = `-- =====================================================================
@@ -359,7 +363,7 @@ function scanMigrations(migrationsDir) {
  * WARN (exit 0) se desatualizado; FAIL (exit 1) se contagem errada.
  */
 function checkFreshness() {
-  const EXPECTED_COUNT = 23;
+  const EXPECTED_COUNT = 25;
   let hasFailure = false;
 
   console.log('=== sql-gate --check-freshness ===');
@@ -421,7 +425,7 @@ function validateFixture() {
     process.exit(1);
   }
 
-  const EXPECTED_COUNT = 23;
+  const EXPECTED_COUNT = 25;
   if (fixture.length !== EXPECTED_COUNT) {
     console.error(`FAIL: fixture tem ${fixture.length} entradas, esperado ${EXPECTED_COUNT}.`);
     process.exit(1);
