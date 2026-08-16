@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { log } from '@/lib/logger';
 import { normalizeIdempotencyKey, deriveIdempotencyKey } from '@/lib/idempotency';
 import { loadRetryConfig, getRetryConfigSync } from '@/lib/retryConfig';
+import { sendChatPresence as adapterSendChatPresence } from '@/lib/whatsappAdapter';
 import {
   withV237Fallback,
   fallbackFindChats,
@@ -562,8 +563,8 @@ function useEvolutionMessaging(
       number: string,
       presence: 'composing' | 'recording' | 'paused',
       delay?: number
-    ) => callApi('send-chat-presence', { instanceName, number, presence, delay }),
-    [callApi]
+    ) => adapterSendChatPresence({ instanceName, number, presence, delay }),
+    []
   );
 
   const sendTextHumanized = useCallback(
@@ -581,7 +582,7 @@ function useEvolutionMessaging(
       const shouldSimulate = text.length >= minLength && pauseMs > 0;
       if (shouldSimulate) {
         try {
-          await callApi('send-chat-presence', {
+          await adapterSendChatPresence({
             instanceName,
             number,
             presence: 'composing',
