@@ -19,3 +19,4 @@
 20260815250021_decouple_leitoras_reversas_5_views_zapp_7_fns_evo_e2e_boundary_alert.sql
 20260816140000_decouple_i1_i2_zerar.sql
 20260816141000_decouple_i1_i2_fix2.sql
+20260816090000_drop_dead_functions_zapp_evo.sql
