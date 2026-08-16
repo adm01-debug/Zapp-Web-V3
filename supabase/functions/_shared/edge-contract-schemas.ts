@@ -86,7 +86,6 @@ export const EDGE_FUNCTION_NAMES = [
   'evolution-credentials',
   'evolution-group-sync',
   'evolution-notification-dispatcher',
-  'evolution-proxy',
   'evolution-retry-metrics',
   'evolution-sync',
   'evolution-templates',

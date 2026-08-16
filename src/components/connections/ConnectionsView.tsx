@@ -37,7 +37,7 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
+// supabase removido do import (E82: envio migrado para whatsappAdapter)
 import { toast } from '@/hooks/use-toast';
 import { BusinessHoursDialog } from './BusinessHoursDialog';
 import { ConnectionQueuesDialog } from './ConnectionQueuesDialog';
