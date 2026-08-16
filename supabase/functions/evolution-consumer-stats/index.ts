@@ -49,7 +49,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const { error } = await supabase.rpc("rpc_boundary_insert_consumer_stats", {
-      p_row: parsed.body,
+      p_row: parsed.data,
     });
     if (error) throw error;
     return new Response(JSON.stringify({ ok: true }), {
