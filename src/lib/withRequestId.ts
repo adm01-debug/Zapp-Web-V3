@@ -9,7 +9,7 @@
  *
  * Usage:
  *   const trace = newRequestId();
- *   await supabase.functions.invoke('evolution-api', {
+ *   await whatsappAdapter (rota evolution-api) — ex.: {
  *     body: { … }, headers: trace.headers,
  *   });
  *   await dbFrom('messages').insert({ …, request_id: trace.requestId });

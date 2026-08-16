@@ -5,9 +5,9 @@
  * Este arquivo foi esvaziado. Ver src/_archive/evolutionClient.archived.ts para histórico.
  *
  * Mapa de migração:
- *   sendText()         → supabase.functions.invoke('evolution-proxy', { body: { method:'POST', path:'/message/sendText/{instance}', body: {number, text} } })
- *   markChatRead()     → supabase.functions.invoke('evolution-proxy', { body: { method:'PUT',  path:'/chat/markChatUnread/{instance}',  body: {number, unread:false} } })
- *   getConnectionState → supabase.functions.invoke('evolution-proxy', { body: { method:'GET',  path:'/instance/connectionState/{instance}' } })
+ *   sendText()         → evolutionProxyLegacy( // via adapters/evolutionOps — { body: { method:'POST', path:'/message/sendText/{instance}', body: {number, text} } })
+ *   markChatRead()     → evolutionProxyLegacy( // via adapters/evolutionOps — { body: { method:'PUT',  path:'/chat/markChatUnread/{instance}',  body: {number, unread:false} } })
+ *   getConnectionState → evolutionProxyLegacy( // via adapters/evolutionOps — { body: { method:'GET',  path:'/instance/connectionState/{instance}' } })
  */
 
 export const sendText    = (): never => { throw new Error('[V3] Use evolution-proxy via supabase.functions.invoke'); };

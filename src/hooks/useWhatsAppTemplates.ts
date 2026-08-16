@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { toast } from 'sonner';
 import { getLogger } from '@/lib/logger';
+import { evolutionTemplatesGet } from '@/lib/adapters/evolutionOps';
 
 const log = getLogger('useWhatsAppTemplates');
 
@@ -194,7 +195,7 @@ export function useWhatsAppTemplates() {
   const syncFromEvolution = useCallback(async (): Promise<number> => {
     setIsSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('evolution-templates', { method: 'GET' });
+      const { data, error } = await evolutionTemplatesGet();
       if (error) throw error;
       const result = data as {
         success?: boolean;

@@ -37,6 +37,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import {
+import { evolutionProxyLegacy } from '@/lib/adapters/evolutionOps';
   useZappConversations,
   useZappMessages,
   ZAPPWEB_INSTANCE,
@@ -53,9 +54,7 @@ async function evoProxyCall(
   path: string,
   body?: Record<string, unknown>
 ) {
-  const { error } = await supabase.functions.invoke('evolution-proxy', {
-    body: { method, path, ...(body ? { body } : {}) },
-  });
+  const { error } = await evolutionProxyLegacy({ method, path, ...(body ? { body } : {}) });
   if (error) throw error;
 }
 

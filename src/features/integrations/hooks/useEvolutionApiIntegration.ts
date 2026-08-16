@@ -18,6 +18,7 @@ import { listInstances } from '@/lib/whatsappAdapter';
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { evolutionCredentials } from '@/lib/adapters/evolutionOps';
 
 /** Evolution Instance Credential interface definition. */
 export interface EvolutionInstanceCredential {
@@ -207,15 +208,12 @@ export function useEvolutionApiIntegration() {
 
     try {
       // Escrita via edge function (service_role) — a física está em evo; a view zapp não aceita api_key.
-      const { data, error } = await supabase.functions.invoke('evolution-credentials', {
-        method: 'POST',
-        body: {
+      const { data, error } = await evolutionCredentials({
           action: 'save',
           instance_name: formData.instance_name,
           api_url: normalizedUrl,
           api_key: formData.api_key,
           is_active: true,
-        },
       });
       if (error) throw error;
       if (!data?.ok) throw new Error(data?.error ?? 'Falha ao salvar');
@@ -241,10 +239,7 @@ export function useEvolutionApiIntegration() {
       return;
 
     try {
-      const { data, error } = await supabase.functions.invoke('evolution-credentials', {
-        method: 'POST',
-        body: { action: 'delete', id },
-      });
+      const { data, error } = await evolutionCredentials({ action: 'delete', id });
       if (error) throw error;
       if (!data?.ok) throw new Error(data?.error ?? 'Falha ao excluir');
       toast.success('Credenciais excluídas');

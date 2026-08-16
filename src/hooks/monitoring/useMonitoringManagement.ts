@@ -20,6 +20,7 @@ import { periodMs, periodBuckets } from '@/components/monitoring/hooks/types';
 import { dbFrom } from '@/integrations/datasource/db';
 import { getLogger } from '@/lib/logger';
 import { isUuidLike } from '@/lib/evolutionInstance';
+import { evolutionWebhookTest } from '@/lib/adapters/evolutionOps';
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -324,9 +325,7 @@ export function useMonitoringActionsManagement(
     const testId = `MONITOR_TEST_${Date.now()}`;
     const start = performance.now();
     try {
-      const { error: invokeErr } = await supabase.functions.invoke('evolution-webhook', {
-        method: 'POST',
-        body: {
+      const { error: invokeErr } = await evolutionWebhookTest({
           event: 'messages.upsert',
           instance: instanceId,
           data: {
@@ -335,7 +334,6 @@ export function useMonitoringActionsManagement(
             messageTimestamp: Math.floor(Date.now() / 1000),
             message: { conversation: `[TESTE MONITOR] ${new Date().toLocaleString('pt-BR')}` },
           },
-        },
       });
       const latency = Math.round(performance.now() - start);
       if (invokeErr) throw invokeErr;
