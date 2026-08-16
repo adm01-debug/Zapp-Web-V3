@@ -73,8 +73,13 @@ dos nodes + scan explicito dos 38 nomes dropados na sessao (33 E50 + 5 Lote 4).
 - Tokens qualificados: **1 unico** — workflow ativo "Worker - classifica conversa"
   (4PXSguIhzBIQ1REo) lia `evo.lid_phone_map` em SQL raw. Corrigido: GRANT SELECT
   na view para service_role + ACL provada com `SET ROLE` no SQL exato do node +
-  replace para `public.evo_lid_phone_map` (sub-workflow com executeWorkflowTrigger,
-  recarrega do banco a cada execucao — sem restart).
+  replace para `public.evo_lid_phone_map`.
+  CORRECAO (16/08): o replace inicial atualizou so o draft (workflow_entity.nodes);
+  neste n8n 2.25 a execucao usa a versao ativa (workflow_history via activeVersionId
+  b388aca1), que seguia com evo.lid_phone_map. Aplicado o mesmo replace na linha da
+  versao ativa em workflow_history; draft e versao ativa verificados consistentes
+  (zero refs evo.* qualificadas em 264 workflows). Sub-workflow sem trigger proprio,
+  le do banco a cada execucao — sem restart.
 - Nomes dropados: **0 matches** em qualquer workflow.
 - `/rpc/` do ZAPP: rpc_claim/complete/fail_media_download (existem em public/evo/zapp),
   fn_bootstrap_wpp2_instance, fn_media_queue_health_check, fn_reset_stuck_media_queue
