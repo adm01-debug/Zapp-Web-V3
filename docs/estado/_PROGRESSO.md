@@ -611,3 +611,72 @@ declarar dormente). Detalhe em #1001 e docs/estado/11.
 docs/estado/_ORFAOS-1C-consolidado.md: dos ~189, so 7 acionaveis (4 VERIFICAR + 3
 NAO_REMOVER); resto e encapsulamento SEGURO. Classificacao completa dos ~122 ORFAO-only
 pendente como job delegado (nao rodado junto com 1D p/ nao sobrecarregar).
+
+---
+
+## ONDA DE 12 AGENTES — 2026-08-16 (sessão nova, branch `claude/validar-levantamento-sistema-uxonxc`)
+
+> A trilha estava parada desde 2026-08-09 no bloco 1D (batch 8H nunca entregue).
+> Retomada com base derivada da `main` corrente — os 34 documentos foram importados de
+> `docs/estado-inventario` por `git checkout -- docs/estado`, operação **aditiva**: a
+> branch de origem permanece intacta no remoto.
+
+### Cobertura ANTES (medida, não auto-relatada)
+
+Cruzamento dos nomes de arquivo citados nos docs contra a árvore real do repo:
+pages/features/components/shared/hooks 99–100% · integrations 81% · adapters 50% ·
+services 7% · lib 5% · utils 0% · types 11% · **backend e infra: zero**.
+
+### Cobertura DEPOIS
+
+**`src/` = 100%** (2.042 arquivos nos 11 diretórios do plano + 32 residuais fora deles).
+Backend: 107 edge functions, 524 objetos de banco, 184 arquivos de infra/CI.
+
+### Saídas produzidas
+
+| Agente | Escopo | Saída |
+|---|---|---|
+| E1 | batch 8H — adapters + integrations/__tests__ | `31-adapters-e-integrations-tests.md` |
+| E2 | `src/services` | `32-services.md` |
+| E3 | `src/lib` raiz | `33-lib-raiz.md` |
+| E4 | `src/lib` subdirs + `utils` + `types` | `34-lib-subdirs-utils-types.md` |
+| E5 | `src/lib/__tests__` | `35-lib-tests.md` |
+| E6 | 107 edge functions (Fase 2A) | `36-backend-edge-functions.md` |
+| E7 | banco + **runtime ao vivo** (Fases 2B/2C/4A) | `37-backend-db-runtime.md` |
+| E8 | workflows + scripts + infra (Fase 3) | `38-infra-ci-scripts.md` |
+| E9 | errata de topologia | `_ERRATA-TOPOLOGIA.md` |
+| E10 | reconciliação dos 4 inventários (Fase 5) | `_RECONCILIACAO-INVENTARIOS.md` |
+| E11 | residual: 21 `__tests__` aninhados | `39-residual-tests.md` |
+| E12 | e2e, harness de teste, `src/data` | `40-e2e-harness-data.md` |
+
+**Fase 8 consolidada em `estado_atualizado.md` (raiz).**
+
+### Checklist atualizado
+
+- [x] 1C, 1D (incluindo 8H), **1E** — Fase 1 COMPLETA
+- [x] 2A, 2B, 2C — Fase 2 COMPLETA
+- [x] 3A, 3B, 3C — Fase 3 COMPLETA
+- [x] 4A (Supabase self-hosted) — **verificado ao vivo, read-only**
+- [ ] 4B Swarm/Portainer · 4C N8N · 4D Evolution · 4E Cloudflare/Vercel — PENDENTES
+- [x] Fase 5 — reconciliação
+- [ ] Fase 6 (grafo) · Fase 7 (veredito) — dependem destas saídas, próxima onda
+- [x] Fase 8 — `estado_atualizado.md`
+- [ ] Fase 9 — enforcement
+
+### LIÇÕES DE MÉTODO (custaram caro, não repetir)
+
+1. **O orquestrador errou o briefing.** Afirmei que as tabelas físicas estavam em `zapp`;
+   estão em `evo` desde 2026-08-16 11:50Z (ADR-I4). Li o commit do move no log e interpretei
+   ao contrário. O briefing errado foi para os 12 agentes. O agente de errata (E9) **recusou a
+   premissa**, provou pelo repo e descartou 24 de 30 "correções" como falsos positivos.
+   Aplicar meu briefing teria inserido ~25 erros e apontado subscriptions para views.
+   → **Antes de qualquer briefing de topologia, medir `relkind` ao vivo. A topologia mudou 3x
+   em 7 dias.**
+2. **Três achados críticos vieram superdimensionados** (E1, E8, E10) e só caíram na verificação
+   independente do orquestrador. Auto-relato de agente não é evidência.
+3. **A ferramenta `Task` não existe dentro de subagentes.** Todo o método anti-thrash da trilha
+   anterior (delegar em sublotes) é inaplicável a partir de um subagente. Os agentes
+   contornaram lendo em lotes controlados — funcionou, mas o fatiamento precisa assumir isso.
+4. **Recontagem por basename contra a árvore real é o único teste de cobertura que vale.**
+   Foi ela que expôs a lacuna original, a falha de costura do meu próprio fatiamento
+   (`__tests__` aninhados entre dois escopos) e os 32 arquivos fora dos 11 diretórios.
