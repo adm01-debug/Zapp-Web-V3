@@ -112,3 +112,33 @@ Contagens iniciais da 1ª passada (heurística): ver seção Fase 1 do triagem.c
 - **Validação Claude Code**: CLI local deslogado; container claude-code com limite de sessões estourado até 17:40 BRT (outra campanha). Plano B aplicado (skill): validação por evidência objetiva (E85 automatizado + asserts + MCP real). Nova tentativa de `claude -p` programada para após o reset.
 
 ---
+
+## Fase 8.5 — Simulação de Cenários (exigência do gate)
+
+10 simuladores read-only (deleg_ce43d3c9), ANTES de qualquer escrita destrutiva:
+
+| Sim | Escopo | Veredito |
+|---|---|---|
+| s1 | Drift da main desde baseline | ✅ LIBERADO (0 commits; revalidar antes do push) |
+| s2 | EXCLUI de código (importadores vivos?) | ✅ LIBERADO (barrel e normalizer sem importadores reais) |
+| s3 | Links de entrada dos ARQUIVA | ✅ LIBERADO (100% relativos; plano de reescrita mecânico) |
+| s4 | Colisão com outros agentes | ✅ LIBERADO |
+| s5 | Destinos MIGRA no evostack | ❌ BLOQUEADO → mitigado: 3 runbooks já existem em runbooks/ (mais novos) → zapp ARQUIVA em vez de copiar |
+| s6 | .hermes consumidos? | ✅ LIBERADO (zero consumidores reais) |
+| s7 | CI que rodará nos PRs | ✅ LIBERADO (normalizer+ensaio-fake no MESMO commit; allowlist no mesmo commit) |
+| s8 | Stacks residuais usados por deploy? | ✅ LIBERADO |
+| s9 | Integridade do changeset | ✅ LIBERADO (1278 linhas, sem migrations em classe destrutiva) |
+| s10 | Secrets/PII nos MIGRA | ✅ LIBERADO (sem secrets reais) |
+
+---
+
+## Fase 9 — Execução (E91–E96)
+
+- **E91** ✅ PR-2 (MIGRA): 6 docs copiados para evolution-stack com header de fonte histórica → **PR evolution-stack#11** (mergeable). 3 runbooks NÃO copiados (decisão s5: canônicos mais novos já em runbooks/).
+- **E92** ✅ CI evostack: sem gates bloqueantes nos PRs 11/12 (docs/labels-only).
+- **E93** ✅ PR-1 (zapp): commit 1 = 84 docs → `docs/_archive/` + reescrita de 26 links + exclusão de 9 ts-nocheck duplicados (diff -q=0 vs `_archive/cutover-reports/`); commit 2 = 19 EXCLUI + ensaio-fake.test.ts + allowlist (188→184 linhas) + BOUNDARY atualizado (client morto → evolutionAdapter).
+- **E94** ⏳ validação local: `bunx tsc --noEmit` **EXIT 0** ✅; `bun run build` rodando.
+- **E95** ✅ PR-3: labels OCI `image.source` corrigidos nos 2 Dockerfiles → **PR evolution-stack#12**.
+- **E96** ⏳ merges (evostack primeiro, zapp depois).
+
+---
