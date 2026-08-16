@@ -75,7 +75,7 @@ SELECT score, grade FROM ops.v_health_latest ORDER BY 1 DESC LIMIT 1;
 - **Envelope v1:** webhooks antigos chegam no envelope v1 da Evolution (payload diferente do canônico). Normalizer precisa rejeitar/mapear explicitamente; envelope desconhecido deve ir para `zapp.evolution_webhook_dlq`/log, nunca quebrar o ingest.
 - **Idempotência do `ingest_ledger`:** durante o overlap dual, a mesma mensagem pode entrar 2×. O ledger precisa deduplicar por message id canônico; se a chave for diferente entre providers, duplicatas entram no inbox.
 - **`search_path`:** as fns SQL (P4) dependem do `search_path` correto (`zapp`, `ops`). `CREATE OR REPLACE` com search_path errado quebra resolução de tabelas em runtime — conferir `SHOW search_path` por role antes e depois.
-- **Vault com secrets duplicados:** `evolution_api_key` × `evolution_api_key_v2` e `evolution_webhook_secret` × `webhook_secret_evolution` existem (resíduo 4 do V3). Resolver cloud idem: um par canônico, sem duplicata.
+- **Vault com secrets duplicados:** `evolution_api_key` × `evolution_api_key_v2` e `evolution_webhook_secret` × `webhook_secret_evolution` **foram eliminados em 2026-08-15** (dedup F6 — os duplicados `_v2`/`evolution_webhook_secret` deletados; canônicos `evolution_api_key` e `webhook_secret_evolution` preservados; vault 46 → 44).
 
 ## 6. O que NÃO está coberto (limites honestos)
 

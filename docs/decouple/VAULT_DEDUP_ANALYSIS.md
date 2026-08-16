@@ -1,6 +1,7 @@
 # VAULT DEDUP ANALYSIS (F6) — Consumidores dos secrets duplicados
 
 > **Onda:** Fase 3 · **Artefato:** F6-ANALISE · **Data:** 2026-08-15 · **Modo:** SOMENTE ANÁLISE (grep read-only no repo; **nenhuma execução em banco** — DROP/INSERT/UPDATE proibidos nesta onda, ver `.hermes/fase3/worker-rules.md`).
+> **STATUS: EXECUTADO 2026-08-15** pelo maestro — veredito desta análise confirmado (0 consumidores de `_v2`/`evolution_webhook_secret` em código/banco) e os 2 secrets duplicados foram DELETADOS (vault 46 → 44). Registro: `ops.schema_changelog` session `hermes-f6-dedup`. Canônicos preservados: `evolution_api_key`, `webhook_secret_evolution`. (Validação pós-dedup: W-B1/W-B5/V2 — sem órfãos.)
 > **Objetivo:** provar, com evidência fresca de repo, quais dos 4 secrets duplicados do vault têm consumidores reais, e entregar ao maestro o plano de execução do dedup aprovado no SCORECARD_V4 (§7, etapas 63–70 do PLANO_DESACOPLOPAMENTO_V4_FINAL).
 > **Pares:** PAR 1 `evolution_api_key` × `evolution_api_key_v2` · PAR 2 `evolution_webhook_secret` × `webhook_secret_evolution` (fonte: `VAULT_SECRETS_V4.md`, snapshot `.hermes/fase3/dados-reais.json` → `secrets_duplicados`).
 
