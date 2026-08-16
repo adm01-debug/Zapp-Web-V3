@@ -29068,14 +29068,6 @@ END $$;
 
 
 
-CREATE OR REPLACE FUNCTION zapp.zapp_mark_status_viewed(p_message_id text, p_instance text DEFAULT 'wpp2'::text) RETURNS boolean
-    LANGUAGE sql SECURITY DEFINER
-    SET search_path TO 'zapp', 'evo', 'public'
-    AS $$ SELECT evo.fn_mark_status_viewed(p_message_id, p_instance); $$;
-
-
-
-
 CREATE OR REPLACE FUNCTION zapp.zapp_notif_config_get(p_channel text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'zapp', 'public', 'extensions'
@@ -35278,7 +35270,7 @@ CREATE TABLE IF NOT EXISTS zapp.evolution_retry_metrics (
 
 COMMENT ON TABLE zapp.evolution_retry_metrics IS 'Métricas de requisições com retry para a Evolution API e edge functions. Gerado pelo consumer.py e N8N.
 CARDINALIDADE: ~3.321 linhas | 560 kB.
-PROPÓSITO: diagnosticar endpoints instáveis que requerem múltiplas tentativas. Subsídio para alertas de degradação.
+PROPÓSITO: diagnosticar endpoints inst��veis que requerem múltiplas tentativas. Subsídio para alertas de degradação.
 CAMPOS CHAVE: action (endpoint chamado), attempt_count (tentativas), final_status (success/failed), total_duration_ms.
 ANÁLISE: SELECT action, avg(attempt_count), avg(total_duration_ms), count(*) FROM evo.evolution_retry_metrics GROUP BY 1 ORDER BY 2 DESC.';
 
