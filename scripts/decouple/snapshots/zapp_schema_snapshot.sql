@@ -11123,7 +11123,71 @@ END; $$;
 CREATE OR REPLACE FUNCTION zapp.fn_outbound_dispatch(p_batch_size integer DEFAULT 10) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'zapp', 'public', 'pg_catalog'
-    AS $_$ DECLARE v_api_url text; v_api_key text; v_row record; v_conn record; v_endpoint text; v_body jsonb; v_req_id bigint; v_sent int := 0; v_skipped int := 0; v_failed int := 0; v_number text; v_local text; BEGIN v_api_url := ops.fn_evo_url(); v_api_key := ops.fn_evo_key(); IF v_api_url IS NULL OR v_api_key IS NULL THEN RAISE EXCEPTION '[fn_outbound_dispatch] vault secrets faltando'; END IF; FOR v_row IN SELECT q.* FROM zapp.outbound_message_queue q WHERE q.status = 'pending' AND coalesce(q.retry_count, 0) < coalesce(q.max_retries, 3) ORDER BY q.created_at ASC LIMIT p_batch_size FOR UPDATE SKIP LOCKED LOOP SELECT status INTO v_conn FROM zapp.whatsapp_connections WHERE instance_name = v_row.instance_name LIMIT 1; IF v_conn IS NULL OR v_conn.status <> 'connected' THEN v_skipped := v_skipped + 1; CONTINUE; END IF; BEGIN v_local := split_part(v_row.remote_jid, '@', 1); IF length(v_local) >= 14 AND v_local ~ '^[0-9]{14,}$' THEN BEGIN v_number := split_part(zapp.fn_normalize_send_jid(v_row.remote_jid, v_row.instance_name),'@',1); EXCEPTION WHEN OTHERS THEN UPDATE zapp.outbound_message_queue SET status='failed', error_message='LID-as-phone sem mapeamento PN real: '||v_row.remote_jid||'. Aguarda Evolution >=2.4.x. [LID-FIX-01]', failed_at=now(), updated_at=now() WHERE id=v_row.id; v_failed := v_failed+1; CONTINUE; END; ELSE v_number := v_local; END IF; IF (v_row.message_type='text' OR v_row.message_type IS NULL) AND v_row.content IS NULL THEN RAISE EXCEPTION 'content nulo para mensagem de texto (id=%)', v_row.id; END IF; IF v_row.message_type NOT IN ('text') AND v_row.message_type IS NOT NULL AND v_row.media_url IS NULL THEN RAISE EXCEPTION 'media_url nulo para tipo % (id=%)', v_row.message_type, v_row.id; END IF; IF v_row.message_type='text' OR v_row.message_type IS NULL THEN v_endpoint := v_api_url||'/message/sendText/'||v_row.instance_name; v_body := jsonb_build_object('number',v_number,'text',v_row.content); ELSIF v_row.message_type='audio' THEN v_endpoint := v_api_url||'/message/sendMedia/'||v_row.instance_name; v_body := jsonb_build_object('number',v_number,'mediatype','audio','mimetype',coalesce(v_row.media_mime_type,'audio/ogg; codecs=opus'),'media',v_row.media_url,'ptt',coalesce(v_row.ptt,true)); ELSE v_endpoint := v_api_url||'/message/sendMedia/'||v_row.instance_name; v_body := jsonb_build_object('number',v_number,'mediatype',v_row.message_type,'mimetype',coalesce(v_row.media_mime_type,'application/octet-stream'),'media',v_row.media_url,'caption',v_row.caption,'fileName',coalesce((v_row.metadata->>'fileName')::text,'file')); END IF; v_req_id := net.http_post(url:=v_endpoint, body:=v_body, headers:=jsonb_build_object('apikey',v_api_key,'Content-Type','application/json'), params:='{}', timeout_milliseconds:=10000); UPDATE zapp.outbound_message_queue SET status='sending', external_id=v_req_id::text, sent_at=now(), updated_at=now() WHERE id=v_row.id; v_sent := v_sent+1; EXCEPTION WHEN OTHERS THEN UPDATE zapp.outbound_message_queue SET retry_count=coalesce(retry_count,0)+1, error_message=left(SQLERRM,500), failed_at=CASE WHEN coalesce(retry_count,0)+1>coalesce(max_retries,3) THEN now() ELSE NULL END, status=CASE WHEN coalesce(retry_count,0)+1>coalesce(max_retries,3) THEN 'failed' ELSE 'pending' END, updated_at=now() WHERE id=v_row.id; v_failed := v_failed+1; END; END LOOP; RETURN jsonb_build_object('dispatched_at',now(),'sent',v_sent,'skipped',v_skipped,'failed',v_failed,'provider','evolution'); END; $_$;
+    AS $_$
+DECLARE v_api_url text; v_api_key text; v_row record; v_conn record; v_endpoint text;
+        v_body jsonb; v_req_id bigint; v_sent int := 0; v_skipped int := 0; v_failed int := 0;
+        v_number text; v_local text;
+BEGIN
+  v_api_url := ops.fn_evo_url(); v_api_key := ops.fn_evo_key();
+  IF v_api_url IS NULL OR v_api_key IS NULL THEN
+    RAISE EXCEPTION '[fn_outbound_dispatch] vault secrets faltando';
+  END IF;
+  FOR v_row IN SELECT q.* FROM zapp.outbound_message_queue q
+    WHERE q.status = 'pending' AND coalesce(q.retry_count,0) < coalesce(q.max_retries,3)
+    ORDER BY q.created_at ASC LIMIT p_batch_size FOR UPDATE SKIP LOCKED
+  LOOP
+    SELECT status INTO v_conn FROM zapp.whatsapp_connections
+    WHERE instance_name = v_row.instance_name LIMIT 1;
+    IF v_conn IS NULL OR v_conn.status <> 'connected' THEN v_skipped := v_skipped + 1; CONTINUE; END IF;
+    BEGIN
+      v_local := split_part(v_row.remote_jid, '@', 1);
+      IF length(v_local) >= 14 AND v_local ~ '^[0-9]{14,}$' THEN
+        BEGIN
+          v_number := split_part(zapp.fn_normalize_send_jid(v_row.remote_jid, v_row.instance_name),'@',1);
+        EXCEPTION WHEN OTHERS THEN
+          UPDATE zapp.outbound_message_queue SET status='failed',
+            error_message='LID-as-phone sem mapeamento PN real: '||v_row.remote_jid||'. Aguarda Evolution >=2.4.x. [LID-FIX-01]',
+            failed_at=now(), updated_at=now() WHERE id=v_row.id;
+          v_failed := v_failed+1; CONTINUE;
+        END;
+      ELSE v_number := v_local; END IF;
+      IF (v_row.message_type='text' OR v_row.message_type IS NULL) AND v_row.content IS NULL THEN
+        RAISE EXCEPTION 'content nulo para mensagem de texto (id=%)', v_row.id; END IF;
+      IF v_row.message_type NOT IN ('text') AND v_row.message_type IS NOT NULL AND v_row.media_url IS NULL THEN
+        RAISE EXCEPTION 'media_url nulo para tipo % (id=%)', v_row.message_type, v_row.id; END IF;
+      IF v_row.message_type='text' OR v_row.message_type IS NULL THEN
+        v_endpoint := v_api_url||'/message/sendText/'||v_row.instance_name;
+        v_body := jsonb_build_object('number',v_number,'text',v_row.content);
+      ELSIF v_row.message_type='audio' THEN
+        v_endpoint := v_api_url||'/message/sendMedia/'||v_row.instance_name;
+        v_body := jsonb_build_object('number',v_number,'mediatype','audio','mimetype',coalesce(v_row.media_mime_type,'audio/ogg; codecs=opus'),'media',v_row.media_url,'ptt',coalesce(v_row.ptt,true));
+      ELSE
+        v_endpoint := v_api_url||'/message/sendMedia/'||v_row.instance_name;
+        v_body := jsonb_build_object('number',v_number,'mediatype',v_row.message_type,'mimetype',coalesce(v_row.media_mime_type,'application/octet-stream'),'media',v_row.media_url,'caption',v_row.caption,'fileName',coalesce((v_row.metadata->>'fileName')::text,'file'));
+      END IF;
+      v_req_id := net.http_post(url:=v_endpoint, body:=v_body,
+        headers:=jsonb_build_object('apikey',v_api_key,'Content-Type','application/json'),
+        params:='{}', timeout_milliseconds:=10000);
+      -- E86: egress log ADITIVO (falha de log NUNCA altera o dispatch)
+      BEGIN
+        PERFORM ops.log_pgnet_call(p_caller := 'fn_outbound_dispatch', p_url := v_endpoint,
+          p_method := 'POST', p_via_gateway := false, p_note := 'queue_id='||v_row.id::text);
+      EXCEPTION WHEN OTHERS THEN NULL; END;
+      UPDATE zapp.outbound_message_queue SET status='sending', external_id=v_req_id::text,
+        sent_at=now(), updated_at=now() WHERE id=v_row.id;
+      v_sent := v_sent+1;
+    EXCEPTION WHEN OTHERS THEN
+      UPDATE zapp.outbound_message_queue SET retry_count=coalesce(retry_count,0)+1,
+        error_message=left(SQLERRM,500),
+        failed_at=CASE WHEN coalesce(retry_count,0)+1>coalesce(max_retries,3) THEN now() ELSE NULL END,
+        status=CASE WHEN coalesce(retry_count,0)+1>coalesce(max_retries,3) THEN 'failed' ELSE 'pending' END,
+        updated_at=now() WHERE id=v_row.id;
+      v_failed := v_failed+1;
+    END;
+  END LOOP;
+  RETURN jsonb_build_object('dispatched_at',now(),'sent',v_sent,'skipped',v_skipped,'failed',v_failed,'provider','evolution');
+END;
+$_$;
 
 
 
@@ -12439,6 +12503,12 @@ CREATE OR REPLACE FUNCTION zapp.fn_reconcile_dispatch() RETURNS bigint
 DECLARE v_req_id bigint;
 BEGIN
   v_req_id := ops.fn_provider_call('GET', '/instance/fetchInstances', NULL, 8000);
+  -- E86: egress log ADITIVO (falha de log NUNCA altera o reconcile)
+  BEGIN
+    PERFORM ops.log_pgnet_call(p_caller := 'fn_reconcile_dispatch',
+      p_url := ops.fn_evo_url()||'/instance/fetchInstances',
+      p_method := 'GET', p_via_gateway := true, p_note := 'via gateway E85');
+  EXCEPTION WHEN OTHERS THEN NULL; END;
   PERFORM evo.rpc_boundary_reconcile_enqueue(v_req_id);
   RETURN v_req_id;
 EXCEPTION WHEN OTHERS THEN
@@ -12804,6 +12874,37 @@ BEGIN
     GET DIAGNOSTICS v_count = ROW_COUNT;
     RETURN v_count;
 END;
+$$;
+
+
+
+
+CREATE OR REPLACE FUNCTION zapp.fn_resolve_contact_id_by_jid(p_jid text) RETURNS uuid
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'zapp', 'pg_catalog', 'pg_temp'
+    AS $$
+  SELECT c.id
+    FROM zapp.evolution_contacts c
+   WHERE c.deleted_at IS NULL
+     AND (
+           -- 1. Match exato por remote_jid (índice unique)
+           lower(c.remote_jid) = lower(p_jid)
+        -- 2. Match EXATO por phone_number (índice) — p_jid "55...@s.whatsapp.net" ou "55..."
+        OR c.phone_number = split_part(p_jid, '@', 1)
+        -- 3. Fallback: phone com formatação arbitrária (guard LID-as-phone 14+ dígitos)
+        OR ( regexp_replace(lower(split_part(p_jid,'@',1)),'[^0-9]','','g') <> '' AND regexp_replace(lower(c.phone_number), '[^0-9]', '', 'g')
+               = regexp_replace(lower(split_part(p_jid, '@', 1)), '[^0-9]', '', 'g')
+           AND length(regexp_replace(c.phone_number, '[^0-9]', '', 'g')) <= 13
+           )
+     )
+   ORDER BY
+     CASE
+       WHEN lower(c.remote_jid) = lower(p_jid) THEN 1
+       WHEN c.phone_number = split_part(p_jid, '@', 1) THEN 2
+       ELSE 3
+     END,
+     c.updated_at DESC NULLS LAST
+   LIMIT 1
 $$;
 
 
@@ -19855,6 +19956,16 @@ BEGIN
   );
 END
 $_$;
+
+
+
+
+CREATE OR REPLACE FUNCTION zapp.rpc_boundary_insert_consumer_stats(p_row jsonb) RETURNS void
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO 'zapp', 'public', 'evo', 'pg_catalog'
+    AS $$
+  SELECT evo.rpc_boundary_insert_consumer_stats(p_row);
+$$;
 
 
 
@@ -28982,29 +29093,95 @@ END; $$;
 
 
 CREATE OR REPLACE FUNCTION zapp.zapp_touch_contact_presence(p_remote_jid text, p_presence text, p_instance text DEFAULT 'wpp2'::text) RETURNS boolean
-    LANGUAGE sql SECURITY DEFINER
-    SET search_path TO 'zapp', 'evo', 'public'
-    AS $$ SELECT evo.fn_touch_contact_presence(p_remote_jid, p_presence, p_instance); $$;
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'zapp', 'pg_catalog', 'pg_temp'
+    AS $$
+DECLARE v_updated int; v_phone text;
+BEGIN
+  IF p_remote_jid IS NULL OR btrim(p_remote_jid) = '' THEN RETURN false; END IF;
+  v_phone := evo.rpc_boundary_resolve_lid_phone(p_remote_jid);
+  UPDATE zapp.evolution_contacts
+  SET presence_status = COALESCE(NULLIF(btrim(p_presence), ''), presence_status),
+      last_presence_at = now(),
+      last_seen_at = CASE WHEN lower(COALESCE(btrim(p_presence), '')) IN ('available','online') THEN now() ELSE last_seen_at END,
+      updated_at = now()
+  WHERE instance_name = p_instance AND deleted_at IS NULL
+    AND (remote_jid = btrim(p_remote_jid) OR (v_phone IS NOT NULL AND v_phone <> '' AND phone_number = v_phone))
+    AND (presence_status IS DISTINCT FROM COALESCE(NULLIF(btrim(p_presence), ''), presence_status)
+         OR last_presence_at IS NULL OR last_presence_at < now() - interval '60 seconds');
+  GET DIAGNOSTICS v_updated = ROW_COUNT;
+  RETURN v_updated > 0;
+END;
+$$;
 
 
 
 
 CREATE OR REPLACE FUNCTION zapp.zapp_upsert_group_from_event(p_connection_id uuid, p_group_id text, p_name text DEFAULT NULL::text, p_desc text DEFAULT NULL::text, p_participants text[] DEFAULT NULL::text[], p_instance text DEFAULT 'wpp2'::text, p_phones text[] DEFAULT NULL::text[]) RETURNS uuid
-    LANGUAGE sql SECURITY DEFINER
-    SET search_path TO 'zapp', 'evo', 'public'
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'zapp', 'pg_catalog', 'pg_temp'
     AS $$
-    SELECT evo.fn_upsert_group_from_event(p_connection_id, p_group_id, p_name, p_desc, p_participants, p_instance, p_phones);
-$$;
+DECLARE v_group_uuid uuid;
+BEGIN
+  IF p_group_id IS NULL OR btrim(p_group_id) = '' THEN RETURN NULL; END IF;
+  INSERT INTO zapp.evolution_groups AS eg
+    (whatsapp_connection_id, group_id, name, description, participant_count, avatar_url, instance_name, updated_at)
+  VALUES
+    (p_connection_id, p_group_id, COALESCE(NULLIF(btrim(p_name),''), p_group_id),
+     NULLIF(btrim(COALESCE(p_desc,'')), ''), 0, NULL, COALESCE(NULLIF(btrim(p_instance),''), 'wpp2'), now())
+  ON CONFLICT (whatsapp_connection_id, group_id) DO UPDATE
+    SET name=COALESCE(NULLIF(btrim(EXCLUDED.name),''), eg.name),
+        description=COALESCE(EXCLUDED.description, eg.description),
+        instance_name=COALESCE(EXCLUDED.instance_name, eg.instance_name),
+        updated_at=now()
+  RETURNING id INTO v_group_uuid;
+  IF p_participants IS NOT NULL AND cardinality(p_participants) > 0 THEN
+    PERFORM zapp.zapp_upsert_group_participants(v_group_uuid, p_participants, 'add', p_instance, p_phones);
+  ELSE
+    UPDATE zapp.evolution_groups
+      SET participant_count=(SELECT count(*) FROM zapp.evolution_group_participants WHERE group_id=v_group_uuid AND is_active),
+          updated_at=now()
+    WHERE id=v_group_uuid;
+  END IF;
+  RETURN v_group_uuid;
+END; $$;
 
 
 
 
 CREATE OR REPLACE FUNCTION zapp.zapp_upsert_group_participants(p_group_id uuid, p_participants text[], p_action text DEFAULT 'add'::text, p_instance text DEFAULT 'wpp2'::text, p_phones text[] DEFAULT NULL::text[]) RETURNS integer
-    LANGUAGE sql SECURITY DEFINER
-    SET search_path TO 'zapp', 'evo', 'public'
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'zapp', 'pg_catalog', 'pg_temp'
     AS $$
-    SELECT evo.fn_upsert_group_participants(p_group_id, p_participants, p_action, p_instance, p_phones);
-$$;
+DECLARE v_count integer := 0;
+BEGIN
+  IF p_group_id IS NULL OR p_participants IS NULL OR cardinality(p_participants) = 0 THEN RETURN 0; END IF;
+  IF p_action = 'add' THEN
+    INSERT INTO zapp.evolution_group_participants
+      (group_id, participant_jid, contact_id, phone_jid, role, joined_at, left_at, is_active)
+    SELECT p_group_id, t.jid,
+           COALESCE(zapp.fn_resolve_contact_id_by_jid(t.jid), CASE WHEN t.phone <> '' THEN zapp.fn_resolve_contact_id_by_jid(t.phone) END),
+           NULLIF(t.phone, ''), 'member', now(), NULL, true
+    FROM (SELECT p_participants[i] AS jid, COALESCE(p_phones[i], '') AS phone FROM generate_subscripts(p_participants, 1) AS i) t
+    WHERE btrim(t.jid) <> ''
+    ON CONFLICT (group_id, participant_jid) DO UPDATE
+      SET is_active=true, left_at=NULL,
+          phone_jid=COALESCE(EXCLUDED.phone_jid, zapp.evolution_group_participants.phone_jid),
+          contact_id=COALESCE(zapp.evolution_group_participants.contact_id, EXCLUDED.contact_id);
+    GET DIAGNOSTICS v_count = ROW_COUNT;
+  ELSIF p_action = 'remove' THEN
+    UPDATE zapp.evolution_group_participants SET left_at=now(), is_active=false WHERE group_id=p_group_id AND participant_jid=ANY(p_participants) AND is_active;
+    GET DIAGNOSTICS v_count = ROW_COUNT;
+  ELSIF p_action = 'promote' THEN
+    UPDATE zapp.evolution_group_participants SET role='admin' WHERE group_id=p_group_id AND participant_jid=ANY(p_participants);
+    GET DIAGNOSTICS v_count = ROW_COUNT;
+  ELSIF p_action = 'demote' THEN
+    UPDATE zapp.evolution_group_participants SET role='member' WHERE group_id=p_group_id AND participant_jid=ANY(p_participants);
+    GET DIAGNOSTICS v_count = ROW_COUNT;
+  END IF;
+  UPDATE zapp.evolution_groups SET participant_count=(SELECT count(*) FROM zapp.evolution_group_participants WHERE group_id=p_group_id AND is_active), updated_at=now() WHERE id=p_group_id;
+  RETURN v_count;
+END; $$;
 
 
 
