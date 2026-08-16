@@ -177,11 +177,20 @@ chamado:
 Nenhum teste foi executado (sem `node_modules` no ambiente) — **análise estática apenas**.
 O padrão dominante não é falta de teste, é **teste que não protege**:
 
-- **Teste-espelho** (7+ casos): reimplementa a lógica localmente em vez de importar o SUT, fica
-  verde testando a si mesmo. `webhookStatusPriority.test.ts` chegou a **divergir da produção em
-  2 casos** — a produção mudou deliberadamente e o teste congelou o comportamento antigo.
-  `rlsGroupAccess` "valida RLS" testando quatro `if`s escritos no próprio arquivo: um
-  `DROP POLICY` não o quebraria.
+- **Teste-espelho** (9 casos, todos verificados por validação adversarial): reimplementa a lógica
+  localmente em vez de importar o SUT, fica verde testando a si mesmo. `webhookStatusPriority.test.ts`
+  **diverge da produção em 3 casos** (`delivered→failed`, `read→failed`, `read→played`) — a produção
+  mudou deliberadamente e o teste congelou o comportamento antigo. `rlsGroupAccess` "valida RLS"
+  testando quatro `if`s escritos no próprio arquivo: um `DROP POLICY` não o quebraria.
+
+  > **⚠️ Correção de 2026-08-16 (validação):** a versão original afirmava 2 casos divergentes e
+  > tratava o achado como 🔴 crítico, sugerindo que a regra de negócio estaria desprotegida. **São
+  > 3 casos, e a regra NÃO está desprotegida.** Existe
+  > `supabase/functions/_shared/__tests__/evolution-helpers-wiring.test.ts` (802 linhas) que
+  > **importa o `shouldUpdateStatus` real** e cobre exatamente as três regras divergentes
+  > (`:225`, `:226`, `:254`), com os valores corretos de produção — e é coletado pelo workflow
+  > (`find supabase/functions -name '*.test.ts'`). O espelho é **lixo obsoleto, não buraco de
+  > cobertura**: a ação certa é apagá-lo, não "fazer ele importar o SUT". Rebaixado 🔴 → 🟡.
 - **Suítes desligadas**: `externalProxy.test.ts` (601 linhas) comentada em bloco sob premissa de
   remoção que nunca ocorreu — o módulo tem **5 importadores vivos**, incluindo a inbox. ~31% de
   `evoApiHealth/proxy.test.ts` em `describe.skip` cobrindo justamente a autenticação do gateway.
