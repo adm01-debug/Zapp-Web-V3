@@ -1,0 +1,59 @@
+name: evo-ddl-gate
+# Gate E42: bloqueia DDL NOVO em schema `evo` via migrations deste repo.
+# O schema evo e fronteira (infra no repo evolution-stack); DDL evo novo
+# exige revisao explicita. Excecoes documentadas em
+# scripts/decouple/evo-ddl-allowlist.txt (regularizacao DR do desacoplamento).
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'scripts/decouple/evo-ddl-gate.mjs'
+      - '.github/workflows/evo-ddl-gate.yml'
+
+jobs:
+  evo-ddl-gate:
+    name: "E42 — DDL novo em schema evo bloqueado"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Compute changed migrations (menos allowlist)
+        id: changed
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          changed=$(git diff --name-only "$base"...HEAD -- 'supabase/migrations/*.sql' 2>/dev/null || true)
+          if [ -z "$changed" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "No migration files changed."
+            exit 0
+          fi
+          # remove excecoes (compara por basename, ignora comentarios/vazias)
+          filtered=$(echo "$changed" | while read -r f; do
+            b=$(basename "$f")
+            grep -qxF "$b" <(grep -v '^#' scripts/decouple/evo-ddl-allowlist.txt | grep -v '^$') || echo "$f"
+          done)
+          if [ -z "$filtered" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Only allowlisted (decouple-regularization) migrations changed."
+            exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          {
+            echo "files<<CHANGED_EOF"
+            echo "$filtered"
+            echo "CHANGED_EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "Candidates:"; echo "$filtered"
+
+      - name: Run gate E42
+        if: steps.changed.outputs.skip != 'true'
+        env:
+          CHANGED_FILES: ${{ steps.changed.outputs.files }}
+        run: node scripts/decouple/evo-ddl-gate.mjs --allowlist auto

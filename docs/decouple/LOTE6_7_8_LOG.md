@@ -91,3 +91,27 @@ retention_webhook_partitions (DDL de particao evo — fica), ensure_backcompat_v
 repontar_filhas_graveyard, scrub_r2_paths + legitimas de contrato (provision_partitions,
 complete_media_download, passive_lid_accumulator, increment_snapshot_version) +
 pr_link_msgs_to_conversations (candidata a drop).
+
+## Adendo — leitoras reversas (migration DB `20260815250021`)
+
+7 fns de dominio evo que **liam zapp direto** repontadas para 5 views reversas novas
+`public.zapp_*` (security_invoker=on, **sem grants** — o invocador efetivo em todos os
+caminhos e postgres: 4 fns SECURITY DEFINER owner postgres + 3 nao-secdef chamadas por
+cron agendado como postgres): `zapp_evolution_media`, `zapp_evolution_messages`,
+`zapp_evolution_messages_wpp2`, `zapp_whatsapp_connections`, `zapp_instance_credentials`
+(esta com colunas minimas `id, instance_name, is_active` — nao expoe api keys).
+
+Fns repontadas (ficam em evo; so o corpo muda): `fn_purge_storage_cache`,
+`fn_reconcile_media_fk_orphans`, `fn_enqueue_orphan_media`, `fn_watchdog_media_links`,
+`fn_detect_instance_recreate` (trigger), `fn_sync_messages_to_v2`, `fn_e2e_media_probe` —
+esta com o INSERT+dedup manual de alerta convertido para
+`zapp.rpc_boundary_raise_alert(..., interval '6 hours')` (semantica de dedup identica).
+Guard anti-residuo: functiondef pos-swap nao pode conter `\mzapp\.` fora de
+`zapp.rpc_boundary_*`.
+
+Smokes reais: reconcile OK, watchdog OK, `fn_e2e_media_probe() -> resultado=PASS`,
+sync executou sem excecao. **Placar: I1 25 -> 18** (I2=0, demais estaveis).
+
+Gate E42 plugado no CI: `.github/workflows/evo-ddl-gate.yml` (novo) + excecoes de
+regularizacao DR em `scripts/decouple/evo-ddl-allowlist.txt`. Testado local:
+candidato com DDL evo -> exit 1; allowlisted -> filtrado; estado atual -> exit 0.
