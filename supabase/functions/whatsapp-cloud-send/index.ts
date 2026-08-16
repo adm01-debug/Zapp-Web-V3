@@ -1,9 +1,16 @@
-// WhatsApp Cloud API sender — text, media, template, sticker, reaction, location, contacts, read
+// WhatsApp Cloud API sender — text, media, template, sticker, reaction, location, contacts, interactive, read
 // Auth: requires JWT (validated below). Body schema validated with Zod via contract gate.
+// Envelope: E83 parity — sucesso e erro de envio usam o MESMO shape do caminho
+// Evolution (`version` + `key.{id,remoteJid,fromMe}` / `{error:true,status,message,details}`),
+// e envios outbound persistem no mesmo ledger (`evolution_send_idempotency`) e na
+// mesma fila (DLQ `failed_messages`) que o proxy Evolution.
 import { createZappClient } from '../_shared/db-client.ts';
 import { getCorsHeaders, checkRateLimit } from "../_shared/validation.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import { EVOLUTION_ENVELOPE_VERSION } from "../_shared/evolution-api-proxy.ts";
+import { enqueueFailedMessage } from "../_shared/enqueue-failed-message.ts";
+import { isValidIdemKey, lookupSendCache, storeSendCache } from "../_shared/send-idempotency.ts";
 
 const corsHeaders = getCorsHeaders();
 
@@ -16,6 +23,33 @@ function jsonResponse(data: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+/** Envelope de erro no shape do proxy Evolution (HTTP 200 + `{error:true,...}`) — E83 parity. */
+function sendErrorEnvelope(code: string, message: string, status: number, details?: unknown) {
+  return jsonResponse({
+    version: EVOLUTION_ENVELOPE_VERSION,
+    contract: "whatsapp-cloud-send@v1",
+    error: true,
+    status,
+    code,
+    message,
+    ...(details !== undefined ? { details } : {}),
+  });
+}
+
+/** Caminho DLQ equivalente por tipo (mesmo vocabulário `/message/*` do proxy Evolution). */
+function dlqPathForType(type: string): string {
+  switch (type) {
+    case "text": return "/message/sendText";
+    case "sticker": return "/message/sendSticker";
+    case "reaction": return "/message/sendReaction";
+    case "location": return "/message/sendLocation";
+    case "contacts": return "/message/sendContact";
+    case "template": return "/message/sendTemplate";
+    case "interactive": return "/message/sendButtons";
+    default: return "/message/sendMedia";
+  }
 }
 
 async function callGraph(path: string, payload: Record<string, unknown>) {
@@ -186,6 +220,24 @@ Deno.serve(async (req) => {
       }
       payload.contacts = p.contacts;
       break;
+    case "interactive":
+      if (!p.interactive || typeof p.interactive !== "object") {
+        return sendErrorEnvelope("interactive_required", "interactive é obrigatório para type=interactive.", 400);
+      }
+      payload.interactive = p.interactive;
+      break;
+  }
+
+  // Ledger de idempotência (mesma tabela `evolution_send_idempotency` do caminho
+  // Evolution): replay de retries com a mesma chave sem duplicar no WhatsApp.
+  const idemKey = typeof p.idemKey === "string" ? p.idemKey : undefined;
+  const ledgerEnabled = idemKey !== undefined && isValidIdemKey(idemKey);
+  if (ledgerEnabled) {
+    const cached = await lookupSendCache(idemKey!);
+    if (cached) {
+      console.log(`[whatsapp-cloud-send] idempotency HIT for ${idemKey}`);
+      return jsonResponse(cached.response);
+    }
   }
 
   try {
@@ -197,7 +249,23 @@ Deno.serve(async (req) => {
         r.status,
         dataStr
       );
-      return jsonResponse({ error: "graph_error" }, 502);
+      // Mesma fila do caminho Evolution (DLQ `failed_messages`), fire-and-forget.
+      enqueueFailedMessage({
+        instance_name: PHONE_NUMBER_ID || "cloud",
+        remote_jid: typeof p.to === "string" ? p.to : null,
+        path: dlqPathForType(p.type),
+        method: "POST",
+        payload: p,
+        http_status: r.status,
+        error_code: "graph_error",
+        error_message: `Graph API ${r.status}: ${dataStr}`.slice(0, 500),
+      });
+      return sendErrorEnvelope(
+        "graph_error",
+        `A Meta Graph API recusou o envio (HTTP ${r.status}).`,
+        r.status >= 400 && r.status <= 599 ? r.status : 502,
+        r.data
+      );
     }
 
     const data = r.data as Record<string, unknown>;
@@ -212,9 +280,50 @@ Deno.serve(async (req) => {
       }
     }
 
-    return jsonResponse({ ok: true, messageId: waMsgId });
+    // Envelope no shape do caminho Evolution: `{ version, key: { id, remoteJid, fromMe }, status }`.
+    const envelope = {
+      version: EVOLUTION_ENVELOPE_VERSION,
+      key: {
+        remoteJid: p.to,
+        fromMe: true,
+        id: waMsgId,
+      },
+      status: "PENDING",
+      messageTimestamp: Math.floor(Date.now() / 1000),
+      // Aditivo (back-compat com consumidores antigos do shape `{ messageId }`).
+      messageId: waMsgId,
+    };
+
+    if (ledgerEnabled) {
+      await storeSendCache({
+        idem_key: idemKey!,
+        instance_name: PHONE_NUMBER_ID || "cloud",
+        path: dlqPathForType(p.type),
+        response: envelope,
+        http_status: 200,
+        external_message_id: waMsgId,
+      });
+    }
+
+    return jsonResponse(envelope);
   } catch (e) {
     console.error("[whatsapp-cloud-send] fetch error", e instanceof Error ? e.message : String(e));
-    return jsonResponse({ error: "fetch_error" }, 502);
+    // Timeout/network → mesmo enqueue transitório do proxy Evolution (DLQ).
+    enqueueFailedMessage({
+      instance_name: PHONE_NUMBER_ID || "cloud",
+      remote_jid: typeof p.to === "string" ? p.to : null,
+      path: dlqPathForType(p.type),
+      method: "POST",
+      payload: p,
+      http_status: null,
+      error_code: "network_error",
+      error_message: (e instanceof Error ? e.message : String(e)).slice(0, 500),
+    });
+    return sendErrorEnvelope(
+      "fetch_error",
+      "Falha de rede ao contatar a Meta Graph API.",
+      504,
+      { error: e instanceof Error ? e.message : String(e) }
+    );
   }
 });

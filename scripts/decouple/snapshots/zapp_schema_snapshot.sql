@@ -29068,14 +29068,6 @@ END $$;
 
 
 
-CREATE OR REPLACE FUNCTION zapp.zapp_mark_status_viewed(p_message_id text, p_instance text DEFAULT 'wpp2'::text) RETURNS boolean
-    LANGUAGE sql SECURITY DEFINER
-    SET search_path TO 'zapp', 'evo', 'public'
-    AS $$ SELECT evo.fn_mark_status_viewed(p_message_id, p_instance); $$;
-
-
-
-
 CREATE OR REPLACE FUNCTION zapp.zapp_notif_config_get(p_channel text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'zapp', 'public', 'extensions'

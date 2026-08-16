@@ -88,14 +88,61 @@ function isGroupJid(remoteJid: string): boolean {
   return remoteJid.endsWith('@g.us');
 }
 
+/**
+ * Chave de idempotência estável para envios Cloud (mesmo ledger
+ * `evolution_send_idempotency` do caminho Evolution). FNV-1a determinístico
+ * (espelha o fallback de src/lib/sendIdempotency.ts) sobre to+type+conteúdo +
+ * bucket de 1min — retries do mesmo envio no bucket rejogam a resposta salva;
+ * reenvios intencionais (bucket diferente) geram chave nova.
+ */
+function buildCloudIdemKey(body: Record<string, unknown>): string | undefined {
+  const to = typeof body.to === 'string' ? body.to : '';
+  const type = typeof body.type === 'string' ? body.type : '';
+  if (!to || !type || type === 'read') return undefined;
+  const bucket = Math.floor(Date.now() / 60_000);
+  const content = JSON.stringify({
+    to,
+    type,
+    text: typeof body.text === 'string' ? body.text : '',
+    mediaUrl: typeof body.mediaUrl === 'string' ? body.mediaUrl : '',
+    messageId: typeof body.messageId === 'string' ? body.messageId : '',
+    interactive: body.interactive ?? null,
+    template: body.template ?? null,
+  });
+  const s = `${to}|${type}|${bucket}|${content}`;
+  let h1 = 0x811c9dc5 >>> 0;
+  let h2 = 0xdeadbeef >>> 0;
+  for (let i = 0; i < s.length; i += 1) {
+    h1 ^= s.charCodeAt(i);
+    h1 = Math.imul(h1, 0x01000193) >>> 0;
+    h2 ^= s.charCodeAt(i) >>> 1;
+    h2 = Math.imul(h2, 0x01000193) >>> 0;
+  }
+  return `cloud:${h1.toString(16).padStart(8, '0')}${h2.toString(16).padStart(8, '0')}`;
+}
+
 /** Calls the `whatsapp-cloud-send` edge function with `body` and throws on HTTP or API-level errors. */
 async function invokeCloud(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('whatsapp-cloud-send', { body });
+  const idemKey = buildCloudIdemKey(body);
+  const { data, error } = await supabase.functions.invoke('whatsapp-cloud-send', {
+    body: idemKey ? { ...body, idemKey } : body,
+  });
   if (error) throw error;
   if (data && typeof data === 'object' && 'error' in data) {
-    throw new Error(
-      ((data as Record<string, unknown>).error as string | undefined) ?? 'cloud_send_failed'
-    ); // ignore-audit: narrows Supabase query result to local interface
+    // E83: envelope de erro no shape Evolution → throw com mensagem amigável e
+    // `status` preservado (parseEvolutionError lê ambos do objeto de erro).
+    const env = data as Record<string, unknown>;
+    const message =
+      typeof env.message === 'string' && env.message
+        ? env.message
+        : typeof env.error === 'string'
+          ? env.error
+          : 'cloud_send_failed';
+    const err = new Error(message);
+    if (typeof env.status === 'number') {
+      (err as Error & { status?: number }).status = env.status; // ignore-audit: parseEvolutionError lê status do objeto de erro
+    }
+    throw err;
   }
   return data;
 }
@@ -264,14 +311,14 @@ export async function sendContact(params: SendContactParams) {
 export async function sendInteractive(params: SendInteractiveParams) {
   const { transport } = await resolveTransport();
   if (transport === 'cloud') {
-    // A edge function whatsapp-cloud-send ainda nao aceita `interactive` no
-    // enum de `type` (zod rejeita com 400) — a chamada abaixo falha de forma
-    // explicita, sem falso sucesso, ate o schema Cloud ganhar suporte.
+    // E83: `cta_url` exige URL, que não existe no contrato público — cai em
+    // botões (payload Meta válido) em vez de montar action inválida.
+    const interactiveType = params.type === 'list' ? 'list' : 'button';
     return invokeCloud({
       to: toPhone(params.remoteJid),
       type: 'interactive',
       interactive: {
-        type: params.type === 'list' ? 'list' : params.type === 'cta_url' ? 'cta_url' : 'button',
+        type: interactiveType,
         header:
           params.header?.type === 'text' && params.header.text
             ? { type: 'text', text: params.header.text }

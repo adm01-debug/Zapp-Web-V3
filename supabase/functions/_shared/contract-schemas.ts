@@ -545,7 +545,7 @@ export const SicoobBridgeReplyV2Schema = SicoobBridgeReplyV1Schema.extend({
    to: z.string().min(5),
    type: z.enum([
      "text", "image", "video", "audio", "document", "sticker", "template",
-     "reaction", "location", "contacts", "read",
+     "reaction", "location", "contacts", "read", "interactive",
    ]),
    text: z.string().optional(),
    mediaUrl: z.string().url().optional(),
@@ -564,6 +564,14 @@ export const SicoobBridgeReplyV2Schema = SicoobBridgeReplyV1Schema.extend({
    address: z.string().optional(),
    contacts: z.array(z.any()).optional(),
    messageIds: z.array(z.string()).optional(),
+   interactive: z.object({
+     type: z.enum(["button", "list", "cta_url"]),
+     header: z.object({ type: z.string(), text: z.string().optional() }).passthrough().optional(),
+     body: z.object({ text: z.string() }).passthrough().optional(),
+     footer: z.object({ text: z.string() }).passthrough().optional(),
+     action: z.record(z.unknown()).optional(),
+   }).passthrough().optional(),
+   idemKey: z.string().min(8).max(200).optional(),
  }).passthrough();
 
  /**
