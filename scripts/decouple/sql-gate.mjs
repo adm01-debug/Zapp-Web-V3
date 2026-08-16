@@ -64,17 +64,17 @@ const SCOPE_SCHEMAS = new Set(['evo', 'zapp', 'ops', 'public']);
  * Estrutura: { name: "schema.objeto", kind: "view|table|function", desc: "..." }
  */
 /**
- * PLANNED_OBJECTS — objetos referenciados pelo plano de desacoplamento que
- * NÃO EXISTEM em produção (verificado ao vivo em 2026-08-16 via pg_class/pg_proc).
- * Mantidos aqui como backlog auditável, em modo WARN (não bloqueiam o gate):
- *  - 2 views de contrato nunca criadas (lacuna I5: evolution_sessions, evolution_chats)
- *  - 8 objetos de observabilidade ops.* nunca criados (E86 não executada)
- * Ao criar um destes objetos em produção, mova a entrada de volta para o
- * PROD_OBJECTS_REGISTRY e atualize o fixture + EXPECTED_COUNT.
+ * PLANNED_OBJECTS — objetos de observabilidade do plano (E86) que NÃO EXISTEM
+ * em produção (verificado ao vivo 2026-08-16 via pg_class/pg_proc). Backlog
+ * auditável em modo WARN (não bloqueia). Ao criar um deles, mover a entrada de
+ * volta para PROD_OBJECTS_REGISTRY e atualizar fixture + EXPECTED_COUNT.
+ *
+ * NOTA (2026-08-16): zapp.evolution_sessions e zapp.evolution_chats foram
+ * REMOVIDAS do catálogo em vez de criadas — não existe objeto-fonte em evo
+ * (sessões Baileys residem no Redis; chats já é coberto por
+ * zapp.evolution_conversations). Eram entradas vazias do catálogo original.
  */
 const PLANNED_OBJECTS = [
-  { name: 'zapp.evolution_sessions',         kind: 'view',     desc: 'View sessões' },
-  { name: 'zapp.evolution_chats',            kind: 'view',     desc: 'View chats' },
   { name: 'ops.pgnet_egress_log',            kind: 'table',    desc: 'Log de chamadas pg_net fora do gateway (E8)' },
   { name: 'ops.i4_violation_baseline',       kind: 'table',    desc: 'Baseline das violações I4 (T0 = 14 violadores)' },
   { name: 'ops.log_pgnet_call',              kind: 'function', desc: 'Registra chamada pg_net manualmente' },
