@@ -1,7 +1,7 @@
 # AVATAR-MIGRATION-PLAN — Lovable Cloud → Self-Hosted (AtomicaBR)
 
 > **GAP-V05** · Status: **PLANEJADO — NÃO EXECUTADO** · Data: 2026-08-03
-> Alvo: `docs/playbooks/AVATAR-MIGRATION-PLAN.md` · Relacionados: [`supabase/migrations/20260803170100_storage_migration_plan.sql`](../../supabase/migrations/20260803170100_storage_migration_plan.sql), [`docs/simulation/2026-08-03_storage_migration_500_simulation.json`](../simulation/2026-08-03_storage_migration_500_simulation.json)
+> Alvo: `docs/playbooks/AVATAR-MIGRATION-PLAN.md` · Relacionados: [`supabase/migrations/20260803170100_storage_migration_plan.sql`](../../supabase/migrations/20260803170100_storage_migration_plan.sql), [`docs/_archive/simulation/2026-08-03_storage_migration_500_simulation.json`](../simulation/2026-08-03_storage_migration_500_simulation.json)
 > ⚠️ **Este documento é um PLANO. Nada aqui deve ser executado sem aprovação explícita.**
 
 ---
@@ -378,4 +378,4 @@ WHERE ec.id = bk.id;
 - **Urgência:** a fonte (Lovable) está online agora (HTTP 200). A migração elimina a dependência de um projeto de terceiros que pode ser desligado sem aviso — o CSP band-aid é frágil por design.
 - **Nada de signed URLs:** bucket público + URLs diretas = swap de host simples no UPDATE.
 - **A VIEW `zapp.contacts` não precisa de mudança** — ela lê `profile_picture_url` da tabela base.
-- Simulação completa de 41 cenários (500 falhas sintéticas) em `docs/simulation/2026-08-03_storage_migration_500_simulation.json` — consultar antes de executar.
+- Simulação completa de 41 cenários (500 falhas sintéticas) em `docs/_archive/simulation/2026-08-03_storage_migration_500_simulation.json` — consultar antes de executar.

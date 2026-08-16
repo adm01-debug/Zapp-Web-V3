@@ -1,7 +1,7 @@
 # PLANO-ESTADO.md
 
 > Plano de execução para produzir `ESTADO.md` — o inventário exaustivo do sistema `zapp-web-v3`.
-> **Este arquivo é o plano. O rastreador de progresso vive em `docs/estado/_PROGRESSO.md`.**
+> **Este arquivo é o plano. O rastreador de progresso vive em `docs/_archive/estado/`.**
 > Criado: 2026-08-08 · Repo: `adm01-debug/zapp-web-v3` · Branch: `main`
 
 ---
@@ -41,7 +41,7 @@ Componente que existe no código mas não está deployado é **código morto**. 
 ### Fase 0 — Preparação *(concluída)*
 - Commit deste plano e do rastreador.
 - Criar `docs/estado/` como área de trabalho para saídas parciais.
-- **Saída:** `PLANO-ESTADO.md`, `docs/estado/_PROGRESSO.md`
+- **Saída:** `PLANO-ESTADO.md`, `docs/_archive/estado/`
 
 ### Fase 1 — Inventário estático: frontend
 Executor: Claude Code, por blocos.

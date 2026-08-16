@@ -260,14 +260,14 @@ docs/cutover/realtime_readiness.md;ARQUIVA;Verdict de readiness realtime 2026-06
 docs/cutover/repo-edge-functions.txt;"ARQUIVA;REVISAR";Lista de edge functions do repo — artefato de inventário da migração concluída. [R2: consumidor encontrado: docs/cutover/GAP_REPORT.md];docs/cutover/GAP_REPORT.md;docs/_archive/cutover-reports/;E83
 docs/cutover/selfhosted-zapp-rpcs.txt;"ARQUIVA;REVISAR";Lista de RPCs self-hosted zapp — artefato de inventário da migração concluída. [R2: consumidor encontrado: docs/cutover/GAP_REPORT.md];docs/cutover/GAP_REPORT.md;docs/_archive/cutover-reports/;E83
 docs/cutover/selfhosted-zapp-tables.txt;"ARQUIVA;REVISAR";Lista de tabelas self-hosted zapp — artefato de inventário da migração concluída. [R2: consumidor encontrado: docs/cutover/GAP_REPORT.md];docs/cutover/GAP_REPORT.md;docs/_archive/cutover-reports/;E83
-docs/cutover/ts-nocheck-batch-2026-07-15T13-39-30-705Z.md;ARQUIVA;Onda ts-nocheck 2026-07-15 (removidos c/ 0 erros) — log de execução one-shot concluída, cópia já existe em docs/_archive/cutover-reports/.;docs/cutover/2026-07-15_ts-nocheck-wave1.md, duplicata já arquivada em docs/_archive/cutover-reports/;docs/_archive/cutover-reports/;E83
-docs/cutover/ts-nocheck-batch-2026-07-15T13-39-46-339Z.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/cutover/ts-nocheck-batch-2026-07-15T13-40-03-725Z.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/cutover/ts-nocheck-batch-2026-07-15T13-40-18-958Z.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/cutover/ts-nocheck-batch-2026-07-15T13-40-40-092Z.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/cutover/ts-nocheck-batch-2026-07-15T13-41-31-506Z.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/cutover/ts-nocheck-batch-2026-07-15T20-01-22-112Z.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/cutover/ts-nocheck-batch-2026-07-15T20-32-27-612Z.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/cutover/ts-nocheck-batch-2026-07-15T13-39-30-705Z.md;EXCLUI;duplicata identica de docs/_archive/cutover-reports/ (diff -q = 0);docs/cutover/2026-07-15_ts-nocheck-wave1.md, duplicata já arquivada em docs/_archive/cutover-reports/;;E93
+docs/cutover/ts-nocheck-batch-2026-07-15T13-39-46-339Z.md;EXCLUI;duplicata identica de docs/_archive/cutover-reports/ (diff -q = 0);;;E93
+docs/cutover/ts-nocheck-batch-2026-07-15T13-40-03-725Z.md;EXCLUI;duplicata identica de docs/_archive/cutover-reports/ (diff -q = 0);;;E93
+docs/cutover/ts-nocheck-batch-2026-07-15T13-40-18-958Z.md;EXCLUI;duplicata identica de docs/_archive/cutover-reports/ (diff -q = 0);;;E93
+docs/cutover/ts-nocheck-batch-2026-07-15T13-40-40-092Z.md;EXCLUI;duplicata identica de docs/_archive/cutover-reports/ (diff -q = 0);;;E93
+docs/cutover/ts-nocheck-batch-2026-07-15T13-41-31-506Z.md;EXCLUI;duplicata identica de docs/_archive/cutover-reports/ (diff -q = 0);;;E93
+docs/cutover/ts-nocheck-batch-2026-07-15T20-01-22-112Z.md;EXCLUI;duplicata identica de docs/_archive/cutover-reports/ (diff -q = 0);;;E93
+docs/cutover/ts-nocheck-batch-2026-07-15T20-32-27-612Z.md;EXCLUI;duplicata identica de docs/_archive/cutover-reports/ (diff -q = 0);;;E93
 docs/dados/lovable-policies-referencia-20260801.json;FICA;doc estrutural — revisao Fase 3;;;
 docs/db/AGENTS.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/db/ARCHITECTURE.md;FICA;doc estrutural — revisao Fase 3;;;
@@ -440,14 +440,14 @@ docs/estado/_HANDOFF.md;"ARQUIVA;REVISAR";Handoff de sessão 2026-08-09 ('retoma
 docs/estado/_PROGRESSO.md;"ARQUIVA;REVISAR";Rastreador do inventário estado_atualizado.md — onda de 10 agentes concluída (docs 01–40 publicados 2026-08-16), tracker superseded. [R2: consumidor encontrado: PLANO-ESTADO.md, docs/estado/_ERRATA-TOPOLOGIA.md, docs/estado/_HANDOFF.md, docs/simulation/2026-08-16_inventario_estado_10_agentes_failure;docs/estado/_ERRATA-TOPOLOGIA.md, docs/estado/_HANDOFF.md, docs/simulation/2026-08-16_inventario_estado_10_agentes_failure_simulation.md;docs/_archive/estado/;E83
 docs/estado/_RECONCILIACAO-INVENTARIOS.md;"ARQUIVA;REVISAR";Reconciliação Fase 5 dos inventários paralelos (auditoria com correções pendentes) — histórico de auditoria concluída. [R2: consumidor encontrado: docs/estado/_PROGRESSO.md, docs/simulation/2026-08-16_inventario_estado_10_agentes_failure_simulation.md, estado_atualizado.md];docs/estado/_PROGRESSO.md, docs/simulation/2026-08-16_inventario_estado_10_agentes_failure_simulation.md, docs/reconciliation/EXECUTIVE_SUMMARY.md;docs/_archive/estado/;E83
 docs/history/DEPLOYMENT_EXECUTION_STATUS.md;"ARQUIVA;REVISAR";Status de execução Round 15 Database Hardening (2026-07-12, CERTIFIED PRODUCTION READY) — relatório histórico concluído. [R2: consumidor encontrado: .gitignore, docs/history/ARCHIVE_INDEX.md];docs/history/ARCHIVE_INDEX.md;docs/_archive/history/;E83
-docs/history/FALHAS_E_GAPS.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/history/PRODUCTION_EXCELLENCE_IMPLEMENTATION.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/history/QA_REPORT_2026-06-14.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/history/QA_REPORT_2026-07-11.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/history/ROUND-15-COMPLETION-REPORT.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/history/ROUND-17-POST-DEPLOYMENT-VERIFICATION.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/history/RUNTIME-RLS-VALIDATION.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/history/SCHEMA-INTROSPECTION-PROTECTION.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/history/FALHAS_E_GAPS.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/history/FALHAS_E_GAPS.md;E83
+docs/history/PRODUCTION_EXCELLENCE_IMPLEMENTATION.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/history/PRODUCTION_EXCELLENCE_IMPLEMENTATION.md;E83
+docs/history/QA_REPORT_2026-06-14.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/history/QA_REPORT_2026-06-14.md;E83
+docs/history/QA_REPORT_2026-07-11.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/history/QA_REPORT_2026-07-11.md;E83
+docs/history/ROUND-15-COMPLETION-REPORT.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/history/ROUND-15-COMPLETION-REPORT.md;E83
+docs/history/ROUND-17-POST-DEPLOYMENT-VERIFICATION.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/history/ROUND-17-POST-DEPLOYMENT-VERIFICATION.md;E83
+docs/history/RUNTIME-RLS-VALIDATION.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/history/RUNTIME-RLS-VALIDATION.md;E83
+docs/history/SCHEMA-INTROSPECTION-PROTECTION.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/history/SCHEMA-INTROSPECTION-PROTECTION.md;E83
 docs/incident/2026-07-30-chatpanel-blank-fix.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/infra/2026-08-03_docker_secrets_migration.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/infra/evolution-stack.reconciled.DEPRECATED.yml;"EXCLUI;REVISAR";stacks devem morar no evolution-stack (E80 diffs) [R2: consumidor encontrado: docs/BOUNDARY-evolution.md, docs/INFRA.md, docs/decouple/PLANO_DESACOPLAMENTO_100_ETAPAS.md];;;
@@ -464,25 +464,25 @@ docs/ops/runbook.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/playbooks/AVATAR-MIGRATION-PLAN.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/playbooks/LOVABLE-SUPABASE-ACCESS.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/realtime-schema-guide.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/reconciliation/00_simulacao.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/reconciliation/01_runtime.json;FICA;doc estrutural — revisao Fase 3;;;
-docs/reconciliation/01_runtime.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/reconciliation/02_backend.json;FICA;doc estrutural — revisao Fase 3;;;
-docs/reconciliation/02_backend.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/reconciliation/04_artefatos.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/reconciliation/05_migracao.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/reconciliation/06_segredos.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/reconciliation/07_dados.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/reconciliation/08_saude.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/reconciliation/09_consolidacao.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/reconciliation/00_simulacao.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/00_simulacao.md;E83
+docs/reconciliation/01_runtime.json;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/01_runtime.json;E83
+docs/reconciliation/01_runtime.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/01_runtime.md;E83
+docs/reconciliation/02_backend.json;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/02_backend.json;E83
+docs/reconciliation/02_backend.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/02_backend.md;E83
+docs/reconciliation/04_artefatos.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/04_artefatos.md;E83
+docs/reconciliation/05_migracao.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/05_migracao.md;E83
+docs/reconciliation/06_segredos.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/06_segredos.md;E83
+docs/reconciliation/07_dados.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/07_dados.md;E83
+docs/reconciliation/08_saude.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/08_saude.md;E83
+docs/reconciliation/09_consolidacao.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/09_consolidacao.md;E83
 docs/reconciliation/11_execucao.md;ARQUIVA;Registro de execução das correções P0→P1 da auditoria 2026-08-04 — log de execução concluída.;— (sem links externos);docs/_archive/reconciliation/;E83
 docs/reconciliation/EXECUTIVE_SUMMARY.md;"ARQUIVA;REVISAR";Resumo executivo da auditoria de reconciliação 2026-08-04 (102 checagens) — histórico de auditoria concluída. [R2: consumidor encontrado: CLAUDE.md, docs/audit-2026-08-06/VALIDATION_PLAN_100_STEPS.md, docs/estado/_RECONCILIACAO-INVENTARIOS.md, docs/reconciliation/09_consolidacao.md, docs/reconciliat;docs/audit-2026-08-06/VALIDATION_PLAN_100_STEPS.md, docs/estado/_RECONCILIACAO-INVENTARIOS.md, docs/reconciliation/09_consolidacao.md, docs/reconciliation/RECONCILIATION_MATRIX.md;docs/_archive/reconciliation/;E83
 docs/reconciliation/RECONCILIATION_MATRIX.md;"ARQUIVA;REVISAR";Matriz de reconciliação 2026-08-04 (consolidação etapas 93–99) — histórico de auditoria concluída. [R2: consumidor encontrado: CLAUDE.md, docs/audit-2026-08-06/EXECUTIVE_SUMMARY.md, docs/audit-2026-08-06/VALIDATION_PLAN_100_STEPS.md, docs/reconciliation/09_consolidacao.md, docs/reconciliation/EXECUT;docs/audit-2026-08-06/EXECUTIVE_SUMMARY.md, docs/audit-2026-08-06/VALIDATION_PLAN_100_STEPS.md, docs/reconciliation/09_consolidacao.md, docs/reconciliation/EXECUTIVE_SUMMARY.md;docs/_archive/reconciliation/;E83
-docs/reconciliation/reconciliation.csv;FICA;doc estrutural — revisao Fase 3;;;
-docs/reconciliation/reconciliation.json;FICA;doc estrutural — revisao Fase 3;;;
-docs/runbook-evolution/DR_RUNBOOK_EVO.md;"MIGRA;REVISAR";Canônico do par E26: mais recente (último commit 12/08/2026 vs 06/08 do root), 4x maior, conteúdo corrigido e consolidado (sessão no Redis DB 8, checksums, PITR, RPO/RTO) e auto-declarado 'Este é o runbook da EVOLUTION', dono é o evolution-stack. [R2: consumidor encontrado: docs/EVOLUTION-CHANGELOG.;docs/decouple/AUDIT_EVO_REFS_20260816/baseline.json (artefato da auditoria, não-consumidor vivo), graphify-out/manifest.json (gerado);docs/DR_RUNBOOK_EVO.md;E26
-docs/runbook-evolution/c9-d8-decision.md;"MIGRA;REVISAR";operacao da infra Evolution (Fase 2/3 confirma) [R2: consumidor encontrado: docs/EVOLUTION-CHANGELOG.md, docs/SETTINGS.md];;;
-docs/runbook-evolution/evo-tables-kdw-inventory.md;"MIGRA;REVISAR";operacao da infra Evolution (Fase 2/3 confirma) [R2: consumidor encontrado: docs/EVOLUTION-CHANGELOG.md, docs/SETTINGS.md];;;
+docs/reconciliation/reconciliation.csv;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/reconciliation.csv;E83
+docs/reconciliation/reconciliation.json;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/reconciliation/reconciliation.json;E83
+docs/runbook-evolution/DR_RUNBOOK_EVO.md;"ARQUIVA;REVISAR";"canonico vivo em evolution-stack/runbooks/ (14/08, mais novo); zapp guarda historico";docs/decouple/AUDIT_EVO_REFS_20260816/baseline.json (artefato da auditoria, não-consumidor vivo), graphify-out/manifest.json (gerado);docs/_archive/runbook-evolution/DR_RUNBOOK_EVO.md;E26
+docs/runbook-evolution/c9-d8-decision.md;"ARQUIVA;REVISAR";"canonico vivo em evolution-stack/runbooks/ (14/08, mais novo); zapp guarda historico";;docs/_archive/runbook-evolution/c9-d8-decision.md;
+docs/runbook-evolution/evo-tables-kdw-inventory.md;"ARQUIVA;REVISAR";"canonico vivo em evolution-stack/runbooks/ (14/08, mais novo); zapp guarda historico";;docs/_archive/runbook-evolution/evo-tables-kdw-inventory.md;
 docs/runbooks/APPLY_ZAPP_EVOLUTION_BRIDGES.md;"ARQUIVA;REVISAR";historico de auditoria/incidente (Fase 2 confirma) [R2: consumidor encontrado: docs/decouple/DOC_UPDATE_ORCHESTRATION_20260814.md, docs/simulation/2026-08-03_deleted-scripts_50_failure_simulation.md];;;
 docs/runbooks/deploy.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/runbooks/evolution-restart-rabbitmq-bindings.md;"ARQUIVA;REVISAR";historico de auditoria/incidente (Fase 2 confirma) [R2: consumidor encontrado: docs/EVOLUTION-CHANGELOG.md, docs/SETTINGS.md];;;
@@ -492,14 +492,14 @@ docs/runbooks/session-report-2026-07-11-audit-10-10.md;FICA;doc estrutural — r
 docs/security/CREDENTIAL_ROTATION_RUNBOOK.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/security/SIMULATION-SECURITY-FAILURES-REPORT.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/security/hardening-audit-2026-08-15.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/simulation/2026-08-03_deleted-scripts_50_failure_simulation.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/simulation/2026-08-03_runtime_fixes_60_failure_simulation.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/simulation/2026-08-03_storage_migration_500_simulation.json;FICA;doc estrutural — revisao Fase 3;;;
-docs/simulation/2026-08-04_feature_inventory_100_etapas_failure_simulation.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/simulation/2026-08-03_deleted-scripts_50_failure_simulation.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/simulation/2026-08-03_deleted-scripts_50_failure_simulation.md;E83
+docs/simulation/2026-08-03_runtime_fixes_60_failure_simulation.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/simulation/2026-08-03_runtime_fixes_60_failure_simulation.md;E83
+docs/simulation/2026-08-03_storage_migration_500_simulation.json;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/simulation/2026-08-03_storage_migration_500_simulation.json;E83
+docs/simulation/2026-08-04_feature_inventory_100_etapas_failure_simulation.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/simulation/2026-08-04_feature_inventory_100_etapas_failure_simulation.md;E83
 docs/simulation/2026-08-16_inventario_estado_10_agentes_failure_simulation.md;"ARQUIVA;REVISAR";Pre-mortem da onda de 10 agentes do inventário docs/estado (2026-08-16) — simulação pré-onda, onda já executada e docs publicados. [R2: consumidor encontrado: estado_atualizado.md];— (sem links externos, referencia _HANDOFF/_PROGRESSO/_RECONCILIACAO);docs/_archive/simulation/;E83
-docs/simulation/20260803_db_migrations_500_failure_simulation.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/simulation/20260804_db_snapshot.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/simulation/20260804_integracao_schema_zapp_failure_simulation.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/simulation/20260803_db_migrations_500_failure_simulation.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/simulation/20260803_db_migrations_500_failure_simulation.md;E83
+docs/simulation/20260804_db_snapshot.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/simulation/20260804_db_snapshot.md;E83
+docs/simulation/20260804_integracao_schema_zapp_failure_simulation.md;"ARQUIVA;REVISAR";lote w20: concluido/superseded (triagem por titulo+header);;docs/_archive/simulation/20260804_integracao_schema_zapp_failure_simulation.md;E83
 docs/simulation/20260804_rollback_plan.md;"ARQUIVA;REVISAR";Rollback plan da integração schema zapp×front 2026-08-04, aplicável em até 48h pós-deploy — janela expirada. [R2: consumidor encontrado: supabase/migrations/20260804150001_integration_schema_zapp_fixes.sql];— (sem links externos);docs/_archive/simulation/;E83
 docs/supabase-schema-audit.html;FICA;doc estrutural — revisao Fase 3;;;
 docs/testing/e2e.md;FICA;doc estrutural — revisao Fase 3;;;
@@ -559,7 +559,6 @@ nginx-prod.conf;FICA;default conservador (R3);;;
 ops/LOG_POLICY.md;FICA;default conservador (R3);;;
 ops/snapshots/20260808/ONDA_0_ACOES.md;FICA;default conservador (R3);;;
 ops/snapshots/20260808/VERSION_INDEX.json;FICA;default conservador (R3);;;
-path;classe_sugerida;justificativa;consumidores;destino_path;etapa
 reports/CHATPANEL_QA_EXAUSTIVO_2026-07-30.md;FICA;default conservador (R3);;;
 scripts/.column-map-baseline.txt;FICA;script — revisao manual Fase 7;;;
 scripts/.sync-ignore;FICA;script — revisao manual Fase 7;;;

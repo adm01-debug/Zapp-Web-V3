@@ -1,6 +1,6 @@
 # COVERAGE_V4 — Cobertura real do desacoplamento de mensageria WhatsApp
 
-> **Gerado por** `scripts/decouple/coverage-report.mjs` — não editar manualmente.
+> **Gerado por** `scripts/decouple/_archive/coverage-report.mjs` — não editar manualmente.
 > **Data:** 2026-08-14 · **Commit:** 56de9f2c3 · **Branch:** docs/hermes-h713641-v4-onda3
 
 ## Veredito

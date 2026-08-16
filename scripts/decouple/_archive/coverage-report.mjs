@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// scripts/decouple/coverage-report.mjs — Cobertura REAL do desacoplamento (V4-FINAL #44-45)
+// scripts/decouple/_archive/coverage-report.mjs — Cobertura REAL do desacoplamento (V4-FINAL #44-45)
 //
 // Mede quantas operações de mensageria WhatsApp expostas pelo router da edge
 // function `evolution-api` têm contrato Zod na porta oficial do gateway
@@ -17,7 +17,7 @@
 //       API, auditada contra providers/evolution/client.ts (tabela
 //       ACTION_TO_VERB abaixo).
 //
-// Uso: node scripts/decouple/coverage-report.mjs
+// Uso: node scripts/decouple/_archive/coverage-report.mjs
 // Exit: 0 sempre (é relatório, não gate). Drift de contrato/fake imprime ⚠️
 //       no stdout e fica registrado no MD, sem quebrar a execução.
 // Zero dependências (Node ESM, stdlib apenas).
@@ -219,7 +219,7 @@ function main() {
 
   const md = `# COVERAGE_V4 — Cobertura real do desacoplamento de mensageria WhatsApp
 
-> **Gerado por** \`scripts/decouple/coverage-report.mjs\` — não editar manualmente.
+> **Gerado por** \`scripts/decouple/_archive/coverage-report.mjs\` — não editar manualmente.
 > **Data:** ${today} · **Commit:** ${commit || 'n/d'} · **Branch:** ${branch || 'n/d'}
 
 ## Veredito

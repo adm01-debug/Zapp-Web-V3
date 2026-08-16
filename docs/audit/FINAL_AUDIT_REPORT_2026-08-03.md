@@ -117,7 +117,7 @@ Ver seção 4 (Migration status) — GAP-01 a GAP-12. Destaques:
 | `20260803_deprecate_lovable_parity_functions.sql` (M1) | `20260803160000` | ✅ **APLICADA** (2026-08-03T15:44:16Z) | Corretamente **skipped** (idempotente) | Zero regressões; wrapper `check_schema_parity` OK; crons 106/111/172 succeeded DEPOIS do apply |
 | `20260803_fix_fator_x_db_references.sql` (M2) | — (não registrada) | ⏳ **Conteúdo já vivo em prod** (bodies idênticos normalizados; view com diff de string residual) | No-op idempotente | **SAFE TO APPLY** — aplicar apenas registra a versão; pendente de registro (GAP-03) |
 
-**Caracterização dos riscos (Worker 9, 520 cenários, seed 42):** blast radius mínimo — strings em 2 funções + 1 view; zero DDL de tabela, zero backfill, zero mudança de tipos. CRITICO: 0 · ALTO: 65 · MEDIO: 159 · BAIXO: 141 · INFO: 155 (cenários brutos). 57 cenários únicos determinísticos. Relatório completo: `docs/simulation/20260803_db_migrations_500_failure_simulation.md`.
+**Caracterização dos riscos (Worker 9, 520 cenários, seed 42):** blast radius mínimo — strings em 2 funções + 1 view; zero DDL de tabela, zero backfill, zero mudança de tipos. CRITICO: 0 · ALTO: 65 · MEDIO: 159 · BAIXO: 141 · INFO: 155 (cenários brutos). 57 cenários únicos determinísticos. Relatório completo: `docs/_archive/simulation/20260803_db_migrations_500_failure_simulation.md`.
 
 ---
 
@@ -185,7 +185,7 @@ Ver seção 4 (Migration status) — GAP-01 a GAP-12. Destaques:
 | 6 | Import graph integrity | ✅ completed 433s | ZERO broken imports; TSC_EXIT=0 |
 | 7 | Build produção | ✅ completed 724s | exit 0; 9,51 MB |
 | 8 | Sweep final (ZERO NEEDS_FIX) | ✅ completed 1107s | zero refs em código ativo |
-| 9 | 520 simulações de falha (DB) | ✅ completed 573s | `docs/simulation/20260803_db_migrations_500_failure_simulation.md` |
+| 9 | 520 simulações de falha (DB) | ✅ completed 573s | `docs/_archive/simulation/20260803_db_migrations_500_failure_simulation.md` |
 | 10 | Health check produção | ✅ completed 207s | sem issues das mudanças; alertas pré-existentes |
 | 11 | Docs consistency | ✅ completed 197s | consistentes com single-DB |
 | 12 | Security audit | ✅ completed 466s | sem regressões; 2 gaps baixos |

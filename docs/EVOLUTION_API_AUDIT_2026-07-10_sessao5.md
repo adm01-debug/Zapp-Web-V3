@@ -444,9 +444,9 @@ FROM _prisma_migrations WHERE finished_at IS NOT NULL;
 
 | Arquivo | Conteúdo |
 |---|---|
-| `docs/EVOLUTION_API_AUDIT_2026-07-03.md` | Sessão 1 — Análise inicial |
-| `docs/EVOLUTION_API_AUDIT_2026-07-04_sessao3.md` | Sessão 3 — Correções de segurança |
-| `docs/EVOLUTION_API_AUDIT_2026-07-04_sessao4.md` | Sessão 4 — Otimizações e logpatch |
+| `docs/_archive/EVOLUTION_API_AUDIT_2026-07-03.md` | Sessão 1 — Análise inicial |
+| `docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_sessao3.md` | Sessão 3 — Correções de segurança |
+| `docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_sessao4.md` | Sessão 4 — Otimizações e logpatch |
 | `docs/EVOLUTION_API_AUDIT_2026-07-10_sessao5.md` | **Este arquivo** — Validação exaustiva |
 | `docs/EVOLUTION_GAPS_ANALYSIS.md` | Análise de gaps acumulados |
 

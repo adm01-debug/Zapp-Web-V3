@@ -219,7 +219,7 @@ e nenhum runbook operacional o invoca. Citação em `docs/` de plano/retro **nã
 | `scripts/decouple/run-all-gates.mjs` | 77 | **AVALIAR.** Agregador que roda inventory+sql-gate+ownership; nenhum workflow o usa (os workflows chamam cada gate direto). Duplica orquestração. |
 | `scripts/decouple/schema-registry-validate.mjs` | 134 | **AVALIAR.** Só o próprio teste o referencia. |
 | `scripts/decouple/score-ratchet.mjs` | 342 | **AVALIAR.** Ratchet de score de desacoplamento; só citado em `docs/decouple/VALIDACAO_EXECUCAO_PLANO_20260815.md`. |
-| `scripts/decouple/coverage-report.mjs` | 276 | **AVALIAR.** Só citado em docs de plano V4. |
+| `scripts/decouple/_archive/coverage-report.mjs` | 276 | **AVALIAR.** Só citado em docs de plano V4. |
 
 ### 4.2 Órfãos de ferramenta pontual — risco BAIXO, remoção segura
 

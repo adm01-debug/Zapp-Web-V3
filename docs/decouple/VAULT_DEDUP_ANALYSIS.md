@@ -76,7 +76,7 @@ Varredura full-repo (excluindo docs/node_modules/.git) para os duplicados:
 | Edge — vault direto | **nenhum** | 0 hits `getSecret('evolution_webhook_secret')` |
 | Edge — env `EVOLUTION_WEBHOOK_SECRET(S)` | caminho real de runtime | `evolution-webhook/index.ts`, `recheck-webhook-signature/index.ts:78`, `webhook-hmac-selftest/index.ts:296-315`, `connection-test/index.ts:80`, `_shared/validation.ts:24` — **porém** a origem é o **swarm secret** `supabase_evolution_webhook_secret_v1` (`infra/supabase/docker-compose.supabase.yml:87,94,552`), **não o vault** |
 | infra/ (6 hits) | substring do swarm secret | `docker-compose.supabase.yml:87,94,552`; `POLITICA_ANTI_RESIDUOS.md:63,121`; `SECRETS_INVENTORY.md:18` — camada Swarm, não vault |
-| Evidência de valor idêntico | `docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md:39` | swarm secret `supabase_evolution_webhook_secret_v1` byte-a-byte idêntico ao header `x-webhook-secret` **e** às duas entradas do vault (`evolution_webhook_secret` e `webhook_secret_evolution`); caminho real de validação lê `Deno.env`, não vault → "candidatas a limpeza futura" |
+| Evidência de valor idêntico | `docs/_archive/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md:39` | swarm secret `supabase_evolution_webhook_secret_v1` byte-a-byte idêntico ao header `x-webhook-secret` **e** às duas entradas do vault (`evolution_webhook_secret` e `webhook_secret_evolution`); caminho real de validação lê `Deno.env`, não vault → "candidatas a limpeza futura" |
 
 ---
 
@@ -140,7 +140,7 @@ Varredura full-repo (excluindo docs/node_modules/.git) para os duplicados:
 
 ### Rollback
 - **Janela:** 48h após cada contract (C2/C3).
-- **Restaurar duplicado (idempotente, sem expor valor):** `SELECT vault.create_secret(<valor>, '<nome>', '<descrição>')` — os valores são **idênticos** ao canônico (evidência: `docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md:39`), portanto a recriação usa o valor do canônico ou, em último caso, rotação nova.
+- **Restaurar duplicado (idempotente, sem expor valor):** `SELECT vault.create_secret(<valor>, '<nome>', '<descrição>')` — os valores são **idênticos** ao canônico (evidência: `docs/_archive/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md:39`), portanto a recriação usa o valor do canônico ou, em último caso, rotação nova.
 - **Gatilhos de rollback:** health-score ZAPP < baseline, alertas 401/dispatcher com falha nova, edge health checks vermelhos, sql-gate com violação nova.
 - **Irreversibilidade:** nenhuma — DROP de secret no vault é recriável via `vault.create_secret`; nenhum dado de negócio é afetado (secrets nunca servidos).
 
@@ -159,4 +159,4 @@ Varredura full-repo (excluindo docs/node_modules/.git) para os duplicados:
 - `docs/decouple/PLANO_DESACOPLAMENTO_V4_FINAL_100_ETAPAS_20260814.md` (etapas 63–70)
 - `.hermes/fase3/dados-reais.json` (`secrets_duplicados` — snapshot do vault)
 - `supabase/migrations/20260815030000_decouple_e17_fn_evo_v2.sql` / `20260815200009_decouple_i4_evo_v2.sql` (resolvers v2)
-- `docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md:39` (paridade byte-a-byte do webhook secret)
+- `docs/_archive/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md:39` (paridade byte-a-byte do webhook secret)

@@ -99,3 +99,16 @@ Contagens iniciais da 1ª passada (heurística): ver seção Fase 1 do triagem.c
 - **E80–E83** ⏳: workers w18 (stacks), w19 (workflows/scripts), w20 (docs lote).
 
 ---
+
+## Fase 8 — Validação Cruzada e Gate (E85–E90)
+
+- **E84** ✅: CSV 100% preenchido — 1278/1278 linhas com classe final. Contagens: FICA 1191, FICA;REVISAR 12, ARQUIVA 13, ARQUIVA;REVISAR 34, EXCLUI 8, EXCLUI;REVISAR 11, MIGRA 2, MIGRA;REVISAR 7.
+- **E85** ✅: verificação R2 automatizada (`git grep -F` path+basename em zapp+evostack, com filtros de auto-referência da auditoria e de docs históricos). 11 reclassificados para `;REVISAR` com consumidores reais identificados (BOUNDARY-evolution.md, dead-code-allowlist, SETTINGS.md, ADR-011, etc.) — cada um com pré-requisito de acompanhamento registrado no CSV.
+- **E86** ✅: destinos MIGRA sem colisão no evolution-stack (worker w4/w5 + simulação s5).
+- **E87** ✅: links de entrada dos ARQUIVA mapeados no CSV (coluna consumidores) — reescrita no mesmo commit da Fase 9.
+- **E88** ✅: resíduos evolution-stack identificados: (1) labels OCI `org.opencontainers.image.source` dos 2 Dockerfiles apontam `zapp-web-v3/tree/main/infra/evolution-api-custom` (path morto — fix no PR-3); (2) drift consumer: runtime roda digest `9b1a5b967...`, stack file do repo diz `0f4b07cfb...` (registrar, não tocar sem o dono); (3) E74 aplicado à baseline (ver Fase 6).
+- **E89** ✅: changesets montados — PR-1 zapp (ARQUIVA+EXCLUI, 2 commits), PR-2 evostack (MIGRA), PR-3 evostack (labels OCI + comentários).
+- **E90** ✅ **GATE HUMANO: APROVADO** pelo Joaquim (16/08 ~17:15 BRT), com exigência adicional: **simulação de cenários prévia** (10 agentes read-only, deleg_ce43d3c9) antes de qualquer escrita destrutiva.
+- **Validação Claude Code**: CLI local deslogado; container claude-code com limite de sessões estourado até 17:40 BRT (outra campanha). Plano B aplicado (skill): validação por evidência objetiva (E85 automatizado + asserts + MCP real). Nova tentativa de `claude -p` programada para após o reset.
+
+---
