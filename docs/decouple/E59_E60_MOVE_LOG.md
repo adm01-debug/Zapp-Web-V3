@@ -49,8 +49,8 @@ nao auditavel deste banco; os 8 sao fns de monitoria interna (baixa probabilidad
 
 ## Restante do backlog E59 (31 fns de monitoria em I1 apos lote 1)
 
-- **Lote 2 (candidatas limpas):** fn_monitor_lid_contamination, fn_monitor_pino_timeouts,
-  fn_update_instance_health — mesmas garantias do lote 1.
+- **Lote 2 — EXECUTADO 2026-08-15** (migration DB `20260815250009`): fn_monitor_lid_contamination, fn_monitor_pino_timeouts,
+  fn_update_instance_health movidas + crons 147/187/300 repontados. Placar: I1 58 -> 55, I2 estavel; smoke lid=OK pino=PASS.
 - **Lotes 3+:** 26 fns de monitoria que citam `evo.` literal no corpo — mover exige, no mesmo
   passo, trocar leituras `evo.*` por views de leitura (E78) ou aceitar transferencia I1->I2
   (vetado por E63 com a metrica atual; ver refino proposto nos CONTRACT_WRITE_*).
