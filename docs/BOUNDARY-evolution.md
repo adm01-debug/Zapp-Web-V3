@@ -143,3 +143,21 @@ O mecanismo de troca está provado em teste, sem depender de rede ou de provider
     fake → `normalizeBaileysMessage` → `IngestMessage` (12 campos, 1:1, sem throw).
 
 > Reciprocidade: [adm01-debug/evolution-stack/docs/BOUNDARY-zapp.md](https://github.com/adm01-debug/evolution-stack/blob/main/docs/BOUNDARY-zapp.md)
+
+## Contratos reversos aceitos — evo → zapp (formalizado 2026-08-16)
+
+A direção canônica é `zapp → evo via contrato curado`. Excepcionalmente, objetos evo referenciam `zapp.*` (146 refs na baseline e41, REVISADAS contra o banco vivo em 2026-08-16: **0 STALE — todas são contratos vivos**):
+
+| Objeto zapp | Direção/uso | Tipo |
+|---|---|---|
+| `rpc_boundary_raise_alert` / `rpc_boundary_resolve_alert` | evo→zapp, alertas de fronteira | RPC de fronteira (I1/I2) |
+| `fn_normalize_send_jid` | evo→zapp | utilitária (13 refs, 100% suítes de teste/regressão evo) |
+| `is_admin_or_supervisor` | evo→zapp, RLS de 5 tabelas evo.media_* | utilitária (SECURITY-CRITICAL) |
+| `fn_system_health_score` | evo→zapp, leitura de score | utilitária |
+| `handle_updated_at` | evo→zapp, **133 triggers** (incl. evo.evolution_conversations_* e evo.media_storage_config) | função trigger (SECURITY-CRITICAL) |
+| `fn_trg_quarantine_alert` | evo→zapp, trigger AFTER INSERT em evo.media_quarantine | função trigger |
+| `webhook_event_status` | evo→zapp, enum usado no CASE da view evo.active_webhook_events | tipo de contrato |
+| views espelho `zapp.evolution_*` | leitura por funções evo | bridge views (6 objetos) |
+| `_consumer_dlq`, `evolution_retention_log_id_seq` | objetos referenciados por funções evo | tabela/sequência |
+
+**Regras destes contratos:** (1) mudança de assinatura exige atualização bilateral no MESMO ciclo; (2) RPCs de fronteira versionadas em migration zapp; (3) remoção de qualquer objeto acima exige varredura na baseline do evolution-stack antes.
