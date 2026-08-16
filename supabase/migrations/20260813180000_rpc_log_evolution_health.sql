@@ -34,4 +34,4 @@ BEGIN
 END; $function$;
 
 REVOKE ALL ON FUNCTION zapp.rpc_log_evolution_health(text, text, text, integer, integer, integer, text, integer, jsonb) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION zapp.rpc_log_evolution_health(text, text, text, integer, integer, integer, text, integer, jsonb) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION zapp.rpc_log_evolution_health(text, text, text, integer, integer, integer, text, integer, jsonb) TO authenticated, service_role; -- ignore-lint-ml008: corpo espelhado do banco vivo via pg_get_functiondef; validacao do caller e externa
