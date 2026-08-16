@@ -146,7 +146,24 @@ honesta é **≈88 de 181 prontas (~49%)**.
 agendadas — exatamente as features que falham *sem erro visível*, e por isso nunca viram
 chamado:
 
-- SLA/filas marcado `Full`: 11 tabelas de SLA vazias, **0 de 20.743 contatos atribuídos**
+- SLA marcado `Full` e dormente: **10 tabelas de SLA e CSAT com zero linhas** (`sla_rules`,
+  `sla_violations`, `sla_history`, `conversation_sla`, `csat_surveys`, `csat_responses`,
+  `csat_auto_config` e outras — contagem exata, não estimativa). Não há cron de CSAT em produção.
+
+> **⚠️ Correção de 2026-08-16 (validação):** a versão original desta linha afirmava também
+> *"0 de 20.743 contatos atribuídos"*, tratando **filas** como dormente junto com SLA. **Isso está
+> errado.** O subsistema de filas foi ligado em 2026-08-09 e está operando: `zapp.queues` = 1
+> (Atendimento Geral), `queue_members` = 14, cron `queue-autoassign-tick` (jobid 335) ativo a cada
+> minuto, e **21.934 de 21.945 contatos com `assigned_to`**, distribuídos uniformemente (~1.870 por
+> agente). `queue_positions` = 0 porque tudo foi atribuído, não porque nada acontece.
+>
+> O número "0/20.743" veio de um handoff de 2026-08-09, anterior à ativação, e foi repassado sem
+> reverificação. **Filas: ✅ funcionando. SLA e CSAT: 🟦 dormentes.**
+>
+> **Causa raiz do erro, registrada para não se repetir:** `pg_stat_user_tables.n_live_tup` é
+> *estimativa* e retornou 0 para `queues` (1 real) e `queue_members` (14 reais) — tabelas pequenas
+> nunca analisadas. Concluir "tabela vazia ⇒ feature dormente" a partir dela produz falso positivo.
+> Confirmar sempre com `count(*)` exato antes de declarar dormência.
 - Dashboard principal: XP, coins e streak **hardcoded**; `satisfaction` sempre zero
 - `transferred_by: 'Support Agent'` **literal** — falsifica a auditoria de transferência
 - 2FA marcado `Full`: backup codes sem persistência e `catch` silencioso que contorna o segundo fator
