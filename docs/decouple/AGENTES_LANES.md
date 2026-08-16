@@ -10,6 +10,7 @@
 | **Agente 2 (correções em sequência)** | I1 residual e demais lotes — funções/triggers evo↔zapp | `zapp-web-v3` · `claude/evolution-zapp-separation-analysis-29lixd` | escrita em funções/triggers dos schemas `evo`/`zapp` | 🟢 ativo |
 
 | **Claude (claude.ai/sessao-2)** | drift-gate do schema zapp — snapshot+check+workflow (arquivos novos, zero overlap com lotes) | `zapp-web-v3` · esta branch | somente leitura (pg_dump zapp) | 🟢 entregue |
+| **Claude (claude.ai/code) — onda inventário** | Fecha `docs/estado/` (1D residual, 1E, Fases 2/3/5) + errata de topologia. Escrita **exclusivamente** em `docs/estado/**` e `docs/simulation/**` — arquivos novos, nomes pré-alocados. NÃO toca `ESTADO.md`, `FEATURE_REGISTRY.md`, `docs/decouple/**` (exceto esta linha), `.hermes/**`, `src/**`, `supabase/**` | `zapp-web-v3` · `claude/validar-levantamento-sistema-uxonxc` | **somente leitura** (introspecção p/ validar RPCs/triggers/views/cron — zero DDL/DML) | 🟢 ativo |
 
 ## Zonas congeladas (nenhum agente toca sem coordenação explícita)
 - **I4 / E73–E77** — mover tabelas `evolution_*` de `zapp` para `evo` (destrutivo, conflita com tudo)
