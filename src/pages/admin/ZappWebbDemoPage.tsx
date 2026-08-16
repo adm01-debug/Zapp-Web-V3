@@ -35,7 +35,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { supabase } from '@/integrations/supabase/client';
+// supabase removido do import (E82: envio migrado para whatsappAdapter)
 import { evolutionChatMarkRead } from '@/lib/adapters/evolutionOps';
 import { sendText as adapterSendText } from '@/lib/whatsappAdapter';
 import {
