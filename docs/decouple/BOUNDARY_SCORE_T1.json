@@ -1,0 +1,109 @@
+{
+  "meta": {
+    "generated_at": "2026-08-16T12:41:00Z",
+    "measured_at_db": "2026-08-16T09:38:29.298983-03:00",
+    "mode": "online_live",
+    "description": "Placar T1 pós-onda de execução (Rota A mantida; I1/I2 zerados via migrations 20260816140000 + 20260816141000)",
+    "repo": "adm01-debug/zapp-web-v3"
+  },
+  "summary": {
+    "passed": 6,
+    "partial": 2,
+    "failed": 1,
+    "errored": 0,
+    "total": 9,
+    "percentage": 67,
+    "grade": "D"
+  },
+  "invariants": [
+    {
+      "invariant": "I1",
+      "name": "Zero funções do schema evo escrevendo/citando zapp.*",
+      "score": 1,
+      "violations": [],
+      "detail": "0 fns evo citam zapp.* (era 64 no T0; 4 antes da onda). Funções de negócio movidas para zapp; graveyard via RPC de contrato; backfill limpo em evo."
+    },
+    {
+      "invariant": "I2",
+      "name": "Zero funções do schema zapp escrevendo/citando evo.*",
+      "score": 1,
+      "violations": [],
+      "detail": "0 fns zapp citam evo.* fora da allowlist de contrato (era 12 no T0). fn_backfill_contact_id movida para evo; fn_repontar_filhas_graveyard usa evo.rpc_boundary_graveyard_*."
+    },
+    {
+      "invariant": "I3",
+      "name": "Zero FKs cruzando a fronteira evo↔zapp",
+      "score": 1,
+      "violations": [],
+      "detail": "0 constraints FK cruzadas (E64-E66)."
+    },
+    {
+      "invariant": "I4",
+      "name": "Dado da Evolution reside no schema evo",
+      "score": 1,
+      "violations": [],
+      "detail": "0 tabelas fora de evo. Rota A consumada (move E73-E75 em 11:50Z por agente paralelo; dono confirmou MANTER em 12:20Z). 145 phys_refs a zapp.evolution_* aceitas por design (bridge views)."
+    },
+    {
+      "invariant": "I5",
+      "name": "Leitura do outro lado só por view de contrato",
+      "score": 1,
+      "violations": [],
+      "detail": "0 grants SELECT de authenticated direto em evo.* (E80)."
+    },
+    {
+      "invariant": "I6",
+      "name": "Cada repo deploya só a sua infra (soberania de plataforma)",
+      "score": 0,
+      "violations": [
+        {"check": "E28/E33/E34/E37", "reason": "obs-*.yml ainda no evolution-stack; atomica-platform sem workflow GitOps (deploy manual); secrets supabase_* consumidos por 3 stacks do evolution-stack; prova destrutiva E37 ausente"}
+      ],
+      "detail": "Parcial: supabase.yml fora do evolution-stack; zapp-functions-health ativa. Falta formalização."
+    },
+    {
+      "invariant": "I7",
+      "name": "Dono único de migrations em evo (zero DDL evo.* neste repo)",
+      "score": 0,
+      "violations": [
+        {"check": "E40/E42", "reason": "51+ migrations legadas com DDL evo.* no zapp-web-v3; evo-ddl-gate existe mas nenhum workflow o chama (E42 inativo)"}
+      ],
+      "detail": "Parcial: baseline E41 no evolution-stack existe; falta ativar gates E42/E43 + ADR-015."
+    },
+    {
+      "invariant": "I8",
+      "name": "Todo egresso HTTP ao provider via gateway declarado",
+      "score": 1,
+      "violations": [],
+      "detail": "0 fns pg_net fora do gateway (fn_provider_call em uso). Gate mede banco real via RPC."
+    },
+    {
+      "invariant": "I9",
+      "name": "Troca de provider sem tocar UI nem PL/pgSQL (ensaio E91–E95 medido)",
+      "score": 0,
+      "violations": [
+        {"check": "E92", "reason": "ensaio offline 12/12 e f5-operacional 46ms documentados; troca REAL evolution→cloud nunca executada (aguarda credenciais)"}
+      ],
+      "detail": "Parcial: abstração pronta (case 'cloud' fail-closed); prova em produção real ausente."
+    }
+  ],
+  "notes": [
+    "I1/I2 zerados em produção em 16/08 com smoke tests verdes (probe ok, backfill 0, graveyard dry-run ok, partição criada em evo).",
+    "I6/I7/I9 são itens de formalização (docs/gates/ensaio) — nenhum risco de dado; próximas ondas.",
+    "aux_searchpath_evo_com_zapp=0, aux_triggers_zapp_com_fn_evo=0, aux_roles_contrato_existem=2."
+  ],
+  "raw_db_measurement": {
+    "measured_at": "2026-08-16T09:38:29.298983-03:00",
+    "I1_fns_evo_citando_zapp": 0,
+    "I2_fns_zapp_citando_evo": 0,
+    "I3_fks_cruzadas": 0,
+    "I4_tabelas_evolution_fora_de_evo": 0,
+    "I5_grants_authenticated_select_evo": 0,
+    "I8_fns_pgnet_provider_fora_gateway": 0,
+    "aux_searchpath_evo_com_zapp": 0,
+    "aux_triggers_zapp_com_fn_evo": 0,
+    "aux_roles_contrato_existem": 2,
+    "aux_cron_citando_evo": 54,
+    "aux_cron_citando_zapp_evolution_tables": 3,
+    "aux_phys_refs_fns_zapp_evolution": 145
+  }
+}
