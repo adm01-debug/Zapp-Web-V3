@@ -11,13 +11,13 @@
  *    controlamos o shape → pode ser mais estrito, porém sempre `.passthrough()`
  *    para não quebrar com campos aditivos).
  *  - RESPONSE valida o payload que a EVOLUTION DEVOLVE (o campo `data` de
- *    EvolutionResponse). O provedor varia entre v1/v2.3.x e entre endpoints →
+ *    EvolutionResponse). O provedor varia entre v1/v2.3.x/v2.4.x e entre endpoints →
  *    SEMPRE permissivo (`.passthrough()`, campos opcionais, unions de formas
  *    conhecidas) — regra do incidente 2026-07-03: 422 indevido em payload
  *    real do provedor causa perda de dados.
  *  - REGRA DE MARCADOR (incidente 2026-07-03): todo response permissivo exige
  *    ao menos 1 CAMPO MARCADOR conhecido presente — `instance` em listInstances
- *    (elemento `{ instance: {...} }` do v2.3.x real), `key` OU `message` em
+ *    (elemento `{ instance: {...} }` do v2.3.x/v2.4.x/v2.4.x real), `key` OU `message` em
  *    respostas de mensagem, etc. Lixo total (`{}`, `{ foo: 'bar' }`) FALHA;
  *    qualquer payload real do provedor passa (nunca 422 em payload válido).
  *  - `get`/`post` genéricos: schema permissivo documentado (`z.unknown()`);
@@ -160,7 +160,7 @@ export const EvolutionGatewayRestartResponseSchema = z.object({
 // ─── listInstances ───────────────────────────────────────────────────────────
 
 /**
- * Elemento REAL do v2.3.x (fetchInstances): o objeto da instância vem ANINHADO
+ * Elemento REAL do v2.3.x/v2.4.x (fetchInstances): o objeto da instância vem ANINHADO
  * sob a chave `instance` (`{ instance: {...}, integration? }`) — ver fixture
  * do v237-fallback.test.ts e o default do fakeProvider.
  */
@@ -170,7 +170,7 @@ export const EvolutionGatewayInstanceWrapperSchema = z.object({
 }).passthrough();
 
 /**
- * v2.3.x real: array de `{ instance: {...} }` (marcador `instance` por
+ * v2.3.x/v2.4.x real: array de `{ instance: {...} }` (marcador `instance` por
  * elemento). v1/versões antigas: array puro de instâncias (marcador: 1 campo
  * conhecido). Algumas versões: wrapper `{ instances: [...] }` (exige a chave
  * `instances`). Array vazio `[]` é resposta legítima (zero instâncias) e
