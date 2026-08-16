@@ -22,6 +22,7 @@ export interface ContractSpec {
 export const CONTRACTS: Record<string, ContractSpec> = {
   // Webhooks externos
   "evolution-webhook":            { current: "v2", supported: ["v1", "v2"], sunset: { v1: "2027-01-01" } },
+  "evolution-consumer-stats":     { current: "v1", supported: ["v1"] },
   "whatsapp-cloud-webhook":       { current: "v2", supported: ["v1", "v2"], sunset: { v1: "2027-06-01" } },
   "whatsapp-cloud-webhook-verify":{ current: "v1", supported: ["v1"] },
   "gmail-webhook":                { current: "v2", supported: ["v1", "v2"], sunset: { v1: "2027-06-01" } },

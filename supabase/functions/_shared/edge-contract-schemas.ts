@@ -81,6 +81,7 @@ export const EDGE_FUNCTION_NAMES = [
   'email-track-link',
   'email-track-pixel',
   'evolution-api',
+  'evolution-consumer-stats',
   'evolution-bitrix-sync',
   'evolution-credentials',
   'evolution-group-sync',
@@ -284,6 +285,18 @@ export const ContractLifecycles: Record<string, ContractLifecycle> = {
 const specificEdgeFunctionSchemas: Partial<
   Record<(typeof EDGE_FUNCTION_NAMES)[number], ContractVersionMap>
 > = {
+
+  'evolution-consumer-stats': { v1: z.object({
+    collected_at: z.string().optional(),
+    replica: z.string().optional(),
+    ok: z.number().optional(), shadow: z.number().optional(),
+    retry: z.number().optional(), drop: z.number().optional(), err: z.number().optional(),
+    pg_log_ok: z.number().optional(), pg_log_err: z.number().optional(),
+    sentry_sent: z.number().optional(), resub: z.number().optional(),
+    pg_stats_ok: z.number().optional(), pg_stats_err: z.number().optional(),
+    drop_by: z.record(z.string(), z.number()).optional(),
+    retry_by: z.record(z.string(), z.number()).optional(),
+  }).passthrough() },
   // AI/ML — schemas V1 estritos derivados do consumo real (agent 2, contrato-tests-webhooks)
   'ai-router': { v1: AiRouterV1Schema },
   'ai-proxy': { v1: AiProxyV1Schema },
