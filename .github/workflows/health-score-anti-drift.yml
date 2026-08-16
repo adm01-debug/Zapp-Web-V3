@@ -61,6 +61,10 @@ jobs:
               if echo "$f" | grep -qE 'supabase/migrations/[0-9]{14}_'; then
                 continue
               fi
+              # Snapshots gerados por dump (drift-check REGEN) = artefato, não edição → skip
+              if echo "$f" | grep -qE 'scripts/decouple/snapshots/'; then
+                continue
+              fi
               # Fora do caminho legítimo: verifica redefinição real da função
               if grep -qPi 'CREATE\s+OR\s+REPLACE\s+FUNCTION\s+\w*\.(fn_system_health_score|fn_score_security_acl)' "$f" 2>/dev/null; then
                 touched="$touched $f"
