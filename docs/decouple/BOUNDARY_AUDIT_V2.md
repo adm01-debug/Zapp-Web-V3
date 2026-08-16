@@ -68,3 +68,9 @@ verdade); baseline pre-mudanca preservado nos snapshots E1.
 | aux_cron_citando_evo | 89 | 78 |
 | aux_roles_contrato_existem | 0 | 2 |
 | I3 / aux_searchpath_evo_com_zapp | 0 / 0 | 0 / 0 |
+
+## Resolucao (mesma sessao)
+
+Chave rotacionada no vault (v4, 48 chars, do Docker secret `evolution_api_key_v4_20260704`).
+Validacao: `fn_provider_call` connectionState wpp2 -> HTTP 200 `state: open`.
+Detalhe e superficie de contrato em `CONTRACT_SURFACE_V1.md`.
