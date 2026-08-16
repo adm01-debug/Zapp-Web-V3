@@ -13,9 +13,10 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const STATS_HMAC_SECRET = Deno.env.get("STATS_HTTP_HMAC_SECRET") ?? "";
 
+// schema-check-exempt: RPC de contrato exposta em public (evo fora do PostgREST; zapp não tem a RPC no cache)
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
-  db: { schema: "public" }, // RPC de contrato exposta via wrapper public (evo não é schema PostgREST)
+  db: { schema: "public" },
 });
 
 Deno.serve(async (req: Request) => {
@@ -57,8 +58,7 @@ Deno.serve(async (req: Request) => {
       status: 200, headers: { ...cors, "Content-Type": "application/json" },
     });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.error("[evolution-consumer-stats] persist error:", msg);
+    console.error("[evolution-consumer-stats] persist error:", JSON.stringify(e));
     return new Response(JSON.stringify({ error: "persist_failed" }), {
       status: 500, headers: { ...cors, "Content-Type": "application/json" },
     });
