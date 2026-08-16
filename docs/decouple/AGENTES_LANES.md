@@ -39,6 +39,22 @@
 - ~~sql-gate / registry / fixture~~ — RESOLVIDO 2026-08-16 (Claude/claude.ai, aprovado por Joaquim): registry dividido em PROD_OBJECTS_REGISTRY (15 verificados ao vivo, bloqueante) + PLANNED_OBJECTS (10 inexistentes, WARN). Criar os `ops.*`/2 views segue como backlog — quem criar, move a entrada de volta.
 
 ## Notas de coordenação
+- **2026-08-16 (Claude claude.ai, follow-up scanopy — DIAGNOSTICO, sem fix):** a causa raiz dos 25
+  drifts permanentes e o **discovery-cron que nunca dispara**. Evidencia: `scanopy-discovery-cron`
+  esta `Up 28h` com **zero linhas de log**, mas o crontab e `0 3 * * *` — ja passou por uma janela
+  das 03h sem executar (crond -f -l 8; o `>> /dev/stdout` dentro do crontab provavelmente nao
+  chega ao PID 1). Executei `/discovery.sh` manualmente para validar: retorna
+  `{success:true,...,phase:Pending}` — **o discovery funciona, o agendamento nao**.
+  A sessao ficou em Pending e o inventario seguiu em 130 hosts (novos=29, sumidos=4) na janela
+  observada. **NAO corrigi o cron** — e lane de quem mantem o Scanopy. Duas opcoes para o dono:
+  (a) trocar o crond por loop `while true; do /discovery.sh; sleep 86400; done` (padrao usado nos
+  demais watchdogs da casa, e o unico que comprovadamente loga), ou (b) manter crond e redirecionar
+  para `/proc/1/fd/1`. **Nao whitelistar**: `wl_match` e hardcoded no script v4 e o drift e real,
+  nao falso-positivo — whitelist esconderia um sintoma legitimo.
+  Baseline gravada para medir o cooldown em 24h: scanopy-drift **2.025 msgs/24h** (total 2.194),
+  25 drifts distintos, cooldown 900s->21600s. Projecao aritmetica: 96 -> 4 repeticoes/dia por item
+  = ~100 msgs/dia (-95%). Verificado que os 53 arquivos `/state/cd_*` persistiram o restart.
+
 - **2026-08-16 (Claude claude.ai, P0 alert-storm + writer externo):** dois achados fora das lanes de schema.
   **(a) P0 mitigado:** a instancia `wpp2` (canal de producao) disparava ~2.300 msgs/dia de alerta
   para 551146375517 — escalada medida 16/dia (11/08) -> 2.326/dia (15/08), risco de ban pelo WhatsApp.
