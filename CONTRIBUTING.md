@@ -80,3 +80,14 @@ git commit -m "feat: x"               # muito curto
 - NUNCA fazer `GRANT EXECUTE ON FUNCTION ... TO anon`
 - Backup convention: `_backup_*_yyyymmdd`
 - `pg_cron` VACUUM como single statement
+
+## Mudanças coordenadas entre repos (expand/contract) — E44
+
+O schema `evo` tem dono único: **evolution-stack** (ADR-015). Mudanças que tocam a fronteira ZAPP×EVOLUTION seguem este protocolo:
+
+1. **Quem é o dono:** DDL em `evo.*` → PR no `evolution-stack`. DDL em `zapp.*`/views de contrato → PR no `zapp-web-v3`.
+2. **Expand primeiro:** se o ZAPP precisa ler um objeto novo do `evo`, crie a view de contrato em `public.*` (ou bridge em `zapp.*`) **antes** de o evolution-stack criar o objeto — nunca dependa de objeto `evo` que ainda não existe.
+3. **Contract depois:** para remover/depreciar, elimine os consumidores (views, funções, crons) **antes** de dropar o objeto; janela mínima de **7 dias** entre remover o último consumidor e o DROP.
+4. **PRs cross-repo:** todo PR que toca a fronteira cita o issue-link e menciona o ADR-015 na descrição; merge na ordem expand→contract.
+5. **Gates:** migrations novas com `evo.*` no zapp-web-v3 falham o CI (E42); DDL `zapp.*` no evolution-stack falha (E43). Exceções só via allowlist com justificativa.
+6. **Teste:** mudança de contrato exige teste que falhe sem a mudança (RED→GREEN).

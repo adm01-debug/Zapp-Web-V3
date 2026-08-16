@@ -1,0 +1,30 @@
+{
+  "schema": "zapp",
+  "owner": "zapp-web-v3",
+  "owner_since": "2026-08-12",
+  "adr_reference": "ADR-015-evo-schema-owner.md",
+  "generated_from": "repo-migrations",
+  "date": "2026-08-16",
+  "description": "Registro do schema zapp — dono: zapp-web-v3. Dados de negócio do CRM + bridge views de leitura do evo (Rota A).",
+  "sources": {
+    "canonical": "supabase/migrations/20260804000000_canonical_schema_squash_133_migrations.sql (histórico)",
+    "total_migration_files_scanned": 284
+  },
+  "tables_principais": [
+    {"name": "profiles", "owner_system": "zapp-web-v3", "note": "Usuários/agentes"},
+    {"name": "user_roles", "owner_system": "zapp-web-v3", "note": "RBAC"},
+    {"name": "conversation_events", "owner_system": "zapp-web-v3", "note": "Eventos de conversa"},
+    {"name": "evolution_alerts", "owner_system": "zapp-web-v3", "note": "Alertas de pipeline (ZAPP é o observador)"},
+    {"name": "evolution_media", "owner_system": "zapp-web-v3", "note": "Metadados de mídia; escrita via zapp.rpc_boundary_register_media"},
+    {"name": "evolution_audit_log", "owner_system": "zapp-web-v3", "note": "Auditoria"},
+    {"name": "evolution_messages", "owner_system": "evo (física)", "note": "BRIDGE VIEW — física em evo; não criar DDL"},
+    {"name": "evolution_conversations", "owner_system": "evo (física)", "note": "BRIDGE VIEW — física em evo; não criar DDL"},
+    {"name": "evolution_contacts", "owner_system": "evo (física)", "note": "BRIDGE VIEW — física em evo; não criar DDL"},
+    {"name": "contact_id_graveyard", "owner_system": "zapp-web-v3", "note": "Cópia zapp (a canônica é evo.contact_id_graveyard)"}
+  ],
+  "rules": [
+    "Tabelas evolution_messages/conversations/contacts em zapp são BRIDGE VIEWS — proibido DDL",
+    "Escrita no evo via RPCs de contrato (evo.rpc_boundary_* — allowlist I2)",
+    "Views public.* com security_invoker=true obrigatório"
+  ]
+}

@@ -1,0 +1,71 @@
+name: score-ratchet — advisory (E98)
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  ratchet:
+    name: Ratchet do placar de desacoplamento (advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Comparar score do PR vs baseline T1
+        run: |
+          set -uo pipefail
+          BASELINE="docs/decouple/BOUNDARY_SCORE_T1.json"
+          PR_SCORE="decouple-score.json"
+          [ -f "$PR_SCORE" ] || { echo "Sem decouple-score.json (measure-invariants não rodou) — advisory skip."; exit 0; }
+          [ -f "$BASELINE" ] || { echo "Sem baseline T1 — advisory skip."; exit 0; }
+
+          node - <<'EOF'
+          const fs = require('fs');
+          const base = JSON.parse(fs.readFileSync('docs/decouple/BOUNDARY_SCORE_T1.json','utf8')).invariants || [];
+          let pr = {};
+          try { pr = JSON.parse(fs.readFileSync('decouple-score.json','utf8')); } catch(e) { console.log('score do PR ilegível — advisory'); process.exit(0); }
+          const prInv = pr.invariants || pr.raw_db_measurement || pr;
+          // placar por invariante: score 1 = pass
+          const keys = ['I1','I2','I3','I4','I5','I6','I7','I8','I9'];
+          let piorou = [];
+          for (const k of keys) {
+            const b = base.find(i => i.invariant === k);
+            if (!b) continue;
+            const pv = prInv[k] !== undefined ? Number(prInv[k]) : (pr.summary?.passed !== undefined ? null : null);
+            if (pv === null) continue;
+            // baseline score 1 = ok; pv 0 = violação
+            if (b.score === 1 && pv === 0) piorou.push(k);
+          }
+          if (piorou.length) {
+            console.log(`⚠️ ADVISORY: invariantes que pioraram vs T1: ${piorou.join(', ')} — verifique antes do merge.`);
+          } else {
+            console.log('Ratchet OK: nenhum invariante piorou vs T1 (advisory).');
+          }
+          EOF
+
+      - name: Comentar no PR (advisory)
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let msg = '### 🎯 Ratchet de desacoplamento (E98 — advisory)\nPlacar comparado com `BOUNDARY_SCORE_T1.json` (baseline 16/08). Modo advisory: **não bloqueia** o PR.';
+            try {
+              const out = (fs.readFileSync(process.env.GITHUB_STEP_SUMMARY||'/dev/null','utf8'));
+            } catch(e) {}
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: msg
+            }).catch(()=>{});
