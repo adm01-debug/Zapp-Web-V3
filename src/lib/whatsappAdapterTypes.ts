@@ -44,6 +44,18 @@ export interface SendAudioParams {
   mediaHash?: string;
 }
 
+/** Send PTV (vídeo circular) Params interface definition. */
+export interface SendPtvParams {
+  remoteJid: string;
+  /** URL do vídeo (blob:, https:, signed URL). Aceita `mediaUrl` como alias. */
+  videoUrl?: string;
+  /** Alias de `videoUrl` — compatível com o nome do campo usado pelos demais verbos de mídia. */
+  mediaUrl?: string;
+  /** Mime type do vídeo (ex.: 'video/mp4'). Usado no Blob anexado ao FormData. */
+  mimetype?: string;
+  instance?: string;
+}
+
 /** Send Sticker Params interface definition. */
 export interface SendStickerParams {
   remoteJid: string;
