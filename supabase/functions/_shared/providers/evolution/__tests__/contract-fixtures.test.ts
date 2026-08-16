@@ -18,7 +18,7 @@
  *       incidente 2026-07-03;
  *   (d) TOLERÂNCIA documentada: unions array-ou-wrapper (listInstances,
  *       listGroups, checkWhatsApp) passam nas formas conhecidas; `null` passa
- *       APENAS em getProfilePicture (shape real v2.3.x sem foto) — nos demais
+ *       APENAS em getProfilePicture (shape real v2.3.x/v2.4.x sem foto) — nos demais
  *       verbos `null` não é shape real e FALHA (decisão do fix paralelo).
  *
  * NOTA DE ONDA: o contrato foi corrigido EM PARALELO (listInstances/
@@ -69,8 +69,8 @@ function expectFail(verb: Verb, side: Side, label: string, payload: unknown) {
  *    array de instâncias "bare" e wrapper `{ instances: [...] }`.
  *  - listGroups: array de grupos (fetchAllGroups getParticipants=false) e wrapper `{ groups: [...] }`.
  *  - checkWhatsApp: array de `{ exists, jid }`, objeto único e wrapper `{ numbers: [...] }`.
- *  - getProfilePicture: `{ profilePictureUrl }` (v2.3.x real), `{ url }` (v1),
- *    `{ profilePicUrl }` (legado), url vazia/null e payload null (v2.3.x).
+ *  - getProfilePicture: `{ profilePictureUrl }` (v2.3.x/v2.4.x real), `{ url }` (v1),
+ *    `{ profilePicUrl }` (legado), url vazia/null e payload null (v2.3.x/v2.4.x).
  *  - get/post: payload arbitrário (permissivos por design — contrato é path/query).
  */
 const RESPONSE_FIXTURES: Array<[Verb, string, unknown]> = [
@@ -81,7 +81,7 @@ const RESPONSE_FIXTURES: Array<[Verb, string, unknown]> = [
     messageTimestamp: 1755216000,
     status: "PENDING",
   }],
-  ["sendText", "recibo v2.3.x com messageTimestamp string e key.participant (grupo)", {
+  ["sendText", "recibo v2.3.x/v2.4.x com messageTimestamp string e key.participant (grupo)", {
     key: { remoteJid: "5511999999999@s.whatsapp.net", fromMe: false, id: "XYZ", participant: "5511999999999@broadcast" },
     message: { extendedTextMessage: { text: "oi" } },
     messageTimestamp: "1755216000",
@@ -111,7 +111,7 @@ const RESPONSE_FIXTURES: Array<[Verb, string, unknown]> = [
     instance: { instanceName: "wpp2" },
     state: "close",
   }],
-  ["getConnectionState", "instância com state (v2.3.x/fake)", {
+  ["getConnectionState", "instância com state (v2.3.x/v2.4.x/fake)", {
     instance: { state: "open" },
   }],
   // ── getQrCode ──
@@ -155,14 +155,14 @@ const RESPONSE_FIXTURES: Array<[Verb, string, unknown]> = [
   ["checkWhatsApp", "objeto único", { exists: false, jid: "" }],
   ["checkWhatsApp", "docs v1 { number, numberExists, jid }", { number: "5511999999999", numberExists: true, jid: "5511999999999@s.whatsapp.net" }],
   ["checkWhatsApp", "wrapper { numbers: [...] }", { numbers: [{ exists: true, jid: "5511999999999@s.whatsapp.net" }] }],
-  // ── getProfilePicture (tolerância v2.3.x) ──
-  ["getProfilePicture", "profilePictureUrl preenchida (v2.3.x real)", { profilePictureUrl: "https://x/pic.jpg" }],
-  ["getProfilePicture", "profilePictureUrl null (v2.3.x sem foto)", { profilePictureUrl: null }],
+  // ── getProfilePicture (tolerância v2.3.x/v2.4.x) ──
+  ["getProfilePicture", "profilePictureUrl preenchida (v2.3.x/v2.4.x real)", { profilePictureUrl: "https://x/pic.jpg" }],
+  ["getProfilePicture", "profilePictureUrl null (v2.3.x/v2.4.x sem foto)", { profilePictureUrl: null }],
   ["getProfilePicture", "url preenchida (v1)", { url: "https://x/pic.jpg" }],
-  ["getProfilePicture", "url vazia (v2.3.x sem foto)", { url: "" }],
-  ["getProfilePicture", "url null (v2.3.x)", { url: null }],
+  ["getProfilePicture", "url vazia (v2.3.x/v2.4.x sem foto)", { url: "" }],
+  ["getProfilePicture", "url null (v2.3.x/v2.4.x)", { url: null }],
   ["getProfilePicture", "profilePicUrl (shape legado)", { profilePicUrl: "https://x/pic.jpg" }],
-  ["getProfilePicture", "payload null (v2.3.x)", null],
+  ["getProfilePicture", "payload null (v2.3.x/v2.4.x)", null],
   // ── get/post genéricos (permissivos por design) ──
   ["get", "payload arbitrário (findMessages)", { messages: [{ key: { id: "1" } }] }],
   ["post", "payload arbitrário", { ok: true }],
@@ -300,7 +300,7 @@ Deno.test("fixtures legítimas PASSAM no request schema (shapes do client.ts)", 
   }
 });
 
-Deno.test("tolerância: unions array-ou-wrapper passam; null só em getProfilePicture (v2.3.x)", () => {
+Deno.test("tolerância: unions array-ou-wrapper passam; null só em getProfilePicture (v2.3.x/v2.4.x)", () => {
   // listInstances: array puro, array de wrappers E wrapper
   expectPass("listInstances", "response", "array puro", [{ instanceName: "wpp2" }]);
   expectPass("listInstances", "response", "array de wrappers", [{ instance: { instanceName: "wpp2" } }]);
@@ -312,7 +312,7 @@ Deno.test("tolerância: unions array-ou-wrapper passam; null só em getProfilePi
   expectPass("checkWhatsApp", "response", "array", [{ exists: true, jid: "55@s.whatsapp.net" }]);
   expectPass("checkWhatsApp", "response", "objeto único", { exists: false, jid: "" });
   expectPass("checkWhatsApp", "response", "wrapper", { numbers: [{ exists: true, jid: "55@s.whatsapp.net" }] });
-  // getProfilePicture: url vazia/null, profilePictureUrl null e payload null (v2.3.x)
+  // getProfilePicture: url vazia/null, profilePictureUrl null e payload null (v2.3.x/v2.4.x)
   expectPass("getProfilePicture", "response", "{ url: \"\" }", { url: "" });
   expectPass("getProfilePicture", "response", "{ url: null }", { url: null });
   expectPass("getProfilePicture", "response", "{ profilePictureUrl: null }", { profilePictureUrl: null });
