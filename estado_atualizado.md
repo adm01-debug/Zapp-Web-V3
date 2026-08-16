@@ -173,6 +173,20 @@ O padrão dominante não é falta de teste, é **teste que não protege**:
   guarda anti-regressão da issue #1000 é ilusória.
 - **441 linhas em `Deno.test` sem runner**: o comentário do `vitest.config.ts` afirma que rodam
   em suíte separada; não há script `deno test` nem task no `deno.json`.
+- **E2E: 1.092 linhas de spec descartadas em silêncio.** Os specs *têm* runner (`ci.yml:455`,
+  `quality-gate.yml:152`), mas só **3 dos 13** exercitam o build do PR. Causa raiz de metade:
+  `vite.config.ts:116` serve em **8080** e `playwright.config.ts:24` sobe o webServer em **5173** —
+  4 specs hardcodam 8080 e caem em `test.skip` gracioso. Outros 4 dependem de `RUN_INBOX_E2E`,
+  que não existe em workflow nenhum. E `no-workbox-after-reload.spec.ts` aponta para
+  `https://zapp-web-v3.vercel.app/`: valida o deploy de produção, não o PR — e como `page.goto()`
+  não rejeita em 404, uma página de erro satisfaz a asserção vacuamente.
+- **A mesma asserção vale coisas diferentes em workflows diferentes**: `ci.yml:26` define
+  `VITE_SUPABASE_PUBLISHABLE_KEY`, `quality-gate.yml:17-22` não — e ambos rodam a mesma suíte
+  vitest no mesmo commit. Corrigível com uma linha em `test.env`.
+- **A guarda de segurança do Sprint 1 valida texto, não banco**: `sprint1-security-hardening.test.ts`
+  faz asserção sobre o conteúdo do arquivo de migration. Com 387 versões aplicadas sem arquivo e
+  822 funções vivas sem declaração (§3.1), ela pode passar enquanto a função em produção foi
+  redefinida fora de banda — exatamente a regressão que existe para pegar.
 
 ---
 
