@@ -52697,6 +52697,11 @@ CREATE INDEX IF NOT EXISTS idx_failed_messages_created_at ON zapp.failed_message
 
 
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_failed_messages_idempotency_key ON zapp.failed_messages USING btree (idempotency_key);
+
+
+
+
 CREATE INDEX IF NOT EXISTS idx_failed_messages_instance ON zapp.failed_messages USING btree (instance_name);
 
 
