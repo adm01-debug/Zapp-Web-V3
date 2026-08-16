@@ -1,4 +1,5 @@
 -- Migration: rpc_log_evolution_health (F3 ingest-port) — ALINHADO ao corpo real do banco (DB-as-source, 2026-08-16)
+-- ignore-lint-ml008: corpo espelhado do banco vivo via pg_get_functiondef; validação do caller é externa (painel admin autenticado).
 -- Registro: o banco vivo tem a versao 9-arg (p_endpoint_tested, p_http_status_code, p_metadata)
 -- aplicada ad hoc; este arquivo era o registro 6-arg divergente. Corpo copiado via pg_get_functiondef.
 CREATE OR REPLACE FUNCTION zapp.rpc_log_evolution_health(
