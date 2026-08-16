@@ -47,3 +47,55 @@ Combinações: (a)→FICA; (b)∧¬(a)→MIGRA; (c)→EXCLUI (duplicado com can�
 Contagens iniciais da 1ª passada (heurística): ver seção Fase 1 do triagem.csv — números finais saem do CSV após as Fases 2–7.
 
 ---
+
+## Fase 4 — Supabase/Functions (E41–E55)
+
+**Pre-facts coletados pelo maestro (MCP supabase/portainer, 2026-08-16):**
+
+| Fato | Evidência |
+|---|---|
+| 10/10 functions `evolution-*` deployadas no edge-runtime | `ls /home/deno/functions` (container supabase_functions) |
+| evolution-webhook: ingestão VIVA | 548 eventos em `evo.evolution_webhook_events_v2` nas últimas 24h (último 19:45Z) |
+| evolution-api: proxy principal | front em produção usa (chat operante) |
+| evolution-consumer-stats: CONSUMIDA mas com BUG bilateral | logs do container evolution-rabbit-consumer: `WARNING [STATS-HTTP] falha persistir stats via HTTP (err acumulado=560)`, retry_by `4xx:404`:1, a cada ~30s; via Postgres `pg_stats_ok=652` funciona |
+| evolution-sync / evolution-group-sync: jobs pg_cron ativos | `evo-sync-messages-to-v2` (5min), `sync-groups-daily` (04:10) |
+| evolution-notification-dispatcher: crons ativos | `notif-dispatcher` (5min), `process-evolution-notifications` (2min) |
+| Reconciler ativo via pg_net→edge | `ops.pgnet_egress_log`: 43 chamadas/7d de `fn_reconcile_dispatch`, última 19:45Z |
+| **Versão Evolution API em produção: 2.4.0** | `/evolution/package.json` no container evolution (não 2.3.7!) |
+| evolution-proxy: JÁ aposentado na main | commit 9fc1064ba — E44 N/A (fora do universo) |
+| registry de deploy (ops.edge_function_registry) | 7 evolution-* ativas (snapshot 08-07; 3 das 10 não rastreadas lá — registry defasado, não é fonte de tráfego) |
+
+**Impacto da versão 2.4.0:**
+- E63: `src/hooks/evolution/v237Fallbacks.ts` → FICA + **REVISAR** (produção > 2.3.7; rede de segurança, não excluir agora)
+- E21: `docs/EVOLUTION_API_REFERENCE.md` cita 2.3.7 → divergente da produção
+- E51: `_shared/providers/evolution/contract.zod.ts` → verificar compatibilidade com 2.4.0
+
+**Achado E48**: bug bilateral consumer-stats (POST HTTP 404) — FICA (contrato consumido) + investigar na Fase 8B (o consumer mora no evolution-stack).
+
+---
+
+## Fase 6 — Migrations e DB (E71–E76)
+
+- **E71** ✅: 57 migrations `*evo*` no repo com propósito documentado (tabela gerada por script).
+- **E72** ⚠️: banco tem 654 registros em `supabase_migrations.schema_migrations`; repo tem 334 arquivos (modelo DB-as-source explica o excedente). Das 58 migrations evo do repo (57 supabase/migrations + 1 db/migrations), **17 sem registro com o próprio version**:
+  - `20260805104000` — duplicada da 04043 (registrada)
+  - `20260808` (db/migrations/evo) — pré-histórica, aplicada ad-hoc no PG14 (não Supabase)
+  - `20260808230200`/`20260808230300` — registradas com versions renumeradas (20260807195552/195847)
+  - `20260808280000`, `20260813180000` — sem registro equivalente identificado → **verificar aplicação real** (pendência relatório)
+  - `20260811150100/150200/150400/160000/170000` — "ESPELHO do estado aplicado em produção" (aplicadas via outras rotas)
+  - `20260815030000`–`15080000` (decouple_e17/e26–e30) — consolidados no replay convergente (versions 15200001–15200013)
+  - Nenhuma ação corretiva nesta auditoria (R1 documental).
+- **E73** ✅: `db/migrations/evo/20260808_auditoria_onda4.sql` (PG14 evolution) e `db/migrations/supabase/20260808_auditoria_onda4_evo_schema.sql` (Supabase) = registros pré-históricos do split, aplicados via MCP/Portainer. FICA (R1) + nota: conteúdo operacional coberto pela baseline E41 do evolution-stack.
+- **E74** ⏳: baseline e41 do evolution-stack tem **143 refs a `zapp.*`** (UPDATEs em `zapp.evolution_*` + `zapp.rpc_boundary_raise_alert`) — classificação bridge/contrato/stale por worker (w17).
+- **E75** ✅: allowlist com 17 arquivos, todos existentes no repo; exceções = migrations de regularização do desacoplamento (replay convergente), não DDL novo. Sem arquivo inflado além do justificado.
+
+---
+
+## Fase 7 — CI/lint/e2e/infra (E77–E84) — parciais do maestro
+
+- **E77** ✅: `evo-ddl-gate.yml` último run **success** (2026-08-16T17:03Z, PR feat(I9)).
+- **E78** ⚠️ **GAP**: `.deno-lint-rules/no-direct-evo-url.ts` existe mas **não está plugada** em nenhum `deno.json`/workflow ("rule não plugada = teatro"). Medição manual (deno runner): **0 violações atuais** em supabase/functions → plugagem é segura. Fix proposto para a Fase 9: plugar via lint.plugins + gate existente.
+- **E79** ✅: 3 specs e2e evolution presentes; `run-e2e-evolution-vps.sh` aponta `https://zapp.atomicabr.com.br` (correto pós-split).
+- **E80–E83** ⏳: workers w18 (stacks), w19 (workflows/scripts), w20 (docs lote).
+
+---
