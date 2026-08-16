@@ -1,28 +1,28 @@
-path;classe_sugerida;justificativa;consumidores;destino_path;etapa
+path;classe;justificativa;consumidores;destino_path;etapa
 .coderabbit.yaml;FICA;default conservador (R3);;;
 .deno-lint-rules/no-direct-evo-url.ts;FICA;gate/enforcement CI (E77-E78);;;
 .env.example;FICA;default conservador (R3);;;
 .github/CODEOWNERS;FICA;default conservador (R3);;;
-.github/workflows/check-realtime-dead-channels.yml;FICA;gate/enforcement CI (E77-E78);;;
-.github/workflows/db-invariants.yml;FICA;gate/enforcement CI (E77-E78);;;
-.github/workflows/decouple-guard.yml;FICA;gate/enforcement CI (E77-E78);;;
-.github/workflows/deno-contract-tests.yml;FICA;gate/enforcement CI (E77-E78);;;
-.github/workflows/deploy-vps.yml;FICA;gate/enforcement CI (E77-E78);;;
-.github/workflows/e2e-admin-vps.yml;FICA;gate/enforcement CI (E77-E78);;;
-.github/workflows/edge-auth-smoke.yml;FICA;gate/enforcement CI (E77-E78);;;
-.github/workflows/evo-ddl-gate.yml;FICA;gate/enforcement CI (E77-E78);;;
-.github/workflows/measure-invariants.yml;FICA;gate/enforcement CI (E77-E78);;;
-.github/workflows/post-deploy-check.yml;FICA;gate/enforcement CI (E77-E78);;;
-.github/workflows/security-invoker-gate.yml;FICA;gate/enforcement CI (E77-E78);;;
-.hermes/auditoria-infra/AUDITORIA_TRACKING_EVO_20260806.md;EXCLUI;working file de sessao;;;
+.github/workflows/check-realtime-dead-channels.yml;FICA;Gate vivo de monitoramento: detecta canais realtime mortos e mapeia tabelas zapp->evo no report (linhas 58-60).;cron/CI;;E81
+.github/workflows/db-invariants.yml;FICA;Gate vivo INV-5: exige schema:'evo' nas subscriptions evolution_messages/conversations (linhas 128-135).;PRs;;E81
+.github/workflows/decouple-guard.yml;FICA;Gate de enforcement E22/E46: bloqueia infra/evolution* e regressão do inventory de acoplamento (roda scripts/decouple/inventory.mjs e sql-gate).;PRs;;E81
+.github/workflows/deno-contract-tests.yml;FICA;Contratos vivos, ref 'evo' é só comentário sobre tests evolution-api que leakam (linha 52).;PRs;;E81
+.github/workflows/deploy-vps.yml;FICA;Deploy vivo do zapp, smoke check da edge function evolution-api (linha 385). Comentário linha 42 citando publish-evolution-api-custom é histórico (workflow já migrou p/ evolution-stack).;deploy VPS;;E81
+.github/workflows/e2e-admin-vps.yml;FICA;E2E evolution contract: roda e2e/admin-evolution-api-smoke.spec.ts (linha 79).;E2E VPS;;E81
+.github/workflows/edge-auth-smoke.yml;FICA;Edge function evolution-api mora no zapp, smoke/auth gate protege evolution-api e ai-router (linhas 80, 153).;PRs;;E81
+.github/workflows/evo-ddl-gate.yml;FICA;Gate E42 de enforcement: bloqueia DDL novo em schema evo via scripts/decouple/evo-ddl-gate.mjs + allowlist.;PRs;;E81
+.github/workflows/measure-invariants.yml;FICA;Gate vivo E2/E20: mede os 9 invariantes de desacoplamento ZAPP×Evolution via boundary-audit ONLINE (linhas 41-53).;PRs;;E81
+.github/workflows/post-deploy-check.yml;FICA;Health check pós-deploy vivo: smoke evolution-api/get-media-base64 (linhas 102-104).;deploy VPS;;E81
+.github/workflows/security-invoker-gate.yml;FICA;Gate vivo D-8: consulta evo.v_security_audit e valida security_invoker nas views zapp/evo (linhas 33-147), fail-closed.;PRs;;E81
+.hermes/auditoria-infra/AUDITORIA_TRACKING_EVO_20260806.md;"EXCLUI;REVISAR";working file de sessao [R2: consumidor encontrado: .hermes/execucao-evo-20260806/E10-docs.md, docs/PLANO_CORRECAO_EVO_API_100_ETAPAS_20260806.md];;;
 .hermes/execucao-evo-20260806/E10-docs.md;EXCLUI;working file de sessao;;;
-.hermes/plans/AUDITORIA-ZAPP-SELFHOSTED-2026-08-01.md;EXCLUI;working file de sessao;;;
+.hermes/plans/AUDITORIA-ZAPP-SELFHOSTED-2026-08-01.md;"EXCLUI;REVISAR";working file de sessao [R2: consumidor encontrado: .hermes/plans/PLANO-EXECUCAO-MESTRE-2026-08-01.md];;;
 .hermes/plans/fix-console-20260803.md;EXCLUI;working file de sessao;;;
 .hermes/postgrest_exposed_fns.json;EXCLUI;working file de sessao;;;
 .hermes/postgrest_exposure_audit_2026-08-03.md;EXCLUI;working file de sessao;;;
-.hermes/rollback-test/rollback-test-report.md;EXCLUI;working file de sessao;;;
+.hermes/rollback-test/rollback-test-report.md;"EXCLUI;REVISAR";working file de sessao [R2: consumidor encontrado: .hermes/rollback-test/__pycache__/generate_and_test_rollbacks.cpython-311.pyc, .hermes/rollback-test/generate_and_test_rollbacks.py, docs/simulation/2026-08-03_deleted-scripts_50_failure_simulation.md];;;
 .hermes/secddef_exposed_defs.txt;EXCLUI;working file de sessao;;;
-.hermes/security-auth-audit-2026-08-03.md;EXCLUI;working file de sessao;;;
+.hermes/security-auth-audit-2026-08-03.md;"EXCLUI;REVISAR";working file de sessao [R2: consumidor encontrado: docs/simulation/2026-08-03_runtime_fixes_60_failure_simulation.md];;;
 .hermes/zapp_exposed_compact.json;EXCLUI;working file de sessao;;;
 .mcp.json.example;FICA;default conservador (R3);;;
 AGENTS.md;FICA;default conservador (R3);;;
@@ -85,23 +85,23 @@ docs/DOCUMENTATION_CONVENTIONS.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/EDGE_CONTRACT_VALIDATION.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/ENV_SETUP.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/ER_DIAGRAM.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/EVOLUTION_API_AUDIT_2026-07-03.md;ARQUIVA;Auditoria histórica sessão 1 (2026-07-03), todos os 8 consumidores são docs da mesma série de auditoria (followup, scorecard, sessao3/4/6, 07-10 sessao5/8 tabela índice), zero refs em EVOLUTION_API_REFERENCE/API_CONTRACT/AGENT_INSTRUCTIONS, src/, scripts/ ou .github/;docs/EVOLUTION_API_AUDIT_2026-07-04_followup.md, _scorecard.md, _sessao3.md, _sessao4.md, 2026-07-05_sessao6.md, 2026-07-10_sessao5.md:447, 2026-07-10_sessao8.md:448 (todos mesma série histórica);docs/_archive/EVOLUTION_API_AUDIT_2026-07-03.md;E13
-docs/EVOLUTION_API_AUDIT_2026-07-04_followup.md;ARQUIVA;Auditoria de acompanhamento sessão 2 (2026-07-04), consumidores apenas docs irmãos da série (07-03, scorecard, sessao3/4), nenhum consumidor vivo em REFERENCE/API_CONTRACT/src/scripts/.github;docs/EVOLUTION_API_AUDIT_2026-07-03.md:336, _scorecard.md:7, _sessao3.md:12, _sessao4.md:12 (mesma série);docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_followup.md;E13
-docs/EVOLUTION_API_AUDIT_2026-07-04_scorecard.md;ARQUIVA;Scorecard final sessão 3 (2026-07-04), consumidores apenas sessao4, sessao5 e 07-05_sessao6_webhook-eventos-glitchtip (todas da série de auditoria), sem consumidor vivo;docs/EVOLUTION_API_AUDIT_2026-07-04_sessao4.md:14, _sessao5.md:14, 2026-07-05_sessao6_webhook-eventos-glitchtip.md:21 (mesma série);docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_scorecard.md;E14
-docs/EVOLUTION_API_AUDIT_2026-07-04_sessao3.md;ARQUIVA;Auditoria exaustiva sessão 3 (2026-07-04), consumidores apenas sessao4, sessao5, EXECUCAO_sessao4 e tabelas índice dos docs 07-10_sessao5/sessao8, sem consumidor vivo;docs/EVOLUTION_API_AUDIT_2026-07-04_sessao4.md:13, _sessao5.md:11, EXECUCAO_2026-07-04_sessao4.md:6, 07-10_sessao5.md:448, 07-10_sessao8.md:449 (mesma série);docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_sessao3.md;E14
-docs/EVOLUTION_API_AUDIT_2026-07-04_sessao4.md;ARQUIVA;Auditoria noturna sessão 4 (2026-07-04), consumidores apenas sessao5, EXECUCAO_sessao5_infra e tabelas índice 07-10_sessao5/sessao8 (mesma série), sem consumidor vivo;docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5.md:12, EXECUCAO_2026-07-04_sessao5_infra.md:19, 07-10_sessao5.md:449, 07-10_sessao8.md:450 (mesma série);docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_sessao4.md;E15
-docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5.md;ARQUIVA;Auditoria sessão 5 manhã (2026-07-04), consumidores apenas 07-05_sessao6_webhook-eventos-glitchtip e EXECUCAO_sessao5_infra (mesma série), sem consumidor vivo;docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md:22, EXECUCAO_2026-07-04_sessao5_infra.md:18 (mesma série);docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_sessao5.md;E16
-docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5_wpp2.md;ARQUIVA;Auditoria conexão WPP2 sessão 5 (2026-07-04), consumidores apenas 07-05_sessao6_webhook, 07-05_sessao7 e EXECUCAO_sessao5 (mesma série), sem consumidor vivo;docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md:23, 2026-07-05_sessao7.md:22, EXECUCAO_2026-07-04_sessao5.md:5 (mesma série);docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_sessao5_wpp2.md;E16
-docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6.md;ARQUIVA;Relatório de sessão de auditoria histórica (banner 'DOCUMENTO HISTÓRICO', achados S6-1..N já corrigidos/tratados em 2026-07-05) sem consumidor vivo: únicos links são dos próprios docs-irmãos de auditoria EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md:4 e EVOLUTION_API_AUDIT_2026;['docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md:4 (link)', 'docs/EVOLUTION_API_AUDIT_2026-07-05_sessao7.md:7,23 (links)'];docs/_archive/EVOLUTION_API_AUDIT_2026-07-05_sessao6.md;E17
-docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md;ARQUIVA;Relatório de sessão com correções já aplicadas e verificadas (drift de inscrição 15->26 eventos, restart GlitchTip, paridade do webhook secret), não é o contrato vivo de ingestão (esse vive em EVOLUTION_API_REFERENCE.md, que não linka sessoes) e seu único consumidor é docs/decouple/VAULT_DEDUP_ANALY;['docs/decouple/VAULT_DEDUP_ANALYSIS.md:79,143,162 (citações de evidência, artefato fase-3 EXECUTADO)'];docs/_archive/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md;E17
-docs/EVOLUTION_API_AUDIT_2026-07-05_sessao7.md;ARQUIVA;Relatório de sessão de auditoria histórica (banner 'DOCUMENTO HISTÓRICO', 9 achados de 2026-07-05, correções aplicadas ou gated) sem NENHUM consumidor em docs/ (grep do basename só retorna o próprio arquivo), sucessor ONDA4 não referencia.;nenhum;docs/_archive/EVOLUTION_API_AUDIT_2026-07-05_sessao7.md;E18
+docs/EVOLUTION_API_AUDIT_2026-07-03.md;"ARQUIVA;REVISAR";Auditoria histórica sessão 1 (2026-07-03), todos os 8 consumidores são docs da mesma série de auditoria (followup, scorecard, sessao3/4/6, 07-10 sessao5/8 tabela índice), zero refs em EVOLUTION_API_REFERENCE/API_CONTRACT/AGENT_INSTRUCTIONS, src/, scripts/ ou .github/ [R2: consumidor encontrado: docs;docs/EVOLUTION_API_AUDIT_2026-07-04_followup.md, _scorecard.md, _sessao3.md, _sessao4.md, 2026-07-05_sessao6.md, 2026-07-10_sessao5.md:447, 2026-07-10_sessao8.md:448 (todos mesma série histórica);docs/_archive/EVOLUTION_API_AUDIT_2026-07-03.md;E13
+docs/EVOLUTION_API_AUDIT_2026-07-04_followup.md;"ARQUIVA;REVISAR";Auditoria de acompanhamento sessão 2 (2026-07-04), consumidores apenas docs irmãos da série (07-03, scorecard, sessao3/4), nenhum consumidor vivo em REFERENCE/API_CONTRACT/src/scripts/.github [R2: consumidor encontrado: docs/EVOLUTION_API_AUDIT_2026-07-03.md, docs/EVOLUTION_API_AUDIT_2026-07-04_scor;docs/EVOLUTION_API_AUDIT_2026-07-03.md:336, _scorecard.md:7, _sessao3.md:12, _sessao4.md:12 (mesma série);docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_followup.md;E13
+docs/EVOLUTION_API_AUDIT_2026-07-04_scorecard.md;"ARQUIVA;REVISAR";Scorecard final sessão 3 (2026-07-04), consumidores apenas sessao4, sessao5 e 07-05_sessao6_webhook-eventos-glitchtip (todas da série de auditoria), sem consumidor vivo [R2: consumidor encontrado: docs/EVOLUTION_API_AUDIT_2026-07-04_sessao4.md, docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5.md, docs/EV;docs/EVOLUTION_API_AUDIT_2026-07-04_sessao4.md:14, _sessao5.md:14, 2026-07-05_sessao6_webhook-eventos-glitchtip.md:21 (mesma série);docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_scorecard.md;E14
+docs/EVOLUTION_API_AUDIT_2026-07-04_sessao3.md;"ARQUIVA;REVISAR";Auditoria exaustiva sessão 3 (2026-07-04), consumidores apenas sessao4, sessao5, EXECUCAO_sessao4 e tabelas índice dos docs 07-10_sessao5/sessao8, sem consumidor vivo [R2: consumidor encontrado: docs/EVOLUTION_API_AUDIT_2026-07-04_sessao4.md, docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5.md, docs/EVOL;docs/EVOLUTION_API_AUDIT_2026-07-04_sessao4.md:13, _sessao5.md:11, EXECUCAO_2026-07-04_sessao4.md:6, 07-10_sessao5.md:448, 07-10_sessao8.md:449 (mesma série);docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_sessao3.md;E14
+docs/EVOLUTION_API_AUDIT_2026-07-04_sessao4.md;"ARQUIVA;REVISAR";Auditoria noturna sessão 4 (2026-07-04), consumidores apenas sessao5, EXECUCAO_sessao5_infra e tabelas índice 07-10_sessao5/sessao8 (mesma série), sem consumidor vivo [R2: consumidor encontrado: docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5.md, docs/EVOLUTION_API_AUDIT_2026-07-10_sessao5.md, docs/EVOL;docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5.md:12, EXECUCAO_2026-07-04_sessao5_infra.md:19, 07-10_sessao5.md:449, 07-10_sessao8.md:450 (mesma série);docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_sessao4.md;E15
+docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5.md;"ARQUIVA;REVISAR";Auditoria sessão 5 manhã (2026-07-04), consumidores apenas 07-05_sessao6_webhook-eventos-glitchtip e EXECUCAO_sessao5_infra (mesma série), sem consumidor vivo [R2: consumidor encontrado: docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md, docs/EVOLUTION_API_EXECUCAO_2026-07-04_;docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md:22, EXECUCAO_2026-07-04_sessao5_infra.md:18 (mesma série);docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_sessao5.md;E16
+docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5_wpp2.md;"ARQUIVA;REVISAR";Auditoria conexão WPP2 sessão 5 (2026-07-04), consumidores apenas 07-05_sessao6_webhook, 07-05_sessao7 e EXECUCAO_sessao5 (mesma série), sem consumidor vivo [R2: consumidor encontrado: docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md, docs/EVOLUTION_API_AUDIT_2026-07-05_sessa;docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md:23, 2026-07-05_sessao7.md:22, EXECUCAO_2026-07-04_sessao5.md:5 (mesma série);docs/_archive/EVOLUTION_API_AUDIT_2026-07-04_sessao5_wpp2.md;E16
+docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6.md;"ARQUIVA;REVISAR";Relatório de sessão de auditoria histórica (banner 'DOCUMENTO HISTÓRICO', achados S6-1..N já corrigidos/tratados em 2026-07-05) sem consumidor vivo: únicos links são dos próprios docs-irmãos de auditoria EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md:4 e EVOLUTION_API_AUDIT_2026;['docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md:4 (link)', 'docs/EVOLUTION_API_AUDIT_2026-07-05_sessao7.md:7,23 (links)'];docs/_archive/EVOLUTION_API_AUDIT_2026-07-05_sessao6.md;E17
+docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md;"ARQUIVA;REVISAR";Relatório de sessão com correções já aplicadas e verificadas (drift de inscrição 15->26 eventos, restart GlitchTip, paridade do webhook secret), não é o contrato vivo de ingestão (esse vive em EVOLUTION_API_REFERENCE.md, que não linka sessoes) e seu único consumidor é docs/decouple/VAULT_DEDUP_ANALY;['docs/decouple/VAULT_DEDUP_ANALYSIS.md:79,143,162 (citações de evidência, artefato fase-3 EXECUTADO)'];docs/_archive/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md;E17
+docs/EVOLUTION_API_AUDIT_2026-07-05_sessao7.md;"ARQUIVA;REVISAR";Relatório de sessão de auditoria histórica (banner 'DOCUMENTO HISTÓRICO', 9 achados de 2026-07-05, correções aplicadas ou gated) sem NENHUM consumidor em docs/ (grep do basename só retorna o próprio arquivo), sucessor ONDA4 não referencia. [R2: consumidor encontrado: supabase/functions/whatsapp-clou;nenhum;docs/_archive/EVOLUTION_API_AUDIT_2026-07-05_sessao7.md;E18
 docs/EVOLUTION_API_AUDIT_2026-07-10_sessao5.md;EXCLUI;Duplicado com canônico identificado: diff vs EVOLUTION_API_AUDIT_2026-07-10_sessao8.md mostra conteúdo ~idêntico (456 linhas, diferenças só no título 'Sessão 5'->'Sessão 8 — Validação Pós-S4', nota de sessões anteriores, redação de target_jid/URL do webhook e rodapé) — sessao8 é a versão renomeada e;nenhum;;E18
 docs/EVOLUTION_API_AUDIT_2026-07-10_sessao8.md;ARQUIVA;Relatório de validação pós-S4 (13/13 correções confirmadas, 2026-07-10) sem consumidor em docs/ (grep do basename só retorna o próprio), versão canônica redigida do par sessao5/sessao8 — histórico com valor de registro.;nenhum;docs/_archive/EVOLUTION_API_AUDIT_2026-07-10_sessao8.md;E18
 docs/EVOLUTION_API_AUDIT_2026-07-12_sessao10.md;ARQUIVA;Relatório de auditoria de infra VPS (3 stacks Evolution, 2026-07-12, gaps I-1..I-4 registrados para ação manual) sem consumidor em docs/ (grep só retorna o próprio arquivo), registro histórico da série, sucedido pela ONDA4.;nenhum;docs/_archive/EVOLUTION_API_AUDIT_2026-07-12_sessao10.md;E19
-docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao4.md;ARQUIVA;Execução de melhorias FMEA+9 itens sessão 4 (2026-07-04), consumidores apenas sessao5 audit, sessao5_wpp2 (tabela cronológica) e VALIDACAO_2026-07-10_sessao5 (todas da série), sem consumidor vivo;docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5.md:13, _sessao5_wpp2.md:30, EVOLUTION_API_VALIDACAO_2026-07-10_sessao5.md:7 (mesma série);docs/_archive/EVOLUTION_API_EXECUCAO_2026-07-04_sessao4.md;E15
-docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao5.md;ARQUIVA;Execução FMEA+8 itens sessão 5 trilha código (2026-07-04), único consumidor é EXECUCAO_sessao5_infra (mesma série, também sendo migrado/arquivado), sem consumidor vivo;docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao5_infra.md:8 (mesma série);docs/_archive/EVOLUTION_API_EXECUCAO_2026-07-04_sessao5.md;E16
+docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao4.md;"ARQUIVA;REVISAR";Execução de melhorias FMEA+9 itens sessão 4 (2026-07-04), consumidores apenas sessao5 audit, sessao5_wpp2 (tabela cronológica) e VALIDACAO_2026-07-10_sessao5 (todas da série), sem consumidor vivo [R2: consumidor encontrado: docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5.md, docs/EVOLUTION_API_AUDIT_202;docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5.md:13, _sessao5_wpp2.md:30, EVOLUTION_API_VALIDACAO_2026-07-10_sessao5.md:7 (mesma série);docs/_archive/EVOLUTION_API_EXECUCAO_2026-07-04_sessao4.md;E15
+docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao5.md;"ARQUIVA;REVISAR";Execução FMEA+8 itens sessão 5 trilha código (2026-07-04), único consumidor é EXECUCAO_sessao5_infra (mesma série, também sendo migrado/arquivado), sem consumidor vivo [R2: consumidor encontrado: docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao5_infra.md];docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao5_infra.md:8 (mesma série);docs/_archive/EVOLUTION_API_EXECUCAO_2026-07-04_sessao5.md;E16
 docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao5_infra.md;MIGRA;Execução trilha INFRA/DB sessão 5 (GlitchTip, retenção _analytics, drift backups, secrets, registry, ghost alert) — dono é a infra Evolution, zero consumidores no zapp, NENHUM equivalente no clone evolution-stack (grep '11 workstreams'/'trilha INFRA/DB'/'sessao5_infra' sem hits em docs/ ou raiz);nenhum;docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao5_infra.md;E16
-docs/EVOLUTION_API_FMEA_2026-07-04.md;MIGRA;FMEA é referência viva para operação da API Evolution, dono é a infra Evolution, não o zapp (pós-desacoplamento 2026-08-12).;docs/AUDITORIA_EVOLUTION_API_ONDA4_20260808.md, docs/EVOLUTION_API_AUDIT_2026-07-04_scorecard.md, docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md, docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao4.md, docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao5.md, docs/EVOLUTION_API_EXECUCA;evolution-stack/docs/EVOLUTION_API_FMEA.md;E20
+docs/EVOLUTION_API_FMEA_2026-07-04.md;"MIGRA;REVISAR";FMEA é referência viva para operação da API Evolution, dono é a infra Evolution, não o zapp (pós-desacoplamento 2026-08-12). [R2: consumidor encontrado: docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md, docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao5_infra.md];docs/AUDITORIA_EVOLUTION_API_ONDA4_20260808.md, docs/EVOLUTION_API_AUDIT_2026-07-04_scorecard.md, docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6_webhook-eventos-glitchtip.md, docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao4.md, docs/EVOLUTION_API_EXECUCAO_2026-07-04_sessao5.md, docs/EVOLUTION_API_EXECUCA;evolution-stack/docs/EVOLUTION_API_FMEA.md;E20
 docs/EVOLUTION_API_GAPS_ANALYSIS.md;ARQUIVA;Snapshot de 2026-04-12 (Evolution API v1.0.1) superseded: todos os gaps listados têm evidência de fechamento no repo (HMAC em supabase/functions/evolution-webhook e recheck-webhook-signature, DLQ+backoff em _shared/dlq-backoff.ts e enqueue-failed-message.ts, reconciliação em src/features/inbox/hooks;docs/EVOLUTION_API_AUDIT_2026-07-10_sessao5.md (sessão de auditoria histórica);docs/_archive/EVOLUTION_API_GAPS_ANALYSIS.md;E22
 docs/EVOLUTION_API_REFERENCE.md;FICA;versao citada: Evolution API v2.x (2025) - doc.evolution-api.com/v2, contrato vivo com 8 links de entrada incluindo README.md e CLAUDE.md.;CLAUDE.md, README.md, docs/README.md, docs/WEBHOOK_EVENTS.md, docs/DOCUMENTATION_CONVENTIONS.md, docs/AUDIT_MIGRATION_VS_DB_50_STEPS.md, docs/decouple/DOC_UPDATE_ORCHESTRATION_20260814.md, docs/decouple/SIMULATION_SCENARIOS_20260814.md;docs/EVOLUTION_API_REFERENCE.md;E21
 docs/EVOLUTION_API_VALIDACAO_2026-07-10_sessao5.md;ARQUIVA;Relatório de validação exaustiva 60/60 testes (2026-07-10, bug DLQ corrigido) sem consumidor em docs/ (grep do basename só retorna o próprio arquivo), histórico de auditoria com valor de registro.;nenhum;docs/_archive/EVOLUTION_API_VALIDACAO_2026-07-10_sessao5.md;E19
@@ -116,10 +116,10 @@ docs/FUNCTIONALITIES_INVENTORY.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/GOD_FILE_DECOMPOSITION.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/HANDOFF-LID-S14-20260811.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/HANDOFF_DOCUMENT.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/HANDOFF_EVOLUTION_SECURITY_2026-04-12.md;ARQUIVA;Handoff antigo (2026-04-12) superado pelo desacoplamento, unico link de entrada e SIMULATION_SCENARIOS_20260814.md (cenarios de simulacao, nao contrato vivo) -> historico em docs/_archive/.;docs/decouple/SIMULATION_SCENARIOS_20260814.md;docs/_archive/HANDOFF_EVOLUTION_SECURITY_2026-04-12.md;E28
+docs/HANDOFF_EVOLUTION_SECURITY_2026-04-12.md;"ARQUIVA;REVISAR";Handoff antigo (2026-04-12) superado pelo desacoplamento, unico link de entrada e SIMULATION_SCENARIOS_20260814.md (cenarios de simulacao, nao contrato vivo) -> historico em docs/_archive/. [R2: consumidor encontrado: docs/decouple/SIMULATION_SCENARIOS_20260814.md];docs/decouple/SIMULATION_SCENARIOS_20260814.md;docs/_archive/HANDOFF_EVOLUTION_SECURITY_2026-04-12.md;E28
 docs/INCIDENT-2026-07-26-PIPELINE-SECURITY.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/INCIDENT-RUNBOOK.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/INCIDENTE-EVOLUTION-20260806.md;MIGRA;Registro de incidente da infra Evolution (wpp2 deslogado 05/08-06/08), dono é o evolution-stack, não o zapp.;.hermes/execucao-evo-20260806/E10-docs.md, docs/PLANO-B-BAILEYS-6.7.24.md, docs/PLANO_CORRECAO_EVO_API_100_ETAPAS_20260806.md (também migrando), graphify-out/manifest.json (gerado);docs/INCIDENTE-EVOLUTION-20260806.md;E25
+docs/INCIDENTE-EVOLUTION-20260806.md;"MIGRA;REVISAR";Registro de incidente da infra Evolution (wpp2 deslogado 05/08-06/08), dono é o evolution-stack, não o zapp. [R2: consumidor encontrado: .hermes/execucao-evo-20260806/E10-docs.md, docs/PLANO-B-BAILEYS-6.7.24.md, docs/PLANO_CORRECAO_EVO_API_100_ETAPAS_20260806.md];.hermes/execucao-evo-20260806/E10-docs.md, docs/PLANO-B-BAILEYS-6.7.24.md, docs/PLANO_CORRECAO_EVO_API_100_ETAPAS_20260806.md (também migrando), graphify-out/manifest.json (gerado);docs/INCIDENTE-EVOLUTION-20260806.md;E25
 docs/INCIDENTE-MEDIA-BUCKET-20260806.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/INCIDENT_RUNBOOK.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/INCIDENT_SECURITY_TOKEN_2026-07-26.md;FICA;doc estrutural — revisao Fase 3;;;
@@ -135,7 +135,7 @@ docs/ONBOARDING.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/OPERACAO_BUILD_DEPLOY_V3.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/PERFORMANCE_GUIDE.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/PLANO-B-BAILEYS-6.7.24.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/PLANO_CORRECAO_EVO_API_100_ETAPAS_20260806.md;MIGRA;Plano de correção da infra Evolution (100 etapas, rodada 2026-08-06) já concluído, dono é o evolution-stack, vai para docs/history/ no repo destino.;.hermes/auditoria-infra/AUDITORIA_TRACKING_EVO_20260806.md, docs/audits/HANDOFF_REVISAO_BACKLOG.md, INDICE_ACHADOS.md, PLANO_IMPLEMENTACAO_100.md, PROMPT_AGENTE_LOCAL_CORRECAO.md, PROMPT_ETAPA_2.md, PROMPT_ETAPA_3.md, PROMPT_LOTE_C_F7.md, RELATORIO_CORRECAO.md, docs/SCHEMA_REFERENCE.md (menções nomi;docs/history/PLANO_CORRECAO_EVO_API_100_ETAPAS_20260806.md;E24
+docs/PLANO_CORRECAO_EVO_API_100_ETAPAS_20260806.md;"MIGRA;REVISAR";Plano de correção da infra Evolution (100 etapas, rodada 2026-08-06) já concluído, dono é o evolution-stack, vai para docs/history/ no repo destino. [R2: consumidor encontrado: .hermes/auditoria-infra/AUDITORIA_TRACKING_EVO_20260806.md];.hermes/auditoria-infra/AUDITORIA_TRACKING_EVO_20260806.md, docs/audits/HANDOFF_REVISAO_BACKLOG.md, INDICE_ACHADOS.md, PLANO_IMPLEMENTACAO_100.md, PROMPT_AGENTE_LOCAL_CORRECAO.md, PROMPT_ETAPA_2.md, PROMPT_ETAPA_3.md, PROMPT_LOTE_C_F7.md, RELATORIO_CORRECAO.md, docs/SCHEMA_REFERENCE.md (menções nomi;docs/history/PLANO_CORRECAO_EVO_API_100_ETAPAS_20260806.md;E24
 docs/PORTAINER_ZAPP_FOOTPRINT.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/QA_REPORT.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/QA_REPORT_2026-07-22.md;FICA;doc estrutural — revisao Fase 3;;;
@@ -152,7 +152,7 @@ docs/ROADMAP_10_10.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/ROLLBACK_PLANO_100_ETAPAS.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/RPC_STUBS_STATUS.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/RUNBOOK.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/RUNBOOK_401_WORKERS_EVOLUTION_20260806.md;MIGRA;Runbook de operação/diagnóstico de 401s na Evolution API (callers externos), dono é o evolution-stack.;.hermes/execucao-evo-20260806/E10-docs.md, docs/PLANO_CORRECAO_EVO_API_100_ETAPAS_20260806.md (também migrando), docs/RUNBOOK_MEDIA_REFRESH_400_20260806.md, graphify-out/manifest.json (gerado);docs/RUNBOOK_401_WORKERS_EVOLUTION_20260806.md;E25
+docs/RUNBOOK_401_WORKERS_EVOLUTION_20260806.md;"MIGRA;REVISAR";Runbook de operação/diagnóstico de 401s na Evolution API (callers externos), dono é o evolution-stack. [R2: consumidor encontrado: .hermes/execucao-evo-20260806/E10-docs.md, docs/PLANO_CORRECAO_EVO_API_100_ETAPAS_20260806.md, docs/RUNBOOK_MEDIA_REFRESH_400_20260806.md];.hermes/execucao-evo-20260806/E10-docs.md, docs/PLANO_CORRECAO_EVO_API_100_ETAPAS_20260806.md (também migrando), docs/RUNBOOK_MEDIA_REFRESH_400_20260806.md, graphify-out/manifest.json (gerado);docs/RUNBOOK_401_WORKERS_EVOLUTION_20260806.md;E25
 docs/RUNBOOK_DISASTER_RECOVERY.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/RUNBOOK_DR_EVO_20260806.md;EXCLUI;Duplicata antiga (06/08, 5,9KB) superada pelo canônico docs/runbook-evolution/DR_RUNBOOK_EVO.md (12/08, 24KB, +238/-64 no diff): canônico corrige erro crítico (sessão fica no Redis DB 8, não na tabela Session do PG — root está errado), adiciona checksums sha256, PITR pgBackRest e RPO/RTO medidos, ro;graphify-out/manifest.json (artefato gerado, não-consumidor real), nenhum .md de docs/ ou src/ referencia;;E26
 docs/RUNBOOK_MEDIA_REFRESH_400_20260806.md;FICA;doc estrutural — revisao Fase 3;;;
@@ -163,7 +163,7 @@ docs/SCHEMA_REFERENCE.md;FICA;doc vivo de fronteira — revisao manual E20/E21/E
 docs/SCHEMA_SNAPSHOT.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/SECRETS-ROTATION-RUNBOOK.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/SECURITY_HARDENING.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/SIMULACAO_CENARIOS_EVO_2026-07-10.md;ARQUIVA;Registro histórico de simulação de cenários (2026-07-10), único link de entrada é o irmão EXECUCAO_MELHORIAS_EVO também arquivado.;docs/EXECUCAO_MELHORIAS_EVO_2026-07-10.md (irmão, também ARQUIVA);docs/_archive/SIMULACAO_CENARIOS_EVO_2026-07-10.md;E23
+docs/SIMULACAO_CENARIOS_EVO_2026-07-10.md;"ARQUIVA;REVISAR";Registro histórico de simulação de cenários (2026-07-10), único link de entrada é o irmão EXECUCAO_MELHORIAS_EVO também arquivado. [R2: consumidor encontrado: docs/EXECUCAO_MELHORIAS_EVO_2026-07-10.md];docs/EXECUCAO_MELHORIAS_EVO_2026-07-10.md (irmão, também ARQUIVA);docs/_archive/SIMULACAO_CENARIOS_EVO_2026-07-10.md;E23
 docs/SIMULATION_REPORT.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/STRICT_MODE_BACKLOG.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/SUPABASE_SCHEMA_AUDIT_2026-07-15.md;FICA;doc estrutural — revisao Fase 3;;;
@@ -240,7 +240,7 @@ docs/audits/history/audit-summary.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/audits/history/auditoria-edge-functions.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/audits/history/auditoria_tabelas_zapp.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/audits/history/data-loss-simulation-report.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/audits/history/evolution-api-audit-report.md;ARQUIVA;historico de auditoria/incidente (Fase 2 confirma);;;
+docs/audits/history/evolution-api-audit-report.md;"ARQUIVA;REVISAR";historico de auditoria/incidente (Fase 2 confirma) [R2: consumidor encontrado: docs/audits/PLANO_QA_ANALISE_100.md];;;
 docs/audits/history/health-check-banco-2026-07-30.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/audits/retry-backoff-inventory.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/audits/simulation-consolidated-2026-07-12.md;FICA;doc estrutural — revisao Fase 3;;;
@@ -248,19 +248,19 @@ docs/audits/triggers-whatsapp-connections.md;FICA;doc estrutural — revisao Fas
 docs/audits/whatsapp-flow-simulation.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/baseline-edge-tests-20260806.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/csp.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/cutover/2026-06-30_RUNBOOK.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/cutover/2026-07-15_final_report.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/cutover/2026-07-15_schema_audit.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/cutover/2026-07-15_simulation_report.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/cutover/2026-07-15_wave_next_gaps.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/cutover/GAP_REPORT.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/cutover/cloud-tables.txt;FICA;doc estrutural — revisao Fase 3;;;
-docs/cutover/db_old_reference_sweep.md;FICA;doc vivo de fronteira — revisao manual E20/E21/E29;;;
-docs/cutover/realtime_readiness.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/cutover/repo-edge-functions.txt;FICA;doc estrutural — revisao Fase 3;;;
-docs/cutover/selfhosted-zapp-rpcs.txt;FICA;doc estrutural — revisao Fase 3;;;
-docs/cutover/selfhosted-zapp-tables.txt;FICA;doc estrutural — revisao Fase 3;;;
-docs/cutover/ts-nocheck-batch-2026-07-15T13-39-30-705Z.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/cutover/2026-06-30_RUNBOOK.md;"ARQUIVA;REVISAR";Runbook de cutover 2026-06-30 marcado 'DOCUMENTO HISTÓRICO' — cutover concluído 2026-07-15, superseded por SCHEMA_REFERENCE. [R2: consumidor encontrado: supabase/config.toml];— (sem links externos, banner aponta p/ docs/SCHEMA_REFERENCE.md);docs/_archive/cutover-reports/;E83
+docs/cutover/2026-07-15_final_report.md;ARQUIVA;Relatório final 'Rumo a 10/10' da consolidação zapp/evo 2026-07-15 — relatório de execução concluída.;— (sem links externos);docs/_archive/cutover-reports/;E83
+docs/cutover/2026-07-15_schema_audit.md;"ARQUIVA;REVISAR";Auditoria de BD/Schema 2026-07-15 com nota histórica (FATOR X descomissionado) — auditoria concluída. [R2: consumidor encontrado: docs/cutover/2026-07-15_final_report.md, supabase/migrations/20260804000000_canonical_schema_squash_133_migrations.sql];docs/cutover/2026-07-15_final_report.md;docs/_archive/cutover-reports/;E83
+docs/cutover/2026-07-15_simulation_report.md;"ARQUIVA;REVISAR";Relatório de simulação ~300 cenários de acesso zapp/evo 2026-07-15 — simulação concluída pós-cutover. [R2: consumidor encontrado: docs/cutover/2026-07-15_final_report.md];docs/cutover/2026-07-15_final_report.md;docs/_archive/cutover-reports/;E83
+docs/cutover/2026-07-15_wave_next_gaps.md;ARQUIVA;Auditoria da onda 'Rumo a 10/10' (Fase 0→5) 2026-07-15 — relatório de auditoria concluído.;— (sem links externos);docs/_archive/cutover-reports/;E83
+docs/cutover/GAP_REPORT.md;ARQUIVA;GAP REPORT Lovable Cloud → Self-Hosted 2026-07-16 — relatório de auditoria da migração concluída.;— (sem links externos, referencia cloud-tables/db_sweep/rpcs/tables internos);docs/_archive/cutover-reports/;E83
+docs/cutover/cloud-tables.txt;"ARQUIVA;REVISAR";Lista de tabelas cloud Lovable do cutover — artefato de inventário da migração concluída. [R2: consumidor encontrado: docs/cutover/GAP_REPORT.md];docs/cutover/GAP_REPORT.md;docs/_archive/cutover-reports/;E83
+docs/cutover/db_old_reference_sweep.md;"ARQUIVA;REVISAR";Sweep de referências antigas 2026-06-30 marcado 'DOCUMENTO HISTÓRICO' — cutover concluído. [R2: consumidor encontrado: docs/cutover/GAP_REPORT.md];docs/cutover/GAP_REPORT.md;docs/_archive/cutover-reports/;E83
+docs/cutover/realtime_readiness.md;ARQUIVA;Verdict de readiness realtime 2026-06-30 pré-cutover — veredito de execução concluída (cutover feito 07-15).;— (sem links externos);docs/_archive/cutover-reports/;E83
+docs/cutover/repo-edge-functions.txt;"ARQUIVA;REVISAR";Lista de edge functions do repo — artefato de inventário da migração concluída. [R2: consumidor encontrado: docs/cutover/GAP_REPORT.md];docs/cutover/GAP_REPORT.md;docs/_archive/cutover-reports/;E83
+docs/cutover/selfhosted-zapp-rpcs.txt;"ARQUIVA;REVISAR";Lista de RPCs self-hosted zapp — artefato de inventário da migração concluída. [R2: consumidor encontrado: docs/cutover/GAP_REPORT.md];docs/cutover/GAP_REPORT.md;docs/_archive/cutover-reports/;E83
+docs/cutover/selfhosted-zapp-tables.txt;"ARQUIVA;REVISAR";Lista de tabelas self-hosted zapp — artefato de inventário da migração concluída. [R2: consumidor encontrado: docs/cutover/GAP_REPORT.md];docs/cutover/GAP_REPORT.md;docs/_archive/cutover-reports/;E83
+docs/cutover/ts-nocheck-batch-2026-07-15T13-39-30-705Z.md;ARQUIVA;Onda ts-nocheck 2026-07-15 (removidos c/ 0 erros) — log de execução one-shot concluída, cópia já existe em docs/_archive/cutover-reports/.;docs/cutover/2026-07-15_ts-nocheck-wave1.md, duplicata já arquivada em docs/_archive/cutover-reports/;docs/_archive/cutover-reports/;E83
 docs/cutover/ts-nocheck-batch-2026-07-15T13-39-46-339Z.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/cutover/ts-nocheck-batch-2026-07-15T13-40-03-725Z.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/cutover/ts-nocheck-batch-2026-07-15T13-40-18-958Z.md;FICA;doc estrutural — revisao Fase 3;;;
@@ -398,48 +398,48 @@ docs/edge/inventario-109.csv;FICA;doc estrutural — revisao Fase 3;;;
 docs/edge/reconciliacao-2026-08.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/edge/relatorio-e0-2026-08-01.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/edge/relatorio-e4-2026-08-01.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/01-frontend.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/02-features-batch1.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/03-features-batch2.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/05-features-admin.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/06-features-inbox-hooks.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/07-features-inbox-services.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/08-features-inbox-components-chat-1.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/08-features-inbox-components-chat-2.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/09-features-inbox-components-contato-lista-ia.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/10-features-inbox-components-raiz-a-m.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/11-features-inbox-components-raiz-m-z.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/12-features-inbox-components-restantes.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/14-components-settings.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/15-components-contacts.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/16-components-connections-dashboard.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/17-components-teamchat-monitoring.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/19-components-layout-gamification-talkx-catalog-reports-notifications.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/20-components-email-voice-crm360-onboarding-calls-ai.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/22-components-pequenos-e-shared.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/23-hooks-raiz-1.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/24-hooks-raiz-2.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/25-hooks-raiz-3.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/26-hooks-raiz-4.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/27-hooks-subdirs.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/28-hooks-tests-1.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/29-hooks-tests-2.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/30-integrations.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/31-adapters-e-integrations-tests.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/32-services.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/33-lib-raiz.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/34-lib-subdirs-utils-types.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/35-lib-tests.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/36-backend-edge-functions.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/37-backend-db-runtime.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/38-infra-ci-scripts.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/39-residual-tests.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/40-e2e-harness-data.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/_ERRATA-TOPOLOGIA.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/_HANDOFF.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/_PROGRESSO.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/estado/_RECONCILIACAO-INVENTARIOS.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/history/DEPLOYMENT_EXECUTION_STATUS.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/estado/01-frontend.md;FICA;Inventário vigente do frontend (shell/roteamento), auditado 2026-08-09, commit 2026-08-16 — descreve o sistema atual.;— (parte do inventário docs/estado);;E83
+docs/estado/02-features-batch1.md;FICA;Inventário vigente de features pequenas (business-logic), auditado 2026-08-09 — estado atual do sistema.;— (parte do inventário docs/estado);;E83
+docs/estado/03-features-batch2.md;FICA;Inventário vigente features contacts/connections/sla, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/05-features-admin.md;FICA;Inventário vigente do módulo admin (DLQ, retry Evolution API), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/06-features-inbox-hooks.md;FICA;Inventário vigente dos hooks do inbox (orquestração WhatsApp/Evolution API), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/07-features-inbox-services.md;FICA;Inventário vigente dos services do inbox, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/08-features-inbox-components-chat-1.md;FICA;Inventário vigente UI da conversa (chat parte 1), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/08-features-inbox-components-chat-2.md;FICA;Inventário vigente UI da conversa (chat parte 2), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/09-features-inbox-components-contato-lista-ia.md;FICA;Inventário vigente contact-details/conversation-list/ai-tools, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/10-features-inbox-components-raiz-a-m.md;FICA;Inventário vigente componentes raiz A–M do inbox, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/11-features-inbox-components-raiz-m-z.md;FICA;Inventário vigente componentes raiz M–Z do inbox, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/12-features-inbox-components-restantes.md;FICA;Inventário vigente dos 12 subdiretórios finais do inbox, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/14-components-settings.md;FICA;Inventário vigente de components/settings, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/15-components-contacts.md;FICA;Inventário vigente de components/contacts (CRM), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/16-components-connections-dashboard.md;FICA;Inventário vigente connections+dashboard (bridge Supabase-Evolution), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/17-components-teamchat-monitoring.md;FICA;Inventário vigente team-chat+monitoring (Evolution Monitoring Dashboard/DLQ), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/19-components-layout-gamification-talkx-catalog-reports-notifications.md;FICA;Inventário vigente de 6 diretórios de components, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/20-components-email-voice-crm360-onboarding-calls-ai.md;FICA;Inventário vigente email/voice/crm360/evoApiHealth etc., auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/22-components-pequenos-e-shared.md;FICA;Inventário vigente components pequenos + src/shared, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/23-hooks-raiz-1.md;FICA;Inventário vigente hooks raiz parte 1, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/24-hooks-raiz-2.md;FICA;Inventário vigente hooks raiz chunk 2/4, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/25-hooks-raiz-3.md;FICA;Inventário vigente hooks raiz chunk 3/4, auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/26-hooks-raiz-4.md;FICA;Inventário vigente hooks raiz chunk 4/4 (S–Z), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/27-hooks-subdirs.md;FICA;Inventário vigente hooks em 24 subdiretórios (incl. evolution/), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/28-hooks-tests-1.md;FICA;Inventário vigente testes de hooks parte 1 (incl. Evolution API), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/29-hooks-tests-2.md;FICA;Inventário vigente testes de hooks parte 2 (incl. evolution/), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/30-integrations.md;FICA;Inventário vigente src/integrations (cliente Evolution API em zappweb), auditado 2026-08-09 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/31-adapters-e-integrations-tests.md;FICA;Inventário vigente adapters+integrations tests, auditado 2026-08-16 com errata do orquestrador — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/32-services.md;FICA;Inventário vigente src/services, auditado 2026-08-16 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/33-lib-raiz.md;FICA;Inventário vigente src/lib raiz, auditado 2026-08-16 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/34-lib-subdirs-utils-types.md;FICA;Inventário vigente lib subdirs+utils+types, auditado 2026-08-16 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/35-lib-tests.md;FICA;Inventário vigente lib __tests__, auditado 2026-08-16 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/36-backend-edge-functions.md;FICA;Inventário vigente supabase/functions (107 funções), auditado 2026-08-16 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/37-backend-db-runtime.md;FICA;Inventário vigente do banco (524 objetos declarados × ~2600 vivos), VERIFICADO ao vivo 2026-08-16 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/38-infra-ci-scripts.md;FICA;Inventário vigente infra/CI/scripts, auditado 2026-08-16 com errata do orquestrador — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/39-residual-tests.md;FICA;Inventário vigente testes residuais, auditado 2026-08-16 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/40-e2e-harness-data.md;FICA;Inventário vigente e2e/harness/src/data, auditado 2026-08-16 — estado atual.;— (parte do inventário docs/estado);;E83
+docs/estado/_ERRATA-TOPOLOGIA.md;FICA;Errata de topologia do docs/estado (base 2026-08-09 → verdade 2026-08-16), correções NÃO aplicadas aguardando revisão — vigente/pendente.;docs/estado/_HANDOFF.md, _PROGRESSO.md, _RECONCILIACAO-INVENTARIOS.md (mencionam);;E83
+docs/estado/_HANDOFF.md;"ARQUIVA;REVISAR";Handoff de sessão 2026-08-09 ('retomar onde paramos') — propósito cumprido: inventário docs/estado concluído em 2026-08-16. [R2: consumidor encontrado: docs/estado/_ERRATA-TOPOLOGIA.md, docs/estado/_RECONCILIACAO-INVENTARIOS.md, docs/simulation/2026-08-16_inventario_estado_10_agentes_failure_simulat;docs/estado/_ERRATA-TOPOLOGIA.md, docs/estado/_RECONCILIACAO-INVENTARIOS.md, docs/simulation/2026-08-16_inventario_estado_10_agentes_failure_simulation.md;docs/_archive/estado/;E83
+docs/estado/_PROGRESSO.md;"ARQUIVA;REVISAR";Rastreador do inventário estado_atualizado.md — onda de 10 agentes concluída (docs 01–40 publicados 2026-08-16), tracker superseded. [R2: consumidor encontrado: PLANO-ESTADO.md, docs/estado/_ERRATA-TOPOLOGIA.md, docs/estado/_HANDOFF.md, docs/simulation/2026-08-16_inventario_estado_10_agentes_failure;docs/estado/_ERRATA-TOPOLOGIA.md, docs/estado/_HANDOFF.md, docs/simulation/2026-08-16_inventario_estado_10_agentes_failure_simulation.md;docs/_archive/estado/;E83
+docs/estado/_RECONCILIACAO-INVENTARIOS.md;"ARQUIVA;REVISAR";Reconciliação Fase 5 dos inventários paralelos (auditoria com correções pendentes) — histórico de auditoria concluída. [R2: consumidor encontrado: docs/estado/_PROGRESSO.md, docs/simulation/2026-08-16_inventario_estado_10_agentes_failure_simulation.md, estado_atualizado.md];docs/estado/_PROGRESSO.md, docs/simulation/2026-08-16_inventario_estado_10_agentes_failure_simulation.md, docs/reconciliation/EXECUTIVE_SUMMARY.md;docs/_archive/estado/;E83
+docs/history/DEPLOYMENT_EXECUTION_STATUS.md;"ARQUIVA;REVISAR";Status de execução Round 15 Database Hardening (2026-07-12, CERTIFIED PRODUCTION READY) — relatório histórico concluído. [R2: consumidor encontrado: .gitignore, docs/history/ARCHIVE_INDEX.md];docs/history/ARCHIVE_INDEX.md;docs/_archive/history/;E83
 docs/history/FALHAS_E_GAPS.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/history/PRODUCTION_EXCELLENCE_IMPLEMENTATION.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/history/QA_REPORT_2026-06-14.md;FICA;doc estrutural — revisao Fase 3;;;
@@ -450,7 +450,7 @@ docs/history/RUNTIME-RLS-VALIDATION.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/history/SCHEMA-INTROSPECTION-PROTECTION.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/incident/2026-07-30-chatpanel-blank-fix.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/infra/2026-08-03_docker_secrets_migration.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/infra/evolution-stack.reconciled.DEPRECATED.yml;EXCLUI;stacks devem morar no evolution-stack (E80 diffs);;;
+docs/infra/evolution-stack.reconciled.DEPRECATED.yml;"EXCLUI;REVISAR";stacks devem morar no evolution-stack (E80 diffs) [R2: consumidor encontrado: docs/BOUNDARY-evolution.md, docs/INFRA.md, docs/decouple/PLANO_DESACOPLAMENTO_100_ETAPAS.md];;;
 docs/infra/git-secrets-rotation.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/infra/supabase-functions.reconciled.yml;FICA;doc estrutural — revisao Fase 3;;;
 docs/investigation-synthesis-and-plan.md;FICA;doc estrutural — revisao Fase 3;;;
@@ -475,17 +475,17 @@ docs/reconciliation/06_segredos.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/reconciliation/07_dados.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/reconciliation/08_saude.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/reconciliation/09_consolidacao.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/reconciliation/11_execucao.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/reconciliation/EXECUTIVE_SUMMARY.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/reconciliation/RECONCILIATION_MATRIX.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/reconciliation/11_execucao.md;ARQUIVA;Registro de execução das correções P0→P1 da auditoria 2026-08-04 — log de execução concluída.;— (sem links externos);docs/_archive/reconciliation/;E83
+docs/reconciliation/EXECUTIVE_SUMMARY.md;"ARQUIVA;REVISAR";Resumo executivo da auditoria de reconciliação 2026-08-04 (102 checagens) — histórico de auditoria concluída. [R2: consumidor encontrado: CLAUDE.md, docs/audit-2026-08-06/VALIDATION_PLAN_100_STEPS.md, docs/estado/_RECONCILIACAO-INVENTARIOS.md, docs/reconciliation/09_consolidacao.md, docs/reconciliat;docs/audit-2026-08-06/VALIDATION_PLAN_100_STEPS.md, docs/estado/_RECONCILIACAO-INVENTARIOS.md, docs/reconciliation/09_consolidacao.md, docs/reconciliation/RECONCILIATION_MATRIX.md;docs/_archive/reconciliation/;E83
+docs/reconciliation/RECONCILIATION_MATRIX.md;"ARQUIVA;REVISAR";Matriz de reconciliação 2026-08-04 (consolidação etapas 93–99) — histórico de auditoria concluída. [R2: consumidor encontrado: CLAUDE.md, docs/audit-2026-08-06/EXECUTIVE_SUMMARY.md, docs/audit-2026-08-06/VALIDATION_PLAN_100_STEPS.md, docs/reconciliation/09_consolidacao.md, docs/reconciliation/EXECUT;docs/audit-2026-08-06/EXECUTIVE_SUMMARY.md, docs/audit-2026-08-06/VALIDATION_PLAN_100_STEPS.md, docs/reconciliation/09_consolidacao.md, docs/reconciliation/EXECUTIVE_SUMMARY.md;docs/_archive/reconciliation/;E83
 docs/reconciliation/reconciliation.csv;FICA;doc estrutural — revisao Fase 3;;;
 docs/reconciliation/reconciliation.json;FICA;doc estrutural — revisao Fase 3;;;
-docs/runbook-evolution/DR_RUNBOOK_EVO.md;MIGRA;Canônico do par E26: mais recente (último commit 12/08/2026 vs 06/08 do root), 4x maior, conteúdo corrigido e consolidado (sessão no Redis DB 8, checksums, PITR, RPO/RTO) e auto-declarado 'Este é o runbook da EVOLUTION', dono é o evolution-stack.;docs/decouple/AUDIT_EVO_REFS_20260816/baseline.json (artefato da auditoria, não-consumidor vivo), graphify-out/manifest.json (gerado);docs/DR_RUNBOOK_EVO.md;E26
-docs/runbook-evolution/c9-d8-decision.md;MIGRA;operacao da infra Evolution (Fase 2/3 confirma);;;
-docs/runbook-evolution/evo-tables-kdw-inventory.md;MIGRA;operacao da infra Evolution (Fase 2/3 confirma);;;
-docs/runbooks/APPLY_ZAPP_EVOLUTION_BRIDGES.md;ARQUIVA;historico de auditoria/incidente (Fase 2 confirma);;;
+docs/runbook-evolution/DR_RUNBOOK_EVO.md;"MIGRA;REVISAR";Canônico do par E26: mais recente (último commit 12/08/2026 vs 06/08 do root), 4x maior, conteúdo corrigido e consolidado (sessão no Redis DB 8, checksums, PITR, RPO/RTO) e auto-declarado 'Este é o runbook da EVOLUTION', dono é o evolution-stack. [R2: consumidor encontrado: docs/EVOLUTION-CHANGELOG.;docs/decouple/AUDIT_EVO_REFS_20260816/baseline.json (artefato da auditoria, não-consumidor vivo), graphify-out/manifest.json (gerado);docs/DR_RUNBOOK_EVO.md;E26
+docs/runbook-evolution/c9-d8-decision.md;"MIGRA;REVISAR";operacao da infra Evolution (Fase 2/3 confirma) [R2: consumidor encontrado: docs/EVOLUTION-CHANGELOG.md, docs/SETTINGS.md];;;
+docs/runbook-evolution/evo-tables-kdw-inventory.md;"MIGRA;REVISAR";operacao da infra Evolution (Fase 2/3 confirma) [R2: consumidor encontrado: docs/EVOLUTION-CHANGELOG.md, docs/SETTINGS.md];;;
+docs/runbooks/APPLY_ZAPP_EVOLUTION_BRIDGES.md;"ARQUIVA;REVISAR";historico de auditoria/incidente (Fase 2 confirma) [R2: consumidor encontrado: docs/decouple/DOC_UPDATE_ORCHESTRATION_20260814.md, docs/simulation/2026-08-03_deleted-scripts_50_failure_simulation.md];;;
 docs/runbooks/deploy.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/runbooks/evolution-restart-rabbitmq-bindings.md;ARQUIVA;historico de auditoria/incidente (Fase 2 confirma);;;
+docs/runbooks/evolution-restart-rabbitmq-bindings.md;"ARQUIVA;REVISAR";historico de auditoria/incidente (Fase 2 confirma) [R2: consumidor encontrado: docs/EVOLUTION-CHANGELOG.md, docs/SETTINGS.md];;;
 docs/runbooks/media-pipeline-ops.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/runbooks/session-followups-2026-07-11-r13-r14.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/runbooks/session-report-2026-07-11-audit-10-10.md;FICA;doc estrutural — revisao Fase 3;;;
@@ -496,11 +496,11 @@ docs/simulation/2026-08-03_deleted-scripts_50_failure_simulation.md;FICA;doc est
 docs/simulation/2026-08-03_runtime_fixes_60_failure_simulation.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/simulation/2026-08-03_storage_migration_500_simulation.json;FICA;doc estrutural — revisao Fase 3;;;
 docs/simulation/2026-08-04_feature_inventory_100_etapas_failure_simulation.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/simulation/2026-08-16_inventario_estado_10_agentes_failure_simulation.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/simulation/2026-08-16_inventario_estado_10_agentes_failure_simulation.md;"ARQUIVA;REVISAR";Pre-mortem da onda de 10 agentes do inventário docs/estado (2026-08-16) — simulação pré-onda, onda já executada e docs publicados. [R2: consumidor encontrado: estado_atualizado.md];— (sem links externos, referencia _HANDOFF/_PROGRESSO/_RECONCILIACAO);docs/_archive/simulation/;E83
 docs/simulation/20260803_db_migrations_500_failure_simulation.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/simulation/20260804_db_snapshot.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/simulation/20260804_integracao_schema_zapp_failure_simulation.md;FICA;doc estrutural — revisao Fase 3;;;
-docs/simulation/20260804_rollback_plan.md;FICA;doc estrutural — revisao Fase 3;;;
+docs/simulation/20260804_rollback_plan.md;"ARQUIVA;REVISAR";Rollback plan da integração schema zapp×front 2026-08-04, aplicável em até 48h pós-deploy — janela expirada. [R2: consumidor encontrado: supabase/migrations/20260804150001_integration_schema_zapp_fixes.sql];— (sem links externos);docs/_archive/simulation/;E83
 docs/supabase-schema-audit.html;FICA;doc estrutural — revisao Fase 3;;;
 docs/testing/e2e.md;FICA;doc estrutural — revisao Fase 3;;;
 docs/validacao/V1-lib-raiz.md;FICA;doc estrutural — revisao Fase 3;;;
@@ -544,14 +544,14 @@ infra/runbooks/POLITICA_ANTI_RESIDUOS.md;FICA;default conservador (R3);;;
 infra/runbooks/SECURITY-INCIDENT-CREDENTIAL-ROTATION.md;FICA;default conservador (R3);;;
 infra/scripts/memory-limits.sh;FICA;default conservador (R3);;;
 infra/stack35/SECRETS_INVENTORY.md;FICA;default conservador (R3);;;
-infra/stacks/README.md;EXCLUI;stacks devem morar no evolution-stack (E80 diffs);;;
-infra/stacks/dlq-inspector.yml;EXCLUI;stacks devem morar no evolution-stack (E80 diffs);;;
-infra/stacks/glitchtip.yml;EXCLUI;stacks devem morar no evolution-stack (E80 diffs);;;
-infra/stacks/postgres-backup-daily.yml;EXCLUI;stacks devem morar no evolution-stack (E80 diffs);;;
-infra/stacks/postgres-backup-monthly.yml;EXCLUI;stacks devem morar no evolution-stack (E80 diffs);;;
-infra/stacks/postgres-backup-weekly.yml;EXCLUI;stacks devem morar no evolution-stack (E80 diffs);;;
-infra/stacks/reconcile-ops.yml;EXCLUI;stacks devem morar no evolution-stack (E80 diffs);;;
-infra/stacks/zapp-functions-health.yml;EXCLUI;stacks devem morar no evolution-stack (E80 diffs);;;
+infra/stacks/README.md;"FICA;REVISAR";README pre-split com conteudo unico (changelog sessao 5, secrets, docker-housekeeping, zapp-web-prod) — evostack stacks/README.md e outro documento (mapeamento GitOps evolution): 0 linhas em comum, diff de 41 linhas (100% do arquivo).;Documentacao manual, nenhum workflow do zapp consome infra/stacks (PATH filter 'infra/stacks/**' comentado em .github/workflows/deploy-vps-selfhosted.yml:30);manter em zapp, revisar conteudo (encolher para itens zapp-specific, maestro decide);E80
+infra/stacks/dlq-inspector.yml;"FICA;REVISAR";Sem equivalente no evolution-stack (grep 'dlq' so acha evolution-db-purge.yml e docs, nenhum compose dlq*), stack unico que drena wpp2.dlq (RabbitMQ) para o DB usando secrets rabbitmq_url_evolution_v2/evolution_db_uri_v1.;Deploy manual via Portainer, nenhum workflow ativo do zapp (deploy-vps-selfhosted.yml usa COMPOSE_FROM_PORTAINER, item 92 pendente);manter em zapp ou migrar p/ evolution-stack (maestro decide, usa secret rabbitmq_url_evolution_v2);E80
+infra/stacks/glitchtip.yml;"FICA;REVISAR";Sem equivalente no evolution-stack (glitchtip so em docs EVOLUTION-CHANGELOG.md/WATCHDOG_DEPLOY_SOP.md, nenhum compose), stack 41 de error-monitoring com fix S4-3 (glitchtip-valkey) e secrets v1, unico no zapp.;Deploy manual via Portainer, nenhum workflow ativo do zapp;manter em zapp ou migrar p/ evolution-stack como obs-* (maestro decide);E80
+infra/stacks/postgres-backup-daily.yml;"FICA;REVISAR";Sem equivalente no evolution-stack — evolution-pgbackrest-backup.yml (264, pgBackRest/PITR) e camada complementar, nao substituta: DR_RUNBOOK_EVO.md (10/08) lista stack 112 como backup automatico R2+GPG ativo do PG evolution (seg-sab 02:00, retencao 14d).;Portainer stack 112 vivo em producao (DR_RUNBOOK_EVO.md linhas 23-26), deploy manual via Portainer;manter, candidato a migrar p/ evolution-stack (backup do DB evolution, maestro decide);E80
+infra/stacks/postgres-backup-monthly.yml;"FICA;REVISAR";Sem equivalente no evolution-stack (so evolution-pgbackrest-backup.yml complementar), DR_RUNBOOK_EVO.md lista stack 85 como backup automatico R2+GPG ativo (dia 1 04:00, retencao 365d, passphrase distinta backup_passphrase_monthly_v1).;Portainer stack 85 vivo em producao (DR_RUNBOOK_EVO.md linhas 23-26), deploy manual via Portainer;manter, candidato a migrar p/ evolution-stack (backup do DB evolution, maestro decide);E80
+infra/stacks/postgres-backup-weekly.yml;"FICA;REVISAR";Sem equivalente no evolution-stack (so evolution-pgbackrest-backup.yml complementar), DR_RUNBOOK_EVO.md lista stack 84 como backup automatico R2+GPG ativo (dom 03:00, retencao 35d) do PG evolution.;Portainer stack 84 vivo em producao (DR_RUNBOOK_EVO.md linhas 23-26), deploy manual via Portainer;manter, candidato a migrar p/ evolution-stack (backup do DB evolution, maestro decide);E80
+infra/stacks/reconcile-ops.yml;"EXCLUI;REVISAR";Superseded: funcao reconcile migrou para stacks/evolution-watchdogs.yml v11 (commit 63389f8, 2026-08-14) no evolution-stack com config externa evo_reconcile_v4 + ALERT_THRESHOLD_PCT=20, arquivo do zapp usa script inline v1 (base64 gzip) e o snapshot Portainer 2026-08-14 ja documentava drift (runtime;Portainer stack 226 (runtime config v3 com drift vs arquivo v1, HANDOFF desacoplamento 2026-08-14), sucessor: evolution-watchdogs stack 240 (v11, evo_reconcile_v4);remover de infra/stacks/ do zapp (canonico: evolution-stack stacks/evolution-watchdogs.yml + scripts/reconcile-v4.sh);E80
+infra/stacks/zapp-functions-health.yml;"FICA;REVISAR";Sem equivalente no evolution-stack (git ls-files stacks/ nao contem o arquivo, so referencias em docs stacks/README.md, CLAUDE.md, GITOPS.md e snapshot antigo stack-239), commit dce12a951 (E29, 2026-08-15) moveu intencionalmente do evolution-stack para o zapp — health das edge functions do ZAPP.;Portainer stack 265 (per docs do evolution-stack, config externa check_functions_health), stack 239 deletado em 2026-08-14 (nome errado, escopo era do ZAPP);manter em zapp (E29 intencional), maestro decide se atualiza docs do evolution-stack (stacks/README.md e CLAUDE.md referenciam arquivo inexistente no evostack);E80
 infra/supabase/EDGE_FUNCTIONS.md;FICA;default conservador (R3);;;
 infra/supabase/docker-compose.supabase.yml;FICA;default conservador (R3);;;
 infra/zapp-health-guard/mon_health.sh;FICA;default conservador (R3);;;
@@ -559,6 +559,7 @@ nginx-prod.conf;FICA;default conservador (R3);;;
 ops/LOG_POLICY.md;FICA;default conservador (R3);;;
 ops/snapshots/20260808/ONDA_0_ACOES.md;FICA;default conservador (R3);;;
 ops/snapshots/20260808/VERSION_INDEX.json;FICA;default conservador (R3);;;
+path;classe_sugerida;justificativa;consumidores;destino_path;etapa
 reports/CHATPANEL_QA_EXAUSTIVO_2026-07-30.md;FICA;default conservador (R3);;;
 scripts/.column-map-baseline.txt;FICA;script — revisao manual Fase 7;;;
 scripts/.sync-ignore;FICA;script — revisao manual Fase 7;;;
@@ -573,19 +574,19 @@ scripts/dead-code-allowlist.txt;FICA;script — revisao manual Fase 7;;;
 scripts/decouple/__tests__/evo-ddl-gate.test.mjs;FICA;gate/enforcement CI (E77-E78);;;
 scripts/decouple/__tests__/schema-registry-validate.test.mjs;FICA;script decouple — E82 tria one-shot;;;
 scripts/decouple/__tests__/sql-gate.test.mjs;FICA;script decouple — E82 tria one-shot;;;
-scripts/decouple/boundary-audit.mjs;FICA;doc vivo de fronteira — revisao manual E20/E21/E29;;;
-scripts/decouple/coverage-report.mjs;FICA;script decouple — E82 tria one-shot;;;
-scripts/decouple/evo-ddl-allowlist.txt;FICA;gate/enforcement CI (E77-E78);;;
-scripts/decouple/evo-ddl-gate.mjs;FICA;gate/enforcement CI (E77-E78);;;
+scripts/decouple/boundary-audit.mjs;FICA;Gate vivo: audita os 9 invariantes ZAPP×EVO em modo ONLINE, executado por measure-invariants.yml.;measure-invariants.yml;;E82
+scripts/decouple/coverage-report.mjs;"ARQUIVA;REVISAR";One-shot E44: relatório de cobertura real do desacoplamento, saída materializada em docs/decouple/COVERAGE_V4.md ('Gerado por ... não editar manualmente'). [R2: consumidor encontrado: docs/decouple/COVERAGE_V4.md, docs/decouple/PLANO_DESACOPLAMENTO_V4_CLAUDE_100_ETAPAS_20260814.md, docs/decouple/PLA;docs/decouple/COVERAGE_V4.md;scripts/decouple/_archive/coverage-report.mjs;E82
+scripts/decouple/evo-ddl-allowlist.txt;FICA;Allowlist viva do gate E42 (regularização DR), lida pelo evo-ddl-gate.mjs/yml.;evo-ddl-gate.yml;;E82
+scripts/decouple/evo-ddl-gate.mjs;FICA;Gate vivo E42 (bloqueia DDL novo em schema evo), executado por evo-ddl-gate.yml.;evo-ddl-gate.yml;;E82
 scripts/decouple/fixtures/sql_report_snapshot.json;FICA;script decouple — E82 tria one-shot;;;
-scripts/decouple/inventory.mjs;FICA;script decouple — E82 tria one-shot;;;
-scripts/decouple/ownership-gate.mjs;FICA;script decouple — E82 tria one-shot;;;
-scripts/decouple/phys-refs-gate.mjs;FICA;script decouple — E82 tria one-shot;;;
-scripts/decouple/schema-registry-validate.mjs;FICA;script decouple — E82 tria one-shot;;;
-scripts/decouple/snapshots/zapp_schema_snapshot.sql;FICA;script decouple — E82 tria one-shot;;;
+scripts/decouple/inventory.mjs;FICA;Gate vivo v3: conta bypasses de acoplamento vs baseline (E5/E21/E22), executado por decouple-guard.yml.;decouple-guard.yml;;E82
+scripts/decouple/ownership-gate.mjs;FICA;Gate vivo de propriedade de schema (zapp não grava em evo Grupo A), executado por ownership-gate.yml --ci.;ownership-gate.yml;;E82
+scripts/decouple/phys-refs-gate.mjs;"FICA;REVISAR";Gate E71: bloqueia referências físicas qualificadas NOVAS, é gate por design, mas NÃO está wired em nenhum workflow.;nenhum (manual);;E82
+scripts/decouple/schema-registry-validate.mjs;FICA;Validador vivo do schema registry JSON (docs/decouple/schema-registry/*.json) com __tests__ dedicados.;manual + __tests__;;E82
+scripts/decouple/snapshots/zapp_schema_snapshot.sql;FICA;Snapshot canônico vivo do schema zapp, consumido pelo zapp-drift-check.sh e health-score-anti-drift.yml.;zapp-drift-check.sh, health-score-anti-drift.yml;;E82
 scripts/decouple/sql-gate-fixture.json;FICA;script decouple — E82 tria one-shot;;;
-scripts/decouple/sql-gate.mjs;FICA;script decouple — E82 tria one-shot;;;
-scripts/decouple/verb-contract-gate.mjs;FICA;script decouple — E82 tria one-shot;;;
+scripts/decouple/sql-gate.mjs;FICA;Gate vivo do egresso SQL da Evolution API, executado por decouple-guard.yml.;decouple-guard.yml;;E82
+scripts/decouple/verb-contract-gate.mjs;"FICA;REVISAR";Gate do contrato de verbos do client Evolution, é gate por design, mas NÃO está wired em nenhum workflow.;nenhum (manual);;E82
 scripts/fuzz-edge-functions.ts;FICA;script — revisao manual Fase 7;;;
 scripts/lint-supabase-casts.mjs;FICA;script — revisao manual Fase 7;;;
 scripts/regen-trilha-mensagens.ts;FICA;script — revisao manual Fase 7;;;
@@ -598,7 +599,7 @@ scripts/sql/media-bucket-verification.sql;FICA;script — revisao manual Fase 7;
 scripts/sql/realtime-publication.manifest;FICA;script — revisao manual Fase 7;;;
 scripts/templates/audit_template.md;FICA;script — revisao manual Fase 7;;;
 src/__tests__/sprint1-security-hardening.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
-src/_archive/evolutionClient.archived.ts;EXCLUI;Arquivado e sem nenhum import real: única referência é comentário no header de evolutionClient.ts (grep 'evolutionClient.archived' só acha a linha 5 do próprio evolutionClient.ts).;nenhum (0 imports, ref. apenas em comentário);;E57
+src/_archive/evolutionClient.archived.ts;"EXCLUI;REVISAR";Arquivado e sem nenhum import real: única referência é comentário no header de evolutionClient.ts (grep 'evolutionClient.archived' só acha a linha 5 do próprio evolutionClient.ts). [R2: consumidor encontrado: docs/decouple/ADR-011-egress-gateway.md, docs/decouple/EGRESS_SURFACE_V4.md, docs/estado/40;nenhum (0 imports, ref. apenas em comentário);;E57
 src/_archive/healthCheck.archived.ts;FICA;Ja arquivado em _archive, unica ref e VITE_EVOLUTION_API_URL em codigo morto (linha 224) - Fase 5 (caca dead code) deve excluir.;nenhum (arquivado);;E69
 src/adapters/__tests__/evolutionAdapter.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
 src/adapters/evolution/__tests__/messageTypes.test.ts;FICA;front consumidor (Fase 5 caca dead code);;;
@@ -647,7 +648,7 @@ src/components/monitoring/MonitoringStatsCards.tsx;FICA;Consumidor legitimo: imp
 src/components/monitoring/MonitoringWebhookPanel.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
 src/components/monitoring/MonitoringWebhookPanelTypes.ts;FICA;Consumidor legitimo: tipos de webhook derivados do useEvolutionMonitoring.;importa ./hooks/useEvolutionMonitoring;;E69
 src/components/monitoring/RetryMetricsPanel.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
-src/components/monitoring/hooks/index.ts;EXCLUI;Re-export barrel morto: zero importers em src/ (grep 'monitoring/hooks' so acha refs ao proprio arquivo, a hooks/types e hooks/useEvolutionMonitoring), doc-comment sugere uso que nao existe.;nenhum (0 refs fora do proprio arquivo);;E69
+src/components/monitoring/hooks/index.ts;"EXCLUI;REVISAR";Re-export barrel morto: zero importers em src/ (grep 'monitoring/hooks' so acha refs ao proprio arquivo, a hooks/types e hooks/useEvolutionMonitoring), doc-comment sugere uso que nao existe. [R2: consumidor encontrado: .github/workflows/deno-contract-tests.yml, .github/workflows/edge-auth-smoke.yml,;nenhum (0 refs fora do proprio arquivo);;E69
 src/components/monitoring/hooks/useEvolutionMonitoring.ts;FICA;Nucleo do contrato de monitoramento Evolution: 13 importers (8 paineis + barrel morto + 2 testes + RealtimeFanoutDebug), subscreve INSERT em messages.;13 importers: EvolutionMonitoringDashboard, Monitoring*Panel/Chart/SLA/Stats/Heatmap/ConnectionsList/HealthLogs/WebhookPanelTypes, RealtimeFanoutDebug, 2 testes;;E69
 src/components/settings/ConnectionTestPanel.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
 src/components/settings/FollowUpExecutionsHistory.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
@@ -789,7 +790,7 @@ src/hooks/useExternalApiManagement.ts;FICA;Refs ESTRUTURAIS: imports de @/adapte
 src/hooks/useExternalDB.ts;FICA;front consumidor (Fase 5 caca dead code);;;
 src/hooks/useExternalEvolution.ts;FICA;Ref ESTRUTURAL: import buildExternalConversations/evolutionToRealtimeMessage/jidToPhone de @/adapters/evolutionAdapter, schema evolution_messages, 1 importer (teste).;useExternalEvolution.reconcile.test.ts;;E69
 src/hooks/useFollowupBridge.ts;FICA;front consumidor (Fase 5 caca dead code);;;
-src/hooks/useIntegrationManagement.ts;"EXCLUI;REVISAR";Re-export morto: zero refs em src/ (so comentarios em scripts/.sync-ignore e entrada em scripts/dead-code-allowlist.txt), modulo consolidado ETAPA 42 sem consumidores - remover junto com a entrada do allowlist.;nenhum em src/ (scripts/dead-code-allowlist.txt:66 e .sync-ignore comentam);;E69
+src/hooks/useIntegrationManagement.ts;"EXCLUI;REVISAR";Re-export morto: zero refs em src/ (so comentarios em scripts/.sync-ignore e entrada em scripts/dead-code-allowlist.txt), modulo consolidado ETAPA 42 sem consumidores - remover junto com a entrada do allowlist. [R2: consumidor encontrado: docs/RPC_STUBS_STATUS.md, docs/cutover/ts-nocheck-batch-2026-;nenhum em src/ (scripts/dead-code-allowlist.txt:66 e .sync-ignore comentam);;E69
 src/hooks/useProviderPanel.ts;FICA;front consumidor (Fase 5 caca dead code);;;
 src/hooks/useQueueDetails.ts;FICA;front consumidor (Fase 5 caca dead code);;;
 src/hooks/useQueuesComparison.ts;FICA;front consumidor (Fase 5 caca dead code);;;
@@ -811,7 +812,7 @@ src/integrations/supabase/columnMap.ts;FICA;front consumidor (Fase 5 caca dead c
 src/integrations/supabase/rowNormalizers.ts;FICA;front consumidor (Fase 5 caca dead code);;;
 src/integrations/supabase/schema.ts;FICA;front consumidor (Fase 5 caca dead code);;;
 src/integrations/supabase/types.ts;FICA;front consumidor (Fase 5 caca dead code);;;
-src/integrations/zappweb/evolutionClient.ts;EXCLUI;Cliente legado esvaziado (todos os métodos lançam throw '[V3] Use o whatsappAdapter'), removido do barrel zappweb/index.ts e com zero imports reais em src/.;nenhum (0 imports, refs só em comentários de zappweb/index.ts e supabaseClient.ts);;E58
+src/integrations/zappweb/evolutionClient.ts;"EXCLUI;REVISAR";Cliente legado esvaziado (todos os métodos lançam throw '[V3] Use o whatsappAdapter'), removido do barrel zappweb/index.ts e com zero imports reais em src/. [R2: consumidor encontrado: docs/BOUNDARY-evolution.md, docs/decouple/ADR-011-egress-gateway.md, docs/decouple/CI_GATES_V4.md, docs/decouple/EG;nenhum (0 imports, refs só em comentários de zappweb/index.ts e supabaseClient.ts);;E58
 src/integrations/zappweb/hooks/__tests__/useZappConversations.test.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
 src/integrations/zappweb/hooks/__tests__/useZappMessages.test.tsx;FICA;front consumidor (Fase 5 caca dead code);;;
 src/integrations/zappweb/hooks/useZappContactSearch.ts;FICA;front consumidor (Fase 5 caca dead code);;;
@@ -965,7 +966,7 @@ supabase/functions/_shared/evolution-fallback-telemetry.ts;FICA;2 importadores n
 supabase/functions/_shared/evolution-helpers.ts;FICA;13 importadores no mapa, incluindo evolution-webhook/index.ts, whatsapp-cloud-webhook/index.ts e helpers _shared, uso massivo em produção.;evolution-webhook/index.ts, whatsapp-cloud-webhook/index.ts, evolution-media.ts, evolution-sync-actions.ts, evolution-webhook-handlers.ts, evolution-webhook-messages.ts, evolution-webhook-msg-handlers.ts + 6 testes;;E50
 supabase/functions/_shared/evolution-media.ts;FICA;4 importadores no mapa (evolution-webhook/index.ts, batch-fetch-avatars/index.ts, providers/cloud/media.ts, evolution-webhook-messages.ts).;evolution-webhook/index.ts, batch-fetch-avatars/index.ts, providers/cloud/media.ts, evolution-webhook-messages.ts;;E50
 supabase/functions/_shared/evolution-message-id.ts;FICA;1 importador em produção: public-api/index.ts (grep confirma).;public-api/index.ts;;E50
-supabase/functions/_shared/evolution-normalizer.ts;"EXCLUI;REVISAR";Único importador no mapa é __tests__/ensaio-fake.test.ts (teste/ensaio de mesa, etapa 57 do plano V3), grep repo-wide confirma zero referências em código de produção (demais hits são docs/planos).;apenas __tests__/ensaio-fake.test.ts (teste);;E50
+supabase/functions/_shared/evolution-normalizer.ts;"EXCLUI;REVISAR";Único importador no mapa é __tests__/ensaio-fake.test.ts (teste/ensaio de mesa, etapa 57 do plano V3), grep repo-wide confirma zero referências em código de produção (demais hits são docs/planos). [R2: consumidor encontrado: docs/decouple/ADR-008-canonical-domain-model.md, docs/decouple/CANONICAL_CO;apenas __tests__/ensaio-fake.test.ts (teste);;E50
 supabase/functions/_shared/evolution-profile-fallback.ts;FICA;3 importadores no mapa, incluindo evolution-api/index.ts em produção, grep confirma.;evolution-api/index.ts, __tests__/evolution-profile-fallback.test.ts, providers/evolution/__tests__/contract-fixtures.test.ts;;E50
 supabase/functions/_shared/evolution-response-normalizers.ts;FICA;3 importadores no mapa, incluindo evolution-api/index.ts em produção, grep confirma.;evolution-api/index.ts, __tests__/evolution-response-normalizers.test.ts, providers/evolution/__tests__/contract-fixtures.test.ts;;E50
 supabase/functions/_shared/evolution-sync-actions.ts;FICA;5 importadores no mapa (evolution-api/index.ts, evolution-sync/index.ts, evolution-webhook/index.ts, webhook-diagnostic/index.ts + teste).;evolution-api/index.ts, evolution-sync/index.ts, evolution-webhook/index.ts, webhook-diagnostic/index.ts, evolution-sync/__tests__/parse-regression.test.ts;;E50
