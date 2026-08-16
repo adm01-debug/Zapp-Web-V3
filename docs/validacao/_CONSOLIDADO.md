@@ -16,17 +16,21 @@
 | V2 — `src/lib` subdirs, utils, types | 9 | 2 | 1 | 0 |
 | V3 — testes (`35` + `39`) | 15 | 4 | 0 | 1 |
 | V4 — e2e e harness | 6 | 0 | 0 | 0 |
+| V5 — edge functions | 4 | 2 | **2** | 0 |
 | V6 — infra, CI, scripts | 5 | 2 | 1 | 1 |
-| Orquestrador (direto) | 9 | 0 | **1** | 0 |
-| **Total** | **52** | **14** | **3** | **2** |
+| Orquestrador (direto) | 9 | 1 | **2** | 0 |
+| **Total** | **56** | **17** | **5** | **2** |
 
-**Nenhum documento caiu por inteiro.** A auditoria resistiu no essencial: 52 de 71 alegações
-testadas se sustentam integralmente. O que apareceu foi **severidade inflada** (14 casos) e **três
-erros factuais** — um deles do próprio orquestrador, no documento executivo.
+**Nenhum documento caiu por inteiro.** A auditoria resistiu no essencial: 56 de 80 alegações
+testadas se sustentam integralmente. O que apareceu foi **severidade inflada** (17 casos) e **cinco
+erros factuais** — **três deles do próprio orquestrador**, no documento executivo.
+
+Os cinco refutados estão em §2 (três) e §8 (dois, trazidos pelo V5 — os mais graves da rodada).
 
 ---
 
-## 2. Os três achados refutados
+## 2. Os três primeiros achados refutados
+> Os outros dois — `login-attempts` e a exclusividade da violação de gateway — estão em §8.
 
 ### 2.1 🔴 "Subsistema de filas dormente" — FALSO (erro do orquestrador)
 
@@ -159,3 +163,72 @@ frequência:
 O caso das filas merece registro permanente: um número que **era verdade** quando escrito virou
 falso ao ser copiado uma semana depois, e passou por 12 agentes e um orquestrador sem ser
 questionado — porque tinha fonte confiável.
+
+---
+
+## 8. Adendo — V5 (edge functions): as duas refutações mais graves
+
+O validador de edge functions chegou por último e trouxe o resultado mais consequente da rodada.
+Ambos os pontos abaixo foram **reverificados diretamente pelo orquestrador**.
+
+### 8.1 REFUTADO — "arquivar `login-attempts` quebraria a autenticação"
+
+**Falso. É fail-open.** `src/lib/loginAttempts.ts:118-145`: as três funções exportadas
+(`checkAccountLock`, `recordFailedLogin`, `clearLoginAttempts`) capturam qualquer erro e retornam
+`DEFAULT_LOCK_STATUS` (`blocked:false`, `isLocked:false`); `useAuthForm.ts:181` prossegue para o
+`signIn`.
+
+Arquivá-la **degrada silenciosamente**: desliga lockout de força bruta, blocklist/whitelist de IP e
+geo-blocking — sem nenhum sinal visível. Severidade permanece 🟠 (risco de segurança silencioso),
+mas a consequência muda de "quebra" para "desprotege".
+
+Este erro foi **repetido duas vezes pelo orquestrador em comunicação com o dono** antes de ser
+pego. Corrigido em `estado_atualizado.md` §3.5.
+
+### 8.2 REFUTADO — "1 única violação do gateway Evolution"
+
+**São 3 em bypass total.** As duas que escaparam resolvem a base URL pelo **vault**, não pela
+variável de ambiente que o grep procurava:
+
+| função | evidência | o que faz |
+|---|---|---|
+| `evolution-templates` | `:53` `fn_get_vault_secret('evolution_api_url')` · `:81` `fetch(${cfg.url}/message/sendText/...)` | **envia WhatsApp** |
+| `evolution-notification-dispatcher` | `:257`, `:270` mesmo padrão | **envia WhatsApp** |
+
+Mais grave que o achado original (`connection-health-check`), que era leitura. Há ainda 2 bypasses
+parciais (`evolution-group-sync`, `evolution-api`: `getBaseUrl()` + `fetch` cru).
+
+> **Lição de método:** procurar violação de gateway pelo nome da variável de ambiente é
+> insuficiente. O segredo pode vir do vault, de RPC, de variável intermediária ou de template
+> literal. Buscar pelo **endpoint do provider** (`/message/sendText`) encontra o que o grep por
+> `EVOLUTION_API_URL` perde.
+
+### 8.3 Grupo F tem 4 falsos-negativos, não 2 — e 2 funções têm cron ativo
+
+Além de `login-attempts` e `followup-bridge`: **`client-observability`**
+(`src/lib/webVitals.ts:44,98` — nome vem da variável `OBS_FUNCTION`) e **`evolution-retry-metrics`**
+(`useRetryMetrics.ts:75-76` — multi-linha + template literal + query string).
+
+E duas funções marcadas "sem chamador" são disparadas por **cron ativo**, confirmado em `cron.job`:
+
+| jobid | job | schedule | função |
+|---|---|---|---|
+| 476 | `sync-groups-daily` | `10 4 * * *` | `evolution-group-sync` |
+| 477 | `check-whatsapp-numbers` | `*/15 * * * *` | — |
+| 478 | `notif-dispatcher` | `*/5 * * * *` | `evolution-notification-dispatcher` |
+
+São grupo **C**. Isso contradiz a afirmação do `ESTADO.md` de que apenas `nps-daily-trigger` chama
+edge function. Candidatas a arquivar: 19 → **15**.
+
+**Ironia registrada:** a única cujo arquivamento *de fato* derruba uma tela é
+`evolution-retry-metrics` — cadeia viva `ViewRouter:138 → EvolutionMonitoringDashboard →
+MonitoringWebhookPanel:133 → RetryMetricsPanel`, com `throw error` sem fallback — e é justamente a
+que nenhum dos 12 auditores tinha visto.
+
+### 8.4 Correção adicional do orquestrador — cron "determinístico" não era determinístico
+
+`estado_atualizado.md` §3.7 dizia "três com bug de SQL **determinístico**, não intermitência". O
+histórico de 7 dias mostra taxas de **0,4% a 12,5%** — intermitentes. Um bug determinístico falharia
+em 100%. Além disso, duas das falhas foram **colaterais da migração I4** (janela de 11:47–11:52Z,
+quando a tabela virou view — e view não tem `ctid`), e `auto_resolve_alerts` **já havia sido
+corrigido por outra lane** antes desta validação.

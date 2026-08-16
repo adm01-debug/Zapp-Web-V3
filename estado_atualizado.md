@@ -111,11 +111,34 @@ vivo. *Detalhe: `docs/estado/_ERRATA-TOPOLOGIA.md`.*
 > **A topologia mudou 3 vezes em 7 dias.** Nenhuma afirmação de schema deve ser aplicada sem
 > revalidar `relkind` ao vivo no momento da ação.
 
-### 3.5 🟠 Arquivar por lista pode quebrar o login
-`ESTADO.md` classifica `login-attempts` como "sem chamador — candidata a arquivar". Ela é
-chamada por `src/lib/loginAttempts.ts:88` → `useAuthForm` → `Auth.tsx`. Causa: o critério de
-detecção casa `invoke('nome')` mas **não** `invoke<T>('nome')` com genérico — logo há mais
-falsos-negativos na mesma lista. *Detalhe: `docs/estado/36`.*
+### 3.5 🟠 A lista de "candidatas a arquivar" tem 4 falsos-negativos — e 2 são chamadas por cron ativo
+
+`ESTADO.md` classifica 18 edge functions como "sem chamador". **Pelo menos 4 têm chamador real**
+(verificado na validação de 2026-08-16):
+
+| função | chamador real | por que escapou do critério |
+|---|---|---|
+| `login-attempts` | `src/lib/loginAttempts.ts:88` | `invoke<T>()` com genérico |
+| `followup-bridge` | — | idem |
+| `client-observability` | `src/lib/webVitals.ts:44,98` | nome vem de **variável** (`OBS_FUNCTION`) |
+| `evolution-retry-metrics` | `useRetryMetrics.ts:75-76` | multi-linha + template literal |
+
+Mais grave: **`evolution-group-sync` e `evolution-notification-dispatcher` são chamadas por 3 cron
+jobs ativos** — jobids **476** (`sync-groups-daily`), **477** (`check-whatsapp-numbers`) e **478**
+(`notif-dispatcher`), todos `active: true`, verificados em `cron.job`. São grupo **C**, não
+candidatas a arquivar. Isso também contradiz a afirmação do `ESTADO.md` de que apenas
+`nps-daily-trigger` chama edge function.
+
+> **⚠️ Correção de 2026-08-16 (validação):** a versão original afirmava que *"arquivar
+> `login-attempts` quebraria a autenticação"*. **Falso.** `src/lib/loginAttempts.ts:118-145` mostra
+> que as três funções exportadas capturam qualquer erro e retornam `DEFAULT_LOCK_STATUS`
+> (`blocked:false`), e `useAuthForm.ts:181` segue para o `signIn`. É **fail-open**: arquivá-la
+> **degrada** — desliga silenciosamente lockout de força bruta, blocklist/whitelist de IP e
+> geo-blocking — mas não derruba o login. Severidade mantida 🟠 pelo risco de segurança silencioso.
+>
+> A que **de fato derruba uma tela** ao ser arquivada é `evolution-retry-metrics`: cadeia viva
+> `ViewRouter:138 → EvolutionMonitoringDashboard → MonitoringWebhookPanel:133 → RetryMetricsPanel`,
+> com `throw error` sem fallback — e essa a auditoria não tinha visto.
 
 ### 3.6 🟠 Deploy duplicado e alertas mudos
 - `deploy-vps-selfhosted.yml`, rotulado *"DRAFT — NÃO ativar"*, dispara em **todo push na main**,
@@ -124,12 +147,36 @@ falsos-negativos na mesma lista. *Detalhe: `docs/estado/36`.*
   em vez de nome do workflow — **nunca disparam**. Falha de deploy em produção não gera alerta.
 *Detalhe: `docs/estado/38`.*
 
-### 3.7 🟡 Cinco cron jobs quebrados
-Três com bug de SQL determinístico, não intermitência: `monitor-ingestion-persistence-gap`
-(referencia `evo.evolution_audit_log`, inexistente), `backfill-contact-id-ongoing` (alias fora
-de escopo; falhou 2026-08-16 11:52Z), `wal_slot_lag_check` (UPDATE em coluna gerada). Mais
-`whatsapp_reconcile_dispatch` falhando 13% por saturação de workers e `ops-notify-critical-alerts`
-falhando ao decodificar `evolution_api_key` do vault.
+### 3.7 🟡 Cron jobs com falha — intermitentes, não determinísticos
+
+> **⚠️ Corrigido em 2026-08-16 (validação).** A versão original dizia "cinco cron jobs quebrados,
+> três com bug de SQL **determinístico**, não intermitência". O histórico de execução de 7 dias
+> **contradiz** essa caracterização: um bug determinístico falharia em 100% das execuções, e a taxa
+> real está entre 0,4% e 12,5%.
+
+Taxas medidas em `cron.job_run_details` (7 dias), todos os jobs `active`:
+
+| job | falhas / execuções | taxa |
+|---|---|---|
+| `whatsapp_reconcile_dispatch` | 90 / 720 | **12,5%** |
+| `auto_resolve_alerts` | 19 / 117 | 16% — **já corrigido** (ver abaixo) |
+| `monitor-ingestion-persistence-gap` | 15 / 251 | 6,0% |
+| `ops-notify-critical-alerts` | 5 / 711 | 0,7% |
+| `backfill-contact-id-ongoing` | 3 / 354 | 0,8% |
+| `wal_slot_lag_check` | 3 / 708 | 0,4% |
+
+Três observações que mudam a leitura:
+
+1. **`auto_resolve_alerts` já foi corrigido por outra lane.** As 19 falhas
+   (`function zapp.fn_auto_resolve_alerts() is not unique`) são históricas — última em 11:00Z, e a
+   correção está registrada em `docs/decouple/AGENTES_LANES.md`. Hoje executa com sucesso.
+2. **Duas falhas foram colaterais da migração I4**, não bugs: `queue-autoassign-tick` (1 em 1.409)
+   e `backfill-contact-id-ongoing` falharam às 11:47Z e 11:52Z com
+   `relation "zapp.evolution_contacts" does not exist` e `column m2.ctid does not exist` — exatamente
+   a janela em que a tabela virou view. **View não tem `ctid`**: vale conferir se
+   `backfill-contact-id-ongoing` precisa passar a apontar para `evo`.
+3. O único com taxa alta e persistente é **`whatsapp_reconcile_dispatch` (12,5%)** — esse merece
+   investigação real.
 
 ---
 
@@ -220,8 +267,18 @@ O padrão dominante não é falta de teste, é **teste que não protege**:
 
 - **RLS**: 386/386 tabelas de `zapp` com RLS ativo, 866 policies. `evo` e `ops` também 100%.
   Zero `SECURITY DEFINER` sem `search_path`.
-- **Gateway Evolution**: 1 única violação em 107 edge functions (`connection-health-check`).
-  `callEvolutionApi` de fato removido do runtime.
+- **Gateway Evolution**: `callEvolutionApi` de fato removido do runtime; zero `axios`.
+
+  > **⚠️ Correção de 2026-08-16 (validação): não é 1 violação, são 3 em bypass total.** Além de
+  > `connection-health-check` (que usa `EVOLUTION_API_URL` e por isso foi encontrada),
+  > **`evolution-templates:53,81`** e **`evolution-notification-dispatcher:257,270`** resolvem a
+  > base URL pelo **vault** (`fn_get_vault_secret('evolution_api_url')`) e escaparam do grep. Ambas
+  > fazem `POST /message/sendText` — **envio de WhatsApp em produção fora do gateway**, mais grave
+  > que o caso original, que era leitura. Mais 2 bypasses parciais (`evolution-group-sync`,
+  > `evolution-api`: `getBaseUrl()` + `fetch` cru).
+  >
+  > Lição de método: procurar violação de gateway apenas pelo nome da variável de ambiente é
+  > insuficiente — o segredo pode vir do vault, de RPC ou de variável intermediária.
 - **Hooks**: taxa de órfão de 0–2 por lote em 389 arquivos — é a camada de lógica e está de fato em uso.
 - **Desacoplamento evo × zapp**: 6/9 invariantes PASS (nota C), medido online por CI a cada PR.
 
