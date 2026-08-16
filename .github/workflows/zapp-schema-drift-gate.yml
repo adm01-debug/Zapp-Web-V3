@@ -8,6 +8,10 @@ on:
     paths:
       - 'supabase/migrations/**'
       - 'scripts/decouple/snapshots/**'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
 
 jobs:
   drift-check:
