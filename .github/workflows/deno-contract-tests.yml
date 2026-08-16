@@ -48,7 +48,7 @@ jobs:
 
       - name: Lint no-direct-evo-url (report-only)
         run: |
-          deno lint --rules-tags= --rules-include=no-direct-evo-url supabase/functions > /tmp/lint-out.txt || true
+          deno lint -c deno.json --rules-tags= --rules-include=no-direct-evo-url/no-direct-evo-url supabase/functions > /tmp/lint-out.txt || true
           cat /tmp/lint-out.txt
           if grep -q 'no-direct-evo-url' /tmp/lint-out.txt; then
             echo '::warning::no-direct-evo-url: violacoes encontradas (report-only - fase 2 torna blocking)'

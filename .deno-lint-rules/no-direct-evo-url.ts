@@ -14,11 +14,8 @@ export default {
   rules: {
     "no-direct-evo-url": {
       create(context: any) {
-        const isExempt = (filePath: string) =>
-          filePath.includes("providers/evolution") ||
-          filePath.includes("evolution-api-proxy") ||
-          filePath.includes(".test.ts") ||
-          filePath.includes("__tests__");
+        const isExempt = (rawPath: string) => { const filePath = rawPath.replace(/\/g, "/"); return
+          filePath.includes("providers/evolution") || filePath.includes("evolution-api-proxy") || filePath.includes(".test.ts") || filePath.includes("__tests__"); };
         return {
           CallExpression(node: any) {
             const callee = node.callee;
