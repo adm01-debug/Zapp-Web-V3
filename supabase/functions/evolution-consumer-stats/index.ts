@@ -15,6 +15,7 @@ const STATS_HMAC_SECRET = Deno.env.get("STATS_HTTP_HMAC_SECRET") ?? "";
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
+  db: { schema: "public" }, // RPC de contrato exposta via wrapper public (evo não é schema PostgREST)
 });
 
 Deno.serve(async (req: Request) => {
