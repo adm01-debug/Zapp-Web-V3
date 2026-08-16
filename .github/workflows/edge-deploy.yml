@@ -27,7 +27,7 @@ jobs:
     name: Deploy edge functions (--apply --restart)
     # Runner self-hosted da VPS (labels: self-hosted, linux, x64, vps-zapp;
     # a variante docker do runner também carrega a label 'docker').
-    runs-on: [self-hosted, linux, x64, vps-zapp]
+    runs-on: [Linux, X64, vps-zapp]
     steps:
       - uses: actions/checkout@v7
         with:

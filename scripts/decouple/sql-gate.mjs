@@ -58,11 +58,26 @@ const WHITELIST_SHORT = new Set([
 const SCOPE_SCHEMAS = new Set(['evo', 'zapp', 'ops', 'public']);
 
 /**
- * PROD_OBJECTS_REGISTRY — 25 objetos de produção confirmados (auditado 2026-08-15, E18).
+ * PROD_OBJECTS_REGISTRY — 15 objetos de produção confirmados AO VIVO em 2026-08-16 (pg_class/pg_proc). Os 10 planejados-mas-inexistentes foram movidos para PLANNED_OBJECTS (WARN).
  * Usado em --check-freshness (E19) e --validate-fixture (E22).
  *
  * Estrutura: { name: "schema.objeto", kind: "view|table|function", desc: "..." }
  */
+/**
+ * PLANNED_OBJECTS — objetos de observabilidade do plano (E86) que NÃO EXISTEM
+ * em produção (verificado ao vivo 2026-08-16 via pg_class/pg_proc). Backlog
+ * auditável em modo WARN (não bloqueia). Ao criar um deles, mover a entrada de
+ * volta para PROD_OBJECTS_REGISTRY e atualizar fixture + EXPECTED_COUNT.
+ *
+ * NOTA (2026-08-16): zapp.evolution_sessions e zapp.evolution_chats foram
+ * REMOVIDAS do catálogo em vez de criadas — não existe objeto-fonte em evo
+ * (sessões Baileys residem no Redis; chats já é coberto por
+ * zapp.evolution_conversations). Eram entradas vazias do catálogo original.
+ */
+const PLANNED_OBJECTS = [
+  // vazio — os 8 ops.* foram criados em producao em 2026-08-16 (Opcao A) e promovidos
+  // ao PROD_OBJECTS_REGISTRY. Verificado ao vivo via pg_class/pg_proc.
+];
 const PROD_OBJECTS_REGISTRY = [
   // 12 views de contrato (zapp → evo)
   { name: 'zapp.evolution_messages',         kind: 'view',     desc: 'View auto-updatable messages (raiz particionada evo)' },
@@ -72,12 +87,17 @@ const PROD_OBJECTS_REGISTRY = [
   { name: 'zapp.evolution_whatsapp_status',  kind: 'view',     desc: 'View status WA' },
   { name: 'zapp.evolution_webhook_events_v2',kind: 'view',     desc: 'View webhooks v2' },
   { name: 'zapp.evolution_instances',        kind: 'view',     desc: 'View instâncias' },
-  { name: 'zapp.evolution_sessions',         kind: 'view',     desc: 'View sessões' },
   { name: 'zapp.evolution_groups',           kind: 'view',     desc: 'View grupos WA' },
   { name: 'zapp.evolution_group_participants',kind: 'view',    desc: 'View participantes de grupos' },
   { name: 'zapp.evolution_labels',           kind: 'view',     desc: 'View labels WA' },
-  { name: 'zapp.evolution_chats',            kind: 'view',     desc: 'View chats' },
   // 8 objetos de observabilidade (ops.*)
+  // 5 funções de vault/whitelist
+  { name: 'ops.fn_evo_url',                  kind: 'function', desc: '[DEPRECATED] URL da Evolution API do vault — usar v2' },
+  { name: 'ops.fn_evo_key',                  kind: 'function', desc: '[DEPRECATED] API key da Evolution API do vault — usar v2' },
+  { name: 'ops.fn_evo_url_v2',               kind: 'function', desc: 'URL da Evolution API (assinatura versionada v2, E17)' },
+  { name: 'ops.fn_evo_key_v2',               kind: 'function', desc: 'API key da Evolution API (assinatura versionada v2, E17)' },
+  { name: 'zapp.fn_check_license_heartbeat', kind: 'function', desc: 'Health check do license server (egresso legítimo, sem apikey)' },
+  // 8 objetos de observabilidade ops.* (criados 2026-08-16, Opcao A, E8/E10/E86)
   { name: 'ops.pgnet_egress_log',            kind: 'table',    desc: 'Log de chamadas pg_net fora do gateway (E8)' },
   { name: 'ops.i4_violation_baseline',       kind: 'table',    desc: 'Baseline das violações I4 (T0 = 14 violadores)' },
   { name: 'ops.log_pgnet_call',              kind: 'function', desc: 'Registra chamada pg_net manualmente' },
@@ -86,12 +106,6 @@ const PROD_OBJECTS_REGISTRY = [
   { name: 'ops.decouple_preflight_runs',     kind: 'table',    desc: 'Histórico de execuções do preflight (E10)' },
   { name: 'ops.fn_decouple_preflight',       kind: 'function', desc: 'Preflight checklist pré-deploy' },
   { name: 'ops.v_preflight_history',         kind: 'view',     desc: 'Histórico de runs do preflight' },
-  // 5 funções de vault/whitelist
-  { name: 'ops.fn_evo_url',                  kind: 'function', desc: '[DEPRECATED] URL da Evolution API do vault — usar v2' },
-  { name: 'ops.fn_evo_key',                  kind: 'function', desc: '[DEPRECATED] API key da Evolution API do vault — usar v2' },
-  { name: 'ops.fn_evo_url_v2',               kind: 'function', desc: 'URL da Evolution API (assinatura versionada v2, E17)' },
-  { name: 'ops.fn_evo_key_v2',               kind: 'function', desc: 'API key da Evolution API (assinatura versionada v2, E17)' },
-  { name: 'zapp.fn_check_license_heartbeat', kind: 'function', desc: 'Health check do license server (egresso legítimo, sem apikey)' },
 ];
 
 const SAMPLE_QUERY = `-- =====================================================================
@@ -341,11 +355,11 @@ function scanMigrations(migrationsDir) {
 /**
  * E19 — --check-freshness
  * Verifica se a WHITELIST está atualizada (FRESHNESS_DATE < 30 dias)
- * e se o PROD_OBJECTS_REGISTRY tem exatamente 25 entradas.
+ * e se o PROD_OBJECTS_REGISTRY tem exatamente 15 entradas (+ lista PLANNED em WARN).
  * WARN (exit 0) se desatualizado; FAIL (exit 1) se contagem errada.
  */
 function checkFreshness() {
-  const EXPECTED_COUNT = 25;
+  const EXPECTED_COUNT = 23;
   let hasFailure = false;
 
   console.log('=== sql-gate --check-freshness ===');
@@ -371,6 +385,11 @@ function checkFreshness() {
     hasFailure = true;
   } else {
     console.log(`OK: PROD_OBJECTS_REGISTRY com ${actual} entradas (esperado ${EXPECTED_COUNT}).`);
+  }
+
+  if (PLANNED_OBJECTS.length > 0) {
+    console.warn(`WARN: ${PLANNED_OBJECTS.length} objeto(s) do plano ainda nao existem em producao (backlog, nao bloqueia):`);
+    for (const o of PLANNED_OBJECTS) console.warn(`  - ${o.name} (${o.kind})`);
   }
 
   console.log('=== fim check-freshness ===');
@@ -402,7 +421,7 @@ function validateFixture() {
     process.exit(1);
   }
 
-  const EXPECTED_COUNT = 25;
+  const EXPECTED_COUNT = 23;
   if (fixture.length !== EXPECTED_COUNT) {
     console.error(`FAIL: fixture tem ${fixture.length} entradas, esperado ${EXPECTED_COUNT}.`);
     process.exit(1);

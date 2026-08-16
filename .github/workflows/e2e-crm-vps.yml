@@ -59,7 +59,7 @@ jobs:
     name: Playwright CRM contra VPS
     if: github.event_name != 'pull_request'
     needs: [validate-user, seed-contacts]
-    runs-on: ${{ github.event.inputs.runner == 'ubuntu-latest' && 'ubuntu-latest' || fromJSON('["self-hosted","vps-zapp","playwright"]') }}
+    runs-on: ${{ github.event.inputs.runner == 'ubuntu-latest' && 'ubuntu-latest' || fromJSON('["Linux","X64","vps-zapp","playwright"]') }}
     timeout-minutes: 45
     env:
       E2E_BASE_URL: ${{ github.event.inputs.base_url }}

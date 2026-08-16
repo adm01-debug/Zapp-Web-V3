@@ -88,7 +88,7 @@ jobs:
   hash-drift:
     name: E39 — hash drift (volume × repo)
     if: github.event_name != 'pull_request'
-    runs-on: [self-hosted, linux, x64, vps-zapp]
+    runs-on: [Linux, X64, vps-zapp]
     steps:
       - uses: actions/checkout@v7
         with:

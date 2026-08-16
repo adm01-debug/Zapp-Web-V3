@@ -33,7 +33,7 @@ jobs:
     # 2026-08-06: runners GitHub-hosted (ubuntu-latest) sem alocação na conta —
     # fila inteira travada em pending. Build no runner self-hosted da VPS
     # (online, Docker disponível) — mesmo padrão dos workflows E2E-VPS.
-    runs-on: [self-hosted, Linux, X64, vps-zapp]
+    runs-on: [Linux, X64, vps-zapp]
     timeout-minutes: 30
     # 2026-08-06 20:30: environment removido — runs com `environment:`
     # ficavam em pending SEM jobs (resolução travada na conta); todos os
@@ -186,7 +186,7 @@ jobs:
     name: Deploy to VPS
     # Mesmo motivo do build: hosted runner sem alocação; deploy via Portainer
     # a partir da própria VPS (2026-08-06).
-    runs-on: [self-hosted, Linux, X64, vps-zapp]
+    runs-on: [Linux, X64, vps-zapp]
     needs: build-and-push
     timeout-minutes: 30
     # environment removido (mesmo motivo do job build — ver acima)

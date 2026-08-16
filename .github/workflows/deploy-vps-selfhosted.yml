@@ -157,7 +157,7 @@ jobs:
   # ===========================================================================
   deploy:
     name: Deploy Swarm + convergência verificada
-    runs-on: [self-hosted, vps-zapp, linux, x64]
+    runs-on: [Linux, X64, vps-zapp]
     needs: build-and-push
     environment: production
     timeout-minutes: 30
