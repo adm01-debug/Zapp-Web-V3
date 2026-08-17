@@ -29898,6 +29898,54 @@ export type Database = {
         }
         Relationships: []
       }
+      auto_export_jobs: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          file_path: string | null
+          filters: Json | null
+          format: string | null
+          id: string | null
+          last_error: string | null
+          last_run_at: string | null
+          name: string | null
+          row_count: number | null
+          source_table: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          file_path?: string | null
+          filters?: Json | null
+          format?: string | null
+          id?: string | null
+          last_error?: string | null
+          last_run_at?: string | null
+          name?: string | null
+          row_count?: number | null
+          source_table?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          file_path?: string | null
+          filters?: Json | null
+          format?: string | null
+          id?: string | null
+          last_error?: string | null
+          last_run_at?: string | null
+          name?: string | null
+          row_count?: number | null
+          source_table?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       alert_channels: {
         Row: {
           channel_type: string

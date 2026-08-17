@@ -147,6 +147,7 @@ export const EDGE_FUNCTION_NAMES = [
   'whatsapp-cloud-send',
   'whatsapp-cloud-webhook',
   'whatsapp-cloud-webhook-verify',
+  'zapp-auto-export',
 ] as const;
 
 const JsonValueSchema: z.ZodType<unknown> = z.lazy(() =>
@@ -331,6 +332,14 @@ const specificEdgeFunctionSchemas: Partial<
         device_name: z.string().min(1),
       })
       .passthrough(),
+  },
+  'zapp-auto-export': {
+    v1: z
+      .object({
+        jobId: z.string().uuid(),
+        action: z.enum(['run', 'link']).optional(),
+      })
+      .strict(),
   },
   ...WebhookContractSchemas,
 };

@@ -400,6 +400,13 @@ export const SendScheduledReportV1Schema = z.object({
   reportId: z.string().min(1, "reportId é obrigatório").max(200),
 }).strict();
 
+/** zapp-auto-export@v1 — AutoExport (G4): UI/cron envia { jobId, action? }. */
+export const ZappAutoExportV1Schema = z.object({
+  jobId: z.string().uuid("jobId deve ser um UUID válido"),
+  /** 'run' (padrão): gera/regenera o arquivo. 'link': só renova a signed URL do arquivo existente. */
+  action: z.enum(["run", "link"]).optional(),
+}).strict();
+
 /** auto-close-conversations@v1 — cron; sem body. */
 export const AutoCloseConversationsV1Schema = EmptyStrictV1Schema;
 
@@ -946,6 +953,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "status":                        { v1: StatusV1Schema },
   "metrics":                       { v1: MetricsV1Schema },
   "send-scheduled-report":         { v1: SendScheduledReportV1Schema },
+  "zapp-auto-export":              { v1: ZappAutoExportV1Schema },
   "auto-close-conversations":      { v1: AutoCloseConversationsV1Schema },
   "elevenlabs-voice":              { v1: ElevenLabsVoiceV1Schema },
   "elevenlabs-tts":                { v1: ElevenLabsTtsV1Schema },
