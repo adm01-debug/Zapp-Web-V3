@@ -171,7 +171,7 @@ class NonRetryableMessageError extends Error {
 }
 
 
-async function getValidToken(supabase: ReturnType<typeof createClient>, accountId: string): Promise<string | null> {
+async function getValidToken(supabase: ReturnType<typeof createZappAdminClient>, accountId: string): Promise<string | null> {
   const { data: account, error } = await supabase.from('email_accounts').select('access_token, refresh_token, token_expires_at, client_id, client_secret').eq('id', accountId).maybeSingle();
   if (error || !account) return null;
 
@@ -212,7 +212,7 @@ async function getValidToken(supabase: ReturnType<typeof createClient>, accountI
 }
 
 async function processHistory(
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   token: string,
   accountId: string,
   startHistoryId: string
@@ -266,7 +266,7 @@ async function processHistory(
 }
 
 async function fetchAndPersistMessage(
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   token: string,
   accountId: string,
   messageId: string

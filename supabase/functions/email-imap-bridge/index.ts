@@ -1,29 +1,32 @@
 import { requireUser } from '../_shared/auth.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
-import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { EmailImapBridgeV1Schema } from '../_shared/contract-schemas.ts';
 /**
  * email-imap-bridge — Suporte a provedores IMAP/SMTP genéricos (Outlook, Yahoo, etc.)
  *
- * TODO(EMAIL-02): NÃO implementado de verdade — Edge Functions são HTTP-only
- * (sem TCP), então IMAP/SMTP real (fetchInbox/sendMessage) é INVIÁVEL aqui.
- * Estado atual: apenas getProviderConfig/saveCredentials/testConnection
- * (validação de formato) /listProviders. Para suporte real, integrar um
- * broker externo (Nylas, EmailEngine, MailSlurp) — sem UI hoje.
- * Não construir UI/worker até a decisão de broker.
+ * DECISÃO EMAIL-02 (2026-08-17, wt-g5): IMAP/SMTP real (fetchInbox/sendMessage)
+ * é INVIÁVEL em Edge Functions — o runtime é HTTP-only, sem TCP. O caminho
+ * VIÁVEL de email foi construído e substitui esta promessa:
+ *   - RECEBER: `zapp-email-inbound-webhook` (webhook de entrada do Resend →
+ *     zapp.emails, direction='inbound');
+ *   - ENVIAR:  `zapp-email-send` (Resend API + storage email-attachments →
+ *     zapp.emails, direction='outbound').
+ * Estas funções mantêm apenas as ações reais e implementadas:
+ * getProviderConfig / saveCredentials / testConnection (validação de formato)
+ * / listProviders. Não construir UI/worker de IMAP até decisão de broker
+ * externo (Nylas, EmailEngine, MailSlurp).
  *
- * Ações suportadas:
- * - test: Testa credenciais IMAP/SMTP
- * - fetchInbox: Busca emails via IMAP (simulado via Edge Function)
- * - sendMessage: Envia email via SMTP
+ * Ações suportadas (contrato honesto — enum fechado no schema):
+ * - getProviderConfig: Configurações pré-definidas por provedor
  * - saveCredentials: Persiste credenciais (criptografadas) no Supabase
+ * - testConnection: Valida formato das credenciais (sem TCP real)
+ * - listProviders: Provedores suportados
  *
- * NOTA: Esta Edge Function serve como foundation para provedores não-Gmail.
- * A integração real com IMAP/SMTP requer um worker externo com acesso TCP
- * (as Edge Functions Supabase são HTTP-only).
- * Para produção, use um serviço como Nylas, EmailEngine ou MailSlurp.
+ * NOTA: fetchInbox/sendMessage NÃO são suportadas (rejeitadas no contrato com
+ * 422) — não existe TCP no edge runtime; use as edges zapp-email-* acima.
  */
 
 interface ImapSmtpConfig {

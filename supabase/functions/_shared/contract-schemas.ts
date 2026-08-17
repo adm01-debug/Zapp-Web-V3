@@ -320,6 +320,56 @@ export const EmailImapBridgeV1Schema = z.object({
   config: ImapSmtpConfigV1Schema.optional(),
 }).strict();
 
+/**
+ * zapp-email-send@v1 — envio de email via Resend (caminho VIÁVEL pós EMAIL-02,
+ * 2026-08-17). `to` aceita e-mail ou lista (≤50). Pelo menos um de html/text.
+ * attachments: base64 (content) — o handler valida tamanho (≤20MB, limite do
+ * bucket email-attachments) e grava cópia no storage antes de enviar.
+ */
+const EmailAttachmentV1Schema = z.object({
+  filename: z.string().min(1).max(255),
+  content_type: z.string().max(200).optional(),
+  content: z.string().min(1, "attachment content (base64) vazio"),
+});
+
+/** zapp-email-send@v1 — payload de envio. */
+export const ZappEmailSendV1Schema = z.object({
+  to: z.union([EmailAddr, z.array(EmailAddr).min(1).max(50)]),
+  subject: z.string().min(1, "subject vazio").max(500),
+  html: z.string().max(500_000).optional(),
+  text: z.string().max(500_000).optional(),
+  reply_to: EmailAddr.optional(),
+  attachments: z.array(EmailAttachmentV1Schema).max(10, "máximo de 10 anexos").optional(),
+}).passthrough().superRefine((val, ctx) => {
+  if (!val.html && !val.text) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["html"],
+      message: "pelo menos um de html/text é obrigatório",
+    });
+  }
+});
+
+/**
+ * zapp-email-inbound-webhook@v1 — envelope do webhook de entrada do Resend
+ * (inbound emails). PERMISSIVO (passthrough + campos opcionais): o provider
+ * evolui o payload e a ingestão nunca pode cair por campo novo. Auth é por
+ * segredo (x-webhook-secret / ?token=) e/ou assinatura Svix — ver index.ts.
+ */
+export const ZappEmailInboundWebhookV1Schema = z.object({
+  id: z.string().min(1).max(200, "message id inválido"),
+  from: z.string().min(1).max(500),
+  to: z.array(z.string().max(500)).optional(),
+  cc: z.array(z.string().max(500)).optional(),
+  bcc: z.array(z.string().max(500)).optional(),
+  subject: z.string().max(1000).optional(),
+  text: z.string().max(2_000_000).optional(),
+  html: z.string().max(5_000_000).optional(),
+  attachments: z.array(EmailAttachmentV1Schema).max(20).optional(),
+  headers: z.unknown().optional(),
+  date: z.string().max(100).optional(),
+}).passthrough();
+
 /** Cron sem body — aceita somente {} (ou nada). Base dos schedulers internos. */
 const EmptyStrictV1Schema = z.object({}).strict();
 
@@ -327,6 +377,9 @@ const EmptyStrictV1Schema = z.object({}).strict();
 
 /** evolution-credentials@v1 — GET admin; sem body. */
 export const EvolutionCredentialsV1Schema = EmptyStrictV1Schema;
+
+/** evolution-bitrix-sync@v1 — cron de sincronização Bitrix; sem body. (Parity com main.) */
+export const EvolutionBitrixSyncV1Schema = EmptyStrictV1Schema;
 
 /**
  * evolution-credentials-write@v1 — POST CRUD (actions 'save' | 'delete').
@@ -933,10 +986,15 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "gmail-sync":                    { v1: GmailSyncV1Schema },
   "gmail-oauth":                   { v1: GmailOauthV1Schema },
   "email-imap-bridge":             { v1: EmailImapBridgeV1Schema },
+  // Email viável (pós EMAIL-02, 2026-08-17): webhook de entrada (Resend) e
+  // envio via Resend API + storage. Ver supabase/functions/zapp-email-*/.
+  "zapp-email-inbound-webhook":    { v1: ZappEmailInboundWebhookV1Schema },
+  "zapp-email-send":               { v1: ZappEmailSendV1Schema },
   "evolution-credentials":         { v1: EvolutionCredentialsV1Schema },
   // Sub-rota POST do evolution-credentials (dual-route por design — sem
   // diretório próprio; não consta em EDGE_FUNCTION_NAMES. Auditoria A9).
   "evolution-credentials-write":   { v1: EvolutionCredentialsWriteV1Schema },
+  "evolution-bitrix-sync":         { v1: EvolutionBitrixSyncV1Schema },
   "evolution-templates":           { v1: EvolutionTemplatesV1Schema },
   "evolution-retry-metrics":       { v1: EvolutionRetryMetricsV1Schema },
   "db-health-monitor":             { v1: DbHealthMonitorV1Schema },

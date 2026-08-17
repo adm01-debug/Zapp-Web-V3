@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     } catch {
       raw = null;
     }
-    const parsed = parseOrReject('send-email', { v1: SendEmailV1Schema }, req, raw, { extraHeaders: corsHeaders });
+    const parsed = parseOrReject('send-email', { v1: SendEmailV1Schema }, req, raw, { extraHeaders: getCorsHeaders(req) });
     if (parsed.ok === false) return parsed.response;
 
     if (!parsed.data || typeof parsed.data !== 'object' || Array.isArray(parsed.data)) {
