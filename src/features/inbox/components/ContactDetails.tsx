@@ -11,7 +11,6 @@ import { useContactEnrichedData } from '@/hooks/useContactEnrichedData';
 import { useConversationActions } from '@/hooks/useConversationManagement';
 import { Accordion } from '@/components/ui/accordion';
 import { toast } from 'sonner';
-import { undoToast } from '@/lib/undoToast';
 import { KnowledgeBaseSearchPanel } from './KnowledgeBaseSearchPanel';
 import { AnalysisBadges } from './AnalysisBadges';
 import { useArchiveConversationActions } from '../hooks/useArchiveConversationActions';
@@ -67,7 +66,7 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
     refetchAITags,
     refetchSLA,
   } = useContactEnrichedData(contact.id ?? '');
-  const { profileId } = useConversationActions();
+  const { profileId, favoriteContact, unfavoriteContact, isFavorite } = useConversationActions();
   // Ação REAL de arquivar: soft-delete canônico do contato (deleted_at +
   // deleted_reason='archived'). Toasts de sucesso/erro vêm do hook de mutação
   // (useArchiveContact) e a lista da inbox é atualizada pela invalidação de
@@ -113,13 +112,13 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
         setEditDialogOpen(true);
         break;
       case 'vip':
-        undoToast({
-          message: `${contact.name} marcado como VIP`,
-          icon: '⭐',
-          onUndo: () => {
-            toast.info('VIP removido');
-          },
-        });
+        // Etapa 43: ação REAL — alterna favorito (favorite_contacts) via o
+        // hook que o painel já usa; substitui o undoToast fake anterior.
+        // Toasts de sucesso/erro vêm do próprio hook.
+        if (contact.id) {
+          const currentlyFavorite = isFavorite(contact.id);
+          void (currentlyFavorite ? unfavoriteContact(contact.id) : favoriteContact(contact.id));
+        }
         break;
       case 'archive': {
         // Ação REAL (não é mais undoToast fake): arquiva o contato via
