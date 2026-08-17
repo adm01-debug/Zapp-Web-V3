@@ -2,7 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { log } from '@/lib/logger';
-import { isValidUUID } from '@/features/inbox/utils/contactRef';
+import { isValidUUID } from '@/utils/uuid';
+
+// NOTA (DB-as-source): zapp.pinned_messages é nova (migration 20260817160000,
+// ainda não aplicada) — types.ts regenerado na rodada de aplicação.
 
 /**
  * usePinMessage — Fixar mensagem (Etapa 44 do plano 100 etapas).
@@ -40,7 +43,7 @@ export function usePinMessage() {
 
   const loadPins = useCallback(async (pid: string) => {
     const { data, error } = await supabase
-      .from('pinned_messages')
+      .from('pinned_messages' as never)
       .select('message_id')
       .eq('pinned_by', pid);
     if (error) {
@@ -79,13 +82,13 @@ export function usePinMessage() {
     });
 
     const { error } = isPinned
-      ? await supabase.from('pinned_messages').delete().eq('pinned_by', profileId).eq('message_id', messageId)
-      : await supabase.from('pinned_messages').insert({
+      ? await supabase.from('pinned_messages' as never).delete().eq('pinned_by', profileId).eq('message_id', messageId)
+      : await supabase.from('pinned_messages' as never).insert({
           message_id: messageId,
           contact_id: contactId ?? null,
           pinned_by: profileId,
           position: pinnedIds.size + 1,
-        });
+        } as never);
 
     if (error) {
       setPinnedIds((prev) => {

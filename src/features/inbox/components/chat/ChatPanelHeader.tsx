@@ -31,7 +31,7 @@ import {
 import { openChatPopup } from '@/lib/popupManager';
 import { useContactAvatar } from '@/features/inbox';
 import { useTags, useContactTags } from '@/hooks/useTags';
-import { isValidUUID } from '@/features/inbox/utils/contactRef';
+import { isValidUUID } from '@/utils/uuid';
 import { ActiveTool } from './ChatHeaderToolbar';
 
 interface ChatMessage {

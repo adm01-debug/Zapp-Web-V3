@@ -592,6 +592,11 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     forwardMessage,
     editingMessage,
     inputRef,
+    // Etapa 41/42/46: expostos para o ChatPanel (snooze da toolbar, resolver do
+    // menu e arquivar) — estavam definidos mas AUSENTES do return (TS2339).
+    onResolveConversation,
+    onSnooze,
+    onArchive: onArchiveChat,
     handleEditStart,
     handleCancelEdit,
     handleSend,
