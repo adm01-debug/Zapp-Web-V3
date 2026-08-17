@@ -1,19 +1,18 @@
 /**
  * E2E — CacheStorage sem `workbox-precache-v2-*` após abrir o app e após update forçado
  *
- * Cobre localhost e preview público. Em cada URL:
- *
- *  1. Abre o app, aguarda idle e valida `caches.keys()` sem `workbox-precache-v2-*`.
- *  2. Dispara update forçado (unregister SWs + reload com cache bypass) e revalida.
+ * Cobre o dev server do PR (baseURL 5173) — e, por override explícito
+ * (`E2E_PREVIEW_URL`), deploys reais. Nunca produção externa por padrão
+ * (`*.vercel.app`/`*.lovable.app`; achado 40:A3).
  *
  * Skip gracioso quando o endpoint está inacessível, salvo `E2E_STRICT_WB_CACHE=1`.
  */
 import { test, expect, type Page } from '@playwright/test';
 
-const LOCALHOST_URL = process.env.E2E_LOCALHOST_URL ?? 'http://localhost:8080/';
-const PREVIEW_URL =
-  process.env.E2E_PREVIEW_URL ??
-  'https://id-preview--22c0b518-7895-4f4f-9ea0-978457a2c37a.lovable.app/';
+// Padrão: build do PR (baseURL do playwright.config.ts). Overrides só para
+// auditoria pontual de deploys reais.
+const LOCALHOST_URL = process.env.E2E_LOCALHOST_URL ?? 'http://localhost:5173/';
+const PREVIEW_URL = process.env.E2E_PREVIEW_URL ?? 'http://localhost:5173/';
 const STRICT = process.env.E2E_STRICT_WB_CACHE === '1';
 
 const WB_PRECACHE_RE = /^workbox-precache-v2-/i;
@@ -43,7 +42,14 @@ async function auditWorkboxPrecache(page: Page, url: string): Promise<{
   afterForceUpdate: string[];
 } | null> {
   try {
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 });
+    const response = await page.goto(url, {
+      waitUntil: 'domcontentloaded',
+      timeout: 20_000,
+    });
+    // Status HTTP >= 400 não pode satisfazer "sem cache workbox" vacuamente (40:A3).
+    if (response && response.status() >= 400) {
+      throw new Error(`HTTP ${response.status()} em ${url}`);
+    }
   } catch (err) {
     if (!STRICT) {
       test.info().annotations.push({
