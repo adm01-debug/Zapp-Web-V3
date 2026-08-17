@@ -150,6 +150,7 @@ export const EDGE_FUNCTION_NAMES = [
   'whatsapp-cloud-webhook',
   'whatsapp-cloud-webhook-verify',
   'zapp-auto-export',
+  'zapp-n8n-sync',
   'zapp-google-calendar-sync',
   'zapp-get-sip-credentials',
   'zapp-crm-sync',
@@ -345,6 +346,14 @@ const specificEdgeFunctionSchemas: Partial<
       .object({
         jobId: z.string().uuid(),
         action: z.enum(['run', 'link']).optional(),
+  // Contrato real da integração n8n (estado honesto not_configured) — schema
+  // inline (edge-contract-schemas.ts NUNCA importa de contract-schemas.ts).
+  'zapp-n8n-sync': {
+    v1: z
+      .discriminatedUnion('action', [
+        z.object({ action: z.literal('status') }).strict(),
+        z.object({ action: z.literal('configure'), baseUrl: z.string().min(1).max(2048) }).strict(),
+      ]),
   'zapp-google-calendar-sync': {
     v1: z
       .object({
