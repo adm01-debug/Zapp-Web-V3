@@ -63,7 +63,7 @@ jobs:
 
       - name: 'Publicar artifact decouple-score.json'
         if: env.AUDIT_STATUS == 'MEASURED'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: decouple-score
           path: decouple-score.json
