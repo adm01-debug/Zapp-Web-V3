@@ -1001,6 +1001,22 @@ export const CsatDispatchV1Schema = z.object({
 }).strict();
 
 /**
+ * zapp-sentry-sync@v1 — config Sentry persistida em zapp.sentry_config
+ * (contrato G3: substitui o stub da UI com mockErrors). Endpoint interno da
+ * UI — estrito. `action:'test'` dispara evento real no ingest do DSN
+ * configurado; sem `action`, os campos presentes são upsertados (admin-only
+ * no runtime via requireAdminOrSupervisor). dsn vazio = desligado.
+ */
+export const SentrySyncV1Schema = z.object({
+  dsn: z.string().max(500).optional(),
+  enabled: z.boolean().optional(),
+  environment: z.enum(['production', 'staging', 'development']).optional(),
+  traces_sample_rate: z.number().min(0).max(1).optional(),
+  replays_session_sample_rate: z.number().min(0).max(1).optional(),
+  replays_on_error_sample_rate: z.number().min(0).max(1).optional(),
+  action: z.enum(['save', 'test']).optional(),
+}).strict();
+
  * zapp-google-calendar-sync@v1 — status/sync do contrato Google Calendar
  * (G1, 2026-08-17). GET (status) ou POST com body opcional { dryRun }.
  * Resposta SEMPRE 200: { synced:false, reason:'not_configured'|'disabled'|
@@ -1057,6 +1073,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "email-health":               { v1: EmailHealthV1Schema },
   "email-track-link":           { v1: EmailTrackLinkV1Schema },
   "email-track-pixel":          { v1: EmailTrackPixelV1Schema },
+  "zapp-sentry-sync":           { v1: SentrySyncV1Schema },
 
   // Business / infra (v1)
   "gmail-sync":                    { v1: GmailSyncV1Schema },
