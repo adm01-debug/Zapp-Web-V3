@@ -42,4 +42,33 @@ BEGIN
   END IF;
 END;
 $function$;
-
+CREATE OR REPLACE FUNCTION zapp.fn_trg_auto_security_invoker()
+ RETURNS event_trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'zapp', 'pg_catalog'
+AS $function$
+DECLARE obj record; v_schema text; v_name text;
+BEGIN
+  FOR obj IN SELECT * FROM pg_event_trigger_ddl_commands()
+    WHERE command_tag IN ('CREATE VIEW','ALTER VIEW','CREATE OR REPLACE VIEW')
+      AND object_type = 'view'
+  LOOP
+    v_schema := split_part(obj.object_identity, '.', 1);
+    v_name   := split_part(obj.object_identity, '.', 2);
+    IF v_schema IN ('public','zapp','evo','artes','financeiro','monitoring','ops','vendas','email_app','ai','bpm','archive','logistica') THEN
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+          WHERE n.nspname = v_schema AND c.relname = v_name AND c.relkind = 'v'
+            AND c.reloptions IS NOT NULL
+            AND (array_to_string(c.reloptions, ',') ILIKE ANY (ARRAY['%security_invoker=true%', '%security_invoker=on%']))
+        ) THEN
+          EXECUTE format('ALTER VIEW %I.%I SET (security_invoker = true)', v_schema, v_name);
+        END IF;
+      EXCEPTION WHEN OTHERS THEN NULL;
+      END;
+    END IF;
+  END LOOP;
+END;
+$function$;
