@@ -60,4 +60,4 @@ O banco de produção é a **fonte de verdade dos objetos**. O fluxo oficial de 
 - **NUNCA** ativar/alterar autolock do Swarm (`docker swarm update --autolock=true`). Autolock DESATIVADO por decisao do dono (15/08) — manter OFF para sempre.
 - SSH emergencial na VPS (porta 6543): SOMENTE leitura/diagnostico; escrita so com aval.
 - Docker 29.x exige cliente API >= 1.44 — imagens antigas (ex.: traefik v2.11.2) ficam cegas; conferir compatibilidade da imagem antes de deployar stack.
-- Se o Swarm estiver travado ("Swarm is encrypted"): chave em C:/tmp/swarm-unlock-key.txt; destravar e manter autolock OFF.
+- Se o Swarm estiver travado ("Swarm is encrypted"): chave swarm-unlock guardada em local protegido (fora do repo); destravar e manter autolock OFF.
