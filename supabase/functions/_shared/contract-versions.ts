@@ -87,7 +87,6 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "evolution-templates":          { current: "v1", supported: ["v1"] },
   "evolution-retry-metrics":      { current: "v1", supported: ["v1"] },
   "followup-bridge":              { current: "v1", supported: ["v1"] },
-  "evolution-bitrix-sync":        { current: "v1", supported: ["v1"] },
   "db-health-monitor":            { current: "v1", supported: ["v1"] },
   "connection-health-check":      { current: "v1", supported: ["v1"] },
   "health-check":                 { current: "v1", supported: ["v1"] },

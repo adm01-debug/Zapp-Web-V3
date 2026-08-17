@@ -82,7 +82,6 @@ export const EDGE_FUNCTION_NAMES = [
   'email-track-pixel',
   'evolution-api',
   'evolution-consumer-stats',
-  'evolution-bitrix-sync',
   'evolution-credentials',
   'evolution-group-sync',
   'evolution-notification-dispatcher',
