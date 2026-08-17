@@ -395,7 +395,7 @@ export const StatusV1Schema = EmptyStrictV1Schema;
 /** metrics@v1 — scrape Prometheus GET; sem body. */
 export const MetricsV1Schema = EmptyStrictV1Schema;
 
-/** send-scheduled-report@v1 — cron/UI envia { reportId }. */
+/** send-scheduled-report@v1 — UI/manual envia { reportId } (compat). */
 export const SendScheduledReportV1Schema = z.object({
   reportId: z.string().min(1, "reportId é obrigatório").max(200),
 }).strict();
@@ -405,6 +405,15 @@ export const ZappAutoExportV1Schema = z.object({
   jobId: z.string().uuid("jobId deve ser um UUID válido"),
   /** 'run' (padrão): gera/regenera o arquivo. 'link': só renova a signed URL do arquivo existente. */
   action: z.enum(["run", "link"]).optional(),
+/**
+ * send-scheduled-report@v2 — modo batch (cron dispatch chama sem body):
+ * claima runs pendentes da outbox (rpc_claim_pending_report_runs), faz
+ * upload do artefato p/ storage zapp-reports, gera signed URL 7d e envia
+ * email. `limit` opcional (1..100), `dryRun` só conta sem enviar.
+ */
+export const SendScheduledReportV2Schema = z.object({
+  limit: z.number().int().min(1).max(100).optional(),
+  dryRun: z.boolean().optional(),
 }).strict();
 
 /** auto-close-conversations@v1 — cron; sem body. */
@@ -889,9 +898,14 @@ export const AiSuggestReplyV1Schema = AiSuggestReplySchema
  */
 
 
-/** followup-bridge@v1 — POST { sequence_id, contact_jid, instance_name, trigger_event? } */
+/**
+ * followup-bridge@v1 — POST { sequence_id, contact_jid, instance_name, trigger_event? }
+ * v2 (G8 2026-08-17): sequence_id aceita o sequence_group TEXTUAL do motor real
+ * (ex. 'stage_change_rules') OU o id UUID de uma regra avulsa — o edge resolve
+ * contra zapp.evolution_followup_rules (v1 lia followup_sequences, 0 rows).
+ */
 export const FollowupBridgeV1Schema = z.object({
-  sequence_id: z.string().uuid({ message: "sequence_id deve ser UUID" }),
+  sequence_id: z.string().min(1).max(100, { message: "sequence_id deve ter no máximo 100 chars" }),
   contact_jid: z.string().min(1).max(200),
   instance_name: z.string().min(1).max(100),
   trigger_event: z.string().max(100).optional(),
@@ -978,6 +992,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "metrics":                       { v1: MetricsV1Schema },
   "send-scheduled-report":         { v1: SendScheduledReportV1Schema },
   "zapp-auto-export":              { v1: ZappAutoExportV1Schema },
+  "send-scheduled-report":         { v1: SendScheduledReportV1Schema, v2: SendScheduledReportV2Schema },
   "auto-close-conversations":      { v1: AutoCloseConversationsV1Schema },
   "elevenlabs-voice":              { v1: ElevenLabsVoiceV1Schema },
   "elevenlabs-tts":                { v1: ElevenLabsTtsV1Schema },
@@ -1025,6 +1040,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "file-security-scanner":  { v1: InfraSchemas.FileSecurityScannerV1Schema },
   "get-mapbox-token":  { v1: InfraSchemas.GetMapboxTokenV1Schema },
   "get-sip-password":  { v1: InfraSchemas.GetSipPasswordV1Schema },
+  "zapp-get-sip-credentials":  { v1: InfraSchemas.ZappGetSipCredentialsV1Schema },
   "lgpd-scheduled-jobs":  { v1: InfraSchemas.LgpdScheduledJobsV1Schema },
   "login-attempts":  { v1: InfraSchemas.LoginAttemptsV1Schema },
   "main":  { v1: InfraSchemas.MainV1Schema },

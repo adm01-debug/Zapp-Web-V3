@@ -1,13 +1,17 @@
 /**
  * E2E — No Workbox após reload (preview + domínio publicado)
  *
- * Complementa `no-workbox-precache.spec.ts`: aponta para as URLs REAIS de
- * preview e do domínio publicado, faz um primeiro load, dispara `reload()`
- * e valida em ambos que após o reload:
+ * Complementa `no-workbox-precache.spec.ts`: faz um primeiro load, dispara
+ * `reload()` e valida que após o reload:
  *
  *  1. Nenhum script `workbox-*.js` foi requisitado.
  *  2. Nenhuma cache `workbox-precache-*` existe no CacheStorage.
  *  3. Nenhum Service Worker ativo aponta para um script com `workbox` na URL.
+ *
+ * Alvo padrão: o BUILD DO PR (dev server do Playwright, baseURL 5173) — nunca
+ * produção externa (`*.vercel.app`/`*.lovable.app`). Para auditar deploys
+ * reais pontualmente, defina `E2E_PREVIEW_URL`/`E2E_PUBLISHED_URL`
+ * (achado 40:A3 — docs/estado/40-e2e-harness-data.md).
  *
  * Skips graciosamente quando o endpoint não é alcançável (rede/CI offline),
  * para não falsear falhas em pipelines desconectados. Para forçar execução
@@ -15,10 +19,9 @@
  */
 import { test, expect, type Page } from '@playwright/test';
 
-const PREVIEW_URL =
-  process.env.E2E_PREVIEW_URL ?? 'https://zapp-web-v3.vercel.app/';
-const PUBLISHED_URL =
-  process.env.E2E_PUBLISHED_URL ?? 'https://zapp-web-v3.vercel.app/';
+// Padrão: build do PR. Overrides só para auditoria pontual de deploys reais.
+const PREVIEW_URL = process.env.E2E_PREVIEW_URL ?? 'http://localhost:5173/';
+const PUBLISHED_URL = process.env.E2E_PUBLISHED_URL ?? 'http://localhost:5173/';
 const STRICT = process.env.E2E_STRICT_WORKBOX === '1';
 
 type AuditResult = {
@@ -36,8 +39,15 @@ async function auditWorkbox(page: Page, url: string): Promise<AuditResult | null
   page.on('request', (req) => record(req.url()));
 
   // First load — tolerate transient errors (DNS, TLS) unless STRICT.
+  // Status HTTP >= 400 não pode satisfazer "sem workbox" vacuamente (40:A3).
   try {
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 });
+    const response = await page.goto(url, {
+      waitUntil: 'domcontentloaded',
+      timeout: 20_000,
+    });
+    if (response && response.status() >= 400) {
+      throw new Error(`HTTP ${response.status()} em ${url}`);
+    }
   } catch (err) {
     if (!STRICT) {
       test.info().annotations.push({
