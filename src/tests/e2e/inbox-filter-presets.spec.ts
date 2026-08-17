@@ -8,11 +8,14 @@
  *   4. persistência dos presets após reload (F5) e troca de rota.
  *
  * Estratégia hermética (mesma dos demais specs de Inbox):
- *   - Intercepta o edge function (obsoleto: substituído por Supabase direto) devolvendo 2 mensagens
- *     Evolution inbound sem `assigned_to`.
+ *   - Intercepta o data layer devolvendo 2 mensagens Evolution inbound sem
+ *     `assigned_to` (herda o contrato da edge `external-db-proxy`, REMOVIDA
+ *     na consolidação 2026-07-15 — hoje o app consulta o Supabase direto).
  *   - Injeta uma sessão Supabase fake em localStorage para passar o
  *     ProtectedRoute.
- *   - Gated por RUN_INBOX_E2E=1:
+ *   - Gated por RUN_INBOX_E2E=1 (skip justificado — decisão Etapa 13.2,
+ *     docs/estado/40 A1): habilitar no CI exige reescrever a intercepção
+ *     contra o data layer atual (REST/RPC direto). Rode localmente com:
  *
  *       RUN_INBOX_E2E=1 npx playwright test inbox-filter-presets
  */
@@ -147,7 +150,10 @@ function searchInput(page: Page) {
 }
 
 test.describe('inbox — presets de filtros', () => {
-  test.skip(!RUN, 'Defina RUN_INBOX_E2E=1 para rodar este teste (requer backend mockado).');
+  test.skip(
+    !RUN,
+    'RUN_INBOX_E2E=1 ausente: intercepção herda edge external-db-proxy removida (2026-07-15); habilitar no CI exige reescrever mocks contra REST/RPC direto (Etapa 13.2).',
+  );
 
   test.beforeEach(async ({ page, context }) => {
     await context.route(PROXY_URL, handleProxy);

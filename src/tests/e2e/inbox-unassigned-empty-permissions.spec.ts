@@ -12,7 +12,11 @@
  *   - aba "Não lidas"  → contador 2
  *   - os 2 contatos aparecem na sidebar
  *
- * Gated por RUN_INBOX_E2E=1 (o gate hermético do CI só valida boot):
+ * Gated por RUN_INBOX_E2E=1 (skip justificado — decisão Etapa 13.2,
+ * docs/estado/40 A1): a intercepção herda o contrato da edge
+ * `external-db-proxy`, REMOVIDA na consolidação 2026-07-15 (o app consulta
+ * o Supabase direto); habilitar no CI exige reescrever os mocks contra
+ * REST/RPC direto. Rode localmente com:
  *   RUN_INBOX_E2E=1 npx playwright test inbox-unassigned-empty-permissions
  */
 import { test, expect, type Route } from '@playwright/test';
@@ -117,7 +121,10 @@ async function handleEmptyPermissions(route: Route) {
 }
 
 test.describe('inbox — não atribuídas com permissões vazias', () => {
-  test.skip(!RUN, 'Defina RUN_INBOX_E2E=1 para rodar este teste (requer backend mockado).');
+  test.skip(
+    !RUN,
+    'RUN_INBOX_E2E=1 ausente: intercepção herda edge external-db-proxy removida (2026-07-15); habilitar no CI exige reescrever mocks contra REST/RPC direto (Etapa 13.2).',
+  );
 
   test.beforeEach(async ({ page, context }) => {
     await context.route(PROXY_URL, handleProxy);
