@@ -11,6 +11,16 @@ import { fromTable } from '@/lib/supabaseHelpers';
 import { toast } from 'sonner';
 
 // ============================================
+// ALLOWLIST DE TABELAS (segurança de bulk actions)
+// ============================================
+// Bloqueia DELETE/UPDATE em massa em tabelas arbitrárias via tableName livre.
+// Tabelas permitidas = as usadas pela UI real de bulk (hoje sem callers em produção).
+export const BULK_ACTIONS_ALLOWLIST = ['tasks', 'campaign_contacts'] as const;
+type AllowedTable = (typeof BULK_ACTIONS_ALLOWLIST)[number];
+const isAllowedTable = (t: string): t is AllowedTable =>
+  (BULK_ACTIONS_ALLOWLIST as readonly string[]).includes(t);
+
+// ============================================
 // TIPOS
 // ============================================
 
@@ -102,7 +112,9 @@ export function useBulkActions<T extends { id: string }>(
   const isSelected = useCallback((id: string) => selectedIds.has(id), [selectedIds]);
 
   const defaultActions: BulkAction<T>[] = useMemo(() => {
-    if (!tableName) return [];
+    const tableNameNormalized = tableName?.trim() ?? '';
+    // Sem tableName válido → sem bulk actions default (evita delete/update em massa acidental)
+    if (!tableNameNormalized) return [];
 
     return [
       {
@@ -117,7 +129,12 @@ export function useBulkActions<T extends { id: string }>(
           const ids = actionItems.map((i) => i.id);
           // EMPTY-IN GUARD: sem itens, pula o DELETE (evita `id=in.()` no PostgREST)
           if (ids.length === 0) return;
-          const { error } = await fromTable(tableName).delete().in('id', ids);
+          // ALLOWLIST GUARD: bloqueia DELETE em massa em tabela não permitida
+          if (!isAllowedTable(tableNameNormalized)) {
+            toast.error(`Ação bloqueada: tabela "${tableNameNormalized}" não está na allowlist.`);
+            return;
+          }
+          const { error } = await fromTable(tableNameNormalized).delete().in('id', ids);
 
           if (error) throw error;
           toast.success(`${ids.length} item(s) excluído(s)`);
@@ -131,7 +148,12 @@ export function useBulkActions<T extends { id: string }>(
           const ids = actionItems.map((i) => i.id);
           // EMPTY-IN GUARD: sem itens, pula o UPDATE (evita `id=in.()` no PostgREST)
           if (ids.length === 0) return;
-          const { error } = await (fromTable(tableName) as unknown as {
+          // ALLOWLIST GUARD: bloqueia UPDATE em massa em tabela não permitida
+          if (!isAllowedTable(tableNameNormalized)) {
+            toast.error(`Ação bloqueada: tabela "${tableNameNormalized}" não está na allowlist.`);
+            return;
+          }
+          const { error } = await (fromTable(tableNameNormalized) as unknown as {
             update: (values: { status: string; updated_at: string }) => {
               in: (col: string, vals: string[]) => Promise<{ error: { message: string } | null }>;
             };
