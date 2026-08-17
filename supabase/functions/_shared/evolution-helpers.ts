@@ -1,5 +1,6 @@
 // Shared helpers for Evolutmon API webhook and sync functions
 declare const Deno: { env: { get(key: string): string | undefined } };
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getStoragePublicUrl } from "./storage-url.ts";
 import { evolutionClient } from "./providers/evolution/index.ts";
 
@@ -76,7 +77,15 @@ export function logLedgerRejection(
   },
 ): void {
   try {
-    supabase.from('ingest_ledger').insert({
+    // [FIX 2026-08-17] O client do caller é schema 'zapp' (PGRST106 no PostgREST).
+    // O ingest_ledger REAL é a view public (updatable, com reject_reason) — um
+    // client com schema 'public' resolve o INSERT corretamente.
+    const pub = createClient(
+      Deno.env.get("SELFHOSTED_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "public" } },
+    );
+    pub.from('ingest_ledger').insert({
       instance_name: opts.instanceName,
       event_type: opts.eventType ?? null,
       message_id: opts.messageId ?? null,

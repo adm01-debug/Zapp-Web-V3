@@ -290,9 +290,7 @@ export const ContractLifecycles: Record<string, ContractLifecycle> = {
   },
 };
 
-const specificEdgeFunctionSchemas: Partial<
-  Record<(typeof EDGE_FUNCTION_NAMES)[number], ContractVersionMap>
-> = {
+const specificEdgeFunctionSchemas = {
 
   'evolution-consumer-stats': { v1: z.object({
     collected_at: z.string().optional(),
@@ -388,11 +386,13 @@ const specificEdgeFunctionSchemas: Partial<
           .optional(),
       })
       .passthrough(),
+  },
   'zapp-auto-export': {
     v1: z
       .object({
         jobId: z.string().uuid(),
         action: z.enum(['run', 'link']).optional(),
+      }).passthrough() },
   // zapp-sentry-sync@v1 — config Sentry persistida em zapp.sentry_config.
   // Espelho inline do SentrySyncV1Schema (contract-schemas.ts) — nunca importar
   // de contract-schemas.ts (ciclo). Estrito: endpoint interno da UI.
@@ -406,6 +406,8 @@ const specificEdgeFunctionSchemas: Partial<
         replays_session_sample_rate: z.number().min(0).max(1).optional(),
         replays_on_error_sample_rate: z.number().min(0).max(1).optional(),
         action: z.enum(['save', 'test']).optional(),
+      }),
+  },
   // Contrato real da integração n8n (estado honesto not_configured) — schema
   // inline (edge-contract-schemas.ts NUNCA importa de contract-schemas.ts).
   'zapp-n8n-sync': {
@@ -414,6 +416,7 @@ const specificEdgeFunctionSchemas: Partial<
         z.object({ action: z.literal('status') }).strict(),
         z.object({ action: z.literal('configure'), baseUrl: z.string().min(1).max(2048) }).strict(),
       ]),
+  },
   'zapp-google-calendar-sync': {
     v1: z
       .object({
@@ -452,8 +455,12 @@ const specificEdgeFunctionSchemas: Partial<
       })
       .strict(),
   },
-  ...WebhookContractSchemas,
 };
+
+// [FIX 2026-08-17] Deno 2.1.4 (edge-runtime 1.74) rejeita spread de objeto no fim
+// de objeto com anotação multiline (parse "Expected ',' got ';'") — Object.assign
+// tem semântica idêntica e parseia em qualquer versão.
+Object.assign(specificEdgeFunctionSchemas, WebhookContractSchemas);
 
 /**
  * Registro paralelo LEGADO (espelho): EdgeFunctionContractSchemas.
