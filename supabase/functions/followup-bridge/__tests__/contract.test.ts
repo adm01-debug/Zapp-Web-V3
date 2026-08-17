@@ -3,8 +3,9 @@
  * cobertura de missing fields / tipos errados / valores vazios).
  *
  * Schema REAL: FollowupBridgeV1Schema (contract-schemas.ts) — STRICT, com
- * obrigatórios sequence_id (UUID), contact_jid (min 1), instance_name (min 1)
- * e trigger_event opcional. Strict → campo extra rejeitado.
+ * obrigatórios sequence_id (min 1, máx 100 — sequence_group TEXTUAL do motor
+ * real desde v2/G8, ex. 'stage_change_rules'), contact_jid (min 1),
+ * instance_name (min 1) e trigger_event opcional. Strict → campo extra rejeitado.
  */
 import { assertEquals } from "jsr:@std/assert";
 import { FollowupBridgeV1Schema } from "../../_shared/contract-schemas.ts";
@@ -68,8 +69,31 @@ Deno.test("Contract: followup-bridge v1 — body {} → rejeitado (3 obrigatóri
 
 // ─── Tipos incorretos ────────────────────────────────────────────────────────
 
-Deno.test("Contract: followup-bridge v1 — sequence_id não-UUID → rejeitado", () => {
-  const r = FollowupBridgeV1Schema.safeParse({ ...validPayload(), sequence_id: "nao-e-uuid" });
+Deno.test("Contract: followup-bridge v1 — sequence_group textual aceito (v2 G8)", () => {
+  // v2: sequence_id resolve contra zapp.evolution_followup_rules — o padrão do
+  // motor é sequence_group TEXTUAL (ex. 'stage_change_rules'), não UUID.
+  const r = FollowupBridgeV1Schema.safeParse({
+    ...validPayload(),
+    sequence_id: "stage_change_rules",
+  });
+  assertEquals(r.success, true);
+});
+
+Deno.test("Contract: followup-bridge v1 — sequence_id vazio → rejeitado (min 1)", () => {
+  const r = FollowupBridgeV1Schema.safeParse({ ...validPayload(), sequence_id: "" });
+  assertEquals(r.success, false);
+});
+
+Deno.test("Contract: followup-bridge v1 — sequence_id >100 chars → rejeitado", () => {
+  const r = FollowupBridgeV1Schema.safeParse({
+    ...validPayload(),
+    sequence_id: "x".repeat(101),
+  });
+  assertEquals(r.success, false);
+});
+
+Deno.test("Contract: followup-bridge v1 — sequence_id número → rejeitado", () => {
+  const r = FollowupBridgeV1Schema.safeParse({ ...validPayload(), sequence_id: 12345 });
   assertEquals(r.success, false);
 });
 

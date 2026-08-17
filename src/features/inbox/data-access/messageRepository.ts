@@ -100,20 +100,15 @@ export const messageRepository = {
         } as RealtimePostgresChangesPayload<Message>);
       };
 
-    // Evolution DB v6.1: Realtime deve apontar para a TABELA-FONTE (evo.evolution_messages).
-    // A view `messages` (zapp) não emite Realtime — usar tabela-fonte evo.evolution_messages.
-    // TODO(fanout): zapp.realtime_message_fanout NÃO tem contact_id (nem sender/status/
-    // media_url/...) — o filtro contact_id=eq é inviável no espelho e o normalizeMessage
-    // receberia rows parciais. Migrar exige resolver contactId→remote_jid (mapa de contatos)
-    // e adaptar o normalizer. Mantido na tabela-fonte (particionada → Realtime v2 não
-    // entrega) até o espelho ganhar as colunas.
+    // fanout v2: espelho tem contact_id + todas as colunas (sender/status/media_url/...)
+    // — assinar o espelho não-particionado (Realtime v2 não entrega partições).
     const channel = dbChannel('messages', `messages:${contactId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'evo',
-          table: 'evolution_messages',
+          schema: 'zapp',
+          table: 'realtime_message_fanout',
           filter: `contact_id=eq.${contactId}`,
         },
         wrap(callbacks.onInsert)
@@ -122,8 +117,8 @@ export const messageRepository = {
         'postgres_changes',
         {
           event: 'UPDATE',
-          schema: 'evo',
-          table: 'evolution_messages',
+          schema: 'zapp',
+          table: 'realtime_message_fanout',
           filter: `contact_id=eq.${contactId}`,
         },
         wrap(callbacks.onUpdate)
@@ -132,8 +127,8 @@ export const messageRepository = {
         'postgres_changes',
         {
           event: 'DELETE',
-          schema: 'evo',
-          table: 'evolution_messages',
+          schema: 'zapp',
+          table: 'realtime_message_fanout',
           filter: `contact_id=eq.${contactId}`,
         },
         wrap(callbacks.onDelete)

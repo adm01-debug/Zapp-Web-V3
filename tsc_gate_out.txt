@@ -1,0 +1,57 @@
+src/components/connections/ConnectionsView.tsx(203,31): error TS2339: Property 'totalSynced' does not exist on type '{}'.
+src/components/connections/ConnectionsView.tsx(203,84): error TS2339: Property 'totalContacts' does not exist on type '{}'.
+src/components/gamification/DemoAchievements.tsx(46,14): error TS2304: Cannot find name 'Trophy'.
+src/components/gamification/DemoAchievements.tsx(65,18): error TS2304: Cannot find name 'Zap'.
+src/components/gamification/DemoAchievements.tsx(92,16): error TS2304: Cannot find name 'Flame'.
+src/features/inbox/components/contact-details/ContactTagsContent.tsx(13,10): error TS2459: Module '"@/features/inbox/utils/contactRef"' declares 'isValidUUID' locally, but it is not exported.
+src/features/inbox/components/contact-details/ContactTagsContent.tsx(34,41): error TS2339: Property 'id' does not exist on type 'string | Tag'.
+  Property 'id' does not exist on type 'string'.
+src/features/inbox/components/contact-details/ContactTagsContent.tsx(58,31): error TS2339: Property 'id' does not exist on type 'string | Tag'.
+  Property 'id' does not exist on type 'string'.
+src/features/inbox/components/contact-details/ContactTagsContent.tsx(68,18): error TS2339: Property 'name' does not exist on type 'string | Tag'.
+  Property 'name' does not exist on type 'string'.
+src/features/inbox/components/contact-details/ContactTagsContent.tsx(72,53): error TS2339: Property 'name' does not exist on type 'string | Tag'.
+  Property 'name' does not exist on type 'string'.
+src/features/inbox/components/contact-details/ContactTagsContent.tsx(75,27): error TS2339: Property 'id' does not exist on type 'string | Tag'.
+  Property 'id' does not exist on type 'string'.
+src/features/inbox/components/contact-details/ContactTagsContent.tsx(75,50): error TS2339: Property 'id' does not exist on type 'string | Tag'.
+  Property 'id' does not exist on type 'string'.
+src/features/integrations/hooks/useEvolutionApiIntegration.ts(219,18): error TS2339: Property 'ok' does not exist on type '{}'.
+src/features/integrations/hooks/useEvolutionApiIntegration.ts(219,44): error TS2339: Property 'error' does not exist on type '{}'.
+src/features/integrations/hooks/useEvolutionApiIntegration.ts(244,18): error TS2339: Property 'ok' does not exist on type '{}'.
+src/features/integrations/hooks/useEvolutionApiIntegration.ts(244,44): error TS2339: Property 'error' does not exist on type '{}'.
+src/hooks/__tests__/useScheduledMessages.real.test.tsx(210,12): error TS18049: 'call' is possibly 'null' or 'undefined'.
+src/hooks/__tests__/useScheduledMessages.real.test.tsx(210,17): error TS2339: Property 'variant' does not exist on type 'string | number | boolean | Iterable<ReactNode> | ReactElement<any, string | JSXElementConstructor<any>> | ReactPortal | (() => ReactNode)'.
+  Property 'variant' does not exist on type 'string'.
+src/hooks/__tests__/useScheduledMessages.real.test.tsx(211,12): error TS18049: 'call' is possibly 'null' or 'undefined'.
+src/hooks/__tests__/useScheduledMessages.real.test.tsx(211,17): error TS2339: Property 'title' does not exist on type 'string | number | boolean | Iterable<ReactNode> | ReactElement<any, string | JSXElementConstructor<any>> | ReactPortal | (() => ReactNode)'.
+  Property 'title' does not exist on type 'string'.
+src/hooks/__tests__/useScheduledMessages.real.test.tsx(213,12): error TS18049: 'call' is possibly 'null' or 'undefined'.
+src/hooks/__tests__/useScheduledMessages.real.test.tsx(213,17): error TS2339: Property 'description' does not exist on type 'string | number | boolean | Iterable<ReactNode> | ReactElement<any, string | JSXElementConstructor<any>> | ReactPortal | (() => ReactNode)'.
+  Property 'description' does not exist on type 'string'.
+src/hooks/__tests__/useScheduledMessages.real.test.tsx(214,12): error TS18049: 'call' is possibly 'null' or 'undefined'.
+src/hooks/__tests__/useScheduledMessages.real.test.tsx(214,17): error TS2339: Property 'description' does not exist on type 'string | number | boolean | Iterable<ReactNode> | ReactElement<any, string | JSXElementConstructor<any>> | ReactPortal | (() => ReactNode)'.
+  Property 'description' does not exist on type 'string'.
+src/hooks/__tests__/useScheduledMessages.real.test.tsx(228,12): error TS18049: 'call' is possibly 'null' or 'undefined'.
+src/hooks/__tests__/useScheduledMessages.real.test.tsx(228,17): error TS2339: Property 'variant' does not exist on type 'string | number | boolean | Iterable<ReactNode> | ReactElement<any, string | JSXElementConstructor<any>> | ReactPortal | (() => ReactNode)'.
+  Property 'variant' does not exist on type 'string'.
+src/hooks/__tests__/useScheduledMessages.real.test.tsx(229,12): error TS18049: 'call' is possibly 'null' or 'undefined'.
+src/hooks/__tests__/useScheduledMessages.real.test.tsx(229,17): error TS2339: Property 'title' does not exist on type 'string | number | boolean | Iterable<ReactNode> | ReactElement<any, string | JSXElementConstructor<any>> | ReactPortal | (() => ReactNode)'.
+  Property 'title' does not exist on type 'string'.
+src/hooks/__tests__/useScheduledMessages.real.test.tsx(230,12): error TS18049: 'call' is possibly 'null' or 'undefined'.
+src/hooks/__tests__/useScheduledMessages.real.test.tsx(230,17): error TS2339: Property 'description' does not exist on type 'string | number | boolean | Iterable<ReactNode> | ReactElement<any, string | JSXElementConstructor<any>> | ReactPortal | (() => ReactNode)'.
+  Property 'description' does not exist on type 'string'.
+src/hooks/__tests__/useScheduledMessages.real.test.tsx(231,12): error TS18049: 'call' is possibly 'null' or 'undefined'.
+src/hooks/__tests__/useScheduledMessages.real.test.tsx(231,17): error TS2339: Property 'description' does not exist on type 'string | number | boolean | Iterable<ReactNode> | ReactElement<any, string | JSXElementConstructor<any>> | ReactPortal | (() => ReactNode)'.
+  Property 'description' does not exist on type 'string'.
+src/hooks/__tests__/useScheduledMessages.real.test.tsx(249,59): error TS2533: Object is possibly 'null' or 'undefined'.
+src/hooks/__tests__/useScheduledMessages.real.test.tsx(249,64): error TS2339: Property 'title' does not exist on type 'string | number | boolean | Iterable<ReactNode> | ReactElement<any, string | JSXElementConstructor<any>> | ReactPortal | (() => ReactNode)'.
+  Property 'title' does not exist on type 'string'.
+src/hooks/__tests__/useScheduledMessages.real.test.tsx(269,59): error TS2533: Object is possibly 'null' or 'undefined'.
+src/hooks/__tests__/useScheduledMessages.real.test.tsx(269,64): error TS2339: Property 'title' does not exist on type 'string | number | boolean | Iterable<ReactNode> | ReactElement<any, string | JSXElementConstructor<any>> | ReactPortal | (() => ReactNode)'.
+  Property 'title' does not exist on type 'string'.
+src/lib/__tests__/offlineQueue-listener.test.ts(39,61): error TS2345: Argument of type '(type: string, fn: EventListener) => void' is not assignable to parameter of type '(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions | undefined) => void'.
+  Types of parameters 'fn' and 'listener' are incompatible.
+    Type 'EventListenerOrEventListenerObject' is not assignable to type 'EventListener'.
+      Type 'EventListenerObject' is not assignable to type 'EventListener'.
+        Type 'EventListenerObject' provides no match for the signature '(evt: Event): void'.

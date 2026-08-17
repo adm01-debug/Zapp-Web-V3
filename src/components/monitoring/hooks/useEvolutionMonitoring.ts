@@ -84,7 +84,7 @@ export function useEvolutionMonitoring() {
       )
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'evo', table: 'evolution_messages' }, // tabela-fonte em schema evo (Realtime exige tabela base)
+        { event: 'INSERT', schema: 'zapp', table: 'realtime_message_fanout' }, // espelho não-particionado (Realtime v2 não entrega partições)
         wrapMessagesHandler<{ new: Record<string, unknown> }>('useEvolutionMonitoring', () =>
           fetchData()
         )

@@ -22,9 +22,9 @@
 
 /** Whatsapp Instances constant. */
 export const WHATSAPP_INSTANCES = [
-  // Instância legada — dados históricos até Maio 2026
+  // Instância PRODUTIVA atual — is_active=true, status='connected' (reverificado 2026-07-26)
   'wpp2',
-  // Instância ATIVA atual — dados de Maio 2026 em diante
+  // Instância de TESTE legada — is_active=false, status='archived', nunca recebeu tráfego
   'wpp_pink_test',
   // Fallback interno do PG (não selecionável pelo usuário)
   'default',
