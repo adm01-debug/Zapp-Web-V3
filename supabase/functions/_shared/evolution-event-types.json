@@ -1,0 +1,12 @@
+{
+  "schema": "evo-event-types/v1",
+  "source": "evolution-stack consumer/consumer.py EVENTS (linhas 59-63)",
+  "events": [
+    "messages.upsert", "messages.update", "messages.edited", "messages.delete",
+    "contacts.upsert", "contacts.update", "chats.upsert", "chats.update",
+    "connection.update", "labels.edit", "labels.association",
+    "groups.upsert", "groups.update", "group-participants.update",
+    "call", "qrcode.updated", "logout.instance", "send.message"
+  ],
+  "count": 18
+}
