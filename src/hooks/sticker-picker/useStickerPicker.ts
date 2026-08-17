@@ -1,64 +1,40 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
-import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
 import { toast } from 'sonner';
 import {
   type StickerItem,
   type PendingUpload,
   CATEGORY_LABELS,
+  mapStickerRow,
+  sortStickersByRecent,
+  RECENT_STICKERS_LIMIT,
 } from '@/features/inbox/components/stickers/StickerTypes';
+import {
+  uploadStickerFile,
+  insertStickerRow,
+  removeStickerObject,
+} from '@/features/inbox/components/stickers/stickerUpload';
 
 const log = getLogger('StickerPicker');
-const RECENT_LIMIT = 8;
-const _MAX_STICKER_SIZE = 500 * 1024; // 500KB
-const _ACCEPTED_TYPES = ['image/webp', 'image/png', 'image/gif', 'image/jpeg'];
 
 /**
- * Safely extracts the storage path from a Supabase Storage URL.
- * Handles query params, encoding, and nested paths.
- */
-function extractStoragePath(url: string, bucket: string): string | null {
-  try {
-    const parsed = new URL(url);
-    const marker = `/storage/v1/object/public/${bucket}/`;
-    const idx = parsed.pathname.indexOf(marker);
-    if (idx === -1) return null;
-    return decodeURIComponent(parsed.pathname.slice(idx + marker.length));
-  } catch {
-    // Fallback: simple split (legacy URLs)
-    const parts = url.split(`/${bucket}/`);
-    if (parts.length < 2) return null;
-    return parts[1].split('?')[0]; // Strip query params
-  }
-}
-
-/**
- * Validates that a DB record has the required StickerItem fields.
- */
-function _isStickerItem(item: unknown): item is StickerItem {
-  if (!item || typeof item !== 'object') return false;
-  const obj = item as Record<string, unknown>;
-  return typeof obj.id === 'string' && typeof obj.image_url === 'string';
-}
-
-/**
- * FIXES APPLIED (Audit 02/05/2026):
+ * FIXES APLICADOS (Audit 02/05/2026 + Etapa 44, wt-g10):
  * - BUG 1: handleDrop stale closure fixed (processFile wrapped in useCallback)
- * - BUG 3: `as StickerItem[]` replaced with runtime validation
- * - FALHA 4: Toast standardized to sonner (already was sonner here)
+ * - BUG 3: `as StickerItem[]` replaced with runtime validation (mapStickerRow)
+ * - FALHA 4: Toast standardized to sonner
  * - FALHA 7: use_count update error handling added
  * - FALHA 8: URL parsing fixed to strip query params before storage remove
+ * - A7 (Etapa 44): "Recentes" agora ordena por created_at do DB (recência
+ *   REAL), não mais por use_count (era "mais usadas" com nome enganoso).
+ * - A8 (Etapa 44): upload via helper canônico stickerUpload → bucket
+ *   `stickers` + URL via getSignedMediaUrl; validação tipo/tamanho alinhada
+ *   ao bucket (webp/gif/png) ANTES do upload.
+ * - Etapa 44.5: erros HONESTOS — mensagem real do storage/DB nos toasts;
+ *   sem `catch {}` silencioso nem toast de sucesso em falha.
  */
 
-/** Validate that Supabase row has minimum required StickerItem fields */
-function validateStickerRow(row: unknown): row is StickerItem {
-  if (typeof row !== 'object' || row === null) return false;
-  const r = row as Record<string, unknown>;
-  return typeof r.id === 'string' && typeof r.image_url === 'string';
-}
-
-/** Manages sticker picker state: browsing, uploading, deleting stickers, and triggering sends. */
+/** Gerenciador de estado do picker de figurinhas: navegação, upload, delete e envio. */
 export function useStickerPicker(onSendSticker: (url: string) => void) {
   const [open, setOpen] = useState(false);
   const [stickers, setStickers] = useState<StickerItem[]>([]);
@@ -82,7 +58,7 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
     };
   }, []);
 
-  // FIX BUG 3: Runtime validation instead of unsafe `as StickerItem[]` cast
+  // FIX BUG 3: runtime validation instead of unsafe `as StickerItem[]` cast
   const fetchStickers = useCallback(async () => {
     setLoading(true);
     try {
@@ -94,22 +70,15 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
 
       if (!mountedRef.current) return;
       if (error) {
+        // Etapa 44.5: erro HONESTO — o usuário vê a causa real, não um vazio.
         log.error('[fetchStickers] Query error:', error.message);
+        toast.error(`Erro ao carregar figurinhas: ${error.message}`);
         setLoading(false);
         return;
       }
 
-      // BUG 3 FIX: Runtime validation instead of unsafe cast
       if (data) {
-        const validated = data.filter(validateStickerRow).map((row) => ({
-          id: row.id,
-          name: row.name ?? null,
-          image_url: row.image_url,
-          category: row.category ?? 'outros',
-          is_favorite: row.is_favorite ?? false,
-          use_count: row.use_count ?? 0,
-          owner_id: row.owner_id ?? null,
-        }));
+        const validated = data.map(mapStickerRow).filter((s): s is StickerItem => s !== null);
         if (validated.length !== data.length) {
           log.warn(`[fetchStickers] ${data.length - validated.length} rows failed validation`);
         }
@@ -117,6 +86,9 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
       }
     } catch (err) {
       log.error('[fetchStickers] Exception:', err);
+      toast.error(
+        `Erro ao carregar figurinhas: ${err instanceof Error ? err.message : 'falha de rede'}`
+      );
     }
     if (mountedRef.current) setLoading(false);
   }, []);
@@ -140,38 +112,27 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  // BUG 1 FIX: processFile as useCallback so handleDrop can reference it
+  // BUG 1 FIX: processFile as useCallback so handleDrop can reference it.
+  // Etapa 44 (A8): upload via helper canônico (bucket `stickers` + signed URL)
+  // com validação e erros honestos.
   const processFile = useCallback(async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      toast.error('Arquivo não é uma imagem válida');
-      return;
-    }
-    if (file.size > 500 * 1024) {
-      toast.error('Arquivo excede 500KB.');
-      return;
-    }
-
     setUploading(true);
     try {
-      const ext = file.name.split('.').pop() || 'webp';
-      const storagePath = `sticker_${Date.now()}_${crypto.randomUUID()}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from('stickers')
-        .upload(storagePath, file, { contentType: file.type, cacheControl: '31536000' });
+      const result = await uploadStickerFile(file);
+      if (!mountedRef.current) return;
 
-      if (uploadError) {
-        toast.error('Erro ao enviar arquivo');
+      if (!result.ok) {
+        toast.error(result.error);
         return;
       }
 
-      const stickerUrl = resolvePublicStorageUrl('stickers', storagePath);
       const aiCategory = 'enviadas';
 
       // Show upload preview immediately (GAP 16 FIX: non-blocking AI classification)
       setPendingUpload({
         file,
-        imageUrl: stickerUrl ?? '',
-        storagePath,
+        imageUrl: result.url,
+        storagePath: result.path,
         aiCategory,
         selectedCategory: aiCategory,
         name: file.name.replace(/\.[^.]+$/, ''),
@@ -179,7 +140,7 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
 
       // Background AI classification — updates category when ready
       supabase.functions
-        .invoke('classify-sticker', { body: { image_url: stickerUrl } })
+        .invoke('classify-sticker', { body: { image_url: result.url } })
         .then(({ data: classifyData, error: classifyErr }) => {
           if (!classifyErr && classifyData?.category) {
             setPendingUpload((prev) =>
@@ -195,8 +156,12 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
           }
         })
         .catch((err) => log.error('AI classification error:', err));
-    } catch {
-      toast.error('Erro ao processar figurinha');
+    } catch (err) {
+      // Etapa 44.5: erro HONESTO (ex.: falha de rede no upload).
+      log.error('[StickerPicker] Upload exception:', err);
+      toast.error(
+        `Erro ao processar figurinha: ${err instanceof Error ? err.message : 'falha inesperada'}`
+      );
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -222,7 +187,7 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
       e.stopPropagation();
       setIsDragOver(false);
       const file = e.dataTransfer.files?.[0];
-      if (file) processFile(file);
+      if (file) void processFile(file);
     },
     [processFile]
   );
@@ -230,27 +195,33 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (file) processFile(file);
+      if (file) void processFile(file);
     },
     [processFile]
   );
 
   const handleConfirmUpload = useCallback(
     async (pending: PendingUpload) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const { error: insertError } = await supabase.from('stickers').insert({
+      let uploadedBy: string | null = null;
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        uploadedBy = user?.id ?? null;
+      } catch (err) {
+        log.warn('[StickerPicker] getUser failed (insert prossegue anônimo):', err);
+      }
+
+      const { error: insertError } = await insertStickerRow({
         name: pending.name,
-        image_url: pending.imageUrl,
+        imageUrl: pending.imageUrl,
         category: pending.selectedCategory,
-        is_favorite: false,
-        use_count: 0,
-        uploaded_by: user?.id || null,
+        uploadedBy,
       });
       if (insertError) {
+        // Etapa 44.5: erro HONESTO com a causa real.
         log.error('[StickerPicker] Insert error:', insertError);
-        toast.error('Erro ao salvar figurinha');
+        toast.error(`Erro ao salvar figurinha: ${insertError}`);
         return;
       }
       toast.success(
@@ -264,7 +235,8 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
 
   const handleCancelUpload = useCallback(async () => {
     if (pendingUpload) {
-      await supabase.storage.from('stickers').remove([pendingUpload.storagePath]);
+      const { error } = await removeStickerObject(pendingUpload.storagePath);
+      if (error) log.warn('[StickerPicker] cleanup do objeto cancelado falhou:', error);
     }
     setPendingUpload(null);
   }, [pendingUpload]);
@@ -286,74 +258,89 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
     [onSendSticker]
   );
 
-  const toggleFavorite = useCallback(async (e: React.SyntheticEvent, sticker: StickerItem) => {
-    e.stopPropagation();
-    const newVal = !sticker.is_favorite;
-    setStickers((prev) =>
-      prev.map((s) => (s.id === sticker.id ? { ...s, is_favorite: newVal } : s))
-    );
-    const { error } = await supabase
-      .from('stickers')
-      .update({ is_favorite: newVal })
-      .eq('id', sticker.id);
-    if (error) {
-      log.error('[toggleFavorite] DB update failed:', error.message);
+  const toggleFavorite = useCallback(
+    async (e: React.SyntheticEvent, sticker: StickerItem) => {
+      e.stopPropagation();
+      const newVal = !sticker.is_favorite;
       setStickers((prev) =>
-        prev.map((s) => (s.id === sticker.id ? { ...s, is_favorite: !newVal } : s))
+        prev.map((s) => (s.id === sticker.id ? { ...s, is_favorite: newVal } : s))
       );
-      toast.error('Erro ao atualizar favorito');
-      return;
-    }
-    toast.success(newVal ? '⭐ Adicionada aos favoritos' : 'Removida dos favoritos');
-  }, []);
+      const { error } = await supabase
+        .from('stickers')
+        .update({ is_favorite: newVal })
+        .eq('id', sticker.id);
+      if (error) {
+        // Etapa 44.5: erro HONESTO com rollback otimista.
+        log.error('[toggleFavorite] DB update failed:', error.message);
+        setStickers((prev) =>
+          prev.map((s) => (s.id === sticker.id ? { ...s, is_favorite: !newVal } : s))
+        );
+        toast.error(`Erro ao atualizar favorito: ${error.message}`);
+        return;
+      }
+      toast.success(newVal ? '⭐ Adicionada aos favoritos' : 'Removida dos favoritos');
+    },
+    []
+  );
 
-  const handleCategoryChange = useCallback(async (sticker: StickerItem, newCategory: string) => {
-    const prevCategory = sticker.category;
-    setStickers((prev) =>
-      prev.map((s) => (s.id === sticker.id ? { ...s, category: newCategory } : s))
-    );
-    const { error } = await supabase
-      .from('stickers')
-      .update({ category: newCategory })
-      .eq('id', sticker.id);
-    if (error) {
-      log.error('[handleCategoryChange] DB update failed:', error.message);
+  const handleCategoryChange = useCallback(
+    async (sticker: StickerItem, newCategory: string) => {
+      const prevCategory = sticker.category;
       setStickers((prev) =>
-        prev.map((s) => (s.id === sticker.id ? { ...s, category: prevCategory } : s))
+        prev.map((s) => (s.id === sticker.id ? { ...s, category: newCategory } : s))
       );
-      toast.error('Erro ao alterar categoria');
-      return;
-    }
-    toast.success(`Categoria: "${CATEGORY_LABELS[newCategory]?.label || newCategory}"`);
-  }, []);
+      const { error } = await supabase
+        .from('stickers')
+        .update({ category: newCategory })
+        .eq('id', sticker.id);
+      if (error) {
+        // Etapa 44.5: erro HONESTO com rollback otimista.
+        log.error('[handleCategoryChange] DB update failed:', error.message);
+        setStickers((prev) =>
+          prev.map((s) => (s.id === sticker.id ? { ...s, category: prevCategory } : s))
+        );
+        toast.error(`Erro ao alterar categoria: ${error.message}`);
+        return;
+      }
+      toast.success(`Categoria: "${CATEGORY_LABELS[newCategory]?.label || newCategory}"`);
+    },
+    []
+  );
 
   // FALHA 8 FIX: Safe URL parsing for storage path extraction
-  const handleDelete = useCallback(async (e: React.MouseEvent, sticker: StickerItem) => {
-    e.stopPropagation();
-    setStickers((prev) => prev.filter((s) => s.id !== sticker.id));
+  const handleDelete = useCallback(
+    async (e: React.MouseEvent, sticker: StickerItem) => {
+      e.stopPropagation();
+      setStickers((prev) => prev.filter((s) => s.id !== sticker.id));
 
-    // Determine bucket and extract clean path
-    const bucket = sticker.image_url.includes('/whatsapp-media/') ? 'whatsapp-media' : 'stickers';
-    const path = extractStoragePath(sticker.image_url, bucket);
+      // Determine bucket and extract clean path
+      const bucket = sticker.image_url.includes('/whatsapp-media/') ? 'whatsapp-media' : 'stickers';
+      const path = extractStoragePath(sticker.image_url, bucket);
 
-    if (path) {
-      const { error: removeError } = await supabase.storage.from(bucket).remove([path]);
-      if (removeError) {
-        log.error(
-          `[handleDelete] Storage remove failed for ${bucket}/${path}:`,
-          removeError.message
-        );
+      if (path) {
+        const { error: removeError } = await supabase.storage.from(bucket).remove([path]);
+        if (removeError) {
+          log.error(
+            `[handleDelete] Storage remove failed for ${bucket}/${path}:`,
+            removeError.message
+          );
+        }
+      } else {
+        log.warn('[handleDelete] Could not extract storage path from:', sticker.image_url);
       }
-    } else {
-      log.warn('[handleDelete] Could not extract storage path from:', sticker.image_url);
-    }
 
-    const { error: deleteError } = await supabase.from('stickers').delete().eq('id', sticker.id);
-    if (deleteError) {
-      log.error('[handleDelete] DB delete failed:', deleteError.message);
-    }
-    toast.success('Figurinha removida');
-  }, []);
+      const { error: deleteError } = await supabase.from('stickers').delete().eq('id', sticker.id);
+      if (deleteError) {
+        // Etapa 44.5: erro HONESTO — restaura o item e avisa com a causa real.
+        log.error('[handleDelete] DB delete failed:', deleteError.message);
+        setStickers((prev) => [...prev, sticker]);
+        toast.error(`Erro ao excluir figurinha: ${deleteError.message}`);
+        return;
+      }
+      toast.success('Figurinha removida');
+    },
+    []
+  );
 
   const filtered = useMemo(() => {
     let result = stickers;
@@ -367,9 +354,8 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
       );
     }
     if (showRecent) {
-      result = [...result]
-        .sort((a, b) => (b.use_count || 0) - (a.use_count || 0))
-        .slice(0, RECENT_LIMIT);
+      // A7 (Etapa 44): recência REAL — created_at do DB, decrescente e estável.
+      result = sortStickersByRecent(result).slice(0, RECENT_STICKERS_LIMIT);
     } else if (showFavorites) {
       result = result.filter((s) => s.is_favorite);
     } else if (activeCategory) {
@@ -415,4 +401,23 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
     handleDelete,
     cycleGridSize,
   };
+}
+
+/**
+ * Safely extracts the storage path from a Supabase Storage URL.
+ * Handles query params, encoding, and nested paths.
+ */
+function extractStoragePath(url: string, bucket: string): string | null {
+  try {
+    const parsed = new URL(url);
+    const marker = `/storage/v1/object/public/${bucket}/`;
+    const idx = parsed.pathname.indexOf(marker);
+    if (idx === -1) return null;
+    return decodeURIComponent(parsed.pathname.slice(idx + marker.length));
+  } catch {
+    // Fallback: simple split (legacy URLs)
+    const parts = url.split(`/${bucket}/`);
+    if (parts.length < 2) return null;
+    return parts[1].split('?')[0]; // Strip query params
+  }
 }
