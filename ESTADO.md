@@ -88,7 +88,6 @@ Decisao de arquivar e do responsavel — esta lista e diagnostico, nao sentenca.
 | `contact-media` | 0 | 0 |
 | `db-health-monitor` | 0 | 0 |
 | `email-health` | 0 | 1 |
-| `evolution-bitrix-sync` | 0 | 0 |
 | `evolution-retry-metrics` | 0 | 0 |
 | `fetch-whatsapp-avatar` | 0 | 0 |
 | `file-security-scanner` | 0 | 0 |
