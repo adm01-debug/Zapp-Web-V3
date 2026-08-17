@@ -5,10 +5,7 @@ import {
   Forward,
   Copy,
   MoreVertical,
-  Pin,
-  Star,
   Trash2,
-  Flag,
   Clock,
   CheckCheck,
   EyeOff,
@@ -48,7 +45,11 @@ interface MessageHoverToolbarProps {
   onStop: () => void;
   onEditStart?: (message: Message) => void;
   onMessageDeleted: (messageId: string) => void;
+  /** Etapa 41: adia a CONVERSA (snooze) — wired no ChatPanel via useChatPanelHandlers.onSnooze. */
+  onSnoozeConversation?: (duration: SnoozeDuration) => void;
 }
+
+export type SnoozeDuration = '1h' | '3h' | 'tomorrow' | 'nextweek';
 
 /** Message Hover Toolbar component for the chat section. */
 export function MessageHoverToolbar({
@@ -66,6 +67,7 @@ export function MessageHoverToolbar({
   onStop,
   onEditStart,
   onMessageDeleted,
+  onSnoozeConversation,
 }: MessageHoverToolbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const {
@@ -197,24 +199,37 @@ export function MessageHoverToolbar({
               </>
             )}
 
-            <DropdownMenuItem disabled className="gap-2">
-              <Star className="h-4 w-4" /> Favoritar
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled className="gap-2">
-              <Pin className="h-4 w-4" /> Fixar
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
+            {/* TODO(Etapa 41): Favoritar/Fixar mensagem e Reportar exigem backend novo
+                (tabelas + RLS) — removidos do menu até existirem, para não exibir ação morta. */}
 
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger disabled className="gap-2">
+              <DropdownMenuSubTrigger disabled={!onSnoozeConversation} className="gap-2">
                 <Clock className="h-4 w-4" /> Responder depois
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent className="w-44 border-border/50 bg-card">
-                <DropdownMenuItem disabled className="cursor-pointer">Em 1 hora</DropdownMenuItem>
-                <DropdownMenuItem disabled className="cursor-pointer">Em 3 horas</DropdownMenuItem>
-                <DropdownMenuItem disabled className="cursor-pointer">Amanhã</DropdownMenuItem>
-                <DropdownMenuItem disabled className="cursor-pointer">
-                  Escolher data/hora...
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => onSnoozeConversation?.('1h')}
+                >
+                  Em 1 hora
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => onSnoozeConversation?.('3h')}
+                >
+                  Em 3 horas
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => onSnoozeConversation?.('tomorrow')}
+                >
+                  Amanhã
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => onSnoozeConversation?.('nextweek')}
+                >
+                  Próxima semana
                 </DropdownMenuItem>
               </DropdownMenuSubContent>
             </DropdownMenuSub>
@@ -226,15 +241,6 @@ export function MessageHoverToolbar({
             <DropdownMenuItem className="cursor-pointer gap-2" onClick={handleMarkUnread}>
               <EyeOff className="h-4 w-4" /> Marcar como não lida
             </DropdownMenuItem>
-
-            {!isSent && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer gap-2 text-warning">
-                  <Flag className="h-4 w-4" /> Reportar
-                </DropdownMenuItem>
-              </>
-            )}
 
             <DropdownMenuSeparator />
             <DropdownMenuItem

@@ -41,6 +41,8 @@ interface MessageBubbleProps {
   onInteractiveButtonClick: (button: InteractiveButton) => void;
   onEditStart?: (message: Message) => void;
   onMessageDeleted: (messageId: string) => void;
+  /** Etapa 41: adia a conversa (snooze) — repassado do ChatPanel. */
+  onSnoozeConversation?: (duration: '1h' | '3h' | 'tomorrow' | 'nextweek') => void;
   registerRef: (el: HTMLDivElement | null) => void;
   density?: 'comfortable' | 'compact' | 'dense';
   onAudioVoiceChange?: (messageId: string, newBlob: Blob) => void;
@@ -69,6 +71,7 @@ export const MessageBubble = memo(function MessageBubble({
   onInteractiveButtonClick,
   onEditStart,
   onMessageDeleted,
+  onSnoozeConversation,
   registerRef,
   density = 'comfortable',
   onAudioVoiceChange,
@@ -238,6 +241,7 @@ export const MessageBubble = memo(function MessageBubble({
             onStop={onStop}
             onEditStart={onEditStart}
             onMessageDeleted={onMessageDeleted}
+            onSnoozeConversation={onSnoozeConversation}
           />
 
           {message.is_deleted ? (

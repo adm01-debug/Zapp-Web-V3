@@ -49,6 +49,8 @@ interface ChatMessagesAreaProps extends LoadOlderProps {
   onScrollToMessage: (messageId: string) => void;
   onInteractiveButtonClick: (button: InteractiveButton) => void;
   onEditStart?: (message: Message) => void;
+  /** Etapa 41: adia a conversa (snooze) — repassado do ChatPanel. */
+  onSnoozeConversation?: (duration: '1h' | '3h' | 'tomorrow' | 'nextweek') => void;
   highlightedMessageIds?: Set<string>;
   activeHighlightId?: string | null;
   onAudioVoiceChange?: (messageId: string, newBlob: Blob) => void;
@@ -87,6 +89,7 @@ export const ChatMessagesArea = memo(
         onScrollToMessage,
         onInteractiveButtonClick,
         onEditStart,
+        onSnoozeConversation,
         highlightedMessageIds,
         activeHighlightId,
         searchQuery,
@@ -433,6 +436,7 @@ export const ChatMessagesArea = memo(
                     onInteractiveButtonClick={onInteractiveButtonClick}
                     onEditStart={onEditStart}
                     onMessageDeleted={handleMessageDeleted}
+                    onSnoozeConversation={onSnoozeConversation}
                     ttsLoading={ttsLoading && ttsMessageId === message.id}
                     ttsPlaying={ttsPlaying && ttsMessageId === message.id}
                     ttsMessageId={ttsMessageId}

@@ -338,6 +338,44 @@ export function ChatPanel({
     []
   );
 
+  // Etapa 41: "Responder depois" da toolbar de mensagem — converte a duração
+  // em data e delega ao snooze real da conversa (useChatPanelHandlers.onSnooze).
+  const handleSnoozeFromToolbar = useCallback(
+    (duration: '1h' | '3h' | 'tomorrow' | 'nextweek') => {
+      const now = new Date();
+      let until: Date;
+      switch (duration) {
+        case '1h':
+          until = new Date(now.getTime() + 60 * 60 * 1000);
+          break;
+        case '3h':
+          until = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+          break;
+        case 'tomorrow': {
+          const t = new Date(now);
+          t.setDate(t.getDate() + 1);
+          t.setHours(9, 0, 0, 0);
+          until = t;
+          break;
+        }
+        case 'nextweek': {
+          const t = new Date(now);
+          const daysUntilMonday = (1 - t.getDay() + 7) % 7 || 7;
+          t.setDate(t.getDate() + daysUntilMonday);
+          t.setHours(9, 0, 0, 0);
+          until = t;
+          break;
+        }
+        default:
+          until = new Date(now.getTime() + 60 * 60 * 1000);
+      }
+      void handlers.onSnooze(until.toISOString()).catch(() => {
+        log.warn('[ChatPanel] Falha ao adiar conversa pela toolbar');
+      });
+    },
+    [handlers]
+  );
+
   const { transferConversation: handleTransfer } = useTransferConversation({
     contactId: conversation.contact.id ?? '',
     whatsappConnectionId: whatsappConnectionId ?? undefined,
@@ -467,6 +505,7 @@ export function ChatPanel({
           onScrollToMessage={handleScrollToMessage}
           onInteractiveButtonClick={handlers.handleInteractiveButtonClick}
           onEditStart={handlers.handleEditStart}
+          onSnoozeConversation={handleSnoozeFromToolbar}
           highlightedMessageIds={highlightedMessageIds}
           activeHighlightId={activeHighlightId}
           searchQuery={searchQuery}
