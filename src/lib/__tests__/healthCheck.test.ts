@@ -1,88 +1,38 @@
 /**
- * Tests para healthCheck.ts
+ * Tests para healthCheck.ts (convertido de Deno → vitest)
+ *
+ * Módulo V3 stub/deprecated: healthCheckService local, sem chamadas à
+ * Evolution API (gateway-first). Os asserts refletem o comportamento REAL
+ * do módulo (antes eram tautológicos: assertEquals(true, true)).
  */
-import { assertEquals, assertExists } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { describe, it, expect } from 'vitest';
 
-Deno.test("healthCheck: deve ter startTime definido", () => {
-  // Mock simples - verifica que o módulo pode ser importado
-  assertExists(true);
-});
+import { healthCheck } from '../healthCheck';
 
-Deno.test("healthCheck: deve retornar cache null inicialmente", () => {
-  // Antes de rodar run(), cache deve ser null
-  assertEquals(true, true);
-});
+describe('healthCheck', () => {
+  it('deve retornar cache null inicialmente', () => {
+    expect(healthCheck.getCached()).toBeNull();
+  });
 
-Deno.test("healthCheck: deve ter TTL de 5s", () => {
-  // Verifica TTL hardcoded
-  const expectedTtl = 5000;
-  assertEquals(expectedTtl, 5000);
-});
+  it('deve rodar e retornar SystemHealth válido', async () => {
+    const result = await healthCheck.run();
+    expect(result.healthy).toBe(true);
+    expect(result.status).toBe('unknown');
+    expect(result.components).toEqual([]);
+    expect(result.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+    expect(result.uptimeMs).toBeGreaterThanOrEqual(0);
+  });
 
-Deno.test("healthCheck: deve calcular uptime corretamente", () => {
-  const startTime = Date.now() - 60_000; // 1 min ago
-  const now = Date.now();
-  const uptime = now - startTime;
+  it('deve calcular uptime com ms e human corretos', () => {
+    const uptime = healthCheck.getUptime();
+    expect(uptime.ms).toBeGreaterThanOrEqual(0);
+    expect(uptime.human).toBe(`${Math.floor(uptime.ms / 1000)}s`);
+  });
 
-  assertEquals(uptime >= 60_000, true);
-  assertEquals(uptime < 120_000, true);
-});
-
-Deno.test("healthCheck: deve formatar uptime humanamente", () => {
-  const formatUptime = (ms: number): string => {
-    const seconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-
-    if (days > 0) return `${days}d ${hours % 24}h`;
-    if (hours > 0) return `${hours}h ${minutes % 60}m`;
-    if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
-    return `${seconds}s`;
-  };
-
-  assertEquals(formatUptime(5000), "5s");
-  assertEquals(formatUptime(65000), "1m 5s");
-  assertEquals(formatUptime(3_600_000), "1h 0m");
-  assertEquals(formatUptime(86_400_000), "1d 0h");
-});
-
-Deno.test("healthCheck: deve classificar status corretamente", () => {
-  // 0 unhealthy + 0 degraded = healthy
-  // 0 unhealthy + N degraded = degraded
-  // N unhealthy = unhealthy
-
-  const classifyStatus = (unhealthy: number, degraded: number): string => {
-    if (unhealthy > 0) return 'unhealthy';
-    if (degraded > 0) return 'degraded';
-    return 'healthy';
-  };
-
-  assertEquals(classifyStatus(0, 0), 'healthy');
-  assertEquals(classifyStatus(0, 2), 'degraded');
-  assertEquals(classifyStatus(1, 0), 'unhealthy');
-  assertEquals(classifyStatus(1, 2), 'unhealthy');
-});
-
-Deno.test("healthCheck: timeout deve ser respeitado", () => {
-  // Verifica que AbortController é usado
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 100);
-
-  // Após 100ms, deve estar aborted
-  setTimeout(() => {
-    assertEquals(controller.signal.aborted, true);
-    clearTimeout(timeoutId);
-  }, 150);
-});
-
-Deno.test("healthCheck: latency > 1000ms deve ser degraded", () => {
-  const classifyLatency = (ms: number): 'healthy' | 'degraded' => {
-    return ms > 1000 ? 'degraded' : 'healthy';
-  };
-
-  assertEquals(classifyLatency(50), 'healthy');
-  assertEquals(classifyLatency(500), 'healthy');
-  assertEquals(classifyLatency(1500), 'degraded');
-  assertEquals(classifyLatency(5000), 'degraded');
+  it('deve aumentar uptime com o tempo', async () => {
+    const before = healthCheck.getUptime().ms;
+    await new Promise((r) => setTimeout(r, 30));
+    const after = healthCheck.getUptime().ms;
+    expect(after).toBeGreaterThanOrEqual(before);
+  });
 });

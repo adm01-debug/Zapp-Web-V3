@@ -68,6 +68,7 @@ export const EDGE_FUNCTION_NAMES = [
   'contacts-import',
   'create-user',
   'csat-auto-send',
+  'csat-dispatch',
   'db-health-monitor',
   'detect-new-device',
   'elevenlabs-dialogue',
@@ -138,6 +139,7 @@ export const EDGE_FUNCTION_NAMES = [
   'voice-agent',
   'voice-changer',
   'voice-copilot-action',
+  'warroom-monthly-test',
   'webauthn',
   'webhook-diagnostic',
   'webhook-hmac-selftest',
@@ -148,6 +150,7 @@ export const EDGE_FUNCTION_NAMES = [
   'whatsapp-cloud-webhook',
   'whatsapp-cloud-webhook-verify',
   'zapp-sentry-sync',
+  'zapp-google-calendar-sync',
   'zapp-get-sip-credentials',
   'zapp-crm-sync',
 ] as const;
@@ -350,6 +353,24 @@ const specificEdgeFunctionSchemas: Partial<
         replays_session_sample_rate: z.number().min(0).max(1).optional(),
         replays_on_error_sample_rate: z.number().min(0).max(1).optional(),
         action: z.enum(['save', 'test']).optional(),
+  'zapp-google-calendar-sync': {
+    v1: z
+      .object({
+        dryRun: z.boolean().optional(),
+      })
+      .strict(),
+  },
+  // csat-dispatch — cron 1min (job csat-dispatch-tick); espelho de CsatDispatchV1Schema.
+  'csat-dispatch': {
+    v1: z
+      .object({
+        limit: z.number().int().min(1).max(100).optional(),
+        dryRun: z.boolean().optional(),
+      })
+      .strict(),
+  },
+  // warroom-monthly-test — sem parâmetros de entrada (body ignorado pelo handler).
+  'warroom-monthly-test': { v1: z.object({}).strict() },
   // CRM plugável (Etapa 66) — schema INLINE (nunca importar de contract-schemas.ts: ciclo)
   'zapp-crm-sync': {
     v1: z
