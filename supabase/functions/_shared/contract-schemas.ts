@@ -882,9 +882,14 @@ export const AiSuggestReplyV1Schema = AiSuggestReplySchema
  */
 
 
-/** followup-bridge@v1 — POST { sequence_id, contact_jid, instance_name, trigger_event? } */
+/**
+ * followup-bridge@v1 — POST { sequence_id, contact_jid, instance_name, trigger_event? }
+ * v2 (G8 2026-08-17): sequence_id aceita o sequence_group TEXTUAL do motor real
+ * (ex. 'stage_change_rules') OU o id UUID de uma regra avulsa — o edge resolve
+ * contra zapp.evolution_followup_rules (v1 lia followup_sequences, 0 rows).
+ */
 export const FollowupBridgeV1Schema = z.object({
-  sequence_id: z.string().uuid({ message: "sequence_id deve ser UUID" }),
+  sequence_id: z.string().min(1).max(100, { message: "sequence_id deve ter no máximo 100 chars" }),
   contact_jid: z.string().min(1).max(200),
   instance_name: z.string().min(1).max(100),
   trigger_event: z.string().max(100).optional(),

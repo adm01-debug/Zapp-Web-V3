@@ -7,9 +7,20 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Plus, Trash2, Clock, ArrowRight, Zap, MessageSquare, Info, AlertTriangle } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Plus, Trash2, Clock, ArrowRight, Zap, MessageSquare, Info, AlertTriangle, Send, Loader2 } from 'lucide-react';
+import { FollowUpPendingPanel } from './FollowUpPendingPanel';
 import { FollowUpExecutionsHistory } from './FollowUpExecutionsHistory';
-import { useFollowUpSequences, type Step } from '@/hooks/followup/useFollowUpSequences';
+import { useFollowUpSequences, type Step, type FollowUpSequence } from '@/hooks/followup/useFollowUpSequences';
+import { useFollowupBridge } from '@/hooks/useFollowupBridge';
+import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 
 /** Follow Up Sequences component for the settings section. */
 export function FollowUpSequences() {
@@ -33,6 +44,44 @@ export function FollowUpSequences() {
   ]);
   const { sequences, isLoading, queryError, createMutation, toggleMutation, deleteMutation } =
     useFollowUpSequences();
+
+  // ── Disparo manual via edge followup-bridge (G8: religa o hook órfão) ──────
+  const { mutation: bridgeMutation } = useFollowupBridge();
+  const [triggerFor, setTriggerFor] = useState<FollowUpSequence | null>(null);
+  const [triggerPhone, setTriggerPhone] = useState('');
+  const [triggerInstance, setTriggerInstance] = useState(DEFAULT_WHATSAPP_INSTANCE);
+  const [triggerError, setTriggerError] = useState<string | null>(null);
+
+  const openTriggerDialog = (seq: FollowUpSequence) => {
+    setTriggerFor(seq);
+    setTriggerPhone('');
+    setTriggerInstance(DEFAULT_WHATSAPP_INSTANCE);
+    setTriggerError(null);
+  };
+
+  const confirmTrigger = () => {
+    if (!triggerFor) return;
+    const digits = triggerPhone.replace(/\D/g, '');
+    if (digits.length < 10) {
+      setTriggerError('Informe o número com DDD (mín. 10 dígitos), ex: 5511999999999');
+      return;
+    }
+    setTriggerError(null);
+    bridgeMutation.mutate(
+      {
+        sequence_id: triggerFor.id,
+        contact_jid: `${digits}@s.whatsapp.net`,
+        instance_name: triggerInstance.trim() || DEFAULT_WHATSAPP_INSTANCE,
+        trigger_event: 'manual_ui',
+      },
+      {
+        onSuccess: () => {
+          setTriggerFor(null);
+          setTriggerPhone('');
+        },
+      }
+    );
+  };
 
   const addStep = () => {
     setNewSteps((prev) => [
@@ -237,6 +286,22 @@ export function FollowUpSequences() {
                       {seq.is_active ? 'Ativo' : 'Inativo'}
                     </Badge>
                     <Button
+                      aria-label={`Disparar sequência ${seq.name} manualmente`}
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 h-8"
+                      disabled={!seq.is_active}
+                      title={
+                        seq.is_active
+                          ? 'Disparar os passos da sequência agora via edge followup-bridge'
+                          : 'Ative a sequência para disparar'
+                      }
+                      onClick={() => openTriggerDialog(seq)}
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                      Disparar
+                    </Button>
+                    <Button
                       aria-label="Excluir sequência"
                       variant="ghost"
                       size="icon"
@@ -271,8 +336,72 @@ export function FollowUpSequences() {
         </div>
       )}
 
+      {/* Pending Follow-ups (G8) */}
+      <FollowUpPendingPanel />
+
       {/* Execution History */}
       <FollowUpExecutionsHistory />
+
+      {/* Manual trigger dialog — edge followup-bridge (G8) */}
+      <Dialog open={triggerFor !== null} onOpenChange={(open) => !open && setTriggerFor(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-4 w-4" />
+              Disparar "{triggerFor?.name ?? ''}"
+            </DialogTitle>
+            <DialogDescription>
+              Agenda os passos da sequência para um contato agora (via edge{' '}
+              <code>followup-bridge</code>). Útil para testar o motor com um
+              disparo manual.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="trigger-phone">Número WhatsApp (com DDI)</Label>
+              <Input
+                id="trigger-phone"
+                inputMode="numeric"
+                placeholder="5511999999999"
+                value={triggerPhone}
+                onChange={(e) => {
+                  setTriggerPhone(e.target.value);
+                  setTriggerError(null);
+                }}
+              />
+              {triggerError && (
+                <p className="text-xs text-destructive">{triggerError}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="trigger-instance">Instância</Label>
+              <Input
+                id="trigger-instance"
+                placeholder={DEFAULT_WHATSAPP_INSTANCE}
+                value={triggerInstance}
+                onChange={(e) => setTriggerInstance(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTriggerFor(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={confirmTrigger}
+              disabled={bridgeMutation.isPending}
+              className="gap-2"
+            >
+              {bridgeMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              {bridgeMutation.isPending ? 'Disparando...' : 'Disparar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
