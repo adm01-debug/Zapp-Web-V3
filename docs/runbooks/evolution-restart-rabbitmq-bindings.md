@@ -1,3 +1,10 @@
+> **⚠️ DEPRECADO (2026-08-17)** — esta cópia é trilha histórica. A versão OPERACIONAL
+> vive em `adm01-debug/evolution-stack` → `runbooks/evolution-restart-rabbitmq-bindings.md`
+> (reescrita no RABBITMQ-HARDENING-2026-08, etapa 23, com a topologia atual: exchange
+> `wpp2`, rk sem prefixo, 18 bindings, users least-privilege). O manual canônico é
+> `runbooks/RABBITMQ-MANUAL-AGENTES-IA.md` no evolution-stack. **Não usar este arquivo
+> para operar** — topologia antiga (exchange `evolution`, rk `wpp2.<evento>`).
+
 # RUNBOOK — Restart da Evolution API x RabbitMQ (CRITICO)
 
 **Origem:** incidente 2026-07-10 21:05–21:17 UTC (outage de 12 min no pipeline v2).
