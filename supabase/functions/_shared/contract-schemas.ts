@@ -430,11 +430,31 @@ export const EvolutionRetryMetricsV1Schema = EmptyStrictV1Schema;
 /** db-health-monitor@v1 — cron de health check; sem body. */
 export const DbHealthMonitorV1Schema = EmptyStrictV1Schema;
 
+/**
+ * warroom-monthly-test@v1 — POST service_role (cron mensal, self-contained).
+ * Sem entrada: o handler IGNORA o body (payload de saída fixo). Registrado
+ * para fechar o drift do espelho de diretórios (dir existia sem registro).
+ */
+export const WarroomMonthlyTestV1Schema = EmptyStrictV1Schema;
+
 /** connection-health-check@v1 — GET (todas) ou POST { instanceName?, connectionId? } (verificar agora). */
 export const ConnectionHealthCheckV1Schema = z.object({
   instanceName: z.string().min(1).max(100).optional(),
   connectionId: z.string().uuid().optional(),
 }).strict();
+
+/**
+ * zapp-n8n-sync@v1 — POST interno (requireAdminOrSupervisor). Actions:
+ *   - { action: 'status' } → estado real da integração n8n (not_configured
+ *     honesto quando não há config em zapp.n8n_config);
+ *   - { action: 'configure', baseUrl } → persiste a URL base (enabled
+ *     permanece false — contrato desligado; ativação é passo futuro).
+ * Estrito: endpoint interno da UI — falhar cedo em payload fora do contrato.
+ */
+export const ZappN8nSyncV1Schema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("status") }).strict(),
+  z.object({ action: z.literal("configure"), baseUrl: z.string().min(1).max(2048) }).strict(),
+]);
 
 /** health-check@v1 — probe GET; sem body. */
 export const HealthCheckV1Schema = EmptyStrictV1Schema;
@@ -1054,6 +1074,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "evolution-templates":           { v1: EvolutionTemplatesV1Schema },
   "evolution-retry-metrics":       { v1: EvolutionRetryMetricsV1Schema },
   "db-health-monitor":             { v1: DbHealthMonitorV1Schema },
+  "warroom-monthly-test":          { v1: WarroomMonthlyTestV1Schema },
   "connection-health-check":       { v1: ConnectionHealthCheckV1Schema },
   "health-check":                  { v1: HealthCheckV1Schema },
   "health":                        { v1: HealthV1Schema },
@@ -1089,6 +1110,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "evolution-api":                 { v1: EvolutionApiV1Schema },
   "zapp-auth-sessions":            { v1: ZappAuthSessionsV1Schema },
   "zapp-auth-invite":              { v1: ZappAuthInviteV1Schema },
+  "zapp-n8n-sync":                 { v1: ZappN8nSyncV1Schema },
 
   // ─── Onda 1 (2026-08-04): cobertura 100% — schemas reais dos workers ───
   "ai-classify-tickets":  { v1: AISchemas.AiClassifyTicketsV1Schema },

@@ -142,6 +142,8 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "virustotal-test":              { current: "v1", supported: ["v1"] },
   "voice-agent":                  { current: "v1", supported: ["v1"] },
   "voice-changer":                { current: "v1", supported: ["v1"] },
+  "warroom-monthly-test":         { current: "v1", supported: ["v1"] },
+  "zapp-n8n-sync":                { current: "v1", supported: ["v1"] },
   "zapp-google-calendar-sync":    { current: "v1", supported: ["v1"] },
   "warroom-monthly-test":         { current: "v1", supported: ["v1"] },
 
