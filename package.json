@@ -131,7 +131,7 @@
     "recharts": "^3.9.2",
     "serialize-javascript": "7.1.0",
     "sip.js": "0.21.2",
-    "sonner": "^1.7.4",
+    "sonner": "^2.0.8",
     "tailwind-merge": "^3.6.0",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^14.0.1",
