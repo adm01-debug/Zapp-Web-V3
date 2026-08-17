@@ -235,8 +235,8 @@ export function useMessagesCursor({
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'evo', // Evolution DB v6.2: tabela-fonte evo.evolution_messages
-          table: 'evolution_messages',
+          schema: 'zapp', // Espelho não-particionado — Realtime v2 não entrega evo.evolution_messages (partições)
+          table: 'realtime_message_fanout',
           // v6.2: postgres_changes aceita UM filtro; instance é implícita pelo jid.
           filter: `remote_jid=eq.${remoteJid}`,
         },
@@ -261,8 +261,8 @@ export function useMessagesCursor({
         'postgres_changes',
         {
           event: 'UPDATE',
-          schema: 'evo', // Evolution DB v6.2: tabela-fonte evo.evolution_messages
-          table: 'evolution_messages',
+          schema: 'zapp', // Espelho não-particionado — Realtime v2 não entrega evo.evolution_messages (partições)
+          table: 'realtime_message_fanout',
           // v6.2: postgres_changes aceita UM filtro; instance é implícita pelo jid.
           filter: `remote_jid=eq.${remoteJid}`,
         },
@@ -281,8 +281,8 @@ export function useMessagesCursor({
         'postgres_changes',
         {
           event: 'DELETE',
-          schema: 'evo', // Evolution DB v6.2: tabela-fonte evo.evolution_messages
-          table: 'evolution_messages',
+          schema: 'zapp', // Espelho não-particionado — Realtime v2 não entrega evo.evolution_messages (partições)
+          table: 'realtime_message_fanout',
           // v6.2: postgres_changes aceita UM filtro; instance é implícita pelo jid.
           filter: `remote_jid=eq.${remoteJid}`,
         },

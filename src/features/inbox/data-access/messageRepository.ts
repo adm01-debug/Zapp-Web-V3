@@ -102,6 +102,11 @@ export const messageRepository = {
 
     // Evolution DB v6.1: Realtime deve apontar para a TABELA-FONTE (evo.evolution_messages).
     // A view `messages` (zapp) não emite Realtime — usar tabela-fonte evo.evolution_messages.
+    // TODO(fanout): zapp.realtime_message_fanout NÃO tem contact_id (nem sender/status/
+    // media_url/...) — o filtro contact_id=eq é inviável no espelho e o normalizeMessage
+    // receberia rows parciais. Migrar exige resolver contactId→remote_jid (mapa de contatos)
+    // e adaptar o normalizer. Mantido na tabela-fonte (particionada → Realtime v2 não
+    // entrega) até o espelho ganhar as colunas.
     const channel = dbChannel('messages', `messages:${contactId}`)
       .on(
         'postgres_changes',
