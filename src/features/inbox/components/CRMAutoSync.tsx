@@ -133,7 +133,13 @@ export function CRMAutoSync({ conversation, messageCount, agentName, messages }:
   const sentiment = useMemo(() => detectSentiment(messages), [messages]);
 
   useEffect(() => {
-    if (!isConfigured) return;
+    // F1 — estado honesto: se a config diz que NÃO há CRM, loga o skip em vez
+    // de sumir silenciosamente; null = ainda verificando (sem ruído).
+    if (isConfigured === false) {
+      log.info('CRM sync skipped: not configured');
+      return;
+    }
+    if (isConfigured === null) return;
     if (!convPhone) return;
 
     const shouldSync =
@@ -194,7 +200,44 @@ export function CRMSyncButton({
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [contactNotFound, setContactNotFound] = useState(false);
 
-  if (!isConfigured) return null;
+  // F1 — nunca sumir silenciosamente: estado honesto em vez de `return null`.
+  if (isConfigured === false) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            aria-label="CRM não configurado"
+            variant="outline"
+            size="icon"
+            disabled
+            className="h-9 w-9 border-border/30 opacity-50"
+          >
+            <RefreshCw className="h-4 w-4 text-muted-foreground" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="top">CRM não configurado</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  if (isConfigured === null) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            aria-label="Verificando configuração do CRM"
+            variant="outline"
+            size="icon"
+            disabled
+            className="h-9 w-9 border-border/30 opacity-50"
+          >
+            <RefreshCw className="h-4 w-4 text-muted-foreground" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="top">Verificando configuração do CRM...</TooltipContent>
+      </Tooltip>
+    );
+  }
 
   const handleSync = async () => {
     try {
@@ -252,7 +295,11 @@ export function CRMSyncButton({
     ? 'Sincronizando...'
     : lastResult?.synced
       ? `Sincronizado ${lastSyncTime ? formatDistanceToNow(lastSyncTime, { addSuffix: true, locale: ptBR }) : ''}`
-      : 'Sincronizar com CRM externo';
+      : lastResult?.reason === 'provider_not_configured'
+        ? 'CRM configurado, mas faltam credenciais do provider (env)'
+        : lastResult?.reason === 'not_implemented'
+          ? 'Provider configurado, mas ainda não implementado'
+          : 'Sincronizar com CRM externo';
 
   return (
     <Tooltip>
