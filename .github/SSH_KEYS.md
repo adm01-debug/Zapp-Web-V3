@@ -17,8 +17,8 @@ ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIspiMMbHeDLGaTt3+Ay9MgnLmYbOUmvqtMxnPkfVdQR
 
 | Secret | Valor |
 |--------|-------|
-| `VPS_SSH_HOST` | `209.142.67.51` |
-| `VPS_SSH_USER` | `root` |
+| `VPS_SSH_HOST` | `<VPS_SSH_HOST>` |
+| `VPS_SSH_USER` | `<VPS_SSH_USER>` |
 | `VPS_SSH_KEY` | chave privada ED25519 (secret) |
 
 ### Workflows que usam SSH
