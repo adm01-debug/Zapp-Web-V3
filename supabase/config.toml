@@ -40,6 +40,9 @@ verify_jwt = true
 [functions.bitrix-api]
 verify_jwt = false
 
+[functions.zapp-crm-sync]
+verify_jwt = false
+
 [functions.elevenlabs-tts]
 verify_jwt = true
 
