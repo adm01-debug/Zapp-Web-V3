@@ -684,6 +684,30 @@ export const ApprovePasswordResetV1Schema = z.object({
   decision: z.string().optional(),
 }).passthrough();
 
+ /**
+  * zapp-auth-sessions@v1 — gestão de sessões ativas (Etapa 56). Endpoint
+  * interno (frontend autenticado). action obrigatório; userId só para
+  * admin/supervisor (alvo de outro usuário); sessionIds obrigatório para
+  * action=revoke. UUIDs validados no gate.
+  */
+export const ZappAuthSessionsV1Schema = z.object({
+  action: z.enum(["list", "revoke", "revoke_all"]),
+  userId: z.string().uuid("userId inválido").optional(),
+  sessionIds: z.array(z.string().uuid("sessionId inválido")).min(1).max(100).optional(),
+}).passthrough();
+
+/**
+ * zapp-auth-invite@v1 — convite de usuário por email (Etapa 57). Endpoint
+ * interno admin-only. action default 'invite'; resend regenera link sem
+ * recriar usuário. role whitelist explícita (dev fora do convite).
+ */
+export const ZappAuthInviteV1Schema = z.object({
+  action: z.enum(["invite", "resend"]).optional().default("invite"),
+  email: z.string().email("Email inválido").max(255),
+  name: z.string().min(1, "Nome é obrigatório").max(255).optional(),
+  role: z.enum(["admin", "supervisor", "manager", "agent"]).optional(),
+}).passthrough();
+
 /**
  * @deprecated Edge auth-email-hook REMOVIDA do repo (commit 78fa7d7be, "zumbi sem index.ts").
  * Registro morto removido em 2026-08-04 — o schema placeholder permissivo
@@ -938,6 +962,8 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "detect-new-device":             { v1: AISchemas.DetectNewDeviceV1Schema },
   "webauthn":                      { v1: WebauthnV1Schema },
   "evolution-api":                 { v1: EvolutionApiV1Schema },
+  "zapp-auth-sessions":            { v1: ZappAuthSessionsV1Schema },
+  "zapp-auth-invite":              { v1: ZappAuthInviteV1Schema },
 
   // ─── Onda 1 (2026-08-04): cobertura 100% — schemas reais dos workers ───
   "ai-classify-tickets":  { v1: AISchemas.AiClassifyTicketsV1Schema },
