@@ -109,6 +109,7 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "cleanup-rate-limit-logs":      { current: "v1", supported: ["v1"] },
   "cleanup-storage-orphans":      { current: "v1", supported: ["v1"] },
   "client-observability":         { current: "v1", supported: ["v1"] },
+  "zapp-sentry-sync":             { current: "v1", supported: ["v1"] },
   "connection-test":              { current: "v1", supported: ["v1"] },
   "contact-media":                { current: "v1", supported: ["v1"] },
   "elevenlabs-scribe-token":      { current: "v1", supported: ["v1"] },

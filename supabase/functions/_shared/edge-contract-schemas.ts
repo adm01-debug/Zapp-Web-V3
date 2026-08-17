@@ -150,6 +150,7 @@ export const EDGE_FUNCTION_NAMES = [
   'whatsapp-cloud-webhook',
   'whatsapp-cloud-webhook-verify',
   'zapp-auto-export',
+  'zapp-sentry-sync',
   'zapp-n8n-sync',
   'zapp-google-calendar-sync',
   'zapp-get-sip-credentials',
@@ -346,6 +347,19 @@ const specificEdgeFunctionSchemas: Partial<
       .object({
         jobId: z.string().uuid(),
         action: z.enum(['run', 'link']).optional(),
+  // zapp-sentry-sync@v1 — config Sentry persistida em zapp.sentry_config.
+  // Espelho inline do SentrySyncV1Schema (contract-schemas.ts) — nunca importar
+  // de contract-schemas.ts (ciclo). Estrito: endpoint interno da UI.
+  'zapp-sentry-sync': {
+    v1: z
+      .object({
+        dsn: z.string().max(500).optional(),
+        enabled: z.boolean().optional(),
+        environment: z.enum(['production', 'staging', 'development']).optional(),
+        traces_sample_rate: z.number().min(0).max(1).optional(),
+        replays_session_sample_rate: z.number().min(0).max(1).optional(),
+        replays_on_error_sample_rate: z.number().min(0).max(1).optional(),
+        action: z.enum(['save', 'test']).optional(),
   // Contrato real da integração n8n (estado honesto not_configured) — schema
   // inline (edge-contract-schemas.ts NUNCA importa de contract-schemas.ts).
   'zapp-n8n-sync': {
