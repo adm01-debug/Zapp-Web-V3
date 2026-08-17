@@ -84,8 +84,8 @@
 - [ ] 24.2 `evolution-templates`: corrigir `syncFromEvolution` (falha silenciosa) e validar CRUD/envio via invoke autenticado.
 - [ ] 24.3 `connection-health-check`: trocar os 2 fetch diretos (`:40`, `:151`) por `_shared/providers/evolution/client.ts` (gateway).
 - [ ] 24.4 `connection-health-check`: substituir `requireEnv('EVOLUTION_API_URL')` (`:193`) por resolução via vault/gateway (sem URL hardcoded).
-- [ ] 24.5 `email-imap-bridge`: decisão registrada — implementar via serviço externo (worker/n8n) ou aposentar; remover contrato falso (TODO EMAIL-02).
-- [ ] 24.6 Executar a decisão: se aposentar → arquivar função + referências; se manter → reescrever honesto com serviço IMAP real.
+- [x] 24.5 `email-imap-bridge`: decisão registrada (2026-08-17, wt-g5) — IMAP/SMTP real é INVIÁVEL em Edge Function (HTTP-only, sem TCP); caminho VIÁVEL construído: `zapp-email-inbound-webhook` (webhook Resend → zapp.emails) + `zapp-email-send` (Resend API + storage) + migration zapp.emails RLS. TODO EMAIL-02 removido do docblock com justificativa.
+- [x] 24.6 Decisão executada: contrato honesto no `email-imap-bridge` (docblock corrigido, só ações reais; fetchInbox/sendMessage rejeitadas no contrato) + edges viáveis `zapp-email-*` registradas (contract-schemas/edge-contract-schemas/contract-versions).
 - [ ] 24.7 Deploy das funções (deploy-edge.sh / supabase) + smoke `edge-auth-smoke` (invoke com JWT) (findings-12:79).
 - [ ] 24.8 Atualizar ESTADO.md e CLAUDE.md (status/contagem das 3 funções).
 - [ ] 24.9 Testes de contrato Zod (`parseOrReject`) para as 3 funções (edge-function-contract-tests).
@@ -94,7 +94,7 @@
 ### Critério de conclusão (checklist da etapa)
 - [ ] `evolution-templates` 200 para o chamador real (browser/cron) com envio validado
 - [ ] `connection-health-check` sem fetch direto à Evolution (gateway 100%)
-- [ ] `email-imap-bridge`: implementado honestamente ou arquivado (sem STUB em produção)
+- [x] `email-imap-bridge`: contrato honesto (sem STUB/anúncio falso em produção) + caminho viável `zapp-email-*` construído (2026-08-17, wt-g5)
 - [ ] Smoke + contrato Zod verdes em produção
 
 ## Etapa 25 — Eliminar bypasses do gateway Evolution e fechar gate I8

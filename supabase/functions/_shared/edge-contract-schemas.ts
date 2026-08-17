@@ -149,6 +149,8 @@ export const EDGE_FUNCTION_NAMES = [
   'whatsapp-cloud-send',
   'whatsapp-cloud-webhook',
   'whatsapp-cloud-webhook-verify',
+  'zapp-email-inbound-webhook',
+  'zapp-email-send',
   'zapp-auto-export',
   'zapp-sentry-sync',
   'zapp-n8n-sync',
@@ -342,6 +344,50 @@ const specificEdgeFunctionSchemas: Partial<
       })
       .passthrough(),
   },
+  // Email viável (pós EMAIL-02, 2026-08-17): envio Resend + webhook inbound.
+  'zapp-email-send': {
+    v1: z
+      .object({
+        to: z.union([z.string().email(), z.array(z.string().email()).min(1).max(50)]),
+        subject: z.string().min(1).max(500),
+        html: z.string().max(500_000).optional(),
+        text: z.string().max(500_000).optional(),
+        reply_to: z.string().email().optional(),
+        attachments: z
+          .array(
+            z.object({
+              filename: z.string().min(1).max(255),
+              content_type: z.string().max(200).optional(),
+              content: z.string().min(1),
+            })
+          )
+          .max(10)
+          .optional(),
+      })
+      .passthrough(),
+  },
+  'zapp-email-inbound-webhook': {
+    v1: z
+      .object({
+        id: z.string().min(1).max(200),
+        from: z.string().min(1).max(500),
+        to: z.array(z.string()).optional(),
+        cc: z.array(z.string()).optional(),
+        subject: z.string().max(1000).optional(),
+        text: z.string().optional(),
+        html: z.string().optional(),
+        attachments: z
+          .array(
+            z.object({
+              filename: z.string().min(1).max(255),
+              content_type: z.string().max(200).optional(),
+              content: z.string().min(1),
+            })
+          )
+          .max(20)
+          .optional(),
+      })
+      .passthrough(),
   'zapp-auto-export': {
     v1: z
       .object({

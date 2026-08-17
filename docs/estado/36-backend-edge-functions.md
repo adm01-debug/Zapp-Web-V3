@@ -279,19 +279,27 @@ diretório.
 
 ## 5. Funções STUB ou MORTAS (candidatas a arquivar)
 
-### 5.1 STUB declarado — 1
+### 5.1 STUB declarado — 1 — RESOLVIDO (2026-08-17, wt-g5)
 
 **`email-imap-bridge`** (grupo A em `ESTADO.md`, ou seja, **chamada pelo front**).
-`supabase/functions/email-imap-bridge/index.ts:10-16`:
 
-> `TODO(EMAIL-02): NÃO implementado de verdade — Edge Functions são HTTP-only (sem TCP),`
-> `então IMAP/SMTP real (fetchInbox/sendMessage) é INVIÁVEL aqui.`
-> `Estado atual: apenas getProviderConfig/saveCredentials/testConnection (validação de formato)`
-> `/listProviders. […] Não construir UI/worker até a decisão de broker.`
+**Decisão EMAIL-02 registrada (2026-08-17):** IMAP/SMTP real (`fetchInbox`/`sendMessage`)
+continua INVIÁVEL em Edge Functions (runtime HTTP-only, sem TCP). O contrato falso foi
+removido do docblock (`supabase/functions/email-imap-bridge/index.ts:7-32`) e o caminho
+VIÁVEL de email foi construído:
 
-As ações `fetchInbox` e `sendMessage` são anunciadas no docblock (`:19-21`) mas não podem
-funcionar no runtime Deno de Edge Function. **Não é candidata a arquivar cegamente** — é
-candidata a *contrato honesto* (retornar 501 explícito) ou a broker externo.
+- **`zapp-email-inbound-webhook`** — webhook de entrada do Resend (inbound) → grava em
+  `zapp.emails` (direction='inbound'), com auth Svix/x-webhook-secret fail-closed,
+  idempotência por `message_id` e anexos no bucket `email-attachments`.
+- **`zapp-email-send`** — envio via Resend API + storage de anexos → grava em
+  `zapp.emails` (direction='outbound').
+- **Migration `20260817260000_zapp_emails_table_rls.sql`** — tabela `zapp.emails` + RLS
+  tenant-based (dono/outbound, admin/inbound) + GRANTs + índices.
+
+A função mantém apenas as ações reais: `getProviderConfig`, `saveCredentials` (AES-GCM),
+`testConnection` (validação de formato), `listProviders`. `fetchInbox`/`sendMessage` não
+são mais anunciadas — o enum do contrato as rejeita (422). Broker externo (Nylas,
+EmailEngine, MailSlurp) segue como decisão futura, sem UI/worker hoje.
 
 ### 5.2 Caminho morto dentro de função viva — 2
 

@@ -82,6 +82,9 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   // Business / infra (v1)
   "gmail-oauth":                  { current: "v1", supported: ["v1"] },
   "email-imap-bridge":            { current: "v1", supported: ["v1"] },
+  // Email viável (pós EMAIL-02, 2026-08-17)
+  "zapp-email-inbound-webhook":   { current: "v1", supported: ["v1"] },
+  "zapp-email-send":              { current: "v1", supported: ["v1"] },
   "evolution-api":                { current: "v1", supported: ["v1"] },
   "evolution-credentials":        { current: "v1", supported: ["v1"] },
   "evolution-credentials-write":   { current: "v1", supported: ["v1"] },
