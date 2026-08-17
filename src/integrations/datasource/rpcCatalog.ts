@@ -750,6 +750,14 @@ export const RPC = {
     name: 'export_user_data',
     client: 'lovable',
   }),
+  fn_dashboard_heatmap: def<Record<string, unknown>, unknown>({
+    name: 'fn_dashboard_heatmap',
+    client: 'lovable',
+  }),
+  fn_demand_forecast: def<Record<string, unknown>, unknown>({
+    name: 'fn_demand_forecast',
+    client: 'lovable',
+  }),
   fn_increment_meme_use: def<Record<string, unknown>, unknown>({
     name: 'fn_increment_meme_use',
     client: 'lovable',
@@ -864,6 +872,10 @@ export const RPC = {
   }),
   rpc_migrate_whatsapp_integration: def<Record<string, unknown>, unknown>({
     name: 'rpc_migrate_whatsapp_integration',
+    client: 'lovable',
+  }),
+  rpc_queue_goal_metrics: def<Record<string, unknown>, unknown>({
+    name: 'rpc_queue_goal_metrics',
     client: 'lovable',
   }),
   rpc_queue_rebalance_candidates: def<Record<string, unknown>, unknown>({

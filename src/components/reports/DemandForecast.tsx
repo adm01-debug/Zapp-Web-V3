@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { fetchContactMessagesForHeatmap } from '@/hooks/useConversationHeatmap';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, Clock } from 'lucide-react';
-import { format, subDays, getDay, getHours } from 'date-fns';
+import { format, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Bar,
@@ -15,8 +14,29 @@ import {
   Line,
   ComposedChart,
 } from 'recharts';
+import { supabase } from '@/integrations/supabase/client';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('DemandForecast');
 
 const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const HISTORY_DAYS = 28;
+const FORECAST_DAYS = 7;
+
+interface ForecastRow {
+  d: string;
+  kind: 'actual' | 'forecast';
+  dow: number;
+  value: number;
+}
+
+interface HeatmapCell {
+  day: number;
+  hour: number;
+  value: number;
+  sample_count: number;
+  total_rows: number;
+}
 
 /** Demand Forecast component for the reports section. */
 export function DemandForecast() {
@@ -28,52 +48,53 @@ export function DemandForecast() {
 
   const loadForecast = useCallback(async () => {
     setLoading(true);
-    const since = subDays(new Date(), 28);
+    try {
+      // Contagem exata no DB (RPCs agregadas) — substitui a amostra arbitrária
+      // .limit(1000) sem orderBy do fetchContactMessagesForHeatmap.
+      const [forecastRes, heatmapRes] = await Promise.all([
+        supabase.rpc('fn_demand_forecast', { p_days: HISTORY_DAYS, p_forecast_days: FORECAST_DAYS }),
+        supabase.rpc('fn_dashboard_heatmap', { p_metric: 'volume', p_days: HISTORY_DAYS }),
+      ]);
+      if (forecastRes.error) {
+        log.error('fn_demand_forecast:', forecastRes.error);
+        setLoading(false);
+        return;
+      }
+      if (heatmapRes.error) {
+        log.warn('fn_dashboard_heatmap (picos):', heatmapRes.error);
+      }
 
-    const messages = await fetchContactMessagesForHeatmap(since);
+      // Série real (últimos 7 dias) × previsto (próximos 7 dias) — tudo derivado de dados.
+      const rows = (forecastRes.data ?? []) as ForecastRow[];
+      const actual = rows
+        .filter((r) => r.kind === 'actual')
+        .sort((a, b) => a.d.localeCompare(b.d));
+      const forecast = rows
+        .filter((r) => r.kind === 'forecast')
+        .sort((a, b) => a.d.localeCompare(b.d));
+      const fmtDay = (iso: string) =>
+        format(new Date(`${iso}T12:00:00`), 'EEE dd/MM', { locale: ptBR });
 
-    if (!messages) {
+      setHistoricalData([
+        ...actual.map((r) => ({ day: fmtDay(r.d), actual: Math.round(Number(r.value)), predicted: 0 })),
+        ...forecast.map((r) => ({ day: fmtDay(r.d), actual: 0, predicted: Math.round(Number(r.value)) })),
+      ]);
+
+      // Horários de pico: média real por hora (volume 28d) — sem aleatoriedade.
+      const cells = (heatmapRes.data ?? []) as HeatmapCell[];
+      const hourTotals = new Map<number, number>();
+      for (const c of cells) {
+        hourTotals.set(c.hour, (hourTotals.get(c.hour) ?? 0) + Number(c.value));
+      }
+      const peaks = [...hourTotals.entries()]
+        .map(([hour, total]) => ({ hour, avg: Math.round(total / HISTORY_DAYS) }))
+        .sort((a, b) => b.avg - a.avg);
+      setPeakHours(peaks);
+    } catch (err) {
+      log.error('loadForecast:', err);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // Group by day of week
-    const dayBuckets: Record<number, number[]> = {};
-    const hourBuckets: Record<number, number[]> = {};
-    for (let i = 0; i < 7; i++) dayBuckets[i] = [];
-    for (let i = 0; i < 24; i++) hourBuckets[i] = [];
-
-    messages.forEach((m) => {
-      const d = new Date(m.created_at ?? '');
-      const dayOfWeek = getDay(d);
-      const hour = getHours(d);
-      dayBuckets[dayOfWeek].push(1);
-      hourBuckets[hour].push(1);
-    });
-
-    // Build day forecast (next 7 days)
-    const today = new Date();
-    const forecast: typeof historicalData = [];
-    for (let i = 0; i < 7; i++) {
-      const targetDate = subDays(today, -i);
-      const dayOfWeek = getDay(targetDate);
-      const avgForDay =
-        dayBuckets[dayOfWeek].length > 0 ? Math.round(dayBuckets[dayOfWeek].length / 4) : 0;
-      forecast.push({
-        day: format(targetDate, 'EEE dd/MM', { locale: ptBR }),
-        actual: i === 0 ? avgForDay : 0,
-        predicted: avgForDay,
-      });
-    }
-    setHistoricalData(forecast);
-
-    // Peak hours
-    const peaks = Object.entries(hourBuckets)
-      .map(([h, counts]) => ({ hour: parseInt(h), avg: Math.round(counts.length / 28) }))
-      .sort((a, b) => b.avg - a.avg);
-    setPeakHours(peaks);
-
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -82,6 +103,7 @@ export function DemandForecast() {
 
   const topPeaks = peakHours.slice(0, 5);
   const totalPredicted = historicalData.reduce((s, d) => s + d.predicted, 0);
+  const hasData = historicalData.length > 0;
 
   if (loading) {
     return (
@@ -102,66 +124,79 @@ export function DemandForecast() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Summary */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-lg bg-primary/5 p-2 text-center">
-            <p className="text-lg font-bold text-primary">{totalPredicted}</p>
-            <p className="text-[10px] text-muted-foreground">Msgs previstas</p>
-          </div>
-          <div className="rounded-lg bg-warning/5 p-2 text-center">
-            <p className="text-lg font-bold text-warning">{topPeaks[0]?.hour ?? '-'}h</p>
-            <p className="text-[10px] text-muted-foreground">Hora de pico</p>
-          </div>
-          <div className="rounded-lg bg-muted/10 p-2 text-center">
-            <p className="text-lg font-bold">{DAYS[getDay(new Date())]}</p>
-            <p className="text-[10px] text-muted-foreground">Dia atual</p>
-          </div>
-        </div>
+        {!hasData ? (
+          <p className="text-sm text-muted-foreground">Sem dados no período.</p>
+        ) : (
+          <>
+            {/* Summary */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-lg bg-primary/5 p-2 text-center">
+                <p className="text-lg font-bold text-primary">{totalPredicted}</p>
+                <p className="text-[10px] text-muted-foreground">Msgs previstas</p>
+              </div>
+              <div className="rounded-lg bg-warning/5 p-2 text-center">
+                <p className="text-lg font-bold text-warning">{topPeaks[0]?.hour ?? '-'}h</p>
+                <p className="text-[10px] text-muted-foreground">Hora de pico</p>
+              </div>
+              <div className="rounded-lg bg-muted/10 p-2 text-center">
+                <p className="text-lg font-bold">{DAYS[getDay(new Date())]}</p>
+                <p className="text-[10px] text-muted-foreground">Dia atual</p>
+              </div>
+            </div>
 
-        {/* Chart */}
-        <div className="h-48">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={historicalData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border/20" />
-              <XAxis
-                dataKey="day"
-                tick={{ style: { fontSize: '0.75rem' } }}
-                className="fill-muted-foreground"
-              />
-              <YAxis tick={{ style: { fontSize: '0.75rem' } }} className="fill-muted-foreground" />
-              <Tooltip contentStyle={{ fontSize: 12 }} />
-              <Bar
-                dataKey="predicted"
-                fill="hsl(var(--primary))"
-                opacity={0.6}
-                radius={[4, 4, 0, 0]}
-                name="Previsto"
-              />
-              <Line
-                type="monotone"
-                dataKey="predicted"
-                stroke="hsl(var(--primary))"
-                strokeWidth={2}
-                dot={false}
-                name="Tendência"
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
+            {/* Chart */}
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={historicalData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/20" />
+                  <XAxis
+                    dataKey="day"
+                    tick={{ style: { fontSize: '0.75rem' } }}
+                    className="fill-muted-foreground"
+                  />
+                  <YAxis tick={{ style: { fontSize: '0.75rem' } }} className="fill-muted-foreground" />
+                  <Tooltip contentStyle={{ fontSize: 12 }} />
+                  <Bar
+                    dataKey="actual"
+                    fill="hsl(var(--muted-foreground))"
+                    opacity={0.4}
+                    radius={[4, 4, 0, 0]}
+                    name="Real"
+                  />
+                  <Bar
+                    dataKey="predicted"
+                    fill="hsl(var(--primary))"
+                    opacity={0.6}
+                    radius={[4, 4, 0, 0]}
+                    name="Previsto"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="predicted"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    dot={false}
+                    name="Tendência"
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
 
-        {/* Peak hours */}
-        <div className="space-y-1.5">
-          <p className="flex items-center gap-1.5 text-xs font-medium">
-            <Clock className="h-3.5 w-3.5" /> Horários de pico
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {topPeaks.map((p) => (
-              <Badge key={p.hour} variant="outline" className="text-[10px]">
-                {String(p.hour).padStart(2, '0')}h — ~{p.avg} msg/dia
-              </Badge>
-            ))}
-          </div>
-        </div>
+            {/* Peak hours */}
+            <div className="space-y-1.5">
+              <p className="flex items-center gap-1.5 text-xs font-medium">
+                <Clock className="h-3.5 w-3.5" /> Horários de pico
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {topPeaks.map((p) => (
+                  <Badge key={p.hour} variant="outline" className="text-[10px]">
+                    {String(p.hour).padStart(2, '0')}h — ~{p.avg} msg/dia
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

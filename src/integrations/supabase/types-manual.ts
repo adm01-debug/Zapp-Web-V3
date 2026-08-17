@@ -54,6 +54,34 @@ export type ManualZappFunctions = {
       is_nullable: string;
     }[];
   };
+  // Etapa 66 (migration 20260817190000) — métricas reais de dashboard.
+  // Assinaturas espelham o RETURNS TABLE das RPCs; entram no types.ts gerado
+  // quando gen-types-zapp.mjs rodar com META_URL/META_TOKEN apontando para a VPS.
+  fn_dashboard_heatmap: {
+    Args: { p_metric?: string; p_days?: number };
+    Returns: {
+      day: number;
+      hour: number;
+      value: number;
+      sample_count: number;
+      total_rows: number;
+    }[];
+  };
+  rpc_queue_goal_metrics: {
+    Args: never;
+    Returns: {
+      queue_id: string;
+      waiting_contacts: number;
+      avg_wait_minutes: number;
+      assignment_rate: number | null;
+      messages_pending: number | null;
+      coverage: string;
+    }[];
+  };
+  fn_demand_forecast: {
+    Args: { p_days?: number; p_forecast_days?: number };
+    Returns: { d: string; kind: string; dow: number; value: number }[];
+  };
 };
 
 /**
