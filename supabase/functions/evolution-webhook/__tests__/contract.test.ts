@@ -273,3 +273,33 @@ Deno.test("Observabilidade: requestId em todas as respostas", () => {
   assertMatch(SOURCE, /generateRequestId\(\)/);
   assertMatch(SOURCE, /'x-request-id': requestId/);
 });
+
+Deno.test("[PATCH 24] Whitelist compartilhada: EVO_EVENT_TYPES tem exatamente 18 entradas (paridade consumer.py:59-63)", () => {
+  assertMatch(SOURCE, /EVO_EVENT_TYPES_SET\.has\(event\)/);
+  assertMatch(SOURCE, /event_type_not_in_whitelist/);
+  assertMatch(SOURCE, /webhookSource === 'consumer'/);
+});
+
+Deno.test("[PATCH 23] Ledger: outcome 'rejected' + reject_reason em todos os descartes", async () => {
+  const HELPERS_SOURCE = await Deno.readTextFile(
+    new URL("../../_shared/evolution-helpers.ts", import.meta.url),
+  );
+  assertMatch(HELPERS_SOURCE, /outcome: 'rejected'/);
+  assertMatch(HELPERS_SOURCE, /reject_reason:/);
+  assertMatch(SOURCE, /logLedgerRejection\(/);
+  for (const r of ['invalid_signature', 'webhook_secret_unconfigured', 'contract_violation', 'invalid_json',
+                   'instance_paused', 'unknown_instance', 'rate_limit_exceeded', 'missing_message_id',
+                   'entry_error', 'handler_error', 'unsupported_message_type', 'event_type_not_in_whitelist']) {
+    assert(hasMarker(SOURCE, r), `faltou reject_reason ${r}`);
+  }
+});
+
+Deno.test("[PATCH 28] message_type normalizado no ledger: conversation→text", async () => {
+  assertMatch(SOURCE, /EVO_PROTOBUF_MESSAGE_TYPE_MAP/);
+  assertMatch(SOURCE, /\?\? 'unknown'/); // default 'unknown', não 'text' (não mascarar)
+  const MAP_SOURCE = await Deno.readTextFile(
+    new URL("../../_shared/evolution-event-types.ts", import.meta.url),
+  );
+  assertMatch(MAP_SOURCE, /conversation: 'text'/);
+  assertMatch(MAP_SOURCE, /EVO_EVENT_TYPES/);
+});

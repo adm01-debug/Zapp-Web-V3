@@ -1,6 +1,7 @@
 import { useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { ExtendedDatabase } from '@/integrations/supabase/client';
 import type {
   DashboardFilters,
   DashboardStats,
@@ -83,19 +84,18 @@ export function useDashboardDataBatch(filters?: DashboardFilters) {
       merged.dateRange.to.toISOString(),
     ],
     queryFn: async (): Promise<DashboardInitResult> => {
-      const { data, error } = await (
-        supabase as unknown as {
-          rpc: (
-            name: string,
-            args: Record<string, unknown>
-          ) => Promise<{ data: unknown; error: { message: string } | null }>;
-        }
-      ).rpc('rpc_dashboard_init', {
-        p_agent_id: merged.agentId ?? undefined,
-        p_queue_id: merged.queueId ?? undefined,
+      // zapp.rpc_dashboard_init has NO defaults (all 4 args required) and the
+      // generated types reflect that; PostgREST turns missing keys into NULL.
+      // Dates are therefore always sent explicitly (never NULL — the public
+      // fn has no NULL guard on dates) and unset agent/queue go as null,
+      // which public.rpc_dashboard_init handles via its IS NULL guards.
+      const args = {
+        p_agent_id: merged.agentId ?? null,
+        p_queue_id: merged.queueId ?? null,
         p_date_from: merged.dateRange.from.toISOString(),
         p_date_to: merged.dateRange.to.toISOString(),
-      });
+      } as unknown as ExtendedDatabase['zapp']['Functions']['rpc_dashboard_init']['Args'];
+      const { data, error } = await supabase.rpc('rpc_dashboard_init', args);
       if (error) throw error;
       return data as unknown as DashboardInitResult;
     },

@@ -13,11 +13,14 @@
  *      total (1 por transição) e nunca 2 redirects consecutivos idênticos
  *      dentro de 500ms (assinatura clássica de loop).
  *
- * Skip gracioso se localhost estiver indisponível (salvo `E2E_STRICT_AUTH_LOOP=1`).
+ * Skip gracioso se o dev server estiver indisponível (salvo `E2E_STRICT_AUTH_LOOP=1`).
+ *
+ * Porta: usa `goto()` relativo — herda `baseURL` do playwright.config.ts
+ * (http://localhost:5173). Nunca hardcodar porta nos specs (drift 8080×5173,
+ * achado 40:A2 — docs/estado/40-e2e-harness-data.md).
  */
 import { test, expect, type Page } from '@playwright/test';
 
-const BASE_URL = process.env.E2E_LOCALHOST_URL ?? 'http://localhost:8080';
 const STRICT = process.env.E2E_STRICT_AUTH_LOOP === '1';
 
 const PROTECTED_ROUTES = ['/inbox', '/crm', '/admin'];
@@ -91,7 +94,7 @@ test.describe('Auth guard — alternância sessão válida ↔ expirada sem loop
 
     // Bootstrap: carrega a app na landing pública para inicializar localStorage/SDK.
     try {
-      await page.goto(`${BASE_URL}/auth`, { waitUntil: 'domcontentloaded', timeout: 20_000 });
+      await page.goto('/auth', { waitUntil: 'domcontentloaded', timeout: 20_000 });
     } catch (err) {
       test.skip(!STRICT, `Localhost inacessível: ${(err as Error).message}`);
       throw err;
@@ -105,7 +108,7 @@ test.describe('Auth guard — alternância sessão válida ↔ expirada sem loop
       await setSessionState(page, mode);
 
       const navsBefore = navs.length;
-      await page.goto(`${BASE_URL}${route}`, { waitUntil: 'domcontentloaded', timeout: 20_000 });
+      await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 20_000 });
       await waitForSettled(page, /^\/auth/);
 
       const stepNavs = navs.slice(navsBefore);

@@ -14,6 +14,7 @@ import {
   EvolutionCredentialsV1Schema,
   EvolutionTemplatesV1Schema,
   EvolutionRetryMetricsV1Schema,
+  EvolutionSyncV1Schema,
   DbHealthMonitorV1Schema,
   ConnectionHealthCheckV1Schema,
   HealthCheckV1Schema,
@@ -21,6 +22,7 @@ import {
   StatusV1Schema,
   MetricsV1Schema,
   SendScheduledReportV1Schema,
+  SendScheduledReportV2Schema,
   AutoCloseConversationsV1Schema,
   ElevenLabsVoiceV1Schema,
   ElevenLabsTtsV1Schema,
@@ -172,6 +174,18 @@ const MATRICES: Matrix[] = [
     ],
   },
   {
+    name: "send-scheduled-report@v2 (batch — cron chama sem body)",
+    schema: SendScheduledReportV2Schema,
+    valid: [{}, { limit: 10 }, { limit: 1, dryRun: true }],
+    invalid: [
+      { label: "limit fora do range", payload: { limit: 0 }, expectPath: "limit" },
+      { label: "limit acima do max", payload: { limit: 101 }, expectPath: "limit" },
+      { label: "limit com tipo errado", payload: { limit: "10" }, expectPath: "limit" },
+      { label: "reportId não pertence ao v2 (strict)", payload: { reportId: "r" } },
+      { label: "dryRun com tipo errado", payload: { dryRun: "yes" }, expectPath: "dryRun" },
+    ],
+  },
+  {
     name: "auto-close-conversations@v1 (cron — body opcional)",
     schema: AutoCloseConversationsV1Schema,
     valid: [{}],
@@ -238,12 +252,14 @@ Deno.test("business/infra: cron jobs sem body aceitam {} (body opcional)", () =>
   const cronSchemas = [
     EvolutionCredentialsV1Schema,
     EvolutionRetryMetricsV1Schema,
+    EvolutionSyncV1Schema,
     DbHealthMonitorV1Schema,
     HealthCheckV1Schema,
     HealthV1Schema,
     StatusV1Schema,
     MetricsV1Schema,
     AutoCloseConversationsV1Schema,
+    SendScheduledReportV2Schema,
   ];
   for (const s of cronSchemas) {
     assertEquals(s.safeParse({}).success, true, "cron schema deve aceitar body vazio");

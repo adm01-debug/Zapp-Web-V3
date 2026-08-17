@@ -14,7 +14,7 @@
  * apontando para a VPS (fora do ambiente Lovable).
  */
 
-import type { Database as GeneratedDatabase } from './types';
+import type { Database as GeneratedDatabase, Json } from './types';
 
 /**
  * Manual Zapp Tables type definition.
@@ -54,6 +54,15 @@ export type ManualZappFunctions = {
       is_nullable: string;
     }[];
   };
+  /**
+   * GAP-6 / Etapa 66 — análise real da última análise do contato.
+   * Migration 20260817230000_etapa66_latest_analysis_rpc.sql.
+   * SECURITY DEFINER; retorna envelope jsonb { analysis, tags, events, sla }
+   * ou NULL quando o contato não tem dados (vazio honesto).
+   */
+  rpc_latest_contact_analysis: {
+    Args: { p_contact_id: string };
+    Returns: Json;
   // Etapa 66 (migration 20260817190000) — métricas reais de dashboard.
   // Assinaturas espelham o RETURNS TABLE das RPCs; entram no types.ts gerado
   // quando gen-types-zapp.mjs rodar com META_URL/META_TOKEN apontando para a VPS.

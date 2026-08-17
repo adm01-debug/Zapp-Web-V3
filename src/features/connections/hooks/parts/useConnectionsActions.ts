@@ -24,7 +24,8 @@ export function useConnectionsActions(
   handleShowQrCode: (conn: WhatsAppConnection) => void | Promise<void>,
   disconnectInstance: (instance: string) => Promise<unknown>,
   deleteInstance: (instance: string) => Promise<unknown>,
-  newConnection: NewConnectionForm
+  newConnection: NewConnectionForm,
+  setAddConnectionError: Dispatch<SetStateAction<string | null>>
 ) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -37,8 +38,13 @@ export function useConnectionsActions(
 
   /** Creates a new WhatsApp connection record and redirects to QR code flow for non-official connections. */
   const handleAddConnection = useCallback(async () => {
+    // Estados honestos: limpa erro anterior e expõe falhas dentro do diálogo,
+    // além do toast — nunca fecha o diálogo silenciosamente nem registra fantasma.
+    setAddConnectionError(null);
+
     if (!newConnection.name) {
       toast({ title: 'Nome é obrigatório', variant: 'destructive' });
+      setAddConnectionError('Informe um nome para a conexão.');
       return;
     }
 
@@ -46,12 +52,14 @@ export function useConnectionsActions(
     // quebra o match do useEvolutionAutoSync (cria duplicatas).
     const phoneValidation = validatePhoneDetailed(newConnection.phone_number);
     if (!phoneValidation.valid) {
+      const phoneError =
+        phoneValidation.error ?? 'Informe um número brasileiro válido (ex.: 11 99999-9999).';
       toast({
         title: 'Número de telefone inválido',
-        description:
-          phoneValidation.error ?? 'Informe um número brasileiro válido (ex.: 11 99999-9999).',
+        description: phoneError,
         variant: 'destructive',
       });
+      setAddConnectionError(phoneError);
       return;
     }
     const normalizedPhone = phoneValidation.normalized ?? newConnection.phone_number.trim();
@@ -77,6 +85,7 @@ export function useConnectionsActions(
         ? trimmedName
         : whatsappConnectionService.generateInstanceName(newConnection.name);
 
+    let instanceCreated = false;
     try {
       // F6-02: criar a instância na Evolution API ANTES do INSERT. Falha aqui
       // aborta o fluxo — nenhum registro fantasma em whatsapp_connections.
@@ -89,6 +98,7 @@ export function useConnectionsActions(
         )?.instance;
         if (createdInstance?.instanceName) evolutionInstanceNameResolved = createdInstance.instanceName;
         if (createdInstance?.instanceId) evolutionInstanceUuid = createdInstance.instanceId;
+        instanceCreated = true;
       }
 
       const { data, error } = await safeClient.single<Record<string, unknown>>(
@@ -124,6 +134,10 @@ export function useConnectionsActions(
     } catch (error: unknown) {
       log.error('Error creating connection:', error);
       const msg = error instanceof Error ? error.message : String(error);
+      const honestMsg = instanceCreated
+        ? `${msg} A instância foi criada na Evolution, mas o registro no banco falhou. A sincronização automática pode recuperá-la — tente novamente.`
+        : msg;
+      setAddConnectionError(honestMsg);
       toast({ title: 'Erro ao criar conexão', description: msg, variant: 'destructive' });
     } finally {
       setIsCreating(false);
@@ -137,6 +151,7 @@ export function useConnectionsActions(
     toast,
     setIsCreating,
     setConnections,
+    setAddConnectionError,
     invalidateConnectionsCaches,
   ]);
 
