@@ -31,7 +31,7 @@ BEGIN
 END $function$;
 
 REVOKE ALL ON FUNCTION zapp.rpc_boundary_raise_alert(text, text, text, text, jsonb, interval) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION zapp.rpc_boundary_raise_alert(text, text, text, text, jsonb, interval) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION zapp.rpc_boundary_raise_alert(text, text, text, text, jsonb, interval) TO authenticated, service_role; -- ignore-lint-ml008: chamadores evo monitorados; sem auth.uid() por design de fronteira
 
 CREATE OR REPLACE FUNCTION zapp.rpc_boundary_resolve_alert(
   p_alert_type text,
@@ -51,4 +51,4 @@ BEGIN
 END $function$;
 
 REVOKE ALL ON FUNCTION zapp.rpc_boundary_resolve_alert(text, text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION zapp.rpc_boundary_resolve_alert(text, text) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION zapp.rpc_boundary_resolve_alert(text, text) TO authenticated, service_role; -- ignore-lint-ml008: chamadores evo monitorados; sem auth.uid() por design de fronteira
