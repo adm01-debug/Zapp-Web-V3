@@ -416,6 +416,7 @@ const specificEdgeFunctionSchemas = {
         z.object({ action: z.literal('status') }).strict(),
         z.object({ action: z.literal('configure'), baseUrl: z.string().min(1).max(2048) }).strict(),
       ]),
+  },
   'zapp-google-calendar-sync': {
     v1: z
       .object({
