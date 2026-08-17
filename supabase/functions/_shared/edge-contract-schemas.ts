@@ -407,6 +407,7 @@ const specificEdgeFunctionSchemas = {
         replays_on_error_sample_rate: z.number().min(0).max(1).optional(),
         action: z.enum(['save', 'test']).optional(),
       }),
+  },
   // Contrato real da integração n8n (estado honesto not_configured) — schema
   // inline (edge-contract-schemas.ts NUNCA importa de contract-schemas.ts).
   'zapp-n8n-sync': {
