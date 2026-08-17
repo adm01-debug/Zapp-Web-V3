@@ -122,12 +122,6 @@ const MATRICES: Matrix[] = [
     invalid: [{ label: "campo extra (strict)", payload: { hours: 24 } }],
   },
   {
-    name: "evolution-bitrix-sync@v1 (cron — body opcional)",
-    schema: EvolutionBitrixSyncV1Schema,
-    valid: [{}],
-    invalid: [{ label: "campo extra (strict)", payload: { operation: "create" } }],
-  },
-  {
     name: "db-health-monitor@v1 (cron — body opcional)",
     schema: DbHealthMonitorV1Schema,
     valid: [{}],

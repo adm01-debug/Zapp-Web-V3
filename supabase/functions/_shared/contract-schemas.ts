@@ -374,9 +374,6 @@ export const EvolutionTemplatesV1Schema = z.object({
 export const EvolutionRetryMetricsV1Schema = EmptyStrictV1Schema;
 
 
-/** evolution-bitrix-sync@v1 — cron de sincronização Bitrix; sem body. */
-export const EvolutionBitrixSyncV1Schema = EmptyStrictV1Schema;
-
 /** db-health-monitor@v1 — cron de health check; sem body. */
 export const DbHealthMonitorV1Schema = EmptyStrictV1Schema;
 
@@ -907,7 +904,6 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "evolution-credentials-write":   { v1: EvolutionCredentialsWriteV1Schema },
   "evolution-templates":           { v1: EvolutionTemplatesV1Schema },
   "evolution-retry-metrics":       { v1: EvolutionRetryMetricsV1Schema },
-  "evolution-bitrix-sync":         { v1: EvolutionBitrixSyncV1Schema },
   "db-health-monitor":             { v1: DbHealthMonitorV1Schema },
   "connection-health-check":       { v1: ConnectionHealthCheckV1Schema },
   "health-check":                  { v1: HealthCheckV1Schema },
