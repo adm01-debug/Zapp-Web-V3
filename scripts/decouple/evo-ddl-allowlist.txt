@@ -21,3 +21,4 @@
 20260816141000_decouple_i1_i2_fix2.sql
 20260816090000_drop_dead_functions_zapp_evo.sql
 20260816260007_fix_views_security_invoker_restantes.sql
+20260817130000_webhook_events_authenticated_read_admin_only.sql
