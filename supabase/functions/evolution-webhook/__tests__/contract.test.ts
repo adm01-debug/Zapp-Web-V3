@@ -280,6 +280,9 @@ Deno.test("[PATCH 24] Whitelist compartilhada: EVO_EVENT_TYPES tem exatamente 18
   assertMatch(SOURCE, /webhookSource === 'consumer'/);
 });
 
+// Auth rejects (401/503) NÃO gravam no ledger por design: ingest-loss-alert (job 338)
+// conta outcome='rejected' como perda — HMAC inválido de scanners daria falso alarme.
+// Cobertura desses casos: webhook_audit_log + auto-pause.
 Deno.test("[PATCH 23] Ledger: outcome 'rejected' + reject_reason em todos os descartes", async () => {
   const HELPERS_SOURCE = await Deno.readTextFile(
     new URL("../../_shared/evolution-helpers.ts", import.meta.url),
@@ -287,7 +290,7 @@ Deno.test("[PATCH 23] Ledger: outcome 'rejected' + reject_reason em todos os des
   assertMatch(HELPERS_SOURCE, /outcome: 'rejected'/);
   assertMatch(HELPERS_SOURCE, /reject_reason:/);
   assertMatch(SOURCE, /logLedgerRejection\(/);
-  for (const r of ['invalid_signature', 'webhook_secret_unconfigured', 'contract_violation', 'invalid_json',
+  for (const r of ['contract_violation', 'invalid_json',
                    'instance_paused', 'unknown_instance', 'rate_limit_exceeded', 'missing_message_id',
                    'entry_error', 'handler_error', 'unsupported_message_type', 'event_type_not_in_whitelist']) {
     assert(hasMarker(SOURCE, r), `faltou reject_reason ${r}`);

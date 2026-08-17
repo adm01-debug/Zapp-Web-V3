@@ -132,17 +132,10 @@ Deno.serve(async (req) => {
         error_message: result.error ?? 'invalid_signature',
         duration_ms: Date.now() - startedAt,
       });
-      // [PATCH 23] HMAC falha ANTES do parse (rawBody indisponível). Seguro:
-      // grava SÓ quando assinatura foi apresentada (produtor com chave errada);
-      // scanners anônimos (sem assinatura) não gravam — evita flood de INSERT
-      // com service_role (audit + auto-pause já cobrem).
-      if (result.signatureFound) {
-        logLedgerRejection(supabase, {
-          instanceName: headerInstance ?? 'unknown',
-          rejectReason: result.error ?? 'invalid_signature',
-          latencyMs: Date.now() - startedAt,
-        });
-      }
+      // [PATCH 23] Rejeições de AUTH (401) NÃO gravam no ingest_ledger de propósito:
+      // o cron ingest-loss-alert (job 338) conta outcome='rejected' como perda e
+      // alertaria falso em varredura de scanners. Cobertura: webhook_audit_log +
+      // auto-pause (recordAuthFailureAndMaybePause).
       return new Response(
         JSON.stringify({ error: 'unauthorized', reason: result.error ?? 'invalid_signature', requestId }),
         { status: 401, headers: corsHeaders },
@@ -174,11 +167,8 @@ Deno.serve(async (req) => {
       error_message: 'webhook_secret_unconfigured',
       duration_ms: Date.now() - startedAt,
     });
-    logLedgerRejection(supabase, {
-      instanceName: headerInstance ?? 'unknown',
-      rejectReason: 'webhook_secret_unconfigured',
-      latencyMs: Date.now() - startedAt,
-    });
+    // [PATCH 23] Fail-closed (503) NÃO grava no ledger (auth/misconfig ≠ perda de
+    // evento; guard job 338). Cobertura: audit rejected/503 + log.
     return new Response(
       JSON.stringify({ error: 'webhook_misconfigured', reason: 'no_secret_configured', requestId }),
       { status: 503, headers: { ...corsHeaders, 'Retry-After': '120' } },
