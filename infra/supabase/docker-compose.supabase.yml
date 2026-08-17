@@ -84,7 +84,7 @@ services:
     image: supabase/edge-runtime:v1.74.0
     entrypoint: ["/bin/sh", "-c"]
     command:
-      - "export JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v1) && export DB_PASS=$$(cat /run/secrets/supabase_db_password_v1) && export SUPABASE_DB_URL=postgresql://postgres:$${DB_PASS}@db:5432/postgres && export SUPABASE_SERVICE_ROLE_KEY=$$(cat /run/secrets/supabase_service_key_v3) && export EVOLUTION_WEBHOOK_SECRETS=$$(cat /run/secrets/supabase_evolution_webhook_secret_v1) && export SELFHOSTED_SUPABASE_URL=https://supabase.atomicabr.com.br && export SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY=$$(cat /run/secrets/supabase_service_key_v3) && export SELFHOSTED_SUPABASE_ANON_KEY=$$(cat /run/secrets/supabase_anon_key_v2) && export SUPABASE_ANON_KEY=$$(cat /run/secrets/supabase_anon_key_v2) && export SENTRY_DSN=$$(cat /run/secrets/sentry_dsn_v2) && export HEALTH_SECRET=$$(cat /run/secrets/health_secret_v2) && export METRICS_SCRAPE_TOKEN=$$(cat /run/secrets/metrics_scrape_token_v2) && export DEEPSEEK_API_KEY=$$(cat /run/secrets/deepseek_api_key_v2) && export EVOLUTION_API_KEY=$$(cat /run/secrets/evolution_api_key_v4_20260704) && exec edge-runtime start --main-service /home/deno/functions/main # secrets-v1"
+      - "export JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v1) && export DB_PASS=$$(cat /run/secrets/supabase_db_password_v1) && export SUPABASE_DB_URL=postgresql://postgres:$${DB_PASS}@db:5432/postgres && export SUPABASE_SERVICE_ROLE_KEY=$$(cat /run/secrets/supabase_service_key_v3) && export EVOLUTION_WEBHOOK_SECRETS=$$(cat /run/secrets/supabase_evolution_webhook_secret_v1) && export SELFHOSTED_SUPABASE_URL=https://supabase.atomicabr.com.br && export SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY=$$(cat /run/secrets/supabase_service_key_v3) && export SELFHOSTED_SUPABASE_ANON_KEY=$$(cat /run/secrets/supabase_anon_key_v2) && export SUPABASE_ANON_KEY=$$(cat /run/secrets/supabase_anon_key_v2) && export SENTRY_DSN=$$(cat /run/secrets/sentry_dsn_v2) && export HEALTH_SECRET=$$(cat /run/secrets/health_secret_v2) && export METRICS_SCRAPE_TOKEN=$$(cat /run/secrets/metrics_scrape_token_v2) && export DEEPSEEK_API_KEY=$$(cat /run/secrets/deepseek_api_key_v2) && export EVOLUTION_API_KEY=$$(cat /run/secrets/evolution_api_key_v4_20260704) && export STATS_HTTP_HMAC_SECRET=$$(cat /run/secrets/stats_http_hmac_v1) && exec edge-runtime start --main-service /home/deno/functions/main # secrets-v1"
     volumes:
       - /root/supabase/docker/volumes/functions:/home/deno/functions:Z
     secrets:
@@ -99,6 +99,7 @@ services:
       - sentry_dsn_v2
       - health_secret_v2
       - metrics_scrape_token_v2
+      - stats_http_hmac_v1
     networks:
       - AtomicaBRNet
     environment:
@@ -580,6 +581,8 @@ secrets:
   metrics_scrape_token_v2:
     external: true
   postgrest_conf_v1:
+    external: true
+  stats_http_hmac_v1:
     external: true
 
 volumes:
