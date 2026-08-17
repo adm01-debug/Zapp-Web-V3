@@ -52,7 +52,7 @@ services:
       - SUPABASE_URL=http://kong:8000
       - SUPABASE_PUBLIC_URL=https://supabase.atomicabr.com.br
       - LOGFLARE_URL=http://analytics:4000
-      - PGRST_DB_SCHEMAS=public,storage,graphql_public
+      - PGRST_DB_SCHEMAS=public,zapp,storage,graphql_public,artes,vendas,financeiro,logistica
       - PGRST_DB_EXTRA_SEARCH_PATH=public,extensions
       - PGRST_DB_MAX_ROWS=1000
       - EDGE_FUNCTIONS_MANAGEMENT_FOLDER=/home/deno/functions
@@ -92,13 +92,17 @@ services:
       - supabase_db_password_v1
       - supabase_service_key_v3
       - supabase_evolution_webhook_secret_v1
+      - supabase_evolution_webhook_secret_v2
+      - supabase_evolution_webhook_secret_v3
       - deepseek_api_key_v2
-      - source: evolution_api_key_v5_20260805
-        target: evolution_api_key_v4_20260704
+      - evolution_api_key_v7_20260814
       - supabase_anon_key_v2
       - sentry_dsn_v2
       - health_secret_v2
       - metrics_scrape_token_v2
+      - supabase_promogifts_anon_key_v1
+      - mcp_query_secret_v2
+      - elevenlabs_api_key_v2
       - stats_http_hmac_v1
     networks:
       - AtomicaBRNet
@@ -106,7 +110,7 @@ services:
       - VERIFY_JWT=true
       - SUPABASE_URL=http://kong:8000
       - PROMOGIFTS_SUPABASE_URL=https://doufsxqlfjyuvxuezpln.supabase.co
-      - PROMOGIFTS_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvdWZzeHFsZmp5dXZ4dWV6cGxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczODY2NDMsImV4cCI6MjA4Mjk2MjY0M30.nm3WMOBSx5SUnIBmvF_Mj0Y-4hV6UohrBF0sUpuQvPc
+      
       - EVOLUTION_API_URL=https://evolution.atomicabr.com.br
       - AI_BASE_URL=https://api.deepseek.com/v1
       - AI_ROUTER_URL=https://supabase.atomicabr.com.br/functions/v1/ai-router
@@ -583,6 +587,19 @@ secrets:
   postgrest_conf_v1:
     external: true
   stats_http_hmac_v1:
+    external: true
+
+  supabase_evolution_webhook_secret_v2:
+    external: true
+  supabase_evolution_webhook_secret_v3:
+    external: true
+  evolution_api_key_v7_20260814:
+    external: true
+  supabase_promogifts_anon_key_v1:
+    external: true
+  mcp_query_secret_v2:
+    external: true
+  elevenlabs_api_key_v2:
     external: true
 
 volumes:
