@@ -46,6 +46,9 @@ import { ChatMonitoringDialog } from './chat/ChatMonitoringDialog';
 import { ChatPanelOverlays } from './chat/ChatPanelOverlays';
 import { useChatAutoScroll } from '../hooks/useChatAutoScroll';
 import { useTransferConversation } from '../hooks/useTransferConversation';
+import { useFavoriteMessage } from '@/hooks/useFavoriteMessage';
+import { usePinMessage } from '@/hooks/usePinMessage';
+import { useReportMessage } from '@/hooks/useReportMessage';
 import { useInboxShortcuts } from '../hooks/useInboxShortcuts';
 import { useArchiveConversationActions } from '../hooks/useArchiveConversationActions';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -376,6 +379,20 @@ export function ChatPanel({
     [handlers]
   );
 
+  // Etapa 44: ações de mensagem com backend real — instanciadas UMA vez por
+  // conversa (não por mensagem) e passadas até a toolbar via messageActions.
+  const favoriteMsg = useFavoriteMessage();
+  const pinMsg = usePinMessage();
+  const reportMsg = useReportMessage();
+  const messageActions = {
+    toggleFavorite: favoriteMsg.toggleFavorite,
+    isFavorite: favoriteMsg.isFavorite,
+    togglePin: pinMsg.togglePin,
+    isPinned: pinMsg.isPinned,
+    report: reportMsg.report,
+    hasReported: reportMsg.hasReported,
+  };
+
   const { transferConversation: handleTransfer } = useTransferConversation({
     contactId: conversation.contact.id ?? '',
     whatsappConnectionId: whatsappConnectionId ?? undefined,
@@ -507,6 +524,7 @@ export function ChatPanel({
           onInteractiveButtonClick={handlers.handleInteractiveButtonClick}
           onEditStart={handlers.handleEditStart}
           onSnoozeConversation={handleSnoozeFromToolbar}
+          messageActions={messageActions}
           highlightedMessageIds={highlightedMessageIds}
           activeHighlightId={activeHighlightId}
           searchQuery={searchQuery}

@@ -5,12 +5,16 @@ import {
   Forward,
   Copy,
   MoreVertical,
+  Pin,
+  Star,
   Trash2,
+  Flag,
   Clock,
   CheckCheck,
   EyeOff,
   Pencil,
 } from 'lucide-react';
+import type { ReportReason } from '@/hooks/useReportMessage';
 import { Message } from '@/types/chat';
 import { TextToSpeechButton } from '../TextToSpeechButton';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
@@ -47,6 +51,15 @@ interface MessageHoverToolbarProps {
   onMessageDeleted: (messageId: string) => void;
   /** Etapa 41: adia a CONVERSA (snooze) — wired no ChatPanel via useChatPanelHandlers.onSnooze. */
   onSnoozeConversation?: (duration: SnoozeDuration) => void;
+  /** Etapa 44: ações de mensagem com backend real (favoritar/fixar/reportar). */
+  messageActions?: {
+    toggleFavorite: (messageId: string) => void;
+    isFavorite: (messageId: string) => boolean;
+    togglePin: (messageId: string, contactId?: string) => void;
+    isPinned: (messageId: string) => boolean;
+    report: (messageId: string, reason: ReportReason, details?: string) => void;
+    hasReported: (messageId: string) => boolean;
+  };
 }
 
 export type SnoozeDuration = '1h' | '3h' | 'tomorrow' | 'nextweek';
@@ -68,6 +81,7 @@ export function MessageHoverToolbar({
   onEditStart,
   onMessageDeleted,
   onSnoozeConversation,
+  messageActions,
 }: MessageHoverToolbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const {
@@ -199,8 +213,77 @@ export function MessageHoverToolbar({
               </>
             )}
 
-            {/* TODO(Etapa 41): Favoritar/Fixar mensagem e Reportar exigem backend novo
-                (tabelas + RLS) — removidos do menu até existirem, para não exibir ação morta. */}
+            {/* Etapa 44: favoritar/fixar/reportar com BACKEND REAL (zapp.favorite_messages,
+                zapp.pinned_messages, zapp.message_reports — migrations 2026081715/16/170000). */}
+            {messageActions && (
+              <>
+                <DropdownMenuItem
+                  className="cursor-pointer gap-2"
+                  onClick={() => messageActions.toggleFavorite(message.id)}
+                >
+                  <Star
+                    className={
+                      messageActions.isFavorite(message.id)
+                        ? 'h-4 w-4 fill-warning text-warning'
+                        : 'h-4 w-4'
+                    }
+                  />
+                  {messageActions.isFavorite(message.id) ? 'Desfavoritar' : 'Favoritar'}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer gap-2"
+                  onClick={() => messageActions.togglePin(message.id)}
+                >
+                  <Pin
+                    className={
+                      messageActions.isPinned(message.id)
+                        ? 'h-4 w-4 fill-primary text-primary'
+                        : 'h-4 w-4'
+                    }
+                  />
+                  {messageActions.isPinned(message.id) ? 'Desafixar' : 'Fixar'}
+                </DropdownMenuItem>
+                {!isSent && (
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger
+                      disabled={messageActions.hasReported(message.id)}
+                      className="gap-2 text-warning"
+                    >
+                      <Flag className="h-4 w-4" />
+                      {messageActions.hasReported(message.id) ? 'Reportado' : 'Reportar'}
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="w-44 border-border/50 bg-card">
+                      <DropdownMenuItem
+                        className="cursor-pointer"
+                        onClick={() => messageActions.report(message.id, 'spam')}
+                      >
+                        Spam
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="cursor-pointer"
+                        onClick={() => messageActions.report(message.id, 'inapropriado')}
+                      >
+                        Conteúdo impróprio
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="cursor-pointer"
+                        onClick={() => messageActions.report(message.id, 'urgencia')}
+                      >
+                        Urgência
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="cursor-pointer"
+                        onClick={() =>
+                          messageActions.report(message.id, 'outro', window.prompt('Descreva o motivo:') ?? '')
+                        }
+                      >
+                        Outro…
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                )}
+              </>
+            )}
 
             <DropdownMenuSub>
               <DropdownMenuSubTrigger disabled={!onSnoozeConversation} className="gap-2">

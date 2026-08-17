@@ -43,6 +43,8 @@ interface MessageBubbleProps {
   onMessageDeleted: (messageId: string) => void;
   /** Etapa 41: adia a conversa (snooze) — repassado do ChatPanel. */
   onSnoozeConversation?: (duration: '1h' | '3h' | 'tomorrow' | 'nextweek') => void;
+  /** Etapa 44: ações de mensagem (favoritar/fixar/reportar) — repassado do ChatPanel. */
+  messageActions?: MessageHoverToolbarProps['messageActions'];
   registerRef: (el: HTMLDivElement | null) => void;
   density?: 'comfortable' | 'compact' | 'dense';
   onAudioVoiceChange?: (messageId: string, newBlob: Blob) => void;
@@ -72,6 +74,7 @@ export const MessageBubble = memo(function MessageBubble({
   onEditStart,
   onMessageDeleted,
   onSnoozeConversation,
+  messageActions,
   registerRef,
   density = 'comfortable',
   onAudioVoiceChange,
@@ -242,6 +245,7 @@ export const MessageBubble = memo(function MessageBubble({
             onEditStart={onEditStart}
             onMessageDeleted={onMessageDeleted}
             onSnoozeConversation={onSnoozeConversation}
+            messageActions={messageActions}
           />
 
           {message.is_deleted ? (
