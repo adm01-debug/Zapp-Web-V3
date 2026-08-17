@@ -61,3 +61,4 @@ O banco de produção é a **fonte de verdade dos objetos**. O fluxo oficial de 
 - SSH emergencial na VPS (porta 6543): SOMENTE leitura/diagnostico; escrita so com aval.
 - Docker 29.x exige cliente API >= 1.44 — imagens antigas (ex.: traefik v2.11.2) ficam cegas; conferir compatibilidade da imagem antes de deployar stack.
 - Se o Swarm estiver travado ("Swarm is encrypted"): chave swarm-unlock guardada em local protegido (fora do repo); destravar e manter autolock OFF.
+- **NUNCA** usar `docker service update --rollback` sem `--image` explícito após um rollback automático: o `PreviousSpec` do Swarm aponta para a spec QUE FALHOU — o comando cego reaplica a versão quebrada (incidente realtime 128.3, 17/08).
