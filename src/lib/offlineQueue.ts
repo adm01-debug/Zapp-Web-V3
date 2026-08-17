@@ -241,7 +241,9 @@ export function setupOnlineListener(): () => void {
 
   window.addEventListener('online', handleOnline);
   window.addEventListener('offline', handleOffline);
-  if ('serviceWorker' in navigator) {
+  // Guard truthy: `'serviceWorker' in navigator` é true mesmo com o valor
+  // undefined (happy-dom/testes) — chamar addEventListener direto crashava.
+  if (navigator.serviceWorker) {
     navigator.serviceWorker.addEventListener('message', handleSwMessage);
   }
 
@@ -255,7 +257,7 @@ export function setupOnlineListener(): () => void {
   return () => {
     window.removeEventListener('online', handleOnline);
     window.removeEventListener('offline', handleOffline);
-    if ('serviceWorker' in navigator) {
+    if (navigator.serviceWorker) {
       navigator.serviceWorker.removeEventListener('message', handleSwMessage);
     }
   };
