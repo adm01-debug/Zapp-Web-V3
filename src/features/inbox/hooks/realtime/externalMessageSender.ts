@@ -20,6 +20,7 @@ import { parseEvolutionError } from '@/features/inbox';
 import { dbInsert } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { sendText, sendMedia, sendPtv } from '@/lib/whatsappAdapter';
+import { buildSendIdempotencyKeyFromFingerprint } from '@/lib/sendIdempotency';
 import {
   DEFAULT_INSTANCE,
   SendError,
@@ -66,7 +67,14 @@ export async function sendExternalText(
   let data: unknown;
   let error: unknown;
   try {
-    data = await sendText({ remoteJid, text: content, instance });
+    // Chave de idempotência estável: mesmo contact+texto no mesmo bucket de 1min
+    // convergem — o proxy Evolution dedupa via header Idempotency-Key (TTL 24h).
+    const idemKey = await buildSendIdempotencyKeyFromFingerprint({
+      contactId: remoteJid,
+      messageType: 'text',
+      content,
+    });
+    data = await sendText({ remoteJid, text: content, instance }, idemKey);
   } catch (err) {
     error = err;
   }
@@ -164,6 +172,12 @@ export async function sendExternalMedia(
   let data: unknown;
   let error: unknown;
   try {
+    const idemKey = await buildSendIdempotencyKeyFromFingerprint({
+      contactId: remoteJid,
+      messageType: type,
+      content: opts.caption || file.name,
+      mediaUrl: signed.signedUrl,
+    });
     data = await sendMedia({
       remoteJid,
       mediaUrl: signed.signedUrl,
@@ -171,7 +185,7 @@ export async function sendExternalMedia(
       caption: opts.caption,
       filename: file.name,
       instance,
-    });
+    }, idemKey);
   } catch (err) {
     error = err;
   }

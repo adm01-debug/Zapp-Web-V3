@@ -9,6 +9,7 @@ import { newRequestId } from '@/lib/withRequestId';
 import type { AudioMemeItem } from '@/hooks/useAudioManagement';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
 import { sendMedia, sendText, sendAudio } from '@/lib/whatsappAdapter';
+import { buildSendIdempotencyKeyFromFingerprint } from '@/lib/sendIdempotency';
 import { toJid } from '@/lib/jid';
 import { resolveContactRef, isUuidRef } from '../utils/contactRef';
 import { insertAuxMessage } from './useAuxiliaryMessageLog';
@@ -251,10 +252,19 @@ export function useChatMediaSending(
         const isUrl = emojiUrl.startsWith('http');
         const trace = newRequestId('emoji');
 
+        // Chave de idempotência estável por envio lógico (contact+conteúdo+bucket
+        // de 1min) — retries duplicados convergem no proxy Evolution (TTL 24h).
+        const idemKey = await buildSendIdempotencyKeyFromFingerprint({
+          contactId,
+          messageType: isUrl ? 'image' : 'text',
+          content: isUrl ? '[Emoji]' : emojiUrl,
+          mediaUrl: isUrl ? emojiUrl : null,
+        });
+
         const apiPromise = (
           isUrl
-            ? sendMedia({ remoteJid: toJid(phone), mediaUrl: emojiUrl, type: 'image', instance: inst })
-            : sendText({ remoteJid: toJid(phone), text: emojiUrl, instance: inst })
+            ? sendMedia({ remoteJid: toJid(phone), mediaUrl: emojiUrl, type: 'image', instance: inst }, idemKey)
+            : sendText({ remoteJid: toJid(phone), text: emojiUrl, instance: inst }, idemKey)
         )
           .then((data) => ({ data, error: null }))
           .catch((error) => ({ data: null, error }));
@@ -322,12 +332,21 @@ export function useChatMediaSending(
         const normalizedAudioUrl = normalizeMediaUrl(audioUrl);
         const trace = newRequestId('audio');
 
+        // Idem-key estável: mesma URL de mídia + mesmo contact no bucket de 1min
+        // convergem — evita double-send de retries do mesmo audio meme.
+        const idemKey = await buildSendIdempotencyKeyFromFingerprint({
+          contactId,
+          messageType: 'audio',
+          content: '[Audio Meme]',
+          mediaUrl: normalizedAudioUrl,
+        });
+
         const apiPromise = sendAudio({
           remoteJid: toJid(phone),
           audioUrl: normalizedAudioUrl,
           instance: inst,
           ptt: true, // Audio memes MUST appear as voice notes (green waveform)
-        })
+        }, idemKey)
           .then((data) => ({ data, error: null }))
           .catch((error) => ({ data: null, error }));
 

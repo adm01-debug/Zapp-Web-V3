@@ -90,7 +90,7 @@ Deno.serve(async (req: Request) => {
     return errorResponse(req, "Invalid JSON body", 400);
   }
 
-  const parsed = parseOrReject('csat-auto-send', { v1: CsatAutoSendV1Schema }, req, rawBody);
+  const parsed = parseOrReject<CsatAutoSendBody>('csat-auto-send', { v1: CsatAutoSendV1Schema }, req, rawBody);
   if (parsed.ok === false) return parsed.response;
   const { survey_id, contact_id, agent_id, connection_id, conversation_id, delay_minutes } = parsed.data;
 
@@ -183,6 +183,40 @@ Deno.serve(async (req: Request) => {
       Number(delay_minutes ?? csatConfig.delay_minutes ?? 0) || 0,
     );
     const scheduledAt = new Date(Date.now() + effectiveDelay * 60_000).toISOString();
+
+    // ── 6.5 Enqueue-guard idempotente ──────────────────────────────────────────
+    // Double-fire/retry da UI não pode enfileirar CSAT duplicado: se já existe
+    // item CSAT pendente para o mesmo contact+connection nas últimas 24h
+    // (scheduled_at tem índice idx_msg_queue_scheduled), responde de forma
+    // idempotente com o agendamento original em vez de inserir de novo.
+    const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: existingQueued, error: dupErr } = await admin
+      .from("evolution_message_queue")
+      .select("id, scheduled_at")
+      .eq("source", "csat_auto_send")
+      .eq("status", "pending")
+      .gte("scheduled_at", since24h)
+      .filter("metadata->>contact_id", "eq", contact_id)
+      .filter("metadata->>connection_id", "eq", connection_id)
+      .maybeSingle();
+
+    if (dupErr) {
+      console.error("[csat-auto-send] evolution_message_queue dedupe query error:", dupErr.message);
+      return errorResponse(req, "Failed to check CSAT queue", 500);
+    }
+
+    if (existingQueued) {
+      console.log(
+        `[csat-auto-send] duplicate enqueue skipped — contact=${contact_id} already queued (id=${existingQueued.id})`,
+      );
+      return jsonResponse(req, {
+        success: true,
+        survey_id: finalSurveyId,
+        scheduled_at: existingQueued.scheduled_at ?? scheduledAt,
+        instance_name: conn.instance_name,
+        deduped: true,
+      });
+    }
 
     // ── 7. Enqueue message ────────────────────────────────────────────────────
     const remoteJid = toRemoteJid(contact.phone);

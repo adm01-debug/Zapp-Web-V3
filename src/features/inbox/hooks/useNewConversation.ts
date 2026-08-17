@@ -10,6 +10,7 @@ import {
 import { dbFrom } from '@/integrations/datasource/db';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
 import { sendText } from '@/lib/whatsappAdapter';
+import { buildSendIdempotencyKeyFromFingerprint } from '@/lib/sendIdempotency';
 import { toJid } from '@/lib/jid';
 
 interface ContactResult {
@@ -191,11 +192,18 @@ export function useNewConversation(
       }
       let sendError: unknown = null;
       try {
+        // Idem-key estável (contact+texto+bucket de 1min): double-fire do mesmo
+        // envio converge no proxy Evolution (header Idempotency-Key, TTL 24h).
+        const idemKey = await buildSendIdempotencyKeyFromFingerprint({
+          contactId,
+          messageType: 'text',
+          content: sendValidation.data.text,
+        });
         await sendText({
           remoteJid: toJid(sendValidation.data.number),
           text: sendValidation.data.text,
           instance: sendValidation.data.instanceName,
-        });
+        }, idemKey);
       } catch (err) {
         sendError = err;
       }
