@@ -221,15 +221,15 @@ export function usePushNotificationsManagement() {
   const showNotification = useCallback(
     async (payload: NotificationPayload) => {
       const currentPermission = permission === 'granted' ? permission : await requestPermission();
-      if (currentPermission === 'granted') {
-        sendNotification(payload.title, {
+      if (currentPermission === 'granted' && isSupported) {
+        new Notification(payload.title, {
           body: payload.body,
           tag: payload.tag,
           icon: payload.icon,
         });
       }
     },
-    [permission, requestPermission, sendNotification]
+    [permission, requestPermission, isSupported]
   );
 
   const toggleSubscription = useCallback(async () => {

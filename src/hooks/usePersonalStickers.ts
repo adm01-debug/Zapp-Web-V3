@@ -49,7 +49,7 @@ export function usePersonalStickers(): UsePersonalStickersResult {
       if (!ownerId) return [];
       const { data, error } = await supabase
         .from(STICKERS_TABLE as never)
-        .select('id, name, image_url, category, is_favorite, use_count, owner_id')
+        .select('id, name, image_url, category, is_favorite, use_count, owner_id, created_at')
         .eq('owner_id', ownerId)
         .order('is_favorite', { ascending: false })
         .order('use_count', { ascending: false });
@@ -64,6 +64,7 @@ export function usePersonalStickers(): UsePersonalStickersResult {
     async (files: FileList | null) => {
       if (!files || files.length === 0 || !ownerId) return;
       setUploading(true);
+      let uploadedCount = 0;
       try {
         for (const file of Array.from(files)) {
           if (!file.type.startsWith('image/')) {
@@ -98,9 +99,15 @@ export function usePersonalStickers(): UsePersonalStickersResult {
             use_count: 0,
           } as never);
           if (insErr) throw insErr;
+          uploadedCount += 1;
         }
-        toast({ title: 'Figurinhas adicionadas', description: 'Upload concluído.' });
-        void queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+        // Etapa 44.5 (contrato RED): toast de sucesso SÓ se ao menos um
+        // arquivo foi enviado — com todos rejeitados, o feedback honesto já
+        // foi dado pelos toasts de validação.
+        if (uploadedCount > 0) {
+          toast({ title: 'Figurinhas adicionadas', description: 'Upload concluído.' });
+          void queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+        }
       } catch (err) {
         log.error('Sticker upload failed:', err);
         toast({

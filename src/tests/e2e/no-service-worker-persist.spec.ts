@@ -10,15 +10,17 @@
  *     - Nenhuma requisição a `sw.js`/`workbox-*.js` é interpretada como registro.
  *     - CDP `ServiceWorker.workerVersionUpdated` não reporta versões ativas.
  *
- * Cobre localhost (dev server) e o preview público. Skip gracioso quando o
+ * Cobre o dev server do PR (baseURL 5173) — e, por override explícito
+ * (`E2E_PREVIEW_URL`), deploys reais. Nunca produção externa por padrão
+ * (`*.vercel.app`/`*.lovable.app`; achado 40:A3). Skip gracioso quando o
  * endpoint está inacessível, salvo `E2E_STRICT_SW=1`.
  */
 import { test, expect, type Page, type BrowserContext } from '@playwright/test';
 
-const LOCALHOST_URL = process.env.E2E_LOCALHOST_URL ?? 'http://localhost:8080/';
-const PREVIEW_URL =
-  process.env.E2E_PREVIEW_URL ??
-  'https://id-preview--22c0b518-7895-4f4f-9ea0-978457a2c37a.lovable.app/';
+// Padrão: build do PR (baseURL do playwright.config.ts). Overrides só para
+// auditoria pontual de deploys reais.
+const LOCALHOST_URL = process.env.E2E_LOCALHOST_URL ?? 'http://localhost:5173/';
+const PREVIEW_URL = process.env.E2E_PREVIEW_URL ?? 'http://localhost:5173/';
 const STRICT = process.env.E2E_STRICT_SW === '1';
 
 type SwSnapshot = {
@@ -73,7 +75,14 @@ async function auditNoSw(context: BrowserContext, url: string): Promise<SwSnapsh
   const page = await context.newPage();
 
   try {
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 });
+    const response = await page.goto(url, {
+      waitUntil: 'domcontentloaded',
+      timeout: 20_000,
+    });
+    // Status HTTP >= 400 não pode satisfazer "sem SW" vacuamente (40:A3).
+    if (response && response.status() >= 400) {
+      throw new Error(`HTTP ${response.status()} em ${url}`);
+    }
   } catch (err) {
     if (!STRICT) {
       test.info().annotations.push({

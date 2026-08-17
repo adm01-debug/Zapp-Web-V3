@@ -148,8 +148,8 @@ export function useRealtimeMessagesManagement(chatId: string) {
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'evo',
-          table: 'evolution_messages',
+          schema: 'zapp',
+          table: 'realtime_message_fanout',
           filter: `remote_jid=eq.${chatId}`,
         },
         (payload: PgPayload) => {

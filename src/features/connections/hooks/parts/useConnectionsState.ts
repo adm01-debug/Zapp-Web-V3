@@ -62,6 +62,7 @@ export function useConnectionsState() {
     api_type: WhatsAppApiType;
   }>({ name: '', phone_number: '', api_type: 'evolution' });
   const [isCreating, setIsCreating] = useState(false);
+  const [addConnectionError, setAddConnectionError] = useState<string | null>(null);
   const [syncingHistory, setSyncingHistory] = useState<string | null>(null);
 
   const dialogGenRef = useRef(0);
@@ -90,6 +91,8 @@ export function useConnectionsState() {
     setNewConnection,
     isCreating,
     setIsCreating,
+    addConnectionError,
+    setAddConnectionError,
     syncingHistory,
     setSyncingHistory,
     dialogGenRef,

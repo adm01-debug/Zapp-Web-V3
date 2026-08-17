@@ -7,11 +7,14 @@
  *     `[ZAPP_METRIC]` e via snapshot), com redirect para `/auth` e sem TTM.
  *  3. Um dev acessando a landing "/" registra `ttm` no console e no snapshot.
  *
- * Skip gracioso se localhost estiver indisponível (salvo `E2E_STRICT_METRICS=1`).
+ * Skip gracioso se o dev server estiver indisponível (salvo `E2E_STRICT_METRICS=1`).
+ *
+ * Porta: usa `goto()` relativo — herda `baseURL` do playwright.config.ts
+ * (http://localhost:5173). Nunca hardcodar porta nos specs (drift 8080×5173,
+ * achado 40:A2 — docs/estado/40-e2e-harness-data.md).
  */
 import { test, expect, type ConsoleMessage } from '@playwright/test';
 
-const BASE_URL = process.env.E2E_LOCALHOST_URL ?? 'http://localhost:8080';
 const STRICT = process.env.E2E_STRICT_METRICS === '1';
 
 type MetricEvent =
@@ -47,7 +50,7 @@ test.describe('App metrics — TTM + authz failures', () => {
     });
 
     try {
-      await page.goto(`${BASE_URL}/inbox`, { waitUntil: 'domcontentloaded', timeout: 20_000 });
+      await page.goto('/inbox', { waitUntil: 'domcontentloaded', timeout: 20_000 });
     } catch (err) {
       test.skip(!STRICT, `Localhost inacessível: ${(err as Error).message}`);
       throw err;

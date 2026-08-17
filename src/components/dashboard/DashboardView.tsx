@@ -31,7 +31,7 @@ import { AgentPerformancePanel } from './AgentPerformancePanel';
 import { SatisfactionMetrics } from './SatisfactionMetrics';
 import { SentimentTrendChart } from './SentimentTrendChart';
 import { ScheduledReportsManager } from './ScheduledReportsManager';
-import { useDashboardData } from '@/hooks/useDashboardData';
+import { useDashboardDataBatch } from '@/hooks/useDashboardDataBatch';
 import { useAuth } from '@/features/auth';
 import { useDashboardWidgets, DashboardWidget } from '@/hooks/useDashboardWidgets';
 import { ProgressiveDisclosureDashboard } from './ProgressiveDisclosureDashboard';
@@ -58,7 +58,7 @@ export const DashboardView = memo(function DashboardView(): JSX.Element {
     return userName ? `${greetingText}, ${userName}! 👋` : `${greetingText}! 👋`;
   }, [profile?.name]);
 
-  const { stats, isLoading, refetch } = useDashboardData({
+  const { stats, isLoading, refetch } = useDashboardDataBatch({
     dateRange: filters.dateRange,
     queueId: filters.queueId,
     agentId: filters.agentId,
