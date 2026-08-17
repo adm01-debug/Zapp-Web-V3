@@ -59828,6 +59828,10 @@ export type Database = {
         Args: { p_rows: Json }
         Returns: Json
       }
+      rpc_complete_followup: {
+        Args: { p_id: string }
+        Returns: Json
+      }
       rpc_insert_message:
         | {
             Args: {

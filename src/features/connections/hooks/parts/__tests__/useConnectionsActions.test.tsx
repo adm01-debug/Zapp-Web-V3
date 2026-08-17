@@ -28,6 +28,9 @@
  *     - NÃO abre QR Code no fluxo official
  *     - invalida os dois caches de conexões
  *     - em erro: toast destrutivo, estado intacto, isCreating volta a false
+ *     - estado honesto: erro também exposto dentro do diálogo (setAddConnectionError)
+ *     - estado honesto: instância criada + INSERT falho → aviso de instância órfã
+ *     - estado honesto: erro limpo no início de cada fluxo
  *     - isCreating é ligado no início e desligado no fim
  *   handleSetDefault
  *     - zera is_default das demais antes de marcar a escolhida
@@ -150,6 +153,7 @@ type Harness = {
   disconnectInstance: ReturnType<typeof vi.fn>;
   deleteInstance: ReturnType<typeof vi.fn>;
   newConnection: { name: string; phone_number: string; api_type: 'evolution' | 'official' };
+  setAddConnectionError: ReturnType<typeof vi.fn>;
 };
 
 function setup(over: Partial<Harness> = {}) {
@@ -164,6 +168,7 @@ function setup(over: Partial<Harness> = {}) {
     disconnectInstance: vi.fn().mockResolvedValue(undefined),
     deleteInstance: vi.fn().mockResolvedValue(undefined),
     newConnection: { name: 'Vendas', phone_number: '5511988887777', api_type: 'evolution' },
+    setAddConnectionError: vi.fn(),
     ...over,
   };
   const { result } = renderHook(() =>
@@ -178,7 +183,8 @@ function setup(over: Partial<Harness> = {}) {
       h.handleShowQrCode as unknown as (conn: WhatsAppConnection) => void | Promise<void>,
       h.disconnectInstance as unknown as (instance: string) => Promise<unknown>,
       h.deleteInstance as unknown as (instance: string) => Promise<unknown>,
-      h.newConnection
+      h.newConnection,
+      h.setAddConnectionError as unknown as Dispatch<SetStateAction<string | null>>
     )
   );
   return { result, h };
@@ -220,7 +226,7 @@ beforeEach(() => {
 // ── handleAddConnection ───────────────────────────────────────────────────────
 describe('useConnectionsActions — handleAddConnection', () => {
   it('rejeita nome vazio com toast destrutivo e sem tocar no banco', async () => {
-    const { result } = setup({
+    const { result, h } = setup({
       newConnection: { name: '', phone_number: '', api_type: 'evolution' },
     });
     await act(async () => {
@@ -230,6 +236,8 @@ describe('useConnectionsActions — handleAddConnection', () => {
       expect.objectContaining({ title: 'Nome é obrigatório', variant: 'destructive' })
     );
     expect(singleSpy).not.toHaveBeenCalled();
+    // Estado honesto: erro exposto dentro do diálogo, não só no toast.
+    expect(h.setAddConnectionError).toHaveBeenCalledWith('Informe um nome para a conexão.');
   });
 
   it('rejeita phone_number vazio com toast destrutivo e sem tocar no banco', async () => {
@@ -244,6 +252,7 @@ describe('useConnectionsActions — handleAddConnection', () => {
     );
     expect(singleSpy).not.toHaveBeenCalled();
     expect(h.setIsCreating).not.toHaveBeenCalled();
+    expect(h.setAddConnectionError).toHaveBeenCalledWith(expect.any(String));
   });
 
   it('rejeita phone_number fora do formato brasileiro', async () => {
@@ -328,6 +337,34 @@ describe('useConnectionsActions — handleAddConnection', () => {
       expect.objectContaining({ title: 'Erro ao criar conexão', variant: 'destructive' })
     );
     expect(h.setIsCreating).toHaveBeenLastCalledWith(false);
+    // Estado honesto: erro da edge exposto dentro do diálogo (sem registro fantasma).
+    expect(h.setAddConnectionError).toHaveBeenLastCalledWith('Evolution API 500');
+  });
+
+  it('estado honesto: instância criada mas INSERT falhou → aviso de instância órfã', async () => {
+    // createInstance resolve; o banco rejeita o INSERT (ex.: duplicate key).
+    singleSpy.mockImplementation((_t: string, qb: (b: unknown) => unknown) => {
+      runQueryBuilder(qb);
+      return Promise.resolve({ data: null, error: new Error('duplicate key') });
+    });
+    const { result, h } = setup();
+    await act(async () => {
+      await result.current.handleAddConnection();
+    });
+    expect(createInstanceMock).toHaveBeenCalledTimes(1);
+    expect(h.setAddConnectionError).toHaveBeenLastCalledWith(
+      expect.stringContaining('A instância foi criada na Evolution')
+    );
+    expect(h.setIsAddDialogOpen).not.toHaveBeenCalled();
+  });
+
+  it('estado honesto: limpa erro anterior ao iniciar novo fluxo', async () => {
+    const { result, h } = setup();
+    await act(async () => {
+      await result.current.handleAddConnection();
+    });
+    // A primeira chamada do fluxo limpa o erro (null) antes de qualquer falha.
+    expect(h.setAddConnectionError).toHaveBeenNthCalledWith(1, null);
   });
 
   it('NÃO chama createInstance no fluxo official', async () => {

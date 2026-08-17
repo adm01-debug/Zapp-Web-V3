@@ -31,7 +31,7 @@ export function ContactTagsContent({ contact, conversation }: ContactTagsContent
   const legacyConversationTags = validContact ? [] : conversation.tags;
 
   const availableTags = (allTags ?? []).filter(
-    (t) => !contactTags.some((ct) => ct.id === t.id)
+    (t) => !contactTags.some((ct) => (typeof ct === 'string' ? ct : ct.id) === t.id)
   );
 
   return (
@@ -53,9 +53,13 @@ export function ContactTagsContent({ contact, conversation }: ContactTagsContent
         </motion.div>
       ))}
 
-      {contactTags.map((tag, i) => (
+      {contactTags.map((tag, i) => {
+        // contactTags pode conter string (tag legada) ou Tag (DB) — normaliza.
+        const tagId = typeof tag === 'string' ? undefined : tag.id;
+        const tagName = typeof tag === 'string' ? tag : tag.name;
+        return (
         <motion.div
-          key={`contact-${tag.id ?? tag}`}
+          key={`contact-${tagId ?? tagName}`}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: i * 0.03 }}
@@ -65,14 +69,14 @@ export function ContactTagsContent({ contact, conversation }: ContactTagsContent
             className="group/tag flex cursor-default items-center gap-1 border border-primary/20 bg-primary/10 text-foreground transition-all hover:scale-105 hover:bg-primary/20"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            {tag.name ?? tag}
+            {tagName}
             {validContact && (
               <button
                 type="button"
-                aria-label={`Remover etiqueta ${tag.name ?? tag}`}
+                aria-label={`Remover etiqueta ${tagName}`}
                 className="cursor-pointer opacity-0 transition-all hover:text-destructive group-hover/tag:opacity-100"
                 onClick={() => {
-                  if (tag.id) void removeTag(tag.id);
+                  if (tagId) void removeTag(tagId);
                 }}
               >
                 <X className="h-3 w-3" />
@@ -80,7 +84,8 @@ export function ContactTagsContent({ contact, conversation }: ContactTagsContent
             )}
           </Badge>
         </motion.div>
-      ))}
+        );
+      })}
 
       {legacyConversationTags.length === 0 && contactTags.length === 0 && (
         <div className="flex w-full flex-col items-center gap-1.5 py-4 text-center">

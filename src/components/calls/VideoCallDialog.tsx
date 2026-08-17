@@ -198,7 +198,7 @@ export function VideoCallDialog({ open, onOpenChange, contact }: VideoCallDialog
           </DialogDescription>
         </DialogHeader>
 
-        <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+        <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">{/* @ds-ignore: letterbox do vídeo exige preto */}
           {/* Remoto (grande) */}
           {callActive ? (
             <video
@@ -215,7 +215,7 @@ export function VideoCallDialog({ open, onOpenChange, contact }: VideoCallDialog
                 animate={{ scale: 1, opacity: 1 }}
                 className="relative"
               >
-                <Avatar className="h-20 w-20 border-4 border-white/20">
+                <Avatar className="h-20 w-20 border-4 border-white/20">{/* @ds-ignore: anel sobre fundo preto do vídeo */}
                   <AvatarImage src={contact.avatar} alt={contact.name} />
                   <AvatarFallback className="bg-primary/20 text-xl text-primary">
                     {contact.name
@@ -236,8 +236,8 @@ export function VideoCallDialog({ open, onOpenChange, contact }: VideoCallDialog
                   )}
                 </AnimatePresence>
               </motion.div>
-              <p className="text-sm font-medium text-white">{contact.name}</p>
-              <p className="text-xs text-white/60">
+              <p className="text-sm font-medium text-white">{/* @ds-ignore: texto sobre vídeo */}{contact.name}</p>
+              <p className="text-xs text-white/60">{/* @ds-ignore: legenda sobre vídeo */}
                 {callStatus === 'ringing' && 'Tocando...'}
                 {callStatus === 'calling' && 'Chamando...'}
                 {callStatus === 'ended' && 'Chamada encerrada'}
@@ -253,23 +253,23 @@ export function VideoCallDialog({ open, onOpenChange, contact }: VideoCallDialog
               playsInline
               muted
               data-testid="video-call-local"
-              className="absolute right-3 top-3 h-24 w-36 -scale-x-100 rounded-lg border border-white/20 bg-black object-cover"
+              className="absolute right-3 top-3 h-24 w-36 -scale-x-100 rounded-lg border border-white/20 bg-black object-cover" {/* @ds-ignore: PiP local — borda/fundo sobre vídeo */}
             />
           )}
 
           {/* Conectando ao VoIP */}
           {connecting && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60">{/* @ds-ignore: scrim escuro sobre vídeo */}
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-white">Conectando ao VoIP...</p>
+              <p className="text-sm text-white">{/* @ds-ignore: texto sobre scrim de vídeo */}Conectando ao VoIP...</p>
             </div>
           )}
 
           {/* Falha na conexão */}
           {connectFailed && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/60 p-6">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/60 p-6">{/* @ds-ignore: scrim escuro sobre vídeo */}
               <WifiOff className="h-8 w-8 text-destructive" />
-              <p className="text-center text-sm text-white">
+              <p className="text-center text-sm text-white">{/* @ds-ignore: texto sobre scrim de vídeo */}
                 Não foi possível conectar ao servidor VoIP. Verifique as configurações na página
                 VoIP.
               </p>
@@ -286,13 +286,13 @@ export function VideoCallDialog({ open, onOpenChange, contact }: VideoCallDialog
 
           {/* Badge de voz (provedor sem vídeo / câmera indisponível) */}
           {callActive && (!videoSupported || !isVideoOn) && (
-            <div className="absolute left-3 top-3 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-medium text-white/80">
+            <div className="absolute left-3 top-3 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-medium text-white/80">{/* @ds-ignore: badge sobre vídeo */}
               Chamada de voz
             </div>
           )}
 
           {/* Status / timer */}
-          <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/50 px-3 py-0.5 text-xs text-white/90">
+          <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/50 px-3 py-0.5 text-xs text-white/90">{/* @ds-ignore: status sobre vídeo */}
             {callActive
               ? `${contact.name} · ${formatTime(callDuration)}`
               : contact.name}
@@ -306,7 +306,7 @@ export function VideoCallDialog({ open, onOpenChange, contact }: VideoCallDialog
                 variant="outline"
                 size="icon"
                 className={cn(
-                  'h-12 w-12 rounded-full border-white/20 bg-black/40 text-white hover:bg-black/60 hover:text-white',
+                  'h-12 w-12 rounded-full border-white/20 bg-black/40 text-white hover:bg-black/60 hover:text-white', /* @ds-ignore: controles de vídeo — branco/preto sobre vídeo */
                   isMuted && 'bg-destructive/80 border-destructive hover:bg-destructive'
                 )}
                 onClick={toggleMute}
@@ -323,7 +323,7 @@ export function VideoCallDialog({ open, onOpenChange, contact }: VideoCallDialog
                   variant="outline"
                   size="icon"
                   className={cn(
-                    'h-12 w-12 rounded-full border-white/20 bg-black/40 text-white hover:bg-black/60 hover:text-white',
+                    'h-12 w-12 rounded-full border-white/20 bg-black/40 text-white hover:bg-black/60 hover:text-white', /* @ds-ignore: controles de vídeo — branco/preto sobre vídeo */
                     !isVideoOn && 'bg-warning/70 border-warning hover:bg-warning'
                   )}
                   onClick={toggleVideo}
