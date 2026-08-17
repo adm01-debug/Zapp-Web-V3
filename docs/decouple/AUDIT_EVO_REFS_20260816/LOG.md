@@ -184,3 +184,11 @@ Contagens iniciais da 1ª passada (heurística): ver seção Fase 1 do triagem.c
 - ② 7 views security_invoker (migration pronta: ALTER VIEW + GRANTs nas 6 bases evo + policy media_scan_log; validação JWT antes/depois)
 - ③ aposentar evolution-bitrix-sync (1-2h; write-back quebrado, fila vazia, negócio coberto por bitrix-api)
 - ④ manter Dockerfile 2.3.7 como Plano B (custo zero)
+
+---
+
+## Rodada 6 (2026-08-17 ~09:00 BRT) — promoção VPS + revisão stack 25 + autofix
+
+- **Seção VPS promovida** ao AGENTS.md (PR #1154): as 5 regras do incidente 15/08 estavam só na branch de resgate (rodada 5). R4 corrigida: API >= 1.44 (não 1.40). Sem contradições com o AGENTS.md vigente (t1/t7/t8).
+- **Revisão da reescrita canônica do stack 25** (branch resgate, 66bb579a de 08/08): SUPERSEDED pelo runtime atual (6f9f1d35, 2.4.0). Aplicá-la regrediria produção para 2.3.7 e apontaria para secret evolution_api_key_v6 (REMOVIDO do Swarm — fail-closed). Valor: referência histórica apenas; NÃO usar como base de deploy. O espelho do stack 25 não vive mais no zapp-web-v3 (mora no evolution-stack).
+- **Autofix executado manualmente** (filtro corrigido da rodada 4): 0 views pendentes + 0 fns anon nos 13 schemas — função rodou sem alterações (estado convergido). Cron 03:05 continuará inerte até surgir drift real.
