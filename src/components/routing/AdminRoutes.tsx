@@ -43,6 +43,7 @@ const NotificationChannelsPage = lazyWithRetry(
 const CronSchedulerPage = lazyWithRetry(
   () => import('@/pages/admin/automacoes/CronSchedulerPage')
 );
+const AdminAutoExportPage = lazyWithRetry(() => import('@/pages/admin/AdminAutoExportPage'));
 
 /**
  * Returns a React fragment of /admin/* Route elements.
@@ -283,6 +284,14 @@ export function adminRoutes() {
         element={
           <ProtectedRoute requiredRoles={['admin', 'dev']}>
             <CronSchedulerPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/auto-export"
+        element={
+          <ProtectedRoute requiredRoles={['admin']}>
+            <AdminAutoExportPage />
           </ProtectedRoute>
         }
       />
