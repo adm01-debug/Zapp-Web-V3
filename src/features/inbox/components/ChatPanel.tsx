@@ -116,6 +116,14 @@ export function ChatPanel({
   const { dialogs, openDialog, closeDialog } = useChatDialogs();
   // Ações reais de arquivar/desarquivar (soft-delete do contato — PR PR 773).
   const { archive: archiveConversation } = useArchiveConversationActions();
+  // Arquivar REAL da conversa ativa — mesma ação usada pelo slash /archive,
+  // pelo menu do header (onArchiveConversation) e pelo atalho Mod+E.
+  // Toasts de sucesso/erro vêm da mutation (useContactsMutations), padrão
+  // ContactDetails: chamada direta + catch(() => undefined) p/ evitar
+  // unhandled rejection (sem toast duplicado do wrapper do slash).
+  const handleArchiveConversation = useCallback(() => {
+    void archiveConversation(conversation.contact.id ?? '').catch(() => undefined);
+  }, [archiveConversation, conversation.contact.id]);
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const [activeTool, setActiveTool] = useState<ActiveTool>(null);
@@ -247,7 +255,7 @@ export function ChatPanel({
     handleSetActiveTool,
     // /archive real: soft-delete do contato (a sidebar refetcha via realtime;
     // sem onDone aqui pois ChatPanel não recebe refetch da lista).
-    onArchive: () => archiveConversation(conversation.contact.id ?? ''),
+    onArchive: handleArchiveConversation,
   });
 
   useEffect(() => {
@@ -280,7 +288,11 @@ export function ChatPanel({
     },
     onNextConversation: () => {}, // Handled in Sidebar
     onPrevConversation: () => {}, // Handled in Sidebar
-    onArchive: () => {}, // Handled in Sidebar
+    // Mod+E religado ao arquivar REAL da conversa ativa (antes era no-op
+    // "Handled in Sidebar" — a Sidebar também registra o atalho; se ambos
+    // estiverem montados, a Sidebar arquiva o contato selecionado e este
+    // handler arquiva a conversa aberta, sem silent-fail).
+    onArchive: handleArchiveConversation,
     onTransfer: () => handlers.handleSlashCommand({ id: 'transfer' }),
     onRefresh: () => {}, // Handled in Sidebar
     onSearchFocusChat: () => handleSetActiveTool('chatSearch'),
@@ -431,6 +443,7 @@ export function ChatPanel({
             onOpenSearch={() => handleSetActiveTool('chatSearch')}
             onOpenValidation={isDevExact ? () => openDialog('visualValidation') : undefined}
             onResolveConversation={handlers.onResolveConversation}
+            onArchiveConversation={handleArchiveConversation}
             onOpenTransfer={() => openDialog('transferDialog')}
             onOpenSchedule={() => openDialog('scheduleDialog')}
             onVoiceChange={setVoiceId}

@@ -545,11 +545,16 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   // /archive real (PR PR 773): arquiva a conversa atual via soft-delete.
   // O callback vem do ChatPanel (useArchiveConversationActions) e valida o
   // contato — o try/catch do useInputHandlers cuida do toast de erro.
+  // Sem silent-fail: se o ChatPanel não fornecer onArchive, o comando FALHA
+  // honestamente (throw → toast destructive) em vez de "suceder" sem efeito.
   const onArchiveChat = useCallback(async () => {
     if (!contactId || !isValidUUID(contactId)) {
       throw new Error('Nao foi possivel arquivar: contato invalido.');
     }
-    await opts.onArchive?.();
+    if (!opts.onArchive) {
+      throw new Error('Nao foi possivel arquivar: acao nao configurada.');
+    }
+    await opts.onArchive();
   }, [contactId, opts]);
 
   const { handleInputChange, handleKeyDown, handleSlashCommand } = useInputHandlers({
