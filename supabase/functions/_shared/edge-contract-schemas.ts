@@ -148,6 +148,7 @@ export const EDGE_FUNCTION_NAMES = [
   'whatsapp-cloud-webhook',
   'whatsapp-cloud-webhook-verify',
   'zapp-get-sip-credentials',
+  'zapp-crm-sync',
 ] as const;
 
 const JsonValueSchema: z.ZodType<unknown> = z.lazy(() =>
@@ -334,6 +335,26 @@ const specificEdgeFunctionSchemas: Partial<
         device_name: z.string().min(1),
       })
       .passthrough(),
+  },
+  // CRM plugável (Etapa 66) — schema INLINE (nunca importar de contract-schemas.ts: ciclo)
+  'zapp-crm-sync': {
+    v1: z
+      .object({
+        entity_id: z.string().uuid().optional(),
+        entity_data: z.object({
+          phone: z.string().min(1),
+          channel: z.string().min(1),
+          direction: z.enum(['inbound', 'outbound']),
+          assunto: z.string().nullable().optional(),
+          resumo: z.string().nullable().optional(),
+          sentiment: z.string().nullable().optional(),
+          message_count: z.number().int().min(0).optional(),
+          agent_name: z.string().nullable().optional(),
+          zapp_conversation_id: z.string().nullable().optional(),
+          dry_run: z.boolean().optional(),
+        }),
+      })
+      .strict(),
   },
   ...WebhookContractSchemas,
 };

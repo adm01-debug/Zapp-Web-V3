@@ -25,7 +25,8 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/zapp-web
+  # GHCR exige minúsculas (repo renomeado p/ Zapp-Web-V3 quebra github.repository)
+  IMAGE_NAME: ${{ github.repository_owner }}/zapp-web-v3/zapp-web
 
 jobs:
   build-and-push:

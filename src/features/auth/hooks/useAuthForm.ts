@@ -106,6 +106,35 @@ export function useAuthForm() {
     if (user) void redirectAfterAuth(nextPath);
   }, [user, navigate, nextPath, redirectAfterAuth]);
 
+  // OAuth PKCE (Google): o client usa detectSessionInUrl=false + flowType=pkce,
+  // então o ?code= trazido pelo provider NÃO é trocado automaticamente.
+  // FIX 2026-08-17: sem este exchange o login com Google voltava do provider
+  // com ?code=... e ficava preso na tela de login (botão sem efeito aparente).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (!code || !mountedRef.current) return;
+    let cancelled = false;
+    (async () => {
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (cancelled) return;
+      if (error) {
+        toast({
+          title: 'Erro ao conectar com Google',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
+      // Remove o code da URL para não re-processar em refresh/voltar.
+      const url = new URL(window.location.href);
+      url.searchParams.delete('code');
+      window.history.replaceState({}, '', url.toString());
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     if (isSupported()) {
       isPlatformAuthenticatorAvailable()
