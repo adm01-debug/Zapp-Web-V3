@@ -289,3 +289,14 @@ infra/                       # Infraestrutura
 └── evolution/               # Configurações Evolution
     └── SETTINGS.md          # Settings atuais da wpp2
 ```
+
+---
+
+## Papel do Claude Code na arquitetura (3 camadas — Promo Brindes)
+
+- **PLANEJA**: voce (Claude) — analise exaustiva, plano com tarefas atomicas e criterios de validacao
+- **EXECUTA**: Hermes (DeepSeek) — edita codigo, roda scripts, PRs; unico que mexe em git/branches
+- **VALIDA**: voce (Claude) — revisa o output contra os criterios; veredito APROVADO ou REPROVADO (nunca "talvez")
+
+Regras: PT-BR, direto, resultado primeiro, sem hedging. Reprovacao = gap + correcao especifica (max 3 re-execucoes). Nunca executar git/branches.
+Conta: adm01@promobrindes.com.br (plano 20x). Modelos: --model opus (opus-5), default (sonnet-5), --model haiku (haiku-4-5).

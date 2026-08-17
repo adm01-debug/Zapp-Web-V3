@@ -8,6 +8,7 @@
 
 ## Onde mora o quê
 
+> **Pós-desacoplamento (2026-08-12):** Infra da Evolution (servidor, stacks, consumer) está em [adm01-debug/evolution-stack](https://github.com/adm01-debug/evolution-stack). Edge functions `evolution-*` e schema `evo` permanecem **aqui**.
 - Dado real do **WhatsApp/Evolution** → schema **`evo`** (`evolution_*`, partições, `contact_id_graveyard`).
 - Dado real do **app ZAPP Web** → schema **`zapp`**.
 - **`public` é só camada de API** (views `security_invoker` + RPC). **Nunca** crie tabela nem escreva "na tabela" do `public` — ali é sempre uma **view** apontando para `zapp`/`evo`/domínio.
@@ -52,3 +53,11 @@ O banco de produção é a **fonte de verdade dos objetos**. O fluxo oficial de 
 - Funções: `fn_*` (interna), `rpc_*` (exposta via PostgREST), `trg_*` (trigger), `get_*` (leitura). A maioria é `SECURITY DEFINER` — **sempre** fixe `search_path` em função `SECURITY DEFINER`.
 - Comando de cron: **sempre** qualifique com `schema.função` (ex.: `SELECT zapp.fn_x()`), nunca dependa do `search_path`.
 - Migration: um tema por migration; rollback documentado.
+
+## VPS PRODUÇÃO — mudanças proibidas sem aval do dono (incidente 15/08/2026)
+
+- **NUNCA** rodar upgrade de SO (`do-release-upgrade`), `reboot`/`shutdown`, `apt upgrade`/`dist-upgrade`, troca de kernel ou alterar pacotes do HOST da VPS sem aprovacao EXPLICITA do Joaquim. Incidente 15/08: agente fez upgrade Ubuntu 20.04→24.04, ativou autolock do Swarm e rebootou 2x — 145 servicos fora do ar ~30min.
+- **NUNCA** ativar/alterar autolock do Swarm (`docker swarm update --autolock=true`). Autolock DESATIVADO por decisao do dono (15/08) — manter OFF para sempre.
+- SSH emergencial na VPS (porta 6543): SOMENTE leitura/diagnostico; escrita so com aval.
+- Docker 29.x exige cliente API >=1.40 — imagens antigas (ex.: traefik v2.11.2) ficam cegas; conferir compatibilidade da imagem antes de deployar stack.
+- Se o Swarm estiver travado ("Swarm is encrypted"): chave em C:/tmp/swarm-unlock-key.txt; destravar e manter autolock OFF.

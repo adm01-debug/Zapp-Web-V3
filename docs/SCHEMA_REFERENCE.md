@@ -1,9 +1,80 @@
 # 📐 Schema Reference — ZAPP WEB
 
 > **Documento canônico** sobre a arquitetura de schemas do Supabase.
-> Última atualização: **2026-08-06**. Auditado via `pg_catalog` + teste de penetração HTTP real.
+> Última atualização: **2026-08-15**. Auditado via `pg_catalog` + teste de penetração HTTP real.
 > Qualquer doc que contradiga este está desatualizado.
 > Regras de integração (schema canônico, Realtime, credenciais, guardrails): **[INTEGRATION_INVARIANTS.md](./INTEGRATION_INVARIANTS.md)**.
+> Plano mestre de desacoplamento ZAPP×Evolution: **[decouple/DECOUPLING.md](./decouple/DECOUPLING.md)**.
+
+---
+
+## Status de Desacoplamento ZAPP×Evolution — T0 (2026-08-15)
+
+> Score T0: **3/9 = 33% — Nota D** · Próxima medição: T1 (após E24 — Fase 1 completa)
+> Plano completo em 100 etapas: [`docs/decouple/DECOUPLING.md`](./decouple/DECOUPLING.md)
+
+### Regra de Ouro de Propriedade de Schema
+
+| Schema | Quem **escreve** | Quem **lê** |
+|--------|-----------------|-------------|
+| `evo.*` | **Somente a Evolution API** (via consumer pipeline) | ZAPP web (via 12 views de contrato abaixo) |
+| `zapp.*` | **Somente o ZAPP web** | Evolution API (somente monitoria — ADR-DB-002) |
+
+**Egresso HTTP**: toda saída do ZAPP web para a Evolution API deve passar exclusivamente por
+`supabase/functions/_shared/providers/evolution/client.ts` (12 verbos, zero bypasses).
+Uso direto de `EVOLUTION_API_URL` ou `callEvolutionApi` é proibido (deprecated e bloqueado por CI guard).
+
+### Score dos 9 Invariantes (T0)
+
+| # | Invariante | Status T0 | Referência |
+|---|-----------|-----------|------------|
+| I1 | Zero funções `zapp.*` referenciam `evo.*` | 🔴 FAIL (20 funções, 82 refs) | E37–E42 |
+| I2 | Zero funções `evo.*` referenciam `zapp.*` | 🔴 FAIL (96 funções) | E43–E48 |
+| I3 | `supabase.yml` ausente do repo zapp | 🔴 FAIL (`e2e-evolution-vps.yml` presente) | E89 |
+| I4 | Todo egresso HTTP via gateway único | 🔴 FAIL (5 cron + 16 pg_net) | E25–E35 |
+| I5 | CI guard bloqueia recriação de infra evo | 🟢 PASS | `decouple-guard.yml` |
+| I6 | Zero INSERT morto em `consumer.py` | 🟢 PASS (arquivo ausente) | — |
+| I7 | `inventory.mjs` cobre todos `evolution-*` | 🟢 PASS | `scripts/decouple/inventory.mjs` |
+| I8 | Fixture sql-gate sincronizado com prod | 🔴 FAIL (12 vs 25 entradas) | E18, E22 |
+| I9 | Zero FKs cross-schema não documentadas | 🔴 FAIL (6 grupos, 24 linhas `evo→zapp`) | E49–E50 |
+
+### As 12 Views de Contrato (`zapp.*` → `evo.*`)
+
+Views auto-updatable no schema `zapp` que permitem ao ZAPP web ler dados da Evolution API
+sem acesso direto ao schema `evo`. São a única ponte de leitura autorizada.
+
+| View (`zapp.*`) | Tabela base (`evo.*`) | Descrição |
+|---|---|---|
+| `evolution_messages` | `evo.evolution_messages` | Mensagens WhatsApp (raiz particionada) |
+| `evolution_conversations` | `evo.evolution_conversations` | Conversas (raiz particionada) |
+| `evolution_contacts` | `evo.evolution_contacts` | Contatos da Evolution API |
+| `evolution_media` | `evo.evolution_media` | Mídias (áudio, imagem, vídeo) |
+| `evolution_whatsapp_status` | `evo.evolution_whatsapp_status` | Status de entrega WA |
+| `evolution_webhook_events_v2` | `evo.evolution_webhook_events_v2` | Webhooks particionados |
+| `evolution_instances` | `evo.evolution_instances` | Instâncias WA registradas |
+| `evolution_sessions` | `evo.evolution_sessions` | Sessões ativas |
+| `evolution_groups` | `evo.evolution_groups` | Grupos WhatsApp |
+| `evolution_group_participants` | `evo.evolution_group_participants` | Participantes de grupos |
+| `evolution_labels` | `evo.evolution_labels` | Labels/etiquetas |
+| `evolution_chats` | `evo.evolution_chats` | Chats (cache de metadados) |
+
+> **Realtime**: usar sempre `schema: 'evo'` com a tabela raiz (não as views `zapp.*`) —
+> views não emitem WAL events. Ver seção "Realtime" abaixo.
+
+### Infraestrutura de Observabilidade (criada em Fase 0)
+
+| Objeto SQL | Migration | Descrição |
+|---|---|---|
+| `ops.pgnet_egress_log` | E8 (`20260815010000`) | Log de chamadas pg_net — mede violações I4 |
+| `ops.i4_violation_baseline` | E8 (`20260815010000`) | Baseline T0 de 14 violadores pg_net conhecidos |
+| `ops.log_pgnet_call()` | E8 (`20260815010000`) | Função auxiliar para instrumentação manual |
+| `ops.v_i4_violations_summary` | E8 (`20260815010000`) | View resumo de violações I4 ativas |
+| `ops.v_i4_correction_progress` | E8 (`20260815010000`) | View de progresso de correção (meta: pendentes=0) |
+| `ops.decouple_preflight_runs` | E10 (`20260815020000`) | Histórico de execuções do pre-flight checklist |
+| `ops.fn_decouple_preflight()` | E10 (`20260815020000`) | Checklist pré-deploy com 8 verificações automáticas |
+| `ops.v_preflight_history` | E10 (`20260815020000`) | View do histórico de runs do checklist |
+
+---
 
 ## Arquitetura Atual (pós-consolidação)
 
@@ -154,6 +225,7 @@ Antes do grant, o corpo ganhou guard: `auth.uid() IS NULL` → `RAISE`; `perform
 | 2026-08-04 | **Integração schema zapp × front**: inventário pg_catalog atualizado (zapp: **323** tabelas, **359** views, **5** matviews, **1077** funções, **759** policies, **144** cron jobs); wrappers `zapp.rpc_app_bootstrap`/`zapp.rpc_dashboard_init` (SECURITY DEFINER; `public.*` → service_role only); `rpc_schema_columns`/`rpc_schema_tables` (whitelist zapp/evo/public); grants F-03; guard em `fn_safe_audit_log` |
 | 2026-08-05 | **Fechamento plano 100 etapas**: inventário pg_catalog revalidado (323/359/5/1077/759/144); grants `fn_system_health_score`/`reassign_absent_agents`/`reassign_overloaded_agents` com guarda `is_admin_or_supervisor` (migration `20260805183000`); types.ts regenerado via postgres-meta (sync com DB) |
 | 2026-08-06 | **Plano 30 etapas — integridade de referências**: fix DB-01 — `zapp.fn_enqueue_message_dispatch(uuid,text)` criada (enqueue canônico; SECURITY DEFINER `search_path=zapp,evo,public`; EXECUTE p/ `service_role`; índice único parcial `idx_outbound_queue_source_message_id` como guard anti-duplicata) — cron `retry-stuck-messages` deixa de ser no-op; fix DB-02 — `fn_purge_api_key_from_logs` sem o UPDATE na tabela morta `evo.evolution_webhook_events` (o parent real `_v2` já era coberto); fix DB-03 — `fn_register_instance` insere em `zapp.instance_registry` e não cria mais partição de `evo.evolution_webhook_events` (parent real `_v2`, RANGE por `created_at`, partições mensais via cron jobid 64); 3 CHECKs `NOT VALID` validados (`chk_ncm_formato` em `vendas.ordens_compra`; `chk_tipo_nota_v2`/`chk_status_v2` em `financeiro.notas_fiscais`); guardrail de integridade de referências ativo (Q-1/Q-2 em CI + `ops.fn_check_reference_integrity()` → `ops._infra_check_log`); `GRANT SELECT ON cron.job, cron.job_run_details TO supabase_read_only_user`; re-auditoria: zapp **323** tabelas / **359** views / **5** matviews / **1077** funções / **759** policies (baseline do plano — 380 views/1075 funções/729 policies — defasado, pré-sprint 2026-08-05) |
+| 2026-08-15 | **Desacoplamento ZAPP×Evolution — Fase 0 concluída**: separação física completa entre repos (zapp-web-v3 / evolution-stack); auditoria dos 9 invariantes de independência (score T0: 3/9 = 33% — Nota D); migrations de observabilidade (`ops.pgnet_egress_log`, `ops.i4_violation_baseline`, `ops.fn_decouple_preflight`); CI guard `decouple-guard.yml` ativo; gateway único obrigatório (`supabase/functions/_shared/providers/evolution/client.ts`); plano mestre em 100 etapas documentado em `docs/decouple/DECOUPLING.md`; tag `decouple-t0-20260815` criada; seção de status de desacoplamento adicionada a este documento |
 
 ---
 
