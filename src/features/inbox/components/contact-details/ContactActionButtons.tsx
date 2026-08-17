@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { isSupabaseConfigured } from '@/integrations/supabase/client';
+import { isFeatureEnabled } from '@/lib/featureFlags';
 import { CRMSyncButton } from '../CRMAutoSync';
 import type { Conversation } from '@/types/chat';
 
@@ -79,20 +80,24 @@ export function ContactActionButtons({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-9 w-9 border-border/30 hover:border-primary/50 hover:bg-primary/10"
-              onClick={() => toast.info('Chamada de vídeo em breve')}
-              aria-label="Chamada de vídeo"
-            >
-              <Video className="h-4 w-4 text-primary" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="top">Chamada de vídeo</TooltipContent>
-        </Tooltip>
+        {/* Etapa 43: videochamada não tem backend (SIP é audio-only) — botão
+            oculto atrás da flag video_call (default false) em vez de toast "em breve". */}
+        {isFeatureEnabled('video_call') && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 border-border/30 hover:border-primary/50 hover:bg-primary/10"
+                onClick={() => toast.info('Chamada de vídeo em breve')}
+                aria-label="Chamada de vídeo"
+              >
+                <Video className="h-4 w-4 text-primary" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">Chamada de vídeo</TooltipContent>
+          </Tooltip>
+        )}
 
         <Tooltip>
           <TooltipTrigger asChild>

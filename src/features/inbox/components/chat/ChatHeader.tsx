@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { cn } from '@/lib/utils';
+import { isFeatureEnabled } from '@/lib/featureFlags';
 import { VisionIcon } from '../ai-tools/VisionIcon';
 import { Conversation, Message } from '@/types/chat';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -243,7 +244,11 @@ export const ChatHeader = memo(function ChatHeader({
         {[
           { icon: Search, label: 'Buscar (Ctrl+K)', onClick: onOpenSearch },
           { icon: PhoneCall, label: 'Iniciar chamada', onClick: onStartCall },
-          { icon: Video, label: 'Videochamada', onClick: undefined },
+          // Etapa 43: videochamada não tem backend (SIP é audio-only) — o item
+          // só renderiza quando a flag video_call estiver ligada (default false).
+          ...(isFeatureEnabled('video_call')
+            ? [{ icon: Video, label: 'Videochamada', onClick: undefined as unknown as () => void }]
+            : []),
         ].map(({ icon: Icon, label, onClick }) => (
           <Tooltip key={label}>
             <TooltipTrigger asChild>
