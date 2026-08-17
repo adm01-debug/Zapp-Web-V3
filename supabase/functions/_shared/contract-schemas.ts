@@ -125,6 +125,31 @@ export const EvolutionNotificationDispatcherV1Schema = z.object({
   dryRun: z.boolean().optional(),
 }).strict();
 
+/**
+ * zapp-notifications-dispatch@v1 — executor DASHBOARD-08 (Etapa 68.4).
+ * Evento que menciona uma conversa → dispatch pelos canais ativos de
+ * `zapp.notification_channels_config`. conversation_id/workspace_id são
+ * obrigatórios para DISPATCH REAL (contrato do produtor); o cron chama com {}
+ * (heartbeat no-op, padrão dos crons do repo) — por isso os campos são
+ * opcionais no gate, mas enums/UUIDs/tipos SÃO validados quando presentes.
+ */
+export const ZappNotificationsDispatchV1Schema = z.object({
+  event_type: z.enum(['conversation_mentioned', 'new_message', 'sla_breach']).optional(),
+  conversation_id: z.string().uuid({ message: 'conversation_id deve ser UUID' }).optional(),
+  workspace_id: z.string().uuid({ message: 'workspace_id deve ser UUID' }).optional(),
+  severity: z.enum(['info', 'warning', 'critical']).optional(),
+  title: z.string().max(500).optional(),
+  message: z.string().max(5000).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+}).strict();
+
+/**
+ * warroom-monthly-test@v1 (#1175) — POST-only, body IGNORADO por design
+ * (payload de saída é fixo; zero risco de injeção/reflexão). Schema permissivo
+ * apenas para cobrir o registro (gate de cobertura exige schema por função).
+ */
+export const WarroomMonthlyTestV1Schema = z.object({}).passthrough();
+
 /** recheck-webhook-signature@v1 — index.ts exige event_id string; observed_signature opcional. */
 export const RecheckWebhookSignatureV1Schema = z.object({
   event_id: z.string().min(1, "event_id é obrigatório").max(200),
@@ -1059,6 +1084,8 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "gmail-send":                 { v1: GmailSendV1Schema },
   "reprocess-failed-messages":  { v1: ReprocessFailedMessagesV1Schema },
   "evolution-notification-dispatcher": { v1: EvolutionNotificationDispatcherV1Schema },
+  "zapp-notifications-dispatch": { v1: ZappNotificationsDispatchV1Schema },
+  "warroom-monthly-test": { v1: WarroomMonthlyTestV1Schema },
   "recheck-webhook-signature":  { v1: RecheckWebhookSignatureV1Schema },
   "webhook-diagnostic":         { v1: WebhookDiagnosticV1Schema },
   "instance-pause-control":     { v1: InstancePauseControlV1Schema },
