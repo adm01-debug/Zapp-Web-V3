@@ -12,7 +12,7 @@
 
 export type QueryTimeout = 'fast' | 'normal' | 'slow' | 'analytics';
 
-const TIMEOUTS: Record<QueryTimeout, number> = {
+export const TIMEOUTS: Record<QueryTimeout, number> = {
   fast: 2_000, // 2s — health checks, realtime
   normal: 8_000, // 8s — UI queries
   slow: 30_000, // 30s — exports

@@ -1,7 +1,7 @@
 /**
- * Tests para sanitize-extra.ts
+ * Tests para sanitize-extra.ts (convertido de Deno → vitest)
  */
-import { assertEquals, assertExists } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { describe, it, expect } from 'vitest';
 
 import {
   sanitizeEmail,
@@ -14,157 +14,158 @@ import {
   sanitizeLogMessage,
   truncate,
   validateFileSize,
-} from "../sanitize-extra.ts";
+} from '../sanitize-extra';
 
-Deno.test("sanitizeEmail: aceita email válido", () => {
-  assertEquals(sanitizeEmail("User@Example.com"), "user@example.com");
-});
+describe('sanitize-extra', () => {
+  it('sanitizeEmail: aceita email válido', () => {
+    expect(sanitizeEmail('User@Example.com')).toBe('user@example.com');
+  });
 
-Deno.test("sanitizeEmail: rejeita email sem @", () => {
-  assertEquals(sanitizeEmail("notanemail"), null);
-});
+  it('sanitizeEmail: rejeita email sem @', () => {
+    expect(sanitizeEmail('notanemail')).toBeNull();
+  });
 
-Deno.test("sanitizeEmail: rejeita email muito longo", () => {
-  const long = "a".repeat(300) + "@example.com";
-  assertEquals(sanitizeEmail(long), null);
-});
+  it('sanitizeEmail: rejeita email muito longo', () => {
+    const long = 'a'.repeat(300) + '@example.com';
+    expect(sanitizeEmail(long)).toBeNull();
+  });
 
-Deno.test("sanitizeEmail: rejeita email com pontos consecutivos", () => {
-  assertEquals(sanitizeEmail("user..name@example.com"), null);
-});
+  it('sanitizeEmail: rejeita email com pontos consecutivos', () => {
+    expect(sanitizeEmail('user..name@example.com')).toBeNull();
+  });
 
-Deno.test("sanitizeEmail: aceita email com subdomain", () => {
-  assertEquals(sanitizeEmail("user@mail.example.com"), "user@mail.example.com");
-});
+  it('sanitizeEmail: aceita email com subdomain', () => {
+    expect(sanitizeEmail('user@mail.example.com')).toBe('user@mail.example.com');
+  });
 
-Deno.test("sanitizeEmail: rejeita null/undefined", () => {
-  assertEquals(sanitizeEmail(null as unknown as string), null);
-  assertEquals(sanitizeEmail(undefined as unknown as string), null);
-});
+  it('sanitizeEmail: rejeita null/undefined', () => {
+    expect(sanitizeEmail(null as unknown as string)).toBeNull();
+    expect(sanitizeEmail(undefined as unknown as string)).toBeNull();
+  });
 
-Deno.test("normalizePhoneBR: normaliza telefone sem código do país", () => {
-  assertEquals(normalizePhoneBR("11999998888"), "5511999998888");
-});
+  it('normalizePhoneBR: normaliza telefone sem código do país', () => {
+    expect(normalizePhoneBR('11999998888')).toBe('5511999998888');
+  });
 
-Deno.test("normalizePhoneBR: mantém código do país se presente", () => {
-  assertEquals(normalizePhoneBR("5511999998888"), "5511999998888");
-});
+  it('normalizePhoneBR: mantém código do país se presente', () => {
+    expect(normalizePhoneBR('5511999998888')).toBe('5511999998888');
+  });
 
-Deno.test("normalizePhoneBR: aceita formatação com parênteses", () => {
-  assertEquals(normalizePhoneBR("(11) 99999-8888"), "5511999998888");
-});
+  it('normalizePhoneBR: aceita formatação com parênteses', () => {
+    expect(normalizePhoneBR('(11) 99999-8888')).toBe('5511999998888');
+  });
 
-Deno.test("normalizePhoneBR: rejeita telefone muito curto", () => {
-  assertEquals(normalizePhoneBR("123"), null);
-});
+  it('normalizePhoneBR: rejeita telefone muito curto', () => {
+    expect(normalizePhoneBR('123')).toBeNull();
+  });
 
-Deno.test("normalizePhoneBR: rejeita telefone muito longo", () => {
-  assertEquals(normalizePhoneBR("123456789012345"), null);
-});
+  it('normalizePhoneBR: rejeita telefone muito longo', () => {
+    expect(normalizePhoneBR('123456789012345')).toBeNull();
+  });
 
-Deno.test("maskPhoneBR: formata 11 dígitos", () => {
-  assertEquals(maskPhoneBR("11999998888"), "(11) 99999-8888");
-});
+  it('maskPhoneBR: formata 11 dígitos', () => {
+    expect(maskPhoneBR('11999998888')).toBe('(11) 99999-8888');
+  });
 
-Deno.test("maskPhoneBR: formata 10 dígitos", () => {
-  assertEquals(maskPhoneBR("1199998888"), "(11) 9999-8888");
-});
+  it('maskPhoneBR: formata 10 dígitos', () => {
+    expect(maskPhoneBR('1199998888')).toBe('(11) 9999-8888');
+  });
 
-Deno.test("validateMimeType: aceita MIME permitido", () => {
-  assertEquals(validateMimeType("image/png", ["image/png", "image/jpeg"]), true);
-});
+  it('validateMimeType: aceita MIME permitido', () => {
+    expect(validateMimeType('image/png', ['image/png', 'image/jpeg'])).toBe(true);
+  });
 
-Deno.test("validateMimeType: rejeita MIME não permitido", () => {
-  assertEquals(validateMimeType("application/x-evil", ["image/png"]), false);
-});
+  it('validateMimeType: rejeita MIME não permitido', () => {
+    expect(validateMimeType('application/x-evil', ['image/png'])).toBe(false);
+  });
 
-Deno.test("validateFileExtension: aceita extensão permitida", () => {
-  assertEquals(validateFileExtension("foto.png", ["png", "jpg"]), true);
-});
+  it('validateFileExtension: aceita extensão permitida', () => {
+    expect(validateFileExtension('foto.png', ['png', 'jpg'])).toBe(true);
+  });
 
-Deno.test("validateFileExtension: rejeita extensão perigosa", () => {
-  assertEquals(validateFileExtension("virus.exe", ["png", "jpg"]), false);
-});
+  it('validateFileExtension: rejeita extensão perigosa', () => {
+    expect(validateFileExtension('virus.exe', ['png', 'jpg'])).toBe(false);
+  });
 
-Deno.test("sanitizeFilename: remove path traversal", () => {
-  assertEquals(sanitizeFilename("../../etc/passwd"), "etcpasswd");
-});
+  it('sanitizeFilename: remove path traversal', () => {
+    expect(sanitizeFilename('../../etc/passwd')).toBe('etcpasswd');
+  });
 
-Deno.test("sanitizeFilename: remove separadores", () => {
-  assertEquals(sanitizeFilename("path/to/file.txt"), "pathtofile.txt");
-});
+  it('sanitizeFilename: remove separadores', () => {
+    expect(sanitizeFilename('path/to/file.txt')).toBe('pathtofile.txt');
+  });
 
-Deno.test("sanitizeFilename: trunca nomes longos", () => {
-  const long = "a".repeat(300) + ".txt";
-  const clean = sanitizeFilename(long);
-  assertEquals(clean.length <= 255, true);
-});
+  it('sanitizeFilename: trunca nomes longos', () => {
+    const long = 'a'.repeat(300) + '.txt';
+    const clean = sanitizeFilename(long);
+    expect(clean.length <= 255).toBe(true);
+  });
 
-Deno.test("sanitizeUrl: aceita http", () => {
-  assertEquals(sanitizeUrl("http://example.com"), "http://example.com");
-});
+  it('sanitizeUrl: aceita http', () => {
+    expect(sanitizeUrl('http://example.com')).toBe('http://example.com');
+  });
 
-Deno.test("sanitizeUrl: aceita https", () => {
-  assertEquals(sanitizeUrl("https://example.com"), "https://example.com");
-});
+  it('sanitizeUrl: aceita https', () => {
+    expect(sanitizeUrl('https://example.com')).toBe('https://example.com');
+  });
 
-Deno.test("sanitizeUrl: rejeita javascript:", () => {
-  assertEquals(sanitizeUrl("javascript:alert(1)"), null);
-});
+  it('sanitizeUrl: rejeita javascript:', () => {
+    expect(sanitizeUrl('javascript:alert(1)')).toBeNull();
+  });
 
-Deno.test("sanitizeUrl: rejeita data:", () => {
-  assertEquals(sanitizeUrl("data:text/html,<script>"), null);
-});
+  it('sanitizeUrl: rejeita data:', () => {
+    expect(sanitizeUrl('data:text/html,<script>')).toBeNull();
+  });
 
-Deno.test("sanitizeUrl: aceita mailto", () => {
-  assertEquals(sanitizeUrl("mailto:user@example.com"), "mailto:user@example.com");
-});
+  it('sanitizeUrl: aceita mailto', () => {
+    expect(sanitizeUrl('mailto:user@example.com')).toBe('mailto:user@example.com');
+  });
 
-Deno.test("sanitizeUrl: aceita relative", () => {
-  assertEquals(sanitizeUrl("/path/to/page"), "/path/to/page");
-});
+  it('sanitizeUrl: aceita relative', () => {
+    expect(sanitizeUrl('/path/to/page')).toBe('/path/to/page');
+  });
 
-Deno.test("sanitizeLogMessage: remove CPF", () => {
-  assertEquals(sanitizeLogMessage("User CPF: 123.456.789-00"), "User CPF: [CPF]");
-});
+  it('sanitizeLogMessage: remove CPF', () => {
+    expect(sanitizeLogMessage('User CPF: 123.456.789-00')).toBe('User CPF: [CPF]');
+  });
 
-Deno.test("sanitizeLogMessage: remove email", () => {
-  assertEquals(sanitizeLogMessage("Contact: user@example.com"), "Contact: [EMAIL]");
-});
+  it('sanitizeLogMessage: remove email', () => {
+    expect(sanitizeLogMessage('Contact: user@example.com')).toBe('Contact: [EMAIL]');
+  });
 
-Deno.test("sanitizeLogMessage: remove bearer token", () => {
-  assertEquals(
-    sanitizeLogMessage("Auth: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"),
-    "Auth: Bearer [TOKEN]"
-  );
-});
+  it('sanitizeLogMessage: remove bearer token', () => {
+    expect(sanitizeLogMessage('Auth: Bearer eyJhbG...VCJ9')).toBe(
+      'Auth: Bearer [TOKEN]'
+    );
+  });
 
-Deno.test("sanitizeLogMessage: remove API keys OpenAI", () => {
-  const key = "sk-" + "a".repeat(50);
-  assertEquals(sanitizeLogMessage(`Key: ${key}`), "Key: sk-[REDACTED]");
-});
+  it('sanitizeLogMessage: remove API keys OpenAI', () => {
+    const key = 'sk-' + 'a'.repeat(50);
+    expect(sanitizeLogMessage(`Key: ${key}`)).toBe('Key: sk-[REDACTED]');
+  });
 
-Deno.test("truncate: trunca texto longo", () => {
-  assertEquals(truncate("Hello World", 8), "Hello...");
-});
+  it('truncate: trunca texto longo', () => {
+    expect(truncate('Hello World', 8)).toBe('Hello...');
+  });
 
-Deno.test("truncate: mantém texto curto", () => {
-  assertEquals(truncate("Hi", 10), "Hi");
-});
+  it('truncate: mantém texto curto', () => {
+    expect(truncate('Hi', 10)).toBe('Hi');
+  });
 
-Deno.test("validateFileSize: aceita tamanho válido", () => {
-  const result = validateFileSize(1024 * 1024, 10 * 1024 * 1024);
-  assertEquals(result.valid, true);
-});
+  it('validateFileSize: aceita tamanho válido', () => {
+    const result = validateFileSize(1024 * 1024, 10 * 1024 * 1024);
+    expect(result.valid).toBe(true);
+  });
 
-Deno.test("validateFileSize: rejeita arquivo vazio", () => {
-  const result = validateFileSize(0, 10 * 1024 * 1024);
-  assertEquals(result.valid, false);
-  assertExists(result.error);
-});
+  it('validateFileSize: rejeita arquivo vazio', () => {
+    const result = validateFileSize(0, 10 * 1024 * 1024);
+    expect(result.valid).toBe(false);
+    expect(result.error).toBeDefined();
+  });
 
-Deno.test("validateFileSize: rejeita arquivo muito grande", () => {
-  const result = validateFileSize(20 * 1024 * 1024, 10 * 1024 * 1024);
-  assertEquals(result.valid, false);
-  assertExists(result.error);
+  it('validateFileSize: rejeita arquivo muito grande', () => {
+    const result = validateFileSize(20 * 1024 * 1024, 10 * 1024 * 1024);
+    expect(result.valid).toBe(false);
+    expect(result.error).toBeDefined();
+  });
 });
