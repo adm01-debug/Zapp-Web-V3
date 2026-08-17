@@ -852,6 +852,17 @@ export const CsatAutoSendV1Schema = z.object({
   delay_minutes: z.number().int().min(0).max(1440).nullish(),
 }).strict();
 
+/**
+ * csat-dispatch@v1 — cron a cada 1min (job csat-dispatch-tick, migration
+ * 20260817210000). Body opcional ({}, como os demais schedulers internos);
+ * limit controla o batch do claim (default 50, teto 100); dryRun apenas
+ * claima e devolve o batch sem enviar (devolvendo os surveys a 'scheduled').
+ */
+export const CsatDispatchV1Schema = z.object({
+  limit: z.number().int().min(1).max(100).optional(),
+  dryRun: z.boolean().optional(),
+}).strict();
+
 export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   // Webhooks externos
   "evolution-webhook":       { v1: EvolutionWebhookV1Schema, v2: EvolutionWebhookV2Schema },
@@ -985,6 +996,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   // ─── INBOX-09 / AUTOMACOES-09 ─────────────────────────────────────────────
   "followup-bridge": { v1: FollowupBridgeV1Schema },
   "csat-auto-send":  { v1: CsatAutoSendV1Schema },
+  "csat-dispatch":   { v1: CsatDispatchV1Schema },
 };
 
 // ─── Re-exports de edge-contract-schemas (ponto de import unificado) ─────────
