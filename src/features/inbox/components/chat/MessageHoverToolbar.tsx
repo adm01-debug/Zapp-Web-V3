@@ -34,7 +34,7 @@ import {
 
 const log = getLogger('MessageHoverToolbar');
 
-interface MessageHoverToolbarProps {
+export interface MessageHoverToolbarProps {
   message: Message;
   isSent: boolean;
   instanceName?: string;

@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { log } from '@/lib/logger';
-import { isValidUUID } from '@/features/inbox/utils/contactRef';
+import { isValidUUID } from '@/utils/uuid';
+
+// NOTA (DB-as-source): zapp.favorite_messages é nova (migration 20260817150000,
+// ainda não aplicada no DB) — types.ts será regenerado na rodada de aplicação;
+// até lá, from('favorite_messages' as never) mantém o typecheck verde.
 
 /**
  * useFavoriteMessage — Favoritar mensagem (Etapa 44 do plano 100 etapas).
@@ -27,7 +31,7 @@ export function useFavoriteMessage() {
     } = await supabase.auth.getUser();
     if (!user || !mountedRef.current) return;
     const { data, error } = await supabase
-      .from('favorite_messages')
+      .from('favorite_messages' as never)
       .select('message_id')
       .eq('user_id', user.id);
     if (error) {
@@ -66,8 +70,8 @@ export function useFavoriteMessage() {
     });
 
     const { error } = isFavorite
-      ? await supabase.from('favorite_messages').delete().eq('user_id', user.id).eq('message_id', messageId)
-      : await supabase.from('favorite_messages').insert({ message_id: messageId, user_id: user.id });
+      ? await supabase.from('favorite_messages' as never).delete().eq('user_id', user.id).eq('message_id', messageId)
+      : await supabase.from('favorite_messages' as never).insert({ message_id: messageId, user_id: user.id } as never);
 
     if (error) {
       // rollback otimista

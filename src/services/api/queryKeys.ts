@@ -323,6 +323,7 @@ export const queryKeys = {
       ['team-messages', conversationId, searchQuery] as const,
     allMessages: (conversationId?: string) => ['team-messages', conversationId] as const,
     reactions: (conversationId?: string) => ['team-reactions', conversationId] as const,
+    performance: (conversationId?: string) => ['team-performance', conversationId] as const,
     files: (conversationId?: string) => ['team-files', conversationId] as const,
     groupMembers: (conversationId?: string) => ['team-group-members', conversationId] as const,
   },

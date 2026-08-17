@@ -6,7 +6,7 @@ import { SwipeableMessage } from '@/components/mobile/SwipeableMessage';
 import { DeletedMessagePlaceholder } from '../DeletedMessagePlaceholder';
 import { Message, InteractiveButton } from '@/types/chat';
 import { MessageReactions, QuickReactionBar } from '../MessageReactions';
-import { MessageHoverToolbar } from './MessageHoverToolbar';
+import { MessageHoverToolbar, type MessageHoverToolbarProps } from './MessageHoverToolbar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   ContextMenu,

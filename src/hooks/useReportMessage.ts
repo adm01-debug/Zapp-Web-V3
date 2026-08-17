@@ -2,7 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { log } from '@/lib/logger';
-import { isValidUUID } from '@/features/inbox/utils/contactRef';
+import { isValidUUID } from '@/utils/uuid';
+
+// NOTA (DB-as-source): zapp.message_reports é nova (migration 20260817170000,
+// ainda não aplicada) — types.ts regenerado na rodada de aplicação.
 
 export type ReportReason = 'spam' | 'inapropriado' | 'urgencia' | 'outro';
 
@@ -42,7 +45,7 @@ export function useReportMessage() {
 
   const loadReports = useCallback(async (pid: string) => {
     const { data, error } = await supabase
-      .from('message_reports')
+      .from('message_reports' as never)
       .select('message_id')
       .eq('reporter_id', pid);
     if (error) {
@@ -77,12 +80,12 @@ export function useReportMessage() {
         return;
       }
 
-      const { error } = await supabase.from('message_reports').insert({
+      const { error } = await supabase.from('message_reports' as never).insert({
         message_id: messageId,
         reporter_id: profileId,
         reason,
         details: details?.trim() || null,
-      });
+      } as never);
 
       if (error) {
         // 23505 unique violation = já reportou

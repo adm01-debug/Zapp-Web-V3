@@ -34,8 +34,11 @@ type FeatureFlag =
   | 'v2_audio_recorder'
   | 'advanced_transcription'
   | 'message_queue_retry'
-  /** Etapa 43: chamada de VÍDEO não existe no backend (SIP é audio-only) —
-   *  flag desligada esconde os botões de videochamada até existir backend. */
+  /**
+   * SIM-03: videochamada REAL via SIP (vídeo desde o início, outbound).
+   * Flag ligada exibe os botões de videochamada e inicia o fluxo real
+   * (VideoCallDialog + useSipClient). Desligada esconde os botões.
+   */
   | 'video_call';
 
 interface FeatureConfig {
@@ -75,7 +78,7 @@ const DEFAULTS: Record<FeatureFlag, FeatureConfig> = {
   v2_audio_recorder: { enabled: false, percentage: 0 },
   advanced_transcription: { enabled: false },
   message_queue_retry: { enabled: true },
-  video_call: { enabled: false },
+  video_call: { enabled: true },
 };
 
 let flagCache: Record<string, FeatureConfig> | null = null;

@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
+import { isRlsDeniedError, rlsDeniedMessage } from '@/lib/errors/rlsError';
 
 interface Params {
   contactId: string;
@@ -55,9 +56,12 @@ export function useChatScheduleMessage({ contactId, scheduleMessage, onDone }: P
         onDone();
       } catch (err) {
         log.error('Failed to schedule message:', err);
+        // CAMPANHAS-09: toast REAL em 403 — nunca silenciar nem mascarar a causa.
         toast({
           title: 'Erro ao agendar mensagem',
-          description: 'Tente novamente.',
+          description: isRlsDeniedError(err)
+            ? `${rlsDeniedMessage('mensagens agendadas')} Verifique se o contato está visível para você.`
+            : 'Tente novamente.',
           variant: 'destructive',
         });
       }
