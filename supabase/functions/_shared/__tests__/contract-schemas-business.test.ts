@@ -14,7 +14,6 @@ import {
   EvolutionCredentialsV1Schema,
   EvolutionTemplatesV1Schema,
   EvolutionRetryMetricsV1Schema,
-  EvolutionBitrixSyncV1Schema,
   DbHealthMonitorV1Schema,
   ConnectionHealthCheckV1Schema,
   HealthCheckV1Schema,
@@ -239,7 +238,6 @@ Deno.test("business/infra: cron jobs sem body aceitam {} (body opcional)", () =>
   const cronSchemas = [
     EvolutionCredentialsV1Schema,
     EvolutionRetryMetricsV1Schema,
-    EvolutionBitrixSyncV1Schema,
     DbHealthMonitorV1Schema,
     HealthCheckV1Schema,
     HealthV1Schema,
