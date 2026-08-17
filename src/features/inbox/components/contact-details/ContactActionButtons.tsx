@@ -13,7 +13,6 @@ import {
   MoreHorizontal,
   ChevronsDownUp,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -80,8 +79,8 @@ export function ContactActionButtons({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Etapa 43: videochamada não tem backend (SIP é audio-only) — botão
-            oculto atrás da flag video_call (default false) em vez de toast "em breve". */}
+        {/* SIM-03: videochamada REAL via SIP — flag video_call ligada exibe o
+            botão E dispara o fluxo (evento consumido pelo VideoCallLauncher). */}
         {isFeatureEnabled('video_call') && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -89,7 +88,13 @@ export function ContactActionButtons({
                 variant="outline"
                 size="icon"
                 className="h-9 w-9 border-border/30 hover:border-primary/50 hover:bg-primary/10"
-                onClick={() => toast.info('Chamada de vídeo em breve')}
+                onClick={() => {
+                  window.dispatchEvent(
+                    new CustomEvent('start-video-call', {
+                      detail: { phone: contact.phone, name: contact.name },
+                    })
+                  );
+                }}
                 aria-label="Chamada de vídeo"
               >
                 <Video className="h-4 w-4 text-primary" />

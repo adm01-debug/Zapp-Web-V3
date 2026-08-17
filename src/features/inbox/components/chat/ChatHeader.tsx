@@ -244,10 +244,26 @@ export const ChatHeader = memo(function ChatHeader({
         {[
           { icon: Search, label: 'Buscar (Ctrl+K)', onClick: onOpenSearch },
           { icon: PhoneCall, label: 'Iniciar chamada', onClick: onStartCall },
-          // Etapa 43: videochamada não tem backend (SIP é audio-only) — o item
-          // só renderiza quando a flag video_call estiver ligada (default false).
+          // SIM-03: videochamada REAL via SIP (vídeo desde o início, outbound).
+          // A flag video_call (default true) ligada exibe o botão E inicia o
+          // fluxo real — o evento é consumido pelo VideoCallLauncher (App-level).
           ...(isFeatureEnabled('video_call')
-            ? [{ icon: Video, label: 'Videochamada', onClick: undefined as unknown as () => void }]
+            ? [
+                {
+                  icon: Video,
+                  label: 'Videochamada',
+                  onClick: () => {
+                    window.dispatchEvent(
+                      new CustomEvent('start-video-call', {
+                        detail: {
+                          phone: conversation.contact.phone ?? '',
+                          name: conversation.contact.name ?? '',
+                        },
+                      })
+                    );
+                  },
+                },
+              ]
             : []),
         ].map(({ icon: Icon, label, onClick }) => (
           <Tooltip key={label}>

@@ -13,9 +13,32 @@ export type { SipStatus } from './sip/useSipConnection';
 /** Lifecycle state of the active SIP call session. */
 export type CallStatus = 'idle' | 'calling' | 'ringing' | 'active' | 'on-hold' | 'ended';
 
+/** Opções da makeCall: `video: true` inicia a chamada com vídeo desde o início (V1 — sem upgrade mid-call). */
+export interface MakeCallOptions {
+  video?: boolean;
+}
+
 const log = getLogger('SipClient');
 
-/** Manages a SIP.js WebRTC voice call session: connects/disconnects the UA, places/answers/holds/mutes calls, tracks duration, and persists call records to Supabase. */
+/** Mensagem de erro amigável por falha de câmera (SIM-03 F1-F3). */
+function cameraErrorMessage(err: unknown): string {
+  const name =
+    err instanceof DOMException ? err.name : ((err as { name?: string } | null)?.name ?? '');
+  switch (name) {
+    case 'NotAllowedError':
+      return 'Câmera bloqueada — chamando só voz';
+    case 'NotFoundError':
+      return 'Câmera não encontrada — chamando só voz';
+    case 'NotReadableError':
+      return 'Câmera em uso em outra aba — chamando só voz';
+    case 'OverconstrainedError':
+      return 'Câmera não suporta a resolução pedida — chamando só voz';
+    default:
+      return 'Câmera indisponível — chamando só voz';
+  }
+}
+
+/** Manages a SIP.js WebRTC voice/video call session: connects/disconnects the UA, places/answers/holds/mutes/video-toggles calls, tracks duration, and persists call records to Supabase. */
 export function useSipClient() {
   const { sipStatus, uaRef, connect, disconnect } = useSipConnection();
   const queryClient = useQueryClient();
@@ -24,11 +47,20 @@ export function useSipClient() {
   const [callDuration, setCallDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [currentNumber, setCurrentNumber] = useState('');
+  /** Stream local (mic + câmera) da chamada ativa — anexada a um <video muted> pela UI. */
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  /** Stream remota (áudio + vídeo quando o provedor suporta) da chamada ativa. */
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  /** Vídeo local ligado/desligado (track.enabled — mesmo padrão do mute). */
+  const [isVideoOn, setIsVideoOn] = useState(false);
+  /** Suporte a vídeo do provedor na sessão atual (F4: sem m=video remoto → degrada para voz). */
+  const [videoSupported, setVideoSupported] = useState(true);
 
   const sessionRef = useRef<Inviter | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const callStartTimeRef = useRef<string | null>(null);
   const profileIdRef = useRef<string | null>(null);
 
@@ -43,6 +75,22 @@ export function useSipClient() {
       remoteAudioRef.current = audio;
     }
     return remoteAudioRef.current;
+  }, []);
+
+  /** <video> body-level para chamadas COM vídeo (mesmo padrão get-or-create do getRemoteAudio).
+   *  Reproduz áudio+vídeo — evita som duplicado com o elemento de áudio. */
+  const getRemoteVideo = useCallback(() => {
+    if (!remoteVideoRef.current) {
+      const existing = document.getElementById('sip-remote-video');
+      if (existing) existing.remove();
+      const video = document.createElement('video');
+      video.id = 'sip-remote-video';
+      video.autoplay = true;
+      video.playsInline = true;
+      document.body.appendChild(video);
+      remoteVideoRef.current = video;
+    }
+    return remoteVideoRef.current;
   }, []);
 
   const startTimer = useCallback(() => {
@@ -124,7 +172,8 @@ export function useSipClient() {
   );
 
   const makeCall = useCallback(
-    async (number: string) => {
+    async (number: string, options?: MakeCallOptions) => {
+      const videoEnabled = options?.video ?? false;
       if (!uaRef.current || sipStatus !== 'registered') {
         toast.error('VoIP não conectado.');
         return;
@@ -132,6 +181,23 @@ export function useSipClient() {
       if (callStatusRef.current !== 'idle') {
         toast.error('Já existe uma chamada em andamento.');
         return;
+      }
+      // Camera pre-flight (SIM-03 F1-F3): valida a câmera ANTES de enviar o
+      // INVITE. Se falhar (permissão negada / sem câmera / câmera em uso),
+      // a chamada cai para áudio-only com toast explicativo — o SDP do Inviter
+      // sai sem m=video.
+      let constraints: MediaStreamConstraints = { audio: true, video: false };
+      if (videoEnabled) {
+        try {
+          const probe = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: true,
+          });
+          probe.getTracks().forEach((t) => t.stop());
+          constraints = { audio: true, video: true };
+        } catch (err) {
+          toast.error(cameraErrorMessage(err));
+        }
       }
       try {
         const target = UserAgent.makeURI(`sip:${number}@${uaRef.current.configuration.uri.host}`);
@@ -144,8 +210,11 @@ export function useSipClient() {
         callStatusRef.current = 'calling';
         callStartTimeRef.current = new Date().toISOString();
         const inviter = new Inviter(uaRef.current, target, {
-          sessionDescriptionHandlerOptions: { constraints: { audio: true, video: false } },
+          sessionDescriptionHandlerOptions: { constraints },
         });
+        const callHasVideo = videoEnabled && constraints.video !== false;
+        setIsVideoOn(callHasVideo);
+        setVideoSupported(true);
         inviter.stateChange.addListener((state) => {
           if (state === SessionState.Establishing) {
             setCallStatus('ringing');
@@ -155,14 +224,39 @@ export function useSipClient() {
             callStatusRef.current = 'active';
             startTimer();
             const stream = new MediaStream();
-            const audio = getRemoteAudio();
             const sdh = inviter.sessionDescriptionHandler as Web.SessionDescriptionHandler;
-            sdh?.peerConnection?.getReceivers().forEach((r) => {
-              if (r.track) stream.addTrack(r.track);
+            const receivers = sdh?.peerConnection?.getReceivers() ?? [];
+            let hasRemoteVideo = false;
+            receivers.forEach((r) => {
+              if (r.track) {
+                stream.addTrack(r.track);
+                if (r.track.kind === 'video') hasRemoteVideo = true;
+              }
             });
-            audio.srcObject = stream;
+            if (hasRemoteVideo) {
+              // Remoto com vídeo: toca no <video> (que também reproduz o áudio)
+              // e remove o <audio> para não duplicar o som.
+              getRemoteVideo().srcObject = stream;
+              remoteAudioRef.current?.remove();
+              remoteAudioRef.current = null;
+            } else {
+              getRemoteAudio().srcObject = stream;
+              remoteVideoRef.current?.remove();
+              remoteVideoRef.current = null;
+            }
+            setRemoteStream(stream);
+            setLocalStream(sdh?.localMediaStream ?? null);
+            if (callHasVideo && !hasRemoteVideo) {
+              // F4: provedor não anunciou m=video — degrada a sessão para voz.
+              setVideoSupported(false);
+              toast.info('Provedor sem suporte a vídeo — chamada em áudio');
+            }
           } else if (state === SessionState.Terminated) {
             stopTimer();
+            setLocalStream(null);
+            setRemoteStream(null);
+            setIsVideoOn(false);
+            setVideoSupported(true);
             const prev = callStatusRef.current;
             const logStatus = prev === 'active' ? 'ended' : 'missed';
             setCallStatus('ended');
@@ -185,7 +279,7 @@ export function useSipClient() {
         toast.error(`Erro ao ligar: ${err instanceof Error ? err.message : 'Falha'}`);
       }
     },
-    [sipStatus, uaRef, startTimer, stopTimer, getRemoteAudio, logCall]
+    [sipStatus, uaRef, startTimer, stopTimer, getRemoteAudio, getRemoteVideo, logCall]
   );
 
   const hangUp = useCallback(() => {
@@ -205,6 +299,10 @@ export function useSipClient() {
     setCallStatus('idle');
     callStatusRef.current = 'idle';
     setIsMuted(false);
+    setIsVideoOn(false);
+    setLocalStream(null);
+    setRemoteStream(null);
+    setVideoSupported(true);
   }, [stopTimer]);
 
   const toggleMute = useCallback(() => {
@@ -215,6 +313,23 @@ export function useSipClient() {
     });
     setIsMuted(!isMuted);
   }, [isMuted]);
+
+  /** Liga/desliga o vídeo local da chamada ativa (track.enabled — mesmo padrão do mute). */
+  const toggleVideo = useCallback(() => {
+    const session = sessionRef.current;
+    if (!session || session.state !== SessionState.Established) return;
+    const sdh = session.sessionDescriptionHandler as Web.SessionDescriptionHandler;
+    const videoSenders =
+      sdh?.peerConnection?.getSenders().filter((s) => s.track?.kind === 'video') ?? [];
+    if (videoSenders.length === 0) {
+      toast.info('Vídeo não disponível nesta chamada');
+      return;
+    }
+    videoSenders.forEach((s) => {
+      if (s.track) s.track.enabled = !isVideoOn;
+    });
+    setIsVideoOn(!isVideoOn);
+  }, [isVideoOn]);
 
   const sendDTMF = useCallback((digit: string) => {
     if (!sessionRef.current || sessionRef.current.state !== SessionState.Established) return;
@@ -234,6 +349,8 @@ export function useSipClient() {
       if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
       remoteAudioRef.current?.remove();
       remoteAudioRef.current = null;
+      remoteVideoRef.current?.remove();
+      remoteVideoRef.current = null;
     };
   }, [stopTimer]);
 
@@ -242,12 +359,17 @@ export function useSipClient() {
     callStatus,
     callDuration,
     isMuted,
+    isVideoOn,
+    videoSupported,
+    localStream,
+    remoteStream,
     currentNumber,
     connect,
     disconnect,
     makeCall,
     hangUp,
     toggleMute,
+    toggleVideo,
     sendDTMF,
   };
 }
