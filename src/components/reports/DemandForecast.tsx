@@ -59,11 +59,10 @@ export function DemandForecast() {
       const dayOfWeek = getDay(targetDate);
       const avgForDay =
         dayBuckets[dayOfWeek].length > 0 ? Math.round(dayBuckets[dayOfWeek].length / 4) : 0;
-      const variance = Math.round(avgForDay * 0.15);
       forecast.push({
         day: format(targetDate, 'EEE dd/MM', { locale: ptBR }),
         actual: i === 0 ? avgForDay : 0,
-        predicted: avgForDay + (i > 0 ? Math.round(Math.random() * variance * 2 - variance) : 0),
+        predicted: avgForDay,
       });
     }
     setHistoricalData(forecast);
