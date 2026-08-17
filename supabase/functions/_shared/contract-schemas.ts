@@ -212,6 +212,14 @@ export const WebhookHmacSelftestV1Schema = z.object({
 /** webhook-secret-status@v1 — status admin (GET/POST); index.ts não lê corpo. */
 export const WebhookSecretStatusV1Schema = z.object({}).passthrough();
 
+/**
+ * warroom-monthly-test@v1 — teste mensal do pipeline de alerta Warroom
+ * (POST-only, auth role service_role, payload de saída fixo). index.ts
+ * IGNORA o body por design (zero risco de injeção/reflexão) — schema de
+ * registro permissivo, sem gate no handler.
+ */
+export const WarroomMonthlyTestV1Schema = z.object({}).passthrough();
+
 /** whatsapp-cloud-secrets-status@v1 — status admin (GET/POST); corpo não lido. */
 export const WhatsappCloudSecretsStatusV1Schema = z.object({}).passthrough();
 
@@ -685,6 +693,26 @@ export const ApprovePasswordResetV1Schema = z.object({
 }).passthrough();
 
  /**
+  * invite-user@v1 — convite de usuário por email (Etapa 57). Endpoint interno
+  * (admin-only) → estrito. email obrigatório; role fechada com default 'agent'
+  * (espelha o CreateUserV1Schema do repo); message opcional (max 500) incluída
+  * no email de convite.
+  */
+ export const InviteUserV1Schema = z.object({
+   email: z.string().email("Email inválido").max(255),
+   role: z.enum(["admin", "supervisor", "agent"]).optional().default("agent"),
+   message: z.string().max(500).optional(),
+ }).strict();
+
+ /**
+  * revoke-session@v1 — revogação de sessão ativa (Etapa 56). Endpoint interno
+  * (frontend autenticado) → estrito. sessionId obrigatório (UUID de auth.sessions).
+  */
+ export const RevokeSessionV1Schema = z.object({
+   sessionId: z.string().uuid("sessionId deve ser um UUID de auth.sessions"),
+ }).strict();
+
+ /**
   * zapp-auth-sessions@v1 — gestão de sessões ativas (Etapa 56). Endpoint
   * interno (frontend autenticado). action obrigatório; userId só para
   * admin/supervisor (alvo de outro usuário); sessionIds obrigatório para
@@ -958,6 +986,8 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "elevenlabs-sfx":                { v1: ElevenLabsSfxV1Schema },
   "elevenlabs-dialogue":           { v1: ElevenLabsDialogueV1Schema },
   "create-user":                   { v1: CreateUserV1Schema },
+  "invite-user":                   { v1: InviteUserV1Schema },
+  "revoke-session":                { v1: RevokeSessionV1Schema },
   "approve-password-reset":        { v1: ApprovePasswordResetV1Schema },
   "detect-new-device":             { v1: AISchemas.DetectNewDeviceV1Schema },
   "webauthn":                      { v1: WebauthnV1Schema },
@@ -1007,6 +1037,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "virustotal-test":  { v1: InfraSchemas.VirustotalTestV1Schema },
   "voice-agent":  { v1: AISchemas.VoiceAgentV1Schema },
   "voice-changer":  { v1: InfraSchemas.VoiceChangerMultipartV1Schema },
+  "warroom-monthly-test": { v1: WarroomMonthlyTestV1Schema },
 
   // ─── INBOX-09 / AUTOMACOES-09 ─────────────────────────────────────────────
   "followup-bridge": { v1: FollowupBridgeV1Schema },

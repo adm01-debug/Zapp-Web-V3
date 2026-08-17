@@ -212,6 +212,9 @@ const PLACEHOLDER_ALLOWLIST = new Set([
   "email-track-link", "email-track-pixel",
   "webhook-secret-status", "whatsapp-cloud-secrets-status",
   "whatsapp-cloud-webhook-verify",
+  // warroom-monthly-test: POST-only com payload de saída FIXO — body IGNORADO
+  // por design (self-contained, sem gate no handler). Registro permissivo.
+  "warroom-monthly-test",
   // Hook interno do Supabase Auth — schema permissivo por design (evento Auth
   // varia por versão do GoTrue); sem diretório de função (invocado via Auth,
   // não via gateway). Reintroduzido pelo PR #782 — restaurado na allowlist

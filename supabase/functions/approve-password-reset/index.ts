@@ -65,6 +65,10 @@ import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import {
+  sendTransactionalEmail,
+  renderTransactionalEmailHtml,
+} from "../_shared/resend.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -184,11 +188,44 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Email de reset REAL via Resend (gap "nunca envia email" corrigido):
+    // o usuário recebe o link no email; a resposta da edge mantém o resetLink
+    // para o admin copiar em fallback manual.
+    const resetLink = resetData.properties?.action_link ?? `${appUrl}/reset-password`;
+    const mail = await sendTransactionalEmail(
+      resetRequest.email,
+      "Redefinição de senha — ZAPP Web",
+      renderTransactionalEmailHtml({
+        title: "Redefinição de senha",
+        bodyHtml: [
+          `<p>Uma solicitação de redefinição de senha para a sua conta foi <strong>aprovada</strong> pelo administrador.</p>`,
+          `<p>Clique no botão abaixo para criar uma nova senha. O link é válido por <strong>1 hora</strong>.</p>`,
+        ].join("\n"),
+        ctaUrl: resetLink,
+        ctaText: "Redefinir senha",
+        footerText: "Se você não solicitou a redefinição de senha, ignore esta mensagem com segurança.",
+      }),
+    );
+
+    if (!mail.ok) {
+      // Falha EXPLÍCITA (nunca silenciosa — contrato do resend.ts): a
+      // aprovação e o token já foram registrados (guarda atômica respeitada);
+      // o admin recebe o link na resposta para fallback manual de envio.
+      log.error("Reset email failed to send", { error: mail.error, requestId });
+      return errorResponse(
+        "Approval recorded but email failed to send",
+        502,
+        req,
+        { resetLink },
+      );
+    }
+    log.info("Reset email sent", { requestId, messageId: mail.messageId });
+
     log.done(200, { action: "approved" });
     return jsonResponse({
       success: true,
       message: "Solicitação aprovada",
-      resetLink: resetData.properties?.action_link,
+      resetLink,
     }, 200, req);
   } catch (error: unknown) {
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });

@@ -69,7 +69,7 @@ Deno.test("cobertura: toda função que lê body invoca o gate de contrato (ou e
     // fonte (import + chamada no branch req.body===null) mas são no-op — não
     // podem contar como cobertura efetiva (validação Claude C3, 2ª rodada).
     if (ALLOWLIST[fnName]) continue;
-    const hasGate = /parseOrReject\(|parseRequestOrReject\(/.test(src);
+    const hasGate = /parseOrReject(?:\(|<)|parseRequestOrReject(?:\(|<)/.test(src);
     if (hasGate) {
       withGate++;
       continue;
