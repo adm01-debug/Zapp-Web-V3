@@ -161,6 +161,12 @@ export const ticketStore = {
       events: [ev, ...base.events].slice(0, 50),
     };
     writeAll({ ...current, [contactId]: updated });
+
+    // Etapa 66: alimenta a gamificação REAL — evento escutado pelo
+    // GamificationProvider (incrementa resoluções/XP).
+    if (nextStatus === 'resolved' && base.status !== 'resolved') {
+      window.dispatchEvent(new CustomEvent('zapp:conversation-resolved'));
+    }
   },
 
   assign(

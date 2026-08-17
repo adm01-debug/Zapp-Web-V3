@@ -296,6 +296,23 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
     }
   }, [dbStats, triggerLevelUp]);
 
+  // Etapa 66: alimentação REAL — eventos do domínio (messageSender e
+  // ticketStore) incrementam XP/mensagens/resoluções. Sem ação manual.
+  useEffect(() => {
+    const onMessageSent = () => {
+      void triggerMessageSent().catch((e) => log.error('Gamification: message-sent failed', e));
+    };
+    const onConversationResolved = () => {
+      void triggerResolution().catch((e) => log.error('Gamification: resolution failed', e));
+    };
+    window.addEventListener('zapp:message-sent', onMessageSent);
+    window.addEventListener('zapp:conversation-resolved', onConversationResolved);
+    return () => {
+      window.removeEventListener('zapp:message-sent', onMessageSent);
+      window.removeEventListener('zapp:conversation-resolved', onConversationResolved);
+    };
+  }, [triggerMessageSent, triggerResolution]);
+
   return (
     <GamificationContext.Provider
       value={{
