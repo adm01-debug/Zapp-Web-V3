@@ -138,6 +138,7 @@ export const EDGE_FUNCTION_NAMES = [
   'voice-agent',
   'voice-changer',
   'voice-copilot-action',
+  'warroom-monthly-test',
   'webauthn',
   'webhook-diagnostic',
   'webhook-hmac-selftest',
@@ -147,6 +148,7 @@ export const EDGE_FUNCTION_NAMES = [
   'whatsapp-cloud-send',
   'whatsapp-cloud-webhook',
   'whatsapp-cloud-webhook-verify',
+  'zapp-n8n-sync',
 ] as const;
 
 const JsonValueSchema: z.ZodType<unknown> = z.lazy(() =>
@@ -331,6 +333,15 @@ const specificEdgeFunctionSchemas: Partial<
         device_name: z.string().min(1),
       })
       .passthrough(),
+  },
+  // Contrato real da integração n8n (estado honesto not_configured) — schema
+  // inline (edge-contract-schemas.ts NUNCA importa de contract-schemas.ts).
+  'zapp-n8n-sync': {
+    v1: z
+      .discriminatedUnion('action', [
+        z.object({ action: z.literal('status') }).strict(),
+        z.object({ action: z.literal('configure'), baseUrl: z.string().min(1).max(2048) }).strict(),
+      ]),
   },
   ...WebhookContractSchemas,
 };
