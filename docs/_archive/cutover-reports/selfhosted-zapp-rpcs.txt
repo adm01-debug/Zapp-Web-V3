@@ -471,6 +471,8 @@ revoke_lgpd_consent
 rls_auto_enable
 rpc_associate_label
 rpc_auto_save_sticker
+rpc_boundary_raise_alert
+rpc_boundary_resolve_alert
 rpc_change_deal_stage
 rpc_check_and_trigger_gmail_revalidation
 rpc_check_audio_meme_duplicate
