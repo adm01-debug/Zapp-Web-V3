@@ -49,7 +49,7 @@
  * ============================================================================
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import fs from 'node:fs';
@@ -307,7 +307,7 @@ describe('E65 [C2] fn_dispatch: pega due e marca sent (migration versionada)', (
   it('função é SECURITY DEFINER (convenção AGENTS.md)', () => {
     const dispatchFiles = loadMigrations().filter(({ sql }) => DISPATCH_FN.test(sql));
     expect(dispatchFiles.length).toBeGreaterThan(0);
-    for (const { file, sql } of dispatchFiles) {
+    for (const { sql } of dispatchFiles) {
       expect(sql).toMatch(/SECURITY\s+DEFINER/i);
     }
   });
