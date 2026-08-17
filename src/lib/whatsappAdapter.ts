@@ -150,10 +150,17 @@ async function invokeCloud(body: Record<string, unknown>) {
   return data;
 }
 
-/** Calls the `evolution-api` edge function for the given `action`, merging it with `body`, and throws on error. */
-async function invokeEvolution(action: string, body: Record<string, unknown>) {
+/**
+ * Calls the `evolution-api` edge function for the given `action`, merging it
+ * with `body`, and throws on error. When `idemKey` is provided it is forwarded
+ * as the `Idempotency-Key` header — the edge dedupes against
+ * `evo.evolution_send_idempotency` (TTL 24h), so retries of the same logical
+ * send converge server-side.
+ */
+async function invokeEvolution(action: string, body: Record<string, unknown>, idemKey?: string) {
   const { data, error } = await supabase.functions.invoke('evolution-api', {
     body: { action, ...body },
+    ...(idemKey ? { headers: { 'Idempotency-Key': idemKey } } : {}),
   });
   if (error) throw error;
   return data;
@@ -161,8 +168,8 @@ async function invokeEvolution(action: string, body: Record<string, unknown>) {
 
 // ----- Envios ---------------------------------------------------------------
 
-/** send Text function. */
-export async function sendText(params: SendTextParams) {
+/** send Text function. `idemKey` (opcional, back-compat) vira header `Idempotency-Key` no invoke Evolution. */
+export async function sendText(params: SendTextParams, idemKey?: string) {
   // Dual-mode: grupos (@g.us) não existem na Meta Cloud API → Evolution sempre
   // (sem round-trip de modo; demais destinos seguem o modo do workspace).
   const transport = isGroupJid(params.remoteJid)
@@ -181,11 +188,11 @@ export async function sendText(params: SendTextParams) {
     text: params.text,
     quoted: params.quotedMessageId ? { key: { id: params.quotedMessageId } } : undefined,
     mentioned: params.mentions,
-  });
+  }, idemKey);
 }
 
-/** send Media function. */
-export async function sendMedia(params: SendMediaParams) {
+/** send Media function. `idemKey` (opcional, back-compat) vira header `Idempotency-Key` no invoke Evolution. */
+export async function sendMedia(params: SendMediaParams, idemKey?: string) {
   // Dual-mode: grupos (@g.us) não existem na Meta Cloud API → Evolution sempre
   // (sem round-trip de modo; demais destinos seguem o modo do workspace).
   const transport = isGroupJid(params.remoteJid)
@@ -208,11 +215,11 @@ export async function sendMedia(params: SendMediaParams) {
     mimetype: params.mimetype,
     caption: params.caption,
     fileName: params.filename,
-  });
+  }, idemKey);
 }
 
-/** send Audio function. */
-export async function sendAudio(params: SendAudioParams) {
+/** send Audio function. `idemKey` (opcional, back-compat) vira header `Idempotency-Key` no invoke Evolution. */
+export async function sendAudio(params: SendAudioParams, idemKey?: string) {
   const { transport } = await resolveTransport();
   if (transport === 'cloud') {
     return invokeCloud({
@@ -228,7 +235,7 @@ export async function sendAudio(params: SendAudioParams) {
     ptt: params.ptt ?? true,
     encoding: params.encoding,
     mediaHash: params.mediaHash,
-  });
+  }, idemKey);
 }
 
 /** send Sticker function. */
@@ -456,10 +463,11 @@ export async function listInstances() {
 
 
 // ── Helper para sub-path invokes (routing por caminho, não por action) ───
-async function invokeEvolutionPath(path: string, body: Record<string, unknown>) {
+async function invokeEvolutionPath(path: string, body: Record<string, unknown>, idemKey?: string) {
   const { data, error } = await supabase.functions.invoke(`evolution-api/${path}`, {
     method: 'POST',
     body,
+    ...(idemKey ? { headers: { 'Idempotency-Key': idemKey } } : {}),
   });
   if (error) throw error;
   return data;
@@ -554,7 +562,7 @@ export async function requestPairingCode(params: RequestPairingCodeParams) {
 // /message/sendPtv/{instance}. O FormData montado aqui preserva EXATAMENTE o
 // body do call site original (externalMessageSender.sendExternalPtv):
 //   action='send-ptv', instanceName, number, video (Blob 'video.mp4'), mediaHash.
-export async function sendPtv(params: SendPtvParams) {
+export async function sendPtv(params: SendPtvParams, idemKey?: string) {
   const videoUrl = params.videoUrl ?? params.mediaUrl;
   if (!videoUrl) {
     throw new Error('sendPtv: videoUrl (ou mediaUrl) é obrigatório.');
@@ -585,6 +593,7 @@ export async function sendPtv(params: SendPtvParams) {
 
   const { data, error } = await supabase.functions.invoke('evolution-api', {
     body: formData,
+    ...(idemKey ? { headers: { 'Idempotency-Key': idemKey } } : {}),
   });
   if (error) throw error;
   return data;

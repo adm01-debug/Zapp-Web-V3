@@ -12,6 +12,7 @@
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { jidToPhone } from '@/adapters/evolutionAdapter';
 import { sendAudio } from '@/lib/whatsappAdapter';
+import { buildSendIdempotencyKeyFromFingerprint } from '@/lib/sendIdempotency';
 import { getLogger } from '@/lib/logger';
 import { parseEvolutionError } from '@/features/inbox';
 import { dbInsert } from '@/integrations/datasource/db';
@@ -96,6 +97,14 @@ export async function sendExternalAudio(
   let data: unknown;
   let error: unknown;
   try {
+    // Fingerprint estável: mediaHash (hash do blob) identifica o conteúdo —
+    // a blob URL local seria instável entre retries do mesmo envio.
+    const idemKey = await buildSendIdempotencyKeyFromFingerprint({
+      contactId: remoteJid,
+      messageType: 'audio',
+      content: '[Áudio]',
+      mediaUrl: mediaHash ?? null,
+    });
     data = await sendAudio({
       remoteJid,
       audioUrl: audioBase64,
@@ -103,7 +112,7 @@ export async function sendExternalAudio(
       ptt: opts.isPtt ?? true,
       encoding: true,
       mediaHash,
-    });
+    }, idemKey);
   } catch (err) {
     error = err;
   }
